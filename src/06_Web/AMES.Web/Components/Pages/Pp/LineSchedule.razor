@@ -1,13 +1,18 @@
 ﻿@page "/pp/line-schedule"
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @rendermode InteractiveServer
-@inject AMES.Data.Repositories.LineScheduleRepository LSB
-@inject AMES.Data.Repositories.WorkOrderRepository    Wos
-@inject IStringLocalizer<SharedResources> L
-@inject IJSRuntime JS
-@inject AuthenticationStateProvider Auth
-@implements IDisposable
+
 @using AMES.Contracts.Dto
+@using AMES.Data.Repositories
+@using Radzen
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@inject AuthenticationStateProvider Auth
+@inject AMES.Web.Services.PermissionService PermSvc
+@inject LineScheduleRepository LSB
+@inject WorkOrderRepository    Wos
+@inject MasterDataRepository   MD
+@inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["PP.LineSchedule.Title"] · AMES</PageTitle>
 
@@ -15,262 +20,201 @@
 
 @* ── KPI ──────────────────────────────────────────────────────────── *@
 <div class="ames-kpis">
-    <div class="ames-kpi ok">
-        <div class="ames-kpi-l">@L["PP.LineSchedule.Kpi.WorkCap"]</div>
-        <div class="ames-kpi-v">@WorkMin<span style="font-size:14px;margin-left:3px;">min</span></div>
-        <div class="ames-kpi-s">@L["PP.LineSchedule.Kpi.WorkCapSub"]</div>
-    </div>
-    <div class="ames-kpi info">
-        <div class="ames-kpi-l">@L["PP.LineSchedule.Kpi.WoLoad"]</div>
-        <div class="ames-kpi-v">@WoLoadMin<span style="font-size:14px;margin-left:3px;">min</span></div>
-        <div class="ames-kpi-s">@L["PP.LineSchedule.Kpi.WoLoadSub"]</div>
-    </div>
-    <div class="ames-kpi @(RemainMin < 0 ? "bad" : RemainMin < 60 ? "warn" : "")">
-        <div class="ames-kpi-l">@L["PP.LineSchedule.Kpi.Remain"]</div>
-        <div class="ames-kpi-v">@RemainMin<span style="font-size:14px;margin-left:3px;">min</span></div>
-        <div class="ames-kpi-s">@(RemainMin < 0 ? L["PP.LineSchedule.Kpi.Over"].Value : L["PP.LineSchedule.Kpi.Available"].Value)</div>
-    </div>
-    <div class="ames-kpi @(WorkMin > 0 ? (Utilization >= 100 ? "bad" : Utilization >= 80 ? "warn" : "ok") : "")">
-        <div class="ames-kpi-l">@L["PP.LineSchedule.Kpi.Util"]</div>
-        <div class="ames-kpi-v">@Utilization<span style="font-size:14px;margin-left:2px;">%</span></div>
-        <div class="ames-kpi-s">@L["PP.LineSchedule.Kpi.UtilSub"]</div>
-    </div>
-</div>
-
-@if (!string.IsNullOrEmpty(_err))
-{
-    <div class="ames-alert bad">@_err</div>
-}
-@if (!string.IsNullOrEmpty(_msg))
-{
-    <div class="ames-alert ok">@_msg</div>
-}
-
-@* ── Tab bar + toolbar ────────────────────────────────────────────── *@
-<div class="ames-cal-tabs" style="gap:6px;">
-    <button class="ames-cal-tab @(_tab=="gantt"?"active":"")"
-            @onclick='() => SwitchTab("gantt")'>@L["PP.LineSchedule.Tab.Gantt"]</button>
-    <button class="ames-cal-tab @(_tab=="pattern"?"active":"")"
-            @onclick='() => SwitchTab("pattern")'>@L["PP.LineSchedule.Tab.Pattern"]</button>
-    <div style="flex:1;"></div>
-    <select class="ames-input" style="width:160px;align-self:center;"
-            @bind="_lineId" @bind:after="LoadData">
-        <option value="">@L["PP.LineSchedule.Ph.SelectLine"]</option>
-        @foreach (var l in _lines)
-        {
-            <option value="@l">@l</option>
-        }
-    </select>
-    <input type="date" class="ames-input" style="width:150px;padding:4px 8px;align-self:center;"
-           value="@_date.ToString("yyyy-MM-dd")"
-           @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) { _date = d; LoadData(); } }" />
-    <select class="ames-input" style="width:120px;align-self:center;"
-            @bind="_dayType" @bind:after="LoadData">
-        <option value="WORKDAY">WORKDAY</option>
-        <option value="WEEKEND">WEEKEND</option>
-        <option value="HOLIDAY">HOLIDAY</option>
-    </select>
-    <button class="ames-btn ok" @onclick="LoadData" style="align-self:center;">@L["Btn.Search"]</button>
-</div>
-
-@if (string.IsNullOrEmpty(_lineId))
-{
-    <div class="ames-card"><div class="ames-empty">@L["PP.LineSchedule.Empty.NoLine"]</div></div>
-}
-else
-{
-
-@* ══════════════════════════════════════════════════════════════════ *@
-@* ── GANTT TAB ───────────────────────────────────────────────────── *@
-@* ══════════════════════════════════════════════════════════════════ *@
-@if (_tab == "gantt")
-{
-    <div class="ames-card">
-        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-            <span>▼ @_lineId · @_date.ToString("yyyy-MM-dd ddd") · @_dayType</span>
-            <div style="display:flex;gap:6px;align-items:center;">
-                <span class="dim" style="font-size:12px;">@L["PP.LineSchedule.Kpi.WorkCap"]</span>
-                <select class="ames-input" style="width:90px;" @bind="_startH"
-                        @bind:after="StateHasChanged">
-                    @for (int h = 0; h <= 22; h++) { <option value="@h">@($"{h:00}"):00</option> }
-                </select>
-                <span class="dim">~</span>
-                <select class="ames-input" style="width:90px;" @bind="_endH"
-                        @bind:after="StateHasChanged">
-                    @for (int h = 1; h <= 24; h++) { <option value="@h">@($"{h:00}"):00</option> }
-                </select>
-                <button class="ames-btn" style="padding:3px 12px;" @onclick="() => _showPlace = !_showPlace">
-                    @(_showPlace ? L["PP.LineSchedule.Btn.WoClose"].Value : L["PP.LineSchedule.Btn.WoOpen"].Value)
-                </button>
-            </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["PP.LineSchedule.Kpi.Blocks"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_slots.Count</div>
+            <div class="ames-kpi-s">@string.Format(L["PP.LineSchedule.Kpi.BlocksSub"].Value, OperatingMin, RemainMin)</div>
         </div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">@L["PP.LineSchedule.Kpi.DownMin"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@DowntimeMin<span style="font-size:14px;margin-left:3px;">@L["Lbl.Min"]</span></div>
+            <div class="ames-kpi-s">@L["PP.LineSchedule.Kpi.DownMinSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["PP.LineSchedule.Kpi.Qty"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@PlannedQty.ToString("N0")</div>
+            <div class="ames-kpi-s">@L["PP.LineSchedule.Kpi.QtySub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(OperatingMin == 0 ? "" : Utilization > 100 ? "bad" : Utilization >= 80 ? "ok" : "warn")">
+        <div class="ames-kpi-l">@L["PP.LineSchedule.Kpi.Util"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@Utilization<span style="font-size:14px;margin-left:2px;">%</span></div>
+            <div class="ames-kpi-s">@L["PP.LineSchedule.Kpi.UtilTarget"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(ConflictIds.Count > 0 ? "bad" : "ok")">
+        <div class="ames-kpi-l">@L["PP.LineSchedule.Kpi.Conflict"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@ConflictIds.Count</div>
+            <div class="ames-kpi-s">@L["PP.LineSchedule.Kpi.ConflictSub"]</div>
+        </div>
+    </div>
+</div>
 
-        @* WO 배치 패널 *@
-        @if (_showPlace)
+@if (!string.IsNullOrEmpty(_err)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_err</RadzenAlert> }
+@if (!string.IsNullOrEmpty(_msg)) { <RadzenAlert AlertStyle="AlertStyle.Success" Variant="Variant.Flat">@_msg</RadzenAlert> }
+
+@* ── 조회 / 상태 툴바 ──────────────────────────────────────────────── *@
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <RadzenLabel Text="@L["Col.Line"]" />
+            <RadzenDropDown TValue="string" @bind-Value="_lineId" @bind-Value:after="LoadData" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" Placeholder="@L["PP.LineSchedule.Ph.SelectLine"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
+            <RadzenDatePicker TValue="DateTime" @bind-Value="_date" @bind-Value:after="LoadData" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenLabel Text="@L["PP.LineSchedule.Lbl.Pattern"]" />
+            <RadzenDropDown TValue="string" @bind-Value="_patternId" @bind-Value:after="OnPatternChanged" Data="@PatternDdOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" AllowClear="true" Disabled="@(string.IsNullOrEmpty(_lineId))" Placeholder="@L["PP.LineSchedule.Ph.SelectPattern"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:400px;" />
+            <RadzenButton Text="@L["Btn.Reset"]" Icon="refresh" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@Reset" class="ames-rz-btn" />
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+            @if (_publishedAt.HasValue)
+            {
+                <span class="dim" style="font-size:11px;">
+                    @_publishedAt.Value.ToString("MM-dd HH:mm") @(_publishedBy is null ? "" : $"· {_publishedBy}")
+                </span>
+            }
+            @StatusPill()
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["PP.LineSchedule.Btn.Apply"]" Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Disabled="@(string.IsNullOrEmpty(_patternId))" Click="@Apply" class="ames-rz-btn" />
+                <RadzenButton Text="@L["PP.LineSchedule.Btn.Publish"]" Icon="publish" ButtonStyle="ButtonStyle.Info" Size="ButtonSize.Small" Disabled="@(string.IsNullOrEmpty(_patternId))" Click="@Publish" class="ames-rz-btn" />
+            }
+        </div>
+    </div>
+
+    @if (string.IsNullOrEmpty(_lineId))
+    {
+        <div class="ames-empty">@L["PP.LineSchedule.Empty.NoLine"]</div>
+    }
+    else if (string.IsNullOrEmpty(_patternId))
+    {
+        <div class="ames-empty">@(PatternOptions.Any() ? L["PP.LineSchedule.Ph.SelectPattern"].Value : L["PP.LineSchedule.Empty.NoPattern"].Value)</div>
+    }
+    else
+    {
+        @* ── WO 배치 / 수정 패널 ── *@
+        @if (_canEdit)
         {
-            var overCap = RemainMin <= 0;
+            var editing = _editWoId.HasValue;
+            var blocked = !editing && RemainMin <= 0;
             <div style="padding:10px 14px;background:rgba(59,130,246,.06);border-bottom:1px solid rgba(255,255,255,.06);
                         display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;">
                 <div>
                     <div class="dim" style="font-size:11px;margin-bottom:3px;">@L["PP.LineSchedule.Lbl.WoSelect"]</div>
-                    <select class="ames-input" style="width:220px;" @bind="_placeWoId">
-                        <option value="0">@L["Opt.Select"]</option>
-                        @foreach (var wo in _availableWos)
-                        {
-                            <option value="@wo.WoId">@wo.WoNumber  @(wo.ItemName ?? wo.ItemNo)</option>
-                        }
-                    </select>
+                    @if (editing)
+                    {
+                        <RadzenTextBox Value="@(_slots.FirstOrDefault(s => s.WoId == _editWoId)?.WoNumber ?? "")" ReadOnly="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:400px;" />
+                    }
+                    else
+                    {
+                        <RadzenDropDown TValue="string" @bind-Value="_placeWoIdStr" @bind-Value:after="OnPlaceWoChanged" Data="@WoOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:400px;" />
+                    }
                 </div>
                 <div>
                     <div class="dim" style="font-size:11px;margin-bottom:3px;">@L["PP.LineSchedule.Lbl.StartTime"]</div>
-                    <input type="time" class="ames-input" style="width:120px;padding:4px 8px;"
-                           @bind="_placeStartTime" />
+                    <RadzenDatePicker TValue="DateTime?" @bind-Value="PlaceStartDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
                 </div>
                 <div>
                     <div class="dim" style="font-size:11px;margin-bottom:3px;">@L["PP.LineSchedule.Lbl.Duration"]</div>
-                    <input type="number" class="ames-input" style="width:90px;padding:4px 8px;"
-                           min="1" max="1440" @bind="_placeDurMin" />
+                    <RadzenNumeric TValue="int" @bind-Value="_placeDurMin" Min="1" Max="1440" InputSize="InputSize.Small" class="ames-rz-input" Style="width:90px;" />
                 </div>
                 <div>
                     <div class="dim" style="font-size:11px;margin-bottom:3px;">@L["PP.LineSchedule.Lbl.PlannedQty"]</div>
-                    <input type="number" class="ames-input" style="width:100px;padding:4px 8px;"
-                           min="0" @bind="_placeQty" />
+                    <RadzenNumeric TValue="decimal" @bind-Value="_placeQty" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
                 </div>
-                <button class="ames-btn" @onclick="PlaceWo"
-                        disabled="@(_placeWoId == 0 || overCap)"
-                        title="@(overCap ? L["PP.LineSchedule.Ttl.CapBlocked"].Value : "")">
-                    @(overCap ? L["PP.LineSchedule.Btn.CapOver"].Value : L["PP.LineSchedule.Btn.Place"].Value)
-                </button>
+                <RadzenButton Text="@(blocked ? L["PP.LineSchedule.Btn.CapOver"].Value : editing ? L["PP.LineSchedule.Btn.Update"].Value : L["PP.LineSchedule.Btn.Place"].Value)"
+                              Icon="@(editing ? "check" : "add")" ButtonStyle="@(editing ? ButtonStyle.Success : ButtonStyle.Primary)" Size="ButtonSize.Small"
+                              Disabled="@blocked" Click="@SaveSlot" class="ames-rz-btn"
+                              title="@(blocked ? L["PP.LineSchedule.Ttl.CapBlocked"].Value : "")" />
+                @if (editing)
+                {
+                    <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ResetPlaceForm" class="ames-rz-btn" />
+                }
             </div>
         }
 
-        @GanttView(showWo: true, showDragSurface: false)
+        @* ── 타임라인 ── *@
+        <div class="pp-tl-h">
+            <span class="pp-tl-t">
+                ▤ @string.Format(L["PP.LineSchedule.Tl.Title"].Value, MinToTime(_startH * 60), MinToTime(_endH * 60))
+            </span>
+            <div class="pp-tl-legend">
+                <span class="pp-lgd"><i style="background:rgba(34,197,94,.55);"></i>@L["PP.LineSchedule.Band.Work"]</span>
+                <span class="pp-lgd"><i style="background:rgba(239,68,68,.5);"></i>@L["PP.LineSchedule.Band.PlannedDown"]</span>
+                <span class="pp-lgd"><i style="background:rgba(251,191,36,.5);"></i>@L["PP.LineSchedule.Band.Break"]</span>
+                <span class="pp-lgd"><i style="background:rgba(148,163,184,.4);"></i>@L["PP.LineSchedule.Band.Idle"]</span>
+                <span class="pp-lgd"><i style="background:rgba(59,130,246,.6);"></i>@L["PP.LineSchedule.Lgd.Wo"]</span>
+            </div>
+        </div>
 
-        @if (_slots.Count > 0)
+        @GanttView()
+
+        <div class="dim" style="font-size:11px;padding:6px 14px 10px;">@L["PP.LineSchedule.Hint.Board"]</div>
+
+        @if (ConflictIds.Count > 0)
         {
-            <table class="ames-table" style="margin-top:8px;">
-                <thead>
-                    <tr>
-                        <th style="width:110px;">WO</th>
-                        <th>@L["Col.Item"]</th>
-                        <th style="width:80px;">@L["Col.Start"]</th>
-                        <th style="width:80px;">@L["Col.End"]</th>
-                        <th style="width:70px;text-align:right;">@L["PP.LineSchedule.Lbl.PlannedQty"]</th>
-                        <th style="width:80px;">@L["Col.Status"]</th>
-                        <th style="width:50px;"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var s in _slots.Skip(_page * _pageSize).Take(_pageSize))
-                    {
-                        var capS = s;
-                        <tr>
-                            <td class="code">@(s.WoNumber ?? $"WO#{s.WoId}")</td>
-                            <td class="dim">@(s.ItemName ?? "—")</td>
-                            <td class="code">@MinToTime(s.StartMin)</td>
-                            <td class="code">@MinToTime(s.EndMin)</td>
-                            <td style="text-align:right;">@s.PlannedQty.ToString("N0")</td>
-                            <td><span class="pill info">@(s.Status ?? "Planned")</span></td>
-                            <td>
-                                <button class="ames-btn bad" style="padding:2px 6px;"
-                                        @onclick="() => RemoveSlot(capS.ScheduleId)">×</button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-            <Pager Page="_page" Total="_slots.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+            <div style="padding:0 14px 10px;">
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@string.Format(L["PP.LineSchedule.Err.ConflictSummary"].Value, ConflictIds.Count)</RadzenAlert>
+            </div>
         }
-    </div>
-}
 
-@* ══════════════════════════════════════════════════════════════════ *@
-@* ── PATTERN TAB ─────────────────────────────────────────────────── *@
-@* ══════════════════════════════════════════════════════════════════ *@
-@if (_tab == "pattern")
-{
-    <div class="ames-card">
-        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-            <span>@L["PP.LineSchedule.Tab.Pattern"] — @_lineId / @_dayType</span>
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                <span class="dim" style="font-size:12px;">@L["PP.LineSchedule.Lbl.BandType"]</span>
-                @foreach (var (type, key, cls) in new[] {
-                    ("WORK",         "PP.LineSchedule.Band.Work",        "ok"),
-                    ("PLANNED_DOWN", "PP.LineSchedule.Band.PlannedDown", "bad"),
-                    ("BREAK",        "PP.LineSchedule.Band.Break",       "warn") })
+        @* ── 배치 목록 ── *@
+        <div class="ames-card-h" style="border-top:1px solid rgba(255,255,255,.06);">
+            ▼ @L["PP.LineSchedule.Lbl.SlotList"] · @_slots.Count @L["Lbl.Items"]
+        </div>
+        <RadzenDataGrid TItem="StagedWo" Data="@_slots.OrderBy(x => x.StartMin).ToList()" AllowPaging="false"
+                        RowClick="@(a => { if (_canEdit && a.Data is not null) EditSlot(a.Data.WoId); })"
+                        RowRender="@SlotRowRender" EmptyText="@L["PP.LineSchedule.Empty.NoSlot"]" Class="ames-rz-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="StagedWo" Title="WO" Width="130px">
+                    <Template Context="s"><span class="code">@s.WoNumber</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Item"]">
+                    <Template Context="s"><span class="dim">@(s.ItemName ?? "—")</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Start"]" Width="80px">
+                    <Template Context="s"><span class="code">@MinToTime(s.StartMin)</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.End"]" Width="80px">
+                    <Template Context="s"><span class="code">@MinToTime(s.EndMin)</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Duration"]" Width="80px" TextAlign="TextAlign.Right">
+                    <Template Context="s">@(s.EndMin - s.StartMin)</Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="StagedWo" Title="@L["PP.LineSchedule.Lbl.PlannedQty"]" Width="100px" TextAlign="TextAlign.Right">
+                    <Template Context="s">@s.Qty.ToString("N0")</Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Status"]" Width="90px" TextAlign="TextAlign.Center">
+                    <Template Context="s">
+                        @if (ConflictIds.Contains(s.WoId)) { <span class="pill bad">@L["PP.LineSchedule.Cf.Conflict"]</span> }
+                        else { <span class="pill ok">@L["PP.LineSchedule.Cf.Ok"]</span> }
+                    </Template>
+                </RadzenDataGridColumn>
+                @if (_canEdit)
                 {
-                    var t = type; var k = key;
-                    <button class="ames-btn @(_bandType == t ? cls : "")"
-                            style="padding:4px 12px;"
-                            @onclick="() => _bandType = t">@L[k]</button>
+                    <RadzenDataGridColumn TItem="StagedWo" Width="60px" TextAlign="TextAlign.Center" Sortable="false">
+                        <Template Context="s">
+                            <div @onclick:stopPropagation>
+                                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall" Click="@(() => RemoveSlot(s.WoId))" class="ames-rz-btn" />
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
                 }
-                <span class="dim" style="font-size:11px;margin-left:4px;">@L["PP.LineSchedule.Kpi.WorkCap"]</span>
-                <select class="ames-input" style="width:90px;" @bind="_startH"
-                        @bind:after="ReinitDrag">
-                    @for (int h = 0; h <= 22; h++) { <option value="@h">@($"{h:00}"):00</option> }
-                </select>
-                <span class="dim">~</span>
-                <select class="ames-input" style="width:90px;" @bind="_endH"
-                        @bind:after="ReinitDrag">
-                    @for (int h = 1; h <= 24; h++) { <option value="@h">@($"{h:00}"):00</option> }
-                </select>
-                @if (_lastBandId.HasValue)
-                {
-                    <button class="ames-btn warn" style="padding:4px 12px;" title="@L["PP.LineSchedule.Ttl.Undo"]"
-                            @onclick="UndoLastBand">@L["PP.LineSchedule.Btn.Undo"]</button>
-                }
-                <button class="ames-btn bad" style="padding:4px 12px;"
-                        @onclick="ClearPattern">@L["PP.LineSchedule.Btn.Clear"]</button>
-            </div>
-        </div>
-
-        <div style="padding:6px 14px 2px;font-size:11px;color:#64748b;">
-            ← @L["PP.LineSchedule.DragHint"] &nbsp;·&nbsp;
-            @L["PP.LineSchedule.EscHint"] &nbsp;·&nbsp;
-            @L["PP.LineSchedule.ClickHint"]
-        </div>
-
-        @GanttView(showWo: false, showDragSurface: true)
-
-        <div style="display:flex;gap:20px;padding:10px 14px 4px;font-family:'JetBrains Mono',monospace;font-size:12px;flex-wrap:wrap;">
-            <span style="color:#86efac;">@string.Format(L["PP.LineSchedule.Stat.Work"].Value, _pattern.Where(b=>b.BandType=="WORK").Sum(b=>b.EndMin-b.StartMin))</span>
-            <span style="color:#fca5a5;">@string.Format(L["PP.LineSchedule.Stat.PlannedDown"].Value, _pattern.Where(b=>b.BandType=="PLANNED_DOWN").Sum(b=>b.EndMin-b.StartMin))</span>
-            <span style="color:#fde68a;">@string.Format(L["PP.LineSchedule.Stat.Break"].Value, _pattern.Where(b=>b.BandType=="BREAK").Sum(b=>b.EndMin-b.StartMin))</span>
-            <span class="dim">@string.Format(L["PP.LineSchedule.Stat.BandCount"].Value, _pattern.Count)</span>
-        </div>
-    </div>
-}
-} @* end @if (!string.IsNullOrEmpty(_lineId)) *@
-
-@* ── Delete confirm modal ─────────────────────────────────────────── *@
-@if (_confirmBandId.HasValue)
-{
-    var cb   = _confirmBandId.Value;
-    var band = _pattern.FirstOrDefault(b => b.PatternId == cb);
-    <div class="ames-modal-bg">
-        <div class="ames-modal" style="max-width:340px;">
-            <div class="ames-modal-h">@L["PP.LineSchedule.Modal.DeleteBand"]</div>
-            @if (band is not null)
-            {
-                <div style="margin:8px 0;color:#94a3b8;">
-                    @BandLabel(band.BandType)&nbsp;
-                    @MinToTime(band.StartMin) — @MinToTime(band.EndMin)
-                    (@(band.EndMin - band.StartMin)@L["Lbl.Min"])
-                </div>
-            }
-            <div class="ames-modal-footer">
-                <button class="ames-btn bad"  @onclick="() => ConfirmDeleteBand(cb)">@L["Btn.Delete"]</button>
-                <button class="ames-btn ghost"  @onclick="() => _confirmBandId = null">@L["Btn.Cancel"]</button>
-            </div>
-        </div>
-    </div>
-}
+            </Columns>
+        </RadzenDataGrid>
+    }
+</div>
 
 @* ══════════════════════════════════════════════════════════════════ *@
-@* ── Render Fragment: Gantt view (% based, full-width) ───────────── *@
+@* ── Render Fragment: Gantt (밴드 = 선택 패턴 세그먼트, WO 오버레이) ── *@
 @* ══════════════════════════════════════════════════════════════════ *@
 @code {
-    RenderFragment GanttView(bool showWo, bool showDragSurface) => __b =>
+    RenderFragment GanttView() => __b =>
     {
         int startMin = _startH * 60;
         int endMin   = _endH   * 60;
@@ -280,129 +224,84 @@ else
         string LeftPct(int m)           => $"{(double)(m - startMin) / rangeMin * 100.0:F4}%";
         string WidthPct(int lo, int hi) => $"{(double)(hi - lo) / rangeMin * 100.0:F4}%";
 
-        __b.OpenElement(0, "div");
-        __b.AddAttribute(1, "class", "pp-gantt-wrap");
-        __b.AddAttribute(2, "style", "margin-top:6px;");
+        // 오늘 조회 시에만 현재 시각 마커 표시
+        int? nowMin = _date.Date == DateTime.Today
+            ? DateTime.Now.Hour * 60 + DateTime.Now.Minute
+            : null;
+        bool nowVisible = nowMin is int nv && nv >= startMin && nv <= endMin;
 
-        __b.OpenElement(3, "div");
-        __b.AddAttribute(4, "class", "pp-gantt-inner");
+        void NowLine(int seq)
+        {
+            if (!nowVisible) return;
+            __b.OpenElement(seq, "div");
+            __b.AddAttribute(seq + 1, "class", "pp-gantt-now");
+            __b.AddAttribute(seq + 2, "style", $"left:{LeftPct(nowMin!.Value)};");
+            __b.CloseElement();
+        }
 
-        // ── ruler row ─────────────────────────────────────────────────
-        __b.OpenElement(10, "div");
-        __b.AddAttribute(11, "class", "pp-gantt-ruler");
+        __b.OpenElement(0, "div"); __b.AddAttribute(1, "class", "pp-gantt-wrap"); __b.AddAttribute(2, "style", "margin-top:2px;");
+        __b.OpenElement(3, "div"); __b.AddAttribute(4, "class", "pp-gantt-inner");
 
+        // ── ruler ──
+        __b.OpenElement(10, "div"); __b.AddAttribute(11, "class", "pp-gantt-ruler");
         int tickStep = rangeMin <= 120 ? 10 : rangeMin <= 360 ? 30 : 60;
         for (int m = startMin; m <= endMin; m += tickStep)
         {
-            bool isHour = m % 60 == 0;
-            string lp   = LeftPct(m);
-
-            __b.OpenElement(20, "div");
-            __b.AddAttribute(21, "class", "pp-gantt-gridline" + (isHour ? " major" : ""));
-            __b.AddAttribute(22, "style", $"left:{lp};height:26px;");
-            __b.CloseElement();
-
+            bool isHour = m % 60 == 0; string lp = LeftPct(m);
+            __b.OpenElement(20, "div"); __b.AddAttribute(21, "class", "pp-gantt-gridline" + (isHour ? " major" : "")); __b.AddAttribute(22, "style", $"left:{lp};height:26px;"); __b.CloseElement();
             if (isHour || tickStep < 60)
             {
-                __b.OpenElement(23, "div");
-                __b.AddAttribute(24, "class", "pp-gantt-tick" + (isHour ? " major" : ""));
-                __b.AddAttribute(25, "style", $"left:{lp};");
-                __b.AddContent(26, $"{m / 60:00}:{m % 60:00}");
-                __b.CloseElement();
+                __b.OpenElement(23, "div"); __b.AddAttribute(24, "class", "pp-gantt-tick" + (isHour ? " major" : "")); __b.AddAttribute(25, "style", $"left:{lp};"); __b.AddContent(26, MinToTime(m)); __b.CloseElement();
             }
         }
         __b.CloseElement(); // ruler
 
-        // ── pattern band row ──────────────────────────────────────────
-        __b.OpenElement(30, "div");
-        __b.AddAttribute(31, "class", "pp-gantt-row");
-        __b.AddAttribute(32, "style", "height:104px;");
-
-        __b.OpenElement(33, "div");
-        __b.AddAttribute(34, "class", "pp-gantt-row-lbl");
-        __b.AddContent(35, L["PP.LineSchedule.Pattern.Lbl"].Value);
-        __b.CloseElement();
-
-        for (int h2 = _startH; h2 <= _endH; h2++)
+        // ── 밴드 행 (패턴 세그먼트) ──
+        __b.OpenElement(30, "div"); __b.AddAttribute(31, "class", "pp-gantt-row"); __b.AddAttribute(32, "style", "height:92px;");
+        __b.OpenElement(33, "div"); __b.AddAttribute(34, "class", "pp-gantt-row-lbl"); __b.AddContent(35, L["PP.LineSchedule.Pattern.Lbl"].Value); __b.CloseElement();
+        foreach (var band in Bands)
         {
-            __b.OpenElement(36, "div");
-            __b.AddAttribute(37, "class", "pp-gantt-gridline major");
-            __b.AddAttribute(38, "style", $"left:{LeftPct(h2 * 60)};");
-            __b.CloseElement();
-        }
-
-        foreach (var band in _pattern)
-        {
-            int lo = Math.Max(startMin, band.StartMin);
-            int hi = Math.Min(endMin,   band.EndMin);
+            int lo = Math.Max(startMin, band.StartMin), hi = Math.Min(endMin, band.EndMin);
             if (hi <= lo) continue;
-
-            string cls = band.BandType switch {
-                "PLANNED_DOWN" => "pp-gantt-band pp-gantt-band--down",
-                "BREAK"        => "pp-gantt-band pp-gantt-band--break",
-                _              => "pp-gantt-band pp-gantt-band--work"
-            };
-            var capBand = band;
-            int wMin    = hi - lo;
-
-            __b.OpenElement(40, "div");
-            __b.AddAttribute(41, "class", cls);
-            __b.AddAttribute(42, "style", $"left:{LeftPct(lo)};width:{WidthPct(lo, hi)};");
-            __b.AddAttribute(43, "title",
-                $"{BandLabel(band.BandType)}  {MinToTime(band.StartMin)}–{MinToTime(band.EndMin)}  ({wMin}{L["Lbl.Min"]})");
-            __b.AddAttribute(44, "onclick", EventCallback.Factory.Create(this,
-                () => { if (_tab == "pattern") _confirmBandId = capBand.PatternId; }));
-            if ((double)wMin / rangeMin >= 0.06)
-                __b.AddContent(45, $"{BandLabel(band.BandType)} {wMin}{L["Lbl.Min"]}");
-            __b.CloseElement();
-        }
-
-        if (showDragSurface)
-        {
-            __b.OpenElement(50, "div");
-            __b.AddAttribute(51, "class", "pp-gantt-drag");
-            __b.AddAttribute(52, "id", "gantt-drag-surface");
-            __b.CloseElement();
-        }
-
-        __b.CloseElement(); // pattern row
-
-        // ── WO slot row ───────────────────────────────────────────────
-        if (showWo)
-        {
-            __b.OpenElement(60, "div");
-            __b.AddAttribute(61, "class", "pp-gantt-row");
-            __b.AddAttribute(62, "style", "height:104px;");
-
-            __b.OpenElement(63, "div");
-            __b.AddAttribute(64, "class", "pp-gantt-row-lbl");
-            __b.AddContent(65, "WO");
-            __b.CloseElement();
-
-            foreach (var slot in _slots)
+            int wMin = hi - lo;
+            string range = $"{MinToTime(band.StartMin)}–{MinToTime(band.EndMin)}";
+            __b.OpenElement(40, "div"); __b.AddAttribute(41, "class", SegClass(band.State)); __b.AddAttribute(42, "style", $"left:{LeftPct(lo)};width:{WidthPct(lo, hi)};padding:0 5px;");
+            __b.AddAttribute(43, "title", $"{SegLabel(band.State)}  {range}  ({wMin}{L["Lbl.Min"]})");
+            if ((double)wMin / rangeMin >= 0.045)
             {
-                if (slot.StartMin >= slot.EndMin) continue;
-                int lo = Math.Max(startMin, slot.StartMin);
-                int hi = Math.Min(endMin,   slot.EndMin);
-                if (hi <= lo) continue;
-
-                var capSlot = slot;
-                int wMin    = hi - lo;
-
-                __b.OpenElement(70, "div");
-                __b.AddAttribute(71, "class", "pp-gantt-wo");
-                __b.AddAttribute(72, "style", $"left:{LeftPct(lo)};width:{WidthPct(lo, hi)};");
-                __b.AddAttribute(73, "title",
-                    $"{slot.WoNumber}  {slot.ItemName ?? ""}\n{MinToTime(slot.StartMin)}–{MinToTime(slot.EndMin)}  ({slot.EndMin - slot.StartMin}{L["Lbl.Min"]})  {slot.PlannedQty:N0}{L["Lbl.Count"]}");
-                __b.AddAttribute(74, "onclick", EventCallback.Factory.Create(this,
-                    () => RemoveSlot(capSlot.ScheduleId)));
-                if ((double)wMin / rangeMin >= 0.06)
-                    __b.AddContent(75, slot.WoNumber ?? $"#{slot.WoId}");
-                __b.CloseElement();
+                __b.OpenElement(44, "span"); __b.AddAttribute(45, "class", "pp-blk-t"); __b.AddContent(46, SegLabel(band.State)); __b.CloseElement();
+                __b.OpenElement(47, "span"); __b.AddAttribute(48, "class", "pp-blk-s"); __b.AddContent(49, $"{range} · {wMin}{L["Lbl.Min"]}"); __b.CloseElement();
             }
-
-            __b.CloseElement(); // WO row
+            __b.CloseElement();
         }
+        NowLine(50);
+        __b.CloseElement(); // band row
+
+        // ── WO 행 ──
+        __b.OpenElement(60, "div"); __b.AddAttribute(61, "class", "pp-gantt-row"); __b.AddAttribute(62, "style", "height:92px;");
+        __b.OpenElement(63, "div"); __b.AddAttribute(64, "class", "pp-gantt-row-lbl"); __b.AddContent(65, "WO"); __b.CloseElement();
+        foreach (var slot in _slots)
+        {
+            if (slot.StartMin >= slot.EndMin) continue;
+            int lo = Math.Max(startMin, slot.StartMin), hi = Math.Min(endMin, slot.EndMin);
+            if (hi <= lo) continue;
+            var capSlot = slot; int wMin = hi - lo;
+            string cls = "pp-gantt-wo"
+                       + (ConflictIds.Contains(slot.WoId) ? " conflict" : "")
+                       + (_editWoId == slot.WoId ? " sel" : "");
+            string range = $"{MinToTime(slot.StartMin)}–{MinToTime(slot.EndMin)}";
+            __b.OpenElement(70, "div"); __b.AddAttribute(71, "class", cls); __b.AddAttribute(72, "style", $"left:{LeftPct(lo)};width:{WidthPct(lo, hi)};");
+            __b.AddAttribute(73, "title", $"{slot.WoNumber}  {slot.ItemName ?? ""}\n{range}  ({slot.EndMin - slot.StartMin}{L["Lbl.Min"]})  {slot.Qty:N0}");
+            if (_canEdit) __b.AddAttribute(74, "onclick", EventCallback.Factory.Create(this, () => EditSlot(capSlot.WoId)));
+            if ((double)wMin / rangeMin >= 0.045)
+            {
+                __b.OpenElement(75, "span"); __b.AddAttribute(76, "class", "pp-blk-t"); __b.AddContent(77, slot.WoNumber); __b.CloseElement();
+                __b.OpenElement(78, "span"); __b.AddAttribute(79, "class", "pp-blk-s"); __b.AddContent(80, $"{range} · {slot.Qty:N0}"); __b.CloseElement();
+            }
+            __b.CloseElement();
+        }
+        NowLine(85);
+        __b.CloseElement(); // WO row
 
         __b.CloseElement(); // inner
         __b.CloseElement(); // wrap
@@ -411,207 +310,331 @@ else
 
 @code {
     // ── State ────────────────────────────────────────────────────────────
-    int _page = 0;
-    const int _pageSize = 20;
-    string   _tab     = "gantt";
-    string   _lineId  = "";
-    DateTime _date    = DateTime.Today;
-    string   _dayType = "WORKDAY";
-    string   _bandType = "WORK";
-    int      _startH  = 6;
-    int      _endH    = 22;
+    List<MasterDataRepository.LineRow>              _lines       = new();
+    List<MasterDataRepository.LineTimePatternRow>   _allPatterns = new();
+    List<MasterDataRepository.LineTimeSegmentRow>   _segments    = new();
+    List<MasterDataRepository.CodeItemRow>          _segStates   = new();
+    List<LineScheduleRepository.WoRow>              _lineWos     = new();
+    List<StagedWo>                                  _slots       = new();
 
-    List<string> _lines   = [];
-    List<AMES.Data.Repositories.LineScheduleRepository.PatternBand> _pattern = [];
-    List<AMES.Data.Repositories.LineScheduleRepository.WoSlot>      _slots   = [];
-    List<WorkOrderDto> _allWos = [];
+    string    _lineId    = "";
+    DateTime  _date      = DateTime.Today;
+    string    _patternId = "";
+    string?   _savedStatus;
+    DateTime? _publishedAt;
+    string?   _publishedBy;
+    bool      _dirty;
 
-    bool     _showPlace      = false;
-    int      _placeWoId      = 0;
-    TimeOnly _placeStartTime = new(8, 0);
-    int      _placeDurMin    = 60;
-    decimal  _placeQty       = 0;
+    bool      _canEdit;
+    string    _actor = "web";
 
-    int?   _confirmBandId;
-    int?   _lastBandId;
-    string _err = "";
-    string _msg = "";
+    int       _placeWoId      = 0;
+    int?      _editWoId;
+    TimeOnly  _placeStartTime = new(8, 0);
+    int       _placeDurMin    = 60;
+    decimal   _placeQty       = 0;
 
-    DotNetObjectReference<LineSchedule>? _ref;
-    bool   _jsReady;
-    string _actor = "web";
+    int _startH = 6, _endH = 22;
+    string _err = "", _msg = "";
+
+    record StagedWo(int WoId, string WoNumber, string? ItemName, int StartMin, int EndMin, decimal Qty);
+    record Band(int StartMin, int EndMin, string State);
 
     // ── Computed ─────────────────────────────────────────────────────────
-    int WorkMin     => _pattern.Where(b => b.BandType == "WORK").Sum(b => b.EndMin - b.StartMin);
-    int WoLoadMin   => _slots.Sum(s => s.EndMin - s.StartMin);
-    int RemainMin   => WorkMin - WoLoadMin;
-    int Utilization => WorkMin > 0 ? Math.Min(999, WoLoadMin * 100 / WorkMin) : 0;
+    List<Band> Bands => _segments
+        .Where(s => s.StartMin.HasValue && s.EndMin.HasValue && s.EndMin > s.StartMin)
+        .Select(s => new Band(s.StartMin!.Value, s.EndMin!.Value, s.SegmentState ?? ""))
+        .OrderBy(b => b.StartMin).ToList();
 
-    IEnumerable<WorkOrderDto> _availableWos =>
-        _allWos.Where(w => w.LineId == _lineId && w.Status is "Released" or "In Progress");
+    int     OperatingMin => Bands.Where(b => b.State == "OPERATING").Sum(b => b.EndMin - b.StartMin);
+    int     DowntimeMin  => Bands.Where(b => b.State is "PLANNED_DOWNTIME" or "BREAK").Sum(b => b.EndMin - b.StartMin);
+    int     WoLoadMin    => _slots.Sum(s => s.EndMin - s.StartMin);
+    int     RemainMin    => OperatingMin - WoLoadMin;
+    int     Utilization  => OperatingMin > 0 ? Math.Min(999, WoLoadMin * 100 / OperatingMin) : 0;
+    decimal PlannedQty   => _slots.Sum(s => s.Qty);
 
-    // ── Init ─────────────────────────────────────────────────────────────
+    // 겹침 · 가동밴드 이탈 = 충돌. 저장된 데이터(외부 변경 포함)도 즉시 드러나도록 매 렌더 계산.
+    HashSet<int> ConflictIds
+    {
+        get
+        {
+            var set = new HashSet<int>();
+            var ord = _slots.OrderBy(s => s.StartMin).ToList();
+            for (int i = 0; i < ord.Count; i++)
+            {
+                if (!InsideOperating(ord[i].StartMin, ord[i].EndMin)) set.Add(ord[i].WoId);
+                for (int j = i + 1; j < ord.Count; j++)
+                {
+                    if (ord[j].StartMin >= ord[i].EndMin) break;
+                    set.Add(ord[i].WoId); set.Add(ord[j].WoId);
+                }
+            }
+            return set;
+        }
+    }
+
+    // 라인 전용 패턴 + 공통(LineID NULL) 패턴. ACTIVE·유효기간 내만.
+    IEnumerable<MasterDataRepository.LineTimePatternRow> PatternOptions =>
+        _allPatterns.Where(p =>
+            (p.LineID == _lineId || string.IsNullOrEmpty(p.LineID))
+            && (p.Status is null or "ACTIVE")
+            && (!p.EffectiveFrom.HasValue || p.EffectiveFrom.Value <= DateOnly.FromDateTime(_date))
+            && (!p.EffectiveTo.HasValue   || p.EffectiveTo.Value   >= DateOnly.FromDateTime(_date)))
+            .OrderBy(p => string.IsNullOrEmpty(p.LineID) ? 1 : 0)   // 라인 전용 먼저, 공통(전역) 뒤
+            .ThenBy(p => p.PatternID);
+
+    // _lineWos는 이미 (라인 + Released/In Progress)로 조회됨. 스테이징된 것만 제외.
+    IEnumerable<LineScheduleRepository.WoRow> AvailableWos =>
+        _lineWos.Where(w => !_slots.Any(s => s.WoId == w.WoId));
+
+    // ── Radzen 드롭다운/그리드 어댑터 (문자열 값 컨벤션) ──────────────────
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
+    IEnumerable<DropDownItem> LineOptions =>
+        _lines.Select(l => new DropDownItem { Value = l.LineID, Text = $"[{l.LineID}] {MasterDataRepository.LocalName(l.LineName, l.LineNameEn)}" });
+    IEnumerable<DropDownItem> PatternDdOptions =>
+        PatternOptions.Select(p => new DropDownItem
+        {
+            Value = p.PatternID,
+            Text  = $"[{p.PatternID}] {p.PatternName}"
+                  + (string.IsNullOrEmpty(p.LineID) ? $" · {L["MD.LineTimePattern.Global"].Value}" : "")
+                  + (p.DayType is null ? "" : $" · {p.DayType}")
+        });
+    IEnumerable<DropDownItem> WoOptions =>
+        AvailableWos.Select(w => new DropDownItem { Value = w.WoId.ToString(), Text = $"{w.WoNumber}  {w.ItemName ?? w.ItemNo}" });
+
+    // WO 콤보(문자열 값) ↔ _placeWoId(int) 어댑터
+    string _placeWoIdStr
+    {
+        get => _placeWoId == 0 ? "" : _placeWoId.ToString();
+        set => _placeWoId = int.TryParse(value, out var v) ? v : 0;
+    }
+
+    // RadzenDatePicker(TimeOnly) 어댑터 — 백킹은 _placeStartTime(TimeOnly) 유지
+    DateTime? PlaceStartDt
+    {
+        get => DateTime.Today.Add(_placeStartTime.ToTimeSpan());
+        set => _placeStartTime = value.HasValue ? TimeOnly.FromDateTime(value.Value) : _placeStartTime;
+    }
+
+    void SlotRowRender(RowRenderEventArgs<StagedWo> args)
+    {
+        if (_canEdit) args.Attributes["class"] = "ames-row-link";
+    }
+
+    // ── Init / Load ──────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
         var authState = await Auth.GetAuthenticationStateAsync();
         _actor = authState.User.Identity?.Name ?? "web";
-        try { _lines = LSB.ListLines(); } catch { }
-        if (_lines.Count > 0) { _lineId = _lines[0]; LoadData(); }
-        try { _allWos = Wos.ListAll(90); } catch { }
+        await PermSvc.EnsureAsync(Auth);
+        _canEdit = PermSvc.CanEdit("pp/line-schedule");
+        try { _lines       = MD.ListLines(); } catch { }
+        try { _allPatterns = MD.ListLineTimePatterns(); } catch { }
+        try { _segStates   = MD.ListCodeItems("SEGMENT_STATE"); } catch { }
+        if (_lines.Count > 0) { _lineId = _lines[0].LineID; LoadData(); }
     }
 
     void LoadData()
     {
-        _page = 0;
-        _err = "";
-        if (string.IsNullOrEmpty(_lineId)) return;
+        _err = ""; _slots = new(); _segments = new();
+        _patternId = ""; _savedStatus = null; _publishedAt = null; _publishedBy = null; _dirty = false;
+        if (string.IsNullOrEmpty(_lineId)) { _lineWos = new(); ResetPlaceForm(); return; }
         try
         {
-            _pattern = LSB.GetPattern(_lineId, _dayType);
-            _slots   = LSB.GetSlots(_lineId, _date);
+            _lineWos = LSB.ListLineWos(_lineId);
+            var rows = LSB.GetSchedule(_lineId, _date);
+            _patternId   = rows.FirstOrDefault(r => r.PatternId != null)?.PatternId ?? "";
+            _savedStatus = rows.FirstOrDefault()?.Status;
+            _publishedAt = rows.FirstOrDefault(r => r.PublishedAt.HasValue)?.PublishedAt;
+            _publishedBy = rows.FirstOrDefault(r => r.PublishedBy != null)?.PublishedBy;
+            _slots = rows.Where(r => r.WoId.HasValue && r.EndMin > r.StartMin)
+                         .Select(r => new StagedWo(r.WoId!.Value, r.WoNumber ?? $"#{r.WoId}", r.ItemName, r.StartMin, r.EndMin, r.PlannedQty))
+                         .ToList();
+            if (!string.IsNullOrEmpty(_patternId)) LoadSegments();
+            ResetPlaceForm();
         }
         catch (Exception ex) { _err = string.Format(L["PP.LineSchedule.Err.Load"].Value, ex.Message); }
     }
 
-    // ── JS lifecycle ─────────────────────────────────────────────────────
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    void Reset()
     {
-        if (firstRender)
-            _ref = DotNetObjectReference.Create(this);
+        _date = DateTime.Today;
+        if (_lines.Count > 0) _lineId = _lines[0].LineID;
+        LoadData();
+    }
 
-        if (_tab == "pattern" && !_jsReady && _ref is not null
-            && !string.IsNullOrEmpty(_lineId))
+    void OnPatternChanged()
+    {
+        LoadSegments();
+        ResetPlaceForm();
+        _dirty = true;
+    }
+
+    void LoadSegments()
+    {
+        _segments = string.IsNullOrEmpty(_patternId) ? new() : MD.ListLineTimeSegments(_patternId);
+        AdjustRange();
+    }
+
+    void AdjustRange()
+    {
+        var bands = Bands;
+        int lo, hi;
+        if (bands.Count == 0) { lo = 6 * 60; hi = 22 * 60; }
+        else { lo = bands.Min(b => b.StartMin); hi = bands.Max(b => b.EndMin); }
+
+        // 오늘 조회 시 현재 시각이 밴드 범위 밖이면 범위를 넓혀 현재 시각 표시선(now line)을 항상 노출
+        if (_date.Date == DateTime.Today)
         {
-            await InitDrag();
+            int now = DateTime.Now.Hour * 60 + DateTime.Now.Minute;
+            lo = Math.Min(lo, now);
+            hi = Math.Max(hi, now + 1);
         }
+
+        _startH = Math.Max(0, lo / 60);
+        _endH   = Math.Min(24, (hi + 59) / 60);
+        if (_endH <= _startH) { _startH = 0; _endH = 24; }
     }
 
-    async Task InitDrag()
-    {
-        if (_ref is null) return;
-        int rangeMin = (_endH - _startH) * 60;
-        await JS.InvokeVoidAsync("ganttDrag.init", _ref, "gantt-drag-surface",
-                                 _startH * 60, rangeMin);
-        _jsReady = true;
-    }
-
-    async Task SwitchTab(string tab)
-    {
-        if (_tab == tab) return;
-        if (_jsReady)
-        {
-            await JS.InvokeVoidAsync("ganttDrag.destroy");
-            _jsReady = false;
-        }
-        _tab = tab;
-        StateHasChanged();
-    }
-
-    async Task ReinitDrag()
-    {
-        if (_tab != "pattern") return;
-        _jsReady = false;
-        await InitDrag();
-    }
-
-    // ── Drag callback (from JS) ───────────────────────────────────────────
-    [JSInvokable]
-    public async Task OnGanttDrag(int startMin, int endMin)
-    {
-        startMin = Math.Max(0,          Math.Min(1439, startMin));
-        endMin   = Math.Max(startMin+1, Math.Min(1440, endMin));
-        _err     = "";
-        try
-        {
-            _lastBandId = LSB.PaintBand(_lineId, _dayType, startMin, endMin,
-                                        _bandType, null, _actor);
-            LoadData();
-        }
-        catch (Exception ex) { _err = string.Format(L["PP.LineSchedule.Err.BandSave"].Value, ex.Message); }
-        await InvokeAsync(StateHasChanged);
-    }
-
-    // ── Pattern CRUD ──────────────────────────────────────────────────────
-    void ConfirmDeleteBand(int id)
-    {
-        _confirmBandId = null;
-        if (id == _lastBandId) _lastBandId = null;
-        _err = "";
-        try { LSB.DeleteBand(id); LoadData(); }
-        catch (Exception ex) { _err = ex.Message; }
-    }
-
-    void UndoLastBand()
-    {
-        if (_lastBandId is not { } id) return;
-        _lastBandId = null;
-        _err = "";
-        try { LSB.DeleteBand(id); LoadData(); }
-        catch (Exception ex) { _err = ex.Message; }
-    }
-
-    void ClearPattern()
-    {
-        _lastBandId = null;
-        _err = "";
-        try { LSB.ClearPattern(_lineId, _dayType); LoadData(); }
-        catch (Exception ex) { _err = ex.Message; }
-    }
-
-    // ── WO Placement ──────────────────────────────────────────────────────
-    void PlaceWo()
+    // ── WO 배치 / 수정 (메모리 스테이징) ──────────────────────────────────
+    void SaveSlot()
     {
         _err = "";
-        if (_placeWoId == 0) { _err = L["PP.LineSchedule.Err.NoWo"]; return; }
+        int woId = _editWoId ?? _placeWoId;
+        if (woId == 0) { _err = L["PP.LineSchedule.Err.NoWo"]; return; }
+        if (_placeDurMin <= 0) { _err = L["PP.LineSchedule.Err.NoWo"]; return; }
+
         int startMin = _placeStartTime.Hour * 60 + _placeStartTime.Minute;
         int endMin   = startMin + _placeDurMin;
 
-        bool inWork = _pattern
-            .Where(b => b.BandType == "WORK")
-            .Any(b => b.StartMin <= startMin && b.EndMin >= endMin);
-        if (!inWork) { _err = L["PP.LineSchedule.Err.NotInWork"]; return; }
+        if (!InsideOperating(startMin, endMin)) { _err = L["PP.LineSchedule.Err.NotInOperating"]; return; }
 
-        if (RemainMin - _placeDurMin < 0)
+        if (_slots.Any(s => s.WoId != woId && s.StartMin < endMin && startMin < s.EndMin))
+        { _err = L["PP.LineSchedule.Err.Overlap"]; return; }
+
+        int otherLoad = _slots.Where(s => s.WoId != woId).Sum(s => s.EndMin - s.StartMin);
+        int remain    = OperatingMin - otherLoad;
+        if (remain - _placeDurMin < 0)
+        { _err = string.Format(L["PP.LineSchedule.Err.CapOver"].Value, remain, _placeDurMin); return; }
+
+        int idx = _slots.FindIndex(s => s.WoId == woId);
+        if (idx >= 0)
         {
-            _err = string.Format(L["PP.LineSchedule.Err.CapOver"].Value, RemainMin, _placeDurMin);
-            return;
+            _slots[idx] = _slots[idx] with { StartMin = startMin, EndMin = endMin, Qty = _placeQty };
+            ShowMsg(L["PP.LineSchedule.Ok.Updated"].Value);
         }
+        else
+        {
+            var wo = AvailableWos.FirstOrDefault(w => w.WoId == woId);
+            if (wo is null) return;
+            _slots.Add(new StagedWo(wo.WoId, wo.WoNumber ?? $"#{wo.WoId}", wo.ItemName ?? wo.ItemNo, startMin, endMin, _placeQty));
+            ShowMsg(L["PP.LineSchedule.Ok.Placed"].Value);
+        }
+        _dirty = true;
+        ResetPlaceForm();
+    }
 
+    void EditSlot(int woId)
+    {
+        if (!_canEdit) return;
+        var s = _slots.FirstOrDefault(x => x.WoId == woId);
+        if (s is null) return;
+        _err = "";
+        _editWoId       = woId;
+        _placeWoId      = 0;
+        _placeStartTime = new TimeOnly(s.StartMin / 60, s.StartMin % 60);
+        _placeDurMin    = s.EndMin - s.StartMin;
+        _placeQty       = s.Qty;
+    }
+
+    void RemoveSlot(int woId)
+    {
+        _slots.RemoveAll(s => s.WoId == woId);
+        if (_editWoId == woId) ResetPlaceForm();
+        _dirty = true;
+    }
+
+    // 신규 배치 시 마지막 슬롯 다음(없으면 첫 가동밴드 시작)을 기본 시작시각으로 제안
+    void ResetPlaceForm()
+    {
+        _editWoId  = null;
+        _placeWoId = 0;
+        _placeQty  = 0;
+        int suggest = _slots.Count > 0
+            ? _slots.Max(s => s.EndMin)
+            : Bands.FirstOrDefault(b => b.State == "OPERATING")?.StartMin ?? _startH * 60;
+        _placeStartTime = new TimeOnly(Math.Min(23, suggest / 60), suggest % 60);
+    }
+
+    // 선택한 WO의 잔여 수량을 계획수량 기본값으로 채움
+    void OnPlaceWoChanged()
+    {
+        var wo = AvailableWos.FirstOrDefault(w => w.WoId == _placeWoId);
+        if (wo is not null && _placeQty == 0) _placeQty = wo.OpenQty;
+    }
+
+    // ── 적용 / 발행 ───────────────────────────────────────────────────────
+    void Apply()
+    {
+        _err = "";
+        if (string.IsNullOrEmpty(_patternId)) { _err = L["PP.LineSchedule.Err.NoPattern"]; return; }
         try
         {
-            LSB.PlaceWo(_lineId, _date, _placeWoId, startMin, endMin, _placeQty);
-            ShowMsg(L["PP.LineSchedule.Ok.Placed"]);
+            LSB.SaveSchedule(_lineId, _date, _patternId,
+                _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty)), _actor);
+            ShowMsg(L["PP.LineSchedule.Ok.Applied"].Value);
             LoadData();
         }
         catch (Exception ex) { _err = ex.Message; }
     }
 
-    void RemoveSlot(int scheduleId)
+    void Publish()
     {
         _err = "";
-        try { LSB.RemoveSlot(scheduleId); LoadData(); }
+        if (string.IsNullOrEmpty(_patternId)) { _err = L["PP.LineSchedule.Err.NoPattern"]; return; }
+        if (ConflictIds.Count > 0) { _err = string.Format(L["PP.LineSchedule.Err.ConflictSummary"].Value, ConflictIds.Count); return; }
+        try
+        {
+            LSB.SaveSchedule(_lineId, _date, _patternId,
+                _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty)), _actor);
+            LSB.PublishSchedule(_lineId, _date, _actor);
+            ShowMsg(L["PP.LineSchedule.Ok.Published"].Value);
+            LoadData();
+        }
         catch (Exception ex) { _err = ex.Message; }
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
     static string MinToTime(int m) => $"{m / 60:00}:{m % 60:00}";
 
-    string BandLabel(string t) => t switch {
-        "WORK"         => L["PP.LineSchedule.Band.Work"].Value,
-        "PLANNED_DOWN" => L["PP.LineSchedule.Band.PlannedDown"].Value,
-        "BREAK"        => L["PP.LineSchedule.Band.Break"].Value,
-        _              => t
+    bool InsideOperating(int startMin, int endMin) =>
+        Bands.Any(b => b.State == "OPERATING" && b.StartMin <= startMin && b.EndMin >= endMin);
+
+    string SegClass(string state) => state switch
+    {
+        "OPERATING"        => "pp-gantt-band pp-gantt-band--work",
+        "PLANNED_DOWNTIME" => "pp-gantt-band pp-gantt-band--down",
+        "IDLE"             => "pp-gantt-band pp-gantt-band--idle",
+        _                  => "pp-gantt-band pp-gantt-band--break"
+    };
+
+    string SegLabel(string state)
+        => _segStates.FirstOrDefault(c => c.CodeValue == state) is { } c ? MasterDataRepository.LocalName(c) : state;
+
+    RenderFragment StatusPill() => __b =>
+    {
+        string cls, txt;
+        if (_dirty)                            { cls = "warn"; txt = L["PP.LineSchedule.Status.Unsaved"].Value; }
+        else if (_savedStatus == "Published")  { cls = "ok";   txt = L["PP.LineSchedule.Status.Published"].Value; }
+        else if (_savedStatus == "Draft")      { cls = "info"; txt = L["PP.LineSchedule.Status.Draft"].Value; }
+        else                                   { cls = "dim";  txt = L["PP.LineSchedule.Status.Unsaved"].Value; }
+        __b.OpenElement(0, "span"); __b.AddAttribute(1, "class", $"pill {cls}"); __b.AddContent(2, txt); __b.CloseElement();
     };
 
     void ShowMsg(string msg)
     {
         _msg = msg;
         _ = Task.Delay(3500).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
-    }
-
-    public void Dispose()
-    {
-        _ = JS.InvokeVoidAsync("ganttDrag.destroy");
-        _ref?.Dispose();
     }
 }

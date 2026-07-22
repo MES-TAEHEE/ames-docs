@@ -312,6 +312,143 @@ public sealed class LineScheduleRepository
         cmd.ExecuteNonQuery();
     }
 
+    // ── PP-LSB : 패턴 참조 스케줄 (PatternID + WO 매핑 + Publish) ──────────────
+    // PP_LineSchedule.PatternID = 선택된 MD_LineTimePattern, 밴드는 MD_LineTimeSegment에서 파생(스냅샷 아님).
+    public sealed record ScheduleRow(
+        int ScheduleId, string? PatternId, int? WoId, string? WoNumber, string? ItemName,
+        int StartMin, int EndMin, decimal PlannedQty, string? Status,
+        DateTime? PublishedAt, string? PublishedBy);
+
+    public List<ScheduleRow> GetSchedule(string lineId, DateTime date)
+    {
+        const string sql = """
+            SELECT s.ScheduleID, s.PatternID, s.WoID, w.WoNumber, i.ItemName,
+                   ISNULL(s.StartMin,0)   AS StartMin,
+                   ISNULL(s.EndMin,0)     AS EndMin,
+                   ISNULL(s.PlannedQty,0) AS PlannedQty,
+                   s.Status, s.PublishedAt, s.PublishedBy
+            FROM   dbo.PP_LineSchedule s
+            LEFT JOIN dbo.PP_WorkOrder w ON w.WoID   = s.WoID
+            LEFT JOIN dbo.MD_Item      i ON i.ItemNo = w.ItemNo
+            WHERE  s.LineID = @LineId AND s.ScheduleDate = @Date
+            ORDER  BY s.StartMin;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
+        cmd.Parameters.Add("@Date",   SqlDbType.Date).Value        = date.Date;
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<ScheduleRow>();
+        while (rdr.Read())
+            list.Add(new ScheduleRow(
+                (int)rdr["ScheduleID"],
+                rdr["PatternID"]   as string,
+                rdr["WoID"]        as int?,
+                rdr["WoNumber"]    as string,
+                rdr["ItemName"]    as string,
+                Convert.ToInt32(rdr["StartMin"]),
+                Convert.ToInt32(rdr["EndMin"]),
+                rdr.GetDecimal(rdr.GetOrdinal("PlannedQty")),
+                rdr["Status"]      as string,
+                rdr["PublishedAt"] as DateTime?,
+                rdr["PublishedBy"] as string));
+        return list;
+    }
+
+    // 적용: (라인, 일자)의 기존 행을 지우고 패턴+WO 배치를 Draft로 저장.
+    public void SaveSchedule(string lineId, DateTime date, string? patternId,
+        IEnumerable<(int WoId, int StartMin, int EndMin, decimal Qty)> slots, string actor)
+    {
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            using (var del = new SqlCommand(
+                "DELETE FROM dbo.PP_LineSchedule WHERE LineID=@LineId AND ScheduleDate=@Date;", conn, tx))
+            {
+                del.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
+                del.Parameters.Add("@Date",   SqlDbType.Date).Value        = date.Date;
+                del.ExecuteNonQuery();
+            }
+
+            var rows = slots.Where(s => s.EndMin > s.StartMin).ToList();
+            if (rows.Count == 0)
+                InsertRow(conn, tx, lineId, date, patternId, null, null, null, 0m, "Draft", actor);
+            else
+                foreach (var s in rows)
+                    InsertRow(conn, tx, lineId, date, patternId, s.WoId, s.StartMin, s.EndMin, s.Qty, "Draft", actor);
+
+            tx.Commit();
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    static void InsertRow(SqlConnection conn, SqlTransaction tx, string lineId, DateTime date,
+        string? patternId, int? woId, int? startMin, int? endMin, decimal qty, string status, string actor)
+    {
+        using var cmd = new SqlCommand("""
+            INSERT INTO dbo.PP_LineSchedule
+                   (LineID, ScheduleDate, WoID, StartMin, EndMin, PlannedQty, PatternID, Status, CreatedBy, CreatedTS)
+            VALUES (@LineId, @Date, @WoId, @Start, @End, @Qty, @Pattern, @Status, @By, SYSDATETIME());
+            """, conn, tx);
+        cmd.Parameters.Add("@LineId",  SqlDbType.VarChar, 20).Value = lineId;
+        cmd.Parameters.Add("@Date",    SqlDbType.Date).Value        = date.Date;
+        cmd.Parameters.Add("@WoId",    SqlDbType.Int).Value         = (object?)woId ?? DBNull.Value;
+        cmd.Parameters.Add("@Start",   SqlDbType.SmallInt).Value    = startMin is int sv ? (short)sv : (object)DBNull.Value;
+        cmd.Parameters.Add("@End",     SqlDbType.SmallInt).Value    = endMin   is int ev ? (short)ev : (object)DBNull.Value;
+        cmd.Parameters.Add("@Qty",     SqlDbType.Decimal).Value     = qty;
+        cmd.Parameters.Add("@Pattern", SqlDbType.VarChar, 20).Value = (object?)patternId ?? DBNull.Value;
+        cmd.Parameters.Add("@Status",  SqlDbType.VarChar, 20).Value = status;
+        cmd.Parameters.Add("@By",      SqlDbType.VarChar, 50).Value = actor;
+        cmd.ExecuteNonQuery();
+    }
+
+    // 발행: (라인, 일자)의 모든 행을 Published + 발행정보 기록.
+    public void PublishSchedule(string lineId, DateTime date, string actor)
+    {
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand("""
+            UPDATE dbo.PP_LineSchedule
+            SET    Status='Published', PublishedAt=SYSDATETIME(), PublishedBy=@By,
+                   ModifiedBy=@By, ModifiedTS=SYSDATETIME()
+            WHERE  LineID=@LineId AND ScheduleDate=@Date;
+            """, conn);
+        cmd.Parameters.Add("@LineId", SqlDbType.VarChar,  20).Value = lineId;
+        cmd.Parameters.Add("@Date",   SqlDbType.Date).Value         = date.Date;
+        cmd.Parameters.Add("@By",     SqlDbType.NVarChar, 450).Value = actor;
+        cmd.ExecuteNonQuery();
+    }
+
+    // 라인 배치용 WO 후보 (Released/In Progress). MD_Item 미등록 품목도 포함하도록 LEFT JOIN.
+    public sealed record WoRow(int WoId, string? WoNumber, string? ItemNo, string? ItemName, decimal OpenQty, string? Status);
+
+    public List<WoRow> ListLineWos(string lineId)
+    {
+        const string sql = """
+            SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
+                   ISNULL(w.OpenQty,0) AS OpenQty, w.Status
+            FROM   dbo.PP_WorkOrder w
+            LEFT JOIN dbo.MD_Item i ON i.ItemNo = w.ItemNo
+            WHERE  w.LineID = @LineId
+              AND  w.Status IN ('Released','In Progress')
+            ORDER  BY CASE WHEN w.Status='In Progress' THEN 0 ELSE 1 END, w.WoID;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<WoRow>();
+        while (rdr.Read())
+            list.Add(new WoRow(
+                (int)rdr["WoID"],
+                rdr["WoNumber"] as string,
+                rdr["ItemNo"]   as string,
+                rdr["ItemName"] as string,
+                rdr.GetDecimal(rdr.GetOrdinal("OpenQty")),
+                rdr["Status"]   as string));
+        return list;
+    }
+
     // ── Utility ──────────────────────────────────────────────────────────────
     public List<string> ListLines()
     {

@@ -1,10 +1,11 @@
-﻿@page "/pp/calendar"
+@page "/pp/calendar"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @rendermode InteractiveServer
 @inject AMES.Data.Repositories.WorkOrderRepository Wos
 @inject IStringLocalizer<SharedResources> L
 @inject NavigationManager Nav
 @using AMES.Contracts.Dto
+@using Radzen
 
 <PageTitle>@L["PP.Calendar.Title"] · AMES</PageTitle>
 
@@ -14,74 +15,55 @@
 <div class="ames-kpis">
     <div class="ames-kpi">
         <div class="ames-kpi-l">TOTAL WO</div>
-        <div class="ames-kpi-v">@_all.Count(w => w.DueDate.HasValue)</div>
-        <div class="ames-kpi-s">@L["PP.Calendar.Kpi.TotalSub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_all.Count(w => w.DueDate.HasValue)</div>
+            <div class="ames-kpi-s">@L["PP.Calendar.Kpi.TotalSub"]</div>
+        </div>
     </div>
     <div class="ames-kpi bad">
         <div class="ames-kpi-l">@L["PP.Calendar.Kpi.D3"]</div>
-        <div class="ames-kpi-v">@_all.Count(w => w.DaysToDue is { } d && d >= 0 && d <= 3)</div>
-        <div class="ames-kpi-s">@L["PP.Calendar.Kpi.D3Sub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_all.Count(w => w.DaysToDue is { } d && d >= 0 && d <= 3)</div>
+            <div class="ames-kpi-s">@L["PP.Calendar.Kpi.D3Sub"]</div>
+        </div>
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">@L["PP.Calendar.Kpi.Late"]</div>
-        <div class="ames-kpi-v">@_all.Count(w => w.DaysToDue is { } d && d < 0)</div>
-        <div class="ames-kpi-s">@L["PP.Calendar.Kpi.LateSub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_all.Count(w => w.DaysToDue is { } d && d < 0)</div>
+            <div class="ames-kpi-s">@L["PP.Calendar.Kpi.LateSub"]</div>
+        </div>
     </div>
     <div class="ames-kpi ok">
         <div class="ames-kpi-l">IN PROGRESS</div>
-        <div class="ames-kpi-v">@_all.Count(w => w.Status == "In Progress")</div>
-        <div class="ames-kpi-s">@L["PP.Calendar.Kpi.InProgSub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_all.Count(w => w.Status == "In Progress")</div>
+            <div class="ames-kpi-s">@L["PP.Calendar.Kpi.InProgSub"]</div>
+        </div>
     </div>
 </div>
 
 @if (_err is not null)
 {
-    <div class="ames-alert bad">@_err</div>
+    <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_err</RadzenAlert>
 }
 
-@* ── Tab / filter bar ───────────────────────────────────────────── *@
-<div class="ames-cal-tabs">
-    <button class="ames-cal-tab @(_view == "month" ? "active" : "")" @onclick='() => _view = "month"'>
-        @L["PP.Calendar.Tab.Month"]
-    </button>
-    <button class="ames-cal-tab @(_view == "week" ? "active" : "")" @onclick='() => _view = "week"'>
-        @L["PP.Calendar.Tab.Week"]
-    </button>
-    <div style="flex:1;"></div>
-    <select class="ames-input" style="width:130px;align-self:center;"
-            @bind="_fRouting" @bind:after="RebuildByDue">
-        <option value="">@L["Filter.All"]</option>
-        <option value="A">@L["PP.Calendar.Routing.A"]</option>
-        <option value="B">@L["PP.Calendar.Routing.B"]</option>
-        <option value="INJ">@L["PP.Calendar.Routing.INJ"]</option>
-    </select>
-    <select class="ames-input" style="width:130px;align-self:center;margin-left:6px;"
-            @bind="_fStatus" @bind:after="RebuildByDue">
-        <option value="">@L["Filter.All"]</option>
-        <option value="Draft">Draft</option>
-        <option value="Released">Released</option>
-        <option value="In Progress">In Progress</option>
-        <option value="Closed">Closed</option>
-    </select>
-    <button class="ames-btn ok" @onclick="Reload" style="align-self:center;margin-left:6px;">@L["Btn.Search"]</button>
-</div>
+<AmesTabs>
 
 @* ══════════════════════════════════════════════════════════════════ *@
 @* ── MONTH VIEW ─────────────────────────────────────────────────── *@
 @* ══════════════════════════════════════════════════════════════════ *@
-@if (_view == "month")
-{
+<AmesTab Title="@($"▦ {L["PP.Calendar.Tab.Month"].Value}")">
     <div class="ames-card">
-        @* month navigation *@
-        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
-            <div style="display:flex;align-items:center;gap:12px;">
-                <button class="ames-btn" style="padding:6px 14px;" @onclick="PrevMonth">‹</button>
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevMonth" class="ames-rz-btn" />
                 <span style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;">
                     @string.Format(L["Fmt.CalYearMonth"], _calYear, _calMonth)
                 </span>
-                <button class="ames-btn" style="padding:6px 14px;" @onclick="NextMonth">›</button>
+                <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@NextMonth" class="ames-rz-btn" />
             </div>
-            <button class="ames-btn" style="padding:6px 14px;" @onclick="GoToday">@L["PP.Calendar.Btn.Today"]</button>
+            @FilterBar()
         </div>
 
         @{
@@ -91,10 +73,7 @@
             int rows         = (int)Math.Ceiling((startOffset + daysInMonth) / 7.0);
         }
 
-        @* day-of-week header + day cells *@
         <div class="ames-cal-grid pp-wo-grid">
-
-            @* headers *@
             @foreach (var (key, cls) in new[] {
                 ("PP.Calendar.Day.Sun","sun"),
                 ("PP.Calendar.Day.Mon",""),
@@ -107,7 +86,6 @@
                 <div class="ames-cal-head @cls">@L[key]</div>
             }
 
-            @* cells *@
             @for (int cell = 0; cell < rows * 7; cell++)
             {
                 int dayNum = cell - startOffset + 1;
@@ -156,32 +134,28 @@
             }
         </div>
 
-        <div class="ames-cal-legend">
-            @Legend()
-        </div>
+        <div class="ames-cal-legend">@Legend()</div>
     </div>
-}
+</AmesTab>
 
 @* ══════════════════════════════════════════════════════════════════ *@
 @* ── WEEK VIEW ──────────────────────────────────────────────────── *@
 @* ══════════════════════════════════════════════════════════════════ *@
-@if (_view == "week")
-{
-    var weekDates = GetWeekDates();
+<AmesTab Title="@($"≡ {L["PP.Calendar.Tab.Week"].Value}")">
+    @{ var weekDates = GetWeekDates(); }
     <div class="ames-card">
-        @* week navigation *@
-        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
-            <div style="display:flex;align-items:center;gap:12px;">
-                <button class="ames-btn" style="padding:6px 14px;" @onclick="PrevWeek">‹</button>
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevWeek" class="ames-rz-btn" />
                 <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#fff;">
                     @weekDates[0].ToString("MM/dd") — @weekDates[6].ToString("MM/dd")
                     <span style="font-size:14px;color:#64748b;letter-spacing:1px;margin-left:8px;">
                         @_weekStart.Year@L["Lbl.Year"]
                     </span>
                 </span>
-                <button class="ames-btn" style="padding:6px 14px;" @onclick="NextWeek">›</button>
+                <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@NextWeek" class="ames-rz-btn" />
             </div>
-            <button class="ames-btn" style="padding:6px 14px;" @onclick="GoToday">@L["PP.Calendar.Btn.Today"]</button>
+            @FilterBar()
         </div>
 
         <div style="margin-top:6px;">
@@ -199,7 +173,6 @@
                 <div style="display:grid;grid-template-columns:90px 1fr;gap:0;
                             border:1px solid;border-radius:6px;margin-bottom:5px;
                             min-height:44px;overflow:hidden;@rowBg">
-                    @* 날짜 셀 *@
                     <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;
                                 border-right:1px solid rgba(255,255,255,.06);">
                         <span style="font-family:'JetBrains Mono',monospace;font-size:10px;
@@ -215,7 +188,6 @@
                             @if (isToday) { <span class="ames-cal-today-dot"></span> }
                         </span>
                     </div>
-                    @* WO 칩 행 *@
                     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:6px 10px;">
                         @if (wos.Count == 0)
                         {
@@ -236,11 +208,11 @@
             }
         </div>
 
-        <div class="ames-cal-legend">
-            @Legend()
-        </div>
+        <div class="ames-cal-legend">@Legend()</div>
     </div>
-}
+</AmesTab>
+
+</AmesTabs>
 
 @* ── Day overflow modal ──────────────────────────────────────────── *@
 @if (_showDay && _dayDate.HasValue)
@@ -259,9 +231,9 @@
                     <span class="pill @(GetWoCls(wo))" style="float:right;font-size:10px;padding:1px 6px;">@wo.Status</span>
                 </div>
             }
-            <div class="ames-modal-footer">
-                <button class="ames-btn ghost" @onclick="() => _showDay = false">@L["Btn.Close"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="() => _showDay = false" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
@@ -315,11 +287,11 @@
                     { <span class="pill bad">@L["PP.Calendar.Detail.Phase0Fail"]</span> }
                 </div>
             </div>
-            <div class="ames-modal-footer">
-                <button class="ames-btn warn" @onclick="OpenReschedule">@L["PP.Calendar.Btn.Reschedule"]</button>
-                <button class="ames-btn info" @onclick='() => Nav.NavigateTo("/pp/work-order")'>@L["PP.Calendar.Btn.WorkOrder"]</button>
-                <button class="ames-btn ghost"  @onclick="() => _showDetail = false">@L["Btn.Close"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["PP.Calendar.Btn.Reschedule"]" Icon="event" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@OpenReschedule" class="ames-rz-btn" />
+                <RadzenButton Text="@L["PP.Calendar.Btn.WorkOrder"]" Icon="list" ButtonStyle="ButtonStyle.Info" Size="ButtonSize.Small" Click='() => Nav.NavigateTo("/pp/work-order")' class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="() => _showDetail = false" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
@@ -334,34 +306,30 @@
                 <div>@L["PP.Calendar.Lbl.WoNo"] <span class="code">@_detail.WoNumber</span></div>
                 <div>@L["PP.Calendar.Lbl.CurrentDue"] <span class="dim">@(_detail.DueDate?.ToString("yyyy-MM-dd") ?? "—")</span></div>
             </div>
-            <label>@L["PP.Calendar.Lbl.NewDue"]</label>
-            <input type="date" class="ames-input"
-                   value="@_reschedDate.ToString("yyyy-MM-dd")"
-                   @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var dt)) _reschedDate = dt; }" />
-            <label style="margin-top:8px;">@L["PP.Calendar.Lbl.Pin"]</label>
+            <RadzenLabel Text="@L["PP.Calendar.Lbl.NewDue"]" />
+            <RadzenDatePicker TValue="DateTime" @bind-Value="_reschedDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            <RadzenLabel Text="@L["PP.Calendar.Lbl.Pin"]" style="margin-top:8px;" />
             <input type="password" class="ames-input" placeholder="@L["PP.Calendar.Ph.Pin"]" maxlength="6"
                    @bind="_pinInput" @bind:event="oninput" autocomplete="off" />
             @if (!string.IsNullOrEmpty(_pinError))
             {
-                <div class="ames-alert bad" style="margin-top:6px;">@_pinError</div>
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:6px;">@_pinError</RadzenAlert>
             }
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="ConfirmReschedule">@L["Btn.Confirm"]</button>
-                <button class="ames-btn ghost" @onclick="() => _showReschedule = false">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Confirm"]" Icon="check" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ConfirmReschedule" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="() => _showReschedule = false" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
 
 @code {
     const string DevPin = "1234";
-    const int MaxChipsMonth = 3;
 
     List<WorkOrderDto> _all = [];
     Dictionary<DateTime, List<WorkOrderDto>> _byDue = [];
     string  _fRouting = "";
     string  _fStatus  = "";
-    string  _view     = "month";
     string? _err;
 
     int _calYear  = DateTime.Today.Year;
@@ -379,6 +347,33 @@
     DateTime _reschedDate;
     string   _pinInput = "";
     string   _pinError = "";
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
+    List<DropDownItem> RoutingOptions => new()
+    {
+        new() { Value = "",    Text = L["Filter.All"].Value },
+        new() { Value = "A",   Text = L["PP.Calendar.Routing.A"].Value },
+        new() { Value = "B",   Text = L["PP.Calendar.Routing.B"].Value },
+        new() { Value = "INJ", Text = L["PP.Calendar.Routing.INJ"].Value },
+    };
+    List<DropDownItem> StatusFilterOptions => new()
+    {
+        new() { Value = "",            Text = L["Filter.All"].Value },
+        new() { Value = "Draft",       Text = "Draft" },
+        new() { Value = "Released",    Text = "Released" },
+        new() { Value = "In Progress", Text = "In Progress" },
+        new() { Value = "Closed",      Text = "Closed" },
+    };
+
+    // 월/주 탭 공통 필터 툴바 (라우팅·상태·검색)
+    RenderFragment FilterBar() =>
+    @<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <RadzenButton Text="@L["PP.Calendar.Btn.Today"]" Icon="done" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@GoToday" class="ames-rz-btn" />
+        <RadzenDropDown TValue="string" @bind-Value="_fRouting" @bind-Value:after="RebuildByDue" Data="@RoutingOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+        <RadzenDropDown TValue="string" @bind-Value="_fStatus" @bind-Value:after="RebuildByDue" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+        <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
+    </div>;
 
     protected override void OnInitialized() => Reload();
 

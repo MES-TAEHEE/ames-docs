@@ -193,7 +193,7 @@
     <value>— All —</value>
   </data>
   <data name="Opt.None" xml:space="preserve">
-    <value>None</value>
+    <value>— None —</value>
   </data>
   <data name="Opt.Select" xml:space="preserve">
     <value>— Select —</value>
@@ -824,9 +824,6 @@
   </data>
   <data name="SYS.Users.Empty" xml:space="preserve">
     <value>No users.</value>
-  </data>
-  <data name="SYS.Users.Opt.NoRole" xml:space="preserve">
-    <value>— None —</value>
   </data>
   <data name="SYS.Users.Err.EmailRequired" xml:space="preserve">
     <value>Email is required.</value>
@@ -2256,6 +2253,42 @@
   <data name="PP.LineSchedule.Title" xml:space="preserve">
     <value>Line Schedule</value>
   </data>
+  <data name="PP.LineSchedule.Lbl.Pattern" xml:space="preserve">
+    <value>Pattern</value>
+  </data>
+  <data name="PP.LineSchedule.Ph.SelectPattern" xml:space="preserve">
+    <value>Select pattern</value>
+  </data>
+  <data name="PP.LineSchedule.Btn.Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="PP.LineSchedule.Btn.Publish" xml:space="preserve">
+    <value>Publish</value>
+  </data>
+  <data name="PP.LineSchedule.Status.Draft" xml:space="preserve">
+    <value>Draft</value>
+  </data>
+  <data name="PP.LineSchedule.Status.Published" xml:space="preserve">
+    <value>Published</value>
+  </data>
+  <data name="PP.LineSchedule.Status.Unsaved" xml:space="preserve">
+    <value>Unsaved</value>
+  </data>
+  <data name="PP.LineSchedule.Empty.NoPattern" xml:space="preserve">
+    <value>No pattern available for this line/date.</value>
+  </data>
+  <data name="PP.LineSchedule.Err.NoPattern" xml:space="preserve">
+    <value>Select a pattern.</value>
+  </data>
+  <data name="PP.LineSchedule.Err.NotInOperating" xml:space="preserve">
+    <value>Can only be placed within operating windows.</value>
+  </data>
+  <data name="PP.LineSchedule.Ok.Applied" xml:space="preserve">
+    <value>Applied.</value>
+  </data>
+  <data name="PP.LineSchedule.Ok.Published" xml:space="preserve">
+    <value>Published.</value>
+  </data>
   <data name="PP.LineSchedule.Kpi.WorkCap" xml:space="preserve">
     <value>Work Capacity</value>
   </data>
@@ -2378,6 +2411,69 @@
   </data>
   <data name="PP.LineSchedule.Ok.Placed" xml:space="preserve">
     <value>WO placed.</value>
+  </data>
+  <data name="PP.LineSchedule.Ok.Updated" xml:space="preserve">
+    <value>Slot updated.</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.Blocks" xml:space="preserve">
+    <value>Run Blocks</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.BlocksSub" xml:space="preserve">
+    <value>Operating {0} min · Remaining {1} min</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.DownMin" xml:space="preserve">
+    <value>Planned Downtime</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.DownMinSub" xml:space="preserve">
+    <value>Planned downtime · break bands</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.Qty" xml:space="preserve">
+    <value>Planned Qty</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.QtySub" xml:space="preserve">
+    <value>Sum of placed WO planned qty</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.UtilTarget" xml:space="preserve">
+    <value>target ≥ 80%</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.Conflict" xml:space="preserve">
+    <value>Schedule Conflicts</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.ConflictSub" xml:space="preserve">
+    <value>Overlap · outside operating time</value>
+  </data>
+  <data name="PP.LineSchedule.Band.Idle" xml:space="preserve">
+    <value>Idle</value>
+  </data>
+  <data name="PP.LineSchedule.Lgd.Wo" xml:space="preserve">
+    <value>WO slot</value>
+  </data>
+  <data name="PP.LineSchedule.Tl.Title" xml:space="preserve">
+    <value>Minute-Level Schedule Timeline — {0} ~ {1}</value>
+  </data>
+  <data name="PP.LineSchedule.Hint.Board" xml:space="preserve">
+    <value>Click a block to edit · red outline = conflict · NOW line = current time</value>
+  </data>
+  <data name="PP.LineSchedule.Lbl.SlotList" xml:space="preserve">
+    <value>Placed Slots</value>
+  </data>
+  <data name="PP.LineSchedule.Empty.NoSlot" xml:space="preserve">
+    <value>No WO placed yet.</value>
+  </data>
+  <data name="PP.LineSchedule.Btn.Update" xml:space="preserve">
+    <value>✎ Update</value>
+  </data>
+  <data name="PP.LineSchedule.Err.Overlap" xml:space="preserve">
+    <value>Overlaps another WO slot.</value>
+  </data>
+  <data name="PP.LineSchedule.Err.ConflictSummary" xml:space="preserve">
+    <value>{0} conflict(s) — resolve overlapping or out-of-operating slots.</value>
+  </data>
+  <data name="PP.LineSchedule.Cf.Conflict" xml:space="preserve">
+    <value>Conflict</value>
+  </data>
+  <data name="PP.LineSchedule.Cf.Ok" xml:space="preserve">
+    <value>OK</value>
   </data>
   <data name="PP.Mrp.Title" xml:space="preserve">
     <value>MRP</value>
@@ -4947,12 +5043,6 @@
   <data name="MD.MoldLine.Title" xml:space="preserve">
     <value>Mold Line Master</value>
   </data>
-  <data name="MD.MoldItem.Empty" xml:space="preserve">
-    <value>No products.</value>
-  </data>
-  <data name="MD.MoldLine.Ph.Search" xml:space="preserve">
-    <value>Line ID / Line Name</value>
-  </data>
   <data name="MD.MoldLine.SelectHint" xml:space="preserve">
     <value>Select a line on the left</value>
   </data>
@@ -5072,5 +5162,20 @@
   </data>
   <data name="MD.LineTimePattern.Btn.DiscardClose" xml:space="preserve">
     <value>Discard</value>
+  </data>
+  <data name="MD.MoldItem.Empty" xml:space="preserve">
+    <value>No products.</value>
+  </data>
+  <data name="MD.MoldLine.Ph.Search" xml:space="preserve">
+    <value>Line ID / Line Name</value>
+  </data>
+  <data name="Col.PGN" xml:space="preserve">
+    <value>PGN</value>
+  </data>
+  <data name="Col.ALC" xml:space="preserve">
+    <value>ALC</value>
+  </data>
+  <data name="MD.Mold.Ph.Color" xml:space="preserve">
+    <value>e.g. BLK</value>
   </data>
 </root>
