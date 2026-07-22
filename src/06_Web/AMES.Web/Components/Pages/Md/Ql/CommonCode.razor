@@ -16,16 +16,36 @@
 <PageTitle>MD-030 @L["MD.CommonCode.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-030" TitleKey="MD.CommonCode.Title" />
 
+@* ── KPI strip ──────────────────────────────────────────────────── *@
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MD.CommonCode.Kpi.TotalCodes"]</div>
+        <div class="ames-kpi-v">@_ccKpi.TotalCodes</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["MD.CommonCode.Kpi.Active"]</div>
+        <div class="ames-kpi-v">@_ccKpi.ActiveCodes</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MD.CommonCode.Kpi.CodeGroups"]</div>
+        <div class="ames-kpi-v">@_groups.Count</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">@L["MD.CommonCode.Kpi.SelInactive"]</div>
+        <div class="ames-kpi-v">@(_selGroup is null ? "—" : _items.Count(i => !i.UseFlag))</div>
+    </div>
+</div>
+
 @if (!string.IsNullOrEmpty(_msg))
 {
     <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
-<div style="display:flex;gap:16px;align-items:flex-start;">
+<div style="display:flex;gap:16px;height:calc(100vh - 200px);">
 
     @* ── 좌: 코드 그룹 ────────────────────────────────────────────────── *@
-    <div style="flex:0 0 480px;">
-        <div class="ames-card">
+    <div style="flex:0 0 480px;display:flex;flex-direction:column;min-height:0;">
+        <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                 <span style="font-weight:600;font-size:1em;">@L["MD.CommonCode.GrpHeader"]</span>
                 @if (_canEdit)
@@ -33,6 +53,7 @@
                     <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenGroupCreate" class="ames-rz-btn" />
                 }
             </div>
+            <div style="flex:1;min-height:0;overflow:hidden;">
             <RadzenDataGrid @ref="_grpGrid" TItem="MasterDataRepository.CodeGroupRow" Data="_groups" AllowPaging="true" PageSize="GrpPageSize" PagerHorizontalAlign="HorizontalAlign.Center"
                             ShowPagingSummary="false" Page="OnGrpPage" RowRender="GrpRowRender" RowSelect="OnGroupRowSelect" Class="ames-rz-grid">
                 <Columns>
@@ -50,21 +71,25 @@
                     <RadzenDataGridColumn Width="52px" TextAlign="TextAlign.Center">
                         <Template Context="g">
                             <div @onclick:stopPropagation>
-                                <RadzenButton ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Text="▶" Click="() => SelectGroup(g)" title='@L["MD.CommonCode.Title.ViewItems"]' />
+                                <RadzenButton ButtonStyle="ButtonStyle.Light" Size="ButtonSize.ExtraSmall" Text="▶" Click="() => SelectGroup(g)" title='@L["MD.CommonCode.Title.ViewItems"]' class="ames-rz-btn" />
                             </div>
                         </Template>
                     </RadzenDataGridColumn>
                 </Columns>
             </RadzenDataGrid>
+            </div>
         </div>
     </div>
 
     @* ── 우: 코드 항목 ────────────────────────────────────────────────── *@
-    <div style="flex:1;min-width:0;">
-        <div class="ames-card">
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;">
+        <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
             @if (_selGroup is null)
             {
-                <div class="dim" style="padding:24px 0;text-align:center;">@L["MD.CommonCode.ItemHint"]</div>
+                <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;">
+                    <div style="font-size:2.4em;opacity:.15;">🏷️</div>
+                    <div class="dim" style="font-size:.9em;">@L["MD.CommonCode.ItemHint"]</div>
+                </div>
             }
             else
             {
@@ -80,6 +105,7 @@
                         <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenItemCreate" class="ames-rz-btn" />
                     }
                 </div>
+                <div style="flex:1;min-height:0;overflow:auto;">
                 <RadzenDataGrid TItem="MasterDataRepository.CodeItemRow" Data="_items" AllowPaging="false"
                                 RowRender="ItemRowRender" RowSelect="OpenItemEdit" Class="ames-rz-grid">
                     <Columns>
@@ -103,6 +129,7 @@
                         </RadzenDataGridColumn>
                     </Columns>
                 </RadzenDataGrid>
+                </div>
             }
         </div>
     </div>
@@ -363,6 +390,7 @@
     List<MasterDataRepository.CodeGroupRow> _groups = new();
     List<MasterDataRepository.CodeItemRow>  _items  = new();
     MasterDataRepository.CodeGroupRow?      _selGroup;
+    MasterDataRepository.CommonCodeKpiRow   _ccKpi = new(0, 0);
 
     RadzenDataGrid<MasterDataRepository.CodeGroupRow>? _grpGrid;
     int _grpPage;
@@ -387,7 +415,7 @@
         LoadGroups();
     }
 
-    void LoadGroups() { try { _groups = MD.ListCodeGroups(); } catch { _groups = new(); } }
+    void LoadGroups() { try { _groups = MD.ListCodeGroups(); } catch { _groups = new(); } try { _ccKpi = MD.CommonCodeKpi(); } catch { } }
 
     void OnGrpPage(PagerEventArgs args) => _grpPage = args.PageIndex;
 
@@ -408,6 +436,7 @@
     {
         if (_selGroup is null) { _items = new(); return; }
         try { _items = MD.ListCodeItems(_selGroup.GroupCode); } catch { _items = new(); }
+        try { _ccKpi = MD.CommonCodeKpi(); } catch { }   // 코드 항목 증감/활성 변경 반영
     }
 
     void SelectGroup(MasterDataRepository.CodeGroupRow g) { _selGroup = g; LoadItems(); }

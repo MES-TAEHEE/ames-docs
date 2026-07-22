@@ -1476,6 +1476,42 @@
   <data name="MD.CommonCode.Title" xml:space="preserve">
     <value>코드 기준정보 관리</value>
   </data>
+  <data name="MD.Bop.Kpi.TotalOps" xml:space="preserve">
+    <value>전체 공정</value>
+  </data>
+  <data name="MD.Bop.Kpi.ActiveOps" xml:space="preserve">
+    <value>활성 공정</value>
+  </data>
+  <data name="MD.Bop.Kpi.AvgCt" xml:space="preserve">
+    <value>평균 C/T (초)</value>
+  </data>
+  <data name="MD.Bop.Kpi.ProductsRouted" xml:space="preserve">
+    <value>공정 등록 품목</value>
+  </data>
+  <data name="MD.Bom.Kpi.Products" xml:space="preserve">
+    <value>BOM 제품</value>
+  </data>
+  <data name="MD.Bom.Kpi.TotalComponents" xml:space="preserve">
+    <value>총 구성품</value>
+  </data>
+  <data name="MD.Bom.Kpi.AvgParts" xml:space="preserve">
+    <value>제품당 평균 부품</value>
+  </data>
+  <data name="MD.Bom.Kpi.SelMaterialCost" xml:space="preserve">
+    <value>선택 제품 자재비 · USD</value>
+  </data>
+  <data name="MD.CommonCode.Kpi.TotalCodes" xml:space="preserve">
+    <value>전체 공통코드</value>
+  </data>
+  <data name="MD.CommonCode.Kpi.Active" xml:space="preserve">
+    <value>활성</value>
+  </data>
+  <data name="MD.CommonCode.Kpi.CodeGroups" xml:space="preserve">
+    <value>코드 그룹</value>
+  </data>
+  <data name="MD.CommonCode.Kpi.SelInactive" xml:space="preserve">
+    <value>선택 그룹 비활성 코드</value>
+  </data>
   <data name="MD.CommonCode.GrpHeader" xml:space="preserve">
     <value>코드 그룹</value>
   </data>

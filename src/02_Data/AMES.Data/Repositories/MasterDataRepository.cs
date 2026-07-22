@@ -125,6 +125,18 @@ public sealed class MasterDataRepository
         return (int)cmd.ExecuteScalar()! > 0;
     }
 
+    public record CommonCodeKpiRow(int TotalCodes, int ActiveCodes);
+
+    // 상단 KPI 집계 (전체 MD_CodeItem 기준) — 전체 코드 수 · 활성 코드 수
+    public CommonCodeKpiRow CommonCodeKpi() => Query("""
+        SELECT COUNT(*)                                                AS TotalCodes,
+               SUM(CASE WHEN ISNULL(UseFlag,1)=1 THEN 1 ELSE 0 END)    AS ActiveCodes
+        FROM   dbo.MD_CodeItem
+        """, r => new CommonCodeKpiRow(
+            r["TotalCodes"]  is int t ? t : 0,
+            r["ActiveCodes"] is int a ? a : 0))
+        .FirstOrDefault() ?? new CommonCodeKpiRow(0, 0);
+
     public void InsertCodeItem(string codeId, string groupCode, string? codeValue,
         string? codeName, string? codeNameEn, int sortOrder,
         string? attribute1, bool useFlag, string? description, string createdBy,
@@ -650,6 +662,22 @@ public sealed class MasterDataRepository
 
     public record BopItemRow(string ItemNo, string ItemName, int StepCount);
 
+    public record BopKpiRow(int TotalOps, int ActiveOps, decimal? AvgCycle, int ProductsRouted);
+
+    // 상단 KPI 집계 (전체 MD_Bop 기준, 검색과 무관)
+    public BopKpiRow BopKpi() => Query("""
+        SELECT COUNT(*)                                                    AS TotalOps,
+               SUM(CASE WHEN ISNULL(ActiveFlag,1)=1 THEN 1 ELSE 0 END)     AS ActiveOps,
+               AVG(CAST(StdCycleTime AS decimal(18,4)))                    AS AvgCycle,
+               COUNT(DISTINCT ItemNo)                                      AS ProductsRouted
+        FROM   dbo.MD_Bop
+        """, r => new BopKpiRow(
+            r["TotalOps"]       is int t ? t : 0,
+            r["ActiveOps"]      is int a ? a : 0,
+            r["AvgCycle"]       is decimal av ? av : (decimal?)null,
+            r["ProductsRouted"] is int p ? p : 0))
+        .FirstOrDefault() ?? new BopKpiRow(0, 0, null, 0);
+
     public record BopRow(
         string BOPID, string? ItemNo, string? RoutingType,
         int? StepSeq, string? StationCode,
@@ -658,6 +686,17 @@ public sealed class MasterDataRepository
         bool QcRequiredFlag, string? StepDescription, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS,
         string? ModifiedBy, DateTime? ModifiedTS);
+
+    public record BomKpiRow(int BomProducts, int TotalComponents);
+
+    // 상단 KPI 집계 (전체 BOM 기준) — 제품 수(고유 RootItemNo) · 총 구성품 라인 수
+    public BomKpiRow BomKpi() => Query("""
+        SELECT (SELECT COUNT(DISTINCT RootItemNo) FROM dbo.MD_BomVersion) AS BomProducts,
+               (SELECT COUNT(*)                   FROM dbo.MD_Bom)        AS TotalComponents
+        """, r => new BomKpiRow(
+            r["BomProducts"]     is int p ? p : 0,
+            r["TotalComponents"] is int c ? c : 0))
+        .FirstOrDefault() ?? new BomKpiRow(0, 0);
 
     public record BomVersionRow(
         string VersionID, string? RootItemNo, string RootItemName,

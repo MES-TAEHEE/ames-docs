@@ -16,12 +16,32 @@
 <PageTitle>MD-005 @L["MD.Bop.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-005" TitleKey="MD.Bop.Title" />
 
+@* ── KPI strip ──────────────────────────────────────────────────── *@
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MD.Bop.Kpi.TotalOps"]</div>
+        <div class="ames-kpi-v">@_kpi.TotalOps</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["MD.Bop.Kpi.ActiveOps"]</div>
+        <div class="ames-kpi-v">@_kpi.ActiveOps</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MD.Bop.Kpi.AvgCt"]</div>
+        <div class="ames-kpi-v">@(_kpi.AvgCycle?.ToString("N1") ?? "—")</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MD.Bop.Kpi.ProductsRouted"]</div>
+        <div class="ames-kpi-v">@_kpi.ProductsRouted</div>
+    </div>
+</div>
+
 @if (!string.IsNullOrEmpty(_msg))
 {
     <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
-<div style="display:flex;gap:14px;height:calc(100vh - 120px);">
+<div style="display:flex;gap:14px;height:calc(100vh - 200px);">
 
     @* ── 좌: 품목 목록 ─────────────────────────────────────────────────── *@
     <div style="flex:0 0 500px;display:flex;flex-direction:column;min-height:0;">
@@ -269,6 +289,7 @@
     List<MasterDataRepository.StationRow>    _stationList = new();
     List<MasterDataRepository.CodeItemRow>   _routingItems = new();
     MasterDataRepository.BopItemRow?         _selItem;
+    MasterDataRepository.BopKpiRow           _kpi = new(0, 0, null, 0);
     List<string> _routingTypes = new();
     string? _rtFilter;
     string  _search = "";
@@ -322,6 +343,7 @@
     {
         try { _items = MD.ListBopItems(string.IsNullOrWhiteSpace(_search) ? null : _search); }
         catch { _items = new(); }
+        try { _kpi = MD.BopKpi(); } catch { }
     }
 
     void LoadSteps()

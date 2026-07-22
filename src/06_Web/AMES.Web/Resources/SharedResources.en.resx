@@ -1476,6 +1476,42 @@
   <data name="MD.CommonCode.Title" xml:space="preserve">
     <value>Common Code Master</value>
   </data>
+  <data name="MD.Bop.Kpi.TotalOps" xml:space="preserve">
+    <value>Total Operations</value>
+  </data>
+  <data name="MD.Bop.Kpi.ActiveOps" xml:space="preserve">
+    <value>Active Operations</value>
+  </data>
+  <data name="MD.Bop.Kpi.AvgCt" xml:space="preserve">
+    <value>Avg C/T (sec)</value>
+  </data>
+  <data name="MD.Bop.Kpi.ProductsRouted" xml:space="preserve">
+    <value>Products Routed</value>
+  </data>
+  <data name="MD.Bom.Kpi.Products" xml:space="preserve">
+    <value>BOM Products</value>
+  </data>
+  <data name="MD.Bom.Kpi.TotalComponents" xml:space="preserve">
+    <value>Total Components</value>
+  </data>
+  <data name="MD.Bom.Kpi.AvgParts" xml:space="preserve">
+    <value>Avg Parts / Product</value>
+  </data>
+  <data name="MD.Bom.Kpi.SelMaterialCost" xml:space="preserve">
+    <value>Selected Product Material Cost · USD</value>
+  </data>
+  <data name="MD.CommonCode.Kpi.TotalCodes" xml:space="preserve">
+    <value>Total Common Codes</value>
+  </data>
+  <data name="MD.CommonCode.Kpi.Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="MD.CommonCode.Kpi.CodeGroups" xml:space="preserve">
+    <value>Code Groups</value>
+  </data>
+  <data name="MD.CommonCode.Kpi.SelInactive" xml:space="preserve">
+    <value>Selected Inactive Codes</value>
+  </data>
   <data name="MD.CommonCode.GrpHeader" xml:space="preserve">
     <value>Code Groups</value>
   </data>

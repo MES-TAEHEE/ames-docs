@@ -16,12 +16,32 @@
 <PageTitle>MD-004 @L["MD.Bom.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-004" TitleKey="MD.Bom.Title" />
 
+@* ── KPI strip ──────────────────────────────────────────────────── *@
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MD.Bom.Kpi.Products"]</div>
+        <div class="ames-kpi-v">@_bomKpi.BomProducts</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MD.Bom.Kpi.TotalComponents"]</div>
+        <div class="ames-kpi-v">@_bomKpi.TotalComponents</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MD.Bom.Kpi.AvgParts"]</div>
+        <div class="ames-kpi-v">@(_bomKpi.BomProducts > 0 ? ((decimal)_bomKpi.TotalComponents / _bomKpi.BomProducts).ToString("N1") : "—")</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["MD.Bom.Kpi.SelMaterialCost"]</div>
+        <div class="ames-kpi-v">@(_selVer is null ? "—" : _selMaterialCost.ToString("N2"))</div>
+    </div>
+</div>
+
 @if (!string.IsNullOrEmpty(_msg))
 {
     <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
-<div style="display:flex;gap:14px;height:calc(100vh - 120px);">
+<div style="display:flex;gap:14px;height:calc(100vh - 200px);">
 
     @* ── 좌: 버전 목록 ─────────────────────────────────────────────────── *@
     <div style="flex:0 0 500px;display:flex;flex-direction:column;min-height:0;">
@@ -312,8 +332,13 @@
     List<MasterDataRepository.ItemRow>       _itemList = new();
     List<MasterDataRepository.UomRow>        _uomList  = new();
     MasterDataRepository.BomVersionRow?      _selVer;
+    MasterDataRepository.BomKpiRow           _bomKpi = new(0, 0);
     string _statusFilter = "";
     string _search       = "";
+
+    // 선택 버전의 자재비 = Σ(구성품 QtyPer × 품목 단가)
+    decimal _selMaterialCost => _lines.Sum(l =>
+        (l.QtyPer ?? 0m) * (_itemList.FirstOrDefault(i => i.ItemNo == l.CompItemNo)?.UnitCost ?? 0m));
 
     string _modal = "", _modalErr = "", _msg = "";
     bool   _isErr, _busy, _bgDown;
@@ -364,9 +389,14 @@
             }
         }
         catch { _versions = new(); }
+        try { _bomKpi = MD.BomKpi(); } catch { }
     }
 
-    void LoadLines() { try { _lines = _selVer is null ? new() : MD.ListBomLines(_selVer.VersionID); } catch { _lines = new(); } }
+    void LoadLines()
+    {
+        try { _lines = _selVer is null ? new() : MD.ListBomLines(_selVer.VersionID); } catch { _lines = new(); }
+        try { _bomKpi = MD.BomKpi(); } catch { }   // 라인 증감 시 Total Components 갱신
+    }
 
     void SelectVersion(MasterDataRepository.BomVersionRow v) { _selVer = v; _verDelConfirm = false; LoadLines(); }
 
