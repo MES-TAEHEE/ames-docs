@@ -1201,7 +1201,7 @@ select.ames-rz-input {
 .ames-cal-head.sat { color: rgba(96,165,250,.8); }
 
 .ames-cal-cell {
-    min-height: 96px;
+    min-height: 115px;
     padding: 7px 9px 6px;
     background: rgba(255,255,255,.02);
     border: 1px solid rgba(255,255,255,.04);
