@@ -42,11 +42,12 @@
     <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
-<div style="display:flex;gap:16px;align-items:flex-start;">
+<div style="display:flex;gap:16px;height:calc(100vh - 200px);">
     @* ── 좌: 역할 목록 ────────────────────────────────────────────────── *@
-    <div style="flex:0 0 300px;">
-        <div class="ames-card">
+    <div style="flex:0 0 300px;display:flex;flex-direction:column;min-height:0;">
+        <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
             <div class="ames-card-h">@L["SYS.Rbac.Roles"]</div>
+            <div style="flex:1;min-height:0;overflow:auto;">
             @if (_roles.Count == 0)
             {
                 <div class="ames-empty">@L["SYS.Rbac.Empty"]</div>
@@ -72,15 +73,19 @@
                     </tbody>
                 </table>
             }
+            </div>
         </div>
     </div>
 
     @* ── 우: 권한 매트릭스 ──────────────────────────────────────────────── *@
-    <div style="flex:1;min-width:0;">
-        <div class="ames-card">
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;">
+        <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
             @if (_selRole is null)
             {
-                <div class="dim" style="padding:24px 0;text-align:center;">@L["SYS.Rbac.Hint.SelectRole"]</div>
+                <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;">
+                    <div style="font-size:2.4em;opacity:.15;">🔐</div>
+                    <div class="dim" style="font-size:.9em;">@L["SYS.Rbac.Hint.SelectRole"]</div>
+                </div>
             }
             else
             {
@@ -104,6 +109,7 @@
                     </RadzenStack>
                 </div>
 
+                <div style="flex:1;min-height:0;overflow:auto;">
                 <RadzenDataGrid TItem="SysRepository.ScreenRow" Data="@ScreensFiltered.ToList()" AllowPaging="false" AllowSorting="false" EmptyText="@L["SYS.Screen.Empty"]" Class="ames-rz-grid">
                     <Columns>
                         <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]" Width="110px">
@@ -128,6 +134,7 @@
                         }
                     </Columns>
                 </RadzenDataGrid>
+                </div>
             }
         </div>
     </div>

@@ -45,9 +45,9 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.RalColor.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Placeholder='@L["MD.RalColor.Ph.Search"]' Style="width:140px;" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
-            <RadzenLabel Text='@L["Col.Active"]' class="dim" Style="font-size:.82em;white-space:nowrap;" />
-            <RadzenDropDown @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder='@L["Filter.All"]' Style="width:110px;" />
+            <RadzenTextBox @bind-Value="_fSearch" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' Placeholder='@L["MD.RalColor.Ph.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" AutoCompleteType="AutoCompleteType.Off" />
+            <RadzenLabel Text='@L["Col.Active"]' Component="DropDownActive" />
+            <RadzenDropDown Name="DropDownActive" @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder='@L["Filter.All"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
             @if (_canEdit)

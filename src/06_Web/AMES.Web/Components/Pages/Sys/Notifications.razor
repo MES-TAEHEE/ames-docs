@@ -57,18 +57,10 @@
     </div>
 </div>
 
-@* ── Tab bar ───────────────────────────────────────────────────── *@
-<div class="ames-cal-tabs">
-    <div class="ames-cal-tab-group">
-        <button class="ames-cal-tab @(_tab == "rules"    ? "active" : "")" @onclick='() => _tab = "rules"'>@L["SYS.Notifications.Tab.Rules"]</button>
-        <button class="ames-cal-tab @(_tab == "channels" ? "active" : "")" @onclick='() => _tab = "channels"'>@L["SYS.Notifications.Tab.Channels"]</button>
-        <button class="ames-cal-tab @(_tab == "history"  ? "active" : "")" @onclick='() => _tab = "history"'>@L["SYS.Notifications.Tab.History"]</button>
-    </div>
-</div>
+<AmesTabs>
 
 @* ── Tab 1 : Notification rules ─────────────────────────────────────────── *@
-@if (_tab == "rules")
-{
+<AmesTab Title="@L["SYS.Notifications.Tab.Rules"].Value">
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="white-space:nowrap;">▼ @L["SYS.Notifications.Rules.List"] · @_ruleRows.Count @L["Lbl.Items"]@(_ruleRows.Count < _rules.Count ? $" / {L["Lbl.TotalOf"]} {_rules.Count}" : "")</span>
@@ -130,11 +122,10 @@
             </Columns>
         </RadzenDataGrid>
     </div>
-}
+</AmesTab>
 
 @* ── Tab 2 : Channel settings ──────────────────────────────────────────── *@
-@if (_tab == "channels")
-{
+<AmesTab Title="@L["SYS.Notifications.Tab.Channels"].Value">
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="white-space:nowrap;">▼ @L["SYS.Notifications.Channels.List"] · @_chRows.Count @L["Lbl.Items"]@(_chRows.Count < _channels.Count ? $" / {L["Lbl.TotalOf"]} {_channels.Count}" : "")</span>
@@ -177,11 +168,10 @@
             </Columns>
         </RadzenDataGrid>
     </div>
-}
+</AmesTab>
 
 @* ── Tab 3 : Notification histories ───────────────────────────────────────── *@
-@if (_tab == "history")
-{
+<AmesTab Title="@L["SYS.Notifications.Tab.History"].Value">
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="white-space:nowrap;">▼ @L["SYS.Notifications.History.List"] · @_histRows.Count @L["Lbl.Items"]@(_histRows.Count < _hist.Count ? $" / {L["Lbl.TotalOf"]} {_hist.Count}" : "")</span>
@@ -225,7 +215,8 @@
             </Columns>
         </RadzenDataGrid>
     </div>
-}
+</AmesTab>
+</AmesTabs>
 
 @* ── Notification rules ─ Create Modal ─────────────────────────────────────── *@
 @if (_ruleModal == "create")
@@ -543,7 +534,6 @@
 </style>
 
 @code {
-    string _tab = "rules";
     IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
     bool _showPagerSummary = true;
     bool _bgMouseDownOnSelf, _canEdit;

@@ -16,9 +16,6 @@
 <PageTitle>MD-007 @L["MD.Mold.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-007" TitleKey="MD.Mold.Title" />
 
-<AmesTabs>
-<AmesTab Title="@L["MD.Mold.Tab.Master"].Value">
-
 @* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
@@ -38,6 +35,9 @@
         <div class="ames-kpi-v">@_allRows.Select(r => r.StorageLoc).Where(l => l != null).Distinct().Count()</div>
     </div>
 </div>
+
+<AmesTabs>
+<AmesTab Title="@L["MD.Mold.Tab.Master"].Value">
 
 @if (!string.IsNullOrEmpty(_msg))
 {
