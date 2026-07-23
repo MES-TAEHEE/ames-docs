@@ -41,7 +41,9 @@ if ! docker exec "$CONTAINER" test -x "$SQLCMD" 2>/dev/null; then
   SQLCMD="/opt/mssql-tools/bin/sqlcmd"
 fi
 
-sql_base=(-S localhost -U sa -P "$SA_PASSWORD" -C -b)   # -b: 오류 시 중단
+# -b: 오류 시 중단 / -I: QUOTED_IDENTIFIER ON (계산컬럼 인덱스 있는 MD_Mold 에
+#     DELETE/INSERT 하려면 필수. sqlcmd 기본값은 OFF)
+sql_base=(-S localhost -U sa -P "$SA_PASSWORD" -C -b -I)
 run_master() { docker exec "$CONTAINER" "$SQLCMD" "${sql_base[@]}" -Q "$1"; }
 run_file()   { docker exec "$CONTAINER" "$SQLCMD" "${sql_base[@]}" -d "$DB" -i "/tmp/dist/$1"; }
 
@@ -94,8 +96,10 @@ IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name='$APP_LOGIN')
 ALTER ROLE db_owner ADD MEMBER [$APP_LOGIN];"
 
 # 2) dist/ 를 컨테이너로 복사 (pda 하위폴더 포함)
+#    docker cp 는 파일을 root 소유로 넣으므로, 삭제는 컨테이너 root(-u 0)로 해야
+#    기본 사용자(mssql)의 "Permission denied" 를 피한다.
 echo "[2/3] dist/*.sql 복사..."
-docker exec "$CONTAINER" rm -rf /tmp/dist
+docker exec -u 0 "$CONTAINER" rm -rf /tmp/dist
 docker cp "$DIST_DIR/." "$CONTAINER:/tmp/dist/"
 
 # 3) 스키마 → 시드 순서대로 적용
