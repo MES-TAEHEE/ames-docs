@@ -2,7 +2,7 @@
 -- A-MES Database Schema (Auto-generated)
 -- Generated: 2026-06-08 16:33:54
 -- Source: AMES_ERD_data.js
--- Total tables: 149
+-- Total tables: 152
 -- Engine: SQL Server 2022/2025
 -- Pattern: Stored Procedure + ADO.NET (per VOL01 Tech Stack)
 -- FK constraints: not applied (commented as -- FK -> Target.Col)
@@ -164,6 +164,9 @@ IF OBJECT_ID(N'dbo.MD_Uom', N'U') IS NOT NULL DROP TABLE dbo.MD_Uom;
 IF OBJECT_ID(N'dbo.MD_Customer', N'U') IS NOT NULL DROP TABLE dbo.MD_Customer;
 IF OBJECT_ID(N'dbo.MD_ShipmentDest', N'U') IS NOT NULL DROP TABLE dbo.MD_ShipmentDest;
 IF OBJECT_ID(N'dbo.MD_PaintFabric', N'U') IS NOT NULL DROP TABLE dbo.MD_PaintFabric;
+IF OBJECT_ID(N'dbo.MD_MoldLine', N'U') IS NOT NULL DROP TABLE dbo.MD_MoldLine;
+IF OBJECT_ID(N'dbo.MD_MoldItem', N'U') IS NOT NULL DROP TABLE dbo.MD_MoldItem;
+IF OBJECT_ID(N'dbo.MD_MoldColor', N'U') IS NOT NULL DROP TABLE dbo.MD_MoldColor;
 IF OBJECT_ID(N'dbo.MD_Mold', N'U') IS NOT NULL DROP TABLE dbo.MD_Mold;
 IF OBJECT_ID(N'dbo.MD_Equipment', N'U') IS NOT NULL DROP TABLE dbo.MD_Equipment;
 IF OBJECT_ID(N'dbo.MD_Vendor', N'U') IS NOT NULL DROP TABLE dbo.MD_Vendor;
@@ -366,11 +369,70 @@ CREATE TABLE dbo.MD_Mold (
   [StorageLoc]                VARCHAR(20)              NULL,
   [LastMaintDate]             DATE                     NULL,
   [Status]                    VARCHAR(10)              NULL,
+  [CumulativeShots]           BIGINT               NOT NULL DEFAULT 0,      -- 수명 누적 타수 (리셋 금지, APM2114.CUM_SHOTS)
+  [ShotsUpdatedTS]            DATETIME2                NULL,                -- APM2114.LAST_UPDATED
+  [CarType]                   VARCHAR(20)              NULL,                -- APM2110.VINCD
+  [RefCode]                   VARCHAR(20)              NULL,                -- APM2110.REFCD
+  [AssyInjResultFlag]         BIT                  NOT NULL DEFAULT 0,      -- APM2110.ASSY_INJ_RSLT_YN
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [MoldCodeClean]             AS CAST(REPLACE(MoldID,'-','') AS VARCHAR(20)) PERSISTED,  -- dash 제거 자연키 seek
   CONSTRAINT PK_MD_Mold PRIMARY KEY CLUSTERED ([MoldID])
+);
+GO
+CREATE UNIQUE NONCLUSTERED INDEX UX_MD_Mold_MoldCodeClean ON dbo.MD_Mold([MoldCodeClean]);
+GO
+
+-- ── MD_MoldColor  (금형 수지 색상 (APM2111))
+CREATE TABLE dbo.MD_MoldColor (
+  [MoldID]                    VARCHAR(20)          NOT NULL,  -- FK -> MD_Mold.MoldID
+  [Color]                     VARCHAR(10)          NOT NULL,
+  [CreatedBy]                 VARCHAR(50)          NOT NULL,
+  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
+  [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
+  CONSTRAINT PK_MD_MoldColor PRIMARY KEY CLUSTERED ([MoldID], [Color])
+);
+GO
+
+-- ── MD_MoldItem  (금형별 생산 품번 (APM2120 + AMES 확장 CavitySeq/CavityPos))
+CREATE TABLE dbo.MD_MoldItem (
+  [MoldID]                    VARCHAR(20)          NOT NULL,  -- FK -> MD_Mold.MoldID
+  [ItemNo]                    VARCHAR(20)          NOT NULL,  -- FK -> MD_Item.ItemNo
+  [Color]                     VARCHAR(10)              NULL,
+  [CavitySeq]                 INT                  NOT NULL DEFAULT 1,      -- AMES: 캐비티 순번(1=1st/LH)
+  [CavityPos]                 VARCHAR(4)               NULL,                -- AMES: LH / RH
+  [Usage]                     DECIMAL(18,4)            NULL,
+  [ResinItemNo]               VARCHAR(20)              NULL,  -- FK -> MD_Item.ItemNo
+  [ResinUsage]                DECIMAL(18,4)            NULL,
+  [CavityCount]               INT                  NOT NULL DEFAULT 1,      -- APM2120.CAVITY (타수 분모)
+  [MoldCategory]              VARCHAR(20)              NULL,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
+  [CreatedBy]                 VARCHAR(50)          NOT NULL,
+  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
+  [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
+  CONSTRAINT PK_MD_MoldItem PRIMARY KEY CLUSTERED ([MoldID], [ItemNo])
+);
+GO
+CREATE INDEX IX_MD_MoldItem_MoldColor ON dbo.MD_MoldItem([MoldID], [Color]) INCLUDE([ItemNo], [CavitySeq], [CavityPos]);
+GO
+CREATE INDEX IX_MD_MoldItem_ItemNo ON dbo.MD_MoldItem([ItemNo]);
+GO
+
+-- ── MD_MoldLine  (라인별 금형 배정 (APM2130))
+CREATE TABLE dbo.MD_MoldLine (
+  [LineCode]                  VARCHAR(20)          NOT NULL,  -- FK -> MD_Line.LineID
+  [MoldID]                    VARCHAR(20)          NOT NULL,  -- FK -> MD_Mold.MoldID
+  [UPH]                       DECIMAL(18,4)            NULL,
+  [PrepTime]                  DECIMAL(18,4)            NULL,
+  [CreatedBy]                 VARCHAR(50)          NOT NULL,
+  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
+  [ModifiedTS]                DATETIME2                NULL,
+  [ModifiedBy]                NVARCHAR(450)            NULL,
+  CONSTRAINT PK_MD_MoldLine PRIMARY KEY CLUSTERED ([LineCode], [MoldID])
 );
 GO
 
@@ -1832,6 +1894,7 @@ CREATE TABLE dbo.PR_DashTileCache (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_DashTileCache PRIMARY KEY CLUSTERED ([LineID], [TileID])
 );
 GO
@@ -1846,6 +1909,7 @@ CREATE TABLE dbo.PR_DefectRateCache (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_DefectRateCache PRIMARY KEY CLUSTERED ([WoID])
 );
 GO
@@ -2043,6 +2107,7 @@ CREATE TABLE dbo.PNT_SeqAllocator (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_SeqAllocator PRIMARY KEY CLUSTERED ([PlanDate], [LineID])
 );
 GO
@@ -2220,7 +2285,8 @@ CREATE TABLE dbo.PNT_StationStatsCache (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
-  CONSTRAINT PK_PNT_StationStatsCache PRIMARY KEY CLUSTERED ([StationID])
+  [ModifiedTS]                DATETIME2                NULL,
+  CONSTRAINT PK_PNT_StationStatsCache PRIMARY KEY CLUSTERED ([StationCode])
 );
 GO
 
@@ -3416,7 +3482,7 @@ INSERT INTO dbo.MD_Vendor (VendorID, VendorName, VendorType, VendorCategory, Pho
 GO
 
 -- Production Lines
-INSERT INTO dbo.MD_Line (LineID, LineName, LineType, PlantCode, DailyCap, ShiftPattern, RfidEnabledFlag, Status, CreatedBy, CreatedTS) VALUES
+INSERT INTO dbo.MD_Line (LineID, LineName, ProcessCode, PlantCode, DailyCap, ShiftPattern, RfidEnabledFlag, Status, CreatedBy, CreatedTS) VALUES
   ('LINE-INJ-01', N'Injection Line 1 (650T)',  'INJECTION', 'SAV', 4800, '2-SHIFT', 0, 'ACTIVE', 'admin', SYSDATETIME()),
   ('LINE-INJ-02', N'Injection Line 2 (850T)',  'INJECTION', 'SAV', 3600, '2-SHIFT', 0, 'ACTIVE', 'admin', SYSDATETIME()),
   ('LINE-IMG-01', N'Wrapping Line 1',           'WRAPPING',  'SAV', 1200, '2-SHIFT', 0, 'ACTIVE', 'admin', SYSDATETIME()),
