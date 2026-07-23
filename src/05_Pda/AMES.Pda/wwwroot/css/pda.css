@@ -6939,3 +6939,1199 @@ body:has(.wh08-shell) {
         font-size: 17px !important;
     }
 }
+
+/* Warehouse final theme: return the WH menu and all active WH pages to the
+   original PDA dark visual language used by login and the module launcher. */
+body:has(.pda-shell.wh),
+.pda-root:has(.pda-shell.wh) {
+    background: #0c1320 !important;
+    color: #e8eef7 !important;
+}
+
+.pda-shell.wh {
+    background: #0c1320 !important;
+    color: #e8eef7 !important;
+}
+
+.pda-shell.wh > .pda-tbar,
+.pda-shell.wh .pda-tbar {
+    min-height: 68px !important;
+    padding: 12px 16px !important;
+    background: linear-gradient(135deg, #0a1628, #0c1a2e) !important;
+    border-bottom: 1px solid rgba(147, 197, 253, .35) !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+}
+
+.pda-shell.wh .pda-tbar-brand {
+    color: #93c5fd !important;
+    font-family: 'Bebas Neue', sans-serif !important;
+    font-size: 22px !important;
+    font-weight: 400 !important;
+    letter-spacing: 2px !important;
+    line-height: 1 !important;
+}
+
+.pda-shell.wh .wh01-last-updated,
+.pda-shell.wh .wh03-last-updated,
+.pda-shell.wh .wh07-subtitle,
+.pda-shell.wh .wh08-last-updated,
+.pda-shell.wh .wh-home-title span:last-child {
+    color: rgba(255, 255, 255, .58) !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: .5px !important;
+}
+
+.pda-shell.wh .pda-tbar-back,
+.pda-shell.wh .pda-tbar-back.rz-button {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    padding: 0 12px !important;
+    border: 1px solid rgba(255, 255, 255, .18) !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, .06) !important;
+    color: #ffffff !important;
+    font-size: 18px !important;
+    font-weight: 900 !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh > .pda-bd,
+.pda-shell.wh .pda-bd {
+    padding: 14px !important;
+    background: #0c1320 !important;
+    color: #e8eef7 !important;
+}
+
+.pda-shell.wh .pda-empty,
+.pda-shell.wh .wh08-empty.rz-card {
+    color: rgba(255, 255, 255, .48) !important;
+    background: rgba(255, 255, 255, .03) !important;
+    border: 1px solid rgba(255, 255, 255, .08) !important;
+    border-radius: 10px !important;
+}
+
+/* Warehouse menu */
+.pda-shell.wh.wh-home-shell .pda-bd {
+    padding: 14px !important;
+    background: #0c1320 !important;
+}
+
+.pda-shell.wh.wh-home-shell .wh-home-grid,
+.pda-shell.wh.wh-home-shell .pda-tile-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+}
+
+.pda-shell.wh.wh-home-shell .wh-home-tile {
+    min-height: 142px !important;
+    padding: 18px 10px !important;
+    border: 1px solid rgba(255, 255, 255, .1) !important;
+    border-top: 4px solid #93c5fd !important;
+    border-left: 1px solid rgba(255, 255, 255, .1) !important;
+    border-radius: 14px !important;
+    background: linear-gradient(160deg, #1e293b, #0f172a) !important;
+    color: #ffffff !important;
+    text-align: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 9px !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh-home-shell .wh-home-tile.inbound { border-top-color: #86efac !important; }
+.pda-shell.wh.wh-home-shell .wh-home-tile.release { border-top-color: #fca5a5 !important; }
+.pda-shell.wh.wh-home-shell .wh-home-tile.inventory { border-top-color: #fbbf24 !important; }
+.pda-shell.wh.wh-home-shell .wh-home-tile.adjust { border-top-color: #5eead4 !important; }
+.pda-shell.wh.wh-home-shell .wh-home-tile.transactions { border-top-color: #c4b5fd !important; }
+
+.pda-shell.wh.wh-home-shell .wh-home-tile-ic {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 12px !important;
+    background: rgba(147, 197, 253, .12) !important;
+    color: #93c5fd !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.pda-shell.wh.wh-home-shell .wh-home-tile-ic .rz-icon {
+    font-size: 28px !important;
+}
+
+.pda-shell.wh.wh-home-shell .wh-home-tile .pda-tile-cap {
+    margin: 0 !important;
+    color: #ffffff !important;
+    font-family: 'Bebas Neue', sans-serif !important;
+    font-size: 21px !important;
+    font-weight: 400 !important;
+    letter-spacing: 1.5px !important;
+    line-height: 1 !important;
+}
+
+.pda-shell.wh.wh-home-shell .wh-home-tile .pda-tile-sub {
+    margin: 0 !important;
+    color: rgba(255, 255, 255, .56) !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: .5px !important;
+    line-height: 1.25 !important;
+}
+
+.pda-shell.wh.wh-home-shell .wh-home-tile-go {
+    display: none !important;
+}
+
+/* Common WH controls */
+.pda-shell.wh .rz-card,
+.pda-shell.wh .wh01-po-card,
+.pda-shell.wh .wh01-release-card,
+.pda-shell.wh .wh02-panel,
+.pda-shell.wh .wh02-lot-card,
+.pda-shell.wh .wh02-location-card,
+.pda-shell.wh .wh03-head,
+.pda-shell.wh .wh03-search-card,
+.pda-shell.wh .wh03-stock-card,
+.pda-shell.wh .wh03-work-card,
+.pda-shell.wh .wh07-panel,
+.pda-shell.wh .wh07-summary-card,
+.pda-shell.wh .wh07-line-card,
+.pda-shell.wh .wh07-lot-card,
+.pda-shell.wh .wh08-search-card,
+.pda-shell.wh .wh08-row-card {
+    border: 1px solid rgba(255, 255, 255, .09) !important;
+    border-radius: 10px !important;
+    background: #0f1d33 !important;
+    color: #e8eef7 !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh .pda-card-h,
+.pda-shell.wh .pda-fld label,
+.pda-shell.wh .wh02-section-title,
+.pda-shell.wh .wh03-section-title,
+.pda-shell.wh .wh08-sheet-head span {
+    color: #93c5fd !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    letter-spacing: 1.4px !important;
+    text-transform: uppercase !important;
+}
+
+.pda-shell.wh .pda-input,
+.pda-shell.wh .rz-textbox,
+.pda-shell.wh select.pda-input,
+.pda-shell.wh textarea.pda-input {
+    border: 1px solid rgba(147, 197, 253, .28) !important;
+    border-radius: 8px !important;
+    background: #050a13 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+}
+
+.pda-shell.wh .pda-input::placeholder,
+.pda-shell.wh .rz-textbox::placeholder {
+    color: rgba(255, 255, 255, .38) !important;
+    opacity: 1 !important;
+}
+
+.pda-shell.wh .pda-input:focus,
+.pda-shell.wh .rz-textbox:focus {
+    border-color: #93c5fd !important;
+    box-shadow: 0 0 0 2px rgba(147, 197, 253, .14) !important;
+}
+
+.pda-shell.wh .pda-input:disabled,
+.pda-shell.wh .rz-textbox:disabled,
+.pda-shell.wh .rz-state-disabled {
+    background: #111827 !important;
+    color: rgba(255, 255, 255, .48) !important;
+    border-color: rgba(255, 255, 255, .10) !important;
+    opacity: 1 !important;
+}
+
+.pda-shell.wh .rz-button {
+    border: 1px solid rgba(147, 197, 253, .32) !important;
+    border-radius: 8px !important;
+    background: rgba(147, 197, 253, .10) !important;
+    color: #dbeafe !important;
+    box-shadow: none !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-weight: 800 !important;
+    letter-spacing: .7px !important;
+}
+
+.pda-shell.wh .rz-button:disabled,
+.pda-shell.wh .rz-button.rz-state-disabled {
+    border-color: rgba(255, 255, 255, .10) !important;
+    background: rgba(255, 255, 255, .05) !important;
+    color: rgba(255, 255, 255, .42) !important;
+    opacity: 1 !important;
+}
+
+.pda-shell.wh .wh01-tbar-refresh.rz-button,
+.pda-shell.wh .wh03-refresh.rz-button,
+.pda-shell.wh .wh08-refresh.rz-button,
+.pda-shell.wh .wh03-search-btn.rz-button,
+.pda-shell.wh .wh07-load-btn.rz-button,
+.pda-shell.wh .wh07-scan-btn.rz-button,
+.pda-shell.wh .wh08-search.rz-button,
+.pda-shell.wh .wh02-scan-btn.rz-button,
+.pda-shell.wh .wh02-location-scan-btn.rz-button,
+.pda-shell.wh .wh03-work-scan-btn.rz-button {
+    border-color: #2563eb !important;
+    background: linear-gradient(180deg, #2563eb, #1e40af) !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh .wh02-clear-btn.rz-button,
+.pda-shell.wh .wh03-date-clear.rz-button,
+.pda-shell.wh .wh07-clear-btn.rz-button,
+.pda-shell.wh .wh08-clear.rz-button,
+.pda-shell.wh .wh08-date-reset.rz-button {
+    border-color: rgba(255, 255, 255, .14) !important;
+    background: rgba(255, 255, 255, .06) !important;
+    color: #e8eef7 !important;
+}
+
+.pda-shell.wh .wh02-receive-action-btn.ready.rz-button,
+.pda-shell.wh .wh02-confirm-btn.ready.rz-button,
+.pda-shell.wh .wh03-post-btn.save.rz-button,
+.pda-shell.wh .wh07-pick-btn.ready.rz-button,
+.pda-shell.wh .wh08-date-apply.rz-button,
+.pda-shell.wh .wh01-scan-fixed.pick.rz-button {
+    border-color: #22c55e !important;
+    background: linear-gradient(180deg, #22c55e, #15803d) !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh .wh02-cancel-btn.rz-button {
+    border-color: #fca5a5 !important;
+    background: rgba(252, 165, 165, .15) !important;
+    color: #fca5a5 !important;
+}
+
+/* Schedule */
+.pda-shell.wh.wh01-shell .wh01-tabs {
+    border: 1px solid rgba(255, 255, 255, .10) !important;
+    background: #050a13 !important;
+}
+
+.pda-shell.wh.wh01-shell .wh01-tab.rz-button {
+    border: 0 !important;
+    background: transparent !important;
+    color: rgba(255, 255, 255, .52) !important;
+}
+
+.pda-shell.wh.wh01-shell .wh01-tab.on.rz-button {
+    background: rgba(147, 197, 253, .16) !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh .wh01-stat,
+.pda-shell.wh .wh01-qty,
+.pda-shell.wh .wh02-info,
+.pda-shell.wh .wh02-location-row,
+.pda-shell.wh .wh03-info-box,
+.pda-shell.wh .wh07-info,
+.pda-shell.wh .wh07-line-grid > div,
+.pda-shell.wh .wh07-summary-grid > div,
+.pda-shell.wh .wh08-snapshot > div,
+.pda-shell.wh .wh08-reason > div {
+    border: 1px solid rgba(255, 255, 255, .08) !important;
+    border-radius: 8px !important;
+    background: #050a13 !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh .wh01-stat span,
+.pda-shell.wh .wh01-qty span,
+.pda-shell.wh .wh02-info span,
+.pda-shell.wh .wh02-location-row span,
+.pda-shell.wh .wh03-info-box span,
+.pda-shell.wh .wh07-info span,
+.pda-shell.wh .wh07-line-grid span,
+.pda-shell.wh .wh07-summary-grid span,
+.pda-shell.wh .wh08-snapshot span,
+.pda-shell.wh .wh08-reason span,
+.pda-shell.wh .wh08-row-main span {
+    color: rgba(255, 255, 255, .52) !important;
+}
+
+.pda-shell.wh .wh01-stat strong,
+.pda-shell.wh .wh01-qty strong,
+.pda-shell.wh .wh02-info strong,
+.pda-shell.wh .wh02-location-row strong,
+.pda-shell.wh .wh03-info-box strong,
+.pda-shell.wh .wh07-info strong,
+.pda-shell.wh .wh07-line-grid strong,
+.pda-shell.wh .wh07-summary-grid strong,
+.pda-shell.wh .wh08-snapshot strong,
+.pda-shell.wh .wh08-reason strong {
+    color: #ffffff !important;
+}
+
+.pda-shell.wh .wh01-po-no,
+.pda-shell.wh .wh01-part,
+.pda-shell.wh .wh02-lot-main strong,
+.pda-shell.wh .wh02-part-no,
+.pda-shell.wh .wh03-compact-row.main strong,
+.pda-shell.wh .wh03-lot-top strong,
+.pda-shell.wh .wh07-summary-top strong,
+.pda-shell.wh .wh07-line-main strong,
+.pda-shell.wh .wh07-lot-main strong,
+.pda-shell.wh .wh08-row-main strong,
+.pda-shell.wh .wh08-row-part strong {
+    color: #93c5fd !important;
+}
+
+.pda-shell.wh .wh01-po-sub,
+.pda-shell.wh .wh01-desc,
+.pda-shell.wh .wh01-car-line,
+.pda-shell.wh .wh02-lot-main span,
+.pda-shell.wh .wh02-part-name,
+.pda-shell.wh .wh02-location-card-top span,
+.pda-shell.wh .wh02-location-card-top em,
+.pda-shell.wh .wh03-compact-row.sub span,
+.pda-shell.wh .wh03-lot-part span,
+.pda-shell.wh .wh07-line-main span,
+.pda-shell.wh .wh07-line-main em,
+.pda-shell.wh .wh07-part-name,
+.pda-shell.wh .wh08-row-part span {
+    color: rgba(255, 255, 255, .62) !important;
+}
+
+.pda-shell.wh .wh01-po-card.progress,
+.pda-shell.wh .wh01-release-card.open { border-left: 4px solid #60a5fa !important; }
+.pda-shell.wh .wh01-po-card.complete,
+.pda-shell.wh .wh01-release-card.picked { border-left: 4px solid #22c55e !important; }
+.pda-shell.wh .wh01-po-card.late,
+.pda-shell.wh .wh01-release-card.late { border-left: 4px solid #ef4444 !important; }
+.pda-shell.wh .wh01-release-card.partial { border-left: 4px solid #f59e0b !important; }
+.pda-shell.wh .wh01-release-card.selected {
+    border-color: #93c5fd !important;
+    box-shadow: 0 0 0 2px rgba(147, 197, 253, .20) !important;
+}
+
+/* Inbound and inventory work panels */
+.pda-shell.wh.wh02-shell .wh02-mode,
+.pda-shell.wh.wh03-shell .wh03-mode-row,
+.pda-shell.wh.wh03-shell .wh03-filter-tabs {
+    border: 1px solid rgba(255, 255, 255, .10) !important;
+    background: #050a13 !important;
+    border-radius: 8px !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-mode-btn.rz-button,
+.pda-shell.wh.wh03-shell .wh03-mode-btn.rz-button,
+.pda-shell.wh.wh03-shell .wh03-filter-tab {
+    background: transparent !important;
+    border: 0 !important;
+    color: rgba(255, 255, 255, .56) !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-mode-btn.on.rz-button,
+.pda-shell.wh.wh03-shell .wh03-mode-btn.on.rz-button,
+.pda-shell.wh.wh03-shell .wh03-filter-tab.on {
+    background: rgba(147, 197, 253, .16) !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh .wh03-summary button,
+.pda-shell.wh .wh08-kpi {
+    border: 1px solid rgba(255, 255, 255, .08) !important;
+    border-top: 3px solid rgba(147, 197, 253, .65) !important;
+    border-radius: 9px !important;
+    background: #050a13 !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh .wh03-summary button.on,
+.pda-shell.wh .wh08-kpi.on {
+    border-color: #93c5fd !important;
+    background: rgba(147, 197, 253, .12) !important;
+}
+
+.pda-shell.wh .wh03-summary button span,
+.pda-shell.wh .wh08-kpi span {
+    color: rgba(255, 255, 255, .58) !important;
+}
+
+.pda-shell.wh .wh03-summary button strong,
+.pda-shell.wh .wh08-kpi strong {
+    color: #ffffff !important;
+}
+
+.pda-shell.wh .wh03-compact-location,
+.pda-shell.wh .wh08-detail-btn {
+    border: 1px solid rgba(147, 197, 253, .20) !important;
+    border-radius: 8px !important;
+    background: rgba(147, 197, 253, .08) !important;
+    color: #dbeafe !important;
+}
+
+.pda-shell.wh .wh03-compact-location span {
+    color: rgba(255, 255, 255, .52) !important;
+}
+
+.pda-shell.wh .wh03-compact-location strong {
+    color: #93c5fd !important;
+}
+
+.pda-shell.wh .wh03-qty-stepper {
+    background: #050a13 !important;
+    border-color: rgba(255, 255, 255, .10) !important;
+}
+
+.pda-shell.wh .wh03-qty-step {
+    border-color: rgba(147, 197, 253, .28) !important;
+    background: rgba(147, 197, 253, .10) !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh .wh03-qty-readout {
+    color: #ffffff !important;
+}
+
+/* Release and transactions */
+.pda-shell.wh .wh07-fifo,
+.pda-shell.wh .wh07-scan-message,
+.pda-shell.wh .wh08-filter-sheet {
+    border: 1px solid rgba(255, 255, 255, .10) !important;
+    background: #0f1d33 !important;
+    color: #e8eef7 !important;
+}
+
+.pda-shell.wh .wh07-fifo span,
+.pda-shell.wh .wh08-sheet-head strong {
+    color: rgba(255, 255, 255, .58) !important;
+}
+
+.pda-shell.wh .wh07-fifo strong {
+    color: #93c5fd !important;
+}
+
+.pda-shell.wh .wh08-filter-backdrop,
+.pda-shell.wh .wh-modal-backdrop {
+    background: rgba(0, 0, 0, .58) !important;
+}
+
+.pda-shell.wh .wh-modal-card {
+    border: 1px solid rgba(255, 255, 255, .12) !important;
+    background: #0f1d33 !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh .wh-modal-title {
+    color: #ffffff !important;
+}
+
+.pda-shell.wh .wh-modal-message {
+    color: rgba(255, 255, 255, .68) !important;
+}
+
+/* Badges */
+.pda-shell.wh .rz-badge,
+.pda-shell.wh .wh01-dday,
+.pda-shell.wh .wh01-status,
+.pda-shell.wh .wh02-type-chip,
+.pda-shell.wh .wh02-status-chip,
+.pda-shell.wh .wh03-status-badge,
+.pda-shell.wh .wh07-status,
+.pda-shell.wh .wh07-fifo-chip,
+.pda-shell.wh .wh08-status {
+    border: 1px solid rgba(147, 197, 253, .35) !important;
+    border-radius: 999px !important;
+    background: rgba(147, 197, 253, .12) !important;
+    color: #dbeafe !important;
+    font-weight: 900 !important;
+}
+
+.pda-shell.wh .wh01-status.complete,
+.pda-shell.wh .wh01-status.picked,
+.pda-shell.wh .wh02-status-chip.received,
+.pda-shell.wh .wh03-status-badge.normal,
+.pda-shell.wh .wh07-status.ready,
+.pda-shell.wh .wh07-fifo-chip.ok,
+.pda-shell.wh .wh08-status.in,
+.pda-shell.wh .wh08-status.ok {
+    border-color: rgba(34, 197, 94, .45) !important;
+    background: rgba(34, 197, 94, .14) !important;
+    color: #86efac !important;
+}
+
+.pda-shell.wh .wh01-status.late,
+.pda-shell.wh .wh03-status-badge.out,
+.pda-shell.wh .wh07-status.blocked,
+.pda-shell.wh .wh08-status.out {
+    border-color: rgba(252, 165, 165, .50) !important;
+    background: rgba(252, 165, 165, .14) !important;
+    color: #fca5a5 !important;
+}
+
+.pda-shell.wh .wh01-status.partial,
+.pda-shell.wh .wh03-status-badge.below,
+.pda-shell.wh .wh07-fifo-chip.warn,
+.pda-shell.wh .wh08-status.adj {
+    border-color: rgba(251, 191, 36, .50) !important;
+    background: rgba(251, 191, 36, .14) !important;
+    color: #fbbf24 !important;
+}
+
+.pda-shell.wh .wh03-status-badge.over {
+    border-color: rgba(196, 181, 253, .50) !important;
+    background: rgba(196, 181, 253, .14) !important;
+    color: #c4b5fd !important;
+}
+
+.rz-dropdown-panel {
+    border: 1px solid rgba(147, 197, 253, .22) !important;
+    background: #0f1d33 !important;
+    color: #ffffff !important;
+}
+
+.rz-dropdown-panel .rz-dropdown-item,
+.rz-dropdown-panel .rz-dropdown-item span {
+    color: #ffffff !important;
+}
+
+.rz-dropdown-panel .rz-dropdown-item:hover,
+.rz-dropdown-panel .rz-state-highlight {
+    background: rgba(147, 197, 253, .14) !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh.wh-home-shell > .pda-tbar {
+    min-height: 68px !important;
+    padding: 12px 16px !important;
+    background: linear-gradient(135deg, #0a1628, #0c1a2e) !important;
+    border-bottom: 1px solid rgba(147, 197, 253, .35) !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh-home-shell > .pda-tbar .pda-tbar-back {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    border: 1px solid rgba(255, 255, 255, .18) !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, .06) !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh-home-shell .pda-tbar-brand {
+    color: #93c5fd !important;
+    font-family: 'Bebas Neue', sans-serif !important;
+    font-size: 22px !important;
+    font-weight: 400 !important;
+    letter-spacing: 2px !important;
+}
+
+.pda-shell.wh.wh01-shell > .pda-tbar .pda-tbar-back.rz-button,
+.pda-shell.wh.wh02-shell > .pda-tbar .pda-tbar-back.rz-button,
+.pda-shell.wh.wh03-shell > .pda-tbar .pda-tbar-back.rz-button,
+.pda-shell.wh.wh04-shell > .pda-tbar .pda-tbar-back.rz-button,
+.pda-shell.wh.wh07-shell > .pda-tbar .pda-tbar-back.rz-button,
+.pda-shell.wh.wh08-shell > .pda-tbar .pda-tbar-back.rz-button {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    border: 1px solid rgba(255, 255, 255, .18) !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, .06) !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh01-shell .wh01-tbar-refresh.rz-button,
+.pda-shell.wh.wh03-shell .wh03-refresh.rz-button,
+.pda-shell.wh.wh04-shell .wh04-tbar-refresh.rz-button,
+.pda-shell.wh.wh08-shell .wh08-refresh.rz-button,
+.pda-shell.wh.wh08-shell .wh08-filter-toggle.rz-button {
+    min-height: 40px !important;
+    border: 1px solid rgba(147, 197, 253, .32) !important;
+    border-radius: 8px !important;
+    background: rgba(147, 197, 253, .12) !important;
+    color: #dbeafe !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh01-shell .wh01-tbar-refresh.rz-button .rz-button-text,
+.pda-shell.wh.wh03-shell .wh03-refresh.rz-button .rz-button-text,
+.pda-shell.wh.wh04-shell .wh04-tbar-refresh.rz-button .rz-button-text,
+.pda-shell.wh.wh08-shell .wh08-refresh.rz-button .rz-button-text {
+    color: #dbeafe !important;
+}
+
+.pda-shell.wh.wh01-shell .pda-bd,
+.pda-shell.wh.wh02-shell .pda-bd,
+.pda-shell.wh.wh03-shell .pda-bd,
+.pda-shell.wh.wh04-shell .pda-bd,
+.pda-shell.wh.wh07-shell .pda-bd,
+.pda-shell.wh.wh08-shell .pda-bd {
+    background: #0c1320 !important;
+    color: #e8eef7 !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-clear-btn.rz-button,
+.pda-shell.wh.wh02-shell .wh02-cancel-btn.rz-button,
+.pda-shell.wh.wh03-shell .wh03-date-clear.rz-button,
+.pda-shell.wh.wh07-shell .wh07-clear-btn.rz-button,
+.pda-shell.wh.wh08-shell .wh08-clear.rz-button,
+.pda-shell.wh.wh08-shell .wh08-date-reset.rz-button {
+    border: 1px solid rgba(255, 255, 255, .14) !important;
+    background: rgba(255, 255, 255, .06) !important;
+    color: #e8eef7 !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-scan-btn.rz-button:disabled,
+.pda-shell.wh.wh02-shell .wh02-location-scan-btn.rz-button:disabled,
+.pda-shell.wh.wh02-shell .wh02-clear-btn.rz-button:disabled,
+.pda-shell.wh.wh02-shell .wh02-receive-btn.rz-button:disabled,
+.pda-shell.wh.wh02-shell .wh02-cancel-btn.rz-button:disabled,
+.pda-shell.wh.wh02-shell .wh02-receive-btn.blocked.rz-button,
+.pda-shell.wh.wh02-shell .wh02-adjust-btn.blocked.rz-button,
+.pda-shell.wh.wh02-shell .wh02-confirm-btn.blocked.rz-button,
+.pda-shell.wh.wh03-shell .wh03-work-scan-btn.rz-button:disabled,
+.pda-shell.wh.wh03-shell .wh03-post-btn.rz-button:disabled,
+.pda-shell.wh.wh03-shell .wh03-post-btn.blocked.rz-button,
+.pda-shell.wh.wh07-shell .wh07-load-btn.rz-button:disabled,
+.pda-shell.wh.wh07-shell .wh07-scan-btn.rz-button:disabled,
+.pda-shell.wh.wh07-shell .wh07-pick-btn.rz-button:disabled,
+.pda-shell.wh.wh07-shell .wh07-pick-btn.blocked.rz-button,
+.pda-shell.wh.wh08-shell .rz-button:disabled,
+.pda-shell.wh.wh01-shell .wh01-scan-fixed.rz-button:disabled,
+.pda-shell.wh.wh02-shell .wh02-scan-btn.rz-state-disabled,
+.pda-shell.wh.wh02-shell .wh02-location-scan-btn.rz-state-disabled,
+.pda-shell.wh.wh02-shell .wh02-receive-btn.rz-state-disabled,
+.pda-shell.wh.wh03-shell .wh03-work-scan-btn.rz-state-disabled,
+.pda-shell.wh.wh07-shell .wh07-load-btn.rz-state-disabled,
+.pda-shell.wh.wh07-shell .wh07-scan-btn.rz-state-disabled,
+.pda-shell.wh.wh07-shell .wh07-pick-btn.rz-state-disabled {
+    border: 1px solid rgba(255, 255, 255, .10) !important;
+    background: rgba(255, 255, 255, .05) !important;
+    color: rgba(255, 255, 255, .42) !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-location-panel.disabled,
+.pda-shell.wh.wh03-shell .wh03-action-card.disabled,
+.pda-shell.wh.wh07-shell .wh07-scan-panel.disabled {
+    border-color: rgba(255, 255, 255, .07) !important;
+    background: #111827 !important;
+    color: rgba(255, 255, 255, .50) !important;
+    opacity: 1 !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-filter-toggle.rz-button {
+    min-width: 56px !important;
+    min-height: 56px !important;
+    border: 1px solid rgba(147, 197, 253, .28) !important;
+    border-radius: 10px !important;
+    background: rgba(147, 197, 253, .10) !important;
+    color: #dbeafe !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-filter-toggle.on.rz-button,
+.pda-shell.wh.wh03-shell .wh03-search-btn.rz-button {
+    border-color: #2563eb !important;
+    background: linear-gradient(180deg, #2563eb, #1e40af) !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-filter-toggle.rz-button .rz-button-icon-left,
+.pda-shell.wh.wh03-shell .wh03-filter-toggle.rz-button .rz-icon {
+    color: inherit !important;
+}
+
+.pda-shell.wh.wh07-shell > .pda-tbar {
+    min-height: 68px !important;
+    padding: 12px 16px !important;
+    background: linear-gradient(135deg, #0a1628, #0c1a2e) !important;
+    border-bottom: 1px solid rgba(147, 197, 253, .35) !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-panel.rz-card,
+.pda-shell.wh.wh07-shell .wh07-summary-card.rz-card,
+.pda-shell.wh.wh07-shell .wh07-line-card.rz-card,
+.pda-shell.wh.wh07-shell .wh07-lot-card.rz-card {
+    border: 1px solid rgba(255, 255, 255, .09) !important;
+    border-radius: 10px !important;
+    background: #0f1d33 !important;
+    color: #e8eef7 !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-input.rz-textbox {
+    border: 1px solid rgba(147, 197, 253, .28) !important;
+    border-radius: 8px !important;
+    background: #050a13 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-input.rz-textbox::placeholder {
+    color: rgba(255, 255, 255, .38) !important;
+    opacity: 1 !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-input.rz-textbox:disabled {
+    border-color: rgba(255, 255, 255, .10) !important;
+    background: #111827 !important;
+    color: rgba(255, 255, 255, .46) !important;
+    opacity: 1 !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-load-btn.rz-button,
+.pda-shell.wh.wh07-shell .wh07-scan-btn.rz-button {
+    border-color: #2563eb !important;
+    background: linear-gradient(180deg, #2563eb, #1e40af) !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh.wh07-shell > .pda-tbar .pda-tbar-brand,
+.pda-shell.wh.wh03-shell .wh03-head .pda-card-h,
+.pda-shell.wh.wh01-shell .wh01-head .pda-card-h,
+.pda-shell.wh.wh08-shell .pda-card-h {
+    color: #93c5fd !important;
+    opacity: 1 !important;
+}
+
+/* Warehouse detail polish pass. */
+.pda-shell.wh.wh01-shell .wh01-summary {
+    align-items: stretch !important;
+    gap: 8px !important;
+}
+
+.pda-shell.wh.wh01-shell .wh01-stat.rz-card {
+    min-height: 70px !important;
+    padding: 8px 4px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+}
+
+.pda-shell.wh.wh01-shell .wh01-stat span,
+.pda-shell.wh.wh01-shell .wh01-stat strong {
+    margin: 0 !important;
+    line-height: 1 !important;
+}
+
+.pda-shell.wh.wh01-shell .wh01-stat span {
+    min-height: 13px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.pda-shell.wh.wh01-shell .wh01-stat strong {
+    min-height: 26px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.pda-shell.wh.wh02-shell .pda-status {
+    min-height: 46px !important;
+    padding: 10px 12px !important;
+    border: 1px solid rgba(147, 197, 253, .18) !important;
+    border-radius: 10px !important;
+    background: #0f1d33 !important;
+    color: #dbeafe !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1.35 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+}
+
+.pda-shell.wh.wh02-shell .pda-status.ok {
+    border-color: rgba(34, 197, 94, .35) !important;
+    background: rgba(34, 197, 94, .14) !important;
+    color: #86efac !important;
+}
+
+.pda-shell.wh.wh02-shell .pda-status.warn {
+    border-color: rgba(251, 191, 36, .40) !important;
+    background: rgba(251, 191, 36, .13) !important;
+    color: #fbbf24 !important;
+}
+
+.pda-shell.wh.wh02-shell .pda-status.fail {
+    border-color: rgba(252, 165, 165, .42) !important;
+    background: rgba(252, 165, 165, .13) !important;
+    color: #fca5a5 !important;
+}
+
+.pda-shell.wh .wh-modal-card.rz-card {
+    width: min(420px, calc(100vw - 42px)) !important;
+    min-height: 204px !important;
+    padding: 22px 20px 18px !important;
+    border-radius: 12px !important;
+}
+
+.pda-shell.wh .wh-modal-message {
+    min-height: 48px !important;
+    max-height: 160px !important;
+    overflow-y: auto !important;
+    line-height: 1.4 !important;
+    white-space: pre-line !important;
+    overflow-wrap: anywhere !important;
+}
+
+.pda-shell.wh .wh-modal-actions {
+    margin-top: 16px !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-filter-backdrop {
+    padding: 16px 16px 108px !important;
+    background: rgba(0, 0, 0, .60) !important;
+    backdrop-filter: blur(2px) !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-filter-sheet.rz-card {
+    width: min(100%, 392px) !important;
+    max-height: calc(100vh - 230px) !important;
+    overflow-y: auto !important;
+    padding: 16px !important;
+    border: 1px solid rgba(147, 197, 253, .22) !important;
+    border-radius: 14px !important;
+    background: #0f1d33 !important;
+    color: #e8eef7 !important;
+    box-shadow: 0 18px 46px rgba(0, 0, 0, .42) !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-filter-sheet-head {
+    align-items: center !important;
+    padding-bottom: 10px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, .08) !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-filter-sheet-head span,
+.pda-shell.wh.wh03-shell .wh03-date-panel .pda-fld label {
+    color: rgba(255, 255, 255, .56) !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-filter-sheet-head strong {
+    color: #ffffff !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-sheet-close.rz-button {
+    border-color: rgba(255, 255, 255, .14) !important;
+    background: rgba(255, 255, 255, .06) !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-date-panel {
+    margin-top: 14px !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-date-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    margin-top: 14px !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-location-modal.rz-card {
+    width: min(420px, calc(100vw - 36px)) !important;
+    max-height: calc(100vh - 96px) !important;
+    min-height: 0 !important;
+    text-align: left !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-location-modal-head {
+    align-items: center !important;
+    padding-bottom: 12px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, .08) !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-location-modal-head span,
+.pda-shell.wh.wh03-shell .wh03-location-modal-head em,
+.pda-shell.wh.wh03-shell .wh03-inventory-detail-grid span,
+.pda-shell.wh.wh03-shell .wh03-location-detail-grid span,
+.pda-shell.wh.wh03-shell .wh03-location-detail-name {
+    color: rgba(255, 255, 255, .58) !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-location-modal-head strong,
+.pda-shell.wh.wh03-shell .wh03-inventory-detail-grid strong,
+.pda-shell.wh.wh03-shell .wh03-location-detail-top strong,
+.pda-shell.wh.wh03-shell .wh03-location-detail-grid strong {
+    color: #ffffff !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-location-close.rz-button {
+    min-width: 48px !important;
+    min-height: 34px !important;
+    border: 1px solid rgba(255, 255, 255, .14) !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, .06) !important;
+    color: #e8eef7 !important;
+    font-size: 10px !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-location-detail-list {
+    max-height: calc(100vh - 300px) !important;
+    gap: 9px !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-inventory-detail-grid div,
+.pda-shell.wh.wh03-shell .wh03-location-detail-card,
+.pda-shell.wh.wh03-shell .wh03-location-empty {
+    border: 1px solid rgba(255, 255, 255, .08) !important;
+    background: #050a13 !important;
+    color: #e8eef7 !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-location-detail-top span {
+    border-color: rgba(34, 197, 94, .40) !important;
+    background: rgba(34, 197, 94, .14) !important;
+    color: #86efac !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-work-scan {
+    grid-template-columns: minmax(0, 1fr) 78px !important;
+    gap: 9px !important;
+    align-items: end !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-work-scan-btn.rz-button {
+    min-width: 78px !important;
+    min-height: 46px !important;
+    height: 46px !important;
+    border-radius: 9px !important;
+    border-color: #2563eb !important;
+    background: linear-gradient(180deg, #2563eb, #1e40af) !important;
+    color: #ffffff !important;
+    font-size: 11px !important;
+    font-weight: 950 !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-work-scan-btn.rz-button:disabled,
+.pda-shell.wh.wh03-shell .wh03-work-scan-btn.rz-state-disabled {
+    border-color: rgba(147, 197, 253, .18) !important;
+    background: rgba(147, 197, 253, .10) !important;
+    color: rgba(219, 234, 254, .66) !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-action-card.rz-card {
+    border: 1px solid rgba(255, 255, 255, .09) !important;
+    background: #0f1d33 !important;
+    color: #e8eef7 !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-work-head span {
+    color: rgba(255, 255, 255, .56) !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-work-head strong {
+    color: #ffffff !important;
+    font-size: 16px !important;
+    line-height: 1.15 !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-work-head em {
+    color: rgba(255, 255, 255, .58) !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-section-title {
+    color: #93c5fd !important;
+    font-size: 11px !important;
+    font-weight: 950 !important;
+    letter-spacing: 1px !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-adjust-summary div,
+.pda-shell.wh.wh03-shell .wh03-qty-readout,
+.pda-shell.wh.wh03-shell .wh03-location-mini-card {
+    border: 1px solid rgba(255, 255, 255, .08) !important;
+    background: #050a13 !important;
+    color: #e8eef7 !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-adjust-summary span {
+    color: rgba(255, 255, 255, .56) !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-adjust-summary strong,
+.pda-shell.wh.wh03-shell .wh03-qty-readout strong,
+.pda-shell.wh.wh03-shell .wh03-location-mini-card > strong {
+    color: #ffffff !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-qty-step {
+    width: 34px !important;
+    height: 34px !important;
+    border-color: rgba(147, 197, 253, .26) !important;
+    background: rgba(147, 197, 253, .10) !important;
+    color: #ffffff !important;
+    font-size: 19px !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-qty-stepper {
+    grid-template-columns: 34px minmax(0, 1fr) 34px !important;
+    gap: 6px !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-action-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) !important;
+    gap: 10px !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-date-clear.rz-button,
+.pda-shell.wh.wh03-shell .wh03-date-apply.rz-button,
+.pda-shell.wh.wh03-shell .wh03-post-btn.rz-button {
+    min-height: 46px !important;
+    border-radius: 9px !important;
+    font-size: 11px !important;
+    font-weight: 950 !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-filter-sheet .wh03-date-clear.rz-button {
+    border-color: rgba(255, 255, 255, .14) !important;
+    background: rgba(255, 255, 255, .06) !important;
+    color: #e8eef7 !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-filter-sheet .wh03-date-apply.rz-button {
+    border-color: #2563eb !important;
+    background: linear-gradient(180deg, #2563eb, #1e40af) !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-post-btn.save.rz-button {
+    border-color: #22c55e !important;
+    background: linear-gradient(180deg, #22c55e, #15803d) !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh.wh08-shell > .pda-tbar,
+.pda-shell.wh.wh08-shell .pda-tbar {
+    min-height: 68px !important;
+    padding: 12px 16px !important;
+    gap: 10px !important;
+    background: linear-gradient(135deg, #0a1628, #0c1a2e) !important;
+    border-bottom: 1px solid rgba(147, 197, 253, .35) !important;
+    color: #e8eef7 !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh08-shell > .pda-tbar .pda-tbar-brand {
+    color: #93c5fd !important;
+    font-family: 'Bebas Neue', sans-serif !important;
+    font-size: 22px !important;
+    font-weight: 400 !important;
+    letter-spacing: 2px !important;
+    line-height: 1 !important;
+}
+
+.pda-shell.wh.wh08-shell .wh08-last-updated {
+    color: rgba(255, 255, 255, .54) !important;
+}
+
+.pda-shell.wh.wh08-shell .wh08-tbar-actions {
+    align-items: center !important;
+    gap: 7px !important;
+}
+
+.pda-shell.wh.wh08-shell .wh08-filter-toggle.rz-button {
+    min-width: 40px !important;
+    width: 40px !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    border: 1px solid rgba(147, 197, 253, .32) !important;
+    border-radius: 8px !important;
+    background: rgba(147, 197, 253, .12) !important;
+    color: #dbeafe !important;
+}
+
+.pda-shell.wh.wh08-shell .wh08-filter-toggle.on.rz-button {
+    border-color: #2563eb !important;
+    background: linear-gradient(180deg, #2563eb, #1e40af) !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh.wh08-shell .wh08-filter-backdrop {
+    background: rgba(0, 0, 0, .60) !important;
+    backdrop-filter: blur(2px) !important;
+}
+
+.pda-shell.wh.wh08-shell .wh08-filter-sheet {
+    left: 14px !important;
+    right: 14px !important;
+    bottom: 96px !important;
+    max-height: calc(100vh - 230px) !important;
+    padding: 16px !important;
+    gap: 12px !important;
+    border: 1px solid rgba(147, 197, 253, .22) !important;
+    border-radius: 14px !important;
+    background: #0f1d33 !important;
+    color: #e8eef7 !important;
+    box-shadow: 0 18px 46px rgba(0, 0, 0, .42) !important;
+}
+
+.pda-shell.wh.wh08-shell .wh08-sheet-head {
+    align-items: center !important;
+    padding-bottom: 10px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, .08) !important;
+}
+
+.pda-shell.wh.wh08-shell .wh08-sheet-head span,
+.pda-shell.wh.wh08-shell .wh08-filter-sheet .pda-fld label {
+    color: rgba(255, 255, 255, .56) !important;
+}
+
+.pda-shell.wh.wh08-shell .wh08-sheet-head strong {
+    color: #ffffff !important;
+}
+
+.pda-shell.wh.wh08-shell .wh08-sheet-close {
+    border-color: rgba(255, 255, 255, .14) !important;
+    background: rgba(255, 255, 255, .06) !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh.wh08-shell .wh08-filter-date {
+    gap: 10px !important;
+}
+
+.pda-shell.wh.wh08-shell .wh08-filter-actions {
+    gap: 10px !important;
+    padding-top: 4px !important;
+}
+
+.pda-shell.wh.wh08-shell .wh08-search-card .wh08-clear.rz-button,
+.pda-shell.wh.wh08-shell .wh08-filter-sheet .wh08-date-reset.rz-button {
+    border-color: rgba(255, 255, 255, .14) !important;
+    background: rgba(255, 255, 255, .06) !important;
+    color: #e8eef7 !important;
+}
+
+.pda-shell.wh.wh08-shell .wh08-search-card .wh08-search.rz-button,
+.pda-shell.wh.wh08-shell .wh08-filter-sheet .wh08-date-apply.rz-button {
+    border-color: #2563eb !important;
+    background: linear-gradient(180deg, #2563eb, #1e40af) !important;
+    color: #ffffff !important;
+}
