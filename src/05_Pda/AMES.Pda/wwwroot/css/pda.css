@@ -8135,3 +8135,20 @@ body:has(.pda-shell.wh),
     background: linear-gradient(180deg, #2563eb, #1e40af) !important;
     color: #ffffff !important;
 }
+
+.pda-shell.wh .hardware-scan-panel {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.pda-shell.wh .hardware-scan-panel .pda-fld,
+.pda-shell.wh .hardware-scan-panel .wh04-scan-field {
+    min-width: 0 !important;
+}
+
+.pda-shell.wh .pda-scan-input.pda-scan-only,
+.pda-shell.wh .pda-scan-input.pda-scan-only.rz-textbox {
+    caret-color: transparent !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}

@@ -1,6 +1,8 @@
 @page "/wh/03"
 @inject PdaApi Api
 @inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <div class="pda-shell wh wh03-shell">
     <div class="pda-tbar">
@@ -24,16 +26,19 @@
                               Text="" />
             </div>
 
-            <RadzenCard class="wh03-search-card wh03-scan-card">
+            <RadzenCard class="@($"wh03-search-card wh03-scan-card {ScanPanelClass}")">
                 <div class="pda-fld">
                     <label>INVENTORY SCAN</label>
-                    <RadzenTextBox class="pda-input wh03-search-input"
+                    <RadzenTextBox class="pda-input wh03-search-input pda-scan-input"
                                    Value="@_q"
                                    @oninput="OnScanInput"
                                    @onkeydown="OnKey"
                                    Placeholder="Scan Lot, Part, Location No" />
                 </div>
-                <RadzenButton class="wh03-search-btn" Click="@ScanInventoryFilter" Disabled="@_isLoading" Text="SCAN" />
+                @if (ShowDeveloperScanButtons)
+                {
+                    <RadzenButton class="wh03-search-btn" Click="@ScanInventoryFilter" Disabled="@_isLoading" Text="SCAN" />
+                }
             </RadzenCard>
 
             <RadzenCard class="wh03-head">
@@ -111,16 +116,19 @@
                     </div>
                 }
 
-                <div class="wh03-work-scan">
+                <div class="@($"wh03-work-scan {ScanPanelClass}")">
                     <div class="pda-fld">
                         <label>@(IsAdjustTab ? "LOT / PART NO SCAN" : "LOT NO SCAN")</label>
-                        <RadzenTextBox class="pda-input wh03-work-input"
+                        <RadzenTextBox class="pda-input wh03-work-input pda-scan-input"
                                        Value="@_invBarcode"
                                        @oninput="OnInventoryBarcodeInput"
                                        @onkeydown="OnInventoryLotKey"
                                        Placeholder="@InventoryBarcodePlaceholder" />
                     </div>
-                    <RadzenButton class="wh03-work-scan-btn" Click="@ScanInventoryLot" Disabled="@DisableInventoryScan" Text="SCAN" />
+                    @if (ShowDeveloperScanButtons)
+                    {
+                        <RadzenButton class="wh03-work-scan-btn" Click="@ScanInventoryLot" Disabled="@DisableInventoryScan" Text="SCAN" />
+                    }
                 </div>
             </RadzenCard>
 
@@ -237,17 +245,20 @@
                         <div class="pda-empty compact">No current location loaded.</div>
                     }
 
-                    <div class="wh03-work-scan wh03-location-scan">
+                    <div class="@($"wh03-work-scan wh03-location-scan {ScanPanelClass}")">
                         <div class="pda-fld">
                             <label>NEW LOCATION NO SCAN</label>
-                            <RadzenTextBox class="pda-input wh03-work-input"
+                            <RadzenTextBox class="pda-input wh03-work-input pda-scan-input"
                                            Value="@_invLocationNo"
                                            @oninput="OnInventoryLocationInput"
                                            @onkeydown="OnInventoryLocationKey"
                                            Placeholder="Scan new location no"
                                            Disabled="@(!InventoryAlreadyReceived || InventoryBusy)" />
                         </div>
-                        <RadzenButton class="wh03-work-scan-btn" Click="@ScanInventoryLocation" Disabled="@DisableInventoryLocationScan" Text="SCAN" />
+                        @if (ShowDeveloperScanButtons)
+                        {
+                            <RadzenButton class="wh03-work-scan-btn" Click="@ScanInventoryLocation" Disabled="@DisableInventoryLocationScan" Text="SCAN" />
+                        }
                     </div>
 
                     @if (_invTargetLocation is not null)
@@ -433,7 +444,10 @@
     private PdaApi.InboundScanRow? _invScan;
     private PdaApi.LocationRow? _inventoryCurrentLocation;
     private PdaApi.LocationRow? _invTargetLocation;
+    private DotNetObjectReference<Wh03InventoryStatus>? _scannerRef;
     private static readonly bool ShowLocatingTab = false;
+    private static bool ShowDeveloperScanButtons => MauiProgram.IsDeveloperMode;
+    private static string ScanPanelClass => ShowDeveloperScanButtons ? "dev-scan-panel" : "hardware-scan-panel";
 
     private static readonly (string Code, string Label)[] AdjustReasons =
     [
@@ -490,6 +504,96 @@
         => _statusFilter == "ALL"
             ? _rows
             : _rows.Where(row => string.Equals(StockStatus(row), _statusFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            PdaBarcodeHub.Scanned += OnNativeBarcodeScanned;
+            _scannerRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("pdaScan.register", _scannerRef, new { minLength = 3, developerMode = ShowDeveloperScanButtons });
+        }
+
+        await FocusScannerAsync();
+    }
+
+    [JSInvokable]
+    public async Task OnHardwareScanAsync(string scanText)
+    {
+        var value = NormalizeHardwareScan(scanText);
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+
+        await InvokeAsync(async () =>
+        {
+            if (IsSearchTab)
+            {
+                _q = value;
+                await ScanInventoryFilter();
+            }
+            else if (ShouldRouteHardwareScanToLocation)
+            {
+                _invLocationNo = value;
+                await ScanInventoryLocation();
+            }
+            else
+            {
+                _invBarcode = value;
+                await ScanInventoryLot();
+            }
+
+            StateHasChanged();
+        });
+    }
+
+    private void OnNativeBarcodeScanned(string barcode)
+    {
+        _ = InvokeAsync(async () => await OnHardwareScanAsync(barcode));
+    }
+
+    private bool ShouldRouteHardwareScanToLocation
+        => IsLocatingTab && InventoryAlreadyReceived && _invScan is not null;
+
+    private async Task FocusScannerAsync()
+    {
+        if (_modalOpen || _dateFilterOpen || _locationModalOpen)
+            return;
+
+        try
+        {
+            var selector = IsSearchTab
+                ? ".wh03-search-input"
+                : ShouldRouteHardwareScanToLocation
+                    ? ".wh03-location-scan .wh03-work-input"
+                    : ".wh03-work-scan:not(.wh03-location-scan) .wh03-work-input";
+            await JS.InvokeVoidAsync("pdaScan.focus", selector);
+        }
+        catch
+        {
+            // Ignore focus failures while the WebView is navigating.
+        }
+    }
+
+    private static string NormalizeHardwareScan(string? value)
+        => string.IsNullOrWhiteSpace(value)
+            ? ""
+            : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
+
+    public async ValueTask DisposeAsync()
+    {
+        PdaBarcodeHub.Scanned -= OnNativeBarcodeScanned;
+
+        try
+        {
+            await JS.InvokeVoidAsync("pdaScan.unregister");
+        }
+        catch
+        {
+            // Ignore dispose-time JS disconnects.
+        }
+
+        _scannerRef?.Dispose();
+    }
 
     protected override async Task OnInitializedAsync()
     {
