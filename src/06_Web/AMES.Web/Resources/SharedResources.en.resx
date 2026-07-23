@@ -1854,6 +1854,27 @@
   <data name="PP.Calendar.Kpi.InProgSub" xml:space="preserve">
     <value>In Production</value>
   </data>
+  <data name="PP.Calendar.Kpi.Total" xml:space="preserve">
+    <value>TOTAL WO</value>
+  </data>
+  <data name="PP.Calendar.Kpi.InProg" xml:space="preserve">
+    <value>IN PROGRESS</value>
+  </data>
+  <data name="PP.Calendar.Detail.DDay" xml:space="preserve">
+    <value>D-Day</value>
+  </data>
+  <data name="PP.Calendar.Status.Draft" xml:space="preserve">
+    <value>Draft</value>
+  </data>
+  <data name="PP.Calendar.Status.Released" xml:space="preserve">
+    <value>Released</value>
+  </data>
+  <data name="PP.Calendar.Status.InProgress" xml:space="preserve">
+    <value>In Progress</value>
+  </data>
+  <data name="PP.Calendar.Status.Closed" xml:space="preserve">
+    <value>Closed</value>
+  </data>
   <data name="PP.Calendar.Routing.INJ" xml:space="preserve">
     <value>INJ — Injection</value>
   </data>
@@ -2347,7 +2368,7 @@
     <value>🚫 Over Cap.</value>
   </data>
   <data name="PP.LineSchedule.Btn.Place" xml:space="preserve">
-    <value>▶ Place</value>
+    <value>Place</value>
   </data>
   <data name="PP.LineSchedule.Btn.WoOpen" xml:space="preserve">
     <value>▼ Place WO</value>
@@ -2461,7 +2482,7 @@
     <value>No WO placed yet.</value>
   </data>
   <data name="PP.LineSchedule.Btn.Update" xml:space="preserve">
-    <value>✎ Update</value>
+    <value>Update</value>
   </data>
   <data name="PP.LineSchedule.Err.Overlap" xml:space="preserve">
     <value>Overlaps another WO slot.</value>
@@ -5177,5 +5198,26 @@
   </data>
   <data name="MD.Mold.Ph.Color" xml:space="preserve">
     <value>e.g. BLK</value>
+  </data>
+  <data name="PP.LineSchedule.Hint.BandClick" xml:space="preserve">
+    <value>Click to place a WO in this operating window</value>
+  </data>
+  <data name="PP.LineSchedule.Ok.BandPicked" xml:space="preserve">
+    <value>Operating window {0}–{1} selected — pick a WO and place it.</value>
+  </data>
+  <data name="PP.LineSchedule.Msg.SelectOperating" xml:space="preserve">
+    <value>Please select an OPERATING band.</value>
+  </data>
+  <data name="PP.LineSchedule.Col.Label" xml:space="preserve">
+    <value>Label</value>
+  </data>
+  <data name="PP.LineSchedule.Col.Wo" xml:space="preserve">
+    <value>WO</value>
+  </data>
+  <data name="PP.LineSchedule.Ok.Reset" xml:space="preserve">
+    <value>Schedule reset.</value>
+  </data>
+  <data name="PP.LineSchedule.Confirm.Reset" xml:space="preserve">
+    <value>This deletes the saved schedule for this line/date and resets it. Continue?</value>
   </data>
 </root>

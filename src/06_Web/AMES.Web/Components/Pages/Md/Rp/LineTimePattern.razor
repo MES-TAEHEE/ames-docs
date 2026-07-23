@@ -465,6 +465,7 @@
         "OPERATING"        => "#86efac",
         "PLANNED_DOWNTIME" => "#fca5a5",
         "BREAK"            => "#fde68a",
+        "INSPECT"          => "#22d3ee",
         "IDLE"             => "#cbd5e1",
         _                  => "#93c5fd"
     };
@@ -826,6 +827,7 @@
     string SegClass(string? st) => st switch {
         "OPERATING"          => "pp-gantt-band pp-gantt-band--work",
         "PLANNED_DOWNTIME" => "pp-gantt-band pp-gantt-band--down",
+        "INSPECT"          => "pp-gantt-band pp-gantt-band--inspect",
         "IDLE"             => "pp-gantt-band pp-gantt-band--idle",
         _                  => "pp-gantt-band pp-gantt-band--break"
     };

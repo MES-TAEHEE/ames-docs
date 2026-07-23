@@ -54,6 +54,14 @@ public sealed class LineScheduleRepository
         catch { /* DB not available at startup — will retry on first query */ }
     }
 
+    // ── DB 서버 시각 (Now line 앵커; 이후 진행은 클라이언트 시계로 계산) ──────────
+    public DateTime GetDbNow()
+    {
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand("SELECT SYSDATETIME();", conn);
+        return (DateTime)cmd.ExecuteScalar()!;
+    }
+
     // ── Pattern CRUD ─────────────────────────────────────────────────────────
     public List<PatternBand> GetPattern(string lineId, string dayType = "WORKDAY")
     {
@@ -372,11 +380,12 @@ public sealed class LineScheduleRepository
             }
 
             var rows = slots.Where(s => s.EndMin > s.StartMin).ToList();
+            // 상태값은 공통코드 SCHEDULE_STATUS(DRAFT/PUBLISHED) 참조
             if (rows.Count == 0)
-                InsertRow(conn, tx, lineId, date, patternId, null, null, null, 0m, "Draft", actor);
+                InsertRow(conn, tx, lineId, date, patternId, null, null, null, 0m, "DRAFT", actor);
             else
                 foreach (var s in rows)
-                    InsertRow(conn, tx, lineId, date, patternId, s.WoId, s.StartMin, s.EndMin, s.Qty, "Draft", actor);
+                    InsertRow(conn, tx, lineId, date, patternId, s.WoId, s.StartMin, s.EndMin, s.Qty, "DRAFT", actor);
 
             tx.Commit();
         }
@@ -403,19 +412,32 @@ public sealed class LineScheduleRepository
         cmd.ExecuteNonQuery();
     }
 
-    // 발행: (라인, 일자)의 모든 행을 Published + 발행정보 기록.
+    // 발행: (라인, 일자)의 모든 행을 PUBLISHED + 발행정보 기록. (상태값 = 공통코드 SCHEDULE_STATUS)
     public void PublishSchedule(string lineId, DateTime date, string actor)
     {
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand("""
             UPDATE dbo.PP_LineSchedule
-            SET    Status='Published', PublishedAt=SYSDATETIME(), PublishedBy=@By,
+            SET    Status='PUBLISHED', PublishedAt=SYSDATETIME(), PublishedBy=@By,
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  LineID=@LineId AND ScheduleDate=@Date;
             """, conn);
         cmd.Parameters.Add("@LineId", SqlDbType.VarChar,  20).Value = lineId;
         cmd.Parameters.Add("@Date",   SqlDbType.Date).Value         = date.Date;
         cmd.Parameters.Add("@By",     SqlDbType.NVarChar, 450).Value = actor;
+        cmd.ExecuteNonQuery();
+    }
+
+    // 초기화: (라인, 일자)의 미발행(DRAFT) 스케줄 행 삭제. 발행된 행은 보존.
+    public void DeleteSchedule(string lineId, DateTime date)
+    {
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand("""
+            DELETE FROM dbo.PP_LineSchedule
+            WHERE  LineID=@LineId AND ScheduleDate=@Date AND Status='DRAFT';
+            """, conn);
+        cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
+        cmd.Parameters.Add("@Date",   SqlDbType.Date).Value        = date.Date;
         cmd.ExecuteNonQuery();
     }
 

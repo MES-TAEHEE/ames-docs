@@ -1854,6 +1854,27 @@
   <data name="PP.Calendar.Kpi.InProgSub" xml:space="preserve">
     <value>생산 중</value>
   </data>
+  <data name="PP.Calendar.Kpi.Total" xml:space="preserve">
+    <value>총 WO</value>
+  </data>
+  <data name="PP.Calendar.Kpi.InProg" xml:space="preserve">
+    <value>진행 중</value>
+  </data>
+  <data name="PP.Calendar.Detail.DDay" xml:space="preserve">
+    <value>D-Day</value>
+  </data>
+  <data name="PP.Calendar.Status.Draft" xml:space="preserve">
+    <value>작성</value>
+  </data>
+  <data name="PP.Calendar.Status.Released" xml:space="preserve">
+    <value>발행</value>
+  </data>
+  <data name="PP.Calendar.Status.InProgress" xml:space="preserve">
+    <value>진행 중</value>
+  </data>
+  <data name="PP.Calendar.Status.Closed" xml:space="preserve">
+    <value>마감</value>
+  </data>
   <data name="PP.Calendar.Routing.INJ" xml:space="preserve">
     <value>INJ 사출</value>
   </data>
@@ -2347,7 +2368,7 @@
     <value>🚫 캐파 초과</value>
   </data>
   <data name="PP.LineSchedule.Btn.Place" xml:space="preserve">
-    <value>▶ 배치</value>
+    <value>배치</value>
   </data>
   <data name="PP.LineSchedule.Btn.WoOpen" xml:space="preserve">
     <value>▼ WO 배치</value>
@@ -2461,7 +2482,7 @@
     <value>배치된 WO가 없습니다.</value>
   </data>
   <data name="PP.LineSchedule.Btn.Update" xml:space="preserve">
-    <value>✎ 수정 적용</value>
+    <value>수정</value>
   </data>
   <data name="PP.LineSchedule.Err.Overlap" xml:space="preserve">
     <value>다른 WO 배치와 시간이 겹칩니다.</value>
@@ -5177,5 +5198,26 @@
   </data>
   <data name="MD.Mold.Ph.Color" xml:space="preserve">
     <value>예: BLK</value>
+  </data>
+  <data name="PP.LineSchedule.Hint.BandClick" xml:space="preserve">
+    <value>클릭하여 이 가동시간대에 WO 배치</value>
+  </data>
+  <data name="PP.LineSchedule.Ok.BandPicked" xml:space="preserve">
+    <value>가동시간대 {0}~{1} 선택됨 — WO를 선택 후 배치하세요.</value>
+  </data>
+  <data name="PP.LineSchedule.Msg.SelectOperating" xml:space="preserve">
+    <value>가동(OPERATING) 밴드를 선택하세요.</value>
+  </data>
+  <data name="PP.LineSchedule.Col.Label" xml:space="preserve">
+    <value>라벨</value>
+  </data>
+  <data name="PP.LineSchedule.Col.Wo" xml:space="preserve">
+    <value>WO</value>
+  </data>
+  <data name="PP.LineSchedule.Ok.Reset" xml:space="preserve">
+    <value>초기화되었습니다.</value>
+  </data>
+  <data name="PP.LineSchedule.Confirm.Reset" xml:space="preserve">
+    <value>이 라인·일자의 저장된 스케줄을 삭제하고 초기화합니다. 계속할까요?</value>
   </data>
 </root>

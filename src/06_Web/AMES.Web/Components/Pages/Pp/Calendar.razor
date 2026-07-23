@@ -14,7 +14,7 @@
 @* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">TOTAL WO</div>
+        <div class="ames-kpi-l">@L["PP.Calendar.Kpi.Total"]</div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@_all.Count(w => w.DueDate.HasValue)</div>
             <div class="ames-kpi-s">@L["PP.Calendar.Kpi.TotalSub"]</div>
@@ -35,7 +35,7 @@
         </div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">IN PROGRESS</div>
+        <div class="ames-kpi-l">@L["PP.Calendar.Kpi.InProg"]</div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@_all.Count(w => w.Status == "In Progress")</div>
             <div class="ames-kpi-s">@L["PP.Calendar.Kpi.InProgSub"]</div>
@@ -228,7 +228,7 @@
                      @onclick="() => { _showDay = false; ShowDetail(capWo); }">
                     <span style="font-weight:700;">@wo.WoNumber</span>
                     <span style="opacity:.75;margin-left:6px;">@(wo.ItemName ?? wo.ItemNo)</span>
-                    <span class="pill @(GetWoCls(wo))" style="float:right;font-size:10px;padding:1px 6px;">@wo.Status</span>
+                    <span class="pill @(GetWoCls(wo))" style="float:right;font-size:10px;padding:1px 6px;">@StatusText(wo.Status)</span>
                 </div>
             }
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
@@ -253,7 +253,7 @@
                 </div>
                 <div class="ames-detail-label">@L["Col.Line"]</div>
                 <div class="code">@d.LineId</div>
-                <div class="ames-detail-label">Routing</div>
+                <div class="ames-detail-label">@L["Col.Routing"]</div>
                 <div>
                     @if (d.RoutingType == "A")
                     { <span class="pill info">@L["PP.Calendar.Routing.A"]</span> }
@@ -270,11 +270,11 @@
                 <div class="ames-detail-label">@L["Col.Status"]</div>
                 <div>
                     @{ var stc = d.Status switch { "In Progress"=>"ok","Released"=>"info","Draft"=>"warn",_=>"dim" }; }
-                    <span class="pill @stc">@d.Status</span>
+                    <span class="pill @stc">@StatusText(d.Status)</span>
                 </div>
                 <div class="ames-detail-label">@L["Col.Due"]</div>
                 <div>@(d.DueDate?.ToString("yyyy-MM-dd") ?? "—")</div>
-                <div class="ames-detail-label">D-Day</div>
+                <div class="ames-detail-label">@L["PP.Calendar.Detail.DDay"]</div>
                 <div>
                     @{ var dd = d.DaysToDue; var ddc = dd is null?"dim":dd<0?"bad":dd<=3?"warn":"ok"; }
                     <span class="pill @ddc">@DdTxt(dd)</span>
@@ -360,10 +360,20 @@
     List<DropDownItem> StatusFilterOptions => new()
     {
         new() { Value = "",            Text = L["Filter.All"].Value },
-        new() { Value = "Draft",       Text = "Draft" },
-        new() { Value = "Released",    Text = "Released" },
-        new() { Value = "In Progress", Text = "In Progress" },
-        new() { Value = "Closed",      Text = "Closed" },
+        new() { Value = "Draft",       Text = StatusText("Draft") },
+        new() { Value = "Released",    Text = StatusText("Released") },
+        new() { Value = "In Progress", Text = StatusText("In Progress") },
+        new() { Value = "Closed",      Text = StatusText("Closed") },
+    };
+
+    // WO 상태 코드 → 다국어 라벨 (값은 DB 코드 유지)
+    string StatusText(string? s) => s switch
+    {
+        "Draft"       => L["PP.Calendar.Status.Draft"].Value,
+        "Released"    => L["PP.Calendar.Status.Released"].Value,
+        "In Progress" => L["PP.Calendar.Status.InProgress"].Value,
+        "Closed"      => L["PP.Calendar.Status.Closed"].Value,
+        _             => s ?? ""
     };
 
     // 월/주 탭 공통 필터 툴바 (라우팅·상태·검색)
@@ -488,7 +498,7 @@
             0     => L["PP.Calendar.DdTxt.DDay"].Value,
             { } v => string.Format(L["PP.Calendar.DdTxt.DaysTo"].Value, v)
         };
-        return $"{w.WoNumber} | {w.ItemName ?? w.ItemNo}\n{L["PP.Calendar.WoTooltip.Line"]}: {w.LineId} | {w.RoutingType ?? "INJ"}\n{w.Status} | {ddStr}\n{L["PP.Calendar.WoTooltip.Order"]}:{w.OrderQty:N0} {L["PP.Calendar.WoTooltip.Done"]}:{w.CompletedQty:N0} ({(int)w.ProgressPct}%)";
+        return $"{w.WoNumber} | {w.ItemName ?? w.ItemNo}\n{L["PP.Calendar.WoTooltip.Line"]}: {w.LineId} | {w.RoutingType ?? "INJ"}\n{StatusText(w.Status)} | {ddStr}\n{L["PP.Calendar.WoTooltip.Order"]}:{w.OrderQty:N0} {L["PP.Calendar.WoTooltip.Done"]}:{w.CompletedQty:N0} ({(int)w.ProgressPct}%)";
     }
 
     string DdTxt(int? days) => days switch
@@ -504,10 +514,10 @@
         var items = new[] {
             (L["PP.Calendar.Legend.Overdue"].Value, "wo-overdue"),
             (L["PP.Calendar.Legend.D3"].Value,      "wo-d3"),
-            ("In Progress",                         "wo-prog"),
+            (StatusText("In Progress"),             "wo-prog"),
             (L["PP.Calendar.Legend.RoutingA"].Value, "wo-rta"),
             (L["PP.Calendar.Legend.RoutingB"].Value, "wo-rtb"),
-            ("Released",                             "wo-rel"),
+            (StatusText("Released"),                "wo-rel"),
             (L["PP.Calendar.Legend.Draft"].Value,    "wo-draft")
         };
         foreach (var (lbl, cls) in items)
