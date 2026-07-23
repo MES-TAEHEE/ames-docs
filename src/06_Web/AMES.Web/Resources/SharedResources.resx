@@ -1854,27 +1854,6 @@
   <data name="PP.Calendar.Kpi.InProgSub" xml:space="preserve">
     <value>생산 중</value>
   </data>
-  <data name="PP.Calendar.Kpi.Total" xml:space="preserve">
-    <value>총 WO</value>
-  </data>
-  <data name="PP.Calendar.Kpi.InProg" xml:space="preserve">
-    <value>진행 중</value>
-  </data>
-  <data name="PP.Calendar.Detail.DDay" xml:space="preserve">
-    <value>D-Day</value>
-  </data>
-  <data name="PP.Calendar.Status.Draft" xml:space="preserve">
-    <value>작성</value>
-  </data>
-  <data name="PP.Calendar.Status.Released" xml:space="preserve">
-    <value>발행</value>
-  </data>
-  <data name="PP.Calendar.Status.InProgress" xml:space="preserve">
-    <value>진행 중</value>
-  </data>
-  <data name="PP.Calendar.Status.Closed" xml:space="preserve">
-    <value>마감</value>
-  </data>
   <data name="PP.Calendar.Routing.INJ" xml:space="preserve">
     <value>INJ 사출</value>
   </data>
@@ -2473,7 +2452,7 @@
     <value>분 단위 스케줄 타임라인 — {0} ~ {1}</value>
   </data>
   <data name="PP.LineSchedule.Hint.Board" xml:space="preserve">
-    <value>블록 클릭 시 배치 수정 · 붉은 테두리 = 충돌 · NOW 선 = 현재 시각</value>
+    <value>블록 클릭 시 배치 수정 · NOW 선 = 현재 시각</value>
   </data>
   <data name="PP.LineSchedule.Lbl.SlotList" xml:space="preserve">
     <value>배치 목록</value>
@@ -5210,6 +5189,27 @@
   </data>
   <data name="PP.LineSchedule.Col.Label" xml:space="preserve">
     <value>라벨</value>
+  </data>
+  <data name="PP.Calendar.Kpi.Total" xml:space="preserve">
+    <value>총 WO</value>
+  </data>
+  <data name="PP.Calendar.Kpi.InProg" xml:space="preserve">
+    <value>진행 중</value>
+  </data>
+  <data name="PP.Calendar.Detail.DDay" xml:space="preserve">
+    <value>D-Day</value>
+  </data>
+  <data name="PP.Calendar.Status.Draft" xml:space="preserve">
+    <value>작성</value>
+  </data>
+  <data name="PP.Calendar.Status.Released" xml:space="preserve">
+    <value>발행</value>
+  </data>
+  <data name="PP.Calendar.Status.InProgress" xml:space="preserve">
+    <value>진행 중</value>
+  </data>
+  <data name="PP.Calendar.Status.Closed" xml:space="preserve">
+    <value>마감</value>
   </data>
   <data name="PP.LineSchedule.Col.Wo" xml:space="preserve">
     <value>WO</value>

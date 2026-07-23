@@ -1854,27 +1854,6 @@
   <data name="PP.Calendar.Kpi.InProgSub" xml:space="preserve">
     <value>In Production</value>
   </data>
-  <data name="PP.Calendar.Kpi.Total" xml:space="preserve">
-    <value>TOTAL WO</value>
-  </data>
-  <data name="PP.Calendar.Kpi.InProg" xml:space="preserve">
-    <value>IN PROGRESS</value>
-  </data>
-  <data name="PP.Calendar.Detail.DDay" xml:space="preserve">
-    <value>D-Day</value>
-  </data>
-  <data name="PP.Calendar.Status.Draft" xml:space="preserve">
-    <value>Draft</value>
-  </data>
-  <data name="PP.Calendar.Status.Released" xml:space="preserve">
-    <value>Released</value>
-  </data>
-  <data name="PP.Calendar.Status.InProgress" xml:space="preserve">
-    <value>In Progress</value>
-  </data>
-  <data name="PP.Calendar.Status.Closed" xml:space="preserve">
-    <value>Closed</value>
-  </data>
   <data name="PP.Calendar.Routing.INJ" xml:space="preserve">
     <value>INJ — Injection</value>
   </data>
@@ -2473,7 +2452,7 @@
     <value>Minute-Level Schedule Timeline — {0} ~ {1}</value>
   </data>
   <data name="PP.LineSchedule.Hint.Board" xml:space="preserve">
-    <value>Click a block to edit · red outline = conflict · NOW line = current time</value>
+    <value>Click a block to edit · NOW line = current time</value>
   </data>
   <data name="PP.LineSchedule.Lbl.SlotList" xml:space="preserve">
     <value>Placed Slots</value>
@@ -5210,6 +5189,27 @@
   </data>
   <data name="PP.LineSchedule.Col.Label" xml:space="preserve">
     <value>Label</value>
+  </data>
+  <data name="PP.Calendar.Kpi.Total" xml:space="preserve">
+    <value>TOTAL WO</value>
+  </data>
+  <data name="PP.Calendar.Kpi.InProg" xml:space="preserve">
+    <value>IN PROGRESS</value>
+  </data>
+  <data name="PP.Calendar.Detail.DDay" xml:space="preserve">
+    <value>D-Day</value>
+  </data>
+  <data name="PP.Calendar.Status.Draft" xml:space="preserve">
+    <value>Draft</value>
+  </data>
+  <data name="PP.Calendar.Status.Released" xml:space="preserve">
+    <value>Released</value>
+  </data>
+  <data name="PP.Calendar.Status.InProgress" xml:space="preserve">
+    <value>In Progress</value>
+  </data>
+  <data name="PP.Calendar.Status.Closed" xml:space="preserve">
+    <value>Closed</value>
   </data>
   <data name="PP.LineSchedule.Col.Wo" xml:space="preserve">
     <value>WO</value>

@@ -171,7 +171,7 @@
                     <RadzenDataGridColumn TItem="StagedWo" Width="90px" TextAlign="TextAlign.Center" Sortable="false">
                         <Template Context="s">
                             <div @onclick:stopPropagation>
-                                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@(() => RemoveSlot(s.WoId))" class="ames-rz-btn" />
+                                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall" Click="@(() => RemoveSlot(s.WoId))" class="ames-rz-btn" Style="height:24px;padding:0 8px;line-height:1;" />
                             </div>
                         </Template>
                     </RadzenDataGridColumn>
@@ -211,7 +211,8 @@
                 <RadzenRow Gap="8px">
                     <RadzenColumn Size="4">
                         <RadzenLabel Text="@L["PP.LineSchedule.Lbl.StartTime"]" />
-                        <RadzenDatePicker TValue="DateTime?" @bind-Value="PlaceStartDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        @* 시작시간은 자동 결정(밴드 클릭/편집) — 수정 불가. 지속 변경 시 이후 WO가 자동 이동 *@
+                        <RadzenDatePicker TValue="DateTime?" @bind-Value="PlaceStartDt" Disabled="true" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </RadzenColumn>
                     <RadzenColumn Size="4">
                         <RadzenLabel Text="@L["PP.LineSchedule.Lbl.Duration"]" />
@@ -570,6 +571,8 @@
     }
 
     // ── WO 배치 / 수정 (메모리 스테이징) ──────────────────────────────────
+    //  시작시간은 고정(비활성). 편집 시 지속(분)을 바꾸면 그 변화량(델타)만큼
+    //  이후 등록된 WO들의 시작·종료를 이동 → 줄이면 앞당기고, 늘리면 뒤로 민다(연속 유지).
     void SaveSlot()
     {
         _modalErr = "";
@@ -580,29 +583,39 @@
         int startMin = _placeStartTime.Hour * 60 + _placeStartTime.Minute;
         int endMin   = startMin + _placeDurMin;
 
-        if (!InsideOperating(startMin, endMin)) { _modalErr = L["PP.LineSchedule.Err.NotInOperating"]; return; }
-
-        if (_slots.Any(s => s.WoId != woId && s.StartMin < endMin && startMin < s.EndMin))
-        { _modalErr = L["PP.LineSchedule.Err.Overlap"]; return; }
-
-        int otherLoad = _slots.Where(s => s.WoId != woId).Sum(s => s.EndMin - s.StartMin);
-        int remain    = OperatingMin - otherLoad;
-        if (remain - _placeDurMin < 0)
-        { _modalErr = string.Format(L["PP.LineSchedule.Err.CapOver"].Value, remain, _placeDurMin); return; }
-
-        int idx = _slots.FindIndex(s => s.WoId == woId);
-        if (idx >= 0)
+        // 후보 목록 구성
+        var cand = new List<StagedWo>(_slots);
+        int idx = cand.FindIndex(s => s.WoId == woId);
+        bool editing = idx >= 0;
+        if (editing)
         {
-            _slots[idx] = _slots[idx] with { StartMin = startMin, EndMin = endMin, Qty = _placeQty };
-            ShowMsg(L["PP.LineSchedule.Ok.Updated"].Value);
+            var old   = cand[idx];
+            int delta = endMin - old.EndMin;                 // 지속 변화량 (음수 = 감소)
+            cand[idx] = old with { EndMin = endMin, Qty = _placeQty };
+            if (delta != 0)
+                for (int i = 0; i < cand.Count; i++)
+                    if (i != idx && cand[i].StartMin >= old.EndMin)   // 편집 슬롯 이후에 시작하는 WO들
+                        cand[i] = cand[i] with { StartMin = cand[i].StartMin + delta, EndMin = cand[i].EndMin + delta };
         }
         else
         {
             var wo = AvailableWos.FirstOrDefault(w => w.WoId == woId);
             if (wo is null) return;
-            _slots.Add(new StagedWo(wo.WoId, wo.WoNumber ?? $"#{wo.WoId}", wo.ItemName ?? wo.ItemNo, startMin, endMin, _placeQty));
-            ShowMsg(L["PP.LineSchedule.Ok.Placed"].Value);
+            cand.Add(new StagedWo(wo.WoId, wo.WoNumber ?? $"#{wo.WoId}", wo.ItemName ?? wo.ItemNo, startMin, endMin, _placeQty));
         }
+
+        // 검증 (전체 후보 기준)
+        if (cand.Any(s => s.StartMin < 0 || s.EndMin <= s.StartMin || !InsideOperating(s.StartMin, s.EndMin)))
+        { _modalErr = L["PP.LineSchedule.Err.NotInOperating"]; return; }
+        var ord = cand.OrderBy(s => s.StartMin).ToList();
+        for (int i = 1; i < ord.Count; i++)
+            if (ord[i].StartMin < ord[i - 1].EndMin) { _modalErr = L["PP.LineSchedule.Err.Overlap"]; return; }
+        int load = cand.Sum(s => s.EndMin - s.StartMin);
+        if (load > OperatingMin)
+        { _modalErr = string.Format(L["PP.LineSchedule.Err.CapOver"].Value, OperatingMin - (load - _placeDurMin), _placeDurMin); return; }
+
+        _slots = cand;
+        ShowMsg(editing ? L["PP.LineSchedule.Ok.Updated"].Value : L["PP.LineSchedule.Ok.Placed"].Value);
         _dirty = true;
         ClosePlaceModal();
     }
