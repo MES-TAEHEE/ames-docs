@@ -1,6 +1,8 @@
 @page "/wh/08"
 @inject PdaApi Api
 @inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <div class="pda-shell wh wh08-shell">
     <div class="pda-tbar">
@@ -38,7 +40,7 @@
         <RadzenCard class="wh08-search-card">
             <div class="pda-fld">
                 <label>SEARCH</label>
-                <RadzenTextBox class="pda-input wh08-search-input"
+                <RadzenTextBox class="pda-input wh08-search-input pda-scan-input"
                                Value="@_search"
                                @oninput="OnSearchInput"
                                @onkeydown="OnKey"
@@ -191,6 +193,7 @@
     private DateTime? _lastUpdated;
     private List<PdaApi.WarehouseTransactionRow> _rows = new();
     private readonly HashSet<long> _expandedRows = new();
+    private DotNetObjectReference<Wh08TransactionHistory>? _scannerRef;
 
     private string LastUpdatedText => _lastUpdated?.ToString("HH:mm:ss") ?? "-";
     private DateTime? DateFrom => TryDate(_dateFrom);
@@ -215,6 +218,74 @@
         .OrderBy(r => r);
 
     protected override async Task OnInitializedAsync() => await Load();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            PdaBarcodeHub.Scanned += OnNativeBarcodeScanned;
+            _scannerRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("pdaScan.register", _scannerRef, new { minLength = 3, developerMode = MauiProgram.IsDeveloperMode });
+        }
+
+        await FocusScannerAsync();
+    }
+
+    [JSInvokable]
+    public async Task OnHardwareScanAsync(string scanText)
+    {
+        var value = NormalizeHardwareScan(scanText);
+        if (string.IsNullOrWhiteSpace(value) || _showFilters)
+            return;
+
+        await InvokeAsync(async () =>
+        {
+            _search = value;
+            await Load();
+            StateHasChanged();
+        });
+    }
+
+    private void OnNativeBarcodeScanned(string barcode)
+    {
+        _ = InvokeAsync(async () => await OnHardwareScanAsync(barcode));
+    }
+
+    private async Task FocusScannerAsync()
+    {
+        if (_showFilters)
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("pdaScan.focus", ".wh08-search-input");
+        }
+        catch
+        {
+            // Ignore focus failures while the WebView is navigating.
+        }
+    }
+
+    private static string NormalizeHardwareScan(string? value)
+        => string.IsNullOrWhiteSpace(value)
+            ? ""
+            : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
+
+    public async ValueTask DisposeAsync()
+    {
+        PdaBarcodeHub.Scanned -= OnNativeBarcodeScanned;
+
+        try
+        {
+            await JS.InvokeVoidAsync("pdaScan.unregister");
+        }
+        catch
+        {
+            // Ignore dispose-time JS disconnects.
+        }
+
+        _scannerRef?.Dispose();
+    }
 
     private void OnDateFromChanged(ChangeEventArgs e)
     {
