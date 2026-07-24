@@ -166,7 +166,7 @@ public sealed class RptRepository
                    ISNULL(SUM(Qty), 0)                          AS Qty,
                    SUM(CASE WHEN HoldFlag=1 THEN 1 ELSE 0 END)  AS HoldLots,
                    ISNULL(SUM(CASE WHEN HoldFlag=1 THEN Qty ELSE 0 END), 0) AS HoldQty
-            FROM   dbo.FG_Stock
+            FROM   dbo.FG_Inventory
             WHERE  ISNULL(Status,'') NOT IN ('SHIPPED','SCRAPPED')
             GROUP BY ItemNo, Location
             ORDER BY Qty DESC;

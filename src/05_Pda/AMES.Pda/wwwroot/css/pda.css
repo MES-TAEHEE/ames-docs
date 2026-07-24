@@ -8152,3 +8152,367 @@ body:has(.pda-shell.wh),
     user-select: none !important;
     -webkit-user-select: none !important;
 }
+
+/* FG-001 Put-Away */
+.pda-shell.fg.fg01-shell {
+    background: #071114;
+    color: #f8fafc;
+}
+
+.pda-shell.fg.fg01-shell > .pda-tbar {
+    min-height: 70px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #081417, #102026);
+    border-bottom: 1px solid rgba(34, 211, 238, .45);
+}
+
+.pda-shell.fg.fg01-shell > .pda-tbar .pda-tbar-brand {
+    color: #f8fafc;
+    font-size: 21px;
+    letter-spacing: 1.2px;
+}
+
+.pda-shell.fg.fg01-shell > .pda-tbar .pda-tbar-back.rz-button {
+    min-width: 44px;
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: 10px;
+    background: #0f1f25;
+    border: 1px solid rgba(148, 163, 184, .35);
+    color: #e5e7eb;
+    box-shadow: none;
+}
+
+.pda-shell.fg.fg01-shell .fg01-body {
+    padding: 14px 14px 96px;
+    gap: 12px;
+    background: #071114;
+}
+
+.pda-shell.fg.fg01-shell .rz-card {
+    border-radius: 12px;
+    box-shadow: none;
+}
+
+.fg01-panel.rz-card,
+.fg01-lot-card.rz-card,
+.fg01-suggest-card.rz-card,
+.fg01-location-card.rz-card {
+    background: #101d23;
+    border: 1px solid rgba(148, 163, 184, .22);
+    color: #f8fafc;
+    padding: 14px;
+}
+
+.fg01-panel {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.fg01-panel.hardware-scan-panel {
+    grid-template-columns: 28px minmax(0, 1fr);
+}
+
+.fg01-step {
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: #22d3ee;
+    color: #06252d;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+}
+
+.fg01-panel .pda-fld label {
+    color: #67e8f9;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.8px;
+}
+
+.fg01-scan-input.rz-textbox,
+.fg01-location-input.rz-textbox {
+    height: 52px;
+    min-height: 52px;
+    background: #081417;
+    border: 1px solid rgba(148, 163, 184, .35);
+    color: #f8fafc;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.fg01-scan-input.rz-textbox::placeholder,
+.fg01-location-input.rz-textbox::placeholder {
+    color: rgba(226, 232, 240, .45);
+    font-size: 14px;
+}
+
+.fg01-scan-btn.rz-button,
+.fg01-location-scan-btn.rz-button {
+    height: 52px;
+    min-width: 84px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #0891b2, #0e7490);
+    border: 1px solid rgba(34, 211, 238, .55);
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 900;
+}
+
+.fg01-scan-btn.rz-button:disabled,
+.fg01-location-scan-btn.rz-button:disabled,
+.fg01-scan-btn.rz-state-disabled,
+.fg01-location-scan-btn.rz-state-disabled {
+    background: #334155;
+    border-color: rgba(148, 163, 184, .3);
+    color: rgba(255,255,255,.62);
+    opacity: 1;
+}
+
+.fg01-lot-card {
+    border-left: 4px solid #22d3ee !important;
+}
+
+.fg01-lot-card.ready {
+    border-left-color: #22c55e !important;
+}
+
+.fg01-lot-card.blocked,
+.fg01-lot-card.stocked {
+    border-left-color: #f97316 !important;
+}
+
+.fg01-lot-head,
+.fg01-location-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.fg01-lot-head span,
+.fg01-location-card-top span,
+.fg01-location-main span,
+.fg01-section-title {
+    display: block;
+    color: #94a3b8;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+}
+
+.fg01-lot-head strong,
+.fg01-location-card-top strong,
+.fg01-location-main strong {
+    display: block;
+    color: #f8fafc;
+    font-size: 22px;
+    line-height: 1.1;
+    margin-top: 5px;
+}
+
+.fg01-status-badge.rz-badge {
+    min-width: 82px;
+    height: 32px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    color: #052e16;
+    background: #86efac;
+}
+
+.fg01-status-badge.blocked.rz-badge,
+.fg01-status-badge.stocked.rz-badge {
+    color: #431407;
+    background: #fdba74;
+}
+
+.fg01-part {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(148, 163, 184, .18);
+}
+
+.fg01-part-no {
+    font-size: 18px;
+    font-weight: 900;
+    color: #e0f2fe;
+}
+
+.fg01-part-name {
+    margin-top: 4px;
+    color: #cbd5e1;
+    font-size: 14px;
+}
+
+.fg01-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.fg01-info,
+.fg01-location-row {
+    background: #081417;
+    border: 1px solid rgba(148, 163, 184, .18);
+    border-radius: 10px;
+    padding: 9px 10px;
+    min-width: 0;
+}
+
+.fg01-info span,
+.fg01-location-row span {
+    display: block;
+    color: #94a3b8;
+    font-size: 11px;
+    margin-bottom: 4px;
+}
+
+.fg01-info strong,
+.fg01-location-row strong {
+    display: block;
+    color: #f8fafc;
+    font-size: 14px;
+    word-break: break-word;
+}
+
+.fg01-suggest-card {
+    border-color: rgba(245, 158, 11, .45) !important;
+}
+
+.fg01-location-main {
+    margin-top: 8px;
+}
+
+.fg01-location-main strong {
+    color: #fbbf24;
+    font-size: 28px;
+}
+
+.fg01-location-sub,
+.fg01-location-card-top em {
+    display: block;
+    margin-top: 6px;
+    color: #93c5fd;
+    font-size: 12px;
+    font-style: normal;
+}
+
+.fg01-next-scan {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    margin-top: 10px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(34, 211, 238, .12);
+    border: 1px solid rgba(34, 211, 238, .35);
+    color: #a5f3fc;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .8px;
+}
+
+.fg01-location-note {
+    margin-top: 10px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.fg01-location-note.ok {
+    background: rgba(34, 197, 94, .14);
+    color: #bbf7d0;
+    border: 1px solid rgba(34, 197, 94, .35);
+}
+
+.fg01-location-note.warn {
+    background: rgba(245, 158, 11, .14);
+    color: #fde68a;
+    border: 1px solid rgba(245, 158, 11, .35);
+}
+
+.fg01-location-card.ready {
+    border-color: rgba(34, 197, 94, .45) !important;
+}
+
+.fg01-location-card.blocked {
+    border-color: rgba(248, 113, 113, .45) !important;
+}
+
+.fg01-location-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.fg01-empty {
+    margin-top: 8px;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.fg01-action-bar {
+    position: fixed;
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: 1fr 1.35fr;
+    gap: 10px;
+}
+
+.fg01-clear-btn.rz-button,
+.fg01-confirm-btn.rz-button {
+    height: 58px;
+    border-radius: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 900;
+    letter-spacing: .8px;
+}
+
+.fg01-clear-btn.rz-button {
+    background: #17232a;
+    border: 1px solid rgba(148, 163, 184, .28);
+    color: #e5e7eb;
+}
+
+.fg01-confirm-btn.ready.rz-button {
+    background: linear-gradient(180deg, #22c55e, #15803d);
+    color: #fff;
+    border: 1px solid rgba(34, 197, 94, .55);
+}
+
+.fg01-confirm-btn.blocked.rz-button,
+.fg01-confirm-btn.rz-button:disabled,
+.fg01-confirm-btn.rz-state-disabled {
+    background: #334155;
+    border: 1px solid rgba(148, 163, 184, .28);
+    color: rgba(255,255,255,.64);
+    opacity: 1;
+}
+
+.pda-shell.fg .pda-scan-input.pda-scan-only,
+.pda-shell.fg .pda-scan-input.pda-scan-only.rz-textbox {
+    caret-color: transparent !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}

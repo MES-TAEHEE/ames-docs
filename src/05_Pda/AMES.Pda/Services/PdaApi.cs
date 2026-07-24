@@ -539,6 +539,21 @@ public sealed class PdaApi
         int PendingReturns, decimal StockOnHand);
 
     public sealed record FgPutAwayReq(int WoId, string ItemNo, decimal Qty, string ActualLoc, int PalletCount);
+    public sealed record FgPutAwayScanRow(int? LotId, string LotNo, int? WoId, string? WoNumber,
+        string ItemNo, string? ItemName, string? CustomerCode, decimal Qty, string? Unit,
+        DateTime? MfgDate, DateTime? ExpiryDate, string? QcInspectionNo, DateTime? QcPassTs,
+        bool IsQcPassed, bool AlreadyStocked, int? ExistingStockId, string? ExistingLocation,
+        string? ExistingStatus, string BarcodeType, string StorageMethod, string NextScanType,
+        string NextScanLabel, string? PackSpecId, string Message);
+    public sealed record FgPutAwayLocationRow(string LocationId, string? LocationName, string? ZoneCode,
+        string? Aisle, string? Bay, string? Slot, decimal Capacity, decimal CurrentQty,
+        decimal AvailableQty, string? CurrentCustomerCode, bool IsValid, string Message,
+        string ScanType, string ScannedBarcode);
+    public sealed record FgPutAwayConfirmReq(string Barcode, string LocationId, string? SuggestedLocation,
+        string? OverrideReason, int? PalletCount, int? PalletQty, string? StorageMethod,
+        string? ContainerType, string? ContainerBarcode);
+    public sealed record FgPutAwayResult(bool Success, string Message, int? StockId, FgPutAwayScanRow? Row,
+        FgPutAwayLocationRow? Location);
     public sealed record FgPickReq(int ShipmentOrderId, int StockId, decimal Qty);
     public sealed record FgLoadingReq(int ShipmentOrderId, string LicensePlate, string DriverName, string DockNo, string? SealNo);
     public sealed record FgDeliveryReq(int ShipmentOrderId, int? LoadingId);
@@ -562,6 +577,14 @@ public sealed class PdaApi
     }
 
     public Task<HttpResponseMessage> FgPutAwayAsync (FgPutAwayReq body)  => Post("/api/fg/putaway",  body);
+    public Task<FgPutAwayResult> FgPutAwayScanAsync(string barcode)
+        => GetFgPutAwayResultAsync($"/api/fg/putaway/scan?barcode={Uri.EscapeDataString(barcode)}");
+    public Task<FgPutAwayLocationRow?> FgSuggestPutAwayLocationAsync(string itemNo, string? customerCode, decimal qty)
+        => GetFgPutAwayLocationAsync($"/api/fg/putaway/suggest-location?itemNo={Uri.EscapeDataString(itemNo)}&customerCode={Uri.EscapeDataString(customerCode ?? "")}&qty={qty}");
+    public Task<FgPutAwayLocationRow?> FgValidatePutAwayLocationAsync(string locationId, string itemNo, string? customerCode, decimal qty, string? expectedScanType)
+        => GetFgPutAwayLocationAsync($"/api/fg/putaway/location?locationId={Uri.EscapeDataString(locationId)}&itemNo={Uri.EscapeDataString(itemNo)}&customerCode={Uri.EscapeDataString(customerCode ?? "")}&qty={qty}&expectedScanType={Uri.EscapeDataString(expectedScanType ?? "")}");
+    public Task<FgPutAwayResult> FgConfirmPutAwayAsync(FgPutAwayConfirmReq body)
+        => PostFgPutAwayResultAsync("/api/fg/putaway/confirm", body);
     public Task<HttpResponseMessage> FgPickAsync    (FgPickReq    body)  => Post("/api/fg/pick",     body);
     public Task<HttpResponseMessage> FgLoadingAsync (FgLoadingReq body)  => Post("/api/fg/loading",  body);
     public Task<HttpResponseMessage> FgDeliveryAsync(FgDeliveryReq body) => Post("/api/fg/delivery", body);
@@ -569,6 +592,79 @@ public sealed class PdaApi
     public Task<HttpResponseMessage> FgReturnAsync  (FgReturnReq  body)  => Post("/api/fg/return",   body);
 
     // ── private HTTP helpers ────────────────────────────────────────────
+    private async Task<FgPutAwayResult> GetFgPutAwayResultAsync(string url)
+    {
+        Authorize();
+        try
+        {
+            var resp = await _http.GetAsync(url);
+            var result = await ReadFgPutAwayResultAsync(resp);
+            return result ?? new FgPutAwayResult(false, "FG Put-Away service returned an empty response.", null, null, null);
+        }
+        catch (Exception ex)
+        {
+            return new FgPutAwayResult(false, ex.Message, null, null, null);
+        }
+    }
+
+    private async Task<FgPutAwayLocationRow?> GetFgPutAwayLocationAsync(string url)
+    {
+        Authorize();
+        try
+        {
+            var resp = await _http.GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+                return await resp.Content.ReadFromJsonAsync<FgPutAwayLocationRow>();
+
+            var result = await ReadFgPutAwayResultAsync(resp);
+            return result?.Location is not null
+                ? result.Location
+                : new FgPutAwayLocationRow("", null, null, null, null, null, 0, 0, 0, null, false,
+                    result?.Message ?? "FG location service is unavailable.", "LOCATION", "");
+        }
+        catch (Exception ex)
+        {
+            return new FgPutAwayLocationRow("", null, null, null, null, null, 0, 0, 0, null, false, ex.Message, "LOCATION", "");
+        }
+    }
+
+    private async Task<FgPutAwayResult> PostFgPutAwayResultAsync(string url, FgPutAwayConfirmReq body)
+    {
+        Authorize();
+        try
+        {
+            var resp = await _http.PostAsJsonAsync(url, body);
+            var result = await ReadFgPutAwayResultAsync(resp);
+            return result ?? new FgPutAwayResult(false, "FG Put-Away service returned an empty response.", null, null, null);
+        }
+        catch (Exception ex)
+        {
+            return new FgPutAwayResult(false, ex.Message, null, null, null);
+        }
+    }
+
+    private static async Task<FgPutAwayResult?> ReadFgPutAwayResultAsync(HttpResponseMessage resp)
+    {
+        try
+        {
+            var result = await resp.Content.ReadFromJsonAsync<FgPutAwayResult>();
+            if (result is not null)
+                return result;
+        }
+        catch
+        {
+            // Fall through to a readable HTTP message.
+        }
+
+        if (resp.StatusCode == HttpStatusCode.Unauthorized)
+            return new FgPutAwayResult(false, "Session expired. Sign in again.", null, null, null);
+
+        var message = resp.IsSuccessStatusCode
+            ? "FG Put-Away completed."
+            : $"FG Put-Away service failed. HTTP {(int)resp.StatusCode}.";
+        return new FgPutAwayResult(resp.IsSuccessStatusCode, message, null, null, null);
+    }
+
     private async Task<T> Get<T>(string url) where T : new()
     {
         Authorize();
