@@ -687,6 +687,76 @@ public sealed class MasterDataRepository
         string? CreatedBy, DateTime? CreatedTS,
         string? ModifiedBy, DateTime? ModifiedTS);
 
+    // ── MD-031 라우팅 템플릿 (MD_RoutingStep) ─────────────────────────────
+    public record RoutingStepRow(
+        string RoutingType, int StepSeq, string ProcessCode,
+        bool QcRequiredFlag, bool ActiveFlag,
+        string? CreatedBy, DateTime? CreatedTS,
+        string? ModifiedBy, DateTime? ModifiedTS);
+
+    public List<RoutingStepRow> ListRoutingSteps(string? routingType = null)
+    {
+        var where = routingType is null ? "" : " WHERE RoutingType = @RT";
+        var p = routingType is null
+            ? Array.Empty<(string, object?)>()
+            : new[] { ("@RT", (object?)routingType) };
+        return Query($"""
+            SELECT RoutingType, StepSeq, ProcessCode,
+                   ISNULL(QcRequiredFlag,0) AS QcRequiredFlag,
+                   ISNULL(ActiveFlag,1)     AS ActiveFlag,
+                   CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
+            FROM   dbo.MD_RoutingStep
+            {where}
+            ORDER  BY RoutingType, StepSeq
+            """,
+            r => new RoutingStepRow(
+                r.GetString("RoutingType"),
+                (int)r["StepSeq"],
+                r.GetString("ProcessCode"),
+                (bool)r["QcRequiredFlag"],
+                (bool)r["ActiveFlag"],
+                r["CreatedBy"]  as string,
+                r["CreatedTS"]  is DateTime cts ? cts : null,
+                r["ModifiedBy"] as string,
+                r["ModifiedTS"] is DateTime mts ? mts : null), p);
+    }
+
+    /// <summary>라우팅 타입의 활성 공정 시퀀스(ProcessCode)를 StepSeq 순서로 반환.</summary>
+    public List<string> ListRoutingProcesses(string routingType) =>
+        Query("""
+            SELECT ProcessCode
+            FROM   dbo.MD_RoutingStep
+            WHERE  RoutingType = @RT AND ISNULL(ActiveFlag,1) = 1
+            ORDER  BY StepSeq
+            """,
+            r => r.GetString("ProcessCode"),
+            ("@RT", routingType));
+
+    public void InsertRoutingStep(string routingType, int stepSeq, string processCode,
+        bool qcRequired, bool activeFlag, string createdBy)
+        => Exec("""
+            INSERT INTO dbo.MD_RoutingStep
+                   (RoutingType, StepSeq, ProcessCode, QcRequiredFlag, ActiveFlag, CreatedBy, CreatedTS)
+            VALUES (@RT, @Seq, @PC, @QC, @Active, @By, SYSDATETIME())
+            """,
+            ("@RT", routingType), ("@Seq", stepSeq), ("@PC", processCode),
+            ("@QC", qcRequired), ("@Active", activeFlag), ("@By", createdBy));
+
+    public void UpdateRoutingStep(string routingType, int stepSeq, string processCode,
+        bool qcRequired, bool activeFlag, string modifiedBy)
+        => Exec("""
+            UPDATE dbo.MD_RoutingStep
+            SET    ProcessCode=@PC, QcRequiredFlag=@QC, ActiveFlag=@Active,
+                   ModifiedBy=@By, ModifiedTS=SYSDATETIME()
+            WHERE  RoutingType=@RT AND StepSeq=@Seq
+            """,
+            ("@RT", routingType), ("@Seq", stepSeq), ("@PC", processCode),
+            ("@QC", qcRequired), ("@Active", activeFlag), ("@By", modifiedBy));
+
+    public void DeleteRoutingStep(string routingType, int stepSeq)
+        => Exec("DELETE dbo.MD_RoutingStep WHERE RoutingType=@RT AND StepSeq=@Seq",
+            ("@RT", routingType), ("@Seq", stepSeq));
+
     public record BomKpiRow(int BomProducts, int TotalComponents);
 
     // 상단 KPI 집계 (전체 BOM 기준) — 제품 수(고유 RootItemNo) · 총 구성품 라인 수

@@ -1,15 +1,16 @@
 -- ============================================================
 -- Seed: MD_CodeGroup + MD_CodeItem
--- Generated: 2026-07-22  DB: AMES_DEV
+-- Regenerated: 2026-07-24 from live DB AMES_DEV
 -- ============================================================
 
 SET NOCOUNT ON;
 GO
 
--- ── MD_CodeGroup ─────────────────────────────────────────────
+-- MD_CodeGroup / MD_CodeItem reset
 DELETE dbo.MD_CodeItem;
 DELETE dbo.MD_CodeGroup;
 
+-- MD_CodeGroup
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('AUDIT_STATUS', N'감사 상태', N'Audit status', NULL, 1, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('BARCODE_TYPE', N'바코드 유형', N'Barcode type', NULL, 1, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('CAUSE_CATEGORY', N'불량원인 분류', N'Defect cause category', NULL, 1, 'admin@ames.local');
@@ -62,7 +63,7 @@ INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, Us
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('WAREHOUSE_ZONE', N'창고 구역', N'Warehouse zone', NULL, 1, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('WORK_SHIFT', N'교대작업', N'Work shift', NULL, 1, 'admin@ames.local');
 
--- ── MD_CodeItem ──────────────────────────────────────────────
+-- MD_CodeItem
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('AUDIT_STATUS_OK', 'AUDIT_STATUS', 'OK', N'OK', N'OK', NULL, 10, NULL, 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('AUDIT_STATUS_FAIL', 'AUDIT_STATUS', 'FAIL', N'FAIL', N'FAIL', NULL, 20, NULL, 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('BARCODE_TYPE_CODE128', 'BARCODE_TYPE', 'CODE128', N'CODE 128', N'CODE 128', NULL, 10, NULL, 1, NULL, 'admin@ames.local');
@@ -162,11 +163,11 @@ INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn,
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('PROCESS_WH', 'PROCESS', 'WH', N'창고', N'Warehouse', NULL, 10, NULL, 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('PROCESS_PP', 'PROCESS', 'PP', N'생산계획', N'Production Plan', NULL, 20, NULL, 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('PROCESS_MNT', 'PROCESS', 'MNT', N'설비보전', N'Maintenance', NULL, 30, NULL, 1, NULL, 'admin@ames.local');
-INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('PROCESS_INJ', 'PROCESS', 'INJ', N'사출몰딩', N'Injection Molding', NULL, 40, NULL, 1, NULL, 'admin@ames.local');
-INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('PROCESS_IMG', 'PROCESS', 'IMG', N'감싸기', N'Wrapping', NULL, 50, NULL, 1, NULL, 'admin@ames.local');
-INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('PROCESS_PNT', 'PROCESS', 'PNT', N'도장', N'Painting', NULL, 60, NULL, 1, NULL, 'admin@ames.local');
-INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('PROCESS_QC', 'PROCESS', 'QC', N'품질관리', N'Quality Control', NULL, 70, NULL, 1, NULL, 'admin@ames.local');
-INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('PROCESS_FG', 'PROCESS', 'FG', N'완료품', N'Finished Goods', NULL, 80, NULL, 1, NULL, 'admin@ames.local');
+INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('PROCESS_INJ', 'PROCESS', 'INJ', N'사출몰딩', N'Injection Molding', NULL, 40, N'ROUTING', 1, NULL, 'admin@ames.local');
+INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('PROCESS_IMG', 'PROCESS', 'IMG', N'감싸기', N'Wrapping', NULL, 50, N'ROUTING', 1, NULL, 'admin@ames.local');
+INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('PROCESS_PNT', 'PROCESS', 'PNT', N'도장', N'Painting', NULL, 60, N'ROUTING', 1, NULL, 'admin@ames.local');
+INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('PROCESS_QC', 'PROCESS', 'QC', N'품질관리', N'Quality Control', NULL, 70, N'ROUTING', 1, NULL, 'admin@ames.local');
+INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('PROCESS_FG', 'PROCESS', 'FG', N'완료품', N'Finished Goods', NULL, 80, N'ROUTING', 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('PROCESS_RPT', 'PROCESS', 'RPT', N'보고서', N'Report', NULL, 90, NULL, 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('PROCESS_MD', 'PROCESS', 'MD', N'마스터 데이터', N'Master Data', NULL, 100, NULL, 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('PROCESS_SYS', 'PROCESS', 'SYS', N'시스템', N'System', NULL, 110, NULL, 1, NULL, 'admin@ames.local');
@@ -256,3 +257,4 @@ INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn,
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('WORK_SHIFT_A', 'WORK_SHIFT', 'A', N'A 교대', N'A Shift', NULL, 10, N'0800-1600', 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('WORK_SHIFT_B', 'WORK_SHIFT', 'B', N'B 교대', N'B Shift', NULL, 20, N'1600-2400', 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy) VALUES ('WORK_SHIFT_C', 'WORK_SHIFT', 'C', N'C 교대', N'C Shift', NULL, 30, N'0000-0800', 1, NULL, 'admin@ames.local');
+GO

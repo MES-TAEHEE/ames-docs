@@ -25,9 +25,7 @@ public sealed class WorkOrderRepository
                    w.OrderQty, w.OpenQty, w.CompletedQty, w.LineID,
                    w.MoldID, w.RecipeID, w.DueDate, w.Status, w.TerminalLock,
                    ISNULL(w.Priority,5) AS Priority,
-                   CASE WHEN w.LineID LIKE 'LINE-IMG%' THEN 'A'
-                        WHEN w.LineID LIKE 'LINE-PNT%' THEN 'B'
-                        ELSE NULL END AS RoutingType,
+                   w.RoutingType,
                    CAST(
                        CASE WHEN EXISTS(SELECT 1 FROM dbo.MD_BOM bm WHERE bm.ParentItemNo = w.ItemNo)
                              AND EXISTS(SELECT 1 FROM dbo.MD_BOP bp WHERE bp.ItemNo        = w.ItemNo)
@@ -261,8 +259,8 @@ public sealed class WorkOrderRepository
         var prefix = $"WO-{DateTime.Today:yyyyMMdd}-";
         const string insSql = """
             INSERT INTO dbo.PP_WorkOrder
-                   (WoNumber, ItemNo, OrderQty, OpenQty, DueDate, Status, CreatedBy, CreatedTS)
-            SELECT @Wo, i.ItemNo, @Qty, @Qty, @Due, 'Draft', @Actor, SYSDATETIME()
+                   (WoNumber, ItemNo, OrderQty, OpenQty, DueDate, RoutingType, Status, CreatedBy, CreatedTS)
+            SELECT @Wo, i.ItemNo, @Qty, @Qty, @Due, i.RoutingType, 'Draft', @Actor, SYSDATETIME()
             FROM   dbo.MD_Item i
             WHERE  i.ItemNo = @ItemNo;
             """;

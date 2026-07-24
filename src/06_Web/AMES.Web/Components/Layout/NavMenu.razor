@@ -326,16 +326,29 @@
     // 권한 필터: DB 로딩 시 PermissionService 기준, 폴백 시 전부 표시
     bool V(string href) => _usingFallback || href.StartsWith("wh/", StringComparison.OrdinalIgnoreCase) || Perm.IsVisible(href);
 
-    List<(string Key, string Letter, string Ko, string En, List<NavItem> Items)> GroupedMd(List<NavItem> mdItems) =>
-        _subprocessItems
-            .Select((g, i) => (
-                Key:    g.CodeValue ?? "",
-                Letter: ((char)('A' + i)).ToString(),
-                Ko:     g.CodeName   ?? g.CodeValue ?? "",
-                En:     g.CodeNameEn ?? g.CodeName ?? g.CodeValue ?? "",
-                Items:  mdItems.Where(x => x.Sub == g.CodeValue).ToList()))
+    List<(string Key, string Letter, string Ko, string En, List<NavItem> Items)> GroupedMd(List<NavItem> mdItems)
+    {
+        // 서브그룹 노출 순서를 SYS_Screen.SortOrder(데이터) 기준으로 결정.
+        // mdItems 는 SortOrder 로 이미 정렬되어 있으므로 최초 등장 순 = 데이터 순서.
+        var order = mdItems
+            .Where(x => !string.IsNullOrEmpty(x.Sub) && _subprocessItems.Any(s => s.CodeValue == x.Sub))
+            .Select(x => x.Sub!)
+            .Distinct()
+            .ToList();
+        return order
+            .Select((code, i) =>
+            {
+                var g = _subprocessItems.First(s => s.CodeValue == code);
+                return (
+                    Key:    code,
+                    Letter: ((char)('A' + i)).ToString(),
+                    Ko:     g.CodeName   ?? g.CodeValue ?? "",
+                    En:     g.CodeNameEn ?? g.CodeName ?? g.CodeValue ?? "",
+                    Items:  mdItems.Where(x => x.Sub == code).ToList());
+            })
             .Where(g => g.Items.Count > 0)
             .ToList();
+    }
 
     List<NavItem> UngroupedMd(List<NavItem> mdItems)
     {

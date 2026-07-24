@@ -3798,6 +3798,27 @@
   <data name="Col.QcActive" xml:space="preserve">
     <value>QC · Active</value>
   </data>
+  <data name="Err.Duplicate" xml:space="preserve">
+    <value>already exists</value>
+  </data>
+  <data name="MD.Routing.Title" xml:space="preserve">
+    <value>Routing Master</value>
+  </data>
+  <data name="MD.Routing.Kpi.Routings" xml:space="preserve">
+    <value>Routings</value>
+  </data>
+  <data name="MD.Routing.Kpi.QcSteps" xml:space="preserve">
+    <value>QC Steps</value>
+  </data>
+  <data name="MD.Routing.List" xml:space="preserve">
+    <value>Routing List</value>
+  </data>
+  <data name="MD.Routing.NoSteps" xml:space="preserve">
+    <value>No routing steps — add with the + button</value>
+  </data>
+  <data name="MD.Routing.ConfirmDelete" xml:space="preserve">
+    <value>Delete {0} · Step {1}?</value>
+  </data>
   <data name="Col.Progress" xml:space="preserve">
     <value>Progress</value>
   </data>

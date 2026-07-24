@@ -1,0 +1,314 @@
+@page "/md/rp/routing"
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
+@using Radzen
+
+@attribute [Authorize]
+
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject MasterDataRepository MD
+@inject IStringLocalizer<SharedResources> L
+
+<PageTitle>MD-031 @L["MD.Routing.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="MD-031" TitleKey="MD.Routing.Title" />
+
+@* ── KPI strip ──────────────────────────────────────────────────── *@
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["Lbl.Total"]</div>
+        <div class="ames-kpi-v">@_allSteps.Count</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">@L["MD.Routing.Kpi.Routings"]</div>
+        <div class="ames-kpi-v">@_allSteps.Select(s => s.RoutingType).Distinct().Count()</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
+        <div class="ames-kpi-v">@_allSteps.Count(s => s.ActiveFlag)</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MD.Routing.Kpi.QcSteps"]</div>
+        <div class="ames-kpi-v">@_allSteps.Count(s => s.QcRequiredFlag)</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["MD.Routing.List"] · @_steps.Count @L["Lbl.Items"]@(_steps.Count < _allSteps.Count ? $" / {L["Lbl.TotalOf"]} {_allSteps.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["Col.Routing"]" Component="DropDownRouting" />
+            <RadzenDropDown Name="DropDownRouting" @bind-Value="_rtFilter" Data="@RoutingFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["MD.Bop.AddStep"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
+            }
+        </RadzenStack>
+    </div>
+
+    <RadzenDataGrid TItem="MasterDataRepository.RoutingStepRow" Data="_steps" AllowPaging="false"
+                    RowRender="RowRender" RowSelect="OnRowSelect" EmptyText="@L["MD.Routing.NoSteps"]" Class="ames-rz-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="MasterDataRepository.RoutingStepRow" Property="RoutingType" Title="@L["Col.Routing"]" Width="90px" TextAlign="TextAlign.Center">
+                    <Template Context="s"><span class="pill info">@s.RoutingType</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="MasterDataRepository.RoutingStepRow" Property="StepSeq" Title="@L["Col.Seq"]" Width="70px" TextAlign="TextAlign.Center">
+                    <Template Context="s"><span class="code">@s.StepSeq</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="MasterDataRepository.RoutingStepRow" Property="ProcessCode" Title="@L["Col.Process"]">
+                    <Template Context="s">
+                        <span class="code" style="color:#22d3ee;">@s.ProcessCode</span>
+                        @{ var pn = ProcLabel(s.ProcessCode); }
+                        @if (!string.IsNullOrEmpty(pn) && pn != s.ProcessCode)
+                        {
+                            <span class="dim" style="font-size:.8em;margin-left:6px;">@pn</span>
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="MasterDataRepository.RoutingStepRow" Property="QcRequiredFlag" Title="QC" Width="80px" TextAlign="TextAlign.Center">
+                    <Template Context="s">
+                        <span class="pill @(s.QcRequiredFlag ? "ok" : "dim")">@(s.QcRequiredFlag ? "Y" : "N")</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="MasterDataRepository.RoutingStepRow" Property="ActiveFlag" Title="@L["Lbl.Active"]" Width="80px" TextAlign="TextAlign.Center">
+                    <Template Context="s">
+                        <span class="pill @(s.ActiveFlag ? "ok" : "dim")">@(s.ActiveFlag ? "Y" : "N")</span>
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+</div>
+
+@* ── 추가/수정 모달 ─────────────────────────────────────────────────── *@
+@if (_modal is "create" or "edit")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">
+                @L["MD.Routing.Title"] — @(_modal == "create" ? L["Modal.Create"] : L["Modal.Edit"])
+                @if (_modal == "edit")
+                {
+                    <span class="pill info" style="margin-left:8px;font-size:.8em;">@_f.RoutingType</span>
+                    <span class="dim" style="margin-left:6px;font-size:.88em;font-weight:400;">Step @_f.StepSeq</span>
+                }
+            </div>
+
+            <RadzenRow Gap="8px">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Routing"]" />
+                    <RadzenDropDown @bind-Value="_f.RoutingType" Data="@RoutingOptions" TextProperty="Text" ValueProperty="Value" Disabled="@(_modal == "edit")" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@($"{L["Col.StepSeq"]} *")' />
+                    <RadzenNumeric TValue="int" @bind-Value="_f.StepSeq" Min="1" Step="1" Disabled="@(_modal == "edit")" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="12">
+                    <RadzenLabel Text='@($"{L["Col.Process"]} *")' />
+                    <RadzenDropDown @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1.5rem" Style="margin-top:8px;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.QcRequired" Name="RtChkQc" />
+                    <RadzenLabel Text="@L["MD.Bop.QcRequired"]" Component="RtChkQc" style="cursor:pointer;" />
+                </RadzenStack>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="RtChkActive" />
+                    <RadzenLabel Text="@L["MD.Bop.ActiveFlag"]" Component="RtChkActive" style="cursor:pointer;" />
+                </RadzenStack>
+            </RadzenStack>
+
+            @if (_confirmDelete)
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@string.Format(L["MD.Routing.ConfirmDelete"], _f.RoutingType, _f.StepSeq)</span>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@Save" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                @if (_modal == "edit" && _canEdit)
+                {
+                    <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                }
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@code {
+    List<MasterDataRepository.RoutingStepRow> _steps = new();
+    List<MasterDataRepository.RoutingStepRow> _allSteps = new();
+    List<MasterDataRepository.CodeItemRow>    _routingItems = new();
+    List<MasterDataRepository.CodeItemRow>    _processItems = new();
+    string? _rtFilter;
+
+    string _modal = "", _modalErr = "", _msg = "";
+    bool   _isErr, _busy, _bgDown, _confirmDelete, _canEdit;
+    string _actor = "system";
+
+    StepForm _f = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor   = auth.User.Identity?.Name ?? "system";
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("md/rp/routing");
+        try { _routingItems = MD.ListCodeItems("ROUTING"); } catch { }
+        try { _processItems = MD.ListCodeItems("PROCESS"); } catch { }
+        LoadSteps();
+    }
+
+    void LoadSteps()
+    {
+        try { _allSteps = MD.ListRoutingSteps(); }
+        catch { _allSteps = new(); }
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+        => _steps = string.IsNullOrEmpty(_rtFilter) ? _allSteps : _allSteps.Where(s => s.RoutingType == _rtFilter).ToList();
+
+    void RowRender(RowRenderEventArgs<MasterDataRepository.RoutingStepRow> args)
+    {
+        if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
+        args.Attributes["class"] = cls + " ames-row-link";
+    }
+
+    void OnRowSelect(MasterDataRepository.RoutingStepRow s) { if (_canEdit) OpenEdit(s); }
+
+    string ProcLabel(string? pc)
+    {
+        var ci = _processItems.FirstOrDefault(c => c.CodeValue == pc);
+        return ci is null ? (pc ?? "") : MasterDataRepository.LocalName(ci);
+    }
+
+    void OpenCreate()
+    {
+        _f = new()
+        {
+            RoutingType = _rtFilter ?? _routingItems.FirstOrDefault(r => r.UseFlag)?.CodeValue ?? "A",
+            StepSeq     = NextSeq(_rtFilter ?? "A"),
+        };
+        _confirmDelete = false; _modalErr = ""; _modal = "create";
+    }
+
+    void OpenEdit(MasterDataRepository.RoutingStepRow s)
+    {
+        _f = new()
+        {
+            RoutingType = s.RoutingType,
+            StepSeq     = s.StepSeq,
+            ProcessCode = s.ProcessCode,
+            QcRequired  = s.QcRequiredFlag,
+            ActiveFlag  = s.ActiveFlag,
+        };
+        _confirmDelete = false; _modalErr = ""; _modal = "edit";
+    }
+
+    // 해당 라우팅의 다음 StepSeq (마지막 + 1)
+    int NextSeq(string routingType)
+    {
+        try
+        {
+            var seqs = MD.ListRoutingSteps(routingType).Select(s => s.StepSeq).ToList();
+            return seqs.Count > 0 ? seqs.Max() + 1 : 1;
+        }
+        catch { return 1; }
+    }
+
+    async Task Save()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.RoutingType)) { _modalErr = L["Err.RoutingTypeRequired"]; return; }
+        if (_f.StepSeq <= 0)                           { _modalErr = L["Err.StepSeqMin1"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.ProcessCode)) { _modalErr = L["Opt.Select"]; return; }
+        _busy = true;
+        try
+        {
+            if (_modal == "create")
+            {
+                var dup = MD.ListRoutingSteps(_f.RoutingType).Any(s => s.StepSeq == _f.StepSeq);
+                if (dup) { _modalErr = $"{_f.RoutingType} · Step {_f.StepSeq} {L["Err.Duplicate"]}"; _busy = false; return; }
+                MD.InsertRoutingStep(_f.RoutingType, _f.StepSeq, _f.ProcessCode.Trim().ToUpper(),
+                    _f.QcRequired, _f.ActiveFlag, _actor);
+                ShowMsg($"{_f.RoutingType} · Step {_f.StepSeq} {L["Msg.Created"]}", false);
+            }
+            else
+            {
+                MD.UpdateRoutingStep(_f.RoutingType, _f.StepSeq, _f.ProcessCode.Trim().ToUpper(),
+                    _f.QcRequired, _f.ActiveFlag, _actor);
+                ShowMsg($"{_f.RoutingType} · Step {_f.StepSeq} {L["Msg.Updated"]}", false);
+            }
+            LoadSteps(); CloseModal();
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    async Task SaveDelete()
+    {
+        _busy = true;
+        try
+        {
+            MD.DeleteRoutingStep(_f.RoutingType, _f.StepSeq);
+            LoadSteps(); CloseModal();
+            ShowMsg($"{_f.RoutingType} · Step {_f.StepSeq} {L["Msg.Deleted"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+        await Task.CompletedTask;
+    }
+
+    void CloseModal() { _modal = ""; _modalErr = ""; _confirmDelete = false; }
+    void OnBgDown()  => _bgDown = true;
+    void OnBgClick() { if (_bgDown) CloseModal(); _bgDown = false; }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
+    private IEnumerable<DropDownItem> RoutingOptions =>
+        _routingItems.Where(r => r.UseFlag).Select(r => new DropDownItem { Value = r.CodeValue ?? "", Text = $"[{r.CodeValue}] {MasterDataRepository.LocalName(r)}" });
+
+    private IEnumerable<DropDownItem> RoutingFilterOptions =>
+        _routingItems.Where(r => r.UseFlag).Select(r => new DropDownItem { Value = r.CodeValue ?? "", Text = $"[{r.CodeValue}] {MasterDataRepository.LocalName(r)}" });
+
+    private IEnumerable<DropDownItem> ProcessOptions =>
+        _processItems.Where(p => p.UseFlag).Select(p => new DropDownItem { Value = p.CodeValue ?? "", Text = $"[{p.CodeValue}] {MasterDataRepository.LocalName(p)}" });
+
+    class StepForm
+    {
+        public string RoutingType { get; set; } = "A";
+        public int    StepSeq     { get; set; } = 1;
+        public string ProcessCode { get; set; } = "";
+        public bool   QcRequired  { get; set; } = false;
+        public bool   ActiveFlag  { get; set; } = true;
+    }
+}

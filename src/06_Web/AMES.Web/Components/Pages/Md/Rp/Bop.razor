@@ -288,6 +288,8 @@
     List<MasterDataRepository.ItemRow>       _itemList = new();
     List<MasterDataRepository.StationRow>    _stationList = new();
     List<MasterDataRepository.CodeItemRow>   _routingItems = new();
+    List<MasterDataRepository.CodeItemRow>   _processItems = new();
+    List<string>                             _routingProcesses = new();
     MasterDataRepository.BopItemRow?         _selItem;
     MasterDataRepository.BopKpiRow           _kpi = new(0, 0, null, 0);
     List<string> _routingTypes = new();
@@ -314,6 +316,7 @@
         try { _itemList = MD.ListItems();       } catch { }
         try { _stationList = MD.ListStations(); } catch { }
         try { _routingItems = MD.ListCodeItems("ROUTING"); } catch { }
+        try { _processItems = MD.ListCodeItems("PROCESS"); } catch { }
         LoadItems();
     }
 
@@ -436,23 +439,29 @@
     void OpenStepCreate()
     {
         int nextSeq = _steps.Count > 0 ? ((_steps.Max(s => s.StepSeq) ?? 0) + 10) : 10;
+        var rt = ItemRouting(_selItem?.ItemNo);
+        LoadRoutingProcesses(rt);
         _f = new()
         {
             ItemNo      = _selItem?.ItemNo ?? "",
-            RoutingType = ItemRouting(_selItem?.ItemNo),
+            RoutingType = rt,
             StepSeq     = nextSeq,
+            ProcessCode = _routingProcesses.FirstOrDefault() ?? "",
         };
         _confirmDelete = false; _modalErr = ""; _modal = "create";
     }
 
     void OpenStepEdit(MasterDataRepository.BopRow step)
     {
+        var rt = ItemRouting(step.ItemNo, step.RoutingType);
+        LoadRoutingProcesses(rt);
         _f = new()
         {
             BopId       = step.BOPID,
             ItemNo      = step.ItemNo         ?? "",
-            RoutingType = ItemRouting(step.ItemNo, step.RoutingType),
+            RoutingType = rt,
             StepSeq     = step.StepSeq        ?? 10,
+            ProcessCode = StationProcess(step.StationCode),
             StationCode = step.StationCode    ?? "",
             CycleTime   = step.StdCycleTime   ?? 0,
             SetupTime   = step.StdSetupTime   ?? 0,
@@ -461,6 +470,25 @@
             ActiveFlag  = step.ActiveFlag,
         };
         _confirmDelete = false; _modalErr = ""; _modal = "edit";
+    }
+
+    // 라우팅 타입의 공정 시퀀스(ProcessCode)를 순서대로 로드 (MD_RoutingStep 기준)
+    void LoadRoutingProcesses(string? routingType)
+    {
+        if (string.IsNullOrWhiteSpace(routingType)) { _routingProcesses = new(); return; }
+        try { _routingProcesses = MD.ListRoutingProcesses(routingType); }
+        catch { _routingProcesses = new(); }
+    }
+
+    // 스테이션 코드 → 소속 공정(ProcessCode)
+    string StationProcess(string? stationCode)
+        => _stationList.FirstOrDefault(s => s.StationCode == stationCode)?.ProcessCode ?? "";
+
+    // 공정 변경 시 선택 스테이션이 그 공정 소속이 아니면 초기화
+    void OnProcessChanged()
+    {
+        if (!string.IsNullOrEmpty(_f.StationCode) && StationProcess(_f.StationCode) != _f.ProcessCode)
+            _f.StationCode = "";
     }
 
     async Task SaveCreate()
@@ -555,7 +583,11 @@
         </RadzenRow>
 
         <RadzenRow Gap="8px" Style="margin-top:6px;">
-            <RadzenColumn Size="12">
+            <RadzenColumn Size="6">
+                <RadzenLabel Text="@L["Col.Process"]" />
+                <RadzenDropDown @bind-Value="_f.ProcessCode" @bind-Value:after="OnProcessChanged" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            </RadzenColumn>
+            <RadzenColumn Size="6">
                 <RadzenLabel Text="@L["Col.Station"]" />
                 <RadzenDropDown @bind-Value="_f.StationCode" Data="@StationOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
@@ -596,7 +628,21 @@
     private IEnumerable<DropDownItem> ItemOptions => _itemList.Select(i => new DropDownItem { Value = i.ItemNo, Text = $"[{i.ItemNo}] {i.ItemName}" });
     private IEnumerable<DropDownItem> RoutingOptions => _routingItems.Where(r => r.UseFlag).Select(r => new DropDownItem { Value = r.CodeValue ?? "", Text = $"[{r.CodeValue}] {MasterDataRepository.LocalName(r)}" });
     private IEnumerable<DropDownItem> CopyOptions => _copyCandidates.Select(i => new DropDownItem { Value = i.ItemNo, Text = $"[{i.ItemNo}] {i.ItemName} ({i.StepCount})" });
-    private IEnumerable<DropDownItem> StationOptions => _stationList.Select(s => new DropDownItem { Value = s.StationCode, Text = $"[{s.StationCode}] {MasterDataRepository.LocalName(s.StationName, s.StationNameEn)}" });
+    // 라우팅 순서대로의 공정 옵션 (MD_RoutingStep 기준)
+    private IEnumerable<DropDownItem> ProcessOptions =>
+        _routingProcesses.Select(pc => new DropDownItem { Value = pc, Text = ProcLabel(pc) });
+
+    private string ProcLabel(string pc)
+    {
+        var ci = _processItems.FirstOrDefault(c => c.CodeValue == pc);
+        return ci is null ? pc : $"[{pc}] {MasterDataRepository.LocalName(ci)}";
+    }
+
+    // 선택 공정에 속한 스테이션만 노출 (공정 미선택 시 비움)
+    private IEnumerable<DropDownItem> StationOptions =>
+        _stationList
+            .Where(s => !string.IsNullOrEmpty(_f.ProcessCode) && s.ProcessCode == _f.ProcessCode)
+            .Select(s => new DropDownItem { Value = s.StationCode, Text = $"[{s.StationCode}] {MasterDataRepository.LocalName(s.StationName, s.StationNameEn)}" });
 
     class StepForm
     {
@@ -604,6 +650,7 @@
         public string  ItemNo       { get; set; } = "";
         public string  RoutingType  { get; set; } = "A";
         public int     StepSeq      { get; set; } = 10;
+        public string  ProcessCode  { get; set; } = "";
         public string  StationCode  { get; set; } = "";
         public decimal CycleTime    { get; set; } = 0;
         public decimal SetupTime    { get; set; } = 0;
