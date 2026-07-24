@@ -1,37 +1,581 @@
 @page "/fg/01"
 @inject PdaApi Api
 @inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
-<div class="pda-shell fg">
+<div class="pda-shell fg fg01-shell">
     <div class="pda-tbar">
-        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/fg"))'>←</button>
-        <span class="pda-tbar-brand">FG-001 STOCKING</span>
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
+        <span class="pda-tbar-brand">FG-001 PUT-AWAY</span>
     </div>
-    <div class="pda-bd">
-        <div class="pda-card">
-            <div class="pda-card-h">▼ PUT AWAY FG</div>
-            <div class="pda-fld"><label>WO ID</label><input class="pda-input" type="number" @bind="_wo" /></div>
-            <div class="pda-fld"><label>ITEM NO</label><input class="pda-input" @bind="_item" placeholder="DR-TRM-LH-A1" /></div>
-            <div class="pda-fld"><label>QTY</label><input class="pda-input" type="number" @bind="_qty" /></div>
-            <div class="pda-fld"><label>LOCATION</label><input class="pda-input" @bind="_loc" placeholder="FG-A-01" /></div>
-            <div class="pda-fld"><label>PALLETS</label><input class="pda-input" type="number" @bind="_pal" /></div>
+
+    <div class="pda-bd fg01-body">
+        <RadzenCard class="@($"fg01-panel fg01-scan-panel {ScanPanelClass}")">
+            <div class="fg01-step">1</div>
+            <div class="pda-fld">
+                <label>FG LOT / WO SCAN</label>
+                <RadzenTextBox class="pda-input fg01-scan-input pda-scan-input"
+                               Value="@_barcode"
+                               @oninput="OnBarcodeInput"
+                               @onkeydown="OnBarcodeKey"
+                               Placeholder="Scan FG Lot or WO" />
+            </div>
+            @if (ShowDeveloperScanButtons)
+            {
+                <RadzenButton class="fg01-scan-btn" Click="@ScanFgLot" Disabled="@DisableLotScan" Text="SCAN" />
+            }
+        </RadzenCard>
+
+        @if (_scan is not null)
+        {
+            <RadzenCard class="@($"fg01-lot-card {LotCardClass}")">
+                <div class="fg01-lot-head">
+                    <div>
+                        <span>FG LOT</span>
+                        <strong>@Text(_scan.LotNo)</strong>
+                    </div>
+                    <RadzenBadge class="@($"fg01-status-badge {LotStatusClass}")" Text="@LotStatusText" />
+                </div>
+
+                <div class="fg01-part">
+                    <div class="fg01-part-no">@Text(_scan.ItemNo)</div>
+                    <div class="fg01-part-name">@Text(_scan.ItemName)</div>
+                </div>
+
+                <div class="fg01-info-grid">
+                    @foreach (var field in LotFields())
+                    {
+                        <div class="fg01-info">
+                            <span>@field.Label</span>
+                            <strong>@field.Value</strong>
+                        </div>
+                    }
+                </div>
+            </RadzenCard>
+        }
+
+        @if (ReadyForLocation)
+        {
+            <RadzenCard class="fg01-suggest-card">
+                <div class="fg01-section-title">SUGGESTED PUT-AWAY LOCATION</div>
+                @if (_suggestedLocation is null)
+                {
+                    <div class="fg01-empty">Finding best FG location...</div>
+                }
+                else
+                {
+                    <div class="fg01-location-main">
+                        <span>@(_suggestedLocation.IsValid ? "AUTO-ASSIGNED" : "NO AVAILABLE SLOT")</span>
+                        <strong>@Text(_suggestedLocation.LocationId)</strong>
+                    </div>
+                    <div class="fg01-location-sub">
+                        @LocationSummary(_suggestedLocation)
+                    </div>
+                    <div class="fg01-next-scan">
+                        NEXT: @NextScanTitle
+                    </div>
+                    <div class="@($"fg01-location-note {(_suggestedLocation.IsValid ? "ok" : "warn")}")">
+                        @_suggestedLocation.Message
+                    </div>
+                }
+            </RadzenCard>
+
+            <RadzenCard class="@($"fg01-panel fg01-location-panel {ScanPanelClass}")">
+                <div class="fg01-step">2</div>
+                <div class="pda-fld">
+                    <label>@NextScanTitle</label>
+                    <RadzenTextBox class="pda-input fg01-location-input pda-scan-input"
+                                   Value="@_locationNo"
+                                   @oninput="OnLocationInput"
+                                   @onkeydown="OnLocationKey"
+                                   Placeholder="@NextScanPlaceholder"
+                                   Disabled="@LocationEntryDisabled" />
+                </div>
+                @if (ShowDeveloperScanButtons)
+                {
+                    <RadzenButton class="fg01-location-scan-btn" Click="@ScanLocation" Disabled="@DisableLocationScan" Text="SCAN" />
+                }
+            </RadzenCard>
+        }
+
+        @if (_selectedLocation is not null)
+        {
+            <RadzenCard class="@($"fg01-location-card {(_selectedLocation.IsValid ? "ready" : "blocked")}")">
+                <div class="fg01-location-card-top">
+                    <span>SCANNED @ScanTargetName</span>
+                    <strong>@Text(_selectedLocation.ScannedBarcode)</strong>
+                    <em>@LocationSummary(_selectedLocation)</em>
+                </div>
+                <div class="fg01-location-list">
+                    @foreach (var field in LocationFields(_selectedLocation))
+                    {
+                        <div class="fg01-location-row">
+                            <span>@field.Label</span>
+                            <strong>@field.Value</strong>
+                        </div>
+                    }
+                </div>
+            </RadzenCard>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_msg))
+        {
+            <div class="pda-status @_cls">@_msg</div>
+        }
+
+        <div class="fg01-action-bar">
+            <RadzenButton class="fg01-clear-btn" Click="@ResetForm" Disabled="@IsBusy" Text="CLEAR" />
+            <RadzenButton class="@($"pda-btn-pri fg01-confirm-btn {ConfirmButtonClass}")" Click="@ConfirmPutAway" Disabled="@IsBusy" Text="CONFIRM PUT-AWAY" />
         </div>
-        <div class="pda-status @_cls">@_msg</div>
-        <button class="pda-btn-pri" @onclick="Submit" disabled="@(_wo == 0 || string.IsNullOrWhiteSpace(_item))">✓ PUT AWAY</button>
     </div>
+
+    @if (_modalOpen)
+    {
+        <div class="wh-modal-backdrop" @onclick="DismissModal">
+            <RadzenCard class="@($"wh-modal-card {_modalKind}")" @onclick:stopPropagation="true">
+                <div class="wh-modal-mark">@ModalMark</div>
+                <div class="wh-modal-title">@_modalTitle</div>
+                <div class="wh-modal-message">@_modalMessage</div>
+                <div class="wh-modal-actions">
+                    <RadzenButton class="wh-modal-btn primary" Click="@DismissModal" Text="OK" />
+                </div>
+            </RadzenCard>
+        </div>
+    }
 </div>
 
 @code {
-    int _wo, _pal = 1; string _item = "DR-TRM-LH-A1", _loc = "FG-A-01"; decimal _qty = 32;
-    string _msg = " ", _cls = "dim";
-    async Task Submit()
+    private string _barcode = "";
+    private string _locationNo = "";
+    private string _msg = "";
+    private string _cls = "dim";
+    private bool _isScanning;
+    private bool _isFindingLocation;
+    private bool _isLocationScanning;
+    private bool _isConfirming;
+    private bool _modalOpen;
+    private string _modalTitle = "";
+    private string _modalMessage = "";
+    private string _modalKind = "info";
+    private DotNetObjectReference<Fg01Stocking>? _scannerRef;
+    private PdaApi.FgPutAwayScanRow? _scan;
+    private PdaApi.FgPutAwayLocationRow? _suggestedLocation;
+    private PdaApi.FgPutAwayLocationRow? _selectedLocation;
+
+    private static bool ShowDeveloperScanButtons => MauiProgram.IsDeveloperMode;
+    private static string ScanPanelClass => ShowDeveloperScanButtons ? "dev-scan-panel" : "hardware-scan-panel";
+    private bool IsBusy => _isScanning || _isFindingLocation || _isLocationScanning || _isConfirming;
+    private bool ReadyForLocation => _scan is { IsQcPassed: true, AlreadyStocked: false };
+    private bool LocationEntryDisabled => !ReadyForLocation || IsBusy;
+    private bool DisableLotScan => IsBusy || string.IsNullOrWhiteSpace(_barcode);
+    private bool DisableLocationScan => LocationEntryDisabled || string.IsNullOrWhiteSpace(_locationNo);
+    private bool DisableConfirm => IsBusy || !ReadyForLocation || _selectedLocation is not { IsValid: true };
+    private string ConfirmButtonClass => DisableConfirm ? "blocked" : "ready";
+    private string LotCardClass => _scan is null ? "" : _scan.AlreadyStocked ? "stocked" : _scan.IsQcPassed ? "ready" : "blocked";
+    private string LotStatusClass => _scan is null ? "" : _scan.AlreadyStocked ? "stocked" : _scan.IsQcPassed ? "ready" : "blocked";
+    private string LotStatusText => _scan is null ? "-" : _scan.AlreadyStocked ? "STOCKED" : _scan.IsQcPassed ? "QC PASS" : "QC REQUIRED";
+    private string NextScanType => NormalizeScanType(_scan?.NextScanType);
+    private string NextScanTitle => _scan?.NextScanLabel ?? "LOCATION NO SCAN";
+    private string ScanTargetName => NextScanType switch
     {
+        "BOX" => "BOX",
+        "PALLET" => "PALLET",
+        "RACK" => "RACK",
+        _ => "LOCATION"
+    };
+    private string NextScanPlaceholder => NextScanType switch
+    {
+        "BOX" => "Scan Box No",
+        "PALLET" => "Scan Pallet No",
+        "RACK" => "Scan Rack No",
+        _ => "Scan FG Location No"
+    };
+    private string ModalMark => _modalKind switch
+    {
+        "danger" => "!",
+        "warn" => "!",
+        "success" => "OK",
+        _ => "i"
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            PdaBarcodeHub.Scanned += OnNativeBarcodeScanned;
+            _scannerRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("pdaScan.register", _scannerRef, new { minLength = 3, developerMode = ShowDeveloperScanButtons });
+        }
+
+        await FocusScannerAsync();
+    }
+
+    [JSInvokable]
+    public async Task OnHardwareScanAsync(string scanText)
+    {
+        var value = NormalizeHardwareScan(scanText);
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+
+        await InvokeAsync(async () =>
+        {
+            if (!LocationEntryDisabled)
+            {
+                _locationNo = value;
+                await ScanLocation();
+            }
+            else
+            {
+                _barcode = value;
+                await ScanFgLot();
+            }
+
+            StateHasChanged();
+        });
+    }
+
+    private void OnNativeBarcodeScanned(string barcode)
+    {
+        _ = InvokeAsync(async () => await OnHardwareScanAsync(barcode));
+    }
+
+    private async Task FocusScannerAsync()
+    {
+        if (_modalOpen)
+            return;
+
         try
         {
-            var r = await Api.FgPutAwayAsync(new PdaApi.FgPutAwayReq(_wo, _item.Trim(), _qty, _loc.Trim(), _pal));
-            if (r.IsSuccessStatusCode) { _msg = "✓ Stocked"; _cls = "ok"; }
-            else                       { _msg = $"× HTTP {(int)r.StatusCode}"; _cls = "fail"; }
+            var selector = !LocationEntryDisabled ? ".fg01-location-input" : ".fg01-scan-input";
+            await JS.InvokeVoidAsync("pdaScan.focus", selector);
         }
-        catch (Exception ex) { _msg = "× " + ex.Message; _cls = "fail"; }
+        catch
+        {
+            // Ignore focus failures while navigating.
+        }
+    }
+
+    private static string NormalizeHardwareScan(string? value)
+        => string.IsNullOrWhiteSpace(value)
+            ? ""
+            : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
+
+    public async ValueTask DisposeAsync()
+    {
+        PdaBarcodeHub.Scanned -= OnNativeBarcodeScanned;
+
+        try
+        {
+            await JS.InvokeVoidAsync("pdaScan.unregister");
+        }
+        catch
+        {
+            // Ignore dispose-time JS disconnects.
+        }
+
+        _scannerRef?.Dispose();
+    }
+
+    private async Task OnBarcodeKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await ScanFgLot();
+    }
+
+    private void OnBarcodeInput(ChangeEventArgs e)
+    {
+        _barcode = e.Value?.ToString() ?? "";
+    }
+
+    private async Task OnLocationKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await ScanLocation();
+    }
+
+    private void OnLocationInput(ChangeEventArgs e)
+    {
+        _locationNo = e.Value?.ToString() ?? "";
+        if (!string.Equals(_selectedLocation?.LocationId, _locationNo.Trim(), StringComparison.OrdinalIgnoreCase))
+            _selectedLocation = null;
+    }
+
+    private async Task ScanFgLot()
+    {
+        if (DisableLotScan) return;
+
+        _isScanning = true;
+        _scan = null;
+        _suggestedLocation = null;
+        _selectedLocation = null;
+        _locationNo = "";
+        _msg = "Scanning FG LOT...";
+        _cls = "dim";
+
+        try
+        {
+            var result = await Api.FgPutAwayScanAsync(_barcode.Trim());
+            if (result.Row is null)
+            {
+                _msg = result.Message;
+                _cls = "fail";
+                ShowAlert("Scan Failed", result.Message, "warn");
+                return;
+            }
+
+            _scan = result.Row;
+            _barcode = result.Row.LotNo;
+            _msg = result.Message;
+            _cls = result.Success ? "ok" : "fail";
+
+            if (!result.Success)
+            {
+                ShowAlert(_scan.AlreadyStocked ? "Already Stocked" : "Put-Away Blocked", result.Message, _scan.AlreadyStocked ? "warn" : "danger");
+                return;
+            }
+
+            await LoadSuggestedLocation();
+        }
+        catch (Exception ex)
+        {
+            _msg = ex.Message;
+            _cls = "fail";
+            ShowAlert("Scan Failed", ex.Message, "danger");
+        }
+        finally
+        {
+            _isScanning = false;
+        }
+    }
+
+    private async Task LoadSuggestedLocation()
+    {
+        if (_scan is null) return;
+
+        _isFindingLocation = true;
+        try
+        {
+            _suggestedLocation = await Api.FgSuggestPutAwayLocationAsync(_scan.ItemNo, _scan.CustomerCode, _scan.Qty);
+            if (_suggestedLocation is null || string.IsNullOrWhiteSpace(_suggestedLocation.LocationId))
+            {
+                _msg = "No available FG location was found. Scan another FG location.";
+                _cls = "warn";
+                return;
+            }
+
+            _locationNo = NextScanType == "LOCATION" ? _suggestedLocation.LocationId : "";
+            _msg = $"Suggested location loaded. Scan the {ScanTargetName.ToLowerInvariant()} barcode to confirm.";
+            _cls = _suggestedLocation.IsValid ? "ok" : "warn";
+        }
+        finally
+        {
+            _isFindingLocation = false;
+        }
+    }
+
+    private async Task ScanLocation()
+    {
+        if (DisableLocationScan || _scan is null) return;
+
+        _isLocationScanning = true;
+        _msg = "Scanning location...";
+        _cls = "dim";
+
+        try
+        {
+            var location = await Api.FgValidatePutAwayLocationAsync(_locationNo.Trim(), _scan.ItemNo, _scan.CustomerCode, _scan.Qty, _scan.NextScanType);
+            if (location is null || string.IsNullOrWhiteSpace(location.LocationId))
+            {
+                _selectedLocation = null;
+                _msg = location?.Message ?? "FG location was not found.";
+                _cls = "fail";
+                ShowAlert("Location Not Found", _msg, "warn");
+                return;
+            }
+
+            _selectedLocation = location;
+            _locationNo = location.ScannedBarcode;
+            _msg = location.Message;
+            _cls = location.IsValid ? "ok" : "fail";
+
+            if (!location.IsValid)
+                ShowAlert("Location Blocked", location.Message, "warn");
+        }
+        catch (Exception ex)
+        {
+            _selectedLocation = null;
+            _msg = ex.Message;
+            _cls = "fail";
+            ShowAlert("Location Scan Failed", ex.Message, "danger");
+        }
+        finally
+        {
+            _isLocationScanning = false;
+        }
+    }
+
+    private async Task ConfirmPutAway()
+    {
+        if (IsBusy) return;
+
+        var validation = ConfirmValidationMessage();
+        if (validation is not null)
+        {
+            _msg = validation;
+            _cls = "fail";
+            ShowAlert("Put-Away Check", validation, "warn");
+            return;
+        }
+
+        if (_scan is null || _selectedLocation is null) return;
+
+        _isConfirming = true;
+        _msg = "Confirming Put-Away...";
+        _cls = "dim";
+
+        try
+        {
+            var overrideReason = !string.IsNullOrWhiteSpace(_suggestedLocation?.LocationId) &&
+                                 !string.Equals(_suggestedLocation.LocationId, _selectedLocation.LocationId, StringComparison.OrdinalIgnoreCase)
+                ? $"Operator selected {_selectedLocation.LocationId} instead of suggested {_suggestedLocation.LocationId}."
+                : null;
+
+            var result = await Api.FgConfirmPutAwayAsync(new PdaApi.FgPutAwayConfirmReq(
+                _scan.LotNo,
+                _selectedLocation.LocationId,
+                _suggestedLocation?.LocationId,
+                overrideReason,
+                null,
+                null,
+                _scan.StorageMethod,
+                _selectedLocation.ScanType,
+                _selectedLocation.ScannedBarcode));
+
+            if (!result.Success)
+            {
+                _msg = result.Message;
+                _cls = "fail";
+                ShowAlert("Put-Away Failed", result.Message, "danger");
+                return;
+            }
+
+            _msg = "FG Put-Away complete.";
+            _cls = "ok";
+            ShowAlert("Put-Away Complete", "FG stock is now Available.", "success", resetAfterClose: true);
+        }
+        finally
+        {
+            _isConfirming = false;
+        }
+    }
+
+    private string? ConfirmValidationMessage()
+    {
+        if (_scan is null)
+            return "Scan FG LOT or WO first.";
+        if (!_scan.IsQcPassed)
+            return "QC PASS is required before FG Put-Away.";
+        if (_scan.AlreadyStocked)
+            return "This FG LOT is already stocked.";
+        if (_selectedLocation is null)
+            return $"Scan {ScanTargetName} No first.";
+        if (!_selectedLocation.IsValid)
+            return _selectedLocation.Message;
+        return null;
+    }
+
+    private void ResetForm()
+    {
+        _barcode = "";
+        _locationNo = "";
+        _msg = "";
+        _cls = "dim";
+        _scan = null;
+        _suggestedLocation = null;
+        _selectedLocation = null;
+    }
+
+    private void ShowAlert(string title, string message, string kind = "info", bool resetAfterClose = false)
+    {
+        _modalTitle = title;
+        _modalMessage = message;
+        _modalKind = kind;
+        _modalOpen = true;
+        _resetAfterModal = resetAfterClose;
+    }
+
+    private bool _resetAfterModal;
+
+    private void DismissModal()
+    {
+        _modalOpen = false;
+        if (_resetAfterModal)
+        {
+            _resetAfterModal = false;
+            ResetForm();
+        }
+    }
+
+    private IEnumerable<(string Label, string Value)> LotFields()
+    {
+        if (_scan is null) yield break;
+        yield return ("Qty", Qty(_scan.Qty, _scan.Unit));
+        yield return ("Customer", Text(_scan.CustomerCode));
+        yield return ("WO", Text(_scan.WoNumber));
+        yield return ("QC", Text(_scan.QcInspectionNo));
+        yield return ("Storage", Text(_scan.StorageMethod));
+        yield return ("Next Scan", ScanTargetName);
+        yield return ("Mfg Date", DateText(_scan.MfgDate));
+        yield return ("Expiry", DateText(_scan.ExpiryDate));
+        if (_scan.AlreadyStocked)
+        {
+            yield return ("Location", Text(_scan.ExistingLocation));
+            yield return ("Status", Text(_scan.ExistingStatus));
+        }
+    }
+
+    private IEnumerable<(string Label, string Value)> LocationFields(PdaApi.FgPutAwayLocationRow row)
+    {
+        yield return ("Physical Location", Text(row.LocationId));
+        yield return ("Scan Type", Text(row.ScanType));
+        yield return ("Zone", Text(row.ZoneCode));
+        yield return ("Bay", Text(row.Bay));
+        yield return ("Slot", Text(row.Slot));
+        yield return ("Current", Qty(row.CurrentQty, null));
+        yield return ("Free", Qty(row.AvailableQty, null));
+        yield return ("Customer", Text(row.CurrentCustomerCode));
+    }
+
+    private static string LocationSummary(PdaApi.FgPutAwayLocationRow row)
+    {
+        var parts = new[] { row.ZoneCode, row.Aisle, row.Bay, row.Slot }
+            .Where(x => !string.IsNullOrWhiteSpace(x));
+        var path = string.Join(" / ", parts);
+        return string.IsNullOrWhiteSpace(path)
+            ? $"{row.AvailableQty:0.###} free"
+            : $"{path} - {row.AvailableQty:0.###} free";
+    }
+
+    private static string Qty(decimal qty, string? unit)
+        => string.IsNullOrWhiteSpace(unit) ? $"{qty:0.###}" : $"{qty:0.###} {unit}";
+
+    private static string DateText(DateTime? value)
+        => value?.ToString("MM/dd/yyyy") ?? "-";
+
+    private static string Text(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+
+    private static string NormalizeScanType(string? scanType)
+    {
+        var value = (scanType ?? "").Trim().ToUpperInvariant().Replace(" ", "_");
+        return value switch
+        {
+            "BOX" => "BOX",
+            "PALLET" => "PALLET",
+            "RACK" => "RACK",
+            "LOCATION" or "LOC" or "LOCATION_ONLY" => "LOCATION",
+            _ => "LOCATION"
+        };
     }
 }
