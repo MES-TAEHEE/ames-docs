@@ -1864,10 +1864,10 @@
     <value>B — PNT 도장</value>
   </data>
   <data name="PP.Calendar.Tab.Month" xml:space="preserve">
-    <value>▦ 월</value>
+    <value>월</value>
   </data>
   <data name="PP.Calendar.Tab.Week" xml:space="preserve">
-    <value>≡ 주</value>
+    <value>주</value>
   </data>
   <data name="PP.Calendar.Btn.Today" xml:space="preserve">
     <value>오늘</value>
@@ -2276,6 +2276,9 @@
   </data>
   <data name="PP.LineSchedule.Empty.NoPattern" xml:space="preserve">
     <value>해당 라인/일자에 사용할 패턴이 없습니다.</value>
+  </data>
+  <data name="PP.LineSchedule.Err.PastDate" xml:space="preserve">
+    <value>과거 일자는 적용·발행할 수 없습니다</value>
   </data>
   <data name="PP.LineSchedule.Err.NoPattern" xml:space="preserve">
     <value>패턴을 선택하세요.</value>
@@ -3809,6 +3812,12 @@
   </data>
   <data name="MD.Routing.Kpi.QcSteps" xml:space="preserve">
     <value>QC 단계</value>
+  </data>
+  <data name="MD.Bop.Err.StationRouting" xml:space="preserve">
+    <value>선택한 스테이션의 공정이 라우팅 시퀀스에 없습니다</value>
+  </data>
+  <data name="MD.Routing.FlowHint" xml:space="preserve">
+    <value>라우팅별 공정 흐름 — 품목의 RoutingType이 이 순서로 BOP·작업지시·라인일정을 구동합니다</value>
   </data>
   <data name="MD.Routing.List" xml:space="preserve">
     <value>라우팅 목록</value>

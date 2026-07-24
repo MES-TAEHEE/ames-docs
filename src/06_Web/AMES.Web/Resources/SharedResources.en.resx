@@ -1864,10 +1864,10 @@
     <value>B — Painting</value>
   </data>
   <data name="PP.Calendar.Tab.Month" xml:space="preserve">
-    <value>▦ Month</value>
+    <value>Month</value>
   </data>
   <data name="PP.Calendar.Tab.Week" xml:space="preserve">
-    <value>≡ Week</value>
+    <value>Week</value>
   </data>
   <data name="PP.Calendar.Btn.Today" xml:space="preserve">
     <value>Today</value>
@@ -2276,6 +2276,9 @@
   </data>
   <data name="PP.LineSchedule.Empty.NoPattern" xml:space="preserve">
     <value>No pattern available for this line/date.</value>
+  </data>
+  <data name="PP.LineSchedule.Err.PastDate" xml:space="preserve">
+    <value>Past dates cannot be applied or published</value>
   </data>
   <data name="PP.LineSchedule.Err.NoPattern" xml:space="preserve">
     <value>Select a pattern.</value>
@@ -3809,6 +3812,12 @@
   </data>
   <data name="MD.Routing.Kpi.QcSteps" xml:space="preserve">
     <value>QC Steps</value>
+  </data>
+  <data name="MD.Bop.Err.StationRouting" xml:space="preserve">
+    <value>Selected station's process is not in the routing</value>
+  </data>
+  <data name="MD.Routing.FlowHint" xml:space="preserve">
+    <value>Process flow per routing — an item's RoutingType drives BOP, work orders and line schedule in this order</value>
   </data>
   <data name="MD.Routing.List" xml:space="preserve">
     <value>Routing List</value>

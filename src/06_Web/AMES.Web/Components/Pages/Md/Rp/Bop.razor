@@ -497,6 +497,10 @@
         if (string.IsNullOrWhiteSpace(_f.ItemNo))      { _modalErr = L["Err.ItemNoRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.RoutingType)) { _modalErr = L["Err.RoutingTypeRequired"]; return; }
         if (_f.StepSeq <= 0)                           { _modalErr = L["Err.StepSeqMin1"]; return; }
+        // 무결성: 선택 스테이션 공정이 품목 라우팅 시퀀스에 속하는지 서버측 검증
+        if (!string.IsNullOrWhiteSpace(_f.StationCode) && _routingProcesses.Count > 0
+            && !_routingProcesses.Contains(StationProcess(_f.StationCode)))
+        { _modalErr = L["MD.Bop.Err.StationRouting"]; return; }
         _busy = true;
         try
         {
@@ -526,6 +530,10 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.RoutingType)) { _modalErr = L["Err.RoutingTypeRequired"]; return; }
         if (_f.StepSeq <= 0)                           { _modalErr = L["Err.StepSeqMin1"]; return; }
+        // 무결성: 선택 스테이션 공정이 품목 라우팅 시퀀스에 속하는지 서버측 검증
+        if (!string.IsNullOrWhiteSpace(_f.StationCode) && _routingProcesses.Count > 0
+            && !_routingProcesses.Contains(StationProcess(_f.StationCode)))
+        { _modalErr = L["MD.Bop.Err.StationRouting"]; return; }
         _busy = true;
         try
         {

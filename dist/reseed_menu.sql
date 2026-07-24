@@ -12,7 +12,7 @@ TRUNCATE TABLE dbo.SYS_Screen;
 GO
 
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-001', 'WEB', 'PP', NULL, N'수요 예측', N'Forecast', 'pp/forecast', 'PP-001', 1, 1, 'admin');
-INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-002', 'WEB', 'PP', NULL, N'SAP 연동', N'SAP Import', 'pp/sap-import', 'PP-002', 2, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-002', 'WEB', 'PP', NULL, N'공급계획 가져오기', N'Supply Plan Import', 'pp/supply-plan-import', 'PP-002', 2, 1, 'admin');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-003', 'WEB', 'PP', NULL, N'계획 확정', N'Plan Confirm', 'pp/plan-confirm', 'PP-003', 3, 1, 'admin');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-004', 'WEB', 'PP', NULL, N'작업 지시', N'Work Order', 'pp/work-order', 'PP-004', 4, 1, 'admin');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-005', 'WEB', 'PP', NULL, N'MRP', N'MRP', 'pp/mrp', 'PP-005', 5, 1, 'admin');

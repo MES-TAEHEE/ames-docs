@@ -2,13 +2,13 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @rendermode InteractiveServer
 @inject AMES.Data.Repositories.WorkOrderRepository Wos
+@inject AMES.Data.Repositories.MasterDataRepository Md
 @inject IStringLocalizer<SharedResources> L
 @inject NavigationManager Nav
 @using AMES.Contracts.Dto
 @using Radzen
 
-<PageTitle>@L["PP.Calendar.Title"] · AMES</PageTitle>
-
+<PageTitle>CAL @L["PP.Calendar.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="PP-CAL" TitleKey="PP.Calendar.Title" />
 
 @* ── KPI strip ──────────────────────────────────────────────────── *@
@@ -256,9 +256,9 @@
                 <div class="ames-detail-label">@L["Col.Routing"]</div>
                 <div>
                     @if (d.RoutingType == "A")
-                    { <span class="pill info">@L["PP.Calendar.Routing.A"]</span> }
+                    { <span class="pill info">@RoutingLabel("A")</span> }
                     else if (d.RoutingType == "B")
-                    { <span class="pill warn">@L["PP.Calendar.Routing.B"]</span> }
+                    { <span class="pill warn">@RoutingLabel("B")</span> }
                     else
                     { <span class="pill dim">@L["PP.Calendar.Routing.INJ"]</span> }
                 </div>
@@ -331,6 +331,7 @@
     string  _fRouting = "";
     string  _fStatus  = "";
     string? _err;
+    List<MasterDataRepository.CodeItemRow> _routingItems = new();
 
     int _calYear  = DateTime.Today.Year;
     int _calMonth = DateTime.Today.Month;
@@ -350,13 +351,22 @@
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
-    List<DropDownItem> RoutingOptions => new()
+    // 라우팅 옵션 — 공통코드 ROUTING 에서 로드(+전체/미지정)
+    List<DropDownItem> RoutingOptions
     {
-        new() { Value = "",    Text = L["Filter.All"].Value },
-        new() { Value = "A",   Text = L["PP.Calendar.Routing.A"].Value },
-        new() { Value = "B",   Text = L["PP.Calendar.Routing.B"].Value },
-        new() { Value = "INJ", Text = L["PP.Calendar.Routing.INJ"].Value },
-    };
+        get
+        {
+            var list = new List<DropDownItem> { new() { Value = "", Text = L["Filter.All"].Value } };
+            list.AddRange(_routingItems.Where(r => r.UseFlag)
+                .Select(r => new DropDownItem { Value = r.CodeValue ?? "", Text = MasterDataRepository.LocalName(r) }));
+            list.Add(new() { Value = "INJ", Text = L["PP.Calendar.Routing.INJ"].Value });
+            return list;
+        }
+    }
+
+    // RoutingType 코드 → 공통코드 명칭(없으면 코드)
+    string RoutingLabel(string code) =>
+        _routingItems.FirstOrDefault(r => r.CodeValue == code) is { } ci ? MasterDataRepository.LocalName(ci) : code;
     List<DropDownItem> StatusFilterOptions => new()
     {
         new() { Value = "",            Text = L["Filter.All"].Value },
@@ -385,7 +395,11 @@
         <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
     </div>;
 
-    protected override void OnInitialized() => Reload();
+    protected override void OnInitialized()
+    {
+        try { _routingItems = Md.ListCodeItems("ROUTING"); } catch { }
+        Reload();
+    }
 
     void Reload()
     {

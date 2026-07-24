@@ -173,6 +173,7 @@ IF OBJECT_ID(N'dbo.MD_Vendor', N'U') IS NOT NULL DROP TABLE dbo.MD_Vendor;
 IF OBJECT_ID(N'dbo.MD_InspectionStandard', N'U') IS NOT NULL DROP TABLE dbo.MD_InspectionStandard;
 IF OBJECT_ID(N'dbo.MD_WorkCenter', N'U') IS NOT NULL DROP TABLE dbo.MD_WorkCenter;
 IF OBJECT_ID(N'dbo.MD_Bop', N'U') IS NOT NULL DROP TABLE dbo.MD_Bop;
+IF OBJECT_ID(N'dbo.MD_RoutingStep', N'U') IS NOT NULL DROP TABLE dbo.MD_RoutingStep;
 IF OBJECT_ID(N'dbo.MD_BomVersion', N'U') IS NOT NULL DROP TABLE dbo.MD_BomVersion;
 IF OBJECT_ID(N'dbo.MD_Bom', N'U') IS NOT NULL DROP TABLE dbo.MD_Bom;
 IF OBJECT_ID(N'dbo.MD_Item', N'U') IS NOT NULL DROP TABLE dbo.MD_Item;
@@ -266,6 +267,21 @@ CREATE TABLE dbo.MD_Bop (
   [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
   CONSTRAINT PK_MD_Bop PRIMARY KEY CLUSTERED ([BOPID])
+);
+GO
+
+-- ── MD_RoutingStep  (라우팅 템플릿 (MD-031): RoutingType별 공정 시퀀스)
+CREATE TABLE dbo.MD_RoutingStep (
+  [RoutingType]               CHAR(1)              NOT NULL,
+  [StepSeq]                   INT                  NOT NULL,
+  [ProcessCode]               VARCHAR(10)          NOT NULL,
+  [QcRequiredFlag]            BIT                  NOT NULL DEFAULT 0,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
+  [CreatedBy]                 VARCHAR(50)              NULL,
+  [CreatedTS]                 DATETIME2            NOT NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(900)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
+  CONSTRAINT PK_MD_RoutingStep PRIMARY KEY CLUSTERED ([RoutingType], [StepSeq])
 );
 GO
 
@@ -1263,7 +1279,7 @@ CREATE TABLE dbo.PP_WorkOrder (
   [RecipeID]                  VARCHAR(20)              NULL,  -- FK -> MD_Recipe.RecipeID
   [BomVersion]                VARCHAR(10)              NULL,
   [BopVersion]                VARCHAR(10)              NULL,
-  [Routing]                   CHAR(1)                  NULL,
+  [RoutingType]               CHAR(1)                  NULL,
   [PlannedStart]              DATETIME2                NULL,
   [PlannedEnd]                DATETIME2                NULL,
   [ActualStart]               DATETIME2                NULL,
@@ -4752,7 +4768,7 @@ GO
 
 -- Seed: SYS_Screen (ModuleCode='WEB', ProcessCode/SubProcessCode) - regenerated 2026-07-24 from AMES_DEV
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-001', 'WEB', 'PP', NULL, N'수요 예측', N'Forecast', 'pp/forecast', 'PP-001', 1, 1, 'admin');
-INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-002', 'WEB', 'PP', NULL, N'SAP 연동', N'SAP Import', 'pp/sap-import', 'PP-002', 2, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-002', 'WEB', 'PP', NULL, N'공급계획 가져오기', N'Supply Plan Import', 'pp/supply-plan-import', 'PP-002', 2, 1, 'admin');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-003', 'WEB', 'PP', NULL, N'계획 확정', N'Plan Confirm', 'pp/plan-confirm', 'PP-003', 3, 1, 'admin');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-004', 'WEB', 'PP', NULL, N'작업 지시', N'Work Order', 'pp/work-order', 'PP-004', 4, 1, 'admin');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-005', 'WEB', 'PP', NULL, N'MRP', N'MRP', 'pp/mrp', 'PP-005', 5, 1, 'admin');

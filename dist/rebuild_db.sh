@@ -55,6 +55,7 @@ FILES=(
   reseed_menu.sql                     #   → 메뉴/HRef 정본 재시드
   seed_admin_permissions.sql          #   → Admin RBAC(REA) + admin@ames.local 계정
   seed_md_code.sql                    # 마스터 공통코드
+  seed_md_routing_step.sql            # 라우팅 템플릿(A/B) 시드 (테이블은 AMES_Schema.sql)
   reseed_md_item_partmaster.sql       # 품목(파트마스터)
   migrate_inj_agent.sql               # 사출: MD_Mold 4종 + 사출조건 시드
   migrate_mold_master.sql             # 금형: 매핑/색상/라인 시드 + FK 3종

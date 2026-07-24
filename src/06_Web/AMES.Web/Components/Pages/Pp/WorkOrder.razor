@@ -9,8 +9,7 @@
 @inject IStringLocalizer<SharedResources> L
 @using AMES.Contracts.Dto
 
-<PageTitle>@L["PP.WorkOrder.Title"] · AMES</PageTitle>
-
+<PageTitle>PP-004 @L["PP.WorkOrder.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="PP-004" TitleKey="PP.WorkOrder.Title" />
 
 <div class="wo-page">
@@ -34,7 +33,7 @@
                         AllowClear="true" Placeholder="@L["Filter.All"].Value" Style="width:150px" />
     </div>
     <div class="ames-fld">
-        <label>Routing</label>
+        <label>@L["Col.Routing"]</label>
         <RadzenDropDown Data="_routings" @bind-Value="_fRouting" @bind-Value:after="ApplyFilters"
                         AllowClear="true" Placeholder="@L["Filter.All"].Value" Style="width:110px" />
     </div>
@@ -79,11 +78,11 @@ else
             <RadzenDataGridColumn TItem="WorkOrderDto" Property="LineId" Title="@L["Col.Line"].Value" Width="120px">
                 <Template Context="w"><span class="code dim">@(string.IsNullOrEmpty(w.LineId) ? "—" : w.LineId)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="RoutingType" Title="Routing" Width="90px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="WorkOrderDto" Property="RoutingType" Title="@L["Col.Routing"].Value" Width="90px" TextAlign="TextAlign.Center">
                 <Template Context="w">
-                    @if (w.RoutingType == "A") { <span class="pill info" title="INJ→IMG→QC→FG">A</span> }
-                    else if (w.RoutingType == "B") { <span class="pill warn" title="INJ→PNT→QC→FG">B</span> }
-                    else { <span class="dim">INJ</span> }
+                    @if (w.RoutingType == "A") { <span class="pill info" title="@FlowText("A")">A</span> }
+                    else if (w.RoutingType == "B") { <span class="pill warn" title="@FlowText("B")">B</span> }
+                    else { <span class="dim" title="@FlowText(null)">INJ</span> }
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WorkOrderDto" Property="OrderQty" Title="@L["Col.Order"].Value" TextAlign="TextAlign.Right" Width="90px">
@@ -134,7 +133,7 @@ else
         </Columns>
         <Template Context="w">
             <div style="padding:10px 16px;">
-                <div class="dim" style="font-size:.8em;margin-bottom:6px;">Routing @(w.RoutingType ?? "INJ") · @L["PP.WorkOrder.Detail.Routing"]</div>
+                <div class="dim" style="font-size:.8em;margin-bottom:6px;">@L["Col.Routing"] @(w.RoutingType ?? "INJ") · @L["PP.WorkOrder.Detail.Routing"]</div>
                 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
                     @{ var steps = Flow(w.RoutingType); var doneN = (int)Math.Floor(steps.Length * w.ProgressPct / 100); }
                     @for (var i = 0; i < steps.Length; i++)
@@ -167,7 +166,8 @@ else
     List<WorkOrderDto> _view = new();
 
     readonly string[] _statuses = { "Draft", "Planned", "Released", "In Progress", "Closed", "Cancelled" };
-    readonly string[] _routings = { "A", "B" };
+    string[] _routings = Array.Empty<string>();
+    Dictionary<string, string[]> _routingFlow = new();
     readonly int[]    _dayOpts  = { 7, 30, 60, 90 };
 
     string _fStatus  = "";
@@ -182,7 +182,20 @@ else
     int CriticalCount => _rows.Count(r => r.DaysToDue is int d && d <= 3
                                           && (r.Status is "Draft" or "Released" or "In Progress"));
 
-    protected override void OnInitialized() => Reload();
+    protected override void OnInitialized()
+    {
+        // 라우팅 옵션·공정 시퀀스를 공통코드 ROUTING / MD_RoutingStep 에서 로드
+        try { _routings = Md.ListCodeItems("ROUTING").Where(c => c.UseFlag).Select(c => c.CodeValue ?? "").Where(v => v.Length > 0).ToArray(); }
+        catch { _routings = new[] { "A", "B" }; }
+        try
+        {
+            _routingFlow = Md.ListRoutingSteps()
+                .GroupBy(s => s.RoutingType)
+                .ToDictionary(g => g.Key, g => g.OrderBy(s => s.StepSeq).Select(s => s.ProcessCode).ToArray());
+        }
+        catch { }
+        Reload();
+    }
 
     void Reload()
     {
@@ -219,12 +232,10 @@ else
         w.DaysToDue is not int d ? "dim" : d < 0 ? "bad" : d <= 3 ? "warn" : "ok";
     static string DdText(WorkOrderDto w) =>
         w.DaysToDue is not int d ? "—" : d < 0 ? $"D+{-d}" : d == 0 ? "D-Day" : $"D-{d}";
-    static string[] Flow(string? rt) => rt switch
-    {
-        "A" => new[] { "INJ", "IMG", "QC", "FG" },
-        "B" => new[] { "INJ", "PNT", "QC", "FG" },
-        _   => new[] { "INJ", "QC", "FG" }
-    };
+    // 라우팅 공정 시퀀스 — MD_RoutingStep 기준(A/B), 미정의(null)는 INJ→QC→FG 기본
+    string[] Flow(string? rt) =>
+        rt is not null && _routingFlow.TryGetValue(rt, out var s) ? s : new[] { "INJ", "QC", "FG" };
+    string FlowText(string? rt) => string.Join("→", Flow(rt));
     string ReservationText(string status) =>
         status is "In Progress" or "Closed" ? L["PP.WorkOrder.Detail.Reserved"].Value
                                             : L["PP.WorkOrder.Detail.NotReserved"].Value;
@@ -302,7 +313,7 @@ else
 
         var sb = new System.Text.StringBuilder();
         sb.AppendLine(string.Join(",", new[] {
-            L["Col.WoNo"].Value, L["Col.Item"].Value, L["Col.Line"].Value, "Routing",
+            L["Col.WoNo"].Value, L["Col.Item"].Value, L["Col.Line"].Value, L["Col.Routing"].Value,
             L["Col.Order"].Value, L["Col.Done"].Value, L["Col.Progress"].Value,
             L["PP.PlanConfirm.Col.Due"].Value, L["Col.Status"].Value, "SAP SO" }.Select(Csv)));
 

@@ -213,7 +213,7 @@ public sealed class WorkOrderRepository
     /// <summary>WOë¥¼ Releasedë¡œ ì „í™˜í•˜ê³  ìƒì‚°ë¼ì¸ì„ ì§€ì • (Draft/Plannedë§Œ). ë³€ê²½ í–‰ìˆ˜ ë°˜í™˜.</summary>
     public int ReleaseWo(int woId, string lineId, string actor)
     {
-        const string sql = """
+        const string relSql = """
             UPDATE dbo.PP_WorkOrder
                SET Status     = 'Released',
                    LineID     = @LineID,
@@ -225,11 +225,62 @@ public sealed class WorkOrderRepository
                AND Status IN ('Draft','Planned');
             """;
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@WoID",   SqlDbType.Int).Value           = woId;
-        cmd.Parameters.Add("@LineID", SqlDbType.VarChar, 20).Value   = lineId;
-        cmd.Parameters.Add("@Actor",  SqlDbType.NVarChar, 450).Value = actor;
-        return cmd.ExecuteNonQuery();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            int n;
+            using (var cmd = new SqlCommand(relSql, conn, tx))
+            {
+                cmd.Parameters.Add("@WoID",   SqlDbType.Int).Value           = woId;
+                cmd.Parameters.Add("@LineID", SqlDbType.VarChar, 20).Value   = lineId;
+                cmd.Parameters.Add("@Actor",  SqlDbType.NVarChar, 450).Value = actor;
+                n = cmd.ExecuteNonQuery();
+            }
+            if (n > 0) GenerateWoRouting(conn, tx, woId, actor);
+            tx.Commit();
+            return n;
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    /// <summary>
+    /// WO 발행 시 라우팅 인스턴스(PP_WorkOrderRouting)를 MD_RoutingStep(품목 RoutingType) 기준으로 생성.
+    /// 각 공정 라인 = WO 라인의 공정과 같으면 WO 라인, 아니면 해당 공정의 첫 활성 라인.
+    /// 사이클타임 = 품목 BOP(스테이션 공정 매칭)의 StdCycleTime. RoutingType 미지정이면 생성 안 함.
+    /// </summary>
+    private static void GenerateWoRouting(SqlConnection conn, SqlTransaction tx, int woId, string actor)
+    {
+        const string sql = """
+            DECLARE @ItemNo varchar(20), @RT char(1), @LineID varchar(20);
+            SELECT @ItemNo = ItemNo, @RT = RoutingType, @LineID = LineID
+              FROM dbo.PP_WorkOrder WHERE WoID = @WoID;
+            IF @RT IS NULL RETURN;
+
+            DELETE FROM dbo.PP_WorkOrderRouting WHERE WoID = @WoID;
+
+            DECLARE @WoLineProc varchar(10) = (SELECT ProcessCode FROM dbo.MD_Line WHERE LineID = @LineID);
+
+            INSERT INTO dbo.PP_WorkOrderRouting
+                   (WoID, StepSeq, ProcessCode, LineID, StdCycleSec, StdYieldPct, Status, CreatedBy, CreatedTS)
+            SELECT @WoID, rs.StepSeq, rs.ProcessCode,
+                   CASE WHEN @WoLineProc = rs.ProcessCode THEN @LineID
+                        ELSE (SELECT TOP 1 l.LineID FROM dbo.MD_Line l
+                               WHERE l.ProcessCode = rs.ProcessCode
+                                 AND ISNULL(l.Status, 'ACTIVE') <> 'INACTIVE'
+                               ORDER BY l.LineID) END,
+                   (SELECT TOP 1 CAST(b.StdCycleTime AS int) FROM dbo.MD_Bop b
+                      LEFT JOIN dbo.MD_Station st ON st.StationCode = b.StationCode
+                      WHERE b.ItemNo = @ItemNo AND b.RoutingType = @RT AND st.ProcessCode = rs.ProcessCode
+                      ORDER BY b.StepSeq),
+                   NULL, 'Pending', @Actor, SYSDATETIME()
+            FROM   dbo.MD_RoutingStep rs
+            WHERE  rs.RoutingType = @RT AND ISNULL(rs.ActiveFlag, 1) = 1
+            ORDER  BY rs.StepSeq;
+            """;
+        using var cmd = new SqlCommand(sql, conn, tx);
+        cmd.Parameters.Add("@WoID",  SqlDbType.Int).Value           = woId;
+        cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
+        cmd.ExecuteNonQuery();
     }
 
     /// <summary>WOë¥¼ Cancelledë¡œ ì „í™˜ (Draft/Planned/Releasedë§Œ). ë³€ê²½ í–‰ìˆ˜ ë°˜í™˜.</summary>
