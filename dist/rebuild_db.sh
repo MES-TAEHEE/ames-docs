@@ -58,6 +58,7 @@ FILES=(
   reseed_md_item_partmaster.sql       # 품목(파트마스터)
   migrate_inj_agent.sql               # 사출: MD_Mold 4종 + 사출조건 시드
   migrate_mold_master.sql             # 금형: 매핑/색상/라인 시드 + FK 3종
+  migrate_routing_step.sql            # 라우팅: MD_RoutingStep 생성 + A/B 시퀀스 시드 (seed_admin_permissions 이후 — Admin 권한 필요)
   migrate_wh_inventory_setting.sql    # 창고 재고 설정 시드
   pda/migrate_pda_wh_schedule.sql     # PDA 창고: 입고예정/출고예정/조정
   pda/migrate_pda_wh_inbound.sql
