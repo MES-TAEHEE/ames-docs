@@ -46,7 +46,7 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["SYS.Screen.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["SYS.Screen.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px;" />
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["SYS.Screen.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Module"]" Component="DropDownModule" />
             <RadzenDropDown AllowFiltering="true" Name="DropDownModule" @bind-Value="_fModule" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenLabel Text="@L["Col.Process"]" Component="DropDownProcess" />
@@ -65,13 +65,13 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="SysRepository.ScreenRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Screen.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r"><span class="code">@r.ScreenCode</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ModuleCode" Title="@L["Col.Module"]">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ModuleCode" Title="@L["Col.Module"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="r"><span class="pill info">@r.ModuleCode</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ProcessCode" Title="@L["SYS.Screen.Col.Process"]">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ProcessCode" Title="@L["Col.Process"]" Width="140px">
                 <Template Context="r">
                     @if (r.ProcessCode != null)
                     {
@@ -82,7 +82,7 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="SubProcessCode" Title="@L["SYS.Screen.Col.SubProcess"]">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="SubProcessCode" Title="@L["Col.SubProcess"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="r">
                     @if (r.SubProcessCode is not null)
                     { <span class="pill" style="background:rgba(134,239,172,.12);color:#86efac;">@r.SubProcessCode</span> }
@@ -97,19 +97,19 @@
             <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="HRef" Title="@L["SYS.Screen.Col.Path"]">
                 <Template Context="r"><span class="dim" style="font-size:12px;font-family:'JetBrains Mono',monospace;">@(r.HRef ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="LidLabel" Title="@L["SYS.Screen.Col.LidLabel"]">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="LidLabel" Title="@L["SYS.Screen.Col.LidLabel"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="dim code" style="font-size:12px;">@(r.LidLabel ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="SortOrder" Title="@L["SYS.Screen.Col.SortOrder"]" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="SortOrder" Title="@L["SYS.Screen.Col.SortOrder"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="r"><span class="dim">@(r.SortOrder?.ToString() ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="IsVisible" Title="@L["SYS.Screen.Col.Visible"]" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="IsVisible" Title="@L["SYS.Screen.Col.Visible"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r">
                     @if (r.IsVisible) { <span class="pill ok">@L["SYS.Screen.Filter.Visible"]</span> }
                     else { <span class="pill bad">@L["SYS.Screen.Filter.Hidden"]</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="RoleCount" Title="@L["SYS.Screen.Col.Roles"]" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="RoleCount" Title="@L["SYS.Screen.Col.Roles"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r">
                     @if (r.RoleCount > 0) { <span class="pill warn">@r.RoleCount @L["SYS.Screen.Col.Roles"]</span> }
                     else { <span class="dim">@L["Filter.All"]</span> }
@@ -138,12 +138,12 @@
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
-                    <RadzenLabel Text="@L["SYS.Screen.Col.Process"]" class="ames-rz-modal-label" Component="CreateDropDownProcessCode" />
+                    <RadzenLabel Text="@L["Col.Process"]" class="ames-rz-modal-label" Component="CreateDropDownProcessCode" />
                     <RadzenDropDown AllowFiltering="true" Name="CreateDropDownProcessCode" @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
-                    <RadzenLabel Text="@L["SYS.Screen.Col.SubProcess"]" class="ames-rz-modal-label" Component="CreateDropDownSubProcessCode" />
+                    <RadzenLabel Text="@L["Col.SubProcess"]" class="ames-rz-modal-label" Component="CreateDropDownSubProcessCode" />
                     <RadzenDropDown AllowFiltering="true" Name="CreateDropDownSubProcessCode" @bind-Value="_f.SubProcessCode" Data="@SubProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
@@ -210,12 +210,12 @@
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
-                    <RadzenLabel Text="@L["SYS.Screen.Col.Process"]" class="ames-rz-modal-label" Component="EditDropDownProcessCode" />
+                    <RadzenLabel Text="@L["Col.Process"]" class="ames-rz-modal-label" Component="EditDropDownProcessCode" />
                     <RadzenDropDown AllowFiltering="true" Name="EditDropDownProcessCode" @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
-                    <RadzenLabel Text="@L["SYS.Screen.Col.SubProcess"]" class="ames-rz-modal-label" Component="EditDropDownSubProcessCode" />
+                    <RadzenLabel Text="@L["Col.SubProcess"]" class="ames-rz-modal-label" Component="EditDropDownSubProcessCode" />
                     <RadzenDropDown AllowFiltering="true" Name="EditDropDownSubProcessCode" @bind-Value="_f.SubProcessCode" Data="@SubProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 

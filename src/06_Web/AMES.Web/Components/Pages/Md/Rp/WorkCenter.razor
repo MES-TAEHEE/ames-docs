@@ -45,11 +45,11 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.WorkCenter.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Placeholder="@L["MD.WorkCenter.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' />
+            <RadzenTextBox @bind-Value="_fSearch" Placeholder="@L["MD.WorkCenter.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
             <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
-            <RadzenLabel Text="@L["Col.ProcessCode"]" Component="DropDownProcessType" />
-            <RadzenDropDown Name="DropDownProcessType" @bind-Value="_fType" Data="@TypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenLabel Text="@L["Col.Process"]" Component="DropDownProcessType" />
+            <RadzenDropDown Name="DropDownProcessType" @bind-Value="_fType" Data="@TypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
             <RadzenLabel Text="@L["Col.Active"]" Component="DropDownActive" />
             <RadzenDropDown Name="DropDownActive" @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
 
@@ -64,16 +64,16 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.WorkCenterRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.WorkCenter.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="WCID" Title="@L["Col.WCID"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="WCID" Title="@L["Col.WCID"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="code">@r.WCID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="WCName" Title="@L["Col.WcName"]">
                 <Template Context="r">@(r.WCName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="LineID" Title="@L["Col.Line"]" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r"><span class="dim">@(r.LineID ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="ProcessCode" Title="@L["Col.ProcessCode"]" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="ProcessCode" Title="@L["Col.Process"]" Width="160px">
                 <Template Context="r">
                     @if (r.ProcessCode != null)
                     {
@@ -84,19 +84,19 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="DailyCapacity" Title="@L["Col.Capacity"]" Width="80px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="DailyCapacity" Title="@L["Col.Capacity"]" TextAlign="TextAlign.Right" Width="200px">
                 <Template Context="r">@(r.DailyCapacity?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="StdManpower" Title="@L["Col.StdHeadcount"]" Width="72px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="StdManpower" Title="@L["Col.StdHeadcount"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r">@(r.StdManpower?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="CostCenterCode" Title="@L["Col.CostCenter"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="CostCenterCode" Title="@L["Col.CostCenter"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="dim">@(r.CostCenterCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="LocationDesc" Title="@L["Col.Loc"]">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="LocationDesc" Title="@L["Col.Loc"]" Width="250px">
                 <Template Context="r"><span class="dim">@(r.LocationDesc ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="ActiveFlag" Title="@L["Col.Active"]" Width="72px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
                     else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
@@ -129,7 +129,7 @@
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Change="@OnLineChanged" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.ProcessCode"]" />
+                    <RadzenLabel Text="@L["Col.Process"]" />
                     <RadzenTextBox Value="@_f.ProcessCode" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
@@ -192,7 +192,7 @@
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Change="@OnLineChanged" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.ProcessCode"]" />
+                    <RadzenLabel Text="@L["Col.Process"]" />
                     <RadzenTextBox Value="@_f.ProcessCode" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
@@ -255,6 +255,7 @@
     List<MasterDataRepository.WorkCenterRow> _rows     = new();
     List<MasterDataRepository.LineRow>       _lineList = new();
     List<MasterDataRepository.CodeItemRow>   _processItems = new();
+    List<MasterDataRepository.CodeItemRow>   _activeFlagItems = new();
     MasterDataRepository.WorkCenterRow? _sel;
 
     string _fSearch = "";
@@ -270,14 +271,13 @@
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
-    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"{l.LineID} {nm}" : l.LineID });
+    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
     IEnumerable<DropDownItem> LineOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
-    IEnumerable<DropDownItem> TypeFilterOptions => _allRows.Select(r => r.ProcessCode).Where(x => x != null).Distinct().OrderBy(x => x).Select(t => new DropDownItem { Value = t!, Text = t! });
-    private List<DropDownItem> ActiveFilterOptions => new()
-    {
-        new() { Value = "Y", Text = L["Lbl.Active"].Value },
-        new() { Value = "N", Text = L["Lbl.Inactive"].Value },
-    };
+    // 공정 필터: 공통코드 PROCESS ([code] 명칭) — Line.razor Process 콤보와 동일
+    IEnumerable<DropDownItem> TypeFilterOptions => _processItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    // 상태 필터: 공통코드 ACTIVE_FLAG (ACTIVE/INACTIVE)
+    private IEnumerable<DropDownItem> ActiveFilterOptions =>
+        _activeFlagItems.Where(a => a.UseFlag).Select(a => new DropDownItem { Value = a.CodeValue ?? "", Text = MasterDataRepository.LocalName(a) });
 
     protected override async Task OnInitializedAsync()
     {
@@ -287,6 +287,7 @@
         _canEdit = PermSvc.CanEdit("md/rp/work-center");
         try { _lineList = MD.ListLines(); } catch { }
         try { _processItems = MD.ListCodeItems("PROCESS"); } catch { }
+        try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
         Reload();
     }
 
@@ -313,7 +314,7 @@
             (r.WCName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fLine)   || r.LineID      == _fLine) &&
         (string.IsNullOrEmpty(_fType)   || r.ProcessCode == _fType) &&
-        (string.IsNullOrEmpty(_fActive) || (_fActive == "Y" ? r.ActiveFlag : !r.ActiveFlag))
+        (string.IsNullOrEmpty(_fActive) || (_fActive == "ACTIVE" ? r.ActiveFlag : !r.ActiveFlag))
     ).ToList();
     }
 

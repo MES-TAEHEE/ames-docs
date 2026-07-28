@@ -960,9 +960,6 @@
   <data name="SYS.Screen.Col.Code" xml:space="preserve">
     <value>Code</value>
   </data>
-  <data name="SYS.Screen.Col.Process" xml:space="preserve">
-    <value>Process</value>
-  </data>
   <data name="SYS.Screen.Col.NameKo" xml:space="preserve">
     <value>Screen Name (KO)</value>
   </data>
@@ -1115,9 +1112,6 @@
   </data>
   <data name="SYS.Audit.Col.Actor" xml:space="preserve">
     <value>Actor</value>
-  </data>
-  <data name="SYS.Audit.Col.Module" xml:space="preserve">
-    <value>Module</value>
   </data>
   <data name="SYS.Audit.Col.Screen" xml:space="preserve">
     <value>Screen</value>
@@ -2276,9 +2270,6 @@
   </data>
   <data name="PP.LineSchedule.Empty.NoPattern" xml:space="preserve">
     <value>No pattern available for this line/date.</value>
-  </data>
-  <data name="PP.LineSchedule.Err.PastDate" xml:space="preserve">
-    <value>Past dates cannot be applied or published</value>
   </data>
   <data name="PP.LineSchedule.Err.NoPattern" xml:space="preserve">
     <value>Select a pattern.</value>
@@ -4222,10 +4213,10 @@
     <value>{0} screens</value>
   </data>
   <data name="SYS.Screen.Col.LidLabel" xml:space="preserve">
-    <value>LidLabel</value>
+    <value>Lid Label</value>
   </data>
   <data name="SYS.Screen.Col.SortOrder" xml:space="preserve">
-    <value>Sort Order</value>
+    <value>Order</value>
   </data>
   <data name="SYS.Screen.Ph.Code" xml:space="preserve">
     <value>e.g. SYS-010</value>
@@ -4394,9 +4385,6 @@
   </data>
   <data name="Col.LocationDesc" xml:space="preserve">
     <value>Location</value>
-  </data>
-  <data name="Col.ProcessCode" xml:space="preserve">
-    <value>Process Code</value>
   </data>
   <data name="Col.SortSeq" xml:space="preserve">
     <value>Sort Order</value>
@@ -4620,6 +4608,9 @@
   <data name="Msg.BomLineDeleted" xml:space="preserve">
     <value>BOM line deleted.</value>
   </data>
+  <data name="Msg.BomLineReactivated" xml:space="preserve">
+    <value>BOM line reactivated.</value>
+  </data>
   <data name="Err.AlreadyExistsFmt" xml:space="preserve">
     <value>'{0}' already exists.</value>
   </data>
@@ -4830,6 +4821,9 @@
   <data name="MD.Bom.AddItem" xml:space="preserve">
     <value>Add part</value>
   </data>
+  <data name="MD.Bom.ReactivateLine" xml:space="preserve">
+    <value>Reactivate</value>
+  </data>
   <data name="MD.Bom.RequestApproval" xml:space="preserve">
     <value>Request approval</value>
   </data>
@@ -4995,7 +4989,7 @@
   <data name="SYS.Users.Hint.Unverified" xml:space="preserve">
     <value>Account status cannot be changed before email verification.</value>
   </data>
-  <data name="SYS.Screen.Col.SubProcess" xml:space="preserve">
+  <data name="Col.SubProcess" xml:space="preserve">
     <value>Sub</value>
   </data>
   <data name="Col.CarType" xml:space="preserve">
@@ -5249,5 +5243,8 @@
   </data>
   <data name="PP.LineSchedule.Confirm.Reset" xml:space="preserve">
     <value>This deletes the saved schedule for this line/date and resets it. Continue?</value>
+  </data>
+  <data name="PP.LineSchedule.Err.PastDate" xml:space="preserve">
+    <value>Past dates cannot be applied or published</value>
   </data>
 </root>

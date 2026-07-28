@@ -960,9 +960,6 @@
   <data name="SYS.Screen.Col.Code" xml:space="preserve">
     <value>코드</value>
   </data>
-  <data name="SYS.Screen.Col.Process" xml:space="preserve">
-    <value>프로세스</value>
-  </data>
   <data name="SYS.Screen.Col.NameKo" xml:space="preserve">
     <value>화면명 (국문)</value>
   </data>
@@ -1115,9 +1112,6 @@
   </data>
   <data name="SYS.Audit.Col.Actor" xml:space="preserve">
     <value>처리자</value>
-  </data>
-  <data name="SYS.Audit.Col.Module" xml:space="preserve">
-    <value>모듈</value>
   </data>
   <data name="SYS.Audit.Col.Screen" xml:space="preserve">
     <value>화면</value>
@@ -2276,9 +2270,6 @@
   </data>
   <data name="PP.LineSchedule.Empty.NoPattern" xml:space="preserve">
     <value>해당 라인/일자에 사용할 패턴이 없습니다.</value>
-  </data>
-  <data name="PP.LineSchedule.Err.PastDate" xml:space="preserve">
-    <value>과거 일자는 적용·발행할 수 없습니다</value>
   </data>
   <data name="PP.LineSchedule.Err.NoPattern" xml:space="preserve">
     <value>패턴을 선택하세요.</value>
@@ -4222,10 +4213,10 @@
     <value>화면 {0}개</value>
   </data>
   <data name="SYS.Screen.Col.LidLabel" xml:space="preserve">
-    <value>LidLabel</value>
+    <value>화면 표기</value>
   </data>
   <data name="SYS.Screen.Col.SortOrder" xml:space="preserve">
-    <value>Sort Order</value>
+    <value>순서</value>
   </data>
   <data name="SYS.Screen.Ph.Code" xml:space="preserve">
     <value>예: SYS-010</value>
@@ -4394,9 +4385,6 @@
   </data>
   <data name="Col.LocationDesc" xml:space="preserve">
     <value>위치 설명</value>
-  </data>
-  <data name="Col.ProcessCode" xml:space="preserve">
-    <value>공정코드</value>
   </data>
   <data name="Col.SortSeq" xml:space="preserve">
     <value>정렬 순번</value>
@@ -4620,6 +4608,9 @@
   <data name="Msg.BomLineDeleted" xml:space="preserve">
     <value>BOM 라인 삭제 완료.</value>
   </data>
+  <data name="Msg.BomLineReactivated" xml:space="preserve">
+    <value>BOM 라인 활성화 완료.</value>
+  </data>
   <data name="Err.AlreadyExistsFmt" xml:space="preserve">
     <value>'{0}' 은(는) 이미 존재합니다.</value>
   </data>
@@ -4830,6 +4821,9 @@
   <data name="MD.Bom.AddItem" xml:space="preserve">
     <value>품목 추가</value>
   </data>
+  <data name="MD.Bom.ReactivateLine" xml:space="preserve">
+    <value>활성화</value>
+  </data>
   <data name="MD.Bom.RequestApproval" xml:space="preserve">
     <value>승인 요청</value>
   </data>
@@ -4995,7 +4989,7 @@
   <data name="SYS.Users.Hint.Unverified" xml:space="preserve">
     <value>이메일 인증 전에는 계정 상태를 변경할 수 없습니다.</value>
   </data>
-  <data name="SYS.Screen.Col.SubProcess" xml:space="preserve">
+  <data name="Col.SubProcess" xml:space="preserve">
     <value>서브</value>
   </data>
   <data name="Col.CarType" xml:space="preserve">
@@ -5249,5 +5243,8 @@
   </data>
   <data name="PP.LineSchedule.Confirm.Reset" xml:space="preserve">
     <value>이 라인·일자의 저장된 스케줄을 삭제하고 초기화합니다. 계속할까요?</value>
+  </data>
+  <data name="PP.LineSchedule.Err.PastDate" xml:space="preserve">
+    <value>과거 일자는 적용·발행할 수 없습니다</value>
   </data>
 </root>

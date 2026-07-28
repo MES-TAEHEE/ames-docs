@@ -465,8 +465,15 @@ public sealed class MasterDataRepository
             ("@Scrap", scrapPct), ("@Pos",   position),     ("@Note", note),
             ("@By",    modifiedBy));
 
-    public void DeleteBomLine(string bomId)
-        => Exec("DELETE dbo.MD_Bom WHERE BOMID=@I", ("@I", bomId));
+    // 소프트 삭제 — 물리 삭제 대신 ActiveFlag=0 (재활성화 가능)
+    public void DeleteBomLine(string bomId, string modifiedBy)
+        => Exec("UPDATE dbo.MD_Bom SET ActiveFlag=0, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE BOMID=@I",
+            ("@I", bomId), ("@By", modifiedBy));
+
+    // 소프트 삭제된 라인을 다시 활성화
+    public void ReactivateBomLine(string bomId, string modifiedBy)
+        => Exec("UPDATE dbo.MD_Bom SET ActiveFlag=1, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE BOMID=@I",
+            ("@I", bomId), ("@By", modifiedBy));
 
     // ── Private helpers ──────────────────────────────────────────────────
     private void Exec(string sql, params (string Name, object? Val)[] p)

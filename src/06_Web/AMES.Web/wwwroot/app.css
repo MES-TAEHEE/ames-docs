@@ -942,6 +942,22 @@ select.ames-rz-input {
 .ames-rz-grid .rz-sortable-column-icon  { color: rgba(147,197,253,.35) !important; font-size: 14px !important; }
 .ames-rz-grid .rz-state-active.rz-column-header { background: rgba(147,197,253,.12) !important; }
 
+/* MD/SYS 화면 전용: RadzenDataGrid 헤더는 데이터 정렬(컬럼 TextAlign)과 무관하게 항상 가운데.
+   Radzen은 .rz-column-title(inline-flex)의 justify-content 로 헤더를 정렬하는데,
+   이 프로젝트가 .rz-column-title 을 display:inline 으로 덮으므로 여기서 inline-flex+center 로 복원한다. */
+.ames-sec-md  .ames-rz-grid thead th,
+.ames-sec-sys .ames-rz-grid thead th,
+.ames-sec-md  .ames-rz-grid .rz-column-header,
+.ames-sec-sys .ames-rz-grid .rz-column-header { text-align: center !important; }
+.ames-sec-md  .ames-rz-grid .rz-column-title,
+.ames-sec-sys .ames-rz-grid .rz-column-title {
+    display: inline-flex !important;
+    justify-content: center !important;
+    width: 100% !important;
+    text-align: center !important;
+    padding-inline-start: 0 !important;
+}
+
 /* 4. 데이터 셀 */
 .ames-rz-grid .rz-data-cell {
     padding: 11px 14px !important; color: #e5edf7 !important; font-size: 16px !important;

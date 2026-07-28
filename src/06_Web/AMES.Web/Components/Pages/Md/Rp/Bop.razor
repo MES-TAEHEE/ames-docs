@@ -44,7 +44,7 @@
 <div style="display:flex;gap:14px;height:calc(100vh - 200px);">
 
     @* ── 좌: 품목 목록 ─────────────────────────────────────────────────── *@
-    <div style="flex:0 0 500px;display:flex;flex-direction:column;min-height:0;">
+    <div style="flex:0 0 480px;display:flex;flex-direction:column;min-height:0;">
         <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-bottom:8px;">
                 <RadzenTextBox @bind-Value="_search" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Bop.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;" />
@@ -65,7 +65,7 @@
                                 </div>
                             </Template>
                         </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="MasterDataRepository.BopItemRow" Property="StepCount" Title="@L["Col.StepCount"]" Width="80px" TextAlign="TextAlign.Center">
+                        <RadzenDataGridColumn TItem="MasterDataRepository.BopItemRow" Property="StepCount" Title="@L["Col.StepCount"]" Width="90px" TextAlign="TextAlign.Center">
                             <Template Context="item"><span class="pill info">@item.StepCount</span></Template>
                         </RadzenDataGridColumn>
                     </Columns>
@@ -151,22 +151,32 @@
                                     }
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StdCycleTime" Title="@L["Col.CycleSetup"]" Width="120px" TextAlign="TextAlign.Right">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StdCycleTime" Title="@L["Col.CycleSetup"]" Width="130px" TextAlign="TextAlign.Right">
                                 <Template Context="step">
                                     <span>@(step.StdCycleTime?.ToString("N1") ?? "—")</span>
                                     <span class="dim"> / @(step.StdSetupTime?.ToString("N1") ?? "—")</span>
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="QcRequiredFlag" Title="@L["Col.QcActive"]" Width="72px" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="QcRequiredFlag" Title="QC" Width="60px" TextAlign="TextAlign.Center">
                                 <Template Context="step">
-                                    <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Center" Gap="0.2rem">
-                                        @if (step.QcRequiredFlag) { <span class="pill ok">QC</span> }
-                                        <span class="pill @(step.ActiveFlag ? "ok" : "dim")">@(step.ActiveFlag ? "Y" : "N")</span>
-                                    </RadzenStack>
+                                    @if (step.QcRequiredFlag)
+                                    {
+                                        <RadzenIcon Icon="check_circle" Style="color:#4ade80;vertical-align:middle;" />
+                                    }
+                                    else
+                                    {
+                                        <span class="dim">—</span>
+                                    }
                                 </Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StepDescription" Title="@L["Col.Description"]">
                                 <Template Context="step"><span class="dim">@step.StepDescription</span></Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="ActiveFlag" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
+                                <Template Context="step">
+                                    @if (step.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
+                                    else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
+                                </Template>
                             </RadzenDataGridColumn>
                         </Columns>
                     </RadzenDataGrid>

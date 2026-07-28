@@ -45,7 +45,7 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.Uom.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Uom.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Uom.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Category"]" Component="DropDownCategory" />
             <RadzenDropDown AllowFiltering="true" Name="DropDownCategory" @bind-Value="_fCat" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
@@ -62,31 +62,31 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.UomRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Uom.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="UOMCode" Title="@L["Col.UomCode"]" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="UOMCode" Title="@L["Col.UomCode"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="code">@r.UOMCode</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="UOMName" Title="@L["Col.UomName"]">
                 <Template Context="r">@(r.UOMName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="UOMCategory" Title="@L["Col.UomCategory"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="UOMCategory" Title="@L["Col.UomCategory"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="dim">@(_unitCategories.FirstOrDefault(x => x.CodeValue == r.UOMCategory) is { } cat ? MasterDataRepository.LocalName(cat) : r.UOMCategory ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="Symbol" Title="@L["Col.UomSymbol"]" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="Symbol" Title="@L["Col.UomSymbol"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r"><span class="dim">@(r.Symbol ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="BaseFlag" Title="@L["MD.Uom.PillBase"]" Width="56px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="BaseFlag" Title="@L["MD.Uom.PillBase"]" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="r">@if (r.BaseFlag) { <span class="pill ok">@L["MD.Uom.PillBase"]</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="BaseUOM" Title="@L["Col.BaseUom"]" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="BaseUOM" Title="@L["Col.BaseUom"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="dim">@(r.BaseUOM ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="ConvFactor" Title="@L["Col.ConvFactor"]" Width="100px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="ConvFactor" Title="@L["Col.ConvFactor"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r">@(r.ConvFactor?.ToString("0.########") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="DecimalPrec" Title="@L["Col.Decimals"]" Width="66px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="DecimalPrec" Title="@L["Col.Decimals"]" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="r">@(r.DecimalPrec?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="ActiveFlag" Title="@L["Col.Status"]" Width="72px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="ActiveFlag" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
                     else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
@@ -248,6 +248,7 @@
     List<MasterDataRepository.UomRow> _allRows = new();
     List<MasterDataRepository.UomRow> _rows = new();
     List<MasterDataRepository.CodeItemRow> _unitCategories = new();
+    List<MasterDataRepository.CodeItemRow> _activeFlagItems = new();
     MasterDataRepository.UomRow? _sel;
 
     string  _fSearch = "";
@@ -277,11 +278,9 @@
         if (!_allRows.Any(u => u.UOMCategory == _f.UOMCategory && u.UOMCode == _f.BaseUOM))
             _f.BaseUOM = "";
     }
-    private IEnumerable<DropDownItem> ActiveFilterOptions => new[]
-    {
-        new DropDownItem { Value = "Y", Text = L["Lbl.Active"].Value },
-        new DropDownItem { Value = "N", Text = L["Lbl.Inactive"].Value },
-    };
+    // 상태 필터: 공통코드 ACTIVE_FLAG (ACTIVE/INACTIVE)
+    private IEnumerable<DropDownItem> ActiveFilterOptions =>
+        _activeFlagItems.Where(a => a.UseFlag).Select(a => new DropDownItem { Value = a.CodeValue ?? "", Text = MasterDataRepository.LocalName(a) });
 
     protected override async Task OnInitializedAsync()
     {
@@ -290,6 +289,7 @@
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/fd/uom");
         try { _unitCategories = MD.ListCodeItems("UNIT_CATEGORY"); } catch { }
+        try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
         Reload();
     }
 
@@ -323,8 +323,8 @@
                 (r.UOMName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
         if (!string.IsNullOrWhiteSpace(_fCat))
             _rows = _rows.Where(r => r.UOMCategory == _fCat).ToList();
-        if (_fActive == "Y") _rows = _rows.Where(r => r.ActiveFlag).ToList();
-        if (_fActive == "N") _rows = _rows.Where(r => !r.ActiveFlag).ToList();
+        if (_fActive == "ACTIVE") _rows = _rows.Where(r => r.ActiveFlag).ToList();
+        if (_fActive == "INACTIVE") _rows = _rows.Where(r => !r.ActiveFlag).ToList();
     }
 
     void OnSearchChanged(string value) => _fSearch = value ?? "";

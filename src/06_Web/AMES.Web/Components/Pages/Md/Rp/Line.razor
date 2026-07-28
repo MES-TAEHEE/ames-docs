@@ -45,11 +45,11 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.Line.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Line.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenLabel Text="@L["Col.ProcessCode"]" Component="DropDownType" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownType" @bind-Value="_fType" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Line.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
+            <RadzenLabel Text="@L["Col.Process"]" Component="DropDownProcess" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownProcess" @bind-Value="_fType" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
-            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@LineStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@LineStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
             @if (_canEdit)
@@ -62,7 +62,7 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.LineRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Line.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineID" Title="@L["Col.LineId"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineID" Title="@L["Col.LineId"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="code">@r.LineID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineName" Title="@L["Col.LineName"]">
@@ -71,7 +71,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineNameEn" Title="@L["Col.LineNameEn"]">
                 <Template Context="r"><span class="dim">@(r.LineNameEn ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="ProcessCode" Title="@L["Col.ProcessCode"]" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="ProcessCode" Title="@L["Col.Process"]" Width="160px">
                 <Template Context="r">
                     @if (r.ProcessCode != null)
                     {
@@ -82,16 +82,19 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="PlantCode" Title="@L["Col.Plant"]" Width="70px">
-                <Template Context="r"><span class="code dim" style="font-size:12px;">@(r.PlantCode ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="PlantCode" Title="@L["Col.Plant"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r">
+                    @{ var plantName = _plantCodes.FirstOrDefault(p => p.CodeValue == r.PlantCode) is { } pf ? MasterDataRepository.LocalName(pf) : r.PlantCode; }
+                    <span class="dim">@(plantName ?? "—")</span>
+                </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="DefaultWCID" Title="@L["Col.WCID"]" Width="80px">
                 <Template Context="r"><span class="dim" style="font-size:12px;">@(r.DefaultWCID ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="DailyCap" Title="@L["Col.Capacity"]" Width="80px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="DailyCap" Title="@L["Col.Capacity"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">@(r.DailyCap?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="ShiftPattern" Title="@L["Col.Pattern"]" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="ShiftPattern" Title="@L["Col.Pattern"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @if (r.ShiftPattern != null)
                     {
@@ -102,13 +105,13 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="RfidEnabledFlag" Title="@L["Col.RFID"]" Width="56px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="RfidEnabledFlag" Title="@L["Col.RFID"]" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="r">
                     @if (r.RfidEnabledFlag) { <span class="pill ok">ON</span> }
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="Status" Title="@L["Col.Status"]" Width="90px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @{ var sLabel = _lineStatus.FirstOrDefault(s => s.CodeValue == r.Status) is { } lf ? MasterDataRepository.LocalName(lf) : r.Status; }
                     <span class="pill @(r.Status == "ACTIVE" ? "ok" : "bad")">@(sLabel ?? "—")</span>
@@ -142,7 +145,7 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.ProcessCode"]" />
+                    <RadzenLabel Text="@L["Col.Process"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
@@ -210,7 +213,7 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.ProcessCode"]" />
+                    <RadzenLabel Text="@L["Col.Process"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">

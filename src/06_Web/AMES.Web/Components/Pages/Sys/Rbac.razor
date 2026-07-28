@@ -99,7 +99,7 @@
                     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
                         <RadzenLabel Text="@L["Col.Module"]" Component="DropDownModule" />
                         <RadzenDropDown AllowFiltering="true" Name="DropDownModule" @bind-Value="_fModule" @bind-Value:after="OnModuleChanged" Data="@ModuleOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-                        <RadzenLabel Text="@L["SYS.Screen.Col.Process"]" Component="DropDownProcess" />
+                        <RadzenLabel Text="@L["Col.Process"]" Component="DropDownProcess" />
                         <RadzenDropDown AllowFiltering="true" Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
 
                         @if (_canEdit)
@@ -112,7 +112,7 @@
                 <div style="flex:1;min-height:0;overflow:auto;">
                 <RadzenDataGrid TItem="SysRepository.ScreenRow" Data="@ScreensFiltered.ToList()" AllowPaging="false" AllowSorting="false" EmptyText="@L["SYS.Screen.Empty"]" Class="ames-rz-grid">
                     <Columns>
-                        <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]" Width="110px">
+                            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]" TextAlign="TextAlign.Center" Width="100px">
                             <Template Context="s"><span class="code" style="white-space:nowrap;">@s.ScreenCode</span></Template>
                         </RadzenDataGridColumn>
                         <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Title="@L["SYS.Rbac.Col.Screen"]">

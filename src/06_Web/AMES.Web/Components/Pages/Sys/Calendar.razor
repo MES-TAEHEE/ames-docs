@@ -78,26 +78,29 @@
                         PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" AllowSorting="true" RowRender="@CalDayRowRender"
                         RowClick="@(args => { if (args.Data is not null) OpenEdit(args.Data.Date, args.Data.Shifts); })" EmptyText="@L["SYS.Calendar.Empty"]" Class="ames-rz-grid">
             <Columns>
-                <RadzenDataGridColumn TItem="CalendarDaySummary" Property="Date" Title="@L["SYS.Calendar.Col.Date"]">
+                <RadzenDataGridColumn TItem="CalendarDaySummary" Property="Date" Title="@L["SYS.Calendar.Col.Date"]" TextAlign="TextAlign.Center" Width="130px">
                     <Template Context="row"><span class="code">@(row.Date.ToString(DateFmt.DateWeekday))</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="CalendarDaySummary" Property="DayType" Title="@L["SYS.Calendar.Col.DayType"]">
+                <RadzenDataGridColumn TItem="CalendarDaySummary" Property="DayType" Title="@L["SYS.Calendar.Col.DayType"]" TextAlign="TextAlign.Center" Width="110px">
                     <Template Context="row">@DayTypePill(row.DayType)</Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="CalendarDaySummary" Property="HolidayName" Title="@L["SYS.Calendar.Col.HolidayName"]">
                     <Template Context="row"><span class="dim">@(row.HolidayName ?? "—")</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="CalendarDaySummary" Title="@L["Col.ShiftA"]" TextAlign="TextAlign.Center" Width="72px" Sortable="false">
+                <RadzenDataGridColumn TItem="CalendarDaySummary" Title="@L["Col.ShiftA"]" TextAlign="TextAlign.Center" Width="80px" Sortable="false">
                     <Template Context="row"><span class="ames-cal-sh @(row.HasA ? "sh-a" : "sh-off")">A</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="CalendarDaySummary" Title="@L["Col.ShiftB"]" TextAlign="TextAlign.Center" Width="72px" Sortable="false">
+                <RadzenDataGridColumn TItem="CalendarDaySummary" Title="@L["Col.ShiftB"]" TextAlign="TextAlign.Center" Width="80px" Sortable="false">
                     <Template Context="row"><span class="ames-cal-sh @(row.HasB ? "sh-b" : "sh-off")">B</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="CalendarDaySummary" Title="@L["Col.ShiftC"]" TextAlign="TextAlign.Center" Width="72px" Sortable="false">
+                <RadzenDataGridColumn TItem="CalendarDaySummary" Title="@L["Col.ShiftC"]" TextAlign="TextAlign.Center" Width="80px" Sortable="false">
                     <Template Context="row"><span class="ames-cal-sh @(row.HasC ? "sh-c" : "sh-off")">C</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="CalendarDaySummary" Property="PlantCode" Title="@L["Col.Plant"]">
-                    <Template Context="row"><span class="dim">@(row.PlantCode ?? "—")</span></Template>
+                <RadzenDataGridColumn TItem="CalendarDaySummary" Property="PlantCode" Title="@L["Col.Plant"]" TextAlign="TextAlign.Center" Width="120px">
+                    <Template Context="row">
+                        @{ var plantName = _plants.FirstOrDefault(p => p.CodeValue == row.PlantCode) is { } pf ? MasterDataRepository.LocalName(pf) : row.PlantCode; }
+                        <span class="dim">@(plantName ?? "—")</span>
+                    </Template>
                 </RadzenDataGridColumn>
             </Columns>
         </RadzenDataGrid>

@@ -44,7 +44,7 @@
 <div style="display:flex;gap:14px;height:calc(100vh - 200px);">
 
     @* ── 좌: 버전 목록 ─────────────────────────────────────────────────── *@
-    <div style="flex:0 0 500px;display:flex;flex-direction:column;min-height:0;">
+    <div style="flex:0 0 480px;display:flex;flex-direction:column;min-height:0;">
         <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
             <div class="ames-card-h" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -85,7 +85,7 @@
                                 </div>
                             </Template>
                         </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="MasterDataRepository.BomVersionRow" Property="Status" Title="@L["Col.Status"]" Width="86px" TextAlign="TextAlign.Center">
+                        <RadzenDataGridColumn TItem="MasterDataRepository.BomVersionRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
                             <Template Context="v"><span class="pill @StatusCss(v.Status)">@v.Status</span></Template>
                         </RadzenDataGridColumn>
                     </Columns>
@@ -154,22 +154,22 @@
                         {
                             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Gap="0.5rem" Wrap="FlexWrap.Wrap" Style="flex-shrink:0;">
                                 @if (_selVer.Status == "DRAFT") {
-                                    <RadzenButton Text="@L["Btn.Edit"]" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="() => OpenVersionEdit(_selVer)" Disabled="@_busy" class="ames-rz-btn" />
-                                    <RadzenButton Text="@L["MD.Bom.AddItem"]" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenLineCreate" Disabled="@_busy" class="ames-rz-btn" />
-                                    <RadzenButton Text="@L["MD.Bom.RequestApproval"]" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@DoRequestApproval" Disabled="@_busy" class="ames-rz-btn" />
+                                    <RadzenButton Text="@L["Btn.Edit"]" Icon="edit" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="() => OpenVersionEdit(_selVer)" Disabled="@_busy" class="ames-rz-btn" />
+                                    <RadzenButton Text="@L["MD.Bom.AddItem"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenLineCreate" Disabled="@_busy" class="ames-rz-btn" />
+                                    <RadzenButton Text="@L["MD.Bom.RequestApproval"]" Icon="send" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@DoRequestApproval" Disabled="@_busy" class="ames-rz-btn" />
                                     @if (!_verDelConfirm)
                                     {
-                                        <RadzenButton Text="@L["Btn.Delete"]" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='() => _verDelConfirm = true' Disabled="@_busy" class="ames-rz-btn" />
+                                        <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='() => _verDelConfirm = true' Disabled="@_busy" class="ames-rz-btn" />
                                     }
                                 }
                                 @if (_selVer.Status == "PENDING")
                                 {
-                                    <RadzenButton Text="@L["Btn.Approve"]" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="@DoApprove" Disabled="@(_busy || _lines.Count == 0)" title="@(_lines.Count == 0 ? L["MD.Bom.NeedApprovalHint"].Value : "")" class="ames-rz-btn" />
-                                    <RadzenButton Text="@L["Btn.Reject"]" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@DoReject" Disabled="@_busy" class="ames-rz-btn" />
+                                    <RadzenButton Text="@L["Btn.Approve"]" Icon="check_circle" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="@DoApprove" Disabled="@(_busy || _lines.Count(l => l.ActiveFlag) == 0)" title="@(_lines.Count(l => l.ActiveFlag) == 0 ? L["MD.Bom.NeedApprovalHint"].Value : "")" class="ames-rz-btn" />
+                                    <RadzenButton Text="@L["Btn.Reject"]" Icon="block" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@DoReject" Disabled="@_busy" class="ames-rz-btn" />
                                 }
                                 @if (_selVer.Status == "REJECTED")
                                 {
-                                    <RadzenButton Text="@L["MD.Bom.ReviveDraft"]" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@DoRevive" Disabled="@_busy" class="ames-rz-btn" />
+                                    <RadzenButton Text="@L["MD.Bom.ReviveDraft"]" Icon="restore" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@DoRevive" Disabled="@_busy" class="ames-rz-btn" />
                                 }
                             </RadzenStack>
                         }
@@ -201,13 +201,13 @@
                     <RadzenDataGrid @ref="_lineGrid" Page="OnLinePage" TItem="MasterDataRepository.BomRow" Data="_lines" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
                                     ShowPagingSummary="@_showPagerSummary" PageSizeOptions="@_pageSizeOptions" RowRender="@(args => LineRowRender(args, editable))" RowSelect="@(l => { if (editable) OpenLineEdit(l); })" EmptyText="@L["MD.Bom.NoLines"]" Class="ames-rz-grid">
                         <Columns>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="BOMLevel" Title="@L["Col.Level"]" Width="48px" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="BOMLevel" Title="@L["Col.Level"]" TextAlign="TextAlign.Center" Width="50px">
                                 <Template Context="line"><span class="dim">@(line.BOMLevel ?? 0)</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="ParentItemNo" Title="@L["Col.ParentItem"]" Width="110px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="ParentItemNo" Title="@L["Col.ParentItem"]" TextAlign="TextAlign.Center" Width="130px">
                                 <Template Context="line"><span class="code dim" style="font-size:.82em;">@line.ParentItemNo</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="CompItemNo" Title="@L["Col.ComponentItem"]">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="CompItemNo" Title="@L["Col.ComponentItem"]" Width="350px">
                                 <Template Context="line">
                                     @{ int indent = (line.BOMLevel ?? 0) * 16; }
                                     @if (indent > 0) { <span style="display:inline-block;width:@(indent)px;"></span> }
@@ -216,20 +216,26 @@
                                     @if (!string.IsNullOrEmpty(line.CompItemName)) { <span class="dim" style="font-size:.8em;margin-left:5px;">@line.CompItemName</span> }
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="QtyPer" Title="@L["Col.Qty"]" Width="80px" TextAlign="TextAlign.Right">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="QtyPer" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right" Width="70px">
                                 <Template Context="line"><span class="code" style="font-weight:600;">@(line.QtyPer?.ToString("N4"))</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="UOM" Title="@L["Col.Uom"]" Width="52px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="60px">
                                 <Template Context="line"><span class="dim">@line.UOM</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="ScrapPct" Title="@L["Col.ScrapPct"]" Width="66px" TextAlign="TextAlign.Right">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="ScrapPct" Title="@L["Col.ScrapPct"]" TextAlign="TextAlign.Right" Width="80px">
                                 <Template Context="line"><span class="code dim">@(line.ScrapPct?.ToString("N2"))</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="Position" Title="@L["Col.Seq"]" Width="52px" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="Position" Title="@L["Col.Seq"]" TextAlign="TextAlign.Center" Width="60px">
                                 <Template Context="line"><span class="dim">@line.Position</span></Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="Note" Title="@L["Col.Note"]">
                                 <Template Context="line"><span class="dim">@line.Note</span></Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="ActiveFlag" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
+                                <Template Context="line">
+                                    @if (line.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
+                                    else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
+                                </Template>
                             </RadzenDataGridColumn>
                         </Columns>
                     </RadzenDataGrid>
@@ -317,7 +323,14 @@
             }
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveLineEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _lineConfirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                @if (_fl.ActiveFlag)
+                {
+                    <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _lineConfirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                }
+                else
+                {
+                    <RadzenButton Text="@L["MD.Bom.ReactivateLine"]" Click="@SaveLineReactivate" Disabled="@_busy" Icon="restart_alt" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" />
+                }
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -337,7 +350,7 @@
     string _search       = "";
 
     // 선택 버전의 자재비 = Σ(구성품 QtyPer × 품목 단가)
-    decimal _selMaterialCost => _lines.Sum(l =>
+    decimal _selMaterialCost => _lines.Where(l => l.ActiveFlag).Sum(l =>
         (l.QtyPer ?? 0m) * (_itemList.FirstOrDefault(i => i.ItemNo == l.CompItemNo)?.UnitCost ?? 0m));
 
     string _modal = "", _modalErr = "", _msg = "";
@@ -619,6 +632,7 @@
             ScrapPct     = line.ScrapPct     ?? 0,
             Position     = line.Position     ?? 10,
             Note         = line.Note         ?? "",
+            ActiveFlag   = line.ActiveFlag,
         };
         _lineConfirmDelete = false; _modalErr = ""; _modal = "line-edit";
     }
@@ -661,7 +675,15 @@
     async Task SaveLineDelete()
     {
         _busy = true;
-        try { MD.DeleteBomLine(_fl.BomId); LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineDeleted"], false); }
+        try { MD.DeleteBomLine(_fl.BomId, _actor); LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineDeleted"], false); }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    async Task SaveLineReactivate()
+    {
+        _busy = true;
+        try { MD.ReactivateBomLine(_fl.BomId, _actor); LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineReactivated"], false); }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
@@ -781,5 +803,6 @@
         public decimal ScrapPct     { get; set; } = 0;
         public int     Position     { get; set; } = 10;
         public string  Note         { get; set; } = "";
+        public bool    ActiveFlag   { get; set; } = true;
     }
 }

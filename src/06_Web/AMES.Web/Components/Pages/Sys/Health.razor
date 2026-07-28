@@ -104,13 +104,13 @@
     <div class="ames-card-h">▼ @L["SYS.Health.Events.Title"]</div>
     <RadzenDataGrid TItem="SysRepository.AuditRow" Data="@_events" AllowPaging="false" AllowSorting="true" EmptyText="@L["SYS.Health.Events.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="EventTs" Title="@L["SYS.Health.Events.Col.Time"]" Width="110px">
+            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="EventTs" Title="@L["SYS.Health.Events.Col.Time"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="e"><span class="dim code">@(e.EventTs?.ToString("HH:mm:ss") ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="Result" Title="@L["SYS.Health.Events.Col.Level"]" Width="90px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="Result" Title="@L["SYS.Health.Events.Col.Level"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="e"><span class="pill @(e.Result == "OK" ? "ok" : "warn")">@(e.Result == "OK" ? L["SYS.Health.Status.Ok"].Value : L["SYS.Health.Status.Warn"].Value)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Title="@L["SYS.Health.Events.Col.Component"]" Width="150px" Sortable="false">
+            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Title="@L["SYS.Health.Events.Col.Component"]" TextAlign="TextAlign.Center" Width="150px" Sortable="false">
                 <Template Context="e"><span class="dim">@(e.ModuleCode ?? e.ScreenCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.AuditRow" Title="@L["SYS.Health.Events.Col.Message"]" Sortable="false">

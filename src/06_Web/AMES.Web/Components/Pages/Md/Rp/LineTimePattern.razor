@@ -47,7 +47,7 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.LinePat.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.LineTimePattern.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.LineTimePattern.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
             <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
 
@@ -77,28 +77,28 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.LineTimePatternRow" Data="@_rows" AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.LinePat.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="PatternID" Title="@L["Col.PatternId"]" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="PatternID" Title="@L["Col.PatternId"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.PatternID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="PatternName" Title="@L["Col.PatternName"]">
                 <Template Context="r">@(r.PatternName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="LineID" Title="@L["Col.Line"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r"><span class="dim">@(r.LineID ?? L["MD.LineTimePattern.Global"].Value)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="DayType" Title="@L["Col.DayType"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="DayType" Title="@L["Col.DayType"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="pill">@DayTypeLabel(r.DayType)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="ShiftPattern" Title="@L["Col.ShiftModel"]" Width="140px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="ShiftPattern" Title="@L["Col.ShiftModel"]" Width="180px">
                 <Template Context="r"><span class="dim">@ShiftPatternLabel(r.ShiftPattern)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="TotalOperatingMin" Title="@L["Col.OperatingMin"]" Width="90px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="TotalOperatingMin" Title="@L["Col.OperatingMin"]" TextAlign="TextAlign.Right" Width="130px">
                 <Template Context="r">@(r.TotalOperatingMin?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="TotalPlannedDownMin" Title="@L["Col.MinDT"]" Width="90px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="TotalPlannedDownMin" Title="@L["Col.MinDT"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">@(r.TotalPlannedDownMin?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="Status" Title="@L["Col.Status"]" Width="90px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r"><span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(r.Status ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Title="@L["MD.LineTimePattern.Col.Schedule"]" Width="240px" Sortable="false">
@@ -120,10 +120,10 @@
                     }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Width="80px" Sortable="false" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Sortable="false" TextAlign="TextAlign.Center" Width="140px">
                 <Template Context="r">
                     <div @onclick:stopPropagation>
-                        <RadzenButton Text="@L["MD.LineTimePattern.Btn.EditBands"]" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="@(() => OpenEditor(r.PatternID))" class="ames-rz-btn" />
+                        <RadzenButton Text="@L["MD.LineTimePattern.Btn.EditBands"]" Icon="schedule" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="@(() => OpenEditor(r.PatternID))" class="ames-rz-btn" />
                     </div>
                 </Template>
             </RadzenDataGridColumn>
@@ -480,9 +480,7 @@
     };
     IEnumerable<DropDownItem> DayTypeOptions    => _dayTypes.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     IEnumerable<DropDownItem> ShiftPatternOptions => _shiftModels.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
-    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = LineDisplay(l) });
-    static string LineDisplay(MasterDataRepository.LineRow l)
-    { var nm = MasterDataRepository.LocalName(l.LineName, l.LineNameEn); return string.IsNullOrEmpty(nm) ? l.LineID : $"{l.LineID} {nm}"; }
+    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
     IEnumerable<DropDownItem> LineModalOptions  => new[] { new DropDownItem { Value = "", Text = L["MD.LineTimePattern.Global"].Value } }
         .Concat(_lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" }));
 

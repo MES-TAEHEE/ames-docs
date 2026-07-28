@@ -49,7 +49,7 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.Items.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Items.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:270px;" />
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Items.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
             <RadzenDropDown Name="DropDownType" @bind-Value="_fTypeFilter" Data="@ItemTypeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
@@ -66,45 +66,48 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.ItemRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Items.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemNo" Title="@L["Col.ItemNo"]" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemNo" Title="@L["Col.ItemNo"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="item"><span class="code">@item.ItemNo</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemName" Title="@L["Col.ItemName"]" />
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemType" Title="@L["Col.Type"]" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="item"><span class="pill info">@(item.ItemType ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemCategory" Title="@L["Col.Category"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemCategory" Title="@L["Col.Category"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="item"><span class="dim">@item.ItemCategory</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="CarType" Title="@L["Col.CarType"]" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="CarType" Title="@L["Col.CarType"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="item"><span class="code dim">@(item.CarType ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="PGN" Title="@L["Col.PGN"]" Width="60px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="PGN" Title="@L["Col.PGN"]" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="item"><span class="code dim">@(item.PGN ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ALC" Title="@L["Col.ALC"]" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ALC" Title="@L["Col.ALC"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="item"><span class="code dim">@(item.ALC ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="DefaultUOM" Title="@L["Col.Uom"]" Width="60px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="DefaultUOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="item"><span class="code dim">@item.DefaultUOM</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="RoutingType" Title="@L["Col.Routing"]" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="RoutingType" Title="@L["Col.Routing"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="item"><span class="code dim">@(item.RoutingType ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="SafetyStock" Title="@L["Col.Safety"]" Width="80px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="SafetyStock" Title="@L["Col.Safety"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="item">@(item.SafetyStock?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="MinStock" Title="@L["Col.MinStock"]" Width="80px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="MinStock" Title="@L["Col.MinStock"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="item">@(item.MinStock?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="MaxStock" Title="@L["Col.MaxStock"]" Width="80px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="MaxStock" Title="@L["Col.MaxStock"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="item">@(item.MaxStock?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="UnitCost" Title="@L["Col.UnitPrice"]" Width="90px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="UnitCost" Title="@L["Col.UnitPrice"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="item">@(item.UnitCost?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ActiveFlag" Title="@L["Col.Active"]" Width="52px" TextAlign="TextAlign.Center">
-                <Template Context="item"><span class="pill @(item.ActiveFlag ? "ok" : "dim")">@(item.ActiveFlag ? "Y" : "N")</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="item">
+                    @if (item.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
+                    else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
+                </Template>
             </RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
@@ -194,6 +197,7 @@
     List<MasterDataRepository.ItemRow>        _rows         = new();
     List<MasterDataRepository.CodeItemRow>    _itemTypeItems = new();
     List<MasterDataRepository.CodeItemRow>    _routingItems  = new();
+    List<MasterDataRepository.CodeItemRow>    _activeFlagItems = new();
     List<MasterDataRepository.UomRow> _uomList = new();
     MasterDataRepository.ItemRow? _sel;
 
@@ -211,11 +215,9 @@
     private IEnumerable<DropDownItem> ItemTypeOptions => _itemTypeItems.Where(t => t.UseFlag).Select(t => new DropDownItem { Value = t.CodeValue ?? "", Text = $"[{t.CodeValue}] {MasterDataRepository.LocalName(t)}" });
     private IEnumerable<DropDownItem> RoutingOptions => _routingItems.Where(r => r.UseFlag).Select(r => new DropDownItem { Value = r.CodeValue ?? "", Text = $"[{r.CodeValue}] {MasterDataRepository.LocalName(r)}" });
     private IEnumerable<DropDownItem> UomOptions => _uomList.Where(u => u.ActiveFlag).Select(u => new DropDownItem { Value = u.UOMCode ?? "", Text = u.UOMCode + (string.IsNullOrEmpty(u.UOMName) ? "" : $"  ({u.UOMName})") });
-    private List<DropDownItem> ActiveFilterOptions => new()
-    {
-        new() { Value = "Y", Text = L["Lbl.Active"].Value },
-        new() { Value = "N", Text = L["Lbl.Inactive"].Value }
-    };
+    // 상태 필터: 공통코드 ACTIVE_FLAG (ACTIVE/INACTIVE)
+    private IEnumerable<DropDownItem> ActiveFilterOptions =>
+        _activeFlagItems.Where(a => a.UseFlag).Select(a => new DropDownItem { Value = a.CodeValue ?? "", Text = MasterDataRepository.LocalName(a) });
 
     protected override async Task OnInitializedAsync()
     {
@@ -227,6 +229,7 @@
         _clientIp = ToIpv4(HttpCtxAccessor.HttpContext?.Connection.RemoteIpAddress);
         try { _itemTypeItems = MD.ListCodeItems("ITEM_TYPE"); } catch { }
         try { _routingItems = MD.ListCodeItems("ROUTING"); } catch { }
+        try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
         try { _uomList = MD.ListUoms(); } catch { }
         Reload();
     }
@@ -258,7 +261,7 @@
             (r.PGN ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.ALC ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fTypeFilter) || r.ItemType == _fTypeFilter) &&
-        (string.IsNullOrEmpty(_fActiveOnly) || (_fActiveOnly == "Y" ? r.ActiveFlag : !r.ActiveFlag))
+        (string.IsNullOrEmpty(_fActiveOnly) || (_fActiveOnly == "ACTIVE" ? r.ActiveFlag : !r.ActiveFlag))
     ).ToList();
     }
 
