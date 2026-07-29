@@ -13,10 +13,10 @@
     <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
-<div style="display:flex;gap:14px;height:calc(100vh - 120px);">
+<div style="display:flex;gap:14px;height:calc(100vh - 200px);">
 
     @* ── 좌: 금형 목록 (누적타수 포함, ZPD20042) ──────────────────────── *@
-    <div style="flex:0 0 420px;display:flex;flex-direction:column;min-height:0;">
+    <div style="flex:0 0 480px;display:flex;flex-direction:column;min-height:0;">
         <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-bottom:8px;">
                 <RadzenTextBox @bind-Value="_search" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder='@L["MD.Mold.Ph.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;" />
@@ -26,13 +26,13 @@
                 <RadzenDataGrid TItem="MasterDataRepository.MoldRow" Data="_molds" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
                                 ShowPagingSummary="false" RowRender="MoldRowRender" RowSelect="OnMoldRowSelect" EmptyText="@L["MD.Mold.Empty"]" Class="ames-rz-grid">
                     <Columns>
-                        <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="MoldID" Title="@L["Col.MoldId"]" Width="120px">
+                        <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="MoldID" Title="@L["Col.MoldId"]" TextAlign="TextAlign.Center" Width="110px">
                             <Template Context="m"><span class="code">@m.MoldID</span></Template>
                         </RadzenDataGridColumn>
                         <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="MoldName" Title="@L["Col.MoldName"]">
                             <Template Context="m">@(m.MoldName ?? "—")</Template>
                         </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="CumulativeShots" Title="@L["Col.ShotsCumulative"]" Width="90px" TextAlign="TextAlign.Right">
+                        <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="CumulativeShots" Title="@L["Col.ShotsCumulative"]" TextAlign="TextAlign.Right" Width="100px">
                             <Template Context="m"><span class="code">@m.CumulativeShots.ToString("N0")</span></Template>
                         </RadzenDataGridColumn>
                     </Columns>
@@ -69,37 +69,37 @@
                     <RadzenDataGrid TItem="MasterDataRepository.MoldItemRow" Data="_items" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
                                     ShowPagingSummary="@_showPagerSummary" PageSizeOptions="@_pageSizeOptions" RowRender="ItemRowRender" RowSelect="OpenEdit" EmptyText="@L["MD.MoldItem.Empty"]" Class="ames-rz-grid">
                         <Columns>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="ItemNo" Title="@L["Col.ItemNo"]" Width="130px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="ItemNo" Title="@L["Col.ItemNo"]" TextAlign="TextAlign.Center" Width="130px">
                                 <Template Context="i"><span class="code">@i.ItemNo</span></Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="ItemName" Title="@L["Col.ItemName"]">
                                 <Template Context="i"><span class="dim">@(i.ItemName ?? "—")</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="Color" Title="@L["Col.Color"]" Width="70px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="Color" Title="@L["Col.Color"]" TextAlign="TextAlign.Center" Width="70px">
                                 <Template Context="i">@(i.Color ?? "—")</Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="CavitySeq" Title="@L["Col.CavitySeq"]" Width="80px" TextAlign="TextAlign.Right">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="CavitySeq" Title="@L["Col.CavitySeq"]" TextAlign="TextAlign.Right" Width="80px">
                                 <Template Context="i">@i.CavitySeq</Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="CavityPos" Title="@L["Col.CavityPos"]" Width="80px" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="CavityPos" Title="@L["Col.CavityPos"]" TextAlign="TextAlign.Center" Width="80px">
                                 <Template Context="i">@(i.CavityPos ?? "—")</Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="Usage" Title="@L["Col.Usage"]" Width="80px" TextAlign="TextAlign.Right">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="Usage" Title="@L["Col.Usage"]" TextAlign="TextAlign.Right" Width="80px">
                                 <Template Context="i"><span class="code dim">@(i.Usage?.ToString("N2") ?? "—")</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="ResinItemNo" Title="@L["Col.ResinItemNo"]" Width="110px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="ResinItemNo" Title="@L["Col.ResinItemNo"]" TextAlign="TextAlign.Center" Width="110px">
                                 <Template Context="i"><span class="code dim" style="font-size:.85em;">@(i.ResinItemNo ?? "—")</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="ResinUsage" Title="@L["Col.ResinUsage"]" Width="90px" TextAlign="TextAlign.Right">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="ResinUsage" Title="@L["Col.ResinUsage"]" TextAlign="TextAlign.Right" Width="90px">
                                 <Template Context="i"><span class="code dim">@(i.ResinUsage?.ToString("N2") ?? "—")</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="CavityCount" Title="@L["Col.Cavities"]" Width="70px" TextAlign="TextAlign.Right">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="CavityCount" Title="@L["Col.Cavities"]" TextAlign="TextAlign.Right" Width="70px">
                                 <Template Context="i">@i.CavityCount</Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="MoldCategory" Title="@L["Col.MoldCategory"]" Width="100px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="MoldCategory" Title="@L["Col.MoldCategory"]" TextAlign="TextAlign.Center" Width="100px">
                                 <Template Context="i"><span class="dim">@(i.MoldCategory ?? "—")</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="ActiveFlag" Title="@L["Col.Active"]" Width="60px" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="60px">
                                 <Template Context="i"><span class="pill @(i.ActiveFlag ? "ok" : "dim")">@(i.ActiveFlag ? "Y" : "N")</span></Template>
                             </RadzenDataGridColumn>
                         </Columns>

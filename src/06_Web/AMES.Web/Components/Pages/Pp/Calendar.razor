@@ -50,167 +50,167 @@
 
 <AmesTabs>
 
-@* ══════════════════════════════════════════════════════════════════ *@
-@* ── MONTH VIEW ─────────────────────────────────────────────────── *@
-@* ══════════════════════════════════════════════════════════════════ *@
-<AmesTab Title="@($"▦ {L["PP.Calendar.Tab.Month"].Value}")">
-    <div class="ames-card">
-        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-                <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevMonth" class="ames-rz-btn" />
-                <span style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;">
-                    @string.Format(L["Fmt.CalYearMonth"], _calYear, _calMonth)
-                </span>
-                <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@NextMonth" class="ames-rz-btn" />
+    @* ══════════════════════════════════════════════════════════════════ *@
+    @* ── MONTH VIEW ─────────────────────────────────────────────────── *@
+    @* ══════════════════════════════════════════════════════════════════ *@
+    <AmesTab Title="@($"▦ {L["PP.Calendar.Tab.Month"].Value}")">
+        <div class="ames-card">
+            <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevMonth" class="ames-rz-btn" />
+                    <span style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;">
+                        @string.Format(L["Fmt.CalYearMonth"], _calYear, _calMonth)
+                    </span>
+                    <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@NextMonth" class="ames-rz-btn" />
+                </div>
+                @FilterBar()
             </div>
-            @FilterBar()
-        </div>
 
-        @{
-            var firstOfMonth = new DateTime(_calYear, _calMonth, 1);
-            var daysInMonth  = DateTime.DaysInMonth(_calYear, _calMonth);
-            int startOffset  = (int)firstOfMonth.DayOfWeek;
-            int rows         = (int)Math.Ceiling((startOffset + daysInMonth) / 7.0);
-        }
-
-        <div class="ames-cal-grid pp-wo-grid">
-            @foreach (var (key, cls) in new[] {
-                ("PP.Calendar.Day.Sun","sun"),
-                ("PP.Calendar.Day.Mon",""),
-                ("PP.Calendar.Day.Tue",""),
-                ("PP.Calendar.Day.Wed",""),
-                ("PP.Calendar.Day.Thu",""),
-                ("PP.Calendar.Day.Fri",""),
-                ("PP.Calendar.Day.Sat","sat") })
-            {
-                <div class="ames-cal-head @cls">@L[key]</div>
+            @{
+                var firstOfMonth = new DateTime(_calYear, _calMonth, 1);
+                var daysInMonth  = DateTime.DaysInMonth(_calYear, _calMonth);
+                int startOffset  = (int)firstOfMonth.DayOfWeek;
+                int rows         = (int)Math.Ceiling((startOffset + daysInMonth) / 7.0);
             }
 
-            @for (int cell = 0; cell < rows * 7; cell++)
-            {
-                int dayNum = cell - startOffset + 1;
-                if (dayNum < 1 || dayNum > daysInMonth)
+            <div class="ames-cal-grid pp-wo-grid">
+                @foreach (var (key, cls) in new[] {
+                    ("PP.Calendar.Day.Sun","sun"),
+                    ("PP.Calendar.Day.Mon",""),
+                    ("PP.Calendar.Day.Tue",""),
+                    ("PP.Calendar.Day.Wed",""),
+                    ("PP.Calendar.Day.Thu",""),
+                    ("PP.Calendar.Day.Fri",""),
+                    ("PP.Calendar.Day.Sat","sat") })
                 {
-                    <div class="ames-cal-cell ames-cal-cell--empty"></div>
+                    <div class="ames-cal-head @cls">@L[key]</div>
                 }
-                else
+
+                @for (int cell = 0; cell < rows * 7; cell++)
                 {
-                    var date     = new DateTime(_calYear, _calMonth, dayNum);
+                    int dayNum = cell - startOffset + 1;
+                    if (dayNum < 1 || dayNum > daysInMonth)
+                    {
+                        <div class="ames-cal-cell ames-cal-cell--empty"></div>
+                    }
+                    else
+                    {
+                        var date     = new DateTime(_calYear, _calMonth, dayNum);
+                        var wos      = GetWosForDate(date);
+                        int dow      = (int)date.DayOfWeek;
+                        bool isSun   = dow == 0;
+                        bool isSat   = dow == 6;
+                        bool isToday = date.Date == DateTime.Today;
+
+                        string cellCls = "ames-cal-cell";
+                        if (isToday)        cellCls += " ames-cal-cell--today";
+                        if (wos.Count > 0)  cellCls += " ames-cal-cell--data";
+                        if (isSat || isSun) cellCls += " ames-cal-cell--weekend";
+
+                        const int MaxChips = 3;
+                        <div class="@cellCls">
+                            <div class="ames-cal-daynum @(isSun ? "sun" : isSat ? "sat" : "")">
+                                @dayNum
+                                @if (isToday) { <span class="ames-cal-today-dot"></span> }
+                            </div>
+                            @foreach (var wo in wos.Take(MaxChips))
+                            {
+                                var capWo = wo;
+                                <div class="ames-cal-wo @GetWoCls(wo)" title="@GetWoTip(wo)"
+                                     @onclick="() => ShowDetail(capWo)" @onclick:stopPropagation>
+                                    @wo.WoNumber
+                                </div>
+                            }
+                            @if (wos.Count > MaxChips)
+                            {
+                                var capDate = date;
+                                <div class="ames-cal-wo-more"
+                                     @onclick="() => ShowDayModal(capDate)" @onclick:stopPropagation>
+                                    @string.Format(L["PP.Calendar.More"].Value, wos.Count - MaxChips)
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+
+            <div class="ames-cal-legend">@Legend()</div>
+        </div>
+    </AmesTab>
+
+    @* ══════════════════════════════════════════════════════════════════ *@
+    @* ── WEEK VIEW ──────────────────────────────────────────────────── *@
+    @* ══════════════════════════════════════════════════════════════════ *@
+    <AmesTab Title="@($"≡ {L["PP.Calendar.Tab.Week"].Value}")">
+        @{ var weekDates = GetWeekDates(); }
+        <div class="ames-card">
+            <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevWeek" class="ames-rz-btn" />
+                    <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#fff;">
+                        @weekDates[0].ToString("MM/dd") — @weekDates[6].ToString("MM/dd")
+                        <span style="font-size:14px;color:#64748b;letter-spacing:1px;margin-left:8px;">
+                            @_weekStart.Year@L["Lbl.Year"]
+                        </span>
+                    </span>
+                    <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@NextWeek" class="ames-rz-btn" />
+                </div>
+                @FilterBar()
+            </div>
+
+            <div style="margin-top:6px;">
+                @foreach (var date in weekDates)
+                {
                     var wos      = GetWosForDate(date);
                     int dow      = (int)date.DayOfWeek;
                     bool isSun   = dow == 0;
                     bool isSat   = dow == 6;
                     bool isToday = date.Date == DateTime.Today;
 
-                    string cellCls = "ames-cal-cell";
-                    if (isToday)        cellCls += " ames-cal-cell--today";
-                    if (wos.Count > 0)  cellCls += " ames-cal-cell--data";
-                    if (isSat || isSun) cellCls += " ames-cal-cell--weekend";
-
-                    const int MaxChips = 3;
-                    <div class="@cellCls">
-                        <div class="ames-cal-daynum @(isSun ? "sun" : isSat ? "sat" : "")">
-                            @dayNum
-                            @if (isToday) { <span class="ames-cal-today-dot"></span> }
+                    string rowBg = isToday        ? "background:rgba(147,197,253,.06);border-color:rgba(147,197,253,.35);"
+                                 : (isSat||isSun) ? "background:rgba(251,191,36,.02);border-color:rgba(251,191,36,.08);"
+                                                  : "border-color:rgba(255,255,255,.06);";
+                    <div style="display:grid;grid-template-columns:90px 1fr;gap:0;
+                                border:1px solid;border-radius:6px;margin-bottom:5px;
+                                min-height:44px;overflow:hidden;@rowBg">
+                        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;
+                                    border-right:1px solid rgba(255,255,255,.06);">
+                            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;
+                                         text-transform:uppercase;letter-spacing:.05em;
+                                         color:@(isSun?"#fca5a5":isSat?"#93c5fd":"#64748b");">
+                                @date.ToString("ddd")
+                            </span>
+                            <span style="font-family:'JetBrains Mono',monospace;font-size:18px;
+                                         font-weight:700;
+                                         color:@(isSun?"#fca5a5":isSat?"#93c5fd":isToday?"#93c5fd":"#cbd5e1");
+                                         line-height:1;display:flex;align-items:center;gap:4px;">
+                                @date.Day
+                                @if (isToday) { <span class="ames-cal-today-dot"></span> }
+                            </span>
                         </div>
-                        @foreach (var wo in wos.Take(MaxChips))
-                        {
-                            var capWo = wo;
-                            <div class="ames-cal-wo @GetWoCls(wo)" title="@GetWoTip(wo)"
-                                 @onclick="() => ShowDetail(capWo)" @onclick:stopPropagation>
-                                @wo.WoNumber
-                            </div>
-                        }
-                        @if (wos.Count > MaxChips)
-                        {
-                            var capDate = date;
-                            <div class="ames-cal-wo-more"
-                                 @onclick="() => ShowDayModal(capDate)" @onclick:stopPropagation>
-                                @string.Format(L["PP.Calendar.More"].Value, wos.Count - MaxChips)
-                            </div>
-                        }
+                        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:6px 10px;">
+                            @if (wos.Count == 0)
+                            {
+                                <span style="color:#334155;font-size:11px;font-family:'JetBrains Mono',monospace;">—</span>
+                            }
+                            @foreach (var wo in wos)
+                            {
+                                var capWo = wo;
+                                <div class="ames-cal-wo @GetWoCls(wo)" title="@GetWoTip(wo)"
+                                     style="margin-top:0;white-space:nowrap;"
+                                     @onclick="() => ShowDetail(capWo)">
+                                    <span style="font-weight:700;">@wo.WoNumber</span>
+                                    <span style="opacity:.7;margin-left:4px;font-size:9px;">@(wo.ItemName ?? wo.ItemNo)</span>
+                                </div>
+                            }
+                        </div>
                     </div>
                 }
-            }
-        </div>
-
-        <div class="ames-cal-legend">@Legend()</div>
-    </div>
-</AmesTab>
-
-@* ══════════════════════════════════════════════════════════════════ *@
-@* ── WEEK VIEW ──────────────────────────────────────────────────── *@
-@* ══════════════════════════════════════════════════════════════════ *@
-<AmesTab Title="@($"≡ {L["PP.Calendar.Tab.Week"].Value}")">
-    @{ var weekDates = GetWeekDates(); }
-    <div class="ames-card">
-        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-                <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevWeek" class="ames-rz-btn" />
-                <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#fff;">
-                    @weekDates[0].ToString("MM/dd") — @weekDates[6].ToString("MM/dd")
-                    <span style="font-size:14px;color:#64748b;letter-spacing:1px;margin-left:8px;">
-                        @_weekStart.Year@L["Lbl.Year"]
-                    </span>
-                </span>
-                <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@NextWeek" class="ames-rz-btn" />
             </div>
-            @FilterBar()
+
+            <div class="ames-cal-legend">@Legend()</div>
         </div>
-
-        <div style="margin-top:6px;">
-            @foreach (var date in weekDates)
-            {
-                var wos      = GetWosForDate(date);
-                int dow      = (int)date.DayOfWeek;
-                bool isSun   = dow == 0;
-                bool isSat   = dow == 6;
-                bool isToday = date.Date == DateTime.Today;
-
-                string rowBg = isToday        ? "background:rgba(147,197,253,.06);border-color:rgba(147,197,253,.35);"
-                             : (isSat||isSun) ? "background:rgba(251,191,36,.02);border-color:rgba(251,191,36,.08);"
-                                              : "border-color:rgba(255,255,255,.06);";
-                <div style="display:grid;grid-template-columns:90px 1fr;gap:0;
-                            border:1px solid;border-radius:6px;margin-bottom:5px;
-                            min-height:44px;overflow:hidden;@rowBg">
-                    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;
-                                border-right:1px solid rgba(255,255,255,.06);">
-                        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;
-                                     text-transform:uppercase;letter-spacing:.05em;
-                                     color:@(isSun?"#fca5a5":isSat?"#93c5fd":"#64748b");">
-                            @date.ToString("ddd")
-                        </span>
-                        <span style="font-family:'JetBrains Mono',monospace;font-size:18px;
-                                     font-weight:700;
-                                     color:@(isSun?"#fca5a5":isSat?"#93c5fd":isToday?"#93c5fd":"#cbd5e1");
-                                     line-height:1;display:flex;align-items:center;gap:4px;">
-                            @date.Day
-                            @if (isToday) { <span class="ames-cal-today-dot"></span> }
-                        </span>
-                    </div>
-                    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:6px 10px;">
-                        @if (wos.Count == 0)
-                        {
-                            <span style="color:#334155;font-size:11px;font-family:'JetBrains Mono',monospace;">—</span>
-                        }
-                        @foreach (var wo in wos)
-                        {
-                            var capWo = wo;
-                            <div class="ames-cal-wo @GetWoCls(wo)" title="@GetWoTip(wo)"
-                                 style="margin-top:0;white-space:nowrap;"
-                                 @onclick="() => ShowDetail(capWo)">
-                                <span style="font-weight:700;">@wo.WoNumber</span>
-                                <span style="opacity:.7;margin-left:4px;font-size:9px;">@(wo.ItemName ?? wo.ItemNo)</span>
-                            </div>
-                        }
-                    </div>
-                </div>
-            }
-        </div>
-
-        <div class="ames-cal-legend">@Legend()</div>
-    </div>
-</AmesTab>
+    </AmesTab>
 
 </AmesTabs>
 

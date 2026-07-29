@@ -13,10 +13,10 @@
     <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
-<div style="display:flex;gap:14px;height:calc(100vh - 120px);">
+<div style="display:flex;gap:14px;height:calc(100vh - 200px);">
 
     @* ── 좌: 라인 목록 ──────────────────────────────────────────────── *@
-    <div style="flex:0 0 420px;display:flex;flex-direction:column;min-height:0;">
+    <div style="flex:0 0 480px;display:flex;flex-direction:column;min-height:0;">
         <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-bottom:8px;">
                 <RadzenTextBox @bind-Value="_search" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.MoldLine.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;" />
@@ -24,9 +24,9 @@
             </RadzenStack>
             <div style="flex:1;min-height:0;overflow:hidden;">
                 <RadzenDataGrid TItem="MasterDataRepository.LineRow" Data="_lines" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
-                                ShowPagingSummary="false" RowRender="LineRowRender" RowSelect="OnLineRowSelect" EmptyText="@L["Msg.NoData"]" Class="ames-rz-grid">
+                                ShowPagingSummary="false" RowRender="LineRowRender" RowSelect="OnLineRowSelect" EmptyText="@L["MD.MoldLine.Empty"]" Class="ames-rz-grid">
                     <Columns>
-                        <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineID" Title="@L["Col.LineId"]" Width="130px">
+                        <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineID" Title="@L["Col.LineId"]" TextAlign="TextAlign.Center" Width="110px">
                             <Template Context="l"><span class="code">@l.LineID</span></Template>
                         </RadzenDataGridColumn>
                         <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineName" Title="@L["Col.LineName"]">
@@ -64,18 +64,18 @@
                 </div>
                 <div style="flex:1;min-height:0;overflow:hidden;">
                     <RadzenDataGrid TItem="MasterDataRepository.MoldLineRow" Data="_moldLines" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
-                                    ShowPagingSummary="@_showPagerSummary" PageSizeOptions="@_pageSizeOptions" RowRender="MoldLineRowRender" RowSelect="OpenEdit" EmptyText="@L["Msg.NoData"]" Class="ames-rz-grid">
+                                    ShowPagingSummary="@_showPagerSummary" PageSizeOptions="@_pageSizeOptions" RowRender="MoldLineRowRender" RowSelect="OpenEdit" EmptyText="@L["MD.MoldLine.Empty"]" Class="ames-rz-grid">
                         <Columns>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldLineRow" Property="MoldID" Title="@L["Col.MoldId"]" Width="140px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldLineRow" Property="MoldID" Title="@L["Col.MoldId"]" TextAlign="TextAlign.Center" Width="140px">
                                 <Template Context="ml"><span class="code">@ml.MoldID</span></Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.MoldLineRow" Property="MoldName" Title="@L["Col.MoldName"]">
                                 <Template Context="ml"><span class="dim">@(ml.MoldName ?? "—")</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldLineRow" Property="UPH" Title="@L["Col.UPH"]" Width="90px" TextAlign="TextAlign.Right">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldLineRow" Property="UPH" Title="@L["Col.UPH"]" TextAlign="TextAlign.Right" Width="90px">
                                 <Template Context="ml"><span class="code">@(ml.UPH?.ToString("N1") ?? "—")</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldLineRow" Property="PrepTime" Title="@L["Col.PrepTime"]" Width="110px" TextAlign="TextAlign.Right">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldLineRow" Property="PrepTime" Title="@L["Col.PrepTime"]" TextAlign="TextAlign.Right" Width="110px">
                                 <Template Context="ml"><span class="code">@(ml.PrepTime?.ToString("N1") ?? "—")</span></Template>
                             </RadzenDataGridColumn>
                         </Columns>

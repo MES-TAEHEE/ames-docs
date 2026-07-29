@@ -5247,4 +5247,7 @@
   <data name="PP.LineSchedule.Err.PastDate" xml:space="preserve">
     <value>과거 일자는 적용·발행할 수 없습니다</value>
   </data>
+  <data name="MD.MoldLine.Empty" xml:space="preserve">
+    <value>라인에 등록된 금형이 없습니다.</value>
+  </data>
 </root>

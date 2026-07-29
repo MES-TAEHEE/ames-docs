@@ -99,7 +99,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="ParticleUm" Title="@L["Col.ParticleSize"]" Width="85px" TextAlign="TextAlign.Right">
                 <Template Context="r">@(r.ParticleUm?.ToString("0.0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="ActiveFlag" Title="@L["Col.Status"]" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="ActiveFlag" Title="@L["Col.Active"]" Width="90px">
                 <Template Context="r">
                     @if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
                     else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
@@ -269,11 +269,9 @@
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
-    private IEnumerable<DropDownItem> ActiveFilterOptions => new[]
-    {
-        new DropDownItem { Value = "Y", Text = L["Lbl.Active"].Value },
-        new DropDownItem { Value = "N", Text = L["Lbl.Inactive"].Value },
-    };
+    List<MasterDataRepository.CodeItemRow> _activeFlagItems = new();
+    private IEnumerable<DropDownItem> ActiveFilterOptions =>
+        _activeFlagItems.Where(a => a.UseFlag).Select(a => new DropDownItem { Value = a.CodeValue ?? "", Text = MasterDataRepository.LocalName(a) });
 
     protected override async Task OnInitializedAsync()
     {
@@ -281,6 +279,7 @@
         _actor = auth.User.Identity?.Name ?? "system";
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/rm/ral-color");
+        try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
         Reload();
     }
 
@@ -305,7 +304,7 @@
         (string.IsNullOrEmpty(_fSearch) ||
             r.RALCode.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.ColorName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
-        (_fActive == null || (_fActive == "Y" ? r.ActiveFlag : !r.ActiveFlag))
+        (_fActive == null || (_fActive == "ACTIVE" ? r.ActiveFlag : !r.ActiveFlag))
     ).ToList();
     }
 

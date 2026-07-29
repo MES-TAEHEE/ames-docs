@@ -86,7 +86,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="SafetyLOTOFlag" Title="@L["Col.LOTO"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="r">@if (r.SafetyLOTOFlag) { <span class="pill warn">LOTO</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="ActiveFlag" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
                     else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
@@ -398,11 +398,9 @@
         new() { Value = "COUNT",    Text = "COUNT" },
         new() { Value = "CALENDAR", Text = "CALENDAR" },
     };
-    private List<DropDownItem> ActiveFilterOptions => new()
-    {
-        new() { Value = "Y", Text = L["Lbl.Active"].Value },
-        new() { Value = "N", Text = L["Lbl.Inactive"].Value },
-    };
+    List<MasterDataRepository.CodeItemRow> _activeFlagItems = new();
+    private IEnumerable<DropDownItem> ActiveFilterOptions =>
+        _activeFlagItems.Where(a => a.UseFlag).Select(a => new DropDownItem { Value = a.CodeValue ?? "", Text = MasterDataRepository.LocalName(a) });
 
     protected override async Task OnInitializedAsync()
     {
@@ -411,6 +409,7 @@
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/rp/pm-template");
         try { _uomList = MD.ListUoms(); } catch { }
+        try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
         Reload();
     }
 
@@ -446,8 +445,8 @@
                 (r.TemplateName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
         if (!string.IsNullOrWhiteSpace(_fEquipType))
             _rows = _rows.Where(r => r.EquipType == _fEquipType).ToList();
-        if (_fActive == "Y") _rows = _rows.Where(r => r.ActiveFlag).ToList();
-        if (_fActive == "N") _rows = _rows.Where(r => !r.ActiveFlag).ToList();
+        if (_fActive == "ACTIVE")   _rows = _rows.Where(r => r.ActiveFlag).ToList();
+        if (_fActive == "INACTIVE") _rows = _rows.Where(r => !r.ActiveFlag).ToList();
     }
 
     void OnSearchChanged(string value) => _fSearch = value ?? "";

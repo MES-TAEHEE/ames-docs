@@ -23,8 +23,8 @@
         <div class="ames-kpi-v">@_allRows.Count</div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
+        <div class="ames-kpi-l">@RunLabel</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "RUN")</div>
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">@L["Kpi.LineCount"]</div>
@@ -45,7 +45,7 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.Oven.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Oven.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;" />
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Oven.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
             <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
@@ -62,37 +62,37 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.OvenRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Oven.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="OvenID" Title="@L["Col.OvenId"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="OvenID" Title="@L["Col.OvenId"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.OvenID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="OvenName" Title="@L["Col.Name"]">
                 <Template Context="r">@(r.OvenName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="LineID" Title="@L["Col.Line"]" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r"><span class="dim">@(r.LineID ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="ZoneCount" Title="@L["Col.ZoneCount"]" Width="80px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="ZoneCount" Title="@L["Col.ZoneCount"]" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="r">@(r.ZoneCount?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="TargetTemp" Title="@L["Col.TargetTemp"]" Width="80px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="TargetTemp" Title="@L["Col.TargetTemp"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r">@(r.TargetTemp?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="Tolerance" Title="@L["Col.TempTolerance"]" Width="80px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="Tolerance" Title="@L["Col.TempTolerance"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r">@(r.Tolerance.HasValue ? $"±{r.Tolerance}" : "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="DwellSec" Title="@L["Col.DwellTime"]" Width="80px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="DwellSec" Title="@L["Col.DwellTime"]" TextAlign="TextAlign.Right" Width="130px">
                 <Template Context="r">@(r.DwellSec?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="ConveyorSpeed" Title="@L["Col.ConveyorSpeed"]" Width="90px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="ConveyorSpeed" Title="@L["Col.ConveyorSpeed"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r">@(r.ConveyorSpeed?.ToString("F2") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="MaxLoadKg" Title="@L["Col.MaxLoad"]" Width="80px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="MaxLoadKg" Title="@L["Col.MaxLoad"]" TextAlign="TextAlign.Right" Width="130px">
                 <Template Context="r">@(r.MaxLoadKg?.ToString("F1") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="Status" Title="@L["Col.Status"]" Width="90px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @{
-                        var scls   = r.Status == "ACTIVE" ? "ok" : "bad";
+                        var scls   = r.Status switch { "RUN" => "ok", "IDLE" => "mute", _ => "mute" };
                         var sLabel = _ovenStatus.FirstOrDefault(s => s.CodeValue == r.Status) is { } lf ? MasterDataRepository.LocalName(lf) : r.Status;
                     }
                     <span class="pill @scls">@(sLabel ?? "—")</span>
@@ -276,9 +276,12 @@
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
-    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"{l.LineID} {nm}" : l.LineID });
+    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
     IEnumerable<DropDownItem> LineOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
     IEnumerable<DropDownItem> OvenStatusOptions => _ovenStatus.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = MasterDataRepository.LocalName(s) });
+
+    // 가동(RUN) KPI 라벨: OVEN_STATUS 공통코드 LocalName (다국어)
+    string RunLabel => _ovenStatus.FirstOrDefault(s => s.CodeValue == "RUN") is { } rf ? MasterDataRepository.LocalName(rf) : "RUN";
 
     protected override async Task OnInitializedAsync()
     {

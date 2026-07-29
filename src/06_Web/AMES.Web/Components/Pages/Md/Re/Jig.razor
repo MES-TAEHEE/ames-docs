@@ -51,7 +51,7 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.Jig.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Jig.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;" />
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Jig.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Health"]" Component="DropDownHealth" />
             <RadzenDropDown Name="DropDownHealth" @bind-Value="_fHealth" Data="@HealthFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenLabel Text="@L["Col.Active"]" Component="DropDownActive" />
@@ -68,22 +68,22 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.JigRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Jig.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="JigID" Title="@L["Col.JigId"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="JigID" Title="@L["Col.JigId"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.JigID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="JigName" Title="@L["Col.Name"]">
                 <Template Context="r">@(r.JigName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="HangerCount" Title="@L["Col.HangerCount"]" Width="80px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="HangerCount" Title="@L["Col.HangerCount"]" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="r">@(r.HangerCount?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="RatedCycle" Title="@L["Col.RatedCycle"]" Width="90px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="RatedCycle" Title="@L["Col.RatedCycle"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r">@(r.RatedCycle?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="CycleCount" Title="@L["Col.ShotsCurrent"]" Width="90px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="CycleCount" Title="@L["Col.ShotsCurrent"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r">@(r.CycleCount?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Title="@L["Col.UsagePct"]" Width="80px" TextAlign="TextAlign.Center" Sortable="false">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Title="@L["Col.UsagePct"]" TextAlign="TextAlign.Center" Width="80px" Sortable="false">
                 <Template Context="r">
                     @{
                         var pct    = r.RatedCycle is > 0 && r.CycleCount.HasValue ? (double)r.CycleCount.Value / r.RatedCycle.Value * 100 : (double?)null;
@@ -93,10 +93,10 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="ReadFailRate" Title="@L["Col.ReadFailRate"]" Width="80px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="ReadFailRate" Title="@L["Col.ReadFailRate"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r">@(r.ReadFailRate?.ToString("F2") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="HealthStatus" Title="@L["Col.Health"]" Width="80px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="HealthStatus" Title="@L["Col.Health"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="r">
                     @{
                         var hCss = r.HealthStatus switch { "OK" => "ok", "WARN" => "warn", "FAIL" => "bad", _ => "" };
@@ -105,10 +105,10 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="LastServiceDate" Title="@L["Col.LastMaint"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="LastServiceDate" Title="@L["Col.LastMaint"]" Width="120px">
                 <Template Context="r"><span class="dim">@(r.LastServiceDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="ActiveFlag" Title="@L["Col.Active"]" Width="80px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
                     else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
@@ -285,11 +285,9 @@
         new() { Value = "WARN", Text = "WARN" },
         new() { Value = "FAIL", Text = "FAIL" },
     };
-    DropDownItem[] ActiveFilterOptions =
-    {
-        new() { Value = "Y", Text = "Active"   },
-        new() { Value = "N", Text = "Inactive" },
-    };
+    List<MasterDataRepository.CodeItemRow> _activeFlagItems = new();
+    IEnumerable<DropDownItem> ActiveFilterOptions =>
+        _activeFlagItems.Where(a => a.UseFlag).Select(a => new DropDownItem { Value = a.CodeValue ?? "", Text = MasterDataRepository.LocalName(a) });
 
     protected override async Task OnInitializedAsync()
     {
@@ -297,6 +295,7 @@
         _actor = auth.User.Identity?.Name ?? "system";
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/re/jig");
+        try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
         Reload();
     }
 
@@ -322,7 +321,7 @@
             r.JigID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.JigName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fHealth) || r.HealthStatus == _fHealth) &&
-        (string.IsNullOrEmpty(_fActive) || (_fActive == "Y" ? r.ActiveFlag : !r.ActiveFlag))
+        (string.IsNullOrEmpty(_fActive) || (_fActive == "ACTIVE" ? r.ActiveFlag : !r.ActiveFlag))
     ).ToList();
     }
 

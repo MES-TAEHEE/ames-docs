@@ -37,98 +37,98 @@
 </div>
 
 <AmesTabs>
-<AmesTab Title="@L["MD.Mold.Tab.Master"].Value">
+    <AmesTab Title="@L["MD.Mold.Tab.Master"].Value">
 
-@if (!string.IsNullOrEmpty(_msg))
-{
-    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
-}
+        @if (!string.IsNullOrEmpty(_msg))
+        {
+            <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+        }
 
-<div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.Mold.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder='@L["MD.Mold.Ph.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
-            <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
-            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
-            <RadzenLabel Text="@L["Col.StorageLoc"]" Component="DropDownStorageLoc" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownStorageLoc" @bind-Value="_fLoc" Data="@LocFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+        <div class="ames-card">
+            <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span style="white-space:nowrap;">▼ @L["MD.Mold.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+                    <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder='@L["MD.Mold.Ph.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
+                    <RadzenLabel Text="@L["Col.StorageLoc"]" Component="DropDownStorageLoc" />
+                    <RadzenDropDown AllowFiltering="true" Name="DropDownStorageLoc" @bind-Value="_fLoc" Data="@LocFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+                    <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
+                    <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
 
-            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
-            @if (_canEdit)
-            {
-                <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
-            }
-        </RadzenStack>
-    </div>
-
-    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.MoldRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Mold.Empty"]" Class="ames-rz-grid">
-        <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="MoldID" Title="@L["Col.MoldId"]" Width="110px">
-                <Template Context="r"><span class="code">@r.MoldID</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="MoldName" Title="@L["Col.MoldName"]">
-                <Template Context="r">@(r.MoldName ?? "—")</Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="CavityCount" Title="@L["Col.Cavities"]" Width="70px" TextAlign="TextAlign.Right">
-                <Template Context="r">@(r.CavityCount?.ToString() ?? "—")</Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="Tonnage" Title="@L["Col.Tonnage"]" Width="80px" TextAlign="TextAlign.Right">
-                <Template Context="r">@(r.Tonnage?.ToString("N0") ?? "—")</Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="RatedShots" Title="@L["Col.ShotsLifetime"]" Width="100px" TextAlign="TextAlign.Right">
-                <Template Context="r">@(r.RatedShots?.ToString("N0") ?? "—")</Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="CurrentShots" Title="@L["Col.ShotsCurrent"]" Width="100px" TextAlign="TextAlign.Right">
-                <Template Context="r">@(r.CurrentShots?.ToString("N0") ?? "—")</Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="CumulativeShots" Title="@L["Col.ShotsCumulative"]" Width="110px" TextAlign="TextAlign.Right">
-                <Template Context="r">@r.CumulativeShots.ToString("N0")</Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Title="@L["Col.UsagePct"]" Width="80px" TextAlign="TextAlign.Right" Sortable="false">
-                <Template Context="r">
-                    @{
-                        var pct = r.RatedShots.HasValue && r.RatedShots > 0 && r.CurrentShots.HasValue
-                            ? (double)r.CurrentShots.Value / r.RatedShots.Value * 100
-                            : (double?)null;
-                    }
-                    @if (pct.HasValue)
+                    <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+                    @if (_canEdit)
                     {
-                        var cls = pct.Value >= 100 ? "bad" : pct.Value >= 80 ? "warn" : "ok";
-                        <span class="pill @cls">@pct.Value.ToString("N1")%</span>
+                        <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
                     }
-                    else { <span class="dim">—</span> }
-                </Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="StorageLoc" Title="@L["Col.StorageLoc"]" Width="100px">
-                <Template Context="r"><span class="dim">@(r.StorageLoc ?? "—")</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="LastMaintDate" Title="@L["Col.LastMaint"]" Width="100px">
-                <Template Context="r"><span class="dim">@(r.LastMaintDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="Status" Title="@L["Col.Status"]" Width="110px" TextAlign="TextAlign.Center">
-                <Template Context="r">
-                    @{
-                        var scls   = r.Status switch { "AVAILABLE" => "ok", "MOUNTED" => "info", _ => "bad" };
-                        var sLabel = _moldStatus.FirstOrDefault(s => s.CodeValue == r.Status) is { } lf ? MasterDataRepository.LocalName(lf) : r.Status;
-                    }
-                    <span class="pill @scls">@(sLabel ?? "—")</span>
-                </Template>
-            </RadzenDataGridColumn>
-        </Columns>
-    </RadzenDataGrid>
-</div>
+                </RadzenStack>
+            </div>
 
-</AmesTab>
+            <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.MoldRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Mold.Empty"]" Class="ames-rz-grid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="MoldID" Title="@L["Col.MoldId"]" TextAlign="TextAlign.Center" Width="110px">
+                        <Template Context="r"><span class="code">@r.MoldID</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="MoldName" Title="@L["Col.MoldName"]">
+                        <Template Context="r">@(r.MoldName ?? "—")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="CavityCount" Title="@L["Col.Cavities"]" TextAlign="TextAlign.Right" Width="100px">
+                        <Template Context="r">@(r.CavityCount?.ToString() ?? "—")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="Tonnage" Title="@L["Col.Tonnage"]" TextAlign="TextAlign.Right" Width="100px">
+                        <Template Context="r">@(r.Tonnage?.ToString("N0") ?? "—")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="RatedShots" Title="@L["Col.ShotsLifetime"]" TextAlign="TextAlign.Right" Width="100px">
+                        <Template Context="r">@(r.RatedShots?.ToString("N0") ?? "—")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="CurrentShots" Title="@L["Col.ShotsCurrent"]" TextAlign="TextAlign.Right" Width="120px">
+                        <Template Context="r">@(r.CurrentShots?.ToString("N0") ?? "—")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="CumulativeShots" Title="@L["Col.ShotsCumulative"]" TextAlign="TextAlign.Right" Width="100px">
+                        <Template Context="r">@r.CumulativeShots.ToString("N0")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Title="@L["Col.UsagePct"]" TextAlign="TextAlign.Right" Width="80px" Sortable="false">
+                        <Template Context="r">
+                            @{
+                                var pct = r.RatedShots.HasValue && r.RatedShots > 0 && r.CurrentShots.HasValue
+                                    ? (double)r.CurrentShots.Value / r.RatedShots.Value * 100
+                                    : (double?)null;
+                            }
+                            @if (pct.HasValue)
+                            {
+                                var cls = pct.Value >= 100 ? "bad" : pct.Value >= 80 ? "warn" : "ok";
+                                <span class="pill @cls">@pct.Value.ToString("N1")%</span>
+                            }
+                            else { <span class="dim">—</span> }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="StorageLoc" Title="@L["Col.StorageLoc"]" TextAlign="TextAlign.Center" Width="120px">
+                        <Template Context="r"><span class="dim">@(r.StorageLoc ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="LastMaintDate" Title="@L["Col.LastMaint"]" TextAlign="TextAlign.Center" Width="120px">
+                        <Template Context="r"><span class="dim">@(r.LastMaintDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="120px">
+                        <Template Context="r">
+                            @{
+                                var scls   = r.Status switch { "AVAILABLE" => "ok", "MOUNTED" => "info", _ => "bad" };
+                                var sLabel = _moldStatus.FirstOrDefault(s => s.CodeValue == r.Status) is { } lf ? MasterDataRepository.LocalName(lf) : r.Status;
+                            }
+                            <span class="pill @scls">@(sLabel ?? "—")</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </div>
 
-<AmesTab Title="@L["MD.MoldItem.Title"].Value">
-    <MoldItemPanel />
-</AmesTab>
+    </AmesTab>
 
-<AmesTab Title="@L["MD.MoldLine.Title"].Value">
-    <MoldLinePanel />
-</AmesTab>
+    <AmesTab Title="@L["MD.MoldItem.Title"].Value">
+        <MoldItemPanel />
+    </AmesTab>
+
+    <AmesTab Title="@L["MD.MoldLine.Title"].Value">
+        <MoldLinePanel />
+    </AmesTab>
 </AmesTabs>
 
 @* ── Create Modal ─────────────────────────────────────────────────── *@

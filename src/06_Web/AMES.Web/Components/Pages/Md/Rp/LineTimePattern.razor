@@ -568,7 +568,7 @@
     bool HasPlannedDown() => _segments.Any(s => s.SegmentState == "PLANNED_DOWNTIME" && (s.EndMin ?? 0) > (s.StartMin ?? 0));
     // 계획비가동(PlannedFlag=1) 사유코드 옵션 (비활성 제외)
     IEnumerable<DropDownItem> PlannedReasonOptions => _reasonCodes
-        .Where(r => r.PlannedFlag && !string.Equals(r.Status, "INACTIVE", StringComparison.OrdinalIgnoreCase))
+        .Where(r => r.PlannedFlag && r.ActiveFlag)
         .Select(r => new DropDownItem { Value = r.ReasonCode, Text = $"[{r.ReasonCode}] {r.ReasonName ?? r.ReasonCode}" });
     // 선택된 사유가 설명(코멘트)을 필수로 요구하는지
     bool SelectedReasonRequiresComment()

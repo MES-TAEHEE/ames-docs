@@ -3063,27 +3063,27 @@ public sealed class MasterDataRepository
     // ── MD_ReasonCode ────────────────────────────────────────────────
     public record ReasonCodeRow(
         string ReasonCode, string? ReasonName, string? ReasonType,
-        string? AppliesToModule, bool RequiresComment, bool PlannedFlag,
-        int? DisplayOrder, string? Description, string? Status,
+        string? ModuleCode, bool RequiresComment, bool PlannedFlag,
+        int? DisplayOrder, string? Description, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
 
     public List<ReasonCodeRow> ListReasonCodes() => Query("""
         SELECT ReasonCode, ReasonName, ReasonType,
-               AppliesToModule, ISNULL(RequiresComment,0) AS RequiresComment,
+               ModuleCode, ISNULL(RequiresComment,0) AS RequiresComment,
                ISNULL(PlannedFlag,0) AS PlannedFlag,
-               DisplayOrder, Description, Status,
+               DisplayOrder, Description, ISNULL(ActiveFlag,1) AS ActiveFlag,
                CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
         FROM dbo.MD_ReasonCode ORDER BY ISNULL(DisplayOrder,9999), ReasonCode
         """, r => new ReasonCodeRow(
             r.GetString("ReasonCode"),
             r["ReasonName"]       as string,
             r["ReasonType"]       as string,
-            r["AppliesToModule"]  as string,
+            r["ModuleCode"]       as string,
             (bool)r["RequiresComment"],
             (bool)r["PlannedFlag"],
             r["DisplayOrder"]     is int dord ? dord : null,
             r["Description"]      as string,
-            r["Status"]           as string,
+            (bool)r["ActiveFlag"],
             r["CreatedBy"]        as string,
             r["CreatedTS"]        is DateTime ct ? ct : null,
             r["ModifiedBy"]       as string,
@@ -3687,46 +3687,46 @@ public sealed class MasterDataRepository
     }
 
     public void InsertReasonCode(string code, string? reasonName, string? reasonType,
-        string? appliesToModule, bool requiresComment, bool plannedFlag,
-        int? displayOrder, string? description, string? status, string createdBy)
+        string? moduleCode, bool requiresComment, bool plannedFlag,
+        int? displayOrder, string? description, bool activeFlag, string createdBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_ReasonCode(ReasonCode,ReasonName,ReasonType," +
-            "AppliesToModule,RequiresComment,PlannedFlag,DisplayOrder,Description,Status,CreatedBy)" +
-            " VALUES(@C,@RN,@RT,@AM,@RC2,@PF,@DO,@DESC,@ST,@CB);", conn);
+            "ModuleCode,RequiresComment,PlannedFlag,DisplayOrder,Description,ActiveFlag,CreatedBy)" +
+            " VALUES(@C,@RN,@RT,@AM,@RC2,@PF,@DO,@DESC,@AF,@CB);", conn);
         cmd.Parameters.Add("@C",    SqlDbType.VarChar,   20).Value = code;
         cmd.Parameters.Add("@RN",   SqlDbType.NVarChar, 100).Value = (object?)reasonName      ?? DBNull.Value;
         cmd.Parameters.Add("@RT",   SqlDbType.VarChar,   20).Value = (object?)reasonType      ?? DBNull.Value;
-        cmd.Parameters.Add("@AM",   SqlDbType.VarChar,   20).Value = (object?)appliesToModule ?? DBNull.Value;
+        cmd.Parameters.Add("@AM",   SqlDbType.VarChar,   20).Value = (object?)moduleCode ?? DBNull.Value;
         cmd.Parameters.Add("@RC2",  SqlDbType.Bit).Value           = requiresComment;
         cmd.Parameters.Add("@PF",   SqlDbType.Bit).Value           = plannedFlag;
         cmd.Parameters.Add("@DO",   SqlDbType.Int).Value           = (object?)displayOrder   ?? DBNull.Value;
         cmd.Parameters.Add("@DESC", SqlDbType.NVarChar, 500).Value = (object?)description    ?? DBNull.Value;
-        cmd.Parameters.Add("@ST",   SqlDbType.VarChar,   10).Value = (object?)status         ?? DBNull.Value;
+        cmd.Parameters.Add("@AF",   SqlDbType.Bit).Value           = activeFlag;
         cmd.Parameters.Add("@CB",   SqlDbType.VarChar,   50).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
     public void UpdateReasonCode(string code, string? reasonName, string? reasonType,
-        string? appliesToModule, bool requiresComment, bool plannedFlag,
-        int? displayOrder, string? description, string? status, string modifiedBy)
+        string? moduleCode, bool requiresComment, bool plannedFlag,
+        int? displayOrder, string? description, bool activeFlag, string modifiedBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_ReasonCode SET ReasonName=@RN,ReasonType=@RT," +
-            "AppliesToModule=@AM,RequiresComment=@RC2,PlannedFlag=@PF," +
-            "DisplayOrder=@DO,Description=@DESC,Status=@ST," +
+            "ModuleCode=@AM,RequiresComment=@RC2,PlannedFlag=@PF," +
+            "DisplayOrder=@DO,Description=@DESC,ActiveFlag=@AF," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE ReasonCode=@C;", conn);
         cmd.Parameters.Add("@C",    SqlDbType.VarChar,   20).Value  = code;
         cmd.Parameters.Add("@RN",   SqlDbType.NVarChar, 100).Value  = (object?)reasonName      ?? DBNull.Value;
         cmd.Parameters.Add("@RT",   SqlDbType.VarChar,   20).Value  = (object?)reasonType      ?? DBNull.Value;
-        cmd.Parameters.Add("@AM",   SqlDbType.VarChar,   20).Value  = (object?)appliesToModule ?? DBNull.Value;
+        cmd.Parameters.Add("@AM",   SqlDbType.VarChar,   20).Value  = (object?)moduleCode ?? DBNull.Value;
         cmd.Parameters.Add("@RC2",  SqlDbType.Bit).Value            = requiresComment;
         cmd.Parameters.Add("@PF",   SqlDbType.Bit).Value            = plannedFlag;
         cmd.Parameters.Add("@DO",   SqlDbType.Int).Value            = (object?)displayOrder   ?? DBNull.Value;
         cmd.Parameters.Add("@DESC", SqlDbType.NVarChar, 500).Value  = (object?)description    ?? DBNull.Value;
-        cmd.Parameters.Add("@ST",   SqlDbType.VarChar,   10).Value  = (object?)status         ?? DBNull.Value;
+        cmd.Parameters.Add("@AF",   SqlDbType.Bit).Value            = activeFlag;
         cmd.Parameters.Add("@MB",   SqlDbType.NVarChar, 450).Value  = modifiedBy;
         cmd.ExecuteNonQuery();
     }

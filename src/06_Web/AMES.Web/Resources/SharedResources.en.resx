@@ -3139,7 +3139,7 @@
     <value>Tonnage</value>
   </data>
   <data name="Col.ShotsCurrent" xml:space="preserve">
-    <value>Current Shots</value>
+    <value>Curr. Shots</value>
   </data>
   <data name="Col.ShotsLifetime" xml:space="preserve">
     <value>Lifetime</value>
@@ -5071,7 +5071,7 @@
     <value>Select a line on the left</value>
   </data>
   <data name="Col.ShotsCumulative" xml:space="preserve">
-    <value>Cumulative Shots</value>
+    <value>Σ Shots</value>
   </data>
   <data name="Col.RefCode" xml:space="preserve">
     <value>Ref Code</value>
@@ -5246,5 +5246,8 @@
   </data>
   <data name="PP.LineSchedule.Err.PastDate" xml:space="preserve">
     <value>Past dates cannot be applied or published</value>
+  </data>
+  <data name="MD.MoldLine.Empty" xml:space="preserve">
+    <value>No mold is registered for this line.</value>
   </data>
 </root>

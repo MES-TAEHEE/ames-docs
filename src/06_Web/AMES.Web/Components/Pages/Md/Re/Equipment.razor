@@ -23,8 +23,8 @@
         <div class="ames-kpi-v">@_allRows.Count</div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
+        <div class="ames-kpi-l">@RunLabel</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "RUN")</div>
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">@L["Kpi.LineCount"]</div>
@@ -45,11 +45,11 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.Equipment.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Equipment.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;" />
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Equipment.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
             <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
             <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
-            <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@EquipTypeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@EquipTypeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
             <RadzenLabel Text="@L["Col.Active"]" Component="DropDownActive" />
             <RadzenDropDown Name="DropDownActive" @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
 
@@ -64,7 +64,7 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.EquipmentRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Equipment.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="EquipID" Title="@L["Col.EquipId"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="EquipID" Title="@L["Col.EquipId"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.EquipID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="EquipName" Title="@L["Col.EquipName"]">
@@ -73,34 +73,51 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="EquipType" Title="@L["Col.EquipType"]" Width="100px">
                 <Template Context="r"><span class="pill">@(r.EquipType ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="LineID" Title="@L["Col.Line"]" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r"><span class="dim">@(r.LineID ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="WCID" Title="@L["Col.WorkCenter"]" Width="90px">
-                <Template Context="r"><span class="dim">@(r.WCID ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="WCID" Title="@L["Col.WorkCenter"]" Width="130px">
+                <Template Context="r">
+                    @if (!string.IsNullOrEmpty(r.WCID))
+                    {
+                        var wcName = _wcList.FirstOrDefault(w => w.WCID == r.WCID)?.WCName;
+                        <span class="code">@r.WCID</span>
+                        @if (!string.IsNullOrEmpty(wcName)) { <span class="dim" style="font-size:.8em;margin-left:4px;">@wcName</span> }
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="MakerModel" Title="@L["Col.MakerModel"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="MakerModel" Title="@L["Col.MakerModel"]" Width="150px">
                 <Template Context="r"><span class="dim">@(r.MakerModel ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="InstallDate" Title="@L["Col.InstallDate"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="InstallDate" Title="@L["Col.InstallDate"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="dim">@(r.InstallDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="TheoreticalCycle" Title="@L["Col.TheoreticalCycle"]" Width="80px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="TheoreticalCycle" Title="@L["Col.TheoreticalCycle"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r">@(r.TheoreticalCycle?.ToString("F2") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="TargetOEE" Title="@L["Col.TargetOee"]" Width="72px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="TargetOEE" Title="@L["Col.TargetOee"]" TextAlign="TextAlign.Right" Width="130px">
                 <Template Context="r">@(r.TargetOEE?.ToString("F1") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="PlcAddress" Title="@L["Col.PlcAddr"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="PlcAddress" Title="@L["Col.PlcAddr"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="dim">@(r.PlcAddress ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="Status" Title="@L["Col.Status"]" Width="90px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r">
                     @{
-                        var scls   = r.Status switch { "ACTIVE" => "ok", "MAINT" => "warn", _ => "bad" };
+                        var scls   = r.Status switch { "RUN" => "ok", "IDLE" => "mute", _ => "mute" };
                         var sLabel = _equipStatus.FirstOrDefault(s => s.CodeValue == r.Status) is { } lf ? MasterDataRepository.LocalName(lf) : r.Status;
                     }
                     <span class="pill @scls">@(sLabel ?? "—")</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="90px">
+                <Template Context="r">
+                    @{
+                        var afCode  = r.ActiveFlag ? "ACTIVE" : "INACTIVE";
+                        var afLabel = _activeFlagItems.FirstOrDefault(a => a.CodeValue == afCode) is { } af ? MasterDataRepository.LocalName(af) : afCode;
+                    }
+                    <span class="pill @(r.ActiveFlag ? "ok" : "bad")">@afLabel</span>
                 </Template>
             </RadzenDataGridColumn>
         </Columns>
@@ -171,12 +188,12 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="@EquipStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="@EquipStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" Disabled="@(!_f.ActiveFlag)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
-                <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="CreateChkActive" />
+                <RadzenCheckBox TValue="bool" Value="@_f.ActiveFlag" Change="@OnActiveChanged" Name="CreateChkActive" />
                 <RadzenLabel Text="@L["Lbl.Active"]" Component="CreateChkActive" style="cursor:pointer;" />
             </RadzenStack>
 
@@ -252,12 +269,12 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="@EquipStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="@EquipStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" Disabled="@(!_f.ActiveFlag)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
-                <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="EditChkActive" />
+                <RadzenCheckBox TValue="bool" Value="@_f.ActiveFlag" Change="@OnActiveChanged" Name="EditChkActive" />
                 <RadzenLabel Text="@L["Lbl.Active"]" Component="EditChkActive" style="cursor:pointer;" />
             </RadzenStack>
 
@@ -293,6 +310,7 @@
     List<MasterDataRepository.LineRow> _lineList = new();
     List<MasterDataRepository.WorkCenterRow> _wcList = new();
     List<MasterDataRepository.CodeItemRow> _equipStatus = new();
+    List<MasterDataRepository.CodeItemRow> _activeFlagItems = new();
     MasterDataRepository.EquipmentRow? _sel;
 
     string _fSearch = "";
@@ -306,16 +324,16 @@
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
-    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"{l.LineID} {nm}" : l.LineID });
+    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
     IEnumerable<DropDownItem> LineOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
     IEnumerable<DropDownItem> EquipTypeOptions => _allRows.Select(r => r.EquipType).Where(x => x != null).Distinct().OrderBy(x => x).Select(t => new DropDownItem { Value = t!, Text = t! });
     IEnumerable<DropDownItem> WcOptions => _wcList.Where(w => w.ActiveFlag).Select(w => new DropDownItem { Value = w.WCID, Text = $"[{w.WCID}]" + (w.WCName != null ? $" {w.WCName}" : "") });
     IEnumerable<DropDownItem> EquipStatusOptions => _equipStatus.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = MasterDataRepository.LocalName(s) });
-    private IEnumerable<DropDownItem> ActiveFilterOptions => new[]
-    {
-        new DropDownItem { Value = "Y", Text = L["Lbl.Active"].Value },
-        new DropDownItem { Value = "N", Text = L["Lbl.Inactive"].Value },
-    };
+
+    // 가동(RUN) KPI 라벨: EQUIP_STATUS 공통코드 LocalName (다국어)
+    string RunLabel => _equipStatus.FirstOrDefault(s => s.CodeValue == "RUN") is { } rf ? MasterDataRepository.LocalName(rf) : "RUN";
+    private IEnumerable<DropDownItem> ActiveFilterOptions =>
+        _activeFlagItems.Where(a => a.UseFlag).Select(a => new DropDownItem { Value = a.CodeValue ?? "", Text = MasterDataRepository.LocalName(a) });
 
     protected override async Task OnInitializedAsync()
     {
@@ -326,6 +344,7 @@
         try { _lineList    = Md.ListLines();                   } catch { }
         try { _wcList      = Md.ListWorkCenters();             } catch { }
         try { _equipStatus = Md.ListCodeItems("EQUIP_STATUS"); } catch { }
+        try { _activeFlagItems = Md.ListCodeItems("ACTIVE_FLAG"); } catch { }
         Reload();
     }
 
@@ -352,7 +371,7 @@
             (r.EquipName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fLine)   || r.LineID    == _fLine) &&
         (string.IsNullOrEmpty(_fType)   || r.EquipType == _fType) &&
-        (string.IsNullOrEmpty(_fActive) || (_fActive == "Y" ? r.ActiveFlag : !r.ActiveFlag))
+        (string.IsNullOrEmpty(_fActive) || (_fActive == "ACTIVE" ? r.ActiveFlag : !r.ActiveFlag))
     ).ToList();
     }
 
@@ -373,7 +392,14 @@
         if (args.Data is not null) OpenEdit(args.Data);
     }
 
-    void OpenCreate() { _f = new() { ActiveFlag = true, Status = "Active" }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+    void OpenCreate() { _f = new() { ActiveFlag = true, Status = "RUN" }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    // 활성 해제 시 상태값을 유휴(IDLE)로 자동 선택하고 상태 콤보를 비활성화
+    void OnActiveChanged(bool val)
+    {
+        _f.ActiveFlag = val;
+        if (!val) _f.Status = "IDLE";
+    }
 
     void OpenEdit(MasterDataRepository.EquipmentRow r)
     {
