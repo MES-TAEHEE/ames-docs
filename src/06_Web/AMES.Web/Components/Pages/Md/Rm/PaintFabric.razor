@@ -46,9 +46,9 @@
         <span style="white-space:nowrap;">▼ @L["MD.PaintFabric.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
 
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.PaintFabric.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.PaintFabric.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
-            <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@MatTypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;" />
+            <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@MatTypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@MatStatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
 
@@ -63,32 +63,32 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.PaintFabricRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.PaintFabric.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="MatLotID" Title='@L["Col.LotId"]' Width="155px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="MatLotID" Title="@L["Col.LotId"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="r"><span class="code">@r.MatLotID</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="MatCode" Title='@L["Col.MaterialCode"]' Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="MatCode" Title="@L["Col.MaterialCode"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="code dim">@(r.MatCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="MatName" Title='@L["Col.Name"]' />
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="MatType" Title='@L["Col.Type"]' Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="MatName" Title="@L["Col.Name"]" />
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="MatType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="pill">@(_matTypes.FirstOrDefault(m => m.CodeValue == r.MatType) is { } tLf ? MasterDataRepository.LocalName(tLf) : r.MatType ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="LotNo" Title='@L["Col.LotNo"]' Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="LotNo" Title="@L["Col.LotNo"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="dim">@(r.LotNo ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="SupplierID" Title='@L["Col.Supplier"]' Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="SupplierID" Title="@L["Col.Supplier"]" Width="110px">
                 <Template Context="r"><span class="dim">@(r.SupplierID ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="UOM" Title='@L["Col.Uom"]' Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="r"><span class="dim">@(r.UOM ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="QtyOnHand" Title='@L["Col.OnHand"]' Width="100px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="QtyOnHand" Title="@L["Col.OnHand"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">@(r.QtyOnHand?.ToString("N3") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="ReceiptDate" Title='@L["Col.ReceivedDate"]' Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="ReceiptDate" Title="@L["Col.ReceivedDate"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="dim">@(r.ReceiptDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="ExpDate" Title='@L["Col.ExpiryDate"]' Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="ExpDate" Title="@L["Col.ExpiryDate"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @{ var expCss = r.ExpDate.HasValue ? (r.ExpDate.Value < _today ? "bad" : r.ExpDate.Value <= _today.AddDays(30) ? "warn" : "") : ""; }
                     @if (r.ExpDate.HasValue)
@@ -96,12 +96,12 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="StorageReq" Title='@L["Col.StorageCond"]' Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="StorageReq" Title="@L["Col.StorageCond"]" Width="130px">
                 <Template Context="r"><span class="dim">@(r.StorageReq ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="Status" Title='@L["Col.Status"]' Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r">
-                    @{ var stCss = r.Status == "ACTIVE" ? "ok" : r.Status == "EXPIRED" ? "bad" : "warn";
+                    @{ var stCss = r.Status switch { "AVAIL" => "ok", "EXPIRED" => "bad", "CONS" => "orange", _ => "mute" };
                        var stLabel = _matStatuses.FirstOrDefault(s => s.CodeValue == r.Status) is { } stLf ? MasterDataRepository.LocalName(stLf) : r.Status; }
                     <span class="pill @stCss">@(stLabel ?? "—")</span>
                 </Template>
@@ -124,64 +124,64 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@($"{L["Col.MatName"]} *")' class="ames-rz-modal-label" Component="CreateTextBoxMatName" />
-                <RadzenTextBox Name="CreateTextBoxMatName" @bind-Value="_f.MatName" Placeholder='@L["MD.PaintFabric.Ph.MatName"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxMatName" @bind-Value="_f.MatName" Placeholder="@L["MD.PaintFabric.Ph.MatName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["Col.MatCode"]' />
+                    <RadzenLabel Text="@L["Col.MatCode"]" />
                     <RadzenTextBox @bind-Value="_f.MatCode" Placeholder="MAT-001" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["Col.MatType"]' />
-                    <RadzenDropDown @bind-Value="_f.MatType" Data="MatTypeOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder='@L["Opt.None"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.MatType"]" />
+                    <RadzenDropDown @bind-Value="_f.MatType" Data="MatTypeOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.None"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["MD.PaintFabric.LotNo"]' />
+                    <RadzenLabel Text="@L["MD.PaintFabric.LotNo"]" />
                     <RadzenTextBox @bind-Value="_f.LotNo" Placeholder="LOT-2026-001" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["Col.Supplier"]' />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.SupplierID" Data="VendorOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder='@L["Opt.Select"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.Supplier"]" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.SupplierID" Data="VendorOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["Col.Uom"]' />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.UOM" Data="UomOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder='@L["Opt.Select"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.Uom"]" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.UOM" Data="UomOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["Col.StockQty"]' />
+                    <RadzenLabel Text="@L["Col.StockQty"]" />
                     <RadzenNumeric TValue="decimal?" @bind-Value="_f.QtyOnHand" Step="0.001" Min="0m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["Col.InboundDate"]' />
+                    <RadzenLabel Text="@L["Col.InboundDate"]" />
                     <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.ReceiptDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["Col.ExpiryDate"]' />
+                    <RadzenLabel Text="@L["Col.ExpiryDate"]" />
                     <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.ExpDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="12">
-                    <RadzenLabel Text='@L["Col.StorageCond"]' />
-                    <RadzenTextBox @bind-Value="_f.StorageReq" Placeholder='@L["MD.PaintFabric.Ph.StorageReq"]' AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.StorageCond"]" />
+                    <RadzenTextBox @bind-Value="_f.StorageReq" Placeholder="@L["MD.PaintFabric.Ph.StorageReq"]" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["Col.Status"]' />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="MatStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder='@L["Opt.Select"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.Status"]" />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="MatStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -212,59 +212,59 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["Col.MatCode"]' />
+                    <RadzenLabel Text="@L["Col.MatCode"]" />
                     <RadzenTextBox @bind-Value="_f.MatCode" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["Col.MatType"]' />
-                    <RadzenDropDown @bind-Value="_f.MatType" Data="MatTypeOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder='@L["Opt.None"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.MatType"]" />
+                    <RadzenDropDown @bind-Value="_f.MatType" Data="MatTypeOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.None"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["MD.PaintFabric.LotNo"]' />
+                    <RadzenLabel Text="@L["MD.PaintFabric.LotNo"]" />
                     <RadzenTextBox @bind-Value="_f.LotNo" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["Col.Supplier"]' />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.SupplierID" Data="VendorOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder='@L["Opt.Select"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.Supplier"]" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.SupplierID" Data="VendorOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["Col.Uom"]' />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.UOM" Data="UomOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder='@L["Opt.Select"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.Uom"]" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.UOM" Data="UomOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["Col.StockQty"]' />
+                    <RadzenLabel Text="@L["Col.StockQty"]" />
                     <RadzenNumeric TValue="decimal?" @bind-Value="_f.QtyOnHand" Step="0.001" Min="0m" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["Col.InboundDate"]' />
+                    <RadzenLabel Text="@L["Col.InboundDate"]" />
                     <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.ReceiptDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["Col.ExpiryDate"]' />
+                    <RadzenLabel Text="@L["Col.ExpiryDate"]" />
                     <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.ExpDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="12">
-                    <RadzenLabel Text='@L["Col.StorageCond"]' />
+                    <RadzenLabel Text="@L["Col.StorageCond"]" />
                     <RadzenTextBox @bind-Value="_f.StorageReq" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["Col.Status"]' />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="MatStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder='@L["Opt.Select"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.Status"]" />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="MatStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 

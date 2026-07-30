@@ -105,7 +105,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r">
                     @{
-                        var scls   = r.Status switch { "RUN" => "ok", "IDLE" => "mute", _ => "mute" };
+                        var scls   = r.Status switch { "RUN" => "ok", "DOWN" => "bad", "PM" => "orange", "IDLE" => "mute", _ => "mute" };
                         var sLabel = _equipStatus.FirstOrDefault(s => s.CodeValue == r.Status) is { } lf ? MasterDataRepository.LocalName(lf) : r.Status;
                     }
                     <span class="pill @scls">@(sLabel ?? "—")</span>
@@ -328,7 +328,7 @@
     IEnumerable<DropDownItem> LineOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
     IEnumerable<DropDownItem> EquipTypeOptions => _allRows.Select(r => r.EquipType).Where(x => x != null).Distinct().OrderBy(x => x).Select(t => new DropDownItem { Value = t!, Text = t! });
     IEnumerable<DropDownItem> WcOptions => _wcList.Where(w => w.ActiveFlag).Select(w => new DropDownItem { Value = w.WCID, Text = $"[{w.WCID}]" + (w.WCName != null ? $" {w.WCName}" : "") });
-    IEnumerable<DropDownItem> EquipStatusOptions => _equipStatus.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = MasterDataRepository.LocalName(s) });
+    IEnumerable<DropDownItem> EquipStatusOptions => _equipStatus.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" });
 
     // 가동(RUN) KPI 라벨: EQUIP_STATUS 공통코드 LocalName (다국어)
     string RunLabel => _equipStatus.FirstOrDefault(s => s.CodeValue == "RUN") is { } rf ? MasterDataRepository.LocalName(rf) : "RUN";

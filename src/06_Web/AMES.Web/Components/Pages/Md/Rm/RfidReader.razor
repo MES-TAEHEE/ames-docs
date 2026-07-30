@@ -45,10 +45,9 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.RfidReader.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.RfidReader.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
-
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.RfidReader.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
 
@@ -63,38 +62,38 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.RfidReaderRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.RfidReader.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="ReaderID" Title="@L["Col.ReaderId"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="ReaderID" Title="@L["Col.ReaderId"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.ReaderID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="ReaderName" Title="@L["Col.ReaderName"]" />
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="LineID" Title="@L["Col.Line"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r"><span class="dim">@(r.LineID ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="GateLocation" Title="@L["Col.Gate"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="GateLocation" Title="@L["Col.Gate"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="dim">@(r.GateLocation ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="IpAddress" Title="@L["Col.IpAddr"]" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="IpAddress" Title="@L["Col.IpAddr"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="dim">@(r.IpAddress ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="AntennaCount" Title="@L["Col.Antenna"]" Width="80px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="AntennaCount" Title="@L["Col.Antenna"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r">@(r.AntennaCount?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="PowerDbm" Title="@L["Col.OutputDbm"]" Width="85px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="PowerDbm" Title="@L["Col.OutputDbm"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r">@(r.PowerDbm?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="WindowMs" Title="@L["Col.WindowMs"]" Width="85px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="WindowMs" Title="@L["Col.WindowMs"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r">@(r.WindowMs?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="PeTriggerFlag" Title="@L["Col.PeTrigger"]" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="PeTriggerFlag" Title="@L["Col.PeTrigger"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r">
                     @if (r.PeTriggerFlag) { <span class="pill ok">ON</span> }
                     else { <span class="pill">OFF</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="FirmwareVer" Title="@L["Col.Firmware"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="FirmwareVer" Title="@L["Col.Firmware"]" Width="150px">
                 <Template Context="r"><span class="dim">@(r.FirmwareVer ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="Status" Title="@L["Col.Status"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @{ var scls = r.Status == "ONLINE" ? "ok" : "bad";
                        var sLabel = _readerStatus.FirstOrDefault(s => s.CodeValue == r.Status) is { } lf ? MasterDataRepository.LocalName(lf) : r.Status; }
@@ -289,7 +288,7 @@
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
-    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = l.LineID + (l.LineName != null ? $" {l.LineName}" : "") });
+    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
     IEnumerable<DropDownItem> LineOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = $"[{l.LineID}]" + (l.LineName != null ? $" {l.LineName}" : "") });
     IEnumerable<DropDownItem> StatusFilterOptions => _readerStatus.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = MasterDataRepository.LocalName(s) });
     IEnumerable<DropDownItem> StatusOptions => _readerStatus.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = MasterDataRepository.LocalName(s) });
