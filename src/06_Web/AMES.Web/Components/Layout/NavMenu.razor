@@ -4,7 +4,7 @@
 @inject IJSRuntime JS
 @inject AMES.Data.Repositories.SysRepository Sys
 @inject AMES.Data.Repositories.MasterDataRepository MD
-@inject AMES.Web.Services.PermissionService Perm
+@inject AMES.Web.Services.PermissionService PermSvc
 @using System.Globalization
 @using System.Net
 @using System.Text.Json
@@ -324,7 +324,7 @@
     };
 
     // 권한 필터: DB 로딩 시 PermissionService 기준, 폴백 시 전부 표시
-    bool V(string href) => _usingFallback || href.StartsWith("wh/", StringComparison.OrdinalIgnoreCase) || Perm.IsVisible(href);
+    bool V(string href) => _usingFallback || href.StartsWith("wh/", StringComparison.OrdinalIgnoreCase) || PermSvc.IsVisible(href);
 
     List<(string Key, string Letter, string Ko, string En, List<NavItem> Items)> GroupedMd(List<NavItem> mdItems)
     {
@@ -365,7 +365,7 @@
 
         if (AuthState is not null)
         {
-            try { await Perm.EnsureAsync(AuthState); }
+            try { await PermSvc.EnsureAsync(AuthState); }
             catch { /* 권한 로딩 실패 — GetLevel 미초기화 시 전부 허용 */ }
         }
 

@@ -11,7 +11,7 @@
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
 @inject SysRepository Sys
-@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AMES.Data.Repositories.MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>SYS-009 @L["SYS.Config.Title"] · AMES</PageTitle>
@@ -175,7 +175,7 @@
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actorEmail = auth.User.Identity?.Name ?? "system";
         foreach (var grp in ComboKeyGroups.Values.Distinct())
-            try { _comboItems[grp] = Md.ListCodeItems(grp); } catch { }
+            try { _comboItems[grp] = MD.ListCodeItems(grp); } catch { }
         Reload();
     }
 

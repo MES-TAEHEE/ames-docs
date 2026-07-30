@@ -2,7 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.RptRepository Rpt
-@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AMES.Data.Repositories.MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>RPT-008 @L["RPT.ScheduleAdherence.Title"] · AMES</PageTitle>
@@ -99,7 +99,7 @@
 
     protected override void OnInitialized()
     {
-        try { _lineList = Md.ListLines(); } catch { }
+        try { _lineList = MD.ListLines(); } catch { }
         Reload();
     }
 

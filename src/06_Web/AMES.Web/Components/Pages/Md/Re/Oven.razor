@@ -8,9 +8,9 @@
 
 @attribute [Authorize]
 
-@inject AuthenticationStateProvider Auth
-@inject PermissionService Perm
-@inject MasterDataRepository Md
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>MD-015 @L["MD.Oven.Title"] · AMES</PageTitle>
@@ -285,12 +285,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var auth = await Auth.GetAuthenticationStateAsync();
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
-        await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("md/re/oven");
-        try { _lineList   = Md.ListLines();                   } catch { }
-        try { _ovenStatus = Md.ListCodeItems("OVEN_STATUS");  } catch { }
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("md/re/oven");
+        try { _lineList   = MD.ListLines();                   } catch { }
+        try { _ovenStatus = MD.ListCodeItems("OVEN_STATUS");  } catch { }
         Reload();
     }
 
@@ -309,7 +309,7 @@
         }
     }
 
-    void Reload() { _allRows = Md.ListOvens(); ApplyFilter(); }
+    void Reload() { _allRows = MD.ListOvens(); ApplyFilter(); }
 
     void ApplyFilter() { _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
@@ -367,11 +367,11 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.OvenID))  { _modalErr = L["Err.OvenIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.OvenName)) { _modalErr = L["Err.NameRequired"]; return; }
-        if (Md.OvenExists(_f.OvenID.Trim()))         { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], _f.OvenID.Trim()); return; }
+        if (MD.OvenExists(_f.OvenID.Trim()))         { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], _f.OvenID.Trim()); return; }
         _busy = true;
         try
         {
-            Md.InsertOven(_f.OvenID.Trim(), _f.OvenName, NE(_f.LineID),
+            MD.InsertOven(_f.OvenID.Trim(), _f.OvenName, NE(_f.LineID),
                 _f.ZoneCount, _f.TargetTemp, _f.Tolerance, _f.DwellSec,
                 _f.ConveyorSpeed, _f.MaxLoadKg, NE(_f.Status), _actor);
             CloseModal(); await ReloadRestorePage();
@@ -389,7 +389,7 @@
         _busy = true;
         try
         {
-            Md.UpdateOven(_sel.OvenID, _f.OvenName, NE(_f.LineID),
+            MD.UpdateOven(_sel.OvenID, _f.OvenName, NE(_f.LineID),
                 _f.ZoneCount, _f.TargetTemp, _f.Tolerance, _f.DwellSec,
                 _f.ConveyorSpeed, _f.MaxLoadKg, NE(_f.Status), _actor);
             var name = _f.OvenName;
@@ -407,7 +407,7 @@
         try
         {
             var name = _sel.OvenName ?? _sel.OvenID;
-            Md.DeleteOven(_sel.OvenID);
+            MD.DeleteOven(_sel.OvenID);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }

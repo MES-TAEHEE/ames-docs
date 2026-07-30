@@ -3,7 +3,7 @@
 @rendermode InteractiveServer
 @inject AMES.Data.Repositories.OeeRepository Repo
 @inject IStringLocalizer<SharedResources> L
-@inject AuthenticationStateProvider Auth
+@inject AuthenticationStateProvider AuthPrvd
 @using AMES.Contracts.Dto
 
 <PageTitle>@L["PP.Oee.Title"] · AMES</PageTitle>
@@ -399,7 +399,7 @@
     // ── Init ─────────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
-        var auth = await Auth.GetAuthenticationStateAsync();
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor   = auth.User.Identity?.Name ?? "web";
         try { _lines = Repo.ListLines(); } catch { }
         if (_lines.Count > 0) { _lineId = _lines[0]; LoadSnapshots(); }

@@ -2,7 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
-@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AMES.Data.Repositories.MasterDataRepository MD
 @inject DialogService Dialog
 @inject IStringLocalizer<SharedResources> L
 
@@ -170,7 +170,7 @@ else
 
     protected override void OnInitialized()
     {
-        try { _customers = Md.ListCustomers(); } catch { }
+        try { _customers = MD.ListCustomers(); } catch { }
         Search();
     }
 

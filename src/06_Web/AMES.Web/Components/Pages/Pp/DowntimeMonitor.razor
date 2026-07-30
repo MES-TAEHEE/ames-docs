@@ -5,8 +5,8 @@
 @inject AMES.Data.Repositories.PpRepository           Pp
 @inject AMES.Data.Repositories.OeeRepository          Oee
 @inject AMES.Data.Repositories.LineScheduleRepository Lsr
-@inject AuthenticationStateProvider Auth
-@inject AMES.Web.Services.PermissionService Perm
+@inject AuthenticationStateProvider AuthPrvd
+@inject AMES.Web.Services.PermissionService PermSvc
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["PP.DowntimeMonitor.Title"] · AMES</PageTitle>
@@ -279,8 +279,8 @@
     // ── 초기화 ───────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
-        await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("pp/downtime-monitor");
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("pp/downtime-monitor");
         BuildVms();
         Refresh();
         ReloadDtl();

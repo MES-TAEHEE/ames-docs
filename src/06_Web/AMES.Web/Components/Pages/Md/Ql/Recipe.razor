@@ -8,9 +8,9 @@
 
 @attribute [Authorize]
 
-@inject AuthenticationStateProvider Auth
-@inject PermissionService Perm
-@inject MasterDataRepository Md
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>MD-029 @L["MD.Recipe.Title"] · AMES</PageTitle>
@@ -271,11 +271,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var auth = await Auth.GetAuthenticationStateAsync();
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
-        await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("md/ql/recipe");
-        try { _items = Md.ListItems(); } catch { }
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("md/ql/recipe");
+        try { _items = MD.ListItems(); } catch { }
         Reload();
     }
 
@@ -294,7 +294,7 @@
         }
     }
 
-    void Reload() { try { _allRows = Md.ListRecipes(); } catch { _allRows = new(); } ApplyFilter(); }
+    void Reload() { try { _allRows = MD.ListRecipes(); } catch { _allRows = new(); } ApplyFilter(); }
 
     void ApplyFilter() { _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
@@ -351,11 +351,11 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.RecipeID)) { _modalErr = L["Err.RecipeIdRequired"]; return; }
         var id = _f.RecipeID.Trim();
-        if (Md.RecipeExists(id)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], id); return; }
+        if (MD.RecipeExists(id)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], id); return; }
         _busy = true;
         try
         {
-            Md.InsertRecipe(id, NE(_f.RecipeName), NE(_f.RecipeType),
+            MD.InsertRecipe(id, NE(_f.RecipeName), NE(_f.RecipeType),
                 NE(_f.ItemNo), _f.CycleTime, NE(_f.Version),
                 _f.EffectiveDate, NE(_f.Status), _actor);
             CloseModal(); await ReloadRestorePage();
@@ -371,7 +371,7 @@
         _busy = true;
         try
         {
-            Md.UpdateRecipe(_sel.RecipeID, NE(_f.RecipeName), NE(_f.RecipeType),
+            MD.UpdateRecipe(_sel.RecipeID, NE(_f.RecipeName), NE(_f.RecipeType),
                 NE(_f.ItemNo), _f.CycleTime, NE(_f.Version),
                 _f.EffectiveDate, NE(_f.Status), _actor);
             CloseModal(); await ReloadRestorePage();
@@ -388,7 +388,7 @@
         try
         {
             var id = _sel.RecipeID;
-            Md.DeleteRecipe(_sel.RecipeID);
+            MD.DeleteRecipe(_sel.RecipeID);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Deleted"]}", false);
         }

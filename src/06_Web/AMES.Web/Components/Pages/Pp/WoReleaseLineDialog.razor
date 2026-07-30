@@ -1,4 +1,4 @@
-@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AMES.Data.Repositories.MasterDataRepository MD
 @inject DialogService Dialog
 @inject IStringLocalizer<SharedResources> L
 
@@ -36,7 +36,7 @@
     {
         try
         {
-            _lines = Md.ListLines()
+            _lines = MD.ListLines()
                 .Select(l => new LineVm(l.LineID,
                     string.IsNullOrEmpty(l.LineName) ? l.LineID : $"{l.LineID} · {l.LineName}"))
                 .ToList();

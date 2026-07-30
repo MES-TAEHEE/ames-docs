@@ -8,9 +8,9 @@
 
 @attribute [Authorize]
 
-@inject AuthenticationStateProvider Auth
-@inject PermissionService Perm
-@inject MasterDataRepository Md
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>MD-014 @L["MD.Equipment.Title"] · AMES</PageTitle>
@@ -337,14 +337,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var auth = await Auth.GetAuthenticationStateAsync();
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
-        await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("md/re/equipment");
-        try { _lineList    = Md.ListLines();                   } catch { }
-        try { _wcList      = Md.ListWorkCenters();             } catch { }
-        try { _equipStatus = Md.ListCodeItems("EQUIP_STATUS"); } catch { }
-        try { _activeFlagItems = Md.ListCodeItems("ACTIVE_FLAG"); } catch { }
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("md/re/equipment");
+        try { _lineList    = MD.ListLines();                   } catch { }
+        try { _wcList      = MD.ListWorkCenters();             } catch { }
+        try { _equipStatus = MD.ListCodeItems("EQUIP_STATUS"); } catch { }
+        try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
         Reload();
     }
 
@@ -363,7 +363,7 @@
         }
     }
 
-    void Reload() { _allRows = Md.ListEquipments(); ApplyFilter(); }
+    void Reload() { _allRows = MD.ListEquipments(); ApplyFilter(); }
 
     void ApplyFilter() { _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
@@ -433,11 +433,11 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.EquipID))  { _modalErr = L["Err.EquipIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.EquipName)) { _modalErr = L["Err.EquipNameRequired"]; return; }
-        if (Md.EquipmentExists(_f.EquipID.Trim()))   { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], _f.EquipID.Trim()); return; }
+        if (MD.EquipmentExists(_f.EquipID.Trim()))   { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], _f.EquipID.Trim()); return; }
         _busy = true;
         try
         {
-            Md.InsertEquipment(_f.EquipID.Trim(), _f.EquipName, NE(_f.EquipType),
+            MD.InsertEquipment(_f.EquipID.Trim(), _f.EquipName, NE(_f.EquipType),
                 NE(_f.LineID), NE(_f.WCID), NE(_f.MakerModel),
                 _f.InstallDate, _f.TheoreticalCycle, _f.TargetOEE,
                 NE(_f.PlcAddress), NE(_f.Status), _f.ActiveFlag, _actor);
@@ -456,7 +456,7 @@
         _busy = true;
         try
         {
-            Md.UpdateEquipment(_sel.EquipID, _f.EquipName, NE(_f.EquipType),
+            MD.UpdateEquipment(_sel.EquipID, _f.EquipName, NE(_f.EquipType),
                 NE(_f.LineID), NE(_f.WCID), NE(_f.MakerModel),
                 _f.InstallDate, _f.TheoreticalCycle, _f.TargetOEE,
                 NE(_f.PlcAddress), NE(_f.Status), _f.ActiveFlag, _actor);
@@ -475,7 +475,7 @@
         try
         {
             var name = _sel.EquipName ?? _sel.EquipID;
-            Md.DeleteEquipment(_sel.EquipID);
+            MD.DeleteEquipment(_sel.EquipID);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }

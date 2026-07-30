@@ -2,7 +2,7 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @rendermode InteractiveServer
 @inject AMES.Data.Repositories.WorkOrderRepository Wos
-@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AMES.Data.Repositories.MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 @inject NavigationManager Nav
 @using AMES.Contracts.Dto
@@ -397,7 +397,7 @@
 
     protected override void OnInitialized()
     {
-        try { _routingItems = Md.ListCodeItems("ROUTING"); } catch { }
+        try { _routingItems = MD.ListCodeItems("ROUTING"); } catch { }
         Reload();
     }
 

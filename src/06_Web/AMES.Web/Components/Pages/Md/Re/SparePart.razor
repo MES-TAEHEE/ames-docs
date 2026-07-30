@@ -8,9 +8,9 @@
 
 @attribute [Authorize]
 
-@inject AuthenticationStateProvider Auth
-@inject PermissionService Perm
-@inject MasterDataRepository Md
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>MD-026 @L["MD.SparePart.Title"] · AMES</PageTitle>
@@ -339,14 +339,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var auth = await Auth.GetAuthenticationStateAsync();
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
-        await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("md/re/spare-part");
-        try { _uomList = Md.ListUoms().OrderBy(u => u.UOMCode).ToList(); } catch { }
-        try { _vendors = Md.ListVendors(); } catch { }
-        try { _activeFlagItems = Md.ListCodeItems("ACTIVE_FLAG"); } catch { }
-        try { _categoryItems = Md.ListCodeItems("SPAREPARTS_CATEGORY"); } catch { }
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("md/re/spare-part");
+        try { _uomList = MD.ListUoms().OrderBy(u => u.UOMCode).ToList(); } catch { }
+        try { _vendors = MD.ListVendors(); } catch { }
+        try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
+        try { _categoryItems = MD.ListCodeItems("SPAREPARTS_CATEGORY"); } catch { }
         Reload();
     }
 
@@ -367,7 +367,7 @@
 
     void Reload()
     {
-        try { _allRows = Md.ListSparePartMasters(); } catch { _allRows = new(); }
+        try { _allRows = MD.ListSparePartMasters(); } catch { _allRows = new(); }
         ApplyFilter();
     }
 
@@ -434,11 +434,11 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.PartNo)) { _modalErr = L["Err.PartNoRequired"]; return; }
         var no = _f.PartNo.Trim();
-        if (Md.SparePartExists(no)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], no); return; }
+        if (MD.SparePartExists(no)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], no); return; }
         _busy = true;
         try
         {
-            Md.InsertSparePart(no, NE(_f.PartName), NE(_f.Category),
+            MD.InsertSparePart(no, NE(_f.PartName), NE(_f.Category),
                 _f.UnitCost, NE(_f.UOM),
                 _f.SafetyStock, _f.ReorderPoint, _f.ReorderQty, _f.LeadTimeDays,
                 NE(_f.SupplierID), NE(_f.StorageLoc), _f.ActiveFlag, _actor);
@@ -456,7 +456,7 @@
         _busy = true;
         try
         {
-            Md.UpdateSparePart(_sel.PartNo, NE(_f.PartName), NE(_f.Category),
+            MD.UpdateSparePart(_sel.PartNo, NE(_f.PartName), NE(_f.Category),
                 _f.UnitCost, NE(_f.UOM),
                 _f.SafetyStock, _f.ReorderPoint, _f.ReorderQty, _f.LeadTimeDays,
                 NE(_f.SupplierID), NE(_f.StorageLoc), _f.ActiveFlag, _actor);
@@ -474,7 +474,7 @@
         try
         {
             var no = _sel.PartNo;
-            Md.DeleteSparePart(_sel.PartNo);
+            MD.DeleteSparePart(_sel.PartNo);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{no} {L["Msg.Deleted"]}", false);
         }

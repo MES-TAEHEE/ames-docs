@@ -2,7 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
-@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AMES.Data.Repositories.MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>MNT-006 @L["MNT.Downtime.Title"] · AMES</PageTitle>
@@ -88,7 +88,7 @@
 
     protected override void OnInitialized()
     {
-        try { _lineList = Md.ListLines(); } catch { }
+        try { _lineList = MD.ListLines(); } catch { }
         Reload();
     }
 
