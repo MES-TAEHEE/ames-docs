@@ -64,6 +64,7 @@ FILES=(
   pda/migrate_pda_wh_schedule.sql     # PDA 창고: 입고예정/출고예정/조정
   pda/migrate_pda_wh_inbound.sql
   pda/migrate_pda_wh_release.sql
+  cleanup_legacy_sis_test.sql
 )
 
 echo "AMES DB rebuild — $DB @ container '$CONTAINER'"

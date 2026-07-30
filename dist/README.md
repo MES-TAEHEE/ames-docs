@@ -82,6 +82,9 @@ The script removes the `SIS_TEST` schema, its procedures, tables, and seed data.
 It does not touch current application objects under `dbo.WH_*`, `dbo.MD_*`, or
 `dbo.FG_*`.
 
+`dist/rebuild_db.sh` runs this cleanup automatically at the end of a full Docker
+database rebuild.
+
 ---
 
 **CONFIDENTIAL · For Internal Use Only**
