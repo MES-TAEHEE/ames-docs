@@ -29,6 +29,32 @@ public sealed class WarehouseRepository
         int PartCount,
         decimal TotalQty);
 
+    public record WarehouseMasterRow(
+        string WhCode,
+        string? WhName,
+        bool UseYn,
+        int AreaCount,
+        int LocationCount,
+        decimal TotalQty);
+
+    public record WarehouseAreaRow(
+        string AreaCode,
+        string? AreaName,
+        bool UseYn,
+        int LocationCount,
+        decimal TotalQty,
+        string? WhCode,
+        string? WhName);
+
+    public record WarehouseSectionRow(
+        string AreaCode,
+        string SectionCode,
+        string? SectionName,
+        bool UseYn,
+        int LocationCount,
+        decimal TotalQty,
+        string? WhCode);
+
     public record PickingOrderRow(
         string PickSlipNo,
         string? ReqDate,
@@ -106,17 +132,18 @@ public sealed class WarehouseRepository
         int LotCount,
         DateTime? ModifiedTs);
 
-    public List<WarehouseLocationRow> ListLocations(string? search = null, bool includeInactive = false)
+    public List<WarehouseLocationRow> ListLocations(string? search = null, bool includeInactive = false, string? areaCode = null, string? sectionCode = null, string? whCode = null)
     {
+        EnsureWarehouseSectionTable();
         var like = Like(search);
         return Query("""
             SELECT
                 L.LocationID AS LOCATION_NO,
                 L.LocationName AS LOCATION_NM,
                 L.PlantCode AS WHCD,
-                L.PlantCode AS WHNM,
+                COALESCE(NULLIF(W.WhName, ''), L.PlantCode) AS WHNM,
                 COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) AS AREACD,
-                COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) AS AREANM,
+                COALESCE(NULLIF(A.AreaName, ''), COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode)) AS AREANM,
                 L.ZoneCode AS ZONECD,
                 L.LocationType AS ZONENM,
                 L.Aisle AS RACK_X,
@@ -127,20 +154,28 @@ public sealed class WarehouseRepository
                 COUNT(DISTINCT S.ItemNo) AS PART_COUNT,
                 COALESCE(SUM(S.OnHandQty), 0) AS TOTAL_QTY
             FROM dbo.MD_Location L
+            LEFT JOIN dbo.WH_WarehouseMaster W
+                   ON W.WhCode = L.PlantCode
+            LEFT JOIN dbo.WH_AreaMaster A
+                   ON A.AreaCode = COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode)
+                  AND COALESCE(A.WhCode, L.PlantCode) = L.PlantCode
             LEFT JOIN dbo.WH_Inventory S
                    ON S.LocationID = L.LocationID
                   AND COALESCE(S.OnHandQty, 0) <> 0
                   AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
             WHERE (@IncludeInactive = 1 OR COALESCE(L.ActiveFlag, 1) = 1)
+              AND (@WhCode IS NULL OR L.PlantCode = @WhCode)
+              AND (@AreaCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = @AreaCode)
+              AND (@SectionCode IS NULL OR COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = @SectionCode)
               AND (@Search IS NULL
                    OR L.LocationID LIKE @Search
                    OR L.LocationName LIKE @Search
                    OR L.ZoneCode LIKE @Search
                    OR L.LocationType LIKE @Search
                    OR L.PlantCode LIKE @Search)
-            GROUP BY L.LocationID, L.LocationName, L.PlantCode, L.ZoneCode,
+            GROUP BY L.LocationID, L.LocationName, L.PlantCode, W.WhName, L.ZoneCode, A.AreaName,
                      L.LocationType, L.Aisle, L.Bay, L.Slot, L.ActiveFlag
-            ORDER BY COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode), L.ZoneCode,
+            ORDER BY L.PlantCode, COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode), L.ZoneCode,
                      TRY_CONVERT(int, L.Aisle), L.Aisle,
                      TRY_CONVERT(int, L.Bay), L.Bay,
                      TRY_CONVERT(int, L.Slot), L.Slot,
@@ -162,7 +197,367 @@ public sealed class WarehouseRepository
                 GetInt(r, "PART_COUNT"),
                 GetDecimal(r, "TOTAL_QTY")),
             ("@Search", like),
+            ("@IncludeInactive", includeInactive),
+            ("@AreaCode", NullIfBlank(areaCode)),
+            ("@SectionCode", NullIfBlank(sectionCode)),
+            ("@WhCode", NullIfBlank(whCode)));
+    }
+
+    public List<WarehouseMasterRow> ListWarehouses(string? search = null, bool includeInactive = false)
+    {
+        EnsureWarehouseMasterTable();
+        EnsureWarehouseAreaTable();
+        var like = Like(search);
+        return Query("""
+            SELECT
+                W.WhCode AS WHCD,
+                W.WhName AS WHNM,
+                CAST(COALESCE(W.ActiveFlag, 1) AS bit) AS USE_YN,
+                COUNT(DISTINCT A.AreaCode) AS AREA_COUNT,
+                COUNT(DISTINCT L.LocationID) AS LOCATION_COUNT,
+                COALESCE(SUM(S.OnHandQty), 0) AS TOTAL_QTY
+            FROM dbo.WH_WarehouseMaster W
+            LEFT JOIN dbo.WH_AreaMaster A
+                   ON A.WhCode = W.WhCode
+                  AND COALESCE(A.ActiveFlag, 1) = 1
+            LEFT JOIN dbo.MD_Location L
+                   ON L.PlantCode = W.WhCode
+                  AND COALESCE(L.ActiveFlag, 1) = 1
+            LEFT JOIN dbo.WH_Inventory S
+                   ON S.LocationID = L.LocationID
+                  AND COALESCE(S.OnHandQty, 0) <> 0
+                  AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
+            WHERE (@IncludeInactive = 1 OR COALESCE(W.ActiveFlag, 1) = 1)
+              AND (@Search IS NULL
+                   OR W.WhCode LIKE @Search
+                   OR W.WhName LIKE @Search)
+            GROUP BY W.WhCode, W.WhName, W.ActiveFlag
+            ORDER BY W.WhCode;
+            """, r => new WarehouseMasterRow(
+                GetString(r, "WHCD") ?? "",
+                GetString(r, "WHNM"),
+                GetBool(r, "USE_YN"),
+                GetInt(r, "AREA_COUNT"),
+                GetInt(r, "LOCATION_COUNT"),
+                GetDecimal(r, "TOTAL_QTY")),
+            ("@Search", like),
             ("@IncludeInactive", includeInactive));
+    }
+
+    public bool WarehouseExists(string whCode)
+    {
+        EnsureWarehouseMasterTable();
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "SELECT 1 FROM dbo.WH_WarehouseMaster WHERE WhCode = @WhCode;", conn);
+        cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = whCode.Trim();
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    public void SaveWarehouse(string whCode, string? whName, bool useYn)
+    {
+        if (string.IsNullOrWhiteSpace(whCode))
+            throw new ArgumentException("Warehouse code is required.", nameof(whCode));
+
+        EnsureWarehouseMasterTable();
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            MERGE dbo.WH_WarehouseMaster AS tgt
+            USING (SELECT @WhCode AS WhCode) AS src
+               ON tgt.WhCode = src.WhCode
+            WHEN MATCHED THEN UPDATE SET
+                WhName = @WhName,
+                ActiveFlag = @UseYn,
+                ModifiedBy = 'web',
+                ModifiedTS = SYSDATETIME()
+            WHEN NOT MATCHED THEN INSERT
+                (WhCode, WhName, ActiveFlag, CreatedBy, CreatedTS)
+            VALUES
+                (@WhCode, @WhName, @UseYn, 'web', SYSDATETIME());
+            """, conn);
+        cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = Truncate(whCode.Trim(), 20);
+        AddNullable(cmd, "@WhName", SqlDbType.NVarChar, 120, whName);
+        cmd.Parameters.Add("@UseYn", SqlDbType.Bit).Value = useYn;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteWarehouse(string whCode)
+    {
+        if (string.IsNullOrWhiteSpace(whCode))
+            return;
+
+        EnsureWarehouseMasterTable();
+        using var conn = _factory.OpenConnection();
+        using var check = new SqlCommand("""
+            SELECT COUNT(1)
+            FROM dbo.MD_Location
+            WHERE PlantCode = @WhCode;
+            """, conn);
+        check.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = whCode.Trim();
+        if (Convert.ToInt32(check.ExecuteScalar()) > 0)
+            throw new InvalidOperationException("Warehouse has locations and cannot be deleted.");
+
+        using var area = new SqlCommand("DELETE FROM dbo.WH_AreaMaster WHERE WhCode = @WhCode;", conn);
+        area.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = whCode.Trim();
+        area.ExecuteNonQuery();
+
+        using var cmd = new SqlCommand("DELETE FROM dbo.WH_WarehouseMaster WHERE WhCode = @WhCode;", conn);
+        cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = whCode.Trim();
+        cmd.ExecuteNonQuery();
+    }
+
+    public List<WarehouseAreaRow> ListWarehouseAreas(string? search = null, bool includeInactive = false, string? whCode = null)
+    {
+        EnsureWarehouseAreaTable();
+        var like = Like(search);
+        return Query("""
+            SELECT
+                A.AreaCode AS AREACD,
+                A.AreaName AS AREANM,
+                A.WhCode AS WHCD,
+                COALESCE(NULLIF(W.WhName, ''), A.WhCode) AS WHNM,
+                CAST(COALESCE(A.ActiveFlag, 1) AS bit) AS USE_YN,
+                COUNT(DISTINCT L.LocationID) AS LOCATION_COUNT,
+                COALESCE(SUM(S.OnHandQty), 0) AS TOTAL_QTY
+            FROM dbo.WH_AreaMaster A
+            LEFT JOIN dbo.WH_WarehouseMaster W
+                   ON W.WhCode = A.WhCode
+            LEFT JOIN dbo.MD_Location L
+                   ON COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = A.AreaCode
+                  AND (@WhCode IS NULL OR L.PlantCode = @WhCode)
+                  AND COALESCE(L.ActiveFlag, 1) = 1
+            LEFT JOIN dbo.WH_Inventory S
+                   ON S.LocationID = L.LocationID
+                  AND COALESCE(S.OnHandQty, 0) <> 0
+                  AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
+            WHERE (@IncludeInactive = 1 OR COALESCE(A.ActiveFlag, 1) = 1)
+              AND (@WhCode IS NULL OR A.WhCode = @WhCode)
+              AND (@Search IS NULL
+                   OR A.AreaCode LIKE @Search
+                   OR A.AreaName LIKE @Search)
+            GROUP BY A.AreaCode, A.AreaName, A.WhCode, W.WhName, A.ActiveFlag
+            ORDER BY A.AreaCode;
+            """, r => new WarehouseAreaRow(
+                GetString(r, "AREACD") ?? "",
+                GetString(r, "AREANM"),
+                GetBool(r, "USE_YN"),
+                GetInt(r, "LOCATION_COUNT"),
+                GetDecimal(r, "TOTAL_QTY"),
+                GetString(r, "WHCD"),
+                GetString(r, "WHNM")),
+            ("@Search", like),
+            ("@IncludeInactive", includeInactive),
+            ("@WhCode", NullIfBlank(whCode)));
+    }
+
+    public List<WarehouseSectionRow> ListWarehouseSections(string? areaCode = null, string? search = null, bool includeInactive = false, string? whCode = null)
+    {
+        EnsureWarehouseSectionTable();
+        var like = Like(search);
+        return Query("""
+            SELECT
+                S.AreaCode AS AREACD,
+                S.SectionCode AS SECTIONCD,
+                S.SectionName AS SECTIONNM,
+                S.WhCode AS WHCD,
+                CAST(COALESCE(S.ActiveFlag, 1) AS bit) AS USE_YN,
+                COUNT(DISTINCT L.LocationID) AS LOCATION_COUNT,
+                COALESCE(SUM(I.OnHandQty), 0) AS TOTAL_QTY
+            FROM dbo.WH_AreaSection S
+            LEFT JOIN dbo.MD_Location L
+                   ON COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = S.AreaCode
+                  AND COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = S.SectionCode
+                  AND (@WhCode IS NULL OR L.PlantCode = @WhCode)
+                  AND COALESCE(L.ActiveFlag, 1) = 1
+            LEFT JOIN dbo.WH_Inventory I
+                   ON I.LocationID = L.LocationID
+                  AND COALESCE(I.OnHandQty, 0) <> 0
+                  AND UPPER(COALESCE(I.Status, 'RECEIVED')) NOT IN ('CANCELED')
+            WHERE (@AreaCode IS NULL OR S.AreaCode = @AreaCode)
+              AND (@WhCode IS NULL OR S.WhCode = @WhCode)
+              AND (@IncludeInactive = 1 OR COALESCE(S.ActiveFlag, 1) = 1)
+              AND (@Search IS NULL
+                   OR S.SectionCode LIKE @Search
+                   OR S.SectionName LIKE @Search)
+            GROUP BY S.AreaCode, S.SectionCode, S.SectionName, S.WhCode, S.ActiveFlag
+            ORDER BY S.AreaCode, S.SectionCode;
+            """, r => new WarehouseSectionRow(
+                GetString(r, "AREACD") ?? "",
+                GetString(r, "SECTIONCD") ?? "",
+                GetString(r, "SECTIONNM"),
+                GetBool(r, "USE_YN"),
+                GetInt(r, "LOCATION_COUNT"),
+                GetDecimal(r, "TOTAL_QTY"),
+                GetString(r, "WHCD")),
+            ("@AreaCode", NullIfBlank(areaCode)),
+            ("@Search", like),
+            ("@IncludeInactive", includeInactive),
+            ("@WhCode", NullIfBlank(whCode)));
+    }
+
+    public bool WarehouseSectionExists(string areaCode, string sectionCode, string? whCode = null)
+    {
+        EnsureWarehouseSectionTable();
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT 1
+            FROM dbo.WH_AreaSection
+            WHERE AreaCode = @AreaCode
+              AND SectionCode = @SectionCode
+              AND (@WhCode IS NULL OR WhCode = @WhCode);
+            """, conn);
+        cmd.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = areaCode.Trim();
+        cmd.Parameters.Add("@SectionCode", SqlDbType.VarChar, 20).Value = sectionCode.Trim();
+        cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(whCode) ?? DBNull.Value;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    public void SaveWarehouseSection(string areaCode, string sectionCode, string? sectionName, bool useYn, string? whCode = null)
+    {
+        if (string.IsNullOrWhiteSpace(areaCode))
+            throw new ArgumentException("Area code is required.", nameof(areaCode));
+        if (string.IsNullOrWhiteSpace(sectionCode))
+            throw new ArgumentException("Section code is required.", nameof(sectionCode));
+
+        EnsureWarehouseSectionTable();
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            MERGE dbo.WH_AreaSection AS tgt
+            USING (SELECT @WhCode AS WhCode, @AreaCode AS AreaCode, @SectionCode AS SectionCode) AS src
+               ON tgt.AreaCode = src.AreaCode
+              AND tgt.SectionCode = src.SectionCode
+              AND ISNULL(tgt.WhCode, '') = ISNULL(src.WhCode, '')
+            WHEN MATCHED THEN UPDATE SET
+                SectionName = @SectionName,
+                ActiveFlag = @UseYn,
+                ModifiedBy = 'web',
+                ModifiedTS = SYSDATETIME()
+            WHEN NOT MATCHED THEN INSERT
+                (WhCode, AreaCode, SectionCode, SectionName, ActiveFlag, CreatedBy, CreatedTS)
+            VALUES
+                (@WhCode, @AreaCode, @SectionCode, @SectionName, @UseYn, 'web', SYSDATETIME());
+            """, conn);
+        cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(Truncate(whCode?.Trim() ?? "", 20)) ?? DBNull.Value;
+        cmd.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = Truncate(areaCode.Trim(), 20);
+        cmd.Parameters.Add("@SectionCode", SqlDbType.VarChar, 20).Value = Truncate(sectionCode.Trim(), 20);
+        AddNullable(cmd, "@SectionName", SqlDbType.NVarChar, 120, sectionName);
+        cmd.Parameters.Add("@UseYn", SqlDbType.Bit).Value = useYn;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteWarehouseSection(string areaCode, string sectionCode, string? whCode = null)
+    {
+        if (string.IsNullOrWhiteSpace(areaCode) || string.IsNullOrWhiteSpace(sectionCode))
+            return;
+
+        EnsureWarehouseSectionTable();
+        using var conn = _factory.OpenConnection();
+        using var check = new SqlCommand("""
+            SELECT COUNT(1)
+            FROM dbo.MD_Location
+            WHERE COALESCE(NULLIF(ZoneCode, ''), PlantCode) = @AreaCode
+              AND COALESCE(NULLIF(LocationType, ''), 'DEFAULT') = @SectionCode
+              AND (@WhCode IS NULL OR PlantCode = @WhCode);
+            """, conn);
+        check.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = areaCode.Trim();
+        check.Parameters.Add("@SectionCode", SqlDbType.VarChar, 20).Value = sectionCode.Trim();
+        check.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(whCode) ?? DBNull.Value;
+        if (Convert.ToInt32(check.ExecuteScalar()) > 0)
+            throw new InvalidOperationException("Section has locations and cannot be deleted.");
+
+        using var cmd = new SqlCommand("""
+            DELETE FROM dbo.WH_AreaSection
+            WHERE AreaCode = @AreaCode
+              AND SectionCode = @SectionCode
+              AND (@WhCode IS NULL OR WhCode = @WhCode);
+            """, conn);
+        cmd.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = areaCode.Trim();
+        cmd.Parameters.Add("@SectionCode", SqlDbType.VarChar, 20).Value = sectionCode.Trim();
+        cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(whCode) ?? DBNull.Value;
+        cmd.ExecuteNonQuery();
+    }
+
+    public bool WarehouseAreaExists(string areaCode, string? whCode = null)
+    {
+        EnsureWarehouseAreaTable();
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT 1
+            FROM dbo.WH_AreaMaster
+            WHERE AreaCode = @AreaCode
+              AND (@WhCode IS NULL OR WhCode = @WhCode);
+            """, conn);
+        cmd.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = areaCode;
+        cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(whCode) ?? DBNull.Value;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    public void SaveWarehouseArea(string areaCode, string? areaName, bool useYn, string? whCode = null)
+    {
+        if (string.IsNullOrWhiteSpace(areaCode))
+            throw new ArgumentException("Area code is required.", nameof(areaCode));
+
+        EnsureWarehouseAreaTable();
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            MERGE dbo.WH_AreaMaster AS tgt
+            USING (SELECT @WhCode AS WhCode, @AreaCode AS AreaCode) AS src
+               ON tgt.AreaCode = src.AreaCode
+              AND ISNULL(tgt.WhCode, '') = ISNULL(src.WhCode, '')
+            WHEN MATCHED THEN UPDATE SET
+                WhCode = @WhCode,
+                AreaName = @AreaName,
+                ActiveFlag = @UseYn,
+                ModifiedBy = 'web',
+                ModifiedTS = SYSDATETIME()
+            WHEN NOT MATCHED THEN INSERT
+                (WhCode, AreaCode, AreaName, ActiveFlag, CreatedBy, CreatedTS)
+            VALUES
+                (@WhCode, @AreaCode, @AreaName, @UseYn, 'web', SYSDATETIME());
+            """, conn);
+        cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(Truncate(whCode?.Trim() ?? "", 20)) ?? DBNull.Value;
+        cmd.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = Truncate(areaCode.Trim(), 20);
+        AddNullable(cmd, "@AreaName", SqlDbType.NVarChar, 120, areaName);
+        cmd.Parameters.Add("@UseYn", SqlDbType.Bit).Value = useYn;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteWarehouseArea(string areaCode, string? whCode = null)
+    {
+        if (string.IsNullOrWhiteSpace(areaCode))
+            return;
+
+        EnsureWarehouseAreaTable();
+        EnsureAreaLayoutTable();
+
+        using var conn = _factory.OpenConnection();
+        using var check = new SqlCommand("""
+            SELECT COUNT(1)
+            FROM dbo.MD_Location
+            WHERE COALESCE(NULLIF(ZoneCode, ''), PlantCode) = @AreaCode
+              AND (@WhCode IS NULL OR PlantCode = @WhCode);
+            """, conn);
+        check.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = areaCode.Trim();
+        check.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(whCode) ?? DBNull.Value;
+        if (Convert.ToInt32(check.ExecuteScalar()) > 0)
+            throw new InvalidOperationException("Area has locations and cannot be deleted.");
+
+        using var layout = new SqlCommand("""
+            DELETE FROM dbo.WH_AreaLayout
+            WHERE AREACD = @OldLayoutKey
+               OR AREACD = @LayoutKey
+               OR (@WhCode IS NULL AND AREACD LIKE @AnyWhLayoutKey);
+            """, conn);
+        layout.Parameters.Add("@OldLayoutKey", SqlDbType.NVarChar, 80).Value = OldAreaLayoutKey(areaCode);
+        layout.Parameters.Add("@LayoutKey", SqlDbType.NVarChar, 80).Value = AreaLayoutKey(whCode ?? "", areaCode);
+        layout.Parameters.Add("@AnyWhLayoutKey", SqlDbType.NVarChar, 80).Value = $"AREA|%|{areaCode.Trim()}";
+        layout.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(whCode) ?? DBNull.Value;
+        layout.ExecuteNonQuery();
+
+        using var cmd = new SqlCommand("DELETE FROM dbo.WH_AreaMaster WHERE AreaCode = @AreaCode AND (@WhCode IS NULL OR WhCode = @WhCode);", conn);
+        cmd.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = areaCode.Trim();
+        cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(whCode) ?? DBNull.Value;
+        cmd.ExecuteNonQuery();
     }
 
     public bool LocationExists(string locationNo)
@@ -248,6 +643,42 @@ public sealed class WarehouseRepository
         using var cmd = new SqlCommand("DELETE FROM dbo.MD_Location WHERE LocationID = @LocationNo;", conn);
         cmd.Parameters.Add("@LocationNo", SqlDbType.VarChar, 20).Value = locationNo;
         cmd.ExecuteNonQuery();
+    }
+
+    public void UpdateOrInsertLocation(
+        string locationNo,
+        string? locationName,
+        string? whCode,
+        string areaCode,
+        string sectionCode,
+        string? rackX,
+        string? rackY,
+        string? rackZ,
+        bool useYn)
+    {
+        if (string.IsNullOrWhiteSpace(locationNo))
+            throw new ArgumentException("Location code is required.", nameof(locationNo));
+        if (string.IsNullOrWhiteSpace(areaCode))
+            throw new ArgumentException("Area code is required.", nameof(areaCode));
+        if (string.IsNullOrWhiteSpace(sectionCode))
+            throw new ArgumentException("Section code is required.", nameof(sectionCode));
+
+        var normalizedWh = FirstNonBlank(whCode, "WH01");
+        var normalizedArea = areaCode.Trim();
+        var normalizedSection = sectionCode.Trim();
+
+        if (LocationExists(locationNo))
+        {
+            UpdateLocation(locationNo, locationName, normalizedWh, normalizedWh,
+                normalizedArea, null, normalizedSection, normalizedSection,
+                rackX, rackY, rackZ, useYn);
+        }
+        else
+        {
+            InsertLocation(locationNo, locationName, normalizedWh, normalizedWh,
+                normalizedArea, null, normalizedSection, normalizedSection,
+                rackX, rackY, rackZ, useYn);
+        }
     }
 
     public List<PickingOrderRow> ListPickingOrders(string? search = null, bool includeClosed = true)
@@ -343,14 +774,15 @@ public sealed class WarehouseRepository
             """, r => new PartOptionRow(GetString(r, "PARTNO") ?? ""));
     }
 
-    public List<LocationMapRow> ListLocationMap(string? areaCode = null, string? rackZ = null)
+    public List<LocationMapRow> ListLocationMap(string? areaCode = null, string? rackZ = null, string? zoneCode = null, string? whCode = null)
     {
+        EnsureWarehouseAreaTable();
         return Query("""
             SELECT
                 L.LocationID AS LOCATION_NO,
                 L.LocationName AS LOCATION_NM,
                 COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) AS AREACD,
-                COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) AS AREANM,
+                COALESCE(NULLIF(A.AreaName, ''), COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode)) AS AREANM,
                 L.ZoneCode AS ZONECD,
                 L.LocationType AS ZONENM,
                 L.Aisle AS RACK_X,
@@ -365,14 +797,19 @@ public sealed class WarehouseRepository
                     ELSE N'Stocked'
                 END AS STATUS
             FROM dbo.MD_Location L
+            LEFT JOIN dbo.WH_AreaMaster A
+                   ON A.AreaCode = COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode)
+                  AND COALESCE(A.WhCode, L.PlantCode) = L.PlantCode
             LEFT JOIN dbo.WH_Inventory S
                    ON S.LocationID = L.LocationID
                   AND COALESCE(S.OnHandQty, 0) <> 0
                   AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
             WHERE COALESCE(L.ActiveFlag, 1) = 1
+              AND (@WhCode IS NULL OR L.PlantCode = @WhCode)
               AND (@AreaCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = @AreaCode)
+              AND (@ZoneCode IS NULL OR COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = @ZoneCode)
               AND (@RackZ IS NULL OR L.Slot = @RackZ)
-            GROUP BY L.LocationID, L.LocationName, L.PlantCode, L.ZoneCode,
+            GROUP BY L.LocationID, L.LocationName, L.PlantCode, L.ZoneCode, A.AreaName,
                      L.LocationType, L.Aisle, L.Bay, L.Slot
             ORDER BY COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode), L.ZoneCode,
                      TRY_CONVERT(int, L.Aisle), L.Aisle,
@@ -394,33 +831,29 @@ public sealed class WarehouseRepository
                 GetDecimal(r, "TOTAL_QTY"),
                 GetString(r, "STATUS") ?? "Empty"),
             ("@AreaCode", NullIfBlank(areaCode)),
+            ("@ZoneCode", NullIfBlank(zoneCode)),
+            ("@WhCode", NullIfBlank(whCode)),
             ("@RackZ", NullIfBlank(rackZ)));
     }
 
-    public List<LocationAreaLayoutRow> ListLocationAreaLayouts()
+    public List<LocationAreaLayoutRow> ListWarehouseMapPlacements()
     {
         EnsureAreaLayoutTable();
+        EnsureWarehouseMasterTable();
 
         return Query("""
-            WITH Areas AS (
-                SELECT
-                    COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode, 'WH') AS AREACD,
-                    MAX(COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode, 'WH')) AS AREANM,
-                    ROW_NUMBER() OVER (ORDER BY COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode, 'WH')) AS RN
-                FROM dbo.MD_Location L
-                WHERE COALESCE(L.ActiveFlag, 1) = 1
-                GROUP BY COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode, 'WH')
-            )
             SELECT
-                A.AREACD,
-                A.AREANM,
-                COALESCE(M.X_PCT, CAST(4 + ((A.RN - 1) % 3) * 31 AS decimal(5,2))) AS X_PCT,
-                COALESCE(M.Y_PCT, CAST(8 + ((A.RN - 1) / 3) * 28 AS decimal(5,2))) AS Y_PCT,
-                COALESCE(M.W_PCT, CAST(27 AS decimal(5,2))) AS W_PCT,
-                COALESCE(M.H_PCT, CAST(22 AS decimal(5,2))) AS H_PCT
-            FROM Areas A
-            LEFT JOIN dbo.WH_AreaLayout M ON M.AREACD = A.AREACD
-            ORDER BY A.AREACD;
+                W.WhCode AS AREACD,
+                COALESCE(NULLIF(W.WhName, ''), W.WhCode) AS AREANM,
+                M.X_PCT,
+                M.Y_PCT,
+                M.W_PCT,
+                M.H_PCT
+            FROM dbo.WH_AreaLayout M
+            INNER JOIN dbo.WH_WarehouseMaster W
+                    ON M.AREACD = CONCAT(N'WH|', W.WhCode)
+            WHERE COALESCE(W.ActiveFlag, 1) = 1
+            ORDER BY M.MODIFIED_TS, W.WhCode;
             """, r => new LocationAreaLayoutRow(
                 GetString(r, "AREACD") ?? "",
                 GetString(r, "AREANM"),
@@ -428,6 +861,98 @@ public sealed class WarehouseRepository
                 GetDecimal(r, "Y_PCT"),
                 GetDecimal(r, "W_PCT"),
                 GetDecimal(r, "H_PCT")));
+    }
+
+    public List<LocationAreaLayoutRow> ListLocationAreaLayouts(string? whCode = null)
+    {
+        EnsureAreaLayoutTable();
+        EnsureWarehouseAreaTable();
+
+        return Query("""
+            SELECT
+                A.AreaCode AS AREACD,
+                COALESCE(NULLIF(A.AreaName, ''), A.AreaCode) AS AREANM,
+                M.X_PCT,
+                M.Y_PCT,
+                M.W_PCT,
+                M.H_PCT
+            FROM dbo.WH_AreaLayout M
+            INNER JOIN dbo.WH_AreaMaster A
+                    ON M.AREACD = CONCAT(N'AREA|', A.WhCode, N'|', A.AreaCode)
+            WHERE COALESCE(A.ActiveFlag, 1) = 1
+              AND (@WhCode IS NULL OR A.WhCode = @WhCode)
+            ORDER BY M.MODIFIED_TS, A.AreaCode;
+            """, r => new LocationAreaLayoutRow(
+                GetString(r, "AREACD") ?? "",
+                GetString(r, "AREANM"),
+                GetDecimal(r, "X_PCT"),
+                GetDecimal(r, "Y_PCT"),
+                GetDecimal(r, "W_PCT"),
+                GetDecimal(r, "H_PCT")),
+            ("@WhCode", NullIfBlank(whCode)));
+    }
+
+    public List<LocationAreaLayoutRow> ListZoneMapPlacements(string? areaCode = null, string? whCode = null)
+    {
+        EnsureAreaLayoutTable();
+        EnsureWarehouseSectionTable();
+
+        return Query("""
+            SELECT
+                Z.SectionCode AS AREACD,
+                COALESCE(NULLIF(Z.SectionName, ''), Z.SectionCode) AS AREANM,
+                M.X_PCT,
+                M.Y_PCT,
+                M.W_PCT,
+                M.H_PCT
+            FROM dbo.WH_AreaLayout M
+            INNER JOIN dbo.WH_AreaSection Z
+                    ON M.AREACD = CONCAT(N'ZONE|', Z.WhCode, N'|', Z.AreaCode, N'|', Z.SectionCode)
+            WHERE COALESCE(Z.ActiveFlag, 1) = 1
+              AND (@AreaCode IS NULL OR Z.AreaCode = @AreaCode)
+              AND (@WhCode IS NULL OR Z.WhCode = @WhCode)
+            ORDER BY M.MODIFIED_TS, Z.AreaCode, Z.SectionCode;
+            """, r => new LocationAreaLayoutRow(
+                GetString(r, "AREACD") ?? "",
+                GetString(r, "AREANM"),
+                GetDecimal(r, "X_PCT"),
+                GetDecimal(r, "Y_PCT"),
+                GetDecimal(r, "W_PCT"),
+                GetDecimal(r, "H_PCT")),
+            ("@AreaCode", NullIfBlank(areaCode)),
+            ("@WhCode", NullIfBlank(whCode)));
+    }
+
+    public List<LocationAreaLayoutRow> ListLocationMapPlacements(string? areaCode = null, string? zoneCode = null, string? whCode = null)
+    {
+        EnsureAreaLayoutTable();
+
+        return Query("""
+            SELECT
+                L.LocationID AS AREACD,
+                COALESCE(NULLIF(L.LocationName, ''), L.LocationID) AS AREANM,
+                M.X_PCT,
+                M.Y_PCT,
+                M.W_PCT,
+                M.H_PCT
+            FROM dbo.WH_AreaLayout M
+            INNER JOIN dbo.MD_Location L
+                    ON M.AREACD = CONCAT(N'LOC|', L.LocationID)
+            WHERE COALESCE(L.ActiveFlag, 1) = 1
+              AND (@WhCode IS NULL OR L.PlantCode = @WhCode)
+              AND (@AreaCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = @AreaCode)
+              AND (@ZoneCode IS NULL OR COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = @ZoneCode)
+            ORDER BY M.MODIFIED_TS, M.AREACD;
+            """, r => new LocationAreaLayoutRow(
+                GetString(r, "AREACD") ?? "",
+                GetString(r, "AREANM"),
+                GetDecimal(r, "X_PCT"),
+                GetDecimal(r, "Y_PCT"),
+                GetDecimal(r, "W_PCT"),
+                GetDecimal(r, "H_PCT")),
+            ("@AreaCode", NullIfBlank(areaCode)),
+            ("@ZoneCode", NullIfBlank(zoneCode)),
+            ("@WhCode", NullIfBlank(whCode)));
     }
 
     public void SaveLocationAreaLayout(
@@ -439,7 +964,7 @@ public sealed class WarehouseRepository
         string modifiedBy = "web")
     {
         if (string.IsNullOrWhiteSpace(areaCode))
-            throw new ArgumentException("Area code is required.", nameof(areaCode));
+            throw new ArgumentException("Layout key is required.", nameof(areaCode));
 
         EnsureAreaLayoutTable();
 
@@ -464,12 +989,88 @@ public sealed class WarehouseRepository
             VALUES
                 (@AreaCode, @XPct, @YPct, @WPct, @HPct, @ModifiedBy, SYSDATETIME());
             """, conn);
-        cmd.Parameters.Add("@AreaCode", SqlDbType.NVarChar, 20).Value = areaCode.Trim();
+        cmd.Parameters.Add("@AreaCode", SqlDbType.NVarChar, 80).Value = areaCode.Trim();
         AddDecimal(cmd, "@XPct", xPct);
         AddDecimal(cmd, "@YPct", yPct);
         AddDecimal(cmd, "@WPct", wPct);
         AddDecimal(cmd, "@HPct", hPct);
         cmd.Parameters.Add("@ModifiedBy", SqlDbType.NVarChar, 80).Value = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void SaveWarehouseMapPlacement(string whCode, decimal xPct, decimal yPct, decimal wPct, decimal hPct) =>
+        SaveLocationAreaLayout(WarehouseLayoutKey(whCode), xPct, yPct, wPct, hPct);
+
+    public void SaveFactoryAreaLayout(string whCode, string areaCode, decimal xPct, decimal yPct, decimal wPct, decimal hPct) =>
+        SaveLocationAreaLayout(AreaLayoutKey(whCode, areaCode), xPct, yPct, wPct, hPct);
+
+    public void SaveZoneMapPlacement(string whCode, string areaCode, string zoneCode, decimal xPct, decimal yPct, decimal wPct, decimal hPct) =>
+        SaveLocationAreaLayout(ZoneLayoutKey(whCode, areaCode, zoneCode), xPct, yPct, wPct, hPct);
+
+    public void SaveLocationMapPlacement(string locationNo, decimal xPct, decimal yPct, decimal wPct, decimal hPct) =>
+        SaveLocationAreaLayout(LocationLayoutKey(locationNo), xPct, yPct, wPct, hPct);
+
+    public void DeleteWarehouseMapPlacement(string whCode)
+    {
+        if (string.IsNullOrWhiteSpace(whCode))
+            return;
+
+        EnsureAreaLayoutTable();
+
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            DELETE FROM dbo.WH_AreaLayout
+             WHERE AREACD = @LayoutKey;
+            """, conn);
+        cmd.Parameters.Add("@LayoutKey", SqlDbType.NVarChar, 80).Value = WarehouseLayoutKey(whCode);
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteFactoryAreaPlacement(string whCode, string areaCode)
+    {
+        if (string.IsNullOrWhiteSpace(whCode) || string.IsNullOrWhiteSpace(areaCode))
+            return;
+
+        EnsureAreaLayoutTable();
+
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            DELETE FROM dbo.WH_AreaLayout
+             WHERE AREACD = @LayoutKey;
+            """, conn);
+        cmd.Parameters.Add("@LayoutKey", SqlDbType.NVarChar, 80).Value = AreaLayoutKey(whCode, areaCode);
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteZoneMapPlacement(string whCode, string areaCode, string zoneCode)
+    {
+        if (string.IsNullOrWhiteSpace(whCode) || string.IsNullOrWhiteSpace(areaCode) || string.IsNullOrWhiteSpace(zoneCode))
+            return;
+
+        EnsureAreaLayoutTable();
+
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            DELETE FROM dbo.WH_AreaLayout
+             WHERE AREACD = @LayoutKey;
+            """, conn);
+        cmd.Parameters.Add("@LayoutKey", SqlDbType.NVarChar, 80).Value = ZoneLayoutKey(whCode, areaCode, zoneCode);
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteLocationMapPlacement(string locationNo)
+    {
+        if (string.IsNullOrWhiteSpace(locationNo))
+            return;
+
+        EnsureAreaLayoutTable();
+
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            DELETE FROM dbo.WH_AreaLayout
+             WHERE AREACD = @LayoutKey;
+            """, conn);
+        cmd.Parameters.Add("@LayoutKey", SqlDbType.NVarChar, 80).Value = LocationLayoutKey(locationNo);
         cmd.ExecuteNonQuery();
     }
 
@@ -653,8 +1254,199 @@ public sealed class WarehouseRepository
                     MODIFIED_TS DATETIME2 NOT NULL CONSTRAINT DF_WH_AREA_LAYOUT_MODIFIED_TS DEFAULT SYSDATETIME()
                 );
             END;
+
+            IF OBJECT_ID(N'dbo.WH_AreaLayout', N'U') IS NOT NULL
+               AND COL_LENGTH(N'dbo.WH_AreaLayout', N'AREACD') < 160
+            BEGIN
+                DECLARE @pkName sysname;
+                SELECT @pkName = kc.name
+                FROM sys.key_constraints kc
+                WHERE kc.parent_object_id = OBJECT_ID(N'dbo.WH_AreaLayout')
+                  AND kc.[type] = 'PK';
+
+                IF @pkName IS NOT NULL
+                BEGIN
+                    DECLARE @dropSql nvarchar(max) = N'ALTER TABLE dbo.WH_AreaLayout DROP CONSTRAINT ' + QUOTENAME(@pkName);
+                    EXEC sys.sp_executesql @dropSql;
+                END;
+
+                ALTER TABLE dbo.WH_AreaLayout ALTER COLUMN AREACD NVARCHAR(80) NOT NULL;
+
+                ALTER TABLE dbo.WH_AreaLayout
+                    ADD CONSTRAINT PK_WH_AREA_LAYOUT PRIMARY KEY (AREACD);
+            END;
         """, conn);
         cmd.ExecuteNonQuery();
+    }
+
+    private void EnsureWarehouseMasterTable()
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            IF OBJECT_ID(N'dbo.WH_WarehouseMaster', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.WH_WarehouseMaster (
+                    WhCode VARCHAR(20) NOT NULL CONSTRAINT PK_WH_WAREHOUSE_MASTER PRIMARY KEY,
+                    WhName NVARCHAR(120) NULL,
+                    ActiveFlag BIT NOT NULL CONSTRAINT DF_WH_WAREHOUSE_MASTER_ACTIVE DEFAULT 1,
+                    CreatedBy NVARCHAR(80) NULL,
+                    CreatedTS DATETIME2 NOT NULL CONSTRAINT DF_WH_WAREHOUSE_MASTER_CREATED_TS DEFAULT SYSDATETIME(),
+                    ModifiedBy NVARCHAR(80) NULL,
+                    ModifiedTS DATETIME2 NULL
+                );
+            END;
+
+            MERGE dbo.WH_WarehouseMaster AS tgt
+            USING (
+                SELECT DISTINCT
+                    CAST(COALESCE(NULLIF(PlantCode, ''), 'WH') AS varchar(20)) AS WhCode
+                FROM dbo.MD_Location
+                WHERE COALESCE(NULLIF(PlantCode, ''), 'WH') IS NOT NULL
+            ) AS src ON tgt.WhCode = src.WhCode
+            WHEN NOT MATCHED THEN INSERT
+                (WhCode, WhName, ActiveFlag, CreatedBy, CreatedTS)
+            VALUES
+                (src.WhCode, src.WhCode, 1, 'system', SYSDATETIME());
+        """, conn);
+        cmd.ExecuteNonQuery();
+    }
+
+    private void EnsureWarehouseAreaTable()
+    {
+        EnsureWarehouseMasterTable();
+
+        using var conn = _factory.OpenConnection();
+        using (var cmd = new SqlCommand("""
+            IF OBJECT_ID(N'dbo.WH_AreaMaster', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.WH_AreaMaster (
+                    WhCode VARCHAR(20) NULL,
+                    AreaCode VARCHAR(20) NOT NULL CONSTRAINT PK_WH_AREA_MASTER PRIMARY KEY,
+                    AreaName NVARCHAR(120) NULL,
+                    ActiveFlag BIT NOT NULL CONSTRAINT DF_WH_AREA_MASTER_ACTIVE DEFAULT 1,
+                    CreatedBy NVARCHAR(80) NULL,
+                    CreatedTS DATETIME2 NOT NULL CONSTRAINT DF_WH_AREA_MASTER_CREATED_TS DEFAULT SYSDATETIME(),
+                    ModifiedBy NVARCHAR(80) NULL,
+                    ModifiedTS DATETIME2 NULL
+                );
+            END;
+
+            IF COL_LENGTH(N'dbo.WH_AreaMaster', N'WhCode') IS NULL
+            BEGIN
+                ALTER TABLE dbo.WH_AreaMaster ADD WhCode VARCHAR(20) NULL;
+            END;
+        """, conn))
+        {
+            cmd.ExecuteNonQuery();
+        }
+
+        using (var cmd = new SqlCommand("""
+            UPDATE A
+               SET WhCode = COALESCE(NULLIF(A.WhCode, ''), X.WhCode, A.AreaCode)
+            FROM dbo.WH_AreaMaster A
+            OUTER APPLY (
+                SELECT TOP (1) L.PlantCode AS WhCode
+                FROM dbo.MD_Location L
+                WHERE COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = A.AreaCode
+                  AND NULLIF(L.PlantCode, '') IS NOT NULL
+                ORDER BY L.PlantCode
+            ) X
+            WHERE NULLIF(A.WhCode, '') IS NULL;
+        """, conn))
+        {
+            cmd.ExecuteNonQuery();
+        }
+
+        using (var cmd = new SqlCommand("""
+            MERGE dbo.WH_AreaMaster AS tgt
+            USING (
+                SELECT DISTINCT
+                    CAST(COALESCE(NULLIF(PlantCode, ''), 'WH') AS varchar(20)) AS WhCode,
+                    CAST(COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') AS varchar(20)) AS AreaCode
+                FROM dbo.MD_Location
+                WHERE COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') IS NOT NULL
+            ) AS src ON tgt.AreaCode = src.AreaCode
+            WHEN NOT MATCHED THEN INSERT
+                (WhCode, AreaCode, AreaName, ActiveFlag, CreatedBy, CreatedTS)
+            VALUES
+                (src.WhCode, src.AreaCode, src.AreaCode, 1, 'system', SYSDATETIME());
+        """, conn))
+        {
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    private void EnsureWarehouseSectionTable()
+    {
+        EnsureWarehouseAreaTable();
+
+        using var conn = _factory.OpenConnection();
+        using (var cmd = new SqlCommand("""
+            IF OBJECT_ID(N'dbo.WH_AreaSection', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.WH_AreaSection (
+                    WhCode VARCHAR(20) NULL,
+                    AreaCode VARCHAR(20) NOT NULL,
+                    SectionCode VARCHAR(20) NOT NULL,
+                    SectionName NVARCHAR(120) NULL,
+                    ActiveFlag BIT NOT NULL CONSTRAINT DF_WH_AREA_SECTION_ACTIVE DEFAULT 1,
+                    CreatedBy NVARCHAR(80) NULL,
+                    CreatedTS DATETIME2 NOT NULL CONSTRAINT DF_WH_AREA_SECTION_CREATED_TS DEFAULT SYSDATETIME(),
+                    ModifiedBy NVARCHAR(80) NULL,
+                    ModifiedTS DATETIME2 NULL,
+                    CONSTRAINT PK_WH_AREA_SECTION PRIMARY KEY (AreaCode, SectionCode)
+                );
+            END;
+
+            IF COL_LENGTH(N'dbo.WH_AreaSection', N'WhCode') IS NULL
+            BEGIN
+                ALTER TABLE dbo.WH_AreaSection ADD WhCode VARCHAR(20) NULL;
+            END;
+        """, conn))
+        {
+            cmd.ExecuteNonQuery();
+        }
+
+        using (var cmd = new SqlCommand("""
+            UPDATE S
+               SET WhCode = COALESCE(NULLIF(S.WhCode, ''), A.WhCode, X.WhCode)
+            FROM dbo.WH_AreaSection S
+            LEFT JOIN dbo.WH_AreaMaster A
+                   ON A.AreaCode = S.AreaCode
+            OUTER APPLY (
+                SELECT TOP (1) L.PlantCode AS WhCode
+                FROM dbo.MD_Location L
+                WHERE COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = S.AreaCode
+                  AND COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = S.SectionCode
+                  AND NULLIF(L.PlantCode, '') IS NOT NULL
+                ORDER BY L.PlantCode
+            ) X
+            WHERE NULLIF(S.WhCode, '') IS NULL;
+        """, conn))
+        {
+            cmd.ExecuteNonQuery();
+        }
+
+        using (var cmd = new SqlCommand("""
+            MERGE dbo.WH_AreaSection AS tgt
+            USING (
+                SELECT DISTINCT
+                    CAST(COALESCE(NULLIF(PlantCode, ''), 'WH') AS varchar(20)) AS WhCode,
+                    CAST(COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') AS varchar(20)) AS AreaCode,
+                    CAST(COALESCE(NULLIF(LocationType, ''), 'DEFAULT') AS varchar(20)) AS SectionCode
+                FROM dbo.MD_Location
+                WHERE COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') IS NOT NULL
+            ) AS src
+               ON tgt.AreaCode = src.AreaCode
+              AND tgt.SectionCode = src.SectionCode
+            WHEN NOT MATCHED THEN INSERT
+                (WhCode, AreaCode, SectionCode, SectionName, ActiveFlag, CreatedBy, CreatedTS)
+            VALUES
+                (src.WhCode, src.AreaCode, src.SectionCode, src.SectionCode, 1, 'system', SYSDATETIME());
+        """, conn))
+        {
+            cmd.ExecuteNonQuery();
+        }
     }
 
     private static void AddLocationParameters(
@@ -674,8 +1466,8 @@ public sealed class WarehouseRepository
         cmd.Parameters.Add("@LocationNo", SqlDbType.VarChar, 20).Value = Truncate(locationNo, 20);
         AddNullable(cmd, "@LocationName", SqlDbType.NVarChar, 120, locationName);
         AddNullable(cmd, "@PlantCode", SqlDbType.VarChar, 20, whCode);
-        AddNullable(cmd, "@ZoneCode", SqlDbType.VarChar, 10, FirstNonBlank(zoneCode, areaCode));
-        AddNullable(cmd, "@LocationType", SqlDbType.VarChar, 20, FirstNonBlank(zoneName, areaName));
+        AddNullable(cmd, "@ZoneCode", SqlDbType.VarChar, 10, FirstNonBlank(areaCode, zoneCode));
+        AddNullable(cmd, "@LocationType", SqlDbType.VarChar, 20, FirstNonBlank(zoneCode, zoneName, areaName));
         AddNullable(cmd, "@RackX", SqlDbType.VarChar, 5, rackX);
         AddNullable(cmd, "@RackY", SqlDbType.VarChar, 5, rackY);
         AddNullable(cmd, "@RackZ", SqlDbType.VarChar, 5, rackZ);
@@ -699,6 +1491,21 @@ public sealed class WarehouseRepository
 
     private static string? NullIfBlank(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string WarehouseLayoutKey(string whCode) =>
+        $"WH|{Truncate(whCode.Trim(), 76)}";
+
+    private static string OldAreaLayoutKey(string areaCode) =>
+        $"AREA|{Truncate(areaCode.Trim(), 74)}";
+
+    private static string AreaLayoutKey(string whCode, string areaCode) =>
+        $"AREA|{Truncate(whCode.Trim(), 20)}|{Truncate(areaCode.Trim(), 52)}";
+
+    private static string ZoneLayoutKey(string whCode, string areaCode, string zoneCode) =>
+        $"ZONE|{Truncate(whCode.Trim(), 18)}|{Truncate(areaCode.Trim(), 26)}|{Truncate(zoneCode.Trim(), 26)}";
+
+    private static string LocationLayoutKey(string locationNo) =>
+        $"LOC|{Truncate(locationNo.Trim(), 75)}";
 
     private static string? FirstNonBlank(params string?[] values)
         => values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v))?.Trim();
