@@ -24,7 +24,7 @@
     </div>
     <div class="ames-kpi ok">
         <div class="ames-kpi-l">@L["Lbl.Active"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "ACTIVE")</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
     </div>
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["MD.LabelTpl.Kpi.LabelTypes"]</div>
@@ -45,9 +45,11 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.LabelTpl.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.LabelTemplate.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.LabelTemplate.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
-            <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@LabelTypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@LabelTypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
+            <RadzenLabel Text="@L["Col.Active"]" Component="DropDownActive" />
+            <RadzenDropDown Name="DropDownActive" @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
             @if (_canEdit)
@@ -60,40 +62,43 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.LabelTemplateRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.LabelTpl.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="LabelTemplateID" Title="@L["Col.TemplateId"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="LabelTemplateID" Title="@L["Col.TemplateId"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.LabelTemplateID</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="TemplateName" Title="@L["Col.TemplateName"]" Width="160px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="TemplateName" Title="@L["Col.TemplateName"]">
                 <Template Context="r">@(r.TemplateName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="LabelType" Title="@L["Col.LabelType"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="LabelType" Title="@L["Col.LabelType"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r">
                     @{ var ltEntry = _labelTypes.FirstOrDefault(x => x.CodeValue == r.LabelType); }
                     @(ltEntry != null ? MasterDataRepository.LocalName(ltEntry) : r.LabelType ?? "—")
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="PaperSize" Title="@L["Col.PaperSize"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="PaperSize" Title="@L["Col.PaperSize"]" Width="120px">
                 <Template Context="r"><span class="dim">@(r.PaperSize ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="BarcodeType" Title="@L["Col.BarcodeType"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="BarcodeType" Title="@L["Col.BarcodeType"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r">
                     @{ var btEntry = _barcodeTypes.FirstOrDefault(x => x.CodeValue == r.BarcodeType); }
                     <span class="dim">@(btEntry != null ? MasterDataRepository.LocalName(btEntry) : r.BarcodeType ?? "—")</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="CustomerID" Title="@L["Col.Customer"]" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="CustomerID" Title="@L["Col.Customer"]" TextAlign="TextAlign.Center" Width="150px">
                 <Template Context="r"><span class="dim">@CustomerName(r.CustomerID)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="Version" Title="@L["Col.Version"]" Width="75px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="Version" Title="@L["Col.Version"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">@(r.Version?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="PrinterModel" Title="@L["Col.PrinterModel"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="PrinterModel" Title="@L["Col.PrinterModel"]" TextAlign="TextAlign.Right" Width="150px">
                 <Template Context="r"><span class="dim">@(r.PrinterModel ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="Status" Title="@L["Col.Status"]" Width="95px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
-                    @{ var stEntry = _labelStatuses.FirstOrDefault(x => x.CodeValue == r.Status); var stCss = r.Status == "ACTIVE" ? "ok" : "warn"; var stLabel = stEntry != null ? MasterDataRepository.LocalName(stEntry) : r.Status; }
-                    <span class="pill @stCss">@(stLabel ?? "—")</span>
+                    @{
+                        var afCode  = r.ActiveFlag ? "ACTIVE" : "INACTIVE";
+                        var afLabel = _activeFlagItems.FirstOrDefault(a => a.CodeValue == afCode) is { } af ? MasterDataRepository.LocalName(af) : afCode;
+                    }
+                    <span class="pill @(r.ActiveFlag ? "ok" : "bad")">@afLabel</span>
                 </Template>
             </RadzenDataGridColumn>
         </Columns>
@@ -152,8 +157,11 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.Status"]" />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.Active"]" />
+                    <div style="display:flex;align-items:center;gap:0.5rem;height:32px;">
+                        <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" />
+                        <RadzenLabel Text="@L["Lbl.Active"]" style="cursor:pointer;" />
+                    </div>
                 </RadzenColumn>
             </RadzenRow>
 
@@ -217,8 +225,11 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.Status"]" />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.Active"]" />
+                    <div style="display:flex;align-items:center;gap:0.5rem;height:32px;">
+                        <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" />
+                        <RadzenLabel Text="@L["Lbl.Active"]" style="cursor:pointer;" />
+                    </div>
                 </RadzenColumn>
             </RadzenRow>
 
@@ -253,12 +264,12 @@
     List<MasterDataRepository.LabelTemplateRow> _rows = new();
     List<MasterDataRepository.CodeItemRow> _labelTypes = new();
     List<MasterDataRepository.CodeItemRow> _barcodeTypes = new();
-    List<MasterDataRepository.CodeItemRow> _labelStatuses = new();
+    List<MasterDataRepository.CodeItemRow> _activeFlagItems = new();
     List<MasterDataRepository.CustomerRow> _customers = new();
     MasterDataRepository.LabelTemplateRow? _sel;
 
     string _fSearch = "";
-    string? _fType;
+    string? _fType, _fActive;
     string _modal = "", _modalErr = "", _msg = "";
     bool _busy, _bgMouseDownOnSelf, _isErr, _confirmDelete;
     bool _canEdit;
@@ -268,10 +279,10 @@
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
-    IEnumerable<DropDownItem> LabelTypeFilterOptions => _labelTypes.Where(x => x.UseFlag).Select(t => new DropDownItem { Value = t.CodeValue ?? "", Text = MasterDataRepository.LocalName(t) });
+    IEnumerable<DropDownItem> LabelTypeFilterOptions => _labelTypes.Where(x => x.UseFlag).Select(t => new DropDownItem { Value = t.CodeValue ?? "", Text = $"[{t.CodeValue}] {MasterDataRepository.LocalName(t)}" });
     IEnumerable<DropDownItem> LabelTypeOptions => _labelTypes.Where(x => x.UseFlag).Select(t => new DropDownItem { Value = t.CodeValue ?? "", Text = $"[{t.CodeValue}] {MasterDataRepository.LocalName(t)}" });
     IEnumerable<DropDownItem> BarcodeTypeOptions => _barcodeTypes.Where(x => x.UseFlag).Select(b => new DropDownItem { Value = b.CodeValue ?? "", Text = $"[{b.CodeValue}] {MasterDataRepository.LocalName(b)}" });
-    IEnumerable<DropDownItem> StatusOptions => _labelStatuses.Where(x => x.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = MasterDataRepository.LocalName(s) });
+    IEnumerable<DropDownItem> ActiveFilterOptions => _activeFlagItems.Where(a => a.UseFlag).Select(a => new DropDownItem { Value = a.CodeValue ?? "", Text = MasterDataRepository.LocalName(a) });
     IEnumerable<DropDownItem> CustomerOptions => _customers
         .Where(c => !string.Equals(c.Status, "INACTIVE", StringComparison.OrdinalIgnoreCase))
         .Select(c => new DropDownItem { Value = c.CustomerID, Text = CustomerText(c) });
@@ -293,7 +304,7 @@
         _canEdit = PermSvc.CanEdit("md/ql/label-template");
         try { _labelTypes    = MD.ListCodeItems("LABEL_TYPE");   } catch { }
         try { _barcodeTypes  = MD.ListCodeItems("BARCODE_TYPE"); } catch { }
-        try { _labelStatuses = MD.ListCodeItems("LABEL_STATUS"); } catch { }
+        try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
         try { _customers     = MD.ListCustomers(); } catch { }
         Reload();
     }
@@ -319,7 +330,8 @@
         (string.IsNullOrEmpty(_fSearch) ||
             r.LabelTemplateID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.TemplateName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
-        (_fType == null || r.LabelType == _fType)
+        (_fType == null || r.LabelType == _fType) &&
+        (_fActive == null || (_fActive == "ACTIVE" ? r.ActiveFlag : !r.ActiveFlag))
     ).ToList();
     }
 
@@ -355,7 +367,7 @@
             CustomerID   = r.CustomerID   ?? "",
             Version      = r.Version,
             PrinterModel = r.PrinterModel ?? "",
-            Status       = r.Status       ?? "ACTIVE",
+            ActiveFlag   = r.ActiveFlag,
         };
         _modal = "edit";
     }
@@ -376,7 +388,7 @@
         {
             MD.InsertLabelTemplate(id, NE(_f.TemplateName), _f.LabelType,
                 NE(_f.PaperSize), _f.BarcodeType, NE(_f.CustomerID),
-                _f.Version, NE(_f.PrinterModel), NE(_f.Status), _actor);
+                _f.Version, NE(_f.PrinterModel), _f.ActiveFlag, _actor);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Created"]}", false);
         }
@@ -392,7 +404,7 @@
         {
             MD.UpdateLabelTemplate(_sel.LabelTemplateID, NE(_f.TemplateName), _f.LabelType,
                 NE(_f.PaperSize), _f.BarcodeType, NE(_f.CustomerID),
-                _f.Version, NE(_f.PrinterModel), NE(_f.Status), _actor);
+                _f.Version, NE(_f.PrinterModel), _f.ActiveFlag, _actor);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_sel.LabelTemplateID} {L["Msg.Updated"]}", false);
         }
@@ -433,6 +445,6 @@
         public string  CustomerID      { get; set; } = "";
         public int?    Version         { get; set; }
         public string  PrinterModel    { get; set; } = "";
-        public string  Status          { get; set; } = "ACTIVE";
+        public bool    ActiveFlag      { get; set; } = true;
     }
 }

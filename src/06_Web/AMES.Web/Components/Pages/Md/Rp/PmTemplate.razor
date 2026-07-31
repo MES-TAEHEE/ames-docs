@@ -77,7 +77,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="IntervalValue" Title="@L["Col.Cycle"]" TextAlign="TextAlign.Right" Width="80px">
                 <Template Context="r">@(r.IntervalValue?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="IntervalUnit" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="IntervalUnit" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="r"><span class="dim">@(r.IntervalUnit ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="StdDurationMin" Title="@L["Col.StdDuration"]" TextAlign="TextAlign.Right" Width="160px">

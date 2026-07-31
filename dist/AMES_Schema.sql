@@ -319,7 +319,7 @@ CREATE TABLE dbo.MD_InspectionStandard (
   [InspMethod]                NVARCHAR(40)             NULL,
   [IsCTQ]                     BIT                      NULL,
   [EffectiveDate]             DATE                     NULL,
-  [Status]                    VARCHAR(8)               NULL,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
@@ -708,7 +708,7 @@ CREATE TABLE dbo.MD_DefectCode (
   [DefaultCauseCode]          VARCHAR(16)              NULL,  -- FK -> MD_DefectCause.CauseCode
   [ParetoFlag]                BIT                      NULL,
   [ImageRef]                  VARCHAR(120)             NULL,
-  [Status]                    VARCHAR(8)               NULL,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
@@ -721,14 +721,15 @@ GO
 CREATE TABLE dbo.MD_DefectCause (
   [CauseCode]                 VARCHAR(16)          NOT NULL,
   [CauseName]                 NVARCHAR(60)             NULL,
+  [CauseNameEn]               NVARCHAR(60)             NULL,
+  [ProcessCode]               VARCHAR(10)              NULL,
   [CauseCategory]             VARCHAR(9)               NULL,
   [ParentCauseCode]           VARCHAR(16)              NULL,  -- FK -> MD_DefectCause.CauseCode
-  [ProcessCode]               VARCHAR(10)              NULL,
   [RootCauseFlag]             BIT                      NULL,
   [CorrectiveGuide]           NVARCHAR(200)            NULL,
   [ResponsibleDept]           NVARCHAR(30)             NULL,
   [SortOrder]                 INT                      NULL,
-  [Status]                    VARCHAR(8)               NULL,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
@@ -750,7 +751,7 @@ CREATE TABLE dbo.MD_PackagingSpec (
   [DimLxWxH]                  VARCHAR(30)              NULL,
   [ReturnableFlag]            BIT                      NULL,
   [LabelTemplateID]           VARCHAR(20)              NULL,  -- FK -> MD_LabelTemplate.LabelTemplateID
-  [Status]                    VARCHAR(8)               NULL,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
@@ -771,7 +772,7 @@ CREATE TABLE dbo.MD_LabelTemplate (
   [CustomerID]                VARCHAR(20)              NULL,  -- FK -> MD_Customer.CustomerID
   [Version]                   INT                      NULL,
   [PrinterModel]              VARCHAR(30)              NULL,
-  [Status]                    VARCHAR(8)               NULL,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,

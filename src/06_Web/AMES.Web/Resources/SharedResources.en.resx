@@ -3199,7 +3199,7 @@
     <value>Reorder</value>
   </data>
   <data name="Col.LeadDays" xml:space="preserve">
-    <value>Lead d</value>
+    <value>Lead Time (Days)</value>
   </data>
   <data name="Col.Loc" xml:space="preserve">
     <value>Loc</value>
@@ -3346,13 +3346,10 @@
     <value>Cause Code</value>
   </data>
   <data name="Col.CauseName" xml:space="preserve">
-    <value>Cause Name</value>
+    <value>Cause Name (KO)</value>
   </data>
   <data name="Col.Category" xml:space="preserve">
     <value>Category</value>
-  </data>
-  <data name="Col.ProcessName" xml:space="preserve">
-    <value>Process Name</value>
   </data>
   <data name="Col.StationNameEn" xml:space="preserve">
     <value>Station Name (EN)</value>
@@ -3377,9 +3374,6 @@
   </data>
   <data name="Col.Severity" xml:space="preserve">
     <value>Severity</value>
-  </data>
-  <data name="Col.DefaultAction" xml:space="preserve">
-    <value>Default Action</value>
   </data>
   <data name="Col.Pareto" xml:space="preserve">
     <value>Pareto</value>
@@ -3436,7 +3430,7 @@
     <value>CTQ</value>
   </data>
   <data name="Col.EffectiveDate" xml:space="preserve">
-    <value>Effective Date</value>
+    <value>Effect Date</value>
   </data>
   <data name="Col.MinStock" xml:space="preserve">
     <value>Min Stock</value>
@@ -3888,10 +3882,7 @@
   <data name="MD.Customer.Lbl.CustomerCode" xml:space="preserve">
     <value>Customer Code</value>
   </data>
-  <data name="MD.Customer.Lbl.CustomerName" xml:space="preserve">
-    <value>Customer Name (KO) *</value>
-  </data>
-  <data name="MD.Customer.Lbl.CustomerNameEn" xml:space="preserve">
+  <data name="Col.CustomerNameEn" xml:space="preserve">
     <value>Customer Name (EN)</value>
   </data>
   <data name="MD.Customer.Lbl.CustomerType" xml:space="preserve">
@@ -4394,12 +4385,6 @@
   </data>
   <data name="Col.SeverityLevel" xml:space="preserve">
     <value>Severity</value>
-  </data>
-  <data name="Col.DispositionDefault" xml:space="preserve">
-    <value>Default Disposition</value>
-  </data>
-  <data name="Col.DefaultCauseCode" xml:space="preserve">
-    <value>Default Cause Code</value>
   </data>
   <data name="Col.CustomerCode" xml:space="preserve">
     <value>Customer</value>
@@ -5249,5 +5234,14 @@
   </data>
   <data name="MD.MoldLine.Empty" xml:space="preserve">
     <value>No mold is registered for this line.</value>
+  </data>
+  <data name="Col.DefaultDisposition" xml:space="preserve">
+    <value>Disposition</value>
+  </data>
+  <data name="Col.DefaultCause" xml:space="preserve">
+    <value>Default Cause</value>
+  </data>
+  <data name="Col.CauseNameEn" xml:space="preserve">
+    <value>Cause Name (EN)</value>
   </data>
 </root>

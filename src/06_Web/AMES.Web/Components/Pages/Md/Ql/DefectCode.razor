@@ -24,7 +24,7 @@
     </div>
     <div class="ames-kpi ok">
         <div class="ames-kpi-l">@L["Lbl.Active"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">@L["MD.DefectCode.Kpi.Pareto"]</div>
@@ -44,14 +44,15 @@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.DefectCode.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
+
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.DefectCode.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
-            <RadzenLabel Text="@L["Col.Category"]" Component="DropDownCategory" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownCategory" @bind-Value="_fCategory" Data="@CategoryFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.DefectCode.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Process"]" Component="DropDownProcess" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
-            <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
-            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+            <RadzenLabel Text="@L["Col.Category"]" Component="DropDownCategory" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownCategory" @bind-Value="_fCategory" Data="@CategoryFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+            <RadzenLabel Text="@L["Col.Active"]" Component="DropDownActive" />
+            <RadzenDropDown Name="DropDownActive" @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
             @if (_canEdit)
@@ -64,14 +65,16 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.DefectCodeRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.DefectCode.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DefectCode" Title="@L["Col.DefectCode"]" Width="140px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DefectCode" Title="@L["Col.DefectCode"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="code">@r.DefectCode</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DefectName" Title="@L["Col.DefectName"]" Width="160px" />
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DefectNameEn" Title="@L["Col.DefectNameEn"]" Width="140px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DefectName" Title="@L["Col.DefectName"]">
+                <Template Context="r"><span class="dim">@(r.DefectName ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DefectNameEn" Title="@L["Col.DefectNameEn"]">
                 <Template Context="r"><span class="dim">@(r.DefectNameEn ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="ProcessCode" Title="@L["Col.ProcessName"]" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="ProcessCode" Title="@L["Col.Process"]" Width="160px">
                 <Template Context="r">
                     @if (r.ProcessCode != null)
                     {
@@ -82,7 +85,7 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DefectCategory" Title="@L["Col.Category"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DefectCategory" Title="@L["Col.Category"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r">
                     @if (r.DefectCategory != null)
                     {
@@ -91,11 +94,11 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="SeverityLevel" Title="@L["Col.Severity"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="SeverityLevel" Title="@L["Col.Severity"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r">
                     @if (r.SeverityLevel != null)
                     {
-                        var svCss = r.SeverityLevel == "CRITICAL" ? "bad" : r.SeverityLevel == "MAJOR" ? "warn" : "ok";
+                        var svCss = r.SeverityLevel switch { "CRITICAL" => "bad", "MAJOR" => "orange", "MINOR" => "warn", _ => "mute" };
                         var svEntry = _severityCodes.FirstOrDefault(s => s.CodeValue == r.SeverityLevel);
                         var svLabel = svEntry != null ? MasterDataRepository.LocalName(svEntry) : r.SeverityLevel;
                         <span class="pill @svCss">@svLabel</span>
@@ -103,30 +106,39 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DispositionDefault" Title="@L["Col.DefaultAction"]" Width="100px">
-                <Template Context="r"><span class="dim">@(r.DispositionDefault ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DispositionDefault" Title="@L["Col.DefaultDisposition"]" Width="120px">
+                <Template Context="r">
+                    @if (r.DispositionDefault != null)
+                    {
+                        <span class="pill">@(_dispositionItems.FirstOrDefault(d => d.CodeValue == r.DispositionDefault) is { } df ? MasterDataRepository.LocalName(df) : r.DispositionDefault)</span>
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DefaultCauseCode" Title="@L["Col.DefaultCauseCode"]" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DefaultCauseCode" Title="@L["Col.DefaultCause"]" Width="150px">
                 <Template Context="r">
                     @if (r.DefaultCauseCode != null)
                     {
                         var cause = _causes.FirstOrDefault(c => c.CauseCode == r.DefaultCauseCode);
                         <span class="code">@r.DefaultCauseCode</span>
-                        @if (cause?.CauseName != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@cause.CauseName</span> }
+                        @if (cause != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@MasterDataRepository.LocalName(cause.CauseName, cause.CauseNameEn)</span> }
                     }
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="ParetoFlag" Title="@L["Col.Pareto"]" Width="75px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="ParetoFlag" Title="@L["Col.Pareto"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @if (r.ParetoFlag) { <span class="pill ok">Y</span> }
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="Status" Title="@L["Col.Status"]" Width="95px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
-                    @{ var stEntry = _statusCodes.FirstOrDefault(s => s.CodeValue == r.Status); var stCss = r.Status == "ACTIVE" || r.Status == "Active" ? "ok" : "bad"; var stLabel = stEntry != null ? MasterDataRepository.LocalName(stEntry) : r.Status; }
-                    <span class="pill @stCss">@(stLabel ?? "—")</span>
+                    @{
+                        var afCode  = r.ActiveFlag ? "ACTIVE" : "INACTIVE";
+                        var afLabel = _activeFlagItems.FirstOrDefault(a => a.CodeValue == afCode) is { } af ? MasterDataRepository.LocalName(af) : afCode;
+                    }
+                    <span class="pill @(r.ActiveFlag ? "ok" : "bad")">@afLabel</span>
                 </Template>
             </RadzenDataGridColumn>
         </Columns>
@@ -172,19 +184,22 @@
                     <RadzenDropDown @bind-Value="_f.SeverityLevel" Data="SeverityOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.None"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.DispositionDefault"]" />
-                    <RadzenTextBox @bind-Value="_f.DispositionDefault" Placeholder="REWORK" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.DefaultDisposition"]" />
+                    <RadzenDropDown @bind-Value="_f.DispositionDefault" Data="DispositionOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.DefaultCauseCode"]" />
+                    <RadzenLabel Text="@L["Col.DefaultCause"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.DefaultCauseCode" Data="RootCauseOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.None"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.Status"]" />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="StatusModalOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.Active"]" />
+                    <div style="display:flex;align-items:center;gap:0.5rem;height:32px;">
+                        <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" />
+                        <RadzenLabel Text="@L["Lbl.Active"]" style="cursor:pointer;" />
+                    </div>
                 </RadzenColumn>
             </RadzenRow>
 
@@ -240,19 +255,22 @@
                     <RadzenDropDown @bind-Value="_f.SeverityLevel" Data="SeverityOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.None"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.DispositionDefault"]" />
-                    <RadzenTextBox @bind-Value="_f.DispositionDefault" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.DefaultDisposition"]" />
+                    <RadzenDropDown @bind-Value="_f.DispositionDefault" Data="DispositionOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.DefaultCauseCode"]" />
+                    <RadzenLabel Text="@L["Col.DefaultCause"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.DefaultCauseCode" Data="RootCauseOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.None"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.Status"]" />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="StatusModalOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.Active"]" />
+                    <div style="display:flex;align-items:center;gap:0.5rem;height:32px;">
+                        <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" />
+                        <RadzenLabel Text="@L["Lbl.Active"]" style="cursor:pointer;" />
+                    </div>
                 </RadzenColumn>
             </RadzenRow>
 
@@ -291,14 +309,15 @@
     List<MasterDataRepository.DefectCodeRow> _allRows = new();
     List<MasterDataRepository.DefectCodeRow> _rows = new();
     List<MasterDataRepository.CodeItemRow> _severityCodes = new();
-    List<MasterDataRepository.CodeItemRow> _statusCodes = new();
+    List<MasterDataRepository.CodeItemRow> _activeFlagItems = new();
     List<MasterDataRepository.CodeItemRow> _processItems = new();
     List<MasterDataRepository.CodeItemRow> _categoryItems = new();
+    List<MasterDataRepository.CodeItemRow> _dispositionItems = new();
     List<MasterDataRepository.DefectCauseRow> _causes = new();
     MasterDataRepository.DefectCodeRow? _sel;
 
     string _fSearch = "";
-    string? _fCategory, _fProcess, _fStatus;
+    string? _fCategory, _fProcess, _fActive;
     string _modal = "", _modalErr = "", _msg = "";
     bool _busy, _bgMouseDownOnSelf, _isErr, _confirmDelete;
     bool _canEdit;
@@ -308,14 +327,14 @@
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
-    IEnumerable<DropDownItem> CategoryFilterOptions => _categoryItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = MasterDataRepository.LocalName(c) });
-    IEnumerable<DropDownItem> ProcessFilterOptions => _allRows.Select(r => r.ProcessCode).Where(x => x != null).Distinct().OrderBy(x => x).Select(p => new DropDownItem { Value = p!, Text = p! });
-    IEnumerable<DropDownItem> StatusFilterOptions => _statusCodes.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = MasterDataRepository.LocalName(s) });
-    IEnumerable<DropDownItem> StatusModalOptions => _statusCodes.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = MasterDataRepository.LocalName(s) });
+    IEnumerable<DropDownItem> CategoryFilterOptions => _categoryItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    IEnumerable<DropDownItem> ProcessFilterOptions => _processItems.Where(p => p.UseFlag && p.Attribute1 == "ROUTING").Select(p => new DropDownItem { Value = p.CodeValue ?? "", Text = $"[{p.CodeValue}] {MasterDataRepository.LocalName(p)}" });
+    IEnumerable<DropDownItem> ActiveFilterOptions => _activeFlagItems.Where(a => a.UseFlag).Select(a => new DropDownItem { Value = a.CodeValue ?? "", Text = MasterDataRepository.LocalName(a) });
     IEnumerable<DropDownItem> SeverityOptions => _severityCodes.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" });
-    IEnumerable<DropDownItem> ProcessOptions  => _processItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    IEnumerable<DropDownItem> ProcessOptions  => _processItems.Where(c => c.UseFlag && c.Attribute1 == "ROUTING").Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     IEnumerable<DropDownItem> CategoryOptions => _categoryItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
-    IEnumerable<DropDownItem> RootCauseOptions => _causes.Where(rc => rc.RootCauseFlag).Select(rc => new DropDownItem { Value = rc.CauseCode, Text = $"[{rc.CauseCode}] {rc.CauseName ?? rc.CauseCode}" });
+    IEnumerable<DropDownItem> DispositionOptions => _dispositionItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    IEnumerable<DropDownItem> RootCauseOptions => _causes.Where(rc => rc.RootCauseFlag).Select(rc => new DropDownItem { Value = rc.CauseCode, Text = $"[{rc.CauseCode}] {(MasterDataRepository.LocalName(rc.CauseName, rc.CauseNameEn) is { Length: > 0 } nm ? nm : rc.CauseCode)}" });
 
     protected override async Task OnInitializedAsync()
     {
@@ -324,9 +343,10 @@
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/ql/defect-code");
         try { _severityCodes = MD.ListCodeItems("DEFECT_SEVERITY"); } catch { }
-        try { _statusCodes   = MD.ListCodeItems("DEFECT_STATUS");   } catch { }
+        try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG");   } catch { }
         try { _processItems  = MD.ListCodeItems("PROCESS");              } catch { }
         try { _categoryItems = MD.ListCodeItems("DEFECT_CATEGORY");      } catch { }
+        try { _dispositionItems = MD.ListCodeItems("DISPOSITION");       } catch { }
         try { _causes        = MD.ListDefectCauses().OrderBy(r => r.CauseCode).ToList(); } catch { }
         Reload();
     }
@@ -355,7 +375,7 @@
             (r.DefectNameEn ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (_fCategory == null || r.DefectCategory == _fCategory) &&
         (_fProcess  == null || r.ProcessCode    == _fProcess) &&
-        (_fStatus   == null || r.Status         == _fStatus)
+        (_fActive == null || (_fActive == "ACTIVE" ? r.ActiveFlag : !r.ActiveFlag))
     ).ToList();
     }
 
@@ -376,7 +396,7 @@
         if (args.Data is not null) OpenEdit(args.Data);
     }
 
-    void OpenCreate() { _f = new() { Status = "Active" }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+    void OpenCreate() { _f = new() { ActiveFlag = true }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
     void OpenEdit(MasterDataRepository.DefectCodeRow r)
     {
@@ -393,7 +413,7 @@
             DispositionDefault = r.DispositionDefault ?? "",
             DefaultCauseCode   = r.DefaultCauseCode,
             ParetoFlag         = r.ParetoFlag,
-            Status             = r.Status             ?? "Active",
+            ActiveFlag         = r.ActiveFlag,
         };
         _modal = "edit";
     }
@@ -415,7 +435,7 @@
             MD.InsertDefectCode(_f.DefectCode.Trim(), _f.DefectName, NE(_f.DefectNameEn),
                 NE(_f.ProcessCode), NE(_f.DefectCategory), _f.SeverityLevel,
                 NE(_f.DispositionDefault), _f.DefaultCauseCode, _f.ParetoFlag,
-                NE(_f.Status), _actor);
+                _f.ActiveFlag, _actor);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.DefectName} {L["Msg.Created"]}", false);
         }
@@ -434,7 +454,7 @@
             MD.UpdateDefectCode(_sel.DefectCode, _f.DefectName, NE(_f.DefectNameEn),
                 NE(_f.ProcessCode), NE(_f.DefectCategory), _f.SeverityLevel,
                 NE(_f.DispositionDefault), _f.DefaultCauseCode, _f.ParetoFlag,
-                NE(_f.Status), _actor);
+                _f.ActiveFlag, _actor);
             var name = _f.DefectName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -477,6 +497,6 @@
         public string  DispositionDefault { get; set; } = "";
         public string? DefaultCauseCode   { get; set; }
         public bool    ParetoFlag         { get; set; }
-        public string  Status             { get; set; } = "Active";
+        public bool    ActiveFlag         { get; set; } = true;
     }
 }

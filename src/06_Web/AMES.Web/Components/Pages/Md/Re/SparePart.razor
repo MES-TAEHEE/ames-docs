@@ -80,16 +80,8 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="UOM" Title="@L["Col.Uom"]" Width="110px">
-                <Template Context="r">
-                    @{ var u = _uomList.FirstOrDefault(x => x.UOMCode == r.UOM); }
-                    @if (!string.IsNullOrEmpty(r.UOM))
-                    {
-                        <span class="code">@r.UOM</span>
-                        @if (u?.UOMName != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@u.UOMName</span> }
-                    }
-                    else { <span class="dim">—</span> }
-                </Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="70px">
+                <Template Context="r"><span class="code dim">@(r.UOM ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="UnitCost" Title="@L["Col.UnitPrice"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">@(r.UnitCost?.ToString("N2") ?? "—")</Template>

@@ -256,7 +256,7 @@
                                     🔒 @L["SYS.Users.Locked.Domain"] · @L["SYS.Users.Col.FailCount"]: @_sel.FailedLoginCount
                                 </RadzenAlert>
                             }
-                            <RadzenDropDown Name="EditDropDownStatus" @bind-Value="_f.AccountStatus" Data="@EditStatusItems" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                            <RadzenDropDown Name="EditDropDownStatus" @bind-Value="_f.AccountStatus" Data="@EditStatusOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                         </RadzenStack>
                     }
                 </RadzenStack>
@@ -364,7 +364,7 @@
     private IEnumerable<DropDownItem> PlantOptions => _plantItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     private IEnumerable<DropDownItem> ShiftOptions => _shiftItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     private IEnumerable<DropDownItem> SearchStatusItems => _statusItems.Where(s => s.UseFlag).Select(s => new DropDownItem { Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}", Value = s.CodeValue ?? "" });
-    private IEnumerable<DropDownItem> EditStatusItems => _statusItems.Where(s => s.UseFlag
+    private IEnumerable<DropDownItem> EditStatusOptions => _statusItems.Where(s => s.UseFlag
                 && !string.Equals(s.CodeValue, "UNVERIFIED", StringComparison.OrdinalIgnoreCase)
                 && (_sel is null
                     || !string.Equals(_sel.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase)

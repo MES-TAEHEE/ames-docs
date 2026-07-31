@@ -24,7 +24,7 @@
     </div>
     <div class="ames-kpi ok">
         <div class="ames-kpi-l">@L["Lbl.Active"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "ACTIVE")</div>
     </div>
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["MD.ShipDest.Kpi.Domestic"]</div>
@@ -45,9 +45,9 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.ShipDest.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.ShipmentDest.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;" />
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.ShipmentDest.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
-            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="_statusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
             @if (_canEdit)
@@ -60,14 +60,14 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.ShipmentDestRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.ShipDest.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="ShipDestID" Title="@L["Col.ShipDestId"]" Width="140px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="ShipDestID" Title="@L["Col.ShipDestId"]" TextAlign="TextAlign.Center" Width="150px">
                 <Template Context="r"><span class="code">@r.ShipDestID</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="CustomerName" Title="@L["Col.Customer"]" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="CustomerName" Title="@L["Col.Customer"]" TextAlign="TextAlign.Center" Width="150px">
                 <Template Context="r">@(r.CustomerName ?? r.CustomerID ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DestName" Title="@L["Col.ShipDestName"]" />
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DestType" Title="@L["Col.Type"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DestType" Title="@L["Col.Type"]" Width="200px">
                 <Template Context="r">
                     @if (r.DestType != null)
                     {
@@ -76,25 +76,29 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="Country" Title="@L["Col.Country"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="Country" Title="@L["Col.Country"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r">
                     @{ var nf = r.Country != null ? _nationItems.FirstOrDefault(c => c.CodeValue == r.Country) : null; }
                     <span class="dim">@(nf != null ? MasterDataRepository.LocalName(nf) : r.Country ?? "—")</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DeliveryDock" Title="@L["Col.Dock"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DeliveryDock" Title="@L["Col.Dock"]" Width="150px">
                 <Template Context="r"><span class="dim">@(r.DeliveryDock ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="LeadTimeDays" Title="@L["Col.LeadDays"]" Width="85px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="LeadTimeDays" Title="@L["Col.LeadDays"]" TextAlign="TextAlign.Right" Width="150px">
                 <Template Context="r">@(r.LeadTimeDays?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DefaultCarrier" Title="@L["Col.Carrier"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DefaultCarrier" Title="@L["Col.Carrier"]" Width="200px">
                 <Template Context="r"><span class="dim">@(r.DefaultCarrier ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="Status" Title="@L["Col.Status"]" Width="95px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r">
-                    @if (r.Status == "Active") { <span class="pill ok">Active</span> }
-                    else { <span class="pill bad">@(r.Status ?? "—")</span> }
+                    @{
+                        var scls   = r.Status switch { "ACTIVE" => "ok", "HOLD" => "orange", "CLOSED" => "mute", _ => "mute" };
+                        var strike = r.Status == "CLOSED";
+                        var sLabel = _statusItems.FirstOrDefault(s => s.CodeValue == r.Status) is { } lf ? MasterDataRepository.LocalName(lf) : r.Status;
+                    }
+                    <span class="pill @scls" style="@(strike ? "text-decoration:line-through;" : "")">@(sLabel ?? "—")</span>
                 </Template>
             </RadzenDataGridColumn>
         </Columns>
@@ -161,7 +165,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="_statusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -238,7 +242,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="_statusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -290,11 +294,8 @@
     IEnumerable<DropDownItem> DestTypeOptions => _destTypeItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     IEnumerable<DropDownItem> NationOptions   => _nationItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
 
-    DropDownItem[] _statusOptions =
-    {
-        new() { Value = "Active",   Text = "Active"   },
-        new() { Value = "Inactive", Text = "Inactive" },
-    };
+    List<MasterDataRepository.CodeItemRow> _statusItems = new();
+    IEnumerable<DropDownItem> StatusOptions => _statusItems.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" });
     IEnumerable<DropDownItem> CustomerOptions => _customers.Select(c => new DropDownItem { Value = c.CustomerID, Text = $"[{c.CustomerID}] {c.CustomerName ?? c.CustomerID}" });
 
     protected override async Task OnInitializedAsync()
@@ -306,6 +307,7 @@
         _customers = MD.ListCustomers();
         try { _destTypeItems = MD.ListCodeItems("SHIPMENT_DEST_TYPE"); } catch { }
         try { _nationItems   = MD.ListCodeItems("NATION_CODE"); } catch { }
+        try { _statusItems   = MD.ListCodeItems("SHIPMENT_DEST_STATUS"); } catch { }
         Reload();
     }
 
@@ -368,7 +370,7 @@
             LeadTimeDays   = r.LeadTimeDays,
             DefaultCarrier = r.DefaultCarrier  ?? "",
             DeliveryWindow = r.DeliveryWindow  ?? "",
-            Status         = r.Status          ?? "Active",
+            Status         = r.Status          ?? "ACTIVE",
         };
         _modal = "edit";
     }
@@ -449,6 +451,6 @@
         public int?    LeadTimeDays   { get; set; }
         public string  DefaultCarrier { get; set; } = "";
         public string  DeliveryWindow { get; set; } = "";
-        public string  Status         { get; set; } = "Active";
+        public string  Status         { get; set; } = "ACTIVE";
     }
 }

@@ -24,7 +24,7 @@
     </div>
     <div class="ames-kpi ok">
         <div class="ames-kpi-l">@L["Lbl.Active"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "ACTIVE")</div>
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">@L["MD.Customer.Kpi.EDI"]</div>
@@ -45,11 +45,11 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.Customer.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Customer.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px;" />
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Customer.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
-            <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="CustomerTypeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
+            <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="CustomerTypeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
-            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="_statusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
             @if (_canEdit)
@@ -62,14 +62,14 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.CustomerRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Customer.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="CustomerID" Title="@L["Col.CustomerId"]" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="CustomerID" Title="@L["Col.CustomerId"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="code">@r.CustomerID</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="CustomerCode" Title="@L["Col.Code"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="CustomerCode" Title="@L["Col.Code"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="dim">@(r.CustomerCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="CustomerName" Title="@L["Col.CustomerName"]" />
-            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="CustomerNameEn" Title="@L["MD.Customer.Lbl.CustomerNameEn"]">
+            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="CustomerNameEn" Title="@L["Col.CustomerNameEn"]">
                 <Template Context="r"><span class="dim">@(r.CustomerNameEn ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="CustomerType" Title="@L["Col.Type"]" Width="100px">
@@ -81,7 +81,7 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="Country" Title="@L["Col.Country"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="Country" Title="@L["Col.Country"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r">
                     @{ var nf = r.Country != null ? _nationItems.FirstOrDefault(c => c.CodeValue == r.Country) : null; }
                     <span class="dim">@(nf != null ? MasterDataRepository.LocalName(nf) : r.Country ?? "—")</span>
@@ -93,16 +93,20 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="ContactPhone" Title="@L["Col.Phone"]" Width="130px">
                 <Template Context="r"><span class="dim">@(r.ContactPhone ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="EDIFlag" Title="@L["Col.EDI"]" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="EDIFlag" Title="@L["Col.EDI"]" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="r">
                     @if (r.EDIFlag) { <span class="pill ok">EDI</span> }
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="Status" Title="@L["Col.Status"]" Width="95px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r">
-                    @if (r.Status == "Active") { <span class="pill ok">Active</span> }
-                    else { <span class="pill bad">@(r.Status ?? "—")</span> }
+                    @{
+                        var scls   = r.Status switch { "ACTIVE" => "ok", "HOLD" => "orange", "DORMANT" => "mute", "CLOSED" => "mute", _ => "mute" };
+                        var strike = r.Status == "CLOSED";
+                        var sLabel = _statusItems.FirstOrDefault(s => s.CodeValue == r.Status) is { } lf ? MasterDataRepository.LocalName(lf) : r.Status;
+                    }
+                    <span class="pill @scls" style="@(strike ? "text-decoration:line-through;" : "")">@(sLabel ?? "—")</span>
                 </Template>
             </RadzenDataGridColumn>
         </Columns>
@@ -117,12 +121,12 @@
             <div class="ames-modal-h">@L["MD.Customer.Title"] — @L["Modal.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
-                <RadzenLabel Text="@L["MD.Customer.Lbl.CustomerName"]" class="ames-rz-modal-label" Component="CreateTextBoxCustomerName" />
+                <RadzenLabel Text="@L["Col.CustomerName"]" class="ames-rz-modal-label" Component="CreateTextBoxCustomerName" />
                 <RadzenTextBox Name="CreateTextBoxCustomerName" @bind-Value="_f.CustomerName" Placeholder="@L["MD.Customer.Ph.CustomerName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
-                <RadzenLabel Text="@L["MD.Customer.Lbl.CustomerNameEn"]" class="ames-rz-modal-label" Component="CreateTextBoxCustomerNameEn" />
+                <RadzenLabel Text="@L["Col.CustomerNameEn"]" class="ames-rz-modal-label" Component="CreateTextBoxCustomerNameEn" />
                 <RadzenTextBox Name="CreateTextBoxCustomerNameEn" @bind-Value="_f.CustomerNameEn" Placeholder="Hyundai Motor Co." InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
@@ -173,7 +177,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="_statusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -203,12 +207,12 @@
             <div class="ames-modal-h">@L["MD.Customer.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.CustomerID</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
-                <RadzenLabel Text="@L["MD.Customer.Lbl.CustomerName"]" class="ames-rz-modal-label" Component="EditTextBoxCustomerName" />
+                <RadzenLabel Text="@L["Col.CustomerName"]" class="ames-rz-modal-label" Component="EditTextBoxCustomerName" />
                 <RadzenTextBox Name="EditTextBoxCustomerName" @bind-Value="_f.CustomerName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
-                <RadzenLabel Text="@L["MD.Customer.Lbl.CustomerNameEn"]" class="ames-rz-modal-label" Component="EditTextBoxCustomerNameEn" />
+                <RadzenLabel Text="@L["Col.CustomerNameEn"]" class="ames-rz-modal-label" Component="EditTextBoxCustomerNameEn" />
                 <RadzenTextBox Name="EditTextBoxCustomerNameEn" @bind-Value="_f.CustomerNameEn" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
@@ -259,7 +263,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
-                    <RadzenDropDown @bind-Value="_f.Status" Data="_statusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -318,11 +322,8 @@
     IEnumerable<DropDownItem> NationOptions       => _nationItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     IEnumerable<DropDownItem> CurrencyOptions     => _currencyItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
 
-    DropDownItem[] _statusOptions =
-    {
-        new() { Value = "Active",   Text = "Active"   },
-        new() { Value = "Inactive", Text = "Inactive" },
-    };
+    List<MasterDataRepository.CodeItemRow> _statusItems = new();
+    IEnumerable<DropDownItem> StatusOptions => _statusItems.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" });
 
     protected override async Task OnInitializedAsync()
     {
@@ -333,6 +334,7 @@
         try { _customerTypeItems = MD.ListCodeItems("CUSTOMER_TYPE"); } catch { }
         try { _nationItems       = MD.ListCodeItems("NATION_CODE"); } catch { }
         try { _currencyItems     = MD.ListCodeItems("CURRENCY_CODE"); } catch { }
+        try { _statusItems       = MD.ListCodeItems("CUSTOMER_STATUS"); } catch { }
         Reload();
     }
 
@@ -399,7 +401,7 @@
             ContactEmail   = r.ContactEmail   ?? "",
             CurrencyCode   = r.CurrencyCode   ?? "",
             EDIFlag        = r.EDIFlag,
-            Status         = r.Status         ?? "Active",
+            Status         = r.Status         ?? "ACTIVE",
         };
         _modal = "edit";
     }
@@ -488,6 +490,6 @@
         public string  ContactEmail   { get; set; } = "";
         public string  CurrencyCode   { get; set; } = "KRW";
         public bool    EDIFlag        { get; set; } = false;
-        public string  Status         { get; set; } = "Active";
+        public string  Status         { get; set; } = "ACTIVE";
     }
 }

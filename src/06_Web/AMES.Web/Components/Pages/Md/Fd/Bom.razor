@@ -219,7 +219,7 @@
                             <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="QtyPer" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right" Width="70px">
                                 <Template Context="line"><span class="code" style="font-weight:600;">@(line.QtyPer?.ToString("N4"))</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="60px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="70px">
                                 <Template Context="line"><span class="dim">@line.UOM</span></Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="ScrapPct" Title="@L["Col.ScrapPct"]" TextAlign="TextAlign.Right" Width="80px">

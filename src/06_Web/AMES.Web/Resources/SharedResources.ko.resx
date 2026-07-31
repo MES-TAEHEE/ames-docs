@@ -3346,13 +3346,10 @@
     <value>원인코드</value>
   </data>
   <data name="Col.CauseName" xml:space="preserve">
-    <value>원인명</value>
+    <value>원인명 (국문)</value>
   </data>
   <data name="Col.Category" xml:space="preserve">
     <value>카테고리</value>
-  </data>
-  <data name="Col.ProcessName" xml:space="preserve">
-    <value>공정명</value>
   </data>
   <data name="Col.StationNameEn" xml:space="preserve">
     <value>작업 위치명 (영문)</value>
@@ -3377,9 +3374,6 @@
   </data>
   <data name="Col.Severity" xml:space="preserve">
     <value>심각도</value>
-  </data>
-  <data name="Col.DefaultAction" xml:space="preserve">
-    <value>처리기본</value>
   </data>
   <data name="Col.Pareto" xml:space="preserve">
     <value>파레토</value>
@@ -3888,10 +3882,7 @@
   <data name="MD.Customer.Lbl.CustomerCode" xml:space="preserve">
     <value>고객 코드</value>
   </data>
-  <data name="MD.Customer.Lbl.CustomerName" xml:space="preserve">
-    <value>고객명 (국문) *</value>
-  </data>
-  <data name="MD.Customer.Lbl.CustomerNameEn" xml:space="preserve">
+  <data name="Col.CustomerNameEn" xml:space="preserve">
     <value>고객명 (영문)</value>
   </data>
   <data name="MD.Customer.Lbl.CustomerType" xml:space="preserve">
@@ -4394,12 +4385,6 @@
   </data>
   <data name="Col.SeverityLevel" xml:space="preserve">
     <value>심각도</value>
-  </data>
-  <data name="Col.DispositionDefault" xml:space="preserve">
-    <value>처리기본값</value>
-  </data>
-  <data name="Col.DefaultCauseCode" xml:space="preserve">
-    <value>기본 원인코드</value>
   </data>
   <data name="Col.CustomerCode" xml:space="preserve">
     <value>고객사</value>
@@ -5249,5 +5234,14 @@
   </data>
   <data name="MD.MoldLine.Empty" xml:space="preserve">
     <value>라인에 등록된 금형이 없습니다.</value>
+  </data>
+  <data name="Col.DefaultDisposition" xml:space="preserve">
+    <value>처분</value>
+  </data>
+  <data name="Col.DefaultCause" xml:space="preserve">
+    <value>기본 원인</value>
+  </data>
+  <data name="Col.CauseNameEn" xml:space="preserve">
+    <value>원인명 (영문)</value>
   </data>
 </root>
