@@ -288,11 +288,11 @@ public sealed class PdaApi
             }
         }
     }
-    public async Task<List<LocationMapItemRow>> WhLocationMapItemsAsync(string locationId)
+    public async Task<List<LocationMapItemRow>> WhLocationMapItemsAsync(string locationId, DateTime? dateFrom = null, DateTime? dateTo = null)
     {
         try
         {
-            return await QueryWhLocationMapItemsDbAsync(locationId);
+            return await QueryWhLocationMapItemsDbAsync(locationId, dateFrom, dateTo);
         }
         catch
         {
@@ -1079,10 +1079,78 @@ public sealed class PdaApi
         return rows;
     }
 
-    private async Task<List<LocationMapItemRow>> QueryWhLocationMapItemsDbAsync(string locationId)
+    private async Task<List<LocationMapItemRow>> QueryWhLocationMapItemsDbAsync(string locationId, DateTime? dateFrom, DateTime? dateTo)
     {
         await using var conn = _db.CreateConnection();
         await conn.OpenAsync();
+
+        if (await ProcedureExistsAsync(conn, "dbo", "WH_PDA_INVENTORY_LOCATION_CONTENTS"))
+        {
+            await using var proc = new SqlCommand("[dbo].[WH_PDA_INVENTORY_LOCATION_CONTENTS]", conn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            proc.Parameters.Add("@LocationId", SqlDbType.NVarChar, 40).Value = locationId.Trim();
+            proc.Parameters.Add("@StockDateFrom", SqlDbType.Date).Value =
+                dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
+            proc.Parameters.Add("@StockDateTo", SqlDbType.Date).Value =
+                dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
+
+            await using var procRdr = await proc.ExecuteReaderAsync();
+            var procRows = new List<LocationMapItemRow>();
+            while (await procRdr.ReadAsync())
+                procRows.Add(ReadLocationMapItemRow(procRdr));
+
+            return procRows;
+        }
+
+        if (await TableExistsAsync(conn, "dbo", "WH_Inventory"))
+        {
+            await using var dboCmd = new SqlCommand("""
+                SELECT
+                    COALESCE(LOT.LotCode, CONCAT(N'LOT-', W.LotID), N'-') AS LOTNO,
+                    W.ItemNo AS PARTNO,
+                    I.ItemName AS PARTNM,
+                    SUM(COALESCE(W.OnHandQty, 0)) AS QTY,
+                    I.DefaultUOM AS UNIT,
+                    COALESCE(W.Status, N'Received') AS INV_STATUS,
+                    CONVERT(nvarchar(10), MAX(W.LastReceivedAt), 23) AS WORK_DATE,
+                    CONVERT(nvarchar(8), MAX(W.LastReceivedAt), 108) AS WORK_TIME
+                FROM dbo.WH_Inventory W
+                LEFT JOIN dbo.tbl_Lot LOT
+                       ON LOT.LotID = W.LotID
+                LEFT JOIN dbo.MD_Item I
+                       ON I.ItemNo = W.ItemNo
+                WHERE UPPER(W.LocationID) = UPPER(@LocationID)
+                  AND COALESCE(W.OnHandQty, 0) > 0
+                  AND UPPER(COALESCE(W.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
+                  AND (@StockDateFrom IS NULL OR CONVERT(date, W.LastReceivedAt) >= @StockDateFrom)
+                  AND (@StockDateTo IS NULL OR CONVERT(date, W.LastReceivedAt) <= @StockDateTo)
+                GROUP BY
+                    COALESCE(LOT.LotCode, CONCAT(N'LOT-', W.LotID), N'-'),
+                    W.ItemNo,
+                    I.ItemName,
+                    I.DefaultUOM,
+                    COALESCE(W.Status, N'Received')
+                ORDER BY W.ItemNo, LOTNO;
+                """, conn);
+            dboCmd.Parameters.Add("@LocationID", SqlDbType.NVarChar, 40).Value = locationId.Trim();
+            dboCmd.Parameters.Add("@StockDateFrom", SqlDbType.Date).Value =
+                dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
+            dboCmd.Parameters.Add("@StockDateTo", SqlDbType.Date).Value =
+                dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
+
+            await using var dboRdr = await dboCmd.ExecuteReaderAsync();
+            var dboRows = new List<LocationMapItemRow>();
+            while (await dboRdr.ReadAsync())
+                dboRows.Add(ReadLocationMapItemRow(dboRdr));
+
+            return dboRows;
+        }
+
+        if (!await TableExistsAsync(conn, "SIS_TEST", "WMS2000"))
+            return new List<LocationMapItemRow>();
+
         await using var cmd = new SqlCommand("""
             SELECT
                 S.LOTNO,

@@ -298,3 +298,43 @@ BEGIN
     ORDER BY COALESCE(L.LocationID, W.LocationID);
 END;
 GO
+
+CREATE OR ALTER PROCEDURE dbo.WH_PDA_INVENTORY_LOCATION_CONTENTS
+    @LocationId nvarchar(40),
+    @StockDateFrom date = NULL,
+    @StockDateTo date = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @LocationNo nvarchar(40) = NULLIF(LTRIM(RTRIM(@LocationId)), N'');
+
+    SELECT
+        COALESCE(LOT.LotCode, CONCAT(N'LOT-', W.LotID), N'-') AS LOTNO,
+        W.ItemNo AS PARTNO,
+        I.ItemName AS PARTNM,
+        SUM(COALESCE(W.OnHandQty, 0)) AS QTY,
+        I.DefaultUOM AS UNIT,
+        COALESCE(W.Status, N'Received') AS INV_STATUS,
+        CONVERT(nvarchar(10), MAX(W.LastReceivedAt), 23) AS WORK_DATE,
+        CONVERT(nvarchar(8), MAX(W.LastReceivedAt), 108) AS WORK_TIME
+    FROM dbo.WH_Inventory W
+    LEFT JOIN dbo.tbl_Lot LOT
+           ON LOT.LotID = W.LotID
+    LEFT JOIN dbo.MD_Item I
+           ON I.ItemNo = W.ItemNo
+    WHERE @LocationNo IS NOT NULL
+      AND UPPER(W.LocationID) = UPPER(@LocationNo)
+      AND COALESCE(W.OnHandQty, 0) > 0
+      AND UPPER(COALESCE(W.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
+      AND (@StockDateFrom IS NULL OR CONVERT(date, W.LastReceivedAt) >= @StockDateFrom)
+      AND (@StockDateTo IS NULL OR CONVERT(date, W.LastReceivedAt) <= @StockDateTo)
+    GROUP BY
+        COALESCE(LOT.LotCode, CONCAT(N'LOT-', W.LotID), N'-'),
+        W.ItemNo,
+        I.ItemName,
+        I.DefaultUOM,
+        COALESCE(W.Status, N'Received')
+    ORDER BY W.ItemNo, LOTNO;
+END;
+GO
