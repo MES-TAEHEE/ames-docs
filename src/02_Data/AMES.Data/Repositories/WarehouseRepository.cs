@@ -1081,14 +1081,65 @@ public sealed class WarehouseRepository
         DateTime? to = null)
     {
         using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("[dbo].[WH_WEB_LOG_HISTORY_LIST]", conn)
+        EnsureOperationLogTable(conn);
+        using var cmd = new SqlCommand("""
+            SELECT TOP (500)
+                OperationLogID,
+                EventTime,
+                EventType,
+                ScreenCode,
+                EmployeeNo,
+                EmployeeName,
+                WorkerID,
+                TerminalID,
+                LineID,
+                ShiftCode,
+                ScanType,
+                ScanValue,
+                Result,
+                Message,
+                ClientIP,
+                RefDocType,
+                RefDocNo,
+                LotNo,
+                PartNo,
+                LocationID,
+                Qty
+            FROM dbo.WH_OperationLog
+            WHERE EventType NOT IN ('LOGIN', 'LOGOUT')
+              AND (
+                    @OperationType IS NULL
+                 OR (@OperationType = 'SCAN' AND EventType LIKE 'SCAN_%')
+                 OR (@OperationType = 'INBOUND' AND EventType IN ('RECEIVE', 'CANCEL_RECEIPT'))
+                 OR (@OperationType = 'RELEASE' AND EventType = 'RELEASE_PICK')
+                 OR (@OperationType = 'ADJUST' AND EventType = 'ADJUST_SAVE')
+                 OR (@OperationType = 'LOCATION' AND (EventType = 'MOVE_LOCATION' OR EventType LIKE 'LOCATION_MASTER_%'))
+                 OR EventType = @OperationType
+              )
+              AND (@DateFrom IS NULL OR EventTime >= @DateFrom)
+              AND (@DateTo IS NULL OR EventTime < DATEADD(day, 1, @DateTo))
+              AND (@Like IS NULL
+                   OR EventType LIKE @Like
+                   OR ScreenCode LIKE @Like
+                   OR EmployeeNo LIKE @Like
+                   OR EmployeeName LIKE @Like
+                   OR WorkerID LIKE @Like
+                   OR TerminalID LIKE @Like
+                   OR ScanValue LIKE @Like
+                   OR Message LIKE @Like
+                   OR LotNo LIKE @Like
+                   OR PartNo LIKE @Like
+                   OR LocationID LIKE @Like
+                   OR RefDocNo LIKE @Like)
+            ORDER BY EventTime DESC, OperationLogID DESC;
+            """, conn)
         {
-            CommandType = CommandType.StoredProcedure,
             CommandTimeout = 15
         };
-        cmd.Parameters.Add("@SearchText", SqlDbType.NVarChar, 120).Value =
-            string.IsNullOrWhiteSpace(search) ? DBNull.Value : search.Trim();
-        cmd.Parameters.Add("@EventType", SqlDbType.VarChar, 40).Value =
+        var searchText = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
+        cmd.Parameters.Add("@Like", SqlDbType.NVarChar, 130).Value =
+            searchText is null ? DBNull.Value : $"%{searchText}%";
+        cmd.Parameters.Add("@OperationType", SqlDbType.VarChar, 40).Value =
             string.IsNullOrWhiteSpace(eventType) ? DBNull.Value : eventType.Trim().ToUpperInvariant();
         cmd.Parameters.Add("@DateFrom", SqlDbType.Date).Value =
             from.HasValue ? (object)from.Value.Date : DBNull.Value;
@@ -1124,6 +1175,67 @@ public sealed class WarehouseRepository
         }
 
         return list;
+    }
+
+    public long WriteWebOperationLog(
+        string eventType,
+        string? screenCode,
+        string? workerId,
+        string? workerName,
+        string? message,
+        string? refDocType = null,
+        string? refDocNo = null,
+        string? locationId = null,
+        string result = "SUCCESS")
+    {
+        if (string.IsNullOrWhiteSpace(eventType))
+            throw new ArgumentException("Event Type is required.", nameof(eventType));
+
+        using var conn = _factory.OpenConnection();
+        EnsureOperationLogTable(conn);
+
+        using var insert = new SqlCommand("""
+            INSERT INTO dbo.WH_OperationLog
+            (
+                EventTime, EventType, ScreenCode, EmployeeNo, EmployeeName, WorkerID,
+                TerminalID, ScanType, ScanValue, Result, Message,
+                RefDocType, RefDocNo, LocationID, CreatedBy, CreatedTS
+            )
+            OUTPUT INSERTED.OperationLogID
+            VALUES
+            (
+                SYSDATETIME(), @EventType, @ScreenCode, @EmployeeNo, @EmployeeName, @WorkerID,
+                @TerminalID, @ScanType, @ScanValue, @Result, @Message,
+                @RefDocType, @RefDocNo, @LocationID, @CreatedBy, SYSDATETIME()
+            );
+            """, conn)
+        {
+            CommandTimeout = 15
+        };
+        AddOperationLogParameters(insert, eventType, screenCode, workerId, workerName, message, refDocType, refDocNo, locationId, result);
+        return Convert.ToInt64(insert.ExecuteScalar());
+    }
+
+    public bool TryWriteWebOperationLog(
+        string eventType,
+        string? screenCode,
+        string? workerId,
+        string? workerName,
+        string? message,
+        string? refDocType = null,
+        string? refDocNo = null,
+        string? locationId = null,
+        string result = "SUCCESS")
+    {
+        try
+        {
+            WriteWebOperationLog(eventType, screenCode, workerId, workerName, message, refDocType, refDocNo, locationId, result);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     public List<InventorySettingRow> ListInventorySettings(string? search = null, string? status = null)
@@ -1276,6 +1388,122 @@ public sealed class WarehouseRepository
                     ADD CONSTRAINT PK_WH_AREA_LAYOUT PRIMARY KEY (AREACD);
             END;
         """, conn);
+        cmd.ExecuteNonQuery();
+    }
+
+    private static void EnsureOperationLogTable(SqlConnection conn)
+    {
+        using var cmd = new SqlCommand("""
+            IF OBJECT_ID(N'dbo.WH_OperationLog', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.WH_OperationLog
+                (
+                    OperationLogID bigint IDENTITY(1,1) NOT NULL,
+                    EventTime datetime2 NOT NULL CONSTRAINT DF_WH_OperationLog_EventTime DEFAULT SYSDATETIME(),
+                    EventType varchar(40) NOT NULL,
+                    ScreenCode varchar(20) NULL,
+                    EmployeeNo nvarchar(40) NULL,
+                    EmployeeName nvarchar(120) NULL,
+                    WorkerID nvarchar(450) NULL,
+                    TerminalID nvarchar(80) NULL,
+                    LineID nvarchar(40) NULL,
+                    ShiftCode nvarchar(20) NULL,
+                    ScanType varchar(30) NULL,
+                    ScanValue nvarchar(120) NULL,
+                    Result varchar(20) NOT NULL CONSTRAINT DF_WH_OperationLog_Result DEFAULT 'INFO',
+                    Message nvarchar(500) NULL,
+                    ClientIP nvarchar(64) NULL,
+                    UserAgent nvarchar(300) NULL,
+                    RefDocType varchar(30) NULL,
+                    RefDocNo nvarchar(80) NULL,
+                    LotNo nvarchar(80) NULL,
+                    PartNo nvarchar(80) NULL,
+                    LocationID nvarchar(80) NULL,
+                    Qty decimal(14,3) NULL,
+                    CreatedBy varchar(50) NOT NULL CONSTRAINT DF_WH_OperationLog_CreatedBy DEFAULT 'system',
+                    CreatedTS datetime2 NOT NULL CONSTRAINT DF_WH_OperationLog_CreatedTS DEFAULT SYSDATETIME(),
+                    CONSTRAINT PK_WH_OperationLog PRIMARY KEY CLUSTERED (OperationLogID)
+                );
+            END;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'EventTime') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD EventTime datetime2 NOT NULL DEFAULT SYSDATETIME();
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'EventType') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD EventType varchar(40) NOT NULL DEFAULT 'INFO';
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'ScreenCode') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD ScreenCode varchar(20) NULL;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'EmployeeNo') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD EmployeeNo nvarchar(40) NULL;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'EmployeeName') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD EmployeeName nvarchar(120) NULL;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'WorkerID') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD WorkerID nvarchar(450) NULL;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'TerminalID') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD TerminalID nvarchar(80) NULL;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'LineID') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD LineID nvarchar(40) NULL;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'ShiftCode') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD ShiftCode nvarchar(20) NULL;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'ScanType') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD ScanType varchar(30) NULL;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'ScanValue') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD ScanValue nvarchar(120) NULL;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'Result') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD Result varchar(20) NOT NULL DEFAULT 'INFO';
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'Message') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD Message nvarchar(500) NULL;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'ClientIP') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD ClientIP nvarchar(64) NULL;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'UserAgent') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD UserAgent nvarchar(300) NULL;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'RefDocType') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD RefDocType varchar(30) NULL;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'RefDocNo') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD RefDocNo nvarchar(80) NULL;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'LotNo') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD LotNo nvarchar(80) NULL;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'PartNo') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD PartNo nvarchar(80) NULL;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'LocationID') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD LocationID nvarchar(80) NULL;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'Qty') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD Qty decimal(14,3) NULL;
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'CreatedBy') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD CreatedBy varchar(50) NOT NULL CONSTRAINT DF_WH_OperationLog_CreatedBy DEFAULT 'system';
+
+            IF COL_LENGTH(N'dbo.WH_OperationLog', N'CreatedTS') IS NULL
+                ALTER TABLE dbo.WH_OperationLog ADD CreatedTS datetime2 NOT NULL CONSTRAINT DF_WH_OperationLog_CreatedTS DEFAULT SYSDATETIME();
+
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_WH_OperationLog_Time' AND object_id = OBJECT_ID(N'dbo.WH_OperationLog'))
+                CREATE INDEX IX_WH_OperationLog_Time ON dbo.WH_OperationLog (EventTime DESC, OperationLogID DESC);
+
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_WH_OperationLog_Search' AND object_id = OBJECT_ID(N'dbo.WH_OperationLog'))
+                CREATE INDEX IX_WH_OperationLog_Search ON dbo.WH_OperationLog (EventType, EmployeeNo, WorkerID, ScanValue);
+            """, conn)
+        {
+            CommandTimeout = 15
+        };
         cmd.ExecuteNonQuery();
     }
 
@@ -1520,6 +1748,53 @@ public sealed class WarehouseRepository
     {
         var p = cmd.Parameters.Add(name, type, size);
         p.Value = string.IsNullOrWhiteSpace(value) ? DBNull.Value : value.Trim();
+    }
+
+    private static void AddOperationLogParameters(
+        SqlCommand cmd,
+        string eventType,
+        string? screenCode,
+        string? workerId,
+        string? workerName,
+        string? message,
+        string? refDocType,
+        string? refDocNo,
+        string? locationId,
+        string result)
+    {
+        AddNullable(cmd, "@EventType", SqlDbType.VarChar, 40, eventType.ToUpperInvariant());
+        AddNullable(cmd, "@ScreenCode", SqlDbType.VarChar, 20, TruncateOrNull(screenCode, 20));
+        AddNullable(cmd, "@EmployeeNo", SqlDbType.NVarChar, 40, TruncateOrNull(workerId, 40));
+        AddNullable(cmd, "@EmployeeName", SqlDbType.NVarChar, 120, TruncateOrNull(workerName, 120));
+        AddNullable(cmd, "@WorkerID", SqlDbType.NVarChar, 450, TruncateOrNull(workerId, 450));
+        AddNullable(cmd, "@TerminalID", SqlDbType.NVarChar, 80, "WEB");
+        AddNullable(cmd, "@ScanType", SqlDbType.VarChar, 30, "MASTER");
+        AddNullable(cmd, "@ScanValue", SqlDbType.NVarChar, 120, TruncateOrNull(refDocNo ?? locationId, 120));
+        AddNullable(cmd, "@Result", SqlDbType.VarChar, 20, string.IsNullOrWhiteSpace(result) ? "SUCCESS" : result.ToUpperInvariant());
+        AddNullable(cmd, "@Message", SqlDbType.NVarChar, 500, TruncateOrNull(message, 500));
+        AddNullable(cmd, "@ClientIP", SqlDbType.NVarChar, 64, null);
+        AddNullable(cmd, "@UserAgent", SqlDbType.NVarChar, 300, null);
+        AddNullable(cmd, "@RefDocType", SqlDbType.VarChar, 30, TruncateOrNull(refDocType, 30));
+        AddNullable(cmd, "@RefDocNo", SqlDbType.NVarChar, 80, TruncateOrNull(refDocNo, 80));
+        AddNullable(cmd, "@LotNo", SqlDbType.NVarChar, 80, null);
+        AddNullable(cmd, "@PartNo", SqlDbType.NVarChar, 80, null);
+        AddNullable(cmd, "@LocationID", SqlDbType.NVarChar, 80, TruncateOrNull(locationId, 80));
+        if (!cmd.Parameters.Contains("@Qty"))
+        {
+            var qty = cmd.Parameters.Add("@Qty", SqlDbType.Decimal);
+            qty.Precision = 14;
+            qty.Scale = 3;
+            qty.Value = DBNull.Value;
+        }
+        AddNullable(cmd, "@CreatedBy", SqlDbType.VarChar, 50, TruncateOrNull(workerId, 50) ?? "web");
+    }
+
+    private static string? TruncateOrNull(string? value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        return Truncate(value, maxLength);
     }
 
     private static void AddDecimal(SqlCommand cmd, string name, decimal value)
