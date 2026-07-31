@@ -159,7 +159,6 @@ IF OBJECT_ID(N'dbo.MD_Oven', N'U') IS NOT NULL DROP TABLE dbo.MD_Oven;
 IF OBJECT_ID(N'dbo.MD_RalColor', N'U') IS NOT NULL DROP TABLE dbo.MD_RalColor;
 IF OBJECT_ID(N'dbo.MD_RfidTag', N'U') IS NOT NULL DROP TABLE dbo.MD_RfidTag;
 IF OBJECT_ID(N'dbo.MD_Jig', N'U') IS NOT NULL DROP TABLE dbo.MD_Jig;
-IF OBJECT_ID(N'dbo.MD_Calendar', N'U') IS NOT NULL DROP TABLE dbo.MD_Calendar;
 IF OBJECT_ID(N'dbo.MD_Uom', N'U') IS NOT NULL DROP TABLE dbo.MD_Uom;
 IF OBJECT_ID(N'dbo.MD_Customer', N'U') IS NOT NULL DROP TABLE dbo.MD_Customer;
 IF OBJECT_ID(N'dbo.MD_ShipmentDest', N'U') IS NOT NULL DROP TABLE dbo.MD_ShipmentDest;
@@ -534,25 +533,6 @@ CREATE TABLE dbo.MD_Uom (
   [ModifiedBy]                NVARCHAR(450)            NULL,
   [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_Uom PRIMARY KEY CLUSTERED ([UOMCode])
-);
-GO
-
--- ── MD_Calendar  (공장 캘린더 (MD-14))
-CREATE TABLE dbo.MD_Calendar (
-  [PlantCode]                 VARCHAR(20)          NOT NULL,
-  [CalendarDate]              DATE                 NOT NULL,
-  [DayType]                   VARCHAR(10)              NULL,
-  [HolidayName]               NVARCHAR(40)             NULL,
-  [ShiftCount]                INT                      NULL,
-  [ShiftPattern]              VARCHAR(20)              NULL,
-  [WorkHours]                 DECIMAL(5,2)             NULL,
-  [CalendarYear]              INT                      NULL,
-  [Note]                      NVARCHAR(120)            NULL,
-  [CreatedBy]                 VARCHAR(50)          NOT NULL,
-  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedBy]                NVARCHAR(450)            NULL,
-  [ModifiedTS]                DATETIME2                NULL,
-  CONSTRAINT PK_MD_Calendar PRIMARY KEY CLUSTERED ([PlantCode], [CalendarDate])
 );
 GO
 

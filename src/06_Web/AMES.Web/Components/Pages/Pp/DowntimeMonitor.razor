@@ -4,7 +4,6 @@
 @implements IDisposable
 @inject AMES.Data.Repositories.PpRepository           Pp
 @inject AMES.Data.Repositories.OeeRepository          Oee
-@inject AMES.Data.Repositories.LineScheduleRepository Lsr
 @inject AuthenticationStateProvider AuthPrvd
 @inject AMES.Web.Services.PermissionService PermSvc
 @inject IStringLocalizer<SharedResources> L
@@ -304,13 +303,7 @@
         _lastRefresh = DateTime.Now;
         if (_vms.Count == 0) return;
 
-        var now    = DateTime.Now;
-        var nowMin = now.Hour * 60 + now.Minute;
-        var dayType = now.DayOfWeek switch {
-            DayOfWeek.Saturday => "SAT",
-            DayOfWeek.Sunday   => "SUN",
-            _                  => "WORKDAY"
-        };
+        var now = DateTime.Now;
 
         Dictionary<string, AMES.Data.Repositories.OeeRepository.EquipSignal> signals = [];
         try { signals = Oee.GetLatestSignalPerLine(); } catch { }
@@ -327,22 +320,10 @@
             vm.IsRunning  = isRunning;
             vm.SignalAge  = signalAge;
 
-            string planBand = "—";
-            string planType = "OFF";
-            try
-            {
-                var bands = Lsr.GetPattern(vm.LineId, dayType);
-                var band  = bands.FirstOrDefault(b => b.StartMin <= nowMin && b.EndMin > nowMin);
-                if (band != null) { planBand = band.Label ?? band.BandType; planType = band.BandType; }
-            }
-            catch { }
-            vm.PlanBand = planBand;
+            // 계획 밴드 판정은 레거시 MD_LinePattern 제거로 비활성 — 필요 시 MD_LineTimeSegment 기반 재구현
+            vm.PlanBand = "—";
 
-            string newState = isRunning ? "WORK" : planType switch {
-                "WORK"  => "UNPLANNED_DOWN",
-                "BREAK" => "BREAK",
-                _       => "PLANNED_DOWN"
-            };
+            string newState = isRunning ? "WORK" : "PLANNED_DOWN";
 
             if (newState != vm.State)
             {
