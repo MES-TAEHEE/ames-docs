@@ -9,24 +9,29 @@
 
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">Locations</div>
-        <div class="ames-kpi-v">@_allRows.Count</div>
-        <div class="ames-kpi-s">master records</div>
-    </div>
-    <div class="ames-kpi ok">
-        <div class="ames-kpi-l">Active</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.UseYn)</div>
-        <div class="ames-kpi-s">available bins</div>
-    </div>
-    <div class="ames-kpi warn">
-        <div class="ames-kpi-l">Stocked</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.TotalQty > 0)</div>
-        <div class="ames-kpi-s">with inventory</div>
+        <div class="ames-kpi-l">Step</div>
+        <div class="ames-kpi-v">@StepNo</div>
+        <div class="ames-kpi-s">@StepTitle</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">On Hand</div>
-        <div class="ames-kpi-v">@_allRows.Sum(r => r.TotalQty).ToString("N0")</div>
-        <div class="ames-kpi-s">total quantity</div>
+        <div class="ames-kpi-l">Warehouses</div>
+        <div class="ames-kpi-v">@_warehouses.Count</div>
+        <div class="ames-kpi-s">warehouse master</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">Areas</div>
+        <div class="ames-kpi-v">@_areas.Count</div>
+        <div class="ames-kpi-s">selected WH</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">Zones</div>
+        <div class="ames-kpi-v">@_sections.Count</div>
+        <div class="ames-kpi-s">selected area</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">Locations</div>
+        <div class="ames-kpi-v">@_locations.Count</div>
+        <div class="ames-kpi-s">selected zone</div>
     </div>
 </div>
 
@@ -36,301 +41,918 @@
 }
 
 <div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ Location List · @_rows.Count items@(_rows.Count < _allRows.Count ? $" / {_allRows.Count}" : "")</span>
+    <div class="ames-card-h wh-master-toolbar">
+        <div>
+            <span>@StepTitle</span>
+            <div class="dim">@StepDescription</div>
+        </div>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Placeholder="Location, area, zone, warehouse"
-                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:230px;" AutoComplete="false"
-                           @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
-            <label style="display:flex;align-items:center;gap:6px;color:#cbd5e1;font-size:12px;">
-                <RadzenCheckBox TValue="bool" @bind-Value="_includeInactive" Change="@(_ => Reload())" />
-                Include inactive
-            </label>
-            <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
-            <RadzenButton Text="Create" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
+            @if (_stage == MasterStage.Warehouse)
+            {
+                <RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ReloadStage(); }' />
+                <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ReloadStage" class="ames-rz-btn" />
+                <RadzenButton Text="Create WH" Icon="warehouse" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenWarehouseCreate" class="ames-rz-btn" />
+            }
+            else if (_stage == MasterStage.Area)
+            {
+                <RadzenButton Text="Back" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@BackToWarehouses" class="ames-rz-btn" />
+                <RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ReloadStage(); }' />
+                <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ReloadStage" class="ames-rz-btn" />
+                <RadzenButton Text="Create Area" Icon="add_business" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenAreaCreate" class="ames-rz-btn" />
+            }
+            else if (_stage == MasterStage.Section)
+            {
+                <RadzenButton Text="Back" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@BackToAreas" class="ames-rz-btn" />
+                <RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ReloadStage(); }' />
+                <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ReloadStage" class="ames-rz-btn" />
+                <RadzenButton Text="Create Zone" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenSectionCreate" class="ames-rz-btn" />
+            }
+            else
+            {
+                <RadzenButton Text="Back" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@BackToSections" class="ames-rz-btn" />
+                <RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ReloadStage(); }' />
+                <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ReloadStage" class="ames-rz-btn" />
+                <RadzenButton Text="Create Location" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenLocationCreate" class="ames-rz-btn" />
+            }
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow"
-                    Data="@_rows"
-                    AllowPaging="true" PageSize="15"
-                    PagerHorizontalAlign="HorizontalAlign.Center"
-                    PageSizeOptions="@_pageSizeOptions"
-                    ShowPagingSummary="true"
-                    AllowSorting="true"
-                    RowClick="@(args => { if (args.Data is not null) OpenEdit(args.Data); })"
-                    EmptyText="No locations found."
-                    Class="ames-rz-grid">
-        <Columns>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow" Property="LocationNo" Title="Location" Width="150px">
-                <Template Context="r"><span class="code">@r.LocationNo</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow" Property="LocationName" Title="Name">
-                <Template Context="r">@(r.LocationName ?? "-")</Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow" Property="WhCode" Title="Warehouse" Width="160px">
-                <Template Context="r"><span class="pill info">@(r.WhCode ?? "-")</span> <span class="dim">@(r.WhName ?? "")</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow" Property="AreaCode" Title="Area" Width="140px">
-                <Template Context="r"><span class="pill">@(r.AreaCode ?? "-")</span> <span class="dim">@(r.AreaName ?? "")</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow" Property="ZoneCode" Title="Zone" Width="140px">
-                <Template Context="r"><span class="pill">@(r.ZoneCode ?? "-")</span> <span class="dim">@(r.ZoneName ?? "")</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow" Title="Rack" Width="110px">
-                <Template Context="r"><span class="code">@(RackText(r))</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow" Property="LotCount" Title="Lots" Width="80px" TextAlign="TextAlign.Right" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow" Property="PartCount" Title="Parts" Width="80px" TextAlign="TextAlign.Right" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow" Property="TotalQty" Title="Qty" Width="110px" TextAlign="TextAlign.Right">
-                <Template Context="r">@r.TotalQty.ToString("N0")</Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow" Property="UseYn" Title="Status" Width="92px" TextAlign="TextAlign.Center">
-                <Template Context="r">
-                    @if (r.UseYn) { <span class="pill ok">Active</span> }
-                    else { <span class="pill bad">Inactive</span> }
-                </Template>
-            </RadzenDataGridColumn>
-        </Columns>
-    </RadzenDataGrid>
+    <div class="wh-map-breadcrumb">
+        <button type="button" class="@BreadcrumbClass(MasterStage.Warehouse)" @onclick="@BackToWarehouses">WH</button>
+        <span>/</span>
+        <button type="button" class="@BreadcrumbClass(MasterStage.Area)" disabled="@string.IsNullOrWhiteSpace(_selectedWhCode)" @onclick="@BackToAreas">
+            @(_selectedWhCode ?? "Area")
+        </button>
+        <span>/</span>
+        <button type="button" class="@BreadcrumbClass(MasterStage.Section)" disabled="@string.IsNullOrWhiteSpace(_selectedAreaCode)" @onclick="@BackToSections">
+            @(_selectedAreaCode ?? "Zone")
+        </button>
+        <span>/</span>
+        <button type="button" class="@BreadcrumbClass(MasterStage.Location)" disabled="@(_stage != MasterStage.Location)">
+            @(_selectedSectionCode ?? "Location")
+        </button>
+    </div>
+
+    @if (_stage == MasterStage.Warehouse)
+    {
+        <RadzenDataGrid TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow"
+                        Data="@_warehouses"
+                        AllowPaging="true" PageSize="12"
+                        AllowSorting="true"
+                        RowClick="@(args => { if (args.Data is not null) OpenWarehouse(args.Data); })"
+                        EmptyText="No warehouses found."
+                        Class="ames-rz-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow" Property="WhCode" Title="WH Code" Width="160px">
+                    <Template Context="r"><span class="code">@r.WhCode</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow" Property="WhName" Title="WH Name">
+                    <Template Context="r">@(r.WhName ?? "-")</Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow" Title="Setting" Width="105px" Sortable="false" TextAlign="TextAlign.Center">
+                    <Template Context="r">
+                        <RadzenButton Icon="settings" Text="" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => OpenWarehouseEdit(r))" @onclick:stopPropagation="true" class="ames-rz-btn" />
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    }
+    else if (_stage == MasterStage.Area)
+    {
+        <div class="wh-master-context">
+            <span>WH</span><strong>@SelectedWarehouseTitle</strong>
+        </div>
+        <RadzenDataGrid TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow"
+                        Data="@_areas"
+                        AllowPaging="true" PageSize="12"
+                        AllowSorting="true"
+                        RowClick="@(args => { if (args.Data is not null) OpenArea(args.Data); })"
+                        EmptyText="No areas found."
+                        Class="ames-rz-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow" Property="AreaCode" Title="Area Code" Width="160px">
+                    <Template Context="r"><span class="code">@r.AreaCode</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow" Property="AreaName" Title="Area Name">
+                    <Template Context="r">@(r.AreaName ?? "-")</Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow" Title="Setting" Width="105px" Sortable="false" TextAlign="TextAlign.Center">
+                    <Template Context="r">
+                        <RadzenButton Icon="settings" Text="" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => OpenAreaEdit(r))" @onclick:stopPropagation="true" class="ames-rz-btn" />
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    }
+    else if (_stage == MasterStage.Section)
+    {
+        <div class="wh-master-context">
+            <span>WH</span><strong>@SelectedWarehouseTitle</strong>
+            <span>Area</span><strong>@SelectedAreaTitle</strong>
+        </div>
+        <RadzenDataGrid TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow"
+                        Data="@_sections"
+                        AllowPaging="true" PageSize="12"
+                        AllowSorting="true"
+                        RowClick="@(args => { if (args.Data is not null) OpenSection(args.Data); })"
+                        EmptyText="No zones found."
+                        Class="ames-rz-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow" Property="SectionCode" Title="Zone Code" Width="160px">
+                    <Template Context="r"><span class="code">@r.SectionCode</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow" Property="SectionName" Title="Zone Name">
+                    <Template Context="r">@(r.SectionName ?? "-")</Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow" Title="Setting" Width="105px" Sortable="false" TextAlign="TextAlign.Center">
+                    <Template Context="r">
+                        <RadzenButton Icon="settings" Text="" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => OpenSectionEdit(r))" @onclick:stopPropagation="true" class="ames-rz-btn" />
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    }
+    else
+    {
+        <div class="wh-master-context">
+            <span>WH</span><strong>@SelectedWarehouseTitle</strong>
+            <span>Area</span><strong>@SelectedAreaTitle</strong>
+            <span>Zone</span><strong>@SelectedSectionTitle</strong>
+        </div>
+        <RadzenDataGrid TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow"
+                        Data="@_locations"
+                        AllowPaging="true" PageSize="15"
+                        PagerHorizontalAlign="HorizontalAlign.Center"
+                        ShowPagingSummary="true"
+                        AllowSorting="true"
+                        RowClick="@(args => { if (args.Data is not null) OpenLocationEdit(args.Data); })"
+                        EmptyText="No locations found."
+                        Class="ames-rz-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow" Property="LocationNo" Title="Location Code" Width="180px">
+                    <Template Context="r"><span class="code">@r.LocationNo</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow" Property="LocationName" Title="Location Name">
+                    <Template Context="r">@(r.LocationName ?? "-")</Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow" Title="Setting" Width="105px" Sortable="false" TextAlign="TextAlign.Center">
+                    <Template Context="r">
+                        <RadzenButton Icon="settings" Text="" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => OpenLocationEdit(r))" @onclick:stopPropagation="true" class="ames-rz-btn" />
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    }
 </div>
 
-@if (_modal == "create" || (_modal == "edit" && _selected is not null))
+@if (_warehouseModal == "create" || (_warehouseModal == "edit" && _selectedWarehouse is not null))
 {
-    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal wh-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@(_modal == "create" ? "Create Location" : $"Edit Location - {_selected!.LocationNo}")</div>
-
-            <div class="wh-form-grid">
+    <div class="ames-modal-bg" @onclick="CloseWarehouseModal">
+        <div class="ames-modal wh-master-modal" @onclick:stopPropagation>
+            <div class="ames-modal-h">@(_warehouseModal == "create" ? "Create Warehouse" : $"Edit Warehouse - {_selectedWarehouse!.WhCode}")</div>
+            <div class="wh-master-form">
                 <div>
-                    <RadzenLabel Text="Location No" />
-                    <RadzenTextBox @bind-Value="_form.LocationNo" Disabled="@(_modal == "edit")" Placeholder="WH-A-01" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="WH Code" />
+                    <RadzenTextBox @bind-Value="_warehouseForm.WhCode" Disabled="@(_warehouseModal == "edit")" Placeholder="B" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
-                    <RadzenLabel Text="Location Name" />
-                    <RadzenTextBox @bind-Value="_form.LocationName" Placeholder="Raw Material A-01" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="Warehouse Code" />
-                    <RadzenTextBox @bind-Value="_form.WhCode" Placeholder="WH01" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="Warehouse Name" />
-                    <RadzenTextBox @bind-Value="_form.WhName" Placeholder="Main Warehouse" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="Area Code" />
-                    <RadzenTextBox @bind-Value="_form.AreaCode" Placeholder="A" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="Area Name" />
-                    <RadzenTextBox @bind-Value="_form.AreaName" Placeholder="Raw Area" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="Zone Code" />
-                    <RadzenTextBox @bind-Value="_form.ZoneCode" Placeholder="A1" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="Zone Name" />
-                    <RadzenTextBox @bind-Value="_form.ZoneName" Placeholder="Resin Zone" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="Column" />
-                    <RadzenTextBox @bind-Value="_form.RackX" Placeholder="01" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="Row" />
-                    <RadzenTextBox @bind-Value="_form.RackY" Placeholder="01" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="Level" />
-                    <RadzenTextBox @bind-Value="_form.RackZ" Placeholder="01" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="WH Name" />
+                    <RadzenTextBox @bind-Value="_warehouseForm.WhName" Placeholder="Wiley W/H" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <label class="wh-check">
-                    <RadzenCheckBox TValue="bool" @bind-Value="_form.UseYn" />
+                    <RadzenCheckBox TValue="bool" @bind-Value="_warehouseForm.UseYn" />
                     <span>Active</span>
                 </label>
             </div>
-
-            @if (_confirmDelete)
-            {
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
-                    <span>Delete this location?</span>
-                    <RadzenButton Text="No" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
-                    <RadzenButton Text="@(_busy ? "Deleting" : "Yes")" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
-                </RadzenStack>
-            }
-
-            @if (!string.IsNullOrWhiteSpace(_modalErr))
-            {
-                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:8px;">@_modalErr</RadzenAlert>
-            }
-
+            @RenderModalError(_warehouseModalErr)
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                @if (_modal == "create")
+                @if (_warehouseModal == "create")
                 {
-                    <RadzenButton Text="@(_busy ? "Saving" : "Create")" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveCreate" Disabled="@_busy" class="ames-rz-btn" />
+                    <RadzenButton Text="Create" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveWarehouseCreate" Disabled="@_busy" class="ames-rz-btn" />
                 }
                 else
                 {
-                    <RadzenButton Text="@(_busy ? "Saving" : "Save")" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveEdit" Disabled="@_busy" class="ames-rz-btn" />
-                    <RadzenButton Text="Delete" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" class="ames-rz-btn" />
+                    <RadzenButton Text="Save" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveWarehouseEdit" Disabled="@_busy" class="ames-rz-btn" />
+                    <RadzenButton Text="Delete" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveWarehouseDelete" Disabled="@_busy" class="ames-rz-btn" />
                 }
-                <RadzenButton Text="Cancel" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseModal" class="ames-rz-btn" />
+                <RadzenButton Text="Cancel" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseWarehouseModal" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@if (_areaModal == "create" || (_areaModal == "edit" && _selectedArea is not null))
+{
+    <div class="ames-modal-bg" @onclick="CloseAreaModal">
+        <div class="ames-modal wh-master-modal" @onclick:stopPropagation>
+            <div class="ames-modal-h">@(_areaModal == "create" ? "Create Area" : $"Edit Area - {_selectedArea!.AreaCode}")</div>
+            <div class="wh-master-form">
+                <div>
+                    <RadzenLabel Text="WH" />
+                    <RadzenTextBox Value="@SelectedWarehouseTitle" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="Area Code" />
+                    <RadzenTextBox @bind-Value="_areaForm.AreaCode" Disabled="@(_areaModal == "edit")" Placeholder="A1" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="Area Name" />
+                    <RadzenTextBox @bind-Value="_areaForm.AreaName" Placeholder="Raw Material Area" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <label class="wh-check">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_areaForm.UseYn" />
+                    <span>Active</span>
+                </label>
+            </div>
+            @RenderModalError(_areaModalErr)
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                @if (_areaModal == "create")
+                {
+                    <RadzenButton Text="Create" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveAreaCreate" Disabled="@_busy" class="ames-rz-btn" />
+                }
+                else
+                {
+                    <RadzenButton Text="Save" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveAreaEdit" Disabled="@_busy" class="ames-rz-btn" />
+                    <RadzenButton Text="Delete" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveAreaDelete" Disabled="@_busy" class="ames-rz-btn" />
+                }
+                <RadzenButton Text="Cancel" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseAreaModal" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@if (_sectionModal == "create" || (_sectionModal == "edit" && _selectedSection is not null))
+{
+    <div class="ames-modal-bg" @onclick="CloseSectionModal">
+        <div class="ames-modal wh-master-modal" @onclick:stopPropagation>
+            <div class="ames-modal-h">@(_sectionModal == "create" ? "Create Zone" : $"Edit Zone - {_selectedSection!.SectionCode}")</div>
+            <div class="wh-master-form">
+                <div>
+                    <RadzenLabel Text="WH" />
+                    <RadzenTextBox Value="@SelectedWarehouseTitle" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="Area" />
+                    <RadzenTextBox Value="@SelectedAreaTitle" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="Zone Code" />
+                    <RadzenTextBox @bind-Value="_sectionForm.SectionCode" Disabled="@(_sectionModal == "edit")" Placeholder="RACK-A" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="Zone Name" />
+                    <RadzenTextBox @bind-Value="_sectionForm.SectionName" Placeholder="Rack Area A" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <label class="wh-check">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_sectionForm.UseYn" />
+                    <span>Active</span>
+                </label>
+            </div>
+            @RenderModalError(_sectionModalErr)
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                @if (_sectionModal == "create")
+                {
+                    <RadzenButton Text="Create" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveSectionCreate" Disabled="@_busy" class="ames-rz-btn" />
+                }
+                else
+                {
+                    <RadzenButton Text="Save" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveSectionEdit" Disabled="@_busy" class="ames-rz-btn" />
+                    <RadzenButton Text="Delete" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveSectionDelete" Disabled="@_busy" class="ames-rz-btn" />
+                }
+                <RadzenButton Text="Cancel" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseSectionModal" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@if (_locationModal == "create" || (_locationModal == "edit" && _selectedLocation is not null))
+{
+    <div class="ames-modal-bg" @onclick="CloseLocationModal">
+        <div class="ames-modal wh-master-modal" @onclick:stopPropagation>
+            <div class="ames-modal-h">@(_locationModal == "create" ? "Create Location" : $"Edit Location - {_selectedLocation!.LocationNo}")</div>
+            <div class="wh-master-form wh-master-form-compact">
+                <div>
+                    <RadzenLabel Text="WH" />
+                    <RadzenTextBox Value="@SelectedWarehouseTitle" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="Area" />
+                    <RadzenTextBox Value="@SelectedAreaTitle" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="Zone" />
+                    <RadzenTextBox Value="@SelectedSectionTitle" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="Location Code" />
+                    <RadzenTextBox Value="@DisplayLocationCode" Disabled="true" Placeholder="WH + BANK + BAY + LEVEL" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="Location Name" />
+                    <RadzenTextBox @bind-Value="_locationForm.LocationName" Placeholder="Rack A 01" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="WH Code" />
+                    <RadzenTextBox Value="@(_selectedWhCode ?? _locationForm.WhCode)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="BANK (X)" />
+                    <RadzenTextBox @bind-Value="_locationForm.RackX" Placeholder="Z" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="BAY (Y)" />
+                    <RadzenTextBox @bind-Value="_locationForm.RackY" Placeholder="02" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="LEVEL (Z)" />
+                    <RadzenTextBox @bind-Value="_locationForm.RackZ" Placeholder="E" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <label class="wh-check">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_locationForm.UseYn" />
+                    <span>Active</span>
+                </label>
+            </div>
+            @RenderModalError(_locationModalErr)
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                @if (_locationModal == "create")
+                {
+                    <RadzenButton Text="Create" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveLocationCreate" Disabled="@_busy" class="ames-rz-btn" />
+                }
+                else
+                {
+                    <RadzenButton Text="Save" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveLocationEdit" Disabled="@_busy" class="ames-rz-btn" />
+                    <RadzenButton Text="Delete" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveLocationDelete" Disabled="@_busy" class="ames-rz-btn" />
+                }
+                <RadzenButton Text="Cancel" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseLocationModal" class="ames-rz-btn" />
             </RadzenStack>
         </div>
     </div>
 }
 
 @code {
-    List<AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow> _allRows = new();
-    List<AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow> _rows = new();
-    AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow? _selected;
+    enum MasterStage { Warehouse, Area, Section, Location }
 
-    readonly IEnumerable<int> _pageSizeOptions = new[] { 15, 30, 50, 100 };
+    MasterStage _stage = MasterStage.Warehouse;
+    List<AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow> _warehouses = new();
+    List<AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow> _areas = new();
+    List<AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow> _sections = new();
+    List<AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow> _locations = new();
+    AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow? _selectedWarehouse;
+    AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow? _selectedArea;
+    AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow? _selectedSection;
+    AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow? _selectedLocation;
+
+    string? _selectedWhCode;
+    string? _selectedAreaCode;
+    string? _selectedSectionCode;
     string _search = "";
-    bool _includeInactive;
-    string _modal = "";
     string _msg = "";
-    string _modalErr = "";
     bool _isErr;
     bool _busy;
-    bool _confirmDelete;
-    bool _bgMouseDownOnSelf;
-    FormModel _form = new();
 
-    protected override void OnInitialized() => Reload();
+    string _warehouseModal = "";
+    string _warehouseModalErr = "";
+    WarehouseFormModel _warehouseForm = new();
 
-    void Reload()
+    string _areaModal = "";
+    string _areaModalErr = "";
+    AreaFormModel _areaForm = new();
+
+    string _sectionModal = "";
+    string _sectionModalErr = "";
+    SectionFormModel _sectionForm = new();
+
+    string _locationModal = "";
+    string _locationModalErr = "";
+    LocationFormModel _locationForm = new();
+
+    int StepNo => _stage switch { MasterStage.Warehouse => 1, MasterStage.Area => 2, MasterStage.Section => 3, _ => 4 };
+    string StepTitle => _stage switch
+    {
+        MasterStage.Warehouse => "WH List",
+        MasterStage.Area => "Area List",
+        MasterStage.Section => "Zone List",
+        _ => "Location List"
+    };
+    string StepDescription => _stage switch
+    {
+        MasterStage.Warehouse => "Select a warehouse to manage its areas.",
+        MasterStage.Area => "Select an area inside the warehouse.",
+        MasterStage.Section => "Select a zone inside the area.",
+        _ => "Manage location codes in the selected zone."
+    };
+    string SelectedWarehouseTitle => _selectedWarehouse is null
+        ? (_selectedWhCode ?? "-")
+        : $"{_selectedWarehouse.WhCode} - {_selectedWarehouse.WhName ?? _selectedWarehouse.WhCode}";
+    string SelectedAreaTitle => _selectedArea is null ? "-" : $"{_selectedArea.AreaCode} - {_selectedArea.AreaName ?? _selectedArea.AreaCode}";
+    string SelectedSectionTitle => _selectedSection is null ? "-" : $"{_selectedSection.SectionCode} - {_selectedSection.SectionName ?? _selectedSection.SectionCode}";
+    string DisplayLocationCode => BuildLocationCode() ?? _locationForm.LocationNo;
+
+    protected override void OnInitialized() => ReloadStage();
+
+    void ReloadStage()
     {
         try
         {
-            _allRows = Wh.ListLocations(_search, _includeInactive);
-            _rows = _allRows;
+            if (_stage == MasterStage.Warehouse)
+            {
+                _warehouses = Wh.ListWarehouses(_search, false);
+                _areas = new();
+                _sections = new();
+                _locations = new();
+            }
+            else if (_stage == MasterStage.Area)
+            {
+                _areas = Wh.ListWarehouseAreas(_search, false, _selectedWhCode);
+                _sections = new();
+                _locations = new();
+            }
+            else if (_stage == MasterStage.Section)
+            {
+                _sections = Wh.ListWarehouseSections(_selectedAreaCode, _search, false, _selectedWhCode);
+                _locations = new();
+            }
+            else
+            {
+                _locations = Wh.ListLocations(_search, false, _selectedAreaCode, _selectedSectionCode, _selectedWhCode);
+            }
         }
         catch (Exception ex)
         {
-            _allRows = new();
-            _rows = new();
             ShowMsg(ex.Message, true);
         }
     }
 
-    void OpenCreate()
+    void OpenWarehouse(AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow row)
     {
-        _form = new() { UseYn = true, WhCode = "WH01", WhName = "Main Warehouse" };
-        _selected = null;
-        _modalErr = "";
-        _confirmDelete = false;
-        _modal = "create";
+        _selectedWarehouse = row;
+        _selectedWhCode = row.WhCode;
+        _selectedArea = null;
+        _selectedAreaCode = null;
+        _selectedSection = null;
+        _selectedSectionCode = null;
+        _search = "";
+        _stage = MasterStage.Area;
+        ReloadStage();
     }
 
-    void OpenEdit(AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow row)
+    void OpenArea(AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow row)
     {
-        _selected = row;
-        _form = new()
+        _selectedArea = row;
+        _selectedAreaCode = row.AreaCode;
+        _selectedSection = null;
+        _selectedSectionCode = null;
+        _search = "";
+        _stage = MasterStage.Section;
+        ReloadStage();
+    }
+
+    void OpenSection(AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow row)
+    {
+        _selectedSection = row;
+        _selectedSectionCode = row.SectionCode;
+        _search = "";
+        _stage = MasterStage.Location;
+        ReloadStage();
+    }
+
+    void BackToWarehouses()
+    {
+        _stage = MasterStage.Warehouse;
+        _selectedWarehouse = null;
+        _selectedWhCode = null;
+        _selectedArea = null;
+        _selectedAreaCode = null;
+        _selectedSection = null;
+        _selectedSectionCode = null;
+        _search = "";
+        ReloadStage();
+    }
+
+    void BackToAreas()
+    {
+        if (string.IsNullOrWhiteSpace(_selectedWhCode))
+        {
+            BackToWarehouses();
+            return;
+        }
+        _stage = MasterStage.Area;
+        _selectedArea = null;
+        _selectedAreaCode = null;
+        _selectedSection = null;
+        _selectedSectionCode = null;
+        _search = "";
+        ReloadStage();
+    }
+
+    void BackToSections()
+    {
+        if (string.IsNullOrWhiteSpace(_selectedAreaCode))
+        {
+            BackToAreas();
+            return;
+        }
+        _stage = MasterStage.Section;
+        _selectedSection = null;
+        _selectedSectionCode = null;
+        _search = "";
+        ReloadStage();
+    }
+
+    string BreadcrumbClass(MasterStage stage) => _stage == stage ? "on" : "";
+
+    void OpenWarehouseCreate()
+    {
+        _warehouseForm = new() { UseYn = true };
+        _warehouseModalErr = "";
+        _warehouseModal = "create";
+    }
+
+    void OpenWarehouseEdit(AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow row)
+    {
+        _selectedWarehouse = row;
+        _warehouseForm = new() { WhCode = row.WhCode, WhName = row.WhName ?? "", UseYn = row.UseYn };
+        _warehouseModalErr = "";
+        _warehouseModal = "edit";
+    }
+
+    void SaveWarehouseCreate()
+    {
+        var id = NormalizeLocationPart(_warehouseForm.WhCode);
+        if (string.IsNullOrWhiteSpace(id)) { _warehouseModalErr = "WH Code is required."; return; }
+        if (Wh.WarehouseExists(id)) { _warehouseModalErr = $"WH {id} already exists."; return; }
+        SaveWarehouse(id);
+    }
+
+    void SaveWarehouseEdit()
+    {
+        if (_selectedWarehouse is null) return;
+        SaveWarehouse(_selectedWarehouse.WhCode);
+    }
+
+    void SaveWarehouse(string whCode)
+    {
+        _busy = true;
+        try
+        {
+            Wh.SaveWarehouse(whCode, NE(_warehouseForm.WhName), _warehouseForm.UseYn);
+            CloseWarehouseModal();
+            ReloadStage();
+            ShowMsg($"WH {whCode} saved.", false);
+        }
+        catch (Exception ex) { _warehouseModalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveWarehouseDelete()
+    {
+        if (_selectedWarehouse is null) return;
+        _busy = true;
+        try
+        {
+            var id = _selectedWarehouse.WhCode;
+            Wh.DeleteWarehouse(id);
+            CloseWarehouseModal();
+            ReloadStage();
+            ShowMsg($"WH {id} deleted.", false);
+        }
+        catch (Exception ex) { _warehouseModalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void CloseWarehouseModal()
+    {
+        _warehouseModal = "";
+        _warehouseModalErr = "";
+    }
+
+    void OpenAreaCreate()
+    {
+        if (string.IsNullOrWhiteSpace(_selectedWhCode))
+        {
+            ShowMsg("Select a WH first.", true);
+            return;
+        }
+        _areaForm = new() { UseYn = true };
+        _areaModalErr = "";
+        _areaModal = "create";
+    }
+
+    void OpenAreaEdit(AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow row)
+    {
+        _selectedArea = row;
+        _areaForm = new() { AreaCode = row.AreaCode, AreaName = row.AreaName ?? "", UseYn = row.UseYn };
+        _areaModalErr = "";
+        _areaModal = "edit";
+    }
+
+    void SaveAreaCreate()
+    {
+        var id = _areaForm.AreaCode.Trim();
+        if (string.IsNullOrWhiteSpace(id)) { _areaModalErr = "Area Code is required."; return; }
+        if (Wh.WarehouseAreaExists(id, _selectedWhCode)) { _areaModalErr = $"Area {id} already exists in this WH."; return; }
+        SaveArea(id);
+    }
+
+    void SaveAreaEdit()
+    {
+        if (_selectedArea is null) return;
+        SaveArea(_selectedArea.AreaCode);
+    }
+
+    void SaveArea(string areaCode)
+    {
+        _busy = true;
+        try
+        {
+            Wh.SaveWarehouseArea(areaCode, NE(_areaForm.AreaName), _areaForm.UseYn, _selectedWhCode);
+            CloseAreaModal();
+            ReloadStage();
+            ShowMsg($"Area {areaCode} saved.", false);
+        }
+        catch (Exception ex) { _areaModalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveAreaDelete()
+    {
+        if (_selectedArea is null) return;
+        _busy = true;
+        try
+        {
+            var id = _selectedArea.AreaCode;
+            Wh.DeleteWarehouseArea(id, _selectedWhCode);
+            CloseAreaModal();
+            ReloadStage();
+            ShowMsg($"Area {id} deleted.", false);
+        }
+        catch (Exception ex) { _areaModalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void CloseAreaModal()
+    {
+        _areaModal = "";
+        _areaModalErr = "";
+    }
+
+    void OpenSectionCreate()
+    {
+        if (string.IsNullOrWhiteSpace(_selectedWhCode) || string.IsNullOrWhiteSpace(_selectedAreaCode))
+        {
+            ShowMsg("Select an area first.", true);
+            return;
+        }
+        _sectionForm = new() { UseYn = true };
+        _sectionModalErr = "";
+        _sectionModal = "create";
+    }
+
+    void OpenSectionEdit(AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow row)
+    {
+        _selectedSection = row;
+        _selectedSectionCode = row.SectionCode;
+        _sectionForm = new() { SectionCode = row.SectionCode, SectionName = row.SectionName ?? "", UseYn = row.UseYn };
+        _sectionModalErr = "";
+        _sectionModal = "edit";
+    }
+
+    void SaveSectionCreate()
+    {
+        if (string.IsNullOrWhiteSpace(_selectedAreaCode)) return;
+        var id = _sectionForm.SectionCode.Trim();
+        if (string.IsNullOrWhiteSpace(id)) { _sectionModalErr = "Zone Code is required."; return; }
+        if (Wh.WarehouseSectionExists(_selectedAreaCode, id, _selectedWhCode)) { _sectionModalErr = $"Zone {id} already exists in this area."; return; }
+        SaveSection(id);
+    }
+
+    void SaveSectionEdit()
+    {
+        if (_selectedSection is null) return;
+        SaveSection(_selectedSection.SectionCode);
+    }
+
+    void SaveSection(string sectionCode)
+    {
+        if (string.IsNullOrWhiteSpace(_selectedAreaCode)) return;
+        _busy = true;
+        try
+        {
+            Wh.SaveWarehouseSection(_selectedAreaCode, sectionCode, NE(_sectionForm.SectionName), _sectionForm.UseYn, _selectedWhCode);
+            CloseSectionModal();
+            ReloadStage();
+            ShowMsg($"Zone {sectionCode} saved.", false);
+        }
+        catch (Exception ex) { _sectionModalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void SaveSectionDelete()
+    {
+        if (_selectedSection is null || string.IsNullOrWhiteSpace(_selectedAreaCode)) return;
+        _busy = true;
+        try
+        {
+            var id = _selectedSection.SectionCode;
+            Wh.DeleteWarehouseSection(_selectedAreaCode, id, _selectedWhCode);
+            CloseSectionModal();
+            ReloadStage();
+            ShowMsg($"Zone {id} deleted.", false);
+        }
+        catch (Exception ex) { _sectionModalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void CloseSectionModal()
+    {
+        _sectionModal = "";
+        _sectionModalErr = "";
+    }
+
+    void OpenLocationCreate()
+    {
+        if (string.IsNullOrWhiteSpace(_selectedWhCode) || string.IsNullOrWhiteSpace(_selectedAreaCode) || string.IsNullOrWhiteSpace(_selectedSectionCode))
+        {
+            ShowMsg("Select a zone first.", true);
+            return;
+        }
+        _locationForm = new()
+        {
+            UseYn = true,
+            WhCode = _selectedWhCode
+        };
+        _locationModalErr = "";
+        _locationModal = "create";
+    }
+
+    void OpenLocationEdit(AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow row)
+    {
+        _selectedLocation = row;
+        _locationForm = new()
         {
             LocationNo = row.LocationNo,
             LocationName = row.LocationName ?? "",
-            WhCode = row.WhCode ?? "",
-            WhName = row.WhName ?? "",
-            AreaCode = row.AreaCode ?? "",
-            AreaName = row.AreaName ?? "",
-            ZoneCode = row.ZoneCode ?? "",
-            ZoneName = row.ZoneName ?? "",
             RackX = row.RackX ?? "",
             RackY = row.RackY ?? "",
             RackZ = row.RackZ ?? "",
-            UseYn = row.UseYn,
+            WhCode = row.WhCode ?? "WH01",
+            UseYn = row.UseYn
         };
-        _modalErr = "";
-        _confirmDelete = false;
-        _modal = "edit";
+        _locationModalErr = "";
+        _locationModal = "edit";
     }
 
-    void SaveCreate()
+    void SaveLocationCreate()
     {
-        _modalErr = "";
-        var id = _form.LocationNo.Trim();
-        if (string.IsNullOrWhiteSpace(id)) { _modalErr = "Location No is required."; return; }
-        if (Wh.LocationExists(id)) { _modalErr = $"Location {id} already exists."; return; }
+        if (!PrepareLocationForm()) return;
 
+        var id = _locationForm.LocationNo;
+        if (Wh.LocationExists(id)) { _locationModalErr = $"Location {id} already exists."; return; }
+        if (!ValidateLocationCoordinate(id)) return;
+        SaveLocation(id);
+    }
+
+    void SaveLocationEdit()
+    {
+        if (_selectedLocation is null) return;
+        if (!PrepareLocationForm()) return;
+        if (!string.Equals(_locationForm.LocationNo, _selectedLocation.LocationNo, StringComparison.OrdinalIgnoreCase))
+        {
+            _locationModalErr = $"Location Code must remain {_selectedLocation.LocationNo}. Create a new location to use {_locationForm.LocationNo}.";
+            return;
+        }
+
+        if (!ValidateLocationCoordinate(_selectedLocation.LocationNo)) return;
+        SaveLocation(_selectedLocation.LocationNo);
+    }
+
+    bool PrepareLocationForm()
+    {
+        _locationModalErr = "";
+
+        _locationForm.WhCode = NormalizeLocationPart(_selectedWhCode ?? _locationForm.WhCode);
+        _locationForm.RackX = NormalizeRackAxis(_locationForm.RackX);
+        _locationForm.RackY = NormalizeRackAxis(_locationForm.RackY);
+        _locationForm.RackZ = NormalizeLocationPart(_locationForm.RackZ);
+
+        if (string.IsNullOrWhiteSpace(_locationForm.WhCode))
+        {
+            _locationModalErr = "WH Code is required.";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(_locationForm.RackX))
+        {
+            _locationModalErr = "BANK (X) is required.";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(_locationForm.RackY))
+        {
+            _locationModalErr = "BAY (Y) is required.";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(_locationForm.RackZ))
+        {
+            _locationModalErr = "LEVEL (Z) is required.";
+            return false;
+        }
+
+        var locationNo = BuildLocationCode();
+        if (string.IsNullOrWhiteSpace(locationNo))
+        {
+            _locationModalErr = "Location Code is required.";
+            return false;
+        }
+
+        if (locationNo.Length > 20)
+        {
+            _locationModalErr = "Location Code must be 20 characters or less.";
+            return false;
+        }
+
+        _locationForm.LocationNo = locationNo;
+        return true;
+    }
+
+    bool ValidateLocationCoordinate(string locationNo)
+    {
+        var rackX = NE(_locationForm.RackX);
+        var rackY = NE(_locationForm.RackY);
+        var rackZ = NE(_locationForm.RackZ);
+
+        if (string.IsNullOrWhiteSpace(rackX) || string.IsNullOrWhiteSpace(rackY) || string.IsNullOrWhiteSpace(rackZ))
+            return true;
+
+        var rows = Wh.ListLocations(null, false, _selectedAreaCode, _selectedSectionCode, _selectedWhCode);
+        var duplicate = rows.FirstOrDefault(r =>
+            !string.Equals(r.LocationNo, locationNo, StringComparison.OrdinalIgnoreCase)
+            && SameText(r.RackX, rackX)
+            && SameText(r.RackY, rackY)
+            && SameText(r.RackZ, rackZ));
+
+        if (duplicate is null)
+            return true;
+
+        _locationModalErr = $"Column/Row/Level already exists at {duplicate.LocationNo}.";
+        return false;
+    }
+
+    void SaveLocation(string locationNo)
+    {
+        if (string.IsNullOrWhiteSpace(_selectedAreaCode) || string.IsNullOrWhiteSpace(_selectedSectionCode)) return;
         _busy = true;
         try
         {
-            Wh.InsertLocation(id, NE(_form.LocationName), NE(_form.WhCode), NE(_form.WhName),
-                NE(_form.AreaCode), NE(_form.AreaName), NE(_form.ZoneCode), NE(_form.ZoneName),
-                NE(_form.RackX), NE(_form.RackY), NE(_form.RackZ), _form.UseYn);
-            CloseModal();
-            Reload();
-            ShowMsg($"Location {id} created.", false);
+            Wh.UpdateOrInsertLocation(
+                locationNo,
+                NE(_locationForm.LocationName),
+                NE(_selectedWhCode ?? _locationForm.WhCode),
+                _selectedAreaCode,
+                _selectedSectionCode,
+                NE(_locationForm.RackX),
+                NE(_locationForm.RackY),
+                NE(_locationForm.RackZ),
+                _locationForm.UseYn);
+            CloseLocationModal();
+            ReloadStage();
+            ShowMsg($"Location {locationNo} saved.", false);
         }
-        catch (Exception ex) { _modalErr = ex.Message; }
+        catch (Exception ex) { _locationModalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveEdit()
+    void SaveLocationDelete()
     {
-        if (_selected is null) return;
+        if (_selectedLocation is null) return;
         _busy = true;
         try
         {
-            Wh.UpdateLocation(_selected.LocationNo, NE(_form.LocationName), NE(_form.WhCode), NE(_form.WhName),
-                NE(_form.AreaCode), NE(_form.AreaName), NE(_form.ZoneCode), NE(_form.ZoneName),
-                NE(_form.RackX), NE(_form.RackY), NE(_form.RackZ), _form.UseYn);
-            CloseModal();
-            Reload();
-            ShowMsg($"Location {_selected.LocationNo} updated.", false);
-        }
-        catch (Exception ex) { _modalErr = ex.Message; }
-        finally { _busy = false; }
-    }
-
-    void SaveDelete()
-    {
-        if (_selected is null) return;
-        _busy = true;
-        try
-        {
-            var id = _selected.LocationNo;
+            var id = _selectedLocation.LocationNo;
             Wh.DeleteLocation(id);
-            CloseModal();
-            Reload();
+            CloseLocationModal();
+            ReloadStage();
             ShowMsg($"Location {id} deleted.", false);
         }
-        catch (Exception ex)
-        {
-            _modalErr = ex.Message;
-            _confirmDelete = false;
-        }
+        catch (Exception ex) { _locationModalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void CloseModal()
+    void CloseLocationModal()
     {
-        _modal = "";
-        _selected = null;
-        _modalErr = "";
-        _confirmDelete = false;
+        _locationModal = "";
+        _locationModalErr = "";
+        _selectedLocation = null;
     }
 
-    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
-    void OnBgClick()
+    RenderFragment RenderModalError(string message) => __builder =>
     {
-        if (_bgMouseDownOnSelf) CloseModal();
-        _bgMouseDownOnSelf = false;
-    }
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:8px;">@message</RadzenAlert>
+        }
+    };
 
     void ShowMsg(string msg, bool isErr)
     {
@@ -345,22 +967,69 @@
 
     static string? NE(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    static string RackText(AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow row) =>
-        string.Join("-", new[] { row.RackX, row.RackY, row.RackZ }.Where(x => !string.IsNullOrWhiteSpace(x)));
+    static bool SameText(string? left, string? right) =>
+        string.Equals(NE(left), NE(right), StringComparison.OrdinalIgnoreCase);
 
-    class FormModel
+    string? BuildLocationCode()
+    {
+        var whCode = NormalizeLocationPart(_locationForm.WhCode);
+        var rackX = NormalizeRackAxis(_locationForm.RackX);
+        var rackY = NormalizeRackAxis(_locationForm.RackY);
+        var rackZ = NormalizeLocationPart(_locationForm.RackZ);
+
+        if (string.IsNullOrWhiteSpace(whCode)
+            || string.IsNullOrWhiteSpace(rackX)
+            || string.IsNullOrWhiteSpace(rackY)
+            || string.IsNullOrWhiteSpace(rackZ))
+        {
+            return null;
+        }
+
+        return $"{whCode}{rackX}{rackY}{rackZ}";
+    }
+
+    static string NormalizeLocationPart(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? ""
+            : value.Trim().Replace("-", "").Replace(" ", "").ToUpperInvariant();
+
+    static string NormalizeRackAxis(string? value)
+    {
+        var normalized = NormalizeLocationPart(value);
+        return normalized.Length == 1 && normalized.All(char.IsDigit)
+            ? normalized.PadLeft(2, '0')
+            : normalized;
+    }
+
+    class WarehouseFormModel
+    {
+        public string WhCode { get; set; } = "";
+        public string WhName { get; set; } = "";
+        public bool UseYn { get; set; } = true;
+    }
+
+    class AreaFormModel
+    {
+        public string AreaCode { get; set; } = "";
+        public string AreaName { get; set; } = "";
+        public bool UseYn { get; set; } = true;
+    }
+
+    class SectionFormModel
+    {
+        public string SectionCode { get; set; } = "";
+        public string SectionName { get; set; } = "";
+        public bool UseYn { get; set; } = true;
+    }
+
+    class LocationFormModel
     {
         public string LocationNo { get; set; } = "";
         public string LocationName { get; set; } = "";
-        public string WhCode { get; set; } = "";
-        public string WhName { get; set; } = "";
-        public string AreaCode { get; set; } = "";
-        public string AreaName { get; set; } = "";
-        public string ZoneCode { get; set; } = "";
-        public string ZoneName { get; set; } = "";
         public string RackX { get; set; } = "";
         public string RackY { get; set; } = "";
         public string RackZ { get; set; } = "";
+        public string WhCode { get; set; } = "WH01";
         public bool UseYn { get; set; } = true;
     }
 }
