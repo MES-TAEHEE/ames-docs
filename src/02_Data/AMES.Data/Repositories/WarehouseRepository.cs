@@ -111,38 +111,40 @@ public sealed class WarehouseRepository
         var like = Like(search);
         return Query("""
             SELECT
-                L.LOCATION_NO,
-                L.LOCATION_NM,
-                L.WHCD,
-                L.WHNM,
-                L.AREACD,
-                L.AREANM,
-                L.ZONECD,
-                L.ZONENM,
-                L.RACK_X,
-                L.RACK_Y,
-                L.RACK_Z,
-                CASE WHEN COALESCE(L.USE_YN, N'Y') = N'Y' THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END AS USE_YN,
-                COUNT(S.LOTNO) AS LOT_COUNT,
-                COUNT(DISTINCT S.PARTNO) AS PART_COUNT,
-                COALESCE(SUM(S.QTY), 0) AS TOTAL_QTY
-            FROM SIS_TEST.WMS1040 L
-            LEFT JOIN SIS_TEST.WMS2020 S ON S.LOCATION_NO = L.LOCATION_NO
-            WHERE (@IncludeInactive = 1 OR COALESCE(L.USE_YN, N'Y') = N'Y')
+                L.LocationID AS LOCATION_NO,
+                L.LocationName AS LOCATION_NM,
+                L.PlantCode AS WHCD,
+                L.PlantCode AS WHNM,
+                COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) AS AREACD,
+                COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) AS AREANM,
+                L.ZoneCode AS ZONECD,
+                L.LocationType AS ZONENM,
+                L.Aisle AS RACK_X,
+                L.Bay AS RACK_Y,
+                L.Slot AS RACK_Z,
+                CAST(COALESCE(L.ActiveFlag, 1) AS bit) AS USE_YN,
+                COUNT(DISTINCT S.LotID) AS LOT_COUNT,
+                COUNT(DISTINCT S.ItemNo) AS PART_COUNT,
+                COALESCE(SUM(S.OnHandQty), 0) AS TOTAL_QTY
+            FROM dbo.MD_Location L
+            LEFT JOIN dbo.WH_Inventory S
+                   ON S.LocationID = L.LocationID
+                  AND COALESCE(S.OnHandQty, 0) <> 0
+                  AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
+            WHERE (@IncludeInactive = 1 OR COALESCE(L.ActiveFlag, 1) = 1)
               AND (@Search IS NULL
-                   OR L.LOCATION_NO LIKE @Search
-                   OR L.LOCATION_NM LIKE @Search
-                   OR L.AREACD LIKE @Search
-                   OR L.AREANM LIKE @Search
-                   OR L.ZONECD LIKE @Search
-                   OR L.ZONENM LIKE @Search
-                   OR L.WHCD LIKE @Search
-                   OR L.WHNM LIKE @Search)
-            GROUP BY L.LOCATION_NO, L.LOCATION_NM, L.WHCD, L.WHNM, L.AREACD, L.AREANM,
-                     L.ZONECD, L.ZONENM, L.RACK_X, L.RACK_Y, L.RACK_Z, L.USE_YN
-            ORDER BY L.AREACD, L.ZONECD, TRY_CONVERT(int, L.RACK_X), L.RACK_X,
-                     TRY_CONVERT(int, L.RACK_Y), L.RACK_Y, TRY_CONVERT(int, L.RACK_Z), L.RACK_Z,
-                     L.LOCATION_NO;
+                   OR L.LocationID LIKE @Search
+                   OR L.LocationName LIKE @Search
+                   OR L.ZoneCode LIKE @Search
+                   OR L.LocationType LIKE @Search
+                   OR L.PlantCode LIKE @Search)
+            GROUP BY L.LocationID, L.LocationName, L.PlantCode, L.ZoneCode,
+                     L.LocationType, L.Aisle, L.Bay, L.Slot, L.ActiveFlag
+            ORDER BY COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode), L.ZoneCode,
+                     TRY_CONVERT(int, L.Aisle), L.Aisle,
+                     TRY_CONVERT(int, L.Bay), L.Bay,
+                     TRY_CONVERT(int, L.Slot), L.Slot,
+                     L.LocationID;
             """, r => new WarehouseLocationRow(
                 GetString(r, "LOCATION_NO") ?? "",
                 GetString(r, "LOCATION_NM"),
@@ -167,8 +169,8 @@ public sealed class WarehouseRepository
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
-            "SELECT 1 FROM SIS_TEST.WMS1040 WHERE LOCATION_NO = @LocationNo;", conn);
-        cmd.Parameters.Add("@LocationNo", SqlDbType.NVarChar, 50).Value = locationNo;
+            "SELECT 1 FROM dbo.MD_Location WHERE LocationID = @LocationNo;", conn);
+        cmd.Parameters.Add("@LocationNo", SqlDbType.VarChar, 20).Value = locationNo;
         return cmd.ExecuteScalar() is not null;
     }
 
@@ -186,17 +188,16 @@ public sealed class WarehouseRepository
         string? rackZ,
         bool useYn)
     {
-        var (corcd, bizcd) = GetDefaultCompany();
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            INSERT INTO SIS_TEST.WMS1040
-                (CORCD, BIZCD, LOCATION_NO, LOCATION_NM, WHCD, WHNM,
-                 AREACD, AREANM, ZONECD, ZONENM, RACK_X, RACK_Y, RACK_Z, USE_YN)
+            INSERT INTO dbo.MD_Location
+                (LocationID, LocationName, ZoneCode, Aisle, Bay, Slot,
+                 LocationType, PlantCode, ActiveFlag, CreatedBy, CreatedTS)
             VALUES
-                (@Corcd, @Bizcd, @LocationNo, @LocationName, @WhCode, @WhName,
-                 @AreaCode, @AreaName, @ZoneCode, @ZoneName, @RackX, @RackY, @RackZ, @UseYn);
+                (@LocationNo, @LocationName, @ZoneCode, @RackX, @RackY, @RackZ,
+                 @LocationType, @PlantCode, @UseYn, 'web', SYSDATETIME());
             """, conn);
-        AddLocationParameters(cmd, corcd, bizcd, locationNo, locationName, whCode, whName,
+        AddLocationParameters(cmd, locationNo, locationName, whCode,
             areaCode, areaName, zoneCode, zoneName, rackX, rackY, rackZ, useYn);
         cmd.ExecuteNonQuery();
     }
@@ -217,32 +218,21 @@ public sealed class WarehouseRepository
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            UPDATE SIS_TEST.WMS1040
-            SET LOCATION_NM = @LocationName,
-                WHCD = @WhCode,
-                WHNM = @WhName,
-                AREACD = @AreaCode,
-                AREANM = @AreaName,
-                ZONECD = @ZoneCode,
-                ZONENM = @ZoneName,
-                RACK_X = @RackX,
-                RACK_Y = @RackY,
-                RACK_Z = @RackZ,
-                USE_YN = @UseYn
-            WHERE LOCATION_NO = @LocationNo;
+            UPDATE dbo.MD_Location
+            SET LocationName = @LocationName,
+                ZoneCode = @ZoneCode,
+                Aisle = @RackX,
+                Bay = @RackY,
+                Slot = @RackZ,
+                LocationType = @LocationType,
+                PlantCode = @PlantCode,
+                ActiveFlag = @UseYn,
+                ModifiedBy = 'web',
+                ModifiedTS = SYSDATETIME()
+            WHERE LocationID = @LocationNo;
             """, conn);
-        cmd.Parameters.Add("@LocationNo", SqlDbType.NVarChar, 50).Value = locationNo;
-        AddNullable(cmd, "@LocationName", SqlDbType.NVarChar, 120, locationName);
-        AddNullable(cmd, "@WhCode", SqlDbType.NVarChar, 20, whCode);
-        AddNullable(cmd, "@WhName", SqlDbType.NVarChar, 120, whName);
-        AddNullable(cmd, "@AreaCode", SqlDbType.NVarChar, 20, areaCode);
-        AddNullable(cmd, "@AreaName", SqlDbType.NVarChar, 120, areaName);
-        AddNullable(cmd, "@ZoneCode", SqlDbType.NVarChar, 20, zoneCode);
-        AddNullable(cmd, "@ZoneName", SqlDbType.NVarChar, 120, zoneName);
-        AddNullable(cmd, "@RackX", SqlDbType.NVarChar, 20, rackX);
-        AddNullable(cmd, "@RackY", SqlDbType.NVarChar, 20, rackY);
-        AddNullable(cmd, "@RackZ", SqlDbType.NVarChar, 20, rackZ);
-        cmd.Parameters.Add("@UseYn", SqlDbType.NVarChar, 1).Value = useYn ? "Y" : "N";
+        AddLocationParameters(cmd, locationNo, locationName, whCode,
+            areaCode, areaName, zoneCode, zoneName, rackX, rackY, rackZ, useYn);
         cmd.ExecuteNonQuery();
     }
 
@@ -250,13 +240,13 @@ public sealed class WarehouseRepository
     {
         using var conn = _factory.OpenConnection();
         using var check = new SqlCommand(
-            "SELECT COUNT(1) FROM SIS_TEST.WMS2020 WHERE LOCATION_NO = @LocationNo AND COALESCE(QTY, 0) <> 0;", conn);
-        check.Parameters.Add("@LocationNo", SqlDbType.NVarChar, 50).Value = locationNo;
+            "SELECT COUNT(1) FROM dbo.WH_Inventory WHERE LocationID = @LocationNo AND COALESCE(OnHandQty, 0) <> 0;", conn);
+        check.Parameters.Add("@LocationNo", SqlDbType.VarChar, 20).Value = locationNo;
         if (Convert.ToInt32(check.ExecuteScalar()) > 0)
             throw new InvalidOperationException("Location has inventory and cannot be deleted.");
 
-        using var cmd = new SqlCommand("DELETE FROM SIS_TEST.WMS1040 WHERE LOCATION_NO = @LocationNo;", conn);
-        cmd.Parameters.Add("@LocationNo", SqlDbType.NVarChar, 50).Value = locationNo;
+        using var cmd = new SqlCommand("DELETE FROM dbo.MD_Location WHERE LocationID = @LocationNo;", conn);
+        cmd.Parameters.Add("@LocationNo", SqlDbType.VarChar, 20).Value = locationNo;
         cmd.ExecuteNonQuery();
     }
 
@@ -265,38 +255,32 @@ public sealed class WarehouseRepository
         var like = Like(search);
         return Query("""
             SELECT
-                O.PICK_SLIPNO,
-                O.REQ_DATE,
-                O.REQ_LOCATION,
-                O.SEQNO,
-                O.PARTNO,
-                COALESCE(O.REQ_BOX_QTY, 0) AS REQ_BOX_QTY,
-                O.REQ_USERID,
-                O.REQ_TIME,
-                O.PRINT_DATE,
-                O.CLOSE_YN,
-                O.CLOSE_DATE,
-                COALESCE(P.PICKED_QTY, 0) AS PICKED_QTY,
+                CONCAT(N'RS-', O.ReleaseScheduleID) AS PICK_SLIPNO,
+                CONVERT(varchar(10), O.RequiredAt, 23) AS REQ_DATE,
+                CAST(NULL AS nvarchar(50)) AS REQ_LOCATION,
+                O.ReleaseScheduleID AS SEQNO,
+                O.ItemNo AS PARTNO,
+                COALESCE(O.DemandQty, 0) AS REQ_BOX_QTY,
+                O.CreatedBy AS REQ_USERID,
+                CONVERT(varchar(8), CONVERT(time(0), O.RequiredAt)) AS REQ_TIME,
+                O.CreatedTS AS PRINT_DATE,
+                CASE WHEN UPPER(COALESCE(O.Status, 'OPEN')) IN ('CLOSED', 'CANCELED') THEN N'Y' ELSE N'N' END AS CLOSE_YN,
+                CAST(NULL AS datetime2) AS CLOSE_DATE,
+                COALESCE(O.PickedQty, 0) AS PICKED_QTY,
                 CASE
-                    WHEN O.CLOSE_DATE IS NOT NULL OR COALESCE(O.CLOSE_YN, N'N') = N'Y' THEN N'Closed'
-                    WHEN COALESCE(P.PICKED_QTY, 0) >= COALESCE(O.REQ_BOX_QTY, 0) AND COALESCE(O.REQ_BOX_QTY, 0) > 0 THEN N'Picked'
-                    WHEN COALESCE(P.PICKED_QTY, 0) > 0 THEN N'Partial'
+                    WHEN UPPER(COALESCE(O.Status, 'OPEN')) IN ('CLOSED', 'CANCELED') THEN N'Closed'
+                    WHEN COALESCE(O.PickedQty, 0) >= COALESCE(O.DemandQty, 0) AND COALESCE(O.DemandQty, 0) > 0 THEN N'Picked'
+                    WHEN COALESCE(O.PickedQty, 0) > 0 THEN N'Partial'
                     ELSE N'Open'
                 END AS STATUS
-            FROM SIS_TEST.WMS3050 O
-            OUTER APPLY (
-                SELECT SUM(A.QTY) AS PICKED_QTY
-                FROM SIS_TEST.PDA_WH_RELEASE_PICK_AUDIT A
-                WHERE A.PICK_SLIPNO = O.PICK_SLIPNO
-                  AND (A.PARTNO = O.PARTNO OR O.PARTNO IS NULL)
-            ) P
-            WHERE (@IncludeClosed = 1 OR (O.CLOSE_DATE IS NULL AND COALESCE(O.CLOSE_YN, N'N') <> N'Y'))
+            FROM dbo.WH_ReleaseSchedule O
+            WHERE (@IncludeClosed = 1 OR UPPER(COALESCE(O.Status, 'OPEN')) NOT IN ('CLOSED', 'CANCELED'))
               AND (@Search IS NULL
-                   OR O.PICK_SLIPNO LIKE @Search
-                   OR O.REQ_LOCATION LIKE @Search
-                   OR O.PARTNO LIKE @Search
-                   OR O.REQ_USERID LIKE @Search)
-            ORDER BY O.REQ_DATE DESC, O.PICK_SLIPNO DESC, O.SEQNO;
+                   OR CONCAT(N'RS-', O.ReleaseScheduleID) LIKE @Search
+                   OR O.ItemNo LIKE @Search
+                   OR O.CreatedBy LIKE @Search
+                   OR O.Status LIKE @Search)
+            ORDER BY O.RequiredAt DESC, O.ReleaseScheduleID DESC;
             """, r => new PickingOrderRow(
                 GetString(r, "PICK_SLIPNO") ?? "",
                 GetString(r, "REQ_DATE"),
@@ -324,34 +308,24 @@ public sealed class WarehouseRepository
         decimal reqBoxQty,
         string reqUserId)
     {
-        var (corcd, bizcd) = GetDefaultCompany();
-        var slipNo = string.IsNullOrWhiteSpace(pickSlipNo)
-            ? $"PS{DateTime.Now:yyMMddHHmmss}"
-            : pickSlipNo.Trim();
-
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            INSERT INTO SIS_TEST.WMS3050
-                (CORCD, BIZCD, REQ_DATE, REQ_LOCATION, SEQNO, PARTNO,
-                 REQ_BOX_QTY, REQ_USERID, REQ_TIME, PICK_SLIPNO, PRINT_DATE, CLOSE_YN)
+            INSERT INTO dbo.WH_ReleaseSchedule
+                (ItemNo, DemandQty, PickedQty, RequiredAt, Priority, Status, CreatedBy, CreatedTS)
+            OUTPUT INSERTED.ReleaseScheduleID
             VALUES
-                (@Corcd, @Bizcd, @ReqDate, @ReqLocation, @SeqNo, @PartNo,
-                 @ReqBoxQty, @ReqUserId, @ReqTime, @PickSlipNo, SYSDATETIME(), NULL);
+                (@PartNo, @ReqBoxQty, 0, @RequiredAt, @Priority, 'Open', @ReqUserId, SYSDATETIME());
             """, conn);
-        cmd.Parameters.Add("@Corcd", SqlDbType.NVarChar, 10).Value = corcd;
-        cmd.Parameters.Add("@Bizcd", SqlDbType.NVarChar, 10).Value = bizcd;
-        cmd.Parameters.Add("@ReqDate", SqlDbType.NVarChar, 20).Value = reqDate;
-        cmd.Parameters.Add("@ReqLocation", SqlDbType.NVarChar, 50).Value = reqLocation;
-        cmd.Parameters.Add("@SeqNo", SqlDbType.Int).Value = seqNo;
-        cmd.Parameters.Add("@PartNo", SqlDbType.NVarChar, 50).Value = partNo;
+        var requiredAt = DateTime.TryParse(reqDate, out var parsedDate) ? parsedDate.Date : DateTime.Today;
+        cmd.Parameters.Add("@PartNo", SqlDbType.VarChar, 20).Value = partNo;
         cmd.Parameters.Add("@ReqBoxQty", SqlDbType.Decimal).Value = reqBoxQty;
         cmd.Parameters["@ReqBoxQty"].Precision = 18;
         cmd.Parameters["@ReqBoxQty"].Scale = 3;
-        cmd.Parameters.Add("@ReqUserId", SqlDbType.NVarChar, 80).Value = reqUserId;
-        cmd.Parameters.Add("@ReqTime", SqlDbType.NVarChar, 20).Value = DateTime.Now.ToString("HHmmss");
-        cmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 30).Value = slipNo;
-        cmd.ExecuteNonQuery();
-        return slipNo;
+        cmd.Parameters.Add("@RequiredAt", SqlDbType.DateTime2).Value = requiredAt;
+        cmd.Parameters.Add("@Priority", SqlDbType.TinyInt).Value = Math.Clamp(seqNo / 10, 1, 9);
+        cmd.Parameters.Add("@ReqUserId", SqlDbType.VarChar, 50).Value = Truncate(reqUserId, 50);
+        var id = Convert.ToInt32(cmd.ExecuteScalar());
+        return $"RS-{id}";
     }
 
     public List<PartOptionRow> ListPartOptions()
@@ -359,9 +333,11 @@ public sealed class WarehouseRepository
         return Query("""
             SELECT TOP (300) PARTNO
             FROM (
-                SELECT PARTNO FROM SIS_TEST.WMS2020 WHERE PARTNO IS NOT NULL AND PARTNO <> N''
+                SELECT ItemNo AS PARTNO FROM dbo.WH_Inventory WHERE ItemNo IS NOT NULL AND ItemNo <> N''
                 UNION
-                SELECT PARTNO FROM SIS_TEST.WMS3050 WHERE PARTNO IS NOT NULL AND PARTNO <> N''
+                SELECT ItemNo AS PARTNO FROM dbo.WH_ReleaseSchedule WHERE ItemNo IS NOT NULL AND ItemNo <> N''
+                UNION
+                SELECT ItemNo AS PARTNO FROM dbo.MD_Item WHERE ItemNo IS NOT NULL AND ItemNo <> N''
             ) P
             ORDER BY PARTNO;
             """, r => new PartOptionRow(GetString(r, "PARTNO") ?? ""));
@@ -371,33 +347,38 @@ public sealed class WarehouseRepository
     {
         return Query("""
             SELECT
-                L.LOCATION_NO,
-                L.LOCATION_NM,
-                L.AREACD,
-                L.AREANM,
-                L.ZONECD,
-                L.ZONENM,
-                L.RACK_X,
-                L.RACK_Y,
-                L.RACK_Z,
-                COUNT(S.LOTNO) AS LOT_COUNT,
-                COUNT(DISTINCT S.PARTNO) AS PART_COUNT,
-                COALESCE(SUM(S.QTY), 0) AS TOTAL_QTY,
+                L.LocationID AS LOCATION_NO,
+                L.LocationName AS LOCATION_NM,
+                COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) AS AREACD,
+                COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) AS AREANM,
+                L.ZoneCode AS ZONECD,
+                L.LocationType AS ZONENM,
+                L.Aisle AS RACK_X,
+                L.Bay AS RACK_Y,
+                L.Slot AS RACK_Z,
+                COUNT(DISTINCT S.LotID) AS LOT_COUNT,
+                COUNT(DISTINCT S.ItemNo) AS PART_COUNT,
+                COALESCE(SUM(S.OnHandQty), 0) AS TOTAL_QTY,
                 CASE
-                    WHEN COALESCE(SUM(S.QTY), 0) = 0 THEN N'Empty'
-                    WHEN COUNT(DISTINCT S.PARTNO) > 1 THEN N'Mixed'
+                    WHEN COALESCE(SUM(S.OnHandQty), 0) = 0 THEN N'Empty'
+                    WHEN COUNT(DISTINCT S.ItemNo) > 1 THEN N'Mixed'
                     ELSE N'Stocked'
                 END AS STATUS
-            FROM SIS_TEST.WMS1040 L
-            LEFT JOIN SIS_TEST.WMS2020 S ON S.LOCATION_NO = L.LOCATION_NO
-            WHERE COALESCE(L.USE_YN, N'Y') = N'Y'
-              AND (@AreaCode IS NULL OR L.AREACD = @AreaCode)
-              AND (@RackZ IS NULL OR L.RACK_Z = @RackZ)
-            GROUP BY L.LOCATION_NO, L.LOCATION_NM, L.AREACD, L.AREANM,
-                     L.ZONECD, L.ZONENM, L.RACK_X, L.RACK_Y, L.RACK_Z
-            ORDER BY L.AREACD, L.ZONECD, TRY_CONVERT(int, L.RACK_X), L.RACK_X,
-                     TRY_CONVERT(int, L.RACK_Y), L.RACK_Y, TRY_CONVERT(int, L.RACK_Z), L.RACK_Z,
-                     L.LOCATION_NO;
+            FROM dbo.MD_Location L
+            LEFT JOIN dbo.WH_Inventory S
+                   ON S.LocationID = L.LocationID
+                  AND COALESCE(S.OnHandQty, 0) <> 0
+                  AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
+            WHERE COALESCE(L.ActiveFlag, 1) = 1
+              AND (@AreaCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = @AreaCode)
+              AND (@RackZ IS NULL OR L.Slot = @RackZ)
+            GROUP BY L.LocationID, L.LocationName, L.PlantCode, L.ZoneCode,
+                     L.LocationType, L.Aisle, L.Bay, L.Slot
+            ORDER BY COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode), L.ZoneCode,
+                     TRY_CONVERT(int, L.Aisle), L.Aisle,
+                     TRY_CONVERT(int, L.Bay), L.Bay,
+                     TRY_CONVERT(int, L.Slot), L.Slot,
+                     L.LocationID;
             """, r => new LocationMapRow(
                 GetString(r, "LOCATION_NO") ?? "",
                 GetString(r, "LOCATION_NM"),
@@ -423,13 +404,12 @@ public sealed class WarehouseRepository
         return Query("""
             WITH Areas AS (
                 SELECT
-                    L.AREACD,
-                    MAX(L.AREANM) AS AREANM,
-                    ROW_NUMBER() OVER (ORDER BY L.AREACD) AS RN
-                FROM SIS_TEST.WMS1040 L
-                WHERE COALESCE(L.USE_YN, N'Y') = N'Y'
-                  AND NULLIF(L.AREACD, N'') IS NOT NULL
-                GROUP BY L.AREACD
+                    COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode, 'WH') AS AREACD,
+                    MAX(COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode, 'WH')) AS AREANM,
+                    ROW_NUMBER() OVER (ORDER BY COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode, 'WH')) AS RN
+                FROM dbo.MD_Location L
+                WHERE COALESCE(L.ActiveFlag, 1) = 1
+                GROUP BY COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode, 'WH')
             )
             SELECT
                 A.AREACD,
@@ -439,7 +419,7 @@ public sealed class WarehouseRepository
                 COALESCE(M.W_PCT, CAST(27 AS decimal(5,2))) AS W_PCT,
                 COALESCE(M.H_PCT, CAST(22 AS decimal(5,2))) AS H_PCT
             FROM Areas A
-            LEFT JOIN SIS_TEST.WH_AREA_LAYOUT M ON M.AREACD = A.AREACD
+            LEFT JOIN dbo.WH_AreaLayout M ON M.AREACD = A.AREACD
             ORDER BY A.AREACD;
             """, r => new LocationAreaLayoutRow(
                 GetString(r, "AREACD") ?? "",
@@ -470,7 +450,7 @@ public sealed class WarehouseRepository
 
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            MERGE SIS_TEST.WH_AREA_LAYOUT AS tgt
+            MERGE dbo.WH_AreaLayout AS tgt
             USING (SELECT @AreaCode AS AREACD) AS src ON tgt.AREACD = src.AREACD
             WHEN MATCHED THEN UPDATE SET
                 X_PCT = @XPct,
@@ -661,9 +641,9 @@ public sealed class WarehouseRepository
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            IF OBJECT_ID(N'SIS_TEST.WH_AREA_LAYOUT', N'U') IS NULL
+            IF OBJECT_ID(N'dbo.WH_AreaLayout', N'U') IS NULL
             BEGIN
-                CREATE TABLE SIS_TEST.WH_AREA_LAYOUT (
+                CREATE TABLE dbo.WH_AreaLayout (
                     AREACD NVARCHAR(20) NOT NULL CONSTRAINT PK_WH_AREA_LAYOUT PRIMARY KEY,
                     X_PCT DECIMAL(5,2) NOT NULL,
                     Y_PCT DECIMAL(5,2) NOT NULL,
@@ -673,33 +653,15 @@ public sealed class WarehouseRepository
                     MODIFIED_TS DATETIME2 NOT NULL CONSTRAINT DF_WH_AREA_LAYOUT_MODIFIED_TS DEFAULT SYSDATETIME()
                 );
             END;
-            """, conn);
+        """, conn);
         cmd.ExecuteNonQuery();
-    }
-
-    private (string Corcd, string Bizcd) GetDefaultCompany()
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            SELECT TOP (1) CORCD, BIZCD
-            FROM SIS_TEST.WMS1040
-            WHERE CORCD IS NOT NULL AND BIZCD IS NOT NULL
-            ORDER BY CORCD, BIZCD;
-            """, conn);
-        using var rdr = cmd.ExecuteReader();
-        return rdr.Read()
-            ? (rdr.GetString(0), rdr.GetString(1))
-            : ("5010", "5011");
     }
 
     private static void AddLocationParameters(
         SqlCommand cmd,
-        string corcd,
-        string bizcd,
         string locationNo,
         string? locationName,
         string? whCode,
-        string? whName,
         string? areaCode,
         string? areaName,
         string? zoneCode,
@@ -709,20 +671,15 @@ public sealed class WarehouseRepository
         string? rackZ,
         bool useYn)
     {
-        cmd.Parameters.Add("@Corcd", SqlDbType.NVarChar, 10).Value = corcd;
-        cmd.Parameters.Add("@Bizcd", SqlDbType.NVarChar, 10).Value = bizcd;
-        cmd.Parameters.Add("@LocationNo", SqlDbType.NVarChar, 50).Value = locationNo;
+        cmd.Parameters.Add("@LocationNo", SqlDbType.VarChar, 20).Value = Truncate(locationNo, 20);
         AddNullable(cmd, "@LocationName", SqlDbType.NVarChar, 120, locationName);
-        AddNullable(cmd, "@WhCode", SqlDbType.NVarChar, 20, whCode);
-        AddNullable(cmd, "@WhName", SqlDbType.NVarChar, 120, whName);
-        AddNullable(cmd, "@AreaCode", SqlDbType.NVarChar, 20, areaCode);
-        AddNullable(cmd, "@AreaName", SqlDbType.NVarChar, 120, areaName);
-        AddNullable(cmd, "@ZoneCode", SqlDbType.NVarChar, 20, zoneCode);
-        AddNullable(cmd, "@ZoneName", SqlDbType.NVarChar, 120, zoneName);
-        AddNullable(cmd, "@RackX", SqlDbType.NVarChar, 20, rackX);
-        AddNullable(cmd, "@RackY", SqlDbType.NVarChar, 20, rackY);
-        AddNullable(cmd, "@RackZ", SqlDbType.NVarChar, 20, rackZ);
-        cmd.Parameters.Add("@UseYn", SqlDbType.NVarChar, 1).Value = useYn ? "Y" : "N";
+        AddNullable(cmd, "@PlantCode", SqlDbType.VarChar, 20, whCode);
+        AddNullable(cmd, "@ZoneCode", SqlDbType.VarChar, 10, FirstNonBlank(zoneCode, areaCode));
+        AddNullable(cmd, "@LocationType", SqlDbType.VarChar, 20, FirstNonBlank(zoneName, areaName));
+        AddNullable(cmd, "@RackX", SqlDbType.VarChar, 5, rackX);
+        AddNullable(cmd, "@RackY", SqlDbType.VarChar, 5, rackY);
+        AddNullable(cmd, "@RackZ", SqlDbType.VarChar, 5, rackZ);
+        cmd.Parameters.Add("@UseYn", SqlDbType.Bit).Value = useYn;
     }
 
     private List<T> Query<T>(string sql, Func<SqlDataReader, T> map, params (string Name, object? Val)[] p)
@@ -742,6 +699,15 @@ public sealed class WarehouseRepository
 
     private static string? NullIfBlank(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string? FirstNonBlank(params string?[] values)
+        => values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v))?.Trim();
+
+    private static string Truncate(string value, int maxLength)
+    {
+        value = value.Trim();
+        return value.Length <= maxLength ? value : value[..maxLength];
+    }
 
     private static void AddNullable(SqlCommand cmd, string name, SqlDbType type, int size, string? value)
     {
