@@ -8153,6 +8153,195 @@ body:has(.pda-shell.wh),
     -webkit-user-select: none !important;
 }
 
+/* Final WH PDA fixes: keep inbound mode buttons stable after tab changes. */
+.pda-shell.wh.wh02-shell .wh02-mode {
+    border: 1px solid rgba(147, 197, 253, .18) !important;
+    background: #050a13 !important;
+    border-radius: 8px !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-mode-btn.rz-button,
+.pda-shell.wh.wh02-shell .wh02-mode-btn.rz-button:hover,
+.pda-shell.wh.wh02-shell .wh02-mode-btn.rz-button:focus,
+.pda-shell.wh.wh02-shell .wh02-mode-btn.rz-button:active,
+.pda-shell.wh.wh02-shell .wh02-mode-btn.rz-button.rz-state-focused {
+    min-height: 42px !important;
+    border: 1px solid transparent !important;
+    background: rgba(255, 255, 255, .03) !important;
+    color: rgba(255, 255, 255, .62) !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh02-shell .wh02-mode-btn.on.rz-button,
+.pda-shell.wh.wh02-shell .wh02-mode-btn.on.rz-button:hover,
+.pda-shell.wh.wh02-shell .wh02-mode-btn.on.rz-button:focus,
+.pda-shell.wh.wh02-shell .wh02-mode-btn.on.rz-button:active,
+.pda-shell.wh.wh02-shell .wh02-mode-btn.on.rz-button.rz-state-focused {
+    border-color: rgba(147, 197, 253, .44) !important;
+    background: rgba(147, 197, 253, .16) !important;
+    color: #ffffff !important;
+    box-shadow: inset 0 0 0 1px rgba(147, 197, 253, .06) !important;
+}
+
+/* Inventory status/location split and calendar filters. */
+.pda-shell.wh.wh03-shell .wh03-view-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 4px;
+    border: 1px solid rgba(147, 197, 253, .18);
+    border-radius: 9px;
+    background: #050a13;
+}
+
+.pda-shell.wh.wh03-shell .wh03-view-tab {
+    min-height: 38px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, .03);
+    color: rgba(255, 255, 255, .62);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+}
+
+.pda-shell.wh.wh03-shell .wh03-view-tab.on {
+    border-color: rgba(147, 197, 253, .44);
+    background: rgba(147, 197, 253, .16);
+    color: #ffffff;
+}
+
+.pda-shell.wh.wh03-shell .wh03-date-picker.rz-datepicker,
+.pda-shell.wh.wh08-shell .wh08-date-picker.rz-datepicker {
+    width: 100% !important;
+    display: block !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-date-picker .rz-inputtext,
+.pda-shell.wh.wh08-shell .wh08-date-picker .rz-inputtext {
+    width: 100% !important;
+    min-height: 42px !important;
+    border: 1px solid rgba(147, 197, 253, .22) !important;
+    border-radius: 9px !important;
+    background: #071225 !important;
+    color: #ffffff !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 12px !important;
+    font-weight: 850 !important;
+    letter-spacing: 0 !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-date-picker .rz-datepicker-trigger,
+.pda-shell.wh.wh08-shell .wh08-date-picker .rz-datepicker-trigger {
+    color: #93c5fd !important;
+}
+
+.rz-datepicker-popup,
+.rz-datepicker-calendar-container,
+.rz-calendar-popup,
+.rz-popup {
+    z-index: 5000 !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-date-picker .rz-datepicker-clear,
+.pda-shell.wh.wh08-shell .wh08-date-picker .rz-datepicker-clear {
+    display: none !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-location-summary-card.rz-card,
+.pda-shell.wh.wh03-shell .wh03-location-inventory-card.rz-card {
+    border: 1px solid rgba(147, 197, 253, .18) !important;
+    border-radius: 11px !important;
+    background: #0f1d33 !important;
+    color: #e8eef7 !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh03-shell .wh03-location-summary-top,
+.pda-shell.wh.wh03-shell .wh03-location-inventory-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.pda-shell.wh.wh03-shell .wh03-location-summary-top span,
+.pda-shell.wh.wh03-shell .wh03-location-summary-grid span,
+.pda-shell.wh.wh03-shell .wh03-location-inventory-meta span,
+.pda-shell.wh.wh03-shell .wh03-location-inventory-meta em {
+    color: rgba(255, 255, 255, .56) !important;
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+}
+
+.pda-shell.wh.wh03-shell .wh03-location-summary-top strong,
+.pda-shell.wh.wh03-shell .wh03-location-inventory-top strong {
+    color: #ffffff !important;
+    font-size: 18px;
+    font-weight: 950;
+    line-height: 1.1;
+}
+
+.pda-shell.wh.wh03-shell .wh03-location-summary-top em,
+.pda-shell.wh.wh03-shell .wh03-location-inventory-top span {
+    color: #93c5fd !important;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 950;
+}
+
+.pda-shell.wh.wh03-shell .wh03-location-summary-name,
+.pda-shell.wh.wh03-shell .wh03-location-inventory-name {
+    margin-top: 8px;
+    color: rgba(255, 255, 255, .72) !important;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.pda-shell.wh.wh03-shell .wh03-location-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.pda-shell.wh.wh03-shell .wh03-location-summary-grid div {
+    min-width: 0;
+    padding: 9px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .035);
+}
+
+.pda-shell.wh.wh03-shell .wh03-location-summary-grid strong {
+    display: block;
+    margin-top: 4px;
+    color: #ffffff !important;
+    font-size: 12px;
+    font-weight: 900;
+    overflow-wrap: anywhere;
+}
+
+.pda-shell.wh.wh03-shell .wh03-location-inventory-list {
+    display: grid;
+    gap: 10px;
+}
+
+.pda-shell.wh.wh03-shell .wh03-location-inventory-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 9px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, .08);
+}
+
 /* FG-001 Put-Away */
 .pda-shell.fg.fg01-shell {
     background: #071114;
