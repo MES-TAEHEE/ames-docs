@@ -325,7 +325,8 @@ public sealed class LineScheduleRepository
     public sealed record ScheduleRow(
         int ScheduleId, string? PatternId, int? WoId, string? WoNumber, string? ItemName,
         int StartMin, int EndMin, decimal PlannedQty, string? Status,
-        DateTime? PublishedAt, string? PublishedBy);
+        DateTime? PublishedAt, string? PublishedBy,
+        string? EntryType, string? Title, string? RefType, int? RefId);
 
     public List<ScheduleRow> GetSchedule(string lineId, DateTime date)
     {
@@ -334,7 +335,8 @@ public sealed class LineScheduleRepository
                    ISNULL(s.StartMin,0)   AS StartMin,
                    ISNULL(s.EndMin,0)     AS EndMin,
                    ISNULL(s.PlannedQty,0) AS PlannedQty,
-                   s.Status, s.PublishedAt, s.PublishedBy
+                   s.Status, s.PublishedAt, s.PublishedBy,
+                   s.EntryType, s.Title, s.RefType, s.RefID
             FROM   dbo.PP_LineSchedule s
             LEFT JOIN dbo.PP_WorkOrder w ON w.WoID   = s.WoID
             LEFT JOIN dbo.MD_Item      i ON i.ItemNo = w.ItemNo
@@ -359,13 +361,19 @@ public sealed class LineScheduleRepository
                 rdr.GetDecimal(rdr.GetOrdinal("PlannedQty")),
                 rdr["Status"]      as string,
                 rdr["PublishedAt"] as DateTime?,
-                rdr["PublishedBy"] as string));
+                rdr["PublishedBy"] as string,
+                rdr["EntryType"]   as string,
+                rdr["Title"]       as string,
+                rdr["RefType"]     as string,
+                rdr["RefID"]       as int?));
         return list;
     }
 
-    // 적용: (라인, 일자)의 기존 행을 지우고 패턴+WO 배치를 Draft로 저장.
+    // 적용: (라인, 일자)의 기존 행을 지우고 패턴 + WO 배치 + PM 밴드를 Draft로 저장.
     public void SaveSchedule(string lineId, DateTime date, string? patternId,
-        IEnumerable<(int WoId, int StartMin, int EndMin, decimal Qty)> slots, string actor)
+        IEnumerable<(int WoId, int StartMin, int EndMin, decimal Qty)> slots,
+        IEnumerable<(int StartMin, int EndMin, string? Title, string? RefType, int? RefId)> pmBands,
+        string actor)
     {
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
@@ -380,12 +388,18 @@ public sealed class LineScheduleRepository
             }
 
             var rows = slots.Where(s => s.EndMin > s.StartMin).ToList();
-            // 상태값은 공통코드 SCHEDULE_STATUS(DRAFT/PUBLISHED) 참조
-            if (rows.Count == 0)
-                InsertRow(conn, tx, lineId, date, patternId, null, null, null, 0m, "DRAFT", actor);
+            var pms  = pmBands.Where(p => p.EndMin > p.StartMin).ToList();
+            // 상태값은 공통코드 SCHEDULE_STATUS(DRAFT/PUBLISHED) 참조.
+            // WO·PM 모두 없어도 패턴/상태 보관용 placeholder 행 1개는 남긴다.
+            if (rows.Count == 0 && pms.Count == 0)
+                InsertRow(conn, tx, lineId, date, patternId, "WO", null, null, null, 0m, null, null, null, "DRAFT", actor);
             else
+            {
                 foreach (var s in rows)
-                    InsertRow(conn, tx, lineId, date, patternId, s.WoId, s.StartMin, s.EndMin, s.Qty, "DRAFT", actor);
+                    InsertRow(conn, tx, lineId, date, patternId, "WO", s.WoId, s.StartMin, s.EndMin, s.Qty, null, null, null, "DRAFT", actor);
+                foreach (var p in pms)
+                    InsertRow(conn, tx, lineId, date, patternId, "PM", null, p.StartMin, p.EndMin, 0m, p.Title, p.RefType, p.RefId, "DRAFT", actor);
+            }
 
             tx.Commit();
         }
@@ -393,22 +407,29 @@ public sealed class LineScheduleRepository
     }
 
     static void InsertRow(SqlConnection conn, SqlTransaction tx, string lineId, DateTime date,
-        string? patternId, int? woId, int? startMin, int? endMin, decimal qty, string status, string actor)
+        string? patternId, string entryType, int? woId, int? startMin, int? endMin, decimal qty,
+        string? title, string? refType, int? refId, string status, string actor)
     {
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.PP_LineSchedule
-                   (LineID, ScheduleDate, WoID, StartMin, EndMin, PlannedQty, PatternID, Status, CreatedBy, CreatedTS)
-            VALUES (@LineId, @Date, @WoId, @Start, @End, @Qty, @Pattern, @Status, @By, SYSDATETIME());
+                   (LineID, ScheduleDate, WoID, StartMin, EndMin, PlannedQty, PatternID,
+                    EntryType, Title, RefType, RefID, Status, CreatedBy, CreatedTS)
+            VALUES (@LineId, @Date, @WoId, @Start, @End, @Qty, @Pattern,
+                    @EntryType, @Title, @RefType, @RefID, @Status, @By, SYSDATETIME());
             """, conn, tx);
-        cmd.Parameters.Add("@LineId",  SqlDbType.VarChar, 20).Value = lineId;
-        cmd.Parameters.Add("@Date",    SqlDbType.Date).Value        = date.Date;
-        cmd.Parameters.Add("@WoId",    SqlDbType.Int).Value         = (object?)woId ?? DBNull.Value;
-        cmd.Parameters.Add("@Start",   SqlDbType.SmallInt).Value    = startMin is int sv ? (short)sv : (object)DBNull.Value;
-        cmd.Parameters.Add("@End",     SqlDbType.SmallInt).Value    = endMin   is int ev ? (short)ev : (object)DBNull.Value;
-        cmd.Parameters.Add("@Qty",     SqlDbType.Decimal).Value     = qty;
-        cmd.Parameters.Add("@Pattern", SqlDbType.VarChar, 20).Value = (object?)patternId ?? DBNull.Value;
-        cmd.Parameters.Add("@Status",  SqlDbType.VarChar, 20).Value = status;
-        cmd.Parameters.Add("@By",      SqlDbType.VarChar, 50).Value = actor;
+        cmd.Parameters.Add("@LineId",    SqlDbType.VarChar, 20).Value  = lineId;
+        cmd.Parameters.Add("@Date",      SqlDbType.Date).Value         = date.Date;
+        cmd.Parameters.Add("@WoId",      SqlDbType.Int).Value          = (object?)woId ?? DBNull.Value;
+        cmd.Parameters.Add("@Start",     SqlDbType.SmallInt).Value     = startMin is int sv ? (short)sv : (object)DBNull.Value;
+        cmd.Parameters.Add("@End",       SqlDbType.SmallInt).Value     = endMin   is int ev ? (short)ev : (object)DBNull.Value;
+        cmd.Parameters.Add("@Qty",       SqlDbType.Decimal).Value      = qty;
+        cmd.Parameters.Add("@Pattern",   SqlDbType.VarChar, 20).Value  = (object?)patternId ?? DBNull.Value;
+        cmd.Parameters.Add("@EntryType", SqlDbType.VarChar, 10).Value  = entryType;
+        cmd.Parameters.Add("@Title",     SqlDbType.NVarChar, 100).Value = (object?)title ?? DBNull.Value;
+        cmd.Parameters.Add("@RefType",   SqlDbType.VarChar, 10).Value  = (object?)refType ?? DBNull.Value;
+        cmd.Parameters.Add("@RefID",     SqlDbType.Int).Value          = (object?)refId ?? DBNull.Value;
+        cmd.Parameters.Add("@Status",    SqlDbType.VarChar, 20).Value  = status;
+        cmd.Parameters.Add("@By",        SqlDbType.VarChar, 50).Value  = actor;
         cmd.ExecuteNonQuery();
     }
 
@@ -468,6 +489,36 @@ public sealed class LineScheduleRepository
                 rdr["ItemName"] as string,
                 rdr.GetDecimal(rdr.GetOrdinal("OpenQty")),
                 rdr["Status"]   as string));
+        return list;
+    }
+
+    // ── PM 후보 (MNT_PMSchedule → 해당 라인 설비) ─────────────────────────────
+    // 라인은 설비(MD_Equipment.LineID)로 해석. 마감(완료)된 PM은 제외.
+    public sealed record PmCandidate(
+        int PmScheduleId, string EquipId, string? EquipName, string? PmType, DateTime? NextDueDate);
+
+    public List<PmCandidate> ListDuePmForLine(string lineId)
+    {
+        const string sql = """
+            SELECT p.PMScheduleID, p.EquipID, e.EquipName, p.PMType, p.NextDueDate
+            FROM   dbo.MNT_PMSchedule p
+            JOIN   dbo.MD_Equipment   e ON e.EquipID = p.EquipID
+            WHERE  e.LineID = @LineId
+              AND  ISNULL(p.Status,'') NOT IN ('CLOSED','DONE','CANCELLED')
+            ORDER  BY p.NextDueDate, p.EquipID;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<PmCandidate>();
+        while (rdr.Read())
+            list.Add(new PmCandidate(
+                (int)rdr["PMScheduleID"],
+                (string)rdr["EquipID"],
+                rdr["EquipName"]   as string,
+                rdr["PMType"]      as string,
+                rdr["NextDueDate"] as DateTime?));
         return list;
     }
 

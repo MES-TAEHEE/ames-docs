@@ -50,10 +50,10 @@
             <div class="ames-kpi-s">@L["PP.LineSchedule.Kpi.UtilTarget"]</div>
         </div>
     </div>
-    <div class="ames-kpi @(ConflictIds.Count > 0 ? "bad" : "ok")">
+    <div class="ames-kpi @(TotalConflicts > 0 ? "bad" : "ok")">
         <div class="ames-kpi-l">@L["PP.LineSchedule.Kpi.Conflict"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@ConflictIds.Count</div>
+            <div class="ames-kpi-v">@TotalConflicts</div>
             <div class="ames-kpi-s">@L["PP.LineSchedule.Kpi.ConflictSub"]</div>
         </div>
     </div>
@@ -88,6 +88,8 @@
             @StatusPill()
             @if (_canEdit)
             {
+                @* PM 등록: 패턴 선택 + 금일 이후에만. 예방보전 밴드를 가동시간대에 추가 *@
+                <RadzenButton Text="@L["PP.LineSchedule.Btn.AddPm"]" Icon="build" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Disabled="@(!Editable || string.IsNullOrEmpty(_patternId))" Click="@OpenPmModal" class="ames-rz-btn" />
                 <RadzenButton Text="@L["PP.LineSchedule.Btn.Apply"]" Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Disabled="@(string.IsNullOrEmpty(_patternId) || _date.Date < ServerNow.Date)" Click="@Apply" class="ames-rz-btn" />
                 @* 발행: DB에 적용(저장)된 Draft 상태이고 미변경일 때만 활성화 *@
                 <RadzenButton Text="@L["PP.LineSchedule.Btn.Publish"]" Icon="publish" ButtonStyle="ButtonStyle.Info" Size="ButtonSize.Small" Disabled="@(_savedStatus != "DRAFT" || _dirty || _date.Date < ServerNow.Date)" Click="@Publish" class="ames-rz-btn" />
@@ -118,6 +120,7 @@
                     <span class="pp-lgd"><i style="background:@(SegColor(st.CodeValue ?? ""))cc;"></i>@MasterDataRepository.LocalName(st)</span>
                 }
                 <span class="pp-lgd"><i style="background:rgba(168,85,247,.7);"></i>@L["PP.LineSchedule.Lgd.Wo"]</span>
+                <span class="pp-lgd"><i style="background:rgba(251,146,60,.7);"></i>@L["PP.LineSchedule.Lgd.Pm"]</span>
             </div>
         </div>
 
@@ -125,10 +128,10 @@
 
         <div class="dim" style="font-size:11px;padding:6px 14px 10px;">@L["PP.LineSchedule.Hint.Board"]</div>
 
-        @if (ConflictIds.Count > 0)
+        @if (TotalConflicts > 0)
         {
             <div style="padding:0 14px 10px;">
-                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@string.Format(L["PP.LineSchedule.Err.ConflictSummary"].Value, ConflictIds.Count)</RadzenAlert>
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@string.Format(L["PP.LineSchedule.Err.ConflictSummary"].Value, TotalConflicts)</RadzenAlert>
             </div>
         }
 
@@ -137,31 +140,30 @@
             ▼ @L["PP.LineSchedule.Lbl.SlotList"] · @_slots.Count @L["Lbl.Items"]
         </div>
         <RadzenDataGrid TItem="StagedWo" Data="@_slots.ToList()" AllowPaging="false"
-                        RowClick="@(a => { if (Editable && a.Data is not null) EditSlot(a.Data.WoId); })"
-                        RowRender="@SlotRowRender" EmptyText="@L["PP.LineSchedule.Empty.NoSlot"]" Class="ames-rz-grid">
+                        RowClick="@(a => { if (Editable && a.Data is not null) EditSlot(a.Data.WoId); })" RowRender="@SlotRowRender" EmptyText="@L["PP.LineSchedule.Empty.NoSlot"]" Class="ames-rz-grid">
             <Columns>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["PP.LineSchedule.Col.Label"]" Width="58px" TextAlign="TextAlign.Center" Sortable="false">
+                <RadzenDataGridColumn TItem="StagedWo" Title="@L["PP.LineSchedule.Col.Label"]" TextAlign="TextAlign.Center" Width="60px" Sortable="false">
                     <Template Context="s"><span class="pill info">@SlotLabel(s)</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["PP.LineSchedule.Col.Wo"]" Width="130px">
+                <RadzenDataGridColumn TItem="StagedWo" Title="@L["PP.LineSchedule.Col.Wo"]" TextAlign="TextAlign.Center" Width="130px">
                     <Template Context="s"><span class="code">@s.WoNumber</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Item"]">
+                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Item"]" >
                     <Template Context="s"><span class="dim">@(s.ItemName ?? "—")</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Start"]" Width="80px">
+                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Start"]" TextAlign="TextAlign.Center" Width="90px">
                     <Template Context="s"><span class="code">@MinToTime(s.StartMin)</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.End"]" Width="80px">
+                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.End"]" TextAlign="TextAlign.Center" Width="90px">
                     <Template Context="s"><span class="code">@MinToTime(s.EndMin)</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Duration"]" Width="80px" TextAlign="TextAlign.Right">
+                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Duration"]" TextAlign="TextAlign.Right" Width="90px">
                     <Template Context="s">@(s.EndMin - s.StartMin)</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["PP.LineSchedule.Lbl.PlannedQty"]" Width="100px" TextAlign="TextAlign.Right">
+                <RadzenDataGridColumn TItem="StagedWo" Title="@L["PP.LineSchedule.Lbl.PlannedQty"]" TextAlign="TextAlign.Right" Width="120px">
                     <Template Context="s">@s.Qty.ToString("N0")</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Status"]" Width="90px" TextAlign="TextAlign.Center">
+                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
                     <Template Context="s">
                         @if (ConflictIds.Contains(s.WoId)) { <span class="pill bad">@L["PP.LineSchedule.Cf.Conflict"]</span> }
                         else { <span class="pill ok">@L["PP.LineSchedule.Cf.Ok"]</span> }
@@ -169,10 +171,45 @@
                 </RadzenDataGridColumn>
                 @if (Editable)
                 {
-                    <RadzenDataGridColumn TItem="StagedWo" Width="90px" TextAlign="TextAlign.Center" Sortable="false">
+                    <RadzenDataGridColumn TItem="StagedWo" TextAlign="TextAlign.Center" Width="120px" Sortable="false">
                         <Template Context="s">
                             <div @onclick:stopPropagation>
                                 <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall" Click="@(() => RemoveSlot(s.WoId))" class="ames-rz-btn" Style="height:24px;padding:0 8px;line-height:1;" />
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                }
+            </Columns>
+        </RadzenDataGrid>
+
+        @* ── PM(예방보전) 밴드 목록 ── *@
+        <div class="ames-card-h" style="border-top:1px solid rgba(255,255,255,.06);">
+            ▼ @L["PP.LineSchedule.Pm.ListTitle"] · @_pmBands.Count @L["Lbl.Items"]
+        </div>
+        <RadzenDataGrid TItem="PmBand" Data="@_pmBands.OrderBy(p => p.StartMin).ToList()" AllowPaging="false"
+                        RowClick="@(a => { if (Editable && a.Data is not null) EditPm(a.Data.Id); })" RowRender="@PmRowRender" EmptyText="@L["PP.LineSchedule.Pm.Empty"]" Class="ames-rz-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="PmBand" Title="@L["PP.LineSchedule.Pm.Name"]">
+                    <Template Context="p"><span class="pill orange">@L["PP.LineSchedule.Lgd.Pm"]</span> <span>@(string.IsNullOrWhiteSpace(p.Title) ? "—" : p.Title)</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="PmBand" Title="@L["PP.LineSchedule.Pm.Ref"]">
+                    <Template Context="p"><span class="dim">@(p.RefLabel ?? "—")</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="PmBand" Title="@L["Col.Start"]" TextAlign="TextAlign.Center" Width="90px">
+                    <Template Context="p"><span class="code">@MinToTime(p.StartMin)</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="PmBand" Title="@L["Col.End"]" TextAlign="TextAlign.Center" Width="90px">
+                    <Template Context="p"><span class="code">@MinToTime(p.EndMin)</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="PmBand" Title="@L["Col.Duration"]" TextAlign="TextAlign.Right" Width="90px">
+                    <Template Context="p">@(p.EndMin - p.StartMin)</Template>
+                </RadzenDataGridColumn>
+                @if (Editable)
+                {
+                    <RadzenDataGridColumn TItem="PmBand" TextAlign="TextAlign.Center" Width="120px" Sortable="false">
+                        <Template Context="p">
+                            <div @onclick:stopPropagation>
+                                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall" Click="@(() => RemovePm(p.Id))" class="ames-rz-btn" Style="height:24px;padding:0 8px;line-height:1;" />
                             </div>
                         </Template>
                     </RadzenDataGridColumn>
@@ -245,6 +282,57 @@
     </div>
 }
 
+@* ── PM(예방보전) 밴드 등록 / 수정 모달 ───────────────────────────────── *@
+@if (_showPmModal)
+{
+    var editingPm = _editPmId.HasValue;
+    <div class="ames-modal-bg" @onmousedown="OnPmModalBgDown" @onclick="OnPmModalBgClick">
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">
+                @(editingPm ? L["PP.LineSchedule.Pm.EditTitle"].Value : L["PP.LineSchedule.Pm.AddTitle"].Value)
+            </div>
+
+            <RadzenStack Orientation="Orientation.Vertical" Gap="0.75rem" Style="width:100%;">
+                <div>
+                    <RadzenLabel Text="@L["PP.LineSchedule.Pm.Ref"]" />
+                    @* MNT_PMSchedule 도래 예정 PM 선택 시 명칭 자동 채움 + RefType/RefID 연계. 미선택 = 수동 밴드 *@
+                    <RadzenDropDown TValue="string" @bind-Value="_pmRefStr" @bind-Value:after="OnPmRefChanged" Data="@PmRefOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" AllowClear="true" Placeholder="@L["PP.LineSchedule.Pm.RefPh"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <div>
+                    <RadzenLabel Text="@L["PP.LineSchedule.Pm.Name"]" />
+                    <RadzenTextBox @bind-Value="_pmTitle" MaxLength="100" Placeholder="@L["PP.LineSchedule.Pm.NamePh"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </div>
+                <RadzenRow Gap="8px">
+                    <RadzenColumn Size="6">
+                        <RadzenLabel Text="@L["PP.LineSchedule.Lbl.StartTime"]" />
+                        <RadzenDatePicker TValue="DateTime?" @bind-Value="PmStartDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    </RadzenColumn>
+                    <RadzenColumn Size="6">
+                        <RadzenLabel Text="@L["PP.LineSchedule.Lbl.Duration"]" />
+                        <RadzenNumeric TValue="int" @bind-Value="_pmDurMin" Min="1" Max="1440" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    </RadzenColumn>
+                </RadzenRow>
+            </RadzenStack>
+
+            @if (!string.IsNullOrEmpty(_pmModalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_pmModalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(editingPm ? L["PP.LineSchedule.Btn.Update"].Value : L["PP.LineSchedule.Btn.Place"].Value)"
+                              Icon="@(editingPm ? "check" : "add")" ButtonStyle="@(editingPm ? ButtonStyle.Success : ButtonStyle.Primary)" Size="ButtonSize.Small"
+                              Click="@SavePm" class="ames-rz-btn" />
+                @if (editingPm)
+                {
+                    <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@DeleteEditingPm" class="ames-rz-btn" />
+                }
+                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ClosePmModal" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
 @* ── 초기화(삭제) 확인 ─────────────────────────────────────────────── *@
 @if (_confirmReset)
 {
@@ -305,7 +393,7 @@
 
         // ── 스케줄 행 (패턴 세그먼트, 교대 A→B→C 순) — 높이 2배, 하단 반절은 WO 오버레이 영역 ──
         __b.OpenElement(30, "div"); __b.AddAttribute(31, "class", "pp-gantt-row"); __b.AddAttribute(32, "style", "height:184px;");
-        foreach (var band in Bands)
+        foreach (var band in EffectiveBands)
         {
             int rlo = Rel(band.StartMin), rhi = RelEnd(band.EndMin);
             if (rhi <= rlo) continue;
@@ -346,6 +434,26 @@
             __b.OpenElement(78, "span"); __b.AddAttribute(79, "class", "pp-blk-s"); __b.AddContent(80, MinToTime(slot.StartMin)); __b.CloseElement();
             __b.OpenElement(81, "span"); __b.AddAttribute(82, "class", "pp-blk-s"); __b.AddContent(83, MinToTime(slot.EndMin)); __b.CloseElement();
             __b.OpenElement(90, "span"); __b.AddAttribute(91, "class", "pp-blk-s"); __b.AddContent(92, $"{wMin}{L["Lbl.Min"]}"); __b.CloseElement();
+            __b.CloseElement();
+        }
+        // PM(예방보전) 오버레이 — WO와 같은 레인(하단 반절), 주황. WO와 시간 겹침 불가라 같은 레인 공유
+        foreach (var pm in _pmBands)
+        {
+            if (pm.StartMin >= pm.EndMin) continue;
+            int rlo = Rel(pm.StartMin), rhi = RelEnd(pm.EndMin);
+            if (rhi <= rlo) continue;
+            var capPm = pm; int wMin = pm.EndMin - pm.StartMin;
+            string cls = "pp-gantt-pm" + (_editPmId == pm.Id ? " sel" : "");
+            string label = string.IsNullOrWhiteSpace(pm.Title) ? L["PP.LineSchedule.Lgd.Pm"].Value : pm.Title!;
+            string range = $"{MinToTime(pm.StartMin)}~{MinToTime(pm.EndMin)}";
+            // PM은 스케줄 행 전체 높이 차지(기존 밴드/WO 위 반투명 오버레이). CSS .pp-gantt-pm 기본 top/height 사용.
+            __b.OpenElement(100, "div"); __b.AddAttribute(101, "class", cls); __b.AddAttribute(102, "style", $"left:{LeftPct(rlo)};width:{WidthPct(rlo, rhi)};padding:0;");
+            __b.AddAttribute(103, "title", $"{label}{(pm.RefLabel is null ? "" : " · " + pm.RefLabel)}\n{range}  ({wMin}{L["Lbl.Min"]})");
+            if (Editable) __b.AddAttribute(104, "onclick", EventCallback.Factory.Create(this, () => EditPm(capPm.Id)));
+            __b.OpenElement(105, "span"); __b.AddAttribute(106, "class", "pp-blk-t"); __b.AddContent(107, label); __b.CloseElement();
+            __b.OpenElement(108, "span"); __b.AddAttribute(109, "class", "pp-blk-s"); __b.AddContent(110, MinToTime(pm.StartMin)); __b.CloseElement();
+            __b.OpenElement(111, "span"); __b.AddAttribute(112, "class", "pp-blk-s"); __b.AddContent(113, MinToTime(pm.EndMin)); __b.CloseElement();
+            __b.OpenElement(114, "span"); __b.AddAttribute(115, "class", "pp-blk-s"); __b.AddContent(116, $"{wMin}{L["Lbl.Min"]}"); __b.CloseElement();
             __b.CloseElement();
         }
         NowLine(85);
@@ -396,10 +504,24 @@
     bool      _modalBgDown;
     bool      _confirmReset;   // 초기화(삭제) 확인창
 
+    // ── PM(예방보전) 밴드 스테이징 ──
+    List<LineScheduleRepository.PmCandidate> _pmCandidates = new();
+    List<PmBand> _pmBands   = new();
+    int          _pmTempSeq = -1;      // 신규 PM 밴드 임시 Id(음수) — DB ScheduleID(양수)와 구분
+    bool         _showPmModal;
+    int?         _editPmId;
+    string       _pmTitle   = "";
+    TimeOnly     _pmStartTime = new(9, 0);
+    int          _pmDurMin  = 60;
+    int?         _pmRefId;             // 선택된 MNT_PMSchedule.PMScheduleID
+    string       _pmModalErr = "";
+    bool         _pmModalBgDown;
+
     int _dayStart = 6 * 60;   // 하루 시작 분(= 첫 교대 시작, 축이 A→B→C 순이 되도록)
     string _err = "", _msg = "";
 
     record StagedWo(int WoId, string WoNumber, string? ItemName, int StartMin, int EndMin, decimal Qty);
+    record PmBand(int Id, int StartMin, int EndMin, string? Title, string? RefType, int? RefId, string? RefLabel);
     record Band(int StartMin, int EndMin, string State, string? Shift);
 
     // ── Computed ─────────────────────────────────────────────────────────
@@ -412,18 +534,52 @@
         .Select(s => new Band(s.StartMin!.Value, s.EndMin!.Value, s.SegmentState ?? "", s.ShiftCode))
         .OrderBy(b => ShiftSort(b.Shift)).ThenBy(b => b.StartMin).ToList();
 
-    // 헤더 표기용 가동 구간(없으면 하루 시작)
-    int HdrStart => Bands.Where(b => b.State == "OPERATING").Select(b => (int?)b.StartMin).Min() ?? _dayStart;
-    int HdrEnd   => Bands.Where(b => b.State == "OPERATING").Select(b => (int?)b.EndMin).Max()   ?? _dayStart;
+    // PM 구간을 뺀 유효 밴드: OPERATING 밴드에서 PM과 겹치는 부분을 잘라냄(분할/트림) → 가동시간이
+    // PM 시간대만큼 당겨지거나 밀린 형태로 재정의. 나머지 상태 밴드는 그대로. 렌더·InsideOperating·OperatingMin 이 사용.
+    List<Band> EffectiveBands
+    {
+        get
+        {
+            var result = new List<Band>();
+            foreach (var b in Bands)
+            {
+                if (b.State != "OPERATING") { result.Add(b); continue; }
+                foreach (var (s, e) in SubtractPm(b.StartMin, b.EndMin))
+                    result.Add(b with { StartMin = s, EndMin = e });
+            }
+            return result;
+        }
+    }
 
-    int     OperatingMin => Bands.Where(b => b.State == "OPERATING").Sum(b => b.EndMin - b.StartMin);
+    // [start,end] 에서 PM 밴드 구간들을 뺀 잔여 구간 목록 (겹치는 PM 다수도 병합 처리)
+    IEnumerable<(int Start, int End)> SubtractPm(int start, int end)
+    {
+        var pms = _pmBands.Where(p => p.EndMin > p.StartMin && Overlap(start, end, p.StartMin, p.EndMin))
+                          .OrderBy(p => p.StartMin).ToList();
+        int cur = start;
+        foreach (var p in pms)
+        {
+            int ps = Math.Max(start, p.StartMin);
+            if (ps > cur) yield return (cur, ps);
+            cur = Math.Max(cur, Math.Min(end, p.EndMin));
+        }
+        if (cur < end) yield return (cur, end);
+    }
+
+    // 헤더 표기용 가동 구간(PM 반영, 없으면 하루 시작)
+    int HdrStart => EffectiveBands.Where(b => b.State == "OPERATING").Select(b => (int?)b.StartMin).Min() ?? _dayStart;
+    int HdrEnd   => EffectiveBands.Where(b => b.State == "OPERATING").Select(b => (int?)b.EndMin).Max()   ?? _dayStart;
+
+    int     OperatingMin => EffectiveBands.Where(b => b.State == "OPERATING").Sum(b => b.EndMin - b.StartMin);
     int     DowntimeMin  => Bands.Where(b => b.State is "PLANNED_DOWNTIME" or "BREAK").Sum(b => b.EndMin - b.StartMin);
     int     WoLoadMin    => _slots.Sum(s => s.EndMin - s.StartMin);
     int     RemainMin    => OperatingMin - WoLoadMin;
     int     Utilization  => OperatingMin > 0 ? Math.Min(999, WoLoadMin * 100 / OperatingMin) : 0;
     decimal PlannedQty   => _slots.Sum(s => s.Qty);
 
-    // 겹침 · 가동밴드 이탈 = 충돌. 저장된 데이터(외부 변경 포함)도 즉시 드러나도록 매 렌더 계산.
+    static bool Overlap(int aStart, int aEnd, int bStart, int bEnd) => aStart < bEnd && bStart < aEnd;
+
+    // WO 충돌: 가동밴드 이탈 · WO끼리 겹침 · PM과 겹침(PM은 WO와 공존 불가). PM↔패턴/PM↔PM 겹침은 허용.
     HashSet<int> ConflictIds
     {
         get
@@ -433,6 +589,7 @@
             for (int i = 0; i < ord.Count; i++)
             {
                 if (!InsideOperating(ord[i].StartMin, ord[i].EndMin)) set.Add(ord[i].WoId);
+                if (_pmBands.Any(p => Overlap(ord[i].StartMin, ord[i].EndMin, p.StartMin, p.EndMin))) set.Add(ord[i].WoId);
                 for (int j = i + 1; j < ord.Count; j++)
                 {
                     if (ord[j].StartMin >= ord[i].EndMin) break;
@@ -442,6 +599,8 @@
             return set;
         }
     }
+
+    int TotalConflicts => ConflictIds.Count;
 
     // 라인 전용 패턴 + 공통(LineID NULL) 패턴. ACTIVE·유효기간 내만.
     IEnumerable<MasterDataRepository.LineTimePatternRow> PatternOptions =>
@@ -472,6 +631,29 @@
         });
     IEnumerable<DropDownItem> WoOptions =>
         AvailableWos.Select(w => new DropDownItem { Value = w.WoId.ToString(), Text = $"{w.WoNumber}  {w.ItemName ?? w.ItemNo}" });
+
+    // 도래 예정 PM(MNT_PMSchedule) 후보 — 명칭·설비·예정일 표시
+    IEnumerable<DropDownItem> PmRefOptions =>
+        _pmCandidates.Select(p => new DropDownItem
+        {
+            Value = p.PmScheduleId.ToString(),
+            Text  = $"[{p.EquipId}] {p.EquipName ?? p.EquipId} · {p.PmType ?? "PM"}"
+                  + (p.NextDueDate.HasValue ? $" · {p.NextDueDate.Value:MM-dd}" : "")
+        });
+
+    // PM 후보(문자열 값) ↔ _pmRefId(int?) 어댑터
+    string _pmRefStr
+    {
+        get => _pmRefId?.ToString() ?? "";
+        set => _pmRefId = int.TryParse(value, out var v) ? v : null;
+    }
+
+    // PM 시작시각 어댑터 — 백킹은 _pmStartTime(TimeOnly)
+    DateTime? PmStartDt
+    {
+        get => DateTime.Today.Add(_pmStartTime.ToTimeSpan());
+        set => _pmStartTime = value.HasValue ? TimeOnly.FromDateTime(value.Value) : _pmStartTime;
+    }
 
     // WO 콤보(문자열 값) ↔ _placeWoId(int) 어댑터
     string _placeWoIdStr
@@ -516,24 +698,37 @@
 
     void LoadData()
     {
-        _err = ""; _slots = new(); _segments = new();
+        _err = ""; _slots = new(); _segments = new(); _pmBands = new();
         _patternId = ""; _savedStatus = null; _publishedAt = null; _publishedBy = null; _dirty = false;
-        if (string.IsNullOrEmpty(_lineId)) { _lineWos = new(); ResetPlaceForm(); return; }
+        if (string.IsNullOrEmpty(_lineId)) { _lineWos = new(); _pmCandidates = new(); ResetPlaceForm(); return; }
         try
         {
             _lineWos = LSB.ListLineWos(_lineId);
+            try { _pmCandidates = LSB.ListDuePmForLine(_lineId); } catch { _pmCandidates = new(); }
             var rows = LSB.GetSchedule(_lineId, _date);
             _patternId   = rows.FirstOrDefault(r => r.PatternId != null)?.PatternId ?? "";
             _savedStatus = rows.FirstOrDefault()?.Status;
             _publishedAt = rows.FirstOrDefault(r => r.PublishedAt.HasValue)?.PublishedAt;
             _publishedBy = rows.FirstOrDefault(r => r.PublishedBy != null)?.PublishedBy;
-            _slots = rows.Where(r => r.WoId.HasValue && r.EndMin > r.StartMin)
+            _slots = rows.Where(r => r.EntryType != "PM" && r.WoId.HasValue && r.EndMin > r.StartMin)
                          .Select(r => new StagedWo(r.WoId!.Value, r.WoNumber ?? $"#{r.WoId}", r.ItemName, r.StartMin, r.EndMin, r.PlannedQty))
                          .ToList();
+            _pmBands = rows.Where(r => r.EntryType == "PM" && r.EndMin > r.StartMin)
+                           .Select(r => new PmBand(r.ScheduleId, r.StartMin, r.EndMin, r.Title, r.RefType, r.RefId, PmRefLabel(r.RefType, r.RefId)))
+                           .ToList();
             if (!string.IsNullOrEmpty(_patternId)) LoadSegments();
             ResetPlaceForm();
         }
         catch (Exception ex) { _err = string.Format(L["PP.LineSchedule.Err.Load"].Value, ex.Message); }
+    }
+
+    // MNT 연계 표시명 — 현재는 MNT_PMSchedule(PMSCH) 후보에서 조회
+    string? PmRefLabel(string? refType, int? refId)
+    {
+        if (refType == "PMSCH" && refId is int id &&
+            _pmCandidates.FirstOrDefault(c => c.PmScheduleId == id) is { } c)
+            return $"[{c.EquipId}] {c.EquipName ?? c.EquipId} · {c.PmType ?? "PM"}";
+        return null;
     }
 
     // 초기화: 적용됐지만 미발행(DRAFT)인 경우, 해당 라인+일자의 저장 스케줄을 삭제해 초기화 (확인창 후)
@@ -614,6 +809,9 @@
         var ord = cand.OrderBy(s => s.StartMin).ToList();
         for (int i = 1; i < ord.Count; i++)
             if (ord[i].StartMin < ord[i - 1].EndMin) { _modalErr = L["PP.LineSchedule.Err.Overlap"]; return; }
+        // WO는 PM 밴드와 겹칠 수 없음
+        if (cand.Any(s => _pmBands.Any(p => Overlap(s.StartMin, s.EndMin, p.StartMin, p.EndMin))))
+        { _modalErr = L["PP.LineSchedule.Err.Overlap"]; return; }
         int load = cand.Sum(s => s.EndMin - s.StartMin);
         if (load > OperatingMin)
         { _modalErr = string.Format(L["PP.LineSchedule.Err.CapOver"].Value, OperatingMin - (load - _placeDurMin), _placeDurMin); return; }
@@ -655,7 +853,7 @@
         _placeQty  = 0;
         int suggest = _slots.Count > 0
             ? _slots.Max(s => s.EndMin)
-            : Bands.FirstOrDefault(b => b.State == "OPERATING")?.StartMin ?? _dayStart;
+            : EffectiveBands.Where(b => b.State == "OPERATING").Select(b => (int?)b.StartMin).Min() ?? _dayStart;
         _placeStartTime = new TimeOnly(Math.Min(23, suggest / 60), suggest % 60);
     }
 
@@ -675,8 +873,10 @@
         // 밴드 내 이미 배치된 슬롯의 끝(가장 늦은) 다음부터, 없으면 밴드 시작부터
         var ends = _slots.Where(s => s.StartMin < band.EndMin && s.EndMin > band.StartMin)
                          .Select(s => s.EndMin).ToList();
-        int start  = ends.Count > 0 ? Math.Min(band.EndMin - 1, Math.Max(band.StartMin, ends.Max())) : band.StartMin;
-        int remain = Math.Max(1, band.EndMin - start);
+        int start = ends.Count > 0 ? Math.Max(band.StartMin, ends.Max()) : band.StartMin;
+        // 남은 시간이 없으면(가득 참) 모달을 열지 않고 안내
+        if (start >= band.EndMin) { ShowMsg(L["PP.LineSchedule.Msg.BandFull"].Value); return; }
+        int remain = band.EndMin - start;
         _editWoId       = null;
         _placeWoId      = 0;
         _placeQty       = 0;
@@ -710,6 +910,93 @@
         if (wo is not null && _placeQty == 0) _placeQty = wo.OpenQty;
     }
 
+    // ── PM(예방보전) 밴드 등록 / 수정 (메모리 스테이징) ────────────────────
+    void OpenPmModal()
+    {
+        if (!Editable || string.IsNullOrEmpty(_patternId)) return;
+        _pmModalErr = ""; _editPmId = null; _pmRefId = null; _pmTitle = "";
+        int suggest = Bands.FirstOrDefault(b => b.State == "OPERATING")?.StartMin ?? _dayStart;
+        _pmStartTime = new TimeOnly(Math.Min(23, suggest / 60), suggest % 60);
+        _pmDurMin = 60;
+        _showPmModal = true;
+    }
+
+    void EditPm(int id)
+    {
+        if (!Editable) return;
+        var p = _pmBands.FirstOrDefault(x => x.Id == id);
+        if (p is null) return;
+        _pmModalErr = "";
+        _editPmId  = id;
+        _pmRefId   = p.RefType == "PMSCH" ? p.RefId : null;
+        _pmTitle   = p.Title ?? "";
+        _pmStartTime = new TimeOnly(p.StartMin / 60, p.StartMin % 60);
+        _pmDurMin  = p.EndMin - p.StartMin;
+        _showPmModal = true;
+    }
+
+    void RemovePm(int id)
+    {
+        if (!Editable) return;
+        var pm = _pmBands.FirstOrDefault(p => p.Id == id);
+        _pmBands.RemoveAll(p => p.Id == id);
+        if (_editPmId == id) ClosePmModal();
+        // 삭제한 PM이 가동시간을 침범했던 경우에만 → PM으로 밀렸던 WO를 복원된 가동 시작부터 재배치
+        if (pm is not null && Bands.Any(b => b.State == "OPERATING" && Overlap(pm.StartMin, pm.EndMin, b.StartMin, b.EndMin)))
+            ReflowWos();
+        _dirty = true;
+    }
+
+    // 도래 예정 PM 선택 시 명칭 자동 제안 (미입력일 때만)
+    void OnPmRefChanged()
+    {
+        if (_pmRefId is int id && _pmCandidates.FirstOrDefault(c => c.PmScheduleId == id) is { } c
+            && string.IsNullOrWhiteSpace(_pmTitle))
+            _pmTitle = $"{c.EquipName ?? c.EquipId} {c.PmType ?? "PM"}";
+    }
+
+    void SavePm()
+    {
+        _pmModalErr = "";
+        if (!Editable) { _pmModalErr = L["PP.LineSchedule.Err.PastDate"]; return; }
+        if (_pmDurMin <= 0) { _pmModalErr = L["PP.LineSchedule.Pm.Err.NoDur"]; return; }
+
+        int startMin = _pmStartTime.Hour * 60 + _pmStartTime.Minute;
+        int endMin   = startMin + _pmDurMin;
+        // PM은 가동시간대 제약·PM/패턴 겹침은 없으나, WO와는 겹칠 수 없음
+        if (_slots.Any(s => Overlap(startMin, endMin, s.StartMin, s.EndMin)))
+        { _pmModalErr = L["PP.LineSchedule.Err.Overlap"]; return; }
+
+        string? refType  = _pmRefId.HasValue ? "PMSCH" : null;
+        string? title    = string.IsNullOrWhiteSpace(_pmTitle) ? null : _pmTitle.Trim();
+        string? refLabel = PmRefLabel(refType, _pmRefId);
+        bool editing = _editPmId.HasValue;
+        if (_editPmId is int eid)
+        {
+            int i = _pmBands.FindIndex(p => p.Id == eid);
+            if (i >= 0) _pmBands[i] = new PmBand(eid, startMin, endMin, title, refType, _pmRefId, refLabel);
+        }
+        else
+        {
+            _pmBands.Add(new PmBand(_pmTempSeq--, startMin, endMin, title, refType, _pmRefId, refLabel));
+        }
+        ShowMsg(editing ? L["PP.LineSchedule.Ok.Updated"].Value : L["PP.LineSchedule.Pm.Ok.Added"].Value);
+        _dirty = true;
+        ClosePmModal();
+    }
+
+    void DeleteEditingPm() { if (_editPmId is int id) RemovePm(id); ClosePmModal(); }
+
+    void ClosePmModal() { _showPmModal = false; _pmModalErr = ""; _editPmId = null; }
+
+    void OnPmModalBgDown() => _pmModalBgDown = true;
+    void OnPmModalBgClick() { if (_pmModalBgDown) ClosePmModal(); _pmModalBgDown = false; }
+
+    void PmRowRender(RowRenderEventArgs<PmBand> args)
+    {
+        if (Editable) args.Attributes["class"] = "ames-row-link";
+    }
+
     // ── 적용 / 발행 ───────────────────────────────────────────────────────
     void Apply()
     {
@@ -719,7 +1006,8 @@
         try
         {
             LSB.SaveSchedule(_lineId, _date, _patternId,
-                _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty)), _actor);
+                _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty)),
+                _pmBands.Select(p => (p.StartMin, p.EndMin, p.Title, p.RefType, p.RefId)), _actor);
             ShowMsg(L["PP.LineSchedule.Ok.Applied"].Value);
             LoadData();
         }
@@ -735,7 +1023,8 @@
         try
         {
             LSB.SaveSchedule(_lineId, _date, _patternId,
-                _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty)), _actor);
+                _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty)),
+                _pmBands.Select(p => (p.StartMin, p.EndMin, p.Title, p.RefType, p.RefId)), _actor);
             LSB.PublishSchedule(_lineId, _date, _actor);
             ShowMsg(L["PP.LineSchedule.Ok.Published"].Value);
             LoadData();
@@ -754,8 +1043,37 @@
         return i / 9 < 26 ? $"{(char)('A' + i / 9)}{i % 9 + 1}" : $"#{i + 1}";
     }
 
+    // PM 반영된 유효 가동밴드 기준 — WO 는 PM 으로 잘린 가동 구간 안에만 배치 가능
     bool InsideOperating(int startMin, int endMin) =>
-        Bands.Any(b => b.State == "OPERATING" && b.StartMin <= startMin && b.EndMin >= endMin);
+        EffectiveBands.Any(b => b.State == "OPERATING" && b.StartMin <= startMin && b.EndMin >= endMin);
+
+    // 축(하루 시작 기준) 상대 위치 — 야간 교대 래핑 반영, 정렬용
+    int AxisPos(int m) { int r = m - _dayStart; if (r < 0) r += 1440; return r; }
+
+    // PM 삭제 등으로 가동시간이 복원되면 WO들을 (등록/시각 순서 유지) 가동 시작부터 연속 재배치.
+    // 유효 가동구간을 순서대로 채우며, 현재 구간에 안 들어가면 다음 가동구간으로 넘어감.
+    void ReflowWos()
+    {
+        var ops = EffectiveBands.Where(b => b.State == "OPERATING")
+                                .OrderBy(b => AxisPos(b.StartMin)).ToList();
+        if (ops.Count == 0 || _slots.Count == 0) return;
+        var ordered = _slots.OrderBy(s => AxisPos(s.StartMin)).ToList();
+        var result  = new List<StagedWo>();
+        int oi = 0, cursor = ops[0].StartMin;
+        foreach (var w in ordered)
+        {
+            int dur = w.EndMin - w.StartMin;
+            while (oi < ops.Count && cursor + dur > ops[oi].EndMin)
+            {
+                oi++;
+                if (oi < ops.Count) cursor = ops[oi].StartMin;
+            }
+            if (oi >= ops.Count) { result.Add(w); continue; }   // 남은 가동구간 없음 → 원위치(충돌 표시)
+            result.Add(w with { StartMin = cursor, EndMin = cursor + dur });
+            cursor += dur;
+        }
+        _slots = result;
+    }
 
     // Rp/LineTimePattern.razor 와 동일 색상 팔레트(코드별)
     string SegColor(string state) => state switch

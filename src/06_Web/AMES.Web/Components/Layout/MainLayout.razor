@@ -34,6 +34,7 @@
         var p = Nav.ToBaseRelativePath(Nav.Uri).ToLowerInvariant();
         if (p == "md"  || p.StartsWith("md/"))  return "ames-sec-md";
         if (p == "sys" || p.StartsWith("sys/")) return "ames-sec-sys";
+        if (p == "pp"  || p.StartsWith("pp/"))  return "ames-sec-pp";
         return "";
     }
 }

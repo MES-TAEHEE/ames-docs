@@ -5244,4 +5244,43 @@
   <data name="Col.CauseNameEn" xml:space="preserve">
     <value>Cause Name (EN)</value>
   </data>
+  <data name="PP.LineSchedule.Lgd.Pm" xml:space="preserve">
+    <value>Maintenance (PM)</value>
+  </data>
+  <data name="PP.LineSchedule.Btn.AddPm" xml:space="preserve">
+    <value>Add PM</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.AddTitle" xml:space="preserve">
+    <value>Add Maintenance (PM) Band</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.EditTitle" xml:space="preserve">
+    <value>Edit Maintenance (PM) Band</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.Ref" xml:space="preserve">
+    <value>Linked PM (due)</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.RefPh" xml:space="preserve">
+    <value>Select MNT preventive maintenance (optional)</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.Name" xml:space="preserve">
+    <value>Band Name</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.NamePh" xml:space="preserve">
+    <value>e.g. Mold check, Routine inspection</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.ListTitle" xml:space="preserve">
+    <value>Maintenance (PM) Bands</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.Empty" xml:space="preserve">
+    <value>No PM bands registered</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.Ok.Added" xml:space="preserve">
+    <value>PM band added</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.Err.NoDur" xml:space="preserve">
+    <value>Enter a duration</value>
+  </data>
+  <data name="PP.LineSchedule.Msg.BandFull" xml:space="preserve">
+    <value>This operating band is already full.</value>
+  </data>
 </root>
