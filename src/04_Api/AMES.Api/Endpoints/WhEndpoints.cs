@@ -869,7 +869,7 @@ public static class WhEndpoints
         cmd.Parameters.Add("@SearchText", SqlDbType.NVarChar, 120).Value =
             string.IsNullOrWhiteSpace(search) ? DBNull.Value : search.Trim();
         cmd.Parameters.Add("@DateFrom", SqlDbType.Date).Value =
-            dateFrom.HasValue ? dateFrom.Value.Date : DateTime.Today.AddDays(-7);
+            dateFrom.HasValue ? dateFrom.Value.Date : DateTime.Today.AddDays(-30);
         cmd.Parameters.Add("@DateTo", SqlDbType.Date).Value =
             dateTo.HasValue ? dateTo.Value.Date : DateTime.Today;
 

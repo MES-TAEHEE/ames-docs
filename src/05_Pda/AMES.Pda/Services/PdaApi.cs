@@ -744,7 +744,7 @@ public sealed class PdaApi
     {
         var rows = new List<WarehouseTransactionRow>();
         var searchFilter = string.IsNullOrWhiteSpace(search) ? null : $"%{EscapeLikePattern(search.Trim())}%";
-        var fromFilter = dateFrom?.Date ?? DateTime.Today.AddDays(-7);
+        var fromFilter = dateFrom?.Date ?? DateTime.Today.AddDays(-30);
         var toFilter = dateTo?.Date ?? DateTime.Today;
 
         await using var conn = _db.CreateConnection();

@@ -159,13 +159,23 @@
             <div class="wh08-filter-date">
                 <div class="pda-fld">
                     <label>DATE FROM</label>
-                    <input class="pda-input wh08-date-input" type="text" inputmode="numeric"
-                           value="@_dateFrom" @onchange="OnDateFromChanged" placeholder="YYYY-MM-DD" />
+                    <RadzenDatePicker TValue="DateTime?"
+                                      @bind-Value="_dateFrom"
+                                      DateFormat="yyyy-MM-dd"
+                                      AllowClear="false"
+                                      Max="@DateTo"
+                                      Placeholder="YYYY-MM-DD"
+                                      class="wh08-date-picker" />
                 </div>
                 <div class="pda-fld">
                     <label>DATE TO</label>
-                    <input class="pda-input wh08-date-input" type="text" inputmode="numeric"
-                           value="@_dateTo" @onchange="OnDateToChanged" placeholder="YYYY-MM-DD" />
+                    <RadzenDatePicker TValue="DateTime?"
+                                      @bind-Value="_dateTo"
+                                      DateFormat="yyyy-MM-dd"
+                                      AllowClear="false"
+                                      Min="@DateFrom"
+                                      Placeholder="YYYY-MM-DD"
+                                      class="wh08-date-picker" />
                 </div>
             </div>
 
@@ -178,11 +188,11 @@
 </div>
 
 @code {
-    private static string DefaultDateFrom => DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd");
-    private static string DefaultDateTo => DateTime.Today.ToString("yyyy-MM-dd");
+    private static DateTime DefaultDateFrom => DateTime.Today.AddDays(-30);
+    private static DateTime DefaultDateTo => DateTime.Today;
 
-    private string _dateFrom = DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd");
-    private string _dateTo = DateTime.Today.ToString("yyyy-MM-dd");
+    private DateTime? _dateFrom = DefaultDateFrom;
+    private DateTime? _dateTo = DefaultDateTo;
     private string _search = "";
     private string _worker = "";
     private string _reason = "";
@@ -196,16 +206,16 @@
     private DotNetObjectReference<Wh08TransactionHistory>? _scannerRef;
 
     private string LastUpdatedText => _lastUpdated?.ToString("HH:mm:ss") ?? "-";
-    private DateTime? DateFrom => TryDate(_dateFrom);
-    private DateTime? DateTo => TryDate(_dateTo);
-    private string RangeLabel => $"{Text(_dateFrom)} - {Text(_dateTo)}";
+    private DateTime? DateFrom => _dateFrom?.Date;
+    private DateTime? DateTo => _dateTo?.Date;
+    private string RangeLabel => $"{DateText(_dateFrom)} - {DateText(_dateTo)}";
     private IEnumerable<PdaApi.WarehouseTransactionRow> ConditionRows => _rows.Where(MatchesConditions).ToList();
     private IEnumerable<PdaApi.WarehouseTransactionRow> FilteredRows => ConditionRows.Where(MatchesType).ToList();
     private string FilterButtonClass => $"wh08-filter-toggle {(HasAdvancedFilters ? "on" : "")}";
     private bool HasAdvancedFilters => !string.IsNullOrWhiteSpace(_worker)
                                        || !string.IsNullOrWhiteSpace(_reason)
-                                       || !string.Equals(_dateFrom, DefaultDateFrom, StringComparison.Ordinal)
-                                       || !string.Equals(_dateTo, DefaultDateTo, StringComparison.Ordinal);
+                                       || DateFrom != DefaultDateFrom.Date
+                                       || DateTo != DefaultDateTo.Date;
     private int InCount => ConditionRows.Count(r => IsDirection(r, "IN"));
     private int OutCount => ConditionRows.Count(r => IsDirection(r, "OUT"));
     private int AdjCount => ConditionRows.Count(r => IsDirection(r, "ADJ"));
@@ -285,16 +295,6 @@
         }
 
         _scannerRef?.Dispose();
-    }
-
-    private void OnDateFromChanged(ChangeEventArgs e)
-    {
-        _dateFrom = Convert.ToString(e.Value) ?? "";
-    }
-
-    private void OnDateToChanged(ChangeEventArgs e)
-    {
-        _dateTo = Convert.ToString(e.Value) ?? "";
     }
 
     private async Task ResetDateRange()
@@ -424,14 +424,9 @@
     }
 
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
-    private static DateTime? TryDate(string? value)
-        => DateTime.TryParseExact(value, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out var parsed)
-            ? parsed.Date
-            : null;
+    private static string DateText(DateTime? value) => value?.ToString("yyyy-MM-dd") ?? "-";
 
-    private bool HasInvalidDate
-        => (!string.IsNullOrWhiteSpace(_dateFrom) && !DateFrom.HasValue)
-           || (!string.IsNullOrWhiteSpace(_dateTo) && !DateTo.HasValue);
+    private bool HasInvalidDate => false;
 
     private static string QtyText(decimal? value) => value?.ToString("N0") ?? "-";
     private static string SignedQtyText(decimal? value)
