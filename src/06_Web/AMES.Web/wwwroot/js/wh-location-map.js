@@ -8,6 +8,8 @@ window.whLocationMap = (() => {
     const h = {};
 
     const minSizePct = 8;
+    const minPlanWidthPx = 420;
+    const minPlanHeightPx = 320;
 
     function clamp(value, min, max) {
         return Math.max(min, Math.min(max, value));
@@ -38,6 +40,7 @@ window.whLocationMap = (() => {
     function clearActiveClasses() {
         if (!_active?.block) return;
         _active.block.classList.remove('dragging', 'resizing');
+        _plan?.classList.remove('resizing-plan');
     }
 
     function cancel() {
@@ -48,11 +51,51 @@ window.whLocationMap = (() => {
 
     function onPointerDown(e) {
         if (e.button !== undefined && e.button !== 0) return;
+
+        const planHandle = e.target.closest('.wh-map-resize-handle');
+        if (_plan && planHandle && _plan.contains(planHandle)) {
+            const rect = _plan.getBoundingClientRect();
+            _active = {
+                mode: 'plan-resize',
+                block: _plan,
+                startWidth: rect.width,
+                startHeight: rect.height,
+                startClientX: e.clientX,
+                startClientY: e.clientY,
+                moved: false,
+            };
+
+            _plan.classList.add('resizing-plan');
+            document.body.classList.add('wh-map-editing');
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+
+        if (e.target.closest('.wh-map-delete-btn')) {
+            return;
+        }
+
         const block = e.target.closest('.wh-area-block');
         if (!_plan || !block || !_plan.contains(block)) return;
 
         const areaCode = block.dataset.areaCode;
         if (!areaCode) return;
+
+        const editable = _plan.classList.contains('wh-map-editable');
+        if (!editable) {
+            _active = {
+                mode: 'select',
+                block,
+                areaCode,
+                startClientX: e.clientX,
+                startClientY: e.clientY,
+                moved: false,
+            };
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
 
         const mode = e.target.closest('.wh-area-resize-handle') ? 'resize' : 'drag';
         const start = readPct(block);
@@ -88,6 +131,21 @@ window.whLocationMap = (() => {
             _active.moved = true;
         }
 
+        if (_active.mode === 'select') {
+            e.preventDefault();
+            return;
+        }
+
+        if (_active.mode === 'plan-resize') {
+            const bounds = placedBounds();
+            const nextWidth = Math.max(_active.startWidth + dxPx, bounds.minWidth, minPlanWidthPx);
+            const nextHeight = Math.max(_active.startHeight + dyPx, bounds.minHeight, minPlanHeightPx);
+            _plan.style.width = Math.round(nextWidth) + 'px';
+            _plan.style.height = Math.round(nextHeight) + 'px';
+            e.preventDefault();
+            return;
+        }
+
         const dx = (dxPx / planRect.width) * 100;
         const dy = (dyPx / planRect.height) * 100;
         const next = { ..._active.start };
@@ -108,6 +166,39 @@ window.whLocationMap = (() => {
         if (!_active) return;
 
         const finished = _active;
+
+        if (finished.mode === 'select') {
+            const changed = finished.moved;
+            cancel();
+
+            if (!changed) {
+                _ref?.invokeMethodAsync('OnAreaSelectedFromMap', finished.areaCode);
+            }
+
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+
+        if (finished.mode === 'plan-resize') {
+            const changed = finished.moved;
+            const width = _plan?.getBoundingClientRect().width ?? finished.startWidth;
+            const height = _plan?.getBoundingClientRect().height ?? finished.startHeight;
+
+            cancel();
+
+            if (changed) {
+                _ref?.invokeMethodAsync(
+                    'OnMapCanvasChanged',
+                    Math.round(width),
+                    Math.round(height));
+            }
+
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+
         const finalPct = readPct(finished.block);
         const changed = finished.moved;
 
@@ -129,6 +220,24 @@ window.whLocationMap = (() => {
 
         e.preventDefault();
         e.stopPropagation();
+    }
+
+    function placedBounds() {
+        if (!_plan) {
+            return { minWidth: minPlanWidthPx, minHeight: minPlanHeightPx };
+        }
+
+        let maxRight = 0;
+        let maxBottom = 0;
+        _plan.querySelectorAll('.wh-area-block').forEach(block => {
+            maxRight = Math.max(maxRight, block.offsetLeft + block.offsetWidth + 24);
+            maxBottom = Math.max(maxBottom, block.offsetTop + block.offsetHeight + 24);
+        });
+
+        return {
+            minWidth: Math.max(minPlanWidthPx, maxRight),
+            minHeight: Math.max(minPlanHeightPx, maxBottom),
+        };
     }
 
     function onClick(e) {
