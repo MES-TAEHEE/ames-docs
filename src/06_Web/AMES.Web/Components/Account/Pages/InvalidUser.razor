@@ -1,7 +1,10 @@
 ﻿@page "/Account/InvalidUser"
 
-<PageTitle>Invalid user</PageTitle>
+<PageTitle>Invalid user · A-MES</PageTitle>
 
-<h3>Invalid user</h3>
-
-<StatusMessage />
+<AuthCard Sub="INVALID USER">
+    <div class="ames-auth-error">✕ 유효하지 않은 사용자입니다.</div>
+    <div class="ames-auth-meta">
+        <a href="/Account/Login">← Back to sign in</a>
+    </div>
+</AuthCard>

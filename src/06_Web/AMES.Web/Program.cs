@@ -54,10 +54,11 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
     {
-        // Office workers create accounts via admin — no confirm-email flow.
-        options.SignIn.RequireConfirmedAccount   = false;
+        // 자기가입은 이메일 자기인증 필수. (관리자 생성 계정은 EmailConfirmed=true 로 생성해 영향 없음)
+        options.SignIn.RequireConfirmedAccount   = true;
         options.Password.RequireDigit            = true;
-        options.Password.RequiredLength          = 6;
+        // 최소 길이는 SYS_Config(PASSWORD_MIN_LEN) 기준 ConfigPasswordValidator 가 동적 관장 → 내장 게이트는 완화
+        options.Password.RequiredLength          = 1;
         options.Password.RequireNonAlphanumeric  = false;
         options.Password.RequireUppercase        = false;
         options.Password.RequireLowercase        = false;
@@ -67,7 +68,14 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
-builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+// 비밀번호 최소 길이 = SYS_Config(PASSWORD_MIN_LEN) 동적 검증 (앱 재시작 없이 Config 저장 시 반영)
+builder.Services.AddSingleton<AMES.Web.Services.AppSecurityState>();
+builder.Services.AddScoped<IPasswordValidator<ApplicationUser>, AMES.Web.Services.ConfigPasswordValidator>();
+// 이메일 발신: Smtp:Host 설정이 있으면 실제 SMTP 발송, 없으면 NoOp(개발환경은 Register 화면에 인증링크 노출)
+if (!string.IsNullOrWhiteSpace(builder.Configuration["Smtp:Host"]))
+    builder.Services.AddSingleton<IEmailSender<ApplicationUser>, AMES.Web.Services.SmtpEmailSender>();
+else
+    builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<PermissionService>();
 builder.Services.AddHttpClient();
@@ -86,6 +94,19 @@ builder.Services.AddSwaggerGen(c =>
 // ── Shared data layer (reused from POP) ─────────────────────────────────
 var factory = new AmesConnectionFactory(connectionString);
 builder.Services.AddSingleton(factory);
+
+// 세션(인증 쿠키) 타임아웃 = SYS_Config.SESSION_TIMEOUT_MIN(분), 슬라이딩 만료.
+// AppSessionState 캐시에서 읽어 옵션 구성 → Config 저장 시 옵션캐시 무효화로 앱 재시작 없이 반영.
+// 자동 새로고침 화면은 /keep-alive 핑으로 세션 유지.
+builder.Services.AddSingleton<AMES.Web.Services.AppSessionState>();
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IConfigureNamedOptions<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>>(sp =>
+    new Microsoft.Extensions.Options.ConfigureNamedOptions<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>(
+        IdentityConstants.ApplicationScheme,
+        o =>
+        {
+            o.ExpireTimeSpan    = TimeSpan.FromMinutes(sp.GetRequiredService<AMES.Web.Services.AppSessionState>().Minutes);
+            o.SlidingExpiration = true;
+        }));
 builder.Services.AddSingleton(sp => new WorkOrderRepository(factory));
 builder.Services.AddSingleton(sp => new EquipmentRepository(factory));
 builder.Services.AddSingleton(sp => new MasterDataRepository(factory));
@@ -102,6 +123,8 @@ builder.Services.AddSingleton(sp => new AuthRepository(factory));
 builder.Services.AddSingleton(sp => new LineScheduleRepository(factory));
 builder.Services.AddSingleton(sp => new OeeRepository(factory));
 builder.Services.AddSingleton<ServerMonitorService>();
+// LANGUAGE_DEFAULT(SYS_Config) 캐시 — 컬처 강제/언어 스위처 판정
+builder.Services.AddSingleton<AMES.Web.Services.AppLanguageState>();
 
 var app = builder.Build();
 
@@ -202,6 +225,8 @@ var locOptions = new RequestLocalizationOptions
 };
 locOptions.AddSupportedCultures("ko-KR", "en-US");
 locOptions.AddSupportedUICultures("ko", "en");
+// LANGUAGE_DEFAULT 비활성 시 en-US 강제(쿠키보다 우선) — 맨 앞에 삽입
+locOptions.RequestCultureProviders.Insert(0, new AMES.Web.Services.LanguageDefaultCultureProvider());
 app.UseRequestLocalization(locOptions);
 
 app.UseStaticFiles();
@@ -219,6 +244,11 @@ app.MapGet("/api/health", () => Results.Ok(new { status = "ok", at = DateTime.Ut
     .WithTags("System")
     .WithSummary("헬스 체크")
     .WithDescription("서버 상태를 반환합니다.");
+
+// 자동 새로고침 화면의 세션 유지용 핑 — 인증 요청이 슬라이딩 만료를 갱신
+app.MapGet("/keep-alive", () => Results.NoContent())
+    .RequireAuthorization()
+    .ExcludeFromDescription();
 
 app.MapGet("/culture/set", (string culture, string redirectUri, HttpContext ctx) =>
 {

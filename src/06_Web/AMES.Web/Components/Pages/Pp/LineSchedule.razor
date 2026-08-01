@@ -481,6 +481,7 @@
 
     TimeSpan  _dbOffset  = TimeSpan.Zero;      // DB 서버시각 − 클라이언트시각 (Now line 앵커, 1회 조회)
     System.Threading.Timer? _nowTimer;         // 이후 진행은 DB 재조회 없이 클라이언트 시계로 갱신
+    bool      _disposed;                        // dispose 직후 타이머 콜백 방지
     DateTime  ServerNow  => DateTime.Now + _dbOffset;
     string?   _savedStatus;
     DateTime? _publishedAt;
@@ -691,10 +692,15 @@
         _date = ServerNow.Date;
         if (_lines.Count > 0) { _lineId = _lines[0].LineID; LoadData(); }
         // 30초마다 재렌더 → Now line이 DB 재조회 없이 흐르게 (모달 편집 중에는 건너뜀)
-        _nowTimer = new System.Threading.Timer(_ => { if (!_showPlaceModal) InvokeAsync(StateHasChanged); }, null, 30_000, 30_000);
+        _nowTimer = new System.Threading.Timer(async _ =>
+        {
+            if (_disposed || _showPlaceModal) return;
+            try { await InvokeAsync(StateHasChanged); }
+            catch { /* 화면 이탈로 teardown된 경우 무시 */ }
+        }, null, 30_000, 30_000);
     }
 
-    public void Dispose() => _nowTimer?.Dispose();
+    public void Dispose() { _disposed = true; _nowTimer?.Dispose(); }
 
     void LoadData()
     {

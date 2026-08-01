@@ -1,2 +1,5 @@
 ﻿@using AMES.Web.Components.Account.Shared
 @attribute [ExcludeFromInteractiveRouting]
+@* 익명 인증 페이지 기본 레이아웃 = EmptyLayout (MainLayout의 InteractiveServer 컴포넌트는 정적 SSR과 충돌).
+   Manage 하위는 Manage/_Imports 의 ManageLayout 이 재정의. *@
+@layout AMES.Web.Components.Layout.EmptyLayout

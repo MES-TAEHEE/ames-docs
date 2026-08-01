@@ -12,6 +12,8 @@
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
 @inject SysRepository Sys
+@inject IJSRuntime JS
+@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResources> L
 
 @implements IDisposable
@@ -217,6 +219,7 @@
     ServerMonitorService.ServerSnapshot? _srv;
     PeriodicTimer? _timer;
     CancellationTokenSource? _cts;
+    bool _disposed;   // Dispose 이후 await 재개 시 disposed 객체 접근 방지
 
     protected override async Task OnInitializedAsync()
     {
@@ -249,10 +252,13 @@
     {
         if (!firstRender) return;
         _cts = new CancellationTokenSource();
+        var token = _cts.Token;          // await 전에 토큰 캡처(이후 _cts가 dispose돼도 안전)
         await RefreshServerAsync();
+        if (_disposed) return;           // await 중 화면 이탈 시 중단
         StateHasChanged();
-        _timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
-        _ = RunTimerAsync(_cts.Token);
+        int refreshSec = Sys.GetConfigInt("DASH_REFRESH_SEC", 5);   // SYS_Config 기준(폴백 5초)
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(refreshSec));
+        _ = RunTimerAsync(token);
     }
 
     async Task RunTimerAsync(CancellationToken ct)
@@ -263,9 +269,17 @@
             {
                 await RefreshServerAsync();
                 await InvokeAsync(StateHasChanged);
+                await KeepAliveAsync();
             }
         }
         catch (OperationCanceledException) { }
+    }
+
+    // 자동 새로고침 중 세션 유지: 인증 HTTP 핑으로 슬라이딩 만료 갱신
+    async Task KeepAliveAsync()
+    {
+        try { await JS.InvokeVoidAsync("fetch", Nav.ToAbsoluteUri("keep-alive").ToString()); }
+        catch { /* 회로 끊김/이탈 시 무시 */ }
     }
 
     async Task RefreshServerAsync()
@@ -321,7 +335,8 @@
 
     public void Dispose()
     {
-        _cts?.Cancel();
+        _disposed = true;
+        try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
         _timer?.Dispose();
         _cts?.Dispose();
     }

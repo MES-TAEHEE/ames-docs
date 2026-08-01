@@ -4,8 +4,11 @@
 @implements IDisposable
 @inject AMES.Data.Repositories.PpRepository           Pp
 @inject AMES.Data.Repositories.OeeRepository          Oee
+@inject AMES.Data.Repositories.SysRepository          Sys
 @inject AuthenticationStateProvider AuthPrvd
 @inject AMES.Web.Services.PermissionService PermSvc
+@inject IJSRuntime JS
+@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["PP.DowntimeMonitor.Title"] · AMES</PageTitle>
@@ -258,6 +261,7 @@
     const int _pageSize = 20;
     Dictionary<string, LineVm> _vms        = [];
     Timer?    _timer;
+    bool      _disposed;   // dispose 직후 타이머 콜백 방지
     DateTime  _lastRefresh  = DateTime.Now;
     int       _noReasonCount;
 
@@ -284,8 +288,16 @@
         Refresh();
         ReloadDtl();
 
-        _timer = new Timer(_ => InvokeAsync(() => { Refresh(); StateHasChanged(); }),
-                           null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
+        int refreshSec = Sys.GetConfigInt("DASH_REFRESH_SEC", 60);   // SYS_Config 기준(폴백 60초)
+        _timer = new Timer(async _ =>
+        {
+            if (_disposed) return;
+            try { await InvokeAsync(() => { if (_disposed) return; Refresh(); StateHasChanged(); }); }
+            catch { /* 화면 이탈로 teardown된 경우 무시 */ }
+            // 자동 새로고침 중 세션 유지: 인증 HTTP 핑으로 슬라이딩 만료 갱신
+            try { if (!_disposed) await JS.InvokeVoidAsync("fetch", Nav.ToAbsoluteUri("keep-alive").ToString()); }
+            catch { }
+        }, null, TimeSpan.FromSeconds(refreshSec), TimeSpan.FromSeconds(refreshSec));
     }
 
     void BuildVms()
@@ -408,5 +420,5 @@
         _     => L["PP.DowntimeMonitor.Dur.Now"].Value
     };
 
-    public void Dispose() => _timer?.Dispose();
+    public void Dispose() { _disposed = true; _timer?.Dispose(); }
 }

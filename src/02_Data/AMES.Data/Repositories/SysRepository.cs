@@ -690,6 +690,24 @@ public sealed class SysRepository
             ("@IsActive", isActive));
     }
 
+    // 단일 설정키의 값·활성여부 (컬처 결정/언어 스위처 판정용). 없으면 null.
+    public (string? Value, bool IsActive)? GetConfigFlag(string key)
+    {
+        const string sql = "SELECT TOP 1 ConfigValue, ISNULL(IsActive,1) AS IsActive FROM dbo.SYS_Config WHERE ConfigKey = @Key;";
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Key", SqlDbType.VarChar, 60).Value = key;
+        using var rdr = cmd.ExecuteReader();
+        return rdr.Read() ? (rdr["ConfigValue"] as string, (bool)rdr["IsActive"]) : null;
+    }
+
+    // 설정값을 양의 정수로 조회. 없거나 파싱 실패 시 fallback (예: DASH_REFRESH_SEC).
+    public int GetConfigInt(string key, int fallback)
+    {
+        var row = GetConfigFlag(key);
+        return row is { } r && int.TryParse(r.Value, out var v) && v > 0 ? v : fallback;
+    }
+
     public void SetRolePermission(string roleId, string roleName,
         string moduleCode, string? processCode, string screenCode,
         string? permLevel, string modifiedBy)
@@ -800,6 +818,21 @@ public sealed class SysRepository
             ("@Plant",     (object?)plantCode         ?? DBNull.Value),
             ("@Shift",     (object?)defaultShift      ?? DBNull.Value),
             ("@Lines",     (object?)assignedLinesJson ?? DBNull.Value),
+            ("@CreatedBy", createdBy));
+    }
+
+    // 자기가입(Register)용 — 관리자 승인 전 승인대기(PENDING) 프로필. 승인 시 관리자가 ACTIVE로 변경.
+    public void CreatePendingProfile(string userId, string? employeeName, string createdBy)
+    {
+        const string sql = """
+            INSERT INTO dbo.SYS_UserProfile
+                (UserID, EmployeeName, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
+            VALUES
+                (@UserID, @EmpName, 'PENDING', 0, @CreatedBy, SYSDATETIME())
+            """;
+        Exec(sql,
+            ("@UserID",    userId),
+            ("@EmpName",   (object?)employeeName ?? DBNull.Value),
             ("@CreatedBy", createdBy));
     }
 

@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject NavigationManager Nav
 @inject PageHeaderState Header
+@inject AMES.Web.Services.AppLanguageState Lang
 
 <header class="ames-topbar">
     <div class="ames-brand">
@@ -27,7 +28,11 @@
 
     <div class="ames-topbar-spacer"></div>
 
-    <CultureSwitcher />
+    @* LANGUAGE_DEFAULT 비활성 시 언어 선택 숨김(앱은 en-US 강제) *@
+    @if (Lang.SwitcherVisible)
+    {
+        <CultureSwitcher />
+    }
 
     <AuthorizeView>
         <Authorized>
