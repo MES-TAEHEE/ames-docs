@@ -206,19 +206,147 @@ public sealed class LineScheduleRepository
     }
 
     // 발행: (라인, 일자)의 모든 행을 PUBLISHED + 발행정보 기록. (상태값 = 공통코드 SCHEDULE_STATUS)
+    //   + 해당 일자의 분단위 가동/구간유형을 PP_ProductionCalendarOverride 에 스냅샷(확정)한다.
     public void PublishSchedule(string lineId, DateTime date, string actor)
     {
         using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand("""
-            UPDATE dbo.PP_LineSchedule
-            SET    Status='PUBLISHED', PublishedAt=SYSDATETIME(), PublishedBy=@By,
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            using (var cmd = new SqlCommand("""
+                UPDATE dbo.PP_LineSchedule
+                SET    Status='PUBLISHED', PublishedAt=SYSDATETIME(), PublishedBy=@By,
+                       ModifiedBy=@By, ModifiedTS=SYSDATETIME()
+                WHERE  LineID=@LineId AND ScheduleDate=@Date;
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@LineId", SqlDbType.VarChar,  20).Value = lineId;
+                cmd.Parameters.Add("@Date",   SqlDbType.Date).Value         = date.Date;
+                cmd.Parameters.Add("@By",     SqlDbType.NVarChar, 450).Value = actor;
+                cmd.ExecuteNonQuery();
+            }
+
+            SnapshotCalendarOverride(conn, tx, lineId, date, actor);
+            tx.Commit();
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    // Publish 스냅샷 — 패턴 세그먼트(MD_LineTimeSegment) + PM 밴드(EntryType='PM')를 분단위로 합성해
+    // OperatingFlag/SegmentFlag(CHAR 1440) 를 만들고 PP_ProductionCalendarOverride 에 upsert.
+    // 상태→(op,seg) 문자 인코딩은 공통코드 SEGMENT_STATE.Attribute1 'op:seg' 를 그대로 사용(하드코딩 없음).
+    static void SnapshotCalendarOverride(SqlConnection conn, SqlTransaction tx,
+                                         string lineId, DateTime date, string actor)
+    {
+        // 1) SEGMENT_STATE 코드 → (op, seg) 문자 맵
+        var stateMap = new Dictionary<string, (char Op, char Seg)>(StringComparer.OrdinalIgnoreCase);
+        using (var cmd = new SqlCommand(
+            "SELECT CodeValue, Attribute1 FROM dbo.MD_CodeItem WHERE GroupCode='SEGMENT_STATE';", conn, tx))
+        using (var rdr = cmd.ExecuteReader())
+            while (rdr.Read())
+            {
+                if (rdr["CodeValue"] as string is not { } cv) continue;
+                char op = '0', sg = '0';
+                if (rdr["Attribute1"] as string is { Length: > 0 } a1)
+                {
+                    var parts = a1.Split(':');
+                    if (parts.Length > 0 && parts[0].Length > 0) op = parts[0][0];
+                    if (parts.Length > 1 && parts[1].Length > 0) sg = parts[1][0];
+                }
+                stateMap[cv] = (op, sg);
+            }
+        var pm = stateMap.TryGetValue("PM", out var pmv) ? pmv : ('0', '9');
+
+        var opArr = new char[1440]; var sgArr = new char[1440];
+        for (int i = 0; i < 1440; i++) { opArr[i] = '0'; sgArr[i] = '0'; }
+
+        // 2) 발행 대상의 PatternID / DayType (스케줄 행에 보관된 값)
+        string? patternId = null, dayType = null;
+        using (var cmd = new SqlCommand("""
+            SELECT TOP 1 s.PatternID, p.DayType
+            FROM   dbo.PP_LineSchedule s
+            LEFT JOIN dbo.MD_LineTimePattern p ON p.PatternID = s.PatternID
+            WHERE  s.LineID=@LineId AND s.ScheduleDate=@Date AND s.PatternID IS NOT NULL;
+            """, conn, tx))
+        {
+            cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
+            cmd.Parameters.Add("@Date",   SqlDbType.Date).Value        = date.Date;
+            using var rdr = cmd.ExecuteReader();
+            if (rdr.Read()) { patternId = rdr["PatternID"] as string; dayType = rdr["DayType"] as string; }
+        }
+
+        // 3) 패턴 세그먼트를 분단위로 칠함
+        if (!string.IsNullOrEmpty(patternId))
+            using (var cmd = new SqlCommand(
+                "SELECT StartMin, EndMin, SegmentState FROM dbo.MD_LineTimeSegment WHERE PatternID=@P;", conn, tx))
+            {
+                cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = patternId;
+                using var rdr = cmd.ExecuteReader();
+                while (rdr.Read())
+                {
+                    if (rdr["StartMin"] is not (short or int) || rdr["EndMin"] is not (short or int)) continue;
+                    int s = Convert.ToInt32(rdr["StartMin"]), e = Convert.ToInt32(rdr["EndMin"]);
+                    var st = rdr["SegmentState"] as string ?? "";
+                    var (op, sg) = stateMap.TryGetValue(st, out var v) ? v : ('0', '0');
+                    Paint(opArr, sgArr, s, e, op, sg);
+                }
+            }
+
+        // 4) PM 밴드로 덮어씀 (가동시간 침범분 = 예방보전)
+        using (var cmd = new SqlCommand("""
+            SELECT StartMin, EndMin FROM dbo.PP_LineSchedule
+            WHERE  LineID=@LineId AND ScheduleDate=@Date AND EntryType='PM'
+              AND  StartMin IS NOT NULL AND EndMin IS NOT NULL;
+            """, conn, tx))
+        {
+            cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
+            cmd.Parameters.Add("@Date",   SqlDbType.Date).Value        = date.Date;
+            using var rdr = cmd.ExecuteReader();
+            while (rdr.Read())
+                Paint(opArr, sgArr, Convert.ToInt32(rdr["StartMin"]), Convert.ToInt32(rdr["EndMin"]), pm.Item1, pm.Item2);
+        }
+
+        string opStr = new string(opArr), sgStr = new string(sgArr);
+        int totalOp = 0;
+        for (int i = 0; i < 1440; i++) if (opArr[i] == '1') totalOp++;
+        // MD_LineTimePattern.TotalPlannedDownMin 과 동일 정의: 비가동 = 전체(1440) − 가동 (IDLE 포함).
+        // 이래야 PM(가동 침범)이 늘어난 만큼 비가동도 정확히 증가한다.
+        int totalDown = 1440 - totalOp;
+
+        // 5) PP_ProductionCalendarOverride upsert (키: OverrideDate + LineID)
+        using (var cmd = new SqlCommand("""
+            UPDATE dbo.PP_ProductionCalendarOverride
+            SET    DayType=@DayType, PatternID=@Pattern,
+                   TotalOperatingMin=@TOp, TotalPlannedDownMin=@TDown,
+                   OperatingFlag=@OpF, SegmentFlag=@SgF,
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
-            WHERE  LineID=@LineId AND ScheduleDate=@Date;
-            """, conn);
-        cmd.Parameters.Add("@LineId", SqlDbType.VarChar,  20).Value = lineId;
-        cmd.Parameters.Add("@Date",   SqlDbType.Date).Value         = date.Date;
-        cmd.Parameters.Add("@By",     SqlDbType.NVarChar, 450).Value = actor;
-        cmd.ExecuteNonQuery();
+            WHERE  OverrideDate=@Date AND LineID=@LineId;
+            IF @@ROWCOUNT = 0
+                INSERT INTO dbo.PP_ProductionCalendarOverride
+                       (OverrideDate, LineID, DayType, PatternID,
+                        TotalOperatingMin, TotalPlannedDownMin, OperatingFlag, SegmentFlag,
+                        CreatedBy, CreatedTS)
+                VALUES (@Date, @LineId, @DayType, @Pattern,
+                        @TOp, @TDown, @OpF, @SgF, @By, SYSDATETIME());
+            """, conn, tx))
+        {
+            cmd.Parameters.Add("@Date",    SqlDbType.Date).Value          = date.Date;
+            cmd.Parameters.Add("@LineId",  SqlDbType.VarChar, 20).Value   = lineId;
+            cmd.Parameters.Add("@DayType", SqlDbType.VarChar, 20).Value   = (object?)dayType ?? DBNull.Value;
+            cmd.Parameters.Add("@Pattern", SqlDbType.VarChar, 20).Value   = (object?)patternId ?? DBNull.Value;
+            cmd.Parameters.Add("@TOp",     SqlDbType.Int).Value           = totalOp;
+            cmd.Parameters.Add("@TDown",   SqlDbType.Int).Value           = totalDown;
+            cmd.Parameters.Add("@OpF",     SqlDbType.Char, 1440).Value    = opStr;
+            cmd.Parameters.Add("@SgF",     SqlDbType.Char, 1440).Value    = sgStr;
+            cmd.Parameters.Add("@By",      SqlDbType.NVarChar, 450).Value = actor;
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    static void Paint(char[] opArr, char[] sgArr, int start, int end, char op, char sg)
+    {
+        int s = Math.Max(0, start), e = Math.Min(1440, end);
+        for (int m = s; m < e; m++) { opArr[m] = op; sgArr[m] = sg; }
     }
 
     // 초기화: (라인, 일자)의 미발행(DRAFT) 스케줄 행 삭제. 발행된 행은 보존.

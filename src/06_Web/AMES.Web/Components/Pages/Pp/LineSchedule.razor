@@ -79,12 +79,6 @@
             }
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
-            @if (_publishedAt.HasValue)
-            {
-                <span class="dim" style="font-size:11px;">
-                    @_publishedAt.Value.ToString("MM-dd HH:mm") @(_publishedBy is null ? "" : $"· {_publishedBy}")
-                </span>
-            }
             @StatusPill()
             @if (_canEdit)
             {
@@ -96,6 +90,15 @@
             }
         </div>
     </div>
+    @* 발행 정보: 버튼 줄이 넘치지 않도록 헤더 아래 오른쪽 끝 별도 줄로 표시 (발행됐을 때만) *@
+    @if (_publishedAt.HasValue)
+    {
+        <div style="display:flex;justify-content:flex-end;padding:0 14px 8px;">
+            <span class="dim" style="font-size:11px;">
+                @_publishedAt.Value.ToString("MM-dd HH:mm") @(_publishedBy is null ? "" : $"· {_publishedBy}")
+            </span>
+        </div>
+    }
 
     @if (string.IsNullOrEmpty(_lineId))
     {
@@ -120,7 +123,7 @@
                     <span class="pp-lgd"><i style="background:@(SegColor(st.CodeValue ?? ""))cc;"></i>@MasterDataRepository.LocalName(st)</span>
                 }
                 <span class="pp-lgd"><i style="background:rgba(168,85,247,.7);"></i>@L["PP.LineSchedule.Lgd.Wo"]</span>
-                <span class="pp-lgd"><i style="background:rgba(251,146,60,.7);"></i>@L["PP.LineSchedule.Lgd.Pm"]</span>
+                @* PM(예방보전)은 공통코드 SEGMENT_STATE 에 포함되어 위 루프에서 자동 표시됨 *@
             </div>
         </div>
 
@@ -444,7 +447,7 @@
             if (rhi <= rlo) continue;
             var capPm = pm; int wMin = pm.EndMin - pm.StartMin;
             string cls = "pp-gantt-pm" + (_editPmId == pm.Id ? " sel" : "");
-            string label = string.IsNullOrWhiteSpace(pm.Title) ? L["PP.LineSchedule.Lgd.Pm"].Value : pm.Title!;
+            string label = string.IsNullOrWhiteSpace(pm.Title) ? PmName : pm.Title!;
             string range = $"{MinToTime(pm.StartMin)}~{MinToTime(pm.EndMin)}";
             // PM은 스케줄 행 전체 높이 차지(기존 밴드/WO 위 반투명 오버레이). CSS .pp-gantt-pm 기본 top/height 사용.
             __b.OpenElement(100, "div"); __b.AddAttribute(101, "class", cls); __b.AddAttribute(102, "style", $"left:{LeftPct(rlo)};width:{WidthPct(rlo, rhi)};padding:0;");
@@ -1088,9 +1091,16 @@
         "PLANNED_DOWNTIME" => "#fca5a5",
         "BREAK"            => "#fde68a",
         "INSPECT"          => "#22d3ee",
+        "PM"               => "#fdba74",   // 예방보전 — 주황(.pp-gantt-pm 오버레이와 동일 계열)
         "IDLE"             => "#cbd5e1",
         _                  => "#93c5fd"
     };
+
+    // 예방보전 표시명 — 공통코드 SEGMENT_STATE 'PM' 의 다국어 명칭(없으면 리소스 폴백)
+    string PmName =>
+        _segStates.FirstOrDefault(c => c.CodeValue == "PM") is { } c
+            ? MasterDataRepository.LocalName(c)
+            : L["PP.LineSchedule.Lgd.Pm"].Value;
 
     // 밴드 배경/테두리(반투명) — 8자리 HEX 알파(#RRGGBBAA)
     string SegBandStyle(string state)

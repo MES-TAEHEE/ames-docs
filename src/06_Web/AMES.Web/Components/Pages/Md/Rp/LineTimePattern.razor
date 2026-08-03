@@ -67,7 +67,7 @@
             @foreach (var st in _segStates)
             {
                 <span style="display:inline-flex;align-items:center;gap:4px;">
-                    <span class="pill @PillClass(st.CodeValue)" style="font-size:.72em;">@Abbr(st.CodeValue)</span>
+                    <span class="pill" style="@SegPillStyle(st.CodeValue)font-size:.72em;">@Abbr(st.CodeValue)</span>
                     <span class="dim">@MasterDataRepository.LocalName(st)</span>
                 </span>
             }
@@ -101,7 +101,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r"><span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(r.Status ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Title="@L["MD.LineTimePattern.Col.Schedule"]" Width="240px" Sortable="false">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Title="@L["MD.LineTimePattern.Col.Schedule"]" Width="280px" Sortable="false">
                 <Template Context="r">
                     @{ var segs = _allSegList.Where(s => s.PatternID == r.PatternID).ToList(); }
                     @if (segs.Count == 0)
@@ -114,7 +114,7 @@
                             @foreach (var st in _segStates)
                             {
                                 var mins = segs.Where(s => s.SegmentState == st.CodeValue).Sum(s => (s.EndMin ?? 0) - (s.StartMin ?? 0));
-                                <span class="pill @PillClass(st.CodeValue)" style="font-size:.75em;">@Abbr(st.CodeValue) @(mins)@L["MD.LineTimePattern.Lbl.MinShort"]</span>
+                                <span class="pill" style="@SegPillStyle(st.CodeValue)font-size:.75em;">@Abbr(st.CodeValue) @(mins)@L["MD.LineTimePattern.Lbl.MinShort"]</span>
                             }
                         </div>
                     }
@@ -158,7 +158,7 @@
                 @foreach (var st in _segStates.Where(s => s.UseFlag))
                 {
                     var cv = st.CodeValue ?? "";
-                    <RadzenButton Text="@MasterDataRepository.LocalName(st)" Size="ButtonSize.Small" class="ames-rz-btn" ButtonStyle="@(_segState == cv ? PaletteStyle(cv) : ButtonStyle.Light)" Click="@(() => _segState = cv)" />
+                    <RadzenButton Text="@MasterDataRepository.LocalName(st)" Size="ButtonSize.Small" class="ames-rz-btn" ButtonStyle="ButtonStyle.Light" Style="@SegBtnStyle(cv, _segState == cv)" Click="@(() => _segState = cv)" />
                 }
                 <span style="flex:1;"></span>
                 @if (_lastPaint is not null)
@@ -466,6 +466,7 @@
         "PLANNED_DOWNTIME" => "#fca5a5",
         "BREAK"            => "#fde68a",
         "INSPECT"          => "#22d3ee",
+        "PM"               => "#fdba74",   // 예방보전 — 주황
         "IDLE"             => "#cbd5e1",
         _                  => "#93c5fd"
     };
@@ -823,14 +824,18 @@
     static string MinToTime(int m) => $"{m / 60:00}:{m % 60:00}";
 
     string SegClass(string? st) => st switch {
-        "OPERATING"          => "pp-gantt-band pp-gantt-band--work",
+        "OPERATING"        => "pp-gantt-band pp-gantt-band--work",
         "PLANNED_DOWNTIME" => "pp-gantt-band pp-gantt-band--down",
+        "BREAK"            => "pp-gantt-band pp-gantt-band--break",
+        "MEAL"             => "pp-gantt-band pp-gantt-band--meal",
         "INSPECT"          => "pp-gantt-band pp-gantt-band--inspect",
+        "PM"               => "pp-gantt-band pp-gantt-band--pm",
         "IDLE"             => "pp-gantt-band pp-gantt-band--idle",
         _                  => "pp-gantt-band pp-gantt-band--break"
     };
-    ButtonStyle PaletteStyle(string? st) => st switch { "OPERATING" => ButtonStyle.Success, "PLANNED_DOWNTIME" => ButtonStyle.Danger, "IDLE" => ButtonStyle.Secondary, _ => ButtonStyle.Warning };
-    string PillClass(string? st) => st switch { "OPERATING" => "ok", "PLANNED_DOWNTIME" => "bad", "BREAK" => "warn", "IDLE" => "idle", _ => "info" };
+    // 세그먼트 상태 색은 밴드/범례와 동일하게 SegColor 팔레트로 통일 (pill·모달 팔레트 버튼)
+    string SegPillStyle(string? st) { var c = SegColor(st); return $"background:{c}22;color:{c};border:1px solid {c}55;"; }
+    string SegBtnStyle(string? st, bool sel) { var c = SegColor(st); return sel ? $"background:{c};border:1px solid {c};color:#0b1220;" : $"background:{c}22;border:1px solid {c}55;color:{c};"; }
     // 코드값 → 2글자 축약어 (여러 단어면 각 첫 글자, 단일 단어면 앞 2글자)
     static string Abbr(string? code)
     {

@@ -1365,11 +1365,14 @@ select.ames-rz-input {
     transition: filter .15s;
 }
 .pp-gantt-band:hover { filter: brightness(1.35); }
-.pp-gantt-band--work  { background: rgba(34,197,94,.18);  border: 1px solid rgba(34,197,94,.5);  color: #86efac; }
-.pp-gantt-band--down  { background: rgba(239,68,68,.15);  border: 1px solid rgba(239,68,68,.45); color: #fca5a5; }
-.pp-gantt-band--break { background: rgba(251,191,36,.14); border: 1px solid rgba(251,191,36,.45);color: #fde68a; }
-.pp-gantt-band--idle  { background: rgba(148,163,184,.12); border: 1px dashed rgba(148,163,184,.4); color: #cbd5e1; }
-.pp-gantt-band--inspect { background: rgba(34,211,238,.18); border: 1px solid rgba(34,211,238,.55); color: #67e8f9; }
+/* 밴드 색 = Pp/LineSchedule.razor 의 SegColor 팔레트와 동일 (bg=color+22, border=color+88, text=color) */
+.pp-gantt-band--work  { background: #86efac22; border: 1px solid #86efac88; color: #86efac; }
+.pp-gantt-band--down  { background: #fca5a522; border: 1px solid #fca5a588; color: #fca5a5; }
+.pp-gantt-band--break { background: #fde68a22; border: 1px solid #fde68a88; color: #fde68a; }
+.pp-gantt-band--meal  { background: #93c5fd22; border: 1px solid #93c5fd88; color: #93c5fd; }
+.pp-gantt-band--idle  { background: #cbd5e122; border: 1px dashed #cbd5e188; color: #cbd5e1; }
+.pp-gantt-band--inspect { background: #22d3ee22; border: 1px solid #22d3ee88; color: #22d3ee; }
+.pp-gantt-band--pm    { background: #fdba7422; border: 1px solid #fdba7488; color: #fdba74; }
 /* WO slots */
 .pp-gantt-wo {
     position: absolute; top: 4px; height: calc(100% - 8px);

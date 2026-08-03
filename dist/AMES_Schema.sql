@@ -6,6 +6,9 @@
 -- Engine: SQL Server 2022/2025
 -- Pattern: Stored Procedure + ADO.NET (per VOL01 Tech Stack)
 -- FK constraints: not applied (commented as -- FK -> Target.Col)
+-- ★ Collation: 이 스크립트는 DB 생성/COLLATE 지정을 하지 않고 USE [AMES_DEV] 로 시작한다.
+--   컬럼에 COLLATE 명시가 없어 DB 기본 콜레이션을 상속하므로, 반드시 먼저
+--   dist\create_database.sql 로 AMES_DEV 를 COLLATE Korean_Wansung_CI_AS 로 생성할 것.
 -- ════════════════════════════════════════════════════════════════════════
 
 USE [AMES_DEV];
@@ -1478,6 +1481,10 @@ CREATE TABLE dbo.PP_ProductionCalendarOverride (
   [LineID]                    VARCHAR(20)              NULL,  -- FK -> MD_Line.LineID
   [DayType]                   VARCHAR(20)              NULL,
   [PatternID]                 VARCHAR(20)              NULL,  -- FK -> MD_LineTimePattern.PatternID
+  [TotalOperatingMin]         INT                      NULL,  -- 발행 스냅샷: 가동 분 합계 (MD_LineTimePattern 준용)
+  [TotalPlannedDownMin]       INT                      NULL,  -- 발행 스냅샷: 계획비가동 분 합계
+  [OperatingFlag]             CHAR(1440)           NOT NULL CONSTRAINT DF_PP_ProductionCalendarOverride_OperatingFlag DEFAULT REPLICATE('0',1440),  -- 분단위 가동플래그 (SEGMENT_STATE.Attribute1 ':' 앞) · Publish 시점 확정
+  [SegmentFlag]               CHAR(1440)           NOT NULL CONSTRAINT DF_PP_ProductionCalendarOverride_SegmentFlag   DEFAULT REPLICATE('0',1440),  -- 분단위 구간유형 (SEGMENT_STATE.Attribute1 ':' 뒤) · PM 포함
   [CapacityFactor]            DECIMAL(5,2)             NULL,
   [Reason]                    NVARCHAR(200)            NULL,
   [ApprovedBy]                NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id

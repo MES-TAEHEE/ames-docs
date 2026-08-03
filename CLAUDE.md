@@ -7,7 +7,7 @@
 공장 터미널(POP), 핸디 스캐너(PDA), 사무실 포탈(Web), REST API로 구성된 다중 클라이언트 시스템.
 
 - **회사**: Seyon (한국 자동차 부품사)
-- **DB**: `AMES_DEV` @ SQL Server 2022 (`localhost`, mixed-mode auth, user `ames_app`)
+- **DB**: `AMES_DEV` @ SQL Server 2022 (`localhost`, mixed-mode auth, user `ames_app`) — **콜레이션 `Korean_Wansung_CI_AS`**
 - **솔루션**: `src/AMES.sln` (Visual Studio 2022)
 
 ---
@@ -68,7 +68,7 @@ dotnet run --project src\06_Web\AMES.Web\AMES.Web.csproj
 dotnet run --project src\07_Etc\AMES.InjAgent\AMES.InjAgent.csproj
 ```
 
-**DB 전제조건**: `dist/AMES_Schema.sql` (149개 테이블)을 `AMES_DEV`에 적용 후 실행.
+**DB 전제조건**: ① `dist/create_database.sql`로 `AMES_DEV`를 **`COLLATE Korean_Wansung_CI_AS`**로 생성 → ② `dist/AMES_Schema.sql`(149개 테이블) 적용 후 실행. (스키마는 컬럼 COLLATE 미지정이라 DB 기본 콜레이션을 상속 — DB를 Korean으로 먼저 만들어야 함)
 
 ---
 
