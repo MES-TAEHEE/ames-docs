@@ -1,0 +1,28 @@
+@namespace AMES.Pop.Pages.InjPopups
+
+@*  INJ 통합 화면 공용 팝업 셸 — 백드롭 + 타이틀바 + 본문.
+    HelpModal 과 동일한 오버레이 패턴이지만 콘텐츠 폭/제목을 파라미터로 받는다. *@
+
+<div class="pmod-backdrop" @onclick="HandleBackdrop">
+    <div class="pmod @CssClass" style="@(Width is null ? null : $"width:{Width};")" @onclick:stopPropagation="true">
+        <div class="pmod-tbar">
+            <div class="pmod-title">@Title</div>
+            <button class="pmod-x" @onclick="Close" title="Close">✕</button>
+        </div>
+        <div class="pmod-bd">
+            @ChildContent
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string           Title           { get; set; } = "";
+    [Parameter] public string?          Width           { get; set; }
+    [Parameter] public string           CssClass        { get; set; } = "";
+    [Parameter] public bool             CloseOnBackdrop { get; set; } = true;
+    [Parameter] public RenderFragment?  ChildContent    { get; set; }
+    [Parameter] public EventCallback    OnClose         { get; set; }
+
+    private Task Close() => OnClose.InvokeAsync();
+    private Task HandleBackdrop() => CloseOnBackdrop ? Close() : Task.CompletedTask;
+}

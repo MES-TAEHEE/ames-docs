@@ -78,17 +78,20 @@ dotnet run --project src\07_Etc\AMES.InjAgent\AMES.InjAgent.csproj
 
 터미널은 `appsettings.json`의 `PopTerminal:ModuleCode` (또는 `LineId` 접두사)로 모듈 자동 분기.
 
-#### INJ (사출 공정) — 8화면
+#### INJ (사출 공정) — 통합 메인 + 팝업 구조
 | 화면 ID | 파일 | 설명 |
 |---------|------|------|
 | Login | `Pages/Login.razor` | PIN 인증, 사원 선택 |
 | INJ-02 | `Pages/Inj02Dashboard.razor` | 라인 대시보드, 시간대별 생산량 |
-| INJ-03 | `Pages/Inj03WoConfirm.razor` | 작업지시 확인/접수 |
-| INJ-04 | `Pages/Inj04ProductionEntry.razor` | 생산 실적 확정 (바코드 스캔 / 수동 입력) |
-| INJ-05 | `Pages/Inj05Defect.razor` | 불량 입력 |
-| INJ-06 | `Pages/Inj06MoldChange.razor` | 금형 교체 |
-| INJ-07 | `Pages/Inj07ProdStatus.razor` | 생산 현황 |
-| INJ-08 | `Pages/Inj08Andon.razor` | 안돈 (라인 정지 요청) |
+| INJ-MAIN | `Pages/InjMain.razor` | **통합 작업 화면** (기본 진입점) — WO 그리드 + 스캔 실적확정 + 하단 기능 버튼 |
+| (팝업) | `Pages/InjPopups/WoConfirmPopup.razor` | 작업지시 접수 (구 INJ-03) |
+| (팝업) | `Pages/InjPopups/ManualEntryPopup.razor` | 수동 실적 입력 (구 INJ-04 키패드) |
+| (팝업) | `Pages/InjPopups/DefectPopup.razor` | 불량 입력 (구 INJ-05) |
+| (팝업) | `Pages/InjPopups/MoldChangePopup.razor` | 금형 교체 (구 INJ-06) |
+| (팝업) | `Pages/InjPopups/ProdStatusPopup.razor` | 생산 현황 (구 INJ-07) |
+| (팝업) | `Pages/InjPopups/AndonPopup.razor` | 안돈 — 전체 화면 오버레이 (구 INJ-08) |
+
+구 단독 화면(`Inj03WoConfirm` ~ `Inj08Andon`)은 라우트(`/inj03`~`/inj08`)와 함께 유지되나 네비게이션에서 제외됨 (deprecated). 팝업 공통 셸은 `Pages/InjPopups/PopupShell.razor`.
 
 #### IMG (원단/래핑 공정) — 6화면
 | 화면 ID | 파일 | 설명 |

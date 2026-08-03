@@ -18,8 +18,8 @@
             <span class="pop-tbar-id">INJ-002 · @Session?.TerminalId · @Session?.LineId</span>
         </div>
         <div class="pop-tbar-r">
-            <span class="@(_eqClass)">● @_eqStatus</span>
-            <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
+            <span class="@(_eqClass)">● @PopLang.EqStatus(_eqStatus)</span>
+            <span>@Session?.EmployeeName · @PopLang.Shift(Session?.ShiftCode ?? "")</span>
             <span>@_now.ToString("yyyy-MM-dd HH:mm")</span>
             <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.Inj02Help))" />
         </div>
@@ -30,10 +30,10 @@
         @* ── row 1: WO progress + Equipment status ─────────────────────── *@
         <div class="dash-top">
             <div class="pop-card">
-                <div class="pop-card-h">▼ WO PROGRESS · @(_wo?.WoNumber ?? "(no active WO)") · @(_wo?.ItemName ?? "—")</div>
+                <div class="pop-card-h">▼ @T("WoProgress") · @(_wo?.WoNumber ?? T("NoActiveWo")) · @(_wo?.ItemName ?? "—")</div>
                 <div class="wo-progress">
                     <span class="wo-progress-v">@( _wo?.CompletedQty.ToString("0") ?? "—" )</span>
-                    <span class="wo-progress-t">/ @( _wo?.OrderQty.ToString("0") ?? "—" ) EA</span>
+                    <span class="wo-progress-t">/ @( _wo?.OrderQty.ToString("0") ?? "—" ) @T("Ea")</span>
                     <span class="wo-progress-pct">@_woPct%</span>
                 </div>
                 <div class="dash-progress-bar">
@@ -41,30 +41,30 @@
                 </div>
                 <div class="wo-info">
                     <div>
-                        <div class="wo-info-l">D-DAY</div>
+                        <div class="wo-info-l">@T("DDay")</div>
                         <div class="wo-info-v @_ddayClass">@_ddayText</div>
                     </div>
                     <div>
-                        <div class="wo-info-l">CYCLE TIME</div>
+                        <div class="wo-info-l">@T("CycleTime")</div>
                         <div class="wo-info-v">@_cycleText</div>
                     </div>
                     <div>
-                        <div class="wo-info-l">ROUTING</div>
+                        <div class="wo-info-l">@T("Routing")</div>
                         <div class="wo-info-v">A (INJ→IMG→QC→FG)</div>
                     </div>
                     <div>
-                        <div class="wo-info-l">NEXT STOP</div>
+                        <div class="wo-info-l">@T("NextStop")</div>
                         <div class="wo-info-v">IMG-L1</div>
                     </div>
                 </div>
             </div>
 
             <div class="pop-card">
-                <div class="pop-card-h">▼ EQUIPMENT STATUS · @(_eq?.EquipName ?? "—")</div>
+                <div class="pop-card-h">▼ @T("EquipmentStatus") · @(_eq?.EquipName ?? "—")</div>
                 <div class="eq-status">
                     <div class="eq-led @_ledClass"></div>
-                    <div class="eq-status-t @_ledClass">@_eqStatus</div>
-                    <div class="eq-status-s">Uptime @_uptimeText</div>
+                    <div class="eq-status-t @_ledClass">@PopLang.EqStatus(_eqStatus)</div>
+                    <div class="eq-status-s">@T("Uptime") @_uptimeText</div>
                 </div>
             </div>
         </div>
@@ -73,24 +73,24 @@
         <div class="dash-mid">
             <div class="pop-card gauge">
                 <div class="gauge-v @_defectClass">@_defectText</div>
-                <div class="gauge-l">Defect Rate</div>
-                <div class="gauge-sub">불량률 (한계 5%)</div>
+                <div class="gauge-l">@T("DefectRate")</div>
+                <div class="gauge-sub">@T("Limit5")</div>
             </div>
             <div class="pop-card gauge">
                 <div class="gauge-v @_moldClass">@_moldText</div>
-                <div class="gauge-l">Mold Shot Count</div>
+                <div class="gauge-l">@T("MoldShotCount")</div>
                 <div class="gauge-sub">@_moldSub</div>
             </div>
             <div class="pop-card gauge">
                 <div class="gauge-v @(_ngCount > 0 ? "alert" : _rawCount > 0 ? "warn" : "ok")">@_todayShots</div>
-                <div class="gauge-l">Today Shots (PLC)</div>
-                <div class="gauge-sub">미확정 @_rawCount · NG차단 @_ngCount</div>
+                <div class="gauge-l">@T("TodayShotsPlc")</div>
+                <div class="gauge-sub">@T("Raw2") @_rawCount · @T("Ng2") @_ngCount</div>
             </div>
         </div>
 
         @* ── row 3: hourly chart ─────────────────────────────────────── *@
         <div class="pop-card hourly-chart" style="flex:1;">
-            <div class="pop-card-h">▼ HOURLY OUTPUT · 시간별 생산 (Target 18/h)</div>
+            <div class="pop-card-h">▼ @T("HourlyOutputTarget18H")</div>
             <div class="hc-bars">
                 @for (var h = 6; h <= 17; h++)
                 {
@@ -112,20 +112,17 @@
     </div>
 
     @* ── bottom nav ────────────────────────────────────────────────── *@
-    <div class="pop-nav" style="--nav-cols:8;">
-        <button class="nav-btn active" @onclick="@(() => Go("inj02"))">INJ-002<small>Dashboard</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("inj03"))">INJ-003<small>WO Confirm</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("inj04"))">INJ-004<small>Prod Entry</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("inj05"))">INJ-005<small>Defect</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("inj06"))">INJ-006<small>Mold Change</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("inj07"))">INJ-007<small>Prod Status</small></button>
-        <button class="nav-btn" @onclick="@(() => Go("inj08"))">INJ-008<small>Andon</small></button>
-        <button class="nav-btn muted" @onclick="Logout">LOGOUT<small>End shift</small></button>
+    <div class="pop-nav" style="--nav-cols:3;">
+        <button class="nav-btn active" @onclick="@(() => Go("inj02"))">@T("Dashboard")</button>
+        <button class="nav-btn primary" @onclick="@(() => Go("injmain"))">@T("MainScreen")</button>
+        <button class="nav-btn muted" @onclick="Logout">@T("Logout")</button>
     </div>
 </div>
 
 @code {
     [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private static string T(string key, params object?[] args) => PopLang.T(key, args);
 
     // mutable display state
     private WorkOrderDto? _wo;
@@ -178,7 +175,7 @@
                 _ddayClass  = (_wo.DaysToDue ?? 99) <= 1 ? "warn" : "";
                 _cycleText  = _wo.RecipeId is null
                               ? "—"
-                              : $"{PopServices.Master.GetRecipeCycleTime(_wo.RecipeId)?.ToString() ?? "—"} sec / shot";
+                              : $"{PopServices.Master.GetRecipeCycleTime(_wo.RecipeId)?.ToString() ?? "—"} {T("SecShot")}";
 
                 if (!string.IsNullOrEmpty(_wo.MoldId))
                 {
@@ -235,7 +232,7 @@
     }
 
     private void Go(string route) => Nav.NavigateTo("/" + route);
-    private async Task Logout() { if (!await Confirmer.AskAsync("Log out?", "End your shift and return to the login screen?", "Log out", "Stay", destructive: true)) return; Nav.NavigateTo("/login", replace: true); State.SignOut(); }
+    private async Task Logout() { if (!await Confirmer.AskAsync(T("LogoutConfirm"), T("EndYourShiftAndReturnToTheLoginScreen"), T("LogOut2"), T("Stay"), destructive: true)) return; Nav.NavigateTo("/login", replace: true); State.SignOut(); }
 
     public void Dispose()
     {

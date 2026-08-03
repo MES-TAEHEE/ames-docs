@@ -1,0 +1,164 @@
+@namespace AMES.Pop.Pages.InjPopups
+@using AMES.Pop.Common
+
+@*  INJ-005 불량 등록 — 팝업판. 불량코드 선택 + 수량 키패드,
+    로봇 NG 차단 LOT 확정 처리 포함. 불량률 5% 도달 시 자동 안돈(BR-INJ-003). *@
+
+<PopupShell Title='@($"❌ {T("DefectRegister")}")' Width="1200px" CssClass="pmod-tall" OnClose="OnClose">
+    <div class="def-rate" style="margin-bottom:10px;">
+        <div>
+            <div class="def-rate-l">▼ @T("CurrentDefectRateWoCumulativeLimit5")</div>
+            <div class="def-rate-s">@T("Good") @_good · @T("Defect") @_defect → @_rateText</div>
+        </div>
+        <div class="def-rate-v @_rateClass">@_rateText</div>
+    </div>
+
+    @if (_ngLots.Count > 0)
+    {
+        <div class="pop-card" style="margin-bottom:10px;">
+            <div class="pop-card-h">▼ @T("RobotNgBlockedLotsSelectThenConfirmWithA")</div>
+            <div style="overflow-y:auto; max-height:120px;">
+                <table style="width:100%; border-collapse:collapse; font-size:15px;">
+                    <tbody>
+                    @foreach (var lot in _ngLots)
+                    {
+                        var isSel = _ngSelected?.LotId == lot.LotId;
+                        <tr style="border-top:1px solid rgba(255,255,255,.08); cursor:pointer;
+                                   @(isSel ? "background:rgba(255,180,0,.15);" : "")"
+                            @onclick="@(() => _ngSelected = isSel ? null : lot)">
+                            <td style="padding:6px 4px; font-family:Consolas,monospace;">@lot.LotCode @(isSel ? "✓" : "")</td>
+                            <td style="padding:6px 4px;">@lot.CavityPos</td>
+                            <td style="padding:6px 4px;">@lot.ItemNo</td>
+                            <td style="padding:6px 4px; color:var(--warn);">@(lot.InspectionSummary ?? "NG")</td>
+                            <td style="padding:6px 4px;">@lot.CreatedTS.ToString("HH:mm:ss")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <div class="pmod-def-grid">
+        <div class="def-grid" style="overflow-y:auto;">
+            @foreach (var c in _codes)
+            {
+                var isSel = _selected?.DefectCode == c.DefectCode;
+                <div class="def-btn @(isSel ? "on" : "")" @onclick="@(() => _selected = c)">
+                    <div class="def-btn-code">@c.DefectCode @(isSel ? "✓" : "")</div>
+                    <div class="def-btn-name">@(PopLang.IsKo ? c.DefectName : c.DefectNameEn)</div>
+                </div>
+            }
+        </div>
+        <div class="def-numpad-card">
+            <div class="def-info-h">@T("DefectQty") @(_ngSelected is not null ? T("NgLotFixedAt1") : "")</div>
+            <div class="def-disp">@(_ngSelected is not null ? "1" : _buf.Length == 0 ? "0" : _buf.ToString())</div>
+            <div class="keypad" style="margin-top:8px;">
+                @foreach (var d in new[] { "1","2","3","4","5","6","7","8","9" })
+                {
+                    var k = d;
+                    <div class="kp" @onclick="@(() => Press(k))">@k</div>
+                }
+                <div class="kp del" @onclick="Backspace">←</div>
+                <div class="kp"     @onclick="@(() => Press("0"))">0</div>
+                <div class="kp ok"  @onclick="Confirm">✓</div>
+            </div>
+        </div>
+    </div>
+</PopupShell>
+
+@code {
+    [Parameter] public PopSessionDto? Session       { get; set; }
+    [Parameter] public WorkOrderDto?  Wo            { get; set; }
+    [Parameter] public int            LastResultId  { get; set; }
+    [Parameter] public EventCallback  OnClose       { get; set; }
+    [Parameter] public EventCallback  OnChanged     { get; set; }
+    [Parameter] public EventCallback<int> OnAndonRaised { get; set; }
+
+    private static string T(string key, params object?[] args) => PopLang.T(key, args);
+
+    private List<DefectCodeDto> _codes = new();
+    private DefectCodeDto?      _selected;
+    private List<InjLotDto>     _ngLots = new();
+    private InjLotDto?          _ngSelected;
+    private readonly System.Text.StringBuilder _buf = new();
+    private int _good, _defect;
+    private string _rateText = "0.0%", _rateClass = "ok";
+
+    protected override void OnInitialized()
+    {
+        if (Session is null) return;
+        _codes = PopServices.Defects.ListForProcess("INJ");
+        try { _ngLots = PopServices.InjLots.GetNgBlocked(Session.LineId); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DefectPopup ngLots] {ex.Message}"); }
+        RefreshRate();
+    }
+
+    private void RefreshRate()
+    {
+        if (Wo is null) return;
+        var (g, d) = PopServices.Defects.GetWoTotals(Wo.WoId);
+        _good = g; _defect = d;
+        var pct = (g + d) == 0 ? 0 : d * 100.0 / (g + d);
+        _rateText  = $"{pct:0.0}%";
+        _rateClass = pct >= 5 ? "alert" : pct >= 4 ? "warn" : "ok";
+    }
+
+    private void Press(string d)
+    {
+        if (_buf.Length >= 2) return;
+        if (_buf.Length == 0 && d == "0") return;
+        _buf.Append(d);
+    }
+    private void Backspace() { if (_buf.Length > 0) _buf.Length--; }
+
+    private async Task Confirm()
+    {
+        if (Wo is null || _selected is null || Session is null) return;
+
+        // 로봇 NG LOT 불량확정: 수량 1 고정, LOT 연결 + 상태 마감 (제약사항은 Inj05Defect.razor 원본 주석 참조)
+        if (_ngSelected is not null)
+        {
+            try
+            {
+                PopServices.Defects.RecordDefect(0, Wo.WoId, _ngSelected.LotId,
+                    _selected.DefectCode, 1, Session.OperatorId, Session.EmployeeNo,
+                    note: $"ROBOT NG: {_ngSelected.InspectionSummary}");
+                PopServices.InjLots.MarkNgConfirmed(_ngSelected.LotId, Session.OperatorId);
+                _ngLots.RemoveAll(x => x.LotId == _ngSelected.LotId);
+                _ngSelected = null;
+                _buf.Clear();
+                RefreshRate();
+                await OnChanged.InvokeAsync();
+                if (await RaiseAndonIfNeeded()) return;
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DefectPopup NG Confirm] {ex.Message}"); }
+            return;
+        }
+
+        if (!int.TryParse(_buf.ToString(), out var qty) || qty <= 0) return;
+        try
+        {
+            PopServices.Defects.RecordDefect(LastResultId, Wo.WoId, lotId: null,
+                _selected.DefectCode, qty, Session.OperatorId, Session.EmployeeNo);
+            _buf.Clear();
+            RefreshRate();
+            await OnChanged.InvokeAsync();
+            if (await RaiseAndonIfNeeded()) return;
+            await OnClose.InvokeAsync();
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DefectPopup Confirm] {ex.Message}"); }
+    }
+
+    private async Task<bool> RaiseAndonIfNeeded()
+    {
+        if (Wo is null || Session is null) return false;
+        var (g, d) = PopServices.Defects.GetWoTotals(Wo.WoId);
+        var pct = (g + d) == 0 ? 0 : d * 100.0 / (g + d);
+        if (pct < 5) return false;
+        var andonId = PopServices.Andon.Raise(Session.LineId, equipId: null,
+            triggerSource: "INJ-005", ruleId: "BR-INJ-003", severity: "HIGH", Session.EmployeeNo);
+        await OnAndonRaised.InvokeAsync(andonId);
+        return true;
+    }
+}

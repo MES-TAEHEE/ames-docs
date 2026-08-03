@@ -1,0 +1,71 @@
+@namespace AMES.Pop.Pages.InjPopups
+@using AMES.Pop.Common
+@inject ToastService Toasts
+
+@*  INJ-004 수동 실적 입력 — 팝업판. PLC 미연결 라인용 키패드 입력. *@
+
+<PopupShell Title='@($"⌨ {T("ManualEntryGoodQtyPerCycleEa")}")' Width="560px" OnClose="OnClose">
+    @if (Wo is null)
+    {
+        <div class="pmod-empty">@T("NoActiveWorkOrderAcceptAWoFirst")</div>
+    }
+    else
+    {
+        <div class="entry-h">▼ @T("CurrentWo")</div>
+        <div class="entry-wo">@Wo.WoNumber</div>
+        <div class="entry-name" style="margin-bottom:10px;">@Wo.ItemName</div>
+
+        <div class="input-display" style="font-size:96px;">@(_buf.Length == 0 ? "0" : _buf.ToString())</div>
+        <div class="keypad">
+            @foreach (var d in new[] { "1","2","3","4","5","6","7","8","9" })
+            {
+                var key = d;
+                <div class="kp" @onclick="@(() => Press(key))">@key</div>
+            }
+            <div class="kp ct"  @onclick="LoadCt">@T("Ct")</div>
+            <div class="kp"     @onclick="@(() => Press("0"))">0</div>
+            <div class="kp del" @onclick="Backspace">←</div>
+        </div>
+        <div class="confirm-bar">
+            <button class="pop-btn pop-btn-sec" @onclick="OnClose">@T("Cancel")</button>
+            <button class="pop-btn pop-btn-ok" @onclick="Confirm">✓ @T("Confirm") + @(_buf.Length == 0 ? "0" : _buf.ToString()) @T("Ea")</button>
+        </div>
+    }
+</PopupShell>
+
+@code {
+    [Parameter] public PopSessionDto?     Session     { get; set; }
+    [Parameter] public WorkOrderDto?      Wo          { get; set; }
+    [Parameter] public int                CycleSec    { get; set; } = 30;
+    [Parameter] public EventCallback      OnClose     { get; set; }
+    [Parameter] public EventCallback<int> OnConfirmed { get; set; }
+
+    private static string T(string key, params object?[] args) => PopLang.T(key, args);
+
+    private readonly System.Text.StringBuilder _buf = new();
+
+    private void Press(string d)
+    {
+        if (_buf.Length >= 2) return;
+        if (_buf.Length == 0 && d == "0") return;
+        _buf.Append(d);
+    }
+    private void Backspace() { if (_buf.Length > 0) _buf.Length--; }
+    private void LoadCt()    { _buf.Clear(); _buf.Append('1'); }
+
+    private async Task Confirm()
+    {
+        if (Wo is null || Session is null) return;
+        if (!int.TryParse(_buf.ToString(), out var qty) || qty <= 0) return;
+        try
+        {
+            var (resultId, _, _) = PopServices.Production.RecordCycle(
+                Wo.WoId, Wo.ItemNo, Wo.LineId, qty, CycleSec, Wo.MoldId,
+                Session.OperatorId, Session.SessionId, Session.EmployeeNo, defectFlag: false);
+            _buf.Clear();
+            Toasts.Ok(T("ManualSaved", qty));
+            await OnConfirmed.InvokeAsync(resultId);
+        }
+        catch (Exception ex) { Toasts.Bad($"{T("EntryFailed")}: {ex.Message}"); }
+    }
+}

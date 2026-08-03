@@ -1631,6 +1631,211 @@ body {
 .andon-shell, .login-shell { animation: shell-in .22s ease; }
 @keyframes shell-in { from { opacity: 0; } to { opacity: 1; } }
 
+/* ---------- INJ-MAIN 통합 화면 (InjMain.razor) ------------------- */
+.injm-grid {
+    display: grid; grid-template-columns: 1.35fr 1fr; gap: 14px;
+    flex: 1; min-height: 0;
+}
+.injm-left { display: flex; flex-direction: column; min-height: 0; }
+.injm-tbl-wrap { flex: 1; min-height: 0; overflow-y: auto; margin-top: 8px; }
+.injm-tbl { width: 100%; border-collapse: collapse; font-size: 16px; }
+.injm-tbl th {
+    position: sticky; top: 0;
+    background: #0c1a2e; color: var(--mod-tint);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 1px; padding: 10px 12px; text-align: right;
+}
+.injm-tbl td {
+    padding: 12px; text-align: right; font-weight: 700;
+    border-bottom: 1px solid rgba(255, 255, 255, .06);
+    cursor: pointer;
+}
+.injm-tbl tr:hover td  { background: rgba(37, 99, 235, .10); }
+.injm-tbl tr.sel td    { background: rgba(37, 99, 235, .22);
+                         box-shadow: inset 0 0 0 1px var(--mod); }
+.injm-tbl .mono { font-family: 'JetBrains Mono', monospace; }
+.injm-tbl .ok   { color: var(--ok); }
+.injm-tbl .bad  { color: var(--alert); }
+.injm-total {
+    display: flex; gap: 26px; padding: 12px 14px; margin-top: 8px;
+    background: rgba(0, 0, 0, .35); border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    color: rgba(255, 255, 255, .6); letter-spacing: 1px;
+}
+.injm-total b       { font-size: 20px; color: #fff; margin-left: 8px; }
+.injm-total b.ok    { color: var(--ok); }
+.injm-total b.bad   { color: var(--alert); }
+.injm-total b.mod   { color: var(--mod-tint); }
+
+.injm-right { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.injm-scan-input {
+    width: 100%; padding: 13px; margin-top: 8px;
+    font-size: 19px; font-family: Consolas, monospace;
+    background: rgba(0, 0, 0, .35); color: #fff;
+    border: 2px solid rgba(255, 255, 255, .25); border-radius: 8px;
+}
+.injm-scan-input:focus { outline: none; border-color: var(--mod); }
+.injm-banner {
+    margin-top: 10px; padding: 14px; border-radius: 10px;
+    text-align: center; min-height: 84px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.injm-banner.idle { background: rgba(255, 255, 255, .04);
+                    border: 1px dashed rgba(255, 255, 255, .18); }
+.injm-banner.ok   { background: rgba(13, 184, 122, .18);
+                    border: 2px solid var(--ok-dk); }
+.injm-banner.bad  { background: rgba(220, 38, 38, .18);
+                    border: 2px solid #b91c1c; }
+.injm-banner-t {
+    font-family: 'Bebas Neue', sans-serif; font-size: 52px;
+    line-height: 1; letter-spacing: 6px;
+}
+.injm-banner.idle .injm-banner-t { color: rgba(255, 255, 255, .35); }
+.injm-banner.ok   .injm-banner-t { color: var(--ok); }
+.injm-banner.bad  .injm-banner-t { color: var(--alert); }
+.injm-banner-s { font-size: 13px; color: rgba(255, 255, 255, .75); margin-top: 6px; }
+.injm-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.injm-chip {
+    background: rgba(255, 255, 255, .04); border-radius: 6px;
+    padding: 6px 10px; font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: rgba(255, 255, 255, .55);
+}
+.injm-chip b      { color: #fff; margin-left: 6px; font-size: 13px; }
+.injm-chip b.ok   { color: var(--ok); }
+.injm-chip b.warn { color: var(--warn); }
+.injm-chip b.bad  { color: var(--alert); }
+.injm-lots, .injm-hist { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.injm-scroll { flex: 1; min-height: 0; overflow-y: auto; margin-top: 6px; }
+.injm-subtbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.injm-subtbl th {
+    position: sticky; top: 0; background: #0c1a2e;
+    color: rgba(255, 255, 255, .55); text-align: right;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    letter-spacing: 1px; padding: 6px 4px;
+}
+.injm-subtbl td { padding: 7px 4px; border-top: 1px solid rgba(255, 255, 255, .08); }
+.injm-subtbl .mono { font-family: Consolas, monospace; }
+.injm-mini-btn {
+    padding: 4px 8px; font-size: 12px; border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, .15);
+    background: #1c263c; color: #fff; cursor: pointer;
+}
+.injm-mini-btn:hover { background: #263254; }
+.injm-result {
+    display: inline-block; min-width: 46px; text-align: center;
+    padding: 3px 10px; border-radius: 5px; font-weight: 800;
+}
+.injm-result.ok  { background: rgba(13, 184, 122, .25); color: var(--ok); }
+.injm-result.bad { background: rgba(220, 38, 38, .25); color: var(--alert); }
+
+/* ---------- 공용 팝업 셸 (PopupShell.razor) ---------------------- */
+.pmod-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, .78);
+    backdrop-filter: blur(5px);
+    z-index: 8000;
+    display: flex; align-items: center; justify-content: center;
+    padding: 28px;
+    animation: shell-in .18s ease;
+}
+.pmod {
+    width: min(1100px, 94vw); max-height: 92vh;
+    background: #0f1620;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 14px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, .7);
+    display: flex; flex-direction: column; overflow: hidden;
+}
+.pmod.pmod-tall { height: 92vh; }
+.pmod-tbar {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    padding: 14px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+.pmod-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px; font-weight: 700;
+    color: #93c5fd; letter-spacing: 2px;
+}
+.pmod-x {
+    width: 32px; height: 32px; border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, .15);
+    background: rgba(255, 255, 255, .05);
+    color: #fff; font-size: 18px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+}
+.pmod-x:hover { background: rgba(252, 165, 165, .18); border-color: #fca5a5; }
+.pmod-bd {
+    flex: 1; min-height: 0;
+    padding: 18px 22px; overflow-y: auto;
+    display: flex; flex-direction: column;
+}
+.pmod-empty { padding: 40px; text-align: center; color: rgba(255, 255, 255, .45); font-size: 18px; }
+.pmod-def-grid {
+    display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px;
+    flex: 1; min-height: 0;
+}
+.pmod-andon-overlay { padding: 0; z-index: 8500; }
+.pmod-andon-overlay .andon-shell { width: 100%; height: 100%; }
+
+/* ---------- INJ-MAIN 폰트 확대 (1920×1080 터치 터미널) ----------- */
+.injm-shell .pop-tbar-id   { font-size: 19px; }
+.injm-shell .pop-tbar-r    { font-size: 18px; }
+.injm-shell .pop-card-h    { font-size: 16px; letter-spacing: 1.5px; }
+.injm-lang-btn {
+    padding: 8px 14px; border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, .25);
+    background: rgba(255, 255, 255, .06);
+    color: #fff; font-size: 15px; font-weight: 700;
+    cursor: pointer;
+}
+.injm-lang-btn:hover { background: #263254; border-color: var(--mod); }
+
+.injm-tbl        { font-size: 22px; }
+.injm-tbl th     { font-size: 14px; padding: 12px 14px; }
+.injm-tbl td     { padding: 15px 14px; }
+.injm-total      { font-size: 16px; padding: 14px 16px; }
+.injm-total b    { font-size: 26px; }
+
+.injm-scan-input { font-size: 24px; padding: 16px; }
+.injm-banner-t   { font-size: 68px; }
+.injm-banner-s   { font-size: 17px; margin-top: 8px; }
+.injm-chip       { font-size: 14px; padding: 8px 12px; }
+.injm-chip b     { font-size: 17px; }
+.injm-subtbl     { font-size: 17px; }
+.injm-subtbl th  { font-size: 12px; padding: 8px 6px; }
+.injm-subtbl td  { padding: 10px 6px; }
+.injm-mini-btn   { font-size: 15px; padding: 6px 12px; }
+.injm-result     { font-size: 16px; min-width: 56px; }
+
+.injm-nav .nav-btn { font-size: 22px; padding: 22px 12px; }
+
+/* 팝업 폰트 확대 */
+.pmod-title  { font-size: 17px; }
+.pmod-bd     { font-size: 17px; }
+.pmod-empty  { font-size: 21px; }
+.pmod .pop-btn        { font-size: 19px; padding: 16px 22px; }
+.pmod .checklist-i    { font-size: 18px; padding: 10px 0; }
+.pmod .checklist-t    { font-size: 13px; }
+.pmod .wo-card-l      { font-size: 12px; }
+.pmod .wo-card-v      { font-size: 17px; }
+.pmod .def-rate-l     { font-size: 13px; }
+.pmod .def-rate-s     { font-size: 15px; }
+.pmod .def-btn-name   { font-size: 20px; }
+.pmod .def-btn-code   { font-size: 13px; }
+.pmod .def-info-h     { font-size: 14px; }
+.pmod .mnt-wo-h       { font-size: 13px; }
+.pmod .mnt-wo-row .l,
+.pmod .mnt-wo-row .v  { font-size: 16px; }
+.pmod .mc-btn         { font-size: 19px; padding: 18px; }
+.pmod .mi-l           { font-size: 12px; }
+.pmod .mi-v           { font-size: 18px; }
+.pmod .kpi-card .l    { font-size: 13px; }
+.pmod .kpi-card .s    { font-size: 13px; }
+.pmod .line-tbl       { font-size: 17px; }
+.pmod .line-tbl th    { font-size: 13px; }
+
 /* ---------- 도움말 단일 언어 표시 (HelpModal 언어 클래스) --------- */
 .help-ko .help-step-en,
 .help-ko .help-step-hint,

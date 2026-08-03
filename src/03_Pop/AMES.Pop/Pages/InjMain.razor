@@ -1,0 +1,433 @@
+@page "/injmain"
+@using AMES.Contracts.Enums
+@using AMES.Pop.Pages.InjPopups
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AppState State
+@inject ConfirmService Confirmer
+@inject ToastService Toasts
+
+@*  INJ-MAIN — INJ03~08 통합 작업 화면.
+    좌측 작업지시 그리드 + 우측 스캔/결과 패널을 상시 표시하고,
+    WO 접수·수동입력·불량·금형교체·생산현황·안돈은 팝업(Pages/InjPopups/*)으로 띄운다.
+    문구는 PopLang(T)로 ko/en 단일 언어 표시. 기존 /inj03~/inj08 라우트는 유지. *@
+
+<div class="pop-shell injm-shell">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">INJ-MAIN · @Session?.TerminalId · @Session?.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="@_eqClass">● @PopLang.EqStatus(_eqStatus)</span>
+            <span>@Session?.EmployeeName · @PopLang.Shift(Session?.ShiftCode ?? "")</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+            <button class="injm-lang-btn" @onclick="ToggleLang">@(PopLang.IsKo ? "EN" : "한국어")</button>
+            <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.Inj04Help))" />
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="injm-grid">
+
+            @* ── 좌측: 작업지시 그리드 ─────────────────────────────── *@
+            <div class="pop-card injm-left">
+                <div class="pop-card-h">▼ @T("WorkOrder") · @_now.ToString("yyyy-MM-dd") · @Session?.LineId</div>
+                <div class="injm-tbl-wrap">
+                    <table class="injm-tbl">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;">@T("Wo")</th>
+                                <th style="text-align:left;">@T("PartNo")</th>
+                                <th>@T("Plan")</th>
+                                <th>@T("Final")</th>
+                                <th>@T("Ng")</th>
+                                <th>@T("Input")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var w in _wos)
+                        {
+                            var isSel    = _selWoId == w.WoId;
+                            var isActive = _activeWo?.WoId == w.WoId;
+                            var (good, ng) = _woTotals.TryGetValue(w.WoId, out var t) ? t : (0, 0);
+                            <tr class="@(isSel ? "sel" : "")" @onclick="@(() => SelectWo(w))">
+                                <td class="mono" style="text-align:left;">@w.WoNumber @(isActive ? "●" : "")</td>
+                                <td class="mono" style="text-align:left;" title="@w.ItemName">@w.ItemNo</td>
+                                <td>@w.OrderQty.ToString("0")</td>
+                                <td class="ok">@w.CompletedQty.ToString("0")</td>
+                                <td class="@(ng > 0 ? "bad" : "")">@ng</td>
+                                <td>@((w.CompletedQty + ng).ToString("0"))</td>
+                            </tr>
+                        }
+                        @if (_wos.Count == 0)
+                        {
+                            <tr><td colspan="6" style="padding:28px; color:rgba(255,255,255,.4); text-align:center; font-size:20px;">
+                                @T("NoReleasedWosForThisLinePpPlannerNeedsTo")
+                            </td></tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="injm-total">
+                    <span>@T("Total") <b>@_wos.Sum(w => w.OrderQty).ToString("0")</b></span>
+                    <span>@T("Input") <b class="mod">@_totalInput.ToString("0")</b></span>
+                    <span>@T("Final") <b class="ok">@_wos.Sum(w => w.CompletedQty).ToString("0")</b></span>
+                    <span>@T("Shortage") <b class="bad">@_totalShortage.ToString("0")</b></span>
+                </div>
+            </div>
+
+            @* ── 우측: 스캔 + 결과 배너 + LOT 이력 ─────────────────── *@
+            <div class="injm-right">
+                <div class="pop-card injm-scan">
+                    <div class="pop-card-h">▼ @T("LotBarcodeScanConfirm") (@T("Wo2"): @(_activeWo?.WoNumber ?? "—"))</div>
+                    <input @ref="_scanInput" @bind="_scanBuf" @bind:event="oninput"
+                           @onkeydown="OnScanKey" class="injm-scan-input"
+                           placeholder="L260717…-LINE-INJ-01-LH" autocomplete="off" />
+                    <div class="injm-banner @_bannerClass">
+                        <div class="injm-banner-t">@BannerTitle</div>
+                        @if (_bannerDetail.Length > 0)
+                        {
+                            <div class="injm-banner-s">@_bannerDetail</div>
+                        }
+                    </div>
+                    <div class="injm-chips">
+                        <span class="injm-chip">@T("TodayGood") <b class="ok">@_todayGood</b></span>
+                        <span class="injm-chip">@T("Defect") <b class="@_defClass">@_todayDef · @_defectPct</b></span>
+                        <span class="injm-chip">@T("Unconfirmed") <b class="@(_rawCount > 0 ? "warn" : "ok")">@_rawCount</b></span>
+                        <span class="injm-chip">@T("NgBlocked") <b class="@(_ngCount > 0 ? "bad" : "ok")">@_ngCount</b></span>
+                        <span class="injm-chip">@T("Mold") <b class="@_moldClass">@_moldText</b></span>
+                    </div>
+                </div>
+
+                <div class="pop-card injm-lots">
+                    <div class="pop-card-h">▼ @T("UnconfirmedLotsNewestFirst")</div>
+                    <div class="injm-scroll">
+                        <table class="injm-subtbl">
+                            <tbody>
+                            @foreach (var lot in _rawLots)
+                            {
+                                var isNg = lot.ConfirmStatus == "NG_BLOCKED";
+                                <tr style="@(isNg ? "color:var(--warn);" : "")">
+                                    <td class="mono" style="cursor:pointer;"
+                                        @onclick="@(() => { _scanBuf = lot.LotCode; _focusScan = true; })">@lot.LotCode</td>
+                                    <td>@lot.CavityPos</td>
+                                    <td>@lot.CreatedTS.ToString("HH:mm:ss")</td>
+                                    <td>@(isNg ? $"{T("Ng2")} ({lot.InspectionSummary})" : T("Raw"))</td>
+                                    <td><button class="injm-mini-btn" @onclick="@(() => Reprint(lot))">🖨 @T("Reprint")@(lot.PrintedCount > 1 ? $" ×{lot.PrintedCount}" : "")</button></td>
+                                </tr>
+                            }
+                            @if (_rawLots.Count == 0)
+                            {
+                                <tr><td style="padding:14px 4px; color:rgba(255,255,255,.4);">
+                                    @T("NoUnconfirmedLotsAgentCollectedShotsWill")
+                                </td></tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="pop-card injm-hist">
+                    <div class="pop-card-h">▼ @T("ScanHistoryToday")</div>
+                    <div class="injm-scroll">
+                        <table class="injm-subtbl">
+                            <thead><tr><th style="text-align:left;">@T("Lotno")</th><th style="text-align:left;">@T("Time")</th><th>@T("Result")</th></tr></thead>
+                            <tbody>
+                            @foreach (var h in _scanHistory)
+                            {
+                                <tr>
+                                    <td class="mono">@h.LotCode</td>
+                                    <td class="mono">@h.At.ToString("HH:mm:ss")</td>
+                                    <td><span class="injm-result @(h.Ok ? "ok" : "bad")">@(h.Ok ? T("Ok") : T("Ng"))</span></td>
+                                </tr>
+                            }
+                            @if (_scanHistory.Count == 0)
+                            {
+                                <tr><td colspan="3" style="padding:14px 4px; color:rgba(255,255,255,.4);">@T("NoScansYet")</td></tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ── 하단: 기능 버튼 (팝업 런처) ───────────────────────────────── *@
+    <div class="pop-nav injm-nav" style="--nav-cols:8;">
+        <button class="nav-btn" @onclick="@(() => Nav.NavigateTo("/inj02"))">@T("Dashboard")</button>
+        <button class="nav-btn primary" @onclick="@(() => Open(Popup.Wo))">@T("WoConfirm")</button>
+        <button class="nav-btn" @onclick="@(() => Open(Popup.Manual))">@T("ManualEntry")</button>
+        <button class="nav-btn warn" @onclick="@(() => Open(Popup.Defect))">@T("Defect2")</button>
+        <button class="nav-btn gold" @onclick="@(() => Open(Popup.Mold))">@T("MoldChange")</button>
+        <button class="nav-btn" @onclick="@(() => Open(Popup.Status))">@T("ProdStatus")</button>
+        <button class="nav-btn alert" @onclick="@(() => Open(Popup.Andon))">@T("Andon")</button>
+        <button class="nav-btn muted" @onclick="Logout">@T("Logout")</button>
+    </div>
+</div>
+
+@* ── 팝업 ─────────────────────────────────────────────────────────── *@
+@switch (_popup)
+{
+    case Popup.Wo:
+        <WoConfirmPopup Session="Session" Wo="_selectedWo ?? _activeWo"
+                        OnClose="ClosePopup" OnAccepted="OnWoAccepted" />
+        break;
+    case Popup.Manual:
+        <ManualEntryPopup Session="Session" Wo="_activeWo" CycleSec="_cycle"
+                          OnClose="ClosePopup" OnConfirmed="OnManualConfirmed" />
+        break;
+    case Popup.Defect:
+        <DefectPopup Session="Session" Wo="_activeWo" LastResultId="_lastResultId"
+                     OnClose="ClosePopup" OnChanged="Refresh" OnAndonRaised="OnAndonRaised" />
+        break;
+    case Popup.Mold:
+        <MoldChangePopup Session="Session" Wo="_activeWo"
+                         OnClose="ClosePopup" OnChanged="Refresh" />
+        break;
+    case Popup.Status:
+        <ProdStatusPopup Session="Session" OnClose="ClosePopup" />
+        break;
+    case Popup.Andon:
+        <AndonPopup Session="Session" InitialOpenId="_andonInitialId" InitialCause="@_andonCause"
+                    OnClose="CloseAndon" />
+        break;
+}
+
+@code {
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private static string T(string key, params object?[] args) => PopLang.T(key, args);
+
+    private enum Popup { None, Wo, Manual, Defect, Mold, Status, Andon }
+    private Popup _popup = Popup.None;
+
+    private sealed record ScanRecord(string LotCode, DateTime At, bool Ok, string Message);
+
+    private List<WorkOrderDto> _wos = new();
+    private readonly Dictionary<int, (int Good, int Defect)> _woTotals = new();
+    private WorkOrderDto? _activeWo;
+    private WorkOrderDto? _selectedWo;
+    private int?          _selWoId;
+    private MoldDto?      _mold;
+    private List<InjLotDto>       _rawLots = new();
+    private readonly List<ScanRecord> _scanHistory = new();
+
+    private decimal _totalInput, _totalShortage;
+    private int _todayGood, _todayDef, _rawCount, _ngCount, _cycle = 30, _lastResultId;
+    private string _defectPct = "0.0%", _defClass = "ok";
+    private string _moldText = "—", _moldClass = "ok";
+    private string _eqStatus = "OFFLINE", _eqClass = "stat-off";
+
+    private string _bannerClass = "idle", _bannerDetail = "";
+    private string BannerTitle => _bannerClass switch
+    {
+        "ok"  => T("Success"),
+        "bad" => T("Fail"),
+        _     => T("Ready"),
+    };
+    private string _scanBuf = string.Empty;
+    private bool _focusScan;
+    private ElementReference _scanInput;
+
+    private int     _andonInitialId;
+    private string? _andonCause;
+
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _clockTimer;
+    private System.Threading.Timer? _refreshTimer;
+
+    protected override void OnInitialized()
+    {
+        if (Session is null) return;
+        Refresh();
+        _clockTimer   = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; StateHasChanged(); }),
+                                                   null, 1000, 1000);
+        _refreshTimer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); StateHasChanged(); }),
+                                                   null, 5000, 5000);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if ((firstRender || _focusScan) && _popup == Popup.None)
+        {
+            _focusScan = false;
+            try { await _scanInput.FocusAsync(); } catch { }
+        }
+    }
+
+    private void ToggleLang() => PopLang.Lang = PopLang.IsKo ? "en" : "ko";
+
+    private void Refresh()
+    {
+        if (Session is null) return;
+        try
+        {
+            _wos = PopServices.WorkOrders.ListForLine(Session.LineId);
+            _activeWo = PopServices.WorkOrders.GetActiveForTerminal(Session.LineId, Session.TerminalId)
+                     ?? _selectedWo ?? _wos.FirstOrDefault();
+            if (_selWoId is not null)
+                _selectedWo = _wos.FirstOrDefault(w => w.WoId == _selWoId) ?? _selectedWo;
+
+            _woTotals.Clear();
+            foreach (var w in _wos)
+                _woTotals[w.WoId] = PopServices.Defects.GetWoTotals(w.WoId);
+
+            _totalInput    = _wos.Sum(w => w.CompletedQty + (_woTotals[w.WoId].Defect));
+            _totalShortage = _wos.Sum(w => Math.Max(0, w.OrderQty - w.CompletedQty));
+
+            if (_activeWo is not null)
+            {
+                _todayGood = PopServices.Production.GetTodayGoodForWo(_activeWo.WoId);
+                var (g, d) = PopServices.Defects.GetWoTotals(_activeWo.WoId);
+                _todayDef = d;
+                var pct = (g + d) == 0 ? 0 : d * 100.0 / (g + d);
+                _defectPct = $"{pct:0.0}%";
+                _defClass  = pct >= 5 ? "bad" : pct >= 4 ? "warn" : "ok";
+                if (!string.IsNullOrEmpty(_activeWo.RecipeId))
+                    _cycle = PopServices.Master.GetRecipeCycleTime(_activeWo.RecipeId) ?? 30;
+                if (!string.IsNullOrEmpty(_activeWo.MoldId))
+                {
+                    _mold = PopServices.Molds.GetById(_activeWo.MoldId);
+                    if (_mold is not null)
+                    {
+                        _moldText  = $"{_mold.CurrentShots:N0}/{_mold.RatedShots:N0}";
+                        _moldClass = _mold.Severity is "warn" ? "warn" : _mold.Severity is "alert" or "hard" ? "bad" : "ok";
+                    }
+                }
+            }
+
+            _rawLots = PopServices.InjLots.GetUnconfirmed(Session.LineId);
+            var (_, raw, ng) = PopServices.InjLots.GetTodayStats(Session.LineId);
+            _rawCount = raw;
+            _ngCount  = ng;
+
+            var eq = PopServices.Equipment.GetPrimaryForLine(Session.LineId);
+            _eqStatus = (eq?.Status ?? "OFFLINE").ToUpperInvariant();
+            _eqClass  = _eqStatus is "RUN" or "IDLE" ? "stat-on" : "stat-off";
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[InjMain refresh] {ex.Message}"); }
+    }
+
+    private void SelectWo(WorkOrderDto w)
+    {
+        _selectedWo = w;
+        _selWoId    = w.WoId;
+    }
+
+    // ── 스캔 확정 (INJ-004 로직) ──────────────────────────────────────
+    private void OnScanKey(KeyboardEventArgs e)
+    {
+        if (e.Key != "Enter") return;
+        var code = _scanBuf.Trim();
+        _scanBuf = string.Empty;
+        if (code.Length == 0) return;
+        ConfirmScan(code);
+    }
+
+    private void ConfirmScan(string lotCode)
+    {
+        if (Session is null) return;
+        if (_activeWo is null)
+        {
+            SetBanner(false, T("NoActiveWorkOrderAcceptAWoFirst"));
+            return;
+        }
+        try
+        {
+            var (outcome, resultId, itemNo) = PopServices.InjLots.ConfirmByLotCode(
+                lotCode, Session.LineId, _activeWo.WoId, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
+            var (ok, detail) = outcome switch
+            {
+                InjConfirmOutcome.Confirmed        => (true,  $"{T("Confirmed")}: {lotCode} ({itemNo})"),
+                InjConfirmOutcome.NotFound         => (false, $"{T("LotNotFound")}: {lotCode}"),
+                InjConfirmOutcome.AlreadyConfirmed => (false, $"{T("AlreadyConfirmed")}: {lotCode}"),
+                InjConfirmOutcome.NgBlocked        => (false, $"{T("BlockedByInspectionNgHandleInDefectPopup")}: {lotCode}"),
+                InjConfirmOutcome.WrongLine        => (false, $"{T("LotBelongsToAnotherLine")}: {lotCode}"),
+                _                                  => (false, $"{T("ConfirmFailed")}: {lotCode}"),
+            };
+            if (ok) { _lastResultId = resultId; Refresh(); }
+            SetBanner(ok, detail);
+            _scanHistory.Insert(0, new ScanRecord(lotCode, DateTime.Now, ok, detail));
+            if (_scanHistory.Count > 50) _scanHistory.RemoveAt(_scanHistory.Count - 1);
+        }
+        catch (Exception ex)
+        {
+            SetBanner(false, $"{T("ConfirmFailed")}: {ex.Message}");
+        }
+        finally { _focusScan = true; }
+    }
+
+    private void SetBanner(bool ok, string detail)
+    {
+        _bannerClass  = ok ? "ok" : "bad";
+        _bannerDetail = detail;
+    }
+
+    private void Reprint(InjLotDto lot)
+    {
+        try
+        {
+            var cfg = AppConfig.Current;
+            var printer = new AMES.Devices.ZplPrinter(new AMES.Devices.ZplPrinterOptions
+            {
+                Mode = cfg.PrinterMode, Host = cfg.PrinterHost,
+                Port = cfg.PrinterPort, OutputDir = cfg.PrinterOutputDir,
+            });
+            var zpl = AMES.Devices.ZplLabelBuilder.Build(new AMES.Devices.ZplLabel(
+                lot.LotCode, lot.ItemNo, lot.ItemName, lot.ColorCode, lot.CavityPos,
+                lot.LineId ?? Session?.LineId ?? "", lot.CreatedTS));
+            printer.Print(zpl, lot.LotCode);
+            var printed = PopServices.InjLots.IncrementPrintedCount(lot.LotId);
+            Toasts.Ok($"{T("LabelReprinted")}: {lot.LotCode} ({T("Total2")} {printed})");
+            Refresh();
+        }
+        catch (Exception ex) { Toasts.Bad($"{T("ReprintFailed")}: {ex.Message}"); }
+    }
+
+    // ── 팝업 제어 ─────────────────────────────────────────────────────
+    private void Open(Popup p)
+    {
+        if (p == Popup.Andon) { _andonInitialId = 0; _andonCause = null; }
+        _popup = p;
+    }
+    private void ClosePopup() { _popup = Popup.None; _focusScan = true; Refresh(); }
+    private void CloseAndon() { _andonInitialId = 0; _andonCause = null; ClosePopup(); }
+
+    private void OnWoAccepted()
+    {
+        Toasts.Ok(T("WorkOrderAccepted"));
+        ClosePopup();
+    }
+
+    private void OnManualConfirmed(int resultId)
+    {
+        _lastResultId = resultId;
+        ClosePopup();
+    }
+
+    private void OnAndonRaised(int andonId)
+    {
+        _andonInitialId = andonId;
+        _andonCause     = T("DefectRate5AutoAndonBrInj003");
+        _popup          = Popup.Andon;
+        Refresh();
+    }
+
+    private async Task Logout()
+    {
+        if (!await Confirmer.AskAsync(
+                T("LogoutConfirm"),
+                T("EndYourShiftAndReturnToTheLoginScreen"),
+                T("LogOut2"), T("Stay"), destructive: true)) return;
+        Nav.NavigateTo("/login", replace: true);
+        State.SignOut();
+    }
+
+    public void Dispose()
+    {
+        _clockTimer?.Dispose();
+        _refreshTimer?.Dispose();
+    }
+}
