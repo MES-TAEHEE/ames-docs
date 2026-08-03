@@ -69,6 +69,7 @@
   <data name="HourlyOutputTarget18H" xml:space="preserve"><value>HOURLY OUTPUT (Target 18/h)</value></data>
   <data name="InjLines" xml:space="preserve"><value>INJ Lines</value></data>
   <data name="Input" xml:space="preserve"><value>INPUT</value></data>
+  <data name="LabelPrintFailed" xml:space="preserve"><value>Label print failed</value></data>
   <data name="LabelReprinted" xml:space="preserve"><value>Label reprinted</value></data>
   <data name="LastMaintenance" xml:space="preserve"><value>Last Maintenance</value></data>
   <data name="Limit5" xml:space="preserve"><value>limit 5%</value></data>
@@ -86,6 +87,10 @@
   <data name="ManualAndonBy" xml:space="preserve"><value>Manual andon by {0}</value></data>
   <data name="ManualEntry" xml:space="preserve"><value>Manual Entry</value></data>
   <data name="ManualEntryGoodQtyPerCycleEa" xml:space="preserve"><value>MANUAL ENTRY · GOOD QTY PER CYCLE (EA)</value></data>
+  <data name="IssueLots" xml:space="preserve"><value>Issue lots</value></data>
+  <data name="ManualLotIssueQtyEa" xml:space="preserve"><value>Manual lot issue · Qty (EA)</value></data>
+  <data name="ManualLotsCreated" xml:space="preserve"><value>{0} lots issued · {1} labels printed — scan to confirm</value></data>
+  <data name="ScanIssuedLabelsToConfirm" xml:space="preserve"><value>Scan the issued labels to confirm production</value></data>
   <data name="ManualSaved" xml:space="preserve"><value>Manual entry {0} EA recorded</value></data>
   <data name="MaterialLotAvailableWithinExpiry" xml:space="preserve"><value>2. Material lot available + within expiry</value></data>
   <data name="Mold" xml:space="preserve"><value>Mold</value></data>

@@ -69,6 +69,7 @@
   <data name="HourlyOutputTarget18H" xml:space="preserve"><value>시간별 생산 (목표 18/h)</value></data>
   <data name="InjLines" xml:space="preserve"><value>INJ 라인</value></data>
   <data name="Input" xml:space="preserve"><value>투입</value></data>
+  <data name="LabelPrintFailed" xml:space="preserve"><value>라벨 출력 실패</value></data>
   <data name="LabelReprinted" xml:space="preserve"><value>라벨 재출력</value></data>
   <data name="LastMaintenance" xml:space="preserve"><value>최근 정비</value></data>
   <data name="Limit5" xml:space="preserve"><value>한계 5%</value></data>
@@ -86,6 +87,10 @@
   <data name="ManualAndonBy" xml:space="preserve"><value>수동 안돈 — {0}</value></data>
   <data name="ManualEntry" xml:space="preserve"><value>수동 입력</value></data>
   <data name="ManualEntryGoodQtyPerCycleEa" xml:space="preserve"><value>수동 실적 입력 · 사이클당 양품 (개)</value></data>
+  <data name="IssueLots" xml:space="preserve"><value>LOT 발행</value></data>
+  <data name="ManualLotIssueQtyEa" xml:space="preserve"><value>수동 LOT 발행 · 수량(EA)</value></data>
+  <data name="ManualLotsCreated" xml:space="preserve"><value>LOT {0}건 발행 · 라벨 {1}장 출력 — 스캔하면 실적 확정</value></data>
+  <data name="ScanIssuedLabelsToConfirm" xml:space="preserve"><value>발행된 라벨을 스캔해야 실적이 확정됩니다</value></data>
   <data name="ManualSaved" xml:space="preserve"><value>수동 실적 {0}개 등록</value></data>
   <data name="MaterialLotAvailableWithinExpiry" xml:space="preserve"><value>2. 자재 LOT 준비 + 유효기간 이내</value></data>
   <data name="Mold" xml:space="preserve"><value>금형</value></data>

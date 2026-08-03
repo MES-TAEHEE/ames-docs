@@ -12,7 +12,10 @@ namespace AMES.InjAgent.Tests;
 /// </summary>
 public class InjLotRepositoryTests
 {
-    const string Conn = "Server=localhost,1433;Database=AMES_DEV;User Id=sa;Password=AmesDev!2026Sa;TrustServerCertificate=True;Encrypt=True;Connect Timeout=3;";
+    // 개발 DB 는 원격(appsettings.Development.json 과 같은 서버). 다른 서버로 돌릴 땐 AMES_TEST_CONN 으로 덮어쓴다.
+    static readonly string Conn =
+        Environment.GetEnvironmentVariable("AMES_TEST_CONN")
+        ?? "Server=98.95.142.192,1433;Database=AMES_DEV;User Id=sa;Password=AmesDev!2026Sa;TrustServerCertificate=True;Encrypt=True;Connect Timeout=10;";
 
     static AmesConnectionFactory? TryFactory()
     {
@@ -172,6 +175,142 @@ public class InjLotRepositoryTests
                     DELETE FROM dbo.PP_WorkOrder WHERE WoID = @W;
                     """, conn);
                 cmd.Parameters.AddWithValue("@L", lotId);
+                cmd.Parameters.AddWithValue("@W", woId);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    /// <summary>
+    /// 수동 발행은 에이전트와 같은 원천 LOT(RAW) 만 만든다 — 1 LOT = 1 PCS, 실적/WO 수량은 건드리지 않고
+    /// 금형 타수도 움직이지 않는다. 확정은 오직 스캔(ConfirmByLotCode) 경유.
+    /// </summary>
+    [SkippableFact]
+    public void CreateManualRawLots_issues_raw_lots_only_and_confirms_by_scan()
+    {
+        var f = TryFactory();
+        Skip.If(f is null, "AMES_DEV unreachable");
+        var repo = new InjLotRepository(f!);
+
+        string? moldId;
+        using (var conn = f!.OpenConnection())
+        using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(
+            "SELECT TOP 1 MoldID FROM dbo.MD_Mold WHERE MoldCodeClean = 'LQ2DTMD';", conn))
+            moldId = cmd.ExecuteScalar() as string;
+        Skip.If(moldId is null, "seed_inj_demo not applied");
+
+        // CurrentShots 는 INT, CumulativeShots 는 BIGINT — 둘 다 long 으로 읽는다.
+        (long Cur, long Cum) ReadShots()
+        {
+            using var conn = f!.OpenConnection();
+            using var cmd = new Microsoft.Data.SqlClient.SqlCommand(
+                "SELECT ISNULL(CurrentShots,0) AS C, ISNULL(CumulativeShots,0) AS M FROM dbo.MD_Mold WHERE MoldID = @M;", conn);
+            cmd.Parameters.AddWithValue("@M", moldId);
+            using var rdr = cmd.ExecuteReader();
+            rdr.Read();
+            return (Convert.ToInt64(rdr["C"]), Convert.ToInt64(rdr["M"]));
+        }
+
+        const int qty = 3;
+        var woId = 0;
+        var lotIds = new List<int>();
+        try
+        {
+            using (var conn = f!.OpenConnection())
+            using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                INSERT INTO dbo.PP_WorkOrder (WoNumber, ItemNo, LineID, OrderQty, CompletedQty, Status, CreatedBy, CreatedTS)
+                OUTPUT INSERTED.WoID
+                VALUES ('WO-ITEST-MANUAL', '83335-P8000RBQ', 'LINE-INJ-01', 100, 0, 'In Progress', 'ITEST', SYSDATETIME());
+                """, conn))
+                woId = (int)cmd.ExecuteScalar()!;
+
+            var shotsBefore = ReadShots();
+
+            var lots = repo.CreateManualRawLots("LINE-INJ-01", "83335-P8000RBQ", moldId, qty, "E-ITEST");
+            lotIds.AddRange(lots.Select(l => l.LotId));
+
+            Assert.Equal(qty, lots.Count);
+            Assert.Equal(qty, lots.Select(l => l.LotCode).Distinct().Count());   // LotCode 중복 없음
+            Assert.All(lots, l => Assert.Equal("RAW", l.ConfirmStatus));
+            Assert.All(lots, l => Assert.Equal("LH", l.CavityPos));              // 품번 → 캐비티 매핑
+            Assert.All(lots, l => Assert.EndsWith("-LH", l.LotCode));
+
+            // 발행 직후: 원천 LOT 만 있고 실적·WO 수량은 그대로여야 한다.
+            using (var conn = f!.OpenConnection())
+            using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                SELECT
+                  (SELECT COUNT(*) FROM dbo.tbl_Lot
+                    WHERE LotID IN (SELECT value FROM STRING_SPLIT(@Ids, ','))
+                      AND BatchSize = 1 AND RemainingQty = 1 AND WoID IS NULL
+                      AND Status = 'RAW' AND QualityFlag = 'PENDING' AND ProcessCode = 'INJ') AS Lots,
+                  (SELECT COUNT(*) FROM dbo.PR_InjLot
+                    WHERE LotID IN (SELECT value FROM STRING_SPLIT(@Ids, ','))
+                      AND ConfirmStatus = 'RAW' AND CreatedBy = 'MANUAL'
+                      AND MachineShotCount IS NULL AND ConfirmedAt IS NULL AND CavityPos = 'LH') AS InjLots,
+                  (SELECT COUNT(*) FROM dbo.PR_ProductionResult
+                    WHERE LotID IN (SELECT value FROM STRING_SPLIT(@Ids, ','))) AS Results,
+                  (SELECT CompletedQty FROM dbo.PP_WorkOrder WHERE WoID = @W) AS Completed;
+                """, conn))
+            {
+                cmd.Parameters.AddWithValue("@Ids", string.Join(",", lotIds));
+                cmd.Parameters.AddWithValue("@W", woId);
+                using var rdr = cmd.ExecuteReader();
+                Assert.True(rdr.Read());
+                Assert.Equal(qty, (int)rdr["Lots"]);
+                Assert.Equal(qty, (int)rdr["InjLots"]);
+                Assert.Equal(0, (int)rdr["Results"]);        // 아직 실적 아님
+                Assert.Equal(0m, (decimal)rdr["Completed"]); // WO 수량도 그대로
+            }
+
+            Assert.Equal(shotsBefore, ReadShots());   // 타수는 PLC 샷카운터 전용
+
+            // 발행분은 미확정 목록에 뜬다.
+            var unconfirmed = repo.GetUnconfirmed("LINE-INJ-01");
+            Assert.All(lots, l => Assert.Contains(unconfirmed, x => x.LotId == l.LotId));
+
+            // 스캔해야 비로소 실적이 된다.
+            var (outcome, resultId, _) = repo.ConfirmByLotCode(
+                lots[0].LotCode, "LINE-INJ-01", woId, "itest-op", null, "E-ITEST");
+            Assert.Equal(InjConfirmOutcome.Confirmed, outcome);
+            Assert.True(resultId > 0);
+
+            using (var conn = f!.OpenConnection())
+            using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                SELECT (SELECT Status FROM dbo.tbl_Lot WHERE LotID = @L) AS LotStatus,
+                       (SELECT WoID   FROM dbo.tbl_Lot WHERE LotID = @L) AS LotWo,
+                       (SELECT COUNT(*) FROM dbo.PR_ProductionResult WHERE LotID = @L AND GoodQty = 1) AS Results,
+                       (SELECT CompletedQty FROM dbo.PP_WorkOrder WHERE WoID = @W) AS Completed;
+                """, conn))
+            {
+                cmd.Parameters.AddWithValue("@L", lots[0].LotId);
+                cmd.Parameters.AddWithValue("@W", woId);
+                using var rdr = cmd.ExecuteReader();
+                Assert.True(rdr.Read());
+                Assert.Equal("CONFIRMED", (string)rdr["LotStatus"]);
+                Assert.Equal(woId, (int)rdr["LotWo"]);       // 확정 시점에 WO 가 붙는다
+                Assert.Equal(1, (int)rdr["Results"]);
+                Assert.Equal(1m, (decimal)rdr["Completed"]); // 스캔한 1건만 반영
+            }
+
+            Assert.Equal(shotsBefore, ReadShots());   // 스캔 확정도 타수를 올리지 않는다(에이전트 샷 전용)
+        }
+        finally
+        {
+            // 발행 직후 LOT 은 WoID 가 NULL 이라 WO 기준만으로는 지워지지 않는다 — LotID 로도 지운다.
+            if (f is not null && woId > 0)
+            {
+                using var conn = f.OpenConnection();
+                using var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                    DECLARE @L TABLE (LotID INT);
+                    INSERT INTO @L SELECT CAST(value AS INT) FROM STRING_SPLIT(@Ids, ',') WHERE value <> '';
+                    INSERT INTO @L SELECT LotID FROM dbo.tbl_Lot
+                      WHERE WoID = @W AND LotID NOT IN (SELECT LotID FROM @L);
+                    DELETE FROM dbo.PR_ProductionResult WHERE WoID = @W OR LotID IN (SELECT LotID FROM @L);
+                    DELETE FROM dbo.PR_InjLot          WHERE LotID IN (SELECT LotID FROM @L);
+                    DELETE FROM dbo.tbl_Lot            WHERE LotID IN (SELECT LotID FROM @L);
+                    DELETE FROM dbo.PP_WorkOrder       WHERE WoID = @W;
+                    """, conn);
+                cmd.Parameters.AddWithValue("@Ids", string.Join(",", lotIds));
                 cmd.Parameters.AddWithValue("@W", woId);
                 cmd.ExecuteNonQuery();
             }

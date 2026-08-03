@@ -142,6 +142,152 @@ public sealed class InjLotRepository
         catch { tx.Rollback(); throw; }
     }
 
+    /// <summary>
+    /// 수동 실적 입력 (PLC 미연결·계수 누락 보정) — 입력 수량만큼 원천 LOT 을 만든다.
+    /// 에이전트 CreateRawLot 과 같은 1 LOT = 1 PCS 원천 LOT 이며, 여기서 실적을 만들지는 않는다:
+    /// "실적 확정(PR_ProductionResult 생성)은 반드시 스캔 경유" 라는 이 클래스의 불변식을
+    /// 수동입력도 그대로 따른다 — 발행된 라벨을 스캔해야 ConfirmByLotCode 로 확정된다.
+    /// 그래서 WoID 도 비워 둔다(확정 시점에 스캔한 WO 로 채워진다).
+    /// 금형 타수는 PLC 샷카운터에서만 세므로 여기서는 건드리지 않는다.
+    /// 반환 = 생성된 LOT 목록 (라벨 발행용).
+    /// </summary>
+    public List<InjLotDto> CreateManualRawLots(
+        string lineId, string itemNo, string? moldId, int qty, string employeeNo)
+    {
+        var lots = new List<InjLotDto>();
+        if (qty <= 0) return lots;
+
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            // 품번 → 캐비티/색상 매핑. 금형 미지정 WO 는 NULL 로 남기고 LotCode 에 캐비티를 붙이지 않는다.
+            string? moldCode = null, colorCode = null, cavityPos = null;
+            int?    cavityNo = null;
+            if (!string.IsNullOrEmpty(moldId))
+            {
+                using var cmd = new SqlCommand("""
+                    SELECT TOP 1 m.MoldCodeClean, mi.Color, mi.CavitySeq, mi.CavityPos
+                    FROM   dbo.MD_MoldItem mi
+                    JOIN   dbo.MD_Mold m ON m.MoldID = mi.MoldID
+                    WHERE  mi.MoldID = @Mold AND mi.ItemNo = @Item AND mi.ActiveFlag = 1
+                    ORDER  BY mi.CavitySeq;
+                    """, conn, tx);
+                cmd.Parameters.Add("@Mold", SqlDbType.VarChar, 20).Value = moldId;
+                cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+                using var rdr = cmd.ExecuteReader();
+                if (rdr.Read())
+                {
+                    moldCode  = rdr["MoldCodeClean"] as string;
+                    colorCode = rdr["Color"]         as string;
+                    cavityNo  = rdr["CavitySeq"]     as int?;
+                    cavityPos = rdr["CavityPos"]     as string;
+                }
+            }
+
+            string? itemName = null;
+            using (var cmd = new SqlCommand(
+                "SELECT ItemName FROM dbo.MD_Item WHERE ItemNo = @Item;", conn, tx))
+            {
+                cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+                itemName = cmd.ExecuteScalar() as string;
+            }
+
+            string? equipId = null;
+            using (var cmd = new SqlCommand("""
+                SELECT TOP 1 EquipID FROM dbo.MD_Equipment
+                WHERE  LineID = @L AND ISNULL(ActiveFlag,1) = 1
+                ORDER  BY EquipID;
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
+                equipId = cmd.ExecuteScalar() as string;
+            }
+
+            var ts = DateTime.Now;
+            for (var i = 0; i < qty; i++)
+            {
+                // 에이전트와 같은 LotCode 형식. 같은 ms 안에 N 건이 생기므로 빈 코드가 나올 때까지 1ms 씩 민다.
+                string lotCode;
+                while (true)
+                {
+                    lotCode = string.IsNullOrEmpty(cavityPos)
+                        ? $"L{ts:yyMMddHHmmssfff}-{lineId}"
+                        : $"L{ts:yyMMddHHmmssfff}-{lineId}-{cavityPos}";
+                    if (lotCode.Length > 40) throw new InvalidOperationException($"LotCode too long: {lotCode}");
+                    using var dup = new SqlCommand(
+                        "SELECT 1 FROM dbo.tbl_Lot WITH (UPDLOCK, HOLDLOCK) WHERE LotCode = @C;", conn, tx);
+                    dup.Parameters.Add("@C", SqlDbType.VarChar, 40).Value = lotCode;
+                    if (dup.ExecuteScalar() is null) break;
+                    ts = ts.AddMilliseconds(1);
+                }
+
+                int lotId; DateTime createdTs;
+                using (var cmd = new SqlCommand("""
+                    INSERT INTO dbo.tbl_Lot
+                        (LotCode, ItemNo, WoID, LineID, ProcessCode, BatchSize, RemainingQty,
+                         ProducedAt, Status, QualityFlag, CreatedBy, CreatedTS)
+                    OUTPUT INSERTED.LotID, INSERTED.CreatedTS
+                    VALUES
+                        (@LotCode, @ItemNo, NULL, @LineID, 'INJ', 1, 1,
+                         SYSDATETIME(), 'RAW', 'PENDING', @By, SYSDATETIME());
+                    """, conn, tx))
+                {
+                    cmd.Parameters.Add("@LotCode", SqlDbType.VarChar, 40).Value = lotCode;
+                    cmd.Parameters.Add("@ItemNo",  SqlDbType.VarChar, 20).Value = itemNo;
+                    cmd.Parameters.Add("@LineID",  SqlDbType.VarChar, 20).Value = lineId;
+                    cmd.Parameters.Add("@By",      SqlDbType.VarChar, 50).Value = employeeNo;
+                    using var rdr = cmd.ExecuteReader();
+                    rdr.Read();
+                    lotId     = (int)rdr["LotID"];
+                    createdTs = (DateTime)rdr["CreatedTS"];
+                }
+
+                // MachineShotCount / PressType 은 PLC 값이라 수동 LOT 에는 없다. CreatedBy 로 출처를 남긴다.
+                using (var cmd = new SqlCommand("""
+                    INSERT INTO dbo.PR_InjLot
+                        (LotID, EquipID, MoldCode, ColorCode, MoldID, CavityNo, CavityPos,
+                         PressType, MachineShotCount, ConfirmStatus, CreatedBy, CreatedTS)
+                    VALUES
+                        (@LotID, @Equip, @Mold, @Color, @MoldID, @CavNo, @CavPos,
+                         NULL, NULL, 'RAW', 'MANUAL', SYSDATETIME());
+                    """, conn, tx))
+                {
+                    cmd.Parameters.Add("@LotID",  SqlDbType.Int           ).Value = lotId;
+                    cmd.Parameters.Add("@Equip",  SqlDbType.VarChar, 20   ).Value = (object?)equipId   ?? DBNull.Value;
+                    cmd.Parameters.Add("@Mold",   SqlDbType.VarChar, 20   ).Value = (object?)moldCode  ?? DBNull.Value;
+                    cmd.Parameters.Add("@Color",  SqlDbType.VarChar, 10   ).Value = (object?)colorCode ?? DBNull.Value;
+                    cmd.Parameters.Add("@MoldID", SqlDbType.VarChar, 20   ).Value = (object?)moldId    ?? DBNull.Value;
+                    cmd.Parameters.Add("@CavNo",  SqlDbType.Int           ).Value = (object?)cavityNo  ?? DBNull.Value;
+                    cmd.Parameters.Add("@CavPos", SqlDbType.VarChar, 4    ).Value = (object?)cavityPos ?? DBNull.Value;
+                    cmd.ExecuteNonQuery();
+                }
+
+                lots.Add(new InjLotDto
+                {
+                    LotId         = lotId,
+                    LotCode       = lotCode,
+                    ItemNo        = itemNo,
+                    ItemName      = itemName,
+                    LineId        = lineId,
+                    EquipId       = equipId,
+                    MoldCode      = moldCode,
+                    ColorCode     = colorCode,
+                    MoldId        = moldId,
+                    CavityNo      = cavityNo,
+                    CavityPos     = cavityPos,
+                    ConfirmStatus = "RAW",
+                    PrintedCount  = 0,
+                    CreatedTS     = createdTs,
+                });
+            }
+
+            tx.Commit();
+            return lots;
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
     const string SelectLotView = """
         SELECT l.LotID, l.LotCode, l.ItemNo, mi.ItemName, l.LineID,
                e.EquipID, e.MoldCode, e.ColorCode, e.MoldID, e.CavityNo, e.CavityPos,

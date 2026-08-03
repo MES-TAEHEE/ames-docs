@@ -175,8 +175,8 @@
                         OnClose="ClosePopup" OnAccepted="OnWoAccepted" />
         break;
     case Popup.Manual:
-        <ManualEntryPopup Session="Session" Wo="_activeWo" CycleSec="_cycle"
-                          OnClose="ClosePopup" OnConfirmed="OnManualConfirmed" />
+        <ManualEntryPopup Session="Session" Wo="_activeWo"
+                          OnClose="ClosePopup" OnCreated="OnManualLotsIssued" />
         break;
     case Popup.Defect:
         <DefectPopup Session="Session" Wo="_activeWo" LastResultId="_lastResultId"
@@ -369,16 +369,7 @@
     {
         try
         {
-            var cfg = AppConfig.Current;
-            var printer = new AMES.Devices.ZplPrinter(new AMES.Devices.ZplPrinterOptions
-            {
-                Mode = cfg.PrinterMode, Host = cfg.PrinterHost,
-                Port = cfg.PrinterPort, OutputDir = cfg.PrinterOutputDir,
-            });
-            var zpl = AMES.Devices.ZplLabelBuilder.Build(new AMES.Devices.ZplLabel(
-                lot.LotCode, lot.ItemNo, lot.ItemName, lot.ColorCode, lot.CavityPos,
-                lot.LineId ?? Session?.LineId ?? "", lot.CreatedTS));
-            printer.Print(zpl, lot.LotCode);
+            LabelPrinter.Print(lot, Session?.LineId);
             var printed = PopServices.InjLots.IncrementPrintedCount(lot.LotId);
             Toasts.Ok($"{T("LabelReprinted")}: {lot.LotCode} ({T("Total2")} {printed})");
             Refresh();
@@ -401,11 +392,8 @@
         ClosePopup();
     }
 
-    private void OnManualConfirmed(int resultId)
-    {
-        _lastResultId = resultId;
-        ClosePopup();
-    }
+    // 수동 발행분은 아직 실적이 아니다 — 미확정 LOT 목록에 쌓이고, 스캔해야 확정된다.
+    private void OnManualLotsIssued() => ClosePopup();
 
     private void OnAndonRaised(int andonId)
     {

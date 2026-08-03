@@ -314,7 +314,7 @@
         try
         {
             var (resultId, _, _) = PopServices.Production.RecordCycle(
-                _wo.WoId, _wo.ItemNo, _wo.LineId, qty, _cycle, _wo.MoldId,
+                _wo.WoId, _wo.ItemNo, _wo.LineId, "INJ", qty, _cycle, _wo.MoldId,
                 Session.OperatorId, Session.SessionId, Session.EmployeeNo, defectFlag: false);
             _lastResultId = resultId;
             _lastEntry = DateTime.Now;

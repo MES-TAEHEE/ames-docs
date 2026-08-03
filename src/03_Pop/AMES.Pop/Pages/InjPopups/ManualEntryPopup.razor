@@ -2,9 +2,10 @@
 @using AMES.Pop.Common
 @inject ToastService Toasts
 
-@*  INJ-004 수동 실적 입력 — 팝업판. PLC 미연결 라인용 키패드 입력. *@
+@*  INJ-004 수동 LOT 발행 — 팝업판. PLC 미연결·계수 누락 시 원천 LOT + 라벨을 수동으로 찍는다.
+    여기서 실적이 확정되지는 않는다 — 발행된 라벨을 스캔해야 확정된다. *@
 
-<PopupShell Title='@($"⌨ {T("ManualEntryGoodQtyPerCycleEa")}")' Width="560px" OnClose="OnClose">
+<PopupShell Title='@($"⌨ {T("ManualLotIssueQtyEa")}")' Width="560px" OnClose="OnClose">
     @if (Wo is null)
     {
         <div class="pmod-empty">@T("NoActiveWorkOrderAcceptAWoFirst")</div>
@@ -26,9 +27,10 @@
             <div class="kp"     @onclick="@(() => Press("0"))">0</div>
             <div class="kp del" @onclick="Backspace">←</div>
         </div>
+        <div class="entry-note">@T("ScanIssuedLabelsToConfirm")</div>
         <div class="confirm-bar">
             <button class="pop-btn pop-btn-sec" @onclick="OnClose">@T("Cancel")</button>
-            <button class="pop-btn pop-btn-ok" @onclick="Confirm">✓ @T("Confirm") + @(_buf.Length == 0 ? "0" : _buf.ToString()) @T("Ea")</button>
+            <button class="pop-btn pop-btn-ok" @onclick="Confirm">🏷 @T("IssueLots") @(_buf.Length == 0 ? "0" : _buf.ToString()) @T("Ea")</button>
         </div>
     }
 </PopupShell>
@@ -36,9 +38,9 @@
 @code {
     [Parameter] public PopSessionDto?     Session     { get; set; }
     [Parameter] public WorkOrderDto?      Wo          { get; set; }
-    [Parameter] public int                CycleSec    { get; set; } = 30;
     [Parameter] public EventCallback      OnClose     { get; set; }
-    [Parameter] public EventCallback<int> OnConfirmed { get; set; }
+    /// <summary>원천 LOT 생성 + 라벨 발행 완료. 실적 확정은 스캔 단계에서 일어난다.</summary>
+    [Parameter] public EventCallback      OnCreated   { get; set; }
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
 
@@ -59,12 +61,29 @@
         if (!int.TryParse(_buf.ToString(), out var qty) || qty <= 0) return;
         try
         {
-            var (resultId, _, _) = PopServices.Production.RecordCycle(
-                Wo.WoId, Wo.ItemNo, Wo.LineId, qty, CycleSec, Wo.MoldId,
-                Session.OperatorId, Session.SessionId, Session.EmployeeNo, defectFlag: false);
+            // 에이전트와 같은 원천 LOT(RAW) 만 만든다. 실적 확정은 라벨 스캔 경유 — 여기서 확정하지 않는다.
+            var lots = PopServices.InjLots.CreateManualRawLots(
+                Wo.LineId, Wo.ItemNo, Wo.MoldId, qty, Session.EmployeeNo);
             _buf.Clear();
-            Toasts.Ok(T("ManualSaved", qty));
-            await OnConfirmed.InvokeAsync(resultId);
+
+            var printed = 0;
+            string? printError = null;
+            foreach (var lot in lots)
+            {
+                try
+                {
+                    LabelPrinter.Print(lot, Session.LineId);
+                    PopServices.InjLots.IncrementPrintedCount(lot.LotId);
+                    printed++;
+                }
+                catch (Exception ex) { printError ??= ex.Message; }
+            }
+
+            Toasts.Ok(T("ManualLotsCreated", qty, printed));
+            if (printError is not null)
+                Toasts.Bad($"{T("LabelPrintFailed")} ({printed}/{lots.Count}): {printError}");
+
+            await OnCreated.InvokeAsync();
         }
         catch (Exception ex) { Toasts.Bad($"{T("EntryFailed")}: {ex.Message}"); }
     }
