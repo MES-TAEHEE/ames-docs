@@ -7,8 +7,8 @@
 <div class="help-doc">
     @* ── SVG schematic ──────────────────────────────────────── *@
     <div>
-        <div class="help-h1">INJ-002 · DASHBOARD</div>
-        <div class="help-sub">사출 라인 실시간 대시보드 · Live Injection-Line Dashboard</div>
+        <div class="help-h1">INJ-002 · @PopLang.T("Dashboard2")</div>
+        <div class="help-sub">@PopLang.T("LiveInjectionLineDashboard")</div>
 
         <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
             @* Outer frame *@
@@ -100,15 +100,14 @@
         <div class="help-callout info">
             <div class="help-callout-i">💡</div>
             <div class="help-callout-tx">
-                <strong>Auto-refresh every 5 seconds.</strong> No need to reload — the page polls the database in the background.<br/>
-                <span style="color:rgba(255,255,255,.55);">5초마다 자동 갱신됩니다. 새로고침할 필요 없습니다.</span>
+                <span class="h-call-en"><strong>Auto-refresh every 5 seconds.</strong> No need to reload — the page polls the database in the background.</span><span class="h-call-ko">5초마다 자동 갱신됩니다. 새로고침할 필요 없습니다.</span>
             </div>
         </div>
     </div>
 
     @* ── Step list ─────────────────────────────────────────── *@
     <div>
-        <div class="help-section-h">▶ READ THE SCREEN · 화면 읽기</div>
+        <div class="help-section-h">▶ <span class="h-sec-en">READ THE SCREEN</span><span class="h-sec-ko">화면 읽기</span></div>
         <div class="help-steps">
 
             <div class="help-step">
@@ -165,7 +164,7 @@
             </div>
         </div>
 
-        <div class="help-section-h">▶ COMMON TASKS · 자주 쓰는 작업</div>
+        <div class="help-section-h">▶ <span class="h-sec-en">COMMON TASKS</span><span class="h-sec-ko">자주 쓰는 작업</span></div>
         <div class="help-steps">
 
             <div class="help-step">
@@ -204,8 +203,7 @@
         <div class="help-callout warn">
             <div class="help-callout-i">⚠</div>
             <div class="help-callout-tx">
-                <strong>If "—" appears in any field</strong>, it means the linked master data isn't seeded yet (e.g. mold, recipe). Production can still proceed but check with the shift leader.<br/>
-                <span style="color:rgba(255,255,255,.55);">"—" 표시는 연결된 마스터 데이터(금형/레시피)가 누락된 상태입니다. 생산은 가능하지만 반장에게 확인 바랍니다.</span>
+                <span class="h-call-en"><strong>If "—" appears in any field</strong>, it means the linked master data isn't seeded yet (e.g. mold, recipe). Production can still proceed but check with the shift leader.</span><span class="h-call-ko">"—" 표시는 연결된 마스터 데이터(금형/레시피)가 누락된 상태입니다. 생산은 가능하지만 반장에게 확인 바랍니다.</span>
             </div>
         </div>
     </div>

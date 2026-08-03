@@ -17,21 +17,21 @@
     <div class="help-backdrop" @onclick="Close">
         <div class="help-modal" @onclick:stopPropagation="true">
             <div class="help-modal-tbar">
-                <div class="help-modal-title">📖 USER GUIDE · 화면 사용법</div>
+                <div class="help-modal-title">📖 @PopLang.T("UserGuide")</div>
                 <button class="help-modal-x" @onclick="Close" title="Close (Esc)">✕</button>
             </div>
-            <div class="help-modal-bd">
+            <div class="help-modal-bd @(PopLang.IsKo ? "help-ko" : "help-en")">
                 @if (ContentType is not null)
                 {
                     <DynamicComponent Type="ContentType" />
                 }
                 else
                 {
-                    <div class="help-empty">No manual registered for this screen.</div>
+                    <div class="help-empty">@PopLang.T("NoManualRegisteredForThisScreen")</div>
                 }
             </div>
             <div class="help-modal-foot">
-                <button class="help-btn-close" @onclick="Close">CLOSE  ·  닫기 (Esc)</button>
+                <button class="help-btn-close" @onclick="Close">@PopLang.T("CloseEsc")</button>
             </div>
         </div>
     </div>

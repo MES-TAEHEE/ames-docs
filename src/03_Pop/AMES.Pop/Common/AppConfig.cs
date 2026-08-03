@@ -19,6 +19,9 @@ public sealed class AppConfig
     /// </summary>
     public string ModuleCode { get; }
 
+    /// <summary>화면 표시 언어: "ko"(기본) 또는 "en". PopLang 초기값.</summary>
+    public string Language { get; }
+
     /// <summary>라벨 재출력용 ZPL 프린터 설정 (없으면 File 모드 기본값).</summary>
     public string PrinterMode      { get; }
     public string PrinterHost      { get; }
@@ -40,6 +43,8 @@ public sealed class AppConfig
         if (string.IsNullOrWhiteSpace(explicitModule))
             throw new InvalidOperationException("PopTerminal:ModuleCode is missing in appsettings.json");
         ModuleCode = explicitModule.ToUpperInvariant();
+
+        Language     = (root["PopTerminal:Language"] ?? "ko").ToLowerInvariant() == "en" ? "en" : "ko";
 
         PrinterMode      = root["PopTerminal:Printer:Mode"]      ?? "File";
         PrinterHost      = root["PopTerminal:Printer:Host"]      ?? "127.0.0.1";

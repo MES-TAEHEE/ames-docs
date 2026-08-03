@@ -1630,3 +1630,14 @@ body {
 .pop-shell { animation: shell-in .22s ease; }
 .andon-shell, .login-shell { animation: shell-in .22s ease; }
 @keyframes shell-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------- 도움말 단일 언어 표시 (HelpModal 언어 클래스) --------- */
+.help-ko .help-step-en,
+.help-ko .help-step-hint,
+.help-ko .h-sec-en,
+.help-ko .h-call-en { display: none; }
+.help-en .help-step-ko,
+.help-en .h-sec-ko,
+.help-en .h-call-ko { display: none; }
+.help-ko .help-step-ko { font-size: 15px; color: #fff; }
+.h-sec-en, .h-sec-ko { margin-left: 6px; }
