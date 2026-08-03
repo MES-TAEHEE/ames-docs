@@ -1653,6 +1653,18 @@ body {
 .injm-tbl tr:hover td  { background: rgba(37, 99, 235, .10); }
 .injm-tbl tr.sel td    { background: rgba(37, 99, 235, .22);
                          box-shadow: inset 0 0 0 1px var(--mod); }
+.injm-tbl tr.active td {
+    background: rgba(13, 184, 122, .14);
+    box-shadow: inset 3px 0 0 var(--ok);
+}
+.injm-tbl tr.active.sel td { background: rgba(13, 184, 122, .24); }
+.injm-active-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-left: 8px; padding: 2px 8px; border-radius: 999px;
+    background: rgba(13, 184, 122, .22); color: var(--ok);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    font-weight: 700; letter-spacing: .5px; vertical-align: middle;
+}
 .injm-tbl .mono { font-family: 'JetBrains Mono', monospace; }
 .injm-tbl .ok   { color: var(--ok); }
 .injm-tbl .bad  { color: var(--alert); }

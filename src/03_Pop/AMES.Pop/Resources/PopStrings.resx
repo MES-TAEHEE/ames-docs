@@ -198,6 +198,7 @@
   <data name="WoClosed" xml:space="preserve"><value>마감</value></data>
   <data name="WoConfirm" xml:space="preserve"><value>작업지시 접수</value></data>
   <data name="WoConfirmPreStartChecklist" xml:space="preserve"><value>작업지시 접수 · 사전 점검</value></data>
+  <data name="WoActiveNow" xml:space="preserve"><value>가동중</value></data>
   <data name="WoInProgress" xml:space="preserve"><value>진행 중</value></data>
   <data name="WoPlanned" xml:space="preserve"><value>계획</value></data>
   <data name="WoProgress" xml:space="preserve"><value>작업지시 진행</value></data>

@@ -51,8 +51,15 @@
                             var isSel    = _selWoId == w.WoId;
                             var isActive = _activeWo?.WoId == w.WoId;
                             var (good, ng) = _woTotals.TryGetValue(w.WoId, out var t) ? t : (0, 0);
-                            <tr class="@(isSel ? "sel" : "")" @onclick="@(() => SelectWo(w))">
-                                <td class="mono" style="text-align:left;">@w.WoNumber @(isActive ? "●" : "")</td>
+                            <tr class="@(isSel ? "sel" : "") @(isActive ? "active" : "")"
+                                @onclick="@(() => SelectWo(w))" @ondblclick="@(() => SelectAndConfirm(w))">
+                                <td class="mono" style="text-align:left;">
+                                    @w.WoNumber
+                                    @if (isActive)
+                                    {
+                                        <span class="injm-active-badge">● @T("WoActiveNow")</span>
+                                    }
+                                </td>
                                 <td class="mono" style="text-align:left;" title="@w.ItemName">@w.ItemNo</td>
                                 <td>@w.OrderQty.ToString("0")</td>
                                 <td class="ok">@w.CompletedQty.ToString("0")</td>
@@ -314,6 +321,12 @@
     {
         _selectedWo = w;
         _selWoId    = w.WoId;
+    }
+
+    private void SelectAndConfirm(WorkOrderDto w)
+    {
+        SelectWo(w);
+        Open(Popup.Wo);
     }
 
     // ── 스캔 확정 (INJ-004 로직) ──────────────────────────────────────

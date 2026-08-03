@@ -198,6 +198,7 @@
   <data name="WoClosed" xml:space="preserve"><value>Closed</value></data>
   <data name="WoConfirm" xml:space="preserve"><value>WO Confirm</value></data>
   <data name="WoConfirmPreStartChecklist" xml:space="preserve"><value>WO CONFIRM · PRE-START CHECKLIST</value></data>
+  <data name="WoActiveNow" xml:space="preserve"><value>ACTIVE</value></data>
   <data name="WoInProgress" xml:space="preserve"><value>In Progress</value></data>
   <data name="WoPlanned" xml:space="preserve"><value>Planned</value></data>
   <data name="WoProgress" xml:space="preserve"><value>WO PROGRESS</value></data>

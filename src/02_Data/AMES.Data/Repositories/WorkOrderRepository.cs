@@ -95,6 +95,9 @@ public sealed class WorkOrderRepository
     /// <summary>The WO this terminal is actively running, if any.</summary>
     public WorkOrderDto? GetActiveForTerminal(string lineId, string terminalId)
     {
+        // Ranked by the most recent WO Confirm (PR_WoAcceptance.AcceptedAt), not
+        // w.ActualStart — ActualStart is set once (first accept) and never bumped
+        // on re-accept, so it can't tell which WO the operator switched to last.
         const string sql = """
             SELECT TOP 1 w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
                    w.OrderQty, w.OpenQty, w.CompletedQty, w.LineID,
@@ -102,10 +105,15 @@ public sealed class WorkOrderRepository
                    ISNULL(w.Priority,5) AS Priority
             FROM   dbo.PP_WorkOrder w
             JOIN   dbo.MD_Item      i ON i.ItemNo = w.ItemNo
+            OUTER APPLY (
+                SELECT MAX(a.AcceptedAt) AS LastAcceptedAt
+                FROM   dbo.PR_WoAcceptance a
+                WHERE  a.WoID = w.WoID AND a.TerminalID = @TerminalID
+            ) la
             WHERE  w.LineID       = @LineID
               AND  w.Status       = 'In Progress'
               AND (w.TerminalLock = @TerminalID OR w.TerminalLock IS NULL)
-            ORDER  BY w.ActualStart DESC;
+            ORDER  BY la.LastAcceptedAt DESC, w.ActualStart DESC;
             """;
 
         return Query(sql, cmd =>
