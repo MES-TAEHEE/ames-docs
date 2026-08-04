@@ -21,7 +21,7 @@ internal static class LabelPrinter
         });
         var zpl = ZplLabelBuilder.Build(new ZplLabel(
             lot.LotCode, lot.ItemNo, lot.ItemName, lot.ColorCode, lot.CavityPos,
-            lot.LineId ?? fallbackLineId ?? "", lot.CreatedTS));
+            lot.PressType, lot.LineId ?? fallbackLineId ?? "", lot.CreatedTS));
         printer.Print(zpl, lot.LotCode);
     }
 }

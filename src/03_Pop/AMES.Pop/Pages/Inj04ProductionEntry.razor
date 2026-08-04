@@ -278,16 +278,7 @@
     {
         try
         {
-            var cfg = AppConfig.Current;
-            var printer = new AMES.Devices.ZplPrinter(new AMES.Devices.ZplPrinterOptions
-            {
-                Mode = cfg.PrinterMode, Host = cfg.PrinterHost,
-                Port = cfg.PrinterPort, OutputDir = cfg.PrinterOutputDir,
-            });
-            var zpl = AMES.Devices.ZplLabelBuilder.Build(new AMES.Devices.ZplLabel(
-                lot.LotCode, lot.ItemNo, lot.ItemName, lot.ColorCode, lot.CavityPos,
-                lot.LineId ?? Session?.LineId ?? "", lot.CreatedTS));
-            printer.Print(zpl, lot.LotCode);
+            LabelPrinter.Print(lot, Session?.LineId);
             var printed = PopServices.InjLots.IncrementPrintedCount(lot.LotId);
             Toasts.Ok($"라벨 재출력: {lot.LotCode} (누적 {printed}회)");
             Refresh();

@@ -7,5 +7,6 @@ public sealed record ZplLabel(
     string?  ItemName,
     string?  ColorCode,
     string?  CavityPos,
+    string?  PressType,
     string?  LineId,
     DateTime ProducedAt);
