@@ -1738,8 +1738,7 @@ public sealed class MasterDataRepository
 
     public record StationRow(
         string StationCode, string? StationName, string? StationNameEn, string? LineID,
-        string? WCID, string? WCName,
-        string? ProcessCode,
+        string? ProcessCode,   // 파생: 라인 → 작업장(WCID) → ProcessCode 상속 (저장 컬럼 아님)
         int? OrderSeq, string? Status,
         string? CreatedBy, DateTime? CreatedTS,
         string? ModifiedBy, DateTime? ModifiedTS);
@@ -1749,11 +1748,12 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             SELECT st.StationCode, st.StationName, st.StationNameEn, st.LineID,
-                   st.WCID, ISNULL(w.WCName,'') AS WCName,
-                   st.ProcessCode, st.OrderSeq, st.Status,
+                   wc.ProcessCode AS ProcessCode,
+                   st.OrderSeq, st.Status,
                    st.CreatedBy, st.CreatedTS, st.ModifiedBy, st.ModifiedTS
             FROM   dbo.MD_Station st
-            LEFT JOIN dbo.MD_WorkCenter w ON w.WCID = st.WCID
+            LEFT JOIN dbo.MD_Line       l  ON l.LineID = st.LineID
+            LEFT JOIN dbo.MD_WorkCenter wc ON wc.WCID  = l.WCID
             ORDER  BY st.LineID, st.OrderSeq, st.StationCode;
             """, conn);
         using var r = cmd.ExecuteReader();
@@ -1764,8 +1764,6 @@ public sealed class MasterDataRepository
                 r["StationName"]   as string,
                 r["StationNameEn"] as string,
                 r["LineID"]        as string,
-                r["WCID"]          as string,
-                r["WCName"]        as string,
                 r["ProcessCode"]   as string,
                 r["OrderSeq"]      is int os ? os : null,
                 r["Status"]        as string,
@@ -1786,23 +1784,20 @@ public sealed class MasterDataRepository
     }
 
     public void InsertStation(
-        string stationId, string? stationName, string? stationNameEn, string? lineId, string? wcId,
-        string? processCode,
+        string stationId, string? stationName, string? stationNameEn, string? lineId,
         int? orderSeq, string? status, string createdBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_Station
-              (StationCode, StationName, StationNameEn, LineID, WCID, ProcessCode, OrderSeq, Status, CreatedBy, CreatedTS)
+              (StationCode, StationName, StationNameEn, LineID, OrderSeq, Status, CreatedBy, CreatedTS)
             VALUES
-              (@ID, @Name, @NameEn, @Line, @WC, @Proc, @Seq, @St, @By, SYSDATETIME());
+              (@ID, @Name, @NameEn, @Line, @Seq, @St, @By, SYSDATETIME());
             """, conn);
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = stationId;
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar, 60).Value = (object?)stationName   ?? DBNull.Value;
         cmd.Parameters.Add("@NameEn",SqlDbType.NVarChar, 60).Value = (object?)stationNameEn ?? DBNull.Value;
         cmd.Parameters.Add("@Line",  SqlDbType.VarChar,  20).Value = (object?)lineId        ?? DBNull.Value;
-        cmd.Parameters.Add("@WC",    SqlDbType.VarChar,  20).Value = (object?)wcId          ?? DBNull.Value;
-        cmd.Parameters.Add("@Proc",  SqlDbType.VarChar,  10).Value = (object?)processCode   ?? DBNull.Value;
         cmd.Parameters.Add("@Seq",   SqlDbType.Int).Value          = (object?)orderSeq      ?? DBNull.Value;
         cmd.Parameters.Add("@St",    SqlDbType.VarChar,  10).Value = (object?)status        ?? DBNull.Value;
         cmd.Parameters.Add("@By",    SqlDbType.VarChar,  50).Value = createdBy;
@@ -1810,14 +1805,13 @@ public sealed class MasterDataRepository
     }
 
     public void UpdateStation(
-        string stationId, string? stationName, string? stationNameEn, string? lineId, string? wcId,
-        string? processCode,
+        string stationId, string? stationName, string? stationNameEn, string? lineId,
         int? orderSeq, string? status, string modifiedBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             UPDATE dbo.MD_Station SET
-              StationName=@Name, StationNameEn=@NameEn, LineID=@Line, WCID=@WC, ProcessCode=@Proc,
+              StationName=@Name, StationNameEn=@NameEn, LineID=@Line,
               OrderSeq=@Seq, Status=@St, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  StationCode=@ID;
             """, conn);
@@ -1825,8 +1819,6 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar,  60).Value = (object?)stationName   ?? DBNull.Value;
         cmd.Parameters.Add("@NameEn",SqlDbType.NVarChar,  60).Value = (object?)stationNameEn ?? DBNull.Value;
         cmd.Parameters.Add("@Line",  SqlDbType.VarChar,   20).Value = (object?)lineId        ?? DBNull.Value;
-        cmd.Parameters.Add("@WC",    SqlDbType.VarChar,   20).Value = (object?)wcId          ?? DBNull.Value;
-        cmd.Parameters.Add("@Proc",  SqlDbType.VarChar,   10).Value = (object?)processCode   ?? DBNull.Value;
         cmd.Parameters.Add("@Seq",   SqlDbType.Int).Value           = (object?)orderSeq      ?? DBNull.Value;
         cmd.Parameters.Add("@St",    SqlDbType.VarChar,   10).Value = (object?)status        ?? DBNull.Value;
         cmd.Parameters.Add("@By",    SqlDbType.NVarChar, 450).Value = modifiedBy;
@@ -1847,7 +1839,7 @@ public sealed class MasterDataRepository
     // ╚══════════════════════════════════════════════════════════════════╝
 
     public record LineRow(
-        string LineID, string? LineName, string? LineNameEn, string? ProcessCode,
+        string LineID, string? LineName, string? LineNameEn,
         string? PlantCode, string? WCID,
         int? DailyCap, string? ShiftPattern,
         bool RfidEnabledFlag, string? Status,
@@ -1858,7 +1850,7 @@ public sealed class MasterDataRepository
     {
         using var conn = _factory.OpenConnection();
         var sql = """
-            SELECT LineID, LineName, LineNameEn, ProcessCode, PlantCode, WCID,
+            SELECT LineID, LineName, LineNameEn, PlantCode, WCID,
                    DailyCap, ShiftPattern,
                    ISNULL(RfidEnabledFlag,0) AS RfidEnabledFlag, Status,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
@@ -1877,7 +1869,6 @@ public sealed class MasterDataRepository
                 (string)r["LineID"],
                 r["LineName"]   as string,
                 r["LineNameEn"] as string,
-                r["ProcessCode"] as string,
                 r["PlantCode"]  as string,
                 r["WCID"] as string,
                 r["DailyCap"] is int dc ? dc : null,
@@ -1901,7 +1892,7 @@ public sealed class MasterDataRepository
     }
 
     public void InsertLine(
-        string lineId, string? lineName, string? lineNameEn, string? processCode,
+        string lineId, string? lineName, string? lineNameEn,
         string? plantCode, string? defaultWcId,
         int? dailyCap, string? shiftPattern,
         bool rfidEnabled, string? status, string createdBy)
@@ -1909,18 +1900,17 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_Line
-              (LineID,LineName,LineNameEn,ProcessCode,PlantCode,WCID,
+              (LineID,LineName,LineNameEn,PlantCode,WCID,
                DailyCap,ShiftPattern,RfidEnabledFlag,Status,
                CreatedBy,CreatedTS)
             VALUES
-              (@ID,@Name,@NameEn,@Proc,@Plant,@WC,
+              (@ID,@Name,@NameEn,@Plant,@WC,
                @Cap,@Shift,@Rfid,@St,
                @By,SYSDATETIME());
             """, conn);
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = lineId;
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar, 50).Value = (object?)lineName    ?? DBNull.Value;
         cmd.Parameters.Add("@NameEn",SqlDbType.NVarChar, 50).Value = (object?)lineNameEn  ?? DBNull.Value;
-        cmd.Parameters.Add("@Proc",  SqlDbType.VarChar,  10).Value = (object?)processCode ?? DBNull.Value;
         cmd.Parameters.Add("@Plant", SqlDbType.VarChar,  20).Value = (object?)plantCode   ?? DBNull.Value;
         cmd.Parameters.Add("@WC",    SqlDbType.VarChar,  20).Value = (object?)defaultWcId ?? DBNull.Value;
         cmd.Parameters.Add("@Cap",   SqlDbType.Int).Value          = (object?)dailyCap    ?? DBNull.Value;
@@ -1932,32 +1922,24 @@ public sealed class MasterDataRepository
     }
 
     public void UpdateLine(
-        string lineId, string? lineName, string? lineNameEn, string? processCode,
+        string lineId, string? lineName, string? lineNameEn,
         string? plantCode, string? defaultWcId,
         int? dailyCap, string? shiftPattern,
         bool rfidEnabled, string? status, string modifiedBy)
     {
         using var conn = _factory.OpenConnection();
-        // 라인 ProcessCode 수정 시 동일 LineID 의 WorkCenter/Station ProcessCode 도 일괄 갱신
         using var cmd = new SqlCommand("""
             UPDATE dbo.MD_Line SET
-              LineName=@Name, LineNameEn=@NameEn, ProcessCode=@Proc,
+              LineName=@Name, LineNameEn=@NameEn,
               PlantCode=@Plant, WCID=@WC,
               DailyCap=@Cap, ShiftPattern=@Shift,
               RfidEnabledFlag=@Rfid, Status=@St,
               ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE LineID=@ID;
-
-            UPDATE dbo.MD_WorkCenter SET ProcessCode=@Proc, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
-            WHERE  DefaultLineID=@ID;
-
-            UPDATE dbo.MD_Station    SET ProcessCode=@Proc, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
-            WHERE  LineID=@ID;
             """, conn);
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = lineId;
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar, 50).Value = (object?)lineName    ?? DBNull.Value;
         cmd.Parameters.Add("@NameEn",SqlDbType.NVarChar, 50).Value = (object?)lineNameEn  ?? DBNull.Value;
-        cmd.Parameters.Add("@Proc",  SqlDbType.VarChar,  10).Value = (object?)processCode ?? DBNull.Value;
         cmd.Parameters.Add("@Plant", SqlDbType.VarChar,  20).Value = (object?)plantCode   ?? DBNull.Value;
         cmd.Parameters.Add("@WC",    SqlDbType.VarChar,  20).Value = (object?)defaultWcId ?? DBNull.Value;
         cmd.Parameters.Add("@Cap",   SqlDbType.Int).Value          = (object?)dailyCap    ?? DBNull.Value;

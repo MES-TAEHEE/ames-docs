@@ -126,11 +126,11 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.DefaultLine"]" />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.DefaultLineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Change="@OnLineChanged" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.DefaultLineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.Process"]" />
-                    <RadzenTextBox Value="@_f.ProcessCode" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text='@(L["Col.Process"] + " *")' />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -189,11 +189,11 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.DefaultLine"]" />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.DefaultLineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Change="@OnLineChanged" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.DefaultLineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.Process"]" />
-                    <RadzenTextBox Value="@_f.ProcessCode" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text='@(L["Col.Process"] + " *")' />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -275,6 +275,8 @@
     IEnumerable<DropDownItem> LineOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
     // 공정 필터: 공통코드 PROCESS ([code] 명칭) — Line.razor Process 콤보와 동일
     IEnumerable<DropDownItem> TypeFilterOptions => _processItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    // 공정 입력(모달): PROCESS 공통코드 — WorkCenter 가 공정의 주인
+    IEnumerable<DropDownItem> ProcessOptions => _processItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     // 상태 필터: 공통코드 ACTIVE_FLAG (ACTIVE/INACTIVE)
     private IEnumerable<DropDownItem> ActiveFilterOptions =>
         _activeFlagItems.Where(a => a.UseFlag).Select(a => new DropDownItem { Value = a.CodeValue ?? "", Text = MasterDataRepository.LocalName(a) });
@@ -322,13 +324,6 @@
 
     void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
 
-    // 라인 선택 시 해당 라인의 ProcessCode 를 복사
-    void OnLineChanged(object? _)
-    {
-        var line = _lineList.FirstOrDefault(l => l.LineID == _f.DefaultLineID);
-        _f.ProcessCode = line?.ProcessCode ?? "";
-    }
-
     void RowRender(RowRenderEventArgs<MasterDataRepository.WorkCenterRow> args)
     {
         if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
@@ -371,6 +366,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.WCID))   { _modalErr = L["Err.WcIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.WCName))  { _modalErr = L["Err.NameRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.ProcessCode)) { _modalErr = $"{L["Col.Process"]}: {L["Opt.Select"]}"; return; }
         if (MD.WorkCenterExists(_f.WCID.Trim()))   { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], _f.WCID.Trim()); return; }
         _busy = true;
         try
@@ -390,6 +386,7 @@
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.WCName)) { _modalErr = L["Err.NameRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.ProcessCode)) { _modalErr = $"{L["Col.Process"]}: {L["Opt.Select"]}"; return; }
         _busy = true;
         try
         {

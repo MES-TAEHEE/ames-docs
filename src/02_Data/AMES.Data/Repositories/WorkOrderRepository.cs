@@ -258,19 +258,24 @@ public sealed class WorkOrderRepository
 
             DELETE FROM dbo.PP_WorkOrderRouting WHERE WoID = @WoID;
 
-            DECLARE @WoLineProc varchar(10) = (SELECT ProcessCode FROM dbo.MD_Line WHERE LineID = @LineID);
+            DECLARE @WoLineProc varchar(10) = (SELECT wc.ProcessCode FROM dbo.MD_Line l
+                                                 JOIN dbo.MD_WorkCenter wc ON wc.WCID = l.WCID
+                                                WHERE l.LineID = @LineID);
 
             INSERT INTO dbo.PP_WorkOrderRouting
                    (WoID, StepSeq, ProcessCode, LineID, StdCycleSec, StdYieldPct, Status, CreatedBy, CreatedTS)
             SELECT @WoID, rs.StepSeq, rs.ProcessCode,
                    CASE WHEN @WoLineProc = rs.ProcessCode THEN @LineID
                         ELSE (SELECT TOP 1 l.LineID FROM dbo.MD_Line l
-                               WHERE l.ProcessCode = rs.ProcessCode
+                               JOIN dbo.MD_WorkCenter wc ON wc.WCID = l.WCID
+                               WHERE wc.ProcessCode = rs.ProcessCode
                                  AND ISNULL(l.Status, 'ACTIVE') <> 'INACTIVE'
                                ORDER BY l.LineID) END,
                    (SELECT TOP 1 CAST(b.StdCycleTime AS int) FROM dbo.MD_Bop b
                       LEFT JOIN dbo.MD_Station st ON st.StationCode = b.StationCode
-                      WHERE b.ItemNo = @ItemNo AND b.RoutingType = @RT AND st.ProcessCode = rs.ProcessCode
+                      LEFT JOIN dbo.MD_Line     sl ON sl.LineID     = st.LineID
+                      LEFT JOIN dbo.MD_WorkCenter sw ON sw.WCID     = sl.WCID
+                      WHERE b.ItemNo = @ItemNo AND b.RoutingType = @RT AND sw.ProcessCode = rs.ProcessCode
                       ORDER BY b.StepSeq),
                    NULL, 'Pending', @Actor, SYSDATETIME()
             FROM   dbo.MD_RoutingStep rs

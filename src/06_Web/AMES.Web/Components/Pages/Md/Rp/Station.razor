@@ -48,8 +48,6 @@
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Station.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
             <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
-            <RadzenLabel Text="@L["Col.Process"]" Component="DropDownType" />
-            <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@TypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
 
@@ -75,27 +73,6 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r"><span class="dim">@(r.LineID ?? "—")</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="WCID" Title="@L["Col.WorkCenter"]" Width="130px">
-                <Template Context="r">
-                    @if (!string.IsNullOrEmpty(r.WCID))
-                    {
-                        <span class="code">@r.WCID</span>
-                        @if (!string.IsNullOrEmpty(r.WCName)) { <span class="dim" style="font-size:.8em;margin-left:4px;">@r.WCName</span> }
-                    }
-                    else { <span class="dim">—</span> }
-                </Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="ProcessCode" Title="@L["Col.Process"]" Width="160px">
-                <Template Context="r">
-                    @if (r.ProcessCode != null)
-                    {
-                        var procName = _processItems.FirstOrDefault(c2 => c2.CodeValue == r.ProcessCode) is { } pf ? MasterDataRepository.LocalName(pf) : null;
-                        <span class="pill @Ui.ProcessClass(r.ProcessCode)">@r.ProcessCode</span>
-                        @if (procName != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@procName</span> }
-                    }
-                    else { <span class="dim">—</span> }
-                </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="OrderSeq" Title="@L["Col.Seq"]" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="r">@(r.OrderSeq?.ToString() ?? "—")</Template>
@@ -137,19 +114,8 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.Process"]" />
-                    <RadzenDropDown @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Line"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-            </RadzenRow>
-
-            <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.WorkCenter"]" />
-                    <RadzenDropDown @bind-Value="_f.WCID" Data="@WcOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.OrderSeq"]" />
@@ -196,19 +162,8 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.Process"]" />
-                    <RadzenDropDown @bind-Value="_f.ProcessCode" Data="@ProcessOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Line"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-            </RadzenRow>
-
-            <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.WorkCenter"]" />
-                    <RadzenDropDown @bind-Value="_f.WCID" Data="@WcOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.OrderSeq"]" />
@@ -253,14 +208,11 @@
     List<MasterDataRepository.StationRow>  _allRows       = new();
     List<MasterDataRepository.StationRow>  _rows          = new();
     List<MasterDataRepository.CodeItemRow> _stationStatus = new();
-    List<MasterDataRepository.CodeItemRow> _processItems  = new();
     List<MasterDataRepository.LineRow>     _lineList      = new();
-    List<MasterDataRepository.WorkCenterRow> _wcList      = new();
     MasterDataRepository.StationRow? _sel;
 
     string  _fSearch = "";
     string? _fLine;
-    string? _fType;
     string? _fStatus;
     string _modal = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
@@ -275,11 +227,7 @@
 
     private IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
     private IEnumerable<DropDownItem> LineOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
-    private IEnumerable<DropDownItem> WcOptions => _wcList.Where(w => w.ActiveFlag).Select(w => new DropDownItem { Value = w.WCID ?? "", Text = $"[{w.WCID}]{(w.WCName != null ? $" {w.WCName}" : "")}" });
-    private IEnumerable<DropDownItem> TypeFilterOptions => _allRows.Select(r => r.ProcessCode).Where(x => x != null).Distinct().OrderBy(x => x).Select(t => new DropDownItem { Value = t!, Text = t! });
     private IEnumerable<DropDownItem> StatusOptions => _stationStatus.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" });
-    // 라우팅 공정만 (PROCESS 공통코드 중 Attribute1='ROUTING')
-    private IEnumerable<DropDownItem> ProcessOptions => _processItems.Where(p => p.UseFlag && p.Attribute1 == "ROUTING").Select(p => new DropDownItem { Value = p.CodeValue ?? "", Text = $"[{p.CodeValue}] {MasterDataRepository.LocalName(p)}" });
 
     protected override async Task OnInitializedAsync()
     {
@@ -288,9 +236,7 @@
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/rp/station");
         try { _stationStatus = MD.ListCodeItems("STATION_STATUS"); } catch { }
-        try { _processItems = MD.ListCodeItems("PROCESS"); } catch { }
         try { _lineList = MD.ListLines(); } catch { }
-        try { _wcList = MD.ListWorkCenters(); } catch { }
         Reload();
     }
 
@@ -318,7 +264,6 @@
             r.StationCode.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.StationName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fLine) || r.LineID == _fLine) &&
-        (string.IsNullOrEmpty(_fType) || r.ProcessCode == _fType) &&
         (string.IsNullOrEmpty(_fStatus) || r.Status == _fStatus)
     ).ToList();
     }
@@ -352,8 +297,6 @@
             StationName   = r.StationName   ?? "",
             StationNameEn = r.StationNameEn ?? "",
             LineID        = r.LineID        ?? "",
-            WCID          = r.WCID          ?? "",
-            ProcessCode = r.ProcessCode ?? "",
             OrderSeq    = r.OrderSeq,
             Status      = r.Status      ?? "ACTIVE",
         };
@@ -374,8 +317,8 @@
         _busy = true;
         try
         {
-            MD.InsertStation(_f.StationCode.Trim(), _f.StationName, NE(_f.StationNameEn), NE(_f.LineID), NE(_f.WCID),
-                NE(_f.ProcessCode), _f.OrderSeq, _f.Status, _actor);
+            MD.InsertStation(_f.StationCode.Trim(), _f.StationName, NE(_f.StationNameEn), NE(_f.LineID),
+                _f.OrderSeq, _f.Status, _actor);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.StationName} {L["Msg.Created"]}", false);
         }
@@ -391,8 +334,8 @@
         _busy = true;
         try
         {
-            MD.UpdateStation(_sel.StationCode, _f.StationName, NE(_f.StationNameEn), NE(_f.LineID), NE(_f.WCID),
-                NE(_f.ProcessCode), _f.OrderSeq, _f.Status, _actor);
+            MD.UpdateStation(_sel.StationCode, _f.StationName, NE(_f.StationNameEn), NE(_f.LineID),
+                _f.OrderSeq, _f.Status, _actor);
             var name = _f.StationName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -430,8 +373,6 @@
         public string StationName    { get; set; } = "";
         public string StationNameEn  { get; set; } = "";
         public string LineID       { get; set; } = "";
-        public string WCID         { get; set; } = "";
-        public string ProcessCode  { get; set; } = "";
         public int?   OrderSeq     { get; set; }
         public string Status       { get; set; } = "ACTIVE";
     }

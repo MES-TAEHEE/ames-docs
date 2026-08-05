@@ -291,8 +291,8 @@ GO
 CREATE TABLE dbo.MD_WorkCenter (
   [WCID]                      VARCHAR(20)          NOT NULL,
   [WCName]                    NVARCHAR(50)             NULL,
-  [DefaultLineID]             VARCHAR(20)              NULL,  -- FK -> MD_Line.LineID
-  [ProcessCode]               VARCHAR(10)              NULL,  -- MD_Line.ProcessCode 복사
+  [DefaultLineID]             VARCHAR(20)              NULL,  -- 기본 라인(표시용, 권위 아님)
+  [ProcessCode]               VARCHAR(10)          NOT NULL,  -- 공정 소유(라인/스테이션이 상속)
   [DailyCapacity]             INT                      NULL,
   [StdManpower]               INT                      NULL,
   [CostCenterCode]            VARCHAR(20)              NULL,
@@ -646,9 +646,8 @@ CREATE TABLE dbo.MD_Line (
   [LineID]                    VARCHAR(20)          NOT NULL,
   [LineName]                  NVARCHAR(50)             NULL,
   [LineNameEn]                NVARCHAR(50)             NULL,
-  [ProcessCode]               VARCHAR(10)              NULL,  -- MD_CodeItem(PROCESS)
   [PlantCode]                 VARCHAR(20)              NULL,
-  [WCID]                      VARCHAR(20)              NULL,  -- FK -> MD_WorkCenter.WCID
+  [WCID]                      VARCHAR(20)          NOT NULL,  -- FK -> MD_WorkCenter.WCID (소속 작업장, 공정 상속)
   [DailyCap]                  INT                      NULL,
   [ShiftPattern]              VARCHAR(20)              NULL,
   [RfidEnabledFlag]           BIT                      NULL,
@@ -666,9 +665,7 @@ CREATE TABLE dbo.MD_Station (
   [StationCode]               VARCHAR(20)          NOT NULL,
   [StationName]               NVARCHAR(60)             NULL,
   [StationNameEn]             NVARCHAR(60)             NULL,
-  [LineID]                    VARCHAR(20)              NULL,  -- FK -> MD_Line.LineID
-  [WCID]                      VARCHAR(20)              NULL,  -- FK -> MD_WorkCenter.WCID
-  [ProcessCode]               VARCHAR(10)              NULL,  -- MD_Line.ProcessCode 복사
+  [LineID]                    VARCHAR(20)              NULL,  -- FK -> MD_Line.LineID (공정은 라인→작업장에서 상속)
   [OrderSeq]                  INT                      NULL,
   [Status]                    VARCHAR(10)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
@@ -3489,13 +3486,20 @@ INSERT INTO dbo.MD_Vendor (VendorID, VendorName, VendorType, VendorCategory, Pho
   ('SUP-HAARTZ',N'Haartz Corporation',    'SUPPLIER', N'Fabric',         '(978) 555-0421', 'fabric@haartz.us',     1, 99.00, 'Net 30', 1, 'admin', SYSDATETIME());
 GO
 
--- Production Lines
-INSERT INTO dbo.MD_Line (LineID, LineName, ProcessCode, PlantCode, DailyCap, ShiftPattern, RfidEnabledFlag, Status, CreatedBy, CreatedTS) VALUES
-  ('LINE-INJ-01', N'Injection Line 1 (650T)',  'INJECTION', 'SAV', 4800, '2-SHIFT', 0, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-INJ-02', N'Injection Line 2 (850T)',  'INJECTION', 'SAV', 3600, '2-SHIFT', 0, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-IMG-01', N'Wrapping Line 1',           'WRAPPING',  'SAV', 1200, '2-SHIFT', 0, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-PNT-01', N'Paint Line 1 (Powder)',     'PAINTING',  'GEO',  800, '3-SHIFT', 1, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-PNT-02', N'Paint Line 2 (Liquid)',     'PAINTING',  'GEO',  600, '3-SHIFT', 1, 'ACTIVE', 'admin', SYSDATETIME());
+-- Work Centers (공정 소유 = 라인들의 논리 묶음; 라인/스테이션이 여기서 공정 상속)
+INSERT INTO dbo.MD_WorkCenter (WCID, WCName, ProcessCode, ActiveFlag, CreatedBy, CreatedTS) VALUES
+  ('WC-INJ', N'Injection Work Center', 'INJECTION', 1, 'admin', SYSDATETIME()),
+  ('WC-IMG', N'Wrapping Work Center',  'WRAPPING',  1, 'admin', SYSDATETIME()),
+  ('WC-PNT', N'Paint Work Center',     'PAINTING',  1, 'admin', SYSDATETIME());
+GO
+
+-- Production Lines (WCID 필수 — 공정은 소속 작업장에서 상속)
+INSERT INTO dbo.MD_Line (LineID, LineName, WCID, PlantCode, DailyCap, ShiftPattern, RfidEnabledFlag, Status, CreatedBy, CreatedTS) VALUES
+  ('LINE-INJ-01', N'Injection Line 1 (650T)',  'WC-INJ', 'SAV', 4800, '2-SHIFT', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-INJ-02', N'Injection Line 2 (850T)',  'WC-INJ', 'SAV', 3600, '2-SHIFT', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-IMG-01', N'Wrapping Line 1',           'WC-IMG', 'SAV', 1200, '2-SHIFT', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-PNT-01', N'Paint Line 1 (Powder)',     'WC-PNT', 'GEO',  800, '3-SHIFT', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-PNT-02', N'Paint Line 2 (Liquid)',     'WC-PNT', 'GEO',  600, '3-SHIFT', 1, 'ACTIVE', 'admin', SYSDATETIME());
 GO
 
 -- Items (LQ2 rear door trim part master — docs/PartMaster_LQ2.xls)
