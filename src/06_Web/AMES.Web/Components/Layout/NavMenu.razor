@@ -5,6 +5,7 @@
 @inject AMES.Data.Repositories.SysRepository Sys
 @inject AMES.Data.Repositories.MasterDataRepository MD
 @inject AMES.Web.Services.PermissionService PermSvc
+@inject AMES.Web.Services.AppLanguageState Lang
 @using System.Globalization
 @using System.Net
 @using System.Text.Json
@@ -98,8 +99,15 @@
                             <span class="ames-nav-sub-letter">@g.Letter</span>
                             <div class="ames-nav-sub-body">
                                 <div class="ames-nav-sub-t">@SL(g.Ko, g.En)</div>
-                                <div class="ames-nav-sub-s">@SL(g.En, g.Ko) · @g.Items.Count</div>
+                                @if (_bilingual)
+                                {
+                                    <div class="ames-nav-sub-s">@SL(g.En, g.Ko) · @g.Items.Count</div>
+                                }
                             </div>
+                            @if (!_bilingual)
+                            {
+                                <span class="ames-nav-section-n">@g.Items.Count</span>
+                            }
                             <span class="ames-nav-sub-chevron">@(IsSubOpen(g.Key) ? "▾" : "▸")</span>
                         </div>
                         @if (IsSubOpen(g.Key))
@@ -137,6 +145,7 @@
     HashSet<string> _openSub = new();
     HashSet<string> _favorites = new();
     string          _lang = "ko";
+    bool            _bilingual = true;   // LANGUAGE_DEFAULT 비활성 시 false → 2차(부) 언어 표기 숨김
     string          _query = "";
     bool            _favOpen = true;   // 즐겨찾기 섹션: 기본 펼침
     bool            _loaded;   // localStorage 복원 완료 전엔 저장 스킵
@@ -359,6 +368,7 @@
     protected override async Task OnInitializedAsync()
     {
         _lang = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        _bilingual = Lang.SwitcherVisible;   // 비활성(en-US 강제) 시 단일 언어만 표기
         _url  = Nav.ToBaseRelativePath(Nav.Uri);
 
         LoadItems();
@@ -527,6 +537,8 @@
     MarkupString NL(string ko, string en)
     {
         var (p, s) = _lang == "en" ? (en, ko) : (ko, en);
+        if (!_bilingual)
+            return new MarkupString(WebUtility.HtmlEncode(p));
         return new MarkupString(
             $"{WebUtility.HtmlEncode(p)}<span style=\"display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;\">{WebUtility.HtmlEncode(s)}</span>");
     }

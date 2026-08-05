@@ -338,6 +338,11 @@ a:hover { color: #c4dafe; }
     font-family: 'JetBrains Mono', monospace;
 }
 .ames-nav-sub-chevron { font-size: 11px; opacity: .6; flex-shrink: 0; }
+/* 단일 언어(한글 비활성) 시 서브그룹 화면 수 배지 — 메인 섹션과 유사, MD 퍼플 */
+.ames-nav-sub .ames-nav-section-n {
+    flex-shrink: 0;
+    background: rgba(167,139,250,.14); color: #a78bfa;
+}
 
 .ames-nav-link {
     display: flex; align-items: center; gap: 9px;
