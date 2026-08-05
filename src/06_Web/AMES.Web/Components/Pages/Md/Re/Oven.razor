@@ -68,7 +68,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="OvenName" Title="@L["Col.Name"]">
                 <Template Context="r">@(r.OvenName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="dim">@(r.LineID ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="ZoneCount" Title="@L["Col.ZoneCount"]" TextAlign="TextAlign.Right" Width="90px">

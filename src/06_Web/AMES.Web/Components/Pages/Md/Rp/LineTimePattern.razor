@@ -83,7 +83,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="PatternName" Title="@L["Col.PatternName"]">
                 <Template Context="r">@(r.PatternName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="dim">@(r.LineID ?? L["MD.LineTimePattern.Global"].Value)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="DayType" Title="@L["Col.DayType"]" TextAlign="TextAlign.Center" Width="110px">

@@ -4854,6 +4854,9 @@
   <data name="MD.Bop.RoutingFilter" xml:space="preserve">
     <value>Routing {0} filter active</value>
   </data>
+  <data name="MD.Bop.RoutingConflict" xml:space="preserve">
+    <value>Differs from this item's existing steps' routing ({0}) — current {1}. Continue registering?</value>
+  </data>
   <data name="MD.Bop.AddStep" xml:space="preserve">
     <value>Add step</value>
   </data>

@@ -100,7 +100,6 @@
                             </div>
                             <div class="dim" style="font-size:.8em;margin-top:2px;">
                                 @string.Format(L["MD.Bop.StepCount"], _steps.Count)
-                                @if (_rtFilter != null) { <span> · @string.Format(L["MD.Bop.RoutingFilter"], _rtFilter)</span> }
                             </div>
                         </div>
                         @if (_canEdit)
@@ -113,20 +112,6 @@
                     </div>
                 </div>
 
-                @* ─── 라우팅 타입 필터 ─── *@
-                @if (_routingTypes.Count > 0)
-                {
-                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.35rem" Wrap="FlexWrap.Wrap" Style="padding-bottom:8px;">
-                        <span class="dim" style="font-size:.79em;font-family:'JetBrains Mono',monospace;letter-spacing:.5px;">Routing:</span>
-                        <RadzenButton Text="@L["Btn.All"]" ButtonStyle="@(_rtFilter == null ? ButtonStyle.Info : ButtonStyle.Light)" Size="ButtonSize.ExtraSmall" Click='() => SetRtFilter(null)' class="ames-rz-btn" />
-                        @foreach (var rt in _routingTypes)
-                        {
-                            var rtCap = rt;
-                            <RadzenButton Text="@rt" ButtonStyle="@(_rtFilter == rt ? ButtonStyle.Info : ButtonStyle.Light)" Size="ButtonSize.ExtraSmall" Click="() => SetRtFilter(rtCap)" class="ames-rz-btn" />
-                        }
-                    </RadzenStack>
-                }
-
                 @* ─── 공정 단계 그리드 ─── *@
                 <div style="flex:1;min-height:0;overflow:hidden;">
                     <RadzenDataGrid @ref="_stepGrid" Page="OnStepPage" TItem="MasterDataRepository.BopRow" Data="_steps" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
@@ -138,7 +123,7 @@
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StepSeq" Title="@L["Col.Seq"]" Width="60px" TextAlign="TextAlign.Center">
                                 <Template Context="step"><span class="code">@step.StepSeq</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StationCode" Title="@L["Col.Station"]">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StationCode" Title="@L["Col.Station"]" Width="250px">
                                 <Template Context="step">
                                     @if (!string.IsNullOrEmpty(step.StationCode))
                                     {
@@ -147,7 +132,7 @@
                                     @{ var stName = MasterDataRepository.LocalName(step.StationName, step.StationNameEn); }
                                     @if (!string.IsNullOrEmpty(stName))
                                     {
-                                        <div class="dim" style="font-size:.8em;">@stName</div>
+                                        <span class="dim" style="font-size:.8em;margin-left:6px;">@stName</span>
                                     }
                                 </Template>
                             </RadzenDataGridColumn>
@@ -195,6 +180,15 @@
 
             @StepFormFields(false)
 
+            @if (_confirmRouting)
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@_routingWarn</span>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmRouting = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@SaveCreate" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
+            }
+
             @if (!string.IsNullOrEmpty(_modalErr))
             {
                 <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
@@ -220,6 +214,15 @@
             </div>
 
             @StepFormFields(true)
+
+            @if (_confirmRouting)
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@_routingWarn</span>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmRouting = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@SaveEdit" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
+            }
 
             @if (_confirmDelete)
             {
@@ -302,8 +305,8 @@
     List<string>                             _routingProcesses = new();
     MasterDataRepository.BopItemRow?         _selItem;
     MasterDataRepository.BopKpiRow           _kpi = new(0, 0, null, 0);
-    List<string> _routingTypes = new();
-    string? _rtFilter;
+    bool    _confirmRouting;
+    string  _routingWarn = "";
     string  _search = "";
 
     List<MasterDataRepository.BopItemRow> _copyCandidates = new();
@@ -361,21 +364,12 @@
 
     void LoadSteps()
     {
-        if (_selItem is null) { _steps = new(); _routingTypes = new(); return; }
-        try
-        {
-            _steps = MD.ListBopSteps(_selItem.ItemNo, _rtFilter);
-            _routingTypes = MD.ListBopSteps(_selItem.ItemNo)
-                .Select(s => s.RoutingType ?? "")
-                .Where(rt => rt.Length > 0)
-                .Distinct().Order().ToList();
-        }
-        catch { _steps = new(); _routingTypes = new(); }
+        if (_selItem is null) { _steps = new(); return; }
+        try { _steps = MD.ListBopSteps(_selItem.ItemNo); }
+        catch { _steps = new(); }
     }
 
-    void SelectItem(MasterDataRepository.BopItemRow item) { _selItem = item; _rtFilter = null; LoadSteps(); }
-
-    void SetRtFilter(string? rt) { _rtFilter = rt; LoadSteps(); }
+    void SelectItem(MasterDataRepository.BopItemRow item) { _selItem = item; LoadSteps(); }
 
     void OnSearchChanged(string value) => _search = value ?? "";
 
@@ -402,7 +396,7 @@
     string ItemRouting(string? itemNo, string? fallback = null)
         => _itemList.FirstOrDefault(i => i.ItemNo == itemNo)?.RoutingType is { Length: > 0 } rt ? rt : (fallback ?? "");
 
-    void CloseModal() { _modal = ""; _modalErr = ""; _confirmDelete = false; _copyConfirm = false; _copySource = ""; }
+    void CloseModal() { _modal = ""; _modalErr = ""; _confirmDelete = false; _confirmRouting = false; _copyConfirm = false; _copySource = ""; }
 
     void OnBgDown()  => _bgDown = true;
     void OnBgClick() { if (_bgDown) CloseModal(); _bgDown = false; }
@@ -458,7 +452,7 @@
             StepSeq     = nextSeq,
             ProcessCode = _routingProcesses.FirstOrDefault() ?? "",
         };
-        _confirmDelete = false; _modalErr = ""; _modal = "create";
+        _confirmDelete = false; _confirmRouting = false; _modalErr = ""; _modal = "create";
     }
 
     void OpenStepEdit(MasterDataRepository.BopRow step)
@@ -479,7 +473,7 @@
             StepDesc    = step.StepDescription ?? "",
             ActiveFlag  = step.ActiveFlag,
         };
-        _confirmDelete = false; _modalErr = ""; _modal = "edit";
+        _confirmDelete = false; _confirmRouting = false; _modalErr = ""; _modal = "edit";
     }
 
     // 라우팅 타입의 공정 시퀀스(ProcessCode)를 순서대로 로드 (MD_RoutingStep 기준)
@@ -501,6 +495,22 @@
             _f.StationCode = "";
     }
 
+    // 추가/수정하려는 단계의 라우팅이 이 품목에 기존 등록된 단계들의 라우팅과 다른지 판정
+    // (RoutingType 은 품목값 자동이라, 기존 단계가 다른 라우팅이면 데이터 불일치 → 확인)
+    bool RoutingConflicts(out string existing)
+    {
+        existing = "";
+        var others = _steps
+            .Where(s => _modal != "edit" || s.BOPID != _f.BopId)
+            .Select(s => s.RoutingType)
+            .Where(rt => !string.IsNullOrEmpty(rt) && rt != _f.RoutingType)
+            .Distinct()
+            .ToList();
+        if (others.Count == 0) return false;
+        existing = string.Join(", ", others);
+        return true;
+    }
+
     async Task SaveCreate()
     {
         _modalErr = "";
@@ -511,6 +521,8 @@
         if (!string.IsNullOrWhiteSpace(_f.StationCode) && _routingProcesses.Count > 0
             && !_routingProcesses.Contains(StationProcess(_f.StationCode)))
         { _modalErr = L["MD.Bop.Err.StationRouting"]; return; }
+        if (!_confirmRouting && RoutingConflicts(out var exRtC))
+        { _routingWarn = string.Format(L["MD.Bop.RoutingConflict"].Value, exRtC, _f.RoutingType); _confirmRouting = true; return; }
         _busy = true;
         try
         {
@@ -544,6 +556,8 @@
         if (!string.IsNullOrWhiteSpace(_f.StationCode) && _routingProcesses.Count > 0
             && !_routingProcesses.Contains(StationProcess(_f.StationCode)))
         { _modalErr = L["MD.Bop.Err.StationRouting"]; return; }
+        if (!_confirmRouting && RoutingConflicts(out var exRtE))
+        { _routingWarn = string.Format(L["MD.Bop.RoutingConflict"].Value, exRtE, _f.RoutingType); _confirmRouting = true; return; }
         _busy = true;
         try
         {

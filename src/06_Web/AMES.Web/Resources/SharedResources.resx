@@ -4854,6 +4854,9 @@
   <data name="MD.Bop.RoutingFilter" xml:space="preserve">
     <value>Routing {0} 필터 적용 중</value>
   </data>
+  <data name="MD.Bop.RoutingConflict" xml:space="preserve">
+    <value>이 품목에 기존 등록된 공정의 라우팅({0})과 다릅니다(현재 {1}). 계속 등록하시겠습니까?</value>
+  </data>
   <data name="MD.Bop.AddStep" xml:space="preserve">
     <value>단계 추가</value>
   </data>

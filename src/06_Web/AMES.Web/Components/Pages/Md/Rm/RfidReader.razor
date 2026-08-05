@@ -66,7 +66,7 @@
                 <Template Context="r"><span class="code">@r.ReaderID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="ReaderName" Title="@L["Col.ReaderName"]" />
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="dim">@(r.LineID ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="GateLocation" Title="@L["Col.Gate"]" TextAlign="TextAlign.Center" Width="100px">
