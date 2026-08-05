@@ -291,7 +291,7 @@ GO
 CREATE TABLE dbo.MD_WorkCenter (
   [WCID]                      VARCHAR(20)          NOT NULL,
   [WCName]                    NVARCHAR(50)             NULL,
-  [LineID]                    VARCHAR(20)              NULL,  -- FK -> MD_Line.LineID
+  [DefaultLineID]             VARCHAR(20)              NULL,  -- FK -> MD_Line.LineID
   [ProcessCode]               VARCHAR(10)              NULL,  -- MD_Line.ProcessCode 복사
   [DailyCapacity]             INT                      NULL,
   [StdManpower]               INT                      NULL,
@@ -648,7 +648,7 @@ CREATE TABLE dbo.MD_Line (
   [LineNameEn]                NVARCHAR(50)             NULL,
   [ProcessCode]               VARCHAR(10)              NULL,  -- MD_CodeItem(PROCESS)
   [PlantCode]                 VARCHAR(20)              NULL,
-  [DefaultWCID]               VARCHAR(20)              NULL,  -- FK -> MD_WorkCenter.WCID
+  [WCID]                      VARCHAR(20)              NULL,  -- FK -> MD_WorkCenter.WCID
   [DailyCap]                  INT                      NULL,
   [ShiftPattern]              VARCHAR(20)              NULL,
   [RfidEnabledFlag]           BIT                      NULL,

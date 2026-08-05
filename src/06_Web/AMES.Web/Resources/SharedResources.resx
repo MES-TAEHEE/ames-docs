@@ -210,6 +210,9 @@
   <data name="Col.Type" xml:space="preserve">
     <value>유형</value>
   </data>
+  <data name="Col.DefaultLine" xml:space="preserve">
+    <value>기준 라인</value>
+  </data>
   <data name="Col.Line" xml:space="preserve">
     <value>라인</value>
   </data>
@@ -1428,8 +1431,8 @@
   <data name="MD.Line.Lbl.LineNameEn" xml:space="preserve">
     <value>라인명 (영문)</value>
   </data>
-  <data name="MD.Line.Lbl.DefaultWcid" xml:space="preserve">
-    <value>기준 작업장 (WCID)</value>
+  <data name="MD.Line.Lbl.Wcid" xml:space="preserve">
+    <value>작업장 (WCID)</value>
   </data>
   <data name="MD.Line.Lbl.DailyCap" xml:space="preserve">
     <value>일 생산 능력 (EA)</value>

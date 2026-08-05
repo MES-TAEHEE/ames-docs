@@ -88,8 +88,8 @@
                     <span class="dim">@(plantName ?? "—")</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="DefaultWCID" Title="@L["Col.WCID"]" Width="80px">
-                <Template Context="r"><span class="dim" style="font-size:12px;">@(r.DefaultWCID ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="WCID" Title="@L["Col.WCID"]" Width="80px">
+                <Template Context="r"><span class="dim" style="font-size:12px;">@(r.WCID ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="DailyCap" Title="@L["Col.Capacity"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">@(r.DailyCap?.ToString("N0") ?? "—")</Template>
@@ -156,8 +156,8 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["MD.Line.Lbl.DefaultWcid"]" />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.DefaultWCID" Data="@WcOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["MD.Line.Lbl.Wcid"]" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.WCID" Data="@WcOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["MD.Line.Lbl.DailyCap"]" />
@@ -224,8 +224,8 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["MD.Line.Lbl.DefaultWcid"]" />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.DefaultWCID" Data="@WcOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["MD.Line.Lbl.Wcid"]" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.WCID" Data="@WcOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["MD.Line.Lbl.DailyCap"]" />
@@ -374,7 +374,7 @@
             LineNameEn      = r.LineNameEn      ?? "",
             ProcessCode     = r.ProcessCode     ?? "",
             PlantCode         = r.PlantCode         ?? "",
-            DefaultWCID     = r.DefaultWCID     ?? "",
+            WCID            = r.WCID            ?? "",
             DailyCap        = r.DailyCap,
             ShiftPattern    = r.ShiftPattern    ?? "",
             RfidEnabledFlag = r.RfidEnabledFlag,
@@ -398,7 +398,7 @@
         try
         {
             MD.InsertLine(_f.LineID.Trim(), _f.LineName, NE(_f.LineNameEn), NE(_f.ProcessCode),
-                NE(_f.PlantCode), NE(_f.DefaultWCID),
+                NE(_f.PlantCode), NE(_f.WCID),
                 _f.DailyCap, NE(_f.ShiftPattern),
                 _f.RfidEnabledFlag, _f.Status, _actor);
             CloseModal(); await ReloadRestorePage();
@@ -417,7 +417,7 @@
         try
         {
             MD.UpdateLine(_sel.LineID, _f.LineName, NE(_f.LineNameEn), NE(_f.ProcessCode),
-                NE(_f.PlantCode), NE(_f.DefaultWCID),
+                NE(_f.PlantCode), NE(_f.WCID),
                 _f.DailyCap, NE(_f.ShiftPattern),
                 _f.RfidEnabledFlag, _f.Status, _actor);
             var name = _f.LineName;
@@ -458,7 +458,7 @@
         public string LineNameEn      { get; set; } = "";
         public string ProcessCode     { get; set; } = "";
         public string PlantCode         { get; set; } = "";
-        public string DefaultWCID     { get; set; } = "";
+        public string WCID            { get; set; } = "";
         public int?   DailyCap        { get; set; }
         public string ShiftPattern    { get; set; } = "";
         public bool   RfidEnabledFlag { get; set; } = false;

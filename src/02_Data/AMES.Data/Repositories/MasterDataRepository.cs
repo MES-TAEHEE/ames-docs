@@ -1621,7 +1621,7 @@ public sealed class MasterDataRepository
     // ╚══════════════════════════════════════════════════════════════════╝
 
     public record WorkCenterRow(
-        string WCID, string? WCName, string? LineID, string? ProcessCode,
+        string WCID, string? WCName, string? DefaultLineID, string? ProcessCode,
         int? DailyCapacity, int? StdManpower,
         string? CostCenterCode, string? LocationDesc, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS,
@@ -1631,7 +1631,7 @@ public sealed class MasterDataRepository
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            SELECT WCID, WCName, LineID, ProcessCode,
+            SELECT WCID, WCName, DefaultLineID, ProcessCode,
                    DailyCapacity, StdManpower, CostCenterCode, LocationDesc,
                    ISNULL(ActiveFlag,1) AS ActiveFlag,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
@@ -1644,7 +1644,7 @@ public sealed class MasterDataRepository
             list.Add(new WorkCenterRow(
                 (string)r["WCID"],
                 r["WCName"]         as string,
-                r["LineID"]         as string,
+                r["DefaultLineID"]  as string,
                 r["ProcessCode"]    as string,
                 r["DailyCapacity"]  is int dc ? dc : null,
                 r["StdManpower"]    is int sm ? sm : null,
@@ -1676,7 +1676,7 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_WorkCenter
-              (WCID, WCName, LineID, ProcessCode, DailyCapacity, StdManpower,
+              (WCID, WCName, DefaultLineID, ProcessCode, DailyCapacity, StdManpower,
                CostCenterCode, LocationDesc, ActiveFlag, CreatedBy, CreatedTS)
             VALUES
               (@ID, @Name, @Line, @Proc, @Cap, @Man,
@@ -1704,7 +1704,7 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             UPDATE dbo.MD_WorkCenter SET
-              WCName=@Name, LineID=@Line, ProcessCode=@Proc,
+              WCName=@Name, DefaultLineID=@Line, ProcessCode=@Proc,
               DailyCapacity=@Cap, StdManpower=@Man,
               CostCenterCode=@CC, LocationDesc=@Loc,
               ActiveFlag=@Act, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
@@ -1848,7 +1848,7 @@ public sealed class MasterDataRepository
 
     public record LineRow(
         string LineID, string? LineName, string? LineNameEn, string? ProcessCode,
-        string? PlantCode, string? DefaultWCID,
+        string? PlantCode, string? WCID,
         int? DailyCap, string? ShiftPattern,
         bool RfidEnabledFlag, string? Status,
         string? CreatedBy, DateTime? CreatedTS,
@@ -1858,7 +1858,7 @@ public sealed class MasterDataRepository
     {
         using var conn = _factory.OpenConnection();
         var sql = """
-            SELECT LineID, LineName, LineNameEn, ProcessCode, PlantCode, DefaultWCID,
+            SELECT LineID, LineName, LineNameEn, ProcessCode, PlantCode, WCID,
                    DailyCap, ShiftPattern,
                    ISNULL(RfidEnabledFlag,0) AS RfidEnabledFlag, Status,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
@@ -1879,7 +1879,7 @@ public sealed class MasterDataRepository
                 r["LineNameEn"] as string,
                 r["ProcessCode"] as string,
                 r["PlantCode"]  as string,
-                r["DefaultWCID"] as string,
+                r["WCID"] as string,
                 r["DailyCap"] is int dc ? dc : null,
                 r["ShiftPattern"] as string,
                 (bool)r["RfidEnabledFlag"],
@@ -1909,7 +1909,7 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_Line
-              (LineID,LineName,LineNameEn,ProcessCode,PlantCode,DefaultWCID,
+              (LineID,LineName,LineNameEn,ProcessCode,PlantCode,WCID,
                DailyCap,ShiftPattern,RfidEnabledFlag,Status,
                CreatedBy,CreatedTS)
             VALUES
@@ -1942,14 +1942,14 @@ public sealed class MasterDataRepository
         using var cmd = new SqlCommand("""
             UPDATE dbo.MD_Line SET
               LineName=@Name, LineNameEn=@NameEn, ProcessCode=@Proc,
-              PlantCode=@Plant, DefaultWCID=@WC,
+              PlantCode=@Plant, WCID=@WC,
               DailyCap=@Cap, ShiftPattern=@Shift,
               RfidEnabledFlag=@Rfid, Status=@St,
               ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE LineID=@ID;
 
             UPDATE dbo.MD_WorkCenter SET ProcessCode=@Proc, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
-            WHERE  LineID=@ID;
+            WHERE  DefaultLineID=@ID;
 
             UPDATE dbo.MD_Station    SET ProcessCode=@Proc, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  LineID=@ID;

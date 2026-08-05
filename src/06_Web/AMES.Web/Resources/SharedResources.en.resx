@@ -210,6 +210,9 @@
   <data name="Col.Type" xml:space="preserve">
     <value>Type</value>
   </data>
+  <data name="Col.DefaultLine" xml:space="preserve">
+    <value>Default Line</value>
+  </data>
   <data name="Col.Line" xml:space="preserve">
     <value>Line</value>
   </data>
@@ -1428,8 +1431,8 @@
   <data name="MD.Line.Lbl.LineNameEn" xml:space="preserve">
     <value>Line Name (EN)</value>
   </data>
-  <data name="MD.Line.Lbl.DefaultWcid" xml:space="preserve">
-    <value>Default Work Center (WCID)</value>
+  <data name="MD.Line.Lbl.Wcid" xml:space="preserve">
+    <value>Work Center (WCID)</value>
   </data>
   <data name="MD.Line.Lbl.DailyCap" xml:space="preserve">
     <value>Daily Capacity (EA)</value>
