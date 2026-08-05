@@ -665,8 +665,8 @@ CREATE TABLE dbo.MD_Station (
   [StationCode]               VARCHAR(20)          NOT NULL,
   [StationName]               NVARCHAR(60)             NULL,
   [StationNameEn]             NVARCHAR(60)             NULL,
-  [LineID]                    VARCHAR(20)              NULL,  -- FK -> MD_Line.LineID (공정은 라인→작업장에서 상속)
-  [OrderSeq]                  INT                      NULL,
+  [LineID]                    VARCHAR(20)          NOT NULL,  -- FK -> MD_Line.LineID (공정은 라인→작업장에서 상속)
+  [OrderSeq]                  INT                  NOT NULL,
   [Status]                    VARCHAR(10)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),

@@ -114,11 +114,11 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.Line"]" />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text='@(L["Col.Line"] + " *")' />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.OrderSeq"]" />
+                    <RadzenLabel Text='@(L["Col.OrderSeq"] + " *")' />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.OrderSeq" Placeholder="10" Min="1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
@@ -162,11 +162,11 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.Line"]" />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text='@(L["Col.Line"] + " *")' />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.OrderSeq"]" />
+                    <RadzenLabel Text='@(L["Col.OrderSeq"] + " *")' />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.OrderSeq" Min="1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
@@ -313,6 +313,8 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.StationCode))   { _modalErr = L["Err.StationIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.StationName)) { _modalErr = L["Err.StationNameRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.LineID)) { _modalErr = $"{L["Col.Line"]}: {L["Opt.Select"]}"; return; }
+        if (_f.OrderSeq is null)                  { _modalErr = $"{L["Col.OrderSeq"]}: {L["Opt.Select"]}"; return; }
         if (MD.StationExists(_f.StationCode.Trim()))     { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], _f.StationCode.Trim()); return; }
         _busy = true;
         try
@@ -331,6 +333,8 @@
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.StationName)) { _modalErr = L["Err.StationNameRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.LineID)) { _modalErr = $"{L["Col.Line"]}: {L["Opt.Select"]}"; return; }
+        if (_f.OrderSeq is null)                  { _modalErr = $"{L["Col.OrderSeq"]}: {L["Opt.Select"]}"; return; }
         _busy = true;
         try
         {

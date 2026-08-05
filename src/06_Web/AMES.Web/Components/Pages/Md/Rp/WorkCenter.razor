@@ -46,8 +46,6 @@
         <span style="white-space:nowrap;">▼ @L["MD.WorkCenter.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Placeholder="@L["MD.WorkCenter.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' />
-            <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
             <RadzenLabel Text="@L["Col.Process"]" Component="DropDownProcessType" />
             <RadzenDropDown Name="DropDownProcessType" @bind-Value="_fType" Data="@TypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
             <RadzenLabel Text="@L["Col.Active"]" Component="DropDownActive" />
@@ -259,7 +257,7 @@
     MasterDataRepository.WorkCenterRow? _sel;
 
     string _fSearch = "";
-    string? _fLine, _fType, _fActive;
+    string? _fType, _fActive;
     string _modal = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
     string _msg = "", _modalErr = "";
@@ -271,7 +269,6 @@
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
-    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
     IEnumerable<DropDownItem> LineOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
     // 공정 필터: 공통코드 PROCESS ([code] 명칭) — Line.razor Process 콤보와 동일
     IEnumerable<DropDownItem> TypeFilterOptions => _processItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
@@ -314,7 +311,6 @@
         (string.IsNullOrEmpty(_fSearch) ||
             r.WCID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.WCName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
-        (string.IsNullOrEmpty(_fLine)   || r.DefaultLineID == _fLine) &&
         (string.IsNullOrEmpty(_fType)   || r.ProcessCode == _fType) &&
         (string.IsNullOrEmpty(_fActive) || (_fActive == "ACTIVE" ? r.ActiveFlag : !r.ActiveFlag))
     ).ToList();
