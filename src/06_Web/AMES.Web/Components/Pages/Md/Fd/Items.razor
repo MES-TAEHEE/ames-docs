@@ -89,7 +89,7 @@
                 <Template Context="item"><span class="code dim">@item.DefaultUOM</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="RoutingType" Title="@L["Col.Routing"]" TextAlign="TextAlign.Center" Width="80px">
-                <Template Context="item"><span class="code dim">@(item.RoutingType ?? "—")</span></Template>
+                <Template Context="item"><span class="pill @Ui.RoutingClass(item.RoutingType)">@(item.RoutingType ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="SafetyStock" Title="@L["Col.Safety"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="item">@(item.SafetyStock?.ToString("N0") ?? "—")</Template>

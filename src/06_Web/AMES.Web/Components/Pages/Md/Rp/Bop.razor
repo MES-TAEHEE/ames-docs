@@ -118,7 +118,7 @@
                                     ShowPagingSummary="@_showPagerSummary" PageSizeOptions="@_pageSizeOptions" RowRender="StepRowRender" RowSelect="OnStepRowSelect" EmptyText="@L["MD.Bop.NoSteps"]" Class="ames-rz-grid">
                         <Columns>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="RoutingType" Title="@L["Col.Routing"]" Width="70px" TextAlign="TextAlign.Center">
-                                <Template Context="step"><span class="pill info">@(step.RoutingType ?? "—")</span></Template>
+                                <Template Context="step"><span class="pill @Ui.RoutingClass(step.RoutingType)">@(step.RoutingType ?? "—")</span></Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StepSeq" Title="@L["Col.Seq"]" Width="60px" TextAlign="TextAlign.Center">
                                 <Template Context="step"><span class="code">@step.StepSeq</span></Template>
@@ -209,7 +209,7 @@
         <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">
                 @L["MD.Bop.Title"] — @L["Modal.Edit"]
-                <span class="pill info" style="margin-left:8px;font-size:.8em;">@_f.RoutingType</span>
+                <span class="pill @Ui.RoutingClass(_f.RoutingType)" style="margin-left:8px;font-size:.8em;">@_f.RoutingType</span>
                 <span class="dim" style="margin-left:6px;font-size:.88em;font-weight:400;">Step @_f.StepSeq</span>
             </div>
 

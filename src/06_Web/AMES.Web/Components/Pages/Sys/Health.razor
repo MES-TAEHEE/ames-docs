@@ -233,17 +233,21 @@
     {
         if (PermSvc.IsVisible(href))     {
             <a class="ames-tile sys" href="@("/" + href)">
-                <div class="ames-tile-ic">@icon</div>
+                <div class="ames-tile-top">
+                    <div class="ames-tile-ic">@icon</div>
+                    <div class="ames-tile-sub">@sub</div>
+                </div>
                 <div class="ames-tile-h">@title</div>
-                <div class="ames-tile-sub">@sub</div>
             </a>
         }
         else
         {
             <div class="ames-tile sys" style="opacity:.4;pointer-events:none;filter:grayscale(1);" aria-disabled="true">
-                <div class="ames-tile-ic">@icon</div>
+                <div class="ames-tile-top">
+                    <div class="ames-tile-ic">@icon</div>
+                    <div class="ames-tile-sub">@sub</div>
+                </div>
                 <div class="ames-tile-h">@title</div>
-                <div class="ames-tile-sub">@sub</div>
             </div>
         }
     };

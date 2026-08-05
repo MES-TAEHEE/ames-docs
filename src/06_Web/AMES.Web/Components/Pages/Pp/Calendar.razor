@@ -256,9 +256,9 @@
                 <div class="ames-detail-label">@L["Col.Routing"]</div>
                 <div>
                     @if (d.RoutingType == "A")
-                    { <span class="pill info">@RoutingLabel("A")</span> }
+                    { <span class="pill @Ui.RoutingClass("A")">@RoutingLabel("A")</span> }
                     else if (d.RoutingType == "B")
-                    { <span class="pill warn">@RoutingLabel("B")</span> }
+                    { <span class="pill @Ui.RoutingClass("B")">@RoutingLabel("B")</span> }
                     else
                     { <span class="pill dim">@L["PP.Calendar.Routing.INJ"]</span> }
                 </div>

@@ -467,6 +467,11 @@ a:hover { color: #c4dafe; }
     display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 16px;
 }
+/* 넓은 타일 — 기본 대비 열당 폭 확대, 설명 줄바꿈 완화 */
+.ames-tiles.ames-tiles-4up { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+/* 카테고리 카드를 한 줄에 나란히 (내려쓰기 방지) */
+.rpt-cat-row { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 8px; }
+.ames-card.rpt-col { flex: 1 1 0; min-width: 0; margin-bottom: 0; }
 .ames-tile {
     background: linear-gradient(160deg, #16243d, #0e1a30);
     border: 1px solid rgba(255,255,255,.08);
@@ -488,6 +493,8 @@ a:hover { color: #c4dafe; }
 .ames-tile.md  { border-top: 3px solid #fb923c; }
 .ames-tile.sys { border-top: 3px solid #fbbf24; }
 .ames-tile-ic { font-size: 36px; line-height: 1; opacity: .9; }
+/* 타일 상단행: 아이콘(좌) + sub(우) baseline 정렬 — 세로 높이 축소 */
+.ames-tile-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .ames-tile-h  { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 1.5px; }
 .ames-tile-sub{ font-family: 'JetBrains Mono', monospace; font-size: 12px;
                 color: rgba(255,255,255,.55); letter-spacing: 1px; }
@@ -629,6 +636,8 @@ a:hover { color: #c4dafe; }
 .pill.orange { background: rgba(249,115,22,.20);    color: #fb923c; border: 1px solid rgba(249,115,22,.5); }
 .pill.idle   { background: rgba(148,163,184,.12);   color: #cbd5e1; border: 1px dashed rgba(148,163,184,.4); }
 .pill.ghost  { background: transparent;             color: #94a3b8; border: 1px solid rgba(148,163,184,.4); }
+.pill.rt-a   { background: rgba(37,99,235,.14);     color: #2563eb; border: 1px solid rgba(37,99,235,.42); }
+.pill.rt-b   { background: rgba(234,88,12,.14);      color: #ea580c; border: 1px solid rgba(234,88,12,.42); }
 
 /* ── Forms ────────────────────────────────────────────────── */
 .ames-form { display: flex; flex-direction: column; gap: 12px; }
@@ -1452,8 +1461,8 @@ select.ames-rz-input {
 .ames-cal-wo.wo-overdue { background: rgba(185,28,28,.22);  color: #fca5a5; border-left: 2px solid #b91c1c; }
 .ames-cal-wo.wo-d3      { background: rgba(239,68,68,.18);  color: #fca5a5; border-left: 2px solid #ef4444; }
 .ames-cal-wo.wo-prog    { background: rgba(34,197,94,.14);  color: #86efac; border-left: 2px solid #22c55e; }
-.ames-cal-wo.wo-rta     { background: rgba(59,130,246,.14); color: #93c5fd; border-left: 2px solid #3b82f6; }
-.ames-cal-wo.wo-rtb     { background: rgba(249,115,22,.14); color: #fdba74; border-left: 2px solid #f97316; }
+.ames-cal-wo.wo-rta     { background: rgba(37,99,235,.16); color: #2563eb; border-left: 2px solid #2563eb; }
+.ames-cal-wo.wo-rtb     { background: rgba(234,88,12,.16); color: #ea580c; border-left: 2px solid #ea580c; }
 .ames-cal-wo.wo-rel     { background: rgba(124,58,237,.14); color: #c4b5fd; border-left: 2px solid #7c3aed; }
 .ames-cal-wo.wo-draft   { background: rgba(107,114,128,.1); color: #9ca3af; border-left: 2px solid #6b7280; }
 .ames-cal-wo-more {

@@ -21,4 +21,12 @@ public static class Ui
         "SYS" => "idle",
         _     => ""
     };
+
+    /// <summary>라우팅(RoutingType)별 pill 색상 클래스. A=파랑(#2563eb) / B=주황(#ea580c).</summary>
+    public static string RoutingClass(string? rt) => rt switch
+    {
+        "A" => "rt-a",
+        "B" => "rt-b",
+        _   => "mute"
+    };
 }

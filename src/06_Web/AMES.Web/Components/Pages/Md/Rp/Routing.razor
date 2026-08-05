@@ -45,7 +45,7 @@
         {
             var seq = g.Where(s => s.ActiveFlag).OrderBy(s => s.StepSeq).ToList();
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:3px 0;">
-                <span class="pill info" style="min-width:26px;text-align:center;">@g.Key</span>
+                <span class="pill @Ui.RoutingClass(g.Key)" style="min-width:26px;text-align:center;">@g.Key</span>
                 <span class="dim">:</span>
                 @for (var i = 0; i < seq.Count; i++)
                 {
@@ -80,7 +80,7 @@
                     RowRender="RowRender" RowSelect="OnRowSelect" EmptyText="@L["MD.Routing.NoSteps"]" Class="ames-rz-grid">
             <Columns>
                 <RadzenDataGridColumn TItem="MasterDataRepository.RoutingStepRow" Property="RoutingType" Title="@L["Col.Routing"]" Width="90px" TextAlign="TextAlign.Center">
-                    <Template Context="s"><span class="pill info">@s.RoutingType</span></Template>
+                    <Template Context="s"><span class="pill @Ui.RoutingClass(s.RoutingType)">@s.RoutingType</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="MasterDataRepository.RoutingStepRow" Property="StepSeq" Title="@L["Col.Seq"]" Width="70px" TextAlign="TextAlign.Center">
                     <Template Context="s"><span class="code">@s.StepSeq</span></Template>
@@ -118,7 +118,7 @@
                 @L["MD.Routing.Title"] — @(_modal == "create" ? L["Modal.Create"] : L["Modal.Edit"])
                 @if (_modal == "edit")
                 {
-                    <span class="pill info" style="margin-left:8px;font-size:.8em;">@_f.RoutingType</span>
+                    <span class="pill @Ui.RoutingClass(_f.RoutingType)" style="margin-left:8px;font-size:.8em;">@_f.RoutingType</span>
                     <span class="dim" style="margin-left:6px;font-size:.88em;font-weight:400;">Step @_f.StepSeq</span>
                 }
             </div>
