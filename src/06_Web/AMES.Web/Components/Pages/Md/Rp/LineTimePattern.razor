@@ -213,8 +213,8 @@
 
         @{ var _downStates = _segStates.Where(s => s.CodeValue != "OPERATING").ToList(); }
         <div style="display:flex;gap:20px;padding:10px 14px 8px;font-family:'JetBrains Mono',monospace;font-size:12px;flex-wrap:wrap;">
-            <span style="color:#86efac;">@string.Format(L["MD.LineTimePattern.Stat.Operating"].Value, OperatingMin)</span>
-            <span style="color:#fca5a5;">@string.Format(L["MD.LineTimePattern.Stat.Down"].Value, DownMin)
+            <span style="color:var(--seg-operating);">@string.Format(L["MD.LineTimePattern.Stat.Operating"].Value, OperatingMin)</span>
+            <span style="color:var(--seg-downtime);">@string.Format(L["MD.LineTimePattern.Stat.Down"].Value, DownMin)
                 <span class="dim">(@for (int di = 0; di < _downStates.Count; di++)
                 {
                     var st = _downStates[di];
@@ -462,13 +462,13 @@
     // 밴드 타입별 표시 색상 (Gantt 밴드/범례와 동일 계열)
     string SegColor(string? st) => st switch
     {
-        "OPERATING"        => "#86efac",
-        "PLANNED_DOWNTIME" => "#fca5a5",
-        "BREAK"            => "#fde68a",
-        "INSPECT"          => "#22d3ee",
-        "PM"               => "#fdba74",   // 예방보전 — 주황
-        "IDLE"             => "#cbd5e1",
-        _                  => "#93c5fd"
+        "OPERATING"        => "var(--seg-operating)",
+        "PLANNED_DOWNTIME" => "var(--seg-downtime)",
+        "BREAK"            => "var(--seg-break)",
+        "INSPECT"          => "var(--seg-inspect)",
+        "PM"               => "var(--seg-pm)",   // 예방보전 — 주황
+        "IDLE"             => "var(--seg-idle)",
+        _                  => "var(--seg-meal)"
     };
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
@@ -834,8 +834,8 @@
         _                  => "pp-gantt-band pp-gantt-band--break"
     };
     // 세그먼트 상태 색은 밴드/범례와 동일하게 SegColor 팔레트로 통일 (pill·모달 팔레트 버튼)
-    string SegPillStyle(string? st) { var c = SegColor(st); return $"background:{c}22;color:{c};border:1px solid {c}55;"; }
-    string SegBtnStyle(string? st, bool sel) { var c = SegColor(st); return sel ? $"background:{c};border:1px solid {c};color:#0b1220;" : $"background:{c}22;border:1px solid {c}55;color:{c};"; }
+    string SegPillStyle(string? st) { var c = SegColor(st); return $"background:color-mix(in srgb, {c} 13%, transparent);color:{c};border:1px solid color-mix(in srgb, {c} 33%, transparent);"; }
+    string SegBtnStyle(string? st, bool sel) { var c = SegColor(st); return sel ? $"background:{c};border:1px solid {c};color:var(--seg-btn-fg);" : $"background:color-mix(in srgb, {c} 13%, transparent);border:1px solid color-mix(in srgb, {c} 33%, transparent);color:{c};"; }
     // 코드값 → 2글자 축약어 (여러 단어면 각 첫 글자, 단일 단어면 앞 2글자)
     static string Abbr(string? code)
     {

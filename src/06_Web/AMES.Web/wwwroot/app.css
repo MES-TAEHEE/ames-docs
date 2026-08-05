@@ -2733,3 +2733,181 @@ select.ames-rz-input {
     from { opacity: 0; }
     to   { opacity: 1; }
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   스케줄 세그먼트 색 토큰 — 다크 기본값. 라이트는 [data-theme=light] 재정의.
+   간트/패턴 밴드가 이 변수를 통해 테마 반응. (배경/보더는 color-mix 로 반투명)
+   ════════════════════════════════════════════════════════════════════ */
+:root {
+    --seg-operating: #86efac;
+    --seg-downtime:  #fca5a5;
+    --seg-break:     #fde68a;
+    --seg-meal:      #93c5fd;
+    --seg-inspect:   #22d3ee;
+    --seg-pm:        #fdba74;
+    --seg-idle:      #cbd5e1;
+    --seg-btn-fg:    #0b1220;   /* 선택된 세그 버튼 글자색(파스텔 위 어두운 글자) */
+}
+/* 간트 밴드 클래스도 토큰 기반으로 (인라인 SegBandStyle 과 시각 일치) */
+.pp-gantt-band--work    { background: color-mix(in srgb, var(--seg-operating) 13%, transparent); border: 1px solid  color-mix(in srgb, var(--seg-operating) 53%, transparent); color: var(--seg-operating); }
+.pp-gantt-band--down    { background: color-mix(in srgb, var(--seg-downtime) 13%, transparent);  border: 1px solid  color-mix(in srgb, var(--seg-downtime) 53%, transparent);  color: var(--seg-downtime); }
+.pp-gantt-band--break   { background: color-mix(in srgb, var(--seg-break) 13%, transparent);     border: 1px solid  color-mix(in srgb, var(--seg-break) 53%, transparent);     color: var(--seg-break); }
+.pp-gantt-band--meal    { background: color-mix(in srgb, var(--seg-meal) 13%, transparent);      border: 1px solid  color-mix(in srgb, var(--seg-meal) 53%, transparent);      color: var(--seg-meal); }
+.pp-gantt-band--idle    { background: color-mix(in srgb, var(--seg-idle) 13%, transparent);      border: 1px dashed color-mix(in srgb, var(--seg-idle) 53%, transparent);      color: var(--seg-idle); }
+.pp-gantt-band--inspect { background: color-mix(in srgb, var(--seg-inspect) 13%, transparent);   border: 1px solid  color-mix(in srgb, var(--seg-inspect) 53%, transparent);   color: var(--seg-inspect); }
+.pp-gantt-band--pm      { background: color-mix(in srgb, var(--seg-pm) 13%, transparent);        border: 1px solid  color-mix(in srgb, var(--seg-pm) 53%, transparent);        color: var(--seg-pm); }
+
+/* ════════════════════════════════════════════════════════════════════
+   LIGHT THEME  (html[data-theme="light"]) — 다크 규칙 위 오버라이드 레이어.
+   기존 다크 규칙은 그대로 두고 색상만 재정의(특이도 우위). 목록/스케줄 시인성 우선.
+   ════════════════════════════════════════════════════════════════════ */
+html[data-theme="light"] {
+    /* ── 아이보리 표면 토큰 (여기 값만 바꾸면 전체 라이트 톤 조정) ── */
+    --ames-bg:          #eee7d6;   /* 페이지 배경(아이보리) */
+    --ames-surface:     #faf6ec;   /* 카드/모달/탑바/사이드바(크림) */
+    --ames-surface-2:   #f3ecdb;   /* 그라데이션 하단 */
+    --ames-surface-3:   #e9e0cb;   /* 헤더 스트립(그리드헤더/테이블 th/kpi) */
+    --ames-text:        #2c2721;   /* 본문(따뜻한 근검정) */
+    --ames-text-dim:    #726a58;   /* 보조/희미 */
+    --ames-accent:      #1d4ed8;   /* 강조(브랜드 블루) */
+    --ames-border:      rgba(120,98,52,.22);
+    --ames-border-soft: rgba(120,98,52,.12);
+    --ames-hover:       rgba(120,98,52,.08);
+    /* ── 크롬(탑바·좌측메뉴) 전용 — 밝은 푸른색 계열 ── */
+    --ames-chrome:        #c7dbf7;   /* 크롬 배경(진한 하늘색) */
+    --ames-chrome-2:      #b0cbf2;   /* 그라데이션 하단 */
+    --ames-chrome-text:   #1e3a5f;   /* 크롬 위 본문(네이비) */
+    --ames-chrome-dim:    #4b6591;   /* 크롬 위 보조 */
+    --ames-chrome-border: rgba(37,99,235,.22);
+    --ames-chrome-hover:  rgba(37,99,235,.10);
+    /* Radzen 컴포넌트(그리드/입력/버튼) 변수 → 아이보리 매핑 */
+    --rz-text-color: var(--ames-text);
+    --rz-text-secondary-color: var(--ames-text-dim);
+    --rz-base-background-color: var(--ames-bg);
+    --rz-body-background-color: transparent;
+    --rz-panel-background-color: var(--ames-surface);
+    --rz-input-background-color: #fdfbf4;
+    --rz-input-value-color: var(--ames-text);
+    --rz-grid-background-color: var(--ames-surface);
+    --rz-grid-header-background-color: var(--ames-surface-3);
+    --rz-grid-cell-color: var(--ames-text);
+    --rz-grid-stripe-background-color: #f4eede;
+    /* 스케줄 세그먼트 — 흰 배경 대비 확보(채도↑·명도↓, WCAG 가독) */
+    --seg-operating: #15803d;
+    --seg-downtime:  #b91c1c;
+    --seg-break:     #a16207;
+    --seg-meal:      #1d4ed8;
+    --seg-inspect:   #0e7490;
+    --seg-pm:        #c2410c;
+    --seg-idle:      #64748b;
+    --seg-btn-fg:    #ffffff;   /* 라이트: 진한 세그색 위 흰 글자 */
+    color-scheme: light;
+}
+html[data-theme="light"] body { background: var(--ames-bg); color: var(--ames-text); }
+html[data-theme="light"] a { color: var(--ames-accent); }
+html[data-theme="light"] a:hover { color: #1e40af; }
+html[data-theme="light"] .ames-shell {
+    background:
+        radial-gradient(1200px 600px at 12% -10%, rgba(37,99,235,.05), transparent 60%),
+        radial-gradient(900px 500px at 110% 10%, rgba(180,120,40,.06), transparent 60%),
+        var(--ames-bg);
+}
+/* Topbar / brand / breadcrumb / user — 밝은 푸른 크롬 */
+html[data-theme="light"] .ames-topbar { background: linear-gradient(180deg, var(--ames-chrome), var(--ames-chrome-2)); border-bottom: 1px solid var(--ames-chrome-border); }
+html[data-theme="light"] .ames-loc-name { color: var(--ames-chrome-text); }
+html[data-theme="light"] .ames-brand { border-right-color: var(--ames-chrome-border); }
+html[data-theme="light"] .ames-brand-logo { color: var(--ames-chrome-text); }
+html[data-theme="light"] .ames-brand-sub { color: var(--ames-accent); }
+html[data-theme="light"] .ames-user { background: linear-gradient(180deg, rgba(37,99,235,.10), rgba(37,99,235,.03)); border-color: rgba(37,99,235,.28); }
+html[data-theme="light"] .ames-user-name { color: var(--ames-chrome-text); }
+/* Sidebar / nav — 밝은 푸른 크롬 */
+html[data-theme="light"] .ames-side { background: linear-gradient(180deg, var(--ames-chrome), var(--ames-chrome-2)); border-right: 1px solid var(--ames-chrome-border); }
+html[data-theme="light"] .ames-side-toggle { background: var(--ames-chrome-hover); border-color: var(--ames-chrome-border); color: var(--ames-chrome-dim); }
+html[data-theme="light"] .ames-side-toggle:hover { background: rgba(37,99,235,.18); color: var(--ames-chrome-text); }
+html[data-theme="light"] .ames-nav-home { color: var(--ames-chrome-text); }
+html[data-theme="light"] .ames-nav-home:hover { background: var(--ames-chrome-hover); color: var(--ames-chrome-text); }
+html[data-theme="light"] .ames-nav-section { color: var(--ames-chrome-dim); }
+html[data-theme="light"] .ames-nav-section:hover { color: var(--ames-chrome-text); }
+html[data-theme="light"] .ames-nav-section-n { background: var(--ames-chrome-hover); color: var(--ames-chrome-dim); }
+html[data-theme="light"] .ames-nav-link { color: var(--ames-chrome-dim); }
+html[data-theme="light"] .ames-nav-link:hover { color: var(--ames-chrome-text); background: var(--ames-chrome-hover); }
+html[data-theme="light"] .ames-nav-link .lid { background: var(--ames-chrome-hover); border-color: var(--ames-chrome-border); color: var(--ames-chrome-dim); }
+html[data-theme="light"] .ames-nav-search { background: rgba(255,255,255,.5); border-color: var(--ames-chrome-border); }
+html[data-theme="light"] .ames-nav-search input { color: var(--ames-chrome-text); }
+html[data-theme="light"] .ames-nav-sub-t { color: var(--ames-chrome-text); }
+html[data-theme="light"] .ames-nav-sub-s { color: var(--ames-chrome-dim); }
+html[data-theme="light"] .ames-nav-sub-letter { color: #6d28d9; }
+html[data-theme="light"] .ames-nav-empty { color: var(--ames-chrome-dim); }
+/* 활성 메뉴(현재 화면) — 기본 흰 글자가 밝은 배경서 안 보이므로 블루로 재정의 */
+html[data-theme="light"] .ames-nav-home.active { color: #1d4ed8; background: linear-gradient(90deg, rgba(37,99,235,.14), transparent); }
+html[data-theme="light"] .ames-nav-link.active { color: #1d4ed8; background: linear-gradient(90deg, rgba(37,99,235,.16), rgba(37,99,235,.04)); box-shadow: inset 2px 0 0 #2563eb; }
+html[data-theme="light"] .ames-nav-link.active .lid { background: rgba(37,99,235,.16); border-color: rgba(37,99,235,.35); color: #1d4ed8; }
+/* Tiles / cards / tabs */
+html[data-theme="light"] .ames-tile { background: linear-gradient(160deg, var(--ames-surface), var(--ames-surface-2)); border-color: var(--ames-border); color: var(--ames-text); }
+html[data-theme="light"] .ames-tile:hover { color: var(--ames-text); }
+html[data-theme="light"] .ames-tile-sub { color: var(--ames-text-dim); }
+html[data-theme="light"] .ames-card { background: var(--ames-surface); border: 1px solid var(--ames-border); box-shadow: 0 1px 4px -2px rgba(80,60,20,.16); }
+html[data-theme="light"] .ames-card-h { color: var(--ames-accent); border-bottom-color: var(--ames-border-soft); }
+html[data-theme="light"] .ames-tab { color: var(--ames-text-dim); background: var(--ames-hover); border-color: var(--ames-border-soft); }
+html[data-theme="light"] .ames-tab:hover { color: var(--ames-text); }
+html[data-theme="light"] .ames-tab.on { color: var(--ames-text); background: var(--ames-surface); }
+html[data-theme="light"] .ames-tabpanel { background: var(--ames-surface); border-color: var(--ames-border); }
+/* KPI */
+html[data-theme="light"] .ames-kpi { background: linear-gradient(180deg, var(--ames-surface), var(--ames-surface-3)); border-color: var(--ames-border); }
+html[data-theme="light"] .ames-kpi-l { color: var(--ames-accent); }
+html[data-theme="light"] .ames-kpi-v { color: var(--ames-text); }
+html[data-theme="light"] .ames-kpi-s { color: var(--ames-text-dim); }
+/* Tables / list */
+html[data-theme="light"] .ames-table th { background: var(--ames-surface-3); color: var(--ames-accent); border-bottom-color: var(--ames-border); }
+html[data-theme="light"] .ames-table td { color: var(--ames-text); border-bottom-color: var(--ames-border-soft); }
+html[data-theme="light"] .ames-table tr:hover td { background: var(--ames-hover); }
+html[data-theme="light"] .ames-table td.code { color: var(--ames-accent); }
+html[data-theme="light"] .ames-table td.num  { color: var(--ames-text); }
+html[data-theme="light"] .ames-table td.dim,
+html[data-theme="light"] .ames-empty { color: var(--ames-text-dim); }
+html[data-theme="light"] .ames-list-item { border-bottom-color: var(--ames-border-soft); }
+html[data-theme="light"] .ames-list-item:hover { background: var(--ames-hover); }
+html[data-theme="light"] .ames-list-item.selected { background: rgba(37,99,235,.10); border-left-color: var(--ames-accent); }
+html[data-theme="light"] .ames-info-bar { background: var(--ames-surface-3); border-color: var(--ames-border); }
+/* Status pills — 라이트에서 텍스트 진하게 */
+html[data-theme="light"] .pill.ok     { background: rgba(22,163,74,.12);  color: #15803d; border-color: rgba(22,163,74,.35); }
+html[data-theme="light"] .pill.warn   { background: rgba(217,119,6,.12);  color: #b45309; border-color: rgba(217,119,6,.35); }
+html[data-theme="light"] .pill.bad    { background: rgba(220,38,38,.10);  color: #b91c1c; border-color: rgba(220,38,38,.35); }
+html[data-theme="light"] .pill.info   { background: rgba(37,99,235,.10);  color: #1d4ed8; border-color: rgba(37,99,235,.35); }
+html[data-theme="light"] .pill.mute,
+html[data-theme="light"] .pill.idle,
+html[data-theme="light"] .pill.ghost  { background: rgba(71,85,105,.10);  color: #475569; border-color: rgba(71,85,105,.35); }
+html[data-theme="light"] .pill.orange { background: rgba(234,88,12,.14);  color: #c2410c; border-color: rgba(234,88,12,.45); }
+/* Modal / inputs */
+html[data-theme="light"] .ames-modal { background: var(--ames-surface); border-color: var(--ames-border); color: var(--ames-text); }
+html[data-theme="light"] .ames-modal-h { color: var(--ames-accent); border-bottom-color: var(--ames-border-soft); }
+html[data-theme="light"] .ames-modal label { color: var(--ames-text-dim); }
+html[data-theme="light"] .ames-modal-footer { border-top-color: var(--ames-border-soft); }
+html[data-theme="light"] .ames-input,
+html[data-theme="light"] .ames-rz-input { background: #fdfbf4; color: var(--ames-text); border-color: var(--ames-border); }
+html[data-theme="light"] select.ames-input option { background: var(--ames-surface); }
+/* Gantt board shell (밴드 색은 --seg-* 토큰이 자동 반영) */
+html[data-theme="light"] .ames-rz-grid ::-webkit-scrollbar-thumb,
+html[data-theme="light"] .ames-main::-webkit-scrollbar-thumb { background: rgba(120,98,52,.28); }
+html[data-theme="light"] .pp-gantt-ruler { border-bottom-color: var(--ames-border); }
+html[data-theme="light"] .pp-gantt-tick { color: var(--ames-text-dim); }
+html[data-theme="light"] .pp-gantt-tick.major { color: var(--ames-text); }
+html[data-theme="light"] .pp-gantt-gridline { background: rgba(120,98,52,.10); }
+html[data-theme="light"] .pp-gantt-gridline.major { background: rgba(120,98,52,.16); }
+html[data-theme="light"] .pp-gantt-row { border-bottom-color: var(--ames-border-soft); }
+html[data-theme="light"] .pp-gantt-row-lbl { color: var(--ames-text-dim); }
+html[data-theme="light"] .pp-tl-t { color: var(--ames-accent); }
+html[data-theme="light"] .pp-lgd { color: var(--ames-text-dim); }
+html[data-theme="light"] .pp-gantt-wo { background: rgba(126,34,206,.14); border-color: rgba(126,34,206,.5); color: #6b21a8; }
+html[data-theme="light"] .pp-gantt-pm { background: rgba(194,65,12,.14); border-color: rgba(194,65,12,.5); color: #9a3412; }
+/* 테마 토글 버튼 */
+.ames-theme-toggle {
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);
+    color: #e5edf7; border-radius: 8px; width: 34px; height: 34px;
+    font-size: 15px; cursor: pointer; margin-right: 10px; line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background .12s, border-color .12s;
+}
+.ames-theme-toggle:hover { background: rgba(255,255,255,.14); }
+html[data-theme="light"] .ames-theme-toggle { background: var(--ames-chrome-hover); border-color: var(--ames-chrome-border); color: var(--ames-chrome-text); }
+html[data-theme="light"] .ames-theme-toggle:hover { background: rgba(37,99,235,.18); }

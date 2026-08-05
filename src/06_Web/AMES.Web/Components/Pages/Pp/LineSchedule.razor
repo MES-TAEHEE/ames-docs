@@ -120,7 +120,7 @@
             <div class="pp-tl-legend">
                 @foreach (var st in _segStates.Where(c => c.UseFlag))
                 {
-                    <span class="pp-lgd"><i style="background:@(SegColor(st.CodeValue ?? ""))cc;"></i>@MasterDataRepository.LocalName(st)</span>
+                    <span class="pp-lgd"><i style="background:color-mix(in srgb, @(SegColor(st.CodeValue ?? "")) 80%, transparent);"></i>@MasterDataRepository.LocalName(st)</span>
                 }
                 <span class="pp-lgd"><i style="background:rgba(168,85,247,.7);"></i>@L["PP.LineSchedule.Lgd.Wo"]</span>
                 @* PM(예방보전)은 공통코드 SEGMENT_STATE 에 포함되어 위 루프에서 자동 표시됨 *@
@@ -1085,15 +1085,16 @@
     }
 
     // Rp/LineTimePattern.razor 와 동일 색상 팔레트(코드별)
+    // 테마 반응형: CSS 변수 참조(app.css --seg-*). 라이트/다크에서 값이 재정의됨.
     string SegColor(string state) => state switch
     {
-        "OPERATING"        => "#86efac",
-        "PLANNED_DOWNTIME" => "#fca5a5",
-        "BREAK"            => "#fde68a",
-        "INSPECT"          => "#22d3ee",
-        "PM"               => "#fdba74",   // 예방보전 — 주황(.pp-gantt-pm 오버레이와 동일 계열)
-        "IDLE"             => "#cbd5e1",
-        _                  => "#93c5fd"
+        "OPERATING"        => "var(--seg-operating)",
+        "PLANNED_DOWNTIME" => "var(--seg-downtime)",
+        "BREAK"            => "var(--seg-break)",
+        "INSPECT"          => "var(--seg-inspect)",
+        "PM"               => "var(--seg-pm)",   // 예방보전 — 주황
+        "IDLE"             => "var(--seg-idle)",
+        _                  => "var(--seg-meal)"
     };
 
     // 예방보전 표시명 — 공통코드 SEGMENT_STATE 'PM' 의 다국어 명칭(없으면 리소스 폴백)
@@ -1102,12 +1103,12 @@
             ? MasterDataRepository.LocalName(c)
             : L["PP.LineSchedule.Lgd.Pm"].Value;
 
-    // 밴드 배경/테두리(반투명) — 8자리 HEX 알파(#RRGGBBAA)
+    // 밴드 배경/테두리(반투명) — color-mix 로 토큰 색에 알파 적용(테마 반응형)
     string SegBandStyle(string state)
     {
         var c  = SegColor(state);
         var bs = state == "IDLE" ? "dashed" : "solid";
-        return $"background:{c}22;border:1px {bs} {c}88;color:{c};";
+        return $"background:color-mix(in srgb, {c} 13%, transparent);border:1px {bs} color-mix(in srgb, {c} 53%, transparent);color:{c};";
     }
 
     string SegLabel(string state)
