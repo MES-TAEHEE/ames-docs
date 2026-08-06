@@ -65,7 +65,7 @@
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn Property="UseFlag" Title='@L["Col.Active"]' Width="60px" TextAlign="TextAlign.Center">
                         <Template Context="g">
-                            <span class="pill @(g.UseFlag ? "ok" : "dim")">@(g.UseFlag ? "Y" : "N")</span>
+                            <span class="pill @(g.UseFlag ? "ok" : "bad")">@(g.UseFlag ? "Y" : "N")</span>
                         </Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn Width="52px" TextAlign="TextAlign.Center">
@@ -124,7 +124,7 @@
                         </RadzenDataGridColumn>
                         <RadzenDataGridColumn Property="UseFlag" Title='@L["Col.Active"]' Width="60px" TextAlign="TextAlign.Center">
                             <Template Context="i">
-                                <span class="pill @(i.UseFlag ? "ok" : "dim")">@(i.UseFlag ? "Y" : "N")</span>
+                                <span class="pill @(i.UseFlag ? "ok" : "bad")">@(i.UseFlag ? "Y" : "N")</span>
                             </Template>
                         </RadzenDataGridColumn>
                     </Columns>
