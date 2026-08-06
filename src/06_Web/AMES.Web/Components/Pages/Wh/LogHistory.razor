@@ -146,6 +146,7 @@
         if (upper.Contains("RECEIVE")) return "ok";
         if (upper.Contains("PICK")) return "warn";
         if (upper.Contains("ADJUST")) return "bad";
+        if (upper.Contains("LOCATION")) return "ok";
         return "ghost";
     }
 
@@ -161,6 +162,9 @@
         "RELEASE_PICK" => "Release",
         "ADJUST_SAVE" => "Adjust",
         "MOVE_LOCATION" => "Location",
+        "LOCATION_MASTER_CREATE" => "Location Master Create",
+        "LOCATION_MASTER_UPDATE" => "Location Master Update",
+        "LOCATION_MASTER_DELETE" => "Location Master Delete",
         _ => type,
     };
 

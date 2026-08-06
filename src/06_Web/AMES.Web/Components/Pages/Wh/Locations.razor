@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.WarehouseRepository Wh
+@inject AuthenticationStateProvider AuthProvider
 @using Radzen
 
 <PageTitle>WH-001 Location Master · AMES</PageTitle>
@@ -40,6 +41,13 @@
     <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
+@if (!_canModifyLocationMaster)
+{
+    <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat">
+        Location Master changes are available to Administrator users only.
+    </RadzenAlert>
+}
+
 <div class="ames-card">
     <div class="ames-card-h wh-master-toolbar">
         <div>
@@ -51,28 +59,40 @@
             {
                 <RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ReloadStage(); }' />
                 <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ReloadStage" class="ames-rz-btn" />
-                <RadzenButton Text="Create WH" Icon="warehouse" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenWarehouseCreate" class="ames-rz-btn" />
+                @if (_canModifyLocationMaster)
+                {
+                    <RadzenButton Text="Create WH" Icon="warehouse" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenWarehouseCreate" class="ames-rz-btn" />
+                }
             }
             else if (_stage == MasterStage.Area)
             {
                 <RadzenButton Text="Back" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@BackToWarehouses" class="ames-rz-btn" />
                 <RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ReloadStage(); }' />
                 <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ReloadStage" class="ames-rz-btn" />
-                <RadzenButton Text="Create Area" Icon="add_business" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenAreaCreate" class="ames-rz-btn" />
+                @if (_canModifyLocationMaster)
+                {
+                    <RadzenButton Text="Create Area" Icon="add_business" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenAreaCreate" class="ames-rz-btn" />
+                }
             }
             else if (_stage == MasterStage.Section)
             {
                 <RadzenButton Text="Back" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@BackToAreas" class="ames-rz-btn" />
                 <RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ReloadStage(); }' />
                 <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ReloadStage" class="ames-rz-btn" />
-                <RadzenButton Text="Create Zone" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenSectionCreate" class="ames-rz-btn" />
+                @if (_canModifyLocationMaster)
+                {
+                    <RadzenButton Text="Create Zone" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenSectionCreate" class="ames-rz-btn" />
+                }
             }
             else
             {
                 <RadzenButton Text="Back" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@BackToSections" class="ames-rz-btn" />
                 <RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ReloadStage(); }' />
                 <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ReloadStage" class="ames-rz-btn" />
-                <RadzenButton Text="Create Location" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenLocationCreate" class="ames-rz-btn" />
+                @if (_canModifyLocationMaster)
+                {
+                    <RadzenButton Text="Create Location" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenLocationCreate" class="ames-rz-btn" />
+                }
             }
         </RadzenStack>
     </div>
@@ -109,11 +129,14 @@
                 <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow" Property="WhName" Title="WH Name">
                     <Template Context="r">@(r.WhName ?? "-")</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow" Title="Setting" Width="105px" Sortable="false" TextAlign="TextAlign.Center">
-                    <Template Context="r">
-                        <RadzenButton Icon="settings" Text="" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => OpenWarehouseEdit(r))" @onclick:stopPropagation="true" class="ames-rz-btn" />
-                    </Template>
-                </RadzenDataGridColumn>
+                @if (_canModifyLocationMaster)
+                {
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow" Title="Setting" Width="105px" Sortable="false" TextAlign="TextAlign.Center">
+                        <Template Context="r">
+                            <RadzenButton Icon="settings" Text="" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => OpenWarehouseEdit(r))" @onclick:stopPropagation="true" class="ames-rz-btn" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                }
             </Columns>
         </RadzenDataGrid>
     }
@@ -136,11 +159,14 @@
                 <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow" Property="AreaName" Title="Area Name">
                     <Template Context="r">@(r.AreaName ?? "-")</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow" Title="Setting" Width="105px" Sortable="false" TextAlign="TextAlign.Center">
-                    <Template Context="r">
-                        <RadzenButton Icon="settings" Text="" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => OpenAreaEdit(r))" @onclick:stopPropagation="true" class="ames-rz-btn" />
-                    </Template>
-                </RadzenDataGridColumn>
+                @if (_canModifyLocationMaster)
+                {
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow" Title="Setting" Width="105px" Sortable="false" TextAlign="TextAlign.Center">
+                        <Template Context="r">
+                            <RadzenButton Icon="settings" Text="" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => OpenAreaEdit(r))" @onclick:stopPropagation="true" class="ames-rz-btn" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                }
             </Columns>
         </RadzenDataGrid>
     }
@@ -164,11 +190,14 @@
                 <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow" Property="SectionName" Title="Zone Name">
                     <Template Context="r">@(r.SectionName ?? "-")</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow" Title="Setting" Width="105px" Sortable="false" TextAlign="TextAlign.Center">
-                    <Template Context="r">
-                        <RadzenButton Icon="settings" Text="" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => OpenSectionEdit(r))" @onclick:stopPropagation="true" class="ames-rz-btn" />
-                    </Template>
-                </RadzenDataGridColumn>
+                @if (_canModifyLocationMaster)
+                {
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow" Title="Setting" Width="105px" Sortable="false" TextAlign="TextAlign.Center">
+                        <Template Context="r">
+                            <RadzenButton Icon="settings" Text="" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => OpenSectionEdit(r))" @onclick:stopPropagation="true" class="ames-rz-btn" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                }
             </Columns>
         </RadzenDataGrid>
     }
@@ -185,7 +214,7 @@
                         PagerHorizontalAlign="HorizontalAlign.Center"
                         ShowPagingSummary="true"
                         AllowSorting="true"
-                        RowClick="@(args => { if (args.Data is not null) OpenLocationEdit(args.Data); })"
+                        RowClick="@(args => { if (_canModifyLocationMaster && args.Data is not null) OpenLocationEdit(args.Data); })"
                         EmptyText="No locations found."
                         Class="ames-rz-grid">
             <Columns>
@@ -195,11 +224,14 @@
                 <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow" Property="LocationName" Title="Location Name">
                     <Template Context="r">@(r.LocationName ?? "-")</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow" Title="Setting" Width="105px" Sortable="false" TextAlign="TextAlign.Center">
-                    <Template Context="r">
-                        <RadzenButton Icon="settings" Text="" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => OpenLocationEdit(r))" @onclick:stopPropagation="true" class="ames-rz-btn" />
-                    </Template>
-                </RadzenDataGridColumn>
+                @if (_canModifyLocationMaster)
+                {
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow" Title="Setting" Width="105px" Sortable="false" TextAlign="TextAlign.Center">
+                        <Template Context="r">
+                            <RadzenButton Icon="settings" Text="" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => OpenLocationEdit(r))" @onclick:stopPropagation="true" class="ames-rz-btn" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                }
             </Columns>
         </RadzenDataGrid>
     }
@@ -357,15 +389,15 @@
                 </div>
                 <div>
                     <RadzenLabel Text="BANK (X)" />
-                    <RadzenTextBox @bind-Value="_locationForm.RackX" Placeholder="Z" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_locationForm.RackX" Disabled="@(_locationModal == "edit")" Placeholder="Z" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="BAY (Y)" />
-                    <RadzenTextBox @bind-Value="_locationForm.RackY" Placeholder="02" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_locationForm.RackY" Disabled="@(_locationModal == "edit")" Placeholder="02" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="LEVEL (Z)" />
-                    <RadzenTextBox @bind-Value="_locationForm.RackZ" Placeholder="E" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_locationForm.RackZ" Disabled="@(_locationModal == "edit")" Placeholder="E" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <label class="wh-check">
                     <RadzenCheckBox TValue="bool" @bind-Value="_locationForm.UseYn" />
@@ -409,6 +441,9 @@
     string _msg = "";
     bool _isErr;
     bool _busy;
+    bool _canModifyLocationMaster;
+    string _currentUserId = "web";
+    string _currentUserName = "Web User";
 
     string _warehouseModal = "";
     string _warehouseModalErr = "";
@@ -448,7 +483,23 @@
     string SelectedSectionTitle => _selectedSection is null ? "-" : $"{_selectedSection.SectionCode} - {_selectedSection.SectionName ?? _selectedSection.SectionCode}";
     string DisplayLocationCode => BuildLocationCode() ?? _locationForm.LocationNo;
 
-    protected override void OnInitialized() => ReloadStage();
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthProvider.GetAuthenticationStateAsync();
+        var user = state.User;
+
+        _currentUserId =
+            user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ??
+            user.Identity?.Name ??
+            "web";
+        _currentUserName =
+            user.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ??
+            user.Identity?.Name ??
+            _currentUserId;
+        _canModifyLocationMaster = IsAdministratorUser(user, _currentUserId);
+
+        ReloadStage();
+    }
 
     void ReloadStage()
     {
@@ -563,6 +614,7 @@
 
     void OpenWarehouseCreate()
     {
+        if (!RequireAdministrator()) return;
         _warehouseForm = new() { UseYn = true };
         _warehouseModalErr = "";
         _warehouseModal = "create";
@@ -570,6 +622,7 @@
 
     void OpenWarehouseEdit(AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow row)
     {
+        if (!RequireAdministrator()) return;
         _selectedWarehouse = row;
         _warehouseForm = new() { WhCode = row.WhCode, WhName = row.WhName ?? "", UseYn = row.UseYn };
         _warehouseModalErr = "";
@@ -578,27 +631,30 @@
 
     void SaveWarehouseCreate()
     {
+        if (!RequireAdministrator()) return;
         var id = NormalizeLocationPart(_warehouseForm.WhCode);
         if (string.IsNullOrWhiteSpace(id)) { _warehouseModalErr = "WH Code is required."; return; }
         if (Wh.WarehouseExists(id)) { _warehouseModalErr = $"WH {id} already exists."; return; }
-        SaveWarehouse(id);
+        SaveWarehouse(id, "CREATE");
     }
 
     void SaveWarehouseEdit()
     {
+        if (!RequireAdministrator()) return;
         if (_selectedWarehouse is null) return;
-        SaveWarehouse(_selectedWarehouse.WhCode);
+        SaveWarehouse(_selectedWarehouse.WhCode, "UPDATE");
     }
 
-    void SaveWarehouse(string whCode)
+    void SaveWarehouse(string whCode, string action)
     {
         _busy = true;
         try
         {
             Wh.SaveWarehouse(whCode, NE(_warehouseForm.WhName), _warehouseForm.UseYn);
+            var logId = LogLocationMaster(action, "WAREHOUSE", whCode, null, $"WH {whCode} saved.");
             CloseWarehouseModal();
             ReloadStage();
-            ShowMsg($"WH {whCode} saved.", false);
+            ShowMsg($"WH {whCode} saved. Log #{logId}.", false);
         }
         catch (Exception ex) { _warehouseModalErr = ex.Message; }
         finally { _busy = false; }
@@ -606,15 +662,17 @@
 
     void SaveWarehouseDelete()
     {
+        if (!RequireAdministrator()) return;
         if (_selectedWarehouse is null) return;
         _busy = true;
         try
         {
             var id = _selectedWarehouse.WhCode;
             Wh.DeleteWarehouse(id);
+            var logId = LogLocationMaster("DELETE", "WAREHOUSE", id, null, $"WH {id} deleted.");
             CloseWarehouseModal();
             ReloadStage();
-            ShowMsg($"WH {id} deleted.", false);
+            ShowMsg($"WH {id} deleted. Log #{logId}.", false);
         }
         catch (Exception ex) { _warehouseModalErr = ex.Message; }
         finally { _busy = false; }
@@ -628,6 +686,7 @@
 
     void OpenAreaCreate()
     {
+        if (!RequireAdministrator()) return;
         if (string.IsNullOrWhiteSpace(_selectedWhCode))
         {
             ShowMsg("Select a WH first.", true);
@@ -640,6 +699,7 @@
 
     void OpenAreaEdit(AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow row)
     {
+        if (!RequireAdministrator()) return;
         _selectedArea = row;
         _areaForm = new() { AreaCode = row.AreaCode, AreaName = row.AreaName ?? "", UseYn = row.UseYn };
         _areaModalErr = "";
@@ -648,27 +708,30 @@
 
     void SaveAreaCreate()
     {
+        if (!RequireAdministrator()) return;
         var id = _areaForm.AreaCode.Trim();
         if (string.IsNullOrWhiteSpace(id)) { _areaModalErr = "Area Code is required."; return; }
         if (Wh.WarehouseAreaExists(id, _selectedWhCode)) { _areaModalErr = $"Area {id} already exists in this WH."; return; }
-        SaveArea(id);
+        SaveArea(id, "CREATE");
     }
 
     void SaveAreaEdit()
     {
+        if (!RequireAdministrator()) return;
         if (_selectedArea is null) return;
-        SaveArea(_selectedArea.AreaCode);
+        SaveArea(_selectedArea.AreaCode, "UPDATE");
     }
 
-    void SaveArea(string areaCode)
+    void SaveArea(string areaCode, string action)
     {
         _busy = true;
         try
         {
             Wh.SaveWarehouseArea(areaCode, NE(_areaForm.AreaName), _areaForm.UseYn, _selectedWhCode);
+            var logId = LogLocationMaster(action, "AREA", areaCode, null, $"Area {areaCode} saved in WH {_selectedWhCode ?? "-"}.");
             CloseAreaModal();
             ReloadStage();
-            ShowMsg($"Area {areaCode} saved.", false);
+            ShowMsg($"Area {areaCode} saved. Log #{logId}.", false);
         }
         catch (Exception ex) { _areaModalErr = ex.Message; }
         finally { _busy = false; }
@@ -676,15 +739,17 @@
 
     void SaveAreaDelete()
     {
+        if (!RequireAdministrator()) return;
         if (_selectedArea is null) return;
         _busy = true;
         try
         {
             var id = _selectedArea.AreaCode;
             Wh.DeleteWarehouseArea(id, _selectedWhCode);
+            var logId = LogLocationMaster("DELETE", "AREA", id, null, $"Area {id} deleted from WH {_selectedWhCode ?? "-"}.");
             CloseAreaModal();
             ReloadStage();
-            ShowMsg($"Area {id} deleted.", false);
+            ShowMsg($"Area {id} deleted. Log #{logId}.", false);
         }
         catch (Exception ex) { _areaModalErr = ex.Message; }
         finally { _busy = false; }
@@ -698,6 +763,7 @@
 
     void OpenSectionCreate()
     {
+        if (!RequireAdministrator()) return;
         if (string.IsNullOrWhiteSpace(_selectedWhCode) || string.IsNullOrWhiteSpace(_selectedAreaCode))
         {
             ShowMsg("Select an area first.", true);
@@ -710,6 +776,7 @@
 
     void OpenSectionEdit(AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow row)
     {
+        if (!RequireAdministrator()) return;
         _selectedSection = row;
         _selectedSectionCode = row.SectionCode;
         _sectionForm = new() { SectionCode = row.SectionCode, SectionName = row.SectionName ?? "", UseYn = row.UseYn };
@@ -719,29 +786,32 @@
 
     void SaveSectionCreate()
     {
+        if (!RequireAdministrator()) return;
         if (string.IsNullOrWhiteSpace(_selectedAreaCode)) return;
         var id = _sectionForm.SectionCode.Trim();
         if (string.IsNullOrWhiteSpace(id)) { _sectionModalErr = "Zone Code is required."; return; }
         if (Wh.WarehouseSectionExists(_selectedAreaCode, id, _selectedWhCode)) { _sectionModalErr = $"Zone {id} already exists in this area."; return; }
-        SaveSection(id);
+        SaveSection(id, "CREATE");
     }
 
     void SaveSectionEdit()
     {
+        if (!RequireAdministrator()) return;
         if (_selectedSection is null) return;
-        SaveSection(_selectedSection.SectionCode);
+        SaveSection(_selectedSection.SectionCode, "UPDATE");
     }
 
-    void SaveSection(string sectionCode)
+    void SaveSection(string sectionCode, string action)
     {
         if (string.IsNullOrWhiteSpace(_selectedAreaCode)) return;
         _busy = true;
         try
         {
             Wh.SaveWarehouseSection(_selectedAreaCode, sectionCode, NE(_sectionForm.SectionName), _sectionForm.UseYn, _selectedWhCode);
+            var logId = LogLocationMaster(action, "ZONE", sectionCode, null, $"Zone {sectionCode} saved in Area {_selectedAreaCode}.");
             CloseSectionModal();
             ReloadStage();
-            ShowMsg($"Zone {sectionCode} saved.", false);
+            ShowMsg($"Zone {sectionCode} saved. Log #{logId}.", false);
         }
         catch (Exception ex) { _sectionModalErr = ex.Message; }
         finally { _busy = false; }
@@ -749,15 +819,17 @@
 
     void SaveSectionDelete()
     {
+        if (!RequireAdministrator()) return;
         if (_selectedSection is null || string.IsNullOrWhiteSpace(_selectedAreaCode)) return;
         _busy = true;
         try
         {
             var id = _selectedSection.SectionCode;
             Wh.DeleteWarehouseSection(_selectedAreaCode, id, _selectedWhCode);
+            var logId = LogLocationMaster("DELETE", "ZONE", id, null, $"Zone {id} deleted from Area {_selectedAreaCode}.");
             CloseSectionModal();
             ReloadStage();
-            ShowMsg($"Zone {id} deleted.", false);
+            ShowMsg($"Zone {id} deleted. Log #{logId}.", false);
         }
         catch (Exception ex) { _sectionModalErr = ex.Message; }
         finally { _busy = false; }
@@ -771,6 +843,7 @@
 
     void OpenLocationCreate()
     {
+        if (!RequireAdministrator()) return;
         if (string.IsNullOrWhiteSpace(_selectedWhCode) || string.IsNullOrWhiteSpace(_selectedAreaCode) || string.IsNullOrWhiteSpace(_selectedSectionCode))
         {
             ShowMsg("Select a zone first.", true);
@@ -787,6 +860,7 @@
 
     void OpenLocationEdit(AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow row)
     {
+        if (!RequireAdministrator()) return;
         _selectedLocation = row;
         _locationForm = new()
         {
@@ -804,26 +878,28 @@
 
     void SaveLocationCreate()
     {
+        if (!RequireAdministrator()) return;
         if (!PrepareLocationForm()) return;
 
         var id = _locationForm.LocationNo;
         if (Wh.LocationExists(id)) { _locationModalErr = $"Location {id} already exists."; return; }
         if (!ValidateLocationCoordinate(id)) return;
-        SaveLocation(id);
+        SaveLocation(id, "CREATE");
     }
 
     void SaveLocationEdit()
     {
+        if (!RequireAdministrator()) return;
         if (_selectedLocation is null) return;
+        _locationForm.LocationNo = _selectedLocation.LocationNo;
+        _locationForm.WhCode = _selectedLocation.WhCode ?? _locationForm.WhCode;
+        _locationForm.RackX = _selectedLocation.RackX ?? "";
+        _locationForm.RackY = _selectedLocation.RackY ?? "";
+        _locationForm.RackZ = _selectedLocation.RackZ ?? "";
         if (!PrepareLocationForm()) return;
-        if (!string.Equals(_locationForm.LocationNo, _selectedLocation.LocationNo, StringComparison.OrdinalIgnoreCase))
-        {
-            _locationModalErr = $"Location Code must remain {_selectedLocation.LocationNo}. Create a new location to use {_locationForm.LocationNo}.";
-            return;
-        }
 
         if (!ValidateLocationCoordinate(_selectedLocation.LocationNo)) return;
-        SaveLocation(_selectedLocation.LocationNo);
+        SaveLocation(_selectedLocation.LocationNo, "UPDATE");
     }
 
     bool PrepareLocationForm()
@@ -899,7 +975,7 @@
         return false;
     }
 
-    void SaveLocation(string locationNo)
+    void SaveLocation(string locationNo, string action)
     {
         if (string.IsNullOrWhiteSpace(_selectedAreaCode) || string.IsNullOrWhiteSpace(_selectedSectionCode)) return;
         _busy = true;
@@ -915,9 +991,10 @@
                 NE(_locationForm.RackY),
                 NE(_locationForm.RackZ),
                 _locationForm.UseYn);
+            var logId = LogLocationMaster(action, "LOCATION", locationNo, locationNo, $"Location {locationNo} saved.");
             CloseLocationModal();
             ReloadStage();
-            ShowMsg($"Location {locationNo} saved.", false);
+            ShowMsg($"Location {locationNo} saved. Log #{logId}.", false);
         }
         catch (Exception ex) { _locationModalErr = ex.Message; }
         finally { _busy = false; }
@@ -925,15 +1002,17 @@
 
     void SaveLocationDelete()
     {
+        if (!RequireAdministrator()) return;
         if (_selectedLocation is null) return;
         _busy = true;
         try
         {
             var id = _selectedLocation.LocationNo;
             Wh.DeleteLocation(id);
+            var logId = LogLocationMaster("DELETE", "LOCATION", id, id, $"Location {id} deleted.");
             CloseLocationModal();
             ReloadStage();
-            ShowMsg($"Location {id} deleted.", false);
+            ShowMsg($"Location {id} deleted. Log #{logId}.", false);
         }
         catch (Exception ex) { _locationModalErr = ex.Message; }
         finally { _busy = false; }
@@ -963,6 +1042,54 @@
             _msg = "";
             InvokeAsync(StateHasChanged);
         });
+    }
+
+    bool RequireAdministrator()
+    {
+        if (_canModifyLocationMaster)
+            return true;
+
+        ShowMsg("Administrator role is required to change Location Master.", true);
+        return false;
+    }
+
+    static bool IsAdministratorUser(System.Security.Claims.ClaimsPrincipal user, string currentUserId)
+    {
+        static bool Same(string? value, string expected) =>
+            string.Equals(value?.Trim(), expected, StringComparison.OrdinalIgnoreCase);
+
+        var roleClaims = user.Claims
+            .Where(c =>
+                Same(c.Type, System.Security.Claims.ClaimTypes.Role) ||
+                Same(c.Type, "role") ||
+                Same(c.Type, "roles"))
+            .Select(c => c.Value);
+
+        if (roleClaims.Any(r =>
+            Same(r, "Admin") ||
+            Same(r, "Administrator") ||
+            Same(r, "Administrators")))
+        {
+            return true;
+        }
+
+        return Same(currentUserId, "admin@ames.local") ||
+               Same(user.Identity?.Name, "admin@ames.local") ||
+               Same(user.Identity?.Name, "admin") ||
+               Same(user.Identity?.Name, "administrator");
+    }
+
+    long LogLocationMaster(string action, string refDocType, string refDocNo, string? locationId, string message)
+    {
+        return Wh.WriteWebOperationLog(
+            $"LOCATION_MASTER_{action.ToUpperInvariant()}",
+            "WH-001",
+            _currentUserId,
+            _currentUserName,
+            message,
+            refDocType,
+            refDocNo,
+            locationId);
     }
 
     static string? NE(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

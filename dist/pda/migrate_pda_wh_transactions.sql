@@ -315,7 +315,7 @@ BEGIN
          OR (@OperationType = 'INBOUND' AND EventType IN ('RECEIVE', 'CANCEL_RECEIPT'))
          OR (@OperationType = 'RELEASE' AND EventType = 'RELEASE_PICK')
          OR (@OperationType = 'ADJUST' AND EventType = 'ADJUST_SAVE')
-         OR (@OperationType = 'LOCATION' AND EventType = 'MOVE_LOCATION')
+         OR (@OperationType = 'LOCATION' AND (EventType = 'MOVE_LOCATION' OR EventType LIKE 'LOCATION_MASTER_%'))
          OR EventType = @OperationType
       )
       AND (@DateFrom IS NULL OR EventTime >= @DateFrom)

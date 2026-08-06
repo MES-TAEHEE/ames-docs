@@ -134,15 +134,35 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var roleMgr = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     const string email = "admin@ames.local";
-    if (await userMgr.FindByEmailAsync(email) is null)
+    const string adminRole = "Admin";
+    if (await roleMgr.FindByNameAsync(adminRole) is null)
+    {
+        var roleRes = await roleMgr.CreateAsync(new IdentityRole(adminRole));
+        if (!roleRes.Succeeded)
+            app.Logger.LogWarning("admin role seed failed: {Errs}", string.Join("; ", roleRes.Errors.Select(e => e.Description)));
+    }
+
+    var adminUser = await userMgr.FindByEmailAsync(email);
+    if (adminUser is null)
     {
         var u = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true };
         var res = await userMgr.CreateAsync(u, "Dev2026!");
         if (!res.Succeeded)
             app.Logger.LogWarning("admin seed failed: {Errs}", string.Join("; ", res.Errors.Select(e => e.Description)));
         else
+        {
+            adminUser = u;
             app.Logger.LogInformation("seeded admin@ames.local / Dev2026!");
+        }
+    }
+
+    if (adminUser is not null && !await userMgr.IsInRoleAsync(adminUser, adminRole))
+    {
+        var roleRes = await userMgr.AddToRoleAsync(adminUser, adminRole);
+        if (!roleRes.Succeeded)
+            app.Logger.LogWarning("admin role assignment failed: {Errs}", string.Join("; ", roleRes.Errors.Select(e => e.Description)));
     }
 }
 
