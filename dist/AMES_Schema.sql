@@ -189,6 +189,7 @@ GO
 CREATE TABLE dbo.MD_Item (
   [ItemNo]                    VARCHAR(20)          NOT NULL,
   [ItemName]                  NVARCHAR(80)         NOT NULL,
+  [ItemNameEN]                NVARCHAR(80)             NULL,
   [ItemType]                  VARCHAR(10)              NULL,
   [ItemCategory]              VARCHAR(30)              NULL,
   [CarType]                   VARCHAR(10)              NULL,
@@ -198,6 +199,8 @@ CREATE TABLE dbo.MD_Item (
   [MaxStock]                  DECIMAL(14,4)            NULL,
   [SafetyStock]               DECIMAL(14,4)            NULL,
   [UnitCost]                  DECIMAL(14,2)            NULL,
+  [CustItemNoSAV]             VARCHAR(30)              NULL,
+  [CustItemNoGEO]             VARCHAR(30)              NULL,
   [DrawingNo]                 VARCHAR(30)              NULL,
   [PGN]                       VARCHAR(4)               NULL,
   [ALC]                       VARCHAR(10)              NULL,
@@ -1137,6 +1140,33 @@ CREATE TABLE dbo.WH_TransactionHistory (
 );
 GO
 
+-- ── WH_WarehouseMaster  (창고 마스터 — WH 구역 레이아웃)
+CREATE TABLE dbo.WH_WarehouseMaster (
+  [WhCode]                    VARCHAR(20)          NOT NULL,
+  [WhName]                    NVARCHAR(120)            NULL,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
+  [CreatedBy]                 NVARCHAR(80)             NULL,
+  [CreatedTS]                 DATETIME2            NOT NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(80)             NULL,
+  [ModifiedTS]                DATETIME2                NULL,
+  CONSTRAINT PK_WH_WAREHOUSE_MASTER PRIMARY KEY CLUSTERED ([WhCode])
+);
+GO
+
+-- ── WH_AreaMaster  (창고 구역 마스터 — WhCode 하위 구역)
+CREATE TABLE dbo.WH_AreaMaster (
+  [WhCode]                    VARCHAR(20)              NULL,  -- FK -> WH_WarehouseMaster.WhCode
+  [AreaCode]                  VARCHAR(20)          NOT NULL,
+  [AreaName]                  NVARCHAR(120)            NULL,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
+  [CreatedBy]                 NVARCHAR(80)             NULL,
+  [CreatedTS]                 DATETIME2            NOT NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(80)             NULL,
+  [ModifiedTS]                DATETIME2                NULL,
+  CONSTRAINT PK_WH_AREA_MASTER PRIMARY KEY CLUSTERED ([AreaCode])
+);
+GO
+
 -- ╔══════════════════════════════════════════════════════════════════════╗
 -- ║  Module: PP                                                           ║
 -- ╚══════════════════════════════════════════════════════════════════════╝
@@ -1493,6 +1523,20 @@ CREATE TABLE dbo.PP_ProductionCalendarOverride (
   [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_ProductionCalendarOverride PRIMARY KEY CLUSTERED ([OverrideID])
 );
+GO
+
+-- ── PP_EquipSignal  (설비 가동 신호 — InjAgent/PLC 수집, 라인 상태 판정용)
+CREATE TABLE dbo.PP_EquipSignal (
+  [SignalId]                  INT IDENTITY(1,1)    NOT NULL,
+  [LineId]                    VARCHAR(20)          NOT NULL,
+  [SignalTime]                DATETIME2            NOT NULL DEFAULT SYSDATETIME(),
+  [IsRunning]                 BIT                  NOT NULL DEFAULT 0,
+  [Source]                    VARCHAR(30)              NULL DEFAULT 'WEB',
+  [CreatedBy]                 VARCHAR(50)              NULL,
+  CONSTRAINT PK_PP_EquipSignal PRIMARY KEY CLUSTERED ([SignalId])
+);
+GO
+CREATE NONCLUSTERED INDEX IX_PP_EquipSignal_Line_Time ON dbo.PP_EquipSignal([LineId], [SignalTime]);
 GO
 
 -- ╔══════════════════════════════════════════════════════════════════════╗
@@ -3211,6 +3255,7 @@ CREATE TABLE dbo.SYS_RolePermission (
   [RoleID]                    NVARCHAR(450)            NULL,  -- FK -> AspNetRoles.Id
   [RoleName]                  VARCHAR(40)              NULL,
   [ModuleCode]                VARCHAR(10)              NULL,
+  [ProcessCode]               VARCHAR(10)              NULL,
   [ScreenCode]                VARCHAR(20)              NULL,
   [PermissionLevel]           VARCHAR(10)              NULL,
   [IsSystemRole]              BIT                      NULL,
@@ -3229,6 +3274,7 @@ CREATE TABLE dbo.SYS_AuditLog (
   [EventTS]                   DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ActorUserID]               NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [ModuleCode]                VARCHAR(10)              NULL,
+  [ProcessCode]               VARCHAR(10)              NULL,
   [ScreenCode]                VARCHAR(20)              NULL,
   [ActionType]                VARCHAR(15)              NULL,
   [TargetEntity]              VARCHAR(40)              NULL,
@@ -3252,6 +3298,7 @@ CREATE TABLE dbo.SYS_NotificationRule (
   [EventTypeCode]             VARCHAR(20)              NULL,
   [EventName]                 NVARCHAR(60)             NULL,
   [ModuleCode]                VARCHAR(10)              NULL,
+  [ProcessCode]               VARCHAR(10)              NULL,
   [TriggerCondition]          NVARCHAR(500)            NULL,
   [IsEnabled]                 BIT                      NULL DEFAULT 1,
   [ChannelsJSON]              NVARCHAR(200)            NULL,
