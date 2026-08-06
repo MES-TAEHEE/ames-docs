@@ -274,6 +274,19 @@ window.whLocationMap = (() => {
             document.addEventListener('keydown', h.key);
         },
 
+        focusLocation(locationNo) {
+            if (!_plan || !locationNo) return;
+
+            const target = Array.from(_plan.querySelectorAll('[data-location-no]'))
+                .find(node => node.dataset.locationNo === locationNo);
+            if (!target) return;
+
+            target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            target.classList.remove('search-hit');
+            void target.offsetWidth;
+            target.classList.add('search-hit');
+        },
+
         destroy() {
             if (_plan) {
                 if (h.down) _plan.removeEventListener('pointerdown', h.down);

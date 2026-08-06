@@ -47,6 +47,22 @@
             <div class="dim">@StepDescription</div>
         </div>
 
+        <div class="wh-map-search">
+            <RadzenTextBox @bind-Value="_mapSearch"
+                           @bind-Value:after="RefreshLocationSearch"
+                           Immediate="true"
+                           Placeholder="Search part, name, or location"
+                           InputSize="InputSize.Small"
+                           class="ames-rz-input wh-map-search-input" />
+            <RadzenButton Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small"
+                          Click="SearchLocations" title="Search map inventory" class="ames-rz-btn" />
+            @if (!string.IsNullOrWhiteSpace(_mapSearch))
+            {
+                <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                              Click="ClearLocationSearch" title="Clear search" class="ames-rz-btn" />
+            }
+        </div>
+
         @if (_stage == MapStage.Warehouse)
         {
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
@@ -121,6 +137,7 @@
             <span><i class="selected"></i> Selected</span>
         </div>
 
+    <div class="wh-map-workspace wh-location-map-workspace">
         <div id="wh-location-map-plan"
              class="@MapPlanClass"
              style="@MapCanvasStyle()"
@@ -259,6 +276,43 @@
                 <span class="wh-map-resize-handle" title="Resize map"></span>
             }
         </div>
+
+        <aside class="wh-map-stock-panel" aria-label="Map inventory">
+            <div class="wh-map-stock-head">
+                <div>
+                    <span>Inventory in View</span>
+                    <strong>@InventoryScopeLabel</strong>
+                </div>
+                <span class="wh-map-stock-count">@VisibleInventoryRows.Count rows</span>
+            </div>
+
+            @if (VisibleInventoryRows.Count == 0)
+            {
+                <div class="wh-map-stock-empty">
+                    <strong>No stock found</strong>
+                    <span>@(string.IsNullOrWhiteSpace(_mapSearch) ? "No on-hand inventory in this map area." : "Try a different part, name, or location.")</span>
+                </div>
+            }
+            else
+            {
+                <div class="wh-map-stock-list">
+                    @foreach (var item in VisibleInventoryRows)
+                    {
+                        <button type="button"
+                                class="wh-map-stock-item @(IsHighlightedLocation(item.LocationNo) ? "highlighted" : "")"
+                                @onclick="() => GoToInventoryLocation(item)">
+                            <span class="wh-map-stock-part">@item.PartNo</span>
+                            <span class="wh-map-stock-name">@(item.PartName ?? item.PartNo)</span>
+                            <span class="wh-map-stock-meta">
+                                <b>@item.LocationNo</b>
+                                <span>@item.Qty.ToString("N0") @(item.Uom ?? "EA")</span>
+                            </span>
+                        </button>
+                    }
+                </div>
+            }
+        </aside>
+    </div>
 </div>
 
 @if (_warehousePickerOpen)
@@ -348,6 +402,8 @@
     List<WarehouseRepository.WarehouseSectionRow> _zones = new();
     List<WarehouseRepository.LocationMapRow> _allRows = new();
     List<WarehouseRepository.LocationMapRow> _rows = new();
+    List<WarehouseRepository.LocationInventoryRow> _scopeInventoryRows = new();
+    List<WarehouseRepository.LocationInventoryRow> _searchInventoryRows = new();
     List<WarehouseRepository.LocationAreaLayoutRow> _warehouseLayouts = new();
     List<WarehouseRepository.LocationAreaLayoutRow> _areaLayouts = new();
     List<WarehouseRepository.LocationAreaLayoutRow> _zoneLayouts = new();
@@ -361,6 +417,9 @@
     string? _selectedFactoryAreaCode;
     string? _selectedZoneCode;
     string? _levelCode;
+    string _mapSearch = "";
+    string? _highlightedLocationNo;
+    string? _pendingLocationFocus;
     string _msg = "";
     AlertStyle _msgStyle = AlertStyle.Danger;
     bool _mapJsReady;
@@ -463,6 +522,19 @@
             ? $"{zone.SectionCode} - {zone.SectionName ?? "Zone"}"
             : "Zone";
 
+    IReadOnlyList<WarehouseRepository.LocationInventoryRow> VisibleInventoryRows =>
+        string.IsNullOrWhiteSpace(_mapSearch) ? _scopeInventoryRows : _searchInventoryRows;
+
+    string InventoryScopeLabel => !string.IsNullOrWhiteSpace(_mapSearch)
+        ? $"Search: {_mapSearch.Trim()}"
+        : _stage switch
+        {
+            MapStage.Warehouse => "All warehouses",
+            MapStage.Area => SelectedWarehouseLabel,
+            MapStage.Zone => SelectedAreaLabel,
+            _ => $"{SelectedZoneLabel} - Level {DisplayLevel(_levelCode)}"
+        };
+
     IEnumerable<WarehouseRepository.WarehouseAreaRow> AvailableAreas =>
         _areas
             .Where(a => a.UseYn && !_areaLayouts.Any(l => string.Equals(l.AreaCode, a.AreaCode, StringComparison.OrdinalIgnoreCase)))
@@ -510,6 +582,13 @@
             _mapJsReady = true;
             _mapJsInitPending = false;
         }
+
+        if (!string.IsNullOrWhiteSpace(_pendingLocationFocus))
+        {
+            var locationNo = _pendingLocationFocus;
+            _pendingLocationFocus = null;
+            await JS.InvokeVoidAsync("whLocationMap.focusLocation", locationNo);
+        }
     }
 
     void ReloadAll()
@@ -535,6 +614,8 @@
             _areas = new();
             _allRows = new();
             _rows = new();
+            _scopeInventoryRows = new();
+            _searchInventoryRows = new();
             _warehouseLayouts = new();
             _areaLayouts = new();
             _zoneLayouts = new();
@@ -552,6 +633,7 @@
             _rows = new();
             _areaLayouts = new();
             _zoneLayouts = new();
+            LoadScopeInventory();
             return;
         }
 
@@ -564,6 +646,7 @@
             _zones = new();
             _rows = new();
             _zoneLayouts = new();
+            LoadScopeInventory();
             return;
         }
 
@@ -571,6 +654,8 @@
         _zoneLayouts = Wh.ListZoneMapPlacements(_selectedAreaCode, _selectedWhCode);
         if (!string.IsNullOrWhiteSpace(_selectedZoneCode))
             LoadZoneState();
+        else
+            LoadScopeInventory();
     }
 
     void LoadZoneState()
@@ -578,11 +663,93 @@
         if (string.IsNullOrWhiteSpace(_selectedAreaCode) || string.IsNullOrWhiteSpace(_selectedZoneCode))
         {
             _rows = new();
+            LoadScopeInventory();
             return;
         }
 
         SetDefaultLevel();
         _rows = Wh.ListLocationMap(_selectedAreaCode, _levelCode, _selectedZoneCode, _selectedWhCode);
+        LoadScopeInventory();
+    }
+
+    void LoadScopeInventory()
+    {
+        _scopeInventoryRows = _stage switch
+        {
+            MapStage.Warehouse => Wh.ListLocationInventory(),
+            MapStage.Area => Wh.ListLocationInventory(whCode: _selectedWhCode),
+            MapStage.Zone => Wh.ListLocationInventory(whCode: _selectedWhCode, areaCode: _selectedAreaCode),
+            _ => Wh.ListLocationInventory(
+                whCode: _selectedWhCode,
+                areaCode: _selectedAreaCode,
+                zoneCode: _selectedZoneCode,
+                rackZ: _levelCode)
+        };
+
+        if (string.IsNullOrWhiteSpace(_mapSearch))
+            _searchInventoryRows = new();
+    }
+
+    void SearchLocations()
+    {
+        _mapSearch = _mapSearch?.Trim() ?? "";
+        _highlightedLocationNo = null;
+
+        if (string.IsNullOrWhiteSpace(_mapSearch))
+        {
+            LoadScopeInventory();
+            return;
+        }
+
+        try
+        {
+            RefreshLocationSearch();
+            if (_searchInventoryRows.Count == 0)
+            {
+                ShowWarning("No inventory location matches this search.");
+                return;
+            }
+
+            var exactLocation = _searchInventoryRows.FirstOrDefault(r =>
+                string.Equals(r.LocationNo, _mapSearch, StringComparison.OrdinalIgnoreCase));
+            GoToInventoryLocation(exactLocation ?? _searchInventoryRows[0]);
+            _msg = "";
+        }
+        catch (Exception ex) { ShowError(ex.Message); }
+    }
+
+    void RefreshLocationSearch()
+    {
+        _mapSearch = _mapSearch?.Trim() ?? "";
+        _highlightedLocationNo = null;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_mapSearch))
+            {
+                _searchInventoryRows = new();
+                LoadScopeInventory();
+                _msg = "";
+                return;
+            }
+
+            _searchInventoryRows = Wh.ListLocationInventory(search: _mapSearch);
+            _msg = "";
+        }
+        catch (Exception ex)
+        {
+            _searchInventoryRows = new();
+            ShowError(ex.Message);
+        }
+    }
+
+    void ClearLocationSearch()
+    {
+        _mapSearch = "";
+        _searchInventoryRows = new();
+        _highlightedLocationNo = null;
+        LoadScopeInventory();
+        _msg = "";
     }
 
     List<WarehouseRepository.LocationMapRow> AreaRows()
@@ -917,7 +1084,36 @@
 
     void SelectAreaLocation(string locationNo)
     {
-        _selectedLocation = ZoneRows().FirstOrDefault(r => string.Equals(r.LocationNo, locationNo, StringComparison.OrdinalIgnoreCase));
+        _selectedLocation = _rows.FirstOrDefault(r => string.Equals(r.LocationNo, locationNo, StringComparison.OrdinalIgnoreCase));
+        _highlightedLocationNo = _selectedLocation?.LocationNo;
+    }
+
+    void GoToInventoryLocation(WarehouseRepository.LocationInventoryRow item)
+    {
+        if (string.IsNullOrWhiteSpace(item.WhCode)
+            || string.IsNullOrWhiteSpace(item.AreaCode)
+            || string.IsNullOrWhiteSpace(item.ZoneCode)
+            || string.IsNullOrWhiteSpace(item.RackZ))
+        {
+            ShowWarning("This inventory row does not have a complete map location.");
+            return;
+        }
+
+        CancelEdit();
+        _selectedWhCode = item.WhCode;
+        _selectedWarehouseCode = item.WhCode;
+        _selectedAreaCode = item.AreaCode;
+        _selectedFactoryAreaCode = item.AreaCode;
+        _selectedZoneCode = item.ZoneCode;
+        _levelCode = item.RackZ;
+        _stage = MapStage.Grid;
+        LoadAreaState();
+
+        _selectedLocation = _rows.FirstOrDefault(r =>
+            string.Equals(r.LocationNo, item.LocationNo, StringComparison.OrdinalIgnoreCase));
+        _highlightedLocationNo = item.LocationNo;
+        _pendingLocationFocus = item.LocationNo;
+        _mapJsInitPending = true;
     }
 
     void BackToWarehouses()
@@ -935,7 +1131,8 @@
         _rows = new();
         _areaLayouts = new();
         _zoneLayouts = new();
-            _mapJsInitPending = true;
+        LoadScopeInventory();
+        _mapJsInitPending = true;
     }
 
     void BackToArea()
@@ -1242,7 +1439,10 @@
                                 {
                                     @foreach (var loc in cells)
                                     {
-                                        <button type="button" class="wh-location-bin @StatusClass(loc.Status)" @onclick="() => _selectedLocation = loc">
+                                        <button type="button"
+                                                class="wh-location-bin @StatusClass(loc.Status) @(IsHighlightedLocation(loc.LocationNo) ? "highlighted" : "")"
+                                                data-location-no="@loc.LocationNo"
+                                                @onclick="() => SelectAreaLocation(loc.LocationNo)">
                                             <span class="wh-location-bin-code">@loc.LocationNo</span>
                                             <span class="wh-location-bin-zone">@((loc.ZoneCode ?? loc.ZoneName) ?? "-")</span>
                                             <span class="wh-location-bin-qty">@loc.TotalQty.ToString("N0")</span>
@@ -1265,6 +1465,9 @@
 
     bool IsSelectedZone(string zoneCode) =>
         string.Equals(_selectedZoneCode, zoneCode, StringComparison.OrdinalIgnoreCase);
+
+    bool IsHighlightedLocation(string locationNo) =>
+        string.Equals(_highlightedLocationNo, locationNo, StringComparison.OrdinalIgnoreCase);
 
     string BreadcrumbClass(MapStage stage) => _stage == stage ? "on" : "";
 

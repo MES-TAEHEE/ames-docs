@@ -2431,6 +2431,166 @@ select.ames-rz-input {
     gap: 14px;
 }
 
+.wh-location-map-workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+    align-items: start;
+    padding: 0 14px 16px;
+}
+
+.wh-location-map-workspace .wh-factory-plan {
+    margin: 0;
+}
+
+.wh-map-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: min(100%, 330px);
+}
+
+.wh-map-search-input {
+    min-width: 220px;
+    flex: 1 1 auto;
+}
+
+.wh-map-stock-panel {
+    min-width: 0;
+    max-height: 620px;
+    overflow: hidden;
+    border: 1px solid rgba(125,211,252,.24);
+    border-radius: 10px;
+    background: rgba(15,23,42,.76);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.wh-map-stock-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 13px 14px;
+    border-bottom: 1px solid rgba(148,163,184,.16);
+    background: rgba(30,41,59,.68);
+}
+
+.wh-map-stock-head > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.wh-map-stock-head span:first-child {
+    color: #93c5fd;
+    font-size: .7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.wh-map-stock-head strong {
+    overflow: hidden;
+    color: #f8fafc;
+    font-size: .82rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wh-map-stock-count {
+    flex: 0 0 auto;
+    color: #cbd5e1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .7rem;
+    font-weight: 800;
+}
+
+.wh-map-stock-list {
+    display: flex;
+    max-height: 548px;
+    flex-direction: column;
+    gap: 8px;
+    overflow: auto;
+    padding: 10px;
+}
+
+.wh-map-stock-item {
+    width: 100%;
+    border: 1px solid rgba(148,163,184,.18);
+    border-radius: 8px;
+    background: rgba(30,41,59,.62);
+    color: #e5edf7;
+    cursor: pointer;
+    padding: 10px 11px;
+    text-align: left;
+}
+
+.wh-map-stock-item:hover,
+.wh-map-stock-item.highlighted {
+    border-color: rgba(96,165,250,.84);
+    background: rgba(30,64,175,.28);
+}
+
+.wh-map-stock-part,
+.wh-map-stock-name,
+.wh-map-stock-meta {
+    display: block;
+}
+
+.wh-map-stock-part {
+    color: #bfdbfe;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .78rem;
+    font-weight: 900;
+}
+
+.wh-map-stock-name {
+    margin-top: 3px;
+    overflow: hidden;
+    color: #e2e8f0;
+    font-size: .76rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wh-map-stock-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 8px;
+    color: #94a3b8;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .72rem;
+}
+
+.wh-map-stock-meta b {
+    color: #7dd3fc;
+}
+
+.wh-map-stock-meta span {
+    color: #f8fafc;
+    font-weight: 800;
+}
+
+.wh-map-stock-empty {
+    display: flex;
+    min-height: 140px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    padding: 20px;
+    color: #94a3b8;
+    text-align: center;
+}
+
+.wh-map-stock-empty strong {
+    color: #e2e8f0;
+    font-size: .86rem;
+}
+
+.wh-map-stock-empty span {
+    font-size: .75rem;
+}
+
 .wh-position-panel {
     padding: 14px;
 }
@@ -2559,6 +2719,12 @@ select.ames-rz-input {
 .wh-location-bin.empty { border-color: rgba(148,163,184,.22); }
 .wh-location-bin.stocked { border-color: rgba(74,222,128,.48); background: rgba(21,128,61,.18); }
 .wh-location-bin.mixed { border-color: rgba(251,191,36,.55); background: rgba(180,83,9,.17); }
+.wh-location-bin.highlighted,
+.wh-location-bin.search-hit {
+    border-color: #facc15;
+    background: rgba(202,138,4,.24);
+    box-shadow: 0 0 0 2px rgba(250,204,21,.22), 0 0 22px rgba(250,204,21,.2);
+}
 
 .wh-location-bin-code {
     color: #bfdbfe;
@@ -2689,6 +2855,18 @@ select.ames-rz-input {
 
     .wh-map-workspace {
         grid-template-columns: 1fr;
+    }
+
+    .wh-location-map-workspace {
+        padding-inline: 14px;
+    }
+
+    .wh-map-stock-panel {
+        max-height: none;
+    }
+
+    .wh-map-stock-list {
+        max-height: 320px;
     }
 }
 

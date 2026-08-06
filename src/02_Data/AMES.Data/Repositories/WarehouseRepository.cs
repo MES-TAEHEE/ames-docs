@@ -87,6 +87,21 @@ public sealed class WarehouseRepository
         decimal TotalQty,
         string Status);
 
+    public record LocationInventoryRow(
+        string PartNo,
+        string? PartName,
+        string? Uom,
+        string LocationNo,
+        string? WhCode,
+        string? AreaCode,
+        string? AreaName,
+        string? ZoneCode,
+        string? ZoneName,
+        string? RackX,
+        string? RackY,
+        string? RackZ,
+        decimal Qty);
+
     public record LocationAreaLayoutRow(
         string AreaCode,
         string? AreaName,
@@ -834,6 +849,79 @@ public sealed class WarehouseRepository
             ("@ZoneCode", NullIfBlank(zoneCode)),
             ("@WhCode", NullIfBlank(whCode)),
             ("@RackZ", NullIfBlank(rackZ)));
+    }
+
+    public List<LocationInventoryRow> ListLocationInventory(
+        string? whCode = null,
+        string? areaCode = null,
+        string? zoneCode = null,
+        string? rackZ = null,
+        string? search = null)
+    {
+        EnsureWarehouseAreaTable();
+        var like = Like(search);
+
+        return Query("""
+            SELECT
+                S.ItemNo AS PART_NO,
+                COALESCE(NULLIF(I.ItemName, N''), S.ItemNo) AS PART_NAME,
+                I.DefaultUOM AS UOM,
+                S.LocationID AS LOCATION_NO,
+                L.PlantCode AS WHCD,
+                COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) AS AREACD,
+                COALESCE(NULLIF(A.AreaName, ''), COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode)) AS AREANM,
+                COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') AS ZONECD,
+                COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') AS ZONENM,
+                L.Aisle AS RACK_X,
+                L.Bay AS RACK_Y,
+                L.Slot AS RACK_Z,
+                COALESCE(SUM(S.OnHandQty), 0) AS QTY
+            FROM dbo.WH_Inventory S
+            INNER JOIN dbo.MD_Location L ON L.LocationID = S.LocationID
+            LEFT JOIN dbo.MD_Item I ON I.ItemNo = S.ItemNo
+            LEFT JOIN dbo.WH_AreaMaster A
+                   ON A.AreaCode = COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode)
+                  AND COALESCE(A.WhCode, L.PlantCode) = L.PlantCode
+            WHERE COALESCE(S.OnHandQty, 0) <> 0
+              AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
+              AND COALESCE(L.ActiveFlag, 1) = 1
+              AND (@WhCode IS NULL OR L.PlantCode = @WhCode)
+              AND (@AreaCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = @AreaCode)
+              AND (@ZoneCode IS NULL OR COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = @ZoneCode)
+              AND (@RackZ IS NULL OR L.Slot = @RackZ)
+              AND (@Search IS NULL
+                   OR S.ItemNo LIKE @Search
+                   OR I.ItemName LIKE @Search
+                   OR S.LocationID LIKE @Search)
+            GROUP BY S.ItemNo, I.ItemName, I.DefaultUOM, S.LocationID,
+                     L.PlantCode, L.ZoneCode, A.AreaName, L.LocationType,
+                     L.Aisle, L.Bay, L.Slot
+            ORDER BY S.ItemNo, L.PlantCode,
+                     COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode),
+                     COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT'),
+                     TRY_CONVERT(int, L.Slot), L.Slot,
+                     TRY_CONVERT(int, L.Bay), L.Bay,
+                     TRY_CONVERT(int, L.Aisle), L.Aisle,
+                     S.LocationID;
+            """, r => new LocationInventoryRow(
+                GetString(r, "PART_NO") ?? "",
+                GetString(r, "PART_NAME"),
+                GetString(r, "UOM"),
+                GetString(r, "LOCATION_NO") ?? "",
+                GetString(r, "WHCD"),
+                GetString(r, "AREACD"),
+                GetString(r, "AREANM"),
+                GetString(r, "ZONECD"),
+                GetString(r, "ZONENM"),
+                GetString(r, "RACK_X"),
+                GetString(r, "RACK_Y"),
+                GetString(r, "RACK_Z"),
+                GetDecimal(r, "QTY")),
+            ("@WhCode", NullIfBlank(whCode)),
+            ("@AreaCode", NullIfBlank(areaCode)),
+            ("@ZoneCode", NullIfBlank(zoneCode)),
+            ("@RackZ", NullIfBlank(rackZ)),
+            ("@Search", like));
     }
 
     public List<LocationAreaLayoutRow> ListWarehouseMapPlacements()
