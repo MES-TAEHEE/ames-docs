@@ -1223,7 +1223,7 @@ select.ames-rz-input {
 .ames-cal-head.sat { color: rgba(96,165,250,.8); }
 
 .ames-cal-cell {
-    min-height: 115px;
+    min-height: 92px;   /* SYS 캘린더 일별 높이 = 기존 115px의 80% */
     padding: 7px 9px 6px;
     background: rgba(255,255,255,.02);
     border: 1px solid rgba(255,255,255,.04);
@@ -1460,7 +1460,7 @@ select.ames-rz-input {
 }
 .ames-cal-wo-more:hover { text-decoration: underline; color: #bfdbfe; }
 /* override base cell min-height for WO calendar */
-.ames-cal-grid.pp-wo-grid .ames-cal-cell { min-height: 112px; }
+.ames-cal-grid.pp-wo-grid .ames-cal-cell { min-height: 92px; }
 
 /* ── PP-CAL: week view ───────────────────────────────────────── */
 .ames-cal-week-cols {
