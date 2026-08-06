@@ -82,7 +82,7 @@
         {
             var secItems = _items.Where(i => i.Section == sec.Key && V(i.Href)).ToList();
             if (secItems.Count == 0) { continue; }
-            <div class="ames-nav-section @sec.Key" @onclick="() => Toggle(sec.Key)">
+            <div class="ames-nav-section @sec.Key @(IsOpen(sec.Key) ? "open" : "")" @onclick="() => Toggle(sec.Key)">
                 <span class="ames-nav-section-ic">@sec.Icon</span>
                 <span class="ames-nav-section-t">@sec.Key.ToUpperInvariant() · @SL(sec.Ko, sec.En, sec.Es)</span>
                 <span class="ames-nav-section-n">@secItems.Count</span>
