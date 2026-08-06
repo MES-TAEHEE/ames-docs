@@ -1739,6 +1739,7 @@ public sealed class MasterDataRepository
     public record StationRow(
         string StationCode, string? StationName, string? StationNameEn, string? LineID,
         string? ProcessCode,   // 파생: 라인 → 작업장(WCID) → ProcessCode 상속 (저장 컬럼 아님)
+        string? FormName,
         int? OrderSeq, string? Status,
         string? CreatedBy, DateTime? CreatedTS,
         string? ModifiedBy, DateTime? ModifiedTS);
@@ -1749,7 +1750,7 @@ public sealed class MasterDataRepository
         using var cmd = new SqlCommand("""
             SELECT st.StationCode, st.StationName, st.StationNameEn, st.LineID,
                    wc.ProcessCode AS ProcessCode,
-                   st.OrderSeq, st.Status,
+                   st.FormName, st.OrderSeq, st.Status,
                    st.CreatedBy, st.CreatedTS, st.ModifiedBy, st.ModifiedTS
             FROM   dbo.MD_Station st
             LEFT JOIN dbo.MD_Line       l  ON l.LineID = st.LineID
@@ -1765,6 +1766,7 @@ public sealed class MasterDataRepository
                 r["StationNameEn"] as string,
                 r["LineID"]        as string,
                 r["ProcessCode"]   as string,
+                r["FormName"]      as string,
                 r["OrderSeq"]      is int os ? os : null,
                 r["Status"]        as string,
                 r["CreatedBy"]     as string,
@@ -1785,19 +1787,20 @@ public sealed class MasterDataRepository
 
     public void InsertStation(
         string stationId, string? stationName, string? stationNameEn, string? lineId,
-        int? orderSeq, string? status, string createdBy)
+        string? formName, int? orderSeq, string? status, string createdBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_Station
-              (StationCode, StationName, StationNameEn, LineID, OrderSeq, Status, CreatedBy, CreatedTS)
+              (StationCode, StationName, StationNameEn, LineID, FormName, OrderSeq, Status, CreatedBy, CreatedTS)
             VALUES
-              (@ID, @Name, @NameEn, @Line, @Seq, @St, @By, SYSDATETIME());
+              (@ID, @Name, @NameEn, @Line, @Form, @Seq, @St, @By, SYSDATETIME());
             """, conn);
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = stationId;
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar, 60).Value = (object?)stationName   ?? DBNull.Value;
         cmd.Parameters.Add("@NameEn",SqlDbType.NVarChar, 60).Value = (object?)stationNameEn ?? DBNull.Value;
         cmd.Parameters.Add("@Line",  SqlDbType.VarChar,  20).Value = (object?)lineId        ?? DBNull.Value;
+        cmd.Parameters.Add("@Form",  SqlDbType.VarChar,  50).Value = (object?)formName      ?? DBNull.Value;
         cmd.Parameters.Add("@Seq",   SqlDbType.Int).Value          = (object?)orderSeq      ?? DBNull.Value;
         cmd.Parameters.Add("@St",    SqlDbType.VarChar,  10).Value = (object?)status        ?? DBNull.Value;
         cmd.Parameters.Add("@By",    SqlDbType.VarChar,  50).Value = createdBy;
@@ -1806,12 +1809,12 @@ public sealed class MasterDataRepository
 
     public void UpdateStation(
         string stationId, string? stationName, string? stationNameEn, string? lineId,
-        int? orderSeq, string? status, string modifiedBy)
+        string? formName, int? orderSeq, string? status, string modifiedBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             UPDATE dbo.MD_Station SET
-              StationName=@Name, StationNameEn=@NameEn, LineID=@Line,
+              StationName=@Name, StationNameEn=@NameEn, LineID=@Line, FormName=@Form,
               OrderSeq=@Seq, Status=@St, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  StationCode=@ID;
             """, conn);
@@ -1819,6 +1822,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar,  60).Value = (object?)stationName   ?? DBNull.Value;
         cmd.Parameters.Add("@NameEn",SqlDbType.NVarChar,  60).Value = (object?)stationNameEn ?? DBNull.Value;
         cmd.Parameters.Add("@Line",  SqlDbType.VarChar,   20).Value = (object?)lineId        ?? DBNull.Value;
+        cmd.Parameters.Add("@Form",  SqlDbType.VarChar,   50).Value = (object?)formName      ?? DBNull.Value;
         cmd.Parameters.Add("@Seq",   SqlDbType.Int).Value           = (object?)orderSeq      ?? DBNull.Value;
         cmd.Parameters.Add("@St",    SqlDbType.VarChar,   10).Value = (object?)status        ?? DBNull.Value;
         cmd.Parameters.Add("@By",    SqlDbType.NVarChar, 450).Value = modifiedBy;

@@ -74,6 +74,9 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="dim">@(r.LineID ?? "—")</span></Template>
             </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="FormName" Title="@L["Col.FormName"]" TextAlign="TextAlign.Center" Width="150px">
+                <Template Context="r"><span class="dim">@(r.FormName ?? "—")</span></Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="OrderSeq" Title="@L["Col.Seq"]" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="r">@(r.OrderSeq?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
@@ -118,12 +121,16 @@
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@(L["Col.OrderSeq"] + " *")' />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.OrderSeq" Placeholder="10" Min="1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.FormName"]" />
+                    <RadzenTextBox @bind-Value="_f.FormName" MaxLength="50" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@(L["Col.OrderSeq"] + " *")' />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.OrderSeq" Placeholder="10" Min="1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
                     <RadzenDropDown @bind-Value="_f.Status" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
@@ -166,12 +173,16 @@
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.LineID" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@(L["Col.OrderSeq"] + " *")' />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.OrderSeq" Min="1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.FormName"]" />
+                    <RadzenTextBox @bind-Value="_f.FormName" MaxLength="50" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@(L["Col.OrderSeq"] + " *")' />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.OrderSeq" Min="1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
                     <RadzenDropDown @bind-Value="_f.Status" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
@@ -297,6 +308,7 @@
             StationName   = r.StationName   ?? "",
             StationNameEn = r.StationNameEn ?? "",
             LineID        = r.LineID        ?? "",
+            FormName      = r.FormName      ?? "",
             OrderSeq    = r.OrderSeq,
             Status      = r.Status      ?? "ACTIVE",
         };
@@ -320,7 +332,7 @@
         try
         {
             MD.InsertStation(_f.StationCode.Trim(), _f.StationName, NE(_f.StationNameEn), NE(_f.LineID),
-                _f.OrderSeq, _f.Status, _actor);
+                NE(_f.FormName), _f.OrderSeq, _f.Status, _actor);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.StationName} {L["Msg.Created"]}", false);
         }
@@ -339,7 +351,7 @@
         try
         {
             MD.UpdateStation(_sel.StationCode, _f.StationName, NE(_f.StationNameEn), NE(_f.LineID),
-                _f.OrderSeq, _f.Status, _actor);
+                NE(_f.FormName), _f.OrderSeq, _f.Status, _actor);
             var name = _f.StationName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -377,6 +389,7 @@
         public string StationName    { get; set; } = "";
         public string StationNameEn  { get; set; } = "";
         public string LineID       { get; set; } = "";
+        public string FormName     { get; set; } = "";
         public int?   OrderSeq     { get; set; }
         public string Status       { get; set; } = "ACTIVE";
     }

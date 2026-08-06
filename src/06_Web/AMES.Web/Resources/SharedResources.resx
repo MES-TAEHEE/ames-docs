@@ -216,6 +216,9 @@
   <data name="Col.Line" xml:space="preserve">
     <value>라인</value>
   </data>
+  <data name="Col.FormName" xml:space="preserve">
+    <value>화면 구분</value>
+  </data>
   <data name="Col.LineId" xml:space="preserve">
     <value>라인 ID</value>
   </data>
