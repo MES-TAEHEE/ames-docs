@@ -1,20 +1,69 @@
 @using System.Globalization
+@inject AMES.Data.Repositories.MasterDataRepository MD
 
 <div class="culture-switcher" style="display:flex;gap:4px;align-items:center;padding:6px 12px;">
-    <a href="javascript:void(0)"
-       onclick="document.cookie='.AspNetCore.Culture=c=ko-KR|uic=ko;path=/;max-age=31536000;SameSite=Lax';location.reload();"
-       style="font-size:.78em;text-decoration:none;cursor:pointer;
-              color:@(IsCurrent("ko") ? "#38bdf8" : "#94a3b8");
-              font-weight:@(IsCurrent("ko") ? "700" : "400");">🇰🇷 한국어</a>
-    <span style="color:#475569;font-size:.75em;line-height:1;">|</span>
-    <a href="javascript:void(0)"
-       onclick="document.cookie='.AspNetCore.Culture=c=en-US|uic=en;path=/;max-age=31536000;SameSite=Lax';location.reload();"
-       style="font-size:.78em;text-decoration:none;cursor:pointer;
-              color:@(IsCurrent("en") ? "#38bdf8" : "#94a3b8");
-              font-weight:@(IsCurrent("en") ? "700" : "400");">🇺🇸 English</a>
+    @{ var langs = ActiveLanguages(); }
+    @for (var i = 0; i < langs.Count; i++)
+    {
+        var lang = langs[i];
+        @if (i > 0)
+        {
+            <span style="color:#475569;font-size:.75em;line-height:1;">|</span>
+        }
+        <a href="javascript:void(0)"
+           onclick="@($"document.cookie='.AspNetCore.Culture=c={lang.Culture}|uic={lang.Uic};path=/;max-age=31536000;SameSite=Lax';location.reload();")"
+           style="font-size:.78em;text-decoration:none;cursor:pointer;
+                  color:@(IsCurrent(lang.Uic) ? "#38bdf8" : "#94a3b8");
+                  font-weight:@(IsCurrent(lang.Uic) ? "700" : "400");">@lang.Label</a>
+    }
 </div>
 
 @code {
-    private bool IsCurrent(string code) =>
-        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == code;
+    record Lang(string Culture, string Uic, string Label);
+
+    // 표기(국기+원어명)는 현재와 동일하게 유지. 노출/순서/활성만 LANGUAGE 공통코드에 따름.
+    static readonly Dictionary<string, (string Flag, string Native)> _display = new()
+    {
+        ["ko"] = ("🇰🇷", "한국어"),
+        ["en"] = ("🇺🇸", "English"),
+        ["es"] = ("🇪🇸", "Español"),
+    };
+
+    List<Lang> ActiveLanguages()
+    {
+        try
+        {
+            return MD.ListCodeItems("LANGUAGE")
+                .Where(c => c.UseFlag && !string.IsNullOrWhiteSpace(c.CodeValue))
+                .OrderBy(c => c.SortOrder ?? 999)
+                .Select(c =>
+                {
+                    var culture = c.CodeValue!;
+                    var uic = TwoLetter(culture);
+                    var label = _display.TryGetValue(uic, out var d)
+                        ? $"{d.Flag} {d.Native}"
+                        : (c.CodeName ?? culture);
+                    return new Lang(culture, uic, label);
+                })
+                .ToList();
+        }
+        catch
+        {
+            // DB 미가용 시 기존 정적 목록으로 폴백
+            return new()
+            {
+                new("en-US", "en", "🇺🇸 English"),
+                new("ko-KR", "ko", "🇰🇷 한국어"),
+            };
+        }
+    }
+
+    static string TwoLetter(string culture)
+    {
+        var dash = culture.IndexOf('-');
+        return (dash > 0 ? culture[..dash] : culture).ToLowerInvariant();
+    }
+
+    bool IsCurrent(string uic) =>
+        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == uic;
 }

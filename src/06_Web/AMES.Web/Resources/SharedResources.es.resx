@@ -1,0 +1,5295 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Btn.Search" xml:space="preserve">
+    <value>Buscar</value>
+  </data>
+  <data name="Btn.Create" xml:space="preserve">
+    <value>Crear</value>
+  </data>
+  <data name="Btn.Save" xml:space="preserve">
+    <value>Guardar</value>
+  </data>
+  <data name="Btn.Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="Btn.Delete" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="Btn.Edit" xml:space="preserve">
+    <value>Editar</value>
+  </data>
+  <data name="Btn.Approve" xml:space="preserve">
+    <value>Aprobar</value>
+  </data>
+  <data name="Btn.Reject" xml:space="preserve">
+    <value>Rechazar</value>
+  </data>
+  <data name="Btn.Close" xml:space="preserve">
+    <value>Cerrar</value>
+  </data>
+  <data name="Btn.GoHome" xml:space="preserve">
+    <value>Ir al Inicio</value>
+  </data>
+  <data name="Err.Unauthorized" xml:space="preserve">
+    <value>Acceso Denegado</value>
+  </data>
+  <data name="Err.UnauthorizedDesc" xml:space="preserve">
+    <value>No tiene permiso para acceder a esta pantalla. Solicite acceso a su administrador.</value>
+  </data>
+  <data name="Btn.Confirm" xml:space="preserve">
+    <value>Confirmar</value>
+  </data>
+  <data name="Btn.Reload" xml:space="preserve">
+    <value>Recargar</value>
+  </data>
+  <data name="Btn.Reset" xml:space="preserve">
+    <value>Restablecer</value>
+  </data>
+  <data name="Lbl.Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Lbl.Active" xml:space="preserve">
+    <value>Activo</value>
+  </data>
+  <data name="Lbl.Inactive" xml:space="preserve">
+    <value>Inactivo</value>
+  </data>
+  <data name="Lbl.Items" xml:space="preserve">
+    <value> ítems</value>
+  </data>
+  <data name="Lbl.Page" xml:space="preserve">
+    <value>página</value>
+  </data>
+  <data name="Lbl.Loading" xml:space="preserve">
+    <value>Cargando...</value>
+  </data>
+  <data name="Unit.Min" xml:space="preserve">
+    <value> min</value>
+  </data>
+  <data name="Lbl.TotalOf" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Err.LoadFailed" xml:space="preserve">
+    <value>Error al cargar datos: {0}</value>
+  </data>
+  <data name="Filter.All" xml:space="preserve">
+    <value>— Todos —</value>
+  </data>
+  <data name="Opt.None" xml:space="preserve">
+    <value>— Ninguno —</value>
+  </data>
+  <data name="Opt.Select" xml:space="preserve">
+    <value>— Seleccionar —</value>
+  </data>
+  <data name="Col.Code" xml:space="preserve">
+    <value>Código</value>
+  </data>
+  <data name="Col.Name" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="Col.Status" xml:space="preserve">
+    <value>Estado</value>
+  </data>
+  <data name="Col.Type" xml:space="preserve">
+    <value>Tipo</value>
+  </data>
+  <data name="Col.DefaultLine" xml:space="preserve">
+    <value>Línea por Defecto</value>
+  </data>
+  <data name="Col.Line" xml:space="preserve">
+    <value>Línea</value>
+  </data>
+  <data name="Col.FormName" xml:space="preserve">
+    <value>Tipo de Pantalla</value>
+  </data>
+  <data name="Col.LineId" xml:space="preserve">
+    <value>ID de Línea</value>
+  </data>
+  <data name="Col.Equip" xml:space="preserve">
+    <value>Equipo</value>
+  </data>
+  <data name="Col.Note" xml:space="preserve">
+    <value>Nota</value>
+  </data>
+  <data name="Col.Date" xml:space="preserve">
+    <value>Fecha</value>
+  </data>
+  <data name="Col.From" xml:space="preserve">
+    <value>Desde</value>
+  </data>
+  <data name="Col.To" xml:space="preserve">
+    <value>Hasta</value>
+  </data>
+  <data name="Col.Seq" xml:space="preserve">
+    <value>Sec</value>
+  </data>
+  <data name="Col.ItemNo" xml:space="preserve">
+    <value>N.º Pieza</value>
+  </data>
+  <data name="Col.ItemName" xml:space="preserve">
+    <value>Nombre de Pieza</value>
+  </data>
+  <data name="Lbl.Period" xml:space="preserve">
+    <value>Período</value>
+  </data>
+  <data name="Lbl.Result" xml:space="preserve">
+    <value>Resultado</value>
+  </data>
+  <data name="Lbl.Visible" xml:space="preserve">
+    <value>Visible</value>
+  </data>
+  <data name="Lbl.Direction" xml:space="preserve">
+    <value>Dirección</value>
+  </data>
+  <data name="Lbl.Recent" xml:space="preserve">
+    <value>Reciente</value>
+  </data>
+  <data name="Lbl.Future" xml:space="preserve">
+    <value>Adelantado</value>
+  </data>
+  <data name="Lbl.Past" xml:space="preserve">
+    <value>Atrás</value>
+  </data>
+  <data name="Lbl.Days" xml:space="preserve">
+    <value> días</value>
+  </data>
+  <data name="Msg.Saving" xml:space="preserve">
+    <value>Guardando…</value>
+  </data>
+  <data name="Msg.Saved" xml:space="preserve">
+    <value>Guardado correctamente.</value>
+  </data>
+  <data name="Msg.Deleting" xml:space="preserve">
+    <value>Eliminando…</value>
+  </data>
+  <data name="Msg.Confirm.Delete" xml:space="preserve">
+    <value>¿Seguro que desea eliminar?</value>
+  </data>
+  <data name="Msg.Yes" xml:space="preserve">
+    <value>Sí, Eliminar</value>
+  </data>
+  <data name="Msg.No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="MNT.Dashboard.Title" xml:space="preserve">
+    <value>Panel</value>
+  </data>
+  <data name="MNT.EquipmentCard.Title" xml:space="preserve">
+    <value>Ficha de Equipo</value>
+  </data>
+  <data name="MNT.EquipmentCard.List" xml:space="preserve">
+    <value>Lista de Equipos</value>
+  </data>
+  <data name="MNT.EquipmentCard.Empty" xml:space="preserve">
+    <value>Sin datos de equipo para el criterio seleccionado.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Ph.Search" xml:space="preserve">
+    <value>línea/nombre de equipo</value>
+  </data>
+  <data name="MNT.WorkOrder.Title" xml:space="preserve">
+    <value>Orden de Trabajo</value>
+  </data>
+  <data name="MNT.WorkOrder.List" xml:space="preserve">
+    <value>Órdenes de Mantenimiento</value>
+  </data>
+  <data name="MNT.WorkOrder.Empty" xml:space="preserve">
+    <value>Sin órdenes de trabajo para el criterio seleccionado.</value>
+  </data>
+  <data name="MNT.WorkOrder.InProgress" xml:space="preserve">
+    <value>En Curso</value>
+  </data>
+  <data name="MNT.WorkOrder.Completed" xml:space="preserve">
+    <value>Completado</value>
+  </data>
+  <data name="MNT.PmSchedule.Title" xml:space="preserve">
+    <value>Plan PM</value>
+  </data>
+  <data name="MNT.PmSchedule.List" xml:space="preserve">
+    <value>Plan PM</value>
+  </data>
+  <data name="MNT.PmSchedule.Empty" xml:space="preserve">
+    <value>Sin planes PM en el período seleccionado.</value>
+  </data>
+  <data name="MNT.Downtime.Title" xml:space="preserve">
+    <value>Historial de Paradas</value>
+  </data>
+  <data name="MNT.Downtime.List" xml:space="preserve">
+    <value>Eventos de Parada</value>
+  </data>
+  <data name="MNT.Downtime.Empty" xml:space="preserve">
+    <value>Sin datos de parada en el período seleccionado.</value>
+  </data>
+  <data name="MNT.Failure.Title" xml:space="preserve">
+    <value>Registro de Fallos</value>
+  </data>
+  <data name="MNT.Failure.List" xml:space="preserve">
+    <value>Eventos de Fallo</value>
+  </data>
+  <data name="MNT.Failure.Empty" xml:space="preserve">
+    <value>Sin eventos de fallo para el criterio seleccionado.</value>
+  </data>
+  <data name="MNT.Failure.InProgress" xml:space="preserve">
+    <value>En Curso</value>
+  </data>
+  <data name="MNT.Failure.Resolved" xml:space="preserve">
+    <value>Resuelto</value>
+  </data>
+  <data name="MNT.Failure.Kpi.Open" xml:space="preserve">
+    <value>Fallo Nuevo</value>
+  </data>
+  <data name="MNT.Failure.Kpi.Prog" xml:space="preserve">
+    <value>En Reparación</value>
+  </data>
+  <data name="MNT.Failure.Kpi.Res" xml:space="preserve">
+    <value>Completado</value>
+  </data>
+  <data name="MNT.Failure.Kpi.Urg" xml:space="preserve">
+    <value>Urgente / Crítico</value>
+  </data>
+  <data name="MNT.Mold.Title" xml:space="preserve">
+    <value>Gestión de Moldes</value>
+  </data>
+  <data name="MNT.Mold.List" xml:space="preserve">
+    <value>Lista de Moldes</value>
+  </data>
+  <data name="MNT.Mold.Empty" xml:space="preserve">
+    <value>Sin datos de molde para el criterio seleccionado.</value>
+  </data>
+  <data name="MNT.Mold.Ph.Name" xml:space="preserve">
+    <value>Buscar nombre de molde</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Title" xml:space="preserve">
+    <value>Análisis OEE</value>
+  </data>
+  <data name="MNT.OeeAnalysis.List" xml:space="preserve">
+    <value>Datos OEE</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Empty" xml:space="preserve">
+    <value>Sin datos OEE en el período seleccionado.</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Ph.Equip" xml:space="preserve">
+    <value>Buscar equipo</value>
+  </data>
+  <data name="MNT.SpareParts.Title" xml:space="preserve">
+    <value>Repuestos</value>
+  </data>
+  <data name="MNT.SpareParts.List" xml:space="preserve">
+    <value>Maestro de Repuestos</value>
+  </data>
+  <data name="MNT.SpareParts.Empty" xml:space="preserve">
+    <value>Sin repuestos para el criterio seleccionado.</value>
+  </data>
+  <data name="MNT.SpareParts.TxnList" xml:space="preserve">
+    <value>Transacciones Recientes</value>
+  </data>
+  <data name="MNT.SpareParts.TxnEmpty" xml:space="preserve">
+    <value>Sin datos de transacción.</value>
+  </data>
+  <data name="MNT.SpareParts.Ph.Part" xml:space="preserve">
+    <value>N.º/Nombre de pieza</value>
+  </data>
+  <data name="MNT.SpareParts.Ph.Cat" xml:space="preserve">
+    <value>Categoría</value>
+  </data>
+  <data name="MNT.SpareParts.Ph.TxnPart" xml:space="preserve">
+    <value>Filtro de N.º de pieza</value>
+  </data>
+  <data name="MNT.SpareParts.LowOnly" xml:space="preserve">
+    <value>Solo stock bajo</value>
+  </data>
+  <data name="RPT.DailyProduction.Title" xml:space="preserve">
+    <value>Producción Diaria</value>
+  </data>
+  <data name="RPT.DailyProduction.List" xml:space="preserve">
+    <value>Agregación Diaria</value>
+  </data>
+  <data name="RPT.DailyProduction.Empty" xml:space="preserve">
+    <value>Sin resultados.</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.Days" xml:space="preserve">
+    <value>Días</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.Good" xml:space="preserve">
+    <value>Cant. Buena</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.Defect" xml:space="preserve">
+    <value>Registros de Defecto</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.Yield" xml:space="preserve">
+    <value>Rendimiento</value>
+  </data>
+  <data name="RPT.DailyProduction.Col.Entries" xml:space="preserve">
+    <value>Registros</value>
+  </data>
+  <data name="RPT.DailyProduction.Col.Good" xml:space="preserve">
+    <value>Bueno</value>
+  </data>
+  <data name="RPT.DailyProduction.Col.Defect" xml:space="preserve">
+    <value>Defecto</value>
+  </data>
+  <data name="RPT.DailyProduction.Col.Yield" xml:space="preserve">
+    <value>Rend.%</value>
+  </data>
+  <data name="RPT.DefectPareto.Title" xml:space="preserve">
+    <value>Pareto de Defectos</value>
+  </data>
+  <data name="RPT.DefectPareto.List" xml:space="preserve">
+    <value>Ranking Pareto</value>
+  </data>
+  <data name="RPT.DefectPareto.Empty" xml:space="preserve">
+    <value>Sin datos de defecto en el período seleccionado.</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.Codes" xml:space="preserve">
+    <value>Códigos de Defecto</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.Total" xml:space="preserve">
+    <value>Total de Defectos</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.Events" xml:space="preserve">
+    <value>Eventos</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.Top" xml:space="preserve">
+    <value>Código Principal</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.TopPct" xml:space="preserve">
+    <value>% participación</value>
+  </data>
+  <data name="RPT.DefectPareto.Col.Rank" xml:space="preserve">
+    <value>Rango</value>
+  </data>
+  <data name="RPT.DefectPareto.Col.DefectCode" xml:space="preserve">
+    <value>Código de Defecto</value>
+  </data>
+  <data name="RPT.DefectPareto.Col.Qty" xml:space="preserve">
+    <value>Cant.</value>
+  </data>
+  <data name="RPT.DefectPareto.Col.Events" xml:space="preserve">
+    <value>Eventos</value>
+  </data>
+  <data name="RPT.DefectPareto.Col.Pct" xml:space="preserve">
+    <value>Part.%</value>
+  </data>
+  <data name="RPT.DefectPareto.Col.CumPct" xml:space="preserve">
+    <value>Acumulado</value>
+  </data>
+  <data name="RPT.DefectPareto.Col.Bar" xml:space="preserve">
+    <value>Barra</value>
+  </data>
+  <data name="RPT.DailyShipment.Title" xml:space="preserve">
+    <value>Envíos Diarios</value>
+  </data>
+  <data name="RPT.DailyShipment.List" xml:space="preserve">
+    <value>Agregación de Envíos Diaria</value>
+  </data>
+  <data name="RPT.DailyShipment.Empty" xml:space="preserve">
+    <value>Sin datos de envío en el período seleccionado.</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.Days" xml:space="preserve">
+    <value>Días de Envío</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.Orders" xml:space="preserve">
+    <value>Pedidos</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.OrderQty" xml:space="preserve">
+    <value>Cant. Pedido</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.AllocQty" xml:space="preserve">
+    <value>Cant. Asignada</value>
+  </data>
+  <data name="RPT.DailyShipment.Col.Orders" xml:space="preserve">
+    <value>Pedidos</value>
+  </data>
+  <data name="RPT.DailyShipment.Col.OrderQty" xml:space="preserve">
+    <value>Cant. Pedido</value>
+  </data>
+  <data name="RPT.DailyShipment.Col.AllocQty" xml:space="preserve">
+    <value>Cant. Asignada</value>
+  </data>
+  <data name="RPT.DailyShipment.Col.FillRate" xml:space="preserve">
+    <value>Tasa de Cumplimiento</value>
+  </data>
+  <data name="RPT.DailyShipment.Col.Customers" xml:space="preserve">
+    <value>Clientes</value>
+  </data>
+  <data name="RPT.OnTime.Title" xml:space="preserve">
+    <value>Entrega a Tiempo</value>
+  </data>
+  <data name="RPT.OnTime.List" xml:space="preserve">
+    <value>OTD Diario</value>
+  </data>
+  <data name="RPT.OnTime.Empty" xml:space="preserve">
+    <value>Sin datos de envío en el período seleccionado.</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.Total" xml:space="preserve">
+    <value>Total de Pedidos</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.OnTime" xml:space="preserve">
+    <value>A Tiempo</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.Late" xml:space="preserve">
+    <value>Atrasado</value>
+  </data>
+  <data name="RPT.OnTime.Col.Trend" xml:space="preserve">
+    <value>Tendencia</value>
+  </data>
+  <data name="RPT.Inventory.Title" xml:space="preserve">
+    <value>Estado de Inventario</value>
+  </data>
+  <data name="RPT.Inventory.List" xml:space="preserve">
+    <value>Agregación de Inventario</value>
+  </data>
+  <data name="RPT.Inventory.Empty" xml:space="preserve">
+    <value>Sin datos de inventario.</value>
+  </data>
+  <data name="RPT.Inventory.Ph.Item" xml:space="preserve">
+    <value>Buscar número de pieza</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.Count" xml:space="preserve">
+    <value>Recuento de Resultados</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.Qty" xml:space="preserve">
+    <value>Stock Total</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.HoldQty" xml:space="preserve">
+    <value>Cant. en Espera</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.HoldPct" xml:space="preserve">
+    <value>Tasa de Espera</value>
+  </data>
+  <data name="RPT.Inventory.Col.ItemNo" xml:space="preserve">
+    <value>N.º Pieza</value>
+  </data>
+  <data name="RPT.Inventory.Col.Location" xml:space="preserve">
+    <value>Ubicación</value>
+  </data>
+  <data name="RPT.Inventory.Col.Lots" xml:space="preserve">
+    <value>Recuento de Lotes</value>
+  </data>
+  <data name="RPT.Inventory.Col.Qty" xml:space="preserve">
+    <value>Cant.</value>
+  </data>
+  <data name="RPT.Inventory.Col.HoldLots" xml:space="preserve">
+    <value>Lotes en Espera</value>
+  </data>
+  <data name="RPT.Inventory.Col.HoldQty" xml:space="preserve">
+    <value>Cant. en Espera</value>
+  </data>
+  <data name="RPT.EquipmentOee.Title" xml:space="preserve">
+    <value>OEE de Equipo</value>
+  </data>
+  <data name="RPT.EquipmentOee.List" xml:space="preserve">
+    <value>Ranking de Equipos</value>
+  </data>
+  <data name="RPT.EquipmentOee.Empty" xml:space="preserve">
+    <value>Sin datos OEE en el período seleccionado.</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.EquipCount" xml:space="preserve">
+    <value>Equipo</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.AvgA" xml:space="preserve">
+    <value>Prom A</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.AvgP" xml:space="preserve">
+    <value>Prom P</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.AvgOee" xml:space="preserve">
+    <value>Prom OEE</value>
+  </data>
+  <data name="RPT.EquipmentOee.Col.Days" xml:space="preserve">
+    <value>Días</value>
+  </data>
+  <data name="RPT.EquipmentOee.Col.Bar" xml:space="preserve">
+    <value>Barra</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Title" xml:space="preserve">
+    <value>KPI Mensual</value>
+  </data>
+  <data name="RPT.MonthlyKpi.List" xml:space="preserve">
+    <value>Agregación Mensual</value>
+  </data>
+  <data name="RPT.MonthlyKpi.ListSuffix" xml:space="preserve">
+    <value>meses</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Empty" xml:space="preserve">
+    <value>Sin datos mensuales.</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Kpi.GoodQty" xml:space="preserve">
+    <value>Cant. Buena</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Kpi.Yield" xml:space="preserve">
+    <value>Rendimiento</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Kpi.ShipOrders" xml:space="preserve">
+    <value>Órdenes de Envío</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Kpi.Failures" xml:space="preserve">
+    <value>Fallos</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Col.Period" xml:space="preserve">
+    <value>Período</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Col.GoodQty" xml:space="preserve">
+    <value>Cant. Buena</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Col.DefectQty" xml:space="preserve">
+    <value>Cant. Defecto</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Col.Yield" xml:space="preserve">
+    <value>Rend.%</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Col.ShipOrders" xml:space="preserve">
+    <value>Envíos</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Col.Failures" xml:space="preserve">
+    <value>Fallos</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Col.AvgOee" xml:space="preserve">
+    <value>Prom OEE</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Title" xml:space="preserve">
+    <value>Cumplimiento del Programa</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.List" xml:space="preserve">
+    <value>Agregación Diaria</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Empty" xml:space="preserve">
+    <value>Sin datos de plan o producción en el período seleccionado.</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.Count" xml:space="preserve">
+    <value>Recuento de Resultados</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.Plan" xml:space="preserve">
+    <value>Cant. Planificada</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.Prod" xml:space="preserve">
+    <value>Cant. Real</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.Adh" xml:space="preserve">
+    <value>Tasa de Cumplimiento</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Col.Plan" xml:space="preserve">
+    <value>Cant. Planificada</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Col.Prod" xml:space="preserve">
+    <value>Cant. Real</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Col.Adh" xml:space="preserve">
+    <value>Cumpl.%</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Col.Bar" xml:space="preserve">
+    <value>Barra</value>
+  </data>
+  <data name="RPT.ReportCenter.Title" xml:space="preserve">
+    <value>Centro de Informes</value>
+  </data>
+  <data name="RPT.ReportBuilder.Title" xml:space="preserve">
+    <value>Constructor de Informes</value>
+  </data>
+  <data name="RPT.ReportBuilder.Preview" xml:space="preserve">
+    <value>Vista Previa</value>
+  </data>
+  <data name="RPT.ReportBuilder.Desc" xml:space="preserve">
+    <value>El Constructor de Informes permite crear informes personalizados arrastrando y soltando fuentes de datos, dimensiones y medidas — sin conocimientos de SQL. Previsto para el próximo hito.</value>
+  </data>
+  <data name="RPT.ReportBuilder.Gallery" xml:space="preserve">
+    <value>Galería de Plantillas (muestra)</value>
+  </data>
+  <data name="RPT.ReportBuilder.Ds.Production" xml:space="preserve">
+    <value>Resultados de Producción</value>
+  </data>
+  <data name="RPT.ReportBuilder.Ds.Shipment" xml:space="preserve">
+    <value>Órdenes de Envío</value>
+  </data>
+  <data name="RPT.ReportBuilder.Ds.OEE" xml:space="preserve">
+    <value>OEE de Equipo</value>
+  </data>
+  <data name="RPT.ReportBuilder.Ds.QC" xml:space="preserve">
+    <value>Inspección de Calidad</value>
+  </data>
+  <data name="RPT.ReportBuilder.Ds.LineSchedule" xml:space="preserve">
+    <value>Programa de Línea</value>
+  </data>
+  <data name="SYS.Users.Title" xml:space="preserve">
+    <value>Gestión de Usuarios</value>
+  </data>
+  <data name="SYS.Users.List" xml:space="preserve">
+    <value>Lista de Usuarios</value>
+  </data>
+  <data name="SYS.Users.Kpi.Users" xml:space="preserve">
+    <value>Usuarios</value>
+  </data>
+  <data name="SYS.Users.Kpi.Verified" xml:space="preserve">
+    <value>Verificado</value>
+  </data>
+  <data name="SYS.Users.Kpi.Locked" xml:space="preserve">
+    <value>Bloqueado</value>
+  </data>
+  <data name="SYS.Users.Kpi.RecentLogin" xml:space="preserve">
+    <value>Acceso Reciente</value>
+  </data>
+  <data name="SYS.Users.Ph.Name" xml:space="preserve">
+    <value>Nombre completo</value>
+  </data>
+  <data name="SYS.Users.Col.UserName" xml:space="preserve">
+    <value>ID de Usuario</value>
+  </data>
+  <data name="SYS.Users.Col.Email" xml:space="preserve">
+    <value>Correo</value>
+  </data>
+  <data name="SYS.Users.Col.EmployeeNo" xml:space="preserve">
+    <value>N.º Empleado</value>
+  </data>
+  <data name="SYS.Users.Col.EmployeeName" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="SYS.Users.Col.Dept" xml:space="preserve">
+    <value>Departamento</value>
+  </data>
+  <data name="SYS.Users.Col.Roles" xml:space="preserve">
+    <value>Roles</value>
+  </data>
+  <data name="SYS.Users.Col.FailCount" xml:space="preserve">
+    <value>Fallos de Acceso</value>
+  </data>
+  <data name="SYS.Users.Col.LastLogin" xml:space="preserve">
+    <value>Último Acceso</value>
+  </data>
+  <data name="SYS.Users.Lbl.EmployeeNo" xml:space="preserve">
+    <value>N.º Empleado *</value>
+  </data>
+  <data name="SYS.Users.Lbl.EmployeeName" xml:space="preserve">
+    <value>Nombre *</value>
+  </data>
+  <data name="SYS.Users.Lbl.Dept" xml:space="preserve">
+    <value>Departamento</value>
+  </data>
+  <data name="SYS.Users.Lbl.Plant" xml:space="preserve">
+    <value>Planta</value>
+  </data>
+  <data name="SYS.Users.Lbl.DefaultShift" xml:space="preserve">
+    <value>Turno por Defecto</value>
+  </data>
+  <data name="SYS.Users.Lbl.Role" xml:space="preserve">
+    <value>Rol</value>
+  </data>
+  <data name="SYS.Users.Lbl.Lines" xml:space="preserve">
+    <value>Líneas Asignadas</value>
+  </data>
+  <data name="SYS.Users.Lbl.NoLines" xml:space="preserve">
+    <value>Sin líneas activas</value>
+  </data>
+  <data name="SYS.Users.Lbl.AccountStatus" xml:space="preserve">
+    <value>Estado de Cuenta</value>
+  </data>
+  <data name="SYS.Users.Lbl.Password" xml:space="preserve">
+    <value>Contraseña *</value>
+  </data>
+  <data name="SYS.Users.Lbl.NewPassword" xml:space="preserve">
+    <value>Nueva Contraseña</value>
+  </data>
+  <data name="SYS.Users.Ph.Password" xml:space="preserve">
+    <value>Mín 6 caracteres, debe incluir un número</value>
+  </data>
+  <data name="SYS.Users.Ph.NewPassword" xml:space="preserve">
+    <value>Dejar en blanco para mantener el actual</value>
+  </data>
+  <data name="SYS.Users.Lbl.Pin" xml:space="preserve">
+    <value>PIN (4 dígitos)</value>
+  </data>
+  <data name="SYS.Users.Ph.Pin" xml:space="preserve">
+    <value>Para acceso POP · opcional</value>
+  </data>
+  <data name="SYS.Users.Lbl.NewPin" xml:space="preserve">
+    <value>Nuevo PIN (4 dígitos)</value>
+  </data>
+  <data name="SYS.Users.Ph.NewPin" xml:space="preserve">
+    <value>Dejar en blanco para mantener el actual</value>
+  </data>
+  <data name="SYS.Users.Err.PinFormat" xml:space="preserve">
+    <value>El PIN debe tener exactamente 4 dígitos.</value>
+  </data>
+  <data name="SYS.Users.Unlock" xml:space="preserve">
+    <value>Desbloquear Cuenta</value>
+  </data>
+  <data name="SYS.Users.Empty" xml:space="preserve">
+    <value>Sin usuarios.</value>
+  </data>
+  <data name="SYS.Users.Err.EmailRequired" xml:space="preserve">
+    <value>El correo es obligatorio.</value>
+  </data>
+  <data name="SYS.Users.Err.PasswordRequired" xml:space="preserve">
+    <value>La contraseña es obligatoria.</value>
+  </data>
+  <data name="SYS.Users.Err.EmpNoRequired" xml:space="preserve">
+    <value>El número de empleado es obligatorio.</value>
+  </data>
+  <data name="SYS.Users.Err.NameRequired" xml:space="preserve">
+    <value>El nombre completo es obligatorio.</value>
+  </data>
+  <data name="SYS.Users.Ok.Created" xml:space="preserve">
+    <value>{0} creado.</value>
+  </data>
+  <data name="SYS.Users.Ok.Updated" xml:space="preserve">
+    <value>{0} actualizado.</value>
+  </data>
+  <data name="SYS.Users.Ok.Deleted" xml:space="preserve">
+    <value>{0} eliminado.</value>
+  </data>
+  <data name="SYS.Users.Ok.Unlocked" xml:space="preserve">
+    <value>{0} desbloqueado.</value>
+  </data>
+  <data name="SYS.Users.Locked.Domain" xml:space="preserve">
+    <value>Bloqueo por Fallos de Acceso</value>
+  </data>
+  <data name="SYS.Users.Unlock.Domain" xml:space="preserve">
+    <value>Desbloquear Cuenta</value>
+  </data>
+  <data name="SYS.Users.Ok.DomainUnlocked" xml:space="preserve">
+    <value>Bloqueo de acceso de {0} eliminado.</value>
+  </data>
+  <data name="SYS.Users.Status.Unverified" xml:space="preserve">
+    <value>No Verificado</value>
+  </data>
+  <data name="SYS.Roles.Title" xml:space="preserve">
+    <value>Gestión de Roles</value>
+  </data>
+  <data name="SYS.Roles.List" xml:space="preserve">
+    <value>Lista de Roles</value>
+  </data>
+  <data name="SYS.Roles.Kpi.Roles" xml:space="preserve">
+    <value>Roles</value>
+  </data>
+  <data name="SYS.Roles.Kpi.Assigned" xml:space="preserve">
+    <value>Asignado</value>
+  </data>
+  <data name="SYS.Roles.Kpi.Unused" xml:space="preserve">
+    <value>Sin Usar</value>
+  </data>
+  <data name="SYS.Roles.Lbl.RoleName" xml:space="preserve">
+    <value>Nombre de Rol *</value>
+  </data>
+  <data name="SYS.Roles.InUseBy" xml:space="preserve">
+    <value>Usuarios asignados a este rol:</value>
+  </data>
+  <data name="SYS.Roles.ConfirmDeleteInUse" xml:space="preserve">
+    <value>{0} usuario(s) asignados a este rol. ¿Confirmar eliminación?</value>
+  </data>
+  <data name="SYS.Roles.Err.NameRequired" xml:space="preserve">
+    <value>El nombre de rol es obligatorio.</value>
+  </data>
+  <data name="SYS.Roles.Err.NotFound" xml:space="preserve">
+    <value>Rol no encontrado.</value>
+  </data>
+  <data name="SYS.Roles.Ok.Created" xml:space="preserve">
+    <value>Rol '{0}' creado.</value>
+  </data>
+  <data name="SYS.Roles.Ok.Updated" xml:space="preserve">
+    <value>Rol '{0}' actualizado.</value>
+  </data>
+  <data name="SYS.Roles.Ok.Deleted" xml:space="preserve">
+    <value>Rol '{0}' eliminado.</value>
+  </data>
+  <data name="SYS.Rbac.Title" xml:space="preserve">
+    <value>Gestión de Roles / Permisos (RBAC)</value>
+  </data>
+  <data name="SYS.Rbac.Roles" xml:space="preserve">
+    <value>Roles</value>
+  </data>
+  <data name="SYS.Rbac.Matrix" xml:space="preserve">
+    <value>Matriz de Permisos</value>
+  </data>
+  <data name="SYS.Rbac.Matrix.UsersAssigned" xml:space="preserve">
+    <value>{0} usuarios asignados</value>
+  </data>
+  <data name="SYS.Rbac.Hint.SelectRole" xml:space="preserve">
+    <value>Seleccione un rol de la lista de la izquierda.</value>
+  </data>
+  <data name="SYS.Rbac.Kpi.Roles" xml:space="preserve">
+    <value>Roles Definidos</value>
+  </data>
+  <data name="SYS.Rbac.Kpi.Modules" xml:space="preserve">
+    <value>Módulos Gestionados</value>
+  </data>
+  <data name="SYS.Rbac.Kpi.Users" xml:space="preserve">
+    <value>Usuarios en el Rol</value>
+  </data>
+  <data name="SYS.Rbac.Kpi.Granted" xml:space="preserve">
+    <value>Permisos Otorgados</value>
+  </data>
+  <data name="SYS.Rbac.Col.Screen" xml:space="preserve">
+    <value>Pantalla</value>
+  </data>
+  <data name="SYS.Rbac.NoPerm" xml:space="preserve">
+    <value>Sin permisos</value>
+  </data>
+  <data name="SYS.Screen.Title" xml:space="preserve">
+    <value>Gestión de Pantallas</value>
+  </data>
+  <data name="SYS.Screen.List" xml:space="preserve">
+    <value>Lista de Pantallas</value>
+  </data>
+  <data name="SYS.Screen.Empty" xml:space="preserve">
+    <value>Sin ítems de pantalla para mostrar.</value>
+  </data>
+  <data name="SYS.Screen.Ph.Search" xml:space="preserve">
+    <value>Código/nombre de pantalla/ruta</value>
+  </data>
+  <data name="SYS.Screen.Kpi.All" xml:space="preserve">
+    <value>Total de Pantallas</value>
+  </data>
+  <data name="SYS.Screen.Kpi.Visible" xml:space="preserve">
+    <value>Visible</value>
+  </data>
+  <data name="SYS.Screen.Kpi.Hidden" xml:space="preserve">
+    <value>Oculto</value>
+  </data>
+  <data name="SYS.Screen.Kpi.Restricted" xml:space="preserve">
+    <value>Rol Restringido</value>
+  </data>
+  <data name="SYS.Screen.Col.Code" xml:space="preserve">
+    <value>Código</value>
+  </data>
+  <data name="SYS.Screen.Col.NameKo" xml:space="preserve">
+    <value>Nombre de Pantalla (KO)</value>
+  </data>
+  <data name="SYS.Screen.Col.NameEn" xml:space="preserve">
+    <value>Nombre de Pantalla (EN)</value>
+  </data>
+  <data name="SYS.Screen.Col.Path" xml:space="preserve">
+    <value>Ruta</value>
+  </data>
+  <data name="SYS.Screen.Col.Visible" xml:space="preserve">
+    <value>Visible</value>
+  </data>
+  <data name="SYS.Screen.Col.Roles" xml:space="preserve">
+    <value>Roles</value>
+  </data>
+  <data name="SYS.Screen.Filter.Visible" xml:space="preserve">
+    <value>Visible</value>
+  </data>
+  <data name="SYS.Screen.Filter.Hidden" xml:space="preserve">
+    <value>Oculto</value>
+  </data>
+  <data name="SYS.Calendar.Title" xml:space="preserve">
+    <value>Calendario de Fábrica</value>
+  </data>
+  <data name="SYS.Calendar.Kpi.Days" xml:space="preserve">
+    <value>Días</value>
+  </data>
+  <data name="SYS.Calendar.Kpi.Work" xml:space="preserve">
+    <value>Días Laborables</value>
+  </data>
+  <data name="SYS.Calendar.Kpi.Weekend" xml:space="preserve">
+    <value>Fines de Semana</value>
+  </data>
+  <data name="SYS.Calendar.Kpi.Holiday" xml:space="preserve">
+    <value>Festivos</value>
+  </data>
+  <data name="SYS.Calendar.Tab.List" xml:space="preserve">
+    <value>Lista</value>
+  </data>
+  <data name="SYS.Calendar.Tab.Calendar" xml:space="preserve">
+    <value>Calendario</value>
+  </data>
+  <data name="SYS.Calendar.Btn.Create" xml:space="preserve">
+    <value>Generar Programa</value>
+  </data>
+  <data name="SYS.Calendar.Empty" xml:space="preserve">
+    <value>Sin datos en el período seleccionado. Use 'Generar Programa' para añadir entradas.</value>
+  </data>
+  <data name="SYS.Calendar.Col.Date" xml:space="preserve">
+    <value>Fecha</value>
+  </data>
+  <data name="SYS.Calendar.Col.DayType" xml:space="preserve">
+    <value>Tipo</value>
+  </data>
+  <data name="SYS.Calendar.Col.HolidayName" xml:space="preserve">
+    <value>Nombre del Festivo</value>
+  </data>
+  <data name="SYS.Calendar.Btn.Today" xml:space="preserve">
+    <value>Hoy</value>
+  </data>
+  <data name="SYS.Calendar.Legend.ShiftA" xml:space="preserve">
+    <value>Turno A</value>
+  </data>
+  <data name="SYS.Calendar.Legend.ShiftB" xml:space="preserve">
+    <value>Turno B</value>
+  </data>
+  <data name="SYS.Calendar.Legend.ShiftC" xml:space="preserve">
+    <value>Turno C</value>
+  </data>
+  <data name="SYS.Roles.Empty" xml:space="preserve">
+    <value>No se encontraron roles.</value>
+  </data>
+  <data name="SYS.Calendar.Modal.Generate" xml:space="preserve">
+    <value>Autogenerar Programa</value>
+  </data>
+  <data name="SYS.Interfaces.Title" xml:space="preserve">
+    <value>Monitor de Interfaces</value>
+  </data>
+  <data name="SYS.Interfaces.List" xml:space="preserve">
+    <value>Lista de Interfaces</value>
+  </data>
+  <data name="SYS.Interfaces.Empty" xml:space="preserve">
+    <value>Sin interfaces registradas.</value>
+  </data>
+  <data name="SYS.Interfaces.Kpi.All" xml:space="preserve">
+    <value>Interfaces</value>
+  </data>
+  <data name="SYS.Interfaces.Kpi.Ok" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="SYS.Interfaces.Kpi.Warn" xml:space="preserve">
+    <value>Advertencia</value>
+  </data>
+  <data name="SYS.Interfaces.Kpi.Down" xml:space="preserve">
+    <value>Parada</value>
+  </data>
+  <data name="SYS.Interfaces.Col.Code" xml:space="preserve">
+    <value>Código</value>
+  </data>
+  <data name="SYS.Interfaces.Col.Name" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="SYS.Interfaces.Col.Dir" xml:space="preserve">
+    <value>Dirección</value>
+  </data>
+  <data name="SYS.Interfaces.Col.Endpoint" xml:space="preserve">
+    <value>Endpoint</value>
+  </data>
+  <data name="SYS.Interfaces.Col.Protocol" xml:space="preserve">
+    <value>Protocolo</value>
+  </data>
+  <data name="SYS.Interfaces.Col.LastSync" xml:space="preserve">
+    <value>Última Sincronización</value>
+  </data>
+  <data name="SYS.Interfaces.Col.Elapsed" xml:space="preserve">
+    <value>Transcurrido (min)</value>
+  </data>
+  <data name="SYS.Interfaces.Col.LastCount" xml:space="preserve">
+    <value>Último Recuento de Filas</value>
+  </data>
+  <data name="SYS.Interfaces.Col.Retry" xml:space="preserve">
+    <value>Reintentos</value>
+  </data>
+  <data name="SYS.Interfaces.Col.Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="SYS.Audit.Title" xml:space="preserve">
+    <value>Registro de Auditoría</value>
+  </data>
+  <data name="SYS.Audit.List" xml:space="preserve">
+    <value>Eventos de Auditoría Recientes</value>
+  </data>
+  <data name="SYS.Audit.Empty" xml:space="preserve">
+    <value>No se encontraron eventos de auditoría.</value>
+  </data>
+  <data name="SYS.Audit.Kpi.Events" xml:space="preserve">
+    <value>Eventos</value>
+  </data>
+  <data name="SYS.Audit.Kpi.Ok" xml:space="preserve">
+    <value>Éxito</value>
+  </data>
+  <data name="SYS.Audit.Kpi.Fail" xml:space="preserve">
+    <value>Fallo</value>
+  </data>
+  <data name="SYS.Audit.Kpi.Last24h" xml:space="preserve">
+    <value>Últimas 24H</value>
+  </data>
+  <data name="SYS.Audit.Col.Time" xml:space="preserve">
+    <value>Hora</value>
+  </data>
+  <data name="SYS.Audit.Col.Actor" xml:space="preserve">
+    <value>Actor</value>
+  </data>
+  <data name="SYS.Audit.Col.Screen" xml:space="preserve">
+    <value>Pantalla</value>
+  </data>
+  <data name="SYS.Audit.Col.Action" xml:space="preserve">
+    <value>Acción</value>
+  </data>
+  <data name="SYS.Audit.Col.Entity" xml:space="preserve">
+    <value>Entidad</value>
+  </data>
+  <data name="SYS.Audit.Col.TargetId" xml:space="preserve">
+    <value>ID Objetivo</value>
+  </data>
+  <data name="SYS.Audit.Col.Result" xml:space="preserve">
+    <value>Resultado</value>
+  </data>
+  <data name="SYS.Audit.Col.Ip" xml:space="preserve">
+    <value>IP</value>
+  </data>
+  <data name="SYS.Audit.Col.Note" xml:space="preserve">
+    <value>Nota</value>
+  </data>
+  <data name="SYS.Notifications.Title" xml:space="preserve">
+    <value>Gestión de Notificaciones</value>
+  </data>
+  <data name="SYS.Notifications.Kpi.Rules" xml:space="preserve">
+    <value>Reglas</value>
+  </data>
+  <data name="SYS.Notifications.Kpi.ActiveRules" xml:space="preserve">
+    <value>Reglas Activas</value>
+  </data>
+  <data name="SYS.Notifications.Kpi.Channels" xml:space="preserve">
+    <value>Canales</value>
+  </data>
+  <data name="SYS.Notifications.Kpi.Sent" xml:space="preserve">
+    <value>Enviados 24H</value>
+  </data>
+  <data name="SYS.Notifications.Kpi.Failed" xml:space="preserve">
+    <value>Fallidos 24H</value>
+  </data>
+  <data name="SYS.Notifications.Tab.Rules" xml:space="preserve">
+    <value>Reglas de Notificación</value>
+  </data>
+  <data name="SYS.Notifications.Tab.Channels" xml:space="preserve">
+    <value>Configuración de Canal</value>
+  </data>
+  <data name="SYS.Notifications.Tab.History" xml:space="preserve">
+    <value>Historial de Envíos</value>
+  </data>
+  <data name="SYS.Notifications.Rules.List" xml:space="preserve">
+    <value>Reglas de Notificación</value>
+  </data>
+  <data name="SYS.Notifications.Rules.Empty" xml:space="preserve">
+    <value>Sin reglas de notificación registradas. Cree una regla.</value>
+  </data>
+  <data name="SYS.Notifications.Channels.List" xml:space="preserve">
+    <value>Configuración de Canal</value>
+  </data>
+  <data name="SYS.Notifications.Channels.Empty" xml:space="preserve">
+    <value>Sin canales registrados.</value>
+  </data>
+  <data name="SYS.Notifications.History.List" xml:space="preserve">
+    <value>Historial de Envíos (últimos 100)</value>
+  </data>
+  <data name="SYS.Notifications.History.Empty" xml:space="preserve">
+    <value>Sin historial de envíos.</value>
+  </data>
+  <data name="SYS.Notifications.Ph.RuleSearch" xml:space="preserve">
+    <value>Código / nombre de evento</value>
+  </data>
+  <data name="SYS.Notifications.Ph.ChSearch" xml:space="preserve">
+    <value>Usuario / dirección</value>
+  </data>
+  <data name="SYS.Notifications.Ph.HistSearch" xml:space="preserve">
+    <value>Código / destinatario / asunto</value>
+  </data>
+  <data name="SYS.Notifications.Filter.Inactive" xml:space="preserve">
+    <value>Inactivo</value>
+  </data>
+  <data name="SYS.Notifications.Kpi.AllRules" xml:space="preserve">
+    <value>Todas las Reglas</value>
+  </data>
+  <data name="SYS.Notifications.Kpi.RegisteredChannels" xml:space="preserve">
+    <value>Canales Registrados</value>
+  </data>
+  <data name="SYS.Notifications.Kpi.SentToday" xml:space="preserve">
+    <value>Enviado</value>
+  </data>
+  <data name="SYS.Notifications.Kpi.FailedToday" xml:space="preserve">
+    <value>Fallido</value>
+  </data>
+  <data name="SYS.Notifications.Lbl.Unverified" xml:space="preserve">
+    <value>No Verificado</value>
+  </data>
+  <data name="SYS.Notifications.Modal.CreateRule" xml:space="preserve">
+    <value>Crear Regla de Notificación</value>
+  </data>
+  <data name="SYS.Notifications.Modal.EditRule" xml:space="preserve">
+    <value>Editar Regla de Notificación</value>
+  </data>
+  <data name="SYS.Notifications.Modal.CreateChannel" xml:space="preserve">
+    <value>Crear Canal</value>
+  </data>
+  <data name="SYS.Notifications.Lbl.DndStart" xml:space="preserve">
+    <value>Inicio No Molestar (HH:mm)</value>
+  </data>
+  <data name="SYS.Notifications.Lbl.DndEnd" xml:space="preserve">
+    <value>Fin No Molestar (HH:mm)</value>
+  </data>
+  <data name="SYS.Notifications.Modal.EditChannel" xml:space="preserve">
+    <value>Editar Canal</value>
+  </data>
+  <data name="SYS.Notifications.Err.EventCodeRequired" xml:space="preserve">
+    <value>El código de evento es obligatorio.</value>
+  </data>
+  <data name="SYS.Notifications.Err.ChannelRequired" xml:space="preserve">
+    <value>Seleccione un canal.</value>
+  </data>
+  <data name="SYS.Config.Title" xml:space="preserve">
+    <value>Configuración del Sistema</value>
+  </data>
+  <data name="SYS.Config.Empty" xml:space="preserve">
+    <value>No se encontraron claves de configuración.</value>
+  </data>
+  <data name="SYS.Config.Kpi.Keys" xml:space="preserve">
+    <value>Claves</value>
+  </data>
+  <data name="SYS.Config.Kpi.Active" xml:space="preserve">
+    <value>Activo</value>
+  </data>
+  <data name="SYS.Config.Kpi.Categories" xml:space="preserve">
+    <value>Categorías</value>
+  </data>
+  <data name="SYS.Config.Kpi.Security" xml:space="preserve">
+    <value>Seguridad</value>
+  </data>
+  <data name="SYS.Config.Col.Key" xml:space="preserve">
+    <value>Clave</value>
+  </data>
+  <data name="SYS.Config.Col.Desc" xml:space="preserve">
+    <value>Descripción</value>
+  </data>
+  <data name="SYS.Config.Col.Value" xml:space="preserve">
+    <value>Valor</value>
+  </data>
+  <data name="SYS.Config.Col.Unit" xml:space="preserve">
+    <value>Unidad</value>
+  </data>
+  <data name="SYS.Config.Col.Type" xml:space="preserve">
+    <value>Tipo</value>
+  </data>
+  <data name="SYS.Config.Active" xml:space="preserve">
+    <value>Activo</value>
+  </data>
+  <data name="SYS.Config.Inactive" xml:space="preserve">
+    <value>Inactivo</value>
+  </data>
+  <data name="SYS.Health.Title" xml:space="preserve">
+    <value>Estado del Sistema</value>
+  </data>
+  <data name="SYS.Health.Kpi.Users" xml:space="preserve">
+    <value>Usuarios</value>
+  </data>
+  <data name="SYS.Health.Kpi.Roles" xml:space="preserve">
+    <value>Roles</value>
+  </data>
+  <data name="SYS.Health.Kpi.IfOk" xml:space="preserve">
+    <value>Interfaces OK</value>
+  </data>
+  <data name="SYS.Health.Kpi.IfDown" xml:space="preserve">
+    <value>Interfaces Caídas</value>
+  </data>
+  <data name="SYS.Health.Kpi.Audit" xml:space="preserve">
+    <value>Auditoría 24H</value>
+  </data>
+  <data name="SYS.Health.Kpi.Notif" xml:space="preserve">
+    <value>Notif 24H</value>
+  </data>
+  <data name="SYS.Health.Kpi.NotifFail" xml:space="preserve">
+    <value>Notif Fallida</value>
+  </data>
+  <data name="SYS.Health.Kpi.Config" xml:space="preserve">
+    <value>Claves de Configuración</value>
+  </data>
+  <data name="SYS.Health.Db.Title" xml:space="preserve">
+    <value>Base de Datos — Estimación de Filas</value>
+  </data>
+  <data name="SYS.Health.Db.Desc" xml:space="preserve">
+    <value>Total de todas las tablas de usuario</value>
+  </data>
+  <data name="SYS.Health.Tile.Users" xml:space="preserve">
+    <value>Usuarios</value>
+  </data>
+  <data name="SYS.Health.Tile.Rbac" xml:space="preserve">
+    <value>RBAC</value>
+  </data>
+  <data name="SYS.Health.Tile.Interfaces" xml:space="preserve">
+    <value>Interfaces</value>
+  </data>
+  <data name="SYS.Health.Tile.Audit" xml:space="preserve">
+    <value>Registro de Auditoría</value>
+  </data>
+  <data name="SYS.Health.Tile.Notif" xml:space="preserve">
+    <value>Notificaciones</value>
+  </data>
+  <data name="SYS.Health.Tile.Config" xml:space="preserve">
+    <value>Configuración del Sistema</value>
+  </data>
+  <data name="SYS.Health.Tile.Calendar" xml:space="preserve">
+    <value>Calendario de Fábrica</value>
+  </data>
+  <data name="SYS.Health.Tile.Roles" xml:space="preserve">
+    <value>Roles</value>
+  </data>
+  <data name="SYS.Health.Tile.Screen" xml:space="preserve">
+    <value>Gest. Pantallas</value>
+  </data>
+  <data name="SYS.Health.Kpi.ServicesUp" xml:space="preserve">
+    <value>Servicios Activos</value>
+  </data>
+  <data name="SYS.Health.Kpi.ServicesUpSub" xml:space="preserve">
+    <value>En Ejecución</value>
+  </data>
+  <data name="SYS.Health.Kpi.Cpu" xml:space="preserve">
+    <value>Uso de CPU</value>
+  </data>
+  <data name="SYS.Health.Kpi.CpuSub" xml:space="preserve">
+    <value>{0} núcleos</value>
+  </data>
+  <data name="SYS.Health.Kpi.Mem" xml:space="preserve">
+    <value>Uso de Memoria</value>
+  </data>
+  <data name="SYS.Health.Kpi.MemSub" xml:space="preserve">
+    <value>{0} / {1} GB</value>
+  </data>
+  <data name="SYS.Health.Kpi.Disk" xml:space="preserve">
+    <value>Uso de Disco</value>
+  </data>
+  <data name="SYS.Health.Kpi.DiskSub" xml:space="preserve">
+    <value>{0} / {1} GB</value>
+  </data>
+  <data name="SYS.Health.Svc.Title" xml:space="preserve">
+    <value>Estado de Servidor y Servicios</value>
+  </data>
+  <data name="SYS.Health.Res.Title" xml:space="preserve">
+    <value>Utilización de Recursos</value>
+  </data>
+  <data name="SYS.Health.Res.Cpu" xml:space="preserve">
+    <value>CPU</value>
+  </data>
+  <data name="SYS.Health.Res.Mem" xml:space="preserve">
+    <value>Memoria</value>
+  </data>
+  <data name="SYS.Health.Res.Disk" xml:space="preserve">
+    <value>Disco</value>
+  </data>
+  <data name="SYS.Health.Res.Net" xml:space="preserve">
+    <value>Red</value>
+  </data>
+  <data name="SYS.Health.Events.Title" xml:space="preserve">
+    <value>Eventos del Sistema Recientes</value>
+  </data>
+  <data name="SYS.Health.Events.Col.Time" xml:space="preserve">
+    <value>Hora</value>
+  </data>
+  <data name="SYS.Health.Events.Col.Level" xml:space="preserve">
+    <value>Nivel</value>
+  </data>
+  <data name="SYS.Health.Events.Col.Component" xml:space="preserve">
+    <value>Componente</value>
+  </data>
+  <data name="SYS.Health.Events.Col.Message" xml:space="preserve">
+    <value>Mensaje</value>
+  </data>
+  <data name="SYS.Health.Events.Empty" xml:space="preserve">
+    <value>Sin eventos recientes</value>
+  </data>
+  <data name="SYS.Health.Status.Ok" xml:space="preserve">
+    <value>Saludable</value>
+  </data>
+  <data name="SYS.Health.Status.Warn" xml:space="preserve">
+    <value>Advertencia</value>
+  </data>
+  <data name="SYS.Health.Status.Down" xml:space="preserve">
+    <value>Parada</value>
+  </data>
+  <data name="SYS.Health.Na" xml:space="preserve">
+    <value>N/D</value>
+  </data>
+  <data name="MD.Line.Title" xml:space="preserve">
+    <value>Maestro de Fábrica / Línea</value>
+  </data>
+  <data name="MD.Line.List" xml:space="preserve">
+    <value>Lista de Líneas de Producción</value>
+  </data>
+  <data name="MD.Line.Empty" xml:space="preserve">
+    <value>Sin líneas de producción registradas.</value>
+  </data>
+  <data name="MD.Line.Ph.Search" xml:space="preserve">
+    <value>ID/nombre de línea</value>
+  </data>
+  <data name="MD.Line.Kpi.Rfid" xml:space="preserve">
+    <value>RFID Activo</value>
+  </data>
+  <data name="MD.Line.Kpi.Plants" xml:space="preserve">
+    <value>Plantas</value>
+  </data>
+  <data name="MD.Line.Lbl.LineId" xml:space="preserve">
+    <value>ID de Línea *</value>
+  </data>
+  <data name="MD.Line.Lbl.LineName" xml:space="preserve">
+    <value>Nombre de Línea (KO) *</value>
+  </data>
+  <data name="MD.Line.Lbl.LineNameEn" xml:space="preserve">
+    <value>Nombre de Línea (EN)</value>
+  </data>
+  <data name="MD.Line.Lbl.Wcid" xml:space="preserve">
+    <value>Centro de Trabajo (WCID)</value>
+  </data>
+  <data name="MD.Line.Lbl.DailyCap" xml:space="preserve">
+    <value>Capacidad Diaria (EA)</value>
+  </data>
+  <data name="MD.Line.Lbl.ShiftPattern" xml:space="preserve">
+    <value>Patrón de Turno</value>
+  </data>
+  <data name="MD.Line.Lbl.RfidEnabled" xml:space="preserve">
+    <value>RFID Activo</value>
+  </data>
+  <data name="MD.Line.Err.IDRequired" xml:space="preserve">
+    <value>El ID de línea es obligatorio.</value>
+  </data>
+  <data name="MD.Line.Err.NameRequired" xml:space="preserve">
+    <value>El nombre de línea es obligatorio.</value>
+  </data>
+  <data name="MD.Line.Err.IDExists" xml:space="preserve">
+    <value>El ID de línea '{0}' ya existe.</value>
+  </data>
+  <data name="MD.Line.Ok.Created" xml:space="preserve">
+    <value>{0} creado.</value>
+  </data>
+  <data name="MD.Line.Ok.Updated" xml:space="preserve">
+    <value>{0} actualizado.</value>
+  </data>
+  <data name="MD.Line.Ok.Deleted" xml:space="preserve">
+    <value>{0} eliminado.</value>
+  </data>
+  <data name="MD.Bom.Title" xml:space="preserve">
+    <value>Gestión de BOM</value>
+  </data>
+  <data name="MD.Bop.Title" xml:space="preserve">
+    <value>Gestión de BOP</value>
+  </data>
+  <data name="MD.CommonCode.Title" xml:space="preserve">
+    <value>Maestro de Códigos Comunes</value>
+  </data>
+  <data name="MD.Bop.Kpi.TotalOps" xml:space="preserve">
+    <value>Total de Operaciones</value>
+  </data>
+  <data name="MD.Bop.Kpi.ActiveOps" xml:space="preserve">
+    <value>Operaciones Activas</value>
+  </data>
+  <data name="MD.Bop.Kpi.AvgCt" xml:space="preserve">
+    <value>Prom C/T (seg)</value>
+  </data>
+  <data name="MD.Bop.Kpi.ProductsRouted" xml:space="preserve">
+    <value>Productos con Ruta</value>
+  </data>
+  <data name="MD.Bom.Kpi.Products" xml:space="preserve">
+    <value>Productos BOM</value>
+  </data>
+  <data name="MD.Bom.Kpi.TotalComponents" xml:space="preserve">
+    <value>Total de Componentes</value>
+  </data>
+  <data name="MD.Bom.Kpi.AvgParts" xml:space="preserve">
+    <value>Prom Piezas / Producto</value>
+  </data>
+  <data name="MD.Bom.Kpi.SelMaterialCost" xml:space="preserve">
+    <value>Costo de Material del Producto Seleccionado · USD</value>
+  </data>
+  <data name="MD.CommonCode.Kpi.TotalCodes" xml:space="preserve">
+    <value>Total de Códigos Comunes</value>
+  </data>
+  <data name="MD.CommonCode.Kpi.Active" xml:space="preserve">
+    <value>Activo</value>
+  </data>
+  <data name="MD.CommonCode.Kpi.CodeGroups" xml:space="preserve">
+    <value>Grupos de Código</value>
+  </data>
+  <data name="MD.CommonCode.Kpi.SelInactive" xml:space="preserve">
+    <value>Códigos Inactivos Seleccionados</value>
+  </data>
+  <data name="MD.CommonCode.GrpHeader" xml:space="preserve">
+    <value>Grupos de Código</value>
+  </data>
+  <data name="MD.CommonCode.ItemHint" xml:space="preserve">
+    <value>← Haga clic en ▶ de un grupo para ver sus ítems</value>
+  </data>
+  <data name="MD.CommonCode.ItemCount" xml:space="preserve">
+    <value>{0} ítems</value>
+  </data>
+  <data name="MD.CommonCode.Grp.Create" xml:space="preserve">
+    <value>Crear Grupo de Código</value>
+  </data>
+  <data name="MD.CommonCode.Grp.Edit" xml:space="preserve">
+    <value>Editar Grupo de Código</value>
+  </data>
+  <data name="MD.CommonCode.Item.Create" xml:space="preserve">
+    <value>Crear Ítem de Código</value>
+  </data>
+  <data name="MD.CommonCode.Item.Edit" xml:space="preserve">
+    <value>Editar Ítem de Código</value>
+  </data>
+  <data name="MD.CommonCode.Lbl.GroupCode" xml:space="preserve">
+    <value>Código de Grupo *</value>
+  </data>
+  <data name="MD.CommonCode.Lbl.GroupCodeHint" xml:space="preserve">
+    <value>(ing·núm·guion_bajo, máx 20)</value>
+  </data>
+  <data name="MD.CommonCode.Lbl.GroupName" xml:space="preserve">
+    <value>Nombre de Grupo (KO) *</value>
+  </data>
+  <data name="MD.CommonCode.Lbl.GroupNameEn" xml:space="preserve">
+    <value>Nombre de Grupo (EN)</value>
+  </data>
+  <data name="MD.CommonCode.Lbl.Description" xml:space="preserve">
+    <value>Descripción</value>
+  </data>
+  <data name="MD.CommonCode.Lbl.UseFlag" xml:space="preserve">
+    <value>Activo</value>
+  </data>
+  <data name="MD.CommonCode.Lbl.CodeValue" xml:space="preserve">
+    <value>Valor de Código *</value>
+  </data>
+  <data name="MD.CommonCode.Lbl.CodeValueHint" xml:space="preserve">
+    <value>(máx 20)</value>
+  </data>
+  <data name="MD.CommonCode.Lbl.CodeId" xml:space="preserve">
+    <value>CodeID</value>
+  </data>
+  <data name="MD.CommonCode.Lbl.CodeIdHint" xml:space="preserve">
+    <value>(autogenerado, máx 41)</value>
+  </data>
+  <data name="MD.CommonCode.Lbl.CodeName" xml:space="preserve">
+    <value>Nombre de Código (KO)</value>
+  </data>
+  <data name="MD.CommonCode.Lbl.CodeNameEn" xml:space="preserve">
+    <value>Nombre de Código (EN)</value>
+  </data>
+  <data name="MD.CommonCode.Lbl.ParentCode" xml:space="preserve">
+    <value>Código Padre</value>
+  </data>
+  <data name="MD.CommonCode.Lbl.ParentCodeOpt" xml:space="preserve">
+    <value>(opcional)</value>
+  </data>
+  <data name="MD.CommonCode.Lbl.SortOrder" xml:space="preserve">
+    <value>Orden de Clasificación</value>
+  </data>
+  <data name="MD.CommonCode.Opt.None" xml:space="preserve">
+    <value>(Ninguno)</value>
+  </data>
+  <data name="MD.CommonCode.ConfirmGrpDelete" xml:space="preserve">
+    <value>¿Eliminar grupo y {0} subítems?</value>
+  </data>
+  <data name="MD.CommonCode.ConfirmItemDelete" xml:space="preserve">
+    <value>¿Eliminar {0} ({1})?</value>
+  </data>
+  <data name="MD.Customer.Title" xml:space="preserve">
+    <value>Maestro de Clientes</value>
+  </data>
+  <data name="MD.Customer.List" xml:space="preserve">
+    <value>Lista de Clientes</value>
+  </data>
+  <data name="MD.Customer.Empty" xml:space="preserve">
+    <value>No se encontraron clientes.</value>
+  </data>
+  <data name="MD.DefectCause.Title" xml:space="preserve">
+    <value>Maestro de Causas de Defecto</value>
+  </data>
+  <data name="MD.DefectCause.List" xml:space="preserve">
+    <value>Lista de Causas de Defecto</value>
+  </data>
+  <data name="MD.DefectCause.Empty" xml:space="preserve">
+    <value>No se encontraron causas de defecto.</value>
+  </data>
+  <data name="MD.DefectCode.Title" xml:space="preserve">
+    <value>Maestro de Códigos de Defecto</value>
+  </data>
+  <data name="MD.DefectCode.List" xml:space="preserve">
+    <value>Lista de Códigos de Defecto</value>
+  </data>
+  <data name="MD.DefectCode.Empty" xml:space="preserve">
+    <value>No se encontraron códigos de defecto.</value>
+  </data>
+  <data name="MD.Equipment.Title" xml:space="preserve">
+    <value>Maestro de Equipos</value>
+  </data>
+  <data name="MD.Equipment.List" xml:space="preserve">
+    <value>Lista de Equipos</value>
+  </data>
+  <data name="MD.Equipment.Empty" xml:space="preserve">
+    <value>No se encontraron equipos.</value>
+  </data>
+  <data name="MD.InspStd.Title" xml:space="preserve">
+    <value>Maestro de Estándares de Inspección</value>
+  </data>
+  <data name="MD.InspStd.List" xml:space="preserve">
+    <value>Lista de Estándares de Inspección</value>
+  </data>
+  <data name="MD.InspStd.Empty" xml:space="preserve">
+    <value>No se encontraron estándares de inspección.</value>
+  </data>
+  <data name="MD.Items.Title" xml:space="preserve">
+    <value>Maestro de Ítems de Producto</value>
+  </data>
+  <data name="MD.Items.List" xml:space="preserve">
+    <value>Lista de Piezas</value>
+  </data>
+  <data name="MD.Items.Empty" xml:space="preserve">
+    <value>No se encontraron piezas.</value>
+  </data>
+  <data name="MD.Jig.Title" xml:space="preserve">
+    <value>Maestro de Jigs</value>
+  </data>
+  <data name="MD.Jig.List" xml:space="preserve">
+    <value>Lista de Jigs</value>
+  </data>
+  <data name="MD.Jig.Empty" xml:space="preserve">
+    <value>No se encontraron jigs.</value>
+  </data>
+  <data name="MD.LabelTpl.Title" xml:space="preserve">
+    <value>Maestro de Plantillas de Etiqueta</value>
+  </data>
+  <data name="MD.LabelTpl.List" xml:space="preserve">
+    <value>Lista de Plantillas de Etiqueta</value>
+  </data>
+  <data name="MD.LabelTpl.Empty" xml:space="preserve">
+    <value>No se encontraron plantillas de etiqueta.</value>
+  </data>
+  <data name="MD.LinePat.Title" xml:space="preserve">
+    <value>Maestro de Patrones de Tiempo de Línea</value>
+  </data>
+  <data name="MD.LinePat.List" xml:space="preserve">
+    <value>Lista de Patrones de Tiempo</value>
+  </data>
+  <data name="MD.LinePat.Empty" xml:space="preserve">
+    <value>No se encontraron patrones de tiempo.</value>
+  </data>
+  <data name="MD.Location.Title" xml:space="preserve">
+    <value>Maestro de Ubicaciones de Almacén</value>
+  </data>
+  <data name="MD.Location.List" xml:space="preserve">
+    <value>Lista de Ubicaciones</value>
+  </data>
+  <data name="MD.Location.Empty" xml:space="preserve">
+    <value>No se encontraron ubicaciones.</value>
+  </data>
+  <data name="MD.Mold.Title" xml:space="preserve">
+    <value>Maestro de Moldes</value>
+  </data>
+  <data name="MD.Mold.List" xml:space="preserve">
+    <value>Lista de Moldes</value>
+  </data>
+  <data name="MD.Mold.Empty" xml:space="preserve">
+    <value>No se encontraron moldes.</value>
+  </data>
+  <data name="MD.Oven.Title" xml:space="preserve">
+    <value>Maestro de Hornos</value>
+  </data>
+  <data name="MD.Oven.List" xml:space="preserve">
+    <value>Lista de Hornos</value>
+  </data>
+  <data name="MD.Oven.Empty" xml:space="preserve">
+    <value>No se encontraron hornos.</value>
+  </data>
+  <data name="MD.PackSpec.Title" xml:space="preserve">
+    <value>Maestro de Especificaciones de Embalaje</value>
+  </data>
+  <data name="MD.PackSpec.List" xml:space="preserve">
+    <value>Lista de Especificaciones de Embalaje</value>
+  </data>
+  <data name="MD.PackSpec.Empty" xml:space="preserve">
+    <value>No se encontraron especificaciones de embalaje.</value>
+  </data>
+  <data name="MD.PaintFabric.Title" xml:space="preserve">
+    <value>Maestro de Pintura y Tela</value>
+  </data>
+  <data name="MD.PaintFabric.List" xml:space="preserve">
+    <value>Lista de Pintura/Tela</value>
+  </data>
+  <data name="MD.PaintFabric.Empty" xml:space="preserve">
+    <value>No se encontraron registros de pintura/tela.</value>
+  </data>
+  <data name="MD.PmTemplate.Title" xml:space="preserve">
+    <value>Maestro de Plantillas PM</value>
+  </data>
+  <data name="MD.PmTemplate.List" xml:space="preserve">
+    <value>Lista de Plantillas PM</value>
+  </data>
+  <data name="MD.PmTemplate.Empty" xml:space="preserve">
+    <value>No se encontraron plantillas PM.</value>
+  </data>
+  <data name="MD.RalColor.Title" xml:space="preserve">
+    <value>Maestro de Colores RAL</value>
+  </data>
+  <data name="MD.RalColor.List" xml:space="preserve">
+    <value>Lista de Colores RAL</value>
+  </data>
+  <data name="MD.RalColor.Empty" xml:space="preserve">
+    <value>No se encontraron colores RAL.</value>
+  </data>
+  <data name="MD.ReasonCode.Title" xml:space="preserve">
+    <value>Maestro de Códigos de Motivo</value>
+  </data>
+  <data name="MD.ReasonCode.List" xml:space="preserve">
+    <value>Lista de Códigos de Motivo</value>
+  </data>
+  <data name="MD.ReasonCode.Empty" xml:space="preserve">
+    <value>No se encontraron códigos de motivo.</value>
+  </data>
+  <data name="MD.Recipe.Title" xml:space="preserve">
+    <value>Maestro de Recetas</value>
+  </data>
+  <data name="MD.Recipe.List" xml:space="preserve">
+    <value>Lista de Recetas</value>
+  </data>
+  <data name="MD.Recipe.Empty" xml:space="preserve">
+    <value>No se encontraron recetas.</value>
+  </data>
+  <data name="MD.RfidReader.Title" xml:space="preserve">
+    <value>Maestro de Lectores RFID</value>
+  </data>
+  <data name="MD.RfidReader.List" xml:space="preserve">
+    <value>Lista de Lectores RFID</value>
+  </data>
+  <data name="MD.RfidReader.Empty" xml:space="preserve">
+    <value>No se encontraron lectores RFID.</value>
+  </data>
+  <data name="MD.RfidTag.Title" xml:space="preserve">
+    <value>Maestro de Etiquetas RFID</value>
+  </data>
+  <data name="MD.RfidTag.List" xml:space="preserve">
+    <value>Lista de Etiquetas RFID</value>
+  </data>
+  <data name="MD.RfidTag.Empty" xml:space="preserve">
+    <value>No se encontraron etiquetas RFID.</value>
+  </data>
+  <data name="MD.ShipDest.Title" xml:space="preserve">
+    <value>Maestro de Destinos de Envío</value>
+  </data>
+  <data name="MD.ShipDest.List" xml:space="preserve">
+    <value>Lista de Destinos de Envío</value>
+  </data>
+  <data name="MD.ShipDest.Empty" xml:space="preserve">
+    <value>No se encontraron destinos de envío.</value>
+  </data>
+  <data name="MD.SparePart.Title" xml:space="preserve">
+    <value>Maestro de Repuestos</value>
+  </data>
+  <data name="MD.SparePart.List" xml:space="preserve">
+    <value>Lista de Repuestos</value>
+  </data>
+  <data name="MD.SparePart.Empty" xml:space="preserve">
+    <value>No se encontraron repuestos.</value>
+  </data>
+  <data name="MD.Station.Title" xml:space="preserve">
+    <value>Maestro de Estaciones</value>
+  </data>
+  <data name="MD.Station.List" xml:space="preserve">
+    <value>Lista de Estaciones</value>
+  </data>
+  <data name="MD.Station.Empty" xml:space="preserve">
+    <value>No se encontraron estaciones.</value>
+  </data>
+  <data name="MD.Station.Ph.Search" xml:space="preserve">
+    <value>ID/Nombre de Estación</value>
+  </data>
+  <data name="MD.Station.Kpi.Lines" xml:space="preserve">
+    <value>Líneas</value>
+  </data>
+  <data name="MD.Station.Kpi.Types" xml:space="preserve">
+    <value>Tipos de Proceso</value>
+  </data>
+  <data name="MD.Uom.Title" xml:space="preserve">
+    <value>Maestro de UOM</value>
+  </data>
+  <data name="MD.Uom.List" xml:space="preserve">
+    <value>Lista de UOM</value>
+  </data>
+  <data name="MD.Uom.Empty" xml:space="preserve">
+    <value>No se encontraron UOM.</value>
+  </data>
+  <data name="MD.Vendor.Title" xml:space="preserve">
+    <value>Maestro de Proveedores</value>
+  </data>
+  <data name="MD.Vendor.List" xml:space="preserve">
+    <value>Lista de Proveedores</value>
+  </data>
+  <data name="MD.Vendor.Empty" xml:space="preserve">
+    <value>No se encontraron proveedores.</value>
+  </data>
+  <data name="MD.WorkCenter.Title" xml:space="preserve">
+    <value>Gestión de Centros de Trabajo</value>
+  </data>
+  <data name="MD.WorkCenter.List" xml:space="preserve">
+    <value>Lista de Centros de Trabajo</value>
+  </data>
+  <data name="MD.WorkCenter.Empty" xml:space="preserve">
+    <value>No se encontraron centros de trabajo.</value>
+  </data>
+  <data name="MD.WorkCenter.Kpi.Lines" xml:space="preserve">
+    <value>Líneas</value>
+  </data>
+  <data name="MD.WorkCenter.Kpi.Types" xml:space="preserve">
+    <value>Tipos de Proceso</value>
+  </data>
+  <data name="PP.Calendar.Title" xml:space="preserve">
+    <value>Calendario</value>
+  </data>
+  <data name="PP.Calendar.Kpi.TotalSub" xml:space="preserve">
+    <value>Con fecha de vencimiento</value>
+  </data>
+  <data name="PP.Calendar.Kpi.D3" xml:space="preserve">
+    <value>Alerta D-3</value>
+  </data>
+  <data name="PP.Calendar.Kpi.D3Sub" xml:space="preserve">
+    <value>Vence en 3 días</value>
+  </data>
+  <data name="PP.Calendar.Kpi.Late" xml:space="preserve">
+    <value>Atrasado</value>
+  </data>
+  <data name="PP.Calendar.Kpi.LateSub" xml:space="preserve">
+    <value>Vencido</value>
+  </data>
+  <data name="PP.Calendar.Kpi.InProgSub" xml:space="preserve">
+    <value>En Producción</value>
+  </data>
+  <data name="PP.Calendar.Routing.INJ" xml:space="preserve">
+    <value>INJ — Inyección</value>
+  </data>
+  <data name="PP.Calendar.Routing.A" xml:space="preserve">
+    <value>A — Envoltura</value>
+  </data>
+  <data name="PP.Calendar.Routing.B" xml:space="preserve">
+    <value>B — Pintura</value>
+  </data>
+  <data name="PP.Calendar.Tab.Month" xml:space="preserve">
+    <value>Mes</value>
+  </data>
+  <data name="PP.Calendar.Tab.Week" xml:space="preserve">
+    <value>Semana</value>
+  </data>
+  <data name="PP.Calendar.Btn.Today" xml:space="preserve">
+    <value>Hoy</value>
+  </data>
+  <data name="PP.Calendar.Day.Sun" xml:space="preserve">
+    <value>Dom</value>
+  </data>
+  <data name="PP.Calendar.Day.Mon" xml:space="preserve">
+    <value>Lun</value>
+  </data>
+  <data name="PP.Calendar.Day.Tue" xml:space="preserve">
+    <value>Mar</value>
+  </data>
+  <data name="PP.Calendar.Day.Wed" xml:space="preserve">
+    <value>Mié</value>
+  </data>
+  <data name="PP.Calendar.Day.Thu" xml:space="preserve">
+    <value>Jue</value>
+  </data>
+  <data name="PP.Calendar.Day.Fri" xml:space="preserve">
+    <value>Vie</value>
+  </data>
+  <data name="PP.Calendar.Day.Sat" xml:space="preserve">
+    <value>Sáb</value>
+  </data>
+  <data name="PP.Calendar.More" xml:space="preserve">
+    <value>+{0} más</value>
+  </data>
+  <data name="PP.Calendar.Modal.WoList" xml:space="preserve">
+    <value>Lista de OT</value>
+  </data>
+  <data name="PP.Calendar.Detail.OrderDone" xml:space="preserve">
+    <value>Pedido / Hecho</value>
+  </data>
+  <data name="PP.Calendar.Detail.Phase0" xml:space="preserve">
+    <value>Fase-0</value>
+  </data>
+  <data name="PP.Calendar.Detail.Phase0Done" xml:space="preserve">
+    <value>✓ Completar</value>
+  </data>
+  <data name="PP.Calendar.Detail.Phase0Fail" xml:space="preserve">
+    <value>🚧 BOM/BOP Faltante</value>
+  </data>
+  <data name="PP.Calendar.Btn.Reschedule" xml:space="preserve">
+    <value>Reprogramar</value>
+  </data>
+  <data name="PP.Calendar.Btn.WorkOrder" xml:space="preserve">
+    <value>PP-004 →</value>
+  </data>
+  <data name="PP.Calendar.Modal.Reschedule" xml:space="preserve">
+    <value>Reprogramar — PIN de Supervisor</value>
+  </data>
+  <data name="PP.Calendar.Lbl.WoNo" xml:space="preserve">
+    <value>OT:</value>
+  </data>
+  <data name="PP.Calendar.Lbl.CurrentDue" xml:space="preserve">
+    <value>Vence Actual:</value>
+  </data>
+  <data name="PP.Calendar.Lbl.NewDue" xml:space="preserve">
+    <value>Nueva Fecha de Vencimiento</value>
+  </data>
+  <data name="PP.Calendar.Lbl.Pin" xml:space="preserve">
+    <value>PIN de Supervisor</value>
+  </data>
+  <data name="PP.Calendar.Ph.Pin" xml:space="preserve">
+    <value>4–6 dígitos</value>
+  </data>
+  <data name="PP.Calendar.Err.WrongPin" xml:space="preserve">
+    <value>PIN incorrecto.</value>
+  </data>
+  <data name="PP.Calendar.Err.Reschedule" xml:space="preserve">
+    <value>Error al reprogramar: {0}</value>
+  </data>
+  <data name="PP.Calendar.Legend.Overdue" xml:space="preserve">
+    <value>Atrasado</value>
+  </data>
+  <data name="PP.Calendar.Legend.D3" xml:space="preserve">
+    <value>D-3 o menos</value>
+  </data>
+  <data name="PP.Calendar.Legend.RoutingA" xml:space="preserve">
+    <value>Ruta A</value>
+  </data>
+  <data name="PP.Calendar.Legend.RoutingB" xml:space="preserve">
+    <value>Ruta B</value>
+  </data>
+  <data name="PP.Calendar.Legend.Draft" xml:space="preserve">
+    <value>Borrador/INJ</value>
+  </data>
+  <data name="PP.Calendar.DdTxt.None" xml:space="preserve">
+    <value>Sin fecha de vencimiento</value>
+  </data>
+  <data name="PP.Calendar.DdTxt.Late" xml:space="preserve">
+    <value>D+{0} Atrasado</value>
+  </data>
+  <data name="PP.Calendar.DdTxt.DDay" xml:space="preserve">
+    <value>Día D</value>
+  </data>
+  <data name="PP.Calendar.DdTxt.DaysTo" xml:space="preserve">
+    <value>D-{0}</value>
+  </data>
+  <data name="PP.Calendar.Modal.Detail" xml:space="preserve">
+    <value>Detalles de OT —</value>
+  </data>
+  <data name="PP.Delivery.Title" xml:space="preserve">
+    <value>Entrega a Tiempo</value>
+  </data>
+  <data name="PP.Delivery.Empty" xml:space="preserve">
+    <value>Ningún historial de envío coincide con las condiciones.</value>
+  </data>
+  <data name="PP.Delivery.Kpi.TotalSub" xml:space="preserve">
+    <value>Total de Pedidos</value>
+  </data>
+  <data name="PP.Delivery.Kpi.OnTimeSub" xml:space="preserve">
+    <value>A Tiempo</value>
+  </data>
+  <data name="PP.Delivery.Kpi.LateSub" xml:space="preserve">
+    <value>Atrasado</value>
+  </data>
+  <data name="PP.Delivery.Kpi.OpenSub" xml:space="preserve">
+    <value>No Enviado</value>
+  </data>
+  <data name="PP.Delivery.Kpi.OtdSub" xml:space="preserve">
+    <value>Tasa OTD</value>
+  </data>
+  <data name="PP.Delivery.Status.OnTime" xml:space="preserve">
+    <value>A Tiempo</value>
+  </data>
+  <data name="PP.Delivery.Status.Late" xml:space="preserve">
+    <value>Atrasado</value>
+  </data>
+  <data name="PP.Delivery.Status.Open" xml:space="preserve">
+    <value>No Enviado</value>
+  </data>
+  <data name="PP.Delivery.Col.Progress" xml:space="preserve">
+    <value>Progreso</value>
+  </data>
+  <data name="PP.Delivery.Badge.OnTime" xml:space="preserve">
+    <value>A Tiempo</value>
+  </data>
+  <data name="PP.Delivery.Badge.Late" xml:space="preserve">
+    <value>Atrasado</value>
+  </data>
+  <data name="PP.Delivery.Badge.Open" xml:space="preserve">
+    <value>Abierto</value>
+  </data>
+  <data name="PP.Delivery.LimitNote" xml:space="preserve">
+    <value>Máx 500 filas. Acote el filtro de fecha o cliente.</value>
+  </data>
+  <data name="PP.Downtime.Title" xml:space="preserve">
+    <value>Registro de Paradas</value>
+  </data>
+  <data name="PP.Downtime.Empty" xml:space="preserve">
+    <value>Ningún evento de parada coincide con las condiciones.</value>
+  </data>
+  <data name="PP.Downtime.Status.Open" xml:space="preserve">
+    <value>Abierto</value>
+  </data>
+  <data name="PP.Downtime.Status.Closed" xml:space="preserve">
+    <value>Cerrado</value>
+  </data>
+  <data name="PP.Downtime.LimitNote" xml:space="preserve">
+    <value>Máx 500 filas. Acote el rango de fechas.</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Title" xml:space="preserve">
+    <value>Monitor de Paradas</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.Lines" xml:space="preserve">
+    <value>Líneas Monitoreadas</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.Work" xml:space="preserve">
+    <value>En Ejecución</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.Unplan" xml:space="preserve">
+    <value>Parada No Planificada</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.Plan" xml:space="preserve">
+    <value>Parada Planificada</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.NoReason" xml:space="preserve">
+    <value>Sin Motivo</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Alert.Title" xml:space="preserve">
+    <value>Parada No Planificada &gt; 10 min</value>
+  </data>
+  <data name="PP.DowntimeMonitor.State.Work" xml:space="preserve">
+    <value>En Ejecución</value>
+  </data>
+  <data name="PP.DowntimeMonitor.State.Unplan" xml:space="preserve">
+    <value>Parada No Planificada</value>
+  </data>
+  <data name="PP.DowntimeMonitor.State.Plan" xml:space="preserve">
+    <value>Parada Planificada</value>
+  </data>
+  <data name="PP.DowntimeMonitor.State.Break" xml:space="preserve">
+    <value>Descanso</value>
+  </data>
+  <data name="PP.DowntimeMonitor.State.Unknown" xml:space="preserve">
+    <value>Sin Señal</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Lbl.Plan" xml:space="preserve">
+    <value>Plan:</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Lbl.Urgent" xml:space="preserve">
+    <value>Ingrese el Motivo</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Tl.Minus60" xml:space="preserve">
+    <value>-60 min</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Tl.Minus30" xml:space="preserve">
+    <value>-30 min</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Tl.Now" xml:space="preserve">
+    <value>Ahora</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Stat.Age" xml:space="preserve">
+    <value>hace {0} min</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Stat.Old" xml:space="preserve">
+    <value>Obsoleto</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Stat.Signal" xml:space="preserve">
+    <value>Señal</value>
+  </data>
+  <data name="PP.DowntimeMonitor.History.Header" xml:space="preserve">
+    <value>Eventos de Parada de Hoy — Edite el motivo si falta</value>
+  </data>
+  <data name="PP.DowntimeMonitor.History.Empty" xml:space="preserve">
+    <value>Sin eventos de parada hoy.</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Col.Duration" xml:space="preserve">
+    <value>Duración (min)</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Lbl.NotEntered" xml:space="preserve">
+    <value>Faltante</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Modal.Edit" xml:space="preserve">
+    <value>Editar Motivo de Parada —</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Reason.Select" xml:space="preserve">
+    <value>Seleccionar</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Reason.Mech" xml:space="preserve">
+    <value>MECH — Mecánico</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Reason.Elec" xml:space="preserve">
+    <value>ELEC — Eléctrico</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Reason.Mat" xml:space="preserve">
+    <value>MAT — Falta de Material</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Reason.Oper" xml:space="preserve">
+    <value>OPER — Error del Operador</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Reason.Plan" xml:space="preserve">
+    <value>PLAN — Cambio de Plan</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Reason.Other" xml:space="preserve">
+    <value>OTHER — Otro</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Lbl.ReasonCode" xml:space="preserve">
+    <value>Código de Motivo</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Lbl.Cause" xml:space="preserve">
+    <value>Causa</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Ph.Cause" xml:space="preserve">
+    <value>Código o descripción de causa</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Ph.Comment" xml:space="preserve">
+    <value>Detalles (opcional)</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Err.ReasonRequired" xml:space="preserve">
+    <value>Seleccione un código de motivo.</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Dur.Hours" xml:space="preserve">
+    <value>{0}h {1}m transcurridos</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Dur.Minutes" xml:space="preserve">
+    <value>{0} min transcurridos</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Dur.Now" xml:space="preserve">
+    <value>Recién iniciado</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Lbl.Refresh" xml:space="preserve">
+    <value>Actualizado:</value>
+  </data>
+  <data name="PP.DowntimeMonitor.AutoRefresh" xml:space="preserve">
+    <value>Autoactualizar 1 min</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Inprog" xml:space="preserve">
+    <value>En Curso</value>
+  </data>
+  <data name="PP.Forecast.Title" xml:space="preserve">
+    <value>Pronóstico</value>
+  </data>
+  <data name="PP.Forecast.Empty" xml:space="preserve">
+    <value>Ningún dato de pronóstico coincide con las condiciones.</value>
+  </data>
+  <data name="PP.Forecast.Tab.Status" xml:space="preserve">
+    <value>Estado del Pronóstico</value>
+  </data>
+  <data name="PP.Forecast.Tab.History" xml:space="preserve">
+    <value>Historial de Cargas</value>
+  </data>
+  <data name="PP.Forecast.Hist.Uploaded" xml:space="preserve">
+    <value>Cargado</value>
+  </data>
+  <data name="PP.Forecast.Hist.Batch" xml:space="preserve">
+    <value>Lote</value>
+  </data>
+  <data name="PP.Forecast.Hist.Rows" xml:space="preserve">
+    <value>Filas</value>
+  </data>
+  <data name="PP.Forecast.Hist.Items" xml:space="preserve">
+    <value>Piezas</value>
+  </data>
+  <data name="PP.Forecast.Hist.Period" xml:space="preserve">
+    <value>Período</value>
+  </data>
+  <data name="PP.Forecast.Hist.By" xml:space="preserve">
+    <value>Cargado Por</value>
+  </data>
+  <data name="PP.Forecast.Hist.Empty" xml:space="preserve">
+    <value>Sin historial de cargas.</value>
+  </data>
+  <data name="PP.Forecast.Fld.Period" xml:space="preserve">
+    <value>Período</value>
+  </data>
+  <data name="PP.Forecast.Fld.PartNoPh" xml:space="preserve">
+    <value>Código o nombre de ítem...</value>
+  </data>
+  <data name="PP.Forecast.Upload.Title" xml:space="preserve">
+    <value>Carga de Plan de Compra Semanal (SRM)</value>
+  </data>
+  <data name="PP.Forecast.Upload.Hint" xml:space="preserve">
+    <value>Archivo ZMM30004 .xls/.xlsx · máx 10 MB</value>
+  </data>
+  <data name="PP.Forecast.Err.Parse" xml:space="preserve">
+    <value>Formato de archivo no reconocido. Verifique que sea un archivo de plan de compra semanal ZMM30004.</value>
+  </data>
+  <data name="PP.Forecast.Err.TooLarge" xml:space="preserve">
+    <value>El archivo es demasiado grande (máx 10 MB).</value>
+  </data>
+  <data name="PP.Forecast.Err.ItemNoLen" xml:space="preserve">
+    <value>El número de pieza '{0}' supera los 20 caracteres.</value>
+  </data>
+  <data name="PP.Forecast.Preview.Summary" xml:space="preserve">
+    <value>{0} piezas × {1} semanas · {2:MM/dd}–{3:MM/dd}</value>
+  </data>
+  <data name="PP.Forecast.Preview.Unmatched" xml:space="preserve">
+    <value>{0} piezas fuera del maestro — puede guardar; los nombres usan los valores del archivo.</value>
+  </data>
+  <data name="PP.Forecast.Ok.Imported" xml:space="preserve">
+    <value>Guardado: {0} nuevos · {1} actualizados · {2} cambios de cantidad</value>
+  </data>
+  <data name="PP.Forecast.Badge.Unregistered" xml:space="preserve">
+    <value>NO REGISTRADO</value>
+  </data>
+  <data name="PP.Forecast.Btn.ExcelUpload" xml:space="preserve">
+    <value>Cargar Excel</value>
+  </data>
+  <data name="PP.Forecast.Btn.Export" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="PP.Forecast.Btn.RunUpload" xml:space="preserve">
+    <value>Ejecutar Carga</value>
+  </data>
+  <data name="PP.Forecast.Upload.File" xml:space="preserve">
+    <value>Seleccionar archivo SRM</value>
+  </data>
+  <data name="PP.Forecast.Upload.ParseResult" xml:space="preserve">
+    <value>Resultado de Análisis y Validación</value>
+  </data>
+  <data name="PP.Forecast.Upload.NoFile" xml:space="preserve">
+    <value>Seleccione un archivo para mostrar los resultados de validación.</value>
+  </data>
+  <data name="PP.Forecast.Err.NoExport" xml:space="preserve">
+    <value>No hay datos para exportar.</value>
+  </data>
+  <data name="PP.Forecast.Ok.Exported" xml:space="preserve">
+    <value>{0} filas exportadas a CSV.</value>
+  </data>
+  <data name="PP.LineSchedule.Title" xml:space="preserve">
+    <value>Programa de Línea</value>
+  </data>
+  <data name="PP.LineSchedule.Lbl.Pattern" xml:space="preserve">
+    <value>Patrón</value>
+  </data>
+  <data name="PP.LineSchedule.Ph.SelectPattern" xml:space="preserve">
+    <value>Seleccionar patrón</value>
+  </data>
+  <data name="PP.LineSchedule.Btn.Apply" xml:space="preserve">
+    <value>Aplicar</value>
+  </data>
+  <data name="PP.LineSchedule.Btn.Publish" xml:space="preserve">
+    <value>Publicar</value>
+  </data>
+  <data name="PP.LineSchedule.Status.Draft" xml:space="preserve">
+    <value>Borrador</value>
+  </data>
+  <data name="PP.LineSchedule.Status.Published" xml:space="preserve">
+    <value>Publicado</value>
+  </data>
+  <data name="PP.LineSchedule.Status.Unsaved" xml:space="preserve">
+    <value>Sin Guardar</value>
+  </data>
+  <data name="PP.LineSchedule.Empty.NoPattern" xml:space="preserve">
+    <value>Sin patrón disponible para esta línea/fecha.</value>
+  </data>
+  <data name="PP.LineSchedule.Err.NoPattern" xml:space="preserve">
+    <value>Seleccione un patrón.</value>
+  </data>
+  <data name="PP.LineSchedule.Err.NotInOperating" xml:space="preserve">
+    <value>Solo puede colocarse dentro de ventanas de operación.</value>
+  </data>
+  <data name="PP.LineSchedule.Ok.Applied" xml:space="preserve">
+    <value>Aplicado.</value>
+  </data>
+  <data name="PP.LineSchedule.Ok.Published" xml:space="preserve">
+    <value>Publicado.</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.WorkCap" xml:space="preserve">
+    <value>Capacidad de Trabajo</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.WorkCapSub" xml:space="preserve">
+    <value>Σ franjas de TRABAJO</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.WoLoad" xml:space="preserve">
+    <value>Carga de OT</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.WoLoadSub" xml:space="preserve">
+    <value>Total de franjas asignadas</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.Remain" xml:space="preserve">
+    <value>Cap. Restante</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.Over" xml:space="preserve">
+    <value>¡Sobre Capacidad!</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.Available" xml:space="preserve">
+    <value>Disponible</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.Util" xml:space="preserve">
+    <value>Utilización</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.UtilSub" xml:space="preserve">
+    <value>Carga de OT / Cap. Trabajo</value>
+  </data>
+  <data name="PP.LineSchedule.Ph.SelectLine" xml:space="preserve">
+    <value>Seleccionar línea…</value>
+  </data>
+  <data name="PP.LineSchedule.Empty.NoLine" xml:space="preserve">
+    <value>Seleccione una línea en la barra de herramientas.</value>
+  </data>
+  <data name="PP.LineSchedule.Tab.Gantt" xml:space="preserve">
+    <value>▦ Tablero Gantt</value>
+  </data>
+  <data name="PP.LineSchedule.Tab.Pattern" xml:space="preserve">
+    <value>✏ Editar Patrón</value>
+  </data>
+  <data name="PP.LineSchedule.Lbl.WoSelect" xml:space="preserve">
+    <value>OT</value>
+  </data>
+  <data name="PP.LineSchedule.Lbl.StartTime" xml:space="preserve">
+    <value>Hora de Inicio</value>
+  </data>
+  <data name="PP.LineSchedule.Lbl.Duration" xml:space="preserve">
+    <value>Duración (min)</value>
+  </data>
+  <data name="PP.LineSchedule.Lbl.PlannedQty" xml:space="preserve">
+    <value>Cant. Planificada</value>
+  </data>
+  <data name="PP.LineSchedule.Ttl.CapBlocked" xml:space="preserve">
+    <value>Sobre capacidad — colocación bloqueada</value>
+  </data>
+  <data name="PP.LineSchedule.Btn.CapOver" xml:space="preserve">
+    <value>🚫 Sobre Cap.</value>
+  </data>
+  <data name="PP.LineSchedule.Btn.Place" xml:space="preserve">
+    <value>Colocar</value>
+  </data>
+  <data name="PP.LineSchedule.Btn.WoOpen" xml:space="preserve">
+    <value>▼ Colocar OT</value>
+  </data>
+  <data name="PP.LineSchedule.Btn.WoClose" xml:space="preserve">
+    <value>▲ Cerrar Panel OT</value>
+  </data>
+  <data name="PP.LineSchedule.Lbl.BandType" xml:space="preserve">
+    <value>Tipo de Franja</value>
+  </data>
+  <data name="PP.LineSchedule.Band.Work" xml:space="preserve">
+    <value>TRABAJO</value>
+  </data>
+  <data name="PP.LineSchedule.Band.PlannedDown" xml:space="preserve">
+    <value>Parada Planificada</value>
+  </data>
+  <data name="PP.LineSchedule.Band.Break" xml:space="preserve">
+    <value>Descanso</value>
+  </data>
+  <data name="PP.LineSchedule.Btn.Undo" xml:space="preserve">
+    <value>↩ Deshacer</value>
+  </data>
+  <data name="PP.LineSchedule.Ttl.Undo" xml:space="preserve">
+    <value>Eliminar última franja añadida</value>
+  </data>
+  <data name="PP.LineSchedule.Btn.Clear" xml:space="preserve">
+    <value>Limpiar</value>
+  </data>
+  <data name="PP.LineSchedule.Stat.Work" xml:space="preserve">
+    <value>Trabajo: {0} min</value>
+  </data>
+  <data name="PP.LineSchedule.Stat.PlannedDown" xml:space="preserve">
+    <value>Parada Planificada: {0} min</value>
+  </data>
+  <data name="PP.LineSchedule.Stat.Break" xml:space="preserve">
+    <value>Descanso: {0} min</value>
+  </data>
+  <data name="PP.LineSchedule.Stat.BandCount" xml:space="preserve">
+    <value>{0} franjas</value>
+  </data>
+  <data name="PP.LineSchedule.Modal.DeleteBand" xml:space="preserve">
+    <value>Eliminar franja</value>
+  </data>
+  <data name="PP.LineSchedule.Pattern.Lbl" xml:space="preserve">
+    <value>Patrón</value>
+  </data>
+  <data name="PP.LineSchedule.Err.NoWo" xml:space="preserve">
+    <value>Seleccione una OT.</value>
+  </data>
+  <data name="PP.LineSchedule.Err.NotInWork" xml:space="preserve">
+    <value>La colocación debe estar dentro de una franja de TRABAJO.</value>
+  </data>
+  <data name="PP.LineSchedule.Err.CapOver" xml:space="preserve">
+    <value>Sobre capacidad — restante {0} min, solicitado {1} min.</value>
+  </data>
+  <data name="PP.LineSchedule.Err.Load" xml:space="preserve">
+    <value>Error de carga: {0}</value>
+  </data>
+  <data name="PP.LineSchedule.Err.BandSave" xml:space="preserve">
+    <value>Error al guardar franja: {0}</value>
+  </data>
+  <data name="PP.LineSchedule.Ok.Placed" xml:space="preserve">
+    <value>OT colocada.</value>
+  </data>
+  <data name="PP.LineSchedule.Ok.Updated" xml:space="preserve">
+    <value>Franja actualizada.</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.Blocks" xml:space="preserve">
+    <value>Bloques de Ejecución</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.BlocksSub" xml:space="preserve">
+    <value>Operando {0} min · Restante {1} min</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.DownMin" xml:space="preserve">
+    <value>Parada Planificada</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.DownMinSub" xml:space="preserve">
+    <value>Parada planificada · franjas de descanso</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.Qty" xml:space="preserve">
+    <value>Cant. Planificada</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.QtySub" xml:space="preserve">
+    <value>Suma de cant. planificada de OT colocadas</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.UtilTarget" xml:space="preserve">
+    <value>objetivo ≥ 80%</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.Conflict" xml:space="preserve">
+    <value>Conflictos de Programa</value>
+  </data>
+  <data name="PP.LineSchedule.Kpi.ConflictSub" xml:space="preserve">
+    <value>Solapamiento · fuera del horario de operación</value>
+  </data>
+  <data name="PP.LineSchedule.Band.Idle" xml:space="preserve">
+    <value>Inactivo</value>
+  </data>
+  <data name="PP.LineSchedule.Lgd.Wo" xml:space="preserve">
+    <value>Franja de OT</value>
+  </data>
+  <data name="PP.LineSchedule.Tl.Title" xml:space="preserve">
+    <value>Línea de Tiempo por Minuto — {0} ~ {1}</value>
+  </data>
+  <data name="PP.LineSchedule.Hint.Board" xml:space="preserve">
+    <value>Clic en un bloque para editar · línea NOW = hora actual</value>
+  </data>
+  <data name="PP.LineSchedule.Lbl.SlotList" xml:space="preserve">
+    <value>Franjas Colocadas</value>
+  </data>
+  <data name="PP.LineSchedule.Empty.NoSlot" xml:space="preserve">
+    <value>Aún no hay OT colocada.</value>
+  </data>
+  <data name="PP.LineSchedule.Btn.Update" xml:space="preserve">
+    <value>Actualizar</value>
+  </data>
+  <data name="PP.LineSchedule.Err.Overlap" xml:space="preserve">
+    <value>Se solapa con otra franja de OT.</value>
+  </data>
+  <data name="PP.LineSchedule.Err.ConflictSummary" xml:space="preserve">
+    <value>{0} conflicto(s) — resuelva solapamientos o franjas fuera de operación.</value>
+  </data>
+  <data name="PP.LineSchedule.Cf.Conflict" xml:space="preserve">
+    <value>Conflicto</value>
+  </data>
+  <data name="PP.LineSchedule.Cf.Ok" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="PP.Mrp.Title" xml:space="preserve">
+    <value>MRP</value>
+  </data>
+  <data name="PP.Mrp.Empty" xml:space="preserve">
+    <value>Sin historial de ejecuciones MRP.</value>
+  </data>
+  <data name="PP.Oee.Title" xml:space="preserve">
+    <value>OEE de Línea</value>
+  </data>
+  <data name="PP.Oee.Kpi.HistAvg" xml:space="preserve">
+    <value>Promedio Histórico</value>
+  </data>
+  <data name="PP.Oee.Kpi.AvgTarget" xml:space="preserve">
+    <value>Prom Hist / Objetivo {0}%</value>
+  </data>
+  <data name="PP.Oee.Kpi.Availability" xml:space="preserve">
+    <value>Disponibilidad A</value>
+  </data>
+  <data name="PP.Oee.Kpi.Performance" xml:space="preserve">
+    <value>Rendimiento P</value>
+  </data>
+  <data name="PP.Oee.Kpi.Quality" xml:space="preserve">
+    <value>Calidad Q</value>
+  </data>
+  <data name="PP.Oee.Ph.SelectLine" xml:space="preserve">
+    <value>Seleccionar línea…</value>
+  </data>
+  <data name="PP.Oee.Period.Day" xml:space="preserve">
+    <value>Diario (DAY)</value>
+  </data>
+  <data name="PP.Oee.Period.Week" xml:space="preserve">
+    <value>Semanal (WEEK)</value>
+  </data>
+  <data name="PP.Oee.Period.Month" xml:space="preserve">
+    <value>Mensual (MONTH)</value>
+  </data>
+  <data name="PP.Oee.Lbl.Target" xml:space="preserve">
+    <value>Objetivo</value>
+  </data>
+  <data name="PP.Oee.Btn.Compute" xml:space="preserve">
+    <value>▶ Calcular</value>
+  </data>
+  <data name="PP.Oee.Btn.SaveSnapshot" xml:space="preserve">
+    <value>💾 Guardar Instantánea</value>
+  </data>
+  <data name="PP.Oee.Tab.Trend" xml:space="preserve">
+    <value>📈 Tendencia</value>
+  </data>
+  <data name="PP.Oee.Tab.Log" xml:space="preserve">
+    <value>📋 Registro de Estado</value>
+  </data>
+  <data name="PP.Oee.Result.LoadMin" xml:space="preserve">
+    <value>Carga {0} min / Disponible {1} min</value>
+  </data>
+  <data name="PP.Oee.Result.Above" xml:space="preserve">
+    <value>▲ Sobre Objetivo</value>
+  </data>
+  <data name="PP.Oee.Result.Below" xml:space="preserve">
+    <value>▼ Bajo Objetivo ({0}%)</value>
+  </data>
+  <data name="PP.Oee.Result.LossModel" xml:space="preserve">
+    <value>Modelo de Pérdida de Tiempo (Carga Total {0} min)</value>
+  </data>
+  <data name="PP.Oee.Result.PlannedDown" xml:space="preserve">
+    <value>Parada Planificada {0} min</value>
+  </data>
+  <data name="PP.Oee.Result.UnplannedDown" xml:space="preserve">
+    <value>Parada No Planificada {0} min</value>
+  </data>
+  <data name="PP.Oee.Result.Defects" xml:space="preserve">
+    <value>Defectos {0}</value>
+  </data>
+  <data name="PP.Oee.Apq.AvailNote" xml:space="preserve">
+    <value>Disp {0} min / Parada {1} min</value>
+  </data>
+  <data name="PP.Oee.Apq.PerfNote" xml:space="preserve">
+    <value>Real {0} / Teórico {1}</value>
+  </data>
+  <data name="PP.Oee.Apq.QualNote" xml:space="preserve">
+    <value>Bueno {0} / Defectos {1}</value>
+  </data>
+  <data name="PP.Oee.Trend.NoLine" xml:space="preserve">
+    <value>Ninguna línea seleccionada</value>
+  </data>
+  <data name="PP.Oee.Trend.NoSnap" xml:space="preserve">
+    <value>Sin instantáneas guardadas. Calcule y guarde instantáneas para acumular registros.</value>
+  </data>
+  <data name="PP.Oee.Trend.LegendAbove" xml:space="preserve">
+    <value>● Sobre Objetivo</value>
+  </data>
+  <data name="PP.Oee.Trend.LegendBelow" xml:space="preserve">
+    <value>● Bajo Objetivo</value>
+  </data>
+  <data name="PP.Oee.Log.Empty" xml:space="preserve">
+    <value>Sin registros de estado para esta fecha.</value>
+  </data>
+  <data name="PP.Oee.Log.Lbl.Actual" xml:space="preserve">
+    <value>Producción Real</value>
+  </data>
+  <data name="PP.Oee.Log.Lbl.Good" xml:space="preserve">
+    <value>Producción Buena</value>
+  </data>
+  <data name="PP.Oee.Log.Lbl.Theoretical" xml:space="preserve">
+    <value>Producción Teórica</value>
+  </data>
+  <data name="PP.Oee.Log.Btn.Add" xml:space="preserve">
+    <value>+ Añadir</value>
+  </data>
+  <data name="PP.Oee.Log.State.Load" xml:space="preserve">
+    <value>Carga</value>
+  </data>
+  <data name="PP.Oee.Log.State.PlannedDown" xml:space="preserve">
+    <value>Parada Planificada</value>
+  </data>
+  <data name="PP.Oee.Log.State.UnplannedDown" xml:space="preserve">
+    <value>Parada No Planificada</value>
+  </data>
+  <data name="PP.Oee.Log.State.Break" xml:space="preserve">
+    <value>Descanso</value>
+  </data>
+  <data name="PP.Oee.Log.Col.Duration" xml:space="preserve">
+    <value>Duración (min)</value>
+  </data>
+  <data name="PP.Oee.Log.Col.Actual" xml:space="preserve">
+    <value>Real</value>
+  </data>
+  <data name="PP.Oee.Log.Col.Good" xml:space="preserve">
+    <value>Bueno</value>
+  </data>
+  <data name="PP.Oee.Log.Col.Theoretical" xml:space="preserve">
+    <value>Teórico</value>
+  </data>
+  <data name="PP.Oee.Log.Footer.Load" xml:space="preserve">
+    <value>CARGA: {0} min</value>
+  </data>
+  <data name="PP.Oee.Log.Footer.Unplanned" xml:space="preserve">
+    <value>Parada No Planificada: {0} min</value>
+  </data>
+  <data name="PP.Oee.Log.Footer.Planned" xml:space="preserve">
+    <value>Parada Planificada: {0} min</value>
+  </data>
+  <data name="PP.Oee.Log.Footer.Total" xml:space="preserve">
+    <value>Total: {0}</value>
+  </data>
+  <data name="PP.Oee.Snap.Title" xml:space="preserve">
+    <value>💾 Historial de Instantáneas</value>
+  </data>
+  <data name="PP.Oee.Snap.Col.Period" xml:space="preserve">
+    <value>Período</value>
+  </data>
+  <data name="PP.Oee.Snap.Col.Start" xml:space="preserve">
+    <value>Inicio del Período</value>
+  </data>
+  <data name="PP.Oee.Snap.Col.End" xml:space="preserve">
+    <value>Fin del Período</value>
+  </data>
+  <data name="PP.Oee.Snap.Col.Load" xml:space="preserve">
+    <value>Carga (min)</value>
+  </data>
+  <data name="PP.Oee.Snap.Col.Avail" xml:space="preserve">
+    <value>Disponibilidad</value>
+  </data>
+  <data name="PP.Oee.Snap.Col.Perf" xml:space="preserve">
+    <value>Rendimiento</value>
+  </data>
+  <data name="PP.Oee.Snap.Col.Qual" xml:space="preserve">
+    <value>Calidad</value>
+  </data>
+  <data name="PP.Oee.Snap.Col.SavedAt" xml:space="preserve">
+    <value>Guardado En</value>
+  </data>
+  <data name="PP.Oee.Err.NoLine" xml:space="preserve">
+    <value>Seleccione una línea.</value>
+  </data>
+  <data name="PP.Oee.Err.DateRange" xml:space="preserve">
+    <value>La fecha de inicio debe ser anterior a la de fin.</value>
+  </data>
+  <data name="PP.Oee.Err.Compute" xml:space="preserve">
+    <value>Error de cálculo: {0}</value>
+  </data>
+  <data name="PP.Oee.Err.Save" xml:space="preserve">
+    <value>Error al guardar: {0}</value>
+  </data>
+  <data name="PP.Oee.Err.EndTime" xml:space="preserve">
+    <value>La hora de fin debe ser posterior a la de inicio.</value>
+  </data>
+  <data name="PP.Oee.Ok.Snapshot" xml:space="preserve">
+    <value>Instantánea guardada.</value>
+  </data>
+  <data name="PP.Oee.Gauge.Above" xml:space="preserve">
+    <value>▲ Objetivo Cumplido</value>
+  </data>
+  <data name="PP.Oee.Gauge.Below" xml:space="preserve">
+    <value>▼ {0}% por debajo</value>
+  </data>
+  <data name="PP.Oee.Loss.OeeRun" xml:space="preserve">
+    <value>Ejecución OEE</value>
+  </data>
+  <data name="PP.Oee.Loss.QualLoss" xml:space="preserve">
+    <value>Pérdida de Calidad</value>
+  </data>
+  <data name="PP.Oee.Loss.PerfLoss" xml:space="preserve">
+    <value>Pérdida de Rend.</value>
+  </data>
+  <data name="PP.PlanConfirm.Title" xml:space="preserve">
+    <value>Confirmar Plan</value>
+  </data>
+  <data name="PP.PlanConfirm.Empty" xml:space="preserve">
+    <value>No hay pedidos confirmados pendientes de crear orden.</value>
+  </data>
+  <data name="PP.PlanConfirm.Btn.Batch" xml:space="preserve">
+    <value>Crear OT en Lote ({0})</value>
+  </data>
+  <data name="PP.PlanConfirm.Col.Due" xml:space="preserve">
+    <value>Vence</value>
+  </data>
+  <data name="PP.PlanConfirm.Col.FgStock" xml:space="preserve">
+    <value>Stock PT</value>
+  </data>
+  <data name="PP.PlanConfirm.Col.NetReq" xml:space="preserve">
+    <value>Req. Neto</value>
+  </data>
+  <data name="PP.PlanConfirm.Col.LineLoad" xml:space="preserve">
+    <value>Carga de Línea</value>
+  </data>
+  <data name="PP.PlanConfirm.Status.Pending" xml:space="preserve">
+    <value>Revisión Pendiente</value>
+  </data>
+  <data name="PP.PlanConfirm.Status.Blocked" xml:space="preserve">
+    <value>Datos Maestros Incompletos</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Title" xml:space="preserve">
+    <value>Crear Órdenes en Lote</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Selected" xml:space="preserve">
+    <value>Planes Seleccionados</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.NetTotal" xml:space="preserve">
+    <value>Producción Neta Total</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.OrderTotal" xml:space="preserve">
+    <value>Total Cant. Pedido</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.QtyBasis" xml:space="preserve">
+    <value>Base de Cantidad</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.QtyNet" xml:space="preserve">
+    <value>Req. neto (Pedido − stock PT)</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.QtyOrder" xml:space="preserve">
+    <value>Cantidad total del pedido</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.SkipZero" xml:space="preserve">
+    <value>Se omitirán {0} línea(s) con requerimiento neto ≤ 0.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Validation" xml:space="preserve">
+    <value>Validación de Datos Maestros</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Passed" xml:space="preserve">
+    <value>Todos aprobados</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.WoStatus" xml:space="preserve">
+    <value>Estado de OT Creada</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Hint" xml:space="preserve">
+    <value>Cada plan seleccionado crea una Orden en Borrador enviada a PP-04. Las piezas sin datos maestros no pueden seleccionarse.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Run" xml:space="preserve">
+    <value>Ejecutar Creación de OT</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Created" xml:space="preserve">
+    <value>{0} orden(es) en borrador creadas — revise y libere en PP-04.</value>
+  </data>
+  <data name="PP.PlanConfirm.Err.NoneSelected" xml:space="preserve">
+    <value>Seleccione al menos una fila de plan para crear órdenes.</value>
+  </data>
+  <data name="PP.PurchaseReq.Title" xml:space="preserve">
+    <value>Solicitud de Compra</value>
+  </data>
+  <data name="PP.PurchaseReq.Empty" xml:space="preserve">
+    <value>Ninguna solicitud de compra coincide con las condiciones.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Title" xml:space="preserve">
+    <value>Importar Plan de Suministro</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Empty" xml:space="preserve">
+    <value>Ningún dato de importación SAP coincide con las condiciones.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Btn.Upload" xml:space="preserve">
+    <value>Cargar OC</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Btn.Export" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Upload.Title" xml:space="preserve">
+    <value>Importar OC SAP</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Upload.File" xml:space="preserve">
+    <value>Archivo de Lista OC (.xls/.xlsx)</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Upload.Hint" xml:space="preserve">
+    <value>Exportación de lista de Órdenes de Compra SRM MM31006 (.xls/.xlsx).</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Upload.ParseResult" xml:space="preserve">
+    <value>Resultado de Análisis</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Upload.NoFile" xml:space="preserve">
+    <value>Ningún archivo seleccionado.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Btn.RunUpload" xml:space="preserve">
+    <value>Ejecutar Importación</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Preview.Summary" xml:space="preserve">
+    <value>{0} líneas OC · {1} piezas · {2:yyyy-MM-dd} ~ {3:yyyy-MM-dd}</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Preview.Vendor" xml:space="preserve">
+    <value>Proveedor: {0}</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Preview.Unmatched" xml:space="preserve">
+    <value>{0} pieza(s) fuera del maestro</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Preview.NegSkipped" xml:space="preserve">
+    <value>Se omitirán {0} fila(s) con cantidad negativa.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Err.AllNegative" xml:space="preserve">
+    <value>Todas las filas tienen cantidad negativa — nada que importar.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Ok.Imported" xml:space="preserve">
+    <value>Importación completa — {0} insertados, {1} actualizados.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Ok.Exported" xml:space="preserve">
+    <value>{0} filas exportadas.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Ok.Confirmed" xml:space="preserve">
+    <value>Pedido de venta confirmado — ahora elegible para planificación PP-03.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Col.Wo" xml:space="preserve">
+    <value>Vínculo de OT</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Col.Action" xml:space="preserve">
+    <value>Acción</value>
+  </data>
+  <data name="PP.SupplyPlanImport.WoLink.Awaiting" xml:space="preserve">
+    <value>Esperando Revisión PP-03</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Detail.DDay" xml:space="preserve">
+    <value>Día D</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Detail.WoStatus" xml:space="preserve">
+    <value>Estado de OT</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Err.Parse" xml:space="preserve">
+    <value>No se pudo procesar el archivo</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Err.TooLarge" xml:space="preserve">
+    <value>El archivo es demasiado grande (máx 10 MB).</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Err.ItemNoLen" xml:space="preserve">
+    <value>Valor demasiado largo (máx 20 caracteres): {0}</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Err.NoExport" xml:space="preserve">
+    <value>No hay datos para exportar.</value>
+  </data>
+  <data name="PP.WoRelease.Title" xml:space="preserve">
+    <value>Liberación de OT</value>
+  </data>
+  <data name="PP.WoRelease.Empty" xml:space="preserve">
+    <value>Ninguna orden de trabajo coincide con las condiciones.</value>
+  </data>
+  <data name="PP.WoRelease.Kpi.Pending" xml:space="preserve">
+    <value>Esperando Liberación</value>
+  </data>
+  <data name="PP.WoRelease.Btn.Release" xml:space="preserve">
+    <value>▶ Liberar</value>
+  </data>
+  <data name="PP.WoRelease.Ok.Released" xml:space="preserve">
+    <value>{0} liberado.</value>
+  </data>
+  <data name="PP.WoRelease.Dlg.Phase0Warn" xml:space="preserve">
+    <value>Los datos maestros BOM/BOP están incompletos. Se permite liberar, pero complételos antes de la ejecución en planta.</value>
+  </data>
+  <data name="PP.WorkOrder.Title" xml:space="preserve">
+    <value>Orden de Trabajo</value>
+  </data>
+  <data name="PP.WorkOrder.Empty" xml:space="preserve">
+    <value>Ninguna orden de trabajo coincide con las condiciones.</value>
+  </data>
+  <data name="PP.WorkOrder.Kpi.Waiting" xml:space="preserve">
+    <value>Terminal en Espera</value>
+  </data>
+  <data name="PP.WorkOrder.Kpi.InProgress" xml:space="preserve">
+    <value>En Producción</value>
+  </data>
+  <data name="PP.WorkOrder.Kpi.ClosedN" xml:space="preserve">
+    <value>Cerrado (últimos {0} días)</value>
+  </data>
+  <data name="PP.WorkOrder.Filter.Closed7" xml:space="preserve">
+    <value>Cerrado 7d</value>
+  </data>
+  <data name="PP.WorkOrder.Filter.Closed30" xml:space="preserve">
+    <value>Cerrado 30d</value>
+  </data>
+  <data name="PP.WorkOrder.Filter.Closed60" xml:space="preserve">
+    <value>Cerrado 60d</value>
+  </data>
+  <data name="PP.WorkOrder.Filter.Closed90" xml:space="preserve">
+    <value>Cerrado 90d</value>
+  </data>
+  <data name="PP.WorkOrder.Ttl.Phase0Fail" xml:space="preserve">
+    <value>BOM/BOP no registrado — envío bloqueado</value>
+  </data>
+  <data name="PP.WorkOrder.Ttl.Phase0Pass" xml:space="preserve">
+    <value>Fase-0 aprobada</value>
+  </data>
+  <data name="PP.WorkOrder.Filter.ClosedDays" xml:space="preserve">
+    <value>Cerrado (días)</value>
+  </data>
+  <data name="PP.WorkOrder.Col.Action" xml:space="preserve">
+    <value>Acción</value>
+  </data>
+  <data name="PP.WorkOrder.Btn.Release" xml:space="preserve">
+    <value>Liberar</value>
+  </data>
+  <data name="PP.WorkOrder.Btn.Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="PP.WorkOrder.Btn.Manual" xml:space="preserve">
+    <value>OT Manual</value>
+  </data>
+  <data name="PP.WorkOrder.Btn.Export" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="PP.WorkOrder.Manual.Title" xml:space="preserve">
+    <value>Crear Orden Manual</value>
+  </data>
+  <data name="PP.WorkOrder.Manual.Item" xml:space="preserve">
+    <value>Pieza</value>
+  </data>
+  <data name="PP.WorkOrder.Manual.Qty" xml:space="preserve">
+    <value>Cant. Plan (EA)</value>
+  </data>
+  <data name="PP.WorkOrder.Manual.Due" xml:space="preserve">
+    <value>Fecha de Vencimiento</value>
+  </data>
+  <data name="PP.WorkOrder.Manual.Hint" xml:space="preserve">
+    <value>Una OT manual omite el plan de suministro SAP y se crea en estado Borrador. La ruta se resuelve desde el maestro de piezas.</value>
+  </data>
+  <data name="PP.WorkOrder.Manual.Create" xml:space="preserve">
+    <value>Crear OT</value>
+  </data>
+  <data name="PP.WorkOrder.Cancel.Title" xml:space="preserve">
+    <value>Cancelar Orden</value>
+  </data>
+  <data name="PP.WorkOrder.Cancel.Confirm" xml:space="preserve">
+    <value>¿Cancelar {0} · {1} ({2} EA)? Los materiales reservados se liberan y la OT no puede restaurarse.</value>
+  </data>
+  <data name="PP.WorkOrder.Detail.Routing" xml:space="preserve">
+    <value>Progreso por paso de ruta</value>
+  </data>
+  <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
+    <value>Reserva de Material</value>
+  </data>
+  <data name="PP.WorkOrder.Detail.Reserved" xml:space="preserve">
+    <value>Reservado</value>
+  </data>
+  <data name="PP.WorkOrder.Detail.NotReserved" xml:space="preserve">
+    <value>No Reservado</value>
+  </data>
+  <data name="PP.WorkOrder.Ok.Released" xml:space="preserve">
+    <value>{0} liberado — materiales reservados, enviado a planta.</value>
+  </data>
+  <data name="PP.WorkOrder.Ok.Cancelled" xml:space="preserve">
+    <value>{0} cancelado — materiales reservados liberados.</value>
+  </data>
+  <data name="PP.WorkOrder.Ok.ManualCreated" xml:space="preserve">
+    <value>OT Manual {0} creada (Borrador).</value>
+  </data>
+  <data name="PP.WorkOrder.Err.NoData" xml:space="preserve">
+    <value>No hay órdenes de trabajo para exportar.</value>
+  </data>
+  <data name="PP.WorkOrder.Err.ManualInvalid" xml:space="preserve">
+    <value>Seleccione una pieza e ingrese una cantidad de 1 o mayor.</value>
+  </data>
+  <data name="PP.PurchaseReq.Ph.Search" xml:space="preserve">
+    <value>N.º Pieza/Nombre/N.º PR</value>
+  </data>
+  <data name="Col.WoNo" xml:space="preserve">
+    <value>N.º OT</value>
+  </data>
+  <data name="Col.Item" xml:space="preserve">
+    <value>Pieza</value>
+  </data>
+  <data name="Col.Order" xml:space="preserve">
+    <value>Pedido</value>
+  </data>
+  <data name="Col.Done" xml:space="preserve">
+    <value>Hecho</value>
+  </data>
+  <data name="Col.Due" xml:space="preserve">
+    <value>Vence</value>
+  </data>
+  <data name="Col.WO" xml:space="preserve">
+    <value>OT</value>
+  </data>
+  <data name="Col.Qty" xml:space="preserve">
+    <value>Cant.</value>
+  </data>
+  <data name="Col.Released" xml:space="preserve">
+    <value>Liberado</value>
+  </data>
+  <data name="Col.DayType" xml:space="preserve">
+    <value>Tipo de Día</value>
+  </data>
+  <data name="Col.Pattern" xml:space="preserve">
+    <value>Patrón</value>
+  </data>
+  <data name="Col.Capacity" xml:space="preserve">
+    <value>Capacidad</value>
+  </data>
+  <data name="Col.Reason" xml:space="preserve">
+    <value>Motivo</value>
+  </data>
+  <data name="Col.SoNo" xml:space="preserve">
+    <value>SO</value>
+  </data>
+  <data name="Col.Customer" xml:space="preserve">
+    <value>Cliente</value>
+  </data>
+  <data name="Col.Ship" xml:space="preserve">
+    <value>Enviar</value>
+  </data>
+  <data name="Col.Requested" xml:space="preserve">
+    <value>Solicitado</value>
+  </data>
+  <data name="Col.Promised" xml:space="preserve">
+    <value>Prometido</value>
+  </data>
+  <data name="Col.DaysLate" xml:space="preserve">
+    <value>Días de Retraso</value>
+  </data>
+  <data name="Col.Start" xml:space="preserve">
+    <value>Inicio</value>
+  </data>
+  <data name="Col.End" xml:space="preserve">
+    <value>Fin</value>
+  </data>
+  <data name="Col.MinDown" xml:space="preserve">
+    <value>min</value>
+  </data>
+  <data name="Col.Cause" xml:space="preserve">
+    <value>Causa</value>
+  </data>
+  <data name="Col.Comment" xml:space="preserve">
+    <value>Comentario</value>
+  </data>
+  <data name="Col.Plan" xml:space="preserve">
+    <value>Plan</value>
+  </data>
+  <data name="Col.Source" xml:space="preserve">
+    <value>Fuente</value>
+  </data>
+  <data name="Col.Planned" xml:space="preserve">
+    <value>Planificado</value>
+  </data>
+  <data name="Col.RunNo" xml:space="preserve">
+    <value>Ejec #</value>
+  </data>
+  <data name="Col.RunAt" xml:space="preserve">
+    <value>Ejecutado En</value>
+  </data>
+  <data name="Col.Horizon" xml:space="preserve">
+    <value>Horizonte</value>
+  </data>
+  <data name="Col.WOs" xml:space="preserve">
+    <value>OTs</value>
+  </data>
+  <data name="Col.PRs" xml:space="preserve">
+    <value>PRs</value>
+  </data>
+  <data name="Col.Shortages" xml:space="preserve">
+    <value>Faltantes</value>
+  </data>
+  <data name="Col.Duration" xml:space="preserve">
+    <value>Duración</value>
+  </data>
+  <data name="Col.Shift" xml:space="preserve">
+    <value>Turno</value>
+  </data>
+  <data name="Col.Availability" xml:space="preserve">
+    <value>A%</value>
+  </data>
+  <data name="Col.Performance" xml:space="preserve">
+    <value>P%</value>
+  </data>
+  <data name="Col.Quality" xml:space="preserve">
+    <value>Q%</value>
+  </data>
+  <data name="Col.OEE" xml:space="preserve">
+    <value>OEE</value>
+  </data>
+  <data name="Col.Good" xml:space="preserve">
+    <value>Bueno</value>
+  </data>
+  <data name="Col.Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Col.PrNo" xml:space="preserve">
+    <value>N.º PR</value>
+  </data>
+  <data name="Col.Vendor" xml:space="preserve">
+    <value>Proveedor</value>
+  </data>
+  <data name="Col.Required" xml:space="preserve">
+    <value>Requerido</value>
+  </data>
+  <data name="Col.SapPo" xml:space="preserve">
+    <value>OC SAP</value>
+  </data>
+  <data name="Col.DtNo" xml:space="preserve">
+    <value>DT #</value>
+  </data>
+  <data name="Col.EquipName" xml:space="preserve">
+    <value>Nombre Equipo</value>
+  </data>
+  <data name="Col.EquipType" xml:space="preserve">
+    <value>Tipo Equipo</value>
+  </data>
+  <data name="Col.Runtime" xml:space="preserve">
+    <value>Horas de Ejecución</value>
+  </data>
+  <data name="Col.Cycles" xml:space="preserve">
+    <value>Ciclos</value>
+  </data>
+  <data name="Col.NextPm" xml:space="preserve">
+    <value>Próximo PM</value>
+  </data>
+  <data name="Col.OpenWo" xml:space="preserve">
+    <value>OT Abierta</value>
+  </data>
+  <data name="Col.FailNo" xml:space="preserve">
+    <value>FALLO #</value>
+  </data>
+  <data name="Col.Symptom" xml:space="preserve">
+    <value>Síntoma</value>
+  </data>
+  <data name="Col.Priority" xml:space="preserve">
+    <value>Prioridad</value>
+  </data>
+  <data name="Col.Reported" xml:space="preserve">
+    <value>Reportado</value>
+  </data>
+  <data name="Col.Resolved" xml:space="preserve">
+    <value>Resuelto</value>
+  </data>
+  <data name="Col.MwoNo" xml:space="preserve">
+    <value>MWO #</value>
+  </data>
+  <data name="Col.MoldId" xml:space="preserve">
+    <value>Molde</value>
+  </data>
+  <data name="Col.MoldName" xml:space="preserve">
+    <value>Nombre de Molde</value>
+  </data>
+  <data name="Col.Cavities" xml:space="preserve">
+    <value>Cavidades</value>
+  </data>
+  <data name="Col.Tonnage" xml:space="preserve">
+    <value>Tonelaje</value>
+  </data>
+  <data name="Col.ShotsCurrent" xml:space="preserve">
+    <value>Inyec. Actuales</value>
+  </data>
+  <data name="Col.ShotsLifetime" xml:space="preserve">
+    <value>Vida Útil</value>
+  </data>
+  <data name="Col.UsagePct" xml:space="preserve">
+    <value>Uso %</value>
+  </data>
+  <data name="Col.Flag" xml:space="preserve">
+    <value>Marca</value>
+  </data>
+  <data name="Col.MountedOn" xml:space="preserve">
+    <value>Montado En</value>
+  </data>
+  <data name="Col.LastMaint" xml:space="preserve">
+    <value>Último Mant.</value>
+  </data>
+  <data name="Col.MinDT" xml:space="preserve">
+    <value>Min Parada</value>
+  </data>
+  <data name="Col.PmNo" xml:space="preserve">
+    <value>PM #</value>
+  </data>
+  <data name="Col.BasisCycle" xml:space="preserve">
+    <value>Base</value>
+  </data>
+  <data name="Col.Cycle" xml:space="preserve">
+    <value>Ciclo</value>
+  </data>
+  <data name="Col.LastPm" xml:space="preserve">
+    <value>Último PM</value>
+  </data>
+  <data name="Col.NextDue" xml:space="preserve">
+    <value>Próximo Vencimiento</value>
+  </data>
+  <data name="Col.Days" xml:space="preserve">
+    <value>Días</value>
+  </data>
+  <data name="Col.PartNo" xml:space="preserve">
+    <value>Pieza #</value>
+  </data>
+  <data name="Col.PartName" xml:space="preserve">
+    <value>Nombre de Pieza</value>
+  </data>
+  <data name="Col.BaseInv" xml:space="preserve">
+    <value>Inv. Base</value>
+  </data>
+  <data name="Col.Cat" xml:space="preserve">
+    <value>Cat</value>
+  </data>
+  <data name="Col.OnHand" xml:space="preserve">
+    <value>En Existencia</value>
+  </data>
+  <data name="Col.Safety" xml:space="preserve">
+    <value>Seguridad</value>
+  </data>
+  <data name="Col.Reorder" xml:space="preserve">
+    <value>Reordenar</value>
+  </data>
+  <data name="Col.LeadDays" xml:space="preserve">
+    <value>Plazo de Entrega (Días)</value>
+  </data>
+  <data name="Col.Loc" xml:space="preserve">
+    <value>Ubic</value>
+  </data>
+  <data name="Col.Supplier" xml:space="preserve">
+    <value>Proveedor</value>
+  </data>
+  <data name="Col.Balance" xml:space="preserve">
+    <value>Saldo</value>
+  </data>
+  <data name="Col.TxnNo" xml:space="preserve">
+    <value>Txn #</value>
+  </data>
+  <data name="Col.Part" xml:space="preserve">
+    <value>Pieza</value>
+  </data>
+  <data name="Col.Ref" xml:space="preserve">
+    <value>Ref</value>
+  </data>
+  <data name="Col.When" xml:space="preserve">
+    <value>Cuándo</value>
+  </data>
+  <data name="Col.IssuedDate" xml:space="preserve">
+    <value>Emitido</value>
+  </data>
+  <data name="Col.StartedDate" xml:space="preserve">
+    <value>Iniciado</value>
+  </data>
+  <data name="Col.CompletedDate" xml:space="preserve">
+    <value>Completado</value>
+  </data>
+  <data name="Col.Tasks" xml:space="preserve">
+    <value>Tareas</value>
+  </data>
+  <data name="Col.ShiftA" xml:space="preserve">
+    <value>Tn-A</value>
+  </data>
+  <data name="Col.ShiftB" xml:space="preserve">
+    <value>Tn-B</value>
+  </data>
+  <data name="Col.ShiftC" xml:space="preserve">
+    <value>Tn-C</value>
+  </data>
+  <data name="Col.Plant" xml:space="preserve">
+    <value>Planta</value>
+  </data>
+  <data name="Col.Active" xml:space="preserve">
+    <value>Activo</value>
+  </data>
+  <data name="Col.BreakMin" xml:space="preserve">
+    <value>Descanso (min)</value>
+  </data>
+  <data name="Col.NetWorkH" xml:space="preserve">
+    <value>Horas Netas</value>
+  </data>
+  <data name="Col.HolidayName" xml:space="preserve">
+    <value>Nombre del Festivo</value>
+  </data>
+  <data name="Col.Routing" xml:space="preserve">
+    <value>Ruta</value>
+  </data>
+  <data name="Col.RoleName" xml:space="preserve">
+    <value>Nombre de Rol</value>
+  </data>
+  <data name="Col.EventCode" xml:space="preserve">
+    <value>Código de Evento</value>
+  </data>
+  <data name="Col.EventName" xml:space="preserve">
+    <value>Nombre de Evento</value>
+  </data>
+  <data name="Col.Module" xml:space="preserve">
+    <value>Módulo</value>
+  </data>
+  <data name="Col.TriggerCond" xml:space="preserve">
+    <value>Disparador</value>
+  </data>
+  <data name="Col.Channel" xml:space="preserve">
+    <value>Canal</value>
+  </data>
+  <data name="Col.User" xml:space="preserve">
+    <value>Usuario</value>
+  </data>
+  <data name="Col.Address" xml:space="preserve">
+    <value>Dirección</value>
+  </data>
+  <data name="Col.Subscribe" xml:space="preserve">
+    <value>Suscribirse</value>
+  </data>
+  <data name="Col.DndStart" xml:space="preserve">
+    <value>Inicio NoMolestar</value>
+  </data>
+  <data name="Col.DndEnd" xml:space="preserve">
+    <value>Fin NoMolestar</value>
+  </data>
+  <data name="Col.AuthTs" xml:space="preserve">
+    <value>Hora de Autenticación</value>
+  </data>
+  <data name="Col.SentAt" xml:space="preserve">
+    <value>Enviado En</value>
+  </data>
+  <data name="Col.Recipient" xml:space="preserve">
+    <value>Destinatario</value>
+  </data>
+  <data name="Col.EventCount" xml:space="preserve">
+    <value>Eventos</value>
+  </data>
+  <data name="Col.Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Col.UserCount" xml:space="preserve">
+    <value>Usuarios</value>
+  </data>
+  <data name="Col.GroupCode" xml:space="preserve">
+    <value>Código de Grupo</value>
+  </data>
+  <data name="Col.GroupName" xml:space="preserve">
+    <value>Nombre de Grupo</value>
+  </data>
+  <data name="Col.CodeValue" xml:space="preserve">
+    <value>Valor de Código</value>
+  </data>
+  <data name="Col.Attr1" xml:space="preserve">
+    <value>Atributo1</value>
+  </data>
+  <data name="Col.CustomerId" xml:space="preserve">
+    <value>ID de Cliente</value>
+  </data>
+  <data name="Col.CustomerName" xml:space="preserve">
+    <value>Nombre de Cliente (KO)</value>
+  </data>
+  <data name="Col.Country" xml:space="preserve">
+    <value>País</value>
+  </data>
+  <data name="Col.Contact" xml:space="preserve">
+    <value>Contacto</value>
+  </data>
+  <data name="Col.Phone" xml:space="preserve">
+    <value>Teléfono</value>
+  </data>
+  <data name="Col.EDI" xml:space="preserve">
+    <value>EDI</value>
+  </data>
+  <data name="Col.CauseCode" xml:space="preserve">
+    <value>Código de Causa</value>
+  </data>
+  <data name="Col.CauseName" xml:space="preserve">
+    <value>Nombre de Causa (KO)</value>
+  </data>
+  <data name="Col.Category" xml:space="preserve">
+    <value>Categoría</value>
+  </data>
+  <data name="Col.StationNameEn" xml:space="preserve">
+    <value>Nombre de Estación (EN)</value>
+  </data>
+  <data name="Col.UpperCause" xml:space="preserve">
+    <value>Causa Superior</value>
+  </data>
+  <data name="Col.Dept" xml:space="preserve">
+    <value>Depto</value>
+  </data>
+  <data name="Col.RootCause" xml:space="preserve">
+    <value>Causa Raíz</value>
+  </data>
+  <data name="Col.DefectCode" xml:space="preserve">
+    <value>Código de Defecto</value>
+  </data>
+  <data name="Col.DefectName" xml:space="preserve">
+    <value>Nombre de Defecto (KO)</value>
+  </data>
+  <data name="Col.DefectNameEn" xml:space="preserve">
+    <value>Nombre de Defecto (EN)</value>
+  </data>
+  <data name="Col.Severity" xml:space="preserve">
+    <value>Severidad</value>
+  </data>
+  <data name="Col.Pareto" xml:space="preserve">
+    <value>Pareto</value>
+  </data>
+  <data name="Col.EquipId" xml:space="preserve">
+    <value>ID Equipo</value>
+  </data>
+  <data name="Col.WorkCenter" xml:space="preserve">
+    <value>Centro de Trabajo</value>
+  </data>
+  <data name="Col.MakerModel" xml:space="preserve">
+    <value>Fabricante / Modelo</value>
+  </data>
+  <data name="Col.InstallDate" xml:space="preserve">
+    <value>Fecha de Instalación</value>
+  </data>
+  <data name="Col.TheoreticalCycle" xml:space="preserve">
+    <value>Ciclo Teór. (s)</value>
+  </data>
+  <data name="Col.TargetOee" xml:space="preserve">
+    <value>OEE Objetivo (%)</value>
+  </data>
+  <data name="Col.PlcAddr" xml:space="preserve">
+    <value>Dir. PLC</value>
+  </data>
+  <data name="Col.StandardId" xml:space="preserve">
+    <value>ID de Estándar</value>
+  </data>
+  <data name="Col.InspType" xml:space="preserve">
+    <value>Tipo Insp.</value>
+  </data>
+  <data name="Col.CharName" xml:space="preserve">
+    <value>Nombre Caract.</value>
+  </data>
+  <data name="Col.Nominal" xml:space="preserve">
+    <value>Nominal</value>
+  </data>
+  <data name="Col.LSL" xml:space="preserve">
+    <value>LSL</value>
+  </data>
+  <data name="Col.USL" xml:space="preserve">
+    <value>USL</value>
+  </data>
+  <data name="Col.Uom" xml:space="preserve">
+    <value>UOM</value>
+  </data>
+  <data name="Col.SamplingPlan" xml:space="preserve">
+    <value>Plan de Muestreo</value>
+  </data>
+  <data name="Col.InspMethod" xml:space="preserve">
+    <value>Método Insp.</value>
+  </data>
+  <data name="Col.CTQ" xml:space="preserve">
+    <value>CTQ</value>
+  </data>
+  <data name="Col.EffectiveDate" xml:space="preserve">
+    <value>Fecha de Vigencia</value>
+  </data>
+  <data name="Col.MinStock" xml:space="preserve">
+    <value>Stock Mín</value>
+  </data>
+  <data name="Col.MaxStock" xml:space="preserve">
+    <value>Stock Máx</value>
+  </data>
+  <data name="Col.UnitPrice" xml:space="preserve">
+    <value>Precio Unitario</value>
+  </data>
+  <data name="Col.JigId" xml:space="preserve">
+    <value>ID Jig</value>
+  </data>
+  <data name="Col.HangerCount" xml:space="preserve">
+    <value>Colgadores</value>
+  </data>
+  <data name="Col.RatedCycle" xml:space="preserve">
+    <value>Ciclo Nominal</value>
+  </data>
+  <data name="Col.ReadFailRate" xml:space="preserve">
+    <value>Fallo de Lectura (%)</value>
+  </data>
+  <data name="Col.Health" xml:space="preserve">
+    <value>Estado del Sistema</value>
+  </data>
+  <data name="Col.TemplateId" xml:space="preserve">
+    <value>ID Plantilla</value>
+  </data>
+  <data name="Col.TemplateName" xml:space="preserve">
+    <value>Nombre de Plantilla</value>
+  </data>
+  <data name="Col.LabelType" xml:space="preserve">
+    <value>Tipo de Etiqueta</value>
+  </data>
+  <data name="Col.PaperSize" xml:space="preserve">
+    <value>Tamaño de Papel</value>
+  </data>
+  <data name="Col.BarcodeType" xml:space="preserve">
+    <value>Tipo de Código de Barras</value>
+  </data>
+  <data name="Col.Version" xml:space="preserve">
+    <value>Versión</value>
+  </data>
+  <data name="Col.PrinterModel" xml:space="preserve">
+    <value>Modelo de Impresora</value>
+  </data>
+  <data name="Col.LineName" xml:space="preserve">
+    <value>Nombre de Línea (KO)</value>
+  </data>
+  <data name="Col.LineNameEn" xml:space="preserve">
+    <value>Nombre de Línea (EN)</value>
+  </data>
+  <data name="Col.RFID" xml:space="preserve">
+    <value>RFID</value>
+  </data>
+  <data name="Col.PatternId" xml:space="preserve">
+    <value>ID de Patrón</value>
+  </data>
+  <data name="Col.ShiftModel" xml:space="preserve">
+    <value>Modelo de Turno</value>
+  </data>
+  <data name="Col.OperatingMin" xml:space="preserve">
+    <value>Min Operando</value>
+  </data>
+  <data name="Col.Segment" xml:space="preserve">
+    <value>Segmento</value>
+  </data>
+  <data name="Col.StartMin" xml:space="preserve">
+    <value>Inicio (min)</value>
+  </data>
+  <data name="Col.EndMin" xml:space="preserve">
+    <value>Fin (min)</value>
+  </data>
+  <data name="Col.ReasonCode" xml:space="preserve">
+    <value>Código de Motivo</value>
+  </data>
+  <data name="Col.Description" xml:space="preserve">
+    <value>Descripción</value>
+  </data>
+  <data name="Col.LocationId" xml:space="preserve">
+    <value>ID de Ubicación</value>
+  </data>
+  <data name="Col.Zone" xml:space="preserve">
+    <value>Zona</value>
+  </data>
+  <data name="Col.Aisle" xml:space="preserve">
+    <value>Pasillo</value>
+  </data>
+  <data name="Col.Bay" xml:space="preserve">
+    <value>Bahía</value>
+  </data>
+  <data name="Col.Slot" xml:space="preserve">
+    <value>Franja</value>
+  </data>
+  <data name="Col.LoadCapacity" xml:space="preserve">
+    <value>Capacidad de Carga</value>
+  </data>
+  <data name="Col.StorageLoc" xml:space="preserve">
+    <value>Ubic. Almacenamiento</value>
+  </data>
+  <data name="Col.Process" xml:space="preserve">
+    <value>Proceso</value>
+  </data>
+  <data name="Col.OvenId" xml:space="preserve">
+    <value>ID Horno</value>
+  </data>
+  <data name="Col.ZoneCount" xml:space="preserve">
+    <value>Zonas</value>
+  </data>
+  <data name="Col.TargetTemp" xml:space="preserve">
+    <value>Temp Objetivo (°C)</value>
+  </data>
+  <data name="Col.TempTolerance" xml:space="preserve">
+    <value>Tolerancia (±°C)</value>
+  </data>
+  <data name="Col.DwellTime" xml:space="preserve">
+    <value>Tiempo de Permanencia (s)</value>
+  </data>
+  <data name="Col.ConveyorSpeed" xml:space="preserve">
+    <value>Velocidad de Cinta</value>
+  </data>
+  <data name="Col.MaxLoad" xml:space="preserve">
+    <value>Carga Máx (kg)</value>
+  </data>
+  <data name="Col.SpecId" xml:space="preserve">
+    <value>ID Espec</value>
+  </data>
+  <data name="Col.PackType" xml:space="preserve">
+    <value>Tipo de Empaque</value>
+  </data>
+  <data name="Col.InnerQty" xml:space="preserve">
+    <value>Cant. Interna</value>
+  </data>
+  <data name="Col.InnerPerOuter" xml:space="preserve">
+    <value>Interno/Externo</value>
+  </data>
+  <data name="Col.OuterPerPallet" xml:space="preserve">
+    <value>Externo/Palé</value>
+  </data>
+  <data name="Col.NetWeight" xml:space="preserve">
+    <value>Peso Neto (kg)</value>
+  </data>
+  <data name="Col.GrossWeight" xml:space="preserve">
+    <value>Peso Bruto (kg)</value>
+  </data>
+  <data name="Col.Dimensions" xml:space="preserve">
+    <value>Dim (LxAxA)</value>
+  </data>
+  <data name="Col.Returnable" xml:space="preserve">
+    <value>Retornable</value>
+  </data>
+  <data name="Col.LabelTemplate" xml:space="preserve">
+    <value>Plantilla de Etiqueta</value>
+  </data>
+  <data name="Col.LotId" xml:space="preserve">
+    <value>ID de Lote</value>
+  </data>
+  <data name="Col.MaterialCode" xml:space="preserve">
+    <value>Código de Material</value>
+  </data>
+  <data name="Col.LotNo" xml:space="preserve">
+    <value>N.º Lote</value>
+  </data>
+  <data name="Col.ReceivedDate" xml:space="preserve">
+    <value>Recibido</value>
+  </data>
+  <data name="Col.ExpiryDate" xml:space="preserve">
+    <value>Vencimiento</value>
+  </data>
+  <data name="Col.StorageCond" xml:space="preserve">
+    <value>Cond. Almacenamiento</value>
+  </data>
+  <data name="Col.StdDuration" xml:space="preserve">
+    <value>Duración Est. (min)</value>
+  </data>
+  <data name="Col.LOTO" xml:space="preserve">
+    <value>LOTO</value>
+  </data>
+  <data name="Col.CheckItems" xml:space="preserve">
+    <value>Ítems de Verificación</value>
+  </data>
+  <data name="Col.CheckItem" xml:space="preserve">
+    <value>Ítem de Verificación</value>
+  </data>
+  <data name="Col.PassCriteria" xml:space="preserve">
+    <value>Criterio de Aprobación</value>
+  </data>
+  <data name="Col.RequiredPart" xml:space="preserve">
+    <value>Pieza Requerida</value>
+  </data>
+  <data name="Col.DurationMin" xml:space="preserve">
+    <value>Duración (min)</value>
+  </data>
+  <data name="Col.RalCode" xml:space="preserve">
+    <value>Código RAL</value>
+  </data>
+  <data name="Col.ColorName" xml:space="preserve">
+    <value>Nombre de Color</value>
+  </data>
+  <data name="Col.Hex" xml:space="preserve">
+    <value>HEX</value>
+  </data>
+  <data name="Col.CurrentLot" xml:space="preserve">
+    <value>Lote Actual</value>
+  </data>
+  <data name="Col.CureTemp" xml:space="preserve">
+    <value>Temp Curado (°C)</value>
+  </data>
+  <data name="Col.CureTime" xml:space="preserve">
+    <value>Tiempo Curado (s)</value>
+  </data>
+  <data name="Col.Voltage" xml:space="preserve">
+    <value>Voltaje (V)</value>
+  </data>
+  <data name="Col.ParticleSize" xml:space="preserve">
+    <value>Partícula (μm)</value>
+  </data>
+  <data name="Col.ReasonName" xml:space="preserve">
+    <value>Nombre de Motivo</value>
+  </data>
+  <data name="Col.ReasonType" xml:space="preserve">
+    <value>Tipo de Motivo</value>
+  </data>
+  <data name="Col.NoteRequired" xml:space="preserve">
+    <value>Nota Req.</value>
+  </data>
+  <data name="Col.RecipeId" xml:space="preserve">
+    <value>ID Receta</value>
+  </data>
+  <data name="Col.RecipeName" xml:space="preserve">
+    <value>Nombre de Receta</value>
+  </data>
+  <data name="Col.CycleTime" xml:space="preserve">
+    <value>Tiempo de Ciclo (s)</value>
+  </data>
+  <data name="Col.ReaderId" xml:space="preserve">
+    <value>ID Lector</value>
+  </data>
+  <data name="Col.ReaderName" xml:space="preserve">
+    <value>Nombre de Lector</value>
+  </data>
+  <data name="Col.Gate" xml:space="preserve">
+    <value>Puerta</value>
+  </data>
+  <data name="Col.IpAddr" xml:space="preserve">
+    <value>Dirección IP</value>
+  </data>
+  <data name="Col.Antenna" xml:space="preserve">
+    <value>Antena</value>
+  </data>
+  <data name="Col.OutputDbm" xml:space="preserve">
+    <value>Salida (dBm)</value>
+  </data>
+  <data name="Col.WindowMs" xml:space="preserve">
+    <value>Ventana (ms)</value>
+  </data>
+  <data name="Col.PeTrigger" xml:space="preserve">
+    <value>Disparador PE</value>
+  </data>
+  <data name="Col.Firmware" xml:space="preserve">
+    <value>Firmware</value>
+  </data>
+  <data name="Col.TagId" xml:space="preserve">
+    <value>ID Etiqueta</value>
+  </data>
+  <data name="Col.EPC" xml:space="preserve">
+    <value>EPC</value>
+  </data>
+  <data name="Col.TagRole" xml:space="preserve">
+    <value>Rol de Etiqueta</value>
+  </data>
+  <data name="Col.MountLocation" xml:space="preserve">
+    <value>Ubicación de Montaje</value>
+  </data>
+  <data name="Col.HeatRating" xml:space="preserve">
+    <value>Clasificación Térmica</value>
+  </data>
+  <data name="Col.ReplaceDue" xml:space="preserve">
+    <value>Reemplazo Pendiente</value>
+  </data>
+  <data name="Col.ShipDestId" xml:space="preserve">
+    <value>ID Destino Envío</value>
+  </data>
+  <data name="Col.ShipDestName" xml:space="preserve">
+    <value>Nombre Destino Envío</value>
+  </data>
+  <data name="Col.Dock" xml:space="preserve">
+    <value>Muelle</value>
+  </data>
+  <data name="Col.Carrier" xml:space="preserve">
+    <value>Transportista</value>
+  </data>
+  <data name="Col.ReorderQty" xml:space="preserve">
+    <value>Cant. de Reorden</value>
+  </data>
+  <data name="Col.UomCode" xml:space="preserve">
+    <value>Código UOM</value>
+  </data>
+  <data name="Col.UomName" xml:space="preserve">
+    <value>Nombre de UOM</value>
+  </data>
+  <data name="Col.UomCategory" xml:space="preserve">
+    <value>Categoría</value>
+  </data>
+  <data name="Col.UomSymbol" xml:space="preserve">
+    <value>Símbolo</value>
+  </data>
+  <data name="Col.BaseUom" xml:space="preserve">
+    <value>UOM Base</value>
+  </data>
+  <data name="Col.ConvFactor" xml:space="preserve">
+    <value>Factor Conv.</value>
+  </data>
+  <data name="Col.Decimals" xml:space="preserve">
+    <value>Decimales</value>
+  </data>
+  <data name="Col.VendorId" xml:space="preserve">
+    <value>ID Proveedor</value>
+  </data>
+  <data name="Col.VendorName" xml:space="preserve">
+    <value>Nombre de Proveedor</value>
+  </data>
+  <data name="Col.OtdPct" xml:space="preserve">
+    <value>OTD%</value>
+  </data>
+  <data name="Col.PayTerm" xml:space="preserve">
+    <value>Plazo de Pago</value>
+  </data>
+  <data name="Col.WcName" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="Col.StdHeadcount" xml:space="preserve">
+    <value>Personal Est.</value>
+  </data>
+  <data name="Col.CostCenter" xml:space="preserve">
+    <value>Centro de Costo</value>
+  </data>
+  <data name="Col.Level" xml:space="preserve">
+    <value>Niv</value>
+  </data>
+  <data name="Col.ParentItem" xml:space="preserve">
+    <value>Pieza Padre</value>
+  </data>
+  <data name="Col.ComponentItem" xml:space="preserve">
+    <value>Pieza Componente</value>
+  </data>
+  <data name="Col.ScrapPct" xml:space="preserve">
+    <value>Desecho %</value>
+  </data>
+  <data name="Col.CycleSetup" xml:space="preserve">
+    <value>Ciclo / Preparación (s)</value>
+  </data>
+  <data name="Col.QcActive" xml:space="preserve">
+    <value>QC · Activo</value>
+  </data>
+  <data name="Err.Duplicate" xml:space="preserve">
+    <value>ya existe</value>
+  </data>
+  <data name="MD.Routing.Title" xml:space="preserve">
+    <value>Maestro de Rutas</value>
+  </data>
+  <data name="MD.Routing.Kpi.Routings" xml:space="preserve">
+    <value>Rutas</value>
+  </data>
+  <data name="MD.Routing.Kpi.QcSteps" xml:space="preserve">
+    <value>Pasos QC</value>
+  </data>
+  <data name="MD.Bop.Err.StationRouting" xml:space="preserve">
+    <value>El proceso de la estación seleccionada no está en la ruta</value>
+  </data>
+  <data name="MD.Routing.FlowHint" xml:space="preserve">
+    <value>Flujo de proceso por ruta — el RoutingType de un ítem determina el BOP, las órdenes y el programa de línea en este orden</value>
+  </data>
+  <data name="MD.Routing.List" xml:space="preserve">
+    <value>Lista de Rutas</value>
+  </data>
+  <data name="MD.Routing.NoSteps" xml:space="preserve">
+    <value>Sin pasos de ruta — añada con el botón +</value>
+  </data>
+  <data name="MD.Routing.ConfirmDelete" xml:space="preserve">
+    <value>¿Eliminar {0} · Paso {1}?</value>
+  </data>
+  <data name="Col.Progress" xml:space="preserve">
+    <value>Progreso</value>
+  </data>
+  <data name="MD.Items.Ph.Search" xml:space="preserve">
+    <value>N.º Pieza/Nombre/Tipo Vehículo/PGN/ALC</value>
+  </data>
+  <data name="MD.Items.Lbl.ItemNo" xml:space="preserve">
+    <value>N.º Pieza *</value>
+  </data>
+  <data name="MD.Items.Lbl.ItemNoHint" xml:space="preserve">
+    <value>(máx 20)</value>
+  </data>
+  <data name="MD.Items.Lbl.Uom" xml:space="preserve">
+    <value>UOM</value>
+  </data>
+  <data name="MD.Items.Lbl.ItemName" xml:space="preserve">
+    <value>Nombre de Pieza *</value>
+  </data>
+  <data name="MD.Items.Lbl.ItemType" xml:space="preserve">
+    <value>Tipo de Pieza</value>
+  </data>
+  <data name="MD.Items.Lbl.Category" xml:space="preserve">
+    <value>Categoría</value>
+  </data>
+  <data name="MD.Items.Lbl.SafetyStock" xml:space="preserve">
+    <value>Stock de Seguridad</value>
+  </data>
+  <data name="MD.Items.Lbl.MinStock" xml:space="preserve">
+    <value>Stock Mín</value>
+  </data>
+  <data name="MD.Items.Lbl.MaxStock" xml:space="preserve">
+    <value>Stock Máx</value>
+  </data>
+  <data name="MD.Items.Lbl.UnitCost" xml:space="preserve">
+    <value>Costo Unitario</value>
+  </data>
+  <data name="MD.Items.Lbl.DrawingNo" xml:space="preserve">
+    <value>N.º de Plano</value>
+  </data>
+  <data name="MD.Items.ConfirmDelete" xml:space="preserve">
+    <value>¿Eliminar {0} ({1})?</value>
+  </data>
+  <data name="MD.Items.Err.NameRequired" xml:space="preserve">
+    <value>El nombre de pieza es obligatorio.</value>
+  </data>
+  <data name="MD.Items.Err.NoRequired" xml:space="preserve">
+    <value>El número de pieza es obligatorio.</value>
+  </data>
+  <data name="MD.Items.Ok.Created" xml:space="preserve">
+    <value>Pieza {0} creada.</value>
+  </data>
+  <data name="MD.Items.Ok.Updated" xml:space="preserve">
+    <value>Pieza {0} actualizada.</value>
+  </data>
+  <data name="MD.Items.Ok.Deleted" xml:space="preserve">
+    <value>Ítem {0} eliminado.</value>
+  </data>
+  <data name="MD.Customer.Kpi.EDI" xml:space="preserve">
+    <value>EDI Conectado</value>
+  </data>
+  <data name="MD.Customer.Kpi.Domestic" xml:space="preserve">
+    <value>Nacional</value>
+  </data>
+  <data name="MD.Customer.Ph.Search" xml:space="preserve">
+    <value>Código/Nombre de cliente</value>
+  </data>
+  <data name="MD.Customer.Lbl.CustomerCode" xml:space="preserve">
+    <value>Código de Cliente</value>
+  </data>
+  <data name="Col.CustomerNameEn" xml:space="preserve">
+    <value>Nombre de Cliente (EN)</value>
+  </data>
+  <data name="MD.Customer.Lbl.CustomerType" xml:space="preserve">
+    <value>Tipo de Cliente</value>
+  </data>
+  <data name="MD.Customer.Lbl.BizRegNo" xml:space="preserve">
+    <value>N.º Registro Mercantil</value>
+  </data>
+  <data name="MD.Customer.Lbl.Country" xml:space="preserve">
+    <value>Código de País</value>
+  </data>
+  <data name="MD.Customer.Lbl.Email" xml:space="preserve">
+    <value>Correo</value>
+  </data>
+  <data name="MD.Customer.Lbl.Currency" xml:space="preserve">
+    <value>Moneda</value>
+  </data>
+  <data name="MD.Customer.Lbl.EDI" xml:space="preserve">
+    <value>EDI</value>
+  </data>
+  <data name="MD.Vendor.Kpi.EDI" xml:space="preserve">
+    <value>EDI Conectado</value>
+  </data>
+  <data name="MD.Vendor.Kpi.OtdSet" xml:space="preserve">
+    <value>Objetivo OTD Fijado</value>
+  </data>
+  <data name="MD.Vendor.Ph.Search" xml:space="preserve">
+    <value>Nombre de Proveedor</value>
+  </data>
+  <data name="MD.Vendor.Lbl.VendorName" xml:space="preserve">
+    <value>Nombre de Proveedor *</value>
+  </data>
+  <data name="MD.Vendor.Lbl.VendorType" xml:space="preserve">
+    <value>Tipo</value>
+  </data>
+  <data name="MD.Vendor.Lbl.VendorCategory" xml:space="preserve">
+    <value>Categoría</value>
+  </data>
+  <data name="MD.Vendor.Lbl.BizRegNo" xml:space="preserve">
+    <value>N.º Registro Mercantil</value>
+  </data>
+  <data name="MD.Vendor.Lbl.Email" xml:space="preserve">
+    <value>Correo</value>
+  </data>
+  <data name="MD.Vendor.Lbl.ScmURL" xml:space="preserve">
+    <value>URL del Portal SCM</value>
+  </data>
+  <data name="MD.Vendor.Lbl.OtdTarget" xml:space="preserve">
+    <value>Objetivo OTD (%)</value>
+  </data>
+  <data name="MD.Vendor.Lbl.PaymentTerms" xml:space="preserve">
+    <value>Plazos de Pago</value>
+  </data>
+  <data name="MD.Vendor.Lbl.EDI" xml:space="preserve">
+    <value>EDI</value>
+  </data>
+  <data name="MD.Vendor.Err.NameRequired" xml:space="preserve">
+    <value>El nombre de proveedor es obligatorio.</value>
+  </data>
+  <data name="MD.Vendor.Ok.Created" xml:space="preserve">
+    <value>Proveedor {0} creado.</value>
+  </data>
+  <data name="MD.Vendor.Ok.Updated" xml:space="preserve">
+    <value>Proveedor {0} actualizado.</value>
+  </data>
+  <data name="MD.Vendor.Ok.Deleted" xml:space="preserve">
+    <value>Proveedor {0} eliminado.</value>
+  </data>
+  <data name="MD.Location.Kpi.Zones" xml:space="preserve">
+    <value>Zonas</value>
+  </data>
+  <data name="MD.Location.Kpi.Plants" xml:space="preserve">
+    <value>Plantas</value>
+  </data>
+  <data name="MD.Location.Ph.Search" xml:space="preserve">
+    <value>ID/Nombre de Ubicación</value>
+  </data>
+  <data name="MD.Location.Lbl.LocationID" xml:space="preserve">
+    <value>ID de Ubicación *</value>
+  </data>
+  <data name="MD.Location.Lbl.LocationName" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="MD.Location.Lbl.ZoneCode" xml:space="preserve">
+    <value>Código de Zona</value>
+  </data>
+  <data name="MD.Location.Lbl.Aisle" xml:space="preserve">
+    <value>Pasillo</value>
+  </data>
+  <data name="MD.Location.Lbl.Bay" xml:space="preserve">
+    <value>Bahía</value>
+  </data>
+  <data name="MD.Location.Lbl.Slot" xml:space="preserve">
+    <value>Franja</value>
+  </data>
+  <data name="MD.Location.Lbl.Capacity" xml:space="preserve">
+    <value>Capacidad de Carga</value>
+  </data>
+  <data name="MD.Location.Lbl.LocationType" xml:space="preserve">
+    <value>Tipo de Ubicación</value>
+  </data>
+  <data name="MD.Location.Lbl.PlantCode" xml:space="preserve">
+    <value>Planta</value>
+  </data>
+  <data name="MD.Location.Err.IDRequired" xml:space="preserve">
+    <value>El ID de ubicación es obligatorio.</value>
+  </data>
+  <data name="MD.Location.Err.IDExists" xml:space="preserve">
+    <value>El ID de ubicación '{0}' ya existe.</value>
+  </data>
+  <data name="MD.Location.Ok.Created" xml:space="preserve">
+    <value>Ubicación {0} creada.</value>
+  </data>
+  <data name="MD.Location.Ok.Updated" xml:space="preserve">
+    <value>Ubicación {0} actualizada.</value>
+  </data>
+  <data name="MD.Location.Ok.Deleted" xml:space="preserve">
+    <value>Ubicación {0} eliminada.</value>
+  </data>
+  <data name="Btn.Generate" xml:space="preserve">
+    <value>Generar</value>
+  </data>
+  <data name="Btn.Add" xml:space="preserve">
+    <value>Añadir</value>
+  </data>
+  <data name="Msg.Generating" xml:space="preserve">
+    <value>Generando...</value>
+  </data>
+  <data name="Lbl.Persons" xml:space="preserve">
+    <value>personas</value>
+  </data>
+  <data name="Lbl.Count" xml:space="preserve">
+    <value />
+  </data>
+  <data name="Day.Sun" xml:space="preserve">
+    <value>Dom</value>
+  </data>
+  <data name="Day.Mon" xml:space="preserve">
+    <value>Lun</value>
+  </data>
+  <data name="Day.Tue" xml:space="preserve">
+    <value>Mar</value>
+  </data>
+  <data name="Day.Wed" xml:space="preserve">
+    <value>Mié</value>
+  </data>
+  <data name="Day.Thu" xml:space="preserve">
+    <value>Jue</value>
+  </data>
+  <data name="Day.Fri" xml:space="preserve">
+    <value>Vie</value>
+  </data>
+  <data name="Day.Sat" xml:space="preserve">
+    <value>Sáb</value>
+  </data>
+  <data name="SYS.Calendar.Fmt.YearMonth" xml:space="preserve">
+    <value>{0}-{1}</value>
+  </data>
+  <data name="SYS.Calendar.Kpi.DaysSub" xml:space="preserve">
+    <value>En Rango</value>
+  </data>
+  <data name="SYS.Calendar.Kpi.WorkSub" xml:space="preserve">
+    <value>Días Laborables</value>
+  </data>
+  <data name="SYS.Calendar.Kpi.WeekendSub" xml:space="preserve">
+    <value>Fin de Semana</value>
+  </data>
+  <data name="SYS.Calendar.Kpi.HolidaySub" xml:space="preserve">
+    <value>Festivo</value>
+  </data>
+  <data name="SYS.Calendar.Lbl.EndDate" xml:space="preserve">
+    <value>Fecha de Fin *</value>
+  </data>
+  <data name="SYS.Calendar.Lbl.Plant" xml:space="preserve">
+    <value>Planta</value>
+  </data>
+  <data name="SYS.Calendar.Lbl.ShiftConfig" xml:space="preserve">
+    <value>Configuración de Turnos</value>
+  </data>
+  <data name="SYS.Calendar.Lbl.SkipExisting" xml:space="preserve">
+    <value>Omitir si existen datos</value>
+  </data>
+  <data name="SYS.Calendar.Lbl.Holidays" xml:space="preserve">
+    <value>Festivos</value>
+  </data>
+  <data name="SYS.Calendar.Hint.Holidays" xml:space="preserve">
+    <value>(Las fechas registradas se clasifican automáticamente como FESTIVO)</value>
+  </data>
+  <data name="SYS.Calendar.Ph.HolidayName" xml:space="preserve">
+    <value>ej. Día de la Fundación</value>
+  </data>
+  <data name="SYS.Calendar.Lbl.EditTitle" xml:space="preserve">
+    <value>Editar Programa</value>
+  </data>
+  <data name="SYS.Calendar.Lbl.DayType" xml:space="preserve">
+    <value>Tipo *</value>
+  </data>
+  <data name="SYS.Calendar.Lbl.HolidayName" xml:space="preserve">
+    <value>Nombre del Festivo</value>
+  </data>
+  <data name="SYS.Calendar.Ph.HolidayNameInput" xml:space="preserve">
+    <value>Ingrese el nombre del festivo</value>
+  </data>
+  <data name="SYS.Calendar.Lbl.ShiftNote" xml:space="preserve">
+    <value>Sin seleccionar se guarda como festivo (ShiftCode NULL)</value>
+  </data>
+  <data name="SYS.Calendar.Err.DateRange" xml:space="preserve">
+    <value>La fecha de inicio es posterior a la de fin.</value>
+  </data>
+  <data name="SYS.Calendar.Ok.Generated" xml:space="preserve">
+    <value>{0} filas generadas.</value>
+  </data>
+  <data name="SYS.Calendar.Ok.Edited" xml:space="preserve">
+    <value>Programa de {0} actualizado.</value>
+  </data>
+  <data name="SYS.Calendar.Ok.Deleted" xml:space="preserve">
+    <value>{0} eliminado.</value>
+  </data>
+  <data name="SYS.Calendar.Confirm.Delete" xml:space="preserve">
+    <value>¿Eliminar todos los datos de turno de {0}?</value>
+  </data>
+  <data name="SYS.Interfaces.Kpi.AllSub" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="SYS.Interfaces.Kpi.OkSub" xml:space="preserve">
+    <value>Conectado OK</value>
+  </data>
+  <data name="SYS.Interfaces.Kpi.WarnSub" xml:space="preserve">
+    <value>Advertencia</value>
+  </data>
+  <data name="SYS.Interfaces.Kpi.DownSub" xml:space="preserve">
+    <value>Parada</value>
+  </data>
+  <data name="SYS.Interfaces.Ph.Search" xml:space="preserve">
+    <value>Código/Nombre de Interfaz</value>
+  </data>
+  <data name="SYS.Audit.Kpi.EventsSub" xml:space="preserve">
+    <value>Eventos Recientes</value>
+  </data>
+  <data name="SYS.Audit.Kpi.OkSub" xml:space="preserve">
+    <value>Resultado OK</value>
+  </data>
+  <data name="SYS.Audit.Kpi.FailSub" xml:space="preserve">
+    <value>Resultado FALLO</value>
+  </data>
+  <data name="SYS.Audit.Ph.Search" xml:space="preserve">
+    <value>Usuario/ID Objetivo/Nota</value>
+  </data>
+  <data name="SYS.Audit.Detail" xml:space="preserve">
+    <value>Detalle de Auditoría</value>
+  </data>
+  <data name="SYS.Config.Kpi.KeysSub" xml:space="preserve">
+    <value>Total de Claves de Configuración</value>
+  </data>
+  <data name="SYS.Config.Kpi.ActiveSub" xml:space="preserve">
+    <value>IsActive=true</value>
+  </data>
+  <data name="SYS.Config.Kpi.CategoriesSub" xml:space="preserve">
+    <value>Categorías</value>
+  </data>
+  <data name="SYS.Config.Kpi.SecuritySub" xml:space="preserve">
+    <value>Claves de Seguridad</value>
+  </data>
+  <data name="SYS.Config.GroupOther" xml:space="preserve">
+    <value>Otro</value>
+  </data>
+  <data name="SYS.Health.Kpi.UsersSub" xml:space="preserve">
+    <value>Cuentas</value>
+  </data>
+  <data name="SYS.Health.Kpi.RolesSub" xml:space="preserve">
+    <value>RBAC</value>
+  </data>
+  <data name="SYS.Health.Kpi.IfOkSub" xml:space="preserve">
+    <value>Conectado OK</value>
+  </data>
+  <data name="SYS.Health.Kpi.IfDownSub" xml:space="preserve">
+    <value>Parada</value>
+  </data>
+  <data name="SYS.Health.Kpi.AuditSub" xml:space="preserve">
+    <value>Eventos</value>
+  </data>
+  <data name="SYS.Health.Kpi.NotifSub" xml:space="preserve">
+    <value>Enviado</value>
+  </data>
+  <data name="SYS.Health.Kpi.NotifFailSub" xml:space="preserve">
+    <value>Errores de Envío 24H</value>
+  </data>
+  <data name="SYS.Health.Kpi.ConfigSub" xml:space="preserve">
+    <value>Claves Activas</value>
+  </data>
+  <data name="SYS.Health.Db.Source" xml:space="preserve">
+    <value>FUENTE: sys.partitions(index_id IN (0,1)) JOIN sys.tables — estimación basada en estadísticas</value>
+  </data>
+  <data name="SYS.Health.Tile.UsersSub" xml:space="preserve">
+    <value>{0} cuentas</value>
+  </data>
+  <data name="SYS.Health.Tile.RbacSub" xml:space="preserve">
+    <value>{0} permisos</value>
+  </data>
+  <data name="SYS.Health.Tile.InterfacesSub" xml:space="preserve">
+    <value>{0} OK · {1} error</value>
+  </data>
+  <data name="SYS.Health.Tile.AuditSub" xml:space="preserve">
+    <value>Últimas 24H {0}</value>
+  </data>
+  <data name="SYS.Health.Tile.NotifSub" xml:space="preserve">
+    <value>Enviados {0} · Fallidos {1}</value>
+  </data>
+  <data name="SYS.Health.Tile.ConfigSub" xml:space="preserve">
+    <value>{0} claves activas</value>
+  </data>
+  <data name="SYS.Health.Tile.CalendarSub" xml:space="preserve">
+    <value>Instancias de Turno</value>
+  </data>
+  <data name="SYS.Health.Tile.RolesSub" xml:space="preserve">
+    <value>{0} roles</value>
+  </data>
+  <data name="SYS.Health.Tile.ScreenSub" xml:space="preserve">
+    <value>{0} pantallas</value>
+  </data>
+  <data name="SYS.Screen.Col.LidLabel" xml:space="preserve">
+    <value>Etiqueta de Tapa</value>
+  </data>
+  <data name="SYS.Screen.Col.SortOrder" xml:space="preserve">
+    <value>Pedido</value>
+  </data>
+  <data name="SYS.Screen.Ph.Code" xml:space="preserve">
+    <value>ej. SYS-010</value>
+  </data>
+  <data name="SYS.Screen.Ph.NameKo" xml:space="preserve">
+    <value>Nombre de pantalla (coreano)</value>
+  </data>
+  <data name="SYS.Screen.Ph.NameEn" xml:space="preserve">
+    <value>Nombre de pantalla (inglés)</value>
+  </data>
+  <data name="SYS.Screen.Ph.HRef" xml:space="preserve">
+    <value>ej. sys/pantalla</value>
+  </data>
+  <data name="SYS.Screen.Ph.LidLabel" xml:space="preserve">
+    <value>Etiqueta de chip NavMenu (ej. SYS-01)</value>
+  </data>
+  <data name="SYS.Screen.Ph.LidLabelEdit" xml:space="preserve">
+    <value>Etiqueta de chip NavMenu</value>
+  </data>
+  <data name="SYS.Screen.Ph.SortOrder" xml:space="preserve">
+    <value>Orden de visualización (número)</value>
+  </data>
+  <data name="SYS.Screen.Lbl.NavMenu" xml:space="preserve">
+    <value>(NavMenu)</value>
+  </data>
+  <data name="SYS.Screen.Err.CodeRequired" xml:space="preserve">
+    <value>El código de pantalla es obligatorio.</value>
+  </data>
+  <data name="SYS.Screen.Err.ModuleRequired" xml:space="preserve">
+    <value>El código de módulo es obligatorio.</value>
+  </data>
+  <data name="SYS.Screen.Err.NameRequired" xml:space="preserve">
+    <value>El nombre de pantalla (coreano) es obligatorio.</value>
+  </data>
+  <data name="SYS.Screen.Ok.Created" xml:space="preserve">
+    <value>{0} creado.</value>
+  </data>
+  <data name="SYS.Screen.Ok.Updated" xml:space="preserve">
+    <value>{0} actualizado.</value>
+  </data>
+  <data name="SYS.Screen.Ok.Deleted" xml:space="preserve">
+    <value>{0} eliminado.</value>
+  </data>
+  <data name="SYS.Rbac.Empty" xml:space="preserve">
+    <value>Sin roles definidos.</value>
+  </data>
+  <data name="SYS.Roles.Ph.RoleName" xml:space="preserve">
+    <value>ej. Admin, Gerente, Operador</value>
+  </data>
+  <data name="Kpi.NeedMaint" xml:space="preserve">
+    <value>Requiere Mant.</value>
+  </data>
+  <data name="Kpi.StorageLocs" xml:space="preserve">
+    <value>Ubic. Almacenamiento</value>
+  </data>
+  <data name="Kpi.AvgUsage" xml:space="preserve">
+    <value>Prom Uso %</value>
+  </data>
+  <data name="Kpi.LineCount" xml:space="preserve">
+    <value>Líneas</value>
+  </data>
+  <data name="Kpi.ProcessCount" xml:space="preserve">
+    <value>Procesos</value>
+  </data>
+  <data name="Kpi.SupplierCount" xml:space="preserve">
+    <value>Proveedores</value>
+  </data>
+  <data name="Kpi.CategoryCount" xml:space="preserve">
+    <value>Categorías</value>
+  </data>
+  <data name="MD.DefectCause.Kpi.RootCause" xml:space="preserve">
+    <value>Causa Raíz</value>
+  </data>
+  <data name="MD.DefectCode.Kpi.Pareto" xml:space="preserve">
+    <value>Objetivo Pareto</value>
+  </data>
+  <data name="MD.Equipment.Kpi.EquipTypes" xml:space="preserve">
+    <value>Tipos de Equipo</value>
+  </data>
+  <data name="MD.LabelTpl.Kpi.LabelTypes" xml:space="preserve">
+    <value>Tipos de Etiqueta</value>
+  </data>
+  <data name="MD.LabelTpl.Kpi.CustomerAssigned" xml:space="preserve">
+    <value>Cliente Asignado</value>
+  </data>
+  <data name="MD.LinePat.Kpi.TotalPatterns" xml:space="preserve">
+    <value>Total de Patrones</value>
+  </data>
+  <data name="MD.LinePat.Kpi.ShiftModels" xml:space="preserve">
+    <value>Modelos de Turno</value>
+  </data>
+  <data name="MD.Oven.Kpi.AvgTargetTemp" xml:space="preserve">
+    <value>Prom Temp Objetivo</value>
+  </data>
+  <data name="MD.PackSpec.Kpi.Returnable" xml:space="preserve">
+    <value>Retornable</value>
+  </data>
+  <data name="MD.PackSpec.Kpi.PackTypes" xml:space="preserve">
+    <value>Tipos de Empaque</value>
+  </data>
+  <data name="MD.PaintFabric.Kpi.ExpiringSoon" xml:space="preserve">
+    <value>Por Vencer</value>
+  </data>
+  <data name="MD.PaintFabric.Kpi.MatTypes" xml:space="preserve">
+    <value>Tipos de Material</value>
+  </data>
+  <data name="MD.PmTemplate.Kpi.EquipTypes" xml:space="preserve">
+    <value>Tipos de Equipo</value>
+  </data>
+  <data name="MD.RalColor.Kpi.PowderLots" xml:space="preserve">
+    <value>Lotes de Polvo</value>
+  </data>
+  <data name="MD.RalColor.Kpi.AvgCureTemp" xml:space="preserve">
+    <value>Prom Temp Curado</value>
+  </data>
+  <data name="MD.ReasonCode.Kpi.PlanReason" xml:space="preserve">
+    <value>Motivo del Plan</value>
+  </data>
+  <data name="MD.ReasonCode.Kpi.ReasonTypes" xml:space="preserve">
+    <value>Tipos de Motivo</value>
+  </data>
+  <data name="MD.Recipe.Kpi.RecipeTypes" xml:space="preserve">
+    <value>Tipos de Receta</value>
+  </data>
+  <data name="MD.Recipe.Kpi.AvgCycleTime" xml:space="preserve">
+    <value>Prom Ciclo (s)</value>
+  </data>
+  <data name="MD.RfidReader.Kpi.Online" xml:space="preserve">
+    <value>En Línea</value>
+  </data>
+  <data name="MD.RfidReader.Kpi.Maint" xml:space="preserve">
+    <value>En Mantenimiento</value>
+  </data>
+  <data name="MD.RfidTag.Kpi.NeedReplace" xml:space="preserve">
+    <value>Requiere Reemplazo</value>
+  </data>
+  <data name="MD.RfidTag.Kpi.JigLinked" xml:space="preserve">
+    <value>Jig Vinculado</value>
+  </data>
+  <data name="MD.ShipDest.Kpi.Domestic" xml:space="preserve">
+    <value>Nacional</value>
+  </data>
+  <data name="MD.ShipDest.Kpi.Export" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="MD.Uom.Kpi.BaseUnit" xml:space="preserve">
+    <value>Unidad Base</value>
+  </data>
+  <data name="Col.JigName" xml:space="preserve">
+    <value>Nombre de Jig</value>
+  </data>
+  <data name="Col.CycleCount" xml:space="preserve">
+    <value>Recuento de Ciclos</value>
+  </data>
+  <data name="Col.LastService" xml:space="preserve">
+    <value>Último Servicio</value>
+  </data>
+  <data name="Col.WCID" xml:space="preserve">
+    <value>ID CT</value>
+  </data>
+  <data name="Col.DailyCapacity" xml:space="preserve">
+    <value>Capacidad Diaria</value>
+  </data>
+  <data name="Col.StdManpower" xml:space="preserve">
+    <value>Mano de Obra Est.</value>
+  </data>
+  <data name="Col.LocationDesc" xml:space="preserve">
+    <value>Ubicación</value>
+  </data>
+  <data name="Col.SortSeq" xml:space="preserve">
+    <value>Orden de Clasificación</value>
+  </data>
+  <data name="Col.CorrectiveGuide" xml:space="preserve">
+    <value>Guía Correctiva</value>
+  </data>
+  <data name="Col.SeverityLevel" xml:space="preserve">
+    <value>Severidad</value>
+  </data>
+  <data name="Col.CustomerCode" xml:space="preserve">
+    <value>Cliente</value>
+  </data>
+  <data name="Col.CountryCode" xml:space="preserve">
+    <value>Código de País</value>
+  </data>
+  <data name="Col.LeadTimeDays" xml:space="preserve">
+    <value>Plazo de Entrega (Días)</value>
+  </data>
+  <data name="Col.DeliveryWindow" xml:space="preserve">
+    <value>Ventana de Entrega</value>
+  </data>
+  <data name="Col.Station" xml:space="preserve">
+    <value>Estación</value>
+  </data>
+  <data name="Col.StationCode" xml:space="preserve">
+    <value>Código de Estación</value>
+  </data>
+  <data name="Col.StationName" xml:space="preserve">
+    <value>Nombre de Estación (KO)</value>
+  </data>
+  <data name="Col.OrderSeq" xml:space="preserve">
+    <value>Sec. Pedido</value>
+  </data>
+  <data name="Col.MaxLoadKg" xml:space="preserve">
+    <value>Carga Máx (kg)</value>
+  </data>
+  <data name="Col.MatCode" xml:space="preserve">
+    <value>Código de Material</value>
+  </data>
+  <data name="Col.MatName" xml:space="preserve">
+    <value>Nombre de Material</value>
+  </data>
+  <data name="Col.MatType" xml:space="preserve">
+    <value>Tipo de Material</value>
+  </data>
+  <data name="Col.StockQty" xml:space="preserve">
+    <value>Cant. Stock</value>
+  </data>
+  <data name="Col.InboundDate" xml:space="preserve">
+    <value>Fecha de Entrada</value>
+  </data>
+  <data name="Col.VersionNo" xml:space="preserve">
+    <value>N.º de Versión</value>
+  </data>
+  <data name="Col.StartDate" xml:space="preserve">
+    <value>Fecha de Inicio</value>
+  </data>
+  <data name="Col.EndDate" xml:space="preserve">
+    <value>Fecha de Fin</value>
+  </data>
+  <data name="Col.CompItem" xml:space="preserve">
+    <value>Pieza Componente</value>
+  </data>
+  <data name="Col.ScrapRate" xml:space="preserve">
+    <value>Tasa de Desecho (%)</value>
+  </data>
+  <data name="Col.InspStdId" xml:space="preserve">
+    <value>ID Est.</value>
+  </data>
+  <data name="Col.ItemId" xml:space="preserve">
+    <value>ID de Pieza</value>
+  </data>
+  <data name="Col.StdCycleTime" xml:space="preserve">
+    <value>Tiempo de Ciclo Est.</value>
+  </data>
+  <data name="Col.StdSetupTime" xml:space="preserve">
+    <value>Tiempo de Preparación Est.</value>
+  </data>
+  <data name="Err.NameRequired" xml:space="preserve">
+    <value>El nombre es obligatorio.</value>
+  </data>
+  <data name="Err.TemplateIdRequired" xml:space="preserve">
+    <value>El ID de plantilla es obligatorio.</value>
+  </data>
+  <data name="Err.RootItemRequired" xml:space="preserve">
+    <value>La pieza raíz es obligatoria.</value>
+  </data>
+  <data name="Err.CompItemRequired" xml:space="preserve">
+    <value>La pieza componente es obligatoria.</value>
+  </data>
+  <data name="Err.QtyGtZero" xml:space="preserve">
+    <value>La cantidad debe ser mayor que 0.</value>
+  </data>
+  <data name="Err.ItemNoRequired" xml:space="preserve">
+    <value>El número de pieza es obligatorio.</value>
+  </data>
+  <data name="Err.RoutingTypeRequired" xml:space="preserve">
+    <value>El tipo de ruta es obligatorio.</value>
+  </data>
+  <data name="Err.StepSeqMin1" xml:space="preserve">
+    <value>La secuencia del paso debe ser 1 o mayor.</value>
+  </data>
+  <data name="Err.GroupCodeRequired" xml:space="preserve">
+    <value>El código de grupo es obligatorio.</value>
+  </data>
+  <data name="Err.GroupNameRequired" xml:space="preserve">
+    <value>El nombre de grupo es obligatorio.</value>
+  </data>
+  <data name="Err.CodeValueRequired" xml:space="preserve">
+    <value>El valor de código es obligatorio.</value>
+  </data>
+  <data name="Err.CodeNameRequired" xml:space="preserve">
+    <value>El nombre de código es obligatorio.</value>
+  </data>
+  <data name="Err.CustomerNameRequired" xml:space="preserve">
+    <value>El nombre de cliente es obligatorio.</value>
+  </data>
+  <data name="Err.CauseCodeRequired" xml:space="preserve">
+    <value>El código de causa es obligatorio.</value>
+  </data>
+  <data name="Err.CauseNameRequired" xml:space="preserve">
+    <value>El nombre de causa es obligatorio.</value>
+  </data>
+  <data name="Err.DefectCodeRequired" xml:space="preserve">
+    <value>El código de defecto es obligatorio.</value>
+  </data>
+  <data name="Err.DefectNameRequired" xml:space="preserve">
+    <value>El nombre de defecto es obligatorio.</value>
+  </data>
+  <data name="Err.EquipIdRequired" xml:space="preserve">
+    <value>El ID de equipo es obligatorio.</value>
+  </data>
+  <data name="Err.EquipNameRequired" xml:space="preserve">
+    <value>El nombre de equipo es obligatorio.</value>
+  </data>
+  <data name="Err.InspStdIdRequired" xml:space="preserve">
+    <value>El ID de estándar de inspección es obligatorio.</value>
+  </data>
+  <data name="Err.CharNameRequired" xml:space="preserve">
+    <value>El nombre de característica es obligatorio.</value>
+  </data>
+  <data name="Err.JigIdRequired" xml:space="preserve">
+    <value>El ID de jig es obligatorio.</value>
+  </data>
+  <data name="Err.PatternIdRequired" xml:space="preserve">
+    <value>El ID de patrón es obligatorio.</value>
+  </data>
+  <data name="Err.MoldIdRequired" xml:space="preserve">
+    <value>El ID de molde es obligatorio.</value>
+  </data>
+  <data name="Err.MoldNameRequired" xml:space="preserve">
+    <value>El nombre de molde es obligatorio.</value>
+  </data>
+  <data name="Err.OvenIdRequired" xml:space="preserve">
+    <value>El ID de horno es obligatorio.</value>
+  </data>
+  <data name="Err.SpecIdRequired" xml:space="preserve">
+    <value>El ID de especificación es obligatorio.</value>
+  </data>
+  <data name="Err.MatNameRequired" xml:space="preserve">
+    <value>El nombre de material es obligatorio.</value>
+  </data>
+  <data name="Err.ReasonCodeRequired" xml:space="preserve">
+    <value>El código de motivo es obligatorio.</value>
+  </data>
+  <data name="Err.RecipeIdRequired" xml:space="preserve">
+    <value>El ID de receta es obligatorio.</value>
+  </data>
+  <data name="Err.ReaderIdRequired" xml:space="preserve">
+    <value>El ID de lector es obligatorio.</value>
+  </data>
+  <data name="Err.DestNameRequired" xml:space="preserve">
+    <value>El nombre de destino es obligatorio.</value>
+  </data>
+  <data name="Err.PartNoRequired" xml:space="preserve">
+    <value>El número de pieza es obligatorio.</value>
+  </data>
+  <data name="Err.StationIdRequired" xml:space="preserve">
+    <value>El ID de estación es obligatorio.</value>
+  </data>
+  <data name="Err.StationNameRequired" xml:space="preserve">
+    <value>El nombre de estación es obligatorio.</value>
+  </data>
+  <data name="Err.UomCodeRequired" xml:space="preserve">
+    <value>El código UOM es obligatorio.</value>
+  </data>
+  <data name="Msg.Created" xml:space="preserve">
+    <value>creado.</value>
+  </data>
+  <data name="Msg.Updated" xml:space="preserve">
+    <value>actualizado.</value>
+  </data>
+  <data name="Msg.Deleted" xml:space="preserve">
+    <value>eliminado.</value>
+  </data>
+  <data name="Msg.Approved" xml:space="preserve">
+    <value>aprobado.</value>
+  </data>
+  <data name="Msg.ApprovalRequested" xml:space="preserve">
+    <value>aprobación solicitada.</value>
+  </data>
+  <data name="Msg.Rejected" xml:space="preserve">
+    <value>rechazado.</value>
+  </data>
+  <data name="Msg.Revived" xml:space="preserve">
+    <value>restaurado a BORRADOR.</value>
+  </data>
+  <data name="Msg.BomLineAdded" xml:space="preserve">
+    <value>Línea BOM añadida.</value>
+  </data>
+  <data name="Msg.BomLineUpdated" xml:space="preserve">
+    <value>Línea BOM actualizada.</value>
+  </data>
+  <data name="Msg.BomLineDeleted" xml:space="preserve">
+    <value>Línea BOM eliminada.</value>
+  </data>
+  <data name="Msg.BomLineReactivated" xml:space="preserve">
+    <value>Línea BOM reactivada.</value>
+  </data>
+  <data name="Err.AlreadyExistsFmt" xml:space="preserve">
+    <value>'{0}' ya existe.</value>
+  </data>
+  <data name="Lbl.Required" xml:space="preserve">
+    <value>Requerido</value>
+  </data>
+  <data name="Err.VersionIdRequired" xml:space="preserve">
+    <value>El ID de versión es obligatorio.</value>
+  </data>
+  <data name="Err.CodeIdRequired" xml:space="preserve">
+    <value>El ID de código es obligatorio.</value>
+  </data>
+  <data name="Err.CodeIdMax41" xml:space="preserve">
+    <value>El ID de código debe tener 41 caracteres o menos.</value>
+  </data>
+  <data name="Err.RalCodeRequired" xml:space="preserve">
+    <value>El código RAL es obligatorio.</value>
+  </data>
+  <data name="Err.TagIdRequired" xml:space="preserve">
+    <value>El ID de etiqueta es obligatorio.</value>
+  </data>
+  <data name="Err.WcIdRequired" xml:space="preserve">
+    <value>El ID de CT es obligatorio.</value>
+  </data>
+  <data name="Err.LotIdRequired" xml:space="preserve">
+    <value>El ID de lote es obligatorio.</value>
+  </data>
+  <data name="MD.Bom.Ph.Search" xml:space="preserve">
+    <value>ID de Versión/Pieza</value>
+  </data>
+  <data name="MD.Bop.Ph.Search" xml:space="preserve">
+    <value>N.º Pieza/Nombre de Pieza</value>
+  </data>
+  <data name="MD.DefectCause.Ph.Search" xml:space="preserve">
+    <value>Código/Nombre de causa</value>
+  </data>
+  <data name="MD.DefectCode.Ph.Search" xml:space="preserve">
+    <value>Código/Nombre de defecto</value>
+  </data>
+  <data name="MD.Equipment.Ph.Search" xml:space="preserve">
+    <value>ID/Nombre de Equipo</value>
+  </data>
+  <data name="MD.InspStd.Ph.Search" xml:space="preserve">
+    <value>ID Est./Nombre Caract./ID Pieza</value>
+  </data>
+  <data name="MD.Jig.Ph.Search" xml:space="preserve">
+    <value>ID/Nombre de Jig</value>
+  </data>
+  <data name="MD.LabelTemplate.Ph.Search" xml:space="preserve">
+    <value>ID/Nombre de Plantilla</value>
+  </data>
+  <data name="MD.LineTimePattern.Ph.Search" xml:space="preserve">
+    <value>ID/Nombre de Patrón</value>
+  </data>
+  <data name="MD.Mold.Ph.Search" xml:space="preserve">
+    <value>ID/Nombre de Molde</value>
+  </data>
+  <data name="MD.Oven.Ph.Search" xml:space="preserve">
+    <value>ID/Nombre de Horno</value>
+  </data>
+  <data name="MD.PackagingSpec.Ph.Search" xml:space="preserve">
+    <value>ID Espec/ID Pieza</value>
+  </data>
+  <data name="MD.PaintFabric.Ph.Search" xml:space="preserve">
+    <value>ID Lote/Código Mat./Nombre</value>
+  </data>
+  <data name="MD.RalColor.Ph.Search" xml:space="preserve">
+    <value>Código RAL/Nombre de color</value>
+  </data>
+  <data name="MD.ReasonCode.Ph.Search" xml:space="preserve">
+    <value>Código/Nombre de motivo</value>
+  </data>
+  <data name="MD.Recipe.Ph.Search" xml:space="preserve">
+    <value>ID/Nombre de Receta</value>
+  </data>
+  <data name="MD.RfidReader.Ph.Search" xml:space="preserve">
+    <value>ID/Nombre de Lector</value>
+  </data>
+  <data name="MD.ShipmentDest.Ph.Search" xml:space="preserve">
+    <value>Nombre destino/Cliente</value>
+  </data>
+  <data name="MD.SparePart.Ph.Search" xml:space="preserve">
+    <value>N.º/Nombre de Pieza</value>
+  </data>
+  <data name="MD.Uom.Ph.Search" xml:space="preserve">
+    <value>Código/Nombre UOM</value>
+  </data>
+  <data name="MD.WorkCenter.Ph.Search" xml:space="preserve">
+    <value>ID/Nombre de CT</value>
+  </data>
+  <data name="MD.CommonCode.Ph.GroupName" xml:space="preserve">
+    <value>ej. Tipo de Defecto</value>
+  </data>
+  <data name="MD.Bop.Ph.StepDesc" xml:space="preserve">
+    <value>Descripción del paso</value>
+  </data>
+  <data name="MD.DefectCause.Ph.CauseName" xml:space="preserve">
+    <value>ej. Desgaste de molde</value>
+  </data>
+  <data name="MD.DefectCause.Ph.CorrectiveGuide" xml:space="preserve">
+    <value>Ingrese el método de acción correctiva</value>
+  </data>
+  <data name="MD.DefectCode.Ph.DefectName" xml:space="preserve">
+    <value>ej. Marca de entrada</value>
+  </data>
+  <data name="MD.Equipment.Ph.EquipName" xml:space="preserve">
+    <value>ej. Inyección 1</value>
+  </data>
+  <data name="MD.Equipment.Ph.MakerModel" xml:space="preserve">
+    <value>ej. LGE LGI-500T</value>
+  </data>
+  <data name="MD.InspStd.Ph.CharName" xml:space="preserve">
+    <value>ej. Dimensión de apariencia</value>
+  </data>
+  <data name="MD.InspStd.Ph.InspMethod" xml:space="preserve">
+    <value>ej. Calibre vernier</value>
+  </data>
+  <data name="MD.Jig.Ph.JigName" xml:space="preserve">
+    <value>ej. Jig de Pintura 1</value>
+  </data>
+  <data name="MD.LabelTemplate.Ph.TemplateName" xml:space="preserve">
+    <value>ej. Etiqueta de entrega Hyundai</value>
+  </data>
+  <data name="MD.Line.Ph.LineName" xml:space="preserve">
+    <value>ej. Línea INJ 1</value>
+  </data>
+  <data name="MD.LineTimePattern.Ph.PatternName" xml:space="preserve">
+    <value>ej. INJ-01 día 3-turnos</value>
+  </data>
+  <data name="MD.Location.Ph.LocationName" xml:space="preserve">
+    <value>ej. WH Zona-A Pasillo-1 #1</value>
+  </data>
+  <data name="MD.Mold.Ph.MoldName" xml:space="preserve">
+    <value>ej. Molde Parachoques A</value>
+  </data>
+  <data name="MD.Mold.Ph.StorageLoc" xml:space="preserve">
+    <value>ej. WH A-3</value>
+  </data>
+  <data name="MD.Oven.Ph.OvenName" xml:space="preserve">
+    <value>ej. Horno de Pintura 1</value>
+  </data>
+  <data name="MD.PaintFabric.Ph.MatName" xml:space="preserve">
+    <value>ej. Pintura negra 1-componente</value>
+  </data>
+  <data name="MD.PaintFabric.Ph.StorageReq" xml:space="preserve">
+    <value>ej. Conservar a temperatura ambiente, evitar el sol</value>
+  </data>
+  <data name="MD.PmTemplate.Ph.TemplateName" xml:space="preserve">
+    <value>ej. PM mensual de inyección</value>
+  </data>
+  <data name="MD.ReasonCode.Ph.ReasonName" xml:space="preserve">
+    <value>ej. Fallo de equipo</value>
+  </data>
+  <data name="MD.Recipe.Ph.RecipeName" xml:space="preserve">
+    <value>ej. Receta estándar INJ</value>
+  </data>
+  <data name="MD.RfidReader.Ph.ReaderName" xml:space="preserve">
+    <value>ej. Línea INJ Puerta A</value>
+  </data>
+  <data name="MD.ShipmentDest.Ph.DestName" xml:space="preserve">
+    <value>ej. Entrega planta Asan</value>
+  </data>
+  <data name="MD.ShipmentDest.Ph.Address" xml:space="preserve">
+    <value>ej. Chungnam Asan...</value>
+  </data>
+  <data name="MD.ShipmentDest.Ph.DefaultCarrier" xml:space="preserve">
+    <value>ej. CJ Logistics</value>
+  </data>
+  <data name="MD.SparePart.Ph.PartName" xml:space="preserve">
+    <value>ej. Filtro de aceite</value>
+  </data>
+  <data name="MD.Station.Ph.StationName" xml:space="preserve">
+    <value>ej. Proceso INJ 1</value>
+  </data>
+  <data name="MD.Uom.Ph.UomName" xml:space="preserve">
+    <value>ej. EA</value>
+  </data>
+  <data name="MD.Vendor.Ph.VendorName" xml:space="preserve">
+    <value>ej. ABC Industry Co.</value>
+  </data>
+  <data name="MD.Vendor.Ph.VendorCategory" xml:space="preserve">
+    <value>ej. Metalistería, embalaje</value>
+  </data>
+  <data name="MD.Vendor.Ph.ContactPerson" xml:space="preserve">
+    <value>ej. Juan Pérez</value>
+  </data>
+  <data name="MD.Customer.Ph.CustomerName" xml:space="preserve">
+    <value>ej. Hyundai Motor Co.</value>
+  </data>
+  <data name="MD.WorkCenter.Ph.WcName" xml:space="preserve">
+    <value>ej. Centro de Trabajo INJ 1</value>
+  </data>
+  <data name="MD.WorkCenter.Ph.LocationDesc" xml:space="preserve">
+    <value>ej. Planta 2, Piso 1, Zona A</value>
+  </data>
+  <data name="MD.Bom.NoVersions" xml:space="preserve">
+    <value>Sin versiones BOM registradas</value>
+  </data>
+  <data name="MD.Bom.SelectVersionHint" xml:space="preserve">
+    <value>Seleccione una versión BOM a la izquierda para ver las líneas de componente</value>
+  </data>
+  <data name="MD.Bom.ApprovalRequester" xml:space="preserve">
+    <value>Solicitante de aprobación</value>
+  </data>
+  <data name="MD.Bom.ApprovedBy" xml:space="preserve">
+    <value>Aprobado por</value>
+  </data>
+  <data name="MD.Bom.AddItem" xml:space="preserve">
+    <value>Añadir pieza</value>
+  </data>
+  <data name="MD.Bom.ReactivateLine" xml:space="preserve">
+    <value>Reactivar</value>
+  </data>
+  <data name="MD.Bom.RequestApproval" xml:space="preserve">
+    <value>Solicitar aprobación</value>
+  </data>
+  <data name="MD.Bom.ReviveDraft" xml:space="preserve">
+    <value>Revisar (BORRADOR)</value>
+  </data>
+  <data name="MD.Bom.ConfirmDeleteVersion" xml:space="preserve">
+    <value>¿Eliminar versión {0} y todas las líneas de componente?</value>
+  </data>
+  <data name="MD.Bom.LineCount" xml:space="preserve">
+    <value>{0} línea(s) de componente</value>
+  </data>
+  <data name="MD.Bom.DraftOnly" xml:space="preserve">
+    <value>— Editable solo en estado BORRADOR</value>
+  </data>
+  <data name="MD.Bom.NoLines" xml:space="preserve">
+    <value>Sin líneas de componente</value>
+  </data>
+  <data name="MD.Bom.Modal.AddLine" xml:space="preserve">
+    <value>Añadir Línea BOM</value>
+  </data>
+  <data name="MD.Bom.ConfirmDeleteLine" xml:space="preserve">
+    <value>¿Eliminar línea {0}?</value>
+  </data>
+  <data name="MD.Bom.Max24Chars" xml:space="preserve">
+    <value>máx 24 caracteres</value>
+  </data>
+  <data name="MD.Bom.NeedApprovalHint" xml:space="preserve">
+    <value>Se requiere al menos 1 línea BOM para aprobar</value>
+  </data>
+  <data name="MD.Bop.NoItems" xml:space="preserve">
+    <value>Sin piezas</value>
+  </data>
+  <data name="MD.Bop.SelectItemHint" xml:space="preserve">
+    <value>Seleccione una pieza a la izquierda para ver los pasos de proceso</value>
+  </data>
+  <data name="MD.Bop.StepCount" xml:space="preserve">
+    <value>{0} paso(s) de proceso</value>
+  </data>
+  <data name="MD.Bop.RoutingFilter" xml:space="preserve">
+    <value>Filtro de ruta {0} activo</value>
+  </data>
+  <data name="MD.Bop.RoutingConflict" xml:space="preserve">
+    <value>Difiere de la ruta de los pasos existentes de este ítem ({0}) — actual {1}. ¿Continuar registro?</value>
+  </data>
+  <data name="MD.Bop.AddStep" xml:space="preserve">
+    <value>Añadir paso</value>
+  </data>
+  <data name="MD.Bop.NoSteps" xml:space="preserve">
+    <value>Sin pasos de proceso — use el botón + Añadir Paso de arriba</value>
+  </data>
+  <data name="MD.Bop.ConfirmDeleteStep" xml:space="preserve">
+    <value>¿Eliminar {0} Paso {1}?</value>
+  </data>
+  <data name="Col.StepDesc" xml:space="preserve">
+    <value>Descripción del paso</value>
+  </data>
+  <data name="Col.RootItemNo" xml:space="preserve">
+    <value>N.º de Pieza Raíz</value>
+  </data>
+  <data name="Col.ChangeType" xml:space="preserve">
+    <value>Tipo de Cambio</value>
+  </data>
+  <data name="Col.ChangeReason" xml:space="preserve">
+    <value>Motivo del Cambio</value>
+  </data>
+  <data name="Opt.RootLevel" xml:space="preserve">
+    <value>Nivel raíz</value>
+  </data>
+  <data name="MD.Bop.QcRequired" xml:space="preserve">
+    <value>Verificación QC Requerida</value>
+  </data>
+  <data name="MD.Bop.ActiveFlag" xml:space="preserve">
+    <value>Activo (En Uso)</value>
+  </data>
+  <data name="Col.StepSeq" xml:space="preserve">
+    <value>Sec. Paso</value>
+  </data>
+  <data name="Btn.All" xml:space="preserve">
+    <value>Todos</value>
+  </data>
+  <data name="Lbl.Year" xml:space="preserve">
+    <value>Año</value>
+  </data>
+  <data name="Lbl.Min" xml:space="preserve">
+    <value>min</value>
+  </data>
+  <data name="Fmt.CalYearMonth" xml:space="preserve">
+    <value>{0}-{1:D2}</value>
+  </data>
+  <data name="MD.CommonCode.Title.ViewItems" xml:space="preserve">
+    <value>Ver ítems</value>
+  </data>
+  <data name="PP.LineSchedule.DragHint" xml:space="preserve">
+    <value>Arrastre en la línea de tiempo inferior para añadir una franja</value>
+  </data>
+  <data name="PP.LineSchedule.EscHint" xml:space="preserve">
+    <value>Presione Esc o clic derecho para cancelar la selección</value>
+  </data>
+  <data name="PP.LineSchedule.ClickHint" xml:space="preserve">
+    <value>Clic en una franja existente para eliminar</value>
+  </data>
+  <data name="PP.Calendar.WoTooltip.Line" xml:space="preserve">
+    <value>Línea</value>
+  </data>
+  <data name="PP.Calendar.WoTooltip.Order" xml:space="preserve">
+    <value>Pedido</value>
+  </data>
+  <data name="PP.Calendar.WoTooltip.Done" xml:space="preserve">
+    <value>Hecho</value>
+  </data>
+  <data name="SYS.Notifications.Ph.EventName" xml:space="preserve">
+    <value>Nombre visible del evento</value>
+  </data>
+  <data name="SYS.Notifications.Ph.Address" xml:space="preserve">
+    <value>Correo / Teléfono / URL Hook</value>
+  </data>
+  <data name="MD.InspStd.Kpi.Ctq" xml:space="preserve">
+    <value>Ítems CTQ</value>
+  </data>
+  <data name="MD.InspStd.CtqLabel" xml:space="preserve">
+    <value>CTQ (Crítico para la Calidad)</value>
+  </data>
+  <data name="MD.Mold.StoreLoc" xml:space="preserve">
+    <value>Ubicación de Almacenamiento</value>
+  </data>
+  <data name="MD.Oven.ZoneCount" xml:space="preserve">
+    <value>Recuento de Zonas</value>
+  </data>
+  <data name="MD.PackagingSpec.PillReturn" xml:space="preserve">
+    <value>Devolución</value>
+  </data>
+  <data name="MD.PaintFabric.LotNo" xml:space="preserve">
+    <value>N.º Lote</value>
+  </data>
+  <data name="MD.PmTemplate.Kpi.LoTo" xml:space="preserve">
+    <value>LOTO Requerido</value>
+  </data>
+  <data name="MD.ReasonCode.PillPlanned" xml:space="preserve">
+    <value>Planificado</value>
+  </data>
+  <data name="MD.ReasonCode.PillRequired" xml:space="preserve">
+    <value>Requerido</value>
+  </data>
+  <data name="MD.Uom.PillBase" xml:space="preserve">
+    <value>Base</value>
+  </data>
+  <data name="MD.Uom.BaseUnit" xml:space="preserve">
+    <value>Unidad Base</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Tl.Title" xml:space="preserve">
+    <value>Historial últimos 60 min (1 celda=1min)</value>
+  </data>
+  <data name="SYS.Users.Ph.Search" xml:space="preserve">
+    <value>ID Usuario/Correo/N.º Emp./Nombre/Depto</value>
+  </data>
+  <data name="SYS.Users.Lbl.Email" xml:space="preserve">
+    <value>Correo *</value>
+  </data>
+  <data name="SYS.Users.Ph.Email" xml:space="preserve">
+    <value>user@ames.local</value>
+  </data>
+  <data name="SYS.Users.Ph.EmployeeNo" xml:space="preserve">
+    <value>ej. EMP001</value>
+  </data>
+  <data name="SYS.Users.Hint.Unverified" xml:space="preserve">
+    <value>El estado de la cuenta no puede cambiarse antes de verificar el correo.</value>
+  </data>
+  <data name="Col.SubProcess" xml:space="preserve">
+    <value>Sub</value>
+  </data>
+  <data name="Col.CarType" xml:space="preserve">
+    <value>Tipo de Vehículo</value>
+  </data>
+  <data name="MD.Items.Kpi.Assy" xml:space="preserve">
+    <value>Ensamble (ASSY)</value>
+  </data>
+  <data name="MD.Items.Kpi.Sub" xml:space="preserve">
+    <value>Subpieza (SUB)</value>
+  </data>
+  <data name="MD.Items.Lbl.CarType" xml:space="preserve">
+    <value>Tipo de Vehículo</value>
+  </data>
+  <data name="MD.RfidTag.Ph.Search" xml:space="preserve">
+    <value>ID Etiqueta/EPC</value>
+  </data>
+  <data name="Modal.Create" xml:space="preserve">
+    <value>Crear</value>
+  </data>
+  <data name="Modal.Edit" xml:space="preserve">
+    <value>Editar</value>
+  </data>
+  <data name="Col.StepCount" xml:space="preserve">
+    <value>Recuento de pasos</value>
+  </data>
+  <data name="MD.Bop.CopyStep" xml:space="preserve">
+    <value>Copiar pasos</value>
+  </data>
+  <data name="MD.Bop.CopySource" xml:space="preserve">
+    <value>Ítem fuente</value>
+  </data>
+  <data name="MD.Bop.CopyHint" xml:space="preserve">
+    <value>Copiar pasos de un ítem con la misma ruta ({0})</value>
+  </data>
+  <data name="MD.Bop.CopyNoCandidates" xml:space="preserve">
+    <value>No hay ítem con la misma ruta para copiar</value>
+  </data>
+  <data name="MD.Bop.CopyConfirmOverwrite" xml:space="preserve">
+    <value>¿Eliminar los {0} paso(s) existentes y copiar?</value>
+  </data>
+  <data name="MD.Bop.CopyOk" xml:space="preserve">
+    <value>{0} paso(s) copiados</value>
+  </data>
+  <data name="MD.PmTemplate.Steps" xml:space="preserve">
+    <value>Pasos</value>
+  </data>
+  <data name="MD.PmTemplate.NoSteps" xml:space="preserve">
+    <value>Sin pasos de inspección.</value>
+  </data>
+  <data name="MD.PmTemplate.Err.StepDescRequired" xml:space="preserve">
+    <value>Ingrese la descripción del ítem de verificación.</value>
+  </data>
+  <data name="MD.ReasonCode.Ph.Description" xml:space="preserve">
+    <value>Descripción detallada del motivo</value>
+  </data>
+  <data name="SYS.Audit.Sect.Basic" xml:space="preserve">
+    <value>Información Básica</value>
+  </data>
+  <data name="SYS.Audit.Sect.Event" xml:space="preserve">
+    <value>Información del Evento</value>
+  </data>
+  <data name="SYS.Notifications.Lbl.NoChannels" xml:space="preserve">
+    <value>Sin canales</value>
+  </data>
+  <data name="SYS.Notifications.Lbl.NoRoles" xml:space="preserve">
+    <value>Sin roles</value>
+  </data>
+  <data name="MD.MoldItem.Title" xml:space="preserve">
+    <value>Maestro de Ítems de Molde</value>
+  </data>
+  <data name="MD.MoldItem.SelectHint" xml:space="preserve">
+    <value>Seleccione un molde a la izquierda</value>
+  </data>
+  <data name="MD.MoldLine.Title" xml:space="preserve">
+    <value>Maestro de Líneas de Molde</value>
+  </data>
+  <data name="MD.MoldLine.SelectHint" xml:space="preserve">
+    <value>Seleccione una línea a la izquierda</value>
+  </data>
+  <data name="Col.ShotsCumulative" xml:space="preserve">
+    <value>Σ Inyecciones</value>
+  </data>
+  <data name="Col.RefCode" xml:space="preserve">
+    <value>Código Ref</value>
+  </data>
+  <data name="Col.AssyInjResult" xml:space="preserve">
+    <value>Resultado Iny. Ensamble</value>
+  </data>
+  <data name="Col.Color" xml:space="preserve">
+    <value>Color</value>
+  </data>
+  <data name="Col.CavitySeq" xml:space="preserve">
+    <value>Sec. Cavidad</value>
+  </data>
+  <data name="Col.CavityPos" xml:space="preserve">
+    <value>Pos. Cavidad</value>
+  </data>
+  <data name="Col.Usage" xml:space="preserve">
+    <value>Uso</value>
+  </data>
+  <data name="Col.ResinItemNo" xml:space="preserve">
+    <value>Ítem de Resina</value>
+  </data>
+  <data name="Col.ResinUsage" xml:space="preserve">
+    <value>Uso de Resina</value>
+  </data>
+  <data name="Col.MoldCategory" xml:space="preserve">
+    <value>Categoría</value>
+  </data>
+  <data name="Col.UPH" xml:space="preserve">
+    <value>UPH</value>
+  </data>
+  <data name="Col.PrepTime" xml:space="preserve">
+    <value>Tiempo de Preparación</value>
+  </data>
+  <data name="Err.MoldInUse" xml:space="preserve">
+    <value>No se puede eliminar: usado por {0} ítem(s) y {1} asignación(es) de línea</value>
+  </data>
+  <data name="MD.Mold.Tab.Master" xml:space="preserve">
+    <value>Maestro de Moldes</value>
+  </data>
+  <data name="MD.LineTimePattern.Editor.Title" xml:space="preserve">
+    <value>Editor de franjas</value>
+  </data>
+  <data name="MD.LineTimePattern.Editor.SelectHint" xml:space="preserve">
+    <value>Seleccione un patrón de la lista para editar sus franjas</value>
+  </data>
+  <data name="MD.LineTimePattern.Lbl.BandType" xml:space="preserve">
+    <value>Tipo de Franja</value>
+  </data>
+  <data name="MD.LineTimePattern.Lbl.DownReason" xml:space="preserve">
+    <value>Motivo de Parada Planificada</value>
+  </data>
+  <data name="MD.LineTimePattern.Ph.DownDesc" xml:space="preserve">
+    <value>Ingrese la descripción del motivo</value>
+  </data>
+  <data name="MD.LineTimePattern.Err.ReasonRequired" xml:space="preserve">
+    <value>Seleccione un código de motivo de parada planificada.</value>
+  </data>
+  <data name="MD.LineTimePattern.Err.CommentRequired" xml:space="preserve">
+    <value>El motivo seleccionado requiere una descripción.</value>
+  </data>
+  <data name="MD.LineTimePattern.Lbl.ShiftPreset" xml:space="preserve">
+    <value>Preajuste de Turno</value>
+  </data>
+  <data name="MD.LineTimePattern.DragHint" xml:space="preserve">
+    <value>Arrastre en la línea de tiempo para dibujar una franja · clic para eliminar</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.Undo" xml:space="preserve">
+    <value>Deshacer</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.Clear" xml:space="preserve">
+    <value>Limpiar todo</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.EditBands" xml:space="preserve">
+    <value>Programa</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.Close" xml:space="preserve">
+    <value>Cerrar</value>
+  </data>
+  <data name="MD.LineTimePattern.Stat.Operating" xml:space="preserve">
+    <value>Operando {0}min</value>
+  </data>
+  <data name="MD.LineTimePattern.Stat.Down" xml:space="preserve">
+    <value>Sin operación {0}min</value>
+  </data>
+  <data name="MD.LineTimePattern.Stat.Segments" xml:space="preserve">
+    <value>{0} segmentos</value>
+  </data>
+  <data name="MD.LineTimePattern.Modal.DeleteBand" xml:space="preserve">
+    <value>Eliminar franja</value>
+  </data>
+  <data name="MD.LineTimePattern.Global" xml:space="preserve">
+    <value>Global</value>
+  </data>
+  <data name="MD.LineTimePattern.NoShiftTime" xml:space="preserve">
+    <value>Hora por defecto del turno no establecida</value>
+  </data>
+  <data name="Col.PatternName" xml:space="preserve">
+    <value>Nombre de Patrón</value>
+  </data>
+  <data name="MD.LineTimePattern.Col.Schedule" xml:space="preserve">
+    <value>Programa</value>
+  </data>
+  <data name="MD.LineTimePattern.Lbl.MinShort" xml:space="preserve">
+    <value>M</value>
+  </data>
+  <data name="MD.LineTimePattern.Unsaved" xml:space="preserve">
+    <value>Sin Guardar</value>
+  </data>
+  <data name="MD.LineTimePattern.Modal.CloseDirty" xml:space="preserve">
+    <value>Tiene cambios sin guardar. ¿Cerrar de todos modos?</value>
+  </data>
+  <data name="MD.LineTimePattern.Btn.DiscardClose" xml:space="preserve">
+    <value>Descartar</value>
+  </data>
+  <data name="MD.MoldItem.Empty" xml:space="preserve">
+    <value>Sin productos.</value>
+  </data>
+  <data name="MD.MoldLine.Ph.Search" xml:space="preserve">
+    <value>ID de Línea / Nombre de Línea</value>
+  </data>
+  <data name="Col.PGN" xml:space="preserve">
+    <value>PGN</value>
+  </data>
+  <data name="Col.ALC" xml:space="preserve">
+    <value>ALC</value>
+  </data>
+  <data name="MD.Mold.Ph.Color" xml:space="preserve">
+    <value>ej. BLK</value>
+  </data>
+  <data name="PP.LineSchedule.Hint.BandClick" xml:space="preserve">
+    <value>Clic para colocar una OT en esta ventana de operación</value>
+  </data>
+  <data name="PP.LineSchedule.Ok.BandPicked" xml:space="preserve">
+    <value>Ventana de operación {0}–{1} seleccionada — elija una OT y colóquela.</value>
+  </data>
+  <data name="PP.LineSchedule.Msg.SelectOperating" xml:space="preserve">
+    <value>Seleccione una franja de OPERACIÓN.</value>
+  </data>
+  <data name="PP.LineSchedule.Col.Label" xml:space="preserve">
+    <value>Etiqueta</value>
+  </data>
+  <data name="PP.Calendar.Kpi.Total" xml:space="preserve">
+    <value>TOTAL OT</value>
+  </data>
+  <data name="PP.Calendar.Kpi.InProg" xml:space="preserve">
+    <value>En Curso</value>
+  </data>
+  <data name="PP.Calendar.Detail.DDay" xml:space="preserve">
+    <value>Día D</value>
+  </data>
+  <data name="PP.Calendar.Status.Draft" xml:space="preserve">
+    <value>Borrador</value>
+  </data>
+  <data name="PP.Calendar.Status.Released" xml:space="preserve">
+    <value>Liberado</value>
+  </data>
+  <data name="PP.Calendar.Status.InProgress" xml:space="preserve">
+    <value>En Curso</value>
+  </data>
+  <data name="PP.Calendar.Status.Closed" xml:space="preserve">
+    <value>Cerrado</value>
+  </data>
+  <data name="PP.LineSchedule.Col.Wo" xml:space="preserve">
+    <value>OT</value>
+  </data>
+  <data name="PP.LineSchedule.Ok.Reset" xml:space="preserve">
+    <value>Programa restablecido.</value>
+  </data>
+  <data name="PP.LineSchedule.Confirm.Reset" xml:space="preserve">
+    <value>Esto elimina el programa guardado de esta línea/fecha y lo restablece. ¿Continuar?</value>
+  </data>
+  <data name="PP.LineSchedule.Err.PastDate" xml:space="preserve">
+    <value>Las fechas pasadas no pueden aplicarse ni publicarse</value>
+  </data>
+  <data name="MD.MoldLine.Empty" xml:space="preserve">
+    <value>No hay molde registrado para esta línea.</value>
+  </data>
+  <data name="Col.DefaultDisposition" xml:space="preserve">
+    <value>Disposición</value>
+  </data>
+  <data name="Col.DefaultCause" xml:space="preserve">
+    <value>Causa por Defecto</value>
+  </data>
+  <data name="Col.CauseNameEn" xml:space="preserve">
+    <value>Nombre de Causa (EN)</value>
+  </data>
+  <data name="PP.LineSchedule.Lgd.Pm" xml:space="preserve">
+    <value>Mantenimiento (PM)</value>
+  </data>
+  <data name="PP.LineSchedule.Btn.AddPm" xml:space="preserve">
+    <value>Añadir PM</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.AddTitle" xml:space="preserve">
+    <value>Añadir Franja de Mantenimiento (PM)</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.EditTitle" xml:space="preserve">
+    <value>Editar Franja de Mantenimiento (PM)</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.Ref" xml:space="preserve">
+    <value>PM Vinculado (vence)</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.RefPh" xml:space="preserve">
+    <value>Seleccionar mantenimiento preventivo MNT (opcional)</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.Name" xml:space="preserve">
+    <value>Nombre de Franja</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.NamePh" xml:space="preserve">
+    <value>ej. Revisión de molde, Inspección rutinaria</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.ListTitle" xml:space="preserve">
+    <value>Franjas de Mantenimiento (PM)</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.Empty" xml:space="preserve">
+    <value>Sin franjas PM registradas</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.Ok.Added" xml:space="preserve">
+    <value>Franja PM añadida</value>
+  </data>
+  <data name="PP.LineSchedule.Pm.Err.NoDur" xml:space="preserve">
+    <value>Ingrese una duración</value>
+  </data>
+  <data name="PP.LineSchedule.Msg.BandFull" xml:space="preserve">
+    <value>Esta franja de operación ya está llena.</value>
+  </data>
+</root>

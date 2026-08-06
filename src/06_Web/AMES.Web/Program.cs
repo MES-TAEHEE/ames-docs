@@ -223,8 +223,8 @@ var locOptions = new RequestLocalizationOptions
 {
     DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(culture: "ko-KR", uiCulture: "ko")
 };
-locOptions.AddSupportedCultures("ko-KR", "en-US");
-locOptions.AddSupportedUICultures("ko", "en");
+locOptions.AddSupportedCultures("ko-KR", "en-US", "es-MX", "es-ES");
+locOptions.AddSupportedUICultures("ko", "en", "es");
 // LANGUAGE_DEFAULT 비활성 시 en-US 강제(쿠키보다 우선) — 맨 앞에 삽입
 locOptions.RequestCultureProviders.Insert(0, new AMES.Web.Services.LanguageDefaultCultureProvider());
 app.UseRequestLocalization(locOptions);
