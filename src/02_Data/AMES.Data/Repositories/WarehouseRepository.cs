@@ -97,23 +97,30 @@ public sealed class WarehouseRepository
         decimal PickedBoxQty,
         decimal PickedQty,
         string? ReqUserId,
+        string? LineCode,
+        string? LineName,
         string? Loc01,
+        decimal Loc01Qty,
         string? Loc02,
+        decimal Loc02Qty,
         string? Loc03,
+        decimal Loc03Qty,
         string Status);
 
     public record PickingSlipCandidateRow(
+        DateTime ReqDate,
+        string LineCode,
+        string? LineName,
         string PartNo,
         string? PartName,
         string? Unit,
         decimal UnitPackQty,
-        decimal AvailableQty,
-        decimal AvailableBoxes,
-        string? Loc01,
-        string? Loc02,
-        string? Loc03);
+        decimal ReqQty,
+        decimal ReqBoxQty);
 
-    public record CreatePickingSlipLine(string PartNo, decimal ReqBoxQty);
+    public record CreatePickingSlipLine(string PartNo, string LineCode, decimal ReqBoxQty);
+
+    public record PickingSlipLineOption(string LineCode, string LineName);
 
     public record PartOptionRow(string PartNo);
 
@@ -805,7 +812,6 @@ public sealed class WarehouseRepository
                 SELECT
                     PICK_SLIPNO,
                     MAX(REQ_DATE) AS REQ_DATE,
-                    MAX(REQ_LOCATION) AS REQ_LOCATION,
                     MAX(REQ_USERID) AS REQ_USERID,
                     MAX(REQ_TIME) AS REQ_TIME,
                     MAX(PrintDate) AS PRINT_DATE,
@@ -818,11 +824,25 @@ public sealed class WarehouseRepository
                     MIN(ReleaseScheduleID) AS FIRST_ID
                 FROM Lines
                 GROUP BY PICK_SLIPNO
+            ),
+            LocationCounts AS
+            (
+                SELECT
+                    PICK_SLIPNO,
+                    REQ_LOCATION,
+                    COUNT(*) AS LINE_COUNT,
+                    ROW_NUMBER() OVER
+                    (
+                        PARTITION BY PICK_SLIPNO
+                        ORDER BY COUNT(*) DESC, REQ_LOCATION
+                    ) AS RN
+                FROM Lines
+                GROUP BY PICK_SLIPNO, REQ_LOCATION
             )
             SELECT
                 G.PICK_SLIPNO,
                 G.REQ_DATE,
-                G.REQ_LOCATION,
+                R.REQ_LOCATION,
                 G.REQ_USERID,
                 G.REQ_TIME,
                 G.PRINT_DATE,
@@ -838,13 +858,16 @@ public sealed class WarehouseRepository
                     ELSE N'Open'
                 END AS STATUS
             FROM Grouped G
+            INNER JOIN LocationCounts R
+                    ON R.PICK_SLIPNO = G.PICK_SLIPNO
+                   AND R.RN = 1
             LEFT JOIN Lines L
                    ON L.PICK_SLIPNO = G.PICK_SLIPNO
                   AND L.ReleaseScheduleID = G.FIRST_ID
             WHERE (@IncludeClosed = 1 OR G.CLOSED_LINES <> G.LINE_COUNT)
               AND (@Search IS NULL
                    OR G.PICK_SLIPNO LIKE @Search
-                   OR G.REQ_LOCATION LIKE @Search
+                   OR R.REQ_LOCATION LIKE @Search
                    OR G.REQ_USERID LIKE @Search
                    OR L.ItemNo LIKE @Search
                    OR L.ItemName LIKE @Search)
@@ -881,44 +904,56 @@ public sealed class WarehouseRepository
                     COALESCE(RS.DemandQty, 0) AS DemandQty,
                     COALESCE(RS.PickedQty, 0) AS PickedQty,
                     COALESCE(NULLIF(RS.ReqUserId, N''), RS.CreatedBy) AS RequestUserId,
+                    NULLIF(RS.ReqLocation, N'') AS LineCode,
+                    COALESCE(ML.LineName, NULLIF(RS.ReqLocation, N'')) AS LineName,
                     RS.Status
                 FROM dbo.WH_ReleaseSchedule RS
                 LEFT JOIN dbo.MD_Item I
                        ON I.ItemNo = RS.ItemNo
+                LEFT JOIN dbo.MD_Line ML
+                       ON ML.LineID = RS.ReqLocation
                 WHERE COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID)) = @PickSlipNo
             ),
-            RankedLocations AS
+            PickedPhysical AS
+            (
+                SELECT P.ReleaseScheduleID, SUM(COALESCE(P.PickedQty, 0)) AS PickedQty
+                FROM dbo.WH_ReleasePicking P
+                INNER JOIN Base B
+                        ON B.ReleaseScheduleID = P.ReleaseScheduleID
+                GROUP BY P.ReleaseScheduleID
+            ),
+            AllocationLocations AS
             (
                 SELECT
-                    W.ItemNo,
-                    CONCAT(COALESCE(NULLIF(ML.ZoneCode, N''), N'-'), N'|', W.LocationID) AS LocationLabel,
+                    A.ReleaseScheduleID,
+                    CONCAT(COALESCE(NULLIF(ML.ZoneCode, N''), N'-'), N'|', A.LocationID) AS LocationLabel,
+                    SUM(A.AllocatedQty) AS AllocatedQty,
                     ROW_NUMBER() OVER
                     (
-                        PARTITION BY W.ItemNo
-                        ORDER BY COALESCE(W.LastReceivedAt, L.ProducedAt, CONVERT(datetime2, '9999-12-31')),
-                                 W.LocationID,
-                                 L.LotCode
+                        PARTITION BY A.ReleaseScheduleID
+                        ORDER BY MIN(COALESCE(A.ProductionDate, CONVERT(datetime2, '9999-12-31'))),
+                                 A.LocationID
                     ) AS RN
-                FROM dbo.WH_Inventory W
-                LEFT JOIN dbo.tbl_Lot L
-                       ON L.LotID = W.LotID
+                FROM dbo.WH_ReleasePickAllocation A
                 LEFT JOIN dbo.MD_Location ML
-                       ON ML.LocationID = W.LocationID
+                       ON ML.LocationID = A.LocationID
                 INNER JOIN Base B
-                        ON B.ItemNo = W.ItemNo
-                WHERE COALESCE(W.OnHandQty, 0) > 0
-                  AND UPPER(COALESCE(W.Status, N'RECEIVED')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
+                        ON B.ReleaseScheduleID = A.ReleaseScheduleID
+                GROUP BY A.ReleaseScheduleID, A.LocationID, ML.ZoneCode
             ),
             Locations AS
             (
                 SELECT
-                    ItemNo,
+                    ReleaseScheduleID,
                     MAX(CASE WHEN RN = 1 THEN LocationLabel END) AS LOC_01,
+                    MAX(CASE WHEN RN = 1 THEN AllocatedQty END) AS LOC_01_QTY,
                     MAX(CASE WHEN RN = 2 THEN LocationLabel END) AS LOC_02,
-                    MAX(CASE WHEN RN = 3 THEN LocationLabel END) AS LOC_03
-                FROM RankedLocations
+                    MAX(CASE WHEN RN = 2 THEN AllocatedQty END) AS LOC_02_QTY,
+                    MAX(CASE WHEN RN = 3 THEN LocationLabel END) AS LOC_03,
+                    MAX(CASE WHEN RN = 3 THEN AllocatedQty END) AS LOC_03_QTY
+                FROM AllocationLocations
                 WHERE RN <= 3
-                GROUP BY ItemNo
+                GROUP BY ReleaseScheduleID
             )
             SELECT
                 B.PICK_SLIPNO,
@@ -927,11 +962,16 @@ public sealed class WarehouseRepository
                 B.ItemName AS PARTNM,
                 B.DemandQty AS REQ_BOX_QTY,
                 B.PickedQty AS PICKED_BOX_QTY,
-                B.PickedQty AS PICKED_QTY,
+                COALESCE(P.PickedQty, 0) AS PICKED_QTY,
                 B.RequestUserId AS REQ_USERID,
+                B.LineCode AS LINECD,
+                B.LineName AS LINENM,
                 L.LOC_01,
+                COALESCE(L.LOC_01_QTY, 0) AS LOC_01_QTY,
                 L.LOC_02,
+                COALESCE(L.LOC_02_QTY, 0) AS LOC_02_QTY,
                 L.LOC_03,
+                COALESCE(L.LOC_03_QTY, 0) AS LOC_03_QTY,
                 CASE
                     WHEN UPPER(COALESCE(B.Status, 'OPEN')) IN ('CLOSED', 'CANCELED') THEN N'Closed'
                     WHEN B.DemandQty > 0 AND B.PickedQty >= B.DemandQty THEN N'Picked'
@@ -939,8 +979,10 @@ public sealed class WarehouseRepository
                     ELSE N'Open'
                 END AS STATUS
             FROM Base B
+            LEFT JOIN PickedPhysical P
+                   ON P.ReleaseScheduleID = B.ReleaseScheduleID
             LEFT JOIN Locations L
-                   ON L.ItemNo = B.ItemNo
+                   ON L.ReleaseScheduleID = B.ReleaseScheduleID
             ORDER BY B.SEQNO, B.ReleaseScheduleID;
             """, r => new PickingSlipLineRow(
                 GetString(r, "PICK_SLIPNO") ?? pickSlipNo,
@@ -951,102 +993,120 @@ public sealed class WarehouseRepository
                 GetDecimal(r, "PICKED_BOX_QTY"),
                 GetDecimal(r, "PICKED_QTY"),
                 GetString(r, "REQ_USERID"),
+                GetString(r, "LINECD"),
+                GetString(r, "LINENM"),
                 GetString(r, "LOC_01"),
+                GetDecimal(r, "LOC_01_QTY"),
                 GetString(r, "LOC_02"),
+                GetDecimal(r, "LOC_02_QTY"),
                 GetString(r, "LOC_03"),
+                GetDecimal(r, "LOC_03_QTY"),
                 GetString(r, "STATUS") ?? "Open"),
             ("@PickSlipNo", pickSlipNo.Trim()));
     }
 
-    public List<PickingSlipCandidateRow> ListPickingSlipCandidates(string? search = null)
+    public List<PickingSlipCandidateRow> ListPickingSlipCandidates(DateTime reqDate, string? lineCode = null, string? partNo = null)
     {
-        EnsureReleaseSchedulePickingSlipColumns();
-        var like = Like(search);
+        var like = Like(partNo);
         return Query("""
-            ;WITH Items AS
+            ;WITH ReservationDemand AS
             (
-                SELECT TOP (500)
-                    I.ItemNo,
-                    I.ItemName,
-                    I.DefaultUOM,
-                    COALESCE(NULLIF(MAX(COALESCE(P.QtyPerInner, 0)), 0), 1) AS UnitPackQty
-                FROM dbo.MD_Item I
+                SELECT
+                    CONVERT(date, R.RequiredAt) AS REQ_DATE,
+                    COALESCE(NULLIF(W.LineID, N''), N'-') AS LINECD,
+                    COALESCE(L.LineName, NULLIF(W.LineID, N''), N'-') AS LINENM,
+                    R.ItemNo AS PARTNO,
+                    COALESCE(I.ItemName, R.ItemNo) AS PARTNM,
+                    I.DefaultUOM AS UNIT,
+                    COALESCE(NULLIF(MAX(COALESCE(P.QtyPerInner, 0)), 0), 1) AS UNIT_PACK_QTY,
+                    SUM(COALESCE(R.RequiredQty, 0)) AS REQ_QTY
+                FROM dbo.PP_MaterialReservation R
+                INNER JOIN dbo.PP_WorkOrder W
+                        ON W.WoID = R.WoID
+                LEFT JOIN dbo.MD_Line L
+                       ON L.LineID = W.LineID
+                LEFT JOIN dbo.MD_Item I
+                       ON I.ItemNo = R.ItemNo
                 LEFT JOIN dbo.MD_PackagingSpec P
-                       ON P.ItemID = I.ItemNo
+                       ON P.ItemID = R.ItemNo
                       AND COALESCE(P.ActiveFlag, 1) = 1
-                WHERE COALESCE(I.ActiveFlag, 1) = 1
-                  AND (@Search IS NULL
-                       OR I.ItemNo LIKE @Search
-                       OR I.ItemName LIKE @Search
-                       OR I.CarType LIKE @Search)
-                GROUP BY I.ItemNo, I.ItemName, I.DefaultUOM
-                ORDER BY I.ItemNo
+                WHERE CONVERT(date, R.RequiredAt) = @ReqDate
+                  AND UPPER(COALESCE(R.Status, N'OPEN')) NOT IN (N'CANCELED', N'CLOSED')
+                  AND (@LineCode IS NULL OR W.LineID = @LineCode)
+                  AND (@PartNo IS NULL
+                       OR R.ItemNo LIKE @PartNo
+                       OR I.ItemName LIKE @PartNo)
+                GROUP BY CONVERT(date, R.RequiredAt), W.LineID, L.LineName, R.ItemNo, I.ItemName, I.DefaultUOM
             ),
-            RankedLocations AS
+            ScheduledDemand AS
             (
                 SELECT
-                    W.ItemNo,
-                    CONCAT(COALESCE(NULLIF(ML.ZoneCode, N''), N'-'), N'|', W.LocationID) AS LocationLabel,
-                    ROW_NUMBER() OVER
-                    (
-                        PARTITION BY W.ItemNo
-                        ORDER BY COALESCE(W.LastReceivedAt, L.ProducedAt, CONVERT(datetime2, '9999-12-31')),
-                                 W.LocationID,
-                                 L.LotCode
-                    ) AS RN,
-                    COALESCE(W.OnHandQty, 0) AS OnHandQty
-                FROM dbo.WH_Inventory W
-                LEFT JOIN dbo.tbl_Lot L
-                       ON L.LotID = W.LotID
-                LEFT JOIN dbo.MD_Location ML
-                       ON ML.LocationID = W.LocationID
-                WHERE COALESCE(W.OnHandQty, 0) > 0
-                  AND UPPER(COALESCE(W.Status, N'RECEIVED')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
+                    CONVERT(date, RS.RequiredAt) AS REQ_DATE,
+                    COALESCE(NULLIF(RS.ReqLocation, N''), N'-') AS LINECD,
+                    COALESCE(ML.LineName, NULLIF(RS.ReqLocation, N''), N'-') AS LINENM,
+                    RS.ItemNo AS PARTNO,
+                    COALESCE(I.ItemName, RS.ItemNo) AS PARTNM,
+                    I.DefaultUOM AS UNIT,
+                    CAST(1 AS decimal(14, 3)) AS UNIT_PACK_QTY,
+                    SUM(COALESCE(RS.DemandQty, 0)) AS REQ_QTY
+                FROM dbo.WH_ReleaseSchedule RS
+                LEFT JOIN dbo.MD_Line ML
+                       ON ML.LineID = RS.ReqLocation
+                LEFT JOIN dbo.MD_Item I
+                       ON I.ItemNo = RS.ItemNo
+                WHERE CONVERT(date, RS.RequiredAt) = @ReqDate
+                  AND UPPER(COALESCE(RS.Status, N'OPEN')) NOT IN (N'CANCELED', N'CLOSED')
+                GROUP BY CONVERT(date, RS.RequiredAt), RS.ReqLocation, ML.LineName, RS.ItemNo, I.ItemName, I.DefaultUOM
             ),
-            Qty AS
+            Demand AS
             (
-                SELECT ItemNo, SUM(OnHandQty) AS AvailableQty
-                FROM RankedLocations
-                GROUP BY ItemNo
-            ),
-            Locations AS
-            (
-                SELECT
-                    ItemNo,
-                    MAX(CASE WHEN RN = 1 THEN LocationLabel END) AS LOC_01,
-                    MAX(CASE WHEN RN = 2 THEN LocationLabel END) AS LOC_02,
-                    MAX(CASE WHEN RN = 3 THEN LocationLabel END) AS LOC_03
-                FROM RankedLocations
-                WHERE RN <= 3
-                GROUP BY ItemNo
+                SELECT * FROM ReservationDemand
+                UNION ALL
+                SELECT * FROM ScheduledDemand
+                WHERE NOT EXISTS (SELECT 1 FROM ReservationDemand)
             )
-            SELECT
-                I.ItemNo AS PARTNO,
-                I.ItemName AS PARTNM,
-                I.DefaultUOM AS UNIT,
-                I.UnitPackQty AS UNIT_PACK_QTY,
-                COALESCE(Q.AvailableQty, 0) AS AVAILABLE_QTY,
-                CASE WHEN I.UnitPackQty > 0 THEN CEILING(COALESCE(Q.AvailableQty, 0) / I.UnitPackQty) ELSE 0 END AS AVAILABLE_BOXES,
-                L.LOC_01,
-                L.LOC_02,
-                L.LOC_03
-            FROM Items I
-            LEFT JOIN Qty Q
-                   ON Q.ItemNo = I.ItemNo
-            LEFT JOIN Locations L
-                   ON L.ItemNo = I.ItemNo
-            ORDER BY I.ItemNo;
+            SELECT TOP (500)
+                REQ_DATE,
+                LINECD,
+                LINENM,
+                PARTNO,
+                PARTNM,
+                UNIT,
+                UNIT_PACK_QTY,
+                REQ_QTY,
+                CEILING(REQ_QTY / NULLIF(UNIT_PACK_QTY, 0)) AS REQ_BOX_QTY
+            FROM Demand
+            WHERE REQ_QTY > 0
+              AND (@LineCode IS NULL OR LINECD = @LineCode)
+              AND (@PartNo IS NULL
+                   OR PARTNO LIKE @PartNo
+                   OR PARTNM LIKE @PartNo)
+            ORDER BY LINECD, PARTNO;
             """, r => new PickingSlipCandidateRow(
+                GetDateTime(r, "REQ_DATE") ?? reqDate.Date,
+                GetString(r, "LINECD") ?? "-",
+                GetString(r, "LINENM"),
                 GetString(r, "PARTNO") ?? "",
                 GetString(r, "PARTNM"),
                 GetString(r, "UNIT"),
                 GetDecimal(r, "UNIT_PACK_QTY"),
-                GetDecimal(r, "AVAILABLE_QTY"),
-                GetDecimal(r, "AVAILABLE_BOXES"),
-                GetString(r, "LOC_01"),
-                GetString(r, "LOC_02"),
-                GetString(r, "LOC_03")),
-            ("@Search", like));
+                GetDecimal(r, "REQ_QTY"),
+                GetDecimal(r, "REQ_BOX_QTY")),
+            ("@ReqDate", reqDate.Date),
+            ("@LineCode", NullIfBlank(lineCode)),
+            ("@PartNo", like));
+    }
+
+    public List<PickingSlipLineOption> ListPickingSlipLineOptions()
+    {
+        return Query("""
+            SELECT LineID AS LINECD, COALESCE(NULLIF(LineName, N''), LineID) AS LINENM
+            FROM dbo.MD_Line
+            WHERE UPPER(COALESCE(Status, N'ACTIVE')) NOT IN (N'INACTIVE', N'CLOSED')
+            ORDER BY LineID;
+            """, r => new PickingSlipLineOption(
+                GetString(r, "LINECD") ?? "",
+                GetString(r, "LINENM") ?? GetString(r, "LINECD") ?? ""));
     }
 
     public string InsertPickingOrderLine(
@@ -1059,13 +1119,12 @@ public sealed class WarehouseRepository
         string reqUserId)
     {
         var requiredAt = DateTime.TryParse(reqDate, out var parsedDate) ? parsedDate.Date : DateTime.Today;
-        var slip = CreatePickingSlip(requiredAt, reqLocation, reqUserId, new[] { new CreatePickingSlipLine(partNo, reqBoxQty) }, pickSlipNo);
+        var slip = CreatePickingSlip(requiredAt, reqUserId, new[] { new CreatePickingSlipLine(partNo, reqLocation, reqBoxQty) }, pickSlipNo);
         return slip;
     }
 
     public string CreatePickingSlip(
         DateTime reqDate,
-        string reqLocation,
         string reqUserId,
         IEnumerable<CreatePickingSlipLine> lines,
         string? requestedPickSlipNo = null)
@@ -1073,13 +1132,14 @@ public sealed class WarehouseRepository
         EnsureReleaseSchedulePickingSlipColumns();
 
         var cleanLines = lines
-            .Where(l => !string.IsNullOrWhiteSpace(l.PartNo) && l.ReqBoxQty > 0)
-            .Select(l => new CreatePickingSlipLine(Truncate(l.PartNo.Trim().ToUpperInvariant(), 20), l.ReqBoxQty))
+            .Where(l => !string.IsNullOrWhiteSpace(l.PartNo) && !string.IsNullOrWhiteSpace(l.LineCode) && l.ReqBoxQty > 0)
+            .Select(l => new CreatePickingSlipLine(
+                Truncate(l.PartNo.Trim().ToUpperInvariant(), 20),
+                Truncate(l.LineCode.Trim().ToUpperInvariant(), 40),
+                l.ReqBoxQty))
             .ToList();
         if (cleanLines.Count == 0)
             throw new InvalidOperationException("At least one requested line is required.");
-        if (string.IsNullOrWhiteSpace(reqLocation))
-            throw new InvalidOperationException("Request Location is required.");
 
         using var conn = _factory.OpenConnection();
         using var tx = conn.BeginTransaction();
@@ -1104,16 +1164,18 @@ public sealed class WarehouseRepository
                         (@PickSlipNo, @ReqLocation, @ReqSeqNo, @ReqUserId,
                          @PartNo, @ReqBoxQty, 0, @RequiredAt, @Priority, 'Open',
                          @ReqUserId, SYSDATETIME());
+                    SELECT CAST(SCOPE_IDENTITY() AS int);
                     """, conn, tx);
                 cmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo;
-                cmd.Parameters.Add("@ReqLocation", SqlDbType.NVarChar, 40).Value = Truncate(reqLocation.Trim(), 40);
+                cmd.Parameters.Add("@ReqLocation", SqlDbType.NVarChar, 40).Value = line.LineCode;
                 cmd.Parameters.Add("@ReqSeqNo", SqlDbType.Int).Value = seq;
                 cmd.Parameters.Add("@ReqUserId", SqlDbType.NVarChar, 80).Value = Truncate(reqUserId, 80);
                 cmd.Parameters.Add("@PartNo", SqlDbType.VarChar, 20).Value = line.PartNo;
                 AddQtyDecimal(cmd, "@ReqBoxQty", line.ReqBoxQty);
                 cmd.Parameters.Add("@RequiredAt", SqlDbType.DateTime2).Value = reqDate.Date;
                 cmd.Parameters.Add("@Priority", SqlDbType.TinyInt).Value = Math.Clamp(seq, 1, 9);
-                cmd.ExecuteNonQuery();
+                var releaseScheduleId = Convert.ToInt32(cmd.ExecuteScalar());
+                BuildPickAllocations(conn, tx, pickSlipNo, releaseScheduleId, line.PartNo, line.ReqBoxQty, reqUserId);
                 seq++;
             }
 
@@ -1126,7 +1188,7 @@ public sealed class WarehouseRepository
                 $"Created picking slip {pickSlipNo} with {cleanLines.Count} line(s).",
                 "PICK_SLIP",
                 pickSlipNo,
-                reqLocation,
+                string.Join(", ", cleanLines.Select(l => l.LineCode).Distinct(StringComparer.OrdinalIgnoreCase)),
                 "SUCCESS");
             return pickSlipNo;
         }
@@ -1135,6 +1197,82 @@ public sealed class WarehouseRepository
             tx.Rollback();
             throw;
         }
+    }
+
+    private static void BuildPickAllocations(
+        SqlConnection conn,
+        SqlTransaction tx,
+        string pickSlipNo,
+        int releaseScheduleId,
+        string itemNo,
+        decimal requestedBoxQty,
+        string createdBy)
+    {
+        decimal remainingBoxes = requestedBoxQty;
+        var allocationSeq = 1;
+
+        using var source = new SqlCommand("""
+            SELECT
+                W.LotID,
+                W.LocationID,
+                L.LotCode,
+                L.ProducedAt,
+                COALESCE(W.OnHandQty, 0) AS OnHandQty
+            FROM dbo.WH_Inventory W
+            INNER JOIN dbo.tbl_Lot L
+                    ON L.LotID = W.LotID
+            WHERE W.ItemNo = @ItemNo
+              AND COALESCE(W.OnHandQty, 0) > 0
+              AND UPPER(COALESCE(W.Status, 'RECEIVED')) NOT IN ('CANCELED', 'RELEASED', 'PICKED')
+            ORDER BY COALESCE(L.ProducedAt, CONVERT(datetime2, '9999-12-31')),
+                     W.LocationID,
+                     L.LotCode;
+            """, conn, tx);
+        source.Parameters.Add("@ItemNo", SqlDbType.VarChar, 20).Value = itemNo;
+
+        using var reader = source.ExecuteReader();
+        var allocations = new List<(int LotId, string LocationId, string LotNo, DateTime? ProductionDate, decimal Qty)>();
+        while (reader.Read() && remainingBoxes > 0)
+        {
+            var available = reader.GetDecimal(reader.GetOrdinal("OnHandQty"));
+            if (available <= 0) continue;
+
+            allocations.Add((
+                reader.GetInt32(reader.GetOrdinal("LotID")),
+                reader.GetString(reader.GetOrdinal("LocationID")),
+                reader.GetString(reader.GetOrdinal("LotCode")),
+                reader.IsDBNull(reader.GetOrdinal("ProducedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("ProducedAt")),
+                available));
+            remainingBoxes -= 1;
+        }
+        reader.Close();
+
+        foreach (var allocation in allocations)
+        {
+            using var insert = new SqlCommand("""
+                INSERT INTO dbo.WH_ReleasePickAllocation
+                    (PickSlipNo, ReleaseScheduleID, ItemNo, AllocationSeq, LocationID, LotID, LotNo,
+                     ProductionDate, AllocatedQty, AllocatedBoxQty, PickedQty, PickedBoxQty, Status, CreatedBy)
+                VALUES
+                    (@PickSlipNo, @ReleaseScheduleID, @ItemNo, @AllocationSeq, @LocationID, @LotID, @LotNo,
+                     @ProductionDate, @AllocatedQty, 1, 0, 0, 'Open', @CreatedBy);
+                """, conn, tx);
+            insert.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo;
+            insert.Parameters.Add("@ReleaseScheduleID", SqlDbType.Int).Value = releaseScheduleId;
+            insert.Parameters.Add("@ItemNo", SqlDbType.VarChar, 20).Value = itemNo;
+            insert.Parameters.Add("@AllocationSeq", SqlDbType.Int).Value = allocationSeq++;
+            insert.Parameters.Add("@LocationID", SqlDbType.VarChar, 20).Value = allocation.LocationId;
+            insert.Parameters.Add("@LotID", SqlDbType.Int).Value = allocation.LotId;
+            insert.Parameters.Add("@LotNo", SqlDbType.VarChar, 50).Value = allocation.LotNo;
+            insert.Parameters.Add("@ProductionDate", SqlDbType.DateTime2).Value = (object?)allocation.ProductionDate ?? DBNull.Value;
+            AddQtyDecimal(insert, "@AllocatedQty", allocation.Qty);
+            insert.Parameters.Add("@CreatedBy", SqlDbType.NVarChar, 80).Value = Truncate(createdBy, 80);
+            insert.ExecuteNonQuery();
+        }
+
+        // A pick slip is a request, not a physical-pick completion.  Keep the
+        // FIFO allocations that exist and let the printout show the remaining
+        // locations as Shortage instead of cancelling the whole request.
     }
 
     public void MarkPickingSlipPrinted(string pickSlipNo, string printedBy)
@@ -1160,6 +1298,38 @@ public sealed class WarehouseRepository
             printedBy,
             printedBy,
             $"Printed picking slip {pickSlipNo}.",
+            "PICK_SLIP",
+            pickSlipNo,
+            null,
+            "SUCCESS");
+    }
+
+    public void ClosePickingSlip(string pickSlipNo, string closedBy)
+    {
+        EnsureReleaseSchedulePickingSlipColumns();
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            UPDATE dbo.WH_ReleaseSchedule
+               SET Status = 'Closed',
+                   CloseDate = SYSDATETIME(),
+                   CloseUserId = @ClosedBy,
+                   ModifiedBy = @ClosedBy,
+                   ModifiedTS = SYSDATETIME()
+             WHERE COALESCE(NULLIF(PickSlipNo, N''), CONCAT(N'RS-', ReleaseScheduleID)) = @PickSlipNo
+               AND UPPER(COALESCE(Status, 'OPEN')) <> 'CLOSED';
+            """, conn);
+        cmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo.Trim();
+        cmd.Parameters.Add("@ClosedBy", SqlDbType.NVarChar, 80).Value = Truncate(closedBy, 80);
+        var changed = cmd.ExecuteNonQuery();
+        if (changed == 0)
+            throw new InvalidOperationException("Pick Slip was not found or is already closed.");
+
+        TryWriteWebOperationLog(
+            "PICK_SLIP_CLOSE",
+            "WH-002",
+            closedBy,
+            closedBy,
+            $"Closed picking slip {pickSlipNo}.",
             "PICK_SLIP",
             pickSlipNo,
             null,
@@ -1889,11 +2059,59 @@ public sealed class WarehouseRepository
 
             IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.WH_ReleaseSchedule') AND name = N'IX_WH_ReleaseSchedule_PickSlipNo')
                 CREATE INDEX IX_WH_ReleaseSchedule_PickSlipNo ON dbo.WH_ReleaseSchedule (PickSlipNo, ReqSeqNo, ReleaseScheduleID);
+
+            IF OBJECT_ID(N'dbo.WH_ReleasePickAllocation', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.WH_ReleasePickAllocation
+                (
+                    PickAllocationID int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    PickSlipNo nvarchar(40) NOT NULL,
+                    ReleaseScheduleID int NOT NULL,
+                    ItemNo varchar(20) NOT NULL,
+                    AllocationSeq int NOT NULL,
+                    LocationID varchar(20) NOT NULL,
+                    LotID int NOT NULL,
+                    LotNo varchar(50) NOT NULL,
+                    ProductionDate datetime2 NULL,
+                    AllocatedQty decimal(14,3) NOT NULL,
+                    AllocatedBoxQty decimal(14,3) NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_AllocatedBoxQty DEFAULT (1),
+                    PickedQty decimal(14,3) NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_PickedQty DEFAULT (0),
+                    PickedBoxQty decimal(14,3) NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_PickedBoxQty DEFAULT (0),
+                    Status varchar(20) NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_Status DEFAULT ('Open'),
+                    CreatedBy nvarchar(80) NULL,
+                    CreatedTS datetime2 NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_CreatedTS DEFAULT (SYSDATETIME()),
+                    ModifiedBy nvarchar(80) NULL,
+                    ModifiedTS datetime2 NULL,
+                    CONSTRAINT UQ_WH_ReleasePickAllocation_Lot UNIQUE (ReleaseScheduleID, LotID)
+                );
+
+                CREATE INDEX IX_WH_ReleasePickAllocation_Slip
+                    ON dbo.WH_ReleasePickAllocation (PickSlipNo, ReleaseScheduleID, AllocationSeq);
+            END;
+
+            IF COL_LENGTH(N'dbo.WH_ReleasePickAllocation', N'AllocatedBoxQty') IS NULL
+                ALTER TABLE dbo.WH_ReleasePickAllocation
+                    ADD AllocatedBoxQty decimal(14,3) NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_AllocatedBoxQty_Existing DEFAULT (1);
+
+            IF COL_LENGTH(N'dbo.WH_ReleasePickAllocation', N'PickedBoxQty') IS NULL
+                ALTER TABLE dbo.WH_ReleasePickAllocation
+                    ADD PickedBoxQty decimal(14,3) NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_PickedBoxQty_Existing DEFAULT (0);
+
             """, conn)
         {
             CommandTimeout = 15
         };
         cmd.ExecuteNonQuery();
+
+        using var backfill = new SqlCommand("""
+            UPDATE dbo.WH_ReleasePickAllocation
+               SET AllocatedBoxQty = 1
+             WHERE COALESCE(AllocatedBoxQty, 0) = 0;
+            """, conn)
+        {
+            CommandTimeout = 15
+        };
+        backfill.ExecuteNonQuery();
     }
 
     private static bool PickSlipExists(SqlConnection conn, SqlTransaction tx, string pickSlipNo)
