@@ -36,3 +36,6 @@ src/04_Api/AMES.Api/logs/ames-api-release.out.log
 
 # InjAgent File-mode label output (dev)
 labels/
+
+tmp_ames_api.log
+tmp_ames_web.log

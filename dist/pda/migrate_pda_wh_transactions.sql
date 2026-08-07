@@ -223,7 +223,7 @@ BEGIN
 
     DECLARE @Search nvarchar(120) = NULLIF(LTRIM(RTRIM(@SearchText)), N'');
     DECLARE @Like nvarchar(130) = CASE WHEN @Search IS NULL THEN NULL ELSE N'%' + @Search + N'%' END;
-    DECLARE @From date = COALESCE(@DateFrom, DATEADD(day, -7, CONVERT(date, SYSDATETIME())));
+    DECLARE @From date = COALESCE(@DateFrom, DATEADD(day, -30, CONVERT(date, SYSDATETIME())));
     DECLARE @To date = COALESCE(@DateTo, CONVERT(date, SYSDATETIME()));
 
     SELECT TOP (200)

@@ -11,29 +11,6 @@
 <PageTitle>Picking Orders - AMES</PageTitle>
 <AmesPageHeader Code="WH-002" Title="Picking Orders" />
 
-<div class="ames-kpis">
-    <div class="ames-kpi">
-        <div class="ames-kpi-l">Pick Slips</div>
-        <div class="ames-kpi-v">@_slips.Count</div>
-        <div class="ames-kpi-s">created slips</div>
-    </div>
-    <div class="ames-kpi ok">
-        <div class="ames-kpi-l">Open</div>
-        <div class="ames-kpi-v">@_slips.Count(r => r.Status == "Open")</div>
-        <div class="ames-kpi-s">ready to pick</div>
-    </div>
-    <div class="ames-kpi warn">
-        <div class="ames-kpi-l">Partial</div>
-        <div class="ames-kpi-v">@_slips.Count(r => r.Status == "Partial")</div>
-        <div class="ames-kpi-s">in progress</div>
-    </div>
-    <div class="ames-kpi">
-        <div class="ames-kpi-l">Lines</div>
-        <div class="ames-kpi-v">@_slips.Sum(r => r.LineCount)</div>
-        <div class="ames-kpi-s">request lines</div>
-    </div>
-</div>
-
 @if (!string.IsNullOrWhiteSpace(_msg))
 {
     <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
@@ -51,24 +28,28 @@
             <div class="ames-fld">
                 <label>Request Date</label>
                 <RadzenDatePicker @bind-Value="_reqDate" DateFormat="yyyy-MM-dd"
+                                  Change="@(_ => LoadCandidates())"
                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </div>
             <div class="ames-fld">
-                <label>Request Location</label>
-                <RadzenDropDown @bind-Value="_reqLocation"
-                                Data="@_locationOptions"
+                <label>Line Code</label>
+                <RadzenDropDown @bind-Value="_lineCode"
+                                Data="@_lineOptions"
                                 TextProperty="Text"
                                 ValueProperty="Value"
                                 AllowFiltering="true"
                                 AllowClear="true"
-                                Placeholder="Select location"
+                                Placeholder="All lines"
+                                Change="@(_ => LoadCandidates())"
                                 InputSize="InputSize.Small"
                                 class="ames-rz-input"
                                 Style="width:100%;" />
             </div>
             <div class="ames-fld">
-                <label>Requester</label>
-                <RadzenTextBox @bind-Value="_actor" AutoComplete="false"
+                <label>Part No</label>
+                <RadzenTextBox @bind-Value="_candidateSearch" AutoComplete="false"
+                               Placeholder="Part No or name"
+                               @onkeydown='e => { if (e.Key == "Enter") LoadCandidates(); }'
                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </div>
         </div>
@@ -76,46 +57,57 @@
         <div class="wh-pick-section-title">
             <span>Material Requirement</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem">
-                <RadzenTextBox @bind-Value="_candidateSearch" Placeholder="Part or name"
-                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:190px;"
-                               AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") LoadCandidates(); }' />
                 <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small"
                               Click="@LoadCandidates" class="ames-rz-btn" />
             </RadzenStack>
         </div>
 
-        <RadzenDataGrid TItem="CandidateUi"
-                        Data="@_candidates"
-                        AllowPaging="true"
-                        PageSize="6"
-                        AllowSorting="true"
-                        EmptyText="No material candidates found."
-                        Class="ames-rz-grid wh-pick-candidate-grid">
-            <Columns>
-                <RadzenDataGridColumn TItem="CandidateUi" Property="PartNo" Title="Part No" Width="135px">
-                    <Template Context="c"><span class="code">@c.PartNo</span></Template>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="CandidateUi" Property="PartName" Title="Part Name" />
-                <RadzenDataGridColumn TItem="CandidateUi" Property="UnitPackQty" Title="Unit Pack" Width="95px" TextAlign="TextAlign.Right">
-                    <Template Context="c">@Qty(c.UnitPackQty) @(c.Unit ?? "")</Template>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="CandidateUi" Property="AvailableQty" Title="Stock" Width="90px" TextAlign="TextAlign.Right">
-                    <Template Context="c">@Qty(c.AvailableQty)</Template>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="CandidateUi" Title="Req Box" Width="95px" TextAlign="TextAlign.Right">
-                    <Template Context="c">
-                        <RadzenNumeric TValue="decimal" @bind-Value="c.RequestBoxes" Min="1" Step="1"
-                                       InputSize="InputSize.Small" class="ames-rz-input wh-pick-qty-input" />
-                    </Template>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="CandidateUi" Title="" Width="72px" Sortable="false" TextAlign="TextAlign.Center">
-                    <Template Context="c">
-                        <RadzenButton Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall"
-                                      Click="@(() => AddCandidate(c))" class="ames-rz-btn" />
-                    </Template>
-                </RadzenDataGridColumn>
-            </Columns>
-        </RadzenDataGrid>
+        @if (_candidates.Count == 0)
+        {
+            <div class="ames-empty">No material candidates found.</div>
+        }
+        else
+        {
+            <div class="wh-pick-split wh-pick-candidate-grid">
+                <div class="wh-pick-split-scroll">
+                    <table class="ames-table wh-pick-split-table">
+                        <thead>
+                            <tr>
+                                <th style="width:115px;">Req Date</th>
+                                <th style="width:105px;">Line Code</th>
+                                <th style="width:120px;">Line Name</th>
+                                <th style="width:150px;">Part No</th>
+                                <th>Part Name</th>
+                                <th style="width:90px;">Req Box Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var candidate in _candidates)
+                            {
+                                <tr>
+                                    <td>@candidate.ReqDate.ToString("yyyy-MM-dd")</td>
+                                    <td><span class="code">@candidate.LineCode</span></td>
+                                    <td>@candidate.LineName</td>
+                                    <td><span class="code">@candidate.PartNo</span></td>
+                                    <td>@candidate.PartName</td>
+                                    <td class="num">@Qty(candidate.ReqBoxQty)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="wh-pick-action-rail wh-pick-add-rail">
+                    <div class="wh-pick-action-head">Add</div>
+                    @foreach (var candidate in _candidates)
+                    {
+                        <div class="wh-pick-action-row">
+                            <RadzenButton Text="Add" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall"
+                                          Click="@(() => AddCandidate(candidate))" aria-label="Add to Pick Slip" class="ames-rz-btn" />
+                        </div>
+                    }
+                </div>
+            </div>
+        }
 
         <div class="wh-pick-selected">
             <div class="wh-pick-section-title">
@@ -128,33 +120,43 @@
             }
             else
             {
-                <table class="ames-table wh-pick-selected-table">
-                    <thead>
-                        <tr>
-                            <th>Part No</th>
-                            <th>Part Name</th>
-                            <th style="width:100px;">Req Box Qty</th>
-                            <th style="width:46px;"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <div class="wh-pick-split wh-pick-selected-grid">
+                    <div class="wh-pick-split-scroll">
+                    <table class="ames-table wh-pick-split-table wh-pick-selected-table">
+                        <thead>
+                            <tr>
+                                <th style="width:115px;">Line Code</th>
+                                <th style="width:135px;">Line Name</th>
+                                <th style="width:155px;">Part No</th>
+                                <th>Part Name</th>
+                                <th style="width:95px;">Req Box Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var line in _createLines)
+                            {
+                                <tr>
+                                    <td><span class="code">@line.LineCode</span></td>
+                                    <td>@line.LineName</td>
+                                    <td><span class="code">@line.PartNo</span></td>
+                                    <td>@line.PartName</td>
+                                    <td class="num">@Qty(line.ReqBoxQty)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    </div>
+                    <div class="wh-pick-action-rail wh-pick-remove-rail">
+                        <div class="wh-pick-action-head">Remove</div>
                         @foreach (var line in _createLines)
                         {
-                            <tr>
-                                <td><span class="code">@line.PartNo</span></td>
-                                <td>@line.PartName</td>
-                                <td>
-                                    <RadzenNumeric TValue="decimal" @bind-Value="line.ReqBoxQty" Min="1" Step="1"
-                                                   InputSize="InputSize.Small" class="ames-rz-input wh-pick-qty-input" />
-                                </td>
-                                <td>
-                                    <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall"
-                                                  Click="@(() => RemoveLine(line.PartNo))" class="ames-rz-btn" />
-                                </td>
-                            </tr>
+                            <div class="wh-pick-action-row">
+                                <RadzenButton Text="Remove" Icon="close" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall"
+                                              Click="@(() => RemoveLine(line))" aria-label="Remove line" class="ames-rz-btn" />
+                            </div>
                         }
-                    </tbody>
-                </table>
+                    </div>
+                </div>
             }
         </div>
     </div>
@@ -191,18 +193,8 @@
                 <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipHeaderRow" Property="ReqLocation" Title="Req Location" Width="130px">
                     <Template Context="r"><span class="pill info">@(r.ReqLocation ?? "-")</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipHeaderRow" Property="LineCount" Title="Lines" Width="70px" TextAlign="TextAlign.Right" />
                 <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipHeaderRow" Property="ReqBoxQty" Title="Requested" Width="105px" TextAlign="TextAlign.Right">
                     <Template Context="r">@Qty(r.ReqBoxQty)</Template>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipHeaderRow" Property="PickedQty" Title="Picked" Width="95px" TextAlign="TextAlign.Right">
-                    <Template Context="r">@Qty(r.PickedQty)</Template>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipHeaderRow" Property="FirstPartNo" Title="First Part">
-                    <Template Context="r">
-                        <div><span class="code">@(r.FirstPartNo ?? "-")</span></div>
-                        <div class="dim">@r.FirstPartName</div>
-                    </Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipHeaderRow" Property="Status" Title="Status" Width="95px" TextAlign="TextAlign.Center">
                     <Template Context="r"><span class="pill @StatusClass(r.Status)">@r.Status</span></Template>
@@ -220,6 +212,8 @@
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem">
                 <RadzenButton Text="Print" Icon="print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small"
                               Click="@PrintSelectedAsync" Disabled="@_busy" class="ames-rz-btn" />
+                <RadzenButton Text="Close" Icon="task_alt" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                              Click="@CloseSelectedAsync" Disabled="@(_busy || IsSelectedSlipClosed)" class="ames-rz-btn" />
                 <RadzenButton Text="Close Preview" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small"
                               Click="@ClearSelection" class="ames-rz-btn" />
             </RadzenStack>
@@ -237,17 +231,21 @@
                     <Template Context="r"><span class="code">@r.PartNo</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Property="PartName" Title="Part Name" />
+                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Property="LineCode" Title="Line Code" Width="105px">
+                    <Template Context="r"><span class="code">@r.LineCode</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Property="LineName" Title="Line Name" Width="165px" />
                 <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Property="ReqBoxQty" Title="Req Box Qty" Width="115px" TextAlign="TextAlign.Right">
                     <Template Context="r">@Qty(r.ReqBoxQty)</Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Title="Location #1" Width="135px">
-                    <Template Context="r">@LocDisplay(r.Loc01, shortageWhenBlank: true)</Template>
+                    <Template Context="r">@LocDisplay(r.Loc01, r.Loc01Qty, shortageWhenBlank: true)</Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Title="Location #2" Width="135px">
-                    <Template Context="r">@LocDisplay(r.Loc02)</Template>
+                    <Template Context="r">@LocDisplay(r.Loc02, r.Loc02Qty)</Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Title="Location #3" Width="135px">
-                    <Template Context="r">@LocDisplay(r.Loc03)</Template>
+                    <Template Context="r">@LocDisplay(r.Loc03, r.Loc03Qty)</Template>
                 </RadzenDataGridColumn>
             </Columns>
         </RadzenDataGrid>
@@ -280,9 +278,13 @@
                 <thead>
                     <tr>
                         <th style="width:44px;">NO</th>
-                        <th style="width:150px;">Part No.</th>
-                        <th>Part Name</th>
-                        <th style="width:95px;">Req Box Qty</th>
+                        <th style="width:130px;">Part No.</th>
+                        <th style="width:235px;">Part Name</th>
+                        @if (HasMultipleReqLocations)
+                        {
+                            <th style="width:105px;">Req Location</th>
+                        }
+                        <th style="width:68px;">Req Box</th>
                         <th colspan="2">Location #1</th>
                         <th colspan="2">Location #2</th>
                         <th colspan="2">Location #3</th>
@@ -295,6 +297,10 @@
                             <td>@line.SeqNo</td>
                             <td>@line.PartNo</td>
                             <td>@line.PartName</td>
+                            @if (HasMultipleReqLocations)
+                            {
+                                <td>@line.LineCode</td>
+                            }
                             <td class="num">@Qty(line.ReqBoxQty)</td>
                             <td>@LocArea(line.Loc01)</td>
                             <td>@LocCode(line.Loc01, shortageWhenBlank: true)</td>
@@ -315,12 +321,12 @@
     List<WarehouseRepository.PickingSlipLineRow> _selectedLines = new();
     List<CandidateUi> _candidates = new();
     List<CreateLineUi> _createLines = new();
-    List<OptionItem> _locationOptions = new();
+    List<OptionItem> _lineOptions = new();
 
     WarehouseRepository.PickingSlipHeaderRow? _selectedSlip;
     string _search = "";
     string _candidateSearch = "";
-    string _reqLocation = "";
+    string _lineCode = "";
     string _actor = "planner";
     string _msg = "";
     bool _isErr;
@@ -332,7 +338,7 @@
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "planner";
-        LoadLocations();
+        LoadLines();
         Reload();
         LoadCandidates();
     }
@@ -356,20 +362,18 @@
         }
     }
 
-    void LoadLocations()
+    void LoadLines()
     {
         try
         {
-            _locationOptions = Wh.ListLocations(includeInactive: false)
-                .Take(300)
-                .Select(l => new OptionItem(l.LocationNo, string.IsNullOrWhiteSpace(l.LocationName) ? l.LocationNo : $"{l.LocationNo} - {l.LocationName}"))
+            _lineOptions = Wh.ListPickingSlipLineOptions()
+                .Select(l => new OptionItem(l.LineCode, $"{l.LineCode} - {l.LineName}"))
                 .ToList();
-            _reqLocation = _locationOptions.FirstOrDefault()?.Value ?? "NQ1011";
+            _lineOptions.Insert(0, new OptionItem("", "All"));
         }
         catch
         {
-            _locationOptions = new() { new("NQ1011", "NQ1011") };
-            _reqLocation = "NQ1011";
+            _lineOptions = new();
         }
     }
 
@@ -377,7 +381,7 @@
     {
         try
         {
-            _candidates = Wh.ListPickingSlipCandidates(_candidateSearch)
+            _candidates = Wh.ListPickingSlipCandidates(_reqDate, _lineCode, _candidateSearch)
                 .Select(r => new CandidateUi(r))
                 .ToList();
         }
@@ -390,34 +394,30 @@
 
     void AddCandidate(CandidateUi candidate)
     {
-        var existing = _createLines.FirstOrDefault(l => l.PartNo.Equals(candidate.PartNo, StringComparison.OrdinalIgnoreCase));
+        var existing = _createLines.FirstOrDefault(l =>
+            l.PartNo.Equals(candidate.PartNo, StringComparison.OrdinalIgnoreCase) &&
+            l.LineCode.Equals(candidate.LineCode, StringComparison.OrdinalIgnoreCase));
         if (existing is not null)
-        {
-            existing.ReqBoxQty += Math.Max(candidate.RequestBoxes, 1m);
             return;
-        }
 
         _createLines.Add(new CreateLineUi
         {
             PartNo = candidate.PartNo,
             PartName = candidate.PartName ?? candidate.PartNo,
-            ReqBoxQty = Math.Max(candidate.RequestBoxes, 1m)
+            LineCode = candidate.LineCode,
+            LineName = candidate.LineName ?? candidate.LineCode,
+            ReqBoxQty = candidate.ReqBoxQty
         });
     }
 
-    void RemoveLine(string partNo)
+    void RemoveLine(CreateLineUi line)
     {
-        _createLines.RemoveAll(l => l.PartNo.Equals(partNo, StringComparison.OrdinalIgnoreCase));
+        _createLines.Remove(line);
     }
 
     async Task CreateSlipAsync()
     {
         if (_busy) return;
-        if (string.IsNullOrWhiteSpace(_reqLocation))
-        {
-            ShowMsg("Request Location is required.", true);
-            return;
-        }
         if (_createLines.Count == 0)
         {
             ShowMsg("Add at least one material line before creating a Pick Slip.", true);
@@ -427,11 +427,21 @@
         _busy = true;
         try
         {
+            var reqLocations = _createLines
+                .Select(l => l.LineCode)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (reqLocations.Count > 1)
+            {
+                var proceed = await JS.InvokeAsync<bool>("confirm",
+                    $"This Pick Slip contains {reqLocations.Count} request locations: {string.Join(", ", reqLocations)}. Create it anyway?");
+                if (!proceed) return;
+            }
+
             var slipNo = Wh.CreatePickingSlip(
                 _reqDate,
-                _reqLocation,
                 _actor,
-                _createLines.Select(l => new WarehouseRepository.CreatePickingSlipLine(l.PartNo, l.ReqBoxQty)));
+                _createLines.Select(l => new WarehouseRepository.CreatePickingSlipLine(l.PartNo, l.LineCode, l.ReqBoxQty)));
             _createLines.Clear();
             _candidateSearch = "";
             Reload();
@@ -492,6 +502,38 @@
         }
     }
 
+    async Task CloseSelectedAsync()
+    {
+        if (_selectedSlip is null || _busy || _selectedSlip.Status == "Closed") return;
+        var proceed = await JS.InvokeAsync<bool>("confirm", $"Close Pick Slip {_selectedSlip.PickSlipNo}? This cannot be reopened from this screen.");
+        if (!proceed) return;
+
+        _busy = true;
+        try
+        {
+            Wh.ClosePickingSlip(_selectedSlip.PickSlipNo, _actor);
+            Reload();
+            ShowMsg($"Pick Slip {_selectedSlip.PickSlipNo} closed.", false);
+        }
+        catch (Exception ex)
+        {
+            ShowMsg(ex.Message, true);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    bool HasMultipleReqLocations => _selectedLines
+        .Select(l => l.LineCode)
+        .Where(l => !string.IsNullOrWhiteSpace(l))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Skip(1)
+        .Any();
+
+    bool IsSelectedSlipClosed => _selectedSlip?.Status == "Closed";
+
     void ShowMsg(string msg, bool isErr)
     {
         _msg = msg;
@@ -515,10 +557,10 @@
         _ => "ghost",
     };
 
-    static string LocDisplay(string? value, bool shortageWhenBlank = false)
+    static string LocDisplay(string? value, decimal allocatedQty = 0, bool shortageWhenBlank = false)
     {
         var area = LocArea(value);
-        var code = LocCode(value, shortageWhenBlank);
+        var code = LocCode(value, allocatedQty, shortageWhenBlank);
         if (string.IsNullOrWhiteSpace(code)) return "-";
         return string.IsNullOrWhiteSpace(area) ? code : $"{area} / {code}";
     }
@@ -530,11 +572,12 @@
         return parts.Length == 2 && parts[0] != "-" ? parts[0] : "";
     }
 
-    static string LocCode(string? value, bool shortageWhenBlank = false)
+    static string LocCode(string? value, decimal allocatedQty = 0, bool shortageWhenBlank = false)
     {
         if (string.IsNullOrWhiteSpace(value)) return shortageWhenBlank ? "Shortage" : "";
         var parts = value.Split('|', 2);
-        return parts.Length == 2 ? parts[1] : value;
+        var location = parts.Length == 2 ? parts[1] : value;
+        return allocatedQty > 0 ? $"{location} ({Qty(allocatedQty)})" : location;
     }
 
     static BarcodeImage BuildCode128(string value)
@@ -574,32 +617,32 @@
     {
         public CandidateUi(WarehouseRepository.PickingSlipCandidateRow row)
         {
+            ReqDate = row.ReqDate;
+            LineCode = row.LineCode;
+            LineName = row.LineName;
             PartNo = row.PartNo;
             PartName = row.PartName;
             Unit = row.Unit;
             UnitPackQty = row.UnitPackQty;
-            AvailableQty = row.AvailableQty;
-            AvailableBoxes = row.AvailableBoxes;
-            Loc01 = row.Loc01;
-            Loc02 = row.Loc02;
-            Loc03 = row.Loc03;
-            RequestBoxes = 1m;
+            ReqQty = row.ReqQty;
+            ReqBoxQty = row.ReqBoxQty;
         }
 
+        public DateTime ReqDate { get; }
+        public string LineCode { get; }
+        public string? LineName { get; }
         public string PartNo { get; }
         public string? PartName { get; }
         public string? Unit { get; }
         public decimal UnitPackQty { get; }
-        public decimal AvailableQty { get; }
-        public decimal AvailableBoxes { get; }
-        public string? Loc01 { get; }
-        public string? Loc02 { get; }
-        public string? Loc03 { get; }
-        public decimal RequestBoxes { get; set; }
+        public decimal ReqQty { get; }
+        public decimal ReqBoxQty { get; }
     }
 
     sealed class CreateLineUi
     {
+        public string LineCode { get; set; } = "";
+        public string LineName { get; set; } = "";
         public string PartNo { get; set; } = "";
         public string PartName { get; set; } = "";
         public decimal ReqBoxQty { get; set; } = 1m;

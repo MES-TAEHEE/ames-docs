@@ -273,6 +273,8 @@ window.pdaScan = (() => {
             const element = document.querySelector(selector);
             if (!element || element.disabled) return;
 
+            if (document.activeElement === element) return;
+
             element.focus({ preventScroll: true });
             if (typeof element.select === "function") {
                 element.select();

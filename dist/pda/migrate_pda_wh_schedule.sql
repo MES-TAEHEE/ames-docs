@@ -12,6 +12,39 @@
 SET NOCOUNT ON;
 GO
 
+IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'PickSlipNo') IS NULL
+    ALTER TABLE dbo.WH_ReleaseSchedule ADD PickSlipNo nvarchar(40) NULL;
+GO
+
+IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'ReqLocation') IS NULL
+    ALTER TABLE dbo.WH_ReleaseSchedule ADD ReqLocation nvarchar(40) NULL;
+GO
+
+IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'ReqSeqNo') IS NULL
+    ALTER TABLE dbo.WH_ReleaseSchedule ADD ReqSeqNo int NULL;
+GO
+
+IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'ReqUserId') IS NULL
+    ALTER TABLE dbo.WH_ReleaseSchedule ADD ReqUserId nvarchar(80) NULL;
+GO
+
+IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'PrintDate') IS NULL
+    ALTER TABLE dbo.WH_ReleaseSchedule ADD PrintDate datetime2 NULL;
+GO
+
+IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'CloseDate') IS NULL
+    ALTER TABLE dbo.WH_ReleaseSchedule ADD CloseDate datetime2 NULL;
+GO
+
+IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'CloseUserId') IS NULL
+    ALTER TABLE dbo.WH_ReleaseSchedule ADD CloseUserId nvarchar(80) NULL;
+GO
+
+UPDATE dbo.WH_ReleaseSchedule
+   SET PickSlipNo = CONCAT(N'RS-', ReleaseScheduleID)
+ WHERE NULLIF(PickSlipNo, N'') IS NULL;
+GO
+
 -- =====================================================================
 --  Schedule / Inbound
 --  Source: dbo.WH_PurchaseOrder
@@ -74,33 +107,80 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    ;WITH Lines AS
+    (
+        SELECT
+            COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID)) AS PickSlipNo,
+            COALESCE(NULLIF(RS.ReqLocation, N''), N'-') AS DestinationLocation,
+            RS.RequiredAt,
+            RS.PrintDate,
+            RS.CloseDate,
+            RS.CloseUserId,
+            RS.ReleaseScheduleID,
+            RS.ItemNo,
+            I.ItemName,
+            COALESCE(RS.DemandQty, 0) AS DemandQty,
+            COALESCE(RS.PickedQty, 0) AS PickedQty,
+            CASE
+                WHEN UPPER(COALESCE(RS.Status, N'OPEN')) IN (N'CLOSED', N'CANCELED') THEN N'Closed'
+                WHEN COALESCE(RS.PickedQty, 0) >= COALESCE(RS.DemandQty, 0)
+                     AND COALESCE(RS.DemandQty, 0) > 0 THEN N'Picked'
+                WHEN COALESCE(RS.PickedQty, 0) > 0 THEN N'Partial'
+                WHEN CONVERT(date, RS.RequiredAt) < CONVERT(date, GETDATE()) THEN N'Late'
+                ELSE COALESCE(RS.Status, N'Open')
+            END AS LineStatus
+        FROM dbo.WH_ReleaseSchedule RS
+        LEFT JOIN dbo.MD_Item I
+               ON I.ItemNo = RS.ItemNo
+    ),
+    Grouped AS
+    (
+        SELECT
+            PickSlipNo,
+            MAX(DestinationLocation) AS DestinationLocation,
+            MAX(RequiredAt) AS RequiredAt,
+            MAX(PrintDate) AS PrintDate,
+            MAX(CloseDate) AS CloseDate,
+            MAX(CloseUserId) AS CloseUserId,
+            COUNT(*) AS MaterialLineCount,
+            SUM(DemandQty) AS RequestedBoxQty,
+            SUM(PickedQty) AS PickedBoxQty,
+            MIN(ReleaseScheduleID) AS FirstID,
+            SUM(CASE WHEN LineStatus = N'Closed' THEN 1 ELSE 0 END) AS ClosedLines,
+            SUM(CASE WHEN LineStatus = N'Picked' THEN 1 ELSE 0 END) AS PickedLines,
+            SUM(CASE WHEN LineStatus = N'Partial' THEN 1 ELSE 0 END) AS PartialLines,
+            SUM(CASE WHEN LineStatus = N'Late' THEN 1 ELSE 0 END) AS LateLines
+        FROM Lines
+        GROUP BY PickSlipNo
+    )
     SELECT TOP (100)
-        CONCAT(N'RS-', RS.ReleaseScheduleID) AS PickSlipNo,
-        CAST(NULL AS nvarchar(50)) AS DestinationLocation,
-        CONVERT(date, RS.RequiredAt) AS RequiredDate,
-        CONVERT(nvarchar(20), CONVERT(time(0), RS.RequiredAt)) AS RequiredTime,
-        CAST(NULL AS datetime2) AS PrintedAt,
-        CAST(NULL AS datetime2) AS ClosedAt,
-        CAST(NULL AS nvarchar(50)) AS ClosedBy,
-        1 AS MaterialLineCount,
-        COALESCE(RS.DemandQty, 0) AS RequestedBoxQty,
-        COALESCE(RS.PickedQty, 0) AS PickedBoxQty,
-        COALESCE(RS.DemandQty, 0) AS RequestedQty,
-        COALESCE(RS.PickedQty, 0) AS PickedQty,
-        RS.ItemNo AS FirstMaterialNo,
-        I.ItemName AS FirstMaterialName,
+        G.PickSlipNo,
+        G.DestinationLocation,
+        CONVERT(date, G.RequiredAt) AS RequiredDate,
+        CONVERT(nvarchar(20), CONVERT(time(0), G.RequiredAt)) AS RequiredTime,
+        G.PrintDate AS PrintedAt,
+        G.CloseDate AS ClosedAt,
+        G.CloseUserId AS ClosedBy,
+        G.MaterialLineCount,
+        G.RequestedBoxQty,
+        G.PickedBoxQty,
+        G.RequestedBoxQty AS RequestedQty,
+        G.PickedBoxQty AS PickedQty,
+        L.ItemNo AS FirstMaterialNo,
+        L.ItemName AS FirstMaterialName,
         CAST(NULL AS nvarchar(50)) AS SuggestedPickLocation,
         CAST(NULL AS nvarchar(50)) AS SuggestedPickZone,
         CASE
-            WHEN COALESCE(RS.PickedQty, 0) >= COALESCE(RS.DemandQty, 0)
-                 AND COALESCE(RS.DemandQty, 0) > 0 THEN N'Picked'
-            WHEN COALESCE(RS.PickedQty, 0) > 0 THEN N'Partial'
-            WHEN CONVERT(date, RS.RequiredAt) < CONVERT(date, GETDATE()) THEN N'Late'
-            ELSE COALESCE(RS.Status, N'Open')
+            WHEN G.ClosedLines = G.MaterialLineCount THEN N'Closed'
+            WHEN G.PickedLines = G.MaterialLineCount THEN N'Picked'
+            WHEN G.PartialLines > 0 OR G.PickedLines > 0 THEN N'Partial'
+            WHEN G.LateLines > 0 THEN N'Late'
+            ELSE N'Open'
         END AS PickStatus
-    FROM dbo.WH_ReleaseSchedule RS
-    LEFT JOIN dbo.MD_Item I
-           ON I.ItemNo = RS.ItemNo
-    ORDER BY RS.RequiredAt, RS.ReleaseScheduleID;
+    FROM Grouped G
+    LEFT JOIN Lines L
+           ON L.PickSlipNo = G.PickSlipNo
+          AND L.ReleaseScheduleID = G.FirstID
+    ORDER BY G.RequiredAt, G.PickSlipNo;
 END;
 GO

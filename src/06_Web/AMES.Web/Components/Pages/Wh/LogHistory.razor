@@ -4,8 +4,8 @@
 @inject AMES.Data.Repositories.WarehouseRepository Wh
 @using Radzen
 
-<PageTitle>WH-004 Log History · AMES</PageTitle>
-<AmesPageHeader Code="WH-004" Title="Log History" />
+<PageTitle>WH-004 Inventory History · AMES</PageTitle>
+<AmesPageHeader Code="WH-004" Title="Inventory History" />
 
 @if (!string.IsNullOrWhiteSpace(_msg))
 {
@@ -14,14 +14,14 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ Warehouse Log History</span>
+        <span style="white-space:nowrap;">▼ Inventory Activity</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Placeholder="Worker, Scan, Lot, Part, Location"
-                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:260px;" AutoComplete="false"
+            <RadzenTextBox @bind-Value="_search" Placeholder="LOT, Part, Location, Worker, Reference"
+                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" AutoComplete="false"
                            @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
             <RadzenDropDown @bind-Value="_operationType" Data="@_operationOptions" TextProperty="Text" ValueProperty="Value"
-                            AllowClear="true" Placeholder="Operation Type"
-                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:165px;" />
+                            AllowClear="true" Placeholder="Activity Type"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:185px;" />
             <RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="From"
                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:135px;" />
             <RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="To"
@@ -38,53 +38,38 @@
                     PageSizeOptions="@_pageSizeOptions"
                     ShowPagingSummary="true"
                     AllowSorting="true"
-                    EmptyText="No logs found."
+                    EmptyText="No inventory activity found."
                     Class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EventTime" Title="Time" Width="170px">
                 <Template Context="r">@(r.EventTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EventType" Title="Event" Width="145px">
-                <Template Context="r"><span class="pill @EventClass(r.EventType)">@DisplayEvent(r.EventType)</span></Template>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EventType" Title="Type" Width="155px">
+                <Template Context="r"><span class="pill @EventClass(r)">@DisplayEvent(r)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="Result" Title="Result" Width="95px" TextAlign="TextAlign.Center">
-                <Template Context="r"><span class="pill @ResultClass(r.Result)">@r.Result</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EmployeeNo" Title="Worker" Width="130px">
-                <Template Context="r">
-                    <div class="code">@(r.EmployeeNo ?? r.WorkerId ?? "-")</div>
-                    <div class="dim">@(r.EmployeeName ?? "-")</div>
-                </Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="TerminalId" Title="Terminal" Width="115px">
-                <Template Context="r"><span class="dim">@(r.TerminalId ?? "-")</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="ScreenCode" Title="Screen" Width="95px">
-                <Template Context="r"><span class="pill ghost">@(r.ScreenCode ?? "-")</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="ScanValue" Title="Scan" Width="175px">
-                <Template Context="r">
-                    <div class="code">@(r.ScanValue ?? "-")</div>
-                    <div class="dim">@(r.ScanType ?? "-")</div>
-                </Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="LotNo" Title="Lot / Part / Location">
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="LotNo" Title="LOT / Part" Width="245px">
                 <Template Context="r">
                     <div class="code">@(r.LotNo ?? "-")</div>
-                    <div class="dim">@($"{r.PartNo ?? "-"} · {r.LocationId ?? "-"}")</div>
+                    <div class="dim">@(r.PartNo ?? "-")</div>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="Qty" Title="Qty" Width="90px" TextAlign="TextAlign.Right">
-                <Template Context="r">@(r.Qty?.ToString("N3") ?? "-")</Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="Message" Title="Message">
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="Message" Title="Details">
                 <Template Context="r">
                     <div>@(r.Message ?? "-")</div>
-                    <div class="dim">@(RefText(r))</div>
+                    @if (!string.IsNullOrWhiteSpace(RefText(r)))
+                    {
+                        <div class="dim">@RefText(r)</div>
+                    }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="ClientIp" Title="IP" Width="120px">
-                <Template Context="r"><span class="dim">@(r.ClientIp ?? "-")</span></Template>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EmployeeNo" Title="Worker" Width="145px">
+                <Template Context="r">
+                    <div class="code">@(r.EmployeeNo ?? r.WorkerId ?? "-")</div>
+                    @if (!string.IsNullOrWhiteSpace(r.EmployeeName))
+                    {
+                        <div class="dim">@r.EmployeeName</div>
+                    }
+                </Template>
             </RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
@@ -95,11 +80,11 @@
     readonly IEnumerable<int> _pageSizeOptions = new[] { 20, 50, 100, 200 };
     readonly List<DropDownItem> _operationOptions = new()
     {
-        new() { Text = "Scan", Value = "SCAN" },
         new() { Text = "Inbound", Value = "INBOUND" },
-        new() { Text = "Release", Value = "RELEASE" },
-        new() { Text = "Adjust", Value = "ADJUST" },
-        new() { Text = "Location", Value = "LOCATION" },
+        new() { Text = "Outbound", Value = "OUTBOUND" },
+        new() { Text = "Relocation", Value = "RELOCATION" },
+        new() { Text = "Status Change", Value = "STATUS" },
+        new() { Text = "Inventory Adjustment", Value = "ADJUSTMENT" },
     };
 
     string _search = "";
@@ -139,46 +124,64 @@
         Reload();
     }
 
-    static string EventClass(string type)
+    static string EventClass(AMES.Data.Repositories.WarehouseRepository.OperationLogRow row)
     {
-        var upper = type.ToUpperInvariant();
-        if (upper.Contains("SCAN")) return "warn";
+        var upper = row.EventType.ToUpperInvariant();
+        if (upper == "STATUS_CHANGE")
+        {
+            var status = ChangedStatus(row.Message);
+            if (status is "STORED" or "RECEIVED" or "RETURN_RECEIVED" or "RELEASE_CANCELLED") return "ok";
+            if (status is "DEFECTIVE" or "DISPOSED" or "RECEIPT_CANCELLED") return "bad";
+            if (status == "RELEASED") return "warn";
+        }
         if (upper.Contains("RECEIVE")) return "ok";
-        if (upper.Contains("PICK")) return "warn";
+        if (upper.Contains("RELEASE")) return "warn";
         if (upper.Contains("ADJUST")) return "bad";
         if (upper.Contains("LOCATION")) return "ok";
         return "ghost";
     }
 
-    static string DisplayEvent(string type) => type.ToUpperInvariant() switch
+    static string DisplayEvent(AMES.Data.Repositories.WarehouseRepository.OperationLogRow row)
     {
-        "SCAN_LOT" => "Scan Lot",
-        "SCAN_LOCATION" => "Scan Location",
-        "SCAN_STOCK" => "Scan Stock",
-        "SCAN_PICK_SLIP" => "Scan Pick Slip",
-        "SCAN_RELEASE_LOT" => "Scan Release Lot",
-        "RECEIVE" => "Inbound",
-        "CANCEL_RECEIPT" => "Cancel Inbound",
-        "RELEASE_PICK" => "Release",
-        "ADJUST_SAVE" => "Adjust",
-        "MOVE_LOCATION" => "Location",
-        "LOCATION_MASTER_CREATE" => "Location Master Create",
-        "LOCATION_MASTER_UPDATE" => "Location Master Update",
-        "LOCATION_MASTER_DELETE" => "Location Master Delete",
-        _ => type,
-    };
+        if (row.EventType.Equals("STATUS_CHANGE", StringComparison.OrdinalIgnoreCase))
+            return StatusLabel(ChangedStatus(row.Message));
 
-    static string ResultClass(string result) => result.ToUpperInvariant() switch
+        return row.EventType.ToUpperInvariant() switch
+        {
+            "RECEIVE" => "Inbound",
+            "CANCEL_RECEIPT" => "Cancel Inbound",
+            "RELEASE_PICK" => "Outbound",
+            "ADJUST_SAVE" => "Inventory Adjustment",
+            "MOVE_LOCATION" => "Relocation",
+            _ => row.EventType,
+        };
+    }
+
+    static string ChangedStatus(string? message)
     {
-        "SUCCESS" => "ok",
-        "FAIL" => "bad",
-        _ => "ghost",
+        if (string.IsNullOrWhiteSpace(message)) return "";
+        var separator = message.LastIndexOf("->", StringComparison.Ordinal);
+        return (separator >= 0 ? message[(separator + 2)..] : message).Trim().ToUpperInvariant();
+    }
+
+    static string StatusLabel(string status) => status switch
+    {
+        "CREATED" => "Created",
+        "RECEIVED" => "Received",
+        "STORED" => "Stored",
+        "RELEASED" => "Released",
+        "RECEIPT_CANCELLED" => "Inbound Cancelled",
+        "RELEASE_CANCELLED" => "Release Cancelled",
+        "RETURN_RECEIVED" => "Return Received",
+        "DEFECTIVE" => "Defective",
+        "DISPOSED" => "Disposed",
+        _ => string.IsNullOrWhiteSpace(status) ? "Status Changed" : status.Replace('_', ' '),
     };
 
     static string RefText(AMES.Data.Repositories.WarehouseRepository.OperationLogRow row)
     {
         if (string.IsNullOrWhiteSpace(row.RefDocType) && string.IsNullOrWhiteSpace(row.RefDocNo))
-            return "-";
+            return "";
 
         return $"{row.RefDocType ?? "-"} {row.RefDocNo ?? "-"}";
     }

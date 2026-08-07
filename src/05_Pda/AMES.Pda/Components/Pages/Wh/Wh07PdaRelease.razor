@@ -23,60 +23,42 @@
                                @onkeydown="OnPickSlipKey"
                                Placeholder="Scan Pick Slip No" />
             </div>
-            <RadzenButton class="wh07-load-btn" Click="@LoadSlip" Disabled="@DisableLoad" Text="LOAD" />
         </RadzenCard>
+
+        @if (ShowDeveloperScanButtons && !ScanDisabled)
+        {
+            <RadzenCard class="wh07-panel wh07-slip-panel dev-scan-panel">
+                <div class="pda-fld">
+                    <label>LOT NO</label>
+                    <RadzenTextBox class="pda-input wh07-input wh07-lot-input"
+                                   Value="@_lotNo"
+                                   @oninput="OnLotInput"
+                                   @onkeydown="OnLotKey"
+                                   Placeholder="Type LOT No and press Enter" />
+                </div>
+                <RadzenButton Text="PICK LOT" Icon="barcode_reader" ButtonStyle="ButtonStyle.Primary"
+                              Click="@PickTypedLotAsync" Disabled="@_isBusy" />
+            </RadzenCard>
+        }
 
         @if (_lines.Count > 0)
         {
-            <RadzenCard class="wh07-summary-card">
-                <div class="wh07-summary-top">
-                    <div>
-                        <span>PICK SLIP</span>
-                        <strong>@_loadedSlipNo</strong>
-                    </div>
-                    <RadzenBadge class="@($"wh07-status {SlipStatusClass}")" Text="@SlipStatusText" />
-                </div>
-                <div class="wh07-summary-grid">
-                    <div>
-                        <span>Lines</span>
-                        <strong>@_lines.Count</strong>
-                    </div>
-                    <div>
-                        <span>Request Boxes</span>
-                        <strong>@TotalRequestBoxes.ToString("N0")</strong>
-                    </div>
-                    <div>
-                        <span>Picked Boxes</span>
-                        <strong>@TotalPickedBoxes.ToString("N0")</strong>
-                    </div>
-                </div>
-            </RadzenCard>
-
             <div class="wh07-line-list">
                 @foreach (var line in _lines)
                 {
-                    <RadzenCard class="@($"wh07-line-card {LineStatusClass(line)}")">
+                    <RadzenCard class="@LineCardClass(line)">
                         <div class="wh07-line-top">
                             <div class="wh07-line-main">
-                                <span>ITEM</span>
                                 <strong>@line.ItemNo</strong>
-                                <em>@(line.ItemName ?? "-")</em>
+                                <div class="wh07-line-qty">
+                                    <span>REQ BOX <strong>@line.RequestBoxQty.ToString("N0")</strong></span>
+                                    <span>PICKED BOX <strong>@DisplayPickedBox(line).ToString("N0")</strong></span>
+                                    @if (IsScannedLine(line))
+                                    {
+                                        <span class="wh07-check">✓ CHECKED</span>
+                                    }
+                                </div>
                             </div>
-                            <RadzenBadge class="@($"wh07-status {LineStatusClass(line)}")" Text="@LineStatusText(line)" />
-                        </div>
-                        <div class="wh07-line-grid">
-                            <div>
-                                <span>Request</span>
-                                <strong>@line.RequestBoxQty.ToString("N0")</strong>
-                            </div>
-                            <div>
-                                <span>Picked</span>
-                                <strong>@line.PickedBoxQty.ToString("N0")</strong>
-                            </div>
-                        </div>
-                        <div class="wh07-fifo">
-                            <span>FIFO LOCATIONS</span>
-                            <strong>@SuggestedLocations(line)</strong>
                         </div>
                     </RadzenCard>
                 }
@@ -87,62 +69,16 @@
             <div class="pda-empty">No lines found for this Pick Slip.</div>
         }
 
-        <RadzenCard class="@($"wh07-panel wh07-scan-panel {ScanPanelClass} {(ScanDisabled ? "disabled" : "")}")">
-            <div class="pda-fld">
-                <label>LOT NO</label>
-                <RadzenTextBox class="pda-input wh07-input pda-scan-input"
-                               Value="@_lotNo"
-                               @oninput="OnLotInput"
-                               @onkeydown="OnLotKey"
-                               Placeholder="Scan Lot No"
-                               Disabled="@ScanDisabled" />
-            </div>
-            @if (ShowDeveloperScanButtons)
-            {
-                <RadzenButton class="wh07-scan-btn" Click="@ScanLot" Disabled="@DisableScan" Text="SCAN" />
-            }
-        </RadzenCard>
-
-        @if (_scan is not null)
+        @if (!string.IsNullOrWhiteSpace(_loadedSlipNo) && _lines.Count > 0)
         {
-            <RadzenCard class="@($"wh07-lot-card {(_scan.IsValid ? "ready" : "blocked")}")">
-                <div class="wh07-lot-top">
-                    <div class="wh07-lot-main">
-                        <span>LOT NO</span>
-                        <strong>@_scan.LotNo</strong>
-                    </div>
-                    <div class="wh07-lot-tags">
-                        <RadzenBadge class="@($"wh07-status {(_scan.IsValid ? "ready" : "blocked")}")" Text="@(_scan.IsValid ? "Ready" : "Blocked")" />
-                        <RadzenBadge class="@($"wh07-fifo-chip {(_scan.IsFifoSuggested ? "ok" : "warn")}")" Text="@(_scan.IsFifoSuggested ? "FIFO OK" : "FIFO Check")" />
-                    </div>
-                </div>
-
-                <div class="wh07-part">
-                    <div class="wh07-part-no">@Text(_scan.ItemNo)</div>
-                    <div class="wh07-part-name">@Text(_scan.ItemName)</div>
-                </div>
-
-                <div class="wh07-info-grid">
-                    @foreach (var field in LotFields())
-                    {
-                        <div class="wh07-info">
-                            <span>@field.Label</span>
-                            <strong>@field.Value</strong>
-                        </div>
-                    }
-                </div>
-
-                @if (!string.IsNullOrWhiteSpace(_scan.Message))
-                {
-                    <div class="@($"wh07-scan-message {(_scan.IsValid ? "ok" : "fail")}")">@_scan.Message</div>
-                }
-            </RadzenCard>
+            <div class="wh02-action-bar has-secondary wh07-action-bar">
+                <RadzenButton class="wh02-clear-btn" Text="CLEAR"
+                          Click="@ClearRelease" Disabled="@_isBusy" />
+                <RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-receive-action-btn {ReleaseButtonClass}")" Text="RELEASE"
+                          Click="@CompleteReleaseAsync" Disabled="@(_isBusy || !CanCompleteRelease)" />
+            </div>
         }
 
-        <div class="wh07-action-bar">
-            <RadzenButton class="wh07-clear-btn" Click="@ClearScan" Disabled="@_isBusy" Text="CLEAR" />
-            <RadzenButton class="@($"wh07-pick-btn {PickButtonClass}")" Click="@SubmitPick" Disabled="@DisablePick" Text="PICK" />
-        </div>
     </div>
 
     @if (_modalOpen)
@@ -165,10 +101,13 @@
     public string? PickSlipNo { get; set; }
 
     private string _pickSlipNo = "";
-    private string? _loadedSlipNo;
     private string _lotNo = "";
+    private string? _loadedSlipNo;
     private List<PdaApi.ReleasePickLineRow> _lines = new();
+    private List<PdaApi.ReleaseFifoLotRow> _fifoLots = new();
+    private List<PdaApi.ReleaseLotRow> _pendingPicks = new();
     private PdaApi.ReleaseLotRow? _scan;
+    private string? _scannedItemNo;
     private bool _isBusy;
     private bool _initialized;
     private bool _modalOpen;
@@ -180,23 +119,7 @@
     private DotNetObjectReference<Wh07PdaRelease>? _scannerRef;
 
     private static bool ShowDeveloperScanButtons => MauiProgram.IsDeveloperMode;
-    private static string ScanPanelClass => ShowDeveloperScanButtons ? "dev-scan-panel" : "hardware-scan-panel";
-    private decimal TotalRequestBoxes => _lines.Sum(x => x.RequestBoxQty);
-    private decimal TotalPickedBoxes => _lines.Sum(x => x.PickedBoxQty);
-    private bool DisableLoad => _isBusy || string.IsNullOrWhiteSpace(_pickSlipNo);
     private bool ScanDisabled => string.IsNullOrWhiteSpace(_loadedSlipNo) || _lines.Count == 0;
-    private bool DisableScan => _isBusy || ScanDisabled || string.IsNullOrWhiteSpace(_lotNo);
-    private bool DisablePick => _isBusy || _scan is null || !_scan.IsValid;
-    private string PickButtonClass => DisablePick ? "blocked" : "ready";
-    private string SlipStatusClass => TotalRequestBoxes <= 0 ? "open" :
-        TotalPickedBoxes >= TotalRequestBoxes ? "picked" :
-        TotalPickedBoxes > 0 ? "partial" : "open";
-    private string SlipStatusText => SlipStatusClass switch
-    {
-        "picked" => "Picked",
-        "partial" => "Partial",
-        _ => "Open"
-    };
 
     protected override async Task OnParametersSetAsync()
     {
@@ -238,8 +161,7 @@
             }
             else
             {
-                _lotNo = value;
-                await ScanLot();
+                await ScanAndPickAsync(value);
             }
 
             StateHasChanged();
@@ -258,9 +180,9 @@
 
         try
         {
-            var selector = ScanDisabled
-                ? ".wh07-slip-panel .wh07-input"
-                : ".wh07-scan-panel .wh07-input";
+            var selector = !ScanDisabled
+                ? ".wh07-lot-input"
+                : ".wh07-slip-panel .wh07-input";
             await JS.InvokeVoidAsync("pdaScan.focus", selector);
         }
         catch
@@ -295,19 +217,32 @@
         _pickSlipNo = e.Value?.ToString() ?? "";
     }
 
-    private void OnLotInput(ChangeEventArgs e)
-    {
-        _lotNo = e.Value?.ToString() ?? "";
-    }
-
     private void OnPickSlipKey(KeyboardEventArgs e)
     {
         if (e.Key == "Enter") _ = LoadSlip();
     }
 
+    private void OnLotInput(ChangeEventArgs e)
+    {
+        _lotNo = e.Value?.ToString() ?? "";
+    }
+
     private void OnLotKey(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter") _ = ScanLot();
+        if (e.Key == "Enter") _ = PickTypedLotAsync();
+    }
+
+    private async Task PickTypedLotAsync()
+    {
+        var lotNo = _lotNo.Trim();
+        if (string.IsNullOrWhiteSpace(lotNo))
+        {
+            ShowModal("Missing LOT No", "Type a LOT No before picking.", "warn");
+            return;
+        }
+
+        _lotNo = "";
+        await ScanAndPickAsync(lotNo);
     }
 
     private async Task LoadSlip()
@@ -323,8 +258,10 @@
         {
             _loadedSlipNo = _pickSlipNo.Trim();
             _scan = null;
-            _lotNo = "";
+            _scannedItemNo = null;
             _lines.Clear();
+            _fifoLots.Clear();
+            _pendingPicks.Clear();
 
             var status = await Api.WhReleaseSlipStatusAsync(_loadedSlipNo);
             if (status is null)
@@ -343,12 +280,13 @@
 
             if (status.IsClosed)
             {
-                ShowModal("Pick Slip Closed", status.Message, "warn");
+                ShowModal("Already Processed", "This Pick Slip has already been processed.", "warn");
                 _loadedSlipNo = null;
                 return;
             }
 
             _lines = await Api.WhReleaseLinesAsync(_loadedSlipNo);
+            _fifoLots = await Api.WhReleaseFifoLotsAsync(_loadedSlipNo);
 
             if (_lines.Count == 0)
             {
@@ -362,76 +300,61 @@
         }
     }
 
-    private async Task ScanLot()
+    private async Task ScanAndPickAsync(string scanText)
     {
         if (string.IsNullOrWhiteSpace(_loadedSlipNo))
         {
-            ShowModal("Missing Pick Slip", "Load a Pick Slip before scanning LOT.", "warn");
+            ShowModal("Missing Pick Slip", "Scan a Pick Slip before scanning a LOT.", "warn");
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(_lotNo))
+        if (string.IsNullOrWhiteSpace(scanText))
         {
-            ShowModal("Missing LOT No", "Scan LOT No first.", "warn");
+            ShowModal("Missing LOT No", "Scan a LOT barcode.", "warn");
             return;
         }
 
         _isBusy = true;
         try
         {
-            _scan = await Api.WhReleaseLotAsync(_loadedSlipNo, _lotNo.Trim());
+            _scan = await Api.WhReleaseLotAsync(_loadedSlipNo, scanText.Trim());
             if (_scan is null)
             {
                 ShowModal("Scan Failed", "LOT lookup failed. Check API connection.", "fail");
                 return;
             }
 
-            if (!_scan.IsValid)
-                ShowModal("Pick Blocked", _scan.Message ?? "This LOT cannot be picked.", "fail");
-        }
-        finally
-        {
-            _isBusy = false;
-        }
-    }
-
-    private async Task SubmitPick()
-    {
-        if (string.IsNullOrWhiteSpace(_loadedSlipNo))
-        {
-            ShowModal("Missing Pick Slip", "Load a Pick Slip before picking.", "warn");
-            return;
-        }
-
-        if (_scan is null)
-        {
-            ShowModal("Missing LOT No", "Scan LOT No before picking.", "warn");
-            return;
-        }
-
-        if (!_scan.IsValid)
-        {
-            ShowModal("Pick Blocked", _scan.Message ?? "This LOT cannot be picked.", "fail");
-            return;
-        }
-
-        _isBusy = true;
-        try
-        {
-            var resp = await Api.WhPickAsync(new PdaApi.PickReq(_loadedSlipNo, _scan.LotNo, _scan.Qty));
-            var result = await resp.Content.ReadFromJsonAsync<PdaApi.PickResult>();
-            if (resp.IsSuccessStatusCode && result?.Success == true)
+            var locallyValidFifoFollowUp = CanAcceptPendingFifoFollowUp(_scan);
+            if (!_scan.IsValid && !locallyValidFifoFollowUp)
             {
-                ShowModal("Pick Complete", result.Message, "ok", async () =>
-                {
-                    ClearScan();
-                    await LoadSlip();
-                });
+                var alreadySufficient = _scan.Message?.Contains("fully picked", StringComparison.OrdinalIgnoreCase) == true
+                                       || IsPartAlreadySufficient(_scan.ItemNo);
+                var fifoBlocked = _scan.Message?.Contains("FIFO", StringComparison.OrdinalIgnoreCase) == true;
+                ShowModal(alreadySufficient ? "Already Sufficient" : fifoBlocked ? "FIFO Order" : "Pick Blocked",
+                    alreadySufficient
+                        ? "This part already has all requested boxes picked."
+                        : fifoBlocked
+                            ? FifoBlockedMessage(_scan)
+                            : _scan.Message ?? "This LOT cannot be picked.",
+                    alreadySufficient || fifoBlocked ? "warn" : "fail");
+                return;
             }
-            else
+
+            if (IsPartAlreadySufficient(_scan.ItemNo))
             {
-                ShowModal("Pick Failed", result?.Message ?? $"HTTP {(int)resp.StatusCode}", "fail");
+                ShowModal("Already Sufficient", "This part already has all requested boxes picked.", "warn");
+                return;
             }
+
+            if (_pendingPicks.Any(pick => string.Equals(pick.LotNo, _scan.LotNo, StringComparison.OrdinalIgnoreCase)))
+            {
+                ShowModal("Already Scanned", "This LOT is already in the current release list.", "warn");
+                return;
+            }
+
+            _scan = _scan with { IsValid = true, Message = "LOT added. It will be saved when RELEASE is pressed." };
+            _pendingPicks.Add(_scan);
+            _scannedItemNo = _scan.ItemNo;
         }
         catch (Exception ex)
         {
@@ -443,53 +366,107 @@
         }
     }
 
-    private void ClearScan()
+    private string LineCardClass(PdaApi.ReleasePickLineRow line)
     {
+        var pickedBoxes = DisplayPickedBox(line);
+        var progress = pickedBoxes >= line.RequestBoxQty && line.RequestBoxQty > 0
+            ? "picked"
+            : pickedBoxes > 0
+                ? "partial"
+                : "open";
+        return $"wh07-line-card {progress}";
+    }
+
+    private List<PdaApi.ReleaseFifoLotRow> FifoLotsFor(string itemNo)
+        => _fifoLots.Where(lot => string.Equals(lot.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase)
+                                  && !_pendingPicks.Any(pick => string.Equals(pick.LotNo, lot.LotNo, StringComparison.OrdinalIgnoreCase)))
+                    .ToList();
+
+    private decimal DisplayPickedBox(PdaApi.ReleasePickLineRow line)
+        => line.PickedBoxQty + _pendingPicks.Count(pick => string.Equals(pick.ItemNo, line.ItemNo, StringComparison.OrdinalIgnoreCase));
+
+    private bool IsPartAlreadySufficient(string? itemNo)
+        => _lines.FirstOrDefault(line => string.Equals(line.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase)) is { } line
+           && DisplayPickedBox(line) >= line.RequestBoxQty;
+
+    private bool CanAcceptPendingFifoFollowUp(PdaApi.ReleaseLotRow row)
+    {
+        if (row.IsValid || string.IsNullOrWhiteSpace(row.ItemNo)
+            || row.Message?.Contains("FIFO", StringComparison.OrdinalIgnoreCase) != true)
+            return false;
+
+        var expectedLot = FifoLotsFor(row.ItemNo).FirstOrDefault()?.LotNo;
+        return !string.IsNullOrWhiteSpace(expectedLot)
+               && string.Equals(expectedLot, row.LotNo, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string FifoBlockedMessage(PdaApi.ReleaseLotRow row)
+    {
+        var expected = string.IsNullOrWhiteSpace(row.ItemNo)
+            ? null
+            : FifoLotsFor(row.ItemNo).FirstOrDefault();
+        return expected is null
+            ? "This LOT is not the next FIFO LOT for the selected Pick Slip."
+            : $"Scan {expected.LotNo} first. Location: {expected.LocationNo ?? "-"}.";
+    }
+
+    private bool CanCompleteRelease => _lines.Count > 0 && _lines.All(line => line.RequestBoxQty > 0 && DisplayPickedBox(line) >= line.RequestBoxQty);
+
+    private string ReleaseButtonClass => CanCompleteRelease ? "ready" : "blocked";
+
+    private void ClearRelease()
+    {
+        _pickSlipNo = "";
         _lotNo = "";
+        _loadedSlipNo = null;
+        _lines.Clear();
+        _fifoLots.Clear();
+        _pendingPicks.Clear();
         _scan = null;
+        _scannedItemNo = null;
     }
 
-    private IEnumerable<Field> LotFields()
+    private async Task CompleteReleaseAsync()
     {
-        if (_scan is null) yield break;
+        if (string.IsNullOrWhiteSpace(_loadedSlipNo) || !CanCompleteRelease || _isBusy) return;
 
-        yield return new Field("Qty", QuantityText(_scan.Qty, _scan.Unit));
-        yield return new Field("Location", Text(_scan.LocationNo));
-        yield return new Field("Zone", Text(_scan.ZoneCode));
-        yield return new Field("Status", Text(_scan.InvStatus));
-        yield return new Field("Received", Text(_scan.RcvDate));
-        yield return new Field("Produced", Text(_scan.ProdDate));
+        _isBusy = true;
+        try
+        {
+            var releaseLots = _pendingPicks
+                .Select(pick => new PdaApi.ReleasePickInput(pick.LotNo, pick.Qty))
+                .ToList();
+            var response = await Api.WhReleaseCompleteAsync(new PdaApi.ReleaseCompleteReq(_loadedSlipNo, releaseLots));
+            var result = await response.Content.ReadFromJsonAsync<PdaApi.ReleaseCompleteResult>();
+            if (response.IsSuccessStatusCode && result?.Success == true)
+            {
+                var completedSlip = _loadedSlipNo;
+                _loadedSlipNo = null;
+                _pickSlipNo = "";
+                _lines.Clear();
+                _fifoLots.Clear();
+                _pendingPicks.Clear();
+                ShowModal("Release Complete", $"{completedSlip} has been completed.", "ok");
+            }
+            else
+            {
+                ShowModal("Release Not Complete", result?.Message ?? "Release could not be completed.", "warn");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowModal("Release Failed", ex.Message, "fail");
+        }
+        finally
+        {
+            _isBusy = false;
+        }
     }
 
-    private static string LineStatusClass(PdaApi.ReleasePickLineRow line)
-        => (line.Status ?? "Open").Trim().ToLowerInvariant() switch
-        {
-            "picked" => "picked",
-            "partial" => "partial",
-            _ => "open"
-        };
-
-    private static string LineStatusText(PdaApi.ReleasePickLineRow line)
-        => LineStatusClass(line) switch
-        {
-            "picked" => "Picked",
-            "partial" => "Partial",
-            _ => "Open"
-        };
-
-    private static string SuggestedLocations(PdaApi.ReleasePickLineRow line)
-    {
-        var locations = new[] { line.SuggestedLocation1, line.SuggestedLocation2, line.SuggestedLocation3 }
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .ToList();
-        return locations.Count == 0 ? "-" : string.Join(" / ", locations);
-    }
-
-    private static string QuantityText(decimal qty, string? unit)
-        => string.IsNullOrWhiteSpace(unit) ? qty.ToString("N0") : $"{qty:N0} {unit}";
-
-    private static string Text(string? value)
-        => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private bool IsScannedLine(PdaApi.ReleasePickLineRow line)
+        => _scan?.IsValid == true
+           && !string.IsNullOrWhiteSpace(_scannedItemNo)
+           && string.Equals(line.ItemNo, _scannedItemNo, StringComparison.OrdinalIgnoreCase);
 
     private void ShowModal(string title, string message, string kind, Func<Task>? afterOk = null)
     {
@@ -520,5 +497,4 @@
         _modalAfterOk = null;
     }
 
-    private sealed record Field(string Label, string Value);
 }
