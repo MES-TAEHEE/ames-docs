@@ -163,6 +163,9 @@ public sealed class PdaApi
         decimal? MaxDays = null, decimal? MaxQty = null, int LotCount = 0, int LocationCount = 0,
         string? Status = null, string? StatusName = null, DateTime? LastReceivedDate = null,
         string? LotNo = null);
+    public sealed record LotStatusRow(int LotId, string LotNo, string? ItemNo, string? ItemName,
+        string InventoryStatus, decimal RemainingQty, string? LocationId, DateTime? ProductionDate,
+        DateTime? LastChangedAt);
     public sealed record InventoryLocationRow(int RowNo, string ItemNo, string LocationId, string? LocationName,
         string? WarehouseCode, string? WarehouseName, string? AreaCode, string? AreaName,
         string? ZoneCode, string? ZoneName, string? RackX, string? RackY, string? RackZ, decimal Qty);
@@ -187,6 +190,11 @@ public sealed class PdaApi
         decimal Qty, string? Unit, string? LocationNo, string? LocationName, string? ZoneCode,
         string? InvStatus, string? ProdDate, string? RcvDate, bool IsFifoSuggested, bool IsValid,
         string? Message);
+    public sealed record ReleaseFifoLotRow(string PickSlipNo, string ItemNo, string LotNo, string? LocationNo,
+        decimal Qty, string? ProductionDate);
+    public sealed record ReleasePickInput(string LotNo, decimal Qty);
+    public sealed record ReleaseCompleteReq(string PickSlipNo, List<ReleasePickInput>? Lots = null);
+    public sealed record ReleaseCompleteResult(bool Success, string Message);
     public sealed record TransactionRow(long TxnId, DateTime TxnTime, string TxnType, string? ItemNo,
         string? LocationId, decimal QtyBefore, decimal Delta, decimal QtyAfter, string? ReasonCode);
 
@@ -352,6 +360,8 @@ public sealed class PdaApi
     }
     public Task<List<ReleasePickLineRow>> WhReleaseLinesAsync(string pickSlipNo)
         => Get<List<ReleasePickLineRow>>($"/api/wh/release/schedule/{Uri.EscapeDataString(pickSlipNo)}/lines");
+    public Task<List<ReleaseFifoLotRow>> WhReleaseFifoLotsAsync(string pickSlipNo)
+        => Get<List<ReleaseFifoLotRow>>($"/api/wh/release/schedule/{Uri.EscapeDataString(pickSlipNo)}/fifo-lots");
     public async Task<ReleaseLotRow?> WhReleaseLotAsync(string pickSlipNo, string lotNo)
     {
         Authorize();
@@ -366,6 +376,41 @@ public sealed class PdaApi
             return null;
         }
     }
+    public async Task<List<LotStatusRow>> WhLotStatusesAsync(string? q = null)
+    {
+        try
+        {
+            await using var conn = _db.CreateConnection();
+            await conn.OpenAsync();
+            await using var cmd = new SqlCommand("""
+                SELECT TOP 300 L.LotID, COALESCE(L.LotCode,CONCAT('LOT-',L.LotID)) AS LotNo,
+                       L.ItemNo,I.ItemName,
+                       COALESCE(NULLIF(L.InventoryStatus,''),CASE WHEN W.InventoryID IS NULL THEN 'CREATED' WHEN COALESCE(W.OnHandQty,0)<=0 THEN 'RELEASED' WHEN NULLIF(W.LocationID,'') IS NULL THEN 'RECEIVED' ELSE 'STORED' END) AS InventoryStatus,
+                       COALESCE(L.RemainingQty,W.OnHandQty,0) AS RemainingQty,W.LocationID,L.ProducedAt,
+                       COALESCE(L.ModifiedTS,L.CreatedTS) AS LastChangedAt
+                FROM dbo.tbl_Lot L
+                LEFT JOIN dbo.MD_Item I ON I.ItemNo=L.ItemNo
+                OUTER APPLY (SELECT TOP (1) X.InventoryID,X.OnHandQty,X.LocationID FROM dbo.WH_Inventory X WHERE X.LotID=L.LotID ORDER BY X.InventoryID DESC) W
+                WHERE @Q='' OR L.LotCode LIKE '%'+@Q+'%' OR L.ItemNo LIKE '%'+@Q+'%' OR I.ItemName LIKE '%'+@Q+'%'
+                ORDER BY COALESCE(L.ModifiedTS,L.CreatedTS) DESC,L.LotID DESC;
+                """, conn);
+            cmd.Parameters.AddWithValue("@Q", q?.Trim() ?? "");
+            await using var rdr = await cmd.ExecuteReaderAsync();
+            var rows = new List<LotStatusRow>();
+            while (await rdr.ReadAsync())
+                rows.Add(new LotStatusRow(
+                    rdr.GetInt32(rdr.GetOrdinal("LotID")), GetString(rdr,"LotNo") ?? "",
+                    GetString(rdr,"ItemNo"), GetString(rdr,"ItemName"), GetString(rdr,"InventoryStatus") ?? "CREATED",
+                    GetDecimal(rdr,"RemainingQty"), GetString(rdr,"LocationID"), GetDate(rdr,"ProducedAt"), GetDate(rdr,"LastChangedAt")));
+            return rows;
+        }
+        catch
+        {
+            return await Get<List<LotStatusRow>>("/api/wh/inventory/lots" + (string.IsNullOrWhiteSpace(q) ? "" : $"?q={Uri.EscapeDataString(q)}"));
+        }
+    }
+    public Task<HttpResponseMessage> WhReleaseCompleteAsync(ReleaseCompleteReq body)
+        => Post("/api/wh/release/complete", body);
     public Task<List<TransactionRow>>     WhTransactionsAsync(int days = 7) => Get<List<TransactionRow>>($"/api/wh/transactions?days={days}");
 
     public Task<HttpResponseMessage> WhReceiveAsync(ReceiveReq body) => Post("/api/wh/inbound/receive", body);

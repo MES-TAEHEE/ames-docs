@@ -33,6 +33,9 @@
                 <button type="button" class="@InventoryViewClass("Location")" @onclick='@(() => SetInventoryView("Location"))'>
                     Location
                 </button>
+                <button type="button" class="@InventoryViewClass("Lot")" @onclick='@(() => SetInventoryView("Lot"))'>
+                    LOT Status
+                </button>
             </div>
 
             @if (IsInventoryStatusView)
@@ -105,7 +108,7 @@
                     </div>
                 }
             }
-            else
+            else if (IsInventoryLocationView)
             {
                 <RadzenCard class="@($"wh03-search-card wh03-scan-card wh03-location-search {ScanPanelClass}")">
                     <div class="pda-fld">
@@ -169,6 +172,55 @@
                                 <div class="wh03-location-inventory-meta">
                                     <span>@Text(item.LotNo)</span>
                                     <em>@Text(item.InventoryStatus)</em>
+                                </div>
+                            </RadzenCard>
+                        }
+                    </div>
+                }
+            }
+            else
+            {
+                <RadzenCard class="@($"wh03-search-card wh03-scan-card {ScanPanelClass}")">
+                    <div class="pda-fld">
+                        <label>LOT / PART SCAN</label>
+                        <RadzenTextBox class="pda-input wh03-search-input pda-scan-input"
+                                       Value="@_q"
+                                       @oninput="OnScanInput"
+                                       @onkeydown="OnKey"
+                                       Placeholder="Scan LOT or Part No" />
+                    </div>
+                    @if (ShowDeveloperScanButtons)
+                    {
+                        <RadzenButton class="wh03-search-btn" Click="@LoadLotStatuses" Disabled="@_isLoading" Text="SCAN" />
+                    }
+                </RadzenCard>
+
+                @if (_isLoading)
+                {
+                    <div class="pda-empty">Loading LOT status...</div>
+                }
+                else if (_lotStatuses.Count == 0)
+                {
+                    <div class="pda-empty">No LOT matches.</div>
+                }
+                else
+                {
+                    <div class="wh03-list">
+                        @foreach (var lot in _lotStatuses)
+                        {
+                            <RadzenCard class="@($"wh03-stock-card wh03-stock-compact {LotStatusClass(lot.InventoryStatus)}")">
+                                <div class="wh03-compact-row main">
+                                    <strong>@Text(lot.LotNo)</strong>
+                                    <RadzenBadge class="@($"wh03-status-badge {LotStatusClass(lot.InventoryStatus)}")"
+                                                 Text="@LotStatusLabel(lot.InventoryStatus)" />
+                                </div>
+                                <div class="wh03-compact-row sub">
+                                    <span>@Text(lot.ItemNo) · @Text(lot.ItemName)</span>
+                                    <strong>@Qty(lot.RemainingQty, null)</strong>
+                                </div>
+                                <div class="wh03-compact-location">
+                                    <span>Location @Text(lot.LocationId)</span>
+                                    <strong>Produced @DateText(lot.ProductionDate)</strong>
                                 </div>
                             </RadzenCard>
                         }
@@ -536,6 +588,7 @@
     private List<PdaApi.InventoryRow> _rows = new();
     private List<PdaApi.InventoryLocationRow> _locationRows = new();
     private List<PdaApi.LocationMapItemRow> _locationItems = new();
+    private List<PdaApi.LotStatusRow> _lotStatuses = new();
     private PdaApi.InventoryRow? _locationItem;
     private PdaApi.LocationRow? _selectedInventoryLocation;
     private PdaApi.InboundScanRow? _invScan;
@@ -565,6 +618,7 @@
     private bool IsLocatingTab => string.Equals(_workTab, "Locating", StringComparison.OrdinalIgnoreCase);
     private bool IsInventoryStatusView => string.Equals(_inventoryView, "Status", StringComparison.OrdinalIgnoreCase);
     private bool IsInventoryLocationView => string.Equals(_inventoryView, "Location", StringComparison.OrdinalIgnoreCase);
+    private bool IsLotStatusView => string.Equals(_inventoryView, "Lot", StringComparison.OrdinalIgnoreCase);
     private bool InventoryBusy => _isInventoryScanning || _isInventoryLocationScanning || _isInventoryAdjusting || _isInventoryMoving;
     private bool InventoryAlreadyReceived => string.Equals(_invScan?.Yn, "N", StringComparison.OrdinalIgnoreCase);
     private bool DisableInventoryScan => InventoryBusy || string.IsNullOrWhiteSpace(_invBarcode);
@@ -729,7 +783,7 @@
         _workTab = "Search";
     }
 
-    private void SetInventoryView(string view)
+    private async Task SetInventoryView(string view)
     {
         if (string.Equals(_inventoryView, view, StringComparison.OrdinalIgnoreCase))
             return;
@@ -737,6 +791,8 @@
         _inventoryView = view;
         if (IsInventoryLocationView && _locationItems.Count == 0 && string.IsNullOrWhiteSpace(_locationQuery))
             _locationMsg = "Scan a Location No to view inventory.";
+        else if (IsLotStatusView)
+            await LoadLotStatuses();
     }
 
     private string InventoryViewClass(string view)
@@ -850,6 +906,12 @@
             return;
         }
 
+        if (IsSearchTab && IsLotStatusView)
+        {
+            await LoadLotStatuses();
+            return;
+        }
+
         _isLoading = true;
         try
         {
@@ -889,6 +951,12 @@
     {
         if (_isLoading) return;
 
+        if (IsLotStatusView)
+        {
+            await LoadLotStatuses();
+            return;
+        }
+
         var scanText = _q.Trim();
         if (!string.IsNullOrWhiteSpace(scanText))
         {
@@ -898,6 +966,22 @@
         }
 
         await Load();
+    }
+
+    private async Task LoadLotStatuses()
+    {
+        if (_isLoading) return;
+
+        _isLoading = true;
+        try
+        {
+            _lotStatuses = await Api.WhLotStatusesAsync(_q);
+            _lastSyncAt = DateTime.Now;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     private async Task ApplyDateFilter()
@@ -1360,6 +1444,19 @@
             "OVER_MAX" => "over",
             "NORMAL" => "normal",
             _ => "normal"
+        };
+
+    private static string LotStatusLabel(string? status)
+        => (status ?? "CREATED").Replace('_', ' ');
+
+    private static string LotStatusClass(string? status)
+        => (status ?? "").ToUpperInvariant() switch
+        {
+            "RECEIVED" or "STORED" or "RETURN_RECEIVED" or "RELEASE_CANCELLED" => "normal",
+            "CREATED" => "below",
+            "RELEASED" or "RECEIPT_CANCELLED" => "all",
+            "DEFECTIVE" or "DISPOSED" => "out",
+            _ => "all"
         };
 
     private static string Text(string? value)

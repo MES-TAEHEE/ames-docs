@@ -6492,6 +6492,152 @@ body:has(.wh08-shell) {
     border-left-color: #16a34a !important;
 }
 
+.wh07-line-card.scanned {
+    border-color: #22c55e !important;
+    border-left-width: 5px !important;
+    background: rgba(34, 197, 94, .12) !important;
+    box-shadow: 0 0 0 1px rgba(74, 222, 128, .6), 0 10px 22px rgba(0, 0, 0, .2) !important;
+}
+
+.wh07-line-checked {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 11px;
+    border-top: 1px solid rgba(74, 222, 128, .35);
+    color: #bbf7d0;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: .06em;
+}
+
+.wh07-line-checked::before {
+    content: "✓";
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #22c55e;
+    color: #06220f;
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.wh07-line-checked span {
+    flex: 1;
+}
+
+.wh07-line-checked strong {
+    color: #f0fdf4;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.wh07-fifo-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+    margin-top: 12px;
+    padding-top: 11px;
+    border-top: 1px solid #dbe3ee;
+}
+
+.wh07-fifo-list > span {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .06em;
+}
+
+.wh07-fifo-list > strong {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 7px;
+    border: 1px solid #bbf7d0;
+    border-radius: 6px;
+    background: #f0fdf4;
+    color: #15803d;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.wh07-fifo-list > strong em {
+    color: #64748b;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 800;
+}
+
+.wh07-release-bar {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid #cbd5e1;
+    background: rgba(255, 255, 255, .97);
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, .14);
+}
+
+.wh07-release-bar span {
+    display: block;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .08em;
+}
+
+.wh07-release-bar strong {
+    display: block;
+    margin-top: 3px;
+    color: #071225;
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.wh07-release-bar .rz-button {
+    min-width: 172px;
+    min-height: 46px;
+    font-weight: 900;
+}
+
+.wh07-shell .wh07-body {
+    padding-bottom: 116px !important;
+}
+
+/* WH-003 release progress must remain visible over the shared dark card theme. */
+.pda-shell.wh.wh07-shell .wh07-line-card.partial {
+    border-left-color: #f59e0b !important;
+    background: rgba(245, 158, 11, .09) !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-line-card.picked {
+    border-left-color: #22c55e !important;
+    background: rgba(34, 197, 94, .09) !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-status.partial {
+    border: 1px solid rgba(245, 158, 11, .65) !important;
+    background: rgba(245, 158, 11, .18) !important;
+    color: #fcd34d !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-status.picked {
+    border: 1px solid rgba(34, 197, 94, .65) !important;
+    background: rgba(34, 197, 94, .18) !important;
+    color: #bbf7d0 !important;
+}
+
 .wh06-release-card.late,
 .wh07-lot-card.blocked {
     border-left-color: #dc2626 !important;
@@ -6580,6 +6726,12 @@ body:has(.wh08-shell) {
     border-color: #bbf7d0 !important;
     background: #f0fdf4 !important;
     color: #15803d !important;
+}
+
+.wh07-status.scanned {
+    border-color: rgba(74, 222, 128, .82) !important;
+    background: rgba(34, 197, 94, .2) !important;
+    color: #bbf7d0 !important;
 }
 
 .wh06-status.late,
@@ -8704,4 +8856,203 @@ body:has(.pda-shell.wh),
     caret-color: transparent !important;
     user-select: none !important;
     -webkit-user-select: none !important;
+}
+
+/* WH003 current material confirmation after a valid Part or LOT scan. */
+.pda-shell.wh.wh07-shell .wh07-line-card.scanned {
+    border-color: rgba(74, 222, 128, .82) !important;
+    border-left: 5px solid #22c55e !important;
+    background: rgba(34, 197, 94, .13) !important;
+    box-shadow: 0 0 0 1px rgba(74, 222, 128, .48), 0 10px 22px rgba(0, 0, 0, .2) !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-status.scanned {
+    border-color: rgba(74, 222, 128, .82) !important;
+    background: rgba(34, 197, 94, .2) !important;
+    color: #bbf7d0 !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-line-checked {
+    border-top-color: rgba(74, 222, 128, .35) !important;
+    color: #bbf7d0 !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-line-checked strong {
+    color: #f0fdf4 !important;
+}
+
+/* WH003 compact Pick Slip line list. */
+.pda-shell.wh.wh07-shell .wh07-line-card {
+    padding: 12px 14px !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-line-card .wh07-line-top {
+    align-items: center !important;
+    gap: 12px !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-line-main {
+    flex: 1 1 auto;
+}
+
+.pda-shell.wh.wh07-shell .wh07-line-main strong {
+    margin-top: 2px !important;
+    font-size: 16px !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-line-main em {
+    margin-top: 2px !important;
+    font-size: 11px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* WH003 progress colors: untouched, partially scanned, fully scanned. */
+.pda-shell.wh.wh07-shell .wh07-line-card.open.rz-card {
+    border-left: 5px solid #3b82f6 !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-line-card.partial.rz-card {
+    border-left: 5px solid #f59e0b !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-line-card.picked.rz-card {
+    border-left: 5px solid #22c55e !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-line-qty {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    gap: 8px;
+    color: rgba(255, 255, 255, .55);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 800;
+    text-align: right;
+}
+
+.pda-shell.wh.wh07-shell .wh07-line-qty span {
+    display: grid;
+    gap: 2px;
+}
+
+.pda-shell.wh.wh07-shell .wh07-line-qty strong {
+    color: #ffffff;
+    font-size: 15px;
+    line-height: 1;
+}
+
+/* WH-003: compact, single-column phone layout. */
+.pda-shell.wh.wh07-shell .wh07-line-card .wh07-line-top {
+    display: block;
+}
+
+.pda-shell.wh.wh07-shell .wh07-line-main {
+    width: 100%;
+}
+
+.pda-shell.wh.wh07-shell .wh07-line-main > strong {
+    display: block;
+    margin: 0 0 10px !important;
+    font-size: 17px !important;
+    line-height: 1.1;
+}
+
+.pda-shell.wh.wh07-shell .wh07-line-qty {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    text-align: left;
+}
+
+.pda-shell.wh.wh07-shell .wh07-line-qty span {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+}
+
+.pda-shell.wh.wh07-shell .wh07-line-qty strong {
+    font-size: 14px;
+}
+
+.pda-shell.wh.wh07-shell .wh07-line-qty .wh07-check {
+    color: #86efac;
+}
+
+.pda-shell.wh.wh07-shell .wh07-release-bar {
+    display: block;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+}
+
+.pda-shell.wh.wh07-shell .wh07-release-bar .rz-button {
+    width: 100%;
+    min-width: 0;
+}
+
+/* Keep the last part card completely above the fixed WH-003 actions. */
+.pda-shell.wh.wh07-shell .wh07-line-list {
+    padding-bottom: 156px;
+}
+
+.pda-shell.wh.wh07-shell .wh07-body {
+    padding-bottom: 156px !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-release-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: 8px;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+}
+
+.pda-shell.wh.wh07-shell .wh07-release-bar .rz-button {
+    min-height: 48px;
+    font-weight: 900;
+}
+
+.pda-shell.wh.wh07-shell .wh07-clear-btn.rz-button {
+    border: 1px solid rgba(148, 163, 184, .45) !important;
+    background: #172033 !important;
+    color: #e2e8f0 !important;
+}
+
+.pda-shell.wh.wh07-shell .wh07-release-btn.rz-button {
+    border-color: #16a34a !important;
+    background: #16a34a !important;
+    color: #ffffff !important;
+}
+
+/* The spacer belongs to the actual scrolling body, not to a card. */
+.pda-shell.wh.wh07-shell .wh07-line-list {
+    padding-bottom: 0;
+}
+
+.pda-shell.wh.wh07-shell .wh07-action-spacer {
+    flex: 0 0 112px;
+    width: 100%;
+}
+
+.pda-shell.wh.wh07-shell .wh07-body {
+    padding-bottom: 14px !important;
+}
+
+/* Match the compact inbound action buttons without a full-width white overlay. */
+.pda-shell.wh.wh07-shell .wh07-release-bar {
+    right: 14px;
+    bottom: calc(var(--pda-safe-bottom) + 10px);
+    left: 14px;
+    padding: 8px;
+    border: 1px solid rgba(148, 163, 184, .28);
+    border-radius: 12px;
+    background: rgba(12, 19, 32, .98);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .34);
+}
+
+.pda-shell.wh.wh07-shell .wh07-release-bar .rz-button {
+    height: 48px !important;
+    min-height: 48px !important;
+    border-radius: 8px !important;
 }
