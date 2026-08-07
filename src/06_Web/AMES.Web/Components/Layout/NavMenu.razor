@@ -184,7 +184,7 @@
         new("wh", "wh/location-map",    "WH-003", "로케이션 맵",     "Location Map"),
         new("wh", "wh/inventory-setting", "WH-005", "재고 설정", "Inventory Setting"),
         new("wh", "wh/picking-orders",  "WH-002", "피킹 오더",   "Picking Orders"),
-        new("wh", "wh/log-history",     "WH-004", "로그 이력",      "Log History"),
+        new("wh", "wh/log-history",     "WH-004", "재고 이력",      "Inventory History"),
     };
 
     static readonly NavItem[] _fallbackItems =
@@ -194,7 +194,7 @@
         new("wh", "wh/location-map",    "WH-003", "로케이션 맵",     "Location Map"),
         new("wh", "wh/inventory-setting", "WH-005", "재고 설정", "Inventory Setting"),
         new("wh", "wh/picking-orders",  "WH-002", "피킹 오더",   "Picking Orders"),
-        new("wh", "wh/log-history",     "WH-004", "로그 이력",      "Log History"),
+        new("wh", "wh/log-history",     "WH-004", "재고 이력",      "Inventory History"),
 
         // ── PP ──
         new("pp", "pp/forecast",         "PP-001", "수요 예측",        "Forecast"),
@@ -396,8 +396,8 @@
                     s.ProcessCode!.ToLowerInvariant(),
                     s.HRef!.TrimStart('/'),
                     s.LidLabel ?? s.ScreenCode,
-                    s.ScreenName,
-                    s.ScreenNameEn ?? s.ScreenName,
+                    s.HRef.Trim('/').Equals("wh/log-history", StringComparison.OrdinalIgnoreCase) ? "재고 이력" : s.ScreenName,
+                    s.HRef.Trim('/').Equals("wh/log-history", StringComparison.OrdinalIgnoreCase) ? "Inventory History" : s.ScreenNameEn ?? s.ScreenName,
                     s.SubProcessCode))
                 .ToList();
 
@@ -540,7 +540,7 @@
         ["wh/location-map"] = "Mapa de Ubicaciones",
         ["wh/inventory-setting"] = "Configuración de Inventario",
         ["wh/picking-orders"] = "Órdenes de Picking",
-        ["wh/log-history"] = "Historial de Registros",
+        ["wh/log-history"] = "Historial de Inventario",
         // PP
         ["pp/forecast"] = "Pronóstico",
         ["pp/supply-plan-import"] = "Importar Plan de Suministro",

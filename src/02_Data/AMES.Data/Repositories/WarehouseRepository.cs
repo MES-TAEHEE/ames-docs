@@ -1733,6 +1733,34 @@ public sealed class WarehouseRepository
         using var conn = _factory.OpenConnection();
         EnsureOperationLogTable(conn);
         using var cmd = new SqlCommand("""
+            ;WITH InventoryActivity AS
+            (
+                SELECT
+                    OperationLogID, EventTime, EventType,
+                    CASE
+                        WHEN EventType IN ('RECEIVE', 'CANCEL_RECEIPT') THEN 'INBOUND'
+                        WHEN EventType = 'RELEASE_PICK' THEN 'OUTBOUND'
+                        WHEN EventType = 'MOVE_LOCATION' THEN 'RELOCATION'
+                        WHEN EventType = 'ADJUST_SAVE' THEN 'ADJUSTMENT'
+                    END AS OperationType,
+                    ScreenCode, EmployeeNo, EmployeeName, WorkerID, TerminalID,
+                    LineID, ShiftCode, ScanType, ScanValue, Result, Message,
+                    ClientIP, RefDocType, RefDocNo, LotNo, PartNo, LocationID, Qty
+                FROM dbo.WH_OperationLog
+                WHERE Result = 'SUCCESS'
+                  AND EventType IN ('RECEIVE', 'CANCEL_RECEIPT', 'RELEASE_PICK', 'MOVE_LOCATION', 'ADJUST_SAVE')
+
+                UNION ALL
+
+                SELECT
+                    -H.LotStatusHistoryID, H.ChangedAt, 'STATUS_CHANGE', 'STATUS',
+                    NULL, H.ChangedBy, NULL, H.ChangedBy, NULL,
+                    NULL, NULL, NULL, H.LotNo, 'SUCCESS',
+                    CONCAT(COALESCE(H.BeforeStatus, 'CREATED'), ' -> ', H.AfterStatus),
+                    NULL, H.ReasonCode, H.ReferenceNo, H.LotNo, L.ItemNo, NULL, NULL
+                FROM dbo.WH_LotStatusHistory H
+                LEFT JOIN dbo.tbl_Lot L ON L.LotID = H.LotID
+            )
             SELECT TOP (500)
                 OperationLogID,
                 EventTime,
@@ -1755,17 +1783,8 @@ public sealed class WarehouseRepository
                 PartNo,
                 LocationID,
                 Qty
-            FROM dbo.WH_OperationLog
-            WHERE EventType NOT IN ('LOGIN', 'LOGOUT')
-              AND (
-                    @OperationType IS NULL
-                 OR (@OperationType = 'SCAN' AND EventType LIKE 'SCAN_%')
-                 OR (@OperationType = 'INBOUND' AND EventType IN ('RECEIVE', 'CANCEL_RECEIPT'))
-                 OR (@OperationType = 'RELEASE' AND EventType = 'RELEASE_PICK')
-                 OR (@OperationType = 'ADJUST' AND EventType = 'ADJUST_SAVE')
-                 OR (@OperationType = 'LOCATION' AND (EventType = 'MOVE_LOCATION' OR EventType LIKE 'LOCATION_MASTER_%'))
-                 OR EventType = @OperationType
-              )
+            FROM InventoryActivity
+            WHERE (@OperationType IS NULL OR OperationType = @OperationType)
               AND (@DateFrom IS NULL OR EventTime >= @DateFrom)
               AND (@DateTo IS NULL OR EventTime < DATEADD(day, 1, @DateTo))
               AND (@Like IS NULL
