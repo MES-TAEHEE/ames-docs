@@ -2,7 +2,7 @@
 -- A-MES Database Schema (Auto-generated)
 -- Generated: 2026-06-08 16:33:54
 -- Source: AMES_ERD_data.js
--- Total tables: 152
+-- Total tables: 159   (자동생성 이후 손으로 흡수한 분 포함 — 2026-08-03 기준 실 DB 와 일치)
 -- Engine: SQL Server 2022/2025
 -- Pattern: Stored Procedure + ADO.NET (per VOL01 Tech Stack)
 -- FK constraints: not applied (commented as -- FK -> Target.Col)
@@ -115,6 +115,7 @@ IF OBJECT_ID(N'dbo.PR_InjCondLog', N'U') IS NOT NULL DROP TABLE dbo.PR_InjCondLo
 IF OBJECT_ID(N'dbo.MD_InjCondItem', N'U') IS NOT NULL DROP TABLE dbo.MD_InjCondItem;
 IF OBJECT_ID(N'dbo.tbl_Lot', N'U') IS NOT NULL DROP TABLE dbo.tbl_Lot;
 IF OBJECT_ID(N'dbo.PP_ProductionCalendarOverride', N'U') IS NOT NULL DROP TABLE dbo.PP_ProductionCalendarOverride;
+IF OBJECT_ID(N'dbo.PP_EquipSignal', N'U') IS NOT NULL DROP TABLE dbo.PP_EquipSignal;
 IF OBJECT_ID(N'dbo.PP_LineOEE', N'U') IS NOT NULL DROP TABLE dbo.PP_LineOEE;
 IF OBJECT_ID(N'dbo.PP_LineDowntimeLog', N'U') IS NOT NULL DROP TABLE dbo.PP_LineDowntimeLog;
 IF OBJECT_ID(N'dbo.PP_LineStateLog', N'U') IS NOT NULL DROP TABLE dbo.PP_LineStateLog;
@@ -186,6 +187,7 @@ GO
 CREATE TABLE dbo.MD_Item (
   [ItemNo]                    VARCHAR(20)          NOT NULL,
   [ItemName]                  NVARCHAR(80)         NOT NULL,
+  [ItemNameEN]                NVARCHAR(80)             NULL,
   [ItemType]                  VARCHAR(10)              NULL,
   [ItemCategory]              VARCHAR(30)              NULL,
   [CarType]                   VARCHAR(10)              NULL,
@@ -195,6 +197,8 @@ CREATE TABLE dbo.MD_Item (
   [MaxStock]                  DECIMAL(14,4)            NULL,
   [SafetyStock]               DECIMAL(14,4)            NULL,
   [UnitCost]                  DECIMAL(14,2)            NULL,
+  [CustItemNoSAV]             VARCHAR(30)              NULL,  -- 고객사 품번 (SAV)
+  [CustItemNoGEO]             VARCHAR(30)              NULL,  -- 고객사 품번 (GEO)
   [DrawingNo]                 VARCHAR(30)              NULL,
   [PGN]                       VARCHAR(4)               NULL,
   [ALC]                       VARCHAR(10)              NULL,
@@ -1469,6 +1473,23 @@ CREATE TABLE dbo.PP_LineOEE (
   [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_LineOEE PRIMARY KEY CLUSTERED ([OeeSnapshotID])
 );
+GO
+
+-- ── PP_EquipSignal  (라인 가동/정지 실시간 신호 (PP-ODM))
+-- AMES.Data.Repositories.OeeRepository.TryEnsureTables() 가 런타임에 만들던 테이블 —
+-- 여기 정의가 있으면 그쪽 IF OBJECT_ID 가드는 no-op 이 된다.
+CREATE TABLE dbo.PP_EquipSignal (
+  [SignalId]                  INT IDENTITY         NOT NULL,
+  [LineId]                    VARCHAR(20)          NOT NULL,  -- FK -> MD_Line.LineID
+  [SignalTime]                DATETIME2            NOT NULL DEFAULT SYSDATETIME(),
+  [IsRunning]                 BIT                  NOT NULL DEFAULT 0,
+  [Source]                    VARCHAR(30)              NULL DEFAULT 'WEB',
+  [CreatedBy]                 VARCHAR(50)              NULL,
+  CONSTRAINT PK_PP_EquipSignal PRIMARY KEY CLUSTERED ([SignalId])
+);
+GO
+
+CREATE INDEX IX_PP_EquipSignal_Line_Time ON dbo.PP_EquipSignal([LineId], [SignalTime] DESC);
 GO
 
 -- ── PP_ProductionCalendarOverride  (캘린더 변경)
@@ -3206,6 +3227,7 @@ CREATE TABLE dbo.SYS_RolePermission (
   [RoleID]                    NVARCHAR(450)            NULL,  -- FK -> AspNetRoles.Id
   [RoleName]                  VARCHAR(40)              NULL,
   [ModuleCode]                VARCHAR(10)              NULL,
+  [ProcessCode]               VARCHAR(10)              NULL,
   [ScreenCode]                VARCHAR(20)              NULL,
   [PermissionLevel]           VARCHAR(10)              NULL,
   [IsSystemRole]              BIT                      NULL,
@@ -3224,6 +3246,7 @@ CREATE TABLE dbo.SYS_AuditLog (
   [EventTS]                   DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ActorUserID]               NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [ModuleCode]                VARCHAR(10)              NULL,
+  [ProcessCode]               VARCHAR(10)              NULL,
   [ScreenCode]                VARCHAR(20)              NULL,
   [ActionType]                VARCHAR(15)              NULL,
   [TargetEntity]              VARCHAR(40)              NULL,
@@ -3247,6 +3270,7 @@ CREATE TABLE dbo.SYS_NotificationRule (
   [EventTypeCode]             VARCHAR(20)              NULL,
   [EventName]                 NVARCHAR(60)             NULL,
   [ModuleCode]                VARCHAR(10)              NULL,
+  [ProcessCode]               VARCHAR(10)              NULL,
   [TriggerCondition]          NVARCHAR(500)            NULL,
   [IsEnabled]                 BIT                      NULL DEFAULT 1,
   [ChannelsJSON]              NVARCHAR(200)            NULL,
