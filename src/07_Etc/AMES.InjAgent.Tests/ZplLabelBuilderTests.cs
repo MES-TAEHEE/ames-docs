@@ -11,6 +11,7 @@ public class ZplLabelBuilderTests
         ItemName:   "GARNISH-RR DR UPR, LH",
         ColorCode:  "CBK",
         CavityPos:  "LH",
+        PressType:  "M",
         LineId:     "LINE-INJ-01",
         ProducedAt: new DateTime(2026, 7, 17, 9, 30, 0));
 
@@ -31,33 +32,47 @@ public class ZplLabelBuilderTests
     }
 
     [Fact]
-    public void Build_contains_item_color_cavity_and_date()
+    public void Build_sets_2x1_inch_media_geometry()
     {
         var zpl = ZplLabelBuilder.Build(Sample());
-        Assert.Contains("83335-P8000RBQ", zpl);
-        Assert.Contains("CBK", zpl);
-        Assert.Contains("LH", zpl);
-        Assert.Contains("2026-07-17 09:30", zpl);
+        Assert.Contains("^PW406", zpl);   // 2" @ 203dpi
+        Assert.Contains("^LL203", zpl);   // 1" @ 203dpi
+        Assert.Contains("^CI28", zpl);    // UTF-8
+    }
+
+    [Fact]
+    public void Build_contains_item_color_cavity_press_and_date()
+    {
+        var zpl = ZplLabelBuilder.Build(Sample());
+        Assert.Contains("^FO20,138^A0N,50,39^FD83335-P8000RBQ^FS", zpl);
+        Assert.Contains("^FO140,82^A0N,31,27^FDCBK^FS", zpl);
+        Assert.Contains("^FO320,14^A0N,43,34^FDLH^FS", zpl);
+        Assert.Contains("^FO320,73^A0N,43,34^FDM^FS", zpl);
+        Assert.Contains("^FO140,14^A0N,30,27^FD07/17/2026^FS", zpl);
     }
 
     [Fact]
     public void Build_strips_zpl_control_chars_from_fields()
     {
-        var label = Sample() with { ItemName = "BAD^NAME~X" };
+        var label = Sample() with { ItemNo = "BAD^NO~X" };
         var zpl = ZplLabelBuilder.Build(label);
-        Assert.Contains("BADNAMEX", zpl);
-        Assert.DoesNotContain("BAD^NAME", zpl);
+        Assert.Contains("BADNOX", zpl);
+        Assert.DoesNotContain("BAD^NO", zpl);
         Assert.EndsWith("^XZ", zpl.TrimEnd());
     }
 
     [Fact]
-    public void Build_renders_null_optional_fields_as_empty()
+    public void Build_omits_lines_for_null_optional_fields()
     {
-        var label = Sample() with { ItemName = null, ColorCode = null, CavityPos = null, LineId = null };
+        // 수동 발행 LOT — PressType 이 NULL 이라 호기 줄이 없어야 한다.
+        var label = Sample() with { ColorCode = null, CavityPos = null, PressType = null };
         var zpl = ZplLabelBuilder.Build(label);
         Assert.StartsWith("^XA", zpl);
         Assert.EndsWith("^XZ", zpl.TrimEnd());
-        Assert.DoesNotContain("^FO260,70", zpl);   // ItemName 줄 생략
+        Assert.DoesNotContain("^FO140,82", zpl);   // 색상 줄 생략
+        Assert.DoesNotContain("^FO320,14", zpl);   // 캐비티 줄 생략
+        Assert.DoesNotContain("^FO320,73", zpl);   // 호기 줄 생략
+        Assert.Contains("^FO20,138^A0N,50,39^FD83335-P8000RBQ^FS", zpl);
     }
 
     [Fact]

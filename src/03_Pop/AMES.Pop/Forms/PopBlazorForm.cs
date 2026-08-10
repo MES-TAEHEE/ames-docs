@@ -17,6 +17,7 @@ namespace AMES.Pop.Forms;
 public class PopBlazorForm : PopForm
 {
     private readonly BlazorWebView _webView;
+    private System.Threading.Timer? _labelTimer;
 
     public PopBlazorForm()
     {
@@ -30,13 +31,18 @@ public class PopBlazorForm : PopForm
         services.AddSingleton<AppState>();
         services.AddSingleton<ToastService>();
         services.AddSingleton<ConfirmService>();
+        services.AddSingleton<LabelDispatcher>(_ => new LabelDispatcher(
+            new RepoInjLotClaimStore(), new ZplLabelSink(),
+            AppConfig.Current.PrinterMaxFailures, LogDispatch));
+
+        var provider = services.BuildServiceProvider();
 
         _webView = new BlazorWebView
         {
             Dock      = DockStyle.Fill,
             HostPage  = "wwwroot/index.html",
             StartPath = "/login",
-            Services  = services.BuildServiceProvider(),
+            Services  = provider,
         };
         _webView.RootComponents.Add(new RootComponent(
             selector:      "#app",
@@ -45,8 +51,70 @@ public class PopBlazorForm : PopForm
 
         Controls.Add(_webView);
 
+        WireLabelDispatcher(provider);
+
         BlazorHost.ActionRequested += OnAction;
         FormClosing += (_, _) => BlazorHost.ActionRequested -= OnAction;
+    }
+
+    // 라벨 발행은 화면 수명과 무관해야 한다 — 로그인 동안 계속, 어느 화면이든.
+    // WinForms 타이머를 쓰면 안 된다: Tick() 이 DB + TCP 를 동기로 타는데
+    // 프린터 연결 타임아웃이 2초라 UI 스레드가 그만큼 얼어붙는다.
+    private void WireLabelDispatcher(IServiceProvider provider)
+    {
+        var pollMs = AppConfig.Current.PrinterPollMs;
+        if (pollMs <= 0 || AppConfig.Current.ModuleCode != "INJ") return;
+
+        var state      = provider.GetRequiredService<AppState>();
+        var toasts     = provider.GetRequiredService<ToastService>();
+        var dispatcher = provider.GetRequiredService<LabelDispatcher>();
+
+        dispatcher.OnStopped += () => toasts.Bad(PopLang.T("LabelAutoDispatchStopped"));
+
+        // 백그라운드 타이머 콜백에서 예외가 새어 나가면 프로세스가 죽는다.
+        _labelTimer = new System.Threading.Timer(_ =>
+        {
+            try { dispatcher.Tick(); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[LabelDispatcher] tick failed: {ex}"); }
+        }, null, Timeout.Infinite, Timeout.Infinite);
+
+        state.OnChange += () =>
+        {
+            if (state.Session is { } s)
+            {
+                dispatcher.Start(s.LineId, s.TerminalId);
+                _labelTimer.Change(pollMs, pollMs);
+            }
+            else
+            {
+                _labelTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                dispatcher.Stop();
+            }
+        };
+    }
+
+    // 무인 루프라 토스트로 못 알리는 실패가 대부분이고, Debug.WriteLine 은
+    // Release 에서 사라진다 — 프린터/DB 장애 사후 추적에는 파일이 필요하다.
+    // 라벨 .zpl 과 같은 폴더에 남긴다: 현장에서 한 곳만 보면 된다.
+    private static void LogDispatch(string msg)
+    {
+        System.Diagnostics.Debug.WriteLine($"[LabelDispatcher] {msg}");
+        try
+        {
+            var dir = AppConfig.Current.PrinterOutputDir;
+            Directory.CreateDirectory(dir);
+            File.AppendAllText(Path.Combine(dir, $"dispatch-{DateTime.Now:yyyyMMdd}.log"),
+                               $"{DateTime.Now:HH:mm:ss} {msg}{Environment.NewLine}");
+        }
+        catch { /* 로깅 실패가 발행을 막아서는 안 된다 */ }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        // 진행 중인 콜백을 기다리지 않는다 — 종료가 최대 5초 늘어지는 것보다,
+        // 미완 선점이 스테일 회수(60초)로 복구되는 편이 낫다.
+        if (disposing) _labelTimer?.Dispose();
+        base.Dispose(disposing);
     }
 
     /// <summary>

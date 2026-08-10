@@ -1,0 +1,94 @@
+@namespace AMES.Pop.Pages.InjPopups
+@using AMES.Pop.Common
+
+@*  INJ-003 작업지시 접수 — 팝업판. 메인 화면에서 선택한 WO 를 받아
+    프리스타트 체크리스트 완료 후 접수한다. *@
+
+<PopupShell Title='@($"📋 {T("WoConfirmPreStartChecklist")}")' Width="820px" OnClose="OnClose">
+    @if (Wo is null)
+    {
+        <div class="pmod-empty">@T("SelectAWorkOrderFromTheListFirst")</div>
+    }
+    else
+    {
+        <div class="wo-card on" style="cursor:default;">
+            <div class="wo-card-top">
+                <div class="wo-card-id">@Wo.WoNumber</div>
+                <div class="wo-card-prio @(Wo.Priority <= 2 ? "high" : "norm")">
+                    @(Wo.Priority <= 2 ? $"🔥 {T("High")}" : $"▪ {T("Normal")}")@(Wo.DaysToDue is null ? "" : $" · D-{Wo.DaysToDue}")
+                </div>
+            </div>
+            <div class="wo-card-name">@Wo.ItemName (@Wo.ItemNo)</div>
+            <div class="wo-card-grid">
+                <div><div class="wo-card-l">@T("TargetQty")</div><div class="wo-card-v">@Wo.OrderQty.ToString("0") @T("Ea")</div></div>
+                <div><div class="wo-card-l">@T("Mold2")</div><div class="wo-card-v">@(Wo.MoldId ?? "—")</div></div>
+                <div><div class="wo-card-l">@T("Recipe")</div><div class="wo-card-v">@(Wo.RecipeId ?? "—")</div></div>
+                <div><div class="wo-card-l">@T("Status")</div><div class="wo-card-v">@PopLang.WoStatus(Wo.Status)</div></div>
+            </div>
+
+            <div class="checklist">
+                <div class="checklist-t">▼ @T("PreStartChecklist")  ·  BR-INJ-W01</div>
+                @for (var i = 0; i < _checks.Length; i++)
+                {
+                    var idx = i;
+                    <div class="checklist-i" @onclick="@(() => _checks[idx] = !_checks[idx])">
+                        <span class="c-mark @(_checks[idx] ? "" : "off")">@(_checks[idx] ? "✓" : "")</span>
+                        @CheckLabel(idx)
+                    </div>
+                }
+            </div>
+            <div class="confirm-bar">
+                <button class="pop-btn pop-btn-sec" @onclick="OnClose">@T("Cancel")</button>
+                <button class="pop-btn pop-btn-ok" disabled="@(!_checks.All(c => c))" @onclick="Accept">✓ @T("AcceptWo")</button>
+            </div>
+        </div>
+    }
+</PopupShell>
+
+@code {
+    [Parameter] public PopSessionDto? Session    { get; set; }
+    [Parameter] public WorkOrderDto?  Wo         { get; set; }
+    [Parameter] public EventCallback  OnClose    { get; set; }
+    [Parameter] public EventCallback  OnAccepted { get; set; }
+
+    private static string T(string key, params object?[] args) => PopLang.T(key, args);
+
+    private bool[] _checks = new bool[5];
+
+    protected override void OnParametersSet()
+    {
+        // 다른 WO 로 다시 열리면 체크 초기화
+        if (_lastWoId != Wo?.WoId) { _checks = new bool[5]; _lastWoId = Wo?.WoId; }
+    }
+    private int? _lastWoId;
+
+    private static string CheckLabel(int i) => i switch
+    {
+        0 => T("MoldMountedMatchesWoRouting"),
+        1 => T("MaterialLotAvailableWithinExpiry"),
+        2 => T("RecipeLoadedIntoPlcPressureTempTime"),
+        3 => T("SafetyGuardsClosedInterlockOk"),
+        4 => T("Phase0MasterDataCompleteBrMd04"),
+        _ => "",
+    };
+
+    private async Task Accept()
+    {
+        if (Wo is null || Session is null) return;
+        try
+        {
+            var checks = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                mold = _checks[0], material = _checks[1], recipe = _checks[2], safety = _checks[3], phase0 = _checks[4],
+                at = DateTime.Now, by = Session.EmployeeNo,
+            });
+            PopServices.WorkOrders.AcceptWo(Wo.WoId, Session.TerminalId,
+                Session.OperatorId, Session.EmployeeNo, checks);
+            await OnAccepted.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[WoConfirmPopup Accept] {ex.Message}");
+        }
+    }
+}

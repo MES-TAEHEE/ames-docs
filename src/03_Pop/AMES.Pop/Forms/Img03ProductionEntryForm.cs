@@ -284,7 +284,7 @@ public sealed class Img03ProductionEntryForm : PopForm
         {
             var cycleSec = _recipeCT ?? 38;
             var (resultId, _, newCompleted) = PopServices.Production.RecordCycle(
-                _wo.WoId, _wo.ItemNo, _wo.LineId, qty, cycleSec, moldId: null,
+                _wo.WoId, _wo.ItemNo, _wo.LineId, "IMG", qty, cycleSec, moldId: null,
                 _session.OperatorId, _session.SessionId, _session.EmployeeNo, defectFlag: false);
 
             // fabric deduction

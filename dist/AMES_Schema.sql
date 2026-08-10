@@ -2,7 +2,7 @@
 -- A-MES Database Schema (Auto-generated)
 -- Generated: 2026-06-08 16:33:54
 -- Source: AMES_ERD_data.js
--- Total tables: 152
+-- Total tables: 159   (자동생성 이후 손으로 흡수한 분 포함 — 2026-08-03 기준 실 DB 와 일치)
 -- Engine: SQL Server 2022/2025
 -- Pattern: Stored Procedure + ADO.NET (per VOL01 Tech Stack)
 -- FK constraints: not applied (commented as -- FK -> Target.Col)
@@ -118,6 +118,7 @@ IF OBJECT_ID(N'dbo.PR_InjCondLog', N'U') IS NOT NULL DROP TABLE dbo.PR_InjCondLo
 IF OBJECT_ID(N'dbo.MD_InjCondItem', N'U') IS NOT NULL DROP TABLE dbo.MD_InjCondItem;
 IF OBJECT_ID(N'dbo.tbl_Lot', N'U') IS NOT NULL DROP TABLE dbo.tbl_Lot;
 IF OBJECT_ID(N'dbo.PP_ProductionCalendarOverride', N'U') IS NOT NULL DROP TABLE dbo.PP_ProductionCalendarOverride;
+IF OBJECT_ID(N'dbo.PP_EquipSignal', N'U') IS NOT NULL DROP TABLE dbo.PP_EquipSignal;
 IF OBJECT_ID(N'dbo.PP_LineOEE', N'U') IS NOT NULL DROP TABLE dbo.PP_LineOEE;
 IF OBJECT_ID(N'dbo.PP_LineDowntimeLog', N'U') IS NOT NULL DROP TABLE dbo.PP_LineDowntimeLog;
 IF OBJECT_ID(N'dbo.PP_LineStateLog', N'U') IS NOT NULL DROP TABLE dbo.PP_LineStateLog;
@@ -199,8 +200,8 @@ CREATE TABLE dbo.MD_Item (
   [MaxStock]                  DECIMAL(14,4)            NULL,
   [SafetyStock]               DECIMAL(14,4)            NULL,
   [UnitCost]                  DECIMAL(14,2)            NULL,
-  [CustItemNoSAV]             VARCHAR(30)              NULL,
-  [CustItemNoGEO]             VARCHAR(30)              NULL,
+  [CustItemNoSAV]             VARCHAR(30)              NULL,  -- 고객사 품번 (SAV)
+  [CustItemNoGEO]             VARCHAR(30)              NULL,  -- 고객사 품번 (GEO)
   [DrawingNo]                 VARCHAR(30)              NULL,
   [PGN]                       VARCHAR(4)               NULL,
   [ALC]                       VARCHAR(10)              NULL,
@@ -1502,6 +1503,23 @@ CREATE TABLE dbo.PP_LineOEE (
 );
 GO
 
+-- ── PP_EquipSignal  (라인 가동/정지 실시간 신호 (PP-ODM))
+-- AMES.Data.Repositories.OeeRepository.TryEnsureTables() 가 런타임에 만들던 테이블 —
+-- 여기 정의가 있으면 그쪽 IF OBJECT_ID 가드는 no-op 이 된다.
+CREATE TABLE dbo.PP_EquipSignal (
+  [SignalId]                  INT IDENTITY         NOT NULL,
+  [LineId]                    VARCHAR(20)          NOT NULL,  -- FK -> MD_Line.LineID
+  [SignalTime]                DATETIME2            NOT NULL DEFAULT SYSDATETIME(),
+  [IsRunning]                 BIT                  NOT NULL DEFAULT 0,
+  [Source]                    VARCHAR(30)              NULL DEFAULT 'WEB',
+  [CreatedBy]                 VARCHAR(50)              NULL,
+  CONSTRAINT PK_PP_EquipSignal PRIMARY KEY CLUSTERED ([SignalId])
+);
+GO
+
+CREATE INDEX IX_PP_EquipSignal_Line_Time ON dbo.PP_EquipSignal([LineId], [SignalTime] DESC);
+GO
+
 -- ── PP_ProductionCalendarOverride  (캘린더 변경)
 CREATE TABLE dbo.PP_ProductionCalendarOverride (
   [OverrideID]                INT IDENTITY         NOT NULL,
@@ -1821,6 +1839,8 @@ CREATE TABLE dbo.PR_InjLot (
   [ConfirmedBy]               NVARCHAR(450)            NULL,
   [ConfirmedSessionID]        INT                      NULL,
   [PrintedCount]              INT                  NOT NULL DEFAULT 0,
+  [PrintClaimTS]              DATETIME2                NULL,  -- 라벨 발행 선점 시각 (NULL = 미선점)
+  [PrintClaimStation]         VARCHAR(20)              NULL,  -- 선점한 Pop 터미널 StationId
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
@@ -1832,6 +1852,8 @@ GO
 CREATE INDEX IX_PR_InjLot_Status ON dbo.PR_InjLot([ConfirmStatus], [EquipID]);
 GO
 CREATE INDEX IX_PR_InjLot_Equip ON dbo.PR_InjLot([EquipID]) INCLUDE([CavityPos], [MachineShotCount]);
+GO
+CREATE INDEX IX_PR_InjLot_PrintClaim ON dbo.PR_InjLot([PrintedCount], [LotID]) INCLUDE([PrintClaimTS]);
 GO
 
 -- ── MD_InjCondItem  (사출조건 항목 마스터, SEOYON ZINJ0150 대응)
@@ -1896,6 +1918,13 @@ SET QUOTED_IDENTIFIER ON;  -- 필터드 인덱스 필수 (sqlcmd 기본값 OFF)
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_tbl_Lot_LotCode')
   CREATE UNIQUE NONCLUSTERED INDEX UX_tbl_Lot_LotCode ON dbo.tbl_Lot([LotCode]) WHERE [LotCode] IS NOT NULL;
+GO
+
+-- ── tbl_Lot.LineID (라벨 클레임 조인이 라인으로 좁혀지지 않으면, Pop 이 꺼진 라인의
+--    미출력 LOT 을 살아있는 다른 라인 터미널이 1초마다 전부 스캔한 뒤 버린다)
+IF NOT EXISTS (SELECT 1 FROM sys.indexes
+               WHERE object_id = OBJECT_ID(N'dbo.tbl_Lot') AND name = N'IX_tbl_Lot_Line')
+  CREATE INDEX IX_tbl_Lot_Line ON dbo.tbl_Lot([LineID], [LotID]);
 GO
 
 -- ── PR_PlcInterlock  (PLC 인터록)

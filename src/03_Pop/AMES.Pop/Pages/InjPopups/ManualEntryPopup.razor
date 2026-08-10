@@ -1,0 +1,76 @@
+@namespace AMES.Pop.Pages.InjPopups
+@using AMES.Pop.Common
+@inject ToastService Toasts
+
+@*  INJ-004 수동 LOT 발행 — 팝업판. PLC 미연결·계수 누락 시 원천 LOT 을 수동으로 만든다.
+    라벨은 LabelDispatcher 가 뽑고, 실적은 그 라벨을 스캔해야 확정된다. *@
+
+<PopupShell Title='@($"⌨ {T("ManualLotIssueQtyEa")}")' Width="560px" OnClose="OnClose">
+    @if (Wo is null)
+    {
+        <div class="pmod-empty">@T("NoActiveWorkOrderAcceptAWoFirst")</div>
+    }
+    else
+    {
+        <div class="entry-h">▼ @T("CurrentWo")</div>
+        <div class="entry-wo">@Wo.WoNumber</div>
+        <div class="entry-name" style="margin-bottom:10px;">@Wo.ItemName</div>
+
+        <div class="input-display" style="font-size:96px;">@(_buf.Length == 0 ? "0" : _buf.ToString())</div>
+        <div class="keypad">
+            @foreach (var d in new[] { "1","2","3","4","5","6","7","8","9" })
+            {
+                var key = d;
+                <div class="kp" @onclick="@(() => Press(key))">@key</div>
+            }
+            <div class="kp ct"  @onclick="LoadCt">@T("Ct")</div>
+            <div class="kp"     @onclick="@(() => Press("0"))">0</div>
+            <div class="kp del" @onclick="Backspace">←</div>
+        </div>
+        <div class="entry-note">@T("ScanIssuedLabelsToConfirm")</div>
+        <div class="confirm-bar">
+            <button class="pop-btn pop-btn-sec" @onclick="OnClose">@T("Cancel")</button>
+            <button class="pop-btn pop-btn-ok" @onclick="Confirm">🏷 @T("IssueLots") @(_buf.Length == 0 ? "0" : _buf.ToString()) @T("Ea")</button>
+        </div>
+    }
+</PopupShell>
+
+@code {
+    [Parameter] public PopSessionDto?     Session     { get; set; }
+    [Parameter] public WorkOrderDto?      Wo          { get; set; }
+    [Parameter] public EventCallback      OnClose     { get; set; }
+    /// <summary>원천 LOT 생성 완료. 라벨 발행은 디스패처, 실적 확정은 스캔 단계에서 일어난다.</summary>
+    [Parameter] public EventCallback      OnCreated   { get; set; }
+
+    private static string T(string key, params object?[] args) => PopLang.T(key, args);
+
+    private readonly System.Text.StringBuilder _buf = new();
+
+    private void Press(string d)
+    {
+        if (_buf.Length >= 2) return;
+        if (_buf.Length == 0 && d == "0") return;
+        _buf.Append(d);
+    }
+    private void Backspace() { if (_buf.Length > 0) _buf.Length--; }
+    private void LoadCt()    { _buf.Clear(); _buf.Append('1'); }
+
+    private async Task Confirm()
+    {
+        if (Wo is null || Session is null) return;
+        if (!int.TryParse(_buf.ToString(), out var qty) || qty <= 0) return;
+        try
+        {
+            // 에이전트와 같은 원천 LOT(RAW) 만 만든다. 실적 확정은 라벨 스캔 경유 — 여기서 확정하지 않는다.
+            var lots = PopServices.InjLots.CreateManualRawLots(
+                Wo.LineId, Wo.ItemNo, Wo.MoldId, qty, Session.EmployeeNo);
+            _buf.Clear();
+
+            // 라벨은 LabelDispatcher 가 발행한다 — 여기서 뽑으면 디스패처와 이중 발행된다.
+            Toasts.Ok(T("ManualLotsCreated", lots.Count));
+
+            await OnCreated.InvokeAsync();
+        }
+        catch (Exception ex) { Toasts.Bad($"{T("EntryFailed")}: {ex.Message}"); }
+    }
+}

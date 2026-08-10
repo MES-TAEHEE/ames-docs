@@ -24,6 +24,8 @@ CREATE TABLE dbo.PR_InjLot (
   [ConfirmedBy]               NVARCHAR(450)            NULL,
   [ConfirmedSessionID]        INT                      NULL,
   [PrintedCount]              INT                  NOT NULL DEFAULT 0,
+  [PrintClaimTS]              DATETIME2                NULL,  -- 라벨 발행 선점 시각 (NULL = 미선점)
+  [PrintClaimStation]         VARCHAR(20)              NULL,  -- 선점한 Pop 터미널 StationId
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedTS]                DATETIME2                NULL,
@@ -35,6 +37,8 @@ GO
 CREATE INDEX IX_PR_InjLot_Status ON dbo.PR_InjLot([ConfirmStatus], [EquipID]);
 GO
 CREATE INDEX IX_PR_InjLot_Equip ON dbo.PR_InjLot([EquipID]) INCLUDE([CavityPos], [MachineShotCount]);
+GO
+CREATE INDEX IX_PR_InjLot_PrintClaim ON dbo.PR_InjLot([PrintedCount], [LotID]) INCLUDE([PrintClaimTS]);
 GO
 
 -- ── MD_InjCondItem  (사출조건 항목 마스터, SEOYON ZINJ0150 대응)
@@ -122,6 +126,12 @@ SET QUOTED_IDENTIFIER ON;  -- 필터드 인덱스 필수 (sqlcmd 기본값 OFF)
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_tbl_Lot_LotCode')
   CREATE UNIQUE NONCLUSTERED INDEX UX_tbl_Lot_LotCode ON dbo.tbl_Lot([LotCode]) WHERE [LotCode] IS NOT NULL;
+GO
+-- 라벨 클레임 조인이 라인으로 좁혀지지 않으면, Pop 이 꺼진 라인의 미출력 LOT 을
+-- 살아있는 다른 라인 터미널이 1초마다 전부 스캔한 뒤 버린다.
+IF NOT EXISTS (SELECT 1 FROM sys.indexes
+               WHERE object_id = OBJECT_ID(N'dbo.tbl_Lot') AND name = N'IX_tbl_Lot_Line')
+  CREATE INDEX IX_tbl_Lot_Line ON dbo.tbl_Lot([LineID], [LotID]);
 GO
 PRINT '✓ migrate_inj_agent.sql applied';
 GO

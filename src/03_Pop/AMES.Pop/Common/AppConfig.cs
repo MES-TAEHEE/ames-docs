@@ -19,11 +19,20 @@ public sealed class AppConfig
     /// </summary>
     public string ModuleCode { get; }
 
+    /// <summary>화면 표시 언어: "ko"(기본) 또는 "en". PopLang 초기값.</summary>
+    public string Language { get; }
+
     /// <summary>라벨 재출력용 ZPL 프린터 설정 (없으면 File 모드 기본값).</summary>
     public string PrinterMode      { get; }
     public string PrinterHost      { get; }
     public int    PrinterPort      { get; }
     public string PrinterOutputDir { get; }
+
+    /// <summary>라벨 자동 발행 폴링 주기(ms). 0 이하면 자동 발행 비활성.</summary>
+    public int PrinterPollMs { get; }
+
+    /// <summary>연속 출력 실패가 이 횟수에 도달하면 자동 발행을 멈춘다.</summary>
+    public int PrinterMaxFailures { get; }
 
     private static readonly Lazy<AppConfig> _instance = new(Load);
     public static AppConfig Current => _instance.Value;
@@ -41,10 +50,14 @@ public sealed class AppConfig
             throw new InvalidOperationException("PopTerminal:ModuleCode is missing in appsettings.json");
         ModuleCode = explicitModule.ToUpperInvariant();
 
+        Language     = (root["PopTerminal:Language"] ?? "ko").ToLowerInvariant() == "en" ? "en" : "ko";
+
         PrinterMode      = root["PopTerminal:Printer:Mode"]      ?? "File";
         PrinterHost      = root["PopTerminal:Printer:Host"]      ?? "127.0.0.1";
         PrinterPort      = int.TryParse(root["PopTerminal:Printer:Port"], out var pp) ? pp : 9100;
         PrinterOutputDir = root["PopTerminal:Printer:OutputDir"] ?? "labels";
+        PrinterPollMs      = int.TryParse(root["PopTerminal:Printer:PollMs"], out var pms) ? pms : 1000;
+        PrinterMaxFailures = int.TryParse(root["PopTerminal:Printer:MaxFailures"], out var pmf) ? pmf : 3;
     }
 
     private static AppConfig Load()

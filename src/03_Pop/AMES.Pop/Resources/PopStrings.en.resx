@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="AcceptWo" xml:space="preserve"><value>Accept WO</value></data>
+  <data name="AckSupervisorPinAutoAccept" xml:space="preserve"><value>ACK (supervisor PIN — auto-accept)</value></data>
+  <data name="Acked" xml:space="preserve"><value>ACKED</value></data>
+  <data name="Active" xml:space="preserve"><value>ACTIVE</value></data>
+  <data name="Alert" xml:space="preserve"><value>ALERT</value></data>
+  <data name="AllClear" xml:space="preserve"><value>all clear</value></data>
+  <data name="AllLines" xml:space="preserve"><value>(all lines)</value></data>
+  <data name="AlreadyConfirmed" xml:space="preserve"><value>Already confirmed</value></data>
+  <data name="Andon" xml:space="preserve"><value>ANDON</value></data>
+  <data name="AndonHaltDetail" xml:space="preserve"><value>AndonID #{0} — production halted, supervisor notified.</value></data>
+  <data name="Andonid" xml:space="preserve"><value>AndonID</value></data>
+  <data name="AutoAndon" xml:space="preserve"><value>Auto andon</value></data>
+  <data name="AwaitingTrigger" xml:space="preserve"><value>Awaiting trigger</value></data>
+  <data name="BadgeScanOrPinEntry" xml:space="preserve"><value>Badge scan or PIN entry</value></data>
+  <data name="BlockedByInspectionNgHandleInDefectPopup" xml:space="preserve"><value>Blocked by inspection NG — handle in Defect popup</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Cause" xml:space="preserve"><value>CAUSE</value></data>
+  <data name="CavityCount" xml:space="preserve"><value>Cavity Count</value></data>
+  <data name="ChangeAsap" xml:space="preserve"><value>🚨 100% — change ASAP</value></data>
+  <data name="ChangeRecommended" xml:space="preserve"><value>⚠ 90% — change recommended</value></data>
+  <data name="ChangeRunning" xml:space="preserve"><value>Change running</value></data>
+  <data name="Close" xml:space="preserve"><value>Close</value></data>
+  <data name="CloseEsc" xml:space="preserve"><value>CLOSE (Esc)</value></data>
+  <data name="Code128BarcodeUsbHidScannerOrTapHereToPi" xml:space="preserve"><value>Code-128 barcode · USB HID scanner · or tap here to pick</value></data>
+  <data name="CompleteResetTo0" xml:space="preserve"><value>Complete · Reset to 0</value></data>
+  <data name="Confirm" xml:space="preserve"><value>Confirm</value></data>
+  <data name="ConfirmFailed" xml:space="preserve"><value>Confirm failed</value></data>
+  <data name="Confirmed" xml:space="preserve"><value>Confirmed</value></data>
+  <data name="Ct" xml:space="preserve"><value>CT</value></data>
+  <data name="CurrentDefectRateWoCumulativeLimit5" xml:space="preserve"><value>Current Defect Rate · WO cumulative (limit 5%)</value></data>
+  <data name="CurrentShots" xml:space="preserve"><value>Current Shots</value></data>
+  <data name="CurrentWo" xml:space="preserve"><value>CURRENT WO</value></data>
+  <data name="CycleTime" xml:space="preserve"><value>CYCLE TIME</value></data>
+  <data name="DDay" xml:space="preserve"><value>D-DAY</value></data>
+  <data name="Dashboard" xml:space="preserve"><value>Dashboard</value></data>
+  <data name="Dashboard2" xml:space="preserve"><value>DASHBOARD</value></data>
+  <data name="Defect" xml:space="preserve"><value>Defect</value></data>
+  <data name="Defect2" xml:space="preserve"><value>Defect</value></data>
+  <data name="Defect3" xml:space="preserve"><value>Defect %</value></data>
+  <data name="DefectQty" xml:space="preserve"><value>DEFECT QTY</value></data>
+  <data name="DefectRate" xml:space="preserve"><value>Defect Rate</value></data>
+  <data name="DefectRate5AutoAndonBrInj003" xml:space="preserve"><value>Defect rate ≥ 5% — auto andon (BR-INJ-003)</value></data>
+  <data name="DefectRegister" xml:space="preserve"><value>DEFECT REGISTER</value></data>
+  <data name="DownMachines" xml:space="preserve"><value>Down Machines</value></data>
+  <data name="Ea" xml:space="preserve"><value>EA</value></data>
+  <data name="Elapsed" xml:space="preserve"><value>Elapsed</value></data>
+  <data name="EndYourShiftAndReturnToTheLoginScreen" xml:space="preserve"><value>End your shift and return to the login screen?</value></data>
+  <data name="EntryFailed" xml:space="preserve"><value>Entry failed</value></data>
+  <data name="EqAlarm" xml:space="preserve"><value>ALARM</value></data>
+  <data name="EqIdle" xml:space="preserve"><value>IDLE</value></data>
+  <data name="EqOffline" xml:space="preserve"><value>OFFLINE</value></data>
+  <data name="EqRun" xml:space="preserve"><value>RUN</value></data>
+  <data name="EqStop" xml:space="preserve"><value>STOP</value></data>
+  <data name="EquipmentStatus" xml:space="preserve"><value>EQUIPMENT STATUS</value></data>
+  <data name="Fail" xml:space="preserve"><value>FAIL</value></data>
+  <data name="Final" xml:space="preserve"><value>FINAL</value></data>
+  <data name="Good" xml:space="preserve"><value>Good</value></data>
+  <data name="Hard" xml:space="preserve"><value>HARD</value></data>
+  <data name="HardStop" xml:space="preserve"><value>⛔ 110% — HARD STOP</value></data>
+  <data name="High" xml:space="preserve"><value>HIGH</value></data>
+  <data name="High2" xml:space="preserve"><value>HIGH</value></data>
+  <data name="HourlyOutput" xml:space="preserve"><value>HOURLY OUTPUT</value></data>
+  <data name="HourlyOutputTarget18H" xml:space="preserve"><value>HOURLY OUTPUT (Target 18/h)</value></data>
+  <data name="InjLines" xml:space="preserve"><value>INJ Lines</value></data>
+  <data name="Input" xml:space="preserve"><value>INPUT</value></data>
+  <data name="LabelAutoDispatchStopped" xml:space="preserve"><value>Auto label dispatch stopped after printer errors. Press Reprint to resume.</value></data>
+  <data name="LabelReprinted" xml:space="preserve"><value>Label reprinted</value></data>
+  <data name="LastMaintenance" xml:space="preserve"><value>Last Maintenance</value></data>
+  <data name="Limit5" xml:space="preserve"><value>limit 5%</value></data>
+  <data name="Line" xml:space="preserve"><value>LINE</value></data>
+  <data name="Line2" xml:space="preserve"><value>Line</value></data>
+  <data name="LiveInjectionLineDashboard" xml:space="preserve"><value>Live Injection-Line Dashboard</value></data>
+  <data name="LogoutConfirm" xml:space="preserve"><value>Log out?</value></data>
+  <data name="LogOut2" xml:space="preserve"><value>Log out</value></data>
+  <data name="Logout" xml:space="preserve"><value>Logout</value></data>
+  <data name="LotBarcodeScanConfirm" xml:space="preserve"><value>LOT BARCODE SCAN · CONFIRM</value></data>
+  <data name="LotBelongsToAnotherLine" xml:space="preserve"><value>Lot belongs to another line</value></data>
+  <data name="LotNotFound" xml:space="preserve"><value>Lot not found</value></data>
+  <data name="Lotno" xml:space="preserve"><value>LOTNO</value></data>
+  <data name="MainScreen" xml:space="preserve"><value>Main Screen</value></data>
+  <data name="ManualAndonBy" xml:space="preserve"><value>Manual andon by {0}</value></data>
+  <data name="ManualEntry" xml:space="preserve"><value>Manual Entry</value></data>
+  <data name="ManualEntryGoodQtyPerCycleEa" xml:space="preserve"><value>MANUAL ENTRY · GOOD QTY PER CYCLE (EA)</value></data>
+  <data name="IssueLots" xml:space="preserve"><value>Issue lots</value></data>
+  <data name="ManualLotIssueQtyEa" xml:space="preserve"><value>Manual lot issue · Qty (EA)</value></data>
+  <data name="ManualLotsCreated" xml:space="preserve"><value>{0} lots issued — labels print shortly. Scan to confirm</value></data>
+  <data name="ScanIssuedLabelsToConfirm" xml:space="preserve"><value>Scan the issued labels to confirm production</value></data>
+  <data name="ManualSaved" xml:space="preserve"><value>Manual entry {0} EA recorded</value></data>
+  <data name="MaterialLotAvailableWithinExpiry" xml:space="preserve"><value>2. Material lot available + within expiry</value></data>
+  <data name="Mold" xml:space="preserve"><value>Mold</value></data>
+  <data name="Mold2" xml:space="preserve"><value>MOLD</value></data>
+  <data name="MoldAvailable" xml:space="preserve"><value>Available</value></data>
+  <data name="MoldChange" xml:space="preserve"><value>Mold Change</value></data>
+  <data name="MoldChange2" xml:space="preserve"><value>MOLD CHANGE</value></data>
+  <data name="MoldMaintenance" xml:space="preserve"><value>Maintenance</value></data>
+  <data name="MoldMounted" xml:space="preserve"><value>Mounted</value></data>
+  <data name="MoldMountedMatchesWoRouting" xml:space="preserve"><value>1. Mold mounted matches WO routing</value></data>
+  <data name="MoldShotCount" xml:space="preserve"><value>Mold Shot Count</value></data>
+  <data name="MountedOn" xml:space="preserve"><value>mounted on</value></data>
+  <data name="Name" xml:space="preserve"><value>Name</value></data>
+  <data name="NeedsAttention" xml:space="preserve"><value>needs attention</value></data>
+  <data name="NextStop" xml:space="preserve"><value>NEXT STOP</value></data>
+  <data name="Ng" xml:space="preserve"><value>NG</value></data>
+  <data name="Ng2" xml:space="preserve"><value>NG</value></data>
+  <data name="NgBlocked" xml:space="preserve"><value>NG Blocked</value></data>
+  <data name="NgLotFixedAt1" xml:space="preserve"><value>(NG lot: fixed at 1)</value></data>
+  <data name="NoActiveAndonTapRaiseToHaltTheLineManual" xml:space="preserve"><value>No active andon — tap RAISE to halt the line manually.</value></data>
+  <data name="NoActiveWo" xml:space="preserve"><value>(no active WO)</value></data>
+  <data name="NoActiveWorkOrderAcceptAWoFirst" xml:space="preserve"><value>No active work order — accept a WO first.</value></data>
+  <data name="NoChangeInProgress" xml:space="preserve"><value>No change in progress</value></data>
+  <data name="NoOpenWoForThisPart" xml:space="preserve"><value>No open work order for this part</value></data>
+  <data name="NoManualRegisteredForThisScreen" xml:space="preserve"><value>No manual registered for this screen.</value></data>
+  <data name="NoMoldMountedOnThisLine" xml:space="preserve"><value>No mold mounted on this line.</value></data>
+  <data name="NoReleasedWosForThisLinePpPlannerNeedsTo" xml:space="preserve"><value>No Released WOs for this line — PP planner needs to release a WO first.</value></data>
+  <data name="NoScansYet" xml:space="preserve"><value>No scans yet</value></data>
+  <data name="NoUnconfirmedLotsAgentCollectedShotsWill" xml:space="preserve"><value>No unconfirmed lots — agent-collected shots will appear here.</value></data>
+  <data name="Normal" xml:space="preserve"><value>NORMAL</value></data>
+  <data name="Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="OkWithinRatedLife" xml:space="preserve"><value>● OK · within rated life</value></data>
+  <data name="OneRowPerCycle" xml:space="preserve"><value>One row per cycle</value></data>
+  <data name="Online" xml:space="preserve"><value>ONLINE</value></data>
+  <data name="Operator" xml:space="preserve"><value>Operator</value></data>
+  <data name="OrEnterPin" xml:space="preserve"><value>OR · ENTER PIN</value></data>
+  <data name="PartNo" xml:space="preserve"><value>PART NO</value></data>
+  <data name="Phase0MasterDataCompleteBrMd04" xml:space="preserve"><value>5. Phase-0 master data complete (BR-MD-04)</value></data>
+  <data name="PinMustBe4Digits" xml:space="preserve"><value>PIN must be 4 digits</value></data>
+  <data name="Plan" xml:space="preserve"><value>PLAN</value></data>
+  <data name="PreStartChecklist" xml:space="preserve"><value>PRE-START CHECKLIST</value></data>
+  <data name="ProdStatus" xml:space="preserve"><value>Prod Status</value></data>
+  <data name="ProductionEntry" xml:space="preserve"><value>PRODUCTION ENTRY</value></data>
+  <data name="ProductionHaltedSupervisorPinRequiredToA" xml:space="preserve"><value>Production halted — supervisor PIN required to acknowledge.</value></data>
+  <data name="ProductionStatusSupervisorView" xml:space="preserve"><value>PRODUCTION STATUS (SUPERVISOR VIEW)</value></data>
+  <data name="RaiseAndon" xml:space="preserve"><value>RAISE ANDON</value></data>
+  <data name="RatedShots" xml:space="preserve"><value>Rated Shots</value></data>
+  <data name="Raw" xml:space="preserve"><value>RAW</value></data>
+  <data name="Raw2" xml:space="preserve"><value>Raw</value></data>
+  <data name="Ready" xml:space="preserve"><value>READY</value></data>
+  <data name="Recipe" xml:space="preserve"><value>RECIPE</value></data>
+  <data name="RecipeLoadedIntoPlcPressureTempTime" xml:space="preserve"><value>3. Recipe loaded into PLC (pressure / temp / time)</value></data>
+  <data name="ReplacementMold" xml:space="preserve"><value>REPLACEMENT MOLD</value></data>
+  <data name="Reprint" xml:space="preserve"><value>Reprint</value></data>
+  <data name="ReprintFailed" xml:space="preserve"><value>Reprint failed</value></data>
+  <data name="Result" xml:space="preserve"><value>RESULT</value></data>
+  <data name="ResumeProduction" xml:space="preserve"><value>RESUME PRODUCTION</value></data>
+  <data name="RobotNgBlockedLotsSelectThenConfirmWithA" xml:space="preserve"><value>ROBOT NG · BLOCKED LOTS — select, then confirm with a defect code</value></data>
+  <data name="Routing" xml:space="preserve"><value>ROUTING</value></data>
+  <data name="Run" xml:space="preserve"><value>RUN</value></data>
+  <data name="Running" xml:space="preserve"><value>running</value></data>
+  <data name="SafetyGuardsClosedInterlockOk" xml:space="preserve"><value>4. Safety guards closed + interlock OK</value></data>
+  <data name="ScanEmployeeBadge" xml:space="preserve"><value>Scan Employee Badge</value></data>
+  <data name="ScanHistoryToday" xml:space="preserve"><value>SCAN HISTORY · TODAY</value></data>
+  <data name="ScanYourBadgeOrEnterYourPin" xml:space="preserve"><value>Scan your badge or enter your PIN</value></data>
+  <data name="SecShot" xml:space="preserve"><value>sec / shot</value></data>
+  <data name="SelectAWorkOrderFromTheListFirst" xml:space="preserve"><value>Select a work order from the list first.</value></data>
+  <data name="SelectReplacement" xml:space="preserve"><value>select replacement</value></data>
+  <data name="SelectUser" xml:space="preserve"><value>SELECT USER</value></data>
+  <data name="SelectedUser" xml:space="preserve"><value>Selected {0}</value></data>
+  <data name="Severity" xml:space="preserve"><value>Severity</value></data>
+  <data name="Shift" xml:space="preserve"><value>SHIFT</value></data>
+  <data name="ShiftDay" xml:space="preserve"><value>DAY</value></data>
+  <data name="ShiftLogin" xml:space="preserve"><value>SHIFT LOGIN</value></data>
+  <data name="ShiftNight" xml:space="preserve"><value>NIGHT</value></data>
+  <data name="Shortage" xml:space="preserve"><value>SHORTAGE</value></data>
+  <data name="StartChangeOpenDowntime" xml:space="preserve"><value>Start Change · Open Downtime</value></data>
+  <data name="Station" xml:space="preserve"><value>STATION</value></data>
+  <data name="Status" xml:space="preserve"><value>STATUS</value></data>
+  <data name="Status2" xml:space="preserve"><value>Status</value></data>
+  <data name="Stay" xml:space="preserve"><value>Stay</value></data>
+  <data name="Stop" xml:space="preserve"><value>STOP</value></data>
+  <data name="Stopped" xml:space="preserve"><value>STOPPED</value></data>
+  <data name="Success" xml:space="preserve"><value>SUCCESS</value></data>
+  <data name="SupervisorAcknowledged30SSafetyHoldBefor" xml:space="preserve"><value>Supervisor acknowledged — 30 s safety hold before Resume.</value></data>
+  <data name="SupervisorCalled" xml:space="preserve"><value>SUPERVISOR CALLED</value></data>
+  <data name="TapToSwitchUser" xml:space="preserve"><value>Tap to switch user</value></data>
+  <data name="TargetQty" xml:space="preserve"><value>TARGET QTY</value></data>
+  <data name="Time" xml:space="preserve"><value>TIME</value></data>
+  <data name="Today" xml:space="preserve"><value>today</value></data>
+  <data name="TodayAcrossAllInjLines" xml:space="preserve"><value>today across all INJ lines</value></data>
+  <data name="TodayDefect" xml:space="preserve"><value>Today Defect</value></data>
+  <data name="TodayGood" xml:space="preserve"><value>Today Good</value></data>
+  <data name="TodayShotsPlc" xml:space="preserve"><value>Today Shots (PLC)</value></data>
+  <data name="Total" xml:space="preserve"><value>TOTAL</value></data>
+  <data name="Total2" xml:space="preserve"><value>total</value></data>
+  <data name="Unconfirmed" xml:space="preserve"><value>Unconfirmed</value></data>
+  <data name="UnconfirmedLotsNewestFirst" xml:space="preserve"><value>UNCONFIRMED LOTS · NEWEST FIRST</value></data>
+  <data name="Uptime" xml:space="preserve"><value>Uptime</value></data>
+  <data name="UserGuide" xml:space="preserve"><value>USER GUIDE</value></data>
+  <data name="Warn" xml:space="preserve"><value>WARN</value></data>
+  <data name="WelcomeUser" xml:space="preserve"><value>OK · Welcome, {0}</value></data>
+  <data name="Wo" xml:space="preserve"><value>WO</value></data>
+  <data name="Wo2" xml:space="preserve"><value>WO</value></data>
+  <data name="WoCancelled" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="WoClosed" xml:space="preserve"><value>Closed</value></data>
+  <data name="WoConfirm" xml:space="preserve"><value>WO Confirm</value></data>
+  <data name="WoConfirmPreStartChecklist" xml:space="preserve"><value>WO CONFIRM · PRE-START CHECKLIST</value></data>
+  <data name="WoActiveNow" xml:space="preserve"><value>ACTIVE</value></data>
+  <data name="WoInProgress" xml:space="preserve"><value>In Progress</value></data>
+  <data name="WoPlanned" xml:space="preserve"><value>Planned</value></data>
+  <data name="WoProgress" xml:space="preserve"><value>WO PROGRESS</value></data>
+  <data name="WoReleased" xml:space="preserve"><value>Released</value></data>
+  <data name="WorkOrder" xml:space="preserve"><value>WORK ORDER</value></data>
+  <data name="WorkOrderAccepted" xml:space="preserve"><value>Work order accepted</value></data>
+</root>

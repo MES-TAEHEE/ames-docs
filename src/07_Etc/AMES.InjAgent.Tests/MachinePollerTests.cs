@@ -52,7 +52,6 @@ public class MachinePollerTests
         };
         public List<InjCondItemDto> CondItems = new();
         public List<(string LineId, string EquipId, MoldItemDto Map, long Shot)> Created = new();
-        public List<int> LabelPrinted = new();
         public List<(int LotId, bool Ng)>     Inspections = new();
         public List<int>                      NgBlocked   = new();
         public List<(string Item, long Seq, decimal? Set, decimal? Act)> CondLogs = new();
@@ -75,36 +74,26 @@ public class MachinePollerTests
             if (FailSaveInspection) throw new InvalidOperationException("db down");
             Inspections.Add((lotId, overallNg));
         }
-        public void MarkLabelPrinted(int lotId) => LabelPrinted.Add(lotId);
         public void MarkNgBlocked(int lotId) => NgBlocked.Add(lotId);
         public List<InjCondItemDto> GetCondItems(string lineId) => CondItems;
         public void InsertCondLog(string lineId, string itemCode, long shotSeq, decimal? s, decimal? a)
             => CondLogs.Add((itemCode, shotSeq, s, a));
     }
 
-    sealed class FakePrinter : ILabelPrinter
-    {
-        public List<string> Printed = new();
-        public void PrintLabel(string lotCode, string itemNo, string? itemName,
-                               string? colorCode, string? cavityPos, string lineId)
-            => Printed.Add(lotCode);
-    }
-
-    static (MachinePoller Poller, FakeMachine M, FakeRobot R, FakeStore S, FakePrinter P) Build()
+    static (MachinePoller Poller, FakeMachine M, FakeRobot R, FakeStore S) Build()
     {
         var m = new FakeMachine();
         var r = new FakeRobot();
         var s = new FakeStore();
-        var p = new FakePrinter();
         var cfg = new MachineConfig { EquipId = "INJ-650-01", LineId = "LINE-INJ-01", ModbusIp = "x", FenetIp = "y" };
-        var poller = new MachinePoller(cfg, m, r, s, p, _ => { });
-        return (poller, m, r, s, p);
+        var poller = new MachinePoller(cfg, m, r, s, _ => { });
+        return (poller, m, r, s);
     }
 
     [Fact]
     public void First_poll_sets_baseline_without_creating_lot()
     {
-        var (poller, m, _, s, _) = Build();
+        var (poller, m, _, s) = Build();
         m.ShotCount = 55;
         poller.PollOnce();
         Assert.Empty(s.Created);
@@ -114,9 +103,9 @@ public class MachinePollerTests
     }
 
     [Fact]
-    public void Shot_count_change_creates_lot_per_cavity_and_prints()
+    public void Shot_count_change_creates_lot_per_cavity()
     {
-        var (poller, m, r, s, p) = Build();
+        var (poller, m, r, s) = Build();
         m.ShotCount = 55;
         poller.PollOnce();               // baseline
 
@@ -127,8 +116,6 @@ public class MachinePollerTests
         Assert.Equal("LH", s.Created[0].Map.CavityPos);
         Assert.Equal("RH", s.Created[1].Map.CavityPos);
         Assert.Equal(56, s.Created[0].Shot);
-        Assert.Equal(2, p.Printed.Count);
-        Assert.Equal(new[] { 100, 101 }, s.LabelPrinted);   // 발행 성공 → PrintedCount 반영
         // 로봇 송신: 금형(5700) + 1st LOT(5100)/품번(5800) + 2nd LOT(5200)/품번(5900)
         Assert.Contains(r.StringWrites, w => w.Addr == 5700 && w.Value == "LQ2DTMDCBK");
         Assert.Contains(r.StringWrites, w => w.Addr == 5100);
@@ -141,7 +128,7 @@ public class MachinePollerTests
     [Fact]
     public void Mold_code_change_alone_triggers_shot()
     {
-        var (poller, m, _, s, _) = Build();
+        var (poller, m, _, s) = Build();
         m.ShotCount = 55;
         m.MoldRaw = "LQ2DTMDCBK";
         poller.PollOnce();               // baseline
@@ -157,7 +144,7 @@ public class MachinePollerTests
     [Fact]
     public void Unknown_mold_map_creates_nothing()
     {
-        var (poller, m, _, s, _) = Build();
+        var (poller, m, _, s) = Build();
         m.ShotCount = 1;
         m.MoldRaw = "UNKNOWNXXX";
         poller.PollOnce();               // baseline
@@ -169,7 +156,7 @@ public class MachinePollerTests
     [Fact]
     public void Resends_to_robot_while_ack_bit_low()
     {
-        var (poller, m, r, _, _) = Build();
+        var (poller, m, r, _) = Build();
         m.ShotCount = 1;
         poller.PollOnce();               // baseline
         m.ShotCount = 2;
@@ -189,7 +176,7 @@ public class MachinePollerTests
     [Fact]
     public void Inspection_all_ok_saved_once_with_bit33()
     {
-        var (poller, m, r, s, _) = Build();
+        var (poller, m, r, s) = Build();
         m.ShotCount = 1;
         poller.PollOnce();
         m.ShotCount = 2;
@@ -209,7 +196,7 @@ public class MachinePollerTests
     [Fact]
     public void Inspection_ng_blocks_lot()
     {
-        var (poller, m, r, s, _) = Build();
+        var (poller, m, r, s) = Build();
         m.ShotCount = 1;
         poller.PollOnce();
         m.ShotCount = 2;
@@ -230,7 +217,7 @@ public class MachinePollerTests
     [Fact]
     public void Incomplete_inspection_not_saved()
     {
-        var (poller, m, r, s, _) = Build();
+        var (poller, m, r, s) = Build();
         m.ShotCount = 1;
         poller.PollOnce();
         m.ShotCount = 2;
@@ -244,7 +231,7 @@ public class MachinePollerTests
     [Fact]
     public void Shot_collects_condition_values()
     {
-        var (poller, m, _, s, _) = Build();
+        var (poller, m, _, s) = Build();
         s.CondItems.Add(new InjCondItemDto { ItemCode = "TEMP",  SetAddress = 5400, ActualAddress = 5404, DataType = "FLOAT" });
         s.CondItems.Add(new InjCondItemDto { ItemCode = "PRESS", SetAddress = 5410, ActualAddress = 5414, DataType = "LONG"  });
         m.Floats[5400] = 235.5f; m.Floats[5404] = 234.9f;
@@ -268,7 +255,7 @@ public class MachinePollerTests
     [Fact]
     public void Partial_cavity_failure_keeps_rh_in_second_slot()
     {
-        var (poller, m, r, s, _) = Build();
+        var (poller, m, r, s) = Build();
         m.ShotCount = 1; poller.PollOnce();
         s.FailCreateFor = map => map.CavityPos == "LH";
         m.ShotCount = 2; poller.PollOnce();
@@ -287,7 +274,7 @@ public class MachinePollerTests
     [Fact]
     public void Inspection_save_failure_retries_next_poll_without_bit33()
     {
-        var (poller, m, r, s, _) = Build();
+        var (poller, m, r, s) = Build();
         m.ShotCount = 1; poller.PollOnce();
         m.ShotCount = 2; poller.PollOnce();              // 샷 + 같은 폴에서 클리어 관측(armed)
 
@@ -307,7 +294,7 @@ public class MachinePollerTests
     [Fact]
     public void Stale_judgement_held_over_shot_is_ignored_until_cleared()
     {
-        var (poller, m, r, s, _) = Build();
+        var (poller, m, r, s) = Build();
         m.ShotCount = 1; poller.PollOnce();
         m.ShotCount = 2; poller.PollOnce();              // LOT 생성 + armed
 
@@ -331,7 +318,7 @@ public class MachinePollerTests
     [Fact]
     public void Reset_for_restart_takes_fresh_baseline()
     {
-        var (poller, m, _, s, _) = Build();
+        var (poller, m, _, s) = Build();
         m.ShotCount = 1; poller.PollOnce();
         m.ShotCount = 2; poller.PollOnce();
         Assert.Equal(2, s.Created.Count);          // LH+RH

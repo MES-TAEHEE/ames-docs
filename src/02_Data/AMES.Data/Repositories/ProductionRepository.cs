@@ -15,13 +15,18 @@ public sealed class ProductionRepository
     public ProductionRepository(AmesConnectionFactory f) => _factory = f;
 
     /// <summary>
-    /// Records one production cycle. Increments WO CompletedQty + mold shot count + creates a lot row.
-    /// Returns the new ResultID + the post-update completed qty.
+    /// Records one production cycle as a single batch lot. Increments WO CompletedQty
+    /// and creates a lot row. Returns the new ResultID + the post-update completed qty.
+    ///
+    /// Mold shots are NOT touched here — shot counts come from the PLC shot counter only
+    /// (see InjLotRepository.CreateRawLot). INJ manual entry uses
+    /// InjLotRepository.CreateManualLots instead, which keeps the 1 lot = 1 pcs model.
     /// </summary>
     public (int ResultId, int LotId, decimal NewCompletedQty) RecordCycle(
         int     woId,
         string  itemNo,
         string  lineId,
+        string  processCode,
         int     goodQty,
         int     cycleSec,
         string? moldId,
@@ -42,7 +47,7 @@ public sealed class ProductionRepository
                      ProducedAt, Status, QualityFlag, CreatedBy, CreatedTS)
                 OUTPUT INSERTED.LotID
                 VALUES
-                    (@LotCode, @ItemNo, @WoID, @LineID, 'INJ', @Qty, @Qty,
+                    (@LotCode, @ItemNo, @WoID, @LineID, @Proc, @Qty, @Qty,
                      SYSDATETIME(), 'OPEN', 'PENDING', @By, SYSDATETIME());
                 """, conn, tx))
             {
@@ -51,6 +56,7 @@ public sealed class ProductionRepository
                 cmd.Parameters.Add("@ItemNo",  SqlDbType.VarChar, 20).Value = itemNo;
                 cmd.Parameters.Add("@WoID",    SqlDbType.Int       ).Value = woId;
                 cmd.Parameters.Add("@LineID",  SqlDbType.VarChar, 20).Value = lineId;
+                cmd.Parameters.Add("@Proc",    SqlDbType.VarChar, 10).Value = processCode;
                 cmd.Parameters.Add("@Qty",     SqlDbType.Decimal   ).Value = (decimal)goodQty;
                 cmd.Parameters.Add("@By",      SqlDbType.VarChar, 50).Value = employeeNo;
                 lotId = (int)cmd.ExecuteScalar()!;
@@ -64,14 +70,17 @@ public sealed class ProductionRepository
                      MoldID, OperatorID, SessionID, DefectFlag, EntryAt, CreatedBy, CreatedTS)
                 OUTPUT INSERTED.ResultID
                 VALUES
-                    (@EntryNo, @WoID, @LotID, @LineID, 'INJ', @Good, @CT,
+                    (@EntryNo, @WoID, @LotID, @LineID, @Proc, @Good, @CT,
                      @Mold, @Op, @Sess, @DF, SYSDATETIME(), @By, SYSDATETIME());
                 """, conn, tx))
             {
-                cmd.Parameters.Add("@EntryNo", SqlDbType.VarChar, 28).Value = $"INJ-{DateTime.Now:yyyyMMdd}-{lineId}-{DateTime.Now:HHmmssfff}";
+                var entryNo = $"{processCode}-{DateTime.Now:yyyyMMdd}-{lineId}-{DateTime.Now:HHmmssfff}";
+                if (entryNo.Length > 28) entryNo = entryNo[..28];
+                cmd.Parameters.Add("@EntryNo", SqlDbType.VarChar, 28).Value = entryNo;
                 cmd.Parameters.Add("@WoID",    SqlDbType.Int           ).Value = woId;
                 cmd.Parameters.Add("@LotID",   SqlDbType.Int           ).Value = lotId;
                 cmd.Parameters.Add("@LineID",  SqlDbType.VarChar, 20   ).Value = lineId;
+                cmd.Parameters.Add("@Proc",    SqlDbType.VarChar, 10   ).Value = processCode;
                 cmd.Parameters.Add("@Good",    SqlDbType.Int           ).Value = goodQty;
                 cmd.Parameters.Add("@CT",      SqlDbType.Int           ).Value = cycleSec;
                 cmd.Parameters.Add("@Mold",    SqlDbType.VarChar, 20   ).Value = (object?)moldId ?? DBNull.Value;
@@ -101,21 +110,6 @@ public sealed class ProductionRepository
                 cmd.Parameters.Add("@Q",     SqlDbType.Int            ).Value = goodQty;
                 cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = operatorId;
                 newCompleted = (decimal)(cmd.ExecuteScalar() ?? 0m);
-            }
-
-            // 4) MD_Mold shot +1
-            if (!string.IsNullOrEmpty(moldId))
-            {
-                using var cmd = new SqlCommand("""
-                    UPDATE dbo.MD_Mold
-                    SET    CurrentShots = ISNULL(CurrentShots,0) + 1,
-                           ModifiedBy   = @ModBy,
-                           ModifiedTS   = SYSDATETIME()
-                    WHERE  MoldID = @Mold;
-                    """, conn, tx);
-                cmd.Parameters.Add("@Mold",  SqlDbType.VarChar,  20   ).Value = moldId;
-                cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = operatorId;
-                cmd.ExecuteNonQuery();
             }
 
             tx.Commit();

@@ -142,6 +142,153 @@ public sealed class InjLotRepository
         catch { tx.Rollback(); throw; }
     }
 
+    /// <summary>
+    /// 수동 실적 입력 (PLC 미연결·계수 누락 보정) — 입력 수량만큼 원천 LOT 을 만든다.
+    /// 에이전트 CreateRawLot 과 같은 1 LOT = 1 PCS 원천 LOT 이며, 여기서 실적을 만들지는 않는다:
+    /// "실적 확정(PR_ProductionResult 생성)은 반드시 스캔 경유" 라는 이 클래스의 불변식을
+    /// 수동입력도 그대로 따른다 — 발행된 라벨을 스캔해야 ConfirmByLotCode 로 확정된다.
+    /// 그래서 WoID 도 비워 둔다(확정 시점에 스캔한 WO 로 채워진다).
+    /// 금형 타수는 PLC 샷카운터에서만 세므로 여기서는 건드리지 않는다.
+    /// 반환 = 생성된 LOT 목록 (라벨 발행용).
+    /// </summary>
+    public List<InjLotDto> CreateManualRawLots(
+        string lineId, string itemNo, string? moldId, int qty, string employeeNo)
+    {
+        var lots = new List<InjLotDto>();
+        if (qty <= 0) return lots;
+
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            // 품번 → 캐비티/색상 매핑. 금형 미지정 WO 는 NULL 로 남기고 LotCode 에 캐비티를 붙이지 않는다.
+            string? moldCode = null, colorCode = null, cavityPos = null;
+            int?    cavityNo = null;
+            if (!string.IsNullOrEmpty(moldId))
+            {
+                using var cmd = new SqlCommand("""
+                    SELECT TOP 1 m.MoldCodeClean, mi.Color, mi.CavitySeq, mi.CavityPos
+                    FROM   dbo.MD_MoldItem mi
+                    JOIN   dbo.MD_Mold m ON m.MoldID = mi.MoldID
+                    WHERE  mi.MoldID = @Mold AND mi.ItemNo = @Item AND mi.ActiveFlag = 1
+                    ORDER  BY mi.CavitySeq;
+                    """, conn, tx);
+                cmd.Parameters.Add("@Mold", SqlDbType.VarChar, 20).Value = moldId;
+                cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+                using var rdr = cmd.ExecuteReader();
+                if (rdr.Read())
+                {
+                    moldCode  = rdr["MoldCodeClean"] as string;
+                    colorCode = rdr["Color"]         as string;
+                    cavityNo  = rdr["CavitySeq"]     as int?;
+                    cavityPos = rdr["CavityPos"]     as string;
+                }
+            }
+
+            string? itemName = null;
+            using (var cmd = new SqlCommand(
+                "SELECT ItemName FROM dbo.MD_Item WHERE ItemNo = @Item;", conn, tx))
+            {
+                cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+                itemName = cmd.ExecuteScalar() as string;
+            }
+
+            string? equipId = null;
+            using (var cmd = new SqlCommand("""
+                SELECT TOP 1 EquipID FROM dbo.MD_Equipment
+                WHERE  LineID = @L AND ISNULL(ActiveFlag,1) = 1
+                ORDER  BY EquipID;
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
+                equipId = cmd.ExecuteScalar() as string;
+            }
+
+            var ts = DateTime.Now;
+            for (var i = 0; i < qty; i++)
+            {
+                // 에이전트와 같은 LotCode 형식. 같은 ms 안에 N 건이 생기므로 빈 코드가 나올 때까지 1ms 씩 민다.
+                string lotCode;
+                while (true)
+                {
+                    lotCode = string.IsNullOrEmpty(cavityPos)
+                        ? $"L{ts:yyMMddHHmmssfff}-{lineId}"
+                        : $"L{ts:yyMMddHHmmssfff}-{lineId}-{cavityPos}";
+                    if (lotCode.Length > 40) throw new InvalidOperationException($"LotCode too long: {lotCode}");
+                    using var dup = new SqlCommand(
+                        "SELECT 1 FROM dbo.tbl_Lot WITH (UPDLOCK, HOLDLOCK) WHERE LotCode = @C;", conn, tx);
+                    dup.Parameters.Add("@C", SqlDbType.VarChar, 40).Value = lotCode;
+                    if (dup.ExecuteScalar() is null) break;
+                    ts = ts.AddMilliseconds(1);
+                }
+
+                int lotId; DateTime createdTs;
+                using (var cmd = new SqlCommand("""
+                    INSERT INTO dbo.tbl_Lot
+                        (LotCode, ItemNo, WoID, LineID, ProcessCode, BatchSize, RemainingQty,
+                         ProducedAt, Status, QualityFlag, CreatedBy, CreatedTS)
+                    OUTPUT INSERTED.LotID, INSERTED.CreatedTS
+                    VALUES
+                        (@LotCode, @ItemNo, NULL, @LineID, 'INJ', 1, 1,
+                         SYSDATETIME(), 'RAW', 'PENDING', @By, SYSDATETIME());
+                    """, conn, tx))
+                {
+                    cmd.Parameters.Add("@LotCode", SqlDbType.VarChar, 40).Value = lotCode;
+                    cmd.Parameters.Add("@ItemNo",  SqlDbType.VarChar, 20).Value = itemNo;
+                    cmd.Parameters.Add("@LineID",  SqlDbType.VarChar, 20).Value = lineId;
+                    cmd.Parameters.Add("@By",      SqlDbType.VarChar, 50).Value = employeeNo;
+                    using var rdr = cmd.ExecuteReader();
+                    rdr.Read();
+                    lotId     = (int)rdr["LotID"];
+                    createdTs = (DateTime)rdr["CreatedTS"];
+                }
+
+                // MachineShotCount / PressType 은 PLC 값이라 수동 LOT 에는 없다. CreatedBy 로 출처를 남긴다.
+                using (var cmd = new SqlCommand("""
+                    INSERT INTO dbo.PR_InjLot
+                        (LotID, EquipID, MoldCode, ColorCode, MoldID, CavityNo, CavityPos,
+                         PressType, MachineShotCount, ConfirmStatus, CreatedBy, CreatedTS)
+                    VALUES
+                        (@LotID, @Equip, @Mold, @Color, @MoldID, @CavNo, @CavPos,
+                         NULL, NULL, 'RAW', 'MANUAL', SYSDATETIME());
+                    """, conn, tx))
+                {
+                    cmd.Parameters.Add("@LotID",  SqlDbType.Int           ).Value = lotId;
+                    cmd.Parameters.Add("@Equip",  SqlDbType.VarChar, 20   ).Value = (object?)equipId   ?? DBNull.Value;
+                    cmd.Parameters.Add("@Mold",   SqlDbType.VarChar, 20   ).Value = (object?)moldCode  ?? DBNull.Value;
+                    cmd.Parameters.Add("@Color",  SqlDbType.VarChar, 10   ).Value = (object?)colorCode ?? DBNull.Value;
+                    cmd.Parameters.Add("@MoldID", SqlDbType.VarChar, 20   ).Value = (object?)moldId    ?? DBNull.Value;
+                    cmd.Parameters.Add("@CavNo",  SqlDbType.Int           ).Value = (object?)cavityNo  ?? DBNull.Value;
+                    cmd.Parameters.Add("@CavPos", SqlDbType.VarChar, 4    ).Value = (object?)cavityPos ?? DBNull.Value;
+                    cmd.ExecuteNonQuery();
+                }
+
+                lots.Add(new InjLotDto
+                {
+                    LotId         = lotId,
+                    LotCode       = lotCode,
+                    ItemNo        = itemNo,
+                    ItemName      = itemName,
+                    LineId        = lineId,
+                    EquipId       = equipId,
+                    MoldCode      = moldCode,
+                    ColorCode     = colorCode,
+                    MoldId        = moldId,
+                    CavityNo      = cavityNo,
+                    CavityPos     = cavityPos,
+                    ConfirmStatus = "RAW",
+                    PrintedCount  = 0,
+                    CreatedTS     = createdTs,
+                });
+            }
+
+            tx.Commit();
+            return lots;
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    // 호출부가 WHERE 를 이어 붙인다 — 이 상수에 WHERE 를 넣으면 4곳이 동시에 깨진다.
     const string SelectLotView = """
         SELECT l.LotID, l.LotCode, l.ItemNo, mi.ItemName, l.LineID,
                e.EquipID, e.MoldCode, e.ColorCode, e.MoldID, e.CavityNo, e.CavityPos,
@@ -202,6 +349,29 @@ public sealed class InjLotRepository
         return list;
     }
 
+    /// <summary>
+    /// 라인의 미확정 LOT(RAW+NG_BLOCKED) 수를 품번별로 집계 — InjMain 투입(INPUT) 표시용.
+    /// 미확정 LOT 은 WoID 가 NULL 이라(확정 시점에 채워짐) WO 귀속은 호출측이 품번으로 한다.
+    /// </summary>
+    public Dictionary<string, int> GetUnconfirmedCountByItem(string lineId)
+    {
+        const string sql = """
+            SELECT l.ItemNo, COUNT(*) AS Cnt
+            FROM   dbo.tbl_Lot l
+            JOIN   dbo.PR_InjLot e ON e.LotID = l.LotID
+            WHERE  l.LineID = @Line AND e.ConfirmStatus IN ('RAW','NG_BLOCKED')
+            GROUP  BY l.ItemNo;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
+        using var rdr = cmd.ExecuteReader();
+        var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        while (rdr.Read())
+            map[(string)rdr["ItemNo"]] = Convert.ToInt32(rdr["Cnt"]);
+        return map;
+    }
+
     /// <summary>Inj05 로봇 NG 목록 — 수동 불량 확정 대기.</summary>
     public List<InjLotDto> GetNgBlocked(string lineId)
     {
@@ -233,7 +403,7 @@ public sealed class InjLotRepository
         return rdr.Read() ? MapToDto(rdr) : null;
     }
 
-    /// <summary>라벨 발행 성공 시 +1 (에이전트 최초 발행·Inj04 재출력 공용). 반환 = 누적 횟수.</summary>
+    /// <summary>라벨 발행 성공 시 +1 (디스패처 자동 발행·재출력 버튼 공용). 반환 = 누적 횟수.</summary>
     public int IncrementPrintedCount(int lotId)
     {
         const string sql = """
@@ -249,11 +419,96 @@ public sealed class InjLotRepository
     }
 
     /// <summary>
+    /// 라벨 디스패처 워터마크 — 세션 시작 시점의 라인 최대 INJ LotID.
+    /// ProcessCode 로 좁히는 이유: 같은 라인의 비-INJ LOT 이 워터마크를 실제 최신 사출 LOT
+    /// 너머로 밀면 그 사이 미출력분이 영구 제외된다(워터마크는 세션 중 전진하지 않는다).
+    /// </summary>
+    public int GetMaxLotId(string lineId)
+    {
+        const string sql = "SELECT ISNULL(MAX(LotID),0) FROM dbo.tbl_Lot WHERE LineID = @Line AND ProcessCode = 'INJ';";
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
+        return cmd.ExecuteScalar() as int? ?? 0;
+    }
+
+    /// <summary>
+    /// 미출력 LOT 을 원자적으로 선점하고 라벨 조립용 전체 데이터를 돌려준다.
+    /// 같은 라인에 Pop 터미널이 여러 대여도 한 터미널만 각 LOT 을 가져간다.
+    /// staleSeconds 가 지난 선점은 회수 대상 — 선점 직후 터미널이 죽어도 라벨이 유실되지 않는다.
+    ///
+    /// 불변식: staleSeconds > top × 프린터 최악 지연(5초 = ZplPrinter 연결 2초 + 송신 3초).
+    /// 이 관계가 깨지면 첫 터미널이 배치를 처리하는 중에 다른 터미널이 뒷부분을 회수해
+    /// 같은 라벨이 두 장 나간다. 현재 값: 60 > 5 × 5 = 25.
+    ///
+    /// 호출측 계약 — 선점만 하므로 뒤처리는 호출자 책임이다:
+    ///   출력 성공 → IncrementPrintedCount(lotId)
+    ///   출력 실패 → ReleasePrintClaim(lotId, stationId)
+    /// 둘 다 안 부르면 staleSeconds 후 자동 재시도된다(= 라벨이 한 장 더 나간다).
+    /// </summary>
+    public List<InjLotDto> ClaimForPrint(string lineId, int afterLotId, string stationId,
+                                         int staleSeconds = 60, int top = 5)
+    {
+        // ModifiedTS 는 찍지 않는다 — 선점은 디스패처 내부 상태이지 업무 변경이 아니다.
+        var sql = """
+            DECLARE @claimed TABLE (LotID INT);
+
+            UPDATE TOP (@Top) e
+            SET    e.PrintClaimTS = SYSDATETIME(), e.PrintClaimStation = @Station
+            OUTPUT INSERTED.LotID INTO @claimed
+            FROM   dbo.PR_InjLot e
+            JOIN   dbo.tbl_Lot   l ON l.LotID = e.LotID
+            WHERE  l.LineID       = @Line
+              AND  e.LotID        > @After
+              AND  e.PrintedCount = 0
+              AND  (e.PrintClaimTS IS NULL
+                    OR e.PrintClaimTS < DATEADD(second, -@Stale, SYSDATETIME()));
+
+            """ + SelectLotView + """
+
+            WHERE  l.LotID IN (SELECT LotID FROM @claimed)
+            ORDER  BY l.LotID;
+            """;
+
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Line",    SqlDbType.VarChar, 20).Value = lineId;
+        cmd.Parameters.Add("@After",   SqlDbType.Int        ).Value = afterLotId;
+        cmd.Parameters.Add("@Station", SqlDbType.VarChar, 20).Value = stationId;
+        cmd.Parameters.Add("@Stale",   SqlDbType.Int        ).Value = staleSeconds;
+        cmd.Parameters.Add("@Top",     SqlDbType.Int        ).Value = top;
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<InjLotDto>();
+        while (rdr.Read()) list.Add(MapToDto(rdr));
+        return list;
+    }
+
+    /// <summary>출력 실패 시 선점 반납 — 다음 틱에 재시도된다.</summary>
+    public void ReleasePrintClaim(int lotId, string stationId)
+    {
+        // 내가 선점한 것만 반납한다. 스테일 회수로 다른 터미널이 이미 가져간 LOT 을
+        // 뒤늦은 실패 보고가 풀어버리면 그 터미널이 출력 중인 라벨이 재선점된다.
+        const string sql = """
+            UPDATE dbo.PR_InjLot
+            SET    PrintClaimTS = NULL, PrintClaimStation = NULL
+            WHERE  LotID = @L AND PrintedCount = 0 AND PrintClaimStation = @Station;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@L",       SqlDbType.Int        ).Value = lotId;
+        cmd.Parameters.Add("@Station", SqlDbType.VarChar, 20).Value = stationId;
+        cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>
     /// 스캔 확정: RAW → CONFIRMED + PR_ProductionResult 생성 + WO 수량 증가.
+    /// 대상 WO 는 호출자가 아니라 LOT 품번으로 정한다 — 같은 라인의 동일 품번
+    /// WO 중 빠른순(In Progress 우선 → Priority → DueDate → WoID, ListForLine 과
+    /// 같은 정렬) 첫 건. 없으면 NoWoForItem.
     /// CycleSec = 같은 설비의 직전 원천 LOT 과 이 LOT 의 CreatedTS 차 (샷 발생 시각 기준).
     /// </summary>
-    public (InjConfirmOutcome Outcome, int ResultId, string ItemNo) ConfirmByLotCode(
-        string lotCode, string lineId, int woId,
+    public (InjConfirmOutcome Outcome, int ResultId, string ItemNo, int WoId) ConfirmByLotCode(
+        string lotCode, string lineId,
         string operatorId, int? sessionId, string employeeNo)
     {
         using var conn = _factory.OpenConnection();
@@ -271,7 +526,7 @@ public sealed class InjLotRepository
             {
                 cmd.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = lotCode;
                 using var rdr = cmd.ExecuteReader();
-                if (!rdr.Read()) { rdr.Close(); tx.Rollback(); return (InjConfirmOutcome.NotFound, 0, string.Empty); }
+                if (!rdr.Read()) { rdr.Close(); tx.Rollback(); return (InjConfirmOutcome.NotFound, 0, string.Empty, 0); }
                 lotId     = (int)rdr["LotID"];
                 itemNo    = rdr["ItemNo"] as string ?? string.Empty;
                 status    = (string)rdr["ConfirmStatus"];
@@ -281,11 +536,30 @@ public sealed class InjLotRepository
                 createdTs = (DateTime)rdr["CreatedTS"];
                 var lotLine = rdr["LineID"] as string;
                 if (!string.Equals(lotLine, lineId, StringComparison.OrdinalIgnoreCase))
-                { rdr.Close(); tx.Rollback(); return (InjConfirmOutcome.WrongLine, 0, itemNo); }
+                { rdr.Close(); tx.Rollback(); return (InjConfirmOutcome.WrongLine, 0, itemNo, 0); }
             }
 
-            if (status is "CONFIRMED") { tx.Rollback(); return (InjConfirmOutcome.AlreadyConfirmed, 0, itemNo); }
-            if (status is "NG_BLOCKED" or "NG_CONFIRMED") { tx.Rollback(); return (InjConfirmOutcome.NgBlocked, 0, itemNo); }
+            if (status is "CONFIRMED") { tx.Rollback(); return (InjConfirmOutcome.AlreadyConfirmed, 0, itemNo, 0); }
+            if (status is "NG_BLOCKED" or "NG_CONFIRMED") { tx.Rollback(); return (InjConfirmOutcome.NgBlocked, 0, itemNo, 0); }
+
+            int woId;
+            using (var cmd = new SqlCommand("""
+                SELECT TOP 1 WoID
+                FROM   dbo.PP_WorkOrder WITH (UPDLOCK, ROWLOCK)
+                WHERE  LineID = @Line AND ItemNo = @Item
+                  AND  Status IN ('Released','In Progress')
+                ORDER  BY CASE WHEN Status = 'In Progress' THEN 0 ELSE 1 END,
+                          ISNULL(Priority,5),
+                          ISNULL(DueDate,'9999-12-31'),
+                          WoID;
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
+                cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+                if (cmd.ExecuteScalar() is not int found)
+                { tx.Rollback(); return (InjConfirmOutcome.NoWoForItem, 0, itemNo, 0); }
+                woId = found;
+            }
 
             int cycleSec;
             using (var cmd = new SqlCommand("""
@@ -357,7 +631,7 @@ public sealed class InjLotRepository
             }
 
             tx.Commit();
-            return (InjConfirmOutcome.Confirmed, resultId, itemNo);
+            return (InjConfirmOutcome.Confirmed, resultId, itemNo, woId);
         }
         catch { tx.Rollback(); throw; }
     }

@@ -8,4 +8,6 @@ public enum InjConfirmOutcome
     AlreadyConfirmed,
     NgBlocked,
     WrongLine,
+    /// <summary>라인에 LOT 품번과 같은 품번의 접수 가능한 WO 가 없다.</summary>
+    NoWoForItem,
 }

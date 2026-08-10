@@ -15,34 +15,35 @@
             <span class="pop-tbar-id">@AppConfig.Current.ModuleCode · @AppConfig.Current.StationId · @AppConfig.Current.LineId</span>
         </div>
         <div class="pop-tbar-r">
-            <span class="stat-on">● ONLINE</span>
+            <span class="stat-on">● @T("Online")</span>
             <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+            <button class="injm-lang-btn" @onclick="ToggleLang">@(PopLang.IsKo ? "EN" : "한국어")</button>
             <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.LoginHelp))" />
         </div>
     </div>
 
     <div class="login-body">
         <div class="login-card">
-            <div class="login-title">SHIFT LOGIN</div>
-            <div class="login-sub">Scan your badge or enter your PIN</div>
+            <div class="login-title">@T("ShiftLogin")</div>
+            <div class="login-sub">@T("ScanYourBadgeOrEnterYourPin")</div>
 
             <div class="badge-zone" @onclick="OpenPicker">
                 <div class="badge-icon">[ BADGE ]</div>
                 <div class="badge-text">
                     @if (_pickedNo is null)
                     {
-                        <div class="badge-h">Scan Employee Badge</div>
-                        <div class="badge-s">Code-128 barcode · USB HID scanner · or tap here to pick</div>
+                        <div class="badge-h">@T("ScanEmployeeBadge")</div>
+                        <div class="badge-s">@T("Code128BarcodeUsbHidScannerOrTapHereToPi")</div>
                     }
                     else
                     {
                         <div class="badge-h" style="color:var(--ok);">@_pickedNo · @_pickedName</div>
-                        <div class="badge-s">Tap to switch user</div>
+                        <div class="badge-s">@T("TapToSwitchUser")</div>
                     }
                 </div>
             </div>
 
-            <div class="login-or">───── OR · ENTER PIN ─────</div>
+            <div class="login-or">───── @T("OrEnterPin") ─────</div>
 
             <div class="pin-dots">
                 @for (var i = 0; i < 4; i++)
@@ -65,9 +66,9 @@
             <div class="login-status @_statusClass">@_status</div>
 
             <div class="login-info">
-                <div class="li-cell"><div class="li-l">LINE</div><div class="li-v">@AppConfig.Current.LineId</div></div>
-                <div class="li-cell"><div class="li-l">SHIFT</div><div class="li-v">@AppConfig.Current.DefaultShift</div></div>
-                <div class="li-cell"><div class="li-l">STATION</div><div class="li-v">@AppConfig.Current.StationId</div></div>
+                <div class="li-cell"><div class="li-l">@T("Line")</div><div class="li-v">@AppConfig.Current.LineId</div></div>
+                <div class="li-cell"><div class="li-l">@T("Shift")</div><div class="li-v">@PopLang.Shift(AppConfig.Current.DefaultShift)</div></div>
+                <div class="li-cell"><div class="li-l">@T("Station")</div><div class="li-v">@AppConfig.Current.StationId</div></div>
             </div>
         </div>
     </div>
@@ -76,24 +77,27 @@
     {
         <div class="picker-backdrop" @onclick="@(() => _showPicker = false)">
             <div class="picker-modal" @onclick:stopPropagation="true">
-                <div class="picker-h">👤 SELECT USER</div>
+                <div class="picker-h">👤 @T("SelectUser")</div>
                 <div class="picker-list">
                     @foreach (var p in _profiles)
                     {
                         <button class="picker-row" @onclick="@(() => Pick(p))">
                             <div class="picker-no">@p.EmployeeNo</div>
                             <div class="picker-name">@p.EmployeeName</div>
-                            <div class="picker-lines">@(string.IsNullOrEmpty(p.AssignedLinesJson) ? "(all lines)" : p.AssignedLinesJson)</div>
+                            <div class="picker-lines">@(string.IsNullOrEmpty(p.AssignedLinesJson) ? T("AllLines") : p.AssignedLinesJson)</div>
                         </button>
                     }
                 </div>
-                <button class="picker-cancel" @onclick="@(() => _showPicker = false)">✕  Cancel</button>
+                <button class="picker-cancel" @onclick="@(() => _showPicker = false)">✕  @T("Cancel")</button>
             </div>
         </div>
     }
 </div>
 
 @code {
+    static string T(string key, params object?[] args) => PopLang.T(key, args);
+    void ToggleLang() => PopLang.Lang = PopLang.IsKo ? "en" : "ko";
+
     System.Text.StringBuilder _pin = new();
     string?  _pickedNo, _pickedName;
     string   _status = " ", _statusClass = "dim";
@@ -115,7 +119,7 @@
         _pickedNo   = p.EmployeeNo;
         _pickedName = p.EmployeeName;
         _showPicker = false;
-        SetStatus($"Selected {p.EmployeeNo}", "ok");
+        SetStatus(T("SelectedUser", p.EmployeeNo), "ok");
     }
 
     void Press(string d)
@@ -128,7 +132,7 @@
 
     void Submit()
     {
-        if (_pin.Length < 4) { SetStatus("PIN must be 4 digits", "fail"); return; }
+        if (_pin.Length < 4) { SetStatus(T("PinMustBe4Digits"), "fail"); return; }
         var attemptedId = _pickedNo ?? "E001";
         var outcome = PopServices.PopAuth.Login(new AMES.Contracts.Auth.LoginRequest
         {
@@ -143,7 +147,7 @@
 
         if (outcome.IsSuccess && outcome.Session is not null)
         {
-            SetStatus($"OK · Welcome, {outcome.Session.EmployeeName}", "ok");
+            SetStatus(T("WelcomeUser", outcome.Session.EmployeeName), "ok");
             State.SignIn(outcome.Session);
             // Route to the module configured for this terminal (appsettings.json LineId),
             // not the session's effectiveLineId which may have been rerouted to the
@@ -153,7 +157,7 @@
                 "QC"  => "/qc07",
                 "PNT" => "/pnt02",
                 "IMG" => "/img02",
-                _     => "/inj02"
+                _     => "/injmain"
             };
             Nav.NavigateTo(target);
             return;

@@ -4,6 +4,9 @@
 -- SYS_AuditLog         : ProcessCode 컬럼 추가
 -- SYS_NotificationRule : SourceModule → ModuleCode 이름변경 + ProcessCode 추가
 -- 실행 대상 DB : AMES_DEV
+--
+-- ⚠ 2026-08-03: 세 컬럼 모두 AMES_Schema.sql 에 흡수됨(SYS_RolePermission.ProcessCode 포함).
+--    신규 재구축에서는 전부 "already exists, skipped" 로 끝나는 no-op — 기존 DB 보정용으로만 남김.
 -- ════════════════════════════════════════════════════════════════════════
 
 -- ── SYS_Screen : ProcessCode 추가 ────────────────────────────────────────

@@ -5,6 +5,7 @@
 @inject AppState State
 @inject ConfirmService Confirmer
 @inject ToastService Toasts
+@inject AMES.Pop.Services.LabelDispatcher Dispatcher
 
 <div class="pop-shell">
     <div class="pop-tbar">
@@ -240,8 +241,8 @@
         }
         try
         {
-            var (outcome, resultId, itemNo) = PopServices.InjLots.ConfirmByLotCode(
-                lotCode, Session.LineId, _wo.WoId, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
+            var (outcome, resultId, itemNo, _) = PopServices.InjLots.ConfirmByLotCode(
+                lotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
             switch (outcome)
             {
                 case InjConfirmOutcome.Confirmed:
@@ -262,6 +263,9 @@
                 case InjConfirmOutcome.WrongLine:
                     Toasts.Bad($"다른 라인의 LOT입니다: {lotCode}");
                     break;
+                case InjConfirmOutcome.NoWoForItem:
+                    Toasts.Bad($"이 품번의 접수 가능한 작업지시가 없습니다: {lotCode} ({itemNo})");
+                    break;
             }
         }
         catch (Exception ex)
@@ -278,16 +282,13 @@
     {
         try
         {
-            var cfg = AppConfig.Current;
-            var printer = new AMES.Devices.ZplPrinter(new AMES.Devices.ZplPrinterOptions
-            {
-                Mode = cfg.PrinterMode, Host = cfg.PrinterHost,
-                Port = cfg.PrinterPort, OutputDir = cfg.PrinterOutputDir,
-            });
-            var zpl = AMES.Devices.ZplLabelBuilder.Build(new AMES.Devices.ZplLabel(
-                lot.LotCode, lot.ItemNo, lot.ItemName, lot.ColorCode, lot.CavityPos,
-                lot.LineId ?? Session?.LineId ?? "", lot.CreatedTS));
-            printer.Print(zpl, lot.LotCode);
+            LabelPrinter.Print(lot, Session?.LineId);
+
+            // InjMain 과 같은 이유 — 라벨이 나온 것이 프린터 복구의 유일한 증거이고,
+            // Resume() 은 자동 발행 정지에서 벗어나는 유일한 길이다. 이 화면은
+            // deprecated 지만 여전히 /inj04 로 라우팅되고 INJ 팝업들에서 링크된다.
+            Dispatcher.Resume();
+
             var printed = PopServices.InjLots.IncrementPrintedCount(lot.LotId);
             Toasts.Ok($"라벨 재출력: {lot.LotCode} (누적 {printed}회)");
             Refresh();
@@ -314,7 +315,7 @@
         try
         {
             var (resultId, _, _) = PopServices.Production.RecordCycle(
-                _wo.WoId, _wo.ItemNo, _wo.LineId, qty, _cycle, _wo.MoldId,
+                _wo.WoId, _wo.ItemNo, _wo.LineId, "INJ", qty, _cycle, _wo.MoldId,
                 Session.OperatorId, Session.SessionId, Session.EmployeeNo, defectFlag: false);
             _lastResultId = resultId;
             _lastEntry = DateTime.Now;

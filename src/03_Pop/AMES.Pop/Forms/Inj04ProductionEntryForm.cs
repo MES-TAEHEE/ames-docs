@@ -291,7 +291,7 @@ public sealed class Inj04ProductionEntryForm : PopForm
         {
             var cycleSec = _recipeCT ?? 30;
             var (resultId, _, newCompleted) = PopServices.Production.RecordCycle(
-                _wo.WoId, _wo.ItemNo, _wo.LineId, qty, cycleSec, _wo.MoldId,
+                _wo.WoId, _wo.ItemNo, _wo.LineId, "INJ", qty, cycleSec, _wo.MoldId,
                 _session.OperatorId, _session.SessionId, _session.EmployeeNo, defectFlag: false);
 
             _lastResultId = resultId;

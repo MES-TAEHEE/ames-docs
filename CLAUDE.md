@@ -23,6 +23,7 @@
 05_Pda/AMES.Pda            ← .NET MAUI Blazor Hybrid, 핸디 스캐너 (net10.0-android/windows)
 06_Web/AMES.Web            ← Blazor Server + ASP.NET Identity, 사무실 포탈 (net10.0)
 07_Etc/AMES.InjAgent       ← WinForms 상주 에이전트, 사출기 Modbus/취출로봇 FEnet 수집 (net10.0-windows)
+                              ※ 라벨 발행은 하지 않는다 — AMES.Pop 의 LabelDispatcher 담당
 ```
 
 ### 의존성 방향
@@ -78,17 +79,20 @@ dotnet run --project src\07_Etc\AMES.InjAgent\AMES.InjAgent.csproj
 
 터미널은 `appsettings.json`의 `PopTerminal:ModuleCode` (또는 `LineId` 접두사)로 모듈 자동 분기.
 
-#### INJ (사출 공정) — 8화면
+#### INJ (사출 공정) — 통합 메인 + 팝업 구조
 | 화면 ID | 파일 | 설명 |
 |---------|------|------|
 | Login | `Pages/Login.razor` | PIN 인증, 사원 선택 |
 | INJ-02 | `Pages/Inj02Dashboard.razor` | 라인 대시보드, 시간대별 생산량 |
-| INJ-03 | `Pages/Inj03WoConfirm.razor` | 작업지시 확인/접수 |
-| INJ-04 | `Pages/Inj04ProductionEntry.razor` | 생산 실적 확정 (바코드 스캔 / 수동 입력) |
-| INJ-05 | `Pages/Inj05Defect.razor` | 불량 입력 |
-| INJ-06 | `Pages/Inj06MoldChange.razor` | 금형 교체 |
-| INJ-07 | `Pages/Inj07ProdStatus.razor` | 생산 현황 |
-| INJ-08 | `Pages/Inj08Andon.razor` | 안돈 (라인 정지 요청) |
+| INJ-MAIN | `Pages/InjMain.razor` | **통합 작업 화면** (기본 진입점) — WO 그리드 + 스캔 실적확정 + 하단 기능 버튼 |
+| (팝업) | `Pages/InjPopups/WoConfirmPopup.razor` | 작업지시 접수 (구 INJ-03) |
+| (팝업) | `Pages/InjPopups/ManualEntryPopup.razor` | 수동 실적 입력 (구 INJ-04 키패드) |
+| (팝업) | `Pages/InjPopups/DefectPopup.razor` | 불량 입력 (구 INJ-05) |
+| (팝업) | `Pages/InjPopups/MoldChangePopup.razor` | 금형 교체 (구 INJ-06) |
+| (팝업) | `Pages/InjPopups/ProdStatusPopup.razor` | 생산 현황 (구 INJ-07) |
+| (팝업) | `Pages/InjPopups/AndonPopup.razor` | 안돈 — 전체 화면 오버레이 (구 INJ-08) |
+
+구 단독 화면(`Inj03WoConfirm` ~ `Inj08Andon`)은 라우트(`/inj03`~`/inj08`)와 함께 유지되나 네비게이션에서 제외됨 (deprecated). 팝업 공통 셸은 `Pages/InjPopups/PopupShell.razor`.
 
 #### IMG (원단/래핑 공정) — 6화면
 | 화면 ID | 파일 | 설명 |
@@ -234,6 +238,36 @@ Health check: `GET /api/health`
 | `Auth_` | 인증 (PIN 해시, 세션) |
 
 사출 자동수집 테이블(`PR_InjLot` · `MD_InjCondItem` · `PR_InjCondLog` · `PR_RobotInspection`)은 `dist/migrate_inj_agent.sql`, 금형 마스터(`MD_MoldColor` · `MD_MoldItem` · `MD_MoldLine`)는 `dist/migrate_mold_master.sql` 참조.
+라벨 발행 선점 컬럼(`PR_InjLot.PrintClaimTS` · `PrintClaimStation`)은 `dist/migrate_inj_lot_print_claim.sql` — `migrate_inj_agent.sql` 적용 후에 실행하며, 이게 없으면 Pop 의 `LabelDispatcher` 가 동작하지 않는다.
+
+---
+
+## 사출 라벨 발행 — 배포 순서 (중요)
+
+라벨 발행 주체가 InjAgent 에서 Pop 으로 이전됐다. 두 프로세스는 독립 배포되므로 **순서를 지켜야 한다.**
+
+```
+1. dist/migrate_inj_lot_print_claim.sql   (클레임 컬럼)
+2. AMES.InjAgent  신버전                   (발행 중단)
+3. AMES.Pop       신버전                   (발행 시작)
+```
+
+롤백은 정확히 역순 (Pop → InjAgent).
+
+**순서를 뒤집으면 안 되는 이유:**
+
+| 잘못된 상태 | 결과 |
+|---|---|
+| Pop 신버전 + InjAgent 구버전 | **모든 LOT 이 두 장씩 나온다.** 에이전트가 생성 직후 뽑고, Pop 디스패처가 1초 뒤 같은 LOT 을 클레임해 또 뽑는다. 에이전트가 `PrintedCount` 를 올리기 전에 Pop 이 클레임하는 창이 실제로 열린다 |
+| InjAgent 신버전 + Pop 구버전 | 라벨이 안 나온다. 미확정 LOT 목록의 재출력 버튼으로 복구 가능 — **안전한 실패 쪽이다** |
+| 마이그레이션 없이 Pop 신버전 | 매 틱 `ClaimForPrint` 예외. **작업자 화면에는 아무 표시가 없고** 라벨만 안 나온다. 배포 전 컬럼 존재를 반드시 확인할 것 |
+
+**운영 전제 2가지:**
+
+- **INJ 라인마다 Pop 터미널이 1대씩** 떠 있어야 한다. 클레임이 세션 `LineId` 로 걸러지므로, 터미널이 배정되지 않은 라인은 라벨이 아예 나오지 않는다. 한 터미널이 2개 라인을 담당하는 구성은 지원하지 않는다.
+- **Pop 재시작·재로그인은 워터마크를 리셋한다.** 그 이전의 미출력 LOT 은 자동 발행 대상에서 빠지고 재출력 버튼으로만 복구된다. 교대 인수인계 시 유의.
+
+장애 추적은 `{PopTerminal:Printer:OutputDir}/dispatch-YYYYMMDD.log` — 무인 루프라 토스트로 알릴 수 없는 실패가 여기에만 남는다.
 
 ---
 

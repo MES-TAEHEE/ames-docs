@@ -18,7 +18,6 @@ public sealed class MachinePoller : IDisposable
     private readonly IInjectionMachine _machine;
     private readonly IRobotLink        _robot;
     private readonly IInjAgentStore    _store;
-    private readonly ILabelPrinter     _printer;
     private readonly Action<string>    _log;
 
     private long?  _lastShotCount;
@@ -32,13 +31,12 @@ public sealed class MachinePoller : IDisposable
     private sealed record CavityLot(int LotId, string LotCode, string ItemNo, string CavityPos);
 
     public MachinePoller(MachineConfig cfg, IInjectionMachine machine, IRobotLink robot,
-                         IInjAgentStore store, ILabelPrinter printer, Action<string> log)
+                         IInjAgentStore store, Action<string> log)
     {
         _cfg = cfg;
         _machine = machine;
         _robot = robot;
         _store = store;
-        _printer = printer;
         _log = msg => log($"[{cfg.EquipId}] {msg}");
     }
 
@@ -146,13 +144,6 @@ public sealed class MachinePoller : IDisposable
                 var (lotId, lotCode) = _store.CreateRawLot(_cfg.LineId, _cfg.EquipId, m, shot);
                 _slots[slot] = new CavityLot(lotId, lotCode, m.ItemNo, m.CavityPos);
                 _log($"{m.CavityPos} LOT created: {lotCode}");
-                try
-                {
-                    _printer.PrintLabel(lotCode, m.ItemNo, m.ItemName, m.ColorCode, m.CavityPos, _cfg.LineId);
-                    try { _store.MarkLabelPrinted(lotId); }
-                    catch (Exception ex) { _log($"Printed-count update failed ({lotCode}): {ex.Message}"); }
-                }
-                catch (Exception ex) { _log($"Label print failed ({lotCode}): {ex.Message}"); }
             }
             catch (Exception ex)
             {
