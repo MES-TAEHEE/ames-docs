@@ -45,16 +45,10 @@ public class PollerRunnerTests
     {
         public List<MoldItemDto> GetMoldItems(string m, string c) => new();
         public (int, string) CreateRawLot(string l, string e, MoldItemDto m, long s) => (1, "L");
-        public void MarkLabelPrinted(int lotId) { }
         public void SaveInspection(int a, string b, string c, string d, string e, string f, string g, bool h) { }
         public void MarkNgBlocked(int lotId) { }
         public List<InjCondItemDto> GetCondItems(string lineId) => new();
         public void InsertCondLog(string l, string i, long s, decimal? a, decimal? b) { }
-    }
-
-    sealed class NopPrinter : ILabelPrinter
-    {
-        public void PrintLabel(string a, string b, string? c, string? d, string? e, string f) { }
     }
 
     static (PollerRunner Runner, NopMachine M, NopRobot R) Build()
@@ -62,7 +56,7 @@ public class PollerRunnerTests
         var m = new NopMachine();
         var r = new NopRobot();
         var cfg = new MachineConfig { EquipId = "EQ", LineId = "LN", ModbusIp = "x", FenetIp = "y" };
-        var poller = new MachinePoller(cfg, m, r, new NopStore(), new NopPrinter(), _ => { });
+        var poller = new MachinePoller(cfg, m, r, new NopStore(), _ => { });
         return (new PollerRunner(poller, pollingMs: 10, _ => { }), m, r);
     }
 
@@ -101,7 +95,7 @@ public class PollerRunnerTests
     public void Stop_timeout_keeps_running_flag_until_loop_exits()
     {
         var cfg = new MachineConfig { EquipId = "EQ", LineId = "LN", ModbusIp = "x", FenetIp = "y" };
-        var poller = new MachinePoller(cfg, new SlowMachine(), new NopRobot(), new NopStore(), new NopPrinter(), _ => { });
+        var poller = new MachinePoller(cfg, new SlowMachine(), new NopRobot(), new NopStore(), _ => { });
         var runner = new PollerRunner(poller, pollingMs: 10, _ => { });
 
         runner.Start();

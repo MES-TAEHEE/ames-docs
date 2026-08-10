@@ -2,8 +2,8 @@
 @using AMES.Pop.Common
 @inject ToastService Toasts
 
-@*  INJ-004 수동 LOT 발행 — 팝업판. PLC 미연결·계수 누락 시 원천 LOT + 라벨을 수동으로 찍는다.
-    여기서 실적이 확정되지는 않는다 — 발행된 라벨을 스캔해야 확정된다. *@
+@*  INJ-004 수동 LOT 발행 — 팝업판. PLC 미연결·계수 누락 시 원천 LOT 을 수동으로 만든다.
+    라벨은 LabelDispatcher 가 뽑고, 실적은 그 라벨을 스캔해야 확정된다. *@
 
 <PopupShell Title='@($"⌨ {T("ManualLotIssueQtyEa")}")' Width="560px" OnClose="OnClose">
     @if (Wo is null)
@@ -39,7 +39,7 @@
     [Parameter] public PopSessionDto?     Session     { get; set; }
     [Parameter] public WorkOrderDto?      Wo          { get; set; }
     [Parameter] public EventCallback      OnClose     { get; set; }
-    /// <summary>원천 LOT 생성 + 라벨 발행 완료. 실적 확정은 스캔 단계에서 일어난다.</summary>
+    /// <summary>원천 LOT 생성 완료. 라벨 발행은 디스패처, 실적 확정은 스캔 단계에서 일어난다.</summary>
     [Parameter] public EventCallback      OnCreated   { get; set; }
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
@@ -66,22 +66,8 @@
                 Wo.LineId, Wo.ItemNo, Wo.MoldId, qty, Session.EmployeeNo);
             _buf.Clear();
 
-            var printed = 0;
-            string? printError = null;
-            foreach (var lot in lots)
-            {
-                try
-                {
-                    LabelPrinter.Print(lot, Session.LineId);
-                    PopServices.InjLots.IncrementPrintedCount(lot.LotId);
-                    printed++;
-                }
-                catch (Exception ex) { printError ??= ex.Message; }
-            }
-
-            Toasts.Ok(T("ManualLotsCreated", qty, printed));
-            if (printError is not null)
-                Toasts.Bad($"{T("LabelPrintFailed")} ({printed}/{lots.Count}): {printError}");
+            // 라벨은 LabelDispatcher 가 발행한다 — 여기서 뽑으면 디스패처와 이중 발행된다.
+            Toasts.Ok(T("ManualLotsCreated", lots.Count));
 
             await OnCreated.InvokeAsync();
         }

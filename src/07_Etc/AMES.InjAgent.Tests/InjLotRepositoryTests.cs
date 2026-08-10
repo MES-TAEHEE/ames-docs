@@ -77,8 +77,8 @@ public class InjLotRepositoryTests
         var (lotId, lotCode) = repo.CreateRawLot("LINE-INJ-01", "INJ-650-01", Lh(), 12347);
         try
         {
-            Assert.Equal(1, repo.IncrementPrintedCount(lotId));   // 에이전트 최초 발행
-            Assert.Equal(2, repo.IncrementPrintedCount(lotId));   // Inj04 재출력
+            Assert.Equal(1, repo.IncrementPrintedCount(lotId));   // 디스패처 자동 발행
+            Assert.Equal(2, repo.IncrementPrintedCount(lotId));   // 재출력 버튼
             Assert.Equal(2, repo.GetByLotCode(lotCode)!.PrintedCount);
         }
         finally { Cleanup(f, lotId); }

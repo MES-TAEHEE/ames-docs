@@ -21,8 +21,6 @@ public sealed class DbInjAgentStore : IInjAgentStore
     public (int LotId, string LotCode) CreateRawLot(string lineId, string equipId, MoldItemDto map, long machineShotCount)
         => _lots.CreateRawLot(lineId, equipId, map, machineShotCount);
 
-    public void MarkLabelPrinted(int lotId) => _lots.IncrementPrintedCount(lotId);
-
     public void SaveInspection(int lotId, string equipId, string cavityPos,
         string shortMold, string weldLine, string gas, string weight, bool overallNg)
         => _lots.SaveInspection(lotId, equipId, cavityPos, shortMold, weldLine, gas, weight, overallNg);

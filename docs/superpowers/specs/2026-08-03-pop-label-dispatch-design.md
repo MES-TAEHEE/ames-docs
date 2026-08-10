@@ -62,14 +62,20 @@ ALTER TABLE dbo.PR_InjLot ADD
 서비스 시작 시 워터마크를 한 번 잡고, **세션 동안 절대 전진시키지 않는다.**
 
 ```sql
-SELECT ISNULL(MAX(LotID), 0) FROM dbo.tbl_Lot WHERE LineID = @line
+SELECT ISNULL(MAX(LotID), 0) FROM dbo.tbl_Lot WHERE LineID = @line AND ProcessCode = 'INJ'
 ```
+
+`ProcessCode` 필터가 없으면 같은 라인의 비-INJ LOT이 워터마크를 최신 INJ LOT 너머로 밀어올려, 그 사이 미출력분이 영구 제외된다. 클레임 쪽은 `PR_InjLot` 조인이 같은 역할을 하므로 필터가 필요 없다 — 의도된 비대칭이다.
 
 워터마크를 전진시키면 안 되는 이유: 출력에 실패해 클레임을 반납한 LOT이 `LotID > watermark` 조건에서 영구 제외되어 재시도가 불가능해진다. 워터마크는 "이 세션 시작 경계"라는 고정 의미만 갖고, **재시도 대기열 판정은 전적으로 `PrintedCount = 0`과 `PrintClaimTS IS NULL`이 담당한다.**
 
 - 출력 성공분 → `PrintedCount = 1` → 자동 제외
 - 출력 실패분 → 클레임 반납으로 `PrintClaimTS = NULL` → 다음 틱에 다시 선점됨
 - 세션 이전 LOT → `LotID <= watermark` → 영구 제외 (소급 발행 안 함)
+
+`LotID > watermark` 는 **하드 컷오프**다. 워터마크 이하 LOT 은 `PrintedCount` 가 0 이어도 자동 발행 대상이 아니며, 재시도 판정은 워터마크 위쪽에만 적용된다.
+
+**워터마크 획득은 첫 성공 틱에 일어난다.** 로그인 시점에 동기로 잡으면 그때의 일시적 DB 장애 한 번이 교대 내내 라벨을 죽인다 — 재시도도 알림도 없이. 그래서 획득을 `Tick()` 으로 옮겨 실패 시 다음 틱에 재시도한다. 대가는 획득이 지연되는 동안 생성된 LOT 이 결국 잡힌 워터마크 아래로 들어가 자동 발행에서 빠지는 것이다. 정상 상황에서 그 창은 1틱(1초)이고, 해당 LOT 들은 세션 이전 미출력분과 같은 취급 — 미확정 목록의 🖨 버튼으로 수동 발행한다.
 
 매 틱(1초):
 
@@ -78,21 +84,25 @@ ClaimForPrint(lineId, watermark, stationId)   -- UPDATE…OUTPUT, 원자적
   ↓ 선점된 LOT 목록 (없으면 즉시 종료)
 각 LOT: ZplLabelBuilder.Build → ZplPrinter.Print
   ├ 성공 → IncrementPrintedCount(lotId)
-  └ 실패 → ReleasePrintClaim(lotId)          -- 다음 틱 재시도
+  └ 실패 → ReleasePrintClaim(lotId, stationId)   -- 다음 틱 재시도
 ```
 
-클레임 조건:
+클레임 조건 (한 번에 `top`건, 기본 5건):
 
 ```sql
-UPDATE dbo.PR_InjLot
+UPDATE TOP (@top) dbo.PR_InjLot
 SET    PrintClaimTS = SYSDATETIME(), PrintClaimStation = @station
 OUTPUT INSERTED.LotID INTO @claimed
 WHERE  LotID > @watermark
   AND  PrintedCount = 0
-  AND  (PrintClaimTS IS NULL OR PrintClaimTS < DATEADD(second, -30, SYSDATETIME()));
+  AND  (PrintClaimTS IS NULL OR PrintClaimTS < DATEADD(second, -@stale, SYSDATETIME()));
 ```
 
-30초 스테일 조건이 크래시 복구를 담당한다. 선점 직후 터미널이 죽어도 30초 뒤 다른 터미널이 회수하므로 라벨이 영구 유실되지 않는다. `PrintedCount = 0` 조건이 함께 있어 이미 출력된 건은 재선점되지 않는다.
+스테일 조건이 크래시 복구를 담당한다. 선점 직후 터미널이 죽어도 `staleSeconds` 뒤 다른 터미널이 회수하므로 라벨이 영구 유실되지 않는다. `PrintedCount = 0` 조건이 함께 있어 이미 출력된 건은 재선점되지 않는다.
+
+**불변식: `staleSeconds > top × 프린터 최악 지연`.** `ZplPrinter`는 라벨 1장당 연결 2초 + 송신 3초 = 최악 5초다. 이 관계가 깨지면 첫 터미널이 아직 배치를 처리하는 중에 다른 터미널이 뒷부분을 정당하게 스테일 회수해 같은 라벨이 두 장 나간다. 현재 값은 `60 > 5 × 5 = 25`.
+
+**반납은 소유자만 한다.** `ReleasePrintClaim`은 `AND PrintClaimStation = @station`으로 소유권을 검증한다. 이게 없으면, 지연된 터미널의 뒤늦은 실패 보고가 스테일 회수로 정당하게 넘어간 다른 터미널의 클레임을 지워 3장째 라벨이 나온다.
 
 선점 후 라벨 데이터 조회는 같은 배치에서 기존 `SelectLotView`에 `WHERE l.LotID IN (SELECT LotID FROM @claimed)`를 붙여 수행한다. 라벨 조립에 `tbl_Lot.LotCode`와 `MD_Item.ItemName`이 필요한데 `OUTPUT` 절은 갱신 대상 테이블(`PR_InjLot`) 컬럼만 낼 수 있기 때문이다.
 
@@ -142,7 +152,7 @@ WHERE  LotID > @watermark
 
 ## 테스트
 
-`LabelDispatcher`를 타이머·DI에서 분리해 순수 로직으로 테스트한다. 저장소는 `IInjLotPrintSource`(클레임·반납·카운트), 프린터는 `ILabelSink`로 주입받는다. `AMES.InjAgent.Tests`가 exe 프로젝트를 참조하는 것과 같은 패턴으로 `AMES.Pop.Tests`(xUnit)를 신설한다.
+`LabelDispatcher`를 타이머·DI에서 분리해 순수 로직으로 테스트한다. 저장소는 `IInjLotClaimStore`(클레임·반납·카운트), 프린터는 `ILabelSink`로 주입받는다. `AMES.InjAgent.Tests`가 exe 프로젝트를 참조하는 것과 같은 패턴으로 `AMES.Pop.Tests`(xUnit)를 신설한다.
 
 | 테스트 | 검증 |
 |---|---|
@@ -155,7 +165,7 @@ WHERE  LotID > @watermark
 | NG_BLOCKED LOT도 발행 대상 | 현행 동작 유지 |
 | 로그아웃 시 정지 | 세션 수명 |
 
-DB 레벨(원자적 클레임, 30초 스테일 회수)은 단위 테스트로 검증할 수 없다. 마이그레이션 적용 후 두 세션에서 동시에 클레임을 실행해 한쪽만 행을 가져가는지 수동 확인한다.
+DB 레벨(원자적 클레임, 스테일 회수, 반납 소유권 검증)은 단위 테스트로 검증할 수 없다. 마이그레이션 적용 후 두 세션에서 동시에 클레임을 실행해 한쪽만 행을 가져가는지 수동 확인한다.
 
 ## 영향 범위
 
@@ -166,6 +176,7 @@ DB 레벨(원자적 클레임, 30초 스테일 회수)은 단위 테스트로 �
 
 **수정**
 - `AMES.Data/Repositories/InjLotRepository.cs` — `GetMaxLotId`, `ClaimForPrint`, `ReleasePrintClaim` 추가
+- `dist/migrate_inj_lot_print_claim.sql` — 클레임 컬럼 2개 + `IX_PR_InjLot_PrintClaim` + `IX_tbl_Lot_Line`
 
 `InjLotDto`와 `SelectLotView`는 변경하지 않는다. 클레임 컬럼은 디스패처 내부 상태일 뿐 화면에 노출되지 않으므로 DTO에 실을 이유가 없다.
 - `dist/AMES_Schema.sql`, `dist/migrate_inj_agent.sql` — `PR_InjLot` 정본에 컬럼 2개

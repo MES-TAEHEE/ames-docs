@@ -288,6 +288,7 @@ public sealed class InjLotRepository
         catch { tx.Rollback(); throw; }
     }
 
+    // 호출부가 WHERE 를 이어 붙인다 — 이 상수에 WHERE 를 넣으면 4곳이 동시에 깨진다.
     const string SelectLotView = """
         SELECT l.LotID, l.LotCode, l.ItemNo, mi.ItemName, l.LineID,
                e.EquipID, e.MoldCode, e.ColorCode, e.MoldID, e.CavityNo, e.CavityPos,
@@ -379,7 +380,7 @@ public sealed class InjLotRepository
         return rdr.Read() ? MapToDto(rdr) : null;
     }
 
-    /// <summary>라벨 발행 성공 시 +1 (에이전트 최초 발행·Inj04 재출력 공용). 반환 = 누적 횟수.</summary>
+    /// <summary>라벨 발행 성공 시 +1 (디스패처 자동 발행·재출력 버튼 공용). 반환 = 누적 횟수.</summary>
     public int IncrementPrintedCount(int lotId)
     {
         const string sql = """
@@ -392,6 +393,88 @@ public sealed class InjLotRepository
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@L", SqlDbType.Int).Value = lotId;
         return cmd.ExecuteScalar() as int? ?? 0;
+    }
+
+    /// <summary>
+    /// 라벨 디스패처 워터마크 — 세션 시작 시점의 라인 최대 INJ LotID.
+    /// ProcessCode 로 좁히는 이유: 같은 라인의 비-INJ LOT 이 워터마크를 실제 최신 사출 LOT
+    /// 너머로 밀면 그 사이 미출력분이 영구 제외된다(워터마크는 세션 중 전진하지 않는다).
+    /// </summary>
+    public int GetMaxLotId(string lineId)
+    {
+        const string sql = "SELECT ISNULL(MAX(LotID),0) FROM dbo.tbl_Lot WHERE LineID = @Line AND ProcessCode = 'INJ';";
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
+        return cmd.ExecuteScalar() as int? ?? 0;
+    }
+
+    /// <summary>
+    /// 미출력 LOT 을 원자적으로 선점하고 라벨 조립용 전체 데이터를 돌려준다.
+    /// 같은 라인에 Pop 터미널이 여러 대여도 한 터미널만 각 LOT 을 가져간다.
+    /// staleSeconds 가 지난 선점은 회수 대상 — 선점 직후 터미널이 죽어도 라벨이 유실되지 않는다.
+    ///
+    /// 불변식: staleSeconds > top × 프린터 최악 지연(5초 = ZplPrinter 연결 2초 + 송신 3초).
+    /// 이 관계가 깨지면 첫 터미널이 배치를 처리하는 중에 다른 터미널이 뒷부분을 회수해
+    /// 같은 라벨이 두 장 나간다. 현재 값: 60 > 5 × 5 = 25.
+    ///
+    /// 호출측 계약 — 선점만 하므로 뒤처리는 호출자 책임이다:
+    ///   출력 성공 → IncrementPrintedCount(lotId)
+    ///   출력 실패 → ReleasePrintClaim(lotId, stationId)
+    /// 둘 다 안 부르면 staleSeconds 후 자동 재시도된다(= 라벨이 한 장 더 나간다).
+    /// </summary>
+    public List<InjLotDto> ClaimForPrint(string lineId, int afterLotId, string stationId,
+                                         int staleSeconds = 60, int top = 5)
+    {
+        // ModifiedTS 는 찍지 않는다 — 선점은 디스패처 내부 상태이지 업무 변경이 아니다.
+        var sql = """
+            DECLARE @claimed TABLE (LotID INT);
+
+            UPDATE TOP (@Top) e
+            SET    e.PrintClaimTS = SYSDATETIME(), e.PrintClaimStation = @Station
+            OUTPUT INSERTED.LotID INTO @claimed
+            FROM   dbo.PR_InjLot e
+            JOIN   dbo.tbl_Lot   l ON l.LotID = e.LotID
+            WHERE  l.LineID       = @Line
+              AND  e.LotID        > @After
+              AND  e.PrintedCount = 0
+              AND  (e.PrintClaimTS IS NULL
+                    OR e.PrintClaimTS < DATEADD(second, -@Stale, SYSDATETIME()));
+
+            """ + SelectLotView + """
+
+            WHERE  l.LotID IN (SELECT LotID FROM @claimed)
+            ORDER  BY l.LotID;
+            """;
+
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Line",    SqlDbType.VarChar, 20).Value = lineId;
+        cmd.Parameters.Add("@After",   SqlDbType.Int        ).Value = afterLotId;
+        cmd.Parameters.Add("@Station", SqlDbType.VarChar, 20).Value = stationId;
+        cmd.Parameters.Add("@Stale",   SqlDbType.Int        ).Value = staleSeconds;
+        cmd.Parameters.Add("@Top",     SqlDbType.Int        ).Value = top;
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<InjLotDto>();
+        while (rdr.Read()) list.Add(MapToDto(rdr));
+        return list;
+    }
+
+    /// <summary>출력 실패 시 선점 반납 — 다음 틱에 재시도된다.</summary>
+    public void ReleasePrintClaim(int lotId, string stationId)
+    {
+        // 내가 선점한 것만 반납한다. 스테일 회수로 다른 터미널이 이미 가져간 LOT 을
+        // 뒤늦은 실패 보고가 풀어버리면 그 터미널이 출력 중인 라벨이 재선점된다.
+        const string sql = """
+            UPDATE dbo.PR_InjLot
+            SET    PrintClaimTS = NULL, PrintClaimStation = NULL
+            WHERE  LotID = @L AND PrintedCount = 0 AND PrintClaimStation = @Station;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@L",       SqlDbType.Int        ).Value = lotId;
+        cmd.Parameters.Add("@Station", SqlDbType.VarChar, 20).Value = stationId;
+        cmd.ExecuteNonQuery();
     }
 
     /// <summary>

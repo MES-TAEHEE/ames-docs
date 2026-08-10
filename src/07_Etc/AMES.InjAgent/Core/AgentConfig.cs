@@ -1,4 +1,3 @@
-using AMES.Devices;
 using Microsoft.Extensions.Configuration;
 
 namespace AMES.InjAgent.Core;
@@ -19,7 +18,6 @@ public sealed class AgentConfig
     public string              ConnectionString { get; }
     public int                 PollingMs        { get; }
     public List<MachineConfig> Machines         { get; }
-    public ZplPrinterOptions   Printer          { get; }
 
     private static readonly Lazy<AgentConfig> _instance = new(Load);
     public static AgentConfig Current => _instance.Value;
@@ -45,14 +43,6 @@ public sealed class AgentConfig
         }
         if (Machines.Count == 0)
             throw new InvalidOperationException("Agent:Machines is empty in appsettings.json");
-
-        Printer = new ZplPrinterOptions
-        {
-            Mode      = root["Agent:Printer:Mode"]      ?? "File",
-            Host      = root["Agent:Printer:Host"]      ?? "127.0.0.1",
-            Port      = int.TryParse(root["Agent:Printer:Port"], out var pp) ? pp : 9100,
-            OutputDir = root["Agent:Printer:OutputDir"] ?? "labels",
-        };
     }
 
     private static AgentConfig Load()

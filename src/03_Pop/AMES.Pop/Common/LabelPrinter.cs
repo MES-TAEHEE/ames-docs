@@ -4,7 +4,7 @@ using AMES.Devices;
 namespace AMES.Pop.Common;
 
 /// <summary>
-/// LOT 라벨 발행 — InjMain 재출력과 수동입력 최초 발행이 공용으로 쓴다.
+/// LOT 라벨 발행 — InjMain 재출력과 LabelDispatcher 자동 발행이 공용으로 쓴다.
 /// 실패 시 예외 — 호출자가 토스트로 알린다.
 /// </summary>
 internal static class LabelPrinter

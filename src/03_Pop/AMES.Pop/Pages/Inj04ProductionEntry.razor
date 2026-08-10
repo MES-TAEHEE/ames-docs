@@ -5,6 +5,7 @@
 @inject AppState State
 @inject ConfirmService Confirmer
 @inject ToastService Toasts
+@inject AMES.Pop.Services.LabelDispatcher Dispatcher
 
 <div class="pop-shell">
     <div class="pop-tbar">
@@ -279,6 +280,12 @@
         try
         {
             LabelPrinter.Print(lot, Session?.LineId);
+
+            // InjMain 과 같은 이유 — 라벨이 나온 것이 프린터 복구의 유일한 증거이고,
+            // Resume() 은 자동 발행 정지에서 벗어나는 유일한 길이다. 이 화면은
+            // deprecated 지만 여전히 /inj04 로 라우팅되고 INJ 팝업들에서 링크된다.
+            Dispatcher.Resume();
+
             var printed = PopServices.InjLots.IncrementPrintedCount(lot.LotId);
             Toasts.Ok($"라벨 재출력: {lot.LotCode} (누적 {printed}회)");
             Refresh();

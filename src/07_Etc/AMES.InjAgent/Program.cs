@@ -36,13 +36,12 @@ internal static class Program
 
         var factory = new AmesConnectionFactory(cfg.ConnectionString);
         var store   = new DbInjAgentStore(new InjLotRepository(factory), new InjCondRepository(factory));
-        var printer = new ZplLabelPrinter(cfg.Printer);
 
         var pollers = cfg.Machines.Select(m => new MachinePoller(
             m,
             new ModbusMachineClient(m.ModbusIp, m.ModbusPort),
             new FEnetClient(m.FenetIp, m.FenetPort),
-            store, printer, MainForm.EnqueueLog)).ToList();
+            store, MainForm.EnqueueLog)).ToList();
 
         Application.Run(new MainForm(pollers, cfg.PollingMs));
     }

@@ -6,6 +6,7 @@
 @inject AppState State
 @inject ConfirmService Confirmer
 @inject ToastService Toasts
+@inject AMES.Pop.Services.LabelDispatcher Dispatcher
 
 @*  INJ-MAIN — INJ03~08 통합 작업 화면.
     좌측 작업지시 그리드 + 우측 스캔/결과 패널을 상시 표시하고,
@@ -383,6 +384,12 @@
         try
         {
             LabelPrinter.Print(lot, Session?.LineId);
+
+            // 라벨이 나온 순간이 프린터가 살아났다는 증거다 — 뒤따르는 DB 실패로
+            // 이 신호를 잃으면 자동 발행이 멈춘 채, 작업자는 누를 때마다 실물
+            // 라벨만 태우게 된다. Resume() 은 IsStopped 를 벗어나는 유일한 길이다.
+            Dispatcher.Resume();
+
             var printed = PopServices.InjLots.IncrementPrintedCount(lot.LotId);
             Toasts.Ok($"{T("LabelReprinted")}: {lot.LotCode} ({T("Total2")} {printed})");
             Refresh();

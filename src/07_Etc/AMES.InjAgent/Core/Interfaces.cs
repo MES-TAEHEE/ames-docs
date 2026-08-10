@@ -35,16 +35,9 @@ public interface IInjAgentStore
 {
     List<MoldItemDto> GetMoldItems(string moldCode, string colorCode);
     (int LotId, string LotCode) CreateRawLot(string lineId, string equipId, MoldItemDto map, long machineShotCount);
-    void MarkLabelPrinted(int lotId);
     void SaveInspection(int lotId, string equipId, string cavityPos,
                         string shortMold, string weldLine, string gas, string weight, bool overallNg);
     void MarkNgBlocked(int lotId);
     List<InjCondItemDto> GetCondItems(string lineId);
     void InsertCondLog(string lineId, string itemCode, long shotSeq, decimal? setValue, decimal? actualValue);
-}
-
-/// <summary>라벨 발행 (AMES.Devices 어댑터).</summary>
-public interface ILabelPrinter
-{
-    void PrintLabel(string lotCode, string itemNo, string? itemName, string? colorCode, string? cavityPos, string lineId);
 }
