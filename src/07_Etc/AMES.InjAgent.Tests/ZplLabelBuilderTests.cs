@@ -45,10 +45,10 @@ public class ZplLabelBuilderTests
     {
         var zpl = ZplLabelBuilder.Build(Sample());
         Assert.Contains("^FO20,138^A0N,50,39^FD83335-P8000RBQ^FS", zpl);
-        Assert.Contains("^FO150,82^A0N,31,27^FDCBK^FS", zpl);
+        Assert.Contains("^FO140,82^A0N,31,27^FDCBK^FS", zpl);
         Assert.Contains("^FO320,14^A0N,43,34^FDLH^FS", zpl);
         Assert.Contains("^FO320,73^A0N,43,34^FDM^FS", zpl);
-        Assert.Contains("^FO150,14^A0N,30,27^FD07/17/2026^FS", zpl);
+        Assert.Contains("^FO140,14^A0N,30,27^FD07/17/2026^FS", zpl);
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public class ZplLabelBuilderTests
         var zpl = ZplLabelBuilder.Build(label);
         Assert.StartsWith("^XA", zpl);
         Assert.EndsWith("^XZ", zpl.TrimEnd());
-        Assert.DoesNotContain("^FO150,82", zpl);   // 색상 줄 생략
+        Assert.DoesNotContain("^FO140,82", zpl);   // 색상 줄 생략
         Assert.DoesNotContain("^FO320,14", zpl);   // 캐비티 줄 생략
         Assert.DoesNotContain("^FO320,73", zpl);   // 호기 줄 생략
         Assert.Contains("^FO20,138^A0N,50,39^FD83335-P8000RBQ^FS", zpl);
