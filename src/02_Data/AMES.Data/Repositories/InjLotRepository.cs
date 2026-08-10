@@ -349,6 +349,29 @@ public sealed class InjLotRepository
         return list;
     }
 
+    /// <summary>
+    /// 라인의 미확정 LOT(RAW+NG_BLOCKED) 수를 품번별로 집계 — InjMain 투입(INPUT) 표시용.
+    /// 미확정 LOT 은 WoID 가 NULL 이라(확정 시점에 채워짐) WO 귀속은 호출측이 품번으로 한다.
+    /// </summary>
+    public Dictionary<string, int> GetUnconfirmedCountByItem(string lineId)
+    {
+        const string sql = """
+            SELECT l.ItemNo, COUNT(*) AS Cnt
+            FROM   dbo.tbl_Lot l
+            JOIN   dbo.PR_InjLot e ON e.LotID = l.LotID
+            WHERE  l.LineID = @Line AND e.ConfirmStatus IN ('RAW','NG_BLOCKED')
+            GROUP  BY l.ItemNo;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
+        using var rdr = cmd.ExecuteReader();
+        var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        while (rdr.Read())
+            map[(string)rdr["ItemNo"]] = Convert.ToInt32(rdr["Cnt"]);
+        return map;
+    }
+
     /// <summary>Inj05 로봇 NG 목록 — 수동 불량 확정 대기.</summary>
     public List<InjLotDto> GetNgBlocked(string lineId)
     {
@@ -479,10 +502,13 @@ public sealed class InjLotRepository
 
     /// <summary>
     /// 스캔 확정: RAW → CONFIRMED + PR_ProductionResult 생성 + WO 수량 증가.
+    /// 대상 WO 는 호출자가 아니라 LOT 품번으로 정한다 — 같은 라인의 동일 품번
+    /// WO 중 빠른순(In Progress 우선 → Priority → DueDate → WoID, ListForLine 과
+    /// 같은 정렬) 첫 건. 없으면 NoWoForItem.
     /// CycleSec = 같은 설비의 직전 원천 LOT 과 이 LOT 의 CreatedTS 차 (샷 발생 시각 기준).
     /// </summary>
-    public (InjConfirmOutcome Outcome, int ResultId, string ItemNo) ConfirmByLotCode(
-        string lotCode, string lineId, int woId,
+    public (InjConfirmOutcome Outcome, int ResultId, string ItemNo, int WoId) ConfirmByLotCode(
+        string lotCode, string lineId,
         string operatorId, int? sessionId, string employeeNo)
     {
         using var conn = _factory.OpenConnection();
@@ -500,7 +526,7 @@ public sealed class InjLotRepository
             {
                 cmd.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = lotCode;
                 using var rdr = cmd.ExecuteReader();
-                if (!rdr.Read()) { rdr.Close(); tx.Rollback(); return (InjConfirmOutcome.NotFound, 0, string.Empty); }
+                if (!rdr.Read()) { rdr.Close(); tx.Rollback(); return (InjConfirmOutcome.NotFound, 0, string.Empty, 0); }
                 lotId     = (int)rdr["LotID"];
                 itemNo    = rdr["ItemNo"] as string ?? string.Empty;
                 status    = (string)rdr["ConfirmStatus"];
@@ -510,11 +536,30 @@ public sealed class InjLotRepository
                 createdTs = (DateTime)rdr["CreatedTS"];
                 var lotLine = rdr["LineID"] as string;
                 if (!string.Equals(lotLine, lineId, StringComparison.OrdinalIgnoreCase))
-                { rdr.Close(); tx.Rollback(); return (InjConfirmOutcome.WrongLine, 0, itemNo); }
+                { rdr.Close(); tx.Rollback(); return (InjConfirmOutcome.WrongLine, 0, itemNo, 0); }
             }
 
-            if (status is "CONFIRMED") { tx.Rollback(); return (InjConfirmOutcome.AlreadyConfirmed, 0, itemNo); }
-            if (status is "NG_BLOCKED" or "NG_CONFIRMED") { tx.Rollback(); return (InjConfirmOutcome.NgBlocked, 0, itemNo); }
+            if (status is "CONFIRMED") { tx.Rollback(); return (InjConfirmOutcome.AlreadyConfirmed, 0, itemNo, 0); }
+            if (status is "NG_BLOCKED" or "NG_CONFIRMED") { tx.Rollback(); return (InjConfirmOutcome.NgBlocked, 0, itemNo, 0); }
+
+            int woId;
+            using (var cmd = new SqlCommand("""
+                SELECT TOP 1 WoID
+                FROM   dbo.PP_WorkOrder WITH (UPDLOCK, ROWLOCK)
+                WHERE  LineID = @Line AND ItemNo = @Item
+                  AND  Status IN ('Released','In Progress')
+                ORDER  BY CASE WHEN Status = 'In Progress' THEN 0 ELSE 1 END,
+                          ISNULL(Priority,5),
+                          ISNULL(DueDate,'9999-12-31'),
+                          WoID;
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
+                cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+                if (cmd.ExecuteScalar() is not int found)
+                { tx.Rollback(); return (InjConfirmOutcome.NoWoForItem, 0, itemNo, 0); }
+                woId = found;
+            }
 
             int cycleSec;
             using (var cmd = new SqlCommand("""
@@ -586,7 +631,7 @@ public sealed class InjLotRepository
             }
 
             tx.Commit();
-            return (InjConfirmOutcome.Confirmed, resultId, itemNo);
+            return (InjConfirmOutcome.Confirmed, resultId, itemNo, woId);
         }
         catch { tx.Rollback(); throw; }
     }

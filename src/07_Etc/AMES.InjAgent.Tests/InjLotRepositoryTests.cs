@@ -94,7 +94,7 @@ public class InjLotRepositoryTests
         {
             repo.SaveInspection(lotId, "INJ-650-01", "LH", "OK", "OK", "OK", "NG", overallNg: true);
             repo.MarkNgBlocked(lotId);
-            var (outcome, _, _) = repo.ConfirmByLotCode(lotCode, "LINE-INJ-01", woId: 0, "test-op", null, "E-TEST");
+            var (outcome, _, _, _) = repo.ConfirmByLotCode(lotCode, "LINE-INJ-01", "test-op", null, "E-TEST");
             Assert.Equal(InjConfirmOutcome.NgBlocked, outcome);
         }
         finally { Cleanup(f, lotId); }
@@ -105,7 +105,7 @@ public class InjLotRepositoryTests
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
         var repo = new InjLotRepository(f);
-        var (outcome, _, _) = repo.ConfirmByLotCode("L-NO-SUCH-LOT", "LINE-INJ-01", 0, "test-op", null, "E-TEST");
+        var (outcome, _, _, _) = repo.ConfirmByLotCode("L-NO-SUCH-LOT", "LINE-INJ-01", "test-op", null, "E-TEST");
         Assert.Equal(InjConfirmOutcome.NotFound, outcome);
     }
 
@@ -130,12 +130,14 @@ public class InjLotRepositoryTests
             string lotCode;
             (lotId, lotCode) = repo.CreateRawLot("LINE-INJ-01", "INJ-650-01", Lh(), 99001);
 
-            var (outcome, resultId, itemNo) = repo.ConfirmByLotCode(
-                lotCode, "LINE-INJ-01", woId, "itest-op", null, "E-ITEST");
+            // woId 는 더 이상 전달하지 않는다 — 리포지토리가 LOT 품번으로 WO 를 찾아야 한다.
+            var (outcome, resultId, itemNo, confirmedWoId) = repo.ConfirmByLotCode(
+                lotCode, "LINE-INJ-01", "itest-op", null, "E-ITEST");
 
             Assert.Equal(InjConfirmOutcome.Confirmed, outcome);
             Assert.True(resultId > 0);
             Assert.Equal("83335-P8000RBQ", itemNo);
+            Assert.Equal(woId, confirmedWoId);   // 품번 매칭으로 테스트 WO 가 선택됐는지
 
             // 실적/상태/수량 검증
             using (var conn = f!.OpenConnection())
@@ -159,7 +161,7 @@ public class InjLotRepositoryTests
             }
 
             // 중복 스캔 거부
-            var (again, _, _) = repo.ConfirmByLotCode(lotCode, "LINE-INJ-01", woId, "itest-op", null, "E-ITEST");
+            var (again, _, _, _) = repo.ConfirmByLotCode(lotCode, "LINE-INJ-01", "itest-op", null, "E-ITEST");
             Assert.Equal(InjConfirmOutcome.AlreadyConfirmed, again);
         }
         finally
@@ -269,10 +271,11 @@ public class InjLotRepositoryTests
             Assert.All(lots, l => Assert.Contains(unconfirmed, x => x.LotId == l.LotId));
 
             // 스캔해야 비로소 실적이 된다.
-            var (outcome, resultId, _) = repo.ConfirmByLotCode(
-                lots[0].LotCode, "LINE-INJ-01", woId, "itest-op", null, "E-ITEST");
+            var (outcome, resultId, _, confirmedWoId) = repo.ConfirmByLotCode(
+                lots[0].LotCode, "LINE-INJ-01", "itest-op", null, "E-ITEST");
             Assert.Equal(InjConfirmOutcome.Confirmed, outcome);
             Assert.True(resultId > 0);
+            Assert.Equal(woId, confirmedWoId);
 
             using (var conn = f!.OpenConnection())
             using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""

@@ -52,6 +52,7 @@
                             var isSel    = _selWoId == w.WoId;
                             var isActive = _activeWo?.WoId == w.WoId;
                             var (good, ng) = _woTotals.TryGetValue(w.WoId, out var t) ? t : (0, 0);
+                            var pending  = _woPending.GetValueOrDefault(w.WoId);
                             <tr class="@(isSel ? "sel" : "") @(isActive ? "active" : "")"
                                 @onclick="@(() => SelectWo(w))" @ondblclick="@(() => SelectAndConfirm(w))">
                                 <td class="mono" style="text-align:left;">
@@ -65,7 +66,7 @@
                                 <td>@w.OrderQty.ToString("0")</td>
                                 <td class="ok">@w.CompletedQty.ToString("0")</td>
                                 <td class="@(ng > 0 ? "bad" : "")">@ng</td>
-                                <td>@((w.CompletedQty + ng).ToString("0"))</td>
+                                <td>@((w.CompletedQty + ng + pending).ToString("0"))</td>
                             </tr>
                         }
                         @if (_wos.Count == 0)
@@ -215,6 +216,7 @@
 
     private List<WorkOrderDto> _wos = new();
     private readonly Dictionary<int, (int Good, int Defect)> _woTotals = new();
+    private readonly Dictionary<int, int> _woPending = new();
     private WorkOrderDto? _activeWo;
     private WorkOrderDto? _selectedWo;
     private int?          _selWoId;
@@ -282,7 +284,26 @@
             foreach (var w in _wos)
                 _woTotals[w.WoId] = PopServices.Defects.GetWoTotals(w.WoId);
 
-            _totalInput    = _wos.Sum(w => w.CompletedQty + (_woTotals[w.WoId].Defect));
+            // 미확정 LOT(RAW·NG_BLOCKED)은 WoID 가 NULL 이라 품번으로 귀속시킨다.
+            // 같은 품번 WO 가 여럿이면 활성 WO 우선, 없으면 그리드 순서상 첫 WO 한 곳에만
+            // 얹는다 — 여러 행에 중복 가산하면 하단 합계가 부풀기 때문.
+            _woPending.Clear();
+            foreach (var (itemNo, cnt) in PopServices.InjLots.GetUnconfirmedCountByItem(Session.LineId))
+            {
+                var target = _activeWo is not null
+                             && string.Equals(_activeWo.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase)
+                    ? _wos.FirstOrDefault(w => w.WoId == _activeWo.WoId)
+                    : null;
+                target ??= _wos.FirstOrDefault(w => string.Equals(w.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase));
+                // 어느 WO 품번과도 안 맞는 LOT 은 활성 WO 에 얹는다 — 스캔 확정(ConfirmByLotCode)
+                // 자체가 품번 검증 없이 활성 WO 로 실적을 올리므로 결국 거기로 간다.
+                target ??= _wos.FirstOrDefault(w => w.WoId == _activeWo?.WoId);
+                if (target is not null)
+                    _woPending[target.WoId] = _woPending.GetValueOrDefault(target.WoId) + cnt;
+            }
+
+            _totalInput    = _wos.Sum(w => w.CompletedQty + _woTotals[w.WoId].Defect
+                                         + _woPending.GetValueOrDefault(w.WoId));
             _totalShortage = _wos.Sum(w => Math.Max(0, w.OrderQty - w.CompletedQty));
 
             if (_activeWo is not null)
@@ -343,22 +364,20 @@
     private void ConfirmScan(string lotCode)
     {
         if (Session is null) return;
-        if (_activeWo is null)
-        {
-            SetBanner(false, T("NoActiveWorkOrderAcceptAWoFirst"));
-            return;
-        }
         try
         {
-            var (outcome, resultId, itemNo) = PopServices.InjLots.ConfirmByLotCode(
-                lotCode, Session.LineId, _activeWo.WoId, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
+            // 대상 WO 는 LOT 품번으로 리포지토리가 정한다 (동일 품번 여러 WO 면 빠른순).
+            var (outcome, resultId, itemNo, woId) = PopServices.InjLots.ConfirmByLotCode(
+                lotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
+            var woNumber = _wos.FirstOrDefault(w => w.WoId == woId)?.WoNumber;
             var (ok, detail) = outcome switch
             {
-                InjConfirmOutcome.Confirmed        => (true,  $"{T("Confirmed")}: {lotCode} ({itemNo})"),
+                InjConfirmOutcome.Confirmed        => (true,  $"{T("Confirmed")}: {lotCode} ({itemNo}){(woNumber is null ? "" : $" → {woNumber}")}"),
                 InjConfirmOutcome.NotFound         => (false, $"{T("LotNotFound")}: {lotCode}"),
                 InjConfirmOutcome.AlreadyConfirmed => (false, $"{T("AlreadyConfirmed")}: {lotCode}"),
                 InjConfirmOutcome.NgBlocked        => (false, $"{T("BlockedByInspectionNgHandleInDefectPopup")}: {lotCode}"),
                 InjConfirmOutcome.WrongLine        => (false, $"{T("LotBelongsToAnotherLine")}: {lotCode}"),
+                InjConfirmOutcome.NoWoForItem      => (false, $"{T("NoOpenWoForThisPart")}: {lotCode} ({itemNo})"),
                 _                                  => (false, $"{T("ConfirmFailed")}: {lotCode}"),
             };
             if (ok) { _lastResultId = resultId; Refresh(); }

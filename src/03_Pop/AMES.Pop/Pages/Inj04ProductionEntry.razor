@@ -241,8 +241,8 @@
         }
         try
         {
-            var (outcome, resultId, itemNo) = PopServices.InjLots.ConfirmByLotCode(
-                lotCode, Session.LineId, _wo.WoId, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
+            var (outcome, resultId, itemNo, _) = PopServices.InjLots.ConfirmByLotCode(
+                lotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
             switch (outcome)
             {
                 case InjConfirmOutcome.Confirmed:
@@ -262,6 +262,9 @@
                     break;
                 case InjConfirmOutcome.WrongLine:
                     Toasts.Bad($"다른 라인의 LOT입니다: {lotCode}");
+                    break;
+                case InjConfirmOutcome.NoWoForItem:
+                    Toasts.Bad($"이 품번의 접수 가능한 작업지시가 없습니다: {lotCode} ({itemNo})");
                     break;
             }
         }

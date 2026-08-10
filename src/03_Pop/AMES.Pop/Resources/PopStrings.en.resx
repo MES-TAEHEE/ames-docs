@@ -114,6 +114,7 @@
   <data name="NoActiveWo" xml:space="preserve"><value>(no active WO)</value></data>
   <data name="NoActiveWorkOrderAcceptAWoFirst" xml:space="preserve"><value>No active work order — accept a WO first.</value></data>
   <data name="NoChangeInProgress" xml:space="preserve"><value>No change in progress</value></data>
+  <data name="NoOpenWoForThisPart" xml:space="preserve"><value>No open work order for this part</value></data>
   <data name="NoManualRegisteredForThisScreen" xml:space="preserve"><value>No manual registered for this screen.</value></data>
   <data name="NoMoldMountedOnThisLine" xml:space="preserve"><value>No mold mounted on this line.</value></data>
   <data name="NoReleasedWosForThisLinePpPlannerNeedsTo" xml:space="preserve"><value>No Released WOs for this line — PP planner needs to release a WO first.</value></data>
