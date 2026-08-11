@@ -170,6 +170,7 @@
         new("mnt", "🔧", "설비 보전",   "Maintenance",         "Mantenimiento"),
         new("rpt", "📊", "보고서",      "Reports",             "Informes"),
         new("wh",  "📦", "창고 관리",     "Warehouse",          "Almacén"),
+        new("fg",  "🚚", "완제품 관리",   "Finished Goods",     "Producto Terminado"),
         new("md",  "🗂️", "마스터 데이터", "Master Data",         "Datos Maestros"),
         new("sys", "⚙️", "시스템",      "System",              "Sistema"),
     };
@@ -187,6 +188,15 @@
         new("wh", "wh/log-history",     "WH-004", "재고 이력",      "Inventory History"),
     };
 
+    static readonly NavItem[] _finishedGoodsItems =
+    {
+        new("fg", "fg/locations",        "FG-101", "로케이션 마스터", "Location Master"),
+        new("fg", "fg/location-map",     "FG-102", "로케이션 맵", "Location Map"),
+        new("fg", "fg/customer-returns", "FG-103", "고객사 리턴", "Customer Returns"),
+        new("fg", "fg/shipments",        "FG-104", "출하 목록", "Shipments"),
+        new("fg", "fg/history",          "FG-105", "작업 이력", "History"),
+    };
+
     static readonly NavItem[] _fallbackItems =
     {
         // -- WH --
@@ -195,6 +205,13 @@
         new("wh", "wh/inventory-setting", "WH-005", "재고 설정", "Inventory Setting"),
         new("wh", "wh/picking-orders",  "WH-002", "피킹 오더",   "Picking Orders"),
         new("wh", "wh/log-history",     "WH-004", "재고 이력",      "Inventory History"),
+
+        // -- FG --
+        new("fg", "fg/locations",        "FG-101", "로케이션 마스터", "Location Master"),
+        new("fg", "fg/location-map",     "FG-102", "로케이션 맵", "Location Map"),
+        new("fg", "fg/customer-returns", "FG-103", "고객사 리턴", "Customer Returns"),
+        new("fg", "fg/shipments",        "FG-104", "출하 목록", "Shipments"),
+        new("fg", "fg/history",          "FG-105", "작업 이력", "History"),
 
         // ── PP ──
         new("pp", "pp/forecast",         "PP-001", "수요 예측",        "Forecast"),
@@ -329,12 +346,12 @@
 
     static readonly Dictionary<string, string> _prefixMap = new()
     {
-        ["wh/"]  = "wh",  ["pp/"]  = "pp",  ["mnt/"] = "mnt", ["rpt/"] = "rpt",
+        ["wh/"]  = "wh",  ["fg/"]  = "fg",  ["pp/"]  = "pp",  ["mnt/"] = "mnt", ["rpt/"] = "rpt",
         ["md/"]  = "md",  ["sys/"] = "sys",
     };
 
     // 권한 필터: DB 로딩 시 PermissionService 기준, 폴백 시 전부 표시
-    bool V(string href) => _usingFallback || href.StartsWith("wh/", StringComparison.OrdinalIgnoreCase) || PermSvc.IsVisible(href);
+    bool V(string href) => _usingFallback || href.StartsWith("wh/", StringComparison.OrdinalIgnoreCase) || href.StartsWith("fg/", StringComparison.OrdinalIgnoreCase) || PermSvc.IsVisible(href);
 
     List<(string Key, string Letter, string Ko, string En, string Es, List<NavItem> Items)> GroupedMd(List<NavItem> mdItems)
     {
@@ -404,6 +421,7 @@
             if (rows.Count > 0)
             {
                 AddMissingStaticItems(rows, _warehouseItems);
+                AddMissingStaticItems(rows, _finishedGoodsItems);
                 _items = rows;
                 _usingFallback = false;
                 try { _subprocessItems = MD.ListCodeItems("SUBPROCESS"); }
@@ -541,6 +559,11 @@
         ["wh/inventory-setting"] = "Configuración de Inventario",
         ["wh/picking-orders"] = "Órdenes de Picking",
         ["wh/log-history"] = "Historial de Inventario",
+        ["fg/locations"] = "Maestro de Ubicaciones",
+        ["fg/location-map"] = "Mapa de Ubicaciones",
+        ["fg/customer-returns"] = "Devoluciones de Clientes",
+        ["fg/shipments"] = "Embarques",
+        ["fg/history"] = "Historial",
         // PP
         ["pp/forecast"] = "Pronóstico",
         ["pp/supply-plan-import"] = "Importar Plan de Suministro",
