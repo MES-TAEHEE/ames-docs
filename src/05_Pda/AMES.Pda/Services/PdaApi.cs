@@ -574,14 +574,23 @@ public sealed class PdaApi
 
     // ── FG ───────────────────────────────────────────────────────────────
     public sealed record FgStockRow(int StockId, string? StockNumber, string ItemNo, string? ItemName,
-        int? LotId, string? CustomerCode, decimal Qty, string? Location, string? Status, DateTime? StockTs);
+        int? LotId, string? LotNo, string? CustomerCode, decimal Qty, string? Unit,
+        string? Location, string? Status, DateTime? StockTs);
     public sealed record FgOrderRow(int ShipmentOrderId, string? ShipOrderNumber, string? CustomerCode,
         string? CustomerPo, DateTime? ShipDate, string? CarrierCode, string? DestPlant, string? Status, int LineCount);
+    public sealed record FgOrderLineRow(int ShipmentOrderLineId, int ShipmentOrderId, int LineSeq,
+        string ItemNo, string? ItemName, decimal OrderedQty, decimal AllocatedQty,
+        int? StockId, string? LotNo, string? Location, string? ReservationStatus);
     public sealed record FgHistoryRow(int LoadingId, string? LoadingNumber, int? ShipmentOrderId,
         string? ShipOrderNumber, string? CustomerCode, string? LicensePlate, string? DriverName,
         DateTime? DepartureTs, string? OTDStatus);
     public sealed record FgDashboard(int OpenOrders, int ReadyToShip, int InTransit, int DeliveredToday,
         int PendingReturns, decimal StockOnHand);
+    public sealed record FgQcCompletedRow(int LotId, string LotNo, string? WoNumber, string ItemNo,
+        string? ItemName, string? CustomerCode, decimal Qty, string? Unit, DateTime? ProducedAt,
+        DateTime? QcPassTs);
+    public sealed record FgReturnRow(int ReturnId, string? ReturnNumber, string? CustomerCode,
+        string? ItemNo, decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt);
 
     public sealed record FgPutAwayReq(int WoId, string ItemNo, decimal Qty, string ActualLoc, int PalletCount);
     public sealed record FgPutAwayScanRow(int? LotId, string LotNo, int? WoId, string? WoNumber,
@@ -607,8 +616,12 @@ public sealed class PdaApi
 
     public Task<List<FgStockRow>>   FgInventoryAsync(string? q = null)
         => Get<List<FgStockRow>>("/api/fg/inventory" + (string.IsNullOrEmpty(q) ? "" : $"?q={Uri.EscapeDataString(q)}"));
+    public Task<List<FgQcCompletedRow>> FgQcCompletedAsync() => Get<List<FgQcCompletedRow>>("/api/fg/qc-completed");
     public Task<List<FgOrderRow>>   FgOrdersAsync()  => Get<List<FgOrderRow>>("/api/fg/orders");
+    public Task<List<FgOrderLineRow>> FgOrderLinesAsync(string shipOrderNumber)
+        => Get<List<FgOrderLineRow>>($"/api/fg/orders/{Uri.EscapeDataString(shipOrderNumber)}/lines");
     public Task<List<FgHistoryRow>> FgHistoryAsync() => Get<List<FgHistoryRow>>("/api/fg/history");
+    public Task<List<FgReturnRow>> FgReturnsAsync() => Get<List<FgReturnRow>>("/api/fg/returns");
     public async Task<FgDashboard>  FgDashboardAsync()
     {
         Authorize();
