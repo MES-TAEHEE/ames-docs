@@ -1,0 +1,221 @@
+@page "/fg/locations"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.FinishedGoodsRepository Fg
+@inject AMES.Data.Repositories.WarehouseRepository Wh
+@inject AuthenticationStateProvider AuthProvider
+@using Radzen
+
+<PageTitle>Location Master - AMES</PageTitle>
+<AmesPageHeader Code="FG-101" Title="Location Master" />
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">Step</div><div class="ames-kpi-v">@StepNo</div><div class="ames-kpi-s">@StepTitle</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">Warehouses</div><div class="ames-kpi-v">@_warehouses.Count</div><div class="ames-kpi-s">warehouse master</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">Areas</div><div class="ames-kpi-v">@_areas.Count</div><div class="ames-kpi-s">selected WH</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">Zones</div><div class="ames-kpi-v">@_zones.Count</div><div class="ames-kpi-s">selected area</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">Locations</div><div class="ames-kpi-v">@_locations.Count</div><div class="ames-kpi-s">finished goods only</div></div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <RadzenAlert AlertStyle="@(_isError ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_message</RadzenAlert>
+}
+@if (!_canModify)
+{
+    <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat">Location Master changes are available to Administrator users only.</RadzenAlert>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h wh-master-toolbar">
+        <div><span>@StepTitle</span><div class="dim">@StepDescription</div></div>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
+            @if (_stage != MasterStage.Warehouse)
+            {
+                <RadzenButton Text="Back" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="Back" class="ames-rz-btn" />
+            }
+            <RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ReloadStage(); }' />
+            <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="ReloadStage" class="ames-rz-btn" />
+            <RadzenButton Text="Create Location" Icon="add_location_alt" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="OpenCreateFromToolbar" Disabled="@(!_canModify)" title="Select a warehouse, area, and zone before creating a location." class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+
+    <div class="wh-map-breadcrumb">
+        <button type="button" class="@BreadcrumbClass(MasterStage.Warehouse)" @onclick="BackToWarehouses">WH</button><span>/</span>
+        <button type="button" class="@BreadcrumbClass(MasterStage.Area)" disabled="@string.IsNullOrWhiteSpace(_whCode)" @onclick="BackToAreas">@(_whCode ?? "Area")</button><span>/</span>
+        <button type="button" class="@BreadcrumbClass(MasterStage.Zone)" disabled="@string.IsNullOrWhiteSpace(_areaCode)" @onclick="BackToZones">@(_areaCode ?? "Zone")</button><span>/</span>
+        <button type="button" class="@BreadcrumbClass(MasterStage.Location)" disabled="@(_stage != MasterStage.Location)">@(_zoneCode ?? "Location")</button>
+    </div>
+
+    @if (_stage == MasterStage.Warehouse)
+    {
+        <RadzenDataGrid TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow" Data="@_warehouses" AllowPaging="true" PageSize="12" AllowSorting="true" RowClick="@(e => { if (e.Data is not null) OpenWarehouse(e.Data); })" EmptyText="No warehouses found." Class="ames-rz-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow" Property="WhCode" Title="WH Code" Width="180px"><Template Context="r"><span class="code">@r.WhCode</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow" Property="WhName" Title="WH Name"><Template Context="r">@(r.WhName ?? "-")</Template></RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    }
+    else if (_stage == MasterStage.Area)
+    {
+        <div class="wh-master-context"><span>WH</span><strong>@WarehouseTitle</strong></div>
+        <RadzenDataGrid TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow" Data="@_areas" AllowPaging="true" PageSize="12" AllowSorting="true" RowClick="@(e => { if (e.Data is not null) OpenArea(e.Data); })" EmptyText="No areas found." Class="ames-rz-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow" Property="AreaCode" Title="Area Code" Width="180px"><Template Context="r"><span class="code">@r.AreaCode</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow" Property="AreaName" Title="Area Name"><Template Context="r">@(r.AreaName ?? "-")</Template></RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    }
+    else if (_stage == MasterStage.Zone)
+    {
+        <div class="wh-master-context"><span>WH</span><strong>@WarehouseTitle</strong><span>Area</span><strong>@AreaTitle</strong></div>
+        <RadzenDataGrid TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow" Data="@_zones" AllowPaging="true" PageSize="12" AllowSorting="true" RowClick="@(e => { if (e.Data is not null) OpenZone(e.Data); })" EmptyText="No zones found." Class="ames-rz-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow" Property="SectionCode" Title="Zone Code" Width="180px"><Template Context="r"><span class="code">@r.SectionCode</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow" Property="SectionName" Title="Zone Name"><Template Context="r">@(r.SectionName ?? "-")</Template></RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    }
+    else
+    {
+        <div class="wh-master-context"><span>WH</span><strong>@WarehouseTitle</strong><span>Area</span><strong>@AreaTitle</strong><span>Zone</span><strong>@ZoneTitle</strong></div>
+        <RadzenDataGrid TItem="AMES.Data.Repositories.FinishedGoodsRepository.LocationRow" Data="@_locations" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" AllowSorting="true" RowClick="@(e => { if (_canModify && e.Data is not null) OpenEdit(e.Data); })" EmptyText="No finished-goods locations found." Class="ames-rz-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.LocationRow" Property="LocationNo" Title="Location Code" Width="190px"><Template Context="r"><span class="code">@r.LocationNo</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.LocationRow" Property="LocationName" Title="Location Name"><Template Context="r">@(r.LocationName ?? "-")</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.LocationRow" Title="X / Y / Level" Width="145px"><Template Context="r"><span class="code">@r.ColumnNo / @r.RowNo / @r.LevelNo</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.LocationRow" Property="Qty" Title="Qty" Width="100px" TextAlign="TextAlign.Right"><Template Context="r">@r.Qty.ToString("N0")</Template></RadzenDataGridColumn>
+                @if (_canModify)
+                {
+                    <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.LocationRow" Title="Setting" Width="100px" Sortable="false" TextAlign="TextAlign.Center"><Template Context="r"><RadzenButton Icon="settings" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => OpenEdit(r))" @onclick:stopPropagation="true" class="ames-rz-btn" /></Template></RadzenDataGridColumn>
+                }
+            </Columns>
+        </RadzenDataGrid>
+    }
+</div>
+
+@if (_modalOpen)
+{
+    <div class="ames-modal-bg" @onclick="CloseModal">
+        <div class="ames-modal wh-master-modal" @onclick:stopPropagation>
+            <div class="ames-modal-h">@(_isCreate ? "Create Location" : $"Edit Location - {_form.LocationNo}")</div>
+            <div class="wh-master-form">
+                <div><RadzenLabel Text="WH" /><RadzenTextBox Value="@WarehouseTitle" Disabled="true" class="ames-rz-input" Style="width:100%;" /></div>
+                <div><RadzenLabel Text="Area" /><RadzenTextBox Value="@AreaTitle" Disabled="true" class="ames-rz-input" Style="width:100%;" /></div>
+                <div><RadzenLabel Text="Zone" /><RadzenTextBox Value="@ZoneTitle" Disabled="true" class="ames-rz-input" Style="width:100%;" /></div>
+                <div><RadzenLabel Text="Location Code" /><RadzenTextBox Value="@DisplayLocationCode" Disabled="true" class="ames-rz-input" Style="width:100%;" /></div>
+                <div><RadzenLabel Text="Location Name" /><RadzenTextBox @bind-Value="_form.LocationName" Placeholder="Finished goods rack" class="ames-rz-input" Style="width:100%;" /></div>
+                <div><RadzenLabel Text="BANK (X)" /><RadzenTextBox @bind-Value="_form.ColumnNo" Disabled="@(!_isCreate)" Placeholder="Z" class="ames-rz-input" Style="width:100%;" /></div>
+                <div><RadzenLabel Text="BAY (Y)" /><RadzenTextBox @bind-Value="_form.RowNo" Disabled="@(!_isCreate)" Placeholder="02" class="ames-rz-input" Style="width:100%;" /></div>
+                <div><RadzenLabel Text="LEVEL (Z)" /><RadzenTextBox @bind-Value="_form.LevelNo" Disabled="@(!_isCreate)" Placeholder="A" class="ames-rz-input" Style="width:100%;" /></div>
+                <div><RadzenLabel Text="Capacity" /><RadzenNumeric @bind-Value="_form.Capacity" Min="0" Step="1" class="ames-rz-input" Style="width:100%;" /></div>
+                <label class="wh-check"><RadzenCheckBox TValue="bool" @bind-Value="_form.Active" /><span>Active</span></label>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(_modalError)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:8px;">@_modalError</RadzenAlert> }
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                @if (_isCreate) { <RadzenButton Text="Create" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="Save" Disabled="@_busy" class="ames-rz-btn" /> }
+                else { <RadzenButton Text="Save" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="Save" Disabled="@_busy" class="ames-rz-btn" /><RadzenButton Text="Delete" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="Delete" Disabled="@_busy" class="ames-rz-btn" /> }
+                <RadzenButton Text="Cancel" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseModal" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@code {
+    enum MasterStage { Warehouse, Area, Zone, Location }
+    MasterStage _stage;
+    List<AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow> _warehouses = new();
+    List<AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow> _areas = new();
+    List<AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow> _zones = new();
+    List<AMES.Data.Repositories.FinishedGoodsRepository.LocationRow> _locations = new();
+    AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow? _warehouse;
+    AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow? _area;
+    AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow? _zone;
+    string? _whCode, _areaCode, _zoneCode;
+    string _search = "", _message = "", _modalError = "";
+    bool _isError, _canModify, _modalOpen, _isCreate, _busy;
+    string _userId = "web", _userName = "Web User";
+    FormModel _form = new();
+
+    int StepNo => (int)_stage + 1;
+    string StepTitle => _stage switch { MasterStage.Warehouse => "WH List", MasterStage.Area => "Area List", MasterStage.Zone => "Zone List", _ => "Location List" };
+    string StepDescription => _stage switch { MasterStage.Warehouse => "Select a warehouse.", MasterStage.Area => "Select an area inside the warehouse.", MasterStage.Zone => "Select a zone inside the area.", _ => "Manage finished-goods locations in the selected zone." };
+    string WarehouseTitle => _warehouse is null ? _whCode ?? "-" : $"{_warehouse.WhCode} - {_warehouse.WhName ?? _warehouse.WhCode}";
+    string AreaTitle => _area is null ? _areaCode ?? "-" : $"{_area.AreaCode} - {_area.AreaName ?? _area.AreaCode}";
+    string ZoneTitle => _zone is null ? _zoneCode ?? "-" : $"{_zone.SectionCode} - {_zone.SectionName ?? _zone.SectionCode}";
+    string DisplayLocationCode => _isCreate ? BuildCode() : _form.LocationNo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthProvider.GetAuthenticationStateAsync()).User;
+        _userId = user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? user.Identity?.Name ?? "web";
+        _userName = user.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? user.Identity?.Name ?? _userId;
+        _canModify = user.IsInRole("Admin") || user.IsInRole("Administrator") || user.IsInRole("Administrators") || _userId.Equals("admin@ames.local", StringComparison.OrdinalIgnoreCase);
+        ReloadStage();
+    }
+
+    void ReloadStage()
+    {
+        try
+        {
+            if (_stage == MasterStage.Warehouse) _warehouses = Wh.ListWarehouses(_search, false);
+            else if (_stage == MasterStage.Area) _areas = Wh.ListWarehouseAreas(_search, false, _whCode);
+            else if (_stage == MasterStage.Zone) _zones = Wh.ListWarehouseSections(_areaCode, _search, false, _whCode);
+            else _locations = Fg.ListLocations(_search, _whCode, _areaCode, _zoneCode, includeInactive: true);
+            _message = "";
+        }
+        catch (Exception ex) { _message = ex.Message; _isError = true; }
+    }
+    void OpenWarehouse(AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow row) { _warehouse = row; _whCode = row.WhCode; _stage = MasterStage.Area; _search = ""; ReloadStage(); }
+    void OpenArea(AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow row) { _area = row; _areaCode = row.AreaCode; _stage = MasterStage.Zone; _search = ""; ReloadStage(); }
+    void OpenZone(AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow row) { _zone = row; _zoneCode = row.SectionCode; _stage = MasterStage.Location; _search = ""; ReloadStage(); }
+    void Back() { if (_stage == MasterStage.Location) BackToZones(); else if (_stage == MasterStage.Zone) BackToAreas(); else BackToWarehouses(); }
+    void BackToWarehouses() { _stage = MasterStage.Warehouse; _warehouse = null; _area = null; _zone = null; _whCode = _areaCode = _zoneCode = null; _search = ""; ReloadStage(); }
+    void BackToAreas() { if (_whCode is null) { BackToWarehouses(); return; } _stage = MasterStage.Area; _area = null; _zone = null; _areaCode = _zoneCode = null; _search = ""; ReloadStage(); }
+    void BackToZones() { if (_areaCode is null) { BackToAreas(); return; } _stage = MasterStage.Zone; _zone = null; _zoneCode = null; _search = ""; ReloadStage(); }
+    string BreadcrumbClass(MasterStage stage) => _stage == stage ? "on" : "";
+
+    void OpenCreate() { _isCreate = true; _form = new() { Active = true }; _modalError = ""; _modalOpen = true; }
+    void OpenCreateFromToolbar()
+    {
+        if (_stage != MasterStage.Location || string.IsNullOrWhiteSpace(_whCode) || string.IsNullOrWhiteSpace(_areaCode) || string.IsNullOrWhiteSpace(_zoneCode))
+        {
+            _message = "Select a warehouse, area, and zone before creating a location.";
+            _isError = true;
+            return;
+        }
+        OpenCreate();
+    }
+    void OpenEdit(AMES.Data.Repositories.FinishedGoodsRepository.LocationRow row) { _isCreate = false; _form = new() { LocationNo = row.LocationNo, LocationName = row.LocationName ?? "", ColumnNo = row.ColumnNo ?? "", RowNo = row.RowNo ?? "", LevelNo = row.LevelNo ?? "", Capacity = row.Capacity, Active = row.Active }; _modalError = ""; _modalOpen = true; }
+    void CloseModal() { _modalOpen = false; _modalError = ""; }
+    void Save()
+    {
+        if (!_canModify || _whCode is null || _areaCode is null || _zoneCode is null) return;
+        var code = _isCreate ? BuildCode() : _form.LocationNo;
+        if (string.IsNullOrWhiteSpace(code)) { _modalError = "BANK, BAY, and LEVEL are required."; return; }
+        if (_isCreate && Fg.LocationExists(code)) { _modalError = $"Location {code} already exists."; return; }
+        var duplicate = Fg.ListLocations(warehouseCode: _whCode, areaCode: _areaCode, zoneCode: _zoneCode, includeInactive: true).FirstOrDefault(x => x.LocationNo != code && Same(x.ColumnNo, _form.ColumnNo) && Same(x.RowNo, _form.RowNo) && Same(x.LevelNo, _form.LevelNo));
+        if (duplicate is not null) { _modalError = $"Column/Row/Level already exists at {duplicate.LocationNo}."; return; }
+        try
+        {
+            _busy = true;
+            Fg.SaveLocation(code, _form.LocationName, _whCode, _areaCode, _zoneCode, _form.ColumnNo, _form.RowNo, _form.LevelNo, _form.Capacity, _form.Active, _userId);
+            Wh.WriteWebOperationLog(_isCreate ? "FG_LOCATION_CREATE" : "FG_LOCATION_UPDATE", "FG-101", _userId, _userName, $"Location {code} saved.", "FG_LOCATION", code, code);
+            CloseModal(); ReloadStage(); _message = $"Location {code} saved."; _isError = false;
+        }
+        catch (Exception ex) { _modalError = ex.Message; }
+        finally { _busy = false; }
+    }
+    void Delete()
+    {
+        if (!_canModify) return;
+        try { _busy = true; Fg.DeleteLocation(_form.LocationNo); Wh.WriteWebOperationLog("FG_LOCATION_DELETE", "FG-101", _userId, _userName, $"Location {_form.LocationNo} deleted.", "FG_LOCATION", _form.LocationNo, _form.LocationNo); CloseModal(); ReloadStage(); _message = "Location deleted."; _isError = false; }
+        catch (Exception ex) { _modalError = ex.Message; }
+        finally { _busy = false; }
+    }
+    string BuildCode() { var wh = Normalize(_whCode); var x = Axis(_form.ColumnNo); var y = Axis(_form.RowNo); var z = Normalize(_form.LevelNo); return string.IsNullOrWhiteSpace(wh + x + y + z) || new[] { wh, x, y, z }.Any(string.IsNullOrWhiteSpace) ? "" : $"{wh}{x}{y}{z}"; }
+    static string Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? "" : value.Trim().Replace("-", "").Replace(" ", "").ToUpperInvariant();
+    static string Axis(string? value) { var v = Normalize(value); return v.Length == 1 && v.All(char.IsDigit) ? v.PadLeft(2, '0') : v; }
+    static bool Same(string? a, string? b) => string.Equals(Normalize(a), Normalize(b), StringComparison.OrdinalIgnoreCase);
+    sealed class FormModel { public string LocationNo { get; set; } = ""; public string LocationName { get; set; } = ""; public string ColumnNo { get; set; } = ""; public string RowNo { get; set; } = ""; public string LevelNo { get; set; } = ""; public decimal Capacity { get; set; } public bool Active { get; set; } = true; }
+}
