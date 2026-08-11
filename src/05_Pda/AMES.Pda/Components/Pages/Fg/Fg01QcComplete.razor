@@ -1,0 +1,106 @@
+@page "/fg/01"
+@inject PdaApi Api
+@inject NavigationManager Nav
+
+<div class="pda-shell wh wh01-shell fg-waiting-shell">
+    <div class="pda-tbar">
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
+        <div class="wh01-tbar-title">
+            <span class="pda-tbar-brand">FG-001 WAITING</span>
+            <span class="wh01-last-updated">Last Updated @LastUpdatedText</span>
+        </div>
+        <RadzenButton class="wh01-tbar-refresh" Click="Load" Disabled="@_isLoading" Text="REFRESH" />
+    </div>
+
+    <div class="pda-bd wh01-body">
+        <RadzenCard class="wh01-head">
+            <div class="pda-card-h">FINISHED GOODS WAITING</div>
+            <div class="wh01-summary">
+                <RadzenCard class="wh01-stat"><span>Total</span><strong>@_rows.Count</strong></RadzenCard>
+                <RadzenCard class="wh01-stat progress"><span>Qty</span><strong>@_rows.Sum(x => x.Qty).ToString("N0")</strong></RadzenCard>
+                <RadzenCard class="wh01-stat complete"><span>Today</span><strong>@TodayCount</strong></RadzenCard>
+                <RadzenCard class="wh01-stat late"><span>Over 1 Day</span><strong>@OverOneDayCount</strong></RadzenCard>
+            </div>
+        </RadzenCard>
+
+        @if (_rows.Count == 0)
+        {
+            <div class="pda-empty">@_message</div>
+        }
+        else
+        {
+            <div class="wh01-list">
+                @foreach (var row in _rows)
+                {
+                    <RadzenCard class="@($"wh01-po-card {WaitingClass(row)} {SelectedClass(row)}")" @onclick="@(() => Select(row))">
+                        <div class="wh01-card-top">
+                            <div class="wh01-po-main">
+                                <div class="wh01-po-no">@row.LotNo</div>
+                                <div class="wh01-po-sub">UNIT @(row.Unit ?? "EA")</div>
+                            </div>
+                            <div class="wh01-card-tags">
+                                <RadzenBadge class="@($"wh01-dday {WaitingClass(row)}")" Text="@AgeText(row)" />
+                                <RadzenBadge class="wh01-status complete" Text="QC PASS" />
+                            </div>
+                        </div>
+                        <div class="wh01-material">
+                            <div class="wh01-part">@row.ItemNo</div>
+                            <div class="wh01-desc">@(row.ItemName ?? "-")</div>
+                            <div class="wh01-car-line">CUSTOMER @(row.CustomerCode ?? "-") / WO @(row.WoNumber ?? "-")</div>
+                        </div>
+                        <div class="wh01-qty-grid">
+                            <div class="wh01-qty"><span>FG Qty</span><strong>@row.Qty.ToString("N0")</strong></div>
+                            <div class="wh01-qty"><span>QC Passed</span><strong>@(row.QcPassTs?.ToString("MM-dd HH:mm") ?? "-")</strong></div>
+                        </div>
+                    </RadzenCard>
+                }
+            </div>
+        }
+    </div>
+
+    <RadzenButton class="wh01-scan-fixed receive" Click="OpenPutAway" Disabled="@(_selected is null)" Text="PUT-AWAY" />
+</div>
+
+@code {
+    private List<PdaApi.FgQcCompletedRow> _rows = new();
+    private PdaApi.FgQcCompletedRow? _selected;
+    private bool _isLoading;
+    private string _message = "Loading...";
+    private DateTime? _lastUpdated;
+
+    private string LastUpdatedText => _lastUpdated?.ToString("HH:mm:ss") ?? "-";
+    private int TodayCount => _rows.Count(x => x.QcPassTs?.Date == DateTime.Today);
+    private int OverOneDayCount => _rows.Count(x => x.QcPassTs < DateTime.Now.AddDays(-1));
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        if (_isLoading) return;
+        _isLoading = true;
+        try
+        {
+            _rows = await Api.FgQcCompletedAsync();
+            _lastUpdated = DateTime.Now;
+            _message = _rows.Count == 0 ? "No finished goods are waiting for put-away." : "";
+            if (_selected is not null)
+                _selected = _rows.FirstOrDefault(x => x.LotId == _selected.LotId);
+        }
+        finally { _isLoading = false; }
+    }
+
+    private void Select(PdaApi.FgQcCompletedRow row) => _selected = row;
+    private string SelectedClass(PdaApi.FgQcCompletedRow row) => _selected?.LotId == row.LotId ? "selected" : "";
+    private static string WaitingClass(PdaApi.FgQcCompletedRow row) => row.QcPassTs < DateTime.Now.AddDays(-1) ? "late" : "progress";
+    private static string AgeText(PdaApi.FgQcCompletedRow row)
+    {
+        if (row.QcPassTs is null) return "WAIT";
+        var days = Math.Max(0, (DateTime.Now.Date - row.QcPassTs.Value.Date).Days);
+        return days == 0 ? "TODAY" : $"D+{days}";
+    }
+    private void OpenPutAway()
+    {
+        if (_selected is not null)
+            Nav.NavigateTo($"/fg/02?lot={Uri.EscapeDataString($"FGLOT:{_selected.LotNo}")}");
+    }
+}

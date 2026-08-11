@@ -1,21 +1,21 @@
-@page "/fg/01"
+@page "/fg/02"
 @inject PdaApi Api
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-<div class="pda-shell fg fg01-shell">
+<div class="pda-shell wh wh02-shell fg02-shell">
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
-        <span class="pda-tbar-brand">FG-001 PUT-AWAY</span>
+        <span class="pda-tbar-brand">FG-002 PUT-AWAY</span>
     </div>
 
-    <div class="pda-bd fg01-body">
-        <RadzenCard class="@($"fg01-panel fg01-scan-panel {ScanPanelClass}")">
+    <div class="pda-bd wh02-body fg01-body">
+        <RadzenCard class="@($"wh02-panel fg01-panel fg01-scan-panel {ScanPanelClass}")">
             <div class="fg01-step">1</div>
             <div class="pda-fld">
                 <label>FG LOT / WO SCAN</label>
-                <RadzenTextBox class="pda-input fg01-scan-input pda-scan-input"
+                <RadzenTextBox class="pda-input wh02-barcode-input fg01-scan-input pda-scan-input"
                                Value="@_barcode"
                                @oninput="OnBarcodeInput"
                                @onkeydown="OnBarcodeKey"
@@ -23,30 +23,30 @@
             </div>
             @if (ShowDeveloperScanButtons)
             {
-                <RadzenButton class="fg01-scan-btn" Click="@ScanFgLot" Disabled="@DisableLotScan" Text="SCAN" />
+                <RadzenButton class="wh02-scan-btn fg01-scan-btn" Click="@ScanFgLot" Disabled="@DisableLotScan" Text="SCAN" />
             }
         </RadzenCard>
 
         @if (_scan is not null)
         {
-            <RadzenCard class="@($"fg01-lot-card {LotCardClass}")">
-                <div class="fg01-lot-head">
-                    <div>
+            <RadzenCard class="@($"wh02-lot-card fg01-lot-card {LotCardClass}")">
+                <div class="wh02-lot-top fg01-lot-head">
+                    <div class="wh02-lot-main">
                         <span>FG LOT</span>
                         <strong>@Text(_scan.LotNo)</strong>
                     </div>
-                    <RadzenBadge class="@($"fg01-status-badge {LotStatusClass}")" Text="@LotStatusText" />
+                    <RadzenBadge class="@($"wh02-status-chip fg01-status-badge {LotStatusClass}")" Text="@LotStatusText" />
                 </div>
 
-                <div class="fg01-part">
-                    <div class="fg01-part-no">@Text(_scan.ItemNo)</div>
-                    <div class="fg01-part-name">@Text(_scan.ItemName)</div>
+                <div class="wh02-part fg01-part">
+                    <div class="wh02-part-no fg01-part-no">@Text(_scan.ItemNo)</div>
+                    <div class="wh02-part-name fg01-part-name">@Text(_scan.ItemName)</div>
                 </div>
 
-                <div class="fg01-info-grid">
+                <div class="wh02-info-grid fg01-info-grid">
                     @foreach (var field in LotFields())
                     {
-                        <div class="fg01-info">
+                        <div class="wh02-info fg01-info">
                             <span>@field.Label</span>
                             <strong>@field.Value</strong>
                         </div>
@@ -57,7 +57,7 @@
 
         @if (ReadyForLocation)
         {
-            <RadzenCard class="fg01-suggest-card">
+            <RadzenCard class="wh02-location-card fg01-suggest-card">
                 <div class="fg01-section-title">SUGGESTED PUT-AWAY LOCATION</div>
                 @if (_suggestedLocation is null)
                 {
@@ -81,11 +81,11 @@
                 }
             </RadzenCard>
 
-            <RadzenCard class="@($"fg01-panel fg01-location-panel {ScanPanelClass}")">
+            <RadzenCard class="@($"wh02-panel fg01-panel fg01-location-panel {ScanPanelClass}")">
                 <div class="fg01-step">2</div>
                 <div class="pda-fld">
                     <label>@NextScanTitle</label>
-                    <RadzenTextBox class="pda-input fg01-location-input pda-scan-input"
+                    <RadzenTextBox class="pda-input wh02-location-input fg01-location-input pda-scan-input"
                                    Value="@_locationNo"
                                    @oninput="OnLocationInput"
                                    @onkeydown="OnLocationKey"
@@ -94,23 +94,23 @@
                 </div>
                 @if (ShowDeveloperScanButtons)
                 {
-                    <RadzenButton class="fg01-location-scan-btn" Click="@ScanLocation" Disabled="@DisableLocationScan" Text="SCAN" />
+                    <RadzenButton class="wh02-location-scan-btn fg01-location-scan-btn" Click="@ScanLocation" Disabled="@DisableLocationScan" Text="SCAN" />
                 }
             </RadzenCard>
         }
 
         @if (_selectedLocation is not null)
         {
-            <RadzenCard class="@($"fg01-location-card {(_selectedLocation.IsValid ? "ready" : "blocked")}")">
-                <div class="fg01-location-card-top">
+            <RadzenCard class="@($"wh02-location-card fg01-location-card {(_selectedLocation.IsValid ? "ready" : "blocked")}")">
+                <div class="wh02-location-card-top fg01-location-card-top">
                     <span>SCANNED @ScanTargetName</span>
                     <strong>@Text(_selectedLocation.ScannedBarcode)</strong>
                     <em>@LocationSummary(_selectedLocation)</em>
                 </div>
-                <div class="fg01-location-list">
+                <div class="wh02-location-list fg01-location-list">
                     @foreach (var field in LocationFields(_selectedLocation))
                     {
-                        <div class="fg01-location-row">
+                        <div class="wh02-location-row fg01-location-row">
                             <span>@field.Label</span>
                             <strong>@field.Value</strong>
                         </div>
@@ -124,9 +124,9 @@
             <div class="pda-status @_cls">@_msg</div>
         }
 
-        <div class="fg01-action-bar">
-            <RadzenButton class="fg01-clear-btn" Click="@ResetForm" Disabled="@IsBusy" Text="CLEAR" />
-            <RadzenButton class="@($"pda-btn-pri fg01-confirm-btn {ConfirmButtonClass}")" Click="@ConfirmPutAway" Disabled="@IsBusy" Text="CONFIRM PUT-AWAY" />
+        <div class="wh02-action-bar has-reset fg01-action-bar">
+            <RadzenButton class="wh02-clear-btn fg01-clear-btn" Click="@ResetForm" Disabled="@IsBusy" Text="CLEAR" />
+            <RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-receive-action-btn fg01-confirm-btn {ConfirmButtonClass}")" Click="@ConfirmPutAway" Disabled="@IsBusy" Text="CONFIRM PUT-AWAY" />
         </div>
     </div>
 
@@ -146,6 +146,10 @@
 </div>
 
 @code {
+    [SupplyParameterFromQuery(Name = "lot")]
+    public string? InitialLot { get; set; }
+
+    private string _lastInitialLot = "";
     private string _barcode = "";
     private string _locationNo = "";
     private string _msg = "";
@@ -162,6 +166,17 @@
     private PdaApi.FgPutAwayScanRow? _scan;
     private PdaApi.FgPutAwayLocationRow? _suggestedLocation;
     private PdaApi.FgPutAwayLocationRow? _selectedLocation;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var lot = InitialLot?.Trim() ?? "";
+        if (!string.IsNullOrWhiteSpace(lot) && !string.Equals(lot, _lastInitialLot, StringComparison.OrdinalIgnoreCase))
+        {
+            _lastInitialLot = lot;
+            _barcode = lot;
+            await ScanFgLot();
+        }
+    }
 
     private static bool ShowDeveloperScanButtons => MauiProgram.IsDeveloperMode;
     private static string ScanPanelClass => ShowDeveloperScanButtons ? "dev-scan-panel" : "hardware-scan-panel";

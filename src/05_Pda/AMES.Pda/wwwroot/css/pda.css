@@ -9056,3 +9056,279 @@ body:has(.pda-shell.wh),
     min-height: 48px !important;
     border-radius: 8px !important;
 }
+
+/* FG menu and six-screen workflow final overrides. */
+.pda-shell.fg.fg-home-shell > .pda-bd { padding: 14px !important; }
+.pda-shell.fg.fg-home-shell .fg-home-grid { display: grid; gap: 10px; }
+.pda-shell.fg.fg-home-shell .fg-home-tile { min-height: 74px; display: flex; align-items: center; gap: 12px; text-align: left; border-left: 4px solid #fbbf24; }
+.pda-shell.fg.fg-home-shell .fg-home-tile.qc { border-left-color: #22c55e; }.pda-shell.fg.fg-home-shell .fg-home-tile.putaway { border-left-color: #38bdf8; }.pda-shell.fg.fg-home-shell .fg-home-tile.inventory { border-left-color: #fbbf24; }.pda-shell.fg.fg-home-shell .fg-home-tile.picking { border-left-color: #a78bfa; }.pda-shell.fg.fg-home-shell .fg-home-tile.loading { border-left-color: #fb923c; }.pda-shell.fg.fg-home-shell .fg-home-tile.return { border-left-color: #f87171; }
+.pda-shell.fg.fg-home-shell .wh-home-tile-copy { flex: 1; min-width: 0; }.pda-shell.fg.fg-home-shell .wh-home-tile-ic { color: #fbbf24; }.pda-shell.fg.fg-home-shell .pda-tile-cap { color: #f8fafc; font-weight: 800; }.pda-shell.fg.fg-home-shell .pda-tile-sub { color: #cbd5e1; font-size: 12px; margin-top: 3px; }.pda-shell.fg.fg-home-shell .wh-home-tile-go { color: #fbbf24; }
+.pda-shell.fg.fg-list-shell { background: #0f172a; color: #e2e8f0; min-height: 100%; }.pda-shell.fg.fg-list-shell > .pda-tbar { min-height: 72px; display: flex; align-items: center; gap: 10px; padding: 10px 16px; }.pda-shell.fg.fg-list-shell .pda-tbar-back.rz-button { width: 44px; min-width: 44px; height: 44px; border-radius: 8px; }
+.fg-list-title { min-width: 0; flex: 1; display: grid; gap: 3px; }.fg-list-title > span:last-child { color: #94a3b8; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.fg-refresh.rz-button { width: 40px; height: 40px; min-width: 40px; color: #0f172a; }.fg-list-body { padding: 14px 16px 92px; display: grid; gap: 10px; }
+.fg-summary-card.rz-card, .fg-search-card.rz-card, .fg-work-card.rz-card, .fg-empty-card.rz-card, .fg-form-card.rz-card { background: #172033; border: 1px solid #334155; border-radius: 10px; box-shadow: none; color: #e2e8f0; }.fg-summary-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }.fg-summary-card div { padding: 3px 5px; min-width: 0; }.fg-summary-card span, .fg-section-heading { display: block; color: #94a3b8; font-size: 10px; font-weight: 800; letter-spacing: .06em; }.fg-summary-card strong { display: block; margin-top: 5px; font-size: 18px; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fg-search-card { display: flex; gap: 8px; align-items: center; }.fg-search-card .rz-textbox { flex: 1; min-width: 0; }.fg-search-button.rz-button { width: 44px; min-width: 44px; height: 42px; background: #f59e0b; color: #111827; }.fg-section-heading { margin: 8px 2px 0; color: #fbbf24; }.fg-work-card { cursor: pointer; display: grid; gap: 4px; padding: 13px !important; }.fg-work-card.selected { outline: 2px solid #fbbf24; border-color: #fbbf24 !important; background: #202c43 !important; }.fg-work-card.reserved { border-left: 4px solid #f59e0b; }.fg-work-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }.fg-work-card-top strong { font-size: 14px; color: #f8fafc; }.fg-work-part { color: #fbbf24; font-weight: 800; font-size: 12px; }.fg-work-name { color: #cbd5e1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }.fg-work-meta { display: flex; justify-content: space-between; gap: 8px; color: #94a3b8; font-size: 11px; margin-top: 4px; }.fg-work-meta span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fg-empty-card { display: flex; align-items: center; gap: 10px; padding: 18px !important; color: #cbd5e1; font-size: 12px; }.fg-empty-card .rz-icon { color: #22c55e; }.fg-fifo-tag { color: #1e293b; background: #fbbf24; font-size: 10px; font-weight: 900; padding: 3px 6px; border-radius: 4px; }.fg-form-card { padding: 16px !important; display: grid; gap: 12px; }.fg-form-card .pda-fld { margin: 0; display: grid; gap: 6px; }.fg-form-card .pda-fld label { color: #94a3b8; font-weight: 800; font-size: 11px; }.fg-form-card .rz-textbox, .fg-form-card .rz-numeric, .fg-form-card .rz-dropdown { width: 100%; }.fg-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fg-action-bar { position: fixed; z-index: 10; left: 0; right: 0; bottom: 0; background: #111827; border-top: 1px solid #334155; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }.fg-pick-shell .fg-action-bar { grid-template-columns: 1fr auto auto; align-items: center; }.fg-action-summary { font-size: 11px; color: #cbd5e1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.fg-clear-action.rz-button, .fg-primary-action.rz-button { height: 42px; border-radius: 7px; font-weight: 800; }.fg-clear-action.rz-button { background: #334155; color: #f8fafc; }.fg-primary-action.rz-button { background: #f59e0b; color: #111827; }.fg-primary-action.return.rz-button { background: #38bdf8; }.fg-primary-action.rz-button:disabled { background: #475569; color: #94a3b8; opacity: 1; }
+@media (max-width: 370px) { .fg-work-meta { font-size: 10px; } .fg-pick-shell .fg-action-bar { grid-template-columns: 1fr 1fr; } .fg-pick-shell .fg-action-summary { grid-column: 1 / -1; } }
+
+/* Finished Goods reuses the final Warehouse visual system. */
+.pda-shell.wh.fg-home-shell .wh-home-tile.schedule { border-top-color: #93c5fd !important; }
+
+.pda-shell.wh .fg-selected,
+.pda-shell.wh .wh01-po-card.selected {
+    border-color: #93c5fd !important;
+    box-shadow: 0 0 0 2px rgba(147, 197, 253, .18) !important;
+}
+
+.pda-shell.wh .fg03-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+.pda-shell.wh .fg03-summary button {
+    min-width: 0 !important;
+}
+
+.pda-shell.wh .fg03-summary button strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pda-shell.wh .fg-form-body {
+    padding-bottom: 118px !important;
+}
+
+.pda-shell.wh .fg-form-card.rz-card {
+    display: grid;
+    gap: 12px;
+    padding: 14px !important;
+}
+
+.pda-shell.wh .fg-form-card .pda-fld {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+}
+
+.pda-shell.wh .fg-form-card .rz-textbox,
+.pda-shell.wh .fg-form-card .rz-dropdown,
+.pda-shell.wh .fg-form-card .rz-numeric,
+.pda-shell.wh .fg-form-card .rz-numeric .rz-inputtext {
+    width: 100% !important;
+    min-height: 44px !important;
+    border-color: rgba(147, 197, 253, .28) !important;
+    border-radius: 8px !important;
+    background: #050a13 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh .fg-form-card .rz-dropdown-label,
+.pda-shell.wh .fg-form-card .rz-dropdown-trigger,
+.pda-shell.wh .fg-form-card .rz-numeric .rz-numeric-btn {
+    color: #ffffff !important;
+    background: transparent !important;
+}
+
+.rz-popup .rz-dropdown-items,
+.rz-dropdown-panel .rz-dropdown-items {
+    background: #0f1d33 !important;
+    color: #ffffff !important;
+}
+
+.rz-popup .rz-dropdown-item,
+.rz-dropdown-panel .rz-dropdown-item {
+    color: #e8eef7 !important;
+}
+
+.rz-popup .rz-dropdown-item:hover,
+.rz-popup .rz-state-highlight,
+.rz-dropdown-panel .rz-dropdown-item:hover,
+.rz-dropdown-panel .rz-state-highlight {
+    background: rgba(147, 197, 253, .18) !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh .fg-form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+}
+
+.pda-shell.wh .fg-section-label {
+    margin: 8px 2px 0;
+}
+
+.pda-shell.wh .fg-form-actions {
+    right: 14px;
+    bottom: calc(var(--pda-safe-bottom) + 10px);
+    left: 14px;
+    padding: 8px;
+    border: 1px solid rgba(148, 163, 184, .28);
+    border-radius: 12px;
+    background: rgba(12, 19, 32, .98);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .34);
+}
+
+.pda-shell.wh.fg02-shell .fg01-step {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(147, 197, 253, .14);
+    color: #93c5fd;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font: 800 11px 'JetBrains Mono', monospace;
+}
+
+.pda-shell.wh.fg02-shell .fg01-suggest-card {
+    padding: 14px !important;
+}
+
+.pda-shell.wh.fg02-shell .fg01-section-title,
+.pda-shell.wh.fg02-shell .fg01-location-main span,
+.pda-shell.wh.fg02-shell .fg01-location-card-top span {
+    color: #93c5fd !important;
+    font: 800 10px 'JetBrains Mono', monospace !important;
+    letter-spacing: 1.2px !important;
+}
+
+.pda-shell.wh.fg02-shell .fg01-location-main,
+.pda-shell.wh.fg02-shell .fg01-location-card-top {
+    display: grid;
+    gap: 5px;
+}
+
+.pda-shell.wh.fg02-shell .fg01-location-main strong,
+.pda-shell.wh.fg02-shell .fg01-location-card-top strong {
+    color: #ffffff !important;
+    font-size: 20px !important;
+}
+
+.pda-shell.wh.fg02-shell .fg01-location-sub,
+.pda-shell.wh.fg02-shell .fg01-location-card-top em,
+.pda-shell.wh.fg02-shell .fg01-next-scan,
+.pda-shell.wh.fg02-shell .fg01-location-note {
+    color: rgba(255, 255, 255, .62) !important;
+    font-size: 11px !important;
+}
+
+@media (max-width: 390px) {
+    .pda-shell.wh .fg03-summary button span { font-size: 8px !important; }
+    .pda-shell.wh .fg03-summary button strong { font-size: 15px !important; }
+    .pda-shell.wh .fg-form-grid { grid-template-columns: 1fr; }
+}
+
+/* FG fixed actions must never cover the final list or form row. */
+.pda-shell.wh.fg-waiting-shell .wh01-body {
+    padding-bottom: calc(154px + var(--pda-safe-bottom)) !important;
+}
+
+.pda-shell.wh.fg-waiting-shell .wh01-list {
+    padding-bottom: 12px;
+}
+
+.pda-shell.wh.fg02-shell .fg01-body {
+    padding-bottom: calc(148px + var(--pda-safe-bottom)) !important;
+}
+
+.pda-shell.wh.fg02-shell .fg01-action-bar {
+    position: fixed;
+    right: 14px;
+    bottom: calc(var(--pda-safe-bottom) + 10px);
+    left: 14px;
+    z-index: 1000;
+    padding: 8px;
+    border: 1px solid rgba(148, 163, 184, .28);
+    border-radius: 12px;
+    background: rgba(12, 19, 32, .98);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .34);
+}
+
+.pda-shell.wh.fg02-shell .fg01-action-bar .rz-button {
+    height: 48px !important;
+    min-height: 48px !important;
+    border-radius: 8px !important;
+}
+
+.pda-shell.wh.fg02-shell .fg01-clear-btn.rz-button {
+    border-color: rgba(255, 255, 255, .14) !important;
+    background: rgba(255, 255, 255, .06) !important;
+    color: #e8eef7 !important;
+}
+
+.pda-shell.wh.fg02-shell .fg01-confirm-btn.ready.rz-button {
+    border-color: #22c55e !important;
+    background: linear-gradient(180deg, #22c55e, #15803d) !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh.fg02-shell .fg01-confirm-btn.blocked.rz-button {
+    border-color: rgba(255, 255, 255, .10) !important;
+    background: rgba(255, 255, 255, .05) !important;
+    color: rgba(255, 255, 255, .42) !important;
+}
+
+/* Finished-goods status summaries use the exact Warehouse inventory sizing. */
+.pda-shell.wh .fg03-summary .wh03-stat {
+    min-height: 58px;
+    padding: 6px 3px !important;
+}
+
+.pda-shell.wh .fg03-summary .wh03-stat span {
+    min-height: 20px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.1 !important;
+}
+
+.pda-shell.wh .fg03-summary .wh03-stat strong {
+    margin-top: 2px !important;
+    line-height: 1 !important;
+}
+
+/* Radzen appends dropdown popups outside the page shell, so both the field and popup need explicit dark colors. */
+.pda-shell.wh.fg05-shell .rz-dropdown,
+.pda-shell.wh.fg06-shell .rz-dropdown {
+    border: 1px solid rgba(147, 197, 253, .28) !important;
+    background: #050a13 !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh.fg05-shell .rz-dropdown-label,
+.pda-shell.wh.fg05-shell .rz-dropdown-trigger,
+.pda-shell.wh.fg05-shell .rz-dropdown-clear-icon,
+.pda-shell.wh.fg06-shell .rz-dropdown-label,
+.pda-shell.wh.fg06-shell .rz-dropdown-trigger,
+.pda-shell.wh.fg06-shell .rz-dropdown-clear-icon {
+    background: transparent !important;
+    color: #e8eef7 !important;
+}
+
+html body .rz-dropdown-panel,
+html body .rz-dropdown-panel .rz-dropdown-items-wrapper,
+html body .rz-dropdown-panel .rz-dropdown-items,
+html body .rz-popup .rz-dropdown-items-wrapper,
+html body .rz-popup .rz-dropdown-items {
+    border-color: rgba(147, 197, 253, .22) !important;
+    background: #0f1d33 !important;
+    color: #e8eef7 !important;
+}
+
+html body .rz-dropdown-panel .rz-dropdown-item,
+html body .rz-dropdown-panel .rz-dropdown-item span,
+html body .rz-popup .rz-dropdown-item,
+html body .rz-popup .rz-dropdown-item span {
+    background: #0f1d33 !important;
+    color: #e8eef7 !important;
+}
+
+html body .rz-dropdown-panel .rz-dropdown-item:hover,
+html body .rz-dropdown-panel .rz-state-highlight,
+html body .rz-popup .rz-dropdown-item:hover,
+html body .rz-popup .rz-state-highlight {
+    background: rgba(147, 197, 253, .18) !important;
+    color: #ffffff !important;
+}

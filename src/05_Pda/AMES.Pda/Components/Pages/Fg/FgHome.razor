@@ -2,24 +2,34 @@
 @inject AuthState Auth
 @inject NavigationManager Nav
 
-<div class="pda-shell fg">
+<div class="pda-shell wh wh-home-shell fg-home-shell">
     <div class="pda-tbar">
-        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/home"))'>←</button>
-        <span class="pda-tbar-brand">FINISHED GOODS</span>
-        <span class="pda-tbar-emp">@Auth.Session?.EmployeeNo</span>
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/home"))'>&lt;</button>
+        <div class="wh-home-title">
+            <span class="pda-tbar-brand">FINISHED GOODS</span>
+            <span>@Auth.Session?.EmployeeNo</span>
+        </div>
     </div>
     <div class="pda-bd">
-        <div class="pda-tile-grid">
-            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/01"))'><div class="pda-tile-ic">📥</div><div class="pda-tile-cap">FG-001</div><div class="pda-tile-sub">Stocking</div></button>
-            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/02"))'><div class="pda-tile-ic">📊</div><div class="pda-tile-cap">FG-002</div><div class="pda-tile-sub">Inventory</div></button>
-            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/03"))'><div class="pda-tile-ic">📋</div><div class="pda-tile-cap">FG-003</div><div class="pda-tile-sub">Shipment Orders</div></button>
-            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/04"))'><div class="pda-tile-ic">🎯</div><div class="pda-tile-cap">FG-004</div><div class="pda-tile-sub">FIFO Picking</div></button>
-            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/05"))'><div class="pda-tile-ic">🚛</div><div class="pda-tile-cap">FG-005</div><div class="pda-tile-sub">Loading</div></button>
-            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/06"))'><div class="pda-tile-ic">📄</div><div class="pda-tile-cap">FG-006</div><div class="pda-tile-sub">Delivery Note</div></button>
-            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/07"))'><div class="pda-tile-ic">🌅</div><div class="pda-tile-cap">FG-007</div><div class="pda-tile-sub">Day End Close</div></button>
-            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/08"))'><div class="pda-tile-ic">📜</div><div class="pda-tile-cap">FG-008</div><div class="pda-tile-sub">Shipment History</div></button>
-            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/09"))'><div class="pda-tile-ic">📈</div><div class="pda-tile-cap">FG-009</div><div class="pda-tile-sub">Dashboard</div></button>
-            <button class="pda-tile sm" @onclick='@(() => Nav.NavigateTo("/fg/rtn"))'><div class="pda-tile-ic">↩️</div><div class="pda-tile-cap">FG-RTN</div><div class="pda-tile-sub">Customer Return</div></button>
+        <div class="pda-tile-grid wh-home-grid">
+            <button class="pda-tile sm wh-home-tile schedule" @onclick='@(() => Nav.NavigateTo("/fg/01"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="fact_check" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">FG Waiting</div><div class="pda-tile-sub">QC-passed goods waiting for storage</div></div><span class="wh-home-tile-go">&gt;</span>
+            </button>
+            <button class="pda-tile sm wh-home-tile inbound" @onclick='@(() => Nav.NavigateTo("/fg/02"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="move_to_inbox" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">Put-Away</div><div class="pda-tile-sub">Store completed FG LOTs</div></div><span class="wh-home-tile-go">&gt;</span>
+            </button>
+            <button class="pda-tile sm wh-home-tile inventory" @onclick='@(() => Nav.NavigateTo("/fg/03"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="inventory_2" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">Inventory</div><div class="pda-tile-sub">Search finished goods stock</div></div><span class="wh-home-tile-go">&gt;</span>
+            </button>
+            <button class="pda-tile sm wh-home-tile release" @onclick='@(() => Nav.NavigateTo("/fg/04"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="shopping_cart_checkout" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">Release Picking</div><div class="pda-tile-sub">Pick FG for shipment orders</div></div><span class="wh-home-tile-go">&gt;</span>
+            </button>
+            <button class="pda-tile sm wh-home-tile adjust" @onclick='@(() => Nav.NavigateTo("/fg/05"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="local_shipping" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">Truck Loading</div><div class="pda-tile-sub">Confirm outbound loading</div></div><span class="wh-home-tile-go">&gt;</span>
+            </button>
+            <button class="pda-tile sm wh-home-tile transactions" @onclick='@(() => Nav.NavigateTo("/fg/06"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="assignment_return" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">Customer Return</div><div class="pda-tile-sub">Receive returned finished goods</div></div><span class="wh-home-tile-go">&gt;</span>
+            </button>
         </div>
     </div>
 </div>
