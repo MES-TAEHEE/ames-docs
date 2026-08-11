@@ -1,53 +1,166 @@
-@page "/fg/02"
+@page "/fg/03"
 @inject PdaApi Api
 @inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
-<div class="pda-shell fg">
+<div class="pda-shell wh wh03-shell fg03-shell">
     <div class="pda-tbar">
-        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/fg"))'>←</button>
-        <span class="pda-tbar-brand">FG-002 INVENTORY</span>
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
+        <div class="wh03-tbar-title"><span class="pda-tbar-brand">FG-003 INVENTORY</span></div>
+        <div class="wh03-tbar-actions"><RadzenButton class="wh03-refresh" Click="Load" Disabled="@_isLoading" Text="REFRESH" /></div>
     </div>
-    <div class="pda-bd">
-        <div class="pda-card">
-            <input class="pda-input" @bind="_q" @bind:event="oninput" @onkeypress="OnKey" placeholder="Search item or name…" />
-        </div>
-        <div class="pda-card">
-            <div class="pda-card-h">▼ FG STOCK (@_rows.Count)</div>
-            @if (_rows.Count == 0) { <div class="pda-empty">@_msg</div> }
-            else
+
+    <div class="pda-bd wh03-body">
+        <RadzenCard class="@($"wh03-search-card wh03-scan-card {ScanPanelClass}")">
+            <div class="pda-fld">
+                <label>INVENTORY SCAN</label>
+                <RadzenTextBox class="pda-input wh03-search-input pda-scan-input"
+                               Value="@_query" @oninput="OnQueryInput" @onkeydown="OnKey"
+                               Placeholder="Scan Lot, Part, Location No" />
+            </div>
+            @if (ShowDeveloperScanButtons)
             {
-                @foreach (var r in _rows)
-                {
-                    var cls = r.Status == "Reserved" ? "warn" : "";
-                    <div class="pda-row3 @cls">
-                        <div class="r3-l">
-                            <div class="r3-code">@r.StockNumber</div>
-                            <div class="r3-sub">@(r.ItemName ?? r.ItemNo)</div>
-                        </div>
-                        <div class="r3-m">
-                            <div>@(r.Location ?? "—")</div>
-                            <div class="r3-sub">@(r.CustomerCode ?? "")</div>
-                        </div>
-                        <div class="r3-r">
-                            <div class="big">@r.Qty.ToString("0.#")</div>
-                            <div class="r3-sub">@(r.Status ?? "")</div>
-                        </div>
-                    </div>
-                }
+                <RadzenButton class="wh03-search-btn" Click="Load" Disabled="@_isLoading" Text="SCAN" />
             }
-        </div>
+        </RadzenCard>
+
+        <RadzenCard class="wh03-head">
+            <div class="pda-card-h">FINISHED GOODS STOCK STATUS</div>
+            <div class="wh03-summary fg03-summary">
+                <button type="button" class="@SummaryClass("ALL")" @onclick='@(() => SetFilter("ALL"))'><span>Total</span><strong>@_rows.Count</strong></button>
+                <button type="button" class="@SummaryClass("AVAILABLE")" @onclick='@(() => SetFilter("AVAILABLE"))'><span>Available</span><strong>@CountStatus("AVAILABLE")</strong></button>
+                <button type="button" class="@SummaryClass("RESERVED")" @onclick='@(() => SetFilter("RESERVED"))'><span>Reserved</span><strong>@CountStatus("RESERVED")</strong></button>
+                <button type="button" class="@SummaryClass("HOLD")" @onclick='@(() => SetFilter("HOLD"))'><span>Hold</span><strong>@CountStatus("HOLD")</strong></button>
+            </div>
+        </RadzenCard>
+
+        @if (VisibleRows.Count == 0)
+        {
+            <div class="pda-empty">@_message</div>
+        }
+        else
+        {
+            <div class="wh03-list">
+                @foreach (var row in VisibleRows)
+                {
+                    <RadzenCard class="@($"wh03-stock-card wh03-stock-compact {StatusClass(row)}")" @onclick="@(() => OpenDetail(row))">
+                        <div class="wh03-compact-row main"><strong>@Text(row.ItemNo)</strong><span>@Qty(row.Qty, row.Unit)</span></div>
+                        <div class="wh03-compact-row sub"><span>@Text(row.ItemName)</span><RadzenBadge class="@($"wh03-status-badge {StatusClass(row)}")" Text="@StatusText(row)" /></div>
+                        <button type="button" class="wh03-compact-location" @onclick:stopPropagation="true" @onclick="@(() => OpenDetail(row))"><span>Locations</span><strong>@Text(row.Location)</strong></button>
+                    </RadzenCard>
+                }
+            </div>
+        }
     </div>
+
+    @if (_detail is not null)
+    {
+        <div class="wh03-filter-backdrop" @onclick="CloseDetail">
+            <RadzenCard class="wh03-location-modal" @onclick:stopPropagation="true">
+                <div class="wh03-location-modal-head">
+                    <div><span>FINISHED GOODS DETAIL</span><strong>@Text(_detail.ItemNo)</strong><em>@Text(_detail.ItemName)</em></div>
+                    <RadzenButton class="wh03-location-close" Icon="close" Click="CloseDetail" />
+                </div>
+                <div class="wh03-inventory-detail-grid">
+                    @foreach (var field in DetailFields(_detail))
+                    {
+                        <div><span>@field.Label</span><strong>@field.Value</strong></div>
+                    }
+                </div>
+            </RadzenCard>
+        </div>
+    }
 </div>
 
 @code {
-    string _q = "", _msg = "Loading…";
-    List<PdaApi.FgStockRow> _rows = new();
+    private List<PdaApi.FgStockRow> _rows = new();
+    private string _query = "";
+    private string _filter = "ALL";
+    private string _message = "Loading...";
+    private bool _isLoading;
+    private PdaApi.FgStockRow? _detail;
+    private DotNetObjectReference<Fg02Inventory>? _scannerRef;
+
+    private static bool ShowDeveloperScanButtons => MauiProgram.IsDeveloperMode;
+    private static string ScanPanelClass => ShowDeveloperScanButtons ? "dev-scan-panel" : "hardware-scan-panel";
+    private List<PdaApi.FgStockRow> VisibleRows => _filter == "ALL" ? _rows : _rows.Where(x => StatusKey(x) == _filter).ToList();
+
     protected override async Task OnInitializedAsync() => await Load();
-    void OnKey(KeyboardEventArgs e) { if (e.Key == "Enter") _ = Load(); }
-    async Task Load()
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        _msg = "Loading…";
-        _rows = await Api.FgInventoryAsync(_q);
-        if (_rows.Count == 0) _msg = "No FG stock matches.";
+        if (!firstRender) return;
+        PdaBarcodeHub.Scanned += OnNativeBarcodeScanned;
+        _scannerRef = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("pdaScan.register", _scannerRef, new { minLength = 3, developerMode = ShowDeveloperScanButtons });
+        await JS.InvokeVoidAsync("pdaScan.focus", ".fg03-shell .pda-scan-input");
+    }
+
+    [JSInvokable]
+    public async Task OnHardwareScanAsync(string scanText)
+    {
+        _query = NormalizeScan(scanText);
+        if (!string.IsNullOrWhiteSpace(_query)) await Load();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnNativeBarcodeScanned(string barcode) => _ = InvokeAsync(() => OnHardwareScanAsync(barcode));
+    private void OnQueryInput(ChangeEventArgs e) => _query = e.Value?.ToString() ?? "";
+    private async Task OnKey(KeyboardEventArgs e) { if (e.Key == "Enter") await Load(); }
+
+    private async Task Load()
+    {
+        if (_isLoading) return;
+        _isLoading = true;
+        try
+        {
+            _rows = await Api.FgInventoryAsync(_query.Trim());
+            _message = _rows.Count == 0 ? "No finished goods stock matches." : "";
+        }
+        finally { _isLoading = false; }
+    }
+
+    private void SetFilter(string value) => _filter = value;
+    private string SummaryClass(string value)
+    {
+        var color = value switch
+        {
+            "AVAILABLE" => "normal",
+            "RESERVED" => "below",
+            "HOLD" => "out",
+            _ => "all"
+        };
+        return $"wh03-stat {color} {(value == _filter ? "on" : "")}";
+    }
+    private int CountStatus(string value) => _rows.Count(x => StatusKey(x) == value);
+    private static string StatusKey(PdaApi.FgStockRow row)
+    {
+        var status = (row.Status ?? "Available").Trim().ToUpperInvariant();
+        return status.Contains("HOLD") ? "HOLD" : status.Contains("RESERV") ? "RESERVED" : "AVAILABLE";
+    }
+    private static string StatusClass(PdaApi.FgStockRow row) => StatusKey(row) switch { "HOLD" => "out", "RESERVED" => "below", _ => "normal" };
+    private static string StatusText(PdaApi.FgStockRow row) => StatusKey(row) switch { "HOLD" => "HOLD", "RESERVED" => "RESERVED", _ => "AVAILABLE" };
+    private void OpenDetail(PdaApi.FgStockRow row) => _detail = row;
+    private void CloseDetail() => _detail = null;
+    private static string NormalizeScan(string? value) => string.IsNullOrWhiteSpace(value) ? "" : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
+    private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    private static string Qty(decimal qty, string? unit) => $"{qty:0.###} {(string.IsNullOrWhiteSpace(unit) ? "EA" : unit)}";
+    private static IEnumerable<(string Label, string Value)> DetailFields(PdaApi.FgStockRow row)
+    {
+        yield return ("Stock No", Text(row.StockNumber));
+        yield return ("LOT No", Text(row.LotNo));
+        yield return ("Location", Text(row.Location));
+        yield return ("Qty", Qty(row.Qty, row.Unit));
+        yield return ("Customer", Text(row.CustomerCode));
+        yield return ("Status", StatusText(row));
+        yield return ("Stock Date", row.StockTs?.ToString("MM/dd/yyyy HH:mm") ?? "-");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        PdaBarcodeHub.Scanned -= OnNativeBarcodeScanned;
+        try { await JS.InvokeVoidAsync("pdaScan.unregister"); } catch { }
+        _scannerRef?.Dispose();
     }
 }
