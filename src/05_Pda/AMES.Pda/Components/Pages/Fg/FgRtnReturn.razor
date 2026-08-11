@@ -1,47 +1,89 @@
-@page "/fg/rtn"
+@page "/fg/06"
 @inject PdaApi Api
 @inject NavigationManager Nav
 
-<div class="pda-shell fg">
+<div class="pda-shell wh wh03-shell fg06-shell">
     <div class="pda-tbar">
-        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/fg"))'>←</button>
-        <span class="pda-tbar-brand">FG-RTN RETURN</span>
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
+        <div class="wh03-tbar-title"><span class="pda-tbar-brand">FG-006 CUSTOMER RETURN</span></div>
+        <div class="wh03-tbar-actions"><RadzenButton class="wh03-refresh" Click="Load" Disabled="@_isLoading" Text="REFRESH" /></div>
     </div>
-    <div class="pda-bd">
-        <div class="pda-card">
-            <div class="pda-card-h">▼ CUSTOMER RETURN (RMA)</div>
-            <div class="pda-fld"><label>CUSTOMER</label><input class="pda-input" @bind="_cust" placeholder="SAV / GEO" /></div>
-            <div class="pda-fld"><label>ORIGINAL SO ID (optional)</label><input class="pda-input" type="number" @bind="_so" /></div>
-            <div class="pda-fld"><label>ITEM NO</label><input class="pda-input" @bind="_item" /></div>
-            <div class="pda-fld"><label>QTY</label><input class="pda-input" type="number" @bind="_qty" /></div>
-            <div class="pda-fld">
-                <label>RETURN REASON</label>
-                <select class="pda-input" @bind="_reason">
-                    <option>Defect — adhesion</option>
-                    <option>Defect — paint</option>
-                    <option>Wrong item</option>
-                    <option>Damaged in transit</option>
-                    <option>Customer change</option>
-                </select>
+    <div class="pda-bd wh03-body fg-form-body">
+        <RadzenCard class="wh03-head">
+            <div class="pda-card-h">RETURN STATUS</div>
+            <div class="wh03-summary fg03-summary">
+                <button type="button" class="wh03-stat all on"><span>Total</span><strong>@_returns.Count</strong></button>
+                <button type="button" class="wh03-stat all"><span>Open</span><strong>@CountStatus("OPEN")</strong></button>
+                <button type="button" class="wh03-stat below"><span>Inspecting</span><strong>@CountStatus("INSPECTING")</strong></button>
+                <button type="button" class="wh03-stat normal"><span>Closed</span><strong>@CountStatus("CLOSED")</strong></button>
             </div>
-        </div>
-        <div class="pda-status @_cls">@_msg</div>
-        <button class="pda-btn-pri" @onclick="Submit" disabled="@(string.IsNullOrWhiteSpace(_cust) || string.IsNullOrWhiteSpace(_item))">↩️ OPEN RMA</button>
+        </RadzenCard>
+
+        <RadzenCard class="wh03-action-card fg-form-card">
+            <div class="wh03-section-title">RETURN RECEIPT</div>
+            <div class="pda-fld"><label>CUSTOMER CODE</label><RadzenTextBox @bind-Value="_customer" Placeholder="Customer code" /></div>
+            <div class="pda-fld"><label>ORIGINAL SHIPMENT ORDER</label><RadzenDropDown TValue="int?" @bind-Value="_shipmentOrderId" Data="@_orders" TextProperty="ShipOrderNumber" ValueProperty="ShipmentOrderId" Placeholder="Optional" AllowClear="true" /></div>
+            <div class="pda-fld"><label>ITEM NO</label><RadzenTextBox @bind-Value="_itemNo" Placeholder="Returned item number" /></div>
+            <div class="fg-form-grid"><div class="pda-fld"><label>QTY</label><RadzenNumeric @bind-Value="_qty" Min="0.001m" Step="1" /></div><div class="pda-fld"><label>RETURN REASON</label><RadzenDropDown @bind-Value="_reason" Data="@Reasons" /></div></div>
+        </RadzenCard>
+        @if (!string.IsNullOrWhiteSpace(_message)) { <div class="pda-status @_messageClass">@_message</div> }
+
+        <div class="pda-card-h fg-section-label">RECENT RETURNS</div>
+        @if (_returns.Count == 0)
+        {
+            <div class="pda-empty">No customer returns.</div>
+        }
+        else
+        {
+            <div class="wh03-list">
+                @foreach (var row in _returns)
+                {
+                    <RadzenCard class="wh03-stock-card wh03-stock-compact normal">
+                        <div class="wh03-compact-row main"><strong>@Text(row.ReturnNumber)</strong><span>@row.Qty.ToString("0.###") EA</span></div>
+                        <div class="wh03-compact-row sub"><span>@Text(row.ItemNo) / @Text(row.CustomerCode)</span><RadzenBadge class="wh03-status-badge normal" Text="@Text(row.Status)" /></div>
+                        <button type="button" class="wh03-compact-location"><span>@Text(row.ReturnReason)</span><strong>@(row.ReceivedAt?.ToString("MM-dd HH:mm") ?? "-")</strong></button>
+                    </RadzenCard>
+                }
+            </div>
+        }
+        <div class="wh07-action-spacer"></div>
     </div>
+    <div class="wh02-action-bar has-reset fg-form-actions"><RadzenButton class="wh02-clear-btn" Text="CLEAR" Click="Clear" /><RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-receive-action-btn {(CanSubmit ? "ready" : "blocked")}")" Text="RECEIVE RETURN" Disabled="@_submitting" Click="Submit" /></div>
 </div>
 
 @code {
-    string _cust = "SAV", _item = "DR-TRM-LH-A1", _reason = "Defect — adhesion";
-    int _so; decimal _qty = 1;
-    string _msg = " ", _cls = "dim";
-    async Task Submit()
+    private static readonly string[] Reasons = ["Defect", "Wrong item", "Damaged in transit", "Customer change", "Other"];
+    private List<PdaApi.FgReturnRow> _returns = new();
+    private List<PdaApi.FgOrderRow> _orders = new();
+    private string _customer = "", _itemNo = "", _reason = Reasons[0];
+    private int? _shipmentOrderId;
+    private decimal _qty = 1;
+    private bool _submitting, _isLoading;
+    private string _message = "", _messageClass = "dim";
+    private bool CanSubmit => !string.IsNullOrWhiteSpace(_customer) && !string.IsNullOrWhiteSpace(_itemNo) && _qty > 0;
+
+    protected override async Task OnInitializedAsync() => await Load();
+    private async Task Load()
     {
+        _isLoading = true;
+        try { var returnsTask = Api.FgReturnsAsync(); var ordersTask = Api.FgOrdersAsync(); await Task.WhenAll(returnsTask, ordersTask); _returns = returnsTask.Result; _orders = ordersTask.Result; }
+        finally { _isLoading = false; }
+    }
+    private int CountStatus(string status) => _returns.Count(x => string.Equals(x.Status, status, StringComparison.OrdinalIgnoreCase));
+    private void Clear() { _customer = _itemNo = ""; _shipmentOrderId = null; _qty = 1; _reason = Reasons[0]; }
+    private async Task Submit()
+    {
+        if (!CanSubmit) { _message = "Enter Customer, Item No and Qty."; _messageClass = "fail"; return; }
+        _submitting = true;
         try
         {
-            var r = await Api.FgReturnAsync(new PdaApi.FgReturnReq(_cust.Trim(), _so == 0 ? null : _so, _reason, _qty, _item.Trim()));
-            if (r.IsSuccessStatusCode) { _msg = "✓ RMA opened"; _cls = "ok"; }
-            else                       { _msg = $"× HTTP {(int)r.StatusCode}"; _cls = "fail"; }
+            var result = await Api.FgReturnAsync(new PdaApi.FgReturnReq(_customer.Trim(), _shipmentOrderId, _reason, _qty, _itemNo.Trim()));
+            _message = result.IsSuccessStatusCode ? "Customer return received." : $"Return receipt failed. HTTP {(int)result.StatusCode}.";
+            _messageClass = result.IsSuccessStatusCode ? "ok" : "fail";
+            if (result.IsSuccessStatusCode) { Clear(); await Load(); }
         }
-        catch (Exception ex) { _msg = "× " + ex.Message; _cls = "fail"; }
+        catch (Exception ex) { _message = ex.Message; _messageClass = "fail"; }
+        finally { _submitting = false; }
     }
+    private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
 }
