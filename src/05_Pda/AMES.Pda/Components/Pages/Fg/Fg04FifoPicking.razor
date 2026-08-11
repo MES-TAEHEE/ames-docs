@@ -1,67 +1,154 @@
 @page "/fg/04"
 @inject PdaApi Api
 @inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
-<div class="pda-shell fg">
+<div class="pda-shell wh wh07-shell fg04-shell">
     <div class="pda-tbar">
-        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/fg"))'>←</button>
-        <span class="pda-tbar-brand">FG-004 FIFO PICK</span>
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
+        <div class="wh07-tbar-title"><span class="pda-tbar-brand">FG-004 RELEASE PICKING</span><span class="wh07-subtitle">@(_selectedOrder?.ShipOrderNumber ?? "Scan Shipment Order")</span></div>
     </div>
-    <div class="pda-bd">
-        <div class="pda-card">
-            <div class="pda-card-h">▼ FIFO PICK FOR SO</div>
-            <div class="pda-fld"><label>SHIPMENT ORDER ID</label><input class="pda-input" type="number" @bind="_so" /></div>
-            <div class="pda-fld"><label>STOCK ID (oldest available)</label><input class="pda-input" type="number" @bind="_stock" /></div>
-            <div class="pda-fld"><label>QTY</label><input class="pda-input" type="number" @bind="_qty" /></div>
-        </div>
-        <div class="pda-status @_cls">@_msg</div>
-        <button class="pda-btn-pri" @onclick="Submit" disabled="@(_so == 0 || _stock == 0)">✓ PICK</button>
-        <div class="pda-card" style="margin-top:14px;">
-            <div class="pda-card-h">▼ STOCK SUGGESTIONS (oldest first)</div>
-            @if (_avail.Count == 0) { <div class="pda-empty">Loading…</div> }
-            else
+
+    <div class="pda-bd wh07-body">
+        <RadzenCard class="wh07-panel wh07-slip-panel">
+            <div class="pda-fld">
+                <label>SHIPMENT ORDER NO</label>
+                <RadzenTextBox class="pda-input wh07-input pda-scan-input" Value="@_orderNo" @oninput="OnOrderInput" @onkeydown="OnOrderKey" Placeholder="Scan Shipment Order No" />
+            </div>
+            @if (ShowDeveloperScanButtons)
             {
-                @foreach (var s in _avail.Take(5))
-                {
-                    <div class="pda-row3" @onclick="@(() => _stock = s.StockId)" style="cursor:pointer;">
-                        <div class="r3-l">
-                            <div class="r3-code">#@s.StockId</div>
-                            <div class="r3-sub">@(s.ItemName ?? s.ItemNo)</div>
-                        </div>
-                        <div class="r3-m">
-                            <div>@(s.Location ?? "—")</div>
-                            <div class="r3-sub">@(s.CustomerCode ?? "")</div>
-                        </div>
-                        <div class="r3-r">
-                            <div class="big">@s.Qty.ToString("0")</div>
-                            <div class="r3-sub">@(s.StockTs?.ToString("MM-dd HH:mm") ?? "")</div>
-                        </div>
-                    </div>
-                }
+                <RadzenButton class="wh07-load-btn" Click="LoadOrder" Disabled="@_isBusy" Text="SCAN" />
             }
-        </div>
+        </RadzenCard>
+
+        @if (_selectedOrder is not null)
+        {
+            <RadzenCard class="wh07-summary-card">
+                <div class="wh07-summary-top"><div><span>SHIPMENT ORDER</span><strong>@_selectedOrder.ShipOrderNumber</strong></div><RadzenBadge class="wh07-status ready" Text="@(_selectedOrder.Status ?? "Released")" /></div>
+                <div class="wh07-summary-grid"><div><span>Customer</span><strong>@Text(_selectedOrder.CustomerCode)</strong></div><div><span>Destination</span><strong>@Text(_selectedOrder.DestPlant)</strong></div><div><span>Ship Date</span><strong>@(_selectedOrder.ShipDate?.ToString("MM/dd/yyyy") ?? "-")</strong></div><div><span>Lines</span><strong>@_lines.Count</strong></div></div>
+            </RadzenCard>
+
+            <RadzenCard class="wh07-panel wh07-scan-panel">
+                <div class="pda-fld"><label>FG LOT NO</label><RadzenTextBox class="pda-input wh07-input wh07-lot-input pda-scan-input" Value="@_lotNo" @oninput="OnLotInput" @onkeydown="OnLotKey" Placeholder="Scan FG Lot No" /></div>
+                @if (ShowDeveloperScanButtons)
+                {
+                    <RadzenButton class="wh07-scan-btn" Click="PickLot" Disabled="@_isBusy" Text="SCAN" />
+                }
+            </RadzenCard>
+        }
+
+        @if (_lines.Count > 0)
+        {
+            <div class="wh07-line-list">
+                @foreach (var line in _lines)
+                {
+                    <RadzenCard class="@LineClass(line)">
+                        <div class="wh07-line-top"><div class="wh07-line-main"><strong>@line.ItemNo</strong><em>@Text(line.ItemName)</em><div class="wh07-line-qty"><span>REQUESTED <strong>@line.OrderedQty.ToString("N0")</strong></span><span>PICKED <strong>@PickedQty(line).ToString("N0")</strong></span>@if (PickedQty(line) >= line.OrderedQty){<span class="wh07-check">CHECKED</span>}</div></div></div>
+                    </RadzenCard>
+                }
+            </div>
+            <div class="wh07-action-spacer"></div>
+            <div class="wh07-release-bar"><RadzenButton class="wh07-clear-btn" Click="Clear" Disabled="@_isBusy" Text="CLEAR" /><RadzenButton class="wh07-release-btn" Click="CompletePicking" Disabled="@(!AllPicked)" Text="PICK COMPLETE" /></div>
+        }
     </div>
+
+    @if (_modalOpen)
+    {
+        <div class="wh-modal-backdrop" @onclick="CloseModal"><RadzenCard class="@($"wh-modal-card {_modalKind}")" @onclick:stopPropagation="true"><div class="wh-modal-mark">@(_modalKind == "success" ? "OK" : "!")</div><div class="wh-modal-title">@_modalTitle</div><div class="wh-modal-message">@_modalMessage</div><div class="wh-modal-actions"><RadzenButton class="wh-modal-btn primary" Click="CloseModal" Text="OK" /></div></RadzenCard></div>
+    }
 </div>
 
 @code {
-    int _so, _stock; decimal _qty = 32;
-    string _msg = " ", _cls = "dim";
-    List<PdaApi.FgStockRow> _avail = new();
-    protected override async Task OnInitializedAsync()
+    private List<PdaApi.FgOrderRow> _orders = new();
+    private List<PdaApi.FgOrderLineRow> _lines = new();
+    private readonly Dictionary<int, decimal> _picked = new();
+    private PdaApi.FgOrderRow? _selectedOrder;
+    private string _orderNo = "", _lotNo = "";
+    private bool _isBusy, _modalOpen;
+    private string _modalTitle = "", _modalMessage = "", _modalKind = "info";
+    private DotNetObjectReference<Fg04FifoPicking>? _scannerRef;
+
+    private static bool ShowDeveloperScanButtons => MauiProgram.IsDeveloperMode;
+    private bool AllPicked => _lines.Count > 0 && _lines.All(x => PickedQty(x) >= x.OrderedQty);
+
+    protected override async Task OnInitializedAsync() => _orders = await Api.FgOrdersAsync();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var all = await Api.FgInventoryAsync();
-        _avail = all.Where(s => s.Status == "Available")
-                    .OrderBy(s => s.StockTs)
-                    .ToList();
+        if (!firstRender) return;
+        PdaBarcodeHub.Scanned += OnNativeBarcodeScanned;
+        _scannerRef = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("pdaScan.register", _scannerRef, new { minLength = 3, developerMode = ShowDeveloperScanButtons });
+        await FocusAsync();
     }
-    async Task Submit()
+
+    [JSInvokable]
+    public async Task OnHardwareScanAsync(string scanText)
     {
+        var value = Normalize(scanText);
+        if (string.IsNullOrWhiteSpace(value)) return;
+        if (_selectedOrder is null) { _orderNo = value; await LoadOrder(); }
+        else { _lotNo = value; await PickLot(); }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnNativeBarcodeScanned(string barcode) => _ = InvokeAsync(() => OnHardwareScanAsync(barcode));
+    private void OnOrderInput(ChangeEventArgs e) => _orderNo = e.Value?.ToString() ?? "";
+    private async Task OnOrderKey(KeyboardEventArgs e) { if (e.Key == "Enter") await LoadOrder(); }
+    private void OnLotInput(ChangeEventArgs e) => _lotNo = e.Value?.ToString() ?? "";
+    private async Task OnLotKey(KeyboardEventArgs e) { if (e.Key == "Enter") await PickLot(); }
+
+    private async Task LoadOrder()
+    {
+        if (string.IsNullOrWhiteSpace(_orderNo)) { ShowModal("Missing Order", "Scan Shipment Order No first.", "warn"); return; }
+        _isBusy = true;
         try
         {
-            var r = await Api.FgPickAsync(new PdaApi.FgPickReq(_so, _stock, _qty));
-            if (r.IsSuccessStatusCode) { _msg = "✓ Picked"; _cls = "ok"; }
-            else                       { _msg = $"× HTTP {(int)r.StatusCode}"; _cls = "fail"; }
+            _orders = await Api.FgOrdersAsync();
+            _selectedOrder = _orders.FirstOrDefault(x => string.Equals(x.ShipOrderNumber, _orderNo.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (_selectedOrder is null) { _lines.Clear(); ShowModal("Order Not Found", "Shipment Order was not found.", "warn"); return; }
+            _orderNo = _selectedOrder.ShipOrderNumber ?? _orderNo.Trim();
+            _lines = await Api.FgOrderLinesAsync(_orderNo);
+            _picked.Clear();
+            if (_lines.Count == 0) ShowModal("No Order Lines", "No finished goods lines were found for this order.", "warn");
         }
-        catch (Exception ex) { _msg = "× " + ex.Message; _cls = "fail"; }
+        finally { _isBusy = false; await FocusAsync(); }
     }
+
+    private async Task PickLot()
+    {
+        if (_selectedOrder is null || string.IsNullOrWhiteSpace(_lotNo)) return;
+        _isBusy = true;
+        try
+        {
+            var matches = await Api.FgInventoryAsync(_lotNo.Trim());
+            var stock = matches.FirstOrDefault(x => string.Equals(x.LotNo, _lotNo.Trim(), StringComparison.OrdinalIgnoreCase) && string.Equals(x.Status, "Available", StringComparison.OrdinalIgnoreCase));
+            if (stock is null) { ShowModal("LOT Not Available", "The scanned FG LOT is not available in inventory.", "warn"); return; }
+            var line = _lines.FirstOrDefault(x => string.Equals(x.ItemNo, stock.ItemNo, StringComparison.OrdinalIgnoreCase));
+            if (line is null) { ShowModal("Wrong Item", $"{stock.ItemNo} is not requested by this Shipment Order.", "danger"); return; }
+            var result = await Api.FgPickAsync(new PdaApi.FgPickReq(_selectedOrder.ShipmentOrderId, stock.StockId, stock.Qty));
+            if (!result.IsSuccessStatusCode) { ShowModal("Pick Failed", $"HTTP {(int)result.StatusCode}", "danger"); return; }
+            _picked[line.ShipmentOrderLineId] = PickedQty(line) + stock.Qty;
+            ShowModal("Pick Complete", $"{stock.LotNo} / {stock.Qty:0.###} {stock.Unit ?? "EA"}", "success");
+            _lotNo = "";
+        }
+        finally { _isBusy = false; await FocusAsync(); }
+    }
+
+    private decimal PickedQty(PdaApi.FgOrderLineRow line) => _picked.GetValueOrDefault(line.ShipmentOrderLineId);
+    private string LineClass(PdaApi.FgOrderLineRow line) => $"wh07-line-card {(PickedQty(line) >= line.OrderedQty ? "picked scanned" : PickedQty(line) > 0 ? "partial" : "open")}";
+    private void CompletePicking()
+    {
+        var orderNumber = _selectedOrder?.ShipOrderNumber ?? _orderNo;
+        Clear();
+        ShowModal("Picking Complete", $"{orderNumber} is ready for truck loading.", "success");
+    }
+    private void Clear() { _selectedOrder = null; _lines.Clear(); _picked.Clear(); _orderNo = _lotNo = ""; }
+    private void ShowModal(string title, string message, string kind) { _modalTitle = title; _modalMessage = message; _modalKind = kind; _modalOpen = true; }
+    private void CloseModal() { _modalOpen = false; _ = FocusAsync(); }
+    private async Task FocusAsync() { try { await JS.InvokeVoidAsync("pdaScan.focus", _selectedOrder is null ? ".fg04-shell .wh07-slip-panel .pda-scan-input" : ".fg04-shell .wh07-lot-input"); } catch { } }
+    private static string Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? "" : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
+    private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    public async ValueTask DisposeAsync() { PdaBarcodeHub.Scanned -= OnNativeBarcodeScanned; try { await JS.InvokeVoidAsync("pdaScan.unregister"); } catch { } _scannerRef?.Dispose(); }
 }

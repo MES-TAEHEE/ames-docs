@@ -2,36 +2,95 @@
 @inject PdaApi Api
 @inject NavigationManager Nav
 
-<div class="pda-shell fg">
+<div class="pda-shell wh wh03-shell fg05-shell">
     <div class="pda-tbar">
-        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/fg"))'>←</button>
-        <span class="pda-tbar-brand">FG-005 LOADING</span>
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
+        <div class="wh03-tbar-title"><span class="pda-tbar-brand">FG-005 TRUCK LOADING</span></div>
+        <div class="wh03-tbar-actions"><RadzenButton class="wh03-refresh" Click="Load" Disabled="@_isLoading" Text="REFRESH" /></div>
     </div>
-    <div class="pda-bd">
-        <div class="pda-card">
-            <div class="pda-card-h">▼ CONFIRM TRUCK LOAD</div>
-            <div class="pda-fld"><label>SHIPMENT ORDER ID</label><input class="pda-input" type="number" @bind="_so" /></div>
-            <div class="pda-fld"><label>LICENSE PLATE</label><input class="pda-input" @bind="_lp" placeholder="AL-2026-X9" /></div>
-            <div class="pda-fld"><label>DRIVER NAME</label><input class="pda-input" @bind="_dn" /></div>
-            <div class="pda-fld"><label>DOCK NO</label><input class="pda-input" @bind="_dk" placeholder="DOCK-1" /></div>
-            <div class="pda-fld"><label>SEAL NO</label><input class="pda-input" @bind="_seal" placeholder="optional" /></div>
-        </div>
-        <div class="pda-status @_cls">@_msg</div>
-        <button class="pda-btn-pri" @onclick="Submit" disabled="@(_so == 0 || string.IsNullOrWhiteSpace(_lp))">✓ CONFIRM LOAD</button>
+    <div class="pda-bd wh03-body fg-form-body">
+        <RadzenCard class="wh03-head">
+            <div class="pda-card-h">LOADING STATUS</div>
+            <div class="wh03-summary fg03-summary">
+                <button type="button" class="wh03-stat all on"><span>Total</span><strong>@_orders.Count</strong></button>
+                <button type="button" class="wh03-stat normal"><span>Ready</span><strong>@CountOrderStatus("READY")</strong></button>
+                <button type="button" class="wh03-stat below"><span>Picked</span><strong>@CountOrderStatus("PICKED")</strong></button>
+                <button type="button" class="wh03-stat over"><span>Released</span><strong>@CountOrderStatus("RELEASED")</strong></button>
+            </div>
+        </RadzenCard>
+
+        <div class="pda-card-h fg-section-label">READY SHIPMENT ORDERS</div>
+        @if (_orders.Count == 0)
+        {
+            <div class="pda-empty">No shipment orders are ready for loading.</div>
+        }
+        else
+        {
+            <div class="wh03-list">
+                @foreach (var order in _orders)
+                {
+                    <RadzenCard class="@($"wh03-stock-card wh03-stock-compact {(_selectedOrder?.ShipmentOrderId == order.ShipmentOrderId ? "normal fg-selected" : "normal")}")" @onclick="@(() => SelectOrder(order))">
+                        <div class="wh03-compact-row main"><strong>@order.ShipOrderNumber</strong><span>@(order.ShipDate?.ToString("MM-dd") ?? "-")</span></div>
+                        <div class="wh03-compact-row sub"><span>@Text(order.CustomerCode) / @Text(order.DestPlant)</span><RadzenBadge class="wh03-status-badge normal" Text="@(order.Status ?? "Ready")" /></div>
+                    </RadzenCard>
+                }
+            </div>
+        }
+
+        <RadzenCard class="wh03-action-card fg-form-card">
+            <div class="wh03-section-title">TRUCK INFORMATION</div>
+            <div class="pda-fld"><label>SHIPMENT ORDER</label><RadzenDropDown TValue="int?" @bind-Value="_orderId" Data="@_orders" TextProperty="ShipOrderNumber" ValueProperty="ShipmentOrderId" Placeholder="Select Shipment Order" Change="OnOrderChanged" /></div>
+            <div class="pda-fld"><label>LICENSE PLATE</label><RadzenTextBox @bind-Value="_licensePlate" Placeholder="Truck license plate" /></div>
+            <div class="pda-fld"><label>DRIVER NAME</label><RadzenTextBox @bind-Value="_driver" Placeholder="Driver name" /></div>
+            <div class="fg-form-grid"><div class="pda-fld"><label>DOCK NO</label><RadzenDropDown @bind-Value="_dock" Data="@Docks" /></div><div class="pda-fld"><label>SEAL NO</label><RadzenTextBox @bind-Value="_seal" Placeholder="Optional" /></div></div>
+        </RadzenCard>
+        @if (!string.IsNullOrWhiteSpace(_message)) { <div class="pda-status @_messageClass">@_message</div> }
+        <div class="wh07-action-spacer"></div>
     </div>
+    <div class="wh02-action-bar has-reset fg-form-actions"><RadzenButton class="wh02-clear-btn" Text="CLEAR" Click="Clear" /><RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-receive-action-btn {(CanSubmit ? "ready" : "blocked")}")" Text="CONFIRM LOAD" Disabled="@_submitting" Click="Submit" /></div>
 </div>
 
 @code {
-    int _so; string _lp = "", _dn = "", _dk = "DOCK-1", _seal = "";
-    string _msg = " ", _cls = "dim";
-    async Task Submit()
+    private static readonly string[] Docks = ["DOCK-1", "DOCK-2", "DOCK-3"];
+    private List<PdaApi.FgOrderRow> _orders = new();
+    private PdaApi.FgOrderRow? _selectedOrder;
+    private int? _orderId;
+    private string _licensePlate = "", _driver = "", _dock = Docks[0], _seal = "";
+    private string _message = "", _messageClass = "dim";
+    private bool _submitting, _isLoading;
+    private bool CanSubmit => _orderId is > 0 && !string.IsNullOrWhiteSpace(_licensePlate) && !string.IsNullOrWhiteSpace(_dock);
+
+    protected override async Task OnInitializedAsync() => await Load();
+    private async Task Load()
     {
+        _isLoading = true;
+        try { _orders = (await Api.FgOrdersAsync()).Where(x => (x.Status ?? "").ToUpperInvariant() is "READY" or "PICKED" or "RELEASED").ToList(); }
+        finally { _isLoading = false; }
+    }
+    private void SelectOrder(PdaApi.FgOrderRow order) { _selectedOrder = order; _orderId = order.ShipmentOrderId; }
+    private int CountOrderStatus(string status) => _orders.Count(x => string.Equals(x.Status, status, StringComparison.OrdinalIgnoreCase));
+    private void OnOrderChanged(object value) { _selectedOrder = _orders.FirstOrDefault(x => x.ShipmentOrderId == _orderId); }
+    private void Clear() { _selectedOrder = null; _orderId = null; _licensePlate = _driver = _seal = ""; _dock = Docks[0]; _message = ""; }
+    private async Task Submit()
+    {
+        if (!CanSubmit || _orderId is null) { _message = "Select an order and enter the required truck information."; _messageClass = "fail"; return; }
+        _submitting = true;
         try
         {
-            var r = await Api.FgLoadingAsync(new PdaApi.FgLoadingReq(_so, _lp.Trim(), _dn.Trim(), _dk.Trim(), string.IsNullOrWhiteSpace(_seal) ? null : _seal.Trim()));
-            if (r.IsSuccessStatusCode) { _msg = "✓ Loaded · order Shipped"; _cls = "ok"; }
-            else                       { _msg = $"× HTTP {(int)r.StatusCode}"; _cls = "fail"; }
+            var result = await Api.FgLoadingAsync(new PdaApi.FgLoadingReq(_orderId.Value, _licensePlate.Trim(), _driver.Trim(), _dock, string.IsNullOrWhiteSpace(_seal) ? null : _seal.Trim()));
+            _message = result.IsSuccessStatusCode ? "Truck loading confirmed." : $"Loading failed. HTTP {(int)result.StatusCode}.";
+            _messageClass = result.IsSuccessStatusCode ? "ok" : "fail";
+            if (result.IsSuccessStatusCode)
+            {
+                _selectedOrder = null;
+                _orderId = null;
+                _licensePlate = _driver = _seal = "";
+                _dock = Docks[0];
+                await Load();
+            }
         }
-        catch (Exception ex) { _msg = "× " + ex.Message; _cls = "fail"; }
+        catch (Exception ex) { _message = ex.Message; _messageClass = "fail"; }
+        finally { _submitting = false; }
     }
+    private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
 }

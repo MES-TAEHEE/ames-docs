@@ -10,14 +10,23 @@ public static class FgEndpoints
 {
     // ── DTOs ─────────────────────────────────────────────────────────────
     public sealed record StockRow(int StockId, string? StockNumber, string ItemNo, string? ItemName,
-        int? LotId, string? CustomerCode, decimal Qty, string? Location, string? Status, DateTime? StockTs);
+        int? LotId, string? LotNo, string? CustomerCode, decimal Qty, string? Unit,
+        string? Location, string? Status, DateTime? StockTs);
     public sealed record OrderRow(int ShipmentOrderId, string? ShipOrderNumber, string? CustomerCode,
         string? CustomerPo, DateTime? ShipDate, string? CarrierCode, string? DestPlant, string? Status, int LineCount);
+    public sealed record OrderLineRow(int ShipmentOrderLineId, int ShipmentOrderId, int LineSeq,
+        string ItemNo, string? ItemName, decimal OrderedQty, decimal AllocatedQty,
+        int? StockId, string? LotNo, string? Location, string? ReservationStatus);
     public sealed record HistoryRow(int LoadingId, string? LoadingNumber, int? ShipmentOrderId,
         string? ShipOrderNumber, string? CustomerCode, string? LicensePlate, string? DriverName,
         DateTime? DepartureTs, string? OTDStatus);
     public sealed record DashboardDto(int OpenOrders, int ReadyToShip, int InTransit, int DeliveredToday,
         int PendingReturns, decimal StockOnHand);
+    public sealed record QcCompletedRow(int LotId, string LotNo, string? WoNumber, string ItemNo,
+        string? ItemName, string? CustomerCode, decimal Qty, string? Unit, DateTime? ProducedAt,
+        DateTime? QcPassTs);
+    public sealed record ReturnRow(int ReturnId, string? ReturnNumber, string? CustomerCode,
+        string? ItemNo, decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt);
 
     public sealed record PutAwayReq(int WoId, string ItemNo, decimal Qty, string ActualLoc, int PalletCount);
     public sealed record PutAwayScanRow(int? LotId, string LotNo, int? WoId, string? WoNumber,
@@ -55,6 +64,50 @@ public static class FgEndpoints
     public static void MapFg(this WebApplication app, AmesConnectionFactory factory)
     {
         var g = app.MapGroup("/api/fg").WithTags("Finished Goods");
+
+        // FG-01 QC Complete List - passed FG LOTs waiting for Put-Away.
+        g.MapGet("/qc-completed", (HttpContext ctx) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            const string sql = """
+                SELECT TOP 100
+                    L.LotID,
+                    L.LotCode AS LotNo,
+                    W.WoNumber,
+                    COALESCE(NULLIF(L.ItemNo, ''), W.ItemNo) AS ItemNo,
+                    I.ItemName,
+                    Q.CustomerCode,
+                    CAST(COALESCE(NULLIF(Q.BatchQty, 0), NULLIF(L.RemainingQty, 0),
+                         NULLIF(L.BatchSize, 0), NULLIF(W.CompletedQty, 0), 0) AS DECIMAL(14,3)) AS Qty,
+                    I.DefaultUOM AS Unit,
+                    L.ProducedAt,
+                    Q.InsEndTS AS QcPassTs
+                FROM dbo.tbl_Lot L
+                LEFT JOIN dbo.PP_WorkOrder W ON W.WoID = L.WoID
+                LEFT JOIN dbo.MD_Item I ON I.ItemNo = COALESCE(NULLIF(L.ItemNo, ''), W.ItemNo)
+                CROSS APPLY
+                (
+                    SELECT TOP (1) QI.CustomerCode, QI.BatchQty, QI.InsEndTS
+                    FROM dbo.QC_Inspection QI
+                    WHERE (QI.LotID = L.LotID OR (L.WoID IS NOT NULL AND QI.WoID = L.WoID))
+                      AND UPPER(ISNULL(QI.Verdict, '')) IN ('PASS', 'PASSED', 'OK')
+                    ORDER BY QI.InsEndTS DESC, QI.InspectionID DESC
+                ) Q
+                WHERE NOT EXISTS
+                (
+                    SELECT 1
+                    FROM dbo.FG_Inventory S
+                    WHERE (S.LotID = L.LotID OR (L.WoID IS NOT NULL AND S.WoID = L.WoID))
+                      AND UPPER(ISNULL(S.Status, '')) NOT IN ('CANCELED', 'CANCELLED')
+                )
+                ORDER BY Q.InsEndTS DESC, L.ProducedAt DESC, L.LotID DESC;
+                """;
+            return Query(factory, sql, r => new QcCompletedRow(
+                (int)r["LotID"], r["LotNo"] as string ?? "", r["WoNumber"] as string,
+                r["ItemNo"] as string ?? "", r["ItemName"] as string, r["CustomerCode"] as string,
+                r.GetDecimal(r.GetOrdinal("Qty")), r["Unit"] as string,
+                r["ProducedAt"] as DateTime?, r["QcPassTs"] as DateTime?));
+        });
 
         // FG-01 PDA Put-Away - scan QC passed FG LOT or WO.
         g.MapGet("/putaway/scan", (HttpContext ctx, string barcode) =>
@@ -243,18 +296,25 @@ public static class FgEndpoints
             if (ctx.GetSession() is null) return Results.Unauthorized();
             const string sql = """
                 SELECT TOP 100 s.StockID, s.StockNumber, s.ItemNo, m.ItemName,
-                       s.LotID, s.CustomerCode, ISNULL(s.Qty,0) AS Qty,
+                       s.LotID, l.LotCode AS LotNo, s.CustomerCode, ISNULL(s.Qty,0) AS Qty,
+                       m.DefaultUOM AS Unit,
                        s.Location, s.Status, s.StockTS
                 FROM   dbo.FG_Inventory s
                 LEFT JOIN dbo.MD_Item m ON m.ItemNo = s.ItemNo
-                WHERE  (@Q = '' OR s.ItemNo LIKE '%' + @Q + '%' OR m.ItemName LIKE '%' + @Q + '%')
+                LEFT JOIN dbo.tbl_Lot l ON l.LotID = s.LotID
+                WHERE  (@Q = ''
+                    OR s.ItemNo LIKE '%' + @Q + '%'
+                    OR m.ItemName LIKE '%' + @Q + '%'
+                    OR l.LotCode LIKE '%' + @Q + '%'
+                    OR s.Location LIKE '%' + @Q + '%')
                 ORDER BY s.StockTS DESC;
                 """;
             return QueryWithParam(factory, sql, "@Q", q ?? "", r => new StockRow(
                 (int)r["StockID"], r["StockNumber"] as string,
                 r["ItemNo"] as string ?? "", r["ItemName"] as string,
-                r["LotID"] as int?, r["CustomerCode"] as string,
+                r["LotID"] as int?, r["LotNo"] as string, r["CustomerCode"] as string,
                 r.GetDecimal(r.GetOrdinal("Qty")),
+                r["Unit"] as string,
                 r["Location"] as string, r["Status"] as string, r["StockTS"] as DateTime?));
         });
 
@@ -277,6 +337,29 @@ public static class FgEndpoints
                 r["ShipDate"] as DateTime?, r["CarrierCode"] as string,
                 r["DestPlant"] as string, r["Status"] as string,
                 (int)r["LineCount"]));
+        });
+
+        g.MapGet("/orders/{shipOrderNumber}/lines", (HttpContext ctx, string shipOrderNumber) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            const string sql = """
+                SELECT l.ShipmentOrderLineID, l.ShipmentOrderID, ISNULL(l.LineSeq, 0) AS LineSeq,
+                       l.ItemNo, i.ItemName, ISNULL(l.OrderedQty, 0) AS OrderedQty,
+                       ISNULL(l.AllocatedQty, 0) AS AllocatedQty, l.StockID,
+                       lot.LotCode AS LotNo, l.Location, l.ReservationStatus
+                FROM dbo.FG_ShipmentOrderLine l
+                JOIN dbo.FG_ShipmentOrder o ON o.ShipmentOrderID = l.ShipmentOrderID
+                LEFT JOIN dbo.MD_Item i ON i.ItemNo = l.ItemNo
+                LEFT JOIN dbo.tbl_Lot lot ON lot.LotID = l.LotID
+                WHERE o.ShipOrderNumber = @Q
+                ORDER BY l.LineSeq, l.ShipmentOrderLineID;
+                """;
+            return QueryWithParam(factory, sql, "@Q", shipOrderNumber, r => new OrderLineRow(
+                (int)r["ShipmentOrderLineID"], (int)r["ShipmentOrderID"], (int)r["LineSeq"],
+                r["ItemNo"] as string ?? "", r["ItemName"] as string,
+                r.GetDecimal(r.GetOrdinal("OrderedQty")), r.GetDecimal(r.GetOrdinal("AllocatedQty")),
+                r["StockID"] as int?, r["LotNo"] as string, r["Location"] as string,
+                r["ReservationStatus"] as string));
         });
 
         // FG-04 FIFO Pick — write FG_PickingFifo + reserve a FG_Inventory row
@@ -451,6 +534,24 @@ public static class FgEndpoints
             var id = (int)cmd.ExecuteScalar()!;
             return Results.Ok(new { ReturnId = id });
         });
+
+        g.MapGet("/returns", (HttpContext ctx) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            const string sql = """
+                SELECT TOP 50
+                    ReturnID, ReturnNumber, CustomerCode,
+                    JSON_VALUE(ItemsJSON, '$[0].itemNo') AS ItemNo,
+                    TRY_CONVERT(decimal(12,3), JSON_VALUE(ItemsJSON, '$[0].qty')) AS Qty,
+                    ReturnReason, Status, ReceivedAt
+                FROM dbo.FG_CustomerReturn
+                ORDER BY ReceivedAt DESC, ReturnID DESC;
+                """;
+            return Query(factory, sql, r => new ReturnRow(
+                (int)r["ReturnID"], r["ReturnNumber"] as string, r["CustomerCode"] as string,
+                r["ItemNo"] as string, r["Qty"] == DBNull.Value ? 0 : Convert.ToDecimal(r["Qty"]),
+                r["ReturnReason"] as string, r["Status"] as string, r["ReceivedAt"] as DateTime?));
+        });
     }
 
     // ── helpers ──────────────────────────────────────────────────────────
@@ -508,7 +609,7 @@ public static class FgEndpoints
                     UPPER(ISNULL(NULLIF(PS.PackType, ''), 'LOCATION')) AS StorageMethod
                 FROM dbo.MD_PackagingSpec PS
                 WHERE PS.ItemID = COALESCE(NULLIF(L.ItemNo, ''), W.ItemNo)
-                  AND UPPER(ISNULL(PS.Status, 'ACTIVE')) IN ('ACTIVE', 'USE', 'Y')
+                  AND ISNULL(PS.ActiveFlag, 1) = 1
                 ORDER BY
                     CASE UPPER(ISNULL(PS.PackType, ''))
                         WHEN 'PALLET' THEN 0

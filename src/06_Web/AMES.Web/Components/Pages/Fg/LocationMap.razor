@@ -1,0 +1,150 @@
+@page "/fg/location-map"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.FinishedGoodsRepository Fg
+@inject AMES.Data.Repositories.WarehouseRepository Wh
+@using Radzen
+
+<PageTitle>Location Map - AMES</PageTitle>
+<AmesPageHeader Code="FG-102" Title="Location Map" />
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">Warehouse</div><div class="ames-kpi-v">@WarehouseCards.Count</div><div class="ames-kpi-s">with finished goods</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">Area</div><div class="ames-kpi-v">@AreaCards.Count</div><div class="ames-kpi-s">current hierarchy</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">Locations</div><div class="ames-kpi-v">@VisibleLocations.Count</div><div class="ames-kpi-s">current view</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">Quantity</div><div class="ames-kpi-v">@VisibleInventory.Sum(x => x.Qty).ToString("N0")</div><div class="ames-kpi-s">finished goods</div></div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_message)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_message</RadzenAlert> }
+
+<div class="ames-card">
+    <div class="ames-card-h wh-location-directory-toolbar">
+        <div><span>@StageTitle</span><div class="dim">@StageDescription</div></div>
+        <div class="wh-map-search">
+            <RadzenTextBox @bind-Value="_search" Placeholder="Search part, lot, or location" InputSize="InputSize.Small" class="ames-rz-input wh-map-search-input" @onkeydown='e => { if (e.Key == "Enter") Search(); }' />
+            <RadzenButton Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="Search" class="ames-rz-btn" />
+            @if (!string.IsNullOrWhiteSpace(_search)) { <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="ClearSearch" class="ames-rz-btn" /> }
+        </div>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            @if (_stage != DirectoryStage.Warehouse) { <RadzenButton Text="Back" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="Back" class="ames-rz-btn" /> }
+            @if (_stage == DirectoryStage.Location) { <RadzenDropDown @bind-Value="_level" Data="@LevelOptions" Placeholder="Level" Change="@(_ => SelectLevel())" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" /> }
+            <RadzenButton Text="Refresh" Icon="refresh" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+
+    <div class="wh-map-breadcrumb">
+        <button type="button" class="@BreadcrumbClass(DirectoryStage.Warehouse)" @onclick="BackToWarehouse">Warehouse</button><span>/</span>
+        <button type="button" class="@BreadcrumbClass(DirectoryStage.Area)" disabled="@string.IsNullOrWhiteSpace(_whCode)" @onclick="BackToArea">@(_whCode ?? "Area")</button><span>/</span>
+        <button type="button" class="@BreadcrumbClass(DirectoryStage.Zone)" disabled="@string.IsNullOrWhiteSpace(_areaCode)" @onclick="BackToZone">@(_areaCode ?? "Zone")</button><span>/</span>
+        <button type="button" class="@BreadcrumbClass(DirectoryStage.Location)" disabled="@string.IsNullOrWhiteSpace(_zoneCode)">@(_zoneCode ?? "Location")</button>
+    </div>
+
+    <div class="wh-location-directory-workspace">
+        <section class="wh-location-directory">
+            <div class="wh-location-directory-head"><div><span>@CardLabel</span><strong>@CardTitle</strong></div><span>@CurrentCount records</span></div>
+            @if (_stage == DirectoryStage.Warehouse)
+            {
+                <div class="wh-location-directory-grid">@foreach (var row in WarehouseCards) { <button type="button" class="wh-location-directory-card" @onclick="() => SelectWarehouse(row.WhCode)"><span class="wh-location-directory-code">@row.WhCode</span><strong>@(row.WhName ?? "Warehouse")</strong><span class="wh-location-directory-summary">@LocationCount(row.WhCode) locations</span><span class="wh-location-directory-qty">@Qty(row.WhCode).ToString("N0") qty</span><RadzenIcon Icon="arrow_forward" class="wh-location-directory-arrow" /></button> }</div>
+            }
+            else if (_stage == DirectoryStage.Area)
+            {
+                <div class="wh-location-directory-grid">@foreach (var row in AreaCards) { <button type="button" class="wh-location-directory-card" @onclick="() => SelectArea(row.AreaCode)"><span class="wh-location-directory-code">@row.AreaCode</span><strong>@(row.AreaName ?? "Area")</strong><span class="wh-location-directory-summary">@LocationCount(_whCode, row.AreaCode) locations</span><span class="wh-location-directory-qty">@Qty(_whCode, row.AreaCode).ToString("N0") qty</span><RadzenIcon Icon="arrow_forward" class="wh-location-directory-arrow" /></button> }</div>
+            }
+            else if (_stage == DirectoryStage.Zone)
+            {
+                <div class="wh-location-directory-grid">@foreach (var row in ZoneCards) { <button type="button" class="wh-location-directory-card" @onclick="() => SelectZone(row.SectionCode)"><span class="wh-location-directory-code">@row.SectionCode</span><strong>@(row.SectionName ?? "Zone")</strong><span class="wh-location-directory-summary">@LocationCount(_whCode, _areaCode, row.SectionCode) locations</span><span class="wh-location-directory-qty">@Qty(_whCode, _areaCode, row.SectionCode).ToString("N0") qty</span><RadzenIcon Icon="arrow_forward" class="wh-location-directory-arrow" /></button> }</div>
+            }
+            else
+            {
+                <div class="wh-location-grid-stage"><div class="wh-location-grid-head"><div><strong>@_zoneCode</strong><span>Level @(_level ?? "-") · X/Y Location Grid</span></div><span>@VisibleLocations.Count locations</span></div>@RenderGrid()</div>
+            }
+            @if (CurrentCount == 0) { <div class="ames-empty">No @CardLabel.ToLowerInvariant() records found.</div> }
+        </section>
+
+        <aside class="wh-map-stock-panel">
+            <div class="wh-map-stock-head"><div><span>Inventory in View</span><strong>@ScopeLabel</strong></div><span class="wh-map-stock-count">@VisibleInventory.Count rows</span></div>
+            @if (VisibleInventory.Count == 0) { <div class="wh-map-stock-empty"><strong>No stock found</strong><span>No finished-goods inventory in this view.</span></div> }
+            else
+            {
+                <div class="wh-map-stock-list">
+                    @foreach (var stock in VisibleInventory)
+                    {
+                        <button type="button" class="wh-map-stock-item @(_highlightedLocation == stock.LocationNo ? "highlighted" : "")" @onclick="() => HighlightStock(stock)">
+                            <span class="wh-map-stock-part">@stock.ItemNo</span>
+                            <span class="wh-map-stock-name">@(stock.ItemName ?? "Finished good")</span>
+                            <span class="wh-map-stock-meta"><b>@(stock.LocationNo ?? "-")</b><span>@stock.Qty.ToString("N0") @(stock.Unit ?? "EA")</span></span>
+                            <span class="wh-map-stock-name">LOT @(stock.LotNo ?? stock.StockNumber ?? "-")</span>
+                        </button>
+                    }
+                </div>
+            }
+        </aside>
+    </div>
+</div>
+
+@code {
+    enum DirectoryStage { Warehouse, Area, Zone, Location }
+    DirectoryStage _stage;
+    List<AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow> _warehouses = new();
+    List<AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow> _areas = new();
+    List<AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow> _zones = new();
+    List<AMES.Data.Repositories.FinishedGoodsRepository.LocationRow> _locations = new();
+    List<AMES.Data.Repositories.FinishedGoodsRepository.InventoryRow> _inventory = new();
+    string? _whCode, _areaCode, _zoneCode, _level, _highlightedLocation;
+    string _search = "", _message = "";
+
+    List<AMES.Data.Repositories.WarehouseRepository.WarehouseMasterRow> WarehouseCards => _warehouses.Where(w => _locations.Any(l => l.WarehouseCode == w.WhCode)).ToList();
+    List<AMES.Data.Repositories.WarehouseRepository.WarehouseAreaRow> AreaCards => _areas.Where(a => _locations.Any(l => l.WarehouseCode == _whCode && l.AreaCode == a.AreaCode)).ToList();
+    List<AMES.Data.Repositories.WarehouseRepository.WarehouseSectionRow> ZoneCards => _zones.Where(z => _locations.Any(l => l.WarehouseCode == _whCode && l.AreaCode == _areaCode && l.ZoneCode == z.SectionCode)).ToList();
+    List<AMES.Data.Repositories.FinishedGoodsRepository.LocationRow> VisibleLocations => _locations.Where(InScope).Where(x => _stage != DirectoryStage.Location || _level is null || x.LevelNo == _level).ToList();
+    List<AMES.Data.Repositories.FinishedGoodsRepository.InventoryRow> VisibleInventory => _inventory.Where(x => VisibleLocations.Any(l => l.LocationNo == x.LocationNo)).Where(x => string.IsNullOrWhiteSpace(_search) || Match(x)).Take(200).ToList();
+    List<string> LevelOptions => _locations.Where(x => x.WarehouseCode == _whCode && x.AreaCode == _areaCode && x.ZoneCode == _zoneCode).Select(x => x.LevelNo).Where(x => !string.IsNullOrWhiteSpace(x)).Cast<string>().Distinct().OrderBy(x => x).ToList();
+    string StageTitle => _stage switch { DirectoryStage.Warehouse => "WAREHOUSE", DirectoryStage.Area => "AREA", DirectoryStage.Zone => "ZONE", _ => "STORAGE LOCATIONS" };
+    string StageDescription => _stage switch { DirectoryStage.Warehouse => "Select a warehouse.", DirectoryStage.Area => "Select an area.", DirectoryStage.Zone => "Select a zone.", _ => "Select a level, then review locations and current inventory." };
+    string CardLabel => _stage switch { DirectoryStage.Warehouse => "Warehouse", DirectoryStage.Area => "Area", DirectoryStage.Zone => "Zone", _ => "Location" };
+    string CardTitle => _stage switch { DirectoryStage.Warehouse => "Finished Goods Warehouses", DirectoryStage.Area => _whCode ?? "Areas", DirectoryStage.Zone => _areaCode ?? "Zones", _ => $"{_zoneCode} · Level {_level}" };
+    int CurrentCount => _stage switch { DirectoryStage.Warehouse => WarehouseCards.Count, DirectoryStage.Area => AreaCards.Count, DirectoryStage.Zone => ZoneCards.Count, _ => VisibleLocations.Count };
+    string ScopeLabel => _stage switch { DirectoryStage.Warehouse => "All Warehouses", DirectoryStage.Area => _whCode ?? "Warehouse", DirectoryStage.Zone => $"{_whCode} / {_areaCode}", _ => $"{_zoneCode} / Level {_level}" };
+
+    protected override void OnInitialized() => Reload();
+    void Reload()
+    {
+        try { _locations = Fg.ListLocations(includeInactive: false); _inventory = Fg.ListInventory(); _warehouses = Wh.ListWarehouses(null, false); _areas = Wh.ListWarehouseAreas(null, false, _whCode); _zones = Wh.ListWarehouseSections(_areaCode, null, false, _whCode); _message = ""; }
+        catch (Exception ex) { _message = ex.Message; }
+    }
+    void SelectWarehouse(string code) { _whCode = code; _areaCode = _zoneCode = _level = null; _stage = DirectoryStage.Area; _areas = Wh.ListWarehouseAreas(null, false, code); }
+    void SelectArea(string code) { _areaCode = code; _zoneCode = _level = null; _stage = DirectoryStage.Zone; _zones = Wh.ListWarehouseSections(code, null, false, _whCode); }
+    void SelectZone(string code) { _zoneCode = code; _stage = DirectoryStage.Location; _level = LevelOptions.FirstOrDefault(); }
+    void SelectLevel() { }
+    void Back() { if (_stage == DirectoryStage.Location) BackToZone(); else if (_stage == DirectoryStage.Zone) BackToArea(); else BackToWarehouse(); }
+    void BackToWarehouse() { _stage = DirectoryStage.Warehouse; _whCode = _areaCode = _zoneCode = _level = null; }
+    void BackToArea() { if (_whCode is null) { BackToWarehouse(); return; } _stage = DirectoryStage.Area; _areaCode = _zoneCode = _level = null; }
+    void BackToZone() { if (_areaCode is null) { BackToArea(); return; } _stage = DirectoryStage.Zone; _zoneCode = _level = null; }
+    string BreadcrumbClass(DirectoryStage stage) => _stage == stage ? "on" : "";
+    void ClearSearch() { _search = ""; _message = ""; }
+    void HighlightStock(AMES.Data.Repositories.FinishedGoodsRepository.InventoryRow stock)
+    {
+        _highlightedLocation = stock.LocationNo;
+        var location = _locations.FirstOrDefault(x => x.LocationNo == stock.LocationNo);
+        if (location is null) return;
+        _whCode = location.WarehouseCode; _areaCode = location.AreaCode; _zoneCode = location.ZoneCode; _level = location.LevelNo; _stage = DirectoryStage.Location;
+    }
+    void Search()
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return;
+        var stock = _inventory.FirstOrDefault(Match);
+        var location = stock is not null ? _locations.FirstOrDefault(x => x.LocationNo == stock.LocationNo) : _locations.FirstOrDefault(x => x.LocationNo.Contains(_search, StringComparison.OrdinalIgnoreCase) || (x.LocationName?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false));
+        if (location is null) { _message = $"No location matches '{_search}'."; return; }
+        _whCode = location.WarehouseCode; _areaCode = location.AreaCode; _zoneCode = location.ZoneCode; _level = location.LevelNo; _highlightedLocation = location.LocationNo; _stage = DirectoryStage.Location; _message = "";
+    }
+    bool InScope(AMES.Data.Repositories.FinishedGoodsRepository.LocationRow x) => _stage switch { DirectoryStage.Warehouse => true, DirectoryStage.Area => x.WarehouseCode == _whCode, DirectoryStage.Zone => x.WarehouseCode == _whCode && x.AreaCode == _areaCode, _ => x.WarehouseCode == _whCode && x.AreaCode == _areaCode && x.ZoneCode == _zoneCode };
+    bool Match(AMES.Data.Repositories.FinishedGoodsRepository.InventoryRow x) => new[] { x.ItemNo, x.ItemName, x.LotNo, x.StockNumber, x.LocationNo }.Any(v => v?.Contains(_search, StringComparison.OrdinalIgnoreCase) == true);
+    int LocationCount(string? wh, string? area = null, string? zone = null) => _locations.Count(x => (wh is null || x.WarehouseCode == wh) && (area is null || x.AreaCode == area) && (zone is null || x.ZoneCode == zone));
+    decimal Qty(string? wh, string? area = null, string? zone = null) => _locations.Where(x => (wh is null || x.WarehouseCode == wh) && (area is null || x.AreaCode == area) && (zone is null || x.ZoneCode == zone)).Sum(x => x.Qty);
+    RenderFragment RenderGrid() => __builder =>
+    {
+        var columns = VisibleLocations.Select(x => x.ColumnNo ?? "-").Distinct().OrderBy(x => x).ToList();
+        var rows = VisibleLocations.Select(x => x.RowNo ?? "-").Distinct().OrderBy(x => x).ToList();
+        <div class="wh-location-coordinate-scroll"><div class="wh-location-coordinate-map" style="grid-template-columns: 70px repeat(@Math.Max(1, columns.Count), minmax(140px, 1fr));"><div class="wh-location-axis-cell corner">Y / X</div>@foreach (var column in columns) { <div class="wh-location-axis-cell">@column</div> }@foreach (var row in rows) { <div class="wh-location-axis-cell">@row</div>@foreach (var column in columns) { var cell = VisibleLocations.FirstOrDefault(x => (x.ColumnNo ?? "-") == column && (x.RowNo ?? "-") == row); if (cell is null) { <div class="wh-location-bin empty"></div> } else { <button type="button" class="wh-location-bin @(cell.Qty > 0 ? "stocked" : "empty")"><span class="wh-location-bin-code">@cell.LocationNo</span><span class="wh-location-bin-zone">@(cell.LocationName ?? cell.ZoneCode)</span><span class="wh-location-bin-qty">@cell.Qty.ToString("N0")</span></button> } } }</div></div>;
+    };
+}
