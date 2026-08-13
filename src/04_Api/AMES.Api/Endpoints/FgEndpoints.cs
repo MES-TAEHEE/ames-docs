@@ -27,6 +27,10 @@ public static class FgEndpoints
         DateTime? QcPassTs);
     public sealed record ReturnRow(int ReturnId, string? ReturnNumber, string? CustomerCode,
         string? ItemNo, decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt);
+    public sealed record ReturnScanRow(string Barcode, string? StockNumber, string? LotNo,
+        int ShipmentOrderId, string? ShipOrderNumber, string CustomerCode,
+        string ItemNo, string? ItemName, DateTime ShippedAt);
+    public sealed record ReturnResult(bool Success, string Message, int? ReturnId, ReturnScanRow? Row);
 
     public sealed record PutAwayReq(int WoId, string ItemNo, decimal Qty, string ActualLoc, int PalletCount);
     public sealed record PutAwayScanRow(int? LotId, string LotNo, int? WoId, string? WoNumber,
@@ -48,7 +52,7 @@ public static class FgEndpoints
     public sealed record LoadingReq(int ShipmentOrderId, string LicensePlate, string DriverName, string DockNo, string? SealNo);
     public sealed record DeliveryReq(int ShipmentOrderId, int? LoadingId);
     public sealed record DayEndReq(string CloseMode, string? Note);
-    public sealed record ReturnReq(string CustomerCode, int? OriginalShipmentOrderId, string ReturnReason, decimal Qty, string ItemNo);
+    public sealed record ReturnReq(string Barcode, string ReturnReason);
 
     private const string BarcodeLot = "LOT";
     private const string BarcodeWo = "WORK_ORDER";
@@ -57,6 +61,8 @@ public static class FgEndpoints
     private const string BarcodePallet = "PALLET";
     private const string BarcodeRack = "RACK";
     private const string BarcodeUnknown = "UNKNOWN";
+    private static readonly string[] ReturnReasons =
+        ["Defect", "Wrong item", "Damaged in transit", "Customer change", "Other"];
 
     private sealed record ParsedFgBarcode(string Raw, string Value, string Kind);
 
@@ -509,10 +515,40 @@ public static class FgEndpoints
         });
 
         // FG-RTN Return
+        g.MapGet("/return/scan", (HttpContext ctx, string barcode) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+
+            using var conn = factory.OpenConnection();
+            var validation = ValidateReturnProduct(conn, null, barcode, lockReturnHistory: false);
+            return validation.Product is null
+                ? Results.BadRequest(new ReturnResult(false, validation.Message, null, null))
+                : Results.Ok(new ReturnResult(true, "Product is eligible for customer return.", null, validation.Product.Row));
+        });
+
         g.MapPost("/return", (HttpContext ctx, ReturnReq body) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+
+            var returnReason = ReturnReasons.FirstOrDefault(x =>
+                string.Equals(x, body.ReturnReason?.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (returnReason is null)
+            {
+                return Results.BadRequest(new ReturnResult(false,
+                    "Select a valid return reason.", null, null));
+            }
+
             using var conn = factory.OpenConnection();
+            using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+            var validation = ValidateReturnProduct(conn, tx, body.Barcode, lockReturnHistory: true);
+            if (validation.Product is null)
+            {
+                tx.Rollback();
+                return Results.BadRequest(new ReturnResult(false,
+                    validation.Message, null, null));
+            }
+            var product = validation.Product;
+
             using var cmd  = new SqlCommand("""
                 INSERT INTO dbo.FG_CustomerReturn
                     (ReturnNumber, CustomerCode, OriginalShipmentOrderID,
@@ -521,18 +557,23 @@ public static class FgEndpoints
                 OUTPUT INSERTED.ReturnID
                 VALUES (CONCAT('RMA-', FORMAT(SYSDATETIME(),'yyMMddHHmmss')),
                         @C, @So, @R,
-                        CONCAT('[{"itemNo":"', @I, '","qty":', @Q, '}]'),
+                        (SELECT @I AS itemNo, @Lot AS lotNo, @Stock AS stockNumber,
+                                @Barcode AS barcode, @Q AS qty FOR JSON PATH),
                         'Open', SYSDATETIME(), @By, 0,
                         'pda', SYSDATETIME());
-                """, conn);
-            cmd.Parameters.AddWithValue("@C",  body.CustomerCode);
-            cmd.Parameters.AddWithValue("@So", (object?)body.OriginalShipmentOrderId ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@R",  body.ReturnReason);
-            cmd.Parameters.AddWithValue("@I",  body.ItemNo);
-            cmd.Parameters.AddWithValue("@Q",  body.Qty);
+                """, conn, tx);
+            cmd.Parameters.AddWithValue("@C", product.Row.CustomerCode);
+            cmd.Parameters.AddWithValue("@So", product.Row.ShipmentOrderId);
+            cmd.Parameters.AddWithValue("@R", returnReason);
+            cmd.Parameters.AddWithValue("@I", product.Row.ItemNo);
+            cmd.Parameters.AddWithValue("@Lot", (object?)product.Row.LotNo ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Stock", (object?)product.Row.StockNumber ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Barcode", product.Row.Barcode);
+            cmd.Parameters.AddWithValue("@Q", product.Qty);
             cmd.Parameters.AddWithValue("@By", s.OperatorId);
             var id = (int)cmd.ExecuteScalar()!;
-            return Results.Ok(new { ReturnId = id });
+            tx.Commit();
+            return Results.Ok(new ReturnResult(true, "Customer return received.", id, product.Row));
         });
 
         g.MapGet("/returns", (HttpContext ctx) =>
@@ -555,6 +596,187 @@ public static class FgEndpoints
     }
 
     // ── helpers ──────────────────────────────────────────────────────────
+    private sealed record ReturnProductData(ReturnScanRow Row, decimal Qty);
+    private sealed record ReturnCandidate(int ShipmentOrderLineId, bool HasFutureShipmentDate, ReturnProductData Product);
+    private sealed record ReturnValidation(ReturnProductData? Product, string Message);
+
+    private static ReturnValidation ValidateReturnProduct(
+        SqlConnection conn, SqlTransaction? tx, string barcode, bool lockReturnHistory)
+    {
+        if (!TryNormalizeReturnBarcode(barcode, out var normalized, out var formatError))
+            return new ReturnValidation(null, formatError);
+
+        using var cmd = new SqlCommand("""
+            SELECT TOP (10)
+                L.ShipmentOrderLineID,
+                S.StockNumber,
+                LOT.LotCode,
+                O.ShipmentOrderID,
+                O.ShipOrderNumber,
+                O.CustomerCode,
+                L.ItemNo,
+                I.ItemName,
+                LC.DepartureTS AS ShippedAt,
+                CASE WHEN LC.DepartureTS > DATEADD(minute, 5, SYSDATETIME()) THEN 1 ELSE 0 END AS FutureShipmentFlag,
+                CAST(COALESCE(NULLIF(L.AllocatedQty, 0), NULLIF(S.Qty, 0),
+                              NULLIF(L.OrderedQty, 0), 1) AS decimal(12,3)) AS ReturnQty
+            FROM dbo.FG_ShipmentOrderLine L
+            JOIN dbo.FG_ShipmentOrder O
+              ON O.ShipmentOrderID = L.ShipmentOrderID
+            LEFT JOIN dbo.FG_Inventory S
+              ON S.StockID = L.StockID
+            LEFT JOIN dbo.tbl_Lot LOT
+              ON LOT.LotID = COALESCE(L.LotID, S.LotID)
+            LEFT JOIN dbo.MD_Item I
+              ON I.ItemNo = L.ItemNo
+            OUTER APPLY
+            (
+                SELECT TOP (1) X.DepartureTS
+                FROM dbo.FG_LoadingConfirm X
+                WHERE X.ShipmentOrderID = O.ShipmentOrderID
+                  AND X.DepartureTS IS NOT NULL
+                ORDER BY X.DepartureTS DESC, X.LoadingID DESC
+            ) LC
+            WHERE UPPER(ISNULL(LOT.LotCode, '')) = UPPER(@Barcode)
+               OR UPPER(ISNULL(S.StockNumber, '')) = UPPER(@Barcode)
+            ORDER BY LC.DepartureTS DESC, L.ShipmentOrderLineID DESC;
+            """, conn, tx);
+        cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 80).Value = normalized;
+
+        var candidates = new List<ReturnCandidate>();
+        using (var rdr = cmd.ExecuteReader())
+        {
+            while (rdr.Read())
+            {
+                var candidateRow = new ReturnScanRow(
+                    normalized,
+                    GetString(rdr, "StockNumber"),
+                    GetString(rdr, "LotCode"),
+                    GetInt(rdr, "ShipmentOrderID") ?? 0,
+                    GetString(rdr, "ShipOrderNumber"),
+                    GetString(rdr, "CustomerCode") ?? "",
+                    GetString(rdr, "ItemNo") ?? "",
+                    GetString(rdr, "ItemName"),
+                    GetDate(rdr, "ShippedAt") ?? DateTime.MinValue);
+                candidates.Add(new ReturnCandidate(
+                    GetInt(rdr, "ShipmentOrderLineID") ?? 0,
+                    GetInt(rdr, "FutureShipmentFlag") == 1,
+                    new ReturnProductData(candidateRow, GetDecimal(rdr, "ReturnQty"))));
+            }
+        }
+
+        if (candidates.Count == 0)
+            return new ReturnValidation(null, "This barcode does not match a finished-good LOT or stock record.");
+
+        var shipped = candidates
+            .Where(x => x.Product.Row.ShippedAt != DateTime.MinValue)
+            .OrderByDescending(x => x.Product.Row.ShippedAt)
+            .ThenByDescending(x => x.ShipmentOrderLineId)
+            .ToList();
+        if (shipped.Count == 0)
+            return new ReturnValidation(null, "The product exists, but no completed shipment history was found.");
+
+        var latestCandidate = shipped[0];
+        var latest = latestCandidate.Product;
+        var row = latest.Row;
+        if (latestCandidate.HasFutureShipmentDate)
+            return new ReturnValidation(null, "The shipment date is in the future. Verify the loading record.");
+        if (row.ShipmentOrderId <= 0 || string.IsNullOrWhiteSpace(row.ShipOrderNumber))
+            return new ReturnValidation(null, "The shipment record is incomplete. Shipment order information is required.");
+        if (string.IsNullOrWhiteSpace(row.CustomerCode))
+            return new ReturnValidation(null, "The shipment record is incomplete. Customer information is required.");
+        if (string.IsNullOrWhiteSpace(row.ItemNo) || string.IsNullOrWhiteSpace(row.ItemName))
+            return new ReturnValidation(null, "The shipment record is incomplete. Part master information is required.");
+        if (latest.Qty <= 0)
+            return new ReturnValidation(null, "The shipment quantity is invalid. Verify the shipment line.");
+
+        var sameDepartureMatches = shipped.Count(x =>
+            x.Product.Row.ShippedAt == row.ShippedAt &&
+            x.Product.Row.ShipmentOrderId != row.ShipmentOrderId);
+        if (sameDepartureMatches > 0)
+            return new ReturnValidation(null, "This barcode matches multiple shipments. Contact a supervisor before receiving it.");
+
+        var lockHint = lockReturnHistory ? "WITH (UPDLOCK, HOLDLOCK)" : "";
+        using var returnCmd = new SqlCommand($$"""
+            SELECT TOP (1) ReturnNumber, Status, ReceivedAt
+            FROM dbo.FG_CustomerReturn {{lockHint}}
+            CROSS APPLY
+            (
+                SELECT CASE WHEN ISJSON(ItemsJSON) = 1 THEN ItemsJSON ELSE N'{}' END AS SafeItemsJSON
+            ) J
+            WHERE UPPER(ISNULL(Status, '')) NOT IN ('CANCELLED', 'REJECTED')
+              AND
+              (
+                   UPPER(ISNULL(JSON_VALUE(J.SafeItemsJSON, '$[0].barcode'), '')) = UPPER(@Barcode)
+                OR (@LotNo <> '' AND UPPER(ISNULL(JSON_VALUE(J.SafeItemsJSON, '$[0].lotNo'), '')) = UPPER(@LotNo))
+                OR (@StockNumber <> '' AND UPPER(ISNULL(JSON_VALUE(J.SafeItemsJSON, '$[0].stockNumber'), '')) = UPPER(@StockNumber))
+                OR
+                (
+                    OriginalShipmentOrderID = @ShipmentOrderID
+                    AND UPPER(ISNULL(JSON_VALUE(J.SafeItemsJSON, '$[0].itemNo'), '')) = UPPER(@ItemNo)
+                    AND NULLIF(JSON_VALUE(J.SafeItemsJSON, '$[0].barcode'), '') IS NULL
+                    AND NULLIF(JSON_VALUE(J.SafeItemsJSON, '$[0].lotNo'), '') IS NULL
+                    AND NULLIF(JSON_VALUE(J.SafeItemsJSON, '$[0].stockNumber'), '') IS NULL
+                )
+              )
+            ORDER BY ReceivedAt DESC, ReturnID DESC;
+            """, conn, tx);
+        returnCmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 80).Value = normalized;
+        returnCmd.Parameters.Add("@LotNo", SqlDbType.NVarChar, 80).Value = (object?)row.LotNo ?? "";
+        returnCmd.Parameters.Add("@StockNumber", SqlDbType.NVarChar, 80).Value = (object?)row.StockNumber ?? "";
+        returnCmd.Parameters.Add("@ShipmentOrderID", SqlDbType.Int).Value = row.ShipmentOrderId;
+        returnCmd.Parameters.Add("@ItemNo", SqlDbType.NVarChar, 40).Value = row.ItemNo;
+        using var returnReader = returnCmd.ExecuteReader();
+        if (returnReader.Read())
+        {
+            var returnNumber = GetString(returnReader, "ReturnNumber") ?? "an existing return";
+            var status = GetString(returnReader, "Status") ?? "Open";
+            return new ReturnValidation(null,
+                $"This product was already received under {returnNumber} ({status}).");
+        }
+
+        return new ReturnValidation(latest, "Product is eligible for customer return.");
+    }
+
+    private static bool TryNormalizeReturnBarcode(
+        string? barcode, out string normalized, out string error)
+    {
+        var value = (barcode ?? "").Replace("\u0002", "").Replace("\u0003", "").Trim();
+        normalized = "";
+        error = "";
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            error = "Scan the returned product barcode.";
+            return false;
+        }
+
+        var separator = value.IndexOf(':');
+        if (separator >= 0)
+        {
+            var prefix = value[..separator].Trim();
+            if (!new[] { "FGLOT", "LOT", "STOCK" }.Contains(prefix, StringComparer.OrdinalIgnoreCase))
+            {
+                error = "Unsupported barcode type. Scan an FG LOT or stock barcode.";
+                return false;
+            }
+            value = value[(separator + 1)..].Trim();
+        }
+
+        if (value.Length is < 3 or > 80)
+        {
+            error = "Barcode length must be between 3 and 80 characters.";
+            return false;
+        }
+        if (value.Any(ch => !(char.IsLetterOrDigit(ch) || ch is '-' or '_' or '.' or '/')))
+        {
+            error = "Barcode contains unsupported characters.";
+            return false;
+        }
+
+        normalized = value;
+        return true;
+    }
+
     private static PutAwayScanRow? FindPutAwayScanRow(SqlConnection conn, SqlTransaction? tx, string barcode)
     {
         using var cmd = new SqlCommand("""
