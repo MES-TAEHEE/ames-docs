@@ -613,7 +613,16 @@ public sealed class PdaApi
     public sealed record FgPutAwayResult(bool Success, string Message, int? StockId, FgPutAwayScanRow? Row,
         FgPutAwayLocationRow? Location);
     public sealed record FgPickReq(int ShipmentOrderId, int StockId, decimal Qty);
-    public sealed record FgLoadingReq(int ShipmentOrderId, string LicensePlate, string DriverName, string DockNo, string? SealNo);
+    public sealed record FgLoadingTruckRow(string Barcode, string LicensePlate, bool Ready, string Message);
+    public sealed record FgLoadingItemRow(int StockId, int ShipmentOrderLineId, int ShipmentOrderId,
+        string ShipOrderNumber, string CustomerCode, string ItemNo, string? ItemName,
+        string? LotNo, string? StockNumber, decimal Qty, string? Unit, string? Location);
+    public sealed record FgLoadingOrderRow(int ShipmentOrderId, string Barcode, string ShipOrderNumber,
+        string CustomerCode, DateTime? ShipDate, string? Destination, List<FgLoadingItemRow> Items);
+    public sealed record FgLoadingOrderResult(bool Success, string Message, FgLoadingOrderRow? Order);
+    public sealed record FgLoadingReq(string TruckBarcode, int ShipmentOrderId, List<int> StockIds);
+    public sealed record FgLoadingResult(bool Success, string Message, int? LoadingId,
+        FgLoadingTruckRow? Truck, FgLoadingItemRow? Item);
     public sealed record FgDeliveryReq(int ShipmentOrderId, int? LoadingId);
     public sealed record FgDayEndReq(string CloseMode, string? Note);
     public sealed record FgReturnReq(string Barcode, string ReturnReason);
@@ -650,7 +659,14 @@ public sealed class PdaApi
     public Task<FgPutAwayResult> FgConfirmPutAwayAsync(FgPutAwayConfirmReq body)
         => PostFgPutAwayResultAsync("/api/fg/putaway/confirm", body);
     public Task<HttpResponseMessage> FgPickAsync    (FgPickReq    body)  => Post("/api/fg/pick",     body);
-    public Task<HttpResponseMessage> FgLoadingAsync (FgLoadingReq body)  => Post("/api/fg/loading",  body);
+    public Task<FgLoadingOrderResult> FgLoadingOrderScanAsync(string barcode)
+        => GetFgLoadingOrderResultAsync($"/api/fg/loading/order/scan?barcode={Uri.EscapeDataString(barcode)}");
+    public Task<FgLoadingResult> FgLoadingTruckScanAsync(string barcode)
+        => GetFgLoadingResultAsync($"/api/fg/loading/truck/scan?barcode={Uri.EscapeDataString(barcode)}");
+    public Task<FgLoadingResult> FgLoadingItemScanAsync(string barcode, int? shipmentOrderId)
+        => GetFgLoadingResultAsync($"/api/fg/loading/item/scan?barcode={Uri.EscapeDataString(barcode)}{(shipmentOrderId is > 0 ? $"&shipmentOrderId={shipmentOrderId}" : "")}");
+    public Task<FgLoadingResult> FgLoadingAsync(FgLoadingReq body)
+        => PostFgLoadingResultAsync("/api/fg/loading", body);
     public Task<HttpResponseMessage> FgDeliveryAsync(FgDeliveryReq body) => Post("/api/fg/delivery", body);
     public Task<HttpResponseMessage> FgDayEndAsync  (FgDayEndReq  body)  => Post("/api/fg/dayend",   body);
     public Task<FgReturnResult> FgReturnAsync(FgReturnReq body)
@@ -669,6 +685,82 @@ public sealed class PdaApi
         {
             return new FgReturnResult(false, ex.Message, null, null);
         }
+    }
+
+    private async Task<FgLoadingResult> GetFgLoadingResultAsync(string url)
+    {
+        Authorize();
+        try
+        {
+            var resp = await _http.GetAsync(url);
+            return await ReadFgLoadingResultAsync(resp);
+        }
+        catch (Exception ex)
+        {
+            return new FgLoadingResult(false, ex.Message, null, null, null);
+        }
+    }
+
+    private async Task<FgLoadingOrderResult> GetFgLoadingOrderResultAsync(string url)
+    {
+        Authorize();
+        try
+        {
+            var resp = await _http.GetAsync(url);
+            try
+            {
+                var result = await resp.Content.ReadFromJsonAsync<FgLoadingOrderResult>();
+                if (result is not null) return result;
+            }
+            catch
+            {
+                // Fall through to a readable HTTP message.
+            }
+
+            if (resp.StatusCode == HttpStatusCode.Unauthorized)
+                return new FgLoadingOrderResult(false, "Session expired. Sign in again.", null);
+            return new FgLoadingOrderResult(resp.IsSuccessStatusCode,
+                resp.IsSuccessStatusCode ? "Shipment order loaded." : $"Shipment order service failed. HTTP {(int)resp.StatusCode}.",
+                null);
+        }
+        catch (Exception ex)
+        {
+            return new FgLoadingOrderResult(false, ex.Message, null);
+        }
+    }
+
+    private async Task<FgLoadingResult> PostFgLoadingResultAsync(string url, FgLoadingReq body)
+    {
+        Authorize();
+        try
+        {
+            var resp = await _http.PostAsJsonAsync(url, body);
+            return await ReadFgLoadingResultAsync(resp);
+        }
+        catch (Exception ex)
+        {
+            return new FgLoadingResult(false, ex.Message, null, null, null);
+        }
+    }
+
+    private static async Task<FgLoadingResult> ReadFgLoadingResultAsync(HttpResponseMessage resp)
+    {
+        try
+        {
+            var result = await resp.Content.ReadFromJsonAsync<FgLoadingResult>();
+            if (result is not null) return result;
+        }
+        catch
+        {
+            // Fall through to a readable HTTP message.
+        }
+
+        if (resp.StatusCode == HttpStatusCode.Unauthorized)
+            return new FgLoadingResult(false, "Session expired. Sign in again.", null, null, null);
+
+        return new FgLoadingResult(resp.IsSuccessStatusCode,
+            resp.IsSuccessStatusCode ? "Truck loading confirmed." : $"Truck loading service failed. HTTP {(int)resp.StatusCode}.",
+            null, null, null);
     }
 
     private async Task<FgReturnResult> PostFgReturnResultAsync(string url, FgReturnReq body)
