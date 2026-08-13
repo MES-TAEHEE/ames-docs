@@ -1,89 +1,222 @@
 @page "/fg/06"
 @inject PdaApi Api
 @inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
-<div class="pda-shell wh wh03-shell fg06-shell">
+<div class="pda-shell wh wh02-shell fg06-shell">
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
-        <div class="wh03-tbar-title"><span class="pda-tbar-brand">FG-006 CUSTOMER RETURN</span></div>
-        <div class="wh03-tbar-actions"><RadzenButton class="wh03-refresh" Click="Load" Disabled="@_isLoading" Text="REFRESH" /></div>
+        <span class="pda-tbar-brand">FG-006 CUSTOMER RETURN</span>
     </div>
-    <div class="pda-bd wh03-body fg-form-body">
-        <RadzenCard class="wh03-head">
-            <div class="pda-card-h">RETURN STATUS</div>
-            <div class="wh03-summary fg03-summary">
-                <button type="button" class="wh03-stat all on"><span>Total</span><strong>@_returns.Count</strong></button>
-                <button type="button" class="wh03-stat all"><span>Open</span><strong>@CountStatus("OPEN")</strong></button>
-                <button type="button" class="wh03-stat below"><span>Inspecting</span><strong>@CountStatus("INSPECTING")</strong></button>
-                <button type="button" class="wh03-stat normal"><span>Closed</span><strong>@CountStatus("CLOSED")</strong></button>
+
+    <div class="pda-bd wh02-body fg01-body fg-return-body">
+        <RadzenCard class="@($"wh02-panel fg01-panel fg01-scan-panel {ScanPanelClass}")">
+            <div class="pda-fld">
+                <label>RETURNED PRODUCT BARCODE</label>
+                <RadzenTextBox class="pda-input wh02-barcode-input fg-return-scan-input pda-scan-input"
+                               Value="@_barcode"
+                               @oninput="OnBarcodeInput"
+                               @onkeydown="OnBarcodeKey"
+                               Placeholder="Scan returned product barcode" />
             </div>
+            @if (ShowDeveloperScanButtons)
+            {
+                <RadzenButton class="wh02-scan-btn" Click="LookupProduct" Disabled="@_isBusy" Text="SCAN" />
+            }
         </RadzenCard>
 
-        <RadzenCard class="wh03-action-card fg-form-card">
-            <div class="wh03-section-title">RETURN RECEIPT</div>
-            <div class="pda-fld"><label>CUSTOMER CODE</label><RadzenTextBox @bind-Value="_customer" Placeholder="Customer code" /></div>
-            <div class="pda-fld"><label>ORIGINAL SHIPMENT ORDER</label><RadzenDropDown TValue="int?" @bind-Value="_shipmentOrderId" Data="@_orders" TextProperty="ShipOrderNumber" ValueProperty="ShipmentOrderId" Placeholder="Optional" AllowClear="true" /></div>
-            <div class="pda-fld"><label>ITEM NO</label><RadzenTextBox @bind-Value="_itemNo" Placeholder="Returned item number" /></div>
-            <div class="fg-form-grid"><div class="pda-fld"><label>QTY</label><RadzenNumeric @bind-Value="_qty" Min="0.001m" Step="1" /></div><div class="pda-fld"><label>RETURN REASON</label><RadzenDropDown @bind-Value="_reason" Data="@Reasons" /></div></div>
-        </RadzenCard>
-        @if (!string.IsNullOrWhiteSpace(_message)) { <div class="pda-status @_messageClass">@_message</div> }
+        @if (_product is not null)
+        {
+            <RadzenCard class="wh02-lot-card fg-return-product-card ready">
+                <div class="wh02-lot-top">
+                    <div class="wh02-lot-main">
+                        <span>RETURNED PRODUCT</span>
+                        <strong>@Text(_product.LotNo ?? _product.StockNumber)</strong>
+                    </div>
+                    <RadzenBadge class="wh02-status-chip normal" Text="RETURN ELIGIBLE" />
+                </div>
 
-        <div class="pda-card-h fg-section-label">RECENT RETURNS</div>
-        @if (_returns.Count == 0)
-        {
-            <div class="pda-empty">No customer returns.</div>
+                <div class="wh02-part">
+                    <div class="wh02-part-no">@Text(_product.ItemNo)</div>
+                    <div class="wh02-part-name">@Text(_product.ItemName)</div>
+                </div>
+
+                <div class="wh02-info-grid fg-return-info-grid">
+                    @foreach (var field in ProductFields())
+                    {
+                        <div class="wh02-info">
+                            <span>@field.Label</span>
+                            <strong>@field.Value</strong>
+                        </div>
+                    }
+                </div>
+            </RadzenCard>
+
+            <RadzenCard class="wh03-action-card fg-form-card fg-return-reason-card">
+                <div class="pda-fld">
+                    <label>RETURN REASON</label>
+                    <RadzenDropDown @bind-Value="_reason" Data="@Reasons" />
+                </div>
+            </RadzenCard>
         }
-        else
+
+        @if (!string.IsNullOrWhiteSpace(_message))
         {
-            <div class="wh03-list">
-                @foreach (var row in _returns)
-                {
-                    <RadzenCard class="wh03-stock-card wh03-stock-compact normal">
-                        <div class="wh03-compact-row main"><strong>@Text(row.ReturnNumber)</strong><span>@row.Qty.ToString("0.###") EA</span></div>
-                        <div class="wh03-compact-row sub"><span>@Text(row.ItemNo) / @Text(row.CustomerCode)</span><RadzenBadge class="wh03-status-badge normal" Text="@Text(row.Status)" /></div>
-                        <button type="button" class="wh03-compact-location"><span>@Text(row.ReturnReason)</span><strong>@(row.ReceivedAt?.ToString("MM-dd HH:mm") ?? "-")</strong></button>
-                    </RadzenCard>
-                }
-            </div>
+            <div class="pda-status @_messageClass">@_message</div>
         }
-        <div class="wh07-action-spacer"></div>
+
+        <div class="wh02-action-bar has-reset fg-form-actions">
+            <RadzenButton class="wh02-clear-btn" Text="CLEAR" Click="Clear" Disabled="@_isBusy" />
+            <RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-receive-action-btn {(CanSubmit ? "ready" : "blocked")}")"
+                          Text="RECEIVE RETURN" Disabled="@_isBusy" Click="Submit" />
+        </div>
     </div>
-    <div class="wh02-action-bar has-reset fg-form-actions"><RadzenButton class="wh02-clear-btn" Text="CLEAR" Click="Clear" /><RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-receive-action-btn {(CanSubmit ? "ready" : "blocked")}")" Text="RECEIVE RETURN" Disabled="@_submitting" Click="Submit" /></div>
+
+    @if (_modalOpen)
+    {
+        <div class="wh-modal-backdrop" @onclick="CloseModal">
+            <RadzenCard class="@($"wh-modal-card {_modalKind}")" @onclick:stopPropagation="true">
+                <div class="wh-modal-mark">@(_modalKind == "success" ? "OK" : "!")</div>
+                <div class="wh-modal-title">@_modalTitle</div>
+                <div class="wh-modal-message">@_modalMessage</div>
+                <div class="wh-modal-actions"><RadzenButton class="wh-modal-btn primary" Click="CloseModal" Text="OK" /></div>
+            </RadzenCard>
+        </div>
+    }
 </div>
 
 @code {
     private static readonly string[] Reasons = ["Defect", "Wrong item", "Damaged in transit", "Customer change", "Other"];
-    private List<PdaApi.FgReturnRow> _returns = new();
-    private List<PdaApi.FgOrderRow> _orders = new();
-    private string _customer = "", _itemNo = "", _reason = Reasons[0];
-    private int? _shipmentOrderId;
-    private decimal _qty = 1;
-    private bool _submitting, _isLoading;
-    private string _message = "", _messageClass = "dim";
-    private bool CanSubmit => !string.IsNullOrWhiteSpace(_customer) && !string.IsNullOrWhiteSpace(_itemNo) && _qty > 0;
+    private static bool ShowDeveloperScanButtons => MauiProgram.IsDeveloperMode;
+    private static string ScanPanelClass => ShowDeveloperScanButtons ? "dev-scan-panel" : "hardware-scan-panel";
 
-    protected override async Task OnInitializedAsync() => await Load();
-    private async Task Load()
+    private string _barcode = "";
+    private string _reason = Reasons[0];
+    private string _message = "";
+    private string _messageClass = "dim";
+    private bool _isBusy;
+    private bool _modalOpen;
+    private string _modalTitle = "";
+    private string _modalMessage = "";
+    private string _modalKind = "info";
+    private PdaApi.FgReturnScanRow? _product;
+    private DotNetObjectReference<FgRtnReturn>? _scannerRef;
+
+    private bool CanSubmit => _product is not null && !string.IsNullOrWhiteSpace(_reason);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        _isLoading = true;
-        try { var returnsTask = Api.FgReturnsAsync(); var ordersTask = Api.FgOrdersAsync(); await Task.WhenAll(returnsTask, ordersTask); _returns = returnsTask.Result; _orders = ordersTask.Result; }
-        finally { _isLoading = false; }
+        if (!firstRender) return;
+        PdaBarcodeHub.Scanned += OnNativeBarcodeScanned;
+        _scannerRef = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("pdaScan.register", _scannerRef, new { minLength = 3, developerMode = ShowDeveloperScanButtons });
+        await FocusScannerAsync();
     }
-    private int CountStatus(string status) => _returns.Count(x => string.Equals(x.Status, status, StringComparison.OrdinalIgnoreCase));
-    private void Clear() { _customer = _itemNo = ""; _shipmentOrderId = null; _qty = 1; _reason = Reasons[0]; }
-    private async Task Submit()
+
+    [JSInvokable]
+    public async Task OnHardwareScanAsync(string scanText)
     {
-        if (!CanSubmit) { _message = "Enter Customer, Item No and Qty."; _messageClass = "fail"; return; }
-        _submitting = true;
+        _barcode = NormalizeScan(scanText);
+        if (!string.IsNullOrWhiteSpace(_barcode)) await LookupProduct();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnNativeBarcodeScanned(string barcode) => _ = InvokeAsync(() => OnHardwareScanAsync(barcode));
+    private void OnBarcodeInput(ChangeEventArgs e) => _barcode = e.Value?.ToString() ?? "";
+    private async Task OnBarcodeKey(KeyboardEventArgs e) { if (e.Key == "Enter") await LookupProduct(); }
+
+    private async Task LookupProduct()
+    {
+        var barcode = NormalizeScan(_barcode);
+        if (string.IsNullOrWhiteSpace(barcode))
+        {
+            ShowModal("Barcode Required", "Scan the returned product barcode.", "warn");
+            return;
+        }
+
+        _isBusy = true;
+        _product = null;
+        _message = "";
         try
         {
-            var result = await Api.FgReturnAsync(new PdaApi.FgReturnReq(_customer.Trim(), _shipmentOrderId, _reason, _qty, _itemNo.Trim()));
-            _message = result.IsSuccessStatusCode ? "Customer return received." : $"Return receipt failed. HTTP {(int)result.StatusCode}.";
-            _messageClass = result.IsSuccessStatusCode ? "ok" : "fail";
-            if (result.IsSuccessStatusCode) { Clear(); await Load(); }
+            var result = await Api.FgReturnScanAsync(barcode);
+            if (!result.Success || result.Row is null)
+            {
+                ShowModal("Return Validation", result.Message, "warn");
+                return;
+            }
+
+            _barcode = result.Row.Barcode;
+            _product = result.Row;
         }
-        catch (Exception ex) { _message = ex.Message; _messageClass = "fail"; }
-        finally { _submitting = false; }
+        finally
+        {
+            _isBusy = false;
+            await FocusScannerAsync();
+        }
     }
+
+    private async Task Submit()
+    {
+        if (!CanSubmit)
+        {
+            ShowModal("Return Not Ready", "Scan a shipped product and select a return reason.", "warn");
+            return;
+        }
+
+        _isBusy = true;
+        try
+        {
+            var result = await Api.FgReturnAsync(new PdaApi.FgReturnReq(_product!.Barcode, _reason));
+            if (!result.Success)
+            {
+                ShowModal("Return Failed", result.Message, "danger");
+                return;
+            }
+
+            var lot = Text(_product.LotNo ?? _product.StockNumber);
+            Clear();
+            ShowModal("Return Received", $"{lot} was registered successfully.", "success");
+        }
+        finally { _isBusy = false; }
+    }
+
+    private IEnumerable<(string Label, string Value)> ProductFields()
+    {
+        if (_product is null) yield break;
+        yield return ("Customer", Text(_product.CustomerCode));
+        yield return ("Part No", Text(_product.ItemNo));
+        yield return ("Part Name", Text(_product.ItemName));
+        yield return ("Shipped At", _product.ShippedAt.ToString("MM/dd/yyyy HH:mm"));
+    }
+
+    private void Clear()
+    {
+        _barcode = "";
+        _reason = Reasons[0];
+        _product = null;
+        _message = "";
+        _ = FocusScannerAsync();
+    }
+
+    private void ShowModal(string title, string message, string kind)
+    {
+        _modalTitle = title;
+        _modalMessage = message;
+        _modalKind = kind;
+        _modalOpen = true;
+    }
+
+    private void CloseModal() { _modalOpen = false; _ = FocusScannerAsync(); }
+    private async Task FocusScannerAsync() { try { await JS.InvokeVoidAsync("pdaScan.focus", ".fg06-shell .pda-scan-input"); } catch { } }
+    private static string NormalizeScan(string? value) => string.IsNullOrWhiteSpace(value) ? "" : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+
+    public async ValueTask DisposeAsync()
+    {
+        PdaBarcodeHub.Scanned -= OnNativeBarcodeScanned;
+        try { await JS.InvokeVoidAsync("pdaScan.unregister"); } catch { }
+        _scannerRef?.Dispose();
+    }
 }
