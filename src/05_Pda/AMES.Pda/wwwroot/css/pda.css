@@ -9182,6 +9182,40 @@ body:has(.pda-shell.wh),
     font: 800 11px 'JetBrains Mono', monospace;
 }
 
+.pda-shell.wh.fg06-shell .fg-return-body {
+    padding-bottom: calc(148px + var(--pda-safe-bottom)) !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-product-card {
+    border-left: 4px solid #22c55e !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-info-grid .wh02-info {
+    min-height: 76px;
+    padding: 12px !important;
+    border-top: 1px solid rgba(255, 255, 255, .08) !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-info-grid .wh02-info span {
+    line-height: 1.2;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-info-grid .wh02-info strong {
+    margin-top: 7px;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-reason-card {
+    grid-template-columns: minmax(0, 1fr);
+}
+
 .pda-shell.wh.fg02-shell .fg01-suggest-card {
     padding: 14px !important;
 }
@@ -9318,11 +9352,20 @@ html body .rz-popup .rz-dropdown-items {
 }
 
 html body .rz-dropdown-panel .rz-dropdown-item,
-html body .rz-dropdown-panel .rz-dropdown-item span,
-html body .rz-popup .rz-dropdown-item,
-html body .rz-popup .rz-dropdown-item span {
+html body .rz-popup .rz-dropdown-item {
+    width: 100% !important;
+    min-height: 38px !important;
+    padding: 9px 12px !important;
     background: #0f1d33 !important;
     color: #e8eef7 !important;
+}
+
+html body .rz-dropdown-panel .rz-dropdown-item span,
+html body .rz-popup .rz-dropdown-item span {
+    width: 100% !important;
+    padding: 0 !important;
+    background: transparent !important;
+    color: inherit !important;
 }
 
 html body .rz-dropdown-panel .rz-dropdown-item:hover,
@@ -9330,5 +9373,13 @@ html body .rz-dropdown-panel .rz-state-highlight,
 html body .rz-popup .rz-dropdown-item:hover,
 html body .rz-popup .rz-state-highlight {
     background: rgba(147, 197, 253, .18) !important;
+    color: #ffffff !important;
+}
+
+html body .rz-dropdown-panel .rz-dropdown-item:hover span,
+html body .rz-dropdown-panel .rz-state-highlight span,
+html body .rz-popup .rz-dropdown-item:hover span,
+html body .rz-popup .rz-state-highlight span {
+    background: transparent !important;
     color: #ffffff !important;
 }

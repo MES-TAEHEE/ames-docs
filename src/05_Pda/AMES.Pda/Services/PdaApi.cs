@@ -591,6 +591,10 @@ public sealed class PdaApi
         DateTime? QcPassTs);
     public sealed record FgReturnRow(int ReturnId, string? ReturnNumber, string? CustomerCode,
         string? ItemNo, decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt);
+    public sealed record FgReturnScanRow(string Barcode, string? StockNumber, string? LotNo,
+        int ShipmentOrderId, string? ShipOrderNumber, string CustomerCode,
+        string ItemNo, string? ItemName, DateTime ShippedAt);
+    public sealed record FgReturnResult(bool Success, string Message, int? ReturnId, FgReturnScanRow? Row);
 
     public sealed record FgPutAwayReq(int WoId, string ItemNo, decimal Qty, string ActualLoc, int PalletCount);
     public sealed record FgPutAwayScanRow(int? LotId, string LotNo, int? WoId, string? WoNumber,
@@ -612,7 +616,7 @@ public sealed class PdaApi
     public sealed record FgLoadingReq(int ShipmentOrderId, string LicensePlate, string DriverName, string DockNo, string? SealNo);
     public sealed record FgDeliveryReq(int ShipmentOrderId, int? LoadingId);
     public sealed record FgDayEndReq(string CloseMode, string? Note);
-    public sealed record FgReturnReq(string CustomerCode, int? OriginalShipmentOrderId, string ReturnReason, decimal Qty, string ItemNo);
+    public sealed record FgReturnReq(string Barcode, string ReturnReason);
 
     public Task<List<FgStockRow>>   FgInventoryAsync(string? q = null)
         => Get<List<FgStockRow>>("/api/fg/inventory" + (string.IsNullOrEmpty(q) ? "" : $"?q={Uri.EscapeDataString(q)}"));
@@ -622,6 +626,8 @@ public sealed class PdaApi
         => Get<List<FgOrderLineRow>>($"/api/fg/orders/{Uri.EscapeDataString(shipOrderNumber)}/lines");
     public Task<List<FgHistoryRow>> FgHistoryAsync() => Get<List<FgHistoryRow>>("/api/fg/history");
     public Task<List<FgReturnRow>> FgReturnsAsync() => Get<List<FgReturnRow>>("/api/fg/returns");
+    public Task<FgReturnResult> FgReturnScanAsync(string barcode)
+        => GetFgReturnResultAsync($"/api/fg/return/scan?barcode={Uri.EscapeDataString(barcode)}");
     public async Task<FgDashboard>  FgDashboardAsync()
     {
         Authorize();
@@ -647,9 +653,58 @@ public sealed class PdaApi
     public Task<HttpResponseMessage> FgLoadingAsync (FgLoadingReq body)  => Post("/api/fg/loading",  body);
     public Task<HttpResponseMessage> FgDeliveryAsync(FgDeliveryReq body) => Post("/api/fg/delivery", body);
     public Task<HttpResponseMessage> FgDayEndAsync  (FgDayEndReq  body)  => Post("/api/fg/dayend",   body);
-    public Task<HttpResponseMessage> FgReturnAsync  (FgReturnReq  body)  => Post("/api/fg/return",   body);
+    public Task<FgReturnResult> FgReturnAsync(FgReturnReq body)
+        => PostFgReturnResultAsync("/api/fg/return", body);
 
     // ── private HTTP helpers ────────────────────────────────────────────
+    private async Task<FgReturnResult> GetFgReturnResultAsync(string url)
+    {
+        Authorize();
+        try
+        {
+            var resp = await _http.GetAsync(url);
+            return await ReadFgReturnResultAsync(resp);
+        }
+        catch (Exception ex)
+        {
+            return new FgReturnResult(false, ex.Message, null, null);
+        }
+    }
+
+    private async Task<FgReturnResult> PostFgReturnResultAsync(string url, FgReturnReq body)
+    {
+        Authorize();
+        try
+        {
+            var resp = await _http.PostAsJsonAsync(url, body);
+            return await ReadFgReturnResultAsync(resp);
+        }
+        catch (Exception ex)
+        {
+            return new FgReturnResult(false, ex.Message, null, null);
+        }
+    }
+
+    private static async Task<FgReturnResult> ReadFgReturnResultAsync(HttpResponseMessage resp)
+    {
+        try
+        {
+            var result = await resp.Content.ReadFromJsonAsync<FgReturnResult>();
+            if (result is not null) return result;
+        }
+        catch
+        {
+            // Fall through to a readable HTTP message.
+        }
+
+        if (resp.StatusCode == HttpStatusCode.Unauthorized)
+            return new FgReturnResult(false, "Session expired. Sign in again.", null, null);
+
+        return new FgReturnResult(resp.IsSuccessStatusCode,
+            resp.IsSuccessStatusCode ? "Customer return received." : $"Customer return service failed. HTTP {(int)resp.StatusCode}.",
+            null, null);
+    }
+
     private async Task<FgPutAwayResult> GetFgPutAwayResultAsync(string url)
     {
         Authorize();
