@@ -40,6 +40,8 @@ public static class WhEndpoints
         string? WarehouseCode = null, string? WarehouseName = null, string? AreaCode = null, string? AreaName = null,
         string? ZoneName = null, string? X = null, string? Y = null, string? Z = null,
         string? PlantCode = null, string? LocationType = null, decimal? Capacity = null);
+    public sealed record LocationMapItemRow(string LotNo, string? PartNo, string? PartName, decimal Qty, string? Unit,
+        string? InventoryStatus, string? WorkDate, string? WorkTime);
 
     public sealed record InboundScanRow(string ReceiveType, string? Yn, string LotNo, string Barcode,
         string? SourceTable, string? NoteNo, string? CaseBarcode, string? CaseNo, string? InvoiceNo,
@@ -333,22 +335,89 @@ public static class WhEndpoints
                 r["ExpiryDate"] as DateTime?));
         });
 
+        g.MapGet("/inventory/location/{locationId}", (HttpContext ctx, string locationId, DateTime? dateFrom, DateTime? dateTo) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+
+            using var conn = factory.OpenConnection();
+            using var cmd = new SqlCommand("""
+                SELECT
+                    COALESCE(LOT.LotCode, CONCAT(N'LOT-', W.LotID), N'-') AS LOTNO,
+                    W.ItemNo AS PARTNO,
+                    I.ItemName AS PARTNM,
+                    SUM(COALESCE(W.OnHandQty, 0)) AS QTY,
+                    I.DefaultUOM AS UNIT,
+                    COALESCE(W.Status, N'Received') AS INV_STATUS,
+                    CONVERT(nvarchar(10), MAX(W.LastReceivedAt), 23) AS WORK_DATE,
+                    CONVERT(nvarchar(8), MAX(W.LastReceivedAt), 108) AS WORK_TIME
+                FROM dbo.WH_Inventory W
+                LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID = W.LotID
+                LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.ItemNo
+                WHERE UPPER(W.LocationID) = UPPER(@LocationID)
+                  AND COALESCE(W.OnHandQty, 0) > 0
+                  AND UPPER(COALESCE(W.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
+                  AND (@DateFrom IS NULL OR CONVERT(date, W.LastReceivedAt) >= @DateFrom)
+                  AND (@DateTo IS NULL OR CONVERT(date, W.LastReceivedAt) <= @DateTo)
+                GROUP BY
+                    COALESCE(LOT.LotCode, CONCAT(N'LOT-', W.LotID), N'-'),
+                    W.ItemNo, I.ItemName, I.DefaultUOM, COALESCE(W.Status, N'Received')
+                ORDER BY W.ItemNo, LOTNO;
+                """, conn);
+            cmd.Parameters.Add("@LocationID", SqlDbType.NVarChar, 40).Value = locationId.Trim();
+            cmd.Parameters.Add("@DateFrom", SqlDbType.Date).Value = dateFrom?.Date ?? (object)DBNull.Value;
+            cmd.Parameters.Add("@DateTo", SqlDbType.Date).Value = dateTo?.Date ?? (object)DBNull.Value;
+
+            using var rdr = cmd.ExecuteReader();
+            var rows = new List<LocationMapItemRow>();
+            while (rdr.Read())
+            {
+                rows.Add(new LocationMapItemRow(
+                    GetString(rdr, "LOTNO") ?? "-",
+                    GetString(rdr, "PARTNO"),
+                    GetString(rdr, "PARTNM"),
+                    GetDecimal(rdr, "QTY"),
+                    GetString(rdr, "UNIT"),
+                    GetString(rdr, "INV_STATUS"),
+                    GetString(rdr, "WORK_DATE"),
+                    GetString(rdr, "WORK_TIME")));
+            }
+
+            return Results.Ok(rows);
+        });
+
         // WH-04 Location Map
         g.MapGet("/locations", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
             const string sql = """
                 SELECT l.LocationID, l.LocationName, l.ZoneCode,
-                       (SELECT COUNT(*)            FROM dbo.WH_Inventory i WHERE i.LocationID=l.LocationID) AS LineCount,
-                       ISNULL((SELECT SUM(i.OnHandQty) FROM dbo.WH_Inventory i WHERE i.LocationID=l.LocationID),0) AS TotalQty
-                FROM   dbo.MD_Location l
-                WHERE  ISNULL(l.ActiveFlag,1) = 1
+                       COUNT(i.InventoryID) AS LineCount,
+                       COALESCE(SUM(i.OnHandQty),0) AS TotalQty,
+                       CAST(NULL AS nvarchar(20)) AS WarehouseCode,
+                       CAST(NULL AS nvarchar(80)) AS WarehouseName,
+                       l.PlantCode AS AreaCode,
+                       l.PlantCode AS AreaName,
+                       l.ZoneCode AS ZoneName,
+                       l.Aisle, l.Bay, l.Slot,
+                       l.PlantCode, l.LocationType, l.Capacity
+                FROM dbo.MD_Location l
+                LEFT JOIN dbo.WH_Inventory i
+                  ON i.LocationID = l.LocationID
+                 AND COALESCE(i.OnHandQty,0) > 0
+                 AND UPPER(COALESCE(i.Status,N'Received')) NOT IN (N'CANCELED',N'RELEASED',N'PICKED')
+                WHERE ISNULL(l.ActiveFlag,1) = 1
+                GROUP BY l.LocationID, l.LocationName, l.ZoneCode, l.PlantCode,
+                         l.Aisle, l.Bay, l.Slot, l.LocationType, l.Capacity
                 ORDER BY l.ZoneCode, l.LocationID;
                 """;
             return Query(factory, sql, r => new LocationRow(
                 r["LocationID"] as string ?? "", r["LocationName"] as string,
                 r["ZoneCode"] as string, (int)r["LineCount"],
-                r.GetDecimal(r.GetOrdinal("TotalQty"))));
+                r.GetDecimal(r.GetOrdinal("TotalQty")),
+                GetString(r, "WarehouseCode"), GetString(r, "WarehouseName"),
+                GetString(r, "AreaCode"), GetString(r, "AreaName"), GetString(r, "ZoneName"),
+                GetString(r, "Aisle"), GetString(r, "Bay"), GetString(r, "Slot"),
+                GetString(r, "PlantCode"), GetString(r, "LocationType"), GetNullableDecimal(r, "Capacity")));
         });
 
         // WH-05 Inventory Adjust
