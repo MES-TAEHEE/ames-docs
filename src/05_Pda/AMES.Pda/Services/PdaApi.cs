@@ -262,6 +262,18 @@ public sealed class PdaApi
     }
     public async Task<List<LocationRow>> WhLocationsAsync()
     {
+        if (OperatingSystem.IsAndroid())
+        {
+            try
+            {
+                return NormalizeLocationRows(await Get<List<LocationRow>>("/api/wh/locations"));
+            }
+            catch
+            {
+                return new List<LocationRow>();
+            }
+        }
+
         try
         {
             return NormalizeLocationRows(await QueryWhLocationsDbAsync());
@@ -298,13 +310,31 @@ public sealed class PdaApi
     }
     public async Task<List<LocationMapItemRow>> WhLocationMapItemsAsync(string locationId, DateTime? dateFrom = null, DateTime? dateTo = null)
     {
+        async Task<List<LocationMapItemRow>> QueryApiAsync()
+        {
+            var query = new List<string>();
+            if (dateFrom.HasValue)
+                query.Add($"dateFrom={Uri.EscapeDataString(dateFrom.Value.ToString("yyyy-MM-dd"))}");
+            if (dateTo.HasValue)
+                query.Add($"dateTo={Uri.EscapeDataString(dateTo.Value.ToString("yyyy-MM-dd"))}");
+
+            var url = $"/api/wh/inventory/location/{Uri.EscapeDataString(locationId.Trim())}";
+            if (query.Count > 0)
+                url += "?" + string.Join("&", query);
+
+            return await Get<List<LocationMapItemRow>>(url);
+        }
+
+        if (OperatingSystem.IsAndroid())
+            return await QueryApiAsync();
+
         try
         {
             return await QueryWhLocationMapItemsDbAsync(locationId, dateFrom, dateTo);
         }
         catch
         {
-            return new List<LocationMapItemRow>();
+            return await QueryApiAsync();
         }
     }
     public async Task<LocationRow?> WhScanLocationAsync(string locationId)
