@@ -350,8 +350,21 @@
         ["md/"]  = "md",  ["sys/"] = "sys",
     };
 
+    static readonly HashSet<string> _hiddenItems = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "wh/picking-orders",
+    };
+
     // 권한 필터: DB 로딩 시 PermissionService 기준, 폴백 시 전부 표시
-    bool V(string href) => _usingFallback || href.StartsWith("wh/", StringComparison.OrdinalIgnoreCase) || href.StartsWith("fg/", StringComparison.OrdinalIgnoreCase) || PermSvc.IsVisible(href);
+    bool V(string href)
+    {
+        var normalized = href.TrimStart('/');
+        return !_hiddenItems.Contains(normalized)
+            && (_usingFallback
+                || normalized.StartsWith("wh/", StringComparison.OrdinalIgnoreCase)
+                || normalized.StartsWith("fg/", StringComparison.OrdinalIgnoreCase)
+                || PermSvc.IsVisible(normalized));
+    }
 
     List<(string Key, string Letter, string Ko, string En, string Es, List<NavItem> Items)> GroupedMd(List<NavItem> mdItems)
     {
