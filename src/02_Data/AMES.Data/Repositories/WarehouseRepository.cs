@@ -1760,6 +1760,109 @@ public sealed class WarehouseRepository
                     NULL, H.ReasonCode, H.ReferenceNo, H.LotNo, L.ItemNo, NULL, NULL
                 FROM dbo.WH_LotStatusHistory H
                 LEFT JOIN dbo.tbl_Lot L ON L.LotID = H.LotID
+
+                UNION ALL
+
+                SELECT
+                    CAST(-1000000000 AS bigint) - R.ReceivingID,
+                    R.ReceivedAt, 'RECEIVE', 'INBOUND', 'WH002',
+                    R.ReceivedBy, NULL, R.ReceivedBy, R.TerminalID,
+                    NULL, NULL, 'LOT', R.LotCode, 'SUCCESS',
+                    CONCAT('Inbound received: ', R.ReceivedQty, ' ', COALESCE(I.DefaultUom, 'EA')),
+                    NULL, 'WH_Receiving', R.ReceivingNo, R.LotCode, R.ItemNo, R.LocationID, R.ReceivedQty
+                FROM dbo.WH_Receiving R
+                LEFT JOIN dbo.MD_Item I ON I.ItemNo = R.ItemNo
+                WHERE NOT EXISTS
+                (
+                    SELECT 1
+                    FROM dbo.WH_OperationLog O
+                    WHERE O.Result = 'SUCCESS'
+                      AND O.EventType = 'RECEIVE'
+                      AND (O.LotNo = R.LotCode OR O.ScanValue = R.LotCode)
+                      AND ABS(DATEDIFF(minute, O.EventTime, R.ReceivedAt)) <= 5
+                )
+
+                UNION ALL
+
+                SELECT
+                    CAST(-2000000000 AS bigint) - T.TransactionID,
+                    T.TransactionTime,
+                    CASE UPPER(T.TransactionType)
+                        WHEN 'IN' THEN 'RECEIVE'
+                        WHEN 'OUT' THEN 'RELEASE_PICK'
+                        WHEN 'ADJ' THEN 'ADJUST_SAVE'
+                        WHEN 'MOVE' THEN 'MOVE_LOCATION'
+                        WHEN 'CANCEL' THEN 'CANCEL_RECEIPT'
+                        ELSE UPPER(T.TransactionType)
+                    END,
+                    CASE UPPER(T.TransactionType)
+                        WHEN 'IN' THEN 'INBOUND'
+                        WHEN 'OUT' THEN 'OUTBOUND'
+                        WHEN 'ADJ' THEN 'ADJUSTMENT'
+                        WHEN 'MOVE' THEN 'RELOCATION'
+                        WHEN 'CANCEL' THEN 'INBOUND'
+                    END,
+                    CASE UPPER(T.TransactionType)
+                        WHEN 'OUT' THEN 'WH003'
+                        WHEN 'ADJ' THEN 'WH005'
+                        ELSE 'WH002'
+                    END,
+                    T.OperatorID, NULL, T.OperatorID, NULL,
+                    NULL, NULL, 'LOT', L.LotCode, 'SUCCESS',
+                    CONCAT(
+                        COALESCE(NULLIF(T.Note, ''), COALESCE(T.ReasonCode, T.TransactionType)),
+                        ' (', COALESCE(T.QtyBefore, 0), ' -> ', COALESCE(T.QtyAfter, 0), ')'),
+                    NULL, T.RefDocType, CONVERT(nvarchar(80), T.RefDocID),
+                    L.LotCode, T.ItemNo, T.LocationID, T.QtyChange
+                FROM dbo.WH_InventoryTransaction T
+                LEFT JOIN dbo.tbl_Lot L ON L.LotID = T.LotID
+                WHERE NOT (UPPER(T.TransactionType) = 'IN' AND T.RefDocType = 'WH_Receiving')
+                  AND NOT EXISTS
+                  (
+                      SELECT 1
+                      FROM dbo.WH_OperationLog O
+                      WHERE O.Result = 'SUCCESS'
+                        AND O.EventType = CASE UPPER(T.TransactionType)
+                            WHEN 'IN' THEN 'RECEIVE'
+                            WHEN 'OUT' THEN 'RELEASE_PICK'
+                            WHEN 'ADJ' THEN 'ADJUST_SAVE'
+                            WHEN 'MOVE' THEN 'MOVE_LOCATION'
+                            WHEN 'CANCEL' THEN 'CANCEL_RECEIPT'
+                            ELSE UPPER(T.TransactionType)
+                        END
+                        AND (O.LotNo = L.LotCode OR O.PartNo = T.ItemNo)
+                        AND ABS(DATEDIFF(minute, O.EventTime, T.TransactionTime)) <= 5
+                  )
+
+                UNION ALL
+
+                SELECT
+                    CAST(-3000000000 AS bigint) - P.PickingID,
+                    P.PickedAt, 'RELEASE_PICK', 'OUTBOUND', 'WH003',
+                    P.PickedBy, NULL, P.PickedBy, P.TerminalID,
+                    NULL, NULL, 'LOT', L.LotCode, 'SUCCESS',
+                    CONCAT('Outbound picked: ', P.PickedQty, ' ', COALESCE(I.DefaultUom, 'EA')),
+                    NULL, 'WH_ReleasePicking', P.PickingNo, L.LotCode, P.ItemNo, P.LocationID, -P.PickedQty
+                FROM dbo.WH_ReleasePicking P
+                LEFT JOIN dbo.tbl_Lot L ON L.LotID = P.LotID
+                LEFT JOIN dbo.MD_Item I ON I.ItemNo = P.ItemNo
+                WHERE NOT EXISTS
+                (
+                    SELECT 1
+                    FROM dbo.WH_InventoryTransaction T
+                    WHERE UPPER(T.TransactionType) = 'OUT'
+                      AND T.LotID = P.LotID
+                      AND ABS(DATEDIFF(minute, T.TransactionTime, P.PickedAt)) <= 5
+                )
+                  AND NOT EXISTS
+                  (
+                      SELECT 1
+                      FROM dbo.WH_OperationLog O
+                      WHERE O.Result = 'SUCCESS'
+                        AND O.EventType = 'RELEASE_PICK'
+                        AND (O.LotNo = L.LotCode OR O.PartNo = P.ItemNo)
+                        AND ABS(DATEDIFF(minute, O.EventTime, P.PickedAt)) <= 5
+                  )
             )
             SELECT TOP (500)
                 OperationLogID,
