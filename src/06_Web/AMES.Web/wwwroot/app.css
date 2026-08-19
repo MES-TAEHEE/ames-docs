@@ -2277,6 +2277,117 @@ select.ames-rz-input {
     fill: #000;
 }
 
+.location-label-modal {
+    width: min(560px, calc(100vw - 32px));
+}
+
+.location-code-print-cell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+}
+
+.location-code-print-cell .code {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.location-code-print-btn.rz-button {
+    flex: 0 0 32px;
+    width: 32px;
+    min-width: 32px;
+    height: 30px;
+    padding: 0 !important;
+}
+
+.location-barcode-picker-modal {
+    width: min(520px, calc(100vw - 32px));
+}
+
+.location-barcode-picker-body {
+    display: grid;
+    gap: 8px;
+    padding: 18px 20px 6px;
+}
+
+.location-label-preview {
+    padding: 18px;
+    border: 1px solid rgba(148, 163, 184, .18);
+    border-radius: 6px;
+    background: rgba(15, 23, 42, .55);
+}
+
+.location-label-print-area {
+    display: flex;
+    justify-content: center;
+}
+
+.location-label-paper {
+    width: 100mm;
+    min-height: 60mm;
+    padding: 6mm 7mm 5mm;
+    border: 1px solid #111;
+    background: #fff;
+    color: #000;
+    font-family: Arial, Helvetica, sans-serif;
+    text-align: center;
+}
+
+.location-label-caption {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.6px;
+}
+
+.location-label-code {
+    margin-top: 2px;
+    font-size: 25px;
+    line-height: 1.1;
+    font-weight: 900;
+    overflow-wrap: anywhere;
+}
+
+.location-label-barcode {
+    display: block;
+    width: 100%;
+    height: 24mm;
+    margin: 4mm 0 1mm;
+}
+
+.location-label-barcode rect {
+    fill: #000;
+}
+
+.location-label-readable {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.location-label-name {
+    margin-top: 2mm;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.location-label-path {
+    display: flex;
+    justify-content: center;
+    gap: 3mm;
+    margin-top: 2mm;
+    font-size: 9px;
+    color: #333;
+}
+
+.location-label-path span + span::before {
+    content: "/";
+    margin-right: 3mm;
+    color: #777;
+}
+
 .wh-slip-table {
     width: 100%;
     border-collapse: collapse;
@@ -2334,6 +2445,26 @@ select.ames-rz-input {
         box-shadow: none;
         border-radius: 0;
         padding: 18mm 12mm;
+    }
+
+    .location-label-print-area,
+    .location-label-print-area * {
+        visibility: visible !important;
+    }
+
+    .location-label-print-area {
+        position: absolute;
+        inset: 0 auto auto 0;
+        width: 100mm;
+        margin: 0;
+        padding: 0;
+        background: #fff;
+    }
+
+    .location-label-paper {
+        width: 100mm;
+        min-height: 60mm;
+        border: 0;
     }
 }
 
