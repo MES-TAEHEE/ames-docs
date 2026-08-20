@@ -1,0 +1,54 @@
+@using Radzen
+
+<RadzenButton Text="Print"
+              Icon="print"
+              ButtonStyle="ButtonStyle.Light"
+              Size="ButtonSize.Small"
+              Click="OpenPicker"
+              Disabled="@(Disabled || Locations.Count == 0)"
+              class="ames-rz-btn" />
+
+@if (_pickerOpen)
+{
+    <LocationBarcodePickerDialog Locations="@Locations"
+                                 OnSelect="SelectLocation"
+                                 OnClose="ClosePicker" />
+}
+
+@if (!string.IsNullOrWhiteSpace(_selectedCode))
+{
+    <LocationBarcodeDialog LocationCode="@_selectedCode"
+                           LocationName="@SelectedName"
+                           Warehouse="@Warehouse"
+                           Area="@Area"
+                           Zone="@Zone"
+                           OnClose="ClosePreview" />
+}
+
+@code {
+    [Parameter] public IReadOnlyDictionary<string, string?> Locations { get; set; } = new Dictionary<string, string?>();
+    [Parameter] public string? Warehouse { get; set; }
+    [Parameter] public string? Area { get; set; }
+    [Parameter] public string? Zone { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+
+    private bool _pickerOpen;
+    private string? _selectedCode;
+    private string? SelectedName => _selectedCode is not null && Locations.TryGetValue(_selectedCode, out var name) ? name : null;
+
+    private void OpenPicker()
+    {
+        _selectedCode = null;
+        _pickerOpen = true;
+    }
+
+    private void ClosePicker() => _pickerOpen = false;
+
+    private void SelectLocation(string locationCode)
+    {
+        _selectedCode = locationCode;
+        _pickerOpen = false;
+    }
+
+    private void ClosePreview() => _selectedCode = null;
+}

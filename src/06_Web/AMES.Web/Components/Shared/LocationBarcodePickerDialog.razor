@@ -1,0 +1,46 @@
+@using Radzen
+
+<div class="ames-modal-bg" @onclick="CloseAsync">
+    <div class="ames-modal location-barcode-picker-modal" @onclick:stopPropagation>
+        <div class="ames-modal-h">Print Location Barcode</div>
+
+        <div class="location-barcode-picker-body">
+            <RadzenLabel Text="Location" />
+            <RadzenDropDown TValue="string"
+                            @bind-Value="_selectedCode"
+                            Data="@Items"
+                            TextProperty="Label"
+                            ValueProperty="Code"
+                            Placeholder="Select Location"
+                            AllowClear="true"
+                            AllowFiltering="true"
+                            FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                            class="ames-rz-input"
+                            Style="width:100%;" />
+        </div>
+
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+            <RadzenButton Text="Preview" Icon="print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="SelectAsync" Disabled="@string.IsNullOrWhiteSpace(_selectedCode)" class="ames-rz-btn" />
+            <RadzenButton Text="Cancel" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseAsync" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+</div>
+
+@code {
+    [Parameter] public IReadOnlyDictionary<string, string?> Locations { get; set; } = new Dictionary<string, string?>();
+    [Parameter] public EventCallback<string> OnSelect { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private string? _selectedCode;
+    private IEnumerable<LocationOption> Items => Locations.Select(x => new LocationOption(
+        x.Key,
+        string.IsNullOrWhiteSpace(x.Value) ? x.Key : $"{x.Key} - {x.Value}"));
+
+    private Task SelectAsync() => string.IsNullOrWhiteSpace(_selectedCode)
+        ? Task.CompletedTask
+        : OnSelect.InvokeAsync(_selectedCode);
+
+    private Task CloseAsync() => OnClose.InvokeAsync();
+
+    private sealed record LocationOption(string Code, string Label);
+}

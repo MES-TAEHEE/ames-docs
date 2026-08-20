@@ -36,7 +36,12 @@
             }
             <RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ReloadStage(); }' />
             <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="ReloadStage" class="ames-rz-btn" />
-            <RadzenButton Text="Create Location" Icon="add_location_alt" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="OpenCreateFromToolbar" Disabled="@(!_canModify)" title="Select a warehouse, area, and zone before creating a location." class="ames-rz-btn" />
+            <LocationBarcodePrintButton Locations="@LocationPrintOptions"
+                                        Warehouse="@WarehouseTitle"
+                                        Area="@AreaTitle"
+                                        Zone="@ZoneTitle"
+                                        Disabled="@(_stage != MasterStage.Location)" />
+            <RadzenButton Text="Create" Icon="add_location_alt" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="OpenCreateFromToolbar" Disabled="@(!_canModify)" title="Select a warehouse, area, and zone before creating a location." class="ames-rz-btn" />
         </RadzenStack>
     </div>
 
@@ -81,7 +86,9 @@
         <div class="wh-master-context"><span>WH</span><strong>@WarehouseTitle</strong><span>Area</span><strong>@AreaTitle</strong><span>Zone</span><strong>@ZoneTitle</strong></div>
         <RadzenDataGrid TItem="AMES.Data.Repositories.FinishedGoodsRepository.LocationRow" Data="@_locations" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" AllowSorting="true" RowClick="@(e => { if (_canModify && e.Data is not null) OpenEdit(e.Data); })" EmptyText="No finished-goods locations found." Class="ames-rz-grid">
             <Columns>
-                <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.LocationRow" Property="LocationNo" Title="Location Code" Width="190px"><Template Context="r"><span class="code">@r.LocationNo</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.LocationRow" Property="LocationNo" Title="Location Code" Width="220px">
+                    <Template Context="r"><span class="code">@r.LocationNo</span></Template>
+                </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.LocationRow" Property="LocationName" Title="Location Name"><Template Context="r">@(r.LocationName ?? "-")</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.LocationRow" Title="X / Y / Level" Width="145px"><Template Context="r"><span class="code">@r.ColumnNo / @r.RowNo / @r.LevelNo</span></Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.LocationRow" Property="Qty" Title="Qty" Width="100px" TextAlign="TextAlign.Right"><Template Context="r">@r.Qty.ToString("N0")</Template></RadzenDataGridColumn>
@@ -187,6 +194,7 @@
         OpenCreate();
     }
     void OpenEdit(AMES.Data.Repositories.FinishedGoodsRepository.LocationRow row) { _isCreate = false; _form = new() { LocationNo = row.LocationNo, LocationName = row.LocationName ?? "", ColumnNo = row.ColumnNo ?? "", RowNo = row.RowNo ?? "", LevelNo = row.LevelNo ?? "", Capacity = row.Capacity, Active = row.Active }; _modalError = ""; _modalOpen = true; }
+    IReadOnlyDictionary<string, string?> LocationPrintOptions => _locations.ToDictionary(x => x.LocationNo, x => x.LocationName);
     void CloseModal() { _modalOpen = false; _modalError = ""; }
     void Save()
     {

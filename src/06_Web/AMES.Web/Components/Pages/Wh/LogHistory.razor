@@ -89,7 +89,7 @@
 
     string _search = "";
     string? _operationType;
-    DateTime? _from = DateTime.Today.AddDays(-7);
+    DateTime? _from = DateTime.Today.AddDays(-90);
     DateTime? _to = DateTime.Today;
     string _msg = "";
 
@@ -119,7 +119,7 @@
     {
         _search = "";
         _operationType = null;
-        _from = DateTime.Today.AddDays(-7);
+        _from = DateTime.Today.AddDays(-90);
         _to = DateTime.Today;
         Reload();
     }

@@ -86,13 +86,16 @@
             }
             else
             {
-                <RadzenButton Text="Back" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@BackToSections" class="ames-rz-btn" />
-                <RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") ReloadStage(); }' />
-                <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ReloadStage" class="ames-rz-btn" />
-                @if (_canModifyLocationMaster)
-                {
-                    <RadzenButton Text="Create Location" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenLocationCreate" class="ames-rz-btn" />
-                }
+                <WarehouseLocationStageToolbar Search="@_search"
+                                               SearchChanged="@SetSearch"
+                                               Back="@BackToSections"
+                                               SearchRequested="@ReloadStage"
+                                               CreateRequested="@OpenLocationCreate"
+                                               CanCreate="@_canModifyLocationMaster"
+                                               Locations="@_locations"
+                                               Warehouse="@SelectedWarehouseTitle"
+                                               Area="@SelectedAreaTitle"
+                                               Zone="@SelectedSectionTitle" />
             }
         </RadzenStack>
     </div>
@@ -875,6 +878,8 @@
         _locationModalErr = "";
         _locationModal = "edit";
     }
+
+    void SetSearch(string value) => _search = value;
 
     void SaveLocationCreate()
     {
