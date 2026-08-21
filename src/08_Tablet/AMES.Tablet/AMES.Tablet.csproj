@@ -36,4 +36,8 @@
         <PackageReference Include="Radzen.Blazor" Version="11.1.2" />
     </ItemGroup>
 
+    <ItemGroup>
+        <ProjectReference Include="..\..\02_Data\AMES.Data\AMES.Data.csproj" />
+    </ItemGroup>
+
 </Project>
