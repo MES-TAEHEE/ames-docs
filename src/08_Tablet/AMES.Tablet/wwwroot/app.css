@@ -1,0 +1,41 @@
+:root {
+    font-family: "Open Sans", "Segoe UI", sans-serif;
+    color: #f5f8fb;
+    background: #07101a;
+    letter-spacing: 0;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #app, .tablet-root {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: #07101a;
+}
+
+.tablet-shell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.tablet-shell span { color: #5dd6ee; font-size: 12px; font-weight: 800; }
+.tablet-shell h1 { margin: 8px 0; color: #f8fbff; font-size: 28px; }
+.tablet-shell p { margin: 0; color: #8fa8b5; }
+
+.tablet-loader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    height: 100%;
+    color: #a9bec9;
+}
+
+#blazor-error-ui { display: none; }
