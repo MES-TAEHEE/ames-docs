@@ -20,6 +20,9 @@ IF OBJECT_ID(N'dbo.MD_Location', N'U') IS NULL
 IF OBJECT_ID(N'dbo.WH_Inventory', N'U') IS NULL
     THROW 51000, 'dbo.WH_Inventory is required.', 1;
 
+IF OBJECT_ID(N'dbo.tbl_Lot', N'U') IS NULL
+    THROW 51000, 'dbo.tbl_Lot is required.', 1;
+
 IF OBJECT_ID(N'dbo.WH_ReleaseSchedule', N'U') IS NULL
     THROW 51000, 'dbo.WH_ReleaseSchedule is required. Run migrate_wh_picking_slip.sql first.', 1;
 
@@ -30,18 +33,24 @@ BEGIN TRANSACTION;
 
 DECLARE @LegacyActor varchar(50) = 'wh-legacy-seed';
 DECLARE @OldActor varchar(50) = 'wh-location-seed';
+DECLARE @ScrollActor varchar(50) = 'CODEX_SAMPLE';
 
 -- Remove only the previous EOS demo rows, then refresh this legacy-style set.
 DELETE FROM dbo.WH_ReleaseSchedule WHERE CreatedBy = @LegacyActor;
-DELETE FROM dbo.WH_Inventory WHERE CreatedBy IN (@OldActor, @LegacyActor);
-DELETE FROM dbo.MD_Item WHERE CreatedBy = @OldActor;
+DELETE FROM dbo.WH_Inventory WHERE CreatedBy IN (@OldActor, @LegacyActor, @ScrollActor);
+DELETE FROM dbo.tbl_Lot WHERE CreatedBy IN (@LegacyActor, @ScrollActor);
+DELETE FROM dbo.MD_Item WHERE CreatedBy IN (@OldActor, @ScrollActor);
 DELETE FROM dbo.MD_Location WHERE CreatedBy IN (@OldActor, @LegacyActor);
 DELETE FROM dbo.WH_AreaMaster WHERE CreatedBy IN (@OldActor, @LegacyActor);
 DELETE FROM dbo.WH_WarehouseMaster WHERE CreatedBy IN (@OldActor, @LegacyActor);
 
 IF NOT EXISTS (SELECT 1 FROM dbo.WH_WarehouseMaster WHERE WhCode = 'B')
     INSERT INTO dbo.WH_WarehouseMaster (WhCode, WhName, ActiveFlag, CreatedBy)
-    VALUES ('B', N'EOS Warehouse B', 1, @LegacyActor);
+    VALUES ('B', N'Wiley W/H', 1, @LegacyActor);
+ELSE
+    UPDATE dbo.WH_WarehouseMaster
+       SET WhName = N'Wiley W/H', ActiveFlag = 1
+     WHERE WhCode = 'B';
 
 IF NOT EXISTS (SELECT 1 FROM dbo.WH_AreaMaster WHERE WhCode = 'B' AND AreaCode = 'B0')
     INSERT INTO dbo.WH_AreaMaster (WhCode, AreaCode, AreaName, ActiveFlag, CreatedBy)
@@ -90,6 +99,19 @@ SELECT L.LocationID, L.LocationName, 'B0', L.RackX, L.RackY, L.RackZ,
 FROM @Locations L
 WHERE NOT EXISTS (SELECT 1 FROM dbo.MD_Location T WHERE T.LocationID = L.LocationID);
 
+UPDATE T
+   SET T.LocationName = L.LocationName,
+       T.ZoneCode = 'B0',
+       T.Aisle = L.RackX,
+       T.Bay = L.RackY,
+       T.Slot = L.RackZ,
+       T.Capacity = 500,
+       T.LocationType = 'STORAGE',
+       T.PlantCode = 'B',
+       T.ActiveFlag = 1
+FROM dbo.MD_Location T
+INNER JOIN @Locations L ON L.LocationID = T.LocationID;
+
 -- These are existing AMES_DEV material masters. The location distribution
 -- deliberately creates up to three FIFO candidates for each requested part.
 IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = '81710-PI000NNB')
@@ -106,33 +128,42 @@ IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = '82301-PI000YGU')
 
 DECLARE @Inventory TABLE
 (
+    LotCode varchar(40) NOT NULL,
     ItemNo varchar(20) NOT NULL,
     LocationID varchar(20) NOT NULL,
     OnHandQty decimal(14, 3) NOT NULL,
     ReceivedAt datetime2 NOT NULL
 );
 
-INSERT INTO @Inventory (ItemNo, LocationID, OnHandQty, ReceivedAt)
+INSERT INTO @Inventory (LotCode, ItemNo, LocationID, OnHandQty, ReceivedAt)
 VALUES
-    ('81710-PI000NNB', 'B0-09-D2', 120, DATEADD(day, -21, SYSDATETIME())),
-    ('81710-PI000NNB', 'B0-09-C2',  80, DATEADD(day, -14, SYSDATETIME())),
-    ('81710-PI000NNB', 'B0-09-B2',  60, DATEADD(day,  -7, SYSDATETIME())),
-    ('81710-PI000NNB', 'B0-08-D1',  55, DATEADD(day, -24, SYSDATETIME())),
-    ('81710-PI000NNB', 'B0-09-C1',  48, DATEADD(day, -11, SYSDATETIME())),
-    ('81710-PI000YGN', 'B0-10-D1', 100, DATEADD(day, -18, SYSDATETIME())),
-    ('81710-PI000YGN', 'B0-10-C1',  75, DATEADD(day, -10, SYSDATETIME())),
-    ('81710-PI000YGN', 'B0-09-A1',  70, DATEADD(day, -15, SYSDATETIME())),
-    ('81710-PI000YGN', 'B0-11-D1',  65, DATEADD(day,  -8, SYSDATETIME())),
-    ('82301-PI000NNB', 'B0-10-B1',  90, DATEADD(day, -16, SYSDATETIME())),
-    ('82301-PI000NNB', 'B0-10-A1',  45, DATEADD(day,  -5, SYSDATETIME())),
-    ('82301-PI000NNB', 'B0-11-B1',  85, DATEADD(day, -13, SYSDATETIME())),
-    ('82301-PI000YGU', 'B0-12-C1',  95, DATEADD(day,  -9, SYSDATETIME())),
-    ('82301-PI000YGU', 'B0-09-A2', 110, DATEADD(day, -12, SYSDATETIME()));
+    ('5011LL260804000001', '81710-PI000NNB', 'B0-09-D2', 120, DATEADD(day, -21, SYSDATETIME())),
+    ('5011LL260811000002', '81710-PI000NNB', 'B0-09-C2',  80, DATEADD(day, -14, SYSDATETIME())),
+    ('5011LL260818000003', '81710-PI000NNB', 'B0-09-B2',  60, DATEADD(day,  -7, SYSDATETIME())),
+    ('5011LL260801000004', '81710-PI000NNB', 'B0-08-D1',  55, DATEADD(day, -24, SYSDATETIME())),
+    ('5011LL260814000005', '81710-PI000NNB', 'B0-09-C1',  48, DATEADD(day, -11, SYSDATETIME())),
+    ('5011LL260807000006', '81710-PI000YGN', 'B0-10-D1', 100, DATEADD(day, -18, SYSDATETIME())),
+    ('5011LL260815000007', '81710-PI000YGN', 'B0-10-C1',  75, DATEADD(day, -10, SYSDATETIME())),
+    ('5011LL260810000008', '81710-PI000YGN', 'B0-09-A1',  70, DATEADD(day, -15, SYSDATETIME())),
+    ('5011LL260817000009', '81710-PI000YGN', 'B0-11-D1',  65, DATEADD(day,  -8, SYSDATETIME())),
+    ('5011LL260809000010', '82301-PI000NNB', 'B0-10-B1',  90, DATEADD(day, -16, SYSDATETIME())),
+    ('5011LL260820000011', '82301-PI000NNB', 'B0-10-A1',  45, DATEADD(day,  -5, SYSDATETIME())),
+    ('5011LL260812000012', '82301-PI000NNB', 'B0-11-B1',  85, DATEADD(day, -13, SYSDATETIME())),
+    ('5011LL260816000013', '82301-PI000YGU', 'B0-12-C1',  95, DATEADD(day,  -9, SYSDATETIME())),
+    ('5011LL260813000014', '82301-PI000YGU', 'B0-09-A2', 110, DATEADD(day, -12, SYSDATETIME()));
+
+INSERT INTO dbo.tbl_Lot
+    (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt,
+     Status, InventoryStatus, QualityFlag, CurrentLocationID, CreatedBy)
+SELECT I.LotCode, I.ItemNo, 'WH', I.OnHandQty, I.OnHandQty, I.ReceivedAt,
+       'Received', 'STORED', 'PASS', I.LocationID, @LegacyActor
+FROM @Inventory I;
 
 INSERT INTO dbo.WH_Inventory
     (ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt, Status, CreatedBy)
-SELECT I.ItemNo, I.LocationID, NULL, I.OnHandQty, 0, I.ReceivedAt, 'Received', @LegacyActor
-FROM @Inventory I;
+SELECT I.ItemNo, I.LocationID, L.LotID, I.OnHandQty, 0, I.ReceivedAt, 'Received', @LegacyActor
+FROM @Inventory I
+INNER JOIN dbo.tbl_Lot L ON L.LotCode = I.LotCode;
 
 INSERT INTO dbo.WH_ReleaseSchedule
     (PickSlipNo, ReqLocation, ReqSeqNo, ReqUserId,
