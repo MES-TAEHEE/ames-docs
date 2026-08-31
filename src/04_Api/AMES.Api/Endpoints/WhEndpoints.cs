@@ -107,7 +107,7 @@ public static class WhEndpoints
         string Direction, string? WorkerId, string? ReasonCode, string? ReasonNote,
         string? Supervisor, decimal? BeforeQty, decimal? DeltaQty, decimal? AfterQty,
         string? BeforeStatus, string? AfterStatus, string? BeforeLocation, string? AfterLocation,
-        string? Source, string? Note);
+        string? Source, string? Note, string? Unit = null);
 
     public sealed record ReceiveReq(string LotCode, decimal Qty, string LocationId);
     public sealed record AdjustReq(string ItemNo, string LocationId, decimal Delta, string ReasonCode, string? Note);
@@ -2375,7 +2375,8 @@ public static class WhEndpoints
             GetString(rdr, "BEFORE_LOCATION"),
             GetString(rdr, "AFTER_LOCATION"),
             GetString(rdr, "SOURCE"),
-            GetString(rdr, "NOTE"));
+            GetString(rdr, "NOTE"),
+            GetString(rdr, "UNIT"));
     }
 
     private static IResult Query<T>(AmesConnectionFactory factory, string sql, Func<SqlDataReader, T> map)

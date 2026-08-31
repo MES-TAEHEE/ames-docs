@@ -167,7 +167,7 @@ public sealed class PdaApi
         string Direction, string? WorkerId, string? ReasonCode, string? ReasonNote,
         string? Supervisor, decimal? BeforeQty, decimal? DeltaQty, decimal? AfterQty,
         string? BeforeStatus, string? AfterStatus, string? BeforeLocation, string? AfterLocation,
-        string? Source, string? Note);
+        string? Source, string? Note, string? Unit = null);
     public sealed record InventoryRow(int InventoryId, string ItemNo, string? ItemName, string LocationId,
         int? LotId, decimal OnHandQty, decimal ReservedQty, DateTime? ExpiryDate,
         string? CarCode = null, string? Unit = null, decimal? MinDays = null, decimal? MinQty = null,
@@ -548,28 +548,21 @@ public sealed class PdaApi
 
     public async Task<List<WarehouseTransactionRow>> WhWarehouseTransactionsAsync(string? search = null, DateTime? dateFrom = null, DateTime? dateTo = null)
     {
-        try
-        {
-            Authorize();
-            var query = new List<string>();
-            if (!string.IsNullOrWhiteSpace(search))
-                query.Add($"search={Uri.EscapeDataString(search.Trim())}");
-            if (dateFrom.HasValue)
-                query.Add($"dateFrom={Uri.EscapeDataString(dateFrom.Value.ToString("yyyy-MM-dd"))}");
-            if (dateTo.HasValue)
-                query.Add($"dateTo={Uri.EscapeDataString(dateTo.Value.ToString("yyyy-MM-dd"))}");
+        Authorize();
+        var query = new List<string>();
+        if (!string.IsNullOrWhiteSpace(search))
+            query.Add($"search={Uri.EscapeDataString(search.Trim())}");
+        if (dateFrom.HasValue)
+            query.Add($"dateFrom={Uri.EscapeDataString(dateFrom.Value.ToString("yyyy-MM-dd"))}");
+        if (dateTo.HasValue)
+            query.Add($"dateTo={Uri.EscapeDataString(dateTo.Value.ToString("yyyy-MM-dd"))}");
 
-            var url = "/api/wh/warehouse-transactions";
-            if (query.Count > 0)
-                url += "?" + string.Join("&", query);
+        var url = "/api/wh/warehouse-transactions";
+        if (query.Count > 0)
+            url += "?" + string.Join("&", query);
 
-            return await _http.GetFromJsonAsync<List<WarehouseTransactionRow>>(url)
-                ?? new List<WarehouseTransactionRow>();
-        }
-        catch
-        {
-            return new List<WarehouseTransactionRow>();
-        }
+        return await _http.GetFromJsonAsync<List<WarehouseTransactionRow>>(url)
+            ?? new List<WarehouseTransactionRow>();
     }
 
     public async Task<string?> WhInboundTestBarcodeAsync(string mode)
@@ -1825,7 +1818,8 @@ public sealed class PdaApi
             GetString(rdr, "BEFORE_LOCATION"),
             GetString(rdr, "AFTER_LOCATION"),
             GetString(rdr, "SOURCE"),
-            GetString(rdr, "NOTE"));
+            GetString(rdr, "NOTE"),
+            GetString(rdr, "UNIT"));
     }
 
     private static List<LocationRow> NormalizeLocationRows(IEnumerable<LocationRow> rows)

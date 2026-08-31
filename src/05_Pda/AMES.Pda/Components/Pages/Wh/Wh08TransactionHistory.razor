@@ -8,47 +8,98 @@
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
         <div class="wh08-tbar-title">
-            <span class="pda-tbar-brand">WH-006 TRANSACTIONS</span>
-            <span class="wh08-last-updated">Last Updated @LastUpdatedText</span>
+            <span class="pda-tbar-brand">TRANSACTIONS</span>
         </div>
         <div class="wh08-tbar-actions">
-            <RadzenButton class="@FilterButtonClass" Click="@OpenFilters" Disabled="@_loading" Icon="filter_alt" />
             <RadzenButton class="wh08-refresh" Click="@Load" Disabled="@_loading" Text="REFRESH" />
         </div>
     </div>
 
     <div class="pda-bd wh08-body">
+        <RadzenCard class="wh08-date-filter" @onfocusin="BeginFilterEdit" @onpointerdown="BeginFilterEdit">
+            <div class="pda-card-h">TRANSACTION DATE</div>
+            <div class="wh08-filter-date">
+                <div class="pda-fld">
+                    <label>FROM</label>
+                    <RadzenDatePicker TValue="DateTime?"
+                                      @bind-Value="_dateFrom"
+                                      DateFormat="yyyy-MM-dd"
+                                      AllowClear="false"
+                                      Max="@DateTo"
+                                      class="wh08-date-picker" />
+                </div>
+                <div class="pda-fld">
+                    <label>TO</label>
+                    <RadzenDatePicker TValue="DateTime?"
+                                      @bind-Value="_dateTo"
+                                      DateFormat="yyyy-MM-dd"
+                                      AllowClear="false"
+                                      Min="@DateFrom"
+                                      class="wh08-date-picker" />
+                </div>
+            </div>
+            <RadzenButton class="wh08-date-apply" Click="@Load" Disabled="@_loading" Text="APPLY" />
+            <details class="wh08-additional-filters">
+                <summary>More Filters</summary>
+                <div class="pda-fld">
+                    <label>WORKER ID</label>
+                    <RadzenTextBox class="pda-input wh08-search-input"
+                                   Value="@_worker"
+                                   @oninput="OnWorkerInput"
+                                   Placeholder="Worker ID" />
+                </div>
+                <div class="pda-fld">
+                    <label>ADJ REASON</label>
+                    <select class="pda-input wh08-search-input wh08-select" @bind="_reason">
+                        <option value="">All reasons</option>
+                        @foreach (var reason in ReasonOptions)
+                        {
+                            <option value="@reason">@reason</option>
+                        }
+                    </select>
+                </div>
+                <RadzenButton class="wh08-date-reset" Click="@ClearFilters" Disabled="@_loading" Text="CLEAR FILTERS" />
+            </details>
+        </RadzenCard>
+
         <div class="wh08-kpi-strip">
             <button type="button" class="@($"wh08-kpi all {TypeClass("")}")" @onclick='@(() => SetType(""))'>
                 <span>ALL</span>
                 <strong>@ConditionRows.Count().ToString("N0")</strong>
+                <small>records</small>
             </button>
             <button type="button" class="@($"wh08-kpi in {TypeClass("IN")}")" @onclick='@(() => SetType("IN"))'>
                 <span>IN</span>
                 <strong>@InCount.ToString("N0")</strong>
+                <small>records</small>
             </button>
             <button type="button" class="@($"wh08-kpi out {TypeClass("OUT")}")" @onclick='@(() => SetType("OUT"))'>
                 <span>OUT</span>
                 <strong>@OutCount.ToString("N0")</strong>
+                <small>records</small>
             </button>
             <button type="button" class="@($"wh08-kpi adj {TypeClass("ADJ")}")" @onclick='@(() => SetType("ADJ"))'>
                 <span>ADJ</span>
                 <strong>@AdjCount.ToString("N0")</strong>
+                <small>records</small>
             </button>
         </div>
 
         <RadzenCard class="wh08-search-card">
             <div class="pda-fld">
-                <label>SEARCH</label>
-                <RadzenTextBox class="pda-input wh08-search-input pda-scan-input"
+                <label>Search</label>
+                @* Manual entry stays outside the scan-only selector; native scans use OnHardwareScanAsync. *@
+                <RadzenTextBox class="pda-input wh08-search-input wh08-barcode-input"
                                Value="@_search"
                                @oninput="OnSearchInput"
                                @onkeydown="OnKey"
-                               Placeholder="Scan Lot No or Part No" />
+                               @onfocus="@(() => _editingBarcode = true)"
+                               @onblur="@(() => _editingBarcode = false)"
+                               Placeholder="Type or scan barcode" />
             </div>
             <div class="wh08-search-actions">
                 <RadzenButton class="wh08-clear" Click="@ClearSearch" Disabled="@_loading" Text="CLEAR" />
-                <RadzenButton class="wh08-search" Click="@Load" Disabled="@_loading" Text="SEARCH" />
+                <RadzenButton class="wh08-search" Click="@Load" Disabled="@_loading" Icon="search" title="Search" aria-label="Search" />
             </div>
         </RadzenCard>
 
@@ -79,43 +130,16 @@
                             <span>@Text(row.LocationId)</span>
                         </div>
 
+                        <dl class="wh08-value-rows">
+                            <div><dt>@(IsAdjust(row) ? "Change" : $"{row.Direction} Qty")</dt><dd>@(IsAdjust(row) ? SignedQtyText(row.DeltaQty) : QtyText(MovementQty(row))) @Text(row.Unit)</dd></div>
+                            <div><dt>Worker</dt><dd>@Text(row.WorkerId)</dd></div>
+                        </dl>
+
                         @if (IsAdjust(row))
                         {
-                            <button type="button" class="wh08-detail-btn" @onclick="@(() => ToggleDetail(row.RowNo))">
-                                @(_expandedRows.Contains(row.RowNo) ? "HIDE DETAIL" : "DETAIL")
+                            <button type="button" class="wh08-detail-btn" @onclick="@(() => OpenDetail(row))">
+                                DETAIL
                             </button>
-
-                            @if (_expandedRows.Contains(row.RowNo))
-                            {
-                                <div class="wh08-snapshot">
-                                    <div>
-                                        <span>Before</span>
-                                        <strong>@QtyText(row.BeforeQty)</strong>
-                                    </div>
-                                    <div>
-                                        <span>Change</span>
-                                        <strong class="@DeltaClass(row.DeltaQty)">@SignedQtyText(row.DeltaQty)</strong>
-                                    </div>
-                                    <div>
-                                        <span>After</span>
-                                        <strong>@QtyText(row.AfterQty)</strong>
-                                    </div>
-                                </div>
-                                <div class="wh08-reason">
-                                    <div>
-                                        <span>Reason</span>
-                                        <strong>@Text(row.ReasonCode)</strong>
-                                    </div>
-                                    <div>
-                                        <span>Note</span>
-                                        <strong>@Text(row.ReasonNote)</strong>
-                                    </div>
-                                    <div>
-                                        <span>Supervisor</span>
-                                        <strong>@Text(row.Supervisor)</strong>
-                                    </div>
-                                </div>
-                            }
                         }
                     </RadzenCard>
                 }
@@ -123,68 +147,31 @@
         }
     </div>
 
-    @if (_showFilters)
+    @if (_detailRow is { } detail)
     {
-        <div class="wh08-filter-backdrop" @onclick="CloseFilters"></div>
-        <div class="wh08-filter-sheet" @onclick:stopPropagation="true">
-            <div class="wh08-sheet-head">
-                <div>
-                    <span>FILTERS</span>
-                    <strong>@RangeLabel</strong>
+        <div class="wh-modal-backdrop" @onclick="CloseDetail" @onkeydown="OnDetailKey" tabindex="-1" @ref="_detailDialog">
+            <RadzenCard class="wh-modal-card wh08-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="wh08-detail-title" @onclick:stopPropagation="true">
+                <h2 id="wh08-detail-title" class="wh-modal-title">Adjustment Detail</h2>
+                <dl class="wh08-value-rows wh08-detail-rows">
+                    <div><dt>Lot No</dt><dd>@Text(detail.LotNo)</dd></div>
+                    <div><dt>Part No</dt><dd>@Text(detail.PartNo)</dd></div>
+                    <div><dt>Location</dt><dd>@Text(detail.LocationId)</dd></div>
+                    <div><dt>Date</dt><dd>@LogDateText(detail)</dd></div>
+                    <div><dt>Before</dt><dd>@QtyText(detail.BeforeQty) @Text(detail.Unit)</dd></div>
+                    <div><dt>Change</dt><dd class="@DeltaClass(detail.DeltaQty)">@SignedQtyText(detail.DeltaQty) @Text(detail.Unit)</dd></div>
+                    <div><dt>After</dt><dd>@QtyText(detail.AfterQty) @Text(detail.Unit)</dd></div>
+                    <div><dt>Reason</dt><dd>@Text(detail.ReasonCode)</dd></div>
+                    <div><dt>Note</dt><dd>@Text(detail.ReasonNote)</dd></div>
+                    <div><dt>Worker</dt><dd>@Text(detail.WorkerId)</dd></div>
+                    <div><dt>Supervisor</dt><dd>@Text(detail.Supervisor)</dd></div>
+                </dl>
+                <div class="wh-modal-actions">
+                    <RadzenButton class="wh-modal-btn primary wh08-detail-close" Click="CloseDetail" Text="CLOSE" />
                 </div>
-                <button type="button" class="wh08-sheet-close" @onclick="CloseFilters">
-                    <RadzenIcon Icon="close" />
-                </button>
-            </div>
-
-            <div class="pda-fld">
-                <label>WORKER ID</label>
-                <RadzenTextBox class="pda-input wh08-search-input"
-                               Value="@_worker"
-                               @oninput="OnWorkerInput"
-                               Placeholder="Worker ID" />
-            </div>
-
-            <div class="pda-fld">
-                <label>ADJ REASON</label>
-                <select class="pda-input wh08-search-input wh08-select" @bind="_reason">
-                    <option value="">All reasons</option>
-                    @foreach (var reason in ReasonOptions)
-                    {
-                        <option value="@reason">@reason</option>
-                    }
-                </select>
-            </div>
-
-            <div class="wh08-filter-date">
-                <div class="pda-fld">
-                    <label>DATE FROM</label>
-                    <RadzenDatePicker TValue="DateTime?"
-                                      @bind-Value="_dateFrom"
-                                      DateFormat="yyyy-MM-dd"
-                                      AllowClear="false"
-                                      Max="@DateTo"
-                                      Placeholder="YYYY-MM-DD"
-                                      class="wh08-date-picker" />
-                </div>
-                <div class="pda-fld">
-                    <label>DATE TO</label>
-                    <RadzenDatePicker TValue="DateTime?"
-                                      @bind-Value="_dateTo"
-                                      DateFormat="yyyy-MM-dd"
-                                      AllowClear="false"
-                                      Min="@DateFrom"
-                                      Placeholder="YYYY-MM-DD"
-                                      class="wh08-date-picker" />
-                </div>
-            </div>
-
-            <div class="wh08-filter-actions">
-                <RadzenButton class="wh08-date-reset" Click="@ClearFilters" Disabled="@_loading" Text="CLEAR FILTERS" />
-                <RadzenButton class="wh08-date-apply" Click="@ApplyFilters" Disabled="@_loading" Text="APPLY" />
-            </div>
+            </RadzenCard>
         </div>
     }
+
 </div>
 
 @code {
@@ -199,23 +186,18 @@
     private string _type = "";
     private string _msg = "Loading transactions...";
     private bool _loading;
-    private bool _showFilters;
-    private DateTime? _lastUpdated;
+    private bool _editingFilters;
+    private bool _editingBarcode;
     private List<PdaApi.WarehouseTransactionRow> _rows = new();
-    private readonly HashSet<long> _expandedRows = new();
+    private PdaApi.WarehouseTransactionRow? _detailRow;
+    private ElementReference _detailDialog;
+    private bool _focusDetail;
     private DotNetObjectReference<Wh08TransactionHistory>? _scannerRef;
 
-    private string LastUpdatedText => _lastUpdated?.ToString("HH:mm:ss") ?? "-";
     private DateTime? DateFrom => _dateFrom?.Date;
     private DateTime? DateTo => _dateTo?.Date;
-    private string RangeLabel => $"{DateText(_dateFrom)} - {DateText(_dateTo)}";
     private IEnumerable<PdaApi.WarehouseTransactionRow> ConditionRows => _rows.Where(MatchesConditions).ToList();
     private IEnumerable<PdaApi.WarehouseTransactionRow> FilteredRows => ConditionRows.Where(MatchesType).ToList();
-    private string FilterButtonClass => $"wh08-filter-toggle {(HasAdvancedFilters ? "on" : "")}";
-    private bool HasAdvancedFilters => !string.IsNullOrWhiteSpace(_worker)
-                                       || !string.IsNullOrWhiteSpace(_reason)
-                                       || DateFrom != DefaultDateFrom.Date
-                                       || DateTo != DefaultDateTo.Date;
     private int InCount => ConditionRows.Count(r => IsDirection(r, "IN"));
     private int OutCount => ConditionRows.Count(r => IsDirection(r, "OUT"));
     private int AdjCount => ConditionRows.Count(r => IsDirection(r, "ADJ"));
@@ -238,18 +220,26 @@
             await JS.InvokeVoidAsync("pdaScan.register", _scannerRef, new { minLength = 3, developerMode = MauiProgram.IsDeveloperMode });
         }
 
-        await FocusScannerAsync();
+        if (_focusDetail)
+        {
+            _focusDetail = false;
+            await _detailDialog.FocusAsync();
+        }
+        else
+            await FocusScannerAsync();
     }
 
     [JSInvokable]
     public async Task OnHardwareScanAsync(string scanText)
     {
         var value = NormalizeHardwareScan(scanText);
-        if (string.IsNullOrWhiteSpace(value) || _showFilters)
+        if (string.IsNullOrWhiteSpace(value))
             return;
 
         await InvokeAsync(async () =>
         {
+            if (_detailRow is not null || _loading)
+                return;
             _search = value;
             await Load();
             StateHasChanged();
@@ -263,12 +253,12 @@
 
     private async Task FocusScannerAsync()
     {
-        if (_showFilters)
+        if (_editingFilters || _editingBarcode || _detailRow is not null)
             return;
 
         try
         {
-            await JS.InvokeVoidAsync("pdaScan.focus", ".wh08-search-input");
+            await JS.InvokeVoidAsync("pdaScan.focus", ".wh08-barcode-input");
         }
         catch
         {
@@ -297,40 +287,33 @@
         _scannerRef?.Dispose();
     }
 
-    private async Task ResetDateRange()
-    {
-        _dateFrom = DefaultDateFrom;
-        _dateTo = DefaultDateTo;
-        await Load();
-    }
-
     private async Task Load()
     {
+        if (_loading) return;
+        _editingFilters = false;
         _loading = true;
+        _search = NormalizeHardwareScan(_search);
         _msg = "Loading transactions...";
 
         try
         {
-            if (HasInvalidDate)
-            {
-                _rows = new();
-                _msg = "Date format must be YYYY-MM-DD.";
-                return;
-            }
-
             if (DateFrom.HasValue && DateTo.HasValue && DateFrom.Value > DateTo.Value)
             {
                 _rows = new();
-                _msg = "Date range is invalid.";
+                _msg = "From date cannot be after To date.";
                 return;
             }
 
             _rows = await Api.WhWarehouseTransactionsAsync(_search, DateFrom, DateTo);
-            _expandedRows.Clear();
-            _lastUpdated = DateTime.Now;
+            _detailRow = null;
             _msg = string.IsNullOrWhiteSpace(_search)
                 ? "No transactions found for the selected conditions."
-                : "No transactions found for this Lot No or Part No.";
+                : "No transactions found for this barcode in the selected date range.";
+        }
+        catch
+        {
+            _rows = new();
+            _msg = "Warehouse transaction service is unavailable. Please try again.";
         }
         finally
         {
@@ -353,24 +336,11 @@
         await Load();
     }
 
-    private async Task ApplyFilters()
-    {
-        _showFilters = false;
-        await Load();
-    }
-
-    private void OpenFilters()
-    {
-        _showFilters = true;
-    }
-
-    private void CloseFilters()
-    {
-        _showFilters = false;
-    }
+    private void BeginFilterEdit() => _editingFilters = true;
 
     private void OnSearchInput(ChangeEventArgs e)
     {
+        _editingFilters = false;
         _search = e.Value?.ToString() ?? "";
     }
 
@@ -392,25 +362,27 @@
         _type = type;
     }
 
-    private void ToggleDetail(long rowNo)
+    private void OpenDetail(PdaApi.WarehouseTransactionRow row)
     {
-        if (!_expandedRows.Add(rowNo))
-            _expandedRows.Remove(rowNo);
+        _detailRow = row;
+        _focusDetail = true;
+    }
+
+    private void CloseDetail() => _detailRow = null;
+
+    private void OnDetailKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") CloseDetail();
     }
 
     private bool MatchesConditions(PdaApi.WarehouseTransactionRow row)
     {
-        return MatchesSearch(row)
-            && Contains(row.WorkerId, _worker)
+        // Barcode matching belongs to SQL, including package-to-LOT relationships.
+        return Contains(row.WorkerId, _worker)
             && (string.IsNullOrWhiteSpace(_reason) || string.Equals(row.ReasonCode, _reason, StringComparison.OrdinalIgnoreCase));
     }
 
-    private bool MatchesSearch(PdaApi.WarehouseTransactionRow row)
-    {
-        return string.IsNullOrWhiteSpace(_search)
-            || Contains(row.LotNo, _search)
-            || Contains(row.PartNo, _search);
-    }
+    private static decimal MovementQty(PdaApi.WarehouseTransactionRow row) => Math.Abs(row.DeltaQty ?? row.Qty);
 
     private bool MatchesType(PdaApi.WarehouseTransactionRow row)
     {
@@ -424,16 +396,13 @@
     }
 
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
-    private static string DateText(DateTime? value) => value?.ToString("yyyy-MM-dd") ?? "-";
 
-    private bool HasInvalidDate => false;
-
-    private static string QtyText(decimal? value) => value?.ToString("N0") ?? "-";
+    private static string QtyText(decimal? value) => value?.ToString("#,##0.###") ?? "-";
     private static string SignedQtyText(decimal? value)
     {
         if (!value.HasValue) return "-";
         var prefix = value.Value > 0 ? "+" : "";
-        return $"{prefix}{value.Value:N0}";
+        return $"{prefix}{QtyText(value)}";
     }
 
     private static string DeltaClass(decimal? value)
