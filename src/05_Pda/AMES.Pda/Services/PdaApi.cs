@@ -223,9 +223,10 @@ public sealed class PdaApi
     public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId);
     public sealed record InboundCancelReq(string Mode, string Barcode);
     public sealed record InboundAdjustReq(string Mode, string Barcode, decimal DeltaQty, string ReasonCode,
-        string? ReasonNote, string SupervisorPin);
+        string? ReasonNote, string SupervisorPin, string? SupervisorEmployeeNo = null);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
-        string? ReasonNote, string SupervisorPin);
+        string? ReasonNote, string SupervisorPin, string? SupervisorEmployeeNo = null);
+    public sealed record SupervisorRow(string EmployeeNo, string EmployeeName);
     public sealed record InboundReceiveResult(bool Success, string Message, InboundScanRow? Row);
     public sealed record AdjustReq(string ItemNo, string LocationId, decimal Delta, string ReasonCode, string? Note);
     public sealed record PickReq(string PickSlipNo, string LotNo, decimal Qty);
@@ -514,6 +515,15 @@ public sealed class PdaApi
         }
     }
 
+    public async Task<List<SupervisorRow>> WhAdjustSupervisorsAsync()
+    {
+        Authorize();
+        using var resp = await _http.GetAsync("/api/wh/adjust/supervisors");
+        if (!resp.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Supervisor list is unavailable."));
+        return await resp.Content.ReadFromJsonAsync<List<SupervisorRow>>() ?? [];
+    }
+
     public async Task<InboundScanRow?> WhScanAdjustAsync(string scanText)
     {
         try
@@ -645,7 +655,8 @@ public sealed class PdaApi
             body.DeltaQty,
             body.ReasonCode,
             body.ReasonNote,
-            body.SupervisorPin));
+            body.SupervisorPin,
+            body.SupervisorEmployeeNo));
 
     public Task<HttpResponseMessage> WhAdjustAsync (AdjustReq  body) => Post("/api/wh/inventory/adjust", body);
     public Task<HttpResponseMessage> WhPickAsync   (PickReq    body) => Post("/api/wh/release/pick",      body);
@@ -1252,46 +1263,37 @@ public sealed class PdaApi
         await conn.OpenAsync();
         await using var cmd = new SqlCommand("""
             SELECT
-                L.LOCATION_NO AS LocationID,
-                L.LOCATION_NM AS LocationName,
-                L.ZONECD AS ZoneCode,
-                L.WHCD AS WarehouseCode,
-                W.WHNM AS WarehouseName,
-                L.AREACD AS AreaCode,
-                A.AREANM AS AreaName,
-                Z.ZONENM AS ZoneName,
-                L.RACK_X AS Aisle,
-                L.RACK_Y AS Bay,
-                L.RACK_Z AS Slot,
-                CAST(NULL AS nvarchar(20)) AS PlantCode,
-                CAST(N'SIS' AS nvarchar(20)) AS LocationType,
-                CAST(NULL AS decimal(18,3)) AS Capacity,
-                COUNT(S.LOTNO) AS LineCount,
-                COALESCE(SUM(S.QTY), 0) AS TotalQty
-            FROM SIS_TEST.WMS1040 L
-            LEFT JOIN SIS_TEST.WMS1010 W
-                ON W.CORCD = L.CORCD
-               AND W.BIZCD = L.BIZCD
-               AND W.WHCD = L.WHCD
-            LEFT JOIN SIS_TEST.WMS1020 A
-                ON A.CORCD = L.CORCD
-               AND A.BIZCD = L.BIZCD
-               AND A.AREACD = L.AREACD
-            LEFT JOIN SIS_TEST.WMS1030 Z
-                ON Z.CORCD = L.CORCD
-               AND Z.BIZCD = L.BIZCD
-               AND Z.ZONECD = L.ZONECD
-            LEFT JOIN SIS_TEST.WMS2020 S
-                ON S.LOCATION_NO = L.LOCATION_NO
-            WHERE L.CORCD = @LocationCorcd
-              AND L.BIZCD = @LocationBizcd
-              AND COALESCE(L.USE_YN, N'Y') = N'Y'
-            GROUP BY L.LOCATION_NO, L.LOCATION_NM, L.ZONECD, L.WHCD, W.WHNM,
-                L.AREACD, A.AREANM, Z.ZONENM, L.RACK_X, L.RACK_Y, L.RACK_Z
-            ORDER BY L.LOCATION_NO;
+                L.LocationID,
+                L.LocationName,
+                L.ZoneCode,
+                L.PlantCode AS WarehouseCode,
+                WM.WhName AS WarehouseName,
+                L.ZoneCode AS AreaCode,
+                AM.AreaName,
+                L.LocationName AS ZoneName,
+                L.Aisle,
+                L.Bay,
+                L.Slot,
+                L.PlantCode,
+                L.LocationType,
+                L.Capacity,
+                COUNT(I.InventoryID) AS LineCount,
+                COALESCE(SUM(I.OnHandQty), 0) AS TotalQty
+            FROM dbo.MD_Location L
+            LEFT JOIN dbo.WH_WarehouseMaster WM
+                   ON WM.WhCode = L.PlantCode
+            LEFT JOIN dbo.WH_AreaMaster AM
+                   ON AM.WhCode = L.PlantCode
+                  AND AM.AreaCode = L.ZoneCode
+            LEFT JOIN dbo.WH_Inventory I
+                   ON I.LocationID = L.LocationID
+                  AND COALESCE(I.OnHandQty, 0) > 0
+                  AND UPPER(COALESCE(I.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
+            WHERE COALESCE(L.ActiveFlag, 1) = 1
+            GROUP BY L.LocationID, L.LocationName, L.ZoneCode, L.PlantCode,
+                WM.WhName, AM.AreaName, L.Aisle, L.Bay, L.Slot, L.LocationType, L.Capacity
+            ORDER BY L.LocationID;
             """, conn);
-        cmd.Parameters.Add("@LocationCorcd", SqlDbType.NVarChar, 10).Value = WhLocationCorcd;
-        cmd.Parameters.Add("@LocationBizcd", SqlDbType.NVarChar, 10).Value = WhLocationBizcd;
 
         await using var rdr = await cmd.ExecuteReaderAsync();
         var rows = new List<LocationRow>();

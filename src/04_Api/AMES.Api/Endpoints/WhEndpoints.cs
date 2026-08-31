@@ -66,7 +66,8 @@ public static class WhEndpoints
     public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId);
     public sealed record InboundCancelReq(string Mode, string Barcode);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
-        string? ReasonNote, string SupervisorPin);
+        string? ReasonNote, string SupervisorPin, string? SupervisorEmployeeNo = null);
+    public sealed record SupervisorRow(string EmployeeNo, string EmployeeName);
     public sealed record InboundReceiveResult(bool Success, string Message, InboundScanRow? Row);
     private sealed record SupervisorPinProfile(string UserId, string EmployeeNo);
 
@@ -286,6 +287,30 @@ public static class WhEndpoints
             return Results.Ok(result);
         });
 
+        g.MapGet("/adjust/supervisors", (HttpContext ctx) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            try
+            {
+                using var conn = factory.OpenConnection();
+                using var cmd = new SqlCommand("""
+                    SELECT EmployeeNo, COALESCE(NULLIF(EmployeeName, N''), EmployeeNo) AS EmployeeName
+                    FROM dbo.SYS_UserProfile
+                    WHERE PinHash IS NOT NULL AND ISNULL(AccountStatus, 'Active') = 'Active'
+                    ORDER BY EmployeeName, EmployeeNo;
+                    """, conn) { CommandTimeout = 15 };
+                using var rdr = cmd.ExecuteReader();
+                var rows = new List<SupervisorRow>();
+                while (rdr.Read())
+                    rows.Add(new SupervisorRow(rdr.GetString(0), rdr.GetString(1)));
+                return Results.Ok(rows);
+            }
+            catch
+            {
+                return Results.Problem("Supervisor list is unavailable.", statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+        });
+
         g.MapGet("/adjust/scan", (HttpContext ctx, string scanText) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
@@ -294,8 +319,8 @@ public static class WhEndpoints
             {
                 var row = ExecuteAdjustScan(factory, scanText);
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
-                    s, "SCAN_STOCK", "WH005", "LOT_PART", scanText, "SUCCESS", "Adjustment stock scanned",
-                    lotNo: row?.LotNo, partNo: row?.PartNo ?? scanText, locationId: row?.ReceivedLocation, qty: row?.Qty));
+                    s, "SCAN_STOCK", "WH005", "LOT", scanText, "SUCCESS", "Adjustment stock scanned",
+                    lotNo: row?.LotNo, partNo: row?.PartNo, locationId: row?.ReceivedLocation, qty: row?.Qty));
                 return Results.Ok(row);
             }
             catch (Exception ex)
@@ -307,8 +332,8 @@ public static class WhEndpoints
                     && sqlEx.Errors[0].Number < 51600;
 
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
-                    s, "SCAN_STOCK", "WH005", "LOT_PART", scanText, "FAIL", WarehouseProcedureMessage(ex),
-                    lotNo: scanText, partNo: scanText));
+                    s, "SCAN_STOCK", "WH005", "LOT", scanText, "FAIL", WarehouseProcedureMessage(ex),
+                    lotNo: scanText));
                 return Results.Problem(
                     WarehouseProcedureMessage(ex),
                     statusCode: isValidationError
@@ -323,8 +348,8 @@ public static class WhEndpoints
 
             var result = ExecuteAdjustSave(factory, body, s.EmployeeNo);
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
-                s, "ADJUST_SAVE", "WH005", "LOT_PART", body.Barcode, result.Success ? "SUCCESS" : "FAIL", result.Message,
-                lotNo: result.Row?.LotNo, partNo: result.Row?.PartNo ?? body.Barcode,
+                s, "ADJUST_SAVE", "WH005", "LOT", body.Barcode, result.Success ? "SUCCESS" : "FAIL", result.Message,
+                lotNo: result.Row?.LotNo ?? body.Barcode, partNo: result.Row?.PartNo,
                 locationId: result.Row?.ReceivedLocation, qty: body.DeltaQty));
             return Results.Ok(result);
         }
@@ -437,20 +462,26 @@ public static class WhEndpoints
                 SELECT l.LocationID, l.LocationName, l.ZoneCode,
                        COUNT(i.InventoryID) AS LineCount,
                        COALESCE(SUM(i.OnHandQty),0) AS TotalQty,
-                       CAST(NULL AS nvarchar(20)) AS WarehouseCode,
-                       CAST(NULL AS nvarchar(80)) AS WarehouseName,
-                       l.PlantCode AS AreaCode,
-                       l.PlantCode AS AreaName,
+                       l.PlantCode AS WarehouseCode,
+                       wm.WhName AS WarehouseName,
+                       l.ZoneCode AS AreaCode,
+                       am.AreaName AS AreaName,
                        l.ZoneCode AS ZoneName,
                        l.Aisle, l.Bay, l.Slot,
                        l.PlantCode, l.LocationType, l.Capacity
                 FROM dbo.MD_Location l
+                LEFT JOIN dbo.WH_WarehouseMaster wm
+                  ON wm.WhCode = l.PlantCode
+                LEFT JOIN dbo.WH_AreaMaster am
+                  ON am.WhCode = l.PlantCode
+                 AND am.AreaCode = l.ZoneCode
                 LEFT JOIN dbo.WH_Inventory i
                   ON i.LocationID = l.LocationID
                  AND COALESCE(i.OnHandQty,0) > 0
                  AND UPPER(COALESCE(i.Status,N'Received')) NOT IN (N'CANCELED',N'RELEASED',N'PICKED')
                 WHERE ISNULL(l.ActiveFlag,1) = 1
                 GROUP BY l.LocationID, l.LocationName, l.ZoneCode, l.PlantCode,
+                         wm.WhName, am.AreaName,
                          l.Aisle, l.Bay, l.Slot, l.LocationType, l.Capacity
                 ORDER BY l.ZoneCode, l.LocationID;
                 """;
@@ -1983,10 +2014,13 @@ public static class WhEndpoints
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(body.SupervisorEmployeeNo))
+                return new InboundReceiveResult(false, "Select a supervisor.", null);
+
             using var conn = factory.OpenConnection();
-            var supervisor = FindSupervisorByPin(conn, body.SupervisorPin);
+            var supervisor = FindSupervisorByPin(conn, body.SupervisorEmployeeNo, body.SupervisorPin);
             if (supervisor is null)
-                return new InboundReceiveResult(false, "Supervisor PIN is invalid.", null);
+                return new InboundReceiveResult(false, "The PIN does not match the selected supervisor.", null);
 
             using var cmd = new SqlCommand($"[dbo].[{PdaAdjustSaveQtyProcedure}]", conn)
             {
@@ -2015,7 +2049,7 @@ public static class WhEndpoints
         }
     }
 
-    private static SupervisorPinProfile? FindSupervisorByPin(SqlConnection conn, string? supervisorPin)
+    private static SupervisorPinProfile? FindSupervisorByPin(SqlConnection conn, string employeeNo, string? supervisorPin)
     {
         var pin = supervisorPin?.Trim();
         if (string.IsNullOrWhiteSpace(pin) || pin.Length < 4)
@@ -2027,11 +2061,13 @@ public static class WhEndpoints
                 EmployeeNo,
                 PinHash
             FROM dbo.SYS_UserProfile
-            WHERE PinHash IS NOT NULL
+            WHERE EmployeeNo = @EmployeeNo
+              AND PinHash IS NOT NULL
               AND ISNULL(AccountStatus, 'Active') = 'Active';
             """;
 
         using var cmd = new SqlCommand(sql, conn) { CommandTimeout = 15 };
+        cmd.Parameters.Add("@EmployeeNo", SqlDbType.VarChar, 40).Value = employeeNo.Trim();
         using var rdr = cmd.ExecuteReader();
         while (rdr.Read())
         {
