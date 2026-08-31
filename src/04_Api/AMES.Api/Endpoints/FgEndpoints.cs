@@ -161,16 +161,16 @@ public static class FgEndpoints
             return Results.Ok(new PutAwayResult(success, row.Message, row.ExistingStockId, row, null));
         });
 
-        // FG-01 PDA Put-Away - auto slotting suggestion.
-        g.MapGet("/putaway/suggest-location", (HttpContext ctx, string itemNo, string? customerCode, decimal qty) =>
+        g.MapGet("/putaway/container", (HttpContext ctx, string storageMethod, string barcode) =>
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
-
-            using var conn = factory.OpenConnection();
-            var location = SuggestPutAwayLocation(conn, null, itemNo, customerCode, qty);
-            return location is null
-                ? Results.NotFound(new PutAwayResult(false, "No available FG location was found.", null, null, null))
-                : Results.Ok(location);
+            var method = storageMethod.Trim().ToUpperInvariant();
+            var error = method == BarcodeLocation
+                ? "Location Only does not require a container barcode."
+                : ValidatePutAwayContainer(method, barcode);
+            return error is null
+                ? Results.Ok(new PutAwayResult(true, "Container scanned. Scan Location Barcode.", null, null, null))
+                : Results.BadRequest(new PutAwayResult(false, error, null, null, null));
         });
 
         // FG-01 PDA Put-Away - validate scanned FG location.
@@ -181,7 +181,7 @@ public static class FgEndpoints
                 return Results.BadRequest(new PutAwayResult(false, "Scan Location No first.", null, null, null));
 
             using var conn = factory.OpenConnection();
-            var location = ValidatePutAwayLocation(conn, null, locationId.Trim(), itemNo, customerCode, qty, expectedScanType);
+            var location = ValidatePutAwayLocation(conn, null, locationId.Trim(), itemNo, customerCode, qty, BarcodeLocation);
             return location is null
                 ? Results.NotFound(new PutAwayResult(false, "FG location was not found.", null, null, null))
                 : Results.Ok(location);
@@ -195,6 +195,14 @@ public static class FgEndpoints
                 return Results.BadRequest(new PutAwayResult(false, "Scan FG LOT or WO first.", null, null, null));
             if (string.IsNullOrWhiteSpace(body.LocationId))
                 return Results.BadRequest(new PutAwayResult(false, "Scan Location No first.", null, null, null));
+
+            var storageMethod = body.StorageMethod?.Trim().ToUpperInvariant() ?? "";
+            var containerError = ValidatePutAwayContainer(storageMethod, body.ContainerBarcode);
+            if (containerError is not null)
+                return Results.BadRequest(new PutAwayResult(false, containerError, null, null, null));
+            if (!string.IsNullOrWhiteSpace(body.ContainerType) &&
+                !string.Equals(storageMethod, body.ContainerType, StringComparison.OrdinalIgnoreCase))
+                return Results.BadRequest(new PutAwayResult(false, "Container type must match Storage.", null, null, null));
 
             using var conn = factory.OpenConnection();
             using var tx = conn.BeginTransaction();
@@ -224,10 +232,13 @@ public static class FgEndpoints
                     return Results.BadRequest(new PutAwayResult(false, row.Message, row.ExistingStockId, row, null));
                 }
 
-                var locationScan = string.IsNullOrWhiteSpace(body.ContainerBarcode)
-                    ? body.LocationId
-                    : body.ContainerBarcode;
-                var location = ValidatePutAwayLocation(conn, tx, locationScan.Trim(), row.ItemNo, row.CustomerCode, row.Qty, row.NextScanType);
+                if (storageMethod != BarcodeLocation && !TableHasColumn(conn, tx, "FG_PutAway", "ContainerBarcode"))
+                {
+                    tx.Rollback();
+                    return Results.BadRequest(new PutAwayResult(false, "Container storage is not configured. Apply the FG Put-Away database migration.", null, row, null));
+                }
+
+                var location = ValidatePutAwayLocation(conn, tx, body.LocationId.Trim(), row.ItemNo, row.CustomerCode, row.Qty, BarcodeLocation);
                 if (location is null || !location.IsValid)
                 {
                     tx.Rollback();
@@ -239,8 +250,9 @@ public static class FgEndpoints
                 }
 
                 var pack = ResolvePalletSplit(conn, tx, row.ItemNo, row.Qty, body.PalletCount, body.PalletQty);
+                var containerBarcode = storageMethod == BarcodeLocation ? "" : ParseFgBarcode(body.ContainerBarcode).Raw;
                 var stockId = InsertPutAwayStock(conn, tx, row, location, body.SuggestedLocation, body.OverrideReason,
-                    pack.PalletCount, pack.PalletQty, s.OperatorId, row.StorageMethod, location.ScanType, location.ScannedBarcode);
+                    pack.PalletCount, pack.PalletQty, s.OperatorId, storageMethod, storageMethod, containerBarcode);
 
                 tx.Commit();
 
@@ -1354,60 +1366,22 @@ public static class FgEndpoints
             message);
     }
 
-    private static PutAwayLocationRow? SuggestPutAwayLocation(SqlConnection conn, SqlTransaction? tx, string itemNo, string? customerCode, decimal qty)
+    private static string? ValidatePutAwayContainer(string storageMethod, string? barcode)
     {
-        using var cmd = new SqlCommand("""
-            WITH LocationBase AS
-            (
-                SELECT L.LocationID, L.LocationName, L.ZoneCode, L.Aisle, L.Bay, L.Slot,
-                       CAST(ISNULL(NULLIF(L.Capacity, 0), 999999) AS DECIMAL(14,3)) AS Capacity,
-                       L.LocationType,
-                       CASE WHEN UPPER(ISNULL(L.LocationType, '')) IN ('FG', 'FINISHED_GOODS', 'FINISHED GOODS')
-                                 OR UPPER(L.LocationID) LIKE 'FG%' THEN 1 ELSE 0 END AS IsFgLocation
-                FROM dbo.MD_Location L
-                WHERE ISNULL(L.ActiveFlag, 1) = 1
-            ),
-            HasFg AS
-            (
-                SELECT CASE WHEN EXISTS (SELECT 1 FROM LocationBase WHERE IsFgLocation = 1) THEN 1 ELSE 0 END AS Value
-            ),
-            StockByLocation AS
-            (
-                SELECT FS.Location,
-                       CAST(SUM(ISNULL(FS.Qty, 0)) AS DECIMAL(14,3)) AS CurrentQty,
-                       CASE
-                           WHEN COUNT(DISTINCT NULLIF(FS.CustomerCode, '')) = 0 THEN NULL
-                           WHEN COUNT(DISTINCT NULLIF(FS.CustomerCode, '')) = 1 THEN MAX(NULLIF(FS.CustomerCode, ''))
-                           ELSE 'MIXED'
-                       END AS CurrentCustomerCode
-                FROM dbo.FG_Inventory FS
-                WHERE UPPER(ISNULL(FS.Status, '')) IN ('AVAILABLE', 'RESERVED', 'HOLD')
-                GROUP BY FS.Location
-            )
-            SELECT TOP (1)
-                   L.LocationID, L.LocationName, L.ZoneCode, L.Aisle, L.Bay, L.Slot,
-                   L.Capacity,
-                   CAST(ISNULL(S.CurrentQty, 0) AS DECIMAL(14,3)) AS CurrentQty,
-                   CAST(L.Capacity - ISNULL(S.CurrentQty, 0) AS DECIMAL(14,3)) AS AvailableQty,
-                   S.CurrentCustomerCode
-            FROM LocationBase L
-            CROSS JOIN HasFg H
-            LEFT JOIN StockByLocation S
-                ON S.Location = L.LocationID
-            WHERE (H.Value = 0 OR L.IsFgLocation = 1)
-              AND (S.CurrentCustomerCode IS NULL OR S.CurrentCustomerCode = @CustomerCode OR NULLIF(@CustomerCode, '') IS NULL)
-              AND L.Capacity - ISNULL(S.CurrentQty, 0) >= @Qty
-            ORDER BY
-                CASE WHEN S.CurrentCustomerCode = @CustomerCode THEN 0 WHEN S.CurrentCustomerCode IS NULL THEN 1 ELSE 2 END,
-                L.Capacity - ISNULL(S.CurrentQty, 0) DESC,
-                L.LocationID;
-            """, conn, tx);
-        cmd.Parameters.Add("@ItemNo", SqlDbType.NVarChar, 40).Value = itemNo;
-        AddNullable(cmd, "@CustomerCode", SqlDbType.NVarChar, 40, customerCode);
-        AddDecimal(cmd, "@Qty", qty);
+        if (storageMethod is not (BarcodeBox or BarcodePallet or BarcodeRack or BarcodeLocation))
+            return "Select Storage first.";
+        if (storageMethod == BarcodeLocation)
+            return string.IsNullOrWhiteSpace(barcode) ? null : "Location Only does not require a container barcode.";
 
-        using var rdr = cmd.ExecuteReader();
-        return rdr.Read() ? ReadPutAwayLocation(rdr, customerCode, qty) : null;
+        var parsed = ParseFgBarcode(barcode);
+        if (parsed.Raw.Length == 0)
+            return $"Scan {BarcodeKindLabel(storageMethod)} first.";
+        if (parsed.Raw.Length > 80 || parsed.Value.Length == 0 ||
+            parsed.Value.Any(c => !char.IsAsciiLetterOrDigit(c) && c is not '-' and not '_' and not '.'))
+            return "The container barcode format is invalid.";
+        if (parsed.Kind != storageMethod)
+            return $"Scan {BarcodeKindLabel(storageMethod)} using the {storageMethod}: prefix.";
+        return null;
     }
 
     private static PutAwayLocationRow? ValidatePutAwayLocation(SqlConnection conn, SqlTransaction? tx, string locationId, string itemNo, string? customerCode, decimal qty, string? expectedScanType)
@@ -1418,7 +1392,7 @@ public static class FgEndpoints
             ? BarcodeLocation
             : parsed.Kind;
 
-        if (IsStorageBarcode(parsed.Kind) && actual != expected)
+        if (parsed.Kind != BarcodeUnknown && actual != expected)
         {
             return new PutAwayLocationRow(parsed.Value, null, null, null, null, null, 0, 0, 0, null, false,
                 $"Scan {BarcodeKindLabel(expected)}. You scanned {BarcodeKindLabel(actual)}.",
