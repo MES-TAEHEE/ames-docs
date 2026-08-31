@@ -62,6 +62,7 @@ FILES=(
   migrate_routing_step.sql            # 라우팅: MD_RoutingStep 생성 + A/B 시퀀스 시드 (seed_admin_permissions 이후 — Admin 권한 필요)
   migrate_wh_inventory_setting.sql    # 창고 재고 설정 시드
   migrate_wh_location_master_audit.sql # Warehouse Location Master audit + Admin role backfill
+  migrate_wh_use_md_location_master.sql # 중복 WH Location Master 제거 (MD-018 사용)
   pda/migrate_pda_wh_schedule.sql     # PDA 창고: 입고예정/출고예정/조정
   pda/migrate_pda_wh_inbound.sql
   pda/migrate_pda_wh_release.sql

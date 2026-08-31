@@ -37,11 +37,10 @@ BEGIN
     MERGE dbo.SYS_Screen AS tgt
     USING (
         VALUES
-            ('WH-001', 'WEB', 'WH', N'Location Master', N'Location Master', 'wh/locations', 'WH-001', 1, 1),
-            ('WH-002', 'WEB', 'WH', N'Picking Orders', N'Picking Orders', 'wh/picking-orders', 'WH-002', 2, 1),
-            ('WH-003', 'WEB', 'WH', N'Location Map', N'Location Map', 'wh/location-map', 'WH-003', 3, 1),
-            ('WH-004', 'WEB', 'WH', N'Transaction Logs', N'Transaction Logs', 'wh/transactions', 'WH-004', 4, 1),
-            ('WH-005', 'WEB', 'WH', N'Inventory Setting', N'Inventory Setting', 'wh/inventory-setting', 'WH-005', 5, 1)
+            ('WH-002', 'WEB', 'WH', N'Picking Orders', N'Picking Orders', 'wh/picking-orders', 'WH-002', 1, 1),
+            ('WH-003', 'WEB', 'WH', N'Location Map', N'Location Map', 'wh/location-map', 'WH-003', 2, 1),
+            ('WH-004', 'WEB', 'WH', N'Transaction Logs', N'Transaction Logs', 'wh/transactions', 'WH-004', 3, 1),
+            ('WH-005', 'WEB', 'WH', N'Inventory Setting', N'Inventory Setting', 'wh/inventory-setting', 'WH-005', 4, 1)
     ) AS src (ScreenCode, ModuleCode, ProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible)
     ON tgt.ScreenCode = src.ScreenCode
     WHEN MATCHED THEN UPDATE SET
