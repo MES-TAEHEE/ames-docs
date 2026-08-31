@@ -53,7 +53,7 @@
         <div class="andon-actions">
             @if (_openId == 0)
             {
-                <button class="andon-btn andon-btn-call" @onclick="@(() => Nav.NavigateTo("/inj02"))">← Back to Dashboard</button>
+                <button class="andon-btn andon-btn-call" @onclick="@(() => Nav.NavigateTo("/injmain"))">← Back to Main</button>
                 <button class="andon-btn andon-btn-ack" style="background:#b91c1c;" @onclick="Raise">🚨 RAISE ANDON</button>
             }
             else if (!_acked)
@@ -63,7 +63,7 @@
             }
             else
             {
-                <button class="andon-btn andon-btn-call" @onclick="@(() => Nav.NavigateTo("/inj02"))">◀ Dashboard</button>
+                <button class="andon-btn andon-btn-call" @onclick="@(() => Nav.NavigateTo("/injmain"))">◀ Main</button>
                 <button class="andon-btn andon-btn-ack" @onclick="Resume">▶ RESUME PRODUCTION</button>
             }
         </div>
@@ -134,7 +134,7 @@
             if (!string.IsNullOrEmpty(equipId))
                 PopServices.Equipment.LogStatus(equipId, Session.LineId, "RUN", "RESUMED", null, Session.EmployeeNo);
             _openId = 0; _acked = false; _cause = null; _causeDetail = "";
-            Nav.NavigateTo("/inj02");
+            Nav.NavigateTo("/injmain");
         }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Resume] {ex.Message}"); }
     }

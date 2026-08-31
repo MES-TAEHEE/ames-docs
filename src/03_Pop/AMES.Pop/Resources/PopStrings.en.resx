@@ -38,7 +38,6 @@
   <data name="CurrentWo" xml:space="preserve"><value>CURRENT WO</value></data>
   <data name="CycleTime" xml:space="preserve"><value>CYCLE TIME</value></data>
   <data name="DDay" xml:space="preserve"><value>D-DAY</value></data>
-  <data name="Dashboard" xml:space="preserve"><value>Dashboard</value></data>
   <data name="Dashboard2" xml:space="preserve"><value>DASHBOARD</value></data>
   <data name="Defect" xml:space="preserve"><value>Defect</value></data>
   <data name="Defect2" xml:space="preserve"><value>Defect</value></data>
@@ -83,7 +82,6 @@
   <data name="LotBelongsToAnotherLine" xml:space="preserve"><value>Lot belongs to another line</value></data>
   <data name="LotNotFound" xml:space="preserve"><value>Lot not found</value></data>
   <data name="Lotno" xml:space="preserve"><value>LOTNO</value></data>
-  <data name="MainScreen" xml:space="preserve"><value>Main Screen</value></data>
   <data name="ManualAndonBy" xml:space="preserve"><value>Manual andon by {0}</value></data>
   <data name="ManualEntry" xml:space="preserve"><value>Manual Entry</value></data>
   <data name="ManualEntryGoodQtyPerCycleEa" xml:space="preserve"><value>MANUAL ENTRY · GOOD QTY PER CYCLE (EA)</value></data>
@@ -96,8 +94,6 @@
   <data name="Mold" xml:space="preserve"><value>Mold</value></data>
   <data name="Mold2" xml:space="preserve"><value>MOLD</value></data>
   <data name="MoldAvailable" xml:space="preserve"><value>Available</value></data>
-  <data name="MoldChange" xml:space="preserve"><value>Mold Change</value></data>
-  <data name="MoldChange2" xml:space="preserve"><value>MOLD CHANGE</value></data>
   <data name="MoldMaintenance" xml:space="preserve"><value>Maintenance</value></data>
   <data name="MoldMounted" xml:space="preserve"><value>Mounted</value></data>
   <data name="MoldMountedMatchesWoRouting" xml:space="preserve"><value>1. Mold mounted matches WO routing</value></data>
@@ -132,7 +128,6 @@
   <data name="PinMustBe4Digits" xml:space="preserve"><value>PIN must be 4 digits</value></data>
   <data name="Plan" xml:space="preserve"><value>PLAN</value></data>
   <data name="PreStartChecklist" xml:space="preserve"><value>PRE-START CHECKLIST</value></data>
-  <data name="ProdStatus" xml:space="preserve"><value>Prod Status</value></data>
   <data name="ProductionEntry" xml:space="preserve"><value>PRODUCTION ENTRY</value></data>
   <data name="ProductionHaltedSupervisorPinRequiredToA" xml:space="preserve"><value>Production halted — supervisor PIN required to acknowledge.</value></data>
   <data name="ProductionStatusSupervisorView" xml:space="preserve"><value>PRODUCTION STATUS (SUPERVISOR VIEW)</value></data>

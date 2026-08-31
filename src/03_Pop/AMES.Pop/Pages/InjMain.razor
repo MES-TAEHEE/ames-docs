@@ -10,8 +10,9 @@
 
 @*  INJ-MAIN — INJ03~08 통합 작업 화면.
     좌측 작업지시 그리드 + 우측 스캔/결과 패널을 상시 표시하고,
-    WO 접수·수동입력·불량·금형교체·생산현황·안돈은 팝업(Pages/InjPopups/*)으로 띄운다.
-    문구는 PopLang(T)로 ko/en 단일 언어 표시. 기존 /inj03~/inj08 라우트는 유지. *@
+    WO 접수·수동입력·불량·안돈은 팝업(Pages/InjPopups/*)으로 띄운다.
+    문구는 PopLang(T)로 ko/en 단일 언어 표시.
+    구 단독 라우트는 /inj03~/inj05, /inj08 만 유지 (inj02·06·07 은 제거됨). *@
 
 <div class="pop-shell injm-shell">
     <div class="pop-tbar">
@@ -164,13 +165,10 @@
     </div>
 
     @* ── 하단: 기능 버튼 (팝업 런처) ───────────────────────────────── *@
-    <div class="pop-nav injm-nav" style="--nav-cols:8;">
-        <button class="nav-btn" @onclick="@(() => Nav.NavigateTo("/inj02"))">@T("Dashboard")</button>
+    <div class="pop-nav injm-nav" style="--nav-cols:5;">
         <button class="nav-btn primary" @onclick="@(() => Open(Popup.Wo))">@T("WoConfirm")</button>
         <button class="nav-btn" @onclick="@(() => Open(Popup.Manual))">@T("ManualEntry")</button>
         <button class="nav-btn warn" @onclick="@(() => Open(Popup.Defect))">@T("Defect2")</button>
-        <button class="nav-btn gold" @onclick="@(() => Open(Popup.Mold))">@T("MoldChange")</button>
-        <button class="nav-btn" @onclick="@(() => Open(Popup.Status))">@T("ProdStatus")</button>
         <button class="nav-btn alert" @onclick="@(() => Open(Popup.Andon))">@T("Andon")</button>
         <button class="nav-btn muted" @onclick="Logout">@T("Logout")</button>
     </div>
@@ -191,13 +189,6 @@
         <DefectPopup Session="Session" Wo="_activeWo" LastResultId="_lastResultId"
                      OnClose="ClosePopup" OnChanged="Refresh" OnAndonRaised="OnAndonRaised" />
         break;
-    case Popup.Mold:
-        <MoldChangePopup Session="Session" Wo="_activeWo"
-                         OnClose="ClosePopup" OnChanged="Refresh" />
-        break;
-    case Popup.Status:
-        <ProdStatusPopup Session="Session" OnClose="ClosePopup" />
-        break;
     case Popup.Andon:
         <AndonPopup Session="Session" InitialOpenId="_andonInitialId" InitialCause="@_andonCause"
                     OnClose="CloseAndon" />
@@ -209,7 +200,7 @@
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
 
-    private enum Popup { None, Wo, Manual, Defect, Mold, Status, Andon }
+    private enum Popup { None, Wo, Manual, Defect, Andon }
     private Popup _popup = Popup.None;
 
     private sealed record ScanRecord(string LotCode, DateTime At, bool Ok, string Message);

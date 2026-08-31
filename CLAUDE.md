@@ -83,16 +83,14 @@ dotnet run --project src\07_Etc\AMES.InjAgent\AMES.InjAgent.csproj
 | 화면 ID | 파일 | 설명 |
 |---------|------|------|
 | Login | `Pages/Login.razor` | PIN 인증, 사원 선택 |
-| INJ-02 | `Pages/Inj02Dashboard.razor` | 라인 대시보드, 시간대별 생산량 |
 | INJ-MAIN | `Pages/InjMain.razor` | **통합 작업 화면** (기본 진입점) — WO 그리드 + 스캔 실적확정 + 하단 기능 버튼 |
 | (팝업) | `Pages/InjPopups/WoConfirmPopup.razor` | 작업지시 접수 (구 INJ-03) |
 | (팝업) | `Pages/InjPopups/ManualEntryPopup.razor` | 수동 실적 입력 (구 INJ-04 키패드) |
 | (팝업) | `Pages/InjPopups/DefectPopup.razor` | 불량 입력 (구 INJ-05) |
-| (팝업) | `Pages/InjPopups/MoldChangePopup.razor` | 금형 교체 (구 INJ-06) |
-| (팝업) | `Pages/InjPopups/ProdStatusPopup.razor` | 생산 현황 (구 INJ-07) |
 | (팝업) | `Pages/InjPopups/AndonPopup.razor` | 안돈 — 전체 화면 오버레이 (구 INJ-08) |
 
-구 단독 화면(`Inj03WoConfirm` ~ `Inj08Andon`)은 라우트(`/inj03`~`/inj08`)와 함께 유지되나 네비게이션에서 제외됨 (deprecated). 팝업 공통 셸은 `Pages/InjPopups/PopupShell.razor`.
+대시보드(INJ-02)·금형 교체(INJ-06)·생산 현황(INJ-07)은 미사용으로 삭제됨 (화면·팝업·레거시 WinForms 폼 포함).
+구 단독 화면(`Inj03WoConfirm`/`Inj04ProductionEntry`/`Inj05Defect`/`Inj08Andon`)은 라우트(`/inj03`~`/inj05`, `/inj08`)와 함께 유지되나 네비게이션에서 제외됨 (deprecated). 팝업 공통 셸은 `Pages/InjPopups/PopupShell.razor`.
 
 #### IMG (원단/래핑 공정) — 6화면
 | 화면 ID | 파일 | 설명 |
