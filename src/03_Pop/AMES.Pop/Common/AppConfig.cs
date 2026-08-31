@@ -9,15 +9,7 @@ namespace AMES.Pop.Common;
 public sealed class AppConfig
 {
     public string ConnectionString { get; }
-    public string StationId { get; }
-    public string LineId { get; }
     public string DefaultShift { get; }
-
-    /// <summary>
-    /// Process code this terminal belongs to: INJ / IMG / PNT / QC.
-    /// Read solely from appsettings.json `PopTerminal:ModuleCode` — required.
-    /// </summary>
-    public string ModuleCode { get; }
 
     /// <summary>화면 표시 언어: "ko"(기본) 또는 "en". PopLang 초기값.</summary>
     public string Language { get; }
@@ -41,14 +33,7 @@ public sealed class AppConfig
     {
         ConnectionString = root.GetConnectionString("AMES")
             ?? throw new InvalidOperationException("ConnectionStrings:AMES is missing in appsettings.json");
-        StationId    = root["PopTerminal:StationId"]    ?? "POP-UNKNOWN";
-        LineId       = root["PopTerminal:LineId"]       ?? "UNASSIGNED";
         DefaultShift = root["PopTerminal:DefaultShift"] ?? "DAY";
-
-        var explicitModule = root["PopTerminal:ModuleCode"];
-        if (string.IsNullOrWhiteSpace(explicitModule))
-            throw new InvalidOperationException("PopTerminal:ModuleCode is missing in appsettings.json");
-        ModuleCode = explicitModule.ToUpperInvariant();
 
         Language     = (root["PopTerminal:Language"] ?? "ko").ToLowerInvariant() == "en" ? "en" : "ko";
 

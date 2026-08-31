@@ -77,7 +77,7 @@ dotnet run --project src\07_Etc\AMES.InjAgent\AMES.InjAgent.csproj
 
 ### AMES.Pop — 공장 터미널 (WinForms + Blazor Hybrid)
 
-터미널은 `appsettings.json`의 `PopTerminal:ModuleCode` (또는 `LineId` 접두사)로 모듈 자동 분기.
+터미널은 로그인 시 선택한 라인의 WC ProcessCode 로 모듈 자동 분기.
 
 #### INJ (사출 공정) — 통합 메인 + 팝업 구조
 | 화면 ID | 파일 | 설명 |
@@ -199,8 +199,10 @@ Health check: `GET /api/health`
 - 향후 `dbo.SP_*` 스토어드 프로시저로 전환 예정 (현재 inline SQL)
 
 ### Pop 모듈 분기
-`AppConfig.Current.ModuleCode` 값(`INJ` / `IMG` / `PNT` / `QC`)으로 라우팅.
-`appsettings.json`에 명시하거나 `LineId` 접두사에서 자동 추론.
+로그인 화면에서 작업자가 Line/Station을 선택하면, 선택 라인의
+`MD_Line.WCID → MD_WorkCenter.ProcessCode`(INJ/IMG/PNT/QC)로 모듈이 결정된다.
+appsettings 의 `PopTerminal:ModuleCode`/`LineId`/`StationId` 는 제거됐다 — 매 로그인 선택.
+모듈 코드는 `AppState.ModuleCode` 에 실리고, 라우팅과 라벨 디스패처 게이트가 이를 본다.
 
 ### 인증 흐름
 - **Pop**: `PopAuthService` → `AuthRepository.ValidateLogin()` → `PinHasher` (PBKDF2) → `PopSessionRepository.CreateSession()`
@@ -264,7 +266,9 @@ Health check: `GET /api/health`
 
 **운영 전제 2가지:**
 
-- **INJ 라인마다 Pop 터미널이 1대씩** 떠 있어야 한다. 클레임이 세션 `LineId` 로 걸러지므로, 터미널이 배정되지 않은 라인은 라벨이 아예 나오지 않는다. 한 터미널이 2개 라인을 담당하는 구성은 지원하지 않는다.
+- **INJ 라인의 자동 라벨 발행은 그 라인에 INJ 모듈로 로그인된 Pop 터미널이 있는 동안만 동작한다.**
+  라인은 로그인 화면에서 선택되며(appsettings 고정 아님), 클레임이 세션 `LineId` 로 걸러진다.
+  같은 라인에 여러 터미널이 로그인해도 클레임이 원자적이라 중복 발행은 없다.
 - **Pop 재시작·재로그인은 워터마크를 리셋한다.** 그 이전의 미출력 LOT 은 자동 발행 대상에서 빠지고 재출력 버튼으로만 복구된다. 교대 인수인계 시 유의.
 
 장애 추적은 `{PopTerminal:Printer:OutputDir}/dispatch-YYYYMMDD.log` — 무인 루프라 토스트로 알릴 수 없는 실패가 여기에만 남는다.

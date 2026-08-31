@@ -206,4 +206,11 @@
   <data name="WoReleased" xml:space="preserve"><value>Released</value></data>
   <data name="WorkOrder" xml:space="preserve"><value>WORK ORDER</value></data>
   <data name="WorkOrderAccepted" xml:space="preserve"><value>Work order accepted</value></data>
+  <data name="NoLinesRegistered" xml:space="preserve"><value>No lines registered — contact an administrator</value></data>
+  <data name="SelectLine" xml:space="preserve"><value>SELECT LINE</value></data>
+  <data name="SelectStation" xml:space="preserve"><value>SELECT STATION</value></data>
+  <data name="SelectLineAndStationFirst" xml:space="preserve"><value>Select a line and station first</value></data>
+  <data name="NoStationsRegistered" xml:space="preserve"><value>No stations registered for this line — contact an administrator</value></data>
+  <data name="MasterLoadFailed" xml:space="preserve"><value>Master data load failed: {0}</value></data>
+  <data name="Retry" xml:space="preserve"><value>RETRY</value></data>
 </root>

@@ -1776,6 +1776,42 @@ public sealed class MasterDataRepository
         return list;
     }
 
+    /// <summary>POP 로그인 픽커용 — 해당 라인의 활성 스테이션 (OrderSeq 순).</summary>
+    public List<StationRow> ListActiveStations(string lineId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT st.StationCode, st.StationName, st.StationNameEn, st.LineID,
+                   wc.ProcessCode AS ProcessCode,
+                   st.FormName, st.OrderSeq, st.Status,
+                   st.CreatedBy, st.CreatedTS, st.ModifiedBy, st.ModifiedTS
+            FROM   dbo.MD_Station st
+            LEFT JOIN dbo.MD_Line       l  ON l.LineID = st.LineID
+            LEFT JOIN dbo.MD_WorkCenter wc ON wc.WCID  = l.WCID
+            WHERE  st.LineID = @L
+              AND  ISNULL(st.Status,'ACTIVE') <> 'INACTIVE'
+            ORDER  BY st.OrderSeq, st.StationCode;
+            """, conn);
+        cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
+        using var r = cmd.ExecuteReader();
+        var list = new List<StationRow>();
+        while (r.Read())
+            list.Add(new StationRow(
+                (string)r["StationCode"],
+                r["StationName"]   as string,
+                r["StationNameEn"] as string,
+                r["LineID"]        as string,
+                r["ProcessCode"]   as string,
+                r["FormName"]      as string,
+                r["OrderSeq"]      is int os ? os : null,
+                r["Status"]        as string,
+                r["CreatedBy"]     as string,
+                r["CreatedTS"]     as DateTime?,
+                r["ModifiedBy"]    as string,
+                r["ModifiedTS"]    as DateTime?));
+        return list;
+    }
+
     public bool StationExists(string id)
     {
         using var conn = _factory.OpenConnection();
@@ -1849,6 +1885,35 @@ public sealed class MasterDataRepository
         bool RfidEnabledFlag, string? Status,
         string? CreatedBy, DateTime? CreatedTS,
         string? ModifiedBy, DateTime? ModifiedTS);
+
+    /// <summary>
+    /// POP 로그인 픽커용 — 활성 라인 + WC 상속 공정코드.
+    /// WC 미배정 라인은 공정 판별이 불가하므로 제외한다.
+    /// </summary>
+    public record PopLineOptionRow(
+        string LineID, string? LineName, string? LineNameEn, string ProcessCode);
+
+    public List<PopLineOptionRow> ListPopLineOptions()
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT l.LineID, l.LineName, l.LineNameEn, wc.ProcessCode
+            FROM   dbo.MD_Line l
+            JOIN   dbo.MD_WorkCenter wc ON wc.WCID = l.WCID
+            WHERE  ISNULL(l.Status,'ACTIVE') <> 'INACTIVE'
+              AND  wc.ProcessCode IN ('INJ','IMG','PNT','QC')
+            ORDER  BY l.LineID;
+            """, conn);
+        using var r = cmd.ExecuteReader();
+        var list = new List<PopLineOptionRow>();
+        while (r.Read())
+            list.Add(new PopLineOptionRow(
+                (string)r["LineID"],
+                r["LineName"]   as string,
+                r["LineNameEn"] as string,
+                (string)r["ProcessCode"]));
+        return list;
+    }
 
     public List<LineRow> ListLines(string? search = null)
     {

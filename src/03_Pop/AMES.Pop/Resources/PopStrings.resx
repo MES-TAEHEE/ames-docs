@@ -206,4 +206,11 @@
   <data name="WoReleased" xml:space="preserve"><value>배포됨</value></data>
   <data name="WorkOrder" xml:space="preserve"><value>작업지시</value></data>
   <data name="WorkOrderAccepted" xml:space="preserve"><value>작업지시 접수 완료</value></data>
+  <data name="NoLinesRegistered" xml:space="preserve"><value>등록된 라인이 없습니다 — 관리자에게 문의하세요</value></data>
+  <data name="SelectLine" xml:space="preserve"><value>라인 선택</value></data>
+  <data name="SelectStation" xml:space="preserve"><value>스테이션 선택</value></data>
+  <data name="SelectLineAndStationFirst" xml:space="preserve"><value>라인과 스테이션을 먼저 선택하세요</value></data>
+  <data name="NoStationsRegistered" xml:space="preserve"><value>이 라인에 등록된 스테이션이 없습니다 — 관리자에게 문의하세요</value></data>
+  <data name="MasterLoadFailed" xml:space="preserve"><value>기준정보 조회 실패: {0}</value></data>
+  <data name="Retry" xml:space="preserve"><value>재시도</value></data>
 </root>

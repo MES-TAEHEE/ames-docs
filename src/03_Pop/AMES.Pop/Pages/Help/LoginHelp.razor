@@ -17,12 +17,20 @@
             <rect class="hs-region" x="170" y="80" width="380" height="380" />
             <text class="hs-sub"   x="360" y="110" text-anchor="middle">SHIFT LOGIN</text>
 
+            @* ④ Line/Station selectors *@
+            <rect class="hs-region dim" x="190" y="118" width="165" height="26" />
+            <text class="hs-sub" x="272" y="135" text-anchor="middle">LINE ▾</text>
+            <rect class="hs-region dim" x="365" y="118" width="165" height="26" />
+            <text class="hs-sub" x="447" y="135" text-anchor="middle">STATION ▾</text>
+            <circle class="hs-num" cx="206" cy="131" r="13" />
+            <text class="hs-num-tx" x="206" y="131">4</text>
+
             @* ① Badge zone *@
-            <rect class="hs-region warn" x="190" y="130" width="340" height="64" />
-            <text class="hs-sub"   x="360" y="160" text-anchor="middle">[ BADGE ]</text>
-            <text class="hs-sub"   x="360" y="180" text-anchor="middle">Scan or tap to pick a user</text>
-            <circle class="hs-num" cx="206" cy="146" r="14" />
-            <text class="hs-num-tx" x="206" y="146">1</text>
+            <rect class="hs-region warn" x="190" y="152" width="340" height="52" />
+            <text class="hs-sub"   x="360" y="175" text-anchor="middle">[ BADGE ]</text>
+            <text class="hs-sub"   x="360" y="193" text-anchor="middle">Scan or tap to pick a user</text>
+            <circle class="hs-num" cx="206" cy="166" r="14" />
+            <text class="hs-num-tx" x="206" y="166">1</text>
 
             @* ② PIN dots *@
             <rect class="hs-region dim" x="240" y="210" width="240" height="34" />
@@ -53,20 +61,12 @@
             }
             <circle class="hs-num" cx="184" cy="266" r="13" />
             <text class="hs-num-tx" x="184" y="266">3</text>
-
-            @* ④ Info row *@
-            <rect class="hs-region dim" x="190" y="430" width="340" height="22" />
-            <text class="hs-sub" x="220" y="446">LINE</text>
-            <text class="hs-sub" x="320" y="446">SHIFT</text>
-            <text class="hs-sub" x="440" y="446">STATION</text>
-            <circle class="hs-num" cx="208" cy="438" r="13" />
-            <text class="hs-num-tx" x="208" y="438">4</text>
         </svg>
 
         <div class="help-callout info">
             <div class="help-callout-i">💡</div>
             <div class="help-callout-tx">
-                <span class="h-call-en"><strong>Auto-route by line.</strong> Your assigned line decides which module dashboard opens after login — INJ → /inj02, IMG → /img02, PNT → /pnt02, QC → /qc07.</span><span class="h-call-ko">배정된 라인에 따라 로그인 후 진입 모듈이 자동 결정됩니다.</span>
+                <span class="h-call-en"><strong>Pick line &amp; station, then log in.</strong> The line you pick decides which module opens — INJ → /injmain, IMG → /img02, PNT → /pnt02, QC → /qc07. A line you are not assigned to is rejected.</span><span class="h-call-ko">선택한 라인이 진입 모듈을 결정합니다. 배정되지 않은 라인은 거부됩니다.</span>
             </div>
         </div>
     </div>
@@ -98,8 +98,8 @@
             <div class="help-step dim">
                 <div class="help-step-num">4</div>
                 <div class="help-step-body">
-                    <div class="help-step-en">Current Line · Shift · Station info from terminal config.</div>
-                    <div class="help-step-ko">현재 라인 · 교대 · 단말기 ID 정보.</div>
+                    <div class="help-step-en">Line &amp; Station selectors. Tap to pick from active master data; station list follows the picked line.</div>
+                    <div class="help-step-ko">라인·스테이션 선택 버튼. 라인을 고르면 해당 라인의 스테이션 목록이 열립니다.</div>
                 </div>
             </div>
         </div>
