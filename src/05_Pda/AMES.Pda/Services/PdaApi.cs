@@ -202,8 +202,20 @@ public sealed class PdaApi
     public sealed record ReleaseFifoLotRow(string PickSlipNo, string ItemNo, string LotNo, string? LocationNo,
         decimal Qty, string? ProductionDate);
     public sealed record ReleasePickInput(string LotNo, decimal Qty);
-    public sealed record ReleaseCompleteReq(string PickSlipNo, List<ReleasePickInput>? Lots = null);
+    public sealed record ReleaseCompleteReq(string PickSlipNo, List<ReleasePickInput>? Lots = null,
+        string? OutgoingType = null);
     public sealed record ReleaseCompleteResult(bool Success, string Message);
+    public sealed record DirectOutgoingLotRow(int LotId, string LotNo, string? ItemNo, string? ItemName,
+        decimal Qty, string? Unit, string? LocationId, string InventoryStatus, bool IsValid, string Message);
+    public sealed record DirectOutgoingReq(string OutgoingType, string LotNo, decimal Qty,
+        string? TargetCode = null, string? Note = null);
+    public sealed record DirectOutgoingResult(bool Success, string Message, DirectOutgoingLotRow? Row = null);
+    public sealed record OutgoingVendorRow(string VendorId, string? VendorName)
+    {
+        public string DisplayName => string.IsNullOrWhiteSpace(VendorName)
+            ? VendorId
+            : $"{VendorId} / {VendorName}";
+    }
     public sealed record TransactionRow(long TxnId, DateTime TxnTime, string TxnType, string? ItemNo,
         string? LocationId, decimal QtyBefore, decimal Delta, decimal QtyAfter, string? ReasonCode);
 
@@ -453,6 +465,18 @@ public sealed class PdaApi
     }
     public Task<HttpResponseMessage> WhReleaseCompleteAsync(ReleaseCompleteReq body)
         => Post("/api/wh/release/complete", body);
+    public Task<List<OutgoingVendorRow>> WhOutgoingVendorsAsync()
+        => Get<List<OutgoingVendorRow>>("/api/wh/release/outgoing/vendors");
+    public async Task<DirectOutgoingLotRow?> WhDirectOutgoingLotAsync(string lotNo)
+    {
+        Authorize();
+        var resp = await _http.GetAsync($"/api/wh/release/outgoing/lot?lotNo={Uri.EscapeDataString(lotNo.Trim())}");
+        if (!resp.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Warehouse outgoing service is unavailable."));
+        return await resp.Content.ReadFromJsonAsync<DirectOutgoingLotRow>();
+    }
+    public Task<HttpResponseMessage> WhDirectOutgoingAsync(DirectOutgoingReq body)
+        => Post("/api/wh/release/outgoing", body);
     public Task<List<TransactionRow>>     WhTransactionsAsync(int days = 7) => Get<List<TransactionRow>>($"/api/wh/transactions?days={days}");
 
     public Task<HttpResponseMessage> WhReceiveAsync(ReceiveReq body) => Post("/api/wh/inbound/receive", body);

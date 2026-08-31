@@ -88,8 +88,15 @@ public static class WhEndpoints
     public sealed record ReleaseFifoLotRow(string PickSlipNo, string ItemNo, string LotNo, string? LocationNo,
         decimal Qty, string? ProductionDate);
     public sealed record ReleasePickInput(string LotNo, decimal Qty);
-    public sealed record ReleaseCompleteReq(string PickSlipNo, List<ReleasePickInput>? Lots = null);
+    public sealed record ReleaseCompleteReq(string PickSlipNo, List<ReleasePickInput>? Lots = null,
+        string? OutgoingType = null);
     public sealed record ReleaseCompleteResult(bool Success, string Message);
+    public sealed record DirectOutgoingLotRow(int LotId, string LotNo, string? ItemNo, string? ItemName,
+        decimal Qty, string? Unit, string? LocationId, string InventoryStatus, bool IsValid, string Message);
+    public sealed record DirectOutgoingReq(string OutgoingType, string LotNo, decimal Qty,
+        string? TargetCode = null, string? Note = null);
+    public sealed record DirectOutgoingResult(bool Success, string Message, DirectOutgoingLotRow? Row = null);
+    public sealed record OutgoingVendorRow(string VendorId, string? VendorName);
 
     public sealed record TransactionRow(long TxnId, DateTime TxnTime, string TxnType, string? ItemNo,
         string? LocationId, decimal QtyBefore, decimal Delta, decimal QtyAfter, string? ReasonCode);
@@ -681,15 +688,63 @@ public static class WhEndpoints
             if (body.Lots is not { Count: > 0 })
                 return Results.BadRequest(new ReleaseCompleteResult(false, "Scan every requested LOT before Release."));
 
-            var result = ExecuteReleaseBatch(factory, pickSlipNo, body.Lots, s.OperatorId, s.TerminalId);
+            var reasonCode = body.OutgoingType?.Trim().ToUpperInvariant() switch
+            {
+                "PRODUCTION" => "TO_PRODUCTION_LINE",
+                "OTHER" => "OTHER_OUTGOING",
+                "DEFECT" => "DEFECT_OUTGOING",
+                _ => null
+            };
+            if (reasonCode is null)
+                return Results.BadRequest(new ReleaseCompleteResult(false, "Select an outgoing type."));
+
+            var result = ExecuteReleaseBatch(factory, pickSlipNo, body.Lots, reasonCode, s.OperatorId, s.TerminalId);
             if (!result.Success)
                 return Results.BadRequest(result);
 
-            const string message = "Release completed. Inventory was updated for every scanned LOT.";
+            var message = $"Release completed as {body.OutgoingType}. Inventory was updated for every scanned LOT.";
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                 s, "RELEASE_COMPLETE", "WH003", "PICK_SLIP", pickSlipNo, "SUCCESS", message,
                 refDocType: "PICK_SLIP", refDocNo: pickSlipNo));
             return Results.Ok(result with { Message = message });
+        });
+
+        g.MapGet("/release/outgoing/vendors", (HttpContext ctx) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            const string sql = """
+                SELECT VendorID, VendorName
+                FROM dbo.MD_Vendor
+                WHERE COALESCE(ActiveFlag,1)=1
+                ORDER BY VendorName, VendorID;
+                """;
+            return Results.Ok(Query(factory, sql, r => new OutgoingVendorRow(
+                r["VendorID"] as string ?? "", r["VendorName"] as string)));
+        });
+
+        g.MapGet("/release/outgoing/lot", (HttpContext ctx, string lotNo) =>
+        {
+            if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+            var row = QueryDirectOutgoingLot(factory, lotNo);
+            WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                s, "SCAN_OUTGOING_LOT", "WH003", "LOT", lotNo,
+                row.IsValid ? "SUCCESS" : "FAIL", row.Message,
+                refDocType: "DIRECT_OUTGOING", lotNo: row.LotNo, partNo: row.ItemNo,
+                locationId: row.LocationId, qty: row.Qty));
+            return Results.Ok(row);
+        });
+
+        g.MapPost("/release/outgoing", (HttpContext ctx, DirectOutgoingReq body) =>
+        {
+            if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+            var result = ExecuteDirectOutgoing(factory, body, s.OperatorId);
+            WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                s, "DIRECT_OUTGOING", "WH003", "LOT", body.LotNo,
+                result.Success ? "SUCCESS" : "FAIL", result.Message,
+                refDocType: body.OutgoingType, refDocNo: body.TargetCode,
+                lotNo: result.Row?.LotNo ?? body.LotNo, partNo: result.Row?.ItemNo,
+                locationId: result.Row?.LocationId, qty: body.Qty));
+            return result.Success ? Results.Ok(result) : Results.BadRequest(result);
         });
 
         // WH-06 Inventory Transactions
@@ -1269,6 +1324,199 @@ public static class WhEndpoints
         cmd.ExecuteNonQuery();
     }
 
+    private static DirectOutgoingLotRow QueryDirectOutgoingLot(AmesConnectionFactory factory, string lotNo)
+    {
+        var normalizedLot = lotNo?.Trim() ?? "";
+        if (normalizedLot.Length == 0)
+            return new DirectOutgoingLotRow(0, "", null, null, 0, null, null, "-", false, "LOT No is required.");
+
+        using var conn = factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT TOP (1)
+                L.LotID, L.LotCode, L.ItemNo, I.ItemName, I.DefaultUOM,
+                W.LocationID, COALESCE(W.OnHandQty, L.RemainingQty, 0) AS Qty,
+                COALESCE(NULLIF(L.InventoryStatus,''), NULLIF(W.Status,''), 'CREATED') AS InventoryStatus
+            FROM dbo.tbl_Lot L
+            LEFT JOIN dbo.MD_Item I ON I.ItemNo=L.ItemNo
+            OUTER APPLY
+            (
+                SELECT TOP (1) X.InventoryID, X.LocationID, X.OnHandQty, X.Status
+                FROM dbo.WH_Inventory X
+                WHERE X.LotID=L.LotID
+                ORDER BY CASE WHEN COALESCE(X.OnHandQty,0)>0 THEN 0 ELSE 1 END, X.InventoryID DESC
+            ) W
+            WHERE UPPER(L.LotCode)=UPPER(@LotNo);
+            """, conn);
+        cmd.Parameters.AddWithValue("@LotNo", normalizedLot);
+        using var rdr = cmd.ExecuteReader();
+        if (!rdr.Read())
+            return new DirectOutgoingLotRow(0, normalizedLot, null, null, 0, null, null, "-", false, "LOT was not found.");
+
+        var qty = GetDecimal(rdr, "Qty");
+        var status = GetString(rdr, "InventoryStatus") ?? "CREATED";
+        var validStatus = new[] { "RECEIVED", "STORED", "RETURN_RECEIVED", "RELEASE_CANCELLED" }
+            .Contains(status, StringComparer.OrdinalIgnoreCase);
+        var valid = qty > 0 && validStatus;
+        return new DirectOutgoingLotRow(
+            rdr.GetInt32(rdr.GetOrdinal("LotID")),
+            GetString(rdr, "LotCode") ?? normalizedLot,
+            GetString(rdr, "ItemNo"),
+            GetString(rdr, "ItemName"),
+            qty,
+            GetString(rdr, "DefaultUOM"),
+            GetString(rdr, "LocationID"),
+            status,
+            valid,
+            valid ? "LOT is ready for outgoing." : $"LOT cannot be released. Current status: {status}.");
+    }
+
+    private static DirectOutgoingResult ExecuteDirectOutgoing(
+        AmesConnectionFactory factory, DirectOutgoingReq body, string userId)
+    {
+        var type = body.OutgoingType?.Trim().ToUpperInvariant() ?? "";
+        var reasonCode = type switch
+        {
+            "PRODUCTION" => "TO_PRODUCTION_LINE",
+            "SUPPLIER" => "TO_SUPPLIER",
+            "OTHER" => "OTHER_OUTGOING",
+            "DEFECT" => "DEFECT_OUTGOING",
+            _ => null
+        };
+        if (reasonCode is null)
+            return new DirectOutgoingResult(false, "Select a valid outgoing type.");
+        if (string.IsNullOrWhiteSpace(body.LotNo))
+            return new DirectOutgoingResult(false, "Scan a LOT No first.");
+        if (type == "SUPPLIER" && string.IsNullOrWhiteSpace(body.TargetCode))
+            return new DirectOutgoingResult(false, "Select a supplier first.");
+
+        using var conn = factory.OpenConnection();
+        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        try
+        {
+            if (type == "SUPPLIER")
+            {
+                using var vendorCmd = new SqlCommand("""
+                    SELECT COUNT(*) FROM dbo.MD_Vendor
+                    WHERE VendorID=@VendorID AND COALESCE(ActiveFlag,1)=1;
+                    """, conn, tx);
+                vendorCmd.Parameters.AddWithValue("@VendorID", body.TargetCode!.Trim());
+                if ((int)vendorCmd.ExecuteScalar()! == 0)
+                    return new DirectOutgoingResult(false, "The selected supplier is not available.");
+            }
+
+            int lotId;
+            int inventoryId;
+            string lotCode;
+            string itemNo;
+            string? itemName;
+            string? unit;
+            string? locationId;
+            string beforeStatus;
+            decimal beforeQty;
+
+            using (var lotCmd = new SqlCommand("""
+                SELECT TOP (1)
+                    L.LotID, W.InventoryID, L.LotCode, L.ItemNo, I.ItemName, I.DefaultUOM,
+                    W.LocationID, COALESCE(W.OnHandQty,0) AS Qty,
+                    COALESCE(NULLIF(L.InventoryStatus,''), NULLIF(W.Status,''), 'CREATED') AS InventoryStatus
+                FROM dbo.tbl_Lot L WITH (UPDLOCK,HOLDLOCK)
+                INNER JOIN dbo.WH_Inventory W WITH (UPDLOCK,HOLDLOCK) ON W.LotID=L.LotID
+                LEFT JOIN dbo.MD_Item I ON I.ItemNo=L.ItemNo
+                WHERE UPPER(L.LotCode)=UPPER(@LotNo)
+                ORDER BY CASE WHEN COALESCE(W.OnHandQty,0)>0 THEN 0 ELSE 1 END, W.InventoryID DESC;
+                """, conn, tx))
+            {
+                lotCmd.Parameters.AddWithValue("@LotNo", body.LotNo.Trim());
+                using var rdr = lotCmd.ExecuteReader();
+                if (!rdr.Read())
+                    return new DirectOutgoingResult(false, "LOT inventory was not found.");
+
+                lotId = rdr.GetInt32(rdr.GetOrdinal("LotID"));
+                inventoryId = rdr.GetInt32(rdr.GetOrdinal("InventoryID"));
+                lotCode = GetString(rdr, "LotCode") ?? body.LotNo.Trim();
+                itemNo = GetString(rdr, "ItemNo") ?? "";
+                itemName = GetString(rdr, "ItemName");
+                unit = GetString(rdr, "DefaultUOM");
+                locationId = GetString(rdr, "LocationID");
+                beforeQty = GetDecimal(rdr, "Qty");
+                beforeStatus = GetString(rdr, "InventoryStatus") ?? "CREATED";
+            }
+
+            var validStatus = new[] { "RECEIVED", "STORED", "RETURN_RECEIVED", "RELEASE_CANCELLED" }
+                .Contains(beforeStatus, StringComparer.OrdinalIgnoreCase);
+            if (beforeQty <= 0 || !validStatus)
+                return new DirectOutgoingResult(false, $"LOT cannot be released. Current status: {beforeStatus}.");
+
+            var outgoingQty = type == "DEFECT" ? body.Qty : beforeQty;
+            if (outgoingQty <= 0 || outgoingQty > beforeQty)
+                return new DirectOutgoingResult(false, $"Outgoing quantity must be between 1 and {beforeQty:N0}.");
+
+            var afterQty = beforeQty - outgoingQty;
+            var afterStatus = afterQty == 0 ? "RELEASED" : beforeStatus;
+            var target = string.IsNullOrWhiteSpace(body.TargetCode) ? null : body.TargetCode.Trim();
+            var note = string.IsNullOrWhiteSpace(body.Note)
+                ? $"{reasonCode}{(target is null ? "" : $" / {target}")}"
+                : body.Note.Trim();
+
+            using (var saveCmd = new SqlCommand("""
+                UPDATE dbo.WH_Inventory
+                   SET OnHandQty=@AfterQty,
+                       ReservedQty=CASE WHEN COALESCE(ReservedQty,0)>@AfterQty THEN @AfterQty ELSE ReservedQty END,
+                       Status=CASE WHEN @AfterQty=0 THEN 'Released' ELSE 'Stored' END,
+                       ModifiedBy=@User, ModifiedTS=SYSDATETIME()
+                 WHERE InventoryID=@InventoryID AND COALESCE(OnHandQty,0)=@BeforeQty;
+                IF @@ROWCOUNT<>1 THROW 51630, 'LOT inventory changed before outgoing.', 1;
+
+                UPDATE dbo.tbl_Lot
+                   SET RemainingQty=@AfterQty,
+                       InventoryStatus=@AfterStatus,
+                       Status=CASE WHEN @AfterQty=0 THEN 'Released' ELSE Status END,
+                       CurrentLocationID=CASE WHEN @AfterQty=0 THEN NULL ELSE CurrentLocationID END,
+                       ModifiedBy=@User, ModifiedTS=SYSDATETIME()
+                 WHERE LotID=@LotID;
+
+                IF @AfterStatus<>@BeforeStatus AND OBJECT_ID(N'dbo.WH_LotStatusHistory',N'U') IS NOT NULL
+                    INSERT dbo.WH_LotStatusHistory
+                        (LotID,LotNo,BeforeStatus,AfterStatus,ReasonCode,ReferenceNo,ChangedBy)
+                    VALUES (@LotID,@LotNo,@BeforeStatus,@AfterStatus,@ReasonCode,@TargetCode,@User);
+
+                INSERT dbo.WH_InventoryTransaction
+                    (TransactionTime,TransactionType,ItemNo,LocationID,LotID,QtyBefore,QtyChange,QtyAfter,
+                     ReasonCode,RefDocType,RefDocID,OperatorID,Note,CreatedBy,CreatedTS)
+                VALUES
+                    (SYSDATETIME(),'OUT',@ItemNo,@LocationID,@LotID,@BeforeQty,-@OutgoingQty,@AfterQty,
+                     @ReasonCode,'DIRECT_OUTGOING',NULL,@User,@Note,@User,SYSDATETIME());
+                """, conn, tx))
+            {
+                saveCmd.Parameters.AddWithValue("@LotID", lotId);
+                saveCmd.Parameters.AddWithValue("@InventoryID", inventoryId);
+                saveCmd.Parameters.AddWithValue("@LotNo", lotCode);
+                saveCmd.Parameters.AddWithValue("@ItemNo", itemNo);
+                saveCmd.Parameters.AddWithValue("@LocationID", (object?)locationId ?? DBNull.Value);
+                saveCmd.Parameters.AddWithValue("@BeforeQty", beforeQty);
+                saveCmd.Parameters.AddWithValue("@OutgoingQty", outgoingQty);
+                saveCmd.Parameters.AddWithValue("@AfterQty", afterQty);
+                saveCmd.Parameters.AddWithValue("@BeforeStatus", beforeStatus);
+                saveCmd.Parameters.AddWithValue("@AfterStatus", afterStatus);
+                saveCmd.Parameters.AddWithValue("@ReasonCode", reasonCode);
+                saveCmd.Parameters.AddWithValue("@TargetCode", (object?)target ?? DBNull.Value);
+                saveCmd.Parameters.AddWithValue("@Note", note);
+                saveCmd.Parameters.AddWithValue("@User", userId);
+                saveCmd.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+            var row = new DirectOutgoingLotRow(lotId, lotCode, itemNo, itemName, afterQty, unit,
+                locationId, afterStatus, afterQty > 0, "Outgoing completed.");
+            return new DirectOutgoingResult(true, "Outgoing completed.", row);
+        }
+        catch (Exception ex)
+        {
+            try { tx.Rollback(); } catch { }
+            return new DirectOutgoingResult(false, ex.Message);
+        }
+    }
+
     private sealed record ReleaseBatchLot(
         int LotId, int InventoryId, int ReleaseScheduleId, string LotNo, string ItemNo,
         string? LocationId, decimal Qty, DateTime? ProductionDate, DateTime? ReceivedDate, string InventoryStatus);
@@ -1277,6 +1525,7 @@ public static class WhEndpoints
         AmesConnectionFactory factory,
         string pickSlipNo,
         IReadOnlyCollection<ReleasePickInput> requestedLots,
+        string reasonCode,
         string userId,
         string terminalId)
     {
@@ -1402,7 +1651,7 @@ public static class WhEndpoints
 
                     INSERT dbo.WH_LotStatusHistory
                         (LotID,LotNo,BeforeStatus,AfterStatus,ReasonCode,ReferenceNo,ChangedBy)
-                    VALUES (@LotID,@LotNo,@BeforeStatus,'RELEASED','PICK_SLIP',@Slip,@User);
+                    VALUES (@LotID,@LotNo,@BeforeStatus,'RELEASED',@ReasonCode,@Slip,@User);
 
                     ;WITH Target AS
                     (
@@ -1428,7 +1677,7 @@ public static class WhEndpoints
                          ReasonCode,RefDocType,RefDocID,OperatorID,Note,CreatedBy,CreatedTS)
                     VALUES
                         (SYSDATETIME(),'OUT',@ItemNo,@LocationID,@LotID,@Qty,-@Qty,0,
-                         'PICK_SLIP','PICK_SLIP',@ScheduleID,@User,CONCAT('Release ',@Slip),@User,SYSDATETIME());
+                         @ReasonCode,'PICK_SLIP',@ScheduleID,@User,CONCAT('Release ',@Slip,' / ',@ReasonCode),@User,SYSDATETIME());
                     """, conn, tx);
                 cmd.Parameters.AddWithValue("@LotID", lot.LotId);
                 cmd.Parameters.AddWithValue("@InventoryID", lot.InventoryId);
@@ -1440,6 +1689,7 @@ public static class WhEndpoints
                 cmd.Parameters.AddWithValue("@ReceivedDate", (object?)lot.ReceivedDate ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@Qty", lot.Qty);
                 cmd.Parameters.AddWithValue("@Slip", slip);
+                cmd.Parameters.AddWithValue("@ReasonCode", reasonCode);
                 cmd.Parameters.AddWithValue("@User", userId);
                 cmd.Parameters.AddWithValue("@Terminal", terminalId);
                 cmd.ExecuteNonQuery();
