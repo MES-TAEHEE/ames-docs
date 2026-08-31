@@ -90,7 +90,7 @@ dotnet run --project src\07_Etc\AMES.InjAgent\AMES.InjAgent.csproj
 | (팝업) | `Pages/InjPopups/AndonPopup.razor` | 안돈 — 전체 화면 오버레이 (구 INJ-08) |
 
 대시보드(INJ-02)·금형 교체(INJ-06)·생산 현황(INJ-07)은 미사용으로 삭제됨 (화면·팝업·레거시 WinForms 폼 포함).
-구 단독 화면(`Inj03WoConfirm`/`Inj04ProductionEntry`/`Inj05Defect`/`Inj08Andon`)은 라우트(`/inj03`~`/inj05`, `/inj08`)와 함께 유지되나 네비게이션에서 제외됨 (deprecated). 팝업 공통 셸은 `Pages/InjPopups/PopupShell.razor`.
+구 단독 화면(`/inj02`~`/inj08` 라우트)도 모두 삭제됨 — INJ 는 INJ-MAIN + 팝업만 남는다. 팝업 공통 셸은 `Pages/InjPopups/PopupShell.razor`.
 
 #### IMG (원단/래핑 공정) — 6화면
 | 화면 ID | 파일 | 설명 |
