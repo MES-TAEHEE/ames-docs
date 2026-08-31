@@ -484,7 +484,7 @@ public sealed class PpRepository
             FROM   dbo.PP_CustomerOrder s
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = s.ItemNo
             LEFT JOIN dbo.PP_WorkOrder wo ON wo.SoID = s.SoID AND wo.Status <> 'Cancelled'
-            OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.FG_Inventory f
+            OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.FG_Stock f
                          WHERE f.ItemNo = s.ItemNo AND f.Status NOT IN ('SHIPPED','SCRAPPED')) fg
             OUTER APPLY (SELECT TOP 1 w2.LineID FROM dbo.PP_WorkOrder w2
                          WHERE w2.ItemNo = s.ItemNo AND w2.LineID IS NOT NULL
@@ -536,7 +536,7 @@ public sealed class PpRepository
                    'Draft', @Actor, SYSDATETIME()
             FROM   dbo.PP_CustomerOrder s
             JOIN   dbo.MD_Item i ON i.ItemNo = s.ItemNo
-            OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.FG_Inventory f
+            OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.FG_Stock f
                          WHERE f.ItemNo = s.ItemNo AND f.Status NOT IN ('SHIPPED','SCRAPPED')) fg
             CROSS APPLY (SELECT CASE WHEN @UseNet = 1
                                      THEN IIF(ISNULL(s.OrderQty,0) > ISNULL(fg.OnHand,0),

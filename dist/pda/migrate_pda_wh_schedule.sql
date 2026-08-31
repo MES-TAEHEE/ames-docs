@@ -100,87 +100,33 @@ GO
 
 -- =====================================================================
 --  Schedule / Release
---  Source: dbo.WH_ReleaseSchedule
+--  Source: PP-007 WO Release / dbo.PP_WorkOrder
 -- =====================================================================
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_SCHEDULE_RELEASE_LIST
+    @DueDateFrom date = NULL,
+    @DueDateTo date = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    ;WITH Lines AS
-    (
-        SELECT
-            COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID)) AS PickSlipNo,
-            COALESCE(NULLIF(RS.ReqLocation, N''), N'-') AS DestinationLocation,
-            RS.RequiredAt,
-            RS.PrintDate,
-            RS.CloseDate,
-            RS.CloseUserId,
-            RS.ReleaseScheduleID,
-            RS.ItemNo,
-            I.ItemName,
-            COALESCE(RS.DemandQty, 0) AS DemandQty,
-            COALESCE(RS.PickedQty, 0) AS PickedQty,
-            CASE
-                WHEN UPPER(COALESCE(RS.Status, N'OPEN')) IN (N'CLOSED', N'CANCELED') THEN N'Closed'
-                WHEN COALESCE(RS.PickedQty, 0) >= COALESCE(RS.DemandQty, 0)
-                     AND COALESCE(RS.DemandQty, 0) > 0 THEN N'Picked'
-                WHEN COALESCE(RS.PickedQty, 0) > 0 THEN N'Partial'
-                WHEN CONVERT(date, RS.RequiredAt) < CONVERT(date, GETDATE()) THEN N'Late'
-                ELSE COALESCE(RS.Status, N'Open')
-            END AS LineStatus
-        FROM dbo.WH_ReleaseSchedule RS
-        LEFT JOIN dbo.MD_Item I
-               ON I.ItemNo = RS.ItemNo
-    ),
-    Grouped AS
-    (
-        SELECT
-            PickSlipNo,
-            MAX(DestinationLocation) AS DestinationLocation,
-            MAX(RequiredAt) AS RequiredAt,
-            MAX(PrintDate) AS PrintDate,
-            MAX(CloseDate) AS CloseDate,
-            MAX(CloseUserId) AS CloseUserId,
-            COUNT(*) AS MaterialLineCount,
-            SUM(DemandQty) AS RequestedBoxQty,
-            SUM(PickedQty) AS PickedBoxQty,
-            MIN(ReleaseScheduleID) AS FirstID,
-            SUM(CASE WHEN LineStatus = N'Closed' THEN 1 ELSE 0 END) AS ClosedLines,
-            SUM(CASE WHEN LineStatus = N'Picked' THEN 1 ELSE 0 END) AS PickedLines,
-            SUM(CASE WHEN LineStatus = N'Partial' THEN 1 ELSE 0 END) AS PartialLines,
-            SUM(CASE WHEN LineStatus = N'Late' THEN 1 ELSE 0 END) AS LateLines
-        FROM Lines
-        GROUP BY PickSlipNo
-    )
     SELECT TOP (100)
-        G.PickSlipNo,
-        G.DestinationLocation,
-        CONVERT(date, G.RequiredAt) AS RequiredDate,
-        CONVERT(nvarchar(20), CONVERT(time(0), G.RequiredAt)) AS RequiredTime,
-        G.PrintDate AS PrintedAt,
-        G.CloseDate AS ClosedAt,
-        G.CloseUserId AS ClosedBy,
-        G.MaterialLineCount,
-        G.RequestedBoxQty,
-        G.PickedBoxQty,
-        G.RequestedBoxQty AS RequestedQty,
-        G.PickedBoxQty AS PickedQty,
-        L.ItemNo AS FirstMaterialNo,
-        L.ItemName AS FirstMaterialName,
-        CAST(NULL AS nvarchar(50)) AS SuggestedPickLocation,
-        CAST(NULL AS nvarchar(50)) AS SuggestedPickZone,
-        CASE
-            WHEN G.ClosedLines = G.MaterialLineCount THEN N'Closed'
-            WHEN G.PickedLines = G.MaterialLineCount THEN N'Picked'
-            WHEN G.PartialLines > 0 OR G.PickedLines > 0 THEN N'Partial'
-            WHEN G.LateLines > 0 THEN N'Late'
-            ELSE N'Open'
-        END AS PickStatus
-    FROM Grouped G
-    LEFT JOIN Lines L
-           ON L.PickSlipNo = G.PickSlipNo
-          AND L.ReleaseScheduleID = G.FirstID
-    ORDER BY G.RequiredAt, G.PickSlipNo;
+        W.WoID AS WorkOrderId,
+        W.WoNumber AS WorkOrderNo,
+        W.ItemNo AS PartNo,
+        I.ItemName AS PartName,
+        COALESCE(W.OrderQty, 0) AS OrderQty,
+        COALESCE(I.DefaultUOM, N'EA') AS Unit,
+        W.DueDate,
+        COALESCE(W.Status, N'Released') AS WorkOrderStatus,
+        W.ReleasedAt,
+        W.LineID
+    FROM dbo.PP_WorkOrder W
+    LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.ItemNo
+    WHERE W.Status IN (N'Released', N'In Progress')
+      AND (@DueDateFrom IS NULL OR W.DueDate >= @DueDateFrom)
+      AND (@DueDateTo IS NULL OR W.DueDate <= @DueDateTo)
+    ORDER BY ISNULL(W.DueDate, CONVERT(date, '9999-12-31')),
+             ISNULL(W.Priority, 5),
+             W.WoID;
 END;
 GO

@@ -226,14 +226,16 @@ BEGIN
     DECLARE @From date = COALESCE(@DateFrom, DATEADD(day, -30, CONVERT(date, SYSDATETIME())));
     DECLARE @To date = COALESCE(@DateTo, CONVERT(date, SYSDATETIME()));
 
-    SELECT TOP (200)
+    SELECT
         ROW_NUMBER() OVER (ORDER BY T.TransactionTime DESC, T.TransactionID DESC) AS ROW_NO,
         L.LotCode AS LOTNO,
         T.ItemNo AS PARTNO,
         CONVERT(nvarchar(10), T.TransactionTime, 23) AS WDATE,
         CONVERT(nvarchar(8), T.TransactionTime, 108) AS WTIME,
         T.LocationID AS LOCATION_NO,
-        COALESCE(T.QtyAfter, T.QtyChange, 0) AS QTY,
+        CASE WHEN T.TransactionType IN ('IN', 'OUT') THEN ABS(T.QtyChange)
+             ELSE T.QtyChange END AS QTY,
+        I.DefaultUOM AS UNIT,
         CASE T.TransactionType
             WHEN 'IN' THEN N'In'
             WHEN 'OUT' THEN N'Out'
@@ -257,14 +259,22 @@ BEGIN
     FROM dbo.WH_InventoryTransaction T
     LEFT JOIN dbo.tbl_Lot L
            ON L.LotID = T.LotID
+    LEFT JOIN dbo.MD_Item I
+           ON I.ItemNo = T.ItemNo
     WHERE T.TransactionTime >= @From
       AND T.TransactionTime < DATEADD(day, 1, @To)
       AND (@Like IS NULL
            OR L.LotCode LIKE @Like
            OR T.ItemNo LIKE @Like
            OR T.LocationID LIKE @Like
-           OR T.OperatorID LIKE @Like
-           OR T.ReasonCode LIKE @Like)
+           OR EXISTS (
+               SELECT 1
+               FROM dbo.WH_InboundPackage P
+               JOIN dbo.WH_InboundDocument D ON D.InboundDocumentID = P.InboundDocumentID
+               WHERE P.LotID = T.LotID
+                 AND (P.BoxBarcode LIKE @Like
+                      OR D.CaseNo LIKE @Like
+                      OR (D.ReceiveType = N'CKD' AND D.DocumentBarcode LIKE @Like))))
     ORDER BY T.TransactionTime DESC, T.TransactionID DESC;
 END;
 GO

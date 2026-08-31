@@ -14,9 +14,7 @@ GO
 -- =====================================================================
 --  Adjust / scan current stock
 --  Source: dbo.WH_Inventory, dbo.tbl_Lot, dbo.MD_Item
---  ScanText accepts:
---    - LOT No: resolves directly to that inventory LOT
---    - Part No: allowed only when the part has exactly one active LOT
+--  ScanText accepts only LOT No, resolving directly to that inventory LOT.
 -- =====================================================================
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_ADJUST_SCAN_STOCK
     @ScanText nvarchar(80)
@@ -28,7 +26,13 @@ BEGIN
     DECLARE @LotID int;
 
     IF @Scan = N''
-        THROW 51500, 'Lot or Part No is required.', 1;
+        THROW 51500, 'Lot No is required.', 1;
+
+    -- Legacy LOT lengths: self 15, SCM/CKD 18, vendor 50; local sample LOTs use 9 digits.
+    IF @Scan COLLATE Latin1_General_100_BIN2 LIKE N'%[^A-Za-z0-9-]%'
+       OR NOT (LEN(@Scan) IN (15, 18, 50)
+           OR (LEN(@Scan) = 9 AND @Scan COLLATE Latin1_General_100_BIN2 NOT LIKE N'%[^0-9]%'))
+        THROW 51504, 'The barcode format is invalid.', 1;
 
     SELECT TOP (1)
         @LotID = L.LotID
@@ -37,25 +41,7 @@ BEGIN
     ORDER BY L.LotID DESC;
 
     IF @LotID IS NULL
-    BEGIN
-        DECLARE @Candidates TABLE (LotID int NOT NULL PRIMARY KEY);
-
-        INSERT INTO @Candidates (LotID)
-        SELECT DISTINCT W.LotID
-        FROM dbo.WH_Inventory W
-        WHERE W.LotID IS NOT NULL
-          AND UPPER(W.ItemNo) = UPPER(@Scan)
-          AND UPPER(COALESCE(W.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
-          AND COALESCE(W.OnHandQty, 0) > 0;
-
-        IF NOT EXISTS (SELECT 1 FROM @Candidates)
-            THROW 51501, 'Lot or Part No was not found in current inventory.', 1;
-
-        IF (SELECT COUNT(*) FROM @Candidates) > 1
-            THROW 51502, 'Multiple active LOTs found for this Part No. Scan a LOT No.', 1;
-
-        SELECT TOP (1) @LotID = LotID FROM @Candidates;
-    END;
+        THROW 51501, 'The specified Lot No could not be found.', 1;
 
     IF NOT EXISTS
     (
@@ -159,7 +145,11 @@ BEGIN
     DECLARE @LotID int;
 
     IF @Scan = N''
-        THROW 51510, 'Lot or Part No is required.', 1;
+        THROW 51510, 'Lot No is required.', 1;
+    IF @Scan COLLATE Latin1_General_100_BIN2 LIKE N'%[^A-Za-z0-9-]%'
+       OR NOT (LEN(@Scan) IN (15, 18, 50)
+           OR (LEN(@Scan) = 9 AND @Scan COLLATE Latin1_General_100_BIN2 NOT LIKE N'%[^0-9]%'))
+        THROW 51518, 'The barcode format is invalid.', 1;
     IF COALESCE(@DeltaQty, 0) = 0
         THROW 51511, 'Adjustment quantity must be different from zero.', 1;
     IF @Reason = N''
@@ -174,25 +164,7 @@ BEGIN
     ORDER BY L.LotID DESC;
 
     IF @LotID IS NULL
-    BEGIN
-        DECLARE @Candidates TABLE (LotID int NOT NULL PRIMARY KEY);
-
-        INSERT INTO @Candidates (LotID)
-        SELECT DISTINCT W.LotID
-        FROM dbo.WH_Inventory W
-        WHERE W.LotID IS NOT NULL
-          AND UPPER(W.ItemNo) = UPPER(@Scan)
-          AND UPPER(COALESCE(W.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
-          AND COALESCE(W.OnHandQty, 0) > 0;
-
-        IF NOT EXISTS (SELECT 1 FROM @Candidates)
-            THROW 51514, 'Lot or Part No was not found in current inventory.', 1;
-
-        IF (SELECT COUNT(*) FROM @Candidates) > 1
-            THROW 51515, 'Multiple active LOTs found for this Part No. Scan a LOT No.', 1;
-
-        SELECT TOP (1) @LotID = LotID FROM @Candidates;
-    END;
+        THROW 51514, 'The specified Lot No could not be found.', 1;
 
     DECLARE
         @InventoryID int,

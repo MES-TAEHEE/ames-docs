@@ -9,7 +9,6 @@
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
         <div class="wh04-tbar-title">
             <span class="pda-tbar-brand">LOCATION SEARCH</span>
-            <span class="wh04-last-updated">Last Updated @LastUpdatedText</span>
         </div>
         <RadzenButton class="wh04-tbar-refresh" Click="@LoadAsync" Disabled="@_loading" Text="REFRESH" />
     </div>
@@ -190,7 +189,6 @@
     private bool _loading = true;
     private bool _loadingItems;
     private bool _scanningLocation;
-    private DateTime? _lastUpdated;
     private DotNetObjectReference<Wh04LocationMap>? _scannerRef;
 
     private static bool ShowDeveloperScanButtons => MauiProgram.IsDeveloperMode;
@@ -298,7 +296,6 @@
     private IReadOnlyList<Option> RowOptions => BuildOptions(ColumnRows, RowKey, r => Text(r.Y));
     private IReadOnlyList<Option> LevelOptions => BuildOptions(RowRows, LevelKey, r => Text(r.Z));
 
-    private string LastUpdatedText => _lastUpdated?.ToString("HH:mm:ss") ?? "-";
     private bool DisableLocationScan => _scanningLocation || string.IsNullOrWhiteSpace(_locationScan);
 
     private async Task LoadAsync()
@@ -311,7 +308,6 @@
         try
         {
             _locations = await Api.WhLocationMapAsync();
-            _lastUpdated = DateTime.Now;
             await SelectInitialAsync();
         }
         catch (Exception ex)

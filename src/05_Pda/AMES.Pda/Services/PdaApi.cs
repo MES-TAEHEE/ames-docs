@@ -151,12 +151,23 @@ public sealed class PdaApi
         int? PoSeq, string? VendorId, string? VendorName, DateTime? ProductionDate, DateTime? DeliveryDate,
         DateTime? ArrivalDate, DateTime? ShipDate, DateTime? PackDate, string? ReceivedLocation,
         string? ReceivedStatus);
+    public sealed record InboundDocumentRow(string ReceiveType, int InboundDocumentId,
+        string DocumentBarcode, string? DocumentNo, string? VendorId, string? VendorName,
+        string? CaseNo, string? InvoiceNo, string? ContainerNo, DateTime? ShipDate,
+        DateTime? PackDate, DateTime? DeliveryDate, DateTime? ArrivalDate,
+        int TotalBoxes, int ScannedBoxes, string? Yn);
+    public sealed record InboundDocumentLineRow(string PartNo, string? PartName,
+        int BoxCount, int ScanCount, string? Yn);
+    public sealed record InboundDocumentBoxRow(string PartNo, string BoxBarcode,
+        string? LotNo, decimal Qty, string? Unit, string? Yn);
+    public sealed record InboundDocumentResult(InboundDocumentRow? Document,
+        List<InboundDocumentLineRow> Lines, List<InboundDocumentBoxRow> Boxes);
     public sealed record WarehouseTransactionRow(long RowNo, string? LotNo, string? PartNo,
         string? WorkDate, string? WorkTime, string? LocationId, decimal Qty, string Status,
         string Direction, string? WorkerId, string? ReasonCode, string? ReasonNote,
         string? Supervisor, decimal? BeforeQty, decimal? DeltaQty, decimal? AfterQty,
         string? BeforeStatus, string? AfterStatus, string? BeforeLocation, string? AfterLocation,
-        string? Source, string? Note);
+        string? Source, string? Note, string? Unit = null);
     public sealed record InventoryRow(int InventoryId, string ItemNo, string? ItemName, string LocationId,
         int? LotId, decimal OnHandQty, decimal ReservedQty, DateTime? ExpiryDate,
         string? CarCode = null, string? Unit = null, decimal? MinDays = null, decimal? MinQty = null,
@@ -176,11 +187,9 @@ public sealed class PdaApi
         string? PlantCode = null, string? LocationType = null, decimal? Capacity = null);
     public sealed record LocationMapItemRow(string LotNo, string? PartNo, string? PartName, decimal Qty, string? Unit,
         string? InventoryStatus, string? WorkDate, string? WorkTime);
-    public sealed record Wh001ScheduleReleaseItem(string PickSlipNo, string? DestinationLocation, DateTime? RequiredDate,
-        string? RequiredTime, DateTime? PrintedAt, DateTime? ClosedAt, string? ClosedBy,
-        int MaterialLineCount, decimal RequestedBoxQty, decimal PickedBoxQty, decimal RequestedQty, decimal PickedQty,
-        string PickStatus, string? FirstMaterialNo, string? FirstMaterialName, string? SuggestedPickLocation,
-        string? SuggestedPickZone);
+    public sealed record Wh001ScheduleReleaseItem(int WorkOrderId, string? WorkOrderNo,
+        string PartNo, string? PartName, decimal OrderQty, string? Unit,
+        DateTime? DueDate, string WorkOrderStatus, DateTime? ReleasedAt, string? LineId);
     public sealed record ReleaseSlipStatusRow(string PickSlipNo, bool Exists, bool IsClosed, int LineCount,
         string? RequestLocation, DateTime? RequestDate, DateTime? CloseDate, string Message);
     public sealed record ReleasePickLineRow(string PickSlipNo, string ItemNo, string? ItemName,
@@ -193,8 +202,20 @@ public sealed class PdaApi
     public sealed record ReleaseFifoLotRow(string PickSlipNo, string ItemNo, string LotNo, string? LocationNo,
         decimal Qty, string? ProductionDate);
     public sealed record ReleasePickInput(string LotNo, decimal Qty);
-    public sealed record ReleaseCompleteReq(string PickSlipNo, List<ReleasePickInput>? Lots = null);
+    public sealed record ReleaseCompleteReq(string PickSlipNo, List<ReleasePickInput>? Lots = null,
+        string? OutgoingType = null);
     public sealed record ReleaseCompleteResult(bool Success, string Message);
+    public sealed record DirectOutgoingLotRow(int LotId, string LotNo, string? ItemNo, string? ItemName,
+        decimal Qty, string? Unit, string? LocationId, string InventoryStatus, bool IsValid, string Message);
+    public sealed record DirectOutgoingReq(string OutgoingType, string LotNo, decimal Qty,
+        string? TargetCode = null, string? Note = null);
+    public sealed record DirectOutgoingResult(bool Success, string Message, DirectOutgoingLotRow? Row = null);
+    public sealed record OutgoingVendorRow(string VendorId, string? VendorName)
+    {
+        public string DisplayName => string.IsNullOrWhiteSpace(VendorName)
+            ? VendorId
+            : $"{VendorId} / {VendorName}";
+    }
     public sealed record TransactionRow(long TxnId, DateTime TxnTime, string TxnType, string? ItemNo,
         string? LocationId, decimal QtyBefore, decimal Delta, decimal QtyAfter, string? ReasonCode);
 
@@ -202,9 +223,10 @@ public sealed class PdaApi
     public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId);
     public sealed record InboundCancelReq(string Mode, string Barcode);
     public sealed record InboundAdjustReq(string Mode, string Barcode, decimal DeltaQty, string ReasonCode,
-        string? ReasonNote, string SupervisorPin);
+        string? ReasonNote, string SupervisorPin, string? SupervisorEmployeeNo = null);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
-        string? ReasonNote, string SupervisorPin);
+        string? ReasonNote, string SupervisorPin, string? SupervisorEmployeeNo = null);
+    public sealed record SupervisorRow(string EmployeeNo, string EmployeeName);
     public sealed record InboundReceiveResult(bool Success, string Message, InboundScanRow? Row);
     public sealed record AdjustReq(string ItemNo, string LocationId, decimal Delta, string ReasonCode, string? Note);
     public sealed record PickReq(string PickSlipNo, string LotNo, decimal Qty);
@@ -372,8 +394,11 @@ public sealed class PdaApi
             return (await WhLocationsAsync()).FirstOrDefault()?.LocationId;
         }
     }
-    public Task<List<Wh001ScheduleReleaseItem>> Wh001ScheduleReleaseAsync() =>
-        Get<List<Wh001ScheduleReleaseItem>>("/api/wh/schedule/release");
+    public Task<List<Wh001ScheduleReleaseItem>> Wh001ScheduleReleaseAsync(DateTime? dateFrom = null, DateTime? dateTo = null)
+    {
+        var query = $"?dateFrom={dateFrom:yyyy-MM-dd}&dateTo={dateTo:yyyy-MM-dd}";
+        return Get<List<Wh001ScheduleReleaseItem>>("/api/wh/schedule/release" + query);
+    }
     public async Task<ReleaseSlipStatusRow?> WhReleaseSlipStatusAsync(string pickSlipNo)
     {
         Authorize();
@@ -441,9 +466,33 @@ public sealed class PdaApi
     }
     public Task<HttpResponseMessage> WhReleaseCompleteAsync(ReleaseCompleteReq body)
         => Post("/api/wh/release/complete", body);
+    public Task<List<OutgoingVendorRow>> WhOutgoingVendorsAsync()
+        => Get<List<OutgoingVendorRow>>("/api/wh/release/outgoing/vendors");
+    public async Task<DirectOutgoingLotRow?> WhDirectOutgoingLotAsync(string lotNo)
+    {
+        Authorize();
+        var resp = await _http.GetAsync($"/api/wh/release/outgoing/lot?lotNo={Uri.EscapeDataString(lotNo.Trim())}");
+        if (!resp.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Warehouse outgoing service is unavailable."));
+        return await resp.Content.ReadFromJsonAsync<DirectOutgoingLotRow>();
+    }
+    public Task<HttpResponseMessage> WhDirectOutgoingAsync(DirectOutgoingReq body)
+        => Post("/api/wh/release/outgoing", body);
     public Task<List<TransactionRow>>     WhTransactionsAsync(int days = 7) => Get<List<TransactionRow>>($"/api/wh/transactions?days={days}");
 
     public Task<HttpResponseMessage> WhReceiveAsync(ReceiveReq body) => Post("/api/wh/inbound/receive", body);
+    public async Task<InboundDocumentResult> WhInboundDocumentAsync(string mode, string barcode)
+    {
+        Authorize();
+        var url = $"/api/wh/inbound/document?mode={Uri.EscapeDataString(mode.Trim())}&barcode={Uri.EscapeDataString(barcode.Trim())}";
+        var resp = await _http.GetAsync(url);
+        if (!resp.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Warehouse document service is unavailable."));
+
+        return await resp.Content.ReadFromJsonAsync<InboundDocumentResult>()
+            ?? new InboundDocumentResult(null, [], []);
+    }
+
     public async Task<InboundScanRow?> WhScanInboundAsync(string mode, string barcode)
     {
         try
@@ -464,6 +513,15 @@ public sealed class PdaApi
         {
             throw new InvalidOperationException("Warehouse scan service is unavailable.");
         }
+    }
+
+    public async Task<List<SupervisorRow>> WhAdjustSupervisorsAsync()
+    {
+        Authorize();
+        using var resp = await _http.GetAsync("/api/wh/adjust/supervisors");
+        if (!resp.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Supervisor list is unavailable."));
+        return await resp.Content.ReadFromJsonAsync<List<SupervisorRow>>() ?? [];
     }
 
     public async Task<InboundScanRow?> WhScanAdjustAsync(string scanText)
@@ -490,28 +548,21 @@ public sealed class PdaApi
 
     public async Task<List<WarehouseTransactionRow>> WhWarehouseTransactionsAsync(string? search = null, DateTime? dateFrom = null, DateTime? dateTo = null)
     {
-        try
-        {
-            Authorize();
-            var query = new List<string>();
-            if (!string.IsNullOrWhiteSpace(search))
-                query.Add($"search={Uri.EscapeDataString(search.Trim())}");
-            if (dateFrom.HasValue)
-                query.Add($"dateFrom={Uri.EscapeDataString(dateFrom.Value.ToString("yyyy-MM-dd"))}");
-            if (dateTo.HasValue)
-                query.Add($"dateTo={Uri.EscapeDataString(dateTo.Value.ToString("yyyy-MM-dd"))}");
+        Authorize();
+        var query = new List<string>();
+        if (!string.IsNullOrWhiteSpace(search))
+            query.Add($"search={Uri.EscapeDataString(search.Trim())}");
+        if (dateFrom.HasValue)
+            query.Add($"dateFrom={Uri.EscapeDataString(dateFrom.Value.ToString("yyyy-MM-dd"))}");
+        if (dateTo.HasValue)
+            query.Add($"dateTo={Uri.EscapeDataString(dateTo.Value.ToString("yyyy-MM-dd"))}");
 
-            var url = "/api/wh/warehouse-transactions";
-            if (query.Count > 0)
-                url += "?" + string.Join("&", query);
+        var url = "/api/wh/warehouse-transactions";
+        if (query.Count > 0)
+            url += "?" + string.Join("&", query);
 
-            return await _http.GetFromJsonAsync<List<WarehouseTransactionRow>>(url)
-                ?? new List<WarehouseTransactionRow>();
-        }
-        catch
-        {
-            return new List<WarehouseTransactionRow>();
-        }
+        return await _http.GetFromJsonAsync<List<WarehouseTransactionRow>>(url)
+            ?? new List<WarehouseTransactionRow>();
     }
 
     public async Task<string?> WhInboundTestBarcodeAsync(string mode)
@@ -597,7 +648,8 @@ public sealed class PdaApi
             body.DeltaQty,
             body.ReasonCode,
             body.ReasonNote,
-            body.SupervisorPin));
+            body.SupervisorPin,
+            body.SupervisorEmployeeNo));
 
     public Task<HttpResponseMessage> WhAdjustAsync (AdjustReq  body) => Post("/api/wh/inventory/adjust", body);
     public Task<HttpResponseMessage> WhPickAsync   (PickReq    body) => Post("/api/wh/release/pick",      body);
@@ -682,8 +734,8 @@ public sealed class PdaApi
     public Task<HttpResponseMessage> FgPutAwayAsync (FgPutAwayReq body)  => Post("/api/fg/putaway",  body);
     public Task<FgPutAwayResult> FgPutAwayScanAsync(string barcode)
         => GetFgPutAwayResultAsync($"/api/fg/putaway/scan?barcode={Uri.EscapeDataString(barcode)}");
-    public Task<FgPutAwayLocationRow?> FgSuggestPutAwayLocationAsync(string itemNo, string? customerCode, decimal qty)
-        => GetFgPutAwayLocationAsync($"/api/fg/putaway/suggest-location?itemNo={Uri.EscapeDataString(itemNo)}&customerCode={Uri.EscapeDataString(customerCode ?? "")}&qty={qty}");
+    public Task<FgPutAwayResult> FgValidatePutAwayContainerAsync(string storageMethod, string barcode)
+        => GetFgPutAwayResultAsync($"/api/fg/putaway/container?storageMethod={Uri.EscapeDataString(storageMethod)}&barcode={Uri.EscapeDataString(barcode)}");
     public Task<FgPutAwayLocationRow?> FgValidatePutAwayLocationAsync(string locationId, string itemNo, string? customerCode, decimal qty, string? expectedScanType)
         => GetFgPutAwayLocationAsync($"/api/fg/putaway/location?locationId={Uri.EscapeDataString(locationId)}&itemNo={Uri.EscapeDataString(itemNo)}&customerCode={Uri.EscapeDataString(customerCode ?? "")}&qty={qty}&expectedScanType={Uri.EscapeDataString(expectedScanType ?? "")}");
     public Task<FgPutAwayResult> FgConfirmPutAwayAsync(FgPutAwayConfirmReq body)
@@ -1204,46 +1256,37 @@ public sealed class PdaApi
         await conn.OpenAsync();
         await using var cmd = new SqlCommand("""
             SELECT
-                L.LOCATION_NO AS LocationID,
-                L.LOCATION_NM AS LocationName,
-                L.ZONECD AS ZoneCode,
-                L.WHCD AS WarehouseCode,
-                W.WHNM AS WarehouseName,
-                L.AREACD AS AreaCode,
-                A.AREANM AS AreaName,
-                Z.ZONENM AS ZoneName,
-                L.RACK_X AS Aisle,
-                L.RACK_Y AS Bay,
-                L.RACK_Z AS Slot,
-                CAST(NULL AS nvarchar(20)) AS PlantCode,
-                CAST(N'SIS' AS nvarchar(20)) AS LocationType,
-                CAST(NULL AS decimal(18,3)) AS Capacity,
-                COUNT(S.LOTNO) AS LineCount,
-                COALESCE(SUM(S.QTY), 0) AS TotalQty
-            FROM SIS_TEST.WMS1040 L
-            LEFT JOIN SIS_TEST.WMS1010 W
-                ON W.CORCD = L.CORCD
-               AND W.BIZCD = L.BIZCD
-               AND W.WHCD = L.WHCD
-            LEFT JOIN SIS_TEST.WMS1020 A
-                ON A.CORCD = L.CORCD
-               AND A.BIZCD = L.BIZCD
-               AND A.AREACD = L.AREACD
-            LEFT JOIN SIS_TEST.WMS1030 Z
-                ON Z.CORCD = L.CORCD
-               AND Z.BIZCD = L.BIZCD
-               AND Z.ZONECD = L.ZONECD
-            LEFT JOIN SIS_TEST.WMS2020 S
-                ON S.LOCATION_NO = L.LOCATION_NO
-            WHERE L.CORCD = @LocationCorcd
-              AND L.BIZCD = @LocationBizcd
-              AND COALESCE(L.USE_YN, N'Y') = N'Y'
-            GROUP BY L.LOCATION_NO, L.LOCATION_NM, L.ZONECD, L.WHCD, W.WHNM,
-                L.AREACD, A.AREANM, Z.ZONENM, L.RACK_X, L.RACK_Y, L.RACK_Z
-            ORDER BY L.LOCATION_NO;
+                L.LocationID,
+                L.LocationName,
+                L.ZoneCode,
+                L.PlantCode AS WarehouseCode,
+                WM.WhName AS WarehouseName,
+                L.ZoneCode AS AreaCode,
+                AM.AreaName,
+                L.LocationName AS ZoneName,
+                L.Aisle,
+                L.Bay,
+                L.Slot,
+                L.PlantCode,
+                L.LocationType,
+                L.Capacity,
+                COUNT(I.InventoryID) AS LineCount,
+                COALESCE(SUM(I.OnHandQty), 0) AS TotalQty
+            FROM dbo.MD_Location L
+            LEFT JOIN dbo.WH_WarehouseMaster WM
+                   ON WM.WhCode = L.PlantCode
+            LEFT JOIN dbo.WH_AreaMaster AM
+                   ON AM.WhCode = L.PlantCode
+                  AND AM.AreaCode = L.ZoneCode
+            LEFT JOIN dbo.WH_Inventory I
+                   ON I.LocationID = L.LocationID
+                  AND COALESCE(I.OnHandQty, 0) > 0
+                  AND UPPER(COALESCE(I.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
+            WHERE COALESCE(L.ActiveFlag, 1) = 1
+            GROUP BY L.LocationID, L.LocationName, L.ZoneCode, L.PlantCode,
+                WM.WhName, AM.AreaName, L.Aisle, L.Bay, L.Slot, L.LocationType, L.Capacity
+            ORDER BY L.LocationID;
             """, conn);
-        cmd.Parameters.Add("@LocationCorcd", SqlDbType.NVarChar, 10).Value = WhLocationCorcd;
-        cmd.Parameters.Add("@LocationBizcd", SqlDbType.NVarChar, 10).Value = WhLocationBizcd;
 
         await using var rdr = await cmd.ExecuteReaderAsync();
         var rows = new List<LocationRow>();
@@ -1775,7 +1818,8 @@ public sealed class PdaApi
             GetString(rdr, "BEFORE_LOCATION"),
             GetString(rdr, "AFTER_LOCATION"),
             GetString(rdr, "SOURCE"),
-            GetString(rdr, "NOTE"));
+            GetString(rdr, "NOTE"),
+            GetString(rdr, "UNIT"));
     }
 
     private static List<LocationRow> NormalizeLocationRows(IEnumerable<LocationRow> rows)
