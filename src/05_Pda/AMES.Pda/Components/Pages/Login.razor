@@ -12,7 +12,7 @@
         <input class="pda-input"
                @bind="_empNo"
                @bind:event="oninput"
-               placeholder="E001 / I001 / Q001 ..."
+               placeholder="admin"
                disabled="@_submitting" />
     </div>
 
@@ -38,7 +38,7 @@
 </div>
 
 @code {
-    private string _empNo = "E001";
+    private string _empNo = "admin";
     private string _pin = "";
     private string _status = " ";
     private string _cls = "dim";
