@@ -176,11 +176,9 @@ public sealed class PdaApi
         string? PlantCode = null, string? LocationType = null, decimal? Capacity = null);
     public sealed record LocationMapItemRow(string LotNo, string? PartNo, string? PartName, decimal Qty, string? Unit,
         string? InventoryStatus, string? WorkDate, string? WorkTime);
-    public sealed record Wh001ScheduleReleaseItem(string PickSlipNo, string? DestinationLocation, DateTime? RequiredDate,
-        string? RequiredTime, DateTime? PrintedAt, DateTime? ClosedAt, string? ClosedBy,
-        int MaterialLineCount, decimal RequestedBoxQty, decimal PickedBoxQty, decimal RequestedQty, decimal PickedQty,
-        string PickStatus, string? FirstMaterialNo, string? FirstMaterialName, string? SuggestedPickLocation,
-        string? SuggestedPickZone);
+    public sealed record Wh001ScheduleReleaseItem(int WorkOrderId, string? WorkOrderNo,
+        string PartNo, string? PartName, decimal OrderQty, string? Unit,
+        DateTime? DueDate, string WorkOrderStatus, DateTime? ReleasedAt, string? LineId);
     public sealed record ReleaseSlipStatusRow(string PickSlipNo, bool Exists, bool IsClosed, int LineCount,
         string? RequestLocation, DateTime? RequestDate, DateTime? CloseDate, string Message);
     public sealed record ReleasePickLineRow(string PickSlipNo, string ItemNo, string? ItemName,
@@ -372,8 +370,11 @@ public sealed class PdaApi
             return (await WhLocationsAsync()).FirstOrDefault()?.LocationId;
         }
     }
-    public Task<List<Wh001ScheduleReleaseItem>> Wh001ScheduleReleaseAsync() =>
-        Get<List<Wh001ScheduleReleaseItem>>("/api/wh/schedule/release");
+    public Task<List<Wh001ScheduleReleaseItem>> Wh001ScheduleReleaseAsync(DateTime? dateFrom = null, DateTime? dateTo = null)
+    {
+        var query = $"?dateFrom={dateFrom:yyyy-MM-dd}&dateTo={dateTo:yyyy-MM-dd}";
+        return Get<List<Wh001ScheduleReleaseItem>>("/api/wh/schedule/release" + query);
+    }
     public async Task<ReleaseSlipStatusRow?> WhReleaseSlipStatusAsync(string pickSlipNo)
     {
         Authorize();

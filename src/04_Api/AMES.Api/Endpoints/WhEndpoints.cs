@@ -57,11 +57,9 @@ public static class WhEndpoints
     public sealed record InboundReceiveResult(bool Success, string Message, InboundScanRow? Row);
     private sealed record SupervisorPinProfile(string UserId, string EmployeeNo);
 
-    public sealed record Wh001ScheduleReleaseItem(string PickSlipNo, string? DestinationLocation, DateTime? RequiredDate,
-        string? RequiredTime, DateTime? PrintedAt, DateTime? ClosedAt, string? ClosedBy,
-        int MaterialLineCount, decimal RequestedBoxQty, decimal PickedBoxQty, decimal RequestedQty, decimal PickedQty,
-        string PickStatus, string? FirstMaterialNo, string? FirstMaterialName, string? SuggestedPickLocation,
-        string? SuggestedPickZone);
+    public sealed record Wh001ScheduleReleaseItem(int WorkOrderId, string? WorkOrderNo,
+        string PartNo, string? PartName, decimal OrderQty, string? Unit,
+        DateTime? DueDate, string WorkOrderStatus, DateTime? ReleasedAt, string? LineId);
 
     public sealed record ReleaseSlipStatusRow(string PickSlipNo, bool Exists, bool IsClosed, int LineCount,
         string? RequestLocation, DateTime? RequestDate, DateTime? CloseDate, string Message);
@@ -450,10 +448,12 @@ public static class WhEndpoints
         });
 
         // WH-001 Schedule - release tab
-        IResult GetWh001ScheduleRelease(HttpContext ctx)
+        IResult GetWh001ScheduleRelease(HttpContext ctx, DateTime? dateFrom, DateTime? dateTo)
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
-            return Results.Ok(QueryWh001ScheduleRelease(factory));
+            if (dateFrom.HasValue && dateTo.HasValue && dateFrom.Value.Date > dateTo.Value.Date)
+                return Results.BadRequest("From date cannot be after To date.");
+            return Results.Ok(QueryWh001ScheduleRelease(factory, dateFrom, dateTo));
         }
 
         g.MapGet("/schedule/release", GetWh001ScheduleRelease);
@@ -736,7 +736,10 @@ public static class WhEndpoints
         return rows;
     }
 
-    private static List<Wh001ScheduleReleaseItem> QueryWh001ScheduleRelease(AmesConnectionFactory factory)
+    private static List<Wh001ScheduleReleaseItem> QueryWh001ScheduleRelease(
+        AmesConnectionFactory factory,
+        DateTime? dateFrom,
+        DateTime? dateTo)
     {
         using var conn = factory.OpenConnection();
         if (ProcedureExists(conn, "dbo", PdaScheduleReleaseProcedure))
@@ -745,6 +748,8 @@ public static class WhEndpoints
             {
                 CommandType = CommandType.StoredProcedure
             };
+            wh001Cmd.Parameters.Add("@DueDateFrom", SqlDbType.Date).Value = (object?)dateFrom?.Date ?? DBNull.Value;
+            wh001Cmd.Parameters.Add("@DueDateTo", SqlDbType.Date).Value = (object?)dateTo?.Date ?? DBNull.Value;
 
             using var wh001Rdr = wh001Cmd.ExecuteReader();
             var wh001Rows = new List<Wh001ScheduleReleaseItem>();
@@ -752,92 +757,32 @@ public static class WhEndpoints
             return wh001Rows;
         }
 
-        if (!HasReleaseTables(conn))
-            return QueryDemoWh001ScheduleRelease(conn);
+        if (!TableExists(conn, null, "dbo", "PP_WorkOrder"))
+            return [];
 
         using var cmd = new SqlCommand("""
-            WITH Header AS (
-                SELECT
-                    A.PICK_SLIPNO,
-                    MIN(A.REQ_LOCATION) AS REQ_LOCATION,
-                    MAX(TRY_CONVERT(date, A.REQ_DATE)) AS REQ_DATE_DT,
-                    MAX(CONVERT(nvarchar(20), A.REQ_TIME)) AS REQ_TIME_TEXT,
-                    MAX(TRY_CONVERT(datetime2, A.PRINT_DATE)) AS PRINT_DATE,
-                    MAX(TRY_CONVERT(datetime2, A.CLOSE_DATE)) AS CLOSE_DATE,
-                    MAX(A.CLOSE_USER_ID) AS CLOSE_USER_ID,
-                    COUNT(*) AS LINE_COUNT,
-                    SUM(COALESCE(TRY_CONVERT(decimal(18,3), A.REQ_BOX_QTY), 0)) AS REQ_BOX_QTY
-                FROM SIS_TEST.WMS3050 A
-                WHERE NULLIF(LTRIM(RTRIM(A.PICK_SLIPNO)), N'') IS NOT NULL
-                GROUP BY A.PICK_SLIPNO
-            ),
-            Picked AS (
-                SELECT
-                    W.PICK_SLIPNO,
-                    COUNT(*) AS PICKED_BOX_QTY,
-                    SUM(COALESCE(TRY_CONVERT(decimal(18,3), W.QTY), 0)) AS PICKED_QTY
-                FROM SIS_TEST.WMS2020 W
-                WHERE W.INV_STATUS = N'O1'
-                  AND NULLIF(LTRIM(RTRIM(W.PICK_SLIPNO)), N'') IS NOT NULL
-                GROUP BY W.PICK_SLIPNO
-            ),
-            FirstLine AS (
-                SELECT
-                    A.PICK_SLIPNO,
-                    A.PARTNO,
-                    COALESCE(MAX(P.PARTNM), A.PARTNO) AS PARTNM,
-                    ROW_NUMBER() OVER (PARTITION BY A.PICK_SLIPNO ORDER BY MIN(A.SEQNO), A.PARTNO) AS RN
-                FROM SIS_TEST.WMS3050 A
-                LEFT JOIN SIS_TEST.ACD0020L P
-                       ON P.PARTNO = A.PARTNO
-                      AND (P.LANG_SET = N'EN' OR P.LANG_SET IS NULL)
-                GROUP BY A.PICK_SLIPNO, A.PARTNO
-            )
             SELECT TOP (100)
-                H.PICK_SLIPNO,
-                H.REQ_LOCATION,
-                H.REQ_DATE_DT AS REQ_DATE,
-                H.REQ_TIME_TEXT AS REQ_TIME,
-                H.PRINT_DATE,
-                H.CLOSE_DATE,
-                H.CLOSE_USER_ID,
-                H.LINE_COUNT,
-                H.REQ_BOX_QTY,
-                COALESCE(PK.PICKED_BOX_QTY, 0) AS PICKED_BOX_QTY,
-                H.REQ_BOX_QTY AS REQ_QTY,
-                COALESCE(PK.PICKED_QTY, 0) AS PICKED_QTY,
-                FL.PARTNO AS FIRST_PARTNO,
-                FL.PARTNM AS FIRST_PARTNM,
-                INV.LOCATION_NO AS SUGGESTED_LOCATION,
-                INV.ZONECD AS SUGGESTED_ZONE,
-                CASE
-                    WHEN H.CLOSE_DATE IS NOT NULL THEN N'Closed'
-                    WHEN COALESCE(PK.PICKED_BOX_QTY, 0) >= H.REQ_BOX_QTY AND H.REQ_BOX_QTY > 0 THEN N'Picked'
-                    WHEN COALESCE(PK.PICKED_BOX_QTY, 0) > 0 THEN N'Partial'
-                    WHEN H.REQ_DATE_DT < CONVERT(date, GETDATE()) THEN N'Late'
-                    ELSE N'Open'
-                END AS STATUS
-            FROM Header H
-            LEFT JOIN Picked PK
-                   ON PK.PICK_SLIPNO = H.PICK_SLIPNO
-            LEFT JOIN FirstLine FL
-                   ON FL.PICK_SLIPNO = H.PICK_SLIPNO
-                  AND FL.RN = 1
-            OUTER APPLY (
-                SELECT TOP (1) S.LOCATION_NO, L.ZONECD
-                FROM SIS_TEST.WMS2020 S
-                LEFT JOIN SIS_TEST.WMS1040 L
-                       ON L.LOCATION_NO = S.LOCATION_NO
-                WHERE S.PARTNO = FL.PARTNO
-                  AND S.INV_STATUS LIKE N'I%'
-                  AND S.INV_STATUS <> N'IC'
-                  AND NULLIF(LTRIM(RTRIM(S.LOCATION_NO)), N'') IS NOT NULL
-                ORDER BY COALESCE(TRY_CONVERT(date, S.RCV_DATE), TRY_CONVERT(date, S.PROD_DATE), CONVERT(date, '9999-12-31')),
-                         S.LOCATION_NO,
-                         S.LOTNO
-            ) INV
-            ORDER BY H.REQ_DATE_DT, H.PICK_SLIPNO;
+                W.WoID AS WorkOrderId,
+                W.WoNumber AS WorkOrderNo,
+                W.ItemNo AS PartNo,
+                I.ItemName AS PartName,
+                COALESCE(W.OrderQty, 0) AS OrderQty,
+                COALESCE(I.DefaultUOM, N'EA') AS Unit,
+                W.DueDate,
+                COALESCE(W.Status, N'Released') AS WorkOrderStatus,
+                W.ReleasedAt,
+                W.LineID
+            FROM dbo.PP_WorkOrder W
+            LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.ItemNo
+            WHERE W.Status IN (N'Released', N'In Progress')
+              AND (@DueDateFrom IS NULL OR W.DueDate >= @DueDateFrom)
+              AND (@DueDateTo IS NULL OR W.DueDate <= @DueDateTo)
+            ORDER BY ISNULL(W.DueDate, CONVERT(date, '9999-12-31')),
+                     ISNULL(W.Priority, 5),
+                     W.WoID;
             """, conn);
+        cmd.Parameters.Add("@DueDateFrom", SqlDbType.Date).Value = (object?)dateFrom?.Date ?? DBNull.Value;
+        cmd.Parameters.Add("@DueDateTo", SqlDbType.Date).Value = (object?)dateTo?.Date ?? DBNull.Value;
 
         using var rdr = cmd.ExecuteReader();
         var rows = new List<Wh001ScheduleReleaseItem>();
@@ -1548,41 +1493,6 @@ public static class WhEndpoints
            && TableExists(conn, tx, "SIS_TEST", "ACD0020")
            && TableExists(conn, tx, "SIS_TEST", "ACD0020L");
 
-    private static List<Wh001ScheduleReleaseItem> QueryDemoWh001ScheduleRelease(SqlConnection conn)
-    {
-        if (!TableExists(conn, null, "dbo", "WH_ReleaseSchedule"))
-            return new List<Wh001ScheduleReleaseItem>();
-
-        using var cmd = new SqlCommand("""
-            SELECT TOP (50)
-                CONVERT(nvarchar(30), rs.ReleaseScheduleID) AS PICK_SLIPNO,
-                NULL AS REQ_LOCATION,
-                CONVERT(date, rs.RequiredAt) AS REQ_DATE,
-                CONVERT(nvarchar(20), CONVERT(time(0), rs.RequiredAt)) AS REQ_TIME,
-                NULL AS PRINT_DATE,
-                NULL AS CLOSE_DATE,
-                NULL AS CLOSE_USER_ID,
-                1 AS LINE_COUNT,
-                ISNULL(rs.DemandQty, 0) AS REQ_BOX_QTY,
-                ISNULL(rs.PickedQty, 0) AS PICKED_BOX_QTY,
-                ISNULL(rs.DemandQty, 0) AS REQ_QTY,
-                ISNULL(rs.PickedQty, 0) AS PICKED_QTY,
-                rs.ItemNo AS FIRST_PARTNO,
-                i.ItemName AS FIRST_PARTNM,
-                NULL AS SUGGESTED_LOCATION,
-                NULL AS SUGGESTED_ZONE,
-                ISNULL(rs.Status, N'Open') AS STATUS
-            FROM dbo.WH_ReleaseSchedule rs
-            LEFT JOIN dbo.MD_Item i
-                   ON i.ItemNo = rs.ItemNo
-            ORDER BY ISNULL(rs.RequiredAt, '9999-01-01'), rs.ReleaseScheduleID;
-            """, conn);
-        using var rdr = cmd.ExecuteReader();
-        var rows = new List<Wh001ScheduleReleaseItem>();
-        while (rdr.Read()) rows.Add(ReadWh001ScheduleReleaseItem(rdr));
-        return rows;
-    }
-
     private static Wh001ScheduleInboundItem ReadWh001ScheduleInboundItem(
         SqlDataReader rdr,
         DateTime today,
@@ -1622,23 +1532,16 @@ public static class WhEndpoints
 
     private static Wh001ScheduleReleaseItem ReadWh001ScheduleReleaseItem(SqlDataReader rdr)
         => new(
-            GetString(rdr, "PickSlipNo") ?? GetString(rdr, "PICK_SLIPNO") ?? "",
-            GetString(rdr, "DestinationLocation") ?? GetString(rdr, "REQ_LOCATION"),
-            GetDate(rdr, "RequiredDate") ?? GetDate(rdr, "REQ_DATE"),
-            GetString(rdr, "RequiredTime") ?? GetString(rdr, "REQ_TIME"),
-            GetDate(rdr, "PrintedAt") ?? GetDate(rdr, "PRINT_DATE"),
-            GetDate(rdr, "ClosedAt") ?? GetDate(rdr, "CLOSE_DATE"),
-            GetString(rdr, "ClosedBy") ?? GetString(rdr, "CLOSE_USER_ID"),
-            GetInt(rdr, "MaterialLineCount") ?? GetInt(rdr, "LINE_COUNT") ?? 0,
-            GetDecimal(rdr, "RequestedBoxQty") != 0 ? GetDecimal(rdr, "RequestedBoxQty") : GetDecimal(rdr, "REQ_BOX_QTY"),
-            GetDecimal(rdr, "PickedBoxQty") != 0 ? GetDecimal(rdr, "PickedBoxQty") : GetDecimal(rdr, "PICKED_BOX_QTY"),
-            GetDecimal(rdr, "RequestedQty") != 0 ? GetDecimal(rdr, "RequestedQty") : GetDecimal(rdr, "REQ_QTY"),
-            GetDecimal(rdr, "PickedQty") != 0 ? GetDecimal(rdr, "PickedQty") : GetDecimal(rdr, "PICKED_QTY"),
-            GetString(rdr, "PickStatus") ?? GetString(rdr, "STATUS") ?? "Open",
-            GetString(rdr, "FirstMaterialNo") ?? GetString(rdr, "FIRST_PARTNO"),
-            GetString(rdr, "FirstMaterialName") ?? GetString(rdr, "FIRST_PARTNM"),
-            GetString(rdr, "SuggestedPickLocation") ?? GetString(rdr, "SUGGESTED_LOCATION"),
-            GetString(rdr, "SuggestedPickZone") ?? GetString(rdr, "SUGGESTED_ZONE"));
+            GetInt(rdr, "WorkOrderId") ?? 0,
+            GetString(rdr, "WorkOrderNo"),
+            GetString(rdr, "PartNo") ?? "",
+            GetString(rdr, "PartName"),
+            GetDecimal(rdr, "OrderQty"),
+            GetString(rdr, "Unit"),
+            GetDate(rdr, "DueDate"),
+            GetString(rdr, "WorkOrderStatus") ?? "Released",
+            GetDate(rdr, "ReleasedAt"),
+            GetString(rdr, "LineId"));
 
     private static bool TableExists(SqlConnection conn, SqlTransaction? tx, string schema, string table)
     {
