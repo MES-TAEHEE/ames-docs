@@ -734,8 +734,8 @@ public sealed class PdaApi
     public Task<HttpResponseMessage> FgPutAwayAsync (FgPutAwayReq body)  => Post("/api/fg/putaway",  body);
     public Task<FgPutAwayResult> FgPutAwayScanAsync(string barcode)
         => GetFgPutAwayResultAsync($"/api/fg/putaway/scan?barcode={Uri.EscapeDataString(barcode)}");
-    public Task<FgPutAwayLocationRow?> FgSuggestPutAwayLocationAsync(string itemNo, string? customerCode, decimal qty)
-        => GetFgPutAwayLocationAsync($"/api/fg/putaway/suggest-location?itemNo={Uri.EscapeDataString(itemNo)}&customerCode={Uri.EscapeDataString(customerCode ?? "")}&qty={qty}");
+    public Task<FgPutAwayResult> FgValidatePutAwayContainerAsync(string storageMethod, string barcode)
+        => GetFgPutAwayResultAsync($"/api/fg/putaway/container?storageMethod={Uri.EscapeDataString(storageMethod)}&barcode={Uri.EscapeDataString(barcode)}");
     public Task<FgPutAwayLocationRow?> FgValidatePutAwayLocationAsync(string locationId, string itemNo, string? customerCode, decimal qty, string? expectedScanType)
         => GetFgPutAwayLocationAsync($"/api/fg/putaway/location?locationId={Uri.EscapeDataString(locationId)}&itemNo={Uri.EscapeDataString(itemNo)}&customerCode={Uri.EscapeDataString(customerCode ?? "")}&qty={qty}&expectedScanType={Uri.EscapeDataString(expectedScanType ?? "")}");
     public Task<FgPutAwayResult> FgConfirmPutAwayAsync(FgPutAwayConfirmReq body)

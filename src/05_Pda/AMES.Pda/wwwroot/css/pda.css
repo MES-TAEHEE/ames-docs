@@ -8790,28 +8790,13 @@ body:has(.pda-shell.wh),
 
 .fg01-panel {
     display: grid;
-    grid-template-columns: 28px minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 10px;
     align-items: end;
 }
 
 .fg01-panel.hardware-scan-panel {
-    grid-template-columns: 28px minmax(0, 1fr);
-}
-
-.fg01-step {
-    width: 24px;
-    height: 24px;
-    border-radius: 999px;
-    background: #22d3ee;
-    color: #06252d;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
-    font-weight: 900;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    align-self: center;
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .fg01-panel .pda-fld label {
@@ -9504,18 +9489,6 @@ body:has(.pda-shell.wh),
     box-shadow: 0 10px 28px rgba(0, 0, 0, .34);
 }
 
-.pda-shell.wh.fg02-shell .fg01-step {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: rgba(147, 197, 253, .14);
-    color: #93c5fd;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font: 800 11px 'JetBrains Mono', monospace;
-}
-
 .pda-shell.wh.fg06-shell .fg-return-body {
     padding-bottom: calc(148px + var(--pda-safe-bottom)) !important;
 }
@@ -9682,7 +9655,7 @@ body:has(.pda-shell.wh),
     z-index: 1000;
     padding: 8px;
     border: 1px solid rgba(148, 163, 184, .28);
-    border-radius: 12px;
+    border-radius: 0;
     background: rgba(12, 19, 32, .98);
     box-shadow: 0 10px 28px rgba(0, 0, 0, .34);
 }
@@ -9690,7 +9663,98 @@ body:has(.pda-shell.wh),
 .pda-shell.wh.fg02-shell .fg01-action-bar .rz-button {
     height: 48px !important;
     min-height: 48px !important;
-    border-radius: 8px !important;
+    border-radius: 0 !important;
+}
+
+.pda-shell.wh.wh02-shell.fg02-shell > .pda-tbar .pda-tbar-back.rz-button,
+.pda-shell.wh.wh02-shell.fg02-shell :is(.rz-card, .rz-button, .rz-textbox, .rz-badge,
+    .fg01-info, .fg01-location-row, .fg01-next-scan, .fg01-location-note, .pda-status) {
+    border-radius: 0 !important;
+}
+
+.pda-shell.wh.fg02-shell .fg01-panel .pda-fld {
+    min-width: 0;
+}
+
+.pda-shell.wh.fg02-shell .fg01-panel .rz-textbox {
+    width: 100%;
+}
+
+.pda-shell.wh.fg02-shell .fg01-storage-panel {
+    display: block;
+}
+
+.pda-shell.wh.fg02-shell .fg01-storage-select.rz-dropdown {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    height: 42px;
+    min-height: 42px;
+    border-radius: 0 !important;
+    border: 1px solid #64748b !important;
+    background: #050a13 !important;
+    color: #f8fafc !important;
+}
+
+.pda-shell.wh.fg02-shell .fg01-storage-select .rz-dropdown-label {
+    position: absolute !important;
+    inset: 0 42px 0 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 12px !important;
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+    letter-spacing: 0 !important;
+    color: #f8fafc !important;
+}
+
+.pda-shell.wh.fg02-shell .fg01-storage-select .rz-dropdown-trigger {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 100%;
+}
+
+.pda-shell.wh.fg02-shell .fg01-container-input {
+    min-height: 44px;
+    border-radius: 0 !important;
+    font-size: 14px !important;
+    text-align: left !important;
+}
+
+.pda-shell.wh.fg02-shell .fg01-container-panel.scanned {
+    border-color: #22c55e !important;
+    background: #102b21 !important;
+}
+
+.pda-shell.wh.fg02-shell .fg01-container-panel.scanned label {
+    color: #86efac !important;
+}
+
+.pda-shell.wh.fg02-shell .fg01-lot-head .wh02-lot-main strong {
+    font-size: 18px !important;
+}
+
+.pda-shell.wh.fg02-shell .fg01-part-no {
+    font-size: 16px !important;
+}
+
+.pda-shell.wh.fg02-shell .fg01-part-name,
+.pda-shell.wh.fg02-shell .fg01-info strong {
+    font-size: 12px !important;
+}
+
+.pda-shell.wh.fg02-shell .fg01-info span {
+    font-size: 10px !important;
 }
 
 .pda-shell.wh.fg02-shell .fg01-clear-btn.rz-button {
