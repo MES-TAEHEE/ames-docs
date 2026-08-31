@@ -285,7 +285,15 @@ window.pdaScan = (() => {
     function scrollTo(selector) {
         const element = document.querySelector(selector);
         if (!element) return;
-        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        const container = element.closest(".pda-bd");
+        if (!container) return;
+        const top = container.scrollTop + element.getBoundingClientRect().top
+            - container.getBoundingClientRect().top - container.clientTop
+            - (container.clientHeight - element.getBoundingClientRect().height) / 2;
+        container.scrollTo({
+            top: Math.max(0, Math.min(top, container.scrollHeight - container.clientHeight)),
+            behavior: "smooth"
+        });
     }
 
     return {
