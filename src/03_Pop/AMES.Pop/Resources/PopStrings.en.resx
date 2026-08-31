@@ -15,7 +15,6 @@
   <data name="Andon" xml:space="preserve"><value>ANDON</value></data>
   <data name="AndonHaltDetail" xml:space="preserve"><value>AndonID #{0} — production halted, supervisor notified.</value></data>
   <data name="Andonid" xml:space="preserve"><value>AndonID</value></data>
-  <data name="AutoAndon" xml:space="preserve"><value>Auto andon</value></data>
   <data name="AwaitingTrigger" xml:space="preserve"><value>Awaiting trigger</value></data>
   <data name="BadgeScanOrPinEntry" xml:space="preserve"><value>Badge scan or PIN entry</value></data>
   <data name="BlockedByInspectionNgHandleInDefectPopup" xml:space="preserve"><value>Blocked by inspection NG — handle in Defect popup</value></data>
@@ -33,7 +32,7 @@
   <data name="ConfirmFailed" xml:space="preserve"><value>Confirm failed</value></data>
   <data name="Confirmed" xml:space="preserve"><value>Confirmed</value></data>
   <data name="Ct" xml:space="preserve"><value>CT</value></data>
-  <data name="CurrentDefectRateWoCumulativeLimit5" xml:space="preserve"><value>Current Defect Rate · WO cumulative (limit 5%)</value></data>
+  <data name="CurrentDefectRateWoCumulative" xml:space="preserve"><value>Current Defect Rate · WO cumulative</value></data>
   <data name="CurrentShots" xml:space="preserve"><value>Current Shots</value></data>
   <data name="CurrentWo" xml:space="preserve"><value>CURRENT WO</value></data>
   <data name="CycleTime" xml:space="preserve"><value>CYCLE TIME</value></data>
@@ -44,7 +43,6 @@
   <data name="Defect3" xml:space="preserve"><value>Defect %</value></data>
   <data name="DefectQty" xml:space="preserve"><value>DEFECT QTY</value></data>
   <data name="DefectRate" xml:space="preserve"><value>Defect Rate</value></data>
-  <data name="DefectRate5AutoAndonBrInj003" xml:space="preserve"><value>Defect rate ≥ 5% — auto andon (BR-INJ-003)</value></data>
   <data name="DefectRegister" xml:space="preserve"><value>DEFECT REGISTER</value></data>
   <data name="DownMachines" xml:space="preserve"><value>Down Machines</value></data>
   <data name="Ea" xml:space="preserve"><value>EA</value></data>

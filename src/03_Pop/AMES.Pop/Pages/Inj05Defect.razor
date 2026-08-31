@@ -171,16 +171,6 @@
                 _ngLots.RemoveAll(x => x.LotId == _ngSelected.LotId);
                 _ngSelected = null;
                 _buf.Clear();
-
-                // 일반 경로와 동일한 자동 안돈 룰 (BR-INJ-003) — NG 확정도 불량 집계에 포함되므로 재계산
-                var (g, d) = PopServices.Defects.GetWoTotals(_wo.WoId);
-                var pct = (g + d) == 0 ? 0 : d * 100.0 / (g + d);
-                if (pct >= 5)
-                {
-                    PopServices.Andon.Raise(Session.LineId, equipId: null,
-                        triggerSource: "INJ-005", ruleId: "BR-INJ-003", severity: "HIGH", Session.EmployeeNo);
-                    Nav.NavigateTo("/inj08");
-                }
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Defect NG Confirm] {ex.Message}"); }
             return;
@@ -191,16 +181,6 @@
         {
             PopServices.Defects.RecordDefect(Result ?? 0, _wo.WoId, lotId: null,
                 _selected.DefectCode, qty, Session.OperatorId, Session.EmployeeNo);
-            // recompute → auto-Andon if ≥ 5%
-            var (g, d) = PopServices.Defects.GetWoTotals(_wo.WoId);
-            var pct = (g + d) == 0 ? 0 : d * 100.0 / (g + d);
-            if (pct >= 5)
-            {
-                PopServices.Andon.Raise(Session.LineId, equipId: null,
-                    triggerSource: "INJ-005", ruleId: "BR-INJ-003", severity: "HIGH", Session.EmployeeNo);
-                Nav.NavigateTo("/inj08");
-                return;
-            }
             Nav.NavigateTo("/inj04");
         }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Defect Confirm] {ex.Message}"); }

@@ -2,12 +2,12 @@
 @using AMES.Pop.Common
 
 @*  INJ-005 불량 등록 — 팝업판. 불량코드 선택 + 수량 키패드,
-    로봇 NG 차단 LOT 확정 처리 포함. 불량률 5% 도달 시 자동 안돈(BR-INJ-003). *@
+    로봇 NG 차단 LOT 확정 처리 포함. *@
 
 <PopupShell Title='@($"❌ {T("DefectRegister")}")' Width="1200px" CssClass="pmod-tall" OnClose="OnClose">
     <div class="def-rate" style="margin-bottom:10px;">
         <div>
-            <div class="def-rate-l">▼ @T("CurrentDefectRateWoCumulativeLimit5")</div>
+            <div class="def-rate-l">▼ @T("CurrentDefectRateWoCumulative")</div>
             <div class="def-rate-s">@T("Good") @_good · @T("Defect") @_defect → @_rateText</div>
         </div>
         <div class="def-rate-v @_rateClass">@_rateText</div>
@@ -73,7 +73,6 @@
     [Parameter] public int            LastResultId  { get; set; }
     [Parameter] public EventCallback  OnClose       { get; set; }
     [Parameter] public EventCallback  OnChanged     { get; set; }
-    [Parameter] public EventCallback<int> OnAndonRaised { get; set; }
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
 
@@ -130,7 +129,6 @@
                 _buf.Clear();
                 RefreshRate();
                 await OnChanged.InvokeAsync();
-                if (await RaiseAndonIfNeeded()) return;
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DefectPopup NG Confirm] {ex.Message}"); }
             return;
@@ -144,21 +142,8 @@
             _buf.Clear();
             RefreshRate();
             await OnChanged.InvokeAsync();
-            if (await RaiseAndonIfNeeded()) return;
             await OnClose.InvokeAsync();
         }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DefectPopup Confirm] {ex.Message}"); }
-    }
-
-    private async Task<bool> RaiseAndonIfNeeded()
-    {
-        if (Wo is null || Session is null) return false;
-        var (g, d) = PopServices.Defects.GetWoTotals(Wo.WoId);
-        var pct = (g + d) == 0 ? 0 : d * 100.0 / (g + d);
-        if (pct < 5) return false;
-        var andonId = PopServices.Andon.Raise(Session.LineId, equipId: null,
-            triggerSource: "INJ-005", ruleId: "BR-INJ-003", severity: "HIGH", Session.EmployeeNo);
-        await OnAndonRaised.InvokeAsync(andonId);
-        return true;
     }
 }

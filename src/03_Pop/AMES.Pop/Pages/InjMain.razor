@@ -187,11 +187,10 @@
         break;
     case Popup.Defect:
         <DefectPopup Session="Session" Wo="_activeWo" LastResultId="_lastResultId"
-                     OnClose="ClosePopup" OnChanged="Refresh" OnAndonRaised="OnAndonRaised" />
+                     OnClose="ClosePopup" OnChanged="Refresh" />
         break;
     case Popup.Andon:
-        <AndonPopup Session="Session" InitialOpenId="_andonInitialId" InitialCause="@_andonCause"
-                    OnClose="CloseAndon" />
+        <AndonPopup Session="Session" OnClose="ClosePopup" />
         break;
 }
 
@@ -231,9 +230,6 @@
     private string _scanBuf = string.Empty;
     private bool _focusScan;
     private ElementReference _scanInput;
-
-    private int     _andonInitialId;
-    private string? _andonCause;
 
     private DateTime _now = DateTime.Now;
     private System.Threading.Timer? _clockTimer;
@@ -408,13 +404,8 @@
     }
 
     // ── 팝업 제어 ─────────────────────────────────────────────────────
-    private void Open(Popup p)
-    {
-        if (p == Popup.Andon) { _andonInitialId = 0; _andonCause = null; }
-        _popup = p;
-    }
+    private void Open(Popup p) => _popup = p;
     private void ClosePopup() { _popup = Popup.None; _focusScan = true; Refresh(); }
-    private void CloseAndon() { _andonInitialId = 0; _andonCause = null; ClosePopup(); }
 
     private void OnWoAccepted()
     {
@@ -424,14 +415,6 @@
 
     // 수동 발행분은 아직 실적이 아니다 — 미확정 LOT 목록에 쌓이고, 스캔해야 확정된다.
     private void OnManualLotsIssued() => ClosePopup();
-
-    private void OnAndonRaised(int andonId)
-    {
-        _andonInitialId = andonId;
-        _andonCause     = T("DefectRate5AutoAndonBrInj003");
-        _popup          = Popup.Andon;
-        Refresh();
-    }
 
     private async Task Logout()
     {
