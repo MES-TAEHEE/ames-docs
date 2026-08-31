@@ -63,7 +63,7 @@ public class PopBlazorForm : PopForm
     private void WireLabelDispatcher(IServiceProvider provider)
     {
         var pollMs = AppConfig.Current.PrinterPollMs;
-        if (pollMs <= 0 || AppConfig.Current.ModuleCode != "INJ") return;
+        if (pollMs <= 0) return;
 
         var state      = provider.GetRequiredService<AppState>();
         var toasts     = provider.GetRequiredService<ToastService>();
@@ -80,7 +80,8 @@ public class PopBlazorForm : PopForm
 
         state.OnChange += () =>
         {
-            if (state.Session is { } s)
+            // 모듈은 로그인 시 선택 라인에서 결정된다 — INJ 세션에서만 발행.
+            if (state.Session is { } s && state.ModuleCode == "INJ")
             {
                 dispatcher.Start(s.LineId, s.TerminalId);
                 _labelTimer.Change(pollMs, pollMs);

@@ -67,36 +67,21 @@ public sealed class PopAuthService
             }
         }
 
-        // 4) Line resolution + authorization.
+        // 4) Line authorization.
         //
-        //    AssignedLines null/empty  → unrestricted (e.g. supervisors) — use the
-        //                                terminal's LineId as-is.
-        //    Terminal's LineId in list → use it as-is.
-        //    Otherwise                 → fall back to the user's *first* assigned
-        //                                line. This is what lets an IMG operator
-        //                                walk up to an INJ terminal (or vice
-        //                                versa in dev mode) and still get their
-        //                                own module's dashboard. The audit log
-        //                                records the swap as REROUTE so it's
-        //                                visible if someone investigates later.
-        var effectiveLineId = req.LineId;
+        //    The operator picks the line explicitly on the login screen, so an
+        //    unauthorized pick is rejected outright — no silent reroute.
+        //    AssignedLines null/empty → unrestricted (e.g. supervisors).
         if (!IsLineAuthorized(profile.AssignedLinesJson, req.LineId))
         {
-            var primary = FirstAssignedLine(profile.AssignedLinesJson);
-            if (primary is null)
-            {
-                _sessions.WriteAuthLog(req.TerminalId, req.AttemptedId, req.Method,
-                    AuthResult.LineNotAuthorized, $"line {req.LineId}");
-                return LoginOutcome.Failure(AuthResult.LineNotAuthorized,
-                    $"not authorized for {req.LineId}");
-            }
-            effectiveLineId = primary;
             _sessions.WriteAuthLog(req.TerminalId, req.AttemptedId, req.Method,
-                AuthResult.Ok, $"REROUTE {req.LineId}→{primary}");
+                AuthResult.LineNotAuthorized, $"line {req.LineId}");
+            return LoginOutcome.Failure(AuthResult.LineNotAuthorized,
+                $"not authorized for {req.LineId}");
         }
 
         // 5) All checks passed — create session + log + reset failure counter.
-        var session = _sessions.CreateSession(profile, req.TerminalId, effectiveLineId,
+        var session = _sessions.CreateSession(profile, req.TerminalId, req.LineId,
                                               req.ShiftCode, req.Method);
         _sessions.WriteAuthLog(req.TerminalId, req.AttemptedId, req.Method,
                                AuthResult.Ok, null);
@@ -115,12 +100,6 @@ public sealed class PopAuthService
         var lines = ParseLines(assignedLinesJson);
         if (lines is null || lines.Length == 0) return true;
         return lines.Any(l => string.Equals(l, lineId, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static string? FirstAssignedLine(string? assignedLinesJson)
-    {
-        var lines = ParseLines(assignedLinesJson);
-        return lines is { Length: > 0 } ? lines[0] : null;
     }
 
     private static string[]? ParseLines(string? json)

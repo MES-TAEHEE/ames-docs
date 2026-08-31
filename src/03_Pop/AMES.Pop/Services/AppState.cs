@@ -15,18 +15,23 @@ public class AppState
 {
     public PopSessionDto? Session { get; private set; }
 
+    /// <summary>로그인 시 선택된 라인의 WC ProcessCode (INJ/IMG/PNT/QC).</summary>
+    public string? ModuleCode { get; private set; }
+
     /// <summary>Raised after <see cref="SignIn"/> / <see cref="SignOut"/>.</summary>
     public event Action? OnChange;
 
-    public void SignIn(PopSessionDto session)
+    public void SignIn(PopSessionDto session, string moduleCode)
     {
-        Session = session ?? throw new ArgumentNullException(nameof(session));
+        Session    = session ?? throw new ArgumentNullException(nameof(session));
+        ModuleCode = moduleCode;
         OnChange?.Invoke();
     }
 
     public void SignOut()
     {
-        Session = null;
+        Session    = null;
+        ModuleCode = null;
         OnChange?.Invoke();
     }
 }

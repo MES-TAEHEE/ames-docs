@@ -1,4 +1,6 @@
 @page "/login"
+@implements IDisposable
+@using AMES.Data.Repositories
 @inject AppState State
 @inject NavigationManager Nav
 
@@ -12,7 +14,7 @@
     <div class="pop-tbar">
         <div style="display:flex; align-items:center;">
             <span class="pop-tbar-logo">A-MES</span>
-            <span class="pop-tbar-id">@AppConfig.Current.ModuleCode · @AppConfig.Current.StationId · @AppConfig.Current.LineId</span>
+            <span class="pop-tbar-id">@(_selLine?.ProcessCode ?? "—") · @(_selStation?.StationCode ?? "—") · @(_selLine?.LineID ?? "—")</span>
         </div>
         <div class="pop-tbar-r">
             <span class="stat-on">● @T("Online")</span>
@@ -26,6 +28,26 @@
         <div class="login-card">
             <div class="login-title">@T("ShiftLogin")</div>
             <div class="login-sub">@T("ScanYourBadgeOrEnterYourPin")</div>
+
+            <div class="login-sel-row">
+                <button class="login-sel-btn @(_selLine is null ? "need" : "")"
+                        @onclick="@(() => _showLinePicker = true)">
+                    <div class="lsb-l">@T("Line")</div>
+                    <div class="lsb-v">@(_selLine is null ? T("SelectLine") : LineLabel(_selLine)) ▾</div>
+                </button>
+                <button class="login-sel-btn @(_selLine is not null && _selStation is null ? "need" : "")"
+                        disabled="@(_selLine is null)"
+                        @onclick="@(() => _showStationPicker = true)">
+                    <div class="lsb-l">@T("Station")</div>
+                    <div class="lsb-v">@(_selStation is null ? T("SelectStation") : StationLabel(_selStation)) ▾</div>
+                </button>
+            </div>
+            @if (_loadErr is not null)
+            {
+                <div class="picker-err">@T("MasterLoadFailed", _loadErr)
+                    <button class="injm-lang-btn" @onclick="RetryLoad">@T("Retry")</button>
+                </div>
+            }
 
             <div class="badge-zone" @onclick="OpenPicker">
                 <div class="badge-icon">[ BADGE ]</div>
@@ -64,12 +86,6 @@
             </div>
 
             <div class="login-status @_statusClass">@_status</div>
-
-            <div class="login-info">
-                <div class="li-cell"><div class="li-l">@T("Line")</div><div class="li-v">@AppConfig.Current.LineId</div></div>
-                <div class="li-cell"><div class="li-l">@T("Shift")</div><div class="li-v">@PopLang.Shift(AppConfig.Current.DefaultShift)</div></div>
-                <div class="li-cell"><div class="li-l">@T("Station")</div><div class="li-v">@AppConfig.Current.StationId</div></div>
-            </div>
         </div>
     </div>
 
@@ -92,6 +108,56 @@
             </div>
         </div>
     }
+
+    @if (_showLinePicker)
+    {
+        <div class="picker-backdrop" @onclick="@(() => _showLinePicker = false)">
+            <div class="picker-modal" @onclick:stopPropagation="true">
+                <div class="picker-h">@T("SelectLine")</div>
+                <div class="picker-list">
+                    @foreach (var l in _lines)
+                    {
+                        var line = l;
+                        <button class="picker-row" @onclick="@(() => PickLine(line))">
+                            <div class="picker-no">@line.LineID</div>
+                            <div class="picker-name">@(PopLang.IsKo ? line.LineName : line.LineNameEn ?? line.LineName)</div>
+                            <div class="picker-lines">@line.ProcessCode</div>
+                        </button>
+                    }
+                    @if (_lines.Count == 0)
+                    {
+                        <div class="picker-empty">@(_loadErr is not null ? T("MasterLoadFailed", _loadErr) : T("NoLinesRegistered"))</div>
+                    }
+                </div>
+                <button class="picker-cancel" @onclick="@(() => _showLinePicker = false)">✕  @T("Cancel")</button>
+            </div>
+        </div>
+    }
+
+    @if (_showStationPicker)
+    {
+        <div class="picker-backdrop" @onclick="@(() => _showStationPicker = false)">
+            <div class="picker-modal" @onclick:stopPropagation="true">
+                <div class="picker-h">@T("SelectStation")</div>
+                <div class="picker-list">
+                    @foreach (var s in _stations)
+                    {
+                        var st = s;
+                        <button class="picker-row" @onclick="@(() => PickStation(st))">
+                            <div class="picker-no">@st.StationCode</div>
+                            <div class="picker-name">@(PopLang.IsKo ? st.StationName : st.StationNameEn ?? st.StationName)</div>
+                            <div class="picker-lines">@(st.OrderSeq?.ToString() ?? "")</div>
+                        </button>
+                    }
+                    @if (_stations.Count == 0)
+                    {
+                        <div class="picker-empty">@(_loadErr is not null ? T("MasterLoadFailed", _loadErr) : T("NoStationsRegistered"))</div>
+                    }
+                </div>
+                <button class="picker-cancel" @onclick="@(() => _showStationPicker = false)">✕  @T("Cancel")</button>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
@@ -106,11 +172,86 @@
     DateTime _now = DateTime.Now;
     System.Threading.Timer? _clock;
 
+    List<MasterDataRepository.PopLineOptionRow> _lines    = new();
+    List<MasterDataRepository.StationRow>       _stations = new();
+    MasterDataRepository.PopLineOptionRow? _selLine;
+    MasterDataRepository.StationRow?       _selStation;
+    bool _showLinePicker, _showStationPicker;
+    string? _loadErr;
+
+    // 프로세스 수명 동안 직전 선택 프리필 (재시작하면 빈 상태 — 스펙 결정사항)
+    static string? s_lastLineId, s_lastStationCode;
+
     protected override void OnInitialized()
     {
         _profiles = PopServices.Auth.ListAllProfiles();
         _clock = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; StateHasChanged(); }), null, 1000, 1000);
+        LoadLines();
     }
+
+    void LoadLines()
+    {
+        try
+        {
+            _loadErr = null;
+            _lines = PopServices.Master.ListPopLineOptions();
+            if (_selLine is null && s_lastLineId is not null
+                && _lines.FirstOrDefault(l => l.LineID == s_lastLineId) is { } prev)
+            {
+                _selLine = prev;
+                LoadStations();
+                _selStation = _stations.FirstOrDefault(s => s.StationCode == s_lastStationCode) ?? _selStation;
+            }
+        }
+        catch (Exception ex) { _loadErr = ex.Message; _lines = new(); }
+    }
+
+    void LoadStations()
+    {
+        try
+        {
+            _loadErr = null;
+            _stations = _selLine is null ? new() : PopServices.Master.ListActiveStations(_selLine.LineID);
+            // 선택지가 하나뿐이면 굳이 고르게 하지 않는다.
+            if (_selStation is null && _stations.Count == 1) _selStation = _stations[0];
+        }
+        catch (Exception ex) { _loadErr = ex.Message; _stations = new(); }
+    }
+
+    void RetryLoad()
+    {
+        LoadLines();
+        // 재조회 결과에 맞춰 기존 선택을 재검증 — 사라진 라인/스테이션은 해제.
+        if (_selLine is not null)
+        {
+            _selLine = _lines.FirstOrDefault(l => l.LineID == _selLine.LineID);
+            if (_selLine is not null)
+            {
+                LoadStations();
+                if (_selStation is not null)
+                    _selStation = _stations.FirstOrDefault(s => s.StationCode == _selStation.StationCode);
+            }
+            else _selStation = null;
+        }
+    }
+
+    void PickLine(MasterDataRepository.PopLineOptionRow l)
+    {
+        _selLine = l; _selStation = null; _showLinePicker = false;
+        LoadStations();
+        _showStationPicker = _selStation is null;   // 단일 스테이션이 자동 선택되면 픽커 생략
+    }
+
+    void PickStation(MasterDataRepository.StationRow s)
+    {
+        _selStation = s; _showStationPicker = false;
+    }
+
+    static string LineLabel(MasterDataRepository.PopLineOptionRow l)
+        => $"{l.LineID}" + ((PopLang.IsKo ? l.LineName : l.LineNameEn ?? l.LineName) is { Length: > 0 } n ? $" · {n}" : "");
+
+    static string StationLabel(MasterDataRepository.StationRow s)
+        => $"{s.StationCode}" + ((PopLang.IsKo ? s.StationName : s.StationNameEn ?? s.StationName) is { Length: > 0 } n ? $" · {n}" : "");
 
     void OpenPicker() => _showPicker = true;
 
@@ -132,15 +273,18 @@
 
     void Submit()
     {
+        if (_selLine is null || _selStation is null)
+        { SetStatus(T("SelectLineAndStationFirst"), "fail"); return; }
         if (_pin.Length < 4) { SetStatus(T("PinMustBe4Digits"), "fail"); return; }
+
         var attemptedId = _pickedNo ?? "E001";
         var outcome = PopServices.PopAuth.Login(new AMES.Contracts.Auth.LoginRequest
         {
             AttemptedId = attemptedId,
             Pin         = _pin.ToString(),
             Method      = AMES.Contracts.Enums.AuthMethod.Pin,
-            TerminalId  = AppConfig.Current.StationId,
-            LineId      = AppConfig.Current.LineId,
+            TerminalId  = _selStation.StationCode,
+            LineId      = _selLine.LineID,
             ShiftCode   = AppConfig.Current.DefaultShift,
         });
         _pin.Clear();
@@ -148,11 +292,11 @@
         if (outcome.IsSuccess && outcome.Session is not null)
         {
             SetStatus(T("WelcomeUser", outcome.Session.EmployeeName), "ok");
-            State.SignIn(outcome.Session);
-            // Route to the module configured for this terminal (appsettings.json LineId),
-            // not the session's effectiveLineId which may have been rerouted to the
-            // employee's home line by PopAuthService when AssignedLines don't match.
-            var target = AppConfig.Current.ModuleCode switch
+            s_lastLineId      = _selLine.LineID;
+            s_lastStationCode = _selStation.StationCode;
+            // 모듈의 권위는 선택 라인의 WC ProcessCode — appsettings 아님.
+            State.SignIn(outcome.Session, _selLine.ProcessCode);
+            var target = _selLine.ProcessCode switch
             {
                 "QC"  => "/qc07",
                 "PNT" => "/pnt02",
