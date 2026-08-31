@@ -399,7 +399,7 @@ public sealed class PntRepository
         const string sql = """
             SELECT  DefectCode, DefectName, DefectNameEn, ProcessCode, SeverityLevel
             FROM    dbo.MD_DefectCode
-            WHERE   ISNULL(Status,'Active')='Active' AND ProcessCode='PNT'
+            WHERE   ISNULL(ActiveFlag, 1) = 1 AND ProcessCode='PNT'
             ORDER BY DefectCode;
             """;
         using var conn = _factory.OpenConnection();
