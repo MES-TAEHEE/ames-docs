@@ -13,6 +13,7 @@ public static class WhEndpoints
     private const string WhLocationBizcd = "5011";
     private const string PdaScheduleInboundProcedure = "WH_PDA_SCHEDULE_INBOUND_LIST";
     private const string PdaScheduleReleaseProcedure = "WH_PDA_SCHEDULE_RELEASE_LIST";
+    private const string PdaInboundDocumentInfoProcedure = "WH_PDA_INBOUND_DOCUMENT_INFO";
     private const string PdaInboundScanLotProcedure = "WH_PDA_INBOUND_SCAN_LOT";
     private const string PdaInboundReceiveLotProcedure = "WH_PDA_INBOUND_RECEIVE_LOT";
     private const string PdaInboundMoveLocationProcedure = "WH_PDA_INBOUND_MOVE_LOCATION";
@@ -49,6 +50,18 @@ public static class WhEndpoints
         int? PoSeq, string? VendorId, string? VendorName, DateTime? ProductionDate, DateTime? DeliveryDate,
         DateTime? ArrivalDate, DateTime? ShipDate, DateTime? PackDate, string? ReceivedLocation,
         string? ReceivedStatus);
+
+    public sealed record InboundDocumentRow(string ReceiveType, int InboundDocumentId,
+        string DocumentBarcode, string? DocumentNo, string? VendorId, string? VendorName,
+        string? CaseNo, string? InvoiceNo, string? ContainerNo, DateTime? ShipDate,
+        DateTime? PackDate, DateTime? DeliveryDate, DateTime? ArrivalDate,
+        int TotalBoxes, int ScannedBoxes, string? Yn);
+    public sealed record InboundDocumentLineRow(string PartNo, string? PartName,
+        int BoxCount, int ScanCount, string? Yn);
+    public sealed record InboundDocumentBoxRow(string PartNo, string BoxBarcode,
+        string? LotNo, decimal Qty, string? Unit, string? Yn);
+    public sealed record InboundDocumentResult(InboundDocumentRow? Document,
+        List<InboundDocumentLineRow> Lines, List<InboundDocumentBoxRow> Boxes);
 
     public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId);
     public sealed record InboundCancelReq(string Mode, string Barcode);
@@ -153,6 +166,32 @@ public static class WhEndpoints
             return Results.Ok(new { ReceivingId = id });
         });
 
+        g.MapGet("/inbound/document", (HttpContext ctx, string mode, string barcode) =>
+        {
+            if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+
+            try
+            {
+                var result = ExecuteInboundDocument(factory, mode, barcode);
+                if (result.Document is not null)
+                {
+                    WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                        s, "SCAN_DOCUMENT", "WH002", mode, barcode, "SUCCESS", "Inbound document scanned"));
+                }
+                return Results.Ok(result);
+            }
+            catch (Exception ex)
+            {
+                var isValidationError = ex is SqlException sqlEx
+                    && sqlEx.Errors.Count > 0
+                    && sqlEx.Errors[0].Number >= 51400
+                    && sqlEx.Errors[0].Number < 51500;
+                return Results.Problem(WarehouseProcedureMessage(ex), statusCode: isValidationError
+                    ? StatusCodes.Status400BadRequest
+                    : StatusCodes.Status503ServiceUnavailable);
+            }
+        });
+
         g.MapGet("/inbound/scan", (HttpContext ctx, string mode, string barcode) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
@@ -161,7 +200,7 @@ public static class WhEndpoints
             {
                 var row = ExecuteInboundScan(factory, mode, barcode);
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
-                    s, "SCAN_LOT", "WH002", "LOT", barcode, "SUCCESS", "Inbound LOT scanned",
+                    s, "SCAN_BOX", "WH002", "BOX", barcode, "SUCCESS", "Inbound box scanned",
                     lotNo: row?.LotNo ?? barcode, partNo: row?.PartNo, locationId: row?.ReceivedLocation, qty: row?.Qty));
                 return Results.Ok(row);
             }
@@ -174,7 +213,7 @@ public static class WhEndpoints
                     && sqlEx.Errors[0].Number < 51500;
 
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
-                    s, "SCAN_LOT", "WH002", "LOT", barcode, "FAIL", WarehouseProcedureMessage(ex),
+                    s, "SCAN_BOX", "WH002", "BOX", barcode, "FAIL", WarehouseProcedureMessage(ex),
                     lotNo: barcode));
                 return Results.Problem(
                     WarehouseProcedureMessage(ex),
@@ -1579,6 +1618,34 @@ public static class WhEndpoints
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────
+    private static InboundDocumentResult ExecuteInboundDocument(AmesConnectionFactory factory, string mode, string barcode)
+    {
+        using var conn = factory.OpenConnection();
+        using var cmd = new SqlCommand($"[dbo].[{PdaInboundDocumentInfoProcedure}]", conn)
+        {
+            CommandType = CommandType.StoredProcedure,
+            CommandTimeout = 15
+        };
+        cmd.Parameters.Add("@ReceiveMode", SqlDbType.NVarChar, 10).Value = mode.Trim();
+        cmd.Parameters.Add("@DocumentBarcode", SqlDbType.NVarChar, 50).Value = barcode.Trim();
+
+        using var rdr = cmd.ExecuteReader();
+        var document = rdr.Read() ? ReadInboundDocumentRow(rdr) : null;
+        var lines = new List<InboundDocumentLineRow>();
+        if (rdr.NextResult())
+        {
+            while (rdr.Read())
+                lines.Add(ReadInboundDocumentLineRow(rdr));
+        }
+        var boxes = new List<InboundDocumentBoxRow>();
+        if (rdr.NextResult())
+        {
+            while (rdr.Read())
+                boxes.Add(ReadInboundDocumentBoxRow(rdr));
+        }
+        return new InboundDocumentResult(document, lines, boxes);
+    }
+
     private static InboundScanRow? ExecuteInboundScan(AmesConnectionFactory factory, string mode, string barcode)
     {
         using var conn = factory.OpenConnection();
@@ -1856,10 +1923,18 @@ public static class WhEndpoints
                 L.LocationID,
                 L.LocationName,
                 L.ZoneCode,
-                CAST(NULL AS nvarchar(20)) AS WarehouseCode,
-                CAST(NULL AS nvarchar(80)) AS WarehouseName,
-                L.PlantCode AS AreaCode,
-                L.PlantCode AS AreaName,
+                CASE
+                    WHEN UPPER(L.LocationID) LIKE N'WH[0-9][0-9]%'
+                    THEN UPPER(LEFT(L.LocationID, 4))
+                    ELSE NULL
+                END AS WarehouseCode,
+                CASE
+                    WHEN UPPER(L.LocationID) LIKE N'WH[0-9][0-9]%'
+                    THEN CONCAT(N'Warehouse ', SUBSTRING(L.LocationID, 3, 2))
+                    ELSE NULL
+                END AS WarehouseName,
+                L.ZoneCode AS AreaCode,
+                L.ZoneCode AS AreaName,
                 L.ZoneCode AS ZoneName,
                 L.Aisle,
                 L.Bay,
@@ -1925,6 +2000,48 @@ public static class WhEndpoints
             GetDate(rdr, "PACK_DATE"),
             GetString(rdr, "RECEIVED_LOCATION"),
             GetString(rdr, "RECEIVED_STATUS"));
+    }
+
+    private static InboundDocumentRow ReadInboundDocumentRow(SqlDataReader rdr)
+    {
+        return new InboundDocumentRow(
+            GetString(rdr, "RECEIVE_TYPE") ?? "",
+            GetInt(rdr, "INBOUND_DOCUMENT_ID") ?? 0,
+            GetString(rdr, "DOCUMENT_BARCODE") ?? "",
+            GetString(rdr, "DOCUMENT_NO"),
+            GetString(rdr, "VENDCD"),
+            GetString(rdr, "VENDNM"),
+            GetString(rdr, "CASE_NO"),
+            GetString(rdr, "INVOICE_NO"),
+            GetString(rdr, "CONTAINER_NO"),
+            GetDate(rdr, "SHIP_DATE"),
+            GetDate(rdr, "PACK_DATE"),
+            GetDate(rdr, "DELI_DATE"),
+            GetDate(rdr, "ARRIV_DATE"),
+            GetInt(rdr, "TOTAL_BOXES") ?? 0,
+            GetInt(rdr, "SCANNED_BOXES") ?? 0,
+            GetString(rdr, "YN"));
+    }
+
+    private static InboundDocumentLineRow ReadInboundDocumentLineRow(SqlDataReader rdr)
+    {
+        return new InboundDocumentLineRow(
+            GetString(rdr, "PARTNO") ?? "",
+            GetString(rdr, "PARTNM"),
+            GetInt(rdr, "BOX_COUNT") ?? 0,
+            GetInt(rdr, "SCAN_COUNT") ?? 0,
+            GetString(rdr, "YN"));
+    }
+
+    private static InboundDocumentBoxRow ReadInboundDocumentBoxRow(SqlDataReader rdr)
+    {
+        return new InboundDocumentBoxRow(
+            GetString(rdr, "PARTNO") ?? "",
+            GetString(rdr, "BOX_BARCODE") ?? "",
+            GetString(rdr, "LOTNO"),
+            GetDecimal(rdr, "QTY"),
+            GetString(rdr, "UNIT"),
+            GetString(rdr, "YN"));
     }
 
     private static LocationRow ReadLocationRow(SqlDataReader rdr)

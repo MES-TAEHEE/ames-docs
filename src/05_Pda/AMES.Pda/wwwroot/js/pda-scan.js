@@ -282,6 +282,12 @@ window.pdaScan = (() => {
         }, 50);
     }
 
+    function scrollTo(selector) {
+        const element = document.querySelector(selector);
+        if (!element) return;
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
     return {
         register(ref, opts) {
             dotNetRef = ref;
@@ -306,6 +312,7 @@ window.pdaScan = (() => {
                 captureInput.value = "";
             }
         },
-        focus
+        focus,
+        scrollTo
     };
 })();

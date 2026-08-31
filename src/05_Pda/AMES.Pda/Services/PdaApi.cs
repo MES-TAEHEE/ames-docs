@@ -151,6 +151,17 @@ public sealed class PdaApi
         int? PoSeq, string? VendorId, string? VendorName, DateTime? ProductionDate, DateTime? DeliveryDate,
         DateTime? ArrivalDate, DateTime? ShipDate, DateTime? PackDate, string? ReceivedLocation,
         string? ReceivedStatus);
+    public sealed record InboundDocumentRow(string ReceiveType, int InboundDocumentId,
+        string DocumentBarcode, string? DocumentNo, string? VendorId, string? VendorName,
+        string? CaseNo, string? InvoiceNo, string? ContainerNo, DateTime? ShipDate,
+        DateTime? PackDate, DateTime? DeliveryDate, DateTime? ArrivalDate,
+        int TotalBoxes, int ScannedBoxes, string? Yn);
+    public sealed record InboundDocumentLineRow(string PartNo, string? PartName,
+        int BoxCount, int ScanCount, string? Yn);
+    public sealed record InboundDocumentBoxRow(string PartNo, string BoxBarcode,
+        string? LotNo, decimal Qty, string? Unit, string? Yn);
+    public sealed record InboundDocumentResult(InboundDocumentRow? Document,
+        List<InboundDocumentLineRow> Lines, List<InboundDocumentBoxRow> Boxes);
     public sealed record WarehouseTransactionRow(long RowNo, string? LotNo, string? PartNo,
         string? WorkDate, string? WorkTime, string? LocationId, decimal Qty, string Status,
         string Direction, string? WorkerId, string? ReasonCode, string? ReasonNote,
@@ -445,6 +456,18 @@ public sealed class PdaApi
     public Task<List<TransactionRow>>     WhTransactionsAsync(int days = 7) => Get<List<TransactionRow>>($"/api/wh/transactions?days={days}");
 
     public Task<HttpResponseMessage> WhReceiveAsync(ReceiveReq body) => Post("/api/wh/inbound/receive", body);
+    public async Task<InboundDocumentResult> WhInboundDocumentAsync(string mode, string barcode)
+    {
+        Authorize();
+        var url = $"/api/wh/inbound/document?mode={Uri.EscapeDataString(mode.Trim())}&barcode={Uri.EscapeDataString(barcode.Trim())}";
+        var resp = await _http.GetAsync(url);
+        if (!resp.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Warehouse document service is unavailable."));
+
+        return await resp.Content.ReadFromJsonAsync<InboundDocumentResult>()
+            ?? new InboundDocumentResult(null, [], []);
+    }
+
     public async Task<InboundScanRow?> WhScanInboundAsync(string mode, string barcode)
     {
         try
