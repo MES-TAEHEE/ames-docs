@@ -181,7 +181,6 @@
 
     static readonly NavItem[] _warehouseItems =
     {
-        new("wh", "wh/locations",       "WH-001", "로케이션 마스터",  "Location Master"),
         new("wh", "wh/location-map",    "WH-003", "로케이션 맵",     "Location Map"),
         new("wh", "wh/inventory-setting", "WH-005", "재고 설정", "Inventory Setting"),
         new("wh", "wh/picking-orders",  "WH-002", "피킹 오더",   "Picking Orders"),
@@ -200,7 +199,6 @@
     static readonly NavItem[] _fallbackItems =
     {
         // -- WH --
-        new("wh", "wh/locations",       "WH-001", "로케이션 마스터",  "Location Master"),
         new("wh", "wh/location-map",    "WH-003", "로케이션 맵",     "Location Map"),
         new("wh", "wh/inventory-setting", "WH-005", "재고 설정", "Inventory Setting"),
         new("wh", "wh/picking-orders",  "WH-002", "피킹 오더",   "Picking Orders"),
@@ -352,6 +350,7 @@
 
     static readonly HashSet<string> _hiddenItems = new(StringComparer.OrdinalIgnoreCase)
     {
+        "wh/locations",
         "wh/picking-orders",
     };
 
@@ -567,7 +566,6 @@
     static readonly Dictionary<string, string> _esByHref = new()
     {
         // WH
-        ["wh/locations"] = "Maestro de Ubicaciones",
         ["wh/location-map"] = "Mapa de Ubicaciones",
         ["wh/inventory-setting"] = "Configuración de Inventario",
         ["wh/picking-orders"] = "Órdenes de Picking",
