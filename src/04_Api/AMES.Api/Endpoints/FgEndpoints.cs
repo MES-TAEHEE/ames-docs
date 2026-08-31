@@ -116,7 +116,8 @@ public static class FgEndpoints
                     WHERE (S.LotID = L.LotID OR (L.WoID IS NOT NULL AND S.WoID = L.WoID))
                       AND UPPER(ISNULL(S.Status, '')) NOT IN ('CANCELED', 'CANCELLED')
                 )
-                ORDER BY Q.InsEndTS DESC, L.ProducedAt DESC, L.LotID DESC;
+                ORDER BY CASE WHEN Q.InsEndTS IS NULL THEN 1 ELSE 0 END,
+                         Q.InsEndTS, L.ProducedAt, L.LotID;
                 """;
             return Query(factory, sql, r => new QcCompletedRow(
                 (int)r["LotID"], r["LotNo"] as string ?? "", r["WoNumber"] as string,

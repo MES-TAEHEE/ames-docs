@@ -9588,15 +9588,88 @@ body:has(.pda-shell.wh),
     .pda-shell.wh .fg-form-grid { grid-template-columns: 1fr; }
 }
 
-/* FG fixed actions must never cover the final list or form row. */
 .pda-shell.wh.fg-waiting-shell .wh01-body {
-    padding-bottom: calc(154px + var(--pda-safe-bottom)) !important;
+    padding-bottom: calc(20px + var(--pda-safe-bottom)) !important;
 }
 
 .pda-shell.wh.fg-waiting-shell .wh01-list {
     padding-bottom: 12px;
 }
 
+.pda-shell.wh.fg-waiting-shell .wh01-head,
+.pda-shell.wh.fg-waiting-shell .wh01-stat,
+.pda-shell.wh.fg-waiting-shell .wh01-status,
+.pda-shell.wh.fg-waiting-shell .pda-empty,
+.pda-shell.wh.fg-waiting-shell > .pda-tbar .rz-button {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.fg-waiting-shell .wh01-head {
+    border: 0;
+    background: transparent;
+    padding: 0;
+}
+
+.pda-shell.wh.fg-waiting-shell .wh01-stat span {
+    white-space: normal;
+    letter-spacing: 0 !important;
+}
+
+.pda-shell.wh.fg-waiting-shell .waiting-age {
+    --waiting-color: #dbeafe;
+    --waiting-background: #182b43;
+}
+
+.pda-shell.wh.fg-waiting-shell .waiting-age-1 {
+    --waiting-color: #facc15;
+    --waiting-background: #302b10;
+}
+
+.pda-shell.wh.fg-waiting-shell .waiting-age-5 {
+    --waiting-color: #fb923c;
+    --waiting-background: #352113;
+}
+
+.pda-shell.wh.fg-waiting-shell .waiting-age-10 {
+    --waiting-color: #f87171;
+    --waiting-background: #351b24;
+}
+
+.pda-shell.wh.fg-waiting-shell .wh01-status.waiting-age {
+    border-color: var(--waiting-color) !important;
+    background: var(--waiting-background) !important;
+    color: var(--waiting-color) !important;
+}
+
+.pda-shell.wh.fg-waiting-shell .waiting-age span,
+.pda-shell.wh.fg-waiting-shell .waiting-age strong {
+    color: var(--waiting-color) !important;
+}
+
+.pda-shell.wh.fg-waiting-shell .wh01-desc {
+    margin-top: 6px;
+}
+
+.pda-shell.wh.fg-waiting-shell .wh01-release-facts strong {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.pda-shell.wh.fg-waiting-shell > .pda-tbar .rz-button,
+.pda-shell.wh.fg-waiting-shell > .pda-tbar .rz-button-box,
+.pda-shell.wh.fg-waiting-shell > .pda-tbar .rz-button-text {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+}
+
+/* FG fixed actions must never cover the final list or form row. */
 .pda-shell.wh.fg02-shell .fg01-body {
     padding-bottom: calc(148px + var(--pda-safe-bottom)) !important;
 }
