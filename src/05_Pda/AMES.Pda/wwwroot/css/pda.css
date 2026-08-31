@@ -5150,6 +5150,11 @@ body:has(.wh-home-shell),
     gap: 10px;
 }
 
+.wh03-work-scan > .pda-fld:only-child {
+    grid-column: 1 / -1;
+    min-width: 0;
+}
+
 .wh03-location-scan {
     margin-top: 12px;
 }

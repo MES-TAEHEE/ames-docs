@@ -63,4 +63,11 @@ var source = File.ReadAllText(Path.Combine(root, "src/05_Pda/AMES.Pda/Components
 Check(source.Contains("ClearInventoryWork();\n            ShowAlert(\"Saved\"", StringComparison.Ordinal)
     || source.Contains("ClearInventoryWork();\r\n            ShowAlert(\"Saved\"", StringComparison.Ordinal),
     "Successful save must reset the form before showing confirmation.");
-Console.WriteLine("PASS: Adjust PIN keypad and form reset.");
+var css = File.ReadAllText(Path.Combine(root, "src/05_Pda/AMES.Pda/wwwroot/css/pda.css"));
+Check(css.Contains(".wh03-work-scan > .pda-fld:only-child") && css.Contains("grid-column: 1 / -1;"),
+    "The scan field must span the row when the developer Scan button is absent.");
+Check(css.Contains("--pda-safe-top: 0px;") && !css.Contains("max(env(safe-area-inset-top), 52px)"),
+    "The shared shell must not add a fixed top spacer.");
+var mainPage = File.ReadAllText(Path.Combine(root, "src/05_Pda/AMES.Pda/MainPage.xaml"));
+Check(mainPage.Contains("SafeAreaEdges=\"Container\""), "Native system bars must remain outside the content.");
+Console.WriteLine("PASS: Adjust PIN keypad, form reset, scan width and native safe-area layout.");
