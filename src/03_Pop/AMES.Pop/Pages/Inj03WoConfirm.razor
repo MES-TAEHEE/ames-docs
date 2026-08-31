@@ -89,7 +89,7 @@
     WorkOrderDto?      _selected;
     bool[]             _checks = new bool[5];
 
-    bool CanAccept => _selected is not null && _checks.All(c => c);
+    bool CanAccept => _selected is not null;
 
     protected override void OnInitialized() => Reload();
 
