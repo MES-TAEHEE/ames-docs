@@ -1818,6 +1818,15 @@ body {
 }
 .injm-lang-btn:hover { background: #263254; border-color: var(--mod); }
 
+.injm-logout-btn {
+    padding: 8px 14px; border-radius: 6px;
+    border: 1px solid rgba(255, 110, 110, .40);
+    background: rgba(255, 80, 80, .08);
+    color: #ffb8b8; font-size: 15px; font-weight: 700;
+    cursor: pointer;
+}
+.injm-logout-btn:hover { background: rgba(255, 80, 80, .20); border-color: rgba(255, 110, 110, .70); }
+
 .injm-tbl        { font-size: 22px; }
 .injm-tbl th     { font-size: 14px; padding: 12px 14px; }
 .injm-tbl td     { padding: 15px 14px; }
