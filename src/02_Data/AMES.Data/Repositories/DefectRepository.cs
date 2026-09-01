@@ -22,7 +22,7 @@ public sealed class DefectRepository
                    SeverityLevel, DefaultCauseCode
             FROM   dbo.MD_DefectCode
             WHERE  ProcessCode = @P
-              AND  ISNULL(ActiveFlag, 1) = 1
+              AND  ActiveFlag = 1
             ORDER  BY DefectCode;
             """;
         using var conn = _factory.OpenConnection();

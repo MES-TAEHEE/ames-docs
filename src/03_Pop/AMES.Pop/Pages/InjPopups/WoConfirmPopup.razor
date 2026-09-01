@@ -1,8 +1,8 @@
 @namespace AMES.Pop.Pages.InjPopups
 @using AMES.Pop.Common
 
-@*  INJ-003 작업지시 접수 — 팝업판. 메인 화면에서 선택한 WO 를 받아
-    프리스타트 체크리스트 완료 후 접수한다. *@
+@*  INJ-003 작업지시 접수 — 팝업판. 메인 화면에서 선택한 WO 를 받아 접수한다.
+    프리스타트 체크리스트는 선택 사항 — 체크 상태는 접수 기록(JSON)에 남는다. *@
 
 <PopupShell Title='@($"📋 {T("WoConfirmPreStartChecklist")}")' Width="820px" OnClose="OnClose">
     @if (Wo is null)
@@ -39,7 +39,7 @@
             </div>
             <div class="confirm-bar">
                 <button class="pop-btn pop-btn-sec" @onclick="OnClose">@T("Cancel")</button>
-                <button class="pop-btn pop-btn-ok" disabled="@(!_checks.All(c => c))" @onclick="Accept">✓ @T("AcceptWo")</button>
+                <button class="pop-btn pop-btn-ok" @onclick="Accept">✓ @T("AcceptWo")</button>
             </div>
         </div>
     }

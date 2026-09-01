@@ -2,12 +2,12 @@
 @using AMES.Pop.Common
 
 @*  INJ-005 불량 등록 — 팝업판. 불량코드 선택 + 수량 키패드,
-    로봇 NG 차단 LOT 확정 처리 포함. 불량률 5% 도달 시 자동 안돈(BR-INJ-003). *@
+    로봇 NG 차단 LOT 확정 처리 포함. *@
 
 <PopupShell Title='@($"❌ {T("DefectRegister")}")' Width="1200px" CssClass="pmod-tall" OnClose="OnClose">
     <div class="def-rate" style="margin-bottom:10px;">
         <div>
-            <div class="def-rate-l">▼ @T("CurrentDefectRateWoCumulativeLimit5")</div>
+            <div class="def-rate-l">▼ @T("CurrentDefectRateWoCumulative")</div>
             <div class="def-rate-s">@T("Good") @_good · @T("Defect") @_defect → @_rateText</div>
         </div>
         <div class="def-rate-v @_rateClass">@_rateText</div>
@@ -73,7 +73,6 @@
     [Parameter] public int            LastResultId  { get; set; }
     [Parameter] public EventCallback  OnClose       { get; set; }
     [Parameter] public EventCallback  OnChanged     { get; set; }
-    [Parameter] public EventCallback<int> OnAndonRaised { get; set; }
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
 
@@ -116,7 +115,12 @@
     {
         if (Wo is null || _selected is null || Session is null) return;
 
-        // 로봇 NG LOT 불량확정: 수량 1 고정, LOT 연결 + 상태 마감 (제약사항은 Inj05Defect.razor 원본 주석 참조)
+        // 로봇 NG LOT 불량확정: 수량 1 고정, LOT 연결 + 상태 마감
+        // 제약 1: 원천 LOT 는 WO 미배정이므로 불량은 "확정 시점의 활성 WO"에 귀속된다 —
+        //   NG 발생과 확정 사이에 WO 가 바뀌면 불량이 다음 WO 실적에 잡힐 수 있다.
+        // 제약 2: RecordDefect 와 MarkNgConfirmed 는 별도 커넥션(비원자) — 후자 실패 시
+        //   LOT 가 NG_BLOCKED 로 남아 목록에 재노출되며, 재확정하면 불량이 중복 집계될 수 있다.
+        //   (RecordDefect 를 먼저 실행하는 순서는 의도 — 반대면 불량 이력 없이 상태만 마감될 수 있음)
         if (_ngSelected is not null)
         {
             try
@@ -130,7 +134,6 @@
                 _buf.Clear();
                 RefreshRate();
                 await OnChanged.InvokeAsync();
-                if (await RaiseAndonIfNeeded()) return;
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DefectPopup NG Confirm] {ex.Message}"); }
             return;
@@ -144,21 +147,8 @@
             _buf.Clear();
             RefreshRate();
             await OnChanged.InvokeAsync();
-            if (await RaiseAndonIfNeeded()) return;
             await OnClose.InvokeAsync();
         }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DefectPopup Confirm] {ex.Message}"); }
-    }
-
-    private async Task<bool> RaiseAndonIfNeeded()
-    {
-        if (Wo is null || Session is null) return false;
-        var (g, d) = PopServices.Defects.GetWoTotals(Wo.WoId);
-        var pct = (g + d) == 0 ? 0 : d * 100.0 / (g + d);
-        if (pct < 5) return false;
-        var andonId = PopServices.Andon.Raise(Session.LineId, equipId: null,
-            triggerSource: "INJ-005", ruleId: "BR-INJ-003", severity: "HIGH", Session.EmployeeNo);
-        await OnAndonRaised.InvokeAsync(andonId);
-        return true;
     }
 }

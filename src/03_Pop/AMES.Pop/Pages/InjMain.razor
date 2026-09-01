@@ -10,8 +10,8 @@
 
 @*  INJ-MAIN — INJ03~08 통합 작업 화면.
     좌측 작업지시 그리드 + 우측 스캔/결과 패널을 상시 표시하고,
-    WO 접수·수동입력·불량·금형교체·생산현황·안돈은 팝업(Pages/InjPopups/*)으로 띄운다.
-    문구는 PopLang(T)로 ko/en 단일 언어 표시. 기존 /inj03~/inj08 라우트는 유지. *@
+    WO 접수·수동입력·불량·안돈은 팝업(Pages/InjPopups/*)으로 띄운다.
+    문구는 PopLang(T)로 ko/en 단일 언어 표시. 구 단독 화면(/inj02~/inj08)은 모두 제거됨. *@
 
 <div class="pop-shell injm-shell">
     <div class="pop-tbar">
@@ -25,6 +25,7 @@
             <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
             <button class="injm-lang-btn" @onclick="ToggleLang">@(PopLang.IsKo ? "EN" : "한국어")</button>
             <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.Inj04Help))" />
+            <button class="injm-logout-btn" @onclick="Logout">⏻ @T("Logout")</button>
         </div>
     </div>
 
@@ -54,7 +55,7 @@
                             var (good, ng) = _woTotals.TryGetValue(w.WoId, out var t) ? t : (0, 0);
                             var pending  = _woPending.GetValueOrDefault(w.WoId);
                             <tr class="@(isSel ? "sel" : "") @(isActive ? "active" : "")"
-                                @onclick="@(() => SelectWo(w))" @ondblclick="@(() => SelectAndConfirm(w))">
+                                @onclick="@(() => SelectAndConfirm(w))">
                                 <td class="mono" style="text-align:left;">
                                     @w.WoNumber
                                     @if (isActive)
@@ -159,20 +160,15 @@
                         </table>
                     </div>
                 </div>
+
+                @* ── 기능 버튼 (팝업 런처) — 우측 패널 최하단 ─────────── *@
+                <div class="injm-actions">
+                    <button class="nav-btn" @onclick="@(() => Open(Popup.Manual))">@T("ManualEntry")</button>
+                    <button class="nav-btn warn" @onclick="@(() => Open(Popup.Defect))">@T("Defect2")</button>
+                    <button class="nav-btn alert" @onclick="@(() => Open(Popup.Andon))">@T("Andon")</button>
+                </div>
             </div>
         </div>
-    </div>
-
-    @* ── 하단: 기능 버튼 (팝업 런처) ───────────────────────────────── *@
-    <div class="pop-nav injm-nav" style="--nav-cols:8;">
-        <button class="nav-btn" @onclick="@(() => Nav.NavigateTo("/inj02"))">@T("Dashboard")</button>
-        <button class="nav-btn primary" @onclick="@(() => Open(Popup.Wo))">@T("WoConfirm")</button>
-        <button class="nav-btn" @onclick="@(() => Open(Popup.Manual))">@T("ManualEntry")</button>
-        <button class="nav-btn warn" @onclick="@(() => Open(Popup.Defect))">@T("Defect2")</button>
-        <button class="nav-btn gold" @onclick="@(() => Open(Popup.Mold))">@T("MoldChange")</button>
-        <button class="nav-btn" @onclick="@(() => Open(Popup.Status))">@T("ProdStatus")</button>
-        <button class="nav-btn alert" @onclick="@(() => Open(Popup.Andon))">@T("Andon")</button>
-        <button class="nav-btn muted" @onclick="Logout">@T("Logout")</button>
     </div>
 </div>
 
@@ -189,18 +185,10 @@
         break;
     case Popup.Defect:
         <DefectPopup Session="Session" Wo="_activeWo" LastResultId="_lastResultId"
-                     OnClose="ClosePopup" OnChanged="Refresh" OnAndonRaised="OnAndonRaised" />
-        break;
-    case Popup.Mold:
-        <MoldChangePopup Session="Session" Wo="_activeWo"
-                         OnClose="ClosePopup" OnChanged="Refresh" />
-        break;
-    case Popup.Status:
-        <ProdStatusPopup Session="Session" OnClose="ClosePopup" />
+                     OnClose="ClosePopup" OnChanged="Refresh" />
         break;
     case Popup.Andon:
-        <AndonPopup Session="Session" InitialOpenId="_andonInitialId" InitialCause="@_andonCause"
-                    OnClose="CloseAndon" />
+        <AndonPopup Session="Session" OnClose="ClosePopup" />
         break;
 }
 
@@ -209,7 +197,7 @@
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
 
-    private enum Popup { None, Wo, Manual, Defect, Mold, Status, Andon }
+    private enum Popup { None, Wo, Manual, Defect, Andon }
     private Popup _popup = Popup.None;
 
     private sealed record ScanRecord(string LotCode, DateTime At, bool Ok, string Message);
@@ -240,9 +228,6 @@
     private string _scanBuf = string.Empty;
     private bool _focusScan;
     private ElementReference _scanInput;
-
-    private int     _andonInitialId;
-    private string? _andonCause;
 
     private DateTime _now = DateTime.Now;
     private System.Threading.Timer? _clockTimer;
@@ -417,13 +402,8 @@
     }
 
     // ── 팝업 제어 ─────────────────────────────────────────────────────
-    private void Open(Popup p)
-    {
-        if (p == Popup.Andon) { _andonInitialId = 0; _andonCause = null; }
-        _popup = p;
-    }
+    private void Open(Popup p) => _popup = p;
     private void ClosePopup() { _popup = Popup.None; _focusScan = true; Refresh(); }
-    private void CloseAndon() { _andonInitialId = 0; _andonCause = null; ClosePopup(); }
 
     private void OnWoAccepted()
     {
@@ -433,14 +413,6 @@
 
     // 수동 발행분은 아직 실적이 아니다 — 미확정 LOT 목록에 쌓이고, 스캔해야 확정된다.
     private void OnManualLotsIssued() => ClosePopup();
-
-    private void OnAndonRaised(int andonId)
-    {
-        _andonInitialId = andonId;
-        _andonCause     = T("DefectRate5AutoAndonBrInj003");
-        _popup          = Popup.Andon;
-        Refresh();
-    }
 
     private async Task Logout()
     {

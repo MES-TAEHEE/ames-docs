@@ -2,8 +2,7 @@
 @using AMES.Pop.Common
 @implements IDisposable
 
-@*  INJ-008 안돈 — 팝업판. 라인 정지 특성상 전체 화면을 덮는 오버레이로 표시.
-    불량률 자동 안돈(BR-INJ-003)으로 열리면 InitialOpenId 로 ACTIVE 상태로 시작. *@
+@*  INJ-008 안돈 — 팝업판. 라인 정지 특성상 전체 화면을 덮는 오버레이로 표시. *@
 
 <div class="pmod-backdrop pmod-andon-overlay">
     <div class="andon-shell" style="position:relative; width:100%; height:100%;">
@@ -75,8 +74,6 @@
 
 @code {
     [Parameter] public PopSessionDto? Session       { get; set; }
-    [Parameter] public int            InitialOpenId { get; set; }
-    [Parameter] public string?        InitialCause  { get; set; }
     [Parameter] public EventCallback  OnClose       { get; set; }
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
@@ -92,13 +89,6 @@
     protected override void OnInitialized()
     {
         if (Session is null) return;
-        if (InitialOpenId != 0)
-        {
-            _openId      = InitialOpenId;
-            _triggered   = DateTime.Now;
-            _cause       = InitialCause ?? T("AutoAndon");
-            _causeDetail = T("AndonHaltDetail", _openId);
-        }
         _timer = new System.Threading.Timer(_ => InvokeAsync(() =>
         {
             if (_openId != 0)

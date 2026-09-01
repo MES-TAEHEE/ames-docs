@@ -15,7 +15,6 @@
   <data name="Andon" xml:space="preserve"><value>안돈</value></data>
   <data name="AndonHaltDetail" xml:space="preserve"><value>안돈 #{0} — 생산 정지, 관리자에게 통보됨.</value></data>
   <data name="Andonid" xml:space="preserve"><value>안돈</value></data>
-  <data name="AutoAndon" xml:space="preserve"><value>자동 안돈</value></data>
   <data name="AwaitingTrigger" xml:space="preserve"><value>트리거 대기</value></data>
   <data name="BadgeScanOrPinEntry" xml:space="preserve"><value>배지 스캔 또는 핀 번호 입력</value></data>
   <data name="BlockedByInspectionNgHandleInDefectPopup" xml:space="preserve"><value>검사 불량 차단 로트 — 불량 등록에서 처리하세요</value></data>
@@ -33,19 +32,17 @@
   <data name="ConfirmFailed" xml:space="preserve"><value>확정 실패</value></data>
   <data name="Confirmed" xml:space="preserve"><value>실적 확정</value></data>
   <data name="Ct" xml:space="preserve"><value>사이클</value></data>
-  <data name="CurrentDefectRateWoCumulativeLimit5" xml:space="preserve"><value>현재 불량률 · 작업지시 누적 (한계 5%)</value></data>
+  <data name="CurrentDefectRateWoCumulative" xml:space="preserve"><value>현재 불량률 · 작업지시 누적</value></data>
   <data name="CurrentShots" xml:space="preserve"><value>현재 타수</value></data>
   <data name="CurrentWo" xml:space="preserve"><value>현재 작업지시</value></data>
   <data name="CycleTime" xml:space="preserve"><value>사이클 타임</value></data>
   <data name="DDay" xml:space="preserve"><value>납기</value></data>
-  <data name="Dashboard" xml:space="preserve"><value>대시보드</value></data>
   <data name="Dashboard2" xml:space="preserve"><value>대시보드</value></data>
   <data name="Defect" xml:space="preserve"><value>불량</value></data>
   <data name="Defect2" xml:space="preserve"><value>불량 등록</value></data>
   <data name="Defect3" xml:space="preserve"><value>불량률</value></data>
   <data name="DefectQty" xml:space="preserve"><value>불량 수량</value></data>
   <data name="DefectRate" xml:space="preserve"><value>불량률</value></data>
-  <data name="DefectRate5AutoAndonBrInj003" xml:space="preserve"><value>불량률 5% 초과 — 자동 안돈 (BR-INJ-003)</value></data>
   <data name="DefectRegister" xml:space="preserve"><value>불량 등록</value></data>
   <data name="DownMachines" xml:space="preserve"><value>정지 설비</value></data>
   <data name="Ea" xml:space="preserve"><value>개</value></data>
@@ -83,7 +80,6 @@
   <data name="LotBelongsToAnotherLine" xml:space="preserve"><value>다른 라인의 로트입니다</value></data>
   <data name="LotNotFound" xml:space="preserve"><value>로트 없음</value></data>
   <data name="Lotno" xml:space="preserve"><value>로트 번호</value></data>
-  <data name="MainScreen" xml:space="preserve"><value>통합 작업 화면</value></data>
   <data name="ManualAndonBy" xml:space="preserve"><value>수동 안돈 — {0}</value></data>
   <data name="ManualEntry" xml:space="preserve"><value>수동 입력</value></data>
   <data name="ManualEntryGoodQtyPerCycleEa" xml:space="preserve"><value>수동 실적 입력 · 사이클당 양품 (개)</value></data>
@@ -96,8 +92,6 @@
   <data name="Mold" xml:space="preserve"><value>금형</value></data>
   <data name="Mold2" xml:space="preserve"><value>금형</value></data>
   <data name="MoldAvailable" xml:space="preserve"><value>사용 가능</value></data>
-  <data name="MoldChange" xml:space="preserve"><value>금형 교체</value></data>
-  <data name="MoldChange2" xml:space="preserve"><value>금형 교체</value></data>
   <data name="MoldMaintenance" xml:space="preserve"><value>정비 중</value></data>
   <data name="MoldMounted" xml:space="preserve"><value>장착됨</value></data>
   <data name="MoldMountedMatchesWoRouting" xml:space="preserve"><value>1. 장착 금형이 WO 라우팅과 일치</value></data>
@@ -132,7 +126,6 @@
   <data name="PinMustBe4Digits" xml:space="preserve"><value>핀 번호 4자리를 입력하세요</value></data>
   <data name="Plan" xml:space="preserve"><value>계획</value></data>
   <data name="PreStartChecklist" xml:space="preserve"><value>사전 점검 체크리스트</value></data>
-  <data name="ProdStatus" xml:space="preserve"><value>생산 현황</value></data>
   <data name="ProductionEntry" xml:space="preserve"><value>생산 등록</value></data>
   <data name="ProductionHaltedSupervisorPinRequiredToA" xml:space="preserve"><value>생산 정지 — 확인에는 관리자 핀 번호가 필요합니다.</value></data>
   <data name="ProductionStatusSupervisorView" xml:space="preserve"><value>생산 현황 (관리자 뷰)</value></data>
@@ -197,7 +190,6 @@
   <data name="Wo2" xml:space="preserve"><value>작업지시</value></data>
   <data name="WoCancelled" xml:space="preserve"><value>취소</value></data>
   <data name="WoClosed" xml:space="preserve"><value>마감</value></data>
-  <data name="WoConfirm" xml:space="preserve"><value>작업지시 접수</value></data>
   <data name="WoConfirmPreStartChecklist" xml:space="preserve"><value>작업지시 접수 · 사전 점검</value></data>
   <data name="WoActiveNow" xml:space="preserve"><value>가동중</value></data>
   <data name="WoInProgress" xml:space="preserve"><value>진행 중</value></data>
