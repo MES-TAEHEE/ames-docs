@@ -1589,9 +1589,6 @@ CREATE TABLE dbo.tbl_Lot (
 );
 GO
 
-CREATE UNIQUE INDEX UX_tbl_Lot_LotCode ON dbo.tbl_Lot([LotCode]) WHERE [LotCode] IS NOT NULL;
-GO
-
 -- ── SYS_LotSeq  (LotNo 채번 카운터 — 헤더별 마지막 순번)
 CREATE TABLE dbo.SYS_LotSeq (
   [Header]                    CHAR(5)              NOT NULL,  -- 년월일(3) + 라인코드(2)
