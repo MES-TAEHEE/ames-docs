@@ -13,7 +13,6 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="NModbus" Version="3.0.81" />
-    <PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
   </ItemGroup>
   <ItemGroup>

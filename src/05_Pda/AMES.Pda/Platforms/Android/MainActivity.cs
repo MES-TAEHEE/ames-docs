@@ -146,7 +146,9 @@ public class MainActivity : MauiAppCompatActivity
 
         filter.AddCategory(Intent.CategoryDefault);
 
-        if (Build.VERSION.SdkInt >= BuildVersionCodes.Tiramisu)
+        // API 33+ 에서만 3-인자 오버로드/ReceiverFlags 사용 가능. CA1416 분석기가
+        // 인식하는 OperatingSystem 가드를 써야 경고가 사라진다(Tiramisu == API 33).
+        if (OperatingSystem.IsAndroidVersionAtLeast(33))
             RegisterReceiver(_barcodeReceiver, filter, ReceiverFlags.Exported);
         else
             RegisterReceiver(_barcodeReceiver, filter);
@@ -264,7 +266,11 @@ public class MainActivity : MauiAppCompatActivity
             if (extras is null)
                 return null;
 
-            foreach (var key in extras.KeySet())
+            var keys = extras.KeySet();
+            if (keys is null)
+                return null;
+
+            foreach (var key in keys)
             {
                 var raw = extras.Get(key)?.ToString();
                 Log.Debug(LogTag, $"Broadcast extra {key}={raw}");
