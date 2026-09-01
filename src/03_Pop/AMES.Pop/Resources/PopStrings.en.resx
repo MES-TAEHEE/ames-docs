@@ -190,7 +190,6 @@
   <data name="Wo2" xml:space="preserve"><value>WO</value></data>
   <data name="WoCancelled" xml:space="preserve"><value>Cancelled</value></data>
   <data name="WoClosed" xml:space="preserve"><value>Closed</value></data>
-  <data name="WoConfirm" xml:space="preserve"><value>WO Confirm</value></data>
   <data name="WoConfirmPreStartChecklist" xml:space="preserve"><value>WO CONFIRM · PRE-START CHECKLIST</value></data>
   <data name="WoActiveNow" xml:space="preserve"><value>ACTIVE</value></data>
   <data name="WoInProgress" xml:space="preserve"><value>In Progress</value></data>

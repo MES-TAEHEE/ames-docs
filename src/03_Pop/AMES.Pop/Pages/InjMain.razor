@@ -54,7 +54,7 @@
                             var (good, ng) = _woTotals.TryGetValue(w.WoId, out var t) ? t : (0, 0);
                             var pending  = _woPending.GetValueOrDefault(w.WoId);
                             <tr class="@(isSel ? "sel" : "") @(isActive ? "active" : "")"
-                                @onclick="@(() => SelectWo(w))" @ondblclick="@(() => SelectAndConfirm(w))">
+                                @onclick="@(() => SelectAndConfirm(w))">
                                 <td class="mono" style="text-align:left;">
                                     @w.WoNumber
                                     @if (isActive)
@@ -164,8 +164,7 @@
     </div>
 
     @* ── 하단: 기능 버튼 (팝업 런처) ───────────────────────────────── *@
-    <div class="pop-nav injm-nav" style="--nav-cols:5;">
-        <button class="nav-btn primary" @onclick="@(() => Open(Popup.Wo))">@T("WoConfirm")</button>
+    <div class="pop-nav injm-nav" style="--nav-cols:4;">
         <button class="nav-btn" @onclick="@(() => Open(Popup.Manual))">@T("ManualEntry")</button>
         <button class="nav-btn warn" @onclick="@(() => Open(Popup.Defect))">@T("Defect2")</button>
         <button class="nav-btn alert" @onclick="@(() => Open(Popup.Andon))">@T("Andon")</button>
