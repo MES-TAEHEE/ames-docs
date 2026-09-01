@@ -160,15 +160,15 @@
                         </table>
                     </div>
                 </div>
+
+                @* ── 기능 버튼 (팝업 런처) — 우측 패널 최하단 ─────────── *@
+                <div class="injm-actions">
+                    <button class="nav-btn" @onclick="@(() => Open(Popup.Manual))">@T("ManualEntry")</button>
+                    <button class="nav-btn warn" @onclick="@(() => Open(Popup.Defect))">@T("Defect2")</button>
+                    <button class="nav-btn alert" @onclick="@(() => Open(Popup.Andon))">@T("Andon")</button>
+                </div>
             </div>
         </div>
-    </div>
-
-    @* ── 하단: 기능 버튼 (팝업 런처) ───────────────────────────────── *@
-    <div class="pop-nav injm-nav" style="--nav-cols:3;">
-        <button class="nav-btn" @onclick="@(() => Open(Popup.Manual))">@T("ManualEntry")</button>
-        <button class="nav-btn warn" @onclick="@(() => Open(Popup.Defect))">@T("Defect2")</button>
-        <button class="nav-btn alert" @onclick="@(() => Open(Popup.Andon))">@T("Andon")</button>
     </div>
 </div>
 

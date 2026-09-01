@@ -1731,6 +1731,7 @@ body {
 .injm-chip b.warn { color: var(--warn); }
 .injm-chip b.bad  { color: var(--alert); }
 .injm-lots, .injm-hist { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.injm-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; flex-shrink: 0; }
 .injm-scroll { flex: 1; min-height: 0; overflow-y: auto; margin-top: 6px; }
 .injm-subtbl { width: 100%; border-collapse: collapse; font-size: 13px; }
 .injm-subtbl th {
@@ -1844,7 +1845,7 @@ body {
 .injm-mini-btn   { font-size: 15px; padding: 6px 12px; }
 .injm-result     { font-size: 16px; min-width: 56px; }
 
-.injm-nav .nav-btn { font-size: 22px; padding: 22px 12px; }
+.injm-actions .nav-btn { font-size: 19px; padding: 16px 12px; }
 
 /* 팝업 폰트 확대 */
 .pmod-title  { font-size: 17px; }
