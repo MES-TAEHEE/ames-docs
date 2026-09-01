@@ -20,6 +20,9 @@ obj/
 # Temp commit messages (heredoc workaround)
 COMMIT_MSG.tmp
 
+# Claude Code 로컬 작업 공간 (scratch/node_modules, 개인 settings)
+.claude/
+
 # Local OS / editor cruft
 .DS_Store
 Thumbs.db
