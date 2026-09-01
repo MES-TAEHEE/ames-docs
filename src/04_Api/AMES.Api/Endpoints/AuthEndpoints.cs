@@ -19,27 +19,15 @@ public static class AuthEndpoints
 
         g.MapPost("/login", (LoginDto body) =>
         {
-            LoginOutcome outcome;
-            try
+            var outcome = auth.Login(new LoginRequest
             {
-                outcome = auth.Login(new LoginRequest
-                {
-                    AttemptedId = body.EmployeeNo,
-                    Pin         = body.Pin,
-                    Method      = AuthMethod.Pin,
-                    TerminalId  = body.TerminalId,
-                    LineId      = body.LineId,
-                    ShiftCode   = body.ShiftCode,
-                });
-            }
-            catch (Exception ex)
-            {
-                app.Logger.LogError(ex, "PDA login failed for {EmployeeNo}", body.EmployeeNo);
-                return Results.Ok(new LoginResultDto(
-                    Token: "", Result: AuthResult.InactiveAccount,
-                    Reason: "Authentication service unavailable",
-                    EmployeeNo: null, EmployeeName: null, LineId: null, ShiftCode: null, ExpiresAt: null));
-            }
+                AttemptedId = body.EmployeeNo,
+                Pin         = body.Pin,
+                Method      = AuthMethod.Pin,
+                TerminalId  = body.TerminalId,
+                LineId      = body.LineId,
+                ShiftCode   = body.ShiftCode,
+            });
 
             if (!outcome.IsSuccess || outcome.Session is null)
                 return Results.Ok(new LoginResultDto(
