@@ -1512,6 +1512,9 @@
   <data name="MD.CommonCode.GrpHeader" xml:space="preserve">
     <value>Code Groups</value>
   </data>
+  <data name="MD.CommonCode.Ph.GrpSearch" xml:space="preserve">
+    <value>Search group code/name</value>
+  </data>
   <data name="MD.CommonCode.ItemHint" xml:space="preserve">
     <value>← Click ▶ on a code group to view its items</value>
   </data>
