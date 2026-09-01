@@ -129,10 +129,27 @@ builder.Services.AddSingleton<AMES.Web.Services.AppLanguageState>();
 
 var app = builder.Build();
 
+// ── Startup seeds ──────────────────────────────────────────────────────
+// 여기서 예외가 새어나가면 ANCM 이 프로세스를 못 올려 모든 요청이 500 이 되고,
+// 화면에는 아무 단서도 남지 않는다. DB 가 늦게 뜨거나 잠시 끊겨도 앱은 기동돼야 한다.
+// 시드는 모두 idempotent 하므로 실패해도 다음 재기동에서 다시 시도된다.
+async Task RunSeedAsync(string name, Func<IServiceScope, Task> seed)
+{
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        await seed(scope);
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "{Seed} seed skipped — database unavailable at startup", name);
+    }
+}
+
 // ── First-run admin seed ───────────────────────────────────────────────
 // Ensures `admin@ames.local / Dev2026!` exists so a fresh checkout can
 // sign in without a manual register step. No-op on subsequent boots.
-using (var scope = app.Services.CreateScope())
+await RunSeedAsync("admin", async scope =>
 {
     var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var roleMgr = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
@@ -165,11 +182,11 @@ using (var scope = app.Services.CreateScope())
         if (!roleRes.Succeeded)
             app.Logger.LogWarning("admin role assignment failed: {Errs}", string.Join("; ", roleRes.Errors.Select(e => e.Description)));
     }
-}
+});
 
 // ── Role seed: SYS_RolePermission.RoleName → AspNetRoles + RoleID backfill ──
 // Idempotent: skips roles that already exist, skips rows where RoleID is set.
-using (var scope = app.Services.CreateScope())
+await RunSeedAsync("role", async scope =>
 {
     var roleMgr     = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var connFactory = scope.ServiceProvider.GetRequiredService<AmesConnectionFactory>();
@@ -208,7 +225,7 @@ using (var scope = app.Services.CreateScope())
         if (updated > 0)
             app.Logger.LogInformation("SYS_RolePermission.RoleID backfilled: {N} rows", updated);
     }
-}
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
