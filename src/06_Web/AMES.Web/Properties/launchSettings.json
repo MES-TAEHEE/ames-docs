@@ -26,6 +26,16 @@
       "dotnetRunMessages": true,
       "applicationUrl": "https://localhost:7004;http://localhost:5044"
     },
+    "http (로컬 DB 비상)": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ConnectionStrings__AMES": "Server=localhost\\MSSQLSERVER01;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=30;"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:5044"
+    },
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,
