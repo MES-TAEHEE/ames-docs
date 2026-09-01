@@ -1,6 +1,7 @@
 using System.Data;
 using AMES.Contracts.Dto;
 using AMES.Data.Connection;
+using AMES.Data.Services;
 using Microsoft.Data.SqlClient;
 
 namespace AMES.Data.Repositories;
@@ -51,7 +52,7 @@ public sealed class ProductionRepository
                      SYSDATETIME(), 'OPEN', 'PENDING', @By, SYSDATETIME());
                 """, conn, tx))
             {
-                var lotCode = $"L{DateTime.Now:yyMMddHHmmssfff}-{lineId}";
+                var lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DateTime.Now);
                 cmd.Parameters.Add("@LotCode", SqlDbType.VarChar, 40).Value = lotCode;
                 cmd.Parameters.Add("@ItemNo",  SqlDbType.VarChar, 20).Value = itemNo;
                 cmd.Parameters.Add("@WoID",    SqlDbType.Int       ).Value = woId;

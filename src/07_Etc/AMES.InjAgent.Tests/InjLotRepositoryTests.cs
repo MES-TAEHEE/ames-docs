@@ -347,7 +347,7 @@ public class InjLotRepositoryTests
         using var conn = f.OpenConnection();
         using var tx = conn.BeginTransaction();
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            AMES.Data.Services.LotNoGenerator.NextLotNo(conn, tx, "LINE-IMG-01", DateTime.Now));
+            AMES.Data.Services.LotNoGenerator.NextLotNo(conn, tx, "LINE-NOPREFIX", DateTime.Now));
         Assert.Contains("LotPrefix", ex.Message);
         tx.Rollback();
     }
@@ -391,7 +391,7 @@ public class InjLotRepositoryTests
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
         var repo = new InjLotRepository(f);
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            repo.CreateManualRawLots("LINE-IMG-01", "83335-P8000RBQ", null, 1, "E-TEST"));
+            repo.CreateManualRawLots("LINE-NOPREFIX", "83335-P8000RBQ", null, 1, "E-TEST"));
         Assert.Contains("LotPrefix", ex.Message);
     }
 

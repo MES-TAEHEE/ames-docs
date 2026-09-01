@@ -3587,9 +3587,9 @@ GO
 INSERT INTO dbo.MD_Line (LineID, LineName, WCID, PlantCode, DailyCap, ShiftPattern, LotPrefix, RfidEnabledFlag, Status, CreatedBy, CreatedTS) VALUES
   ('LINE-INJ-01', N'Injection Line 1 (650T)',  'WC-INJ', 'SAV', 4800, '2-SHIFT', 'I1', 0, 'ACTIVE', 'admin', SYSDATETIME()),
   ('LINE-INJ-02', N'Injection Line 2 (850T)',  'WC-INJ', 'SAV', 3600, '2-SHIFT', 'I2', 0, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-IMG-01', N'Wrapping Line 1',           'WC-IMG', 'SAV', 1200, '2-SHIFT', NULL, 0, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-PNT-01', N'Paint Line 1 (Powder)',     'WC-PNT', 'GEO',  800, '3-SHIFT', NULL, 1, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-PNT-02', N'Paint Line 2 (Liquid)',     'WC-PNT', 'GEO',  600, '3-SHIFT', NULL, 1, 'ACTIVE', 'admin', SYSDATETIME());
+  ('LINE-IMG-01', N'Wrapping Line 1',           'WC-IMG', 'SAV', 1200, '2-SHIFT', 'W1', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-PNT-01', N'Paint Line 1 (Powder)',     'WC-PNT', 'GEO',  800, '3-SHIFT', 'P1', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-PNT-02', N'Paint Line 2 (Liquid)',     'WC-PNT', 'GEO',  600, '3-SHIFT', 'P2', 1, 'ACTIVE', 'admin', SYSDATETIME());
 GO
 
 -- Items (LQ2 rear door trim part master — docs/PartMaster_LQ2.xls)

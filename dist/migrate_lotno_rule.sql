@@ -23,9 +23,12 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes
       ON dbo.MD_Line([LotPrefix]) WHERE [LotPrefix] IS NOT NULL;
 GO
 
--- INJ 라인 시드. 신규 라인은 마스터 등록 시 부여한다.
+-- 라인 시드 (INJ 원천 Lot + RecordCycle 실적 Lot 공용). 신규 라인은 마스터 등록 시 부여한다.
 UPDATE dbo.MD_Line SET LotPrefix = 'I1' WHERE LineID = 'LINE-INJ-01' AND LotPrefix IS NULL;
 UPDATE dbo.MD_Line SET LotPrefix = 'I2' WHERE LineID = 'LINE-INJ-02' AND LotPrefix IS NULL;
+UPDATE dbo.MD_Line SET LotPrefix = 'W1' WHERE LineID = 'LINE-IMG-01' AND LotPrefix IS NULL;
+UPDATE dbo.MD_Line SET LotPrefix = 'P1' WHERE LineID = 'LINE-PNT-01' AND LotPrefix IS NULL;
+UPDATE dbo.MD_Line SET LotPrefix = 'P2' WHERE LineID = 'LINE-PNT-02' AND LotPrefix IS NULL;
 GO
 
 -- 채번 카운터. Header = 년월일(3) + 라인코드(2). 롤백 시 카운터도 롤백 → 결번 없음.
