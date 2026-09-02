@@ -20,6 +20,7 @@
 
 <div class="ames-kpis compact">
     <div class="ames-kpi"><div class="ames-kpi-l">IMPORTED</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">SELECTED</div><div class="ames-kpi-v">@_selected.Count</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">CONFIRMED</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Confirmed")</div></div>
     <div class="ames-kpi warn"><div class="ames-kpi-l">OPEN</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Open")</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">TOTAL QTY</div><div class="ames-kpi-v">@_rows.Sum(r => r.OrderQty).ToString("#,0")</div></div>
@@ -54,6 +55,9 @@
     </div>
     <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
         <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Search" />
+        <RadzenButton Text="@string.Format(L["PP.SupplyPlanImport.Btn.ConfirmSel"].Value, _selected.Count)"
+                      Icon="check" ButtonStyle="ButtonStyle.Success"
+                      Disabled="@(_selected.Count == 0)" Click="ConfirmSelected" />
         <RadzenButton Text="@L["PP.SupplyPlanImport.Btn.Upload"].Value" Icon="upload"
                       ButtonStyle="ButtonStyle.Secondary" Click="OpenUpload" />
         <RadzenButton Text="@L["PP.SupplyPlanImport.Btn.Export"].Value" Icon="download"
@@ -74,6 +78,18 @@ else
                     FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
                     class="ames-rz-grid">
         <Columns>
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" Width="46px" Sortable="false"
+                                  Filterable="false" TextAlign="TextAlign.Center" Frozen="true">
+                <HeaderTemplate>
+                    <input type="checkbox" class="spi-ck" checked="@AllSelected"
+                           @onchange="e => ToggleAll((bool)(e.Value ?? false))" />
+                </HeaderTemplate>
+                <Template Context="r">
+                    <input type="checkbox" class="spi-ck" disabled="@(!IsOpen(r))"
+                           checked="@_selected.Contains(r.SoId)"
+                           @onchange="e => ToggleRow(r.SoId, (bool)(e.Value ?? false))" />
+                </Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="SoNumber" Title="@L["Col.SoNo"].Value"
                                   Frozen="true" Width="140px">
                 <Template Context="r"><span class="code">@r.SoNumber</span></Template>
@@ -186,9 +202,14 @@ else
 
     List<PpRepository.SoRow> _rows = new();   // 조회 결과
     List<PpRepository.SoRow> _view = new();   // 텍스트·상태 필터 적용 표시용
+    HashSet<int> _selected = new();           // 체크된 SoID
 
     string _msg = "";
     bool   _isErr;
+
+    static bool IsOpen(PpRepository.SoRow r) => r.Status == "Open";
+    IEnumerable<PpRepository.SoRow> Selectable => _view.Where(IsOpen);
+    bool AllSelected => Selectable.Any() && Selectable.All(r => _selected.Contains(r.SoId));
 
     protected override void OnInitialized()
     {
@@ -200,6 +221,7 @@ else
     {
         try   { _rows = Pp.ListCustomerOrders(_fCustomer ?? "", _fFrom, _fTo); }
         catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); _rows = new(); }
+        _selected.RemoveWhere(id => !_rows.Any(r => r.SoId == id && IsOpen(r)));
         ApplyFilters();
     }
 
@@ -231,6 +253,34 @@ else
             var actor = auth.User.Identity?.Name ?? "system";
             var n = Pp.ConfirmCustomerOrder(soId, actor);
             if (n > 0) ShowMsg(L["PP.SupplyPlanImport.Ok.Confirmed"].Value, false);
+            Search();
+        }
+        catch (Exception ex) { ShowMsg(ex.Message, true); }
+    }
+
+    void ToggleRow(int soId, bool on)
+    {
+        if (on) _selected.Add(soId); else _selected.Remove(soId);
+    }
+
+    void ToggleAll(bool on)
+    {
+        foreach (var r in Selectable)
+            if (on) _selected.Add(r.SoId); else _selected.Remove(r.SoId);
+    }
+
+    async Task ConfirmSelected()
+    {
+        var ids = _rows.Where(r => _selected.Contains(r.SoId) && IsOpen(r)).Select(r => r.SoId).ToList();
+        if (ids.Count == 0) { ShowMsg(L["PP.SupplyPlanImport.Err.NoneSelected"], true); return; }
+
+        try
+        {
+            var auth  = await AuthPrvd.GetAuthenticationStateAsync();
+            var actor = auth.User.Identity?.Name ?? "system";
+            var n = ids.Sum(id => Pp.ConfirmCustomerOrder(id, actor));
+            _selected.Clear();
+            ShowMsg(string.Format(L["PP.SupplyPlanImport.Ok.ConfirmedN"].Value, n), false);
             Search();
         }
         catch (Exception ex) { ShowMsg(ex.Message, true); }

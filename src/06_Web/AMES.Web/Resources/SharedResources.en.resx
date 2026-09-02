@@ -2772,6 +2772,9 @@
   <data name="PP.SupplyPlanImport.Btn.Export" xml:space="preserve">
     <value>Export</value>
   </data>
+  <data name="PP.SupplyPlanImport.Btn.ConfirmSel" xml:space="preserve">
+    <value>Confirm Selected ({0})</value>
+  </data>
   <data name="PP.SupplyPlanImport.Upload.Title" xml:space="preserve">
     <value>SAP PO Import</value>
   </data>
@@ -2814,6 +2817,9 @@
   <data name="PP.SupplyPlanImport.Ok.Confirmed" xml:space="preserve">
     <value>Sales order confirmed — now eligible for PP-03 planning.</value>
   </data>
+  <data name="PP.SupplyPlanImport.Ok.ConfirmedN" xml:space="preserve">
+    <value>{0} sales order(s) confirmed — now eligible for PP-03 planning.</value>
+  </data>
   <data name="PP.SupplyPlanImport.Col.Wo" xml:space="preserve">
     <value>WO Link</value>
   </data>
@@ -2840,6 +2846,9 @@
   </data>
   <data name="PP.SupplyPlanImport.Err.NoExport" xml:space="preserve">
     <value>No data to export.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Err.NoneSelected" xml:space="preserve">
+    <value>Select at least one order to confirm.</value>
   </data>
   <data name="PP.WoRelease.Title" xml:space="preserve">
     <value>WO Release</value>
