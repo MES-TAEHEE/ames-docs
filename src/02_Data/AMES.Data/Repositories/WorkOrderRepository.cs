@@ -148,6 +148,7 @@ public sealed class WorkOrderRepository
     /// </summary>
     public List<WorkOrderDto> ListForLine(string lineId)
     {
+        // 같은 상태·취소 조건 — 바꿀 때 OpenStepForItemFilter 도 같이
         const string sql = """
             SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
                    w.OrderQty, w.OpenQty, r.CompletedQty, r.LineID,
@@ -221,6 +222,43 @@ public sealed class WorkOrderRepository
     }
 
     /// <summary>
+    /// 품번 기준 "열린 WO 단계" 선택 규칙. ConfirmByLotCode(실적 귀속)와 INJ-MAIN 품번 선택(화면 표시)이
+    /// 같은 문자열을 써야 한다 — 어긋나면 작업자가 보는 활성 WO 와 실제 실적이 올라가는 WO 가 달라진다.
+    /// 파라미터 @Line, @Item. 별칭 r = PP_WorkOrderRouting, w = PP_WorkOrder.
+    /// </summary>
+    internal const string OpenStepForItemFilter = """
+        WHERE  r.LineID = @Line AND w.ItemNo = @Item
+          AND  r.Status IN ('Released','In Progress')
+          AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+        ORDER  BY CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
+                  ISNULL(w.Priority,5),
+                  ISNULL(w.DueDate,'9999-12-31'),
+                  w.WoID
+        """;
+
+    /// <summary>이 라인에서 품번의 열린 WO 단계 하나. 없으면 null. INJ-MAIN 이 품번 선택 시 활성 WO 로 쓴다.</summary>
+    public WorkOrderDto? FindOpenForItem(string lineId, string itemNo)
+    {
+        const string sql = """
+            SELECT TOP 1 w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
+                   w.OrderQty, w.OpenQty, r.CompletedQty, r.LineID,
+                   w.MoldID, w.RecipeID, w.DueDate, r.Status, r.TerminalLock,
+                   ISNULL(w.Priority,5) AS Priority, w.RoutingType,
+                   r.RoutingLineID, r.StepSeq, r.ProcessCode
+            FROM   dbo.PP_WorkOrderRouting r
+            JOIN   dbo.PP_WorkOrder w ON w.WoID   = r.WoID
+            JOIN   dbo.MD_Item      i ON i.ItemNo = w.ItemNo
+
+            """ + OpenStepForItemFilter + ";";
+
+        return Query(sql, cmd =>
+        {
+            cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
+            cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+        }).FirstOrDefault();
+    }
+
+    /// <summary>
     /// 공정 단계를 이 터미널에 접수. 단계·헤더 In Progress, 단계·헤더 TerminalLock (조회는 단계 값 기준). 체크리스트는 PR_WoAcceptance(WoID) 에 기록.
     /// Returns the new AcceptID. 단계가 없으면 SqlException(50001).
     /// </summary>
@@ -275,6 +313,7 @@ public sealed class WorkOrderRepository
     /// 단계 CompletedQty += qty. 헤더 OrderQty 도달 시 단계 Closed·ActualEnd.
     /// 이 단계가 "라인이 있는 마지막 단계"(LineID NOT NULL 중 최대 StepSeq)면 헤더 CompletedQty 를 동기화하고,
     /// 도달 시 헤더 Closed·ActualEnd. 반환: 단계의 새 CompletedQty. 단계가 없으면 SqlException(50001).
+    /// 첫 실적에서 단계·헤더를 Released → In Progress 로 올리고 ActualStart 를 찍는다(INJ 는 AcceptWo 를 부르지 않는다).
     /// </summary>
     internal static decimal BumpStepCompleted(SqlConnection conn, SqlTransaction tx, int routingLineId, decimal qty, string actor)
     {
@@ -287,12 +326,22 @@ public sealed class WorkOrderRepository
             WHERE  r.RoutingLineID = @RL;
             IF @WoID IS NULL THROW 50001, 'Routing step not found.', 1;
 
+            -- 접수(AcceptWo)가 없는 INJ 에서는 첫 실적이 착수다. Released 만 올린다 — Closed 는 되돌리지 않는다.
             UPDATE dbo.PP_WorkOrderRouting
             SET    CompletedQty = CompletedQty + @Qty,
-                   Status       = CASE WHEN CompletedQty + @Qty >= @OrderQty THEN 'Closed' ELSE Status END,
+                   Status       = CASE WHEN CompletedQty + @Qty >= @OrderQty THEN 'Closed'
+                                       WHEN Status = 'Released'              THEN 'In Progress'
+                                       ELSE Status END,
+                   ActualStart  = ISNULL(ActualStart, SYSDATETIME()),
                    ActualEnd    = CASE WHEN CompletedQty + @Qty >= @OrderQty AND ActualEnd IS NULL THEN SYSDATETIME() ELSE ActualEnd END,
                    ModifiedBy   = @Actor, ModifiedTS = SYSDATETIME()
             WHERE  RoutingLineID = @RL;
+
+            UPDATE dbo.PP_WorkOrder
+            SET    Status      = CASE WHEN Status = 'Released' THEN 'In Progress' ELSE Status END,
+                   ActualStart = ISNULL(ActualStart, SYSDATETIME()),
+                   ModifiedBy  = @Actor, ModifiedTS = SYSDATETIME()
+            WHERE  WoID = @WoID AND ISNULL(Status,'Draft') NOT IN ('Cancelled','Closed');
 
             SELECT @New = CompletedQty FROM dbo.PP_WorkOrderRouting WHERE RoutingLineID = @RL;
             SELECT @LastSeq = MAX(StepSeq) FROM dbo.PP_WorkOrderRouting WHERE WoID = @WoID AND LineID IS NOT NULL;

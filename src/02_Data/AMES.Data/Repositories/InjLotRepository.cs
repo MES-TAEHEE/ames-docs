@@ -335,29 +335,6 @@ public sealed class InjLotRepository
         return list;
     }
 
-    /// <summary>
-    /// 라인의 미확정 LOT(RAW+NG_BLOCKED) 수를 품번별로 집계 — InjMain 투입(INPUT) 표시용.
-    /// 미확정 LOT 은 WoID 가 NULL 이라(확정 시점에 채워짐) WO 귀속은 호출측이 품번으로 한다.
-    /// </summary>
-    public Dictionary<string, int> GetUnconfirmedCountByItem(string lineId)
-    {
-        const string sql = """
-            SELECT l.ItemNo, COUNT(*) AS Cnt
-            FROM   dbo.tbl_Lot l
-            JOIN   dbo.PR_InjLot e ON e.LotID = l.LotID
-            WHERE  l.LineID = @Line AND e.ConfirmStatus IN ('RAW','NG_BLOCKED')
-            GROUP  BY l.ItemNo;
-            """;
-        using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
-        using var rdr = cmd.ExecuteReader();
-        var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        while (rdr.Read())
-            map[(string)rdr["ItemNo"]] = Convert.ToInt32(rdr["Cnt"]);
-        return map;
-    }
-
     /// <summary>Inj05 로봇 NG 목록 — 수동 불량 확정 대기.</summary>
     public List<InjLotDto> GetNgBlocked(string lineId)
     {
@@ -536,14 +513,8 @@ public sealed class InjLotRepository
                 SELECT TOP 1 r.WoID, r.RoutingLineID
                 FROM   dbo.PP_WorkOrderRouting r WITH (UPDLOCK, ROWLOCK)
                 JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
-                WHERE  r.LineID = @Line AND w.ItemNo = @Item
-                  AND  r.Status IN ('Released','In Progress')
-                  AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
-                ORDER  BY CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
-                          ISNULL(w.Priority,5),
-                          ISNULL(w.DueDate,'9999-12-31'),
-                          w.WoID;
-                """, conn, tx))
+
+                """ + WorkOrderRepository.OpenStepForItemFilter + ";", conn, tx))
             {
                 cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
                 cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
@@ -706,5 +677,109 @@ public sealed class InjLotRepository
         using var rdr = cmd.ExecuteReader();
         if (!rdr.Read()) return (0, 0, 0);
         return (Convert.ToInt32(rdr["TodayShots"]), Convert.ToInt32(rdr["RawCount"]), Convert.ToInt32(rdr["NgBlocked"]));
+    }
+
+    /// <summary>
+    /// INJ-MAIN 좌측 패널: 스테이션 BOP 품번 ∪ 오늘 실적/일정이 있는 품번의 당일 현황.
+    /// 모든 LOT 수치는 LOT 생성일이 오늘인 것만 센다 — 확정 시각 기준으로 하면
+    /// 어제 생성·오늘 확정 LOT 이 INPUT 과 FINAL 에 다른 날로 잡혀 항등식이 깨진다.
+    /// 로봇 NG 는 상태(NG_BLOCKED/NG_CONFIRMED)로만 세고 PR_DefectDetail 은 LotID 없는
+    /// 수동 등록분만 더한다 — NG 확정은 둘 다 남기므로 같이 더하면 이중 계상.
+    /// </summary>
+    public List<InjItemDailyDto> GetDailyItemSummary(string lineId, string stationCode)
+    {
+        const string sql = """
+            DECLARE @Today date = CAST(SYSDATETIME() AS date);
+
+            WITH bop AS (
+                SELECT DISTINCT b.ItemNo
+                FROM   dbo.MD_Bop b
+                WHERE  b.StationCode = @Station AND ISNULL(b.ActiveFlag,1) = 1
+            ),
+            sched AS (
+                SELECT w.ItemNo, SUM(ISNULL(s.PlannedQty,0)) AS PlanQty
+                FROM   dbo.PP_LineSchedule s
+                JOIN   dbo.PP_WorkOrder    w ON w.WoID = s.WoID
+                WHERE  s.LineID = @Line AND s.ScheduleDate = @Today AND s.EntryType = 'WO'
+                GROUP  BY w.ItemNo
+            ),
+            lots AS (
+                SELECT l.ItemNo,
+                       COUNT(*)                                                                    AS InputQty,
+                       SUM(CASE WHEN e.ConfirmStatus = 'CONFIRMED' THEN 1 ELSE 0 END)              AS ConfirmedQty,
+                       SUM(CASE WHEN e.ConfirmStatus IN ('NG_BLOCKED','NG_CONFIRMED') THEN 1 ELSE 0 END) AS NgLotQty,
+                       SUM(CASE WHEN e.ConfirmStatus = 'RAW' THEN 1 ELSE 0 END)                    AS PendingQty
+                FROM   dbo.tbl_Lot   l
+                JOIN   dbo.PR_InjLot e ON e.LotID = l.LotID
+                WHERE  l.LineID = @Line
+                  AND  l.CreatedTS >= @Today AND l.CreatedTS < DATEADD(day, 1, @Today)
+                GROUP  BY l.ItemNo
+            ),
+            manual AS (
+                SELECT w.ItemNo, SUM(ISNULL(d.Qty,0)) AS ManualDefect
+                FROM   dbo.PR_DefectDetail d
+                JOIN   dbo.PP_WorkOrder    w ON w.WoID = d.WoID
+                WHERE  d.LotID IS NULL
+                  AND  d.ProcessCode = 'INJ'
+                  AND  CAST(d.DetectedAt AS date) = @Today
+                  AND  EXISTS (SELECT 1 FROM dbo.PP_WorkOrderRouting r
+                               WHERE  r.WoID = w.WoID AND r.LineID = @Line)
+                GROUP  BY w.ItemNo
+            ),
+            itemkeys AS (
+                SELECT ItemNo FROM bop
+                UNION SELECT ItemNo FROM sched
+                UNION SELECT ItemNo FROM lots
+                UNION SELECT ItemNo FROM manual
+            )
+            SELECT k.ItemNo,
+                   COALESCE(i.ItemName, N'')  AS ItemName,
+                   ISNULL(p.PlanQty, 0)       AS PlanQty,
+                   ISNULL(t.InputQty, 0)      AS InputQty,
+                   ISNULL(t.ConfirmedQty, 0)  AS ConfirmedQty,
+                   ISNULL(t.NgLotQty, 0)      AS NgLotQty,
+                   ISNULL(t.PendingQty, 0)    AS PendingQty,
+                   ISNULL(m.ManualDefect, 0)  AS ManualDefect,
+                   CASE WHEN b.ItemNo IS NULL THEN 0 ELSE 1 END AS InBop,
+                   CASE WHEN EXISTS (
+                        SELECT 1
+                        FROM   dbo.PP_WorkOrderRouting r
+                        JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
+                        WHERE  r.LineID = @Line AND w.ItemNo = k.ItemNo
+                          AND  r.Status IN ('Released','In Progress')
+                          AND  ISNULL(w.Status,'Draft') <> 'Cancelled') THEN 1 ELSE 0 END AS HasOpenWo
+            FROM   itemkeys k
+            LEFT JOIN dbo.MD_Item i ON i.ItemNo = k.ItemNo
+            LEFT JOIN bop    b ON b.ItemNo = k.ItemNo
+            LEFT JOIN sched  p ON p.ItemNo = k.ItemNo
+            LEFT JOIN lots   t ON t.ItemNo = k.ItemNo
+            LEFT JOIN manual m ON m.ItemNo = k.ItemNo
+            ORDER  BY InBop DESC, k.ItemNo;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Line",    SqlDbType.VarChar, 20).Value = lineId;
+        cmd.Parameters.Add("@Station", SqlDbType.VarChar, 20).Value = stationCode;
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<InjItemDailyDto>();
+        while (rdr.Read())
+        {
+            var confirmed = Convert.ToInt32(rdr["ConfirmedQty"]);
+            var ngLots    = Convert.ToInt32(rdr["NgLotQty"]);
+            var manual    = Convert.ToInt32(rdr["ManualDefect"]);
+            list.Add(new InjItemDailyDto
+            {
+                ItemNo     = (string)rdr["ItemNo"],
+                ItemName   = (string)rdr["ItemName"],
+                PlanQty    = Convert.ToDecimal(rdr["PlanQty"]),
+                InputQty   = Convert.ToInt32(rdr["InputQty"]),
+                NgQty      = ngLots + manual,
+                FinalQty   = Math.Max(0, confirmed - manual),
+                PendingQty = Convert.ToInt32(rdr["PendingQty"]),
+                InBop      = Convert.ToInt32(rdr["InBop"]) == 1,
+                HasOpenWo  = Convert.ToInt32(rdr["HasOpenWo"]) == 1,
+            });
+        }
+        return list;
     }
 }

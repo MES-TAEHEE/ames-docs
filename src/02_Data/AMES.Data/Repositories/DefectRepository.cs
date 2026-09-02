@@ -43,7 +43,9 @@ public sealed class DefectRepository
         return list;
     }
 
-    /// <summary>Inserts one PR_DefectDetail row.</summary>
+    /// <summary>Inserts one PR_DefectDetail row. `processCode` is the reporting module (INJ/IMG/...) — callers must
+    /// pass their own module code so per-process readers (e.g. InjLotRepository.GetDailyItemSummary) don't leak
+    /// other modules' manual defects.</summary>
     public int RecordDefect(
         int     resultId,
         int     woId,
@@ -52,6 +54,7 @@ public sealed class DefectRepository
         int     qty,
         string  operatorId,
         string  employeeNo,
+        string  processCode,
         string? note = null)
     {
         const string sql = """
@@ -60,13 +63,14 @@ public sealed class DefectRepository
                  ReasonNote, DetectedAt, RegisteredBy, CreatedBy, CreatedTS)
             OUTPUT INSERTED.DefectID
             VALUES
-                (@R, @W, @L, 'INJ', @C, @Q, @N, SYSDATETIME(), @Op, @By, SYSDATETIME());
+                (@R, @W, @L, @P, @C, @Q, @N, SYSDATETIME(), @Op, @By, SYSDATETIME());
             """;
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@R",  SqlDbType.Int).Value = resultId;
         cmd.Parameters.Add("@W",  SqlDbType.Int).Value = woId;
         cmd.Parameters.Add("@L",  SqlDbType.Int).Value = (object?)lotId ?? DBNull.Value;
+        cmd.Parameters.Add("@P",  SqlDbType.VarChar,  10 ).Value = processCode;
         cmd.Parameters.Add("@C",  SqlDbType.VarChar,  16 ).Value = defectCode;
         cmd.Parameters.Add("@Q",  SqlDbType.Int           ).Value = qty;
         cmd.Parameters.Add("@N",  SqlDbType.NVarChar, 500 ).Value = (object?)note ?? DBNull.Value;

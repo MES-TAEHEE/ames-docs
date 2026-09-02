@@ -1679,6 +1679,13 @@ body {
     font-family: 'JetBrains Mono', monospace; font-size: 11px;
     font-weight: 700; letter-spacing: .5px; vertical-align: middle;
 }
+.injm-dim-badge {
+    display: inline-flex; align-items: center;
+    margin-left: 8px; padding: 2px 8px; border-radius: 999px;
+    background: rgba(255, 255, 255, .10); color: rgba(255, 255, 255, .55);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    font-weight: 700; letter-spacing: .5px; vertical-align: middle;
+}
 .injm-tbl .mono { font-family: 'JetBrains Mono', monospace; }
 .injm-tbl .ok   { color: var(--ok); }
 .injm-tbl .bad  { color: var(--alert); }

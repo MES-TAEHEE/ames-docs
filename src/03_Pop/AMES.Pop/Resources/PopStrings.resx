@@ -4,7 +4,6 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
-  <data name="AcceptWo" xml:space="preserve"><value>접수 확정</value></data>
   <data name="AckSupervisorPinAutoAccept" xml:space="preserve"><value>확인 (관리자 핀 번호 — 자동 승인)</value></data>
   <data name="Acked" xml:space="preserve"><value>확인됨</value></data>
   <data name="Active" xml:space="preserve"><value>발동 중</value></data>
@@ -60,7 +59,6 @@
   <data name="Good" xml:space="preserve"><value>양품</value></data>
   <data name="Hard" xml:space="preserve"><value>한계</value></data>
   <data name="HardStop" xml:space="preserve"><value>⛔ 110% — 강제 정지</value></data>
-  <data name="High" xml:space="preserve"><value>긴급</value></data>
   <data name="High2" xml:space="preserve"><value>높음</value></data>
   <data name="HourlyOutput" xml:space="preserve"><value>시간별 생산</value></data>
   <data name="HourlyOutputTarget18H" xml:space="preserve"><value>시간별 생산 (목표 18/h)</value></data>
@@ -88,13 +86,10 @@
   <data name="ManualLotsCreated" xml:space="preserve"><value>LOT {0}건 발행 — 라벨은 곧 출력됩니다. 스캔하면 실적 확정</value></data>
   <data name="ScanIssuedLabelsToConfirm" xml:space="preserve"><value>발행된 라벨을 스캔해야 실적이 확정됩니다</value></data>
   <data name="ManualSaved" xml:space="preserve"><value>수동 실적 {0}개 등록</value></data>
-  <data name="MaterialLotAvailableWithinExpiry" xml:space="preserve"><value>2. 자재 LOT 준비 + 유효기간 이내</value></data>
   <data name="Mold" xml:space="preserve"><value>금형</value></data>
-  <data name="Mold2" xml:space="preserve"><value>금형</value></data>
   <data name="MoldAvailable" xml:space="preserve"><value>사용 가능</value></data>
   <data name="MoldMaintenance" xml:space="preserve"><value>정비 중</value></data>
   <data name="MoldMounted" xml:space="preserve"><value>장착됨</value></data>
-  <data name="MoldMountedMatchesWoRouting" xml:space="preserve"><value>1. 장착 금형이 WO 라우팅과 일치</value></data>
   <data name="MoldShotCount" xml:space="preserve"><value>금형 타수</value></data>
   <data name="MountedOn" xml:space="preserve"><value>장착 설비</value></data>
   <data name="Name" xml:space="preserve"><value>라인명</value></data>
@@ -106,15 +101,13 @@
   <data name="NgLotFixedAt1" xml:space="preserve"><value>(불량 로트: 1 고정)</value></data>
   <data name="NoActiveAndonTapRaiseToHaltTheLineManual" xml:space="preserve"><value>발동 중인 안돈 없음 — 라인을 수동 정지하려면 발동 버튼을 누르세요.</value></data>
   <data name="NoActiveWo" xml:space="preserve"><value>(활성 WO 없음)</value></data>
-  <data name="NoActiveWorkOrderAcceptAWoFirst" xml:space="preserve"><value>활성 작업지시가 없습니다 — WO 접수를 먼저 진행하세요.</value></data>
+  <data name="NoActiveWorkOrderAcceptAWoFirst" xml:space="preserve"><value>활성 작업지시가 없습니다 — 열린 WO가 있는 품번을 먼저 선택하세요</value></data>
   <data name="NoChangeInProgress" xml:space="preserve"><value>진행 중인 교체 없음</value></data>
   <data name="NoOpenWoForThisPart" xml:space="preserve"><value>이 품번의 접수 가능한 작업지시가 없습니다</value></data>
   <data name="NoManualRegisteredForThisScreen" xml:space="preserve"><value>이 화면에 등록된 설명서가 없습니다.</value></data>
   <data name="NoMoldMountedOnThisLine" xml:space="preserve"><value>이 라인에 장착된 금형이 없습니다.</value></data>
-  <data name="NoReleasedWosForThisLinePpPlannerNeedsTo" xml:space="preserve"><value>이 라인에 배포된 작업지시가 없습니다 — 생산계획에서 작업지시를 먼저 배포하세요.</value></data>
   <data name="NoScansYet" xml:space="preserve"><value>스캔 이력 없음</value></data>
   <data name="NoUnconfirmedLotsAgentCollectedShotsWill" xml:space="preserve"><value>미확정 로트 없음 — 에이전트가 샷을 수집하면 여기 표시됩니다.</value></data>
-  <data name="Normal" xml:space="preserve"><value>일반</value></data>
   <data name="Ok" xml:space="preserve"><value>정상</value></data>
   <data name="OkWithinRatedLife" xml:space="preserve"><value>● 정상 · 정격 수명 이내</value></data>
   <data name="OneRowPerCycle" xml:space="preserve"><value>1 사이클당 1 행 입력</value></data>
@@ -122,10 +115,8 @@
   <data name="Operator" xml:space="preserve"><value>작업자</value></data>
   <data name="OrEnterPin" xml:space="preserve"><value>또는 핀 번호 입력</value></data>
   <data name="PartNo" xml:space="preserve"><value>품번</value></data>
-  <data name="Phase0MasterDataCompleteBrMd04" xml:space="preserve"><value>5. Phase-0 마스터 데이터 완비 (BR-MD-04)</value></data>
   <data name="PinMustBe4Digits" xml:space="preserve"><value>핀 번호 4자리를 입력하세요</value></data>
   <data name="Plan" xml:space="preserve"><value>계획</value></data>
-  <data name="PreStartChecklist" xml:space="preserve"><value>사전 점검 체크리스트</value></data>
   <data name="ProductionEntry" xml:space="preserve"><value>생산 등록</value></data>
   <data name="ProductionHaltedSupervisorPinRequiredToA" xml:space="preserve"><value>생산 정지 — 확인에는 관리자 핀 번호가 필요합니다.</value></data>
   <data name="ProductionStatusSupervisorView" xml:space="preserve"><value>생산 현황 (관리자 뷰)</value></data>
@@ -134,8 +125,6 @@
   <data name="Raw" xml:space="preserve"><value>미확정</value></data>
   <data name="Raw2" xml:space="preserve"><value>미확정</value></data>
   <data name="Ready" xml:space="preserve"><value>대기</value></data>
-  <data name="Recipe" xml:space="preserve"><value>레시피</value></data>
-  <data name="RecipeLoadedIntoPlcPressureTempTime" xml:space="preserve"><value>3. 레시피 적용 완료 (압력/온도/시간)</value></data>
   <data name="ReplacementMold" xml:space="preserve"><value>교체 금형</value></data>
   <data name="Reprint" xml:space="preserve"><value>재출력</value></data>
   <data name="ReprintFailed" xml:space="preserve"><value>재출력 실패</value></data>
@@ -145,12 +134,10 @@
   <data name="Routing" xml:space="preserve"><value>라우팅</value></data>
   <data name="Run" xml:space="preserve"><value>가동</value></data>
   <data name="Running" xml:space="preserve"><value>가동 중</value></data>
-  <data name="SafetyGuardsClosedInterlockOk" xml:space="preserve"><value>4. 안전 가드 닫힘 + 인터록 정상</value></data>
   <data name="ScanEmployeeBadge" xml:space="preserve"><value>사원증 스캔</value></data>
   <data name="ScanHistoryToday" xml:space="preserve"><value>스캔 이력 · 금일</value></data>
   <data name="ScanYourBadgeOrEnterYourPin" xml:space="preserve"><value>사원증을 스캔하거나 핀 번호를 입력하세요</value></data>
   <data name="SecShot" xml:space="preserve"><value>초/샷</value></data>
-  <data name="SelectAWorkOrderFromTheListFirst" xml:space="preserve"><value>접수할 작업지시를 먼저 왼쪽 목록에서 선택하세요.</value></data>
   <data name="SelectReplacement" xml:space="preserve"><value>교체 금형 선택</value></data>
   <data name="SelectUser" xml:space="preserve"><value>사용자 선택</value></data>
   <data name="SelectedUser" xml:space="preserve"><value>{0} 선택됨</value></data>
@@ -171,14 +158,12 @@
   <data name="SupervisorAcknowledged30SSafetyHoldBefor" xml:space="preserve"><value>관리자 확인 완료 — 재가동 전 30초 안전 대기.</value></data>
   <data name="SupervisorCalled" xml:space="preserve"><value>관리자 호출됨</value></data>
   <data name="TapToSwitchUser" xml:space="preserve"><value>눌러서 사용자 변경</value></data>
-  <data name="TargetQty" xml:space="preserve"><value>목표 수량</value></data>
   <data name="Time" xml:space="preserve"><value>시각</value></data>
   <data name="Today" xml:space="preserve"><value>금일</value></data>
   <data name="TodayAcrossAllInjLines" xml:space="preserve"><value>전체 INJ 라인 금일 합계</value></data>
   <data name="TodayDefect" xml:space="preserve"><value>금일 불량</value></data>
   <data name="TodayGood" xml:space="preserve"><value>금일 양품</value></data>
   <data name="TodayShotsPlc" xml:space="preserve"><value>금일 샷 (PLC)</value></data>
-  <data name="Total" xml:space="preserve"><value>합계</value></data>
   <data name="Total2" xml:space="preserve"><value>누적</value></data>
   <data name="Unconfirmed" xml:space="preserve"><value>미확정</value></data>
   <data name="UnconfirmedLotsNewestFirst" xml:space="preserve"><value>미확정 로트 · 최신순</value></data>
@@ -186,18 +171,15 @@
   <data name="UserGuide" xml:space="preserve"><value>사용 설명서</value></data>
   <data name="Warn" xml:space="preserve"><value>주의</value></data>
   <data name="WelcomeUser" xml:space="preserve"><value>확인 · 환영합니다, {0}</value></data>
-  <data name="Wo" xml:space="preserve"><value>지시번호</value></data>
-  <data name="Wo2" xml:space="preserve"><value>작업지시</value></data>
   <data name="WoCancelled" xml:space="preserve"><value>취소</value></data>
   <data name="WoClosed" xml:space="preserve"><value>마감</value></data>
-  <data name="WoConfirmPreStartChecklist" xml:space="preserve"><value>작업지시 접수 · 사전 점검</value></data>
-  <data name="WoActiveNow" xml:space="preserve"><value>가동중</value></data>
   <data name="WoInProgress" xml:space="preserve"><value>진행 중</value></data>
   <data name="WoPlanned" xml:space="preserve"><value>계획</value></data>
   <data name="WoProgress" xml:space="preserve"><value>작업지시 진행</value></data>
   <data name="WoReleased" xml:space="preserve"><value>배포됨</value></data>
-  <data name="WorkOrder" xml:space="preserve"><value>작업지시</value></data>
-  <data name="WorkOrderAccepted" xml:space="preserve"><value>작업지시 접수 완료</value></data>
+  <data name="NotInBop" xml:space="preserve"><value>미등록</value></data>
+  <data name="NoOpenWo" xml:space="preserve"><value>WO 없음</value></data>
+  <data name="NoBopItemsForStation" xml:space="preserve"><value>이 스테이션에 등록된 BOP 품번이 없습니다 — 기준정보 MD-005 에서 등록하세요</value></data>
   <data name="NoLinesRegistered" xml:space="preserve"><value>등록된 라인이 없습니다 — 관리자에게 문의하세요</value></data>
   <data name="SelectLine" xml:space="preserve"><value>라인 선택</value></data>
   <data name="SelectStation" xml:space="preserve"><value>스테이션 선택</value></data>
@@ -205,5 +187,4 @@
   <data name="NoStationsRegistered" xml:space="preserve"><value>이 라인에 등록된 스테이션이 없습니다 — 관리자에게 문의하세요</value></data>
   <data name="MasterLoadFailed" xml:space="preserve"><value>기준정보 조회 실패: {0}</value></data>
   <data name="Retry" xml:space="preserve"><value>재시도</value></data>
-  <data name="AcceptWoNoStep" xml:space="preserve"><value>접수할 공정 단계가 없습니다. 작업지시 목록을 새로고침하세요.</value></data>
 </root>
