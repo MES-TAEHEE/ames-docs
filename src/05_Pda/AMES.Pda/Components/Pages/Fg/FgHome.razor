@@ -13,22 +13,25 @@
     <div class="pda-bd">
         <div class="pda-tile-grid wh-home-grid">
             <button class="pda-tile sm wh-home-tile schedule" @onclick='@(() => Nav.NavigateTo("/fg/01"))'>
-                <span class="wh-home-tile-ic"><RadzenIcon Icon="fact_check" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">QC Waiting</div><div class="pda-tile-sub">QC-passed goods waiting for storage</div></div><span class="wh-home-tile-go">&gt;</span>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="fact_check" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">QC Waiting</div></div><span class="wh-home-tile-go">&gt;</span>
             </button>
             <button class="pda-tile sm wh-home-tile inbound" @onclick='@(() => Nav.NavigateTo("/fg/02"))'>
-                <span class="wh-home-tile-ic"><RadzenIcon Icon="move_to_inbox" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">Put-Away</div><div class="pda-tile-sub">Store completed FG LOTs</div></div><span class="wh-home-tile-go">&gt;</span>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="move_to_inbox" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">Put-Away</div></div><span class="wh-home-tile-go">&gt;</span>
             </button>
             <button class="pda-tile sm wh-home-tile inventory" @onclick='@(() => Nav.NavigateTo("/fg/03"))'>
-                <span class="wh-home-tile-ic"><RadzenIcon Icon="inventory_2" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">Inventory</div><div class="pda-tile-sub">Search finished goods stock</div></div><span class="wh-home-tile-go">&gt;</span>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="inventory_2" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">Inventory</div></div><span class="wh-home-tile-go">&gt;</span>
+            </button>
+            <button class="pda-tile sm wh-home-tile adjust" @onclick='@(() => Nav.NavigateTo("/fg/adjust"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="tune" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">Adjust</div></div><span class="wh-home-tile-go">&gt;</span>
             </button>
             <button class="pda-tile sm wh-home-tile release" @onclick='@(() => Nav.NavigateTo("/fg/04"))'>
-                <span class="wh-home-tile-ic"><RadzenIcon Icon="shopping_cart_checkout" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">Release Picking</div><div class="pda-tile-sub">Pick FG for shipment orders</div></div><span class="wh-home-tile-go">&gt;</span>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="shopping_cart_checkout" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">Release Picking</div></div><span class="wh-home-tile-go">&gt;</span>
             </button>
             <button class="pda-tile sm wh-home-tile adjust" @onclick='@(() => Nav.NavigateTo("/fg/05"))'>
-                <span class="wh-home-tile-ic"><RadzenIcon Icon="local_shipping" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">Truck Loading</div><div class="pda-tile-sub">Confirm outbound loading</div></div><span class="wh-home-tile-go">&gt;</span>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="local_shipping" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">Truck Loading</div></div><span class="wh-home-tile-go">&gt;</span>
             </button>
             <button class="pda-tile sm wh-home-tile transactions" @onclick='@(() => Nav.NavigateTo("/fg/06"))'>
-                <span class="wh-home-tile-ic"><RadzenIcon Icon="assignment_return" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">Customer Return</div><div class="pda-tile-sub">Receive returned finished goods</div></div><span class="wh-home-tile-go">&gt;</span>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="assignment_return" /></span><div class="wh-home-tile-copy"><div class="pda-tile-cap">Customer Return</div></div><span class="wh-home-tile-go">&gt;</span>
             </button>
         </div>
     </div>
