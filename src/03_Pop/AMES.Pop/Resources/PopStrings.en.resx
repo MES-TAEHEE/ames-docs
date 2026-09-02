@@ -180,6 +180,8 @@
   <data name="NotInBop" xml:space="preserve"><value>NOT IN BOP</value></data>
   <data name="NoOpenWo" xml:space="preserve"><value>NO WO</value></data>
   <data name="NoBopItemsForStation" xml:space="preserve"><value>No BOP items for this station — register them in MD-005</value></data>
+  <data name="DataRefreshFailed" xml:space="preserve"><value>Data refresh failed {0}</value></data>
+  <data name="HelpInjMainSub" xml:space="preserve"><value>Select a part, scan the label to confirm — no work-order acceptance</value></data>
   <data name="NoLinesRegistered" xml:space="preserve"><value>No lines registered — contact an administrator</value></data>
   <data name="SelectLine" xml:space="preserve"><value>SELECT LINE</value></data>
   <data name="SelectStation" xml:space="preserve"><value>SELECT STATION</value></data>

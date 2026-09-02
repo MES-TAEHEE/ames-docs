@@ -24,7 +24,7 @@
             <span>@Session?.EmployeeName · @PopLang.Shift(Session?.ShiftCode ?? "")</span>
             <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
             <button class="injm-lang-btn" @onclick="ToggleLang">@(PopLang.IsKo ? "EN" : "한국어")</button>
-            <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.Inj04Help))" />
+            <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.InjMainHelp))" />
             <button class="injm-logout-btn" @onclick="Logout">⏻ @T("Logout")</button>
         </div>
     </div>
@@ -35,6 +35,10 @@
             @* ── 좌측: 스테이션 품번 당일 현황 ─────────────────────── *@
             <div class="pop-card injm-left">
                 <div class="pop-card-h">▼ @T("PartNo") · @_now.ToString("yyyy-MM-dd") · @Session?.TerminalId</div>
+                @if (_refreshError is not null)
+                {
+                    <div class="injm-refresh-err">⚠ @T("DataRefreshFailed", _refreshErrorAt.ToString("HH:mm:ss")) — @_refreshError</div>
+                }
                 <div class="injm-tbl-wrap">
                     <table class="injm-tbl">
                         <thead>
@@ -68,7 +72,7 @@
                                 <td class="ok">@it.FinalQty</td>
                             </tr>
                         }
-                        @if (_items.Count == 0)
+                        @if (_items.Count == 0 && _refreshError is null)
                         {
                             <tr><td colspan="5" style="padding:28px; color:rgba(255,255,255,.4); text-align:center; font-size:20px;">
                                 @T("NoBopItemsForStation")
@@ -210,6 +214,8 @@
     private string _defectPct = "0.0%", _defClass = "ok";
     private string _moldText = "—", _moldClass = "ok";
     private string _eqStatus = "OFFLINE", _eqClass = "stat-off";
+    private string?  _refreshError;
+    private DateTime _refreshErrorAt;
 
     private string _bannerClass = "idle", _bannerDetail = "";
     private string BannerTitle => _bannerClass switch
@@ -291,8 +297,16 @@
             var eq = PopServices.Equipment.GetPrimaryForLine(Session.LineId);
             _eqStatus = (eq?.Status ?? "OFFLINE").ToUpperInvariant();
             _eqClass  = _eqStatus is "RUN" or "IDLE" ? "stat-on" : "stat-off";
+            _refreshError = null;
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[InjMain refresh] {ex.Message}"); }
+        catch (Exception ex)
+        {
+            // 스캔 결과 배너는 건드리지 않는다 — 5초마다 덮어쓰면 방금 스캔한 결과가 사라진다.
+            // 직전 목록은 그대로 두고 좌측 헤더 아래 스트립으로만 알린다.
+            _refreshError   = ex.Message;
+            _refreshErrorAt = DateTime.Now;
+            System.Diagnostics.Debug.WriteLine($"[InjMain refresh] {ex.Message}");
+        }
     }
 
     private void SelectItem(InjItemDailyDto it)
