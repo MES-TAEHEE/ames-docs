@@ -7,8 +7,12 @@
 공장 터미널(POP), 핸디 스캐너(PDA), 사무실 포탈(Web), REST API로 구성된 다중 클라이언트 시스템.
 
 - **회사**: Seyon (한국 자동차 부품사)
-- **DB**: `AMES_DEV` @ SQL Server 2022 (`localhost`, mixed-mode auth, user `ames_app`) — **콜레이션 `Korean_Wansung_CI_AS`**
-- **솔루션**: `src/AMES.sln` (Visual Studio 2022)
+- **DB**: `AMES_DEV` @ SQL Server 2022, mixed-mode auth, user `ames_app` — **콜레이션 `Korean_Wansung_CI_AS`**
+  - 기본(개발서버): `192.168.2.137` — 소스의 모든 활성 접속문자열이 여기를 가리킨다
+  - 비상용(로컬): `localhost\MSSQLSERVER01` — **명명 인스턴스**다. 개발서버가 죽었을 때만 쓰며, 개발서버와 동일하게 유지한다
+  - **`Connect Timeout=30` 을 낮추지 말 것.** 5로 두면 원격 + `Encrypt=True` 의 TLS 사전 로그인 핸드셰이크(실측 5초 초과)에 걸려 연결이 끊긴다. TCP 1433 은 열려 있어서 오진하기 쉽다
+  - 전환은 파일 수정이 아니라 환경변수 `ConnectionStrings__AMES` 오버라이드로 한다
+- **솔루션**: `src/AMES.sln` (Visual Studio 2022) — 11개 프로젝트
 
 ---
 
@@ -24,13 +28,18 @@
 06_Web/AMES.Web            ← Blazor Server + ASP.NET Identity, 사무실 포탈 (net10.0)
 07_Etc/AMES.InjAgent       ← WinForms 상주 에이전트, 사출기 Modbus/취출로봇 FEnet 수집 (net10.0-windows)
                               ※ 라벨 발행은 하지 않는다 — AMES.Pop 의 LabelDispatcher 담당
+08_Tablet/AMES.Tablet      ← .NET MAUI Blazor Hybrid, 현장 태블릿 (net10.0-android/maccatalyst/windows)
+                              ※ 현재 스캐폴드 단계 (Home/NotFound 만 존재), Data 직접 참조
+
+03_Pop/AMES.Pop.Tests      ← 테스트
+07_Etc/AMES.InjAgent.Tests ← 테스트
 ```
 
 ### 의존성 방향
 ```
-Pop / Web / Pda  →  Data  →  Contracts
-Api              →  Data  →  Contracts
-Pda              →  Api (HTTP)
+Pop / Web / Pda / Tablet  →  Data  →  Contracts
+Api                       →  Data  →  Contracts
+Pda                       →  Api (HTTP)
 ```
 
 ---
@@ -71,6 +80,40 @@ dotnet run --project src\07_Etc\AMES.InjAgent\AMES.InjAgent.csproj
 
 **DB 전제조건**: ① `dist/create_database.sql`로 `AMES_DEV`를 **`COLLATE Korean_Wansung_CI_AS`**로 생성 → ② `dist/AMES_Schema.sql`(149개 테이블) 적용 후 실행. (스키마는 컬럼 COLLATE 미지정이라 DB 기본 콜레이션을 상속 — DB를 Korean으로 먼저 만들어야 함)
 
+**솔루션 전체 빌드는 6~16분 걸린다**(MAUI: Pda, Tablet). **두 개를 동시에 돌리면 `NETSDK1047`·`MSB3061` 가짜 실패**가 나므로 순차 실행할 것.
+
+---
+
+## AMES.Web 배포
+
+로컬 IIS(`w3wp`)로 구동된다. `dotnet run`/IIS Express 아님.
+
+```powershell
+tools\publish-web.ps1                               # 개발서버 복사용 패키지 → publish\AMES.Web
+tools\publish-web.ps1 -Zip                          # + zip
+tools\publish-web.ps1 -Target Local                 # 로컬 IIS 반영 (개발서버 DB)
+tools\publish-web.ps1 -Target Local -DbTarget Local # 로컬 IIS 반영 (비상: 로컬 DB)
+```
+
+- **라이브 IIS 폴더로 직접 게시하면 반드시 실패한다** — `w3wp`가 `AMES.Web.dll`을 잡고 있다.
+  `-Target Local`은 `app_offline.htm`을 먼저 떨궈 ANCM이 앱을 내리게 하므로 잠금이 풀리고 관리자 권한도 필요 없다.
+- `**/Properties/PublishProfiles/`는 gitignore 대상 → 게시 프로필 수정은 그 PC에만 적용된다.
+- `dotnet publish` CLI는 pubxml의 `PublishUrl`을 무시한다(VS 전용). `-o`로 지정할 것.
+
+**앱풀 필수 설정** (`loadUserProfile` 뿐 아니라 **`setProfileEnvironment` 도** 켜야 한다. 후자는 IIS 관리자 UI에 없다):
+
+```powershell
+appcmd set apppool "AMES.Web" /processModel.loadUserProfile:true /processModel.setProfileEnvironment:true
+```
+
+끄면 Data Protection이 ephemeral 키를 써서 **앱풀 재활용마다 로그인 사용자가 전원 로그아웃**된다.
+`dist/setup-iis.ps1`에는 이 두 설정이 빠져 있으니 그 스크립트로 구성한 서버는 따로 적용해야 한다.
+
+**서버 반영 절차**: ① 앱풀 중지 또는 `app_offline.htm` 배치 → ② `publish\AMES.Web\*` 덮어쓰기 → ③ `app_offline.htm` 제거 / 앱풀 시작.
+서버 사전 조건은 **ASP.NET Core 10 Hosting Bundle**(9.x만 있으면 HTTP 500.31), 앱풀 "관리 코드 없음", 배포 폴더에 앱풀 계정 읽기/실행 권한.
+
+장애 원인은 **이벤트 뷰어 > 응용 프로그램 > `IIS AspNetCore Module V2`** 가 가장 확실하다. `web.config`의 stdout 로그는 `logs` 폴더 쓰기 권한이 없으면 조용히 실패한다.
+
 ---
 
 ## 구현된 화면 목록
@@ -83,8 +126,8 @@ dotnet run --project src\07_Etc\AMES.InjAgent\AMES.InjAgent.csproj
 | 화면 ID | 파일 | 설명 |
 |---------|------|------|
 | Login | `Pages/Login.razor` | PIN 인증, 사원 선택 |
-| INJ-MAIN | `Pages/InjMain.razor` | **통합 작업 화면** (기본 진입점) — WO 그리드 + 스캔 실적확정 + 하단 기능 버튼 |
-| (팝업) | `Pages/InjPopups/WoConfirmPopup.razor` | 작업지시 접수 (구 INJ-03) |
+| INJ-MAIN | `Pages/InjMain.razor` | **통합 작업 화면** (기본 진입점) — WO 그리드 + 스캔 실적확정 + 우측 패널 기능 버튼 (하단바 없음, 로그아웃은 상단바) |
+| (팝업) | `Pages/InjPopups/WoConfirmPopup.razor` | 작업지시 접수 (구 INJ-03) — WO 행 단일 클릭으로 열림, 사전점검 체크리스트는 선택 |
 | (팝업) | `Pages/InjPopups/ManualEntryPopup.razor` | 수동 실적 입력 (구 INJ-04 키패드) |
 | (팝업) | `Pages/InjPopups/DefectPopup.razor` | 불량 입력 (구 INJ-05) |
 | (팝업) | `Pages/InjPopups/AndonPopup.razor` | 안돈 — 전체 화면 오버레이 (구 INJ-08) |
