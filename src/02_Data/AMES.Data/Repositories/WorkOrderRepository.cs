@@ -326,7 +326,8 @@ public sealed class WorkOrderRepository
                    (WoNumber, ItemNo, OrderQty, OpenQty, DueDate, RoutingType, Status, CreatedBy, CreatedTS)
             SELECT @Wo, i.ItemNo, @Qty, @Qty, @Due, i.RoutingType, 'Draft', @Actor, SYSDATETIME()
             FROM   dbo.MD_Item i
-            WHERE  i.ItemNo = @ItemNo;
+            WHERE  i.ItemNo = @ItemNo
+              AND  i.RoutingType IS NOT NULL;
             """;
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();

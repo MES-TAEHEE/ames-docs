@@ -5295,4 +5295,10 @@
   <data name="PP.LineSchedule.Msg.BandFull" xml:space="preserve">
     <value>이 가동 시간대는 이미 가득 찼습니다.</value>
   </data>
+  <data name="PP.PlanConfirm.Status.NoRouting" xml:space="preserve">
+    <value>라우팅 미지정</value>
+  </data>
+  <data name="PP.WorkOrder.Err.NoRouting" xml:space="preserve">
+    <value>선택한 품목에 라우팅이 지정되지 않아 작업지시를 생성할 수 없습니다. 품목마스터에서 라우팅을 지정하세요.</value>
+  </data>
 </root>

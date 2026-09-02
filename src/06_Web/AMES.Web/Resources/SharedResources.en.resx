@@ -5295,4 +5295,10 @@
   <data name="PP.LineSchedule.Msg.BandFull" xml:space="preserve">
     <value>This operating band is already full.</value>
   </data>
+  <data name="PP.PlanConfirm.Status.NoRouting" xml:space="preserve">
+    <value>Routing Not Set</value>
+  </data>
+  <data name="PP.WorkOrder.Err.NoRouting" xml:space="preserve">
+    <value>The selected part has no routing, so a work order cannot be created. Set the routing in the part master.</value>
+  </data>
 </root>

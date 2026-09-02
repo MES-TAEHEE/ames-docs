@@ -42,10 +42,12 @@ public sealed class PpRepository
     // PP-003 계획 검토 라인 — WO 미생성 확정 수주 + FG 재고 + 라인 부하.
     public sealed record PlanLineRow(int SoId, string? SoNumber, int? SoLineNo, string? CustomerId,
         string ItemNo, string? ItemName, decimal OrderQty, decimal FgOnHand, DateTime? DueDate, bool ItemExists,
-        string? LineId, int? LineLoadPct)
+        string? LineId, int? LineLoadPct, string? RoutingType)
     {
         public decimal NetReq => Math.Max(0m, OrderQty - FgOnHand);
-        public bool Blocked => !ItemExists;   // 품목마스터 미완성 → WO 생성 불가 (BR-PP-001)
+        public bool NoRouting => ItemExists && RoutingType is null;
+        // 품목마스터 미완성(BR-PP-001) 또는 라우팅 미지정 → WO 생성 불가
+        public bool Blocked => !ItemExists || RoutingType is null;
     }
 
     public sealed record MrpRunRow(int MrpRunId, DateTime? RunAt, DateTime? HorizonStart,
@@ -477,6 +479,7 @@ public sealed class PpRepository
                    ISNULL(fg.OnHand,0)  AS FgOnHand,
                    s.RequestedDeliveryDate AS DueDate,
                    CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS ItemExists,
+                   i.RoutingType,
                    ln.LineID AS LineId,
                    CASE WHEN ml.DailyCap > 0
                         THEN CAST(ld.OpenLoad * 100.0 / (ml.DailyCap * 7) AS INT)
@@ -513,12 +516,13 @@ public sealed class PpRepository
                 rdr.GetDecimal(rdr.GetOrdinal("OrderQty")),
                 rdr.GetDecimal(rdr.GetOrdinal("FgOnHand")),
                 rdr["DueDate"] as DateTime?, (int)rdr["ItemExists"] == 1,
-                rdr["LineId"] as string, rdr["LineLoadPct"] as int?));
+                rdr["LineId"] as string, rdr["LineLoadPct"] as int?,
+                rdr["RoutingType"] as string));
         return list;
     }
 
     /// <summary>
-    /// PP-003 선택 확정 수주 → Draft 작업지시 일괄 생성. 확정·품목마스터 존재·WO 미생성
+    /// PP-003 선택 확정 수주 → Draft 작업지시 일괄 생성. 확정·품목마스터 존재·라우팅 지정·WO 미생성
     /// (취소 WO 제외) 건만 삽입. useNetReq면 수량 = max(0, 수주 − FG재고), 0 이하 건 skip.
     /// WoNumber = WO-yyyyMMdd-NNN. 생성된 WoNumber 목록 반환.
     /// </summary>
@@ -531,8 +535,8 @@ public sealed class PpRepository
 
         const string insSql = """
             INSERT INTO dbo.PP_WorkOrder
-                   (WoNumber, SoID, ItemNo, OrderQty, OpenQty, DueDate, Status, CreatedBy, CreatedTS)
-            SELECT @Wo, s.SoID, s.ItemNo, q.Qty, q.Qty, s.RequestedDeliveryDate,
+                   (WoNumber, SoID, ItemNo, OrderQty, OpenQty, DueDate, RoutingType, Status, CreatedBy, CreatedTS)
+            SELECT @Wo, s.SoID, s.ItemNo, q.Qty, q.Qty, s.RequestedDeliveryDate, i.RoutingType,
                    'Draft', @Actor, SYSDATETIME()
             FROM   dbo.PP_CustomerOrder s
             JOIN   dbo.MD_Item i ON i.ItemNo = s.ItemNo
@@ -543,6 +547,7 @@ public sealed class PpRepository
                                               ISNULL(s.OrderQty,0) - ISNULL(fg.OnHand,0), 0)
                                      ELSE ISNULL(s.OrderQty,0) END AS Qty) q
             WHERE  s.SoID = @SoID AND s.Status = 'Confirmed' AND q.Qty > 0
+               AND i.RoutingType IS NOT NULL
                AND NOT EXISTS (SELECT 1 FROM dbo.PP_WorkOrder w
                                WHERE w.SoID = s.SoID AND w.Status <> 'Cancelled');
             """;
