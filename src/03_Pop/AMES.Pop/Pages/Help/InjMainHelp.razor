@@ -1,0 +1,136 @@
+@*  INJ-MAIN user manual — 좌측 품번 당일 현황 + 우측 스캔 확정. WO 접수 화면은 없다. *@
+
+<div class="help-doc">
+    <div>
+        <div class="help-h1">INJ-MAIN · @PopLang.T("PartNo") / @PopLang.T("LotBarcodeScanConfirm")</div>
+        <div class="help-sub">@PopLang.T("HelpInjMainSub")</div>
+
+        <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="708" height="468" rx="10" fill="#000" stroke="rgba(255,255,255,.18)" stroke-width="1.5" />
+            <rect class="hs-region tbar" x="14" y="14" width="692" height="42" />
+            <text class="hs-sub" x="34" y="40">INJ-MAIN · STATION · LINE</text>
+            <text class="hs-sub" x="690" y="40" text-anchor="end">● RUN · EN · ? · LOGOUT</text>
+
+            @* ① 좌측: 품번 그리드 *@
+            <rect class="hs-region ok" x="14" y="68" width="400" height="330" />
+            <text class="hs-sub" x="28" y="88">▼ PART NO · 2026-09-02 · ST-INJ-01</text>
+            <text class="hs-sub" x="28"  y="112">PART NO</text>
+            <text class="hs-sub" x="250" y="112" text-anchor="end">PLAN</text>
+            <text class="hs-sub" x="300" y="112" text-anchor="end">INPUT</text>
+            <text class="hs-sub" x="345" y="112" text-anchor="end">NG</text>
+            <text class="hs-sub" x="400" y="112" text-anchor="end">FINAL</text>
+
+            <text class="hs-label" x="28" y="140" style="font-size:12px;">83314-P8000</text>
+            <rect x="120" y="128" width="46" height="16" rx="8" fill="rgba(255,255,255,.10)" />
+            <text class="hs-sub" x="143" y="140" text-anchor="middle" style="font-size:8px;">NO WO</text>
+            <text class="hs-label" x="250" y="140" text-anchor="end" style="font-size:12px;">0</text>
+            <text class="hs-label" x="300" y="140" text-anchor="end" style="font-size:12px;">0</text>
+            <text class="hs-label" x="345" y="140" text-anchor="end" style="font-size:12px;">0</text>
+            <text class="hs-label" x="400" y="140" text-anchor="end" style="font-size:12px;">0</text>
+
+            <rect x="20" y="152" width="388" height="30" rx="4" fill="rgba(13,184,122,.18)" stroke="#22c55e" stroke-width="1" />
+            <text class="hs-label" x="28" y="172" style="font-size:12px;">83335-P8000RBQ</text>
+            <text class="hs-label" x="250" y="172" text-anchor="end" style="font-size:12px;">120</text>
+            <text class="hs-label" x="300" y="172" text-anchor="end" style="font-size:12px;">3</text>
+            <text class="hs-label" x="345" y="172" text-anchor="end" style="font-size:12px;">0</text>
+            <text class="hs-label" x="400" y="172" text-anchor="end" style="font-size:12px;">1</text>
+
+            <text class="hs-label" x="28" y="204" style="font-size:12px;">M83371-P8000RBQ</text>
+            <text class="hs-label" x="250" y="204" text-anchor="end" style="font-size:12px;">0</text>
+            <text class="hs-label" x="300" y="204" text-anchor="end" style="font-size:12px;">0</text>
+            <text class="hs-label" x="345" y="204" text-anchor="end" style="font-size:12px;">0</text>
+            <text class="hs-label" x="400" y="204" text-anchor="end" style="font-size:12px;">0</text>
+
+            <rect x="20" y="356" width="388" height="32" rx="6" fill="rgba(0,0,0,.4)" />
+            <text class="hs-sub" x="28" y="376">PLAN 120 · INPUT 3 · NG 0 · FINAL 1 · SHORTAGE 119</text>
+            <circle class="hs-num" cx="24" cy="78" r="14" />
+            <text class="hs-num-tx" x="24" y="78">1</text>
+
+            @* ② 우측 상단: 스캔 + 배너 + 칩 *@
+            <rect class="hs-region" x="428" y="68" width="278" height="150" />
+            <text class="hs-sub" x="440" y="88">▼ SCAN · (PART NO: 83335… · WO)</text>
+            <rect x="440" y="98" width="254" height="30" rx="4" fill="rgba(0,0,0,.4)" stroke="rgba(147,197,253,.3)" />
+            <text class="hs-sub" x="450" y="118">A91I10001</text>
+            <rect x="440" y="136" width="254" height="40" rx="6" fill="rgba(34,197,94,.18)" stroke="#86efac" />
+            <text class="hs-label" x="567" y="162" text-anchor="middle" style="font-size:18px;">SUCCESS</text>
+            <text class="hs-sub" x="440" y="204">GOOD 1 · DEFECT 0 · UNCONF 2 · MOLD —</text>
+            <circle class="hs-num" cx="438" cy="78" r="14" />
+            <text class="hs-num-tx" x="438" y="78">2</text>
+
+            @* ③ 우측 중단: 미확정 LOT + 스캔 이력 *@
+            <rect class="hs-region dim" x="428" y="232" width="278" height="166" />
+            <text class="hs-sub" x="440" y="252">▼ UNCONFIRMED LOTS · NEWEST FIRST</text>
+            <text class="hs-sub" x="440" y="276">A91I10003  LH  19:16  RAW   🖨</text>
+            <text class="hs-sub" x="440" y="296">A91I10002  LH  19:16  RAW   🖨</text>
+            <text class="hs-sub" x="440" y="330">▼ SCAN HISTORY · TODAY</text>
+            <text class="hs-sub" x="440" y="354">A91I10001  15:19:36   OK</text>
+            <circle class="hs-num" cx="438" cy="242" r="14" />
+            <text class="hs-num-tx" x="438" y="242">3</text>
+
+            @* ④ 기능 버튼 *@
+            <rect class="hs-region nav" x="428" y="412" width="86" height="52" />
+            <text class="hs-label" x="471" y="443" text-anchor="middle" style="font-size:11px;">MANUAL</text>
+            <rect class="hs-region warn" x="524" y="412" width="86" height="52" />
+            <text class="hs-label" x="567" y="443" text-anchor="middle" style="font-size:11px;">DEFECT</text>
+            <rect class="hs-region hot" x="620" y="412" width="86" height="52" />
+            <text class="hs-label" x="663" y="443" text-anchor="middle" style="font-size:11px;">ANDON</text>
+            <circle class="hs-num" cx="438" cy="422" r="14" />
+            <text class="hs-num-tx" x="438" y="422">4</text>
+        </svg>
+    </div>
+
+    <div>
+        <div class="help-section-h">▶ <span class="h-sec-en">READ THE SCREEN</span><span class="h-sec-ko">화면 읽기</span></div>
+        <div class="help-steps">
+            <div class="help-step ok">
+                <div class="help-step-num">1</div>
+                <div class="help-step-body">
+                    <div class="help-step-en"><strong>Part grid</strong> — every part registered to this station (BOP) with today's PLAN / INPUT / NG / FINAL. Tap a row to select it; the open work order for that part is picked automatically — there is no WO acceptance step.</div>
+                    <div class="help-step-ko"><strong>품번 그리드</strong> — 이 스테이션 BOP 에 등록된 품번과 당일 계획/투입/불량/양품. 행을 누르면 선택되고 그 품번의 열린 작업지시가 자동으로 잡힌다 — WO 접수 단계는 없다.</div>
+                    <div class="help-step-hint">NO WO = no released work order for this part · NOT IN BOP = produced today but not registered</div>
+                </div>
+            </div>
+            <div class="help-step">
+                <div class="help-step-num">2</div>
+                <div class="help-step-body">
+                    <div class="help-step-en"><strong>Scan</strong> — scan the lot label to confirm the result. The banner shows SUCCESS / FAIL with the part and the work order the result was posted to; the grid selection follows the scanned part.</div>
+                    <div class="help-step-ko"><strong>스캔</strong> — 라벨을 스캔하면 실적이 확정된다. 배너에 성공/실패와 실적이 올라간 품번·작업지시가 뜨고, 그리드 선택은 스캔한 품번으로 따라간다.</div>
+                    <div class="help-step-hint">Chips: today good / defect rate / unconfirmed / NG blocked / mold shots — all for the selected part</div>
+                </div>
+            </div>
+            <div class="help-step dim">
+                <div class="help-step-num">3</div>
+                <div class="help-step-body">
+                    <div class="help-step-en"><strong>Unconfirmed lots</strong> — labels printed but not yet scanned (newest first); 🖨 reprints a label. <strong>Scan history</strong> lists today's scans on this terminal.</div>
+                    <div class="help-step-ko"><strong>미확정 로트</strong> — 라벨은 나왔지만 아직 스캔 안 된 LOT(최신순), 🖨 는 재출력. <strong>스캔 이력</strong>은 이 터미널의 오늘 스캔.</div>
+                </div>
+            </div>
+            <div class="help-step warn">
+                <div class="help-step-num">4</div>
+                <div class="help-step-body">
+                    <div class="help-step-en"><strong>Buttons</strong> — MANUAL issues lots by hand when the PLC missed shots (scan the printed labels to confirm), DEFECT registers defects, ANDON raises a call. MANUAL and DEFECT need a selected part with an open WO.</div>
+                    <div class="help-step-ko"><strong>버튼</strong> — 수동입력은 PLC 누락 시 LOT 을 손으로 발행(라벨을 스캔해야 확정), 불량 등록, 안돈 호출. 수동입력·불량은 열린 WO 가 있는 품번이 선택돼 있어야 한다.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="help-section-h">▶ <span class="h-sec-en">HOW THE NUMBERS WORK</span><span class="h-sec-ko">숫자 읽는 법</span></div>
+        <div class="help-steps">
+            <div class="help-step">
+                <div class="help-step-num">=</div>
+                <div class="help-step-body">
+                    <div class="help-step-en"><strong>INPUT = FINAL + NG + unconfirmed.</strong> INPUT counts every lot created today for the part on this line; FINAL is scanned-good; NG is robot-NG lots plus manual defects; the rest is still waiting for a scan. PLAN comes from today's line schedule (PP-03).</div>
+                    <div class="help-step-ko"><strong>투입 = 양품 + 불량 + 미확정.</strong> 투입은 오늘 이 라인에서 그 품번으로 생성된 LOT 전량, 양품은 스캔 확정분, 불량은 로봇 NG LOT + 수동 등록 불량, 나머지가 아직 스캔 대기. 계획은 오늘 라인 일정(PP-03)에서 온다.</div>
+                    <div class="help-step-hint">Day boundary = lot creation time, not scan time</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="help-callout warn">
+            <div class="help-callout-i">⚠</div>
+            <div class="help-callout-tx">
+                <span class="h-call-en"><strong>Empty grid?</strong> This station has no parts in BOP (MD-005) — ask the planner. A red strip under the grid header means the last data refresh failed; the numbers shown are from the previous refresh.</span><span class="h-call-ko"><strong>그리드가 비었으면</strong> 이 스테이션의 BOP(MD-005) 품번이 없는 것 — 생산계획 담당에게. 그리드 헤더 아래 빨간 줄은 마지막 데이터 갱신 실패 표시이며 숫자는 직전 갱신값이다.</span>
+            </div>
+        </div>
+    </div>
+</div>

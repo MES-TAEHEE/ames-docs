@@ -180,6 +180,8 @@
   <data name="NotInBop" xml:space="preserve"><value>미등록</value></data>
   <data name="NoOpenWo" xml:space="preserve"><value>WO 없음</value></data>
   <data name="NoBopItemsForStation" xml:space="preserve"><value>이 스테이션에 등록된 BOP 품번이 없습니다 — 기준정보 MD-005 에서 등록하세요</value></data>
+  <data name="DataRefreshFailed" xml:space="preserve"><value>데이터 갱신 실패 {0}</value></data>
+  <data name="HelpInjMainSub" xml:space="preserve"><value>품번을 고르고 라벨을 스캔하면 실적이 확정된다 — 작업지시 접수 없음</value></data>
   <data name="NoLinesRegistered" xml:space="preserve"><value>등록된 라인이 없습니다 — 관리자에게 문의하세요</value></data>
   <data name="SelectLine" xml:space="preserve"><value>라인 선택</value></data>
   <data name="SelectStation" xml:space="preserve"><value>스테이션 선택</value></data>

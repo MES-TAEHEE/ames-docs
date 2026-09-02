@@ -148,8 +148,7 @@ public sealed class WorkOrderRepository
     /// </summary>
     public List<WorkOrderDto> ListForLine(string lineId)
     {
-        // 같은 상태·취소 조건 — 바꿀 때 OpenStepForItemFilter 도 같이
-        const string sql = """
+        const string sql = $"""
             SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
                    w.OrderQty, w.OpenQty, r.CompletedQty, r.LineID,
                    w.MoldID, w.RecipeID, w.DueDate, r.Status, r.TerminalLock,
@@ -159,12 +158,8 @@ public sealed class WorkOrderRepository
             JOIN   dbo.PP_WorkOrder w ON w.WoID   = r.WoID
             JOIN   dbo.MD_Item      i ON i.ItemNo = w.ItemNo
             WHERE  r.LineID = @LineID
-              AND  r.Status IN ('Released','In Progress')
-              AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
-            ORDER  BY CASE WHEN r.Status='In Progress' THEN 0 ELSE 1 END,
-                      ISNULL(w.Priority,5),
-                      ISNULL(w.DueDate,'9999-12-31'),
-                      w.WoID, r.StepSeq;
+              AND  {OpenStepWhere}
+            ORDER  BY {OpenStepOrder}, r.StepSeq;
             """;
 
         return Query(sql, cmd => cmd.Parameters.Add("@LineID", SqlDbType.VarChar, 20).Value = lineId);
@@ -226,14 +221,24 @@ public sealed class WorkOrderRepository
     /// 같은 문자열을 써야 한다 — 어긋나면 작업자가 보는 활성 WO 와 실제 실적이 올라가는 WO 가 달라진다.
     /// 파라미터 @Line, @Item. 별칭 r = PP_WorkOrderRouting, w = PP_WorkOrder.
     /// </summary>
-    internal const string OpenStepForItemFilter = """
-        WHERE  r.LineID = @Line AND w.ItemNo = @Item
-          AND  r.Status IN ('Released','In Progress')
-          AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
-        ORDER  BY CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
+    /// <summary>"열린 단계" 조건. 별칭 r = PP_WorkOrderRouting, w = PP_WorkOrder. ListForLine·FindOpenForItem·ConfirmByLotCode 공용.</summary>
+    internal const string OpenStepWhere = """
+        r.Status IN ('Released','In Progress')
+              AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+        """;
+
+    /// <summary>열린 단계 우선순위: In Progress → Priority → DueDate → WoID. 끝에 세부 정렬을 덧붙일 수 있다.</summary>
+    internal const string OpenStepOrder = """
+        CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
                   ISNULL(w.Priority,5),
                   ISNULL(w.DueDate,'9999-12-31'),
                   w.WoID
+        """;
+
+    internal const string OpenStepForItemFilter = $"""
+        WHERE  r.LineID = @Line AND w.ItemNo = @Item
+          AND  {OpenStepWhere}
+        ORDER  BY {OpenStepOrder}
         """;
 
     /// <summary>이 라인에서 품번의 열린 WO 단계 하나. 없으면 null. INJ-MAIN 이 품번 선택 시 활성 WO 로 쓴다.</summary>

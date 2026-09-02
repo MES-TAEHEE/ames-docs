@@ -665,7 +665,8 @@ public sealed class InjLotRepository
             SELECT
               (SELECT COUNT(*) FROM dbo.tbl_Lot l JOIN dbo.PR_InjLot e ON e.LotID = l.LotID
                WHERE l.LineID = @Line AND e.CavityNo = 1
-                 AND CAST(l.CreatedTS AS DATE) = CAST(SYSDATETIME() AS DATE)) AS TodayShots,
+                 AND l.CreatedTS >= CAST(SYSDATETIME() AS date)
+                 AND l.CreatedTS <  DATEADD(day, 1, CAST(SYSDATETIME() AS date))) AS TodayShots,
               (SELECT COUNT(*) FROM dbo.tbl_Lot l JOIN dbo.PR_InjLot e ON e.LotID = l.LotID
                WHERE l.LineID = @Line AND e.ConfirmStatus = 'RAW') AS RawCount,
               (SELECT COUNT(*) FROM dbo.tbl_Lot l JOIN dbo.PR_InjLot e ON e.LotID = l.LotID
