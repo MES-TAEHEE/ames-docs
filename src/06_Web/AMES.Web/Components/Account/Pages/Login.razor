@@ -60,7 +60,7 @@
         </div>
     </div>
 
-    <div class="ames-auth-foot">A-MES · SEOYON E-HWA · 2026</div>
+    <div class="ames-auth-foot">A-MES · EOS · 2026</div>
 </div>
 
 @code {
@@ -97,9 +97,21 @@
         if (identityUser is not null)
         {
             var (accountStatus, _) = AuthRepo.GetProfileStatus(identityUser.Id);
-            if (accountStatus == "LOCKED")
+            if (string.Equals(accountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase))
             {
                 errorMessage = "Account is locked. Contact your administrator.";
+                return;
+            }
+            // ① 이메일 자기인증 완료 여부
+            if (!identityUser.EmailConfirmed)
+            {
+                errorMessage = "이메일 인증을 먼저 완료해 주세요.";
+                return;
+            }
+            // ② 관리자 승인(ACTIVE) 여부. 프로필 없음=Active 취급, 자기가입 직후 PENDING 은 승인 대기.
+            if (!string.Equals(accountStatus, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+            {
+                errorMessage = "관리자 승인 대기중입니다. 승인 후 로그인할 수 있습니다.";
                 return;
             }
         }
@@ -136,6 +148,8 @@
         }
         else if (result.IsLockedOut)
             HttpContext.Response.Redirect("/Account/Lockout");
+        else if (result.IsNotAllowed)
+            errorMessage = "이메일 인증이 필요합니다.";
         else
         {
             // Increment domain failed counter; lock account on the 5th failure.

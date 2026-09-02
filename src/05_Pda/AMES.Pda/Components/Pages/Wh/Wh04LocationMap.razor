@@ -1,13 +1,14 @@
 @page "/wh/04"
 @inject PdaApi Api
 @inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <div class="pda-shell wh wh04-shell">
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
         <div class="wh04-tbar-title">
             <span class="pda-tbar-brand">LOCATION SEARCH</span>
-            <span class="wh04-last-updated">Last Updated @LastUpdatedText</span>
         </div>
         <RadzenButton class="wh04-tbar-refresh" Click="@LoadAsync" Disabled="@_loading" Text="REFRESH" />
     </div>
@@ -33,16 +34,19 @@
         else
         {
             <RadzenCard class="wh04-filter-card">
-                <div class="wh04-scan-panel">
+                <div class="@($"wh04-scan-panel {ScanPanelClass}")">
                     <div class="wh04-scan-field">
                         <label>LOCATION NO SCAN</label>
-                        <RadzenTextBox class="wh04-scan-input"
+                        <RadzenTextBox class="wh04-scan-input pda-scan-input"
                                        Value="@_locationScan"
                                        @oninput="OnLocationScanInput"
                                        @onkeydown="OnLocationScanKey"
                                        Placeholder="Scan or enter location no" />
                     </div>
-                    <RadzenButton class="wh04-scan-btn" Click="@ScanLocationAsync" Disabled="@DisableLocationScan" Text="SCAN" />
+                    @if (ShowDeveloperScanButtons)
+                    {
+                        <RadzenButton class="wh04-scan-btn" Click="@ScanLocationAsync" Disabled="@DisableLocationScan" Text="SCAN" />
+                    }
                 </div>
                 @if (!string.IsNullOrWhiteSpace(_scanMessage))
                 {
@@ -185,11 +189,81 @@
     private bool _loading = true;
     private bool _loadingItems;
     private bool _scanningLocation;
-    private DateTime? _lastUpdated;
+    private DotNetObjectReference<Wh04LocationMap>? _scannerRef;
 
+    private static bool ShowDeveloperScanButtons => MauiProgram.IsDeveloperMode;
+    private static string ScanPanelClass => ShowDeveloperScanButtons ? "dev-scan-panel" : "hardware-scan-panel";
     protected override async Task OnInitializedAsync()
     {
         await LoadAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            PdaBarcodeHub.Scanned += OnNativeBarcodeScanned;
+            _scannerRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("pdaScan.register", _scannerRef, new { minLength = 3, developerMode = ShowDeveloperScanButtons });
+        }
+
+        await FocusScannerAsync();
+    }
+
+    [JSInvokable]
+    public async Task OnHardwareScanAsync(string scanText)
+    {
+        var value = NormalizeHardwareScan(scanText);
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+
+        await InvokeAsync(async () =>
+        {
+            _locationScan = value;
+            await ScanLocationAsync();
+            StateHasChanged();
+        });
+    }
+
+    private void OnNativeBarcodeScanned(string barcode)
+    {
+        _ = InvokeAsync(async () => await OnHardwareScanAsync(barcode));
+    }
+
+    private async Task FocusScannerAsync()
+    {
+        if (_loading)
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("pdaScan.focus", ".wh04-scan-input");
+        }
+        catch
+        {
+            // Ignore focus failures while the WebView is navigating.
+        }
+    }
+
+    private static string NormalizeHardwareScan(string? value)
+        => string.IsNullOrWhiteSpace(value)
+            ? ""
+            : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
+
+    public async ValueTask DisposeAsync()
+    {
+        PdaBarcodeHub.Scanned -= OnNativeBarcodeScanned;
+
+        try
+        {
+            await JS.InvokeVoidAsync("pdaScan.unregister");
+        }
+        catch
+        {
+            // Ignore dispose-time JS disconnects.
+        }
+
+        _scannerRef?.Dispose();
     }
 
     private IReadOnlyList<PdaApi.LocationRow> MapRows => _locations
@@ -222,7 +296,6 @@
     private IReadOnlyList<Option> RowOptions => BuildOptions(ColumnRows, RowKey, r => Text(r.Y));
     private IReadOnlyList<Option> LevelOptions => BuildOptions(RowRows, LevelKey, r => Text(r.Z));
 
-    private string LastUpdatedText => _lastUpdated?.ToString("HH:mm:ss") ?? "-";
     private bool DisableLocationScan => _scanningLocation || string.IsNullOrWhiteSpace(_locationScan);
 
     private async Task LoadAsync()
@@ -235,7 +308,6 @@
         try
         {
             _locations = await Api.WhLocationMapAsync();
-            _lastUpdated = DateTime.Now;
             await SelectInitialAsync();
         }
         catch (Exception ex)

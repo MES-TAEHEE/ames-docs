@@ -11,7 +11,8 @@ namespace AMES.Tools.SeedPpDemo;
 /// </summary>
 internal static class Program
 {
-    private const string Cs =
+    private static readonly string Cs =
+        Environment.GetEnvironmentVariable("AMES_CONNECTION_STRING") ??
         "Server=localhost;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;" +
         "TrustServerCertificate=True;Encrypt=True;Connect Timeout=5;";
 

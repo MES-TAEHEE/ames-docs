@@ -2,10 +2,13 @@
 -- A-MES Database Schema (Auto-generated)
 -- Generated: 2026-06-08 16:33:54
 -- Source: AMES_ERD_data.js
--- Total tables: 149
+-- Total tables: 159   (자동생성 이후 손으로 흡수한 분 포함 — 2026-08-03 기준 실 DB 와 일치)
 -- Engine: SQL Server 2022/2025
 -- Pattern: Stored Procedure + ADO.NET (per VOL01 Tech Stack)
 -- FK constraints: not applied (commented as -- FK -> Target.Col)
+-- ★ Collation: 이 스크립트는 DB 생성/COLLATE 지정을 하지 않고 USE [AMES_DEV] 로 시작한다.
+--   컬럼에 COLLATE 명시가 없어 DB 기본 콜레이션을 상속하므로, 반드시 먼저
+--   dist\create_database.sql 로 AMES_DEV 를 COLLATE Korean_Wansung_CI_AS 로 생성할 것.
 -- ════════════════════════════════════════════════════════════════════════
 
 USE [AMES_DEV];
@@ -109,8 +112,13 @@ IF OBJECT_ID(N'dbo.PR_ProductionResult', N'U') IS NOT NULL DROP TABLE dbo.PR_Pro
 IF OBJECT_ID(N'dbo.PR_WoAcceptance', N'U') IS NOT NULL DROP TABLE dbo.PR_WoAcceptance;
 IF OBJECT_ID(N'dbo.PR_PopAuthLog', N'U') IS NOT NULL DROP TABLE dbo.PR_PopAuthLog;
 IF OBJECT_ID(N'dbo.PR_PopSession', N'U') IS NOT NULL DROP TABLE dbo.PR_PopSession;
+IF OBJECT_ID(N'dbo.PR_RobotInspection', N'U') IS NOT NULL DROP TABLE dbo.PR_RobotInspection;
+IF OBJECT_ID(N'dbo.PR_InjLot', N'U') IS NOT NULL DROP TABLE dbo.PR_InjLot;
+IF OBJECT_ID(N'dbo.PR_InjCondLog', N'U') IS NOT NULL DROP TABLE dbo.PR_InjCondLog;
+IF OBJECT_ID(N'dbo.MD_InjCondItem', N'U') IS NOT NULL DROP TABLE dbo.MD_InjCondItem;
 IF OBJECT_ID(N'dbo.tbl_Lot', N'U') IS NOT NULL DROP TABLE dbo.tbl_Lot;
 IF OBJECT_ID(N'dbo.PP_ProductionCalendarOverride', N'U') IS NOT NULL DROP TABLE dbo.PP_ProductionCalendarOverride;
+IF OBJECT_ID(N'dbo.PP_EquipSignal', N'U') IS NOT NULL DROP TABLE dbo.PP_EquipSignal;
 IF OBJECT_ID(N'dbo.PP_LineOEE', N'U') IS NOT NULL DROP TABLE dbo.PP_LineOEE;
 IF OBJECT_ID(N'dbo.PP_LineDowntimeLog', N'U') IS NOT NULL DROP TABLE dbo.PP_LineDowntimeLog;
 IF OBJECT_ID(N'dbo.PP_LineStateLog', N'U') IS NOT NULL DROP TABLE dbo.PP_LineStateLog;
@@ -155,17 +163,20 @@ IF OBJECT_ID(N'dbo.MD_Oven', N'U') IS NOT NULL DROP TABLE dbo.MD_Oven;
 IF OBJECT_ID(N'dbo.MD_RalColor', N'U') IS NOT NULL DROP TABLE dbo.MD_RalColor;
 IF OBJECT_ID(N'dbo.MD_RfidTag', N'U') IS NOT NULL DROP TABLE dbo.MD_RfidTag;
 IF OBJECT_ID(N'dbo.MD_Jig', N'U') IS NOT NULL DROP TABLE dbo.MD_Jig;
-IF OBJECT_ID(N'dbo.MD_Calendar', N'U') IS NOT NULL DROP TABLE dbo.MD_Calendar;
 IF OBJECT_ID(N'dbo.MD_Uom', N'U') IS NOT NULL DROP TABLE dbo.MD_Uom;
 IF OBJECT_ID(N'dbo.MD_Customer', N'U') IS NOT NULL DROP TABLE dbo.MD_Customer;
 IF OBJECT_ID(N'dbo.MD_ShipmentDest', N'U') IS NOT NULL DROP TABLE dbo.MD_ShipmentDest;
 IF OBJECT_ID(N'dbo.MD_PaintFabric', N'U') IS NOT NULL DROP TABLE dbo.MD_PaintFabric;
+IF OBJECT_ID(N'dbo.MD_MoldLine', N'U') IS NOT NULL DROP TABLE dbo.MD_MoldLine;
+IF OBJECT_ID(N'dbo.MD_MoldItem', N'U') IS NOT NULL DROP TABLE dbo.MD_MoldItem;
+IF OBJECT_ID(N'dbo.MD_MoldColor', N'U') IS NOT NULL DROP TABLE dbo.MD_MoldColor;
 IF OBJECT_ID(N'dbo.MD_Mold', N'U') IS NOT NULL DROP TABLE dbo.MD_Mold;
 IF OBJECT_ID(N'dbo.MD_Equipment', N'U') IS NOT NULL DROP TABLE dbo.MD_Equipment;
 IF OBJECT_ID(N'dbo.MD_Vendor', N'U') IS NOT NULL DROP TABLE dbo.MD_Vendor;
 IF OBJECT_ID(N'dbo.MD_InspectionStandard', N'U') IS NOT NULL DROP TABLE dbo.MD_InspectionStandard;
 IF OBJECT_ID(N'dbo.MD_WorkCenter', N'U') IS NOT NULL DROP TABLE dbo.MD_WorkCenter;
 IF OBJECT_ID(N'dbo.MD_Bop', N'U') IS NOT NULL DROP TABLE dbo.MD_Bop;
+IF OBJECT_ID(N'dbo.MD_RoutingStep', N'U') IS NOT NULL DROP TABLE dbo.MD_RoutingStep;
 IF OBJECT_ID(N'dbo.MD_BomVersion', N'U') IS NOT NULL DROP TABLE dbo.MD_BomVersion;
 IF OBJECT_ID(N'dbo.MD_Bom', N'U') IS NOT NULL DROP TABLE dbo.MD_Bom;
 IF OBJECT_ID(N'dbo.MD_Item', N'U') IS NOT NULL DROP TABLE dbo.MD_Item;
@@ -182,20 +193,23 @@ CREATE TABLE dbo.MD_Item (
   [ItemNameEN]                NVARCHAR(80)             NULL,
   [ItemType]                  VARCHAR(10)              NULL,
   [ItemCategory]              VARCHAR(30)              NULL,
+  [CarType]                   VARCHAR(10)              NULL,
   [DefaultUOM]                VARCHAR(10)              NULL,  -- FK -> MD_Uom.UOMCode
   [RoutingType]               CHAR(1)                  NULL,
   [MinStock]                  DECIMAL(14,4)            NULL,
   [MaxStock]                  DECIMAL(14,4)            NULL,
   [SafetyStock]               DECIMAL(14,4)            NULL,
   [UnitCost]                  DECIMAL(14,2)            NULL,
-  [CustItemNoSAV]             VARCHAR(30)              NULL,
-  [CustItemNoGEO]             VARCHAR(30)              NULL,
+  [CustItemNoSAV]             VARCHAR(30)              NULL,  -- 고객사 품번 (SAV)
+  [CustItemNoGEO]             VARCHAR(30)              NULL,  -- 고객사 품번 (GEO)
   [DrawingNo]                 VARCHAR(30)              NULL,
+  [PGN]                       VARCHAR(4)               NULL,
+  [ALC]                       VARCHAR(10)              NULL,
   [ActiveFlag]                BIT                      NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(20)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_Item PRIMARY KEY CLUSTERED ([ItemNo])
 );
 GO
@@ -213,10 +227,10 @@ CREATE TABLE dbo.MD_Bom (
   [Position]                  INT                      NULL,
   [Note]                      NVARCHAR(120)            NULL,
   [ActiveFlag]                BIT                      NULL DEFAULT 1,
-  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
-  [ModifiedTS]                DATETIME2                NULL,
+  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_Bom PRIMARY KEY CLUSTERED ([BOMID])
 );
 GO
@@ -236,8 +250,8 @@ CREATE TABLE dbo.MD_BomVersion (
   [Status]                    VARCHAR(12)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_BomVersion PRIMARY KEY CLUSTERED ([VersionID])
 );
 GO
@@ -248,8 +262,7 @@ CREATE TABLE dbo.MD_Bop (
   [ItemNo]                    VARCHAR(20)              NULL,  -- FK -> MD_Item.ItemNo
   [RoutingType]               CHAR(1)                  NULL,
   [StepSeq]                   INT                      NULL,
-  [ProcessCode]               VARCHAR(10)              NULL,
-  [WorkCenterID]              VARCHAR(20)              NULL,  -- FK -> MD_WorkCenter.WCID
+  [StationCode]               VARCHAR(20)              NULL,  -- FK -> MD_Station.StationCode
   [StdCycleTime]              DECIMAL(8,2)             NULL,
   [StdSetupTime]              DECIMAL(8,2)             NULL,
   [QcRequiredFlag]            BIT                      NULL,
@@ -257,9 +270,24 @@ CREATE TABLE dbo.MD_Bop (
   [ActiveFlag]                BIT                      NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_Bop PRIMARY KEY CLUSTERED ([BOPID])
+);
+GO
+
+-- ── MD_RoutingStep  (라우팅 템플릿 (MD-031): RoutingType별 공정 시퀀스)
+CREATE TABLE dbo.MD_RoutingStep (
+  [RoutingType]               CHAR(1)              NOT NULL,
+  [StepSeq]                   INT                  NOT NULL,
+  [ProcessCode]               VARCHAR(10)          NOT NULL,
+  [QcRequiredFlag]            BIT                  NOT NULL DEFAULT 0,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
+  [CreatedBy]                 VARCHAR(50)              NULL,
+  [CreatedTS]                 DATETIME2            NOT NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(900)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
+  CONSTRAINT PK_MD_RoutingStep PRIMARY KEY CLUSTERED ([RoutingType], [StepSeq])
 );
 GO
 
@@ -267,8 +295,8 @@ GO
 CREATE TABLE dbo.MD_WorkCenter (
   [WCID]                      VARCHAR(20)          NOT NULL,
   [WCName]                    NVARCHAR(50)             NULL,
-  [ProcessType]               VARCHAR(16)              NULL,
-  [LineID]                    VARCHAR(20)              NULL,  -- FK -> MD_Line.LineID
+  [DefaultLineID]             VARCHAR(20)              NULL,  -- 기본 라인(표시용, 권위 아님)
+  [ProcessCode]               VARCHAR(10)          NOT NULL,  -- 공정 소유(라인/스테이션이 상속)
   [DailyCapacity]             INT                      NULL,
   [StdManpower]               INT                      NULL,
   [CostCenterCode]            VARCHAR(20)              NULL,
@@ -276,8 +304,8 @@ CREATE TABLE dbo.MD_WorkCenter (
   [ActiveFlag]                BIT                      NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_WorkCenter PRIMARY KEY CLUSTERED ([WCID])
 );
 GO
@@ -297,11 +325,11 @@ CREATE TABLE dbo.MD_InspectionStandard (
   [InspMethod]                NVARCHAR(40)             NULL,
   [IsCTQ]                     BIT                      NULL,
   [EffectiveDate]             DATE                     NULL,
-  [Status]                    VARCHAR(8)               NULL,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_InspectionStandard PRIMARY KEY CLUSTERED ([InspStdID])
 );
 GO
@@ -323,8 +351,8 @@ CREATE TABLE dbo.MD_Vendor (
   [ActiveFlag]                BIT                      NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_Vendor PRIMARY KEY CLUSTERED ([VendorID])
 );
 GO
@@ -346,8 +374,8 @@ CREATE TABLE dbo.MD_Equipment (
   [ActiveFlag]                BIT                      NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_Equipment PRIMARY KEY CLUSTERED ([EquipID])
 );
 GO
@@ -356,7 +384,6 @@ GO
 CREATE TABLE dbo.MD_Mold (
   [MoldID]                    VARCHAR(20)          NOT NULL,
   [MoldName]                  NVARCHAR(50)             NULL,
-  [CompatItemsJSON]           NVARCHAR(MAX)            NULL,
   [RatedShots]                INT                      NULL,
   [CurrentShots]              INT                      NULL,
   [CavityCount]               INT                      NULL,
@@ -364,11 +391,70 @@ CREATE TABLE dbo.MD_Mold (
   [StorageLoc]                VARCHAR(20)              NULL,
   [LastMaintDate]             DATE                     NULL,
   [Status]                    VARCHAR(10)              NULL,
+  [CumulativeShots]           BIGINT               NOT NULL DEFAULT 0,      -- 수명 누적 타수 (리셋 금지, APM2114.CUM_SHOTS)
+  [ShotsUpdatedTS]            DATETIME2                NULL,                -- APM2114.LAST_UPDATED
+  [CarType]                   VARCHAR(20)              NULL,                -- APM2110.VINCD
+  [RefCode]                   VARCHAR(20)              NULL,                -- APM2110.REFCD
+  [AssyInjResultFlag]         BIT                  NOT NULL DEFAULT 0,      -- APM2110.ASSY_INJ_RSLT_YN
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
+  [MoldCodeClean]             AS CAST(REPLACE(MoldID,'-','') AS VARCHAR(20)) PERSISTED,  -- dash 제거 자연키 seek
   CONSTRAINT PK_MD_Mold PRIMARY KEY CLUSTERED ([MoldID])
+);
+GO
+CREATE UNIQUE NONCLUSTERED INDEX UX_MD_Mold_MoldCodeClean ON dbo.MD_Mold([MoldCodeClean]);
+GO
+
+-- ── MD_MoldColor  (금형 수지 색상 (APM2111))
+CREATE TABLE dbo.MD_MoldColor (
+  [MoldID]                    VARCHAR(20)          NOT NULL,  -- FK -> MD_Mold.MoldID
+  [Color]                     VARCHAR(10)          NOT NULL,
+  [CreatedBy]                 VARCHAR(50)          NOT NULL,
+  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
+  CONSTRAINT PK_MD_MoldColor PRIMARY KEY CLUSTERED ([MoldID], [Color])
+);
+GO
+
+-- ── MD_MoldItem  (금형별 생산 품번 (APM2120 + AMES 확장 CavitySeq/CavityPos))
+CREATE TABLE dbo.MD_MoldItem (
+  [MoldID]                    VARCHAR(20)          NOT NULL,  -- FK -> MD_Mold.MoldID
+  [ItemNo]                    VARCHAR(20)          NOT NULL,  -- FK -> MD_Item.ItemNo
+  [Color]                     VARCHAR(10)              NULL,
+  [CavitySeq]                 INT                  NOT NULL DEFAULT 1,      -- AMES: 캐비티 순번(1=1st/LH)
+  [CavityPos]                 VARCHAR(4)               NULL,                -- AMES: LH / RH
+  [Usage]                     DECIMAL(18,4)            NULL,
+  [ResinItemNo]               VARCHAR(20)              NULL,  -- FK -> MD_Item.ItemNo
+  [ResinUsage]                DECIMAL(18,4)            NULL,
+  [CavityCount]               INT                  NOT NULL DEFAULT 1,      -- APM2120.CAVITY (타수 분모)
+  [MoldCategory]              VARCHAR(20)              NULL,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
+  [CreatedBy]                 VARCHAR(50)          NOT NULL,
+  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
+  CONSTRAINT PK_MD_MoldItem PRIMARY KEY CLUSTERED ([MoldID], [ItemNo])
+);
+GO
+CREATE INDEX IX_MD_MoldItem_MoldColor ON dbo.MD_MoldItem([MoldID], [Color]) INCLUDE([ItemNo], [CavitySeq], [CavityPos]);
+GO
+CREATE INDEX IX_MD_MoldItem_ItemNo ON dbo.MD_MoldItem([ItemNo]);
+GO
+
+-- ── MD_MoldLine  (라인별 금형 배정 (APM2130))
+CREATE TABLE dbo.MD_MoldLine (
+  [LineCode]                  VARCHAR(20)          NOT NULL,  -- FK -> MD_Line.LineID
+  [MoldID]                    VARCHAR(20)          NOT NULL,  -- FK -> MD_Mold.MoldID
+  [UPH]                       DECIMAL(18,4)            NULL,
+  [PrepTime]                  DECIMAL(18,4)            NULL,
+  [CreatedBy]                 VARCHAR(50)          NOT NULL,
+  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
+  CONSTRAINT PK_MD_MoldLine PRIMARY KEY CLUSTERED ([LineCode], [MoldID])
 );
 GO
 
@@ -388,8 +474,8 @@ CREATE TABLE dbo.MD_PaintFabric (
   [Status]                    VARCHAR(10)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_PaintFabric PRIMARY KEY CLUSTERED ([MatLotID])
 );
 GO
@@ -409,8 +495,8 @@ CREATE TABLE dbo.MD_ShipmentDest (
   [Status]                    VARCHAR(8)               NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_ShipmentDest PRIMARY KEY CLUSTERED ([ShipDestID])
 );
 GO
@@ -432,8 +518,8 @@ CREATE TABLE dbo.MD_Customer (
   [Status]                    VARCHAR(8)               NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_Customer PRIMARY KEY CLUSTERED ([CustomerID])
 );
 GO
@@ -451,28 +537,9 @@ CREATE TABLE dbo.MD_Uom (
   [ActiveFlag]                BIT                      NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_Uom PRIMARY KEY CLUSTERED ([UOMCode])
-);
-GO
-
--- ── MD_Calendar  (공장 캘린더 (MD-14))
-CREATE TABLE dbo.MD_Calendar (
-  [PlantCode]                 VARCHAR(20)          NOT NULL,
-  [CalendarDate]              DATE                 NOT NULL,
-  [DayType]                   VARCHAR(10)              NULL,
-  [HolidayName]               NVARCHAR(40)             NULL,
-  [ShiftCount]                INT                      NULL,
-  [ShiftPattern]              VARCHAR(20)              NULL,
-  [WorkHours]                 DECIMAL(5,2)             NULL,
-  [CalendarYear]              INT                      NULL,
-  [Note]                      NVARCHAR(120)            NULL,
-  [CreatedBy]                 VARCHAR(50)          NOT NULL,
-  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
-  [ModifiedBy]                NVARCHAR(450)            NULL,
-  CONSTRAINT PK_MD_Calendar PRIMARY KEY CLUSTERED ([PlantCode], [CalendarDate])
 );
 GO
 
@@ -491,8 +558,8 @@ CREATE TABLE dbo.MD_Jig (
   [ActiveFlag]                BIT                      NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_Jig PRIMARY KEY CLUSTERED ([JigID])
 );
 GO
@@ -511,8 +578,8 @@ CREATE TABLE dbo.MD_RfidTag (
   [Status]                    VARCHAR(10)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_RfidTag PRIMARY KEY CLUSTERED ([TagID])
 );
 GO
@@ -531,8 +598,8 @@ CREATE TABLE dbo.MD_RalColor (
   [ActiveFlag]                BIT                      NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_RalColor PRIMARY KEY CLUSTERED ([RALCode])
 );
 GO
@@ -551,8 +618,8 @@ CREATE TABLE dbo.MD_Oven (
   [Status]                    VARCHAR(8)               NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_Oven PRIMARY KEY CLUSTERED ([OvenID])
 );
 GO
@@ -572,8 +639,8 @@ CREATE TABLE dbo.MD_RfidReader (
   [Status]                    VARCHAR(8)               NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_RfidReader PRIMARY KEY CLUSTERED ([ReaderID])
 );
 GO
@@ -583,19 +650,22 @@ CREATE TABLE dbo.MD_Line (
   [LineID]                    VARCHAR(20)          NOT NULL,
   [LineName]                  NVARCHAR(50)             NULL,
   [LineNameEn]                NVARCHAR(50)             NULL,
-  [LineType]                  VARCHAR(16)              NULL,
   [PlantCode]                 VARCHAR(20)              NULL,
-  [DefaultWCID]               VARCHAR(20)              NULL,  -- FK -> MD_WorkCenter.WCID
+  [WCID]                      VARCHAR(20)          NOT NULL,  -- FK -> MD_WorkCenter.WCID (소속 작업장, 공정 상속)
   [DailyCap]                  INT                      NULL,
   [ShiftPattern]              VARCHAR(20)              NULL,
+  [LotPrefix]                 CHAR(2)                  NULL,  -- LotNo 라인코드 2자 (유니크)
   [RfidEnabledFlag]           BIT                      NULL,
   [Status]                    VARCHAR(10)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_Line PRIMARY KEY CLUSTERED ([LineID])
 );
+GO
+
+CREATE UNIQUE INDEX UX_MD_Line_LotPrefix ON dbo.MD_Line([LotPrefix]) WHERE [LotPrefix] IS NOT NULL;
 GO
 
 -- ── MD_Station  (공정 기준정보 (MD-02))
@@ -603,10 +673,9 @@ CREATE TABLE dbo.MD_Station (
   [StationCode]               VARCHAR(20)          NOT NULL,
   [StationName]               NVARCHAR(60)             NULL,
   [StationNameEn]             NVARCHAR(60)             NULL,
-  [LineID]                    VARCHAR(20)              NULL,  -- FK -> MD_Line.LineID
-  [StationType]               VARCHAR(20)              NULL,
-  [ProcessCode]               VARCHAR(10)              NULL,
-  [OrderSeq]                  INT                      NULL,
+  [LineID]                    VARCHAR(20)          NOT NULL,  -- FK -> MD_Line.LineID (공정은 라인→작업장에서 상속)
+  [FormName]                  VARCHAR(50)              NULL,  -- Pop 화면 구분
+  [OrderSeq]                  INT                  NOT NULL,
   [Status]                    VARCHAR(10)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
@@ -628,11 +697,11 @@ CREATE TABLE dbo.MD_DefectCode (
   [DefaultCauseCode]          VARCHAR(16)              NULL,  -- FK -> MD_DefectCause.CauseCode
   [ParetoFlag]                BIT                      NULL,
   [ImageRef]                  VARCHAR(120)             NULL,
-  [Status]                    VARCHAR(8)               NULL,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_DefectCode PRIMARY KEY CLUSTERED ([DefectCode])
 );
 GO
@@ -641,18 +710,19 @@ GO
 CREATE TABLE dbo.MD_DefectCause (
   [CauseCode]                 VARCHAR(16)          NOT NULL,
   [CauseName]                 NVARCHAR(60)             NULL,
+  [CauseNameEn]               NVARCHAR(60)             NULL,
+  [ProcessCode]               VARCHAR(10)              NULL,
   [CauseCategory]             VARCHAR(9)               NULL,
   [ParentCauseCode]           VARCHAR(16)              NULL,  -- FK -> MD_DefectCause.CauseCode
-  [ProcessCode]               VARCHAR(10)              NULL,
   [RootCauseFlag]             BIT                      NULL,
   [CorrectiveGuide]           NVARCHAR(200)            NULL,
   [ResponsibleDept]           NVARCHAR(30)             NULL,
   [SortOrder]                 INT                      NULL,
-  [Status]                    VARCHAR(8)               NULL,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_DefectCause PRIMARY KEY CLUSTERED ([CauseCode])
 );
 GO
@@ -670,11 +740,11 @@ CREATE TABLE dbo.MD_PackagingSpec (
   [DimLxWxH]                  VARCHAR(30)              NULL,
   [ReturnableFlag]            BIT                      NULL,
   [LabelTemplateID]           VARCHAR(20)              NULL,  -- FK -> MD_LabelTemplate.LabelTemplateID
-  [Status]                    VARCHAR(8)               NULL,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_PackagingSpec PRIMARY KEY CLUSTERED ([PackSpecID])
 );
 GO
@@ -691,11 +761,11 @@ CREATE TABLE dbo.MD_LabelTemplate (
   [CustomerID]                VARCHAR(20)              NULL,  -- FK -> MD_Customer.CustomerID
   [Version]                   INT                      NULL,
   [PrinterModel]              VARCHAR(30)              NULL,
-  [Status]                    VARCHAR(8)               NULL,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_LabelTemplate PRIMARY KEY CLUSTERED ([LabelTemplateID])
 );
 GO
@@ -705,16 +775,16 @@ CREATE TABLE dbo.MD_ReasonCode (
   [ReasonCode]                VARCHAR(16)          NOT NULL,
   [ReasonName]                NVARCHAR(60)             NULL,
   [ReasonType]                VARCHAR(12)              NULL,
-  [AppliesToModule]           VARCHAR(10)              NULL,
+  [ModuleCode]                VARCHAR(10)              NULL,
   [RequiresComment]           BIT                      NULL,
   [PlannedFlag]               BIT                      NULL,
   [DisplayOrder]              INT                      NULL,
   [Description]               NVARCHAR(120)            NULL,
-  [Status]                    VARCHAR(8)               NULL,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_ReasonCode PRIMARY KEY CLUSTERED ([ReasonCode])
 );
 GO
@@ -728,8 +798,8 @@ CREATE TABLE dbo.MD_CodeGroup (
   [UseFlag]                   BIT                      NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_CodeGroup PRIMARY KEY CLUSTERED ([GroupCode])
 );
 GO
@@ -748,8 +818,8 @@ CREATE TABLE dbo.MD_CodeItem (
   [Description]               NVARCHAR(120)            NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_CodeItem PRIMARY KEY CLUSTERED ([CodeID])
 );
 GO
@@ -771,8 +841,8 @@ CREATE TABLE dbo.MD_SparePart (
   [ActiveFlag]                BIT                      NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_SparePart PRIMARY KEY CLUSTERED ([PartNo])
 );
 GO
@@ -790,8 +860,8 @@ CREATE TABLE dbo.MD_PmTemplate (
   [ActiveFlag]                BIT                      NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_PmTemplate PRIMARY KEY CLUSTERED ([PMTemplateID])
 );
 GO
@@ -808,8 +878,8 @@ CREATE TABLE dbo.MD_PmTemplateStep (
   [StepDurationMin]           INT                      NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_PmTemplateStep PRIMARY KEY CLUSTERED ([PMStepID])
 );
 GO
@@ -820,17 +890,19 @@ CREATE TABLE dbo.MD_LineTimePattern (
   [LineID]                    VARCHAR(20)              NULL,  -- FK -> MD_Line.LineID
   [PatternName]               NVARCHAR(50)             NULL,
   [DayType]                   VARCHAR(10)              NULL,
-  [ShiftModel]                VARCHAR(12)              NULL,
+  [ShiftPattern]              VARCHAR(20)              NULL,
   [EffectiveFrom]             DATE                     NULL,
   [EffectiveTo]               DATE                     NULL,
   [TotalOperatingMin]         INT                      NULL,
   [TotalPlannedDownMin]       INT                      NULL,
+  [OperatingFlag]             CHAR(1440)           NOT NULL CONSTRAINT DF_MD_LineTimePattern_OperatingFlag DEFAULT REPLICATE('0',1440),  -- 분단위 가동플래그 (SEGMENT_STATE.Attribute1 ':' 앞)
+  [SegmentFlag]               CHAR(1440)           NOT NULL CONSTRAINT DF_MD_LineTimePattern_SegmentFlag   DEFAULT REPLICATE('0',1440),  -- 분단위 구간유형 (SEGMENT_STATE.Attribute1 ':' 뒤)
   [TimeZone]                  VARCHAR(20)              NULL,
   [Status]                    VARCHAR(8)               NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_LineTimePattern PRIMARY KEY CLUSTERED ([PatternID])
 );
 GO
@@ -842,14 +914,14 @@ CREATE TABLE dbo.MD_LineTimeSegment (
   [SeqNo]                     INT                      NULL,
   [StartMin]                  SMALLINT                 NULL,
   [EndMin]                    SMALLINT                 NULL,
-  [SegmentState]              VARCHAR(14)              NULL,
+  [SegmentState]              VARCHAR(20)              NULL,
   [ReasonCode]                VARCHAR(16)              NULL,  -- FK -> MD_ReasonCode.ReasonCode
   [ShiftCode]                 VARCHAR(10)              NULL,
   [Description]               NVARCHAR(60)             NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_LineTimeSegment PRIMARY KEY CLUSTERED ([SegmentID])
 );
 GO
@@ -868,8 +940,8 @@ CREATE TABLE dbo.MD_Location (
   [ActiveFlag]                BIT                      NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_Location PRIMARY KEY CLUSTERED ([LocationID])
 );
 GO
@@ -887,8 +959,8 @@ CREATE TABLE dbo.MD_Recipe (
   [Status]                    VARCHAR(10)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_Recipe PRIMARY KEY CLUSTERED ([RecipeID])
 );
 GO
@@ -913,10 +985,10 @@ CREATE TABLE dbo.WH_PurchaseOrder (
   [DueDate]                   DATE                     NULL,
   [Status]                    VARCHAR(20)              NULL,
   [SapSyncedAt]               DATETIME2                NULL,
-  [CreatedAt]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
-  [ModifiedTS]                DATETIME2                NULL,
+  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_WH_PurchaseOrder PRIMARY KEY CLUSTERED ([PoID])
 );
 GO
@@ -938,8 +1010,8 @@ CREATE TABLE dbo.WH_Receiving (
   [LabelPrinted]              BIT                      NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_WH_Receiving PRIMARY KEY CLUSTERED ([ReceivingID])
 );
 GO
@@ -958,8 +1030,8 @@ CREATE TABLE dbo.WH_Inventory (
   [Status]                    VARCHAR(20)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_WH_Inventory PRIMARY KEY CLUSTERED ([InventoryID])
 );
 GO
@@ -976,8 +1048,8 @@ CREATE TABLE dbo.WH_InventorySnapshot (
   [TotalValue]                DECIMAL(16,2)            NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_WH_InventorySnapshot PRIMARY KEY CLUSTERED ([SnapshotID])
 );
 GO
@@ -999,8 +1071,8 @@ CREATE TABLE dbo.WH_InventoryAdjust (
   [ApprovedBy]                NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_WH_InventoryAdjust PRIMARY KEY CLUSTERED ([AdjustID])
 );
 GO
@@ -1017,8 +1089,8 @@ CREATE TABLE dbo.WH_ReleaseSchedule (
   [Status]                    VARCHAR(20)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_WH_ReleaseSchedule PRIMARY KEY CLUSTERED ([ReleaseScheduleID])
 );
 GO
@@ -1042,8 +1114,8 @@ CREATE TABLE dbo.WH_ReleasePicking (
   [OverrideApprover]          NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_WH_ReleasePicking PRIMARY KEY CLUSTERED ([PickingID])
 );
 GO
@@ -1067,9 +1139,36 @@ CREATE TABLE dbo.WH_TransactionHistory (
   [Note]                      NVARCHAR(500)            NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_WH_TransactionHistory PRIMARY KEY CLUSTERED ([TxnID])
+);
+GO
+
+-- ── WH_WarehouseMaster  (창고 마스터 — WH 구역 레이아웃)
+CREATE TABLE dbo.WH_WarehouseMaster (
+  [WhCode]                    VARCHAR(20)          NOT NULL,
+  [WhName]                    NVARCHAR(120)            NULL,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
+  [CreatedBy]                 NVARCHAR(80)             NULL,
+  [CreatedTS]                 DATETIME2            NOT NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(80)             NULL,
+  [ModifiedTS]                DATETIME2                NULL,
+  CONSTRAINT PK_WH_WAREHOUSE_MASTER PRIMARY KEY CLUSTERED ([WhCode])
+);
+GO
+
+-- ── WH_AreaMaster  (창고 구역 마스터 — WhCode 하위 구역)
+CREATE TABLE dbo.WH_AreaMaster (
+  [WhCode]                    VARCHAR(20)              NULL,  -- FK -> WH_WarehouseMaster.WhCode
+  [AreaCode]                  VARCHAR(20)          NOT NULL,
+  [AreaName]                  NVARCHAR(120)            NULL,
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
+  [CreatedBy]                 NVARCHAR(80)             NULL,
+  [CreatedTS]                 DATETIME2            NOT NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(80)             NULL,
+  [ModifiedTS]                DATETIME2                NULL,
+  CONSTRAINT PK_WH_AREA_MASTER PRIMARY KEY CLUSTERED ([AreaCode])
 );
 GO
 
@@ -1089,13 +1188,25 @@ CREATE TABLE dbo.PP_Forecast (
   [Source]                    VARCHAR(20)              NULL,
   [ImportedAt]                DATETIME2                NULL,
   [ImportedBy]                NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
+  [WeekStartDate]             DATE                     NULL,  -- 주간 계획: 주 시작일 (월별 행은 NULL)
+  [WeekLabel]                 VARCHAR(10)              NULL,  -- 예: '[28/1W]'
+  [BaseInv]                   DECIMAL(14,3)            NULL,  -- Base Inv. (품목당, 비정규화)
+  [PartName]                  NVARCHAR(100)            NULL,  -- 업체 품명 (MD_Item 미등록 대비)
+  [Unit]                      VARCHAR(10)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_Forecast PRIMARY KEY CLUSTERED ([ForecastID])
 );
 GO
+SET QUOTED_IDENTIFIER ON;  -- 필터드 인덱스 필수 (sqlcmd 기본값 OFF)
+GO
+CREATE UNIQUE NONCLUSTERED INDEX UX_PP_Forecast_Cust_Item_Week
+  ON dbo.PP_Forecast (CustomerID, ItemNo, WeekStartDate)
+  WHERE WeekStartDate IS NOT NULL;
+GO
+
 -- ── PP_ForecastHistory  (예측 이력)
 CREATE TABLE dbo.PP_ForecastHistory (
   [HistoryID]                 BIGINT IDENTITY      NOT NULL,
@@ -1107,8 +1218,8 @@ CREATE TABLE dbo.PP_ForecastHistory (
   [ChangedBy]                 NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_ForecastHistory PRIMARY KEY CLUSTERED ([HistoryID])
 );
 GO
@@ -1129,8 +1240,8 @@ CREATE TABLE dbo.PP_CustomerOrder (
   [SapSyncedAt]               DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_CustomerOrder PRIMARY KEY CLUSTERED ([SoID])
 );
 GO
@@ -1146,8 +1257,8 @@ CREATE TABLE dbo.PP_SupplyPlan (
   [SapImportBatch]            VARCHAR(40)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_SupplyPlan PRIMARY KEY CLUSTERED ([PlanID])
 );
 GO
@@ -1163,8 +1274,8 @@ CREATE TABLE dbo.PP_SupplyPlanDetail (
   [DueDate]                   DATE                     NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_SupplyPlanDetail PRIMARY KEY CLUSTERED ([PlanDetailID])
 );
 GO
@@ -1185,7 +1296,7 @@ CREATE TABLE dbo.PP_WorkOrder (
   [RecipeID]                  VARCHAR(20)              NULL,  -- FK -> MD_Recipe.RecipeID
   [BomVersion]                VARCHAR(10)              NULL,
   [BopVersion]                VARCHAR(10)              NULL,
-  [Routing]                   CHAR(1)                  NULL,
+  [RoutingType]               CHAR(1)                  NULL,
   [PlannedStart]              DATETIME2                NULL,
   [PlannedEnd]                DATETIME2                NULL,
   [ActualStart]               DATETIME2                NULL,
@@ -1198,8 +1309,8 @@ CREATE TABLE dbo.PP_WorkOrder (
   [ReleasedBy]                NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_WorkOrder PRIMARY KEY CLUSTERED ([WoID])
 );
 GO
@@ -1222,12 +1333,19 @@ CREATE TABLE dbo.PP_WorkOrderRouting (
   [Status]                    VARCHAR(20)              NULL,
   [ActualStart]               DATETIME2                NULL,
   [ActualEnd]                 DATETIME2                NULL,
+  [CompletedQty]              DECIMAL(14,3)        NOT NULL DEFAULT 0,   -- 단계 완료수량 (정본). 헤더 CompletedQty 는 라인 있는 마지막 단계와 동기화
+  [TerminalLock]              VARCHAR(20)              NULL,  -- 단계를 접수한 터미널
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_WorkOrderRouting PRIMARY KEY CLUSTERED ([RoutingLineID])
 );
+GO
+CREATE UNIQUE NONCLUSTERED INDEX UX_PP_WorkOrderRouting_Wo_Step
+  ON dbo.PP_WorkOrderRouting (WoID, StepSeq);
+CREATE NONCLUSTERED INDEX IX_PP_WorkOrderRouting_Line_Status
+  ON dbo.PP_WorkOrderRouting (LineID, Status) INCLUDE (WoID, StepSeq, CompletedQty);
 GO
 
 -- ── PP_MaterialReservation  (WO 자재 예약)
@@ -1242,8 +1360,8 @@ CREATE TABLE dbo.PP_MaterialReservation (
   [Status]                    VARCHAR(20)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_MaterialReservation PRIMARY KEY CLUSTERED ([ReservationID])
 );
 GO
@@ -1263,8 +1381,8 @@ CREATE TABLE dbo.PP_PurchaseRequest (
   [SapPoNumber]               VARCHAR(20)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_PurchaseRequest PRIMARY KEY CLUSTERED ([PrID])
 );
 GO
@@ -1282,8 +1400,8 @@ CREATE TABLE dbo.PP_PRSendLog (
   [Result]                    VARCHAR(20)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_PRSendLog PRIMARY KEY CLUSTERED ([SendLogID])
 );
 GO
@@ -1302,8 +1420,8 @@ CREATE TABLE dbo.PP_MRPLog (
   [Status]                    VARCHAR(20)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_MRPLog PRIMARY KEY CLUSTERED ([MrpRunID])
 );
 GO
@@ -1318,13 +1436,17 @@ CREATE TABLE dbo.PP_LineSchedule (
   [EndMin]                    SMALLINT                 NULL,
   [PlannedQty]                DECIMAL(14,3)            NULL,
   [PatternID]                 VARCHAR(20)              NULL,  -- FK -> MD_LineTimePattern.PatternID
+  [EntryType]                 VARCHAR(10)          NOT NULL CONSTRAINT DF_PP_LineSchedule_EntryType DEFAULT 'WO',  -- 'WO' WO배치 / 'PM' 예방보전 밴드
+  [Title]                     NVARCHAR(100)            NULL,  -- PM 밴드 표시명
+  [RefType]                   VARCHAR(10)              NULL,  -- MNT 연계: 'PMSCH' MNT_PMSchedule / 'MNTWO' MNT_WorkOrder
+  [RefID]                     INT                      NULL,  -- 연계 대상 PK (MNT_PMSchedule.PMScheduleID 등)
   [Status]                    VARCHAR(20)              NULL,
   [PublishedAt]               DATETIME2                NULL,
   [PublishedBy]               NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_LineSchedule PRIMARY KEY CLUSTERED ([ScheduleID])
 );
 GO
@@ -1341,8 +1463,8 @@ CREATE TABLE dbo.PP_LineStateLog (
   [ClassifiedAt]              DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_LineStateLog PRIMARY KEY CLUSTERED ([StateLogID])
 );
 GO
@@ -1362,8 +1484,8 @@ CREATE TABLE dbo.PP_LineDowntimeLog (
   [AndonID]                   INT                      NULL,  -- FK -> PR_AndonCall.AndonID
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_LineDowntimeLog PRIMARY KEY CLUSTERED ([DowntimeID])
 );
 GO
@@ -1386,10 +1508,27 @@ CREATE TABLE dbo.PP_LineOEE (
   [OEE]                       DECIMAL(5,4)             NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_LineOEE PRIMARY KEY CLUSTERED ([OeeSnapshotID])
 );
+GO
+
+-- ── PP_EquipSignal  (라인 가동/정지 실시간 신호 (PP-ODM))
+-- AMES.Data.Repositories.OeeRepository.TryEnsureTables() 가 런타임에 만들던 테이블 —
+-- 여기 정의가 있으면 그쪽 IF OBJECT_ID 가드는 no-op 이 된다.
+CREATE TABLE dbo.PP_EquipSignal (
+  [SignalId]                  INT IDENTITY         NOT NULL,
+  [LineId]                    VARCHAR(20)          NOT NULL,  -- FK -> MD_Line.LineID
+  [SignalTime]                DATETIME2            NOT NULL DEFAULT SYSDATETIME(),
+  [IsRunning]                 BIT                  NOT NULL DEFAULT 0,
+  [Source]                    VARCHAR(30)              NULL DEFAULT 'WEB',
+  [CreatedBy]                 VARCHAR(50)              NULL,
+  CONSTRAINT PK_PP_EquipSignal PRIMARY KEY CLUSTERED ([SignalId])
+);
+GO
+
+CREATE INDEX IX_PP_EquipSignal_Line_Time ON dbo.PP_EquipSignal([LineId], [SignalTime] DESC);
 GO
 
 -- ── PP_ProductionCalendarOverride  (캘린더 변경)
@@ -1399,16 +1538,34 @@ CREATE TABLE dbo.PP_ProductionCalendarOverride (
   [LineID]                    VARCHAR(20)              NULL,  -- FK -> MD_Line.LineID
   [DayType]                   VARCHAR(20)              NULL,
   [PatternID]                 VARCHAR(20)              NULL,  -- FK -> MD_LineTimePattern.PatternID
+  [TotalOperatingMin]         INT                      NULL,  -- 발행 스냅샷: 가동 분 합계 (MD_LineTimePattern 준용)
+  [TotalPlannedDownMin]       INT                      NULL,  -- 발행 스냅샷: 계획비가동 분 합계
+  [OperatingFlag]             CHAR(1440)           NOT NULL CONSTRAINT DF_PP_ProductionCalendarOverride_OperatingFlag DEFAULT REPLICATE('0',1440),  -- 분단위 가동플래그 (SEGMENT_STATE.Attribute1 ':' 앞) · Publish 시점 확정
+  [SegmentFlag]               CHAR(1440)           NOT NULL CONSTRAINT DF_PP_ProductionCalendarOverride_SegmentFlag   DEFAULT REPLICATE('0',1440),  -- 분단위 구간유형 (SEGMENT_STATE.Attribute1 ':' 뒤) · PM 포함
   [CapacityFactor]            DECIMAL(5,2)             NULL,
   [Reason]                    NVARCHAR(200)            NULL,
   [ApprovedBy]                NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [ApprovedAt]                DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_ProductionCalendarOverride PRIMARY KEY CLUSTERED ([OverrideID])
 );
+GO
+
+-- ── PP_EquipSignal  (설비 가동 신호 — InjAgent/PLC 수집, 라인 상태 판정용)
+CREATE TABLE dbo.PP_EquipSignal (
+  [SignalId]                  INT IDENTITY(1,1)    NOT NULL,
+  [LineId]                    VARCHAR(20)          NOT NULL,
+  [SignalTime]                DATETIME2            NOT NULL DEFAULT SYSDATETIME(),
+  [IsRunning]                 BIT                  NOT NULL DEFAULT 0,
+  [Source]                    VARCHAR(30)              NULL DEFAULT 'WEB',
+  [CreatedBy]                 VARCHAR(50)              NULL,
+  CONSTRAINT PK_PP_EquipSignal PRIMARY KEY CLUSTERED ([SignalId])
+);
+GO
+CREATE NONCLUSTERED INDEX IX_PP_EquipSignal_Line_Time ON dbo.PP_EquipSignal([LineId], [SignalTime]);
 GO
 
 -- ╔══════════════════════════════════════════════════════════════════════╗
@@ -1433,9 +1590,18 @@ CREATE TABLE dbo.tbl_Lot (
   [ExpiryDate]                DATE                     NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_tbl_Lot PRIMARY KEY CLUSTERED ([LotID])
+);
+GO
+
+-- ── SYS_LotSeq  (LotNo 채번 카운터 — 헤더별 마지막 순번)
+CREATE TABLE dbo.SYS_LotSeq (
+  [Header]                    CHAR(5)              NOT NULL,  -- 년월일(3) + 라인코드(2)
+  [LastSeq]                   INT                  NOT NULL,
+  [ModifiedTS]                DATETIME2            NOT NULL CONSTRAINT DF_SYS_LotSeq_ModifiedTS DEFAULT SYSDATETIME(),
+  CONSTRAINT PK_SYS_LotSeq PRIMARY KEY CLUSTERED ([Header])
 );
 GO
 
@@ -1453,8 +1619,8 @@ CREATE TABLE dbo.PR_PopSession (
   [LogoutReason]              VARCHAR(20)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_PopSession PRIMARY KEY CLUSTERED ([SessionID])
 );
 GO
@@ -1470,8 +1636,8 @@ CREATE TABLE dbo.PR_PopAuthLog (
   [AttemptedAt]               DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_PopAuthLog PRIMARY KEY CLUSTERED ([AuthLogID])
 );
 GO
@@ -1487,8 +1653,8 @@ CREATE TABLE dbo.PR_WoAcceptance (
   [CheckPassed]               BIT                      NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_WoAcceptance PRIMARY KEY CLUSTERED ([AcceptID])
 );
 GO
@@ -1514,8 +1680,8 @@ CREATE TABLE dbo.PR_ProductionResult (
   [EntryAt]                   DATETIME2                NULL DEFAULT SYSDATETIME(),
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_ProductionResult PRIMARY KEY CLUSTERED ([ResultID])
 );
 GO
@@ -1538,8 +1704,8 @@ CREATE TABLE dbo.PR_DefectDetail (
   [RegisteredBy]              NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_DefectDetail PRIMARY KEY CLUSTERED ([DefectID])
 );
 GO
@@ -1555,8 +1721,8 @@ CREATE TABLE dbo.PR_DefectAutoLink (
   [LinkedAt]                  DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_DefectAutoLink PRIMARY KEY CLUSTERED ([LinkID])
 );
 GO
@@ -1571,8 +1737,8 @@ CREATE TABLE dbo.PR_CycleAnomalyLog (
   [DetectedAt]                DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_CycleAnomalyLog PRIMARY KEY CLUSTERED ([AnomalyID])
 );
 GO
@@ -1594,8 +1760,8 @@ CREATE TABLE dbo.PR_MoldChange (
   [ChangedBy]                 NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_MoldChange PRIMARY KEY CLUSTERED ([MoldChangeID])
 );
 GO
@@ -1612,8 +1778,8 @@ CREATE TABLE dbo.PR_ShotCount (
   [RecordedAt]                DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_ShotCount PRIMARY KEY CLUSTERED ([ShotCountID])
 );
 GO
@@ -1630,8 +1796,8 @@ CREATE TABLE dbo.PR_EquipStatusLog (
   [DurationSec]               INT                      NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_EquipStatusLog PRIMARY KEY CLUSTERED ([EquipStatusLogID])
 );
 GO
@@ -1654,8 +1820,8 @@ CREATE TABLE dbo.PR_AndonCall (
   [Status]                    VARCHAR(20)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_AndonCall PRIMARY KEY CLUSTERED ([AndonID])
 );
 GO
@@ -1671,10 +1837,114 @@ CREATE TABLE dbo.PR_AndonPush (
   [Result]                    VARCHAR(20)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_AndonPush PRIMARY KEY CLUSTERED ([PushID])
 );
+GO
+
+-- ── PR_InjLot  (tbl_Lot 1:1 확장 — 사출 원천 LOT 속성)
+CREATE TABLE dbo.PR_InjLot (
+  [LotID]                     INT                  NOT NULL,  -- PK & FK -> tbl_Lot.LotID (1:1)
+  [EquipID]                   VARCHAR(20)              NULL,  -- FK -> MD_Equipment.EquipID
+  [MoldCode]                  VARCHAR(20)              NULL,  -- PLC 원문 기준 금형코드 (색상 제외)
+  [ColorCode]                 VARCHAR(10)              NULL,
+  [MoldID]                    VARCHAR(20)              NULL,  -- FK -> MD_Mold.MoldID
+  [CavityNo]                  INT                      NULL,  -- 1 / 2
+  [CavityPos]                 VARCHAR(4)               NULL,  -- LH / RH
+  [PressType]                 VARCHAR(2)               NULL,  -- 1~5 / M(에이전트)
+  [MachineShotCount]          BIGINT                   NULL,  -- PLC 샷카운터 값
+  [ConfirmStatus]             VARCHAR(16)          NOT NULL DEFAULT 'RAW',  -- RAW/CONFIRMED/NG_BLOCKED/NG_CONFIRMED
+  [ConfirmedAt]               DATETIME2                NULL,
+  [ConfirmedBy]               NVARCHAR(450)            NULL,
+  [ConfirmedSessionID]        INT                      NULL,
+  [PrintedCount]              INT                  NOT NULL DEFAULT 0,
+  [PrintClaimTS]              DATETIME2                NULL,  -- 라벨 발행 선점 시각 (NULL = 미선점)
+  [PrintClaimStation]         VARCHAR(20)              NULL,  -- 선점한 Pop 터미널 StationId
+  [CreatedBy]                 VARCHAR(50)          NOT NULL,
+  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
+  CONSTRAINT PK_PR_InjLot PRIMARY KEY CLUSTERED ([LotID]),
+  CONSTRAINT FK_PR_InjLot_Lot FOREIGN KEY ([LotID]) REFERENCES dbo.tbl_Lot([LotID])
+);
+GO
+CREATE INDEX IX_PR_InjLot_Status ON dbo.PR_InjLot([ConfirmStatus], [EquipID]);
+GO
+CREATE INDEX IX_PR_InjLot_Equip ON dbo.PR_InjLot([EquipID]) INCLUDE([CavityPos], [MachineShotCount]);
+GO
+CREATE INDEX IX_PR_InjLot_PrintClaim ON dbo.PR_InjLot([PrintedCount], [LotID]) INCLUDE([PrintClaimTS]);
+GO
+
+-- ── MD_InjCondItem  (사출조건 항목 마스터, SEOYON ZINJ0150 대응)
+CREATE TABLE dbo.MD_InjCondItem (
+  [CondItemID]                INT IDENTITY         NOT NULL,
+  [LineID]                    VARCHAR(20)          NOT NULL,  -- FK -> MD_Line.LineID
+  [ItemCode]                  VARCHAR(20)          NOT NULL,
+  [ItemName]                  NVARCHAR(50)             NULL,
+  [SetAddress]                INT                      NULL,  -- 세팅값 Modbus 주소
+  [ActualAddress]             INT                      NULL,  -- 실제값 Modbus 주소
+  [DataType]                  VARCHAR(8)           NOT NULL,  -- LONG / FLOAT
+  [Enabled]                   BIT                  NOT NULL DEFAULT 1,
+  [CreatedBy]                 VARCHAR(50)          NOT NULL,
+  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
+  CONSTRAINT PK_MD_InjCondItem PRIMARY KEY CLUSTERED ([CondItemID]),
+  CONSTRAINT UQ_MD_InjCondItem UNIQUE ([LineID], [ItemCode])
+);
+GO
+
+-- ── PR_InjCondLog  (샷별 사출조건 이력, SEOYON ZINJ0160 대응)
+CREATE TABLE dbo.PR_InjCondLog (
+  [CondLogID]                 BIGINT IDENTITY      NOT NULL,
+  [LineID]                    VARCHAR(20)          NOT NULL,
+  [ItemCode]                  VARCHAR(20)          NOT NULL,
+  [ShotSeq]                   BIGINT                   NULL,  -- PLC 샷카운터 값
+  [SetValue]                  DECIMAL(18,4)            NULL,
+  [ActualValue]               DECIMAL(18,4)            NULL,
+  [CollectedAt]               DATETIME2                NULL DEFAULT SYSDATETIME(),
+  [CreatedBy]                 VARCHAR(50)          NOT NULL,
+  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
+  CONSTRAINT PK_PR_InjCondLog PRIMARY KEY CLUSTERED ([CondLogID])
+);
+GO
+CREATE INDEX IX_PR_InjCondLog_Line ON dbo.PR_InjCondLog([LineID], [CollectedAt]);
+GO
+
+-- ── PR_RobotInspection  (취출로봇 검사 판정 수신)
+CREATE TABLE dbo.PR_RobotInspection (
+  [InspectionID]              BIGINT IDENTITY      NOT NULL,
+  [LotID]                     INT                  NOT NULL,  -- FK -> tbl_Lot.LotID
+  [EquipID]                   VARCHAR(20)              NULL,
+  [CavityPos]                 VARCHAR(4)               NULL,
+  [ShortMold]                 VARCHAR(4)               NULL,  -- OK/NG/PASS (미성형)
+  [WeldLine]                  VARCHAR(4)               NULL,
+  [Gas]                       VARCHAR(4)               NULL,
+  [Weight]                    VARCHAR(4)               NULL,
+  [OverallNg]                 BIT                  NOT NULL DEFAULT 0,
+  [ReceivedAt]                DATETIME2                NULL DEFAULT SYSDATETIME(),
+  [CreatedBy]                 VARCHAR(50)          NOT NULL,
+  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
+  CONSTRAINT PK_PR_RobotInspection PRIMARY KEY CLUSTERED ([InspectionID]),
+  CONSTRAINT FK_PR_RobotInspection_Lot FOREIGN KEY ([LotID]) REFERENCES dbo.tbl_Lot([LotID])
+);
+GO
+CREATE INDEX IX_PR_RobotInspection_Lot ON dbo.PR_RobotInspection([LotID]);
+GO
+
+-- ── tbl_Lot.LotCode 유니크 (스캔 확정 seek + 채번 중복 방어)
+SET QUOTED_IDENTIFIER ON;  -- 필터드 인덱스 필수 (sqlcmd 기본값 OFF)
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_tbl_Lot_LotCode')
+  CREATE UNIQUE NONCLUSTERED INDEX UX_tbl_Lot_LotCode ON dbo.tbl_Lot([LotCode]) WHERE [LotCode] IS NOT NULL;
+GO
+
+-- ── tbl_Lot.LineID (라벨 클레임 조인이 라인으로 좁혀지지 않으면, Pop 이 꺼진 라인의
+--    미출력 LOT 을 살아있는 다른 라인 터미널이 1초마다 전부 스캔한 뒤 버린다)
+IF NOT EXISTS (SELECT 1 FROM sys.indexes
+               WHERE object_id = OBJECT_ID(N'dbo.tbl_Lot') AND name = N'IX_tbl_Lot_Line')
+  CREATE INDEX IX_tbl_Lot_Line ON dbo.tbl_Lot([LineID], [LotID]);
 GO
 
 -- ── PR_PlcInterlock  (PLC 인터록)
@@ -1687,8 +1957,8 @@ CREATE TABLE dbo.PR_PlcInterlock (
   [AndonID]                   INT                      NULL,  -- FK -> PR_AndonCall.AndonID
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_PlcInterlock PRIMARY KEY CLUSTERED ([InterlockID])
 );
 GO
@@ -1707,8 +1977,8 @@ CREATE TABLE dbo.PR_ShiftHandover (
   [SignedAt]                  DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_ShiftHandover PRIMARY KEY CLUSTERED ([HandoverID])
 );
 GO
@@ -1723,6 +1993,7 @@ CREATE TABLE dbo.PR_DashTileCache (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_DashTileCache PRIMARY KEY CLUSTERED ([LineID], [TileID])
 );
 GO
@@ -1737,6 +2008,7 @@ CREATE TABLE dbo.PR_DefectRateCache (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_DefectRateCache PRIMARY KEY CLUSTERED ([WoID])
 );
 GO
@@ -1756,8 +2028,8 @@ CREATE TABLE dbo.PR_FabricIssue (
   [LineID]                    VARCHAR(20)              NULL,  -- FK -> MD_Line.LineID
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_FabricIssue PRIMARY KEY CLUSTERED ([FabricIssueID])
 );
 GO
@@ -1774,8 +2046,8 @@ CREATE TABLE dbo.PR_FabricIssueAttempt (
   [AttemptedAt]               DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_FabricIssueAttempt PRIMARY KEY CLUSTERED ([AttemptID])
 );
 GO
@@ -1791,8 +2063,8 @@ CREATE TABLE dbo.PR_FabricDeductionLog (
   [DeductedAt]                DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_FabricDeductionLog PRIMARY KEY CLUSTERED ([DeductionID])
 );
 GO
@@ -1812,8 +2084,8 @@ CREATE TABLE dbo.PR_BondSetup (
   [Status]                    VARCHAR(20)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_BondSetup PRIMARY KEY CLUSTERED ([BondSetupID])
 );
 GO
@@ -1831,8 +2103,8 @@ CREATE TABLE dbo.PR_BondCycleLog (
   [SampledAt]                 DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_BondCycleLog PRIMARY KEY CLUSTERED ([BondCycleID])
 );
 GO
@@ -1850,8 +2122,8 @@ CREATE TABLE dbo.PR_BondSetupAudit (
   [ChangedAt]                 DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_BondSetupAudit PRIMARY KEY CLUSTERED ([AuditID])
 );
 GO
@@ -1876,8 +2148,8 @@ CREATE TABLE dbo.PNT_DailyPlan (
   [ReadyFlag]                 BIT                      NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_DailyPlan PRIMARY KEY CLUSTERED ([PlanID])
 );
 GO
@@ -1902,8 +2174,8 @@ CREATE TABLE dbo.PNT_VirtualLot (
   [BindReason]                VARCHAR(40)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_VirtualLot PRIMARY KEY CLUSTERED ([VirtualLotID])
 );
 GO
@@ -1919,8 +2191,8 @@ CREATE TABLE dbo.PNT_JigBindingLog (
   [ActorID]                   NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_JigBindingLog PRIMARY KEY CLUSTERED ([BindingLogID])
 );
 GO
@@ -1934,6 +2206,7 @@ CREATE TABLE dbo.PNT_SeqAllocator (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_SeqAllocator PRIMARY KEY CLUSTERED ([PlanDate], [LineID])
 );
 GO
@@ -1951,8 +2224,8 @@ CREATE TABLE dbo.PNT_JigLoad (
   [LineID]                    VARCHAR(20)              NULL,  -- FK -> MD_Line.LineID
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_JigLoad PRIMARY KEY CLUSTERED ([LoadID])
 );
 GO
@@ -1972,8 +2245,8 @@ CREATE TABLE dbo.PNT_LineEvent (
   [TriggerType]               VARCHAR(20)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_LineEvent PRIMARY KEY CLUSTERED ([EventID])
 );
 GO
@@ -1989,8 +2262,8 @@ CREATE TABLE dbo.PNT_TagFailureLog (
   [ResolvedBy]                NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_TagFailureLog PRIMARY KEY CLUSTERED ([FailureID])
 );
 GO
@@ -2011,8 +2284,8 @@ CREATE TABLE dbo.PNT_OvenLog (
   [WithinSpec]                BIT                      NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_OvenLog PRIMARY KEY CLUSTERED ([OvenLogID])
 );
 GO
@@ -2026,8 +2299,8 @@ CREATE TABLE dbo.PNT_OvenTempSample (
   [SampledAt]                 DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_OvenTempSample PRIMARY KEY CLUSTERED ([SampleID])
 );
 GO
@@ -2044,8 +2317,8 @@ CREATE TABLE dbo.PNT_OvenDeviationLog (
   [AndonID]                   INT                      NULL,  -- FK -> PR_AndonCall.AndonID
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_OvenDeviationLog PRIMARY KEY CLUSTERED ([DeviationID])
 );
 GO
@@ -2059,8 +2332,8 @@ CREATE TABLE dbo.PNT_OvenSpikeLog (
   [Delta]                     DECIMAL(5,1)             NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_OvenSpikeLog PRIMARY KEY CLUSTERED ([SpikeID])
 );
 GO
@@ -2078,8 +2351,8 @@ CREATE TABLE dbo.PNT_JigUnload (
   [ConfirmedAt]               DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_JigUnload PRIMARY KEY CLUSTERED ([UnloadID])
 );
 GO
@@ -2095,8 +2368,8 @@ CREATE TABLE dbo.PNT_PartLossLog (
   [LoggedAt]                  DATETIME2                NULL DEFAULT SYSDATETIME(),
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_PartLossLog PRIMARY KEY CLUSTERED ([LossID])
 );
 GO
@@ -2111,7 +2384,8 @@ CREATE TABLE dbo.PNT_StationStatsCache (
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
-  CONSTRAINT PK_PNT_StationStatsCache PRIMARY KEY CLUSTERED ([StationID])
+  [ModifiedTS]                DATETIME2                NULL,
+  CONSTRAINT PK_PNT_StationStatsCache PRIMARY KEY CLUSTERED ([StationCode])
 );
 GO
 
@@ -2128,8 +2402,8 @@ CREATE TABLE dbo.PNT_LotLabel (
   [Status]                    VARCHAR(20)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_LotLabel PRIMARY KEY CLUSTERED ([LabelID])
 );
 GO
@@ -2146,8 +2420,8 @@ CREATE TABLE dbo.PNT_LabelPrintJob (
   [FailReason]                VARCHAR(200)             NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_LabelPrintJob PRIMARY KEY CLUSTERED ([JobID])
 );
 GO
@@ -2163,8 +2437,8 @@ CREATE TABLE dbo.PNT_LabelScanLog (
   [ScannedAt]                 DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_LabelScanLog PRIMARY KEY CLUSTERED ([ScanID])
 );
 GO
@@ -2190,8 +2464,8 @@ CREATE TABLE dbo.PNT_ShiftReport (
   [Version]                   TINYINT                  NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_ShiftReport PRIMARY KEY CLUSTERED ([ReportID])
 );
 GO
@@ -2210,8 +2484,8 @@ CREATE TABLE dbo.PNT_ShiftReportLineItem (
   [YieldPct]                  DECIMAL(5,2)             NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_ShiftReportLineItem PRIMARY KEY CLUSTERED ([LineItemID])
 );
 GO
@@ -2228,8 +2502,8 @@ CREATE TABLE dbo.PNT_ShiftReportAudit (
   [Reason]                    NVARCHAR(300)            NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_ShiftReportAudit PRIMARY KEY CLUSTERED ([AuditID])
 );
 GO
@@ -2246,8 +2520,8 @@ CREATE TABLE dbo.PNT_DailyReport (
   [GeneratedAt]               DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_DailyReport PRIMARY KEY CLUSTERED ([DailyID])
 );
 GO
@@ -2262,8 +2536,8 @@ CREATE TABLE dbo.PNT_QcQueue (
   [Status]                    VARCHAR(20)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PNT_QcQueue PRIMARY KEY CLUSTERED ([QueueID])
 );
 GO
@@ -2303,8 +2577,8 @@ CREATE TABLE dbo.QC_Inspection (
   [InsEndTS]                  DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_QC_Inspection PRIMARY KEY CLUSTERED ([InspectionID])
 );
 GO
@@ -2321,8 +2595,8 @@ CREATE TABLE dbo.QC_InspectionItem (
   [PhotoURL]                  VARCHAR(255)             NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_QC_InspectionItem PRIMARY KEY CLUSTERED ([InspectionItemID])
 );
 GO
@@ -2348,8 +2622,8 @@ CREATE TABLE dbo.QC_InspectionStd (
   [CapaLinkID]                INT                      NULL,  -- FK -> QC_CAPA.CapaID
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_QC_InspectionStd PRIMARY KEY CLUSTERED ([StdID])
 );
 GO
@@ -2379,8 +2653,8 @@ CREATE TABLE dbo.QC_NCR (
   [ClosedAt]                  DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_QC_NCR PRIMARY KEY CLUSTERED ([NcrID])
 );
 GO
@@ -2396,8 +2670,8 @@ CREATE TABLE dbo.QC_NCR_Action (
   [ActionBy]                  NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_QC_NCR_Action PRIMARY KEY CLUSTERED ([ActionID])
 );
 GO
@@ -2421,8 +2695,8 @@ CREATE TABLE dbo.QC_Hold (
   [HeldAt]                    DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_QC_Hold PRIMARY KEY CLUSTERED ([HoldID])
 );
 GO
@@ -2441,8 +2715,8 @@ CREATE TABLE dbo.QC_HoldRelease (
   [Note]                      NVARCHAR(500)            NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_QC_HoldRelease PRIMARY KEY CLUSTERED ([ReleaseID])
 );
 GO
@@ -2470,8 +2744,8 @@ CREATE TABLE dbo.QC_CAPA (
   [ClosedAt]                  DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_QC_CAPA PRIMARY KEY CLUSTERED ([CapaID])
 );
 GO
@@ -2493,8 +2767,8 @@ CREATE TABLE dbo.QC_CAPA_Action (
   [EvidenceURL]               VARCHAR(255)             NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_QC_CAPA_Action PRIMARY KEY CLUSTERED ([CapaActionID])
 );
 GO
@@ -2514,8 +2788,8 @@ CREATE TABLE dbo.QC_Disposition (
   [ApprovedAt]                DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_QC_Disposition PRIMARY KEY CLUSTERED ([DispositionID])
 );
 GO
@@ -2542,8 +2816,8 @@ CREATE TABLE dbo.FG_Stock (
   [StockTS]                   DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_FG_Stock PRIMARY KEY CLUSTERED ([StockID])
 );
 GO
@@ -2565,8 +2839,8 @@ CREATE TABLE dbo.FG_PutAway (
   [Status]                    VARCHAR(15)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_FG_PutAway PRIMARY KEY CLUSTERED ([PutAwayID])
 );
 GO
@@ -2591,8 +2865,8 @@ CREATE TABLE dbo.FG_ShipmentOrder (
   [ConfirmedAt]               DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_FG_ShipmentOrder PRIMARY KEY CLUSTERED ([ShipmentOrderID])
 );
 GO
@@ -2613,8 +2887,8 @@ CREATE TABLE dbo.FG_ShipmentOrderLine (
   [ReleasedAt]                DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_FG_ShipmentOrderLine PRIMARY KEY CLUSTERED ([ShipmentOrderLineID])
 );
 GO
@@ -2638,8 +2912,8 @@ CREATE TABLE dbo.FG_PickingFifo (
   [Status]                    VARCHAR(15)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_FG_PickingFifo PRIMARY KEY CLUSTERED ([PickID])
 );
 GO
@@ -2668,8 +2942,8 @@ CREATE TABLE dbo.FG_LoadingConfirm (
   [ConfirmedAt]               DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_FG_LoadingConfirm PRIMARY KEY CLUSTERED ([LoadingID])
 );
 GO
@@ -2693,8 +2967,8 @@ CREATE TABLE dbo.FG_DeliveryNote (
   [LinesJSON]                 NVARCHAR(MAX)            NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_FG_DeliveryNote PRIMARY KEY CLUSTERED ([DeliveryNoteID])
 );
 GO
@@ -2715,8 +2989,8 @@ CREATE TABLE dbo.FG_DayEndClose (
   [ErpFeedStatus]             VARCHAR(15)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_FG_DayEndClose PRIMARY KEY CLUSTERED ([DayEndCloseID])
 );
 GO
@@ -2741,8 +3015,8 @@ CREATE TABLE dbo.FG_CustomerReturn (
   [ClosedBy]                  NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_FG_CustomerReturn PRIMARY KEY CLUSTERED ([ReturnID])
 );
 GO
@@ -2762,8 +3036,8 @@ CREATE TABLE dbo.FG_ReturnDisposition (
   [ApprovedAt]                DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_FG_ReturnDisposition PRIMARY KEY CLUSTERED ([ReturnDispositionID])
 );
 GO
@@ -2788,8 +3062,8 @@ CREATE TABLE dbo.MNT_EquipmentStatus (
   [PLCConnTS]                 DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MNT_EquipmentStatus PRIMARY KEY CLUSTERED ([EquipStatusID])
 );
 GO
@@ -2813,8 +3087,8 @@ CREATE TABLE dbo.MNT_FailureRegister (
   [ResolvedAt]                DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MNT_FailureRegister PRIMARY KEY CLUSTERED ([FailureID])
 );
 GO
@@ -2830,8 +3104,8 @@ CREATE TABLE dbo.MNT_FailureAction (
   [ActionAt]                  DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MNT_FailureAction PRIMARY KEY CLUSTERED ([FailureActionID])
 );
 GO
@@ -2856,8 +3130,8 @@ CREATE TABLE dbo.MNT_OEELog (
   [LossBreakdownJSON]         NVARCHAR(MAX)            NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MNT_OEELog PRIMARY KEY CLUSTERED ([OEELogID])
 );
 GO
@@ -2878,8 +3152,8 @@ CREATE TABLE dbo.MNT_PMSchedule (
   [ActiveWoID]                INT                      NULL,  -- FK -> MNT_WorkOrder.WorkOrderID
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MNT_PMSchedule PRIMARY KEY CLUSTERED ([PMScheduleID])
 );
 GO
@@ -2896,8 +3170,8 @@ CREATE TABLE dbo.MNT_PMExecution (
   [ChecklistResultsJSON]      NVARCHAR(MAX)            NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MNT_PMExecution PRIMARY KEY CLUSTERED ([PMExecutionID])
 );
 GO
@@ -2925,8 +3199,8 @@ CREATE TABLE dbo.MNT_WorkOrder (
   [DowntimeID]                INT                      NULL,  -- FK -> PP_LineDowntimeLog.DowntimeID
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MNT_WorkOrder PRIMARY KEY CLUSTERED ([WorkOrderID])
 );
 GO
@@ -2945,8 +3219,8 @@ CREATE TABLE dbo.MNT_WorkOrderTask (
   [CompletedAt]               DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MNT_WorkOrderTask PRIMARY KEY CLUSTERED ([WorkOrderTaskID])
 );
 GO
@@ -2970,8 +3244,8 @@ CREATE TABLE dbo.MNT_SparePartsTxn (
   [ActorID]                   NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MNT_SparePartsTxn PRIMARY KEY CLUSTERED ([SparePartsTxnID])
 );
 GO
@@ -2992,8 +3266,8 @@ CREATE TABLE dbo.MNT_MoldShotCount (
   [HistoryJSON]               NVARCHAR(MAX)            NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MNT_MoldShotCount PRIMARY KEY CLUSTERED ([MoldShotCountID])
 );
 GO
@@ -3014,11 +3288,12 @@ CREATE TABLE dbo.SYS_UserProfile (
   [AssignedLines]             NVARCHAR(MAX)            NULL,
   [AccountStatus]             VARCHAR(10)              NULL,
   [FailedLoginCount]          INT                      NULL,
+  [PinHash]                   NVARCHAR(200)            NULL,  -- POP 4자리 PIN (PBKDF2). Web 비번(AspNetUsers.PasswordHash)과 분리
   [LastLoginTS]               DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_SYS_UserProfile PRIMARY KEY CLUSTERED ([UserProfileID])
 );
 GO
@@ -3029,6 +3304,7 @@ CREATE TABLE dbo.SYS_RolePermission (
   [RoleID]                    NVARCHAR(450)            NULL,  -- FK -> AspNetRoles.Id
   [RoleName]                  VARCHAR(40)              NULL,
   [ModuleCode]                VARCHAR(10)              NULL,
+  [ProcessCode]               VARCHAR(10)              NULL,
   [ScreenCode]                VARCHAR(20)              NULL,
   [PermissionLevel]           VARCHAR(10)              NULL,
   [IsSystemRole]              BIT                      NULL,
@@ -3047,6 +3323,7 @@ CREATE TABLE dbo.SYS_AuditLog (
   [EventTS]                   DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ActorUserID]               NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [ModuleCode]                VARCHAR(10)              NULL,
+  [ProcessCode]               VARCHAR(10)              NULL,
   [ScreenCode]                VARCHAR(20)              NULL,
   [ActionType]                VARCHAR(15)              NULL,
   [TargetEntity]              VARCHAR(40)              NULL,
@@ -3058,8 +3335,8 @@ CREATE TABLE dbo.SYS_AuditLog (
   [Note]                      NVARCHAR(500)            NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_SYS_AuditLog PRIMARY KEY CLUSTERED ([LogID])
 );
 GO
@@ -3069,7 +3346,8 @@ CREATE TABLE dbo.SYS_NotificationRule (
   [NotificationRuleID]        INT IDENTITY         NOT NULL,
   [EventTypeCode]             VARCHAR(20)              NULL,
   [EventName]                 NVARCHAR(60)             NULL,
-  [SourceModule]              VARCHAR(10)              NULL,
+  [ModuleCode]                VARCHAR(10)              NULL,
+  [ProcessCode]               VARCHAR(10)              NULL,
   [TriggerCondition]          NVARCHAR(500)            NULL,
   [IsEnabled]                 BIT                      NULL DEFAULT 1,
   [ChannelsJSON]              NVARCHAR(200)            NULL,
@@ -3094,8 +3372,8 @@ CREATE TABLE dbo.SYS_NotificationChannel (
   [VerifiedAt]                DATETIME2                NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_SYS_NotificationChannel PRIMARY KEY CLUSTERED ([NotificationChannelID])
 );
 GO
@@ -3119,8 +3397,8 @@ CREATE TABLE dbo.SYS_NotificationHistory (
   [ErrorMsg]                  NVARCHAR(500)            NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_SYS_NotificationHistory PRIMARY KEY CLUSTERED ([NotificationHistoryID])
 );
 GO
@@ -3162,8 +3440,8 @@ CREATE TABLE dbo.SYS_InterfaceMonitor (
   [IsEnabled]                 BIT                      NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_SYS_InterfaceMonitor PRIMARY KEY CLUSTERED ([InterfaceMonitorID])
 );
 GO
@@ -3184,8 +3462,8 @@ CREATE TABLE dbo.SYS_FactoryCalendar (
   [PlantCode]                 VARCHAR(20)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedTS]                DATETIME2                NULL,
   [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_SYS_FactoryCalendar PRIMARY KEY CLUSTERED ([FactoryCalendarID])
 );
 GO
@@ -3292,13 +3570,8 @@ GO
 
 -- Customers
 INSERT INTO dbo.MD_Customer (CustomerID, CustomerCode, CustomerName, CustomerNameEn, CustomerType, Country, EDIFlag, CurrencyCode, Status, CreatedBy, CreatedTS) VALUES
-  ('CUS-SAV',    'SAV',  N'SEYON E-HWA Detroit',   'SAV (Detroit Plant)',     'PLANT', 'USA', 0, 'USD', 'ACTIVE', 'admin', SYSDATETIME()),
-  ('CUS-GEO',    'GEO',  N'SEYON E-HWA Birmingham','GEO (Birmingham Plant)',  'PLANT', 'USA', 0, 'USD', 'ACTIVE', 'admin', SYSDATETIME()),
-  ('CUS-FORD',   'FORD', N'Ford Motor Company',    'Ford Motor Company',      'OEM',   'USA', 1, 'USD', 'ACTIVE', 'admin', SYSDATETIME()),
-  ('CUS-GM',     'GM',   N'General Motors',        'General Motors',          'OEM',   'USA', 1, 'USD', 'ACTIVE', 'admin', SYSDATETIME()),
-  ('CUS-STEL',   'STEL', N'Stellantis NA',         'Stellantis North America','OEM',   'USA', 1, 'USD', 'ACTIVE', 'admin', SYSDATETIME()),
-  ('CUS-HMMA',   'HMMA', N'Hyundai Motor Mfg AL',  'HMMA',                    'OEM',   'USA', 1, 'USD', 'ACTIVE', 'admin', SYSDATETIME()),
-  ('CUS-BYD',    'BYD',  N'BYD Motors',            'BYD Motors',              'OEM',   'USA', 0, 'USD', 'ACTIVE', 'admin', SYSDATETIME());
+  ('SEMS',    'SEMS',  N'SEYON E-HWA Savannah',  'SEMS',     'PLANT', 'USA', 0, 'USD', 'ACTIVE', 'admin', SYSDATETIME()),
+  ('SEMG',    'SEMG',  N'SEYON E-HWA Georgia',   'SEMG',  'PLANT', 'USA', 0, 'USD', 'ACTIVE', 'admin', SYSDATETIME());
 GO
 
 -- Vendors
@@ -3310,27 +3583,1220 @@ INSERT INTO dbo.MD_Vendor (VendorID, VendorName, VendorType, VendorCategory, Pho
   ('SUP-HAARTZ',N'Haartz Corporation',    'SUPPLIER', N'Fabric',         '(978) 555-0421', 'fabric@haartz.us',     1, 99.00, 'Net 30', 1, 'admin', SYSDATETIME());
 GO
 
--- Production Lines
-INSERT INTO dbo.MD_Line (LineID, LineName, LineType, PlantCode, DailyCap, ShiftPattern, RfidEnabledFlag, Status, CreatedBy, CreatedTS) VALUES
-  ('LINE-INJ-01', N'Injection Line 1 (650T)',  'INJECTION', 'SAV', 4800, '2-SHIFT', 0, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-INJ-02', N'Injection Line 2 (850T)',  'INJECTION', 'SAV', 3600, '2-SHIFT', 0, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-IMG-01', N'Wrapping Line 1',           'WRAPPING',  'SAV', 1200, '2-SHIFT', 0, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-PNT-01', N'Paint Line 1 (Powder)',     'PAINTING',  'GEO',  800, '3-SHIFT', 1, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-PNT-02', N'Paint Line 2 (Liquid)',     'PAINTING',  'GEO',  600, '3-SHIFT', 1, 'ACTIVE', 'admin', SYSDATETIME());
+-- Work Centers (공정 소유 = 라인들의 논리 묶음; 라인/스테이션이 여기서 공정 상속)
+INSERT INTO dbo.MD_WorkCenter (WCID, WCName, ProcessCode, ActiveFlag, CreatedBy, CreatedTS) VALUES
+  ('WC-INJ', N'Injection Work Center', 'INJECTION', 1, 'admin', SYSDATETIME()),
+  ('WC-IMG', N'Wrapping Work Center',  'WRAPPING',  1, 'admin', SYSDATETIME()),
+  ('WC-PNT', N'Paint Work Center',     'PAINTING',  1, 'admin', SYSDATETIME());
 GO
 
--- Items
-INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemNameEN, ItemType, ItemCategory, DefaultUOM, RoutingType, MinStock, SafetyStock, UnitCost, CustItemNoSAV, CustItemNoGEO, ActiveFlag, CreatedBy, CreatedTS) VALUES
-  ('FIN-CONS-01', N'Console Upper (Black)',  'Console Upper - Black',  'FINISHED', N'Console',     'EA',  'A', 50,  100, 24.50,  'SAV-CONS-01', NULL,         1, 'admin', SYSDATETIME()),
-  ('FIN-GRIL-02', N'Radiator Grille',        'Radiator Grille',        'FINISHED', N'Grille',      'EA',  'B', 30,   80, 18.20,  'SAV-GRIL-02', 'GEO-GRIL-02',1, 'admin', SYSDATETIME()),
-  ('FIN-DOOR-LH',N'Door Trim LH (Gray)',     'Door Trim LH - Gray',    'FINISHED', N'Door Trim',   'EA',  'A', 40,  120, 31.00,  'SAV-DOOR-LH', NULL,         1, 'admin', SYSDATETIME()),
-  ('FIN-DOOR-RH',N'Door Trim RH (Gray)',     'Door Trim RH - Gray',    'FINISHED', N'Door Trim',   'EA',  'A', 40,  120, 31.00,  'SAV-DOOR-RH', NULL,         1, 'admin', SYSDATETIME()),
-  ('FIN-BUMP-FR',N'Front Bumper',            'Front Bumper',           'FINISHED', N'Bumper',      'EA',  'B', 20,   60, 78.50,  NULL,          'GEO-BUMP-FR',1, 'admin', SYSDATETIME()),
-  ('RAW-PP-NAT', N'PP Pellet Natural',       'PP Pellet Natural',      'RAW',      N'Resin',       'LB', NULL, 2000, 5000, 1.20,  NULL,          NULL,         1, 'admin', SYSDATETIME()),
-  ('RAW-ABS-BLK',N'ABS Resin Black',         'ABS Resin Black',        'RAW',      N'Resin',       'LB', NULL, 1500, 3000, 1.85,  NULL,          NULL,         1, 'admin', SYSDATETIME()),
-  ('FAB-GRY-01', N'Vinyl Gray',              'Vinyl Gray',             'FABRIC',   N'Vinyl',       'M',  NULL,  500, 1500, 4.20,  NULL,          NULL,         1, 'admin', SYSDATETIME()),
-  ('POW-RAL9005',N'Powder Black RAL9005',    'Powder Coat Black 9005', 'POWDER',   N'Paint',       'LB', NULL,  300, 1000, 12.50, NULL,          NULL,         1, 'admin', SYSDATETIME()),
-  ('POW-RAL7042',N'Powder Gray RAL7042',     'Powder Coat Gray 7042',  'POWDER',   N'Paint',       'LB', NULL,  200,  800, 12.50, NULL,          NULL,         1, 'admin', SYSDATETIME());
+-- Production Lines (WCID 필수 — 공정은 소속 작업장에서 상속)
+INSERT INTO dbo.MD_Line (LineID, LineName, WCID, PlantCode, DailyCap, ShiftPattern, LotPrefix, RfidEnabledFlag, Status, CreatedBy, CreatedTS) VALUES
+  ('LINE-INJ-01', N'Injection Line 1 (650T)',  'WC-INJ', 'SAV', 4800, '2-SHIFT', 'I1', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-INJ-02', N'Injection Line 2 (850T)',  'WC-INJ', 'SAV', 3600, '2-SHIFT', 'I2', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-IMG-01', N'Wrapping Line 1',           'WC-IMG', 'SAV', 1200, '2-SHIFT', 'W1', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-PNT-01', N'Paint Line 1 (Powder)',     'WC-PNT', 'GEO',  800, '3-SHIFT', 'P1', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-PNT-02', N'Paint Line 2 (Liquid)',     'WC-PNT', 'GEO',  600, '3-SHIFT', 'P2', 1, 'ACTIVE', 'admin', SYSDATETIME());
+GO
+
+-- Items (LQ2 rear door trim part master — docs/PartMaster_LQ2.xls)
+INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM, SafetyStock, PGN, ALC, ActiveFlag, CreatedBy, CreatedTS) VALUES
+  ('83335-P8000BM1',  N'GARNISH-RR DR UPR, LH',                    'ASSY',  N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'Q034',  '8132',   1, 'admin', SYSDATETIME()),
+  ('83335-P8000DNN',  N'GARNISH-RR DR UPR, LH',                    'ASSY',  N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'Q034',  '8133',   1, 'admin', SYSDATETIME()),
+  ('83335-P8000JY2',  N'GARNISH-RR DR UPR, LH',                    'ASSY',  N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'Q034',  '8175',   1, 'admin', SYSDATETIME()),
+  ('83335-P8000RBQ',  N'GARNISH-RR DR UPR, LH',                    'ASSY',  N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'Q034',  '8046',   1, 'admin', SYSDATETIME()),
+  ('83345-P8000BM1',  N'GARNISH-RR DR UPR, RH',                    'ASSY',  N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'Q035',  '8132',   1, 'admin', SYSDATETIME()),
+  ('83345-P8000DNN',  N'GARNISH-RR DR UPR, RH',                    'ASSY',  N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'Q035',  '8133',   1, 'admin', SYSDATETIME()),
+  ('83345-P8000JY2',  N'GARNISH-RR DR UPR, RH',                    'ASSY',  N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'Q035',  '8175',   1, 'admin', SYSDATETIME()),
+  ('83345-P8000RBQ',  N'GARNISH-RR DR UPR, RH',                    'ASSY',  N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'Q035',  '8046',   1, 'admin', SYSDATETIME()),
+  ('M83371-P8000RBQ', N'MODULE RR DR TRIM UPR, LH (FAKE STITCH)',  'ASSY',  N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'Q034',  '8106',   1, 'admin', SYSDATETIME()),
+  ('M83371-P8010RBQ', N'MODULE RR DR TRIM UPR,LH (FAKE+CUR)',      'ASSY',  N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'Q034',  '8046',   1, 'admin', SYSDATETIME()),
+  ('M83381-P8000RBQ', N'MODULE RR DR TRIM UPR, RH (FAKE STITCH)',  'ASSY',  N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'Q035',  '8106',   1, 'admin', SYSDATETIME()),
+  ('M83381-P8010RBQ', N'MODULE RR DR TRIM UPR,RH (FAKE+CUR)',      'ASSY',  N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'Q035',  '8046',   1, 'admin', SYSDATETIME()),
+  ('83314-P8000',     N'RAIL-RR DR TRIM UPR, LH (FAKE STITCH)',    'SUB',   N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'AQFG',  'DL001',  1, 'admin', SYSDATETIME()),
+  ('83314-P8010',     N'RAIL-RR DR TRIM UPR, LH (FAKE STITCH, +C', 'SUB',   N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'AQFG',  'DL003',  1, 'admin', SYSDATETIME()),
+  ('83324-P8000',     N'RAIL-RR DR TRIM UPR, RH (FAKE STITCH)',    'SUB',   N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'AQFG',  'DL002',  1, 'admin', SYSDATETIME()),
+  ('83324-P8010',     N'RAIL-RR DR TRIM UPR, RH (FAKE STITCH, +C', 'SUB',   N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'AQFG',  'DL004',  1, 'admin', SYSDATETIME()),
+  ('83371-P8010RBQ',  N'PNL-RR DR TRIM UPR, LH (FAKE STITCH, +CU', 'SUB',   N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'QSUB',  '8047',   1, 'admin', SYSDATETIME()),
+  ('83381-P8000RBQ',  N'PNL-RR DR TRIM UPR, RH (FAKE STITCH)',     'SUB',   N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'QSUB',  '8048',   1, 'admin', SYSDATETIME()),
+  ('83381-P8010RBQ',  N'PNL-RR DR TRIM UPR, RH (FAKE STITCH, +CU', 'SUB',   N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'QSUB',  '8049',   1, 'admin', SYSDATETIME()),
+  ('D0133-P8000',     N'CORE (IMG)-PNL-RR DR TRIM UPR, LH',        'SUB',   N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'AQFG',  'DL007',  1, 'admin', SYSDATETIME()),
+  ('D0133-P8010',     N'CORE (IMG)-PNL-RR DR TRIM UPR, LH (+CURT', 'SUB',   N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'AQFG',  'DL009',  1, 'admin', SYSDATETIME()),
+  ('D0143-P8000',     N'CORE (IMG)-PNL-RR DR TRIM UPR, RH',        'SUB',   N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'AQFG',  'DL008',  1, 'admin', SYSDATETIME()),
+  ('D0143-P8010',     N'CORE (IMG)-PNL-RR DR TRIM UPR, RH (+CURT', 'SUB',   N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'AQFG',  'DL010',  1, 'admin', SYSDATETIME()),
+  ('D3133-P8000',     N'CORE (IMG)-GARNISH-RR DR UPR, LH',         'SUB',   N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'AQFG',  'DL005',  1, 'admin', SYSDATETIME()),
+  ('D3143-P8000',     N'CORE (IMG)-GARNISH-RR DR UPR, RH',         'SUB',   N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'AQFG',  'DL006',  1, 'admin', SYSDATETIME()),
+  ('M0230-P8000RBQ',  N'MODULE-PNL-RR DR TRIM UPR, LH (FAKE STIT', 'SUB',   N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'XXXX',  'L001',   1, 'admin', SYSDATETIME()),
+  ('M0230-P8010RBQ',  N'MODULE-PNL-RR DR TRIM UPR, LH (FAKE STIT', 'SUB',   N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'XXXX',  'L002',   1, 'admin', SYSDATETIME()),
+  ('M0240-P8000RBQ',  N'MODULE-PNL-RR DR TRIM UPR, RH (FAKE STIT', 'SUB',   N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'XXXX',  'L003',   1, 'admin', SYSDATETIME()),
+  ('M0240-P8010RBQ',  N'MODULE-PNL-RR DR TRIM UPR, RH (FAKE STIT', 'SUB',   N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'XXXX',  'L004',   1, 'admin', SYSDATETIME());
+GO
+
+-- Items (ME1A part master — docs/PartMaster_ME1A.xls)
+INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM, SafetyStock, PGN, ALC, ActiveFlag, CreatedBy, CreatedTS) VALUES
+  ('81710-TD000NNB',     N'TRIM ASSY-TAIL GATE LWR',                      'ASSY', NULL, 'ME1A', 'EA', 0, 'Q017',  'S00B',   1, 'admin', SYSDATETIME()),
+  ('81710-TD000PNY',     N'TRIM ASSY-TAIL GATE LWR',                      'ASSY', NULL, 'ME1A', 'EA', 0, 'Q017',  'S00P',   1, 'admin', SYSDATETIME()),
+  ('81711-TD010NNB',     N'TRIM - TAIL GATE LWR',                         'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M011',   1, 'admin', SYSDATETIME()),
+  ('81711-TD010PNY',     N'TRIM - TAIL GATE LWR',                         'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M012',   1, 'admin', SYSDATETIME()),
+  ('82301-TD030NNB',     N'PNL ASSY-FR DR TRIM COMPL,LH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q023',  'S30B',   1, 'admin', SYSDATETIME()),
+  ('82301-TD030YGN',     N'PNL ASSY-FR DR TRIM COMPL,LH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q023',  'S30G',   1, 'admin', SYSDATETIME()),
+  ('82301-TD0804NB',     N'PNL ASSY-FR DR TRIM COMPL,LH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q023',  'S804',   1, 'admin', SYSDATETIME()),
+  ('82301-TD090NNB',     N'PNL ASSY-FR DR TRIM COMPL,LH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q023',  'S90B',   1, 'admin', SYSDATETIME()),
+  ('82301-TD090PNY',     N'PNL ASSY-FR DR TRIM COMPL,LH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q023',  'S90P',   1, 'admin', SYSDATETIME()),
+  ('82301-TD090VKE',     N'PNL ASSY-FR DR TRIM COMPL,LH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q023',  'S90K',   1, 'admin', SYSDATETIME()),
+  ('82301-TD090YGN',     N'PNL ASSY-FR DR TRIM COMPL,LH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q023',  'S90G',   1, 'admin', SYSDATETIME()),
+  ('82301-TD100NNB',     N'PNL ASSY-FR DR TRIM COMPL,LH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q023',  'SA0B',   1, 'admin', SYSDATETIME()),
+  ('82301-TD100VKE',     N'PNL ASSY-FR DR TRIM COMPL,LH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q023',  'SA0K',   1, 'admin', SYSDATETIME()),
+  ('82301-TD100YGN',     N'PNL ASSY-FR DR TRIM COMPL,LH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q023',  'SA0G',   1, 'admin', SYSDATETIME()),
+  ('82301-TD130NNB',     N'PNL ASSY-FR DR TRIM COMPL,LH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q023',  'SD0B',   1, 'admin', SYSDATETIME()),
+  ('82301-TD130VKE',     N'PNL ASSY-FR DR TRIM COMPL,LH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q023',  'SD0K',   1, 'admin', SYSDATETIME()),
+  ('82301-TD130YGN',     N'PNL ASSY-FR DR TRIM COMPL,LH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q023',  'SD0G',   1, 'admin', SYSDATETIME()),
+  ('82302-12345678',     N'PNL ASSY-FR DR TRIM COMPL,RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q024',  'N20Y',   1, 'admin', SYSDATETIME()),
+  ('82302-TD000NNB',     N'PNL ASSY-FR DR TRIM COMPL,RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q024',  'S00B',   1, 'admin', SYSDATETIME()),
+  ('82302-TD000YGN',     N'PNL ASSY-FR DR TRIM COMPL,RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q024',  'S00G',   1, 'admin', SYSDATETIME()),
+  ('82302-TD010NNB',     N'PNL ASSY-FR DR TRIM COMPL,RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q024',  'S10B',   1, 'admin', SYSDATETIME()),
+  ('82302-TD010VKE',     N'PNL ASSY-FR DR TRIM COMPL,RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q024',  'S10K',   1, 'admin', SYSDATETIME()),
+  ('82302-TD010YGN',     N'PNL ASSY-FR DR TRIM COMPL,RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q024',  'S10G',   1, 'admin', SYSDATETIME()),
+  ('82302-TD020NNB',     N'PNL ASSY-FR DR TRIM COMPL,RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q024',  'S20B',   1, 'admin', SYSDATETIME()),
+  ('82302-TD020VKE',     N'PNL ASSY-FR DR TRIM COMPL,RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q024',  'S20K',   1, 'admin', SYSDATETIME()),
+  ('82302-TD020YGN',     N'PNL ASSY-FR DR TRIM COMPL,RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q024',  'S20G',   1, 'admin', SYSDATETIME()),
+  ('82302-TD030NNB',     N'PNL ASSY-FR DR TRIM COMPL,RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('82302-TD040NNB',     N'PNL ASSY-FR DR TRIM COMPL,RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q024',  'S40B',   1, 'admin', SYSDATETIME()),
+  ('82302-TD040PNY',     N'PNL ASSY-FR DR TRIM COMPL,RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q024',  'S40P',   1, 'admin', SYSDATETIME()),
+  ('82302-TD040VKE',     N'PNL ASSY-FR DR TRIM COMPL,RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q024',  'S40K',   1, 'admin', SYSDATETIME()),
+  ('82302-TD040YGN',     N'PNL ASSY-FR DR TRIM COMPL,RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q024',  'S40G',   1, 'admin', SYSDATETIME()),
+  ('82302-TD0504NB',     N'PNL ASSY-FR DR TRIM COMPL,RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q024',  'S504',   1, 'admin', SYSDATETIME()),
+  ('82311-TD000NNB',     N'PNL ASSY-FR DR TRIM UPR, LH (NON DSM)',        'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M094',   1, 'admin', SYSDATETIME()),
+  ('82311-TD000PNY',     N'PNL ASSY-FR DR TRIM UPR, LH (NON DSM)',        'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M096',   1, 'admin', SYSDATETIME()),
+  ('82311-TD000VKE',     N'PNL ASSY-FR DR TRIM UPR, LH (NON DSM)',        'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M097',   1, 'admin', SYSDATETIME()),
+  ('82311-TD000YGN',     N'PNL ASSY-FR DR TRIM UPR, LH (NON DSM)',        'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M095',   1, 'admin', SYSDATETIME()),
+  ('82311-TD000YGU',     N'PNL ASSY-FR DR TRIM UPR, LH (NON DSM)',        'SUB',  NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('82321-TD000NNB',     N'PNL ASSY-FR DR TRIM UPR, RH (NON DSM)',        'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M098',   1, 'admin', SYSDATETIME()),
+  ('82321-TD000PNY',     N'PNL ASSY-FR DR TRIM UPR, RH (NON DSM)',        'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M101',   1, 'admin', SYSDATETIME()),
+  ('82321-TD000VKE',     N'PNL ASSY-FR DR TRIM UPR, RH (NON DSM)',        'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M100',   1, 'admin', SYSDATETIME()),
+  ('82321-TD000YGN',     N'PNL ASSY-FR DR TRIM UPR, RH (NON DSM)',        'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M099',   1, 'admin', SYSDATETIME()),
+  ('82330-TD100NNB',     N'PNL ASSY-FR DR CTR, LH (LEATHER)',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M121',   1, 'admin', SYSDATETIME()),
+  ('82330-TD100YGU',     N'PNL ASSY-FR DR CTR, LH (LEATHER)',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M122',   1, 'admin', SYSDATETIME()),
+  ('82330-TD200NNB',     N'PNL ASSY-FR DR CTR, LH (LEATHER + PERPOR',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M118',   1, 'admin', SYSDATETIME()),
+  ('82330-TD200ROG',     N'PNL ASSY-FR DR CTR, LH (LEATHER + PERPOR',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M119',   1, 'admin', SYSDATETIME()),
+  ('82330-TD200YGU',     N'PNL ASSY-FR DR CTR, LH (LEATHER + PERPOR',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M120',   1, 'admin', SYSDATETIME()),
+  ('82340-TD100NNB',     N'PNL ASSY-FR DR CTR, RH (LEATHER)',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M123',   1, 'admin', SYSDATETIME()),
+  ('82340-TD100YGU',     N'PNL ASSY-FR DR CTR, RH (LEATHER)',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M124',   1, 'admin', SYSDATETIME()),
+  ('82340-TD200NNB',     N'PNL ASSY-FR DR CTR, RH (LEATHER + PERPOR',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M125',   1, 'admin', SYSDATETIME()),
+  ('82340-TD200ROG',     N'PNL ASSY-FR DR CTR, RH (LEATHER + PERPOR',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M126',   1, 'admin', SYSDATETIME()),
+  ('82340-TD200YGU',     N'PNL ASSY-FR DR CTR, RH (LEATHER + PERPOR',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M127',   1, 'admin', SYSDATETIME()),
+  ('82350-TD000NNB',     N'PNL ASSY-FR DR TRIM LWR, LH',                  'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M005',   1, 'admin', SYSDATETIME()),
+  ('82350-TD000ROG',     N'PNL ASSY-FR DR TRIM LWR, LH',                  'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M007',   1, 'admin', SYSDATETIME()),
+  ('82350-TD000YGU',     N'PNL ASSY-FR DR TRIM LWR, LH',                  'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M006',   1, 'admin', SYSDATETIME()),
+  ('82351-TD000NNB',     N'GRILLE ASSY-FR DR SPEAKER, LH',                'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M138',   1, 'admin', SYSDATETIME()),
+  ('82351-TD000YGU',     N'GRILLE ASSY-FR DR SPEAKER, LH',                'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M139',   1, 'admin', SYSDATETIME()),
+  ('82360-TD000NNB',     N'PNL ASSY-FR DR TRIM LWR, RH',                  'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M005',   1, 'admin', SYSDATETIME()),
+  ('82360-TD000ROG',     N'PNL ASSY-FR DR TRIM LWR, RH',                  'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M007',   1, 'admin', SYSDATETIME()),
+  ('82360-TD000YGU',     N'PNL ASSY-FR DR TRIM LWR, RH',                  'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M006',   1, 'admin', SYSDATETIME()),
+  ('82361-TD000NNB',     N'GRILLE ASSY-FR DR SPEAKER, RH',                'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M138',   1, 'admin', SYSDATETIME()),
+  ('82361-TD000YGU',     N'GRILLE ASSY-FR DR SPEAKER, RH',                'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M139',   1, 'admin', SYSDATETIME()),
+  ('83301-12345678',     N'PNL ASSY-RR DR TRIM COMPL,LH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q033',  'N10B',   1, 'admin', SYSDATETIME()),
+  ('83301-TD010NNB',     N'PNL ASSY-RR DR TRIM COMPL, LH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q033',  'S10B',   1, 'admin', SYSDATETIME()),
+  ('83301-TD010YGN',     N'PNL ASSY-RR DR TRIM COMPL, LH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q033',  'S10G',   1, 'admin', SYSDATETIME()),
+  ('83301-TD060NNB',     N'PNL ASSY-RR DR TRIM COMPL, LH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q033',  'S60B',   1, 'admin', SYSDATETIME()),
+  ('83301-TD060PNY',     N'PNL ASSY-RR DR TRIM COMPL, LH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q033',  'S60P',   1, 'admin', SYSDATETIME()),
+  ('83301-TD060VKE',     N'PNL ASSY-RR DR TRIM COMPL, LH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q033',  'S60K',   1, 'admin', SYSDATETIME()),
+  ('83301-TD060YGN',     N'PNL ASSY-RR DR TRIM COMPL, LH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q033',  'S60G',   1, 'admin', SYSDATETIME()),
+  ('83301-TD0804NB',     N'PNL ASSY-RR DR TRIM COMPL, LH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q033',  'S804',   1, 'admin', SYSDATETIME()),
+  ('83301-TD100NNB',     N'PNL ASSY-RR DR TRIM COMPL, LH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q033',  'SA0B',   1, 'admin', SYSDATETIME()),
+  ('83301-TD100VKE',     N'PNL ASSY-RR DR TRIM COMPL, LH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q033',  'SA0K',   1, 'admin', SYSDATETIME()),
+  ('83301-TD100YGN',     N'PNL ASSY-RR DR TRIM COMPL, LH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q033',  'SA0G',   1, 'admin', SYSDATETIME()),
+  ('83301-TD120NNB',     N'PNL ASSY-RR DR TRIM COMPL, LH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q033',  'SC0B',   1, 'admin', SYSDATETIME()),
+  ('83301-TD120VKE',     N'PNL ASSY-RR DR TRIM COMPL, LH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q033',  'SC0K',   1, 'admin', SYSDATETIME()),
+  ('83301-TD120YGN',     N'PNL ASSY-RR DR TRIM COMPL, LH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q033',  'SC0G',   1, 'admin', SYSDATETIME()),
+  ('83301-TD130NNB',     N'PNL ASSY-RR DR TRIM COMPL, LH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q033',  'SD0B',   1, 'admin', SYSDATETIME()),
+  ('83301-TD130VKE',     N'PNL ASSY-RR DR TRIM COMPL, LH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q033',  'SD0K',   1, 'admin', SYSDATETIME()),
+  ('83301-TD130YGN',     N'PNL ASSY-RR DR TRIM COMPL, LH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q033',  'SD0G',   1, 'admin', SYSDATETIME()),
+  ('83302-12345678',     N'PNL ASSY-RR DR TRIM COMPL,RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q034',  'N40B',   1, 'admin', SYSDATETIME()),
+  ('83302-TD010NNB',     N'PNL ASSY-RR DR TRIM COMPL, RH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q034',  'S10B',   1, 'admin', SYSDATETIME()),
+  ('83302-TD010YGN',     N'PNL ASSY-RR DR TRIM COMPL, RH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q034',  'S10G',   1, 'admin', SYSDATETIME()),
+  ('83302-TD060NNB',     N'PNL ASSY-RR DR TRIM COMPL, RH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q034',  'S60B',   1, 'admin', SYSDATETIME()),
+  ('83302-TD060PNY',     N'PNL ASSY-RR DR TRIM COMPL, RH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q034',  'S60P',   1, 'admin', SYSDATETIME()),
+  ('83302-TD060VKE',     N'PNL ASSY-RR DR TRIM COMPL, RH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q034',  'S60K',   1, 'admin', SYSDATETIME()),
+  ('83302-TD060YGN',     N'PNL ASSY-RR DR TRIM COMPL, RH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q034',  'S60G',   1, 'admin', SYSDATETIME()),
+  ('83302-TD0804NB',     N'PNL ASSY-RR DR TRIM COMPL, RH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q034',  'S804',   1, 'admin', SYSDATETIME()),
+  ('83302-TD100NNB',     N'PNL ASSY-RR DR TRIM COMPL, RH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q034',  'SA0B',   1, 'admin', SYSDATETIME()),
+  ('83302-TD100VKE',     N'PNL ASSY-RR DR TRIM COMPL, RH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q034',  'SA0K',   1, 'admin', SYSDATETIME()),
+  ('83302-TD100YGN',     N'PNL ASSY-RR DR TRIM COMPL, RH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q034',  'SA0G',   1, 'admin', SYSDATETIME()),
+  ('83302-TD120NNB',     N'PNL ASSY-RR DR TRIM COMPL, RH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q034',  'SC0B',   1, 'admin', SYSDATETIME()),
+  ('83302-TD120VKE',     N'PNL ASSY-RR DR TRIM COMPL, RH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q034',  'SC0K',   1, 'admin', SYSDATETIME()),
+  ('83302-TD120YGN',     N'PNL ASSY-RR DR TRIM COMPL, RH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q034',  'SC0G',   1, 'admin', SYSDATETIME()),
+  ('83302-TD130NNB',     N'PNL ASSY-RR DR TRIM COMPL, RH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q034',  'SD0B',   1, 'admin', SYSDATETIME()),
+  ('83302-TD130VKE',     N'PNL ASSY-RR DR TRIM COMPL, RH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q034',  'SD0K',   1, 'admin', SYSDATETIME()),
+  ('83302-TD130YGN',     N'PNL ASSY-RR DR TRIM COMPL, RH',                'ASSY', NULL, 'ME1A', 'EA', 0, 'Q034',  'SD0G',   1, 'admin', SYSDATETIME()),
+  ('83311-TD000NNB',     N'PNL ASSY-RR DR TRIM UPR, LH (NON CURTAIN',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M102',   1, 'admin', SYSDATETIME()),
+  ('83311-TD000PNY',     N'PNL ASSY-RR DR TRIM UPR, LH (NON CURTAIN',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M105',   1, 'admin', SYSDATETIME()),
+  ('83311-TD000VKE',     N'PNL ASSY-RR DR TRIM UPR, LH (NON CURTAIN',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M107',   1, 'admin', SYSDATETIME()),
+  ('83311-TD000YGN',     N'PNL ASSY-RR DR TRIM UPR, LH (NON CURTAIN',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M103',   1, 'admin', SYSDATETIME()),
+  ('83311-TD100NNB',     N'PNL ASSY-RR DR TRIM UPR, LH (+CURTAIN)',       'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M104',   1, 'admin', SYSDATETIME()),
+  ('83311-TD100PNY',     N'PNL ASSY-RR DR TRIM UPR, LH (+CURTAIN)',       'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M106',   1, 'admin', SYSDATETIME()),
+  ('83311-TD100VKE',     N'PNL ASSY-RR DR TRIM UPR, LH (+CURTAIN)',       'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M108',   1, 'admin', SYSDATETIME()),
+  ('83311-TD100YGN',     N'PNL ASSY-RR DR TRIM UPR, LH (+CURTAIN)',       'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M109',   1, 'admin', SYSDATETIME()),
+  ('83321-TD000NNB',     N'PNL ASSY-RR DR TRIM UPR, RH (NON CURTAIN',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M110',   1, 'admin', SYSDATETIME()),
+  ('83321-TD000PNY',     N'PNL ASSY-RR DR TRIM UPR, RH (NON CURTAIN',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M113',   1, 'admin', SYSDATETIME()),
+  ('83321-TD000VKE',     N'PNL ASSY-RR DR TRIM UPR, RH (NON CURTAIN',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M115',   1, 'admin', SYSDATETIME()),
+  ('83321-TD000YGN',     N'PNL ASSY-RR DR TRIM UPR, RH (NON CURTAIN',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M111',   1, 'admin', SYSDATETIME()),
+  ('83321-TD100NNB',     N'PNL ASSY-RR DR TRIM UPR, RH (+CURTAIN)',       'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M112',   1, 'admin', SYSDATETIME()),
+  ('83321-TD100PNY',     N'PNL ASSY-RR DR TRIM UPR, RH (+CURTAIN)',       'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M114',   1, 'admin', SYSDATETIME()),
+  ('83321-TD100VKE',     N'PNL ASSY-RR DR TRIM UPR, RH (+CURTAIN)',       'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M116',   1, 'admin', SYSDATETIME()),
+  ('83321-TD100YGN',     N'PNL ASSY-RR DR TRIM UPR, RH (+CURTAIN)',       'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M117',   1, 'admin', SYSDATETIME()),
+  ('83330-TD100NNB',     N'PNL ASSY-RR DR CTR, LH (LEATHER)',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M131',   1, 'admin', SYSDATETIME()),
+  ('83330-TD100YGU',     N'PNL ASSY-RR DR CTR, LH (LEATHER)',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M132',   1, 'admin', SYSDATETIME()),
+  ('83330-TD200NNB',     N'PNL ASSY-RR DR CTR, LH (LEATHER + PERPOR',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M128',   1, 'admin', SYSDATETIME()),
+  ('83330-TD200ROG',     N'PNL ASSY-RR DR CTR, LH (LEATHER + PERPOR',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M129',   1, 'admin', SYSDATETIME()),
+  ('83330-TD200YGU',     N'PNL ASSY-RR DR CTR, LH (LEATHER + PERPOR',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M130',   1, 'admin', SYSDATETIME()),
+  ('83340-TD100NNB',     N'PNL ASSY-RR DR CTR, RH (LEATHER)',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M136',   1, 'admin', SYSDATETIME()),
+  ('83340-TD100YGU',     N'PNL ASSY-RR DR CTR, RH (LEATHER)',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M137',   1, 'admin', SYSDATETIME()),
+  ('83340-TD200NNB',     N'PNL ASSY-RR DR CTR, RH (LEATHER + PERPOR',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M133',   1, 'admin', SYSDATETIME()),
+  ('83340-TD200ROG',     N'PNL ASSY-RR DR CTR, RH (LEATHER + PERPOR',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M134',   1, 'admin', SYSDATETIME()),
+  ('83340-TD200YGU',     N'PNL ASSY-RR DR CTR, RH (LEATHER + PERPOR',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M135',   1, 'admin', SYSDATETIME()),
+  ('83350-TD000NNB',     N'PNL ASSY-RR DR TRIM LWR, LH',                  'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M008',   1, 'admin', SYSDATETIME()),
+  ('83350-TD000ROG',     N'PNL ASSY-RR DR TRIM LWR, LH',                  'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M010',   1, 'admin', SYSDATETIME()),
+  ('83350-TD000YGU',     N'PNL ASSY-RR DR TRIM LWR, LH',                  'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M009',   1, 'admin', SYSDATETIME()),
+  ('83351-TD000NNB',     N'GRILLE ASSY-RR DR SPEAKER, LH',                'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M140',   1, 'admin', SYSDATETIME()),
+  ('83351-TD000YGU',     N'GRILLE ASSY-RR DR SPEAKER, LH',                'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M141',   1, 'admin', SYSDATETIME()),
+  ('83360-TD000NNB',     N'PNL ASSY-RR DR TRIM LWR, RH',                  'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M008',   1, 'admin', SYSDATETIME()),
+  ('83360-TD000ROG',     N'PNL ASSY-RR DR TRIM LWR, RH',                  'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M010',   1, 'admin', SYSDATETIME()),
+  ('83360-TD000YGU',     N'PNL ASSY-RR DR TRIM LWR, RH',                  'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M009',   1, 'admin', SYSDATETIME()),
+  ('83361-TD000NNB',     N'GRILLE ASSY-RR DR SPEAKER, RH',                'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M140',   1, 'admin', SYSDATETIME()),
+  ('83361-TD000YGU',     N'GRILLE ASSY-RR DR SPEAKER, RH',                'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M141',   1, 'admin', SYSDATETIME()),
+  ('85300-TD090YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, 'Q053',  'M90Y',   1, 'admin', SYSDATETIME()),
+  ('85300-TD110YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, 'Q053',  'MB0Y',   1, 'admin', SYSDATETIME()),
+  ('85300-TD350YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, 'Q053',  'M1AY',   1, 'admin', SYSDATETIME()),
+  ('85300-TD500ROG',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD500YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD510ROG',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD510YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD520ROG',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD520YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD530ROG',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD530YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD540ROG',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD540YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD550ROG',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD550YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD560ROG',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD560YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD570ROG',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD570YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, 'Q053',  'SPAY',   1, 'admin', SYSDATETIME()),
+  ('85300-TD580NNB',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD580ROG',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD580YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD590NNB',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD590ROG',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD590YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD600NNB',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD600ROG',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD600YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD610NNB',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD610ROG',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD610YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD620NNB',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD620ROG',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD620YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD630NNB',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD630ROG',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD630YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD640NNB',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD640ROG',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD640YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD650NNB',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD650ROG',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD650YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD660ROG',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD660YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, 'Q053',  'SYAY',   1, 'admin', SYSDATETIME()),
+  ('85300-TD670ROG',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-TD670YGU',     N'COMPLETE ASSY-HEAD LINING(STD)',               'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85310-TD000ROG',     N'HEADLINING ASSY (TRICOT, STD)',                'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X045',   1, 'admin', SYSDATETIME()),
+  ('85310-TD000YGU',     N'HEADLINING ASSY (TRICOT, STD)',                'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M166',   1, 'admin', SYSDATETIME()),
+  ('85310-TD100NNB',     N'HEADLINING ASSY (SUEDE, STD)',                 'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X034',   1, 'admin', SYSDATETIME()),
+  ('85310-TD100ROG',     N'HEADLINING ASSY (SUEDE, STD)',                 'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X035',   1, 'admin', SYSDATETIME()),
+  ('85310-TD100YGU',     N'HEADLINING ASSY (SUEDE, STD)',                 'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X036',   1, 'admin', SYSDATETIME()),
+  ('85310-TD200ROG',     N'HEADLINING ASSY (TRICOT+MIC, STD)',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X049',   1, 'admin', SYSDATETIME()),
+  ('85310-TD200YGU',     N'HEADLINING ASSY (TRICOT+MIC, STD)',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X050',   1, 'admin', SYSDATETIME()),
+  ('85310-TD300NNB',     N'HEADLINING ASSY (SUEDE+MIC, STD)',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X040',   1, 'admin', SYSDATETIME()),
+  ('85310-TD300ROG',     N'HEADLINING ASSY (SUEDE+MIC, STD)',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X041',   1, 'admin', SYSDATETIME()),
+  ('85310-TD300YGU',     N'HEADLINING ASSY (SUEDE+MIC, STD)',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X042',   1, 'admin', SYSDATETIME()),
+  ('85321-TD000',        N'BOARD-HEADLINING',                             'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X001',   1, 'admin', SYSDATETIME()),
+  ('85321-TD000YGU',     N'BOARD-HEADLINING (CLOTH)',                     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M083',   1, 'admin', SYSDATETIME()),
+  ('85321-TD10E',        N'PU BLOCK-BOARD-ME1A',                          'SUB',  NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD080YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, 'Q053',  'L80Y',   1, 'admin', SYSDATETIME()),
+  ('85400-TD240YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, 'Q053',  'LQ0Y',   1, 'admin', SYSDATETIME()),
+  ('85400-TD280NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, 'Q053',  'LU0B',   1, 'admin', SYSDATETIME()),
+  ('85400-TD280ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, 'Q053',  'LU0D',   1, 'admin', SYSDATETIME()),
+  ('85400-TD280YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, 'Q053',  'LU0Y',   1, 'admin', SYSDATETIME()),
+  ('85400-TD500ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD500YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD510ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD510YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD520ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD520YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, 'Q053',  'SJAY',   1, 'admin', SYSDATETIME()),
+  ('85400-TD530ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD530YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD540ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD540YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD550ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD550YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD560ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD560YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD570ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD570YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD580NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD580ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD580YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD590NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD590ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD590YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD600NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD600ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD600YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD610NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD610ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD610YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD620NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD620ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD620YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD630NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD630ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD630YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD640NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD640ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD640YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD650NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD650ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD650YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD660ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD660YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD670ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD670YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD680ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD680YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD690ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD690YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD700ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD700YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD710ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD710YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD720ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD720YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD730ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD730YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD740NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, 'Q053',  'S6LB',   1, 'admin', SYSDATETIME()),
+  ('85400-TD740ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD740YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, 'Q053',  'S6LY',   1, 'admin', SYSDATETIME()),
+  ('85400-TD750NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD750ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD750YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD760NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, 'Q053',  'S8LB',   1, 'admin', SYSDATETIME()),
+  ('85400-TD760ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD760YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, 'Q053',  'S8LY',   1, 'admin', SYSDATETIME()),
+  ('85400-TD770NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD770ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD770YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD780NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD780ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD780YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD790NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD790ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD790YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD800NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD800ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD800YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD810NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD810ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD810YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD820ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD820YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD830ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD830YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD840ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD840YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD850ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD850YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD860ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD860YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD870ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD870YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD880ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD880YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD890ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD890YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD900NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD900ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD900YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD910NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD910ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD910YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD920NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD920ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD920YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD930NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD930ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD930YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD940NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD940ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD940YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD950NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD950ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD950YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD960NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD960ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD960YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD970NNB',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD970ROG',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-TD970YGU',     N'COMPLETE ASSY-HEAD LINING(PANO)',              'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85410-TD000ROG',     N'HEADLINING ASSY (TRICOT, SRF)',                'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X043',   1, 'admin', SYSDATETIME()),
+  ('85410-TD000YGU',     N'HEADLINING ASSY (TRICOT, SRF)',                'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X044',   1, 'admin', SYSDATETIME()),
+  ('85410-TD100NNB',     N'HEADLINING ASSY (SUEDE, SRF)',                 'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X031',   1, 'admin', SYSDATETIME()),
+  ('85410-TD100ROG',     N'HEADLINING ASSY (SUEDE, SRF)',                 'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X032',   1, 'admin', SYSDATETIME()),
+  ('85410-TD100YGU',     N'HEADLINING ASSY (SUEDE, SRF)',                 'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X033',   1, 'admin', SYSDATETIME()),
+  ('85410-TD200ROG',     N'HEADLINING ASSY (TRICOT+MIC, SRF)',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X047',   1, 'admin', SYSDATETIME()),
+  ('85410-TD200YGU',     N'HEADLINING ASSY (TRICOT+MIC, SRF)',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M084',   1, 'admin', SYSDATETIME()),
+  ('85410-TD300NNB',     N'HEADLINING ASSY (SUEDE+MIC, SRF)',             'SUB',  NULL, 'ME1A', 'EA', 0, 'HMGM',  'XX01',   1, 'admin', SYSDATETIME()),
+  ('85410-TD300ROG',     N'HEADLINING ASSY (SUEDE+MIC, SRF)',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M085',   1, 'admin', SYSDATETIME()),
+  ('85410-TD300YGU',     N'HEADLINING ASSY (SUEDE+MIC, SRF)',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M086',   1, 'admin', SYSDATETIME()),
+  ('85412-TD000',        N'ROOF DUCT ASSY-HEADLINING STD',                'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M180',   1, 'admin', SYSDATETIME()),
+  ('85412-TD100',        N'ROOF DUCT ASSY-HEADLINING PRF',                'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M181',   1, 'admin', SYSDATETIME()),
+  ('85412-TD10E',        N'PU BLOCK-DUCT-ME1A',                           'SUB',  NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85421-TD000',        N'BOARD-HEADLINING',                             'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X002',   1, 'admin', SYSDATETIME()),
+  ('85730-12345678',     N'TRIM ASSY-LUGGAGE SIDE,LH',                    'ASSY', NULL, 'ME1A', 'EA', 0, 'Q114',  'N50B',   1, 'admin', SYSDATETIME()),
+  ('85730-TD010NNB',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q114',  'S10B',   1, 'admin', SYSDATETIME()),
+  ('85730-TD010PNY',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q114',  'S10P',   1, 'admin', SYSDATETIME()),
+  ('85730-TD010YGU',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q114',  'S10Y',   1, 'admin', SYSDATETIME()),
+  ('85730-TD040NNB',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q114',  'S40B',   1, 'admin', SYSDATETIME()),
+  ('85730-TD040YGU',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q114',  'S40Y',   1, 'admin', SYSDATETIME()),
+  ('85730-TD510NNB',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85730-TD510PNY',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85730-TD510YGU',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85730-TD520NNB',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q114',  'SJAB',   1, 'admin', SYSDATETIME()),
+  ('85730-TD520PNY',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q114',  'SJAP',   1, 'admin', SYSDATETIME()),
+  ('85730-TD520YGU',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q114',  'SJAY',   1, 'admin', SYSDATETIME()),
+  ('85730-TD530NNB',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85730-TD530PNY',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85730-TD530YGU',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85730-TD540NNB',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q114',  'SLAB',   1, 'admin', SYSDATETIME()),
+  ('85730-TD540PNY',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q114',  'SLAP',   1, 'admin', SYSDATETIME()),
+  ('85730-TD540YGU',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q114',  'SLAY',   1, 'admin', SYSDATETIME()),
+  ('85730-TD550NNB',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q114',  'SMAB',   1, 'admin', SYSDATETIME()),
+  ('85730-TD550PNY',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q114',  'SMAP',   1, 'admin', SYSDATETIME()),
+  ('85730-TD550YGU',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q114',  'SMAY',   1, 'admin', SYSDATETIME()),
+  ('85730-TD560NNB',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85730-TD560PNY',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85730-TD560YGU',     N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85731-TD000NNB',     N'TRIM-LUGG SIDE, LH',                           'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M001',   1, 'admin', SYSDATETIME()),
+  ('85731-TD000PNY',     N'TRIM-LUGG SIDE, LH',                           'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M002',   1, 'admin', SYSDATETIME()),
+  ('85740-12345678',     N'TRIM ASSY-LUGGAGE SIDE,RH',                    'ASSY', NULL, 'ME1A', 'EA', 0, 'Q112',  'N00G',   1, 'admin', SYSDATETIME()),
+  ('85740-TD020NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q112',  'S20B',   1, 'admin', SYSDATETIME()),
+  ('85740-TD020PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q112',  'S20P',   1, 'admin', SYSDATETIME()),
+  ('85740-TD020YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q112',  'S20Y',   1, 'admin', SYSDATETIME()),
+  ('85740-TD260NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q112',  'SS0B',   1, 'admin', SYSDATETIME()),
+  ('85740-TD260YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q112',  'SS0Y',   1, 'admin', SYSDATETIME()),
+  ('85740-TD360NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q112',  'S2AB',   1, 'admin', SYSDATETIME()),
+  ('85740-TD360YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q112',  'S2AY',   1, 'admin', SYSDATETIME()),
+  ('85740-TD500NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD500PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD500YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD520NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q112',  'SJAB',   1, 'admin', SYSDATETIME()),
+  ('85740-TD520PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q112',  'SJAP',   1, 'admin', SYSDATETIME()),
+  ('85740-TD520YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q112',  'SJAY',   1, 'admin', SYSDATETIME()),
+  ('85740-TD540NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD540PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD540YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD550NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q112',  'SMAB',   1, 'admin', SYSDATETIME()),
+  ('85740-TD550PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q112',  'SMAP',   1, 'admin', SYSDATETIME()),
+  ('85740-TD550YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q112',  'SMAY',   1, 'admin', SYSDATETIME()),
+  ('85740-TD560NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD560PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD560YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD580NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD580PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD580YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD600NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD600PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD600YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD620NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD620PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD620YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD640NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD640PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD640YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD650NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD650PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD650YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD660NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD660PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD660YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD680NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD680PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD680YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD700NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD700PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD700YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD720NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD720PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD720YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD740NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD740PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD740YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD750NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD750PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD750YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD760NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD760PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD760YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD780NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD780PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD780YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD800NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD800PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD800YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD820NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD820PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD820YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD840NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD840PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD840YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD850NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD850PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD850YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD860NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q112',  'SJLB',   1, 'admin', SYSDATETIME()),
+  ('85740-TD860PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q112',  'SJLP',   1, 'admin', SYSDATETIME()),
+  ('85740-TD860YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, 'Q112',  'SJLY',   1, 'admin', SYSDATETIME()),
+  ('85740-TD880NNB',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD880PNY',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85740-TD880YGU',     N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85741-TD000NNB',     N'TRIM-LUGG SIDE, RH',                           'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M003',   1, 'admin', SYSDATETIME()),
+  ('85741-TD000PNY',     N'TRIM-LUGG SIDE, RH',                           'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M004',   1, 'admin', SYSDATETIME()),
+  ('85770-TD000NNB',   N'TRIM ASSY-RR TRANSVERSE',                      'ASSY', NULL, 'ME1A', 'EA', 0, 'Q113',  'S00B',   1, 'admin', SYSDATETIME()),
+  ('85770-TD100NNB',   N'TRIM ASSY-RR TRANSVERSE',                      'ASSY', NULL, 'ME1A', 'EA', 0, 'Q113',  'SA0B',   1, 'admin', SYSDATETIME()),
+  ('85770-TD100PNY',   N'TRIM ASSY-RR TRANSVERSE',                      'ASSY', NULL, 'ME1A', 'EA', 0, 'Q113',  'SA0P',   1, 'admin', SYSDATETIME()),
+  ('85771-TD100NNB',     N'TRIM-RR TRANSVERSE (OPT)',                     'SUB',  NULL, 'ME1A', 'EA', 0, 'Q113',  'ZZZ5',   1, 'admin', SYSDATETIME()),
+  ('85823-TD000NNB',   N'TRIM ASSY-COWL SIDE, LH',                      'ASSY', NULL, 'ME1A', 'EA', 0, 'Q060',  'S00B',   1, 'admin', SYSDATETIME()),
+  ('85823-TD000ROG',   N'TRIM ASSY-COWL SIDE, LH',                      'ASSY', NULL, 'ME1A', 'EA', 0, 'Q060',  'S00D',   1, 'admin', SYSDATETIME()),
+  ('85823-TD000YGU',   N'TRIM ASSY-COWL SIDE, LH',                      'ASSY', NULL, 'ME1A', 'EA', 0, 'Q060',  'S00Y',   1, 'admin', SYSDATETIME()),
+  ('85824-TD000NNB',   N'TRIM ASSY-COWL SIDE, RH',                      'ASSY', NULL, 'ME1A', 'EA', 0, 'Q061',  'S00B',   1, 'admin', SYSDATETIME()),
+  ('85824-TD000ROG',   N'TRIM ASSY-COWL SIDE, RH',                      'ASSY', NULL, 'ME1A', 'EA', 0, 'Q061',  'S00D',   1, 'admin', SYSDATETIME()),
+  ('85824-TD000YGU',   N'TRIM ASSY-COWL SIDE, RH',                      'ASSY', NULL, 'ME1A', 'EA', 0, 'Q061',  'S00Y',   1, 'admin', SYSDATETIME()),
+  ('85835-TD000NNB',   N'TRIM ASSY-CTR PILLAR LWR, LH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q064',  'S00B',   1, 'admin', SYSDATETIME()),
+  ('85835-TD000ROG',   N'TRIM ASSY-CTR PILLAR LWR, LH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q064',  'S00D',   1, 'admin', SYSDATETIME()),
+  ('85835-TD000YGU',   N'TRIM ASSY-CTR PILLAR LWR, LH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q064',  'S00Y',   1, 'admin', SYSDATETIME()),
+  ('85845-TD000NNB',   N'TRIM ASSY-CTR PILLAR LWR, RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q065',  'S00B',   1, 'admin', SYSDATETIME()),
+  ('85845-TD000ROG',   N'TRIM ASSY-CTR PILLAR LWR, RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q065',  'S00D',   1, 'admin', SYSDATETIME()),
+  ('85845-TD000YGU',   N'TRIM ASSY-CTR PILLAR LWR, RH',                 'ASSY', NULL, 'ME1A', 'EA', 0, 'Q065',  'S00Y',   1, 'admin', SYSDATETIME()),
+  ('85855-TD000ROG',   N'TRIM ASSY-GATE PILLAR, LH',                    'ASSY', NULL, 'ME1A', 'EA', 0, 'Q068',  'S00D',   1, 'admin', SYSDATETIME()),
+  ('85855-TD000YGU',   N'TRIM ASSY-GATE PILLAR, LH',                    'ASSY', NULL, 'ME1A', 'EA', 0, 'Q068',  'S00Y',   1, 'admin', SYSDATETIME()),
+  ('85865-TD000ROG',   N'TRIM ASSY-GATE PILLAR, RH',                    'ASSY', NULL, 'ME1A', 'EA', 0, 'Q070',  'S00D',   1, 'admin', SYSDATETIME()),
+  ('85865-TD000YGU',   N'TRIM ASSY-GATE PILLAR, RH',                    'ASSY', NULL, 'ME1A', 'EA', 0, 'Q070',  'S00Y',   1, 'admin', SYSDATETIME()),
+  ('C2311-TD000',        N'CORE-PNL ASSY-FR DR TRIM UPR, LH (NON DS',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M087',   1, 'admin', SYSDATETIME()),
+  ('C2321-TD000',        N'CORE-PNL ASSY-FR DR TRIM UPR, RH (NON DS',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M087',   1, 'admin', SYSDATETIME()),
+  ('C2330-TD100',        N'CORE-PNL ASSY-FR DR CTR, LH',                  'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M090',   1, 'admin', SYSDATETIME()),
+  ('C2340-TD100',        N'CORE-PNL ASSY-FR DR CTR, RH',                  'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M090',   1, 'admin', SYSDATETIME()),
+  ('C3311-TD000',        N'CORE-PNL ASSY-RR DR TRIM UPR, LH (NON CU',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M088',   1, 'admin', SYSDATETIME()),
+  ('C3311-TD100',        N'CORE-PNL ASSY-RR DR TRIM UPR, LH (+CURTA',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M089',   1, 'admin', SYSDATETIME()),
+  ('C3321-TD000',        N'CORE-PNL ASSY-RR DR TRIM UPR, RH (NON CU',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M088',   1, 'admin', SYSDATETIME()),
+  ('C3321-TD100',        N'CORE-PNL ASSY-RR DR TRIM UPR, RH (+CURTA',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M089',   1, 'admin', SYSDATETIME()),
+  ('C3330-TD100',        N'CORE-PNL ASSY-RR DR CTR, LH',                  'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M091',   1, 'admin', SYSDATETIME()),
+  ('C3340-TD100',        N'CORE-PNL ASSY-RR DR CTR, RH',                  'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M091',   1, 'admin', SYSDATETIME()),
+  ('M1101-TD100NNB',     N'MODULE ASSY-FR UPR TRIM NO.1, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M013',   1, 'admin', SYSDATETIME()),
+  ('M1101-TD100YGN',     N'MODULE ASSY-FR UPR TRIM NO.1, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M014',   1, 'admin', SYSDATETIME()),
+  ('M1101-TD200NNB',     N'MODULE ASSY- FR UPR TRIM NO.2, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M019',   1, 'admin', SYSDATETIME()),
+  ('M1101-TD200VKE',     N'MODULE ASSY- FR UPR TRIM NO.2, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M020',   1, 'admin', SYSDATETIME()),
+  ('M1101-TD200YGN',     N'MODULE ASSY- FR UPR TRIM NO.2, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M021',   1, 'admin', SYSDATETIME()),
+  ('M1101-TD300NNB',     N'MODULE ASSY- FR UPR TRIM NO.3, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M022',   1, 'admin', SYSDATETIME()),
+  ('M1101-TD300VKE',     N'MODULE ASSY- FR UPR TRIM NO.3, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M023',   1, 'admin', SYSDATETIME()),
+  ('M1101-TD300YGN',     N'MODULE ASSY- FR UPR TRIM NO.3, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M024',   1, 'admin', SYSDATETIME()),
+  ('M1101-TD400NNB',     N'MODULE ASSY- FR UPR TRIM NO.4, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M015',   1, 'admin', SYSDATETIME()),
+  ('M1101-TD400PNY',     N'MODULE ASSY- FR UPR TRIM NO.4, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M016',   1, 'admin', SYSDATETIME()),
+  ('M1101-TD400VKE',     N'MODULE ASSY- FR UPR TRIM NO.4, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M017',   1, 'admin', SYSDATETIME()),
+  ('M1101-TD400YGN',     N'MODULE ASSY- FR UPR TRIM NO.4, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M018',   1, 'admin', SYSDATETIME()),
+  ('M1101-TD5004NB',     N'MODULE ASSY- FR UPR TRIM NO.5, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'HMGM',  'XX06',   1, 'admin', SYSDATETIME()),
+  ('M1101-TD500NNB',     N'MODULE ASSY- FR UPR TRIM NO.5, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M175',   1, 'admin', SYSDATETIME()),
+  ('M1101-TD500PNY',     N'MODULE ASSY- FR UPR TRIM NO.5, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M176',   1, 'admin', SYSDATETIME()),
+  ('M1101-TD500VKE',     N'MODULE ASSY- FR UPR TRIM NO.5, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M177',   1, 'admin', SYSDATETIME()),
+  ('M1101-TD500YGN',     N'MODULE ASSY- FR UPR TRIM NO.5, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M178',   1, 'admin', SYSDATETIME()),
+  ('M1102-TD100NNB',     N'MODULE ASSY-FR LWR TRIM NO.1, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M052',   1, 'admin', SYSDATETIME()),
+  ('M1102-TD100VKE',     N'MODULE ASSY-FR LWR TRIM NO.1, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M058',   1, 'admin', SYSDATETIME()),
+  ('M1102-TD100YGN',     N'MODULE ASSY-FR LWR TRIM NO.1, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M053',   1, 'admin', SYSDATETIME()),
+  ('M1102-TD100YGU',     N'MODULE ASSY-FR LWR TRIM NO.1, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M200',   1, 'admin', SYSDATETIME()),
+  ('M1102-TD200NNB',     N'MODULE ASSY-FR LWR TRIM NO.2, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M054',   1, 'admin', SYSDATETIME()),
+  ('M1102-TD200PNY',     N'MODULE ASSY-FR LWR TRIM NO.2, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M055',   1, 'admin', SYSDATETIME()),
+  ('M1102-TD200ROG',     N'MODULE ASSY-FR LWR TRIM NO.2, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M201',   1, 'admin', SYSDATETIME()),
+  ('M1102-TD200VKE',     N'MODULE ASSY-FR LWR TRIM NO.2, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M056',   1, 'admin', SYSDATETIME()),
+  ('M1102-TD200YGN',     N'MODULE ASSY-FR LWR TRIM NO.2, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M057',   1, 'admin', SYSDATETIME()),
+  ('M1102-TD200YGU',     N'MODULE ASSY-FR LWR TRIM NO.2, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M202',   1, 'admin', SYSDATETIME()),
+  ('M1102-TD3004NB',     N'MODULE ASSY-FR LWR TRIM NO.3, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'HMGM',  'XX02',   1, 'admin', SYSDATETIME()),
+  ('M1102-TD300NNB',     N'MODULE ASSY-FR LWR TRIM NO.3, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M203',   1, 'admin', SYSDATETIME()),
+  ('M1102-TD300ROG',     N'MODULE ASSY-FR LWR TRIM NO.3, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M204',   1, 'admin', SYSDATETIME()),
+  ('M1102-TD300YGU',     N'MODULE ASSY-FR LWR TRIM NO.3, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M205',   1, 'admin', SYSDATETIME()),
+  ('M1201-TD100NNB',     N'MODULE ASSY- FR UPR TRIM NO.1, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M025',   1, 'admin', SYSDATETIME()),
+  ('M1201-TD100YGN',     N'MODULE ASSY- FR UPR TRIM NO.1, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M026',   1, 'admin', SYSDATETIME()),
+  ('M1201-TD200NNB',     N'MODULE ASSY- FR UPR TRIM NO.2, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M027',   1, 'admin', SYSDATETIME()),
+  ('M1201-TD200VKE',     N'MODULE ASSY- FR UPR TRIM NO.2, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M028',   1, 'admin', SYSDATETIME()),
+  ('M1201-TD200YGN',     N'MODULE ASSY- FR UPR TRIM NO.2, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M029',   1, 'admin', SYSDATETIME()),
+  ('M1201-TD3004NB',     N'MODULE ASSY- FR UPR TRIM NO.3, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'HMGM',  'XX07',   1, 'admin', SYSDATETIME()),
+  ('M1201-TD300NNB',     N'MODULE ASSY- FR UPR TRIM NO.3, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M030',   1, 'admin', SYSDATETIME()),
+  ('M1201-TD300PNY',     N'MODULE ASSY- FR UPR TRIM NO.3, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M031',   1, 'admin', SYSDATETIME()),
+  ('M1201-TD300VKE',     N'MODULE ASSY- FR UPR TRIM NO.3, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M032',   1, 'admin', SYSDATETIME()),
+  ('M1201-TD300YGN',     N'MODULE ASSY- FR UPR TRIM NO.3, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M033',   1, 'admin', SYSDATETIME()),
+  ('M1202-TD100NNB',     N'MODULE ASSY-FR LWR TRIM NO.1, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M059',   1, 'admin', SYSDATETIME()),
+  ('M1202-TD100VKE',     N'MODULE ASSY-FR LWR TRIM NO.1, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M061',   1, 'admin', SYSDATETIME()),
+  ('M1202-TD100YGN',     N'MODULE ASSY-FR LWR TRIM NO.1, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M060',   1, 'admin', SYSDATETIME()),
+  ('M1202-TD100YGU',     N'MODULE ASSY-FR LWR TRIM NO.1, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M206',   1, 'admin', SYSDATETIME()),
+  ('M1202-TD200NNB',     N'MODULE ASSY-FR LWR TRIM NO.2, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M062',   1, 'admin', SYSDATETIME()),
+  ('M1202-TD200PNY',     N'MODULE ASSY-FR LWR TRIM NO.2, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M179',   1, 'admin', SYSDATETIME()),
+  ('M1202-TD200ROG',     N'MODULE ASSY-FR LWR TRIM NO.2, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M207',   1, 'admin', SYSDATETIME()),
+  ('M1202-TD200VKE',     N'MODULE ASSY-FR LWR TRIM NO.2, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M063',   1, 'admin', SYSDATETIME()),
+  ('M1202-TD200YGN',     N'MODULE ASSY-FR LWR TRIM NO.2, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M064',   1, 'admin', SYSDATETIME()),
+  ('M1202-TD200YGU',     N'MODULE ASSY-FR LWR TRIM NO.2, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M208',   1, 'admin', SYSDATETIME()),
+  ('M1202-TD3004NB',     N'MODULE ASSY-FR LWR TRIM NO.3, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'HMGM',  'XX03',   1, 'admin', SYSDATETIME()),
+  ('M1202-TD300NNB',     N'MODULE ASSY-FR LWR TRIM NO.3, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M065',   1, 'admin', SYSDATETIME()),
+  ('M1202-TD300PNY',     N'MODULE ASSY-FR LWR TRIM NO.3, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M066',   1, 'admin', SYSDATETIME()),
+  ('M1202-TD300ROG',     N'MODULE ASSY-FR LWR TRIM NO.3, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M209',   1, 'admin', SYSDATETIME()),
+  ('M1202-TD300VKE',     N'MODULE ASSY-FR LWR TRIM NO.3, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M067',   1, 'admin', SYSDATETIME()),
+  ('M1202-TD300YGN',     N'MODULE ASSY-FR LWR TRIM NO.3, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M068',   1, 'admin', SYSDATETIME()),
+  ('M1202-TD300YGU',     N'MODULE ASSY-FR LWR TRIM NO.3, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M210',   1, 'admin', SYSDATETIME()),
+  ('M1301-TD100NNB',     N'MODULE ASSY- RR UPR TRIM NO.1, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M034',   1, 'admin', SYSDATETIME()),
+  ('M1301-TD100YGN',     N'MODULE ASSY- RR UPR TRIM NO.1, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M035',   1, 'admin', SYSDATETIME()),
+  ('M1301-TD200NNB',     N'MODULE ASSY- RR UPR TRIM NO.2, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M040',   1, 'admin', SYSDATETIME()),
+  ('M1301-TD200VKE',     N'MODULE ASSY- RR UPR TRIM NO.2, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M041',   1, 'admin', SYSDATETIME()),
+  ('M1301-TD200YGN',     N'MODULE ASSY- RR UPR TRIM NO.2, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M042',   1, 'admin', SYSDATETIME()),
+  ('M1301-TD300NNB',     N'MODULE ASSY- RR UPR TRIM NO.3, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M036',   1, 'admin', SYSDATETIME()),
+  ('M1301-TD300PNY',     N'MODULE ASSY- RR UPR TRIM NO.3, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M037',   1, 'admin', SYSDATETIME()),
+  ('M1301-TD300VKE',     N'MODULE ASSY- RR UPR TRIM NO.3, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M038',   1, 'admin', SYSDATETIME()),
+  ('M1301-TD300YGN',     N'MODULE ASSY- RR UPR TRIM NO.3, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M039',   1, 'admin', SYSDATETIME()),
+  ('M1301-TD5004NB',     N'MODULE ASSY- RR UPR TRIM NO.5, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'HMGM',  'XX08',   1, 'admin', SYSDATETIME()),
+  ('M1301-TD500NNB',     N'MODULE ASSY- RR UPR TRIM NO.5, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M167',   1, 'admin', SYSDATETIME()),
+  ('M1301-TD500PNY',     N'MODULE ASSY- RR UPR TRIM NO.5, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M168',   1, 'admin', SYSDATETIME()),
+  ('M1301-TD500VKE',     N'MODULE ASSY- RR UPR TRIM NO.5, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M169',   1, 'admin', SYSDATETIME()),
+  ('M1301-TD500YGN',     N'MODULE ASSY- RR UPR TRIM NO.5, LH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M170',   1, 'admin', SYSDATETIME()),
+  ('M1302-TD100NNB',     N'MODULE ASSY-RR LWR TRIM NO.1, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M069',   1, 'admin', SYSDATETIME()),
+  ('M1302-TD100VKE',     N'MODULE ASSY-RR LWR TRIM NO.1, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M075',   1, 'admin', SYSDATETIME()),
+  ('M1302-TD100YGN',     N'MODULE ASSY-RR LWR TRIM NO.1, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M070',   1, 'admin', SYSDATETIME()),
+  ('M1302-TD100YGU',     N'MODULE ASSY-RR LWR TRIM NO.1, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M211',   1, 'admin', SYSDATETIME()),
+  ('M1302-TD2004NB',     N'MODULE ASSY-RR LWR TRIM NO.2, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'HMGM',  'XX04',   1, 'admin', SYSDATETIME()),
+  ('M1302-TD200NNB',     N'MODULE ASSY-RR LWR TRIM NO.2, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M071',   1, 'admin', SYSDATETIME()),
+  ('M1302-TD200PNY',     N'MODULE ASSY-RR LWR TRIM NO.2, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M072',   1, 'admin', SYSDATETIME()),
+  ('M1302-TD200ROG',     N'MODULE ASSY-RR LWR TRIM NO.2, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M212',   1, 'admin', SYSDATETIME()),
+  ('M1302-TD200VKE',     N'MODULE ASSY-RR LWR TRIM NO.2, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M073',   1, 'admin', SYSDATETIME()),
+  ('M1302-TD200YGN',     N'MODULE ASSY-RR LWR TRIM NO.2, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M074',   1, 'admin', SYSDATETIME()),
+  ('M1302-TD200YGU',     N'MODULE ASSY-RR LWR TRIM NO.2, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M213',   1, 'admin', SYSDATETIME()),
+  ('M1302-TD3004NB',     N'MODULE ASSY-RR LWR TRIM NO.3, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'MXX1',   1, 'admin', SYSDATETIME()),
+  ('M1302-TD300NNB',     N'MODULE ASSY-RR LWR TRIM NO.3, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('M1302-TD300PNY',     N'MODULE ASSY-RR LWR TRIM NO.3, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('M1302-TD300YGU',     N'MODULE ASSY-RR LWR TRIM NO.3, LH',             'SUB',  NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('M1401-TD100NNB',     N'MODULE ASSY- RR UPR TRIM NO.1, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M043',   1, 'admin', SYSDATETIME()),
+  ('M1401-TD100YGN',     N'MODULE ASSY- RR UPR TRIM NO.1, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M044',   1, 'admin', SYSDATETIME()),
+  ('M1401-TD200NNB',     N'MODULE ASSY- RR UPR TRIM NO.2, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M049',   1, 'admin', SYSDATETIME()),
+  ('M1401-TD200VKE',     N'MODULE ASSY- RR UPR TRIM NO.2, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M050',   1, 'admin', SYSDATETIME()),
+  ('M1401-TD200YGN',     N'MODULE ASSY- RR UPR TRIM NO.2, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M051',   1, 'admin', SYSDATETIME()),
+  ('M1401-TD300NNB',     N'MODULE ASSY- RR UPR TRIM NO.3, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M045',   1, 'admin', SYSDATETIME()),
+  ('M1401-TD300PNY',     N'MODULE ASSY- RR UPR TRIM NO.3, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M046',   1, 'admin', SYSDATETIME()),
+  ('M1401-TD300VKE',     N'MODULE ASSY- RR UPR TRIM NO.3, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M047',   1, 'admin', SYSDATETIME()),
+  ('M1401-TD300YGN',     N'MODULE ASSY- RR UPR TRIM NO.3, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M048',   1, 'admin', SYSDATETIME()),
+  ('M1401-TD5004NB',     N'MODULE ASSY- RR UPR TRIM NO.5, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'HMGM',  'XX09',   1, 'admin', SYSDATETIME()),
+  ('M1401-TD500NNB',     N'MODULE ASSY- RR UPR TRIM NO.5, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M171',   1, 'admin', SYSDATETIME()),
+  ('M1401-TD500PNY',     N'MODULE ASSY- RR UPR TRIM NO.5, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M172',   1, 'admin', SYSDATETIME()),
+  ('M1401-TD500VKE',     N'MODULE ASSY- RR UPR TRIM NO.5, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M173',   1, 'admin', SYSDATETIME()),
+  ('M1401-TD500YGN',     N'MODULE ASSY- RR UPR TRIM NO.5, RH',            'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M174',   1, 'admin', SYSDATETIME()),
+  ('M1402-TD100NNB',     N'MODULE ASSY-RR LWR TRIM NO.1, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M076',   1, 'admin', SYSDATETIME()),
+  ('M1402-TD100VKE',     N'MODULE ASSY-RR LWR TRIM NO.1, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M082',   1, 'admin', SYSDATETIME()),
+  ('M1402-TD100YGN',     N'MODULE ASSY-RR LWR TRIM NO.1, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M077',   1, 'admin', SYSDATETIME()),
+  ('M1402-TD100YGU',     N'MODULE ASSY-RR LWR TRIM NO.1, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M214',   1, 'admin', SYSDATETIME()),
+  ('M1402-TD2004NB',     N'MODULE ASSY-RR LWR TRIM NO.2, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'HMGM',  'XX05',   1, 'admin', SYSDATETIME()),
+  ('M1402-TD200NNB',     N'MODULE ASSY-RR LWR TRIM NO.2, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M078',   1, 'admin', SYSDATETIME()),
+  ('M1402-TD200PNY',     N'MODULE ASSY-RR LWR TRIM NO.2, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M079',   1, 'admin', SYSDATETIME()),
+  ('M1402-TD200ROG',     N'MODULE ASSY-RR LWR TRIM NO.2, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M215',   1, 'admin', SYSDATETIME()),
+  ('M1402-TD200VKE',     N'MODULE ASSY-RR LWR TRIM NO.2, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M080',   1, 'admin', SYSDATETIME()),
+  ('M1402-TD200YGN',     N'MODULE ASSY-RR LWR TRIM NO.2, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M081',   1, 'admin', SYSDATETIME()),
+  ('M1402-TD200YGU',     N'MODULE ASSY-RR LWR TRIM NO.2, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M216',   1, 'admin', SYSDATETIME()),
+  ('M1402-TD3004NB',     N'MODULE ASSY-RR LWR TRIM NO.3, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'MXX5',   1, 'admin', SYSDATETIME()),
+  ('M1402-TD300NNB',     N'MODULE ASSY-RR LWR TRIM NO.3, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('M1402-TD300PNY',     N'MODULE ASSY-RR LWR TRIM NO.3, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('M1402-TD300YGU',     N'MODULE ASSY-RR LWR TRIM NO.3, RH',             'SUB',  NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('M2311-TD000NNB',     N'MODULE ASSY-FR DR TRIM UPR, LH (NON DSM)',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M142',   1, 'admin', SYSDATETIME()),
+  ('M2311-TD000PNY',     N'MODULE ASSY-FR DR TRIM UPR, LH (NON DSM)',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M144',   1, 'admin', SYSDATETIME()),
+  ('M2311-TD000VKE',     N'MODULE ASSY-FR DR TRIM UPR, LH (NON DSM)',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M145',   1, 'admin', SYSDATETIME()),
+  ('M2311-TD000YGN',     N'MODULE ASSY-FR DR TRIM UPR, LH (NON DSM)',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M143',   1, 'admin', SYSDATETIME()),
+  ('M2321-TD000NNB',     N'MODULE ASSY-FR DR TRIM UPR, RH (NON DSM)',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M146',   1, 'admin', SYSDATETIME()),
+  ('M2321-TD000PNY',     N'MODULE ASSY-FR DR TRIM UPR, RH (NON DSM)',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M149',   1, 'admin', SYSDATETIME()),
+  ('M2321-TD000VKE',     N'MODULE ASSY-FR DR TRIM UPR, RH (NON DSM)',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M148',   1, 'admin', SYSDATETIME()),
+  ('M2321-TD000YGN',     N'MODULE ASSY-FR DR TRIM UPR, RH (NON DSM)',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M147',   1, 'admin', SYSDATETIME()),
+  ('M3311-TD000NNB',     N'MODULE ASSY-RR DR TRIM UPR, LH (NON CURT',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M150',   1, 'admin', SYSDATETIME()),
+  ('M3311-TD000PNY',     N'MODULE ASSY-RR DR TRIM UPR, LH (NON CURT',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M153',   1, 'admin', SYSDATETIME()),
+  ('M3311-TD000VKE',     N'MODULE ASSY-RR DR TRIM UPR, LH (NON CURT',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M155',   1, 'admin', SYSDATETIME()),
+  ('M3311-TD000YGN',     N'MODULE ASSY-RR DR TRIM UPR, LH (NON CURT',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M151',   1, 'admin', SYSDATETIME()),
+  ('M3311-TD100NNB',     N'MODULE ASSY-RR DR TRIM UPR, LH (+CURTAIN',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M152',   1, 'admin', SYSDATETIME()),
+  ('M3311-TD100PNY',     N'MODULE ASSY-RR DR TRIM UPR, LH (+CURTAIN',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M154',   1, 'admin', SYSDATETIME()),
+  ('M3311-TD100VKE',     N'MODULE ASSY-RR DR TRIM UPR, LH (+CURTAIN',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M156',   1, 'admin', SYSDATETIME()),
+  ('M3311-TD100YGN',     N'MODULE ASSY-RR DR TRIM UPR, LH (+CURTAIN',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M157',   1, 'admin', SYSDATETIME()),
+  ('M3321-TD000NNB',     N'MODULE ASSY-RR DR TRIM UPR, RH (NON CURT',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M158',   1, 'admin', SYSDATETIME()),
+  ('M3321-TD000PNY',     N'MODULE ASSY-RR DR TRIM UPR, RH (NON CURT',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M161',   1, 'admin', SYSDATETIME()),
+  ('M3321-TD000VKE',     N'MODULE ASSY-RR DR TRIM UPR, RH (NON CURT',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M163',   1, 'admin', SYSDATETIME()),
+  ('M3321-TD000YGN',     N'MODULE ASSY-RR DR TRIM UPR, RH (NON CURT',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M159',   1, 'admin', SYSDATETIME()),
+  ('M3321-TD100NNB',     N'MODULE ASSY-RR DR TRIM UPR, RH (+CURTAIN',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M160',   1, 'admin', SYSDATETIME()),
+  ('M3321-TD100PNY',     N'MODULE ASSY-RR DR TRIM UPR, RH (+CURTAIN',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M162',   1, 'admin', SYSDATETIME()),
+  ('M3321-TD100VKE',     N'MODULE ASSY-RR DR TRIM UPR, RH (+CURTAIN',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M164',   1, 'admin', SYSDATETIME()),
+  ('M3321-TD100YGN',     N'MODULE ASSY-RR DR TRIM UPR, RH (+CURTAIN',     'SUB',  NULL, 'ME1A', 'EA', 0, 'QSUB',  'M165',   1, 'admin', SYSDATETIME()),
+  ('M85321-TD000ROG',    N'BOARD ASSY-HEADLINING (TRICOT, STD)',          'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X021',   1, 'admin', SYSDATETIME()),
+  ('M85321-TD000YGU',    N'BOARD ASSY-HEADLINING (TRICOT, STD)',          'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X022',   1, 'admin', SYSDATETIME()),
+  ('M85321-TD100NNB',    N'BOARD ASSY-HEADLINING (SUEDE, STD)',           'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X010',   1, 'admin', SYSDATETIME()),
+  ('M85321-TD100ROG',    N'BOARD ASSY-HEADLINING (SUEDE, STD)',           'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X011',   1, 'admin', SYSDATETIME()),
+  ('M85321-TD100YGU',    N'BOARD ASSY-HEADLINING (SUEDE, STD)',           'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X012',   1, 'admin', SYSDATETIME()),
+  ('M85321-TD200ROG',    N'BOARD ASSY-HEADLINING (TRICOT+MIC, STD)',      'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X025',   1, 'admin', SYSDATETIME()),
+  ('M85321-TD200YGU',    N'BOARD ASSY-HEADLINING (TRICOT+MIC, STD)',      'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X026',   1, 'admin', SYSDATETIME()),
+  ('M85321-TD300NNB',    N'BOARD ASSY-HEADLINING (SUEDE+MIC, STD)',       'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X016',   1, 'admin', SYSDATETIME()),
+  ('M85321-TD300ROG',    N'BOARD ASSY-HEADLINING (SUEDE+MIC, STD)',       'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X017',   1, 'admin', SYSDATETIME()),
+  ('M85321-TD300YGU',    N'BOARD ASSY-HEADLINING (SUEDE+MIC, STD)',       'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X018',   1, 'admin', SYSDATETIME()),
+  ('M85421-TD000ROG',    N'BOARD ASSY-HEADLINING (TRICOT, SRF)',          'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X019',   1, 'admin', SYSDATETIME()),
+  ('M85421-TD000YGU',    N'BOARD ASSY-HEADLINING (TRICOT, SRF)',          'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X020',   1, 'admin', SYSDATETIME()),
+  ('M85421-TD100NNB',    N'BOARD ASSY-HEADLINING (SUEDE, SRF)',           'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X007',   1, 'admin', SYSDATETIME()),
+  ('M85421-TD100ROG',    N'BOARD ASSY-HEADLINING (SUEDE, SRF)',           'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X008',   1, 'admin', SYSDATETIME()),
+  ('M85421-TD100YGU',    N'BOARD ASSY-HEADLINING (SUEDE, SRF)',           'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X009',   1, 'admin', SYSDATETIME()),
+  ('M85421-TD200ROG',    N'BOARD ASSY-HEADLINING (TRICOT+MIC, SRF)',      'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X023',   1, 'admin', SYSDATETIME()),
+  ('M85421-TD200YGU',    N'BOARD ASSY-HEADLINING (TRICOT+MIC, SRF)',      'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X024',   1, 'admin', SYSDATETIME()),
+  ('M85421-TD300NNB',    N'BOARD ASSY-HEADLINING (SUEDE+MIC, SRF)',       'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X013',   1, 'admin', SYSDATETIME()),
+  ('M85421-TD300ROG',    N'BOARD ASSY-HEADLINING (SUEDE+MIC, SRF)',       'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X014',   1, 'admin', SYSDATETIME()),
+  ('M85421-TD300YGU',    N'BOARD ASSY-HEADLINING (SUEDE+MIC, SRF)',       'SUB',  NULL, 'ME1A', 'EA', 0, 'QXXX',  'X015',   1, 'admin', SYSDATETIME()),
+  ('Z2025-TDDT10',       N'COMPL ASSY-FR DR TRIM, LH',                    'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('Z2025-TDDT20',       N'COMPL ASSY-FR DR TRIM, RH',                    'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('Z2025-TDDT30',       N'COMPL ASSY-RR DR TRIM, LH',                    'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('Z2025-TDDT40',       N'COMPL ASSY-RR DR TRIM, RH',                    'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('Z2025-TDHL10',       N'COMPLETE ASSY- H/LIN''G',                      'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('Z2025-TDHL101',      N'SUB PART- H/LIN''G',                           'SUB',  NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('Z2025-TDLS10',       N'TRIM ASSY-LUGGAGE SIDE, LH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('Z2025-TDLS101',      N'SUB PART-LUGGAGE SIDE, LH',                    'SUB',  NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('Z2025-TDLS20',       N'TRIM ASSY-LUGGAGE SIDE, RH',                   'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('Z2025-TDLS201',      N'SUB PART-LUGGAGE SIDE, RH',                    'SUB',  NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('Z2025-TDTG10',       N'TRIM ASSY-TRIM ASSY-TAIL GATE LWR',            'ASSY', NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('Z2025-TDTG101',      N'SUB PART-TRIM ASSY-TAIL GATE LWR',             'SUB',  NULL, 'ME1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME());
+GO
+
+-- Items (NE1A part master — docs/PartMaster_NE1A.xls)
+INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM, SafetyStock, PGN, ALC, ActiveFlag, CreatedBy, CreatedTS) VALUES
+  ('81710-PI000NNB',     N'TRIM ASSY-TAIL GATE, LWR',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q017',  'N00B',   1, 'admin', SYSDATETIME()),
+  ('81710-PI000YGN',     N'TRIM ASSY-TAIL GATE, LWR',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q017',  'N00G',   1, 'admin', SYSDATETIME()),
+  ('81710-PI010NNB',     N'TRIM ASSY-TAIL GATE, LWR',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q017',  'N10B',   1, 'admin', SYSDATETIME()),
+  ('81710-PI010YGN',     N'TRIM ASSY-TAIL GATE, LWR',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q017',  'N10G',   1, 'admin', SYSDATETIME()),
+  ('81711-PI000NNB',     N'TRIM - TAIL GATE LWR',                      'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N001',   1, 'admin', SYSDATETIME()),
+  ('81711-PI000YGN',     N'TRIM - TAIL GATE LWR',                      'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N002',   1, 'admin', SYSDATETIME()),
+  ('82301-PI000NNB',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N00B',   1, 'admin', SYSDATETIME()),
+  ('82301-PI000YGU',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N00Y',   1, 'admin', SYSDATETIME()),
+  ('82301-PI010NNB',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N10B',   1, 'admin', SYSDATETIME()),
+  ('82301-PI010YGU',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N10Y',   1, 'admin', SYSDATETIME()),
+  ('82301-PI020NNB',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N20B',   1, 'admin', SYSDATETIME()),
+  ('82301-PI020YGU',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N20Y',   1, 'admin', SYSDATETIME()),
+  ('82301-PI030NNB',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N30B',   1, 'admin', SYSDATETIME()),
+  ('82301-PI030VKE',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N30K',   1, 'admin', SYSDATETIME()),
+  ('82301-PI030YGU',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N30Y',   1, 'admin', SYSDATETIME()),
+  ('82301-PI040NNB',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N40B',   1, 'admin', SYSDATETIME()),
+  ('82301-PI040VKE',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N40K',   1, 'admin', SYSDATETIME()),
+  ('82301-PI040YGU',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N40Y',   1, 'admin', SYSDATETIME()),
+  ('82301-PI050NNB',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N50B',   1, 'admin', SYSDATETIME()),
+  ('82301-PI050VKE',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N50K',   1, 'admin', SYSDATETIME()),
+  ('82301-PI050XE8',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('82301-PI050YGU',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N50Y',   1, 'admin', SYSDATETIME()),
+  ('82301-PI060XE8',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N60X',   1, 'admin', SYSDATETIME()),
+  ('82301-PI070XE8',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N70X',   1, 'admin', SYSDATETIME()),
+  ('82301-PI080XE8',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N80X',   1, 'admin', SYSDATETIME()),
+  ('82301-PI090XE8',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N90X',   1, 'admin', SYSDATETIME()),
+  ('82301-PI300NNB',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'NW0B',   1, 'admin', SYSDATETIME()),
+  ('82301-PI300YGU',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'NW0Y',   1, 'admin', SYSDATETIME()),
+  ('82301-PI310NNB',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'NX0B',   1, 'admin', SYSDATETIME()),
+  ('82301-PI310YGU',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'NX0Y',   1, 'admin', SYSDATETIME()),
+  ('82301-PI320NNB',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('82301-PI350NNB',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N1AB',   1, 'admin', SYSDATETIME()),
+  ('82301-PI350VKE',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N1AK',   1, 'admin', SYSDATETIME()),
+  ('82301-PI350YGU',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N1AY',   1, 'admin', SYSDATETIME()),
+  ('82301-PI360XE8',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N2AX',   1, 'admin', SYSDATETIME()),
+  ('82301-PI370XE8',     N'PNL ASSY-FR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'N3AX',   1, 'admin', SYSDATETIME()),
+  ('82302-PI000NNB',     N'PNL ASSY-FR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'N00B',   1, 'admin', SYSDATETIME()),
+  ('82302-PI000YGU',     N'PNL ASSY-FR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'N00Y',   1, 'admin', SYSDATETIME()),
+  ('82302-PI010NNB',     N'PNL ASSY-FR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'N10B',   1, 'admin', SYSDATETIME()),
+  ('82302-PI010YGU',     N'PNL ASSY-FR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'N10Y',   1, 'admin', SYSDATETIME()),
+  ('82302-PI020NNB',     N'PNL ASSY-FR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'N20B',   1, 'admin', SYSDATETIME()),
+  ('82302-PI020VKE',     N'PNL ASSY-FR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'N20K',   1, 'admin', SYSDATETIME()),
+  ('82302-PI020YGU',     N'PNL ASSY-FR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'N20Y',   1, 'admin', SYSDATETIME()),
+  ('82302-PI030XE8',     N'PNL ASSY-FR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'N30X',   1, 'admin', SYSDATETIME()),
+  ('82302-PI300NNB',     N'PNL ASSY-FR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'NW0B',   1, 'admin', SYSDATETIME()),
+  ('82302-PI300YGU',     N'PNL ASSY-FR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'NW0Y',   1, 'admin', SYSDATETIME()),
+  ('82302-PI310NNB',     N'PNL ASSY-FR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'NX0B',   1, 'admin', SYSDATETIME()),
+  ('82302-PI310YGU',     N'PNL ASSY-FR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'NX0Y',   1, 'admin', SYSDATETIME()),
+  ('82302-PI320NNB',     N'PNL ASSY-FR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'NY0B',   1, 'admin', SYSDATETIME()),
+  ('82302-PI320VKE',     N'PNL ASSY-FR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'NY0K',   1, 'admin', SYSDATETIME()),
+  ('82302-PI320YGU',     N'PNL ASSY-FR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'NY0Y',   1, 'admin', SYSDATETIME()),
+  ('82302-PI330XE8',     N'PNL ASSY-FR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'NZ0X',   1, 'admin', SYSDATETIME()),
+  ('82305-PI000NNB',     N'PNL ASSY-FR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN00B',  1, 'admin', SYSDATETIME()),
+  ('82305-PI000YGU',     N'PNL ASSY-FR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN00Y',  1, 'admin', SYSDATETIME()),
+  ('82305-PI020NNB',     N'PNL ASSY-FR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN50B',  1, 'admin', SYSDATETIME()),
+  ('82305-PI020VKE',     N'PNL ASSY-FR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN50K',  1, 'admin', SYSDATETIME()),
+  ('82305-PI020YGU',     N'PNL ASSY-FR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN50Y',  1, 'admin', SYSDATETIME()),
+  ('82305-PI030XE8',     N'PNL ASSY-FR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN70X',  1, 'admin', SYSDATETIME()),
+  ('82305-PI300NNB',     N'PNL ASSY-FR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'PNW0B',  1, 'admin', SYSDATETIME()),
+  ('82305-PI300YGU',     N'PNL ASSY-FR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'PNW0Y',  1, 'admin', SYSDATETIME()),
+  ('82305-PI320NNB',     N'PNL ASSY-FR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'PN1AB',  1, 'admin', SYSDATETIME()),
+  ('82305-PI320VKE',     N'PNL ASSY-FR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'PN1AK',  1, 'admin', SYSDATETIME()),
+  ('82305-PI320YGU',     N'PNL ASSY-FR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'PN1AY',  1, 'admin', SYSDATETIME()),
+  ('82305-PI330XE8',     N'PNL ASSY-FR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q023',  'PN2AX',  1, 'admin', SYSDATETIME()),
+  ('82306-PI000NNB',     N'PNL ASSY-FR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN00B',  1, 'admin', SYSDATETIME()),
+  ('82306-PI000YGU',     N'PNL ASSY-FR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN00Y',  1, 'admin', SYSDATETIME()),
+  ('82306-PI010NNB',     N'PNL ASSY-FR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN20B',  1, 'admin', SYSDATETIME()),
+  ('82306-PI010VKE',     N'PNL ASSY-FR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN20Y',  1, 'admin', SYSDATETIME()),
+  ('82306-PI010YGU',     N'PNL ASSY-FR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN30B',  1, 'admin', SYSDATETIME()),
+  ('82306-PI020XE8',     N'PNL ASSY-FR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN30K',  1, 'admin', SYSDATETIME()),
+  ('82306-PI300NNB',     N'PNL ASSY-FR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'PNW0B',  1, 'admin', SYSDATETIME()),
+  ('82306-PI300YGU',     N'PNL ASSY-FR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'PNW0Y',  1, 'admin', SYSDATETIME()),
+  ('82306-PI310NNB',     N'PNL ASSY-FR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'PNY0B',  1, 'admin', SYSDATETIME()),
+  ('82306-PI310VKE',     N'PNL ASSY-FR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'PNY0K',  1, 'admin', SYSDATETIME()),
+  ('82306-PI310YGU',     N'PNL ASSY-FR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'PNY0Y',  1, 'admin', SYSDATETIME()),
+  ('82306-PI320XE8',     N'PNL ASSY-FR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q024',  'PNZ0X',  1, 'admin', SYSDATETIME()),
+  ('82310-PI010NNB',     N'PNL ASSY-FR DR UPR TRIM,LH(IMG)',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N003',   1, 'admin', SYSDATETIME()),
+  ('82310-PI010VKE',     N'PNL ASSY-FR DR UPR TRIM,LH(IMG)',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N004',   1, 'admin', SYSDATETIME()),
+  ('82310-PI010YGU',     N'PNL ASSY-FR DR UPR TRIM,LH(IMG)',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N005',   1, 'admin', SYSDATETIME()),
+  ('82310-PIP00MEE',     N'PNL ASSY-FR DR UPR TRIM,LH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N147',   1, 'admin', SYSDATETIME()),
+  ('82310-PIP00NNB',     N'PNL ASSY-FR DR UPR TRIM,LH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N148',   1, 'admin', SYSDATETIME()),
+  ('82310-PIP00YGU',     N'PNL ASSY-FR DR UPR TRIM,LH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N149',   1, 'admin', SYSDATETIME()),
+  ('82320-PI010NNB',     N'PNL ASSY-FR DR UPR TRIM,RH(IMG)',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N006',   1, 'admin', SYSDATETIME()),
+  ('82320-PI010VKE',     N'PNL ASSY-FR DR UPR TRIM,RH(IMG)',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N007',   1, 'admin', SYSDATETIME()),
+  ('82320-PI010YGU',     N'PNL ASSY-FR DR UPR TRIM,RH(IMG)',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N008',   1, 'admin', SYSDATETIME()),
+  ('82320-PIP00MEE',     N'PNL ASSY-FR DR UPR TRIM,RH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N150',   1, 'admin', SYSDATETIME()),
+  ('82320-PIP00NNB',     N'PNL ASSY-FR DR UPR TRIM,RH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N151',   1, 'admin', SYSDATETIME()),
+  ('82320-PIP00YGU',     N'PNL ASSY-FR DR UPR TRIM,RH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N152',   1, 'admin', SYSDATETIME()),
+  ('82350-PI000NNB',     N'PNL-FR DR MAIN TRIM, LH',                   'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N009',   1, 'admin', SYSDATETIME()),
+  ('82350-PI000YGN',     N'PNL-FR DR MAIN TRIM, LH',                   'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N010',   1, 'admin', SYSDATETIME()),
+  ('82350-PI000YGU',     N'PNL-FR DR MAIN TRIM, LH',                   'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N011',   1, 'admin', SYSDATETIME()),
+  ('82360-PI000NNB',     N'PNL-FR DR MAIN TRIM, RH',                   'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N009',   1, 'admin', SYSDATETIME()),
+  ('82360-PI000YGN',     N'PNL-FR DR MAIN TRIM, RH',                   'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N010',   1, 'admin', SYSDATETIME()),
+  ('82360-PI000YGU',     N'PNL-FR DR MAIN TRIM, RH',                   'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N011',   1, 'admin', SYSDATETIME()),
+  ('82731-PI010NNB',     N'HDL-FR DR PULL INR, LH(MOOD LAMP)',         'MATERIAL', NULL, 'NE1A', 'EA', 0, 'Q021',  'Q000',   1, 'admin', SYSDATETIME()),
+  ('83301-PI000NNB',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N00B',   1, 'admin', SYSDATETIME()),
+  ('83301-PI000YGU',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N00Y',   1, 'admin', SYSDATETIME()),
+  ('83301-PI010NNB',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N10B',   1, 'admin', SYSDATETIME()),
+  ('83301-PI010YGU',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N10Y',   1, 'admin', SYSDATETIME()),
+  ('83301-PI020NNB',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N20B',   1, 'admin', SYSDATETIME()),
+  ('83301-PI020VKE',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N20K',   1, 'admin', SYSDATETIME()),
+  ('83301-PI020YGU',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N20Y',   1, 'admin', SYSDATETIME()),
+  ('83301-PI030NNB',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N30B',   1, 'admin', SYSDATETIME()),
+  ('83301-PI030VKE',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N30K',   1, 'admin', SYSDATETIME()),
+  ('83301-PI030YGU',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N30Y',   1, 'admin', SYSDATETIME()),
+  ('83301-PI040NNB',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N40B',   1, 'admin', SYSDATETIME()),
+  ('83301-PI040VKE',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N40K',   1, 'admin', SYSDATETIME()),
+  ('83301-PI040YGU',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N40Y',   1, 'admin', SYSDATETIME()),
+  ('83301-PI050XE8',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N50X',   1, 'admin', SYSDATETIME()),
+  ('83301-PI060XE8',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N60X',   1, 'admin', SYSDATETIME()),
+  ('83301-PI070XE8',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N70X',   1, 'admin', SYSDATETIME()),
+  ('83301-PI080XE8',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N80X',   1, 'admin', SYSDATETIME()),
+  ('83301-PI300NNB',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'NW0B',   1, 'admin', SYSDATETIME()),
+  ('83301-PI300YGU',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'NW0Y',   1, 'admin', SYSDATETIME()),
+  ('83301-PI340NNB',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N0AB',   1, 'admin', SYSDATETIME()),
+  ('83301-PI340VKE',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N0AK',   1, 'admin', SYSDATETIME()),
+  ('83301-PI340YGU',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N0AY',   1, 'admin', SYSDATETIME()),
+  ('83301-PI350XE8',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N1AX',   1, 'admin', SYSDATETIME()),
+  ('83301-PI360XE8',     N'PNL ASSY-RR DR TRIM COMPL,LH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'N2AX',   1, 'admin', SYSDATETIME()),
+  ('83302-PI000NNB',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N00B',   1, 'admin', SYSDATETIME()),
+  ('83302-PI000YGU',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N00Y',   1, 'admin', SYSDATETIME()),
+  ('83302-PI010NNB',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N10B',   1, 'admin', SYSDATETIME()),
+  ('83302-PI010YGU',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N10Y',   1, 'admin', SYSDATETIME()),
+  ('83302-PI020NNB',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N20B',   1, 'admin', SYSDATETIME()),
+  ('83302-PI020VKE',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N20K',   1, 'admin', SYSDATETIME()),
+  ('83302-PI020YGU',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N20Y',   1, 'admin', SYSDATETIME()),
+  ('83302-PI030NNB',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N30B',   1, 'admin', SYSDATETIME()),
+  ('83302-PI030VKE',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N30K',   1, 'admin', SYSDATETIME()),
+  ('83302-PI030YGU',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N30Y',   1, 'admin', SYSDATETIME()),
+  ('83302-PI040NNB',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N40B',   1, 'admin', SYSDATETIME()),
+  ('83302-PI040VKE',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N40K',   1, 'admin', SYSDATETIME()),
+  ('83302-PI040YGU',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N40Y',   1, 'admin', SYSDATETIME()),
+  ('83302-PI050XE8',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N50X',   1, 'admin', SYSDATETIME()),
+  ('83302-PI060XE8',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N60X',   1, 'admin', SYSDATETIME()),
+  ('83302-PI070XE8',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N70X',   1, 'admin', SYSDATETIME()),
+  ('83302-PI080XE8',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N80X',   1, 'admin', SYSDATETIME()),
+  ('83302-PI300NNB',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'NW0B',   1, 'admin', SYSDATETIME()),
+  ('83302-PI300YGU',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'NW0Y',   1, 'admin', SYSDATETIME()),
+  ('83302-PI340NNB',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N0AB',   1, 'admin', SYSDATETIME()),
+  ('83302-PI340VKE',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N0AK',   1, 'admin', SYSDATETIME()),
+  ('83302-PI340YGU',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N0AY',   1, 'admin', SYSDATETIME()),
+  ('83302-PI350XE8',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N1AX',   1, 'admin', SYSDATETIME()),
+  ('83302-PI360XE8',     N'PNL ASSY-RR DR TRIM COMPL,RH',              'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'N2AX',   1, 'admin', SYSDATETIME()),
+  ('83305-PI000NNB',     N'PNL ASSY-RR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN00B',  1, 'admin', SYSDATETIME()),
+  ('83305-PI000YGU',     N'PNL ASSY-RR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN00Y',  1, 'admin', SYSDATETIME()),
+  ('83305-PI010NNB',     N'PNL ASSY-RR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN10B',  1, 'admin', SYSDATETIME()),
+  ('83305-PI010YGU',     N'PNL ASSY-RR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN10Y',  1, 'admin', SYSDATETIME()),
+  ('83305-PI030NNB',     N'PNL ASSY-RR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN40B',  1, 'admin', SYSDATETIME()),
+  ('83305-PI030VKE',     N'PNL ASSY-RR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN40K',  1, 'admin', SYSDATETIME()),
+  ('83305-PI030YGU',     N'PNL ASSY-RR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN40Y',  1, 'admin', SYSDATETIME()),
+  ('83305-PI040XE8',     N'PNL ASSY-RR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN70X',  1, 'admin', SYSDATETIME()),
+  ('83305-PI050XE8',     N'PNL ASSY-RR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN60X',  1, 'admin', SYSDATETIME()),
+  ('83305-PI300NNB',     N'PNL ASSY-RR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'PNW0B',  1, 'admin', SYSDATETIME()),
+  ('83305-PI300YGU',     N'PNL ASSY-RR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'PNW0Y',  1, 'admin', SYSDATETIME()),
+  ('83305-PI330NNB',     N'PNL ASSY-RR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'PN0AB',  1, 'admin', SYSDATETIME()),
+  ('83305-PI330VKE',     N'PNL ASSY-RR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'PN0AK',  1, 'admin', SYSDATETIME()),
+  ('83305-PI330YGU',     N'PNL ASSY-RR DR TRIM,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q033',  'PN0AY',  1, 'admin', SYSDATETIME()),
+  ('83306-PI000NNB',     N'PNL ASSY-RR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN00B',  1, 'admin', SYSDATETIME()),
+  ('83306-PI000YGU',     N'PNL ASSY-RR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN00Y',  1, 'admin', SYSDATETIME()),
+  ('83306-PI010NNB',     N'PNL ASSY-RR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN10B',  1, 'admin', SYSDATETIME()),
+  ('83306-PI010YGU',     N'PNL ASSY-RR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN10Y',  1, 'admin', SYSDATETIME()),
+  ('83306-PI030NNB',     N'PNL ASSY-RR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN40B',  1, 'admin', SYSDATETIME()),
+  ('83306-PI030VKE',     N'PNL ASSY-RR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN40K',  1, 'admin', SYSDATETIME()),
+  ('83306-PI030YGU',     N'PNL ASSY-RR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN40Y',  1, 'admin', SYSDATETIME()),
+  ('83306-PI040XE8',     N'PNL ASSY-RR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN70X',  1, 'admin', SYSDATETIME()),
+  ('83306-PI050XE8',     N'PNL ASSY-RR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'QMTO',  'PN60X',  1, 'admin', SYSDATETIME()),
+  ('83306-PI300NNB',     N'PNL ASSY-RR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'PNW0B',  1, 'admin', SYSDATETIME()),
+  ('83306-PI300YGU',     N'PNL ASSY-RR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'PNW0Y',  1, 'admin', SYSDATETIME()),
+  ('83306-PI330NNB',     N'PNL ASSY-RR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'PN0AB',  1, 'admin', SYSDATETIME()),
+  ('83306-PI330VKE',     N'PNL ASSY-RR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'PN0AK',  1, 'admin', SYSDATETIME()),
+  ('83306-PI330YGU',     N'PNL ASSY-RR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'PN0AY',  1, 'admin', SYSDATETIME()),
+  ('83306-PI340XE8',     N'PNL ASSY-RR DR TRIM,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q034',  'PN1AX',  1, 'admin', SYSDATETIME()),
+  ('83310-PI010NNB',     N'PNL ASSY-RR DR UPR TRIM,LH(IMG)',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N012',   1, 'admin', SYSDATETIME()),
+  ('83310-PI010VKE',     N'PNL ASSY-RR DR UPR TRIM,LH(IMG)',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N013',   1, 'admin', SYSDATETIME()),
+  ('83310-PI010YGU',     N'PNL ASSY-RR DR UPR TRIM,LH(IMG)',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N014',   1, 'admin', SYSDATETIME()),
+  ('83310-PI020NNB',     N'PNL ASSY-RR DR UPR TRIM,LH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N015',   1, 'admin', SYSDATETIME()),
+  ('83310-PI020VKE',     N'PNL ASSY-RR DR UPR TRIM,LH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N016',   1, 'admin', SYSDATETIME()),
+  ('83310-PI020YGU',     N'PNL ASSY-RR DR UPR TRIM,LH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N017',   1, 'admin', SYSDATETIME()),
+  ('83310-PI021VKE',     N'PNL ASSY-RR DR UPR TRIM,LH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS13',   1, 'admin', SYSDATETIME()),
+  ('83310-PIP00MEE',     N'PNL ASSY-RR DR UPR TRIM,LH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N153',   1, 'admin', SYSDATETIME()),
+  ('83310-PIP00NNB',     N'PNL ASSY-RR DR UPR TRIM,LH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N154',   1, 'admin', SYSDATETIME()),
+  ('83310-PIP00YGU',     N'PNL ASSY-RR DR UPR TRIM,LH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N155',   1, 'admin', SYSDATETIME()),
+  ('83320-PI010NNB',     N'PNL ASSY-RR DR UPR TRIM,RH(IMG)',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N012',   1, 'admin', SYSDATETIME()),
+  ('83320-PI010VKE',     N'PNL ASSY-RR DR UPR TRIM,RH(IMG)',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N013',   1, 'admin', SYSDATETIME()),
+  ('83320-PI010YGU',     N'PNL ASSY-RR DR UPR TRIM,RH(IMG)',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N014',   1, 'admin', SYSDATETIME()),
+  ('83320-PI020NNB',     N'PNL ASSY-RR DR UPR TRIM,RH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N015',   1, 'admin', SYSDATETIME()),
+  ('83320-PI020VKE',     N'PNL ASSY-RR DR UPR TRIM,RH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N016',   1, 'admin', SYSDATETIME()),
+  ('83320-PI020YGU',     N'PNL ASSY-RR DR UPR TRIM,RH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N017',   1, 'admin', SYSDATETIME()),
+  ('83320-PI021NNB',     N'PNL ASSY-RR DR UPR TRIM,RH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS14',   1, 'admin', SYSDATETIME()),
+  ('83320-PI021YGU',     N'PNL ASSY-RR DR UPR TRIM,RH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS15',   1, 'admin', SYSDATETIME()),
+  ('83320-PIP00MEE',     N'PNL ASSY-RR DR UPR TRIM,RH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N156',   1, 'admin', SYSDATETIME()),
+  ('83320-PIP00NNB',     N'PNL ASSY-RR DR UPR TRIM,RH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N157',   1, 'admin', SYSDATETIME()),
+  ('83320-PIP00YGU',     N'PNL ASSY-RR DR UPR TRIM,RH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N158',   1, 'admin', SYSDATETIME()),
+  ('83350-PI000NNB',     N'PNL-RR DR MAIN TRIM, LH',                   'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N024',   1, 'admin', SYSDATETIME()),
+  ('83350-PI000YGN',     N'PNL-RR DR MAIN TRIM, LH',                   'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N025',   1, 'admin', SYSDATETIME()),
+  ('83350-PI000YGU',     N'PNL-RR DR MAIN TRIM, LH',                   'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N026',   1, 'admin', SYSDATETIME()),
+  ('83360-PI000NNB',     N'PNL-RR DR MAIN TRIM, RH',                   'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N024',   1, 'admin', SYSDATETIME()),
+  ('83360-PI000YGN',     N'PNL-RR DR MAIN TRIM, RH',                   'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N025',   1, 'admin', SYSDATETIME()),
+  ('83360-PI000YGU',     N'PNL-RR DR MAIN TRIM, RH',                   'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N026',   1, 'admin', SYSDATETIME()),
+  ('85300-PI000MMN',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-PI000YGU',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'N00Y',   1, 'admin', SYSDATETIME()),
+  ('85300-PI010MMN',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-PI010YGU',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'N10Y',   1, 'admin', SYSDATETIME()),
+  ('85300-PI020MMN',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-PI020YGU',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'N20Y',   1, 'admin', SYSDATETIME()),
+  ('85300-PI030MMN',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'N30M',   1, 'admin', SYSDATETIME()),
+  ('85300-PI030YGU',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'N30Y',   1, 'admin', SYSDATETIME()),
+  ('85300-PI040MMN',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-PI040YGU',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'N40Y',   1, 'admin', SYSDATETIME()),
+  ('85300-PI050MMN',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-PI050YGU',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'N50Y',   1, 'admin', SYSDATETIME()),
+  ('85300-PI060MMN',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'N60M',   1, 'admin', SYSDATETIME()),
+  ('85300-PI060YGU',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'N60Y',   1, 'admin', SYSDATETIME()),
+  ('85300-PI070MMN',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'N70Y',   1, 'admin', SYSDATETIME()),
+  ('85300-PI070YGU',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'N70Y',   1, 'admin', SYSDATETIME()),
+  ('85300-PI080MMN',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'N80M',   1, 'admin', SYSDATETIME()),
+  ('85300-PI080YGU',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'N80Y',   1, 'admin', SYSDATETIME()),
+  ('85300-PI090MMN',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'N90M',   1, 'admin', SYSDATETIME()),
+  ('85300-PI090YGU',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'N90Y',   1, 'admin', SYSDATETIME()),
+  ('85300-PI100MMN',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-PI100YGU',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-PI110MMN',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'NB0M',   1, 'admin', SYSDATETIME()),
+  ('85300-PI110YGU',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-PI120MMN',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'NC0M',   1, 'admin', SYSDATETIME()),
+  ('85300-PI120YGU',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-PI130MMN',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-PI130YGU',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85300-PI140YGU',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'NE0Y',   1, 'admin', SYSDATETIME()),
+  ('85300-PI150YGU',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'NF0Y',   1, 'admin', SYSDATETIME()),
+  ('85300-PI160MMN',     N'HEADLINING COMPLETE (STD)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'NG0M',   1, 'admin', SYSDATETIME()),
+  ('85310-PI000MMN',     N'HEAD LINING ASSY (STD)',                    'SUB',      NULL, 'NE1A', 'EA', 0, 'QXXX',  'X029',   1, 'admin', SYSDATETIME()),
+  ('85310-PI000YGU',     N'HEAD LINING ASSY (STD)',                    'SUB',      NULL, 'NE1A', 'EA', 0, 'QXXX',  'X030',   1, 'admin', SYSDATETIME()),
+  ('85311-PI000',        N'BOARD-HEADLINING (STD)',                    'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N027',   1, 'admin', SYSDATETIME()),
+  ('85311-PI000MMN',     N'BOARD ASSY-HEADLINING(STD)',                'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N123',   1, 'admin', SYSDATETIME()),
+  ('85311-PI000YGU',     N'BOARD ASSY-HEADLINING(STD)',                'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N124',   1, 'admin', SYSDATETIME()),
+  ('85311-PI10E',        N'PU BLOCK-BOARD-NE1A',                       'SUB',      NULL, 'NE1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85311-PI20E',        N'PU BLOCK-BOARD-NE1A (1540*2180*920)',       'SUB',      NULL, 'NE1A', 'EA', 0, NULL,    NULL,     1, 'admin', SYSDATETIME()),
+  ('85400-PI000YGU',     N'HEADLINING COMPLETE (SRF)',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q053',  'S00Y',   1, 'admin', SYSDATETIME()),
+  ('85410-PI000YGU',     N'HEAD LINING ASSY (SRF)',                    'SUB',      NULL, 'NE1A', 'EA', 0, 'QXXX',  'X028',   1, 'admin', SYSDATETIME()),
+  ('85411-PI000',        N'BOARD-HEADLINING (SRF)',                    'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N028',   1, 'admin', SYSDATETIME()),
+  ('85411-PI000YGU',     N'BOARD ASSY-HEADLINING(SRF)',                'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N125',   1, 'admin', SYSDATETIME()),
+  ('85730-PI000NNB',     N'TRIM ASSY-LUGGAGE SIDE,LH',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q114',  'N00B',   1, 'admin', SYSDATETIME()),
+  ('85730-PI000YGN',     N'TRIM ASSY-LUGGAGE SIDE,LH',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q114',  'N00G',   1, 'admin', SYSDATETIME()),
+  ('85730-PI050NNB',     N'TRIM ASSY-LUGGAGE SIDE,LH',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q114',  'N50B',   1, 'admin', SYSDATETIME()),
+  ('85730-PI050YGN',     N'TRIM ASSY-LUGGAGE SIDE,LH',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q114',  'N50G',   1, 'admin', SYSDATETIME()),
+  ('85731-PI000NNB',     N'TRIM-LUGGAGE SIDE, LH',                     'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N029',   1, 'admin', SYSDATETIME()),
+  ('85731-PI000YGN',     N'TRIM-LUGGAGE SIDE, LH',                     'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N030',   1, 'admin', SYSDATETIME()),
+  ('85740-PI000NNB',     N'TRIM ASSY-LUGGAGE SIDE,RH',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q112',  'N00B',   1, 'admin', SYSDATETIME()),
+  ('85740-PI000YGN',     N'TRIM ASSY-LUGGAGE SIDE,RH',                 'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q112',  'N00G',   1, 'admin', SYSDATETIME()),
+  ('85741-PI000NNB',     N'TRIM-LUGGAGE SIDE, RH',                     'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N031',   1, 'admin', SYSDATETIME()),
+  ('85741-PI000YGN',     N'TRIM-LUGGAGE SIDE, RH',                     'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N032',   1, 'admin', SYSDATETIME()),
+  ('85770-PI000NNB',   N'TRIM ASSY-RR TRANSVERSE',                   'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q113',  'N00B',   1, 'admin', SYSDATETIME()),
+  ('85770-PI000YGN',   N'TRIM ASSY-RR TRANSVERSE',                   'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q113',  'N00G',   1, 'admin', SYSDATETIME()),
+  ('85770-PI100NNB',   N'TRIM ASSY-RR TRANSVERSE',                   'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q113',  'NA0B',   1, 'admin', SYSDATETIME()),
+  ('85770-PI100YGN',   N'TRIM ASSY-RR TRANSVERSE',                   'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q113',  'NA0G',   1, 'admin', SYSDATETIME()),
+  ('85810-PI000NNB',   N'TRIM ASSY-FR PLR,LH',                       'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q058',  'N00B',   1, 'admin', SYSDATETIME()),
+  ('85810-PI000YGU',   N'TRIM ASSY-FR PLR,LH',                       'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q058',  'N00Y',   1, 'admin', SYSDATETIME()),
+  ('85820-PI000NNB',   N'TRIM ASSY-FR PLR,RH',                       'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q059',  'N00B',   1, 'admin', SYSDATETIME()),
+  ('85820-PI000YGU',   N'TRIM ASSY-FR PLR,RH',                       'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q059',  'N00Y',   1, 'admin', SYSDATETIME()),
+  ('85823-PI000NNB',   N'TRIM ASSY-COWL SIDE,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q060',  'N00B',   1, 'admin', SYSDATETIME()),
+  ('85823-PI000YGN',   N'TRIM ASSY-COWL SIDE,LH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q060',  'N00G',   1, 'admin', SYSDATETIME()),
+  ('85824-PI000NNB',   N'TRIM ASSY-COWL SIDE,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q061',  'N00B',   1, 'admin', SYSDATETIME()),
+  ('85824-PI000YGN',   N'TRIM ASSY-COWL SIDE,RH',                    'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q061',  'N00G',   1, 'admin', SYSDATETIME()),
+  ('85830-PI000NNB',   N'TRIM ASSY-CTR PLR UPR,LH',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q062',  'N00B',   1, 'admin', SYSDATETIME()),
+  ('85830-PI000YGU',   N'TRIM ASSY-CTR PLR UPR,LH',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q062',  'N00Y',   1, 'admin', SYSDATETIME()),
+  ('85835-PI000NNB',   N'TRIM ASSY-CTR PLR LWR,LH',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q064',  'N00B',   1, 'admin', SYSDATETIME()),
+  ('85835-PI000YGU',   N'TRIM ASSY-CTR PLR LWR,LH',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q064',  'N00Y',   1, 'admin', SYSDATETIME()),
+  ('85835-PI100MEE',   N'TRIM ASSY-CTR PLR LWR,LH',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q064',  'NA0E',   1, 'admin', SYSDATETIME()),
+  ('85835-PI100NNB',   N'TRIM ASSY-CTR PLR LWR,LH',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q064',  'NA0B',   1, 'admin', SYSDATETIME()),
+  ('85835-PI100VKE',   N'TRIM ASSY-CTR PLR LWR,LH',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q064',  'NA0K',   1, 'admin', SYSDATETIME()),
+  ('85835-PI100YGU',   N'TRIM ASSY-CTR PLR LWR,LH',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q064',  'NA0Y',   1, 'admin', SYSDATETIME()),
+  ('85836-PI000NNB',     N'GARNISH-CTR PLR LWR-UPR PIECE, LH',         'SUB',      NULL, 'NE1A', 'EA', 0, 'AQSU',  'BN200',  1, 'admin', SYSDATETIME()),
+  ('85836-PI000VKE',     N'GARNISH-CTR PLR LWR-UPR PIECE, LH',         'SUB',      NULL, 'NE1A', 'EA', 0, 'AQSU',  'BN202',  1, 'admin', SYSDATETIME()),
+  ('85836-PI000YGU',     N'GARNISH-CTR PLR LWR-UPR PIECE, LH',         'SUB',      NULL, 'NE1A', 'EA', 0, 'AQSU',  'BN204',  1, 'admin', SYSDATETIME()),
+  ('85837-PI000NNB',     N'GARNISH-CTR PLR LWR-LWR PIECE, LH',         'SUB',      NULL, 'NE1A', 'EA', 0, 'AQSU',  'BN201',  1, 'admin', SYSDATETIME()),
+  ('85837-PI000YGN',     N'GARNISH-CTR PLR LWR-LWR PIECE, LH',         'SUB',      NULL, 'NE1A', 'EA', 0, 'AQSU',  'BN203',  1, 'admin', SYSDATETIME()),
+  ('85840-PI000NNB',   N'TRIM ASSY-CTR PLR UPR,RH',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q063',  'N00B',   1, 'admin', SYSDATETIME()),
+  ('85840-PI000YGU',   N'TRIM ASSY-CTR PLR UPR,RH',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q063',  'N00Y',   1, 'admin', SYSDATETIME()),
+  ('85845-PI000NNB',   N'TRIM ASSY-CTR PLR LWR,RH',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q065',  'N00B',   1, 'admin', SYSDATETIME()),
+  ('85845-PI000YGU',   N'TRIM ASSY-CTR PLR LWR,RH',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q065',  'N00Y',   1, 'admin', SYSDATETIME()),
+  ('85845-PI100MEE',   N'TRIM ASSY-CTR PLR LWR,RH',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q065',  'NA0E',   1, 'admin', SYSDATETIME()),
+  ('85845-PI100NNB',   N'TRIM ASSY-CTR PLR LWR,RH',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q065',  'NA0B',   1, 'admin', SYSDATETIME()),
+  ('85845-PI100VKE',   N'TRIM ASSY-CTR PLR LWR,RH',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q065',  'NA0K',   1, 'admin', SYSDATETIME()),
+  ('85845-PI100YGU',   N'TRIM ASSY-CTR PLR LWR,RH',                  'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q065',  'NA0Y',   1, 'admin', SYSDATETIME()),
+  ('85846-PI000NNB',     N'GARNISH-CTR PLR LWR-UPR PIECE, RH',         'SUB',      NULL, 'NE1A', 'EA', 0, 'AQSU',  'BN214',  1, 'admin', SYSDATETIME()),
+  ('85846-PI000VKE',     N'GARNISH-CTR PLR LWR-UPR PIECE, RH',         'SUB',      NULL, 'NE1A', 'EA', 0, 'AQSU',  'BN216',  1, 'admin', SYSDATETIME()),
+  ('85846-PI000YGU',     N'GARNISH-CTR PLR LWR-UPR PIECE, RH',         'SUB',      NULL, 'NE1A', 'EA', 0, 'AQSU',  'BN218',  1, 'admin', SYSDATETIME()),
+  ('85847-PI000NNB',     N'GARNISH-CTR PLR LWR-LWR PIECE, RH',         'SUB',      NULL, 'NE1A', 'EA', 0, 'AQSU',  'BN215',  1, 'admin', SYSDATETIME()),
+  ('85847-PI000YGN',     N'GARNISH-CTR PLR LWR-LWR PIECE, RH',         'SUB',      NULL, 'NE1A', 'EA', 0, 'AQSU',  'BN217',  1, 'admin', SYSDATETIME()),
+  ('85850-PI000NNB',     N'TRIM ASSY-RR PLR,LH',                       'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q066',  'N00B',   1, 'admin', SYSDATETIME()),
+  ('85850-PI000YGU',     N'TRIM ASSY-RR PLR,LH',                       'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q066',  'N00Y',   1, 'admin', SYSDATETIME()),
+  ('85851-PI000NNB',     N'TRIM-RR PLR, LH',                           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N033',   1, 'admin', SYSDATETIME()),
+  ('85851-PI000YGU',     N'TRIM-RR PLR, LH',                           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N034',   1, 'admin', SYSDATETIME()),
+  ('85860-PI000NNB',     N'TRIM ASSY-RR PLR,RH',                       'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q067',  'N00B',   1, 'admin', SYSDATETIME()),
+  ('85860-PI000YGU',     N'TRIM ASSY-RR PLR,RH',                       'ASSY',     NULL, 'NE1A', 'EA', 0, 'Q067',  'N00Y',   1, 'admin', SYSDATETIME()),
+  ('85861-PI000NNB',     N'TRIM-RR PLR, RH',                           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N033',   1, 'admin', SYSDATETIME()),
+  ('85861-PI000YGU',     N'TRIM-RR PLR, RH',                           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N034',   1, 'admin', SYSDATETIME()),
+  ('918A0-PI230AA',      N'WIRING HARNESS-ROOF',                       'MATERIAL', NULL, 'NE1A', 'EA', 0, 'Q018',  'Q230',   1, 'admin', SYSDATETIME()),
+  ('D0111-PI010',        N'FRT CORE,LH',                               'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N035',   1, 'admin', SYSDATETIME()),
+  ('D0121-PI010',        N'FRT CORE,RH',                               'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N035',   1, 'admin', SYSDATETIME()),
+  ('D0131-PI010',        N'RR(STD) CORE,LH',                           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N036',   1, 'admin', SYSDATETIME()),
+  ('D0131-PI020',        N'RR(CURTAIN) CORE,LH',                       'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N037',   1, 'admin', SYSDATETIME()),
+  ('D0141-PI010',        N'RR(STD) CORE,RH',                           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N036',   1, 'admin', SYSDATETIME()),
+  ('D0141-PI020',        N'RR(CURTAIN) CORE,RH',                       'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N037',   1, 'admin', SYSDATETIME()),
+  ('M0210-PI000MEE',     N'MODULE ASSY-FR UPR TRIM NO.1, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N126',   1, 'admin', SYSDATETIME()),
+  ('M0210-PI000NNB',     N'MODULE ASSY-FR UPR TRIM NO.1, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N038',   1, 'admin', SYSDATETIME()),
+  ('M0210-PI000XE8',     N'MODULE ASSY-FR UPR TRIM NO.1,LH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N039',   1, 'admin', SYSDATETIME()),
+  ('M0210-PI000YGU',     N'MODULE ASSY-FR UPR TRIM NO.1, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N040',   1, 'admin', SYSDATETIME()),
+  ('M0210-PI010NNB',     N'MODULE ASSY-FR UPR TRIM NO.2, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N041',   1, 'admin', SYSDATETIME()),
+  ('M0210-PI010VKE',     N'MODULE ASSY-FR UPR TRIM NO.2, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N042',   1, 'admin', SYSDATETIME()),
+  ('M0210-PI010YGU',     N'MODULE ASSY-FR UPR TRIM NO.2, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N043',   1, 'admin', SYSDATETIME()),
+  ('M0210-PI020MEE',     N'MODULE ASSY-FR UPR TRIM NO.3, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N159',   1, 'admin', SYSDATETIME()),
+  ('M0210-PI020NNB',     N'MODULE ASSY-FR UPR TRIM NO.3, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N160',   1, 'admin', SYSDATETIME()),
+  ('M0210-PI020YGU',     N'MODULE ASSY-FR UPR TRIM NO.3, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N161',   1, 'admin', SYSDATETIME()),
+  ('M0210-PI030NNB',     N'MODULE ASSY-FR UPR TRIM NO.4, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N162',   1, 'admin', SYSDATETIME()),
+  ('M0210-PI030VKE',     N'MODULE ASSY-FR UPR TRIM NO.4, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N163',   1, 'admin', SYSDATETIME()),
+  ('M0210-PI030YGU',     N'MODULE ASSY-FR UPR TRIM NO.4, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N164',   1, 'admin', SYSDATETIME()),
+  ('M0220-PI000MEE',     N'MODULE ASSY-FR UPR TRIM NO.1, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N127',   1, 'admin', SYSDATETIME()),
+  ('M0220-PI000NNB',     N'MODULE ASSY-FR UPR TRIM NO.1, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N044',   1, 'admin', SYSDATETIME()),
+  ('M0220-PI000XE8',     N'MODULE ASSY-FR UPR TRIM NO.1,RH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N045',   1, 'admin', SYSDATETIME()),
+  ('M0220-PI000YGU',     N'MODULE ASSY-FR UPR TRIM NO.1, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N046',   1, 'admin', SYSDATETIME()),
+  ('M0220-PI010NNB',     N'MODULE ASSY-FR UPR TRIM NO.2, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N047',   1, 'admin', SYSDATETIME()),
+  ('M0220-PI010VKE',     N'MODULE ASSY-FR UPR TRIM NO.2, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N048',   1, 'admin', SYSDATETIME()),
+  ('M0220-PI010YGU',     N'MODULE ASSY-FR UPR TRIM NO.2, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N049',   1, 'admin', SYSDATETIME()),
+  ('M0220-PI020MEE',     N'MODULE ASSY-FR UPR TRIM NO.3, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N165',   1, 'admin', SYSDATETIME()),
+  ('M0220-PI020NNB',     N'MODULE ASSY-FR UPR TRIM NO.3, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N166',   1, 'admin', SYSDATETIME()),
+  ('M0220-PI020YGU',     N'MODULE ASSY-FR UPR TRIM NO.3, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N167',   1, 'admin', SYSDATETIME()),
+  ('M0220-PI030NNB',     N'MODULE ASSY-FR UPR TRIM NO.4, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N168',   1, 'admin', SYSDATETIME()),
+  ('M0220-PI030VKE',     N'MODULE ASSY-FR UPR TRIM NO.4, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N169',   1, 'admin', SYSDATETIME()),
+  ('M0220-PI030YGU',     N'MODULE ASSY-FR UPR TRIM NO.4, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N170',   1, 'admin', SYSDATETIME()),
+  ('M0230-PI000MEE',     N'MODULE ASSY-RR UPR TRIM NO.1, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N128',   1, 'admin', SYSDATETIME()),
+  ('M0230-PI000NNB',     N'MODULE ASSY-RR UPR TRIM NO.1, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N050',   1, 'admin', SYSDATETIME()),
+  ('M0230-PI000XE8',     N'MODULE ASSY-RR UPR TRIM NO.1,LH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N051',   1, 'admin', SYSDATETIME()),
+  ('M0230-PI000YGU',     N'MODULE ASSY-RR UPR TRIM NO.1, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N052',   1, 'admin', SYSDATETIME()),
+  ('M0230-PI010NNB',     N'MODULE ASSY-RR UPR TRIM NO.2, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N053',   1, 'admin', SYSDATETIME()),
+  ('M0230-PI010VKE',     N'MODULE ASSY-RR UPR TRIM NO.2, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N054',   1, 'admin', SYSDATETIME()),
+  ('M0230-PI010YGU',     N'MODULE ASSY-RR UPR TRIM NO.2, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N055',   1, 'admin', SYSDATETIME()),
+  ('M0230-PI020NNB',     N'MODULE ASSY-RR UPR TRIM NO.3, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N056',   1, 'admin', SYSDATETIME()),
+  ('M0230-PI020VKE',     N'MODULE ASSY-RR UPR TRIM NO.3, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N057',   1, 'admin', SYSDATETIME()),
+  ('M0230-PI020YGU',     N'MODULE ASSY-RR UPR TRIM NO.3, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N058',   1, 'admin', SYSDATETIME()),
+  ('M0230-PI030MEE',     N'MODULE ASSY-RR UPR TRIM NO.4, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N171',   1, 'admin', SYSDATETIME()),
+  ('M0230-PI030NNB',     N'MODULE ASSY-RR UPR TRIM NO.4, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N172',   1, 'admin', SYSDATETIME()),
+  ('M0230-PI030YGU',     N'MODULE ASSY-RR UPR TRIM NO.4, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N173',   1, 'admin', SYSDATETIME()),
+  ('M0230-PI040NNB',     N'MODULE ASSY-RR UPR TRIM NO.5, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N174',   1, 'admin', SYSDATETIME()),
+  ('M0230-PI040VKE',     N'MODULE ASSY-RR UPR TRIM NO.5, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N175',   1, 'admin', SYSDATETIME()),
+  ('M0230-PI040YGU',     N'MODULE ASSY-RR UPR TRIM NO.5, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N176',   1, 'admin', SYSDATETIME()),
+  ('M0231-PI020VKE',     N'MODULE ASSY-RR UPR TRIM NO.3, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS01',   1, 'admin', SYSDATETIME()),
+  ('M0231-PI040NNB',     N'MODULE ASSY-RR UPR TRIM NO.5, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS21',  1, 'admin', SYSDATETIME()),
+  ('M0231-PI040VKE',     N'MODULE ASSY-RR UPR TRIM NO.5, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS22',  1, 'admin', SYSDATETIME()),
+  ('M0231-PI040YGU',     N'MODULE ASSY-RR UPR TRIM NO.5, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS23',  1, 'admin', SYSDATETIME()),
+  ('M0240-PI000MEE',     N'MODULE ASSY-RR UPR TRIM NO.1, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N129',   1, 'admin', SYSDATETIME()),
+  ('M0240-PI000NNB',     N'MODULE ASSY-RR UPR TRIM NO.1, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N059',   1, 'admin', SYSDATETIME()),
+  ('M0240-PI000XE8',     N'MODULE ASSY-RR UPR TRIM NO.1,RH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N060',   1, 'admin', SYSDATETIME()),
+  ('M0240-PI000YGU',     N'MODULE ASSY-RR UPR TRIM NO.1, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N061',   1, 'admin', SYSDATETIME()),
+  ('M0240-PI010NNB',     N'MODULE ASSY-RR UPR TRIM NO.2, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N062',   1, 'admin', SYSDATETIME()),
+  ('M0240-PI010VKE',     N'MODULE ASSY-RR UPR TRIM NO.2, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N063',   1, 'admin', SYSDATETIME()),
+  ('M0240-PI010YGU',     N'MODULE ASSY-RR UPR TRIM NO.2, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N064',   1, 'admin', SYSDATETIME()),
+  ('M0240-PI020NNB',     N'MODULE ASSY-RR UPR TRIM NO.3, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N065',   1, 'admin', SYSDATETIME()),
+  ('M0240-PI020VKE',     N'MODULE ASSY-RR UPR TRIM NO.3, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N066',   1, 'admin', SYSDATETIME()),
+  ('M0240-PI020YGU',     N'MODULE ASSY-RR UPR TRIM NO.3, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N067',   1, 'admin', SYSDATETIME()),
+  ('M0240-PI030MEE',     N'MODULE ASSY-RR UPR TRIM NO.4, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N177',   1, 'admin', SYSDATETIME()),
+  ('M0240-PI030NNB',     N'MODULE ASSY-RR UPR TRIM NO.4, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N178',   1, 'admin', SYSDATETIME()),
+  ('M0240-PI030YGU',     N'MODULE ASSY-RR UPR TRIM NO.4, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N179',   1, 'admin', SYSDATETIME()),
+  ('M0240-PI040NNB',     N'MODULE ASSY-RR UPR TRIM NO.5, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N180',   1, 'admin', SYSDATETIME()),
+  ('M0240-PI040VKE',     N'MODULE ASSY-RR UPR TRIM NO.5, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N181',   1, 'admin', SYSDATETIME()),
+  ('M0240-PI040YGU',     N'MODULE ASSY-RR UPR TRIM NO.5, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N182',   1, 'admin', SYSDATETIME()),
+  ('M0241-PI020NNB',     N'MODULE ASSY-RR UPR TRIM NO.3, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS16',   1, 'admin', SYSDATETIME()),
+  ('M0241-PI020YGU',     N'MODULE ASSY-RR UPR TRIM NO.3, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS02',   1, 'admin', SYSDATETIME()),
+  ('M0241-PI040NNB',     N'MODULE ASSY-RR UPR TRIM NO.5, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS24',  1, 'admin', SYSDATETIME()),
+  ('M0241-PI040VKE',     N'MODULE ASSY-RR UPR TRIM NO.5, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS25',  1, 'admin', SYSDATETIME()),
+  ('M0241-PI040YGU',     N'MODULE ASSY-RR UPR TRIM NO.5, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS26',  1, 'admin', SYSDATETIME()),
+  ('M0310-PI000NNB',     N'MODULE ASSY-FR LWR TRIM NO.1, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N068',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI000YGN',     N'MODULE ASSY-FR LWR TRIM NO.1, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N130',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI000YGU',     N'MODULE ASSY-FR LWR TRIM NO.1,LH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N069',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI010NNB',     N'MODULE ASSY-FR LWR TRIM NO.2, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N070',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI010YGN',     N'MODULE ASSY-FR LWR TRIM NO.2, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N131',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI010YGU',     N'MODULE ASSY-FR LWR TRIM NO.2,LH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N071',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI020NNB',     N'MODULE ASSY-FR LWR TRIM NO.3, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N072',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI020YGN',     N'MODULE ASSY-FR LWR TRIM NO.3, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N132',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI020YGU',     N'MODULE ASSY-FR LWR TRIM NO.3,LH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N073',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI030NNB',     N'MODULE ASSY-FR LWR TRIM NO.4, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N074',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI030VKE',     N'MODULE ASSY-FR LWR TRIM NO.4,LH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N075',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI030YGN',     N'MODULE ASSY-FR LWR TRIM NO.4, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N133',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI030YGU',     N'MODULE ASSY-FR LWR TRIM NO.4, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N076',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI040NNB',     N'MODULE ASSY-FR LWR TRIM NO.5, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N077',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI040VKE',     N'MODULE ASSY-FR LWR TRIM NO.5,LH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N078',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI040YGN',     N'MODULE ASSY-FR LWR TRIM NO.5, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N134',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI040YGU',     N'MODULE ASSY-FR LWR TRIM NO.5, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N079',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI050NNB',     N'MODULE ASSY-FR LWR TRIM NO.6, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N080',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI050VKE',     N'MODULE ASSY-FR LWR TRIM NO.6,LH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N081',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI050YGN',     N'MODULE ASSY-FR LWR TRIM NO.6, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N135',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI050YGU',     N'MODULE ASSY-FR LWR TRIM NO.6, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N082',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI060XE8',     N'MODULE ASSY-FR LWR TRIM NO.7, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N083',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI070XE8',     N'MODULE ASSY-FR LWR TRIM NO.8, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N084',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI080XE8',     N'MODULE ASSY-FR LWR TRIM NO.9, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N085',   1, 'admin', SYSDATETIME()),
+  ('M0310-PI090XE8',     N'MODULE ASSY-FR LWR TRIM NO.10, LH',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N086',   1, 'admin', SYSDATETIME()),
+  ('M0311-PI000NNB',     N'MODULE ASSY-FR LWR TRIM NO.1, LH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS07',   1, 'admin', SYSDATETIME()),
+  ('M0311-PI000YGN',     N'MODULE ASSY-FR LWR TRIM NO.1, LH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS08',   1, 'admin', SYSDATETIME()),
+  ('M0311-PI020NNB',     N'MODULE ASSY-FR LWR TRIM NO.3, LH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS09',   1, 'admin', SYSDATETIME()),
+  ('M0311-PI020YGN',     N'MODULE ASSY-FR LWR TRIM NO.3, LH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS27',  1, 'admin', SYSDATETIME()),
+  ('M0311-PI020YGU',     N'MODULE ASSY-FR LWR TRIM NO.3, LH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS10',   1, 'admin', SYSDATETIME()),
+  ('M0311-PI030XE8',     N'MODULE ASSY-FR LWR TRIM NO.4, LH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS28',  1, 'admin', SYSDATETIME()),
+  ('M0320-PI000NNB',     N'MODULE ASSY-FR LWR TRIM NO.1, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N087',   1, 'admin', SYSDATETIME()),
+  ('M0320-PI000YGN',     N'MODULE ASSY-FR LWR TRIM NO.1, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N136',   1, 'admin', SYSDATETIME()),
+  ('M0320-PI000YGU',     N'MODULE ASSY-FR LWR TRIM NO.1,RH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N088',   1, 'admin', SYSDATETIME()),
+  ('M0320-PI010NNB',     N'MODULE ASSY-FR LWR TRIM NO.2, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N089',   1, 'admin', SYSDATETIME()),
+  ('M0320-PI010YGN',     N'MODULE ASSY-FR LWR TRIM NO.2, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N137',   1, 'admin', SYSDATETIME()),
+  ('M0320-PI010YGU',     N'MODULE ASSY-FR LWR TRIM NO.2,RH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N090',   1, 'admin', SYSDATETIME()),
+  ('M0320-PI020NNB',     N'MODULE ASSY-FR LWR TRIM NO.3, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N091',   1, 'admin', SYSDATETIME()),
+  ('M0320-PI020VKE',     N'MODULE ASSY-FR LWR TRIM NO.3,RH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N092',   1, 'admin', SYSDATETIME()),
+  ('M0320-PI020YGN',     N'MODULE ASSY-FR LWR TRIM NO.3, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N138',   1, 'admin', SYSDATETIME()),
+  ('M0320-PI020YGU',     N'MODULE ASSY-FR LWR TRIM NO.3, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N093',   1, 'admin', SYSDATETIME()),
+  ('M0320-PI030XE8',     N'MODULE ASSY-FR LWR TRIM NO.4, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N094',   1, 'admin', SYSDATETIME()),
+  ('M0321-PI000NNB',     N'MODULE ASSY-FR LWR TRIM NO.1, RH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS29',  1, 'admin', SYSDATETIME()),
+  ('M0321-PI000YGN',     N'MODULE ASSY-FR LWR TRIM NO.1, RH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS11',   1, 'admin', SYSDATETIME()),
+  ('M0321-PI010NNB',     N'MODULE ASSY-FR LWR TRIM NO.2, RH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS12',   1, 'admin', SYSDATETIME()),
+  ('M0321-PI010YGN',     N'MODULE ASSY-FR LWR TRIM NO.2, RH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS30',  1, 'admin', SYSDATETIME()),
+  ('M0321-PI010YGU',     N'MODULE ASSY-FR LWR TRIM NO.2, RH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS31',  1, 'admin', SYSDATETIME()),
+  ('M0321-PI020XE8',     N'MODULE ASSY-FR LWR TRIM NO.3, RH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS32',  1, 'admin', SYSDATETIME()),
+  ('M0330-PI000NNB',     N'MODULE ASSY-RR LWR TRIM NO.1, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N095',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI000YGN',     N'MODULE ASSY-RR LWR TRIM NO.1, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N139',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI000YGU',     N'MODULE ASSY-RR LWR TRIM NO.1,LH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N096',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI010NNB',     N'MODULE ASSY-RR LWR TRIM NO.2, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N097',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI010YGN',     N'MODULE ASSY-RR LWR TRIM NO.2, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N140',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI010YGU',     N'MODULE ASSY-RR LWR TRIM NO.2,LH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N098',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI020NNB',     N'MODULE ASSY-RR LWR TRIM NO.3, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N099',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI020VKE',     N'MODULE ASSY-RR LWR TRIM NO.3,LH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N100',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI020YGN',     N'MODULE ASSY-RR LWR TRIM NO.3, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N141',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI020YGU',     N'MODULE ASSY-RR LWR TRIM NO.3, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N101',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI030NNB',     N'MODULE ASSY-RR LWR TRIM NO.4, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N102',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI030VKE',     N'MODULE ASSY-RR LWR TRIM NO.4,LH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N103',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI030YGN',     N'MODULE ASSY-RR LWR TRIM NO.4, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N142',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI030YGU',     N'MODULE ASSY-RR LWR TRIM NO.4, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N104',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI040XE8',     N'MODULE ASSY-RR LWR TRIM NO.5, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N105',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI050XE8',     N'MODULE ASSY-RR LWR TRIM NO.6, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N106',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI060XE8',     N'MODULE ASSY-RR LWR TRIM NO.7, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N107',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI070XE8',     N'MODULE ASSY-RR LWR TRIM NO.8, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N108',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI080NNB',     N'MODULE ASSY-RR LWR TRIM NO.9, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N183',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI080YGN',     N'MODULE ASSY-RR LWR TRIM NO.9, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N184',   1, 'admin', SYSDATETIME()),
+  ('M0330-PI080YGU',     N'MODULE ASSY-RR LWR TRIM NO.9, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N185',   1, 'admin', SYSDATETIME()),
+  ('M0331-PI000NNB',     N'MODULE ASSY-RR LWR TRIM NO.1, LH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS33',  1, 'admin', SYSDATETIME()),
+  ('M0331-PI000YGN',     N'MODULE ASSY-RR LWR TRIM NO.1, LH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS34',  1, 'admin', SYSDATETIME()),
+  ('M0331-PI010NNB',     N'MODULE ASSY-RR LWR TRIM NO.2, LH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS17',   1, 'admin', SYSDATETIME()),
+  ('M0331-PI020YGU',     N'MODULE ASSY-RR LWR TRIM NO.3, LH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS03',   1, 'admin', SYSDATETIME()),
+  ('M0331-PI050NNB',     N'MODULE ASSY-RR LWR TRIM NO.6, LH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS35',  1, 'admin', SYSDATETIME()),
+  ('M0331-PI050YGN',     N'MODULE ASSY-RR LWR TRIM NO.6, LH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS36',  1, 'admin', SYSDATETIME()),
+  ('M0331-PI050YGU',     N'MODULE ASSY-RR LWR TRIM NO.6, LH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS37',  1, 'admin', SYSDATETIME()),
+  ('M0340-PI000NNB',     N'MODULE ASSY-RR LWR TRIM NO.1, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N109',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI000YGN',     N'MODULE ASSY-RR LWR TRIM NO.1, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N143',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI000YGU',     N'MODULE ASSY-RR LWR TRIM NO.1,RH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N110',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI010NNB',     N'MODULE ASSY-RR LWR TRIM NO.2, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N111',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI010YGN',     N'MODULE ASSY-RR LWR TRIM NO.2, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N144',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI010YGU',     N'MODULE ASSY-RR LWR TRIM NO.2,RH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N112',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI020NNB',     N'MODULE ASSY-RR LWR TRIM NO.3, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N113',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI020VKE',     N'MODULE ASSY-RR LWR TRIM NO.3,RH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N114',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI020YGN',     N'MODULE ASSY-RR LWR TRIM NO.3, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N145',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI020YGU',     N'MODULE ASSY-RR LWR TRIM NO.3, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N115',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI030NNB',     N'MODULE ASSY-RR LWR TRIM NO.4, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N116',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI030VKE',     N'MODULE ASSY-RR LWR TRIM NO.4,RH',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N117',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI030YGN',     N'MODULE ASSY-RR LWR TRIM NO.4, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N146',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI030YGU',     N'MODULE ASSY-RR LWR TRIM NO.4, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N118',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI040XE8',     N'MODULE ASSY-RR LWR TRIM NO.5, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N119',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI050XE8',     N'MODULE ASSY-RR LWR TRIM NO.6, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N120',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI060XE8',     N'MODULE ASSY-RR LWR TRIM NO.7, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N121',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI070XE8',     N'MODULE ASSY-RR LWR TRIM NO.8, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N122',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI080NNB',     N'MODULE ASSY-RR LWR TRIM NO.9, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N186',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI080YGN',     N'MODULE ASSY-RR LWR TRIM NO.9, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N187',   1, 'admin', SYSDATETIME()),
+  ('M0340-PI080YGU',     N'MODULE ASSY-RR LWR TRIM NO.9, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N188',   1, 'admin', SYSDATETIME()),
+  ('M0341-PI000NNB',     N'MODULE ASSY-RR LWR TRIM NO.1, RH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS18',   1, 'admin', SYSDATETIME()),
+  ('M0341-PI000YGN',     N'MODULE ASSY-RR LWR TRIM NO.1, RH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS38',  1, 'admin', SYSDATETIME()),
+  ('M0341-PI010YGN',     N'MODULE ASSY-RR LWR TRIM NO.2, RH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS04',   1, 'admin', SYSDATETIME()),
+  ('M0341-PI020NNB',     N'MODULE ASSY-RR LWR TRIM NO.3, RH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS19',   1, 'admin', SYSDATETIME()),
+  ('M0341-PI020YGN',     N'MODULE ASSY-RR LWR TRIM NO.3, RH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS05',   1, 'admin', SYSDATETIME()),
+  ('M0341-PI030XE8',     N'MODULE ASSY-RR LWR TRIM NO.4, RH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS39',  1, 'admin', SYSDATETIME()),
+  ('M0341-PI040XE8',     N'MODULE ASSY-RR LWR TRIM NO.5, RH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'QASP',  'AS20',   1, 'admin', SYSDATETIME()),
+  ('M0341-PI050NNB',     N'MODULE ASSY-RR LWR TRIM NO.6, RH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS40',  1, 'admin', SYSDATETIME()),
+  ('M0341-PI050YGN',     N'MODULE ASSY-RR LWR TRIM NO.6, RH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS41',  1, 'admin', SYSDATETIME()),
+  ('M0341-PI050YGU',     N'MODULE ASSY-RR LWR TRIM NO.6, RH (AS)',     'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS42',  1, 'admin', SYSDATETIME()),
+  ('M2310-PI000MEE',     N'PNL ASSY-FR DR UPR TRIM,LH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N189',   1, 'admin', SYSDATETIME()),
+  ('M2310-PI000NNB',     N'PNL ASSY-FR DR UPR TRIM,LH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N190',   1, 'admin', SYSDATETIME()),
+  ('M2310-PI000YGU',     N'PNL ASSY-FR DR UPR TRIM,LH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N191',   1, 'admin', SYSDATETIME()),
+  ('M2310-PI010NNB',     N'PNL ASSY-FR DR UPR TRIM,LH(IMG)',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N192',   1, 'admin', SYSDATETIME()),
+  ('M2310-PI010VKE',     N'PNL ASSY-FR DR UPR TRIM,LH(IMG)',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N193',   1, 'admin', SYSDATETIME()),
+  ('M2310-PI010YGU',     N'PNL ASSY-FR DR UPR TRIM,LH(IMG)',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N194',   1, 'admin', SYSDATETIME()),
+  ('M2320-PI000MEE',     N'PNL ASSY-FR DR UPR TRIM,RH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N195',   1, 'admin', SYSDATETIME()),
+  ('M2320-PI000NNB',     N'PNL ASSY-FR DR UPR TRIM,RH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N196',   1, 'admin', SYSDATETIME()),
+  ('M2320-PI000YGU',     N'PNL ASSY-FR DR UPR TRIM,RH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N197',   1, 'admin', SYSDATETIME()),
+  ('M2320-PI010NNB',     N'PNL ASSY-FR DR UPR TRIM,RH(IMG)',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N198',   1, 'admin', SYSDATETIME()),
+  ('M2320-PI010VKE',     N'PNL ASSY-FR DR UPR TRIM,RH(IMG)',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N199',   1, 'admin', SYSDATETIME()),
+  ('M2320-PI010YGU',     N'PNL ASSY-FR DR UPR TRIM,RH(IMG)',           'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N200',   1, 'admin', SYSDATETIME()),
+  ('M3310-PI000MEE',     N'PNL ASSY-RR DR UPR TRIM,LH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N201',   1, 'admin', SYSDATETIME()),
+  ('M3310-PI000NNB',     N'PNL ASSY-RR DR UPR TRIM,LH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N202',   1, 'admin', SYSDATETIME()),
+  ('M3310-PI000YGU',     N'PNL ASSY-RR DR UPR TRIM,LH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N203',   1, 'admin', SYSDATETIME()),
+  ('M3310-PI020NNB',     N'PNL ASSY-RR DR UPR TRIM,LH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N204',   1, 'admin', SYSDATETIME()),
+  ('M3310-PI020VKE',     N'PNL ASSY-RR DR UPR TRIM,LH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N205',   1, 'admin', SYSDATETIME()),
+  ('M3310-PI020YGU',     N'PNL ASSY-RR DR UPR TRIM,LH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N206',   1, 'admin', SYSDATETIME()),
+  ('M3311-PI020NNB',     N'PNL ASSY-RR DR UPR TRIM,LH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS43',  1, 'admin', SYSDATETIME()),
+  ('M3311-PI020VKE',     N'PNL ASSY-RR DR UPR TRIM,LH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS44',  1, 'admin', SYSDATETIME()),
+  ('M3311-PI020YGU',     N'PNL ASSY-RR DR UPR TRIM,LH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS45',  1, 'admin', SYSDATETIME()),
+  ('M3320-PI000MEE',     N'PNL ASSY-RR DR UPR TRIM,RH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N207',   1, 'admin', SYSDATETIME()),
+  ('M3320-PI000NNB',     N'PNL ASSY-RR DR UPR TRIM,RH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N208',   1, 'admin', SYSDATETIME()),
+  ('M3320-PI000YGU',     N'PNL ASSY-RR DR UPR TRIM,RH(PAINT)',         'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N209',   1, 'admin', SYSDATETIME()),
+  ('M3320-PI020NNB',     N'PNL ASSY-RR DR UPR TRIM,RH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N210',   1, 'admin', SYSDATETIME()),
+  ('M3320-PI020VKE',     N'PNL ASSY-RR DR UPR TRIM,RH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N211',   1, 'admin', SYSDATETIME()),
+  ('M3320-PI020YGU',     N'PNL ASSY-RR DR UPR TRIM,RH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'QSUB',  'N212',   1, 'admin', SYSDATETIME()),
+  ('M3321-PI020NNB',     N'PNL ASSY-RR DR UPR TRIM,RH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS46',  1, 'admin', SYSDATETIME()),
+  ('M3321-PI020VKE',     N'PNL ASSY-RR DR UPR TRIM,RH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS47',  1, 'admin', SYSDATETIME()),
+  ('M3321-PI020YGU',     N'PNL ASSY-RR DR UPR TRIM,RH(IMG,CUR)',       'SUB',      NULL, 'NE1A', 'EA', 0, 'AQMT',  'OAS48',  1, 'admin', SYSDATETIME()),
+  ('M5836-PI100MEE',     N'MODULE-CTR PLR LWR-UPR PIECE, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'AQSU',  'BN234',  1, 'admin', SYSDATETIME()),
+  ('M5836-PI100NNB',     N'MODULE-CTR PLR LWR-UPR PIECE, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'AQSU',  'BN228',  1, 'admin', SYSDATETIME()),
+  ('M5836-PI100VKE',     N'MODULE-CTR PLR LWR-UPR PIECE, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'AQSU',  'BN229',  1, 'admin', SYSDATETIME()),
+  ('M5836-PI100YGU',     N'MODULE-CTR PLR LWR-UPR PIECE, LH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'AQSU',  'BN230',  1, 'admin', SYSDATETIME()),
+  ('M5846-PI100MEE',     N'MODULE-CTR PLR LWR-UPR PIECE, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'AQSU',  'BN235',  1, 'admin', SYSDATETIME()),
+  ('M5846-PI100NNB',     N'MODULE-CTR PLR LWR-UPR PIECE, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'AQSU',  'BN231',  1, 'admin', SYSDATETIME()),
+  ('M5846-PI100VKE',     N'MODULE-CTR PLR LWR-UPR PIECE, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'AQSU',  'BN232',  1, 'admin', SYSDATETIME()),
+  ('M5846-PI100YGU',     N'MODULE-CTR PLR LWR-UPR PIECE, RH',          'SUB',      NULL, 'NE1A', 'EA', 0, 'AQSU',  'BN233',  1, 'admin', SYSDATETIME()),
+  ('M85311-PI000MMN',    N'BOARD ASSY-HEADLINING (STD)',               'SUB',      NULL, 'NE1A', 'EA', 0, 'QXXX',  'X005',   1, 'admin', SYSDATETIME()),
+  ('M85311-PI000YGU',    N'BOARD ASSY-HEADLINING (STD)',               'SUB',      NULL, 'NE1A', 'EA', 0, 'QXXX',  'X006',   1, 'admin', SYSDATETIME()),
+  ('M85411-PI000YGU',    N'BOARD ASSY-HEADLINING(SRF)',                'SUB',      NULL, 'NE1A', 'EA', 0, 'QXXX',  'X027',   1, 'admin', SYSDATETIME());
 GO
 
 -- Equipment
@@ -3342,7 +4808,28 @@ INSERT INTO dbo.MD_Equipment (EquipID, EquipName, EquipType, LineID, MakerModel,
   ('OVEN-A1',     N'Cure Oven Zone A1',        'OVEN_UNIT',    'LINE-PNT-01', N'Eisenmann CT-180',     '2024-04-05', 0.0,  90.00, '192.168.10.42', 'IDLE', 1, 'admin', SYSDATETIME());
 GO
 
-PRINT '✓ Seed data inserted: 9 UOMs, 7 Customers, 5 Vendors, 5 Lines, 10 Items, 5 Equipment';
+PRINT '✓ Seed data inserted: 9 UOMs, 7 Customers, 5 Vendors, 5 Lines, 1188 Items, 5 Equipment';
+GO
+
+-- ════════════════════════════════════════════════════════════════════════
+-- 사출 자동수집 시드: 시뮬레이터 검증 금형코드 4종 (MEADTRCTNNB / NEAFUCNNB / LQ2DTMDCBK / LQ2DTRUCBK)
+--   색상코드 = 뒤 3자리, 금형코드 = 나머지 (원본 Main.cs 규칙)
+--   품번은 위 시드의 실존 MD_Item 사용
+-- ════════════════════════════════════════════════════════════════════════
+DELETE FROM dbo.MD_Mold WHERE MoldID IN ('LQ2-DTMD','LQ2-DTRU','MEA-DTRCT','NEA-FUC');
+GO
+INSERT INTO dbo.MD_Mold (MoldID, MoldName, RatedShots, CurrentShots, CavityCount, Tonnage, Status, CreatedBy, CreatedTS) VALUES
+  ('LQ2-DTMD',  N'LQ2 Door Trim MD (2-cav)',  500000, 0, 2, 650, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LQ2-DTRU',  N'LQ2 Door Trim RU (2-cav)',  500000, 0, 2, 650, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('MEA-DTRCT', N'MEA Door Trim CT (1-cav)',  300000, 0, 1, 650, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('NEA-FUC',   N'NEA FUC (1-cav)',           300000, 0, 1, 650, 'ACTIVE', 'admin', SYSDATETIME());
+GO
+-- 금형→품번 매핑 시드는 MD_MoldItem 생성 이후인 dist/migrate_mold_master.sql 에서 수행
+INSERT INTO dbo.MD_InjCondItem (LineID, ItemCode, ItemName, SetAddress, ActualAddress, DataType, CreatedBy) VALUES
+  ('LINE-INJ-01', 'TEMP',  N'배럴온도', 5400, 5404, 'FLOAT', 'admin'),
+  ('LINE-INJ-01', 'PRESS', N'사출압력', 5410, 5414, 'LONG',  'admin');
+GO
+PRINT '✓ Seed data inserted: 4 Molds, 2 InjCondItem (사출 자동수집)';
 GO
 
 -- ════════════════════════════════════════════════════════════════════════
@@ -3372,99 +4859,83 @@ CREATE TABLE dbo.SYS_Screen (
 );
 GO
 
--- ── Seed: PP · 생산계획 ──────────────────────────────────────────────
-INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES
-  ('PP-001', 'PP', N'수요 예측',        N'Forecast',          'pp/forecast',         'PP-001',  1, 1, 'admin'),
-  ('PP-002', 'PP', N'공급계획 가져오기',   N'Supply Plan Import', 'pp/supply-plan-import', 'PP-002',  2, 1, 'admin'),
-  ('PP-003', 'PP', N'계획 확정',        N'Plan Confirm',      'pp/plan-confirm',     'PP-003',  3, 1, 'admin'),
-  ('PP-004', 'PP', N'작업 지시',        N'Work Order',        'pp/work-order',       'PP-004',  4, 1, 'admin'),
-  ('PP-005', 'PP', N'MRP',              N'MRP',               'pp/mrp',              'PP-005',  5, 1, 'admin'),
-  ('PP-006', 'PP', N'구매 요청',        N'Purchase Req',      'pp/purchase-req',     'PP-006',  6, 1, 'admin'),
-  ('PP-007', 'PP', N'작업 지시 릴리스', N'WO Release',        'pp/wo-release',       'PP-007',  7, 1, 'admin'),
-  ('PP-CAL', 'PP', N'캘린더',           N'Calendar',          'pp/calendar',         'CAL',     8, 1, 'admin'),
-  ('PP-LSB', 'PP', N'라인 일정',        N'Line Schedule',     'pp/line-schedule',    'LSB',     9, 1, 'admin'),
-  ('PP-OEE', 'PP', N'라인 OEE',         N'Line OEE',          'pp/oee',              'OEE',    10, 1, 'admin'),
-  ('PP-DTL', 'PP', N'비가동 이력',      N'Downtime Log',      'pp/downtime',         'DTL',    11, 1, 'admin'),
-  ('PP-ODM', 'PP', N'비가동 모니터',    N'Downtime Monitor',  'pp/downtime-monitor', 'ODM',    12, 1, 'admin'),
-  ('PP-OTD', 'PP', N'납기 준수율',      N'On-Time Delivery',  'pp/delivery',         'OTD',    13, 1, 'admin');
+-- Seed: SYS_Screen (ModuleCode='WEB', ProcessCode/SubProcessCode) - regenerated 2026-07-24 from AMES_DEV
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-001', 'WEB', 'PP', NULL, N'수요 예측', N'Forecast', 'pp/forecast', 'PP-001', 1, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-002', 'WEB', 'PP', NULL, N'공급계획 가져오기', N'Supply Plan Import', 'pp/supply-plan-import', 'PP-002', 2, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-003', 'WEB', 'PP', NULL, N'계획 확정', N'Plan Confirm', 'pp/plan-confirm', 'PP-003', 3, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-004', 'WEB', 'PP', NULL, N'작업 지시', N'Work Order', 'pp/work-order', 'PP-004', 4, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-005', 'WEB', 'PP', NULL, N'MRP', N'MRP', 'pp/mrp', 'PP-005', 5, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-006', 'WEB', 'PP', NULL, N'구매 요청', N'Purchase Req', 'pp/purchase-req', 'PP-006', 6, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-007', 'WEB', 'PP', NULL, N'작업 지시 릴리스', N'WO Release', 'pp/wo-release', 'PP-007', 7, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-CAL', 'WEB', 'PP', NULL, N'캘린더', N'Calendar', 'pp/calendar', 'CAL', 8, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-LSB', 'WEB', 'PP', NULL, N'라인 일정', N'Line Schedule', 'pp/line-schedule', 'LSB', 9, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-OEE', 'WEB', 'PP', NULL, N'라인 OEE', N'Line OEE', 'pp/oee', 'OEE', 10, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-DTL', 'WEB', 'PP', NULL, N'비가동 이력', N'Downtime Log', 'pp/downtime', 'DTL', 11, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-ODM', 'WEB', 'PP', NULL, N'비가동 모니터', N'Downtime Monitor', 'pp/downtime-monitor', 'ODM', 12, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-OTD', 'WEB', 'PP', NULL, N'납기 준수율', N'On-Time Delivery', 'pp/delivery', 'OTD', 13, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MNT-001', 'WEB', 'MNT', NULL, N'설비 카드', N'Equipment Card', 'mnt/equipment-card', 'MNT-001', 1, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MNT-002', 'WEB', 'MNT', NULL, N'고장 등록', N'Failure Register', 'mnt/failure', 'MNT-002', 2, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MNT-003', 'WEB', 'MNT', NULL, N'OEE 분석', N'OEE Analysis', 'mnt/oee-analysis', 'MNT-003', 3, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MNT-004', 'WEB', 'MNT', NULL, N'금형 관리', N'Mold Management', 'mnt/mold', 'MNT-004', 4, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MNT-005', 'WEB', 'MNT', NULL, N'PM 일정', N'PM Schedule', 'mnt/pm-schedule', 'MNT-005', 5, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MNT-006', 'WEB', 'MNT', NULL, N'비가동 이력', N'Downtime Log', 'mnt/downtime', 'MNT-006', 6, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MNT-007', 'WEB', 'MNT', NULL, N'작업 지시', N'Work Order', 'mnt/work-order', 'MNT-007', 7, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MNT-008', 'WEB', 'MNT', NULL, N'예비 부품', N'Spare Parts', 'mnt/spare-parts', 'MNT-008', 8, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MNT-009', 'WEB', 'MNT', NULL, N'대시보드', N'Dashboard', 'mnt/dashboard', 'MNT-009', 9, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-001', 'WEB', 'RPT', NULL, N'일별 생산 실적', N'Daily Production', 'rpt/daily-production', 'RPT-001', 1, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-002', 'WEB', 'RPT', NULL, N'불량 파레토', N'Defect Pareto', 'rpt/defect-pareto', 'RPT-002', 2, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-003', 'WEB', 'RPT', NULL, N'일별 출하 현황', N'Daily Shipment', 'rpt/daily-shipment', 'RPT-003', 3, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-004', 'WEB', 'RPT', NULL, N'납기 준수율', N'On-Time Delivery', 'rpt/on-time', 'RPT-004', 4, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-005', 'WEB', 'RPT', NULL, N'재고 현황', N'Inventory Status', 'rpt/inventory', 'RPT-005', 5, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-006', 'WEB', 'RPT', NULL, N'설비 OEE', N'Equipment OEE', 'rpt/equipment-oee', 'RPT-006', 6, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-007', 'WEB', 'RPT', NULL, N'월간 KPI', N'Monthly KPI', 'rpt/monthly-kpi', 'RPT-007', 7, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-008', 'WEB', 'RPT', NULL, N'계획 준수율', N'Schedule Adherence', 'rpt/schedule-adherence', 'RPT-008', 8, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-009', 'WEB', 'RPT', NULL, N'리포트 센터', N'Report Center', 'rpt/report-center', 'RPT-009', 9, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-010', 'WEB', 'RPT', NULL, N'리포트 빌더', N'Report Builder', 'rpt/report-builder', 'RPT-010', 10, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-003', 'WEB', 'MD', 'FD', N'제품 기준정보 관리', N'Product Item Master', 'md/fd/items', 'MD-003', 1, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-004', 'WEB', 'MD', 'FD', N'BOM 관리', N'BOM Management', 'md/fd/bom', 'MD-004', 2, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-018', 'WEB', 'MD', 'FD', N'창고/로케이션 기준정보 관리', N'Warehouse Location Master', 'md/fd/location', 'MD-018', 3, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-019', 'WEB', 'MD', 'FD', N'단위 관리', N'UOM Master', 'md/fd/uom', 'MD-019', 4, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-001', 'WEB', 'MD', 'RP', N'공장/라인 기준정보 관리', N'Factory / Line Master', 'md/rp/line', 'MD-001', 5, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-006', 'WEB', 'MD', 'RP', N'Work Center 관리', N'Work Center Management', 'md/rp/work-center', 'MD-006', 6, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-002', 'WEB', 'MD', 'RP', N'공정 기준정보 관리', N'Station Master', 'md/rp/station', 'MD-002', 7, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-031', 'WEB', 'MD', 'RP', N'라우팅 기준정보 관리', N'Routing Master', 'md/rp/routing', 'MD-031', 8, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-005', 'WEB', 'MD', 'RP', N'BOP 관리', N'BOP Management', 'md/rp/bop', 'MD-005', 9, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-027', 'WEB', 'MD', 'RP', N'PM 템플릿 관리', N'PM Template Master', 'md/rp/pm-template', 'MD-027', 10, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-028', 'WEB', 'MD', 'RP', N'라인 시간 패턴 관리', N'Line Time Pattern Master', 'md/rp/line-time-pattern', 'MD-028', 11, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-007', 'WEB', 'MD', 'RE', N'금형 기준정보 관리', N'Mold Master', 'md/re/mold', 'MD-007', 12, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-009', 'WEB', 'MD', 'RE', N'공급업체 기준정보 관리', N'Vendor Master', 'md/re/vendor', 'MD-009', 13, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-014', 'WEB', 'MD', 'RE', N'설비 기준정보 관리', N'Equipment Master', 'md/re/equipment', 'MD-014', 14, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-015', 'WEB', 'MD', 'RE', N'건조로 기준정보 관리', N'Oven Master', 'md/re/oven', 'MD-015', 15, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-016', 'WEB', 'MD', 'RE', N'지그 기준정보 관리', N'Jig Master', 'md/re/jig', 'MD-016', 16, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-025', 'WEB', 'MD', 'RE', N'사유 코드 관리', N'Reason Code Master', 'md/re/reason-code', 'MD-025', 17, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-026', 'WEB', 'MD', 'RE', N'예비품 마스터', N'Spare Part Master', 'md/re/spare-part', 'MD-026', 18, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-008', 'WEB', 'MD', 'RM', N'원부자재 기준정보 관리', N'Paint & Fabric Master', 'md/rm/paint-fabric', 'MD-008', 19, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-020', 'WEB', 'MD', 'RM', N'RFID 태그 관리', N'RFID Tag Master', 'md/rm/rfid-tag', 'MD-020', 20, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-021', 'WEB', 'MD', 'RM', N'RAL 색상 관리', N'RAL Color Master', 'md/rm/ral-color', 'MD-021', 21, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-022', 'WEB', 'MD', 'RM', N'RFID 리더 관리', N'RFID Reader Master', 'md/rm/rfid-reader', 'MD-022', 22, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-010', 'WEB', 'MD', 'QL', N'고객사 기준정보 관리', N'Customer Master', 'md/ql/customer', 'MD-010', 23, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-011', 'WEB', 'MD', 'QL', N'출하처 기준정보 관리', N'Shipment Destination Master', 'md/ql/shipment-dest', 'MD-011', 24, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-012', 'WEB', 'MD', 'QL', N'불량유형 기준정보 관리', N'Defect Code Master', 'md/ql/defect-code', 'MD-012', 25, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-013', 'WEB', 'MD', 'QL', N'불량원인 기준정보 관리', N'Defect Cause Master', 'md/ql/defect-cause', 'MD-013', 26, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-017', 'WEB', 'MD', 'QL', N'검사기준 기준정보 관리', N'Inspection Standard Master', 'md/ql/inspection-standard', 'MD-017', 27, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-023', 'WEB', 'MD', 'QL', N'포장 사양 관리', N'Packaging Spec Master', 'md/ql/packaging-spec', 'MD-023', 28, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-024', 'WEB', 'MD', 'QL', N'라벨 템플릿 관리', N'Label Template Master', 'md/ql/label-template', 'MD-024', 29, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-029', 'WEB', 'MD', 'QL', N'레시피 관리', N'Recipe Master', 'md/ql/recipe', 'MD-029', 30, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-030', 'WEB', 'MD', 'QL', N'코드 기준정보 관리', N'Common Code Master', 'md/ql/common-code', 'MD-030', 31, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-001', 'WEB', 'SYS', NULL, N'사용자 관리', N'User Management', 'sys/users', 'SYS-001', 1, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-002', 'WEB', 'SYS', NULL, N'역할 관리', N'Role Management', 'sys/roles', 'SYS-002', 2, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-003', 'WEB', 'SYS', NULL, N'화면 관리', N'Screen Management', 'sys/screens', 'SYS-003', 3, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-004', 'WEB', 'SYS', NULL, N'역할/권한 관리 (RBAC)', N'Role & Permission (RBAC)', 'sys/rbac', 'SYS-004', 4, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-005', 'WEB', 'SYS', NULL, N'공장 캘린더', N'Factory Calendar', 'sys/calendar', 'SYS-005', 5, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-006', 'WEB', 'SYS', NULL, N'인터페이스 모니터', N'Interface Monitor', 'sys/interfaces', 'SYS-006', 6, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-007', 'WEB', 'SYS', NULL, N'감사 로그', N'Audit Log', 'sys/audit', 'SYS-007', 7, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-008', 'WEB', 'SYS', NULL, N'알림 관리', N'Notification Management', 'sys/notifications', 'SYS-008', 8, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-009', 'WEB', 'SYS', NULL, N'시스템 설정', N'System Configuration', 'sys/config', 'SYS-009', 9, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-010', 'WEB', 'SYS', NULL, N'시스템 상태', N'System Health', 'sys/health', 'SYS-010', 10, 1, 'admin');
 GO
 
--- ── Seed: MNT · 설비보전 ────────────────────────────────────────────
-INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES
-  ('MNT-001', 'MNT', N'설비 카드',   N'Equipment Card',   'mnt/equipment-card', 'MNT-001', 1, 1, 'admin'),
-  ('MNT-002', 'MNT', N'고장 등록',   N'Failure Register', 'mnt/failure',        'MNT-002', 2, 1, 'admin'),
-  ('MNT-003', 'MNT', N'OEE 분석',    N'OEE Analysis',     'mnt/oee-analysis',   'MNT-003', 3, 1, 'admin'),
-  ('MNT-004', 'MNT', N'금형 관리',   N'Mold Management',  'mnt/mold',           'MNT-004', 4, 1, 'admin'),
-  ('MNT-005', 'MNT', N'PM 일정',     N'PM Schedule',      'mnt/pm-schedule',    'MNT-005', 5, 1, 'admin'),
-  ('MNT-006', 'MNT', N'비가동 이력', N'Downtime Log',     'mnt/downtime',       'MNT-006', 6, 1, 'admin'),
-  ('MNT-007', 'MNT', N'작업 지시',   N'Work Order',       'mnt/work-order',     'MNT-007', 7, 1, 'admin'),
-  ('MNT-008', 'MNT', N'예비 부품',   N'Spare Parts',      'mnt/spare-parts',    'MNT-008', 8, 1, 'admin'),
-  ('MNT-009', 'MNT', N'대시보드',    N'Dashboard',        'mnt/dashboard',      'MNT-009', 9, 1, 'admin');
-GO
-
--- ── Seed: RPT · 보고서 ──────────────────────────────────────────────
-INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES
-  ('RPT-001', 'RPT', N'일별 생산 실적', N'Daily Production',   'rpt/daily-production',   'RPT-001',  1, 1, 'admin'),
-  ('RPT-002', 'RPT', N'불량 파레토',   N'Defect Pareto',      'rpt/defect-pareto',      'RPT-002',  2, 1, 'admin'),
-  ('RPT-003', 'RPT', N'일별 출하 현황',N'Daily Shipment',     'rpt/daily-shipment',     'RPT-003',  3, 1, 'admin'),
-  ('RPT-004', 'RPT', N'납기 준수율',   N'On-Time Delivery',   'rpt/on-time',            'RPT-004',  4, 1, 'admin'),
-  ('RPT-005', 'RPT', N'재고 현황',     N'Inventory Status',   'rpt/inventory',          'RPT-005',  5, 1, 'admin'),
-  ('RPT-006', 'RPT', N'설비 OEE',      N'Equipment OEE',      'rpt/equipment-oee',      'RPT-006',  6, 1, 'admin'),
-  ('RPT-007', 'RPT', N'월간 KPI',      N'Monthly KPI',        'rpt/monthly-kpi',        'RPT-007',  7, 1, 'admin'),
-  ('RPT-008', 'RPT', N'계획 준수율',   N'Schedule Adherence', 'rpt/schedule-adherence', 'RPT-008',  8, 1, 'admin'),
-  ('RPT-009', 'RPT', N'리포트 센터',   N'Report Center',      'rpt/report-center',      'RPT-009',  9, 1, 'admin'),
-  ('RPT-010', 'RPT', N'리포트 빌더',   N'Report Builder',     'rpt/report-builder',     'RPT-010', 10, 1, 'admin');
-GO
-
--- ── Seed: MD · 마스터데이터 ─────────────────────────────────────────
-INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES
-  ('MD-001', 'MD', N'공장/라인 기준정보 관리',     N'Factory / Line Master',          'md/line',                'MD-001',  1, 1, 'admin'),
-  ('MD-002', 'MD', N'공정 기준정보 관리',          N'Process / Station Master',       'md/station',             'MD-002',  2, 1, 'admin'),
-  ('MD-003', 'MD', N'제품 기준정보 관리',          N'Product Item Master',            'md/items',               'MD-003',  3, 1, 'admin'),
-  ('MD-004', 'MD', N'BOM 관리',                    N'BOM Management',                 'md/bom',                 'MD-004',  4, 1, 'admin'),
-  ('MD-005', 'MD', N'BOP 관리',                    N'BOP Management',                 'md/bop',                 'MD-005',  5, 1, 'admin'),
-  ('MD-006', 'MD', N'Work Center 관리',            N'Work Center Management',         'md/work-center',         'MD-006',  6, 1, 'admin'),
-  ('MD-007', 'MD', N'금형 기준정보 관리',          N'Mold Master',                    'md/mold',                'MD-007',  7, 1, 'admin'),
-  ('MD-008', 'MD', N'원부자재 기준정보 관리',      N'Paint & Fabric Master',          'md/rm/paint-fabric',     'MD-008',  8, 1, 'admin'),
-  ('MD-009', 'MD', N'공급업체 기준정보 관리',      N'Vendor Master',                  'md/vendor',              'MD-009',  9, 1, 'admin'),
-  ('MD-010', 'MD', N'고객사 기준정보 관리',        N'Customer Master',                'md/customer',            'MD-010', 10, 1, 'admin'),
-  ('MD-011', 'MD', N'출하처 기준정보 관리',        N'Shipment Destination Master',    'md/shipment-dest',       'MD-011', 11, 1, 'admin'),
-  ('MD-012', 'MD', N'불량유형 기준정보 관리',      N'Defect Code Master',             'md/defect-code',         'MD-012', 12, 1, 'admin'),
-  ('MD-013', 'MD', N'불량원인 기준정보 관리',      N'Defect Cause Master',            'md/defect-cause',        'MD-013', 13, 1, 'admin'),
-  ('MD-014', 'MD', N'설비 기준정보 관리',          N'Equipment Master',               'md/equipment',           'MD-014', 14, 1, 'admin'),
-  ('MD-015', 'MD', N'건조로 기준정보 관리',        N'Oven Master',                    'md/oven',                'MD-015', 15, 1, 'admin'),
-  ('MD-016', 'MD', N'지그 기준정보 관리',          N'Jig Master',                     'md/jig',                 'MD-016', 16, 1, 'admin'),
-  ('MD-017', 'MD', N'검사기준 기준정보 관리',      N'Inspection Standard Master',     'md/inspection-standard', 'MD-017', 17, 1, 'admin'),
-  ('MD-018', 'MD', N'창고/로케이션 기준정보 관리', N'Warehouse Location Master',      'md/location',            'MD-018', 18, 1, 'admin'),
-  ('MD-019', 'MD', N'단위 관리',                   N'UOM Master',                     'md/uom',                 'MD-019', 19, 1, 'admin'),
-  ('MD-020', 'MD', N'RFID 태그 관리',              N'RFID Tag Master',                'md/rm/rfid-tag',         'MD-020', 20, 1, 'admin'),
-  ('MD-021', 'MD', N'RAL 색상 관리',               N'RAL Color Master',               'md/rm/ral-color',        'MD-021', 21, 1, 'admin'),
-  ('MD-022', 'MD', N'RFID 리더 관리',              N'RFID Reader Master',             'md/rm/rfid-reader',      'MD-022', 22, 1, 'admin'),
-  ('MD-023', 'MD', N'포장 사양 관리',              N'Packaging Spec Master',          'md/packaging-spec',      'MD-023', 23, 1, 'admin'),
-  ('MD-024', 'MD', N'라벨 템플릿 관리',            N'Label Template Master',          'md/label-template',      'MD-024', 24, 1, 'admin'),
-  ('MD-025', 'MD', N'사유 코드 관리',              N'Reason Code Master',             'md/reason-code',         'MD-025', 25, 1, 'admin'),
-  ('MD-026', 'MD', N'예비품 마스터',               N'Spare Part Master',              'md/spare-part',          'MD-026', 26, 1, 'admin'),
-  ('MD-027', 'MD', N'PM 템플릿 관리',              N'PM Template Master',             'md/pm-template',         'MD-027', 27, 1, 'admin'),
-  ('MD-028', 'MD', N'라인 시간 패턴 관리',         N'Line Time Pattern Master',       'md/line-time-pattern',   'MD-028', 28, 1, 'admin'),
-  ('MD-029', 'MD', N'레시피 관리',                 N'Recipe Master',                  'md/recipe',              'MD-029', 29, 1, 'admin'),
-  ('MD-030', 'MD', N'코드 기준정보 관리',          N'Common Code Master',             'md/common-code',         'MD-030', 30, 1, 'admin');
-GO
-
--- ── Seed: SYS · 시스템 (SYS-003=화면관리, SYS-004=RBAC) ─────────────
-INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES
-  ('SYS-001', 'SYS', N'사용자 관리',           N'User Management',          'sys/users',         'SYS-001',  1, 1, 'admin'),
-  ('SYS-002', 'SYS', N'역할 관리',             N'Role Management',          'sys/roles',         'SYS-002',  2, 1, 'admin'),
-  ('SYS-003', 'SYS', N'화면 관리',             N'Screen Management',        'sys/screens',       'SYS-003',  3, 1, 'admin'),
-  ('SYS-004', 'SYS', N'역할/권한 관리 (RBAC)', N'Role & Permission (RBAC)', 'sys/rbac',          'SYS-004',  4, 1, 'admin'),
-  ('SYS-005', 'SYS', N'공장 캘린더',           N'Factory Calendar',         'sys/calendar',      'SYS-005',  5, 1, 'admin'),
-  ('SYS-006', 'SYS', N'인터페이스 모니터',     N'Interface Monitor',        'sys/interfaces',    'SYS-006',  6, 1, 'admin'),
-  ('SYS-007', 'SYS', N'감사 로그',             N'Audit Log',                'sys/audit',         'SYS-007',  7, 1, 'admin'),
-  ('SYS-008', 'SYS', N'알림 관리',             N'Notification Management',  'sys/notifications', 'SYS-008',  8, 1, 'admin'),
-  ('SYS-009', 'SYS', N'시스템 설정',           N'System Configuration',     'sys/config',        'SYS-009',  9, 1, 'admin'),
-  ('SYS-010', 'SYS', N'시스템 상태',           N'System Health',            'sys/health',        'SYS-010', 10, 1, 'admin');
-GO
-
-PRINT '✓ SYS_Screen: 72 rows (PP:13 + MNT:9 + RPT:10 + MD:30 + SYS:10)';
+PRINT 'SYS_Screen: 73 rows (PP:13 + MNT:9 + RPT:10 + MD:31 + SYS:10)';
 GO
 
 -- ════════════════════════════════════════════════════════════════════════

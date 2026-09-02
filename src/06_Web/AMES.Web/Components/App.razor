@@ -1,10 +1,11 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="@_theme">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
+    <script>try{if((localStorage.getItem('ames.theme')||'dark')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
     <link rel="stylesheet" href="_content/Radzen.Blazor/css/humanistic-dark-base.css" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["AMES.Web.styles.css"]" />
@@ -16,10 +17,21 @@
 <body>
     <Routes />
     <script src='js/gantt-drag.js'></script>
+    <script src='js/line-pattern-drag.js?v=20260721b'></script>
     <script src='js/file-download.js'></script>
     <script src='js/frozen-columns.js'></script>
+    <script src='js/nav-progress.js'></script>
+    <script src='js/theme.js'></script>
     <script src="_framework/blazor.web.js"></script>
     <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
 </body>
 
 </html>
+
+@code {
+    // 서버 렌더 시 쿠키 기반으로 data-theme 를 심어, 향상된 네비게이션에도 테마가 유지되도록 함.
+    [CascadingParameter] public HttpContext? HttpContext { get; set; }
+    string? _theme;
+    protected override void OnInitialized()
+        => _theme = HttpContext?.Request.Cookies["ames.theme"] == "light" ? "light" : null;
+}

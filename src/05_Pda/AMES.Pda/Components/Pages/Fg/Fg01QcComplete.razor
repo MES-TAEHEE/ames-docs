@@ -1,0 +1,89 @@
+@page "/fg/01"
+@inject PdaApi Api
+@inject NavigationManager Nav
+
+<div class="pda-shell wh wh01-shell fg-waiting-shell">
+    <div class="pda-tbar">
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
+        <div class="wh01-tbar-title">
+            <span class="pda-tbar-brand">QC WAITING</span>
+        </div>
+        <RadzenButton class="wh01-tbar-refresh" Click="Load" Disabled="@_isLoading" Text="REFRESH" />
+    </div>
+
+    <div class="pda-bd wh01-body">
+        <section class="wh01-head">
+            <div class="pda-card-h">QC WAITING</div>
+            <div class="wh01-summary">
+                <RadzenCard class="wh01-stat"><span>Total</span><strong>@_rows.Count</strong></RadzenCard>
+                <RadzenCard class="wh01-stat waiting-age waiting-age-1"><span>Over 1 Day</span><strong>@OverDaysCount(1)</strong></RadzenCard>
+                <RadzenCard class="wh01-stat waiting-age waiting-age-5"><span>Over 5 Days</span><strong>@OverDaysCount(5)</strong></RadzenCard>
+                <RadzenCard class="wh01-stat waiting-age waiting-age-10"><span>Over 10 Days</span><strong>@OverDaysCount(10)</strong></RadzenCard>
+            </div>
+        </section>
+
+        @if (_rows.Count == 0)
+        {
+            <div class="pda-empty">@_message</div>
+        }
+        else
+        {
+            <div class="wh01-list">
+                @foreach (var row in _rows)
+                {
+                    <RadzenCard class="wh01-release-card" @key="row.LotId">
+                        <div class="wh01-card-top wh01-card-top-compact">
+                            <div class="wh01-po-no">@row.LotNo</div>
+                            <RadzenBadge class="@($"wh01-status waiting-age {AgeClass(row)}")" Text="@AgeText(row)" title="Since QC Pass" />
+                        </div>
+                        <div class="wh01-release-facts">
+                            <div><span>Part No</span><strong>@row.ItemNo</strong></div>
+                            <div><span>Qty</span><strong>@row.Qty.ToString("#,0.###") @(row.Unit ?? "EA")</strong></div>
+                        </div>
+                        <div class="wh01-desc">@(row.ItemName ?? "-")</div>
+                    </RadzenCard>
+                }
+            </div>
+        }
+    </div>
+
+</div>
+
+@code {
+    private List<PdaApi.FgQcCompletedRow> _rows = new();
+    private bool _isLoading;
+    private string _message = "Loading...";
+    private DateTime _asOf = DateTime.Now;
+    private bool IsOverDays(PdaApi.FgQcCompletedRow row, int days) => row.QcPassTs < _asOf.AddDays(-days);
+    private int OverDaysCount(int days) => _rows.Count(row => IsOverDays(row, days));
+    private string AgeClass(PdaApi.FgQcCompletedRow row) =>
+        IsOverDays(row, 10) ? "waiting-age-10" :
+        IsOverDays(row, 5) ? "waiting-age-5" :
+        IsOverDays(row, 1) ? "waiting-age-1" : "";
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        if (_isLoading) return;
+        _isLoading = true;
+        try
+        {
+            _rows = (await Api.FgQcCompletedAsync())
+                .OrderBy(x => x.QcPassTs ?? DateTime.MaxValue)
+                .ThenBy(x => x.ProducedAt ?? DateTime.MaxValue)
+                .ThenBy(x => x.LotId)
+                .ToList();
+            _asOf = DateTime.Now;
+            _message = _rows.Count == 0 ? "No finished goods are waiting for put-away." : "";
+        }
+        finally { _isLoading = false; }
+    }
+
+    private string AgeText(PdaApi.FgQcCompletedRow row)
+    {
+        if (row.QcPassTs is null) return "-";
+        var days = Math.Max(0, (int)(_asOf - row.QcPassTs.Value).TotalDays);
+        return days == 0 ? "Under 1 day" : $"Over {days} {(days == 1 ? "day" : "days")}";
+    }
+}

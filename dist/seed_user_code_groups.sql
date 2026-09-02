@@ -55,9 +55,9 @@ SELECT
     'system',
     SYSDATETIME()
 FROM (
-    SELECT DISTINCT LTRIM(RTRIM(Plant)) AS Plant
+    SELECT DISTINCT LTRIM(RTRIM(PlantCode)) AS Plant
     FROM   dbo.SYS_UserProfile
-    WHERE  Plant IS NOT NULL AND LTRIM(RTRIM(Plant)) <> ''
+    WHERE  PlantCode IS NOT NULL AND LTRIM(RTRIM(PlantCode)) <> ''
 ) p
 WHERE NOT EXISTS (
     SELECT 1 FROM dbo.MD_CodeItem ci

@@ -10,15 +10,15 @@ public sealed class ItemDto
 {
     public required string ItemNo { get; init; }
     public required string ItemName { get; init; }
-    public string? ItemNameEN { get; init; }
     public ItemType ItemType { get; init; }
     public string? ItemCategory { get; init; }
+    public string? CarType { get; init; }
     public string? DefaultUOM { get; init; }
     public string? RoutingType { get; init; }    // 'A' / 'B' / null
     public decimal? MinStock { get; init; }
     public decimal? SafetyStock { get; init; }
     public decimal? UnitCost { get; init; }
-    public string? CustItemNoSAV { get; init; }
-    public string? CustItemNoGEO { get; init; }
+    public string? PGN { get; init; }
+    public string? ALC { get; init; }
     public bool ActiveFlag { get; init; } = true;
 }

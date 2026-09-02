@@ -1,16 +1,27 @@
 ﻿@page "/sys/health"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@implements IDisposable
-@inject AMES.Data.Repositories.SysRepository Sys
-@inject ServerMonitorService Srv
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
+@using Radzen
+
+@attribute [Authorize]
+
+@inject ServerMonitorService SrvMntSvc
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject SysRepository Sys
+@inject IJSRuntime JS
+@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>SYS-010 @L["SYS.Health.Title"] · AMES</PageTitle>
+@implements IDisposable
 
+<PageTitle>SYS-010 @L["SYS.Health.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-010" TitleKey="SYS.Health.Title" />
 
-@* ── 실시간 서버 정보 (KPI) ─────────────────────────────────────── *@
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi @SvcClass()">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.ServicesUp"]</div>
@@ -79,12 +90,10 @@
                 (L["SYS.Health.Res.Net"].Value,  _srv.NetPct,  $"{_srv.NetMbps:F1} Mbps · {_srv.NetPct}%")
             })
             {
-                var barClr = pct >= 90 ? "rgba(239,68,68,.75)" : pct >= 75 ? "rgba(234,179,8,.75)" : "rgba(34,197,94,.75)";
+                var barStyle = pct >= 90 ? ProgressBarStyle.Danger : pct >= 75 ? ProgressBarStyle.Warning : ProgressBarStyle.Success;
                 <div class="pp-oee-bar-row">
                     <span class="pp-oee-bar-lbl">@lbl</span>
-                    <div class="pp-oee-bar-track">
-                        <div class="pp-oee-bar-fill" style="width:@(Math.Clamp(pct, 0, 100))%;background:@barClr;"></div>
-                    </div>
+                    <RadzenProgressBar Value="@Math.Clamp(pct, 0, 100)" Max="100" ShowValue="false" ProgressBarStyle="@barStyle" Style="flex:1;" />
                     <span class="pp-oee-bar-val" style="width:auto;white-space:nowrap;text-align:left;">@val</span>
                 </div>
             }
@@ -95,36 +104,25 @@
 
 <div class="ames-card">
     <div class="ames-card-h">▼ @L["SYS.Health.Events.Title"]</div>
-    @if (_events.Count == 0)
-    {
-        <div class="ames-empty">@L["SYS.Health.Events.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["SYS.Health.Events.Col.Time"]</th>
-                    <th>@L["SYS.Health.Events.Col.Level"]</th>
-                    <th>@L["SYS.Health.Events.Col.Component"]</th>
-                    <th>@L["SYS.Health.Events.Col.Message"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var e in _events)
-                {
-                    <tr>
-                        <td class="dim code">@(e.EventTs?.ToString("HH:mm:ss") ?? "—")</td>
-                        <td><span class="pill @(e.Result == "OK" ? "ok" : "warn")">@(e.Result == "OK" ? L["SYS.Health.Status.Ok"].Value : L["SYS.Health.Status.Warn"].Value)</span></td>
-                        <td class="dim">@(e.ModuleCode ?? e.ScreenCode ?? "—")</td>
-                        <td>@EventMessage(e)</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    }
+    <RadzenDataGrid TItem="SysRepository.AuditRow" Data="@_events" AllowPaging="false" AllowSorting="true" EmptyText="@L["SYS.Health.Events.Empty"]" Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="EventTs" Title="@L["SYS.Health.Events.Col.Time"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="e"><span class="dim code">@(e.EventTs?.ToString("HH:mm:ss") ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="Result" Title="@L["SYS.Health.Events.Col.Level"]" TextAlign="TextAlign.Center" Width="90px">
+                <Template Context="e"><span class="pill @(e.Result == "OK" ? "ok" : "warn")">@(e.Result == "OK" ? L["SYS.Health.Status.Ok"].Value : L["SYS.Health.Status.Warn"].Value)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Title="@L["SYS.Health.Events.Col.Component"]" TextAlign="TextAlign.Center" Width="150px" Sortable="false">
+                <Template Context="e"><span class="dim">@(e.ModuleCode ?? e.ScreenCode ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Title="@L["SYS.Health.Events.Col.Message"]" Sortable="false">
+                <Template Context="e">@EventMessage(e)</Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.Users"]</div>
@@ -156,6 +154,7 @@
     </div>
 </div>
 
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.Audit"]</div>
@@ -203,75 +202,67 @@
 </div>
 
 <div class="ames-tiles">
-    <a class="ames-tile sys" href="/sys/users">
-        <div class="ames-tile-ic">👤</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Users"]</div>
-        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.UsersSub"].Value, _k.Users)</div>
-    </a>
-    <a class="ames-tile sys" href="/sys/roles">
-        <div class="ames-tile-ic">🎭</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Roles"]</div>
-        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.RolesSub"].Value, _k.Roles)</div>
-    </a>
-    <a class="ames-tile sys" href="/sys/screens">
-        <div class="ames-tile-ic">🖥️</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Screen"]</div>
-        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.ScreenSub"].Value, _k.Screens)</div>
-    </a>
-    <a class="ames-tile sys" href="/sys/rbac">
-        <div class="ames-tile-ic">🛡️</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Rbac"]</div>
-        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.RbacSub"].Value, _k.Permissions)</div>
-    </a>
-    <a class="ames-tile sys" href="/sys/calendar">
-        <div class="ames-tile-ic">📅</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Calendar"]</div>
-        <div class="ames-tile-sub">@L["SYS.Health.Tile.CalendarSub"]</div>
-    </a>
-    <a class="ames-tile sys" href="/sys/interfaces">
-        <div class="ames-tile-ic">🔌</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Interfaces"]</div>
-        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.InterfacesSub"].Value, _k.InterfacesOk, _k.InterfacesDown)</div>
-    </a>
-    <a class="ames-tile sys" href="/sys/audit">
-        <div class="ames-tile-ic">📜</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Audit"]</div>
-        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.AuditSub"].Value, _k.AuditLast24h)</div>
-    </a>
-    <a class="ames-tile sys" href="/sys/notifications">
-        <div class="ames-tile-ic">🔔</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Notif"]</div>
-        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.NotifSub"].Value, _k.NotifLast24h, _k.NotifFailedLast24h)</div>
-    </a>
-    <a class="ames-tile sys" href="/sys/config">
-        <div class="ames-tile-ic">⚙</div>
-        <div class="ames-tile-h">@L["SYS.Health.Tile.Config"]</div>
-        <div class="ames-tile-sub">@string.Format(L["SYS.Health.Tile.ConfigSub"].Value, _k.ConfigKeys)</div>
-    </a>
+    @Tile("sys/users",         "👤", L["SYS.Health.Tile.Users"].Value,      string.Format(L["SYS.Health.Tile.UsersSub"].Value, _k.Users))
+    @Tile("sys/roles",         "🎭", L["SYS.Health.Tile.Roles"].Value,      string.Format(L["SYS.Health.Tile.RolesSub"].Value, _k.Roles))
+    @Tile("sys/screens",       "🖥️", L["SYS.Health.Tile.Screen"].Value,     string.Format(L["SYS.Health.Tile.ScreenSub"].Value, _k.Screens))
+    @Tile("sys/rbac",          "🛡️", L["SYS.Health.Tile.Rbac"].Value,       string.Format(L["SYS.Health.Tile.RbacSub"].Value, _k.Permissions))
+    @Tile("sys/calendar",      "📅", L["SYS.Health.Tile.Calendar"].Value,   L["SYS.Health.Tile.CalendarSub"].Value)
+    @Tile("sys/interfaces",    "🔌", L["SYS.Health.Tile.Interfaces"].Value, string.Format(L["SYS.Health.Tile.InterfacesSub"].Value, _k.InterfacesOk, _k.InterfacesDown))
+    @Tile("sys/audit",         "📜", L["SYS.Health.Tile.Audit"].Value,      string.Format(L["SYS.Health.Tile.AuditSub"].Value, _k.AuditLast24h))
+    @Tile("sys/notifications", "🔔", L["SYS.Health.Tile.Notif"].Value,      string.Format(L["SYS.Health.Tile.NotifSub"].Value, _k.NotifLast24h, _k.NotifFailedLast24h))
+    @Tile("sys/config",        "⚙", L["SYS.Health.Tile.Config"].Value,      string.Format(L["SYS.Health.Tile.ConfigSub"].Value, _k.ConfigKeys))
 </div>
 
 @code {
-    AMES.Data.Repositories.SysRepository.HealthKpi _k =
-        new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0L);
-    List<AMES.Data.Repositories.SysRepository.AuditRow> _events = new();
+    SysRepository.HealthKpi _k = new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0L);
+    List<SysRepository.AuditRow> _events = new();
     ServerMonitorService.ServerSnapshot? _srv;
     PeriodicTimer? _timer;
     CancellationTokenSource? _cts;
+    bool _disposed;   // Dispose 이후 await 재개 시 disposed 객체 접근 방지
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        try { await PermSvc.EnsureAsync(AuthPrvd); } catch { }
         try { _k = Sys.GetHealth(); } catch { }
         try { _events = Sys.ListAudit(8); } catch { }
     }
+
+    // NavMenu 와 동일하게 권한(PermissionService.IsVisible)에 따라 타일 활성/비활성
+    RenderFragment Tile(string href, string icon, string title, string sub) => __builder =>
+    {
+        if (PermSvc.IsVisible(href))     {
+            <a class="ames-tile sys" href="@("/" + href)">
+                <div class="ames-tile-top">
+                    <div class="ames-tile-ic">@icon</div>
+                    <div class="ames-tile-sub">@sub</div>
+                </div>
+                <div class="ames-tile-h">@title</div>
+            </a>
+        }
+        else
+        {
+            <div class="ames-tile sys" style="opacity:.4;pointer-events:none;filter:grayscale(1);" aria-disabled="true">
+                <div class="ames-tile-top">
+                    <div class="ames-tile-ic">@icon</div>
+                    <div class="ames-tile-sub">@sub</div>
+                </div>
+                <div class="ames-tile-h">@title</div>
+            </div>
+        }
+    };
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
         _cts = new CancellationTokenSource();
+        var token = _cts.Token;          // await 전에 토큰 캡처(이후 _cts가 dispose돼도 안전)
         await RefreshServerAsync();
+        if (_disposed) return;           // await 중 화면 이탈 시 중단
         StateHasChanged();
-        _timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
-        _ = RunTimerAsync(_cts.Token);
+        int refreshSec = Sys.GetConfigInt("DASH_REFRESH_SEC", 5);   // SYS_Config 기준(폴백 5초)
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(refreshSec));
+        _ = RunTimerAsync(token);
     }
 
     async Task RunTimerAsync(CancellationToken ct)
@@ -282,14 +273,22 @@
             {
                 await RefreshServerAsync();
                 await InvokeAsync(StateHasChanged);
+                await KeepAliveAsync();
             }
         }
         catch (OperationCanceledException) { }
     }
 
+    // 자동 새로고침 중 세션 유지: 인증 HTTP 핑으로 슬라이딩 만료 갱신
+    async Task KeepAliveAsync()
+    {
+        try { await JS.InvokeVoidAsync("fetch", Nav.ToAbsoluteUri("keep-alive").ToString()); }
+        catch { /* 회로 끊김/이탈 시 무시 */ }
+    }
+
     async Task RefreshServerAsync()
     {
-        try { _srv = await Srv.GetSnapshotAsync(); } catch { }
+        try { _srv = await SrvMntSvc.GetSnapshotAsync(); } catch { }
         try { _k = Sys.GetHealth(); } catch { }
         try { _events = Sys.ListAudit(8); } catch { }
     }
@@ -327,7 +326,7 @@
         _ => status
     };
 
-    static string EventMessage(AMES.Data.Repositories.SysRepository.AuditRow e)
+    static string EventMessage(SysRepository.AuditRow e)
     {
         var parts = new List<string>();
         if (!string.IsNullOrWhiteSpace(e.ActionType))   parts.Add(e.ActionType);
@@ -340,7 +339,8 @@
 
     public void Dispose()
     {
-        _cts?.Cancel();
+        _disposed = true;
+        try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
         _timer?.Dispose();
         _cts?.Dispose();
     }

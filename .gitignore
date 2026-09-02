@@ -20,6 +20,9 @@ obj/
 # Temp commit messages (heredoc workaround)
 COMMIT_MSG.tmp
 
+# Claude Code 로컬 작업 공간 (scratch/node_modules, 개인 settings)
+.claude/
+
 # Local OS / editor cruft
 .DS_Store
 Thumbs.db
@@ -33,3 +36,9 @@ Thumbs.db
 src/04_Api/AMES.Api/logs/ames-api-release.err.log
 
 src/04_Api/AMES.Api/logs/ames-api-release.out.log
+
+# InjAgent File-mode label output (dev)
+labels/
+
+tmp_ames_api.log
+tmp_ames_web.log

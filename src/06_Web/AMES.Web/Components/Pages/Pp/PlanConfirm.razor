@@ -2,7 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
-@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AMES.Data.Repositories.MasterDataRepository MD
 @inject DialogService Dialog
 @inject IStringLocalizer<SharedResources> L
 
@@ -26,7 +26,7 @@
 <div class="ames-card-h" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;text-transform:none;">
     <div class="ames-fld">
         <label>@L["Col.Customer"]</label>
-        <RadzenDropDown Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+        <RadzenDropDown AllowFiltering="true" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
                         @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                         Style="width:200px" />
     </div>
@@ -84,9 +84,13 @@ else
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="CustomerId" Title="@L["Col.Customer"].Value" Width="120px" />
-            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="ItemNo" Title="@L["Col.Item"].Value" Width="240px">
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="240px">
                 <Template Context="r">
                     <span class="code">@r.ItemNo</span>
+                    @if (!r.ItemExists)
+                    {
+                        <span class="badge-bad">@L["PP.Forecast.Badge.Unregistered"]</span>
+                    }
                     @if (!string.IsNullOrEmpty(r.ItemName)) { <span class="dim"> · @r.ItemName</span> }
                 </Template>
             </RadzenDataGridColumn>
@@ -130,7 +134,7 @@ else
                 <Template Context="r">
                     @if (r.Blocked)
                     {
-                        <span class="pill bad">@L["PP.PlanConfirm.Status.Blocked"]</span>
+                        <span class="pill bad">@L[r.NoRouting ? "PP.PlanConfirm.Status.NoRouting" : "PP.PlanConfirm.Status.Blocked"]</span>
                     }
                     else
                     {
@@ -166,7 +170,7 @@ else
 
     protected override void OnInitialized()
     {
-        try { _customers = Md.ListCustomers(); } catch { }
+        try { _customers = MD.ListCustomers(); } catch { }
         Search();
     }
 

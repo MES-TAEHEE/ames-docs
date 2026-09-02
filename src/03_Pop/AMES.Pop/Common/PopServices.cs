@@ -30,6 +30,7 @@ internal static class PopServices
     public static BondRepository         Bond              { get; private set; } = null!;
     public static PntRepository          Pnt               { get; private set; } = null!;
     public static QcRepository           Qc                { get; private set; } = null!;
+    public static InjLotRepository      InjLots           { get; private set; } = null!;
 
     public static void Initialize()
     {
@@ -50,5 +51,6 @@ internal static class PopServices
         Bond              = new BondRepository      (ConnectionFactory);
         Pnt               = new PntRepository       (ConnectionFactory);
         Qc                = new QcRepository        (ConnectionFactory);
+        InjLots           = new InjLotRepository    (ConnectionFactory);
     }
 }

@@ -1,15 +1,28 @@
 @page "/sys/config"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.SysRepository Sys
-@inject AMES.Web.Services.PermissionService Perm
-@inject AuthenticationStateProvider Auth
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
+@using Radzen
+
+@attribute [Authorize]
+
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject SysRepository Sys
+@inject AMES.Data.Repositories.MasterDataRepository MD
+@inject AMES.Web.Services.AppLanguageState Lang
+@inject AMES.Web.Services.AppSessionState Session
+@inject AMES.Web.Services.AppSecurityState Security
+@inject Microsoft.Extensions.Options.IOptionsMonitorCache<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions> CookieOptCache
+@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>SYS-009 @L["SYS.Config.Title"] · AMES</PageTitle>
-
 <AmesPageHeader Code="SYS-009" TitleKey="SYS.Config.Title" />
 
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Config.Kpi.Keys"]</div>
@@ -46,9 +59,9 @@
     <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:8px;">
         @if (!string.IsNullOrEmpty(_msg))
         {
-            <span class="@(_isErr ? "ames-alert bad" : "ames-alert ok")" style="padding:4px 12px;">@_msg</span>
+            <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
         }
-        <button class="ames-btn ok" @onclick="SaveAll" disabled="@(!_dirty || _busy)">@L["Btn.Save"]</button>
+        <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveAll" Disabled="@(!_dirty || _busy)" class="ames-rz-btn" />
     </div>
 }
 
@@ -56,72 +69,83 @@
 {
     <div class="ames-card">
         <div class="ames-card-h">▼ @grp.Key  ·  @grp.Count() @L["Lbl.Count"]</div>
-        <table class="ames-table" style="table-layout:fixed;width:100%;">
-            <colgroup>
-                <col style="width:16.67%;" /><col style="width:16.67%;" /><col style="width:16.67%;" />
-                <col style="width:16.67%;" /><col style="width:16.67%;" /><col style="width:16.65%;" />
-            </colgroup>
-            <thead>
-                <tr>
-                    <th>@L["SYS.Config.Col.Key"]</th>
-                    <th>@L["SYS.Config.Col.Desc"]</th>
-                    <th>@L["SYS.Config.Col.Value"]</th>
-                    <th>@L["SYS.Config.Col.Unit"]</th>
-                    <th>@L["SYS.Config.Col.Type"]</th>
-                    <th>@L["Col.Status"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var c in grp.OrderBy(x => x.SortOrder ?? 999).ThenBy(x => x.ConfigKey))
-                {
-                    var ed = _edits[c.ConfigId];
-                    <tr>
-                        <td class="code" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@(c.ConfigKey ?? "—")</td>
-                        <td class="dim" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@(c.CodeName ?? "—")</td>
-                        <td>
-                            @if (_canEdit)
+        <RadzenDataGrid TItem="SysRepository.ConfigRow"
+                        Data="@grp.OrderBy(x => x.SortOrder ?? 999).ThenBy(x => x.ConfigKey)"
+                        AllowPaging="false" AllowSorting="false" Class="ames-rz-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="SysRepository.ConfigRow" Property="ConfigKey" Title="@L["SYS.Config.Col.Key"]" Width="18%">
+                    <Template Context="c"><span class="code" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@(c.ConfigKey ?? "—")</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SysRepository.ConfigRow" Property="CodeName" Title="@L["SYS.Config.Col.Desc"]" Width="20%">
+                    <Template Context="c"><span class="dim" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@(c.CodeName ?? "—")</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SysRepository.ConfigRow" Title="@L["SYS.Config.Col.Value"]">
+                    <Template Context="c">
+                        @{ var ed = _edits[c.ConfigId]; }
+                        @if (_canEdit)
+                        {
+                            @* 비활성 상태면 값 편집 불가(모든 유형 공통) *@
+                            @if (ComboKeyGroups.ContainsKey(c.ConfigKey ?? ""))
                             {
-                                @if (c.ConfigType == "bool")
-                                {
-                                    <span class="dim code" style="font-size:12px;">true / false</span>
-                                }
-                                else
-                                {
-                                    <input class="ames-input" style="width:100%;min-width:120px;padding:3px 8px;"
-                                           type="@InputType(c.ConfigType)"
-                                           value="@ed.Value"
-                                           @oninput="e => { ed.Value = e.Value?.ToString(); _dirty = true; }" />
-                                }
+                                <RadzenDropDown TValue="string" Value="@ed.Value" Data="@OptionsForKey(c.ConfigKey!)" TextProperty="Text" ValueProperty="Value"
+                                                AllowClear="true" Change="@(v => { ed.Value = v as string; _dirty = true; })"
+                                                Disabled="@(!ed.IsActive)"
+                                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;min-width:120px;" />
+                            }
+                            else if (c.ConfigType == "INT")
+                            {
+                                <RadzenNumeric TValue="int" Value="@ParseInt(ed.Value)" Change="@(v => { ed.Value = v.ToString(); _dirty = true; })" Disabled="@(!ed.IsActive)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;min-width:120px;" />
+                            }
+                            else if (c.ConfigType == "DECIMAL")
+                            {
+                                <RadzenNumeric TValue="decimal" Value="@ParseDecimal(ed.Value)" Change="@(v => { ed.Value = FmtDecimal(v); _dirty = true; })" Disabled="@(!ed.IsActive)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;min-width:120px;" />
+                            }
+                            else if (c.ConfigType == "bool")
+                            {
+                                <span class="dim code" style="font-size:12px;">true / false</span>
+                            }
+                            else if (c.ConfigType == "password")
+                            {
+                                <RadzenPassword Value="@ed.Value" Change="@(v => { ed.Value = v; _dirty = true; })" Disabled="@(!ed.IsActive)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;min-width:120px;" />
                             }
                             else
                             {
-                                <span class="code" style="color:#fff;">@(c.ConfigValue ?? "—")</span>
+                                <RadzenTextBox Value="@ed.Value" Change="@(v => { ed.Value = v; _dirty = true; })" Disabled="@(!ed.IsActive)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;min-width:120px;" AutoCompleteType="AutoCompleteType.Off" />
                             }
-                        </td>
-                        <td class="dim">@(c.Unit ?? "")</td>
-                        <td class="dim">@(c.ConfigType ?? "—")</td>
-                        <td>
-                            @if (_canEdit)
-                            {
-                                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-                                    <input type="checkbox" checked="@ed.IsActive"
-                                           @onchange="e => { ed.IsActive = (bool)(e.Value ?? false); _dirty = true; }"
-                                           style="accent-color:#60a5fa;" />
-                                    <span class="@(ed.IsActive ? "pill ok" : "pill warn")">
-                                        @(ed.IsActive ? L["SYS.Config.Active"] : L["SYS.Config.Inactive"])
-                                    </span>
-                                </label>
-                            }
-                            else
-                            {
-                                @(c.IsActive ? (MarkupString)$"<span class=\"pill ok\">{L["SYS.Config.Active"]}</span>"
-                                             : (MarkupString)$"<span class=\"pill warn\">{L["SYS.Config.Inactive"]}</span>")
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+                        }
+                        else
+                        {
+                            <span class="code" style="color:#fff;">@(c.ConfigValue ?? "—")</span>
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SysRepository.ConfigRow" Property="Unit" Title="@L["SYS.Config.Col.Unit"]" TextAlign="TextAlign.Center" Width="90px">
+                    <Template Context="c"><span class="dim">@(c.Unit ?? "")</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SysRepository.ConfigRow" Property="ConfigType" Title="@L["SYS.Config.Col.Type"]" TextAlign="TextAlign.Center" Width="110px">
+                    <Template Context="c"><span class="dim">@(c.ConfigType ?? "—")</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SysRepository.ConfigRow" Title="@L["Col.Status"]" TextAlign="TextAlign.Left" Width="150px">
+                    <Template Context="c">
+                        @{ var ed = _edits[c.ConfigId]; }
+                        @if (_canEdit)
+                        {
+                            <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+                                <RadzenCheckBox TValue="bool" Value="@ed.IsActive" Change="@(v => OnActiveChange(c, ed, v))" />
+                                <span class="@(ed.IsActive ? "pill ok" : "pill warn")">
+                                    @(ed.IsActive ? L["SYS.Config.Active"] : L["SYS.Config.Inactive"])
+                                </span>
+                            </div>
+                        }
+                        else
+                        {
+                            @(c.IsActive ? (MarkupString)$"<span class=\"pill ok\">{L["SYS.Config.Active"]}</span>"
+                                         : (MarkupString)$"<span class=\"pill warn\">{L["SYS.Config.Inactive"]}</span>")
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
     </div>
 }
 
@@ -131,12 +155,20 @@
 }
 
 @code {
-    List<AMES.Data.Repositories.SysRepository.ConfigRow> _rows = new();
+    List<SysRepository.ConfigRow> _rows = new();
     Dictionary<int, ConfigEdit> _edits = new();
+    // ConfigKey → 값 콤보로 쓸 공통코드 그룹 매핑
+    static readonly Dictionary<string, string> ComboKeyGroups = new()
+    {
+        ["PLANT_TIMEZONE"]   = "TIME_ZONE",
+        ["LANGUAGE_DEFAULT"] = "LANGUAGE",
+    };
+    Dictionary<string, List<MasterDataRepository.CodeItemRow>> _comboItems = new();
     int _cat, _sec;
     bool _canEdit, _dirty, _busy;
     string _msg = "", _actorEmail = "system";
     bool _isErr;
+    int _msgSeq;   // 메시지 자동 제거 타이머 토큰
 
     class ConfigEdit
     {
@@ -144,12 +176,29 @@
         public bool    IsActive { get; set; }
     }
 
+    record ComboOption(string Value, string Text);
+
+    // 숫자 유형(INT/DECIMAL) 값 ↔ 문자열 어댑터 (저장은 invariant 포맷으로 일관)
+    static int ParseInt(string? s) => int.TryParse(s, out var v) ? v : 0;
+    static decimal ParseDecimal(string? s) =>
+        decimal.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var v) ? v
+        : decimal.TryParse(s, out v) ? v : 0m;
+    static string FmtDecimal(decimal v) => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    // 값 콤보 옵션: 매핑된 공통코드 그룹의 활성 항목만, LocalName 표시
+    IEnumerable<ComboOption> OptionsForKey(string key) =>
+        ComboKeyGroups.TryGetValue(key, out var g) && _comboItems.TryGetValue(g, out var items)
+            ? items.Where(z => z.UseFlag).Select(z => new ComboOption(z.CodeValue ?? "", MasterDataRepository.LocalName(z)))
+            : Enumerable.Empty<ComboOption>();
+
     protected override async Task OnInitializedAsync()
     {
-        await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("sys/config");
-        var auth = await Auth.GetAuthenticationStateAsync();
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("sys/config");
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actorEmail = auth.User.Identity?.Name ?? "system";
+        foreach (var grp in ComboKeyGroups.Values.Distinct())
+            try { _comboItems[grp] = MD.ListCodeItems(grp); } catch { }
         Reload();
     }
 
@@ -162,19 +211,43 @@
         _dirty = false;
     }
 
+    // 활성 토글 변경 시 값은 DB 저장값으로 초기화(미저장 편집 취소).
+    // 단 LANGUAGE_DEFAULT 는 비활성화 시 기본 영문(en-US)으로 고정.
+    void OnActiveChange(SysRepository.ConfigRow c, ConfigEdit ed, bool v)
+    {
+        ed.IsActive = v;
+        ed.Value = c.ConfigValue;
+        if (c.ConfigKey == "LANGUAGE_DEFAULT" && !v)
+            ed.Value = "en-US";
+        _dirty = true;
+    }
+
     void SaveAll()
     {
         if (_busy) return;
         _busy = true; _msg = ""; _isErr = false;
         try
         {
+            // LANGUAGE_DEFAULT 활성여부가 바뀌면 저장 후 전체 리로드로 컬처/언어선택 즉시 반영
+            bool langActiveChanged = _rows.Any(r => r.ConfigKey == "LANGUAGE_DEFAULT"
+                && _edits.TryGetValue(r.ConfigId, out var e) && e.IsActive != r.IsActive);
+
             foreach (var r in _rows)
             {
                 if (!_edits.TryGetValue(r.ConfigId, out var ed)) continue;
                 Sys.SetConfig(r.ConfigId, ed.Value, ed.IsActive);
             }
+            Lang.Invalidate();          // 언어 캐시 무효화 → 다음 요청부터 DB 재확인
+            // 세션 타임아웃: 캐시 + 쿠키옵션 캐시 무효화 → 재시작 없이 다음 요청부터 새 값 적용
+            Session.Invalidate();
+            CookieOptCache.TryRemove(Microsoft.AspNetCore.Identity.IdentityConstants.ApplicationScheme);
+            Security.Invalidate();      // 비밀번호 최소길이 캐시 무효화 → 다음 검증부터 새 값
             Reload();
             _msg = L["Msg.Saved"].Value;
+            ScheduleMsgClear();         // 타 화면처럼 일정시간 후 메시지 자동 제거
+
+            if (langActiveChanged)      // 컬처/스위처 즉시 반영을 위해 강제 새로고침
+                Nav.NavigateTo(Nav.Uri, forceLoad: true);
         }
         catch (Exception ex)
         {
@@ -184,10 +257,17 @@
         finally { _busy = false; }
     }
 
-    static string InputType(string? configType) => configType switch
+    // 저장 성공 메시지 3.5초 후 자동 제거(최신 메시지만 유효하도록 토큰 사용)
+    void ScheduleMsgClear()
     {
-        "int" or "decimal" => "number",
-        "password"         => "password",
-        _                  => "text"
-    };
+        int token = ++_msgSeq;
+        _ = Task.Delay(3500).ContinueWith(_ =>
+        {
+            if (token == _msgSeq)
+            {
+                _msg = ""; _isErr = false;
+                InvokeAsync(StateHasChanged);
+            }
+        });
+    }
 }

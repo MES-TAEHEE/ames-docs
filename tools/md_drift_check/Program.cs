@@ -32,7 +32,6 @@ internal static class Program
         [11] = "MD_ShipmentDest",
         [12] = "MD_Customer",
         [13] = "MD_Uom",
-        [14] = "MD_Calendar",
         [15] = "MD_Jig",
         [16] = "MD_RfidTag",
         [17] = "MD_RalColor",

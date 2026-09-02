@@ -16,33 +16,32 @@
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<ExternalLogin> Logger
 
-<PageTitle>Register</PageTitle>
+<PageTitle>External login · A-MES</PageTitle>
 
-<StatusMessage Message="@message" />
-<h1>Register</h1>
-<h2>Associate your @ProviderDisplayName account.</h2>
-<hr />
-
-<div  class="alert alert-info">
-    You've successfully authenticated with <strong>@ProviderDisplayName</strong>.
-    Please enter an email address for this site below and click the Register button to finish
-    logging in.
-</div>
-
-<div class="row">
-    <div class="col-md-4">
-        <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" FormName="confirmation" method="post">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="email" placeholder="Please enter your email." />
-                <label for="Input.Email" class="form-label">Email</label>
-                <ValidationMessage For="() => Input.Email" />
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
-        </EditForm>
+<AuthCard Sub="EXTERNAL LOGIN">
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="ames-auth-error">✕ @message</div>
+    }
+    <div class="ames-auth-hint" style="margin-bottom:12px;line-height:1.8;">
+        <strong>@ProviderDisplayName</strong> 인증이 완료되었습니다. 이메일을 입력해 가입을 마치세요.
     </div>
-</div>
+
+    <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" FormName="confirmation" method="post"
+              class="ames-auth-form" Enhance="false">
+        <DataAnnotationsValidator />
+
+        <label class="ames-auth-label">EMAIL</label>
+        <InputText @bind-Value="Input.Email" class="ames-auth-input" autocomplete="email" placeholder="name@example.com" />
+        <ValidationMessage For="() => Input.Email" class="ames-auth-vm" />
+
+        <button type="submit" class="ames-auth-submit">REGISTER  →</button>
+    </EditForm>
+
+    <div class="ames-auth-meta">
+        <a href="/Account/Login">← Back to sign in</a>
+    </div>
+</AuthCard>
 
 @code {
     public const string LoginCallbackAction = "LoginCallback";

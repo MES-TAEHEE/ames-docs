@@ -1,8 +1,10 @@
 ﻿@page "/Account/Lockout"
 
-<PageTitle>Locked out</PageTitle>
+<PageTitle>Locked out · A-MES</PageTitle>
 
-<header>
-    <h1 class="text-danger">Locked out</h1>
-    <p class="text-danger" role="alert">This account has been locked out, please try again later.</p>
-</header>
+<AuthCard Sub="LOCKED OUT">
+    <div class="ames-auth-error">✕ 계정이 잠겼습니다. 잠시 후 다시 시도해 주세요.</div>
+    <div class="ames-auth-meta">
+        <a href="/Account/Login">← Back to sign in</a>
+    </div>
+</AuthCard>

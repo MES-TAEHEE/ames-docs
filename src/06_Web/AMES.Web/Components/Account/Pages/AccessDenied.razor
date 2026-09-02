@@ -1,8 +1,12 @@
 ﻿@page "/Account/AccessDenied"
 
-<PageTitle>Access denied</PageTitle>
+<PageTitle>Access denied · A-MES</PageTitle>
 
-<header>
-    <h1 class="text-danger">Access denied</h1>
-    <p class="text-danger">You do not have access to this resource.</p>
-</header>
+<AuthCard Sub="ACCESS DENIED">
+    <div class="ames-auth-error">✕ 이 리소스에 접근 권한이 없습니다.</div>
+    <div class="ames-auth-meta">
+        <a href="/">← 홈으로</a>
+        <span>·</span>
+        <a href="/Account/Login">sign in</a>
+    </div>
+</AuthCard>

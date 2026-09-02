@@ -9,40 +9,39 @@
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<LoginWith2fa> Logger
 
-<PageTitle>Two-factor authentication</PageTitle>
+<PageTitle>Two-factor authentication · A-MES</PageTitle>
 
-<h1>Two-factor authentication</h1>
-<hr />
-<StatusMessage Message="@message" />
-<p>Your login is protected with an authenticator app. Enter your authenticator code below.</p>
-<div class="row">
-    <div class="col-md-4">
-        <EditForm Model="Input" FormName="login-with-2fa" OnValidSubmit="OnValidSubmitAsync" method="post">
-            <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
-            <input type="hidden" name="RememberMe" value="@RememberMe" />
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.TwoFactorCode" id="Input.TwoFactorCode" class="form-control" autocomplete="off" />
-                <label for="Input.TwoFactorCode" class="form-label">Authenticator code</label>
-                <ValidationMessage For="() => Input.TwoFactorCode" class="text-danger" />
-            </div>
-            <div class="checkbox mb-3">
-                <label for="remember-machine" class="form-label">
-                    <InputCheckbox @bind-Value="Input.RememberMachine" />
-                    Remember this machine
-                </label>
-            </div>
-            <div>
-                <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
-            </div>
-        </EditForm>
+<AuthCard Sub="TWO-FACTOR">
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="ames-auth-error">✕ @message</div>
+    }
+    <div class="ames-auth-hint" style="margin-bottom:12px;">인증 앱(Authenticator)의 코드를 입력하세요.</div>
+
+    <EditForm Model="Input" FormName="login-with-2fa" OnValidSubmit="OnValidSubmitAsync" method="post"
+              class="ames-auth-form" Enhance="false">
+        <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+        <input type="hidden" name="RememberMe" value="@RememberMe" />
+        <DataAnnotationsValidator />
+
+        <label class="ames-auth-label">AUTHENTICATOR CODE</label>
+        <InputText @bind-Value="Input.TwoFactorCode" class="ames-auth-input" autocomplete="off" placeholder="000000" />
+        <ValidationMessage For="() => Input.TwoFactorCode" class="ames-auth-vm" />
+
+        <label class="ames-auth-remember">
+            <InputCheckbox @bind-Value="Input.RememberMachine" />
+            <span>Remember this machine</span>
+        </label>
+
+        <button type="submit" class="ames-auth-submit">LOG IN  →</button>
+    </EditForm>
+
+    <div class="ames-auth-meta">
+        <a href="Account/LoginWithRecoveryCode?ReturnUrl=@ReturnUrl">recovery code</a>
+        <span>·</span>
+        <a href="/Account/Login">← sign in</a>
     </div>
-</div>
-<p>
-    Don't have access to your authenticator device? You can
-    <a href="Account/LoginWithRecoveryCode?ReturnUrl=@ReturnUrl">log in with a recovery code</a>.
-</p>
+</AuthCard>
 
 @code {
     private string? message;

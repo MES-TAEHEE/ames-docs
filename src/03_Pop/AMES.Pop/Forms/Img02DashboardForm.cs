@@ -175,18 +175,17 @@ public sealed class Img02DashboardForm : PopForm
         // ── nav ───────────────────────────────────────────────────────────
         var nav = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill, ColumnCount = 7, RowCount = 1,
+            Dock = DockStyle.Fill, ColumnCount = 6, RowCount = 1,
             BackColor = PopTheme.BgCard, Padding = new Padding(24, 16, 24, 16),
         };
-        for (var i = 0; i < 7; i++) nav.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / 7));
+        for (var i = 0; i < 6; i++) nav.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / 6));
         nav.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         nav.Controls.Add(PopShell.BigButton("▶  IMG-03\nProd Entry",  PopTheme.AccentDeep, Color.White, (_, _) => Open<Img03ProductionEntryForm>(), fontSize: 18f), 0, 0);
         nav.Controls.Add(PopShell.BigButton("⚡  IMG-04\nFabric Input", Color.FromArgb(120, 50, 170),  Color.White, (_, _) => Open<Img04FabricInputForm>(),    fontSize: 18f), 1, 0);
         nav.Controls.Add(PopShell.BigButton("▶  IMG-05\nDefect",      Color.FromArgb(180, 70, 30),   Color.White, (_, _) => Open<Img05DefectForm>(),         fontSize: 18f), 2, 0);
         nav.Controls.Add(PopShell.BigButton("▶  IMG-06\nBond Setup",  Color.FromArgb(170,120,20),    Color.White, (_, _) => Open<Img06BondSetupForm>(),      fontSize: 18f), 3, 0);
         nav.Controls.Add(PopShell.BigButton("▶  IMG-07\nProd Status", PopTheme.BgKey,                Color.White, (_, _) => Open<Img07ProdStatusForm>(),     fontSize: 18f), 4, 0);
-        nav.Controls.Add(PopShell.BigButton("🚨  INJ-08\nANDON",       Color.FromArgb(180, 30, 30),   Color.White, (_, _) => Open<Inj08AndonForm>(),          fontSize: 18f), 5, 0);
-        nav.Controls.Add(PopShell.BigButton("◀  LOGOUT",               Color.FromArgb(60, 60, 60),    Color.White, (_, _) => ConfirmLogout(),                 fontSize: 18f), 6, 0);
+        nav.Controls.Add(PopShell.BigButton("◀  LOGOUT",               Color.FromArgb(60, 60, 60),    Color.White, (_, _) => ConfirmLogout(),                 fontSize: 18f), 5, 0);
         root.Controls.Add(nav, 0, 3);
 
         Controls.Add(root);
@@ -212,7 +211,7 @@ public sealed class Img02DashboardForm : PopForm
             if (wo is not null)
             {
                 _lblWoNumber.Text = wo.WoNumber;
-                _lblWoItem.Text   = $"{wo.ItemNameEn ?? wo.ItemName}  ({wo.ItemNo})";
+                _lblWoItem.Text   = $"{wo.ItemName}  ({wo.ItemNo})";
                 _lblWoProgress.Text = $"{wo.CompletedQty:0}  /  {wo.OrderQty:0}";
                 _lblWoPct.Text    = $"{wo.ProgressPct:0}%";
                 _woBar.Value      = Math.Clamp((int)wo.ProgressPct, 0, 100);

@@ -1,0 +1,40 @@
+@page "/fg/history"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject AMES.Data.Repositories.FinishedGoodsRepository Fg
+@using Radzen
+
+<PageTitle>History - AMES</PageTitle>
+<AmesPageHeader Code="FG-105" Title="History" />
+
+<div class="ames-kpis compact">
+    <div class="ames-kpi"><div class="ames-kpi-l">Events</div><div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">current result</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">Put Away</div><div class="ames-kpi-v">@Count("PUT AWAY")</div><div class="ames-kpi-s">finished-goods inbound</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">Loading</div><div class="ames-kpi-v">@Count("LOADING")</div><div class="ames-kpi-s">truck loading</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">Shipped</div><div class="ames-kpi-v">@Count("SHIPPED")</div><div class="ames-kpi-s">shipment completed</div></div>
+</div>
+@if (!string.IsNullOrWhiteSpace(_message)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_message</RadzenAlert> }
+<div class="ames-card">
+    <div class="ames-card-h fg-web-toolbar"><div><span>OPERATION HISTORY</span><div class="dim">Put-away, picking, loading, shipment, delivery note, and return history.</div></div><RadzenStack Orientation="Orientation.Horizontal" Gap="0.375rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap"><RadzenTextBox @bind-Value="_search" Placeholder="Search reference, item, location, or worker" InputSize="InputSize.Small" class="ames-rz-input" Style="width:260px;" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' /><RadzenDropDown @bind-Value="_eventType" Data="@EventTypes" AllowClear="true" Placeholder="Event" InputSize="InputSize.Small" class="ames-rz-input" Style="width:145px;" /><RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="From" InputSize="InputSize.Small" class="ames-rz-input" Style="width:145px;" /><RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="To" InputSize="InputSize.Small" class="ames-rz-input" Style="width:145px;" /><RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" /><RadzenButton Text="Clear" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Clear" class="ames-rz-btn" /></RadzenStack></div>
+    <RadzenDataGrid TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Data="@_rows" AllowPaging="true" PageSize="25" AllowSorting="true" ShowPagingSummary="true" EmptyText="No operation history found." Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="EventAt" Title="Date / Time" Width="155px"><Template Context="r">@r.EventAt.ToString("yyyy-MM-dd HH:mm")</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="EventType" Title="Event" Width="125px"><Template Context="r"><span class="pill @EventClass(r.EventType)">@r.EventType</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="ReferenceNo" Title="Reference" Width="155px"><Template Context="r"><span class="code">@(r.ReferenceNo ?? "-")</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="ItemOrOrder" Title="Item / Order" Width="150px" />
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="Qty" Title="Qty" Width="85px" TextAlign="TextAlign.Right"><Template Context="r">@(r.Qty == 0 ? "-" : r.Qty.ToString("N0"))</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="Location" Title="Location / Dock" Width="125px" />
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="WorkerId" Title="Worker" Width="150px" />
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="Status" Title="Status" Width="110px" />
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="Details" Title="Details" Width="300px" />
+        </Columns>
+    </RadzenDataGrid>
+</div>
+@code {
+    List<AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow> _rows = new(); string _search = "", _message = ""; string? _eventType; DateTime? _from = DateTime.Today.AddMonths(-1), _to = DateTime.Today; string[] EventTypes = ["PUT AWAY", "PICK", "LOADING", "SHIPPED", "DELIVERY NOTE", "RETURN"];
+    protected override void OnInitialized() => Reload();
+    void Reload() { if (_from > _to) { _message = "From date cannot be later than To date."; return; } try { _rows = Fg.ListHistory(_search, _eventType, _from, _to); _message = ""; } catch (Exception ex) { _rows = new(); _message = ex.Message; } }
+    void Clear() { _search = ""; _eventType = null; _from = DateTime.Today.AddMonths(-1); _to = DateTime.Today; Reload(); }
+    int Count(string type) => _rows.Count(x => x.EventType == type);
+    static string EventClass(string type) => type switch { "PUT AWAY" => "ok", "LOADING" => "warn", "SHIPPED" => "ok", "RETURN" => "bad", _ => "mute" };
+}

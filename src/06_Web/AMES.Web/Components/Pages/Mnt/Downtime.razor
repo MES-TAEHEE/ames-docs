@@ -2,7 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.MntRepository Mnt
-@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AMES.Data.Repositories.MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>MNT-006 @L["MNT.Downtime.Title"] · AMES</PageTitle>
@@ -25,7 +25,7 @@
         <span style="white-space:nowrap;">▼ @L["MNT.Downtime.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <select class="ames-input" style="width:140px;" @bind="_fLine">
-                <option value="">@L["Filter.AllLines"]</option>
+                <option value="">@L["Filter.All"]</option>
                 @foreach (var l in _lineList)
                 {
                     <option value="@l.LineID">@l.LineID@(l.LineName != null ? $" {l.LineName}" : "")</option>
@@ -88,7 +88,7 @@
 
     protected override void OnInitialized()
     {
-        try { _lineList = Md.ListLines(); } catch { }
+        try { _lineList = MD.ListLines(); } catch { }
         Reload();
     }
 

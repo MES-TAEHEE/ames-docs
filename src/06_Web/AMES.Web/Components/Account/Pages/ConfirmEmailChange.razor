@@ -9,11 +9,14 @@
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Confirm email change</PageTitle>
+<PageTitle>Confirm email change · A-MES</PageTitle>
 
-<h1>Confirm email change</h1>
-
-<StatusMessage Message="@message" />
+<AuthCard Sub="EMAIL CHANGE">
+    <div class="ames-auth-hint" style="text-align:center;line-height:1.9;">@message</div>
+    <div class="ames-auth-meta">
+        <a href="/Account/Login">로그인으로 이동 →</a>
+    </div>
+</AuthCard>
 
 @code {
     private string? message;

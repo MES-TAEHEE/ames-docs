@@ -34,7 +34,7 @@
             <input class="ames-input" style="width:180px;padding:4px 8px;"
                    placeholder="@L["PP.PurchaseReq.Ph.Search"]" @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' autocomplete="off" />
             <select class="ames-input" style="width:120px;" @bind="_fStatus">
-                <option value="">@L["PP.WorkOrder.Filter.AllStatus"]</option>
+                <option value="">@L["Filter.All"]</option>
                 <option value="Pending">Pending</option>
                 <option value="Approved">Approved</option>
                 <option value="Sent">Sent to SAP</option>

@@ -1,12 +1,12 @@
 @inject AMES.Data.Repositories.PpRepository Pp
-@inject AuthenticationStateProvider Auth
+@inject AuthenticationStateProvider AuthPrvd
 @inject DialogService Dialog
 @inject IStringLocalizer<SharedResources> L
 @using AMES.Web.Services
 
 <div style="display:flex;flex-direction:column;gap:6px;min-width:440px;">
     <label>① @L["Col.Customer"]</label>
-    <RadzenDropDown Data="Customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+    <RadzenDropDown AllowFiltering="true" Data="Customers" TextProperty="CustomerName" ValueProperty="CustomerID"
                     @bind-Value="_upCustomer" Disabled="_busy" AllowClear="true"
                     Placeholder="—" Style="width:100%" />
 
@@ -116,7 +116,7 @@
         _busy = true;
         try
         {
-            var auth  = await Auth.GetAuthenticationStateAsync();
+            var auth  = await AuthPrvd.GetAuthenticationStateAsync();
             var actor = auth.User.Identity?.Name ?? "system";
             var rows  = _preview.Select(r => new PpRepository.CustomerOrderImportRow(
                 r.SoNumber, r.SoLineNo, r.ItemNo, r.OrderQty, r.ShippedQty,

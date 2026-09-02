@@ -10,6 +10,7 @@ public enum ItemType
     FABRIC,     // Fabric / vinyl
     POWDER,     // Powder coating
     PAINT,      // Liquid paint
-    SEMI,       // Semi-finished (WIP)
-    FINISHED    // Finished good
+    SUB,        // Sub-part (semi-finished / WIP)
+    ASSY,       // Assembly (finished good)
+    MATERIAL    // Purchased material (e.g. wiring harness)
 }

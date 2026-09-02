@@ -15,7 +15,7 @@
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>SYS-002 @L["SYS.Roles.Title"] · AMES</PageTitle>
-<AmesPageHeader Code="SYS-003" TitleKey="SYS.Roles.Title" />
+<AmesPageHeader Code="SYS-002" TitleKey="SYS.Roles.Title" />
 
 @* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
@@ -35,53 +35,41 @@
 
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["SYS.Roles.List"] · @_rows.Count @L["Lbl.Items"]</span>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Wrap="FlexWrap.Wrap">
-            <RadzenButton Text="@L["Btn.Search"]" Icon="refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
             @if (_canEdit)
             {
-                <RadzenButton Text="@L["Btn.Create"]" Icon="add_circle" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
             }
         </RadzenStack>
     </div>
 
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["SYS.Roles.Empty"]</div>
-    }
-    else
-    {
-        <RadzenStack Gap="1rem">
-            <RadzenDataGrid TItem="SysRepository.RoleRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" Class="ames-rz-grid">
-                <Columns>
-                    <RadzenDataGridColumn TItem="SysRepository.RoleRow" Property="RoleName" Title="@L["Col.RoleName"]">
-                        <Template Context="r">
-                            <span class="code">@(r.RoleName ?? "—")</span>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.RoleRow" Property="UserCount" Title="@L["Col.UserCount"]" TextAlign="TextAlign.Right">
-                        <Template Context="r">
-                            @if (r.UserCount > 0)
-                            {
-                                <span class="pill ok">@r.UserCount</span>
-                            }
-                            else
-                            {
-
-                                <span class="dim">0</span>
-                            }
-                        </Template>
-                    </RadzenDataGridColumn>
-                </Columns>
-            </RadzenDataGrid>
-        </RadzenStack>
-    }
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="SysRepository.RoleRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Roles.Empty"]" Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="SysRepository.RoleRow" Property="RoleName" Title="@L["Col.RoleName"]">
+                <Template Context="r"><span class="code">@(r.RoleName ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.RoleRow" Property="UserCount" Title="@L["Col.UserCount"]" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="r">
+                    @if (r.UserCount > 0)
+                    {
+                        <span class="pill ok">@r.UserCount</span>
+                    }
+                    else
+                    {
+                        <span class="dim">0</span>
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
 @* ── Create Modal ─────────────────────────────────────────────────── *@
@@ -89,10 +77,10 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["SYS.Roles.Modal.Create"]</div>
+            <div class="ames-modal-h">@L["SYS.Roles.Title"] — @L["Modal.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Roles.Lbl.RoleName"]" class="ames-rz-modal-label" Component="CreateTextBoxRoleName" />
                     <RadzenTextBox Name="CreateTextBoxRoleName" @bind-Value="_roleName" Placeholder="@L["SYS.Roles.Ph.RoleName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
@@ -116,10 +104,10 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["SYS.Roles.Modal.Edit"] — <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.RoleName</span></div>
+            <div class="ames-modal-h">@L["SYS.Roles.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.RoleName</span></div>
 
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Roles.Lbl.RoleName"]" class="ames-rz-modal-label" Component="EditTextBoxRoleName" />
                     <RadzenTextBox Name="EditTextBoxRoleName" @bind-Value="_roleName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
@@ -164,7 +152,7 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
     bool _showPagerSummary = true;
     List<SysRepository.RoleRow> _rows = new();
     SysRepository.RoleRow? _sel;
@@ -183,6 +171,21 @@
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("sys/roles");
         Reload();
+    }
+
+    RadzenDataGrid<SysRepository.RoleRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task ReloadRestorePage()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_rows.Count / (double)_pgGrid.PageSize));
+            await _pgGrid.GoToPage(Math.Min(_pgIndex, pages - 1));
+        }
     }
 
     void Reload() { _rows = Sys.ListRoles(); }
@@ -240,7 +243,7 @@
                 return;
             }
             var name = _roleName.Trim();
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Roles.Ok.Created"].Value, name), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
@@ -267,7 +270,7 @@
                 return;
             }
             var name = _roleName.Trim();
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Roles.Ok.Updated"].Value, name), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
@@ -284,7 +287,7 @@
             if (role is not null) await RoleMgr.DeleteAsync(role);
 
             var name = _sel.RoleName;
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Roles.Ok.Deleted"].Value, name), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }

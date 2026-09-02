@@ -54,10 +54,11 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
     {
-        // Office workers create accounts via admin — no confirm-email flow.
-        options.SignIn.RequireConfirmedAccount   = false;
+        // 자기가입은 이메일 자기인증 필수. (관리자 생성 계정은 EmailConfirmed=true 로 생성해 영향 없음)
+        options.SignIn.RequireConfirmedAccount   = true;
         options.Password.RequireDigit            = true;
-        options.Password.RequiredLength          = 6;
+        // 최소 길이는 SYS_Config(PASSWORD_MIN_LEN) 기준 ConfigPasswordValidator 가 동적 관장 → 내장 게이트는 완화
+        options.Password.RequiredLength          = 1;
         options.Password.RequireNonAlphanumeric  = false;
         options.Password.RequireUppercase        = false;
         options.Password.RequireLowercase        = false;
@@ -67,7 +68,14 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
-builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+// 비밀번호 최소 길이 = SYS_Config(PASSWORD_MIN_LEN) 동적 검증 (앱 재시작 없이 Config 저장 시 반영)
+builder.Services.AddSingleton<AMES.Web.Services.AppSecurityState>();
+builder.Services.AddScoped<IPasswordValidator<ApplicationUser>, AMES.Web.Services.ConfigPasswordValidator>();
+// 이메일 발신: Smtp:Host 설정이 있으면 실제 SMTP 발송, 없으면 NoOp(개발환경은 Register 화면에 인증링크 노출)
+if (!string.IsNullOrWhiteSpace(builder.Configuration["Smtp:Host"]))
+    builder.Services.AddSingleton<IEmailSender<ApplicationUser>, AMES.Web.Services.SmtpEmailSender>();
+else
+    builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<PermissionService>();
 builder.Services.AddHttpClient();
@@ -86,6 +94,19 @@ builder.Services.AddSwaggerGen(c =>
 // ── Shared data layer (reused from POP) ─────────────────────────────────
 var factory = new AmesConnectionFactory(connectionString);
 builder.Services.AddSingleton(factory);
+
+// 세션(인증 쿠키) 타임아웃 = SYS_Config.SESSION_TIMEOUT_MIN(분), 슬라이딩 만료.
+// AppSessionState 캐시에서 읽어 옵션 구성 → Config 저장 시 옵션캐시 무효화로 앱 재시작 없이 반영.
+// 자동 새로고침 화면은 /keep-alive 핑으로 세션 유지.
+builder.Services.AddSingleton<AMES.Web.Services.AppSessionState>();
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IConfigureNamedOptions<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>>(sp =>
+    new Microsoft.Extensions.Options.ConfigureNamedOptions<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>(
+        IdentityConstants.ApplicationScheme,
+        o =>
+        {
+            o.ExpireTimeSpan    = TimeSpan.FromMinutes(sp.GetRequiredService<AMES.Web.Services.AppSessionState>().Minutes);
+            o.SlidingExpiration = true;
+        }));
 builder.Services.AddSingleton(sp => new WorkOrderRepository(factory));
 builder.Services.AddSingleton(sp => new EquipmentRepository(factory));
 builder.Services.AddSingleton(sp => new MasterDataRepository(factory));
@@ -96,35 +117,76 @@ builder.Services.AddSingleton(sp => new QcRepository(factory));
 builder.Services.AddSingleton(sp => new PpRepository(factory));
 builder.Services.AddSingleton(sp => new MntRepository(factory));
 builder.Services.AddSingleton(sp => new RptRepository(factory));
+builder.Services.AddSingleton(sp => new WarehouseRepository(factory));
+builder.Services.AddSingleton(sp => new FinishedGoodsRepository(factory));
 builder.Services.AddSingleton(sp => new SysRepository(factory));
 builder.Services.AddSingleton(sp => new AuthRepository(factory));
 builder.Services.AddSingleton(sp => new LineScheduleRepository(factory));
 builder.Services.AddSingleton(sp => new OeeRepository(factory));
 builder.Services.AddSingleton<ServerMonitorService>();
+// LANGUAGE_DEFAULT(SYS_Config) 캐시 — 컬처 강제/언어 스위처 판정
+builder.Services.AddSingleton<AMES.Web.Services.AppLanguageState>();
 
 var app = builder.Build();
+
+// ── Startup seeds ──────────────────────────────────────────────────────
+// 여기서 예외가 새어나가면 ANCM 이 프로세스를 못 올려 모든 요청이 500 이 되고,
+// 화면에는 아무 단서도 남지 않는다. DB 가 늦게 뜨거나 잠시 끊겨도 앱은 기동돼야 한다.
+// 시드는 모두 idempotent 하므로 실패해도 다음 재기동에서 다시 시도된다.
+async Task RunSeedAsync(string name, Func<IServiceScope, Task> seed)
+{
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        await seed(scope);
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "{Seed} seed skipped — database unavailable at startup", name);
+    }
+}
 
 // ── First-run admin seed ───────────────────────────────────────────────
 // Ensures `admin@ames.local / Dev2026!` exists so a fresh checkout can
 // sign in without a manual register step. No-op on subsequent boots.
-using (var scope = app.Services.CreateScope())
+await RunSeedAsync("admin", async scope =>
 {
     var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var roleMgr = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     const string email = "admin@ames.local";
-    if (await userMgr.FindByEmailAsync(email) is null)
+    const string adminRole = "Admin";
+    if (await roleMgr.FindByNameAsync(adminRole) is null)
+    {
+        var roleRes = await roleMgr.CreateAsync(new IdentityRole(adminRole));
+        if (!roleRes.Succeeded)
+            app.Logger.LogWarning("admin role seed failed: {Errs}", string.Join("; ", roleRes.Errors.Select(e => e.Description)));
+    }
+
+    var adminUser = await userMgr.FindByEmailAsync(email);
+    if (adminUser is null)
     {
         var u = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true };
         var res = await userMgr.CreateAsync(u, "Dev2026!");
         if (!res.Succeeded)
             app.Logger.LogWarning("admin seed failed: {Errs}", string.Join("; ", res.Errors.Select(e => e.Description)));
         else
+        {
+            adminUser = u;
             app.Logger.LogInformation("seeded admin@ames.local / Dev2026!");
+        }
     }
-}
+
+    if (adminUser is not null && !await userMgr.IsInRoleAsync(adminUser, adminRole))
+    {
+        var roleRes = await userMgr.AddToRoleAsync(adminUser, adminRole);
+        if (!roleRes.Succeeded)
+            app.Logger.LogWarning("admin role assignment failed: {Errs}", string.Join("; ", roleRes.Errors.Select(e => e.Description)));
+    }
+});
 
 // ── Role seed: SYS_RolePermission.RoleName → AspNetRoles + RoleID backfill ──
 // Idempotent: skips roles that already exist, skips rows where RoleID is set.
-using (var scope = app.Services.CreateScope())
+await RunSeedAsync("role", async scope =>
 {
     var roleMgr     = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var connFactory = scope.ServiceProvider.GetRequiredService<AmesConnectionFactory>();
@@ -163,7 +225,7 @@ using (var scope = app.Services.CreateScope())
         if (updated > 0)
             app.Logger.LogInformation("SYS_RolePermission.RoleID backfilled: {N} rows", updated);
     }
-}
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -194,11 +256,16 @@ if (httpsPort.HasValue)
 }
 
 
-var supportedCultures = new[] { "ko", "en" };
-app.UseRequestLocalization(new RequestLocalizationOptions()
-    .SetDefaultCulture("ko")
-    .AddSupportedCultures(supportedCultures)
-    .AddSupportedUICultures(supportedCultures));
+// 서식(날짜/숫자)은 특정 문화권(ko-KR/en-US), 리소스(resx)는 중립(ko/en)
+var locOptions = new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(culture: "ko-KR", uiCulture: "ko")
+};
+locOptions.AddSupportedCultures("ko-KR", "en-US", "es-MX", "es-ES");
+locOptions.AddSupportedUICultures("ko", "en", "es");
+// LANGUAGE_DEFAULT 비활성 시 en-US 강제(쿠키보다 우선) — 맨 앞에 삽입
+locOptions.RequestCultureProviders.Insert(0, new AMES.Web.Services.LanguageDefaultCultureProvider());
+app.UseRequestLocalization(locOptions);
 
 app.UseStaticFiles();
 
@@ -215,6 +282,11 @@ app.MapGet("/api/health", () => Results.Ok(new { status = "ok", at = DateTime.Ut
     .WithTags("System")
     .WithSummary("헬스 체크")
     .WithDescription("서버 상태를 반환합니다.");
+
+// 자동 새로고침 화면의 세션 유지용 핑 — 인증 요청이 슬라이딩 만료를 갱신
+app.MapGet("/keep-alive", () => Results.NoContent())
+    .RequireAuthorization()
+    .ExcludeFromDescription();
 
 app.MapGet("/culture/set", (string culture, string redirectUri, HttpContext ctx) =>
 {

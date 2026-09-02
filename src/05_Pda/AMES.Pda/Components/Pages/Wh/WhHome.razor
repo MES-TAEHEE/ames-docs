@@ -11,52 +11,18 @@
         </div>
     </div>
     <div class="pda-bd">
-        <div class="wh-home-hero">
-            <div>
-                <span>WAREHOUSE MENU</span>
-                <strong>Stock Movement</strong>
-            </div>
-            <em>@DateTime.Now.ToString("HH:mm")</em>
-        </div>
-
         <div class="pda-tile-grid wh-home-grid">
             <button class="pda-tile sm wh-home-tile schedule" @onclick='@(() => Nav.NavigateTo("/wh/01"))'>
                 <span class="wh-home-tile-ic"><RadzenIcon Icon="event_note" /></span>
                 <div class="wh-home-tile-copy">
                     <div class="pda-tile-cap">Schedule</div>
-                    <div class="pda-tile-sub">Inbound receipt plan</div>
                 </div>
                 <span class="wh-home-tile-go">&gt;</span>
             </button>
-            <button class="pda-tile sm wh-home-tile scan" @onclick='@(() => Nav.NavigateTo("/wh/02"))'>
+            <button class="pda-tile sm wh-home-tile inbound" @onclick='@(() => Nav.NavigateTo("/wh/02"))'>
                 <span class="wh-home-tile-ic"><RadzenIcon Icon="qr_code_scanner" /></span>
                 <div class="wh-home-tile-copy">
-                    <div class="pda-tile-cap">Scan</div>
-                    <div class="pda-tile-sub">Receive and move stock</div>
-                </div>
-                <span class="wh-home-tile-go">&gt;</span>
-            </button>
-            <button class="pda-tile sm wh-home-tile inventory" @onclick='@(() => Nav.NavigateTo("/wh/03"))'>
-                <span class="wh-home-tile-ic"><RadzenIcon Icon="inventory_2" /></span>
-                <div class="wh-home-tile-copy">
-                    <div class="pda-tile-cap">Inventory</div>
-                    <div class="pda-tile-sub">Current material stock</div>
-                </div>
-                <span class="wh-home-tile-go">&gt;</span>
-            </button>
-            <button class="pda-tile sm wh-home-tile location" @onclick='@(() => Nav.NavigateTo("/wh/04"))'>
-                <span class="wh-home-tile-ic"><RadzenIcon Icon="travel_explore" /></span>
-                <div class="wh-home-tile-copy">
-                    <div class="pda-tile-cap">Location Search</div>
-                    <div class="pda-tile-sub">Find stock by position</div>
-                </div>
-                <span class="wh-home-tile-go">&gt;</span>
-            </button>
-            <button class="pda-tile sm wh-home-tile release-plan" @onclick='@(() => Nav.NavigateTo("/wh/06"))'>
-                <span class="wh-home-tile-ic"><RadzenIcon Icon="assignment" /></span>
-                <div class="wh-home-tile-copy">
-                    <div class="pda-tile-cap">Release Schedule</div>
-                    <div class="pda-tile-sub">Outbound request list</div>
+                    <div class="pda-tile-cap">Inbound</div>
                 </div>
                 <span class="wh-home-tile-go">&gt;</span>
             </button>
@@ -64,7 +30,20 @@
                 <span class="wh-home-tile-ic"><RadzenIcon Icon="outbox" /></span>
                 <div class="wh-home-tile-copy">
                     <div class="pda-tile-cap">Release</div>
-                    <div class="pda-tile-sub">Issue material to process</div>
+                </div>
+                <span class="wh-home-tile-go">&gt;</span>
+            </button>
+            <button class="pda-tile sm wh-home-tile inventory" @onclick='@(() => Nav.NavigateTo("/wh/03"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="inventory_2" /></span>
+                <div class="wh-home-tile-copy">
+                    <div class="pda-tile-cap">Inventory</div>
+                </div>
+                <span class="wh-home-tile-go">&gt;</span>
+            </button>
+            <button class="pda-tile sm wh-home-tile adjust" @onclick='@(() => Nav.NavigateTo("/wh/03?tab=adjust"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="tune" /></span>
+                <div class="wh-home-tile-copy">
+                    <div class="pda-tile-cap">Adjust</div>
                 </div>
                 <span class="wh-home-tile-go">&gt;</span>
             </button>
@@ -72,7 +51,6 @@
                 <span class="wh-home-tile-ic"><RadzenIcon Icon="history" /></span>
                 <div class="wh-home-tile-copy">
                     <div class="pda-tile-cap">Transactions</div>
-                    <div class="pda-tile-sub">Inbound and stock history</div>
                 </div>
                 <span class="wh-home-tile-go">&gt;</span>
             </button>

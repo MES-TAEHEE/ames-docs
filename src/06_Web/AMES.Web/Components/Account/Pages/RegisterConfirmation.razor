@@ -10,23 +10,30 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Register confirmation</PageTitle>
+<PageTitle>Register confirmation · A-MES</PageTitle>
 
-<h1>Register confirmation</h1>
-
-<StatusMessage Message="@statusMessage" />
-
-@if (emailConfirmationLink is not null)
-{
-    <p>
-        This app does not currently have a real email sender registered, see <a href="https://aka.ms/aspaccountconf">these docs</a> for how to configure a real email sender.
-        Normally this would be emailed: <a href="@emailConfirmationLink">Click here to confirm your account</a>
-    </p>
-}
-else
-{
-    <p role="alert">Please check your email to confirm your account.</p>
-}
+<AuthCard Sub="REGISTER">
+    @if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <div class="ames-auth-error">✕ @statusMessage</div>
+    }
+    @if (emailConfirmationLink is not null)
+    {
+        <div class="ames-auth-hint" style="line-height:1.9;text-align:center;">
+            가입이 접수되었습니다. 아래 버튼으로 이메일을 인증하세요.<br />
+            <span class="ames-auth-vm">개발 환경: 실제 메일이 발송되지 않습니다.</span>
+        </div>
+        <a class="ames-auth-submit" href="@emailConfirmationLink"
+           style="display:block;text-align:center;text-decoration:none;margin-top:12px;">이메일 인증하기  →</a>
+    }
+    else
+    {
+        <div class="ames-auth-hint" style="text-align:center;line-height:1.9;">메일함에서 인증 링크를 확인해 주세요.</div>
+    }
+    <div class="ames-auth-meta">
+        <a href="/Account/Login">← Back to sign in</a>
+    </div>
+</AuthCard>
 
 @code {
     private string? emailConfirmationLink;

@@ -2,9 +2,10 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @rendermode InteractiveServer
 @inject AMES.Data.Repositories.PpRepository Pp
-@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AMES.Data.Repositories.MasterDataRepository MD
+@inject AMES.Data.Repositories.WorkOrderRepository Wos
 @inject DialogService Dialog
-@inject AuthenticationStateProvider Auth
+@inject AuthenticationStateProvider AuthPrvd
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["PP.WoRelease.Title"] · AMES</PageTitle>
@@ -44,14 +45,14 @@
         <span style="white-space:nowrap;">▼ @L["PP.WoRelease.Title"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _all.Count ? $" / {L["Lbl.TotalOf"]} {_all.Count}" : "")</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <select class="ames-input" style="width:140px;" @bind="_fLine">
-                <option value="">@L["Filter.AllLines"]</option>
+                <option value="">@L["Filter.All"]</option>
                 @foreach (var l in _lineList)
                 {
                     <option value="@l.LineID">@l.LineID@(l.LineName != null ? $" {l.LineName}" : "")</option>
                 }
             </select>
             <select class="ames-input" style="width:130px;" @bind="_fStatus">
-                <option value="">@L["PP.WorkOrder.Filter.AllStatus"]</option>
+                <option value="">@L["Filter.All"]</option>
                 <option value="Draft">Draft</option>
                 <option value="Planned">Planned</option>
                 <option value="Released">Released</option>
@@ -103,7 +104,7 @@
                     <tr>
                         <td class="code">@w.WoNumber</td>
                         <td title="@w.ItemNo">@(w.ItemName ?? w.ItemNo)</td>
-                        <td class="code dim">@w.LineId</td>
+                        <td class="code dim">@(w.RouteLines ?? "—")</td>
                         <td style="text-align:right;">@w.OrderQty.ToString("N0")</td>
                         <td class="dim">@(w.DueDate?.ToString("yyyy-MM-dd") ?? "—")</td>
                         <td><span class="pill @stCls">@w.Status</span></td>
@@ -137,7 +138,7 @@
 
     protected override void OnInitialized()
     {
-        try { _lineList = Md.ListLines(); } catch { }
+        try { _lineList = MD.ListLines(); } catch { }
         Reload();
     }
 
@@ -160,14 +161,15 @@
     {
         var result = await Dialog.OpenAsync<WoReleaseLineDialog>(
             $"{L["PP.WoRelease.Btn.Release"].Value} · {w.WoNumber}",
-            new Dictionary<string, object?> { ["CurrentLineId"] = w.LineId });
+            new Dictionary<string, object?> { ["WoId"] = w.WoId },
+            new DialogOptions { Width = "640px" });
         if (result is not WoReleaseLineDialog.Result r) return;
 
         try
         {
-            var auth  = await Auth.GetAuthenticationStateAsync();
+            var auth  = await AuthPrvd.GetAuthenticationStateAsync();
             var actor = auth.User.Identity?.Name ?? "system";
-            var n = Pp.ReleaseWo(w.WoId, r.LineId, actor);
+            var n = Wos.ReleaseWo(w.WoId, r.Steps, actor);
             if (n > 0) ShowMsg(string.Format(L["PP.WoRelease.Ok.Released"].Value, w.WoNumber), false);
             Reload();
         }

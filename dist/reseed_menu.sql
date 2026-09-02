@@ -1,5 +1,9 @@
--- SYS_Screen 전체 재시드 (TRUNCATE + INSERT)
--- ModuleCode='WEB', ProcessCode = 기능 영역 (PP/MNT/RPT/MD/SYS)
+-- ============================================================
+-- Seed: SYS_Screen (full reseed)
+-- Regenerated: 2026-07-24 from live DB AMES_DEV
+-- ModuleCode=WEB, ProcessCode=PP/MNT/RPT/MD/SYS, SubProcessCode=MD subgroup
+-- SortOrder = per-ProcessCode menu order (MD grouped by SubProcessCode)
+-- ============================================================
 
 USE AMES_DEV;
 GO
@@ -7,96 +11,79 @@ GO
 TRUNCATE TABLE dbo.SYS_Screen;
 GO
 
--- PP · 생산계획
-INSERT INTO dbo.SYS_Screen (ScreenCode,ModuleCode,ProcessCode,ScreenName,ScreenNameEn,HRef,LidLabel,SortOrder,IsVisible,CreatedBy) VALUES
-  ('PP-01', 'WEB','PP',N'수요 예측',        N'Forecast',          'pp/forecast',         'PP-01',   1,1,'admin'),
-  ('PP-02', 'WEB','PP',N'공급계획 가져오기', N'Supply Plan Import','pp/supply-plan-import','PP-02',  2,1,'admin'),
-  ('PP-03', 'WEB','PP',N'계획 확정',        N'Plan Confirm',      'pp/plan-confirm',     'PP-03',   3,1,'admin'),
-  ('PP-04', 'WEB','PP',N'작업 지시',        N'Work Order',        'pp/work-order',       'PP-04',   4,1,'admin'),
-  ('PP-05', 'WEB','PP',N'MRP',              N'MRP',               'pp/mrp',              'PP-05',   5,1,'admin'),
-  ('PP-06', 'WEB','PP',N'구매 요청',        N'Purchase Req',      'pp/purchase-req',     'PP-06',   6,1,'admin'),
-  ('PP-07', 'WEB','PP',N'작업 지시 릴리스', N'WO Release',        'pp/wo-release',       'PP-07',   7,1,'admin'),
-  ('PP-CAL','WEB','PP',N'캘린더',           N'Calendar',          'pp/calendar',         'CAL',     8,1,'admin'),
-  ('PP-LSB','WEB','PP',N'라인 일정',        N'Line Schedule',     'pp/line-schedule',    'LSB',     9,1,'admin'),
-  ('PP-OEE','WEB','PP',N'라인 OEE',         N'Line OEE',          'pp/oee',              'OEE',    10,1,'admin'),
-  ('PP-DTL','WEB','PP',N'비가동 이력',      N'Downtime Log',      'pp/downtime',         'DTL',    11,1,'admin'),
-  ('PP-ODM','WEB','PP',N'비가동 모니터',    N'Downtime Monitor',  'pp/downtime-monitor', 'ODM',    12,1,'admin'),
-  ('PP-OTD','WEB','PP',N'납기 준수율',      N'On-Time Delivery',  'pp/delivery',         'OTD',    13,1,'admin');
-GO
-
--- MNT · 설비보전
-INSERT INTO dbo.SYS_Screen (ScreenCode,ModuleCode,ProcessCode,ScreenName,ScreenNameEn,HRef,LidLabel,SortOrder,IsVisible,CreatedBy) VALUES
-  ('MNT-01','WEB','MNT',N'설비 카드',   N'Equipment Card',   'mnt/equipment-card','MNT-01',1,1,'admin'),
-  ('MNT-02','WEB','MNT',N'고장 등록',   N'Failure Register', 'mnt/failure',       'MNT-02',2,1,'admin'),
-  ('MNT-03','WEB','MNT',N'OEE 분석',    N'OEE Analysis',     'mnt/oee-analysis',  'MNT-03',3,1,'admin'),
-  ('MNT-04','WEB','MNT',N'금형 관리',   N'Mold Management',  'mnt/mold',          'MNT-04',4,1,'admin'),
-  ('MNT-05','WEB','MNT',N'PM 일정',     N'PM Schedule',      'mnt/pm-schedule',   'MNT-05',5,1,'admin'),
-  ('MNT-06','WEB','MNT',N'비가동 이력', N'Downtime Log',     'mnt/downtime',      'MNT-06',6,1,'admin'),
-  ('MNT-07','WEB','MNT',N'작업 지시',   N'Work Order',       'mnt/work-order',    'MNT-07',7,1,'admin'),
-  ('MNT-08','WEB','MNT',N'예비 부품',   N'Spare Parts',      'mnt/spare-parts',   'MNT-08',8,1,'admin'),
-  ('MNT-09','WEB','MNT',N'대시보드',    N'Dashboard',        'mnt/dashboard',     'MNT-09',9,1,'admin');
-GO
-
--- RPT · 보고서
-INSERT INTO dbo.SYS_Screen (ScreenCode,ModuleCode,ProcessCode,ScreenName,ScreenNameEn,HRef,LidLabel,SortOrder,IsVisible,CreatedBy) VALUES
-  ('RPT-01','WEB','RPT',N'일별 생산 실적', N'Daily Production',   'rpt/daily-production',   'RPT-01', 1,1,'admin'),
-  ('RPT-02','WEB','RPT',N'불량 파레토',   N'Defect Pareto',      'rpt/defect-pareto',      'RPT-02', 2,1,'admin'),
-  ('RPT-03','WEB','RPT',N'일별 출하 현황',N'Daily Shipment',     'rpt/daily-shipment',     'RPT-03', 3,1,'admin'),
-  ('RPT-04','WEB','RPT',N'납기 준수율',   N'On-Time Delivery',   'rpt/on-time',            'RPT-04', 4,1,'admin'),
-  ('RPT-05','WEB','RPT',N'재고 현황',     N'Inventory Status',   'rpt/inventory',          'RPT-05', 5,1,'admin'),
-  ('RPT-06','WEB','RPT',N'설비 OEE',      N'Equipment OEE',      'rpt/equipment-oee',      'RPT-06', 6,1,'admin'),
-  ('RPT-07','WEB','RPT',N'월간 KPI',      N'Monthly KPI',        'rpt/monthly-kpi',        'RPT-07', 7,1,'admin'),
-  ('RPT-08','WEB','RPT',N'계획 준수율',   N'Schedule Adherence', 'rpt/schedule-adherence', 'RPT-08', 8,1,'admin'),
-  ('RPT-09','WEB','RPT',N'리포트 센터',   N'Report Center',      'rpt/report-center',      'RPT-09', 9,1,'admin'),
-  ('RPT-10','WEB','RPT',N'리포트 빌더',   N'Report Builder',     'rpt/report-builder',     'RPT-10',10,1,'admin');
-GO
-
--- MD · 마스터데이터
-INSERT INTO dbo.SYS_Screen (ScreenCode,ModuleCode,ProcessCode,SubProcessCode,ScreenName,ScreenNameEn,HRef,LidLabel,SortOrder,IsVisible,CreatedBy) VALUES
-  ('MD-001','WEB','MD','Rp',N'공장/라인 기준정보 관리',     N'Factory / Line Master',          'md/rp/line',                'MD-001', 1,1,'admin'),
-  ('MD-002','WEB','MD','Rp',N'공정 기준정보 관리',          N'Process / Station Master',       'md/rp/station',             'MD-002', 2,1,'admin'),
-  ('MD-003','WEB','MD','Fd',N'제품 기준정보 관리',          N'Product Item Master',            'md/fd/items',               'MD-003', 3,1,'admin'),
-  ('MD-004','WEB','MD','Fd',N'BOM 관리',                    N'BOM Management',                 'md/fd/bom',                 'MD-004', 4,1,'admin'),
-  ('MD-005','WEB','MD','Rp',N'BOP 관리',                    N'BOP Management',                 'md/rp/bop',                 'MD-005', 5,1,'admin'),
-  ('MD-006','WEB','MD','Rp',N'Work Center 관리',            N'Work Center Management',         'md/rp/work-center',         'MD-006', 6,1,'admin'),
-  ('MD-007','WEB','MD','Re',N'금형 기준정보 관리',          N'Mold Master',                    'md/re/mold',                'MD-007', 7,1,'admin'),
-  ('MD-008','WEB','MD','Rm',N'원부자재 기준정보 관리',      N'Paint & Fabric Master',          'md/rm/paint-fabric',        'MD-008', 8,1,'admin'),
-  ('MD-009','WEB','MD','Re',N'공급업체 기준정보 관리',      N'Vendor Master',                  'md/re/vendor',              'MD-009', 9,1,'admin'),
-  ('MD-010','WEB','MD','Ql',N'고객사 기준정보 관리',        N'Customer Master',                'md/ql/customer',            'MD-010',10,1,'admin'),
-  ('MD-011','WEB','MD','Ql',N'출하처 기준정보 관리',        N'Shipment Destination Master',    'md/ql/shipment-dest',       'MD-011',11,1,'admin'),
-  ('MD-012','WEB','MD','Ql',N'불량유형 기준정보 관리',      N'Defect Code Master',             'md/ql/defect-code',         'MD-012',12,1,'admin'),
-  ('MD-013','WEB','MD','Ql',N'불량원인 기준정보 관리',      N'Defect Cause Master',            'md/ql/defect-cause',        'MD-013',13,1,'admin'),
-  ('MD-014','WEB','MD','Re',N'설비 기준정보 관리',          N'Equipment Master',               'md/re/equipment',           'MD-014',14,1,'admin'),
-  ('MD-015','WEB','MD','Re',N'건조로 기준정보 관리',        N'Oven Master',                    'md/re/oven',                'MD-015',15,1,'admin'),
-  ('MD-016','WEB','MD','Re',N'지그 기준정보 관리',          N'Jig Master',                     'md/re/jig',                 'MD-016',16,1,'admin'),
-  ('MD-017','WEB','MD','Ql',N'검사기준 기준정보 관리',      N'Inspection Standard Master',     'md/ql/inspection-standard', 'MD-017',17,1,'admin'),
-  ('MD-018','WEB','MD','Fd',N'창고/로케이션 기준정보 관리', N'Warehouse Location Master',      'md/fd/location',            'MD-018',18,1,'admin'),
-  ('MD-019','WEB','MD','Fd',N'단위 관리',                   N'UOM Master',                     'md/fd/uom',                 'MD-019',19,1,'admin'),
-  ('MD-020','WEB','MD','Rm',N'RFID 태그 관리',              N'RFID Tag Master',                'md/rm/rfid-tag',            'MD-020',20,1,'admin'),
-  ('MD-021','WEB','MD','Rm',N'RAL 색상 관리',               N'RAL Color Master',               'md/rm/ral-color',           'MD-021',21,1,'admin'),
-  ('MD-022','WEB','MD','Rm',N'RFID 리더 관리',              N'RFID Reader Master',             'md/rm/rfid-reader',         'MD-022',22,1,'admin'),
-  ('MD-023','WEB','MD','Ql',N'포장 사양 관리',              N'Packaging Spec Master',          'md/ql/packaging-spec',      'MD-023',23,1,'admin'),
-  ('MD-024','WEB','MD','Ql',N'라벨 템플릿 관리',            N'Label Template Master',          'md/ql/label-template',      'MD-024',24,1,'admin'),
-  ('MD-025','WEB','MD','Re',N'사유 코드 관리',              N'Reason Code Master',             'md/re/reason-code',         'MD-025',25,1,'admin'),
-  ('MD-026','WEB','MD','Re',N'예비품 마스터',               N'Spare Part Master',              'md/re/spare-part',          'MD-026',26,1,'admin'),
-  ('MD-027','WEB','MD','Rp',N'PM 템플릿 관리',              N'PM Template Master',             'md/rp/pm-template',         'MD-027',27,1,'admin'),
-  ('MD-028','WEB','MD','Rp',N'라인 시간 패턴 관리',         N'Line Time Pattern Master',       'md/rp/line-time-pattern',   'MD-028',28,1,'admin'),
-  ('MD-029','WEB','MD','Ql',N'레시피 관리',                 N'Recipe Master',                  'md/ql/recipe',              'MD-029',29,1,'admin'),
-  ('MD-030','WEB','MD','Ql',N'코드 기준정보 관리',          N'Common Code Master',             'md/ql/common-code',         'MD-030',30,1,'admin');
-GO
-
--- SYS · 시스템
-INSERT INTO dbo.SYS_Screen (ScreenCode,ModuleCode,ProcessCode,ScreenName,ScreenNameEn,HRef,LidLabel,SortOrder,IsVisible,CreatedBy) VALUES
-  ('SYS-001','WEB','SYS',N'사용자 관리',           N'User Management',          'sys/users',         'SYS-001', 1,1,'admin'),
-  ('SYS-002','WEB','SYS',N'역할 관리',             N'Role Management',          'sys/roles',         'SYS-002', 2,1,'admin'),
-  ('SYS-003','WEB','SYS',N'화면 관리',             N'Screen Management',        'sys/screen',        'SYS-003', 3,1,'admin'),
-  ('SYS-004','WEB','SYS',N'역할/권한 관리 (RBAC)', N'Role & Permission (RBAC)', 'sys/rbac',          'SYS-004', 4,1,'admin'),
-  ('SYS-005','WEB','SYS',N'공장 캘린더',           N'Factory Calendar',         'sys/calendar',      'SYS-005', 5,1,'admin'),
-  ('SYS-006','WEB','SYS',N'인터페이스 모니터',     N'Interface Monitor',        'sys/interfaces',    'SYS-006', 6,1,'admin'),
-  ('SYS-007','WEB','SYS',N'감사 로그',             N'Audit Log',                'sys/audit',         'SYS-007', 7,1,'admin'),
-  ('SYS-008','WEB','SYS',N'알림 관리',             N'Notification Management',  'sys/notifications', 'SYS-008', 8,1,'admin'),
-  ('SYS-009','WEB','SYS',N'시스템 설정',           N'System Configuration',     'sys/config',        'SYS-009', 9,1,'admin'),
-  ('SYS-010','WEB','SYS',N'시스템 상태',           N'System Health',            'sys/health',        'SYS-010',10,1,'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-001', 'WEB', 'PP', NULL, N'수요 예측', N'Forecast', 'pp/forecast', 'PP-001', 1, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-002', 'WEB', 'PP', NULL, N'공급계획 가져오기', N'Supply Plan Import', 'pp/supply-plan-import', 'PP-002', 2, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-003', 'WEB', 'PP', NULL, N'계획 확정', N'Plan Confirm', 'pp/plan-confirm', 'PP-003', 3, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-004', 'WEB', 'PP', NULL, N'작업 지시', N'Work Order', 'pp/work-order', 'PP-004', 4, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-005', 'WEB', 'PP', NULL, N'MRP', N'MRP', 'pp/mrp', 'PP-005', 5, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-006', 'WEB', 'PP', NULL, N'구매 요청', N'Purchase Req', 'pp/purchase-req', 'PP-006', 6, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-007', 'WEB', 'PP', NULL, N'작업 지시 릴리스', N'WO Release', 'pp/wo-release', 'PP-007', 7, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-CAL', 'WEB', 'PP', NULL, N'캘린더', N'Calendar', 'pp/calendar', 'CAL', 8, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-LSB', 'WEB', 'PP', NULL, N'라인 일정', N'Line Schedule', 'pp/line-schedule', 'LSB', 9, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-OEE', 'WEB', 'PP', NULL, N'라인 OEE', N'Line OEE', 'pp/oee', 'OEE', 10, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-DTL', 'WEB', 'PP', NULL, N'비가동 이력', N'Downtime Log', 'pp/downtime', 'DTL', 11, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-ODM', 'WEB', 'PP', NULL, N'비가동 모니터', N'Downtime Monitor', 'pp/downtime-monitor', 'ODM', 12, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-OTD', 'WEB', 'PP', NULL, N'납기 준수율', N'On-Time Delivery', 'pp/delivery', 'OTD', 13, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MNT-001', 'WEB', 'MNT', NULL, N'설비 카드', N'Equipment Card', 'mnt/equipment-card', 'MNT-001', 1, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MNT-002', 'WEB', 'MNT', NULL, N'고장 등록', N'Failure Register', 'mnt/failure', 'MNT-002', 2, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MNT-003', 'WEB', 'MNT', NULL, N'OEE 분석', N'OEE Analysis', 'mnt/oee-analysis', 'MNT-003', 3, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MNT-004', 'WEB', 'MNT', NULL, N'금형 관리', N'Mold Management', 'mnt/mold', 'MNT-004', 4, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MNT-005', 'WEB', 'MNT', NULL, N'PM 일정', N'PM Schedule', 'mnt/pm-schedule', 'MNT-005', 5, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MNT-006', 'WEB', 'MNT', NULL, N'비가동 이력', N'Downtime Log', 'mnt/downtime', 'MNT-006', 6, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MNT-007', 'WEB', 'MNT', NULL, N'작업 지시', N'Work Order', 'mnt/work-order', 'MNT-007', 7, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MNT-008', 'WEB', 'MNT', NULL, N'예비 부품', N'Spare Parts', 'mnt/spare-parts', 'MNT-008', 8, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MNT-009', 'WEB', 'MNT', NULL, N'대시보드', N'Dashboard', 'mnt/dashboard', 'MNT-009', 9, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-001', 'WEB', 'RPT', NULL, N'일별 생산 실적', N'Daily Production', 'rpt/daily-production', 'RPT-001', 1, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-002', 'WEB', 'RPT', NULL, N'불량 파레토', N'Defect Pareto', 'rpt/defect-pareto', 'RPT-002', 2, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-003', 'WEB', 'RPT', NULL, N'일별 출하 현황', N'Daily Shipment', 'rpt/daily-shipment', 'RPT-003', 3, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-004', 'WEB', 'RPT', NULL, N'납기 준수율', N'On-Time Delivery', 'rpt/on-time', 'RPT-004', 4, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-005', 'WEB', 'RPT', NULL, N'재고 현황', N'Inventory Status', 'rpt/inventory', 'RPT-005', 5, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-006', 'WEB', 'RPT', NULL, N'설비 OEE', N'Equipment OEE', 'rpt/equipment-oee', 'RPT-006', 6, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-007', 'WEB', 'RPT', NULL, N'월간 KPI', N'Monthly KPI', 'rpt/monthly-kpi', 'RPT-007', 7, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-008', 'WEB', 'RPT', NULL, N'계획 준수율', N'Schedule Adherence', 'rpt/schedule-adherence', 'RPT-008', 8, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-009', 'WEB', 'RPT', NULL, N'리포트 센터', N'Report Center', 'rpt/report-center', 'RPT-009', 9, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('RPT-010', 'WEB', 'RPT', NULL, N'리포트 빌더', N'Report Builder', 'rpt/report-builder', 'RPT-010', 10, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-003', 'WEB', 'MD', 'FD', N'제품 기준정보 관리', N'Product Item Master', 'md/fd/items', 'MD-003', 1, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-004', 'WEB', 'MD', 'FD', N'BOM 관리', N'BOM Management', 'md/fd/bom', 'MD-004', 2, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-018', 'WEB', 'MD', 'FD', N'창고/로케이션 기준정보 관리', N'Warehouse Location Master', 'md/fd/location', 'MD-018', 3, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-019', 'WEB', 'MD', 'FD', N'단위 관리', N'UOM Master', 'md/fd/uom', 'MD-019', 4, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-001', 'WEB', 'MD', 'RP', N'공장/라인 기준정보 관리', N'Factory / Line Master', 'md/rp/line', 'MD-001', 5, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-006', 'WEB', 'MD', 'RP', N'Work Center 관리', N'Work Center Management', 'md/rp/work-center', 'MD-006', 6, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-002', 'WEB', 'MD', 'RP', N'공정 기준정보 관리', N'Station Master', 'md/rp/station', 'MD-002', 7, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-031', 'WEB', 'MD', 'RP', N'라우팅 기준정보 관리', N'Routing Master', 'md/rp/routing', 'MD-031', 8, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-005', 'WEB', 'MD', 'RP', N'BOP 관리', N'BOP Management', 'md/rp/bop', 'MD-005', 9, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-027', 'WEB', 'MD', 'RP', N'PM 템플릿 관리', N'PM Template Master', 'md/rp/pm-template', 'MD-027', 10, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-028', 'WEB', 'MD', 'RP', N'라인 시간 패턴 관리', N'Line Time Pattern Master', 'md/rp/line-time-pattern', 'MD-028', 11, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-007', 'WEB', 'MD', 'RE', N'금형 기준정보 관리', N'Mold Master', 'md/re/mold', 'MD-007', 12, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-009', 'WEB', 'MD', 'RE', N'공급업체 기준정보 관리', N'Vendor Master', 'md/re/vendor', 'MD-009', 13, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-014', 'WEB', 'MD', 'RE', N'설비 기준정보 관리', N'Equipment Master', 'md/re/equipment', 'MD-014', 14, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-015', 'WEB', 'MD', 'RE', N'건조로 기준정보 관리', N'Oven Master', 'md/re/oven', 'MD-015', 15, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-016', 'WEB', 'MD', 'RE', N'지그 기준정보 관리', N'Jig Master', 'md/re/jig', 'MD-016', 16, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-025', 'WEB', 'MD', 'RE', N'사유 코드 관리', N'Reason Code Master', 'md/re/reason-code', 'MD-025', 17, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-026', 'WEB', 'MD', 'RE', N'예비품 마스터', N'Spare Part Master', 'md/re/spare-part', 'MD-026', 18, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-008', 'WEB', 'MD', 'RM', N'원부자재 기준정보 관리', N'Paint & Fabric Master', 'md/rm/paint-fabric', 'MD-008', 19, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-020', 'WEB', 'MD', 'RM', N'RFID 태그 관리', N'RFID Tag Master', 'md/rm/rfid-tag', 'MD-020', 20, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-021', 'WEB', 'MD', 'RM', N'RAL 색상 관리', N'RAL Color Master', 'md/rm/ral-color', 'MD-021', 21, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-022', 'WEB', 'MD', 'RM', N'RFID 리더 관리', N'RFID Reader Master', 'md/rm/rfid-reader', 'MD-022', 22, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-010', 'WEB', 'MD', 'QL', N'고객사 기준정보 관리', N'Customer Master', 'md/ql/customer', 'MD-010', 23, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-011', 'WEB', 'MD', 'QL', N'출하처 기준정보 관리', N'Shipment Destination Master', 'md/ql/shipment-dest', 'MD-011', 24, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-012', 'WEB', 'MD', 'QL', N'불량유형 기준정보 관리', N'Defect Code Master', 'md/ql/defect-code', 'MD-012', 25, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-013', 'WEB', 'MD', 'QL', N'불량원인 기준정보 관리', N'Defect Cause Master', 'md/ql/defect-cause', 'MD-013', 26, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-017', 'WEB', 'MD', 'QL', N'검사기준 기준정보 관리', N'Inspection Standard Master', 'md/ql/inspection-standard', 'MD-017', 27, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-023', 'WEB', 'MD', 'QL', N'포장 사양 관리', N'Packaging Spec Master', 'md/ql/packaging-spec', 'MD-023', 28, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-024', 'WEB', 'MD', 'QL', N'라벨 템플릿 관리', N'Label Template Master', 'md/ql/label-template', 'MD-024', 29, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-029', 'WEB', 'MD', 'QL', N'레시피 관리', N'Recipe Master', 'md/ql/recipe', 'MD-029', 30, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('MD-030', 'WEB', 'MD', 'QL', N'코드 기준정보 관리', N'Common Code Master', 'md/ql/common-code', 'MD-030', 31, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-001', 'WEB', 'SYS', NULL, N'사용자 관리', N'User Management', 'sys/users', 'SYS-001', 1, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-002', 'WEB', 'SYS', NULL, N'역할 관리', N'Role Management', 'sys/roles', 'SYS-002', 2, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-003', 'WEB', 'SYS', NULL, N'화면 관리', N'Screen Management', 'sys/screens', 'SYS-003', 3, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-004', 'WEB', 'SYS', NULL, N'역할/권한 관리 (RBAC)', N'Role & Permission (RBAC)', 'sys/rbac', 'SYS-004', 4, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-005', 'WEB', 'SYS', NULL, N'공장 캘린더', N'Factory Calendar', 'sys/calendar', 'SYS-005', 5, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-006', 'WEB', 'SYS', NULL, N'인터페이스 모니터', N'Interface Monitor', 'sys/interfaces', 'SYS-006', 6, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-007', 'WEB', 'SYS', NULL, N'감사 로그', N'Audit Log', 'sys/audit', 'SYS-007', 7, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-008', 'WEB', 'SYS', NULL, N'알림 관리', N'Notification Management', 'sys/notifications', 'SYS-008', 8, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-009', 'WEB', 'SYS', NULL, N'시스템 설정', N'System Configuration', 'sys/config', 'SYS-009', 9, 1, 'admin');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('SYS-010', 'WEB', 'SYS', NULL, N'시스템 상태', N'System Health', 'sys/health', 'SYS-010', 10, 1, 'admin');
 GO
 
 SELECT COUNT(*) AS ScreenRows FROM dbo.SYS_Screen;

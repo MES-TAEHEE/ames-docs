@@ -1,0 +1,11 @@
+@page "/wh/locations"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject NavigationManager Navigation
+
+@code {
+    protected override void OnInitialized()
+    {
+        Navigation.NavigateTo("/md/fd/location", replace: true);
+    }
+}

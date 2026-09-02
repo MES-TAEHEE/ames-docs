@@ -158,6 +158,33 @@ WHEN NOT MATCHED THEN
 PRINT CONCAT('SYS_RolePermission Admin FULL(', @FullLevel, '): ', @@ROWCOUNT, '행 처리됨');
 GO
 
+-- ── Step 3.5: admin@ames.local Identity 계정 직접 생성 ────────────────────
+-- Web 앱 재시작 없이 rebuild 시드만으로 바로 로그인 가능하게 한다.
+-- PasswordHash 는 ASP.NET Core PasswordHasher<T> V3(PBKDF2-HMAC-SHA512, 100k)로
+-- 미리 생성한 'Dev2026!' 해시 — salt/파라미터 자체포함이라 Web 이 그대로 검증한다.
+-- (해시 재생성: net10 콘솔 + FrameworkReference Microsoft.AspNetCore.App,
+--  new PasswordHasher<object>().HashPassword(new(), "Dev2026!"))
+
+IF NOT EXISTS (SELECT 1 FROM dbo.AspNetUsers WHERE NormalizedEmail = 'ADMIN@AMES.LOCAL')
+BEGIN
+    INSERT INTO dbo.AspNetUsers
+        (Id, UserName, NormalizedUserName, Email, NormalizedEmail, EmailConfirmed,
+         PasswordHash, SecurityStamp, ConcurrencyStamp,
+         PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnabled, AccessFailedCount)
+    VALUES
+        (LOWER(CONVERT(NVARCHAR(450), NEWID())),
+         'admin@ames.local', 'ADMIN@AMES.LOCAL',
+         'admin@ames.local', 'ADMIN@AMES.LOCAL', 1,
+         'AQAAAAIAAYagAAAAEHKykSfJZ+8O5k9f5x35+nHkkITXaOWEs5aVl02vQ+Y/CwO6PCh/gIQJUn9cNv+J6w==',
+         CONVERT(NVARCHAR(MAX), NEWID()),
+         CONVERT(NVARCHAR(MAX), NEWID()),
+         0, 0, 1, 0);
+    PRINT 'admin@ames.local 계정 생성 완료 (Dev2026!)';
+END
+ELSE
+    PRINT 'admin@ames.local 계정 이미 존재';
+GO
+
 -- ── Step 4: admin@ames.local 계정에 Admin Role 부여 ──────────────────────
 
 DECLARE @UserId    NVARCHAR(450);
@@ -196,7 +223,5 @@ ORDER  BY rp.ModuleCode, rp.ScreenCode;
 SELECT COUNT(*) AS [Admin FULL 권한 수]
 FROM   dbo.SYS_RolePermission
 WHERE  RoleName = 'Admin'
-  AND  PermissionLevel = (SELECT CAST(SUM(CAST(CodeValue AS INT)) AS VARCHAR(10))
-                          FROM   dbo.MD_CodeItem
-                          WHERE  GroupCode = 'PERMISSION_LEVEL' AND UseFlag = 1);
+  AND  PermissionLevel = 'REA';   -- PermissionService 문자 모델(R/E/A). 구 숫자 CAST 모델 폐기.
 GO

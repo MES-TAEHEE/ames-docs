@@ -8,10 +8,14 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Confirm email</PageTitle>
+<PageTitle>Confirm email · A-MES</PageTitle>
 
-<h1>Confirm email</h1>
-<StatusMessage Message="@statusMessage" />
+<AuthCard Sub="CONFIRM EMAIL">
+    <div class="ames-auth-hint" style="text-align:center;line-height:1.9;">@statusMessage</div>
+    <div class="ames-auth-meta">
+        <a href="/Account/Login">로그인으로 이동 →</a>
+    </div>
+</AuthCard>
 
 @code {
     private string? statusMessage;

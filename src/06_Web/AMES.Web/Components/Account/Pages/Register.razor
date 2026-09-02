@@ -14,48 +14,81 @@
 @inject ILogger<Register> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject AMES.Data.Repositories.SysRepository Sys
 
-<PageTitle>Register</PageTitle>
+<PageTitle>Register · A-MES</PageTitle>
 
-<h1>Register</h1>
+<div class="ames-auth-page">
+    <div class="ames-auth-bg-grid"></div>
 
-<div class="row">
-    <div class="col-lg-6">
-        <StatusMessage Message="@Message" />
-        <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
-            <DataAnnotationsValidator />
-            <h2>Create a new account.</h2>
-            <hr />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <label for="Input.Email">Email</label>
-                <ValidationMessage For="() => Input.Email" class="text-danger" />
+    <div class="ames-auth-card">
+        <div class="ames-auth-brand">
+            <div class="ames-auth-logo">A-MES</div>
+            <div class="ames-auth-sub">OFFICE WEB · REGISTER</div>
+        </div>
+
+        @if (_registered)
+        {
+            <div class="ames-auth-hint" style="line-height:1.9;text-align:center;">
+                ✅ 가입 신청이 접수되었습니다.<br />
+                ① <b>이메일 인증</b> 후 ② <b>관리자 승인</b>이 되면 로그인할 수 있습니다.
             </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="Input.Password">Password</label>
-                <ValidationMessage For="() => Input.Password" class="text-danger" />
+            @if (_confirmLink is not null)
+            {
+                <a class="ames-auth-submit" href="@_confirmLink"
+                   style="display:block;text-align:center;text-decoration:none;margin-top:12px;">이메일 인증하기  →</a>
+                <div class="ames-auth-vm" style="margin-top:6px;text-align:center;">개발 환경: 실제 메일이 발송되지 않아 위 버튼으로 인증합니다.</div>
+            }
+            else
+            {
+                <div class="ames-auth-hint" style="margin-top:10px;text-align:center;">메일함에서 인증 링크를 확인해 주세요.</div>
+            }
+            <div class="ames-auth-meta">
+                <a href="/Account/Login">← Back to sign in</a>
             </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="Input.ConfirmPassword">Confirm Password</label>
-                <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
+        }
+        else
+        {
+            @if (!string.IsNullOrEmpty(Message))
+            {
+                <div class="ames-auth-error">✕ @Message</div>
+            }
+
+            <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register"
+                      class="ames-auth-form" Enhance="false">
+                <DataAnnotationsValidator />
+
+                <label class="ames-auth-label">EMAIL</label>
+                <InputText @bind-Value="Input.Email" class="ames-auth-input"
+                           autocomplete="username" placeholder="name@example.com" />
+                <ValidationMessage For="() => Input.Email" class="ames-auth-vm" />
+
+                <label class="ames-auth-label">PASSWORD</label>
+                <InputText type="password" @bind-Value="Input.Password" class="ames-auth-input"
+                           autocomplete="new-password" placeholder="••••••••" />
+                <ValidationMessage For="() => Input.Password" class="ames-auth-vm" />
+
+                <label class="ames-auth-label">CONFIRM PASSWORD</label>
+                <InputText type="password" @bind-Value="Input.ConfirmPassword" class="ames-auth-input"
+                           autocomplete="new-password" placeholder="••••••••" />
+                <ValidationMessage For="() => Input.ConfirmPassword" class="ames-auth-vm" />
+
+                <button type="submit" class="ames-auth-submit">CREATE ACCOUNT  →</button>
+            </EditForm>
+
+            <div class="ames-auth-meta">
+                <a href="/Account/Login">← Back to sign in</a>
             </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
-        </EditForm>
+        }
     </div>
-    <div class="col-lg-4 col-lg-offset-2">
-        <section>
-            <h3>Use another service to register.</h3>
-            <hr />
-            <ExternalLoginPicker />
-        </section>
-    </div>
+
+    <div class="ames-auth-foot">A-MES · EOS · 2026</div>
 </div>
 
 @code {
     private IEnumerable<IdentityError>? identityErrors;
+    private bool _registered;      // 가입 접수(이메일 인증+관리자 승인 대기) 화면 표시
+    private string? _confirmLink;  // 개발환경(NoOp 발신자)에서 화면에 노출할 이메일 인증 링크
 
     private InputModel _input = new();
     [SupplyParameterFromForm]
@@ -81,26 +114,23 @@
             return;
         }
 
-        Logger.LogInformation("User created a new account with password.");
+        Logger.LogInformation("User registered (email verification + admin approval required).");
 
         var userId = await UserManager.GetUserIdAsync(user);
+        // 관리자 승인 전까지 승인대기(PENDING) 프로필 생성 — 자동 로그인하지 않음.
+        try { Sys.CreatePendingProfile(userId, Input.Email, Input.Email); }
+        catch (Exception ex) { Logger.LogError(ex, "Pending profile creation failed for {UserId}", userId); }
+
+        // 이메일 자기인증 링크 생성·발송 (개발환경은 NoOp 발신자 → 화면에 링크 노출)
         var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
         code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
         var callbackUrl = NavigationManager.GetUriWithQueryParameters(
             NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
             new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
-
         await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
 
-        if (UserManager.Options.SignIn.RequireConfirmedAccount)
-        {
-            RedirectManager.RedirectTo(
-                "Account/RegisterConfirmation",
-                new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
-        }
-
-        await SignInManager.SignInAsync(user, isPersistent: false);
-        RedirectManager.RedirectTo(ReturnUrl);
+        _confirmLink = EmailSender is IdentityNoOpEmailSender ? callbackUrl : null;
+        _registered  = true;
     }
 
     private ApplicationUser CreateUser()
@@ -133,7 +163,8 @@
         public string Email { get; set; } = "";
 
         [Required]
-        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        // 최소 길이는 SYS_Config(PASSWORD_MIN_LEN) 기준 서버 검증(ConfigPasswordValidator)이 관장
+        [StringLength(100, ErrorMessage = "The {0} must be at most {1} characters long.")]
         [DataType(DataType.Password)]
         [Display(Name = "Password")]
         public string Password { get; set; } = "";

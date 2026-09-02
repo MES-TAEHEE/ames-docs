@@ -125,6 +125,18 @@ public sealed class MasterDataRepository
         return (int)cmd.ExecuteScalar()! > 0;
     }
 
+    public record CommonCodeKpiRow(int TotalCodes, int ActiveCodes);
+
+    // 상단 KPI 집계 (전체 MD_CodeItem 기준) — 전체 코드 수 · 활성 코드 수
+    public CommonCodeKpiRow CommonCodeKpi() => Query("""
+        SELECT COUNT(*)                                                AS TotalCodes,
+               SUM(CASE WHEN ISNULL(UseFlag,1)=1 THEN 1 ELSE 0 END)    AS ActiveCodes
+        FROM   dbo.MD_CodeItem
+        """, r => new CommonCodeKpiRow(
+            r["TotalCodes"]  is int t ? t : 0,
+            r["ActiveCodes"] is int a ? a : 0))
+        .FirstOrDefault() ?? new CommonCodeKpiRow(0, 0);
+
     public void InsertCodeItem(string codeId, string groupCode, string? codeValue,
         string? codeName, string? codeNameEn, int sortOrder,
         string? attribute1, bool useFlag, string? description, string createdBy,
@@ -178,14 +190,14 @@ public sealed class MasterDataRepository
     public List<ItemRow> ListItems(string? search = null)
     {
         var sql = """
-            SELECT ItemNo, ItemName, ItemNameEN, ItemType, ItemCategory, DefaultUOM,
+            SELECT ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM,
                    RoutingType, MinStock, MaxStock, SafetyStock, UnitCost,
-                   CustItemNoSAV, CustItemNoGEO, DrawingNo,
+                   PGN, ALC, DrawingNo,
                    ISNULL(ActiveFlag,1) AS ActiveFlag,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
             FROM   dbo.MD_Item
             """ + (string.IsNullOrWhiteSpace(search) ? "" :
-            " WHERE ItemNo LIKE @S OR ItemName LIKE @S OR ItemNameEN LIKE @S OR ItemCategory LIKE @S") +
+            " WHERE ItemNo LIKE @S OR ItemName LIKE @S OR ItemCategory LIKE @S OR CarType LIKE @S OR PGN LIKE @S OR ALC LIKE @S") +
             " ORDER BY ItemNo";
         var p = string.IsNullOrWhiteSpace(search)
             ? Array.Empty<(string, object?)>()
@@ -193,17 +205,17 @@ public sealed class MasterDataRepository
         return Query(sql, r => new ItemRow(
             r.GetString("ItemNo"),
             r.GetString("ItemName"),
-            r["ItemNameEN"]    as string,
             r["ItemType"]      as string,
             r["ItemCategory"]  as string,
+            r["CarType"]       as string,
             r["DefaultUOM"]    as string,
             r["RoutingType"]   as string,
             r["MinStock"]      is decimal mn  ? mn  : null,
             r["MaxStock"]      is decimal mx  ? mx  : null,
             r["SafetyStock"]   is decimal ss  ? ss  : null,
             r["UnitCost"]      is decimal uc  ? uc  : null,
-            r["CustItemNoSAV"] as string,
-            r["CustItemNoGEO"] as string,
+            r["PGN"]           as string,
+            r["ALC"]           as string,
             r["DrawingNo"]     as string,
             (bool)r["ActiveFlag"],
             r["CreatedBy"]     as string,
@@ -221,46 +233,48 @@ public sealed class MasterDataRepository
         return (int)cmd.ExecuteScalar()! > 0;
     }
 
-    public void InsertItem(string itemNo, string itemName, string? itemNameEn,
-        string? itemType, string? itemCategory, string? defaultUom,
+    public void InsertItem(string itemNo, string itemName,
+        string? itemType, string? itemCategory, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
-        decimal? unitCost, string? custSav, string? custGeo, string? drawingNo,
+        decimal? unitCost, string? pgn, string? alc, string? drawingNo,
         bool activeFlag, string createdBy)
         => Exec("""
             INSERT INTO dbo.MD_Item
-                   (ItemNo,ItemName,ItemNameEN,ItemType,ItemCategory,DefaultUOM,
+                   (ItemNo,ItemName,ItemType,ItemCategory,CarType,DefaultUOM,
                     RoutingType,MinStock,MaxStock,SafetyStock,UnitCost,
-                    CustItemNoSAV,CustItemNoGEO,DrawingNo,ActiveFlag,CreatedBy,CreatedTS)
-            VALUES (@No,@Name,@NameEn,@Type,@Cat,@Uom,
+                    PGN,ALC,DrawingNo,ActiveFlag,CreatedBy,CreatedTS)
+            VALUES (@No,@Name,@Type,@Cat,@Car,@Uom,
                     @Route,@Min,@Max,@Safe,@Cost,
-                    @SAV,@GEO,@Draw,@Active,@By,SYSDATETIME())
+                    @PGN,@ALC,@Draw,@Active,@By,SYSDATETIME())
             """,
-            ("@No",     itemNo),   ("@Name",   itemName),  ("@NameEn", itemNameEn),
-            ("@Type",   itemType), ("@Cat",    itemCategory), ("@Uom", defaultUom),
+            ("@No",     itemNo),   ("@Name",   itemName),
+            ("@Type",   itemType), ("@Cat",    itemCategory), ("@Car", carType),
+            ("@Uom",    defaultUom),
             ("@Route",  routingType), ("@Min", minStock),  ("@Max",    maxStock),
-            ("@Safe",   safetyStock), ("@Cost", unitCost), ("@SAV",    custSav),
-            ("@GEO",    custGeo),  ("@Draw",   drawingNo), ("@Active", activeFlag),
+            ("@Safe",   safetyStock), ("@Cost", unitCost), ("@PGN",    pgn),
+            ("@ALC",    alc),      ("@Draw",   drawingNo), ("@Active", activeFlag),
             ("@By",     createdBy));
 
-    public void UpdateItem(string itemNo, string itemName, string? itemNameEn,
-        string? itemType, string? itemCategory, string? defaultUom,
+    public void UpdateItem(string itemNo, string itemName,
+        string? itemType, string? itemCategory, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
-        decimal? unitCost, string? custSav, string? custGeo, string? drawingNo,
+        decimal? unitCost, string? pgn, string? alc, string? drawingNo,
         bool activeFlag, string modifiedBy)
         => Exec("""
             UPDATE dbo.MD_Item
-            SET    ItemName=@Name, ItemNameEN=@NameEn, ItemType=@Type,
-                   ItemCategory=@Cat, DefaultUOM=@Uom, RoutingType=@Route,
+            SET    ItemName=@Name, ItemType=@Type,
+                   ItemCategory=@Cat, CarType=@Car, DefaultUOM=@Uom, RoutingType=@Route,
                    MinStock=@Min, MaxStock=@Max, SafetyStock=@Safe, UnitCost=@Cost,
-                   CustItemNoSAV=@SAV, CustItemNoGEO=@GEO, DrawingNo=@Draw,
+                   PGN=@PGN, ALC=@ALC, DrawingNo=@Draw,
                    ActiveFlag=@Active, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  ItemNo=@No
             """,
-            ("@No",     itemNo),   ("@Name",   itemName),  ("@NameEn", itemNameEn),
-            ("@Type",   itemType), ("@Cat",    itemCategory), ("@Uom", defaultUom),
+            ("@No",     itemNo),   ("@Name",   itemName),
+            ("@Type",   itemType), ("@Cat",    itemCategory), ("@Car", carType),
+            ("@Uom",    defaultUom),
             ("@Route",  routingType), ("@Min", minStock),  ("@Max",    maxStock),
-            ("@Safe",   safetyStock), ("@Cost", unitCost), ("@SAV",    custSav),
-            ("@GEO",    custGeo),  ("@Draw",   drawingNo), ("@Active", activeFlag),
+            ("@Safe",   safetyStock), ("@Cost", unitCost), ("@PGN",    pgn),
+            ("@ALC",    alc),      ("@Draw",   drawingNo), ("@Active", activeFlag),
             ("@By",     modifiedBy));
 
     public void DeleteItem(string itemNo)
@@ -451,8 +465,15 @@ public sealed class MasterDataRepository
             ("@Scrap", scrapPct), ("@Pos",   position),     ("@Note", note),
             ("@By",    modifiedBy));
 
-    public void DeleteBomLine(string bomId)
-        => Exec("DELETE dbo.MD_Bom WHERE BOMID=@I", ("@I", bomId));
+    // 소프트 삭제 — 물리 삭제 대신 ActiveFlag=0 (재활성화 가능)
+    public void DeleteBomLine(string bomId, string modifiedBy)
+        => Exec("UPDATE dbo.MD_Bom SET ActiveFlag=0, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE BOMID=@I",
+            ("@I", bomId), ("@By", modifiedBy));
+
+    // 소프트 삭제된 라인을 다시 활성화
+    public void ReactivateBomLine(string bomId, string modifiedBy)
+        => Exec("UPDATE dbo.MD_Bom SET ActiveFlag=1, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE BOMID=@I",
+            ("@I", bomId), ("@By", modifiedBy));
 
     // ── Private helpers ──────────────────────────────────────────────────
     private void Exec(string sql, params (string Name, object? Val)[] p)
@@ -483,11 +504,11 @@ public sealed class MasterDataRepository
         string? ModifiedBy, DateTime? ModifiedTS);
 
     public record ItemRow(
-        string ItemNo, string ItemName, string? ItemNameEN,
-        string? ItemType, string? ItemCategory, string? DefaultUOM,
+        string ItemNo, string ItemName,
+        string? ItemType, string? ItemCategory, string? CarType, string? DefaultUOM,
         string? RoutingType,
         decimal? MinStock, decimal? MaxStock, decimal? SafetyStock, decimal? UnitCost,
-        string? CustItemNoSAV, string? CustItemNoGEO, string? DrawingNo,
+        string? PGN, string? ALC, string? DrawingNo,
         bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS,
         string? ModifiedBy, DateTime? ModifiedTS);
@@ -541,15 +562,15 @@ public sealed class MasterDataRepository
             ? new[] { ("@N", (object?)itemNo) }
             : new[] { ("@N", (object?)itemNo), ("@RT", (object?)routingType) };
         return Query($"""
-            SELECT b.BOPID, b.ItemNo, b.RoutingType, b.StepSeq, b.ProcessCode,
-                   b.WorkCenterID, ISNULL(w.WCName,'') AS WCName,
+            SELECT b.BOPID, b.ItemNo, b.RoutingType, b.StepSeq, b.StationCode,
+                   s.StationName, s.StationNameEn,
                    b.StdCycleTime, b.StdSetupTime,
                    ISNULL(b.QcRequiredFlag,0) AS QcRequiredFlag,
                    b.StepDescription,
                    ISNULL(b.ActiveFlag,1) AS ActiveFlag,
                    b.CreatedBy, b.CreatedTS, b.ModifiedBy, b.ModifiedTS
             FROM   dbo.MD_Bop b
-            LEFT JOIN dbo.MD_WorkCenter w ON w.WCID = b.WorkCenterID
+            LEFT JOIN dbo.MD_Station s ON s.StationCode = b.StationCode
             WHERE  b.ItemNo = @N{where2}
             ORDER  BY b.RoutingType, b.StepSeq
             """,
@@ -558,9 +579,9 @@ public sealed class MasterDataRepository
                 r["ItemNo"]         as string,
                 r["RoutingType"]    as string,
                 r["StepSeq"]        is int sq   ? sq   : null,
-                r["ProcessCode"]    as string,
-                r["WorkCenterID"]   as string,
-                r.GetString("WCName"),
+                r["StationCode"]    as string,
+                r["StationName"]    as string,
+                r["StationNameEn"]  as string,
                 r["StdCycleTime"]   is decimal ct ? ct : null,
                 r["StdSetupTime"]   is decimal st ? st : null,
                 (bool)r["QcRequiredFlag"],
@@ -573,53 +594,186 @@ public sealed class MasterDataRepository
     }
 
     public void InsertBopStep(string bopId, string itemNo, string? routingType,
-        int stepSeq, string? processCode, string? workCenterId,
+        int stepSeq, string? stationCode,
         decimal? stdCycleTime, decimal? stdSetupTime, bool qcRequired,
         string? stepDesc, bool activeFlag, string createdBy)
         => Exec("""
             INSERT INTO dbo.MD_Bop
-                   (BOPID,ItemNo,RoutingType,StepSeq,ProcessCode,WorkCenterID,
+                   (BOPID,ItemNo,RoutingType,StepSeq,StationCode,
                     StdCycleTime,StdSetupTime,QcRequiredFlag,StepDescription,
                     ActiveFlag,CreatedBy,CreatedTS)
-            VALUES (@ID,@No,@RT,@Seq,@PC,@WC,
+            VALUES (@ID,@No,@RT,@Seq,@SC,
                     @CT,@ST,@QC,@Desc,
                     @Active,@By,SYSDATETIME())
             """,
             ("@ID",    bopId),       ("@No",   itemNo),      ("@RT",   routingType),
-            ("@Seq",   stepSeq),     ("@PC",   processCode), ("@WC",   workCenterId),
+            ("@Seq",   stepSeq),     ("@SC",   stationCode),
             ("@CT",    stdCycleTime),("@ST",   stdSetupTime),("@QC",   qcRequired),
             ("@Desc",  stepDesc),    ("@Active",activeFlag), ("@By",   createdBy));
 
     public void UpdateBopStep(string bopId, string? routingType,
-        int stepSeq, string? processCode, string? workCenterId,
+        int stepSeq, string? stationCode,
         decimal? stdCycleTime, decimal? stdSetupTime, bool qcRequired,
         string? stepDesc, bool activeFlag, string modifiedBy)
         => Exec("""
             UPDATE dbo.MD_Bop
-            SET    RoutingType=@RT, StepSeq=@Seq, ProcessCode=@PC,
-                   WorkCenterID=@WC, StdCycleTime=@CT, StdSetupTime=@ST,
+            SET    RoutingType=@RT, StepSeq=@Seq, StationCode=@SC,
+                   StdCycleTime=@CT, StdSetupTime=@ST,
                    QcRequiredFlag=@QC, StepDescription=@Desc,
                    ActiveFlag=@Active, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  BOPID=@ID
             """,
             ("@ID",    bopId),       ("@RT",   routingType), ("@Seq",  stepSeq),
-            ("@PC",    processCode), ("@WC",   workCenterId),("@CT",   stdCycleTime),
+            ("@SC",    stationCode), ("@CT",   stdCycleTime),
             ("@ST",    stdSetupTime),("@QC",   qcRequired),  ("@Desc", stepDesc),
             ("@Active",activeFlag),  ("@By",   modifiedBy));
 
     public void DeleteBopStep(string bopId)
         => Exec("DELETE dbo.MD_Bop WHERE BOPID=@I", ("@I", bopId));
 
+    // 소스 품번의 모든 단계를 대상 품번으로 복사 (BOPID/ItemNo 만 새로, 나머지는 동일)
+    // overwrite=true 이면 대상 기존 단계 삭제 후 복사. 복사한 단계 수 반환.
+    public int CopyBopSteps(string sourceItemNo, string targetItemNo, bool overwrite, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction();
+        try
+        {
+            if (overwrite)
+            {
+                using var del = new SqlCommand("DELETE dbo.MD_Bop WHERE ItemNo=@T;", conn, tx);
+                del.Parameters.Add("@T", SqlDbType.VarChar, 20).Value = targetItemNo;
+                del.ExecuteNonQuery();
+            }
+            using var ins = new SqlCommand("""
+                INSERT INTO dbo.MD_Bop
+                    (BOPID, ItemNo, RoutingType, StepSeq, StationCode,
+                     StdCycleTime, StdSetupTime, QcRequiredFlag, StepDescription,
+                     ActiveFlag, CreatedBy, CreatedTS)
+                SELECT 'P' + LEFT(REPLACE(CONVERT(varchar(36), NEWID()), '-', ''), 23),
+                       @T, RoutingType, StepSeq, StationCode,
+                       StdCycleTime, StdSetupTime, QcRequiredFlag, StepDescription,
+                       ISNULL(ActiveFlag,1), @By, SYSDATETIME()
+                FROM   dbo.MD_Bop
+                WHERE  ItemNo=@S;
+                """, conn, tx);
+            ins.Parameters.Add("@T",  SqlDbType.VarChar, 20).Value = targetItemNo;
+            ins.Parameters.Add("@S",  SqlDbType.VarChar, 20).Value = sourceItemNo;
+            ins.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = createdBy;
+            int n = ins.ExecuteNonQuery();
+            tx.Commit();
+            return n;
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
     public record BopItemRow(string ItemNo, string ItemName, int StepCount);
+
+    public record BopKpiRow(int TotalOps, int ActiveOps, decimal? AvgCycle, int ProductsRouted);
+
+    // 상단 KPI 집계 (전체 MD_Bop 기준, 검색과 무관)
+    public BopKpiRow BopKpi() => Query("""
+        SELECT COUNT(*)                                                    AS TotalOps,
+               SUM(CASE WHEN ISNULL(ActiveFlag,1)=1 THEN 1 ELSE 0 END)     AS ActiveOps,
+               AVG(CAST(StdCycleTime AS decimal(18,4)))                    AS AvgCycle,
+               COUNT(DISTINCT ItemNo)                                      AS ProductsRouted
+        FROM   dbo.MD_Bop
+        """, r => new BopKpiRow(
+            r["TotalOps"]       is int t ? t : 0,
+            r["ActiveOps"]      is int a ? a : 0,
+            r["AvgCycle"]       is decimal av ? av : (decimal?)null,
+            r["ProductsRouted"] is int p ? p : 0))
+        .FirstOrDefault() ?? new BopKpiRow(0, 0, null, 0);
 
     public record BopRow(
         string BOPID, string? ItemNo, string? RoutingType,
-        int? StepSeq, string? ProcessCode,
-        string? WorkCenterID, string WCName,
+        int? StepSeq, string? StationCode,
+        string? StationName, string? StationNameEn,
         decimal? StdCycleTime, decimal? StdSetupTime,
         bool QcRequiredFlag, string? StepDescription, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS,
         string? ModifiedBy, DateTime? ModifiedTS);
+
+    // ── MD-031 라우팅 템플릿 (MD_RoutingStep) ─────────────────────────────
+    public record RoutingStepRow(
+        string RoutingType, int StepSeq, string ProcessCode,
+        bool QcRequiredFlag, bool ActiveFlag,
+        string? CreatedBy, DateTime? CreatedTS,
+        string? ModifiedBy, DateTime? ModifiedTS);
+
+    public List<RoutingStepRow> ListRoutingSteps(string? routingType = null)
+    {
+        var where = routingType is null ? "" : " WHERE RoutingType = @RT";
+        var p = routingType is null
+            ? Array.Empty<(string, object?)>()
+            : new[] { ("@RT", (object?)routingType) };
+        return Query($"""
+            SELECT RoutingType, StepSeq, ProcessCode,
+                   ISNULL(QcRequiredFlag,0) AS QcRequiredFlag,
+                   ISNULL(ActiveFlag,1)     AS ActiveFlag,
+                   CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
+            FROM   dbo.MD_RoutingStep
+            {where}
+            ORDER  BY RoutingType, StepSeq
+            """,
+            r => new RoutingStepRow(
+                r.GetString("RoutingType"),
+                (int)r["StepSeq"],
+                r.GetString("ProcessCode"),
+                (bool)r["QcRequiredFlag"],
+                (bool)r["ActiveFlag"],
+                r["CreatedBy"]  as string,
+                r["CreatedTS"]  is DateTime cts ? cts : null,
+                r["ModifiedBy"] as string,
+                r["ModifiedTS"] is DateTime mts ? mts : null), p);
+    }
+
+    /// <summary>라우팅 타입의 활성 공정 시퀀스(ProcessCode)를 StepSeq 순서로 반환.</summary>
+    public List<string> ListRoutingProcesses(string routingType) =>
+        Query("""
+            SELECT ProcessCode
+            FROM   dbo.MD_RoutingStep
+            WHERE  RoutingType = @RT AND ISNULL(ActiveFlag,1) = 1
+            ORDER  BY StepSeq
+            """,
+            r => r.GetString("ProcessCode"),
+            ("@RT", routingType));
+
+    public void InsertRoutingStep(string routingType, int stepSeq, string processCode,
+        bool qcRequired, bool activeFlag, string createdBy)
+        => Exec("""
+            INSERT INTO dbo.MD_RoutingStep
+                   (RoutingType, StepSeq, ProcessCode, QcRequiredFlag, ActiveFlag, CreatedBy, CreatedTS)
+            VALUES (@RT, @Seq, @PC, @QC, @Active, @By, SYSDATETIME())
+            """,
+            ("@RT", routingType), ("@Seq", stepSeq), ("@PC", processCode),
+            ("@QC", qcRequired), ("@Active", activeFlag), ("@By", createdBy));
+
+    public void UpdateRoutingStep(string routingType, int stepSeq, string processCode,
+        bool qcRequired, bool activeFlag, string modifiedBy)
+        => Exec("""
+            UPDATE dbo.MD_RoutingStep
+            SET    ProcessCode=@PC, QcRequiredFlag=@QC, ActiveFlag=@Active,
+                   ModifiedBy=@By, ModifiedTS=SYSDATETIME()
+            WHERE  RoutingType=@RT AND StepSeq=@Seq
+            """,
+            ("@RT", routingType), ("@Seq", stepSeq), ("@PC", processCode),
+            ("@QC", qcRequired), ("@Active", activeFlag), ("@By", modifiedBy));
+
+    public void DeleteRoutingStep(string routingType, int stepSeq)
+        => Exec("DELETE dbo.MD_RoutingStep WHERE RoutingType=@RT AND StepSeq=@Seq",
+            ("@RT", routingType), ("@Seq", stepSeq));
+
+    public record BomKpiRow(int BomProducts, int TotalComponents);
+
+    // 상단 KPI 집계 (전체 BOM 기준) — 제품 수(고유 RootItemNo) · 총 구성품 라인 수
+    public BomKpiRow BomKpi() => Query("""
+        SELECT (SELECT COUNT(DISTINCT RootItemNo) FROM dbo.MD_BomVersion) AS BomProducts,
+               (SELECT COUNT(*)                   FROM dbo.MD_Bom)        AS TotalComponents
+        """, r => new BomKpiRow(
+            r["BomProducts"]     is int p ? p : 0,
+            r["TotalComponents"] is int c ? c : 0))
+        .FirstOrDefault() ?? new BomKpiRow(0, 0);
 
     public record BomVersionRow(
         string VersionID, string? RootItemNo, string RootItemName,
@@ -1056,12 +1210,16 @@ public sealed class MasterDataRepository
     // ║  MD_Mold (MD-007)                                                ║
     // ╚══════════════════════════════════════════════════════════════════╝
 
+    // CarType/RefCode/AssyInjResultFlag/CumulativeShots 는 SIS 정합화(migrate_mold_master.sql)
+    // 추가 컬럼 — 뒤쪽 기본값 파라미터라 기존 위치 인자 호출과 호환된다.
     public record MoldRow(
         string MoldID, string? MoldName,
         int? RatedShots, int? CurrentShots, int? CavityCount, int? Tonnage,
         string? StorageLoc, DateOnly? LastMaintDate, string? Status,
         string? CreatedBy, DateTime? CreatedTS,
-        string? ModifiedBy, DateTime? ModifiedTS);
+        string? ModifiedBy, DateTime? ModifiedTS,
+        string? CarType = null, string? RefCode = null,
+        bool AssyInjResultFlag = false, long CumulativeShots = 0);
 
     public List<MoldRow> ListMolds()
     {
@@ -1070,7 +1228,8 @@ public sealed class MasterDataRepository
             SELECT MoldID, MoldName,
                    RatedShots, CurrentShots, CavityCount, Tonnage,
                    StorageLoc, LastMaintDate, Status,
-                   CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
+                   CreatedBy, CreatedTS, ModifiedBy, ModifiedTS,
+                   CarType, RefCode, AssyInjResultFlag, CumulativeShots
             FROM   dbo.MD_Mold
             ORDER  BY MoldID;
             """, conn);
@@ -1090,7 +1249,11 @@ public sealed class MasterDataRepository
                 r["CreatedBy"]     as string,
                 r["CreatedTS"]     as DateTime?,
                 r["ModifiedBy"]    as string,
-                r["ModifiedTS"]    as DateTime?));
+                r["ModifiedTS"]    as DateTime?,
+                r["CarType"]       as string,
+                r["RefCode"]       as string,
+                r["AssyInjResultFlag"] is bool af && af,
+                r["CumulativeShots"]   is long cum ? cum : 0));
         return list;
     }
 
@@ -1106,17 +1269,22 @@ public sealed class MasterDataRepository
     public void InsertMold(
         string moldId, string? moldName,
         int? ratedShots, int? currentShots, int? cavityCount, int? tonnage,
-        string? storageLoc, DateOnly? lastMaintDate, string? status, string createdBy)
+        string? storageLoc, DateOnly? lastMaintDate, string? status, string createdBy,
+        string? carType = null, string? refCode = null, bool assyInjResultFlag = false)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_Mold
               (MoldID, MoldName, RatedShots, CurrentShots, CavityCount, Tonnage,
-               StorageLoc, LastMaintDate, Status, CreatedBy, CreatedTS)
+               StorageLoc, LastMaintDate, Status, CarType, RefCode, AssyInjResultFlag,
+               CreatedBy, CreatedTS)
             VALUES
               (@ID, @Name, @RS, @CS, @CC, @Ton,
-               @Loc, @Maint, @St, @By, SYSDATETIME());
+               @Loc, @Maint, @St, @Car, @Ref, @Assy, @By, SYSDATETIME());
             """, conn);
+        cmd.Parameters.Add("@Car",  SqlDbType.VarChar, 20).Value = (object?)carType ?? DBNull.Value;
+        cmd.Parameters.Add("@Ref",  SqlDbType.VarChar, 20).Value = (object?)refCode ?? DBNull.Value;
+        cmd.Parameters.Add("@Assy", SqlDbType.Bit).Value         = assyInjResultFlag;
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = moldId;
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar, 50).Value = (object?)moldName     ?? DBNull.Value;
         cmd.Parameters.Add("@RS",    SqlDbType.Int).Value          = (object?)ratedShots   ?? DBNull.Value;
@@ -1135,7 +1303,8 @@ public sealed class MasterDataRepository
     public void UpdateMold(
         string moldId, string? moldName,
         int? ratedShots, int? currentShots, int? cavityCount, int? tonnage,
-        string? storageLoc, DateOnly? lastMaintDate, string? status, string modifiedBy)
+        string? storageLoc, DateOnly? lastMaintDate, string? status, string modifiedBy,
+        string? carType = null, string? refCode = null, bool assyInjResultFlag = false)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
@@ -1143,9 +1312,13 @@ public sealed class MasterDataRepository
               MoldName=@Name, RatedShots=@RS, CurrentShots=@CS,
               CavityCount=@CC, Tonnage=@Ton, StorageLoc=@Loc,
               LastMaintDate=@Maint, Status=@St,
+              CarType=@Car, RefCode=@Ref, AssyInjResultFlag=@Assy,
               ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  MoldID=@ID;
             """, conn);
+        cmd.Parameters.Add("@Car",  SqlDbType.VarChar, 20).Value = (object?)carType ?? DBNull.Value;
+        cmd.Parameters.Add("@Ref",  SqlDbType.VarChar, 20).Value = (object?)refCode ?? DBNull.Value;
+        cmd.Parameters.Add("@Assy", SqlDbType.Bit).Value         = assyInjResultFlag;
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,   20).Value = moldId;
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar,  50).Value = (object?)moldName     ?? DBNull.Value;
         cmd.Parameters.Add("@RS",    SqlDbType.Int).Value           = (object?)ratedShots   ?? DBNull.Value;
@@ -1170,13 +1343,286 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>
+    /// ZPD20041 삭제 가드: 금형이 제품정보(MD_MoldItem)·라인배정(MD_MoldLine)에서
+    /// 사용 중이면 삭제를 막기 위한 사용처 카운트.
+    /// </summary>
+    public (int ItemCount, int LineCount, int ColorCount) MoldUsage(string moldId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT
+              (SELECT COUNT(*) FROM dbo.MD_MoldItem  WHERE MoldID=@I) AS I,
+              (SELECT COUNT(*) FROM dbo.MD_MoldLine  WHERE MoldID=@I) AS L,
+              (SELECT COUNT(*) FROM dbo.MD_MoldColor WHERE MoldID=@I) AS C;
+            """, conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
+        using var r = cmd.ExecuteReader();
+        return r.Read()
+            ? (Convert.ToInt32(r["I"]), Convert.ToInt32(r["L"]), Convert.ToInt32(r["C"]))
+            : (0, 0, 0);
+    }
+
+    // ╔══════════════════════════════════════════════════════════════════╗
+    // ║  MD_MoldColor (ZPD20041 — 금형 색상)                             ║
+    // ╚══════════════════════════════════════════════════════════════════╝
+
+    public record MoldColorRow(string MoldID, string Color, string? CreatedBy, DateTime? CreatedTS);
+
+    public List<MoldColorRow> ListMoldColors(string moldId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT MoldID, Color, CreatedBy, CreatedTS
+            FROM   dbo.MD_MoldColor
+            WHERE  MoldID=@I
+            ORDER  BY Color;
+            """, conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
+        using var r = cmd.ExecuteReader();
+        var list = new List<MoldColorRow>();
+        while (r.Read())
+            list.Add(new MoldColorRow(
+                (string)r["MoldID"], (string)r["Color"],
+                r["CreatedBy"] as string, r["CreatedTS"] as DateTime?));
+        return list;
+    }
+
+    public void InsertMoldColor(string moldId, string color, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            IF NOT EXISTS (SELECT 1 FROM dbo.MD_MoldColor WHERE MoldID=@I AND Color=@C)
+              INSERT INTO dbo.MD_MoldColor (MoldID, Color, CreatedBy, CreatedTS)
+              VALUES (@I, @C, @By, SYSDATETIME());
+            """, conn);
+        cmd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value = moldId;
+        cmd.Parameters.Add("@C",  SqlDbType.VarChar, 10).Value = color;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteMoldColor(string moldId, string color)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "DELETE FROM dbo.MD_MoldColor WHERE MoldID=@I AND Color=@C;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
+        cmd.Parameters.Add("@C", SqlDbType.VarChar, 10).Value = color;
+        cmd.ExecuteNonQuery();
+    }
+
+    // ╔══════════════════════════════════════════════════════════════════╗
+    // ║  MD_MoldItem (ZPD20042 — 금형별 제품정보, SIS APM2120)           ║
+    // ╚══════════════════════════════════════════════════════════════════╝
+
+    public record MoldItemRow(
+        string MoldID, string ItemNo, string? ItemName,
+        string? Color, int CavitySeq, string? CavityPos,
+        decimal? Usage, string? ResinItemNo, decimal? ResinUsage,
+        int CavityCount, string? MoldCategory, bool ActiveFlag,
+        string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
+
+    public List<MoldItemRow> ListMoldItems(string moldId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT mi.MoldID, mi.ItemNo, i.ItemName,
+                   mi.Color, mi.CavitySeq, mi.CavityPos,
+                   mi.[Usage], mi.ResinItemNo, mi.ResinUsage,
+                   mi.CavityCount, mi.MoldCategory, mi.ActiveFlag,
+                   mi.CreatedBy, mi.CreatedTS, mi.ModifiedBy, mi.ModifiedTS
+            FROM   dbo.MD_MoldItem mi
+            LEFT   JOIN dbo.MD_Item i ON i.ItemNo = mi.ItemNo
+            WHERE  mi.MoldID=@I
+            ORDER  BY mi.CavitySeq, mi.ItemNo;
+            """, conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
+        using var r = cmd.ExecuteReader();
+        var list = new List<MoldItemRow>();
+        while (r.Read())
+            list.Add(new MoldItemRow(
+                (string)r["MoldID"], (string)r["ItemNo"], r["ItemName"] as string,
+                r["Color"] as string, Convert.ToInt32(r["CavitySeq"]), r["CavityPos"] as string,
+                r["Usage"]      is decimal u  ? u  : null,
+                r["ResinItemNo"] as string,
+                r["ResinUsage"] is decimal ru ? ru : null,
+                Convert.ToInt32(r["CavityCount"]), r["MoldCategory"] as string,
+                r["ActiveFlag"] is bool af && af,
+                r["CreatedBy"] as string, r["CreatedTS"] as DateTime?,
+                r["ModifiedBy"] as string, r["ModifiedTS"] as DateTime?));
+        return list;
+    }
+
+    public bool MoldItemExists(string moldId, string itemNo)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "SELECT 1 FROM dbo.MD_MoldItem WHERE MoldID=@I AND ItemNo=@P;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
+        cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = itemNo;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    public void InsertMoldItem(
+        string moldId, string itemNo, string? color, int cavitySeq, string? cavityPos,
+        decimal? usage, string? resinItemNo, decimal? resinUsage,
+        int cavityCount, string? moldCategory, bool activeFlag, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            INSERT INTO dbo.MD_MoldItem
+              (MoldID, ItemNo, Color, CavitySeq, CavityPos,
+               [Usage], ResinItemNo, ResinUsage, CavityCount, MoldCategory, ActiveFlag,
+               CreatedBy, CreatedTS)
+            VALUES
+              (@I, @P, @Col, @Seq, @Pos, @U, @RI, @RU, @CC, @Cat, @Act, @By, SYSDATETIME());
+            """, conn);
+        FillMoldItemParams(cmd, moldId, itemNo, color, cavitySeq, cavityPos,
+                           usage, resinItemNo, resinUsage, cavityCount, moldCategory, activeFlag);
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void UpdateMoldItem(
+        string moldId, string itemNo, string? color, int cavitySeq, string? cavityPos,
+        decimal? usage, string? resinItemNo, decimal? resinUsage,
+        int cavityCount, string? moldCategory, bool activeFlag, string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            UPDATE dbo.MD_MoldItem SET
+              Color=@Col, CavitySeq=@Seq, CavityPos=@Pos,
+              [Usage]=@U, ResinItemNo=@RI, ResinUsage=@RU,
+              CavityCount=@CC, MoldCategory=@Cat, ActiveFlag=@Act,
+              ModifiedBy=@By, ModifiedTS=SYSDATETIME()
+            WHERE  MoldID=@I AND ItemNo=@P;
+            """, conn);
+        FillMoldItemParams(cmd, moldId, itemNo, color, cavitySeq, cavityPos,
+                           usage, resinItemNo, resinUsage, cavityCount, moldCategory, activeFlag);
+        cmd.Parameters.Add("@By", SqlDbType.NVarChar, 450).Value = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    static void FillMoldItemParams(SqlCommand cmd,
+        string moldId, string itemNo, string? color, int cavitySeq, string? cavityPos,
+        decimal? usage, string? resinItemNo, decimal? resinUsage,
+        int cavityCount, string? moldCategory, bool activeFlag)
+    {
+        cmd.Parameters.Add("@I",   SqlDbType.VarChar, 20).Value = moldId;
+        cmd.Parameters.Add("@P",   SqlDbType.VarChar, 20).Value = itemNo;
+        cmd.Parameters.Add("@Col", SqlDbType.VarChar, 10).Value = (object?)color        ?? DBNull.Value;
+        cmd.Parameters.Add("@Seq", SqlDbType.Int).Value         = cavitySeq;
+        cmd.Parameters.Add("@Pos", SqlDbType.VarChar,  4).Value = (object?)cavityPos    ?? DBNull.Value;
+        cmd.Parameters.Add("@U",   SqlDbType.Decimal).Value     = (object?)usage        ?? DBNull.Value;
+        cmd.Parameters.Add("@RI",  SqlDbType.VarChar, 20).Value = (object?)resinItemNo  ?? DBNull.Value;
+        cmd.Parameters.Add("@RU",  SqlDbType.Decimal).Value     = (object?)resinUsage   ?? DBNull.Value;
+        cmd.Parameters.Add("@CC",  SqlDbType.Int).Value         = cavityCount;
+        cmd.Parameters.Add("@Cat", SqlDbType.VarChar, 20).Value = (object?)moldCategory ?? DBNull.Value;
+        cmd.Parameters.Add("@Act", SqlDbType.Bit).Value         = activeFlag;
+    }
+
+    public void DeleteMoldItem(string moldId, string itemNo)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "DELETE FROM dbo.MD_MoldItem WHERE MoldID=@I AND ItemNo=@P;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
+        cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = itemNo;
+        cmd.ExecuteNonQuery();
+    }
+
+    // ╔══════════════════════════════════════════════════════════════════╗
+    // ║  MD_MoldLine (ZPD20043 — 라인별 금형, SIS APM2130)               ║
+    // ╚══════════════════════════════════════════════════════════════════╝
+
+    public record MoldLineRow(
+        string LineCode, string MoldID, string? MoldName,
+        decimal? UPH, decimal? PrepTime,
+        string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
+
+    public List<MoldLineRow> ListMoldLines(string lineCode)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT ml.LineCode, ml.MoldID, m.MoldName, ml.UPH, ml.PrepTime,
+                   ml.CreatedBy, ml.CreatedTS, ml.ModifiedBy, ml.ModifiedTS
+            FROM   dbo.MD_MoldLine ml
+            LEFT   JOIN dbo.MD_Mold m ON m.MoldID = ml.MoldID
+            WHERE  ml.LineCode=@L
+            ORDER  BY ml.MoldID;
+            """, conn);
+        cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineCode;
+        using var r = cmd.ExecuteReader();
+        var list = new List<MoldLineRow>();
+        while (r.Read())
+            list.Add(new MoldLineRow(
+                (string)r["LineCode"], (string)r["MoldID"], r["MoldName"] as string,
+                r["UPH"]      is decimal u ? u : null,
+                r["PrepTime"] is decimal p ? p : null,
+                r["CreatedBy"] as string, r["CreatedTS"] as DateTime?,
+                r["ModifiedBy"] as string, r["ModifiedTS"] as DateTime?));
+        return list;
+    }
+
+    public bool MoldLineExists(string lineCode, string moldId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "SELECT 1 FROM dbo.MD_MoldLine WHERE LineCode=@L AND MoldID=@I;", conn);
+        cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineCode;
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    public void InsertMoldLine(string lineCode, string moldId, decimal? uph, decimal? prepTime, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            INSERT INTO dbo.MD_MoldLine (LineCode, MoldID, UPH, PrepTime, CreatedBy, CreatedTS)
+            VALUES (@L, @I, @U, @P, @By, SYSDATETIME());
+            """, conn);
+        cmd.Parameters.Add("@L",  SqlDbType.VarChar, 20).Value = lineCode;
+        cmd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value = moldId;
+        cmd.Parameters.Add("@U",  SqlDbType.Decimal).Value     = (object?)uph      ?? DBNull.Value;
+        cmd.Parameters.Add("@P",  SqlDbType.Decimal).Value     = (object?)prepTime ?? DBNull.Value;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void UpdateMoldLine(string lineCode, string moldId, decimal? uph, decimal? prepTime, string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            UPDATE dbo.MD_MoldLine SET
+              UPH=@U, PrepTime=@P, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
+            WHERE  LineCode=@L AND MoldID=@I;
+            """, conn);
+        cmd.Parameters.Add("@L",  SqlDbType.VarChar, 20).Value = lineCode;
+        cmd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value = moldId;
+        cmd.Parameters.Add("@U",  SqlDbType.Decimal).Value     = (object?)uph      ?? DBNull.Value;
+        cmd.Parameters.Add("@P",  SqlDbType.Decimal).Value     = (object?)prepTime ?? DBNull.Value;
+        cmd.Parameters.Add("@By", SqlDbType.NVarChar, 450).Value = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteMoldLine(string lineCode, string moldId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "DELETE FROM dbo.MD_MoldLine WHERE LineCode=@L AND MoldID=@I;", conn);
+        cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineCode;
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
+        cmd.ExecuteNonQuery();
+    }
+
     // ╔══════════════════════════════════════════════════════════════════╗
     // ║  MD_WorkCenter (MD-006)                                          ║
     // ╚══════════════════════════════════════════════════════════════════╝
 
     public record WorkCenterRow(
-        string WCID, string? WCName, string? ProcessType,
-        string? LineID, int? DailyCapacity, int? StdManpower,
+        string WCID, string? WCName, string? DefaultLineID, string? ProcessCode,
+        int? DailyCapacity, int? StdManpower,
         string? CostCenterCode, string? LocationDesc, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS,
         string? ModifiedBy, DateTime? ModifiedTS);
@@ -1185,7 +1631,7 @@ public sealed class MasterDataRepository
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            SELECT WCID, WCName, ProcessType, LineID,
+            SELECT WCID, WCName, DefaultLineID, ProcessCode,
                    DailyCapacity, StdManpower, CostCenterCode, LocationDesc,
                    ISNULL(ActiveFlag,1) AS ActiveFlag,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
@@ -1198,8 +1644,8 @@ public sealed class MasterDataRepository
             list.Add(new WorkCenterRow(
                 (string)r["WCID"],
                 r["WCName"]         as string,
-                r["ProcessType"]    as string,
-                r["LineID"]         as string,
+                r["DefaultLineID"]  as string,
+                r["ProcessCode"]    as string,
                 r["DailyCapacity"]  is int dc ? dc : null,
                 r["StdManpower"]    is int sm ? sm : null,
                 r["CostCenterCode"] as string,
@@ -1222,7 +1668,7 @@ public sealed class MasterDataRepository
     }
 
     public void InsertWorkCenter(
-        string wcid, string? wcName, string? processType,
+        string wcid, string? wcName, string? processCode,
         string? lineId, int? dailyCapacity, int? stdManpower,
         string? costCenterCode, string? locationDesc,
         bool activeFlag, string createdBy)
@@ -1230,15 +1676,15 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_WorkCenter
-              (WCID, WCName, ProcessType, LineID, DailyCapacity, StdManpower,
+              (WCID, WCName, DefaultLineID, ProcessCode, DailyCapacity, StdManpower,
                CostCenterCode, LocationDesc, ActiveFlag, CreatedBy, CreatedTS)
             VALUES
-              (@ID, @Name, @PT, @Line, @Cap, @Man,
+              (@ID, @Name, @Line, @Proc, @Cap, @Man,
                @CC, @Loc, @Act, @By, SYSDATETIME());
             """, conn);
         cmd.Parameters.Add("@ID",   SqlDbType.VarChar,  20).Value = wcid;
         cmd.Parameters.Add("@Name", SqlDbType.NVarChar, 50).Value = (object?)wcName         ?? DBNull.Value;
-        cmd.Parameters.Add("@PT",   SqlDbType.VarChar,  16).Value = (object?)processType    ?? DBNull.Value;
+        cmd.Parameters.Add("@Proc", SqlDbType.VarChar,  10).Value = (object?)processCode    ?? DBNull.Value;
         cmd.Parameters.Add("@Line", SqlDbType.VarChar,  20).Value = (object?)lineId         ?? DBNull.Value;
         cmd.Parameters.Add("@Cap",  SqlDbType.Int).Value          = (object?)dailyCapacity  ?? DBNull.Value;
         cmd.Parameters.Add("@Man",  SqlDbType.Int).Value          = (object?)stdManpower    ?? DBNull.Value;
@@ -1250,7 +1696,7 @@ public sealed class MasterDataRepository
     }
 
     public void UpdateWorkCenter(
-        string wcid, string? wcName, string? processType,
+        string wcid, string? wcName, string? processCode,
         string? lineId, int? dailyCapacity, int? stdManpower,
         string? costCenterCode, string? locationDesc,
         bool activeFlag, string modifiedBy)
@@ -1258,7 +1704,7 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             UPDATE dbo.MD_WorkCenter SET
-              WCName=@Name, ProcessType=@PT, LineID=@Line,
+              WCName=@Name, DefaultLineID=@Line, ProcessCode=@Proc,
               DailyCapacity=@Cap, StdManpower=@Man,
               CostCenterCode=@CC, LocationDesc=@Loc,
               ActiveFlag=@Act, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
@@ -1266,7 +1712,7 @@ public sealed class MasterDataRepository
             """, conn);
         cmd.Parameters.Add("@ID",   SqlDbType.VarChar,   20).Value = wcid;
         cmd.Parameters.Add("@Name", SqlDbType.NVarChar,  50).Value = (object?)wcName         ?? DBNull.Value;
-        cmd.Parameters.Add("@PT",   SqlDbType.VarChar,   16).Value = (object?)processType    ?? DBNull.Value;
+        cmd.Parameters.Add("@Proc", SqlDbType.VarChar,   10).Value = (object?)processCode    ?? DBNull.Value;
         cmd.Parameters.Add("@Line", SqlDbType.VarChar,   20).Value = (object?)lineId         ?? DBNull.Value;
         cmd.Parameters.Add("@Cap",  SqlDbType.Int).Value           = (object?)dailyCapacity  ?? DBNull.Value;
         cmd.Parameters.Add("@Man",  SqlDbType.Int).Value           = (object?)stdManpower    ?? DBNull.Value;
@@ -1292,7 +1738,8 @@ public sealed class MasterDataRepository
 
     public record StationRow(
         string StationCode, string? StationName, string? StationNameEn, string? LineID,
-        string? StationType, string? ProcessCode,
+        string? ProcessCode,   // 파생: 라인 → 작업장(WCID) → ProcessCode 상속 (저장 컬럼 아님)
+        string? FormName,
         int? OrderSeq, string? Status,
         string? CreatedBy, DateTime? CreatedTS,
         string? ModifiedBy, DateTime? ModifiedTS);
@@ -1301,11 +1748,14 @@ public sealed class MasterDataRepository
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            SELECT StationCode, StationName, StationNameEn, LineID,
-                   StationType, ProcessCode, OrderSeq, Status,
-                   CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
-            FROM   dbo.MD_Station
-            ORDER  BY LineID, OrderSeq, StationCode;
+            SELECT st.StationCode, st.StationName, st.StationNameEn, st.LineID,
+                   wc.ProcessCode AS ProcessCode,
+                   st.FormName, st.OrderSeq, st.Status,
+                   st.CreatedBy, st.CreatedTS, st.ModifiedBy, st.ModifiedTS
+            FROM   dbo.MD_Station st
+            LEFT JOIN dbo.MD_Line       l  ON l.LineID = st.LineID
+            LEFT JOIN dbo.MD_WorkCenter wc ON wc.WCID  = l.WCID
+            ORDER  BY st.LineID, st.OrderSeq, st.StationCode;
             """, conn);
         using var r = cmd.ExecuteReader();
         var list = new List<StationRow>();
@@ -1315,8 +1765,44 @@ public sealed class MasterDataRepository
                 r["StationName"]   as string,
                 r["StationNameEn"] as string,
                 r["LineID"]        as string,
-                r["StationType"]   as string,
                 r["ProcessCode"]   as string,
+                r["FormName"]      as string,
+                r["OrderSeq"]      is int os ? os : null,
+                r["Status"]        as string,
+                r["CreatedBy"]     as string,
+                r["CreatedTS"]     as DateTime?,
+                r["ModifiedBy"]    as string,
+                r["ModifiedTS"]    as DateTime?));
+        return list;
+    }
+
+    /// <summary>POP 로그인 픽커용 — 해당 라인의 활성 스테이션 (OrderSeq 순).</summary>
+    public List<StationRow> ListActiveStations(string lineId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT st.StationCode, st.StationName, st.StationNameEn, st.LineID,
+                   wc.ProcessCode AS ProcessCode,
+                   st.FormName, st.OrderSeq, st.Status,
+                   st.CreatedBy, st.CreatedTS, st.ModifiedBy, st.ModifiedTS
+            FROM   dbo.MD_Station st
+            LEFT JOIN dbo.MD_Line       l  ON l.LineID = st.LineID
+            LEFT JOIN dbo.MD_WorkCenter wc ON wc.WCID  = l.WCID
+            WHERE  st.LineID = @L
+              AND  ISNULL(st.Status,'ACTIVE') <> 'INACTIVE'
+            ORDER  BY st.OrderSeq, st.StationCode;
+            """, conn);
+        cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
+        using var r = cmd.ExecuteReader();
+        var list = new List<StationRow>();
+        while (r.Read())
+            list.Add(new StationRow(
+                (string)r["StationCode"],
+                r["StationName"]   as string,
+                r["StationNameEn"] as string,
+                r["LineID"]        as string,
+                r["ProcessCode"]   as string,
+                r["FormName"]      as string,
                 r["OrderSeq"]      is int os ? os : null,
                 r["Status"]        as string,
                 r["CreatedBy"]     as string,
@@ -1337,22 +1823,20 @@ public sealed class MasterDataRepository
 
     public void InsertStation(
         string stationId, string? stationName, string? stationNameEn, string? lineId,
-        string? stationType, string? processCode,
-        int? orderSeq, string? status, string createdBy)
+        string? formName, int? orderSeq, string? status, string createdBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_Station
-              (StationCode, StationName, StationNameEn, LineID, StationType, ProcessCode, OrderSeq, Status, CreatedBy, CreatedTS)
+              (StationCode, StationName, StationNameEn, LineID, FormName, OrderSeq, Status, CreatedBy, CreatedTS)
             VALUES
-              (@ID, @Name, @NameEn, @Line, @Type, @Proc, @Seq, @St, @By, SYSDATETIME());
+              (@ID, @Name, @NameEn, @Line, @Form, @Seq, @St, @By, SYSDATETIME());
             """, conn);
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = stationId;
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar, 60).Value = (object?)stationName   ?? DBNull.Value;
         cmd.Parameters.Add("@NameEn",SqlDbType.NVarChar, 60).Value = (object?)stationNameEn ?? DBNull.Value;
         cmd.Parameters.Add("@Line",  SqlDbType.VarChar,  20).Value = (object?)lineId        ?? DBNull.Value;
-        cmd.Parameters.Add("@Type",  SqlDbType.VarChar,  20).Value = (object?)stationType   ?? DBNull.Value;
-        cmd.Parameters.Add("@Proc",  SqlDbType.VarChar,  10).Value = (object?)processCode   ?? DBNull.Value;
+        cmd.Parameters.Add("@Form",  SqlDbType.VarChar,  50).Value = (object?)formName      ?? DBNull.Value;
         cmd.Parameters.Add("@Seq",   SqlDbType.Int).Value          = (object?)orderSeq      ?? DBNull.Value;
         cmd.Parameters.Add("@St",    SqlDbType.VarChar,  10).Value = (object?)status        ?? DBNull.Value;
         cmd.Parameters.Add("@By",    SqlDbType.VarChar,  50).Value = createdBy;
@@ -1361,13 +1845,12 @@ public sealed class MasterDataRepository
 
     public void UpdateStation(
         string stationId, string? stationName, string? stationNameEn, string? lineId,
-        string? stationType, string? processCode,
-        int? orderSeq, string? status, string modifiedBy)
+        string? formName, int? orderSeq, string? status, string modifiedBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             UPDATE dbo.MD_Station SET
-              StationName=@Name, StationNameEn=@NameEn, LineID=@Line, StationType=@Type, ProcessCode=@Proc,
+              StationName=@Name, StationNameEn=@NameEn, LineID=@Line, FormName=@Form,
               OrderSeq=@Seq, Status=@St, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  StationCode=@ID;
             """, conn);
@@ -1375,8 +1858,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar,  60).Value = (object?)stationName   ?? DBNull.Value;
         cmd.Parameters.Add("@NameEn",SqlDbType.NVarChar,  60).Value = (object?)stationNameEn ?? DBNull.Value;
         cmd.Parameters.Add("@Line",  SqlDbType.VarChar,   20).Value = (object?)lineId        ?? DBNull.Value;
-        cmd.Parameters.Add("@Type",  SqlDbType.VarChar,   20).Value = (object?)stationType   ?? DBNull.Value;
-        cmd.Parameters.Add("@Proc",  SqlDbType.VarChar,   10).Value = (object?)processCode   ?? DBNull.Value;
+        cmd.Parameters.Add("@Form",  SqlDbType.VarChar,   50).Value = (object?)formName      ?? DBNull.Value;
         cmd.Parameters.Add("@Seq",   SqlDbType.Int).Value           = (object?)orderSeq      ?? DBNull.Value;
         cmd.Parameters.Add("@St",    SqlDbType.VarChar,   10).Value = (object?)status        ?? DBNull.Value;
         cmd.Parameters.Add("@By",    SqlDbType.NVarChar, 450).Value = modifiedBy;
@@ -1397,18 +1879,47 @@ public sealed class MasterDataRepository
     // ╚══════════════════════════════════════════════════════════════════╝
 
     public record LineRow(
-        string LineID, string? LineName, string? LineNameEn, string? LineType,
-        string? PlantCode, string? DefaultWCID,
+        string LineID, string? LineName, string? LineNameEn,
+        string? PlantCode, string? WCID,
         int? DailyCap, string? ShiftPattern,
         bool RfidEnabledFlag, string? Status,
         string? CreatedBy, DateTime? CreatedTS,
         string? ModifiedBy, DateTime? ModifiedTS);
 
+    /// <summary>
+    /// POP 로그인 픽커용 — 활성 라인 + WC 상속 공정코드.
+    /// WC 미배정 라인은 공정 판별이 불가하므로 제외한다.
+    /// </summary>
+    public record PopLineOptionRow(
+        string LineID, string? LineName, string? LineNameEn, string ProcessCode);
+
+    public List<PopLineOptionRow> ListPopLineOptions()
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT l.LineID, l.LineName, l.LineNameEn, wc.ProcessCode
+            FROM   dbo.MD_Line l
+            JOIN   dbo.MD_WorkCenter wc ON wc.WCID = l.WCID
+            WHERE  ISNULL(l.Status,'ACTIVE') <> 'INACTIVE'
+              AND  wc.ProcessCode IN ('INJ','IMG','PNT','QC')
+            ORDER  BY l.LineID;
+            """, conn);
+        using var r = cmd.ExecuteReader();
+        var list = new List<PopLineOptionRow>();
+        while (r.Read())
+            list.Add(new PopLineOptionRow(
+                (string)r["LineID"],
+                r["LineName"]   as string,
+                r["LineNameEn"] as string,
+                (string)r["ProcessCode"]));
+        return list;
+    }
+
     public List<LineRow> ListLines(string? search = null)
     {
         using var conn = _factory.OpenConnection();
         var sql = """
-            SELECT LineID, LineName, LineNameEn, LineType, PlantCode, DefaultWCID,
+            SELECT LineID, LineName, LineNameEn, PlantCode, WCID,
                    DailyCap, ShiftPattern,
                    ISNULL(RfidEnabledFlag,0) AS RfidEnabledFlag, Status,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
@@ -1427,9 +1938,8 @@ public sealed class MasterDataRepository
                 (string)r["LineID"],
                 r["LineName"]   as string,
                 r["LineNameEn"] as string,
-                r["LineType"]   as string,
                 r["PlantCode"]  as string,
-                r["DefaultWCID"] as string,
+                r["WCID"] as string,
                 r["DailyCap"] is int dc ? dc : null,
                 r["ShiftPattern"] as string,
                 (bool)r["RfidEnabledFlag"],
@@ -1451,7 +1961,7 @@ public sealed class MasterDataRepository
     }
 
     public void InsertLine(
-        string lineId, string? lineName, string? lineNameEn, string? lineType,
+        string lineId, string? lineName, string? lineNameEn,
         string? plantCode, string? defaultWcId,
         int? dailyCap, string? shiftPattern,
         bool rfidEnabled, string? status, string createdBy)
@@ -1459,18 +1969,17 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_Line
-              (LineID,LineName,LineNameEn,LineType,PlantCode,DefaultWCID,
+              (LineID,LineName,LineNameEn,PlantCode,WCID,
                DailyCap,ShiftPattern,RfidEnabledFlag,Status,
                CreatedBy,CreatedTS)
             VALUES
-              (@ID,@Name,@NameEn,@Type,@Plant,@WC,
+              (@ID,@Name,@NameEn,@Plant,@WC,
                @Cap,@Shift,@Rfid,@St,
                @By,SYSDATETIME());
             """, conn);
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = lineId;
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar, 50).Value = (object?)lineName    ?? DBNull.Value;
         cmd.Parameters.Add("@NameEn",SqlDbType.NVarChar, 50).Value = (object?)lineNameEn  ?? DBNull.Value;
-        cmd.Parameters.Add("@Type",  SqlDbType.VarChar,  16).Value = (object?)lineType    ?? DBNull.Value;
         cmd.Parameters.Add("@Plant", SqlDbType.VarChar,  20).Value = (object?)plantCode   ?? DBNull.Value;
         cmd.Parameters.Add("@WC",    SqlDbType.VarChar,  20).Value = (object?)defaultWcId ?? DBNull.Value;
         cmd.Parameters.Add("@Cap",   SqlDbType.Int).Value          = (object?)dailyCap    ?? DBNull.Value;
@@ -1482,7 +1991,7 @@ public sealed class MasterDataRepository
     }
 
     public void UpdateLine(
-        string lineId, string? lineName, string? lineNameEn, string? lineType,
+        string lineId, string? lineName, string? lineNameEn,
         string? plantCode, string? defaultWcId,
         int? dailyCap, string? shiftPattern,
         bool rfidEnabled, string? status, string modifiedBy)
@@ -1490,8 +1999,8 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             UPDATE dbo.MD_Line SET
-              LineName=@Name, LineNameEn=@NameEn, LineType=@Type,
-              PlantCode=@Plant, DefaultWCID=@WC,
+              LineName=@Name, LineNameEn=@NameEn,
+              PlantCode=@Plant, WCID=@WC,
               DailyCap=@Cap, ShiftPattern=@Shift,
               RfidEnabledFlag=@Rfid, Status=@St,
               ModifiedBy=@By, ModifiedTS=SYSDATETIME()
@@ -1500,7 +2009,6 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = lineId;
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar, 50).Value = (object?)lineName    ?? DBNull.Value;
         cmd.Parameters.Add("@NameEn",SqlDbType.NVarChar, 50).Value = (object?)lineNameEn  ?? DBNull.Value;
-        cmd.Parameters.Add("@Type",  SqlDbType.VarChar,  16).Value = (object?)lineType    ?? DBNull.Value;
         cmd.Parameters.Add("@Plant", SqlDbType.VarChar,  20).Value = (object?)plantCode   ?? DBNull.Value;
         cmd.Parameters.Add("@WC",    SqlDbType.VarChar,  20).Value = (object?)defaultWcId ?? DBNull.Value;
         cmd.Parameters.Add("@Cap",   SqlDbType.Int).Value          = (object?)dailyCap    ?? DBNull.Value;
@@ -1525,7 +2033,7 @@ public sealed class MasterDataRepository
         string DefectCode, string? DefectName, string? DefectNameEn,
         string? ProcessCode, string? DefectCategory, string? SeverityLevel,
         string? DispositionDefault, string? DefaultCauseCode,
-        bool ParetoFlag, string? Status,
+        bool ParetoFlag, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
 
     public List<DefectCodeRow> ListDefectCodes()
@@ -1534,7 +2042,7 @@ public sealed class MasterDataRepository
         using var cmd = new SqlCommand(
             "SELECT DefectCode,DefectName,DefectNameEn,ProcessCode,DefectCategory," +
             "SeverityLevel,DispositionDefault,DefaultCauseCode,ISNULL(ParetoFlag,0)," +
-            "Status,CreatedBy,CreatedTS,ModifiedBy,ModifiedTS " +
+            "ISNULL(ActiveFlag,1) AS ActiveFlag,CreatedBy,CreatedTS,ModifiedBy,ModifiedTS " +
             "FROM dbo.MD_DefectCode ORDER BY DefectCode;", conn);
         using var rdr = cmd.ExecuteReader();
         var list = new List<DefectCodeRow>();
@@ -1549,7 +2057,7 @@ public sealed class MasterDataRepository
                 rdr.IsDBNull(6)  ? null : rdr.GetString(6),
                 rdr.IsDBNull(7)  ? null : rdr.GetString(7),
                 rdr.GetBoolean(8),
-                rdr.IsDBNull(9)  ? null : rdr.GetString(9),
+                rdr.GetBoolean(9),
                 rdr.IsDBNull(10) ? null : rdr.GetString(10),
                 rdr.IsDBNull(11) ? null : rdr.GetDateTime(11),
                 rdr.IsDBNull(12) ? null : rdr.GetString(12),
@@ -1570,14 +2078,14 @@ public sealed class MasterDataRepository
         string code, string? name, string? nameEn,
         string? processCode, string? category, string? severity,
         string? disposition, string? causeCode, bool paretoFlag,
-        string? status, string createdBy)
+        bool activeFlag, string createdBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_DefectCode" +
             "(DefectCode,DefectName,DefectNameEn,ProcessCode,DefectCategory," +
-            "SeverityLevel,DispositionDefault,DefaultCauseCode,ParetoFlag,Status,CreatedBy)" +
-            " VALUES(@C,@N,@NE,@PC,@CAT,@SEV,@DIS,@CC,@PF,@ST,@CB);", conn);
+            "SeverityLevel,DispositionDefault,DefaultCauseCode,ParetoFlag,ActiveFlag,CreatedBy)" +
+            " VALUES(@C,@N,@NE,@PC,@CAT,@SEV,@DIS,@CC,@PF,@AF,@CB);", conn);
         cmd.Parameters.Add("@C",   SqlDbType.VarChar,  16).Value = code;
         cmd.Parameters.Add("@N",   SqlDbType.NVarChar, 60).Value = (object?)name   ?? DBNull.Value;
         cmd.Parameters.Add("@NE",  SqlDbType.NVarChar, 60).Value = (object?)nameEn ?? DBNull.Value;
@@ -1587,7 +2095,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@DIS", SqlDbType.VarChar,  10).Value = (object?)disposition  ?? DBNull.Value;
         cmd.Parameters.Add("@CC",  SqlDbType.VarChar,  16).Value = (object?)causeCode    ?? DBNull.Value;
         cmd.Parameters.Add("@PF",  SqlDbType.Bit).Value          = paretoFlag;
-        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   8).Value = (object?)status       ?? DBNull.Value;
+        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value          = activeFlag;
         cmd.Parameters.Add("@CB",  SqlDbType.VarChar,  50).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
@@ -1596,14 +2104,14 @@ public sealed class MasterDataRepository
         string code, string? name, string? nameEn,
         string? processCode, string? category, string? severity,
         string? disposition, string? causeCode, bool paretoFlag,
-        string? status, string modifiedBy)
+        bool activeFlag, string modifiedBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_DefectCode SET " +
             "DefectName=@N,DefectNameEn=@NE,ProcessCode=@PC,DefectCategory=@CAT," +
             "SeverityLevel=@SEV,DispositionDefault=@DIS,DefaultCauseCode=@CC," +
-            "ParetoFlag=@PF,Status=@ST,ModifiedTS=SYSDATETIME(),ModifiedBy=@MB " +
+            "ParetoFlag=@PF,ActiveFlag=@AF,ModifiedTS=SYSDATETIME(),ModifiedBy=@MB " +
             "WHERE DefectCode=@C;", conn);
         cmd.Parameters.Add("@C",   SqlDbType.VarChar,  16).Value = code;
         cmd.Parameters.Add("@N",   SqlDbType.NVarChar, 60).Value = (object?)name   ?? DBNull.Value;
@@ -1614,7 +2122,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@DIS", SqlDbType.VarChar,  10).Value = (object?)disposition  ?? DBNull.Value;
         cmd.Parameters.Add("@CC",  SqlDbType.VarChar,  16).Value = (object?)causeCode    ?? DBNull.Value;
         cmd.Parameters.Add("@PF",  SqlDbType.Bit).Value          = paretoFlag;
-        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   8).Value = (object?)status       ?? DBNull.Value;
+        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value          = activeFlag;
         cmd.Parameters.Add("@MB",  SqlDbType.NVarChar, 450).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
@@ -1630,19 +2138,19 @@ public sealed class MasterDataRepository
 
     // ── MD_DefectCause ───────────────────────────────────────────────
     public record DefectCauseRow(
-        string CauseCode, string? CauseName, string? CauseCategory,
+        string CauseCode, string? CauseName, string? CauseNameEn, string? CauseCategory,
         string? ParentCauseCode, string? ProcessCode,
         bool RootCauseFlag, string? CorrectiveGuide, string? ResponsibleDept,
-        int? SortOrder, string? Status,
+        int? SortOrder, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
 
     public List<DefectCauseRow> ListDefectCauses()
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
-            "SELECT CauseCode,CauseName,CauseCategory,ParentCauseCode,ProcessCode," +
+            "SELECT CauseCode,CauseName,CauseNameEn,CauseCategory,ParentCauseCode,ProcessCode," +
             "ISNULL(RootCauseFlag,0),CorrectiveGuide,ResponsibleDept,SortOrder," +
-            "Status,CreatedBy,CreatedTS,ModifiedBy,ModifiedTS " +
+            "ISNULL(ActiveFlag,1) AS ActiveFlag,CreatedBy,CreatedTS,ModifiedBy,ModifiedTS " +
             "FROM dbo.MD_DefectCause ORDER BY ISNULL(SortOrder,9999),CauseCode;", conn);
         using var rdr = cmd.ExecuteReader();
         var list = new List<DefectCauseRow>();
@@ -1653,15 +2161,16 @@ public sealed class MasterDataRepository
                 rdr.IsDBNull(2)  ? null : rdr.GetString(2),
                 rdr.IsDBNull(3)  ? null : rdr.GetString(3),
                 rdr.IsDBNull(4)  ? null : rdr.GetString(4),
-                rdr.GetBoolean(5),
-                rdr.IsDBNull(6)  ? null : rdr.GetString(6),
+                rdr.IsDBNull(5)  ? null : rdr.GetString(5),
+                rdr.GetBoolean(6),
                 rdr.IsDBNull(7)  ? null : rdr.GetString(7),
-                rdr.IsDBNull(8)  ? null : rdr.GetInt32(8),
-                rdr.IsDBNull(9)  ? null : rdr.GetString(9),
-                rdr.IsDBNull(10) ? null : rdr.GetString(10),
-                rdr.IsDBNull(11) ? null : rdr.GetDateTime(11),
-                rdr.IsDBNull(12) ? null : rdr.GetString(12),
-                rdr.IsDBNull(13) ? null : rdr.GetDateTime(13)));
+                rdr.IsDBNull(8)  ? null : rdr.GetString(8),
+                rdr.IsDBNull(9)  ? null : rdr.GetInt32(9),
+                rdr.GetBoolean(10),
+                rdr.IsDBNull(11) ? null : rdr.GetString(11),
+                rdr.IsDBNull(12) ? null : rdr.GetDateTime(12),
+                rdr.IsDBNull(13) ? null : rdr.GetString(13),
+                rdr.IsDBNull(14) ? null : rdr.GetDateTime(14)));
         return list;
     }
 
@@ -1675,19 +2184,20 @@ public sealed class MasterDataRepository
     }
 
     public void InsertDefectCause(
-        string code, string? name, string? category,
+        string code, string? name, string? nameEn, string? category,
         string? parentCode, string? processCode,
         bool rootCauseFlag, string? correctiveGuide, string? responsibleDept,
-        int? sortOrder, string? status, string createdBy)
+        int? sortOrder, bool activeFlag, string createdBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_DefectCause" +
-            "(CauseCode,CauseName,CauseCategory,ParentCauseCode,ProcessCode," +
-            "RootCauseFlag,CorrectiveGuide,ResponsibleDept,SortOrder,Status,CreatedBy)" +
-            " VALUES(@C,@N,@CAT,@PC2,@PC,@RF,@CG,@RD,@SO,@ST,@CB);", conn);
+            "(CauseCode,CauseName,CauseNameEn,CauseCategory,ParentCauseCode,ProcessCode," +
+            "RootCauseFlag,CorrectiveGuide,ResponsibleDept,SortOrder,ActiveFlag,CreatedBy)" +
+            " VALUES(@C,@N,@NE,@CAT,@PC2,@PC,@RF,@CG,@RD,@SO,@AF,@CB);", conn);
         cmd.Parameters.Add("@C",   SqlDbType.VarChar,   16).Value = code;
         cmd.Parameters.Add("@N",   SqlDbType.NVarChar,  60).Value = (object?)name            ?? DBNull.Value;
+        cmd.Parameters.Add("@NE",  SqlDbType.NVarChar,  60).Value = (object?)nameEn          ?? DBNull.Value;
         cmd.Parameters.Add("@CAT", SqlDbType.VarChar,    9).Value = (object?)category        ?? DBNull.Value;
         cmd.Parameters.Add("@PC2", SqlDbType.VarChar,   16).Value = (object?)parentCode      ?? DBNull.Value;
         cmd.Parameters.Add("@PC",  SqlDbType.VarChar,   10).Value = (object?)processCode     ?? DBNull.Value;
@@ -1695,26 +2205,27 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@CG",  SqlDbType.NVarChar, 200).Value = (object?)correctiveGuide ?? DBNull.Value;
         cmd.Parameters.Add("@RD",  SqlDbType.NVarChar,  30).Value = (object?)responsibleDept ?? DBNull.Value;
         cmd.Parameters.Add("@SO",  SqlDbType.Int).Value           = (object?)sortOrder       ?? DBNull.Value;
-        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,    8).Value = (object?)status          ?? DBNull.Value;
+        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
         cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
     public void UpdateDefectCause(
-        string code, string? name, string? category,
+        string code, string? name, string? nameEn, string? category,
         string? parentCode, string? processCode,
         bool rootCauseFlag, string? correctiveGuide, string? responsibleDept,
-        int? sortOrder, string? status, string modifiedBy)
+        int? sortOrder, bool activeFlag, string modifiedBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_DefectCause SET " +
-            "CauseName=@N,CauseCategory=@CAT,ParentCauseCode=@PC2,ProcessCode=@PC," +
+            "CauseName=@N,CauseNameEn=@NE,CauseCategory=@CAT,ParentCauseCode=@PC2,ProcessCode=@PC," +
             "RootCauseFlag=@RF,CorrectiveGuide=@CG,ResponsibleDept=@RD," +
-            "SortOrder=@SO,Status=@ST,ModifiedTS=SYSDATETIME(),ModifiedBy=@MB " +
+            "SortOrder=@SO,ActiveFlag=@AF,ModifiedTS=SYSDATETIME(),ModifiedBy=@MB " +
             "WHERE CauseCode=@C;", conn);
         cmd.Parameters.Add("@C",   SqlDbType.VarChar,   16).Value = code;
         cmd.Parameters.Add("@N",   SqlDbType.NVarChar,  60).Value = (object?)name            ?? DBNull.Value;
+        cmd.Parameters.Add("@NE",  SqlDbType.NVarChar,  60).Value = (object?)nameEn          ?? DBNull.Value;
         cmd.Parameters.Add("@CAT", SqlDbType.VarChar,    9).Value = (object?)category        ?? DBNull.Value;
         cmd.Parameters.Add("@PC2", SqlDbType.VarChar,   16).Value = (object?)parentCode      ?? DBNull.Value;
         cmd.Parameters.Add("@PC",  SqlDbType.VarChar,   10).Value = (object?)processCode     ?? DBNull.Value;
@@ -1722,7 +2233,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@CG",  SqlDbType.NVarChar, 200).Value = (object?)correctiveGuide ?? DBNull.Value;
         cmd.Parameters.Add("@RD",  SqlDbType.NVarChar,  30).Value = (object?)responsibleDept ?? DBNull.Value;
         cmd.Parameters.Add("@SO",  SqlDbType.Int).Value           = (object?)sortOrder       ?? DBNull.Value;
-        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,    8).Value = (object?)status          ?? DBNull.Value;
+        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
         cmd.Parameters.Add("@MB",  SqlDbType.NVarChar, 450).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
@@ -2076,7 +2587,7 @@ public sealed class MasterDataRepository
         string InspStdID, string? ItemID, string? ProcessCode, string? InspType,
         string? CharName, decimal? SpecNominal, decimal? SpecLSL, decimal? SpecUSL,
         string? UOM, string? SamplingPlan, string? InspMethod, bool IsCTQ,
-        DateOnly? EffectiveDate, string? Status,
+        DateOnly? EffectiveDate, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
 
     public List<InspectionStandardRow> ListInspectionStandards()
@@ -2085,7 +2596,7 @@ public sealed class MasterDataRepository
         using var cmd = new SqlCommand(
             "SELECT InspStdID,ItemID,ProcessCode,InspType,CharName," +
             "SpecNominal,SpecLSL,SpecUSL,UOM,SamplingPlan,InspMethod," +
-            "ISNULL(IsCTQ,0),EffectiveDate,Status," +
+            "ISNULL(IsCTQ,0),EffectiveDate,ISNULL(ActiveFlag,1) AS ActiveFlag," +
             "CreatedBy,CreatedTS,ModifiedBy,ModifiedTS " +
             "FROM dbo.MD_InspectionStandard ORDER BY InspStdID;", conn);
         using var rdr = cmd.ExecuteReader();
@@ -2105,7 +2616,7 @@ public sealed class MasterDataRepository
                 rdr.IsDBNull(10) ? null : rdr.GetString(10),
                 rdr.GetBoolean(11),
                 rdr.IsDBNull(12) ? null : DateOnly.FromDateTime(rdr.GetDateTime(12)),
-                rdr.IsDBNull(13) ? null : rdr.GetString(13),
+                rdr.GetBoolean(13),
                 rdr.IsDBNull(14) ? null : rdr.GetString(14),
                 rdr.IsDBNull(15) ? null : rdr.GetDateTime(15),
                 rdr.IsDBNull(16) ? null : rdr.GetString(16),
@@ -2126,15 +2637,15 @@ public sealed class MasterDataRepository
         string id, string? itemId, string? processCode, string? inspType,
         string? charName, decimal? specNominal, decimal? specLsl, decimal? specUsl,
         string? uom, string? samplingPlan, string? inspMethod, bool isCTQ,
-        DateOnly? effectiveDate, string? status, string createdBy)
+        DateOnly? effectiveDate, bool activeFlag, string createdBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_InspectionStandard" +
             "(InspStdID,ItemID,ProcessCode,InspType,CharName," +
             "SpecNominal,SpecLSL,SpecUSL,UOM,SamplingPlan,InspMethod," +
-            "IsCTQ,EffectiveDate,Status,CreatedBy)" +
-            " VALUES(@I,@ITEM,@PC,@IT,@CN,@SN,@LSL,@USL,@UOM,@SP,@IM,@CTQ,@ED,@ST,@CB);", conn);
+            "IsCTQ,EffectiveDate,ActiveFlag,CreatedBy)" +
+            " VALUES(@I,@ITEM,@PC,@IT,@CN,@SN,@LSL,@USL,@UOM,@SP,@IM,@CTQ,@ED,@AF,@CB);", conn);
         cmd.Parameters.Add("@I",    SqlDbType.VarChar,   20).Value = id;
         cmd.Parameters.Add("@ITEM", SqlDbType.VarChar,   20).Value = (object?)itemId       ?? DBNull.Value;
         cmd.Parameters.Add("@PC",   SqlDbType.VarChar,   10).Value = (object?)processCode  ?? DBNull.Value;
@@ -2151,7 +2662,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@IM",   SqlDbType.NVarChar,  40).Value = (object?)inspMethod   ?? DBNull.Value;
         cmd.Parameters.Add("@CTQ",  SqlDbType.Bit).Value           = isCTQ;
         cmd.Parameters.Add("@ED",   SqlDbType.Date).Value          = effectiveDate.HasValue ? (object)effectiveDate.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
-        cmd.Parameters.Add("@ST",   SqlDbType.VarChar,    8).Value = (object?)status       ?? DBNull.Value;
+        cmd.Parameters.Add("@AF",   SqlDbType.Bit).Value           = activeFlag;
         cmd.Parameters.Add("@CB",   SqlDbType.VarChar,   50).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
@@ -2160,7 +2671,7 @@ public sealed class MasterDataRepository
         string id, string? itemId, string? processCode, string? inspType,
         string? charName, decimal? specNominal, decimal? specLsl, decimal? specUsl,
         string? uom, string? samplingPlan, string? inspMethod, bool isCTQ,
-        DateOnly? effectiveDate, string? status, string modifiedBy)
+        DateOnly? effectiveDate, bool activeFlag, string modifiedBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
@@ -2168,7 +2679,7 @@ public sealed class MasterDataRepository
             "ItemID=@ITEM,ProcessCode=@PC,InspType=@IT,CharName=@CN," +
             "SpecNominal=@SN,SpecLSL=@LSL,SpecUSL=@USL,UOM=@UOM," +
             "SamplingPlan=@SP,InspMethod=@IM,IsCTQ=@CTQ," +
-            "EffectiveDate=@ED,Status=@ST," +
+            "EffectiveDate=@ED,ActiveFlag=@AF," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB " +
             "WHERE InspStdID=@I;", conn);
         cmd.Parameters.Add("@I",    SqlDbType.VarChar,   20).Value = id;
@@ -2187,7 +2698,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@IM",   SqlDbType.NVarChar,  40).Value = (object?)inspMethod   ?? DBNull.Value;
         cmd.Parameters.Add("@CTQ",  SqlDbType.Bit).Value           = isCTQ;
         cmd.Parameters.Add("@ED",   SqlDbType.Date).Value          = effectiveDate.HasValue ? (object)effectiveDate.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
-        cmd.Parameters.Add("@ST",   SqlDbType.VarChar,    8).Value = (object?)status       ?? DBNull.Value;
+        cmd.Parameters.Add("@AF",   SqlDbType.Bit).Value           = activeFlag;
         cmd.Parameters.Add("@MB",   SqlDbType.NVarChar, 450).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
@@ -2546,7 +3057,7 @@ public sealed class MasterDataRepository
         string PackSpecID, string? ItemID, string? PackType,
         int? QtyPerInner, int? InnerPerOuter, int? OuterPerPallet,
         decimal? NetWeightKg, decimal? GrossWeightKg, string? DimLxWxH,
-        bool ReturnableFlag, string? LabelTemplateID, string? Status,
+        bool ReturnableFlag, string? LabelTemplateID, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
 
     public List<PackagingSpecRow> ListPackagingSpecs() => Query("""
@@ -2554,7 +3065,7 @@ public sealed class MasterDataRepository
                QtyPerInner, InnerPerOuter, OuterPerPallet,
                NetWeightKg, GrossWeightKg, DimLxWxH,
                ISNULL(ReturnableFlag,0) AS ReturnableFlag,
-               LabelTemplateID, Status,
+               LabelTemplateID, ISNULL(ActiveFlag,1) AS ActiveFlag,
                CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
         FROM dbo.MD_PackagingSpec ORDER BY PackSpecID
         """, r => new PackagingSpecRow(
@@ -2569,7 +3080,7 @@ public sealed class MasterDataRepository
             r["DimLxWxH"]        as string,
             (bool)r["ReturnableFlag"],
             r["LabelTemplateID"] as string,
-            r["Status"]          as string,
+            (bool)r["ActiveFlag"],
             r["CreatedBy"]       as string,
             r["CreatedTS"]       is DateTime ct ? ct : null,
             r["ModifiedBy"]      as string,
@@ -2579,13 +3090,13 @@ public sealed class MasterDataRepository
     public record LabelTemplateRow(
         string LabelTemplateID, string? TemplateName, string? LabelType,
         string? PaperSize, string? BarcodeType, string? CustomerID,
-        int? Version, string? PrinterModel, string? Status,
+        int? Version, string? PrinterModel, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
 
     public List<LabelTemplateRow> ListLabelTemplates() => Query("""
         SELECT LabelTemplateID, TemplateName, LabelType,
                PaperSize, BarcodeType, CustomerID,
-               Version, PrinterModel, Status,
+               Version, PrinterModel, ISNULL(ActiveFlag,1) AS ActiveFlag,
                CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
         FROM dbo.MD_LabelTemplate ORDER BY LabelTemplateID
         """, r => new LabelTemplateRow(
@@ -2597,7 +3108,7 @@ public sealed class MasterDataRepository
             r["CustomerID"]    as string,
             r["Version"]       is int lv ? lv : null,
             r["PrinterModel"]  as string,
-            r["Status"]        as string,
+            (bool)r["ActiveFlag"],
             r["CreatedBy"]     as string,
             r["CreatedTS"]     is DateTime ct ? ct : null,
             r["ModifiedBy"]    as string,
@@ -2606,27 +3117,27 @@ public sealed class MasterDataRepository
     // ── MD_ReasonCode ────────────────────────────────────────────────
     public record ReasonCodeRow(
         string ReasonCode, string? ReasonName, string? ReasonType,
-        string? AppliesToModule, bool RequiresComment, bool PlannedFlag,
-        int? DisplayOrder, string? Description, string? Status,
+        string? ModuleCode, bool RequiresComment, bool PlannedFlag,
+        int? DisplayOrder, string? Description, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
 
     public List<ReasonCodeRow> ListReasonCodes() => Query("""
         SELECT ReasonCode, ReasonName, ReasonType,
-               AppliesToModule, ISNULL(RequiresComment,0) AS RequiresComment,
+               ModuleCode, ISNULL(RequiresComment,0) AS RequiresComment,
                ISNULL(PlannedFlag,0) AS PlannedFlag,
-               DisplayOrder, Description, Status,
+               DisplayOrder, Description, ISNULL(ActiveFlag,1) AS ActiveFlag,
                CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
         FROM dbo.MD_ReasonCode ORDER BY ISNULL(DisplayOrder,9999), ReasonCode
         """, r => new ReasonCodeRow(
             r.GetString("ReasonCode"),
             r["ReasonName"]       as string,
             r["ReasonType"]       as string,
-            r["AppliesToModule"]  as string,
+            r["ModuleCode"]       as string,
             (bool)r["RequiresComment"],
             (bool)r["PlannedFlag"],
             r["DisplayOrder"]     is int dord ? dord : null,
             r["Description"]      as string,
-            r["Status"]           as string,
+            (bool)r["ActiveFlag"],
             r["CreatedBy"]        as string,
             r["CreatedTS"]        is DateTime ct ? ct : null,
             r["ModifiedBy"]       as string,
@@ -2722,7 +3233,7 @@ public sealed class MasterDataRepository
     // ── MD_LineTimePattern ───────────────────────────────────────────
     public record LineTimePatternRow(
         string PatternID, string? LineID, string? PatternName,
-        string? DayType, string? ShiftModel,
+        string? DayType, string? ShiftPattern,
         DateOnly? EffectiveFrom, DateOnly? EffectiveTo,
         int? TotalOperatingMin, int? TotalPlannedDownMin,
         string? TimeZone, string? Status,
@@ -2730,7 +3241,7 @@ public sealed class MasterDataRepository
 
     public List<LineTimePatternRow> ListLineTimePatterns() => Query("""
         SELECT PatternID, LineID, PatternName,
-               DayType, ShiftModel, EffectiveFrom, EffectiveTo,
+               DayType, ShiftPattern, EffectiveFrom, EffectiveTo,
                TotalOperatingMin, TotalPlannedDownMin,
                TimeZone, Status,
                CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
@@ -2740,7 +3251,7 @@ public sealed class MasterDataRepository
             r["LineID"]              as string,
             r["PatternName"]         as string,
             r["DayType"]             as string,
-            r["ShiftModel"]          as string,
+            r["ShiftPattern"]          as string,
             r["EffectiveFrom"]       is DateTime ef  ? DateOnly.FromDateTime(ef)  : null,
             r["EffectiveTo"]         is DateTime eto ? DateOnly.FromDateTime(eto) : null,
             r["TotalOperatingMin"]   is int     tom ? tom : null,
@@ -2777,6 +3288,26 @@ public sealed class MasterDataRepository
             r["CreatedBy"]    as string,
             r["CreatedTS"]    is DateTime ct ? ct : null),
         ("@P", (object?)patternId));
+
+    // 목록 요약용: 전체 패턴의 세그먼트 (PatternID·SeqNo 순)
+    public List<LineTimeSegmentRow> ListAllLineTimeSegments() => Query("""
+        SELECT SegmentID, PatternID, SeqNo,
+               StartMin, EndMin, SegmentState,
+               ReasonCode, ShiftCode, Description,
+               CreatedBy, CreatedTS
+        FROM dbo.MD_LineTimeSegment ORDER BY PatternID, ISNULL(SeqNo,9999)
+        """, r => new LineTimeSegmentRow(
+            r.GetString("SegmentID"),
+            r["PatternID"]    as string,
+            r["SeqNo"]        is int     sno ? sno : null,
+            r["StartMin"]     is short   sm1 ? (int)sm1 : (int?)null,
+            r["EndMin"]       is short   em1 ? (int)em1 : (int?)null,
+            r["SegmentState"] as string,
+            r["ReasonCode"]   as string,
+            r["ShiftCode"]    as string,
+            r["Description"]  as string,
+            r["CreatedBy"]    as string,
+            r["CreatedTS"]    is DateTime ct ? ct : null));
 
     // ── MD_Recipe ────────────────────────────────────────────────────
     public record RecipeRow(
@@ -3074,14 +3605,14 @@ public sealed class MasterDataRepository
     public void InsertPackagingSpec(string packSpecId, string? itemId, string? packType,
         int? qtyPerInner, int? innerPerOuter, int? outerPerPallet,
         decimal? netWeightKg, decimal? grossWeightKg, string? dimLxWxH,
-        bool returnableFlag, string? labelTemplateId, string? status, string createdBy)
+        bool returnableFlag, string? labelTemplateId, bool activeFlag, string createdBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_PackagingSpec(PackSpecID,ItemID,PackType," +
             "QtyPerInner,InnerPerOuter,OuterPerPallet,NetWeightKg,GrossWeightKg," +
-            "DimLxWxH,ReturnableFlag,LabelTemplateID,Status,CreatedBy)" +
-            " VALUES(@I,@II,@PT,@QI,@IO,@OP,@NW,@GW,@DIM,@RF,@LT,@ST,@CB);", conn);
+            "DimLxWxH,ReturnableFlag,LabelTemplateID,ActiveFlag,CreatedBy)" +
+            " VALUES(@I,@II,@PT,@QI,@IO,@OP,@NW,@GW,@DIM,@RF,@LT,@AF,@CB);", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,  20).Value = packSpecId;
         cmd.Parameters.Add("@II",  SqlDbType.VarChar,  30).Value = (object?)itemId          ?? DBNull.Value;
         cmd.Parameters.Add("@PT",  SqlDbType.VarChar,  20).Value = (object?)packType        ?? DBNull.Value;
@@ -3095,7 +3626,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@DIM", SqlDbType.VarChar,  30).Value = (object?)dimLxWxH       ?? DBNull.Value;
         cmd.Parameters.Add("@RF",  SqlDbType.Bit).Value          = returnableFlag;
         cmd.Parameters.Add("@LT",  SqlDbType.VarChar,  20).Value = (object?)labelTemplateId ?? DBNull.Value;
-        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,  10).Value = (object?)status          ?? DBNull.Value;
+        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value          = activeFlag;
         cmd.Parameters.Add("@CB",  SqlDbType.VarChar,  50).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
@@ -3103,14 +3634,14 @@ public sealed class MasterDataRepository
     public void UpdatePackagingSpec(string packSpecId, string? itemId, string? packType,
         int? qtyPerInner, int? innerPerOuter, int? outerPerPallet,
         decimal? netWeightKg, decimal? grossWeightKg, string? dimLxWxH,
-        bool returnableFlag, string? labelTemplateId, string? status, string modifiedBy)
+        bool returnableFlag, string? labelTemplateId, bool activeFlag, string modifiedBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_PackagingSpec SET ItemID=@II,PackType=@PT," +
             "QtyPerInner=@QI,InnerPerOuter=@IO,OuterPerPallet=@OP," +
             "NetWeightKg=@NW,GrossWeightKg=@GW,DimLxWxH=@DIM," +
-            "ReturnableFlag=@RF,LabelTemplateID=@LT,Status=@ST," +
+            "ReturnableFlag=@RF,LabelTemplateID=@LT,ActiveFlag=@AF," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE PackSpecID=@I;", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value  = packSpecId;
         cmd.Parameters.Add("@II",  SqlDbType.VarChar,   30).Value  = (object?)itemId          ?? DBNull.Value;
@@ -3125,7 +3656,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@DIM", SqlDbType.VarChar,   30).Value  = (object?)dimLxWxH       ?? DBNull.Value;
         cmd.Parameters.Add("@RF",  SqlDbType.Bit).Value            = returnableFlag;
         cmd.Parameters.Add("@LT",  SqlDbType.VarChar,   20).Value  = (object?)labelTemplateId ?? DBNull.Value;
-        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   10).Value  = (object?)status          ?? DBNull.Value;
+        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value            = activeFlag;
         cmd.Parameters.Add("@MB",  SqlDbType.NVarChar, 450).Value  = modifiedBy;
         cmd.ExecuteNonQuery();
     }
@@ -3149,13 +3680,13 @@ public sealed class MasterDataRepository
 
     public void InsertLabelTemplate(string id, string? templateName, string? labelType,
         string? paperSize, string? barcodeType, string? customerId,
-        int? version, string? printerModel, string? status, string createdBy)
+        int? version, string? printerModel, bool activeFlag, string createdBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_LabelTemplate(LabelTemplateID,TemplateName,LabelType," +
-            "PaperSize,BarcodeType,CustomerID,Version,PrinterModel,Status,CreatedBy)" +
-            " VALUES(@I,@TN,@LT,@PS,@BT,@CI,@VER,@PM,@ST,@CB);", conn);
+            "PaperSize,BarcodeType,CustomerID,Version,PrinterModel,ActiveFlag,CreatedBy)" +
+            " VALUES(@I,@TN,@LT,@PS,@BT,@CI,@VER,@PM,@AF,@CB);", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = id;
         cmd.Parameters.Add("@TN",  SqlDbType.NVarChar, 100).Value = (object?)templateName ?? DBNull.Value;
         cmd.Parameters.Add("@LT",  SqlDbType.VarChar,   20).Value = (object?)labelType    ?? DBNull.Value;
@@ -3164,20 +3695,20 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@CI",  SqlDbType.VarChar,   20).Value = (object?)customerId   ?? DBNull.Value;
         cmd.Parameters.Add("@VER", SqlDbType.Int).Value           = (object?)version      ?? DBNull.Value;
         cmd.Parameters.Add("@PM",  SqlDbType.VarChar,   50).Value = (object?)printerModel ?? DBNull.Value;
-        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   10).Value = (object?)status       ?? DBNull.Value;
+        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
         cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
     public void UpdateLabelTemplate(string id, string? templateName, string? labelType,
         string? paperSize, string? barcodeType, string? customerId,
-        int? version, string? printerModel, string? status, string modifiedBy)
+        int? version, string? printerModel, bool activeFlag, string modifiedBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_LabelTemplate SET TemplateName=@TN,LabelType=@LT," +
             "PaperSize=@PS,BarcodeType=@BT,CustomerID=@CI,Version=@VER," +
-            "PrinterModel=@PM,Status=@ST," +
+            "PrinterModel=@PM,ActiveFlag=@AF," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE LabelTemplateID=@I;", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value  = id;
         cmd.Parameters.Add("@TN",  SqlDbType.NVarChar, 100).Value  = (object?)templateName ?? DBNull.Value;
@@ -3187,7 +3718,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@CI",  SqlDbType.VarChar,   20).Value  = (object?)customerId   ?? DBNull.Value;
         cmd.Parameters.Add("@VER", SqlDbType.Int).Value            = (object?)version      ?? DBNull.Value;
         cmd.Parameters.Add("@PM",  SqlDbType.VarChar,   50).Value  = (object?)printerModel ?? DBNull.Value;
-        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   10).Value  = (object?)status       ?? DBNull.Value;
+        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value            = activeFlag;
         cmd.Parameters.Add("@MB",  SqlDbType.NVarChar, 450).Value  = modifiedBy;
         cmd.ExecuteNonQuery();
     }
@@ -3210,46 +3741,46 @@ public sealed class MasterDataRepository
     }
 
     public void InsertReasonCode(string code, string? reasonName, string? reasonType,
-        string? appliesToModule, bool requiresComment, bool plannedFlag,
-        int? displayOrder, string? description, string? status, string createdBy)
+        string? moduleCode, bool requiresComment, bool plannedFlag,
+        int? displayOrder, string? description, bool activeFlag, string createdBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_ReasonCode(ReasonCode,ReasonName,ReasonType," +
-            "AppliesToModule,RequiresComment,PlannedFlag,DisplayOrder,Description,Status,CreatedBy)" +
-            " VALUES(@C,@RN,@RT,@AM,@RC2,@PF,@DO,@DESC,@ST,@CB);", conn);
+            "ModuleCode,RequiresComment,PlannedFlag,DisplayOrder,Description,ActiveFlag,CreatedBy)" +
+            " VALUES(@C,@RN,@RT,@AM,@RC2,@PF,@DO,@DESC,@AF,@CB);", conn);
         cmd.Parameters.Add("@C",    SqlDbType.VarChar,   20).Value = code;
         cmd.Parameters.Add("@RN",   SqlDbType.NVarChar, 100).Value = (object?)reasonName      ?? DBNull.Value;
         cmd.Parameters.Add("@RT",   SqlDbType.VarChar,   20).Value = (object?)reasonType      ?? DBNull.Value;
-        cmd.Parameters.Add("@AM",   SqlDbType.VarChar,   20).Value = (object?)appliesToModule ?? DBNull.Value;
+        cmd.Parameters.Add("@AM",   SqlDbType.VarChar,   20).Value = (object?)moduleCode ?? DBNull.Value;
         cmd.Parameters.Add("@RC2",  SqlDbType.Bit).Value           = requiresComment;
         cmd.Parameters.Add("@PF",   SqlDbType.Bit).Value           = plannedFlag;
         cmd.Parameters.Add("@DO",   SqlDbType.Int).Value           = (object?)displayOrder   ?? DBNull.Value;
         cmd.Parameters.Add("@DESC", SqlDbType.NVarChar, 500).Value = (object?)description    ?? DBNull.Value;
-        cmd.Parameters.Add("@ST",   SqlDbType.VarChar,   10).Value = (object?)status         ?? DBNull.Value;
+        cmd.Parameters.Add("@AF",   SqlDbType.Bit).Value           = activeFlag;
         cmd.Parameters.Add("@CB",   SqlDbType.VarChar,   50).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
     public void UpdateReasonCode(string code, string? reasonName, string? reasonType,
-        string? appliesToModule, bool requiresComment, bool plannedFlag,
-        int? displayOrder, string? description, string? status, string modifiedBy)
+        string? moduleCode, bool requiresComment, bool plannedFlag,
+        int? displayOrder, string? description, bool activeFlag, string modifiedBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_ReasonCode SET ReasonName=@RN,ReasonType=@RT," +
-            "AppliesToModule=@AM,RequiresComment=@RC2,PlannedFlag=@PF," +
-            "DisplayOrder=@DO,Description=@DESC,Status=@ST," +
+            "ModuleCode=@AM,RequiresComment=@RC2,PlannedFlag=@PF," +
+            "DisplayOrder=@DO,Description=@DESC,ActiveFlag=@AF," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE ReasonCode=@C;", conn);
         cmd.Parameters.Add("@C",    SqlDbType.VarChar,   20).Value  = code;
         cmd.Parameters.Add("@RN",   SqlDbType.NVarChar, 100).Value  = (object?)reasonName      ?? DBNull.Value;
         cmd.Parameters.Add("@RT",   SqlDbType.VarChar,   20).Value  = (object?)reasonType      ?? DBNull.Value;
-        cmd.Parameters.Add("@AM",   SqlDbType.VarChar,   20).Value  = (object?)appliesToModule ?? DBNull.Value;
+        cmd.Parameters.Add("@AM",   SqlDbType.VarChar,   20).Value  = (object?)moduleCode ?? DBNull.Value;
         cmd.Parameters.Add("@RC2",  SqlDbType.Bit).Value            = requiresComment;
         cmd.Parameters.Add("@PF",   SqlDbType.Bit).Value            = plannedFlag;
         cmd.Parameters.Add("@DO",   SqlDbType.Int).Value            = (object?)displayOrder   ?? DBNull.Value;
         cmd.Parameters.Add("@DESC", SqlDbType.NVarChar, 500).Value  = (object?)description    ?? DBNull.Value;
-        cmd.Parameters.Add("@ST",   SqlDbType.VarChar,   10).Value  = (object?)status         ?? DBNull.Value;
+        cmd.Parameters.Add("@AF",   SqlDbType.Bit).Value            = activeFlag;
         cmd.Parameters.Add("@MB",   SqlDbType.NVarChar, 450).Value  = modifiedBy;
         cmd.ExecuteNonQuery();
     }
@@ -3396,6 +3927,58 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
+    // ── MD_PmTemplateStep CRUD ───────────────────────────────────────
+    public string InsertPmTemplateStep(string templateId, int? stepSeq, string? stepDescription,
+        string? acceptanceCriteria, string? requiredPartNo, decimal? requiredQty, int? stepDurationMin, string createdBy)
+    {
+        var id = "PMS" + Guid.NewGuid().ToString("N")[..21];
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "INSERT INTO dbo.MD_PmTemplateStep(PMStepID,PMTemplateID,StepSeq,StepDescription," +
+            "AcceptanceCriteria,RequiredPartNo,RequiredQty,StepDurationMin,CreatedBy)" +
+            " VALUES(@Id,@T,@Sq,@SD,@AC,@RP,@RQ,@DM,@CB);", conn);
+        cmd.Parameters.Add("@Id", SqlDbType.VarChar,  24).Value = id;
+        cmd.Parameters.Add("@T",  SqlDbType.VarChar,  20).Value = templateId;
+        cmd.Parameters.Add("@Sq", SqlDbType.Int).Value            = (object?)stepSeq            ?? DBNull.Value;
+        cmd.Parameters.Add("@SD", SqlDbType.NVarChar,400).Value = (object?)stepDescription    ?? DBNull.Value;
+        cmd.Parameters.Add("@AC", SqlDbType.NVarChar,400).Value = (object?)acceptanceCriteria ?? DBNull.Value;
+        cmd.Parameters.Add("@RP", SqlDbType.VarChar,  20).Value = (object?)requiredPartNo     ?? DBNull.Value;
+        var pRq = cmd.Parameters.Add("@RQ", SqlDbType.Decimal); pRq.Precision = 10; pRq.Scale = 3;
+        pRq.Value = (object?)requiredQty ?? DBNull.Value;
+        cmd.Parameters.Add("@DM", SqlDbType.Int).Value            = (object?)stepDurationMin    ?? DBNull.Value;
+        cmd.Parameters.Add("@CB", SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.ExecuteNonQuery();
+        return id;
+    }
+
+    public void UpdatePmTemplateStep(string stepId, int? stepSeq, string? stepDescription,
+        string? acceptanceCriteria, string? requiredPartNo, decimal? requiredQty, int? stepDurationMin, string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "UPDATE dbo.MD_PmTemplateStep SET StepSeq=@Sq,StepDescription=@SD," +
+            "AcceptanceCriteria=@AC,RequiredPartNo=@RP,RequiredQty=@RQ,StepDurationMin=@DM," +
+            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE PMStepID=@Id;", conn);
+        cmd.Parameters.Add("@Id", SqlDbType.VarChar,  24).Value = stepId;
+        cmd.Parameters.Add("@Sq", SqlDbType.Int).Value            = (object?)stepSeq            ?? DBNull.Value;
+        cmd.Parameters.Add("@SD", SqlDbType.NVarChar,400).Value = (object?)stepDescription    ?? DBNull.Value;
+        cmd.Parameters.Add("@AC", SqlDbType.NVarChar,400).Value = (object?)acceptanceCriteria ?? DBNull.Value;
+        cmd.Parameters.Add("@RP", SqlDbType.VarChar,  20).Value = (object?)requiredPartNo     ?? DBNull.Value;
+        var pRq = cmd.Parameters.Add("@RQ", SqlDbType.Decimal); pRq.Precision = 10; pRq.Scale = 3;
+        pRq.Value = (object?)requiredQty ?? DBNull.Value;
+        cmd.Parameters.Add("@DM", SqlDbType.Int).Value            = (object?)stepDurationMin    ?? DBNull.Value;
+        cmd.Parameters.Add("@MB", SqlDbType.NVarChar,450).Value = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeletePmTemplateStep(string stepId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("DELETE FROM dbo.MD_PmTemplateStep WHERE PMStepID=@Id;", conn);
+        cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = stepId;
+        cmd.ExecuteNonQuery();
+    }
+
     // ── MD_LineTimePattern CRUD ──────────────────────────────────────
     public bool LineTimePatternExists(string patternId)
     {
@@ -3406,7 +3989,7 @@ public sealed class MasterDataRepository
     }
 
     public void InsertLineTimePattern(string patternId, string? lineId, string? patternName,
-        string? dayType, string? shiftModel,
+        string? dayType, string? shiftPattern,
         DateOnly? effectiveFrom, DateOnly? effectiveTo,
         int? totalOperatingMin, int? totalPlannedDownMin,
         string? timeZone, string? status, string createdBy)
@@ -3414,14 +3997,14 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_LineTimePattern(PatternID,LineID,PatternName," +
-            "DayType,ShiftModel,EffectiveFrom,EffectiveTo," +
+            "DayType,ShiftPattern,EffectiveFrom,EffectiveTo," +
             "TotalOperatingMin,TotalPlannedDownMin,TimeZone,Status,CreatedBy)" +
             " VALUES(@I,@LI,@PN,@DT,@SM,@EF,@ET,@TOM,@TPD,@TZ,@ST,@CB);", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = patternId;
         cmd.Parameters.Add("@LI",  SqlDbType.VarChar,   20).Value = (object?)lineId           ?? DBNull.Value;
         cmd.Parameters.Add("@PN",  SqlDbType.NVarChar, 100).Value = (object?)patternName      ?? DBNull.Value;
         cmd.Parameters.Add("@DT",  SqlDbType.VarChar,   10).Value = (object?)dayType          ?? DBNull.Value;
-        cmd.Parameters.Add("@SM",  SqlDbType.VarChar,   20).Value = (object?)shiftModel       ?? DBNull.Value;
+        cmd.Parameters.Add("@SM",  SqlDbType.VarChar,   20).Value = (object?)shiftPattern       ?? DBNull.Value;
         cmd.Parameters.Add("@EF",  SqlDbType.Date).Value          = effectiveFrom.HasValue    ? (object)effectiveFrom.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
         cmd.Parameters.Add("@ET",  SqlDbType.Date).Value          = effectiveTo.HasValue      ? (object)effectiveTo.Value.ToDateTime(TimeOnly.MinValue)   : DBNull.Value;
         cmd.Parameters.Add("@TOM", SqlDbType.Int).Value           = (object?)totalOperatingMin   ?? DBNull.Value;
@@ -3433,7 +4016,7 @@ public sealed class MasterDataRepository
     }
 
     public void UpdateLineTimePattern(string patternId, string? lineId, string? patternName,
-        string? dayType, string? shiftModel,
+        string? dayType, string? shiftPattern,
         DateOnly? effectiveFrom, DateOnly? effectiveTo,
         int? totalOperatingMin, int? totalPlannedDownMin,
         string? timeZone, string? status, string modifiedBy)
@@ -3441,14 +4024,14 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_LineTimePattern SET LineID=@LI,PatternName=@PN," +
-            "DayType=@DT,ShiftModel=@SM,EffectiveFrom=@EF,EffectiveTo=@ET," +
+            "DayType=@DT,ShiftPattern=@SM,EffectiveFrom=@EF,EffectiveTo=@ET," +
             "TotalOperatingMin=@TOM,TotalPlannedDownMin=@TPD,TimeZone=@TZ,Status=@ST," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE PatternID=@I;", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value  = patternId;
         cmd.Parameters.Add("@LI",  SqlDbType.VarChar,   20).Value  = (object?)lineId           ?? DBNull.Value;
         cmd.Parameters.Add("@PN",  SqlDbType.NVarChar, 100).Value  = (object?)patternName      ?? DBNull.Value;
         cmd.Parameters.Add("@DT",  SqlDbType.VarChar,   10).Value  = (object?)dayType          ?? DBNull.Value;
-        cmd.Parameters.Add("@SM",  SqlDbType.VarChar,   20).Value  = (object?)shiftModel       ?? DBNull.Value;
+        cmd.Parameters.Add("@SM",  SqlDbType.VarChar,   20).Value  = (object?)shiftPattern       ?? DBNull.Value;
         cmd.Parameters.Add("@EF",  SqlDbType.Date).Value           = effectiveFrom.HasValue    ? (object)effectiveFrom.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
         cmd.Parameters.Add("@ET",  SqlDbType.Date).Value           = effectiveTo.HasValue      ? (object)effectiveTo.Value.ToDateTime(TimeOnly.MinValue)   : DBNull.Value;
         cmd.Parameters.Add("@TOM", SqlDbType.Int).Value            = (object?)totalOperatingMin   ?? DBNull.Value;
@@ -3462,9 +4045,337 @@ public sealed class MasterDataRepository
     public void DeleteLineTimePattern(string patternId)
     {
         using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("DELETE FROM dbo.MD_LineTimePattern WHERE PatternID=@I;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = patternId;
-        cmd.ExecuteNonQuery();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            using (var c1 = new SqlCommand("DELETE FROM dbo.MD_LineTimeSegment WHERE PatternID=@I;", conn, tx))
+            { c1.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = patternId; c1.ExecuteNonQuery(); }
+            using (var c2 = new SqlCommand("DELETE FROM dbo.MD_LineTimePattern WHERE PatternID=@I;", conn, tx))
+            { c2.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = patternId; c2.ExecuteNonQuery(); }
+            tx.Commit();
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    // ── MD_LineTimeSegment 밴드 편집 (PP-LSB PaintBand 이식) ──────────────
+    // 드래그로 그린 밴드를 세그먼트로 반영. 겹치는 기존 세그먼트를 트림/분할/삭제 후 신규 삽입. 반환: 새 SegmentID.
+    public string PaintLineTimeSegment(string patternId, int startMin, int endMin,
+        string segmentState, string? reasonCode, string? shiftCode, string actor)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            // 1) 겹치는 기존 세그먼트
+            var overlapping = new List<(string Id, int Start, int End, string? State, string? Reason, string? Shift, string? Desc)>();
+            using (var cmd = new SqlCommand("""
+                SELECT SegmentID, StartMin, EndMin, SegmentState, ReasonCode, ShiftCode, Description
+                FROM   dbo.MD_LineTimeSegment
+                WHERE  PatternID = @P AND StartMin < @End AND EndMin > @Start
+                ORDER  BY StartMin;
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@P",     SqlDbType.VarChar, 20).Value = patternId;
+                cmd.Parameters.Add("@Start", SqlDbType.SmallInt).Value    = (short)startMin;
+                cmd.Parameters.Add("@End",   SqlDbType.SmallInt).Value    = (short)endMin;
+                using var rdr = cmd.ExecuteReader();
+                while (rdr.Read())
+                    overlapping.Add((
+                        (string)rdr["SegmentID"],
+                        (int)(short)rdr["StartMin"], (int)(short)rdr["EndMin"],
+                        rdr["SegmentState"] as string, rdr["ReasonCode"] as string,
+                        rdr["ShiftCode"] as string, rdr["Description"] as string));
+            }
+
+            string InsertSeg(int s, int e, string? state, string? reason, string? shift, string? desc)
+            {
+                var id = "SEG" + Guid.NewGuid().ToString("N")[..21];
+                using var cmd = new SqlCommand("""
+                    INSERT INTO dbo.MD_LineTimeSegment
+                        (SegmentID, PatternID, StartMin, EndMin, SegmentState, ReasonCode, ShiftCode, Description, CreatedBy, CreatedTS, ModifiedBy, ModifiedTS)
+                    VALUES (@Id, @P, @S, @E, @St, @R, @Sh, @D, @By, SYSDATETIME(), @By, SYSDATETIME());
+                    """, conn, tx);
+                cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = id;
+                cmd.Parameters.Add("@P",  SqlDbType.VarChar, 20).Value = patternId;
+                cmd.Parameters.Add("@S",  SqlDbType.SmallInt).Value    = (short)s;
+                cmd.Parameters.Add("@E",  SqlDbType.SmallInt).Value    = (short)e;
+                cmd.Parameters.Add("@St", SqlDbType.VarChar, 20).Value = (object?)state  ?? DBNull.Value;
+                cmd.Parameters.Add("@R",  SqlDbType.VarChar, 16).Value = (object?)reason ?? DBNull.Value;
+                cmd.Parameters.Add("@Sh", SqlDbType.VarChar, 10).Value = (object?)shift  ?? DBNull.Value;
+                cmd.Parameters.Add("@D",  SqlDbType.NVarChar,60).Value = (object?)desc   ?? DBNull.Value;
+                cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor  ?? DBNull.Value;
+                cmd.ExecuteNonQuery();
+                return id;
+            }
+
+            // 2) 겹치는 각 세그먼트 트림/분할/삭제
+            foreach (var seg in overlapping)
+            {
+                bool leftFree  = seg.Start < startMin;
+                bool rightFree = seg.End   > endMin;
+                if (!leftFree && !rightFree)
+                {
+                    using var cmd = new SqlCommand("DELETE FROM dbo.MD_LineTimeSegment WHERE SegmentID=@Id;", conn, tx);
+                    cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = seg.Id;
+                    cmd.ExecuteNonQuery();
+                }
+                else if (leftFree && rightFree)
+                {
+                    using (var cmd = new SqlCommand("UPDATE dbo.MD_LineTimeSegment SET EndMin=@E, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE SegmentID=@Id;", conn, tx))
+                    {
+                        cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = seg.Id;
+                        cmd.Parameters.Add("@E",  SqlDbType.SmallInt).Value    = (short)startMin;
+                        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor ?? DBNull.Value;
+                        cmd.ExecuteNonQuery();
+                    }
+                    InsertSeg(endMin, seg.End, seg.State, seg.Reason, seg.Shift, seg.Desc);
+                }
+                else if (leftFree)
+                {
+                    using var cmd = new SqlCommand("UPDATE dbo.MD_LineTimeSegment SET EndMin=@E, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE SegmentID=@Id;", conn, tx);
+                    cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = seg.Id;
+                    cmd.Parameters.Add("@E",  SqlDbType.SmallInt).Value    = (short)startMin;
+                    cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor ?? DBNull.Value;
+                    cmd.ExecuteNonQuery();
+                }
+                else // rightFree
+                {
+                    using var cmd = new SqlCommand("UPDATE dbo.MD_LineTimeSegment SET StartMin=@S, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE SegmentID=@Id;", conn, tx);
+                    cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = seg.Id;
+                    cmd.Parameters.Add("@S",  SqlDbType.SmallInt).Value    = (short)endMin;
+                    cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor ?? DBNull.Value;
+                    cmd.ExecuteNonQuery();
+                }
+            }
+
+            // 3) 새 세그먼트 삽입 + 재계산
+            var newId = InsertSeg(startMin, endMin, segmentState, reasonCode, shiftCode, null);
+            RenumberAndRecalc(patternId, actor, conn, tx);
+            tx.Commit();
+            return newId;
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    // 편집기 드래프트 전체 저장: 기존 세그먼트 삭제 후 전달된 세그먼트로 재구성(트랜잭션).
+    // 화면에서 겹침을 이미 정리한 상태로 넘겨받으며, 병합·SeqNo·헤더 합계·플래그는 여기서 재계산.
+    public void SaveLineTimeSegments(string patternId,
+        IEnumerable<(int Start, int End, string State, string? Reason, string? Shift, string? Description)> segments, string actor)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            using (var del = new SqlCommand("DELETE FROM dbo.MD_LineTimeSegment WHERE PatternID=@P;", conn, tx))
+            { del.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = patternId; del.ExecuteNonQuery(); }
+
+            foreach (var s in segments)
+            {
+                if (s.End <= s.Start) continue;
+                var id = "SEG" + Guid.NewGuid().ToString("N")[..21];
+                using var cmd = new SqlCommand("""
+                    INSERT INTO dbo.MD_LineTimeSegment
+                        (SegmentID, PatternID, StartMin, EndMin, SegmentState, ReasonCode, ShiftCode, Description, CreatedBy, CreatedTS, ModifiedBy, ModifiedTS)
+                    VALUES (@Id, @P, @S, @E, @St, @R, @Sh, @D, @By, SYSDATETIME(), @By, SYSDATETIME());
+                    """, conn, tx);
+                cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = id;
+                cmd.Parameters.Add("@P",  SqlDbType.VarChar, 20).Value = patternId;
+                cmd.Parameters.Add("@S",  SqlDbType.SmallInt).Value    = (short)s.Start;
+                cmd.Parameters.Add("@E",  SqlDbType.SmallInt).Value    = (short)s.End;
+                cmd.Parameters.Add("@St", SqlDbType.VarChar, 20).Value = (object?)s.State  ?? DBNull.Value;
+                cmd.Parameters.Add("@R",  SqlDbType.VarChar, 16).Value = (object?)s.Reason ?? DBNull.Value;
+                cmd.Parameters.Add("@Sh", SqlDbType.VarChar, 10).Value = (object?)s.Shift  ?? DBNull.Value;
+                cmd.Parameters.Add("@D",  SqlDbType.NVarChar,120).Value = (object?)s.Description ?? DBNull.Value;
+                cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor    ?? DBNull.Value;
+                cmd.ExecuteNonQuery();
+            }
+
+            RenumberAndRecalc(patternId, actor, conn, tx);
+            tx.Commit();
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    public void DeleteLineTimeSegment(string segmentId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            string? pid;
+            using (var cmd = new SqlCommand("SELECT PatternID FROM dbo.MD_LineTimeSegment WHERE SegmentID=@Id;", conn, tx))
+            { cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = segmentId; pid = cmd.ExecuteScalar() as string; }
+            using (var cmd = new SqlCommand("DELETE FROM dbo.MD_LineTimeSegment WHERE SegmentID=@Id;", conn, tx))
+            { cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = segmentId; cmd.ExecuteNonQuery(); }
+            if (pid is not null) RenumberAndRecalc(pid, "system", conn, tx);
+            tx.Commit();
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    public void ClearLineTimeSegments(string patternId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            using (var cmd = new SqlCommand("DELETE FROM dbo.MD_LineTimeSegment WHERE PatternID=@P;", conn, tx))
+            { cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = patternId; cmd.ExecuteNonQuery(); }
+            RenumberAndRecalc(patternId, "system", conn, tx);
+            tx.Commit();
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    // 인접 세그먼트 병합: 앞.End == 뒤.Start 이고 상태·Shift·사유가 같으면 하나로 합침
+    private static void MergeAdjacentSegments(string patternId, string? actor, SqlConnection conn, SqlTransaction tx)
+    {
+        var segs = new List<(string Id, int Start, int End, string? State, string? Reason, string? Shift)>();
+        using (var cmd = new SqlCommand("SELECT SegmentID, StartMin, EndMin, SegmentState, ReasonCode, ShiftCode FROM dbo.MD_LineTimeSegment WHERE PatternID=@P ORDER BY StartMin;", conn, tx))
+        {
+            cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = patternId;
+            using var rdr = cmd.ExecuteReader();
+            while (rdr.Read())
+                segs.Add((
+                    (string)rdr["SegmentID"],
+                    rdr["StartMin"] is short a ? a : 0,
+                    rdr["EndMin"]   is short b ? b : 0,
+                    rdr["SegmentState"] as string,
+                    rdr["ReasonCode"]   as string,
+                    rdr["ShiftCode"]    as string));
+        }
+        for (int i = 0; i < segs.Count - 1; )
+        {
+            var cur = segs[i]; var nxt = segs[i + 1];
+            if (cur.End == nxt.Start
+                && string.Equals(cur.State,  nxt.State,  StringComparison.Ordinal)
+                && string.Equals(cur.Shift,  nxt.Shift,  StringComparison.Ordinal)
+                && string.Equals(cur.Reason, nxt.Reason, StringComparison.Ordinal))
+            {
+                using (var cmd = new SqlCommand("UPDATE dbo.MD_LineTimeSegment SET EndMin=@E, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE SegmentID=@Id;", conn, tx))
+                { cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = cur.Id; cmd.Parameters.Add("@E", SqlDbType.SmallInt).Value = (short)nxt.End; cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor ?? DBNull.Value; cmd.ExecuteNonQuery(); }
+                using (var cmd = new SqlCommand("DELETE FROM dbo.MD_LineTimeSegment WHERE SegmentID=@Id;", conn, tx))
+                { cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = nxt.Id; cmd.ExecuteNonQuery(); }
+                segs[i] = (cur.Id, cur.Start, nxt.End, cur.State, cur.Reason, cur.Shift);
+                segs.RemoveAt(i + 1);
+            }
+            else i++;
+        }
+    }
+
+    // 세그먼트 SeqNo 재부여(StartMin 순) + 헤더 가동/비가동 합계·수정자 갱신
+    private static void RenumberAndRecalc(string patternId, string? actor, SqlConnection conn, SqlTransaction tx)
+    {
+        MergeAdjacentSegments(patternId, actor, conn, tx);
+
+        using (var cmd = new SqlCommand("""
+            WITH o AS (SELECT SegmentID, ROW_NUMBER() OVER (ORDER BY StartMin) AS rn
+                       FROM dbo.MD_LineTimeSegment WHERE PatternID=@P)
+            UPDATE s SET s.SeqNo = o.rn
+            FROM dbo.MD_LineTimeSegment s JOIN o ON o.SegmentID = s.SegmentID;
+            """, conn, tx))
+        { cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = patternId; cmd.ExecuteNonQuery(); }
+
+        using (var cmd = new SqlCommand("""
+            UPDATE dbo.MD_LineTimePattern
+            SET TotalOperatingMin   = (SELECT ISNULL(SUM(EndMin-StartMin),0) FROM dbo.MD_LineTimeSegment WHERE PatternID=@P AND SegmentState='OPERATING'),
+                TotalPlannedDownMin = (SELECT ISNULL(SUM(EndMin-StartMin),0) FROM dbo.MD_LineTimeSegment WHERE PatternID=@P AND SegmentState<>'OPERATING'),
+                ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+            WHERE PatternID=@P;
+            """, conn, tx))
+        { cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = patternId; cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor ?? DBNull.Value; cmd.ExecuteNonQuery(); }
+
+        RebuildMinuteFlags(patternId, actor, conn, tx);
+    }
+
+    // 분단위(1440) 플래그 재생성 — WORK_SHIFT 정렬순(A,B,C)으로 각 교대 창을 이어붙임.
+    //   SEGMENT_STATE.Attribute1 = 'op:seg' 에서 ':' 앞 → OperatingFlag, ':' 뒤 → SegmentFlag.
+    //   교대 창을 못 채운 자리·창 미정의는 '0', 전체 1440자로 패딩.
+    private static void RebuildMinuteFlags(string patternId, string? actor, SqlConnection conn, SqlTransaction tx)
+    {
+        // SEGMENT_STATE 코드 → (op, seg) 문자 맵
+        var stateMap = new Dictionary<string, (char Op, char Seg)>(StringComparer.OrdinalIgnoreCase);
+        using (var cmd = new SqlCommand("SELECT CodeValue, Attribute1 FROM dbo.MD_CodeItem WHERE GroupCode='SEGMENT_STATE';", conn, tx))
+        using (var rdr = cmd.ExecuteReader())
+            while (rdr.Read())
+            {
+                if (rdr["CodeValue"] as string is not { } cv) continue;
+                char op = '0', sg = '0';
+                if (rdr["Attribute1"] as string is { Length: > 0 } a1)
+                {
+                    var parts = a1.Split(':');
+                    if (parts.Length > 0 && parts[0].Length > 0) op = parts[0][0];
+                    if (parts.Length > 1 && parts[1].Length > 0) sg = parts[1][0];
+                }
+                stateMap[cv] = (op, sg);
+            }
+
+        // WORK_SHIFT 창(정렬순: A,B,C). Attribute1 'HHMM-HHMM'
+        var shifts = new List<(string Code, int Start, int End)>();
+        using (var cmd = new SqlCommand("SELECT CodeValue, Attribute1 FROM dbo.MD_CodeItem WHERE GroupCode='WORK_SHIFT' AND ISNULL(UseFlag,1)=1 ORDER BY ISNULL(SortOrder,0), CodeValue;", conn, tx))
+        using (var rdr = cmd.ExecuteReader())
+            while (rdr.Read())
+            {
+                if (rdr["CodeValue"] as string is not { } code) continue;
+                if (TryParseShiftWindow(rdr["Attribute1"] as string, out int s, out int e) && e > s)
+                    shifts.Add((code, s, e));
+            }
+
+        var segs = new List<(int Start, int End, string? State, string? Shift)>();
+        using (var cmd = new SqlCommand("SELECT StartMin, EndMin, SegmentState, ShiftCode FROM dbo.MD_LineTimeSegment WHERE PatternID=@P;", conn, tx))
+        {
+            cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = patternId;
+            using var rdr = cmd.ExecuteReader();
+            while (rdr.Read())
+                segs.Add((
+                    rdr["StartMin"] is short a ? a : 0,
+                    rdr["EndMin"]   is short b ? b : 0,
+                    rdr["SegmentState"] as string,
+                    rdr["ShiftCode"]    as string));
+        }
+
+        var opSb = new System.Text.StringBuilder(1440);
+        var sgSb = new System.Text.StringBuilder(1440);
+        foreach (var sh in shifts)
+            for (int m = sh.Start; m < sh.End; m++)
+            {
+                char op = '0', sg = '0';
+                foreach (var s in segs)
+                    if (string.Equals(s.Shift, sh.Code, StringComparison.Ordinal)
+                        && s.Start <= m && m < s.End
+                        && s.State is not null && stateMap.TryGetValue(s.State, out var f))
+                    { op = f.Op; sg = f.Seg; break; }
+                opSb.Append(op); sgSb.Append(sg);
+            }
+
+        string opStr = opSb.ToString(), sgStr = sgSb.ToString();
+        opStr = opStr.Length < 1440 ? opStr.PadRight(1440, '0') : opStr[..1440];
+        sgStr = sgStr.Length < 1440 ? sgStr.PadRight(1440, '0') : sgStr[..1440];
+
+        using (var cmd = new SqlCommand("UPDATE dbo.MD_LineTimePattern SET OperatingFlag=@O, SegmentFlag=@S, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE PatternID=@P;", conn, tx))
+        {
+            cmd.Parameters.Add("@O",  SqlDbType.Char, 1440).Value = opStr;
+            cmd.Parameters.Add("@S",  SqlDbType.Char, 1440).Value = sgStr;
+            cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor ?? DBNull.Value;
+            cmd.Parameters.Add("@P",  SqlDbType.VarChar, 20).Value = patternId;
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    // 'HHMM-HHMM' → 시작/종료 분. 2400 = 1440.
+    private static bool TryParseShiftWindow(string? a, out int start, out int end)
+    {
+        start = 0; end = 0;
+        if (string.IsNullOrWhiteSpace(a)) return false;
+        var parts = a.Split('-');
+        return parts.Length == 2 && TryHHMM(parts[0], out start) && TryHHMM(parts[1], out end);
+    }
+    private static bool TryHHMM(string s, out int min)
+    {
+        min = 0; s = s.Trim();
+        if (s.Length != 4 || !int.TryParse(s[..2], out var h) || !int.TryParse(s.Substring(2, 2), out var m)) return false;
+        if (h < 0 || h > 24 || m < 0 || m > 59) return false;
+        min = h * 60 + m; return true;
     }
 
     // ── MD_Recipe CRUD ───────────────────────────────────────────────

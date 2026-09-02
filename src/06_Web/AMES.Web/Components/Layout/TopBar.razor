@@ -2,6 +2,8 @@
 @implements IDisposable
 @inject NavigationManager Nav
 @inject PageHeaderState Header
+@inject AMES.Web.Services.AppLanguageState Lang
+@inject IJSRuntime JS
 
 <header class="ames-topbar">
     <div class="ames-brand">
@@ -27,7 +29,15 @@
 
     <div class="ames-topbar-spacer"></div>
 
-    <CultureSwitcher />
+    <button class="ames-theme-toggle" @onclick="ToggleTheme"
+            title="@(_theme == "light" ? "다크 테마" : "라이트 테마")"
+            aria-label="Toggle theme">@(_theme == "light" ? "🌙" : "☀")</button>
+
+    @* LANGUAGE_DEFAULT 비활성 시 언어 선택 숨김(앱은 en-US 강제) *@
+    @if (Lang.SwitcherVisible)
+    {
+        <CultureSwitcher />
+    }
 
     <AuthorizeView>
         <Authorized>
@@ -55,11 +65,25 @@
 
 @code {
     string? _url;
+    string _theme = "dark";
 
     protected override void OnInitialized()
     {
         _url = Nav.ToBaseRelativePath(Nav.Uri);
         Header.OnChanged += OnHeaderChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try { _theme = await JS.InvokeAsync<string>("amesTheme.get"); StateHasChanged(); }
+        catch { /* 프리렌더/연결 끊김 무시 */ }
+    }
+
+    async Task ToggleTheme()
+    {
+        try { _theme = await JS.InvokeAsync<string>("amesTheme.toggle"); }
+        catch { }
     }
 
     void OnHeaderChanged() => InvokeAsync(StateHasChanged);

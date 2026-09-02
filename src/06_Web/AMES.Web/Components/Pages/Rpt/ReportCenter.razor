@@ -1,39 +1,92 @@
 ﻿@page "/rpt/report-center"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.RptRepository Rpt
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
+
+@attribute [Authorize]
+
+@inject RptRepository Rpt
+@inject PermissionService PermSvc
+@inject AuthenticationStateProvider AuthPrvd
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>RPT-009 @L["RPT.ReportCenter.Title"] · AMES</PageTitle>
-
 <AmesPageHeader Code="RPT-009" TitleKey="RPT.ReportCenter.Title" />
 
-@foreach (var grp in _entries.GroupBy(e => e.Category).OrderBy(g => CatOrder(g.Key)))
+@{
+    // RPT-009(Report Center = 현재 화면)은 타일에서 제외. 카테고리를 행 그룹으로 묶어 나란히 배치.
+    var cats = _entries.Where(e => e.Key != "RPT-009")
+                       .GroupBy(e => e.Category)
+                       .OrderBy(g => CatOrder(g.Key))
+                       .ToList();
+}
+@foreach (var row in cats.GroupBy(g => RowOf(g.Key)).OrderBy(r => r.Key))
 {
-    <div class="ames-card">
-        <div class="ames-card-h">▼ @grp.Key  ·  @grp.Count() reports</div>
-        <div class="ames-tiles">
-            @foreach (var e in grp)
-            {
-                <a class="ames-tile rpt" href="@e.Path">
-                    <div class="ames-tile-ic">@CatIcon(e.Category)</div>
-                    <div class="ames-tile-h">@e.Key · @e.Title</div>
-                    <div class="ames-tile-sub">@e.Description</div>
-                </a>
-            }
-        </div>
+    <div class="rpt-cat-row">
+        @foreach (var grp in row)
+        {
+            <div class="ames-card rpt-col">
+                <div class="ames-card-h">▼ @grp.Key  ·  @grp.Count() reports</div>
+                <div class="ames-tiles ames-tiles-4up">
+                    @foreach (var e in grp)
+                    {
+                        @Tile(e)
+                    }
+                </div>
+            </div>
+        }
     </div>
 }
 
 @code {
-    List<AMES.Data.Repositories.RptRepository.ReportCatalogEntry> _entries = new();
-    protected override void OnInitialized() => _entries = Rpt.ListReportCatalog();
+    List<RptRepository.ReportCatalogEntry> _entries = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { await PermSvc.EnsureAsync(AuthPrvd); } catch { }
+        _entries = Rpt.ListReportCatalog();
+    }
+
+    // NavMenu/Health 와 동일하게 권한(PermissionService.IsVisible)에 따라 타일 활성/비활성
+    RenderFragment Tile(RptRepository.ReportCatalogEntry e) => __builder =>
+    {
+        if (PermSvc.IsVisible(e.Path))
+        {
+            <a class="ames-tile rpt" href="@e.Path">
+                <div class="ames-tile-top">
+                    <div class="ames-tile-ic">@CatIcon(e.Category)</div>
+                    <div class="ames-tile-sub">@e.Description</div>
+                </div>
+                <div class="ames-tile-h">@e.Key · @e.Title</div>
+            </a>
+        }
+        else
+        {
+            <div class="ames-tile rpt" style="opacity:.4;pointer-events:none;filter:grayscale(1);" aria-disabled="true">
+                <div class="ames-tile-top">
+                    <div class="ames-tile-ic">@CatIcon(e.Category)</div>
+                    <div class="ames-tile-sub">@e.Description</div>
+                </div>
+                <div class="ames-tile-h">@e.Key · @e.Title</div>
+            </div>
+        }
+    };
 
     static int CatOrder(string c) => c switch
     {
         "Production" => 1, "Quality" => 2, "Logistics" => 3,
         "Maintenance" => 4, "Executive" => 5,
         "Hub" => 6, "Advanced" => 7, _ => 9
+    };
+
+    // 같은 줄에 표시할 카테고리 묶음: 0=Production+Quality, 1=Logistics+Maintenance, 2=나머지
+    static int RowOf(string c) => c switch
+    {
+        "Production" or "Quality"    => 0,
+        "Logistics"  or "Maintenance" => 1,
+        _                             => 2
     };
     static string CatIcon(string c) => c switch
     {

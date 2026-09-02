@@ -4,9 +4,11 @@
 @implements IDisposable
 @inject AMES.Data.Repositories.PpRepository           Pp
 @inject AMES.Data.Repositories.OeeRepository          Oee
-@inject AMES.Data.Repositories.LineScheduleRepository Lsr
-@inject AuthenticationStateProvider Auth
-@inject AMES.Web.Services.PermissionService Perm
+@inject AMES.Data.Repositories.SysRepository          Sys
+@inject AuthenticationStateProvider AuthPrvd
+@inject AMES.Web.Services.PermissionService PermSvc
+@inject IJSRuntime JS
+@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["PP.DowntimeMonitor.Title"] · AMES</PageTitle>
@@ -129,7 +131,7 @@
         <span>▼ @L["PP.DowntimeMonitor.History.Header"]</span>
         <div style="display:flex;gap:6px;align-items:center;">
             <select class="ames-input" style="width:130px;" @bind="_dtlLine" @bind:after="ReloadDtl">
-                <option value="">@L["PP.DowntimeMonitor.Filter.AllLines"]</option>
+                <option value="">@L["Filter.All"]</option>
                 @foreach (var l in _dtlLines)
                 { <option value="@l">@l</option> }
             </select>
@@ -259,6 +261,7 @@
     const int _pageSize = 20;
     Dictionary<string, LineVm> _vms        = [];
     Timer?    _timer;
+    bool      _disposed;   // dispose 직후 타이머 콜백 방지
     DateTime  _lastRefresh  = DateTime.Now;
     int       _noReasonCount;
 
@@ -279,14 +282,22 @@
     // ── 초기화 ───────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
-        await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("pp/downtime-monitor");
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("pp/downtime-monitor");
         BuildVms();
         Refresh();
         ReloadDtl();
 
-        _timer = new Timer(_ => InvokeAsync(() => { Refresh(); StateHasChanged(); }),
-                           null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
+        int refreshSec = Sys.GetConfigInt("DASH_REFRESH_SEC", 60);   // SYS_Config 기준(폴백 60초)
+        _timer = new Timer(async _ =>
+        {
+            if (_disposed) return;
+            try { await InvokeAsync(() => { if (_disposed) return; Refresh(); StateHasChanged(); }); }
+            catch { /* 화면 이탈로 teardown된 경우 무시 */ }
+            // 자동 새로고침 중 세션 유지: 인증 HTTP 핑으로 슬라이딩 만료 갱신
+            try { if (!_disposed) await JS.InvokeVoidAsync("fetch", Nav.ToAbsoluteUri("keep-alive").ToString()); }
+            catch { }
+        }, null, TimeSpan.FromSeconds(refreshSec), TimeSpan.FromSeconds(refreshSec));
     }
 
     void BuildVms()
@@ -304,13 +315,7 @@
         _lastRefresh = DateTime.Now;
         if (_vms.Count == 0) return;
 
-        var now    = DateTime.Now;
-        var nowMin = now.Hour * 60 + now.Minute;
-        var dayType = now.DayOfWeek switch {
-            DayOfWeek.Saturday => "SAT",
-            DayOfWeek.Sunday   => "SUN",
-            _                  => "WORKDAY"
-        };
+        var now = DateTime.Now;
 
         Dictionary<string, AMES.Data.Repositories.OeeRepository.EquipSignal> signals = [];
         try { signals = Oee.GetLatestSignalPerLine(); } catch { }
@@ -327,22 +332,10 @@
             vm.IsRunning  = isRunning;
             vm.SignalAge  = signalAge;
 
-            string planBand = "—";
-            string planType = "OFF";
-            try
-            {
-                var bands = Lsr.GetPattern(vm.LineId, dayType);
-                var band  = bands.FirstOrDefault(b => b.StartMin <= nowMin && b.EndMin > nowMin);
-                if (band != null) { planBand = band.Label ?? band.BandType; planType = band.BandType; }
-            }
-            catch { }
-            vm.PlanBand = planBand;
+            // 계획 밴드 판정은 레거시 MD_LinePattern 제거로 비활성 — 필요 시 MD_LineTimeSegment 기반 재구현
+            vm.PlanBand = "—";
 
-            string newState = isRunning ? "WORK" : planType switch {
-                "WORK"  => "UNPLANNED_DOWN",
-                "BREAK" => "BREAK",
-                _       => "PLANNED_DOWN"
-            };
+            string newState = isRunning ? "WORK" : "PLANNED_DOWN";
 
             if (newState != vm.State)
             {
@@ -427,5 +420,5 @@
         _     => L["PP.DowntimeMonitor.Dur.Now"].Value
     };
 
-    public void Dispose() => _timer?.Dispose();
+    public void Dispose() { _disposed = true; _timer?.Dispose(); }
 }

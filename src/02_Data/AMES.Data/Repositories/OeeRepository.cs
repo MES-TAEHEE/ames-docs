@@ -97,7 +97,7 @@ public sealed class OeeRepository
     {
         const string sql = """
             SELECT DISTINCT LineId FROM (
-                SELECT LineID AS LineId FROM dbo.PP_WorkOrder WHERE LineID IS NOT NULL
+                SELECT LineID AS LineId FROM dbo.PP_WorkOrderRouting WHERE LineID IS NOT NULL
                 UNION
                 SELECT LineId FROM dbo.PP_LineStateLog
             ) t ORDER BY LineId;

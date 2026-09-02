@@ -65,6 +65,26 @@ To rebuild PDFs after modifying source HTML:
 
 See [`tools/README.md`](../tools/README.md) for build internals.
 
+## Database Cleanup
+
+Use the cleanup script below when an existing local or shared development DB
+still has old `SIS_TEST` demo objects from early SIS prototyping:
+
+```powershell
+# Local SQL Server Express
+sqlcmd -S .\SQLEXPRESS -U ames_app -P "!Dev2026" -C -d AMES_DEV -i dist\cleanup_legacy_sis_test.sql
+
+# Shared development DB
+sqlcmd -S 192.168.1.100,1433 -U ames_app -P "!Dev2026" -C -d AMES_DEV -i dist\cleanup_legacy_sis_test.sql
+```
+
+The script removes the `SIS_TEST` schema, its procedures, tables, and seed data.
+It does not touch current application objects under `dbo.WH_*`, `dbo.MD_*`, or
+`dbo.FG_*`.
+
+`dist/rebuild_db.sh` runs this cleanup automatically at the end of a full Docker
+database rebuild.
+
 ---
 
 **CONFIDENTIAL · For Internal Use Only**

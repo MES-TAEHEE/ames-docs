@@ -9,29 +9,30 @@
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<LoginWithRecoveryCode> Logger
 
-<PageTitle>Recovery code verification</PageTitle>
+<PageTitle>Recovery code · A-MES</PageTitle>
 
-<h1>Recovery code verification</h1>
-<hr />
-<StatusMessage Message="@message" />
-<p>
-    You have requested to log in with a recovery code. This login will not be remembered until you provide
-    an authenticator app code at log in or disable 2FA and log in again.
-</p>
-<div class="row">
-    <div class="col-md-4">
-        <EditForm Model="Input" FormName="login-with-recovery-code" OnValidSubmit="OnValidSubmitAsync" method="post">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.RecoveryCode" id="Input.RecoveryCode" class="form-control" autocomplete="off" placeholder="RecoveryCode" />
-                <label for="Input.RecoveryCode" class="form-label">Recovery Code</label>
-                <ValidationMessage For="() => Input.RecoveryCode" class="text-danger" />
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
-        </EditForm>
+<AuthCard Sub="RECOVERY CODE">
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="ames-auth-error">✕ @message</div>
+    }
+    <div class="ames-auth-hint" style="margin-bottom:12px;">복구 코드로 로그인합니다. 이 로그인은 기억되지 않습니다.</div>
+
+    <EditForm Model="Input" FormName="login-with-recovery-code" OnValidSubmit="OnValidSubmitAsync" method="post"
+              class="ames-auth-form" Enhance="false">
+        <DataAnnotationsValidator />
+
+        <label class="ames-auth-label">RECOVERY CODE</label>
+        <InputText @bind-Value="Input.RecoveryCode" class="ames-auth-input" autocomplete="off" placeholder="XXXXX-XXXXX" />
+        <ValidationMessage For="() => Input.RecoveryCode" class="ames-auth-vm" />
+
+        <button type="submit" class="ames-auth-submit">LOG IN  →</button>
+    </EditForm>
+
+    <div class="ames-auth-meta">
+        <a href="/Account/Login">← Back to sign in</a>
     </div>
-</div>
+</AuthCard>
 
 @code {
     private string? message;

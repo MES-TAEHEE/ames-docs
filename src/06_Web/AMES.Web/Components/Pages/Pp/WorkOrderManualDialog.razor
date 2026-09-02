@@ -1,5 +1,5 @@
 @inject AMES.Data.Repositories.WorkOrderRepository Wos
-@inject AuthenticationStateProvider Auth
+@inject AuthenticationStateProvider AuthPrvd
 @inject DialogService Dialog
 @inject IStringLocalizer<SharedResources> L
 
@@ -17,7 +17,11 @@
 
     <span class="dim" style="font-size:.8em;line-height:1.5;margin-top:2px;">@L["PP.WorkOrder.Manual.Hint"]</span>
 
-    @if (!string.IsNullOrEmpty(_err))
+    @if (SelectedNoRouting)
+    {
+        <div class="ames-alert bad">@L["PP.WorkOrder.Err.NoRouting"]</div>
+    }
+    else if (!string.IsNullOrEmpty(_err))
     {
         <div class="ames-alert bad">@_err</div>
     }
@@ -26,7 +30,7 @@
         <RadzenButton Text="@L["Btn.Cancel"]" ButtonStyle="ButtonStyle.Light" Disabled="_busy"
                       Click="@(() => Dialog.Close(null))" />
         <RadzenButton Text="@(_busy ? L["Lbl.Loading"].Value : L["PP.WorkOrder.Manual.Create"].Value)"
-                      Icon="add" Disabled="@(_busy || string.IsNullOrEmpty(_item) || _qty < 1)"
+                      Icon="add" Disabled="@(_busy || string.IsNullOrEmpty(_item) || _qty < 1 || SelectedNoRouting)"
                       Click="Create" />
     </div>
 </div>
@@ -42,16 +46,20 @@
 
     public sealed record ItemVm(string ItemNo, string Label, string? RoutingType);
 
+    bool SelectedNoRouting =>
+        !string.IsNullOrEmpty(_item) && Items.FirstOrDefault(i => i.ItemNo == _item)?.RoutingType is null;
+
     async Task Create()
     {
         if (string.IsNullOrEmpty(_item) || _qty < 1) { _err = L["PP.WorkOrder.Err.ManualInvalid"]; return; }
+        if (SelectedNoRouting) { _err = L["PP.WorkOrder.Err.NoRouting"]; return; }
         _busy = true;
         try
         {
-            var auth  = await Auth.GetAuthenticationStateAsync();
+            var auth  = await AuthPrvd.GetAuthenticationStateAsync();
             var actor = auth.User.Identity?.Name ?? "system";
             var wo = Wos.CreateManualWo(_item, _qty, _due, actor);
-            if (string.IsNullOrEmpty(wo)) { _err = L["PP.WorkOrder.Err.ManualInvalid"]; _busy = false; return; }
+            if (string.IsNullOrEmpty(wo)) { _err = L["PP.WorkOrder.Err.NoRouting"]; _busy = false; return; }
             Dialog.Close(new Result(wo));
         }
         catch (Exception ex) { _err = ex.Message; _busy = false; }

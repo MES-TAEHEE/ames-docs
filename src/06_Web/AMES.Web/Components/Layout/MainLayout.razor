@@ -1,11 +1,13 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Nav
 
 <div class="ames-shell">
     <TopBar />
     <div class="ames-body">
         <NavMenu />
         <main class="ames-main">
-            <div class="ames-content">
+            <div class="ames-content @SectionClass()">
                 @Body
             </div>
         </main>
@@ -19,3 +21,20 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    protected override void OnInitialized() => Nav.LocationChanged += OnLocationChanged;
+    void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+        => InvokeAsync(StateHasChanged);
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+
+    // 현재 라우트 최상위 구획 → MD/SYS 화면 전용 CSS 스코프 클래스(그리드 헤더 가운데 정렬 등)
+    string SectionClass()
+    {
+        var p = Nav.ToBaseRelativePath(Nav.Uri).ToLowerInvariant();
+        if (p == "md"  || p.StartsWith("md/"))  return "ames-sec-md";
+        if (p == "sys" || p.StartsWith("sys/")) return "ames-sec-sys";
+        if (p == "pp"  || p.StartsWith("pp/"))  return "ames-sec-pp";
+        return "";
+    }
+}

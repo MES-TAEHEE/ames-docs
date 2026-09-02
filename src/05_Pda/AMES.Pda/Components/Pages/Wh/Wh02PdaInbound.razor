@@ -1,11 +1,13 @@
 @page "/wh/02"
 @inject PdaApi Api
 @inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <div class="pda-shell wh wh02-shell">
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
-        <span class="pda-tbar-brand">WH-002 SCAN</span>
+        <span class="pda-tbar-brand">INBOUND</span>
     </div>
 
     <div class="pda-bd wh02-body">
@@ -14,25 +16,69 @@
             <RadzenButton class="@($"wh02-mode-btn {ModeClass("CKD")}")" Click='@(() => SetMode("CKD"))' Text="CKD" />
         </div>
 
-        <RadzenCard class="wh02-panel wh02-scan-panel">
+        <RadzenCard class="@($"wh02-panel wh02-scan-panel {ScanPanelClass}")">
             <div class="pda-fld">
-                <label>LOT NO SCAN</label>
-                <RadzenTextBox class="pda-input wh02-barcode-input"
+                <label>BARCODE SCAN</label>
+                <RadzenTextBox class="pda-input wh02-barcode-input pda-scan-input"
                                Value="@_barcode"
                                @oninput="OnBarcodeInput"
                                @onkeydown="OnKey"
                                Placeholder="@BarcodePlaceholder" />
             </div>
-            <RadzenButton class="wh02-scan-btn" Click="@Scan" Disabled="@DisableScan" Text="SCAN" />
         </RadzenCard>
+
+        @if (_document is not null && !_isLocationChangeMode)
+        {
+            <RadzenCard class="wh02-document-card">
+                <div class="wh02-document-head">
+                    <div>
+                        <span>@DocumentTitle</span>
+                        <strong>@Text(_document.DocumentNo ?? _document.DocumentBarcode)</strong>
+                    </div>
+                    <RadzenBadge class="wh02-document-progress"
+                                 Text="@($"{DisplayScannedBoxes} / {_document.TotalBoxes}")" />
+                </div>
+
+                <div class="wh02-document-meta">
+                    @foreach (var field in DocumentFields())
+                    {
+                        <div><span>@field.Label</span><strong>@field.Value</strong></div>
+                    }
+                </div>
+
+                <div class="wh02-document-lines">
+                    @foreach (var line in _documentLines)
+                    {
+                        <div class="wh02-document-part @(DisplayScanCount(line) >= line.BoxCount ? "complete" : "")">
+                            <div class="wh02-document-line">
+                                <div>
+                                    <strong>@line.PartNo</strong>
+                                    <span>@Text(line.PartName)</span>
+                                </div>
+                                <b>@DisplayScanCount(line) / @line.BoxCount BOX</b>
+                            </div>
+                            <div class="wh02-box-list">
+                                @foreach (var box in DocumentBoxes(line.PartNo))
+                                {
+                                    <div class="wh02-box-row @(IsBoxScanned(box) ? "scanned" : "")">
+                                        <span>@box.BoxBarcode</span>
+                                        <strong>@QuantityText(box.Qty, box.Unit)</strong>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </RadzenCard>
+        }
 
         @if (_scan is not null && !_isLocationChangeMode)
         {
             <RadzenCard class="@($"wh02-lot-card {(AlreadyReceived ? "received" : "ready")}")">
                 <div class="wh02-lot-top">
                     <div class="wh02-lot-main">
-                        <span>LOT NO</span>
-                        <strong>@Text(_scan.LotNo)</strong>
+                        <span>BOX BARCODE</span>
+                        <strong>@Text(_scan.Barcode)</strong>
                     </div>
                     <div class="wh02-lot-tags">
                         <RadzenBadge class="wh02-type-chip" Text="@_scan.ReceiveType" />
@@ -91,17 +137,16 @@
             </RadzenCard>
         }
 
-        <RadzenCard class="@($"wh02-panel wh02-location-panel {(LocationEntryDisabled ? "disabled" : "")}")">
+        <RadzenCard class="@($"wh02-panel wh02-location-panel {ScanPanelClass} {(LocationEntryDisabled ? "disabled" : "")} {(_highlightLocationScan ? "location-attention" : "")}")">
             <div class="pda-fld">
                 <label>@LocationScanLabel</label>
-                <RadzenTextBox class="pda-input wh02-location-input"
+                <RadzenTextBox class="pda-input wh02-location-input pda-scan-input"
                                Value="@_loc"
                                @oninput="OnLocationInput"
                                @onkeydown="OnLocationKey"
                                Placeholder="A0000"
                                Disabled="@LocationEntryDisabled" />
             </div>
-            <RadzenButton class="wh02-location-scan-btn" Click="@ScanLocation" Disabled="@DisableLocationScan" Text="SCAN" />
         </RadzenCard>
 
         @if (_selectedLocation is not null && (!_isLocationChangeMode || !IsSameAsCurrentLocation(_selectedLocation.LocationId)))
@@ -135,11 +180,9 @@
                 <RadzenButton class="wh02-clear-btn" Click="@ResetForm" Disabled="@IsBusy" Text="CLEAR" />
                 <RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-confirm-btn {ConfirmMoveButtonClass}")" Click="@ConfirmLocationChange" Disabled="@IsBusy" Text="CONFIRM" />
             }
-            else if (AlreadyReceived)
+            else if (AlreadyReceived && _document is null)
             {
                 <RadzenButton class="wh02-cancel-btn" Click="@CancelIncoming" Disabled="@DisableCancel" Text="CANCEL INCOMING" />
-                <RadzenButton class="@($"wh02-adjust-btn {AdjustButtonClass}")" Click="@StartQtyAdjust" Disabled="@DisableAdjust" Text="ADJUST QTY" />
-                <RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-change-btn {ChangeButtonClass}")" Click="@StartLocationChange" Disabled="@IsBusy" Text="CHANGE LOCATION" />
             }
             else
             {
@@ -167,85 +210,6 @@
         </div>
     }
 
-    @if (_adjustModalOpen)
-    {
-        <div class="wh-modal-backdrop">
-            <RadzenCard class="wh-modal-card wh-adjust-modal" @onclick:stopPropagation="true">
-                <div class="wh-adjust-head">
-                    <div class="wh-modal-mark">+/-</div>
-                    <div>
-                        <div class="wh-modal-title">Inventory Adjustment</div>
-                        <div class="wh-adjust-sub">Reason code, supervisor PIN, and before/after qty are recorded.</div>
-                    </div>
-                </div>
-
-                <div class="wh-adjust-summary">
-                    <div>
-                        <span>LOT NO</span>
-                        <strong>@Text(_scan?.LotNo)</strong>
-                    </div>
-                    <div>
-                        <span>LOCATION</span>
-                        <strong>@Text(_scan?.ReceivedLocation)</strong>
-                    </div>
-                    <div>
-                        <span>PART NO</span>
-                        <strong>@Text(_scan?.PartNo)</strong>
-                    </div>
-                    <div>
-                        <span>CURRENT QTY</span>
-                        <strong>@QuantityText(AdjustBeforeQty, _scan?.Unit)</strong>
-                    </div>
-                    <div>
-                        <span>ADJUSTMENT</span>
-                        <strong class="@AdjustDeltaClass">@QuantityText(_adjustDelta, _scan?.Unit, true)</strong>
-                    </div>
-                    <div>
-                        <span>AFTER QTY</span>
-                        <strong>@QuantityText(AdjustAfterQty, _scan?.Unit)</strong>
-                    </div>
-                </div>
-
-                <div class="wh-adjust-form">
-                    <div class="pda-fld">
-                        <label>REASON CODE</label>
-                        <select class="pda-input wh-adjust-input" @bind="_adjustReason">
-                            @foreach (var reason in AdjustReasons)
-                            {
-                                <option value="@reason.Code">@reason.Label</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="pda-fld">
-                        <label>ADJUST QTY (+/-)</label>
-                        <input class="pda-input wh-adjust-input" type="number" step="1" @bind="_adjustDelta" />
-                    </div>
-                    <div class="pda-fld">
-                        <label>SUPERVISOR PIN</label>
-                        <input class="pda-input wh-adjust-input" type="password" inputmode="numeric" maxlength="12" @bind="_adjustSupervisorPin" />
-                    </div>
-                    <div class="pda-fld">
-                        <label>NOTE</label>
-                        <textarea class="pda-input wh-adjust-note" rows="2" @bind="_adjustNote" placeholder="Optional note"></textarea>
-                    </div>
-                </div>
-
-                <div class="wh-adjust-help">
-                    Count diff, damaged, lost, found, or other reason is required before posting.
-                </div>
-
-                @if (!string.IsNullOrWhiteSpace(_adjustMsg))
-                {
-                    <div class="wh-adjust-status @_adjustCls">@_adjustMsg</div>
-                }
-
-                <div class="wh-modal-actions">
-                    <RadzenButton class="wh-modal-btn secondary" Click="@CloseAdjustModal" Disabled="@_isAdjusting" Text="CANCEL" />
-                    <RadzenButton class="wh-modal-btn primary" Click="@PostQtyAdjust" Disabled="@_isAdjusting" Text="@(_isAdjusting ? "POSTING..." : "POST ADJUST")" />
-                </div>
-            </RadzenCard>
-        </div>
-    }
 </div>
 
 @code {
@@ -260,6 +224,11 @@
         public PdaApi.LocationRow? CurrentLocation { get; set; }
         public PdaApi.LocationRow? SelectedLocation { get; set; }
         public PdaApi.InboundScanRow? Scan { get; set; }
+        public PdaApi.InboundDocumentRow? Document { get; set; }
+        public List<PdaApi.InboundDocumentLineRow> DocumentLines { get; set; } = [];
+        public List<PdaApi.InboundDocumentBoxRow> DocumentBoxes { get; set; } = [];
+        public HashSet<string> PendingDocumentBoxes { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public bool HighlightLocationScan { get; set; }
     }
 
     private readonly Dictionary<string, ModeState> _modeStates = new(StringComparer.OrdinalIgnoreCase)
@@ -278,42 +247,37 @@
     private bool _isReceiving;
     private bool _isMoving;
     private bool _isCanceling;
-    private bool _isAdjusting;
+    private bool _scrollLocationAfterRender;
+    private bool _highlightLocationScan;
     private bool _isLocationChangeMode;
     private bool _modalOpen;
     private bool _modalConfirm;
-    private bool _adjustModalOpen;
     private string _modalTitle = "";
     private string _modalMessage = "";
     private string _modalKind = "info";
-    private string _adjustReason = "COUNT_DIFF";
-    private string _adjustSupervisorPin = "";
-    private string _adjustNote = "";
-    private string _adjustMsg = "";
-    private string _adjustCls = "dim";
-    private decimal _adjustDelta;
     private Func<Task>? _modalPrimaryAction;
     private Func<Task>? _modalAfterCloseAction;
+    private DotNetObjectReference<Wh02PdaInbound>? _scannerRef;
     private string? _changeFromLocation;
     private PdaApi.LocationRow? _currentLocation;
     private PdaApi.LocationRow? _selectedLocation;
     private PdaApi.InboundScanRow? _scan;
+    private PdaApi.InboundDocumentRow? _document;
+    private List<PdaApi.InboundDocumentLineRow> _documentLines = [];
+    private List<PdaApi.InboundDocumentBoxRow> _documentBoxes = [];
+    private HashSet<string> _pendingDocumentBoxes = new(StringComparer.OrdinalIgnoreCase);
 
-    private static readonly (string Code, string Label)[] AdjustReasons =
-    [
-        ("COUNT_DIFF", "Count Diff"),
-        ("DAMAGED", "Damaged"),
-        ("LOST", "Lost"),
-        ("FOUND", "Found"),
-        ("OTHER", "Other")
-    ];
-
-    private bool IsBusy => _isScanning || _isLocationScanning || _isReceiving || _isMoving || _isCanceling || _isAdjusting;
-    private string BarcodePlaceholder => _mode == "CKD" ? "Scan CKD lot no" : "Scan local lot no";
+    private static bool ShowDeveloperScanButtons => MauiProgram.IsDeveloperMode;
+    private const string ScanPanelClass = "hardware-scan-panel";
+    private bool IsBusy => _isScanning || _isLocationScanning || _isReceiving || _isMoving || _isCanceling;
+    private const string BarcodePlaceholder = "Scan Receiving Barcode";
+    private string DocumentTitle => _mode == "CKD" ? "CKD CASE" : "DELIVERY NOTE";
     private string LocationScanLabel => _isLocationChangeMode
         ? "NEW LOCATION NO SCAN"
-        : AlreadyReceived ? "CURRENT LOCATION" : "LOCATION NO SCAN";
-    private bool LocationEntryDisabled => _scan is null || IsBusy || (AlreadyReceived && !_isLocationChangeMode);
+        : AlreadyReceived && _document is null ? "CURRENT LOCATION" : "LOCATION NO SCAN";
+    private bool LocationEntryDisabled => IsBusy || (_document is not null
+        ? !DocumentReadyForLocation
+        : _scan is null || (AlreadyReceived && !_isLocationChangeMode));
     private bool DisableScan => IsBusy || string.IsNullOrWhiteSpace(_barcode);
     private bool DisableLocationScan => LocationEntryDisabled || string.IsNullOrWhiteSpace(_loc);
     private bool AlreadyReceived => string.Equals(_scan?.Yn, "N", StringComparison.OrdinalIgnoreCase);
@@ -321,19 +285,22 @@
         && !string.IsNullOrWhiteSpace(_scan?.ReceivedLocation)
         && _selectedLocation is not null
         && string.Equals(_selectedLocation.LocationId, _scan.ReceivedLocation, StringComparison.OrdinalIgnoreCase);
-    private bool DisableReceive => IsBusy || _scan is null || AlreadyReceived || _selectedLocation is null
+    private bool DisableReceive => IsBusy
+        || (_document is not null ? !DocumentReadyForLocation : _scan is null || AlreadyReceived)
+        || _selectedLocation is null
         || !string.Equals(_selectedLocation.LocationId, _loc.Trim(), StringComparison.OrdinalIgnoreCase);
-    private bool DisableCancel => IsBusy || _scan is null || !AlreadyReceived;
-    private bool DisableAdjust => IsBusy || _scan is null || !AlreadyReceived;
-    private string ActionBarClass => _isLocationChangeMode || !AlreadyReceived ? "has-reset" : AlreadyReceived ? "has-three" : "has-secondary";
+    private bool DisableCancel => IsBusy || _document is not null || _scan is null || !AlreadyReceived;
+    private int DisplayScannedBoxes => _document is null
+        ? 0
+        : Math.Min(_document.TotalBoxes, _document.ScannedBoxes + _pendingDocumentBoxes.Count);
+    private bool DocumentReadyForLocation => _document is not null
+        && _pendingDocumentBoxes.Count > 0
+        && DisplayScannedBoxes >= _document.TotalBoxes;
+    private string ActionBarClass => _isLocationChangeMode || !AlreadyReceived ? "has-reset" : AlreadyReceived ? "has-cancel" : "has-secondary";
     private string ReceiveButtonClass => DisableReceive ? "blocked" : "ready";
     private string ConfirmMoveButtonClass => _isLocationChangeMode && !string.IsNullOrWhiteSpace(_loc) ? "ready" : "blocked";
     private string ChangeButtonClass => IsBusy ? "blocked" : "ready";
-    private string AdjustButtonClass => DisableAdjust ? "blocked" : "ready";
     private string StatusChipClass => AlreadyReceived ? "received" : "ready";
-    private decimal AdjustBeforeQty => _scan?.Qty ?? 0;
-    private decimal AdjustAfterQty => AdjustBeforeQty + _adjustDelta;
-    private string AdjustDeltaClass => _adjustDelta < 0 ? "minus" : _adjustDelta > 0 ? "plus" : "";
     private string ModalMark => _modalKind switch
     {
         "danger" => "!",
@@ -346,6 +313,91 @@
         : AlreadyReceived
             ? $"Incoming {Text(_scan.ReceivedStatus)}"
             : "PO Ready";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            PdaBarcodeHub.Scanned += OnNativeBarcodeScanned;
+            _scannerRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("pdaScan.register", _scannerRef, new { minLength = 3, developerMode = ShowDeveloperScanButtons });
+        }
+
+        if (_scrollLocationAfterRender)
+        {
+            _scrollLocationAfterRender = false;
+            await JS.InvokeVoidAsync("pdaScan.scrollTo", ".wh02-location-panel");
+        }
+
+        await FocusScannerAsync();
+    }
+
+    [JSInvokable]
+    public async Task OnHardwareScanAsync(string scanText)
+    {
+        var value = NormalizeHardwareScan(scanText);
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+
+        await InvokeAsync(async () =>
+        {
+            if (!LocationEntryDisabled)
+            {
+                _loc = value;
+                await ScanLocation();
+            }
+            else
+            {
+                _barcode = value;
+                await Scan();
+            }
+
+            SaveModeState(_mode);
+            StateHasChanged();
+        });
+    }
+
+    private void OnNativeBarcodeScanned(string barcode)
+    {
+        _ = InvokeAsync(async () => await OnHardwareScanAsync(barcode));
+    }
+
+    private async Task FocusScannerAsync()
+    {
+        if (_modalOpen)
+            return;
+
+        try
+        {
+            var selector = !LocationEntryDisabled ? ".wh02-location-input" : ".wh02-barcode-input";
+            await JS.InvokeVoidAsync("pdaScan.focus", selector);
+        }
+        catch
+        {
+            // Ignore focus failures while the WebView is navigating.
+        }
+    }
+
+    private static string NormalizeHardwareScan(string? value)
+        => string.IsNullOrWhiteSpace(value)
+            ? ""
+            : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
+
+    public async ValueTask DisposeAsync()
+    {
+        PdaBarcodeHub.Scanned -= OnNativeBarcodeScanned;
+
+        try
+        {
+            await JS.InvokeVoidAsync("pdaScan.unregister");
+        }
+        catch
+        {
+            // Ignore dispose-time JS disconnects.
+        }
+
+        _scannerRef?.Dispose();
+    }
 
     private void SetMode(string mode)
     {
@@ -373,6 +425,11 @@
         state.CurrentLocation = _currentLocation;
         state.SelectedLocation = _selectedLocation;
         state.Scan = _scan;
+        state.Document = _document;
+        state.DocumentLines = [.. _documentLines];
+        state.DocumentBoxes = [.. _documentBoxes];
+        state.PendingDocumentBoxes = new HashSet<string>(_pendingDocumentBoxes, StringComparer.OrdinalIgnoreCase);
+        state.HighlightLocationScan = _highlightLocationScan;
     }
 
     private void LoadModeState(string mode)
@@ -392,6 +449,11 @@
         _currentLocation = state.CurrentLocation;
         _selectedLocation = state.SelectedLocation;
         _scan = state.Scan;
+        _document = state.Document;
+        _documentLines = [.. state.DocumentLines];
+        _documentBoxes = [.. state.DocumentBoxes];
+        _pendingDocumentBoxes = new HashSet<string>(state.PendingDocumentBoxes, StringComparer.OrdinalIgnoreCase);
+        _highlightLocationScan = state.HighlightLocationScan;
     }
 
     private void ResetForm()
@@ -403,13 +465,16 @@
     private void ResetCurrentFields()
     {
         _scan = null;
+        _document = null;
+        _documentLines = [];
+        _documentBoxes = [];
+        _pendingDocumentBoxes.Clear();
+        _highlightLocationScan = false;
         _barcode = "";
         _loc = "";
         _selectedLocation = null;
         _currentLocation = null;
         _isLocationChangeMode = false;
-        _adjustModalOpen = false;
-        ResetAdjustFields();
         _changeFromLocation = null;
         _msg = "";
         _cls = "dim";
@@ -470,27 +535,62 @@
         _selectedLocation = null;
         _currentLocation = null;
         _isLocationChangeMode = false;
-        _adjustModalOpen = false;
-        ResetAdjustFields();
         _changeFromLocation = null;
+        _highlightLocationScan = false;
         _msg = "Scanning...";
         _cls = "dim";
 
         try
         {
+            var documentResult = await Api.WhInboundDocumentAsync(_mode, _barcode.Trim());
+            if (documentResult.Document is not null)
+            {
+                _document = documentResult.Document;
+                _documentLines = documentResult.Lines;
+                _documentBoxes = documentResult.Boxes;
+                _pendingDocumentBoxes.Clear();
+                _barcode = documentResult.Document.DocumentBarcode;
+                _msg = documentResult.Document.Yn == "Y"
+                    ? "All boxes in this document are received."
+                    : "Document loaded. Scan a box barcode.";
+                _cls = documentResult.Document.Yn == "Y" ? "ok" : "dim";
+                return;
+            }
+
             var row = await Api.WhScanInboundAsync(_mode, _barcode.Trim());
             if (row is null)
             {
-                _msg = "LOT is not in the PO list.";
+                _msg = "Barcode is not in the inbound list.";
                 _cls = "fail";
-                ShowAlert("LOT Not Found", _msg, "warn");
+                ShowAlert("Barcode Not Found", _msg, "warn");
+                return;
+            }
+
+            if (_document is not null && !BelongsToCurrentDocument(row))
+            {
+                _barcode = "";
+                _msg = "This box does not belong to the scanned document.";
+                _cls = "fail";
+                ShowAlert("Wrong Document Box", _msg, "warn");
+                return;
+            }
+
+            if (_document is not null && _pendingDocumentBoxes.Contains(row.Barcode))
+            {
+                _barcode = "";
+                _msg = "This box has already been scanned.";
+                _cls = "warn";
+                ShowAlert("Box Already Scanned", _msg, "warn");
                 return;
             }
 
             _scan = row;
             _barcode = row.Barcode;
 
-            if (AlreadyReceived && !string.IsNullOrWhiteSpace(row.ReceivedLocation))
+            if (_document is not null && !AlreadyReceived)
+                _pendingDocumentBoxes.Add(row.Barcode);
+
+            if (_document is null && AlreadyReceived && !string.IsNullOrWhiteSpace(row.ReceivedLocation))
             {
                 _loc = row.ReceivedLocation;
                 _changeFromLocation = row.ReceivedLocation;
@@ -498,21 +598,70 @@
                 _currentLocation = _selectedLocation;
             }
 
-            _msg = AlreadyReceived
-                ? "Already incoming. Tap Change Location or Cancel Incoming."
-                : "PO matched. Scan the location and receive.";
+            _msg = _document is not null
+                ? DocumentReadyForLocation
+                    ? "All boxes scanned. Scan the location."
+                    : AlreadyReceived
+                        ? "This box is already received. Scan a remaining box."
+                        : $"Box scanned ({DisplayScannedBoxes}/{_document.TotalBoxes}). Scan the next box."
+                : AlreadyReceived
+                    ? "This box is already received."
+                    : "Box matched. Scan the location and receive.";
             _cls = AlreadyReceived ? "warn" : "ok";
+
+            if (DocumentReadyForLocation)
+            {
+                _highlightLocationScan = true;
+                _scrollLocationAfterRender = true;
+            }
+            else if (_document is null && !AlreadyReceived)
+            {
+                _highlightLocationScan = true;
+                _scrollLocationAfterRender = true;
+            }
         }
         catch (Exception ex)
         {
             _msg = ex.Message;
             _cls = "fail";
-            ShowAlert("Scan Failed", ex.Message, "danger");
+            ShowAlert("Barcode Scan Failed", ex.Message, "danger");
         }
         finally
         {
             _isScanning = false;
         }
+    }
+
+    private bool BelongsToCurrentDocument(PdaApi.InboundScanRow row)
+    {
+        var documentBarcode = _mode == "CKD" ? row.CaseBarcode : row.NoteNo;
+        return _document is not null
+            && !string.IsNullOrWhiteSpace(documentBarcode)
+            && string.Equals(_document.DocumentBarcode, documentBarcode, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task PrepareNextBoxAsync()
+    {
+        if (_document is not null)
+        {
+            var result = await Api.WhInboundDocumentAsync(_mode, _document.DocumentBarcode);
+            _document = result.Document;
+            _documentLines = result.Lines;
+            _documentBoxes = result.Boxes;
+            _pendingDocumentBoxes.Clear();
+        }
+
+        _scan = null;
+        _barcode = "";
+        _loc = "";
+        _selectedLocation = null;
+        _currentLocation = null;
+        _isLocationChangeMode = false;
+        _changeFromLocation = null;
+        _highlightLocationScan = false;
+        _msg = _document?.Yn == "Y" ? "Document receive complete." : "Scan the next box barcode.";
+        _cls = _document?.Yn == "Y" ? "ok" : "dim";
+        SaveModeState(_mode);
     }
 
     private async Task ScanLocation()
@@ -523,7 +672,7 @@
         if (_isLocationChangeMode && IsSameAsCurrentLocation(locationNo))
         {
             _selectedLocation = null;
-            _msg = "This LOT is already in the selected location.";
+            _msg = "This box is already in the selected location.";
             _cls = "fail";
             ShowAlert("Same Location", _msg, "warn");
             return;
@@ -547,11 +696,12 @@
 
             _selectedLocation = location;
             _loc = location.LocationId;
+            _highlightLocationScan = false;
 
             if (_isLocationChangeMode && IsSameAsCurrentLocation(location.LocationId))
             {
                 _selectedLocation = null;
-                _msg = "This LOT is already in the selected location.";
+                _msg = "This box is already in the selected location.";
                 _cls = "fail";
                 ShowAlert("Same Location", _msg, "warn");
                 return;
@@ -586,7 +736,7 @@
             return;
         }
 
-        if (_scan is null || _selectedLocation is null) return;
+        if (_selectedLocation is null || (_document is null && _scan is null)) return;
 
         _isReceiving = true;
         _msg = "Receiving...";
@@ -594,7 +744,36 @@
 
         try
         {
-            var result = await Api.WhReceiveInboundAsync(new PdaApi.InboundReceiveReq(_mode, _scan.Barcode, _selectedLocation.LocationId));
+            if (_document is not null)
+            {
+                var boxes = _pendingDocumentBoxes.ToList();
+                foreach (var boxBarcode in boxes)
+                {
+                    var batchResult = await Api.WhReceiveInboundAsync(
+                        new PdaApi.InboundReceiveReq(_mode, boxBarcode, _selectedLocation.LocationId));
+                    if (!batchResult.Success)
+                    {
+                        await RefreshDocumentAsync();
+                        _msg = batchResult.Message;
+                        _cls = "fail";
+                        ShowAlert("Receive Failed", $"Box: {boxBarcode}\n{batchResult.Message}", "danger");
+                        return;
+                    }
+
+                    _pendingDocumentBoxes.Remove(boxBarcode);
+                }
+
+                await RefreshDocumentAsync();
+                _msg = "Receive complete.";
+                _cls = "ok";
+                ShowAlert("Receive Complete", $"{boxes.Count} boxes were received successfully.", "success", ResetFormAsync);
+                return;
+            }
+
+            var scan = _scan;
+            if (scan is null) return;
+
+            var result = await Api.WhReceiveInboundAsync(new PdaApi.InboundReceiveReq(_mode, scan.Barcode, _selectedLocation.LocationId));
             if (!result.Success)
             {
                 _msg = result.Message;
@@ -605,7 +784,7 @@
 
             _msg = "Receive complete.";
             _cls = "ok";
-            ShowAlert("Receive Complete", "The LOT was received successfully.", "success", ResetFormAsync);
+            ShowAlert("Receive Complete", "The box was received successfully.", "success", PrepareNextBoxAsync);
         }
         finally
         {
@@ -619,13 +798,13 @@
 
         if (_scan is null)
         {
-            ShowAlert("LOT Required", "Scan a LOT No first.", "warn");
+            ShowAlert("Box Required", "Scan a box barcode first.", "warn");
             return;
         }
 
         if (!AlreadyReceived)
         {
-            ShowAlert("Incoming Required", "This LOT has not been received yet.", "warn");
+            ShowAlert("Incoming Required", "This box has not been received yet.", "warn");
             return;
         }
 
@@ -696,7 +875,7 @@
     {
         if (DisableCancel || _scan is null) return;
 
-        ShowConfirm("Cancel Incoming", "Cancel incoming for this LOT?", CancelIncomingConfirmed);
+        ShowConfirm("Cancel Incoming", "Cancel incoming for this box?", CancelIncomingConfirmed);
         await Task.CompletedTask;
     }
 
@@ -734,117 +913,6 @@
         }
     }
 
-    private void StartQtyAdjust()
-    {
-        if (DisableAdjust || _scan is null) return;
-
-        if (!AlreadyReceived)
-        {
-            ShowAlert("Incoming Required", "This LOT has not been received yet.", "warn");
-            return;
-        }
-
-        ResetAdjustFields();
-        _adjustModalOpen = true;
-    }
-
-    private void CloseAdjustModal()
-    {
-        if (_isAdjusting) return;
-        _adjustModalOpen = false;
-        ResetAdjustFields();
-    }
-
-    private void ResetAdjustFields()
-    {
-        _adjustReason = "COUNT_DIFF";
-        _adjustDelta = 0;
-        _adjustSupervisorPin = "";
-        _adjustNote = "";
-        _adjustMsg = "";
-        _adjustCls = "dim";
-    }
-
-    private async Task PostQtyAdjust()
-    {
-        if (_isAdjusting || _scan is null) return;
-
-        var validation = AdjustValidationMessage();
-        if (validation is not null)
-        {
-            _adjustMsg = validation;
-            _adjustCls = "fail";
-            return;
-        }
-
-        var beforeQty = AdjustBeforeQty;
-        var afterQty = AdjustAfterQty;
-
-        _isAdjusting = true;
-        _adjustMsg = "Posting adjustment...";
-        _adjustCls = "dim";
-
-        try
-        {
-            var result = await Api.WhAdjustInboundQtyAsync(new PdaApi.InboundAdjustReq(
-                _mode,
-                _scan.Barcode,
-                _adjustDelta,
-                _adjustReason,
-                _adjustNote,
-                _adjustSupervisorPin));
-
-            if (!result.Success)
-            {
-                _adjustMsg = result.Message;
-                _adjustCls = "fail";
-                return;
-            }
-
-            _scan = result.Row ?? await Api.WhScanInboundAsync(_mode, _scan.Barcode);
-            if (_scan is not null && !string.IsNullOrWhiteSpace(_scan.ReceivedLocation))
-            {
-                _loc = _scan.ReceivedLocation;
-                _changeFromLocation = _scan.ReceivedLocation;
-                _selectedLocation = await Api.WhScanLocationAsync(_scan.ReceivedLocation);
-                _currentLocation = _selectedLocation;
-            }
-
-            _adjustModalOpen = false;
-            ResetAdjustFields();
-            _msg = "Quantity adjusted.";
-            _cls = "ok";
-            ShowAlert(
-                "Adjustment Posted",
-                $"Before Qty: {QuantityText(beforeQty, _scan?.Unit)}\nAdjustment: {QuantityText(afterQty - beforeQty, _scan?.Unit, true)}\nAfter Qty: {QuantityText(afterQty, _scan?.Unit)}",
-                "success");
-        }
-        finally
-        {
-            _isAdjusting = false;
-        }
-    }
-
-    private string? AdjustValidationMessage()
-    {
-        if (_scan is null)
-            return "Scan a LOT No first.";
-        if (!AlreadyReceived)
-            return "This LOT has not been received yet.";
-        if (string.IsNullOrWhiteSpace(_adjustReason))
-            return "Select a reason code.";
-        if (_adjustDelta == 0)
-            return "Enter an adjustment quantity other than zero.";
-        if (AdjustAfterQty < 0)
-            return "After Qty cannot be below zero.";
-        if (string.IsNullOrWhiteSpace(_adjustSupervisorPin))
-            return "Enter the supervisor PIN.";
-        if (_adjustSupervisorPin.Trim().Length < 4)
-            return "Supervisor PIN must be at least 4 digits.";
-
-        return null;
-    }
-
     private IEnumerable<(string Label, string Value)> CommonFields()
     {
         if (_scan is null) yield break;
@@ -857,6 +925,51 @@
         if (AlreadyReceived)
             yield return ("Current Loc", Text(_scan.ReceivedLocation));
     }
+
+    private IEnumerable<(string Label, string Value)> DocumentFields()
+    {
+        if (_document is null) yield break;
+
+        yield return ("Vendor", Text(_document.VendorName ?? _document.VendorId));
+        if (_mode == "CKD")
+        {
+            yield return ("Case No", Text(_document.CaseNo));
+            yield return ("Invoice", Text(_document.InvoiceNo));
+            yield return ("Container", Text(_document.ContainerNo));
+            yield return ("Ship Date", DateText(_document.ShipDate));
+            yield return ("Pack Date", DateText(_document.PackDate));
+        }
+        else
+        {
+            yield return ("Delivery Date", DateText(_document.DeliveryDate));
+            yield return ("Arrival Date", DateText(_document.ArrivalDate));
+        }
+    }
+
+    private async Task RefreshDocumentAsync()
+    {
+        if (_document is null) return;
+
+        var result = await Api.WhInboundDocumentAsync(_mode, _document.DocumentBarcode);
+        _document = result.Document;
+        _documentLines = result.Lines;
+        _documentBoxes = result.Boxes;
+    }
+
+    private int DisplayScanCount(PdaApi.InboundDocumentLineRow line)
+    {
+        var pending = _documentBoxes.Count(box =>
+            string.Equals(box.PartNo, line.PartNo, StringComparison.OrdinalIgnoreCase)
+            && _pendingDocumentBoxes.Contains(box.BoxBarcode));
+        return Math.Min(line.BoxCount, line.ScanCount + pending);
+    }
+
+    private IEnumerable<PdaApi.InboundDocumentBoxRow> DocumentBoxes(string partNo)
+        => _documentBoxes.Where(box => string.Equals(box.PartNo, partNo, StringComparison.OrdinalIgnoreCase));
+
+    private bool IsBoxScanned(PdaApi.InboundDocumentBoxRow box)
+        => string.Equals(box.Yn, "Y", StringComparison.OrdinalIgnoreCase)
+            || _pendingDocumentBoxes.Contains(box.BoxBarcode);
 
     private IEnumerable<(string Label, string Value)> LocationFields()
     {
@@ -909,12 +1022,27 @@
 
     private string? ReceiveValidationMessage()
     {
+        if (_document is not null)
+        {
+            if (_pendingDocumentBoxes.Count == 0)
+                return "Scan the boxes in this document first.";
+            if (!DocumentReadyForLocation)
+                return $"Scan all boxes first ({DisplayScannedBoxes}/{_document.TotalBoxes}).";
+            if (string.IsNullOrWhiteSpace(_loc))
+                return "Scan a Location No first.";
+            if (_selectedLocation is null)
+                return "Load the location information first.";
+            if (!string.Equals(_selectedLocation.LocationId, _loc.Trim(), StringComparison.OrdinalIgnoreCase))
+                return "The entered Location No does not match the loaded location.";
+            return null;
+        }
+
         if (string.IsNullOrWhiteSpace(_barcode))
-            return "Enter or scan a LOT No first.";
+            return "Scan a box barcode first.";
         if (_scan is null)
-            return "Tap LOT No SCAN to load the PO information first.";
+            return "Scan a box barcode to load the item information first.";
         if (AlreadyReceived)
-            return "This LOT is already incoming. Choose Change Location or Cancel Incoming.";
+            return "This box is already received.";
         if (string.IsNullOrWhiteSpace(_loc))
             return "Enter or scan a Location No first.";
         if (_selectedLocation is null)
@@ -928,21 +1056,21 @@
     private string? MoveValidationMessage()
     {
         if (string.IsNullOrWhiteSpace(_barcode))
-            return "Enter or scan a LOT No first.";
+            return "Scan a box barcode first.";
         if (_scan is null)
-            return "Tap LOT No SCAN to load the item information first.";
+            return "Scan a box barcode to load the item information first.";
         if (!AlreadyReceived)
-            return "This LOT has not been received yet. Receive it first.";
+            return "This box has not been received yet. Receive it first.";
         if (!_isLocationChangeMode)
             return "Tap Change Location first.";
         if (string.IsNullOrWhiteSpace(_loc))
             return "Enter or scan the new Location No first.";
         if (IsSameAsCurrentLocation(_loc))
-            return "This LOT is already in the selected location.";
+            return "This box is already in the selected location.";
         if (_selectedLocation is not null && !string.Equals(_selectedLocation.LocationId, _loc.Trim(), StringComparison.OrdinalIgnoreCase))
             return "The entered Location No does not match the loaded location. Scan the Location No again.";
         if (TargetMatchesCurrent)
-            return "This LOT is already in the selected location.";
+            return "This box is already in the selected location.";
 
         return null;
     }
@@ -955,7 +1083,7 @@
         if (IsSameAsCurrentLocation(_loc))
         {
             _selectedLocation = null;
-            _msg = "This LOT is already in the selected location.";
+            _msg = "This box is already in the selected location.";
             _cls = "fail";
             ShowAlert("Same Location", _msg, "warn");
             return false;
@@ -988,7 +1116,7 @@
             {
                 _selectedLocation = null;
                 _loc = location.LocationId;
-                _msg = "This LOT is already in the selected location.";
+                _msg = "This box is already in the selected location.";
                 _cls = "fail";
                 ShowAlert("Same Location", _msg, "warn");
                 return false;

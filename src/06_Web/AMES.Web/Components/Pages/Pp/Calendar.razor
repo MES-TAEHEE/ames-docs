@@ -1,246 +1,218 @@
-﻿@page "/pp/calendar"
+@page "/pp/calendar"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @rendermode InteractiveServer
 @inject AMES.Data.Repositories.WorkOrderRepository Wos
+@inject AMES.Data.Repositories.MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 @inject NavigationManager Nav
 @using AMES.Contracts.Dto
+@using Radzen
 
-<PageTitle>@L["PP.Calendar.Title"] · AMES</PageTitle>
-
+<PageTitle>CAL @L["PP.Calendar.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="PP-CAL" TitleKey="PP.Calendar.Title" />
 
 @* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">TOTAL WO</div>
-        <div class="ames-kpi-v">@_all.Count(w => w.DueDate.HasValue)</div>
-        <div class="ames-kpi-s">@L["PP.Calendar.Kpi.TotalSub"]</div>
+        <div class="ames-kpi-l">@L["PP.Calendar.Kpi.Total"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_all.Count(w => w.DueDate.HasValue)</div>
+            <div class="ames-kpi-s">@L["PP.Calendar.Kpi.TotalSub"]</div>
+        </div>
     </div>
     <div class="ames-kpi bad">
         <div class="ames-kpi-l">@L["PP.Calendar.Kpi.D3"]</div>
-        <div class="ames-kpi-v">@_all.Count(w => w.DaysToDue is { } d && d >= 0 && d <= 3)</div>
-        <div class="ames-kpi-s">@L["PP.Calendar.Kpi.D3Sub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_all.Count(w => w.DaysToDue is { } d && d >= 0 && d <= 3)</div>
+            <div class="ames-kpi-s">@L["PP.Calendar.Kpi.D3Sub"]</div>
+        </div>
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">@L["PP.Calendar.Kpi.Late"]</div>
-        <div class="ames-kpi-v">@_all.Count(w => w.DaysToDue is { } d && d < 0)</div>
-        <div class="ames-kpi-s">@L["PP.Calendar.Kpi.LateSub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_all.Count(w => w.DaysToDue is { } d && d < 0)</div>
+            <div class="ames-kpi-s">@L["PP.Calendar.Kpi.LateSub"]</div>
+        </div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">IN PROGRESS</div>
-        <div class="ames-kpi-v">@_all.Count(w => w.Status == "In Progress")</div>
-        <div class="ames-kpi-s">@L["PP.Calendar.Kpi.InProgSub"]</div>
+        <div class="ames-kpi-l">@L["PP.Calendar.Kpi.InProg"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_all.Count(w => w.Status == "In Progress")</div>
+            <div class="ames-kpi-s">@L["PP.Calendar.Kpi.InProgSub"]</div>
+        </div>
     </div>
 </div>
 
 @if (_err is not null)
 {
-    <div class="ames-alert bad">@_err</div>
+    <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_err</RadzenAlert>
 }
 
-@* ── Tab / filter bar ───────────────────────────────────────────── *@
-<div class="ames-cal-tabs">
-    <button class="ames-cal-tab @(_view == "month" ? "active" : "")" @onclick='() => _view = "month"'>
-        @L["PP.Calendar.Tab.Month"]
-    </button>
-    <button class="ames-cal-tab @(_view == "week" ? "active" : "")" @onclick='() => _view = "week"'>
-        @L["PP.Calendar.Tab.Week"]
-    </button>
-    <div style="flex:1;"></div>
-    <select class="ames-input" style="width:130px;align-self:center;"
-            @bind="_fRouting" @bind:after="RebuildByDue">
-        <option value="">@L["PP.Calendar.Filter.AllRouting"]</option>
-        <option value="A">@L["PP.Calendar.Routing.A"]</option>
-        <option value="B">@L["PP.Calendar.Routing.B"]</option>
-        <option value="INJ">@L["PP.Calendar.Routing.INJ"]</option>
-    </select>
-    <select class="ames-input" style="width:130px;align-self:center;margin-left:6px;"
-            @bind="_fStatus" @bind:after="RebuildByDue">
-        <option value="">@L["PP.Calendar.Filter.AllStatus"]</option>
-        <option value="Draft">Draft</option>
-        <option value="Released">Released</option>
-        <option value="In Progress">In Progress</option>
-        <option value="Closed">Closed</option>
-    </select>
-    <button class="ames-btn ok" @onclick="Reload" style="align-self:center;margin-left:6px;">@L["Btn.Search"]</button>
-</div>
+<AmesTabs>
 
-@* ══════════════════════════════════════════════════════════════════ *@
-@* ── MONTH VIEW ─────────────────────────────────────────────────── *@
-@* ══════════════════════════════════════════════════════════════════ *@
-@if (_view == "month")
-{
-    <div class="ames-card">
-        @* month navigation *@
-        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
-            <div style="display:flex;align-items:center;gap:12px;">
-                <button class="ames-btn" style="padding:6px 14px;" @onclick="PrevMonth">‹</button>
-                <span style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;">
-                    @string.Format(L["Fmt.CalYearMonth"], _calYear, _calMonth)
-                </span>
-                <button class="ames-btn" style="padding:6px 14px;" @onclick="NextMonth">›</button>
+    @* ══════════════════════════════════════════════════════════════════ *@
+    @* ── MONTH VIEW ─────────────────────────────────────────────────── *@
+    @* ══════════════════════════════════════════════════════════════════ *@
+    <AmesTab Title="@($"▦ {L["PP.Calendar.Tab.Month"].Value}")">
+        <div class="ames-card">
+            <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevMonth" class="ames-rz-btn" />
+                    <span style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;">
+                        @string.Format(L["Fmt.CalYearMonth"], _calYear, _calMonth)
+                    </span>
+                    <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@NextMonth" class="ames-rz-btn" />
+                </div>
+                @FilterBar()
             </div>
-            <button class="ames-btn" style="padding:6px 14px;" @onclick="GoToday">@L["PP.Calendar.Btn.Today"]</button>
-        </div>
 
-        @{
-            var firstOfMonth = new DateTime(_calYear, _calMonth, 1);
-            var daysInMonth  = DateTime.DaysInMonth(_calYear, _calMonth);
-            int startOffset  = (int)firstOfMonth.DayOfWeek;
-            int rows         = (int)Math.Ceiling((startOffset + daysInMonth) / 7.0);
-        }
-
-        @* day-of-week header + day cells *@
-        <div class="ames-cal-grid pp-wo-grid">
-
-            @* headers *@
-            @foreach (var (key, cls) in new[] {
-                ("PP.Calendar.Day.Sun","sun"),
-                ("PP.Calendar.Day.Mon",""),
-                ("PP.Calendar.Day.Tue",""),
-                ("PP.Calendar.Day.Wed",""),
-                ("PP.Calendar.Day.Thu",""),
-                ("PP.Calendar.Day.Fri",""),
-                ("PP.Calendar.Day.Sat","sat") })
-            {
-                <div class="ames-cal-head @cls">@L[key]</div>
+            @{
+                var firstOfMonth = new DateTime(_calYear, _calMonth, 1);
+                var daysInMonth  = DateTime.DaysInMonth(_calYear, _calMonth);
+                int startOffset  = (int)firstOfMonth.DayOfWeek;
+                int rows         = (int)Math.Ceiling((startOffset + daysInMonth) / 7.0);
             }
 
-            @* cells *@
-            @for (int cell = 0; cell < rows * 7; cell++)
-            {
-                int dayNum = cell - startOffset + 1;
-                if (dayNum < 1 || dayNum > daysInMonth)
+            <div class="ames-cal-grid pp-wo-grid">
+                @foreach (var (key, cls) in new[] {
+                    ("PP.Calendar.Day.Sun","sun"),
+                    ("PP.Calendar.Day.Mon",""),
+                    ("PP.Calendar.Day.Tue",""),
+                    ("PP.Calendar.Day.Wed",""),
+                    ("PP.Calendar.Day.Thu",""),
+                    ("PP.Calendar.Day.Fri",""),
+                    ("PP.Calendar.Day.Sat","sat") })
                 {
-                    <div class="ames-cal-cell ames-cal-cell--empty"></div>
+                    <div class="ames-cal-head @cls">@L[key]</div>
                 }
-                else
+
+                @for (int cell = 0; cell < rows * 7; cell++)
                 {
-                    var date     = new DateTime(_calYear, _calMonth, dayNum);
+                    int dayNum = cell - startOffset + 1;
+                    if (dayNum < 1 || dayNum > daysInMonth)
+                    {
+                        <div class="ames-cal-cell ames-cal-cell--empty"></div>
+                    }
+                    else
+                    {
+                        var date     = new DateTime(_calYear, _calMonth, dayNum);
+                        var wos      = GetWosForDate(date);
+                        int dow      = (int)date.DayOfWeek;
+                        bool isSun   = dow == 0;
+                        bool isSat   = dow == 6;
+                        bool isToday = date.Date == DateTime.Today;
+
+                        string cellCls = "ames-cal-cell";
+                        if (isToday)        cellCls += " ames-cal-cell--today";
+                        if (wos.Count > 0)  cellCls += " ames-cal-cell--data";
+                        if (isSat || isSun) cellCls += " ames-cal-cell--weekend";
+
+                        const int MaxChips = 3;
+                        <div class="@cellCls">
+                            <div class="ames-cal-daynum @(isSun ? "sun" : isSat ? "sat" : "")">
+                                @dayNum
+                                @if (isToday) { <span class="ames-cal-today-dot"></span> }
+                            </div>
+                            @foreach (var wo in wos.Take(MaxChips))
+                            {
+                                var capWo = wo;
+                                <div class="ames-cal-wo @GetWoCls(wo)" title="@GetWoTip(wo)"
+                                     @onclick="() => ShowDetail(capWo)" @onclick:stopPropagation>
+                                    @wo.WoNumber
+                                </div>
+                            }
+                            @if (wos.Count > MaxChips)
+                            {
+                                var capDate = date;
+                                <div class="ames-cal-wo-more"
+                                     @onclick="() => ShowDayModal(capDate)" @onclick:stopPropagation>
+                                    @string.Format(L["PP.Calendar.More"].Value, wos.Count - MaxChips)
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+
+            <div class="ames-cal-legend">@Legend()</div>
+        </div>
+    </AmesTab>
+
+    @* ══════════════════════════════════════════════════════════════════ *@
+    @* ── WEEK VIEW ──────────────────────────────────────────────────── *@
+    @* ══════════════════════════════════════════════════════════════════ *@
+    <AmesTab Title="@($"≡ {L["PP.Calendar.Tab.Week"].Value}")">
+        @{ var weekDates = GetWeekDates(); }
+        <div class="ames-card">
+            <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevWeek" class="ames-rz-btn" />
+                    <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#fff;">
+                        @weekDates[0].ToString("MM/dd") — @weekDates[6].ToString("MM/dd")
+                        <span style="font-size:14px;color:#64748b;letter-spacing:1px;margin-left:8px;">
+                            @_weekStart.Year@L["Lbl.Year"]
+                        </span>
+                    </span>
+                    <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@NextWeek" class="ames-rz-btn" />
+                </div>
+                @FilterBar()
+            </div>
+
+            <div style="margin-top:6px;">
+                @foreach (var date in weekDates)
+                {
                     var wos      = GetWosForDate(date);
                     int dow      = (int)date.DayOfWeek;
                     bool isSun   = dow == 0;
                     bool isSat   = dow == 6;
                     bool isToday = date.Date == DateTime.Today;
 
-                    string cellCls = "ames-cal-cell";
-                    if (isToday)        cellCls += " ames-cal-cell--today";
-                    if (wos.Count > 0)  cellCls += " ames-cal-cell--data";
-                    if (isSat || isSun) cellCls += " ames-cal-cell--weekend";
-
-                    const int MaxChips = 3;
-                    <div class="@cellCls">
-                        <div class="ames-cal-daynum @(isSun ? "sun" : isSat ? "sat" : "")">
-                            @dayNum
-                            @if (isToday) { <span class="ames-cal-today-dot"></span> }
+                    string rowBg = isToday        ? "background:rgba(147,197,253,.06);border-color:rgba(147,197,253,.35);"
+                                 : (isSat||isSun) ? "background:rgba(251,191,36,.02);border-color:rgba(251,191,36,.08);"
+                                                  : "border-color:rgba(255,255,255,.06);";
+                    <div style="display:grid;grid-template-columns:90px 1fr;gap:0;
+                                border:1px solid;border-radius:6px;margin-bottom:5px;
+                                min-height:44px;overflow:hidden;@rowBg">
+                        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;
+                                    border-right:1px solid rgba(255,255,255,.06);">
+                            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;
+                                         text-transform:uppercase;letter-spacing:.05em;
+                                         color:@(isSun?"#fca5a5":isSat?"#93c5fd":"#64748b");">
+                                @date.ToString("ddd")
+                            </span>
+                            <span style="font-family:'JetBrains Mono',monospace;font-size:18px;
+                                         font-weight:700;
+                                         color:@(isSun?"#fca5a5":isSat?"#93c5fd":isToday?"#93c5fd":"#cbd5e1");
+                                         line-height:1;display:flex;align-items:center;gap:4px;">
+                                @date.Day
+                                @if (isToday) { <span class="ames-cal-today-dot"></span> }
+                            </span>
                         </div>
-                        @foreach (var wo in wos.Take(MaxChips))
-                        {
-                            var capWo = wo;
-                            <div class="ames-cal-wo @GetWoCls(wo)" title="@GetWoTip(wo)"
-                                 @onclick="() => ShowDetail(capWo)" @onclick:stopPropagation>
-                                @wo.WoNumber
-                            </div>
-                        }
-                        @if (wos.Count > MaxChips)
-                        {
-                            var capDate = date;
-                            <div class="ames-cal-wo-more"
-                                 @onclick="() => ShowDayModal(capDate)" @onclick:stopPropagation>
-                                @string.Format(L["PP.Calendar.More"].Value, wos.Count - MaxChips)
-                            </div>
-                        }
+                        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:6px 10px;">
+                            @if (wos.Count == 0)
+                            {
+                                <span style="color:#334155;font-size:11px;font-family:'JetBrains Mono',monospace;">—</span>
+                            }
+                            @foreach (var wo in wos)
+                            {
+                                var capWo = wo;
+                                <div class="ames-cal-wo @GetWoCls(wo)" title="@GetWoTip(wo)"
+                                     style="margin-top:0;white-space:nowrap;"
+                                     @onclick="() => ShowDetail(capWo)">
+                                    <span style="font-weight:700;">@wo.WoNumber</span>
+                                    <span style="opacity:.7;margin-left:4px;font-size:9px;">@(wo.ItemName ?? wo.ItemNo)</span>
+                                </div>
+                            }
+                        </div>
                     </div>
                 }
-            }
-        </div>
-
-        <div class="ames-cal-legend">
-            @Legend()
-        </div>
-    </div>
-}
-
-@* ══════════════════════════════════════════════════════════════════ *@
-@* ── WEEK VIEW ──────────────────────────────────────────────────── *@
-@* ══════════════════════════════════════════════════════════════════ *@
-@if (_view == "week")
-{
-    var weekDates = GetWeekDates();
-    <div class="ames-card">
-        @* week navigation *@
-        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
-            <div style="display:flex;align-items:center;gap:12px;">
-                <button class="ames-btn" style="padding:6px 14px;" @onclick="PrevWeek">‹</button>
-                <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#fff;">
-                    @weekDates[0].ToString("MM/dd") — @weekDates[6].ToString("MM/dd")
-                    <span style="font-size:14px;color:#64748b;letter-spacing:1px;margin-left:8px;">
-                        @_weekStart.Year@L["Lbl.Year"]
-                    </span>
-                </span>
-                <button class="ames-btn" style="padding:6px 14px;" @onclick="NextWeek">›</button>
             </div>
-            <button class="ames-btn" style="padding:6px 14px;" @onclick="GoToday">@L["PP.Calendar.Btn.Today"]</button>
-        </div>
 
-        <div style="margin-top:6px;">
-            @foreach (var date in weekDates)
-            {
-                var wos      = GetWosForDate(date);
-                int dow      = (int)date.DayOfWeek;
-                bool isSun   = dow == 0;
-                bool isSat   = dow == 6;
-                bool isToday = date.Date == DateTime.Today;
-
-                string rowBg = isToday        ? "background:rgba(147,197,253,.06);border-color:rgba(147,197,253,.35);"
-                             : (isSat||isSun) ? "background:rgba(251,191,36,.02);border-color:rgba(251,191,36,.08);"
-                                              : "border-color:rgba(255,255,255,.06);";
-                <div style="display:grid;grid-template-columns:90px 1fr;gap:0;
-                            border:1px solid;border-radius:6px;margin-bottom:5px;
-                            min-height:44px;overflow:hidden;@rowBg">
-                    @* 날짜 셀 *@
-                    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;
-                                border-right:1px solid rgba(255,255,255,.06);">
-                        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;
-                                     text-transform:uppercase;letter-spacing:.05em;
-                                     color:@(isSun?"#fca5a5":isSat?"#93c5fd":"#64748b");">
-                            @date.ToString("ddd")
-                        </span>
-                        <span style="font-family:'JetBrains Mono',monospace;font-size:18px;
-                                     font-weight:700;
-                                     color:@(isSun?"#fca5a5":isSat?"#93c5fd":isToday?"#93c5fd":"#cbd5e1");
-                                     line-height:1;display:flex;align-items:center;gap:4px;">
-                            @date.Day
-                            @if (isToday) { <span class="ames-cal-today-dot"></span> }
-                        </span>
-                    </div>
-                    @* WO 칩 행 *@
-                    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:6px 10px;">
-                        @if (wos.Count == 0)
-                        {
-                            <span style="color:#334155;font-size:11px;font-family:'JetBrains Mono',monospace;">—</span>
-                        }
-                        @foreach (var wo in wos)
-                        {
-                            var capWo = wo;
-                            <div class="ames-cal-wo @GetWoCls(wo)" title="@GetWoTip(wo)"
-                                 style="margin-top:0;white-space:nowrap;"
-                                 @onclick="() => ShowDetail(capWo)">
-                                <span style="font-weight:700;">@wo.WoNumber</span>
-                                <span style="opacity:.7;margin-left:4px;font-size:9px;">@(wo.ItemName ?? wo.ItemNo)</span>
-                            </div>
-                        }
-                    </div>
-                </div>
-            }
+            <div class="ames-cal-legend">@Legend()</div>
         </div>
+    </AmesTab>
 
-        <div class="ames-cal-legend">
-            @Legend()
-        </div>
-    </div>
-}
+</AmesTabs>
 
 @* ── Day overflow modal ──────────────────────────────────────────── *@
 @if (_showDay && _dayDate.HasValue)
@@ -256,12 +228,12 @@
                      @onclick="() => { _showDay = false; ShowDetail(capWo); }">
                     <span style="font-weight:700;">@wo.WoNumber</span>
                     <span style="opacity:.75;margin-left:6px;">@(wo.ItemName ?? wo.ItemNo)</span>
-                    <span class="pill @(GetWoCls(wo))" style="float:right;font-size:10px;padding:1px 6px;">@wo.Status</span>
+                    <span class="pill @(GetWoCls(wo))" style="float:right;font-size:10px;padding:1px 6px;">@StatusText(wo.Status)</span>
                 </div>
             }
-            <div class="ames-modal-footer">
-                <button class="ames-btn ghost" @onclick="() => _showDay = false">@L["Btn.Close"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="() => _showDay = false" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
@@ -281,12 +253,12 @@
                 </div>
                 <div class="ames-detail-label">@L["Col.Line"]</div>
                 <div class="code">@d.LineId</div>
-                <div class="ames-detail-label">Routing</div>
+                <div class="ames-detail-label">@L["Col.Routing"]</div>
                 <div>
                     @if (d.RoutingType == "A")
-                    { <span class="pill info">@L["PP.Calendar.Routing.A"]</span> }
+                    { <span class="pill @Ui.RoutingClass("A")">@RoutingLabel("A")</span> }
                     else if (d.RoutingType == "B")
-                    { <span class="pill warn">@L["PP.Calendar.Routing.B"]</span> }
+                    { <span class="pill @Ui.RoutingClass("B")">@RoutingLabel("B")</span> }
                     else
                     { <span class="pill dim">@L["PP.Calendar.Routing.INJ"]</span> }
                 </div>
@@ -298,11 +270,11 @@
                 <div class="ames-detail-label">@L["Col.Status"]</div>
                 <div>
                     @{ var stc = d.Status switch { "In Progress"=>"ok","Released"=>"info","Draft"=>"warn",_=>"dim" }; }
-                    <span class="pill @stc">@d.Status</span>
+                    <span class="pill @stc">@StatusText(d.Status)</span>
                 </div>
                 <div class="ames-detail-label">@L["Col.Due"]</div>
                 <div>@(d.DueDate?.ToString("yyyy-MM-dd") ?? "—")</div>
-                <div class="ames-detail-label">D-Day</div>
+                <div class="ames-detail-label">@L["PP.Calendar.Detail.DDay"]</div>
                 <div>
                     @{ var dd = d.DaysToDue; var ddc = dd is null?"dim":dd<0?"bad":dd<=3?"warn":"ok"; }
                     <span class="pill @ddc">@DdTxt(dd)</span>
@@ -315,11 +287,11 @@
                     { <span class="pill bad">@L["PP.Calendar.Detail.Phase0Fail"]</span> }
                 </div>
             </div>
-            <div class="ames-modal-footer">
-                <button class="ames-btn warn" @onclick="OpenReschedule">@L["PP.Calendar.Btn.Reschedule"]</button>
-                <button class="ames-btn info" @onclick='() => Nav.NavigateTo("/pp/work-order")'>@L["PP.Calendar.Btn.WorkOrder"]</button>
-                <button class="ames-btn ghost"  @onclick="() => _showDetail = false">@L["Btn.Close"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["PP.Calendar.Btn.Reschedule"]" Icon="event" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@OpenReschedule" class="ames-rz-btn" />
+                <RadzenButton Text="@L["PP.Calendar.Btn.WorkOrder"]" Icon="list" ButtonStyle="ButtonStyle.Info" Size="ButtonSize.Small" Click='() => Nav.NavigateTo("/pp/work-order")' class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="() => _showDetail = false" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
@@ -334,35 +306,32 @@
                 <div>@L["PP.Calendar.Lbl.WoNo"] <span class="code">@_detail.WoNumber</span></div>
                 <div>@L["PP.Calendar.Lbl.CurrentDue"] <span class="dim">@(_detail.DueDate?.ToString("yyyy-MM-dd") ?? "—")</span></div>
             </div>
-            <label>@L["PP.Calendar.Lbl.NewDue"]</label>
-            <input type="date" class="ames-input"
-                   value="@_reschedDate.ToString("yyyy-MM-dd")"
-                   @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var dt)) _reschedDate = dt; }" />
-            <label style="margin-top:8px;">@L["PP.Calendar.Lbl.Pin"]</label>
+            <RadzenLabel Text="@L["PP.Calendar.Lbl.NewDue"]" />
+            <RadzenDatePicker TValue="DateTime" @bind-Value="_reschedDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            <RadzenLabel Text="@L["PP.Calendar.Lbl.Pin"]" style="margin-top:8px;" />
             <input type="password" class="ames-input" placeholder="@L["PP.Calendar.Ph.Pin"]" maxlength="6"
                    @bind="_pinInput" @bind:event="oninput" autocomplete="off" />
             @if (!string.IsNullOrEmpty(_pinError))
             {
-                <div class="ames-alert bad" style="margin-top:6px;">@_pinError</div>
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:6px;">@_pinError</RadzenAlert>
             }
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="ConfirmReschedule">@L["Btn.Confirm"]</button>
-                <button class="ames-btn ghost" @onclick="() => _showReschedule = false">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Confirm"]" Icon="check" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ConfirmReschedule" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="() => _showReschedule = false" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
 
 @code {
     const string DevPin = "1234";
-    const int MaxChipsMonth = 3;
 
     List<WorkOrderDto> _all = [];
     Dictionary<DateTime, List<WorkOrderDto>> _byDue = [];
     string  _fRouting = "";
     string  _fStatus  = "";
-    string  _view     = "month";
     string? _err;
+    List<MasterDataRepository.CodeItemRow> _routingItems = new();
 
     int _calYear  = DateTime.Today.Year;
     int _calMonth = DateTime.Today.Month;
@@ -380,7 +349,57 @@
     string   _pinInput = "";
     string   _pinError = "";
 
-    protected override void OnInitialized() => Reload();
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
+    // 라우팅 옵션 — 공통코드 ROUTING 에서 로드(+전체/미지정)
+    List<DropDownItem> RoutingOptions
+    {
+        get
+        {
+            var list = new List<DropDownItem> { new() { Value = "", Text = L["Filter.All"].Value } };
+            list.AddRange(_routingItems.Where(r => r.UseFlag)
+                .Select(r => new DropDownItem { Value = r.CodeValue ?? "", Text = MasterDataRepository.LocalName(r) }));
+            list.Add(new() { Value = "INJ", Text = L["PP.Calendar.Routing.INJ"].Value });
+            return list;
+        }
+    }
+
+    // RoutingType 코드 → 공통코드 명칭(없으면 코드)
+    string RoutingLabel(string code) =>
+        _routingItems.FirstOrDefault(r => r.CodeValue == code) is { } ci ? MasterDataRepository.LocalName(ci) : code;
+    List<DropDownItem> StatusFilterOptions => new()
+    {
+        new() { Value = "",            Text = L["Filter.All"].Value },
+        new() { Value = "Draft",       Text = StatusText("Draft") },
+        new() { Value = "Released",    Text = StatusText("Released") },
+        new() { Value = "In Progress", Text = StatusText("In Progress") },
+        new() { Value = "Closed",      Text = StatusText("Closed") },
+    };
+
+    // WO 상태 코드 → 다국어 라벨 (값은 DB 코드 유지)
+    string StatusText(string? s) => s switch
+    {
+        "Draft"       => L["PP.Calendar.Status.Draft"].Value,
+        "Released"    => L["PP.Calendar.Status.Released"].Value,
+        "In Progress" => L["PP.Calendar.Status.InProgress"].Value,
+        "Closed"      => L["PP.Calendar.Status.Closed"].Value,
+        _             => s ?? ""
+    };
+
+    // 월/주 탭 공통 필터 툴바 (라우팅·상태·검색)
+    RenderFragment FilterBar() =>
+    @<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <RadzenButton Text="@L["PP.Calendar.Btn.Today"]" Icon="done" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@GoToday" class="ames-rz-btn" />
+        <RadzenDropDown TValue="string" @bind-Value="_fRouting" @bind-Value:after="RebuildByDue" Data="@RoutingOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+        <RadzenDropDown TValue="string" @bind-Value="_fStatus" @bind-Value:after="RebuildByDue" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+        <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
+    </div>;
+
+    protected override void OnInitialized()
+    {
+        try { _routingItems = MD.ListCodeItems("ROUTING"); } catch { }
+        Reload();
+    }
 
     void Reload()
     {
@@ -493,7 +512,7 @@
             0     => L["PP.Calendar.DdTxt.DDay"].Value,
             { } v => string.Format(L["PP.Calendar.DdTxt.DaysTo"].Value, v)
         };
-        return $"{w.WoNumber} | {w.ItemName ?? w.ItemNo}\n{L["PP.Calendar.WoTooltip.Line"]}: {w.LineId} | {w.RoutingType ?? "INJ"}\n{w.Status} | {ddStr}\n{L["PP.Calendar.WoTooltip.Order"]}:{w.OrderQty:N0} {L["PP.Calendar.WoTooltip.Done"]}:{w.CompletedQty:N0} ({(int)w.ProgressPct}%)";
+        return $"{w.WoNumber} | {w.ItemName ?? w.ItemNo}\n{L["PP.Calendar.WoTooltip.Line"]}: {w.RouteLines ?? "—"} | {w.RoutingType ?? "INJ"}\n{StatusText(w.Status)} | {ddStr}\n{L["PP.Calendar.WoTooltip.Order"]}:{w.OrderQty:N0} {L["PP.Calendar.WoTooltip.Done"]}:{w.CompletedQty:N0} ({(int)w.ProgressPct}%)";
     }
 
     string DdTxt(int? days) => days switch
@@ -509,10 +528,10 @@
         var items = new[] {
             (L["PP.Calendar.Legend.Overdue"].Value, "wo-overdue"),
             (L["PP.Calendar.Legend.D3"].Value,      "wo-d3"),
-            ("In Progress",                         "wo-prog"),
+            (StatusText("In Progress"),             "wo-prog"),
             (L["PP.Calendar.Legend.RoutingA"].Value, "wo-rta"),
             (L["PP.Calendar.Legend.RoutingB"].Value, "wo-rtb"),
-            ("Released",                             "wo-rel"),
+            (StatusText("Released"),                "wo-rel"),
             (L["PP.Calendar.Legend.Draft"].Value,    "wo-draft")
         };
         foreach (var (lbl, cls) in items)

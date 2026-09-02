@@ -1,14 +1,22 @@
 ﻿@page "/md/fd/uom"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.MasterDataRepository Md
-@inject AuthenticationStateProvider Auth
-@inject AMES.Web.Services.PermissionService Perm
-@inject IStringLocalizer<SharedResources> L
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
 @using Radzen
 
-<PageTitle>@L["MD.Uom.Title"] · AMES</PageTitle>
+@attribute [Authorize]
 
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject MasterDataRepository MD
+@inject IStringLocalizer<SharedResources> L
+
+<PageTitle>MD-019 @L["MD.Uom.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="MD-019" TitleKey="MD.Uom.Title" />
+
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["Lbl.Total"]</div>
@@ -35,65 +43,50 @@
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.Uom.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Placeholder="@L["MD.Uom.Ph.Search"]"
-                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" AutoComplete="false"
-                           @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' />
-            <RadzenLabel Text="@L["Col.Category"]" />
-            <RadzenDropDown @bind-Value="_fCat" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value"
-                            AllowClear="true" Placeholder="@L["Filter.AllCategories"]"
-                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenLabel Text="@L["Col.Status"]" />
-            <RadzenDropDown @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value"
-                            AllowClear="true" Placeholder="@L["Filter.All"]"
-                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
-            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
-            @if (_canEdit) { <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" /> }
+        <span style="white-space:nowrap;">▼ @L["MD.Uom.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Uom.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
+            <RadzenLabel Text="@L["Col.Category"]" Component="DropDownCategory" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownCategory" @bind-Value="_fCat" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenLabel Text="@L["Col.Active"]" Component="DropDownStatus" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
+            }
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="AMES.Data.Repositories.MasterDataRepository.UomRow"
-                    Data="@_rows"
-                    AllowPaging="true" PageSize="15"
-                    PagerHorizontalAlign="HorizontalAlign.Center"
-                    PageSizeOptions="@_pageSizeOptions"
-                    ShowPagingSummary="true"
-                    AllowSorting="true"
-                    RowRender="@UomRowRender"
-                    RowClick="@(args => { if (args.Data is not null) OpenEdit(args.Data); })"
-                    EmptyText="@L["MD.Uom.Empty"]"
-                    Class="ames-rz-grid">
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.UomRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Uom.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.UomRow" Property="UOMCode" Title="@L["Col.UomCode"]" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="UOMCode" Title="@L["Col.UomCode"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="code">@r.UOMCode</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.UomRow" Property="UOMName" Title="@L["Col.UomName"]">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="UOMName" Title="@L["Col.UomName"]">
                 <Template Context="r">@(r.UOMName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.UomRow" Property="UOMCategory" Title="@L["Col.UomCategory"]" Width="120px">
-                <Template Context="r">
-                    <span class="dim">@(_unitCategories.FirstOrDefault(x => x.CodeValue == r.UOMCategory) is { } cat ? MasterDataRepository.LocalName(cat) : r.UOMCategory ?? "—")</span>
-                </Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="UOMCategory" Title="@L["Col.UomCategory"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r"><span class="dim">@(_unitCategories.FirstOrDefault(x => x.CodeValue == r.UOMCategory) is { } cat ? MasterDataRepository.LocalName(cat) : r.UOMCategory ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.UomRow" Property="Symbol" Title="@L["Col.UomSymbol"]" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="Symbol" Title="@L["Col.UomSymbol"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r"><span class="dim">@(r.Symbol ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.UomRow" Property="BaseFlag" Title="기준" Width="56px" TextAlign="TextAlign.Center">
-                <Template Context="r">
-                    @if (r.BaseFlag) { <span class="pill ok">@L["MD.Uom.PillBase"]</span> }
-                </Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="BaseFlag" Title="@L["MD.Uom.PillBase"]" TextAlign="TextAlign.Center" Width="70px">
+                <Template Context="r">@if (r.BaseFlag) { <span class="pill ok">@L["MD.Uom.PillBase"]</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.UomRow" Property="BaseUOM" Title="기준단위" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="BaseUOM" Title="@L["Col.BaseUom"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="dim">@(r.BaseUOM ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.UomRow" Property="ConvFactor" Title="@L["Col.ConvFactor"]" Width="100px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="ConvFactor" Title="@L["Col.ConvFactor"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r">@(r.ConvFactor?.ToString("0.########") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.UomRow" Property="DecimalPrec" Title="@L["Col.Decimals"]" Width="66px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="DecimalPrec" Title="@L["Col.Decimals"]" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="r">@(r.DecimalPrec?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.MasterDataRepository.UomRow" Property="ActiveFlag" Title="@L["Col.Status"]" Width="72px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
                     else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
@@ -103,137 +96,129 @@
     </RadzenDataGrid>
 </div>
 
+@* ── Create Modal ─────────────────────────────────────────────────── *@
 @if (_modal == "create")
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.Uom.Title"] — @L["Btn.Create"]</div>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.Uom.Title"] — @L["Modal.Create"]</div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div>
-                    <RadzenLabel Text="@L["Col.UomCode"]" />
-                    <RadzenTextBox @bind-Value="_f.UOMCode" Placeholder="EA" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="@L["Col.UomName"]" />
-                    <RadzenTextBox @bind-Value="_f.UOMName" Placeholder="@L["MD.Uom.Ph.UomName"]" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text="@L["Col.UomCode"]" class="ames-rz-modal-label" Component="CreateTextBoxUOMCode" />
+                <RadzenTextBox Name="CreateTextBoxUOMCode" @bind-Value="_f.UOMCode" Placeholder="EA" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
-                <div>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
+                <RadzenLabel Text="@L["Col.UomName"]" class="ames-rz-modal-label" Component="CreateTextBoxUOMName" />
+                <RadzenTextBox Name="CreateTextBoxUOMName" @bind-Value="_f.UOMName" Placeholder="@L["MD.Uom.Ph.UomName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.UomCategory"]" />
-                    <RadzenDropDown @bind-Value="_f.UOMCategory" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value"
-                                    Placeholder="@L["Opt.Select"]"
-                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.UOMCategory" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value" Change="@OnCategoryChanged" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.UomSymbol"]" />
-                    <RadzenTextBox @bind-Value="_f.Symbol" Placeholder="ea" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-            </div>
+                    <RadzenTextBox @bind-Value="_f.Symbol" Placeholder="ea" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
-                <div>
-                    <RadzenLabel Text="기준단위 (BaseUOM)" />
-                    <RadzenTextBox @bind-Value="_f.BaseUOM" Placeholder="EA" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
+            <RadzenRow Gap="8px" Style="margin-top:6px;" AlignItems="AlignItems.End">
+                <RadzenColumn Size="6">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="padding-bottom:6px;">
+                        <RadzenCheckBox TValue="bool" @bind-Value="_f.BaseFlag" Change="@OnBaseFlagChanged" Name="CreateChkBase" />
+                        <RadzenLabel Text="@L["MD.Uom.BaseUnit"]" Component="CreateChkBase" style="cursor:pointer;" />
+                    </RadzenStack>
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.BaseUom"]" />
+                    <RadzenDropDown @bind-Value="_f.BaseUOM" Data="@BaseUomOptions" TextProperty="Text" ValueProperty="Value" Disabled="@_f.BaseFlag" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ConvFactor"]" />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.ConvFactor" Placeholder="1.0" Step="0.000001m"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-            </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
-                <div>
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.ConvFactor" Placeholder="1.0" Step="0.000001" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Decimals"]" />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.DecimalPrec" Placeholder="0" Min="0" Max="8"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-            </div>
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.DecimalPrec" Placeholder="0" Min="0" Max="8" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
 
-            <label style="margin-top:6px;display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <RadzenCheckBox TValue="bool" @bind-Value="_f.BaseFlag" />
-                <span>@L["MD.Uom.BaseUnit"]</span>
-            </label>
-            <label style="margin-top:4px;display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" />
-                <span>@L["Lbl.Active"]</span>
-            </label>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="CreateChkActive" />
+                <RadzenLabel Text="@L["Lbl.Active"]" Component="CreateChkActive" style="cursor:pointer;" />
+            </RadzenStack>
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
-                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:8px;">@_modalErr</RadzenAlert>
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
             }
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveCreate" Disabled="@_busy" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseModal" class="ames-rz-btn" />
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Click="@SaveCreate" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
     </div>
 }
 
+@* ── Edit Modal ──────────────────────────────────────────────────── *@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.Uom.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.UOMCode</span></div>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.Uom.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.UOMCode</span></div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div>
-                    <RadzenLabel Text="@L["Col.UomName"]" />
-                    <RadzenTextBox @bind-Value="_f.UOMName" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text="@L["Col.UomName"]" class="ames-rz-modal-label" Component="EditTextBoxUOMName" />
+                <RadzenTextBox Name="EditTextBoxUOMName" @bind-Value="_f.UOMName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.UomCategory"]" />
-                    <RadzenDropDown @bind-Value="_f.UOMCategory" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value"
-                                    Placeholder="@L["Opt.Select"]"
-                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-            </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
-                <div>
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.UOMCategory" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value" Change="@OnCategoryChanged" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.UomSymbol"]" />
-                    <RadzenTextBox @bind-Value="_f.Symbol" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
-                    <RadzenLabel Text="기준단위 (BaseUOM)" />
-                    <RadzenTextBox @bind-Value="_f.BaseUOM" AutoComplete="false"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-            </div>
+                    <RadzenTextBox @bind-Value="_f.Symbol" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
-                <div>
+            <RadzenRow Gap="8px" Style="margin-top:6px;" AlignItems="AlignItems.End">
+                <RadzenColumn Size="6">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="padding-bottom:6px;">
+                        <RadzenCheckBox TValue="bool" @bind-Value="_f.BaseFlag" Change="@OnBaseFlagChanged" Name="EditChkBase" />
+                        <RadzenLabel Text="@L["MD.Uom.BaseUnit"]" Component="EditChkBase" style="cursor:pointer;" />
+                    </RadzenStack>
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.BaseUom"]" />
+                    <RadzenDropDown @bind-Value="_f.BaseUOM" Data="@BaseUomOptions" TextProperty="Text" ValueProperty="Value" Disabled="@_f.BaseFlag" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ConvFactor"]" />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.ConvFactor" Step="0.000001m"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-                <div>
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.ConvFactor" Step="0.000001" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Decimals"]" />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.DecimalPrec" Min="0" Max="8"
-                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </div>
-            </div>
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.DecimalPrec" Min="0" Max="8" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
 
-            <label style="margin-top:6px;display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <RadzenCheckBox TValue="bool" @bind-Value="_f.BaseFlag" />
-                <span>@L["MD.Uom.BaseUnit"]</span>
-            </label>
-            <label style="margin-top:4px;display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" />
-                <span>@L["Lbl.Active"]</span>
-            </label>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="EditChkActive" />
+                <RadzenLabel Text="@L["Lbl.Active"]" Component="EditChkActive" style="cursor:pointer;" />
+            </RadzenStack>
 
+            @* 삭제 버튼 클릭 후 인라인 확인 *@
             @if (_confirmDelete)
             {
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
@@ -245,68 +230,87 @@
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
-                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:8px;">@_modalErr</RadzenAlert>
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
             }
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Edit"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveEdit" Disabled="@_busy" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseModal" class="ames-rz-btn" />
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
     </div>
 }
 
 @code {
-    List<AMES.Data.Repositories.MasterDataRepository.UomRow> _allRows = new();
-    List<AMES.Data.Repositories.MasterDataRepository.UomRow> _rows    = new();
-    AMES.Data.Repositories.MasterDataRepository.UomRow? _sel;
+    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    bool _showPagerSummary = true;
+    List<MasterDataRepository.UomRow> _allRows = new();
+    List<MasterDataRepository.UomRow> _rows = new();
+    List<MasterDataRepository.CodeItemRow> _unitCategories = new();
+    List<MasterDataRepository.CodeItemRow> _activeFlagItems = new();
+    MasterDataRepository.UomRow? _sel;
 
-    List<AMES.Data.Repositories.MasterDataRepository.CodeItemRow> _unitCategories = new();
     string  _fSearch = "";
-    string? _fCat;
-    string? _fActive;
+    string? _fCat, _fActive;
+    string _modal = "", _modalErr = "", _msg = "";
+    bool _busy, _bgMouseDownOnSelf, _isErr, _confirmDelete;
+    bool _canEdit;
+    string _actor = "system";
 
-    readonly IEnumerable<int> _pageSizeOptions = new[] { 15, 30, 50, 100 };
+    FormModel _f = new();
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
-    private IEnumerable<DropDownItem> CategoryOptions =>
-        _unitCategories.Where(c => c.UseFlag)
-            .Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    private IEnumerable<DropDownItem> CategoryOptions => _unitCategories.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
 
-    private IEnumerable<DropDownItem> ActiveFilterOptions => new[]
-    {
-        new DropDownItem { Value = "Y", Text = L["Lbl.Active"].Value },
-        new DropDownItem { Value = "N", Text = L["Lbl.Inactive"].Value },
-    };
+    // BaseUOM: 자기참조 — 동일 UOMCategory 의 다른 단위만 선택 가능
+    private IEnumerable<DropDownItem> BaseUomOptions => _allRows
+        .Where(u => !string.IsNullOrEmpty(_f.UOMCategory) && u.UOMCategory == _f.UOMCategory && u.UOMCode != (_sel?.UOMCode ?? ""))
+        .Select(u => new DropDownItem { Value = u.UOMCode, Text = $"[{u.UOMCode}] {u.UOMName}" });
 
-    private void UomRowRender(RowRenderEventArgs<AMES.Data.Repositories.MasterDataRepository.UomRow> args)
+    // 기준단위(BaseFlag=true) 이면 BaseUOM 선택 불가 · 값은 NULL
+    void OnBaseFlagChanged(bool val) { if (val) _f.BaseUOM = ""; }
+
+    // 카테고리 변경 시 다른 카테고리의 BaseUOM 값은 무효화
+    void OnCategoryChanged(object? _)
     {
-        if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
-        args.Attributes["class"] = cls + " ames-row-link";
+        if (!_allRows.Any(u => u.UOMCategory == _f.UOMCategory && u.UOMCode == _f.BaseUOM))
+            _f.BaseUOM = "";
     }
-    string _modal = "";
-    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
-    string _msg = "", _modalErr = "";
-    bool _isErr;
-    bool   _canEdit;
-    string _actor = "system";
-    FormModel _f = new();
+    // 상태 필터: 공통코드 ACTIVE_FLAG (ACTIVE/INACTIVE)
+    private IEnumerable<DropDownItem> ActiveFilterOptions =>
+        _activeFlagItems.Where(a => a.UseFlag).Select(a => new DropDownItem { Value = a.CodeValue ?? "", Text = MasterDataRepository.LocalName(a) });
 
     protected override async Task OnInitializedAsync()
     {
-        var auth = await Auth.GetAuthenticationStateAsync();
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
-        await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("md/fd/uom");
-        try { _unitCategories = Md.ListCodeItems("UNIT_CATEGORY"); } catch { }
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("md/fd/uom");
+        try { _unitCategories = MD.ListCodeItems("UNIT_CATEGORY"); } catch { }
+        try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
         Reload();
+    }
+
+    RadzenDataGrid<MasterDataRepository.UomRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task ReloadRestorePage()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_rows.Count / (double)_pgGrid.PageSize));
+            await _pgGrid.GoToPage(Math.Min(_pgIndex, pages - 1));
+        }
     }
 
     void Reload()
     {
-        try { _allRows = Md.ListUoms(); } catch { _allRows = new(); }
+        try { _allRows = MD.ListUoms(); } catch { _allRows = new(); }
         ApplyFilter();
     }
 
@@ -319,13 +323,28 @@
                 (r.UOMName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
         if (!string.IsNullOrWhiteSpace(_fCat))
             _rows = _rows.Where(r => r.UOMCategory == _fCat).ToList();
-        if (_fActive == "Y") _rows = _rows.Where(r => r.ActiveFlag).ToList();
-        if (_fActive == "N") _rows = _rows.Where(r => !r.ActiveFlag).ToList();
+        if (_fActive == "ACTIVE") _rows = _rows.Where(r => r.ActiveFlag).ToList();
+        if (_fActive == "INACTIVE") _rows = _rows.Where(r => !r.ActiveFlag).ToList();
+    }
+
+    void OnSearchChanged(string value) => _fSearch = value ?? "";
+
+    void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
+
+    private void RowRender(RowRenderEventArgs<MasterDataRepository.UomRow> args)
+    {
+        if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
+        args.Attributes["class"] = cls + " ames-row-link";
+    }
+
+    void OnRowClick(DataGridRowMouseEventArgs<MasterDataRepository.UomRow> args)
+    {
+        if (args.Data is not null) OpenEdit(args.Data);
     }
 
     void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
-    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.UomRow r)
+    void OpenEdit(MasterDataRepository.UomRow r)
     {
         if (!_canEdit) return;
         _sel = r; _modalErr = ""; _confirmDelete = false;
@@ -348,53 +367,51 @@
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
-    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
-
-    void SaveCreate()
+    async Task SaveCreate()
     {
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.UOMCode)) { _modalErr = L["Err.UomCodeRequired"]; return; }
         var code = _f.UOMCode.Trim().ToUpper();
-        if (Md.UomExists(code)) { _modalErr = $"'{code}' 코드가 {L["Err.AlreadyExists"]}"; return; }
+        if (MD.UomExists(code)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], code); return; }
         _busy = true;
         try
         {
-            Md.InsertUom(code, NE(_f.UOMName), NE(_f.UOMCategory),
-                _f.BaseFlag, NE(_f.BaseUOM), _f.ConvFactor,
+            MD.InsertUom(code, NE(_f.UOMName), NE(_f.UOMCategory),
+                _f.BaseFlag, _f.BaseFlag ? null : NE(_f.BaseUOM), _f.ConvFactor,
                 _f.DecimalPrec, NE(_f.Symbol), _f.ActiveFlag, _actor);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{code} {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveEdit()
+    async Task SaveEdit()
     {
         if (_sel is null) return;
         _modalErr = "";
         _busy = true;
         try
         {
-            Md.UpdateUom(_sel.UOMCode, NE(_f.UOMName), NE(_f.UOMCategory),
-                _f.BaseFlag, NE(_f.BaseUOM), _f.ConvFactor,
+            MD.UpdateUom(_sel.UOMCode, NE(_f.UOMName), NE(_f.UOMCategory),
+                _f.BaseFlag, _f.BaseFlag ? null : NE(_f.BaseUOM), _f.ConvFactor,
                 _f.DecimalPrec, NE(_f.Symbol), _f.ActiveFlag, _actor);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_sel.UOMCode} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveDelete()
+    async Task SaveDelete()
     {
         if (_sel is null) return;
         _busy = true;
         try
         {
             var code = _sel.UOMCode;
-            Md.DeleteUom(_sel.UOMCode);
-            CloseModal(); Reload();
+            MD.DeleteUom(_sel.UOMCode);
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{code} {L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
@@ -406,6 +423,8 @@
         _msg = msg; _isErr = isErr;
         _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
 
     class FormModel
     {

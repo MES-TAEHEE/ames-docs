@@ -1,15 +1,24 @@
 @page "/md/rp/line-time-pattern"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.MasterDataRepository Md
-@inject AuthenticationStateProvider Auth
-@inject AMES.Web.Services.PermissionService Perm
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
+@using Radzen
+
+@attribute [Authorize]
+
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject IJSRuntime JS
+@implements IDisposable
 
-<PageTitle>@L["MD.LinePat.Title"] · AMES</PageTitle>
-
+<PageTitle>MD-028 @L["MD.LinePat.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-028" TitleKey="MD.LinePat.Title" />
 
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["MD.LinePat.Kpi.TotalPatterns"]</div>
@@ -25,249 +34,404 @@
     </div>
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["MD.LinePat.Kpi.ShiftModels"]</div>
-        <div class="ames-kpi-v">@_allRows.Select(r => r.ShiftModel).Where(s => s != null).Distinct().Count()</div>
+        <div class="ames-kpi-v">@_allRows.Select(r => r.ShiftPattern).Where(s => s != null).Distinct().Count()</div>
     </div>
 </div>
 
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MD.LinePat.List"] · @_rows.Count @L["Lbl.Items"]@if (_rows.Count < _allRows.Count) { <text> / @L["Lbl.TotalOf"] @_allRows.Count</text> }</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" style="width:140px;padding:4px 8px;"
-                   placeholder='@L["MD.LineTimePattern.Ph.Search"]' @bind="_fSearch" @bind:event="oninput" @onkeydown='e => { if (e.Key == "Enter") ApplyFilter(); }' autocomplete="off" />
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Line"]</span>
-            <select class="ames-input" style="width:130px;" @bind="_fLine">
-                <option value="">@L["Filter.AllLines"]</option>
-                @foreach (var l in _lineList)
-                {
-                    <option value="@l.LineID">@l.LineID@(l.LineName != null ? $" {l.LineName}" : "")</option>
-                }
-            </select>
-            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Search"]</button>
-            @if (_canEdit) { <button class="ames-btn" @onclick="OpenCreate">@L["Btn.Create"]</button> }
-        </div>
+        <span style="white-space:nowrap;">▼ @L["MD.LinePat.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.LineTimePattern.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
+            <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
+            }
+        </RadzenStack>
     </div>
 
-    @if (_rows.Count == 0)
+    @* ── SegmentState 범례 (축약어 = 이름) ── *@
+    @if (_segStates.Count > 0)
     {
-        <div class="ames-empty">@L["MD.LinePat.Empty"]</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px 14px;padding:4px 14px 8px;font-size:12px;align-items:center;justify-content:flex-end;">
+            <span class="dim" style="font-size:11px;">@L["MD.LineTimePattern.Col.Schedule"]</span>
+            @foreach (var st in _segStates)
+            {
+                <span style="display:inline-flex;align-items:center;gap:4px;">
+                    <span class="pill" style="@SegPillStyle(st.CodeValue)font-size:.72em;">@Abbr(st.CodeValue)</span>
+                    <span class="dim">@MasterDataRepository.LocalName(st)</span>
+                </span>
+            }
+        </div>
     }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.PatternId"]</th><th>@L["Col.Pattern"]</th><th>@L["Col.Line"]</th>
-                    <th>@L["Col.DayType"]</th><th>@L["Col.ShiftModel"]</th>
-                    <th>@L["Col.Start"]</th><th>@L["Col.End"]</th>
-                    <th class="num">@L["Col.OperatingMin"]</th><th class="num">@L["Col.MinDT"]</th>
-                    <th>@L["Col.Status"]</th><th>@L["Col.Segment"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    <tr class="ames-row-link" @onclick="() => OpenEdit(r)">
-                        <td class="code">@r.PatternID</td>
-                        <td>@(r.PatternName ?? "—")</td>
-                        <td class="dim">@(r.LineID ?? "—")</td>
-                        <td>@(r.DayType ?? "—")</td>
-                        <td>@(r.ShiftModel ?? "—")</td>
-                        <td class="dim">@(r.EffectiveFrom?.ToString("yy-MM-dd") ?? "—")</td>
-                        <td class="dim">@(r.EffectiveTo?.ToString("yy-MM-dd") ?? "—")</td>
-                        <td class="num">@(r.TotalOperatingMin?.ToString() ?? "—")</td>
-                        <td class="num">@(r.TotalPlannedDownMin?.ToString() ?? "—")</td>
-                        <td><span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(r.Status ?? "—")</span></td>
-                        <td><button class="ames-btn ghost" style="padding:2px 8px;font-size:.8em;" @onclick:stopPropagation @onclick="() => ToggleSegments(r.PatternID)">▶</button></td>
-                    </tr>
-                    @if (_expandedId == r.PatternID && _segments.Count > 0)
+
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.LineTimePatternRow" Data="@_rows" AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.LinePat.Empty"]" Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="PatternID" Title="@L["Col.PatternId"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r"><span class="code">@r.PatternID</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="PatternName" Title="@L["Col.PatternName"]">
+                <Template Context="r">@(r.PatternName ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r"><span class="dim">@(r.LineID ?? L["MD.LineTimePattern.Global"].Value)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="DayType" Title="@L["Col.DayType"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r"><span class="pill">@DayTypeLabel(r.DayType)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="ShiftPattern" Title="@L["Col.ShiftModel"]" Width="180px">
+                <Template Context="r"><span class="dim">@ShiftPatternLabel(r.ShiftPattern)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="TotalOperatingMin" Title="@L["Col.OperatingMin"]" TextAlign="TextAlign.Right" Width="130px">
+                <Template Context="r">@(r.TotalOperatingMin?.ToString() ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="TotalPlannedDownMin" Title="@L["Col.MinDT"]" TextAlign="TextAlign.Right" Width="100px">
+                <Template Context="r">@(r.TotalPlannedDownMin?.ToString() ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="90px">
+                <Template Context="r"><span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(r.Status ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Title="@L["MD.LineTimePattern.Col.Schedule"]" Width="280px" Sortable="false">
+                <Template Context="r">
+                    @{ var segs = _allSegList.Where(s => s.PatternID == r.PatternID).ToList(); }
+                    @if (segs.Count == 0)
                     {
-                        <tr>
-                            <td colspan="11" style="padding:0 0 8px 32px;background:#f8fafc;">
-                                <table class="ames-table" style="margin:8px 0;">
-                                    <thead>
-                                        <tr>
-                                            <th class="num">@L["Col.Seq"]</th><th class="num">@L["Col.StartMin"]</th><th class="num">@L["Col.EndMin"]</th>
-                                            <th>@L["Col.Status"]</th><th>@L["Col.Shift"]</th><th>@L["Col.ReasonCode"]</th><th>@L["Col.Description"]</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var s in _segments)
-                                        {
-                                            <tr>
-                                                <td class="num">@(s.SeqNo?.ToString() ?? "—")</td>
-                                                <td class="num">@(s.StartMin?.ToString() ?? "—")</td>
-                                                <td class="num">@(s.EndMin?.ToString() ?? "—")</td>
-                                                <td><span class="pill @(s.SegmentState == "PRODUCTION" ? "ok" : s.SegmentState == "BREAK" ? "" : "warn")">@(s.SegmentState ?? "—")</span></td>
-                                                <td class="dim">@(s.ShiftCode ?? "—")</td>
-                                                <td class="dim">@(s.ReasonCode ?? "—")</td>
-                                                <td class="dim">@(s.Description ?? "—")</td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </td>
-                        </tr>
+                        <span class="dim">—</span>
                     }
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
+                    else
+                    {
+                        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                            @foreach (var st in _segStates)
+                            {
+                                var mins = segs.Where(s => s.SegmentState == st.CodeValue).Sum(s => (s.EndMin ?? 0) - (s.StartMin ?? 0));
+                                <span class="pill" style="@SegPillStyle(st.CodeValue)font-size:.75em;">@Abbr(st.CodeValue) @(mins)@L["MD.LineTimePattern.Lbl.MinShort"]</span>
+                            }
+                        </div>
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Sortable="false" TextAlign="TextAlign.Center" Width="140px">
+                <Template Context="r">
+                    <div @onclick:stopPropagation>
+                        <RadzenButton Text="@L["MD.LineTimePattern.Btn.EditBands"]" Icon="schedule" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="@(() => OpenEditor(r.PatternID))" class="ames-rz-btn" />
+                    </div>
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
-@if (_modal == "create")
+@* ── 밴드 드로잉 편집기 (Gantt/드래그는 커스텀 유지) ───────────────────── *@
+@if (_editId is not null)
 {
-    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.LinePat.Title"] — @L["Btn.Create"]</div>
-
-            <label>@L["Col.PatternId"]</label>
-            <input class="ames-input" @bind="_f.PatternID" placeholder="LP-INJ-001" autocomplete="off" />
-
-            <label>@L["Col.Pattern"]</label>
-            <input class="ames-input" @bind="_f.PatternName" placeholder='@L["MD.LineTimePattern.Ph.PatternName"]' autocomplete="off" />
-
-            <label>@L["Col.Line"]</label>
-            <select class="ames-input" @bind="_f.LineID">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var l in _lineList)
+    var pat = _allRows.FirstOrDefault(r => r.PatternID == _editId);
+    <div class="ames-modal-bg" @onmousedown="OnEditorBgDown" @onclick="OnEditorBgClick">
+        <div class="ames-modal ames-modal-fullwide" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <span>@L["MD.LineTimePattern.Editor.Title"] · <span class="code">@_editId</span>
+                @if (pat is not null) { <span class="dim">· @(pat.LineID ?? L["MD.LineTimePattern.Global"].Value) / @DayTypeLabel(pat.DayType)</span> }
+                @if (_dirty) { <span class="pill warn" style="font-size:.72em;margin-left:6px;">@L["MD.LineTimePattern.Unsaved"]</span> }
+            </span>
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.4rem" AlignItems="AlignItems.Center">
+                @if (_canEdit)
                 {
-                    <option value="@l.LineID">[@l.LineID]@(l.LineName != null ? $" {l.LineName}" : "")</option>
+                    <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Disabled="@(_busy || !_dirty)" Click="@SaveAndClose" class="ames-rz-btn" />
                 }
-            </select>
+                <RadzenButton Text="@L["MD.LineTimePattern.Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@TryCloseEditor" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
 
-            <label>@L["Col.DayType"]</label>
-            <select class="ames-input" @bind="_f.DayType">
-                <option value="">@L["Opt.Select"]</option>
-                <option value="WEEKDAY">WEEKDAY</option>
-                <option value="SATURDAY">SATURDAY</option>
-                <option value="HOLIDAY">HOLIDAY</option>
-            </select>
-
-            <label>@L["Col.ShiftModel"]</label>
-            <input class="ames-input" @bind="_f.ShiftModel" placeholder="2SHIFT / 3SHIFT" autocomplete="off" />
-
-            <label>@L["Col.StartDate"]</label>
-            <input class="ames-input" type="text" @bind="_f.EffectiveFrom" placeholder="yyyy-MM-dd" autocomplete="off" />
-
-            <label>@L["Col.EndDate"]</label>
-            <input class="ames-input" type="text" @bind="_f.EffectiveTo" placeholder="yyyy-MM-dd" autocomplete="off" />
-
-            <label>@L["Col.OperatingMin"]</label>
-            <input class="ames-input" type="number" @bind="_f.TotalOperatingMin" placeholder="1380" min="0" autocomplete="off" />
-
-            <label>@L["Col.MinDT"]</label>
-            <input class="ames-input" type="number" @bind="_f.TotalPlannedDownMin" placeholder="60" min="0" autocomplete="off" />
-
-            <label>@L["Col.Uom"]</label>
-            <input class="ames-input" @bind="_f.TimeZone" placeholder="Asia/Seoul" autocomplete="off" />
-
-            <label>@L["Col.Status"]</label>
-            <select class="ames-input" @bind="_f.Status">
-                <option value="ACTIVE">ACTIVE</option>
-                <option value="DRAFT">DRAFT</option>
-                <option value="INACTIVE">INACTIVE</option>
-            </select>
-
-            @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
-
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveCreate" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Create"].Value)</button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
+        @if (_canEdit)
+        {
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 14px 2px;">
+                <span class="dim" style="font-size:12px;">@L["MD.LineTimePattern.Lbl.BandType"]</span>
+                @foreach (var st in _segStates.Where(s => s.UseFlag))
+                {
+                    var cv = st.CodeValue ?? "";
+                    <RadzenButton Text="@MasterDataRepository.LocalName(st)" Size="ButtonSize.Small" class="ames-rz-btn" ButtonStyle="ButtonStyle.Light" Style="@SegBtnStyle(cv, _segState == cv)" Click="@(() => _segState = cv)" />
+                }
+                <span style="flex:1;"></span>
+                @if (_lastPaint is not null)
+                {
+                    <RadzenButton Text="@L["MD.LineTimePattern.Btn.Undo"]" Icon="undo" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@UndoLast" class="ames-rz-btn" />
+                }
+                <RadzenButton Text="@L["MD.LineTimePattern.Btn.Clear"]" Icon="delete_sweep" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@ClearAll" class="ames-rz-btn" />
             </div>
+            <div style="padding:2px 14px 2px;font-size:11px;color:#64748b;">@L["MD.LineTimePattern.DragHint"]</div>
+        }
+
+        @* ── Shift별 타임라인 (커스텀) ── *@
+        @if (ActiveShifts().Count == 0)
+        {
+            <div class="ames-empty" style="padding:16px;">@L["MD.LineTimePattern.NoShiftTime"]</div>
+        }
+        @foreach (var sh in ActiveShifts())
+        {
+            <div style="padding:6px 14px 0;font-size:13px;font-weight:700;color:#e2e8f0;">@sh.Name · @MinToTime(sh.Start)–@MinToTime(sh.End)</div>
+            <div class="pp-gantt-wrap" style="margin-top:2px;">
+                <div class="pp-gantt-inner">
+                    <div class="pp-gantt-ruler">
+                        @for (int m = sh.Start; m <= sh.End; m += ShiftTick(sh))
+                        {
+                            var isHour = m % 60 == 0;
+                            <div class="pp-gantt-gridline @(isHour ? "major" : "")" style="left:@PctL(m, sh);height:26px;"></div>
+                            @if (isHour || ShiftTick(sh) < 60)
+                            {
+                                <div class="pp-gantt-tick @(isHour ? "major" : "")" style="left:@PctL(m, sh);">@($"{m / 60:00}:{m % 60:00}")</div>
+                            }
+                        }
+                    </div>
+                    <div class="pp-gantt-row" style="height:88px;">
+                        <div class="pp-gantt-row-lbl">@sh.Code</div>
+                        @foreach (var b in ShiftBands(sh))
+                        {
+                            var bs = b; int wMin = bs.E - bs.S;
+                            <div @key="@($"{sh.Code}:{bs.S}")" class="@SegClass(bs.St)" style="left:@PctL(bs.S, sh);width:@PctW(bs.S, bs.E, sh);padding:0;"
+                                 title="@SegTitleR(bs.St, bs.S, bs.E)"
+                                 @onclick="() => { if (_canEdit) _confirmBand = (sh.Code, bs.S, bs.E, bs.St); }">
+                                @if (WideEnoughShift(wMin, sh)) { <span style="padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@SegBarTextR(bs.St, wMin)</span> }
+                            </div>
+                        }
+                        @if (_canEdit)
+                        {
+                            <div @key="@($"drag-{sh.Code}")" class="pp-gantt-drag" id="@($"gantt-drag-{sh.Code}")"></div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        @{ var _downStates = _segStates.Where(s => s.CodeValue != "OPERATING").ToList(); }
+        <div style="display:flex;gap:20px;padding:10px 14px 8px;font-family:'JetBrains Mono',monospace;font-size:12px;flex-wrap:wrap;">
+            <span style="color:var(--seg-operating);">@string.Format(L["MD.LineTimePattern.Stat.Operating"].Value, OperatingMin)</span>
+            <span style="color:var(--seg-downtime);">@string.Format(L["MD.LineTimePattern.Stat.Down"].Value, DownMin)
+                <span class="dim">(@for (int di = 0; di < _downStates.Count; di++)
+                {
+                    var st = _downStates[di];
+                    if (di > 0) { <text>, </text> }
+                    <span style="color:@SegColor(st.CodeValue);">@SegLabel(st.CodeValue): @(StateMin(st.CodeValue))@L["Lbl.Min"]</span>
+                })</span>
+            </span>
+            <span class="dim">@string.Format(L["MD.LineTimePattern.Stat.Segments"].Value, _segments.Count)</span>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_editorMsg))
+        {
+            <div style="padding:0 14px 8px;">
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_editorMsg</RadzenAlert>
+            </div>
+        }
+
+        @* ── 계획비가동 사유코드·설명 (계획비가동 밴드가 있을 때) ── *@
+        @if (HasPlannedDown())
+        {
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px 12px;border-top:1px solid rgba(255,255,255,.06);">
+                <span class="pill bad" style="font-size:.72em;">@SegLabel("PLANNED_DOWNTIME")</span>
+                <RadzenLabel Text="@L["MD.LineTimePattern.Lbl.DownReason"]" />
+                <RadzenDropDown TValue="string" @bind-Value="_downReason" Change="@(_ => OnDownInputChanged())" Data="@PlannedReasonOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Disabled="@(!_canEdit)" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+                <RadzenLabel Text="@L["Col.Description"]" />
+                <RadzenTextBox @bind-Value="_downDesc" Change="@(_ => OnDownInputChanged())" Disabled="@(!_canEdit)" Placeholder="@L["MD.LineTimePattern.Ph.DownDesc"]" MaxLength="120" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;min-width:200px;" />
+                @if (SelectedReasonRequiresComment())
+                {
+                    <span class="pill warn" style="font-size:.7em;" title="@L["MD.LineTimePattern.Err.CommentRequired"]">*</span>
+                }
+            </div>
+        }
         </div>
     </div>
 }
 
+@* ── 닫기 확인 (미저장 변경) ── *@
+@if (_confirmClose)
+{
+    <div class="ames-modal-bg" @onclick="() => _confirmClose = false">
+        <div class="ames-modal" style="max-width:400px;" @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.LineTimePattern.Modal.CloseDirty"]</div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Disabled="@_busy" Click="@SaveAndClose" class="ames-rz-btn" />
+                <RadzenButton Text="@L["MD.LineTimePattern.Btn.DiscardClose"]" Icon="close" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@DiscardClose" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@(() => _confirmClose = false)" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@* ── 밴드 삭제 확인 ── *@
+@if (_confirmBand is { } cb)
+{
+    <div class="ames-modal-bg" @onclick="() => _confirmBand = null">
+        <div class="ames-modal" style="max-width:360px;" @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.LineTimePattern.Modal.DeleteBand"]</div>
+            <div style="margin:8px 0;color:#94a3b8;">
+                @SegLabel(cb.St) &nbsp; @MinToTime(cb.S) — @MinToTime(cb.E)
+                (@(cb.E - cb.S)@L["Lbl.Min"])
+            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@ConfirmDeleteSeg" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@(() => _confirmBand = null)" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@* ── 헤더 등록 모달 ── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.LinePat.Title"] — @L["Modal.Create"]</div>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text="@L["Col.PatternId"]" class="ames-rz-modal-label" Component="CreateTextBoxPatternId" />
+                <RadzenTextBox Name="CreateTextBoxPatternId" @bind-Value="_f.PatternID" Placeholder="LP-INJ-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
+                <RadzenLabel Text="@L["Col.PatternName"]" class="ames-rz-modal-label" Component="CreateTextBoxPatternName" />
+                <RadzenTextBox Name="CreateTextBoxPatternName" @bind-Value="_f.PatternName" Placeholder="@L["MD.LineTimePattern.Ph.PatternName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Line"]" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.LineID" Data="@LineModalOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["MD.LineTimePattern.Global"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.DayType"]" />
+                    <RadzenDropDown @bind-Value="_f.DayType" Data="@DayTypeOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.ShiftModel"]" />
+                    <RadzenDropDown @bind-Value="_f.ShiftPattern" Data="@ShiftPatternOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Status"]" />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="@_statusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.StartDate"]" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.EndDate"]" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Click="@SaveCreate" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@* ── 헤더 수정 모달 ── *@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.LinePat.Title"] — @L["Btn.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.PatternID</span></div>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.LinePat.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.PatternID</span></div>
 
-            <label>@L["Col.Pattern"]</label>
-            <input class="ames-input" @bind="_f.PatternName" autocomplete="off" />
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text="@L["Col.PatternName"]" class="ames-rz-modal-label" Component="EditTextBoxPatternName" />
+                <RadzenTextBox Name="EditTextBoxPatternName" @bind-Value="_f.PatternName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
 
-            <label>@L["Col.Line"]</label>
-            <select class="ames-input" @bind="_f.LineID">
-                <option value="">@L["Opt.Select"]</option>
-                @foreach (var l in _lineList)
-                {
-                    <option value="@l.LineID">[@l.LineID]@(l.LineName != null ? $" {l.LineName}" : "")</option>
-                }
-            </select>
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Line"]" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.LineID" Data="@LineModalOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["MD.LineTimePattern.Global"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.DayType"]" />
+                    <RadzenDropDown @bind-Value="_f.DayType" Data="@DayTypeOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
 
-            <label>@L["Col.DayType"]</label>
-            <select class="ames-input" @bind="_f.DayType">
-                <option value="">@L["Opt.Select"]</option>
-                <option value="WEEKDAY">WEEKDAY</option>
-                <option value="SATURDAY">SATURDAY</option>
-                <option value="HOLIDAY">HOLIDAY</option>
-            </select>
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.ShiftModel"]" />
+                    <RadzenDropDown @bind-Value="_f.ShiftPattern" Data="@ShiftPatternOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Status"]" />
+                    <RadzenDropDown @bind-Value="_f.Status" Data="@_statusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
 
-            <label>@L["Col.ShiftModel"]</label>
-            <input class="ames-input" @bind="_f.ShiftModel" autocomplete="off" />
-
-            <label>@L["Col.StartDate"]</label>
-            <input class="ames-input" type="text" @bind="_f.EffectiveFrom" placeholder="yyyy-MM-dd" autocomplete="off" />
-
-            <label>@L["Col.EndDate"]</label>
-            <input class="ames-input" type="text" @bind="_f.EffectiveTo" placeholder="yyyy-MM-dd" autocomplete="off" />
-
-            <label>@L["Col.OperatingMin"]</label>
-            <input class="ames-input" type="number" @bind="_f.TotalOperatingMin" min="0" autocomplete="off" />
-
-            <label>@L["Col.MinDT"]</label>
-            <input class="ames-input" type="number" @bind="_f.TotalPlannedDownMin" min="0" autocomplete="off" />
-
-            <label>@L["Col.Uom"]</label>
-            <input class="ames-input" @bind="_f.TimeZone" autocomplete="off" />
-
-            <label>@L["Col.Status"]</label>
-            <select class="ames-input" @bind="_f.Status">
-                <option value="ACTIVE">ACTIVE</option>
-                <option value="DRAFT">DRAFT</option>
-                <option value="INACTIVE">INACTIVE</option>
-            </select>
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.StartDate"]" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.EndDate"]" />
+                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.EffectiveTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
 
             @if (_confirmDelete)
             {
-                <div class="ames-delete-confirm">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
                     <span>@L["Msg.Confirm.Delete"]</span>
-                    <button class="ames-btn ghost" @onclick='() => _confirmDelete = false'>@L["Msg.No"]</button>
-                    <button class="ames-btn bad" @onclick="SaveDelete" disabled="@_busy">@(_busy ? L["Msg.Deleting"].Value : L["Msg.Yes"].Value)</button>
-                </div>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
             }
 
             @if (!string.IsNullOrEmpty(_modalErr))
-            { <div class="ames-alert bad">@_modalErr</div> }
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
 
-            <div class="ames-modal-footer">
-                <button class="ames-btn" @onclick="SaveEdit" disabled="@_busy">@(_busy ? L["Msg.Saving"].Value : L["Btn.Edit"].Value)</button>
-                <button class="ames-btn bad" @onclick='() => { _confirmDelete = true; _modalErr = ""; }' disabled="@_busy">@L["Btn.Delete"]</button>
-                <button class="ames-btn ghost" @onclick="CloseModal">@L["Btn.Cancel"]</button>
-            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
 
 @code {
-    List<AMES.Data.Repositories.MasterDataRepository.LineTimePatternRow>  _allRows  = new();
-    List<AMES.Data.Repositories.MasterDataRepository.LineTimePatternRow>  _rows     = new();
-    List<AMES.Data.Repositories.MasterDataRepository.LineTimeSegmentRow>  _segments = new();
-    AMES.Data.Repositories.MasterDataRepository.LineTimePatternRow? _sel;
-    int _page = 0;
-    const int _pageSize = 20;
-    List<AMES.Data.Repositories.MasterDataRepository.LineRow> _lineList = new();
-    string _fSearch = "", _fLine = "";
-    string? _expandedId;
+    IEnumerable<int> _pageSizeOptions = new int[] { 10, 20, 50, 100 };
+    bool _showPagerSummary = true;
+    List<MasterDataRepository.LineTimePatternRow>  _allRows  = new();
+    List<MasterDataRepository.LineTimePatternRow>  _rows     = new();
+    List<MasterDataRepository.LineTimeSegmentRow>  _segments = new();
+    List<MasterDataRepository.LineTimeSegmentRow>  _allSegList = new();
+    MasterDataRepository.LineTimePatternRow? _sel;
+    List<MasterDataRepository.LineRow>      _lineList    = new();
+    List<MasterDataRepository.CodeItemRow>  _dayTypes    = new();
+    List<MasterDataRepository.CodeItemRow>  _shiftModels = new();
+    List<MasterDataRepository.CodeItemRow>  _segStates   = new();
+    List<MasterDataRepository.CodeItemRow>  _workShifts  = new();
+    List<MasterDataRepository.ReasonCodeRow> _reasonCodes = new();
+
+    string  _fSearch = "";
+    string? _fLine;
     string _modal = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
     string _msg = "", _modalErr = "";
@@ -276,27 +440,90 @@
     string _actor = "system";
     FormModel _f = new();
 
+    // ── 밴드 편집기 상태 (드래프트: 저장 전까지 메모리에서만 편집) ──
+    string? _editId;
+    string  _segState = "OPERATING";
+    (int S, int E, string? Sh)? _lastPaint;
+    (string Sh, int S, int E, string St)? _confirmBand;
+    bool _dirty;        // 메모리 세그먼트가 저장본과 다름 → 저장(Save) 가능. 자동 기본채움도 포함.
+    bool _userEdited;   // 사용자가 실제로 편집(드로잉/삭제/전체삭제)함 → 닫기 시 확인 대상. 자동 기본채움은 제외.
+    bool _confirmClose;
+    string? _downReason;      // 계획비가동 사유코드 (패턴의 PLANNED_DOWNTIME 세그먼트 공통)
+    string  _downDesc = "";   // 계획비가동 사유 설명
+    string  _editorMsg = "";  // 편집기 모달 내부 메시지 (검증/저장오류) — 페이지 상단 대신 모달 안에 표시
+    DotNetObjectReference<LineTimePattern>? _ref;
+    bool _jsReady;
+
+    int OperatingMin => _segments.Where(s => s.SegmentState == "OPERATING").Sum(s => (s.EndMin ?? 0) - (s.StartMin ?? 0));
+    int DownMin      => _segments.Where(s => s.SegmentState != "OPERATING").Sum(s => (s.EndMin ?? 0) - (s.StartMin ?? 0));
+
+    // 특정 밴드 타입의 총 시간(분)
+    int StateMin(string? cv) => _segments.Where(s => s.SegmentState == cv).Sum(s => (s.EndMin ?? 0) - (s.StartMin ?? 0));
+    // 밴드 타입별 표시 색상 (Gantt 밴드/범례와 동일 계열)
+    string SegColor(string? st) => st switch
+    {
+        "OPERATING"        => "var(--seg-operating)",
+        "PLANNED_DOWNTIME" => "var(--seg-downtime)",
+        "BREAK"            => "var(--seg-break)",
+        "INSPECT"          => "var(--seg-inspect)",
+        "PM"               => "var(--seg-pm)",   // 예방보전 — 주황
+        "IDLE"             => "var(--seg-idle)",
+        _                  => "var(--seg-meal)"
+    };
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
+    DropDownItem[] _statusOptions =
+    {
+        new() { Value = "ACTIVE",   Text = "ACTIVE"   },
+        new() { Value = "DRAFT",    Text = "DRAFT"    },
+        new() { Value = "INACTIVE", Text = "INACTIVE" },
+    };
+    IEnumerable<DropDownItem> DayTypeOptions    => _dayTypes.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    IEnumerable<DropDownItem> ShiftPatternOptions => _shiftModels.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
+    IEnumerable<DropDownItem> LineModalOptions  => new[] { new DropDownItem { Value = "", Text = L["MD.LineTimePattern.Global"].Value } }
+        .Concat(_lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" }));
+
     protected override async Task OnInitializedAsync()
     {
-        var auth = await Auth.GetAuthenticationStateAsync();
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
-        await Perm.EnsureAsync(Auth);
-        _canEdit = Perm.CanEdit("md/rp/line-time-pattern");
-        try { _lineList = Md.ListLines(); } catch { }
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("md/rp/line-time-pattern");
+        try { _lineList    = MD.ListLines(); } catch { }
+        try { _dayTypes    = MD.ListCodeItems("DAY_TYPE"); } catch { }
+        try { _shiftModels = MD.ListCodeItems("SHIFT_PATTERN"); } catch { }
+        try { _segStates   = MD.ListCodeItems("SEGMENT_STATE"); } catch { }
+        try { _workShifts  = MD.ListCodeItems("WORK_SHIFT"); } catch { }
+        try { _reasonCodes = MD.ListReasonCodes(); } catch { }
         Reload();
+    }
+
+    RadzenDataGrid<MasterDataRepository.LineTimePatternRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task ReloadRestorePage()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_rows.Count / (double)_pgGrid.PageSize));
+            await _pgGrid.GoToPage(Math.Min(_pgIndex, pages - 1));
+        }
     }
 
     void Reload()
     {
-        try { _allRows = Md.ListLineTimePatterns(); } catch { _allRows = new(); }
-        _expandedId = null;
-        _segments   = new();
+        try { _allRows = MD.ListLineTimePatterns(); } catch { _allRows = new(); }
+        try { _allSegList = MD.ListAllLineTimeSegments(); } catch { _allSegList = new(); }
         ApplyFilter();
     }
 
     void ApplyFilter()
     {
-        _page = 0;
         _rows = _allRows;
         if (!string.IsNullOrWhiteSpace(_fSearch))
             _rows = _rows.Where(r =>
@@ -306,31 +533,382 @@
             _rows = _rows.Where(r => r.LineID == _fLine).ToList();
     }
 
-    void ToggleSegments(string patternId)
+    void OnSearchChanged(string value) => _fSearch = value ?? "";
+    void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
+
+    void RowRender(RowRenderEventArgs<MasterDataRepository.LineTimePatternRow> args)
     {
-        if (_expandedId == patternId) { _expandedId = null; _segments = new(); return; }
-        _expandedId = patternId;
-        try { _segments = Md.ListLineTimeSegments(patternId); } catch { _segments = new(); }
+        if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
+        args.Attributes["class"] = cls + " ames-row-link";
     }
 
+    void OnRowClick(DataGridRowMouseEventArgs<MasterDataRepository.LineTimePatternRow> args)
+    {
+        if (args.Data is not null) OpenEdit(args.Data);
+    }
+
+    string DayTypeLabel(string? v)
+        => v is null ? "—" : (_dayTypes.FirstOrDefault(c => c.CodeValue == v) is { } c ? MasterDataRepository.LocalName(c) : v);
+    string ShiftPatternLabel(string? v)
+        => v is null ? "—" : (_shiftModels.FirstOrDefault(c => c.CodeValue == v) is { } c ? MasterDataRepository.LocalName(c) : v);
+
+    // ── 편집기 열고/닫기 ──
+    void OpenEditor(string patternId)
+    {
+        _editId = patternId;
+        _lastPaint = null; _confirmBand = null; _dirty = false; _userEdited = false; _confirmClose = false; _editorMsg = "";
+        ReloadSegments();
+        // 기존 계획비가동 세그먼트에서 사유코드·설명 선로딩 (패턴 공통 값으로 취급)
+        var pd = _segments.FirstOrDefault(s => s.SegmentState == "PLANNED_DOWNTIME");
+        _downReason = pd?.ReasonCode;
+        _downDesc   = pd?.Description ?? "";
+        EnsureBaseFill();
+    }
+
+    // 패턴에 계획비가동 밴드가 존재하는지
+    bool HasPlannedDown() => _segments.Any(s => s.SegmentState == "PLANNED_DOWNTIME" && (s.EndMin ?? 0) > (s.StartMin ?? 0));
+    // 계획비가동(PlannedFlag=1) 사유코드 옵션 (비활성 제외)
+    IEnumerable<DropDownItem> PlannedReasonOptions => _reasonCodes
+        .Where(r => r.PlannedFlag && r.ActiveFlag)
+        .Select(r => new DropDownItem { Value = r.ReasonCode, Text = $"[{r.ReasonCode}] {r.ReasonName ?? r.ReasonCode}" });
+    // 선택된 사유가 설명(코멘트)을 필수로 요구하는지
+    bool SelectedReasonRequiresComment()
+        => _reasonCodes.FirstOrDefault(r => r.ReasonCode == _downReason)?.RequiresComment ?? false;
+    // 사유코드·설명 변경 = 사용자 편집 (입력하면 검증 메시지 해제)
+    void OnDownInputChanged() { _dirty = true; _userEdited = true; _editorMsg = ""; }
+
+    // 편집 중 패턴의 ShiftPattern → 기본 가동 교대 수. 순번이 이 수 미만인 교대는 OPERATING, 나머지는 IDLE(유휴) 기본.
+    //   SHIFT1=1교대만 가동 / SHIFT2=앞 2교대 가동 / SHIFT3=전 교대 가동 / 미지정=전 교대 가동(기존 동작 유지)
+    int OperatingShiftCount()
+        => _allRows.FirstOrDefault(r => r.PatternID == _editId)?.ShiftPattern switch
+        {
+            "SHIFT1_SCHEDULE" => 1,
+            "SHIFT2_SCHEDULE" => 2,
+            "SHIFT3_SCHEDULE" => 3,
+            _                 => int.MaxValue
+        };
+
+    // 교대 순번(0=Shift1)에 따른 기본 상태
+    string DefaultShiftState(int index) => index < OperatingShiftCount() ? "OPERATING" : "IDLE";
+
+    // 교대 코드 → 기본 상태 (삭제/되돌리기 복원용)
+    string DefaultShiftStateOf(string? shiftCode)
+    {
+        int idx = ActiveShifts().FindIndex(x => string.Equals(x.Code, shiftCode, StringComparison.Ordinal));
+        return idx < 0 ? "OPERATING" : DefaultShiftState(idx);
+    }
+
+    // 각 Shift 창을 기본 상태(가동/유휴)로 채움 (해당 Shift 세그먼트가 없을 때) — 메모리에만
+    void EnsureBaseFill()
+    {
+        if (_editId is null || !_canEdit) return;
+        bool changed = false;
+        var shifts = ActiveShifts();
+        for (int i = 0; i < shifts.Count; i++)
+        {
+            var sh = shifts[i];
+            if (_segments.Any(s => s.ShiftCode == sh.Code)) continue;
+            _segments.Add(NewSeg(sh.Start, sh.End, DefaultShiftState(i), null, sh.Code));
+            changed = true;
+        }
+        if (changed) { _segments = MergeLocal(_segments); _dirty = true; }
+    }
+
+    bool _editorBgDown;
+    void OnEditorBgDown() => _editorBgDown = true;
+    void OnEditorBgClick() { var close = _editorBgDown; _editorBgDown = false; if (close) TryCloseEditor(); }
+
+    // 닫기 시 사용자가 실제 편집한 경우에만 확인 (자동 기본채움은 확인 없이 닫힘)
+    void TryCloseEditor()
+    {
+        if (_userEdited) { _confirmClose = true; return; }
+        _ = CloseEditor();
+    }
+    async Task SaveAndClose() { await SaveEditor(); if (!_dirty) { _confirmClose = false; await CloseEditor(); } }
+    async Task DiscardClose() { _confirmClose = false; _dirty = false; _userEdited = false; await CloseEditor(); }
+
+    async Task CloseEditor()
+    {
+        // JS 파괴 실패가 닫힘을 막지 않도록 방어. await 이후 상태변경은 자동 렌더 밖이므로 끝에서 StateHasChanged 필수.
+        if (_jsReady) { try { await JS.InvokeVoidAsync("linePatternDrag.destroy"); } catch { } _jsReady = false; }
+        _editId = null; _segments = new(); _lastPaint = null; _confirmBand = null; _dirty = false; _userEdited = false; _confirmClose = false;
+        _downReason = null; _downDesc = ""; _editorMsg = "";
+        Reload();   // 목록 요약·합계 새로고침
+        await InvokeAsync(StateHasChanged);
+    }
+
+    void ReloadSegments()
+    {
+        if (_editId is null) { _segments = new(); return; }
+        try { _segments = MD.ListLineTimeSegments(_editId); } catch { _segments = new(); }
+    }
+
+    // 드래프트 전체 저장
+    async Task SaveEditor()
+    {
+        if (_editId is null || !_canEdit || _busy) return;
+        // 계획비가동이 있으면 사유코드(필수) + 설명(사유가 코멘트 필수일 때) 입력 유도 — 메시지는 모달 내부에 표시
+        if (HasPlannedDown())
+        {
+            if (string.IsNullOrWhiteSpace(_downReason)) { _editorMsg = L["MD.LineTimePattern.Err.ReasonRequired"].Value; return; }
+            if (SelectedReasonRequiresComment() && string.IsNullOrWhiteSpace(_downDesc)) { _editorMsg = L["MD.LineTimePattern.Err.CommentRequired"].Value; return; }
+        }
+        _busy = true;
+        try
+        {
+            var payload = new List<(int, int, string, string?, string?, string?)>();
+            foreach (var sh in ActiveShifts())
+                foreach (var b in ShiftBands(sh))
+                {
+                    bool pd = b.St == "PLANNED_DOWNTIME";
+                    payload.Add((b.S, b.E, b.St, pd ? NE(_downReason) : null, sh.Code, pd ? NE(_downDesc) : null));
+                }
+            MD.SaveLineTimeSegments(_editId, payload, _actor);
+            ReloadSegments();          // 저장된 실제 SegmentID/SeqNo 재로딩
+            _dirty = false; _userEdited = false; _lastPaint = null; _editorMsg = "";
+            ShowMsg(L["Msg.Saved"].Value, false);
+        }
+        catch (Exception ex) { _editorMsg = ex.Message; }
+        finally { _busy = false; await InvokeAsync(StateHasChanged); }
+    }
+
+    // 새 세그먼트(메모리 임시) 생성
+    MasterDataRepository.LineTimeSegmentRow NewSeg(int s, int e, string state, string? reason, string? shift)
+        => new("TMP" + Guid.NewGuid().ToString("N")[..21], _editId, null, s, e, state, reason, shift, null, _actor, DateTime.Now);
+
+    // 메모리 카브: 해당 Shift를 분단위 맵으로 재구성해 [start,end)를 state로 덮어씀.
+    // 분단위 재구성이라 겹침이 구조적으로 불가능하고, 연속 구간은 자동 병합됨.
+    void PaintLocal(int start, int end, string state, string? shift)
+    {
+        if (_editId is null || end <= start || shift is null) return;
+        var sh = ActiveShifts().FirstOrDefault(x => x.Code == shift);
+        if (sh is null) return;
+        var kept = _segments.Where(x => !string.Equals(x.ShiftCode, shift, StringComparison.Ordinal)).ToList();
+        kept.AddRange(BuildShiftRuns(sh, (start, end, state)));
+        _segments = kept.OrderBy(s => s.ShiftCode).ThenBy(s => s.StartMin ?? 0).ToList();
+        _dirty = true; _userEdited = true;
+    }
+
+    // 한 Shift 창을 분단위 배열로 정규화 → 연속 런을 세그먼트로 반환. overlay가 있으면 그 구간을 덮어씀.
+    List<MasterDataRepository.LineTimeSegmentRow> BuildShiftRuns(ShiftWin sh, (int S, int E, string St)? overlay)
+    {
+        int lo = sh.Start, hi = sh.End, n = hi - lo;
+        if (n <= 0) return new();
+        var cells  = new string?[n];
+        var reason = new string?[n];
+        foreach (var s in _segments.Where(x => string.Equals(x.ShiftCode, sh.Code, StringComparison.Ordinal)))
+        {
+            int a = Math.Max(lo, s.StartMin ?? 0), b = Math.Min(hi, s.EndMin ?? 0);
+            for (int m = a; m < b; m++) { cells[m - lo] = s.SegmentState; reason[m - lo] = s.ReasonCode; }
+        }
+        if (overlay is { } ov)
+        {
+            int a = Math.Max(lo, ov.S), b = Math.Min(hi, ov.E);
+            for (int m = a; m < b; m++) { cells[m - lo] = ov.St; reason[m - lo] = null; }
+        }
+        var runs = new List<MasterDataRepository.LineTimeSegmentRow>();
+        int i = 0;
+        while (i < n)
+        {
+            if (cells[i] is null) { i++; continue; }
+            int j = i + 1;
+            while (j < n && cells[j] == cells[i] && reason[j] == reason[i]) j++;
+            runs.Add(NewSeg(lo + i, lo + j, cells[i]!, reason[i], sh.Code));
+            i = j;
+        }
+        return runs;
+    }
+
+    // 인접(끝==다음시작)·동일(상태/Shift/사유) 세그먼트 병합
+    static List<MasterDataRepository.LineTimeSegmentRow> MergeLocal(List<MasterDataRepository.LineTimeSegmentRow> segs)
+    {
+        var ordered = segs.Where(s => (s.EndMin ?? 0) > (s.StartMin ?? 0))
+                          .OrderBy(s => s.ShiftCode).ThenBy(s => s.StartMin ?? 0).ToList();
+        var outp = new List<MasterDataRepository.LineTimeSegmentRow>();
+        foreach (var s in ordered)
+        {
+            var last = outp.Count > 0 ? outp[^1] : null;
+            if (last is not null
+                && string.Equals(last.ShiftCode, s.ShiftCode, StringComparison.Ordinal)
+                && string.Equals(last.SegmentState, s.SegmentState, StringComparison.Ordinal)
+                && string.Equals(last.ReasonCode, s.ReasonCode, StringComparison.Ordinal)
+                && (last.EndMin ?? 0) == (s.StartMin ?? 0))
+                outp[^1] = last with { EndMin = s.EndMin };
+            else
+                outp.Add(s);
+        }
+        return outp;
+    }
+
+    // ── JS 드래그 라이프사이클 ──
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) _ref = DotNetObjectReference.Create(this);
+        if (_editId is not null && _canEdit && !_jsReady && _ref is not null)
+            await InitDrag();
+    }
+
+    async Task InitDrag()
+    {
+        if (_ref is null) return;
+        var surfaces = ActiveShifts().Select(sh => new { id = $"gantt-drag-{sh.Code}", shift = sh.Code, startMin = sh.Start, rangeMin = sh.End - sh.Start }).ToArray();
+        if (surfaces.Length == 0) return;
+        await JS.InvokeVoidAsync("linePatternDrag.init", _ref, surfaces);
+        _jsReady = true;
+    }
+
+    // Shift 행 위 드래그 → 해당 Shift 창 안에서 선택 밴드유형으로 카브 (메모리)
+    [JSInvokable]
+    public async Task OnShiftBandDrag(string shift, int startMin, int endMin)
+    {
+        if (!_canEdit || _editId is null) return;
+        var sh = ActiveShifts().FirstOrDefault(x => x.Code == shift);
+        if (sh is null) return;
+        startMin = Math.Max(sh.Start, Math.Min(sh.End - 1, startMin));
+        endMin   = Math.Max(startMin + 1, Math.Min(sh.End, endMin));
+        _msg = "";
+        PaintLocal(startMin, endMin, _segState, shift);
+        _lastPaint = (startMin, endMin, shift);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    // 밴드 삭제 = 해당 구간을 그 교대의 기본 상태(가동/유휴)로 되돌림 (전체 커버리지 유지)
+    void ConfirmDeleteSeg()
+    {
+        if (_confirmBand is not { } cb || _editId is null) { _confirmBand = null; return; }
+        _confirmBand = null;
+        PaintLocal(cb.S, cb.E, DefaultShiftStateOf(cb.Sh), cb.Sh);
+        _lastPaint = null;
+    }
+
+    // 마지막 밴드 되돌리기 = 해당 구간을 그 교대의 기본 상태로 복원 (같은 Shift 유지)
+    void UndoLast()
+    {
+        if (_editId is null || _lastPaint is not { } lp) return;
+        _lastPaint = null;
+        PaintLocal(lp.S, lp.E, DefaultShiftStateOf(lp.Sh), lp.Sh);
+    }
+
+    // 전체삭제 = 각 Shift 창을 기본 상태(가동/유휴) 단일 밴드로 초기화
+    void ClearAll()
+    {
+        if (_editId is null) return;
+        _lastPaint = null;
+        var shifts = ActiveShifts();
+        var next = new List<MasterDataRepository.LineTimeSegmentRow>();
+        for (int i = 0; i < shifts.Count; i++)
+            next.Add(NewSeg(shifts[i].Start, shifts[i].End, DefaultShiftState(i), null, shifts[i].Code));
+        _segments = next;
+        _dirty = true; _userEdited = true;
+    }
+
+    // ── Shift 창 & Gantt 계산 헬퍼 ──
+    record ShiftWin(string Code, string Name, int Start, int End);
+    List<ShiftWin> ActiveShifts()
+    {
+        var list = new List<ShiftWin>();
+        foreach (var w in _workShifts.Where(x => x.UseFlag))
+        {
+            var t = ParseShift(w.Attribute1);
+            if (t is null) continue;
+            var (s, e) = t.Value;
+            if (e <= s) continue;
+            list.Add(new ShiftWin(w.CodeValue ?? "", MasterDataRepository.LocalName(w), s, e));
+        }
+        return list;
+    }
+    static string PctL(int m, ShiftWin sh) { int r = Math.Max(1, sh.End - sh.Start); return $"{(double)(m - sh.Start) / r * 100.0:F4}%"; }
+    static string PctW(int lo, int hi, ShiftWin sh) { int r = Math.Max(1, sh.End - sh.Start); return $"{(double)(hi - lo) / r * 100.0:F4}%"; }
+    static int ShiftTick(ShiftWin sh) { int r = Math.Max(1, sh.End - sh.Start); return r <= 120 ? 10 : r <= 360 ? 30 : 60; }
+    static bool WideEnoughShift(int wMin, ShiftWin sh) { int r = Math.Max(1, sh.End - sh.Start); return (double)wMin / r >= 0.06; }
+    static string MinToTime(int m) => $"{m / 60:00}:{m % 60:00}";
+
+    string SegClass(string? st) => st switch {
+        "OPERATING"        => "pp-gantt-band pp-gantt-band--work",
+        "PLANNED_DOWNTIME" => "pp-gantt-band pp-gantt-band--down",
+        "BREAK"            => "pp-gantt-band pp-gantt-band--break",
+        "MEAL"             => "pp-gantt-band pp-gantt-band--meal",
+        "INSPECT"          => "pp-gantt-band pp-gantt-band--inspect",
+        "PM"               => "pp-gantt-band pp-gantt-band--pm",
+        "IDLE"             => "pp-gantt-band pp-gantt-band--idle",
+        _                  => "pp-gantt-band pp-gantt-band--break"
+    };
+    // 세그먼트 상태 색은 밴드/범례와 동일하게 SegColor 팔레트로 통일 (pill·모달 팔레트 버튼)
+    string SegPillStyle(string? st) { var c = SegColor(st); return $"background:color-mix(in srgb, {c} 13%, transparent);color:{c};border:1px solid color-mix(in srgb, {c} 33%, transparent);"; }
+    string SegBtnStyle(string? st, bool sel) { var c = SegColor(st); return sel ? $"background:{c};border:1px solid {c};color:var(--seg-btn-fg);" : $"background:color-mix(in srgb, {c} 13%, transparent);border:1px solid color-mix(in srgb, {c} 33%, transparent);color:{c};"; }
+    // 코드값 → 2글자 축약어 (여러 단어면 각 첫 글자, 단일 단어면 앞 2글자)
+    static string Abbr(string? code)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return "??";
+        var parts = code.Split('_', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2) return $"{char.ToUpperInvariant(parts[0][0])}{char.ToUpperInvariant(parts[1][0])}";
+        return code.Length >= 2 ? code[..2].ToUpperInvariant() : code.ToUpperInvariant();
+    }
+    string SegLabel(string? st)
+        => st is null ? "" : (_segStates.FirstOrDefault(c => c.CodeValue == st) is { } c ? MasterDataRepository.LocalName(c) : st);
+    string SegTitleR(string st, int a, int b) => $"{SegLabel(st)} {MinToTime(a)}–{MinToTime(b)} ({b - a}{L["Lbl.Min"].Value})";
+    string SegBarTextR(string st, int wMin)   => $"{SegLabel(st)} {wMin}{L["Lbl.Min"].Value}";
+
+    // 렌더 전용: 한 Shift 창을 분단위로 병합해 겹침 없는 밴드(시작·끝·상태)만 반환.
+    // _segments 내부 상태와 무관하게 화면에는 항상 겹치지 않는 구간만 표시된다.
+    IEnumerable<(int S, int E, string St)> ShiftBands(ShiftWin sh)
+    {
+        int lo = sh.Start, hi = sh.End, n = hi - lo;
+        if (n <= 0) yield break;
+        var cells = new string?[n];
+        foreach (var s in _segments.Where(x => string.Equals(x.ShiftCode, sh.Code, StringComparison.Ordinal)))
+        {
+            if (s.SegmentState is null) continue;
+            int a = Math.Max(lo, s.StartMin ?? 0), b = Math.Min(hi, s.EndMin ?? 0);
+            for (int m = a; m < b; m++) cells[m - lo] = s.SegmentState;
+        }
+        int i = 0;
+        while (i < n)
+        {
+            if (cells[i] is null) { i++; continue; }
+            int j = i + 1;
+            while (j < n && cells[j] == cells[i]) j++;
+            yield return (lo + i, lo + j, cells[i]!);
+            i = j;
+        }
+    }
+
+    static (int, int)? ParseShift(string? a)
+    {
+        if (string.IsNullOrWhiteSpace(a)) return null;
+        var parts = a.Split('-');
+        if (parts.Length != 2) return null;
+        if (!TryHHMM(parts[0], out var s) || !TryHHMM(parts[1], out var e)) return null;
+        return (s, e);
+    }
+    static bool TryHHMM(string s, out int min)
+    {
+        min = 0; s = s.Trim();
+        if (s.Length != 4) return false;
+        if (!int.TryParse(s[..2], out var h) || !int.TryParse(s.Substring(2, 2), out var m)) return false;
+        if (h < 0 || h > 24 || m < 0 || m > 59) return false;
+        min = h * 60 + m; return true;
+    }
+
+    // ── 헤더 CRUD ──
     void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
-    void OpenEdit(AMES.Data.Repositories.MasterDataRepository.LineTimePatternRow r)
+    void OpenEdit(MasterDataRepository.LineTimePatternRow r)
     {
         if (!_canEdit) return;
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {
-            PatternName        = r.PatternName        ?? "",
-            LineID             = r.LineID             ?? "",
-            DayType            = r.DayType            ?? "",
-            ShiftModel         = r.ShiftModel         ?? "",
-            EffectiveFrom      = r.EffectiveFrom?.ToString("yyyy-MM-dd") ?? "",
-            EffectiveTo        = r.EffectiveTo?.ToString("yyyy-MM-dd")   ?? "",
-            TotalOperatingMin  = r.TotalOperatingMin,
+            PatternName         = r.PatternName        ?? "",
+            LineID              = r.LineID             ?? "",
+            DayType             = r.DayType            ?? "",
+            ShiftPattern        = r.ShiftPattern         ?? "",
+            EffectiveFrom       = r.EffectiveFrom,
+            EffectiveTo         = r.EffectiveTo,
+            TotalOperatingMin   = r.TotalOperatingMin,
             TotalPlannedDownMin = r.TotalPlannedDownMin,
-            TimeZone           = r.TimeZone           ?? "",
-            Status             = r.Status             ?? "ACTIVE",
+            TimeZone            = r.TimeZone           ?? "",
+            Status              = r.Status             ?? "ACTIVE",
         };
         _modal = "edit";
     }
@@ -340,61 +918,55 @@
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
-    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
-
-    void SaveCreate()
+    async Task SaveCreate()
     {
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.PatternID)) { _modalErr = L["Err.PatternIdRequired"]; return; }
         var id = _f.PatternID.Trim();
-        if (Md.LineTimePatternExists(id)) { _modalErr = $"'{id}' ID가 {L["Err.AlreadyExists"]}"; return; }
-        DateOnly? effFrom = DateOnly.TryParse(_f.EffectiveFrom, out var d1) ? d1 : null;
-        DateOnly? effTo   = DateOnly.TryParse(_f.EffectiveTo,   out var d2) ? d2 : null;
+        if (MD.LineTimePatternExists(id)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], id); return; }
         _busy = true;
         try
         {
-            Md.InsertLineTimePattern(id, NE(_f.LineID), NE(_f.PatternName),
-                NE(_f.DayType), NE(_f.ShiftModel),
-                effFrom, effTo,
+            MD.InsertLineTimePattern(id, NE(_f.LineID), NE(_f.PatternName),
+                NE(_f.DayType), NE(_f.ShiftPattern), _f.EffectiveFrom, _f.EffectiveTo,
                 _f.TotalOperatingMin, _f.TotalPlannedDownMin,
                 NE(_f.TimeZone), NE(_f.Status), _actor);
-            CloseModal(); Reload();
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Created"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveEdit()
+    async Task SaveEdit()
     {
         if (_sel is null) return;
         _modalErr = "";
-        DateOnly? effFrom = DateOnly.TryParse(_f.EffectiveFrom, out var d1) ? d1 : null;
-        DateOnly? effTo   = DateOnly.TryParse(_f.EffectiveTo,   out var d2) ? d2 : null;
         _busy = true;
         try
         {
-            Md.UpdateLineTimePattern(_sel.PatternID, NE(_f.LineID), NE(_f.PatternName),
-                NE(_f.DayType), NE(_f.ShiftModel),
-                effFrom, effTo,
+            MD.UpdateLineTimePattern(_sel.PatternID, NE(_f.LineID), NE(_f.PatternName),
+                NE(_f.DayType), NE(_f.ShiftPattern), _f.EffectiveFrom, _f.EffectiveTo,
                 _f.TotalOperatingMin, _f.TotalPlannedDownMin,
                 NE(_f.TimeZone), NE(_f.Status), _actor);
-            CloseModal(); Reload();
-            ShowMsg($"{_sel.PatternID} {L["Msg.Updated"]}", false);
+            var pid = _sel.PatternID;
+            CloseModal(); await ReloadRestorePage();
+            ShowMsg($"{pid} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    void SaveDelete()
+    async Task SaveDelete()
     {
         if (_sel is null) return;
         _busy = true;
         try
         {
             var id = _sel.PatternID;
-            Md.DeleteLineTimePattern(_sel.PatternID);
-            CloseModal(); Reload();
+            if (_editId == id) await CloseEditor();
+            MD.DeleteLineTimePattern(id);
+            CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Deleted"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
@@ -407,18 +979,26 @@
         _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
 
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    public void Dispose()
+    {
+        if (_jsReady) { _ = JS.InvokeVoidAsync("linePatternDrag.destroy"); }
+        _ref?.Dispose();
+    }
+
     class FormModel
     {
-        public string  PatternID           { get; set; } = "";
-        public string  PatternName         { get; set; } = "";
-        public string  LineID              { get; set; } = "";
-        public string  DayType             { get; set; } = "";
-        public string  ShiftModel          { get; set; } = "";
-        public string  EffectiveFrom       { get; set; } = "";
-        public string  EffectiveTo         { get; set; } = "";
-        public int?    TotalOperatingMin   { get; set; }
-        public int?    TotalPlannedDownMin { get; set; }
-        public string  TimeZone            { get; set; } = "";
-        public string  Status              { get; set; } = "ACTIVE";
+        public string    PatternID           { get; set; } = "";
+        public string    PatternName         { get; set; } = "";
+        public string    LineID              { get; set; } = "";
+        public string    DayType             { get; set; } = "";
+        public string    ShiftPattern        { get; set; } = "";
+        public DateOnly? EffectiveFrom       { get; set; }
+        public DateOnly? EffectiveTo         { get; set; }
+        public int?      TotalOperatingMin   { get; set; }
+        public int?      TotalPlannedDownMin { get; set; }
+        public string    TimeZone            { get; set; } = "";
+        public string    Status              { get; set; } = "ACTIVE";
     }
 }

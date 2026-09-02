@@ -2,9 +2,9 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
-@inject AMES.Data.Repositories.MasterDataRepository Md
+@inject AMES.Data.Repositories.MasterDataRepository MD
 @inject DialogService Dialog
-@inject AuthenticationStateProvider Auth
+@inject AuthenticationStateProvider AuthPrvd
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
@@ -28,7 +28,7 @@
 <div class="ames-card-h" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;text-transform:none;">
     <div class="ames-fld">
         <label>@L["Col.Customer"]</label>
-        <RadzenDropDown Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+        <RadzenDropDown AllowFiltering="true" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
                         @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                         Style="width:200px" />
     </div>
@@ -82,9 +82,13 @@ else
                                   TextAlign="TextAlign.Right" Width="80px" />
             <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="CustomerId" Title="@L["Col.Customer"].Value"
                                   Width="130px" />
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="ItemNo" Title="@L["Col.Item"].Value" Width="240px">
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="240px">
                 <Template Context="r">
                     <span class="code">@r.ItemNo</span>
+                    @if (!r.ItemExists)
+                    {
+                        <span class="badge-bad">@L["PP.Forecast.Badge.Unregistered"]</span>
+                    }
                     @if (!string.IsNullOrEmpty(r.ItemName))
                     {
                         <span class="dim"> · @r.ItemName</span>
@@ -188,7 +192,7 @@ else
 
     protected override void OnInitialized()
     {
-        try { _customers = Md.ListCustomers(); } catch { }
+        try { _customers = MD.ListCustomers(); } catch { }
         Search();
     }
 
@@ -223,7 +227,7 @@ else
     {
         try
         {
-            var auth  = await Auth.GetAuthenticationStateAsync();
+            var auth  = await AuthPrvd.GetAuthenticationStateAsync();
             var actor = auth.User.Identity?.Name ?? "system";
             var n = Pp.ConfirmCustomerOrder(soId, actor);
             if (n > 0) ShowMsg(L["PP.SupplyPlanImport.Ok.Confirmed"].Value, false);

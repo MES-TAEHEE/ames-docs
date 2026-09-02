@@ -1,0 +1,42 @@
+@using Radzen
+@using Microsoft.AspNetCore.Components.Web
+
+<RadzenButton Text="Back" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="Back" class="ames-rz-btn" />
+<RadzenTextBox Value="@Search"
+               Change="SearchChanged"
+               Placeholder="Search"
+               InputSize="InputSize.Small"
+               class="ames-rz-input"
+               Style="width:180px;"
+               AutoComplete="false"
+               @onkeydown="HandleKeyDown" />
+<RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="SearchRequested" class="ames-rz-btn" />
+<LocationBarcodePrintButton Locations="@PrintOptions"
+                            Warehouse="@Warehouse"
+                            Area="@Area"
+                            Zone="@Zone" />
+@if (CanCreate)
+{
+    <RadzenButton Text="Create" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="CreateRequested" class="ames-rz-btn" />
+}
+
+@code {
+    [Parameter] public string Search { get; set; } = "";
+    [Parameter] public EventCallback<string> SearchChanged { get; set; }
+    [Parameter] public EventCallback Back { get; set; }
+    [Parameter] public EventCallback SearchRequested { get; set; }
+    [Parameter] public EventCallback CreateRequested { get; set; }
+    [Parameter] public bool CanCreate { get; set; }
+    [Parameter] public IReadOnlyList<AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow> Locations { get; set; } = Array.Empty<AMES.Data.Repositories.WarehouseRepository.WarehouseLocationRow>();
+    [Parameter] public string? Warehouse { get; set; }
+    [Parameter] public string? Area { get; set; }
+    [Parameter] public string? Zone { get; set; }
+
+    private IReadOnlyDictionary<string, string?> PrintOptions => Locations.ToDictionary(x => x.LocationNo, x => x.LocationName);
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await SearchRequested.InvokeAsync();
+    }
+}

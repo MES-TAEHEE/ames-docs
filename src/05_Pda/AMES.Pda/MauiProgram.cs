@@ -7,6 +7,17 @@ namespace AMES.Pda;
 
 public static class MauiProgram
 {
+    public static bool IsDeveloperMode
+    {
+        get
+        {
+            var value = Environment.GetEnvironmentVariable("AMES_PDA_DEV_MODE");
+            return string.Equals(value, "1", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
     /// <summary>
     /// API base URL used by the PDA client.
     /// Windows / macCatalyst → localhost. Override at runtime later via

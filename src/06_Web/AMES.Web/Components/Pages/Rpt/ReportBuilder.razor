@@ -1,14 +1,14 @@
-ï»¿@page "/rpt/report-builder"
+@page "/rpt/report-builder"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>RPT-010 @L["RPT.ReportBuilder.Title"] Â· AMES</PageTitle>
+<PageTitle>RPT-010 @L["RPT.ReportBuilder.Title"] · AMES</PageTitle>
 
 <AmesPageHeader Code="RPT-010" TitleKey="RPT.ReportBuilder.Title" />
 
 <div class="ames-card">
-    <div class="ames-card-h">â–¼ @L["RPT.ReportBuilder.Preview"]</div>
+    <div class="ames-card-h">? @L["RPT.ReportBuilder.Preview"]</div>
     <p style="color:rgba(255,255,255,.7);font-size:13px;line-height:1.6;margin-bottom:18px">
         @L["RPT.ReportBuilder.Desc"]
     </p>
@@ -16,11 +16,11 @@
     <div class="ames-form" style="max-width:520px">
         <label>DATA SOURCE</label>
         <select class="ames-input" disabled style="width:100%;">
-            <option>PR_ProductionResult â€” @L["RPT.ReportBuilder.Ds.Production"]</option>
-            <option>FG_ShipmentOrder   â€” @L["RPT.ReportBuilder.Ds.Shipment"]</option>
-            <option>MNT_OEELog         â€” @L["RPT.ReportBuilder.Ds.OEE"]</option>
-            <option>QC_Inspection      â€” @L["RPT.ReportBuilder.Ds.QC"]</option>
-            <option>PP_LineSchedule    â€” @L["RPT.ReportBuilder.Ds.LineSchedule"]</option>
+            <option>PR_ProductionResult — @L["RPT.ReportBuilder.Ds.Production"]</option>
+            <option>FG_ShipmentOrder   — @L["RPT.ReportBuilder.Ds.Shipment"]</option>
+            <option>MNT_OEELog         — @L["RPT.ReportBuilder.Ds.OEE"]</option>
+            <option>QC_Inspection      — @L["RPT.ReportBuilder.Ds.QC"]</option>
+            <option>PP_LineSchedule    — @L["RPT.ReportBuilder.Ds.LineSchedule"]</option>
         </select>
 
         <label>DIMENSIONS</label>
@@ -58,27 +58,27 @@
 </div>
 
 <div class="ames-card">
-    <div class="ames-card-h">â–¼ @L["RPT.ReportBuilder.Gallery"]</div>
+    <div class="ames-card-h">? @L["RPT.ReportBuilder.Gallery"]</div>
     <div class="ames-tiles">
         <a class="ames-tile rpt" href="rpt/daily-production">
-            <div class="ames-tile-ic">ðŸ“ˆ</div>
+            <div class="ames-tile-ic">??</div>
             <div class="ames-tile-h">DAILY PROD BY LINE</div>
-            <div class="ames-tile-sub">RPT-001 Â·  ready-made template</div>
+            <div class="ames-tile-sub">RPT-001 ·  ready-made template</div>
         </a>
         <a class="ames-tile rpt" href="rpt/defect-pareto">
-            <div class="ames-tile-ic">ðŸ“‰</div>
+            <div class="ames-tile-ic">??</div>
             <div class="ames-tile-h">TOP-20 DEFECT</div>
-            <div class="ames-tile-sub">RPT-002 Â·  pareto chart</div>
+            <div class="ames-tile-sub">RPT-002 ·  pareto chart</div>
         </a>
         <a class="ames-tile rpt" href="rpt/equipment-oee">
-            <div class="ames-tile-ic">âš™</div>
+            <div class="ames-tile-ic">?</div>
             <div class="ames-tile-h">EQUIPMENT OEE</div>
-            <div class="ames-tile-sub">RPT-006 Â·  30d ranking</div>
+            <div class="ames-tile-sub">RPT-006 ·  30d ranking</div>
         </a>
         <a class="ames-tile rpt" href="rpt/on-time">
-            <div class="ames-tile-ic">ðŸšš</div>
+            <div class="ames-tile-ic">??</div>
             <div class="ames-tile-h">OTD TREND</div>
-            <div class="ames-tile-sub">RPT-004 Â·  daily on-time %</div>
+            <div class="ames-tile-sub">RPT-004 ·  daily on-time %</div>
         </a>
     </div>
 </div>

@@ -1,0 +1,306 @@
+@page "/"
+@inject TabletInventoryService Inventory
+@inject IJSRuntime JS
+
+<div class="inventory-screen">
+    <header class="inventory-header">
+        <div>
+            <span class="eyebrow">FORKLIFT TABLET</span>
+            <h1>Inventory Status</h1>
+        </div>
+        <div class="header-meta">
+            <span class="live-dot"></span>
+            <span>@(_usingDemo ? "DEMO DATA" : "LIVE")</span>
+            <span>@_lastUpdated.ToString("HH:mm:ss")</span>
+            <RadzenButton class="icon-button" Icon="refresh" Click="Load" Disabled="@_loading" title="Refresh inventory" />
+        </div>
+    </header>
+
+    @if (_loading)
+    {
+        <div class="screen-state"><span class="state-spinner"></span><strong>Loading inventory...</strong></div>
+    }
+    else
+    {
+        <div class="inventory-workspace">
+            <section class="rack-pane" aria-label="Warehouse rack locations">
+                <div class="pane-heading">
+                    <div>
+                        <span class="eyebrow">RACK LOCATIONS</span>
+                        <strong>@RackSlots.Count locations</strong>
+                    </div>
+                    <div class="rack-legend">
+                        <span><i class="empty"></i>Empty</span>
+                        <span><i class="stocked"></i>Stocked</span>
+                        <span><i class="matched"></i>Search result</span>
+                    </div>
+                </div>
+
+                <div class="rack-scroll">
+                    @foreach (var group in RackGroups)
+                    {
+                        <section class="rack-line">
+                            <div class="line-label">
+                                <strong>@group.Key</strong>
+                                <span>@group.Count() racks</span>
+                            </div>
+                            <div class="rack-track">
+                                @foreach (var slot in group)
+                                {
+                                    <button id="@RackElementId(slot.LocationNo)"
+                                            type="button"
+                                            class="@RackClass(slot)"
+                                            @onclick="@(() => SelectRack(slot))"
+                                            aria-label="@($"Location {slot.LocationNo}, {slot.TotalQty:N0} units")">
+                                        <span class="rack-position">@RackPosition(slot)</span>
+                                        <span class="rack-divider"></span>
+                                        <strong>@ShortLocation(slot.LocationNo)</strong>
+                                        @if (slot.TotalQty > 0)
+                                        {
+                                            <small>@slot.TotalQty.ToString("N0")</small>
+                                        }
+                                    </button>
+                                }
+                            </div>
+                        </section>
+                    }
+                </div>
+            </section>
+
+            <aside class="detail-pane">
+                <div class="search-panel">
+                    <label for="inventory-search">PART / LOT / LOCATION</label>
+                    <div class="search-row">
+                        <RadzenTextBox id="inventory-search"
+                                       class="inventory-search"
+                                       @bind-Value="_query"
+                                       @onkeydown="HandleSearchKey"
+                                       Placeholder="Enter part, lot, or location" />
+                        <RadzenButton class="search-button" Icon="search" Text="SEARCH" Click="Search" Disabled="@_loading" />
+                        <RadzenButton class="reset-button" Icon="restart_alt" Click="Reset" title="Reset search" />
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(_notice))
+                    {
+                        <div class="search-notice @(_results.Count == 0 ? "warning" : "")">@_notice</div>
+                    }
+                </div>
+
+                @if (_selected is not null)
+                {
+                    <section class="selected-detail">
+                        <div class="detail-title">
+                            <div>
+                                <span class="eyebrow">SELECTED INVENTORY</span>
+                                <h2>@Text(_selected.PartNo)</h2>
+                                <p>@Text(_selected.PartName)</p>
+                            </div>
+                            <RadzenBadge class="qty-badge" Text="@Qty(_selected)" />
+                        </div>
+                        <dl class="detail-grid">
+                            <div><dt>Location</dt><dd>@_selected.LocationNo</dd></div>
+                            <div><dt>Lot No</dt><dd>@Text(_selected.LotNo)</dd></div>
+                            <div><dt>Part No</dt><dd>@Text(_selected.PartNo)</dd></div>
+                            <div><dt>Rack</dt><dd>@RackAddress(_selected)</dd></div>
+                            <div class="wide"><dt>Part Name</dt><dd>@Text(_selected.PartName)</dd></div>
+                        </dl>
+                    </section>
+                }
+
+                <section class="result-panel">
+                    <div class="result-heading">
+                        <div><span class="eyebrow">INVENTORY LIST</span><strong>@_results.Count rows</strong></div>
+                        @if (_matchedLocations.Count > 0)
+                        {
+                            <span>@_matchedLocations.Count locations found</span>
+                        }
+                    </div>
+                    <div class="result-table-wrap">
+                        <table class="result-table">
+                            <thead>
+                                <tr><th>Location</th><th>Lot No</th><th>Part No</th><th>Part Name</th><th>Qty</th></tr>
+                            </thead>
+                            <tbody>
+                                @if (_results.Count == 0)
+                                {
+                                    <tr><td colspan="5" class="empty-result">No inventory found.</td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var row in _results)
+                                    {
+                                        <tr class="@ResultClass(row)" @onclick="@(() => SelectResult(row))">
+                                            <td>@row.LocationNo</td>
+                                            <td>@Text(row.LotNo)</td>
+                                            <td>@Text(row.PartNo)</td>
+                                            <td title="@row.PartName">@Text(row.PartName)</td>
+                                            <td>@Qty(row)</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </aside>
+        </div>
+    }
+</div>
+
+@code {
+    private sealed record RackSlot(string LocationNo, string LineCode, string? RackX, string? RackY, string? RackZ, decimal TotalQty);
+
+    private List<TabletInventoryService.InventoryRow> _rows = [];
+    private List<TabletInventoryService.InventoryRow> _results = [];
+    private HashSet<string> _matchedLocations = new(StringComparer.OrdinalIgnoreCase);
+    private TabletInventoryService.InventoryRow? _selected;
+    private string _query = "";
+    private string? _notice;
+    private bool _loading = true;
+    private bool _usingDemo;
+    private DateTime _lastUpdated = DateTime.Now;
+
+    private List<RackSlot> RackSlots => _rows
+        .GroupBy(x => x.LocationNo, StringComparer.OrdinalIgnoreCase)
+        .Select(group => new RackSlot(
+            group.Key,
+            group.First().LineCode,
+            group.First().RackX,
+            group.First().RackY,
+            group.First().RackZ,
+            group.Where(x => !string.IsNullOrWhiteSpace(x.PartNo)).Sum(x => x.Qty)))
+        .OrderBy(x => x.LineCode, StringComparer.OrdinalIgnoreCase)
+        .ThenBy(x => SortNumber(x.RackY))
+        .ThenBy(x => x.RackY)
+        .ThenBy(x => SortNumber(x.RackX))
+        .ThenBy(x => x.RackX)
+        .ThenBy(x => SortNumber(x.RackZ))
+        .ThenBy(x => x.RackZ)
+        .ToList();
+
+    private IEnumerable<IGrouping<string, RackSlot>> RackGroups => RackSlots.GroupBy(x => x.LineCode);
+
+    protected override Task OnInitializedAsync() => Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        try
+        {
+            var snapshot = await Inventory.LoadAsync();
+            _rows = snapshot.Rows.ToList();
+            _usingDemo = snapshot.IsDemo;
+            _notice = snapshot.Message;
+            _lastUpdated = DateTime.Now;
+            ShowAllStock();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task Search()
+    {
+        var query = _query.Trim();
+        if (query.Length == 0)
+        {
+            Reset();
+            return;
+        }
+
+        _results = StockRows()
+            .Where(row => Contains(row.PartNo, query)
+                       || Contains(row.PartName, query)
+                       || Contains(row.LotNo, query)
+                       || Contains(row.LocationNo, query))
+            .ToList();
+        _matchedLocations = _results.Select(x => x.LocationNo).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _selected = _results.FirstOrDefault();
+        _notice = _results.Count == 0
+            ? $"No inventory matches '{query}'."
+            : $"{_results.Count} inventory rows found in {_matchedLocations.Count} locations.";
+
+        if (_selected is not null)
+        {
+            await Task.Yield();
+            await ScrollTo(_selected.LocationNo);
+        }
+    }
+
+    private void Reset()
+    {
+        _query = "";
+        _notice = _usingDemo ? "Demo data is active." : null;
+        ShowAllStock();
+    }
+
+    private void ShowAllStock()
+    {
+        _results = StockRows();
+        _matchedLocations.Clear();
+        _selected = _results.FirstOrDefault();
+    }
+
+    private void SelectRack(RackSlot slot)
+    {
+        _results = StockRows().Where(x => x.LocationNo.Equals(slot.LocationNo, StringComparison.OrdinalIgnoreCase)).ToList();
+        _matchedLocations = new HashSet<string>([slot.LocationNo], StringComparer.OrdinalIgnoreCase);
+        _selected = _results.FirstOrDefault();
+        _notice = _results.Count == 0 ? $"{slot.LocationNo} is empty." : $"{_results.Count} inventory rows at {slot.LocationNo}.";
+    }
+
+    private async Task SelectResult(TabletInventoryService.InventoryRow row)
+    {
+        _selected = row;
+        await ScrollTo(row.LocationNo);
+    }
+
+    private async Task HandleSearchKey(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+            await Search();
+    }
+
+    private Task ScrollTo(string locationNo)
+        => JS.InvokeVoidAsync("tabletRack.scrollTo", RackElementId(locationNo)).AsTask();
+
+    private List<TabletInventoryService.InventoryRow> StockRows()
+        => _rows.Where(x => !string.IsNullOrWhiteSpace(x.PartNo) && x.Qty > 0)
+            .OrderBy(x => x.PartNo)
+            .ThenBy(x => x.LocationNo)
+            .ThenBy(x => x.LotNo)
+            .ToList();
+
+    private string RackClass(RackSlot slot)
+    {
+        var classes = new List<string> { "rack-slot", slot.TotalQty > 0 ? "stocked" : "empty" };
+        if (_matchedLocations.Contains(slot.LocationNo)) classes.Add("matched");
+        if (_selected?.LocationNo.Equals(slot.LocationNo, StringComparison.OrdinalIgnoreCase) == true) classes.Add("selected");
+        return string.Join(' ', classes);
+    }
+
+    private string ResultClass(TabletInventoryService.InventoryRow row)
+        => ReferenceEquals(row, _selected) ? "selected" : "";
+
+    private static string RackElementId(string locationNo)
+        => "rack-" + string.Concat(locationNo.Select(c => char.IsLetterOrDigit(c) ? c : '-'));
+
+    private static string RackPosition(RackSlot slot)
+        => string.Join('-', new[] { slot.RackX, slot.RackY, slot.RackZ }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+    private static string RackAddress(TabletInventoryService.InventoryRow row)
+        => string.Join(" / ", new[] { row.WarehouseCode, row.AreaCode, row.ZoneCode, RackPosition(new RackSlot(row.LocationNo, row.LineCode, row.RackX, row.RackY, row.RackZ, row.Qty)) }
+            .Where(x => !string.IsNullOrWhiteSpace(x)));
+
+    private static string ShortLocation(string locationNo)
+        => locationNo.Length > 11 ? locationNo[^11..] : locationNo;
+
+    private static int SortNumber(string? value)
+        => int.TryParse(value, out var number) ? number : int.MaxValue;
+
+    private static bool Contains(string? value, string query)
+        => value?.Contains(query, StringComparison.OrdinalIgnoreCase) == true;
+
+    private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    private static string Qty(TabletInventoryService.InventoryRow row) => $"{row.Qty:N0} {row.Unit}";
+}

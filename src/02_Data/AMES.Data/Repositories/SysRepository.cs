@@ -690,6 +690,24 @@ public sealed class SysRepository
             ("@IsActive", isActive));
     }
 
+    // 단일 설정키의 값·활성여부 (컬처 결정/언어 스위처 판정용). 없으면 null.
+    public (string? Value, bool IsActive)? GetConfigFlag(string key)
+    {
+        const string sql = "SELECT TOP 1 ConfigValue, ISNULL(IsActive,1) AS IsActive FROM dbo.SYS_Config WHERE ConfigKey = @Key;";
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Key", SqlDbType.VarChar, 60).Value = key;
+        using var rdr = cmd.ExecuteReader();
+        return rdr.Read() ? (rdr["ConfigValue"] as string, (bool)rdr["IsActive"]) : null;
+    }
+
+    // 설정값을 양의 정수로 조회. 없거나 파싱 실패 시 fallback (예: DASH_REFRESH_SEC).
+    public int GetConfigInt(string key, int fallback)
+    {
+        var row = GetConfigFlag(key);
+        return row is { } r && int.TryParse(r.Value, out var v) && v > 0 ? v : fallback;
+    }
+
     public void SetRolePermission(string roleId, string roleName,
         string moduleCode, string? processCode, string screenCode,
         string? permLevel, string modifiedBy)
@@ -803,6 +821,21 @@ public sealed class SysRepository
             ("@CreatedBy", createdBy));
     }
 
+    // 자기가입(Register)용 — 관리자 승인 전 승인대기(PENDING) 프로필. 승인 시 관리자가 ACTIVE로 변경.
+    public void CreatePendingProfile(string userId, string? employeeName, string createdBy)
+    {
+        const string sql = """
+            INSERT INTO dbo.SYS_UserProfile
+                (UserID, EmployeeName, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
+            VALUES
+                (@UserID, @EmpName, 'PENDING', 0, @CreatedBy, SYSDATETIME())
+            """;
+        Exec(sql,
+            ("@UserID",    userId),
+            ("@EmpName",   (object?)employeeName ?? DBNull.Value),
+            ("@CreatedBy", createdBy));
+    }
+
     public void UpdateProfile(string userId, string employeeNo, string employeeName,
         string? department, string? plantCode, string? defaultShift,
         string accountStatus, string modifiedBy, string? assignedLinesJson = null)
@@ -815,7 +848,7 @@ public sealed class SysRepository
                    PlantCode        = @Plant,
                    DefaultShift     = @Shift,
                    AccountStatus    = @Status,
-                   FailedLoginCount = CASE WHEN @UPPER(@Status) = 'ACTIVE' THEN 0 ELSE FailedLoginCount END,
+                   FailedLoginCount = CASE WHEN UPPER(@Status) = 'ACTIVE' THEN 0 ELSE FailedLoginCount END,
                    AssignedLines    = @Lines,
                    ModifiedBy       = @ModifiedBy,
                    ModifiedTS       = SYSDATETIME()
@@ -830,6 +863,26 @@ public sealed class SysRepository
             ("@Shift",      (object?)defaultShift      ?? DBNull.Value),
             ("@Status",     accountStatus),
             ("@Lines",      (object?)assignedLinesJson ?? DBNull.Value),
+            ("@ModifiedBy", modifiedBy));
+    }
+
+    /// <summary>
+    /// Sets (or replaces) the operator's POP login PIN hash. Called from SYS-01 only
+    /// when an admin actually types a PIN — leaving the field blank keeps the current
+    /// value. Web login (AspNetUsers.PasswordHash) is untouched. Pass a hash produced
+    /// by PinHasher.Hash; this method never sees the raw PIN.
+    /// </summary>
+    public void SetPin(string userId, string pinHash, string modifiedBy)
+    {
+        Exec("""
+            UPDATE dbo.SYS_UserProfile
+            SET    PinHash    = @PinHash,
+                   ModifiedBy = @ModifiedBy,
+                   ModifiedTS = SYSDATETIME()
+            WHERE  UserID = @UserID
+            """,
+            ("@UserID",     userId),
+            ("@PinHash",    pinHash),
             ("@ModifiedBy", modifiedBy));
     }
 

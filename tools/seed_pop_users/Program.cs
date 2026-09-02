@@ -66,9 +66,9 @@ internal static class Program
 
         foreach (var u in Users)
         {
-            var hash = PinHasher.Hash(u.Pin);
-            UpsertAspNetUser  (conn, u.Id, u.EmpNo, hash);
-            UpsertUserProfile (conn, u.Id, u.EmpNo, u.Name, u.Dept, u.Shift, u.Lines);
+            var pinHash = PinHasher.Hash(u.Pin);
+            UpsertAspNetUser  (conn, u.Id, u.EmpNo);
+            UpsertUserProfile (conn, u.Id, u.EmpNo, u.Name, u.Dept, u.Shift, u.Lines, pinHash);
             Console.WriteLine($"  ✓ {u.EmpNo,-4}  {u.Name,-18}  PIN={u.Pin}  lines={u.Lines ?? "(all)"}");
         }
 
@@ -77,7 +77,10 @@ internal static class Program
         return 0;
     }
 
-    private static void UpsertAspNetUser(SqlConnection conn, string id, string userName, string passwordHash)
+    // Anchors the AspNetUsers row (FK target / identity handle). PasswordHash is left
+    // untouched here — the POP PIN now lives in SYS_UserProfile.PinHash, and this column
+    // is reserved for the Web portal password so seeding an operator never clobbers it.
+    private static void UpsertAspNetUser(SqlConnection conn, string id, string userName)
     {
         const string sql = """
             MERGE dbo.AspNetUsers AS tgt
@@ -85,27 +88,20 @@ internal static class Program
             WHEN MATCHED THEN UPDATE SET
                 UserName             = @UserName,
                 NormalizedUserName   = UPPER(@UserName),
-                PasswordHash         = @PasswordHash,
-                SecurityStamp        = @SecurityStamp,
-                ConcurrencyStamp     = @ConcurrencyStamp,
                 LockoutEnabled       = 1,
-                AccessFailedCount    = 0,
-                EmailConfirmed       = 0,
-                PhoneNumberConfirmed = 0,
-                TwoFactorEnabled     = 0
+                AccessFailedCount    = 0
             WHEN NOT MATCHED THEN INSERT
-                (Id, UserName, NormalizedUserName, PasswordHash, SecurityStamp,
+                (Id, UserName, NormalizedUserName, SecurityStamp,
                  ConcurrencyStamp, EmailConfirmed, PhoneNumberConfirmed,
                  TwoFactorEnabled, LockoutEnabled, AccessFailedCount)
             VALUES
-                (@Id, @UserName, UPPER(@UserName), @PasswordHash, @SecurityStamp,
+                (@Id, @UserName, UPPER(@UserName), @SecurityStamp,
                  @ConcurrencyStamp, 0, 0, 0, 1, 0);
             """;
 
         using var cmd = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@Id",               SqlDbType.NVarChar, 450).Value = id;
         cmd.Parameters.Add("@UserName",         SqlDbType.NVarChar, 256).Value = userName;
-        cmd.Parameters.Add("@PasswordHash",     SqlDbType.NVarChar    ).Value = passwordHash;
         cmd.Parameters.Add("@SecurityStamp",    SqlDbType.NVarChar    ).Value = Guid.NewGuid().ToString("N");
         cmd.Parameters.Add("@ConcurrencyStamp", SqlDbType.NVarChar    ).Value = Guid.NewGuid().ToString("N");
         cmd.ExecuteNonQuery();
@@ -113,7 +109,7 @@ internal static class Program
 
     private static void UpsertUserProfile(
         SqlConnection conn, string userId, string empNo, string empName,
-        string dept, string shift, string? assignedLines)
+        string dept, string shift, string? assignedLines, string pinHash)
     {
         const string sql = """
             MERGE dbo.SYS_UserProfile AS tgt
@@ -124,15 +120,16 @@ internal static class Program
                 Department       = @Department,
                 DefaultShift     = @DefaultShift,
                 AssignedLines    = @AssignedLines,
+                PinHash          = @PinHash,
                 AccountStatus    = 'Active',
                 FailedLoginCount = 0,
                 ModifiedTS       = SYSDATETIME()
             WHEN NOT MATCHED THEN INSERT
-                (UserID, EmployeeNo, EmployeeName, Department, Plant, DefaultShift,
-                 AssignedLines, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
+                (UserID, EmployeeNo, EmployeeName, Department, PlantCode, DefaultShift,
+                 AssignedLines, PinHash, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
             VALUES
                 (@UserID, @EmployeeNo, @EmployeeName, @Department, 'SEH-US-01', @DefaultShift,
-                 @AssignedLines, 'Active', 0, 'seed', SYSDATETIME());
+                 @AssignedLines, @PinHash, 'Active', 0, 'seed', SYSDATETIME());
             """;
 
         using var cmd = new SqlCommand(sql, conn);
@@ -142,6 +139,7 @@ internal static class Program
         cmd.Parameters.Add("@Department",    SqlDbType.VarChar,  30 ).Value = dept;
         cmd.Parameters.Add("@DefaultShift",  SqlDbType.VarChar,  10 ).Value = shift;
         cmd.Parameters.Add("@AssignedLines", SqlDbType.NVarChar     ).Value = (object?)assignedLines ?? DBNull.Value;
+        cmd.Parameters.Add("@PinHash",       SqlDbType.NVarChar, 200).Value = pinHash;
         cmd.ExecuteNonQuery();
     }
 }
