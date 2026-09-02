@@ -512,7 +512,7 @@
             0     => L["PP.Calendar.DdTxt.DDay"].Value,
             { } v => string.Format(L["PP.Calendar.DdTxt.DaysTo"].Value, v)
         };
-        return $"{w.WoNumber} | {w.ItemName ?? w.ItemNo}\n{L["PP.Calendar.WoTooltip.Line"]}: {w.LineId} | {w.RoutingType ?? "INJ"}\n{StatusText(w.Status)} | {ddStr}\n{L["PP.Calendar.WoTooltip.Order"]}:{w.OrderQty:N0} {L["PP.Calendar.WoTooltip.Done"]}:{w.CompletedQty:N0} ({(int)w.ProgressPct}%)";
+        return $"{w.WoNumber} | {w.ItemName ?? w.ItemNo}\n{L["PP.Calendar.WoTooltip.Line"]}: {w.RouteLines ?? "—"} | {w.RoutingType ?? "INJ"}\n{StatusText(w.Status)} | {ddStr}\n{L["PP.Calendar.WoTooltip.Order"]}:{w.OrderQty:N0} {L["PP.Calendar.WoTooltip.Done"]}:{w.CompletedQty:N0} ({(int)w.ProgressPct}%)";
     }
 
     string DdTxt(int? days) => days switch

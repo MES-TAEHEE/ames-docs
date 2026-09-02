@@ -5301,4 +5301,22 @@
   <data name="PP.WorkOrder.Err.NoRouting" xml:space="preserve">
     <value>The selected part has no routing, so a work order cannot be created. Set the routing in the part master.</value>
   </data>
+  <data name="PP.WoRelease.Dlg.Step" xml:space="preserve">
+    <value>Process step</value>
+  </data>
+  <data name="PP.WoRelease.Badge.Bop" xml:space="preserve">
+    <value>BOP</value>
+  </data>
+  <data name="PP.WoRelease.Badge.Changed" xml:space="preserve">
+    <value>Changed</value>
+  </data>
+  <data name="PP.WoRelease.Badge.NoBop" xml:space="preserve">
+    <value>No BOP</value>
+  </data>
+  <data name="PP.WoRelease.NoLineProcess" xml:space="preserve">
+    <value>No line · not assigned to a terminal</value>
+  </data>
+  <data name="PP.WoRelease.Err.NoSteps" xml:space="preserve">
+    <value>No routing template; cannot release. Check the item's routing type.</value>
+  </data>
 </root>

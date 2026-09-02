@@ -1013,8 +1013,8 @@ public sealed class WarehouseRepository
             (
                 SELECT
                     CONVERT(date, R.RequiredAt) AS REQ_DATE,
-                    COALESCE(NULLIF(W.LineID, N''), N'-') AS LINECD,
-                    COALESCE(L.LineName, NULLIF(W.LineID, N''), N'-') AS LINENM,
+                    COALESCE(NULLIF(RL.LineID, N''), N'-') AS LINECD,
+                    COALESCE(L.LineName, NULLIF(RL.LineID, N''), N'-') AS LINENM,
                     R.ItemNo AS PARTNO,
                     COALESCE(I.ItemName, R.ItemNo) AS PARTNM,
                     I.DefaultUOM AS UNIT,
@@ -1023,8 +1023,11 @@ public sealed class WarehouseRepository
                 FROM dbo.PP_MaterialReservation R
                 INNER JOIN dbo.PP_WorkOrder W
                         ON W.WoID = R.WoID
+                OUTER APPLY (SELECT TOP 1 r.LineID FROM dbo.PP_WorkOrderRouting r
+                             WHERE r.WoID = W.WoID AND r.LineID IS NOT NULL
+                             ORDER BY r.StepSeq) RL
                 LEFT JOIN dbo.MD_Line L
-                       ON L.LineID = W.LineID
+                       ON L.LineID = RL.LineID
                 LEFT JOIN dbo.MD_Item I
                        ON I.ItemNo = R.ItemNo
                 LEFT JOIN dbo.MD_PackagingSpec P
@@ -1032,11 +1035,11 @@ public sealed class WarehouseRepository
                       AND COALESCE(P.ActiveFlag, 1) = 1
                 WHERE CONVERT(date, R.RequiredAt) = @ReqDate
                   AND UPPER(COALESCE(R.Status, N'OPEN')) NOT IN (N'CANCELED', N'CLOSED')
-                  AND (@LineCode IS NULL OR W.LineID = @LineCode)
+                  AND (@LineCode IS NULL OR RL.LineID = @LineCode)
                   AND (@PartNo IS NULL
                        OR R.ItemNo LIKE @PartNo
                        OR I.ItemName LIKE @PartNo)
-                GROUP BY CONVERT(date, R.RequiredAt), W.LineID, L.LineName, R.ItemNo, I.ItemName, I.DefaultUOM
+                GROUP BY CONVERT(date, R.RequiredAt), RL.LineID, L.LineName, R.ItemNo, I.ItemName, I.DefaultUOM
             ),
             ScheduledDemand AS
             (

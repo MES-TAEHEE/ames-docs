@@ -1,49 +1,114 @@
-@inject AMES.Data.Repositories.MasterDataRepository MD
+@inject AMES.Data.Repositories.WorkOrderRepository Wos
 @inject DialogService Dialog
 @inject IStringLocalizer<SharedResources> L
+@using AMES.Data.Repositories
 
-<div style="display:flex;flex-direction:column;gap:10px;min-width:380px;">
+<div style="display:flex;flex-direction:column;gap:10px;min-width:560px;">
     @if (Phase0Incomplete)
     {
         <div class="ames-alert bad">🚧 @L["PP.WoRelease.Dlg.Phase0Warn"]</div>
     }
 
-    <div class="ames-fld">
-        <label>@L["Col.Line"]</label>
-        <RadzenDropDown Data="_lines" TextProperty="Display" ValueProperty="LineID"
-                        @bind-Value="_lineId" AllowFiltering="true"
-                        Placeholder="—" Style="width:100%" />
-    </div>
+    @if (_err is not null)
+    {
+        <div class="ames-alert bad">@_err</div>
+    }
+    else if (_steps.Count == 0)
+    {
+        <div class="ames-alert bad">@L["PP.WoRelease.Err.NoSteps"]</div>
+    }
+    else
+    {
+        <table class="ames-table">
+            <thead>
+                <tr>
+                    <th style="width:44px;">#</th>
+                    <th style="width:90px;">@L["PP.WoRelease.Dlg.Step"]</th>
+                    <th>@L["Col.Line"]</th>
+                    <th style="width:110px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var vm in _steps)
+                {
+                    <tr>
+                        <td class="code">@vm.Step.StepSeq</td>
+                        <td class="code">@vm.Step.ProcessCode</td>
+                        <td>
+                            @if (vm.Step.LineRequired)
+                            {
+                                <RadzenDropDown TValue="string" Data="vm.Step.Candidates"
+                                                TextProperty="Display" ValueProperty="LineId"
+                                                @bind-Value="vm.LineId" AllowClear="true" AllowFiltering="true"
+                                                Placeholder="—" Style="width:100%" />
+                            }
+                            else
+                            {
+                                <span class="dim">@L["PP.WoRelease.NoLineProcess"]</span>
+                            }
+                        </td>
+                        <td>
+                            @if (vm.Step.LineRequired)
+                            {
+                                var (cls, key) = Badge(vm);
+                                <span class="pill @cls">@L[key]</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 
     <div class="ames-modal-footer">
         <RadzenButton Text="@L["Btn.Cancel"]" ButtonStyle="ButtonStyle.Light"
                       Click="@(() => Dialog.Close(null))" />
         <RadzenButton Text="@L["PP.WorkOrder.Btn.Release"].Value" Icon="play_arrow"
-                      ButtonStyle="ButtonStyle.Success" Disabled="@string.IsNullOrEmpty(_lineId)"
-                      Click="@(() => Dialog.Close(new Result(_lineId)))" />
+                      ButtonStyle="ButtonStyle.Success" Disabled="@(!CanRelease)"
+                      Click="@Submit" />
     </div>
 </div>
 
 @code {
-    [Parameter] public string? CurrentLineId { get; set; }
+    [Parameter] public int  WoId             { get; set; }
     [Parameter] public bool Phase0Incomplete { get; set; }
 
-    record LineVm(string LineID, string Display);
-    List<LineVm> _lines = new();
-    string _lineId = "";
+    sealed class StepVm
+    {
+        public required WorkOrderRepository.RoutingStepPreview Step { get; init; }
+        public string? LineId { get; set; }
+    }
+
+    List<StepVm> _steps = new();
+    string? _err;
 
     protected override void OnInitialized()
     {
         try
         {
-            _lines = MD.ListLines()
-                .Select(l => new LineVm(l.LineID,
-                    string.IsNullOrEmpty(l.LineName) ? l.LineID : $"{l.LineID} · {l.LineName}"))
+            _steps = Wos.PreviewRouting(WoId)
+                .Select(s => new StepVm { Step = s, LineId = s.BopLineId })
                 .ToList();
         }
-        catch { _lines = new(); }
-        _lineId = CurrentLineId ?? "";
+        catch (Exception ex) { _err = ex.Message; _steps = new(); }
     }
 
-    public record Result(string LineId);
+    bool CanRelease =>
+        _err is null && _steps.Count > 0 &&
+        _steps.All(v => !v.Step.LineRequired || !string.IsNullOrEmpty(v.LineId));
+
+    static (string Cls, string Key) Badge(StepVm vm) =>
+        vm.Step.BopLineId is null       ? ("warn", "PP.WoRelease.Badge.NoBop")
+        : vm.LineId == vm.Step.BopLineId ? ("info", "PP.WoRelease.Badge.Bop")
+        :                                  ("dim",  "PP.WoRelease.Badge.Changed");
+
+    void Submit()
+    {
+        var steps = _steps
+            .Select(v => new WorkOrderRepository.StepLineChoice(v.Step.StepSeq, v.Step.LineRequired ? v.LineId : null))
+            .ToList();
+        Dialog.Close(new Result(steps));
+    }
+
+    public record Result(IReadOnlyList<WorkOrderRepository.StepLineChoice> Steps);
 }

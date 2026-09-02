@@ -1,5 +1,6 @@
 @namespace AMES.Pop.Pages.InjPopups
 @using AMES.Pop.Common
+@inject ToastService Toasts
 
 @*  INJ-003 작업지시 접수 — 팝업판. 메인 화면에서 선택한 WO 를 받아 접수한다.
     프리스타트 체크리스트는 선택 사항 — 체크 상태는 접수 기록(JSON)에 남는다. *@
@@ -75,6 +76,12 @@
     private async Task Accept()
     {
         if (Wo is null || Session is null) return;
+        if (Wo.RoutingLineId is not int routingLineId)
+        {
+            System.Diagnostics.Debug.WriteLine($"[WoConfirmPopup Accept] WO {Wo.WoNumber} has no RoutingLineId (not a line-scoped query result)");
+            Toasts.Bad(T("AcceptWoNoStep"));
+            return;
+        }
         try
         {
             var checks = System.Text.Json.JsonSerializer.Serialize(new
@@ -82,7 +89,7 @@
                 mold = _checks[0], material = _checks[1], recipe = _checks[2], safety = _checks[3], phase0 = _checks[4],
                 at = DateTime.Now, by = Session.EmployeeNo,
             });
-            PopServices.WorkOrders.AcceptWo(Wo.WoId, Session.TerminalId,
+            PopServices.WorkOrders.AcceptWo(routingLineId, Session.TerminalId,
                 Session.OperatorId, Session.EmployeeNo, checks);
             await OnAccepted.InvokeAsync();
         }

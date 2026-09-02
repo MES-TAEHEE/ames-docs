@@ -369,12 +369,14 @@ public sealed class LineScheduleRepository
     {
         const string sql = """
             SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
-                   ISNULL(w.OpenQty,0) AS OpenQty, w.Status
-            FROM   dbo.PP_WorkOrder w
+                   ISNULL(w.OpenQty,0) AS OpenQty, r.Status
+            FROM   dbo.PP_WorkOrderRouting r
+            JOIN   dbo.PP_WorkOrder w ON w.WoID = r.WoID
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = w.ItemNo
-            WHERE  w.LineID = @LineId
-              AND  w.Status IN ('Released','In Progress')
-            ORDER  BY CASE WHEN w.Status='In Progress' THEN 0 ELSE 1 END, w.WoID;
+            WHERE  r.LineID = @LineId
+              AND  r.Status IN ('Released','In Progress')
+              AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+            ORDER  BY CASE WHEN r.Status='In Progress' THEN 0 ELSE 1 END, w.WoID;
             """;
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);

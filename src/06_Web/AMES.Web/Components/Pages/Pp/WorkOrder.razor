@@ -63,6 +63,7 @@ else
 {
     <RadzenDataGrid Data="_view" TItem="WorkOrderDto" AllowVirtualization="true" Style="height:100%"
                     AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
+                    RowExpand="@LoadSteps"
                     class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="WorkOrderDto" Property="WoNumber" Title="@L["Col.WoNo"].Value" Frozen="true" Width="150px">
@@ -75,8 +76,8 @@ else
                     @if (!string.IsNullOrEmpty(nm)) { <span class="dim"> · @nm</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="LineId" Title="@L["Col.Line"].Value" Width="120px">
-                <Template Context="w"><span class="code dim">@(string.IsNullOrEmpty(w.LineId) ? "—" : w.LineId)</span></Template>
+            <RadzenDataGridColumn TItem="WorkOrderDto" Property="RouteLines" Title="@L["Col.Line"].Value" Width="260px">
+                <Template Context="w"><span class="code dim">@(string.IsNullOrEmpty(w.RouteLines) ? "—" : w.RouteLines)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WorkOrderDto" Property="RoutingType" Title="@L["Col.Routing"].Value" Width="90px" TextAlign="TextAlign.Center">
                 <Template Context="w">
@@ -135,14 +136,24 @@ else
             <div style="padding:10px 16px;">
                 <div class="dim" style="font-size:.8em;margin-bottom:6px;">@L["Col.Routing"] @(w.RoutingType ?? "INJ") · @L["PP.WorkOrder.Detail.Routing"]</div>
                 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
-                    @{ var steps = Flow(w.RoutingType); var doneN = (int)Math.Floor(steps.Length * w.ProgressPct / 100); }
-                    @for (var i = 0; i < steps.Length; i++)
+                    @if (_steps.TryGetValue(w.WoId, out var steps) && steps.Count > 0)
                     {
-                        var cls = w.ProgressPct >= 100 ? "done"
-                                : i < doneN ? "done"
-                                : (i == doneN && w.ProgressPct > 0) ? "cur" : "todo";
-                        <span class="wo-step @cls">@steps[i]</span>
-                        @if (i < steps.Length - 1) { <span class="dim">→</span> }
+                        for (var i = 0; i < steps.Count; i++)
+                        {
+                            var s   = steps[i];
+                            var cls = s.Status == "Closed" ? "done" : s.Status == "In Progress" ? "cur" : "todo";
+                            <span class="wo-step @cls" title="@StepTitle(s, w)">@s.ProcessCode</span>
+                            @if (i < steps.Count - 1) { <span class="dim">→</span> }
+                        }
+                    }
+                    else
+                    {
+                        var flow = Flow(w.RoutingType);
+                        for (var i = 0; i < flow.Length; i++)
+                        {
+                            <span class="wo-step todo">@flow[i]</span>
+                            @if (i < flow.Length - 1) { <span class="dim">→</span> }
+                        }
                     }
                 </div>
                 <div style="display:flex;gap:32px;flex-wrap:wrap;">
@@ -164,6 +175,18 @@ else
 @code {
     List<WorkOrderDto> _rows = new();
     List<WorkOrderDto> _view = new();
+
+    readonly Dictionary<int, List<AMES.Data.Repositories.WorkOrderRepository.StepRow>> _steps = new();
+
+    void LoadSteps(WorkOrderDto w)
+    {
+        if (_steps.ContainsKey(w.WoId)) return;
+        try { _steps[w.WoId] = Wos.ListSteps(w.WoId); }
+        catch { _steps[w.WoId] = new(); }
+    }
+
+    static string StepTitle(AMES.Data.Repositories.WorkOrderRepository.StepRow s, WorkOrderDto w) =>
+        $"{s.LineId ?? "—"} · {s.CompletedQty:#,0}/{w.OrderQty:#,0}";
 
     readonly string[] _statuses = { "Draft", "Planned", "Released", "In Progress", "Closed", "Cancelled" };
     string[] _routings = Array.Empty<string>();
@@ -202,6 +225,7 @@ else
         _isErr = false;
         try   { _rows = Wos.ListAll(_recentDays); }
         catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); _rows = new(); }
+        _steps.Clear();
         ApplyFilters();
     }
 
@@ -253,14 +277,15 @@ else
             $"{L["PP.WorkOrder.Btn.Release"].Value} · {w.WoNumber}",
             new Dictionary<string, object?>
             {
-                ["CurrentLineId"]    = w.LineId,
+                ["WoId"]             = w.WoId,
                 ["Phase0Incomplete"] = !w.Phase0Complete,
-            });
+            },
+            new DialogOptions { Width = "640px" });
         if (result is not WoReleaseLineDialog.Result r) return;
 
         try
         {
-            var n = Wos.ReleaseWo(w.WoId, r.LineId, await Actor());
+            var n = Wos.ReleaseWo(w.WoId, r.Steps, await Actor());
             if (n > 0) ShowMsg(string.Format(L["PP.WorkOrder.Ok.Released"].Value, w.WoNumber), false);
             Reload();
         }
@@ -320,7 +345,7 @@ else
         foreach (var w in _view)
         {
             sb.AppendLine(string.Join(",", new[] {
-                w.WoNumber, w.ItemName, w.LineId ?? "", w.RoutingType ?? "INJ",
+                w.WoNumber, w.ItemName, w.RouteLines ?? "", w.RoutingType ?? "INJ",
                 w.OrderQty.ToString("0.###"), w.CompletedQty.ToString("0.###"), ((int)w.ProgressPct) + "%",
                 w.DueDate?.ToString("yyyy-MM-dd") ?? "", w.Status, w.SoNumber ?? "" }.Select(Csv)));
         }
