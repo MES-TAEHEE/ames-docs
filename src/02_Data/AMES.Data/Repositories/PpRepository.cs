@@ -42,10 +42,12 @@ public sealed class PpRepository
     // PP-003 계획 검토 라인 — WO 미생성 확정 수주 + FG 재고 + 라인 부하.
     public sealed record PlanLineRow(int SoId, string? SoNumber, int? SoLineNo, string? CustomerId,
         string ItemNo, string? ItemName, decimal OrderQty, decimal FgOnHand, DateTime? DueDate, bool ItemExists,
-        string? LineId, int? LineLoadPct)
+        string? LineId, int? LineLoadPct, string? RoutingType)
     {
         public decimal NetReq => Math.Max(0m, OrderQty - FgOnHand);
-        public bool Blocked => !ItemExists;   // 품목마스터 미완성 → WO 생성 불가 (BR-PP-001)
+        public bool NoRouting => ItemExists && RoutingType is null;
+        // 품목마스터 미완성(BR-PP-001) 또는 라우팅 미지정 → WO 생성 불가
+        public bool Blocked => !ItemExists || RoutingType is null;
     }
 
     public sealed record MrpRunRow(int MrpRunId, DateTime? RunAt, DateTime? HorizonStart,
@@ -57,7 +59,7 @@ public sealed class PpRepository
         string? SapPoNumber);
 
     public sealed record WoLite(int WoId, string? WoNumber, string ItemNo, string? ItemName,
-        decimal OrderQty, decimal CompletedQty, string? LineId, DateTime? DueDate,
+        decimal OrderQty, decimal CompletedQty, string? RouteLines, DateTime? DueDate,
         string? Status, DateTime? ReleasedAt);
 
     public sealed record CalendarRow(int OverrideId, DateTime? OverrideDate, string? LineId,
@@ -477,6 +479,7 @@ public sealed class PpRepository
                    ISNULL(fg.OnHand,0)  AS FgOnHand,
                    s.RequestedDeliveryDate AS DueDate,
                    CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS ItemExists,
+                   i.RoutingType,
                    ln.LineID AS LineId,
                    CASE WHEN ml.DailyCap > 0
                         THEN CAST(ld.OpenLoad * 100.0 / (ml.DailyCap * 7) AS INT)
@@ -486,12 +489,14 @@ public sealed class PpRepository
             LEFT JOIN dbo.PP_WorkOrder wo ON wo.SoID = s.SoID AND wo.Status <> 'Cancelled'
             OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.FG_Stock f
                          WHERE f.ItemNo = s.ItemNo AND f.Status NOT IN ('SHIPPED','SCRAPPED')) fg
-            OUTER APPLY (SELECT TOP 1 w2.LineID FROM dbo.PP_WorkOrder w2
-                         WHERE w2.ItemNo = s.ItemNo AND w2.LineID IS NOT NULL
-                         ORDER BY w2.CreatedTS DESC) ln
+            OUTER APPLY (SELECT TOP 1 r.LineID FROM dbo.PP_WorkOrderRouting r
+                         JOIN dbo.PP_WorkOrder w2 ON w2.WoID = r.WoID
+                         WHERE w2.ItemNo = s.ItemNo AND r.LineID IS NOT NULL
+                         ORDER BY w2.CreatedTS DESC, r.StepSeq) ln
             LEFT JOIN dbo.MD_Line ml ON ml.LineID = ln.LineID
             OUTER APPLY (SELECT ISNULL(SUM(w3.OpenQty),0) AS OpenLoad FROM dbo.PP_WorkOrder w3
-                         WHERE w3.LineID = ln.LineID
+                         WHERE EXISTS (SELECT 1 FROM dbo.PP_WorkOrderRouting r3
+                                       WHERE r3.WoID = w3.WoID AND r3.LineID = ln.LineID)
                            AND w3.Status IN ('Draft','Planned','Released','In Progress')) ld
             WHERE  s.Status = 'Confirmed' AND wo.WoID IS NULL
                AND (@Cust = '' OR s.CustomerID = @Cust)
@@ -513,12 +518,13 @@ public sealed class PpRepository
                 rdr.GetDecimal(rdr.GetOrdinal("OrderQty")),
                 rdr.GetDecimal(rdr.GetOrdinal("FgOnHand")),
                 rdr["DueDate"] as DateTime?, (int)rdr["ItemExists"] == 1,
-                rdr["LineId"] as string, rdr["LineLoadPct"] as int?));
+                rdr["LineId"] as string, rdr["LineLoadPct"] as int?,
+                rdr["RoutingType"] as string));
         return list;
     }
 
     /// <summary>
-    /// PP-003 선택 확정 수주 → Draft 작업지시 일괄 생성. 확정·품목마스터 존재·WO 미생성
+    /// PP-003 선택 확정 수주 → Draft 작업지시 일괄 생성. 확정·품목마스터 존재·라우팅 지정·WO 미생성
     /// (취소 WO 제외) 건만 삽입. useNetReq면 수량 = max(0, 수주 − FG재고), 0 이하 건 skip.
     /// WoNumber = WO-yyyyMMdd-NNN. 생성된 WoNumber 목록 반환.
     /// </summary>
@@ -531,8 +537,8 @@ public sealed class PpRepository
 
         const string insSql = """
             INSERT INTO dbo.PP_WorkOrder
-                   (WoNumber, SoID, ItemNo, OrderQty, OpenQty, DueDate, Status, CreatedBy, CreatedTS)
-            SELECT @Wo, s.SoID, s.ItemNo, q.Qty, q.Qty, s.RequestedDeliveryDate,
+                   (WoNumber, SoID, ItemNo, OrderQty, OpenQty, DueDate, RoutingType, Status, CreatedBy, CreatedTS)
+            SELECT @Wo, s.SoID, s.ItemNo, q.Qty, q.Qty, s.RequestedDeliveryDate, i.RoutingType,
                    'Draft', @Actor, SYSDATETIME()
             FROM   dbo.PP_CustomerOrder s
             JOIN   dbo.MD_Item i ON i.ItemNo = s.ItemNo
@@ -543,6 +549,7 @@ public sealed class PpRepository
                                               ISNULL(s.OrderQty,0) - ISNULL(fg.OnHand,0), 0)
                                      ELSE ISNULL(s.OrderQty,0) END AS Qty) q
             WHERE  s.SoID = @SoID AND s.Status = 'Confirmed' AND q.Qty > 0
+               AND i.RoutingType IS NOT NULL
                AND NOT EXISTS (SELECT 1 FROM dbo.PP_WorkOrder w
                                WHERE w.SoID = s.SoID AND w.Status <> 'Cancelled');
             """;
@@ -639,7 +646,10 @@ public sealed class PpRepository
             SELECT TOP ({{topN}}) w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
                    ISNULL(w.OrderQty,0)     AS OrderQty,
                    ISNULL(w.CompletedQty,0) AS CompletedQty,
-                   w.LineID, w.DueDate, ISNULL(w.Status,'Draft') AS Status, w.ReleasedAt
+                   (SELECT STRING_AGG(CAST(COALESCE(r.LineID, r.ProcessCode + N'(—)') AS nvarchar(40)), N' → ')
+                               WITHIN GROUP (ORDER BY r.StepSeq)
+                    FROM dbo.PP_WorkOrderRouting r WHERE r.WoID = w.WoID) AS RouteLines,
+                   w.DueDate, ISNULL(w.Status,'Draft') AS Status, w.ReleasedAt
             FROM   dbo.PP_WorkOrder w
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = w.ItemNo
             ORDER BY CASE WHEN ISNULL(w.Status,'Draft') IN ('Draft','Planned') THEN 0 ELSE 1 END,
@@ -655,10 +665,14 @@ public sealed class PpRepository
             SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
                    ISNULL(w.OrderQty,0)     AS OrderQty,
                    ISNULL(w.CompletedQty,0) AS CompletedQty,
-                   w.LineID, w.DueDate, ISNULL(w.Status,'Draft') AS Status, w.ReleasedAt
+                   (SELECT STRING_AGG(CAST(COALESCE(r.LineID, r.ProcessCode + N'(—)') AS nvarchar(40)), N' → ')
+                               WITHIN GROUP (ORDER BY r.StepSeq)
+                    FROM dbo.PP_WorkOrderRouting r WHERE r.WoID = w.WoID) AS RouteLines,
+                   w.DueDate, ISNULL(w.Status,'Draft') AS Status, w.ReleasedAt
             FROM   dbo.PP_WorkOrder w
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = w.ItemNo
-            WHERE  (@LineID IS NULL OR w.LineID = @LineID)
+            WHERE  (@LineID IS NULL
+                    OR EXISTS (SELECT 1 FROM dbo.PP_WorkOrderRouting r WHERE r.WoID = w.WoID AND r.LineID = @LineID))
               AND  (@Status IS NULL OR ISNULL(w.Status,'Draft') = @Status)
               AND  (ISNULL(w.Status,'Draft') <> 'Closed'
                     OR w.ActualEnd >= DATEADD(day, -@Days, CAST(GETDATE() AS date)))
@@ -695,28 +709,6 @@ public sealed class PpRepository
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@SoID",  SqlDbType.Int).Value = soId;
         cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
-        return cmd.ExecuteNonQuery();
-    }
-
-    /// <summary>WO를 Released로 전환하고 생산라인을 지정합니다 (PP-007). 변경 행수 반환.</summary>
-    public int ReleaseWo(int woId, string lineId, string actor)
-    {
-        const string sql = """
-            UPDATE dbo.PP_WorkOrder
-            SET    Status     = 'Released',
-                   LineID     = @LineID,
-                   ReleasedAt = SYSDATETIME(),
-                   ReleasedBy = @Actor,
-                   ModifiedTS = SYSDATETIME(),
-                   ModifiedBy = @Actor
-            WHERE  WoID   = @WoID
-              AND  Status IN ('Draft','Planned');
-            """;
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@WoID",   SqlDbType.Int).Value           = woId;
-        cmd.Parameters.Add("@LineID", SqlDbType.VarChar, 20).Value   = lineId;
-        cmd.Parameters.Add("@Actor",  SqlDbType.NVarChar, 450).Value = actor;
         return cmd.ExecuteNonQuery();
     }
 
@@ -1044,6 +1036,6 @@ public sealed class PpRepository
         r["ItemNo"] as string ?? "", r["ItemName"] as string,
         r.GetDecimal(r.GetOrdinal("OrderQty")),
         r.GetDecimal(r.GetOrdinal("CompletedQty")),
-        r["LineID"] as string, r["DueDate"] as DateTime?,
+        r["RouteLines"] as string, r["DueDate"] as DateTime?,
         r["Status"] as string, r["ReleasedAt"] as DateTime?);
 }

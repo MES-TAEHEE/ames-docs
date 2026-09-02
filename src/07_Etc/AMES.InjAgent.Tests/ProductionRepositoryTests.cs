@@ -11,7 +11,7 @@ public class ProductionRepositoryTests
 {
     static readonly string Conn =
         Environment.GetEnvironmentVariable("AMES_TEST_CONN")
-        ?? "Server=98.95.142.192,1433;Database=AMES_DEV;User Id=sa;Password=AmesDev!2026Sa;TrustServerCertificate=True;Encrypt=True;Connect Timeout=10;";
+        ?? "Server=192.168.2.137,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=10;";
 
     static AmesConnectionFactory? TryFactory()
     {
@@ -33,11 +33,18 @@ public class ProductionRepositoryTests
         int woId;
         using (var conn = f.OpenConnection())
         using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
-            INSERT INTO dbo.PP_WorkOrder (WoNumber, ItemNo, LineID, OrderQty, CompletedQty, Status, CreatedBy, CreatedTS)
+            INSERT INTO dbo.PP_WorkOrder (WoNumber, ItemNo, OrderQty, CompletedQty, Status, CreatedBy, CreatedTS)
             OUTPUT INSERTED.WoID
-            VALUES ('WO-ITEST-IMGCYC', '83335-P8000RBQ', 'LINE-IMG-01', 100, 0, 'In Progress', 'ITEST', SYSDATETIME());
+            VALUES ('WO-ITEST-IMGCYC', '83335-P8000RBQ', 100, 0, 'In Progress', 'ITEST', SYSDATETIME());
             """, conn))
             woId = (int)cmd.ExecuteScalar()!;
+
+        using (var conn = f.OpenConnection())
+        using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+            INSERT INTO dbo.PP_WorkOrderRouting (WoID, StepSeq, ProcessCode, LineID, Status, CompletedQty, CreatedBy)
+            VALUES (@W, 1, 'IMG', 'LINE-IMG-01', 'In Progress', 0, 'ITEST');
+            """, conn))
+        { cmd.Parameters.AddWithValue("@W", woId); cmd.ExecuteNonQuery(); }
 
         int resultId = 0, lotId = 0;
         try
@@ -50,6 +57,14 @@ public class ProductionRepositoryTests
 
             Assert.Equal(10m, newCompleted);
 
+            using (var conn2 = f.OpenConnection())
+            using (var cmd2 = new Microsoft.Data.SqlClient.SqlCommand(
+                "SELECT CompletedQty FROM dbo.PP_WorkOrderRouting WHERE WoID = @W AND StepSeq = 1;", conn2))
+            {
+                cmd2.Parameters.AddWithValue("@W", woId);
+                Assert.Equal(10m, (decimal)cmd2.ExecuteScalar()!);
+            }
+
             using var conn = f.OpenConnection();
             using var cmd = new Microsoft.Data.SqlClient.SqlCommand(
                 "SELECT LotCode FROM dbo.tbl_Lot WHERE LotID = @L;", conn);
@@ -61,6 +76,7 @@ public class ProductionRepositoryTests
         {
             using var conn = f.OpenConnection();
             using var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                DELETE FROM dbo.PP_WorkOrderRouting WHERE WoID = @W;
                 DELETE FROM dbo.PR_ProductionResult WHERE ResultID = @R;
                 DELETE FROM dbo.tbl_Lot WHERE LotID = @L;
                 DELETE FROM dbo.PP_WorkOrder WHERE WoID = @W;

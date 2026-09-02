@@ -134,7 +134,7 @@ else
                 <Template Context="r">
                     @if (r.Blocked)
                     {
-                        <span class="pill bad">@L["PP.PlanConfirm.Status.Blocked"]</span>
+                        <span class="pill bad">@L[r.NoRouting ? "PP.PlanConfirm.Status.NoRouting" : "PP.PlanConfirm.Status.Blocked"]</span>
                     }
                     else
                     {

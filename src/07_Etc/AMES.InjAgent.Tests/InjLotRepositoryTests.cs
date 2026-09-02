@@ -15,7 +15,7 @@ public class InjLotRepositoryTests
     // 개발 DB 는 원격(appsettings.Development.json 과 같은 서버). 다른 서버로 돌릴 땐 AMES_TEST_CONN 으로 덮어쓴다.
     static readonly string Conn =
         Environment.GetEnvironmentVariable("AMES_TEST_CONN")
-        ?? "Server=98.95.142.192,1433;Database=AMES_DEV;User Id=sa;Password=AmesDev!2026Sa;TrustServerCertificate=True;Encrypt=True;Connect Timeout=10;";
+        ?? "Server=192.168.2.137,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=10;";
 
     static AmesConnectionFactory? TryFactory()
     {
@@ -121,11 +121,18 @@ public class InjLotRepositoryTests
             // 테스트 전용 WO 생성
             using (var conn = f!.OpenConnection())
             using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
-                INSERT INTO dbo.PP_WorkOrder (WoNumber, ItemNo, LineID, OrderQty, CompletedQty, Status, CreatedBy, CreatedTS)
+                INSERT INTO dbo.PP_WorkOrder (WoNumber, ItemNo, OrderQty, CompletedQty, Status, CreatedBy, CreatedTS)
                 OUTPUT INSERTED.WoID
-                VALUES ('WO-ITEST-CONFIRM', '83335-P8000RBQ', 'LINE-INJ-01', 100, 0, 'In Progress', 'ITEST', SYSDATETIME());
+                VALUES ('WO-ITEST-CONFIRM', '83335-P8000RBQ', 100, 0, 'In Progress', 'ITEST', SYSDATETIME());
                 """, conn))
                 woId = (int)cmd.ExecuteScalar()!;
+
+            using (var conn = f!.OpenConnection())
+            using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                INSERT INTO dbo.PP_WorkOrderRouting (WoID, StepSeq, ProcessCode, LineID, Status, CompletedQty, CreatedBy)
+                VALUES (@W, 1, 'INJ', 'LINE-INJ-01', 'In Progress', 0, 'ITEST');
+                """, conn))
+            { cmd.Parameters.AddWithValue("@W", woId); cmd.ExecuteNonQuery(); }
 
             string lotCode;
             (lotId, lotCode) = repo.CreateRawLot("LINE-INJ-01", "INJ-650-01", Lh(), 99001);
@@ -146,6 +153,7 @@ public class InjLotRepositoryTests
                   (SELECT COUNT(*) FROM dbo.PR_ProductionResult WHERE ResultID = @R AND LotID = @L AND GoodQty = 1) AS ResultOk,
                   (SELECT ConfirmStatus FROM dbo.PR_InjLot WHERE LotID = @L) AS Status,
                   (SELECT CompletedQty FROM dbo.PP_WorkOrder WHERE WoID = @W) AS Completed,
+                  (SELECT CompletedQty FROM dbo.PP_WorkOrderRouting WHERE WoID = @W AND StepSeq = 1) AS StepCompleted,
                   (SELECT Status FROM dbo.tbl_Lot WHERE LotID = @L) AS LotStatus;
                 """, conn))
             {
@@ -157,6 +165,7 @@ public class InjLotRepositoryTests
                 Assert.Equal(1, (int)rdr["ResultOk"]);
                 Assert.Equal("CONFIRMED", (string)rdr["Status"]);
                 Assert.Equal(1m, (decimal)rdr["Completed"]);
+                Assert.Equal(1m, (decimal)rdr["StepCompleted"]);
                 Assert.Equal("CONFIRMED", (string)rdr["LotStatus"]);
             }
 
@@ -170,6 +179,7 @@ public class InjLotRepositoryTests
             {
                 using var conn = f.OpenConnection();
                 using var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                    DELETE FROM dbo.PP_WorkOrderRouting WHERE WoID = @W;
                     DELETE FROM dbo.PR_ProductionResult WHERE LotID = @L;
                     DELETE FROM dbo.PR_RobotInspection WHERE LotID = @L;
                     DELETE FROM dbo.PR_InjLot WHERE LotID = @L;
@@ -220,11 +230,18 @@ public class InjLotRepositoryTests
         {
             using (var conn = f!.OpenConnection())
             using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
-                INSERT INTO dbo.PP_WorkOrder (WoNumber, ItemNo, LineID, OrderQty, CompletedQty, Status, CreatedBy, CreatedTS)
+                INSERT INTO dbo.PP_WorkOrder (WoNumber, ItemNo, OrderQty, CompletedQty, Status, CreatedBy, CreatedTS)
                 OUTPUT INSERTED.WoID
-                VALUES ('WO-ITEST-MANUAL', '83335-P8000RBQ', 'LINE-INJ-01', 100, 0, 'In Progress', 'ITEST', SYSDATETIME());
+                VALUES ('WO-ITEST-MANUAL', '83335-P8000RBQ', 100, 0, 'In Progress', 'ITEST', SYSDATETIME());
                 """, conn))
                 woId = (int)cmd.ExecuteScalar()!;
+
+            using (var conn = f!.OpenConnection())
+            using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                INSERT INTO dbo.PP_WorkOrderRouting (WoID, StepSeq, ProcessCode, LineID, Status, CompletedQty, CreatedBy)
+                VALUES (@W, 1, 'INJ', 'LINE-INJ-01', 'In Progress', 0, 'ITEST');
+                """, conn))
+            { cmd.Parameters.AddWithValue("@W", woId); cmd.ExecuteNonQuery(); }
 
             var shotsBefore = ReadShots();
 
@@ -308,6 +325,7 @@ public class InjLotRepositoryTests
                     INSERT INTO @L SELECT CAST(value AS INT) FROM STRING_SPLIT(@Ids, ',') WHERE value <> '';
                     INSERT INTO @L SELECT LotID FROM dbo.tbl_Lot
                       WHERE WoID = @W AND LotID NOT IN (SELECT LotID FROM @L);
+                    DELETE FROM dbo.PP_WorkOrderRouting WHERE WoID = @W;
                     DELETE FROM dbo.PR_ProductionResult WHERE WoID = @W OR LotID IN (SELECT LotID FROM @L);
                     DELETE FROM dbo.PR_InjLot          WHERE LotID IN (SELECT LotID FROM @L);
                     DELETE FROM dbo.tbl_Lot            WHERE LotID IN (SELECT LotID FROM @L);

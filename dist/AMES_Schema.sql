@@ -1333,12 +1333,19 @@ CREATE TABLE dbo.PP_WorkOrderRouting (
   [Status]                    VARCHAR(20)              NULL,
   [ActualStart]               DATETIME2                NULL,
   [ActualEnd]                 DATETIME2                NULL,
+  [CompletedQty]              DECIMAL(14,3)        NOT NULL DEFAULT 0,   -- 단계 완료수량 (정본). 헤더 CompletedQty 는 라인 있는 마지막 단계와 동기화
+  [TerminalLock]              VARCHAR(20)              NULL,  -- 단계를 접수한 터미널
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
   [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PP_WorkOrderRouting PRIMARY KEY CLUSTERED ([RoutingLineID])
 );
+GO
+CREATE UNIQUE NONCLUSTERED INDEX UX_PP_WorkOrderRouting_Wo_Step
+  ON dbo.PP_WorkOrderRouting (WoID, StepSeq);
+CREATE NONCLUSTERED INDEX IX_PP_WorkOrderRouting_Line_Status
+  ON dbo.PP_WorkOrderRouting (LineID, Status) INCLUDE (WoID, StepSeq, CompletedQty);
 GO
 
 -- ── PP_MaterialReservation  (WO 자재 예약)

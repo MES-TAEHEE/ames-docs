@@ -205,4 +205,5 @@
   <data name="NoStationsRegistered" xml:space="preserve"><value>No stations registered for this line — contact an administrator</value></data>
   <data name="MasterLoadFailed" xml:space="preserve"><value>Master data load failed: {0}</value></data>
   <data name="Retry" xml:space="preserve"><value>RETRY</value></data>
+  <data name="AcceptWoNoStep" xml:space="preserve"><value>No process step to accept. Refresh the work-order list.</value></data>
 </root>

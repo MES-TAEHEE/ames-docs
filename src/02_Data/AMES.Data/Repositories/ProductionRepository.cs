@@ -16,8 +16,9 @@ public sealed class ProductionRepository
     public ProductionRepository(AmesConnectionFactory f) => _factory = f;
 
     /// <summary>
-    /// Records one production cycle as a single batch lot. Increments WO CompletedQty
-    /// and creates a lot row. Returns the new ResultID + the post-update completed qty.
+    /// Records one production cycle as a single batch lot. Increments the step CompletedQty
+    /// on (WoID, LineID) and creates a lot row. Returns the new ResultID + the post-update completed qty.
+    /// Throws InvalidOperationException if the WO has no routing step on lineId.
     ///
     /// Mold shots are NOT touched here — shot counts come from the PLC shot counter only
     /// (see InjLotRepository.CreateRawLot). INJ manual entry uses
@@ -92,26 +93,10 @@ public sealed class ProductionRepository
                 resultId = (int)cmd.ExecuteScalar()!;
             }
 
-            // 3) PP_WorkOrder.CompletedQty bump
-            decimal newCompleted;
-            using (var cmd = new SqlCommand("""
-                UPDATE dbo.PP_WorkOrder
-                SET    CompletedQty = ISNULL(CompletedQty,0) + @Q,
-                       Status       = CASE WHEN ISNULL(CompletedQty,0) + @Q >= ISNULL(OrderQty,0)
-                                            THEN 'Closed' ELSE Status END,
-                       ActualEnd    = CASE WHEN ISNULL(CompletedQty,0) + @Q >= ISNULL(OrderQty,0)
-                                            THEN SYSDATETIME() ELSE ActualEnd END,
-                       ModifiedBy   = @ModBy,
-                       ModifiedTS   = SYSDATETIME()
-                OUTPUT INSERTED.CompletedQty
-                WHERE  WoID = @WoID;
-                """, conn, tx))
-            {
-                cmd.Parameters.Add("@WoID",  SqlDbType.Int            ).Value = woId;
-                cmd.Parameters.Add("@Q",     SqlDbType.Int            ).Value = goodQty;
-                cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = operatorId;
-                newCompleted = (decimal)(cmd.ExecuteScalar() ?? 0m);
-            }
+            // 3) 단계 실적 반영 (WoID + LineID 로 단계 행 특정)
+            var stepId = WorkOrderRepository.FindStepId(conn, tx, woId, lineId)
+                ?? throw new InvalidOperationException($"WO {woId} has no routing step on line {lineId}.");
+            var newCompleted = WorkOrderRepository.BumpStepCompleted(conn, tx, stepId, goodQty, operatorId);
 
             tx.Commit();
             return (resultId, lotId, newCompleted);

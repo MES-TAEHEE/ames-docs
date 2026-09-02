@@ -896,9 +896,12 @@ public static class WhEndpoints
                 W.DueDate,
                 COALESCE(W.Status, N'Released') AS WorkOrderStatus,
                 W.ReleasedAt,
-                W.LineID
+                RL.LineID
             FROM dbo.PP_WorkOrder W
             LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.ItemNo
+            OUTER APPLY (SELECT TOP 1 r.LineID FROM dbo.PP_WorkOrderRouting r
+                         WHERE r.WoID = W.WoID AND r.LineID IS NOT NULL
+                         ORDER BY r.StepSeq) RL
             WHERE W.Status IN (N'Released', N'In Progress')
               AND (@DueDateFrom IS NULL OR W.DueDate >= @DueDateFrom)
               AND (@DueDateTo IS NULL OR W.DueDate <= @DueDateTo)

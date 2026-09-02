@@ -27,6 +27,21 @@ public sealed class WorkOrderDto
     /// <summary>Source sales order number (via PP_CustomerOrder.SoID), when WO was created from a plan.</summary>
     public string?           SoNumber      { get; init; }
 
+    // ── 공정 단계 (PP_WorkOrderRouting) ──────────────────────────────
+    // 필드 의미 규칙:
+    //  · 라인 범위 조회(ListForLine, GetActiveForTerminal): LineId·Status·CompletedQty·TerminalLock 는 그 라인 단계 값이고
+    //    RoutingLineId·StepSeq·ProcessCode 가 채워진다. Pop 은 이걸로 단계 진행률을 그대로 표시한다.
+    //  · 헤더 조회(ListAll, GetById): LineId 는 레거시 헤더 PP_WorkOrder.LineID 값 그대로다 —
+    //    신규 발행 WO 는 헤더에 쓰지 않으므로 대개 빈 문자열이지만, 마이그레이션 이전 WO 는 값이 남아 있다. 신뢰하지 말 것.
+    //    Status·CompletedQty 는 헤더 값,
+    //    RoutingLineId·StepSeq·ProcessCode 는 null, RouteLines 에 단계 라인 나열.
+    /// <summary>PP_WorkOrderRouting.RoutingLineID — 라인 범위 조회에서만.</summary>
+    public int?              RoutingLineId { get; init; }
+    public int?              StepSeq       { get; init; }
+    public string?           ProcessCode   { get; init; }
+    /// <summary>"LINE-INJ-01 → LINE-IMG-01". 라인 없는 단계는 "QC(—)". 단계 행 없으면 null.</summary>
+    public string?           RouteLines    { get; init; }
+
     /// <summary>0–100 % of CompletedQty / OrderQty.</summary>
     public double ProgressPct =>
         OrderQty == 0 ? 0 : Math.Min(100, (double)(CompletedQty * 100 / OrderQty));

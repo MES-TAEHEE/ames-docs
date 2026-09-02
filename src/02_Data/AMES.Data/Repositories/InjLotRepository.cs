@@ -487,10 +487,13 @@ public sealed class InjLotRepository
     }
 
     /// <summary>
-    /// 스캔 확정: RAW → CONFIRMED + PR_ProductionResult 생성 + WO 수량 증가.
-    /// 대상 WO 는 호출자가 아니라 LOT 품번으로 정한다 — 같은 라인의 동일 품번
-    /// WO 중 빠른순(In Progress 우선 → Priority → DueDate → WoID, ListForLine 과
-    /// 같은 정렬) 첫 건. 없으면 NoWoForItem.
+    /// 스캔 확정: RAW → CONFIRMED + PR_ProductionResult 생성 + 단계 실적 +1(WorkOrderRepository.BumpStepCompleted).
+    /// 대상은 호출자가 아니라 이 라인 · LOT 품번으로 정한 단계(PP_WorkOrderRouting) 행이다 —
+    /// 같은 라인에서 해당 품번을 만드는 단계 중 빠른순(단계 Status In Progress 우선 →
+    /// 헤더 Priority → DueDate → WoID) 첫 건. 없으면 NoWoForItem.
+    /// 이 조회는 단계 행만 잠근다(UPDLOCK, ROWLOCK) — 헤더 잠금은 BumpStepCompleted 가
+    /// 단계 → 헤더 순으로 다시 잡으므로, 여기서 헤더까지 같이 잠그면 RecordCycle 과
+    /// 잠금 순서가 엇갈려 교착 가능성이 생긴다.
     /// CycleSec = 같은 설비의 직전 원천 LOT 과 이 LOT 의 CreatedTS 차 (샷 발생 시각 기준).
     /// </summary>
     public (InjConfirmOutcome Outcome, int ResultId, string ItemNo, int WoId) ConfirmByLotCode(
@@ -528,23 +531,26 @@ public sealed class InjLotRepository
             if (status is "CONFIRMED") { tx.Rollback(); return (InjConfirmOutcome.AlreadyConfirmed, 0, itemNo, 0); }
             if (status is "NG_BLOCKED" or "NG_CONFIRMED") { tx.Rollback(); return (InjConfirmOutcome.NgBlocked, 0, itemNo, 0); }
 
-            int woId;
+            int woId, stepId;
             using (var cmd = new SqlCommand("""
-                SELECT TOP 1 WoID
-                FROM   dbo.PP_WorkOrder WITH (UPDLOCK, ROWLOCK)
-                WHERE  LineID = @Line AND ItemNo = @Item
-                  AND  Status IN ('Released','In Progress')
-                ORDER  BY CASE WHEN Status = 'In Progress' THEN 0 ELSE 1 END,
-                          ISNULL(Priority,5),
-                          ISNULL(DueDate,'9999-12-31'),
-                          WoID;
+                SELECT TOP 1 r.WoID, r.RoutingLineID
+                FROM   dbo.PP_WorkOrderRouting r WITH (UPDLOCK, ROWLOCK)
+                JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
+                WHERE  r.LineID = @Line AND w.ItemNo = @Item
+                  AND  r.Status IN ('Released','In Progress')
+                  AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+                ORDER  BY CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
+                          ISNULL(w.Priority,5),
+                          ISNULL(w.DueDate,'9999-12-31'),
+                          w.WoID;
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
                 cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
-                if (cmd.ExecuteScalar() is not int found)
-                { tx.Rollback(); return (InjConfirmOutcome.NoWoForItem, 0, itemNo, 0); }
-                woId = found;
+                using var rdr = cmd.ExecuteReader();
+                if (!rdr.Read()) { rdr.Close(); tx.Rollback(); return (InjConfirmOutcome.NoWoForItem, 0, itemNo, 0); }
+                woId   = (int)rdr["WoID"];
+                stepId = (int)rdr["RoutingLineID"];
             }
 
             int cycleSec;
@@ -598,15 +604,6 @@ public sealed class InjLotRepository
                        ConfirmedBy = @Op, ConfirmedSessionID = @Sess,
                        ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
                 WHERE  LotID = @LotID;
-
-                UPDATE dbo.PP_WorkOrder
-                SET    CompletedQty = ISNULL(CompletedQty,0) + 1,
-                       Status       = CASE WHEN ISNULL(CompletedQty,0) + 1 >= ISNULL(OrderQty,0)
-                                            THEN 'Closed' ELSE Status END,
-                       ActualEnd    = CASE WHEN ISNULL(CompletedQty,0) + 1 >= ISNULL(OrderQty,0)
-                                            THEN SYSDATETIME() ELSE ActualEnd END,
-                       ModifiedBy   = @Op, ModifiedTS = SYSDATETIME()
-                WHERE  WoID = @WoID;
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@WoID",  SqlDbType.Int          ).Value = woId;
@@ -615,6 +612,8 @@ public sealed class InjLotRepository
                 cmd.Parameters.Add("@Sess",  SqlDbType.Int          ).Value = (object?)sessionId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
+
+            WorkOrderRepository.BumpStepCompleted(conn, tx, stepId, 1m, operatorId);
 
             tx.Commit();
             return (InjConfirmOutcome.Confirmed, resultId, itemNo, woId);
