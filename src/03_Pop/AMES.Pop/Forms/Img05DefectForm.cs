@@ -276,7 +276,7 @@ public sealed class Img05DefectForm : PopForm
         {
             PopServices.Defects.RecordDefect(
                 _resultId, _wo.WoId, lotId: null, _selected.DefectCode, qty,
-                _session.OperatorId, _session.EmployeeNo);
+                _session.OperatorId, _session.EmployeeNo, "IMG");
 
             var (g, d) = PopServices.Defects.GetWoTotals(_wo.WoId);
             var pct    = g + d == 0 ? 0 : d * 100.0 / (g + d);

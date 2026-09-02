@@ -2,6 +2,7 @@ using AMES.Data.Connection;
 using AMES.Data.Repositories;
 using Microsoft.Data.SqlClient;
 using Xunit;
+using static AMES.InjAgent.Tests.AmesDevDb;
 
 namespace AMES.InjAgent.Tests;
 
@@ -10,40 +11,9 @@ namespace AMES.InjAgent.Tests;
 /// </summary>
 public class WorkOrderRepositoryTests
 {
-    static readonly string Conn =
-        Environment.GetEnvironmentVariable("AMES_TEST_CONN")
-        ?? "Server=192.168.2.137,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=10;";
-
     const string ItemNoRouting = "ITEST-WO-NORT";
     const string ItemRoutingA  = "ITEST-WO-RTA";
     const string ItemRoutingB  = "ITEST-WO-RTB";
-
-    static AmesConnectionFactory? TryFactory()
-    {
-        try
-        {
-            var f = new AmesConnectionFactory(Conn);
-            using var c = f.OpenConnection();
-            return f;
-        }
-        catch { return null; }
-    }
-
-    static void Exec(AmesConnectionFactory f, string sql, params (string, object)[] ps)
-    {
-        using var conn = f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        foreach (var (n, v) in ps) cmd.Parameters.AddWithValue(n, v);
-        cmd.ExecuteNonQuery();
-    }
-
-    static object? Scalar(AmesConnectionFactory f, string sql, params (string, object)[] ps)
-    {
-        using var conn = f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        foreach (var (n, v) in ps) cmd.Parameters.AddWithValue(n, v);
-        return cmd.ExecuteScalar();
-    }
 
     /// <summary>품목 3개(라우팅 NULL / A / B) + A 품목 BOP(ST-INJ-01, ST-IMG-01). B 품목은 BOP 없음.</summary>
     static void SeedItems(AmesConnectionFactory f)
@@ -351,6 +321,41 @@ public class WorkOrderRepositoryTests
     }
 
     [SkippableFact]
+    public void BumpStepCompleted_first_result_marks_step_and_header_in_progress()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        SeedItems(f);
+        try
+        {
+            var repo = new WorkOrderRepository(f);
+            var woId = CreateDraft(f, ItemRoutingA, qty: 10);
+            repo.ReleaseWo(woId, StepsA("LINE-INJ-01", "LINE-IMG-01"), "itest");
+            var steps = repo.ListSteps(woId);
+            var inj = steps[0].RoutingLineId;
+
+            Assert.Equal(DBNull.Value, Scalar(f, "SELECT ActualStart FROM dbo.PP_WorkOrderRouting WHERE RoutingLineID = @R;", ("@R", inj)));
+            Assert.Equal(DBNull.Value, Scalar(f, "SELECT ActualStart FROM dbo.PP_WorkOrder WHERE WoID = @W;", ("@W", woId)));
+
+            Bump(f, inj, 1);
+
+            steps = repo.ListSteps(woId);
+            Assert.Equal("In Progress", steps[0].Status);
+            Assert.Equal("Released",    steps[1].Status);                    // 다른 단계는 그대로
+            Assert.Equal(("In Progress", 0m, false), Header(f, woId));       // 마지막 단계가 아니어도 헤더는 착수
+            var stepStart   = Scalar(f, "SELECT ActualStart FROM dbo.PP_WorkOrderRouting WHERE RoutingLineID = @R;", ("@R", inj));
+            var headerStart = Scalar(f, "SELECT ActualStart FROM dbo.PP_WorkOrder WHERE WoID = @W;", ("@W", woId));
+            Assert.IsType<DateTime>(stepStart);
+            Assert.IsType<DateTime>(headerStart);
+            Assert.Equal(DBNull.Value, Scalar(f, "SELECT TerminalLock FROM dbo.PP_WorkOrderRouting WHERE RoutingLineID = @R;", ("@R", inj)));
+
+            Bump(f, inj, 1);
+            Assert.Equal(stepStart,   Scalar(f, "SELECT ActualStart FROM dbo.PP_WorkOrderRouting WHERE RoutingLineID = @R;", ("@R", inj)));   // 첫 실적 시각 고정
+            Assert.Equal(headerStart, Scalar(f, "SELECT ActualStart FROM dbo.PP_WorkOrder WHERE WoID = @W;", ("@W", woId)));
+        }
+        finally { CleanupItems(f); }
+    }
+
+    [SkippableFact]
     public void BumpStepCompleted_syncs_header_only_from_last_line_step()
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
@@ -364,16 +369,16 @@ public class WorkOrderRepositoryTests
             var inj = steps[0].RoutingLineId; var img = steps[1].RoutingLineId;
 
             Assert.Equal(4m, Bump(f, inj, 4));
-            Assert.Equal(("Released", 0m, false), Header(f, woId));          // INJ 는 헤더에 안 올라간다
+            Assert.Equal(("In Progress", 0m, false), Header(f, woId));      // 첫 실적 = 착수. CompletedQty 는 INJ 라 안 올라간다
 
             Assert.Equal(6m, Bump(f, img, 6));
-            Assert.Equal(("Released", 6m, false), Header(f, woId));          // 마지막 라인 단계 → 동기화
+            Assert.Equal(("In Progress", 6m, false), Header(f, woId));      // 마지막 라인 단계 → 동기화
 
             Assert.Equal(10m, Bump(f, img, 4));
             Assert.Equal(("Closed", 10m, true), Header(f, woId));           // OrderQty 도달 → Closed
 
             steps = repo.ListSteps(woId);
-            Assert.Equal("Released", steps[0].Status);                        // INJ 단계는 그대로
+            Assert.Equal("In Progress", steps[0].Status);                     // INJ 단계는 착수 상태 유지
             Assert.Equal(("Closed", 10m), (steps[1].Status, steps[1].CompletedQty));
 
             var stepEndBefore   = Scalar(f, "SELECT ActualEnd FROM dbo.PP_WorkOrderRouting WHERE RoutingLineID = @R;", ("@R", img));
@@ -459,7 +464,7 @@ public class WorkOrderRepositoryTests
             Bump(f, repo.ListSteps(woId)[0].RoutingLineId, 3);
 
             var onInj = repo.ListForLine("LINE-INJ-02").Single(w => w.WoId == woId);
-            Assert.Equal(("INJ", 1, "LINE-INJ-02", 3m, "Released"), (onInj.ProcessCode, onInj.StepSeq, onInj.LineId, onInj.CompletedQty, onInj.Status));
+            Assert.Equal(("INJ", 1, "LINE-INJ-02", 3m, "In Progress"), (onInj.ProcessCode, onInj.StepSeq, onInj.LineId, onInj.CompletedQty, onInj.Status));
             Assert.NotNull(onInj.RoutingLineId);
 
             var onImg = repo.ListForLine("LINE-IMG-01").Single(w => w.WoId == woId);
@@ -565,6 +570,54 @@ public class WorkOrderRepositoryTests
             Assert.Equal(("IMG", "IMG-T1"), (activeImg!.ProcessCode, activeImg.TerminalLock));
 
             Assert.NotEqual(woId, repo.GetActiveForTerminal("LINE-INJ-01", "INJ-T2")?.WoId);   // 같은 라인, 다른 터미널
+        }
+        finally { CleanupItems(f); }
+    }
+
+    // ── FindOpenForItem ────────────────────────────────────────────
+
+    [SkippableFact]
+    public void FindOpenForItem_prefers_in_progress_then_priority_then_due_then_id()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        SeedItems(f);
+        try
+        {
+            var repo = new WorkOrderRepository(f);
+            var wo1 = CreateDraft(f, ItemRoutingA);
+            var wo2 = CreateDraft(f, ItemRoutingA);
+            var wo3 = CreateDraft(f, ItemRoutingA);
+            repo.ReleaseWo(wo1, StepsA("LINE-INJ-01", "LINE-IMG-01"), "itest");
+            repo.ReleaseWo(wo2, StepsA("LINE-INJ-01", "LINE-IMG-01"), "itest");
+            repo.ReleaseWo(wo3, StepsA("LINE-INJ-01", "LINE-IMG-01"), "itest");
+
+            // 셋 다 Released, 우선순위 5·납기 동일 → 가장 작은 WoID
+            var pick = repo.FindOpenForItem("LINE-INJ-01", ItemRoutingA);
+            Assert.NotNull(pick);
+            Assert.Equal(wo1, pick!.WoId);
+            Assert.Equal("INJ", pick.ProcessCode);
+            Assert.Equal("LINE-INJ-01", pick.LineId);
+
+            // 납기가 빠르면 WoID 가 더 커도 그쪽 (납기 > WoID 순)
+            Exec(f, "UPDATE dbo.PP_WorkOrder SET DueDate = DATEADD(day,1,CAST(GETDATE() AS date)) WHERE WoID=@W;", ("@W", wo2));
+            Assert.Equal(wo2, repo.FindOpenForItem("LINE-INJ-01", ItemRoutingA)!.WoId);
+            Exec(f, "UPDATE dbo.PP_WorkOrder SET DueDate = DATEADD(day,7,CAST(GETDATE() AS date)) WHERE WoID=@W;", ("@W", wo2));
+
+            // 우선순위가 높으면(숫자 작음) 그쪽
+            Exec(f, "UPDATE dbo.PP_WorkOrder SET Priority = 1 WHERE WoID = @W;", ("@W", wo3));
+            Assert.Equal(wo3, repo.FindOpenForItem("LINE-INJ-01", ItemRoutingA)!.WoId);
+
+            // 취소 WO 는 못 찾는다 (CancelWo 는 Released 까지만 취소 — In Progress 는 대상 아님)
+            repo.CancelWo(wo3, "itest");
+            Assert.Equal(wo1, repo.FindOpenForItem("LINE-INJ-01", ItemRoutingA)!.WoId);
+
+            // In Progress 는 우선순위·순번보다 앞선다
+            repo.AcceptWo(repo.ListSteps(wo2)[0].RoutingLineId, "INJ-T1", "itest-op", "E-ITEST", "{}");
+            Assert.Equal(wo2, repo.FindOpenForItem("LINE-INJ-01", ItemRoutingA)!.WoId);
+
+            // 다른 라인·다른 품번은 못 찾는다
+            Assert.Null(repo.FindOpenForItem("LINE-INJ-02", ItemRoutingA));
+            Assert.Null(repo.FindOpenForItem("LINE-INJ-01", ItemRoutingB));
         }
         finally { CleanupItems(f); }
     }
