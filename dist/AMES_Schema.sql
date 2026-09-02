@@ -2829,6 +2829,7 @@ GO
 CREATE TABLE dbo.FG_ShipmentOrder (
   [ShipmentOrderID]           INT IDENTITY         NOT NULL,
   [ShipOrderNumber]           VARCHAR(24)              NULL,
+  [OutgoingSlipNumber]        VARCHAR(24)              NULL,
   [CustomerCode]              VARCHAR(20)              NULL,
   [CustomerPO]                VARCHAR(40)              NULL,
   [Source]                    VARCHAR(10)              NULL,
@@ -2849,6 +2850,11 @@ CREATE TABLE dbo.FG_ShipmentOrder (
   [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_FG_ShipmentOrder PRIMARY KEY CLUSTERED ([ShipmentOrderID])
 );
+GO
+
+CREATE UNIQUE INDEX UX_FG_ShipmentOrder_OutgoingSlipNumber
+  ON dbo.FG_ShipmentOrder (OutgoingSlipNumber)
+  WHERE OutgoingSlipNumber IS NOT NULL;
 GO
 
 -- ── FG_ShipmentOrderLine  (출하 라인 (SO×LOT))

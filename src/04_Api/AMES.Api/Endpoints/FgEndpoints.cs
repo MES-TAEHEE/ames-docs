@@ -21,6 +21,10 @@ public static class FgEndpoints
     public sealed record OrderLineRow(int ShipmentOrderLineId, int ShipmentOrderId, int LineSeq,
         string ItemNo, string? ItemName, decimal OrderedQty, decimal AllocatedQty,
         int? StockId, string? LotNo, string? Location, string? ReservationStatus);
+    public sealed record OutgoingSlipRow(int OutgoingSlipId, string OutgoingSlipBarcode,
+        string? CustomerCode, DateTime? OutgoingDate, string? Destination, string? Status, int LineCount);
+    public sealed record OutgoingSlipLineRow(int OutgoingSlipLineId, int OutgoingSlipId, int LineSeq,
+        string PartNo, string? PartName, decimal RequiredQty, decimal ScannedQty, string? Status);
     public sealed record HistoryRow(int LoadingId, string? LoadingNumber, int? ShipmentOrderId,
         string? ShipOrderNumber, string? CustomerCode, string? LicensePlate, string? DriverName,
         DateTime? DepartureTs, string? OTDStatus);
@@ -61,7 +65,8 @@ public static class FgEndpoints
         string? ContainerType, string? ContainerBarcode);
     public sealed record PutAwayResult(bool Success, string Message, int? StockId, PutAwayScanRow? Row,
         PutAwayLocationRow? Location);
-    public sealed record PickReq(int ShipmentOrderId, int StockId, decimal Qty);
+    public sealed record ReleaseLotReq(int OutgoingSlipLineId, int StockId, decimal Qty);
+    public sealed record CompleteReleaseReq(int OutgoingSlipId, List<ReleaseLotReq> Lots);
     public sealed record LoadingTruckRow(string Barcode, string LicensePlate, bool Ready, string Message);
     public sealed record LoadingItemRow(int StockId, int ShipmentOrderLineId, int ShipmentOrderId,
         string ShipOrderNumber, string CustomerCode, string ItemNo, string? ItemName,
@@ -443,39 +448,189 @@ public static class FgEndpoints
                 r["ReservationStatus"] as string));
         });
 
-        // FG-04 FIFO Pick — write FG_PickingFifo + reserve a FG_Inventory row
-        g.MapPost("/pick", (HttpContext ctx, PickReq body) =>
+        // FG-04 Release starts from the outgoing-slip barcode, not the downstream shipment number.
+        g.MapGet("/release/outgoing-slips/{barcode}", (HttpContext ctx, string barcode) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            const string sql = """
+                SELECT o.ShipmentOrderID AS OutgoingSlipID, o.OutgoingSlipNumber,
+                       o.CustomerCode, o.ShipDate AS OutgoingDate, o.DestPlant AS Destination,
+                       ISNULL(o.Status,'Open') AS Status,
+                       (SELECT COUNT(*) FROM dbo.FG_ShipmentOrderLine l
+                        WHERE l.ShipmentOrderID=o.ShipmentOrderID) AS LineCount
+                FROM dbo.FG_ShipmentOrder o
+                WHERE o.OutgoingSlipNumber=@Q;
+                """;
+            return QueryWithParam(factory, sql, "@Q", barcode, r => new OutgoingSlipRow(
+                (int)r["OutgoingSlipID"], r["OutgoingSlipNumber"] as string ?? "",
+                r["CustomerCode"] as string, r["OutgoingDate"] as DateTime?,
+                r["Destination"] as string, r["Status"] as string, (int)r["LineCount"]));
+        });
+
+        g.MapGet("/release/outgoing-slips/{barcode}/lines", (HttpContext ctx, string barcode) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            const string sql = """
+                SELECT l.ShipmentOrderLineID AS OutgoingSlipLineID,
+                       l.ShipmentOrderID AS OutgoingSlipID, ISNULL(l.LineSeq,0) AS LineSeq,
+                       l.ItemNo AS PartNo, i.ItemName AS PartName,
+                       ISNULL(l.OrderedQty,0) AS RequiredQty,
+                       ISNULL(l.AllocatedQty,0) AS ScannedQty,
+                       l.ReservationStatus AS Status
+                FROM dbo.FG_ShipmentOrderLine l
+                JOIN dbo.FG_ShipmentOrder o ON o.ShipmentOrderID=l.ShipmentOrderID
+                LEFT JOIN dbo.MD_Item i ON i.ItemNo=l.ItemNo
+                WHERE o.OutgoingSlipNumber=@Q
+                ORDER BY l.LineSeq, l.ShipmentOrderLineID;
+                """;
+            return QueryWithParam(factory, sql, "@Q", barcode, r => new OutgoingSlipLineRow(
+                (int)r["OutgoingSlipLineID"], (int)r["OutgoingSlipID"], (int)r["LineSeq"],
+                r["PartNo"] as string ?? "", r["PartName"] as string,
+                r.GetDecimal(r.GetOrdinal("RequiredQty")), r.GetDecimal(r.GetOrdinal("ScannedQty")),
+                r["Status"] as string));
+        });
+
+        // LOT scans stay client-side; COMPLETE reserves every listed LOT atomically.
+        g.MapPost("/release/complete", (HttpContext ctx, CompleteReleaseReq body) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+            if (body.Lots is not { Count: > 0 }) return Results.BadRequest("Scan every listed LOT before completing.");
             using var conn = factory.OpenConnection();
             using var cmd  = new SqlCommand("""
-                INSERT INTO dbo.FG_PickingFifo
-                    (PickNumber, ShipmentOrderID, PickerID, StartTS, EndTS,
-                     FifoViolations, OverrideCount, PickedQty, OrderedQty,
-                     Status, CreatedBy, CreatedTS)
-                OUTPUT INSERTED.PickID
-                VALUES (CONCAT('PICK-', FORMAT(SYSDATETIME(),'yyMMddHHmmss')),
-                        @So, @Op, SYSDATETIME(), SYSDATETIME(),
-                        0, 0, @Q, @Q, 'Picked', 'pda', SYSDATETIME());
+                SET XACT_ABORT ON;
+                BEGIN TRY
+                    BEGIN TRANSACTION;
+                    DECLARE @ScannedLots TABLE
+                    (
+                        OutgoingSlipLineID int NOT NULL,
+                        StockID int PRIMARY KEY,
+                        Qty decimal(12,3) NOT NULL
+                    );
+                    INSERT @ScannedLots (OutgoingSlipLineID, StockID, Qty)
+                    SELECT OutgoingSlipLineID, StockID, Qty
+                    FROM OPENJSON(@Lots)
+                    WITH
+                    (
+                        OutgoingSlipLineID int '$.OutgoingSlipLineId',
+                        StockID int '$.StockId',
+                        Qty decimal(12,3) '$.Qty'
+                    );
 
-                UPDATE dbo.FG_Inventory
-                SET    Status='Reserved', ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
-                WHERE  StockID = @Stk;
+                    IF NOT EXISTS (SELECT 1 FROM dbo.FG_ShipmentOrder WHERE ShipmentOrderID=@SlipId AND OutgoingSlipNumber IS NOT NULL)
+                        THROW 51000, 'Outgoing slip was not found.', 1;
+                    IF EXISTS (SELECT 1 FROM dbo.FG_ShipmentOrder WHERE ShipmentOrderID=@SlipId AND UPPER(ISNULL(Status,'')) IN ('PICKED','SHIPPED','CANCELLED','CLOSED'))
+                        THROW 51001, 'Outgoing slip is already completed.', 1;
+                    IF EXISTS (
+                        SELECT 1 FROM dbo.FG_ShipmentOrderLine L
+                        LEFT JOIN
+                        (
+                            SELECT OutgoingSlipLineID, SUM(Qty) AS Qty
+                            FROM @ScannedLots
+                            GROUP BY OutgoingSlipLineID
+                        ) P ON P.OutgoingSlipLineID=L.ShipmentOrderLineID
+                        WHERE L.ShipmentOrderID=@SlipId
+                          AND ISNULL(P.Qty,0) <> ISNULL(L.OrderedQty,0))
+                        THROW 51002, 'Scanned LOT quantities must equal every listed part quantity.', 1;
+                    IF EXISTS (
+                        SELECT 1 FROM @ScannedLots P
+                        LEFT JOIN dbo.FG_ShipmentOrderLine L
+                          ON L.ShipmentOrderID=@SlipId
+                         AND L.ShipmentOrderLineID=P.OutgoingSlipLineID
+                        WHERE L.ShipmentOrderLineID IS NULL)
+                        THROW 51003, 'A scanned LOT is not listed on this outgoing slip.', 1;
+                    IF EXISTS (
+                        SELECT 1 FROM @ScannedLots P
+                        JOIN dbo.FG_ShipmentOrderLine L
+                          ON L.ShipmentOrderID=@SlipId
+                         AND L.ShipmentOrderLineID=P.OutgoingSlipLineID
+                        LEFT JOIN dbo.FG_Inventory S WITH (UPDLOCK, HOLDLOCK) ON S.StockID=P.StockID
+                        WHERE S.StockID IS NULL
+                           OR UPPER(ISNULL(S.Status,'')) <> 'AVAILABLE'
+                           OR P.Qty <= 0 OR P.Qty <> S.Qty
+                           OR ISNULL(S.ItemNo,'') <> ISNULL(L.ItemNo,''))
+                        THROW 51004, 'A scanned LOT part, quantity, or inventory status is invalid.', 1;
+                    IF EXISTS (
+                        SELECT 1
+                        FROM @ScannedLots P
+                        JOIN dbo.FG_ShipmentOrderLine L
+                          ON L.ShipmentOrderID=@SlipId
+                         AND L.ShipmentOrderLineID=P.OutgoingSlipLineID
+                        JOIN dbo.FG_Inventory Chosen ON Chosen.StockID=P.StockID
+                        JOIN dbo.FG_Inventory Older WITH (UPDLOCK, HOLDLOCK)
+                          ON Older.ItemNo=L.ItemNo
+                         AND UPPER(ISNULL(Older.Status,''))='AVAILABLE'
+                         AND ISNULL(Older.Qty,0) > 0
+                         AND (ISNULL(Older.StockTS,'9999-12-31') < ISNULL(Chosen.StockTS,'9999-12-31')
+                              OR (ISNULL(Older.StockTS,'9999-12-31')=ISNULL(Chosen.StockTS,'9999-12-31')
+                                  AND Older.StockID < Chosen.StockID))
+                        LEFT JOIN @ScannedLots Earlier ON Earlier.StockID=Older.StockID
+                        WHERE Earlier.StockID IS NULL)
+                        THROW 51005, 'A scanned LOT violates FIFO order.', 1;
 
-                UPDATE dbo.FG_ShipmentOrderLine
-                SET ReservationStatus='Picked', AllocatedQty=@Q, ReservedAt=SYSDATETIME(),
-                    ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
-                WHERE ShipmentOrderID=@So AND StockID=@Stk;
+                    UPDATE S
+                    SET Status='Reserved', ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
+                    FROM dbo.FG_Inventory S JOIN @ScannedLots P ON P.StockID=S.StockID;
 
-                UPDATE dbo.FG_ShipmentOrder
-                SET Status='Picked', ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
-                WHERE ShipmentOrderID=@So
-                  AND UPPER(ISNULL(Status,'')) NOT IN ('SHIPPED','CANCELLED','CLOSED');
+                    ;WITH RankedLots AS
+                    (
+                        SELECT P.*, ROW_NUMBER() OVER
+                            (PARTITION BY P.OutgoingSlipLineID ORDER BY P.StockID) AS LotSeq
+                        FROM @ScannedLots P
+                    )
+                    INSERT INTO dbo.FG_ShipmentOrderLine
+                        (ShipmentOrderID, LineSeq, ItemNo, OrderedQty, AllocatedQty,
+                         StockID, LotID, Location, ReservationStatus, ReservedAt,
+                         CreatedBy, CreatedTS, ModifiedBy, ModifiedTS)
+                    SELECT L.ShipmentOrderID, L.LineSeq, L.ItemNo, P.Qty, P.Qty,
+                           P.StockID, S.LotID, S.Location, 'Picked', SYSDATETIME(),
+                           L.CreatedBy, SYSDATETIME(), @Op, SYSDATETIME()
+                    FROM RankedLots P
+                    JOIN dbo.FG_ShipmentOrderLine L
+                      ON L.ShipmentOrderID=@SlipId
+                     AND L.ShipmentOrderLineID=P.OutgoingSlipLineID
+                    JOIN dbo.FG_Inventory S ON S.StockID=P.StockID
+                    WHERE P.LotSeq > 1;
+
+                    ;WITH RankedLots AS
+                    (
+                        SELECT P.*, ROW_NUMBER() OVER
+                            (PARTITION BY P.OutgoingSlipLineID ORDER BY P.StockID) AS LotSeq
+                        FROM @ScannedLots P
+                    )
+                    UPDATE L
+                    SET OrderedQty=P.Qty, StockID=P.StockID, LotID=S.LotID, Location=S.Location,
+                        ReservationStatus='Picked', AllocatedQty=P.Qty, ReservedAt=SYSDATETIME(),
+                        ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
+                    FROM dbo.FG_ShipmentOrderLine L
+                    JOIN RankedLots P ON P.OutgoingSlipLineID=L.ShipmentOrderLineID AND P.LotSeq=1
+                    JOIN dbo.FG_Inventory S ON S.StockID=P.StockID
+                    WHERE L.ShipmentOrderID=@SlipId;
+
+                    DECLARE @Qty decimal(12,3) = (SELECT SUM(Qty) FROM @ScannedLots);
+                    INSERT INTO dbo.FG_PickingFifo
+                        (PickNumber, ShipmentOrderID, PickerID, StartTS, EndTS,
+                         PicksJSON, FifoViolations, OverrideCount, PickedQty, OrderedQty,
+                         Status, CreatedBy, CreatedTS)
+                    VALUES (CONCAT('PICK-', FORMAT(SYSDATETIME(),'yyMMddHHmmss')),
+                            @SlipId, @Op, SYSDATETIME(), SYSDATETIME(),
+                            @Lots, 0, 0, @Qty, @Qty, 'Picked', 'pda', SYSDATETIME());
+                    DECLARE @PickID int = SCOPE_IDENTITY();
+
+                    UPDATE dbo.FG_ShipmentOrder
+                    SET Status='Picked', ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
+                    WHERE ShipmentOrderID=@SlipId;
+
+                    COMMIT TRANSACTION;
+                    SELECT @PickID;
+                END TRY
+                BEGIN CATCH
+                    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+                    THROW;
+                END CATCH;
                 """, conn);
-            cmd.Parameters.AddWithValue("@So",  body.ShipmentOrderId);
-            cmd.Parameters.AddWithValue("@Stk", body.StockId);
-            cmd.Parameters.AddWithValue("@Q",   body.Qty);
-            cmd.Parameters.AddWithValue("@Op",  s.OperatorId);
+            cmd.Parameters.AddWithValue("@SlipId", body.OutgoingSlipId);
+            cmd.Parameters.AddWithValue("@Op", s.OperatorId);
+            cmd.Parameters.Add("@Lots", SqlDbType.NVarChar, -1).Value = JsonSerializer.Serialize(body.Lots);
             var id = (int)cmd.ExecuteScalar()!;
             return Results.Ok(new { PickId = id });
         });
