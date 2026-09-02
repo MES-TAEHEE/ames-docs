@@ -686,7 +686,7 @@ public static class FgEndpoints
             var row = new LoadingOrderRow(orderId, shipOrderNumber, shipOrderNumber,
                 customerCode, shipDate, destination, items);
             return Results.Ok(new LoadingOrderResult(true,
-                $"Shipment order loaded. Scan the truck for {items.Count} product(s).", row));
+                $"Shipment order loaded. Scan {items.Count} product(s).", row));
         });
 
         g.MapGet("/loading/truck/scan", (HttpContext ctx, string barcode) =>
@@ -711,7 +711,7 @@ public static class FgEndpoints
                     $"This truck already has open loading {openLoading}.", null, null, null));
             }
 
-            var row = new LoadingTruckRow(truck, truck, true, "Truck is ready for loading.");
+            var row = new LoadingTruckRow($"TRUCK:{truck}", truck, true, "Truck is ready for loading.");
             return Results.Ok(new LoadingResult(true, row.Message, null, row, null));
         });
 
@@ -1016,16 +1016,12 @@ public static class FgEndpoints
         }
 
         var separator = value.IndexOf(':');
-        if (separator >= 0)
+        if (separator <= 0 || !value[..separator].Trim().Equals("TRUCK", StringComparison.OrdinalIgnoreCase))
         {
-            var prefix = value[..separator].Trim();
-            if (!new[] { "TRUCK", "PLATE", "VEHICLE" }.Contains(prefix, StringComparer.OrdinalIgnoreCase))
-            {
-                error = "Unsupported barcode type. Scan a truck barcode.";
-                return false;
-            }
-            value = value[(separator + 1)..].Trim();
+            error = "Invalid truck barcode. Expected TRUCK:<license plate>.";
+            return false;
         }
+        value = value[(separator + 1)..].Trim();
 
         if (value.Length is < 3 or > 20)
         {
