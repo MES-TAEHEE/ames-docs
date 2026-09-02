@@ -2991,6 +2991,7 @@ CREATE TABLE dbo.FG_CustomerReturn (
   [OriginalShipmentOrderID]   INT                      NULL,  -- FK -> FG_ShipmentOrder.ShipmentOrderID
   [OriginalDeliveryNoteID]    INT                      NULL,  -- FK -> FG_DeliveryNote.DeliveryNoteID
   [ReturnReason]              VARCHAR(60)              NULL,
+  [Note]                      NVARCHAR(500)            NULL,
   [ItemsJSON]                 NVARCHAR(MAX)            NULL,
   [Status]                    VARCHAR(15)              NULL,
   [ReceivedAt]                DATETIME2                NULL,

@@ -7,7 +7,7 @@
 <div class="pda-shell wh wh02-shell fg06-shell">
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
-        <span class="pda-tbar-brand">FG-006 CUSTOMER RETURN</span>
+        <span class="pda-tbar-brand">CUSTOMER RETURN</span>
     </div>
 
     <div class="pda-bd wh02-body fg01-body fg-return-body">
@@ -28,35 +28,53 @@
 
         @if (_product is not null)
         {
-            <RadzenCard class="wh02-lot-card fg-return-product-card ready">
-                <div class="wh02-lot-top">
-                    <div class="wh02-lot-main">
+            <RadzenCard class="wh02-lot-card fg-return-product-card">
+                <div class="fg-return-product-head">
+                    <div>
                         <span>RETURNED PRODUCT</span>
                         <strong>@Text(_product.LotNo ?? _product.StockNumber)</strong>
                     </div>
                     <RadzenBadge class="wh02-status-chip normal" Text="RETURN ELIGIBLE" />
                 </div>
 
-                <div class="wh02-part">
-                    <div class="wh02-part-no">@Text(_product.ItemNo)</div>
-                    <div class="wh02-part-name">@Text(_product.ItemName)</div>
-                </div>
-
-                <div class="wh02-info-grid fg-return-info-grid">
-                    @foreach (var field in ProductFields())
-                    {
-                        <div class="wh02-info">
-                            <span>@field.Label</span>
-                            <strong>@field.Value</strong>
-                        </div>
-                    }
+                <div class="fg-return-detail-rows">
+                    <div class="fg-return-detail-row"><span>PART NO</span><strong>@Text(_product.ItemNo)</strong></div>
+                    <div class="fg-return-detail-row"><span>PART NAME</span><strong>@Text(_product.ItemName)</strong></div>
+                    <div class="fg-return-detail-row"><span>CUSTOMER</span><strong>@Text(_product.CustomerCode)</strong></div>
+                    <div class="fg-return-detail-row"><span>SHIPPED AT</span><strong>@_product.ShippedAt.ToString("MM/dd/yyyy HH:mm")</strong></div>
                 </div>
             </RadzenCard>
 
             <RadzenCard class="wh03-action-card fg-form-card fg-return-reason-card">
-                <div class="pda-fld">
+                <div class="pda-fld fg-return-reason-field">
                     <label>RETURN REASON</label>
-                    <RadzenDropDown @bind-Value="_reason" Data="@Reasons" />
+                    <div class="fg-return-reason-select">
+                        <button type="button" class="fg-return-reason-trigger"
+                                aria-haspopup="listbox" aria-expanded="@_reasonOpen"
+                                @onclick="ToggleReasonOptions">
+                            <span class="@(string.IsNullOrWhiteSpace(_reason) ? "placeholder" : "")">
+                                @(string.IsNullOrWhiteSpace(_reason) ? "Select return reason" : _reason)
+                            </span>
+                            <span class="fg-return-reason-arrow" aria-hidden="true">⌄</span>
+                        </button>
+                        @if (_reasonOpen)
+                        {
+                            <div class="fg-return-reason-options" role="listbox">
+                                @foreach (var reason in Reasons)
+                                {
+                                    <button type="button"
+                                            class="@($"fg-return-reason-option {(reason == _reason ? "selected" : "")}")"
+                                            role="option" aria-selected="@(reason == _reason)"
+                                            @onclick="@(() => SelectReason(reason))">@reason</button>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="pda-fld fg-return-note-field">
+                    <label>NOTE</label>
+                    <textarea class="pda-input fg-return-note-input" rows="2" maxlength="500"
+                              @bind="_note" placeholder="Enter return note (optional)"></textarea>
                 </div>
             </RadzenCard>
         }
@@ -69,7 +87,7 @@
         <div class="wh02-action-bar has-reset fg-form-actions">
             <RadzenButton class="wh02-clear-btn" Text="CLEAR" Click="Clear" Disabled="@_isBusy" />
             <RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-receive-action-btn {(CanSubmit ? "ready" : "blocked")}")"
-                          Text="RECEIVE RETURN" Disabled="@_isBusy" Click="Submit" />
+                          Text="RECEIVE" Disabled="@_isBusy" Click="Submit" />
         </div>
     </div>
 
@@ -92,10 +110,12 @@
     private static string ScanPanelClass => ShowDeveloperScanButtons ? "dev-scan-panel" : "hardware-scan-panel";
 
     private string _barcode = "";
-    private string _reason = Reasons[0];
+    private string? _reason;
+    private string _note = "";
     private string _message = "";
     private string _messageClass = "dim";
     private bool _isBusy;
+    private bool _reasonOpen;
     private bool _modalOpen;
     private string _modalTitle = "";
     private string _modalMessage = "";
@@ -159,16 +179,22 @@
 
     private async Task Submit()
     {
-        if (!CanSubmit)
+        if (_product is null)
         {
-            ShowModal("Return Not Ready", "Scan a shipped product and select a return reason.", "warn");
+            ShowModal("Return Not Ready", "Scan a shipped product first.", "warn");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_reason))
+        {
+            ShowModal("Return Reason Required", "Select a return reason.", "warn");
             return;
         }
 
         _isBusy = true;
         try
         {
-            var result = await Api.FgReturnAsync(new PdaApi.FgReturnReq(_product!.Barcode, _reason));
+            var result = await Api.FgReturnAsync(new PdaApi.FgReturnReq(
+                _product!.Barcode, _reason!, string.IsNullOrWhiteSpace(_note) ? null : _note.Trim()));
             if (!result.Success)
             {
                 ShowModal("Return Failed", result.Message, "danger");
@@ -182,22 +208,23 @@
         finally { _isBusy = false; }
     }
 
-    private IEnumerable<(string Label, string Value)> ProductFields()
-    {
-        if (_product is null) yield break;
-        yield return ("Customer", Text(_product.CustomerCode));
-        yield return ("Part No", Text(_product.ItemNo));
-        yield return ("Part Name", Text(_product.ItemName));
-        yield return ("Shipped At", _product.ShippedAt.ToString("MM/dd/yyyy HH:mm"));
-    }
-
     private void Clear()
     {
         _barcode = "";
-        _reason = Reasons[0];
+        _reason = null;
+        _reasonOpen = false;
+        _note = "";
         _product = null;
         _message = "";
         _ = FocusScannerAsync();
+    }
+
+    private void ToggleReasonOptions() => _reasonOpen = !_reasonOpen;
+
+    private void SelectReason(string reason)
+    {
+        _reason = reason;
+        _reasonOpen = false;
     }
 
     private void ShowModal(string title, string message, string kind)

@@ -747,7 +747,7 @@ public sealed class PdaApi
         FgLoadingTruckRow? Truck, FgLoadingItemRow? Item);
     public sealed record FgDeliveryReq(int ShipmentOrderId, int? LoadingId);
     public sealed record FgDayEndReq(string CloseMode, string? Note);
-    public sealed record FgReturnReq(string Barcode, string ReturnReason);
+    public sealed record FgReturnReq(string Barcode, string ReturnReason, string? Note);
 
     public Task<List<FgStockRow>>   FgInventoryAsync(string? q = null)
         => Get<List<FgStockRow>>("/api/fg/inventory" + (string.IsNullOrEmpty(q) ? "" : $"?q={Uri.EscapeDataString(q)}"));

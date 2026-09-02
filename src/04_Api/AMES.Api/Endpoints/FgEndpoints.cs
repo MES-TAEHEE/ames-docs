@@ -79,7 +79,7 @@ public static class FgEndpoints
         LoadingTruckRow? Truck, LoadingItemRow? Item);
     public sealed record DeliveryReq(int ShipmentOrderId, int? LoadingId);
     public sealed record DayEndReq(string CloseMode, string? Note);
-    public sealed record ReturnReq(string Barcode, string ReturnReason);
+    public sealed record ReturnReq(string Barcode, string ReturnReason, string? Note);
 
     private const string BarcodeLot = "LOT";
     private const string BarcodeWo = "WORK_ORDER";
@@ -942,6 +942,12 @@ public static class FgEndpoints
                 return Results.BadRequest(new ReturnResult(false,
                     "Select a valid return reason.", null, null));
             }
+            var note = string.IsNullOrWhiteSpace(body.Note) ? null : body.Note.Trim();
+            if (note?.Length > 500)
+            {
+                return Results.BadRequest(new ReturnResult(false,
+                    "Return note must be 500 characters or fewer.", null, null));
+            }
 
             using var conn = factory.OpenConnection();
             using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
@@ -957,11 +963,11 @@ public static class FgEndpoints
             using var cmd  = new SqlCommand("""
                 INSERT INTO dbo.FG_CustomerReturn
                     (ReturnNumber, CustomerCode, OriginalShipmentOrderID,
-                     ReturnReason, ItemsJSON, Status, ReceivedAt, ReceivedBy,
+                     ReturnReason, Note, ItemsJSON, Status, ReceivedAt, ReceivedBy,
                      CapaTriggered, CreatedBy, CreatedTS)
                 OUTPUT INSERTED.ReturnID
                 VALUES (CONCAT('RMA-', FORMAT(SYSDATETIME(),'yyMMddHHmmss')),
-                        @C, @So, @R,
+                        @C, @So, @R, @Note,
                         (SELECT @I AS itemNo, @Lot AS lotNo, @Stock AS stockNumber,
                                 @Barcode AS barcode, @Q AS qty FOR JSON PATH),
                         'Open', SYSDATETIME(), @By, 0,
@@ -975,6 +981,7 @@ public static class FgEndpoints
             cmd.Parameters.AddWithValue("@Stock", (object?)product.Row.StockNumber ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@Barcode", product.Row.Barcode);
             cmd.Parameters.AddWithValue("@Q", product.Qty);
+            cmd.Parameters.Add("@Note", SqlDbType.NVarChar, 500).Value = (object?)note ?? DBNull.Value;
             cmd.Parameters.AddWithValue("@By", s.OperatorId);
             var id = (int)cmd.ExecuteScalar()!;
             tx.Commit();
