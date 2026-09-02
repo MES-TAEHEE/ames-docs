@@ -641,6 +641,41 @@ public sealed class PdaApi
         }
     }
 
+    public async Task<InboundScanRow?> FgScanAdjustAsync(string scanText)
+    {
+        try
+        {
+            Authorize();
+            var url = $"/api/fg/adjust/scan?scanText={Uri.EscapeDataString(scanText.Trim())}";
+            using var resp = await _http.GetAsync(url);
+            if (!resp.IsSuccessStatusCode)
+                throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Finished goods adjust scan service is unavailable."));
+            return await resp.Content.ReadFromJsonAsync<InboundScanRow>();
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
+        catch
+        {
+            throw new InvalidOperationException("Finished goods adjust scan service is unavailable.");
+        }
+    }
+
+    public async Task<InboundReceiveResult> FgSaveAdjustQtyAsync(AdjustSaveReq body)
+    {
+        try
+        {
+            Authorize();
+            using var resp = await _http.PostAsJsonAsync("/api/fg/adjust/save", body);
+            return await ReadInboundReceiveResultAsync(resp);
+        }
+        catch
+        {
+            return new InboundReceiveResult(false, "Finished goods adjustment service is unavailable.", null);
+        }
+    }
+
     public Task<InboundReceiveResult> WhAdjustInboundQtyAsync(InboundAdjustReq body) =>
         WhSaveAdjustQtyAsync(new AdjustSaveReq(
             body.Mode,

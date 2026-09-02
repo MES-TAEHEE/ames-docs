@@ -9,6 +9,9 @@ namespace AMES.Api.Endpoints;
 
 public static class FgEndpoints
 {
+    private const string PdaAdjustScanStockProcedure = "FG_PDA_ADJUST_SCAN_STOCK";
+    private const string PdaAdjustSaveQtyProcedure = "FG_PDA_ADJUST_SAVE_QTY";
+
     // ── DTOs ─────────────────────────────────────────────────────────────
     public sealed record StockRow(int StockId, string? StockNumber, string ItemNo, string? ItemName,
         int? LotId, string? LotNo, string? CustomerCode, decimal Qty, string? Unit,
@@ -32,6 +35,15 @@ public static class FgEndpoints
         int ShipmentOrderId, string? ShipOrderNumber, string CustomerCode,
         string ItemNo, string? ItemName, DateTime ShippedAt);
     public sealed record ReturnResult(bool Success, string Message, int? ReturnId, ReturnScanRow? Row);
+    public sealed record AdjustScanRow(string ReceiveType, string? Yn, string LotNo, string Barcode,
+        string? SourceTable, string? NoteNo, string? CaseBarcode, string? CaseNo, string? InvoiceNo,
+        string? ContainerNo, string? PartNo, string? PartName, decimal Qty, string? Unit, string? PoNo,
+        int? PoSeq, string? VendorId, string? VendorName, DateTime? ProductionDate, DateTime? DeliveryDate,
+        DateTime? ArrivalDate, DateTime? ShipDate, DateTime? PackDate, string? ReceivedLocation,
+        string? ReceivedStatus);
+    public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
+        string? ReasonNote, string SupervisorPin, string? SupervisorEmployeeNo = null);
+    public sealed record AdjustResult(bool Success, string Message, AdjustScanRow? Row);
 
     public sealed record PutAwayReq(int WoId, string ItemNo, decimal Qty, string ActualLoc, int PalletCount);
     public sealed record PutAwayScanRow(int? LotId, string LotNo, int? WoId, string? WoNumber,
@@ -80,6 +92,46 @@ public static class FgEndpoints
     public static void MapFg(this WebApplication app, AmesConnectionFactory factory)
     {
         var g = app.MapGroup("/api/fg").WithTags("Finished Goods");
+
+        g.MapGet("/adjust/scan", (HttpContext ctx, string scanText) =>
+        {
+            if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+
+            try
+            {
+                var row = ExecuteAdjustScan(factory, scanText);
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "SCAN_STOCK", "FG007", "LOT", scanText, "SUCCESS", "Finished goods adjustment stock scanned",
+                    lotNo: row?.LotNo, partNo: row?.PartNo, locationId: row?.ReceivedLocation, qty: row?.Qty));
+                return Results.Ok(row);
+            }
+            catch (Exception ex)
+            {
+                var message = AdjustMessage(ex);
+                var isValidationError = ex is SqlException sqlEx
+                    && sqlEx.Errors.Count > 0
+                    && sqlEx.Errors[0].Number >= 51600
+                    && sqlEx.Errors[0].Number < 51700;
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "SCAN_STOCK", "FG007", "LOT", scanText, "FAIL", message, lotNo: scanText));
+                return Results.Problem(message, statusCode: isValidationError
+                    ? StatusCodes.Status400BadRequest
+                    : StatusCodes.Status503ServiceUnavailable);
+            }
+        });
+
+        g.MapPost("/adjust/save", (HttpContext ctx, AdjustSaveReq body) =>
+        {
+            if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+
+            var result = ExecuteAdjustSave(factory, body, s.EmployeeNo);
+            WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                s, "ADJUST_SAVE", "FG007", "LOT", body.Barcode,
+                result.Success ? "SUCCESS" : "FAIL", result.Message,
+                lotNo: result.Row?.LotNo ?? body.Barcode, partNo: result.Row?.PartNo,
+                locationId: result.Row?.ReceivedLocation, qty: body.DeltaQty));
+            return Results.Ok(result);
+        });
 
         // FG-01 QC Complete List - passed FG LOTs waiting for Put-Away.
         g.MapGet("/qc-completed", (HttpContext ctx) =>
@@ -1807,6 +1859,87 @@ public static class FgEndpoints
             _ => bool.TryParse(Convert.ToString(value), out var parsed) && parsed
         };
     }
+
+    private static AdjustScanRow? ExecuteAdjustScan(AmesConnectionFactory factory, string scanText)
+    {
+        using var conn = factory.OpenConnection();
+        using var cmd = new SqlCommand($"[dbo].[{PdaAdjustScanStockProcedure}]", conn)
+        {
+            CommandType = CommandType.StoredProcedure,
+            CommandTimeout = 15
+        };
+        cmd.Parameters.Add("@ScanText", SqlDbType.NVarChar, 80).Value = scanText.Trim();
+        using var rdr = cmd.ExecuteReader();
+        return rdr.Read() ? ReadAdjustScanRow(rdr) : null;
+    }
+
+    private static AdjustResult ExecuteAdjustSave(AmesConnectionFactory factory, AdjustSaveReq body, string userId)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(body.SupervisorEmployeeNo))
+                return new AdjustResult(false, "Select a supervisor.", null);
+
+            using var conn = factory.OpenConnection();
+            var supervisor = WhEndpoints.FindSupervisorByPin(conn, body.SupervisorEmployeeNo, body.SupervisorPin);
+            if (supervisor is null)
+                return new AdjustResult(false, "The PIN does not match the selected supervisor.", null);
+
+            using var cmd = new SqlCommand($"[dbo].[{PdaAdjustSaveQtyProcedure}]", conn)
+            {
+                CommandType = CommandType.StoredProcedure,
+                CommandTimeout = 15
+            };
+            cmd.Parameters.Add("@ScanText", SqlDbType.NVarChar, 80).Value = body.Barcode.Trim();
+            AddDecimal(cmd, "@DeltaQty", body.DeltaQty);
+            cmd.Parameters.Add("@ReasonCode", SqlDbType.NVarChar, 30).Value = body.ReasonCode.Trim();
+            cmd.Parameters.Add("@ReasonNote", SqlDbType.NVarChar, 500).Value =
+                string.IsNullOrWhiteSpace(body.ReasonNote) ? DBNull.Value : body.ReasonNote.Trim();
+            cmd.Parameters.Add("@SupervisorUserId", SqlDbType.NVarChar, 450).Value = supervisor.UserId;
+            cmd.Parameters.Add("@SupervisorEmployeeNo", SqlDbType.NVarChar, 40).Value = supervisor.EmployeeNo;
+            cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 40).Value = userId;
+
+            using var rdr = cmd.ExecuteReader();
+            var row = rdr.Read() ? ReadAdjustScanRow(rdr) : null;
+            return new AdjustResult(true, "Finished goods quantity adjusted", row);
+        }
+        catch (Exception ex)
+        {
+            return new AdjustResult(false, AdjustMessage(ex), null);
+        }
+    }
+
+    private static AdjustScanRow ReadAdjustScanRow(SqlDataReader rdr) => new(
+        GetString(rdr, "RECEIVE_TYPE") ?? "FG",
+        GetString(rdr, "YN"),
+        GetString(rdr, "LOTNO") ?? "",
+        GetString(rdr, "BARCODE") ?? "",
+        GetString(rdr, "SOURCE_TABLE"),
+        GetString(rdr, "NOTENO"),
+        GetString(rdr, "CASE_BARCODE"),
+        GetString(rdr, "CASE_NO"),
+        GetString(rdr, "INVOICE_NO"),
+        GetString(rdr, "CONTAINER_NO"),
+        GetString(rdr, "PARTNO"),
+        GetString(rdr, "PARTNM"),
+        GetDecimal(rdr, "QTY"),
+        GetString(rdr, "UNIT"),
+        GetString(rdr, "PONO"),
+        GetInt(rdr, "PONO_SEQ"),
+        GetString(rdr, "VENDCD"),
+        GetString(rdr, "VENDNM"),
+        GetDate(rdr, "PROD_DATE"),
+        GetDate(rdr, "DELI_DATE"),
+        GetDate(rdr, "ARRIV_DATE"),
+        GetDate(rdr, "SHIP_DATE"),
+        GetDate(rdr, "PACK_DATE"),
+        GetString(rdr, "RECEIVED_LOCATION"),
+        GetString(rdr, "RECEIVED_STATUS"));
+
+    private static string AdjustMessage(Exception ex)
+        => ex is SqlException sqlEx && sqlEx.Errors.Count > 0
+            ? sqlEx.Errors[0].Message
+            : ex.GetBaseException().Message;
 
     private static string ValueOrDash(string? value)
         => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();

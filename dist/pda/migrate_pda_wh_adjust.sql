@@ -28,6 +28,19 @@ BEGIN
     IF @Scan = N''
         THROW 51500, 'Lot No is required.', 1;
 
+    IF OBJECT_ID(N'dbo.FG_Inventory', N'U') IS NOT NULL
+       AND EXISTS
+       (
+           SELECT 1
+           FROM dbo.FG_Inventory F
+           LEFT JOIN dbo.tbl_Lot FL ON FL.LotID = F.LotID
+           WHERE (UPPER(COALESCE(FL.LotCode, N'')) = UPPER(@Scan)
+               OR UPPER(COALESCE(F.StockNumber, N'')) = UPPER(@Scan))
+             AND UPPER(COALESCE(F.Status, N'Available')) NOT IN
+                 (N'CANCELED', N'CANCELLED', N'SHIPPED', N'DELIVERED', N'CLOSED')
+       )
+        THROW 51505, 'Finished goods cannot be adjusted in Warehouse Adjust.', 1;
+
     -- Legacy LOT lengths: self 15, SCM/CKD 18, vendor 50; local sample LOTs use 9 digits.
     IF @Scan COLLATE Latin1_General_100_BIN2 LIKE N'%[^A-Za-z0-9-]%'
        OR NOT (LEN(@Scan) IN (15, 18, 50)
@@ -146,6 +159,18 @@ BEGIN
 
     IF @Scan = N''
         THROW 51510, 'Lot No is required.', 1;
+    IF OBJECT_ID(N'dbo.FG_Inventory', N'U') IS NOT NULL
+       AND EXISTS
+       (
+           SELECT 1
+           FROM dbo.FG_Inventory F
+           LEFT JOIN dbo.tbl_Lot FL ON FL.LotID = F.LotID
+           WHERE (UPPER(COALESCE(FL.LotCode, N'')) = UPPER(@Scan)
+               OR UPPER(COALESCE(F.StockNumber, N'')) = UPPER(@Scan))
+             AND UPPER(COALESCE(F.Status, N'Available')) NOT IN
+                 (N'CANCELED', N'CANCELLED', N'SHIPPED', N'DELIVERED', N'CLOSED')
+       )
+        THROW 51519, 'Finished goods cannot be adjusted in Warehouse Adjust.', 1;
     IF @Scan COLLATE Latin1_General_100_BIN2 LIKE N'%[^A-Za-z0-9-]%'
        OR NOT (LEN(@Scan) IN (15, 18, 50)
            OR (LEN(@Scan) = 9 AND @Scan COLLATE Latin1_General_100_BIN2 NOT LIKE N'%[^0-9]%'))

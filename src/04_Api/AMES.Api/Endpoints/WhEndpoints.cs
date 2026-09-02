@@ -69,7 +69,7 @@ public static class WhEndpoints
         string? ReasonNote, string SupervisorPin, string? SupervisorEmployeeNo = null);
     public sealed record SupervisorRow(string EmployeeNo, string EmployeeName);
     public sealed record InboundReceiveResult(bool Success, string Message, InboundScanRow? Row);
-    private sealed record SupervisorPinProfile(string UserId, string EmployeeNo);
+    internal sealed record SupervisorPinProfile(string UserId, string EmployeeNo);
 
     public sealed record Wh001ScheduleReleaseItem(int WorkOrderId, string? WorkOrderNo,
         string PartNo, string? PartName, decimal OrderQty, string? Unit,
@@ -2049,7 +2049,7 @@ public static class WhEndpoints
         }
     }
 
-    private static SupervisorPinProfile? FindSupervisorByPin(SqlConnection conn, string employeeNo, string? supervisorPin)
+    internal static SupervisorPinProfile? FindSupervisorByPin(SqlConnection conn, string employeeNo, string? supervisorPin)
     {
         var pin = supervisorPin?.Trim();
         if (string.IsNullOrWhiteSpace(pin) || pin.Length < 4)
