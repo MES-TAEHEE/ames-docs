@@ -17,3 +17,15 @@
 .spi-grid ::deep .rz-datatable {
     height: 100%;
 }
+
+/* 선택 체크박스 — 테마 액센트 */
+.spi-ck {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    accent-color: #2563eb;
+}
+.spi-ck:disabled {
+    cursor: not-allowed;
+    opacity: .4;
+}

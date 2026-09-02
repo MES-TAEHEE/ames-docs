@@ -2769,6 +2769,9 @@
   <data name="PP.SupplyPlanImport.Btn.Export" xml:space="preserve">
     <value>Exportar</value>
   </data>
+  <data name="PP.SupplyPlanImport.Btn.ConfirmSel" xml:space="preserve">
+    <value>Confirmar Seleccionados ({0})</value>
+  </data>
   <data name="PP.SupplyPlanImport.Upload.Title" xml:space="preserve">
     <value>Importar OC SAP</value>
   </data>
@@ -2811,6 +2814,9 @@
   <data name="PP.SupplyPlanImport.Ok.Confirmed" xml:space="preserve">
     <value>Pedido de venta confirmado — ahora elegible para planificación PP-03.</value>
   </data>
+  <data name="PP.SupplyPlanImport.Ok.ConfirmedN" xml:space="preserve">
+    <value>{0} pedido(s) confirmado(s) — ahora elegibles para planificación PP-03.</value>
+  </data>
   <data name="PP.SupplyPlanImport.Col.Wo" xml:space="preserve">
     <value>Vínculo de OT</value>
   </data>
@@ -2837,6 +2843,9 @@
   </data>
   <data name="PP.SupplyPlanImport.Err.NoExport" xml:space="preserve">
     <value>No hay datos para exportar.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Err.NoneSelected" xml:space="preserve">
+    <value>Seleccione al menos un pedido para confirmar.</value>
   </data>
   <data name="PP.WoRelease.Title" xml:space="preserve">
     <value>Liberación de OT</value>

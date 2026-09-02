@@ -2772,6 +2772,9 @@
   <data name="PP.SupplyPlanImport.Btn.Export" xml:space="preserve">
     <value>내보내기</value>
   </data>
+  <data name="PP.SupplyPlanImport.Btn.ConfirmSel" xml:space="preserve">
+    <value>선택 확정 ({0})</value>
+  </data>
   <data name="PP.SupplyPlanImport.Upload.Title" xml:space="preserve">
     <value>SAP 구매오더 가져오기</value>
   </data>
@@ -2814,6 +2817,9 @@
   <data name="PP.SupplyPlanImport.Ok.Confirmed" xml:space="preserve">
     <value>수주 확정 완료 — PP-03 계획 대상으로 편입되었습니다.</value>
   </data>
+  <data name="PP.SupplyPlanImport.Ok.ConfirmedN" xml:space="preserve">
+    <value>수주 {0}건 확정 완료 — PP-03 계획 대상으로 편입되었습니다.</value>
+  </data>
   <data name="PP.SupplyPlanImport.Col.Wo" xml:space="preserve">
     <value>WO 연계</value>
   </data>
@@ -2840,6 +2846,9 @@
   </data>
   <data name="PP.SupplyPlanImport.Err.NoExport" xml:space="preserve">
     <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Err.NoneSelected" xml:space="preserve">
+    <value>확정할 수주를 최소 1건 선택하세요.</value>
   </data>
   <data name="PP.WoRelease.Title" xml:space="preserve">
     <value>작업 지시 릴리스</value>
