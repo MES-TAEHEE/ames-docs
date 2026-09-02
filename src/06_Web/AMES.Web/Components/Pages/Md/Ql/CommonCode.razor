@@ -28,7 +28,7 @@
     </div>
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["MD.CommonCode.Kpi.CodeGroups"]</div>
-        <div class="ames-kpi-v">@_groups.Count</div>
+        <div class="ames-kpi-v">@_allGroups.Count</div>
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">@L["MD.CommonCode.Kpi.SelInactive"]</div>
@@ -52,6 +52,14 @@
                 {
                     <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenGroupCreate" class="ames-rz-btn" />
                 }
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                <RadzenTextBox Value="@_grpSearch" ValueChanged="OnGrpSearchChanged" Immediate="true" Placeholder="@L["MD.CommonCode.Ph.GrpSearch"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;" AutoCompleteType="AutoCompleteType.Off" />
+                @if (!string.IsNullOrEmpty(_grpSearch))
+                {
+                    <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => OnGrpSearchChanged("")' title="@L["Btn.Reset"]" class="ames-rz-btn" />
+                }
+                <span class="dim" style="font-size:.82em;white-space:nowrap;">@_groups.Count / @_allGroups.Count</span>
             </div>
             <div style="flex:1;min-height:0;overflow:hidden;">
             <RadzenDataGrid @ref="_grpGrid" TItem="MasterDataRepository.CodeGroupRow" Data="_groups" AllowPaging="true" PageSize="GrpPageSize" PagerHorizontalAlign="HorizontalAlign.Center"
@@ -387,8 +395,10 @@
 @code {
     const int GrpPageSize = 15;
 
+    List<MasterDataRepository.CodeGroupRow> _allGroups = new();
     List<MasterDataRepository.CodeGroupRow> _groups = new();
     List<MasterDataRepository.CodeItemRow>  _items  = new();
+    string _grpSearch = "";
     MasterDataRepository.CodeGroupRow?      _selGroup;
     MasterDataRepository.CommonCodeKpiRow   _ccKpi = new(0, 0);
 
@@ -415,7 +425,31 @@
         LoadGroups();
     }
 
-    void LoadGroups() { try { _groups = MD.ListCodeGroups(); } catch { _groups = new(); } try { _ccKpi = MD.CommonCodeKpi(); } catch { } }
+    void LoadGroups()
+    {
+        try { _allGroups = MD.ListCodeGroups(); } catch { _allGroups = new(); }
+        try { _ccKpi = MD.CommonCodeKpi(); } catch { }
+        ApplyGrpFilter();
+    }
+
+    void ApplyGrpFilter()
+    {
+        var q = _grpSearch.Trim();
+        _groups = q.Length == 0
+            ? _allGroups
+            : _allGroups.Where(g =>
+                g.GroupCode.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                (g.GroupName   ?? "").Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                (g.GroupNameEn ?? "").Contains(q, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
+    async Task OnGrpSearchChanged(string value)
+    {
+        _grpSearch = value ?? "";
+        ApplyGrpFilter();
+        _grpPage = 0;
+        if (_grpGrid is not null) await _grpGrid.GoToPage(0);
+    }
 
     void OnGrpPage(PagerEventArgs args) => _grpPage = args.PageIndex;
 
@@ -518,7 +552,7 @@
             CloseModal();
             await ReloadGroupsKeepPage();
             if (_selGroup?.GroupCode == _fGroup.GroupCode)
-                _selGroup = _groups.FirstOrDefault(g => g.GroupCode == _fGroup.GroupCode);
+                _selGroup = _allGroups.FirstOrDefault(g => g.GroupCode == _fGroup.GroupCode);
             ShowMsg($"{_fGroup.GroupCode} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }

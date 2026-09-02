@@ -654,6 +654,7 @@ CREATE TABLE dbo.MD_Line (
   [WCID]                      VARCHAR(20)          NOT NULL,  -- FK -> MD_WorkCenter.WCID (소속 작업장, 공정 상속)
   [DailyCap]                  INT                      NULL,
   [ShiftPattern]              VARCHAR(20)              NULL,
+  [LotPrefix]                 CHAR(2)                  NULL,  -- LotNo 라인코드 2자 (유니크)
   [RfidEnabledFlag]           BIT                      NULL,
   [Status]                    VARCHAR(10)              NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
@@ -662,6 +663,9 @@ CREATE TABLE dbo.MD_Line (
   [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_Line PRIMARY KEY CLUSTERED ([LineID])
 );
+GO
+
+CREATE UNIQUE INDEX UX_MD_Line_LotPrefix ON dbo.MD_Line([LotPrefix]) WHERE [LotPrefix] IS NOT NULL;
 GO
 
 -- ── MD_Station  (공정 기준정보 (MD-02))
@@ -1582,6 +1586,15 @@ CREATE TABLE dbo.tbl_Lot (
   [ModifiedBy]                NVARCHAR(450)            NULL,
   [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_tbl_Lot PRIMARY KEY CLUSTERED ([LotID])
+);
+GO
+
+-- ── SYS_LotSeq  (LotNo 채번 카운터 — 헤더별 마지막 순번)
+CREATE TABLE dbo.SYS_LotSeq (
+  [Header]                    CHAR(5)              NOT NULL,  -- 년월일(3) + 라인코드(2)
+  [LastSeq]                   INT                  NOT NULL,
+  [ModifiedTS]                DATETIME2            NOT NULL CONSTRAINT DF_SYS_LotSeq_ModifiedTS DEFAULT SYSDATETIME(),
+  CONSTRAINT PK_SYS_LotSeq PRIMARY KEY CLUSTERED ([Header])
 );
 GO
 
@@ -3571,12 +3584,12 @@ INSERT INTO dbo.MD_WorkCenter (WCID, WCName, ProcessCode, ActiveFlag, CreatedBy,
 GO
 
 -- Production Lines (WCID 필수 — 공정은 소속 작업장에서 상속)
-INSERT INTO dbo.MD_Line (LineID, LineName, WCID, PlantCode, DailyCap, ShiftPattern, RfidEnabledFlag, Status, CreatedBy, CreatedTS) VALUES
-  ('LINE-INJ-01', N'Injection Line 1 (650T)',  'WC-INJ', 'SAV', 4800, '2-SHIFT', 0, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-INJ-02', N'Injection Line 2 (850T)',  'WC-INJ', 'SAV', 3600, '2-SHIFT', 0, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-IMG-01', N'Wrapping Line 1',           'WC-IMG', 'SAV', 1200, '2-SHIFT', 0, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-PNT-01', N'Paint Line 1 (Powder)',     'WC-PNT', 'GEO',  800, '3-SHIFT', 1, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-PNT-02', N'Paint Line 2 (Liquid)',     'WC-PNT', 'GEO',  600, '3-SHIFT', 1, 'ACTIVE', 'admin', SYSDATETIME());
+INSERT INTO dbo.MD_Line (LineID, LineName, WCID, PlantCode, DailyCap, ShiftPattern, LotPrefix, RfidEnabledFlag, Status, CreatedBy, CreatedTS) VALUES
+  ('LINE-INJ-01', N'Injection Line 1 (650T)',  'WC-INJ', 'SAV', 4800, '2-SHIFT', 'I1', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-INJ-02', N'Injection Line 2 (850T)',  'WC-INJ', 'SAV', 3600, '2-SHIFT', 'I2', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-IMG-01', N'Wrapping Line 1',           'WC-IMG', 'SAV', 1200, '2-SHIFT', 'W1', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-PNT-01', N'Paint Line 1 (Powder)',     'WC-PNT', 'GEO',  800, '3-SHIFT', 'P1', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-PNT-02', N'Paint Line 2 (Liquid)',     'WC-PNT', 'GEO',  600, '3-SHIFT', 'P2', 1, 'ACTIVE', 'admin', SYSDATETIME());
 GO
 
 -- Items (LQ2 rear door trim part master — docs/PartMaster_LQ2.xls)

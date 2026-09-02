@@ -93,7 +93,7 @@
                     <div class="pop-card-h">▼ @T("LotBarcodeScanConfirm") (@T("Wo2"): @(_activeWo?.WoNumber ?? "—"))</div>
                     <input @ref="_scanInput" @bind="_scanBuf" @bind:event="oninput"
                            @onkeydown="OnScanKey" class="injm-scan-input"
-                           placeholder="L260717…-LINE-INJ-01-LH" autocomplete="off" />
+                           placeholder="A91I10001" autocomplete="off" />
                     <div class="injm-banner @_bannerClass">
                         <div class="injm-banner-t">@BannerTitle</div>
                         @if (_bannerDetail.Length > 0)

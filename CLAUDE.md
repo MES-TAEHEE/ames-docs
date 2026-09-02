@@ -282,6 +282,7 @@ appsettings 의 `PopTerminal:ModuleCode`/`LineId`/`StationId` 는 제거됐다 �
 
 사출 자동수집 테이블(`PR_InjLot` · `MD_InjCondItem` · `PR_InjCondLog` · `PR_RobotInspection`)은 `dist/migrate_inj_agent.sql`, 금형 마스터(`MD_MoldColor` · `MD_MoldItem` · `MD_MoldLine`)는 `dist/migrate_mold_master.sql` 참조.
 라벨 발행 선점 컬럼(`PR_InjLot.PrintClaimTS` · `PrintClaimStation`)은 `dist/migrate_inj_lot_print_claim.sql` — `migrate_inj_agent.sql` 적용 후에 실행하며, 이게 없으면 Pop 의 `LabelDispatcher` 가 동작하지 않는다.
+LotNo 채번 기반(`SYS_LotSeq` · `MD_Line.LotPrefix` · `tbl_Lot.LotCode` 유니크 인덱스)은 `dist/migrate_lotno_rule.sql` — INJ 원천 Lot 과 실적 배치 Lot(`ProductionRepository.RecordCycle`, IMG-03 등)은 9자리 신규칙(`[년1][월1][일1][라인코드2][순번4]`, 년=A~Z 26년 순환)으로 `LotNoGenerator` 가 채번하며, `LotPrefix` 미등록 라인은 채번이 예외로 막힌다 (시드: INJ I1·I2 / IMG W1 / PNT P1·P2).
 
 ---
 

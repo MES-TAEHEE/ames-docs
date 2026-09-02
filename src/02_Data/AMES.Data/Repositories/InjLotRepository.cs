@@ -2,6 +2,7 @@ using System.Data;
 using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
 using AMES.Data.Connection;
+using AMES.Data.Services;
 using Microsoft.Data.SqlClient;
 
 namespace AMES.Data.Repositories;
@@ -62,8 +63,7 @@ public sealed class InjLotRepository
         using var tx   = conn.BeginTransaction();
         try
         {
-            var lotCode = $"L{DateTime.Now:yyMMddHHmmssfff}-{lineId}-{map.CavityPos}";
-            if (lotCode.Length > 40) throw new InvalidOperationException($"LotCode too long: {lotCode}");
+            var lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DateTime.Now);
             int lotId;
             using (var cmd = new SqlCommand("""
                 INSERT INTO dbo.tbl_Lot
@@ -161,7 +161,7 @@ public sealed class InjLotRepository
         using var tx   = conn.BeginTransaction();
         try
         {
-            // 품번 → 캐비티/색상 매핑. 금형 미지정 WO 는 NULL 로 남기고 LotCode 에 캐비티를 붙이지 않는다.
+            // 품번 → 캐비티/색상 매핑. 금형 미지정 WO 는 NULL 로 남긴다.
             string? moldCode = null, colorCode = null, cavityPos = null;
             int?    cavityNo = null;
             if (!string.IsNullOrEmpty(moldId))
@@ -204,23 +204,9 @@ public sealed class InjLotRepository
                 equipId = cmd.ExecuteScalar() as string;
             }
 
-            var ts = DateTime.Now;
             for (var i = 0; i < qty; i++)
             {
-                // 에이전트와 같은 LotCode 형식. 같은 ms 안에 N 건이 생기므로 빈 코드가 나올 때까지 1ms 씩 민다.
-                string lotCode;
-                while (true)
-                {
-                    lotCode = string.IsNullOrEmpty(cavityPos)
-                        ? $"L{ts:yyMMddHHmmssfff}-{lineId}"
-                        : $"L{ts:yyMMddHHmmssfff}-{lineId}-{cavityPos}";
-                    if (lotCode.Length > 40) throw new InvalidOperationException($"LotCode too long: {lotCode}");
-                    using var dup = new SqlCommand(
-                        "SELECT 1 FROM dbo.tbl_Lot WITH (UPDLOCK, HOLDLOCK) WHERE LotCode = @C;", conn, tx);
-                    dup.Parameters.Add("@C", SqlDbType.VarChar, 40).Value = lotCode;
-                    if (dup.ExecuteScalar() is null) break;
-                    ts = ts.AddMilliseconds(1);
-                }
+                var lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DateTime.Now);
 
                 int lotId; DateTime createdTs;
                 using (var cmd = new SqlCommand("""

@@ -235,7 +235,7 @@ public class InjLotRepositoryTests
             Assert.Equal(qty, lots.Select(l => l.LotCode).Distinct().Count());   // LotCode 중복 없음
             Assert.All(lots, l => Assert.Equal("RAW", l.ConfirmStatus));
             Assert.All(lots, l => Assert.Equal("LH", l.CavityPos));              // 품번 → 캐비티 매핑
-            Assert.All(lots, l => Assert.EndsWith("-LH", l.LotCode));
+            Assert.All(lots, l => Assert.Matches(@"^[A-Z][1-9A-C][1-9A-V]I1\d{4}$", l.LotCode!));
 
             // 발행 직후: 원천 LOT 만 있고 실적·WO 수량은 그대로여야 한다.
             using (var conn = f!.OpenConnection())
@@ -318,5 +318,96 @@ public class InjLotRepositoryTests
                 cmd.ExecuteNonQuery();
             }
         }
+    }
+
+    [SkippableFact]
+    public void NextLotNo_increments_within_header_and_rolls_new_header()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        using var conn = f.OpenConnection();
+        using var tx = conn.BeginTransaction();
+
+        var d1 = new DateTime(2026, 9, 1);
+        var a = AMES.Data.Services.LotNoGenerator.NextLotNo(conn, tx, "LINE-INJ-01", d1);
+        var b = AMES.Data.Services.LotNoGenerator.NextLotNo(conn, tx, "LINE-INJ-01", d1);
+        Assert.Equal(9, a.Length);
+        Assert.Equal(a[..5], b[..5]);
+        Assert.Equal(int.Parse(a[5..]) + 1, int.Parse(b[5..]));
+
+        var c = AMES.Data.Services.LotNoGenerator.NextLotNo(conn, tx, "LINE-INJ-01", d1.AddDays(1));
+        Assert.NotEqual(a[..5], c[..5]);   // 날짜가 바뀌면 새 헤더
+
+        tx.Rollback();   // 카운터도 롤백 — 테스트 흔적 없음
+    }
+
+    [SkippableFact]
+    public void NextLotNo_line_without_prefix_throws()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        using var conn = f.OpenConnection();
+        using var tx = conn.BeginTransaction();
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            AMES.Data.Services.LotNoGenerator.NextLotNo(conn, tx, "LINE-NOPREFIX", DateTime.Now));
+        Assert.Contains("LotPrefix", ex.Message);
+        tx.Rollback();
+    }
+
+    [SkippableFact]
+    public void CreateRawLot_uses_9char_rule_with_incrementing_seq()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        var repo = new InjLotRepository(f);
+        var (id1, c1) = repo.CreateRawLot("LINE-INJ-01", "INJ-650-01", Lh(), 90001);
+        var (id2, c2) = repo.CreateRawLot("LINE-INJ-01", "INJ-650-01", Lh(), 90002);
+        try
+        {
+            Assert.Matches(@"^[A-Z][1-9A-C][1-9A-V]I1\d{4}$", c1);
+            Assert.Equal(c1[..5], c2[..5]);
+            Assert.Equal(int.Parse(c1[5..]) + 1, int.Parse(c2[5..]));
+        }
+        finally { Cleanup(f, id1); Cleanup(f, id2); }
+    }
+
+    [SkippableFact]
+    public void CreateManualRawLots_consecutive_seq_and_9char_rule()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        var repo = new InjLotRepository(f);
+        var lots = repo.CreateManualRawLots("LINE-INJ-01", "83335-P8000RBQ", null, 3, "E-TEST");
+        try
+        {
+            Assert.Equal(3, lots.Count);
+            Assert.All(lots, l => Assert.Matches(@"^[A-Z][1-9A-C][1-9A-V]I1\d{4}$", l.LotCode!));
+            var seqs = lots.Select(l => int.Parse(l.LotCode![5..])).ToList();
+            Assert.Equal(seqs[0] + 1, seqs[1]);
+            Assert.Equal(seqs[1] + 1, seqs[2]);
+        }
+        finally { foreach (var l in lots) Cleanup(f, l.LotId); }
+    }
+
+    [SkippableFact]
+    public void CreateManualRawLots_line_without_prefix_throws_and_rolls_back()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        var repo = new InjLotRepository(f);
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            repo.CreateManualRawLots("LINE-NOPREFIX", "83335-P8000RBQ", null, 1, "E-TEST"));
+        Assert.Contains("LotPrefix", ex.Message);
+    }
+
+    [SkippableFact]
+    public void CreateRawLot_parallel_yields_unique_codes()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        var repo = new InjLotRepository(f);
+        var results = new System.Collections.Concurrent.ConcurrentBag<(int LotId, string LotCode)>();
+        Parallel.For(0, 8, i =>
+            results.Add(repo.CreateRawLot("LINE-INJ-01", "INJ-650-01", Lh(), 91000 + i)));
+        try
+        {
+            Assert.Equal(8, results.Count);
+            Assert.Equal(8, results.Select(r => r.LotCode).Distinct().Count());
+        }
+        finally { foreach (var (id, _) in results) Cleanup(f, id); }
     }
 }
