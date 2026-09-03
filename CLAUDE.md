@@ -287,6 +287,7 @@ LotNo 채번 기반(`SYS_LotSeq` · `MD_Line.LotPrefix` · `tbl_Lot.LotCode` 유
 INJ-MAIN 품번 패널·칩이 5초마다 세는 "라인의 오늘 LOT" 조회용 인덱스 `IX_tbl_Lot_Line_Created(LineID, CreatedTS)` 는 `dist/migrate_inj_lot_line_created.sql` — 스키마 변경 없이 인덱스만 추가하므로 순서 무관, 재실행 안전.
 WO 공정 단계(`PP_WorkOrderRouting.CompletedQty` · 인덱스 · 백필)는 `dist/migrate_wo_step_line.sql` — `migrate_routing_step.sql` 다음에 적용. 이 뒤로 라인 배정·상태·완료수량의 정본은 단계 행이며 `PP_WorkOrder.LineID` 는 쓰지 않는다(컬럼만 잔존). Pop 은 단계 `LineID` 로 WO 를 받고, 실적은 `WorkOrderRepository.BumpStepCompleted` 한 곳으로만 반영된다.
 백필된 WO 중 헤더 라인이 마지막 라인 단계가 아닌 건(예: A 라우팅을 INJ 라인으로 발행)은 첫 후속 실적에서 헤더 `CompletedQty` 가 마지막 단계 값으로 내려갈 수 있다 — PP-04 진척률이 한 번 감소해 보인다.
+PP-003 일괄 생성은 WO 생성 → Release(단계별 라인) → 단계마다 PP_LineSchedule 슬롯(DRAFT) 배치까지 **한 트랜잭션**으로 처리한다(PpRepository.CreateScheduledWorkOrders). 배치 위치는 AMES.Data.Scheduling.SlotPacker(순수 함수)가 정하고, 하루 능력은 LineScheduleRepository.GetDayCapacity(패턴 해석: 그 날 저장 행 → 라인 전용 ACTIVE → 전역)로 읽는다. 자리가 없는 단계는 슬롯 없이 Released 로 남아 PP-LSB 보드의 미배치 목록에서 수동 배치한다. Pop INJ-MAIN 은 오늘 슬롯을 계획으로 읽으므로, 이 경로가 아니면 WO 가 Pop 에 안 뜬다.
 
 ---
 

@@ -2740,7 +2740,7 @@
     <value>Estado de OT Creada</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Hint" xml:space="preserve">
-    <value>Cada plan seleccionado crea una Orden en Borrador enviada a PP-04. Las piezas sin datos maestros no pueden seleccionarse.</value>
+    <value>Cada plan seleccionado se crea, libera y ubica en el programa de línea de cada etapa (BORRADOR) de una vez. Las etapas sin espacio quedan sin ubicar y se colocan a mano en el tablero PP-LSB.</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Run" xml:space="preserve">
     <value>Ejecutar Creación de OT</value>
@@ -5300,5 +5300,44 @@
   </data>
   <data name="PP.LineSchedule.Msg.BandFull" xml:space="preserve">
     <value>Esta franja de operación ya está llena.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.BaseDate" xml:space="preserve">
+    <value>Fecha base de producción</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.ProdDate" xml:space="preserve">
+    <value>Fecha prod.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.DurMin" xml:space="preserve">
+    <value>Min</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.RemainFmt" xml:space="preserve">
+    <value>{0} min libres</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.NoRoom" xml:space="preserve">
+    <value>Sin espacio</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.NoPattern" xml:space="preserve">
+    <value>Sin patrón</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.NoSteps" xml:space="preserve">
+    <value>Sin etapa con línea — liberada sin programa</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Err.LineMissing" xml:space="preserve">
+    <value>Hay etapas sin línea.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Err.PastDate" xml:space="preserve">
+    <value>Las fechas de producción deben ser hoy o posteriores.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Err.StepOrder" xml:space="preserve">
+    <value>Una etapa posterior no puede tener fecha anterior a la previa.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Err.Duration" xml:space="preserve">
+    <value>La duración debe ser de al menos 1 minuto.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.AfterDue" xml:space="preserve">
+    <value>{0} plan(es) se producen después de su fecha de entrega</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Scheduled" xml:space="preserve">
+    <value>{0} orden(es) creadas · {1} etapa(s) ubicadas · {2} sin ubicar</value>
   </data>
 </root>

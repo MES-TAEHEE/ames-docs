@@ -1,5 +1,6 @@
 using System.Data;
 using AMES.Data.Connection;
+using AMES.Data.Scheduling;
 using Microsoft.Data.SqlClient;
 
 namespace AMES.Data.Repositories;
@@ -534,53 +535,136 @@ public sealed class PpRepository
         if (soIds.Count == 0) return created;
 
         var prefix = $"WO-{DateTime.Today:yyyyMMdd}-";
-
-        const string insSql = """
-            INSERT INTO dbo.PP_WorkOrder
-                   (WoNumber, SoID, ItemNo, OrderQty, OpenQty, DueDate, RoutingType, Status, CreatedBy, CreatedTS)
-            SELECT @Wo, s.SoID, s.ItemNo, q.Qty, q.Qty, s.RequestedDeliveryDate, i.RoutingType,
-                   'Draft', @Actor, SYSDATETIME()
-            FROM   dbo.PP_CustomerOrder s
-            JOIN   dbo.MD_Item i ON i.ItemNo = s.ItemNo
-            OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.FG_Stock f
-                         WHERE f.ItemNo = s.ItemNo AND f.Status NOT IN ('SHIPPED','SCRAPPED')) fg
-            CROSS APPLY (SELECT CASE WHEN @UseNet = 1
-                                     THEN IIF(ISNULL(s.OrderQty,0) > ISNULL(fg.OnHand,0),
-                                              ISNULL(s.OrderQty,0) - ISNULL(fg.OnHand,0), 0)
-                                     ELSE ISNULL(s.OrderQty,0) END AS Qty) q
-            WHERE  s.SoID = @SoID AND s.Status = 'Confirmed' AND q.Qty > 0
-               AND i.RoutingType IS NOT NULL
-               AND NOT EXISTS (SELECT 1 FROM dbo.PP_WorkOrder w
-                               WHERE w.SoID = s.SoID AND w.Status <> 'Cancelled');
-            """;
-
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
         {
             var seq = NextWoSeq(conn, tx, prefix);
-
-            using var ins = new SqlCommand(insSql, conn, tx);
-            var pWo    = ins.Parameters.Add("@Wo",   SqlDbType.VarChar, 20);
-            var pSo    = ins.Parameters.Add("@SoID", SqlDbType.Int);
-            ins.Parameters.Add("@Actor",  SqlDbType.NVarChar, 450).Value = actor;
-            ins.Parameters.Add("@UseNet", SqlDbType.Bit).Value = useNetReq;
-
+            using var ins = BuildInsertWoForOrder(conn, tx, actor, useNetReq);
             foreach (var soId in soIds)
             {
                 var wo = $"{prefix}{(seq + 1):D3}";
-                pWo.Value = wo;
-                pSo.Value = soId;
-                if (ins.ExecuteNonQuery() == 1) { created.Add(wo); seq++; }
+                if (ExecInsertWoForOrder(ins, wo, soId) is not null) { created.Add(wo); seq++; }
             }
             tx.Commit();
             return created;
         }
-        catch
+        catch { tx.Rollback(); throw; }
+    }
+
+    // ── PP-003 계획 확정 + 단계별 라인 스케줄 ─────────────────────────────
+    /// <summary>라인 필수 단계 하나의 배치 계획 — 어느 라인, 어느 날, 몇 분.</summary>
+    public sealed record StepPlan(int StepSeq, string LineId, DateTime Date, int DurationMin);
+    public sealed record OrderPlan(int SoId, IReadOnlyList<StepPlan> Steps);
+    public sealed record UnplacedStep(string WoNumber, int StepSeq, string LineId, DateTime Date);
+    public sealed record ScheduledCreateResult(List<string> Created, int PlacedSteps, List<UnplacedStep> Unplaced);
+
+    /// <summary>
+    /// PP-003 일괄 생성(스케줄 포함). 수주별로 WO 생성 → Release(단계 행, 계획의 라인) → 단계마다 (라인, 일자)에
+    /// 빈 자리를 찾아 PP_LineSchedule 슬롯(DRAFT) 추가. 전체가 한 트랜잭션이라 라인 검증 실패는 배치 전체 롤백.
+    /// 자리가 없는 단계는 슬롯 없이 Unplaced 로 보고하고 WO 는 그대로 Released 로 남긴다.
+    /// 슬롯은 같은 (라인, 일자)의 기존 WO 슬롯 뒤에 이어 붙이고, 같은 날 뒤 단계는 앞 단계 슬롯 종료 이후에 놓는다.
+    /// </summary>
+    public ScheduledCreateResult CreateScheduledWorkOrders(IReadOnlyList<OrderPlan> plans, string actor, bool useNetReq = false)
+    {
+        var created  = new List<string>();
+        var unplaced = new List<UnplacedStep>();
+        int placed   = 0;
+        if (plans.Count == 0) return new(created, placed, unplaced);
+
+        var prefix = $"WO-{DateTime.Today:yyyyMMdd}-";
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
         {
-            tx.Rollback();
-            throw;
+            var seq = NextWoSeq(conn, tx, prefix);
+            using var ins = BuildInsertWoForOrder(conn, tx, actor, useNetReq);
+            foreach (var plan in plans)
+            {
+                var wo = $"{prefix}{(seq + 1):D3}";
+                if (ExecInsertWoForOrder(ins, wo, plan.SoId) is not (int woId, decimal qty)) continue;
+                seq++;
+                created.Add(wo);
+
+                var template = WorkOrderRepository.ReadPreview(conn, tx, woId);
+                var choices  = template.Select(t => new WorkOrderRepository.StepLineChoice(
+                        t.StepSeq, plan.Steps.FirstOrDefault(s => s.StepSeq == t.StepSeq)?.LineId))
+                    .ToList();
+                if (WorkOrderRepository.ReleaseCore(conn, tx, woId, choices, actor) == 0)
+                    throw new InvalidOperationException($"{wo}: release failed.");
+
+                (DateTime Date, int End)? prev = null;
+                foreach (var step in plan.Steps.OrderBy(s => s.StepSeq))
+                {
+                    var date = step.Date.Date;
+                    var cap  = LineScheduleRepository.ReadDayCapacity(conn, tx, step.LineId, date);
+                    int? notBefore = cap.LastWoEnd;
+                    if (prev is { } p && p.Date == date)
+                        notBefore = Later(cap.DayStart, notBefore, p.End);
+
+                    if (SlotPacker.Place(cap.OperatingBands, cap.Occupied, step.DurationMin, cap.DayStart, notBefore) is not { } slot)
+                    {
+                        unplaced.Add(new UnplacedStep(wo, step.StepSeq, step.LineId, date));
+                        continue;
+                    }
+                    LineScheduleRepository.AppendWoSlot(conn, tx, step.LineId, date, cap.PatternId,
+                                                        woId, slot.StartMin, slot.EndMin, qty, actor);
+                    placed++;
+                    prev = (date, slot.EndMin);
+                }
+            }
+            tx.Commit();
+            return new(created, placed, unplaced);
         }
+        catch { tx.Rollback(); throw; }
+    }
+
+    // 축(dayStart 기준)에서 더 늦은 시각
+    static int Later(int dayStart, int? a, int b)
+    {
+        if (a is not int av) return b;
+        int Axis(int m) { int r = (m - dayStart) % 1440; return r < 0 ? r + 1440 : r; }
+        return Axis(av) >= Axis(b) ? av : b;
+    }
+
+    const string InsertWoForOrderSql = """
+        INSERT INTO dbo.PP_WorkOrder
+               (WoNumber, SoID, ItemNo, OrderQty, OpenQty, DueDate, RoutingType, Status, CreatedBy, CreatedTS)
+        OUTPUT INSERTED.WoID, INSERTED.OrderQty
+        SELECT @Wo, s.SoID, s.ItemNo, q.Qty, q.Qty, s.RequestedDeliveryDate, i.RoutingType,
+               'Draft', @Actor, SYSDATETIME()
+        FROM   dbo.PP_CustomerOrder s
+        JOIN   dbo.MD_Item i ON i.ItemNo = s.ItemNo
+        OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.FG_Stock f
+                     WHERE f.ItemNo = s.ItemNo AND f.Status NOT IN ('SHIPPED','SCRAPPED')) fg
+        CROSS APPLY (SELECT CASE WHEN @UseNet = 1
+                                 THEN IIF(ISNULL(s.OrderQty,0) > ISNULL(fg.OnHand,0),
+                                          ISNULL(s.OrderQty,0) - ISNULL(fg.OnHand,0), 0)
+                                 ELSE ISNULL(s.OrderQty,0) END AS Qty) q
+        WHERE  s.SoID = @SoID AND s.Status = 'Confirmed' AND q.Qty > 0
+           AND i.RoutingType IS NOT NULL
+           AND NOT EXISTS (SELECT 1 FROM dbo.PP_WorkOrder w
+                           WHERE w.SoID = s.SoID AND w.Status <> 'Cancelled');
+        """;
+
+    static SqlCommand BuildInsertWoForOrder(SqlConnection conn, SqlTransaction tx, string actor, bool useNetReq)
+    {
+        var ins = new SqlCommand(InsertWoForOrderSql, conn, tx);
+        ins.Parameters.Add("@Wo",     SqlDbType.VarChar, 20);
+        ins.Parameters.Add("@SoID",   SqlDbType.Int);
+        ins.Parameters.Add("@Actor",  SqlDbType.NVarChar, 450).Value = actor;
+        ins.Parameters.Add("@UseNet", SqlDbType.Bit).Value = useNetReq;
+        return ins;
+    }
+
+    /// <summary>1행 삽입되면 (WoID, 수량). 조건 미충족(미확정·라우팅 없음·WO 기존재·수량 0)이면 null.</summary>
+    static (int WoId, decimal Qty)? ExecInsertWoForOrder(SqlCommand ins, string wo, int soId)
+    {
+        ins.Parameters["@Wo"].Value   = wo;
+        ins.Parameters["@SoID"].Value = soId;
+        using var rdr = ins.ExecuteReader();
+        if (!rdr.Read()) return null;
+        return ((int)rdr["WoID"], rdr.GetDecimal(rdr.GetOrdinal("OrderQty")));
     }
 
     /// <summary>

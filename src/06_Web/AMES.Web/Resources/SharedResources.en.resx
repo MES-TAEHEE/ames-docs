@@ -2743,7 +2743,7 @@
     <value>Created WO Status</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Hint" xml:space="preserve">
-    <value>Each selected plan creates a Draft Work Order forwarded to PP-04. Parts missing master data cannot be selected.</value>
+    <value>Each selected plan is created, released, and placed on each step's line schedule (DRAFT) in one go. Steps without room stay unplaced and are placed by hand on the PP-LSB board.</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Run" xml:space="preserve">
     <value>Run WO Creation</value>
@@ -5327,5 +5327,44 @@
   </data>
   <data name="PP.WoRelease.Err.NoSteps" xml:space="preserve">
     <value>No routing template; cannot release. Check the item's routing type.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.BaseDate" xml:space="preserve">
+    <value>Base production date</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.ProdDate" xml:space="preserve">
+    <value>Prod. date</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.DurMin" xml:space="preserve">
+    <value>Min</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.RemainFmt" xml:space="preserve">
+    <value>{0} min left</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.NoRoom" xml:space="preserve">
+    <value>No room</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.NoPattern" xml:space="preserve">
+    <value>No pattern</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.NoSteps" xml:space="preserve">
+    <value>No line-required step — released without a schedule</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Err.LineMissing" xml:space="preserve">
+    <value>Some steps have no line.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Err.PastDate" xml:space="preserve">
+    <value>Production dates must be today or later.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Err.StepOrder" xml:space="preserve">
+    <value>A later step cannot be dated before an earlier step.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Err.Duration" xml:space="preserve">
+    <value>Duration must be at least 1 minute.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.AfterDue" xml:space="preserve">
+    <value>{0} plan(s) are produced after their due date</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Scheduled" xml:space="preserve">
+    <value>{0} work order(s) created · {1} step(s) placed · {2} unplaced</value>
   </data>
 </root>
