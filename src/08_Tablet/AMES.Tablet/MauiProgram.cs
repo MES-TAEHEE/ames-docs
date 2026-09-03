@@ -16,6 +16,9 @@ public static class MauiProgram
 
         builder.Services.AddMauiBlazorWebView();
         builder.Services.AddRadzenComponents();
+        builder.Services.AddSingleton<TabletAuthState>();
+        builder.Services.AddSingleton(new HttpClient { BaseAddress = new Uri(ApiBaseUrl) });
+        builder.Services.AddSingleton<TabletAuthService>();
         builder.Services.AddSingleton(new AmesConnectionFactory(ConnectionString));
         builder.Services.AddSingleton<TabletInventoryService>();
 
@@ -26,6 +29,13 @@ public static class MauiProgram
 
         return builder.Build();
     }
+
+    private static string ApiBaseUrl =>
+#if ANDROID
+        "http://192.168.1.100:5210";
+#else
+        "http://localhost:5210";
+#endif
 
     private static string ConnectionString =>
         Environment.GetEnvironmentVariable("AMES_CONNECTION_STRING")
