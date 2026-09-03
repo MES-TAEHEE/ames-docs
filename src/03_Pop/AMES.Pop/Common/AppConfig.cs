@@ -14,17 +14,25 @@ public sealed class AppConfig
     /// <summary>화면 표시 언어: "ko"(기본) 또는 "en". PopLang 초기값.</summary>
     public string Language { get; }
 
-    /// <summary>라벨 재출력용 ZPL 프린터 설정 (없으면 File 모드 기본값).</summary>
+    /// <summary>라벨 ZPL 프린터 설정 — Mode: Tcp(네트워크) · Spooler(Windows 큐, USB) · File(기본값).</summary>
     public string PrinterMode      { get; }
     public string PrinterHost      { get; }
     public int    PrinterPort      { get; }
     public string PrinterOutputDir { get; }
+    /// <summary>Spooler 모드 전용 — Windows 에 등록된 프린터 이름.</summary>
+    public string PrinterName      { get; }
 
     /// <summary>라벨 자동 발행 폴링 주기(ms). 0 이하면 자동 발행 비활성.</summary>
     public int PrinterPollMs { get; }
 
     /// <summary>연속 출력 실패가 이 횟수에 도달하면 자동 발행을 멈춘다.</summary>
     public int PrinterMaxFailures { get; }
+
+    /// <summary>시리얼 스캐너 COM 포트. 비어 있으면 시리얼 스캐너 비활성(HID 만).</summary>
+    public string ScannerPortName { get; }
+
+    /// <summary>포트 열기 실패·끊김 후 재시도 간격(ms).</summary>
+    public int ScannerReconnectMs { get; }
 
     private static readonly Lazy<AppConfig> _instance = new(Load);
     public static AppConfig Current => _instance.Value;
@@ -41,8 +49,12 @@ public sealed class AppConfig
         PrinterHost      = root["PopTerminal:Printer:Host"]      ?? "127.0.0.1";
         PrinterPort      = int.TryParse(root["PopTerminal:Printer:Port"], out var pp) ? pp : 9100;
         PrinterOutputDir = root["PopTerminal:Printer:OutputDir"] ?? "labels";
+        PrinterName      = root["PopTerminal:Printer:Name"]      ?? "";
         PrinterPollMs      = int.TryParse(root["PopTerminal:Printer:PollMs"], out var pms) ? pms : 1000;
         PrinterMaxFailures = int.TryParse(root["PopTerminal:Printer:MaxFailures"], out var pmf) ? pmf : 3;
+
+        ScannerPortName    = (root["PopTerminal:Scanner:PortName"] ?? string.Empty).Trim();
+        ScannerReconnectMs = int.TryParse(root["PopTerminal:Scanner:ReconnectMs"], out var srm) && srm > 0 ? srm : 3000;
     }
 
     private static AppConfig Load()

@@ -18,6 +18,7 @@ public class PopBlazorForm : PopForm
 {
     private readonly BlazorWebView _webView;
     private System.Threading.Timer? _labelTimer;
+    private SerialScannerReader?    _scanner;
 
     public PopBlazorForm()
     {
@@ -34,6 +35,7 @@ public class PopBlazorForm : PopForm
         services.AddSingleton<LabelDispatcher>(_ => new LabelDispatcher(
             new RepoInjLotClaimStore(), new ZplLabelSink(),
             AppConfig.Current.PrinterMaxFailures, LogDispatch));
+        services.AddSingleton<ScannerService>(_ => new ScannerService(LogScanner));
 
         var provider = services.BuildServiceProvider();
 
@@ -52,6 +54,7 @@ public class PopBlazorForm : PopForm
         Controls.Add(_webView);
 
         WireLabelDispatcher(provider);
+        WireScanner(provider);
 
         BlazorHost.ActionRequested += OnAction;
         FormClosing += (_, _) => BlazorHost.ActionRequested -= OnAction;
@@ -94,27 +97,50 @@ public class PopBlazorForm : PopForm
         };
     }
 
-    // 무인 루프라 토스트로 못 알리는 실패가 대부분이고, Debug.WriteLine 은
-    // Release 에서 사라진다 — 프린터/DB 장애 사후 추적에는 파일이 필요하다.
-    // 라벨 .zpl 과 같은 폴더에 남긴다: 현장에서 한 곳만 보면 된다.
-    private static void LogDispatch(string msg)
+    // 스캐너는 로그인과 무관하게 앱 수명 동안 포트를 잡는다. 로그인 전 스캔은
+    // 구독자가 없어 그냥 버려진다 — 화면이 구독 여부로 수신을 결정한다.
+    private void WireScanner(IServiceProvider provider)
     {
-        System.Diagnostics.Debug.WriteLine($"[LabelDispatcher] {msg}");
+        var portName = AppConfig.Current.ScannerPortName;
+        if (portName.Length == 0) return;
+
+        var service = provider.GetRequiredService<ScannerService>();
+        service.IsEnabled = true;
+
+        _scanner = new SerialScannerReader(portName, AppConfig.Current.ScannerReconnectMs,
+                                           service.Publish, LogScanner);
+        _scanner.ConnectionChanged += service.SetConnected;
+        _scanner.Start();
+    }
+
+    // 무인 루프라 토스트로 못 알리는 실패가 대부분이고, Debug.WriteLine 은
+    // Release 에서 사라진다 — 프린터/DB/스캐너 장애 사후 추적에는 파일이 필요하다.
+    // 라벨 .zpl 과 같은 폴더에 남긴다: 현장에서 한 곳만 보면 된다.
+    private static void LogDispatch(string msg) => AppendLog("dispatch", "LabelDispatcher", msg);
+    private static void LogScanner(string msg)  => AppendLog("scanner",  "Scanner",         msg);
+
+    private static void AppendLog(string file, string tag, string msg)
+    {
+        System.Diagnostics.Debug.WriteLine($"[{tag}] {msg}");
         try
         {
             var dir = AppConfig.Current.PrinterOutputDir;
             Directory.CreateDirectory(dir);
-            File.AppendAllText(Path.Combine(dir, $"dispatch-{DateTime.Now:yyyyMMdd}.log"),
+            File.AppendAllText(Path.Combine(dir, $"{file}-{DateTime.Now:yyyyMMdd}.log"),
                                $"{DateTime.Now:HH:mm:ss} {msg}{Environment.NewLine}");
         }
-        catch { /* 로깅 실패가 발행을 막아서는 안 된다 */ }
+        catch { /* 로깅 실패가 발행·수신을 막아서는 안 된다 */ }
     }
 
     protected override void Dispose(bool disposing)
     {
         // 진행 중인 콜백을 기다리지 않는다 — 종료가 최대 5초 늘어지는 것보다,
         // 미완 선점이 스테일 회수(60초)로 복구되는 편이 낫다.
-        if (disposing) _labelTimer?.Dispose();
+        if (disposing)
+        {
+            _labelTimer?.Dispose();
+            _scanner?.Dispose();
+        }
         base.Dispose(disposing);
     }
 

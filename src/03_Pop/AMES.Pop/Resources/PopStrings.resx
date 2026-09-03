@@ -137,6 +137,7 @@
   <data name="ScanEmployeeBadge" xml:space="preserve"><value>사원증 스캔</value></data>
   <data name="ScanHistoryToday" xml:space="preserve"><value>스캔 이력 · 금일</value></data>
   <data name="ScanYourBadgeOrEnterYourPin" xml:space="preserve"><value>사원증을 스캔하거나 핀 번호를 입력하세요</value></data>
+  <data name="Scanner" xml:space="preserve"><value>스캐너</value></data>
   <data name="SecShot" xml:space="preserve"><value>초/샷</value></data>
   <data name="SelectReplacement" xml:space="preserve"><value>교체 금형 선택</value></data>
   <data name="SelectUser" xml:space="preserve"><value>사용자 선택</value></data>
