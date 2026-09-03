@@ -137,6 +137,7 @@
   <data name="ScanEmployeeBadge" xml:space="preserve"><value>Scan Employee Badge</value></data>
   <data name="ScanHistoryToday" xml:space="preserve"><value>SCAN HISTORY · TODAY</value></data>
   <data name="ScanYourBadgeOrEnterYourPin" xml:space="preserve"><value>Scan your badge or enter your PIN</value></data>
+  <data name="Scanner" xml:space="preserve"><value>SCANNER</value></data>
   <data name="SecShot" xml:space="preserve"><value>sec / shot</value></data>
   <data name="SelectReplacement" xml:space="preserve"><value>select replacement</value></data>
   <data name="SelectUser" xml:space="preserve"><value>SELECT USER</value></data>
