@@ -6,357 +6,320 @@ using Microsoft.Data.SqlClient;
 namespace AMES.Data.Repositories;
 
 /// <summary>
-/// PP-DEE OEE 산출: PP_LineStateLog → 계산 → PP_LineOEE 스냅샷 저장.
-/// 두 테이블 모두 자동 생성(최초 실행 시).
+/// PP-OEE 라인 OEE.
+///   읽기: PP_LineOEE(라인×일자×교대 스냅샷) · PP_LineDowntimeLog(손실 사유 분할)
+///   계산: PP_LineStateLog(분단위 상태) + PR_ProductionResult/PR_DefectDetail(실적·불량) + MD_Bop(표준 사이클) → PP_LineOEE 저장
+/// 스키마 정본은 dist/AMES_Schema.sql — 여기서 테이블을 만들지 않는다.
+/// 비율 컬럼은 DB 소수(0.92) ↔ DTO 백분율(92.0) 로 이 클래스에서만 변환한다.
 /// </summary>
 public sealed class OeeRepository
 {
     readonly AmesConnectionFactory _f;
-    const decimal DEFAULT_TARGET = 75m;
 
-    public OeeRepository(AmesConnectionFactory f)
-    {
-        _f = f;
-        TryEnsureTables();
-    }
+    public OeeRepository(AmesConnectionFactory f) => _f = f;
 
     // ── Records ──────────────────────────────────────────────────────────
+    public sealed record LineRef(string LineId, string? Name, string? NameEn);
+    public sealed record DowntimeByReason(string LineId, string? ReasonCode, int Minutes);
     public sealed record EquipSignal(
         int SignalId, string LineId, DateTime SignalTime, bool IsRunning, string? Source);
 
-    // ── DDL ──────────────────────────────────────────────────────────────
-    void TryEnsureTables()
-    {
-        const string ddl = """
-            IF OBJECT_ID('dbo.PP_LineStateLog','U') IS NULL
-            CREATE TABLE dbo.PP_LineStateLog (
-                LogId             INT IDENTITY(1,1) PRIMARY KEY,
-                LineId            VARCHAR(20)   NOT NULL,
-                LogDate           DATE          NOT NULL,
-                StateCode         VARCHAR(30)   NOT NULL DEFAULT 'LOAD',
-                StartMin          INT           NOT NULL DEFAULT 0,
-                EndMin            INT           NOT NULL DEFAULT 0,
-                ActualOutput      INT           NULL,
-                GoodOutput        INT           NULL,
-                TheoreticalOutput INT           NULL,
-                Notes             NVARCHAR(200) NULL,
-                CreatedAt         DATETIME2     NOT NULL DEFAULT SYSDATETIME(),
-                CreatedBy         VARCHAR(50)   NULL
-            );
-
-            IF OBJECT_ID('dbo.PP_EquipSignal','U') IS NULL
-            CREATE TABLE dbo.PP_EquipSignal (
-                SignalId   INT IDENTITY(1,1) PRIMARY KEY,
-                LineId     VARCHAR(20)  NOT NULL,
-                SignalTime DATETIME2    NOT NULL DEFAULT SYSDATETIME(),
-                IsRunning  BIT          NOT NULL DEFAULT 0,
-                Source     VARCHAR(30)  NULL DEFAULT 'WEB',
-                CreatedBy  VARCHAR(50)  NULL
-            );
-
-            IF NOT EXISTS (SELECT 1 FROM sys.indexes
-                           WHERE name = 'IX_PP_EquipSignal_Line_Time'
-                             AND object_id = OBJECT_ID('dbo.PP_EquipSignal'))
-            CREATE INDEX IX_PP_EquipSignal_Line_Time
-                ON dbo.PP_EquipSignal (LineId, SignalTime DESC);
-
-            IF OBJECT_ID('dbo.PP_LineOEE','U') IS NULL
-            CREATE TABLE dbo.PP_LineOEE (
-                OeeId             INT IDENTITY(1,1) PRIMARY KEY,
-                LineId            VARCHAR(20)   NOT NULL,
-                PeriodType        VARCHAR(10)   NOT NULL,
-                PeriodStart       DATE          NOT NULL,
-                PeriodEnd         DATE          NOT NULL,
-                LoadMin           INT           NOT NULL DEFAULT 0,
-                PlannedDownMin    INT           NOT NULL DEFAULT 0,
-                UnplannedDownMin  INT           NOT NULL DEFAULT 0,
-                AvailMin          INT           NOT NULL DEFAULT 0,
-                Availability      DECIMAL(6,2)  NOT NULL DEFAULT 0,
-                ActualOutput      INT           NOT NULL DEFAULT 0,
-                TheoreticalOutput INT           NOT NULL DEFAULT 0,
-                Performance       DECIMAL(6,2)  NOT NULL DEFAULT 0,
-                GoodOutput        INT           NOT NULL DEFAULT 0,
-                Quality           DECIMAL(6,2)  NOT NULL DEFAULT 0,
-                OeeRate           DECIMAL(6,2)  NOT NULL DEFAULT 0,
-                TargetOee         DECIMAL(6,2)  NOT NULL DEFAULT 75,
-                CreatedAt         DATETIME2     NOT NULL DEFAULT SYSDATETIME(),
-                CreatedBy         VARCHAR(50)   NULL
-            );
-            """;
-        try
-        {
-            using var conn = _f.OpenConnection();
-            using var cmd  = new SqlCommand(ddl, conn);
-            cmd.ExecuteNonQuery();
-        }
-        catch { }
-    }
-
     // ── Lines ─────────────────────────────────────────────────────────────
+    /// <summary>라우팅 단계·상태 로그에 등장한 라인 ID (DowntimeMonitor 공용).</summary>
     public List<string> ListLines()
     {
         const string sql = """
             SELECT DISTINCT LineId FROM (
                 SELECT LineID AS LineId FROM dbo.PP_WorkOrderRouting WHERE LineID IS NOT NULL
                 UNION
-                SELECT LineId FROM dbo.PP_LineStateLog
+                SELECT LineID FROM dbo.PP_LineStateLog WHERE LineID IS NOT NULL
             ) t ORDER BY LineId;
             """;
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        using var rdr  = cmd.ExecuteReader();
-        var list = new List<string>();
-        while (rdr.Read()) list.Add((string)rdr["LineId"]);
-        return list;
+        return Query(sql, r => (string)r["LineId"]);
     }
 
-    // ── State Log CRUD ────────────────────────────────────────────────────
-    public List<LineStateLogDto> GetStateLogs(string lineId, DateTime startDate, DateTime endDate)
+    /// <summary>마스터 기준 활성 라인 (코드 + 명칭).</summary>
+    public List<LineRef> ListLineRefs()
     {
         const string sql = """
-            SELECT LogId, LineId, LogDate, StateCode, StartMin, EndMin,
-                   ActualOutput, GoodOutput, TheoreticalOutput, Notes, CreatedAt, CreatedBy
-            FROM   dbo.PP_LineStateLog
-            WHERE  LineId  = @LineId
-              AND  LogDate BETWEEN @Start AND @End
-            ORDER  BY LogDate, StartMin;
+            SELECT LineID, LineName, LineNameEn
+            FROM   dbo.MD_Line
+            WHERE  ISNULL(Status, 'ACTIVE') <> 'INACTIVE'
+            ORDER  BY LineID;
             """;
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
-        cmd.Parameters.Add("@Start",  SqlDbType.Date).Value        = startDate.Date;
-        cmd.Parameters.Add("@End",    SqlDbType.Date).Value        = endDate.Date;
-        using var rdr = cmd.ExecuteReader();
-        var list = new List<LineStateLogDto>();
-        while (rdr.Read())
-            list.Add(new()
-            {
-                LogId     = (int)rdr["LogId"],
-                LineId    = (string)rdr["LineId"],
-                LogDate   = (DateTime)rdr["LogDate"],
-                StateCode = (string)rdr["StateCode"],
-                StartMin  = (int)rdr["StartMin"],
-                EndMin    = (int)rdr["EndMin"],
-                ActualOutput      = rdr["ActualOutput"]      is DBNull ? null : (int?)rdr["ActualOutput"],
-                GoodOutput        = rdr["GoodOutput"]        is DBNull ? null : (int?)rdr["GoodOutput"],
-                TheoreticalOutput = rdr["TheoreticalOutput"] is DBNull ? null : (int?)rdr["TheoreticalOutput"],
-                Notes     = rdr["Notes"]     as string,
-                CreatedAt = (DateTime)rdr["CreatedAt"],
-                CreatedBy = rdr["CreatedBy"] as string,
-            });
-        return list;
+        return Query(sql, r => new LineRef((string)r["LineID"], r["LineName"] as string, r["LineNameEn"] as string));
     }
 
-    public void AddStateLog(string lineId, DateTime logDate, string stateCode,
-        int startMin, int endMin, int? actualOutput, int? goodOutput,
-        int? theoreticalOutput, string? notes, string? createdBy)
+    public List<string> ListShiftCodes()
+    {
+        const string sql = "SELECT DISTINCT ShiftCode FROM dbo.PP_LineOEE WHERE ShiftCode IS NOT NULL ORDER BY ShiftCode;";
+        return Query(sql, r => (string)r["ShiftCode"]);
+    }
+
+    public DateTime? LatestSnapshotDate()
+    {
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand("SELECT MAX(PeriodDate) FROM dbo.PP_LineOEE;", conn);
+        return cmd.ExecuteScalar() is DateTime d ? d : null;
+    }
+
+    // ── Snapshots (PP_LineOEE) ────────────────────────────────────────────
+    public List<OeeSnapshotDto> GetSnapshots(DateTime from, DateTime to, string? shiftCode = null, string? lineId = null)
     {
         const string sql = """
-            INSERT INTO dbo.PP_LineStateLog
-                   (LineId,LogDate,StateCode,StartMin,EndMin,
-                    ActualOutput,GoodOutput,TheoreticalOutput,Notes,CreatedBy)
-            VALUES (@LineId,@Date,@State,@Start,@End,
-                    @Actual,@Good,@Theo,@Notes,@By);
+            SELECT OeeSnapshotID, LineID, PeriodDate, ShiftCode,
+                   ISNULL(LoadingMin,0)       AS LoadingMin,
+                   ISNULL(PlannedDownMin,0)   AS PlannedDownMin,
+                   ISNULL(UnplannedDownMin,0) AS UnplannedDownMin,
+                   ISNULL(OperatingMin,0)     AS OperatingMin,
+                   ISNULL(TotalProducedQty,0) AS TotalProducedQty,
+                   ISNULL(GoodQty,0)          AS GoodQty,
+                   ISNULL(Availability,0)     AS Availability,
+                   ISNULL(Performance,0)      AS Performance,
+                   ISNULL(Quality,0)          AS Quality,
+                   ISNULL(OEE,0)              AS OEE,
+                   CreatedTS, CreatedBy
+            FROM   dbo.PP_LineOEE
+            WHERE  PeriodDate BETWEEN @From AND @To
+              AND  (@Shift IS NULL OR ShiftCode = @Shift)
+              AND  (@Line  IS NULL OR LineID    = @Line)
+            ORDER  BY PeriodDate, LineID, ShiftCode;
             """;
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value   = lineId;
-        cmd.Parameters.Add("@Date",   SqlDbType.Date).Value          = logDate.Date;
-        cmd.Parameters.Add("@State",  SqlDbType.VarChar, 30).Value   = stateCode;
-        cmd.Parameters.Add("@Start",  SqlDbType.Int).Value           = startMin;
-        cmd.Parameters.Add("@End",    SqlDbType.Int).Value           = endMin;
-        cmd.Parameters.Add("@Actual", SqlDbType.Int).Value           = (object?)actualOutput       ?? DBNull.Value;
-        cmd.Parameters.Add("@Good",   SqlDbType.Int).Value           = (object?)goodOutput         ?? DBNull.Value;
-        cmd.Parameters.Add("@Theo",   SqlDbType.Int).Value           = (object?)theoreticalOutput  ?? DBNull.Value;
-        cmd.Parameters.Add("@Notes",  SqlDbType.NVarChar, 200).Value = (object?)notes              ?? DBNull.Value;
-        cmd.Parameters.Add("@By",     SqlDbType.VarChar, 50).Value   = (object?)createdBy          ?? DBNull.Value;
-        cmd.ExecuteNonQuery();
+        return Query(sql, MapSnapshot,
+            ("@From",  SqlDbType.Date,    from.Date),
+            ("@To",    SqlDbType.Date,    to.Date),
+            ("@Shift", SqlDbType.VarChar, (object?)shiftCode ?? DBNull.Value),
+            ("@Line",  SqlDbType.VarChar, (object?)lineId    ?? DBNull.Value));
     }
 
-    public void DeleteStateLog(int logId)
+    static OeeSnapshotDto MapSnapshot(SqlDataReader r) => new()
     {
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand("DELETE FROM dbo.PP_LineStateLog WHERE LogId=@Id;", conn);
-        cmd.Parameters.Add("@Id", SqlDbType.Int).Value = logId;
-        cmd.ExecuteNonQuery();
-    }
+        OeeSnapshotId    = (int)r["OeeSnapshotID"],
+        LineId           = (string)r["LineID"],
+        PeriodDate       = (DateTime)r["PeriodDate"],
+        ShiftCode        = r["ShiftCode"] as string,
+        LoadingMin       = (int)r["LoadingMin"],
+        PlannedDownMin   = (int)r["PlannedDownMin"],
+        UnplannedDownMin = (int)r["UnplannedDownMin"],
+        OperatingMin     = (int)r["OperatingMin"],
+        TotalProducedQty = (decimal)r["TotalProducedQty"],
+        GoodQty          = (decimal)r["GoodQty"],
+        Availability     = Pct((decimal)r["Availability"]),
+        Performance      = Pct((decimal)r["Performance"]),
+        Quality          = Pct((decimal)r["Quality"]),
+        Oee              = Pct((decimal)r["OEE"]),
+        CreatedTs        = r["CreatedTS"] as DateTime?,
+        CreatedBy        = r["CreatedBy"] as string,
+    };
 
-    // ── OEE Calculation ───────────────────────────────────────────────────
-    /// <summary>PP_LineStateLog 집계 → OEE = A × P × Q 산출 (저장 안 함)</summary>
-    public OeeSnapshotDto ComputeOee(
-        string lineId, string periodType, DateTime startDate, DateTime endDate,
-        decimal targetOee = DEFAULT_TARGET)
-    {
-        const string sql = """
-            SELECT
-                StateCode,
-                SUM(CASE WHEN EndMin > StartMin THEN EndMin - StartMin ELSE 0 END) AS TotalMin,
-                SUM(ISNULL(ActualOutput, 0))      AS TotalActual,
-                SUM(ISNULL(GoodOutput, 0))        AS TotalGood,
-                SUM(ISNULL(TheoreticalOutput, 0)) AS TotalTheo
-            FROM   dbo.PP_LineStateLog
-            WHERE  LineId  = @LineId
-              AND  LogDate BETWEEN @Start AND @End
-            GROUP  BY StateCode;
-            """;
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
-        cmd.Parameters.Add("@Start",  SqlDbType.Date).Value        = startDate.Date;
-        cmd.Parameters.Add("@End",    SqlDbType.Date).Value        = endDate.Date;
+    static decimal Pct(decimal fraction) => Math.Round(fraction * 100m, 2);
+    static decimal Frac(decimal pct)     => Math.Round(pct / 100m, 4);
 
-        int loadMin = 0, plannedDown = 0, unplannedDown = 0;
-        int actualOutput = 0, goodOutput = 0, theoreticalOutput = 0;
-
-        using (var rdr = cmd.ExecuteReader())
-        {
-            while (rdr.Read())
-            {
-                var code  = (string)rdr["StateCode"];
-                var mins  = Convert.ToInt32(rdr["TotalMin"]);
-                actualOutput      += Convert.ToInt32(rdr["TotalActual"]);
-                goodOutput        += Convert.ToInt32(rdr["TotalGood"]);
-                theoreticalOutput += Convert.ToInt32(rdr["TotalTheo"]);
-                switch (code)
-                {
-                    case "LOAD":           loadMin      += mins; break;
-                    case "PLANNED_DOWN":   plannedDown  += mins; break;
-                    case "UNPLANNED_DOWN": unplannedDown += mins; break;
-                }
-            }
-        }
-
-        // 부하시간이 없으면 기간 × 8h 기본값
-        if (loadMin == 0)
-            loadMin = ((endDate.Date - startDate.Date).Days + 1) * 480;
-
-        int     availMin = Math.Max(0, loadMin - plannedDown - unplannedDown);
-        decimal avail    = loadMin > 0 ? Math.Round((decimal)availMin / loadMin * 100m, 2) : 0m;
-        decimal perf     = theoreticalOutput > 0
-            ? Math.Min(100m, Math.Round((decimal)actualOutput / theoreticalOutput * 100m, 2))
-            : (availMin > 0 ? 100m : 0m);
-        decimal qual     = actualOutput > 0
-            ? Math.Round((decimal)goodOutput / actualOutput * 100m, 2)
-            : (perf > 0 ? 100m : 0m);
-        decimal oee      = Math.Round(avail / 100m * perf / 100m * qual / 100m * 100m, 2);
-
-        return new()
-        {
-            LineId           = lineId,
-            PeriodType       = periodType,
-            PeriodStart      = startDate.Date,
-            PeriodEnd        = endDate.Date,
-            LoadMin          = loadMin,
-            PlannedDownMin   = plannedDown,
-            UnplannedDownMin = unplannedDown,
-            AvailMin         = availMin,
-            Availability     = avail,
-            ActualOutput     = actualOutput,
-            TheoreticalOutput = theoreticalOutput,
-            Performance      = perf,
-            GoodOutput       = goodOutput,
-            Quality          = qual,
-            OeeRate          = oee,
-            TargetOee        = targetOee,
-            CreatedAt        = DateTime.Now,
-        };
-    }
-
-    // ── Snapshot CRUD ─────────────────────────────────────────────────────
+    /// <summary>같은 (라인, 일자, 교대) 스냅샷이 있으면 갱신, 없으면 삽입. 저장된 행의 ID 를 돌려준다.</summary>
     public int SaveSnapshot(OeeSnapshotDto s, string? savedBy)
     {
         const string sql = """
-            INSERT INTO dbo.PP_LineOEE
-                   (LineId,PeriodType,PeriodStart,PeriodEnd,
-                    LoadMin,PlannedDownMin,UnplannedDownMin,AvailMin,
-                    Availability,ActualOutput,TheoreticalOutput,Performance,
-                    GoodOutput,Quality,OeeRate,TargetOee,CreatedBy)
-            VALUES (@LineId,@PType,@PStart,@PEnd,
-                    @Load,@PlDn,@UnDn,@Avail,
-                    @A,@Actual,@Theo,@P,
-                    @Good,@Q,@Oee,@Target,@By);
-            SELECT CAST(SCOPE_IDENTITY() AS INT);
+            DECLARE @Id INT;
+            UPDATE dbo.PP_LineOEE
+            SET    LoadingMin=@Load, PlannedDownMin=@PlDn, UnplannedDownMin=@UnDn, OperatingMin=@Op,
+                   TotalProducedQty=@Prod, GoodQty=@Good,
+                   Availability=@A, Performance=@P, Quality=@Q, OEE=@Oee,
+                   ModifiedBy=@By, ModifiedTS=SYSDATETIME()
+            WHERE  LineID=@Line AND PeriodDate=@Date
+              AND  ((ShiftCode IS NULL AND @Shift IS NULL) OR ShiftCode=@Shift);
+            IF @@ROWCOUNT = 0
+            BEGIN
+                INSERT INTO dbo.PP_LineOEE
+                       (LineID, PeriodDate, ShiftCode,
+                        LoadingMin, PlannedDownMin, UnplannedDownMin, OperatingMin,
+                        TotalProducedQty, GoodQty, Availability, Performance, Quality, OEE,
+                        CreatedBy, CreatedTS)
+                VALUES (@Line, @Date, @Shift,
+                        @Load, @PlDn, @UnDn, @Op,
+                        @Prod, @Good, @A, @P, @Q, @Oee,
+                        @By, SYSDATETIME());
+                SET @Id = CAST(SCOPE_IDENTITY() AS INT);
+            END
+            ELSE
+                SELECT @Id = OeeSnapshotID FROM dbo.PP_LineOEE
+                WHERE  LineID=@Line AND PeriodDate=@Date
+                  AND  ((ShiftCode IS NULL AND @Shift IS NULL) OR ShiftCode=@Shift);
+            SELECT @Id;
             """;
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value  = s.LineId;
-        cmd.Parameters.Add("@PType",  SqlDbType.VarChar, 10).Value  = s.PeriodType;
-        cmd.Parameters.Add("@PStart", SqlDbType.Date).Value         = s.PeriodStart;
-        cmd.Parameters.Add("@PEnd",   SqlDbType.Date).Value         = s.PeriodEnd;
-        cmd.Parameters.Add("@Load",   SqlDbType.Int).Value          = s.LoadMin;
-        cmd.Parameters.Add("@PlDn",   SqlDbType.Int).Value          = s.PlannedDownMin;
-        cmd.Parameters.Add("@UnDn",   SqlDbType.Int).Value          = s.UnplannedDownMin;
-        cmd.Parameters.Add("@Avail",  SqlDbType.Int).Value          = s.AvailMin;
-        cmd.Parameters.Add("@A",      SqlDbType.Decimal).Value      = s.Availability;
-        cmd.Parameters.Add("@Actual", SqlDbType.Int).Value          = s.ActualOutput;
-        cmd.Parameters.Add("@Theo",   SqlDbType.Int).Value          = s.TheoreticalOutput;
-        cmd.Parameters.Add("@P",      SqlDbType.Decimal).Value      = s.Performance;
-        cmd.Parameters.Add("@Good",   SqlDbType.Int).Value          = s.GoodOutput;
-        cmd.Parameters.Add("@Q",      SqlDbType.Decimal).Value      = s.Quality;
-        cmd.Parameters.Add("@Oee",    SqlDbType.Decimal).Value      = s.OeeRate;
-        cmd.Parameters.Add("@Target", SqlDbType.Decimal).Value      = s.TargetOee;
-        cmd.Parameters.Add("@By",     SqlDbType.VarChar, 50).Value  = (object?)savedBy ?? DBNull.Value;
+        cmd.Parameters.Add("@Line",  SqlDbType.VarChar, 20).Value   = s.LineId;
+        cmd.Parameters.Add("@Date",  SqlDbType.Date).Value          = s.PeriodDate.Date;
+        cmd.Parameters.Add("@Shift", SqlDbType.VarChar, 10).Value   = (object?)s.ShiftCode ?? DBNull.Value;
+        cmd.Parameters.Add("@Load",  SqlDbType.Int).Value           = s.LoadingMin;
+        cmd.Parameters.Add("@PlDn",  SqlDbType.Int).Value           = s.PlannedDownMin;
+        cmd.Parameters.Add("@UnDn",  SqlDbType.Int).Value           = s.UnplannedDownMin;
+        cmd.Parameters.Add("@Op",    SqlDbType.Int).Value           = s.OperatingMin;
+        AddDec(cmd, "@Prod", s.TotalProducedQty);
+        AddDec(cmd, "@Good", s.GoodQty);
+        AddDec(cmd, "@A",    Frac(s.Availability));
+        AddDec(cmd, "@P",    Frac(s.Performance));
+        AddDec(cmd, "@Q",    Frac(s.Quality));
+        AddDec(cmd, "@Oee",  Frac(s.Oee));
+        cmd.Parameters.Add("@By", SqlDbType.NVarChar, 450).Value = string.IsNullOrWhiteSpace(savedBy) ? "web" : savedBy;
         return Convert.ToInt32(cmd.ExecuteScalar());
+
+        static void AddDec(SqlCommand c, string name, decimal v)
+        {
+            var p = c.Parameters.Add(name, SqlDbType.Decimal);
+            p.Precision = 14; p.Scale = 4; p.Value = v;
+        }
     }
 
-    public List<OeeSnapshotDto> GetSnapshots(
-        string lineId, string? periodType = null, DateTime? from = null,
-        DateTime? to = null, int limit = 60)
-    {
-        var sql = $"""
-            SELECT TOP (@Limit)
-                OeeId,LineId,PeriodType,PeriodStart,PeriodEnd,
-                LoadMin,PlannedDownMin,UnplannedDownMin,AvailMin,
-                Availability,ActualOutput,TheoreticalOutput,Performance,
-                GoodOutput,Quality,OeeRate,TargetOee,CreatedAt,CreatedBy
-            FROM dbo.PP_LineOEE
-            WHERE LineId = @LineId
-            {(periodType != null ? "AND PeriodType = @PType " : "")}
-            {(from        != null ? "AND PeriodStart >= @From " : "")}
-            {(to          != null ? "AND PeriodEnd   <= @To "   : "")}
-            ORDER BY PeriodStart DESC;
-            """;
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@Limit",  SqlDbType.Int).Value          = limit;
-        cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value  = lineId;
-        if (periodType != null) cmd.Parameters.Add("@PType", SqlDbType.VarChar, 10).Value = periodType;
-        if (from != null) cmd.Parameters.Add("@From", SqlDbType.Date).Value = from.Value.Date;
-        if (to   != null) cmd.Parameters.Add("@To",   SqlDbType.Date).Value = to.Value.Date;
-        using var rdr = cmd.ExecuteReader();
-        var list = new List<OeeSnapshotDto>();
-        while (rdr.Read())
-            list.Add(new()
-            {
-                OeeId    = (int)rdr["OeeId"],
-                LineId   = (string)rdr["LineId"],
-                PeriodType  = (string)rdr["PeriodType"],
-                PeriodStart = (DateTime)rdr["PeriodStart"],
-                PeriodEnd   = (DateTime)rdr["PeriodEnd"],
-                LoadMin          = (int)rdr["LoadMin"],
-                PlannedDownMin   = (int)rdr["PlannedDownMin"],
-                UnplannedDownMin = (int)rdr["UnplannedDownMin"],
-                AvailMin         = (int)rdr["AvailMin"],
-                Availability     = (decimal)rdr["Availability"],
-                ActualOutput     = (int)rdr["ActualOutput"],
-                TheoreticalOutput = (int)rdr["TheoreticalOutput"],
-                Performance      = (decimal)rdr["Performance"],
-                GoodOutput       = (int)rdr["GoodOutput"],
-                Quality          = (decimal)rdr["Quality"],
-                OeeRate          = (decimal)rdr["OeeRate"],
-                TargetOee        = (decimal)rdr["TargetOee"],
-                CreatedAt        = (DateTime)rdr["CreatedAt"],
-                CreatedBy        = rdr["CreatedBy"] as string,
-            });
-        return list;
-    }
-
-    public void DeleteSnapshot(int oeeId)
+    public void DeleteSnapshot(int oeeSnapshotId)
     {
         using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand("DELETE FROM dbo.PP_LineOEE WHERE OeeId=@Id;", conn);
-        cmd.Parameters.Add("@Id", SqlDbType.Int).Value = oeeId;
+        using var cmd  = new SqlCommand("DELETE FROM dbo.PP_LineOEE WHERE OeeSnapshotID=@Id;", conn);
+        cmd.Parameters.Add("@Id", SqlDbType.Int).Value = oeeSnapshotId;
         cmd.ExecuteNonQuery();
+    }
+
+    // ── Downtime reasons (손실 분할용) ────────────────────────────────────
+    public List<DowntimeByReason> GetDowntimeByReason(DateTime from, DateTime to)
+    {
+        const string sql = """
+            SELECT LineID, ReasonCode,
+                   SUM(ISNULL(DurationMin, DATEDIFF(minute, StartTS, ISNULL(EndTS, SYSDATETIME())))) AS Minutes
+            FROM   dbo.PP_LineDowntimeLog
+            WHERE  LineID IS NOT NULL
+              AND  StartTS >= @From AND StartTS < @ToExcl
+            GROUP  BY LineID, ReasonCode;
+            """;
+        return Query(sql,
+            r => new DowntimeByReason((string)r["LineID"], r["ReasonCode"] as string, Convert.ToInt32(r["Minutes"])),
+            ("@From",   SqlDbType.DateTime2, from.Date),
+            ("@ToExcl", SqlDbType.DateTime2, to.Date.AddDays(1)));
+    }
+
+    // ── State log (PP_LineStateLog, 읽기 전용) ────────────────────────────
+    public List<LineStateLogDto> GetStateLogs(string lineId, DateTime windowStart, DateTime windowEnd)
+    {
+        const string sql = """
+            SELECT StateLogID, LineID, MinuteTS, State, PlanState, ISNULL(RunFlag,0) AS RunFlag, WoID
+            FROM   dbo.PP_LineStateLog
+            WHERE  LineID = @Line AND MinuteTS >= @S AND MinuteTS < @E
+            ORDER  BY MinuteTS;
+            """;
+        return Query(sql, r => new LineStateLogDto
+            {
+                StateLogId = (long)r["StateLogID"],
+                LineId     = (string)r["LineID"],
+                MinuteTs   = (DateTime)r["MinuteTS"],
+                State      = r["State"] as string,
+                PlanState  = r["PlanState"] as string,
+                RunFlag    = Convert.ToBoolean(r["RunFlag"]),
+                WoId       = r["WoID"] as int?,
+            },
+            ("@Line", SqlDbType.VarChar,   lineId),
+            ("@S",    SqlDbType.DateTime2, windowStart),
+            ("@E",    SqlDbType.DateTime2, windowEnd));
+    }
+
+    // ── OEE 계산 (저장 안 함) ─────────────────────────────────────────────
+    /// <summary>
+    /// [windowStart, windowEnd) 구간의 분단위 상태 로그와 실적으로 A·P·Q 를 산출한다.
+    ///   Loading   = 로그된 전체 분 (시드 스냅샷과 동일하게 계획 정지를 포함)
+    ///   Planned   = PlanState 가 PLAN-RUN 이 아닌 분
+    ///   Operating = PLAN-RUN 이면서 State='RUN' 인 분
+    ///   Q         = 양품 / (양품 + 불량)           — PR_ProductionResult · PR_DefectDetail
+    ///   P         = Σ(수량 × BOP 표준 사이클) / 가동 초 — 표준 사이클이 하나라도 없으면 100% 로 간주(PerformanceAssumed)
+    /// 로그가 한 줄도 없으면 null.
+    /// </summary>
+    public OeeSnapshotDto? ComputeOee(string lineId, DateTime windowStart, DateTime windowEnd, string? shiftCode)
+    {
+        const string stateSql = """
+            SELECT COUNT(*) AS LoadingMin,
+                   SUM(CASE WHEN ISNULL(PlanState,'PLAN-RUN') <> 'PLAN-RUN' THEN 1 ELSE 0 END) AS PlannedDownMin,
+                   SUM(CASE WHEN ISNULL(PlanState,'PLAN-RUN') =  'PLAN-RUN' AND State = 'RUN' THEN 1 ELSE 0 END) AS OperatingMin
+            FROM   dbo.PP_LineStateLog
+            WHERE  LineID = @Line AND MinuteTS >= @S AND MinuteTS < @E;
+            """;
+        const string resultSql = """
+            SELECT ISNULL(SUM(r.GoodQty), 0)            AS GoodQty,
+                   ISNULL(SUM(d.DefQty), 0)             AS DefectQty,
+                   SUM(CASE WHEN b.StdCycle IS NOT NULL
+                            THEN (ISNULL(r.GoodQty,0) + ISNULL(d.DefQty,0)) * b.StdCycle END) AS StdSec,
+                   SUM(CASE WHEN b.StdCycle IS NOT NULL THEN 1 ELSE 0 END) AS RowsWithStd,
+                   COUNT(*)                             AS Rows
+            FROM   dbo.PR_ProductionResult r
+            LEFT JOIN (SELECT ResultID, SUM(ISNULL(Qty,0)) AS DefQty
+                       FROM dbo.PR_DefectDetail GROUP BY ResultID) d ON d.ResultID = r.ResultID
+            LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID
+            OUTER APPLY (SELECT AVG(CAST(bp.StdCycleTime AS decimal(12,3))) AS StdCycle
+                         FROM   dbo.MD_Bop bp
+                         WHERE  bp.ItemNo = w.ItemNo
+                           AND  ISNULL(bp.ActiveFlag, 1) = 1
+                           AND  (w.RoutingType IS NULL OR bp.RoutingType = w.RoutingType)) b
+            WHERE  r.LineID = @Line AND r.EntryAt >= @S AND r.EntryAt < @E;
+            """;
+
+        using var conn = _f.OpenConnection();
+
+        int loading, planned, operating;
+        using (var cmd = new SqlCommand(stateSql, conn))
+        {
+            AddWindow(cmd, lineId, windowStart, windowEnd);
+            using var rdr = cmd.ExecuteReader();
+            if (!rdr.Read()) return null;
+            loading = Convert.ToInt32(rdr["LoadingMin"]);
+            if (loading == 0) return null;
+            planned   = Convert.ToInt32(rdr["PlannedDownMin"]);
+            operating = Convert.ToInt32(rdr["OperatingMin"]);
+        }
+
+        decimal good, defect; decimal? stdSec; int rowsWithStd, rows;
+        using (var cmd = new SqlCommand(resultSql, conn))
+        {
+            AddWindow(cmd, lineId, windowStart, windowEnd);
+            using var rdr = cmd.ExecuteReader();
+            rdr.Read();
+            good        = Convert.ToDecimal(rdr["GoodQty"]);
+            defect      = Convert.ToDecimal(rdr["DefectQty"]);
+            stdSec      = rdr["StdSec"] is DBNull ? null : Convert.ToDecimal(rdr["StdSec"]);
+            rowsWithStd = Convert.ToInt32(rdr["RowsWithStd"]);
+            rows        = Convert.ToInt32(rdr["Rows"]);
+        }
+
+        int     unplanned = Math.Max(0, loading - planned - operating);
+        decimal produced  = good + defect;
+        decimal a = Math.Round((decimal)operating / loading * 100m, 2);
+        decimal q = produced > 0 ? Math.Round(good / produced * 100m, 2) : 100m;
+
+        bool assumed = rows == 0 || rowsWithStd < rows || stdSec is null || operating == 0;
+        decimal p = assumed
+            ? 100m
+            : Math.Min(100m, Math.Round(stdSec!.Value / (operating * 60m) * 100m, 2));
+
+        return new OeeSnapshotDto
+        {
+            LineId             = lineId,
+            PeriodDate         = windowStart.Date,
+            ShiftCode          = shiftCode,
+            LoadingMin         = loading,
+            PlannedDownMin     = planned,
+            UnplannedDownMin   = unplanned,
+            OperatingMin       = operating,
+            TotalProducedQty   = produced,
+            GoodQty            = good,
+            Availability       = a,
+            Performance        = p,
+            Quality            = q,
+            Oee                = Math.Round(a / 100m * p / 100m * q / 100m * 100m, 2),
+            PerformanceAssumed = assumed,
+            CreatedTs          = DateTime.Now,
+        };
+
+        static void AddWindow(SqlCommand cmd, string line, DateTime s, DateTime e)
+        {
+            cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = line;
+            cmd.Parameters.Add("@S",    SqlDbType.DateTime2).Value   = s;
+            cmd.Parameters.Add("@E",    SqlDbType.DateTime2).Value   = e;
+        }
     }
 
     // ── Equipment Signal (PP-ODM 실시간 신호) ────────────────────────────
@@ -388,18 +351,8 @@ public sealed class OeeRepository
                 GROUP  BY LineId
             ) m ON s.LineId = m.LineId AND s.SignalTime = m.MaxTime;
             """;
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        using var rdr  = cmd.ExecuteReader();
         var dict = new Dictionary<string, EquipSignal>(StringComparer.OrdinalIgnoreCase);
-        while (rdr.Read())
-        {
-            var sig = new EquipSignal(
-                (int)rdr["SignalId"], (string)rdr["LineId"],
-                (DateTime)rdr["SignalTime"], Convert.ToBoolean(rdr["IsRunning"]),
-                rdr["Source"] as string);
-            dict[sig.LineId] = sig;
-        }
+        foreach (var sig in Query(sql, MapSignal)) dict[sig.LineId] = sig;
         return dict;
     }
 
@@ -413,17 +366,26 @@ public sealed class OeeRepository
               AND  SignalTime > DATEADD(minute, -@M, SYSDATETIME())
             ORDER  BY SignalTime ASC;
             """;
+        return Query(sql, MapSignal,
+            ("@LineId", SqlDbType.VarChar, lineId),
+            ("@M",      SqlDbType.Int,     minutesBack));
+    }
+
+    static EquipSignal MapSignal(SqlDataReader r) => new(
+        (int)r["SignalId"], (string)r["LineId"],
+        (DateTime)r["SignalTime"], Convert.ToBoolean(r["IsRunning"]),
+        r["Source"] as string);
+
+    // ── Helper ────────────────────────────────────────────────────────────
+    List<T> Query<T>(string sql, Func<SqlDataReader, T> map, params (string Name, SqlDbType Type, object Value)[] ps)
+    {
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
-        cmd.Parameters.Add("@M",      SqlDbType.Int).Value         = minutesBack;
+        foreach (var (name, type, value) in ps)
+            cmd.Parameters.Add(name, type).Value = value;
         using var rdr = cmd.ExecuteReader();
-        var list = new List<EquipSignal>();
-        while (rdr.Read())
-            list.Add(new EquipSignal(
-                (int)rdr["SignalId"], (string)rdr["LineId"],
-                (DateTime)rdr["SignalTime"], Convert.ToBoolean(rdr["IsRunning"]),
-                rdr["Source"] as string));
+        var list = new List<T>();
+        while (rdr.Read()) list.Add(map(rdr));
         return list;
     }
 }

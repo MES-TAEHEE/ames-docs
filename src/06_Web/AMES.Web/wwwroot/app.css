@@ -1531,55 +1531,60 @@ select.ames-rz-input {
     color: #fca5a5;
 }
 
-/* ── PP-DEE OEE Dashboard ───────────────────────────────────────── */
-.pp-oee-metrics {
-    display: grid;
-    grid-template-columns: 160px 1fr;
-    gap: 16px;
-    align-items: start;
-    margin-bottom: 14px;
+/* ── PP-OEE Line OEE dashboard ──────────────────────────────────── */
+.pp-oee-mono { font-family: 'JetBrains Mono', monospace; }
+.pp-oee-kpis { grid-template-columns: repeat(5, 1fr); }
+.ames-kpi.pp-oee-kpi-a::before { background: linear-gradient(180deg, #60a5fa, #2563eb); }
+.ames-kpi.pp-oee-kpi-p::before { background: linear-gradient(180deg, #c4b5fd, #7c3aed); }
+.ames-kpi.pp-oee-kpi-q::before { background: linear-gradient(180deg, #67e8f9, #0891b2); }
+
+/* 공통 트랙/필 */
+.pp-oee-track {
+    flex: 1; height: 10px; min-width: 46px;
+    background: rgba(255,255,255,.07); border-radius: 5px; overflow: hidden;
 }
-.pp-oee-gauge-wrap {
-    display: flex; flex-direction: column; align-items: center;
-    padding: 10px 0;
-}
-.pp-oee-apq {
-    display: flex; flex-direction: column; gap: 10px; flex: 1;
-}
-.pp-oee-bar-row {
-    display: flex; align-items: center; gap: 8px;
-}
-.pp-oee-bar-lbl { font-size: 11px; color: #64748b; width: 90px; flex-shrink: 0; }
-.pp-oee-bar-track {
-    flex: 1; height: 14px; background: rgba(255,255,255,.05);
-    border-radius: 7px; overflow: hidden; position: relative;
-}
-.pp-oee-bar-fill {
-    height: 100%; border-radius: 7px;
-    transition: width .4s cubic-bezier(.4,0,.2,1);
-}
-.pp-oee-bar-val {
-    font-family: 'JetBrains Mono', monospace; font-size: 11px;
-    color: #cbd5e1; width: 52px; text-align: right; flex-shrink: 0;
-}
-/* time-loss waterfall bar */
-.pp-oee-loss-wrap { margin: 12px 0 4px; }
-.pp-oee-loss-bar {
-    display: flex; height: 32px; border-radius: 6px; overflow: hidden;
-    background: rgba(255,255,255,.03);
-}
-.pp-oee-loss-legend {
-    display: flex; flex-wrap: wrap; gap: 10px;
-    padding: 6px 0; font-size: 11px;
-}
-.pp-oee-loss-dot {
-    display: inline-block; width: 10px; height: 10px;
-    border-radius: 2px; margin-right: 4px; vertical-align: middle;
-}
-/* OEE SVG trend */
-.pp-oee-chart-wrap {
-    width: 100%; overflow: hidden;
-}
+.pp-oee-track i { display: block; height: 100%; border-radius: 5px; transition: width .35s cubic-bezier(.4,0,.2,1); }
+.pp-oee-fill-a { background: #2563eb; }
+.pp-oee-fill-p { background: #7c3aed; }
+.pp-oee-fill-q { background: #0891b2; }
+
+/* 라인 테이블 A/P/Q */
+.pp-oee-apq { display: flex; align-items: center; gap: 6px; }
+.pp-oee-apq-val { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 800; width: 46px; text-align: right; flex-shrink: 0; }
+
+/* OEE 등급 필 */
+.pp-oee-pill { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 900; padding: 3px 10px; border-radius: 11px; }
+.pp-oee-pill.wc { background: rgba(5,150,105,.22);  color: #6ee7b7; }
+.pp-oee-pill.ok { background: rgba(217,119,6,.22);  color: #fcd34d; }
+.pp-oee-pill.lo { background: rgba(220,38,38,.22);  color: #fca5a5; }
+
+/* 손실 · 구성 2단 */
+.pp-oee-grid2 { display: grid; grid-template-columns: 1.35fr 1fr; gap: 8px; margin-bottom: 8px; }
+@media (max-width: 960px) { .pp-oee-grid2 { grid-template-columns: 1fr; } .pp-oee-kpis { grid-template-columns: repeat(2, 1fr); } }
+
+.pp-oee-loss-row  { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,.07); }
+.pp-oee-loss-name { font-size: 11px; width: 118px; flex-shrink: 0; }
+.pp-oee-loss-cat  { font-size: 8px; color: #94a3b8; }
+.pp-oee-loss-track { height: 14px; border-radius: 3px; }
+.pp-oee-loss-track i { border-radius: 3px; }
+.pp-oee-loss-val  { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 800; width: 64px; text-align: right; }
+
+.pp-oee-donut-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px 0 2px; }
+.pp-oee-donut-wrap.wc { color: #6ee7b7; }
+.pp-oee-donut-wrap.ok { color: #fcd34d; }
+.pp-oee-donut-wrap.lo { color: #fca5a5; }
+.pp-oee-donut-track { stroke: rgba(255,255,255,.08); }
+.pp-oee-comp { margin-top: 12px; }
+.pp-oee-comp-row { margin-bottom: 9px; }
+.pp-oee-comp-h { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 3px; }
+.pp-oee-comp-h b { font-family: 'JetBrains Mono', monospace; }
+.pp-oee-comp-track { height: 13px; border-radius: 4px; }
+
+/* 드릴다운 */
+.pp-oee-chart-wrap { width: 100%; overflow: hidden; }
+.pp-oee-calc { display: grid; grid-template-columns: 170px 1fr; gap: 16px; align-items: start; }
+.pp-oee-dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+@media (max-width: 640px) { .pp-oee-calc { grid-template-columns: 1fr; } }
 
 /* ── PP-ODM Downtime Monitor ────────────────────────────────────────── */
 
@@ -4052,3 +4057,55 @@ html[data-theme="light"] .fg-return-json pre { color: var(--ames-text); backgrou
     .fg-return-detail-grid { grid-template-columns: 1fr; }
     .fg-web-toolbar .rz-stack { width: 100%; }
 }
+
+/* ── PP-OEE 라이트 테마 ─────────────────────────────────────────── */
+html[data-theme="light"] .pp-oee-track { background: rgba(80,60,20,.10); }
+html[data-theme="light"] .pp-oee-loss-row { border-bottom-color: var(--ames-border-soft); }
+html[data-theme="light"] .pp-oee-loss-cat { color: var(--ames-text-dim); }
+html[data-theme="light"] .pp-oee-pill.wc { background: #d1fae5; color: #065f46; }
+html[data-theme="light"] .pp-oee-pill.ok { background: #fef3c7; color: #92400e; }
+html[data-theme="light"] .pp-oee-pill.lo { background: #fee2e2; color: #991b1b; }
+html[data-theme="light"] .pp-oee-donut-wrap.wc { color: #059669; }
+html[data-theme="light"] .pp-oee-donut-wrap.ok { color: #d97706; }
+html[data-theme="light"] .pp-oee-donut-wrap.lo { color: #dc2626; }
+html[data-theme="light"] .pp-oee-donut-track { stroke: rgba(80,60,20,.10); }
+
+/* PP-OEE 그리드: 낮은 행 높이 (ames-rz-grid 테마 위 오버라이드) */
+.ames-rz-grid.pp-oee-lines .rz-data-cell { padding: 4px 10px !important; font-size: 12px; }
+.ames-rz-grid.pp-oee-lines .rz-column-title { font-size: 11px; }
+.pp-oee-lines .pp-oee-pill { padding: 1px 9px; font-size: 11px; }
+
+/* PP-OEE RadzenChart: 축·범례 글자, 격자선 (다크 기본 / 라이트 오버라이드) */
+.pp-oee-chart .rz-tick-text,
+.pp-oee-chart .rz-legend-item-text { fill: #94a3b8; font-size: 11px; }
+.pp-oee-chart .rz-grid-line { stroke: rgba(148,163,184,.25); }
+html[data-theme="light"] .pp-oee-chart .rz-tick-text,
+html[data-theme="light"] .pp-oee-chart .rz-legend-item-text { fill: var(--ames-text-dim); }
+html[data-theme="light"] .pp-oee-chart .rz-grid-line { stroke: rgba(80,60,20,.18); }
+
+/* PP-DTL 비가동 이력 그리드: 낮은 행 높이 */
+.ames-rz-grid.pp-dtl-grid .rz-data-cell { padding: 4px 10px !important; font-size: 12px; }
+.ames-rz-grid.pp-dtl-grid .rz-column-title { font-size: 11px; }
+
+/* PP-ODM 모니터 보강: 유휴 상태 · 라인명 · 라이트 테마 */
+.odm-line-name    { font-size: .72rem; color: #94a3b8; }
+.odm-badge-idle   { background: rgba(245,158,11,.16); color: #fbbf24; }
+.odm-tl-idle      { background: rgba(245,158,11,.6); }
+a.odm-alert-chip  { text-decoration: none; }
+html[data-theme="light"] .odm-card { background: var(--ames-surface); border-color: var(--ames-border); }
+html[data-theme="light"] .odm-line-id { color: var(--ames-text); }
+html[data-theme="light"] .odm-line-name,
+html[data-theme="light"] .odm-day-stats,
+html[data-theme="light"] .odm-tl-axis { color: var(--ames-text-dim); }
+html[data-theme="light"] .odm-tl-wrap { border-color: var(--ames-border-soft); }
+html[data-theme="light"] .odm-tl-empty { background: rgba(80,60,20,.06); }
+html[data-theme="light"] .odm-tl-plan { background: rgba(80,60,20,.18); }
+html[data-theme="light"] .odm-badge-unknown { background: rgba(80,60,20,.08); color: var(--ames-text-dim); }
+html[data-theme="light"] .odm-edit-info { background: var(--ames-surface-3); color: var(--ames-text); }
+
+/* PP-OTD 납기 준수율: 지연 행 강조 · 진척 막대 */
+.ames-rz-grid tr.otd-row-late .rz-data-cell { background: rgba(239,68,68,.06) !important; }
+.ames-rz-grid tr.otd-row-late .rz-data-cell:first-child { box-shadow: inset 2px 0 0 rgba(239,68,68,.55); }
+.otd-fill-ok  { background: #22c55e; }
+.otd-fill-bad { background: #ef4444; }
+html[data-theme="light"] .ames-rz-grid tr.otd-row-late .rz-data-cell { background: rgba(220,38,38,.07) !important; }

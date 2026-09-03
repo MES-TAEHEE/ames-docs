@@ -1,484 +1,584 @@
-﻿@page "/pp/oee"
+@page "/pp/oee"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @rendermode InteractiveServer
 @inject AMES.Data.Repositories.OeeRepository Repo
+@inject AMES.Data.Repositories.MasterDataRepository MD
+@inject AMES.Web.Services.PermissionService PermSvc
 @inject IStringLocalizer<SharedResources> L
 @inject AuthenticationStateProvider AuthPrvd
+@inject Microsoft.JSInterop.IJSRuntime JS
 @using AMES.Contracts.Dto
+@using AMES.Data.Repositories
 
 <PageTitle>@L["PP.Oee.Title"] · AMES</PageTitle>
 
 <AmesPageHeader Code="PP-OEE" TitleKey="PP.Oee.Title" />
 
-@* ── 스냅샷 이력 평균 KPI ────────────────────────────────────────── *@
-@if (_snapshots.Count > 0)
-{
-    <div class="ames-kpis">
-        <div class="ames-kpi @OeeKpiCls(_avgOee, (double)_snapshots[0].TargetOee)">
-            <div class="ames-kpi-l">AVG OEE</div>
-            <div class="ames-kpi-v">@($"{_avgOee:F1}")%</div>
-            <div class="ames-kpi-s">@string.Format(L["PP.Oee.Kpi.AvgTarget"].Value, _snapshots[0].TargetOee)</div>
-        </div>
-        <div class="ames-kpi @OeeKpiCls(_avgA, 90)">
-            <div class="ames-kpi-l">@L["PP.Oee.Kpi.Availability"]</div>
-            <div class="ames-kpi-v">@($"{_avgA:F1}")%</div>
-            <div class="ames-kpi-s">@L["PP.Oee.Kpi.HistAvg"]</div>
-        </div>
-        <div class="ames-kpi @OeeKpiCls(_avgP, 90)">
-            <div class="ames-kpi-l">@L["PP.Oee.Kpi.Performance"]</div>
-            <div class="ames-kpi-v">@($"{_avgP:F1}")%</div>
-            <div class="ames-kpi-s">@L["PP.Oee.Kpi.HistAvg"]</div>
-        </div>
-        <div class="ames-kpi @OeeKpiCls(_avgQ, 99)">
-            <div class="ames-kpi-l">@L["PP.Oee.Kpi.Quality"]</div>
-            <div class="ames-kpi-v">@($"{_avgQ:F1}")%</div>
-            <div class="ames-kpi-s">@L["PP.Oee.Kpi.HistAvg"]</div>
+@* ── KPI ────────────────────────────────────────────────────────── *@
+@{
+    var ov = _overall;
+}
+<div class="ames-kpis pp-oee-kpis">
+    <div class="ames-kpi @(ov is null ? "" : KpiCls(ov.Oee))">
+        <div class="ames-kpi-l">@L["PP.Oee.Kpi.Overall"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v pp-oee-mono">@(ov is null ? "—" : $"{ov.Oee:F1}")<span style="font-size:14px;margin-left:2px;">%</span></div>
+            <div class="ames-kpi-s">@string.Format(L["PP.Oee.Kpi.WorldClass"].Value, WORLD_CLASS)@(ov is null ? "" : $" · {GradeText(ov.Oee)}")</div>
         </div>
     </div>
-}
-
-@* ── 필터 바 ────────────────────────────────────────────────────── *@
-<div class="ames-card">
-    <div class="ames-card-h" style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;">
-        <select class="ames-input" style="width:150px;" @bind="_lineId"
-                @bind:after="LoadSnapshots">
-            <option value="">@L["PP.Oee.Ph.SelectLine"]</option>
-            @foreach (var l in _lines) { <option value="@l">@l</option> }
-        </select>
-        <select class="ames-input" style="width:110px;" @bind="_periodType">
-            <option value="DAY">@L["PP.Oee.Period.Day"]</option>
-            <option value="WEEK">@L["PP.Oee.Period.Week"]</option>
-            <option value="MONTH">@L["PP.Oee.Period.Month"]</option>
-        </select>
-        <input type="date" class="ames-input" style="width:148px;padding:4px 8px;"
-               value="@_startDate.ToString("yyyy-MM-dd")"
-               @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) _startDate = d; }" />
-        <span class="dim">~</span>
-        <input type="date" class="ames-input" style="width:148px;padding:4px 8px;"
-               value="@_endDate.ToString("yyyy-MM-dd")"
-               @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) _endDate = d; }" />
-        <label style="font-size:11px;color:#64748b;white-space:nowrap;">@L["PP.Oee.Lbl.Target"]</label>
-        <input type="number" class="ames-input" style="width:64px;padding:4px 8px;"
-               min="0" max="100" @bind="_targetOee" />
-        <span class="dim" style="font-size:11px;">%</span>
-        <button class="ames-btn ok" @onclick="Compute">@L["PP.Oee.Btn.Compute"]</button>
-        <button class="ames-btn" @onclick="SaveSnapshot"
-                disabled="@(_result == null)">@L["PP.Oee.Btn.SaveSnapshot"]</button>
-        <div style="flex:1;"></div>
-        <button class="ames-cal-tab @(_tab=="trend"?"active":"")"
-                @onclick='() => _tab="trend"'>@L["PP.Oee.Tab.Trend"]</button>
-        <button class="ames-cal-tab @(_tab=="log"?"active":"")"
-                @onclick='() => _tab="log"'>@L["PP.Oee.Tab.Log"]</button>
+    <div class="ames-kpi pp-oee-kpi-a">
+        <div class="ames-kpi-l">@L["PP.Oee.Kpi.Availability"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v pp-oee-mono">@(ov is null ? "—" : $"{ov.A:F1}")<span style="font-size:14px;margin-left:2px;">%</span></div>
+            <div class="ames-kpi-s">@(ov is null ? "" : $"{ov.Operating:N0} / {ov.Loading:N0} {L["Lbl.Min"]}")</div>
+        </div>
+    </div>
+    <div class="ames-kpi pp-oee-kpi-p">
+        <div class="ames-kpi-l">@L["PP.Oee.Kpi.Performance"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v pp-oee-mono">@(ov is null ? "—" : $"{ov.P:F1}")<span style="font-size:14px;margin-left:2px;">%</span></div>
+            <div class="ames-kpi-s">@(ov is null ? "" : $"{ov.Produced:N0} ea")</div>
+        </div>
+    </div>
+    <div class="ames-kpi pp-oee-kpi-q">
+        <div class="ames-kpi-l">@L["PP.Oee.Kpi.Quality"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v pp-oee-mono">@(ov is null ? "—" : $"{ov.Q:F1}")<span style="font-size:14px;margin-left:2px;">%</span></div>
+            <div class="ames-kpi-s">@(ov is null ? "" : $"{ov.Good:N0} / {ov.Produced:N0} ea")</div>
+        </div>
+    </div>
+    <div class="ames-kpi bad">
+        <div class="ames-kpi-l">@L["PP.Oee.Kpi.TotalLoss"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v pp-oee-mono">@(ov is null ? "—" : ov.TotalLoss.ToString("N0"))<span style="font-size:14px;margin-left:3px;">@L["Lbl.Min"]</span></div>
+            <div class="ames-kpi-s">@(ov is null ? "" : $"{ov.Count} snapshots")</div>
+        </div>
     </div>
 </div>
 
-@if (!string.IsNullOrEmpty(_err)) { <div class="ames-alert bad">@_err</div> }
-@if (!string.IsNullOrEmpty(_msg)) { <div class="ames-alert ok">@_msg</div> }
+@if (!string.IsNullOrEmpty(_err)) { <RadzenAlert AlertStyle="AlertStyle.Danger"  Variant="Variant.Flat">@_err</RadzenAlert> }
+@if (!string.IsNullOrEmpty(_msg)) { <RadzenAlert AlertStyle="AlertStyle.Success" Variant="Variant.Flat">@_msg</RadzenAlert> }
 
-@* ═══════════════════════════════════════════════════════════════════ *@
-@* ── 계산 결과 ──────────────────────────────────────────────────── *@
-@* ═══════════════════════════════════════════════════════════════════ *@
-@if (_result is { } r)
+@* ── 라인별 OEE (조회부는 Md/Rp/Station.razor 패턴) ───────────── *@
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["PP.Oee.ByLine.Title"] · @_rows.Count @L["Lbl.Items"] · @string.Format(L["PP.Oee.Kpi.Range"].Value, _fFrom.ToString("MM-dd"), _fTo.ToString("MM-dd"), _snaps.Count)</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["Lbl.Period"]" Component="DatePickerFrom" />
+            <RadzenDatePicker TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <span class="dim">~</span>
+            <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenLabel Text="@L["Col.Shift"]" Component="DropDownShift" />
+            <RadzenDropDown Name="DropDownShift" @bind-Value="_fShift" Data="@ShiftFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+            <RadzenLabel Text="@L["PP.Oee.Lbl.Target"]" Component="NumericTarget" />
+            <RadzenNumeric TValue="decimal" Name="NumericTarget" @bind-Value="_fTarget" Min="0" Max="100" InputSize="InputSize.Small" class="ames-rz-input" Style="width:90px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+    <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["PP.Oee.ByLine.Hint"]</div>
+    <RadzenDataGrid TItem="LineAgg" Data="@_rows" AllowPaging="false" AllowSorting="true"
+                    RowClick="@(e => { if (e.Data is { } d) Select(d.LineId); })" RowRender="@LineRowRender"
+                    EmptyText="@L["PP.Oee.ByLine.NoData"]" Class="ames-rz-grid pp-oee-lines">
+        <Columns>
+            <RadzenDataGridColumn TItem="LineAgg" Property="LineId" Title="@L["Col.Line"]" Width="130px">
+                <Template Context="r"><span class="code">@r.LineId</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineAgg" Property="Name" Title="@L["Col.Name"]">
+                <Template Context="r"><span style="white-space:nowrap;">@(r.Name ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineAgg" Property="A" Title="@L["PP.Oee.Kpi.Availability"]" Width="17%">
+                <Template Context="r">@(r.HasData ? Bar(r.A, "a") : Dash)</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineAgg" Property="P" Title="@L["PP.Oee.Kpi.Performance"]" Width="17%">
+                <Template Context="r">@(r.HasData ? Bar(r.P, "p") : Dash)</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineAgg" Property="Q" Title="@L["PP.Oee.Kpi.Quality"]" Width="17%">
+                <Template Context="r">@(r.HasData ? Bar(r.Q, "q") : Dash)</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineAgg" Property="Oee" Title="OEE" Width="90px" TextAlign="TextAlign.Center">
+                <Template Context="r">
+                    @if (r.HasData) { <span class="pp-oee-pill @GradeKey(r.Oee)">@($"{r.Oee:F1}%")</span> } else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineAgg" Title="@L["PP.Oee.Col.Grade"]" Width="120px" TextAlign="TextAlign.Center" Sortable="false">
+                <Template Context="r">
+                    @if (r.HasData) { <b style="font-size:11px;">@GradeText(r.Oee)</b> } else { <span class="dim" style="font-size:11px;">@L["PP.Oee.ByLine.NoData"]</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineAgg" Property="TotalLoss" Title="@L["PP.Oee.Col.Loss"]" Width="100px" TextAlign="TextAlign.Right">
+                <Template Context="r">
+                    @if (r.HasData) { <span class="code" style="color:#f87171;">@r.TotalLoss.ToString("N0")</span> } else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+@* ── 손실 · 구성 ────────────────────────────────────────────────── *@
+@{
+    var fo    = Focus;
+    var focus = _sel is null ? L["PP.Oee.Loss.OverallAvg"].Value : (_sel ?? "");
+}
+<div class="pp-oee-grid2">
+    <div class="ames-card" style="margin-bottom:0;">
+        <div class="ames-card-h">🔻 @L["PP.Oee.Loss.Title"] — <span style="margin-left:6px;">@focus</span></div>
+        @if (fo is null || !fo.HasData)
+        {
+            <div class="ames-empty">@L["PP.Oee.ByLine.NoData"]</div>
+        }
+        else
+        {
+            var losses = new (string Name, string Cat, int Min, string Color)[]
+            {
+                (L["PP.Oee.Loss.Breakdown"].Value,  L["PP.Oee.Loss.Cat.Avail"].Value,   fo.Breakdown,  "#dc2626"),
+                (L["PP.Oee.Loss.Setup"].Value,      L["PP.Oee.Loss.Cat.Avail"].Value,   fo.Setup,      "#f97316"),
+                (L["PP.Oee.Loss.OtherStops"].Value, L["PP.Oee.Loss.Cat.Avail"].Value,   fo.OtherStops, "#f59e0b"),
+                (L["PP.Oee.Loss.Speed"].Value,      L["PP.Oee.Loss.Cat.Perf"].Value,    fo.PerfLoss,   "#a78bfa"),
+                (L["PP.Oee.Loss.Defects"].Value,    L["PP.Oee.Loss.Cat.Qual"].Value,    fo.QualLoss,   "#0891b2"),
+                (L["PP.Oee.Loss.Planned"].Value,    L["PP.Oee.Loss.Cat.Planned"].Value, fo.Planned,    "#64748b"),
+            };
+            var maxLoss = Math.Max(1, losses.Max(x => x.Min));
+            foreach (var x in losses)
+            {
+                <div class="pp-oee-loss-row">
+                    <div class="pp-oee-loss-name">@x.Name<div class="pp-oee-loss-cat">@x.Cat</div></div>
+                    <div class="pp-oee-track pp-oee-loss-track">
+                        <i style="width:@((100.0 * x.Min / maxLoss).ToString("F1"))%;background:@x.Color;"></i>
+                    </div>
+                    <div class="pp-oee-loss-val">@x.Min.ToString("N0") min</div>
+                </div>
+            }
+            <div class="dim" style="font-size:10px;margin-top:8px;">@L["PP.Oee.Loss.Hint"]</div>
+        }
+    </div>
+
+    <div class="ames-card" style="margin-bottom:0;">
+        <div class="ames-card-h">🎯 @L["PP.Oee.Comp.Title"] — <span style="margin-left:6px;">@focus</span></div>
+        @if (fo is null || !fo.HasData)
+        {
+            <div class="ames-empty">@L["PP.Oee.ByLine.NoData"]</div>
+        }
+        else
+        {
+            <div class="pp-oee-donut-wrap @GradeKey(fo.Oee)">
+                @((MarkupString)BuildDonutSvg(fo.Oee))
+                <div style="font-size:11px;font-weight:800;">@L["PP.Oee.Col.Grade"]: @GradeText(fo.Oee)</div>
+            </div>
+            <div class="pp-oee-comp">
+                @foreach (var (lbl, val, key) in new[] {
+                    (L["PP.Oee.Kpi.Availability"].Value, fo.A, "a"),
+                    (L["PP.Oee.Kpi.Performance"].Value,  fo.P, "p"),
+                    (L["PP.Oee.Kpi.Quality"].Value,      fo.Q, "q") })
+                {
+                    <div class="pp-oee-comp-row">
+                        <div class="pp-oee-comp-h"><span>@lbl</span><b>@($"{val:F1}%")</b></div>
+                        <div class="pp-oee-track pp-oee-comp-track"><i class="pp-oee-fill-@key" style="width:@(Math.Min(100m, val).ToString("F1"))%;"></i></div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@* ── 라인 상세 (드릴다운) ───────────────────────────────────────── *@
+@if (_sel is { } selLine)
 {
-    <div class="ames-card">
-        <div class="ames-card-h">
-            @r.LineId · @r.PeriodStart.ToString("yyyy-MM-dd") ~ @r.PeriodEnd.ToString("yyyy-MM-dd") · @r.PeriodType
-            <span class="pill @(r.IsAboveTarget ? "ok" : "bad")" style="margin-left:8px;">
-                OEE @($"{r.OeeRate:F1}")% · @(r.IsAboveTarget ? L["PP.Oee.Result.Above"].Value : string.Format(L["PP.Oee.Result.Below"].Value, r.TargetOee))
+    var lineSnaps = _snaps.Where(s => s.LineId == selLine).OrderBy(s => s.PeriodDate).ThenBy(s => s.ShiftCode).ToList();
+    <div class="ames-card" style="margin-top:8px;">
+        <div class="ames-card-h" style="gap:6px;flex-wrap:wrap;">
+            <span>@string.Format(L["PP.Oee.Detail.Title"].Value, selLine)</span>
+            <span class="dim" style="font-size:10px;text-transform:none;letter-spacing:0;">@_rows.FirstOrDefault(r => r.LineId == selLine)?.Name</span>
+            <span style="margin-left:auto;display:flex;gap:4px;">
+                <button class="ames-btn @(_tab == "trend" ? "" : "ghost")" style="padding:3px 10px;" @onclick='() => _tab = "trend"'>@L["PP.Oee.Tab.Trend"]</button>
+                <button class="ames-btn @(_tab == "snaps" ? "" : "ghost")" style="padding:3px 10px;" @onclick='() => _tab = "snaps"'>@L["PP.Oee.Tab.Snapshots"]</button>
+                <button class="ames-btn @(_tab == "log" ? "" : "ghost")" style="padding:3px 10px;" @onclick='() => { _tab = "log"; LoadLogs(); }'>@L["PP.Oee.Tab.Log"]</button>
+                <button class="ames-btn @(_tab == "calc" ? "" : "ghost")" style="padding:3px 10px;" @onclick='() => _tab = "calc"'>@L["PP.Oee.Btn.Compute"]</button>
+                <button class="ames-btn ghost" style="padding:3px 10px;" @onclick="() => Select(null)">✕</button>
             </span>
         </div>
 
-        @* OEE 원형 게이지 + A/P/Q 막대 *@
-        <div class="pp-oee-metrics" style="padding:10px 14px 4px;">
-            <div class="pp-oee-gauge-wrap">
-                @((MarkupString)BuildGaugeSvg(r))
-                <div style="font-size:10px;color:#475569;text-align:center;margin-top:4px;">
-                    @string.Format(L["PP.Oee.Result.LoadMin"].Value, r.LoadMin, r.AvailMin)
-                </div>
-            </div>
-
-            <div class="pp-oee-apq">
-                @foreach (var (lbl, val, note, tgt) in new[]{
-                    (L["PP.Oee.Kpi.Availability"].Value, r.Availability, string.Format(L["PP.Oee.Apq.AvailNote"].Value, r.AvailMin, r.UnplannedDownMin), 90m),
-                    (L["PP.Oee.Kpi.Performance"].Value,  r.Performance,  string.Format(L["PP.Oee.Apq.PerfNote"].Value,  r.ActualOutput.ToString("N0"), r.TheoreticalOutput.ToString("N0")), 90m),
-                    (L["PP.Oee.Kpi.Quality"].Value,      r.Quality,      string.Format(L["PP.Oee.Apq.QualNote"].Value,  r.GoodOutput.ToString("N0"), r.DefectCount.ToString("N0")), 99m)})
-                {
-                    string barClr = val >= tgt ? "rgba(34,197,94,.75)"
-                                  : val >= tgt*0.85m ? "rgba(234,179,8,.75)"
-                                  : "rgba(239,68,68,.75)";
-                    <div class="pp-oee-bar-row" title="@note">
-                        <span class="pp-oee-bar-lbl">@lbl</span>
-                        <div class="pp-oee-bar-track">
-                            <div class="pp-oee-bar-fill"
-                                 style="width:@($"{val:F1}")%;background:@barClr;"></div>
-                        </div>
-                        <span class="pp-oee-bar-val">@($"{val:F1}")%</span>
-                    </div>
-                }
-                <div style="display:flex;gap:12px;font-size:11px;padding:4px 0;flex-wrap:wrap;">
-                    <span class="dim">@string.Format(L["PP.Oee.Result.PlannedDown"].Value, r.PlannedDownMin)</span>
-                    <span style="color:#fca5a5;">@string.Format(L["PP.Oee.Result.UnplannedDown"].Value, r.UnplannedDownMin)</span>
-                    <span class="dim">@string.Format(L["PP.Oee.Result.Defects"].Value, r.DefectCount)</span>
-                </div>
-            </div>
-        </div>
-
-        @* 시간손실 모델 바 *@
-        <div class="pp-oee-loss-wrap" style="padding:0 14px 10px;">
-            <div style="font-size:11px;color:#475569;margin-bottom:4px;">
-                @string.Format(L["PP.Oee.Result.LossModel"].Value, r.LoadMin)
-            </div>
-            @((MarkupString)BuildLossBar(r))
-        </div>
-    </div>
-}
-
-@* ═══════════════════════════════════════════════════════════════════ *@
-@* ── 탭: 추세 차트 ──────────────────────────────────────────────── *@
-@* ═══════════════════════════════════════════════════════════════════ *@
-@if (_tab == "trend")
-{
-    <div class="ames-card">
-        <div class="ames-card-h">
-            @L["PP.Oee.Tab.Trend"] — @(_lineId.Length > 0 ? _lineId : L["PP.Oee.Trend.NoLine"].Value)
-            <span class="dim" style="font-size:11px;margin-left:6px;">@_snapshots.Count @L["Lbl.Items"]</span>
-        </div>
-        @if (_snapshots.Count == 0)
+        @if (_tab == "trend")
         {
-            <div class="ames-empty">@L["PP.Oee.Trend.NoSnap"]</div>
+            if (lineSnaps.Count == 0) { <div class="ames-empty">@L["PP.Oee.Trend.NoSnap"]</div> }
+            else
+            {
+                var pts   = TrendPoints(lineSnaps);
+                var above = pts.Where(p => p.Oee >= (double)_fTarget).ToList();
+                var below = pts.Where(p => p.Oee <  (double)_fTarget).ToList();
+                @* 목표 이상/미만 점은 마커만 있는 시리즈 2개로 색을 나눈다 — 마커는 시리즈당 단일 색이라 우회 *@
+                <RadzenChart class="pp-oee-chart" Style="width:100%;height:260px;">
+                    <RadzenChartTooltipOptions Visible="true" />
+                    <RadzenLegend Position="LegendPosition.Bottom" />
+                    <RadzenCategoryAxis FormatString="{0:MM-dd}" Padding="24" />
+                    <RadzenValueAxis Min="0" Max="100" Step="25" FormatString="{0}%">
+                        <RadzenGridLines Visible="true" />
+                    </RadzenValueAxis>
+                    <RadzenLineSeries TItem="TrendPoint" Data="@pts" CategoryProperty="At" ValueProperty="A"
+                                      Title="@L["PP.Oee.Kpi.Availability"]" Stroke="#94a3b8" StrokeWidth="1.5" LineType="LineType.Dashed">
+                        <RadzenMarkers MarkerType="MarkerType.None" />
+                    </RadzenLineSeries>
+                    <RadzenLineSeries TItem="TrendPoint" Data="@pts" CategoryProperty="At" ValueProperty="Oee"
+                                      Title="OEE" Stroke="#3b82f6" StrokeWidth="2.5">
+                        <RadzenMarkers MarkerType="MarkerType.None" />
+                        <RadzenSeriesValueLine Value="@((double)_fTarget)" Stroke="#ef4444" StrokeWidth="1.5" LineType="LineType.Dashed" />
+                    </RadzenLineSeries>
+                    <RadzenLineSeries TItem="TrendPoint" Data="@above" CategoryProperty="At" ValueProperty="Oee"
+                                      Title="@L["PP.Oee.Trend.LegendAbove"]" Stroke="transparent" StrokeWidth="0">
+                        <RadzenMarkers MarkerType="MarkerType.Circle" Size="7" Fill="#22c55e" Stroke="#22c55e" />
+                    </RadzenLineSeries>
+                    <RadzenLineSeries TItem="TrendPoint" Data="@below" CategoryProperty="At" ValueProperty="Oee"
+                                      Title="@L["PP.Oee.Trend.LegendBelow"]" Stroke="transparent" StrokeWidth="0">
+                        <RadzenMarkers MarkerType="MarkerType.Circle" Size="7" Fill="#ef4444" Stroke="#ef4444" />
+                    </RadzenLineSeries>
+                </RadzenChart>
+                <div class="dim" style="font-size:10px;padding:2px 0 0;">@L["PP.Oee.Lbl.Target"] @($"{_fTarget:F0}%") · @string.Format(L["PP.Oee.Kpi.Range"].Value, _fFrom.ToString("MM-dd"), _fTo.ToString("MM-dd"), pts.Count)</div>
+            }
         }
-        else
+        else if (_tab == "snaps")
         {
-            <div class="pp-oee-chart-wrap" style="padding:4px 14px 4px;">
-                @((MarkupString)BuildTrendSvg(_snapshots))
-            </div>
-            <div style="display:flex;gap:16px;font-size:11px;padding:4px 14px 10px;flex-wrap:wrap;">
-                <span>
-                    <span style="display:inline-block;width:22px;height:2.5px;background:rgba(59,130,246,.9);vertical-align:middle;margin-right:4px;"></span>OEE
-                </span>
-                <span>
-                    <span style="display:inline-block;width:18px;border-top:1.5px dashed rgba(148,163,184,.45);vertical-align:middle;margin-right:4px;"></span>@L["PP.Oee.Kpi.Availability"]
-                </span>
-                <span>
-                    <span style="display:inline-block;width:18px;border-top:1.5px dashed rgba(239,68,68,.6);vertical-align:middle;margin-right:4px;"></span>@L["PP.Oee.Lbl.Target"]
-                </span>
-                <span style="color:#22c55e;">@L["PP.Oee.Trend.LegendAbove"]</span>
-                <span style="color:#ef4444;">@L["PP.Oee.Trend.LegendBelow"]</span>
-            </div>
-        }
-    </div>
-}
-
-@* ═══════════════════════════════════════════════════════════════════ *@
-@* ── 탭: 상태 로그 입력 ─────────────────────────────────────────── *@
-@* ═══════════════════════════════════════════════════════════════════ *@
-@if (_tab == "log")
-{
-    <div class="ames-card">
-        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-            <span>@L["PP.Oee.Tab.Log"] — @(_lineId.Length > 0 ? _lineId : L["PP.Oee.Trend.NoLine"].Value)</span>
-            <div style="display:flex;gap:6px;align-items:center;">
-                <input type="date" class="ames-input" style="width:148px;padding:3px 7px;"
-                       value="@_logQueryDate.ToString("yyyy-MM-dd")"
-                       @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) { _logQueryDate = d; LoadLogs(); } }" />
-                <button class="ames-btn" style="padding:3px 10px;" @onclick="LoadLogs">@L["Btn.Search"]</button>
-            </div>
-        </div>
-
-        @* 로그 추가 폼 *@
-        <div style="padding:10px 14px;background:rgba(59,130,246,.05);border-bottom:1px solid rgba(255,255,255,.05);
-                    display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;">
-            <div>
-                <div class="dim" style="font-size:10px;margin-bottom:3px;">@L["Col.Date"]</div>
-                <input type="date" class="ames-input" style="width:138px;padding:4px 7px;"
-                       @bind="_newLog.LogDate" />
-            </div>
-            <div>
-                <div class="dim" style="font-size:10px;margin-bottom:3px;">@L["Col.Status"]</div>
-                <select class="ames-input" style="width:162px;" @bind="_newLog.StateCode">
-                    <option value="LOAD">LOAD (@L["PP.Oee.Log.State.Load"])</option>
-                    <option value="PLANNED_DOWN">PLANNED_DOWN</option>
-                    <option value="UNPLANNED_DOWN">UNPLANNED_DOWN</option>
-                    <option value="BREAK">BREAK (@L["PP.Oee.Log.State.Break"])</option>
-                </select>
-            </div>
-            <div>
-                <div class="dim" style="font-size:10px;margin-bottom:3px;">@L["Col.From"]</div>
-                <input type="time" class="ames-input" style="width:108px;padding:4px 7px;"
-                       value="@_newStartTime.ToString(@"hh\:mm")"
-                       @onchange="e => { if (TimeSpan.TryParse(e.Value?.ToString(), out var t)) _newStartTime = t; }" />
-            </div>
-            <div>
-                <div class="dim" style="font-size:10px;margin-bottom:3px;">@L["Col.To"]</div>
-                <input type="time" class="ames-input" style="width:108px;padding:4px 7px;"
-                       value="@_newEndTime.ToString(@"hh\:mm")"
-                       @onchange="e => { if (TimeSpan.TryParse(e.Value?.ToString(), out var t)) _newEndTime = t; }" />
-            </div>
-            <div>
-                <div class="dim" style="font-size:10px;margin-bottom:3px;">@L["PP.Oee.Log.Lbl.Actual"]</div>
-                <input type="number" class="ames-input" style="width:88px;padding:4px 7px;"
-                       min="0" @bind="_newLog.ActualOutput" />
-            </div>
-            <div>
-                <div class="dim" style="font-size:10px;margin-bottom:3px;">@L["PP.Oee.Log.Lbl.Good"]</div>
-                <input type="number" class="ames-input" style="width:88px;padding:4px 7px;"
-                       min="0" @bind="_newLog.GoodOutput" />
-            </div>
-            <div>
-                <div class="dim" style="font-size:10px;margin-bottom:3px;">@L["PP.Oee.Log.Lbl.Theoretical"]</div>
-                <input type="number" class="ames-input" style="width:88px;padding:4px 7px;"
-                       min="0" @bind="_newLog.TheoreticalOutput" />
-            </div>
-            <div style="flex:1;min-width:120px;">
-                <div class="dim" style="font-size:10px;margin-bottom:3px;">@L["Col.Note"]</div>
-                <input type="text" class="ames-input" style="width:100%;padding:4px 7px;"
-                       placeholder="@L["Col.Note"]" @bind="_newLog.Notes" />
-            </div>
-            <button class="ames-btn" style="align-self:flex-end;" @onclick="AddLog"
-                    disabled="@(string.IsNullOrEmpty(_lineId))">@L["PP.Oee.Log.Btn.Add"]</button>
-        </div>
-
-        @if (_logs.Count == 0)
-        {
-            <div class="ames-empty">@L["PP.Oee.Log.Empty"]</div>
-        }
-        else
-        {
-            <table class="ames-table">
-                <thead>
-                    <tr>
-                        <th style="width:80px;">@L["Col.Date"]</th>
-                        <th style="width:128px;">@L["Col.Status"]</th>
-                        <th style="width:68px;">@L["Col.From"]</th>
-                        <th style="width:68px;">@L["Col.To"]</th>
-                        <th style="width:62px;text-align:right;">@L["PP.Oee.Log.Col.Duration"]</th>
-                        <th style="width:68px;text-align:right;">@L["PP.Oee.Log.Col.Actual"]</th>
-                        <th style="width:68px;text-align:right;">@L["PP.Oee.Log.Col.Good"]</th>
-                        <th style="width:68px;text-align:right;">@L["PP.Oee.Log.Col.Theoretical"]</th>
-                        <th>@L["Col.Note"]</th>
-                        <th style="width:40px;"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var lg in _logs.Skip(_page * _pageSize).Take(_pageSize))
+            <RadzenDataGrid TItem="OeeSnapshotDto" Data="@lineSnaps" AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
+                            AllowSorting="true" EmptyText="@L["PP.Oee.Trend.NoSnap"]" Class="ames-rz-grid pp-oee-lines">
+                <Columns>
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="PeriodDate" Title="@L["PP.Oee.Snap.Col.Date"]" Width="110px">
+                        <Template Context="s"><span class="code">@s.PeriodDate.ToString("yyyy-MM-dd")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="ShiftCode" Title="@L["Col.Shift"]" Width="90px" TextAlign="TextAlign.Center">
+                        <Template Context="s"><span class="pill info">@(s.ShiftCode ?? L["PP.Oee.Shift.None"].Value)</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="LoadingMin"       Title="@L["PP.Oee.Snap.Col.Load"]"      TextAlign="TextAlign.Right" />
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="OperatingMin"     Title="@L["PP.Oee.Snap.Col.Operating"]" TextAlign="TextAlign.Right" />
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="TotalProducedQty" Title="@L["PP.Oee.Snap.Col.Produced"]"  TextAlign="TextAlign.Right">
+                        <Template Context="s">@s.TotalProducedQty.ToString("N0")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="GoodQty" Title="@L["PP.Oee.Snap.Col.Good"]" TextAlign="TextAlign.Right">
+                        <Template Context="s">@s.GoodQty.ToString("N0")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="Availability" Title="@L["PP.Oee.Snap.Col.Avail"]" TextAlign="TextAlign.Right">
+                        <Template Context="s">@($"{s.Availability:F1}%")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="Performance" Title="@L["PP.Oee.Snap.Col.Perf"]" TextAlign="TextAlign.Right">
+                        <Template Context="s">@($"{s.Performance:F1}%")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="Quality" Title="@L["PP.Oee.Snap.Col.Qual"]" TextAlign="TextAlign.Right">
+                        <Template Context="s">@($"{s.Quality:F1}%")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="Oee" Title="OEE" Width="90px" TextAlign="TextAlign.Center">
+                        <Template Context="s"><span class="pp-oee-pill @GradeKey(s.Oee)">@($"{s.Oee:F1}%")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="CreatedTs" Title="@L["PP.Oee.Snap.Col.SavedAt"]" Width="110px">
+                        <Template Context="s"><span class="dim">@(s.CreatedTs?.ToString("MM-dd HH:mm") ?? "")</span></Template>
+                    </RadzenDataGridColumn>
+                    @if (_canEdit)
                     {
-                        var capLg = lg;
-                        var stateCls = lg.StateCode switch {
-                            "LOAD"           => "ok",
-                            "PLANNED_DOWN"   => "info",
-                            "UNPLANNED_DOWN" => "bad",
-                            "BREAK"          => "warn",
-                            _                => "dim"
-                        };
-                        var stateKo = lg.StateCode switch {
-                            "LOAD"           => L["PP.Oee.Log.State.Load"].Value,
-                            "PLANNED_DOWN"   => L["PP.Oee.Log.State.PlannedDown"].Value,
-                            "UNPLANNED_DOWN" => L["PP.Oee.Log.State.UnplannedDown"].Value,
-                            "BREAK"          => L["PP.Oee.Log.State.Break"].Value,
-                            _                => lg.StateCode
-                        };
-                        <tr>
-                            <td class="code">@lg.LogDate.ToString("MM-dd")</td>
-                            <td><span class="pill @stateCls">@stateKo</span></td>
-                            <td class="code">@lg.StartTime</td>
-                            <td class="code">@lg.EndTime</td>
-                            <td style="text-align:right;" class="code">@lg.DurationMin</td>
-                            <td style="text-align:right;">@(lg.ActualOutput?.ToString("N0") ?? "—")</td>
-                            <td style="text-align:right;">@(lg.GoodOutput?.ToString("N0") ?? "—")</td>
-                            <td style="text-align:right;">@(lg.TheoreticalOutput?.ToString("N0") ?? "—")</td>
-                            <td class="dim" style="font-size:11px;">@(lg.Notes ?? "")</td>
-                            <td>
-                                <button class="ames-btn bad" style="padding:2px 6px;"
-                                        @onclick="() => DeleteLog(capLg.LogId)">×</button>
-                            </td>
-                        </tr>
+                        <RadzenDataGridColumn TItem="OeeSnapshotDto" Title="" Width="60px" Sortable="false" TextAlign="TextAlign.Center">
+                            <Template Context="s">
+                                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall" Click="@(() => DeleteSnap(s.OeeSnapshotId))" class="ames-rz-btn" Style="height:24px;padding:0 8px;line-height:1;" />
+                            </Template>
+                        </RadzenDataGridColumn>
                     }
-                </tbody>
-            </table>
-            <Pager Page="_page" Total="_logs.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-            <div style="padding:6px 14px;font-size:11px;color:#475569;display:flex;gap:16px;flex-wrap:wrap;">
-                <span>@string.Format(L["PP.Oee.Log.Footer.Load"].Value,      _logs.Where(l=>l.StateCode=="LOAD").Sum(l=>l.DurationMin))</span>
-                <span style="color:#fca5a5;">@string.Format(L["PP.Oee.Log.Footer.Unplanned"].Value, _logs.Where(l=>l.StateCode=="UNPLANNED_DOWN").Sum(l=>l.DurationMin))</span>
-                <span style="color:#93c5fd;">@string.Format(L["PP.Oee.Log.Footer.Planned"].Value,   _logs.Where(l=>l.StateCode=="PLANNED_DOWN").Sum(l=>l.DurationMin))</span>
-                <span>@string.Format(L["PP.Oee.Log.Footer.Total"].Value, _logs.Count)</span>
-            </div>
+                </Columns>
+            </RadzenDataGrid>
         }
-    </div>
-}
-
-@* ═══════════════════════════════════════════════════════════════════ *@
-@* ── 스냅샷 이력 ────────────────────────────────────────────────── *@
-@* ═══════════════════════════════════════════════════════════════════ *@
-@if (_snapshots.Count > 0)
-{
-    <div class="ames-card">
-        <div class="ames-card-h">
-            @L["PP.Oee.Snap.Title"] — @_lineId
-            <span class="dim" style="font-size:11px;margin-left:8px;">@_snapshots.Count @L["Lbl.Items"]</span>
-        </div>
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th style="width:78px;">@L["PP.Oee.Snap.Col.Period"]</th>
-                    <th style="width:94px;">@L["PP.Oee.Snap.Col.Start"]</th>
-                    <th style="width:94px;">@L["PP.Oee.Snap.Col.End"]</th>
-                    <th style="width:68px;text-align:right;">@L["PP.Oee.Snap.Col.Load"]</th>
-                    <th style="width:64px;text-align:right;">@L["PP.Oee.Snap.Col.Avail"]</th>
-                    <th style="width:64px;text-align:right;">@L["PP.Oee.Snap.Col.Perf"]</th>
-                    <th style="width:64px;text-align:right;">@L["PP.Oee.Snap.Col.Qual"]</th>
-                    <th style="width:74px;text-align:right;">OEE</th>
-                    <th style="width:62px;text-align:right;">@L["PP.Oee.Lbl.Target"]</th>
-                    <th style="width:88px;">@L["PP.Oee.Snap.Col.SavedAt"]</th>
-                    <th style="width:40px;"></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var s in _snapshots.Skip(_snapPage * _pageSize).Take(_pageSize))
+        else if (_tab == "log")
+        {
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+                <span class="dim" style="font-size:11px;">@L["PP.Oee.Log.Timeline"]</span>
+                <input type="date" class="ames-input" style="width:148px;padding:3px 7px;"
+                       value="@_logDate.ToString("yyyy-MM-dd")"
+                       @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) { _logDate = d; LoadLogs(); } }" />
+                <span class="dim" style="font-size:11px;margin-left:auto;">
+                    <span class="pp-oee-dot" style="background:#22c55e;"></span>@L["PP.Oee.Log.Run"] @_logs.Count(l => l.State == "RUN")
+                    <span class="pp-oee-dot" style="background:#f59e0b;margin-left:10px;"></span>@L["PP.Oee.Log.Idle"] @_logs.Count(l => l.State == "IDLE")
+                    <span class="pp-oee-dot" style="background:#ef4444;margin-left:10px;"></span>@L["PP.Oee.Log.Down"] @_logs.Count(l => l.State == "DOWN")
+                    <span class="pp-oee-dot" style="background:#64748b;margin-left:10px;"></span>@L["PP.Oee.Log.PlanDown"] @_logs.Count(l => l.PlanState is not null && l.PlanState != "PLAN-RUN")
+                </span>
+            </div>
+            @if (_logs.Count == 0) { <div class="ames-empty">@L["PP.Oee.Log.Empty"]</div> }
+            else { <div class="pp-oee-chart-wrap">@((MarkupString)BuildTimelineSvg(_logs, _logDate))</div> }
+        }
+        else if (_tab == "calc")
+        {
+            <div class="dim" style="font-size:11px;margin-bottom:8px;">@L["PP.Oee.Calc.Title"] · @L["PP.Oee.Calc.Note"]</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+                <input type="date" class="ames-input" style="width:148px;padding:3px 7px;"
+                       value="@_calcDate.ToString("yyyy-MM-dd")"
+                       @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) _calcDate = d; }" />
+                <select class="ames-input" style="width:190px;" @bind="_calcShift">
+                    <option value="">@L["PP.Oee.Shift.None"] (00:00–24:00)</option>
+                    @foreach (var c in _shiftCodes)
+                    {
+                        <option value="@c.CodeValue">[@c.CodeValue] @MasterDataRepository.LocalName(c) @(c.Attribute1 is { Length: 9 } w ? $"({w[..2]}:{w[2..4]}–{w[5..7]}:{w[7..9]})" : "")</option>
+                    }
+                </select>
+                <button class="ames-btn ok" @onclick="Compute">@L["PP.Oee.Btn.Compute"]</button>
+                @if (_canEdit)
                 {
-                    var capS = s;
-                    <tr>
-                        <td><span class="pill info">@s.PeriodType</span></td>
-                        <td class="code">@s.PeriodStart.ToString("yyyy-MM-dd")</td>
-                        <td class="code">@s.PeriodEnd.ToString("yyyy-MM-dd")</td>
-                        <td style="text-align:right;" class="code">@s.LoadMin</td>
-                        <td style="text-align:right;">@($"{s.Availability:F1}")%</td>
-                        <td style="text-align:right;">@($"{s.Performance:F1}")%</td>
-                        <td style="text-align:right;">@($"{s.Quality:F1}")%</td>
-                        <td style="text-align:right;font-weight:600;">
-                            <span style="color:@(s.IsAboveTarget ? "#22c55e" : "#f87171");">
-                                @($"{s.OeeRate:F1}")%
-                            </span>
-                        </td>
-                        <td style="text-align:right;" class="dim">@($"{s.TargetOee:F0}")%</td>
-                        <td class="dim" style="font-size:11px;">@s.CreatedAt.ToString("MM-dd HH:mm")</td>
-                        <td>
-                            <button class="ames-btn bad" style="padding:2px 6px;"
-                                    @onclick="() => DeleteSnap(capS.OeeId)">×</button>
-                        </td>
-                    </tr>
+                    <button class="ames-btn" @onclick="SaveSnapshot" disabled="@(_result is null)">@L["PP.Oee.Btn.SaveSnapshot"]</button>
                 }
-            </tbody>
-        </table>
-        <Pager Page="_snapPage" Total="_snapshots.Count" PageSize="_pageSize" OnPageChange="p => _snapPage = p" />
+            </div>
+            @if (_result is { } r)
+            {
+                <div class="pp-oee-calc">
+                    <div class="pp-oee-donut-wrap @GradeKey(r.Oee)">
+                        @((MarkupString)BuildDonutSvg(r.Oee))
+                        <span class="pill @(r.Oee >= _fTarget ? "ok" : "bad")">
+                            @(r.Oee >= _fTarget ? L["PP.Oee.Result.Above"].Value : string.Format(L["PP.Oee.Result.Below"].Value, _fTarget))
+                        </span>
+                    </div>
+                    <div class="pp-oee-comp" style="margin-top:0;">
+                        @foreach (var (lbl, val, key, note) in new[] {
+                            (L["PP.Oee.Kpi.Availability"].Value, r.Availability, "a", $"{r.OperatingMin} / {r.LoadingMin} min"),
+                            (L["PP.Oee.Kpi.Performance"].Value,  r.Performance,  "p", r.PerformanceAssumed ? L["PP.Oee.Calc.Assumed"].Value : ""),
+                            (L["PP.Oee.Kpi.Quality"].Value,      r.Quality,      "q", $"{r.GoodQty:N0} / {r.TotalProducedQty:N0} ea") })
+                        {
+                            <div class="pp-oee-comp-row">
+                                <div class="pp-oee-comp-h"><span>@lbl <span class="dim">@note</span></span><b>@($"{val:F1}%")</b></div>
+                                <div class="pp-oee-track pp-oee-comp-track"><i class="pp-oee-fill-@key" style="width:@(Math.Min(100m, val).ToString("F1"))%;"></i></div>
+                            </div>
+                        }
+                        <div class="dim" style="font-size:11px;display:flex;gap:14px;flex-wrap:wrap;">
+                            <span>@L["PP.Oee.Loss.Planned"] @r.PlannedDownMin min</span>
+                            <span style="color:#f87171;">@L["PP.Oee.Loss.Cat.Avail"] @r.UnplannedDownMin min</span>
+                            <span>@L["PP.Oee.Snap.Col.Date"] @r.PeriodDate.ToString("yyyy-MM-dd") @(r.ShiftCode is null ? "" : $"[{r.ShiftCode}]")</span>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
     </div>
 }
 
 @code {
-    // ── State ────────────────────────────────────────────────────────────
-    int _page = 0;
-    const int _pageSize = 20;
-    int _snapPage = 0;
-    string   _lineId     = "";
-    string   _periodType = "DAY";
-    DateTime _startDate  = DateTime.Today.AddDays(-6);
-    DateTime _endDate    = DateTime.Today;
-    decimal  _targetOee  = 75m;
-    string   _tab        = "trend";
-    string   _err        = "";
-    string   _msg        = "";
+    // ── 상수 ─────────────────────────────────────────────────────────────
+    const decimal WORLD_CLASS = 85m;
+    const decimal GOOD        = 65m;
 
-    OeeSnapshotDto?       _result    = null;
-    List<OeeSnapshotDto>  _snapshots = [];
-    List<LineStateLogDto> _logs      = [];
-    List<string>          _lines     = [];
 
-    // 상태 로그 추가 폼
-    DateTime _logQueryDate = DateTime.Today;
-    LineStateLogDto _newLog = new() { LogDate = DateTime.Today, StateCode = "LOAD" };
-    TimeSpan _newStartTime  = TimeSpan.FromHours(8);
-    TimeSpan _newEndTime    = TimeSpan.FromHours(9);
+    // ── 필터 상태 ─────────────────────────────────────────────────────────
+    DateTime _fFrom = DateTime.Today.AddDays(-6);
+    DateTime _fTo   = DateTime.Today;
+    string?  _fShift;
+    decimal  _fTarget = 75m;
 
+    sealed class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    IEnumerable<DropDownItem> ShiftFilterOptions => _shifts.Select(s => new DropDownItem { Text = s, Value = s });
+
+    // ── 데이터 ───────────────────────────────────────────────────────────
+    List<OeeRepository.LineRef>          _lineRefs   = [];
+    List<string>                         _shifts     = [];
+    List<MasterDataRepository.CodeItemRow> _shiftCodes = [];
+    List<OeeSnapshotDto>                 _snaps      = [];
+    List<OeeRepository.DowntimeByReason> _downtime   = [];
+    List<LineAgg>                        _rows       = [];
+    LineAgg?                             _overall;
+
+    // ── 드릴다운 ─────────────────────────────────────────────────────────
+    string?  _sel;
+    string   _tab      = "trend";
+
+    DateTime _logDate  = DateTime.Today;
+    List<LineStateLogDto> _logs = [];
+    DateTime _calcDate  = DateTime.Today;
+    string   _calcShift = "";
+    OeeSnapshotDto? _result;
+
+    bool   _canEdit;
     string _actor = "web";
+    string _err = "", _msg = "";
 
-    // 이력 평균 (computed)
-    double _avgOee => _snapshots.Count > 0 ? _snapshots.Average(s => (double)s.OeeRate)      : 0;
-    double _avgA   => _snapshots.Count > 0 ? _snapshots.Average(s => (double)s.Availability) : 0;
-    double _avgP   => _snapshots.Count > 0 ? _snapshots.Average(s => (double)s.Performance)  : 0;
-    double _avgQ   => _snapshots.Count > 0 ? _snapshots.Average(s => (double)s.Quality)       : 0;
+    LineAgg? Focus => _sel is null ? _overall : _rows.FirstOrDefault(r => r.LineId == _sel);
+
+    // ── 라인 집계 ─────────────────────────────────────────────────────────
+    // RadzenDataGrid 정렬은 프로퍼티 이름으로 동작하므로 필드가 아닌 프로퍼티로 둔다
+    sealed class LineAgg
+    {
+        public string  LineId { get; set; } = "";
+        public string? Name { get; set; }
+        public bool    HasData { get; set; }
+        public int     Count { get; set; }
+        public int     Loading { get; set; }
+        public int     Planned { get; set; }
+        public int     Unplanned { get; set; }
+        public int     Operating { get; set; }
+        public decimal Produced { get; set; }
+        public decimal Good { get; set; }
+        public decimal A { get; set; }
+        public decimal P { get; set; }
+        public decimal Q { get; set; }
+        public decimal Oee { get; set; }
+        public int     PerfLoss { get; set; }
+        public int     QualLoss { get; set; }
+        public int     Breakdown { get; set; }
+        public int     Setup { get; set; }
+        public int     OtherStops { get; set; }
+        public int     TotalLoss => Planned + Unplanned + PerfLoss + QualLoss;
+    }
+
+    void LineRowRender(RowRenderEventArgs<LineAgg> args)
+    {
+        var cls = "ames-row-link";
+        if (_sel is not null && _sel == args.Data?.LineId) cls += " ames-row-selected";
+        args.Attributes["class"] = cls;
+    }
+
+    static readonly MarkupString Dash = new("<span class=\"dim\">—</span>");
 
     // ── Init ─────────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actor   = auth.User.Identity?.Name ?? "web";
-        try { _lines = Repo.ListLines(); } catch { }
-        if (_lines.Count > 0) { _lineId = _lines[0]; LoadSnapshots(); }
+        _actor = auth.User.Identity?.Name ?? "web";
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("pp/oee");
+
+        try { _lineRefs   = Repo.ListLineRefs(); }               catch { }
+        try { _shifts     = Repo.ListShiftCodes(); }             catch { }
+        try { _shiftCodes = MD.ListCodeItems("WORK_SHIFT").Where(c => c.UseFlag).ToList(); } catch { }
+
+        // 기본 기간 = 스냅샷이 있는 마지막 7일 (데이터가 오래됐어도 빈 화면이 되지 않도록)
+        try
+        {
+            if (Repo.LatestSnapshotDate() is { } last) { _fTo = last; _fFrom = last.AddDays(-6); }
+        }
+        catch { }
+        _logDate = _calcDate = _fTo;
+        ApplyFilter();
     }
 
-    // ── OEE 계산 ─────────────────────────────────────────────────────────
+    // ── 조회 ─────────────────────────────────────────────────────────────
+    void ApplyFilter()
+    {
+        _err = "";
+        if (_fFrom > _fTo) { _err = L["PP.Oee.Err.DateRange"]; return; }
+        try
+        {
+            _snaps    = Repo.GetSnapshots(_fFrom, _fTo, string.IsNullOrEmpty(_fShift) ? null : _fShift);
+            _downtime = Repo.GetDowntimeByReason(_fFrom, _fTo);
+        }
+        catch (Exception ex) { _err = ex.Message; _snaps = []; _downtime = []; }
+
+        var lineIds = _lineRefs.Select(l => l.LineId)
+            .Union(_snaps.Select(s => s.LineId))
+            .OrderBy(x => x).ToList();
+
+        _rows = lineIds.Select(id =>
+        {
+            var lr = _lineRefs.FirstOrDefault(l => l.LineId == id);
+            return Aggregate(id, lr is null ? null : MasterDataRepository.LocalName(lr.Name, lr.NameEn),
+                             _snaps.Where(s => s.LineId == id), _downtime.Where(d => d.LineId == id));
+        }).ToList();
+
+        _overall = Aggregate("", null, _snaps, _downtime);
+        if (_sel is not null && !_rows.Any(r => r.LineId == _sel)) _sel = null;
+
+    }
+
+    static LineAgg Aggregate(string lineId, string? name,
+        IEnumerable<OeeSnapshotDto> snapsSrc, IEnumerable<OeeRepository.DowntimeByReason> dtSrc)
+    {
+        var snaps = snapsSrc.ToList();
+        var agg   = new LineAgg { LineId = lineId, Name = name, Count = snaps.Count, HasData = snaps.Count > 0 };
+        if (!agg.HasData) return agg;
+
+        agg.Loading   = snaps.Sum(s => s.LoadingMin);
+        agg.Planned   = snaps.Sum(s => s.PlannedDownMin);
+        agg.Unplanned = snaps.Sum(s => s.UnplannedDownMin);
+        agg.Operating = snaps.Sum(s => s.OperatingMin);
+        agg.Produced  = snaps.Sum(s => s.TotalProducedQty);
+        agg.Good      = snaps.Sum(s => s.GoodQty);
+
+        agg.A = agg.Loading > 0 ? Round(100m * agg.Operating / agg.Loading) : Round(snaps.Average(s => s.Availability));
+        agg.P = agg.Operating > 0
+            ? Round(snaps.Sum(s => s.Performance * s.OperatingMin) / agg.Operating)   // 가동시간 가중
+            : Round(snaps.Average(s => s.Performance));
+        agg.Q = agg.Produced > 0 ? Round(100m * agg.Good / agg.Produced) : Round(snaps.Average(s => s.Quality));
+        agg.Oee = Round(agg.A / 100m * agg.P / 100m * agg.Q / 100m * 100m);
+
+        agg.PerfLoss = (int)Math.Round(agg.Operating * (1.0 - (double)agg.P / 100.0));
+        agg.QualLoss = (int)Math.Round(agg.Operating * (double)agg.P / 100.0 * (1.0 - (double)agg.Q / 100.0));
+
+        // 비계획 정지를 비가동 로그 사유 비율로 나눈다 — 로그가 없으면 전부 '기타 정지'
+        var dt      = dtSrc.ToList();
+        int dtTotal = dt.Sum(d => d.Minutes);
+        int machine = dt.Where(d => d.ReasonCode == "MACHINE").Sum(d => d.Minutes);
+        int change  = dt.Where(d => d.ReasonCode == "CHANGEOVER").Sum(d => d.Minutes);
+        if (dtTotal > 0)
+        {
+            agg.Breakdown = (int)Math.Round((double)agg.Unplanned * machine / dtTotal);
+            agg.Setup     = (int)Math.Round((double)agg.Unplanned * change  / dtTotal);
+        }
+        agg.OtherStops = Math.Max(0, agg.Unplanned - agg.Breakdown - agg.Setup);
+        return agg;
+    }
+
+    static decimal Round(decimal v) => Math.Round(v, 2);
+
+    // ── 드릴다운 ─────────────────────────────────────────────────────────
+    void Select(string? lineId)
+    {
+        _sel = _sel == lineId ? null : lineId;
+        _result = null; _err = "";
+        if (_sel is not null && _tab == "log") LoadLogs();
+    }
+
+    void LoadLogs()
+    {
+        _logs = [];
+        if (_sel is null) return;
+        try { _logs = Repo.GetStateLogs(_sel, _logDate.Date, _logDate.Date.AddDays(1)); }
+        catch (Exception ex) { _err = ex.Message; }
+    }
+
     void Compute()
     {
         _err = ""; _result = null;
-        if (string.IsNullOrEmpty(_lineId)) { _err = L["PP.Oee.Err.NoLine"]; return; }
-        if (_startDate > _endDate)         { _err = L["PP.Oee.Err.DateRange"]; return; }
-        try   { _result = Repo.ComputeOee(_lineId, _periodType, _startDate, _endDate, _targetOee); }
+        if (_sel is null) { _err = L["PP.Oee.Err.NoLine"]; return; }
+        var (ws, we) = ShiftWindow(_calcDate, _calcShift);
+        try
+        {
+            _result = Repo.ComputeOee(_sel, ws, we, _calcShift.Length > 0 ? _calcShift : null);
+            if (_result is null) _err = L["PP.Oee.Calc.NoLog"];
+        }
         catch (Exception ex) { _err = string.Format(L["PP.Oee.Err.Compute"].Value, ex.Message); }
+    }
+
+    // WORK_SHIFT.Attribute1 = "HHMM-HHMM" (끝이 시작보다 빠르면 익일). 교대 미선택 시 하루 전체.
+    (DateTime Start, DateTime End) ShiftWindow(DateTime date, string shiftCode)
+    {
+        var d = date.Date;
+        var w = _shiftCodes.FirstOrDefault(c => c.CodeValue == shiftCode)?.Attribute1;
+        if (w is not { Length: 9 }) return (d, d.AddDays(1));
+        if (!int.TryParse(w[..2], out var sh) || !int.TryParse(w[2..4], out var sm)
+         || !int.TryParse(w[5..7], out var eh) || !int.TryParse(w[7..9], out var em)) return (d, d.AddDays(1));
+        var s = d.AddMinutes(sh * 60 + sm);
+        var e = d.AddMinutes(eh * 60 + em);
+        if (e <= s) e = e.AddDays(1);
+        return (s, e);
     }
 
     void SaveSnapshot()
     {
-        if (_result is null) return;
+        if (_result is null || !_canEdit) return;
         _err = "";
         try
         {
             Repo.SaveSnapshot(_result, _actor);
             ShowMsg(L["PP.Oee.Ok.Snapshot"]);
-            LoadSnapshots();
+            if (_result.PeriodDate < _fFrom) _fFrom = _result.PeriodDate;
+            if (_result.PeriodDate > _fTo)   _fTo   = _result.PeriodDate;
+            ApplyFilter();
         }
         catch (Exception ex) { _err = string.Format(L["PP.Oee.Err.Save"].Value, ex.Message); }
     }
 
-    void LoadSnapshots()
+    async Task DeleteSnap(int id)
     {
-        _snapPage = 0;
-        if (string.IsNullOrEmpty(_lineId)) return;
-        try   { _snapshots = Repo.GetSnapshots(_lineId, _periodType); }
-        catch { }
-    }
-
-    void DeleteSnap(int id)
-    {
-        try   { Repo.DeleteSnapshot(id); LoadSnapshots(); }
+        if (!_canEdit) return;
+        if (!await JS.InvokeAsync<bool>("confirm", L["PP.Oee.Confirm.DeleteSnap"].Value)) return;
+        try { Repo.DeleteSnapshot(id); ApplyFilter(); }
         catch (Exception ex) { _err = ex.Message; }
     }
-
-    // ── 상태 로그 ────────────────────────────────────────────────────────
-    void LoadLogs()
-    {
-        _page = 0;
-        if (string.IsNullOrEmpty(_lineId)) return;
-        try   { _logs = Repo.GetStateLogs(_lineId, _logQueryDate, _logQueryDate); }
-        catch (Exception ex) { _err = ex.Message; }
-    }
-
-    void AddLog()
-    {
-        _err = "";
-        if (string.IsNullOrEmpty(_lineId)) { _err = L["PP.Oee.Err.NoLine"]; return; }
-        int s = (int)_newStartTime.TotalMinutes;
-        int e = (int)_newEndTime.TotalMinutes;
-        if (e <= s) { _err = L["PP.Oee.Err.EndTime"]; return; }
-        try
-        {
-            Repo.AddStateLog(_lineId, _newLog.LogDate, _newLog.StateCode, s, e,
-                _newLog.ActualOutput, _newLog.GoodOutput, _newLog.TheoreticalOutput,
-                _newLog.Notes, _actor);
-            _logQueryDate = _newLog.LogDate;
-            LoadLogs();
-            _newLog = new() { LogDate = _newLog.LogDate, StateCode = _newLog.StateCode };
-        }
-        catch (Exception ex) { _err = ex.Message; }
-    }
-
-    void DeleteLog(int id)
-    {
-        try   { Repo.DeleteStateLog(id); LoadLogs(); }
-        catch (Exception ex) { _err = ex.Message; }
-    }
-
-    // ── Helpers ──────────────────────────────────────────────────────────
-    static string OeeKpiCls(double v, double tgt) =>
-        v >= tgt ? "ok" : v >= tgt * 0.85 ? "warn" : "bad";
 
     void ShowMsg(string msg)
     {
@@ -486,135 +586,108 @@
         _ = Task.Delay(3000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
 
-    // ── SVG 빌더 (Blazor <text> 태그 충돌 우회용 MarkupString) ──────────
-
-    string BuildGaugeSvg(OeeSnapshotDto r)
+    // ── 등급 / 표시 헬퍼 ─────────────────────────────────────────────────
+    static string GradeKey(decimal oee) => oee >= WORLD_CLASS ? "wc" : oee >= GOOD ? "ok" : "lo";
+    static string KpiCls(decimal oee)   => oee >= WORLD_CLASS ? "ok" : oee >= GOOD ? "warn" : "bad";
+    string GradeText(decimal oee) => GradeKey(oee) switch
     {
-        double circum  = 2.0 * Math.PI * 45.0;
-        double dash    = Math.Min(1.0, (double)r.OeeRate / 100.0) * circum;
-        string clr     = r.OeeRate >= r.TargetOee ? "#22c55e"
-                       : r.OeeRate >= r.TargetOee * 0.86m ? "#eab308" : "#ef4444";
-        string abv     = r.IsAboveTarget ? L["PP.Oee.Gauge.Above"].Value : string.Format(L["PP.Oee.Gauge.Below"].Value, r.TargetOee);
-        string abvClr  = r.IsAboveTarget ? "#22c55e" : "#f87171";
+        "wc" => L["PP.Oee.Grade.WorldClass"].Value,
+        "ok" => L["PP.Oee.Grade.Good"].Value,
+        _    => L["PP.Oee.Grade.Low"].Value,
+    };
+
+    static MarkupString Bar(decimal v, string key)
+    {
+        var w = Math.Min(100m, Math.Max(0m, v)).ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+        return new MarkupString(
+            $"<div class=\"pp-oee-apq\"><div class=\"pp-oee-track\"><i class=\"pp-oee-fill-{key}\" style=\"width:{w}%\"></i></div>" +
+            $"<span class=\"pp-oee-apq-val\">{v:F1}%</span></div>");
+    }
+
+    // ── SVG 빌더 (Blazor <text> 태그 충돌 우회용 MarkupString) ──────────
+    static string GradeColor(decimal oee) => oee >= WORLD_CLASS ? "#059669" : oee >= GOOD ? "#d97706" : "#dc2626";
+
+    static string BuildDonutSvg(decimal oee)
+    {
+        var inv     = System.Globalization.CultureInfo.InvariantCulture;
+        double circ = 2.0 * Math.PI * 52.0;
+        double dash = Math.Min(1.0, (double)oee / 100.0) * circ;
         return $"""
-            <svg viewBox="0 0 130 130" width="130" height="130" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="65" cy="65" r="45" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="13"/>
-              <circle cx="65" cy="65" r="45" fill="none" stroke="{clr}" stroke-width="13"
-                      stroke-dasharray="{dash:F2} {circum:F2}" stroke-linecap="round"
-                      transform="rotate(-90 65 65)"/>
-              <text x="65" y="58" text-anchor="middle"
-                    font-family="'JetBrains Mono',monospace"
-                    font-size="22" font-weight="bold" fill="white">{r.OeeRate:F1}%</text>
-              <text x="65" y="76" text-anchor="middle" font-size="11" fill="#64748b">OEE</text>
-              <text x="65" y="92" text-anchor="middle" font-size="10" fill="{abvClr}">{abv}</text>
+            <svg viewBox="0 0 150 150" width="150" height="150" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="75" cy="75" r="52" fill="none" class="pp-oee-donut-track" stroke-width="18"/>
+              <circle cx="75" cy="75" r="52" fill="none" stroke="{GradeColor(oee)}" stroke-width="18"
+                      stroke-dasharray="{dash.ToString("F2", inv)} {circ.ToString("F2", inv)}" transform="rotate(-90 75 75)"/>
+              <text x="75" y="80" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="26" font-weight="900" fill="currentColor">{oee.ToString("F1", inv)}%</text>
+              <text x="75" y="96" text-anchor="middle" font-size="10" fill="#64748b">OEE</text>
             </svg>
             """;
     }
 
-    string BuildLossBar(OeeSnapshotDto r)
+    // ── 추세 차트 데이터 (RadzenChart) ──────────────────────────────────
+    // X 는 날짜 축: 같은 날의 교대는 24h/교대수 간격으로 벌려 겹치지 않게 한다.
+    public sealed class TrendPoint
     {
-        if (r.LoadMin <= 0) return "";
-        double load     = r.LoadMin;
-        int    oeeMin   = r.OeeMin;
-        int    qualMin  = r.QualityLossMin;
-        int    perfMin  = r.PerfLossMin;
-        // 반올림 보정
-        int    adj      = r.LoadMin - oeeMin - qualMin - perfMin
-                          - r.UnplannedDownMin - r.PlannedDownMin;
-        oeeMin += adj;
-        string P(int m) => $"{m / load * 100.0:F2}%";
-
-        return $"""
-            <div class="pp-oee-loss-bar">
-              <div style="width:{P(oeeMin)};background:rgba(34,197,94,.75);"
-                   title="{L["PP.Oee.Loss.OeeRun"]} {oeeMin}{L["Lbl.Min"]}"></div>
-              <div style="width:{P(qualMin)};background:rgba(234,179,8,.65);"
-                   title="{L["PP.Oee.Loss.QualLoss"]} {qualMin}{L["Lbl.Min"]}"></div>
-              <div style="width:{P(perfMin)};background:rgba(249,115,22,.65);"
-                   title="{L["PP.Oee.Loss.PerfLoss"]} {perfMin}{L["Lbl.Min"]}"></div>
-              <div style="width:{P(r.UnplannedDownMin)};background:rgba(239,68,68,.7);"
-                   title="{L["PP.DowntimeMonitor.State.Unplan"]} {r.UnplannedDownMin}{L["Lbl.Min"]}"></div>
-              <div style="flex:1;background:rgba(148,163,184,.22);"
-                   title="{L["PP.DowntimeMonitor.State.Plan"]} {r.PlannedDownMin}{L["Lbl.Min"]}"></div>
-            </div>
-            <div class="pp-oee-loss-legend">
-              {LossLegendItem("rgba(34,197,94,.9)",  L["PP.Oee.Loss.OeeRun"].Value,               oeeMin)}
-              {LossLegendItem("rgba(234,179,8,.9)",  L["PP.Oee.Loss.QualLoss"].Value,             qualMin)}
-              {LossLegendItem("rgba(249,115,22,.9)", L["PP.Oee.Loss.PerfLoss"].Value,             perfMin)}
-              {LossLegendItem("rgba(239,68,68,.9)",  L["PP.Oee.Log.State.UnplannedDown"].Value,   r.UnplannedDownMin)}
-              {LossLegendItem("rgba(148,163,184,.6)", L["PP.Oee.Log.State.PlannedDown"].Value,    r.PlannedDownMin)}
-            </div>
-            """;
+        public DateTime At   { get; set; }
+        public string   Label { get; set; } = "";
+        public double   Oee  { get; set; }
+        public double   A    { get; set; }
     }
 
-    string LossLegendItem(string clr, string lbl, int min) =>
-        $"<span><span class=\"pp-oee-loss-dot\" style=\"background:{clr};\"></span>{lbl} <span class=\"code\" style=\"font-size:10px;\">{min}{L["Unit.Min"].Value}</span></span>";
-
-    string BuildTrendSvg(List<OeeSnapshotDto> snapshots)
+    static List<TrendPoint> TrendPoints(List<OeeSnapshotDto> snaps)
     {
-        var pts = snapshots.OrderBy(s => s.PeriodStart).ToList();
-        int n   = pts.Count;
-        if (n == 0) return "";
+        var list = new List<TrendPoint>();
+        foreach (var day in snaps.GroupBy(s => s.PeriodDate.Date).OrderBy(g => g.Key))
+        {
+            var shifts = day.OrderBy(s => s.ShiftCode).ToList();
+            double gap = 24.0 / Math.Max(1, shifts.Count);
+            for (int i = 0; i < shifts.Count; i++)
+            {
+                var s = shifts[i];
+                list.Add(new TrendPoint
+                {
+                    At    = day.Key.AddHours(gap * i),
+                    Label = $"{s.PeriodDate:MM-dd} {s.ShiftCode}",
+                    Oee   = (double)s.Oee,
+                    A     = (double)s.Availability,
+                });
+            }
+        }
+        return list;
+    }
 
-        const int svgW = 800, svgH = 200;
-        const int pL = 42, pR = 16, pT = 12, pB = 36;
-        int  cW = svgW - pL - pR;
-        int  cH = svgH - pT - pB;
-        decimal tgt = pts[0].TargetOee;
-
-        double Yx(double v) => pT + (100.0 - Math.Max(0, Math.Min(100, v))) / 100.0 * cH;
-        double Xx(int i)    => pL + (n > 1 ? (double)i / (n - 1) * cW : cW / 2.0);
-
+    static string BuildTimelineSvg(List<LineStateLogDto> logs, DateTime day)
+    {
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        const int W = 1440, H = 46, BAR = 26;
         var sb = new System.Text.StringBuilder();
-        sb.Append($"<svg viewBox=\"0 0 {svgW} {svgH}\" width=\"100%\" height=\"{svgH}\" xmlns=\"http://www.w3.org/2000/svg\" style=\"font-family:'JetBrains Mono',monospace;\">");
+        sb.Append($"<svg viewBox=\"0 0 {W} {H}\" width=\"100%\" preserveAspectRatio=\"none\" xmlns=\"http://www.w3.org/2000/svg\" style=\"height:60px;\">");
+        sb.Append($"<rect x=\"0\" y=\"0\" width=\"{W}\" height=\"{BAR}\" class=\"pp-oee-donut-track\" fill=\"#64748b\" fill-opacity=\".12\" stroke=\"none\"/>");
 
-        // 배경 그리드
-        for (int g = 0; g <= 100; g += 25)
+        // 같은 상태가 이어지는 분을 하나의 사각형으로 압축
+        int i = 0;
+        while (i < logs.Count)
         {
-            double gy = Yx(g);
-            sb.Append($"<line x1=\"{pL}\" y1=\"{gy:F1}\" x2=\"{svgW-pR}\" y2=\"{gy:F1}\" stroke=\"rgba(255,255,255,.055)\" stroke-width=\"1\"/>");
-            sb.Append($"<text x=\"{pL-4}\" y=\"{gy+3.5:F1}\" text-anchor=\"end\" font-size=\"9\" fill=\"#475569\">{g}</text>");
+            var cur = logs[i]; int j = i;
+            while (j + 1 < logs.Count && Key(logs[j + 1]) == Key(cur)) j++;
+            int x0 = (int)(logs[i].MinuteTs - day.Date).TotalMinutes;
+            int x1 = (int)(logs[j].MinuteTs - day.Date).TotalMinutes + 1;
+            x0 = Math.Clamp(x0, 0, W); x1 = Math.Clamp(x1, 0, W);
+            if (x1 > x0)
+                sb.Append($"<rect x=\"{x0}\" y=\"0\" width=\"{x1 - x0}\" height=\"{BAR}\" fill=\"{Color(cur)}\"><title>{logs[i].MinuteTs:HH:mm}–{logs[j].MinuteTs.AddMinutes(1):HH:mm} {cur.State} / {cur.PlanState}</title></rect>");
+            i = j + 1;
         }
-
-        // 목표선
-        double ty = Yx((double)tgt);
-        sb.Append($"<line x1=\"{pL}\" y1=\"{ty:F1}\" x2=\"{svgW-pR}\" y2=\"{ty:F1}\" stroke=\"rgba(239,68,68,.55)\" stroke-width=\"1.5\" stroke-dasharray=\"5,4\"/>");
-        sb.Append($"<text x=\"{svgW-pR+3}\" y=\"{ty+3.5:F1}\" font-size=\"9\" fill=\"rgba(239,68,68,.75)\">{tgt}%</text>");
-
-        // 가용성 라인 (배경)
-        if (n > 1)
+        for (int h = 0; h <= 24; h += 2)
         {
-            string apts = string.Join(" ", pts.Select((s, i) => $"{Xx(i):F1},{Yx((double)s.Availability):F1}"));
-            sb.Append($"<polyline points=\"{apts}\" fill=\"none\" stroke=\"rgba(148,163,184,.32)\" stroke-width=\"1.5\" stroke-dasharray=\"3,3\"/>");
+            int x = h * 60;
+            sb.Append($"<line x1=\"{x}\" y1=\"{BAR}\" x2=\"{x}\" y2=\"{BAR + 4}\" stroke=\"#64748b\"/>");
+            sb.Append($"<text x=\"{x}\" y=\"{H - 4}\" text-anchor=\"{(h == 0 ? "start" : h == 24 ? "end" : "middle")}\" font-size=\"11\" fill=\"#64748b\">{h:00}</text>");
         }
-
-        // OEE 라인
-        if (n > 1)
-        {
-            string opts = string.Join(" ", pts.Select((s, i) => $"{Xx(i):F1},{Yx((double)s.OeeRate):F1}"));
-            sb.Append($"<polyline points=\"{opts}\" fill=\"none\" stroke=\"rgba(59,130,246,.9)\" stroke-width=\"2.5\"/>");
-        }
-
-        // 데이터 점 + 값 레이블 + X 레이블
-        foreach (var (s, i) in pts.Select((s, i) => (s, i)))
-        {
-            double x = Xx(i), y = Yx((double)s.OeeRate);
-            string dc = s.IsAboveTarget ? "#22c55e" : "#ef4444";
-            sb.Append($"<circle cx=\"{x:F1}\" cy=\"{y:F1}\" r=\"4.5\" fill=\"{dc}\" stroke=\"#0f172a\" stroke-width=\"1.5\">");
-            sb.Append($"<title>{System.Net.WebUtility.HtmlEncode(s.PeriodLabel)}  OEE {s.OeeRate:F1}%  A {s.Availability:F1}%  {L["PP.Oee.Lbl.Target"]} {s.TargetOee}%</title>");
-            sb.Append("</circle>");
-            // 값 레이블 (점 위에)
-            sb.Append($"<text x=\"{x:F1}\" y=\"{y-8:F1}\" text-anchor=\"middle\" font-size=\"9\" fill=\"{dc}\">{s.OeeRate:F1}</text>");
-            // X축 날짜
-            if (n <= 20)
-                sb.Append($"<text x=\"{x:F1}\" y=\"{svgH - pB + 14:F1}\" text-anchor=\"middle\" font-size=\"9\" fill=\"#64748b\">{System.Net.WebUtility.HtmlEncode(s.PeriodLabel)}</text>");
-        }
-
-        // Y축 레이블
-        double midY = pT + cH / 2.0;
-        sb.Append($"<text x=\"10\" y=\"{midY:F0}\" text-anchor=\"middle\" font-size=\"9\" fill=\"#475569\" transform=\"rotate(-90 10 {midY:F0})\">OEE %</text>");
-
         sb.Append("</svg>");
         return sb.ToString();
+
+        static string Key(LineStateLogDto l) => $"{l.State}|{l.PlanState}";
+        static string Color(LineStateLogDto l) =>
+            l.PlanState is not null && l.PlanState != "PLAN-RUN" ? "#64748b"
+            : l.State switch { "RUN" => "#22c55e", "IDLE" => "#f59e0b", "DOWN" => "#ef4444", _ => "#94a3b8" };
     }
 }

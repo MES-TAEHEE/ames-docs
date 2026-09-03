@@ -5301,4 +5301,286 @@
   <data name="PP.LineSchedule.Msg.BandFull" xml:space="preserve">
     <value>이 가동 시간대는 이미 가득 찼습니다.</value>
   </data>
+  <data name="PP.Oee.Kpi.Overall" xml:space="preserve">
+    <value>종합 OEE</value>
+  </data>
+  <data name="PP.Oee.Kpi.WorldClass" xml:space="preserve">
+    <value>월드클래스 ≥ {0}%</value>
+  </data>
+  <data name="PP.Oee.Kpi.TotalLoss" xml:space="preserve">
+    <value>총 손실 (분)</value>
+  </data>
+  <data name="PP.Oee.Kpi.Range" xml:space="preserve">
+    <value>{0} ~ {1} · 스냅샷 {2}건</value>
+  </data>
+  <data name="PP.Oee.Shift.All" xml:space="preserve">
+    <value>전체 교대</value>
+  </data>
+  <data name="PP.Oee.Shift.None" xml:space="preserve">
+    <value>(교대 없음)</value>
+  </data>
+  <data name="PP.Oee.ByLine.Title" xml:space="preserve">
+    <value>라인별 OEE</value>
+  </data>
+  <data name="PP.Oee.ByLine.Hint" xml:space="preserve">
+    <value>행을 클릭하면 상세를 봅니다</value>
+  </data>
+  <data name="PP.Oee.ByLine.NoData" xml:space="preserve">
+    <value>기간 내 스냅샷 없음</value>
+  </data>
+  <data name="PP.Oee.Col.Grade" xml:space="preserve">
+    <value>등급</value>
+  </data>
+  <data name="PP.Oee.Col.Loss" xml:space="preserve">
+    <value>손실 (분)</value>
+  </data>
+  <data name="PP.Oee.Grade.WorldClass" xml:space="preserve">
+    <value>월드클래스</value>
+  </data>
+  <data name="PP.Oee.Grade.Good" xml:space="preserve">
+    <value>양호</value>
+  </data>
+  <data name="PP.Oee.Grade.Low" xml:space="preserve">
+    <value>개선 필요</value>
+  </data>
+  <data name="PP.Oee.Loss.Title" xml:space="preserve">
+    <value>6대 손실</value>
+  </data>
+  <data name="PP.Oee.Loss.OverallAvg" xml:space="preserve">
+    <value>전체 평균</value>
+  </data>
+  <data name="PP.Oee.Loss.Breakdown" xml:space="preserve">
+    <value>고장 정지</value>
+  </data>
+  <data name="PP.Oee.Loss.Setup" xml:space="preserve">
+    <value>준비·교체</value>
+  </data>
+  <data name="PP.Oee.Loss.OtherStops" xml:space="preserve">
+    <value>기타 정지</value>
+  </data>
+  <data name="PP.Oee.Loss.Speed" xml:space="preserve">
+    <value>속도 저하</value>
+  </data>
+  <data name="PP.Oee.Loss.Defects" xml:space="preserve">
+    <value>불량·재작업</value>
+  </data>
+  <data name="PP.Oee.Loss.Planned" xml:space="preserve">
+    <value>계획 비가동</value>
+  </data>
+  <data name="PP.Oee.Loss.Cat.Avail" xml:space="preserve">
+    <value>가용성 손실</value>
+  </data>
+  <data name="PP.Oee.Loss.Cat.Perf" xml:space="preserve">
+    <value>성능 손실</value>
+  </data>
+  <data name="PP.Oee.Loss.Cat.Qual" xml:space="preserve">
+    <value>품질 손실</value>
+  </data>
+  <data name="PP.Oee.Loss.Cat.Planned" xml:space="preserve">
+    <value>계획 정지</value>
+  </data>
+  <data name="PP.Oee.Loss.Hint" xml:space="preserve">
+    <value>막대 길이 = 손실 분 · 고장/준비 구분은 비가동 로그 사유(MACHINE/CHANGEOVER) 비율 기준</value>
+  </data>
+  <data name="PP.Oee.Comp.Title" xml:space="preserve">
+    <value>OEE 구성</value>
+  </data>
+  <data name="PP.Oee.Detail.Title" xml:space="preserve">
+    <value>{0} 상세</value>
+  </data>
+  <data name="PP.Oee.Tab.Snapshots" xml:space="preserve">
+    <value>📋 스냅샷</value>
+  </data>
+  <data name="PP.Oee.Calc.Title" xml:space="preserve">
+    <value>OEE 계산 · 상태 로그 + 실적 기준</value>
+  </data>
+  <data name="PP.Oee.Calc.Note" xml:space="preserve">
+    <value>성능 P 는 BOP 표준 사이클이 없으면 100%로 간주합니다</value>
+  </data>
+  <data name="PP.Oee.Calc.Assumed" xml:space="preserve">
+    <value>(P 가정)</value>
+  </data>
+  <data name="PP.Oee.Calc.NoLog" xml:space="preserve">
+    <value>해당 구간에 상태 로그가 없습니다</value>
+  </data>
+  <data name="PP.Oee.Log.Timeline" xml:space="preserve">
+    <value>분단위 상태 타임라인</value>
+  </data>
+  <data name="PP.Oee.Log.Run" xml:space="preserve">
+    <value>가동</value>
+  </data>
+  <data name="PP.Oee.Log.Idle" xml:space="preserve">
+    <value>유휴</value>
+  </data>
+  <data name="PP.Oee.Log.Down" xml:space="preserve">
+    <value>정지</value>
+  </data>
+  <data name="PP.Oee.Log.PlanDown" xml:space="preserve">
+    <value>계획 정지</value>
+  </data>
+  <data name="PP.Oee.Snap.Col.Date" xml:space="preserve">
+    <value>일자</value>
+  </data>
+  <data name="PP.Oee.Snap.Col.Operating" xml:space="preserve">
+    <value>가동</value>
+  </data>
+  <data name="PP.Oee.Snap.Col.Produced" xml:space="preserve">
+    <value>생산</value>
+  </data>
+  <data name="PP.Oee.Snap.Col.Good" xml:space="preserve">
+    <value>양품</value>
+  </data>
+  <data name="PP.Oee.Confirm.DeleteSnap" xml:space="preserve">
+    <value>이 스냅샷을 삭제할까요?</value>
+  </data>
+  <data name="PP.Downtime.Kpi.Events" xml:space="preserve">
+    <value>건수</value>
+  </data>
+  <data name="PP.Downtime.Kpi.TotalMin" xml:space="preserve">
+    <value>총 비가동</value>
+  </data>
+  <data name="PP.Downtime.Kpi.Open" xml:space="preserve">
+    <value>미해결</value>
+  </data>
+  <data name="PP.Downtime.Kpi.TopReason" xml:space="preserve">
+    <value>최다 사유</value>
+  </data>
+  <data name="PP.Downtime.Kpi.AvgMin" xml:space="preserve">
+    <value>평균 비가동</value>
+  </data>
+  <data name="PP.Downtime.Kpi.LinesSub" xml:space="preserve">
+    <value>라인 {0}개</value>
+  </data>
+  <data name="PP.Downtime.Kpi.ClosedSub" xml:space="preserve">
+    <value>완료 {0}건</value>
+  </data>
+  <data name="PP.Downtime.Kpi.MaxSub" xml:space="preserve">
+    <value>최장 {0}분</value>
+  </data>
+  <data name="PP.Downtime.Lbl.Range" xml:space="preserve">
+    <value>{0} ~ {1}</value>
+  </data>
+  <data name="PP.Downtime.Hint.Edit" xml:space="preserve">
+    <value>행을 클릭하면 사유·원인·비고를 수정합니다</value>
+  </data>
+  <data name="PP.Downtime.Ph.Reason" xml:space="preserve">
+    <value>사유 선택…</value>
+  </data>
+  <data name="PP.Downtime.Err.ReasonRequired" xml:space="preserve">
+    <value>사유를 선택하세요</value>
+  </data>
+  <data name="PP.Downtime.Ok.Saved" xml:space="preserve">
+    <value>비가동 사유가 저장되었습니다</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.RunLines" xml:space="preserve">
+    <value>가동 라인</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.DownLines" xml:space="preserve">
+    <value>실제비가동 라인</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.TodayDown" xml:space="preserve">
+    <value>오늘 비가동</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.Avail" xml:space="preserve">
+    <value>평균 가용성</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.OfLines" xml:space="preserve">
+    <value>라인 {0}개 중</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.IdleSub" xml:space="preserve">
+    <value>유휴 {0}</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.PlanSub" xml:space="preserve">
+    <value>계획비가동 {0}분</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.AvailSub" xml:space="preserve">
+    <value>가동 {0} / 계획가동 {1}분</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.EventsSub" xml:space="preserve">
+    <value>오늘 이력 {0}건</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Grid.Header" xml:space="preserve">
+    <value>라인 현황</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Lbl.AsOf" xml:space="preserve">
+    <value>기준 시각</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Btn.Live" xml:space="preserve">
+    <value>실시간</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Mode.Live" xml:space="preserve">
+    <value>{0}초 자동갱신</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Mode.Replay" xml:space="preserve">
+    <value>재생 모드 — 자동갱신 중지</value>
+  </data>
+  <data name="PP.DowntimeMonitor.State.Idle" xml:space="preserve">
+    <value>유휴</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Stat.Idle" xml:space="preserve">
+    <value>유휴</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Lbl.LastLog" xml:space="preserve">
+    <value>마지막 로그</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Lbl.NoLog" xml:space="preserve">
+    <value>로그 없음</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Dur.Over" xml:space="preserve">
+    <value>{0}분 이상</value>
+  </data>
+  <data name="PP.DowntimeMonitor.History.HeaderFmt" xml:space="preserve">
+    <value>비가동 이력 ({0})</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Hint.Edit" xml:space="preserve">
+    <value>행을 클릭하면 사유·원인·비고를 수정합니다 (사유 미입력 행 강조)</value>
+  </data>
+  <data name="PP.Delivery.Kpi.Shipped" xml:space="preserve">
+    <value>출하완료</value>
+  </data>
+  <data name="PP.Delivery.Kpi.ShippedSub" xml:space="preserve">
+    <value>수량 기준 {0}%</value>
+  </data>
+  <data name="PP.Delivery.Kpi.PromiseLateSub" xml:space="preserve">
+    <value>약속일 &gt; 요청일 {0}건</value>
+  </data>
+  <data name="PP.Delivery.Kpi.AvgLateSub" xml:space="preserve">
+    <value>평균 {0}일 지연 · 최장 {1}일</value>
+  </data>
+  <data name="PP.Delivery.Kpi.OpenNote" xml:space="preserve">
+    <value>요청납기 미경과</value>
+  </data>
+  <data name="PP.Delivery.Kpi.OtdNote" xml:space="preserve">
+    <value>출하일 미기록 · 완료건은 준수로 간주</value>
+  </data>
+  <data name="PP.Delivery.Status.Shipped" xml:space="preserve">
+    <value>출하완료</value>
+  </data>
+  <data name="PP.Delivery.Badge.Shipped" xml:space="preserve">
+    <value>완료</value>
+  </data>
+  <data name="PP.Delivery.Cust.Title" xml:space="preserve">
+    <value>고객별 납기 준수율</value>
+  </data>
+  <data name="PP.Delivery.Cust.Col.Orders" xml:space="preserve">
+    <value>수주</value>
+  </data>
+  <data name="PP.Delivery.Cust.Col.Shipped" xml:space="preserve">
+    <value>완료</value>
+  </data>
+  <data name="PP.Delivery.Cust.Col.Late" xml:space="preserve">
+    <value>지연</value>
+  </data>
+  <data name="PP.Delivery.Cust.Col.Otd" xml:space="preserve">
+    <value>준수율</value>
+  </data>
+  <data name="PP.Delivery.Col.PromiseGap" xml:space="preserve">
+    <value>약속납기 − 요청납기 (일)</value>
+  </data>
+  <data name="PP.Delivery.Lbl.Range" xml:space="preserve">
+    <value>요청납기 {0} ~ {1}</value>
+  </data>
+  <data name="PP.Delivery.Hint" xml:space="preserve">
+    <value>지연 = 미출하이면서 요청납기 경과 (기준일 {0}) · 실제 출하일이 기록되지 않아 완료건의 지연 여부는 판정하지 않습니다</value>
+  </data>
 </root>

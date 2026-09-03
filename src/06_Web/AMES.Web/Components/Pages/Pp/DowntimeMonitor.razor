@@ -1,424 +1,532 @@
-﻿@page "/pp/downtime-monitor"
+@page "/pp/downtime-monitor"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @implements IDisposable
-@inject AMES.Data.Repositories.PpRepository           Pp
-@inject AMES.Data.Repositories.OeeRepository          Oee
-@inject AMES.Data.Repositories.SysRepository          Sys
+@inject AMES.Data.Repositories.PpRepository         Pp
+@inject AMES.Data.Repositories.OeeRepository        Oee
+@inject AMES.Data.Repositories.SysRepository        Sys
+@inject AMES.Data.Repositories.MasterDataRepository MD
 @inject AuthenticationStateProvider AuthPrvd
 @inject AMES.Web.Services.PermissionService PermSvc
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResources> L
+@using AMES.Data.Repositories
 
 <PageTitle>@L["PP.DowntimeMonitor.Title"] · AMES</PageTitle>
 
 <AmesPageHeader Code="PP-ODM" TitleKey="PP.DowntimeMonitor.Title" />
 
-<div style="display:flex;justify-content:flex-end;font-size:.75rem;color:var(--c-dim);margin-bottom:12px;">
-    @L["PP.DowntimeMonitor.Lbl.Refresh"] @_lastRefresh.ToString("HH:mm:ss")
-    &nbsp;·&nbsp;<span style="color:var(--c-accent);">@L["PP.DowntimeMonitor.AutoRefresh"]</span>
-</div>
-
-@* ── KPI 스트립 ── *@
+@* ── KPI ────────────────────────────────────────────────────────── *@
 <div class="ames-kpis">
-    <div class="ames-kpi">
-        <div class="ames-kpi-l">@L["PP.DowntimeMonitor.Kpi.Lines"]</div>
-        <div class="ames-kpi-v">@_vms.Count</div>
-    </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">@L["PP.DowntimeMonitor.Kpi.Work"]</div>
-        <div class="ames-kpi-v">@_vms.Values.Count(v => v.State == "WORK")</div>
+        <div class="ames-kpi-l">@L["PP.DowntimeMonitor.Kpi.RunLines"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@RunLines</div>
+            <div class="ames-kpi-s">@string.Format(L["PP.DowntimeMonitor.Kpi.OfLines"].Value, _vms.Count)</div>
+        </div>
     </div>
-    <div class="ames-kpi bad">
-        <div class="ames-kpi-l">@L["PP.DowntimeMonitor.Kpi.Unplan"]</div>
-        <div class="ames-kpi-v">@_vms.Values.Count(v => v.State == "UNPLANNED_DOWN")</div>
+    <div class="ames-kpi @(DownLines > 0 ? "bad" : "")">
+        <div class="ames-kpi-l">@L["PP.DowntimeMonitor.Kpi.DownLines"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@DownLines</div>
+            <div class="ames-kpi-s">@string.Format(L["PP.DowntimeMonitor.Kpi.IdleSub"].Value, IdleLines)</div>
+        </div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">@L["PP.DowntimeMonitor.Kpi.Plan"]</div>
-        <div class="ames-kpi-v">@_vms.Values.Count(v => v.State is "PLANNED_DOWN" or "BREAK")</div>
+        <div class="ames-kpi-l">@L["PP.DowntimeMonitor.Kpi.TodayDown"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@TodayDownMin.ToString("N0")<span style="font-size:14px;margin-left:3px;">@L["Lbl.Min"]</span></div>
+            <div class="ames-kpi-s">@string.Format(L["PP.DowntimeMonitor.Kpi.PlanSub"].Value, TodayPlanMin)</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(PlanRunMin == 0 ? "" : AvgAvail >= 90 ? "ok" : AvgAvail >= 80 ? "warn" : "bad")">
+        <div class="ames-kpi-l">@L["PP.DowntimeMonitor.Kpi.Avail"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@(PlanRunMin == 0 ? "—" : AvgAvail.ToString("0.0"))<span style="font-size:14px;margin-left:2px;">%</span></div>
+            <div class="ames-kpi-s">@string.Format(L["PP.DowntimeMonitor.Kpi.AvailSub"].Value, TodayWorkMin, PlanRunMin)</div>
+        </div>
     </div>
     <div class="ames-kpi @(_noReasonCount > 0 ? "bad" : "")">
         <div class="ames-kpi-l">@L["PP.DowntimeMonitor.Kpi.NoReason"]</div>
-        <div class="ames-kpi-v">@_noReasonCount</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_noReasonCount</div>
+            <div class="ames-kpi-s">@string.Format(L["PP.DowntimeMonitor.Kpi.EventsSub"].Value, _dtlRows.Count)</div>
+        </div>
     </div>
 </div>
 
+@if (!string.IsNullOrEmpty(_err)) { <RadzenAlert AlertStyle="AlertStyle.Danger"  Variant="Variant.Flat">@_err</RadzenAlert> }
+@if (!string.IsNullOrEmpty(_msg)) { <RadzenAlert AlertStyle="AlertStyle.Success" Variant="Variant.Flat">@_msg</RadzenAlert> }
+
 @* ── 경보 배너: 10분 이상 실제비가동 ── *@
 @{
-    var alertVms = _vms.Values.Where(v => v.State == "UNPLANNED_DOWN" && v.StateDurationMin >= 10).ToList();
+    var alertVms = _vms.Values.Where(v => v.State == "UNPLANNED_DOWN" && v.StateDurationMin >= ALERT_MIN).ToList();
 }
-@if (alertVms.Any())
+@if (alertVms.Count > 0)
 {
     <div class="odm-alert-banner">
         <span>⚠</span>
         <strong>@L["PP.DowntimeMonitor.Alert.Title"]</strong>
         @foreach (var v in alertVms)
         {
-            <button class="odm-alert-chip" @onclick="() => ScrollToLine(v.LineId)">
-                @v.LineId · @(v.StateDurationMin)분
-            </button>
+            <a class="odm-alert-chip" href="#line-@v.LineId">@v.LineId · @(v.StateDurationMin)@L["Lbl.Min"]</a>
         }
     </div>
 }
 
-@* ── 라인 현황 카드 그리드 ── *@
-<div class="odm-grid">
-    @foreach (var vm in _vms.Values.OrderBy(v => v.LineId))
-    {
-        string stateLabel = vm.State switch {
-            "WORK"           => L["PP.DowntimeMonitor.State.Work"].Value,
-            "UNPLANNED_DOWN" => L["PP.DowntimeMonitor.State.Unplan"].Value,
-            "PLANNED_DOWN"   => L["PP.DowntimeMonitor.State.Plan"].Value,
-            "BREAK"          => L["PP.DowntimeMonitor.State.Break"].Value,
-            _                => L["PP.DowntimeMonitor.State.Unknown"].Value
-        };
-        string stateCss = vm.State switch {
-            "WORK"           => "odm-badge-work",
-            "UNPLANNED_DOWN" => "odm-badge-unplan",
-            "PLANNED_DOWN"   => "odm-badge-plan",
-            "BREAK"          => "odm-badge-break",
-            _                => "odm-badge-unknown"
-        };
-        bool isAlert = vm.State == "UNPLANNED_DOWN" && vm.StateDurationMin >= 10;
-
-        <div class="odm-card @(isAlert ? "odm-card-alert" : "")" id="line-@vm.LineId">
-            <div class="odm-card-top">
-                <span class="odm-line-id">@vm.LineId</span>
-                <span class="odm-badge @stateCss">@stateLabel</span>
-                <span class="odm-plan-label dim">@L["PP.DowntimeMonitor.Lbl.Plan"] @(vm.PlanBand ?? "—")</span>
-            </div>
-
-            <div class="odm-elapsed @(vm.State == "UNPLANNED_DOWN" ? "odm-elapsed-bad" : vm.State == "WORK" ? "odm-elapsed-ok" : "")">
-                @FormatDuration(vm.StateDurationMin)
-                @if (isAlert)
-                { <span class="odm-blink">⚠ @L["PP.DowntimeMonitor.Lbl.Urgent"]</span> }
-            </div>
-
-            @* 60분 타임라인 *@
-            <div class="odm-tl-wrap" title="@L["PP.DowntimeMonitor.Tl.Title"]">
-                @foreach (var (_, s) in vm.Timeline.TakeLast(60))
-                {
-                    <div class="odm-tl-seg @(s switch {
-                        "WORK"           => "odm-tl-work",
-                        "UNPLANNED_DOWN" => "odm-tl-unplan",
-                        "BREAK"          => "odm-tl-break",
-                        _                => "odm-tl-plan"
-                    })"></div>
-                }
-                @for (int i = vm.Timeline.Count; i < 60; i++)
-                { <div class="odm-tl-seg odm-tl-empty"></div> }
-            </div>
-            <div class="odm-tl-axis">
-                <span>@L["PP.DowntimeMonitor.Tl.Minus60"]</span>
-                <span>@L["PP.DowntimeMonitor.Tl.Minus30"]</span>
-                <span>@L["PP.DowntimeMonitor.Tl.Now"]</span>
-            </div>
-
-            @* 오늘 누적 *@
-            <div class="odm-day-stats">
-                <span>@L["PP.DowntimeMonitor.Kpi.Work"] <strong class="ok">@(vm.TodayWorkMin)분</strong></span>
-                <span>@L["PP.DowntimeMonitor.Kpi.Unplan"] <strong class="bad">@(vm.TodayUnplanMin)분</strong></span>
-                <span>@L["PP.DowntimeMonitor.Stat.Signal"] @(vm.SignalAge is null ? "—" : vm.SignalAge < 5 ? string.Format(L["PP.DowntimeMonitor.Stat.Age"].Value, vm.SignalAge) : L["PP.DowntimeMonitor.Stat.Old"].Value)</span>
-            </div>
-        </div>
-    }
-</div>
-
-@* ── 오늘 비가동 이력 (사유 편집) ── *@
-<div class="ames-card" style="margin-top:1.5rem;">
+@* ── 라인 현황 (조회부는 Md/Rp/Station.razor 패턴) ───────────────── *@
+<div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span>▼ @L["PP.DowntimeMonitor.History.Header"]</span>
-        <div style="display:flex;gap:6px;align-items:center;">
-            <select class="ames-input" style="width:130px;" @bind="_dtlLine" @bind:after="ReloadDtl">
-                <option value="">@L["Filter.All"]</option>
-                @foreach (var l in _dtlLines)
-                { <option value="@l">@l</option> }
-            </select>
-            <button class="ames-btn ok" @onclick="ReloadDtl">@L["Btn.Search"]</button>
-        </div>
+        <span style="white-space:nowrap;">
+            ▼ @L["PP.DowntimeMonitor.Grid.Header"] · @_vms.Count @L["Lbl.Items"]
+            <span class="dim" style="margin-left:8px;">@L["PP.DowntimeMonitor.Lbl.Refresh"] @_lastRefresh.ToString("HH:mm:ss")</span>
+        </span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["PP.DowntimeMonitor.Lbl.AsOf"]" Component="DatePickerAsOf" />
+            <RadzenDatePicker TValue="DateTime?" Name="DatePickerAsOf" @bind-Value="_fAsOf" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="yyyy-MM-dd HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px;" />
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Replay" class="ames-rz-btn" />
+            <RadzenButton Text="@L["PP.DowntimeMonitor.Btn.Live"]" Icon="play_arrow" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Disabled="@_live" Click="@GoLive" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+    <div class="dim" style="font-size:10px;padding:0 0 8px;">
+        @(_live ? string.Format(L["PP.DowntimeMonitor.Mode.Live"].Value, _refreshSec) : L["PP.DowntimeMonitor.Mode.Replay"].Value)
+        · @L["PP.DowntimeMonitor.Tl.Title"]
     </div>
 
-    @if (_dtlRows.Count == 0)
+    @if (_vms.Count == 0)
     {
-        <div class="ames-empty">@L["PP.DowntimeMonitor.History.Empty"]</div>
+        <div class="ames-empty">@L["PP.DowntimeMonitor.State.Unknown"]</div>
     }
     else
     {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.Line"]</th>
-                    <th>@L["Col.Start"]</th>
-                    <th>@L["Col.End"]</th>
-                    <th class="num">@L["PP.DowntimeMonitor.Col.Duration"]</th>
-                    <th>@L["PP.DowntimeMonitor.Lbl.ReasonCode"]</th>
-                    <th>@L["Col.Cause"]</th>
-                    <th>@L["Col.Note"]</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in _dtlRows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    bool noReason = string.IsNullOrEmpty(r.ReasonCode);
-                    <tr class="@(noReason ? "odm-row-no-reason" : "")">
-                        <td class="code">@r.LineId</td>
-                        <td class="dim">@(r.StartTs?.ToString("HH:mm") ?? "—")</td>
-                        <td class="dim">@(r.EndTs?.ToString("HH:mm") ?? L["PP.DowntimeMonitor.Inprog"].Value)</td>
-                        <td class="num @(r.DurationMin > 30 ? "bad" : "")">@r.DurationMin</td>
-                        <td>
-                            @if (noReason)
-                            { <span class="badge-bad">@L["PP.DowntimeMonitor.Lbl.NotEntered"]</span> }
-                            else
-                            { <span>@r.ReasonCode</span> }
-                        </td>
-                        <td class="dim">@(r.CauseCode ?? "—")</td>
-                        <td class="dim">@r.Comment</td>
-                        <td>
-                            @if (_canEdit) {
-                            <button class="ames-btn ghost" style="padding:2px 10px;font-size:.78rem;"
-                                    @onclick="() => OpenEdit(r)">
-                                @L["Btn.Edit"]
-                            </button>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_dtlRows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+        <div class="odm-grid">
+            @foreach (var vm in _vms.Values.OrderBy(v => v.LineId))
+            {
+                bool isAlert = vm.State == "UNPLANNED_DOWN" && vm.StateDurationMin >= ALERT_MIN;
+                <div class="odm-card @(isAlert ? "odm-card-alert" : "")" id="line-@vm.LineId">
+                    <div class="odm-card-top">
+                        <span class="odm-line-id">@vm.LineId</span>
+                        <span class="odm-line-name">@vm.Name</span>
+                        <span class="odm-badge @BadgeCls(vm.State)">@StateLabel(vm.State)</span>
+                        <span class="odm-plan-label dim">@L["PP.DowntimeMonitor.Lbl.Plan"] @(vm.PlanState ?? "—")</span>
+                    </div>
+
+                    <div class="odm-elapsed @(vm.State == "UNPLANNED_DOWN" ? "odm-elapsed-bad" : vm.State == "WORK" ? "odm-elapsed-ok" : "")">
+                        @if (vm.State == "UNKNOWN")
+                        {
+                            <span class="dim">@(vm.LastLogTs is null ? L["PP.DowntimeMonitor.Lbl.NoLog"].Value : $"{L["PP.DowntimeMonitor.Lbl.LastLog"]} {vm.LastLogTs:MM-dd HH:mm} · {StateLabel(vm.LastState)}")</span>
+                        }
+                        else
+                        {
+                            @(vm.RunReachedWindowStart ? string.Format(L["PP.DowntimeMonitor.Dur.Over"].Value, WINDOW) : FormatDuration(vm.StateDurationMin))
+                            @if (isAlert) { <span class="odm-blink">⚠ @L["PP.DowntimeMonitor.Lbl.Urgent"]</span> }
+                        }
+                    </div>
+
+                    <div class="odm-tl-wrap">
+                        @foreach (var s in vm.Timeline)
+                        {
+                            <div class="odm-tl-seg @TlCls(s)"></div>
+                        }
+                    </div>
+                    <div class="odm-tl-axis">
+                        <span>@L["PP.DowntimeMonitor.Tl.Minus60"]</span>
+                        <span>@L["PP.DowntimeMonitor.Tl.Minus30"]</span>
+                        <span>@L["PP.DowntimeMonitor.Tl.Now"]</span>
+                    </div>
+
+                    <div class="odm-day-stats">
+                        <span>@L["PP.DowntimeMonitor.Kpi.Work"] <strong class="ok">@vm.WorkMin@L["Lbl.Min"]</strong></span>
+                        <span>@L["PP.DowntimeMonitor.Kpi.Unplan"] <strong class="bad">@vm.UnplanMin@L["Lbl.Min"]</strong></span>
+                        <span>@L["PP.DowntimeMonitor.Stat.Idle"] <strong>@vm.IdleMin@L["Lbl.Min"]</strong></span>
+                        <span>@L["PP.DowntimeMonitor.Stat.Signal"] @(vm.SignalAge is null ? "—" : vm.SignalAge < 5 ? string.Format(L["PP.DowntimeMonitor.Stat.Age"].Value, vm.SignalAge) : L["PP.DowntimeMonitor.Stat.Old"].Value)</span>
+                    </div>
+                </div>
+            }
+        </div>
     }
 </div>
 
-@* ── 사유 수정 모달 ── *@
-@if (_editId.HasValue)
+@* ── 비가동 이력 (기준일) ─────────────────────────────────────────── *@
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @string.Format(L["PP.DowntimeMonitor.History.HeaderFmt"].Value, AsOf.ToString("yyyy-MM-dd")) · @_dtlRows.Count @L["Lbl.Items"]</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["Col.Line"]" Component="DropDownDtlLine" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownDtlLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ReloadDtl" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+    @if (_canEdit)
+    {
+        <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["PP.DowntimeMonitor.Hint.Edit"]</div>
+    }
+
+    <RadzenDataGrid TItem="PpRepository.DowntimeRow" Data="@_dtlRows" AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
+                    AllowSorting="true" RowClick="@(e => { if (e.Data is { } d) OpenEdit(d); })" RowRender="@RowRender"
+                    EmptyText="@L["PP.DowntimeMonitor.History.Empty"]" Class="ames-rz-grid pp-dtl-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="LineId" Title="@L["Col.Line"]" Width="120px">
+                <Template Context="r"><span class="code">@(r.LineId ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="StartTs" Title="@L["Col.Start"]" Width="90px">
+                <Template Context="r">@(r.StartTs?.ToString("HH:mm") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="EndTs" Title="@L["Col.End"]" Width="90px">
+                <Template Context="r">
+                    @if (r.EndTs is null) { <span class="pill bad">@L["PP.DowntimeMonitor.Inprog"]</span> } else { @r.EndTs.Value.ToString("HH:mm") }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="DurationMin" Title="@L["PP.DowntimeMonitor.Col.Duration"]" Width="90px" TextAlign="TextAlign.Right">
+                <Template Context="r"><span class="code" style="@(r.DurationMin > 30 ? "color:#f87171;" : "")">@r.DurationMin.ToString("N0")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="ReasonCode" Title="@L["PP.DowntimeMonitor.Lbl.ReasonCode"]" Width="130px" TextAlign="TextAlign.Center">
+                <Template Context="r">
+                    @if (string.IsNullOrEmpty(r.ReasonCode)) { <span class="pill bad">@L["PP.DowntimeMonitor.Lbl.NotEntered"]</span> } else { <span class="pill @ReasonCls(r.ReasonCode)">@r.ReasonCode</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="CauseCode" Title="@L["Col.Cause"]" Width="110px">
+                <Template Context="r"><span class="dim">@(r.CauseCode ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="Comment" Title="@L["Col.Note"]">
+                <Template Context="r"><span class="dim">@(r.Comment ?? "")</span></Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+@* ── 사유 수정 모달 (Station.razor 모달 패턴) ─────────────────────── *@
+@if (_modal == "edit" && _sel is not null)
 {
-    <div class="ames-modal-overlay" @onclick="CloseEdit">
-        <div class="ames-modal" @onclick:stopPropagation="true">
-            <div class="ames-modal-header">
-                <span>@L["PP.DowntimeMonitor.Modal.Edit"] @_editLine</span>
-                <button class="ames-modal-close" @onclick="CloseEdit">✕</button>
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["PP.DowntimeMonitor.Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.LineId</span></div>
+            <div class="odm-edit-info">
+                @(_sel.StartTs?.ToString("HH:mm") ?? "—") ~ @(_sel.EndTs?.ToString("HH:mm") ?? L["PP.DowntimeMonitor.Inprog"].Value)
+                · <strong>@_sel.DurationMin@L["Lbl.Min"]</strong>
             </div>
-            <div class="ames-modal-body">
-                <div class="odm-edit-info">
-                    @(_editStart?.ToString("HH:mm") ?? "—") ~
-                    @(_editEnd?.ToString("HH:mm") ?? L["PP.DowntimeMonitor.Inprog"].Value)
-                    · <strong>@(_editDuration)분</strong>
-                </div>
-                <div class="ames-form-row">
-                    <label>@L["PP.DowntimeMonitor.Lbl.ReasonCode"]</label>
-                    <select class="ames-input" @bind="_editReason">
-                        <option value="">@L["PP.DowntimeMonitor.Reason.Select"]</option>
-                        <option value="MECH">@L["PP.DowntimeMonitor.Reason.Mech"]</option>
-                        <option value="ELEC">@L["PP.DowntimeMonitor.Reason.Elec"]</option>
-                        <option value="MAT">@L["PP.DowntimeMonitor.Reason.Mat"]</option>
-                        <option value="OPER">@L["PP.DowntimeMonitor.Reason.Oper"]</option>
-                        <option value="PLAN">@L["PP.DowntimeMonitor.Reason.Plan"]</option>
-                        <option value="OTHER">@L["PP.DowntimeMonitor.Reason.Other"]</option>
-                    </select>
-                </div>
-                <div class="ames-form-row">
-                    <label>@L["PP.DowntimeMonitor.Lbl.Cause"]</label>
-                    <input class="ames-input" @bind="_editCause" placeholder="@L["PP.DowntimeMonitor.Ph.Cause"]" />
-                </div>
-                <div class="ames-form-row">
-                    <label>@L["Col.Note"]</label>
-                    <input class="ames-input" @bind="_editComment" placeholder="@L["PP.DowntimeMonitor.Ph.Comment"]" />
-                </div>
-                @if (!string.IsNullOrEmpty(_editError))
-                {
-                    <div style="color:var(--c-bad);font-size:.82rem;margin-top:.4rem;">@_editError</div>
-                }
-            </div>
-            <div class="ames-modal-footer">
-                <button class="ames-btn ghost" @onclick="CloseEdit">@L["Btn.Cancel"]</button>
-                <button class="ames-btn"    @onclick="SaveEdit">@L["Btn.Save"]</button>
-            </div>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text='@(L["PP.DowntimeMonitor.Lbl.ReasonCode"] + " *")' class="ames-rz-modal-label" Component="EditDropDownReason" />
+                <RadzenDropDown Name="EditDropDownReason" AllowFiltering="true" @bind-Value="_editReason" Data="@ReasonEditOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["PP.DowntimeMonitor.Reason.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
+                <RadzenLabel Text="@L["PP.DowntimeMonitor.Lbl.Cause"]" class="ames-rz-modal-label" Component="EditTextBoxCause" />
+                <RadzenTextBox Name="EditTextBoxCause" @bind-Value="_editCause" MaxLength="30" Placeholder="@L["PP.DowntimeMonitor.Ph.Cause"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
+                <RadzenLabel Text="@L["Col.Note"]" class="ames-rz-modal-label" Component="EditTextBoxComment" />
+                <RadzenTextBox Name="EditTextBoxComment" @bind-Value="_editComment" MaxLength="500" Placeholder="@L["PP.DowntimeMonitor.Ph.Comment"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
 
 @code {
+    const int WINDOW    = 60;   // 타임라인 분
+    const int STALE_MIN = 10;   // 마지막 로그가 이보다 오래되면 '신호없음'
+    const int ALERT_MIN = 10;   // 실제비가동 경보 기준 분
+
+    /// <summary>?asof=yyyy-MM-ddTHH:mm 으로 과거 시점을 열 수 있다 (재생 모드).</summary>
+    [SupplyParameterFromQuery(Name = "asof")] public string? AsOfParam { get; set; }
+
     // ── 라인 뷰모델 ─────────────────────────────────────────────────────
     sealed class LineVm
     {
-        public string   LineId   { get; init; } = "";
-        public bool     IsRunning    { get; set; }
-        public string   State        { get; set; } = "UNKNOWN";
-        public string?  PlanBand     { get; set; }
-        public int      StateDurationMin { get; set; }
-        public DateTime StateChangedAt   { get; set; } = DateTime.Now;
-        public int?     SignalAge    { get; set; }
-        public List<(DateTime time, string state)> Timeline { get; } = [];
-        public int TodayWorkMin  => Timeline.Count(t => t.state == "WORK");
-        public int TodayUnplanMin => Timeline.Count(t => t.state == "UNPLANNED_DOWN");
+        public string    LineId { get; init; } = "";
+        public string    Name   { get; init; } = "";
+        public string    State  { get; set; } = "UNKNOWN";   // WORK / UNPLANNED_DOWN / IDLE / PLANNED_DOWN / UNKNOWN
+        public string    LastState { get; set; } = "UNKNOWN";
+        public string?   PlanState { get; set; }
+        public DateTime? LastLogTs { get; set; }
+        public int       StateDurationMin { get; set; }
+        public bool      RunReachedWindowStart { get; set; }
+        public int?      SignalAge { get; set; }
+        public List<string?> Timeline { get; } = [];          // WINDOW 칸, null = 로그 없음
+        public int WorkMin, UnplanMin, IdleMin, PlanDownMin;
     }
 
-    // ── 상태 ─────────────────────────────────────────────────────────────
-    bool _canEdit;
-    int _page = 0;
-    const int _pageSize = 20;
-    Dictionary<string, LineVm> _vms        = [];
+    // ── 상태 ──────────────────────────────────────────────────────────
+    Dictionary<string, LineVm> _vms = new(StringComparer.OrdinalIgnoreCase);
+    Dictionary<string, string> _lineNames = new(StringComparer.OrdinalIgnoreCase);
+    List<string> _dataLines = [];
+    List<string> _reasons   = [];
+
+    bool      _live = true;
+    DateTime? _fAsOf;
+    DateTime  _asOf = DateTime.Now;
+    DateTime  AsOf => _asOf;
     Timer?    _timer;
-    bool      _disposed;   // dispose 직후 타이머 콜백 방지
-    DateTime  _lastRefresh  = DateTime.Now;
+    bool      _disposed;
+    int       _refreshSec = 60;
+    DateTime  _lastRefresh = DateTime.Now;
     int       _noReasonCount;
 
-    List<AMES.Data.Repositories.PpRepository.DowntimeRow> _dtlRows  = [];
-    List<string>  _dtlLines = [];
-    string        _dtlLine  = "";
+    List<PpRepository.DowntimeRow> _dtlRows = [];
+    string? _fLine;
 
-    int?      _editId      = null;
-    string?   _editLine    = null;
-    DateTime? _editStart   = null;
-    DateTime? _editEnd     = null;
-    int       _editDuration;
-    string    _editReason  = "";
-    string    _editCause   = "";
-    string    _editComment = "";
-    string    _editError   = "";
+    // KPI
+    int    RunLines     => _vms.Values.Count(v => v.State == "WORK");
+    int    DownLines    => _vms.Values.Count(v => v.State == "UNPLANNED_DOWN");
+    int    IdleLines    => _vms.Values.Count(v => v.State == "IDLE");
+    int    TodayWorkMin => _vms.Values.Sum(v => v.WorkMin);
+    int    TodayDownMin => _vms.Values.Sum(v => v.UnplanMin + v.IdleMin);
+    int    TodayPlanMin => _vms.Values.Sum(v => v.PlanDownMin);
+    int    PlanRunMin   => TodayWorkMin + TodayDownMin;
+    double AvgAvail     => PlanRunMin == 0 ? 0 : 100.0 * TodayWorkMin / PlanRunMin;
 
-    // ── 초기화 ───────────────────────────────────────────────────────────
+    // 모달
+    string  _modal = "";
+    PpRepository.DowntimeRow? _sel;
+    string? _editReason; string _editCause = ""; string _editComment = "";
+    string  _modalErr = "";
+    bool    _busy, _bgMouseDownOnSelf;
+
+    bool   _canEdit;
+    string _actor = "web";
+    string _err = "", _msg = "";
+
+    sealed class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    IEnumerable<DropDownItem> LineFilterOptions =>
+        _lineNames.Keys.Union(_dataLines).OrderBy(x => x)
+            .Select(id => new DropDownItem { Value = id, Text = $"{id}  {LineName(id)}".TrimEnd() });
+    IEnumerable<DropDownItem> ReasonEditOptions =>
+        _reasons.Union(string.IsNullOrEmpty(_editReason) ? Enumerable.Empty<string>() : new[] { _editReason! }).OrderBy(x => x)
+            .Select(r => new DropDownItem { Value = r, Text = r });
+
+    // ── 초기화 ─────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "web";
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("pp/downtime-monitor");
-        BuildVms();
+
+        try { foreach (var l in MD.ListLines().Where(l => !string.Equals(l.Status, "INACTIVE", StringComparison.OrdinalIgnoreCase)))
+                  _lineNames[l.LineID] = MasterDataRepository.LocalName(l.LineName, l.LineNameEn); } catch { }
+        try { _dataLines = Pp.ListDowntimeLines(); }   catch { }
+        try { _reasons   = Pp.ListDowntimeReasons(); } catch { }
+        try { _refreshSec = Math.Max(10, Sys.GetConfigInt("DASH_REFRESH_SEC", 60)); } catch { }
+
+        if (DateTime.TryParse(AsOfParam, out var q)) { _fAsOf = q; _live = false; }
+
         Refresh();
         ReloadDtl();
 
-        int refreshSec = Sys.GetConfigInt("DASH_REFRESH_SEC", 60);   // SYS_Config 기준(폴백 60초)
         _timer = new Timer(async _ =>
         {
-            if (_disposed) return;
-            try { await InvokeAsync(() => { if (_disposed) return; Refresh(); StateHasChanged(); }); }
-            catch { /* 화면 이탈로 teardown된 경우 무시 */ }
+            if (_disposed || !_live) return;
+            try { await InvokeAsync(() => { if (_disposed) return; Refresh(); ReloadDtl(); StateHasChanged(); }); }
+            catch { /* 화면 이탈로 teardown 된 경우 무시 */ }
             // 자동 새로고침 중 세션 유지: 인증 HTTP 핑으로 슬라이딩 만료 갱신
             try { if (!_disposed) await JS.InvokeVoidAsync("fetch", Nav.ToAbsoluteUri("keep-alive").ToString()); }
             catch { }
-        }, null, TimeSpan.FromSeconds(refreshSec), TimeSpan.FromSeconds(refreshSec));
+        }, null, TimeSpan.FromSeconds(_refreshSec), TimeSpan.FromSeconds(_refreshSec));
     }
 
-    void BuildVms()
+    void Replay()
     {
-        var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        try { foreach (var l in Oee.ListLines())          ids.Add(l); } catch { }
-        try { foreach (var l in Pp.ListDowntimeLines())   ids.Add(l); } catch { }
-        foreach (var id in ids.OrderBy(x => x))
-            _vms.TryAdd(id, new LineVm { LineId = id });
+        if (_fAsOf is null) { GoLive(); return; }
+        _live = false;
+        Refresh(); ReloadDtl();
     }
 
-    // ── 1분 주기 현황 갱신 ───────────────────────────────────────────────
+    void GoLive()
+    {
+        _live = true; _fAsOf = null;
+        Refresh(); ReloadDtl();
+    }
+
+    // ── 현황 갱신: PP_LineStateLog 정본 기준 ─────────────────────────────
     void Refresh()
     {
+        _err = "";
+        _asOf = _live ? DateTime.Now : (_fAsOf ?? DateTime.Now);
         _lastRefresh = DateTime.Now;
-        if (_vms.Count == 0) return;
+        var asOfMin = new DateTime(_asOf.Year, _asOf.Month, _asOf.Day, _asOf.Hour, _asOf.Minute, 0);
+        var winFrom = asOfMin.AddMinutes(-(WINDOW - 1));
 
-        var now = DateTime.Now;
-
-        Dictionary<string, AMES.Data.Repositories.OeeRepository.EquipSignal> signals = [];
+        List<PpRepository.LineStateRow>      window = [], latest = [];
+        List<PpRepository.LineStateTotalRow> totals = [];
+        Dictionary<string, OeeRepository.EquipSignal> signals = [];
+        try
+        {
+            window = Pp.ListLineStatesWindow(winFrom, asOfMin.AddSeconds(59));
+            latest = Pp.ListLatestLineStates(asOfMin.AddSeconds(59));
+            totals = Pp.ListLineStateTotals(asOfMin.Date, asOfMin.AddSeconds(59));
+        }
+        catch (Exception ex) { _err = ex.Message; }
         try { signals = Oee.GetLatestSignalPerLine(); } catch { }
 
-        foreach (var vm in _vms.Values)
+        // 라인 = 마스터 활성 라인 ∪ 로그에 등장한 라인 ∪ 비가동 이력 라인
+        var ids = new HashSet<string>(_lineNames.Keys, StringComparer.OrdinalIgnoreCase);
+        foreach (var r in latest) if (r.LineId is not null) ids.Add(r.LineId);
+        foreach (var l in _dataLines) ids.Add(l);
+
+        var vms = new Dictionary<string, LineVm>(StringComparer.OrdinalIgnoreCase);
+        foreach (var id in ids)
         {
-            bool isRunning = false;
-            int? signalAge = null;
-            if (signals.TryGetValue(vm.LineId, out var sig))
+            var vm = new LineVm { LineId = id, Name = LineName(id) };
+
+            var last = latest.FirstOrDefault(r => string.Equals(r.LineId, id, StringComparison.OrdinalIgnoreCase));
+            if (last?.MinuteTs is { } ts)
             {
-                isRunning  = sig.IsRunning;
-                signalAge  = (int)(now - sig.SignalTime).TotalMinutes;
+                vm.LastLogTs = ts;
+                vm.LastState = MapState(last);
+                vm.PlanState = last.PlanState;
+                bool stale = (asOfMin - ts).TotalMinutes > STALE_MIN;
+                vm.State = stale ? "UNKNOWN" : vm.LastState;
             }
-            vm.IsRunning  = isRunning;
-            vm.SignalAge  = signalAge;
 
-            // 계획 밴드 판정은 레거시 MD_LinePattern 제거로 비활성 — 필요 시 MD_LineTimeSegment 기반 재구현
-            vm.PlanBand = "—";
-
-            string newState = isRunning ? "WORK" : "PLANNED_DOWN";
-
-            if (newState != vm.State)
+            // 60분 타임라인: 분 단위 슬롯에 로그 상태를 배치, 없으면 null
+            var byMin = window.Where(r => string.Equals(r.LineId, id, StringComparison.OrdinalIgnoreCase) && r.MinuteTs is not null)
+                              .GroupBy(r => Trunc(r.MinuteTs!.Value)).ToDictionary(g => g.Key, g => MapState(g.Last()));
+            for (int i = 0; i < WINDOW; i++)
             {
-                vm.State          = newState;
-                vm.StateChangedAt = now;
+                var m = winFrom.AddMinutes(i);
+                vm.Timeline.Add(byMin.TryGetValue(m, out var s) ? s : null);
             }
-            vm.StateDurationMin = (int)(now - vm.StateChangedAt).TotalMinutes;
 
-            vm.Timeline.Add((now, newState));
-            if (vm.Timeline.Count > 60) vm.Timeline.RemoveAt(0);
-        }
+            // 현재 상태 지속 시간 = 타임라인 끝에서 같은 상태가 이어진 분 (창 시작까지 이어지면 60분 이상)
+            if (vm.State != "UNKNOWN")
+            {
+                int run = 0;
+                for (int i = vm.Timeline.Count - 1; i >= 0 && vm.Timeline[i] == vm.State; i--) run++;
+                vm.StateDurationMin = run;
+                vm.RunReachedWindowStart = run == WINDOW;
+            }
 
-        try
-        {
-            var today = Pp.ListDowntimeFiltered(from: DateTime.Today, to: DateTime.Today);
-            _noReasonCount = today.Count(r => string.IsNullOrEmpty(r.ReasonCode));
+            foreach (var t in totals.Where(t => string.Equals(t.LineId, id, StringComparison.OrdinalIgnoreCase)))
+            {
+                bool planRun = t.PlanState is null || t.PlanState == "PLAN-RUN";
+                if (!planRun)                 vm.PlanDownMin += t.Minutes;
+                else if (t.State == "RUN")    vm.WorkMin     += t.Minutes;
+                else if (t.State == "DOWN")   vm.UnplanMin   += t.Minutes;
+                else if (t.State == "IDLE")   vm.IdleMin     += t.Minutes;
+            }
+
+            if (signals.TryGetValue(id, out var sig))
+                vm.SignalAge = (int)(_asOf - sig.SignalTime).TotalMinutes;
+
+            vms[id] = vm;
         }
-        catch { }
+        _vms = vms;
     }
 
-    // ── 비가동 이력 로드 ────────────────────────────────────────────────
+    static DateTime Trunc(DateTime t) => new(t.Year, t.Month, t.Day, t.Hour, t.Minute, 0);
+
+    // PlanState 가 PLAN-RUN 이 아니면 계획정지, 그 안에서 RUN/DOWN/IDLE 로 구분
+    static string MapState(PpRepository.LineStateRow r)
+    {
+        if (r.PlanState is not null && r.PlanState != "PLAN-RUN") return "PLANNED_DOWN";
+        return r.State switch { "RUN" => "WORK", "DOWN" => "UNPLANNED_DOWN", "IDLE" => "IDLE", _ => "UNKNOWN" };
+    }
+
+    // ── 비가동 이력 (기준일) ─────────────────────────────────────────────
     void ReloadDtl()
     {
-        _page = 0;
         try
         {
-            _dtlLines = Pp.ListDowntimeLines();
-            _dtlRows  = Pp.ListDowntimeFiltered(
-                lineId: string.IsNullOrEmpty(_dtlLine) ? null : _dtlLine,
-                from:   DateTime.Today,
-                to:     DateTime.Today);
+            _dtlRows = Pp.ListDowntimeFiltered(
+                lineId: string.IsNullOrEmpty(_fLine) ? null : _fLine,
+                from:   AsOf.Date, to: AsOf.Date);
+            _noReasonCount = _dtlRows.Count(r => string.IsNullOrEmpty(r.ReasonCode));
         }
-        catch { _dtlRows = []; }
+        catch (Exception ex) { _err = ex.Message; _dtlRows = []; }
+    }
+
+    // ── 표시 헬퍼 ───────────────────────────────────────────────────────
+    string LineName(string id) => _lineNames.TryGetValue(id, out var n) ? n : "";
+
+    string StateLabel(string state) => state switch
+    {
+        "WORK"           => L["PP.DowntimeMonitor.State.Work"].Value,
+        "UNPLANNED_DOWN" => L["PP.DowntimeMonitor.State.Unplan"].Value,
+        "IDLE"           => L["PP.DowntimeMonitor.State.Idle"].Value,
+        "PLANNED_DOWN"   => L["PP.DowntimeMonitor.State.Plan"].Value,
+        _                => L["PP.DowntimeMonitor.State.Unknown"].Value,
+    };
+    static string BadgeCls(string state) => state switch
+    {
+        "WORK" => "odm-badge-work", "UNPLANNED_DOWN" => "odm-badge-unplan",
+        "IDLE" => "odm-badge-idle", "PLANNED_DOWN" => "odm-badge-plan", _ => "odm-badge-unknown",
+    };
+    static string TlCls(string? state) => state switch
+    {
+        "WORK" => "odm-tl-work", "UNPLANNED_DOWN" => "odm-tl-unplan",
+        "IDLE" => "odm-tl-idle", "PLANNED_DOWN" => "odm-tl-plan", _ => "odm-tl-empty",
+    };
+    static string ReasonCls(string reason) => reason switch
+    {
+        "MACHINE" => "bad", "CHANGEOVER" => "warn", "MATERIAL" => "orange", "QUALITY" => "info", _ => "mute",
+    };
+
+    string FormatDuration(int minutes) => minutes switch
+    {
+        >= 60 => string.Format(L["PP.DowntimeMonitor.Dur.Hours"].Value,   minutes / 60, minutes % 60),
+        >= 1  => string.Format(L["PP.DowntimeMonitor.Dur.Minutes"].Value, minutes),
+        _     => L["PP.DowntimeMonitor.Dur.Now"].Value,
+    };
+
+    void RowRender(RowRenderEventArgs<PpRepository.DowntimeRow> args)
+    {
+        var cls = _canEdit ? "ames-row-link" : "";
+        if (string.IsNullOrEmpty(args.Data?.ReasonCode)) cls += " odm-row-no-reason";
+        args.Attributes["class"] = cls.Trim();
     }
 
     // ── 사유 수정 모달 ───────────────────────────────────────────────────
-    void OpenEdit(AMES.Data.Repositories.PpRepository.DowntimeRow r)
+    void OpenEdit(PpRepository.DowntimeRow r)
     {
         if (!_canEdit) return;
-        _editId      = r.DowntimeId;
-        _editLine    = r.LineId;
-        _editStart   = r.StartTs;
-        _editEnd     = r.EndTs;
-        _editDuration = r.DurationMin;
-        _editReason  = r.ReasonCode ?? "";
-        _editCause   = r.CauseCode  ?? "";
-        _editComment = r.Comment    ?? "";
-        _editError   = "";
+        _sel = r; _modalErr = "";
+        _editReason  = r.ReasonCode;
+        _editCause   = r.CauseCode ?? "";
+        _editComment = r.Comment   ?? "";
+        _modal = "edit";
     }
 
-    void CloseEdit() => _editId = null;
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; }
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
     void SaveEdit()
     {
-        if (string.IsNullOrEmpty(_editReason))
-        {
-            _editError = L["PP.DowntimeMonitor.Err.ReasonRequired"];
-            return;
-        }
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_editReason)) { _modalErr = L["PP.DowntimeMonitor.Err.ReasonRequired"]; return; }
+        _busy = true;
         try
         {
-            Pp.UpdateDowntimeReason(
-                _editId!.Value,
-                _editReason,
-                string.IsNullOrWhiteSpace(_editCause)   ? null : _editCause,
-                string.IsNullOrWhiteSpace(_editComment) ? null : _editComment);
-            CloseEdit();
+            Pp.UpdateDowntimeReason(_sel.DowntimeId, _editReason.Trim(),
+                string.IsNullOrWhiteSpace(_editCause)   ? null : _editCause.Trim(),
+                string.IsNullOrWhiteSpace(_editComment) ? null : _editComment.Trim(),
+                _actor);
+            CloseModal();
+            try { _reasons = Pp.ListDowntimeReasons(); } catch { }
             ReloadDtl();
-            Refresh();
+            ShowMsg(L["PP.Downtime.Ok.Saved"]);
         }
-        catch (Exception ex)
-        {
-            _editError = ex.Message;
-        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
     }
 
-    void ScrollToLine(string _) { }
-
-    string FormatDuration(int minutes) => minutes switch {
-        >= 60 => string.Format(L["PP.DowntimeMonitor.Dur.Hours"].Value,   minutes / 60, minutes % 60),
-        >= 1  => string.Format(L["PP.DowntimeMonitor.Dur.Minutes"].Value, minutes),
-        _     => L["PP.DowntimeMonitor.Dur.Now"].Value
-    };
+    void ShowMsg(string msg)
+    {
+        _msg = msg;
+        _ = Task.Delay(3000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
 
     public void Dispose() { _disposed = true; _timer?.Dispose(); }
 }

@@ -1,176 +1,325 @@
-﻿@page "/pp/downtime"
+@page "/pp/downtime"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
+@inject AMES.Data.Repositories.MasterDataRepository MD
+@inject AMES.Web.Services.PermissionService PermSvc
 @inject IStringLocalizer<SharedResources> L
+@inject AuthenticationStateProvider AuthPrvd
+@using AMES.Data.Repositories
 
 <PageTitle>@L["PP.Downtime.Title"] · AMES</PageTitle>
 
 <AmesPageHeader Code="PP-DTL" TitleKey="PP.Downtime.Title" />
 
-@* ── KPI 스트립 ── *@
+@* ── KPI ────────────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">EVENTS</div>
-        <div class="ames-kpi-v">@_rows.Count</div>
-    </div>
-    <div class="ames-kpi warn">
-        <div class="ames-kpi-l">TOTAL MIN</div>
-        <div class="ames-kpi-v">@_rows.Sum(r => r.DurationMin)</div>
-    </div>
-    <div class="ames-kpi bad">
-        <div class="ames-kpi-l">UNRESOLVED</div>
-        <div class="ames-kpi-v">@_rows.Count(r => r.EndTs is null)</div>
-    </div>
-    <div class="ames-kpi">
-        <div class="ames-kpi-l">LINES</div>
-        <div class="ames-kpi-v">@_rows.Select(r => r.LineId).Distinct().Count()</div>
-    </div>
-    <div class="ames-kpi @(_avgDuration > 30 ? "bad" : "")">
-        <div class="ames-kpi-l">AVG MIN</div>
-        <div class="ames-kpi-v">@_avgDuration.ToString("0.0")</div>
-    </div>
-</div>
-
-@* ── 데이터 테이블 (필터 포함) ── *@
-<div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">
-            ▼ DOWNTIME EVENTS · @_rows.Count 건
-        </span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Line"]</span>
-            <select class="ames-input" style="width:120px;" @bind="_filterLine">
-                <option value="">@L["Filter.All"]</option>
-                @foreach (var l in _lines)
-                { <option value="@l">@l</option> }
-            </select>
-            <input class="ames-input" type="date" style="width:130px;padding:4px 8px;" @bind="_filterFrom" />
-            <input class="ames-input" type="date" style="width:130px;padding:4px 8px;" @bind="_filterTo" />
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
-            <select class="ames-input" style="width:100px;" @bind="_filterStatus">
-                <option value="">@L["Filter.All"]</option>
-                <option value="open">@L["PP.Downtime.Status.Open"]</option>
-                <option value="closed">@L["PP.Downtime.Status.Closed"]</option>
-            </select>
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Reason"]</span>
-            <select class="ames-input" style="width:100px;" @bind="_filterReason">
-                <option value="">@L["Filter.All"]</option>
-                <option value="MECH">MECH</option>
-                <option value="ELEC">ELEC</option>
-                <option value="MAT">MAT</option>
-                <option value="OPER">OPER</option>
-                <option value="PLAN">PLAN</option>
-                <option value="OTHER">OTHER</option>
-            </select>
-            <button class="ames-btn ok" @onclick="Search">@L["Btn.Search"]</button>
-            <button class="ames-btn ghost" @onclick="Reset">@L["Btn.Reset"]</button>
+        <div class="ames-kpi-l">@L["PP.Downtime.Kpi.Events"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_rows.Count</div>
+            <div class="ames-kpi-s">@string.Format(L["PP.Downtime.Lbl.Range"].Value, _fFrom.ToString("MM-dd"), _fTo.ToString("MM-dd"))</div>
         </div>
     </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">@L["PP.Downtime.Kpi.TotalMin"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@TotalMin.ToString("N0")<span style="font-size:14px;margin-left:3px;">@L["Lbl.Min"]</span></div>
+            <div class="ames-kpi-s">@string.Format(L["PP.Downtime.Kpi.LinesSub"].Value, _rows.Select(r => r.LineId).Distinct().Count())</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(OpenCount > 0 ? "bad" : "ok")">
+        <div class="ames-kpi-l">@L["PP.Downtime.Kpi.Open"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@OpenCount</div>
+            <div class="ames-kpi-s">@string.Format(L["PP.Downtime.Kpi.ClosedSub"].Value, _rows.Count - OpenCount)</div>
+        </div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["PP.Downtime.Kpi.TopReason"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v" style="font-size:20px;">@(TopReason.Code ?? "—")</div>
+            <div class="ames-kpi-s">@(TopReason.Code is null ? "" : $"{TopReason.Min:N0} {L["Lbl.Min"]}")</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(AvgMin > 30 ? "bad" : "")">
+        <div class="ames-kpi-l">@L["PP.Downtime.Kpi.AvgMin"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@AvgMin.ToString("0.0")<span style="font-size:14px;margin-left:3px;">@L["Lbl.Min"]</span></div>
+            <div class="ames-kpi-s">@string.Format(L["PP.Downtime.Kpi.MaxSub"].Value, _rows.Count == 0 ? 0 : _rows.Max(r => r.DurationMin))</div>
+        </div>
+    </div>
+</div>
 
-    @if (_loading)
-    {
-        <div class="ames-empty">@L["Lbl.Loading"]</div>
-    }
-    else if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["PP.Downtime.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.Line"]</th>
-                    <th>@L["Col.Start"]</th>
-                    <th>@L["Col.End"]</th>
-                    <th class="num">@L["Col.MinDown"]</th>
-                    <th>@L["Col.Reason"]</th>
-                    <th>@L["Col.Cause"]</th>
-                    <th>@L["Col.WO"]</th>
-                    <th>@L["Col.Status"]</th>
-                    <th>@L["Col.Comment"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    var isOpen = r.EndTs is null;
-                    <tr>
-                        <td class="code">@r.LineId</td>
-                        <td class="dim">@(r.StartTs?.ToString("MM-dd HH:mm") ?? "—")</td>
-                        <td class="dim">@(r.EndTs?.ToString("MM-dd HH:mm") ?? "—")</td>
-                        <td class="num @(r.DurationMin > 30 ? "bad" : "")">@r.DurationMin</td>
-                        <td>@(r.ReasonCode ?? "—")</td>
-                        <td class="dim">@(r.CauseCode ?? "—")</td>
-                        <td class="code">@(r.WoId?.ToString() ?? "—")</td>
-                        <td>
-                            @if (isOpen)
-                            { <span class="badge-bad">@L["PP.Downtime.Status.Open"]</span> }
-                            else
-                            { <span class="badge-ok">@L["PP.Downtime.Status.Closed"]</span> }
-                        </td>
-                        <td class="dim">@r.Comment</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+@if (!string.IsNullOrEmpty(_err)) { <RadzenAlert AlertStyle="AlertStyle.Danger"  Variant="Variant.Flat">@_err</RadzenAlert> }
+@if (!string.IsNullOrEmpty(_msg)) { <RadzenAlert AlertStyle="AlertStyle.Success" Variant="Variant.Flat">@_msg</RadzenAlert> }
 
-        @if (_rows.Count >= 500)
-        {
-            <div style="padding:.5rem 0;font-size:.78rem;color:#64748b;">
-                @L["PP.Downtime.LimitNote"]
-            </div>
-        }
+@* ── 목록 + 조회부 (Md/Rp/Station.razor 패턴) ─────────────────────── *@
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["PP.Downtime.Title"] · @_rows.Count @L["Lbl.Items"]</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+            <RadzenLabel Text="@L["Lbl.Period"]" Component="DatePickerFrom" />
+            <RadzenDatePicker TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <span class="dim">~</span>
+            <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenLabel Text="@L["Col.Reason"]" Component="DropDownReason" />
+            <RadzenDropDown Name="DropDownReason" @bind-Value="_fReason" Data="@ReasonFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Reset"]" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ResetFilter" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+    @if (_canEdit)
+    {
+        <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["PP.Downtime.Hint.Edit"]</div>
+    }
+
+    <RadzenDataGrid TItem="PpRepository.DowntimeRow" Data="@_rows" AllowPaging="true" PageSize="20" PagerHorizontalAlign="HorizontalAlign.Center"
+                    AllowSorting="true" RowClick="@(e => { if (e.Data is { } d) OpenEdit(d); })" RowRender="@RowRender"
+                    EmptyText="@L["PP.Downtime.Empty"]" Class="ames-rz-grid pp-dtl-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="LineId" Title="@L["Col.Line"]" Width="120px">
+                <Template Context="r"><span class="code">@(r.LineId ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Title="@L["Col.Name"]" Sortable="false">
+                <Template Context="r"><span style="white-space:nowrap;">@LineName(r.LineId)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="StartTs" Title="@L["Col.Start"]" Width="110px">
+                <Template Context="r">@(r.StartTs?.ToString("MM-dd HH:mm") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="EndTs" Title="@L["Col.End"]" Width="110px">
+                <Template Context="r">@(r.EndTs?.ToString("MM-dd HH:mm") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="DurationMin" Title="@L["Col.MinDown"]" Width="90px" TextAlign="TextAlign.Right">
+                <Template Context="r"><span class="code" style="@(r.DurationMin > 30 ? "color:#f87171;" : "")">@r.DurationMin.ToString("N0")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="ReasonCode" Title="@L["Col.Reason"]" Width="130px" TextAlign="TextAlign.Center">
+                <Template Context="r">
+                    @if (r.ReasonCode is null) { <span class="dim">—</span> } else { <span class="pill @ReasonCls(r.ReasonCode)">@r.ReasonCode</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="CauseCode" Title="@L["Col.Cause"]" Width="100px">
+                <Template Context="r"><span class="dim">@(r.CauseCode ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="WoId" Title="@L["Col.WO"]" Width="80px" TextAlign="TextAlign.Center">
+                <Template Context="r"><span class="code">@(r.WoId?.ToString() ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="EndTs" Title="@L["Col.Status"]" Width="90px" TextAlign="TextAlign.Center">
+                <Template Context="r">
+                    @if (r.EndTs is null) { <span class="pill bad">@L["PP.Downtime.Status.Open"]</span> } else { <span class="pill ok">@L["PP.Downtime.Status.Closed"]</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="Comment" Title="@L["Col.Comment"]">
+                <Template Context="r"><span class="dim">@(r.Comment ?? "")</span></Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+
+    @if (_rows.Count >= LIMIT)
+    {
+        <div class="dim" style="padding:.5rem 0 0;font-size:11px;">@L["PP.Downtime.LimitNote"]</div>
     }
 </div>
 
+@* ── 사유 수정 모달 (Station.razor 모달 패턴) ─────────────────────── *@
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">
+                @L["PP.Downtime.Title"] — @L["Modal.Edit"]
+                <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.LineId · @(_sel.StartTs?.ToString("MM-dd HH:mm")) ~ @(_sel.EndTs?.ToString("HH:mm") ?? "—") · @_sel.DurationMin @L["Lbl.Min"]</span>
+            </div>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text='@(L["Col.Reason"] + " *")' class="ames-rz-modal-label" Component="EditDropDownReason" />
+                <RadzenDropDown Name="EditDropDownReason" AllowFiltering="true" @bind-Value="_editReason" Data="@ReasonEditOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["PP.Downtime.Ph.Reason"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
+                <RadzenLabel Text="@L["Col.Cause"]" class="ames-rz-modal-label" Component="EditTextBoxCause" />
+                <RadzenTextBox Name="EditTextBoxCause" @bind-Value="_editCause" MaxLength="30" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
+                <RadzenLabel Text="@L["Col.Comment"]" class="ames-rz-modal-label" Component="EditTextBoxComment" />
+                <RadzenTextBox Name="EditTextBoxComment" @bind-Value="_editComment" MaxLength="500" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
 @code {
-    List<AMES.Data.Repositories.PpRepository.DowntimeRow> _rows = [];
-    int _page = 0;
-    const int _pageSize = 20;
-    List<string> _lines = [];
+    const int LIMIT = 500;
 
-    string   _filterLine   = "";
-    DateTime _filterFrom   = DateTime.Today.AddDays(-7);
-    DateTime _filterTo     = DateTime.Today;
-    string   _filterStatus = "";
-    string   _filterReason = "";
-    bool     _loading      = false;
+    // ── 데이터 ───────────────────────────────────────────────────────────
+    List<PpRepository.DowntimeRow>      _rows      = [];
+    List<MasterDataRepository.LineRow>  _lineList  = [];
+    List<string>                        _dataLines = [];
+    List<string>                        _reasons   = [];
 
-    double _avgDuration => _rows.Count > 0 ? _rows.Average(r => (double)r.DurationMin) : 0.0;
+    // ── 조회부 ───────────────────────────────────────────────────────────
+    string?  _fLine;
+    DateTime _fFrom = DateTime.Today.AddDays(-6);
+    DateTime _fTo   = DateTime.Today;
+    string?  _fStatus;
+    string?  _fReason;
 
-    protected override void OnInitialized()
+    sealed class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
+    // 라인 옵션 = 마스터 활성 라인 ∪ 이력에 등장한 라인 (마스터에서 빠진 라인의 과거 이력도 조회되도록)
+    IEnumerable<DropDownItem> LineFilterOptions =>
+        _lineList.Select(l => l.LineID).Union(_dataLines).OrderBy(x => x)
+            .Select(id => new DropDownItem { Value = id, Text = $"{id}  {LineName(id)}".TrimEnd() });
+    IEnumerable<DropDownItem> StatusFilterOptions => new[]
     {
-        try { _lines = Pp.ListDowntimeLines(); } catch { }
-        Search();
+        new DropDownItem { Value = "open",   Text = L["PP.Downtime.Status.Open"].Value },
+        new DropDownItem { Value = "closed", Text = L["PP.Downtime.Status.Closed"].Value },
+    };
+    IEnumerable<DropDownItem> ReasonFilterOptions => _reasons.Select(r => new DropDownItem { Value = r, Text = r });
+    IEnumerable<DropDownItem> ReasonEditOptions =>
+        _reasons.Union(string.IsNullOrEmpty(_editReason) ? Enumerable.Empty<string>() : new[] { _editReason! }).OrderBy(x => x)
+            .Select(r => new DropDownItem { Value = r, Text = r });
+
+    // ── KPI ──────────────────────────────────────────────────────────────
+    int    TotalMin  => _rows.Sum(r => r.DurationMin);
+    int    OpenCount => _rows.Count(r => r.EndTs is null);
+    double AvgMin    => _rows.Count > 0 ? _rows.Average(r => (double)r.DurationMin) : 0.0;
+    (string? Code, int Min) TopReason =>
+        _rows.Where(r => r.ReasonCode is not null)
+             .GroupBy(r => r.ReasonCode!)
+             .Select(g => (Code: (string?)g.Key, Min: g.Sum(r => r.DurationMin)))
+             .OrderByDescending(x => x.Min).FirstOrDefault();
+
+    // ── 모달 ─────────────────────────────────────────────────────────────
+    string  _modal = "";
+    PpRepository.DowntimeRow? _sel;
+    string? _editReason; string _editCause = ""; string _editComment = "";
+    string  _modalErr = "";
+    bool    _busy, _bgMouseDownOnSelf;
+
+    bool   _canEdit;
+    string _actor = "web";
+    string _err = "", _msg = "";
+
+    // ── Init ─────────────────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "web";
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("pp/downtime");
+
+        try { _lineList  = MD.ListLines(); }            catch { }
+        try { _dataLines = Pp.ListDowntimeLines(); }    catch { }
+        try { _reasons   = Pp.ListDowntimeReasons(); }  catch { }
+
+        // 기본 기간 = 이력이 있는 마지막 7일 (데이터가 오래됐어도 빈 화면이 되지 않도록)
+        try
+        {
+            if (Pp.LatestDowntimeStart() is { } last) { _fTo = last.Date; _fFrom = _fTo.AddDays(-6); }
+        }
+        catch { }
+        ApplyFilter();
     }
 
-    void Search()
+    // ── 조회 ─────────────────────────────────────────────────────────────
+    void ApplyFilter()
     {
-        _page = 0;
-        _loading = true;
+        _err = "";
+        if (_fFrom > _fTo) { _err = L["PP.Oee.Err.DateRange"]; return; }
         try
         {
             _rows = Pp.ListDowntimeFiltered(
-                lineId:     string.IsNullOrEmpty(_filterLine)   ? null : _filterLine,
-                from:       _filterFrom,
-                to:         _filterTo,
-                status:     string.IsNullOrEmpty(_filterStatus) ? null : _filterStatus,
-                reasonCode: string.IsNullOrEmpty(_filterReason) ? null : _filterReason);
+                lineId:     string.IsNullOrEmpty(_fLine)   ? null : _fLine,
+                from:       _fFrom.Date,
+                to:         _fTo.Date,
+                status:     string.IsNullOrEmpty(_fStatus) ? null : _fStatus,
+                reasonCode: string.IsNullOrEmpty(_fReason) ? null : _fReason,
+                limit:      LIMIT);
         }
-        catch { _rows = []; }
-        finally { _loading = false; }
+        catch (Exception ex) { _err = ex.Message; _rows = []; }
     }
 
-    void Reset()
+    void ResetFilter()
     {
-        _filterLine   = "";
-        _filterFrom   = DateTime.Today.AddDays(-7);
-        _filterTo     = DateTime.Today;
-        _filterStatus = "";
-        _filterReason = "";
-        Search();
+        _fLine = null; _fStatus = null; _fReason = null;
+        var last = _rows.Count > 0 ? _fTo : DateTime.Today;
+        try { last = Pp.LatestDowntimeStart()?.Date ?? DateTime.Today; } catch { }
+        _fTo = last; _fFrom = last.AddDays(-6);
+        ApplyFilter();
+    }
+
+    string LineName(string? id) =>
+        id is null ? "" :
+        _lineList.FirstOrDefault(l => l.LineID == id) is { } l ? MasterDataRepository.LocalName(l.LineName, l.LineNameEn) : "";
+
+    static string ReasonCls(string reason) => reason switch
+    {
+        "MACHINE"    => "bad",
+        "CHANGEOVER" => "warn",
+        "MATERIAL"   => "orange",
+        "QUALITY"    => "info",
+        _            => "mute",
+    };
+
+    void RowRender(RowRenderEventArgs<PpRepository.DowntimeRow> args)
+    {
+        if (_canEdit) args.Attributes["class"] = "ames-row-link";
+    }
+
+    // ── 모달 ─────────────────────────────────────────────────────────────
+    void OpenEdit(PpRepository.DowntimeRow r)
+    {
+        if (!_canEdit) return;
+        _sel = r; _modalErr = "";
+        _editReason  = r.ReasonCode;
+        _editCause   = r.CauseCode ?? "";
+        _editComment = r.Comment   ?? "";
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; }
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    void SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_editReason)) { _modalErr = L["PP.Downtime.Err.ReasonRequired"]; return; }
+        _busy = true;
+        try
+        {
+            Pp.UpdateDowntimeReason(_sel.DowntimeId, _editReason.Trim(),
+                string.IsNullOrWhiteSpace(_editCause)   ? null : _editCause.Trim(),
+                string.IsNullOrWhiteSpace(_editComment) ? null : _editComment.Trim(),
+                _actor);
+            CloseModal();
+            try { _reasons = Pp.ListDowntimeReasons(); } catch { }
+            ApplyFilter();
+            ShowMsg(L["PP.Downtime.Ok.Saved"]);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg)
+    {
+        _msg = msg;
+        _ = Task.Delay(3000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
 }

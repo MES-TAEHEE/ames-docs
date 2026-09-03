@@ -1,202 +1,268 @@
-﻿@page "/pp/delivery"
+@page "/pp/delivery"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject IStringLocalizer<SharedResources> L
+@using AMES.Data.Repositories
 
 <PageTitle>@L["PP.Delivery.Title"] · AMES</PageTitle>
 
 <AmesPageHeader Code="PP-OTD" TitleKey="PP.Delivery.Title" />
 
-@* ── KPI 스트립 ── *@
+@* ── KPI ────────────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
-        <div class="ames-kpi-l">TOTAL</div>
-        <div class="ames-kpi-v">@_rows.Count</div>
-        <div class="ames-kpi-s">@L["PP.Delivery.Kpi.TotalSub"]</div>
+        <div class="ames-kpi-l">@L["PP.Delivery.Kpi.TotalSub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_rows.Count</div>
+            <div class="ames-kpi-s">@string.Format(L["PP.Delivery.Kpi.PromiseLateSub"].Value, PromiseLate)</div>
+        </div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">ON TIME</div>
-        <div class="ames-kpi-v">@_onTime</div>
-        <div class="ames-kpi-s">@L["PP.Delivery.Kpi.OnTimeSub"]</div>
+        <div class="ames-kpi-l">@L["PP.Delivery.Kpi.Shipped"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@Shipped</div>
+            <div class="ames-kpi-s">@string.Format(L["PP.Delivery.Kpi.ShippedSub"].Value, QtyPct.ToString("0.0"))</div>
+        </div>
     </div>
-    <div class="ames-kpi bad">
-        <div class="ames-kpi-l">LATE</div>
-        <div class="ames-kpi-v">@_late</div>
-        <div class="ames-kpi-s">@L["PP.Delivery.Kpi.LateSub"]</div>
+    <div class="ames-kpi @(Late > 0 ? "bad" : "")">
+        <div class="ames-kpi-l">@L["PP.Delivery.Kpi.LateSub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@Late</div>
+            <div class="ames-kpi-s">@(Late == 0 ? "" : string.Format(L["PP.Delivery.Kpi.AvgLateSub"].Value, AvgLateDays.ToString("0"), MaxLateDays))</div>
+        </div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">OPEN</div>
-        <div class="ames-kpi-v">@_open</div>
-        <div class="ames-kpi-s">@L["PP.Delivery.Kpi.OpenSub"]</div>
+        <div class="ames-kpi-l">@L["PP.Delivery.Kpi.OpenSub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@Open</div>
+            <div class="ames-kpi-s">@L["PP.Delivery.Kpi.OpenNote"]</div>
+        </div>
     </div>
-    <div class="ames-kpi @(_otdPct >= 95 ? "ok" : _otdPct >= 85 ? "warn" : "bad")">
-        <div class="ames-kpi-l">OTD %</div>
-        <div class="ames-kpi-v">@_otdPct.ToString("0.0")%</div>
-        <div class="ames-kpi-s">@L["PP.Delivery.Kpi.OtdSub"]</div>
+    <div class="ames-kpi @(_rows.Count == 0 ? "" : OtdPct >= 95 ? "ok" : OtdPct >= 85 ? "warn" : "bad")">
+        <div class="ames-kpi-l">@L["PP.Delivery.Kpi.OtdSub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@(_rows.Count == 0 ? "—" : OtdPct.ToString("0.0"))<span style="font-size:14px;margin-left:2px;">%</span></div>
+            <div class="ames-kpi-s">@L["PP.Delivery.Kpi.OtdNote"]</div>
+        </div>
     </div>
 </div>
 
-@* ── 테이블 (필터 포함) ── *@
+@if (!string.IsNullOrEmpty(_err)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_err</RadzenAlert> }
+
+@* ── 고객별 준수율 ─────────────────────────────────────────────── *@
+<div class="ames-card">
+    <div class="ames-card-h">▼ @L["PP.Delivery.Cust.Title"] · @_custAgg.Count @L["Lbl.Items"]</div>
+    <RadzenDataGrid TItem="CustAgg" Data="@_custAgg" AllowPaging="false" AllowSorting="true" EmptyText="@L["PP.Delivery.Empty"]" Class="ames-rz-grid pp-dtl-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="CustAgg" Property="CustomerId" Title="@L["Col.Customer"]" Width="130px">
+                <Template Context="c"><span class="code">@(c.CustomerCode ?? c.CustomerId)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="CustAgg" Property="Name" Title="@L["Col.CustomerName"]">
+                <Template Context="c"><span style="white-space:nowrap;">@(c.Name ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="CustAgg" Property="Orders"  Title="@L["PP.Delivery.Cust.Col.Orders"]"  Width="90px" TextAlign="TextAlign.Right" />
+            <RadzenDataGridColumn TItem="CustAgg" Property="Shipped" Title="@L["PP.Delivery.Cust.Col.Shipped"]" Width="90px" TextAlign="TextAlign.Right" />
+            <RadzenDataGridColumn TItem="CustAgg" Property="Late"    Title="@L["PP.Delivery.Cust.Col.Late"]"    Width="90px" TextAlign="TextAlign.Right">
+                <Template Context="c"><span class="code" style="@(c.Late > 0 ? "color:#f87171;" : "")">@c.Late</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="CustAgg" Property="Otd" Title="@L["PP.Delivery.Cust.Col.Otd"]" Width="110px" TextAlign="TextAlign.Center">
+                <Template Context="c"><span class="pill @(c.Otd >= 95 ? "ok" : c.Otd >= 85 ? "warn" : "bad")">@($"{c.Otd:F1}%")</span></Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+@* ── 수주 목록 (조회부는 Md/Rp/Station.razor 패턴) ───────────────── *@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">
-            ▼ SHIPMENT VS PROMISE · @_rows.Count 건
-        </span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" type="date" style="width:130px;padding:4px 8px;" @bind="_filterFrom" />
-            <span style="color:#64748b;font-size:.8rem;">~</span>
-            <input class="ames-input" type="date" style="width:130px;padding:4px 8px;" @bind="_filterTo" />
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Customer"]</span>
-            <select class="ames-input" style="width:130px;" @bind="_filterCustomer">
-                <option value="">@L["Filter.All"]</option>
-                @foreach (var c in _customers)
-                { <option value="@c">@c</option> }
-            </select>
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Col.Status"]</span>
-            <select class="ames-input" style="width:100px;" @bind="_filterStatus">
-                <option value="">@L["Filter.All"]</option>
-                <option value="ontime">@L["PP.Delivery.Status.OnTime"]</option>
-                <option value="late">@L["PP.Delivery.Status.Late"]</option>
-                <option value="open">@L["PP.Delivery.Status.Open"]</option>
-            </select>
-            <button class="ames-btn ok"   @onclick="Search">@L["Btn.Search"]</button>
-            <button class="ames-btn ghost" @onclick="Reset">@L["Btn.Reset"]</button>
-        </div>
+        <span style="white-space:nowrap;">▼ @L["PP.Delivery.Title"] · @_rows.Count @L["Lbl.Items"] · @string.Format(L["PP.Delivery.Lbl.Range"].Value, _fFrom.ToString("MM-dd"), _fTo.ToString("MM-dd"))</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["Col.Requested"]" Component="DatePickerFrom" />
+            <RadzenDatePicker TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <span class="dim">~</span>
+            <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenLabel Text="@L["Col.Customer"]" Component="DropDownCustomer" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownCustomer" @bind-Value="_fCustomer" Data="@CustomerFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+            <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Reset"]" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ResetFilter" class="ames-rz-btn" />
+        </RadzenStack>
     </div>
+    <div class="dim" style="font-size:10px;padding:0 0 6px;">@string.Format(L["PP.Delivery.Hint"].Value, DateTime.Today.ToString("yyyy-MM-dd"))</div>
 
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["PP.Delivery.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.SoNo"]</th>
-                    <th>@L["Col.Customer"]</th>
-                    <th>@L["Col.Item"]</th>
-                    <th class="num">@L["Col.Order"]</th>
-                    <th class="num">@L["Col.Ship"]</th>
-                    <th class="num">@L["PP.Delivery.Col.Progress"]</th>
-                    <th>@L["Col.Requested"]</th>
-                    <th>@L["Col.Promised"]</th>
-                    <th class="num">@L["Col.DaysLate"]</th>
-                    <th>@L["Col.Status"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    bool isLate   = r.DaysLate > 0;
-                    bool isOnTime = r.ShippedQty >= r.OrderQty && !isLate;
-                    bool isOpen   = r.ShippedQty < r.OrderQty;
-                    decimal progPct = r.OrderQty > 0
-                        ? Math.Min(100m, r.ShippedQty / r.OrderQty * 100m) : 0m;
-                    string rowCls = isLate ? "row-late" : "";
-                    <tr class="@rowCls">
-                        <td class="code">@(r.SoNumber ?? "—")</td>
-                        <td>@(r.CustomerId ?? "—")</td>
-                        <td class="dim">@r.ItemNo</td>
-                        <td class="num">@r.OrderQty.ToString("N0")</td>
-                        <td class="num">@r.ShippedQty.ToString("N0")</td>
-                        <td style="min-width:80px;">
-                            <div style="display:flex;align-items:center;gap:5px;">
-                                <div style="flex:1;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;">
-                                    <div style="height:100%;border-radius:3px;
-                                                background:@(isLate ? "rgba(239,68,68,.7)" : "rgba(34,197,94,.7)");
-                                                width:@progPct.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)%;"></div>
-                                </div>
-                                <span style="font-size:.72rem;color:#94a3b8;min-width:30px;">@progPct.ToString("0")%</span>
-                            </div>
-                        </td>
-                        <td class="dim">@(r.RequestedDeliveryDate?.ToString("yy-MM-dd") ?? "—")</td>
-                        <td class="dim">@(r.PromisedDate?.ToString("yy-MM-dd") ?? "—")</td>
-                        <td class="num">
-                            @if (r.DaysLate > 0)
-                            { <span style="color:#f87171;">+@(r.DaysLate)@L["Lbl.Days"]</span> }
-                            else if (r.DaysLate < 0)
-                            { <span style="color:#4ade80;">@(r.DaysLate)@L["Lbl.Days"]</span> }
-                            else
-                            { <span style="color:#94a3b8;">0</span> }
-                        </td>
-                        <td>
-                            @if (isOnTime)
-                            { <span class="badge-ok">@L["PP.Delivery.Badge.OnTime"]</span> }
-                            else if (isLate)
-                            { <span class="badge-bad">@L["PP.Delivery.Badge.Late"]</span> }
-                            else if (isOpen)
-                            { <span class="pill warn">@L["PP.Delivery.Badge.Open"]</span> }
-                            else
-                            { <span class="dim">@r.Status</span> }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+    <RadzenDataGrid TItem="PpRepository.OtdRow" Data="@_rows" AllowPaging="true" PageSize="20" PagerHorizontalAlign="HorizontalAlign.Center"
+                    AllowSorting="true" RowRender="@RowRender" EmptyText="@L["PP.Delivery.Empty"]" Class="ames-rz-grid pp-dtl-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="SoNumber" Title="@L["Col.SoNo"]" Width="130px">
+                <Template Context="r"><span class="code">@(r.SoNumber ?? "—")</span>@(r.SoLineNo is { } ln ? $"-{ln}" : "")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="CustomerId" Title="@L["Col.Customer"]" Width="150px">
+                <Template Context="r">
+                    <span class="code">@(r.CustomerCode ?? r.CustomerId ?? "—")</span>
+                    <span class="dim" style="font-size:10px;margin-left:4px;white-space:nowrap;">@MasterDataRepository.LocalName(r.CustomerName, r.CustomerNameEn)</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="ItemNo" Title="@L["Col.Item"]">
+                <Template Context="r">
+                    <span class="code">@r.ItemNo</span>
+                    <span class="dim" style="font-size:10px;margin-left:4px;white-space:nowrap;">@MasterDataRepository.LocalName(r.ItemName, r.ItemNameEn)</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="OrderQty" Title="@L["Col.Order"]" Width="80px" TextAlign="TextAlign.Right">
+                <Template Context="r">@r.OrderQty.ToString("N0")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="ShippedQty" Title="@L["Col.Ship"]" Width="80px" TextAlign="TextAlign.Right">
+                <Template Context="r">@r.ShippedQty.ToString("N0")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="ProgressPct" Title="@L["PP.Delivery.Col.Progress"]" Width="130px">
+                <Template Context="r">
+                    <div class="pp-oee-apq">
+                        <div class="pp-oee-track" style="height:8px;"><i class="@(r.IsLate ? "otd-fill-bad" : "otd-fill-ok")" style="width:@(r.ProgressPct.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%;"></i></div>
+                        <span class="pp-oee-apq-val">@r.ProgressPct.ToString("0")%</span>
+                    </div>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="RequestedDeliveryDate" Title="@L["Col.Requested"]" Width="100px">
+                <Template Context="r">@(r.RequestedDeliveryDate?.ToString("yy-MM-dd") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="PromisedDate" Title="@L["Col.Promised"]" Width="120px">
+                <Template Context="r">
+                    @(r.PromisedDate?.ToString("yy-MM-dd") ?? "—")
+                    @if (r.PromiseGapDays is > 0) { <span class="pill warn" style="margin-left:4px;padding:0 6px;font-size:10px;" title="@L["PP.Delivery.Col.PromiseGap"]">+@r.PromiseGapDays</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="DaysLate" Title="@L["Col.DaysLate"]" Width="90px" TextAlign="TextAlign.Right">
+                <Template Context="r">
+                    @if (r.DaysLate > 0) { <span class="code" style="color:#f87171;">+@r.DaysLate@L["Lbl.Days"]</span> } else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="Status" Title="@L["Col.Status"]" Width="100px" TextAlign="TextAlign.Center">
+                <Template Context="r">
+                    @if (r.IsShipped)   { <span class="pill ok">@L["PP.Delivery.Badge.Shipped"]</span> }
+                    else if (r.IsLate)  { <span class="pill bad">@L["PP.Delivery.Badge.Late"]</span> }
+                    else                { <span class="pill warn">@L["PP.Delivery.Badge.Open"]</span> }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 
-        @if (_rows.Count >= 500)
-        {
-            <div style="padding:.5rem 0;font-size:.78rem;color:#64748b;">
-                @L["PP.Delivery.LimitNote"]
-            </div>
-        }
+    @if (_rows.Count >= LIMIT)
+    {
+        <div class="dim" style="padding:.5rem 0 0;font-size:11px;">@L["PP.Delivery.LimitNote"]</div>
     }
 </div>
 
 @code {
-    List<AMES.Data.Repositories.PpRepository.OtdRow> _rows = [];
-    int _page = 0;
-    const int _pageSize = 20;
-    List<string> _customers = [];
+    const int LIMIT = 500;
 
-    DateTime _filterFrom     = DateTime.Today.AddDays(-30);
-    DateTime _filterTo       = DateTime.Today.AddDays(30);
-    string   _filterCustomer = "";
-    string   _filterStatus   = "";
+    List<PpRepository.OtdRow>         _rows      = [];
+    List<PpRepository.OtdCustomerRow> _customers = [];
+    List<CustAgg>                     _custAgg   = [];
 
-    int     _onTime, _late, _open;
-    decimal _otdPct;
+    DateTime _fFrom = DateTime.Today.AddDays(-30);
+    DateTime _fTo   = DateTime.Today.AddDays(30);
+    string?  _fCustomer;
+    string?  _fStatus;
+    string   _err = "";
+
+    sealed class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    IEnumerable<DropDownItem> CustomerFilterOptions => _customers.Select(c => new DropDownItem
+    {
+        Value = c.CustomerId,
+        Text  = $"[{c.CustomerCode ?? c.CustomerId}] {MasterDataRepository.LocalName(c.CustomerName, c.CustomerNameEn)}".TrimEnd(),
+    });
+    IEnumerable<DropDownItem> StatusFilterOptions => new[]
+    {
+        new DropDownItem { Value = "shipped", Text = L["PP.Delivery.Status.Shipped"].Value },
+        new DropDownItem { Value = "late",    Text = L["PP.Delivery.Status.Late"].Value },
+        new DropDownItem { Value = "open",    Text = L["PP.Delivery.Status.Open"].Value },
+    };
+
+    // ── KPI (출하일이 없으므로 완료건은 준수로 간주, 지연 = 미출하 + 요청납기 경과) ──
+    int     Shipped     => _rows.Count(r => r.IsShipped);
+    int     Late        => _rows.Count(r => r.IsLate);
+    int     Open        => _rows.Count(r => r.IsOpen);
+    int     PromiseLate => _rows.Count(r => r.PromiseGapDays is > 0);
+    double  AvgLateDays => Late == 0 ? 0 : _rows.Where(r => r.IsLate).Average(r => r.DaysLate);
+    int     MaxLateDays => Late == 0 ? 0 : _rows.Where(r => r.IsLate).Max(r => r.DaysLate);
+    decimal OtdPct      => _rows.Count == 0 ? 0 : Math.Round(100m * (_rows.Count - Late) / _rows.Count, 1);
+    decimal QtyPct
+    {
+        get { var o = _rows.Sum(r => r.OrderQty); return o == 0 ? 0 : Math.Round(100m * _rows.Sum(r => Math.Min(r.ShippedQty, r.OrderQty)) / o, 1); }
+    }
+
+    sealed class CustAgg
+    {
+        public string  CustomerId { get; set; } = "";
+        public string? CustomerCode { get; set; }
+        public string? Name { get; set; }
+        public int     Orders { get; set; }
+        public int     Shipped { get; set; }
+        public int     Late { get; set; }
+        public decimal Otd => Orders == 0 ? 0 : Math.Round(100m * (Orders - Late) / Orders, 1);
+    }
 
     protected override void OnInitialized()
     {
         try { _customers = Pp.ListOtdCustomers(); } catch { }
-        Search();
+        SetDefaultRange();
+        ApplyFilter();
     }
 
-    void Search()
+    // 기본 기간 = 오늘 ±30일을 데이터 범위까지 넓힌다 (시드/과거 데이터만 있어도 빈 화면이 되지 않도록)
+    void SetDefaultRange()
     {
-        _page = 0;
+        _fFrom = DateTime.Today.AddDays(-30);
+        _fTo   = DateTime.Today.AddDays(30);
+        try
+        {
+            var (min, max) = Pp.OtdDateExtent();
+            if (min is { } mn && mn < _fFrom) _fFrom = mn;
+            if (max is { } mx && mx > _fTo)   _fTo   = mx;
+        }
+        catch { }
+    }
+
+    void ApplyFilter()
+    {
+        _err = "";
+        if (_fFrom > _fTo) { _err = L["PP.Oee.Err.DateRange"]; return; }
         try
         {
             _rows = Pp.ListOtdFiltered(
-                from:       _filterFrom,
-                to:         _filterTo,
-                customerId: string.IsNullOrEmpty(_filterCustomer) ? null : _filterCustomer,
-                status:     string.IsNullOrEmpty(_filterStatus)   ? null : _filterStatus);
+                from:       _fFrom,
+                to:         _fTo,
+                customerId: string.IsNullOrEmpty(_fCustomer) ? null : _fCustomer,
+                status:     string.IsNullOrEmpty(_fStatus)   ? null : _fStatus,
+                limit:      LIMIT);
         }
-        catch { _rows = []; }
-        CalcKpis();
+        catch (Exception ex) { _err = ex.Message; _rows = []; }
+
+        _custAgg = _rows.GroupBy(r => r.CustomerId ?? "—")
+            .Select(g => new CustAgg
+            {
+                CustomerId   = g.Key,
+                CustomerCode = g.First().CustomerCode,
+                Name         = MasterDataRepository.LocalName(g.First().CustomerName, g.First().CustomerNameEn),
+                Orders       = g.Count(),
+                Shipped      = g.Count(r => r.IsShipped),
+                Late         = g.Count(r => r.IsLate),
+            })
+            .OrderBy(c => c.CustomerId).ToList();
     }
 
-    void Reset()
+    void ResetFilter()
     {
-        _filterFrom     = DateTime.Today.AddDays(-30);
-        _filterTo       = DateTime.Today.AddDays(30);
-        _filterCustomer = "";
-        _filterStatus   = "";
-        Search();
+        _fCustomer = null; _fStatus = null;
+        SetDefaultRange();
+        ApplyFilter();
     }
 
-    void CalcKpis()
+    static void RowRender(RowRenderEventArgs<PpRepository.OtdRow> args)
     {
-        _onTime = _rows.Count(r => r.ShippedQty >= r.OrderQty && r.DaysLate <= 0);
-        _late   = _rows.Count(r => r.DaysLate > 0);
-        _open   = _rows.Count(r => r.ShippedQty < r.OrderQty);
-        _otdPct = _rows.Count > 0
-            ? Math.Round((decimal)_onTime / _rows.Count * 100m, 1)
-            : 0m;
+        if (args.Data?.IsLate == true) args.Attributes["class"] = "otd-row-late";
     }
 }

@@ -79,9 +79,26 @@ public sealed class PpRepository
     public sealed record LineStateRow(string? LineId, DateTime? MinuteTs, string? State,
         string? PlanState, bool RunFlag, int? WoId);
 
-    public sealed record OtdRow(int SoId, string? SoNumber, string? CustomerId, string ItemNo,
-        decimal OrderQty, decimal ShippedQty, DateTime? RequestedDeliveryDate,
-        DateTime? PromisedDate, int DaysLate, string Status);
+    /// <summary>
+    /// PP-OTD 수주 1행. PP_CustomerOrder 에는 실제 출하일이 없으므로
+    ///   DaysLate      = 미출하(ShippedQty &lt; OrderQty)이면서 요청납기가 경과한 일수, 그 외 0
+    ///   PromiseGapDays= 약속납기 − 요청납기 (양수면 요청보다 늦게 약속)
+    /// CustomerId 는 MD_Customer 로 정규화한 마스터 ID (원본은 ID/코드가 섞여 있다).
+    /// </summary>
+    public sealed record OtdRow(int SoId, string? SoNumber, int? SoLineNo,
+        string? CustomerId, string? CustomerCode, string? CustomerName, string? CustomerNameEn,
+        string ItemNo, string? ItemName, string? ItemNameEn,
+        decimal OrderQty, decimal ShippedQty,
+        DateTime? OrderDate, DateTime? RequestedDeliveryDate, DateTime? PromisedDate,
+        int DaysLate, int? PromiseGapDays, string Status)
+    {
+        public bool    IsShipped   => ShippedQty >= OrderQty;
+        public bool    IsLate      => !IsShipped && DaysLate > 0;
+        public bool    IsOpen      => !IsShipped && DaysLate <= 0;
+        public decimal ProgressPct => OrderQty > 0 ? Math.Min(100m, ShippedQty / OrderQty * 100m) : 0m;
+    }
+
+    public sealed record OtdCustomerRow(string CustomerId, string? CustomerCode, string? CustomerName, string? CustomerNameEn, int Orders);
 
     // ── PP-001 Forecast ──────────────────────────────────────────────────
     public List<ForecastRow> ListForecast(int monthsBack = 6, int monthsAhead = 6)
@@ -848,15 +865,16 @@ public sealed class PpRepository
     }
 
     /// <summary>PP-ODM 비계획 비가동 확정 시 PP_LineDowntimeLog에 이벤트 기록.</summary>
+    // CreatedBy 는 NOT NULL·기본값 없음 — 빠뜨리면 INSERT 자체가 실패한다.
     public void AddDowntimeEvent(string lineId, DateTime startTs, DateTime endTs,
-        string? reasonCode, string? causeCode, string? comment, int? woId = null)
+        string? reasonCode, string? causeCode, string? comment, int? woId = null, string? createdBy = null)
     {
         const string sql = """
             INSERT INTO dbo.PP_LineDowntimeLog
-                   (LineID, StartTS, EndTS, DurationMin, ReasonCode, CauseCode, Comment, WoID)
+                   (LineID, StartTS, EndTS, DurationMin, ReasonCode, CauseCode, Comment, WoID, LoggedBy, CreatedBy, CreatedTS)
             VALUES (@LineId, @Start, @End,
                     DATEDIFF(minute, @Start, @End),
-                    @Reason, @Cause, @Comment, @WoId);
+                    @Reason, @Cause, @Comment, @WoId, @By, @By, SYSDATETIME());
             """;
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
@@ -867,17 +885,20 @@ public sealed class PpRepository
         cmd.Parameters.Add("@Cause",   SqlDbType.VarChar,   30).Value  = (object?)causeCode  ?? DBNull.Value;
         cmd.Parameters.Add("@Comment", SqlDbType.NVarChar, 500).Value  = (object?)comment    ?? DBNull.Value;
         cmd.Parameters.Add("@WoId",    SqlDbType.Int).Value            = (object?)woId       ?? DBNull.Value;
+        cmd.Parameters.Add("@By",      SqlDbType.VarChar,   50).Value  = string.IsNullOrWhiteSpace(createdBy) ? "web" : createdBy;
         cmd.ExecuteNonQuery();
     }
 
-    /// <summary>PP-ODM 비가동 사유 수정/보완 (사유 미입력 또는 오기입 수정).</summary>
-    public void UpdateDowntimeReason(int downtimeId, string? reasonCode, string? causeCode, string? comment)
+    /// <summary>PP-ODM/DTL 비가동 사유 수정/보완 (사유 미입력 또는 오기입 수정). 감사 컬럼도 함께 남긴다.</summary>
+    public void UpdateDowntimeReason(int downtimeId, string? reasonCode, string? causeCode, string? comment, string? modifiedBy = null)
     {
         const string sql = """
             UPDATE dbo.PP_LineDowntimeLog
             SET ReasonCode = @Reason,
                 CauseCode  = @Cause,
-                Comment    = @Comment
+                Comment    = @Comment,
+                ModifiedBy = @By,
+                ModifiedTS = SYSDATETIME()
             WHERE DowntimeID = @Id;
             """;
         using var conn = _f.OpenConnection();
@@ -886,7 +907,26 @@ public sealed class PpRepository
         cmd.Parameters.Add("@Reason",  SqlDbType.VarChar,   30).Value  = (object?)reasonCode ?? DBNull.Value;
         cmd.Parameters.Add("@Cause",   SqlDbType.VarChar,   30).Value  = (object?)causeCode  ?? DBNull.Value;
         cmd.Parameters.Add("@Comment", SqlDbType.NVarChar, 500).Value  = (object?)comment    ?? DBNull.Value;
+        cmd.Parameters.Add("@By",      SqlDbType.NVarChar, 450).Value  = string.IsNullOrWhiteSpace(modifiedBy) ? "web" : modifiedBy;
         cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>PP-DTL 사유 필터 옵션 — 공통코드 그룹이 없어 실데이터의 DISTINCT 값을 쓴다.</summary>
+    public List<string> ListDowntimeReasons()
+    {
+        const string sql = """
+            SELECT DISTINCT ReasonCode FROM dbo.PP_LineDowntimeLog
+            WHERE ReasonCode IS NOT NULL ORDER BY ReasonCode;
+            """;
+        return Query(sql, r => (string)r["ReasonCode"]);
+    }
+
+    /// <summary>가장 최근 비가동 시작 시각 — 기본 조회 기간을 데이터가 있는 구간으로 맞추는 용도.</summary>
+    public DateTime? LatestDowntimeStart()
+    {
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand("SELECT MAX(StartTS) FROM dbo.PP_LineDowntimeLog;", conn);
+        return cmd.ExecuteScalar() is DateTime d ? d : null;
     }
 
     /// <summary>PP-DTL/ODM 라인 목록 (PP_LineDowntimeLog 기준).</summary>
@@ -921,94 +961,151 @@ public sealed class PpRepository
             ("@H", hoursBack));
     }
 
-    // ── PP-OTD On-Time Delivery ─────────────────────────────────────────
-    public List<OtdRow> ListOtd(int daysBack = 30)
+    public sealed record LineStateTotalRow(string? LineId, string? State, string? PlanState, int Minutes);
+
+    /// <summary>[from, to] 구간의 분단위 상태 — 모니터 타임라인용. 기준시각을 넘겨 과거 시점 재생도 가능.</summary>
+    public List<LineStateRow> ListLineStatesWindow(DateTime from, DateTime to)
     {
         const string sql = """
-            SELECT TOP 100 SoID, SoNumber, CustomerID, ItemNo,
-                   ISNULL(OrderQty,0)   AS OrderQty,
-                   ISNULL(ShippedQty,0) AS ShippedQty,
-                   RequestedDeliveryDate, PromisedDate,
-                   CASE WHEN ShippedQty >= OrderQty AND RequestedDeliveryDate IS NOT NULL
-                        THEN DATEDIFF(day, RequestedDeliveryDate, GETDATE())
-                        ELSE 0 END AS DaysLate,
-                   ISNULL(Status,'?') AS Status
-            FROM   dbo.PP_CustomerOrder
-            WHERE  RequestedDeliveryDate > DATEADD(day, -@D, GETDATE())
-            ORDER BY RequestedDeliveryDate;
+            SELECT LineID, MinuteTS, State, PlanState, ISNULL(RunFlag, 0) AS RunFlag, WoID
+            FROM   dbo.PP_LineStateLog
+            WHERE  LineID IS NOT NULL AND MinuteTS >= @F AND MinuteTS <= @T
+            ORDER BY LineID, MinuteTS;
             """;
-        return Query(sql, r => new OtdRow(
-            (int)r["SoID"], r["SoNumber"] as string, r["CustomerID"] as string,
-            r["ItemNo"] as string ?? "",
-            r.GetDecimal(r.GetOrdinal("OrderQty")),
-            r.GetDecimal(r.GetOrdinal("ShippedQty")),
-            r["RequestedDeliveryDate"] as DateTime?,
-            r["PromisedDate"] as DateTime?,
-            (int)r["DaysLate"], r["Status"] as string ?? "?"),
-            ("@D", daysBack));
+        return Query(sql, MapLineState, ("@F", from), ("@T", to));
     }
 
-    /// <summary>PP-OTD 필터 조회 — 기간·고객·상태 조합.</summary>
+    /// <summary>기준시각 이전 라인별 최종 로그 1건 — 로그가 오래돼도 마지막 상태·시각을 보여주기 위함.</summary>
+    public List<LineStateRow> ListLatestLineStates(DateTime asOf)
+    {
+        const string sql = """
+            SELECT LineID, MinuteTS, State, PlanState, ISNULL(RunFlag, 0) AS RunFlag, WoID
+            FROM  (SELECT LineID, MinuteTS, State, PlanState, RunFlag, WoID,
+                          ROW_NUMBER() OVER (PARTITION BY LineID ORDER BY MinuteTS DESC) AS rn
+                   FROM   dbo.PP_LineStateLog
+                   WHERE  LineID IS NOT NULL AND MinuteTS <= @T) x
+            WHERE  rn = 1
+            ORDER BY LineID;
+            """;
+        return Query(sql, MapLineState, ("@T", asOf));
+    }
+
+    /// <summary>[from, to] 구간 라인×상태×계획상태 분 합계 — 당일 누적(가동/비가동/유휴/계획정지)용.</summary>
+    public List<LineStateTotalRow> ListLineStateTotals(DateTime from, DateTime to)
+    {
+        const string sql = """
+            SELECT LineID, State, PlanState, COUNT(*) AS Minutes
+            FROM   dbo.PP_LineStateLog
+            WHERE  LineID IS NOT NULL AND MinuteTS >= @F AND MinuteTS <= @T
+            GROUP  BY LineID, State, PlanState;
+            """;
+        return Query(sql, r => new LineStateTotalRow(
+            r["LineID"] as string, r["State"] as string, r["PlanState"] as string, Convert.ToInt32(r["Minutes"])),
+            ("@F", from), ("@T", to));
+    }
+
+    static LineStateRow MapLineState(IDataReader r) => new(
+        r["LineID"] as string, r["MinuteTS"] as DateTime?,
+        r["State"] as string, r["PlanState"] as string,
+        Convert.ToBoolean(r["RunFlag"]), r["WoID"] as int?);
+
+    // ── PP-OTD On-Time Delivery ─────────────────────────────────────────
+    // 공통 SELECT — 고객은 마스터 ID/코드 양쪽으로 조인해 정규화, 지연은 '미출하 + 요청납기 경과' 로만 산정
+    const string OtdSelect = """
+        SELECT o.SoID, o.SoNumber, o.SoLineNo,
+               ISNULL(c.CustomerID, o.CustomerID) AS CustomerID, c.CustomerCode, c.CustomerName, c.CustomerNameEn,
+               o.ItemNo, i.ItemName, i.ItemNameEN,
+               ISNULL(o.OrderQty,0)   AS OrderQty,
+               ISNULL(o.ShippedQty,0) AS ShippedQty,
+               o.OrderDate, o.RequestedDeliveryDate, o.PromisedDate,
+               CASE WHEN ISNULL(o.ShippedQty,0) < ISNULL(o.OrderQty,0) AND o.RequestedDeliveryDate < @Today
+                    THEN DATEDIFF(day, o.RequestedDeliveryDate, @Today) ELSE 0 END AS DaysLate,
+               DATEDIFF(day, o.RequestedDeliveryDate, o.PromisedDate) AS PromiseGapDays,
+               ISNULL(o.Status,'?') AS Status
+        FROM   dbo.PP_CustomerOrder o
+        LEFT JOIN dbo.MD_Customer c ON c.CustomerID = o.CustomerID OR c.CustomerCode = o.CustomerID
+        LEFT JOIN dbo.MD_Item     i ON i.ItemNo = o.ItemNo
+        """;
+
+    static OtdRow MapOtd(IDataReader r) => new(
+        (int)r["SoID"], r["SoNumber"] as string, r["SoLineNo"] as int?,
+        r["CustomerID"] as string, r["CustomerCode"] as string, r["CustomerName"] as string, r["CustomerNameEn"] as string,
+        r["ItemNo"] as string ?? "", r["ItemName"] as string, r["ItemNameEN"] as string,
+        Convert.ToDecimal(r["OrderQty"]), Convert.ToDecimal(r["ShippedQty"]),
+        r["OrderDate"] as DateTime?, r["RequestedDeliveryDate"] as DateTime?, r["PromisedDate"] as DateTime?,
+        Convert.ToInt32(r["DaysLate"]),
+        r["PromiseGapDays"] is DBNull ? null : Convert.ToInt32(r["PromiseGapDays"]),
+        r["Status"] as string ?? "?");
+
+    /// <summary>홈 대시보드·API 용: 요청납기가 최근 N일 이후인 수주.</summary>
+    public List<OtdRow> ListOtd(int daysBack = 30)
+    {
+        const string sql = OtdSelect + """
+
+            WHERE  o.RequestedDeliveryDate > DATEADD(day, -@D, @Today)
+            ORDER BY o.RequestedDeliveryDate;
+            """;
+        return Query(sql, MapOtd, ("@D", daysBack), ("@Today", DateTime.Today));
+    }
+
+    /// <summary>PP-OTD 필터 조회 — 기간·고객(정규화 ID)·상태 조합.</summary>
     public List<OtdRow> ListOtdFiltered(
         DateTime? from       = null,
         DateTime? to         = null,
         string?  customerId  = null,
-        string?  status      = null,   // "ontime" | "late" | "open" | null=all
+        string?  status      = null,   // "shipped" | "late" | "open" | null=all
         int      limit       = 500)
     {
-        var sql = $"""
-            SELECT TOP (@Limit)
-                   SoID, SoNumber, CustomerID, ItemNo,
-                   ISNULL(OrderQty,0)   AS OrderQty,
-                   ISNULL(ShippedQty,0) AS ShippedQty,
-                   RequestedDeliveryDate, PromisedDate,
-                   CASE WHEN ShippedQty >= OrderQty AND RequestedDeliveryDate IS NOT NULL
-                        THEN DATEDIFF(day, RequestedDeliveryDate, GETDATE())
-                        ELSE 0 END AS DaysLate,
-                   ISNULL(Status,'?') AS Status
-            FROM   dbo.PP_CustomerOrder
+        var sql = OtdSelect.Replace("SELECT o.SoID", "SELECT TOP (@Limit) o.SoID") + $"""
+
             WHERE  1=1
-            {(from       != null ? "AND RequestedDeliveryDate >= @From "       : "")}
-            {(to         != null ? "AND RequestedDeliveryDate <  @To "         : "")}
-            {(customerId != null ? "AND CustomerID = @Customer "               : "")}
-            {(status == "ontime" ? "AND ShippedQty >= OrderQty AND DATEDIFF(day, RequestedDeliveryDate, GETDATE()) <= 0 " : "")}
-            {(status == "late"   ? "AND DATEDIFF(day, RequestedDeliveryDate, GETDATE()) > 0 "                            : "")}
-            {(status == "open"   ? "AND ShippedQty < OrderQty "                : "")}
-            ORDER BY RequestedDeliveryDate DESC;
+            {(from       != null ? "AND o.RequestedDeliveryDate >= @From "                         : "")}
+            {(to         != null ? "AND o.RequestedDeliveryDate <  @To "                           : "")}
+            {(customerId != null ? "AND ISNULL(c.CustomerID, o.CustomerID) = @Customer "           : "")}
+            {(status == "shipped" ? "AND ISNULL(o.ShippedQty,0) >= ISNULL(o.OrderQty,0) "          : "")}
+            {(status == "late"    ? "AND ISNULL(o.ShippedQty,0) <  ISNULL(o.OrderQty,0) AND o.RequestedDeliveryDate < @Today " : "")}
+            {(status == "open"    ? "AND ISNULL(o.ShippedQty,0) <  ISNULL(o.OrderQty,0) AND (o.RequestedDeliveryDate IS NULL OR o.RequestedDeliveryDate >= @Today) " : "")}
+            ORDER BY o.RequestedDeliveryDate DESC, o.SoNumber, o.SoLineNo;
             """;
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@Limit", SqlDbType.Int).Value = limit;
+        cmd.Parameters.Add("@Limit", SqlDbType.Int).Value  = limit;
+        cmd.Parameters.Add("@Today", SqlDbType.Date).Value = DateTime.Today;
         if (from       != null) cmd.Parameters.Add("@From",     SqlDbType.Date).Value        = from.Value.Date;
         if (to         != null) cmd.Parameters.Add("@To",       SqlDbType.Date).Value        = to.Value.Date.AddDays(1);
         if (customerId != null) cmd.Parameters.Add("@Customer", SqlDbType.VarChar, 30).Value = customerId;
         using var rdr = cmd.ExecuteReader();
         var list = new List<OtdRow>();
-        while (rdr.Read())
-            list.Add(new OtdRow(
-                (int)rdr["SoID"], rdr["SoNumber"] as string, rdr["CustomerID"] as string,
-                rdr["ItemNo"] as string ?? "",
-                rdr.GetDecimal(rdr.GetOrdinal("OrderQty")),
-                rdr.GetDecimal(rdr.GetOrdinal("ShippedQty")),
-                rdr["RequestedDeliveryDate"] as DateTime?,
-                rdr["PromisedDate"] as DateTime?,
-                (int)rdr["DaysLate"], rdr["Status"] as string ?? "?"));
+        while (rdr.Read()) list.Add(MapOtd(rdr));
         return list;
     }
 
-    /// <summary>PP-OTD 고객 목록 (필터 드롭다운용).</summary>
-    public List<string> ListOtdCustomers()
+    /// <summary>PP-OTD 고객 필터 옵션 — 마스터 ID 로 정규화(원본의 ID/코드 혼용을 하나로 묶는다).</summary>
+    public List<OtdCustomerRow> ListOtdCustomers()
     {
         const string sql = """
-            SELECT DISTINCT CustomerID FROM dbo.PP_CustomerOrder
-            WHERE CustomerID IS NOT NULL ORDER BY CustomerID;
+            SELECT ISNULL(c.CustomerID, o.CustomerID) AS CustomerID,
+                   MAX(c.CustomerCode) AS CustomerCode, MAX(c.CustomerName) AS CustomerName, MAX(c.CustomerNameEn) AS CustomerNameEn,
+                   COUNT(*) AS Orders
+            FROM   dbo.PP_CustomerOrder o
+            LEFT JOIN dbo.MD_Customer c ON c.CustomerID = o.CustomerID OR c.CustomerCode = o.CustomerID
+            WHERE  o.CustomerID IS NOT NULL
+            GROUP  BY ISNULL(c.CustomerID, o.CustomerID)
+            ORDER  BY 1;
             """;
+        return Query(sql, r => new OtdCustomerRow(
+            (string)r["CustomerID"], r["CustomerCode"] as string, r["CustomerName"] as string, r["CustomerNameEn"] as string,
+            Convert.ToInt32(r["Orders"])));
+    }
+
+    /// <summary>요청납기의 최소/최대 — 기본 조회 기간을 데이터가 있는 구간으로 맞추는 용도.</summary>
+    public (DateTime? Min, DateTime? Max) OtdDateExtent()
+    {
         using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand("SELECT MIN(RequestedDeliveryDate), MAX(RequestedDeliveryDate) FROM dbo.PP_CustomerOrder;", conn);
         using var rdr  = cmd.ExecuteReader();
-        var list = new List<string>();
-        while (rdr.Read()) list.Add((string)rdr["CustomerID"]);
-        return list;
+        if (!rdr.Read()) return (null, null);
+        return (rdr[0] as DateTime?, rdr[1] as DateTime?);
     }
 
     // ── helpers ──────────────────────────────────────────────────────────

@@ -5328,4 +5328,286 @@
   <data name="PP.WoRelease.Err.NoSteps" xml:space="preserve">
     <value>No routing template; cannot release. Check the item's routing type.</value>
   </data>
+  <data name="PP.Oee.Kpi.Overall" xml:space="preserve">
+    <value>Overall OEE</value>
+  </data>
+  <data name="PP.Oee.Kpi.WorldClass" xml:space="preserve">
+    <value>world-class ≥ {0}%</value>
+  </data>
+  <data name="PP.Oee.Kpi.TotalLoss" xml:space="preserve">
+    <value>Total Loss (min)</value>
+  </data>
+  <data name="PP.Oee.Kpi.Range" xml:space="preserve">
+    <value>{0} ~ {1} · {2} snapshots</value>
+  </data>
+  <data name="PP.Oee.Shift.All" xml:space="preserve">
+    <value>All shifts</value>
+  </data>
+  <data name="PP.Oee.Shift.None" xml:space="preserve">
+    <value>(no shift)</value>
+  </data>
+  <data name="PP.Oee.ByLine.Title" xml:space="preserve">
+    <value>OEE by Line</value>
+  </data>
+  <data name="PP.Oee.ByLine.Hint" xml:space="preserve">
+    <value>Click a row to drill down</value>
+  </data>
+  <data name="PP.Oee.ByLine.NoData" xml:space="preserve">
+    <value>No snapshot in range</value>
+  </data>
+  <data name="PP.Oee.Col.Grade" xml:space="preserve">
+    <value>Grade</value>
+  </data>
+  <data name="PP.Oee.Col.Loss" xml:space="preserve">
+    <value>Loss (min)</value>
+  </data>
+  <data name="PP.Oee.Grade.WorldClass" xml:space="preserve">
+    <value>World Class</value>
+  </data>
+  <data name="PP.Oee.Grade.Good" xml:space="preserve">
+    <value>Good</value>
+  </data>
+  <data name="PP.Oee.Grade.Low" xml:space="preserve">
+    <value>Needs Improvement</value>
+  </data>
+  <data name="PP.Oee.Loss.Title" xml:space="preserve">
+    <value>Six Big Losses</value>
+  </data>
+  <data name="PP.Oee.Loss.OverallAvg" xml:space="preserve">
+    <value>Overall Avg</value>
+  </data>
+  <data name="PP.Oee.Loss.Breakdown" xml:space="preserve">
+    <value>Breakdown</value>
+  </data>
+  <data name="PP.Oee.Loss.Setup" xml:space="preserve">
+    <value>Setup &amp; Changeover</value>
+  </data>
+  <data name="PP.Oee.Loss.OtherStops" xml:space="preserve">
+    <value>Other Stops</value>
+  </data>
+  <data name="PP.Oee.Loss.Speed" xml:space="preserve">
+    <value>Reduced Speed</value>
+  </data>
+  <data name="PP.Oee.Loss.Defects" xml:space="preserve">
+    <value>Defects &amp; Rework</value>
+  </data>
+  <data name="PP.Oee.Loss.Planned" xml:space="preserve">
+    <value>Planned Downtime</value>
+  </data>
+  <data name="PP.Oee.Loss.Cat.Avail" xml:space="preserve">
+    <value>Availability Loss</value>
+  </data>
+  <data name="PP.Oee.Loss.Cat.Perf" xml:space="preserve">
+    <value>Performance Loss</value>
+  </data>
+  <data name="PP.Oee.Loss.Cat.Qual" xml:space="preserve">
+    <value>Quality Loss</value>
+  </data>
+  <data name="PP.Oee.Loss.Cat.Planned" xml:space="preserve">
+    <value>Planned Stop</value>
+  </data>
+  <data name="PP.Oee.Loss.Hint" xml:space="preserve">
+    <value>bar length = loss minutes · breakdown/setup split follows downtime-log reasons (MACHINE/CHANGEOVER)</value>
+  </data>
+  <data name="PP.Oee.Comp.Title" xml:space="preserve">
+    <value>OEE Composition</value>
+  </data>
+  <data name="PP.Oee.Detail.Title" xml:space="preserve">
+    <value>{0} Detail</value>
+  </data>
+  <data name="PP.Oee.Tab.Snapshots" xml:space="preserve">
+    <value>📋 Snapshots</value>
+  </data>
+  <data name="PP.Oee.Calc.Title" xml:space="preserve">
+    <value>Compute OEE · from state log + results</value>
+  </data>
+  <data name="PP.Oee.Calc.Note" xml:space="preserve">
+    <value>Performance P is assumed 100% when no BOP standard cycle exists</value>
+  </data>
+  <data name="PP.Oee.Calc.Assumed" xml:space="preserve">
+    <value>(P assumed)</value>
+  </data>
+  <data name="PP.Oee.Calc.NoLog" xml:space="preserve">
+    <value>No state log in this window</value>
+  </data>
+  <data name="PP.Oee.Log.Timeline" xml:space="preserve">
+    <value>Minute-level state timeline</value>
+  </data>
+  <data name="PP.Oee.Log.Run" xml:space="preserve">
+    <value>Run</value>
+  </data>
+  <data name="PP.Oee.Log.Idle" xml:space="preserve">
+    <value>Idle</value>
+  </data>
+  <data name="PP.Oee.Log.Down" xml:space="preserve">
+    <value>Down</value>
+  </data>
+  <data name="PP.Oee.Log.PlanDown" xml:space="preserve">
+    <value>Planned down</value>
+  </data>
+  <data name="PP.Oee.Snap.Col.Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="PP.Oee.Snap.Col.Operating" xml:space="preserve">
+    <value>Operating</value>
+  </data>
+  <data name="PP.Oee.Snap.Col.Produced" xml:space="preserve">
+    <value>Produced</value>
+  </data>
+  <data name="PP.Oee.Snap.Col.Good" xml:space="preserve">
+    <value>Good</value>
+  </data>
+  <data name="PP.Oee.Confirm.DeleteSnap" xml:space="preserve">
+    <value>Delete this snapshot?</value>
+  </data>
+  <data name="PP.Downtime.Kpi.Events" xml:space="preserve">
+    <value>Events</value>
+  </data>
+  <data name="PP.Downtime.Kpi.TotalMin" xml:space="preserve">
+    <value>Total Downtime</value>
+  </data>
+  <data name="PP.Downtime.Kpi.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="PP.Downtime.Kpi.TopReason" xml:space="preserve">
+    <value>Top Reason</value>
+  </data>
+  <data name="PP.Downtime.Kpi.AvgMin" xml:space="preserve">
+    <value>Avg Downtime</value>
+  </data>
+  <data name="PP.Downtime.Kpi.LinesSub" xml:space="preserve">
+    <value>{0} lines</value>
+  </data>
+  <data name="PP.Downtime.Kpi.ClosedSub" xml:space="preserve">
+    <value>{0} closed</value>
+  </data>
+  <data name="PP.Downtime.Kpi.MaxSub" xml:space="preserve">
+    <value>max {0} min</value>
+  </data>
+  <data name="PP.Downtime.Lbl.Range" xml:space="preserve">
+    <value>{0} ~ {1}</value>
+  </data>
+  <data name="PP.Downtime.Hint.Edit" xml:space="preserve">
+    <value>Click a row to edit reason, cause and comment</value>
+  </data>
+  <data name="PP.Downtime.Ph.Reason" xml:space="preserve">
+    <value>Select reason…</value>
+  </data>
+  <data name="PP.Downtime.Err.ReasonRequired" xml:space="preserve">
+    <value>Select a reason</value>
+  </data>
+  <data name="PP.Downtime.Ok.Saved" xml:space="preserve">
+    <value>Downtime reason saved</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.RunLines" xml:space="preserve">
+    <value>Running Lines</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.DownLines" xml:space="preserve">
+    <value>Down Lines</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.TodayDown" xml:space="preserve">
+    <value>Today's Downtime</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.Avail" xml:space="preserve">
+    <value>Avg Availability</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.OfLines" xml:space="preserve">
+    <value>of {0} lines</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.IdleSub" xml:space="preserve">
+    <value>idle {0}</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.PlanSub" xml:space="preserve">
+    <value>planned {0} min</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.AvailSub" xml:space="preserve">
+    <value>run {0} / planned-run {1} min</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Kpi.EventsSub" xml:space="preserve">
+    <value>{0} events today</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Grid.Header" xml:space="preserve">
+    <value>Line Status</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Lbl.AsOf" xml:space="preserve">
+    <value>As of</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Btn.Live" xml:space="preserve">
+    <value>Live</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Mode.Live" xml:space="preserve">
+    <value>auto-refresh every {0}s</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Mode.Replay" xml:space="preserve">
+    <value>replay mode — auto-refresh paused</value>
+  </data>
+  <data name="PP.DowntimeMonitor.State.Idle" xml:space="preserve">
+    <value>Idle</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Stat.Idle" xml:space="preserve">
+    <value>Idle</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Lbl.LastLog" xml:space="preserve">
+    <value>last log</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Lbl.NoLog" xml:space="preserve">
+    <value>no log</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Dur.Over" xml:space="preserve">
+    <value>{0}+ min</value>
+  </data>
+  <data name="PP.DowntimeMonitor.History.HeaderFmt" xml:space="preserve">
+    <value>Downtime Log ({0})</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Hint.Edit" xml:space="preserve">
+    <value>Click a row to edit reason, cause and comment (rows without reason are highlighted)</value>
+  </data>
+  <data name="PP.Delivery.Kpi.Shipped" xml:space="preserve">
+    <value>Shipped</value>
+  </data>
+  <data name="PP.Delivery.Kpi.ShippedSub" xml:space="preserve">
+    <value>{0}% by qty</value>
+  </data>
+  <data name="PP.Delivery.Kpi.PromiseLateSub" xml:space="preserve">
+    <value>promised after requested: {0}</value>
+  </data>
+  <data name="PP.Delivery.Kpi.AvgLateSub" xml:space="preserve">
+    <value>avg {0} d late · max {1} d</value>
+  </data>
+  <data name="PP.Delivery.Kpi.OpenNote" xml:space="preserve">
+    <value>not yet due</value>
+  </data>
+  <data name="PP.Delivery.Kpi.OtdNote" xml:space="preserve">
+    <value>no ship date recorded · shipped orders counted as on time</value>
+  </data>
+  <data name="PP.Delivery.Status.Shipped" xml:space="preserve">
+    <value>Shipped</value>
+  </data>
+  <data name="PP.Delivery.Badge.Shipped" xml:space="preserve">
+    <value>Shipped</value>
+  </data>
+  <data name="PP.Delivery.Cust.Title" xml:space="preserve">
+    <value>OTD by Customer</value>
+  </data>
+  <data name="PP.Delivery.Cust.Col.Orders" xml:space="preserve">
+    <value>Orders</value>
+  </data>
+  <data name="PP.Delivery.Cust.Col.Shipped" xml:space="preserve">
+    <value>Shipped</value>
+  </data>
+  <data name="PP.Delivery.Cust.Col.Late" xml:space="preserve">
+    <value>Late</value>
+  </data>
+  <data name="PP.Delivery.Cust.Col.Otd" xml:space="preserve">
+    <value>OTD</value>
+  </data>
+  <data name="PP.Delivery.Col.PromiseGap" xml:space="preserve">
+    <value>Promised − Requested (days)</value>
+  </data>
+  <data name="PP.Delivery.Lbl.Range" xml:space="preserve">
+    <value>requested {0} ~ {1}</value>
+  </data>
+  <data name="PP.Delivery.Hint" xml:space="preserve">
+    <value>Late = not fully shipped and past requested date (as of {0}) · shipped orders are not judged because no ship date is recorded</value>
+  </data>
 </root>
