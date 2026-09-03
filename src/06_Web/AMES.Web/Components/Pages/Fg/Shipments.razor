@@ -5,7 +5,7 @@
 @using Radzen
 
 <PageTitle>Shipments - AMES</PageTitle>
-<AmesPageHeader Code="FG-104" Title="Shipments" />
+<AmesPageHeader Code="FG-04" Title="Shipments" />
 
 <div class="ames-kpis compact">
     <div class="ames-kpi"><div class="ames-kpi-l">Total</div><div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">current result</div></div>
@@ -23,12 +23,10 @@
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="LoadingNumber" Title="Loading No" Width="155px" />
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="CustomerCode" Title="Customer" Width="110px" />
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="LicensePlate" Title="Truck" Width="120px" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="DriverName" Title="Driver" Width="120px" />
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="DockNo" Title="Dock" Width="80px" />
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="LineCount" Title="Lines" Width="75px" TextAlign="TextAlign.Right" />
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="OrderedQty" Title="Qty" Width="90px" TextAlign="TextAlign.Right"><Template Context="r">@r.OrderedQty.ToString("N0")</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="Destination" Title="Destination" Width="150px" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="DeliveryNoteNumber" Title="Delivery Note" Width="145px" />
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="Status" Title="Status" Width="105px" TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @(IsShipped(r.Status) ? "ok" : "warn")">@(r.Status ?? "LOADED")</span></Template></RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
