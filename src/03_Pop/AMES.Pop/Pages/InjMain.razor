@@ -7,6 +7,7 @@
 @inject ConfirmService Confirmer
 @inject ToastService Toasts
 @inject AMES.Pop.Services.LabelDispatcher Dispatcher
+@inject AMES.Pop.Services.ScannerService Scanner
 
 @*  INJ-MAIN — INJ03~08 통합 작업 화면.
     좌측 스테이션 품번 당일 현황(PLAN/INPUT/NG/FINAL) + 우측 스캔/결과 패널을 상시 표시하고,
@@ -21,6 +22,10 @@
         </div>
         <div class="pop-tbar-r">
             <span class="@_eqClass">● @PopLang.EqStatus(_eqStatus)</span>
+            @if (Scanner.IsEnabled)
+            {
+                <span class="@(_scannerOn ? "stat-on" : "stat-off")">🔌 @T("Scanner")</span>
+            }
             <span>@Session?.EmployeeName · @PopLang.Shift(Session?.ShiftCode ?? "")</span>
             <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
             <button class="injm-lang-btn" @onclick="ToggleLang">@(PopLang.IsKo ? "EN" : "한국어")</button>
@@ -227,6 +232,7 @@
     private string _scanBuf = string.Empty;
     private bool _focusScan;
     private ElementReference _scanInput;
+    private bool _scannerOn;
 
     private DateTime _now = DateTime.Now;
     private System.Threading.Timer? _clockTimer;
@@ -236,6 +242,9 @@
     {
         if (Session is null) return;
         Refresh();
+        _scannerOn = Scanner.IsConnected;
+        Scanner.OnScan            += OnSerialScan;
+        Scanner.ConnectionChanged += OnScannerConnection;
         _clockTimer   = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; StateHasChanged(); }),
                                                    null, 1000, 1000);
         _refreshTimer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); StateHasChanged(); }),
@@ -317,6 +326,19 @@
     }
 
     // ── 스캔 확정 (INJ-004 로직) ──────────────────────────────────────
+    // 리더 스레드에서 오므로 렌더러 스레드로 넘긴다. 팝업이 열려 있으면 무시 —
+    // HID 도 포커스가 빠져 안 들어가는 것과 같은 규칙.
+    private void OnSerialScan(string code)
+        => InvokeAsync(() =>
+        {
+            if (_popup != Popup.None) return;
+            ConfirmScan(code);
+            StateHasChanged();
+        });
+
+    private void OnScannerConnection(bool on)
+        => InvokeAsync(() => { _scannerOn = on; StateHasChanged(); });
+
     private void OnScanKey(KeyboardEventArgs e)
     {
         if (e.Key != "Enter") return;
@@ -403,6 +425,8 @@
 
     public void Dispose()
     {
+        Scanner.OnScan            -= OnSerialScan;
+        Scanner.ConnectionChanged -= OnScannerConnection;
         _clockTimer?.Dispose();
         _refreshTimer?.Dispose();
     }
