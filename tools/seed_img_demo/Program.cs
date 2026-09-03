@@ -42,7 +42,7 @@ internal static class Program
         Console.WriteLine("To test IMG locally — no appsettings.json edit needed:");
         Console.WriteLine("  F5 → login as I001 (PIN 1234)  or  I002 (PIN 2345)");
         Console.WriteLine("  PopAuthService reroutes the session to LINE-IMG-01 →");
-        Console.WriteLine("  LoginForm dispatches to IMG-02 Wrapping Dashboard.");
+        Console.WriteLine("  Login dispatches to IMG-03 Production Entry.");
         return 0;
     }
 

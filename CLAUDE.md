@@ -137,15 +137,14 @@ appcmd set apppool "AMES.Web" /processModel.loadUserProfile:true /processModel.s
 좌측 품번 목록은 `MD_Bop.StationCode` = 세션 스테이션(`PopSessionDto.TerminalId`) 기준이고, 당일 수치는 `InjLotRepository.GetDailyItemSummary` — LOT 생성일 기준으로 `INPUT = FINAL + NG + 미확정` 이 성립한다. dev DB 는 `dist/seed_md_bop_inj_dev.sql` 로 ST-INJ-01 BOP 를 채운다.
 INJ 는 `AcceptWo` 를 부르지 않으므로 `BumpStepCompleted` 가 첫 실적에서 단계·헤더를 `Released → In Progress` 로 올리고 `ActualStart` 를 찍는다. `TerminalLock` 은 INJ 에서 기록하지 않는다(IMG 는 `AcceptWo` 그대로).
 
-#### IMG (원단/래핑 공정) — 6화면
+#### IMG (원단/래핑 공정) — 2화면
 | 화면 ID | 파일 | 설명 |
 |---------|------|------|
-| IMG-02 | `Pages/Img02Dashboard.razor` | 래핑 라인 대시보드 |
-| IMG-03 | `Pages/Img03ProductionEntry.razor` | 생산 실적 입력 |
-| IMG-04 | `Pages/Img04FabricInput.razor` | 원단 투입 |
+| IMG-03 | `Pages/Img03ProductionEntry.razor` | 생산 실적 입력 (IMG 기본 진입점) |
 | IMG-05 | `Pages/Img05Defect.razor` | 불량 입력 |
-| IMG-06 | `Pages/Img06BondSetup.razor` | 본딩 설정 |
-| IMG-07 | `Pages/Img07ProdStatus.razor` | 생산 현황 |
+
+대시보드(IMG-02)·원단 투입(IMG-04)·본딩 설정(IMG-06)·생산 현황(IMG-07)은 미사용으로 삭제됨 (화면·도움말·레거시 WinForms 폼·전용 CSS 포함).
+원단 롤 장착 화면이 없으므로 IMG-03 확정은 장착 롤을 요구하지 않는다 — `FabricRepository` 로 롤이 조회되면 차감하고, 없으면 실적만 기록한다. `FabricRepository`·`BondSetupRepository` 자체는 유지.
 
 #### PNT (도장 공정) — 9화면
 | 화면 ID | 파일 | 설명 |
