@@ -9,6 +9,9 @@ namespace AMES.Api.Endpoints;
 
 public static class FgEndpoints
 {
+    private const string PdaAdjustScanStockProcedure = "FG_PDA_ADJUST_SCAN_STOCK";
+    private const string PdaAdjustSaveQtyProcedure = "FG_PDA_ADJUST_SAVE_QTY";
+
     // ── DTOs ─────────────────────────────────────────────────────────────
     public sealed record StockRow(int StockId, string? StockNumber, string ItemNo, string? ItemName,
         int? LotId, string? LotNo, string? CustomerCode, decimal Qty, string? Unit,
@@ -18,6 +21,10 @@ public static class FgEndpoints
     public sealed record OrderLineRow(int ShipmentOrderLineId, int ShipmentOrderId, int LineSeq,
         string ItemNo, string? ItemName, decimal OrderedQty, decimal AllocatedQty,
         int? StockId, string? LotNo, string? Location, string? ReservationStatus);
+    public sealed record OutgoingSlipRow(int OutgoingSlipId, string OutgoingSlipBarcode,
+        string? CustomerCode, DateTime? OutgoingDate, string? Destination, string? Status, int LineCount);
+    public sealed record OutgoingSlipLineRow(int OutgoingSlipLineId, int OutgoingSlipId, int LineSeq,
+        string PartNo, string? PartName, decimal RequiredQty, decimal ScannedQty, string? Status);
     public sealed record HistoryRow(int LoadingId, string? LoadingNumber, int? ShipmentOrderId,
         string? ShipOrderNumber, string? CustomerCode, string? LicensePlate, string? DriverName,
         DateTime? DepartureTs, string? OTDStatus);
@@ -32,6 +39,15 @@ public static class FgEndpoints
         int ShipmentOrderId, string? ShipOrderNumber, string CustomerCode,
         string ItemNo, string? ItemName, DateTime ShippedAt);
     public sealed record ReturnResult(bool Success, string Message, int? ReturnId, ReturnScanRow? Row);
+    public sealed record AdjustScanRow(string ReceiveType, string? Yn, string LotNo, string Barcode,
+        string? SourceTable, string? NoteNo, string? CaseBarcode, string? CaseNo, string? InvoiceNo,
+        string? ContainerNo, string? PartNo, string? PartName, decimal Qty, string? Unit, string? PoNo,
+        int? PoSeq, string? VendorId, string? VendorName, DateTime? ProductionDate, DateTime? DeliveryDate,
+        DateTime? ArrivalDate, DateTime? ShipDate, DateTime? PackDate, string? ReceivedLocation,
+        string? ReceivedStatus);
+    public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
+        string? ReasonNote, string SupervisorPin, string? SupervisorEmployeeNo = null);
+    public sealed record AdjustResult(bool Success, string Message, AdjustScanRow? Row);
 
     public sealed record PutAwayReq(int WoId, string ItemNo, decimal Qty, string ActualLoc, int PalletCount);
     public sealed record PutAwayScanRow(int? LotId, string LotNo, int? WoId, string? WoNumber,
@@ -49,7 +65,8 @@ public static class FgEndpoints
         string? ContainerType, string? ContainerBarcode);
     public sealed record PutAwayResult(bool Success, string Message, int? StockId, PutAwayScanRow? Row,
         PutAwayLocationRow? Location);
-    public sealed record PickReq(int ShipmentOrderId, int StockId, decimal Qty);
+    public sealed record ReleaseLotReq(int OutgoingSlipLineId, int StockId, decimal Qty);
+    public sealed record CompleteReleaseReq(int OutgoingSlipId, List<ReleaseLotReq> Lots);
     public sealed record LoadingTruckRow(string Barcode, string LicensePlate, bool Ready, string Message);
     public sealed record LoadingItemRow(int StockId, int ShipmentOrderLineId, int ShipmentOrderId,
         string ShipOrderNumber, string CustomerCode, string ItemNo, string? ItemName,
@@ -62,7 +79,7 @@ public static class FgEndpoints
         LoadingTruckRow? Truck, LoadingItemRow? Item);
     public sealed record DeliveryReq(int ShipmentOrderId, int? LoadingId);
     public sealed record DayEndReq(string CloseMode, string? Note);
-    public sealed record ReturnReq(string Barcode, string ReturnReason);
+    public sealed record ReturnReq(string Barcode, string ReturnReason, string? Note);
 
     private const string BarcodeLot = "LOT";
     private const string BarcodeWo = "WORK_ORDER";
@@ -80,6 +97,46 @@ public static class FgEndpoints
     public static void MapFg(this WebApplication app, AmesConnectionFactory factory)
     {
         var g = app.MapGroup("/api/fg").WithTags("Finished Goods");
+
+        g.MapGet("/adjust/scan", (HttpContext ctx, string scanText) =>
+        {
+            if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+
+            try
+            {
+                var row = ExecuteAdjustScan(factory, scanText);
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "SCAN_STOCK", "FG007", "LOT", scanText, "SUCCESS", "Finished goods adjustment stock scanned",
+                    lotNo: row?.LotNo, partNo: row?.PartNo, locationId: row?.ReceivedLocation, qty: row?.Qty));
+                return Results.Ok(row);
+            }
+            catch (Exception ex)
+            {
+                var message = AdjustMessage(ex);
+                var isValidationError = ex is SqlException sqlEx
+                    && sqlEx.Errors.Count > 0
+                    && sqlEx.Errors[0].Number >= 51600
+                    && sqlEx.Errors[0].Number < 51700;
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "SCAN_STOCK", "FG007", "LOT", scanText, "FAIL", message, lotNo: scanText));
+                return Results.Problem(message, statusCode: isValidationError
+                    ? StatusCodes.Status400BadRequest
+                    : StatusCodes.Status503ServiceUnavailable);
+            }
+        });
+
+        g.MapPost("/adjust/save", (HttpContext ctx, AdjustSaveReq body) =>
+        {
+            if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+
+            var result = ExecuteAdjustSave(factory, body, s.EmployeeNo);
+            WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                s, "ADJUST_SAVE", "FG007", "LOT", body.Barcode,
+                result.Success ? "SUCCESS" : "FAIL", result.Message,
+                lotNo: result.Row?.LotNo ?? body.Barcode, partNo: result.Row?.PartNo,
+                locationId: result.Row?.ReceivedLocation, qty: body.DeltaQty));
+            return Results.Ok(result);
+        });
 
         // FG-01 QC Complete List - passed FG LOTs waiting for Put-Away.
         g.MapGet("/qc-completed", (HttpContext ctx) =>
@@ -391,39 +448,189 @@ public static class FgEndpoints
                 r["ReservationStatus"] as string));
         });
 
-        // FG-04 FIFO Pick — write FG_PickingFifo + reserve a FG_Inventory row
-        g.MapPost("/pick", (HttpContext ctx, PickReq body) =>
+        // FG-04 Release starts from the outgoing-slip barcode, not the downstream shipment number.
+        g.MapGet("/release/outgoing-slips/{barcode}", (HttpContext ctx, string barcode) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            const string sql = """
+                SELECT o.ShipmentOrderID AS OutgoingSlipID, o.OutgoingSlipNumber,
+                       o.CustomerCode, o.ShipDate AS OutgoingDate, o.DestPlant AS Destination,
+                       ISNULL(o.Status,'Open') AS Status,
+                       (SELECT COUNT(*) FROM dbo.FG_ShipmentOrderLine l
+                        WHERE l.ShipmentOrderID=o.ShipmentOrderID) AS LineCount
+                FROM dbo.FG_ShipmentOrder o
+                WHERE o.OutgoingSlipNumber=@Q;
+                """;
+            return QueryWithParam(factory, sql, "@Q", barcode, r => new OutgoingSlipRow(
+                (int)r["OutgoingSlipID"], r["OutgoingSlipNumber"] as string ?? "",
+                r["CustomerCode"] as string, r["OutgoingDate"] as DateTime?,
+                r["Destination"] as string, r["Status"] as string, (int)r["LineCount"]));
+        });
+
+        g.MapGet("/release/outgoing-slips/{barcode}/lines", (HttpContext ctx, string barcode) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            const string sql = """
+                SELECT l.ShipmentOrderLineID AS OutgoingSlipLineID,
+                       l.ShipmentOrderID AS OutgoingSlipID, ISNULL(l.LineSeq,0) AS LineSeq,
+                       l.ItemNo AS PartNo, i.ItemName AS PartName,
+                       ISNULL(l.OrderedQty,0) AS RequiredQty,
+                       ISNULL(l.AllocatedQty,0) AS ScannedQty,
+                       l.ReservationStatus AS Status
+                FROM dbo.FG_ShipmentOrderLine l
+                JOIN dbo.FG_ShipmentOrder o ON o.ShipmentOrderID=l.ShipmentOrderID
+                LEFT JOIN dbo.MD_Item i ON i.ItemNo=l.ItemNo
+                WHERE o.OutgoingSlipNumber=@Q
+                ORDER BY l.LineSeq, l.ShipmentOrderLineID;
+                """;
+            return QueryWithParam(factory, sql, "@Q", barcode, r => new OutgoingSlipLineRow(
+                (int)r["OutgoingSlipLineID"], (int)r["OutgoingSlipID"], (int)r["LineSeq"],
+                r["PartNo"] as string ?? "", r["PartName"] as string,
+                r.GetDecimal(r.GetOrdinal("RequiredQty")), r.GetDecimal(r.GetOrdinal("ScannedQty")),
+                r["Status"] as string));
+        });
+
+        // LOT scans stay client-side; COMPLETE reserves every listed LOT atomically.
+        g.MapPost("/release/complete", (HttpContext ctx, CompleteReleaseReq body) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+            if (body.Lots is not { Count: > 0 }) return Results.BadRequest("Scan every listed LOT before completing.");
             using var conn = factory.OpenConnection();
             using var cmd  = new SqlCommand("""
-                INSERT INTO dbo.FG_PickingFifo
-                    (PickNumber, ShipmentOrderID, PickerID, StartTS, EndTS,
-                     FifoViolations, OverrideCount, PickedQty, OrderedQty,
-                     Status, CreatedBy, CreatedTS)
-                OUTPUT INSERTED.PickID
-                VALUES (CONCAT('PICK-', FORMAT(SYSDATETIME(),'yyMMddHHmmss')),
-                        @So, @Op, SYSDATETIME(), SYSDATETIME(),
-                        0, 0, @Q, @Q, 'Picked', 'pda', SYSDATETIME());
+                SET XACT_ABORT ON;
+                BEGIN TRY
+                    BEGIN TRANSACTION;
+                    DECLARE @ScannedLots TABLE
+                    (
+                        OutgoingSlipLineID int NOT NULL,
+                        StockID int PRIMARY KEY,
+                        Qty decimal(12,3) NOT NULL
+                    );
+                    INSERT @ScannedLots (OutgoingSlipLineID, StockID, Qty)
+                    SELECT OutgoingSlipLineID, StockID, Qty
+                    FROM OPENJSON(@Lots)
+                    WITH
+                    (
+                        OutgoingSlipLineID int '$.OutgoingSlipLineId',
+                        StockID int '$.StockId',
+                        Qty decimal(12,3) '$.Qty'
+                    );
 
-                UPDATE dbo.FG_Inventory
-                SET    Status='Reserved', ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
-                WHERE  StockID = @Stk;
+                    IF NOT EXISTS (SELECT 1 FROM dbo.FG_ShipmentOrder WHERE ShipmentOrderID=@SlipId AND OutgoingSlipNumber IS NOT NULL)
+                        THROW 51000, 'Outgoing slip was not found.', 1;
+                    IF EXISTS (SELECT 1 FROM dbo.FG_ShipmentOrder WHERE ShipmentOrderID=@SlipId AND UPPER(ISNULL(Status,'')) IN ('PICKED','SHIPPED','CANCELLED','CLOSED'))
+                        THROW 51001, 'Outgoing slip is already completed.', 1;
+                    IF EXISTS (
+                        SELECT 1 FROM dbo.FG_ShipmentOrderLine L
+                        LEFT JOIN
+                        (
+                            SELECT OutgoingSlipLineID, SUM(Qty) AS Qty
+                            FROM @ScannedLots
+                            GROUP BY OutgoingSlipLineID
+                        ) P ON P.OutgoingSlipLineID=L.ShipmentOrderLineID
+                        WHERE L.ShipmentOrderID=@SlipId
+                          AND ISNULL(P.Qty,0) <> ISNULL(L.OrderedQty,0))
+                        THROW 51002, 'Scanned LOT quantities must equal every listed part quantity.', 1;
+                    IF EXISTS (
+                        SELECT 1 FROM @ScannedLots P
+                        LEFT JOIN dbo.FG_ShipmentOrderLine L
+                          ON L.ShipmentOrderID=@SlipId
+                         AND L.ShipmentOrderLineID=P.OutgoingSlipLineID
+                        WHERE L.ShipmentOrderLineID IS NULL)
+                        THROW 51003, 'A scanned LOT is not listed on this outgoing slip.', 1;
+                    IF EXISTS (
+                        SELECT 1 FROM @ScannedLots P
+                        JOIN dbo.FG_ShipmentOrderLine L
+                          ON L.ShipmentOrderID=@SlipId
+                         AND L.ShipmentOrderLineID=P.OutgoingSlipLineID
+                        LEFT JOIN dbo.FG_Inventory S WITH (UPDLOCK, HOLDLOCK) ON S.StockID=P.StockID
+                        WHERE S.StockID IS NULL
+                           OR UPPER(ISNULL(S.Status,'')) <> 'AVAILABLE'
+                           OR P.Qty <= 0 OR P.Qty <> S.Qty
+                           OR ISNULL(S.ItemNo,'') <> ISNULL(L.ItemNo,''))
+                        THROW 51004, 'A scanned LOT part, quantity, or inventory status is invalid.', 1;
+                    IF EXISTS (
+                        SELECT 1
+                        FROM @ScannedLots P
+                        JOIN dbo.FG_ShipmentOrderLine L
+                          ON L.ShipmentOrderID=@SlipId
+                         AND L.ShipmentOrderLineID=P.OutgoingSlipLineID
+                        JOIN dbo.FG_Inventory Chosen ON Chosen.StockID=P.StockID
+                        JOIN dbo.FG_Inventory Older WITH (UPDLOCK, HOLDLOCK)
+                          ON Older.ItemNo=L.ItemNo
+                         AND UPPER(ISNULL(Older.Status,''))='AVAILABLE'
+                         AND ISNULL(Older.Qty,0) > 0
+                         AND (ISNULL(Older.StockTS,'9999-12-31') < ISNULL(Chosen.StockTS,'9999-12-31')
+                              OR (ISNULL(Older.StockTS,'9999-12-31')=ISNULL(Chosen.StockTS,'9999-12-31')
+                                  AND Older.StockID < Chosen.StockID))
+                        LEFT JOIN @ScannedLots Earlier ON Earlier.StockID=Older.StockID
+                        WHERE Earlier.StockID IS NULL)
+                        THROW 51005, 'A scanned LOT violates FIFO order.', 1;
 
-                UPDATE dbo.FG_ShipmentOrderLine
-                SET ReservationStatus='Picked', AllocatedQty=@Q, ReservedAt=SYSDATETIME(),
-                    ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
-                WHERE ShipmentOrderID=@So AND StockID=@Stk;
+                    UPDATE S
+                    SET Status='Reserved', ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
+                    FROM dbo.FG_Inventory S JOIN @ScannedLots P ON P.StockID=S.StockID;
 
-                UPDATE dbo.FG_ShipmentOrder
-                SET Status='Picked', ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
-                WHERE ShipmentOrderID=@So
-                  AND UPPER(ISNULL(Status,'')) NOT IN ('SHIPPED','CANCELLED','CLOSED');
+                    ;WITH RankedLots AS
+                    (
+                        SELECT P.*, ROW_NUMBER() OVER
+                            (PARTITION BY P.OutgoingSlipLineID ORDER BY P.StockID) AS LotSeq
+                        FROM @ScannedLots P
+                    )
+                    INSERT INTO dbo.FG_ShipmentOrderLine
+                        (ShipmentOrderID, LineSeq, ItemNo, OrderedQty, AllocatedQty,
+                         StockID, LotID, Location, ReservationStatus, ReservedAt,
+                         CreatedBy, CreatedTS, ModifiedBy, ModifiedTS)
+                    SELECT L.ShipmentOrderID, L.LineSeq, L.ItemNo, P.Qty, P.Qty,
+                           P.StockID, S.LotID, S.Location, 'Picked', SYSDATETIME(),
+                           L.CreatedBy, SYSDATETIME(), @Op, SYSDATETIME()
+                    FROM RankedLots P
+                    JOIN dbo.FG_ShipmentOrderLine L
+                      ON L.ShipmentOrderID=@SlipId
+                     AND L.ShipmentOrderLineID=P.OutgoingSlipLineID
+                    JOIN dbo.FG_Inventory S ON S.StockID=P.StockID
+                    WHERE P.LotSeq > 1;
+
+                    ;WITH RankedLots AS
+                    (
+                        SELECT P.*, ROW_NUMBER() OVER
+                            (PARTITION BY P.OutgoingSlipLineID ORDER BY P.StockID) AS LotSeq
+                        FROM @ScannedLots P
+                    )
+                    UPDATE L
+                    SET OrderedQty=P.Qty, StockID=P.StockID, LotID=S.LotID, Location=S.Location,
+                        ReservationStatus='Picked', AllocatedQty=P.Qty, ReservedAt=SYSDATETIME(),
+                        ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
+                    FROM dbo.FG_ShipmentOrderLine L
+                    JOIN RankedLots P ON P.OutgoingSlipLineID=L.ShipmentOrderLineID AND P.LotSeq=1
+                    JOIN dbo.FG_Inventory S ON S.StockID=P.StockID
+                    WHERE L.ShipmentOrderID=@SlipId;
+
+                    DECLARE @Qty decimal(12,3) = (SELECT SUM(Qty) FROM @ScannedLots);
+                    INSERT INTO dbo.FG_PickingFifo
+                        (PickNumber, ShipmentOrderID, PickerID, StartTS, EndTS,
+                         PicksJSON, FifoViolations, OverrideCount, PickedQty, OrderedQty,
+                         Status, CreatedBy, CreatedTS)
+                    VALUES (CONCAT('PICK-', FORMAT(SYSDATETIME(),'yyMMddHHmmss')),
+                            @SlipId, @Op, SYSDATETIME(), SYSDATETIME(),
+                            @Lots, 0, 0, @Qty, @Qty, 'Picked', 'pda', SYSDATETIME());
+                    DECLARE @PickID int = SCOPE_IDENTITY();
+
+                    UPDATE dbo.FG_ShipmentOrder
+                    SET Status='Picked', ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
+                    WHERE ShipmentOrderID=@SlipId;
+
+                    COMMIT TRANSACTION;
+                    SELECT @PickID;
+                END TRY
+                BEGIN CATCH
+                    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+                    THROW;
+                END CATCH;
                 """, conn);
-            cmd.Parameters.AddWithValue("@So",  body.ShipmentOrderId);
-            cmd.Parameters.AddWithValue("@Stk", body.StockId);
-            cmd.Parameters.AddWithValue("@Q",   body.Qty);
-            cmd.Parameters.AddWithValue("@Op",  s.OperatorId);
+            cmd.Parameters.AddWithValue("@SlipId", body.OutgoingSlipId);
+            cmd.Parameters.AddWithValue("@Op", s.OperatorId);
+            cmd.Parameters.Add("@Lots", SqlDbType.NVarChar, -1).Value = JsonSerializer.Serialize(body.Lots);
             var id = (int)cmd.ExecuteScalar()!;
             return Results.Ok(new { PickId = id });
         });
@@ -479,7 +686,7 @@ public static class FgEndpoints
             var row = new LoadingOrderRow(orderId, shipOrderNumber, shipOrderNumber,
                 customerCode, shipDate, destination, items);
             return Results.Ok(new LoadingOrderResult(true,
-                $"Shipment order loaded. Scan the truck for {items.Count} product(s).", row));
+                $"Shipment order loaded. Scan {items.Count} product(s).", row));
         });
 
         g.MapGet("/loading/truck/scan", (HttpContext ctx, string barcode) =>
@@ -504,7 +711,7 @@ public static class FgEndpoints
                     $"This truck already has open loading {openLoading}.", null, null, null));
             }
 
-            var row = new LoadingTruckRow(truck, truck, true, "Truck is ready for loading.");
+            var row = new LoadingTruckRow($"TRUCK:{truck}", truck, true, "Truck is ready for loading.");
             return Results.Ok(new LoadingResult(true, row.Message, null, row, null));
         });
 
@@ -735,6 +942,12 @@ public static class FgEndpoints
                 return Results.BadRequest(new ReturnResult(false,
                     "Select a valid return reason.", null, null));
             }
+            var note = string.IsNullOrWhiteSpace(body.Note) ? null : body.Note.Trim();
+            if (note?.Length > 500)
+            {
+                return Results.BadRequest(new ReturnResult(false,
+                    "Return note must be 500 characters or fewer.", null, null));
+            }
 
             using var conn = factory.OpenConnection();
             using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
@@ -750,11 +963,11 @@ public static class FgEndpoints
             using var cmd  = new SqlCommand("""
                 INSERT INTO dbo.FG_CustomerReturn
                     (ReturnNumber, CustomerCode, OriginalShipmentOrderID,
-                     ReturnReason, ItemsJSON, Status, ReceivedAt, ReceivedBy,
+                     ReturnReason, Note, ItemsJSON, Status, ReceivedAt, ReceivedBy,
                      CapaTriggered, CreatedBy, CreatedTS)
                 OUTPUT INSERTED.ReturnID
                 VALUES (CONCAT('RMA-', FORMAT(SYSDATETIME(),'yyMMddHHmmss')),
-                        @C, @So, @R,
+                        @C, @So, @R, @Note,
                         (SELECT @I AS itemNo, @Lot AS lotNo, @Stock AS stockNumber,
                                 @Barcode AS barcode, @Q AS qty FOR JSON PATH),
                         'Open', SYSDATETIME(), @By, 0,
@@ -768,6 +981,7 @@ public static class FgEndpoints
             cmd.Parameters.AddWithValue("@Stock", (object?)product.Row.StockNumber ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@Barcode", product.Row.Barcode);
             cmd.Parameters.AddWithValue("@Q", product.Qty);
+            cmd.Parameters.Add("@Note", SqlDbType.NVarChar, 500).Value = (object?)note ?? DBNull.Value;
             cmd.Parameters.AddWithValue("@By", s.OperatorId);
             var id = (int)cmd.ExecuteScalar()!;
             tx.Commit();
@@ -809,16 +1023,12 @@ public static class FgEndpoints
         }
 
         var separator = value.IndexOf(':');
-        if (separator >= 0)
+        if (separator <= 0 || !value[..separator].Trim().Equals("TRUCK", StringComparison.OrdinalIgnoreCase))
         {
-            var prefix = value[..separator].Trim();
-            if (!new[] { "TRUCK", "PLATE", "VEHICLE" }.Contains(prefix, StringComparer.OrdinalIgnoreCase))
-            {
-                error = "Unsupported barcode type. Scan a truck barcode.";
-                return false;
-            }
-            value = value[(separator + 1)..].Trim();
+            error = "Invalid truck barcode. Expected TRUCK:<license plate>.";
+            return false;
         }
+        value = value[(separator + 1)..].Trim();
 
         if (value.Length is < 3 or > 20)
         {
@@ -1807,6 +2017,87 @@ public static class FgEndpoints
             _ => bool.TryParse(Convert.ToString(value), out var parsed) && parsed
         };
     }
+
+    private static AdjustScanRow? ExecuteAdjustScan(AmesConnectionFactory factory, string scanText)
+    {
+        using var conn = factory.OpenConnection();
+        using var cmd = new SqlCommand($"[dbo].[{PdaAdjustScanStockProcedure}]", conn)
+        {
+            CommandType = CommandType.StoredProcedure,
+            CommandTimeout = 15
+        };
+        cmd.Parameters.Add("@ScanText", SqlDbType.NVarChar, 80).Value = scanText.Trim();
+        using var rdr = cmd.ExecuteReader();
+        return rdr.Read() ? ReadAdjustScanRow(rdr) : null;
+    }
+
+    private static AdjustResult ExecuteAdjustSave(AmesConnectionFactory factory, AdjustSaveReq body, string userId)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(body.SupervisorEmployeeNo))
+                return new AdjustResult(false, "Select a supervisor.", null);
+
+            using var conn = factory.OpenConnection();
+            var supervisor = WhEndpoints.FindSupervisorByPin(conn, body.SupervisorEmployeeNo, body.SupervisorPin);
+            if (supervisor is null)
+                return new AdjustResult(false, "The PIN does not match the selected supervisor.", null);
+
+            using var cmd = new SqlCommand($"[dbo].[{PdaAdjustSaveQtyProcedure}]", conn)
+            {
+                CommandType = CommandType.StoredProcedure,
+                CommandTimeout = 15
+            };
+            cmd.Parameters.Add("@ScanText", SqlDbType.NVarChar, 80).Value = body.Barcode.Trim();
+            AddDecimal(cmd, "@DeltaQty", body.DeltaQty);
+            cmd.Parameters.Add("@ReasonCode", SqlDbType.NVarChar, 30).Value = body.ReasonCode.Trim();
+            cmd.Parameters.Add("@ReasonNote", SqlDbType.NVarChar, 500).Value =
+                string.IsNullOrWhiteSpace(body.ReasonNote) ? DBNull.Value : body.ReasonNote.Trim();
+            cmd.Parameters.Add("@SupervisorUserId", SqlDbType.NVarChar, 450).Value = supervisor.UserId;
+            cmd.Parameters.Add("@SupervisorEmployeeNo", SqlDbType.NVarChar, 40).Value = supervisor.EmployeeNo;
+            cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 40).Value = userId;
+
+            using var rdr = cmd.ExecuteReader();
+            var row = rdr.Read() ? ReadAdjustScanRow(rdr) : null;
+            return new AdjustResult(true, "Finished goods quantity adjusted", row);
+        }
+        catch (Exception ex)
+        {
+            return new AdjustResult(false, AdjustMessage(ex), null);
+        }
+    }
+
+    private static AdjustScanRow ReadAdjustScanRow(SqlDataReader rdr) => new(
+        GetString(rdr, "RECEIVE_TYPE") ?? "FG",
+        GetString(rdr, "YN"),
+        GetString(rdr, "LOTNO") ?? "",
+        GetString(rdr, "BARCODE") ?? "",
+        GetString(rdr, "SOURCE_TABLE"),
+        GetString(rdr, "NOTENO"),
+        GetString(rdr, "CASE_BARCODE"),
+        GetString(rdr, "CASE_NO"),
+        GetString(rdr, "INVOICE_NO"),
+        GetString(rdr, "CONTAINER_NO"),
+        GetString(rdr, "PARTNO"),
+        GetString(rdr, "PARTNM"),
+        GetDecimal(rdr, "QTY"),
+        GetString(rdr, "UNIT"),
+        GetString(rdr, "PONO"),
+        GetInt(rdr, "PONO_SEQ"),
+        GetString(rdr, "VENDCD"),
+        GetString(rdr, "VENDNM"),
+        GetDate(rdr, "PROD_DATE"),
+        GetDate(rdr, "DELI_DATE"),
+        GetDate(rdr, "ARRIV_DATE"),
+        GetDate(rdr, "SHIP_DATE"),
+        GetDate(rdr, "PACK_DATE"),
+        GetString(rdr, "RECEIVED_LOCATION"),
+        GetString(rdr, "RECEIVED_STATUS"));
+
+    private static string AdjustMessage(Exception ex)
+        => ex is SqlException sqlEx && sqlEx.Errors.Count > 0
+            ? sqlEx.Errors[0].Message
+            : ex.GetBaseException().Message;
 
     private static string ValueOrDash(string? value)
         => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();

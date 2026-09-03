@@ -7038,6 +7038,27 @@ body:has(.wh08-shell) {
     opacity: 1 !important;
 }
 
+/* FG Release Picking uses the full scan width when developer buttons are hidden. */
+.fg04-shell .wh07-slip-panel.scan-only,
+.fg04-shell .wh07-scan-panel.scan-only {
+    grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.fg04-shell .pda-fld,
+.fg04-shell .wh07-input.rz-textbox {
+    min-width: 0;
+    width: 100% !important;
+}
+
+.fg04-shell .rz-card,
+.fg04-shell .rz-textbox,
+.fg04-shell .rz-button,
+.fg04-shell .rz-badge,
+.fg04-shell .wh07-summary-grid > div,
+.fg04-shell .wh-modal-card {
+    border-radius: 0 !important;
+}
+
 /* WH001 combined inbound/release schedule */
 .wh01-tabs {
     flex-shrink: 0;
@@ -9489,40 +9510,6 @@ body:has(.pda-shell.wh),
     box-shadow: 0 10px 28px rgba(0, 0, 0, .34);
 }
 
-.pda-shell.wh.fg06-shell .fg-return-body {
-    padding-bottom: calc(148px + var(--pda-safe-bottom)) !important;
-}
-
-.pda-shell.wh.fg06-shell .fg-return-product-card {
-    border-left: 4px solid #22c55e !important;
-}
-
-.pda-shell.wh.fg06-shell .fg-return-info-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    margin-top: 12px;
-}
-
-.pda-shell.wh.fg06-shell .fg-return-info-grid .wh02-info {
-    min-height: 76px;
-    padding: 12px !important;
-    border-top: 1px solid rgba(255, 255, 255, .08) !important;
-}
-
-.pda-shell.wh.fg06-shell .fg-return-info-grid .wh02-info span {
-    line-height: 1.2;
-}
-
-.pda-shell.wh.fg06-shell .fg-return-info-grid .wh02-info strong {
-    margin-top: 7px;
-    line-height: 1.3;
-    overflow-wrap: anywhere;
-}
-
-.pda-shell.wh.fg06-shell .fg-return-reason-card {
-    grid-template-columns: minmax(0, 1fr);
-}
-
 .pda-shell.wh.fg02-shell .fg01-suggest-card {
     padding: 14px !important;
 }
@@ -9794,6 +9781,263 @@ body:has(.pda-shell.wh),
     line-height: 1 !important;
 }
 
+/* FG Inventory follows the Warehouse Inventory layout with squared controls. */
+.pda-shell.wh.wh03-shell.fg03-shell .rz-card,
+.pda-shell.wh.wh03-shell.fg03-shell .rz-button,
+.pda-shell.wh.wh03-shell.fg03-shell .rz-inputtext,
+.pda-shell.wh.wh03-shell.fg03-shell .wh03-view-tabs,
+.pda-shell.wh.wh03-shell.fg03-shell .wh03-view-tab,
+.pda-shell.wh.wh03-shell.fg03-shell .wh03-stat,
+.pda-shell.wh.wh03-shell.fg03-shell .wh03-compact-location,
+.pda-shell.wh.wh03-shell.fg03-shell .wh03-status-badge,
+.pda-shell.wh.wh03-shell.fg03-shell .wh03-location-detail-page-head,
+.pda-shell.wh.wh03-shell.fg03-shell .wh03-location-browser-meta,
+.pda-shell.wh.wh03-shell.fg03-shell .pda-empty {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.wh03-shell.fg03-shell .wh03-refresh.rz-button,
+.pda-shell.wh.wh03-shell.fg03-shell .wh03-location-detail-back.rz-button,
+.pda-shell.wh.wh03-shell.fg03-shell .wh03-location-clear.rz-button,
+.pda-shell.wh.wh03-shell.fg03-shell .wh03-search-btn.rz-button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.pda-shell.wh.wh03-shell.fg03-shell .rz-button .rz-button-text {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 100%;
+    line-height: 1 !important;
+}
+
+.pda-shell.wh.wh03-shell.fg03-shell .wh03-compact-row.main > span {
+    color: #93c5fd !important;
+}
+
+.pda-shell.wh.wh03-shell.fg03-shell .fg03-location-columns,
+.pda-shell.wh.wh03-shell.fg03-shell .fg03-location-row {
+    display: grid !important;
+    grid-template-columns: minmax(145px, 1.5fr) 76px minmax(90px, 1fr) !important;
+    align-items: center !important;
+    column-gap: 8px !important;
+    width: 100% !important;
+}
+
+.pda-shell.wh.wh03-shell.fg03-shell .fg03-location-columns {
+    padding: 0 12px 6px !important;
+    color: rgba(255, 255, 255, .58) !important;
+    font-size: 9px !important;
+    font-weight: 900 !important;
+}
+
+.pda-shell.wh.wh03-shell.fg03-shell .fg03-location-row strong {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    color: #ffffff !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 11px !important;
+    font-weight: 900 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.pda-shell.wh.wh03-shell.fg03-shell .fg03-location-row strong:last-child {
+    color: #93c5fd !important;
+}
+
+/* Warehouse and finished-goods inventory share the same two-level table browser. */
+.pda-shell.wh.inventory-browser-shell .inventory-browse-tabs {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 4px !important;
+    margin-bottom: 10px !important;
+    padding: 4px !important;
+    border: 1px solid rgba(147, 197, 253, .28) !important;
+    border-radius: 0 !important;
+    background: #080f1c !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-browse-tab,
+.pda-shell.wh.inventory-browser-shell .wh03-view-tab {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 40px !important;
+    border: 1px solid transparent !important;
+    border-radius: 0 !important;
+    background: #111c2e !important;
+    color: rgba(255, 255, 255, .62) !important;
+    font-size: 11px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-browse-tab.on,
+.pda-shell.wh.inventory-browser-shell .wh03-view-tab.on {
+    border-color: rgba(147, 197, 253, .55) !important;
+    background: #21334f !important;
+    color: #ffffff !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-table-head,
+.pda-shell.wh.inventory-browser-shell .inventory-table-row {
+    display: grid !important;
+    align-items: center !important;
+    column-gap: 8px !important;
+    width: 100% !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-location-grid {
+    grid-template-columns: minmax(0, 1fr) 104px !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-part-grid,
+.pda-shell.wh.inventory-browser-shell .inventory-lot-grid {
+    grid-template-columns: minmax(145px, 1.5fr) 76px minmax(90px, .8fr) !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-part-detail-grid {
+    grid-template-columns: minmax(0, 1fr) 104px !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-table-head {
+    padding: 0 12px 6px !important;
+    color: rgba(255, 255, 255, .58) !important;
+    font-size: 9px !important;
+    font-weight: 900 !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-table-head span:not(:first-child),
+.pda-shell.wh.inventory-browser-shell .inventory-table-row > strong:not(:first-child) {
+    text-align: right !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-table-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-main-list {
+    padding-bottom: 78px !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-table-row {
+    min-height: 48px !important;
+    padding: 8px 12px !important;
+    border: 1px solid rgba(147, 197, 253, .24) !important;
+    border-radius: 0 !important;
+    background: #0f1d33 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+    text-align: left !important;
+}
+
+.pda-shell.wh.inventory-browser-shell button.inventory-table-row:active {
+    border-color: #60a5fa !important;
+    background: #162b48 !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-table-row > strong,
+.pda-shell.wh.inventory-browser-shell .inventory-part-cell strong {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    color: #ffffff !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 11px !important;
+    font-weight: 900 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-part-cell {
+    display: flex !important;
+    min-width: 0 !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-part-cell small {
+    overflow: hidden !important;
+    color: rgba(255, 255, 255, .66) !important;
+    font-size: 9px !important;
+    font-weight: 700 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-detail-page {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-detail-head {
+    display: grid !important;
+    grid-template-columns: 68px minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 10px !important;
+    border: 1px solid rgba(147, 197, 253, .28) !important;
+    border-radius: 0 !important;
+    background: #0f1d33 !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-detail-head > div {
+    display: flex !important;
+    min-width: 0 !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-detail-head span,
+.pda-shell.wh.inventory-browser-shell .inventory-detail-head em {
+    overflow: hidden !important;
+    color: rgba(255, 255, 255, .58) !important;
+    font-size: 9px !important;
+    font-style: normal !important;
+    font-weight: 800 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-detail-head strong {
+    color: #ffffff !important;
+    font-size: 11px !important;
+    font-weight: 900 !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-back.rz-button,
+.pda-shell.wh.inventory-browser-shell .wh03-refresh.rz-button,
+.pda-shell.wh.inventory-browser-shell .wh03-search-btn.rz-button,
+.pda-shell.wh.inventory-browser-shell .wh03-location-clear.rz-button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 0 !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-back.rz-button {
+    width: 68px !important;
+    min-height: 38px !important;
+}
+
+.pda-shell.wh.inventory-browser-shell .inventory-back .rz-button-text,
+.pda-shell.wh.inventory-browser-shell .wh03-refresh .rz-button-text,
+.pda-shell.wh.inventory-browser-shell .wh03-search-btn .rz-button-text,
+.pda-shell.wh.inventory-browser-shell .wh03-location-clear .rz-button-text {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    line-height: 1 !important;
+}
+
 /* Radzen appends dropdown popups outside the page shell, so both the field and popup need explicit dark colors. */
 .pda-shell.wh.fg05-shell .rz-dropdown,
 .pda-shell.wh.fg06-shell .rz-dropdown {
@@ -9855,7 +10099,18 @@ html body .rz-popup .rz-state-highlight span {
     color: #ffffff !important;
 }
 
-/* FG-005 shipment-order, truck, then multi-product loading */
+/* Truck Loading keeps one scanner and a fully squared visual system. */
+.pda-shell.wh.fg05-shell,
+.pda-shell.wh.fg05-shell *,
+.pda-shell.wh.fg05-shell *::before,
+.pda-shell.wh.fg05-shell *::after {
+    border-radius: 0 !important;
+}
+
+.pda-shell.wh.fg05-shell :is(.rz-card, .rz-button, .rz-textbox, .rz-badge, .wh-modal-card, .wh-modal-mark, .fg05-section-head) {
+    box-shadow: none !important;
+}
+
 .pda-shell.wh.fg05-shell .fg05-body {
     padding-bottom: calc(128px + var(--pda-safe-bottom)) !important;
 }
@@ -9867,142 +10122,118 @@ html body .rz-popup .rz-state-highlight span {
     align-items: end;
 }
 
+.pda-shell.wh.fg05-shell .fg05-scan-panel.scan-only {
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
 .pda-shell.wh.fg05-shell .fg05-scan-panel .pda-fld {
     min-width: 0;
     margin: 0;
+    width: 100% !important;
 }
 
-.pda-shell.wh.fg05-shell .fg05-truck-card {
-    border-left: 4px solid #38bdf8 !important;
+.pda-shell.wh.fg05-shell .fg05-scan-panel .wh07-input.rz-textbox {
+    width: 100% !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 0 12px !important;
+    box-sizing: border-box !important;
+    font-size: 13px !important;
+    line-height: 44px !important;
 }
 
-.pda-shell.wh.fg05-shell .fg05-order-card {
-    border-left: 4px solid #22c55e !important;
-    padding: 12px !important;
-}
-
-.pda-shell.wh.fg05-shell .fg05-order-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 7px;
-    margin-top: 9px;
-}
-
-.pda-shell.wh.fg05-shell .fg05-order-card .wh07-summary-top > div > span {
+.pda-shell.wh.fg05-shell .fg05-scan-panel label {
+    margin-bottom: 7px !important;
     font-size: 9px !important;
-    line-height: 1.2 !important;
+    line-height: 1 !important;
 }
 
-.pda-shell.wh.fg05-shell .fg05-order-card .wh07-summary-top strong {
-    margin-top: 3px !important;
-    font-size: 14px !important;
-    line-height: 1.15 !important;
+.pda-shell.wh.fg05-shell .fg05-scan-guide {
+    display: grid !important;
+    gap: 3px !important;
+    position: relative !important;
+    flex: 0 0 auto !important;
+    z-index: 20 !important;
+    margin: 12px 12px 0 !important;
+    padding: 8px 10px !important;
+    border: 1px solid #3b82f6 !important;
+    background: #0b1830 !important;
 }
 
-.pda-shell.wh.fg05-shell .fg05-order-card .wh07-status {
-    min-width: 0 !important;
-    padding: 4px 7px !important;
-    font-size: 9px !important;
-}
-
-.pda-shell.wh.fg05-shell .fg05-order-grid > div {
-    min-height: 48px;
-    padding: 8px !important;
-}
-
-.pda-shell.wh.fg05-shell .fg05-order-grid span {
+.pda-shell.wh.fg05-shell .fg05-scan-guide span {
+    color: #93c5fd !important;
     font-size: 8px !important;
+    font-weight: 900 !important;
+    letter-spacing: .12em !important;
+}
+
+.pda-shell.wh.fg05-shell .fg05-scan-guide strong {
+    color: #ffffff !important;
+    font-size: 12px !important;
+    font-weight: 900 !important;
     line-height: 1.15 !important;
 }
 
-.pda-shell.wh.fg05-shell .fg05-order-grid strong {
-    margin-top: 4px !important;
-    font-size: 11px !important;
+.pda-shell.wh.fg05-shell .fg05-scan-guide small {
+    color: rgba(255, 255, 255, .62) !important;
+    font-size: 9px !important;
+    font-weight: 700 !important;
     line-height: 1.2 !important;
-}
-
-.pda-shell.wh.fg05-shell .fg05-list-title {
-    margin: 4px 2px -2px;
 }
 
 .pda-shell.wh.fg05-shell .fg05-item-list {
-    gap: 8px;
+    gap: 5px !important;
 }
 
-.pda-shell.wh.fg05-shell .fg05-item-card {
-    padding: 12px !important;
-    border: 1px solid rgba(148, 163, 184, .24) !important;
-    border-left: 4px solid #64748b !important;
-    background: #0f1d33 !important;
-    transition: background-color .16s ease, border-color .16s ease;
+.pda-shell.wh.fg05-shell .fg05-item-row {
+    display: grid !important;
+    gap: 5px !important;
+    min-height: 58px !important;
+    padding: 8px 10px !important;
 }
 
-.pda-shell.wh.fg05-shell .fg05-item-card.is-scanned {
-    border-color: #22c55e !important;
-    border-left-color: #22c55e !important;
-    background: rgba(20, 83, 45, .62) !important;
+.pda-shell.wh.fg05-shell .fg05-item-primary,
+.pda-shell.wh.fg05-shell .fg05-item-secondary {
+    display: flex !important;
+    min-width: 0 !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
 }
 
-.pda-shell.wh.fg05-shell .fg05-item-top {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-    justify-content: space-between;
+.pda-shell.wh.fg05-shell .fg05-item-primary > strong,
+.pda-shell.wh.fg05-shell .fg05-item-secondary > span {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    color: #ffffff !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-weight: 850 !important;
+    line-height: 1.15 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
 }
 
-.pda-shell.wh.fg05-shell .fg05-item-top > div {
-    min-width: 0;
-    display: grid;
-    gap: 3px;
+.pda-shell.wh.fg05-shell .fg05-item-primary > strong {
+    flex: 1 1 auto !important;
+    font-size: 11px !important;
 }
 
-.pda-shell.wh.fg05-shell .fg05-item-top strong {
-    overflow-wrap: anywhere;
-    color: #93c5fd;
-    font: 800 13px 'JetBrains Mono', monospace;
+.pda-shell.wh.fg05-shell .fg05-item-secondary > span {
+    font-size: 9px !important;
 }
 
-.pda-shell.wh.fg05-shell .fg05-item-top em {
-    color: #ffffff;
-    font: normal 800 11px 'JetBrains Mono', monospace;
+.pda-shell.wh.fg05-shell .fg05-item-secondary > span:first-child {
+    flex: 1 1 auto !important;
 }
 
-.pda-shell.wh.fg05-shell .fg05-item-top > span {
-    flex: 0 0 auto;
-    color: #ffffff;
-    font: 800 12px 'JetBrains Mono', monospace;
-}
-
-.pda-shell.wh.fg05-shell .fg05-item-name {
-    margin-top: 9px;
-    color: rgba(255, 255, 255, .78);
-    font-size: 11px;
-    line-height: 1.3;
-}
-
-.pda-shell.wh.fg05-shell .fg05-item-bottom {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, .08);
-}
-
-.pda-shell.wh.fg05-shell .fg05-item-bottom span {
-    min-width: 0;
-    color: #67e8f9;
-    font: 700 10px 'JetBrains Mono', monospace;
-}
-
-.pda-shell.wh.fg05-shell .fg05-item-bottom strong {
-    flex: 0 0 auto;
-    color: #94a3b8;
-    font: 800 9px 'JetBrains Mono', monospace;
-}
-
-.pda-shell.wh.fg05-shell .fg05-item-card.is-scanned .fg05-item-bottom strong {
-    color: #86efac;
+.pda-shell.wh.fg05-shell .fg05-item-row :is(.fg05-row-location, .fg05-row-unit) {
+    flex: 0 0 auto !important;
+    color: rgba(255, 255, 255, .72) !important;
+    font-size: 9px !important;
+    font-weight: 900 !important;
+    text-align: right !important;
 }
 
 .pda-shell.wh.fg05-shell .fg05-action-bar {
@@ -10046,14 +10277,201 @@ html body .rz-popup .rz-state-highlight span {
     text-shadow: 0 1px 1px rgba(0, 0, 0, .32);
 }
 
-@media (max-width: 390px) {
-    .pda-shell.wh.fg05-shell .fg05-scan-panel {
-        grid-template-columns: minmax(0, 1fr) 78px;
-    }
+.pda-shell.wh.fg05-shell .wh07-body {
+    gap: 10px !important;
+    padding: 12px !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+}
 
-    .pda-shell.wh.fg05-shell .fg05-item-top strong {
-        font-size: 12px;
-    }
+.pda-shell.wh.fg05-shell .pda-tbar-brand {
+    font-size: 15px !important;
+    line-height: 1 !important;
+}
+
+.pda-shell.wh.fg05-shell .wh07-body > * {
+    flex-shrink: 0;
+}
+
+.pda-shell.wh.fg05-shell :is(.wh07-panel, .wh07-summary-card, .wh07-line-card).rz-card {
+    border: 1px solid rgba(147, 197, 253, .34) !important;
+    background: #111b30 !important;
+}
+
+.pda-shell.wh.fg05-shell .wh07-panel.rz-card {
+    padding: 10px 12px !important;
+}
+
+.pda-shell.wh.fg05-shell .fg05-section-head {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    min-height: 34px !important;
+    padding: 7px 10px !important;
+    border: 1px solid rgba(148, 163, 184, .24) !important;
+    background: #080f1c !important;
+}
+
+.pda-shell.wh.fg05-shell .fg05-section-head strong {
+    color: #ffffff !important;
+    font-size: 10px !important;
+    font-weight: 900 !important;
+    letter-spacing: .04em !important;
+}
+
+.pda-shell.wh.fg05-shell .fg05-section-head span {
+    color: rgba(255, 255, 255, .52) !important;
+    font-size: 8px !important;
+    font-weight: 800 !important;
+}
+
+.pda-shell.wh.fg05-shell :is(.fg05-truck-card, .fg05-order-card, .fg05-item-card).rz-card {
+    padding: 0 !important;
+    overflow: hidden !important;
+    border-left-width: 1px !important;
+}
+
+.pda-shell.wh.fg05-shell .fg05-truck-card .wh07-summary-top,
+.pda-shell.wh.fg05-shell .fg05-order-head,
+.pda-shell.wh.fg05-shell .fg05-item-head {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+    min-height: 44px !important;
+    padding: 8px 12px !important;
+    border-bottom: 1px solid rgba(147, 197, 253, .25) !important;
+}
+
+.pda-shell.wh.fg05-shell .fg05-truck-card .wh07-summary-top span {
+    font-size: 8px !important;
+    line-height: 1.15 !important;
+}
+
+.pda-shell.wh.fg05-shell .fg05-truck-card .wh07-summary-top strong {
+    margin-top: 3px !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+}
+
+.pda-shell.wh.fg05-shell .wh07-status.rz-badge {
+    min-width: 0 !important;
+    padding: 4px 7px !important;
+    font-size: 8px !important;
+    line-height: 1 !important;
+}
+
+.pda-shell.wh.fg05-shell :is(.fg05-order-head, .fg05-item-head) > div {
+    display: flex !important;
+    min-width: 0 !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+}
+
+.pda-shell.wh.fg05-shell :is(.fg05-order-head, .fg05-item-head) > div > span,
+.pda-shell.wh.fg05-shell .fg05-detail-row > span {
+    color: rgba(255, 255, 255, .58) !important;
+    font-size: 8px !important;
+    font-weight: 900 !important;
+    line-height: 1.15 !important;
+}
+
+.pda-shell.wh.fg05-shell :is(.fg05-order-head, .fg05-item-head) > div > strong {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    color: #ffffff !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 11px !important;
+    font-weight: 900 !important;
+    line-height: 1.2 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.pda-shell.wh.fg05-shell .fg05-detail-rows {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.pda-shell.wh.fg05-shell .fg05-detail-row {
+    display: grid !important;
+    grid-template-columns: 88px minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 10px !important;
+    min-height: 34px !important;
+    padding: 7px 12px !important;
+    border-bottom: 1px solid rgba(147, 197, 253, .14) !important;
+}
+
+.pda-shell.wh.fg05-shell .fg05-detail-row:last-child {
+    border-bottom: 0 !important;
+}
+
+.pda-shell.wh.fg05-shell .fg05-detail-row > strong {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    color: #ffffff !important;
+    font-size: 10px !important;
+    font-weight: 850 !important;
+    line-height: 1.25 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.pda-shell.wh.fg05-shell .fg05-item-card.open.rz-card {
+    border: 1px solid rgba(147, 197, 253, .34) !important;
+    background: #111b30 !important;
+}
+
+.pda-shell.wh.fg05-shell .fg05-item-card.scanned.rz-card {
+    border: 1px solid #22c55e !important;
+    border-left: 1px solid #22c55e !important;
+    background: #123c2a !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.fg05-shell .fg05-item-card.scanned :is(.fg05-item-head, .fg05-detail-row) {
+    background: transparent !important;
+    border-color: rgba(134, 239, 172, .25) !important;
+}
+
+.pda-shell.wh.fg05-shell .fg05-item-card.scanned .fg05-item-row {
+    background: transparent !important;
+}
+
+.pda-shell.wh.fg05-shell .fg05-item-card.scanned .fg05-detail-row > span {
+    color: #bbf7d0 !important;
+}
+
+.pda-shell.wh.fg05-shell .wh07-check {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 24px !important;
+    padding: 0 8px !important;
+    border: 1px solid #22c55e !important;
+    border-radius: 0 !important;
+    color: #bbf7d0 !important;
+    font-size: 8px !important;
+    line-height: 1 !important;
+}
+
+.pda-shell.wh.fg05-shell .fg05-action-bar .rz-button:disabled {
+    opacity: .48 !important;
+    cursor: not-allowed !important;
+}
+
+.pda-shell.wh.fg05-shell .fg05-action-bar .rz-button {
+    font-size: 11px !important;
+}
+
+.pda-shell.wh.fg05-shell .wh-modal-title {
+    font-size: 16px !important;
+}
+
+.pda-shell.wh.fg05-shell .wh-modal-message {
+    font-size: 12px !important;
 }
 
 /* WH-002 compact row details */
@@ -11045,4 +11463,557 @@ html body .rz-popup .rz-state-highlight span {
 body:has(.wh01-shell, .wh08-shell) :is(.rz-datepicker-calendar, .rz-datepicker-calendar-container, .rz-datepicker-popup),
 body:has(.wh01-shell, .wh08-shell) .rz-datepicker-calendar :is(button, select, input, td, td > span) {
     border-radius: 0 !important;
+}
+
+/* FG Release Picking mirrors the compact, row-based Warehouse Release layout. */
+.pda-shell.wh.fg04-shell .pda-tbar-brand {
+    font-size: 15px !important;
+    line-height: 1 !important;
+}
+
+.pda-shell.wh.fg04-shell .wh07-body {
+    gap: 10px !important;
+    padding: 12px !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+}
+
+.pda-shell.wh.fg04-shell .wh07-body > * {
+    flex-shrink: 0;
+}
+
+.pda-shell.wh.fg04-shell :is(.rz-card, .rz-button, .rz-textbox, .rz-badge, .wh-modal-card) {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.fg04-shell :is(.wh07-panel, .wh07-summary-card, .wh07-line-card).rz-card {
+    border: 1px solid rgba(147, 197, 253, .34) !important;
+    background: #111b30 !important;
+}
+
+.pda-shell.wh.fg04-shell .wh07-panel.rz-card {
+    padding: 10px 12px !important;
+}
+
+.pda-shell.wh.fg04-shell .pda-fld label {
+    margin-bottom: 7px !important;
+    font-size: 9px !important;
+    line-height: 1 !important;
+}
+
+.pda-shell.wh.fg04-shell .wh07-input.rz-textbox {
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 0 12px !important;
+    font-size: 13px !important;
+    line-height: 44px !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-section-head {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    min-height: 34px !important;
+    padding: 7px 10px !important;
+    border: 1px solid rgba(148, 163, 184, .24) !important;
+    border-left-width: 4px !important;
+    background: #080f1c !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-section-head strong {
+    font-size: 10px !important;
+    font-weight: 900 !important;
+    letter-spacing: .04em !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-section-head span {
+    color: rgba(255, 255, 255, .52) !important;
+    font-size: 8px !important;
+    font-weight: 800 !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-section-head.outgoing {
+    border-left-color: #3b82f6 !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-section-head.outgoing strong {
+    color: #93c5fd !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-section-head.parts {
+    margin-top: 4px !important;
+    border-left-color: #f59e0b !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-section-head.parts strong {
+    color: #fcd34d !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-summary-card.rz-card,
+.pda-shell.wh.fg04-shell .fg04-line-card.rz-card {
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-summary-card.rz-card {
+    border-color: rgba(59, 130, 246, .62) !important;
+    background: #0d213d !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-order-head,
+.pda-shell.wh.fg04-shell .fg04-line-head {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+    min-height: 44px !important;
+    padding: 8px 12px !important;
+    border-bottom: 1px solid rgba(147, 197, 253, .25) !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-order-head > div,
+.pda-shell.wh.fg04-shell .fg04-line-head > div {
+    display: flex !important;
+    min-width: 0 !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-order-head span,
+.pda-shell.wh.fg04-shell .fg04-line-head > div > span,
+.pda-shell.wh.fg04-shell .fg04-detail-row > span {
+    color: rgba(255, 255, 255, .58) !important;
+    font-size: 8px !important;
+    font-weight: 900 !important;
+    line-height: 1.15 !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-order-head strong,
+.pda-shell.wh.fg04-shell .fg04-line-head > div > strong {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    color: #ffffff !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 12px !important;
+    font-weight: 900 !important;
+    line-height: 1.2 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.pda-shell.wh.fg04-shell .wh07-status.rz-badge,
+.pda-shell.wh.fg04-shell .wh07-check {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 24px !important;
+    padding: 0 8px !important;
+    font-size: 8px !important;
+    line-height: 1 !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-detail-rows {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-detail-row {
+    display: grid !important;
+    grid-template-columns: 88px minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 10px !important;
+    min-height: 34px !important;
+    padding: 7px 12px !important;
+    border-bottom: 1px solid rgba(147, 197, 253, .14) !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-detail-row:last-child {
+    border-bottom: 0 !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-detail-row > strong {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    color: #ffffff !important;
+    font-size: 10px !important;
+    font-weight: 850 !important;
+    line-height: 1.25 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-detail-row.progress > strong {
+    color: #fcd34d !important;
+    font-family: 'JetBrains Mono', monospace !important;
+}
+
+.pda-shell.wh.fg04-shell .wh07-check.partial {
+    border: 1px solid rgba(245, 158, 11, .72) !important;
+    background: rgba(245, 158, 11, .18) !important;
+    color: #fcd34d !important;
+}
+
+.pda-shell.wh.fg04-shell .wh07-line-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+}
+
+.pda-shell.wh.fg04-shell .wh07-release-bar {
+    gap: 8px !important;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom)) !important;
+}
+
+.pda-shell.wh.fg04-shell .wh07-release-bar .rz-button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    padding: 0 12px !important;
+    border-radius: 0 !important;
+    font-size: 11px !important;
+    line-height: 1 !important;
+}
+
+.pda-shell.wh.fg04-shell .rz-button :is(.rz-button-box, .rz-button-text) {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1 !important;
+}
+
+.pda-shell.wh.fg04-shell .wh07-release-bar :is(.wh07-clear-btn, .wh07-release-btn),
+.pda-shell.wh.fg04-shell .wh07-release-bar :is(.wh07-clear-btn, .wh07-release-btn) :is(.rz-button-box, .rz-button-text, span) {
+    color: #ffffff !important;
+}
+
+.pda-shell.wh.fg04-shell .wh07-release-btn.blocked {
+    border-color: rgba(255, 255, 255, .12) !important;
+    background: #334155 !important;
+}
+
+.pda-shell.wh.fg04-shell .wh07-release-btn.ready {
+    border-color: #22c55e !important;
+    background: #15803d !important;
+}
+
+.pda-shell.wh.fg04-shell .wh07-release-bar .rz-button:disabled {
+    opacity: .48 !important;
+    cursor: not-allowed !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-line-card.open.rz-card {
+    border-left: 1px solid rgba(147, 197, 253, .34) !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-line-card.partial.rz-card {
+    border: 1px solid rgba(245, 158, 11, .72) !important;
+    background: rgba(245, 158, 11, .16) !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-line-card.picked.rz-card,
+.pda-shell.wh.fg04-shell .fg04-line-card.scanned.rz-card {
+    border: 1px solid #22c55e !important;
+    border-left: 1px solid #22c55e !important;
+    background: #123c2a !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-line-card.picked :is(.fg04-line-head, .fg04-detail-row),
+.pda-shell.wh.fg04-shell .fg04-line-card.scanned :is(.fg04-line-head, .fg04-detail-row) {
+    background: transparent !important;
+    border-color: rgba(134, 239, 172, .25) !important;
+}
+
+.pda-shell.wh.fg04-shell .fg04-line-card.picked .fg04-detail-row > span,
+.pda-shell.wh.fg04-shell .fg04-line-card.scanned .fg04-detail-row > span {
+    color: #bbf7d0 !important;
+}
+
+/* Final Truck Loading override: shared WH07 rules below the feature block must not restore rounded corners. */
+.pda-shell.wh.wh07-shell.fg05-shell,
+.pda-shell.wh.wh07-shell.fg05-shell *,
+.pda-shell.wh.wh07-shell.fg05-shell *::before,
+.pda-shell.wh.wh07-shell.fg05-shell *::after,
+.pda-shell.wh.wh07-shell.fg05-shell .fg05-barcode-input.wh07-input.rz-textbox,
+.pda-shell.wh.wh07-shell.fg05-shell .fg05-truck-card.rz-card,
+.pda-shell.wh.wh07-shell.fg05-shell .fg05-order-card.rz-card,
+.pda-shell.wh.wh07-shell.fg05-shell .fg05-item-card.rz-card,
+.pda-shell.wh.wh07-shell.fg05-shell .wh07-release-bar,
+.pda-shell.wh.wh07-shell.fg05-shell .wh07-release-bar .rz-button,
+.pda-shell.wh.wh07-shell.fg05-shell .rz-button :is(.rz-button-box, .rz-button-text) {
+    border-radius: 0 !important;
+}
+
+.pda-shell.wh.wh07-shell.fg05-shell .wh07-release-bar {
+    box-shadow: none !important;
+}
+
+/* Customer Return follows the compact FG Release visual system. */
+.pda-shell.wh.fg06-shell,
+.pda-shell.wh.fg06-shell *,
+.pda-shell.wh.fg06-shell *::before,
+.pda-shell.wh.fg06-shell *::after {
+    border-radius: 0 !important;
+}
+
+.pda-shell.wh.fg06-shell :is(.rz-card, .rz-button, .rz-textbox, .rz-dropdown, .rz-badge, .wh-modal-card, .wh-modal-mark) {
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.fg06-shell .pda-tbar-brand {
+    font-size: 15px !important;
+    line-height: 1 !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-body {
+    gap: 10px !important;
+    padding: 12px 12px calc(128px + var(--pda-safe-bottom)) !important;
+    overflow-y: auto !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-body > * {
+    flex-shrink: 0;
+}
+
+.pda-shell.wh.fg06-shell .fg01-scan-panel.rz-card,
+.pda-shell.wh.fg06-shell .fg-return-reason-card.rz-card {
+    padding: 10px 12px !important;
+    border: 1px solid rgba(147, 197, 253, .34) !important;
+    background: #111b30 !important;
+}
+
+.pda-shell.wh.fg06-shell .pda-fld label {
+    margin-bottom: 7px !important;
+    font-size: 9px !important;
+    line-height: 1 !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-scan-input.rz-textbox {
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 0 12px !important;
+    font-size: 13px !important;
+    line-height: 44px !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-product-card.rz-card {
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(147, 197, 253, .34) !important;
+    border-left: 1px solid rgba(147, 197, 253, .34) !important;
+    background: #111b30 !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-product-head {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+    min-height: 44px !important;
+    padding: 8px 12px !important;
+    border-bottom: 1px solid rgba(147, 197, 253, .25) !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-product-head > div {
+    display: flex !important;
+    min-width: 0 !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-product-head span,
+.pda-shell.wh.fg06-shell .fg-return-detail-row > span {
+    color: rgba(255, 255, 255, .58) !important;
+    font-size: 8px !important;
+    font-weight: 900 !important;
+    line-height: 1.15 !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-product-head strong {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    color: #ffffff !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 12px !important;
+    font-weight: 900 !important;
+    line-height: 1.2 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-product-head .rz-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 24px !important;
+    padding: 0 8px !important;
+    font-size: 8px !important;
+    line-height: 1 !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-detail-rows {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-detail-row {
+    display: grid !important;
+    grid-template-columns: 78px minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 8px !important;
+    min-height: 32px !important;
+    padding: 6px 12px !important;
+    border-bottom: 1px solid rgba(147, 197, 253, .14) !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-detail-row:last-child {
+    border-bottom: 0 !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-detail-row > strong {
+    min-width: 0 !important;
+    overflow-wrap: anywhere !important;
+    color: #ffffff !important;
+    font-size: 10px !important;
+    font-weight: 850 !important;
+    line-height: 1.25 !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-reason-card {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-reason-card .pda-fld {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 7px !important;
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-reason-select {
+    display: grid !important;
+    width: 100% !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-reason-trigger {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+    width: 100% !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 12px !important;
+    border: 1px solid rgba(147, 197, 253, .42) !important;
+    background: #050a13 !important;
+    color: #f8fafc !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    text-align: left !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-reason-trigger .placeholder {
+    color: rgba(226, 232, 240, .48) !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-reason-arrow {
+    flex: 0 0 auto !important;
+    color: #93c5fd !important;
+    font-size: 15px !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-reason-options {
+    display: flex !important;
+    max-height: 180px !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    border: 1px solid rgba(147, 197, 253, .42) !important;
+    border-top: 0 !important;
+    background: #0f1d33 !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-reason-option {
+    flex: 0 0 36px !important;
+    min-height: 36px !important;
+    padding: 0 12px !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(148, 163, 184, .22) !important;
+    background: #0f1d33 !important;
+    color: #f8fafc !important;
+    font-size: 11px !important;
+    font-weight: 750 !important;
+    text-align: left !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-reason-option:last-child {
+    border-bottom: 0 !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-reason-option:is(.selected, :active) {
+    background: rgba(37, 99, 235, .34) !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-note-input {
+    display: block !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    height: 88px !important;
+    min-height: 88px !important;
+    padding: 9px 12px !important;
+    resize: none !important;
+    text-align: left !important;
+    vertical-align: top !important;
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-return-note-input::placeholder {
+    text-align: left !important;
+    line-height: 1.35 !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-form-actions {
+    position: fixed !important;
+    z-index: 30 !important;
+    right: 12px !important;
+    bottom: calc(var(--pda-safe-bottom) + 8px) !important;
+    left: 12px !important;
+    gap: 8px !important;
+    padding: 8px !important;
+    border: 1px solid rgba(148, 163, 184, .28) !important;
+    background: #0c1320 !important;
+    box-shadow: none !important;
+}
+
+.pda-shell.wh.fg06-shell .fg-form-actions .rz-button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    padding: 0 12px !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
+}
+
+.pda-shell.wh.fg06-shell .rz-button :is(.rz-button-box, .rz-button-text),
+.pda-shell.wh.fg06-shell .fg-form-actions .rz-button > span {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1 !important;
 }

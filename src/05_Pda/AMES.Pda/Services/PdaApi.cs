@@ -641,6 +641,41 @@ public sealed class PdaApi
         }
     }
 
+    public async Task<InboundScanRow?> FgScanAdjustAsync(string scanText)
+    {
+        try
+        {
+            Authorize();
+            var url = $"/api/fg/adjust/scan?scanText={Uri.EscapeDataString(scanText.Trim())}";
+            using var resp = await _http.GetAsync(url);
+            if (!resp.IsSuccessStatusCode)
+                throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Finished goods adjust scan service is unavailable."));
+            return await resp.Content.ReadFromJsonAsync<InboundScanRow>();
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
+        catch
+        {
+            throw new InvalidOperationException("Finished goods adjust scan service is unavailable.");
+        }
+    }
+
+    public async Task<InboundReceiveResult> FgSaveAdjustQtyAsync(AdjustSaveReq body)
+    {
+        try
+        {
+            Authorize();
+            using var resp = await _http.PostAsJsonAsync("/api/fg/adjust/save", body);
+            return await ReadInboundReceiveResultAsync(resp);
+        }
+        catch
+        {
+            return new InboundReceiveResult(false, "Finished goods adjustment service is unavailable.", null);
+        }
+    }
+
     public Task<InboundReceiveResult> WhAdjustInboundQtyAsync(InboundAdjustReq body) =>
         WhSaveAdjustQtyAsync(new AdjustSaveReq(
             body.Mode,
@@ -663,6 +698,10 @@ public sealed class PdaApi
     public sealed record FgOrderLineRow(int ShipmentOrderLineId, int ShipmentOrderId, int LineSeq,
         string ItemNo, string? ItemName, decimal OrderedQty, decimal AllocatedQty,
         int? StockId, string? LotNo, string? Location, string? ReservationStatus);
+    public sealed record FgOutgoingSlipRow(int OutgoingSlipId, string OutgoingSlipBarcode,
+        string? CustomerCode, DateTime? OutgoingDate, string? Destination, string? Status, int LineCount);
+    public sealed record FgOutgoingSlipLineRow(int OutgoingSlipLineId, int OutgoingSlipId, int LineSeq,
+        string PartNo, string? PartName, decimal RequiredQty, decimal ScannedQty, string? Status);
     public sealed record FgHistoryRow(int LoadingId, string? LoadingNumber, int? ShipmentOrderId,
         string? ShipOrderNumber, string? CustomerCode, string? LicensePlate, string? DriverName,
         DateTime? DepartureTs, string? OTDStatus);
@@ -694,7 +733,8 @@ public sealed class PdaApi
         string? ContainerType, string? ContainerBarcode);
     public sealed record FgPutAwayResult(bool Success, string Message, int? StockId, FgPutAwayScanRow? Row,
         FgPutAwayLocationRow? Location);
-    public sealed record FgPickReq(int ShipmentOrderId, int StockId, decimal Qty);
+    public sealed record FgReleaseLotReq(int OutgoingSlipLineId, int StockId, decimal Qty);
+    public sealed record FgCompleteReleaseReq(int OutgoingSlipId, List<FgReleaseLotReq> Lots);
     public sealed record FgLoadingTruckRow(string Barcode, string LicensePlate, bool Ready, string Message);
     public sealed record FgLoadingItemRow(int StockId, int ShipmentOrderLineId, int ShipmentOrderId,
         string ShipOrderNumber, string CustomerCode, string ItemNo, string? ItemName,
@@ -707,7 +747,7 @@ public sealed class PdaApi
         FgLoadingTruckRow? Truck, FgLoadingItemRow? Item);
     public sealed record FgDeliveryReq(int ShipmentOrderId, int? LoadingId);
     public sealed record FgDayEndReq(string CloseMode, string? Note);
-    public sealed record FgReturnReq(string Barcode, string ReturnReason);
+    public sealed record FgReturnReq(string Barcode, string ReturnReason, string? Note);
 
     public Task<List<FgStockRow>>   FgInventoryAsync(string? q = null)
         => Get<List<FgStockRow>>("/api/fg/inventory" + (string.IsNullOrEmpty(q) ? "" : $"?q={Uri.EscapeDataString(q)}"));
@@ -715,6 +755,10 @@ public sealed class PdaApi
     public Task<List<FgOrderRow>>   FgOrdersAsync()  => Get<List<FgOrderRow>>("/api/fg/orders");
     public Task<List<FgOrderLineRow>> FgOrderLinesAsync(string shipOrderNumber)
         => Get<List<FgOrderLineRow>>($"/api/fg/orders/{Uri.EscapeDataString(shipOrderNumber)}/lines");
+    public async Task<FgOutgoingSlipRow?> FgOutgoingSlipAsync(string barcode)
+        => (await Get<List<FgOutgoingSlipRow>>($"/api/fg/release/outgoing-slips/{Uri.EscapeDataString(barcode)}")).FirstOrDefault();
+    public Task<List<FgOutgoingSlipLineRow>> FgOutgoingSlipLinesAsync(string barcode)
+        => Get<List<FgOutgoingSlipLineRow>>($"/api/fg/release/outgoing-slips/{Uri.EscapeDataString(barcode)}/lines");
     public Task<List<FgHistoryRow>> FgHistoryAsync() => Get<List<FgHistoryRow>>("/api/fg/history");
     public Task<List<FgReturnRow>> FgReturnsAsync() => Get<List<FgReturnRow>>("/api/fg/returns");
     public Task<FgReturnResult> FgReturnScanAsync(string barcode)
@@ -740,7 +784,7 @@ public sealed class PdaApi
         => GetFgPutAwayLocationAsync($"/api/fg/putaway/location?locationId={Uri.EscapeDataString(locationId)}&itemNo={Uri.EscapeDataString(itemNo)}&customerCode={Uri.EscapeDataString(customerCode ?? "")}&qty={qty}&expectedScanType={Uri.EscapeDataString(expectedScanType ?? "")}");
     public Task<FgPutAwayResult> FgConfirmPutAwayAsync(FgPutAwayConfirmReq body)
         => PostFgPutAwayResultAsync("/api/fg/putaway/confirm", body);
-    public Task<HttpResponseMessage> FgPickAsync    (FgPickReq    body)  => Post("/api/fg/pick",     body);
+    public Task<HttpResponseMessage> FgCompleteReleaseAsync(FgCompleteReleaseReq body) => Post("/api/fg/release/complete", body);
     public Task<FgLoadingOrderResult> FgLoadingOrderScanAsync(string barcode)
         => GetFgLoadingOrderResultAsync($"/api/fg/loading/order/scan?barcode={Uri.EscapeDataString(barcode)}");
     public Task<FgLoadingResult> FgLoadingTruckScanAsync(string barcode)

@@ -7,100 +7,68 @@
 <div class="pda-shell wh wh07-shell fg05-shell">
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
-        <div class="wh07-tbar-title">
-            <span class="pda-tbar-brand">FG-005 TRUCK LOADING</span>
-            <span class="wh07-subtitle">@(_order?.ShipOrderNumber ?? "Scan Shipment Order First")</span>
-        </div>
+        <div class="wh07-tbar-title"><span class="pda-tbar-brand">TRUCK LOADING</span></div>
+    </div>
+
+    <div class="fg05-scan-guide">
+        <span>NEXT SCAN</span>
+        <strong>@ScanPrompt</strong>
+        <small>@ScanFormat</small>
     </div>
 
     <div class="pda-bd wh07-body fg05-body">
-        <RadzenCard class="wh07-panel fg05-scan-panel fg05-order-scan-panel">
+        <RadzenCard class="wh07-panel fg05-scan-panel scan-only">
             <div class="pda-fld">
-                <label>SHIPMENT ORDER BARCODE</label>
-                <RadzenTextBox class="pda-input wh07-input fg05-order-input pda-scan-input"
-                               Value="@_orderBarcode"
-                               @oninput="OnOrderInput"
-                               @onkeydown="OnOrderKey"
-                               Placeholder="Scan Shipment Order Barcode" />
+                <label>BARCODE SCAN</label>
+                <RadzenTextBox class="pda-input wh07-input fg05-barcode-input pda-scan-input"
+                               Value="@ScanValue"
+                               @oninput="OnScanInput"
+                               @onkeydown="OnScanKey"
+                               Placeholder="Scan barcode" />
             </div>
-            @if (ShowDeveloperScanButtons)
-            {
-                <RadzenButton class="wh07-load-btn" Click="ScanOrder" Disabled="@_isBusy" Text="SCAN" />
-            }
         </RadzenCard>
 
-        @if (_order is not null)
+        @if (_truck is not null)
         {
-            <RadzenCard class="wh07-summary-card fg05-order-card">
-                <div class="wh07-summary-top">
-                    <div><span>SHIPMENT ORDER</span><strong>@_order.ShipOrderNumber</strong></div>
-                    <RadzenBadge class="wh07-status ready" Text="@($"{_order.Items.Count} PRODUCTS")" />
-                </div>
-                <div class="wh07-summary-grid fg05-order-grid">
-                    <div><span>Customer</span><strong>@Text(_order.CustomerCode)</strong></div>
-                    <div><span>Destination</span><strong>@Text(_order.Destination)</strong></div>
-                    <div><span>Ship Date</span><strong>@(_order.ShipDate?.ToString("MM/dd/yyyy") ?? "-")</strong></div>
-                    <div><span>Scanned</span><strong>@_scannedStockIds.Count / @_order.Items.Count</strong></div>
-                </div>
-            </RadzenCard>
-
-            <RadzenCard class="wh07-panel fg05-scan-panel fg05-truck-panel">
-                <div class="pda-fld">
-                    <label>TRUCK BARCODE</label>
-                    <RadzenTextBox class="pda-input wh07-input fg05-truck-input pda-scan-input"
-                                   Value="@_truckBarcode"
-                                   @oninput="OnTruckInput"
-                                   @onkeydown="OnTruckKey"
-                                   Placeholder="Scan Truck Barcode" />
-                </div>
-                @if (ShowDeveloperScanButtons)
-                {
-                    <RadzenButton class="wh07-load-btn" Click="ScanTruck" Disabled="@_isBusy" Text="SCAN" />
-                }
-            </RadzenCard>
-        }
-
-        @if (_truck is not null && _order is not null)
-        {
+            <div class="fg05-section-head truck"><strong>TRUCK INFORMATION</strong><span>Scanned truck</span></div>
             <RadzenCard class="wh07-summary-card fg05-truck-card">
                 <div class="wh07-summary-top">
                     <div><span>TRUCK</span><strong>@_truck.LicensePlate</strong></div>
                     <RadzenBadge class="wh07-status ready" Text="VERIFIED" />
                 </div>
             </RadzenCard>
+        }
 
-            <RadzenCard class="wh07-panel fg05-scan-panel fg05-product-panel">
-                <div class="pda-fld">
-                    <label>PRODUCT BARCODE</label>
-                    <RadzenTextBox class="pda-input wh07-input fg05-product-input pda-scan-input"
-                                   Value="@_productBarcode"
-                                   @oninput="OnProductInput"
-                                   @onkeydown="OnProductKey"
-                                   Placeholder="Scan FG Lot or Stock No" />
+        @if (_truck is not null && _order is not null)
+        {
+            <div id="fg05-shipment-info" class="fg05-section-head order"><strong>SHIPMENT ORDER INFORMATION</strong><span>Scanned document</span></div>
+            <RadzenCard class="wh07-summary-card fg05-order-card">
+                <div class="fg05-order-head">
+                    <div><span>SHIPMENT ORDER</span><strong>@_order.ShipOrderNumber</strong></div>
+                    <RadzenBadge class="wh07-status ready" Text="@($"{_order.Items.Count} PRODUCTS")" />
                 </div>
-                @if (ShowDeveloperScanButtons)
-                {
-                    <RadzenButton class="wh07-scan-btn" Click="ScanProduct" Disabled="@_isBusy" Text="SCAN" />
-                }
+                <div class="fg05-detail-rows">
+                    <div class="fg05-detail-row"><span>CUSTOMER</span><strong>@Text(_order.CustomerCode)</strong></div>
+                    <div class="fg05-detail-row"><span>DESTINATION</span><strong>@Text(_order.Destination)</strong></div>
+                    <div class="fg05-detail-row"><span>SHIP DATE</span><strong>@(_order.ShipDate?.ToString("MM/dd/yyyy") ?? "-")</strong></div>
+                    <div class="fg05-detail-row"><span>SCANNED</span><strong>@_scannedStockIds.Count / @_order.Items.Count</strong></div>
+                </div>
             </RadzenCard>
-
-            <div class="pda-card-h fg05-list-title">PRODUCTS TO LOAD</div>
+            <div class="fg05-section-head products"><strong>PRODUCTS TO LOAD</strong><span>@_order.Items.Count product(s) required</span></div>
             <div class="wh07-line-list fg05-item-list">
                 @foreach (var item in _order.Items)
                 {
                     var scanned = IsScanned(item);
-                    <RadzenCard class="@($"wh07-line-card fg05-item-card {(scanned ? "is-scanned picked scanned" : "is-pending open")}")">
-                        <div class="fg05-item-top">
-                            <div>
-                                <strong>@Text(item.StockNumber ?? item.LotNo)</strong>
-                                <em>@item.ItemNo</em>
+                    <RadzenCard class="@($"wh07-line-card fg05-item-card {(scanned ? "scanned" : "open")}")">
+                        <div class="fg05-item-row" title="@($"{Text(item.ItemName)} · {Text(item.Location)}")">
+                            <div class="fg05-item-primary">
+                                <strong>@Text(item.StockNumber)</strong>
+                                <span class="fg05-row-location">@Text(item.Location)</span>
                             </div>
-                            <span>@item.Qty.ToString("0.###") @(item.Unit ?? "EA")</span>
-                        </div>
-                        <div class="fg05-item-name">@Text(item.ItemName)</div>
-                        <div class="fg05-item-bottom">
-                            <span>@Text(item.Location)</span>
-                            <strong>@(scanned ? "SCANNED" : "WAITING")</strong>
+                            <div class="fg05-item-secondary">
+                                <span>@item.ItemNo</span>
+                                <span class="fg05-row-unit">@item.Qty.ToString("0.###") @(item.Unit ?? "EA")</span>
+                            </div>
                         </div>
                     </RadzenCard>
                 }
@@ -116,7 +84,7 @@
         <div class="wh07-release-bar fg05-action-bar">
             <RadzenButton class="wh07-clear-btn" Click="Clear" Disabled="@_isBusy" Text="CLEAR" />
             <RadzenButton class="@($"wh07-release-btn {(AllScanned ? "ready" : "blocked")}")"
-                          Click="ConfirmLoading" Disabled="@_isBusy" Text="CONFIRM LOAD" />
+                          Click="ConfirmLoading" Disabled="@(_isBusy || !AllScanned)" Text="CONFIRM" />
         </div>
     </div>
 
@@ -145,6 +113,7 @@
     private string _message = "";
     private string _messageClass = "dim";
     private bool _isBusy;
+    private bool _scrollShipmentAfterRender;
     private bool _modalOpen;
     private string _modalTitle = "";
     private string _modalMessage = "";
@@ -153,15 +122,42 @@
 
     private bool AllScanned => _order is not null && _order.Items.Count > 0
         && _scannedStockIds.Count == _order.Items.Count;
+    private string ScanValue
+    {
+        get => _truck is null ? _truckBarcode : _order is null ? _orderBarcode : _productBarcode;
+        set
+        {
+            if (_truck is null) _truckBarcode = value;
+            else if (_order is null) _orderBarcode = value;
+            else _productBarcode = value;
+        }
+    }
+    private string ScanPrompt => _truck is null
+        ? "TRUCK BARCODE"
+        : _order is null
+            ? "SHIPMENT ORDER BARCODE"
+            : "STOCK BARCODE";
+    private string ScanFormat => _truck is null
+        ? "Required format: TRUCK:<license plate>"
+        : _order is null
+            ? "Scan the shipment order document"
+            : "Scan a stock from the loading list";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender) return;
-        PdaBarcodeHub.Scanned += OnNativeBarcodeScanned;
-        _scannerRef = DotNetObjectReference.Create(this);
-        await JS.InvokeVoidAsync("pdaScan.register", _scannerRef,
-            new { minLength = 3, developerMode = ShowDeveloperScanButtons });
-        await FocusScannerAsync();
+        if (firstRender)
+        {
+            PdaBarcodeHub.Scanned += OnNativeBarcodeScanned;
+            _scannerRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("pdaScan.register", _scannerRef,
+                new { minLength = 3, developerMode = ShowDeveloperScanButtons });
+        }
+        if (_scrollShipmentAfterRender)
+        {
+            _scrollShipmentAfterRender = false;
+            await JS.InvokeVoidAsync("pdaScan.scrollTo", "#fg05-shipment-info", 0);
+        }
+        if (firstRender) await FocusScannerAsync();
     }
 
     [JSInvokable]
@@ -170,34 +166,28 @@
         var value = Normalize(scanText);
         if (string.IsNullOrWhiteSpace(value)) return;
 
-        if (_order is null)
-        {
-            _orderBarcode = value;
-            await ScanOrder();
-        }
-        else if (_truck is null)
-        {
-            _truckBarcode = value;
-            await ScanTruck();
-        }
-        else
-        {
-            _productBarcode = value;
-            await ScanProduct();
-        }
+        ScanValue = value;
+        await ScanCurrent();
         await InvokeAsync(StateHasChanged);
     }
 
     private void OnNativeBarcodeScanned(string barcode) => _ = InvokeAsync(() => OnHardwareScanAsync(barcode));
-    private void OnOrderInput(ChangeEventArgs e) => _orderBarcode = e.Value?.ToString() ?? "";
-    private async Task OnOrderKey(KeyboardEventArgs e) { if (e.Key == "Enter") await ScanOrder(); }
-    private void OnTruckInput(ChangeEventArgs e) => _truckBarcode = e.Value?.ToString() ?? "";
-    private async Task OnTruckKey(KeyboardEventArgs e) { if (e.Key == "Enter") await ScanTruck(); }
-    private void OnProductInput(ChangeEventArgs e) => _productBarcode = e.Value?.ToString() ?? "";
-    private async Task OnProductKey(KeyboardEventArgs e) { if (e.Key == "Enter") await ScanProduct(); }
+    private void OnScanInput(ChangeEventArgs e) => ScanValue = e.Value?.ToString() ?? "";
+    private async Task OnScanKey(KeyboardEventArgs e) { if (e.Key == "Enter") await ScanCurrent(); }
+    private Task ScanCurrent() => _truck is null
+        ? ScanTruck()
+        : _order is null
+            ? ScanOrder()
+            : ScanProduct();
 
     private async Task ScanOrder()
     {
+        if (_truck is null)
+        {
+            ShowModal("Truck Required", "Scan the truck barcode before the shipment order.", "warn");
+            return;
+        }
+
         var barcode = Normalize(_orderBarcode);
         if (string.IsNullOrWhiteSpace(barcode))
         {
@@ -216,9 +206,8 @@
             }
 
             _order = result.Order;
+            _scrollShipmentAfterRender = true;
             _orderBarcode = result.Order.Barcode;
-            _truck = null;
-            _truckBarcode = "";
             _productBarcode = "";
             _scannedStockIds.Clear();
             _message = result.Message;
@@ -233,16 +222,17 @@
 
     private async Task ScanTruck()
     {
-        if (_order is null)
-        {
-            ShowModal("Shipment Order Required", "Scan the shipment order barcode before the truck.", "warn");
-            return;
-        }
-
         var barcode = Normalize(_truckBarcode);
         if (string.IsNullOrWhiteSpace(barcode))
         {
             ShowModal("Truck Required", "Scan the truck barcode.", "warn");
+            return;
+        }
+        if (!barcode.StartsWith("TRUCK:", StringComparison.OrdinalIgnoreCase)
+            || string.IsNullOrWhiteSpace(barcode["TRUCK:".Length..]))
+        {
+            _truckBarcode = "";
+            ShowModal("Truck Barcode", "Invalid truck barcode. Expected TRUCK:<license plate>.", "warn");
             return;
         }
 
@@ -258,7 +248,11 @@
 
             _truck = result.Truck;
             _truckBarcode = result.Truck.Barcode;
-            _message = "Truck verified. Scan each product in the loading list.";
+            _order = null;
+            _orderBarcode = "";
+            _productBarcode = "";
+            _scannedStockIds.Clear();
+            _message = "Truck verified. Scan the shipment order.";
             _messageClass = "ok";
         }
         finally
@@ -272,7 +266,7 @@
     {
         if (_order is null || _truck is null)
         {
-            ShowModal("Loading Not Ready", "Scan the shipment order and truck first.", "warn");
+            ShowModal("Loading Not Ready", "Scan the truck and shipment order first.", "warn");
             return;
         }
 
@@ -320,14 +314,14 @@
 
     private async Task ConfirmLoading()
     {
-        if (_order is null)
-        {
-            ShowModal("Shipment Order Required", "Scan the shipment order barcode first.", "warn");
-            return;
-        }
         if (_truck is null)
         {
-            ShowModal("Truck Required", "Scan the truck barcode.", "warn");
+            ShowModal("Truck Required", "Scan the truck barcode first.", "warn");
+            return;
+        }
+        if (_order is null)
+        {
+            ShowModal("Shipment Order Required", "Scan the shipment order barcode.", "warn");
             return;
         }
         if (!AllScanned)
@@ -384,12 +378,7 @@
 
     private async Task FocusScannerAsync()
     {
-        var selector = _order is null
-            ? ".fg05-shell .fg05-order-input"
-            : _truck is null
-                ? ".fg05-shell .fg05-truck-input"
-                : ".fg05-shell .fg05-product-input";
-        try { await JS.InvokeVoidAsync("pdaScan.focus", selector); } catch { }
+        try { await JS.InvokeVoidAsync("pdaScan.focus", ".fg05-shell .fg05-barcode-input"); } catch { }
     }
 
     private static string Normalize(string? value) => string.IsNullOrWhiteSpace(value)
