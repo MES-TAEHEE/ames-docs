@@ -189,4 +189,13 @@
   <data name="NoStationsRegistered" xml:space="preserve"><value>이 라인에 등록된 스테이션이 없습니다 — 관리자에게 문의하세요</value></data>
   <data name="MasterLoadFailed" xml:space="preserve"><value>기준정보 조회 실패: {0}</value></data>
   <data name="Retry" xml:space="preserve"><value>재시도</value></data>
+  <data name="ShiftA" xml:space="preserve">
+    <value>A 교대</value>
+  </data>
+  <data name="ShiftB" xml:space="preserve">
+    <value>B 교대</value>
+  </data>
+  <data name="ShiftC" xml:space="preserve">
+    <value>C 교대</value>
+  </data>
 </root>

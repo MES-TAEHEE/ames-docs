@@ -48,7 +48,7 @@ public sealed class PdaApi
         string employeeNo, string pin,
         string terminalId = "PDA-DEV-01",
         string lineId = "LINE-INJ-01",
-        string shiftCode = "DAY")
+        string shiftCode = "A")
     {
         HttpResponseMessage resp;
         try

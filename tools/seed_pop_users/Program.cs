@@ -29,33 +29,33 @@ internal static class Program
     {
         // ── INJ operators (사출) ───────────────────────────────────────
         ("user-e001", "E001", "Kim Min-jun",     "Production", "1234",
-            """["LINE-INJ-01"]""",                                            "DAY"),
+            """["LINE-INJ-01"]""",                                            "A"),
         ("user-e002", "E002", "Lee Soo-yeon",    "Production", "2345",
-            """["LINE-INJ-01"]""",                                            "DAY"),
+            """["LINE-INJ-01"]""",                                            "A"),
         ("user-e003", "E003", "Park Hyun-woo",   "Production", "3456",
-            """["LINE-INJ-01","LINE-INJ-02"]""",                              "NIGHT"),
+            """["LINE-INJ-01","LINE-INJ-02"]""",                              "B"),
 
         // ── IMG operators (감싸기) ─────────────────────────────────────
         ("user-i001", "I001", "Choi Joo-won",    "Production", "1234",
-            """["LINE-IMG-01"]""",                                            "DAY"),
+            """["LINE-IMG-01"]""",                                            "A"),
         ("user-i002", "I002", "Han Ji-hye",      "Production", "2345",
-            """["LINE-IMG-01"]""",                                            "DAY"),
+            """["LINE-IMG-01"]""",                                            "A"),
 
         // ── PNT operators (분체도장) ───────────────────────────────────
         ("user-p001", "P001", "Jeong Min-su",    "Production", "1234",
-            """["LINE-PNT-01"]""",                                            "DAY"),
+            """["LINE-PNT-01"]""",                                            "A"),
         ("user-p002", "P002", "Yoon Eun-bi",     "Production", "2345",
-            """["LINE-PNT-01"]""",                                            "DAY"),
+            """["LINE-PNT-01"]""",                                            "A"),
 
         // ── QC inspectors (품질) ───────────────────────────────────────
         ("user-q001", "Q001", "Kim Hye-jin",     "Quality",    "1234",
-            """["LINE-QC-01"]""",                                             "DAY"),
+            """["LINE-QC-01"]""",                                             "A"),
         ("user-q002", "Q002", "Park Jae-won",    "Quality",    "2345",
-            """["LINE-QC-01"]""",                                             "DAY"),
+            """["LINE-QC-01"]""",                                             "A"),
 
         // ── Supervisor with access to all lines ────────────────────────
         ("user-s001", "S001", "Supervisor Choi", "Production", "9999",
-            null /* all lines */,                                             "DAY"),
+            null /* all lines */,                                             "A"),
     };
 
     private static int Main()

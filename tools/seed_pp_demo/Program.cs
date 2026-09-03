@@ -243,7 +243,7 @@ internal static class Program
     {
         var rng = new Random(2028);
         var lines = new[] { "LINE-INJ-01", "LINE-INJ-02", "LINE-IMG-01" };
-        var shifts = new[] { "DAY", "NIGHT" };
+        var shifts = new[] { "A", "B" };   // 공통코드 WORK_SHIFT 기준 (DAY/NIGHT → A/B)
         for (var d = -7; d < 0; d++)
         {
             foreach (var line in lines)

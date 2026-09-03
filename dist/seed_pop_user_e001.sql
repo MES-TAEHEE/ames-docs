@@ -71,7 +71,7 @@ WHEN MATCHED THEN UPDATE SET
     EmployeeNo       = 'E001',
     EmployeeName     = N'Kim Min-jun',
     Department       = 'Production',
-    DefaultShift     = 'DAY',
+    DefaultShift     = 'A',
     AssignedLines    = N'["LINE-INJ-01"]',
     PinHash          = @PinHash,
     AccountStatus    = 'Active',
@@ -81,7 +81,7 @@ WHEN NOT MATCHED THEN INSERT
     (UserID, EmployeeNo, EmployeeName, Department, PlantCode, DefaultShift,
      AssignedLines, PinHash, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
 VALUES
-    (@UserId, 'E001', N'Kim Min-jun', 'Production', 'SEH-US-01', 'DAY',
+    (@UserId, 'E001', N'Kim Min-jun', 'Production', 'SEH-US-01', 'A',
      N'["LINE-INJ-01"]', @PinHash, 'Active', 0, 'seed', SYSDATETIME());
 PRINT CONCAT('SYS_UserProfile E001: ', @@ROWCOUNT, '행 처리됨');
 GO

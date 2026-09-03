@@ -189,4 +189,13 @@
   <data name="NoStationsRegistered" xml:space="preserve"><value>No stations registered for this line — contact an administrator</value></data>
   <data name="MasterLoadFailed" xml:space="preserve"><value>Master data load failed: {0}</value></data>
   <data name="Retry" xml:space="preserve"><value>RETRY</value></data>
+  <data name="ShiftA" xml:space="preserve">
+    <value>SHIFT A</value>
+  </data>
+  <data name="ShiftB" xml:space="preserve">
+    <value>SHIFT B</value>
+  </data>
+  <data name="ShiftC" xml:space="preserve">
+    <value>SHIFT C</value>
+  </data>
 </root>

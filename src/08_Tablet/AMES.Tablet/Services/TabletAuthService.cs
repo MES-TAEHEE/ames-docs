@@ -15,7 +15,7 @@ public sealed class TabletAuthService(HttpClient http, TabletAuthState auth)
         try
         {
             response = await http.PostAsJsonAsync("/api/auth/login",
-                new LoginRequest(employeeNo, pin, "TABLET-01", "WAREHOUSE", "DAY"));
+                new LoginRequest(employeeNo, pin, "TABLET-01", "WAREHOUSE", "A"));
         }
         catch
         {

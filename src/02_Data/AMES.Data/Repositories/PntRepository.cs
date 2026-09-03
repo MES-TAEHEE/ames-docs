@@ -440,7 +440,7 @@ public sealed class PntRepository
     {
         const string sql = """
             SELECT  ISNULL(p.LineID,@L) AS LineID,
-                    CASE WHEN DATEPART(hour, v.IssuedAt) BETWEEN 6 AND 17 THEN 'DAY' ELSE 'NIGHT' END AS ShiftCode,
+                    CASE WHEN DATEPART(hour, v.IssuedAt) BETWEEN 8 AND 15 THEN 'A' WHEN DATEPART(hour, v.IssuedAt) BETWEEN 16 AND 23 THEN 'B' ELSE 'C' END AS ShiftCode,
                     COUNT(CASE WHEN v.Status IN ('CONFIRMED','LABELED','CLOSED') THEN 1 END) AS LotsClosed,
                     SUM(ISNULL(v.ConfirmedQty,0)) AS GoodQty,
                     SUM(ISNULL(v.DefectQty,0))    AS DefectQty
@@ -448,7 +448,7 @@ public sealed class PntRepository
             JOIN    dbo.PNT_DailyPlan  p ON p.PlanID = v.PlanID
             WHERE   p.PlanDate = CAST(GETDATE() AS DATE)
               AND   p.LineID   = @L
-            GROUP BY CASE WHEN DATEPART(hour, v.IssuedAt) BETWEEN 6 AND 17 THEN 'DAY' ELSE 'NIGHT' END,
+            GROUP BY CASE WHEN DATEPART(hour, v.IssuedAt) BETWEEN 8 AND 15 THEN 'A' WHEN DATEPART(hour, v.IssuedAt) BETWEEN 16 AND 23 THEN 'B' ELSE 'C' END,
                      ISNULL(p.LineID,@L);
             """;
         using var conn = _factory.OpenConnection();

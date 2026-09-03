@@ -33,7 +33,7 @@ public sealed class AppConfig
     {
         ConnectionString = root.GetConnectionString("AMES")
             ?? throw new InvalidOperationException("ConnectionStrings:AMES is missing in appsettings.json");
-        DefaultShift = root["PopTerminal:DefaultShift"] ?? "DAY";
+        DefaultShift = root["PopTerminal:DefaultShift"] ?? "A";   // 공통코드 WORK_SHIFT 기준
 
         Language     = (root["PopTerminal:Language"] ?? "ko").ToLowerInvariant() == "en" ? "en" : "ko";
 

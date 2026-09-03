@@ -67,12 +67,13 @@ internal static class PopLang
         _             => code,
     };
 
-    /// <summary>교대 코드 → 표시명.</summary>
+    /// <summary>교대 코드 → 표시명. 코드는 공통코드 WORK_SHIFT(A/B/C) 기준.</summary>
     public static string Shift(string code) => code switch
     {
-        "DAY"   => T("ShiftDay"),
-        "NIGHT" => T("ShiftNight"),
-        _       => code,
+        "A" => T("ShiftA"),
+        "B" => T("ShiftB"),
+        "C" => T("ShiftC"),
+        _   => code,
     };
 
     private static string LoadDefault()
