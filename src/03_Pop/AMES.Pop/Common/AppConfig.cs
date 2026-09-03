@@ -14,11 +14,13 @@ public sealed class AppConfig
     /// <summary>화면 표시 언어: "ko"(기본) 또는 "en". PopLang 초기값.</summary>
     public string Language { get; }
 
-    /// <summary>라벨 재출력용 ZPL 프린터 설정 (없으면 File 모드 기본값).</summary>
+    /// <summary>라벨 ZPL 프린터 설정 — Mode: Tcp(네트워크) · Spooler(Windows 큐, USB) · File(기본값).</summary>
     public string PrinterMode      { get; }
     public string PrinterHost      { get; }
     public int    PrinterPort      { get; }
     public string PrinterOutputDir { get; }
+    /// <summary>Spooler 모드 전용 — Windows 에 등록된 프린터 이름.</summary>
+    public string PrinterName      { get; }
 
     /// <summary>라벨 자동 발행 폴링 주기(ms). 0 이하면 자동 발행 비활성.</summary>
     public int PrinterPollMs { get; }
@@ -41,6 +43,7 @@ public sealed class AppConfig
         PrinterHost      = root["PopTerminal:Printer:Host"]      ?? "127.0.0.1";
         PrinterPort      = int.TryParse(root["PopTerminal:Printer:Port"], out var pp) ? pp : 9100;
         PrinterOutputDir = root["PopTerminal:Printer:OutputDir"] ?? "labels";
+        PrinterName      = root["PopTerminal:Printer:Name"]      ?? "";
         PrinterPollMs      = int.TryParse(root["PopTerminal:Printer:PollMs"], out var pms) ? pms : 1000;
         PrinterMaxFailures = int.TryParse(root["PopTerminal:Printer:MaxFailures"], out var pmf) ? pmf : 3;
     }

@@ -14,10 +14,11 @@ internal static class LabelPrinter
         var cfg = AppConfig.Current;
         var printer = new ZplPrinter(new ZplPrinterOptions
         {
-            Mode      = cfg.PrinterMode,
-            Host      = cfg.PrinterHost,
-            Port      = cfg.PrinterPort,
-            OutputDir = cfg.PrinterOutputDir,
+            Mode        = cfg.PrinterMode,
+            Host        = cfg.PrinterHost,
+            Port        = cfg.PrinterPort,
+            OutputDir   = cfg.PrinterOutputDir,
+            PrinterName = cfg.PrinterName,
         });
         var zpl = ZplLabelBuilder.Build(new ZplLabel(
             lot.LotCode, lot.ItemNo, lot.ItemName, lot.ColorCode, lot.CavityPos,
