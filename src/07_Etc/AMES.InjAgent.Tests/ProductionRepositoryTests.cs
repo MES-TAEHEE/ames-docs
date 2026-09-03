@@ -11,7 +11,7 @@ public class ProductionRepositoryTests
 {
     static readonly string Conn =
         Environment.GetEnvironmentVariable("AMES_TEST_CONN")
-        ?? "Server=192.168.1.137,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=10;";
+        ?? "Server=192.168.1.100,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=10;";
 
     static AmesConnectionFactory? TryFactory()
     {
