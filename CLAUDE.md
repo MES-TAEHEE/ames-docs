@@ -292,6 +292,28 @@ PP-003 일괄 생성은 WO 생성 → Release(단계별 라인) → 단계마다
 
 ---
 
+## POP 시리얼 스캐너 (Zebra DS3678, USB CDC)
+
+INJ-MAIN 은 HID(키보드 웨지) 외에 시리얼 스캔도 받는다. 호스트(`PopBlazorForm`)가 앱 기동 시 `SerialScannerReader` 로 COM 포트를 열고, `ScannerService.OnScan` 으로 화면에 전달하며, INJ-MAIN 이 구독해 HID 와 같은 `ConfirmScan` 경로로 확정한다. 팝업이 열려 있으면 시리얼 스캔은 무시된다.
+
+```json
+"PopTerminal": { "Scanner": { "PortName": "COM5", "ReconnectMs": 3000 } }
+```
+
+- `PortName` 이 비어 있으면 비활성(HID 만). 리포지토리 기본은 빈 값 — 터미널마다 장치 관리자에서 COM 번호를 확인해 넣는다.
+- 보레이트·패리티 등은 설정에 없다. USB CDC 는 이 값을 무시하며 코드가 9600/8/N/1 + DTR/RTS on 으로 고정한다.
+- 연결 실패는 토스트 없이 `{Printer:OutputDir}/scanner-YYYYMMDD.log` + 재시도. 상단바 `🔌 스캐너` 칩이 회색이면 포트를 못 잡은 것이다.
+
+**스캐너 사전 설정 (크래들 CR8178 에 걸린다 — 페어링된 스캐너로 설정 바코드를 찍는다):**
+
+| 항목 | 값 | 주의 |
+|---|---|---|
+| 호스트 인터페이스 | **USB CDC Host** | "SSI over USB CDC"·"SNAPI" 는 바이너리 프로토콜이라 텍스트가 안 온다 |
+| Scan Suffix 1 | CR (Enter) | 파서는 CR/LF 둘 다 종결로 받는다 |
+| PC 드라이버 | Zebra CDC 드라이버 권장, Windows 10/11 내장 `usbser` 도 동작 | 장치 관리자에 "Zebra CDC Scanner" 또는 "Symbol Bar Code Scanner::CDC" 로 보이면 정상 |
+
+---
+
 ## 사출 라벨 발행 — 배포 순서 (중요)
 
 라벨 발행 주체가 InjAgent 에서 Pop 으로 이전됐다. 두 프로세스는 독립 배포되므로 **순서를 지켜야 한다.**

@@ -28,6 +28,12 @@ public sealed class AppConfig
     /// <summary>연속 출력 실패가 이 횟수에 도달하면 자동 발행을 멈춘다.</summary>
     public int PrinterMaxFailures { get; }
 
+    /// <summary>시리얼 스캐너 COM 포트. 비어 있으면 시리얼 스캐너 비활성(HID 만).</summary>
+    public string ScannerPortName { get; }
+
+    /// <summary>포트 열기 실패·끊김 후 재시도 간격(ms).</summary>
+    public int ScannerReconnectMs { get; }
+
     private static readonly Lazy<AppConfig> _instance = new(Load);
     public static AppConfig Current => _instance.Value;
 
@@ -46,6 +52,9 @@ public sealed class AppConfig
         PrinterName      = root["PopTerminal:Printer:Name"]      ?? "";
         PrinterPollMs      = int.TryParse(root["PopTerminal:Printer:PollMs"], out var pms) ? pms : 1000;
         PrinterMaxFailures = int.TryParse(root["PopTerminal:Printer:MaxFailures"], out var pmf) ? pmf : 3;
+
+        ScannerPortName    = (root["PopTerminal:Scanner:PortName"] ?? string.Empty).Trim();
+        ScannerReconnectMs = int.TryParse(root["PopTerminal:Scanner:ReconnectMs"], out var srm) && srm > 0 ? srm : 3000;
     }
 
     private static AppConfig Load()
