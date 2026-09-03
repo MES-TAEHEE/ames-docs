@@ -15,7 +15,7 @@ public class InjLotRepositoryTests
     // 개발 DB 는 원격(appsettings.Development.json 과 같은 서버). 다른 서버로 돌릴 땐 AMES_TEST_CONN 으로 덮어쓴다.
     static readonly string Conn =
         Environment.GetEnvironmentVariable("AMES_TEST_CONN")
-        ?? "Server=192.168.2.137,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=10;";
+        ?? "Server=192.168.1.137,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=10;";
 
     static AmesConnectionFactory? TryFactory()
     {

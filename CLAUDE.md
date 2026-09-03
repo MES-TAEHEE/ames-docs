@@ -8,7 +8,8 @@
 
 - **회사**: Seyon (한국 자동차 부품사)
 - **DB**: `AMES_DEV` @ SQL Server 2022, mixed-mode auth, user `ames_app` — **콜레이션 `Korean_Wansung_CI_AS`**
-  - 기본(개발서버): `192.168.2.137` — 소스의 모든 활성 접속문자열이 여기를 가리킨다
+  - 기본(개발서버): `192.168.1.137` — 소스의 모든 활성 접속문자열이 여기를 가리킨다 (2026-09-03 `192.168.2.137` 에서 변경)
+  - **IP 가 바뀌면 게시본도 다시 올릴 것.** 배포본 `appsettings` 가 구 IP 로 남으면 기동 시드가 접속 시도에 붙잡혀 ANCM `startupTimeLimit`(기본 120초)을 넘기고 **모든 요청이 HTTP 500** 이 된다. 이벤트 로그에는 `Managed server didn't initialize after 120000 ms` 로 찍힌다
   - 비상용(로컬): `localhost\MSSQLSERVER01` — **명명 인스턴스**다. 개발서버가 죽었을 때만 쓰며, 개발서버와 동일하게 유지한다
   - **`Connect Timeout=30` 을 낮추지 말 것.** 5로 두면 원격 + `Encrypt=True` 의 TLS 사전 로그인 핸드셰이크(실측 5초 초과)에 걸려 연결이 끊긴다. TCP 1433 은 열려 있어서 오진하기 쉽다
   - 전환은 파일 수정이 아니라 환경변수 `ConnectionStrings__AMES` 오버라이드로 한다
