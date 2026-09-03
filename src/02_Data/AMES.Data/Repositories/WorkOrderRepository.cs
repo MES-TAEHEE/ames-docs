@@ -26,7 +26,7 @@ public sealed class WorkOrderRepository
     /// </summary>
     public sealed record RoutingStepPreview(
         int StepSeq, string ProcessCode, string? BopLineId, bool LineRequired,
-        IReadOnlyList<LineOption> Candidates);
+        IReadOnlyList<LineOption> Candidates, int? StdCycleSec = null);
 
     public sealed record StepLineChoice(int StepSeq, string? LineId);
 
@@ -40,14 +40,30 @@ public sealed class WorkOrderRepository
         return ReadPreview(conn, null, woId);
     }
 
-    private static List<RoutingStepPreview> ReadPreview(SqlConnection conn, SqlTransaction? tx, int woId)
+    /// <summary>WO 생성 전(PP-003)에 품목·라우팅으로 보는 템플릿 미리보기. StdCycleSec = 그 공정 BOP 사이클(초).</summary>
+    public List<RoutingStepPreview> PreviewRouting(string itemNo, string routingType)
+    {
+        using var conn = _factory.OpenConnection();
+        return ReadPreview(conn, null, itemNo, routingType);
+    }
+
+    internal static List<RoutingStepPreview> ReadPreview(SqlConnection conn, SqlTransaction? tx, int woId)
+    {
+        string? itemNo = null, routingType = null;
+        using (var cmd = new SqlCommand(
+            "SELECT ItemNo, RoutingType FROM dbo.PP_WorkOrder WHERE WoID = @WoID AND Status IN ('Draft','Planned');", conn, tx))
+        {
+            cmd.Parameters.Add("@WoID", SqlDbType.Int).Value = woId;
+            using var rdr = cmd.ExecuteReader();
+            if (rdr.Read()) { itemNo = rdr["ItemNo"] as string; routingType = rdr["RoutingType"] as string; }
+        }
+        if (itemNo is null || routingType is null) return new();
+        return ReadPreview(conn, tx, itemNo, routingType);
+    }
+
+    private static List<RoutingStepPreview> ReadPreview(SqlConnection conn, SqlTransaction? tx, string itemNo, string routingType)
     {
         const string sql = """
-            DECLARE @ItemNo varchar(20), @RT char(1);
-            SELECT @ItemNo = ItemNo, @RT = RoutingType
-            FROM   dbo.PP_WorkOrder
-            WHERE  WoID = @WoID AND Status IN ('Draft','Planned');
-
             SELECT rs.StepSeq, rs.ProcessCode,
                    (SELECT TOP 1 st.LineID
                     FROM   dbo.MD_Bop b
@@ -62,7 +78,15 @@ public sealed class WorkOrderRepository
                                           JOIN dbo.MD_WorkCenter wc ON wc.WCID = l.WCID
                                           WHERE wc.ProcessCode = rs.ProcessCode
                                             AND ISNULL(l.Status,'ACTIVE') <> 'INACTIVE')
-                             THEN 1 ELSE 0 END AS bit) AS LineRequired
+                             THEN 1 ELSE 0 END AS bit) AS LineRequired,
+                   (SELECT TOP 1 CAST(b.StdCycleTime AS int)
+                    FROM   dbo.MD_Bop b
+                    JOIN   dbo.MD_Station    st ON st.StationCode = b.StationCode
+                    JOIN   dbo.MD_Line       sl ON sl.LineID      = st.LineID
+                    JOIN   dbo.MD_WorkCenter sw ON sw.WCID        = sl.WCID
+                    WHERE  b.ItemNo = @ItemNo AND b.RoutingType = @RT
+                      AND  sw.ProcessCode = rs.ProcessCode
+                    ORDER  BY b.StepSeq) AS StdCycleSec
             FROM   dbo.MD_RoutingStep rs
             WHERE  rs.RoutingType = @RT AND ISNULL(rs.ActiveFlag,1) = 1
             ORDER  BY rs.StepSeq;
@@ -76,13 +100,14 @@ public sealed class WorkOrderRepository
             ORDER  BY wc.ProcessCode, l.LineID;
             """;
         using var cmd = new SqlCommand(sql, conn, tx);
-        cmd.Parameters.Add("@WoID", SqlDbType.Int).Value = woId;
+        cmd.Parameters.Add("@ItemNo", SqlDbType.VarChar, 20).Value = itemNo;
+        cmd.Parameters.Add("@RT",     SqlDbType.Char, 1).Value     = routingType;
         using var rdr = cmd.ExecuteReader();
 
-        var raw = new List<(int Seq, string Proc, string? Bop, bool Req)>();
+        var raw = new List<(int Seq, string Proc, string? Bop, bool Req, int? Cyc)>();
         while (rdr.Read())
             raw.Add((Convert.ToInt32(rdr["StepSeq"]), (string)rdr["ProcessCode"],
-                     rdr["BopLineID"] as string, (bool)rdr["LineRequired"]));
+                     rdr["BopLineID"] as string, (bool)rdr["LineRequired"], rdr["StdCycleSec"] as int?));
 
         var cands = new Dictionary<string, List<LineOption>>();
         if (rdr.NextResult())
@@ -95,7 +120,7 @@ public sealed class WorkOrderRepository
 
         return raw.Select(r => new RoutingStepPreview(
                 r.Seq, r.Proc, r.Bop, r.Req,
-                cands.TryGetValue(r.Proc, out var c) ? c : Array.Empty<LineOption>()))
+                cands.TryGetValue(r.Proc, out var c) ? c : Array.Empty<LineOption>(), r.Cyc))
             .ToList();
     }
 
@@ -148,7 +173,7 @@ public sealed class WorkOrderRepository
     /// </summary>
     public List<WorkOrderDto> ListForLine(string lineId)
     {
-        const string sql = """
+        const string sql = $"""
             SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
                    w.OrderQty, w.OpenQty, r.CompletedQty, r.LineID,
                    w.MoldID, w.RecipeID, w.DueDate, r.Status, r.TerminalLock,
@@ -158,12 +183,8 @@ public sealed class WorkOrderRepository
             JOIN   dbo.PP_WorkOrder w ON w.WoID   = r.WoID
             JOIN   dbo.MD_Item      i ON i.ItemNo = w.ItemNo
             WHERE  r.LineID = @LineID
-              AND  r.Status IN ('Released','In Progress')
-              AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
-            ORDER  BY CASE WHEN r.Status='In Progress' THEN 0 ELSE 1 END,
-                      ISNULL(w.Priority,5),
-                      ISNULL(w.DueDate,'9999-12-31'),
-                      w.WoID, r.StepSeq;
+              AND  {OpenStepWhere}
+            ORDER  BY {OpenStepOrder}, r.StepSeq;
             """;
 
         return Query(sql, cmd => cmd.Parameters.Add("@LineID", SqlDbType.VarChar, 20).Value = lineId);
@@ -217,6 +238,53 @@ public sealed class WorkOrderRepository
         {
             cmd.Parameters.Add("@LineID",     SqlDbType.VarChar, 20).Value = lineId;
             cmd.Parameters.Add("@TerminalID", SqlDbType.VarChar, 20).Value = terminalId;
+        }).FirstOrDefault();
+    }
+
+    /// <summary>
+    /// 품번 기준 "열린 WO 단계" 선택 규칙. ConfirmByLotCode(실적 귀속)와 INJ-MAIN 품번 선택(화면 표시)이
+    /// 같은 문자열을 써야 한다 — 어긋나면 작업자가 보는 활성 WO 와 실제 실적이 올라가는 WO 가 달라진다.
+    /// 파라미터 @Line, @Item. 별칭 r = PP_WorkOrderRouting, w = PP_WorkOrder.
+    /// </summary>
+    /// <summary>"열린 단계" 조건. 별칭 r = PP_WorkOrderRouting, w = PP_WorkOrder. ListForLine·FindOpenForItem·ConfirmByLotCode 공용.</summary>
+    internal const string OpenStepWhere = """
+        r.Status IN ('Released','In Progress')
+              AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+        """;
+
+    /// <summary>열린 단계 우선순위: In Progress → Priority → DueDate → WoID. 끝에 세부 정렬을 덧붙일 수 있다.</summary>
+    internal const string OpenStepOrder = """
+        CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
+                  ISNULL(w.Priority,5),
+                  ISNULL(w.DueDate,'9999-12-31'),
+                  w.WoID
+        """;
+
+    internal const string OpenStepForItemFilter = $"""
+        WHERE  r.LineID = @Line AND w.ItemNo = @Item
+          AND  {OpenStepWhere}
+        ORDER  BY {OpenStepOrder}
+        """;
+
+    /// <summary>이 라인에서 품번의 열린 WO 단계 하나. 없으면 null. INJ-MAIN 이 품번 선택 시 활성 WO 로 쓴다.</summary>
+    public WorkOrderDto? FindOpenForItem(string lineId, string itemNo)
+    {
+        const string sql = """
+            SELECT TOP 1 w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
+                   w.OrderQty, w.OpenQty, r.CompletedQty, r.LineID,
+                   w.MoldID, w.RecipeID, w.DueDate, r.Status, r.TerminalLock,
+                   ISNULL(w.Priority,5) AS Priority, w.RoutingType,
+                   r.RoutingLineID, r.StepSeq, r.ProcessCode
+            FROM   dbo.PP_WorkOrderRouting r
+            JOIN   dbo.PP_WorkOrder w ON w.WoID   = r.WoID
+            JOIN   dbo.MD_Item      i ON i.ItemNo = w.ItemNo
+
+            """ + OpenStepForItemFilter + ";";
+
+        return Query(sql, cmd =>
+        {
+            cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
+            cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
         }).FirstOrDefault();
     }
 
@@ -275,6 +343,7 @@ public sealed class WorkOrderRepository
     /// 단계 CompletedQty += qty. 헤더 OrderQty 도달 시 단계 Closed·ActualEnd.
     /// 이 단계가 "라인이 있는 마지막 단계"(LineID NOT NULL 중 최대 StepSeq)면 헤더 CompletedQty 를 동기화하고,
     /// 도달 시 헤더 Closed·ActualEnd. 반환: 단계의 새 CompletedQty. 단계가 없으면 SqlException(50001).
+    /// 첫 실적에서 단계·헤더를 Released → In Progress 로 올리고 ActualStart 를 찍는다(INJ 는 AcceptWo 를 부르지 않는다).
     /// </summary>
     internal static decimal BumpStepCompleted(SqlConnection conn, SqlTransaction tx, int routingLineId, decimal qty, string actor)
     {
@@ -287,12 +356,22 @@ public sealed class WorkOrderRepository
             WHERE  r.RoutingLineID = @RL;
             IF @WoID IS NULL THROW 50001, 'Routing step not found.', 1;
 
+            -- 접수(AcceptWo)가 없는 INJ 에서는 첫 실적이 착수다. Released 만 올린다 — Closed 는 되돌리지 않는다.
             UPDATE dbo.PP_WorkOrderRouting
             SET    CompletedQty = CompletedQty + @Qty,
-                   Status       = CASE WHEN CompletedQty + @Qty >= @OrderQty THEN 'Closed' ELSE Status END,
+                   Status       = CASE WHEN CompletedQty + @Qty >= @OrderQty THEN 'Closed'
+                                       WHEN Status = 'Released'              THEN 'In Progress'
+                                       ELSE Status END,
+                   ActualStart  = ISNULL(ActualStart, SYSDATETIME()),
                    ActualEnd    = CASE WHEN CompletedQty + @Qty >= @OrderQty AND ActualEnd IS NULL THEN SYSDATETIME() ELSE ActualEnd END,
                    ModifiedBy   = @Actor, ModifiedTS = SYSDATETIME()
             WHERE  RoutingLineID = @RL;
+
+            UPDATE dbo.PP_WorkOrder
+            SET    Status      = CASE WHEN Status = 'Released' THEN 'In Progress' ELSE Status END,
+                   ActualStart = ISNULL(ActualStart, SYSDATETIME()),
+                   ModifiedBy  = @Actor, ModifiedTS = SYSDATETIME()
+            WHERE  WoID = @WoID AND ISNULL(Status,'Draft') NOT IN ('Cancelled','Closed');
 
             SELECT @New = CompletedQty FROM dbo.PP_WorkOrderRouting WHERE RoutingLineID = @RL;
             SELECT @LastSeq = MAX(StepSeq) FROM dbo.PP_WorkOrderRouting WHERE WoID = @WoID AND LineID IS NOT NULL;
@@ -360,75 +439,83 @@ public sealed class WorkOrderRepository
         using var tx   = conn.BeginTransaction();
         try
         {
-            string? status; string? routingType;
-            // 헤더→단계 순서로 잠그는 유일한 경로. Draft/Planned 만 대상이라 단계 행·터미널이 없어 단계→헤더 경로와 교차하지 않는다.
-            using (var cmd = new SqlCommand(
-                "SELECT Status, RoutingType FROM dbo.PP_WorkOrder WITH (UPDLOCK, ROWLOCK) WHERE WoID = @WoID;", conn, tx))
-            {
-                cmd.Parameters.Add("@WoID", SqlDbType.Int).Value = woId;
-                using var rdr = cmd.ExecuteReader();
-                if (!rdr.Read()) { rdr.Close(); tx.Rollback(); return 0; }
-                status      = rdr["Status"]      as string;
-                routingType = rdr["RoutingType"] as string;
-            }
-            if (status is not ("Draft" or "Planned")) { tx.Rollback(); return 0; }
-            if (routingType is null)
-                throw new InvalidOperationException("WO has no RoutingType; routing template cannot be resolved.");
-
-            var template = ReadPreview(conn, tx, woId);
-            ValidateStepChoices(template, steps);
-
-            using (var cmd = new SqlCommand("""
-                UPDATE dbo.PP_WorkOrder
-                   SET Status     = 'Released',
-                       ReleasedAt = SYSDATETIME(),
-                       ReleasedBy = @Actor,
-                       ModifiedTS = SYSDATETIME(),
-                       ModifiedBy = @Actor
-                 WHERE WoID = @WoID AND Status IN ('Draft','Planned');
-                DELETE FROM dbo.PP_WorkOrderRouting WHERE WoID = @WoID;
-                """, conn, tx))
-            {
-                cmd.Parameters.Add("@WoID",  SqlDbType.Int).Value           = woId;
-                cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
-                cmd.ExecuteNonQuery();
-            }
-
-            const string insSql = """
-                INSERT INTO dbo.PP_WorkOrderRouting
-                       (WoID, StepSeq, ProcessCode, LineID, StdCycleSec, StdYieldPct, Status, CompletedQty, CreatedBy, CreatedTS)
-                SELECT @WoID, @Seq, @Proc, @LineID,
-                       (SELECT TOP 1 CAST(b.StdCycleTime AS int)
-                        FROM   dbo.MD_Bop b
-                        JOIN   dbo.MD_Station    st ON st.StationCode = b.StationCode
-                        JOIN   dbo.MD_Line       sl ON sl.LineID      = st.LineID
-                        JOIN   dbo.MD_WorkCenter sw ON sw.WCID        = sl.WCID
-                        WHERE  b.ItemNo = w.ItemNo AND b.RoutingType = w.RoutingType
-                          AND  sw.ProcessCode = @Proc
-                        ORDER  BY b.StepSeq),
-                       NULL, 'Released', 0, @Actor, SYSDATETIME()
-                FROM   dbo.PP_WorkOrder w
-                WHERE  w.WoID = @WoID;
-                """;
-            var choice = steps.ToDictionary(s => s.StepSeq, s => s.LineId);
-            foreach (var t in template)
-            {
-                using var ins = new SqlCommand(insSql, conn, tx);
-                ins.Parameters.Add("@WoID",   SqlDbType.Int).Value           = woId;
-                ins.Parameters.Add("@Seq",    SqlDbType.Int).Value           = t.StepSeq;
-                ins.Parameters.Add("@Proc",   SqlDbType.VarChar, 10).Value   = t.ProcessCode;
-                ins.Parameters.Add("@LineID", SqlDbType.VarChar, 20).Value   =
-                    t.LineRequired ? (object)choice[t.StepSeq]! : DBNull.Value;
-                ins.Parameters.Add("@Actor",  SqlDbType.NVarChar, 450).Value = actor;
-                ins.ExecuteNonQuery();
-            }
-
+            if (ReleaseCore(conn, tx, woId, steps, actor) == 0) { tx.Rollback(); return 0; }
             tx.Commit();
             return 1;
         }
         catch { tx.Rollback(); throw; }
     }
 
+    /// <summary>
+    /// ReleaseWo 본체 — 호출자의 트랜잭션 안에서 실행하며 커밋/롤백은 호출자가 한다 (PP-003 일괄 생성이 공유).
+    /// 반환 0 = 대상 아님(변경 없음). 검증 실패는 예외.
+    /// </summary>
+    internal static int ReleaseCore(SqlConnection conn, SqlTransaction tx, int woId, IReadOnlyList<StepLineChoice> steps, string actor)
+    {
+        string? status; string? routingType;
+        // 헤더→단계 순서로 잠그는 유일한 경로. Draft/Planned 만 대상이라 단계 행·터미널이 없어 단계→헤더 경로와 교차하지 않는다.
+        using (var cmd = new SqlCommand(
+            "SELECT Status, RoutingType FROM dbo.PP_WorkOrder WITH (UPDLOCK, ROWLOCK) WHERE WoID = @WoID;", conn, tx))
+        {
+            cmd.Parameters.Add("@WoID", SqlDbType.Int).Value = woId;
+            using var rdr = cmd.ExecuteReader();
+            if (!rdr.Read()) return 0;
+            status      = rdr["Status"]      as string;
+            routingType = rdr["RoutingType"] as string;
+        }
+        if (status is not ("Draft" or "Planned")) return 0;
+        if (routingType is null)
+            throw new InvalidOperationException("WO has no RoutingType; routing template cannot be resolved.");
+
+        var template = ReadPreview(conn, tx, woId);
+        ValidateStepChoices(template, steps);
+
+        using (var cmd = new SqlCommand("""
+            UPDATE dbo.PP_WorkOrder
+               SET Status     = 'Released',
+                   ReleasedAt = SYSDATETIME(),
+                   ReleasedBy = @Actor,
+                   ModifiedTS = SYSDATETIME(),
+                   ModifiedBy = @Actor
+             WHERE WoID = @WoID AND Status IN ('Draft','Planned');
+            DELETE FROM dbo.PP_WorkOrderRouting WHERE WoID = @WoID;
+            """, conn, tx))
+        {
+            cmd.Parameters.Add("@WoID",  SqlDbType.Int).Value           = woId;
+            cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
+            cmd.ExecuteNonQuery();
+        }
+
+        const string insSql = """
+            INSERT INTO dbo.PP_WorkOrderRouting
+                   (WoID, StepSeq, ProcessCode, LineID, StdCycleSec, StdYieldPct, Status, CompletedQty, CreatedBy, CreatedTS)
+            SELECT @WoID, @Seq, @Proc, @LineID,
+                   (SELECT TOP 1 CAST(b.StdCycleTime AS int)
+                    FROM   dbo.MD_Bop b
+                    JOIN   dbo.MD_Station    st ON st.StationCode = b.StationCode
+                    JOIN   dbo.MD_Line       sl ON sl.LineID      = st.LineID
+                    JOIN   dbo.MD_WorkCenter sw ON sw.WCID        = sl.WCID
+                    WHERE  b.ItemNo = w.ItemNo AND b.RoutingType = w.RoutingType
+                      AND  sw.ProcessCode = @Proc
+                    ORDER  BY b.StepSeq),
+                   NULL, 'Released', 0, @Actor, SYSDATETIME()
+            FROM   dbo.PP_WorkOrder w
+            WHERE  w.WoID = @WoID;
+            """;
+        var choice = steps.ToDictionary(s => s.StepSeq, s => s.LineId);
+        foreach (var t in template)
+        {
+            using var ins = new SqlCommand(insSql, conn, tx);
+            ins.Parameters.Add("@WoID",   SqlDbType.Int).Value           = woId;
+            ins.Parameters.Add("@Seq",    SqlDbType.Int).Value           = t.StepSeq;
+            ins.Parameters.Add("@Proc",   SqlDbType.VarChar, 10).Value   = t.ProcessCode;
+            ins.Parameters.Add("@LineID", SqlDbType.VarChar, 20).Value   =
+                t.LineRequired ? (object)choice[t.StepSeq]! : DBNull.Value;
+            ins.Parameters.Add("@Actor",  SqlDbType.NVarChar, 450).Value = actor;
+            ins.ExecuteNonQuery();
+        }
+        return 1;
+    }
     /// <summary>템플릿 단계 집합과 steps 가 1:1 이고, 라인 필수 단계는 그 공정의 활성 라인이 지정됐는지.</summary>
     private static void ValidateStepChoices(IReadOnlyList<RoutingStepPreview> template, IReadOnlyList<StepLineChoice> steps)
     {

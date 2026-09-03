@@ -4,7 +4,6 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
-  <data name="AcceptWo" xml:space="preserve"><value>Accept WO</value></data>
   <data name="AckSupervisorPinAutoAccept" xml:space="preserve"><value>ACK (supervisor PIN — auto-accept)</value></data>
   <data name="Acked" xml:space="preserve"><value>ACKED</value></data>
   <data name="Active" xml:space="preserve"><value>ACTIVE</value></data>
@@ -60,7 +59,6 @@
   <data name="Good" xml:space="preserve"><value>Good</value></data>
   <data name="Hard" xml:space="preserve"><value>HARD</value></data>
   <data name="HardStop" xml:space="preserve"><value>⛔ 110% — HARD STOP</value></data>
-  <data name="High" xml:space="preserve"><value>HIGH</value></data>
   <data name="High2" xml:space="preserve"><value>HIGH</value></data>
   <data name="HourlyOutput" xml:space="preserve"><value>HOURLY OUTPUT</value></data>
   <data name="HourlyOutputTarget18H" xml:space="preserve"><value>HOURLY OUTPUT (Target 18/h)</value></data>
@@ -88,13 +86,10 @@
   <data name="ManualLotsCreated" xml:space="preserve"><value>{0} lots issued — labels print shortly. Scan to confirm</value></data>
   <data name="ScanIssuedLabelsToConfirm" xml:space="preserve"><value>Scan the issued labels to confirm production</value></data>
   <data name="ManualSaved" xml:space="preserve"><value>Manual entry {0} EA recorded</value></data>
-  <data name="MaterialLotAvailableWithinExpiry" xml:space="preserve"><value>2. Material lot available + within expiry</value></data>
   <data name="Mold" xml:space="preserve"><value>Mold</value></data>
-  <data name="Mold2" xml:space="preserve"><value>MOLD</value></data>
   <data name="MoldAvailable" xml:space="preserve"><value>Available</value></data>
   <data name="MoldMaintenance" xml:space="preserve"><value>Maintenance</value></data>
   <data name="MoldMounted" xml:space="preserve"><value>Mounted</value></data>
-  <data name="MoldMountedMatchesWoRouting" xml:space="preserve"><value>1. Mold mounted matches WO routing</value></data>
   <data name="MoldShotCount" xml:space="preserve"><value>Mold Shot Count</value></data>
   <data name="MountedOn" xml:space="preserve"><value>mounted on</value></data>
   <data name="Name" xml:space="preserve"><value>Name</value></data>
@@ -106,15 +101,13 @@
   <data name="NgLotFixedAt1" xml:space="preserve"><value>(NG lot: fixed at 1)</value></data>
   <data name="NoActiveAndonTapRaiseToHaltTheLineManual" xml:space="preserve"><value>No active andon — tap RAISE to halt the line manually.</value></data>
   <data name="NoActiveWo" xml:space="preserve"><value>(no active WO)</value></data>
-  <data name="NoActiveWorkOrderAcceptAWoFirst" xml:space="preserve"><value>No active work order — accept a WO first.</value></data>
+  <data name="NoActiveWorkOrderAcceptAWoFirst" xml:space="preserve"><value>No active work order — select a part that has an open WO first</value></data>
   <data name="NoChangeInProgress" xml:space="preserve"><value>No change in progress</value></data>
   <data name="NoOpenWoForThisPart" xml:space="preserve"><value>No open work order for this part</value></data>
   <data name="NoManualRegisteredForThisScreen" xml:space="preserve"><value>No manual registered for this screen.</value></data>
   <data name="NoMoldMountedOnThisLine" xml:space="preserve"><value>No mold mounted on this line.</value></data>
-  <data name="NoReleasedWosForThisLinePpPlannerNeedsTo" xml:space="preserve"><value>No Released WOs for this line — PP planner needs to release a WO first.</value></data>
   <data name="NoScansYet" xml:space="preserve"><value>No scans yet</value></data>
   <data name="NoUnconfirmedLotsAgentCollectedShotsWill" xml:space="preserve"><value>No unconfirmed lots — agent-collected shots will appear here.</value></data>
-  <data name="Normal" xml:space="preserve"><value>NORMAL</value></data>
   <data name="Ok" xml:space="preserve"><value>OK</value></data>
   <data name="OkWithinRatedLife" xml:space="preserve"><value>● OK · within rated life</value></data>
   <data name="OneRowPerCycle" xml:space="preserve"><value>One row per cycle</value></data>
@@ -122,10 +115,8 @@
   <data name="Operator" xml:space="preserve"><value>Operator</value></data>
   <data name="OrEnterPin" xml:space="preserve"><value>OR · ENTER PIN</value></data>
   <data name="PartNo" xml:space="preserve"><value>PART NO</value></data>
-  <data name="Phase0MasterDataCompleteBrMd04" xml:space="preserve"><value>5. Phase-0 master data complete (BR-MD-04)</value></data>
   <data name="PinMustBe4Digits" xml:space="preserve"><value>PIN must be 4 digits</value></data>
   <data name="Plan" xml:space="preserve"><value>PLAN</value></data>
-  <data name="PreStartChecklist" xml:space="preserve"><value>PRE-START CHECKLIST</value></data>
   <data name="ProductionEntry" xml:space="preserve"><value>PRODUCTION ENTRY</value></data>
   <data name="ProductionHaltedSupervisorPinRequiredToA" xml:space="preserve"><value>Production halted — supervisor PIN required to acknowledge.</value></data>
   <data name="ProductionStatusSupervisorView" xml:space="preserve"><value>PRODUCTION STATUS (SUPERVISOR VIEW)</value></data>
@@ -134,8 +125,6 @@
   <data name="Raw" xml:space="preserve"><value>RAW</value></data>
   <data name="Raw2" xml:space="preserve"><value>Raw</value></data>
   <data name="Ready" xml:space="preserve"><value>READY</value></data>
-  <data name="Recipe" xml:space="preserve"><value>RECIPE</value></data>
-  <data name="RecipeLoadedIntoPlcPressureTempTime" xml:space="preserve"><value>3. Recipe loaded into PLC (pressure / temp / time)</value></data>
   <data name="ReplacementMold" xml:space="preserve"><value>REPLACEMENT MOLD</value></data>
   <data name="Reprint" xml:space="preserve"><value>Reprint</value></data>
   <data name="ReprintFailed" xml:space="preserve"><value>Reprint failed</value></data>
@@ -145,12 +134,10 @@
   <data name="Routing" xml:space="preserve"><value>ROUTING</value></data>
   <data name="Run" xml:space="preserve"><value>RUN</value></data>
   <data name="Running" xml:space="preserve"><value>running</value></data>
-  <data name="SafetyGuardsClosedInterlockOk" xml:space="preserve"><value>4. Safety guards closed + interlock OK</value></data>
   <data name="ScanEmployeeBadge" xml:space="preserve"><value>Scan Employee Badge</value></data>
   <data name="ScanHistoryToday" xml:space="preserve"><value>SCAN HISTORY · TODAY</value></data>
   <data name="ScanYourBadgeOrEnterYourPin" xml:space="preserve"><value>Scan your badge or enter your PIN</value></data>
   <data name="SecShot" xml:space="preserve"><value>sec / shot</value></data>
-  <data name="SelectAWorkOrderFromTheListFirst" xml:space="preserve"><value>Select a work order from the list first.</value></data>
   <data name="SelectReplacement" xml:space="preserve"><value>select replacement</value></data>
   <data name="SelectUser" xml:space="preserve"><value>SELECT USER</value></data>
   <data name="SelectedUser" xml:space="preserve"><value>Selected {0}</value></data>
@@ -171,14 +158,12 @@
   <data name="SupervisorAcknowledged30SSafetyHoldBefor" xml:space="preserve"><value>Supervisor acknowledged — 30 s safety hold before Resume.</value></data>
   <data name="SupervisorCalled" xml:space="preserve"><value>SUPERVISOR CALLED</value></data>
   <data name="TapToSwitchUser" xml:space="preserve"><value>Tap to switch user</value></data>
-  <data name="TargetQty" xml:space="preserve"><value>TARGET QTY</value></data>
   <data name="Time" xml:space="preserve"><value>TIME</value></data>
   <data name="Today" xml:space="preserve"><value>today</value></data>
   <data name="TodayAcrossAllInjLines" xml:space="preserve"><value>today across all INJ lines</value></data>
   <data name="TodayDefect" xml:space="preserve"><value>Today Defect</value></data>
   <data name="TodayGood" xml:space="preserve"><value>Today Good</value></data>
   <data name="TodayShotsPlc" xml:space="preserve"><value>Today Shots (PLC)</value></data>
-  <data name="Total" xml:space="preserve"><value>TOTAL</value></data>
   <data name="Total2" xml:space="preserve"><value>total</value></data>
   <data name="Unconfirmed" xml:space="preserve"><value>Unconfirmed</value></data>
   <data name="UnconfirmedLotsNewestFirst" xml:space="preserve"><value>UNCONFIRMED LOTS · NEWEST FIRST</value></data>
@@ -186,18 +171,17 @@
   <data name="UserGuide" xml:space="preserve"><value>USER GUIDE</value></data>
   <data name="Warn" xml:space="preserve"><value>WARN</value></data>
   <data name="WelcomeUser" xml:space="preserve"><value>OK · Welcome, {0}</value></data>
-  <data name="Wo" xml:space="preserve"><value>WO</value></data>
-  <data name="Wo2" xml:space="preserve"><value>WO</value></data>
   <data name="WoCancelled" xml:space="preserve"><value>Cancelled</value></data>
   <data name="WoClosed" xml:space="preserve"><value>Closed</value></data>
-  <data name="WoConfirmPreStartChecklist" xml:space="preserve"><value>WO CONFIRM · PRE-START CHECKLIST</value></data>
-  <data name="WoActiveNow" xml:space="preserve"><value>ACTIVE</value></data>
   <data name="WoInProgress" xml:space="preserve"><value>In Progress</value></data>
   <data name="WoPlanned" xml:space="preserve"><value>Planned</value></data>
   <data name="WoProgress" xml:space="preserve"><value>WO PROGRESS</value></data>
   <data name="WoReleased" xml:space="preserve"><value>Released</value></data>
-  <data name="WorkOrder" xml:space="preserve"><value>WORK ORDER</value></data>
-  <data name="WorkOrderAccepted" xml:space="preserve"><value>Work order accepted</value></data>
+  <data name="NotInBop" xml:space="preserve"><value>NOT IN BOP</value></data>
+  <data name="NoOpenWo" xml:space="preserve"><value>NO WO</value></data>
+  <data name="NoBopItemsForStation" xml:space="preserve"><value>No BOP items for this station — register them in MD-005</value></data>
+  <data name="DataRefreshFailed" xml:space="preserve"><value>Data refresh failed {0}</value></data>
+  <data name="HelpInjMainSub" xml:space="preserve"><value>Select a part, scan the label to confirm — no work-order acceptance</value></data>
   <data name="NoLinesRegistered" xml:space="preserve"><value>No lines registered — contact an administrator</value></data>
   <data name="SelectLine" xml:space="preserve"><value>SELECT LINE</value></data>
   <data name="SelectStation" xml:space="preserve"><value>SELECT STATION</value></data>
@@ -205,5 +189,4 @@
   <data name="NoStationsRegistered" xml:space="preserve"><value>No stations registered for this line — contact an administrator</value></data>
   <data name="MasterLoadFailed" xml:space="preserve"><value>Master data load failed: {0}</value></data>
   <data name="Retry" xml:space="preserve"><value>RETRY</value></data>
-  <data name="AcceptWoNoStep" xml:space="preserve"><value>No process step to accept. Refresh the work-order list.</value></data>
 </root>

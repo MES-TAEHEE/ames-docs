@@ -223,13 +223,14 @@ else
 
         var result = await Dialog.OpenAsync<PlanConfirmBatchDialog>(
             L["PP.PlanConfirm.Dlg.Title"].Value,
-            new Dictionary<string, object?> { ["Lines"] = lines });
+            new Dictionary<string, object?> { ["Lines"] = lines },
+            new DialogOptions { Width = "1000px" });
 
         if (result is PlanConfirmBatchDialog.Result r)
         {
             _woCreated += r.Created;
             _selected.Clear();
-            ShowMsg(string.Format(L["PP.PlanConfirm.Ok.Created"].Value, r.Created), false);
+            ShowMsg(string.Format(L["PP.PlanConfirm.Ok.Scheduled"].Value, r.Created, r.Placed, r.Unplaced), r.Unplaced > 0);
             Search();
         }
     }

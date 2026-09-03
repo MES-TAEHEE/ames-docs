@@ -112,7 +112,7 @@
         try
         {
             PopServices.Defects.RecordDefect(0, _wo.WoId, lotId: null,
-                _selected.DefectCode, qty, Session.OperatorId, Session.EmployeeNo);
+                _selected.DefectCode, qty, Session.OperatorId, Session.EmployeeNo, "IMG");
             Nav.NavigateTo("/img03");
         }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[IMG-005] {ex.Message}"); }
