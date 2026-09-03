@@ -5,7 +5,7 @@
 @using Radzen
 
 <PageTitle>FG-103 Customer Returns - AMES</PageTitle>
-<AmesPageHeader Code="FG-103" Title="Customer Returns" />
+<AmesPageHeader Code="FG-03" Title="Customer Returns" />
 
 <div class="ames-kpis compact">
     <div class="ames-kpi"><div class="ames-kpi-l">Returns</div><div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">current result</div></div>
@@ -40,7 +40,6 @@
         <Columns>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReceivedAt" Title="Received" Width="145px"><Template Context="r">@(r.ReceivedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReturnNumber" Title="Return No" Width="150px"><Template Context="r"><span class="code">@r.ReturnNumber</span></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="RmaNo" Title="RMA No" Width="145px"><Template Context="r">@(r.RmaNo ?? "-")</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="CustomerCode" Title="Customer" Width="115px" />
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ShipmentOrderNumber" Title="Original Shipment" Width="165px"><Template Context="r">@(r.ShipmentOrderNumber ?? "-")</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ItemNo" Title="Item No" Width="140px"><Template Context="r"><span class="code">@(r.ItemNo ?? "-")</span></Template></RadzenDataGridColumn>

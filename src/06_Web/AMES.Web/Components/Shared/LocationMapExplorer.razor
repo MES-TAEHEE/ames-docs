@@ -1,0 +1,334 @@
+@using System.Globalization
+@inject IJSRuntime JS
+
+<div class="location-explorer">
+    <div class="location-explorer-topbar">
+        <nav class="location-explorer-breadcrumb" aria-label="Location hierarchy">
+            <button type="button" class="@BreadcrumbClass(MapStage.Warehouse)" @onclick="ShowWarehouses">Warehouse</button>
+            <span>/</span>
+            <button type="button" class="@BreadcrumbClass(MapStage.Area)" disabled="@string.IsNullOrWhiteSpace(_warehouse)" @onclick="ShowAreas">@(_warehouse ?? "Area")</button>
+            <span>/</span>
+            <button type="button" class="@(_stage == MapStage.Map ? "active" : "")" disabled="@string.IsNullOrWhiteSpace(_area)">@(_area ?? "Area")</button>
+            <span>/</span>
+            <button type="button" class="@(_selectingFloor ? "active" : "")" disabled="@string.IsNullOrWhiteSpace(_floor)" @onclick="ShowFloors">@FloorLabel</button>
+        </nav>
+
+        <div class="location-explorer-actions">
+            @if (_stage != MapStage.Warehouse)
+            {
+                <button type="button" class="location-action secondary" @onclick="Back"><RadzenIcon Icon="arrow_back" /> Back</button>
+            }
+            <button type="button" class="location-action" @onclick="Refresh"><RadzenIcon Icon="refresh" /> Refresh</button>
+        </div>
+    </div>
+
+    <div class="location-explorer-workspace selection-only">
+        <section class="location-map-pane" aria-label="Location map">
+            @if (_stage == MapStage.Map && _selectingFloor)
+            {
+                <div class="location-stage location-panel-enter">
+                    <div class="location-stage-grid" style="@FloorGridStyle">
+                        @foreach (var floor in FloorCards)
+                        {
+                            <button type="button" class="location-stage-card" @onclick="() => SelectFloor(floor.Key)">
+                                <span>Floor</span>
+                                <strong>@floor.Name</strong>
+                                <small>@floor.LocationCount.ToString("N0") locations</small>
+                                <b>@floor.Qty.ToString("N0") <em>QTY</em></b>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+            else if (_stage == MapStage.Map)
+            {
+                <div class="location-map-view location-panel-enter">
+                    <div class="location-map-heading">
+                        <div>
+                            <button type="button" class="location-action secondary" @onclick="ShowFloors">Change Floor</button>
+                            <strong>@MapScope · @MapLocations.Count locations</strong>
+                        </div>
+                        <div class="location-map-legend">
+                            <span><i class="empty"></i>Empty</span>
+                            <span><i class="stocked"></i>Stocked</span>
+                        </div>
+                    </div>
+                    @RenderMap()
+                </div>
+            }
+            else
+            {
+                <div class="location-stage location-panel-enter">
+                    <div class="location-stage-grid" style="@StageGridStyle">
+                        @foreach (var card in StageCards)
+                        {
+                            <button type="button" class="location-stage-card" @onclick="() => SelectCard(card.Key)">
+                                <span>@StageLabel</span>
+                                <strong>@card.Name</strong>
+                                <small>@card.LocationCount.ToString("N0") locations</small>
+                                <b>@card.Qty.ToString("N0") <em>QTY</em></b>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </section>
+
+    </div>
+
+    @if (_locationDrawerOpen && !string.IsNullOrWhiteSpace(_highlightedLocation))
+    {
+        <div class="inventory-detail-backdrop" @onclick="CloseLocationDetail">
+            <aside class="inventory-detail-drawer" role="dialog" aria-modal="true" aria-label="Location inventory detail" @onclick:stopPropagation="true">
+                <header class="inventory-drawer-header">
+                    <div>
+                        <span>LOCATION DETAIL</span>
+                        <strong>@_highlightedLocation</strong>
+                        <small>@MapScope</small>
+                    </div>
+                    <button type="button" @onclick="CloseLocationDetail" aria-label="Close location detail"><RadzenIcon Icon="close" /></button>
+                </header>
+
+                <div class="inventory-drawer-summary">
+                    <div><span>TOTAL QTY</span><strong>@LocationDrawerRows.Sum(x => x.Qty).ToString("N0") EA</strong></div>
+                    <div><span>ITEMS</span><strong>@LocationDrawerRows.Select(x => x.PartNo).Distinct(StringComparer.OrdinalIgnoreCase).Count()</strong></div>
+                    <div><span>LOTS</span><strong>@LocationDrawerRows.Select(x => x.LotNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count()</strong></div>
+                </div>
+
+                <div class="inventory-drawer-table-wrap">
+                    <table class="inventory-lookup-table location-drawer-table">
+                        <thead><tr><th>Lot No</th><th>Part No</th><th>Part Name</th><th>Qty</th></tr></thead>
+                        <tbody>
+                            @if (LocationDrawerRows.Count == 0)
+                            {
+                                <tr><td colspan="4" class="inventory-no-results">This location is empty.</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var row in LocationDrawerRows)
+                                {
+                                    <tr>
+                                        <td>@Text(row.LotNo)</td>
+                                        <td>@row.PartNo</td>
+                                        <td title="@row.PartName">@Text(row.PartName)</td>
+                                        <td class="number">@Qty(row)</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </aside>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<LocationMapCell> Locations { get; set; } = [];
+    [Parameter, EditorRequired] public IReadOnlyList<LocationMapStock> Inventory { get; set; } = [];
+    [Parameter] public EventCallback OnRefresh { get; set; }
+    [Parameter] public string SearchId { get; set; } = "location-map-search";
+
+    private enum MapStage { Warehouse, Area, Map }
+    private sealed record StageCard(string Key, string Name, int LocationCount, decimal Qty);
+
+    private MapStage _stage;
+    private string? _warehouse, _area, _floor, _highlightedLocation;
+    private bool _selectingFloor, _locationDrawerOpen;
+
+    private List<LocationMapCell> ActiveLocations => Locations.Where(x => !string.IsNullOrWhiteSpace(x.LocationNo)).ToList();
+    private List<LocationMapCell> MapLocations => ActiveLocations
+        .Where(x => Same(x.WarehouseCode, _warehouse) && Same(x.AreaCode, _area) && Same(x.Floor, _floor))
+        .ToList();
+
+    private List<LocationMapStock> LocationDrawerRows => string.IsNullOrWhiteSpace(_highlightedLocation)
+        ? []
+        : Inventory.Where(x => Same(x.LocationNo, _highlightedLocation)).OrderBy(x => x.PartNo).ThenBy(x => x.LotNo).ToList();
+
+    private List<StageCard> StageCards => _stage switch
+    {
+        MapStage.Warehouse => Cards(ActiveLocations, x => x.WarehouseCode, x => x.WarehouseName),
+        MapStage.Area => Cards(ActiveLocations.Where(x => Same(x.WarehouseCode, _warehouse)), x => x.AreaCode, x => x.AreaName),
+        _ => []
+    };
+
+    private List<StageCard> FloorCards => Cards(
+        ActiveLocations.Where(x => Same(x.WarehouseCode, _warehouse) && Same(x.AreaCode, _area)),
+        x => x.Floor,
+        x => FloorName(x.Floor));
+
+    private string StageLabel => _stage == MapStage.Warehouse ? "Warehouse" : "Area";
+    private string FloorLabel => string.IsNullOrWhiteSpace(_floor) ? "Floor" : FloorName(_floor);
+    private string MapScope => string.Join(" / ", new[] { _warehouse, _area, FloorLabel }.Where(x => !string.IsNullOrWhiteSpace(x)));
+    private string StageGridStyle => GridStyle(StageCards.Count);
+    private string FloorGridStyle => GridStyle(FloorCards.Count);
+
+    protected override void OnParametersSet()
+    {
+        if (ActiveLocations.Count == 0 || (_warehouse is not null && !ActiveLocations.Any(x => Same(x.WarehouseCode, _warehouse))))
+            ShowWarehouses();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_stage == MapStage.Map && !_selectingFloor)
+        {
+            try { await JS.InvokeVoidAsync("locationMapScroll.init", MapScrollId); }
+            catch { }
+        }
+    }
+
+    private async Task Refresh()
+    {
+        if (OnRefresh.HasDelegate) await OnRefresh.InvokeAsync();
+        CloseLocationDetail();
+    }
+
+    private void SelectCard(string key)
+    {
+        if (_stage == MapStage.Warehouse)
+        {
+            _warehouse = key;
+            _stage = MapStage.Area;
+        }
+        else
+        {
+            _area = key;
+            _floor = FloorCards.FirstOrDefault()?.Key;
+            _stage = MapStage.Map;
+        }
+
+        _selectingFloor = false;
+        ClearSelection();
+    }
+
+    private void SelectFloor(string floor)
+    {
+        _floor = floor;
+        _selectingFloor = false;
+        _highlightedLocation = null;
+        _locationDrawerOpen = false;
+    }
+
+    private void Back()
+    {
+        if (_stage == MapStage.Map && _selectingFloor) _selectingFloor = false;
+        else if (_stage == MapStage.Map) ShowAreas();
+        else ShowWarehouses();
+    }
+
+    private void ShowWarehouses()
+    {
+        _stage = MapStage.Warehouse;
+        _warehouse = _area = _floor = _highlightedLocation = null;
+        _selectingFloor = false;
+        ClearSelection();
+    }
+
+    private void ShowAreas()
+    {
+        if (string.IsNullOrWhiteSpace(_warehouse)) { ShowWarehouses(); return; }
+        _stage = MapStage.Area;
+        _area = _floor = _highlightedLocation = null;
+        _selectingFloor = false;
+        ClearSelection();
+    }
+
+    private void ShowFloors()
+    {
+        if (string.IsNullOrWhiteSpace(_area)) { ShowAreas(); return; }
+        _selectingFloor = true;
+        _highlightedLocation = null;
+        _locationDrawerOpen = false;
+    }
+
+    private void ClearSelection()
+    {
+        _locationDrawerOpen = false;
+    }
+
+    private void SelectLocation(LocationMapCell location)
+    {
+        _highlightedLocation = location.LocationNo;
+        _locationDrawerOpen = true;
+    }
+
+    private void CloseLocationDetail()
+    {
+        _locationDrawerOpen = false;
+        _highlightedLocation = null;
+    }
+
+    private async Task ScrollMap(string direction) => await JS.InvokeVoidAsync("locationMapScroll.move", MapScrollId, direction);
+
+    private RenderFragment RenderMap() => __builder =>
+    {
+        var columns = MapLocations.Select(x => Axis(x.Column)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(SortKey).ThenBy(x => x).ToList();
+        var rows = MapLocations.Select(x => Axis(x.Row)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(SortKey).ThenBy(x => x).ToList();
+
+        if (MapLocations.Count == 0)
+        {
+            <div class="location-empty">No locations found on this floor.</div>
+            return;
+        }
+
+        <div class="location-map-scroll-shell">
+            <div id="@MapScrollId" class="location-coordinate-scroll">
+                <div class="location-coordinate-map" style="@MapStyle(columns.Count)">
+                <div class="location-axis corner">@FloorLabel</div>
+                @foreach (var column in columns) { <div class="location-axis">@column</div> }
+                @foreach (var row in rows)
+                {
+                    <div class="location-axis row">@row</div>
+                    @foreach (var column in columns)
+                    {
+                        var cell = MapLocations.FirstOrDefault(x => Same(Axis(x.Column), column) && Same(Axis(x.Row), row));
+                        if (cell is null) { <div class="location-map-cell missing"></div> }
+                        else
+                        {
+                            <button type="button" class="@MapCellClass(cell)" title="@cell.LocationNo" @onclick="() => SelectLocation(cell)">
+                                <span>@MapCellLabel(cell)</span>
+                                @if (cell.Qty > 0) { <small>@cell.Qty.ToString("N0")</small> }
+                            </button>
+                        }
+                    }
+                }
+                </div>
+            </div>
+            <button type="button" hidden class="location-map-scroll-arrow left" data-scroll-dir="left" @onclick='() => ScrollMap("left")' aria-label="Scroll map left"><RadzenIcon Icon="arrow_back" /></button>
+            <button type="button" hidden class="location-map-scroll-arrow right" data-scroll-dir="right" @onclick='() => ScrollMap("right")' aria-label="Scroll map right"><RadzenIcon Icon="arrow_forward" /></button>
+            <button type="button" hidden class="location-map-scroll-arrow up" data-scroll-dir="up" @onclick='() => ScrollMap("up")' aria-label="Scroll map up"><RadzenIcon Icon="arrow_upward" /></button>
+            <button type="button" hidden class="location-map-scroll-arrow down" data-scroll-dir="down" @onclick='() => ScrollMap("down")' aria-label="Scroll map down"><RadzenIcon Icon="arrow_downward" /></button>
+        </div>
+    };
+
+    private string MapCellClass(LocationMapCell cell)
+    {
+        var classes = new List<string> { "location-map-cell", cell.Qty > 0 ? "stocked" : "empty" };
+        if (Same(cell.LocationNo, _highlightedLocation)) classes.Add("selected");
+        return string.Join(' ', classes);
+    }
+
+    private static string GridStyle(int count) => $"--location-stage-columns:{Math.Max(1, (int)Math.Ceiling(Math.Sqrt(Math.Max(1, count))))};";
+    private string MapScrollId => $"{SearchId}-scroll";
+    private static string MapStyle(int columns) => $"--location-columns:{Math.Max(1, columns)};--location-cell-width:92px;--location-cell-height:62px;";
+    private string BreadcrumbClass(MapStage stage) => _stage == stage ? "active" : "";
+    private List<StageCard> Cards(IEnumerable<LocationMapCell> source, Func<LocationMapCell, string> key, Func<LocationMapCell, string?> name) => source
+        .GroupBy(key, StringComparer.OrdinalIgnoreCase)
+        .Select(group => new StageCard(group.Key, name(group.First()) ?? group.Key, group.Select(x => x.LocationNo).Distinct(StringComparer.OrdinalIgnoreCase).Count(), group.Sum(x => x.Qty)))
+        .OrderBy(x => SortKey(x.Key)).ThenBy(x => x.Key)
+        .ToList();
+
+    private static int SortKey(string? value)
+    {
+        if (int.TryParse(value?.TrimEnd('F', 'f'), NumberStyles.Integer, CultureInfo.InvariantCulture, out var number)) return number;
+        return int.MaxValue;
+    }
+
+    private static string FloorName(string? value) => string.IsNullOrWhiteSpace(value) || value == "-" ? "Default" : value.EndsWith("F", StringComparison.OrdinalIgnoreCase) ? value : $"{value}F";
+    private static string MapCellLabel(LocationMapCell cell) => $"{Axis(cell.Row)}{Axis(cell.Column)}";
+    private static string Axis(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    private static bool Same(string? left, string? right) => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+    private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    private static string Qty(LocationMapStock row) => $"{row.Qty:N0} {row.Unit}";
+}

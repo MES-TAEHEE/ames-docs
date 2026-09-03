@@ -1,0 +1,216 @@
+<div class="inventory-lookup">
+    <section class="inventory-filter-panel">
+        <div class="inventory-filter-field compact">
+            <label>WAREHOUSE</label>
+            <select value="@_warehouse" @onchange="ChangeWarehouse">
+                <option value="">All Warehouses</option>
+                @foreach (var warehouse in WarehouseOptions)
+                {
+                    <option value="@warehouse.Code">@warehouse.Name</option>
+                }
+            </select>
+        </div>
+        <div class="inventory-filter-field compact">
+            <label>AREA</label>
+            <select value="@_area" @onchange="ChangeArea">
+                <option value="">All Areas</option>
+                @foreach (var area in AreaOptions)
+                {
+                    <option value="@area.Code">@area.Name</option>
+                }
+            </select>
+        </div>
+        <div class="inventory-filter-field">
+            <label for="@SearchId">PART NO / PART NAME / LOT / LOCATION</label>
+            <input id="@SearchId" value="@_query" @oninput="UpdateQuery" @onkeydown="HandleKey" placeholder="Enter search value" />
+        </div>
+        <button type="button" class="inventory-search-button" @onclick="Search"><RadzenIcon Icon="search" /> SEARCH</button>
+        <button type="button" class="inventory-reset-button" @onclick="Reset"><RadzenIcon Icon="restart_alt" /> RESET</button>
+    </section>
+
+    <section class="inventory-table-panel inventory-summary-panel">
+        <header><span>INVENTORY BY PART</span><strong>@SummaryRows.Count item(s)</strong></header>
+        <div class="inventory-table-scroll">
+            <table class="inventory-lookup-table">
+                <thead>
+                    <tr><th>No.</th><th>Part No</th><th>Part Name</th><th>Status</th><th>Unit</th><th>Total Qty</th><th>Locations</th><th>Lots</th></tr>
+                </thead>
+                <tbody>
+                    @if (SummaryRows.Count == 0)
+                    {
+                        <tr><td colspan="8" class="inventory-no-results">No inventory found.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var row in SummaryRows.Select((value, index) => (value, index)))
+                        {
+                            <tr class="@(row.value.PartNo == _selectedPart ? "selected" : "")" @onclick="() => SelectPart(row.value.PartNo)">
+                                <td>@(row.index + 1)</td>
+                                <td>@row.value.PartNo</td>
+                                <td title="@row.value.PartName">@row.value.PartName</td>
+                                <td><span class="inventory-status">Available</span></td>
+                                <td>@row.value.Unit</td>
+                                <td class="number">@row.value.Qty.ToString("N0")</td>
+                                <td class="number">@row.value.LocationCount</td>
+                                <td class="number">@row.value.LotCount</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+
+    @if (_drawerOpen && SelectedSummary is not null)
+    {
+        <div class="inventory-detail-backdrop" @onclick="CloseDetail">
+            <aside class="inventory-detail-drawer" role="dialog" aria-modal="true" aria-label="Inventory detail" @onclick:stopPropagation="true">
+                <header class="inventory-drawer-header">
+                    <div>
+                        <span>INVENTORY DETAIL</span>
+                        <strong>@SelectedSummary.PartNo</strong>
+                        <small>@SelectedSummary.PartName</small>
+                    </div>
+                    <button type="button" @onclick="CloseDetail" aria-label="Close inventory detail"><RadzenIcon Icon="close" /></button>
+                </header>
+
+                <div class="inventory-drawer-summary">
+                    <div><span>TOTAL QTY</span><strong>@SelectedSummary.Qty.ToString("N0") @SelectedSummary.Unit</strong></div>
+                    <div><span>LOCATIONS</span><strong>@SelectedSummary.LocationCount</strong></div>
+                    <div><span>LOTS</span><strong>@SelectedSummary.LotCount</strong></div>
+                </div>
+
+                <div class="inventory-drawer-table-wrap">
+                    <table class="inventory-lookup-table inventory-drawer-table">
+                        <thead><tr><th>Location</th><th>Floor</th><th>Lot No</th><th>Qty</th></tr></thead>
+                        <tbody>
+                            @foreach (var row in DetailRows)
+                            {
+                                <tr>
+                                    <td>@row.LocationNo</td>
+                                    <td>@Floor(row.LocationNo)</td>
+                                    <td>@Text(row.LotNo)</td>
+                                    <td class="number">@row.Qty.ToString("N0") @row.Unit</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </aside>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<LocationMapStock> Inventory { get; set; } = [];
+    [Parameter] public string SearchId { get; set; } = "inventory-search";
+
+    private sealed record SummaryRow(string PartNo, string PartName, string Unit, decimal Qty, int LocationCount, int LotCount);
+    private sealed record FilterOption(string Code, string Name);
+
+    private string _query = "";
+    private string _filter = "";
+    private string _warehouse = "";
+    private string _area = "";
+    private string? _selectedPart;
+    private bool _drawerOpen;
+
+    private List<FilterOption> WarehouseOptions => Inventory
+        .Where(x => !string.IsNullOrWhiteSpace(x.WarehouseCode))
+        .GroupBy(x => x.WarehouseCode, StringComparer.OrdinalIgnoreCase)
+        .Select(group => new FilterOption(group.Key, Text(group.First().WarehouseName)))
+        .OrderBy(x => x.Name)
+        .ToList();
+
+    private List<FilterOption> AreaOptions => Inventory
+        .Where(x => string.IsNullOrWhiteSpace(_warehouse) || Same(x.WarehouseCode, _warehouse))
+        .Where(x => !string.IsNullOrWhiteSpace(x.AreaCode))
+        .GroupBy(x => x.AreaCode, StringComparer.OrdinalIgnoreCase)
+        .Select(group => new FilterOption(group.Key, Text(group.First().AreaName)))
+        .OrderBy(x => x.Name)
+        .ToList();
+
+    private List<LocationMapStock> FilteredInventory
+    {
+        get
+        {
+            var rows = Inventory.AsEnumerable();
+            if (!string.IsNullOrWhiteSpace(_warehouse)) rows = rows.Where(x => Same(x.WarehouseCode, _warehouse));
+            if (!string.IsNullOrWhiteSpace(_area)) rows = rows.Where(x => Same(x.AreaCode, _area));
+            if (!string.IsNullOrWhiteSpace(_filter)) rows = rows.Where(Matches);
+            return rows.ToList();
+        }
+    }
+
+    private List<SummaryRow> SummaryRows => FilteredInventory
+        .GroupBy(x => new { x.PartNo, PartName = Text(x.PartName), x.Unit })
+        .Select(group => new SummaryRow(
+            group.Key.PartNo,
+            group.Key.PartName,
+            group.Key.Unit,
+            group.Sum(x => x.Qty),
+            group.Select(x => x.LocationNo).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
+            group.Select(x => x.LotNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count()))
+        .OrderBy(x => x.PartNo)
+        .ToList();
+
+    private List<LocationMapStock> DetailRows => string.IsNullOrWhiteSpace(_selectedPart)
+        ? []
+        : FilteredInventory.Where(x => x.PartNo == _selectedPart).OrderBy(x => x.LocationNo).ThenBy(x => x.LotNo).ToList();
+    private SummaryRow? SelectedSummary => SummaryRows.FirstOrDefault(x => x.PartNo == _selectedPart);
+
+    protected override void OnParametersSet()
+    {
+        if (_selectedPart is not null && SummaryRows.All(x => x.PartNo != _selectedPart)) CloseDetail();
+    }
+
+    private void UpdateQuery(ChangeEventArgs args) => _query = args.Value?.ToString() ?? "";
+
+    private void ChangeWarehouse(ChangeEventArgs args)
+    {
+        _warehouse = args.Value?.ToString() ?? "";
+        _area = "";
+        CloseDetail();
+    }
+
+    private void ChangeArea(ChangeEventArgs args)
+    {
+        _area = args.Value?.ToString() ?? "";
+        CloseDetail();
+    }
+
+    private void HandleKey(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter") Search();
+    }
+
+    private void Search()
+    {
+        _filter = _query.Trim();
+        CloseDetail();
+    }
+
+    private void Reset()
+    {
+        _query = _filter = "";
+        CloseDetail();
+    }
+
+    private void SelectPart(string partNo)
+    {
+        _selectedPart = partNo;
+        _drawerOpen = true;
+    }
+
+    private void CloseDetail()
+    {
+        _drawerOpen = false;
+        _selectedPart = null;
+    }
+    private bool Matches(LocationMapStock row) => new[] { row.LocationNo, row.PartNo, row.PartName, row.LotNo }
+        .Any(value => value?.Contains(_filter, StringComparison.OrdinalIgnoreCase) == true);
+    private static bool Same(string? left, string? right) => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+    private static string Floor(string locationNo) => locationNo.Split('-', 2)[0];
+    private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+}

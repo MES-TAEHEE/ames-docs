@@ -2740,7 +2740,7 @@
     <value>생성 WO 상태</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Hint" xml:space="preserve">
-    <value>선택한 각 계획은 Draft 작업지시로 생성되어 PP-04로 전달됩니다. 품목마스터가 없는 건은 선택할 수 없습니다.</value>
+    <value>선택한 계획은 작업지시 생성 → 발행 → 단계별 라인 스케줄(DRAFT) 배치까지 한 번에 처리됩니다. 잔여가 부족한 단계는 미배치로 남으며 PP-LSB 보드에서 수동 배치합니다.</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Run" xml:space="preserve">
     <value>WO 생성 실행</value>
@@ -5582,5 +5582,44 @@
   </data>
   <data name="PP.Delivery.Hint" xml:space="preserve">
     <value>지연 = 미출하이면서 요청납기 경과 (기준일 {0}) · 실제 출하일이 기록되지 않아 완료건의 지연 여부는 판정하지 않습니다</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.BaseDate" xml:space="preserve">
+    <value>기준 생산일</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.ProdDate" xml:space="preserve">
+    <value>생산일</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.DurMin" xml:space="preserve">
+    <value>소요(분)</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.RemainFmt" xml:space="preserve">
+    <value>잔여 {0}분</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.NoRoom" xml:space="preserve">
+    <value>자리 부족</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.NoPattern" xml:space="preserve">
+    <value>패턴 없음</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.NoSteps" xml:space="preserve">
+    <value>라인 필수 공정 없음 — 스케줄 없이 발행</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Err.LineMissing" xml:space="preserve">
+    <value>라인이 지정되지 않은 단계가 있습니다.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Err.PastDate" xml:space="preserve">
+    <value>생산일은 오늘 이후여야 합니다.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Err.StepOrder" xml:space="preserve">
+    <value>뒤 단계의 생산일은 앞 단계보다 빠를 수 없습니다.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Err.Duration" xml:space="preserve">
+    <value>소요 시간은 1분 이상이어야 합니다.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.AfterDue" xml:space="preserve">
+    <value>납기 이후에 생산되는 계획 {0}건</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Scheduled" xml:space="preserve">
+    <value>작업지시 {0}건 생성 · 단계 {1}건 배치 · 미배치 {2}건</value>
   </data>
 </root>

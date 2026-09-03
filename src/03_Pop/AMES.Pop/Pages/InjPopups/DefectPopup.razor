@@ -5,66 +5,73 @@
     로봇 NG 차단 LOT 확정 처리 포함. *@
 
 <PopupShell Title='@($"❌ {T("DefectRegister")}")' Width="1200px" CssClass="pmod-tall" OnClose="OnClose">
-    <div class="def-rate" style="margin-bottom:10px;">
-        <div>
-            <div class="def-rate-l">▼ @T("CurrentDefectRateWoCumulative")</div>
-            <div class="def-rate-s">@T("Good") @_good · @T("Defect") @_defect → @_rateText</div>
-        </div>
-        <div class="def-rate-v @_rateClass">@_rateText</div>
-    </div>
-
-    @if (_ngLots.Count > 0)
+    @if (Wo is null)
     {
-        <div class="pop-card" style="margin-bottom:10px;">
-            <div class="pop-card-h">▼ @T("RobotNgBlockedLotsSelectThenConfirmWithA")</div>
-            <div style="overflow-y:auto; max-height:120px;">
-                <table style="width:100%; border-collapse:collapse; font-size:15px;">
-                    <tbody>
-                    @foreach (var lot in _ngLots)
+        <div class="pmod-empty">@T("NoActiveWorkOrderAcceptAWoFirst")</div>
+    }
+    else
+    {
+        <div class="def-rate" style="margin-bottom:10px;">
+            <div>
+                <div class="def-rate-l">▼ @T("CurrentDefectRateWoCumulative")</div>
+                <div class="def-rate-s">@T("Good") @_good · @T("Defect") @_defect → @_rateText</div>
+            </div>
+            <div class="def-rate-v @_rateClass">@_rateText</div>
+        </div>
+
+        @if (_ngLots.Count > 0)
+        {
+            <div class="pop-card" style="margin-bottom:10px;">
+                <div class="pop-card-h">▼ @T("RobotNgBlockedLotsSelectThenConfirmWithA")</div>
+                <div style="overflow-y:auto; max-height:120px;">
+                    <table style="width:100%; border-collapse:collapse; font-size:15px;">
+                        <tbody>
+                        @foreach (var lot in _ngLots)
+                        {
+                            var isSel = _ngSelected?.LotId == lot.LotId;
+                            <tr style="border-top:1px solid rgba(255,255,255,.08); cursor:pointer;
+                                       @(isSel ? "background:rgba(255,180,0,.15);" : "")"
+                                @onclick="@(() => _ngSelected = isSel ? null : lot)">
+                                <td style="padding:6px 4px; font-family:Consolas,monospace;">@lot.LotCode @(isSel ? "✓" : "")</td>
+                                <td style="padding:6px 4px;">@lot.CavityPos</td>
+                                <td style="padding:6px 4px;">@lot.ItemNo</td>
+                                <td style="padding:6px 4px; color:var(--warn);">@(lot.InspectionSummary ?? "NG")</td>
+                                <td style="padding:6px 4px;">@lot.CreatedTS.ToString("HH:mm:ss")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        <div class="pmod-def-grid">
+            <div class="def-grid" style="overflow-y:auto;">
+                @foreach (var c in _codes)
+                {
+                    var isSel = _selected?.DefectCode == c.DefectCode;
+                    <div class="def-btn @(isSel ? "on" : "")" @onclick="@(() => _selected = c)">
+                        <div class="def-btn-code">@c.DefectCode @(isSel ? "✓" : "")</div>
+                        <div class="def-btn-name">@(PopLang.IsKo ? c.DefectName : c.DefectNameEn)</div>
+                    </div>
+                }
+            </div>
+            <div class="def-numpad-card">
+                <div class="def-info-h">@T("DefectQty") @(_ngSelected is not null ? T("NgLotFixedAt1") : "")</div>
+                <div class="def-disp">@(_ngSelected is not null ? "1" : _buf.Length == 0 ? "0" : _buf.ToString())</div>
+                <div class="keypad" style="margin-top:8px;">
+                    @foreach (var d in new[] { "1","2","3","4","5","6","7","8","9" })
                     {
-                        var isSel = _ngSelected?.LotId == lot.LotId;
-                        <tr style="border-top:1px solid rgba(255,255,255,.08); cursor:pointer;
-                                   @(isSel ? "background:rgba(255,180,0,.15);" : "")"
-                            @onclick="@(() => _ngSelected = isSel ? null : lot)">
-                            <td style="padding:6px 4px; font-family:Consolas,monospace;">@lot.LotCode @(isSel ? "✓" : "")</td>
-                            <td style="padding:6px 4px;">@lot.CavityPos</td>
-                            <td style="padding:6px 4px;">@lot.ItemNo</td>
-                            <td style="padding:6px 4px; color:var(--warn);">@(lot.InspectionSummary ?? "NG")</td>
-                            <td style="padding:6px 4px;">@lot.CreatedTS.ToString("HH:mm:ss")</td>
-                        </tr>
+                        var k = d;
+                        <div class="kp" @onclick="@(() => Press(k))">@k</div>
                     }
-                    </tbody>
-                </table>
+                    <div class="kp del" @onclick="Backspace">←</div>
+                    <div class="kp"     @onclick="@(() => Press("0"))">0</div>
+                    <div class="kp ok"  @onclick="Confirm">✓</div>
+                </div>
             </div>
         </div>
     }
-
-    <div class="pmod-def-grid">
-        <div class="def-grid" style="overflow-y:auto;">
-            @foreach (var c in _codes)
-            {
-                var isSel = _selected?.DefectCode == c.DefectCode;
-                <div class="def-btn @(isSel ? "on" : "")" @onclick="@(() => _selected = c)">
-                    <div class="def-btn-code">@c.DefectCode @(isSel ? "✓" : "")</div>
-                    <div class="def-btn-name">@(PopLang.IsKo ? c.DefectName : c.DefectNameEn)</div>
-                </div>
-            }
-        </div>
-        <div class="def-numpad-card">
-            <div class="def-info-h">@T("DefectQty") @(_ngSelected is not null ? T("NgLotFixedAt1") : "")</div>
-            <div class="def-disp">@(_ngSelected is not null ? "1" : _buf.Length == 0 ? "0" : _buf.ToString())</div>
-            <div class="keypad" style="margin-top:8px;">
-                @foreach (var d in new[] { "1","2","3","4","5","6","7","8","9" })
-                {
-                    var k = d;
-                    <div class="kp" @onclick="@(() => Press(k))">@k</div>
-                }
-                <div class="kp del" @onclick="Backspace">←</div>
-                <div class="kp"     @onclick="@(() => Press("0"))">0</div>
-                <div class="kp ok"  @onclick="Confirm">✓</div>
-            </div>
-        </div>
-    </div>
 </PopupShell>
 
 @code {
@@ -126,7 +133,7 @@
             try
             {
                 PopServices.Defects.RecordDefect(0, Wo.WoId, _ngSelected.LotId,
-                    _selected.DefectCode, 1, Session.OperatorId, Session.EmployeeNo,
+                    _selected.DefectCode, 1, Session.OperatorId, Session.EmployeeNo, "INJ",
                     note: $"ROBOT NG: {_ngSelected.InspectionSummary}");
                 PopServices.InjLots.MarkNgConfirmed(_ngSelected.LotId, Session.OperatorId);
                 _ngLots.RemoveAll(x => x.LotId == _ngSelected.LotId);
@@ -143,7 +150,7 @@
         try
         {
             PopServices.Defects.RecordDefect(LastResultId, Wo.WoId, lotId: null,
-                _selected.DefectCode, qty, Session.OperatorId, Session.EmployeeNo);
+                _selected.DefectCode, qty, Session.OperatorId, Session.EmployeeNo, "INJ");
             _buf.Clear();
             RefreshRate();
             await OnChanged.InvokeAsync();

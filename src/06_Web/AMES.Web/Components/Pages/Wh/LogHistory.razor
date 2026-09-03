@@ -5,7 +5,7 @@
 @using Radzen
 
 <PageTitle>WH-004 Inventory History · AMES</PageTitle>
-<AmesPageHeader Code="WH-004" Title="Inventory History" />
+<AmesPageHeader Code="WH-03" Title="Inventory History" />
 
 @if (!string.IsNullOrWhiteSpace(_msg))
 {
@@ -16,7 +16,7 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ Inventory Activity</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Placeholder="LOT, Part, Location, Worker, Reference"
+            <RadzenTextBox @bind-Value="_search" Placeholder="Search"
                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" AutoComplete="false"
                            @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
             <RadzenDropDown @bind-Value="_operationType" Data="@_operationOptions" TextProperty="Text" ValueProperty="Value"

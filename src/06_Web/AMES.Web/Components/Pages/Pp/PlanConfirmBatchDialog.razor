@@ -1,16 +1,21 @@
 @inject AMES.Data.Repositories.PpRepository Pp
+@inject AMES.Data.Repositories.WorkOrderRepository Wos
+@inject AMES.Data.Repositories.LineScheduleRepository LSB
+@inject AMES.Data.Repositories.MasterDataRepository MD
 @inject AuthenticationStateProvider AuthPrvd
 @inject DialogService Dialog
 @inject IStringLocalizer<SharedResources> L
+@using AMES.Data.Repositories
 
-<div style="display:flex;flex-direction:column;gap:10px;min-width:460px;">
+<div style="display:flex;flex-direction:column;gap:10px;min-width:900px;">
     <div style="border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:4px 14px;">
         <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
             <span class="dim">@L["PP.PlanConfirm.Dlg.Selected"]</span><span class="code">@Lines.Count</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
             <span class="dim">@L["PP.PlanConfirm.Dlg.QtyBasis"]</span>
-            <RadzenRadioButtonList @bind-Value="_useNet" TValue="bool" Orientation="Radzen.Orientation.Horizontal" Disabled="_busy">
+            <RadzenRadioButtonList @bind-Value="_useNet" @bind-Value:after="RecomputeDurations" TValue="bool"
+                                   Orientation="Radzen.Orientation.Horizontal" Disabled="_busy">
                 <Items>
                     <RadzenRadioButtonListItem Text="@L["PP.PlanConfirm.Dlg.QtyNet"].Value" Value="true" TValue="bool" />
                     <RadzenRadioButtonListItem Text="@L["PP.PlanConfirm.Dlg.QtyOrder"].Value" Value="false" TValue="bool" />
@@ -21,27 +26,94 @@
             <span class="dim">@L[_useNet ? "PP.PlanConfirm.Dlg.NetTotal" : "PP.PlanConfirm.Dlg.OrderTotal"]</span>
             <span class="code">@Lines.Sum(Qty).ToString("#,0") EA</span>
         </div>
-        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
-            <span class="dim">@L["PP.PlanConfirm.Dlg.Validation"]</span><span style="color:#86efac;">✓ @L["PP.PlanConfirm.Dlg.Passed"]</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
+            <span class="dim">@L["PP.PlanConfirm.Dlg.BaseDate"]</span>
+            <RadzenDatePicker @bind-Value="_baseDate" @bind-Value:after="ApplyBaseDate" TValue="DateTime"
+                              DateFormat="yyyy-MM-dd" Min="DateTime.Today" Disabled="_busy" Style="width:165px" />
         </div>
         <div style="display:flex;justify-content:space-between;padding:7px 0;">
-            <span class="dim">@L["PP.PlanConfirm.Dlg.WoStatus"]</span><span>Draft → PP-04</span>
+            <span class="dim">@L["PP.PlanConfirm.Dlg.WoStatus"]</span><span>Released → PP-LSB</span>
         </div>
     </div>
 
-    <div style="max-height:200px;overflow:auto;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 12px;">
-        @foreach (var l in Lines)
-        {
-            <div style="display:flex;justify-content:space-between;font-size:.85em;padding:3px 0;">
-                <span><span class="code">@l.SoNumber</span> · @l.ItemNo</span>
-                <span class="dim">@Qty(l).ToString("#,0") EA</span>
-            </div>
-        }
+    <div style="max-height:360px;overflow:auto;border:1px solid rgba(255,255,255,.12);border-radius:8px;">
+        <table class="ames-table" style="width:100%;table-layout:fixed;">
+            <thead>
+                <tr>
+                    <th>@L["Col.SoNo"] · @L["Col.PartNo"]</th>
+                    <th style="width:64px;text-align:right;">@L["Col.Qty"]</th>
+                    <th style="width:28px;">#</th>
+                    <th style="width:118px;">@L["PP.WoRelease.Dlg.Step"]</th>
+                    <th style="width:168px;">@L["Col.Line"]</th>
+                    <th style="width:152px;">@L["PP.PlanConfirm.Dlg.ProdDate"]</th>
+                    <th style="width:78px;">@L["PP.PlanConfirm.Dlg.DurMin"]</th>
+                    <th style="width:146px;white-space:nowrap;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    var n = Math.Max(1, r.Steps.Count);
+                    var qty = Qty(r.Line);
+                    @if (r.Steps.Count == 0)
+                    {
+                        <tr>
+                            <td><span class="code">@r.Line.SoNumber</span><div>@r.Line.ItemNo</div></td>
+                            <td style="text-align:right;" class="@(qty <= 0 ? "dim" : "")">@qty.ToString("#,0")</td>
+                            <td colspan="6"><span class="dim">@L["PP.PlanConfirm.Dlg.NoSteps"]</span></td>
+                        </tr>
+                    }
+                    @for (int i = 0; i < r.Steps.Count; i++)
+                    {
+                        var s = r.Steps[i];
+                        var avail = Available(s);
+                        var cap = Cap(s.LineId, s.Date);
+                        <tr>
+                            @if (i == 0)
+                            {
+                                <td rowspan="@n" style="vertical-align:top;">
+                                    <span class="code">@r.Line.SoNumber</span><div>@r.Line.ItemNo</div>
+                                    @if (r.Line.DueDate is DateTime d) { <div class="dim" style="font-size:.85em;">@L["Col.Due"] @d.ToString("yyyy-MM-dd")</div> }
+                                </td>
+                                <td rowspan="@n" style="vertical-align:top;text-align:right;" class="@(qty <= 0 ? "dim" : "")">@qty.ToString("#,0")</td>
+                            }
+                            <td class="code">@s.Step.StepSeq</td>
+                            <td class="code">@s.Step.ProcessCode</td>
+                            <td>
+                                <RadzenDropDown TValue="string" Data="s.Step.Candidates"
+                                                TextProperty="Display" ValueProperty="LineId"
+                                                @bind-Value="s.LineId" @bind-Value:after="@(() => OnLineChanged(s))"
+                                                AllowClear="true" AllowFiltering="true" Disabled="_busy"
+                                                Placeholder="—" Style="width:100%" />
+                            </td>
+                            <td>
+                                <RadzenDatePicker @bind-Value="s.Date" @bind-Value:after="@(() => OnDateChanged(s))" TValue="DateTime"
+                                                  DateFormat="yyyy-MM-dd" Min="DateTime.Today" Disabled="_busy" Style="width:100%" />
+                            </td>
+                            <td>
+                                <RadzenNumeric TValue="int" @bind-Value="s.DurationMin" Min="1" Max="1440" Disabled="_busy"
+                                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%" />
+                            </td>
+                            <td>
+                                @if (string.IsNullOrEmpty(s.LineId)) { <span class="dim">—</span> }
+                                else if (cap is null || cap.PatternId is null) { <span class="pill warn">@L["PP.PlanConfirm.Dlg.NoPattern"]</span> }
+                                else if (avail < s.DurationMin) { <span class="pill bad">@L["PP.PlanConfirm.Dlg.NoRoom"] · @avail@L["Lbl.Min"]</span> }
+                                else { <span class="pill ok">@string.Format(L["PP.PlanConfirm.Dlg.RemainFmt"].Value, avail)</span> }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
     </div>
 
     @if (_useNet && SkipCount > 0)
     {
         <div class="ames-alert bad">@string.Format(L["PP.PlanConfirm.Dlg.SkipZero"].Value, SkipCount)</div>
+    }
+    @if (AfterDueCount > 0)
+    {
+        <div class="ames-alert bad">@string.Format(L["PP.PlanConfirm.Dlg.Warn.AfterDue"].Value, AfterDueCount)</div>
     }
 
     <span class="dim" style="font-size:.8em;line-height:1.5;">@L["PP.PlanConfirm.Dlg.Hint"]</span>
@@ -63,25 +135,136 @@
 @code {
     [Parameter] public List<PpRepository.PlanLineRow> Lines { get; set; } = new();
 
-    bool   _busy;
-    bool   _useNet = true;
-    string _err = "";
+    sealed class StepVm
+    {
+        public required WorkOrderRepository.RoutingStepPreview Step { get; init; }
+        public string?  LineId      { get; set; }
+        public DateTime Date        { get; set; }
+        public int      DurationMin { get; set; }
+    }
+    sealed class RowVm
+    {
+        public required PpRepository.PlanLineRow Line  { get; init; }
+        public required List<StepVm>             Steps { get; init; }
+    }
+
+    bool     _busy;
+    bool     _useNet   = true;
+    DateTime _baseDate = DateTime.Today;
+    string   _err      = "";
+    List<RowVm> _rows  = new();
+    Dictionary<string, int?> _dailyCap = new();
+    readonly Dictionary<(string Line, DateTime Date), LineScheduleRepository.DayCapacity?> _capCache = new();
 
     decimal Qty(PpRepository.PlanLineRow l) => _useNet ? l.NetReq : l.OrderQty;
     int SkipCount => Lines.Count(l => l.NetReq <= 0);
+    IEnumerable<StepVm> AllSteps => _rows.SelectMany(r => r.Steps);
+    int AfterDueCount => _rows.Count(r => r.Line.DueDate is DateTime d && r.Steps.Count > 0 && r.Steps.Max(s => s.Date) > d.Date);
+
+    protected override void OnInitialized()
+    {
+        try { _dailyCap = MD.ListLines().ToDictionary(l => l.LineID, l => l.DailyCap); } catch { }
+        foreach (var l in Lines)
+        {
+            List<WorkOrderRepository.RoutingStepPreview> template = new();
+            try { if (l.RoutingType is not null) template = Wos.PreviewRouting(l.ItemNo, l.RoutingType); }
+            catch (Exception ex) { _err = ex.Message; }
+            // 라인 필수 단계만 배치 대상. 기본 라인 = BOP 라인, 없으면 그 공정의 첫 후보.
+            var steps = template.Where(t => t.LineRequired)
+                .Select(t => new StepVm { Step = t, LineId = t.BopLineId ?? t.Candidates.FirstOrDefault()?.LineId })
+                .ToList();
+            _rows.Add(new RowVm { Line = l, Steps = steps });
+        }
+        ApplyBaseDate();
+    }
+
+    // 기준일 → 1단계, 뒤 단계는 앞 단계 +1일. 소요분도 다시 계산.
+    void ApplyBaseDate()
+    {
+        foreach (var r in _rows)
+            for (int i = 0; i < r.Steps.Count; i++)
+                r.Steps[i].Date = _baseDate.Date.AddDays(i);
+        RecomputeDurations();
+    }
+
+    void RecomputeDurations()
+    {
+        foreach (var r in _rows)
+            foreach (var s in r.Steps)
+                s.DurationMin = DefaultDuration(s, Qty(r.Line));
+    }
+
+    // 소요분: BOP 사이클(초)×수량 → 없으면 MD_Line.DailyCap 비례(하루 가동분 기준) → 그것도 없으면 60분
+    int DefaultDuration(StepVm s, decimal qty)
+    {
+        if (qty <= 0) return 1;
+        if (s.Step.StdCycleSec is > 0 and var cyc)
+            return Math.Max(1, (int)Math.Ceiling(qty * cyc / 60m));
+        if (s.LineId is not null && _dailyCap.TryGetValue(s.LineId, out var dc) && dc is > 0
+            && Cap(s.LineId, s.Date)?.OperatingMin is > 0 and var op)
+            return Math.Max(1, (int)Math.Ceiling(qty / dc.Value * op));
+        return 60;
+    }
+
+    void OnLineChanged(StepVm s) => s.DurationMin = DefaultDuration(s, Qty(_rows.First(r => r.Steps.Contains(s)).Line));
+    void OnDateChanged(StepVm s) { }
+
+    LineScheduleRepository.DayCapacity? Cap(string? lineId, DateTime date)
+    {
+        if (string.IsNullOrEmpty(lineId)) return null;
+        var key = (lineId, date.Date);
+        if (_capCache.TryGetValue(key, out var cached)) return cached;
+        LineScheduleRepository.DayCapacity? cap = null;
+        try { cap = LSB.GetDayCapacity(lineId, date.Date); } catch { }
+        return _capCache[key] = cap;
+    }
+
+    // 그 (라인, 일자)의 잔여 가동분 − 이 다이얼로그에서 앞서 같은 자리에 잡힌 단계들의 소요분.
+    // 정확한 위치(빈틈·PM 구멍)는 서버가 정하므로 여기는 근사치다.
+    int Available(StepVm s)
+    {
+        var cap = Cap(s.LineId, s.Date);
+        if (cap is null) return 0;
+        int before = AllSteps.TakeWhile(x => !ReferenceEquals(x, s))
+                             .Where(x => x.LineId == s.LineId && x.Date.Date == s.Date.Date)
+                             .Sum(x => x.DurationMin);
+        return cap.RemainMin - before;
+    }
+
+    string? Validate()
+    {
+        foreach (var r in _rows)
+        {
+            DateTime? prev = null;
+            foreach (var s in r.Steps)
+            {
+                if (string.IsNullOrEmpty(s.LineId))   return L["PP.PlanConfirm.Dlg.Err.LineMissing"];
+                if (s.Date.Date < DateTime.Today)     return L["PP.PlanConfirm.Dlg.Err.PastDate"];
+                if (prev is DateTime p && s.Date.Date < p) return L["PP.PlanConfirm.Dlg.Err.StepOrder"];
+                if (s.DurationMin <= 0)               return L["PP.PlanConfirm.Dlg.Err.Duration"];
+                prev = s.Date.Date;
+            }
+        }
+        return null;
+    }
 
     async Task Run()
     {
+        _err = Validate() ?? "";
+        if (_err.Length > 0) return;
         _busy = true;
         try
         {
             var auth  = await AuthPrvd.GetAuthenticationStateAsync();
             var actor = auth.User.Identity?.Name ?? "system";
-            var created = Pp.CreateWorkOrdersForOrders(Lines.Select(l => l.SoId).ToList(), actor, _useNet);
-            Dialog.Close(new Result(created.Count));
+            var plans = _rows.Select(r => new PpRepository.OrderPlan(r.Line.SoId,
+                            r.Steps.Select(s => new PpRepository.StepPlan(s.Step.StepSeq, s.LineId!, s.Date.Date, s.DurationMin)).ToList()))
+                        .ToList();
+            var res = Pp.CreateScheduledWorkOrders(plans, actor, _useNet);
+            Dialog.Close(new Result(res.Created.Count, res.PlacedSteps, res.Unplaced.Count));
         }
         catch (Exception ex) { _err = ex.Message; _busy = false; }
     }
 
-    public record Result(int Created);
+    public record Result(int Created, int Placed, int Unplaced);
 }

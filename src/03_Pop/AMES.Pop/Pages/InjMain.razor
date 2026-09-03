@@ -9,8 +9,8 @@
 @inject AMES.Pop.Services.LabelDispatcher Dispatcher
 
 @*  INJ-MAIN — INJ03~08 통합 작업 화면.
-    좌측 작업지시 그리드 + 우측 스캔/결과 패널을 상시 표시하고,
-    WO 접수·수동입력·불량·안돈은 팝업(Pages/InjPopups/*)으로 띄운다.
+    좌측 스테이션 품번 당일 현황(PLAN/INPUT/NG/FINAL) + 우측 스캔/결과 패널을 상시 표시하고,
+    수동입력·불량·안돈은 팝업(Pages/InjPopups/*)으로 띄운다. WO 접수 없음 — 품번 선택이 열린 WO를 자동 해석.
     문구는 PopLang(T)로 ko/en 단일 언어 표시. 구 단독 화면(/inj02~/inj08)은 모두 제거됨. *@
 
 <div class="pop-shell injm-shell">
@@ -24,7 +24,7 @@
             <span>@Session?.EmployeeName · @PopLang.Shift(Session?.ShiftCode ?? "")</span>
             <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
             <button class="injm-lang-btn" @onclick="ToggleLang">@(PopLang.IsKo ? "EN" : "한국어")</button>
-            <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.Inj04Help))" />
+            <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.InjMainHelp))" />
             <button class="injm-logout-btn" @onclick="Logout">⏻ @T("Logout")</button>
         </div>
     </div>
@@ -32,65 +32,68 @@
     <div class="pop-bd">
         <div class="injm-grid">
 
-            @* ── 좌측: 작업지시 그리드 ─────────────────────────────── *@
+            @* ── 좌측: 스테이션 품번 당일 현황 ─────────────────────── *@
             <div class="pop-card injm-left">
-                <div class="pop-card-h">▼ @T("WorkOrder") · @_now.ToString("yyyy-MM-dd") · @Session?.LineId</div>
+                <div class="pop-card-h">▼ @T("PartNo") · @_now.ToString("yyyy-MM-dd") · @Session?.TerminalId</div>
+                @if (_refreshError is not null)
+                {
+                    <div class="injm-refresh-err">⚠ @T("DataRefreshFailed", _refreshErrorAt.ToString("HH:mm:ss")) — @_refreshError</div>
+                }
                 <div class="injm-tbl-wrap">
                     <table class="injm-tbl">
                         <thead>
                             <tr>
-                                <th style="text-align:left;">@T("Wo")</th>
                                 <th style="text-align:left;">@T("PartNo")</th>
                                 <th>@T("Plan")</th>
-                                <th>@T("Final")</th>
-                                <th>@T("Ng")</th>
                                 <th>@T("Input")</th>
+                                <th>@T("Ng")</th>
+                                <th>@T("Final")</th>
                             </tr>
                         </thead>
                         <tbody>
-                        @foreach (var w in _wos)
+                        @foreach (var it in _items)
                         {
-                            var isSel    = _selWoId == w.WoId;
-                            var isActive = _activeWo?.WoId == w.WoId;
-                            var (good, ng) = _woTotals.TryGetValue(w.WoId, out var t) ? t : (0, 0);
-                            var pending  = _woPending.GetValueOrDefault(w.WoId);
-                            <tr class="@(isSel ? "sel" : "") @(isActive ? "active" : "")"
-                                @onclick="@(() => SelectAndConfirm(w))">
-                                <td class="mono" style="text-align:left;">
-                                    @w.WoNumber
-                                    @if (isActive)
+                            var isSel = string.Equals(_selItemNo, it.ItemNo, StringComparison.OrdinalIgnoreCase);
+                            <tr class="@(isSel ? "active" : "")" @onclick="@(() => SelectItem(it))">
+                                <td class="mono" style="text-align:left;" title="@it.ItemName">
+                                    @it.ItemNo
+                                    @if (!it.InBop)
                                     {
-                                        <span class="injm-active-badge">● @T("WoActiveNow")</span>
+                                        <span class="injm-dim-badge">@T("NotInBop")</span>
+                                    }
+                                    @if (!it.HasOpenWo)
+                                    {
+                                        <span class="injm-dim-badge">@T("NoOpenWo")</span>
                                     }
                                 </td>
-                                <td class="mono" style="text-align:left;" title="@w.ItemName">@w.ItemNo</td>
-                                <td>@w.OrderQty.ToString("0")</td>
-                                <td class="ok">@w.CompletedQty.ToString("0")</td>
-                                <td class="@(ng > 0 ? "bad" : "")">@ng</td>
-                                <td>@((w.CompletedQty + ng + pending).ToString("0"))</td>
+                                <td>@it.PlanQty.ToString("0")</td>
+                                <td>@it.InputQty</td>
+                                <td class="@(it.NgQty > 0 ? "bad" : "")">@it.NgQty</td>
+                                <td class="ok">@it.FinalQty</td>
                             </tr>
                         }
-                        @if (_wos.Count == 0)
+                        @if (_items.Count == 0 && _refreshError is null)
                         {
-                            <tr><td colspan="6" style="padding:28px; color:rgba(255,255,255,.4); text-align:center; font-size:20px;">
-                                @T("NoReleasedWosForThisLinePpPlannerNeedsTo")
+                            <tr><td colspan="5" style="padding:28px; color:rgba(255,255,255,.4); text-align:center; font-size:20px;">
+                                @T("NoBopItemsForStation")
                             </td></tr>
                         }
                         </tbody>
                     </table>
                 </div>
                 <div class="injm-total">
-                    <span>@T("Total") <b>@_wos.Sum(w => w.OrderQty).ToString("0")</b></span>
-                    <span>@T("Input") <b class="mod">@_totalInput.ToString("0")</b></span>
-                    <span>@T("Final") <b class="ok">@_wos.Sum(w => w.CompletedQty).ToString("0")</b></span>
-                    <span>@T("Shortage") <b class="bad">@_totalShortage.ToString("0")</b></span>
+                    <span>@T("Plan") <b>@_items.Sum(x => x.PlanQty).ToString("0")</b></span>
+                    <span>@T("Input") <b class="mod">@_items.Sum(x => x.InputQty)</b></span>
+                    <span>@T("Ng") <b class="bad">@_items.Sum(x => x.NgQty)</b></span>
+                    <span>@T("Final") <b class="ok">@_items.Sum(x => x.FinalQty)</b></span>
+                    <span>@T("Shortage") <b class="bad">@_items.Sum(x => Math.Max(0, x.PlanQty - x.FinalQty)).ToString("0")</b></span>
                 </div>
             </div>
 
             @* ── 우측: 스캔 + 결과 배너 + LOT 이력 ─────────────────── *@
             <div class="injm-right">
                 <div class="pop-card injm-scan">
-                    <div class="pop-card-h">▼ @T("LotBarcodeScanConfirm") (@T("Wo2"): @(_activeWo?.WoNumber ?? "—"))</div>
+                    <div class="pop-card-h">▼ @T("LotBarcodeScanConfirm") (@T("PartNo"): @(_selItemNo ?? "—") · @(_activeWo?.WoNumber ?? "—"))</div>
                     <input @ref="_scanInput" @bind="_scanBuf" @bind:event="oninput"
                            @onkeydown="OnScanKey" class="injm-scan-input"
                            placeholder="A91I10001" autocomplete="off" />
@@ -175,10 +178,6 @@
 @* ── 팝업 ─────────────────────────────────────────────────────────── *@
 @switch (_popup)
 {
-    case Popup.Wo:
-        <WoConfirmPopup Session="Session" Wo="_selectedWo ?? _activeWo"
-                        OnClose="ClosePopup" OnAccepted="OnWoAccepted" />
-        break;
     case Popup.Manual:
         <ManualEntryPopup Session="Session" Wo="_activeWo"
                           OnClose="ClosePopup" OnCreated="OnManualLotsIssued" />
@@ -197,26 +196,26 @@
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
 
-    private enum Popup { None, Wo, Manual, Defect, Andon }
+    private enum Popup { None, Manual, Defect, Andon }
     private Popup _popup = Popup.None;
 
     private sealed record ScanRecord(string LotCode, DateTime At, bool Ok, string Message);
 
-    private List<WorkOrderDto> _wos = new();
-    private readonly Dictionary<int, (int Good, int Defect)> _woTotals = new();
-    private readonly Dictionary<int, int> _woPending = new();
+    private List<InjItemDailyDto> _items = new();
+    private string? _selItemNo;
+    private InjItemDailyDto? SelItem =>
+        _items.FirstOrDefault(x => string.Equals(x.ItemNo, _selItemNo, StringComparison.OrdinalIgnoreCase));
     private WorkOrderDto? _activeWo;
-    private WorkOrderDto? _selectedWo;
-    private int?          _selWoId;
     private MoldDto?      _mold;
     private List<InjLotDto>       _rawLots = new();
     private readonly List<ScanRecord> _scanHistory = new();
 
-    private decimal _totalInput, _totalShortage;
-    private int _todayGood, _todayDef, _rawCount, _ngCount, _cycle = 30, _lastResultId;
+    private int _todayGood, _todayDef, _rawCount, _ngCount, _lastResultId;
     private string _defectPct = "0.0%", _defClass = "ok";
     private string _moldText = "—", _moldClass = "ok";
     private string _eqStatus = "OFFLINE", _eqClass = "stat-off";
+    private string?  _refreshError;
+    private DateTime _refreshErrorAt;
 
     private string _bannerClass = "idle", _bannerDetail = "";
     private string BannerTitle => _bannerClass switch
@@ -259,48 +258,26 @@
         if (Session is null) return;
         try
         {
-            _wos = PopServices.WorkOrders.ListForLine(Session.LineId);
-            _activeWo = PopServices.WorkOrders.GetActiveForTerminal(Session.LineId, Session.TerminalId)
-                     ?? _selectedWo ?? _wos.FirstOrDefault();
-            if (_selWoId is not null)
-                _selectedWo = _wos.FirstOrDefault(w => w.WoId == _selWoId) ?? _selectedWo;
+            _items = PopServices.InjLots.GetDailyItemSummary(Session.LineId, Session.TerminalId);
 
-            _woTotals.Clear();
-            foreach (var w in _wos)
-                _woTotals[w.WoId] = PopServices.Defects.GetWoTotals(w.WoId);
+            // 선택이 없거나 목록에서 사라졌으면 열린 WO 가 있는 첫 품번, 없으면 첫 행.
+            if (SelItem is null)
+                _selItemNo = (_items.FirstOrDefault(x => x.HasOpenWo) ?? _items.FirstOrDefault())?.ItemNo;
 
-            // 미확정 LOT(RAW·NG_BLOCKED)은 WoID 가 NULL 이라 품번으로 귀속시킨다.
-            // 같은 품번 WO 가 여럿이면 활성 WO 우선, 없으면 그리드 순서상 첫 WO 한 곳에만
-            // 얹는다 — 여러 행에 중복 가산하면 하단 합계가 부풀기 때문.
-            _woPending.Clear();
-            foreach (var (itemNo, cnt) in PopServices.InjLots.GetUnconfirmedCountByItem(Session.LineId))
-            {
-                var target = _activeWo is not null
-                             && string.Equals(_activeWo.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase)
-                    ? _wos.FirstOrDefault(w => w.WoId == _activeWo.WoId)
-                    : null;
-                target ??= _wos.FirstOrDefault(w => string.Equals(w.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase));
-                // 어느 WO 품번과도 안 맞는 LOT 은 활성 WO 에 얹는다 — 스캔 확정(ConfirmByLotCode)
-                // 자체가 품번 검증 없이 활성 WO 로 실적을 올리므로 결국 거기로 간다.
-                target ??= _wos.FirstOrDefault(w => w.WoId == _activeWo?.WoId);
-                if (target is not null)
-                    _woPending[target.WoId] = _woPending.GetValueOrDefault(target.WoId) + cnt;
-            }
+            // 접수가 없으므로 활성 WO 는 품번에서 매번 해석한다 — ConfirmByLotCode 와 같은 규칙.
+            _activeWo = _selItemNo is null ? null
+                      : PopServices.WorkOrders.FindOpenForItem(Session.LineId, _selItemNo);
 
-            _totalInput    = _wos.Sum(w => w.CompletedQty + _woTotals[w.WoId].Defect
-                                         + _woPending.GetValueOrDefault(w.WoId));
-            _totalShortage = _wos.Sum(w => Math.Max(0, w.OrderQty - w.CompletedQty));
+            // 칩은 좌측 행과 같은 당일 수치를 보여준다 — 두 숫자가 어긋나 보이면 작업자가 헷갈린다.
+            _todayGood = SelItem?.FinalQty ?? 0;
+            _todayDef  = SelItem?.NgQty    ?? 0;
+            var pct = (_todayGood + _todayDef) == 0 ? 0 : _todayDef * 100.0 / (_todayGood + _todayDef);
+            _defectPct = $"{pct:0.0}%";
+            _defClass  = pct >= 5 ? "bad" : pct >= 4 ? "warn" : "ok";
 
+            _moldText = "—"; _moldClass = "ok"; _mold = null;
             if (_activeWo is not null)
             {
-                _todayGood = PopServices.Production.GetTodayGoodForWo(_activeWo.WoId);
-                var (g, d) = PopServices.Defects.GetWoTotals(_activeWo.WoId);
-                _todayDef = d;
-                var pct = (g + d) == 0 ? 0 : d * 100.0 / (g + d);
-                _defectPct = $"{pct:0.0}%";
-                _defClass  = pct >= 5 ? "bad" : pct >= 4 ? "warn" : "ok";
-                if (!string.IsNullOrEmpty(_activeWo.RecipeId))
-                    _cycle = PopServices.Master.GetRecipeCycleTime(_activeWo.RecipeId) ?? 30;
                 if (!string.IsNullOrEmpty(_activeWo.MoldId))
                 {
                     _mold = PopServices.Molds.GetById(_activeWo.MoldId);
@@ -320,20 +297,23 @@
             var eq = PopServices.Equipment.GetPrimaryForLine(Session.LineId);
             _eqStatus = (eq?.Status ?? "OFFLINE").ToUpperInvariant();
             _eqClass  = _eqStatus is "RUN" or "IDLE" ? "stat-on" : "stat-off";
+            _refreshError = null;
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[InjMain refresh] {ex.Message}"); }
+        catch (Exception ex)
+        {
+            // 스캔 결과 배너는 건드리지 않는다 — 5초마다 덮어쓰면 방금 스캔한 결과가 사라진다.
+            // 직전 목록은 그대로 두고 좌측 헤더 아래 스트립으로만 알린다.
+            _refreshError   = ex.Message;
+            _refreshErrorAt = DateTime.Now;
+            System.Diagnostics.Debug.WriteLine($"[InjMain refresh] {ex.Message}");
+        }
     }
 
-    private void SelectWo(WorkOrderDto w)
+    private void SelectItem(InjItemDailyDto it)
     {
-        _selectedWo = w;
-        _selWoId    = w.WoId;
-    }
-
-    private void SelectAndConfirm(WorkOrderDto w)
-    {
-        SelectWo(w);
-        Open(Popup.Wo);
+        _selItemNo = it.ItemNo;
+        Refresh();
+        _focusScan = true;
     }
 
     // ── 스캔 확정 (INJ-004 로직) ──────────────────────────────────────
@@ -354,7 +334,9 @@
             // 대상 WO 는 LOT 품번으로 리포지토리가 정한다 (동일 품번 여러 WO 면 빠른순).
             var (outcome, resultId, itemNo, woId) = PopServices.InjLots.ConfirmByLotCode(
                 lotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
-            var woNumber = _wos.FirstOrDefault(w => w.WoId == woId)?.WoNumber;
+            // GetById, not FindOpenForItem — 이 스캔이 마지막 수량이면 단계가 이미 Closed 로 바뀌어
+            // FindOpenForItem 은 이 WO 를 못 찾는다. GetById 는 상태 무관하게 PK 로 조회한다.
+            var woNumber = woId > 0 ? PopServices.WorkOrders.GetById(woId)?.WoNumber : null;
             var (ok, detail) = outcome switch
             {
                 InjConfirmOutcome.Confirmed        => (true,  $"{T("Confirmed")}: {lotCode} ({itemNo}){(woNumber is null ? "" : $" → {woNumber}")}"),
@@ -365,7 +347,8 @@
                 InjConfirmOutcome.NoWoForItem      => (false, $"{T("NoOpenWoForThisPart")}: {lotCode} ({itemNo})"),
                 _                                  => (false, $"{T("ConfirmFailed")}: {lotCode}"),
             };
-            if (ok) { _lastResultId = resultId; Refresh(); }
+            // 확정은 LOT 품번으로 WO 를 정했다 — 화면 선택도 그 품번으로 따라간다.
+            if (ok) { _lastResultId = resultId; _selItemNo = itemNo; Refresh(); }
             SetBanner(ok, detail);
             _scanHistory.Insert(0, new ScanRecord(lotCode, DateTime.Now, ok, detail));
             if (_scanHistory.Count > 50) _scanHistory.RemoveAt(_scanHistory.Count - 1);
@@ -404,12 +387,6 @@
     // ── 팝업 제어 ─────────────────────────────────────────────────────
     private void Open(Popup p) => _popup = p;
     private void ClosePopup() { _popup = Popup.None; _focusScan = true; Refresh(); }
-
-    private void OnWoAccepted()
-    {
-        Toasts.Ok(T("WorkOrderAccepted"));
-        ClosePopup();
-    }
 
     // 수동 발행분은 아직 실적이 아니다 — 미확정 LOT 목록에 쌓이고, 스캔해야 확정된다.
     private void OnManualLotsIssued() => ClosePopup();
