@@ -69,7 +69,7 @@
             <span class="dim">~</span>
             <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Shift"]" Component="DropDownShift" />
-            <RadzenDropDown Name="DropDownShift" @bind-Value="_fShift" Data="@ShiftFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+            <RadzenDropDown Name="DropDownShift" @bind-Value="_fShift" Data="@ShiftOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
             <RadzenLabel Text="@L["PP.Oee.Lbl.Target"]" Component="NumericTarget" />
             <RadzenNumeric TValue="decimal" Name="NumericTarget" @bind-Value="_fTarget" Min="0" Max="100" InputSize="InputSize.Small" class="ames-rz-input" Style="width:90px;" />
 
@@ -304,13 +304,9 @@
                 <input type="date" class="ames-input" style="width:148px;padding:3px 7px;"
                        value="@_calcDate.ToString("yyyy-MM-dd")"
                        @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) _calcDate = d; }" />
-                <select class="ames-input" style="width:190px;" @bind="_calcShift">
-                    <option value="">@L["PP.Oee.Shift.None"] (00:00–24:00)</option>
-                    @foreach (var c in _shiftCodes)
-                    {
-                        <option value="@c.CodeValue">[@c.CodeValue] @MasterDataRepository.LocalName(c) @(c.Attribute1 is { Length: 9 } w ? $"({w[..2]}:{w[2..4]}–{w[5..7]}:{w[7..9]})" : "")</option>
-                    }
-                </select>
+                <RadzenLabel Text="@L["Col.Shift"]" Component="DropDownCalcShift" />
+                <RadzenDropDown Name="DropDownCalcShift" @bind-Value="_calcShift" Data="@ShiftOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["PP.Oee.Shift.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px;" />
+                <span class="dim" style="font-size:11px;">@CalcWindowText</span>
                 <button class="ames-btn ok" @onclick="Compute">@L["PP.Oee.Btn.Compute"]</button>
                 @if (_canEdit)
                 {
@@ -362,12 +358,13 @@
     decimal  _fTarget = 75m;
 
     sealed class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
-    IEnumerable<DropDownItem> ShiftFilterOptions => _shifts.Select(s => new DropDownItem { Text = s, Value = s });
+    // 교대 콤보 = 공통코드 WORK_SHIFT (MD/SYS 화면 규약: "[코드] 명칭"). 조회부·계산 탭 공용
+    IEnumerable<DropDownItem> ShiftOptions => _shiftItems.Where(c => c.UseFlag)
+        .Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
 
     // ── 데이터 ───────────────────────────────────────────────────────────
     List<OeeRepository.LineRef>          _lineRefs   = [];
-    List<string>                         _shifts     = [];
-    List<MasterDataRepository.CodeItemRow> _shiftCodes = [];
+    List<MasterDataRepository.CodeItemRow> _shiftItems = [];
     List<OeeSnapshotDto>                 _snaps      = [];
     List<OeeRepository.DowntimeByReason> _downtime   = [];
     List<LineAgg>                        _rows       = [];
@@ -380,7 +377,7 @@
     DateTime _logDate  = DateTime.Today;
     List<LineStateLogDto> _logs = [];
     DateTime _calcDate  = DateTime.Today;
-    string   _calcShift = "";
+    string?  _calcShift;
     OeeSnapshotDto? _result;
 
     bool   _canEdit;
@@ -433,8 +430,7 @@
         _canEdit = PermSvc.CanEdit("pp/oee");
 
         try { _lineRefs   = Repo.ListLineRefs(); }               catch { }
-        try { _shifts     = Repo.ListShiftCodes(); }             catch { }
-        try { _shiftCodes = MD.ListCodeItems("WORK_SHIFT").Where(c => c.UseFlag).ToList(); } catch { }
+        try { _shiftItems = MD.ListCodeItems("WORK_SHIFT"); }    catch { }
 
         // 기본 기간 = 스냅샷이 있는 마지막 7일 (데이터가 오래됐어도 빈 화면이 되지 않도록)
         try
@@ -534,20 +530,31 @@
     {
         _err = ""; _result = null;
         if (_sel is null) { _err = L["PP.Oee.Err.NoLine"]; return; }
-        var (ws, we) = ShiftWindow(_calcDate, _calcShift);
+        var (ws, we) = ShiftWindow(_calcDate, _calcShift ?? "");
         try
         {
-            _result = Repo.ComputeOee(_sel, ws, we, _calcShift.Length > 0 ? _calcShift : null);
+            _result = Repo.ComputeOee(_sel, ws, we, string.IsNullOrEmpty(_calcShift) ? null : _calcShift);
             if (_result is null) _err = L["PP.Oee.Calc.NoLog"];
         }
         catch (Exception ex) { _err = string.Format(L["PP.Oee.Err.Compute"].Value, ex.Message); }
     }
 
     // WORK_SHIFT.Attribute1 = "HHMM-HHMM" (끝이 시작보다 빠르면 익일). 교대 미선택 시 하루 전체.
+    // 선택한 교대의 집계 구간 표시 — 공통코드 Attribute1(HHMM-HHMM) 을 그대로 보여준다
+    string CalcWindowText
+    {
+        get
+        {
+            var (s, e) = ShiftWindow(_calcDate, _calcShift ?? "");
+            return e == s.Date.AddDays(1) && s == s.Date ? "00:00–24:00"
+                 : e.Date > s.Date ? $"{s:HH:mm}–{e:HH:mm} (+1)" : $"{s:HH:mm}–{e:HH:mm}";
+        }
+    }
+
     (DateTime Start, DateTime End) ShiftWindow(DateTime date, string shiftCode)
     {
         var d = date.Date;
-        var w = _shiftCodes.FirstOrDefault(c => c.CodeValue == shiftCode)?.Attribute1;
+        var w = _shiftItems.FirstOrDefault(c => c.CodeValue == shiftCode)?.Attribute1;
         if (w is not { Length: 9 }) return (d, d.AddDays(1));
         if (!int.TryParse(w[..2], out var sh) || !int.TryParse(w[2..4], out var sm)
          || !int.TryParse(w[5..7], out var eh) || !int.TryParse(w[7..9], out var em)) return (d, d.AddDays(1));

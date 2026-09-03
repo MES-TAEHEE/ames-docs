@@ -50,12 +50,6 @@ public sealed class OeeRepository
         return Query(sql, r => new LineRef((string)r["LineID"], r["LineName"] as string, r["LineNameEn"] as string));
     }
 
-    public List<string> ListShiftCodes()
-    {
-        const string sql = "SELECT DISTINCT ShiftCode FROM dbo.PP_LineOEE WHERE ShiftCode IS NOT NULL ORDER BY ShiftCode;";
-        return Query(sql, r => (string)r["ShiftCode"]);
-    }
-
     public DateTime? LatestSnapshotDate()
     {
         using var conn = _f.OpenConnection();
