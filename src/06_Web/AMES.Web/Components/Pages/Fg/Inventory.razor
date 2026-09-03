@@ -1,0 +1,12 @@
+@page "/fg/inventory"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<PageTitle>Inventory Search - AMES</PageTitle>
+<AmesPageHeader Code="FG-01" Title="Inventory Search" />
+
+<InventoryLookup Inventory="_inventory" SearchId="fg-inventory-search" />
+
+@code {
+    private readonly List<LocationMapStock> _inventory = LocationMapDemoData.Create("STOCK", "Stock Area").Inventory;
+}
