@@ -1,0 +1,16 @@
+@page "/wh/inventory"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<PageTitle>Inventory Search - AMES</PageTitle>
+<AmesPageHeader Code="WH-01" Title="Inventory Search" />
+
+<InventoryLookup Inventory="_inventory" SearchId="wh-inventory-search" />
+
+@code {
+    private readonly List<LocationMapStock> _inventory =
+    [
+        .. LocationMapDemoData.Create("MATERIAL", "Material Area").Inventory,
+        .. LocationMapDemoData.Create("SHIPPING", "Shipping Area", "SHIP-").Inventory,
+    ];
+}

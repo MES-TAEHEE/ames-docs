@@ -5,7 +5,7 @@
 @using Radzen
 
 <PageTitle>History - AMES</PageTitle>
-<AmesPageHeader Code="FG-105" Title="History" />
+<AmesPageHeader Code="FG-05" Title="History" />
 
 <div class="ames-kpis compact">
     <div class="ames-kpi"><div class="ames-kpi-l">Events</div><div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">current result</div></div>
@@ -15,7 +15,7 @@
 </div>
 @if (!string.IsNullOrWhiteSpace(_message)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_message</RadzenAlert> }
 <div class="ames-card">
-    <div class="ames-card-h fg-web-toolbar"><div><span>OPERATION HISTORY</span><div class="dim">Put-away, picking, loading, shipment, delivery note, and return history.</div></div><RadzenStack Orientation="Orientation.Horizontal" Gap="0.375rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap"><RadzenTextBox @bind-Value="_search" Placeholder="Search reference, item, location, or worker" InputSize="InputSize.Small" class="ames-rz-input" Style="width:260px;" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' /><RadzenDropDown @bind-Value="_eventType" Data="@EventTypes" AllowClear="true" Placeholder="Event" InputSize="InputSize.Small" class="ames-rz-input" Style="width:145px;" /><RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="From" InputSize="InputSize.Small" class="ames-rz-input" Style="width:145px;" /><RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="To" InputSize="InputSize.Small" class="ames-rz-input" Style="width:145px;" /><RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" /><RadzenButton Text="Clear" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Clear" class="ames-rz-btn" /></RadzenStack></div>
+    <div class="ames-card-h fg-web-toolbar"><div><span>OPERATION HISTORY</span><div class="dim">Put-away, picking, loading, shipment, delivery note, and return history.</div></div><RadzenStack Orientation="Orientation.Horizontal" Gap="0.375rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap"><RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:260px;" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' /><RadzenDropDown @bind-Value="_eventType" Data="@EventTypes" AllowClear="true" Placeholder="Event" InputSize="InputSize.Small" class="ames-rz-input" Style="width:145px;" /><RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="From" InputSize="InputSize.Small" class="ames-rz-input" Style="width:145px;" /><RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="To" InputSize="InputSize.Small" class="ames-rz-input" Style="width:145px;" /><RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" /><RadzenButton Text="Clear" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Clear" class="ames-rz-btn" /></RadzenStack></div>
     <RadzenDataGrid TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Data="@_rows" AllowPaging="true" PageSize="25" AllowSorting="true" ShowPagingSummary="true" EmptyText="No operation history found." Class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="EventAt" Title="Date / Time" Width="155px"><Template Context="r">@r.EventAt.ToString("yyyy-MM-dd HH:mm")</Template></RadzenDataGridColumn>

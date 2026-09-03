@@ -80,7 +80,7 @@
         @* ── 섹션 아코디언 ── *@
         @foreach (var sec in _sections)
         {
-            var secItems = _items.Where(i => i.Section == sec.Key && V(i.Href)).ToList();
+            var secItems = SectionItems(sec.Key);
             if (secItems.Count == 0) { continue; }
             <div class="ames-nav-section @sec.Key @(IsOpen(sec.Key) ? "open" : "")" @onclick="() => Toggle(sec.Key)">
                 <span class="ames-nav-section-ic">@sec.Icon</span>
@@ -181,35 +181,35 @@
 
     static readonly NavItem[] _warehouseItems =
     {
-        new("wh", "wh/location-map",    "WH-003", "로케이션 맵",     "Location Map"),
-        new("wh", "wh/inventory-setting", "WH-005", "재고 설정", "Inventory Setting"),
-        new("wh", "wh/picking-orders",  "WH-002", "피킹 오더",   "Picking Orders"),
-        new("wh", "wh/log-history",     "WH-004", "재고 이력",      "Inventory History"),
+        new("wh", "wh/inventory",       "WH-01", "재고 조회",   "Inventory Search"),
+        new("wh", "wh/location-map",    "WH-02", "로케이션 맵", "Location Map"),
+        new("wh", "wh/log-history",     "WH-03", "재고 이력",   "Inventory History"),
+        new("wh", "wh/picking-orders",  "WH-04", "피킹 오더",   "Picking Orders"),
     };
 
     static readonly NavItem[] _finishedGoodsItems =
     {
-        new("fg", "fg/locations",        "FG-101", "로케이션 마스터", "Location Master"),
-        new("fg", "fg/location-map",     "FG-102", "로케이션 맵", "Location Map"),
-        new("fg", "fg/customer-returns", "FG-103", "고객사 리턴", "Customer Returns"),
-        new("fg", "fg/shipments",        "FG-104", "출하 목록", "Shipments"),
-        new("fg", "fg/history",          "FG-105", "작업 이력", "History"),
+        new("fg", "fg/inventory",        "FG-01", "재고 조회",   "Inventory Search"),
+        new("fg", "fg/location-map",     "FG-02", "로케이션 맵", "Location Map"),
+        new("fg", "fg/customer-returns", "FG-03", "고객사 리턴", "Customer Returns"),
+        new("fg", "fg/shipments",        "FG-04", "출하 목록",   "Shipments"),
+        new("fg", "fg/history",          "FG-05", "작업 이력",   "History"),
     };
 
     static readonly NavItem[] _fallbackItems =
     {
         // -- WH --
-        new("wh", "wh/location-map",    "WH-003", "로케이션 맵",     "Location Map"),
-        new("wh", "wh/inventory-setting", "WH-005", "재고 설정", "Inventory Setting"),
-        new("wh", "wh/picking-orders",  "WH-002", "피킹 오더",   "Picking Orders"),
-        new("wh", "wh/log-history",     "WH-004", "재고 이력",      "Inventory History"),
+        new("wh", "wh/inventory",       "WH-01", "재고 조회",   "Inventory Search"),
+        new("wh", "wh/location-map",    "WH-02", "로케이션 맵", "Location Map"),
+        new("wh", "wh/log-history",     "WH-03", "재고 이력",   "Inventory History"),
+        new("wh", "wh/picking-orders",  "WH-04", "피킹 오더",   "Picking Orders"),
 
         // -- FG --
-        new("fg", "fg/locations",        "FG-101", "로케이션 마스터", "Location Master"),
-        new("fg", "fg/location-map",     "FG-102", "로케이션 맵", "Location Map"),
-        new("fg", "fg/customer-returns", "FG-103", "고객사 리턴", "Customer Returns"),
-        new("fg", "fg/shipments",        "FG-104", "출하 목록", "Shipments"),
-        new("fg", "fg/history",          "FG-105", "작업 이력", "History"),
+        new("fg", "fg/inventory",        "FG-01", "재고 조회",   "Inventory Search"),
+        new("fg", "fg/location-map",     "FG-02", "로케이션 맵", "Location Map"),
+        new("fg", "fg/customer-returns", "FG-03", "고객사 리턴", "Customer Returns"),
+        new("fg", "fg/shipments",        "FG-04", "출하 목록",   "Shipments"),
+        new("fg", "fg/history",          "FG-05", "작업 이력",   "History"),
 
         // ── PP ──
         new("pp", "pp/forecast",         "PP-001", "수요 예측",        "Forecast"),
@@ -297,17 +297,18 @@
     RenderFragment RenderRow(NavItem it, bool showTag) => __builder =>
     {
         var isFav = _favorites.Contains(it.Href);
+        var lid = DisplayLid(it);
         <div class="ames-nav-row @(isFav ? "is-fav" : "")">
             <NavLink class="ames-nav-link" href="@it.Href">
                 @if (showTag)
                 {
-                    <span class="lid @it.Section">@it.Lid</span>
+                    <span class="lid @it.Section">@lid</span>
                 }
                 else
                 {
-                    <span class="lid">@it.Lid</span>
+                    <span class="lid">@lid</span>
                 }
-                <span>@NL(it.Ko, it.En, EsFor(it.Href))</span>
+                <span>@NavLabel(it)</span>
             </NavLink>
             <button class="ames-nav-star" @onclick="() => ToggleFavorite(it.Href)"
                     title="@SL(isFav ? "즐겨찾기 해제" : "즐겨찾기 추가", isFav ? "Remove favorite" : "Add favorite")"
@@ -420,6 +421,7 @@
         {
             var rows = Sys.ListScreens("WEB")
                 .Where(s => !string.IsNullOrEmpty(s.ProcessCode) && !string.IsNullOrEmpty(s.HRef))
+                .Where(s => !IsRemovedMenu(s.HRef!))
                 .OrderBy(s => s.SortOrder ?? 999).ThenBy(s => s.ScreenCode)
                 .Select(s => new NavItem(
                     s.ProcessCode!.ToLowerInvariant(),
@@ -434,6 +436,7 @@
             {
                 AddMissingStaticItems(rows, _warehouseItems);
                 AddMissingStaticItems(rows, _finishedGoodsItems);
+                ApplyOperationalLabels(rows);
                 _items = rows;
                 _usingFallback = false;
                 try { _subprocessItems = MD.ListCodeItems("SUBPROCESS"); }
@@ -444,7 +447,36 @@
         catch { /* fall through to fallback */ }
 
         _items = _fallbackItems.ToList();
+        ApplyOperationalLabels(_items);
         _usingFallback = true;
+    }
+
+    List<NavItem> SectionItems(string section)
+    {
+        var items = _items.Where(item => item.Section == section && V(item.Href));
+        var order = section switch
+        {
+            "wh" => _warehouseItems,
+            "fg" => _finishedGoodsItems,
+            _ => []
+        };
+
+        if (order.Length == 0) return items.ToList();
+        var ranks = order.Select((item, index) => (item.Href, index))
+            .ToDictionary(x => x.Href, x => x.index, StringComparer.OrdinalIgnoreCase);
+        return items.OrderBy(item => ranks.GetValueOrDefault(item.Href, int.MaxValue)).ToList();
+    }
+
+    static void ApplyOperationalLabels(List<NavItem> rows)
+    {
+        var fixedItems = _warehouseItems.Concat(_finishedGoodsItems)
+            .ToDictionary(x => x.Href, StringComparer.OrdinalIgnoreCase);
+
+        for (var index = 0; index < rows.Count; index++)
+        {
+            if (fixedItems.TryGetValue(rows[index].Href, out var fixedItem))
+                rows[index] = rows[index] with { Lid = fixedItem.Lid, Ko = fixedItem.Ko, En = fixedItem.En };
+        }
     }
 
     static void AddMissingStaticItems(List<NavItem> rows, IEnumerable<NavItem> extras)
@@ -455,6 +487,13 @@
             if (existing.Add(item.Href))
                 rows.Add(item);
         }
+    }
+
+    static bool IsRemovedMenu(string href)
+    {
+        var path = href.Trim('/');
+        return path.Equals("wh/inventory-setting", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("fg/locations", StringComparison.OrdinalIgnoreCase);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -567,10 +606,8 @@
     {
         // WH
         ["wh/location-map"] = "Mapa de Ubicaciones",
-        ["wh/inventory-setting"] = "Configuración de Inventario",
         ["wh/picking-orders"] = "Órdenes de Picking",
         ["wh/log-history"] = "Historial de Inventario",
-        ["fg/locations"] = "Maestro de Ubicaciones",
         ["fg/location-map"] = "Mapa de Ubicaciones",
         ["fg/customer-returns"] = "Devoluciones de Clientes",
         ["fg/shipments"] = "Embarques",
@@ -686,6 +723,24 @@
             return new MarkupString(WebUtility.HtmlEncode(p));
         return new MarkupString(
             $"{WebUtility.HtmlEncode(p)}<span style=\"display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;\">{WebUtility.HtmlEncode(s)}</span>");
+    }
+
+    string DisplayLid(NavItem item)
+    {
+        if (item.Section is not ("wh" or "fg")) return item.Lid;
+
+        var index = SectionItems(item.Section)
+            .TakeWhile(candidate => !candidate.Href.Equals(item.Href, StringComparison.OrdinalIgnoreCase))
+            .Count();
+        return $"{item.Section.ToUpperInvariant()}-{index + 1:00}";
+    }
+
+    MarkupString NavLabel(NavItem item)
+    {
+        if (item.Section is not ("wh" or "fg")) return NL(item.Ko, item.En, EsFor(item.Href));
+
+        return new MarkupString(
+            $"{WebUtility.HtmlEncode(item.En)}<span class=\"ames-nav-korean-detail\">{WebUtility.HtmlEncode(item.Ko)}</span>");
     }
 
     public void Dispose() => Nav.LocationChanged -= OnLocChanged;
