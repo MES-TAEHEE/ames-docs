@@ -59,12 +59,12 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["PP.Downtime.Title"] · @_rows.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
             <RadzenLabel Text="@L["Lbl.Period"]" Component="DatePickerFrom" />
             <RadzenDatePicker TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <span class="dim">~</span>
             <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenLabel Text="@L["Col.Reason"]" Component="DropDownReason" />
@@ -168,7 +168,6 @@
     // ── 데이터 ───────────────────────────────────────────────────────────
     List<PpRepository.DowntimeRow>      _rows      = [];
     List<MasterDataRepository.LineRow>  _lineList  = [];
-    List<string>                        _dataLines = [];
     List<string>                        _reasons   = [];
 
     // ── 조회부 ───────────────────────────────────────────────────────────
@@ -182,8 +181,7 @@
 
     // 라인 옵션 = 마스터 활성 라인 ∪ 이력에 등장한 라인 (마스터에서 빠진 라인의 과거 이력도 조회되도록)
     IEnumerable<DropDownItem> LineFilterOptions =>
-        _lineList.Select(l => l.LineID).Union(_dataLines).OrderBy(x => x)
-            .Select(id => new DropDownItem { Value = id, Text = $"{id}  {LineName(id)}".TrimEnd() });
+        _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
     IEnumerable<DropDownItem> StatusFilterOptions => new[]
     {
         new DropDownItem { Value = "open",   Text = L["PP.Downtime.Status.Open"].Value },
@@ -224,7 +222,6 @@
         _canEdit = PermSvc.CanEdit("pp/downtime");
 
         try { _lineList  = MD.ListLines(); }            catch { }
-        try { _dataLines = Pp.ListDowntimeLines(); }    catch { }
         try { _reasons   = Pp.ListDowntimeReasons(); }  catch { }
 
         // 기본 기간 = 이력이 있는 마지막 7일 (데이터가 오래됐어도 빈 화면이 되지 않도록)

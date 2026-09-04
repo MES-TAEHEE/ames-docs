@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
+@inject AMES.Data.Repositories.MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 @using AMES.Data.Repositories
 
@@ -56,10 +57,13 @@
     <RadzenDataGrid TItem="CustAgg" Data="@_custAgg" AllowPaging="false" AllowSorting="true" EmptyText="@L["PP.Delivery.Empty"]" Class="ames-rz-grid pp-dtl-grid">
         <Columns>
             <RadzenDataGridColumn TItem="CustAgg" Property="CustomerId" Title="@L["Col.Customer"]" Width="130px">
-                <Template Context="c"><span class="code">@(c.CustomerCode ?? c.CustomerId)</span></Template>
+                <Template Context="c"><span class="code">@c.CustomerId</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="CustAgg" Property="Name" Title="@L["Col.CustomerName"]">
-                <Template Context="c"><span style="white-space:nowrap;">@(c.Name ?? "—")</span></Template>
+                <Template Context="c"><span style="white-space:nowrap;">@(c.Name ?? "—")</span>@(c.Registered ? "" : $" ({L["PP.Delivery.Cust.Unregistered"]})")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="CustAgg" Property="Type" Title="@L["Col.Type"]" Width="90px" TextAlign="TextAlign.Center">
+                <Template Context="c">@if (c.Type is { } t) { <span class="pill info">@t</span> } else { <span class="dim">—</span> }</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="CustAgg" Property="Orders"  Title="@L["PP.Delivery.Cust.Col.Orders"]"  Width="90px" TextAlign="TextAlign.Right" />
             <RadzenDataGridColumn TItem="CustAgg" Property="Shipped" Title="@L["PP.Delivery.Cust.Col.Shipped"]" Width="90px" TextAlign="TextAlign.Right" />
@@ -67,7 +71,9 @@
                 <Template Context="c"><span class="code" style="@(c.Late > 0 ? "color:#f87171;" : "")">@c.Late</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="CustAgg" Property="Otd" Title="@L["PP.Delivery.Cust.Col.Otd"]" Width="110px" TextAlign="TextAlign.Center">
-                <Template Context="c"><span class="pill @(c.Otd >= 95 ? "ok" : c.Otd >= 85 ? "warn" : "bad")">@($"{c.Otd:F1}%")</span></Template>
+                <Template Context="c">
+                    @if (c.Orders == 0) { <span class="dim">—</span> } else { <span class="pill @(c.Otd >= 95 ? "ok" : c.Otd >= 85 ? "warn" : "bad")">@($"{c.Otd:F1}%")</span> }
+                </Template>
             </RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
@@ -99,10 +105,10 @@
             <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="SoNumber" Title="@L["Col.SoNo"]" Width="130px">
                 <Template Context="r"><span class="code">@(r.SoNumber ?? "—")</span>@(r.SoLineNo is { } ln ? $"-{ln}" : "")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="CustomerId" Title="@L["Col.Customer"]" Width="150px">
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="CustomerId" Title="@L["Col.Customer"]" Width="220px">
                 <Template Context="r">
-                    <span class="code">@(r.CustomerCode ?? r.CustomerId ?? "—")</span>
-                    <span class="dim" style="font-size:10px;margin-left:4px;white-space:nowrap;">@MasterDataRepository.LocalName(r.CustomerName, r.CustomerNameEn)</span>
+                    <span class="code">[@(r.CustomerId ?? "—")]</span>
+                    <span style="margin-left:4px;white-space:nowrap;">@CustomerName(r)</span>
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="ItemNo" Title="@L["Col.Item"]">
@@ -158,9 +164,9 @@
 @code {
     const int LIMIT = 500;
 
-    List<PpRepository.OtdRow>         _rows      = [];
-    List<PpRepository.OtdCustomerRow> _customers = [];
-    List<CustAgg>                     _custAgg   = [];
+    List<PpRepository.OtdRow>              _rows      = [];
+    List<MasterDataRepository.CustomerRow> _customers = [];   // MD_Customer 마스터 (조회부·고객별 준수율·목록 명칭의 기준)
+    List<CustAgg>                          _custAgg   = [];
 
     DateTime _fFrom = DateTime.Today.AddDays(-30);
     DateTime _fTo   = DateTime.Today.AddDays(30);
@@ -169,11 +175,17 @@
     string   _err = "";
 
     sealed class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    // 고객 콤보 = MD_Customer 활성 고객 (Md/Ql/ShipmentDest 규약: "[ID] 명칭")
     IEnumerable<DropDownItem> CustomerFilterOptions => _customers.Select(c => new DropDownItem
     {
-        Value = c.CustomerId,
-        Text  = $"[{c.CustomerCode ?? c.CustomerId}] {MasterDataRepository.LocalName(c.CustomerName, c.CustomerNameEn)}".TrimEnd(),
+        Value = c.CustomerID,
+        Text  = $"[{c.CustomerID}] {MasterDataRepository.LocalName(c.CustomerName, c.CustomerNameEn)}".TrimEnd(),
     });
+
+    string CustomerName(PpRepository.OtdRow r) =>
+        _customers.FirstOrDefault(c => c.CustomerID == r.CustomerId) is { } c
+            ? MasterDataRepository.LocalName(c.CustomerName, c.CustomerNameEn)
+            : MasterDataRepository.LocalName(r.CustomerName, r.CustomerNameEn);
     IEnumerable<DropDownItem> StatusFilterOptions => new[]
     {
         new DropDownItem { Value = "shipped", Text = L["PP.Delivery.Status.Shipped"].Value },
@@ -197,8 +209,9 @@
     sealed class CustAgg
     {
         public string  CustomerId { get; set; } = "";
-        public string? CustomerCode { get; set; }
         public string? Name { get; set; }
+        public string? Type { get; set; }
+        public bool    Registered { get; set; } = true;   // MD_Customer 에 있는 고객인지
         public int     Orders { get; set; }
         public int     Shipped { get; set; }
         public int     Late { get; set; }
@@ -207,7 +220,7 @@
 
     protected override void OnInitialized()
     {
-        try { _customers = Pp.ListOtdCustomers(); } catch { }
+        try { _customers = MD.ListCustomers().Where(c => string.IsNullOrEmpty(c.Status) || c.Status == "ACTIVE").ToList(); } catch { }
         SetDefaultRange();
         ApplyFilter();
     }
@@ -241,17 +254,31 @@
         }
         catch (Exception ex) { _err = ex.Message; _rows = []; }
 
-        _custAgg = _rows.GroupBy(r => r.CustomerId ?? "—")
-            .Select(g => new CustAgg
+        // 고객별 준수율 = MD_Customer 활성 고객 전부(수주 없는 고객도 0건으로 표시) + 마스터에 없는 고객은 '미등록'으로 뒤에
+        var byCust = _rows.GroupBy(r => r.CustomerId ?? "—").ToDictionary(g => g.Key, g => g.ToList());
+        _custAgg = _customers.Select(c =>
             {
-                CustomerId   = g.Key,
-                CustomerCode = g.First().CustomerCode,
-                Name         = MasterDataRepository.LocalName(g.First().CustomerName, g.First().CustomerNameEn),
-                Orders       = g.Count(),
-                Shipped      = g.Count(r => r.IsShipped),
-                Late         = g.Count(r => r.IsLate),
+                byCust.TryGetValue(c.CustomerID, out var g); g ??= [];
+                return new CustAgg
+                {
+                    CustomerId = c.CustomerID,
+                    Name       = MasterDataRepository.LocalName(c.CustomerName, c.CustomerNameEn),
+                    Type       = c.CustomerType,
+                    Orders     = g.Count,
+                    Shipped    = g.Count(r => r.IsShipped),
+                    Late       = g.Count(r => r.IsLate),
+                };
             })
-            .OrderBy(c => c.CustomerId).ToList();
+            .Concat(byCust.Where(kv => _customers.All(c => c.CustomerID != kv.Key)).Select(kv => new CustAgg
+            {
+                CustomerId = kv.Key,
+                Name       = MasterDataRepository.LocalName(kv.Value[0].CustomerName, kv.Value[0].CustomerNameEn),
+                Registered = false,
+                Orders     = kv.Value.Count,
+                Shipped    = kv.Value.Count(r => r.IsShipped),
+                Late       = kv.Value.Count(r => r.IsLate),
+            }))
+            .OrderByDescending(c => c.Registered).ThenBy(c => c.CustomerId).ToList();
     }
 
     void ResetFilter()

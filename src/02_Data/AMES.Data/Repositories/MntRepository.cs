@@ -21,13 +21,15 @@ public sealed class MntRepository
 
     public sealed record FailureRow(int FailureId, string? FailureNumber, string? EquipId,
         string? FailureType, string? Symptom, string? Urgency, string? Source,
-        string? Status, DateTime? ReportedAt, DateTime? ResolvedAt, int? WorkOrderId);
+        string? Status, DateTime? ReportedAt, DateTime? ResolvedAt, int? WorkOrderId,
+        string? EquipName = null, string? LineId = null, string? ReportedBy = null,
+        string? AndonRefId = null, int? DowntimeId = null);
 
     public sealed record OeeRow(int OeeLogId, string? OeeRecordNumber, string? EquipId, string? LineId,
         string? AggLevel, DateTime? AggDate, string? ShiftCode,
         int? PlannedTimeMin, int? DowntimeMin,
         decimal? Availability, decimal? Performance, decimal? Quality, decimal? Oee,
-        decimal? GoodQty, decimal? TotalQty);
+        decimal? GoodQty, decimal? TotalQty, string? EquipName = null);
 
     public sealed record MoldRow(string MoldId, string? MoldName, int? RatedShots, int? CurrentShots,
         int? CavityCount, int? Tonnage, string? StorageLoc, DateTime? LastMaintDate, string? Status,
@@ -38,7 +40,9 @@ public sealed class MntRepository
         string? ChecklistId, string? AssignedTechId, string? Status, int? ActiveWoId, int DaysToDue);
 
     public sealed record DowntimeRow(int DowntimeId, string? LineId, DateTime? StartTs, DateTime? EndTs,
-        int? DurationMin, string? ReasonCode, string? CauseCode, string? Comment, int? WoId);
+        int? DurationMin, string? ReasonCode, string? CauseCode, string? Comment, int? WoId,
+        string? LineName = null, string? LineNameEn = null, string? LoggedBy = null, string? AndonId = null,
+        string? CreatedBy = null, DateTime? CreatedTs = null, string? ModifiedBy = null, DateTime? ModifiedTs = null);
 
     public sealed record MwoRow(int WorkOrderId, string? WoNumber, string? WoType, string? EquipId,
         string? Priority, string? SourceType, string? AssignedTechId, string? Status,
@@ -81,45 +85,97 @@ public sealed class MntRepository
     }
 
     // ── MNT-002 Failure Register ────────────────────────────────────────
+    private const string FailureSelect = """
+        SELECT f.FailureID, f.FailureNumber, f.EquipID, f.FailureType, f.Symptom, f.Urgency,
+               f.Source, f.Status, f.ReportedAt, f.ResolvedAt, f.WorkOrderID,
+               e.EquipName, e.LineID, f.ReportedBy, f.AndonRefID, f.DowntimeID
+        FROM   dbo.MNT_FailureRegister f
+        LEFT JOIN dbo.MD_Equipment e ON e.EquipID = f.EquipID
+        """;
+
+    private static FailureRow MapFailure(IDataReader r) => new(
+        (int)r["FailureID"], r["FailureNumber"] as string, r["EquipID"] as string,
+        r["FailureType"] as string, r["Symptom"] as string, r["Urgency"] as string,
+        r["Source"] as string, r["Status"] as string,
+        r["ReportedAt"] as DateTime?, r["ResolvedAt"] as DateTime?, r["WorkOrderID"] as int?,
+        r["EquipName"] as string, r["LineID"] as string, r["ReportedBy"] as string,
+        r["AndonRefID"] as string, r["DowntimeID"] as int?);
+
     public List<FailureRow> ListFailures(int topN = 100, string? statusFilter = null)
     {
-        const string sql = """
-            SELECT TOP (@N)
-                   FailureID, FailureNumber, EquipID, FailureType, Symptom, Urgency,
-                   Source, Status, ReportedAt, ResolvedAt, WorkOrderID
-            FROM   dbo.MNT_FailureRegister
-            WHERE  (@S IS NULL OR Status = @S)
-            ORDER  BY ReportedAt DESC, FailureID DESC;
+        const string sql = $"""
+            {FailureSelect}
+            WHERE  (@S IS NULL OR f.Status = @S)
+            ORDER  BY f.ReportedAt DESC, f.FailureID DESC
+            OFFSET 0 ROWS FETCH NEXT @N ROWS ONLY;
             """;
-        return Query(sql, r => new FailureRow(
-            (int)r["FailureID"], r["FailureNumber"] as string, r["EquipID"] as string,
-            r["FailureType"] as string, r["Symptom"] as string, r["Urgency"] as string,
-            r["Source"] as string, r["Status"] as string,
-            r["ReportedAt"] as DateTime?, r["ResolvedAt"] as DateTime?, r["WorkOrderID"] as int?),
-            ("@N", topN), ("@S", (object?)statusFilter ?? DBNull.Value));
+        return Query(sql, MapFailure, ("@N", topN), ("@S", (object?)statusFilter ?? DBNull.Value));
+    }
+
+    /// <summary>발생일 기준 기간 조회 (to 는 당일 포함). MNT-002 화면용 — 필터는 화면에서 건다.</summary>
+    public List<FailureRow> ListFailuresRange(DateTime from, DateTime to)
+    {
+        const string sql = $"""
+            {FailureSelect}
+            WHERE  f.ReportedAt >= @F AND f.ReportedAt < @T
+            ORDER  BY f.ReportedAt DESC, f.FailureID DESC;
+            """;
+        return Query(sql, MapFailure, ("@F", from.Date), ("@T", to.Date.AddDays(1)));
+    }
+
+    public (DateTime? Min, DateTime? Max) FailureDateExtent()
+    {
+        var rows = Query("SELECT MIN(ReportedAt) AS Mn, MAX(ReportedAt) AS Mx FROM dbo.MNT_FailureRegister;",
+            r => (r["Mn"] as DateTime?, r["Mx"] as DateTime?));
+        return rows.Count > 0 ? rows[0] : (null, null);
     }
 
     // ── MNT-003 OEE Analysis (equipment level) ──────────────────────────
+    private const string OeeSelect = """
+        SELECT  o.OEELogID, o.OEERecordNumber, o.EquipID, o.LineID, o.AggLevel, o.AggDate, o.ShiftCode,
+                o.PlannedTimeMin, o.DowntimeMin, o.Availability, o.Performance, o.Quality, o.OEE,
+                o.GoodQty, o.TotalQty, e.EquipName
+        FROM    dbo.MNT_OEELog o
+        LEFT JOIN dbo.MD_Equipment e ON e.EquipID = o.EquipID
+        """;
+
+    private static OeeRow MapOee(IDataReader r) => new(
+        (int)r["OEELogID"], r["OEERecordNumber"] as string, r["EquipID"] as string,
+        r["LineID"] as string, r["AggLevel"] as string, r["AggDate"] as DateTime?,
+        r["ShiftCode"] as string,
+        r["PlannedTimeMin"] as int?, r["DowntimeMin"] as int?,
+        r["Availability"] as decimal?, r["Performance"] as decimal?,
+        r["Quality"] as decimal?, r["OEE"] as decimal?,
+        r["GoodQty"] as decimal?, r["TotalQty"] as decimal?,
+        r["EquipName"] as string);
+
     public List<OeeRow> ListOee(int daysBack = 14, string? equipId = null)
     {
-        const string sql = """
-            SELECT  OEELogID, OEERecordNumber, EquipID, LineID, AggLevel, AggDate, ShiftCode,
-                    PlannedTimeMin, DowntimeMin, Availability, Performance, Quality, OEE,
-                    GoodQty, TotalQty
-            FROM    dbo.MNT_OEELog
-            WHERE   AggDate >= DATEADD(DAY, -@D, CAST(SYSDATETIME() AS DATE))
-              AND  (@E IS NULL OR EquipID = @E)
-            ORDER BY AggDate DESC, EquipID, ShiftCode;
+        const string sql = $"""
+            {OeeSelect}
+            WHERE   o.AggDate >= DATEADD(DAY, -@D, CAST(SYSDATETIME() AS DATE))
+              AND  (@E IS NULL OR o.EquipID = @E)
+            ORDER BY o.AggDate DESC, o.EquipID, o.ShiftCode;
             """;
-        return Query(sql, r => new OeeRow(
-            (int)r["OEELogID"], r["OEERecordNumber"] as string, r["EquipID"] as string,
-            r["LineID"] as string, r["AggLevel"] as string, r["AggDate"] as DateTime?,
-            r["ShiftCode"] as string,
-            r["PlannedTimeMin"] as int?, r["DowntimeMin"] as int?,
-            r["Availability"] as decimal?, r["Performance"] as decimal?,
-            r["Quality"] as decimal?, r["OEE"] as decimal?,
-            r["GoodQty"] as decimal?, r["TotalQty"] as decimal?),
-            ("@D", daysBack), ("@E", (object?)equipId ?? DBNull.Value));
+        return Query(sql, MapOee, ("@D", daysBack), ("@E", (object?)equipId ?? DBNull.Value));
+    }
+
+    /// <summary>집계일 기준 기간 조회 (양끝 포함). MNT-003 화면용 — 라인·설비·교대 필터는 화면에서 건다.</summary>
+    public List<OeeRow> ListOeeRange(DateTime from, DateTime to)
+    {
+        const string sql = $"""
+            {OeeSelect}
+            WHERE   o.AggDate >= @F AND o.AggDate <= @T
+            ORDER BY o.AggDate DESC, o.EquipID, o.ShiftCode;
+            """;
+        return Query(sql, MapOee, ("@F", from.Date), ("@T", to.Date));
+    }
+
+    public (DateTime? Min, DateTime? Max) OeeDateExtent()
+    {
+        var rows = Query("SELECT MIN(AggDate) AS Mn, MAX(AggDate) AS Mx FROM dbo.MNT_OEELog;",
+            r => (r["Mn"] as DateTime?, r["Mx"] as DateTime?));
+        return rows.Count > 0 ? rows[0] : (null, null);
     }
 
     // ── MNT-004 Mold Management ─────────────────────────────────────────
@@ -166,21 +222,48 @@ public sealed class MntRepository
     }
 
     // ── MNT-006 Downtime Log ────────────────────────────────────────────
+    private const string DowntimeSelect = """
+        SELECT  d.DowntimeID, d.LineID, d.StartTS, d.EndTS, d.DurationMin, d.ReasonCode, d.CauseCode,
+                d.Comment, d.WoID, l.LineName, l.LineNameEn, d.LoggedBy, d.AndonID,
+                d.CreatedBy, d.CreatedTS, d.ModifiedBy, d.ModifiedTS
+        FROM    dbo.PP_LineDowntimeLog d
+        LEFT JOIN dbo.MD_Line l ON l.LineID = d.LineID
+        """;
+
+    private static DowntimeRow MapDowntime(IDataReader r) => new(
+        (int)r["DowntimeID"], r["LineID"] as string,
+        r["StartTS"] as DateTime?, r["EndTS"] as DateTime?,
+        r["DurationMin"] as int?, r["ReasonCode"] as string,
+        r["CauseCode"] as string, r["Comment"] as string, r["WoID"] as int?,
+        r["LineName"] as string, r["LineNameEn"] as string, r["LoggedBy"] as string, r["AndonID"] as string,
+        r["CreatedBy"] as string, r["CreatedTS"] as DateTime?, r["ModifiedBy"] as string, r["ModifiedTS"] as DateTime?);
+
     public List<DowntimeRow> ListDowntime(int daysBack = 7)
     {
-        const string sql = """
-            SELECT  DowntimeID, LineID, StartTS, EndTS, DurationMin, ReasonCode, CauseCode,
-                    Comment, WoID
-            FROM    dbo.PP_LineDowntimeLog
-            WHERE   StartTS >= DATEADD(DAY, -@D, SYSDATETIME())
-            ORDER BY StartTS DESC, DowntimeID DESC;
+        const string sql = $"""
+            {DowntimeSelect}
+            WHERE   d.StartTS >= DATEADD(DAY, -@D, SYSDATETIME())
+            ORDER BY d.StartTS DESC, d.DowntimeID DESC;
             """;
-        return Query(sql, r => new DowntimeRow(
-            (int)r["DowntimeID"], r["LineID"] as string,
-            r["StartTS"] as DateTime?, r["EndTS"] as DateTime?,
-            r["DurationMin"] as int?, r["ReasonCode"] as string,
-            r["CauseCode"] as string, r["Comment"] as string, r["WoID"] as int?),
-            ("@D", daysBack));
+        return Query(sql, MapDowntime, ("@D", daysBack));
+    }
+
+    /// <summary>시작 시각 기준 기간 조회 (to 는 당일 포함). MNT-006 화면용 — 라인·상태·사유 필터는 화면에서 건다.</summary>
+    public List<DowntimeRow> ListDowntimeRange(DateTime from, DateTime to)
+    {
+        const string sql = $"""
+            {DowntimeSelect}
+            WHERE   d.StartTS >= @F AND d.StartTS < @T
+            ORDER BY d.StartTS DESC, d.DowntimeID DESC;
+            """;
+        return Query(sql, MapDowntime, ("@F", from.Date), ("@T", to.Date.AddDays(1)));
+    }
+
+    public (DateTime? Min, DateTime? Max) DowntimeDateExtent()
+    {
+        var rows = Query("SELECT MIN(StartTS) AS Mn, MAX(StartTS) AS Mx FROM dbo.PP_LineDowntimeLog;",
+            r => (r["Mn"] as DateTime?, r["Mx"] as DateTime?));
+        return rows.Count > 0 ? rows[0] : (null, null);
     }
 
     // ── MNT-007 Work Order (MWO) ────────────────────────────────────────

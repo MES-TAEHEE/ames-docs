@@ -1,105 +1,343 @@
-﻿@page "/mnt/failure"
+@page "/mnt/failure"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.MntRepository Mnt
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using Radzen
+
+@attribute [Authorize]
+
+@inject MntRepository Mnt
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>MNT-002 @L["MNT.Failure.Title"] · AMES</PageTitle>
-
 <AmesPageHeader Code="MNT-002" TitleKey="MNT.Failure.Title" />
 
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
-    <div class="ames-kpi bad"><div class="ames-kpi-l">OPEN</div>
-        <div class="ames-kpi-v">@_open</div><div class="ames-kpi-s">@L["MNT.Failure.Kpi.Open"]</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">IN PROGRESS</div>
-        <div class="ames-kpi-v">@_prog</div><div class="ames-kpi-s">@L["MNT.Failure.Kpi.Prog"]</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">RESOLVED</div>
-        <div class="ames-kpi-v">@_res</div><div class="ames-kpi-s">@L["MNT.Failure.Kpi.Res"]</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">URGENT</div>
-        <div class="ames-kpi-v">@_urg</div><div class="ames-kpi-s">@L["MNT.Failure.Kpi.Urg"]</div></div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["Lbl.Total"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_allRows.Count</div>
+            <div class="ames-kpi-s">@string.Format(L["MNT.Failure.Lbl.Range"].Value, _fFrom.ToString("MM-dd"), _fTo.ToString("MM-dd"))</div>
+        </div>
+    </div>
+    <div class="ames-kpi bad">
+        <div class="ames-kpi-l">@L["MNT.Failure.Kpi.Open"]</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => IsOpen(r.Status))</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">@L["MNT.Failure.Kpi.Prog"]</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => IsProg(r.Status))</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["MNT.Failure.Kpi.Res"]</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => IsRes(r.Status))</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MNT.Failure.Kpi.Urg"]</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => IsUrgent(r.Urgency) && !IsRes(r.Status))</div>
+    </div>
 </div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+}
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MNT.Failure.List"] · @_rows.Count @L["Lbl.Items"]</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <select class="ames-input" style="width:110px;" @bind="_statusFilter">
-                <option value="">@L["Filter.All"]</option>
-                <option value="OPEN">OPEN</option>
-                <option value="IN_PROGRESS">@L["MNT.Failure.InProgress"]</option>
-                <option value="RESOLVED">@L["MNT.Failure.Resolved"]</option>
-            </select>
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Recent"]</label>
-            <select class="ames-input" style="width:110px;" @bind="_topN">
-                <option value="50">50@(L["Lbl.Items"])</option>
-                <option value="100">100@(L["Lbl.Items"])</option>
-                <option value="200">200@(L["Lbl.Items"])</option>
-            </select>
-            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
-        </div>
+        <span style="white-space:nowrap;">▼ @L["MNT.Failure.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MNT.Failure.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+            <RadzenLabel Text="@L["Lbl.Period"]" Component="DatePickerFrom" />
+            <RadzenDatePicker TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <span class="dim">~</span>
+            <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenLabel Text="@L["Col.Priority"]" Component="DropDownUrgency" />
+            <RadzenDropDown Name="DropDownUrgency" @bind-Value="_fUrgency" Data="@UrgencyFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Search" class="ames-rz-btn" />
+            <RadzenButton Text="@L["MNT.Failure.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+        </RadzenStack>
     </div>
 
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["MNT.Failure.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.FailNo"]</th><th>@L["Col.Equip"]</th><th>@L["Col.Type"]</th><th>@L["Col.Symptom"]</th>
-                    <th>@L["Col.Priority"]</th><th>@L["Col.Source"]</th><th>@L["Col.Status"]</th>
-                    <th>@L["Col.Reported"]</th><th>@L["Col.Resolved"]</th><th>@L["Col.MwoNo"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var f in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    <tr>
-                        <td class="code">@(f.FailureNumber ?? $"F#{f.FailureId}")</td>
-                        <td>@(f.EquipId ?? "—")</td>
-                        <td class="dim">@(f.FailureType ?? "—")</td>
-                        <td>@(f.Symptom ?? "—")</td>
-                        <td><span class="pill @UrgencyClass(f.Urgency)">@(f.Urgency ?? "—")</span></td>
-                        <td class="dim">@(f.Source ?? "—")</td>
-                        <td><span class="pill @StatusClass(f.Status)">@(f.Status ?? "—")</span></td>
-                        <td class="dim">@(f.ReportedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
-                        <td class="dim">@(f.ResolvedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
-                        <td class="dim">@(f.WorkOrderId?.ToString() ?? "—")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MntRepository.FailureRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.Failure.Empty"]" Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="FailureNumber" Title="@L["Col.FailNo"]" TextAlign="TextAlign.Center" Width="130px">
+                <Template Context="r"><span class="code">@FailNo(r)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="EquipId" Title="@L["Col.EquipId"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r"><span class="code">@(r.EquipId ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="EquipName" Title="@L["Col.EquipName"]" Width="150px">
+                <Template Context="r">@(r.EquipName ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="FailureType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r"><span class="pill">@(r.FailureType ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Symptom" Title="@L["Col.Symptom"]">
+                <Template Context="r"><span style="white-space:nowrap;">@(r.Symptom ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Urgency" Title="@L["Col.Priority"]" TextAlign="TextAlign.Center" Width="90px">
+                <Template Context="r"><span class="pill @UrgencyCls(r.Urgency)">@UrgencyLabel(r.Urgency)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Source" Title="@L["Col.Source"]" TextAlign="TextAlign.Center" Width="90px">
+                <Template Context="r"><span class="dim">@(r.Source ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="90px">
+                <Template Context="r"><span class="pill @StatusCls(r.Status)">@StatusLabel(r.Status)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="ReportedAt" Title="@L["Col.Reported"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r"><span class="dim">@(r.ReportedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="ResolvedAt" Title="@L["Col.Resolved"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r"><span class="dim">@(r.ResolvedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="WorkOrderId" Title="@L["Col.MwoNo"]" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="r">
+                    @if (r.WorkOrderId is { } wo) { <span class="pill orange">@wo</span> } else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
-@code {
-    List<AMES.Data.Repositories.MntRepository.FailureRow> _rows = new();
-    int _page = 0;
-    const int _pageSize = 20;
-    int    _open, _prog, _res, _urg;
-    int    _topN = 100;
-    string _statusFilter = "";
+@* ── Detail Modal (읽기 전용) ─────────────────────────────────────── *@
+@if (_modal == "detail" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MNT.Failure.Title"] <span class="dim" style="font-weight:400;font-size:.9em;">@FailNo(_sel)</span></div>
 
-    protected override void OnInitialized() => Reload();
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text="@L["Col.Equip"]" class="ames-rz-modal-label" Component="DetailTextBoxEquip" />
+                <RadzenTextBox Name="DetailTextBoxEquip" Value="@EquipText(_sel)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+            </RadzenStack>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Line"]" />
+                    <RadzenTextBox Value="@(_sel.LineId ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Type"]" />
+                    <RadzenTextBox Value="@(_sel.FailureType ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Priority"]" />
+                    <div style="padding-top:4px;"><span class="pill @UrgencyCls(_sel.Urgency)">@UrgencyLabel(_sel.Urgency)</span></div>
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Status"]" />
+                    <div style="padding-top:4px;"><span class="pill @StatusCls(_sel.Status)">@StatusLabel(_sel.Status)</span></div>
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Reported"]" />
+                    <RadzenTextBox Value="@(_sel.ReportedAt?.ToString(DateFmt.DateTime) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Resolved"]" />
+                    <RadzenTextBox Value="@(_sel.ResolvedAt?.ToString(DateFmt.DateTime) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Source"]" />
+                    <RadzenTextBox Value="@(_sel.Source ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.ReportedBy"]" />
+                    <RadzenTextBox Value="@(_sel.ReportedBy ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.MwoNo"]" />
+                    <RadzenTextBox Value="@(_sel.WorkOrderId?.ToString() ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["MNT.Failure.Col.AndonRef"]" />
+                    <RadzenTextBox Value="@(_sel.AndonRefId ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["MNT.Failure.Col.Downtime"]" />
+                    <RadzenTextBox Value="@(_sel.DowntimeId?.ToString() ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenStack Orientation="Orientation.Vertical" Gap="2px" Style="margin-top:6px;">
+                <RadzenLabel Text="@L["Col.Symptom"]" />
+                <RadzenTextArea Value="@(_sel.Symptom ?? "")" Disabled="true" Rows="3" class="ames-rz-input" Style="width:100%;" />
+            </RadzenStack>
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Close"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@code {
+    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    bool _showPagerSummary = true;
+    List<MntRepository.FailureRow>            _allRows   = new();
+    List<MntRepository.FailureRow>            _rows      = new();
+    MntRepository.FailureRow? _sel;
+
+    string   _fSearch = "";
+    DateTime _fFrom = DateTime.Today.AddDays(-30), _fTo = DateTime.Today;
+    string?  _fStatus, _fUrgency;
+    string   _modal = "", _msg = "";
+    bool     _bgMouseDownOnSelf, _isErr;
+
+    static readonly string[] StatusCodes  = { "OPEN", "IN_PROGRESS", "RESOLVED" };
+    static readonly string[] UrgencyCodes = { "URGENT", "HIGH", "MED", "LOW" };
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
+    IEnumerable<DropDownItem> StatusFilterOptions  => StatusCodes.Select(s => new DropDownItem { Value = s, Text = $"[{s}] {StatusLabel(s)}" });
+    IEnumerable<DropDownItem> UrgencyFilterOptions => UrgencyCodes.Select(u => new DropDownItem { Value = u, Text = $"[{u}] {UrgencyLabel(u)}" });
+
+    protected override void OnInitialized()
+    {
+
+        // 기본 기간: 최근 30일. 그 안에 데이터가 없으면 마지막 발생일 기준으로 30일을 잡는다
+        try
+        {
+            var (_, mx) = Mnt.FailureDateExtent();
+            if (mx is { } m && m.Date < _fFrom) { _fTo = m.Date; _fFrom = _fTo.AddDays(-30); }
+        }
+        catch { }
+
+        Reload();
+    }
+
+    RadzenDataGrid<MntRepository.FailureRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task Search()
+    {
+        _pgIndex = 0;
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null) await _pgGrid.GoToPage(0);
+    }
 
     void Reload()
     {
-        _page = 0;
-        try { _rows = Mnt.ListFailures(_topN, string.IsNullOrWhiteSpace(_statusFilter) ? null : _statusFilter); }
-        catch { _rows = new(); }
-        _open = _rows.Count(r => r.Status is "OPEN" or "REGISTERED");
-        _prog = _rows.Count(r => r.Status == "IN_PROGRESS");
-        _res  = _rows.Count(r => r.Status is "RESOLVED" or "CLOSED");
-        _urg  = _rows.Count(r => r.Urgency is "URGENT" or "HIGH");
+        if (_fTo < _fFrom) (_fFrom, _fTo) = (_fTo, _fFrom);
+        try { _allRows = Mnt.ListFailuresRange(_fFrom, _fTo); }
+        catch (Exception ex) { _allRows = new(); ShowMsg(ex.Message, true); }
+        ApplyFilter();
     }
 
-    static string UrgencyClass(string? u) => u switch
-    { "URGENT" or "HIGH" => "bad", "MED" => "warn", "LOW" => "info", _ => "info" };
-    static string StatusClass(string? s) => s switch
-    { "OPEN" or "REGISTERED" => "bad",
-      "IN_PROGRESS"          => "warn",
-      "RESOLVED" or "CLOSED" => "ok", _ => "info" };
+    void ApplyFilter() { _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            FailNo(r).Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.EquipId   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            EquipDisplayName(r).Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.Symptom   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fStatus)  || NormStatus(r.Status) == _fStatus) &&
+        (string.IsNullOrEmpty(_fUrgency) || r.Urgency == _fUrgency)
+    ).ToList();
+    }
+
+    void OnSearchChanged(string value) => _fSearch = value ?? "";
+
+    async Task OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") await Search(); }
+
+    void RowRender(RowRenderEventArgs<MntRepository.FailureRow> args)
+    {
+        if (args.Attributes.TryGetValue("class", out var existing))
+            args.Attributes["class"] = existing + " ames-row-link";
+        else
+            args.Attributes["class"] = "ames-row-link";
+    }
+
+    void OnRowClick(DataGridRowMouseEventArgs<MntRepository.FailureRow> args)
+    {
+        if (args.Data is not null) OpenDetail(args.Data);
+    }
+
+    void OpenDetail(MntRepository.FailureRow r) { _sel = r; _modal = "detail"; }
+
+    void CloseModal() { _modal = ""; _sel = null; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    // 현재 조회 결과(필터 적용분)를 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로
+    async Task ExportXlsx()
+    {
+        if (_rows.Count == 0) { ShowMsg(L["MNT.Failure.Err.NoExport"], true); return; }
+
+        var headers = new[]
+        {
+            L["Col.FailNo"].Value, L["Col.EquipId"].Value, L["Col.EquipName"].Value, L["Col.Line"].Value,
+            L["Col.Type"].Value, L["Col.Symptom"].Value, L["Col.Priority"].Value, L["Col.Source"].Value,
+            L["Col.Status"].Value, L["Col.Reported"].Value, L["Col.Resolved"].Value, L["Col.ReportedBy"].Value,
+            L["Col.MwoNo"].Value, L["MNT.Failure.Col.AndonRef"].Value, L["MNT.Failure.Col.Downtime"].Value,
+        };
+        var data = _rows.Select(r => (IReadOnlyList<object?>)new object?[]
+        {
+            FailNo(r), r.EquipId, r.EquipName, r.LineId,
+            r.FailureType, r.Symptom, UrgencyLabel(r.Urgency), r.Source,
+            StatusLabel(r.Status), r.ReportedAt?.ToString(DateFmt.DateTime), r.ResolvedAt?.ToString(DateFmt.DateTime), r.ReportedBy,
+            r.WorkOrderId, r.AndonRefId, r.DowntimeId,
+        });
+
+        var bytes = AMES.Web.Services.XlsxWriter.Build(L["MNT.Failure.Title"].Value, headers, data);
+        var name  = $"Failure_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        ShowMsg(string.Format(L["MNT.Failure.Ok.Exported"].Value, _rows.Count), false);
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    static string FailNo(MntRepository.FailureRow r) => r.FailureNumber ?? $"F#{r.FailureId}";
+
+    // 설비명은 현재 언어 기준 표시명으로 검색한다. MD_Equipment 에 영문 명칭 컬럼이 없어 지금은 EquipName 하나로 해석되며,
+    // 컬럼이 생기면 FailureRow 에 EquipNameEn 을 실어 LocalName(ko, en) 으로 바꾸면 된다.
+    static string EquipDisplayName(MntRepository.FailureRow r) => MasterDataRepository.LocalName(r.EquipName, null);
+
+    string EquipText(MntRepository.FailureRow r) =>
+        r.EquipId is null ? "" : EquipDisplayName(r) is { Length: > 0 } nm ? $"[{r.EquipId}] {nm}" : $"[{r.EquipId}]";
+
+    // MNT_FailureRegister 상태·우선순위는 공통코드 그룹이 없어 고정 어휘로 표시한다 (REGISTERED/CLOSED 는 동의어)
+    static bool IsOpen(string? s)   => s is "OPEN" or "REGISTERED";
+    static bool IsProg(string? s)   => s == "IN_PROGRESS";
+    static bool IsRes(string? s)    => s is "RESOLVED" or "CLOSED";
+    static bool IsUrgent(string? u) => u is "URGENT" or "HIGH";
+
+    static string NormStatus(string? s) => IsOpen(s) ? "OPEN" : IsRes(s) ? "RESOLVED" : s ?? "";
+
+    string StatusLabel(string? s) =>
+        s is null ? "—" : IsOpen(s) ? L["MNT.Failure.Open"] : IsProg(s) ? L["MNT.Failure.InProgress"] : IsRes(s) ? L["MNT.Failure.Resolved"] : s;
+
+    string UrgencyLabel(string? u) =>
+        u is null ? "—" : UrgencyCodes.Contains(u) ? L[$"MNT.Failure.Urg.{u}"] : u;
+
+    static string StatusCls(string? s) => IsOpen(s) ? "bad" : IsProg(s) ? "orange" : IsRes(s) ? "ok" : "mute";
+
+    static string UrgencyCls(string? u) => u switch
+    { "URGENT" => "bad", "HIGH" => "orange", "MED" => "info", "LOW" => "mute", _ => "mute" };
 }

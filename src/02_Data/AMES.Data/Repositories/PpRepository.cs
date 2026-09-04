@@ -99,8 +99,6 @@ public sealed class PpRepository
         public decimal ProgressPct => OrderQty > 0 ? Math.Min(100m, ShippedQty / OrderQty * 100m) : 0m;
     }
 
-    public sealed record OtdCustomerRow(string CustomerId, string? CustomerCode, string? CustomerName, string? CustomerNameEn, int Orders);
-
     // ── PP-001 Forecast ──────────────────────────────────────────────────
     public List<ForecastRow> ListForecast(int monthsBack = 6, int monthsAhead = 6)
     {
@@ -1162,24 +1160,6 @@ public sealed class PpRepository
         var list = new List<OtdRow>();
         while (rdr.Read()) list.Add(MapOtd(rdr));
         return list;
-    }
-
-    /// <summary>PP-OTD 고객 필터 옵션 — 마스터 ID 로 정규화(원본의 ID/코드 혼용을 하나로 묶는다).</summary>
-    public List<OtdCustomerRow> ListOtdCustomers()
-    {
-        const string sql = """
-            SELECT ISNULL(c.CustomerID, o.CustomerID) AS CustomerID,
-                   MAX(c.CustomerCode) AS CustomerCode, MAX(c.CustomerName) AS CustomerName, MAX(c.CustomerNameEn) AS CustomerNameEn,
-                   COUNT(*) AS Orders
-            FROM   dbo.PP_CustomerOrder o
-            LEFT JOIN dbo.MD_Customer c ON c.CustomerID = o.CustomerID OR c.CustomerCode = o.CustomerID
-            WHERE  o.CustomerID IS NOT NULL
-            GROUP  BY ISNULL(c.CustomerID, o.CustomerID)
-            ORDER  BY 1;
-            """;
-        return Query(sql, r => new OtdCustomerRow(
-            (string)r["CustomerID"], r["CustomerCode"] as string, r["CustomerName"] as string, r["CustomerNameEn"] as string,
-            Convert.ToInt32(r["Orders"])));
     }
 
     /// <summary>요청납기의 최소/최대 — 기본 조회 기간을 데이터가 있는 구간으로 맞추는 용도.</summary>

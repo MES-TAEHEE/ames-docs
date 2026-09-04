@@ -1,131 +1,396 @@
-﻿@page "/mnt/oee-analysis"
+@page "/mnt/oee-analysis"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.MntRepository Mnt
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using Radzen
+
+@attribute [Authorize]
+
+@inject MntRepository Mnt
+@inject MasterDataRepository MD
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>MNT-003 @L["MNT.OeeAnalysis.Title"] · AMES</PageTitle>
-
 <AmesPageHeader Code="MNT-003" TitleKey="MNT.OeeAnalysis.Title" />
 
+@* ── KPI strip: OEE · MTBF · MTTR · 가용률 · 고장 건수 ───────────────── *@
 <div class="ames-kpis">
-    <div class="ames-kpi @KpiClass(_avgOee, 75, 85)">
-        <div class="ames-kpi-l">AVG OEE</div>
-        <div class="ames-kpi-v">@_avgOee.ToString("0.0")%</div>
-        <div class="ames-kpi-s">@_daysBack d, all equip</div>
+    <div class="ames-kpi @KpiCls(_avg.Oee, 65, 85)">
+        <div class="ames-kpi-l">@L["MNT.OeeAnalysis.Kpi.Oee"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@Pct(_avg.Oee)</div>
+            <div class="ames-kpi-s">@L["MNT.OeeAnalysis.Sub.WorldClass"]</div>
+        </div>
     </div>
-    <div class="ames-kpi @KpiClass(_avgAvail, 80, 90)">
-        <div class="ames-kpi-l">AVAILABILITY</div>
-        <div class="ames-kpi-v">@_avgAvail.ToString("0.0")%</div>
-        <div class="ames-kpi-s">A</div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MNT.OeeAnalysis.Kpi.Mtbf"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@(_kpiMtbf is { } mtbf ? $"{mtbf:N0}h" : "—")</div>
+            <div class="ames-kpi-s">@L["MNT.OeeAnalysis.Sub.Hours"]</div>
+        </div>
     </div>
-    <div class="ames-kpi @KpiClass(_avgPerf, 80, 90)">
-        <div class="ames-kpi-l">PERFORMANCE</div>
-        <div class="ames-kpi-v">@_avgPerf.ToString("0.0")%</div>
-        <div class="ames-kpi-s">P</div>
+    <div class="ames-kpi @(_kpiMttr is > 60 ? "warn" : "")">
+        <div class="ames-kpi-l">@L["MNT.OeeAnalysis.Kpi.Mttr"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@(_kpiMttr is { } mttr ? $"{mttr:N0} min" : "—")</div>
+            <div class="ames-kpi-s">@L["MNT.OeeAnalysis.Sub.Minutes"]</div>
+        </div>
     </div>
-    <div class="ames-kpi @KpiClass(_avgQual, 95, 99)">
-        <div class="ames-kpi-l">QUALITY</div>
-        <div class="ames-kpi-v">@_avgQual.ToString("0.0")%</div>
-        <div class="ames-kpi-s">Q</div>
+    <div class="ames-kpi @KpiCls(_avg.A, 80, 90)">
+        <div class="ames-kpi-l">@L["MNT.OeeAnalysis.Kpi.Availability"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@Pct(_avg.A)</div>
+            <div class="ames-kpi-s">@L["MNT.OeeAnalysis.Note.Weighted"]</div>
+        </div>
     </div>
-</div>
-
-<div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MNT.OeeAnalysis.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" style="width:120px;padding:4px 8px;"
-                   placeholder="@L["MNT.OeeAnalysis.Ph.Equip"]" @bind="_fEquip" autocomplete="off" />
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Period"]</label>
-            <select class="ames-input" style="width:100px;" @bind="_daysBack">
-                <option value="7">7@(L["Lbl.Days"])</option>
-                <option value="14">14@(L["Lbl.Days"])</option>
-                <option value="30">30@(L["Lbl.Days"])</option>
-                <option value="60">60@(L["Lbl.Days"])</option>
-            </select>
-            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
+    <div class="ames-kpi @(_kpiFailures > 0 ? "bad" : "ok")">
+        <div class="ames-kpi-l">@L["MNT.OeeAnalysis.Kpi.Failures"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_kpiFailures</div>
+            <div class="ames-kpi-s">@string.Format(L["MNT.OeeAnalysis.Lbl.Range"].Value, _fFrom.ToString("MM-dd"), _fTo.ToString("MM-dd"))</div>
         </div>
     </div>
 </div>
 
-@foreach (var eq in _rows.GroupBy(r => r.EquipId).OrderBy(g => g.Key).Skip(_page * _pageSize).Take(_pageSize))
+@if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-card">
-        <div class="ames-card-h">▼ @eq.Key  ·  @eq.Count() rows  ·  avg OEE @(eq.Average(x => x.Oee ?? 0m).ToString("0.0"))%</div>
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.Date"]</th><th>@L["Col.Shift"]</th><th>@L["Col.Line"]</th>
-                    <th class="num">@L["Col.Plan"]</th><th class="num">@L["Col.MinDT"]</th>
-                    <th class="num">@L["Col.Availability"]</th><th class="num">@L["Col.Performance"]</th><th class="num">@L["Col.Quality"]</th><th class="num">@L["Col.OEE"]</th>
-                    <th class="num">@L["Col.Good"]</th><th class="num">@L["Col.Total"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in eq.OrderByDescending(x => x.AggDate).ThenBy(x => x.ShiftCode))
-                {
-                    <tr>
-                        <td class="dim">@(r.AggDate?.ToString("MM-dd") ?? "—")</td>
-                        <td class="code">@(r.ShiftCode ?? "—")</td>
-                        <td class="dim">@(r.LineId ?? "—")</td>
-                        <td class="num">@(r.PlannedTimeMin?.ToString() ?? "—")</td>
-                        <td class="num">@(r.DowntimeMin?.ToString() ?? "—")</td>
-                        <td class="num">@(r.Availability?.ToString("0.0") ?? "—")</td>
-                        <td class="num">@(r.Performance?.ToString("0.0") ?? "—")</td>
-                        <td class="num">@(r.Quality?.ToString("0.0") ?? "—")</td>
-                        <td class="num">@(r.Oee?.ToString("0.0") ?? "—")</td>
-                        <td class="num">@(r.GoodQty?.ToString("0") ?? "—")</td>
-                        <td class="num">@(r.TotalQty?.ToString("0") ?? "—")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
-@if (_rows.Count > 0)
-{
-    <Pager Page="_page" Total="_rows.GroupBy(r => r.EquipId).Count()" PageSize="_pageSize" OnPageChange="p => _page = p" />
-}
-@if (_rows.Count == 0)
-{
-    <div class="ames-card"><div class="ames-empty">@L["MNT.OeeAnalysis.Empty"]</div></div>
-}
+@* ── 설비 OEE / 신뢰성 + 조회부 ───────────────────────────────────── *@
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["MNT.OeeAnalysis.Reliability.Title"] · @_equipAgg.Count @L["Lbl.Items"]</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["Lbl.Period"]" Component="DatePickerFrom" />
+            <RadzenDatePicker TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <span class="dim">~</span>
+            <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+            <RadzenLabel Text="@L["Col.Equip"]" Component="DropDownEquip" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownEquip" @bind-Value="_fEquip" Data="@EquipFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+            <RadzenLabel Text="@L["Col.Shift"]" Component="DropDownShift" />
+            <RadzenDropDown Name="DropDownShift" @bind-Value="_fShift" Data="@ShiftFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Search" class="ames-rz-btn" />
+            <RadzenButton Text="@L["MNT.OeeAnalysis.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+    <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["MNT.OeeAnalysis.Reliability.Hint"]</div>
+
+    <RadzenDataGrid TItem="EquipAgg" Data="@_equipAgg" AllowPaging="false" AllowSorting="true"
+                    RowClick="@OnAggRowClick" RowRender="@AggRowRender" EmptyText="@L["MNT.OeeAnalysis.Empty"]" Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="EquipAgg" Property="EquipId" Title="@L["Col.EquipId"]" TextAlign="TextAlign.Center" Width="130px">
+                <Template Context="a"><span class="code">@a.EquipId</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EquipAgg" Property="EquipName" Title="@L["Col.EquipName"]">
+                <Template Context="a">@(a.EquipName ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EquipAgg" Property="EquipType" Title="@L["Col.EquipType"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="a"><span class="pill">@(a.EquipType ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EquipAgg" Property="LineId" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="a"><span class="dim">@(a.LineId ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EquipAgg" Property="Oee" Title="@L["Col.OEE"]" TextAlign="TextAlign.Center" Width="90px">
+                <Template Context="a"><span class="pill @GradeCls(a.Oee)"><b>@Pct(a.Oee)</b></span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EquipAgg" Title="@L["MNT.OeeAnalysis.Col.Trend"]" TextAlign="TextAlign.Center" Width="130px" Sortable="false">
+                <Template Context="a">@Spark(a.Spark)</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EquipAgg" Property="MtbfH" Title="@L["MNT.OeeAnalysis.Col.Mtbf"]" TextAlign="TextAlign.Right" Width="90px">
+                <Template Context="a"><span class="code" style="@(a.MtbfH is < 200 ? "color:#f87171;" : "color:#34d399;")">@(a.MtbfH?.ToString("N0") ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EquipAgg" Property="MttrMin" Title="@L["MNT.OeeAnalysis.Col.Mttr"]" TextAlign="TextAlign.Right" Width="90px">
+                <Template Context="a"><span class="code" style="@(a.MttrMin is > 60 ? "color:#f87171;" : "color:#34d399;")">@(a.MttrMin?.ToString("N0") ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EquipAgg" Property="Failures" Title="@L["MNT.OeeAnalysis.Col.Failures"]" TextAlign="TextAlign.Right" Width="70px">
+                <Template Context="a"><b style="@(a.Failures >= 3 ? "color:#f87171;" : "")">@a.Failures</b></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EquipAgg" Property="A" Title="@L["Col.Availability"]" TextAlign="TextAlign.Right" Width="90px">
+                <Template Context="a">@Pct(a.A)</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EquipAgg" Property="P" Title="@L["Col.Performance"]" TextAlign="TextAlign.Right" Width="90px">
+                <Template Context="a">@Pct(a.P)</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EquipAgg" Property="Q" Title="@L["Col.Quality"]" TextAlign="TextAlign.Right" Width="90px">
+                <Template Context="a">@Pct(a.Q)</Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+@* ── OEE 추세 (전체 평균 또는 선택 설비) ──────────────────────────── *@
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["MNT.OeeAnalysis.Trend.Title"] — <span style="color:#34d399;">@TrendSubject</span> · @_trend.Count @L["Lbl.Items"]</span>
+        <span class="dim" style="font-size:10px;">@L["MNT.OeeAnalysis.Trend.Note"]</span>
+    </div>
+    @if (_trend.Count == 0)
+    {
+        <div class="ames-empty">@L["MNT.OeeAnalysis.Trend.Empty"]</div>
+    }
+    else
+    {
+        <RadzenChart class="mnt-oee-chart" Style="width:100%;height:280px;">
+            <RadzenChartTooltipOptions Visible="true" />
+            <RadzenLegend Position="LegendPosition.Bottom" />
+            <RadzenCategoryAxis Padding="16" />
+            <RadzenValueAxis Min="0" Max="100" Step="25" FormatString="{0}%">
+                <RadzenGridLines Visible="true" />
+            </RadzenValueAxis>
+            <RadzenColumnSeries TItem="TrendPoint" Data="@_trend" CategoryProperty="Label" ValueProperty="Oee" Title="OEE" Fill="#3b82f6">
+                <RadzenSeriesValueLine Value="85" Stroke="#ef4444" StrokeWidth="1.5" LineType="LineType.Dashed" />
+            </RadzenColumnSeries>
+            <RadzenLineSeries TItem="TrendPoint" Data="@_trend" CategoryProperty="Label" ValueProperty="A" Title="@L["MNT.OeeAnalysis.Kpi.Availability"]" Stroke="#94a3b8" StrokeWidth="1.5" LineType="LineType.Dashed">
+                <RadzenMarkers MarkerType="MarkerType.Circle" Size="4" />
+            </RadzenLineSeries>
+            <RadzenLineSeries TItem="TrendPoint" Data="@_trend" CategoryProperty="Label" ValueProperty="P" Title="@L["MNT.OeeAnalysis.Kpi.Performance"]" Stroke="#a78bfa" StrokeWidth="1.5" LineType="LineType.Dashed">
+                <RadzenMarkers MarkerType="MarkerType.Circle" Size="4" />
+            </RadzenLineSeries>
+            <RadzenLineSeries TItem="TrendPoint" Data="@_trend" CategoryProperty="Label" ValueProperty="Q" Title="@L["MNT.OeeAnalysis.Kpi.Quality"]" Stroke="#14b8a6" StrokeWidth="1.5" LineType="LineType.Dashed">
+                <RadzenMarkers MarkerType="MarkerType.Circle" Size="4" />
+            </RadzenLineSeries>
+        </RadzenChart>
+    }
+</div>
 
 @code {
-    List<AMES.Data.Repositories.MntRepository.OeeRow> _allRows = new();
-    List<AMES.Data.Repositories.MntRepository.OeeRow> _rows    = new();
-    int _page = 0;
-    const int _pageSize = 20;
-    decimal _avgOee, _avgAvail, _avgPerf, _avgQual;
-    int     _daysBack = 14;
-    string  _fEquip   = "";
+    List<MntRepository.OeeRow>               _allRows    = new();
+    List<MntRepository.OeeRow>               _rows       = new();
+    List<MntRepository.FailureRow>           _failures   = new();
+    List<EquipAgg>                           _equipAgg   = new();
+    List<TrendPoint>                         _trend      = new();
+    List<MasterDataRepository.LineRow>       _lineList   = new();
+    List<MasterDataRepository.EquipmentRow>  _equipList  = new();
+    List<MasterDataRepository.CodeItemRow>   _shiftItems = new();
 
-    protected override void OnInitialized() => Reload();
+    DateTime _fFrom = DateTime.Today.AddDays(-14), _fTo = DateTime.Today;
+    string?  _fLine, _fEquip, _fShift;
+    string?  _selEquip;                      // 요약 행 클릭으로 고른 추세 대상 설비
+    string   _msg = "";
+    bool     _isErr, _monthly;
+    (decimal? Oee, decimal? A, decimal? P, decimal? Q) _avg;
+    decimal? _kpiMtbf, _kpiMttr;
+    int      _kpiFailures;
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
+    IEnumerable<DropDownItem> LineFilterOptions  => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
+    // 설비 콤보: 라인이 선택돼 있으면 그 라인의 설비만
+    IEnumerable<DropDownItem> EquipFilterOptions => _equipList.Where(e => string.IsNullOrEmpty(_fLine) || e.LineID == _fLine).Select(e => new DropDownItem { Value = e.EquipID, Text = string.IsNullOrEmpty(e.EquipName) ? $"[{e.EquipID}]" : $"[{e.EquipID}] {e.EquipName}" });
+    IEnumerable<DropDownItem> ShiftFilterOptions => _shiftItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+
+    string TrendSubject =>
+        _selEquip is null ? L["MNT.OeeAnalysis.Trend.Overall"]
+        : _equipAgg.FirstOrDefault(a => a.EquipId == _selEquip) is { } a && !string.IsNullOrEmpty(a.EquipName) ? $"[{a.EquipId}] {a.EquipName}" : $"[{_selEquip}]";
+
+    protected override void OnInitialized()
+    {
+        try { _lineList   = MD.ListLines();                  } catch { }
+        try { _equipList  = MD.ListEquipments();             } catch { }
+        try { _shiftItems = MD.ListCodeItems("WORK_SHIFT");  } catch { }
+
+        // 기본 기간: 최근 14일. 그 안에 데이터가 없으면 마지막 집계일 기준 14일을 잡는다
+        try
+        {
+            var (_, mx) = Mnt.OeeDateExtent();
+            if (mx is { } m && m.Date < _fFrom) { _fTo = m.Date; _fFrom = _fTo.AddDays(-14); }
+        }
+        catch { }
+
+        Reload();
+    }
+
+    void Search() => Reload();
 
     void Reload()
     {
-        try { _allRows = Mnt.ListOee(_daysBack); } catch { _allRows = new(); }
+        if (_fTo < _fFrom) (_fFrom, _fTo) = (_fTo, _fFrom);
+        try { _allRows  = Mnt.ListOeeRange(_fFrom, _fTo); }
+        catch (Exception ex) { _allRows = new(); ShowMsg(ex.Message, true); }
+        try { _failures = Mnt.ListFailuresRange(_fFrom, _fTo); }
+        catch { _failures = new(); }
+        _monthly = (_fTo - _fFrom).TotalDays > 62;
         ApplyFilter();
     }
 
     void ApplyFilter()
     {
-        _page = 0;
-        _rows = string.IsNullOrWhiteSpace(_fEquip)
-            ? _allRows
-            : _allRows.Where(r => (r.EquipId ?? "").Contains(_fEquip, StringComparison.OrdinalIgnoreCase)).ToList();
-        if (_rows.Count > 0)
-        {
-            _avgOee   = _rows.Average(r => r.Oee          ?? 0m);
-            _avgAvail = _rows.Average(r => r.Availability ?? 0m);
-            _avgPerf  = _rows.Average(r => r.Performance  ?? 0m);
-            _avgQual  = _rows.Average(r => r.Quality      ?? 0m);
-        }
-        else { _avgOee = _avgAvail = _avgPerf = _avgQual = 0m; }
+        _rows = _allRows.Where(r =>
+            (string.IsNullOrEmpty(_fLine)  || r.LineId    == _fLine) &&
+            (string.IsNullOrEmpty(_fEquip) || r.EquipId   == _fEquip) &&
+            (string.IsNullOrEmpty(_fShift) || r.ShiftCode == _fShift)
+        ).ToList();
+
+        var visibleEquips = _rows.Select(r => r.EquipId ?? "").Distinct().ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var fails = _failures.Where(f => f.EquipId is { } e && visibleEquips.Contains(e)).ToList();
+
+        _avg = Weighted(_rows);
+        var opHours = _rows.Sum(r => (r.PlannedTimeMin ?? 0) - (r.DowntimeMin ?? 0)) / 60m;
+        _kpiFailures = fails.Count;
+        _kpiMtbf = fails.Count > 0 ? opHours / fails.Count : null;
+        _kpiMttr = Mttr(fails);
+
+        _equipAgg = _rows.GroupBy(r => r.EquipId ?? "")
+            .Select(g =>
+            {
+                var w = Weighted(g);
+                var first = g.First();
+                var ef = fails.Where(f => string.Equals(f.EquipId, g.Key, StringComparison.OrdinalIgnoreCase)).ToList();
+                var eh = g.Sum(x => (x.PlannedTimeMin ?? 0) - (x.DowntimeMin ?? 0)) / 60m;
+                return new EquipAgg
+                {
+                    EquipId = g.Key, EquipName = first.EquipName, LineId = first.LineId,
+                    EquipType = _equipList.FirstOrDefault(e => e.EquipID == g.Key)?.EquipType,
+                    Rows = g.Count(),
+                    A = w.A, P = w.P, Q = w.Q, Oee = w.Oee,
+                    Failures = ef.Count, MtbfH = ef.Count > 0 ? eh / ef.Count : null, MttrMin = Mttr(ef),
+                    Spark = Buckets(g).TakeLast(6).Select(t => t.Oee).ToList(),
+                };
+            })
+            .OrderBy(a => a.LineId).ThenBy(a => a.EquipId).ToList();
+
+        if (_selEquip is not null && !_equipAgg.Any(a => a.EquipId == _selEquip)) _selEquip = null;
+        _trend = Buckets(_selEquip is null ? _rows : _rows.Where(r => r.EquipId == _selEquip));
     }
 
-    static string KpiClass(decimal v, decimal warn, decimal ok)
-        => v >= ok ? "ok" : v >= warn ? "warn" : "bad";
+    // 계획시간(PlannedTimeMin) 가중 평균 — 단순 행 평균은 짧은 교대와 긴 교대를 같은 무게로 세어 왜곡된다.
+    // 값이 없는 행은 분모에서도 뺀다(0 으로 치환하지 않음).
+    static (decimal? Oee, decimal? A, decimal? P, decimal? Q) Weighted(IEnumerable<MntRepository.OeeRow> rows)
+    {
+        decimal? W(Func<MntRepository.OeeRow, decimal?> pick)
+        {
+            decimal num = 0, den = 0;
+            foreach (var r in rows)
+            {
+                if (pick(r) is not { } v) continue;
+                var w = r.PlannedTimeMin is > 0 ? r.PlannedTimeMin.Value : 1;
+                num += v * w; den += w;
+            }
+            return den > 0 ? num / den : null;
+        }
+        return (W(r => r.Oee), W(r => r.Availability), W(r => r.Performance), W(r => r.Quality));
+    }
+
+    // MTTR: 해결된 고장의 (해결시각 − 발생시각) 평균(분). 미해결 건은 제외
+    static decimal? Mttr(IEnumerable<MntRepository.FailureRow> fails)
+    {
+        var mins = fails.Where(f => f.ReportedAt is { } && f.ResolvedAt is { } && f.ResolvedAt > f.ReportedAt)
+                        .Select(f => (decimal)(f.ResolvedAt!.Value - f.ReportedAt!.Value).TotalMinutes).ToList();
+        return mins.Count > 0 ? mins.Average() : null;
+    }
+
+    // 추세 구간: 기간 62일 이하는 일 단위, 초과는 월 단위. 각 구간은 계획시간 가중 평균
+    List<TrendPoint> Buckets(IEnumerable<MntRepository.OeeRow> rows) =>
+        rows.Where(r => r.AggDate is { })
+            .GroupBy(r => _monthly ? new DateTime(r.AggDate!.Value.Year, r.AggDate.Value.Month, 1) : r.AggDate!.Value.Date)
+            .OrderBy(g => g.Key)
+            .Select(g =>
+            {
+                var w = Weighted(g);
+                return new TrendPoint
+                {
+                    At = g.Key, Label = g.Key.ToString(_monthly ? "yy-MM" : "MM-dd"),
+                    Oee = (double?)w.Oee, A = (double?)w.A, P = (double?)w.P, Q = (double?)w.Q,
+                };
+            }).ToList();
+
+    // 스파크라인: 최근 6구간 OEE 를 높이로 (0~100%), 마지막 구간 강조
+    static MarkupString Spark(List<double?> pts)
+    {
+        if (pts.Count == 0) return new MarkupString("<span class=\"dim\">—</span>");
+        var sb = new System.Text.StringBuilder("<span class=\"mnt-oee-spark\">");
+        for (int i = 0; i < pts.Count; i++)
+        {
+            var v = pts[i];
+            var h = v is { } x ? Math.Clamp(x, 0, 100) : 0;
+            sb.Append($"<i class=\"{(v is null ? "empty" : i == pts.Count - 1 ? "last" : "")}\" style=\"height:{h:0}%\" title=\"{(v is { } y ? $"{y:0.0}%" : "—")}\"></i>");
+        }
+        return new MarkupString(sb.Append("</span>").ToString());
+    }
+
+    void AggRowRender(RowRenderEventArgs<EquipAgg> args)
+    {
+        var cls = "ames-row-link" + (args.Data.EquipId == _selEquip ? " ames-row-selected" : "");
+        args.Attributes["class"] = args.Attributes.TryGetValue("class", out var existing) ? $"{existing} {cls}" : cls;
+    }
+
+    // 요약 행 클릭: 추세를 그 설비로, 같은 설비를 다시 누르면 전체 평균으로
+    void OnAggRowClick(DataGridRowMouseEventArgs<EquipAgg> args)
+    {
+        if (args.Data is null) return;
+        _selEquip = _selEquip == args.Data.EquipId ? null : args.Data.EquipId;
+        _trend = Buckets(_selEquip is null ? _rows : _rows.Where(r => r.EquipId == _selEquip));
+    }
+
+    // 설비 요약(화면 표)을 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로
+    async Task ExportXlsx()
+    {
+        if (_equipAgg.Count == 0) { ShowMsg(L["MNT.OeeAnalysis.Err.NoExport"], true); return; }
+
+        var headers = new[]
+        {
+            L["Col.EquipId"].Value, L["Col.EquipName"].Value, L["Col.EquipType"].Value, L["Col.Line"].Value,
+            L["MNT.OeeAnalysis.Col.Rows"].Value, L["Col.OEE"].Value,
+            L["MNT.OeeAnalysis.Col.Mtbf"].Value, L["MNT.OeeAnalysis.Col.Mttr"].Value, L["MNT.OeeAnalysis.Col.Failures"].Value,
+            L["Col.Availability"].Value, L["Col.Performance"].Value, L["Col.Quality"].Value,
+        };
+        var data = _equipAgg.Select(a => (IReadOnlyList<object?>)new object?[]
+        {
+            a.EquipId, a.EquipName, a.EquipType, a.LineId,
+            a.Rows, a.Oee is { } o ? Math.Round(o, 1) : null,
+            a.MtbfH is { } h ? Math.Round(h, 0) : null, a.MttrMin is { } m ? Math.Round(m, 0) : null, a.Failures,
+            a.A is { } av ? Math.Round(av, 1) : null, a.P is { } pv ? Math.Round(pv, 1) : null, a.Q is { } qv ? Math.Round(qv, 1) : null,
+        });
+
+        var bytes = AMES.Web.Services.XlsxWriter.Build(L["MNT.OeeAnalysis.Title"].Value, headers, data);
+        var name  = $"OeeAnalysis_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        ShowMsg(string.Format(L["MNT.OeeAnalysis.Ok.Exported"].Value, _equipAgg.Count), false);
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    static string Pct(decimal? v) => v is { } x ? $"{x:0.0}%" : "—";
+
+    // 등급 임계: PP OEE 화면과 동일 (≥85 월드클래스 / ≥65 양호 / 그 외 개선 필요)
+    static string KpiCls(decimal? v, decimal warn, decimal ok) => v is not { } x ? "" : x >= ok ? "ok" : x >= warn ? "warn" : "bad";
+    static string GradeCls(decimal? v) => v is not { } x ? "mute" : x >= 85 ? "ok" : x >= 65 ? "warn" : "bad";
+
+    public class EquipAgg
+    {
+        public string        EquipId   { get; set; } = "";
+        public string?       EquipName { get; set; }
+        public string?       EquipType { get; set; }
+        public string?       LineId    { get; set; }
+        public int           Rows      { get; set; }
+        public decimal?      A         { get; set; }
+        public decimal?      P         { get; set; }
+        public decimal?      Q         { get; set; }
+        public decimal?      Oee       { get; set; }
+        public int           Failures  { get; set; }
+        public decimal?      MtbfH     { get; set; }
+        public decimal?      MttrMin   { get; set; }
+        public List<double?> Spark     { get; set; } = new();
+    }
+
+    public class TrendPoint
+    {
+        public DateTime At    { get; set; }
+        public string   Label { get; set; } = "";
+        public double?  Oee   { get; set; }
+        public double?  A     { get; set; }
+        public double?  P     { get; set; }
+        public double?  Q     { get; set; }
+    }
 }

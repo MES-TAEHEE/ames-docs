@@ -46,20 +46,18 @@
     @* ── 좌: 코드 그룹 ────────────────────────────────────────────────── *@
     <div style="flex:0 0 480px;display:flex;flex-direction:column;min-height:0;">
         <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                <span style="font-weight:600;font-size:1em;">@L["MD.CommonCode.GrpHeader"]</span>
-                @if (_canEdit)
-                {
-                    <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenGroupCreate" class="ames-rz-btn" />
-                }
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-                <RadzenTextBox Value="@_grpSearch" ValueChanged="OnGrpSearchChanged" Immediate="true" Placeholder="@L["MD.CommonCode.Ph.GrpSearch"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;" AutoCompleteType="AutoCompleteType.Off" />
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                <span style="font-weight:600;font-size:1em;white-space:nowrap;">@L["MD.CommonCode.GrpHeader"]</span>
+                <RadzenTextBox Value="@_grpSearch" ValueChanged="OnGrpSearchChanged" Immediate="true" Placeholder="@L["MD.CommonCode.Ph.GrpSearch"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;min-width:0;" AutoCompleteType="AutoCompleteType.Off" />
                 @if (!string.IsNullOrEmpty(_grpSearch))
                 {
                     <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => OnGrpSearchChanged("")' title="@L["Btn.Reset"]" class="ames-rz-btn" />
                 }
                 <span class="dim" style="font-size:.82em;white-space:nowrap;">@_groups.Count / @_allGroups.Count</span>
+                @if (_canEdit)
+                {
+                    <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenGroupCreate" class="ames-rz-btn" />
+                }
             </div>
             <div style="flex:1;min-height:0;overflow:hidden;">
             <RadzenDataGrid @ref="_grpGrid" TItem="MasterDataRepository.CodeGroupRow" Data="_groups" AllowPaging="true" PageSize="GrpPageSize" PagerHorizontalAlign="HorizontalAlign.Center"

@@ -301,7 +301,7 @@
     <value>해당 조건에 설비 데이터가 없습니다.</value>
   </data>
   <data name="MNT.EquipmentCard.Ph.Search" xml:space="preserve">
-    <value>라인/설비명</value>
+    <value>설비ID/설비명</value>
   </data>
   <data name="MNT.WorkOrder.Title" xml:space="preserve">
     <value>작업 지시</value>
@@ -5648,5 +5648,269 @@
   </data>
   <data name="PP.PlanConfirm.Ok.Scheduled" xml:space="preserve">
     <value>작업지시 {0}건 생성 · 단계 {1}건 배치 · 미배치 {2}건</value>
+  </data>
+  <data name="PP.Delivery.Cust.Unregistered" xml:space="preserve">
+    <value>미등록 고객</value>
+  </data>
+  <data name="MNT.EquipmentCard.Kpi.AvgOee" xml:space="preserve">
+    <value>평균 OEE</value>
+  </data>
+  <data name="Col.PlcConn" xml:space="preserve">
+    <value>PLC 연결</value>
+  </data>
+  <data name="MNT.EquipmentCard.Btn.Export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="MNT.EquipmentCard.Err.NoExport" xml:space="preserve">
+    <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Ok.Exported" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
+  <data name="MNT.Failure.Open" xml:space="preserve">
+    <value>신규</value>
+  </data>
+  <data name="MNT.Failure.Urg.URGENT" xml:space="preserve">
+    <value>긴급</value>
+  </data>
+  <data name="MNT.Failure.Urg.HIGH" xml:space="preserve">
+    <value>높음</value>
+  </data>
+  <data name="MNT.Failure.Urg.MED" xml:space="preserve">
+    <value>보통</value>
+  </data>
+  <data name="MNT.Failure.Urg.LOW" xml:space="preserve">
+    <value>낮음</value>
+  </data>
+  <data name="MNT.Failure.Ph.Search" xml:space="preserve">
+    <value>고장번호/설비ID/설비명/증상</value>
+  </data>
+  <data name="MNT.Failure.Btn.Export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="MNT.Failure.Err.NoExport" xml:space="preserve">
+    <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="MNT.Failure.Ok.Exported" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
+  <data name="MNT.Failure.Col.AndonRef" xml:space="preserve">
+    <value>안돈 참조</value>
+  </data>
+  <data name="MNT.Failure.Col.Downtime" xml:space="preserve">
+    <value>비가동 ID</value>
+  </data>
+  <data name="MNT.Failure.Lbl.Range" xml:space="preserve">
+    <value>{0} ~ {1}</value>
+  </data>
+  <data name="Col.ReportedBy" xml:space="preserve">
+    <value>보고자</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Rows" xml:space="preserve">
+    <value>데이터 건수</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Oee" xml:space="preserve">
+    <value>평균 OEE</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Availability" xml:space="preserve">
+    <value>가용률 A</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Performance" xml:space="preserve">
+    <value>성능률 P</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Quality" xml:space="preserve">
+    <value>품질률 Q</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Lbl.Range" xml:space="preserve">
+    <value>{0} ~ {1}</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Note.Weighted" xml:space="preserve">
+    <value>평균은 계획시간 가중</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Summary.Title" xml:space="preserve">
+    <value>설비별 OEE 요약</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Summary.Hint" xml:space="preserve">
+    <value>행을 클릭하면 아래 목록이 해당 설비로 필터됩니다.</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Col.Operating" xml:space="preserve">
+    <value>가동(분)</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Col.Defect" xml:space="preserve">
+    <value>불량</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Col.Rows" xml:space="preserve">
+    <value>건수</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Col.Grade" xml:space="preserve">
+    <value>등급</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Grade.WorldClass" xml:space="preserve">
+    <value>월드클래스</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Grade.Good" xml:space="preserve">
+    <value>양호</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Grade.Low" xml:space="preserve">
+    <value>개선 필요</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Btn.Export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Err.NoExport" xml:space="preserve">
+    <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Ok.Exported" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Mtbf" xml:space="preserve">
+    <value>평균 MTBF</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Mttr" xml:space="preserve">
+    <value>평균 MTTR</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Failures" xml:space="preserve">
+    <value>고장 건수</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Sub.WorldClass" xml:space="preserve">
+    <value>월드클래스 ≥ 85%</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Sub.Hours" xml:space="preserve">
+    <value>시간</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Sub.Minutes" xml:space="preserve">
+    <value>분</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Reliability.Title" xml:space="preserve">
+    <value>설비 OEE / 신뢰성</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Reliability.Hint" xml:space="preserve">
+    <value>행을 클릭하면 아래 추세가 해당 설비로 바뀝니다. 다시 클릭하면 전체 평균으로 돌아갑니다.</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Col.Trend" xml:space="preserve">
+    <value>추세</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Col.Mtbf" xml:space="preserve">
+    <value>MTBF(h)</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Col.Mttr" xml:space="preserve">
+    <value>MTTR(분)</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Col.Failures" xml:space="preserve">
+    <value>고장</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Trend.Title" xml:space="preserve">
+    <value>OEE 추세</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Trend.Overall" xml:space="preserve">
+    <value>전체 평균</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Trend.Note" xml:space="preserve">
+    <value>막대 = OEE · 선 = A / P / Q · 점선 = 목표 85% · 기간이 62일을 넘으면 월 단위로 집계</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Trend.Target" xml:space="preserve">
+    <value>목표 85%</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Trend.Empty" xml:space="preserve">
+    <value>표시할 추세 데이터가 없습니다.</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.Events" xml:space="preserve">
+    <value>건수</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.TotalMin" xml:space="preserve">
+    <value>총 비가동</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.Open" xml:space="preserve">
+    <value>미해결</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.TopReason" xml:space="preserve">
+    <value>최다 사유</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.AvgMin" xml:space="preserve">
+    <value>평균 비가동</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.LinesSub" xml:space="preserve">
+    <value>라인 {0}개</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.ClosedSub" xml:space="preserve">
+    <value>완료 {0}건</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.MaxSub" xml:space="preserve">
+    <value>최장 {0}분</value>
+  </data>
+  <data name="MNT.Downtime.Lbl.Range" xml:space="preserve">
+    <value>{0} ~ {1}</value>
+  </data>
+  <data name="MNT.Downtime.Status.Open" xml:space="preserve">
+    <value>미해결</value>
+  </data>
+  <data name="MNT.Downtime.Status.Closed" xml:space="preserve">
+    <value>완료</value>
+  </data>
+  <data name="MNT.Downtime.Ph.Search" xml:space="preserve">
+    <value>비가동번호/원인/비고</value>
+  </data>
+  <data name="MNT.Downtime.Hint.Detail" xml:space="preserve">
+    <value>행을 클릭하면 상세 내용을 확인합니다. 사유·원인 수정은 PP-DTL 비가동 관리 화면에서 합니다.</value>
+  </data>
+  <data name="MNT.Downtime.Btn.Export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="MNT.Downtime.Err.NoExport" xml:space="preserve">
+    <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="MNT.Downtime.Ok.Exported" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
+  <data name="MNT.Downtime.Col.LoggedBy" xml:space="preserve">
+    <value>기록자</value>
+  </data>
+  <data name="MNT.Downtime.Col.AndonId" xml:space="preserve">
+    <value>안돈 ID</value>
+  </data>
+  <data name="MNT.Downtime.Col.Created" xml:space="preserve">
+    <value>등록</value>
+  </data>
+  <data name="MNT.Downtime.Col.Modified" xml:space="preserve">
+    <value>수정</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.MachinePct" xml:space="preserve">
+    <value>설비고장 비율</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.MachineSub" xml:space="preserve">
+    <value>MACHINE 사유 · 분 기준</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.WorstLine" xml:space="preserve">
+    <value>최다 비가동 라인</value>
+  </data>
+  <data name="MNT.Downtime.Pareto.Title" xml:space="preserve">
+    <value>사유별 비가동 (파레토)</value>
+  </data>
+  <data name="MNT.Downtime.Pareto.Hint" xml:space="preserve">
+    <value>행 클릭 = 필터</value>
+  </data>
+  <data name="MNT.Downtime.Rank.Title" xml:space="preserve">
+    <value>라인별 비가동 (순위)</value>
+  </data>
+  <data name="MNT.Downtime.Detail.Title" xml:space="preserve">
+    <value>비가동 상세</value>
+  </data>
+  <data name="MNT.Downtime.Btn.ClearReason" xml:space="preserve">
+    <value>사유 필터 해제</value>
+  </data>
+  <data name="MNT.Downtime.Col.DateTime" xml:space="preserve">
+    <value>일시</value>
+  </data>
+  <data name="MNT.Downtime.Filter.Title" xml:space="preserve">
+    <value>조회 조건</value>
+  </data>
+  <data name="MNT.Downtime.Detail.Hint" xml:space="preserve">
+    <value>전체 이력입니다. 위 파레토(사유) 또는 순위(라인)에서 항목을 클릭하면 해당 이력만 표시됩니다.</value>
+  </data>
+  <data name="MNT.Downtime.Btn.ClearSel" xml:space="preserve">
+    <value>선택 해제</value>
+  </data>
+  <data name="MNT.Downtime.Rank.Hint" xml:space="preserve">
+    <value>행 클릭 = 필터</value>
   </data>
 </root>

@@ -959,12 +959,15 @@ select.ames-rz-input {
 .ames-sec-md  .ames-rz-grid thead th,
 .ames-sec-sys .ames-rz-grid thead th,
 .ames-sec-pp  .ames-rz-grid thead th,
+.ames-sec-mnt .ames-rz-grid thead th,
 .ames-sec-md  .ames-rz-grid .rz-column-header,
 .ames-sec-sys .ames-rz-grid .rz-column-header,
-.ames-sec-pp  .ames-rz-grid .rz-column-header { text-align: center !important; }
+.ames-sec-pp  .ames-rz-grid .rz-column-header,
+.ames-sec-mnt .ames-rz-grid .rz-column-header { text-align: center !important; }
 .ames-sec-md  .ames-rz-grid .rz-column-title,
 .ames-sec-sys .ames-rz-grid .rz-column-title,
-.ames-sec-pp  .ames-rz-grid .rz-column-title {
+.ames-sec-pp  .ames-rz-grid .rz-column-title,
+.ames-sec-mnt .ames-rz-grid .rz-column-title {
     display: inline-flex !important;
     justify-content: center !important;
     width: 100% !important;
@@ -4084,12 +4087,12 @@ html[data-theme="light"] .pp-oee-donut-track { stroke: rgba(80,60,20,.10); }
 .pp-oee-lines .pp-oee-pill { padding: 1px 9px; font-size: 11px; }
 
 /* PP-OEE RadzenChart: 축·범례 글자, 격자선 (다크 기본 / 라이트 오버라이드) */
-.pp-oee-chart .rz-tick-text,
-.pp-oee-chart .rz-legend-item-text { fill: #94a3b8; font-size: 11px; }
-.pp-oee-chart .rz-grid-line { stroke: rgba(148,163,184,.25); }
-html[data-theme="light"] .pp-oee-chart .rz-tick-text,
-html[data-theme="light"] .pp-oee-chart .rz-legend-item-text { fill: var(--ames-text-dim); }
-html[data-theme="light"] .pp-oee-chart .rz-grid-line { stroke: rgba(80,60,20,.18); }
+.pp-oee-chart .rz-tick-text, .mnt-oee-chart .rz-tick-text,
+.pp-oee-chart .rz-legend-item-text, .mnt-oee-chart .rz-legend-item-text { fill: #94a3b8; font-size: 11px; }
+.pp-oee-chart .rz-grid-line, .mnt-oee-chart .rz-grid-line { stroke: rgba(148,163,184,.25); }
+html[data-theme="light"] .pp-oee-chart .rz-tick-text, html[data-theme="light"] .mnt-oee-chart .rz-tick-text,
+html[data-theme="light"] .pp-oee-chart .rz-legend-item-text, html[data-theme="light"] .mnt-oee-chart .rz-legend-item-text { fill: var(--ames-text-dim); }
+html[data-theme="light"] .pp-oee-chart .rz-grid-line, html[data-theme="light"] .mnt-oee-chart .rz-grid-line { stroke: rgba(80,60,20,.18); }
 
 /* PP-DTL 비가동 이력 그리드: 낮은 행 높이 */
 .ames-rz-grid.pp-dtl-grid .rz-data-cell { padding: 4px 10px !important; font-size: 12px; }
@@ -4571,3 +4574,24 @@ html[data-theme="light"] .location-map-scroll-arrow:hover { color: #fff; backgro
     .location-reset-button { flex: 1 1 0; }
     .location-panel-enter { animation: none; }
 }
+
+/* MNT-003 OEE 분석: 설비 행 스파크라인(최근 6구간 OEE) */
+.mnt-oee-spark { display: inline-flex; align-items: flex-end; gap: 2px; height: 22px; width: 110px; vertical-align: middle; }
+.mnt-oee-spark i { flex: 1; background: #6ee7b7; border-radius: 1px; min-height: 2px; opacity: .8; }
+.mnt-oee-spark i.last { background: #059669; opacity: 1; }
+.mnt-oee-spark i.empty { background: transparent; }
+
+/* MNT-006 비가동 이력: 파레토/순위 막대 */
+.mnt-dt-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 1100px) { .mnt-dt-grid2 { grid-template-columns: 1fr; } }
+.mnt-dt-row { display: grid; grid-template-columns: 150px 1fr 110px; align-items: center; gap: 10px; padding: 6px 4px; border-bottom: 1px solid rgba(148,163,184,.15); font-size: 12px; }
+.mnt-dt-row.link { cursor: pointer; }
+.mnt-dt-row.link:hover { background: rgba(52,211,153,.08); }
+.mnt-dt-row.sel { background: rgba(52,211,153,.14); }
+.mnt-dt-row .lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mnt-dt-row .sub { display: block; font-size: 10px; opacity: .6; }
+.mnt-dt-track { height: 14px; background: rgba(148,163,184,.18); border-radius: 3px; overflow: hidden; }
+.mnt-dt-fill { height: 100%; border-radius: 3px; }
+.mnt-dt-val { text-align: right; font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; white-space: nowrap; }
+html[data-theme="light"] .mnt-dt-row { border-bottom-color: rgba(80,60,20,.12); }
+html[data-theme="light"] .mnt-dt-track { background: rgba(80,60,20,.10); }

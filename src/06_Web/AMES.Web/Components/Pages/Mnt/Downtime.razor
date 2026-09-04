@@ -1,111 +1,484 @@
-﻿@page "/mnt/downtime"
+@page "/mnt/downtime"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.MntRepository Mnt
-@inject AMES.Data.Repositories.MasterDataRepository MD
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using Radzen
+
+@attribute [Authorize]
+
+@inject MntRepository Mnt
+@inject MasterDataRepository MD
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>MNT-006 @L["MNT.Downtime.Title"] · AMES</PageTitle>
-
 <AmesPageHeader Code="MNT-006" TitleKey="MNT.Downtime.Title" />
 
+@* ── KPI strip: 건수 · 총 비가동 · 설비고장 비율 · 평균 · 최다 라인 ───── *@
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">EVENTS</div>
-        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">filtered</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">TOTAL MIN</div>
-        <div class="ames-kpi-v">@_totMin.ToString("N0")</div><div class="ames-kpi-s">minutes lost</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">AVG MIN/EV</div>
-        <div class="ames-kpi-v">@_avgMin.ToString("0")</div><div class="ames-kpi-s">avg per event</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">OPEN</div>
-        <div class="ames-kpi-v">@_open</div><div class="ames-kpi-s">EndTS = null</div></div>
-</div>
-
-<div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MNT.Downtime.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <select class="ames-input" style="width:140px;" @bind="_fLine">
-                <option value="">@L["Filter.All"]</option>
-                @foreach (var l in _lineList)
-                {
-                    <option value="@l.LineID">@l.LineID@(l.LineName != null ? $" {l.LineName}" : "")</option>
-                }
-            </select>
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Lbl.Period"]</span>
-            <select class="ames-input" style="width:100px;" @bind="_daysBack">
-                <option value="7">7@(L["Lbl.Days"])</option>
-                <option value="14">14@(L["Lbl.Days"])</option>
-                <option value="30">30@(L["Lbl.Days"])</option>
-                <option value="60">60@(L["Lbl.Days"])</option>
-            </select>
-            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MNT.Downtime.Kpi.Events"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_base.Count</div>
+            <div class="ames-kpi-s">@string.Format(L["MNT.Downtime.Lbl.Range"].Value, _fFrom.ToString("MM-dd"), _fTo.ToString("MM-dd"))</div>
         </div>
     </div>
-
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["MNT.Downtime.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.DtNo"]</th><th>@L["Col.Line"]</th><th>@L["Col.Start"]</th><th>@L["Col.End"]</th>
-                    <th class="num">@L["Col.MinDown"]</th><th>@L["Col.Reason"]</th><th>@L["Col.Cause"]</th><th>@L["Col.Comment"]</th><th>@L["Col.WO"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var d in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    <tr>
-                        <td class="code">@d.DowntimeId</td>
-                        <td>@(d.LineId ?? "—")</td>
-                        <td class="dim">@(d.StartTs?.ToString("MM-dd HH:mm") ?? "—")</td>
-                        <td class="dim">@(d.EndTs?.ToString("MM-dd HH:mm") ?? "—")</td>
-                        <td class="num">@(d.DurationMin?.ToString() ?? "—")</td>
-                        <td><span class="pill info">@(d.ReasonCode ?? "—")</span></td>
-                        <td class="dim">@(d.CauseCode ?? "—")</td>
-                        <td class="dim">@(d.Comment ?? "—")</td>
-                        <td class="dim">@(d.WoId?.ToString() ?? "—")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
+    <div class="ames-kpi bad">
+        <div class="ames-kpi-l">@L["MNT.Downtime.Kpi.TotalMin"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@TotalMin.ToString("N0")<span style="font-size:14px;margin-left:3px;">@L["Lbl.Min"]</span></div>
+            <div class="ames-kpi-s">@string.Format(L["MNT.Downtime.Kpi.LinesSub"].Value, _base.Select(r => r.LineId).Distinct().Count())</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(MachinePct >= 50 ? "warn" : "")">
+        <div class="ames-kpi-l">@L["MNT.Downtime.Kpi.MachinePct"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@(TotalMin > 0 ? $"{MachinePct:0}%" : "—")</div>
+            <div class="ames-kpi-s">@L["MNT.Downtime.Kpi.MachineSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(AvgMin > 30 ? "warn" : "")">
+        <div class="ames-kpi-l">@L["MNT.Downtime.Kpi.AvgMin"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@AvgMin.ToString("0")<span style="font-size:14px;margin-left:3px;">@L["Lbl.Min"]</span></div>
+            <div class="ames-kpi-s">@string.Format(L["MNT.Downtime.Kpi.MaxSub"].Value, _base.Count == 0 ? 0 : _base.Max(r => r.DurationMin ?? 0))</div>
+        </div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MNT.Downtime.Kpi.WorstLine"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v" style="font-size:18px;">@(_rank.Count > 0 ? _rank[0].Name : "—")</div>
+            <div class="ames-kpi-s">@(_rank.Count > 0 ? $"{_rank[0].Id} · {_rank[0].Min:N0} {L["Lbl.Min"]}" : "")</div>
+        </div>
+    </div>
 </div>
 
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+}
+
+@* ── 조회부 (전체 조회: KPI·파레토·순위·상세 공통) ───────────────── *@
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0;">
+        <span style="white-space:nowrap;">▼ @L["MNT.Downtime.Filter.Title"] · @_base.Count @L["Lbl.Items"]@(_base.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MNT.Downtime.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px;" />
+            <RadzenLabel Text="@L["Lbl.Period"]" Component="DatePickerFrom" />
+            <RadzenDatePicker TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <span class="dim">~</span>
+            <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+            <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Search" class="ames-rz-btn" />
+            <RadzenButton Text="@L["MNT.Downtime.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+</div>
+
+@* ── 사유별 파레토 · 라인별 순위 (행 클릭 = 하단 상세 선택) ─────────── *@
+<div class="mnt-dt-grid2">
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <span>▼ @L["MNT.Downtime.Pareto.Title"] · @_pareto.Count @L["Lbl.Items"]</span>
+            <span class="dim" style="font-size:10px;">@L["MNT.Downtime.Pareto.Hint"]</span>
+        </div>
+        @if (_pareto.Count == 0)
+        {
+            <div class="ames-empty">@L["MNT.Downtime.Empty"]</div>
+        }
+        else
+        {
+            @foreach (var p in _pareto)
+            {
+                <div class="mnt-dt-row link @(p.Code == _selReason ? "sel" : "")" @onclick="() => ToggleReason(p.Code)" title="@p.Code">
+                    <span class="lbl"><span class="pill @ReasonCls(p.Code)">@p.Code</span></span>
+                    <div class="mnt-dt-track"><div class="mnt-dt-fill" style="width:@(BarPct(p.Min, _pareto[0].Min))%;background:@ReasonColor(p.Code);"></div></div>
+                    <span class="mnt-dt-val"><b>@p.Min.ToString("N0")</b> @L["Lbl.Min"] · @(TotalMin > 0 ? $"{100.0 * p.Min / TotalMin:0}%" : "—")</span>
+                </div>
+            }
+        }
+    </div>
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <span>▼ @L["MNT.Downtime.Rank.Title"] · @_rank.Count @L["Lbl.Items"]</span>
+            <span class="dim" style="font-size:10px;">@L["MNT.Downtime.Rank.Hint"]</span>
+        </div>
+        @if (_rank.Count == 0)
+        {
+            <div class="ames-empty">@L["MNT.Downtime.Empty"]</div>
+        }
+        else
+        {
+            @for (int i = 0; i < _rank.Count; i++)
+            {
+                var r = _rank[i];
+                <div class="mnt-dt-row link @(r.Id == _selLine ? "sel" : "")" @onclick="() => ToggleLine(r.Id)" title="@r.Id">
+                    <span class="lbl">@r.Name<span class="sub code">@r.Id</span></span>
+                    <div class="mnt-dt-track"><div class="mnt-dt-fill" style="width:@(BarPct(r.Min, _rank[0].Min))%;background:@RankColor(i);"></div></div>
+                    <span class="mnt-dt-val"><b>@r.Min.ToString("N0")</b> @L["Lbl.Min"] · @r.Count@L["Lbl.Items"]</span>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@* ── 비가동 상세 (그래프에서 선택된 사유·라인만) ─────────────────── *@
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">
+            ▼ @L["MNT.Downtime.Detail.Title"] — <span style="color:#34d399;">@_rows.Count @L["Lbl.Items"]</span>
+            @if (!string.IsNullOrEmpty(_selReason)) { <span> · </span><span class="pill @ReasonCls(_selReason)">@_selReason</span> }
+            @if (!string.IsNullOrEmpty(_selLine))   { <span> · </span><span class="pill info">@SelLineText</span> }
+        </span>
+        @if (HasSelection)
+        {
+            <RadzenButton Text="@L["MNT.Downtime.Btn.ClearSel"]" Icon="close" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ClearSelection" class="ames-rz-btn" />
+        }
+    </div>
+    <div class="dim" style="font-size:10px;padding:0 0 6px;">@(HasSelection ? L["MNT.Downtime.Hint.Detail"] : L["MNT.Downtime.Detail.Hint"])</div>
+
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MntRepository.DowntimeRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.Downtime.Empty"]" Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="StartTs" Title="@L["MNT.Downtime.Col.DateTime"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r"><span class="code">@(r.StartTs?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Title="@L["Col.Name"]" Width="170px" Sortable="false">
+                <Template Context="r"><b style="white-space:nowrap;">@(LineName(r) is { Length: > 0 } nm ? nm : "—")</b></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="LineId" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r"><span class="code dim">@(r.LineId ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="ReasonCode" Title="@L["Col.Reason"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r">
+                    @if (r.ReasonCode is null) { <span class="dim">—</span> } else { <span class="pill @ReasonCls(r.ReasonCode)">@r.ReasonCode</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="CauseCode" Title="@L["Col.Cause"]" Width="110px">
+                <Template Context="r"><span class="dim">@(r.CauseCode ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="DurationMin" Title="@L["Col.MinDown"]" TextAlign="TextAlign.Right" Width="100px">
+                <Template Context="r"><b class="code" style="@(r.DurationMin > 60 ? "color:#f87171;" : "")">@(r.DurationMin?.ToString("N0") ?? "—")</b></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="EndTs" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="90px">
+                <Template Context="r">
+                    @if (r.EndTs is null) { <span class="pill bad">@L["MNT.Downtime.Status.Open"]</span> } else { <span class="pill ok">@L["MNT.Downtime.Status.Closed"]</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="Comment" Title="@L["Col.Comment"]">
+                <Template Context="r"><span class="dim" style="white-space:nowrap;">@(r.Comment ?? "")</span></Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+@* ── Detail Modal (읽기 전용) ─────────────────────────────────────── *@
+@if (_modal == "detail" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MNT.Downtime.Title"] <span class="dim" style="font-weight:400;font-size:.9em;">#@_sel.DowntimeId</span></div>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text="@L["Col.Line"]" class="ames-rz-modal-label" Component="DetailTextBoxLine" />
+                <RadzenTextBox Name="DetailTextBoxLine" Value="@LineText(_sel)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+            </RadzenStack>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Start"]" />
+                    <RadzenTextBox Value="@(_sel.StartTs?.ToString(DateFmt.DateTime) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.End"]" />
+                    <RadzenTextBox Value="@(_sel.EndTs?.ToString(DateFmt.DateTime) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.MinDown"]" />
+                    <RadzenTextBox Value="@(_sel.DurationMin?.ToString("N0") ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Status"]" />
+                    <div style="padding-top:4px;">
+                        @if (_sel.EndTs is null) { <span class="pill bad">@L["MNT.Downtime.Status.Open"]</span> } else { <span class="pill ok">@L["MNT.Downtime.Status.Closed"]</span> }
+                    </div>
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Reason"]" />
+                    <div style="padding-top:4px;">
+                        @if (_sel.ReasonCode is null) { <span class="dim">—</span> } else { <span class="pill @ReasonCls(_sel.ReasonCode)">@_sel.ReasonCode</span> }
+                    </div>
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Cause"]" />
+                    <RadzenTextBox Value="@(_sel.CauseCode ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.WO"]" />
+                    <RadzenTextBox Value="@(_sel.WoId?.ToString() ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["MNT.Downtime.Col.AndonId"]" />
+                    <RadzenTextBox Value="@(_sel.AndonId ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["MNT.Downtime.Col.LoggedBy"]" />
+                    <RadzenTextBox Value="@(_sel.LoggedBy ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["MNT.Downtime.Col.Created"]" />
+                    <RadzenTextBox Value="@Who(_sel.CreatedBy, _sel.CreatedTs)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["MNT.Downtime.Col.Modified"]" />
+                    <RadzenTextBox Value="@Who(_sel.ModifiedBy, _sel.ModifiedTs)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenStack Orientation="Orientation.Vertical" Gap="2px" Style="margin-top:6px;">
+                <RadzenLabel Text="@L["Col.Comment"]" />
+                <RadzenTextArea Value="@(_sel.Comment ?? "")" Disabled="true" Rows="3" class="ames-rz-input" Style="width:100%;" />
+            </RadzenStack>
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Close"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
 @code {
-    List<AMES.Data.Repositories.MntRepository.DowntimeRow> _allRows = new();
-    List<AMES.Data.Repositories.MntRepository.DowntimeRow> _rows    = new();
-    int _page = 0;
-    const int _pageSize = 20;
-    int    _totMin, _avgMin, _open;
-    List<AMES.Data.Repositories.MasterDataRepository.LineRow> _lineList = new();
-    int    _daysBack = 7;
-    string _fLine    = "";
+    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    bool _showPagerSummary = true;
+    List<MntRepository.DowntimeRow>         _allRows  = new();   // 기간 조회 원본
+    List<MntRepository.DowntimeRow>         _base     = new();   // 검색·라인·상태 적용 (KPI·파레토·순위 기준)
+    List<MntRepository.DowntimeRow>         _rows     = new();   // + 그래프 선택(사유·라인) — 상세 목록, 선택 없으면 전체
+    List<ParetoRow>                         _pareto   = new();
+    List<RankRow>                           _rank     = new();
+    List<MasterDataRepository.LineRow>      _lineList = new();
+    MntRepository.DowntimeRow? _sel;
+
+    string   _fSearch = "";
+    DateTime _fFrom = DateTime.Today.AddDays(-6), _fTo = DateTime.Today;
+    string?  _fLine, _fStatus;
+    string?  _selReason, _selLine;           // 파레토(사유)·순위(라인) 클릭 선택
+    string   _modal = "", _msg = "";
+    bool     _bgMouseDownOnSelf, _isErr;
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    public sealed record ParetoRow(string Code, int Min, int Count);
+    public sealed record RankRow(string Id, string Name, int Min, int Count);
+
+    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
+    IEnumerable<DropDownItem> StatusFilterOptions => new[]
+    {
+        new DropDownItem { Value = "open",   Text = L["MNT.Downtime.Status.Open"].Value },
+        new DropDownItem { Value = "closed", Text = L["MNT.Downtime.Status.Closed"].Value },
+    };
+    bool   HasSelection => !string.IsNullOrEmpty(_selReason) || !string.IsNullOrEmpty(_selLine);
+    string SelLineText  => _rank.FirstOrDefault(r => r.Id == _selLine) is { } r ? $"{r.Name} · {r.Id}" : _selLine ?? "";
+
+    // ── KPI (사유 필터 이전의 기준 집합) ─────────────────────────────────
+    int    TotalMin   => _base.Sum(r => r.DurationMin ?? 0);
+    double AvgMin     => _base.Count > 0 ? _base.Average(r => (double)(r.DurationMin ?? 0)) : 0.0;
+    double MachinePct => TotalMin > 0 ? 100.0 * _base.Where(r => r.ReasonCode == "MACHINE").Sum(r => r.DurationMin ?? 0) / TotalMin : 0.0;
 
     protected override void OnInitialized()
     {
         try { _lineList = MD.ListLines(); } catch { }
+
+        // 기본 기간: 최근 7일. 그 안에 데이터가 없으면 마지막 발생일 기준 7일을 잡는다
+        try
+        {
+            var (_, mx) = Mnt.DowntimeDateExtent();
+            if (mx is { } m && m.Date < _fFrom) { _fTo = m.Date; _fFrom = _fTo.AddDays(-6); }
+        }
+        catch { }
+
         Reload();
+    }
+
+    RadzenDataGrid<MntRepository.DowntimeRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task Search()
+    {
+        _pgIndex = 0;
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null) await _pgGrid.GoToPage(0);
     }
 
     void Reload()
     {
-        try { _allRows = Mnt.ListDowntime(_daysBack); } catch { _allRows = new(); }
+        if (_fTo < _fFrom) (_fFrom, _fTo) = (_fTo, _fFrom);
+        try { _allRows = Mnt.ListDowntimeRange(_fFrom, _fTo); }
+        catch (Exception ex) { _allRows = new(); ShowMsg(ex.Message, true); }
         ApplyFilter();
     }
 
     void ApplyFilter()
     {
-        _page = 0;
-        _rows = string.IsNullOrEmpty(_fLine)
-            ? _allRows
-            : _allRows.Where(r => r.LineId == _fLine).ToList();
-        _totMin = _rows.Sum(r => r.DurationMin ?? 0);
-        _avgMin = _rows.Count > 0 ? _totMin / _rows.Count : 0;
-        _open   = _rows.Count(r => r.EndTs is null);
+        _base = _allRows.Where(r =>
+            (string.IsNullOrEmpty(_fSearch) ||
+                r.DowntimeId.ToString().Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                (r.CauseCode ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                (r.Comment   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(_fLine)   || r.LineId == _fLine) &&
+            (string.IsNullOrEmpty(_fStatus) || (_fStatus == "open" ? r.EndTs is null : r.EndTs is not null))
+        ).ToList();
+
+        _pareto = _base.GroupBy(r => r.ReasonCode ?? "—")
+            .Select(g => new ParetoRow(g.Key, g.Sum(r => r.DurationMin ?? 0), g.Count()))
+            .OrderByDescending(p => p.Min).ToList();
+
+        _rank = _base.GroupBy(r => r.LineId ?? "—")
+            .Select(g => new RankRow(g.Key, LineName(g.First()) is { Length: > 0 } nm ? nm : g.Key, g.Sum(r => r.DurationMin ?? 0), g.Count()))
+            .OrderByDescending(x => x.Min).ToList();
+
+        // 재조회로 선택 항목이 사라졌으면 선택 해제
+        if (_selReason is not null && !_pareto.Any(p => p.Code == _selReason)) _selReason = null;
+        if (_selLine   is not null && !_rank.Any(r => r.Id == _selLine))       _selLine   = null;
+        ApplySelection();
     }
+
+    // 상세 목록 = 기준 집합 ∩ 그래프 선택(사유 AND 라인). 아무것도 안 골랐으면 전체
+    void ApplySelection() =>
+        _rows = !HasSelection ? _base
+              : _base.Where(r => (string.IsNullOrEmpty(_selReason) || r.ReasonCode == _selReason) &&
+                                 (string.IsNullOrEmpty(_selLine)   || r.LineId     == _selLine)).ToList();
+
+    // 파레토 행 클릭 = 사유 선택 토글
+    async Task ToggleReason(string code)
+    {
+        _selReason = _selReason == code ? null : code;
+        await RefreshSelection();
+    }
+
+    // 순위 행 클릭 = 라인 선택 토글
+    async Task ToggleLine(string lineId)
+    {
+        _selLine = _selLine == lineId ? null : lineId;
+        await RefreshSelection();
+    }
+
+    async Task ClearSelection()
+    {
+        _selReason = null; _selLine = null;
+        await RefreshSelection();
+    }
+
+    async Task RefreshSelection()
+    {
+        ApplySelection();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null) await _pgGrid.GoToPage(0);
+    }
+
+    void OnSearchChanged(string value) => _fSearch = value ?? "";
+
+    async Task OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") await Search(); }
+
+    void RowRender(RowRenderEventArgs<MntRepository.DowntimeRow> args)
+    {
+        if (args.Attributes.TryGetValue("class", out var existing))
+            args.Attributes["class"] = existing + " ames-row-link";
+        else
+            args.Attributes["class"] = "ames-row-link";
+    }
+
+    void OnRowClick(DataGridRowMouseEventArgs<MntRepository.DowntimeRow> args)
+    {
+        if (args.Data is not null) OpenDetail(args.Data);
+    }
+
+    void OpenDetail(MntRepository.DowntimeRow r) { _sel = r; _modal = "detail"; }
+
+    void CloseModal() { _modal = ""; _sel = null; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    // 조회부 내보내기 = 전체 조회 결과(_base). 그래프 선택이 있으면 그 선택분(_rows)만
+    async Task ExportXlsx()
+    {
+        var src = HasSelection ? _rows : _base;
+        if (src.Count == 0) { ShowMsg(L["MNT.Downtime.Err.NoExport"], true); return; }
+
+        var headers = new[]
+        {
+            L["Col.DtNo"].Value, L["MNT.Downtime.Col.DateTime"].Value, L["Col.End"].Value, L["Col.Name"].Value, L["Col.Line"].Value,
+            L["Col.Reason"].Value, L["Col.Cause"].Value, L["Col.MinDown"].Value, L["Col.Status"].Value, L["Col.WO"].Value,
+            L["Col.Comment"].Value, L["MNT.Downtime.Col.LoggedBy"].Value, L["MNT.Downtime.Col.AndonId"].Value,
+        };
+        var data = src.Select(r => (IReadOnlyList<object?>)new object?[]
+        {
+            r.DowntimeId, r.StartTs?.ToString(DateFmt.DateTime), r.EndTs?.ToString(DateFmt.DateTime), LineName(r), r.LineId,
+            r.ReasonCode, r.CauseCode, r.DurationMin, (r.EndTs is null ? L["MNT.Downtime.Status.Open"] : L["MNT.Downtime.Status.Closed"]).Value, r.WoId,
+            r.Comment, r.LoggedBy, r.AndonId,
+        });
+
+        var bytes = AMES.Web.Services.XlsxWriter.Build(L["MNT.Downtime.Title"].Value, headers, data);
+        var name  = $"Downtime_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        ShowMsg(string.Format(L["MNT.Downtime.Ok.Exported"].Value, src.Count), false);
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    // 라인명은 조회 조인값(MD_Line) 우선, 없으면 마스터 목록에서 — 현재 언어 기준
+    string LineName(MntRepository.DowntimeRow r)
+    {
+        var nm = MasterDataRepository.LocalName(r.LineName, r.LineNameEn);
+        if (nm is { Length: > 0 }) return nm;
+        return _lineList.FirstOrDefault(l => l.LineID == r.LineId) is { } l ? MasterDataRepository.LocalName(l.LineName, l.LineNameEn) : "";
+    }
+
+    string LineText(MntRepository.DowntimeRow r) =>
+        r.LineId is null ? "" : LineName(r) is { Length: > 0 } nm ? $"[{r.LineId}] {nm}" : $"[{r.LineId}]";
+
+    static string Who(string? by, DateTime? ts) =>
+        by is null && ts is null ? "" : $"{by ?? "—"} · {ts?.ToString(DateFmt.DateTime) ?? "—"}";
+
+    static int BarPct(int v, int max) => max <= 0 ? 0 : Math.Max(2, (int)Math.Round(100.0 * v / max));
+
+    // 사유 색상은 PP-DTL 화면과 동일 (pill 클래스 / 막대 색)
+    static string ReasonCls(string reason) => reason switch
+    {
+        "MACHINE"    => "bad",
+        "CHANGEOVER" => "warn",
+        "MATERIAL"   => "orange",
+        "QUALITY"    => "info",
+        _            => "mute",
+    };
+    static string ReasonColor(string reason) => reason switch
+    {
+        "MACHINE"    => "#dc2626",
+        "CHANGEOVER" => "#eab308",
+        "MATERIAL"   => "#f97316",
+        "QUALITY"    => "#3b82f6",
+        _            => "#94a3b8",
+    };
+    // 순위 막대: 1위 적색 · 2위 주황 · 나머지 청록 (목업과 동일)
+    static string RankColor(int i) => i == 0 ? "#dc2626" : i == 1 ? "#f59e0b" : "#0891b2";
 }

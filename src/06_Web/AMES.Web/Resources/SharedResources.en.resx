@@ -301,7 +301,7 @@
     <value>No equipment data for the selected criteria.</value>
   </data>
   <data name="MNT.EquipmentCard.Ph.Search" xml:space="preserve">
-    <value>line/equipment name</value>
+    <value>Equip ID/Name</value>
   </data>
   <data name="MNT.WorkOrder.Title" xml:space="preserve">
     <value>Work Order</value>
@@ -5648,5 +5648,269 @@
   </data>
   <data name="PP.PlanConfirm.Ok.Scheduled" xml:space="preserve">
     <value>{0} work order(s) created · {1} step(s) placed · {2} unplaced</value>
+  </data>
+  <data name="PP.Delivery.Cust.Unregistered" xml:space="preserve">
+    <value>Unregistered</value>
+  </data>
+  <data name="MNT.EquipmentCard.Kpi.AvgOee" xml:space="preserve">
+    <value>Avg OEE</value>
+  </data>
+  <data name="Col.PlcConn" xml:space="preserve">
+    <value>PLC Conn</value>
+  </data>
+  <data name="MNT.EquipmentCard.Btn.Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="MNT.EquipmentCard.Err.NoExport" xml:space="preserve">
+    <value>No data to export.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Ok.Exported" xml:space="preserve">
+    <value>Exported {0} rows to Excel.</value>
+  </data>
+  <data name="MNT.Failure.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="MNT.Failure.Urg.URGENT" xml:space="preserve">
+    <value>Urgent</value>
+  </data>
+  <data name="MNT.Failure.Urg.HIGH" xml:space="preserve">
+    <value>High</value>
+  </data>
+  <data name="MNT.Failure.Urg.MED" xml:space="preserve">
+    <value>Medium</value>
+  </data>
+  <data name="MNT.Failure.Urg.LOW" xml:space="preserve">
+    <value>Low</value>
+  </data>
+  <data name="MNT.Failure.Ph.Search" xml:space="preserve">
+    <value>Fail #/Equip ID/Name/Symptom</value>
+  </data>
+  <data name="MNT.Failure.Btn.Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="MNT.Failure.Err.NoExport" xml:space="preserve">
+    <value>No data to export.</value>
+  </data>
+  <data name="MNT.Failure.Ok.Exported" xml:space="preserve">
+    <value>Exported {0} rows to Excel.</value>
+  </data>
+  <data name="MNT.Failure.Col.AndonRef" xml:space="preserve">
+    <value>Andon Ref</value>
+  </data>
+  <data name="MNT.Failure.Col.Downtime" xml:space="preserve">
+    <value>Downtime ID</value>
+  </data>
+  <data name="MNT.Failure.Lbl.Range" xml:space="preserve">
+    <value>{0} ~ {1}</value>
+  </data>
+  <data name="Col.ReportedBy" xml:space="preserve">
+    <value>Reported By</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Rows" xml:space="preserve">
+    <value>Records</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Oee" xml:space="preserve">
+    <value>Avg OEE</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Availability" xml:space="preserve">
+    <value>Availability A</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Performance" xml:space="preserve">
+    <value>Performance P</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Quality" xml:space="preserve">
+    <value>Quality Q</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Lbl.Range" xml:space="preserve">
+    <value>{0} ~ {1}</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Note.Weighted" xml:space="preserve">
+    <value>weighted by planned time</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Summary.Title" xml:space="preserve">
+    <value>OEE by Equipment</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Summary.Hint" xml:space="preserve">
+    <value>Click a row to filter the list below by that equipment.</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Col.Operating" xml:space="preserve">
+    <value>Run Min</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Col.Defect" xml:space="preserve">
+    <value>Defect</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Col.Rows" xml:space="preserve">
+    <value>Rows</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Col.Grade" xml:space="preserve">
+    <value>Grade</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Grade.WorldClass" xml:space="preserve">
+    <value>World Class</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Grade.Good" xml:space="preserve">
+    <value>Good</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Grade.Low" xml:space="preserve">
+    <value>Needs Improvement</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Btn.Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Err.NoExport" xml:space="preserve">
+    <value>No data to export.</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Ok.Exported" xml:space="preserve">
+    <value>Exported {0} rows to Excel.</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Mtbf" xml:space="preserve">
+    <value>Avg MTBF</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Mttr" xml:space="preserve">
+    <value>Avg MTTR</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.Failures" xml:space="preserve">
+    <value>Failures</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Sub.WorldClass" xml:space="preserve">
+    <value>world-class ≥ 85%</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Sub.Hours" xml:space="preserve">
+    <value>hours</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Sub.Minutes" xml:space="preserve">
+    <value>minutes</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Reliability.Title" xml:space="preserve">
+    <value>Equipment OEE / Reliability</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Reliability.Hint" xml:space="preserve">
+    <value>Click a row to show that equipment's trend; click again for the overall average.</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Col.Trend" xml:space="preserve">
+    <value>Trend</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Col.Mtbf" xml:space="preserve">
+    <value>MTBF(h)</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Col.Mttr" xml:space="preserve">
+    <value>MTTR(min)</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Col.Failures" xml:space="preserve">
+    <value>Failures</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Trend.Title" xml:space="preserve">
+    <value>OEE Trend</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Trend.Overall" xml:space="preserve">
+    <value>Overall Average</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Trend.Note" xml:space="preserve">
+    <value>Bars = OEE · Lines = A / P / Q · Dashed = 85% target · Monthly buckets when the period exceeds 62 days</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Trend.Target" xml:space="preserve">
+    <value>Target 85%</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Trend.Empty" xml:space="preserve">
+    <value>No trend data to display.</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.Events" xml:space="preserve">
+    <value>Events</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.TotalMin" xml:space="preserve">
+    <value>Total Downtime</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.TopReason" xml:space="preserve">
+    <value>Top Reason</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.AvgMin" xml:space="preserve">
+    <value>Avg Downtime</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.LinesSub" xml:space="preserve">
+    <value>{0} lines</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.ClosedSub" xml:space="preserve">
+    <value>{0} closed</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.MaxSub" xml:space="preserve">
+    <value>max {0} min</value>
+  </data>
+  <data name="MNT.Downtime.Lbl.Range" xml:space="preserve">
+    <value>{0} ~ {1}</value>
+  </data>
+  <data name="MNT.Downtime.Status.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="MNT.Downtime.Status.Closed" xml:space="preserve">
+    <value>Closed</value>
+  </data>
+  <data name="MNT.Downtime.Ph.Search" xml:space="preserve">
+    <value>DT #/Cause/Comment</value>
+  </data>
+  <data name="MNT.Downtime.Hint.Detail" xml:space="preserve">
+    <value>Click a row for details. Reason and cause are edited on the PP-DTL Downtime screen.</value>
+  </data>
+  <data name="MNT.Downtime.Btn.Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="MNT.Downtime.Err.NoExport" xml:space="preserve">
+    <value>No data to export.</value>
+  </data>
+  <data name="MNT.Downtime.Ok.Exported" xml:space="preserve">
+    <value>Exported {0} rows to Excel.</value>
+  </data>
+  <data name="MNT.Downtime.Col.LoggedBy" xml:space="preserve">
+    <value>Logged By</value>
+  </data>
+  <data name="MNT.Downtime.Col.AndonId" xml:space="preserve">
+    <value>Andon ID</value>
+  </data>
+  <data name="MNT.Downtime.Col.Created" xml:space="preserve">
+    <value>Created</value>
+  </data>
+  <data name="MNT.Downtime.Col.Modified" xml:space="preserve">
+    <value>Modified</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.MachinePct" xml:space="preserve">
+    <value>Equipment Failure %</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.MachineSub" xml:space="preserve">
+    <value>MACHINE reason · by minutes</value>
+  </data>
+  <data name="MNT.Downtime.Kpi.WorstLine" xml:space="preserve">
+    <value>Worst Line</value>
+  </data>
+  <data name="MNT.Downtime.Pareto.Title" xml:space="preserve">
+    <value>Downtime by Cause (Pareto)</value>
+  </data>
+  <data name="MNT.Downtime.Pareto.Hint" xml:space="preserve">
+    <value>click row = filter</value>
+  </data>
+  <data name="MNT.Downtime.Rank.Title" xml:space="preserve">
+    <value>Downtime by Line (Rank)</value>
+  </data>
+  <data name="MNT.Downtime.Detail.Title" xml:space="preserve">
+    <value>Downtime Detail Log</value>
+  </data>
+  <data name="MNT.Downtime.Btn.ClearReason" xml:space="preserve">
+    <value>Clear Cause Filter</value>
+  </data>
+  <data name="MNT.Downtime.Col.DateTime" xml:space="preserve">
+    <value>Date/Time</value>
+  </data>
+  <data name="MNT.Downtime.Filter.Title" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="MNT.Downtime.Detail.Hint" xml:space="preserve">
+    <value>Showing all events. Click a cause in the Pareto or a line in the Rank above to narrow the list.</value>
+  </data>
+  <data name="MNT.Downtime.Btn.ClearSel" xml:space="preserve">
+    <value>Clear Selection</value>
+  </data>
+  <data name="MNT.Downtime.Rank.Hint" xml:space="preserve">
+    <value>click row = filter</value>
   </data>
 </root>
