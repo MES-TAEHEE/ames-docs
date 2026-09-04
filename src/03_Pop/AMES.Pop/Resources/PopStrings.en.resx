@@ -199,4 +199,16 @@
   <data name="ShiftC" xml:space="preserve">
     <value>SHIFT C</value>
   </data>
+  <data name="HelpImgMainSub" xml:space="preserve"><value>Select a part, print a label, scan it to confirm — no work-order acceptance</value></data>
+  <data name="FabricRoll" xml:space="preserve"><value>Fabric roll</value></data>
+  <data name="BondRecipe" xml:space="preserve"><value>Bond recipe</value></data>
+  <data name="NoRoll" xml:space="preserve"><value>no roll</value></data>
+  <data name="NoRecipe" xml:space="preserve"><value>no recipe</value></data>
+  <data name="SelectPartWithOpenWo" xml:space="preserve"><value>Select a part with an open work order</value></data>
+  <data name="LabelPrint" xml:space="preserve"><value>LABEL PRINT</value></data>
+  <data name="TodayLotsNewestFirst" xml:space="preserve"><value>TODAY'S LOTS · NEWEST FIRST</value></data>
+  <data name="Waiting" xml:space="preserve"><value>WAIT</value></data>
+  <data name="LotIssued" xml:space="preserve"><value>Lot issued</value></data>
+  <data name="PrintFailedLotKept" xml:space="preserve"><value>Print failed — lot created, reprint it from the list</value></data>
+  <data name="NoLotsToday" xml:space="preserve"><value>No lots issued today — press LABEL PRINT</value></data>
 </root>

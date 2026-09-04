@@ -31,6 +31,7 @@ internal static class PopServices
     public static PntRepository          Pnt               { get; private set; } = null!;
     public static QcRepository           Qc                { get; private set; } = null!;
     public static InjLotRepository      InjLots           { get; private set; } = null!;
+    public static ImgLotRepository      ImgLots           { get; private set; } = null!;
 
     public static void Initialize()
     {
@@ -52,5 +53,6 @@ internal static class PopServices
         Pnt               = new PntRepository       (ConnectionFactory);
         Qc                = new QcRepository        (ConnectionFactory);
         InjLots           = new InjLotRepository    (ConnectionFactory);
+        ImgLots           = new ImgLotRepository    (ConnectionFactory);
     }
 }

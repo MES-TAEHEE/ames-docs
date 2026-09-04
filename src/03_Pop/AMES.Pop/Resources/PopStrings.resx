@@ -199,4 +199,16 @@
   <data name="ShiftC" xml:space="preserve">
     <value>C 교대</value>
   </data>
+  <data name="HelpImgMainSub" xml:space="preserve"><value>품번을 고르고 라벨을 발행한 뒤 스캔하면 실적이 확정된다 — 작업지시 접수 없음</value></data>
+  <data name="FabricRoll" xml:space="preserve"><value>원단 롤</value></data>
+  <data name="BondRecipe" xml:space="preserve"><value>본딩 레시피</value></data>
+  <data name="NoRoll" xml:space="preserve"><value>롤 없음</value></data>
+  <data name="NoRecipe" xml:space="preserve"><value>레시피 없음</value></data>
+  <data name="SelectPartWithOpenWo" xml:space="preserve"><value>열린 작업지시가 있는 품번을 선택하세요</value></data>
+  <data name="LabelPrint" xml:space="preserve"><value>라벨 발행</value></data>
+  <data name="TodayLotsNewestFirst" xml:space="preserve"><value>오늘 발행 LOT · 최신순</value></data>
+  <data name="Waiting" xml:space="preserve"><value>대기</value></data>
+  <data name="LotIssued" xml:space="preserve"><value>LOT 발행</value></data>
+  <data name="PrintFailedLotKept" xml:space="preserve"><value>라벨 출력 실패 — LOT 은 생성됨, 목록에서 재출력하세요</value></data>
+  <data name="NoLotsToday" xml:space="preserve"><value>오늘 발행된 LOT 이 없습니다 — 라벨 발행을 누르세요</value></data>
 </root>

@@ -32,11 +32,11 @@ public class ZplLabelBuilderTests
     }
 
     [Fact]
-    public void Build_sets_2x1_inch_media_geometry()
+    public void Build_sets_4x2_inch_media_geometry()
     {
         var zpl = ZplLabelBuilder.Build(Sample());
-        Assert.Contains("^PW406", zpl);   // 2" @ 203dpi
-        Assert.Contains("^LL203", zpl);   // 1" @ 203dpi
+        Assert.Contains("^PW812", zpl);   // 4" @ 203dpi
+        Assert.Contains("^LL406", zpl);   // 2" @ 203dpi
         Assert.Contains("^CI28", zpl);    // UTF-8
     }
 
@@ -44,11 +44,11 @@ public class ZplLabelBuilderTests
     public void Build_contains_item_color_cavity_press_and_date()
     {
         var zpl = ZplLabelBuilder.Build(Sample());
-        Assert.Contains("^FO20,138^A0N,50,39^FD83335-P8000RBQ^FS", zpl);
-        Assert.Contains("^FO140,82^A0N,31,27^FDCBK^FS", zpl);
-        Assert.Contains("^FO320,14^A0N,43,34^FDLH^FS", zpl);
-        Assert.Contains("^FO320,73^A0N,43,34^FDM^FS", zpl);
-        Assert.Contains("^FO140,14^A0N,30,27^FD07/17/2026^FS", zpl);
+        Assert.Contains("^FO50,260^A0N,100,78^FD83335-P8000RBQ^FS", zpl);
+        Assert.Contains("^FO280,164^A0N,62,54^FDCBK^FS", zpl);
+        Assert.Contains("^FO640,28^A0N,86,68^FDLH^FS", zpl);
+        Assert.Contains("^FO640,146^A0N,86,68^FDM^FS", zpl);
+        Assert.Contains("^FO290,40^A0N,60,60^FD07/17/2026^FS", zpl);
     }
 
     [Fact]
@@ -69,10 +69,10 @@ public class ZplLabelBuilderTests
         var zpl = ZplLabelBuilder.Build(label);
         Assert.StartsWith("^XA", zpl);
         Assert.EndsWith("^XZ", zpl.TrimEnd());
-        Assert.DoesNotContain("^FO140,82", zpl);   // 색상 줄 생략
-        Assert.DoesNotContain("^FO320,14", zpl);   // 캐비티 줄 생략
-        Assert.DoesNotContain("^FO320,73", zpl);   // 호기 줄 생략
-        Assert.Contains("^FO20,138^A0N,50,39^FD83335-P8000RBQ^FS", zpl);
+        Assert.DoesNotContain("^FO280,164", zpl);   // 색상 줄 생략
+        Assert.DoesNotContain("^FO640,28", zpl);   // 캐비티 줄 생략
+        Assert.DoesNotContain("^FO640,146", zpl);   // 호기 줄 생략
+        Assert.Contains("^FO50,260^A0N,100,78^FD83335-P8000RBQ^FS", zpl);
     }
 
     [Fact]

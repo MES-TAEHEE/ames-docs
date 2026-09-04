@@ -137,15 +137,18 @@ appcmd set apppool "AMES.Web" /processModel.loadUserProfile:true /processModel.s
 좌측 품번 목록은 `MD_Bop.StationCode` = 세션 스테이션(`PopSessionDto.TerminalId`) 기준이고, 당일 수치는 `InjLotRepository.GetDailyItemSummary` — LOT 생성일 기준으로 `INPUT = FINAL + NG + 미확정` 이 성립한다. dev DB 는 `dist/seed_md_bop_inj_dev.sql` 로 ST-INJ-01 BOP 를 채운다.
 INJ 는 `AcceptWo` 를 부르지 않으므로 `BumpStepCompleted` 가 첫 실적에서 단계·헤더를 `Released → In Progress` 로 올리고 `ActualStart` 를 찍는다. `TerminalLock` 은 INJ 에서 기록하지 않는다(IMG 는 `AcceptWo` 그대로).
 
-#### IMG (원단/래핑 공정) — 6화면
+#### IMG (원단/래핑 공정) — 통합 메인 + 팝업 구조
 | 화면 ID | 파일 | 설명 |
 |---------|------|------|
-| IMG-02 | `Pages/Img02Dashboard.razor` | 래핑 라인 대시보드 |
-| IMG-03 | `Pages/Img03ProductionEntry.razor` | 생산 실적 입력 |
-| IMG-04 | `Pages/Img04FabricInput.razor` | 원단 투입 |
-| IMG-05 | `Pages/Img05Defect.razor` | 불량 입력 |
-| IMG-06 | `Pages/Img06BondSetup.razor` | 본딩 설정 |
-| IMG-07 | `Pages/Img07ProdStatus.razor` | 생산 현황 |
+| IMG-MAIN | `Pages/ImgMain.razor` | **통합 작업 화면** (IMG 기본 진입점) — 좌측 스테이션 BOP 품번 × 당일 PLAN/INPUT/NG/FINAL 그리드 + 우측 **라벨 발행** 버튼 · 스캔 확정 · 오늘 발행 LOT 목록(대기/OK · 재출력) + 불량·안돈 팝업 버튼. INJ-MAIN 과 같은 레이아웃(`injm-*` CSS 공유)이며 WO 접수 없음: 품번 행 선택 → `FindOpenForItem` 이 열린 WO 를 자동 해석 |
+| (팝업) | `Pages/InjPopups/DefectPopup.razor` | 불량 입력 — `ProcessCode="IMG"` 로 INJ 와 공유 (IMG 는 로봇 NG LOT 구역 없음) |
+| (팝업) | `Pages/InjPopups/AndonPopup.razor` | 안돈 — INJ 와 공유 |
+
+구 단독 화면(IMG-02~07, `/img02`~`/img07`)은 모두 삭제됨 (화면·도움말·레거시 WinForms 폼·전용 CSS 포함) — IMG 는 IMG-MAIN + 팝업(불량·안돈)만 남는다.
+IMG 도 INJ 와 같은 LOT 모델(1 LOT = 1 EA, RAW → CONFIRMED)을 쓰되 테이블은 별도 `PR_ImgLot`(`dist/migrate_img_lot.sql`)이고 리포지토리는 `ImgLotRepository` 다. 에이전트가 없으므로 LOT 은 **라벨 발행 버튼**이 만들고(`CreateRawLot`) 그 자리에서 `LabelPrinter.Print(ImgLotDto, shift)` 로 동기 출력한다 — `LabelDispatcher` 는 INJ 세션에서만 돌아 이중 발행이 없다.
+IMG 라벨은 INJ 양식이 아니라 **완제품 고객 표준 라벨**(`AMES.Devices.ImgLabelBuilder`)이다: 좌측 DataMatrix = `[)>RS06GSV{수주처}GSP{품번,하이픈제거}GSS{PGN+ALC}GST{yyMMdd}{part4M}{LotNo}GSEGSC:RSEOT`(`^FH_` 16진 이스케이프), 우측 글자 = ALC(대)·장착위치·발행일·품번·LotNo. part4M = `1` + 하이픈 뺀 품번 6·7번째 글자 + 교대 글자(DAY=A·NIGHT=B·그 외 C, `LabelPrinter.ShiftLetter`). 수주처 코드는 발행 시점 열린 WO → `PP_CustomerOrder.SoID` → `MD_Customer.CustomerCode` 로 정해 `PR_ImgLot.CustomerCode` 에 박아 둔다(재출력 불변). PGN·ALC 는 `MD_Item`, 장착위치는 `MD_Item.MountPos`(`dist/migrate_md_item_mount_pos.sql`, FL/FR/RL/RR). 샘플 라벨 우측 하단 'D' 칸은 정의 전이라 비워 둔다.
+스캐너는 DataMatrix 문자열 전체를 보내므로 `ImgScanParser.ExtractLotCode` 가 T 토큰 끝 9자를 LotNo 로 뽑는다 — 시리얼(제어문자 보존)·HID 웨지(제어문자 소실)·단순 LotNo 라벨 모두 처리하며 단위 테스트(`AMES.Pop.Tests/ImgScanParserTests`)가 정본이다. 발행은 실적이 아니며 라벨을 스캔해야 `ConfirmByLotCode` 가 한 트랜잭션으로 열린 WO 해석 → PR_ProductionResult 1 EA → 원단 롤 차감(장착 롤이 있을 때 0.25 m/EA, 잔량 부족해도 확정은 막지 않고 남은 만큼만 차감) → 본딩 사이클 로그 → LOT CONFIRMED + `BumpStepCompleted` 를 처리한다. 차감한 롤·길이·본딩 설정은 `PR_ImgLot` 에 남는다.
+좌측 당일 수치는 `ImgLotRepository.GetDailyItemSummary` — INJ 판과 같이 LOT 생성일 기준으로 `INPUT = FINAL + NG + 미확정` 이 성립한다. 우측 목록은 `GetTodayLots`(오늘 발행 LOT 전부, 최신순). dev DB 는 `dist/seed_md_bop_img_dev.sql` 로 ST-IMG-01 스테이션·데모 품번·BOP 를 채운다 (IMG 라인은 스키마에 스테이션이 없어 이 시드 없이는 로그인 자체가 안 된다).
 
 #### PNT (도장 공정) — 9화면
 | 화면 ID | 파일 | 설명 |
@@ -286,6 +289,7 @@ appsettings 의 `PopTerminal:ModuleCode`/`LineId`/`StationId` 는 제거됐다 �
 라벨 발행 선점 컬럼(`PR_InjLot.PrintClaimTS` · `PrintClaimStation`)은 `dist/migrate_inj_lot_print_claim.sql` — `migrate_inj_agent.sql` 적용 후에 실행하며, 이게 없으면 Pop 의 `LabelDispatcher` 가 동작하지 않는다.
 LotNo 채번 기반(`SYS_LotSeq` · `MD_Line.LotPrefix` · `tbl_Lot.LotCode` 유니크 인덱스)은 `dist/migrate_lotno_rule.sql` — INJ 원천 Lot 과 실적 배치 Lot(`ProductionRepository.RecordCycle`, IMG-03 등)은 9자리 신규칙(`[년1][월1][일1][라인코드2][순번4]`, 년=A~Z 26년 순환)으로 `LotNoGenerator` 가 채번하며, `LotPrefix` 미등록 라인은 채번이 예외로 막힌다 (시드: INJ I1·I2 / IMG W1 / PNT P1·P2).
 INJ-MAIN 품번 패널·칩이 5초마다 세는 "라인의 오늘 LOT" 조회용 인덱스 `IX_tbl_Lot_Line_Created(LineID, CreatedTS)` 는 `dist/migrate_inj_lot_line_created.sql` — 스키마 변경 없이 인덱스만 추가하므로 순서 무관, 재실행 안전.
+IMG 원천 LOT(`PR_ImgLot`)은 `dist/migrate_img_lot.sql` — `migrate_lotno_rule.sql` 뒤에 적용. 이게 없으면 IMG-MAIN 이 5초마다 조회 예외를 띄우고 라벨 발행이 안 된다. 완제품 라벨 장착위치 컬럼 `MD_Item.MountPos` 는 `dist/migrate_md_item_mount_pos.sql` — 순서 무관, 재실행 안전. 둘 다 없으면 `ImgLotRepository` 의 LOT 조회가 예외다.
 WO 공정 단계(`PP_WorkOrderRouting.CompletedQty` · 인덱스 · 백필)는 `dist/migrate_wo_step_line.sql` — `migrate_routing_step.sql` 다음에 적용. 이 뒤로 라인 배정·상태·완료수량의 정본은 단계 행이며 `PP_WorkOrder.LineID` 는 쓰지 않는다(컬럼만 잔존). Pop 은 단계 `LineID` 로 WO 를 받고, 실적은 `WorkOrderRepository.BumpStepCompleted` 한 곳으로만 반영된다.
 백필된 WO 중 헤더 라인이 마지막 라인 단계가 아닌 건(예: A 라우팅을 INJ 라인으로 발행)은 첫 후속 실적에서 헤더 `CompletedQty` 가 마지막 단계 값으로 내려갈 수 있다 — PP-04 진척률이 한 번 감소해 보인다.
 PP-003 일괄 생성은 WO 생성 → Release(단계별 라인) → 단계마다 PP_LineSchedule 슬롯(DRAFT) 배치까지 **한 트랜잭션**으로 처리한다(PpRepository.CreateScheduledWorkOrders). 배치 위치는 AMES.Data.Scheduling.SlotPacker(순수 함수)가 정하고, 하루 능력은 LineScheduleRepository.GetDayCapacity(패턴 해석: 그 날 저장 행 → 라인 전용 ACTIVE → 전역)로 읽는다. 자리가 없는 단계는 슬롯 없이 Released 로 남아 PP-LSB 보드의 미배치 목록에서 수동 배치한다. Pop INJ-MAIN 은 오늘 슬롯을 계획으로 읽으므로, 이 경로가 아니면 WO 가 Pop 에 안 뜬다.
