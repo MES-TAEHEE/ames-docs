@@ -22,8 +22,8 @@ public sealed class ImgLotRepository
 
     // 호출부가 WHERE 를 이어 붙인다.
     const string SelectLotView = """
-        SELECT l.LotID, l.LotCode, l.ItemNo, mi.ItemName, l.LineID,
-               e.EquipID, e.ConfirmStatus, e.ConfirmedAt,
+        SELECT l.LotID, l.LotCode, l.ItemNo, mi.ItemName, mi.PGN, mi.ALC, mi.MountPos, l.LineID,
+               e.EquipID, e.CustomerCode, e.ConfirmStatus, e.ConfirmedAt,
                e.FabricRollLotID, e.FabricConsumedM, e.BondSetupID,
                e.PrintedCount, l.CreatedTS
         FROM   dbo.tbl_Lot l
@@ -37,6 +37,10 @@ public sealed class ImgLotRepository
         LotCode         = (string)rdr["LotCode"],
         ItemNo          = rdr["ItemNo"]   as string ?? string.Empty,
         ItemName        = rdr["ItemName"] as string,
+        Pgn             = rdr["PGN"]      as string,
+        Alc             = rdr["ALC"]      as string,
+        MountPos        = rdr["MountPos"] as string,
+        CustomerCode    = rdr["CustomerCode"] as string,
         LineId          = rdr["LineID"]   as string,
         EquipId         = rdr["EquipID"]  as string,
         ConfirmStatus   = (string)rdr["ConfirmStatus"],
@@ -51,6 +55,8 @@ public sealed class ImgLotRepository
     /// <summary>
     /// 라벨 발행 버튼 — RAW LOT 1건 생성. 실적이 아니다: WoID 는 비워 두고 확정 시점의
     /// 열린 WO 로 채운다. 반환 DTO 는 라벨 출력용 (PrintedCount 0).
+    /// 라벨 V 토큰(수주처 코드)은 발행 시점 이 라인의 열린 WO → PP_CustomerOrder → MD_Customer 로
+    /// 정해 LOT 에 박아 둔다 — 재출력 때 WO 가 바뀌어도 라벨이 달라지지 않는다.
     /// </summary>
     public ImgLotDto CreateRawLot(string lineId, string itemNo, string employeeNo)
     {
@@ -58,11 +64,35 @@ public sealed class ImgLotRepository
         using var tx   = conn.BeginTransaction();
         try
         {
-            string? itemName;
-            using (var cmd = new SqlCommand("SELECT ItemName FROM dbo.MD_Item WHERE ItemNo = @Item;", conn, tx))
+            string? itemName, pgn, alc, mountPos;
+            using (var cmd = new SqlCommand(
+                "SELECT ItemName, PGN, ALC, MountPos FROM dbo.MD_Item WHERE ItemNo = @Item;", conn, tx))
             {
                 cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
-                itemName = cmd.ExecuteScalar() as string;
+                using var rdr = cmd.ExecuteReader();
+                if (rdr.Read())
+                {
+                    itemName = rdr["ItemName"] as string;
+                    pgn      = rdr["PGN"]      as string;
+                    alc      = rdr["ALC"]      as string;
+                    mountPos = rdr["MountPos"] as string;
+                }
+                else itemName = pgn = alc = mountPos = null;
+            }
+
+            string? customerCode;
+            using (var cmd = new SqlCommand("""
+                SELECT TOP 1 c.CustomerCode
+                FROM   dbo.PP_WorkOrderRouting r
+                JOIN   dbo.PP_WorkOrder        w  ON w.WoID  = r.WoID
+                LEFT JOIN dbo.PP_CustomerOrder so ON so.SoID = w.SoID
+                LEFT JOIN dbo.MD_Customer      c  ON c.CustomerID = so.CustomerID
+
+                """ + WorkOrderRepository.OpenStepForItemFilter + ";", conn, tx))
+            {
+                cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
+                cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+                customerCode = cmd.ExecuteScalar() as string;
             }
 
             string? equipId;
@@ -101,12 +131,13 @@ public sealed class ImgLotRepository
             }
 
             using (var cmd = new SqlCommand("""
-                INSERT INTO dbo.PR_ImgLot (LotID, EquipID, ConfirmStatus, PrintedCount, CreatedBy, CreatedTS)
-                VALUES (@LotID, @Equip, 'RAW', 0, @By, SYSDATETIME());
+                INSERT INTO dbo.PR_ImgLot (LotID, EquipID, CustomerCode, ConfirmStatus, PrintedCount, CreatedBy, CreatedTS)
+                VALUES (@LotID, @Equip, @Cust, 'RAW', 0, @By, SYSDATETIME());
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@LotID", SqlDbType.Int        ).Value = lotId;
-                cmd.Parameters.Add("@Equip", SqlDbType.VarChar, 20).Value = (object?)equipId ?? DBNull.Value;
+                cmd.Parameters.Add("@Equip", SqlDbType.VarChar, 20).Value = (object?)equipId      ?? DBNull.Value;
+                cmd.Parameters.Add("@Cust",  SqlDbType.VarChar, 20).Value = (object?)customerCode ?? DBNull.Value;
                 cmd.Parameters.Add("@By",    SqlDbType.VarChar, 50).Value = employeeNo;
                 cmd.ExecuteNonQuery();
             }
@@ -115,6 +146,7 @@ public sealed class ImgLotRepository
             return new ImgLotDto
             {
                 LotId = lotId, LotCode = lotCode, ItemNo = itemNo, ItemName = itemName,
+                Pgn = pgn, Alc = alc, MountPos = mountPos, CustomerCode = customerCode,
                 LineId = lineId, EquipId = equipId, ConfirmStatus = "RAW",
                 PrintedCount = 0, CreatedTS = createdTs,
             };

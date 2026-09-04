@@ -28,6 +28,7 @@ BEGIN
       [ConfirmedAt]               DATETIME2                NULL,
       [ConfirmedBy]               NVARCHAR(450)            NULL,
       [ConfirmedSessionID]        INT                      NULL,
+      [CustomerCode]              VARCHAR(20)              NULL,  -- 발행 시점 열린 WO 의 수주처 MD_Customer.CustomerCode (라벨 V 토큰)
       [FabricRollLotID]           INT                      NULL,  -- FK -> tbl_Lot.LotID (확정 시 차감한 롤)
       [FabricConsumedM]           DECIMAL(8,3)             NULL,
       [BondSetupID]               INT                      NULL,  -- FK -> PR_BondSetup.BondSetupID
@@ -44,6 +45,14 @@ BEGIN
 END
 ELSE
     PRINT 'PR_ImgLot already exists';
+GO
+
+-- 초기 버전에는 없던 컬럼 — 먼저 만든 DB 에 재실행하면 여기서 붙는다.
+IF COL_LENGTH('dbo.PR_ImgLot', 'CustomerCode') IS NULL
+BEGIN
+    ALTER TABLE dbo.PR_ImgLot ADD [CustomerCode] VARCHAR(20) NULL;
+    PRINT 'PR_ImgLot.CustomerCode added';
+END
 GO
 
 SELECT c.name, t.name AS type_name, c.max_length, c.is_nullable

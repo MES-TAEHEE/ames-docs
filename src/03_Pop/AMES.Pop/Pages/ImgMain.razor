@@ -331,7 +331,7 @@
             var lot = PopServices.ImgLots.CreateRawLot(Session.LineId, _activeWo.ItemNo, Session.EmployeeNo);
             try
             {
-                LabelPrinter.Print(lot, Session.LineId);
+                LabelPrinter.Print(lot, Session.ShiftCode);
                 var printed = PopServices.ImgLots.IncrementPrintedCount(lot.LotId);
                 Toasts.Ok($"{T("LotIssued")}: {lot.LotCode} ({lot.ItemNo})");
             }
@@ -368,11 +368,19 @@
         ConfirmScan(code);
     }
 
-    private void ConfirmScan(string lotCode)
+    private void ConfirmScan(string raw)
     {
         if (Session is null) return;
         try
         {
+            // 완제품 라벨의 DataMatrix 는 고객 표준 문자열 전체가 온다 — T 토큰 끝 9자가 우리 LotNo.
+            var lotCode = AMES.Devices.ImgScanParser.ExtractLotCode(raw);
+            if (lotCode is null)
+            {
+                SetBanner(false, $"{T("LotNotFound")}: {raw}");
+                return;
+            }
+
             // 대상 WO 는 LOT 품번으로 리포지토리가 정한다. 원단·본딩은 확정 순간의 라인 상태를 넘긴다.
             var (outcome, resultId, itemNo, woId) = PopServices.ImgLots.ConfirmByLotCode(
                 lotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo,
@@ -408,7 +416,7 @@
     {
         try
         {
-            LabelPrinter.Print(lot, Session?.LineId);
+            LabelPrinter.Print(lot, Session?.ShiftCode ?? "");
             var printed = PopServices.ImgLots.IncrementPrintedCount(lot.LotId);
             Toasts.Ok($"{T("LabelReprinted")}: {lot.LotCode} ({T("Total2")} {printed})");
             Refresh();

@@ -7,6 +7,14 @@ public sealed class ImgLotDto
     public string    LotCode          { get; init; } = string.Empty;
     public string    ItemNo           { get; init; } = string.Empty;
     public string?   ItemName         { get; init; }
+    /// <summary>MD_Item.PGN — 라벨 S 토큰 앞부분.</summary>
+    public string?   Pgn              { get; init; }
+    /// <summary>MD_Item.ALC — 라벨 S 토큰 뒷부분 + 좌상 큰 글자.</summary>
+    public string?   Alc              { get; init; }
+    /// <summary>MD_Item.MountPos — 차량 장착 위치 FL/FR/RL/RR, 라벨 우상 글자.</summary>
+    public string?   MountPos         { get; init; }
+    /// <summary>발행 시점 열린 WO 의 수주처 코드(MD_Customer.CustomerCode) — 라벨 V 토큰. 수주 없는 WO 면 null.</summary>
+    public string?   CustomerCode     { get; init; }
     public string?   LineId           { get; init; }
     public string?   EquipId          { get; init; }
     /// <summary>RAW(발행됨·미확정) / CONFIRMED(스캔 확정).</summary>

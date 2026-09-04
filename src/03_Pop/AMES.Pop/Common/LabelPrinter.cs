@@ -14,13 +14,27 @@ internal static class LabelPrinter
             lot.LotCode, lot.ItemNo, lot.ItemName, lot.ColorCode, lot.CavityPos,
             lot.PressType, lot.LineId ?? fallbackLineId ?? "", lot.CreatedTS), lot.LotCode);
 
-    /// <summary>IMG 라벨 — 같은 양식에서 금형 색상·캐비티·프레스 칸만 비운다.</summary>
-    public static void Print(ImgLotDto lot, string? fallbackLineId = null)
-        => Print(new ZplLabel(
-            lot.LotCode, lot.ItemNo, lot.ItemName, null, null,
-            null, lot.LineId ?? fallbackLineId ?? "", lot.CreatedTS), lot.LotCode);
+    /// <summary>
+    /// IMG 완제품 라벨 — 고객 표준 DataMatrix 양식(ImgLabelBuilder). 발행일은 지금 시각이다:
+    /// 재출력도 다시 찍는 날짜가 라벨에 남는다.
+    /// </summary>
+    public static void Print(ImgLotDto lot, string shiftCode)
+        => Print(ImgLabelBuilder.Build(new ImgLabel(
+            lot.LotCode, lot.ItemNo, lot.CustomerCode, lot.Pgn, lot.Alc, lot.MountPos,
+            ShiftLetter(shiftCode), DateTime.Now)), lot.LotCode);
+
+    /// <summary>POP 교대 코드 → 라벨 part4M 교대 글자. DAY=A, NIGHT=B, 그 외(3교대 확장분)=C.</summary>
+    public static string ShiftLetter(string? shiftCode) => shiftCode?.ToUpperInvariant() switch
+    {
+        "DAY"   => "A",
+        "NIGHT" => "B",
+        _       => "C",
+    };
 
     private static void Print(ZplLabel label, string jobName)
+        => Print(ZplLabelBuilder.Build(label), jobName);
+
+    private static void Print(string zpl, string jobName)
     {
         var cfg = AppConfig.Current;
         var printer = new ZplPrinter(new ZplPrinterOptions
@@ -31,6 +45,6 @@ internal static class LabelPrinter
             OutputDir   = cfg.PrinterOutputDir,
             PrinterName = cfg.PrinterName,
         });
-        printer.Print(ZplLabelBuilder.Build(label), jobName);
+        printer.Print(zpl, jobName);
     }
 }

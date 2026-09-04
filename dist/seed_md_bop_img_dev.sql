@@ -36,6 +36,44 @@ BEGIN
 END
 GO
 
+-- 완제품 라벨용 속성 (PGN · ALC · 장착위치). migrate_md_item_mount_pos.sql 이 먼저 적용돼 있어야 한다.
+UPDATE dbo.MD_Item
+SET    PGN = COALESCE(PGN, '8132'), ALC = COALESCE(ALC, '8046'), MountPos = COALESCE(MountPos, 'RL')
+WHERE  ItemNo = 'DR-TRM-LH-W';
+GO
+
+-- 라벨 V 토큰은 WO 의 수주처(PP_CustomerOrder → MD_Customer.CustomerCode) 다.
+-- 데모 IMG WO 는 수주 없이 만들어졌으므로 공장(PLANT) 고객 한 곳의 수주를 붙여 준다.
+-- 사바나 공장(CUS-SAV)이 있으면 그것, 없으면 아무 PLANT 고객.
+DECLARE @Cust varchar(20) =
+    (SELECT TOP 1 CustomerID FROM dbo.MD_Customer
+     WHERE  CustomerType = 'PLANT'
+     ORDER  BY CASE WHEN CustomerID = 'CUS-SAV' THEN 0 ELSE 1 END, CustomerID);
+IF @Cust IS NULL
+    PRINT 'WARNING: no PLANT customer in MD_Customer — label V token will be empty';
+ELSE IF NOT EXISTS (SELECT 1 FROM dbo.PP_CustomerOrder WHERE SoNumber = 'SO-IMG-DEMO-001')
+BEGIN
+    INSERT INTO dbo.PP_CustomerOrder (SoNumber, SoLineNo, CustomerID, ItemNo, OrderQty, ShippedQty, OrderDate, RequestedDeliveryDate, Status, CreatedBy)
+    VALUES ('SO-IMG-DEMO-001', 1, @Cust, 'DR-TRM-LH-W', 292, 0, CAST(SYSDATETIME() AS date), DATEADD(day, 14, CAST(SYSDATETIME() AS date)), 'OPEN', 'seed');
+    PRINT CONCAT('PP_CustomerOrder SO-IMG-DEMO-001 inserted for ', @Cust);
+END
+ELSE
+BEGIN
+    -- 예전 실행이 MD_Customer 에 없는 고객을 넣었으면 고쳐 준다.
+    UPDATE dbo.PP_CustomerOrder SET CustomerID = @Cust
+    WHERE  SoNumber = 'SO-IMG-DEMO-001'
+      AND  NOT EXISTS (SELECT 1 FROM dbo.MD_Customer c WHERE c.CustomerID = PP_CustomerOrder.CustomerID);
+    IF @@ROWCOUNT > 0 PRINT CONCAT('PP_CustomerOrder SO-IMG-DEMO-001 customer fixed to ', @Cust);
+END
+UPDATE w
+SET    w.SoID = so.SoID
+FROM   dbo.PP_WorkOrder w
+JOIN   dbo.PP_CustomerOrder so ON so.SoNumber = 'SO-IMG-DEMO-001'
+WHERE  w.SoID IS NULL AND w.ItemNo = 'DR-TRM-LH-W'
+  AND  EXISTS (SELECT 1 FROM dbo.PP_WorkOrderRouting r WHERE r.WoID = w.WoID AND r.LineID = 'LINE-IMG-01');
+PRINT CONCAT('IMG demo WOs linked to SO: ', @@ROWCOUNT);
+GO
+
 ;WITH items AS (
     SELECT DISTINCT w.ItemNo
     FROM   dbo.PP_WorkOrderRouting r
