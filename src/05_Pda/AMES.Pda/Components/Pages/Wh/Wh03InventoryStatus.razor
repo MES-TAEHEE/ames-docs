@@ -1,6 +1,7 @@
 @page "/wh/03"
 @page "/fg/adjust"
 @inject PdaApi Api
+@inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @implements IAsyncDisposable
@@ -14,6 +15,10 @@
         @if (!IsAdjustTab)
         {
             <div class="wh03-tbar-actions">
+                @if (IsTestMode)
+                {
+                    <button class="wh02-test-nav" @onclick="OpenTestPanel">SCENARIO</button>
+                }
                 <RadzenButton class="wh03-refresh" Click="@Load" Disabled="@_isLoading" Text="REFRESH" />
             </div>
         }
@@ -102,7 +107,8 @@
                             @foreach (var lot in _selectedLocationLots)
                             {
                                 <div class="inventory-table-row inventory-lot-grid">
-                                    <strong>@Text(lot.LotNo)</strong><strong>@Qty(lot.Qty, lot.Unit)</strong><strong>@Text(_selectedInventoryLocation.LocationId)</strong>
+                                    <span class="inventory-part-cell"><strong>@Text(lot.LotNo)</strong><small>@Text(lot.InventoryStatus)</small></span>
+                                    <strong>@Qty(lot.Qty, lot.Unit)</strong><strong>@Text(_selectedInventoryLocation.LocationId)</strong>
                                 </div>
                             }
                         </div>
@@ -114,7 +120,7 @@
                         <div class="inventory-detail-head">
                             <RadzenButton class="inventory-back" Click="@CloseLocationInventory" Text="&lt; BACK" />
                             <div><span>LOCATION</span><strong>@Text(_selectedInventoryLocation.LocationId)</strong><em>@Text(_selectedInventoryLocation.LocationName)</em></div>
-                            <strong>@Qty(_selectedInventoryLocation.TotalQty, null)</strong>
+                            <strong>@Qty(_selectedInventoryLocation.TotalQty, _selectedInventoryLocation.Unit)</strong>
                         </div>
                         <div class="inventory-table-head inventory-part-detail-grid"><span>PART</span><span>QTY</span></div>
                         <div class="inventory-table-list">
@@ -160,7 +166,8 @@
                             @foreach (var location in VisibleInventoryLocations)
                             {
                                 <button type="button" class="inventory-table-row inventory-location-grid" @onclick="@(() => OpenInventoryLocation(location.LocationId))">
-                                    <strong>@Text(location.LocationId)</strong><strong>@Qty(location.TotalQty, null)</strong>
+                                    <span class="inventory-part-cell"><strong>@Text(location.LocationId)</strong><small>@Text(location.LocationName)</small></span>
+                                    <strong>@Qty(location.TotalQty, location.Unit)</strong>
                                 </button>
                             }
                         </div>
@@ -434,6 +441,52 @@
         }
     </div>
 
+    @if (IsTestMode && _testPanelOpen)
+    {
+        <div class="wh02-test-backdrop" @onclick="CloseTestPanel">
+            <section class="wh02-test-panel" @onclick:stopPropagation="true">
+                <div class="wh02-test-head">
+                    <div><span>TEST MODE</span><strong>INVENTORY TEST SCENARIOS</strong></div>
+                    <b>@CurrentTestScenario.No.ToString("00") / @InventoryTestScenarios.Length</b>
+                    <button class="wh02-test-close" @onclick="CloseTestPanel" aria-label="Close scenarios">×</button>
+                </div>
+                <div class="wh02-test-tabs">
+                    @foreach (var scenario in InventoryTestScenarios)
+                    {
+                        var index = scenario.No - 1;
+                        <button class="@(index == _testScenarioIndex ? "on" : "")"
+                                @onclick="@(() => SelectTestScenario(index))">@scenario.No.ToString("00")</button>
+                    }
+                </div>
+                <div class="wh02-test-case">
+                    <div class="wh02-test-summary">
+                        <span>@CurrentTestScenario.TestCaseId</span>
+                        <strong>@CurrentTestScenario.Title</strong>
+                    </div>
+                    @if (CurrentTestScenario.Values.Length > 0)
+                    {
+                        <div class="wh02-test-values">
+                            @foreach (var value in CurrentTestScenario.Values)
+                            {
+                                <button @onclick="@(() => LoadTestValue(value))">
+                                    <span>@value.Label</span><b>@value.Value</b>
+                                </button>
+                            }
+                        </div>
+                    }
+                    @if (CurrentTestScenario.No == 11)
+                    {
+                        <button class="@($"wh02-test-error {(_simulateInventoryApiFailure ? "on" : "")}")"
+                                @onclick="ToggleInventoryApiFailure">
+                            API ERROR: @(_simulateInventoryApiFailure ? "ON" : "OFF")
+                        </button>
+                    }
+                    <button class="wh02-test-start" @onclick="StartTestScenario">START SCENARIO</button>
+                </div>
+            </section>
+        </div>
+    }
+
     @if (_dateFilterOpen)
     {
         <div class="wh03-filter-backdrop" @onclick="CloseDateFilters">
@@ -600,6 +653,48 @@
 </div>
 
 @code {
+    private sealed record InventoryTestValue(string Label, string Value, string Action = "SEARCH");
+    private sealed record InventoryTestScenario(int No, string TestCaseId, string Title, string Steps,
+        bool AutoRun, params InventoryTestValue[] Values);
+
+    private static readonly InventoryTestScenario[] InventoryTestScenarios =
+    [
+        new(1, "WH004-TC-001", "재고 보유 Location 목록",
+            "재고 수량이 0보다 큰 Location만 목록에 표시되는지 확인합니다.", true,
+            new InventoryTestValue("LIST", "ALL STOCKED LOCATIONS", "LIST")),
+        new(2, "WH004-TC-002", "Location 요약 정보",
+            "Location No, 이름, 수량과 단위가 함께 표시되는지 확인합니다.", true,
+            new InventoryTestValue("LIST", "ALL STOCKED LOCATIONS", "LIST")),
+        new(3, "WH004-TC-003", "REFRESH 최신 재고 반영",
+            "START 후 CHANGE QTY를 실행하고 REFRESH를 눌러 B0-09-D2 수량이 갱신되는지 확인합니다.", true,
+            new InventoryTestValue("LIST", "B0-09-D2 / CURRENT QTY", "LIST"),
+            new InventoryTestValue("CHANGE QTY", "5011LL260804000001 (120 ↔ 121)", "CHANGE_QTY")),
+        new(4, "WH004-TC-004", "Part No 검색",
+            "Part No를 검색해 재고가 있는 Location만 표시되는지 확인합니다.", true,
+            new InventoryTestValue("PART NO", "81710-PI000NNB")),
+        new(5, "WH004-TC-005", "Location No 검색",
+            "Location No를 검색해 일치하는 한 행만 표시되는지 확인합니다.", true,
+            new InventoryTestValue("LOCATION", "B0-10-A1")),
+        new(6, "WH004-TC-006", "검색 결과 없음",
+            "존재하지 않는 값 검색 시 이전 결과 없이 빈 결과 문구가 표시되는지 확인합니다.", true,
+            new InventoryTestValue("UNKNOWN", "WH-INV-UNKNOWN-999999")),
+        new(7, "WH004-TC-007", "CLEAR 검색 초기화",
+            "검색 결과가 표시된 후 CLEAR를 눌러 전체 Location 목록이 복원되는지 확인합니다.", true,
+            new InventoryTestValue("PART NO", "81710-PI000NNB")),
+        new(8, "WH004-TC-008", "Location 상세 정보",
+            "Location을 열어 Part No, Part Name, LOT No, Qty, Unit, Status를 확인합니다.", true,
+            new InventoryTestValue("LOCATION", "B0-10-A1", "OPEN_LOCATION")),
+        new(9, "WH004-TC-009", "상세 수량 합계 검증",
+            "B0-10-A1의 LOT 수량 4 + 24 + 45가 Location 합계 73 EA와 일치하는지 확인합니다.", true,
+            new InventoryTestValue("LOCATION", "B0-10-A1 / 73 EA", "OPEN_LOCATION")),
+        new(10, "WH004-TC-010", "BACK 상태 유지",
+            "상세 화면에서 BACK을 눌렀을 때 기존 B0-10-A1 검색 조건과 위치가 유지되는지 확인합니다.", true,
+            new InventoryTestValue("LOCATION", "B0-10-A1", "OPEN_LOCATION")),
+        new(11, "WH004-TC-011", "Inventory API 오류 및 재시도",
+            "API ERROR를 ON으로 하고 START해 오류 알림과 화면 유지 여부를 확인한 뒤 OFF로 재시도합니다.", true,
+            new InventoryTestValue("PART NO", "81710-PI000NNB", "API_QUERY"))
+    ];
+
     private string _q = "";
     private DateTime? _dateFrom;
     private DateTime? _dateTo;
@@ -632,6 +727,9 @@
     private bool _isInventoryMoving;
     private bool _modalOpen;
     private bool _dateFilterOpen;
+    private bool _testPanelOpen;
+    private bool _simulateInventoryApiFailure;
+    private int _testScenarioIndex;
     private DateTime? _lastSyncAt;
     private string _modalTitle = "";
     private string _modalMessage = "";
@@ -668,6 +766,12 @@
     ];
 
     private string PageTitle => IsAdjustTab ? "Adjust" : "Inventory";
+    private bool IsTestMode => !IsFinishedGoodsAdjust
+        && string.Equals(Auth.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+    private InventoryTestScenario CurrentTestScenario => InventoryTestScenarios[_testScenarioIndex];
+    private bool ShouldSimulateInventoryApiFailure => IsTestMode
+        && CurrentTestScenario.No == 11
+        && _simulateInventoryApiFailure;
     private bool IsFinishedGoodsAdjust => string.Equals(
         Nav.ToAbsoluteUri(Nav.Uri).AbsolutePath.TrimEnd('/'),
         "/fg/adjust",
@@ -757,6 +861,104 @@
         }
     }
 
+    private void OpenTestPanel() => _testPanelOpen = true;
+    private void CloseTestPanel() => _testPanelOpen = false;
+    private void ToggleInventoryApiFailure() => _simulateInventoryApiFailure = !_simulateInventoryApiFailure;
+
+    private void SelectTestScenario(int index)
+    {
+        if (index < 0 || index >= InventoryTestScenarios.Length)
+            return;
+
+        _testScenarioIndex = index;
+        if (CurrentTestScenario.No != 11)
+            _simulateInventoryApiFailure = false;
+        PrepareTestScenario(CurrentTestScenario);
+    }
+
+    private async Task StartTestScenario()
+    {
+        var scenario = CurrentTestScenario;
+        CloseTestPanel();
+        PrepareTestScenario(scenario);
+
+        if (scenario.AutoRun && scenario.Values.FirstOrDefault() is { } value)
+            await ExecuteTestValue(value);
+        else
+            ShowAlert($"Scenario {scenario.No:00} Ready", scenario.Steps, "info");
+    }
+
+    private void PrepareTestScenario(InventoryTestScenario scenario)
+    {
+        _workTab = "Search";
+        _inventoryView = scenario.Values.FirstOrDefault()?.Action == "API_QUERY" ? "Part" : "Location";
+        _q = "";
+        _locationQuery = "";
+        _matchedLocationIds = null;
+        _msg = "";
+        _locationMsg = "";
+        CloseBrowsePart();
+        CloseLocationInventory();
+
+        if (scenario.Values.FirstOrDefault() is { } value)
+        {
+            if (value.Action == "API_QUERY")
+                _q = value.Value;
+            else if (value.Action is "SEARCH" or "OPEN_LOCATION")
+                _locationQuery = value.Value;
+        }
+    }
+
+    private async Task LoadTestValue(InventoryTestValue value)
+    {
+        CloseTestPanel();
+        await ExecuteTestValue(value);
+    }
+
+    private async Task ExecuteTestValue(InventoryTestValue value)
+    {
+        _workTab = "Search";
+        switch (value.Action)
+        {
+            case "LIST":
+                _inventoryView = "Location";
+                _locationQuery = "";
+                _matchedLocationIds = null;
+                CloseLocationInventory();
+                await LoadInventoryLocations();
+                break;
+            case "OPEN_LOCATION":
+                _inventoryView = "Location";
+                _locationQuery = value.Value.Split('/')[0].Trim();
+                _matchedLocationIds = new(StringComparer.OrdinalIgnoreCase) { _locationQuery };
+                if (_inventoryLocations.Count == 0)
+                    await LoadInventoryLocations();
+                await OpenInventoryLocation(_locationQuery);
+                break;
+            case "CHANGE_QTY":
+                try
+                {
+                    var result = await Api.WhToggleInventoryTestQtyAsync();
+                    ShowAlert("Test Stock Changed", result.Message, result.Success ? "success" : "warn");
+                }
+                catch (Exception ex)
+                {
+                    ShowAlert("Test Stock Change Failed", ex.Message, "fail");
+                }
+                break;
+            case "API_QUERY":
+                _inventoryView = "Part";
+                _q = value.Value;
+                await Load();
+                break;
+            default:
+                _inventoryView = "Location";
+                _locationQuery = value.Value;
+                await LoadLocationInventory();
+                break;
+        }
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -778,7 +980,7 @@
 
         await InvokeAsync(async () =>
         {
-            if (_pinPadOpen || _modalOpen || InventoryBusy)
+            if (_pinPadOpen || _modalOpen || _testPanelOpen || InventoryBusy)
                 return;
 
             if (IsSearchTab)
@@ -819,7 +1021,7 @@
 
     private async Task FocusScannerAsync()
     {
-        if (_pinPadOpen || _modalOpen || _dateFilterOpen || _locationModalOpen || _selectedInventoryLocation is not null)
+        if (_pinPadOpen || _modalOpen || _testPanelOpen || _dateFilterOpen || _locationModalOpen || _selectedInventoryLocation is not null)
             return;
 
         try
@@ -1081,7 +1283,7 @@
                 return;
             }
 
-            _rows = await Api.WhInventoryAsync(_q, DateFrom, DateTo);
+            _rows = await Api.WhInventoryAsync(_q, DateFrom, DateTo, ShouldSimulateInventoryApiFailure);
             _lastSyncAt = DateTime.Now;
             if (!StockStatuses.Contains(_statusFilter, StringComparer.OrdinalIgnoreCase))
                 _statusFilter = "ALL";
@@ -1090,6 +1292,11 @@
             {
                 _msg = "No inventory matches.";
             }
+        }
+        catch (Exception ex)
+        {
+            _msg = ex.Message;
+            ShowAlert("Inventory Load Failed", ex.Message, "fail");
         }
         finally
         {

@@ -175,4 +175,50 @@ Check(apiSource.Contains("body.SimulateFailure")
       && apiSource.Contains("Simulated Release API failure. Database transaction was rolled back."),
     "Release scenario 18 must fail inside the API transaction and roll back.");
 
-Console.WriteLine("PASS: Warehouse Inbound and Release scenario guards, FIFO, rollback, Adjust and transaction checks.");
+var inventorySource = File.ReadAllText(Path.Combine(root, "src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh03InventoryStatus.razor"));
+Check(inventorySource.Contains("INVENTORY TEST SCENARIOS") && inventorySource.Contains("WH004-TC-011"),
+    "TEST login must expose all executable WH004 scenarios.");
+Check(inventorySource.Contains("Auth.Session?.EmployeeNo, \"TEST\"")
+      && inventorySource.Contains("wh02-test-nav") && inventorySource.Contains("_testPanelOpen"),
+    "Inventory scenarios must be restricted to TEST login and open from the navigation button.");
+Check(inventorySource.Contains("API ERROR:") && inventorySource.Contains("_simulateInventoryApiFailure"),
+    "Inventory scenario 11 must provide a TEST-only API failure switch.");
+Check(inventorySource.Contains("WhToggleInventoryTestQtyAsync") && inventorySource.Contains("CHANGE_QTY"),
+    "Inventory refresh scenario must provide a deterministic stock change action.");
+Check(inventorySource.Contains("lot.InventoryStatus")
+      && inventorySource.Contains("location.LocationName")
+      && inventorySource.Contains("location.Unit"),
+    "Inventory summary and detail must expose name, unit and LOT status fields.");
+
+var inventoryType = assembly.GetType("AMES.Pda.Components.Pages.Wh.Wh03InventoryStatus", throwOnError: true)!;
+var inventoryScenarios = (Array)inventoryType.GetField("InventoryTestScenarios", StaticFlags)!.GetValue(null)!;
+Check(inventoryScenarios.Length == 11, "WH004 must expose exactly 11 executable scenarios.");
+var expectedInventoryFirstValues = new[]
+{
+    "ALL STOCKED LOCATIONS", "ALL STOCKED LOCATIONS", "B0-09-D2 / CURRENT QTY",
+    "81710-PI000NNB", "B0-10-A1", "WH-INV-UNKNOWN-999999", "81710-PI000NNB",
+    "B0-10-A1", "B0-10-A1 / 73 EA", "B0-10-A1", "81710-PI000NNB"
+};
+for (var index = 0; index < inventoryScenarios.Length; index++)
+{
+    var scenario = inventoryScenarios.GetValue(index)!;
+    var scenarioType = scenario.GetType();
+    var no = (int)scenarioType.GetProperty("No")!.GetValue(scenario)!;
+    var testCaseId = (string)scenarioType.GetProperty("TestCaseId")!.GetValue(scenario)!;
+    var autoRun = (bool)scenarioType.GetProperty("AutoRun")!.GetValue(scenario)!;
+    var values = (Array)scenarioType.GetProperty("Values")!.GetValue(scenario)!;
+    var firstValue = (string)values.GetValue(0)!.GetType().GetProperty("Value")!.GetValue(values.GetValue(0)!)!;
+    Check(no == index + 1, $"Inventory scenario number is not continuous at index {index}.");
+    Check(testCaseId == $"WH004-TC-{index + 1:000}", $"Inventory scenario ID does not match scenario {index + 1}.");
+    Check(firstValue == expectedInventoryFirstValues[index], $"Inventory scenario {index + 1} has the wrong primary test value.");
+    Check(autoRun, $"Inventory scenario {index + 1} must run from START SCENARIO.");
+}
+
+Check(!inventorySource.Contains("WH004-TC-054"),
+    "The non-executable same-LOT multiple-location scenario must remain excluded.");
+Check(apiSource.Contains("simulateFailure == true")
+      && apiSource.Contains("s.EmployeeNo, \"TEST\"")
+      && apiSource.Contains("/inventory/test/toggle-qty"),
+    "Inventory failure and quantity controls must be TEST-only API operations.");
+
+Console.WriteLine("PASS: Warehouse Inbound, Release and Inventory scenario guards, FIFO, rollback and test controls.");

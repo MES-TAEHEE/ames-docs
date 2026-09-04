@@ -40,9 +40,10 @@ public static class WhEndpoints
     public sealed record LocationRow(string LocationId, string? LocationName, string? Zone, int LineCount, decimal TotalQty,
         string? WarehouseCode = null, string? WarehouseName = null, string? AreaCode = null, string? AreaName = null,
         string? ZoneName = null, string? X = null, string? Y = null, string? Z = null,
-        string? PlantCode = null, string? LocationType = null, decimal? Capacity = null);
+        string? PlantCode = null, string? LocationType = null, decimal? Capacity = null, string? Unit = null);
     public sealed record LocationMapItemRow(string LotNo, string? PartNo, string? PartName, decimal Qty, string? Unit,
         string? InventoryStatus, string? WorkDate, string? WorkTime);
+    public sealed record InventoryTestChangeResult(bool Success, string Message, string LotNo, decimal Qty);
 
     public sealed record InboundScanRow(string ReceiveType, string? Yn, string LotNo, string Barcode,
         string? SourceTable, string? NoteNo, string? CaseBarcode, string? CaseNo, string? InvoiceNo,
@@ -409,9 +410,12 @@ public static class WhEndpoints
         });
 
         // WH-03 Inventory Status
-        g.MapGet("/inventory", (HttpContext ctx, string? q) =>
+        g.MapGet("/inventory", (HttpContext ctx, string? q, bool? simulateFailure) =>
         {
-            if (ctx.GetSession() is null) return Results.Unauthorized();
+            if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+            if (simulateFailure == true && string.Equals(s.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase))
+                return Results.Problem("Simulated Inventory API failure.", statusCode: StatusCodes.Status503ServiceUnavailable);
+
             var sql = """
                 SELECT TOP 100 inv.InventoryID, inv.ItemNo, i.ItemName, inv.LocationID,
                        inv.LotID, ISNULL(inv.OnHandQty,0) AS OnHandQty,
@@ -426,6 +430,62 @@ public static class WhEndpoints
                 r["LocationID"] as string ?? "", r["LotID"] as int?,
                 r.GetDecimal(r.GetOrdinal("OnHandQty")), r.GetDecimal(r.GetOrdinal("ReservedQty")),
                 r["ExpiryDate"] as DateTime?));
+        });
+
+        g.MapPost("/inventory/test/toggle-qty", (HttpContext ctx) =>
+        {
+            if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+            if (!string.Equals(s.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase))
+                return Results.Forbid();
+
+            const string lotNo = "5011LL260804000001";
+            using var conn = factory.OpenConnection();
+            using var tx = conn.BeginTransaction();
+            try
+            {
+                using var cmd = new SqlCommand("""
+                    DECLARE @LotID int;
+                    DECLARE @Current decimal(18,3);
+                    DECLARE @Next decimal(18,3);
+
+                    SELECT TOP (1) @LotID = L.LotID
+                    FROM dbo.tbl_Lot L WITH (UPDLOCK, HOLDLOCK)
+                    WHERE L.LotCode = @LotNo;
+
+                    SELECT TOP (1) @Current = I.OnHandQty
+                    FROM dbo.WH_Inventory I WITH (UPDLOCK, HOLDLOCK)
+                    WHERE I.LotID = @LotID AND I.LocationID = N'B0-09-D2';
+
+                    IF @LotID IS NULL OR @Current IS NULL
+                        THROW 51000, 'Inventory refresh test data was not found.', 1;
+
+                    SET @Next = CASE WHEN @Current = 120 THEN 121 ELSE 120 END;
+
+                    UPDATE dbo.WH_Inventory
+                    SET OnHandQty = @Next, ModifiedTS = SYSDATETIME(), ModifiedBy = N'TEST'
+                    WHERE LotID = @LotID AND LocationID = N'B0-09-D2';
+
+                    UPDATE dbo.tbl_Lot
+                    SET RemainingQty = (
+                        SELECT COALESCE(SUM(I.OnHandQty), 0)
+                        FROM dbo.WH_Inventory I
+                        WHERE I.LotID = @LotID
+                    )
+                    WHERE LotID = @LotID;
+
+                    SELECT @Next;
+                    """, conn, tx);
+                cmd.Parameters.Add("@LotNo", SqlDbType.NVarChar, 50).Value = lotNo;
+                var qty = Convert.ToDecimal(cmd.ExecuteScalar());
+                tx.Commit();
+                return Results.Ok(new InventoryTestChangeResult(true,
+                    $"Test stock changed to {qty:#,##0.###} EA. Press REFRESH to load the latest quantity.", lotNo, qty));
+            }
+            catch (Exception ex)
+            {
+                tx.Rollback();
+                return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
         });
 
         g.MapGet("/inventory/location/{locationId}", (HttpContext ctx, string locationId, DateTime? dateFrom, DateTime? dateTo) =>
@@ -492,7 +552,11 @@ public static class WhEndpoints
                        am.AreaName AS AreaName,
                        l.ZoneCode AS ZoneName,
                        l.Aisle, l.Bay, l.Slot,
-                       l.PlantCode, l.LocationType, l.Capacity
+                       l.PlantCode, l.LocationType, l.Capacity,
+                       CASE WHEN COUNT(DISTINCT NULLIF(mi.DefaultUOM,N'')) = 1
+                            THEN MAX(mi.DefaultUOM)
+                            WHEN COUNT(DISTINCT NULLIF(mi.DefaultUOM,N'')) > 1 THEN N'MIXED'
+                            ELSE NULL END AS Unit
                 FROM dbo.MD_Location l
                 LEFT JOIN dbo.WH_WarehouseMaster wm
                   ON wm.WhCode = l.PlantCode
@@ -503,6 +567,7 @@ public static class WhEndpoints
                   ON i.LocationID = l.LocationID
                  AND COALESCE(i.OnHandQty,0) > 0
                  AND UPPER(COALESCE(i.Status,N'Received')) NOT IN (N'CANCELED',N'RELEASED',N'PICKED')
+                LEFT JOIN dbo.MD_Item mi ON mi.ItemNo = i.ItemNo
                 WHERE ISNULL(l.ActiveFlag,1) = 1
                 GROUP BY l.LocationID, l.LocationName, l.ZoneCode, l.PlantCode,
                          wm.WhName, am.AreaName,
@@ -516,7 +581,8 @@ public static class WhEndpoints
                 GetString(r, "WarehouseCode"), GetString(r, "WarehouseName"),
                 GetString(r, "AreaCode"), GetString(r, "AreaName"), GetString(r, "ZoneName"),
                 GetString(r, "Aisle"), GetString(r, "Bay"), GetString(r, "Slot"),
-                GetString(r, "PlantCode"), GetString(r, "LocationType"), GetNullableDecimal(r, "Capacity")));
+                GetString(r, "PlantCode"), GetString(r, "LocationType"), GetNullableDecimal(r, "Capacity"),
+                GetString(r, "Unit")));
         });
 
         // WH-05 Inventory Adjust
@@ -2405,7 +2471,8 @@ public static class WhEndpoints
             GetString(rdr, "Slot"),
             GetString(rdr, "PlantCode"),
             GetString(rdr, "LocationType"),
-            GetNullableDecimal(rdr, "Capacity"));
+            GetNullableDecimal(rdr, "Capacity"),
+            GetString(rdr, "Unit"));
     }
 
     private static WarehouseTransactionRow ReadWarehouseTransactionRow(SqlDataReader rdr)

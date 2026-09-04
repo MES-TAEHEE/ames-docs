@@ -180,9 +180,10 @@ public sealed class PdaApi
     public sealed record LocationRow(string LocationId, string? LocationName, string? Zone, int LineCount, decimal TotalQty,
         string? WarehouseCode = null, string? WarehouseName = null, string? AreaCode = null, string? AreaName = null,
         string? ZoneName = null, string? X = null, string? Y = null, string? Z = null,
-        string? PlantCode = null, string? LocationType = null, decimal? Capacity = null);
+        string? PlantCode = null, string? LocationType = null, decimal? Capacity = null, string? Unit = null);
     public sealed record LocationMapItemRow(string LotNo, string? PartNo, string? PartName, decimal Qty, string? Unit,
         string? InventoryStatus, string? WorkDate, string? WorkTime);
+    public sealed record InventoryTestChangeResult(bool Success, string Message, string LotNo, decimal Qty);
     public sealed record ReleaseSlipStatusRow(string PickSlipNo, bool Exists, bool IsClosed, int LineCount,
         string? RequestLocation, DateTime? RequestDate, DateTime? CloseDate, string Message);
     public sealed record ReleasePickLineRow(string PickSlipNo, string ItemNo, string? ItemName,
@@ -228,8 +229,19 @@ public sealed class PdaApi
     public sealed record PickResult(bool Success, string Message, ReleaseLotRow? Row);
 
     public Task<List<InboundRow>>         WhInboundTodayAsync()    => Get<List<InboundRow>>("/api/wh/inbound/today");
-    public async Task<List<InventoryRow>> WhInventoryAsync(string? q = null, DateTime? dateFrom = null, DateTime? dateTo = null)
+    public async Task<List<InventoryRow>> WhInventoryAsync(string? q = null, DateTime? dateFrom = null, DateTime? dateTo = null,
+        bool simulateFailure = false)
     {
+        if (simulateFailure)
+        {
+            Authorize();
+            var query = string.IsNullOrWhiteSpace(q) ? "" : $"&q={Uri.EscapeDataString(q)}";
+            using var response = await _http.GetAsync($"/api/wh/inventory?simulateFailure=true{query}");
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Inventory service is unavailable."));
+            return await response.Content.ReadFromJsonAsync<List<InventoryRow>>() ?? [];
+        }
+
         try
         {
             return await QueryWhInventoryDbAsync(q, dateFrom, dateTo);
@@ -238,6 +250,16 @@ public sealed class PdaApi
         {
             return await Get<List<InventoryRow>>("/api/wh/inventory" + (string.IsNullOrEmpty(q) ? "" : $"?q={Uri.EscapeDataString(q)}"));
         }
+    }
+
+    public async Task<InventoryTestChangeResult> WhToggleInventoryTestQtyAsync()
+    {
+        Authorize();
+        using var response = await _http.PostAsync("/api/wh/inventory/test/toggle-qty", null);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Inventory refresh test failed."));
+        return await response.Content.ReadFromJsonAsync<InventoryTestChangeResult>()
+               ?? new InventoryTestChangeResult(false, "Inventory refresh test returned no result.", "", 0);
     }
 
     public async Task<InventoryScanLookupRow?> WhInventoryScanAsync(string? scanText)
@@ -1305,6 +1327,10 @@ public sealed class PdaApi
                 L.PlantCode,
                 L.LocationType,
                 L.Capacity,
+                CASE WHEN COUNT(DISTINCT NULLIF(M.DefaultUOM,N'')) = 1
+                     THEN MAX(M.DefaultUOM)
+                     WHEN COUNT(DISTINCT NULLIF(M.DefaultUOM,N'')) > 1 THEN N'MIXED'
+                     ELSE NULL END AS Unit,
                 COUNT(I.InventoryID) AS LineCount,
                 COALESCE(SUM(I.OnHandQty), 0) AS TotalQty
             FROM dbo.MD_Location L
@@ -1317,6 +1343,7 @@ public sealed class PdaApi
                    ON I.LocationID = L.LocationID
                   AND COALESCE(I.OnHandQty, 0) > 0
                   AND UPPER(COALESCE(I.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
+            LEFT JOIN dbo.MD_Item M ON M.ItemNo = I.ItemNo
             WHERE COALESCE(L.ActiveFlag, 1) = 1
             GROUP BY L.LocationID, L.LocationName, L.ZoneCode, L.PlantCode,
                 WM.WhName, AM.AreaName, L.Aisle, L.Bay, L.Slot, L.LocationType, L.Capacity
@@ -1926,7 +1953,8 @@ public sealed class PdaApi
             GetString(rdr, "Slot"),
             GetString(rdr, "PlantCode"),
             GetString(rdr, "LocationType"),
-            GetNullableDecimal(rdr, "Capacity"));
+            GetNullableDecimal(rdr, "Capacity"),
+            GetString(rdr, "Unit"));
     }
 
     private static LocationMapItemRow ReadLocationMapItemRow(SqlDataReader rdr)
