@@ -99,7 +99,7 @@
     </div>
     <div class="dim" style="font-size:10px;padding:0 0 6px;">@string.Format(L["PP.Delivery.Hint"].Value, DateTime.Today.ToString("yyyy-MM-dd"))</div>
 
-    <RadzenDataGrid TItem="PpRepository.OtdRow" Data="@_rows" AllowPaging="true" PageSize="20" PagerHorizontalAlign="HorizontalAlign.Center"
+    <RadzenDataGrid TItem="PpRepository.OtdRow" Data="@_rows" AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
                     AllowSorting="true" RowRender="@RowRender" EmptyText="@L["PP.Delivery.Empty"]" Class="ames-rz-grid pp-dtl-grid">
         <Columns>
             <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="SoNumber" Title="@L["Col.SoNo"]" Width="130px">

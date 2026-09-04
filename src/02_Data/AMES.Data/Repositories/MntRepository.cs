@@ -33,7 +33,8 @@ public sealed class MntRepository
 
     public sealed record MoldRow(string MoldId, string? MoldName, int? RatedShots, int? CurrentShots,
         int? CavityCount, int? Tonnage, string? StorageLoc, DateTime? LastMaintDate, string? Status,
-        int? LifetimeShots, string? MountedEquipId, string? ThresholdLevel, int? RefurbishCount);
+        int? LifetimeShots, string? MountedEquipId, string? ThresholdLevel, int? RefurbishCount,
+        int? CumulativeShots = null);
 
     public sealed record PmRow(int PmScheduleId, string? PmPlanNumber, string? EquipId, string? PmType,
         string? CycleBasis, int? CycleValue, DateTime? LastPmDate, DateTime? NextDueDate,
@@ -59,7 +60,7 @@ public sealed class MntRepository
 
     public sealed record DashboardKpi(int EquipTotal, int EquipRun, int EquipDown, int EquipIdle,
         int OpenFailures, int OpenWos, int PmDueIn7d, int LowStockParts,
-        decimal AvgOeeToday, int DowntimeMin24h);
+        decimal AvgOeeToday, int DowntimeMin24h, DateTime? OeeDate = null);
 
     // ── MNT-001 Equipment Card ──────────────────────────────────────────
     public List<EquipCardRow> ListEquipment(string? lineId = null)
@@ -184,7 +185,8 @@ public sealed class MntRepository
         const string sql = """
             SELECT  m.MoldID, m.MoldName, m.RatedShots, m.CurrentShots, m.CavityCount,
                     m.Tonnage, m.StorageLoc, m.LastMaintDate, m.Status,
-                    sc.LifetimeShots, sc.MountedEquipID, sc.ThresholdLevel, sc.RefurbishCount
+                    sc.LifetimeShots, sc.MountedEquipID, sc.ThresholdLevel, sc.RefurbishCount,
+                    m.CumulativeShots
             FROM    dbo.MD_Mold m
             LEFT JOIN dbo.MNT_MoldShotCount sc ON sc.MoldID = m.MoldID
             ORDER BY m.MoldID;
@@ -195,7 +197,8 @@ public sealed class MntRepository
             r["Tonnage"] as int?, r["StorageLoc"] as string,
             r["LastMaintDate"] as DateTime?, r["Status"] as string,
             r["LifetimeShots"] as int?, r["MountedEquipID"] as string,
-            r["ThresholdLevel"] as string, r["RefurbishCount"] as int?));
+            r["ThresholdLevel"] as string, r["RefurbishCount"] as int?,
+            r["CumulativeShots"] as int?));
     }
 
     // ── MNT-005 PM Schedule ─────────────────────────────────────────────
@@ -267,6 +270,48 @@ public sealed class MntRepository
     }
 
     // ── MNT-007 Work Order (MWO) ────────────────────────────────────────
+    /// <summary>달력용: 예정일(NextDueDate) 또는 마지막 PM 일(LastPMDate)이 기간 안에 드는 PM. DaysToDue 는 오늘 기준.</summary>
+    public List<PmRow> ListPmCalendar(DateTime from, DateTime to)
+    {
+        const string sql = """
+            SELECT  PMScheduleID, PMPlanNumber, EquipID, PMType, CycleBasis, CycleValue,
+                    LastPMDate, NextDueDate, ChecklistID, AssignedTechID, Status, ActiveWoID,
+                    DATEDIFF(DAY, CAST(SYSDATETIME() AS DATE), NextDueDate) AS DaysToDue
+            FROM    dbo.MNT_PMSchedule
+            WHERE   (NextDueDate BETWEEN @F AND @T) OR (LastPMDate BETWEEN @F AND @T)
+            ORDER BY NextDueDate, EquipID;
+            """;
+        return Query(sql, r => new PmRow(
+            (int)r["PMScheduleID"], r["PMPlanNumber"] as string, r["EquipID"] as string,
+            r["PMType"] as string, r["CycleBasis"] as string, r["CycleValue"] as int?,
+            r["LastPMDate"] as DateTime?, r["NextDueDate"] as DateTime?,
+            r["ChecklistID"] as string, r["AssignedTechID"] as string,
+            r["Status"] as string, r["ActiveWoID"] as int?,
+            r["DaysToDue"] as int? ?? 0),
+            ("@F", from.Date), ("@T", to.Date));
+    }
+
+    /// <summary>예정일(NextDueDate)이 기간 안에 드는 PM. DaysToDue 는 기간 시작일 기준 — MNT-009 "예정 예방보전" 패널용.</summary>
+    public List<PmRow> ListPmDueRange(DateTime from, DateTime to)
+    {
+        const string sql = """
+            SELECT  PMScheduleID, PMPlanNumber, EquipID, PMType, CycleBasis, CycleValue,
+                    LastPMDate, NextDueDate, ChecklistID, AssignedTechID, Status, ActiveWoID,
+                    DATEDIFF(DAY, @F, NextDueDate) AS DaysToDue
+            FROM    dbo.MNT_PMSchedule
+            WHERE   NextDueDate BETWEEN @F AND @T
+            ORDER BY NextDueDate, EquipID;
+            """;
+        return Query(sql, r => new PmRow(
+            (int)r["PMScheduleID"], r["PMPlanNumber"] as string, r["EquipID"] as string,
+            r["PMType"] as string, r["CycleBasis"] as string, r["CycleValue"] as int?,
+            r["LastPMDate"] as DateTime?, r["NextDueDate"] as DateTime?,
+            r["ChecklistID"] as string, r["AssignedTechID"] as string,
+            r["Status"] as string, r["ActiveWoID"] as int?,
+            r["DaysToDue"] as int? ?? 0),
+            ("@F", from.Date), ("@T", to.Date));
+    }
+
     public List<MwoRow> ListWorkOrders(int topN = 100, string? statusFilter = null)
     {
         const string sql = """
@@ -361,9 +406,12 @@ public sealed class MntRepository
                               WHERE t.PartNo = p.PartNo ORDER BY t.TxnAt DESC, t.SparePartsTxnID DESC) b
                  WHERE ISNULL(b.BalanceAfter,0) <= ISNULL(p.ReorderPoint,0)
                    AND ISNULL(p.ActiveFlag,1)=1)                                                                          AS LowStockParts,
-              ISNULL((SELECT AVG(OEE) FROM dbo.MNT_OEELog WHERE AggDate = @today), 0)                                    AS AvgOeeToday,
+              -- 오늘 집계가 없으면(야간·휴일·집계 지연) 가장 최근 집계일 평균을 쓰고 그 날짜를 함께 돌려준다
+              ISNULL((SELECT AVG(OEE) FROM dbo.MNT_OEELog WHERE AggDate = o.LastDate), 0)                                AS AvgOeeToday,
+              o.LastDate                                                                                                  AS OeeDate,
               ISNULL((SELECT SUM(DurationMin) FROM dbo.PP_LineDowntimeLog
-                       WHERE StartTS >= DATEADD(HOUR, -24, SYSDATETIME())), 0)                                           AS DowntimeMin24h;
+                       WHERE StartTS >= DATEADD(HOUR, -24, SYSDATETIME())), 0)                                           AS DowntimeMin24h
+            FROM (SELECT MAX(AggDate) AS LastDate FROM dbo.MNT_OEELog WHERE AggDate <= @today) o;
             """;
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
@@ -374,7 +422,8 @@ public sealed class MntRepository
             (int)rdr["EquipTotal"], (int)rdr["EquipRun"], (int)rdr["EquipDown"], (int)rdr["EquipIdle"],
             (int)rdr["OpenFailures"], (int)rdr["OpenWos"], (int)rdr["PmDueIn7d"], (int)rdr["LowStockParts"],
             rdr["AvgOeeToday"] as decimal? ?? 0m,
-            rdr["DowntimeMin24h"] as int? ?? 0);
+            rdr["DowntimeMin24h"] as int? ?? 0,
+            rdr["OeeDate"] as DateTime?);
     }
 
     // ── helpers ──────────────────────────────────────────────────────────

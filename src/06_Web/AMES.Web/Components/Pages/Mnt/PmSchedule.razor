@@ -1,102 +1,358 @@
-﻿@page "/mnt/pm-schedule"
+@page "/mnt/pm-schedule"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.MntRepository Mnt
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using Radzen
+
+@attribute [Authorize]
+
+@inject MntRepository Mnt
+@inject SysRepository Sys
+@inject MasterDataRepository MD
+@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>MNT-005 @L["MNT.PmSchedule.Title"] · AMES</PageTitle>
-
 <AmesPageHeader Code="MNT-005" TitleKey="MNT.PmSchedule.Title" />
 
+@* ── KPI strip (표시 중인 달 기준) ─────────────────────────────────── *@
 <div class="ames-kpis">
-    <div class="ames-kpi bad"><div class="ames-kpi-l">OVERDUE</div>
-        <div class="ames-kpi-v">@_over</div><div class="ames-kpi-s">due date passed</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">DUE ≤ 3D</div>
-        <div class="ames-kpi-v">@_dueSoon</div><div class="ames-kpi-s">urgent</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">DUE ≤ 7D</div>
-        <div class="ames-kpi-v">@_dueWeek</div><div class="ames-kpi-s">this week</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">SCHEDULED</div>
-        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">total in window</div></div>
-</div>
-
-<div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MNT.PmSchedule.List"] · @_rows.Count @L["Lbl.Items"]</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Future"]</label>
-            <select class="ames-input" style="width:100px;" @bind="_daysAhead">
-                <option value="7">7@(L["Lbl.Days"])</option>
-                <option value="14">14@(L["Lbl.Days"])</option>
-                <option value="30">30@(L["Lbl.Days"])</option>
-                <option value="60">60@(L["Lbl.Days"])</option>
-                <option value="90">90@(L["Lbl.Days"])</option>
-            </select>
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Past"]</label>
-            <select class="ames-input" style="width:100px;" @bind="_daysBack">
-                <option value="0">0@(L["Lbl.Days"])</option>
-                <option value="7">7@(L["Lbl.Days"])</option>
-                <option value="14">14@(L["Lbl.Days"])</option>
-                <option value="30">30@(L["Lbl.Days"])</option>
-            </select>
-            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MNT.PmSchedule.Kpi.Total"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_events.Count</div>
+            <div class="ames-kpi-s">@string.Format(L["MNT.PmSchedule.Kpi.TotalSub"].Value, MonthTitle)</div>
         </div>
     </div>
-
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["MNT.PmSchedule.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.PmNo"]</th><th>@L["Col.Equip"]</th><th>@L["Col.Type"]</th>
-                    <th>@L["Col.BasisCycle"]</th><th class="num">@L["Col.Cycle"]</th>
-                    <th>@L["Col.LastPm"]</th><th>@L["Col.NextDue"]</th><th class="num">@L["Col.Days"]</th>
-                    <th>@L["Col.Status"]</th><th>@L["Col.OpenWo"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var p in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    <tr>
-                        <td class="code">@(p.PmPlanNumber ?? $"PM#{p.PmScheduleId}")</td>
-                        <td>@(p.EquipId ?? "—")</td>
-                        <td>@(p.PmType ?? "—")</td>
-                        <td class="dim">@(p.CycleBasis ?? "—")</td>
-                        <td class="num">@(p.CycleValue?.ToString() ?? "—")</td>
-                        <td class="dim">@(p.LastPmDate?.ToString("MM-dd") ?? "—")</td>
-                        <td class="dim">@(p.NextDueDate?.ToString("MM-dd") ?? "—")</td>
-                        <td class="num"><span class="pill @StClass(p.Status)">@p.DaysToDue</span></td>
-                        <td><span class="pill @StClass(p.Status)">@(p.Status ?? "—")</span></td>
-                        <td class="dim">@(p.ActiveWoId?.ToString() ?? "—")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["MNT.PmSchedule.Kpi.Completed"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@Count("pm-done")</div>
+            <div class="ames-kpi-s">@L["MNT.PmSchedule.Kpi.CompletedSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MNT.PmSchedule.Kpi.Upcoming"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@(Count("pm-planned") + Count("pm-today"))</div>
+            <div class="ames-kpi-s">@L["MNT.PmSchedule.Kpi.UpcomingSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(Count("pm-overdue") > 0 ? "bad" : "ok")">
+        <div class="ames-kpi-l">@L["MNT.PmSchedule.Kpi.Overdue"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@Count("pm-overdue")</div>
+            <div class="ames-kpi-s">@L["MNT.PmSchedule.Kpi.OverdueSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(Compliance is null ? "" : Compliance >= 90 ? "ok" : Compliance >= 70 ? "warn" : "bad")">
+        <div class="ames-kpi-l">@L["MNT.PmSchedule.Kpi.Compliance"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@(Compliance is { } c ? $"{c:0}%" : "—")</div>
+            <div class="ames-kpi-s">@L["MNT.PmSchedule.Kpi.ComplianceSub"]</div>
+        </div>
+    </div>
 </div>
 
-@code {
-    List<AMES.Data.Repositories.MntRepository.PmRow> _rows = new();
-    int _page = 0;
-    const int _pageSize = 20;
-    int _over, _dueSoon, _dueWeek;
-    int _daysAhead = 30, _daysBack = 7;
+@if (_err is not null)
+{
+    <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_err</RadzenAlert>
+}
 
-    protected override void OnInitialized() => Reload();
+@* ── 월간 달력 (Pp/Calendar.razor 월 보기 패턴) ────────────────────── *@
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevMonth" class="ames-rz-btn" />
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;">
+                @MonthTitle
+            </span>
+            <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@NextMonth" class="ames-rz-btn" />
+        </div>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenButton Text="@L["PP.Calendar.Btn.Today"]" Icon="done" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@GoToday" class="ames-rz-btn" />
+            <RadzenLabel Text="@L["Col.Equip"]" Component="DropDownEquip" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownEquip" @bind-Value="_fEquip" Data="@EquipOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+            <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+
+    @{
+        var firstOfMonth = new DateTime(_calYear, _calMonth, 1);
+        var daysInMonth  = DateTime.DaysInMonth(_calYear, _calMonth);
+        int startOffset  = (int)firstOfMonth.DayOfWeek;
+        int rows         = (int)Math.Ceiling((startOffset + daysInMonth) / 7.0);
+    }
+
+    <div class="ames-cal-grid pp-wo-grid">
+        @foreach (var (key, cls) in new[] {
+            ("PP.Calendar.Day.Sun","sun"),
+            ("PP.Calendar.Day.Mon",""),
+            ("PP.Calendar.Day.Tue",""),
+            ("PP.Calendar.Day.Wed",""),
+            ("PP.Calendar.Day.Thu",""),
+            ("PP.Calendar.Day.Fri",""),
+            ("PP.Calendar.Day.Sat","sat") })
+        {
+            <div class="ames-cal-head @cls">@L[key]</div>
+        }
+
+        @for (int cell = 0; cell < rows * 7; cell++)
+        {
+            int dayNum = cell - startOffset + 1;
+            if (dayNum < 1 || dayNum > daysInMonth)
+            {
+                <div class="ames-cal-cell ames-cal-cell--empty"></div>
+            }
+            else
+            {
+                var date      = new DateTime(_calYear, _calMonth, dayNum);
+                var evs       = GetEvents(date);
+                int dow       = (int)date.DayOfWeek;
+                bool isSun    = dow == 0;
+                bool isSat    = dow == 6;
+                bool isToday  = date.Date == DateTime.Today;
+                var holiday   = HolidayName(date);
+
+                string cellCls = "ames-cal-cell";
+                if (isToday)           cellCls += " ames-cal-cell--today";
+                if (evs.Count > 0)     cellCls += " ames-cal-cell--data";
+                if (holiday is not null) cellCls += " ames-cal-cell--holiday";
+                else if (isSat || isSun) cellCls += " ames-cal-cell--weekend";
+
+                const int MaxChips = 3;
+                <div class="@cellCls">
+                    <div class="ames-cal-daynum @(isSun ? "sun" : isSat ? "sat" : "")">
+                        @dayNum
+                        @if (isToday) { <span class="ames-cal-today-dot"></span> }
+                    </div>
+                    @if (holiday is not null)
+                    {
+                        <div class="ames-cal-hname" title="@holiday">@holiday</div>
+                    }
+                    @foreach (var ev in evs.Take(MaxChips))
+                    {
+                        var capEv = ev;
+                        <div class="ames-cal-wo @ev.Cls" title="@Tip(ev)" @onclick="() => ShowDetail(capEv)" @onclick:stopPropagation>
+                            @ev.Label
+                        </div>
+                    }
+                    @if (evs.Count > MaxChips)
+                    {
+                        var capDate = date;
+                        <div class="ames-cal-wo-more" @onclick="() => ShowDayModal(capDate)" @onclick:stopPropagation>
+                            @string.Format(L["PP.Calendar.More"].Value, evs.Count - MaxChips)
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </div>
+
+    <div class="ames-cal-legend">@Legend()</div>
+</div>
+
+@* ── Day overflow modal ──────────────────────────────────────────── *@
+@if (_showDay && _dayDate.HasValue)
+{
+    var dayEvs = GetEvents(_dayDate.Value);
+    <div class="ames-modal-bg" @onclick="() => _showDay = false">
+        <div class="ames-modal" style="max-width:500px;" @onclick:stopPropagation>
+            <div class="ames-modal-h">@_dayDate.Value.ToString("yyyy-MM-dd ddd") — @L["MNT.PmSchedule.Modal.DayList"]</div>
+            @foreach (var ev in dayEvs)
+            {
+                var capEv = ev;
+                <div class="ames-cal-wo @ev.Cls" style="font-size:12px;padding:5px 8px;margin-bottom:4px;"
+                     @onclick="() => { _showDay = false; ShowDetail(capEv); }">
+                    <span style="font-weight:700;">@ev.Pm.PmPlanNumber</span>
+                    <span style="opacity:.75;margin-left:6px;">@ev.Label</span>
+                    <span class="pill @PillCls(ev.Cls)" style="float:right;font-size:10px;padding:1px 6px;">@LegendText(ev.Cls)</span>
+                </div>
+            }
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="() => _showDay = false" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@* ── PM Detail Modal (읽기 전용, Pp/Calendar 상세 패턴) ─────────────── *@
+@if (_showDetail && _detail is not null)
+{
+    var d = _detail.Pm;
+    <div class="ames-modal-bg" @onclick="() => _showDetail = false">
+        <div class="ames-modal" @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MNT.PmSchedule.Modal.Detail"] @(d.PmPlanNumber ?? $"PM#{d.PmScheduleId}")</div>
+            <div class="ames-detail-grid">
+                <div class="ames-detail-label">@L["Col.Equip"]</div>
+                <div>@EquipText(d.EquipId)</div>
+                <div class="ames-detail-label">@L["Col.Type"]</div>
+                <div><span class="pill info">@(d.PmType ?? "—")</span></div>
+                <div class="ames-detail-label">@L["Col.BasisCycle"] / @L["Col.Cycle"]</div>
+                <div>@(d.CycleBasis ?? "—") / @(d.CycleValue?.ToString("N0") ?? "—")</div>
+                <div class="ames-detail-label">@L["Col.LastPm"]</div>
+                <div>@(d.LastPmDate?.ToString("yyyy-MM-dd") ?? "—")</div>
+                <div class="ames-detail-label">@L["Col.NextDue"]</div>
+                <div>@(d.NextDueDate?.ToString("yyyy-MM-dd") ?? "—")</div>
+                <div class="ames-detail-label">@L["PP.Calendar.Detail.DDay"]</div>
+                <div>
+                    @{ var dd = d.NextDueDate is null ? (int?)null : d.DaysToDue; var ddc = dd is null ? "dim" : dd < 0 ? "bad" : dd <= 3 ? "warn" : "ok"; }
+                    <span class="pill @ddc">@DdTxt(dd)</span>
+                </div>
+                <div class="ames-detail-label">@L["Col.Status"]</div>
+                <div><span class="pill @PillCls(_detail.Cls)">@LegendText(_detail.Cls)</span> <span class="dim" style="font-size:11px;margin-left:6px;">@(d.Status ?? "")</span></div>
+                <div class="ames-detail-label">@L["Col.OpenWo"]</div>
+                <div>@(d.ActiveWoId is { } wo ? $"#{wo}" : "—")</div>
+            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["MNT.Dashboard.Tile.Wo"]" Icon="list" ButtonStyle="ButtonStyle.Info" Size="ButtonSize.Small" Click='() => Nav.NavigateTo("/mnt/work-order")' class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="() => _showDetail = false" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@code {
+    // 달력 이벤트: 예정일(NextDueDate) → 예정/오늘/지연, 마지막 PM 일(LastPMDate) → 완료
+    public sealed record PmEvent(MntRepository.PmRow Pm, DateTime Date, string Cls, string Label);
+
+    List<MntRepository.PmRow>               _all       = new();
+    List<PmEvent>                           _events    = new();
+    Dictionary<DateTime, List<PmEvent>>     _byDate    = new();
+    Dictionary<DateTime, string>            _holidays  = new();
+    List<MasterDataRepository.EquipmentRow> _equipList = new();
+
+    int _calYear  = DateTime.Today.Year;
+    int _calMonth = DateTime.Today.Month;
+    string? _fEquip, _fStatus;
+    string? _err;
+
+    bool      _showDay;
+    DateTime? _dayDate;
+    bool      _showDetail;
+    PmEvent?  _detail;
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    // 설비 콤보: 마스터(MD_Equipment) 기준 [ID] 명칭 — 다른 MNT 화면과 같은 규칙
+    IEnumerable<DropDownItem> EquipOptions => _equipList.Select(e => new DropDownItem { Value = e.EquipID, Text = string.IsNullOrEmpty(e.EquipName) ? $"[{e.EquipID}]" : $"[{e.EquipID}] {e.EquipName}" });
+    // 상태 콤보: 달력 범례와 같은 4가지(완료·오늘·지연·예정)
+    IEnumerable<DropDownItem> StatusOptions => new[] { "pm-done", "pm-today", "pm-overdue", "pm-planned" }.Select(c => new DropDownItem { Value = c, Text = LegendText(c) });
+
+    string MonthTitle => string.Format(L["Fmt.CalYearMonth"].Value, _calYear, _calMonth);
+    int Count(string cls) => _events.Count(e => e.Cls == cls);
+    double? Compliance
+    {
+        get { int done = Count("pm-done"), over = Count("pm-overdue"); return done + over == 0 ? null : 100.0 * done / (done + over); }
+    }
+
+    protected override void OnInitialized()
+    {
+        try { _equipList = MD.ListEquipments(); } catch { }
+        Reload();
+
+        // 이번 달에 PM 이 하나도 없으면 데이터가 있는 가장 최근 달로 이동
+        if (_events.Count == 0)
+        {
+            try
+            {
+                var last = Mnt.ListPmSchedule(3650, 3650).Select(p => p.NextDueDate ?? p.LastPmDate).Where(d => d is { }).Max();
+                if (last is { } m) { _calYear = m.Year; _calMonth = m.Month; Reload(); }
+            }
+            catch { }
+        }
+    }
 
     void Reload()
     {
-        _page = 0;
-        try { _rows = Mnt.ListPmSchedule(_daysAhead, _daysBack); } catch { _rows = new(); }
-        _over    = _rows.Count(r => r.DaysToDue < 0);
-        _dueSoon = _rows.Count(r => r.DaysToDue >= 0 && r.DaysToDue <= 3);
-        _dueWeek = _rows.Count(r => r.DaysToDue >= 0 && r.DaysToDue <= 7);
+        _err = null;
+        var from = new DateTime(_calYear, _calMonth, 1);
+        var to   = from.AddMonths(1).AddDays(-1);
+        try { _all = Mnt.ListPmCalendar(from, to); }
+        catch (Exception ex) { _err = ex.Message; _all = new(); }
+        try { _holidays = Sys.ListCalendarRange(from, to).Where(c => c.CalendarDate is { } && !string.IsNullOrEmpty(c.HolidayName)).GroupBy(c => c.CalendarDate!.Value.Date).ToDictionary(g => g.Key, g => g.First().HolidayName!); }
+        catch { _holidays = new(); }
+        Rebuild();
     }
 
-    static string StClass(string? s) => s switch
-    { "OVERDUE" => "bad", "DUE" => "warn", "OK" => "ok", _ => "info" };
+    void Rebuild()
+    {
+        var from = new DateTime(_calYear, _calMonth, 1);
+        var to   = from.AddMonths(1).AddDays(-1);
+        var today = DateTime.Today;
+
+        var rows = _all.Where(p => string.IsNullOrEmpty(_fEquip) || p.EquipId == _fEquip);
+
+        var list = new List<PmEvent>();
+        foreach (var p in rows)
+        {
+            var label = $"{ShortEquip(p.EquipId)} {p.PmType ?? ""}".Trim();
+            if (p.LastPmDate is { } done && done.Date >= from && done.Date <= to)
+                list.Add(new PmEvent(p, done.Date, "pm-done", label));
+            if (p.NextDueDate is { } due && due.Date >= from && due.Date <= to)
+            {
+                // 예정일이 지났는데 그 뒤로 실시(LastPMDate ≥ NextDueDate) 기록이 없으면 지연
+                var cls = due.Date == today ? "pm-today"
+                        : due.Date > today  ? "pm-planned"
+                        : p.LastPmDate is { } lp && lp.Date >= due.Date ? "pm-done" : "pm-overdue";
+                if (!(cls == "pm-done" && p.LastPmDate!.Value.Date == due.Date && list.Any(e => e.Pm == p && e.Cls == "pm-done")))
+                    list.Add(new PmEvent(p, due.Date, cls, label));
+            }
+        }
+        if (!string.IsNullOrEmpty(_fStatus)) list = list.Where(e => e.Cls == _fStatus).ToList();
+        _events = list.OrderBy(e => e.Date).ThenBy(e => e.Pm.EquipId).ToList();
+        _byDate = _events.GroupBy(e => e.Date).ToDictionary(g => g.Key, g => g.ToList());
+    }
+
+    List<PmEvent> GetEvents(DateTime date) => _byDate.TryGetValue(date.Date, out var l) ? l : new();
+    string? HolidayName(DateTime date) => _holidays.TryGetValue(date.Date, out var h) ? h : null;
+
+    void PrevMonth() { var d = new DateTime(_calYear, _calMonth, 1).AddMonths(-1); _calYear = d.Year; _calMonth = d.Month; Reload(); }
+    void NextMonth() { var d = new DateTime(_calYear, _calMonth, 1).AddMonths(1);  _calYear = d.Year; _calMonth = d.Month; Reload(); }
+    void GoToday()   { _calYear = DateTime.Today.Year; _calMonth = DateTime.Today.Month; Reload(); }
+
+    void ShowDayModal(DateTime date) { _dayDate = date; _showDay = true; }
+    void ShowDetail(PmEvent ev) { _detail = ev; _showDetail = true; }
+
+    // ── 표시 헬퍼 ─────────────────────────────────────────────────────
+    string EquipName(string? id) =>
+        id is null ? "" : _equipList.FirstOrDefault(e => e.EquipID == id)?.EquipName ?? "";
+    string EquipText(string? id) =>
+        id is null ? "—" : EquipName(id) is { Length: > 0 } nm ? $"[{id}] {nm}" : $"[{id}]";
+    // 칩은 좁아서 설비 ID 만 (목업의 "INJ#1" 처럼 짧게)
+    static string ShortEquip(string? id) => id ?? "—";
+
+    string Tip(PmEvent ev) =>
+        $"{ev.Pm.PmPlanNumber} | {EquipText(ev.Pm.EquipId)}\n{ev.Pm.PmType} · {ev.Pm.CycleBasis} {ev.Pm.CycleValue}\n{LegendText(ev.Cls)} | {L["Col.LastPm"]}: {ev.Pm.LastPmDate?.ToString("MM-dd") ?? "—"} | {L["Col.NextDue"]}: {ev.Pm.NextDueDate?.ToString("MM-dd") ?? "—"}";
+
+    string DdTxt(int? days) => days switch
+    {
+        null  => L["PP.Calendar.DdTxt.None"].Value,
+        < 0   => string.Format(L["PP.Calendar.DdTxt.Late"].Value, -days.Value),
+        0     => L["PP.Calendar.DdTxt.DDay"].Value,
+        { } v => string.Format(L["PP.Calendar.DdTxt.DaysTo"].Value, v)
+    };
+
+    string LegendText(string cls) => cls switch
+    {
+        "pm-done"    => L["MNT.PmSchedule.Legend.Completed"].Value,
+        "pm-today"   => L["MNT.PmSchedule.Legend.Today"].Value,
+        "pm-overdue" => L["MNT.PmSchedule.Legend.Overdue"].Value,
+        _            => L["MNT.PmSchedule.Legend.Planned"].Value,
+    };
+    static string PillCls(string cls) => cls switch { "pm-done" => "ok", "pm-today" => "warn", "pm-overdue" => "bad", _ => "info" };
+
+    RenderFragment Legend() => __builder =>
+    {
+        foreach (var cls in new[] { "pm-done", "pm-today", "pm-overdue", "pm-planned" })
+        {
+            __builder.OpenElement(0, "span");
+            __builder.AddAttribute(1, "class", $"ames-cal-wo {cls}");
+            __builder.AddAttribute(2, "style", "display:inline-block;position:static;margin:0 2px 4px;cursor:default;opacity:1;");
+            __builder.AddContent(3, LegendText(cls));
+            __builder.CloseElement();
+        }
+    };
 }

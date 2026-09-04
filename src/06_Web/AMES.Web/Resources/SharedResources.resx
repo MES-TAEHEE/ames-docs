@@ -5913,4 +5913,334 @@
   <data name="MNT.Downtime.Rank.Hint" xml:space="preserve">
     <value>행 클릭 = 필터</value>
   </data>
+  <data name="MNT.Dashboard.Kpi.Run" xml:space="preserve">
+    <value>가동 설비</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.RunSub" xml:space="preserve">
+    <value>전체 {0}대</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.Idle" xml:space="preserve">
+    <value>유휴 설비</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.IdleSub" xml:space="preserve">
+    <value>셋업 · 대기</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.Down" xml:space="preserve">
+    <value>중지 설비</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.DownSub" xml:space="preserve">
+    <value>고장 · 이상</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.Oee" xml:space="preserve">
+    <value>평균 OEE</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.OeeSub" xml:space="preserve">
+    <value>{0} 집계 · 전 설비</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.OeeNone" xml:space="preserve">
+    <value>집계 없음</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.OpenFailures" xml:space="preserve">
+    <value>미해결 고장</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.OpenFailuresSub" xml:space="preserve">
+    <value>조치 대기</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.OpenWos" xml:space="preserve">
+    <value>진행 중 작업지시</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.OpenWosSub" xml:space="preserve">
+    <value>보전 작업지시</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.PmDue" xml:space="preserve">
+    <value>PM 예정 (7일)</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.PmDueSub" xml:space="preserve">
+    <value>예방보전</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.LowStock" xml:space="preserve">
+    <value>재고 부족 부품</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.LowStockSub" xml:space="preserve">
+    <value>재주문점 이하</value>
+  </data>
+  <data name="MNT.Dashboard.Events.Title" xml:space="preserve">
+    <value>최근 고장 이벤트</value>
+  </data>
+  <data name="MNT.Dashboard.Events.Empty" xml:space="preserve">
+    <value>고장 이벤트가 없습니다.</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.Equipment" xml:space="preserve">
+    <value>설비 카드</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.EquipmentSub" xml:space="preserve">
+    <value>{0}대 · 가동 {1}</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.Failure" xml:space="preserve">
+    <value>고장 등록</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.FailureSub" xml:space="preserve">
+    <value>미해결 {0}건</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.Wo" xml:space="preserve">
+    <value>작업 지시</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.WoSub" xml:space="preserve">
+    <value>진행 {0}건</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.Pm" xml:space="preserve">
+    <value>PM 일정</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.PmSub" xml:space="preserve">
+    <value>7일 내 {0}건</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.Spare" xml:space="preserve">
+    <value>예비 부품</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.SpareSub" xml:space="preserve">
+    <value>재주문점 이하 {0}건</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.Oee" xml:space="preserve">
+    <value>OEE 분석</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.OeeSub" xml:space="preserve">
+    <value>평균 {0}</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.Downtime" xml:space="preserve">
+    <value>비가동 이력</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.DowntimeSub" xml:space="preserve">
+    <value>최근 24시간 {0}분</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.Mold" xml:space="preserve">
+    <value>금형 관리</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.MoldSub" xml:space="preserve">
+    <value>쇼트 카운터 · 정비 기준</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.NotImpl" xml:space="preserve">
+    <value>미구현</value>
+  </data>
+  <data name="MNT.Dashboard.Filter.Title" xml:space="preserve">
+    <value>조회 조건</value>
+  </data>
+  <data name="MNT.Dashboard.Live" xml:space="preserve">
+    <value>실시간 업데이트</value>
+  </data>
+  <data name="MNT.Dashboard.LiveSub" xml:space="preserve">
+    <value>On 이면 1분마다 자동 조회</value>
+  </data>
+  <data name="MNT.Dashboard.LastRefresh" xml:space="preserve">
+    <value>마지막 조회 {0}</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.Status" xml:space="preserve">
+    <value>설비 상태 분포</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.StatusSub" xml:space="preserve">
+    <value>전체 {0}대</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.Alerts" xml:space="preserve">
+    <value>실시간 고장 알림</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.AlertsSub" xml:space="preserve">
+    <value>최근순</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.Pm" xml:space="preserve">
+    <value>예정 예방보전</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.PmSub" xml:space="preserve">
+    <value>{0} 부터 7일</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.Causes" xml:space="preserve">
+    <value>비가동 사유 Top 5</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.CausesSub" xml:space="preserve">
+    <value>기간 · 분</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.Wo" xml:space="preserve">
+    <value>보전 작업지시</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.WoSub" xml:space="preserve">
+    <value>기간 발행 + 미완료</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.Stock" xml:space="preserve">
+    <value>재고 부족 부품</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.StockSub" xml:space="preserve">
+    <value>재주문 권장</value>
+  </data>
+  <data name="MNT.Dashboard.Wo.Open" xml:space="preserve">
+    <value>접수</value>
+  </data>
+  <data name="MNT.Dashboard.Wo.Issued" xml:space="preserve">
+    <value>발행</value>
+  </data>
+  <data name="MNT.Dashboard.Wo.InProgress" xml:space="preserve">
+    <value>진행 중</value>
+  </data>
+  <data name="MNT.Dashboard.Wo.Completed" xml:space="preserve">
+    <value>완료</value>
+  </data>
+  <data name="MNT.Dashboard.Wo.Completion" xml:space="preserve">
+    <value>완료율</value>
+  </data>
+  <data name="MNT.Dashboard.Pm.Today" xml:space="preserve">
+    <value>오늘</value>
+  </data>
+  <data name="MNT.Dashboard.Pm.Overdue" xml:space="preserve">
+    <value>지연 {0}일</value>
+  </data>
+  <data name="MNT.Dashboard.Pm.Dn" xml:space="preserve">
+    <value>D-{0}</value>
+  </data>
+  <data name="MNT.Dashboard.Stock.Low" xml:space="preserve">
+    <value>부족</value>
+  </data>
+  <data name="MNT.Dashboard.Stock.Out" xml:space="preserve">
+    <value>없음</value>
+  </data>
+  <data name="MNT.Dashboard.Status.UnitsFmt" xml:space="preserve">
+    <value>{0}대 · {1}%</value>
+  </data>
+  <data name="MNT.Dashboard.Empty.Alerts" xml:space="preserve">
+    <value>기간 내 고장 알림이 없습니다.</value>
+  </data>
+  <data name="MNT.Dashboard.Empty.Pm" xml:space="preserve">
+    <value>예정된 PM 이 없습니다.</value>
+  </data>
+  <data name="MNT.Dashboard.Empty.Causes" xml:space="preserve">
+    <value>기간 내 비가동이 없습니다.</value>
+  </data>
+  <data name="MNT.Dashboard.Empty.Wo" xml:space="preserve">
+    <value>작업지시가 없습니다.</value>
+  </data>
+  <data name="MNT.Dashboard.Empty.Stock" xml:space="preserve">
+    <value>부족한 부품이 없습니다.</value>
+  </data>
+  <data name="MNT.Mold.Kpi.Total" xml:space="preserve">
+    <value>전체 금형</value>
+  </data>
+  <data name="MNT.Mold.Kpi.TotalSub" xml:space="preserve">
+    <value>등록 기준</value>
+  </data>
+  <data name="MNT.Mold.Kpi.Warn" xml:space="preserve">
+    <value>경고</value>
+  </data>
+  <data name="MNT.Mold.Kpi.WarnSub" xml:space="preserve">
+    <value>소진율 70% 이상</value>
+  </data>
+  <data name="MNT.Mold.Kpi.Crit" xml:space="preserve">
+    <value>위험</value>
+  </data>
+  <data name="MNT.Mold.Kpi.CritSub" xml:space="preserve">
+    <value>소진율 90% 이상 · 재정비 필요</value>
+  </data>
+  <data name="MNT.Mold.Kpi.Mounted" xml:space="preserve">
+    <value>장착 중</value>
+  </data>
+  <data name="MNT.Mold.Kpi.MountedSub" xml:space="preserve">
+    <value>설비에 장착된 금형</value>
+  </data>
+  <data name="MNT.Mold.Kpi.Shots" xml:space="preserve">
+    <value>현재 Shot 합계</value>
+  </data>
+  <data name="MNT.Mold.Kpi.ShotsSub" xml:space="preserve">
+    <value>조회 금형 기준</value>
+  </data>
+  <data name="MNT.Mold.Ph.Search" xml:space="preserve">
+    <value>금형ID/금형명</value>
+  </data>
+  <data name="MNT.Mold.Grade.OK" xml:space="preserve">
+    <value>정상</value>
+  </data>
+  <data name="MNT.Mold.Grade.WARNING" xml:space="preserve">
+    <value>경고</value>
+  </data>
+  <data name="MNT.Mold.Grade.CRITICAL" xml:space="preserve">
+    <value>위험</value>
+  </data>
+  <data name="MNT.Mold.Col.RatedShots" xml:space="preserve">
+    <value>정격 Shot</value>
+  </data>
+  <data name="MNT.Mold.Col.Refurbish" xml:space="preserve">
+    <value>재정비 횟수</value>
+  </data>
+  <data name="MNT.Mold.Col.Grade" xml:space="preserve">
+    <value>등급</value>
+  </data>
+  <data name="MNT.Mold.Hint.Detail" xml:space="preserve">
+    <value>행을 클릭하면 상세 내용을 확인합니다. 금형 정보 수정은 MD 금형 관리 화면에서 합니다.</value>
+  </data>
+  <data name="MNT.Mold.Btn.Export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="MNT.Mold.Err.NoExport" xml:space="preserve">
+    <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="MNT.Mold.Ok.Exported" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.Total" xml:space="preserve">
+    <value>월 PM 계획</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.TotalSub" xml:space="preserve">
+    <value>{0} 기준</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.Completed" xml:space="preserve">
+    <value>완료</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.CompletedSub" xml:space="preserve">
+    <value>이번 달 실시</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.Upcoming" xml:space="preserve">
+    <value>예정</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.UpcomingSub" xml:space="preserve">
+    <value>오늘 이후 예정</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.Overdue" xml:space="preserve">
+    <value>지연</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.OverdueSub" xml:space="preserve">
+    <value>예정일 경과 · 미실시</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.Compliance" xml:space="preserve">
+    <value>PM 준수율</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.ComplianceSub" xml:space="preserve">
+    <value>완료 ÷ (완료 + 지연)</value>
+  </data>
+  <data name="MNT.PmSchedule.Cal.Title" xml:space="preserve">
+    <value>{0} 예방보전 달력</value>
+  </data>
+  <data name="MNT.PmSchedule.Legend.Completed" xml:space="preserve">
+    <value>완료</value>
+  </data>
+  <data name="MNT.PmSchedule.Legend.Today" xml:space="preserve">
+    <value>오늘</value>
+  </data>
+  <data name="MNT.PmSchedule.Legend.Overdue" xml:space="preserve">
+    <value>지연</value>
+  </data>
+  <data name="MNT.PmSchedule.Legend.Planned" xml:space="preserve">
+    <value>예정</value>
+  </data>
+  <data name="MNT.PmSchedule.Modal.Detail" xml:space="preserve">
+    <value>PM 상세 —</value>
+  </data>
+  <data name="MNT.PmSchedule.Modal.DayList" xml:space="preserve">
+    <value>PM 목록</value>
+  </data>
+  <data name="MNT.PmSchedule.Lbl.Done" xml:space="preserve">
+    <value>실시일</value>
+  </data>
+  <data name="MNT.PmSchedule.Lbl.Due" xml:space="preserve">
+    <value>예정일</value>
+  </data>
+  <data name="MNT.PmSchedule.Ph.Search" xml:space="preserve">
+    <value>PM번호/설비</value>
+  </data>
+  <data name="MNT.PmSchedule.Type.All" xml:space="preserve">
+    <value>전체 유형</value>
+  </data>
 </root>

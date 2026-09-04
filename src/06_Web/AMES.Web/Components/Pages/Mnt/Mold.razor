@@ -1,112 +1,352 @@
-﻿@page "/mnt/mold"
+@page "/mnt/mold"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.MntRepository Mnt
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using Radzen
+
+@attribute [Authorize]
+
+@inject MntRepository Mnt
+@inject MasterDataRepository MD
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>MNT-004 @L["MNT.Mold.Title"] · AMES</PageTitle>
-
 <AmesPageHeader Code="MNT-004" TitleKey="MNT.Mold.Title" />
 
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">TOTAL MOLDS</div>
-        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">registered</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">WARNING</div>
-        <div class="ames-kpi-v">@_warn</div><div class="ames-kpi-s">>70% lifetime</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">CRITICAL</div>
-        <div class="ames-kpi-v">@_crit</div><div class="ames-kpi-s">>90% — refurbish</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">TOTAL SHOTS</div>
-        <div class="ames-kpi-v">@_totShots.ToString("N0")</div><div class="ames-kpi-s">all molds, current</div></div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MNT.Mold.Kpi.Total"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_allRows.Count</div>
+            <div class="ames-kpi-s">@L["MNT.Mold.Kpi.TotalSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(WarnCount > 0 ? "warn" : "")">
+        <div class="ames-kpi-l">@L["MNT.Mold.Kpi.Warn"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@WarnCount</div>
+            <div class="ames-kpi-s">@L["MNT.Mold.Kpi.WarnSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(CritCount > 0 ? "bad" : "ok")">
+        <div class="ames-kpi-l">@L["MNT.Mold.Kpi.Crit"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@CritCount</div>
+            <div class="ames-kpi-s">@L["MNT.Mold.Kpi.CritSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MNT.Mold.Kpi.Mounted"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_allRows.Count(IsMounted)</div>
+            <div class="ames-kpi-s">@L["MNT.Mold.Kpi.MountedSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MNT.Mold.Kpi.Shots"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_rows.Sum(m => (long?)m.CurrentShots ?? 0L).ToString("N0")</div>
+            <div class="ames-kpi-s">@L["MNT.Mold.Kpi.ShotsSub"]</div>
+        </div>
+    </div>
 </div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+}
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MNT.Mold.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" style="width:130px;padding:4px 8px;"
-                   placeholder="@L["MNT.Mold.Ph.Name"]" @bind="_fName" autocomplete="off" />
-            <select class="ames-input" style="width:110px;" @bind="_fThreshold">
-                <option value="">@L["Filter.All"]</option>
-                <option value="CRITICAL">CRITICAL</option>
-                <option value="WARNING">WARNING</option>
-                <option value="OK">OK</option>
-            </select>
-            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Reload"]</button>
-        </div>
-    </div>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MNT.Mold.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px;" />
+            <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px;" />
+            <RadzenLabel Text="@L["MNT.Mold.Col.Grade"]" Component="DropDownGrade" />
+            <RadzenDropDown Name="DropDownGrade" @bind-Value="_fGrade" Data="@GradeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
 
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["MNT.Mold.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.MoldId"]</th><th>@L["Col.MoldName"]</th><th class="num">@L["Col.Cavities"]</th><th class="num">@L["Col.Tonnage"]</th>
-                    <th class="num">@L["Col.ShotsCurrent"]</th><th class="num">@L["Col.ShotsLifetime"]</th>
-                    <th class="num">@L["Col.UsagePct"]</th><th>@L["Col.Flag"]</th>
-                    <th>@L["Col.Status"]</th><th>@L["Col.MountedOn"]</th><th>@L["Col.LastMaint"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var m in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    var lifetime = m.LifetimeShots ?? m.RatedShots ?? 0;
-                    var pct = lifetime > 0 && m.CurrentShots.HasValue
-                        ? (decimal)m.CurrentShots.Value / lifetime * 100m : 0m;
-                    <tr>
-                        <td class="code">@m.MoldId</td>
-                        <td>@(m.MoldName ?? "—")</td>
-                        <td class="num">@(m.CavityCount?.ToString() ?? "—")</td>
-                        <td class="num">@(m.Tonnage?.ToString() ?? "—")</td>
-                        <td class="num">@(m.CurrentShots?.ToString("N0") ?? "—")</td>
-                        <td class="num">@(lifetime > 0 ? lifetime.ToString("N0") : "—")</td>
-                        <td class="num">@pct.ToString("0.0")%</td>
-                        <td><span class="pill @ThrClass(m.ThresholdLevel)">@(m.ThresholdLevel ?? "—")</span></td>
-                        <td class="dim">@(m.Status ?? "—")</td>
-                        <td class="dim">@(m.MountedEquipId ?? "—")</td>
-                        <td class="dim">@(m.LastMaintDate?.ToString("MM-dd") ?? "—")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+            <RadzenButton Text="@L["MNT.Mold.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+    <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["MNT.Mold.Hint.Detail"]</div>
+
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MntRepository.MoldRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.Mold.Empty"]" Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="MoldId" Title="@L["Col.MoldId"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r"><span class="code">@r.MoldId</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="MoldName" Title="@L["Col.MoldName"]">
+                <Template Context="r"><span style="white-space:nowrap;">@(r.MoldName ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="CavityCount" Title="@L["Col.Cavities"]" TextAlign="TextAlign.Right" Width="80px">
+                <Template Context="r">@(r.CavityCount?.ToString() ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="Tonnage" Title="@L["Col.Tonnage"]" TextAlign="TextAlign.Right" Width="80px">
+                <Template Context="r">@(r.Tonnage?.ToString() ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="CurrentShots" Title="@L["Col.ShotsCurrent"]" TextAlign="TextAlign.Right" Width="100px">
+                <Template Context="r">@(r.CurrentShots?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="RatedShots" Title="@L["MNT.Mold.Col.RatedShots"]" TextAlign="TextAlign.Right" Width="100px">
+                <Template Context="r">@(r.RatedShots?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Title="@L["Col.ShotsLifetime"]" TextAlign="TextAlign.Right" Width="100px" Sortable="false">
+                <Template Context="r">@(Lifetime(r)?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Title="@L["Col.UsagePct"]" Width="170px" Sortable="false">
+                <Template Context="r">@(Usage(r) is { } u ? Bar(u) : Dash)</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Title="@L["MNT.Mold.Col.Grade"]" TextAlign="TextAlign.Center" Width="90px" Sortable="false">
+                <Template Context="r"><span class="pill @GradeCls(Grade(r))">@GradeLabel(Grade(r))</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r"><span class="pill @StatusCls(r.Status)">@StatusLabel(r.Status)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="MountedEquipId" Title="@L["Col.MountedOn"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r"><span class="code dim">@(r.MountedEquipId ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="StorageLoc" Title="@L["Col.StorageLoc"]" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="r"><span class="dim">@(r.StorageLoc ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="LastMaintDate" Title="@L["Col.LastMaint"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r"><span class="dim">@(r.LastMaintDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
-@code {
-    List<AMES.Data.Repositories.MntRepository.MoldRow> _allRows = new();
-    List<AMES.Data.Repositories.MntRepository.MoldRow> _rows    = new();
-    int _page = 0;
-    const int _pageSize = 20;
-    int    _warn, _crit;
-    long   _totShots;
-    string _fName = "", _fThreshold = "";
+@* ── Detail Modal (읽기 전용) ─────────────────────────────────────── *@
+@if (_modal == "detail" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MNT.Mold.Title"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.MoldId</span></div>
 
-    protected override void OnInitialized() => Reload();
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text="@L["Col.MoldName"]" class="ames-rz-modal-label" Component="DetailTextBoxName" />
+                <RadzenTextBox Name="DetailTextBoxName" Value="@(_sel.MoldName ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+            </RadzenStack>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Cavities"]" />
+                    <RadzenTextBox Value="@(_sel.CavityCount?.ToString() ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Tonnage"]" />
+                    <RadzenTextBox Value="@(_sel.Tonnage?.ToString() ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Status"]" />
+                    <div style="padding-top:4px;"><span class="pill @StatusCls(_sel.Status)">@StatusLabel(_sel.Status)</span></div>
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.ShotsCurrent"]" />
+                    <RadzenTextBox Value="@(_sel.CurrentShots?.ToString("N0") ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["MNT.Mold.Col.RatedShots"]" />
+                    <RadzenTextBox Value="@(_sel.RatedShots?.ToString("N0") ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.ShotsLifetime"]" />
+                    <RadzenTextBox Value="@(Lifetime(_sel)?.ToString("N0") ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="8">
+                    <RadzenLabel Text="@L["Col.UsagePct"]" />
+                    <div style="padding-top:6px;">@(Usage(_sel) is { } u ? Bar(u) : Dash)</div>
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["MNT.Mold.Col.Grade"]" />
+                    <div style="padding-top:4px;"><span class="pill @GradeCls(Grade(_sel))">@GradeLabel(Grade(_sel))</span></div>
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.MountedOn"]" />
+                    <RadzenTextBox Value="@(_sel.MountedEquipId ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.StorageLoc"]" />
+                    <RadzenTextBox Value="@(_sel.StorageLoc ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.LastMaint"]" />
+                    <RadzenTextBox Value="@(_sel.LastMaintDate?.ToString(DateFmt.Date) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["MNT.Mold.Col.Refurbish"]" />
+                    <RadzenTextBox Value="@(_sel.RefurbishCount?.ToString() ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Close"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@code {
+    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    bool _showPagerSummary = true;
+    List<MntRepository.MoldRow>             _allRows    = new();
+    List<MntRepository.MoldRow>             _rows       = new();
+    List<MasterDataRepository.CodeItemRow>  _moldStatus = new();
+    MntRepository.MoldRow? _sel;
+
+    string  _fSearch = "";
+    string? _fStatus, _fGrade;
+    string  _modal = "", _msg = "";
+    bool    _bgMouseDownOnSelf, _isErr;
+
+    static readonly string[] GradeCodes = { "OK", "WARNING", "CRITICAL" };
+    static readonly MarkupString Dash = new("<span class=\"dim\">—</span>");
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
+    // 상태 콤보: MOLD_STATUS 공통코드 ∪ 데이터에만 있는 값(예: ACTIVE) — 코드 미등록 값도 걸러 볼 수 있게
+    IEnumerable<DropDownItem> StatusFilterOptions =>
+        _moldStatus.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" })
+        .Concat(_allRows.Select(r => r.Status).Where(s => s != null && !_moldStatus.Any(c => c.CodeValue == s)).Distinct().Select(s => new DropDownItem { Value = s!, Text = $"[{s}]" }));
+    IEnumerable<DropDownItem> GradeFilterOptions => GradeCodes.Select(g => new DropDownItem { Value = g, Text = $"[{g}] {GradeLabel(g)}" });
+
+    int WarnCount => _allRows.Count(r => Grade(r) == "WARNING");
+    int CritCount => _allRows.Count(r => Grade(r) == "CRITICAL");
+
+    protected override void OnInitialized()
+    {
+        try { _moldStatus = MD.ListCodeItems("MOLD_STATUS"); } catch { }
+        Reload();
+    }
+
+    RadzenDataGrid<MntRepository.MoldRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
 
     void Reload()
     {
-        try { _allRows = Mnt.ListMolds(); } catch { _allRows = new(); }
+        try { _allRows = Mnt.ListMolds(); }
+        catch (Exception ex) { _allRows = new(); ShowMsg(ex.Message, true); }
         ApplyFilter();
     }
 
-    void ApplyFilter()
-    {
-        _page = 0;
-        _rows = _allRows;
-        if (!string.IsNullOrWhiteSpace(_fName))
-            _rows = _rows.Where(m => (m.MoldName ?? "").Contains(_fName, StringComparison.OrdinalIgnoreCase) ||
-                                     m.MoldId.Contains(_fName, StringComparison.OrdinalIgnoreCase)).ToList();
-        if (!string.IsNullOrWhiteSpace(_fThreshold))
-            _rows = _rows.Where(m => m.ThresholdLevel == _fThreshold).ToList();
-        _warn     = _rows.Count(m => m.ThresholdLevel == "WARNING");
-        _crit     = _rows.Count(m => m.ThresholdLevel == "CRITICAL");
-        _totShots = _rows.Sum(m => (long?)m.CurrentShots ?? 0L);
+    void ApplyFilter() { _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            r.MoldId.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.MoldName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fStatus) || r.Status == _fStatus) &&
+        (string.IsNullOrEmpty(_fGrade)  || Grade(r) == _fGrade)
+    ).ToList();
     }
 
-    static string ThrClass(string? t) => t switch
-    { "CRITICAL" => "bad", "WARNING" => "warn", "OK" => "ok", _ => "info" };
+    void OnSearchChanged(string value) => _fSearch = value ?? "";
+
+    void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
+
+    void RowRender(RowRenderEventArgs<MntRepository.MoldRow> args)
+    {
+        if (args.Attributes.TryGetValue("class", out var existing))
+            args.Attributes["class"] = existing + " ames-row-link";
+        else
+            args.Attributes["class"] = "ames-row-link";
+    }
+
+    void OnRowClick(DataGridRowMouseEventArgs<MntRepository.MoldRow> args)
+    {
+        if (args.Data is not null) OpenDetail(args.Data);
+    }
+
+    void OpenDetail(MntRepository.MoldRow r) { _sel = r; _modal = "detail"; }
+
+    void CloseModal() { _modal = ""; _sel = null; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    // 현재 조회 결과(필터 적용분)를 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로
+    async Task ExportXlsx()
+    {
+        if (_rows.Count == 0) { ShowMsg(L["MNT.Mold.Err.NoExport"], true); return; }
+
+        var headers = new[]
+        {
+            L["Col.MoldId"].Value, L["Col.MoldName"].Value, L["Col.Cavities"].Value, L["Col.Tonnage"].Value,
+            L["Col.ShotsCurrent"].Value, L["MNT.Mold.Col.RatedShots"].Value, L["Col.ShotsLifetime"].Value, L["Col.UsagePct"].Value,
+            L["MNT.Mold.Col.Grade"].Value, L["Col.Status"].Value, L["Col.MountedOn"].Value, L["Col.StorageLoc"].Value,
+            L["Col.LastMaint"].Value, L["MNT.Mold.Col.Refurbish"].Value,
+        };
+        var data = _rows.Select(r => (IReadOnlyList<object?>)new object?[]
+        {
+            r.MoldId, r.MoldName, r.CavityCount, r.Tonnage,
+            r.CurrentShots, r.RatedShots, Lifetime(r), Usage(r) is { } u ? Math.Round(u, 1) : null,
+            GradeLabel(Grade(r)), StatusLabel(r.Status), r.MountedEquipId, r.StorageLoc,
+            r.LastMaintDate?.ToString(DateFmt.Date), r.RefurbishCount,
+        });
+
+        var bytes = AMES.Web.Services.XlsxWriter.Build(L["MNT.Mold.Title"].Value, headers, data);
+        var name  = $"Mold_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        ShowMsg(string.Format(L["MNT.Mold.Ok.Exported"].Value, _rows.Count), false);
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    // ── 소진율 계산 ────────────────────────────────────────────────────
+    // 소진율 = 현재 Shot / 정격 Shot(RatedShots). 이전 화면은 누적 Shot(LifetimeShots) 을 분모로 써서
+    // 재정비를 거친 금형이 0.1% 로 보이는 오류가 있었다. 누적 Shot 은 별도 컬럼으로만 보여준다.
+    static decimal? Usage(MntRepository.MoldRow r) =>
+        r.RatedShots is > 0 && r.CurrentShots is { } cur ? Math.Max(0m, 100m * cur / r.RatedShots.Value) : null;
+
+    static int? Lifetime(MntRepository.MoldRow r) => r.LifetimeShots ?? r.CumulativeShots;
+
+    // 등급: 소진율로 판정 (≥90 CRITICAL / ≥70 WARNING / OK) — 막대 색과 항상 일치.
+    // 정격 Shot 이 없어 소진율을 못 구할 때만 MNT_MoldShotCount.ThresholdLevel(저장값)을 쓴다.
+    // 시드 데이터엔 88% 인데 OK 로 저장된 행이 있어 저장값을 우선하면 화면이 어긋난다.
+    static string? Grade(MntRepository.MoldRow r)
+    {
+        if (Usage(r) is { } u) return u >= 90m ? "CRITICAL" : u >= 70m ? "WARNING" : "OK";
+        return r.ThresholdLevel is { Length: > 0 } t && GradeCodes.Contains(t) ? t : null;
+    }
+
+    string GradeLabel(string? g) => g is null ? "—" : GradeCodes.Contains(g) ? L[$"MNT.Mold.Grade.{g}"] : g;
+    static string GradeCls(string? g) => g switch { "CRITICAL" => "bad", "WARNING" => "warn", "OK" => "ok", _ => "mute" };
+    static string FillCls(decimal u) => u >= 90m ? "crit" : u >= 70m ? "warn" : "ok";
+
+    // PP-OEE 화면의 A/P/Q 막대와 같은 구조 — 트랙 + 채움 + 값
+    static MarkupString Bar(decimal v)
+    {
+        var w = Math.Min(100m, Math.Max(0m, v)).ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+        return new MarkupString(
+            $"<div class=\"mnt-mold-bar\"><div class=\"mnt-mold-track\"><i class=\"mnt-mold-fill-{FillCls(v)}\" style=\"width:{w}%\"></i></div>" +
+            $"<span class=\"mnt-mold-bar-val\">{v:F1}%</span></div>");
+    }
+
+    static bool IsMounted(MntRepository.MoldRow r) => r.Status == "MOUNTED" || !string.IsNullOrEmpty(r.MountedEquipId);
+
+    // 상태 표시는 MD 금형 화면과 동일 (MOLD_STATUS 공통코드 LocalName, 미등록 코드는 원문)
+    string StatusLabel(string? s) =>
+        s is null ? "—" : _moldStatus.FirstOrDefault(c => c.CodeValue == s) is { } c ? MasterDataRepository.LocalName(c) : s;
+    static string StatusCls(string? s) => s switch { "AVAILABLE" => "ok", "MOUNTED" => "info", "UNAVAILABLE" => "bad", _ => "mute" };
 }

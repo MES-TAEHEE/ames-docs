@@ -5886,4 +5886,334 @@
   <data name="MNT.Downtime.Rank.Hint" xml:space="preserve">
     <value>clic en fila = filtro</value>
   </data>
+  <data name="MNT.Dashboard.Kpi.Run" xml:space="preserve">
+    <value>En Marcha</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.RunSub" xml:space="preserve">
+    <value>de {0} equipos</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.Idle" xml:space="preserve">
+    <value>Inactivo</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.IdleSub" xml:space="preserve">
+    <value>preparación · listo</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.Down" xml:space="preserve">
+    <value>Parado</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.DownSub" xml:space="preserve">
+    <value>fallo · avería</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.Oee" xml:space="preserve">
+    <value>OEE promedio</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.OeeSub" xml:space="preserve">
+    <value>{0} · todos los equipos</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.OeeNone" xml:space="preserve">
+    <value>sin datos</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.OpenFailures" xml:space="preserve">
+    <value>Fallos Abiertos</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.OpenFailuresSub" xml:space="preserve">
+    <value>pendiente de respuesta</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.OpenWos" xml:space="preserve">
+    <value>OT Abiertas</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.OpenWosSub" xml:space="preserve">
+    <value>órdenes de mantenimiento</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.PmDue" xml:space="preserve">
+    <value>PM en 7 días</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.PmDueSub" xml:space="preserve">
+    <value>mantenimiento preventivo</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.LowStock" xml:space="preserve">
+    <value>Stock Bajo</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.LowStockSub" xml:space="preserve">
+    <value>en o bajo punto de pedido</value>
+  </data>
+  <data name="MNT.Dashboard.Events.Title" xml:space="preserve">
+    <value>Eventos de Fallo Recientes</value>
+  </data>
+  <data name="MNT.Dashboard.Events.Empty" xml:space="preserve">
+    <value>Sin eventos de fallo.</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.Equipment" xml:space="preserve">
+    <value>Equipos</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.EquipmentSub" xml:space="preserve">
+    <value>{0} equipos · {1} en marcha</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.Failure" xml:space="preserve">
+    <value>Fallos</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.FailureSub" xml:space="preserve">
+    <value>{0} abiertos</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.Wo" xml:space="preserve">
+    <value>Órdenes</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.WoSub" xml:space="preserve">
+    <value>{0} abiertas</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.Pm" xml:space="preserve">
+    <value>Plan PM</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.PmSub" xml:space="preserve">
+    <value>{0} en 7 días</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.Spare" xml:space="preserve">
+    <value>Repuestos</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.SpareSub" xml:space="preserve">
+    <value>{0} bajo punto de pedido</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.Oee" xml:space="preserve">
+    <value>Análisis OEE</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.OeeSub" xml:space="preserve">
+    <value>prom. {0}</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.Downtime" xml:space="preserve">
+    <value>Paradas</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.DowntimeSub" xml:space="preserve">
+    <value>{0} min en 24h</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.Mold" xml:space="preserve">
+    <value>Moldes</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.MoldSub" xml:space="preserve">
+    <value>contadores · umbrales</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.NotImpl" xml:space="preserve">
+    <value>no implementado</value>
+  </data>
+  <data name="MNT.Dashboard.Filter.Title" xml:space="preserve">
+    <value>Filtro</value>
+  </data>
+  <data name="MNT.Dashboard.Live" xml:space="preserve">
+    <value>Actualización en vivo</value>
+  </data>
+  <data name="MNT.Dashboard.LiveSub" xml:space="preserve">
+    <value>actualiza cada minuto si está activo</value>
+  </data>
+  <data name="MNT.Dashboard.LastRefresh" xml:space="preserve">
+    <value>Actualizado {0}</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.Status" xml:space="preserve">
+    <value>Distribución de Estado</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.StatusSub" xml:space="preserve">
+    <value>{0} equipos</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.Alerts" xml:space="preserve">
+    <value>Alertas de Fallo</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.AlertsSub" xml:space="preserve">
+    <value>más recientes</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.Pm" xml:space="preserve">
+    <value>Mantenimiento Preventivo Próximo</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.PmSub" xml:space="preserve">
+    <value>7 días desde {0}</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.Causes" xml:space="preserve">
+    <value>Causas de Parada — Top 5</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.CausesSub" xml:space="preserve">
+    <value>período · minutos</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.Wo" xml:space="preserve">
+    <value>Órdenes de Mantenimiento</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.WoSub" xml:space="preserve">
+    <value>emitidas en período + abiertas</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.Stock" xml:space="preserve">
+    <value>Repuestos con Stock Bajo</value>
+  </data>
+  <data name="MNT.Dashboard.Panel.StockSub" xml:space="preserve">
+    <value>reorden recomendada</value>
+  </data>
+  <data name="MNT.Dashboard.Wo.Open" xml:space="preserve">
+    <value>Abierta</value>
+  </data>
+  <data name="MNT.Dashboard.Wo.Issued" xml:space="preserve">
+    <value>Emitida</value>
+  </data>
+  <data name="MNT.Dashboard.Wo.InProgress" xml:space="preserve">
+    <value>En Curso</value>
+  </data>
+  <data name="MNT.Dashboard.Wo.Completed" xml:space="preserve">
+    <value>Completada</value>
+  </data>
+  <data name="MNT.Dashboard.Wo.Completion" xml:space="preserve">
+    <value>Avance</value>
+  </data>
+  <data name="MNT.Dashboard.Pm.Today" xml:space="preserve">
+    <value>Hoy</value>
+  </data>
+  <data name="MNT.Dashboard.Pm.Overdue" xml:space="preserve">
+    <value>{0}d atrasado</value>
+  </data>
+  <data name="MNT.Dashboard.Pm.Dn" xml:space="preserve">
+    <value>D-{0}</value>
+  </data>
+  <data name="MNT.Dashboard.Stock.Low" xml:space="preserve">
+    <value>Bajo</value>
+  </data>
+  <data name="MNT.Dashboard.Stock.Out" xml:space="preserve">
+    <value>Agotado</value>
+  </data>
+  <data name="MNT.Dashboard.Status.UnitsFmt" xml:space="preserve">
+    <value>{0} equipos · {1}%</value>
+  </data>
+  <data name="MNT.Dashboard.Empty.Alerts" xml:space="preserve">
+    <value>Sin alertas de fallo en el período.</value>
+  </data>
+  <data name="MNT.Dashboard.Empty.Pm" xml:space="preserve">
+    <value>Sin PM programado.</value>
+  </data>
+  <data name="MNT.Dashboard.Empty.Causes" xml:space="preserve">
+    <value>Sin paradas en el período.</value>
+  </data>
+  <data name="MNT.Dashboard.Empty.Wo" xml:space="preserve">
+    <value>Sin órdenes.</value>
+  </data>
+  <data name="MNT.Dashboard.Empty.Stock" xml:space="preserve">
+    <value>Sin repuestos bajo el punto de pedido.</value>
+  </data>
+  <data name="MNT.Mold.Kpi.Total" xml:space="preserve">
+    <value>Moldes Totales</value>
+  </data>
+  <data name="MNT.Mold.Kpi.TotalSub" xml:space="preserve">
+    <value>registrados</value>
+  </data>
+  <data name="MNT.Mold.Kpi.Warn" xml:space="preserve">
+    <value>Advertencia</value>
+  </data>
+  <data name="MNT.Mold.Kpi.WarnSub" xml:space="preserve">
+    <value>uso ≥ 70%</value>
+  </data>
+  <data name="MNT.Mold.Kpi.Crit" xml:space="preserve">
+    <value>Crítico</value>
+  </data>
+  <data name="MNT.Mold.Kpi.CritSub" xml:space="preserve">
+    <value>uso ≥ 90% · reacondicionar</value>
+  </data>
+  <data name="MNT.Mold.Kpi.Mounted" xml:space="preserve">
+    <value>Montados</value>
+  </data>
+  <data name="MNT.Mold.Kpi.MountedSub" xml:space="preserve">
+    <value>moldes en equipos</value>
+  </data>
+  <data name="MNT.Mold.Kpi.Shots" xml:space="preserve">
+    <value>Shots Actuales</value>
+  </data>
+  <data name="MNT.Mold.Kpi.ShotsSub" xml:space="preserve">
+    <value>moldes listados</value>
+  </data>
+  <data name="MNT.Mold.Ph.Search" xml:space="preserve">
+    <value>ID/Nombre de Molde</value>
+  </data>
+  <data name="MNT.Mold.Grade.OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="MNT.Mold.Grade.WARNING" xml:space="preserve">
+    <value>Advertencia</value>
+  </data>
+  <data name="MNT.Mold.Grade.CRITICAL" xml:space="preserve">
+    <value>Crítico</value>
+  </data>
+  <data name="MNT.Mold.Col.RatedShots" xml:space="preserve">
+    <value>Shots Nominales</value>
+  </data>
+  <data name="MNT.Mold.Col.Refurbish" xml:space="preserve">
+    <value>Reacondicionamientos</value>
+  </data>
+  <data name="MNT.Mold.Col.Grade" xml:space="preserve">
+    <value>Grado</value>
+  </data>
+  <data name="MNT.Mold.Hint.Detail" xml:space="preserve">
+    <value>Haga clic en una fila para ver detalles. Los datos se editan en la pantalla MD de moldes.</value>
+  </data>
+  <data name="MNT.Mold.Btn.Export" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="MNT.Mold.Err.NoExport" xml:space="preserve">
+    <value>No hay datos para exportar.</value>
+  </data>
+  <data name="MNT.Mold.Ok.Exported" xml:space="preserve">
+    <value>{0} filas exportadas a Excel.</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.Total" xml:space="preserve">
+    <value>Plan PM · Mes</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.TotalSub" xml:space="preserve">
+    <value>para {0}</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.Completed" xml:space="preserve">
+    <value>Completado</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.CompletedSub" xml:space="preserve">
+    <value>hecho este mes</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.Upcoming" xml:space="preserve">
+    <value>Próximo</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.UpcomingSub" xml:space="preserve">
+    <value>vence después de hoy</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.Overdue" xml:space="preserve">
+    <value>Atrasado</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.OverdueSub" xml:space="preserve">
+    <value>vencido · no hecho</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.Compliance" xml:space="preserve">
+    <value>Cumplimiento PM</value>
+  </data>
+  <data name="MNT.PmSchedule.Kpi.ComplianceSub" xml:space="preserve">
+    <value>hecho ÷ (hecho + atrasado)</value>
+  </data>
+  <data name="MNT.PmSchedule.Cal.Title" xml:space="preserve">
+    <value>Calendario de Mantenimiento Preventivo {0}</value>
+  </data>
+  <data name="MNT.PmSchedule.Legend.Completed" xml:space="preserve">
+    <value>Completado</value>
+  </data>
+  <data name="MNT.PmSchedule.Legend.Today" xml:space="preserve">
+    <value>Hoy</value>
+  </data>
+  <data name="MNT.PmSchedule.Legend.Overdue" xml:space="preserve">
+    <value>Atrasado</value>
+  </data>
+  <data name="MNT.PmSchedule.Legend.Planned" xml:space="preserve">
+    <value>Planificado</value>
+  </data>
+  <data name="MNT.PmSchedule.Modal.Detail" xml:space="preserve">
+    <value>Detalle PM —</value>
+  </data>
+  <data name="MNT.PmSchedule.Modal.DayList" xml:space="preserve">
+    <value>Lista PM</value>
+  </data>
+  <data name="MNT.PmSchedule.Lbl.Done" xml:space="preserve">
+    <value>Realizado</value>
+  </data>
+  <data name="MNT.PmSchedule.Lbl.Due" xml:space="preserve">
+    <value>Vence</value>
+  </data>
+  <data name="MNT.PmSchedule.Ph.Search" xml:space="preserve">
+    <value>PM #/Equipo</value>
+  </data>
+  <data name="MNT.PmSchedule.Type.All" xml:space="preserve">
+    <value>Todos los tipos</value>
+  </data>
 </root>

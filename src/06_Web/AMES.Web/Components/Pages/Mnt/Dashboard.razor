@@ -1,114 +1,511 @@
 @page "/mnt/dashboard"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.MntRepository Mnt
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
+@using Radzen
+
+@attribute [Authorize]
+
+@inject MntRepository Mnt
+@inject MasterDataRepository MD
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject IJSRuntime JS
+@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>MNT-009 @L["MNT.Dashboard.Title"] · AMES</PageTitle>
+@implements IDisposable
 
+<PageTitle>MNT-009 @L["MNT.Dashboard.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MNT-009" TitleKey="MNT.Dashboard.Title" />
 
-<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
-    <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
-</div>
-
+@* ── KPI strip 1: 설비 상태 · OEE ─────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">RUNNING</div>
-        <div class="ames-kpi-v">@_k.EquipRun</div>
-        <div class="ames-kpi-s">of @_k.EquipTotal equip total</div>
+        <div class="ames-kpi-l">@L["MNT.Dashboard.Kpi.Run"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_k.EquipRun</div>
+            <div class="ames-kpi-s">@string.Format(L["MNT.Dashboard.Kpi.RunSub"].Value, _k.EquipTotal)</div>
+        </div>
     </div>
-    <div class="ames-kpi warn">
-        <div class="ames-kpi-l">IDLE</div>
-        <div class="ames-kpi-v">@_k.EquipIdle</div>
-        <div class="ames-kpi-s">setup / ready</div>
+    <div class="ames-kpi @(_k.EquipIdle > 0 ? "warn" : "")">
+        <div class="ames-kpi-l">@L["MNT.Dashboard.Kpi.Idle"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_k.EquipIdle</div>
+            <div class="ames-kpi-s">@L["MNT.Dashboard.Kpi.IdleSub"]</div>
+        </div>
     </div>
-    <div class="ames-kpi bad">
-        <div class="ames-kpi-l">DOWN</div>
-        <div class="ames-kpi-v">@_k.EquipDown</div>
-        <div class="ames-kpi-s">failure / fault</div>
+    <div class="ames-kpi @(_k.EquipDown > 0 ? "bad" : "ok")">
+        <div class="ames-kpi-l">@L["MNT.Dashboard.Kpi.Down"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_k.EquipDown</div>
+            <div class="ames-kpi-s">@L["MNT.Dashboard.Kpi.DownSub"]</div>
+        </div>
     </div>
-    <div class="ames-kpi @(_k.AvgOeeToday >= 85 ? "ok" : _k.AvgOeeToday >= 75 ? "warn" : "bad")">
-        <div class="ames-kpi-l">AVG OEE TODAY</div>
-        <div class="ames-kpi-v">@_k.AvgOeeToday.ToString("0.0")%</div>
-        <div class="ames-kpi-s">all equip, today</div>
+    <div class="ames-kpi @OeeClass()">
+        <div class="ames-kpi-l">@L["MNT.Dashboard.Kpi.Oee"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@(_k.OeeDate is null ? "—" : $"{_k.AvgOeeToday:0.0}%")</div>
+            <div class="ames-kpi-s">@(_k.OeeDate is { } d ? string.Format(L["MNT.Dashboard.Kpi.OeeSub"].Value, d.ToString(DateFmt.Date)) : L["MNT.Dashboard.Kpi.OeeNone"].Value)</div>
+        </div>
     </div>
 </div>
 
+@* ── KPI strip 2: 보전 업무 ────────────────────────────────────────── *@
 <div class="ames-kpis">
-    <div class="ames-kpi bad">
-        <div class="ames-kpi-l">OPEN FAILURES</div>
-        <div class="ames-kpi-v">@_k.OpenFailures</div>
-        <div class="ames-kpi-s">awaiting response</div>
+    <div class="ames-kpi @(_k.OpenFailures > 0 ? "bad" : "ok")">
+        <div class="ames-kpi-l">@L["MNT.Dashboard.Kpi.OpenFailures"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_k.OpenFailures</div>
+            <div class="ames-kpi-s">@L["MNT.Dashboard.Kpi.OpenFailuresSub"]</div>
+        </div>
     </div>
-    <div class="ames-kpi warn">
-        <div class="ames-kpi-l">OPEN MWO</div>
-        <div class="ames-kpi-v">@_k.OpenWos</div>
-        <div class="ames-kpi-s">work orders in flight</div>
+    <div class="ames-kpi @(_k.OpenWos > 0 ? "warn" : "")">
+        <div class="ames-kpi-l">@L["MNT.Dashboard.Kpi.OpenWos"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_k.OpenWos</div>
+            <div class="ames-kpi-s">@L["MNT.Dashboard.Kpi.OpenWosSub"]</div>
+        </div>
     </div>
-    <div class="ames-kpi warn">
-        <div class="ames-kpi-l">PM DUE 7D</div>
-        <div class="ames-kpi-v">@_k.PmDueIn7d</div>
-        <div class="ames-kpi-s">preventive maint.</div>
+    <div class="ames-kpi @(_k.PmDueIn7d > 0 ? "warn" : "")">
+        <div class="ames-kpi-l">@L["MNT.Dashboard.Kpi.PmDue"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_k.PmDueIn7d</div>
+            <div class="ames-kpi-s">@L["MNT.Dashboard.Kpi.PmDueSub"]</div>
+        </div>
     </div>
-    <div class="ames-kpi bad">
-        <div class="ames-kpi-l">LOW STOCK</div>
-        <div class="ames-kpi-v">@_k.LowStockParts</div>
-        <div class="ames-kpi-s">parts ≤ reorder pt.</div>
+    <div class="ames-kpi @(_k.LowStockParts > 0 ? "bad" : "ok")">
+        <div class="ames-kpi-l">@L["MNT.Dashboard.Kpi.LowStock"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_k.LowStockParts</div>
+            <div class="ames-kpi-s">@L["MNT.Dashboard.Kpi.LowStockSub"]</div>
+        </div>
     </div>
 </div>
 
+@* ── 조회 조건: 기간 · 조회 · 실시간 토글(1분) ─────────────────────── *@
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0;">
+        <span style="white-space:nowrap;">▼ @L["MNT.Dashboard.Filter.Title"] <span class="dim" style="font-weight:400;font-size:.85em;margin-left:6px;">@(_lastRefresh is { } lr ? string.Format(L["MNT.Dashboard.LastRefresh"].Value, lr.ToString("HH:mm:ss")) : "")</span></span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["Lbl.Period"]" Component="DatePickerFrom" />
+            <RadzenDatePicker TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <span class="dim">~</span>
+            <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Search" class="ames-rz-btn" />
+            <span class="dim" style="margin-left:8px;">|</span>
+            <RadzenSwitch Name="SwitchLive" Value="@_live" Change="@OnLiveChanged" title="@L["MNT.Dashboard.LiveSub"]" />
+            <RadzenLabel Text="@L["MNT.Dashboard.Live"]" Component="SwitchLive" style="cursor:pointer;" />
+            <span class="dim" style="font-size:10px;">@L["MNT.Dashboard.LiveSub"]</span>
+        </RadzenStack>
+    </div>
+</div>
+
+@* ── 패널 3×2 (목업 구조) ─────────────────────────────────────────── *@
+<div class="mnt-db-grid" style="margin-bottom:14px;">
+
+    @* 1. 설비 상태 분포 *@
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>▼ @L["MNT.Dashboard.Panel.Status"]</span>
+            <span class="mnt-db-hint">@string.Format(L["MNT.Dashboard.Panel.StatusSub"].Value, _equips.Count)</span>
+        </div>
+        @if (_equips.Count == 0)
+        {
+            <div class="mnt-db-empty">—</div>
+        }
+        else
+        {
+            <div class="mnt-db-donut-wrap">
+                <div class="mnt-db-donut" style="background:@DonutGradient();">
+                    <div class="c"><b>@_equips.Count</b><span>@L["Col.Equip"]</span></div>
+                </div>
+                <div class="mnt-db-legend">
+                    @foreach (var s in _statusDist)
+                    {
+                        <div><i style="background:@s.Color;"></i>@s.Label<span class="v">@string.Format(L["MNT.Dashboard.Status.UnitsFmt"].Value, s.Count, _equips.Count == 0 ? 0 : (int)Math.Round(100.0 * s.Count / _equips.Count))</span></div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    @* 2. 실시간 고장 알림 *@
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>▼ @L["MNT.Dashboard.Panel.Alerts"]</span>
+            <span class="mnt-db-hint">@L["MNT.Dashboard.Panel.AlertsSub"]</span>
+        </div>
+        @if (_alerts.Count == 0)
+        {
+            <div class="mnt-db-empty">@L["MNT.Dashboard.Empty.Alerts"]</div>
+        }
+        else
+        {
+            <div class="mnt-db-list">
+                @foreach (var f in _alerts)
+                {
+                    <div class="mnt-db-row" title="@f.Symptom">
+                        <span class="dot" style="background:@UrgencyColor(f.Urgency);"></span>
+                        <span class="t">@(string.IsNullOrEmpty(f.EquipName) ? f.EquipId : f.EquipName)<small>@(f.Symptom ?? "")</small></span>
+                        <span class="pill @UrgencyCls(f.Urgency)">@UrgencyLabel(f.Urgency)</span>
+                        <span class="r">@When(f.ReportedAt)</span>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* 3. 예정 예방보전 *@
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>▼ @L["MNT.Dashboard.Panel.Pm"]</span>
+            <span class="mnt-db-hint">@string.Format(L["MNT.Dashboard.Panel.PmSub"].Value, _fTo.ToString("MM-dd"))</span>
+        </div>
+        @if (_pms.Count == 0)
+        {
+            <div class="mnt-db-empty">@L["MNT.Dashboard.Empty.Pm"]</div>
+        }
+        else
+        {
+            <div class="mnt-db-list">
+                @foreach (var p in _pms)
+                {
+                    <div class="mnt-db-row">
+                        <span class="t">@EquipName(p.EquipId)<small>@(p.PmType ?? p.PmPlanNumber ?? "")</small></span>
+                        <span class="pill @PmCls(p.DaysToDue)">@PmBadge(p.DaysToDue)</span>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* 4. 비가동 사유 Top 5 *@
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>▼ @L["MNT.Dashboard.Panel.Causes"]</span>
+            <span class="mnt-db-hint">@L["MNT.Dashboard.Panel.CausesSub"]</span>
+        </div>
+        @if (_causes.Count == 0)
+        {
+            <div class="mnt-db-empty">@L["MNT.Dashboard.Empty.Causes"]</div>
+        }
+        else
+        {
+            @foreach (var c in _causes)
+            {
+                <div class="mnt-dt-row" style="grid-template-columns:120px 1fr 80px;">
+                    <span class="lbl"><span class="pill @ReasonCls(c.Code)">@c.Code</span></span>
+                    <div class="mnt-dt-track"><div class="mnt-dt-fill" style="width:@BarPct(c.Min, _causes[0].Min)%;background:@ReasonColor(c.Code);"></div></div>
+                    <span class="mnt-dt-val"><b>@c.Min.ToString("N0")</b> @L["Lbl.Min"]</span>
+                </div>
+            }
+        }
+    </div>
+
+    @* 5. 보전 작업지시 *@
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>▼ @L["MNT.Dashboard.Panel.Wo"]</span>
+            <span class="mnt-db-hint">@L["MNT.Dashboard.Panel.WoSub"]</span>
+        </div>
+        @if (_wos.Count == 0)
+        {
+            <div class="mnt-db-empty">@L["MNT.Dashboard.Empty.Wo"]</div>
+        }
+        else
+        {
+            <div class="mnt-db-wo">
+                <div class="open"><b>@WoCount("OPEN")</b><span>@L["MNT.Dashboard.Wo.Open"]</span></div>
+                <div class="issued"><b>@WoCount("ISSUED")</b><span>@L["MNT.Dashboard.Wo.Issued"]</span></div>
+                <div class="prog"><b>@WoCount("IN_PROGRESS")</b><span>@L["MNT.Dashboard.Wo.InProgress"]</span></div>
+                <div class="done"><b>@WoDone</b><span>@L["MNT.Dashboard.Wo.Completed"]</span></div>
+            </div>
+            <div class="mnt-db-prog">
+                <span>@L["MNT.Dashboard.Wo.Completion"]</span>
+                <div class="mnt-dt-track"><div class="mnt-dt-fill" style="width:@WoPct%;background:#10b981;"></div></div>
+                <b class="code">@WoPct%</b>
+            </div>
+        }
+    </div>
+
+    @* 6. 재고 부족 부품 *@
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>▼ @L["MNT.Dashboard.Panel.Stock"]</span>
+            <span class="mnt-db-hint">@L["MNT.Dashboard.Panel.StockSub"]</span>
+        </div>
+        @if (_lowStock.Count == 0)
+        {
+            <div class="mnt-db-empty">@L["MNT.Dashboard.Empty.Stock"]</div>
+        }
+        else
+        {
+            <div class="mnt-db-list">
+                @foreach (var s in _lowStock)
+                {
+                    <div class="mnt-db-row">
+                        <span class="dot" style="background:@(s.OnHand <= 0 ? "#dc2626" : "#f59e0b");"></span>
+                        <span class="t">@(s.PartName ?? s.PartNo)<small>@s.PartNo</small></span>
+                        <span class="pill @(s.OnHand <= 0 ? "bad" : "warn")">@(s.OnHand <= 0 ? L["MNT.Dashboard.Stock.Out"] : L["MNT.Dashboard.Stock.Low"])</span>
+                        <span class="r">@s.OnHand / @(s.ReorderPoint ?? 0)</span>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@* ── 화면 타일 (NavMenu 와 같은 권한 규칙: 읽기 권한 없으면 비활성) ─── *@
 <div class="ames-tiles">
-    <a class="ames-tile mnt" href="mnt/equipment-card">
-        <div class="ames-tile-ic">🏭</div>
-        <div class="ames-tile-h">EQUIPMENT</div>
-        <div class="ames-tile-sub">@_k.EquipTotal units · @_k.EquipRun running</div>
-    </a>
-    <a class="ames-tile mnt" href="mnt/failure">
-        <div class="ames-tile-ic">🚨</div>
-        <div class="ames-tile-h">FAILURES</div>
-        <div class="ames-tile-sub">@_k.OpenFailures open · register</div>
-    </a>
-    <a class="ames-tile mnt" href="mnt/work-order">
-        <div class="ames-tile-ic">🔧</div>
-        <div class="ames-tile-h">MWO</div>
-        <div class="ames-tile-sub">@_k.OpenWos open · maintenance work orders</div>
-    </a>
-    <a class="ames-tile mnt" href="mnt/pm-schedule">
-        <div class="ames-tile-ic">📅</div>
-        <div class="ames-tile-h">PM SCHEDULE</div>
-        <div class="ames-tile-sub">@_k.PmDueIn7d due in 7 days</div>
-    </a>
-    <a class="ames-tile mnt" href="mnt/spare-parts">
-        <div class="ames-tile-ic">📦</div>
-        <div class="ames-tile-h">SPARE PARTS</div>
-        <div class="ames-tile-sub">@_k.LowStockParts below reorder point</div>
-    </a>
-    <a class="ames-tile mnt" href="mnt/oee-analysis">
-        <div class="ames-tile-ic">📊</div>
-        <div class="ames-tile-h">OEE ANALYSIS</div>
-        <div class="ames-tile-sub">avg @_k.AvgOeeToday.ToString("0.0")% today</div>
-    </a>
-    <a class="ames-tile mnt" href="mnt/downtime">
-        <div class="ames-tile-ic">⏱️</div>
-        <div class="ames-tile-h">DOWNTIME</div>
-        <div class="ames-tile-sub">@_k.DowntimeMin24h min lost in last 24h</div>
-    </a>
-    <a class="ames-tile mnt" href="mnt/mold">
-        <div class="ames-tile-ic">🧊</div>
-        <div class="ames-tile-h">MOLD</div>
-        <div class="ames-tile-sub">shot counters · refurbish thresholds</div>
-    </a>
+    @Tile("mnt/equipment-card", "🏭", L["MNT.Dashboard.Tile.Equipment"].Value, string.Format(L["MNT.Dashboard.Tile.EquipmentSub"].Value, _k.EquipTotal, _k.EquipRun))
+    @Tile("mnt/failure",        "🚨", L["MNT.Dashboard.Tile.Failure"].Value,   string.Format(L["MNT.Dashboard.Tile.FailureSub"].Value, _k.OpenFailures))
+    @Tile("mnt/work-order",     "🔧", L["MNT.Dashboard.Tile.Wo"].Value,        string.Format(L["MNT.Dashboard.Tile.WoSub"].Value, _k.OpenWos))
+    @Tile("mnt/pm-schedule",    "📅", L["MNT.Dashboard.Tile.Pm"].Value,        string.Format(L["MNT.Dashboard.Tile.PmSub"].Value, _k.PmDueIn7d))
+    @Tile("mnt/spare-parts",    "📦", L["MNT.Dashboard.Tile.Spare"].Value,     string.Format(L["MNT.Dashboard.Tile.SpareSub"].Value, _k.LowStockParts))
+    @Tile("mnt/oee-analysis",   "📊", L["MNT.Dashboard.Tile.Oee"].Value,       string.Format(L["MNT.Dashboard.Tile.OeeSub"].Value, _k.OeeDate is null ? "—" : $"{_k.AvgOeeToday:0.0}%"))
+    @Tile("mnt/downtime",       "⏱️", L["MNT.Dashboard.Tile.Downtime"].Value,  string.Format(L["MNT.Dashboard.Tile.DowntimeSub"].Value, _k.DowntimeMin24h))
+    @Tile("mnt/mold",           "🧊", L["MNT.Dashboard.Tile.Mold"].Value,      L["MNT.Dashboard.Tile.MoldSub"].Value)
 </div>
 
 @code {
-    AMES.Data.Repositories.MntRepository.DashboardKpi _k =
-        new(0, 0, 0, 0, 0, 0, 0, 0, 0m, 0);
+    const int LiveSec = 60;   // 실시간 토글 On 일 때 조회 주기(초)
 
-    protected override void OnInitialized() => Reload();
+    MntRepository.DashboardKpi _k = new(0, 0, 0, 0, 0, 0, 0, 0, 0m, 0);
+    List<MntRepository.EquipCardRow>        _equips   = new();
+    List<MntRepository.FailureRow>          _alerts   = new();
+    List<MntRepository.PmRow>               _pms      = new();
+    List<CauseRow>                          _causes   = new();
+    List<MntRepository.MwoRow>              _wos      = new();
+    List<MntRepository.SparePartRow>        _lowStock = new();
+    List<StatusSlice>                       _statusDist = new();
+    List<MasterDataRepository.CodeItemRow>  _equipStatus = new();
 
-    void Reload()
+    DateTime  _fFrom = DateTime.Today.AddDays(-6), _fTo = DateTime.Today;
+    bool      _live = true;
+    DateTime? _lastRefresh;
+
+    PeriodicTimer? _timer;
+    CancellationTokenSource? _cts;
+    bool _disposed;
+
+    public sealed record CauseRow(string Code, int Min);
+    public sealed record StatusSlice(string Key, string Label, string Color, int Count);
+
+    protected override async Task OnInitializedAsync()
     {
-        try { _k = Mnt.GetDashboardKpis(); } catch { }
+        try { await PermSvc.EnsureAsync(AuthPrvd); } catch { }
+        try { _equipStatus = MD.ListCodeItems("EQUIP_STATUS"); } catch { }
+
+        // 기본 기간: 최근 7일. 그 안에 고장·비가동이 없으면 마지막 발생일 기준 7일
+        try
+        {
+            var (_, fMax) = Mnt.FailureDateExtent();
+            var (_, dMax) = Mnt.DowntimeDateExtent();
+            var last = new[] { fMax, dMax }.Where(x => x is { }).Select(x => x!.Value.Date).DefaultIfEmpty(DateTime.Today).Max();
+            if (last < _fFrom) { _fTo = last; _fFrom = _fTo.AddDays(-6); }
+        }
+        catch { }
+
+        Load();
+    }
+
+    void Search() => Load();
+
+    void Load()
+    {
+        if (_fTo < _fFrom) (_fFrom, _fTo) = (_fTo, _fFrom);
+        try { _k       = Mnt.GetDashboardKpis(); } catch { }
+        try { _equips  = Mnt.ListEquipment(); } catch { _equips = new(); }
+        try { _alerts  = Mnt.ListFailuresRange(_fFrom, _fTo).OrderByDescending(f => f.ReportedAt).Take(6).ToList(); } catch { _alerts = new(); }
+        try { _pms     = Mnt.ListPmDueRange(_fTo, _fTo.AddDays(7)).Take(6).ToList(); } catch { _pms = new(); }
+        try
+        {
+            _causes = Mnt.ListDowntimeRange(_fFrom, _fTo)
+                .GroupBy(d => d.ReasonCode ?? "—")
+                .Select(g => new CauseRow(g.Key, g.Sum(d => d.DurationMin ?? 0)))
+                .OrderByDescending(c => c.Min).Take(5).ToList();
+        }
+        catch { _causes = new(); }
+        try
+        {
+            // 기간에 발행된 것 + 아직 끝나지 않은 것(발행일 무관) — "현황" 관점
+            _wos = Mnt.ListWorkOrders(500)
+                .Where(w => (w.IssuedAt is { } t && t.Date >= _fFrom && t.Date <= _fTo) || !IsWoDone(w.Status))
+                .ToList();
+        }
+        catch { _wos = new(); }
+        try
+        {
+            _lowStock = Mnt.ListSpareParts()
+                .Where(p => p.OnHand <= (p.ReorderPoint ?? 0))
+                .OrderBy(p => p.OnHand - (p.ReorderPoint ?? 0)).Take(6).ToList();
+        }
+        catch { _lowStock = new(); }
+
+        _statusDist = BuildStatusDist();
+        _lastRefresh = DateTime.Now;
+    }
+
+    // ── 설비 상태 도넛 ────────────────────────────────────────────────
+    static bool IsRun(string? s)  => s is "RUN" or "RUNNING" or "OPERATING";
+    static bool IsIdle(string? s) => s is "IDLE" or "SETUP" or "READY";
+    static bool IsDown(string? s) => s is "DOWN" or "STOP" or "FAULT";
+    static bool IsPm(string? s)   => s is "PM" or "INSPECTION" or "MAINT";
+
+    List<StatusSlice> BuildStatusDist()
+    {
+        var run  = _equips.Count(e => IsRun(e.Status));
+        var idle = _equips.Count(e => IsIdle(e.Status));
+        var down = _equips.Count(e => IsDown(e.Status));
+        var pm   = _equips.Count(e => IsPm(e.Status));
+        var etc  = _equips.Count - run - idle - down - pm;
+        var list = new List<StatusSlice>
+        {
+            new("RUN",  StatusLabel("RUN"),  "#10b981", run),
+            new("PM",   StatusLabel("PM"),   "#3b82f6", pm),
+            new("DOWN", StatusLabel("DOWN"), "#dc2626", down),
+            new("IDLE", StatusLabel("IDLE"), "#9ca3af", idle),
+        };
+        if (etc > 0) list.Add(new("ETC", "—", "#64748b", etc));
+        return list;
+    }
+
+    string DonutGradient()
+    {
+        if (_equips.Count == 0) return "rgba(148,163,184,.2)";
+        var sb = new System.Text.StringBuilder("conic-gradient(");
+        double acc = 0;
+        foreach (var s in _statusDist.Where(s => s.Count > 0))
+        {
+            var p = 100.0 * s.Count / _equips.Count;
+            sb.Append($"{s.Color} {acc:0.##}% {acc + p:0.##}%,");
+            acc += p;
+        }
+        return sb.ToString().TrimEnd(',') + ")";
+    }
+
+    string StatusLabel(string code) =>
+        _equipStatus.FirstOrDefault(c => c.CodeValue == code) is { } c ? MasterDataRepository.LocalName(c) : code;
+
+    // ── 작업지시 ───────────────────────────────────────────────────────
+    static bool IsWoDone(string? s) => s is "COMPLETED" or "CLOSED" or "DONE";
+    int WoCount(string status) => _wos.Count(w => w.Status == status);
+    int WoDone => _wos.Count(w => IsWoDone(w.Status));
+    int WoPct  => _wos.Count == 0 ? 0 : (int)Math.Round(100.0 * WoDone / _wos.Count);
+
+    // ── 표시 헬퍼 ─────────────────────────────────────────────────────
+    string EquipName(string? id) =>
+        id is null ? "—" : _equips.FirstOrDefault(e => e.EquipId == id) is { EquipName.Length: > 0 } e ? e.EquipName! : id;
+
+    string When(DateTime? t) =>
+        t is not { } d ? "—" : d.Date == DateTime.Today ? d.ToString("HH:mm") : d.ToString("MM-dd HH:mm");
+
+    string PmBadge(int days) => days switch
+    {
+        0   => L["MNT.Dashboard.Pm.Today"].Value,
+        < 0 => string.Format(L["MNT.Dashboard.Pm.Overdue"].Value, -days),
+        _   => string.Format(L["MNT.Dashboard.Pm.Dn"].Value, days),
+    };
+    static string PmCls(int days) => days < 0 ? "bad" : days == 0 ? "warn" : days <= 3 ? "info" : "ok";
+
+    static int BarPct(int v, int max) => max <= 0 ? 0 : Math.Max(2, (int)Math.Round(100.0 * v / max));
+
+    static string ReasonCls(string reason) => reason switch
+    { "MACHINE" => "bad", "CHANGEOVER" => "warn", "MATERIAL" => "orange", "QUALITY" => "info", _ => "mute" };
+    static string ReasonColor(string reason) => reason switch
+    { "MACHINE" => "#dc2626", "CHANGEOVER" => "#eab308", "MATERIAL" => "#f97316", "QUALITY" => "#3b82f6", _ => "#94a3b8" };
+
+    static readonly string[] UrgencyCodes = { "URGENT", "HIGH", "MED", "LOW" };
+    string UrgencyLabel(string? u) => u is null ? "—" : UrgencyCodes.Contains(u) ? L[$"MNT.Failure.Urg.{u}"] : u;
+    static string UrgencyCls(string? u) => u switch
+    { "URGENT" => "bad", "HIGH" => "orange", "MED" => "info", "LOW" => "mute", _ => "mute" };
+    static string UrgencyColor(string? u) => u switch
+    { "URGENT" => "#dc2626", "HIGH" => "#f97316", "MED" => "#f59e0b", "LOW" => "#94a3b8", _ => "#94a3b8" };
+
+    string OeeClass() => _k.OeeDate is null ? "" : _k.AvgOeeToday >= 85 ? "ok" : _k.AvgOeeToday >= 65 ? "warn" : "bad";
+
+    // NavMenu 와 동일하게 권한(PermissionService.IsVisible)에 따라 타일 활성/비활성 — Sys/Health 와 같은 규칙
+    RenderFragment Tile(string href, string icon, string title, string sub) => __builder =>
+    {
+        if (PermSvc.IsVisible(href))
+        {
+            <a class="ames-tile mnt" href="@("/" + href)">
+                <div class="ames-tile-top">
+                    <div class="ames-tile-ic">@icon</div>
+                    <div class="ames-tile-sub">@sub</div>
+                </div>
+                <div class="ames-tile-h">@title</div>
+            </a>
+        }
+        else
+        {
+            <div class="ames-tile mnt" style="opacity:.4;pointer-events:none;filter:grayscale(1);" aria-disabled="true">
+                <div class="ames-tile-top">
+                    <div class="ames-tile-ic">@icon</div>
+                    <div class="ames-tile-sub">@sub</div>
+                </div>
+                <div class="ames-tile-h">@title</div>
+            </div>
+        }
+    };
+
+    // ── 실시간 토글: On 이면 1분마다 조회 (세션 유지용 keep-alive 핑 포함) ─
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _live) StartTimer();
+        return Task.CompletedTask;
+    }
+
+    void OnLiveChanged(bool on)
+    {
+        _live = on;
+        StopTimer();
+        if (_live) { Load(); StartTimer(); }
+    }
+
+    void StartTimer()
+    {
+        StopTimer();
+        _cts   = new CancellationTokenSource();
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(LiveSec));
+        _ = RunTimerAsync(_timer, _cts.Token);
+    }
+
+    void StopTimer()
+    {
+        try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
+        _timer?.Dispose(); _timer = null;
+        _cts?.Dispose();   _cts   = null;
+    }
+
+    async Task RunTimerAsync(PeriodicTimer timer, CancellationToken ct)
+    {
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                if (_disposed || !_live) return;
+                Load();
+                await InvokeAsync(StateHasChanged);
+                await KeepAliveAsync();
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (ObjectDisposedException) { }
+    }
+
+    async Task KeepAliveAsync()
+    {
+        try { await JS.InvokeVoidAsync("fetch", Nav.ToAbsoluteUri("keep-alive").ToString()); }
+        catch { /* 회로 끊김/이탈 시 무시 */ }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        StopTimer();
     }
 }
