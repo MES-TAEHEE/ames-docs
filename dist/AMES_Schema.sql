@@ -1036,24 +1036,6 @@ CREATE TABLE dbo.WH_Inventory (
 );
 GO
 
--- ── WH_InventorySnapshot  (재고 일일 스냅샷)
-CREATE TABLE dbo.WH_InventorySnapshot (
-  [SnapshotID]                BIGINT IDENTITY      NOT NULL,
-  [SnapshotDate]              DATE                     NULL,
-  [ItemNo]                    VARCHAR(20)              NULL,  -- FK -> MD_Item.ItemNo
-  [LocationID]                VARCHAR(20)              NULL,  -- FK -> MD_Location.LocationID
-  [LotID]                     INT                      NULL,  -- FK -> tbl_Lot.LotID
-  [OnHandQty]                 DECIMAL(14,3)            NULL,
-  [UnitCost]                  DECIMAL(14,4)            NULL,
-  [TotalValue]                DECIMAL(16,2)            NULL,
-  [CreatedBy]                 VARCHAR(50)          NOT NULL,
-  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedBy]                NVARCHAR(450)            NULL,
-  [ModifiedTS]                DATETIME2                NULL,
-  CONSTRAINT PK_WH_InventorySnapshot PRIMARY KEY CLUSTERED ([SnapshotID])
-);
-GO
-
 -- ── WH_InventoryAdjust  (재고 조정)
 CREATE TABLE dbo.WH_InventoryAdjust (
   [AdjustID]                  INT IDENTITY         NOT NULL,
