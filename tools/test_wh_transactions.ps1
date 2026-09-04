@@ -26,12 +26,11 @@ function Check([bool]$condition, [string]$message) {
 try {
     $fixture = Query @'
 SELECT TOP (1) P.InboundPackageID, P.LotID, P.ItemNo, L.LotCode,
-       D.CaseNo, D.DocumentBarcode, P2.LotID AS SiblingLotID
+       P.CaseNo, P.DocumentBarcode, P2.LotID AS SiblingLotID
 FROM dbo.WH_InboundPackage P
-JOIN dbo.WH_InboundDocument D ON D.InboundDocumentID=P.InboundDocumentID
 JOIN dbo.tbl_Lot L ON L.LotID=P.LotID
-JOIN dbo.WH_InboundPackage P2 ON P2.InboundDocumentID=P.InboundDocumentID AND P2.LotID<>P.LotID
-WHERE D.ReceiveType=N'CKD' AND D.CaseNo IS NOT NULL
+JOIN dbo.WH_InboundPackage P2 ON P2.DocumentBarcode=P.DocumentBarcode AND P2.LotID<>P.LotID
+WHERE P.ReceiveType=N'CKD' AND P.CaseNo IS NOT NULL
 ORDER BY P.InboundPackageID, P2.InboundPackageID;
 '@
     Check ($fixture.Rows.Count -eq 1) 'Requires a CKD case with at least two existing LOTs.'
