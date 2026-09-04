@@ -316,7 +316,7 @@
 
     void AggRowRender(RowRenderEventArgs<EquipAgg> args)
     {
-        var cls = "ames-row-link" + (args.Data.EquipId == _selEquip ? " ames-row-selected" : "");
+        var cls = "ames-row-link" + (args.Data?.EquipId == _selEquip ? " ames-row-selected" : "");
         args.Attributes["class"] = args.Attributes.TryGetValue("class", out var existing) ? $"{existing} {cls}" : cls;
     }
 
