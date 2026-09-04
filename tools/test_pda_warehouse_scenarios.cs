@@ -102,6 +102,47 @@ var releaseSource = File.ReadAllText(Path.Combine(root, "src/05_Pda/AMES.Pda/Com
 Check(releaseSource.Contains("DisplayFifoLotsFor(line.ItemNo)"), "Release must display its FIFO LOT list.");
 Check(releaseSource.Contains("lot.LocationNo") && releaseSource.Contains("lot.ProductionDate"),
     "Release FIFO rows must show location and ProducedAt.");
+Check(releaseSource.Contains("RELEASE TEST SCENARIOS") && releaseSource.Contains("WH003-TC-018"),
+    "TEST login must expose all executable WH003 scenarios.");
+Check(releaseSource.Contains("Auth.Session?.EmployeeNo, \"TEST\"")
+      && releaseSource.Contains("wh02-test-nav") && releaseSource.Contains("_testPanelOpen"),
+    "Release scenarios must be restricted to TEST login and open from the navigation button.");
+Check(releaseSource.Contains("OPEN INVENTORY") && releaseSource.Contains("OPEN TRANSACTIONS"),
+    "Release scenario 17 must link to both verification screens.");
+Check(releaseSource.Contains("API ERROR:") && releaseSource.Contains("_simulateReleaseApiFailure"),
+    "Release scenario 18 must provide a TEST-only API failure switch.");
+
+var releaseType = assembly.GetType("AMES.Pda.Components.Pages.Wh.Wh07PdaRelease", throwOnError: true)!;
+var releaseScenarios = (Array)releaseType.GetField("ReleaseTestScenarios", StaticFlags)!.GetValue(null)!;
+Check(releaseScenarios.Length == 18, "WH003 must expose exactly 18 executable scenarios.");
+var expectedReleaseFirstValues = new[]
+{
+    "2026082801", "5011LL260820000010", "WH-RELEASE-UNKNOWN-999999", "2026082801", "2026082801",
+    "2026082801", "2026082801", "2026082801", "2026082801", "2026082801", "2026082801",
+    "2026082801", "2026082801", "2026082801", "2026082801", "2026082801",
+    "5011LL260701000001", "PDA-REL-TEST-02"
+};
+for (var index = 0; index < releaseScenarios.Length; index++)
+{
+    var scenario = releaseScenarios.GetValue(index)!;
+    var scenarioType = scenario.GetType();
+    var no = (int)scenarioType.GetProperty("No")!.GetValue(scenario)!;
+    var testCaseId = (string)scenarioType.GetProperty("TestCaseId")!.GetValue(scenario)!;
+    var autoScan = (bool)scenarioType.GetProperty("AutoScan")!.GetValue(scenario)!;
+    var values = (Array)scenarioType.GetProperty("Values")!.GetValue(scenario)!;
+    var firstValue = (string)values.GetValue(0)!.GetType().GetProperty("Value")!.GetValue(values.GetValue(0)!)!;
+    Check(no == index + 1, $"Release scenario number is not continuous at index {index}.");
+    Check(testCaseId == $"WH003-TC-{index + 1:000}", $"Release scenario ID does not match scenario {index + 1}.");
+    Check(firstValue == expectedReleaseFirstValues[index], $"Release scenario {index + 1} has the wrong primary test value.");
+    Check(autoScan == (index != 16), $"Release scenario {index + 1} has the wrong auto-scan setting.");
+}
+
+var releaseLoadStart = releaseSource.IndexOf("private async Task LoadTestValue", StringComparison.Ordinal);
+var releaseLoadEnd = releaseSource.IndexOf("private static bool ShowDeveloperScanButtons", releaseLoadStart, StringComparison.Ordinal);
+var releaseLoadSource = releaseSource[releaseLoadStart..releaseLoadEnd];
+Check(releaseLoadSource.Contains("await ProcessBarcodeAsync(value.Value)")
+      && releaseLoadSource.Contains("OnOutgoingTypeChanged(value.Value)"),
+    "Release test-data buttons must execute both barcode and outgoing-type actions.");
 
 var schema = File.ReadAllText(Path.Combine(root, "dist/pda/PDA_SCHEMA.sql"));
 Check(schema.Contains("COALESCE(L.ProducedAt") && schema.Contains("W.LastReceivedAt") && schema.Contains("L.LotID"),
@@ -122,4 +163,16 @@ foreach (var value in new[]
 })
     Check(seed.Contains(value), "Missing scenario seed: " + value);
 
-Console.WriteLine("PASS: Warehouse Inbound, Release FIFO, Adjust zero-stock and transaction scenario guards.");
+foreach (var value in new[]
+{
+    "2026082801", "PDA-REL-TEST-02", "5011LL260701000001", "5011LL260715000002",
+    "5011LL260801000003", "5011LL260601000004", "5011LL260820000010", "5011LL260101000018"
+})
+    Check(seed.Contains(value), "Missing release scenario seed: " + value);
+
+var apiSource = File.ReadAllText(Path.Combine(root, "src/04_Api/AMES.Api/Endpoints/WhEndpoints.cs"));
+Check(apiSource.Contains("body.SimulateFailure")
+      && apiSource.Contains("Simulated Release API failure. Database transaction was rolled back."),
+    "Release scenario 18 must fail inside the API transaction and roll back.");
+
+Console.WriteLine("PASS: Warehouse Inbound and Release scenario guards, FIFO, rollback, Adjust and transaction checks.");

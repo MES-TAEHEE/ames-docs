@@ -92,7 +92,7 @@ public static class WhEndpoints
         decimal Qty, string? ProductionDate);
     public sealed record ReleasePickInput(string LotNo, decimal Qty);
     public sealed record ReleaseCompleteReq(string PickSlipNo, List<ReleasePickInput>? Lots = null,
-        string? OutgoingType = null);
+        string? OutgoingType = null, bool SimulateFailure = false);
     public sealed record ReleaseCompleteResult(bool Success, string Message);
     public sealed record DirectOutgoingLotRow(int LotId, string LotNo, string? ItemNo, string? ItemName,
         decimal Qty, string? Unit, string? LocationId, string InventoryStatus, bool IsValid, string Message);
@@ -753,9 +753,14 @@ public static class WhEndpoints
             if (reasonCode is null)
                 return Results.BadRequest(new ReleaseCompleteResult(false, "Select an outgoing type."));
 
-            var result = ExecuteReleaseBatch(factory, pickSlipNo, body.Lots, reasonCode, s.OperatorId, s.TerminalId);
+            var simulateFailure = body.SimulateFailure
+                && string.Equals(s.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+            var result = ExecuteReleaseBatch(factory, pickSlipNo, body.Lots, reasonCode,
+                s.OperatorId, s.TerminalId, simulateFailure);
             if (!result.Success)
-                return Results.BadRequest(result);
+                return simulateFailure
+                    ? Results.Json(result, statusCode: StatusCodes.Status503ServiceUnavailable)
+                    : Results.BadRequest(result);
 
             var message = $"Release completed as {body.OutgoingType}. Inventory was updated for every scanned LOT.";
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
@@ -1617,7 +1622,8 @@ public static class WhEndpoints
         IReadOnlyCollection<ReleasePickInput> requestedLots,
         string reasonCode,
         string userId,
-        string terminalId)
+        string terminalId,
+        bool simulateFailure = false)
     {
         var slip = pickSlipNo.Trim();
         var normalized = requestedLots
@@ -1795,13 +1801,19 @@ public static class WhEndpoints
                 finish.ExecuteNonQuery();
             }
 
+            if (simulateFailure)
+                throw new InvalidOperationException(
+                    "Simulated Release API failure. Database transaction was rolled back.");
+
             tx.Commit();
             return new ReleaseCompleteResult(true, "Release completed.");
         }
         catch (Exception ex)
         {
             try { tx.Rollback(); } catch { }
-            return new ReleaseCompleteResult(false, WarehouseProcedureMessage(ex));
+            return new ReleaseCompleteResult(false, simulateFailure
+                ? "Simulated Release API failure. Database transaction was rolled back."
+                : WarehouseProcedureMessage(ex));
         }
     }
 

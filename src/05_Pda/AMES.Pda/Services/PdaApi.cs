@@ -196,7 +196,7 @@ public sealed class PdaApi
         decimal Qty, string? ProductionDate);
     public sealed record ReleasePickInput(string LotNo, decimal Qty);
     public sealed record ReleaseCompleteReq(string PickSlipNo, List<ReleasePickInput>? Lots = null,
-        string? OutgoingType = null);
+        string? OutgoingType = null, bool SimulateFailure = false);
     public sealed record ReleaseCompleteResult(bool Success, string Message);
     public sealed record DirectOutgoingLotRow(int LotId, string LotNo, string? ItemNo, string? ItemName,
         decimal Qty, string? Unit, string? LocationId, string InventoryStatus, bool IsValid, string Message);
