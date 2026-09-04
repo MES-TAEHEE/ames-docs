@@ -190,18 +190,16 @@
   <data name="NoStationsRegistered" xml:space="preserve"><value>No stations registered for this line — contact an administrator</value></data>
   <data name="MasterLoadFailed" xml:space="preserve"><value>Master data load failed: {0}</value></data>
   <data name="Retry" xml:space="preserve"><value>RETRY</value></data>
-  <data name="HelpImgMainSub" xml:space="preserve"><value>Select a part, enter good qty on the keypad to save the result — no work-order acceptance</value></data>
+  <data name="HelpImgMainSub" xml:space="preserve"><value>Select a part, print a label, scan it to confirm — no work-order acceptance</value></data>
   <data name="FabricRoll" xml:space="preserve"><value>Fabric roll</value></data>
   <data name="BondRecipe" xml:space="preserve"><value>Bond recipe</value></data>
   <data name="NoRoll" xml:space="preserve"><value>no roll</value></data>
   <data name="NoRecipe" xml:space="preserve"><value>no recipe</value></data>
-  <data name="EntryHistoryToday" xml:space="preserve"><value>ENTRY HISTORY · TODAY</value></data>
-  <data name="GoodQtyPerCycleEa" xml:space="preserve"><value>GOOD QTY PER CYCLE (EA)</value></data>
-  <data name="EntrySaved" xml:space="preserve"><value>Saved</value></data>
-  <data name="RollShort" xml:space="preserve"><value>Fabric roll short</value></data>
-  <data name="NoEntriesYet" xml:space="preserve"><value>No entries yet</value></data>
-  <data name="Qty" xml:space="preserve"><value>QTY</value></data>
-  <data name="Progress" xml:space="preserve"><value>PROGRESS</value></data>
-  <data name="DeductM" xml:space="preserve"><value>deduct {0} m</value></data>
   <data name="SelectPartWithOpenWo" xml:space="preserve"><value>Select a part with an open work order</value></data>
+  <data name="LabelPrint" xml:space="preserve"><value>LABEL PRINT</value></data>
+  <data name="TodayLotsNewestFirst" xml:space="preserve"><value>TODAY'S LOTS · NEWEST FIRST</value></data>
+  <data name="Waiting" xml:space="preserve"><value>WAIT</value></data>
+  <data name="LotIssued" xml:space="preserve"><value>Lot issued</value></data>
+  <data name="PrintFailedLotKept" xml:space="preserve"><value>Print failed — lot created, reprint it from the list</value></data>
+  <data name="NoLotsToday" xml:space="preserve"><value>No lots issued today — press LABEL PRINT</value></data>
 </root>

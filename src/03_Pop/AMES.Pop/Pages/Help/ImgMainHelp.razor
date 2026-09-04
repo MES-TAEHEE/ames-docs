@@ -1,8 +1,8 @@
-@*  IMG-MAIN user manual — 좌측 품번 당일 현황 + 우측 키패드 실적 입력. WO 접수 화면은 없다. *@
+@*  IMG-MAIN user manual — 좌측 품번 당일 현황 + 우측 라벨 발행 / 스캔 확정. WO 접수 화면은 없다. *@
 
 <div class="help-doc">
     <div>
-        <div class="help-h1">IMG-MAIN · @PopLang.T("PartNo") / @PopLang.T("ProductionEntry")</div>
+        <div class="help-h1">IMG-MAIN · @PopLang.T("PartNo") / @PopLang.T("LotBarcodeScanConfirm")</div>
         <div class="help-sub">@PopLang.T("HelpImgMainSub")</div>
 
         <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
@@ -16,16 +16,16 @@
             <text class="hs-sub" x="28" y="88">▼ PART NO · 2026-09-04 · ST-IMG-01</text>
             <text class="hs-sub" x="28"  y="112">PART NO</text>
             <text class="hs-sub" x="250" y="112" text-anchor="end">PLAN</text>
-            <text class="hs-sub" x="300" y="112" text-anchor="end">FINAL</text>
+            <text class="hs-sub" x="300" y="112" text-anchor="end">INPUT</text>
             <text class="hs-sub" x="345" y="112" text-anchor="end">NG</text>
-            <text class="hs-sub" x="400" y="112" text-anchor="end">SHORT</text>
+            <text class="hs-sub" x="400" y="112" text-anchor="end">FINAL</text>
 
             <rect x="20" y="122" width="388" height="30" rx="4" fill="rgba(13,184,122,.18)" stroke="#22c55e" stroke-width="1" />
             <text class="hs-label" x="28" y="142" style="font-size:12px;">DR-TRM-LH-W</text>
             <text class="hs-label" x="250" y="142" text-anchor="end" style="font-size:12px;">192</text>
-            <text class="hs-label" x="300" y="142" text-anchor="end" style="font-size:12px;">120</text>
+            <text class="hs-label" x="300" y="142" text-anchor="end" style="font-size:12px;">123</text>
             <text class="hs-label" x="345" y="142" text-anchor="end" style="font-size:12px;">3</text>
-            <text class="hs-label" x="400" y="142" text-anchor="end" style="font-size:12px;">72</text>
+            <text class="hs-label" x="400" y="142" text-anchor="end" style="font-size:12px;">118</text>
 
             <text class="hs-label" x="28" y="174" style="font-size:12px;">DR-TRM-RH-W</text>
             <rect x="120" y="162" width="46" height="16" rx="8" fill="rgba(255,255,255,.10)" />
@@ -36,36 +36,40 @@
             <text class="hs-label" x="400" y="174" text-anchor="end" style="font-size:12px;">0</text>
 
             <rect x="20" y="424" width="388" height="30" rx="4" fill="rgba(0,0,0,.35)" />
-            <text class="hs-sub" x="28" y="444">PLAN 192   FINAL 120   NG 3   SHORT 72</text>
+            <text class="hs-sub" x="28" y="444">PLAN 192   INPUT 123   NG 3   FINAL 118</text>
             <circle class="hs-num" cx="24" cy="78" r="14" />
             <text class="hs-num-tx" x="24" y="78">1</text>
 
-            @* ② 우측 상단: WO + 키패드 + 확정 *@
-            <rect class="hs-region nav" x="428" y="68" width="278" height="250" />
+            @* ② 우측 상단: WO + 라벨 발행 + 스캔 *@
+            <rect class="hs-region nav" x="428" y="68" width="278" height="180" />
             <text class="hs-sub" x="440" y="88">▼ CURRENT WO (PART: DR-TRM-LH-W)</text>
-            <text class="hs-label" x="440" y="110" style="font-size:12px;">WO-IMG-2026-0529-301   120 / 192</text>
-            <rect x="440" y="120" width="254" height="34" rx="4" fill="#000" stroke="#1a2840" />
-            <text class="hs-label" x="567" y="145" text-anchor="middle" style="font-size:20px;">4</text>
-            @for (var r = 0; r < 4; r++)
-            {
-                for (var c = 0; c < 3; c++)
-                {
-                    <rect x="@(440 + c * 86)" y="@(160 + r * 26)" width="82" height="22" rx="3" fill="#1c263c" />
-                }
-            }
-            <rect x="440" y="268" width="254" height="30" rx="4" fill="#0d7a52" />
-            <text class="hs-label" x="567" y="288" text-anchor="middle" style="font-size:11px;">✓ CONFIRM · 4 EA · deduct 1.00 m</text>
-            <text class="hs-sub" x="440" y="312">GOOD 120 · NG 3 · 2.4% · ROLL 41.5 m · RCP-IMG-A1</text>
+            <text class="hs-label" x="440" y="110" style="font-size:12px;">WO-IMG-2026-0529-301   118 / 192</text>
+            <rect x="440" y="120" width="254" height="30" rx="4" fill="#0d7a52" />
+            <text class="hs-label" x="567" y="140" text-anchor="middle" style="font-size:12px;">🏷 LABEL PRINT · DR-TRM-LH-W</text>
+            <text class="hs-sub" x="440" y="168">▼ LOT BARCODE · SCAN TO CONFIRM</text>
+            <rect x="440" y="174" width="254" height="22" rx="4" fill="rgba(0,0,0,.35)" stroke="rgba(255,255,255,.25)" />
+            <text class="hs-sub" x="448" y="189">A94W10003</text>
+            <rect x="440" y="202" width="254" height="30" rx="6" fill="rgba(13,184,122,.18)" stroke="#0d7a52" stroke-width="2" />
+            <text class="hs-label" x="567" y="223" text-anchor="middle" style="font-size:14px; letter-spacing:3px;">SUCCESS</text>
+            <text class="hs-sub" x="440" y="244">GOOD 118 · NG 3 · UNCONFIRMED 2 · ROLL 41.5 m · REC-01</text>
             <circle class="hs-num" cx="438" cy="78" r="14" />
             <text class="hs-num-tx" x="438" y="78">2</text>
 
-            @* ③ 우측 중단: 오늘 이력 *@
-            <rect class="hs-region dim" x="428" y="330" width="278" height="70" />
-            <text class="hs-sub" x="440" y="350">▼ ENTRY HISTORY · TODAY</text>
-            <text class="hs-sub" x="440" y="372">15:19:36  DR-TRM-LH-W  I94W10012   4</text>
-            <text class="hs-sub" x="440" y="390">15:12:04  DR-TRM-LH-W  I94W10011   4</text>
-            <circle class="hs-num" cx="438" cy="340" r="14" />
-            <text class="hs-num-tx" x="438" y="340">3</text>
+            @* ③ 우측 중단: 오늘 발행 LOT *@
+            <rect class="hs-region dim" x="428" y="260" width="278" height="140" />
+            <text class="hs-sub" x="440" y="280">▼ TODAY'S LOTS · NEWEST FIRST</text>
+            <text class="hs-sub" x="440" y="304">A94W10005  DR-TRM-LH-W  15:22   WAIT   🖨</text>
+            <text class="hs-sub" x="440" y="324">A94W10004  DR-TRM-LH-W  15:21   WAIT   🖨</text>
+            <text class="hs-sub" x="440" y="344">A94W10003  DR-TRM-LH-W  15:19</text>
+            <rect x="618" y="333" width="30" height="14" rx="3" fill="rgba(13,184,122,.25)" />
+            <text class="hs-label" x="633" y="344" text-anchor="middle" style="font-size:9px;">OK</text>
+            <text class="hs-sub" x="660" y="344">🖨</text>
+            <text class="hs-sub" x="440" y="364">A94W10002  DR-TRM-LH-W  15:12</text>
+            <rect x="618" y="353" width="30" height="14" rx="3" fill="rgba(13,184,122,.25)" />
+            <text class="hs-label" x="633" y="364" text-anchor="middle" style="font-size:9px;">OK</text>
+            <text class="hs-sub" x="660" y="364">🖨</text>
+            <circle class="hs-num" cx="438" cy="270" r="14" />
+            <text class="hs-num-tx" x="438" y="270">3</text>
 
             @* ④ 기능 버튼 *@
             <rect class="hs-region warn" x="428" y="412" width="134" height="52" />
@@ -83,24 +87,24 @@
             <div class="help-step ok">
                 <div class="help-step-num">1</div>
                 <div class="help-step-body">
-                    <div class="help-step-en"><strong>Part grid</strong> — every part registered to this station (BOP) with today's PLAN / FINAL / NG / SHORTAGE. Tap a row to select it; the open work order for that part is picked automatically — there is no WO acceptance step.</div>
-                    <div class="help-step-ko"><strong>품번 그리드</strong> — 이 스테이션 BOP 에 등록된 품번과 당일 계획/양품/불량/부족. 행을 누르면 선택되고 그 품번의 열린 작업지시가 자동으로 잡힌다 — WO 접수 단계는 없다.</div>
+                    <div class="help-step-en"><strong>Part grid</strong> — every part registered to this station (BOP) with today's PLAN / INPUT / NG / FINAL. Tap a row to select it; the open work order for that part is picked automatically — there is no WO acceptance step.</div>
+                    <div class="help-step-ko"><strong>품번 그리드</strong> — 이 스테이션 BOP 에 등록된 품번과 당일 계획/투입/불량/양품. 행을 누르면 선택되고 그 품번의 열린 작업지시가 자동으로 잡힌다 — WO 접수 단계는 없다.</div>
                     <div class="help-step-hint">NO WO = no released work order for this part · NOT IN BOP = produced today but not registered</div>
                 </div>
             </div>
             <div class="help-step">
                 <div class="help-step-num">2</div>
                 <div class="help-step-body">
-                    <div class="help-step-en"><strong>Keypad</strong> — type the good qty for this cycle and press CONFIRM. One press = one lot + one result row on the selected work order. If a fabric roll is mounted on the line, 0.25 m per piece is deducted from it; with no roll the result is still saved.</div>
-                    <div class="help-step-ko"><strong>키패드</strong> — 이번 사이클 양품 수를 입력하고 실적 확정을 누른다. 한 번 = LOT 하나 + 선택 작업지시의 실적 한 행. 라인에 원단 롤이 장착돼 있으면 개당 0.25 m 를 차감하고, 롤이 없어도 실적은 저장된다.</div>
-                    <div class="help-step-hint">Chips: today good / defect rate / fabric roll remaining / bond recipe — for the selected part and this line</div>
+                    <div class="help-step-en"><strong>LABEL PRINT</strong> — one press = one lot (1 EA) for the selected part, and its label prints right away. Printing is not a result yet. <strong>Scan</strong> the label to confirm: the banner shows SUCCESS / FAIL with the part and the work order the result was posted to, and the grid selection follows the scanned part.</div>
+                    <div class="help-step-ko"><strong>라벨 발행</strong> — 한 번 누르면 선택 품번의 LOT 1개(1 EA)가 만들어지고 라벨이 바로 나온다. 발행은 아직 실적이 아니다. 라벨을 <strong>스캔</strong>하면 확정된다: 배너에 성공/실패와 실적이 올라간 품번·작업지시가 뜨고, 그리드 선택은 스캔한 품번으로 따라간다.</div>
+                    <div class="help-step-hint">Chips: today good / defect rate / unconfirmed / fabric roll remaining / bond recipe. A mounted roll loses 0.25 m per confirmed piece; no roll still confirms.</div>
                 </div>
             </div>
             <div class="help-step dim">
                 <div class="help-step-num">3</div>
                 <div class="help-step-body">
-                    <div class="help-step-en"><strong>Entry history</strong> — today's result rows on this line, newest first, with the lot number each one created.</div>
-                    <div class="help-step-ko"><strong>실적 이력</strong> — 오늘 이 라인의 실적 행(최신순)과 각각 만들어진 LOT 번호.</div>
+                    <div class="help-step-en"><strong>Today's lots</strong> — every label issued today on this line, newest first. WAIT = printed, not scanned yet; <strong>OK</strong> = confirmed. 🖨 reprints a label; tap a lot number to put it in the scan box.</div>
+                    <div class="help-step-ko"><strong>오늘 발행 LOT</strong> — 오늘 이 라인에서 발행된 라벨 전부(최신순). 대기 = 발행됐지만 아직 미스캔, <strong>OK</strong> = 확정. 🖨 는 재출력, LOT 번호를 누르면 스캔칸에 들어간다.</div>
                 </div>
             </div>
             <div class="help-step warn">
@@ -117,9 +121,9 @@
             <div class="help-step">
                 <div class="help-step-num">=</div>
                 <div class="help-step-body">
-                    <div class="help-step-en"><strong>SHORTAGE = PLAN − FINAL.</strong> FINAL sums today's confirmed good qty for the part on this line; NG sums today's defects registered on this process; PLAN comes from today's line schedule (PP-03).</div>
-                    <div class="help-step-ko"><strong>부족 = 계획 − 양품.</strong> 양품은 오늘 이 라인에서 확정한 그 품번의 양품 합, 불량은 오늘 이 공정으로 등록한 불량 합, 계획은 오늘 라인 일정(PP-03)에서 온다.</div>
-                    <div class="help-step-hint">Day boundary = entry time on this terminal</div>
+                    <div class="help-step-en"><strong>INPUT = FINAL + NG + unconfirmed.</strong> INPUT counts every label issued today for the part on this line; FINAL is scanned-good; NG is today's manual defects; the rest is still waiting for a scan. PLAN comes from today's line schedule (PP-03).</div>
+                    <div class="help-step-ko"><strong>투입 = 양품 + 불량 + 미확정.</strong> 투입은 오늘 이 라인에서 그 품번으로 발행된 라벨 전량, 양품은 스캔 확정분, 불량은 오늘 수동 등록 불량, 나머지가 아직 스캔 대기. 계획은 오늘 라인 일정(PP-03)에서 온다.</div>
+                    <div class="help-step-hint">Day boundary = label issue time, not scan time</div>
                 </div>
             </div>
         </div>
@@ -127,7 +131,7 @@
         <div class="help-callout warn">
             <div class="help-callout-i">⚠</div>
             <div class="help-callout-tx">
-                <span class="h-call-en"><strong>Empty grid?</strong> This station has no parts in BOP (MD-005) — ask the planner. A red strip under the grid header means the last data refresh failed; the numbers shown are from the previous refresh.</span><span class="h-call-ko"><strong>그리드가 비었으면</strong> 이 스테이션의 BOP(MD-005) 품번이 없는 것 — 생산계획 담당에게. 그리드 헤더 아래 빨간 줄은 마지막 데이터 갱신 실패 표시이며 숫자는 직전 갱신값이다.</span>
+                <span class="h-call-en"><strong>Label did not print?</strong> The lot still exists — use 🖨 on that row. <strong>Empty grid?</strong> This station has no parts in BOP (MD-005) — ask the planner. A red strip under the grid header means the last data refresh failed; the numbers shown are from the previous refresh.</span><span class="h-call-ko"><strong>라벨이 안 나왔으면</strong> LOT 은 이미 있다 — 그 행의 🖨 로 재출력. <strong>그리드가 비었으면</strong> 이 스테이션의 BOP(MD-005) 품번이 없는 것 — 생산계획 담당에게. 그리드 헤더 아래 빨간 줄은 마지막 데이터 갱신 실패 표시이며 숫자는 직전 갱신값이다.</span>
             </div>
         </div>
     </div>

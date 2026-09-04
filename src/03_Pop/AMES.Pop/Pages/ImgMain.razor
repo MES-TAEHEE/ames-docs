@@ -1,14 +1,18 @@
 @page "/imgmain"
+@using AMES.Contracts.Enums
 @using AMES.Pop.Pages.InjPopups
 @implements IDisposable
 @inject NavigationManager Nav
 @inject AppState State
 @inject ConfirmService Confirmer
+@inject ToastService Toasts
+@inject AMES.Pop.Services.ScannerService Scanner
 
-@*  IMG-MAIN — IMG03/05 통합 작업 화면. INJ-MAIN 과 같은 2단 레이아웃.
-    좌측 스테이션 품번 당일 현황(PLAN/FINAL/NG/부족) + 우측 키패드 실적 입력·오늘 이력을 상시 표시하고,
-    불량·안돈은 팝업(Pages/InjPopups/*)을 공유한다. WO 접수 없음 — 품번 선택이 열린 WO 를 자동 해석.
-    IMG 는 원천 LOT·라벨이 없어 스캔 확정 대신 키패드가 들어간다. 원단 롤은 있으면 차감, 없으면 실적만 기록. *@
+@*  IMG-MAIN — IMG 통합 작업 화면. INJ-MAIN 과 같은 2단 레이아웃과 같은 LOT 모델(1 LOT = 1 EA).
+    좌측 스테이션 품번 당일 현황(PLAN/INPUT/NG/FINAL) + 우측 라벨 발행·스캔 확정·오늘 발행 LOT 목록.
+    IMG 는 에이전트가 없어 LOT 은 라벨 발행 버튼이 만들고 그 자리에서 라벨을 동기 출력한다.
+    실적은 라벨을 스캔해야 확정되며, 목록의 해당 행에 OK 가 붙는다. WO 접수 없음 — 품번 선택이 열린 WO 를 자동 해석.
+    불량·안돈은 팝업(Pages/InjPopups/*)을 공유한다. *@
 
 <div class="pop-shell injm-shell">
     <div class="pop-tbar">
@@ -18,6 +22,10 @@
         </div>
         <div class="pop-tbar-r">
             <span class="@_eqClass">● @PopLang.EqStatus(_eqStatus)</span>
+            @if (Scanner.IsEnabled)
+            {
+                <span class="@(_scannerOn ? "stat-on" : "stat-off")">🔌 @T("Scanner")</span>
+            }
             <span>@Session?.EmployeeName · @PopLang.Shift(Session?.ShiftCode ?? "")</span>
             <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
             <button class="injm-lang-btn" @onclick="ToggleLang">@(PopLang.IsKo ? "EN" : "한국어")</button>
@@ -42,16 +50,15 @@
                             <tr>
                                 <th style="text-align:left;">@T("PartNo")</th>
                                 <th>@T("Plan")</th>
-                                <th>@T("Final")</th>
+                                <th>@T("Input")</th>
                                 <th>@T("Ng")</th>
-                                <th>@T("Shortage")</th>
+                                <th>@T("Final")</th>
                             </tr>
                         </thead>
                         <tbody>
                         @foreach (var it in _items)
                         {
                             var isSel = string.Equals(_selItemNo, it.ItemNo, StringComparison.OrdinalIgnoreCase);
-                            var shortage = Math.Max(0, it.PlanQty - it.GoodQty);
                             <tr class="@(isSel ? "active" : "")" @onclick="@(() => SelectItem(it))">
                                 <td class="mono" style="text-align:left;" title="@it.ItemName">
                                     @it.ItemNo
@@ -65,9 +72,9 @@
                                     }
                                 </td>
                                 <td>@it.PlanQty.ToString("0")</td>
-                                <td class="ok">@it.GoodQty</td>
+                                <td>@it.InputQty</td>
                                 <td class="@(it.NgQty > 0 ? "bad" : "")">@it.NgQty</td>
-                                <td class="@(shortage > 0 ? "bad" : "")">@shortage.ToString("0")</td>
+                                <td class="ok">@it.FinalQty</td>
                             </tr>
                         }
                         @if (_items.Count == 0 && _refreshError is null)
@@ -81,13 +88,14 @@
                 </div>
                 <div class="injm-total">
                     <span>@T("Plan") <b>@_items.Sum(x => x.PlanQty).ToString("0")</b></span>
-                    <span>@T("Final") <b class="ok">@_items.Sum(x => x.GoodQty)</b></span>
+                    <span>@T("Input") <b class="mod">@_items.Sum(x => x.InputQty)</b></span>
                     <span>@T("Ng") <b class="bad">@_items.Sum(x => x.NgQty)</b></span>
-                    <span>@T("Shortage") <b class="bad">@_items.Sum(x => Math.Max(0, x.PlanQty - x.GoodQty)).ToString("0")</b></span>
+                    <span>@T("Final") <b class="ok">@_items.Sum(x => x.FinalQty)</b></span>
+                    <span>@T("Shortage") <b class="bad">@_items.Sum(x => Math.Max(0, x.PlanQty - x.FinalQty)).ToString("0")</b></span>
                 </div>
             </div>
 
-            @* ── 우측: 실적 입력 + 오늘 이력 ────────────────────────── *@
+            @* ── 우측: 라벨 발행 + 스캔 확정 + 오늘 발행 LOT ───────── *@
             <div class="injm-right">
                 <div class="pop-card imgm-entry">
                     <div class="pop-card-h">▼ @T("CurrentWo") (@T("PartNo"): @(_selItemNo ?? "—"))</div>
@@ -100,19 +108,14 @@
                         <div class="entry-bar"><div class="entry-bar-fill" style="width:@_pct%;"></div></div>
                     </div>
 
-                    <div class="input-label">@T("GoodQtyPerCycleEa")</div>
-                    <div class="input-display">@(_buf.Length == 0 ? "0" : _buf.ToString())</div>
-                    <div class="keypad">
-                        @foreach (var d in new[] { "1","2","3","4","5","6","7","8","9" })
-                        { var k = d; <div class="kp" @onclick="@(() => Press(k))">@k</div> }
-                        <div class="kp ct"  @onclick="LoadCt">@T("Ct")</div>
-                        <div class="kp"     @onclick="@(() => Press("0"))">0</div>
-                        <div class="kp del" @onclick="Backspace">←</div>
-                    </div>
-                    <button class="imgm-confirm" disabled="@(!CanConfirm)" @onclick="Confirm">
-                        ✓ @T("Confirm") · @Qty @T("Ea")@(_roll is null ? "" : $" · {T("DeductM", RequiredM.ToString("0.00"))}")
+                    <button class="imgm-print" disabled="@(_activeWo is null || _printing)" @onclick="PrintLabel">
+                        🏷 @T("LabelPrint") · @(_selItemNo ?? "—")
                     </button>
 
+                    <div class="input-label">@T("LotBarcodeScanConfirm")</div>
+                    <input @ref="_scanInput" @bind="_scanBuf" @bind:event="oninput"
+                           @onkeydown="OnScanKey" class="injm-scan-input"
+                           placeholder="A94W10001" autocomplete="off" />
                     <div class="injm-banner @_bannerClass">
                         <div class="injm-banner-t">@BannerTitle</div>
                         @if (_bannerDetail.Length > 0)
@@ -123,34 +126,47 @@
                     <div class="injm-chips">
                         <span class="injm-chip">@T("TodayGood") <b class="ok">@_todayGood</b></span>
                         <span class="injm-chip">@T("Defect") <b class="@_defClass">@_todayDef · @_defectPct</b></span>
+                        <span class="injm-chip">@T("Unconfirmed") <b class="@(_rawCount > 0 ? "warn" : "ok")">@_rawCount</b></span>
                         <span class="injm-chip">@T("FabricRoll") <b class="@_fabricClass">@_fabricText</b></span>
                         <span class="injm-chip">@T("BondRecipe") <b>@_bondText</b></span>
                     </div>
                 </div>
 
-                <div class="pop-card injm-hist imgm-hist">
-                    <div class="pop-card-h">▼ @T("EntryHistoryToday")</div>
+                <div class="pop-card injm-lots imgm-hist">
+                    <div class="pop-card-h">▼ @T("TodayLotsNewestFirst")</div>
                     <div class="injm-scroll">
                         <table class="injm-subtbl">
                             <thead><tr>
-                                <th style="text-align:left;">@T("Time")</th>
-                                <th style="text-align:left;">@T("PartNo")</th>
                                 <th style="text-align:left;">@T("Lotno")</th>
-                                <th>@T("Qty")</th>
+                                <th style="text-align:left;">@T("PartNo")</th>
+                                <th style="text-align:left;">@T("Time")</th>
+                                <th>@T("Status")</th>
+                                <th></th>
                             </tr></thead>
                             <tbody>
-                            @foreach (var e in _entries)
+                            @foreach (var lot in _lots)
                             {
                                 <tr>
-                                    <td class="mono">@e.EntryAt.ToString("HH:mm:ss")</td>
-                                    <td class="mono" title="@e.WoNumber">@e.ItemNo</td>
-                                    <td class="mono">@(e.LotCode ?? "—")</td>
-                                    <td style="text-align:right;"><span class="injm-result ok">@e.GoodQty</span></td>
+                                    <td class="mono" style="cursor:pointer;"
+                                        @onclick="@(() => { _scanBuf = lot.LotCode; _focusScan = true; })">@lot.LotCode</td>
+                                    <td class="mono">@lot.ItemNo</td>
+                                    <td class="mono">@lot.CreatedTS.ToString("HH:mm:ss")</td>
+                                    <td style="text-align:center;">
+                                        @if (lot.IsConfirmed)
+                                        {
+                                            <span class="injm-result ok">@T("Ok")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="injm-result wait">@T("Waiting")</span>
+                                        }
+                                    </td>
+                                    <td style="text-align:right;"><button class="injm-mini-btn" @onclick="@(() => Reprint(lot))">🖨 @T("Reprint")@(lot.PrintedCount > 1 ? $" ×{lot.PrintedCount}" : "")</button></td>
                                 </tr>
                             }
-                            @if (_entries.Count == 0)
+                            @if (_lots.Count == 0)
                             {
-                                <tr><td colspan="4" style="padding:14px 4px; color:rgba(255,255,255,.4);">@T("NoEntriesYet")</td></tr>
+                                <tr><td colspan="5" style="padding:14px 4px; color:rgba(255,255,255,.4);">@T("NoLotsToday")</td></tr>
                             }
                             </tbody>
                         </table>
@@ -184,27 +200,28 @@
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
 
-    private const string  ProcessCode   = "IMG";
+    /// <summary>1 EA 당 원단 소비량. 확정 시 장착 롤에서 차감한다.</summary>
     private const decimal MetresPerUnit = 0.25m;
 
     private enum Popup { None, Defect, Andon }
     private Popup _popup = Popup.None;
 
-    private List<ItemDailyDto> _items = new();
+    private List<InjItemDailyDto> _items = new();
     private string? _selItemNo;
-    private ItemDailyDto? SelItem =>
+    private InjItemDailyDto? SelItem =>
         _items.FirstOrDefault(x => string.Equals(x.ItemNo, _selItemNo, StringComparison.OrdinalIgnoreCase));
     private WorkOrderDto?  _activeWo;
     private FabricRollDto? _roll;
     private BondSetupDto?  _bond;
-    private List<ProductionEntryDto> _entries = new();
+    private List<ImgLotDto> _lots = new();
 
-    private int _pct, _todayGood, _todayDef, _lastResultId, _cycle = 38;
+    private int _pct, _todayGood, _todayDef, _rawCount, _lastResultId;
     private string _defectPct = "0.0%", _defClass = "ok";
     private string _fabricText = "—", _fabricClass = "warn", _bondText = "—";
     private string _eqStatus = "OFFLINE", _eqClass = "stat-off";
     private string?  _refreshError;
     private DateTime _refreshErrorAt;
+    private bool _printing;
 
     private string _bannerClass = "idle", _bannerDetail = "";
     private string BannerTitle => _bannerClass switch
@@ -213,12 +230,10 @@
         "bad" => T("Fail"),
         _     => T("Ready"),
     };
-
-    private readonly System.Text.StringBuilder _buf = new();
-    private int     Qty       => int.TryParse(_buf.ToString(), out var q) ? q : 0;
-    private decimal RequiredM => Qty * MetresPerUnit;
-    private bool CanConfirm => _activeWo is not null && Qty > 0
-                            && (_roll is null || _roll.RemainingM >= RequiredM);
+    private string _scanBuf = string.Empty;
+    private bool _focusScan;
+    private ElementReference _scanInput;
+    private bool _scannerOn;
 
     private DateTime _now = DateTime.Now;
     private System.Threading.Timer? _clockTimer;
@@ -228,10 +243,22 @@
     {
         if (Session is null) return;
         Refresh();
+        _scannerOn = Scanner.IsConnected;
+        Scanner.OnScan            += OnSerialScan;
+        Scanner.ConnectionChanged += OnScannerConnection;
         _clockTimer   = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; StateHasChanged(); }),
                                                    null, 1000, 1000);
         _refreshTimer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); StateHasChanged(); }),
                                                    null, 5000, 5000);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if ((firstRender || _focusScan) && _popup == Popup.None)
+        {
+            _focusScan = false;
+            try { await _scanInput.FocusAsync(); } catch { }
+        }
     }
 
     private void ToggleLang() => PopLang.Lang = PopLang.IsKo ? "en" : "ko";
@@ -241,21 +268,19 @@
         if (Session is null) return;
         try
         {
-            _items = PopServices.Production.GetDailyItemSummary(Session.LineId, Session.TerminalId, ProcessCode);
+            _items = PopServices.ImgLots.GetDailyItemSummary(Session.LineId, Session.TerminalId);
 
             if (SelItem is null)
                 _selItemNo = (_items.FirstOrDefault(x => x.HasOpenWo) ?? _items.FirstOrDefault())?.ItemNo;
 
-            // 접수가 없으므로 활성 WO 는 품번에서 매번 해석한다 — INJ-MAIN 과 같은 규칙.
+            // 접수가 없으므로 활성 WO 는 품번에서 매번 해석한다 — ConfirmByLotCode 와 같은 규칙.
             _activeWo = _selItemNo is null ? null
                       : PopServices.WorkOrders.FindOpenForItem(Session.LineId, _selItemNo);
             _pct = _activeWo is null ? 0 : (int)Math.Clamp(_activeWo.ProgressPct, 0, 100);
-            if (!string.IsNullOrEmpty(_activeWo?.RecipeId))
-                _cycle = PopServices.Master.GetRecipeCycleTime(_activeWo.RecipeId) ?? 38;
 
             // 칩은 좌측 행과 같은 당일 수치 — 두 숫자가 어긋나 보이면 작업자가 헷갈린다.
-            _todayGood = SelItem?.GoodQty ?? 0;
-            _todayDef  = SelItem?.NgQty   ?? 0;
+            _todayGood = SelItem?.FinalQty ?? 0;
+            _todayDef  = SelItem?.NgQty    ?? 0;
             var pct = (_todayGood + _todayDef) == 0 ? 0 : _todayDef * 100.0 / (_todayGood + _todayDef);
             _defectPct = $"{pct:0.0}%";
             _defClass  = pct >= 5 ? "bad" : pct >= 4 ? "warn" : "ok";
@@ -272,7 +297,8 @@
             _bondText = _bond is null ? T("NoRecipe")
                       : $"{_bond.RecipeId} · {_bond.TempSp:0}°C / {_bond.PressureSp:0.0}bar / {_bond.HoldSecSp}s";
 
-            _entries = PopServices.Production.GetTodayEntries(Session.LineId);
+            _lots     = PopServices.ImgLots.GetTodayLots(Session.LineId);
+            _rawCount = _lots.Count(x => !x.IsConfirmed);
 
             var eq = PopServices.Equipment.GetPrimaryForLine(Session.LineId);
             _eqStatus = (eq?.Status ?? "OFFLINE").ToUpperInvariant();
@@ -281,56 +307,95 @@
         }
         catch (Exception ex)
         {
-            // 배너는 건드리지 않는다 — 5초마다 덮어쓰면 방금 저장한 결과가 사라진다.
+            // 스캔 결과 배너는 건드리지 않는다 — 5초마다 덮어쓰면 방금 스캔한 결과가 사라진다.
             _refreshError   = ex.Message;
             _refreshErrorAt = DateTime.Now;
             System.Diagnostics.Debug.WriteLine($"[ImgMain refresh] {ex.Message}");
         }
     }
 
-    private void SelectItem(ItemDailyDto it)
+    private void SelectItem(InjItemDailyDto it)
     {
         _selItemNo = it.ItemNo;
         Refresh();
+        _focusScan = true;
     }
 
-    // ── 키패드 ────────────────────────────────────────────────────────
-    private void Press(string d) { if (_buf.Length >= 3) return; if (_buf.Length == 0 && d == "0") return; _buf.Append(d); }
-    private void Backspace()     { if (_buf.Length > 0) _buf.Length--; }
-    private void LoadCt()        { _buf.Clear(); _buf.Append('1'); }
-
-    // ── 실적 확정 (IMG-003 로직) ─────────────────────────────────────
-    private void Confirm()
+    // ── 라벨 발행: LOT 1개 생성 + 즉시 출력. 실적이 아니다 — 스캔해야 확정된다. ──
+    private void PrintLabel()
     {
-        if (Session is null || _activeWo is null) return;
-        var qty = Qty;
-        if (qty <= 0) return;
-        var required = qty * MetresPerUnit;
-        if (_roll is not null && _roll.RemainingM < required)
-        {
-            SetBanner(false, $"{T("RollShort")}: {_roll.RemainingM:0.0} m < {required:0.00} m");
-            return;
-        }
+        if (Session is null || _activeWo is null || _printing) return;
+        _printing = true;
         try
         {
-            var (resultId, _, _) = PopServices.Production.RecordCycle(
-                _activeWo.WoId, _activeWo.ItemNo, _activeWo.LineId, ProcessCode, qty, _cycle, moldId: null,
-                Session.OperatorId, Session.SessionId, Session.EmployeeNo, defectFlag: false);
-            if (_roll is not null)
-                PopServices.Fabric.DeductFromRoll(_roll.LotId, required, resultId, Session.EmployeeNo, Session.OperatorId);
-            if (_bond is not null)
-                PopServices.Bond.LogCycle(resultId, _bond.BondSetupId,
-                    _bond.PressureSp, _bond.TempSp, _bond.HoldSecSp,
-                    _bond.TensionSp, withinSpec: true, Session.EmployeeNo);
-            _lastResultId = resultId;
-            _buf.Clear();
-            SetBanner(true, $"{T("EntrySaved")}: {qty} {T("Ea")} ({_activeWo.ItemNo}) → {_activeWo.WoNumber}");
+            var lot = PopServices.ImgLots.CreateRawLot(Session.LineId, _activeWo.ItemNo, Session.EmployeeNo);
+            try
+            {
+                LabelPrinter.Print(lot, Session.LineId);
+                var printed = PopServices.ImgLots.IncrementPrintedCount(lot.LotId);
+                Toasts.Ok($"{T("LotIssued")}: {lot.LotCode} ({lot.ItemNo})");
+            }
+            catch (Exception ex)
+            {
+                // LOT 은 이미 만들어졌다 — 목록의 재출력 버튼으로 복구한다.
+                Toasts.Bad($"{T("PrintFailedLotKept")}: {lot.LotCode} — {ex.Message}");
+            }
+            Refresh();
+        }
+        catch (Exception ex) { Toasts.Bad($"{T("EntryFailed")}: {ex.Message}"); }
+        finally { _printing = false; _focusScan = true; }
+    }
+
+    // ── 스캔 확정 ────────────────────────────────────────────────────
+    // 리더 스레드에서 오므로 렌더러 스레드로 넘긴다. 팝업이 열려 있으면 무시.
+    private void OnSerialScan(string code)
+        => InvokeAsync(() =>
+        {
+            if (_popup != Popup.None) return;
+            ConfirmScan(code);
+            StateHasChanged();
+        });
+
+    private void OnScannerConnection(bool on)
+        => InvokeAsync(() => { _scannerOn = on; StateHasChanged(); });
+
+    private void OnScanKey(KeyboardEventArgs e)
+    {
+        if (e.Key != "Enter") return;
+        var code = _scanBuf.Trim();
+        _scanBuf = string.Empty;
+        if (code.Length == 0) return;
+        ConfirmScan(code);
+    }
+
+    private void ConfirmScan(string lotCode)
+    {
+        if (Session is null) return;
+        try
+        {
+            // 대상 WO 는 LOT 품번으로 리포지토리가 정한다. 원단·본딩은 확정 순간의 라인 상태를 넘긴다.
+            var (outcome, resultId, itemNo, woId) = PopServices.ImgLots.ConfirmByLotCode(
+                lotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo,
+                _roll?.LotId, MetresPerUnit, _bond);
+            var woNumber = woId > 0 ? PopServices.WorkOrders.GetById(woId)?.WoNumber : null;
+            var (ok, detail) = outcome switch
+            {
+                ImgConfirmOutcome.Confirmed        => (true,  $"{T("Confirmed")}: {lotCode} ({itemNo}){(woNumber is null ? "" : $" → {woNumber}")}"),
+                ImgConfirmOutcome.NotFound         => (false, $"{T("LotNotFound")}: {lotCode}"),
+                ImgConfirmOutcome.AlreadyConfirmed => (false, $"{T("AlreadyConfirmed")}: {lotCode}"),
+                ImgConfirmOutcome.WrongLine        => (false, $"{T("LotBelongsToAnotherLine")}: {lotCode}"),
+                ImgConfirmOutcome.NoWoForItem      => (false, $"{T("NoOpenWoForThisPart")}: {lotCode} ({itemNo})"),
+                _                                  => (false, $"{T("ConfirmFailed")}: {lotCode}"),
+            };
+            if (ok) { _lastResultId = resultId; _selItemNo = itemNo; }
+            SetBanner(ok, detail);
             Refresh();
         }
         catch (Exception ex)
         {
-            SetBanner(false, $"{T("EntryFailed")}: {ex.Message}");
+            SetBanner(false, $"{T("ConfirmFailed")}: {ex.Message}");
         }
+        finally { _focusScan = true; }
     }
 
     private void SetBanner(bool ok, string detail)
@@ -339,9 +404,22 @@
         _bannerDetail = detail;
     }
 
+    private void Reprint(ImgLotDto lot)
+    {
+        try
+        {
+            LabelPrinter.Print(lot, Session?.LineId);
+            var printed = PopServices.ImgLots.IncrementPrintedCount(lot.LotId);
+            Toasts.Ok($"{T("LabelReprinted")}: {lot.LotCode} ({T("Total2")} {printed})");
+            Refresh();
+        }
+        catch (Exception ex) { Toasts.Bad($"{T("ReprintFailed")}: {ex.Message}"); }
+        finally { _focusScan = true; }
+    }
+
     // ── 팝업 제어 ─────────────────────────────────────────────────────
     private void Open(Popup p) => _popup = p;
-    private void ClosePopup() { _popup = Popup.None; Refresh(); }
+    private void ClosePopup() { _popup = Popup.None; _focusScan = true; Refresh(); }
 
     private async Task Logout()
     {
@@ -355,6 +433,8 @@
 
     public void Dispose()
     {
+        Scanner.OnScan            -= OnSerialScan;
+        Scanner.ConnectionChanged -= OnScannerConnection;
         _clockTimer?.Dispose();
         _refreshTimer?.Dispose();
     }

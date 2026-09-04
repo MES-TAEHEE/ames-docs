@@ -1763,23 +1763,23 @@ body {
                color: var(--ok); letter-spacing: 1px; white-space: nowrap; }
 .imgm-prog-v small { font-size: 20px; color: rgba(255, 255, 255, .4); margin-left: 4px; }
 .imgm-prog .entry-bar { flex: 1; height: 14px; margin-top: 0; }
-.imgm-entry .input-label   { margin-top: 8px; font-size: 13px; }
-.imgm-entry .input-display { font-size: 52px; line-height: 1.05; margin-top: 4px; padding: 2px 12px; }
-.imgm-entry .keypad        { flex: none; grid-auto-rows: 46px; gap: 6px; }
-.imgm-entry .kp            { font-size: 24px; }
-.imgm-confirm { margin-top: 8px; width: 100%; padding: 13px; border: none; border-radius: 8px;
-                background: var(--ok-dk); color: #fff; font-size: 19px; font-weight: 800;
-                cursor: pointer; }
-.imgm-confirm:disabled { background: rgba(255, 255, 255, .08); color: rgba(255, 255, 255, .35);
-                         cursor: not-allowed; }
-.imgm-entry .injm-banner   { min-height: 54px; padding: 6px 10px; margin-top: 8px; }
-.imgm-entry .injm-banner-t { font-size: 30px; letter-spacing: 4px; }
+.imgm-entry .input-label   { margin-top: 10px; font-size: 13px; }
+.imgm-print { margin-top: 12px; width: 100%; padding: 22px; border: none; border-radius: 10px;
+              background: var(--ok-dk); color: #fff; font-size: 26px; font-weight: 800;
+              letter-spacing: 1px; cursor: pointer; }
+.imgm-print:hover    { filter: brightness(1.12); }
+.imgm-print:active   { transform: scale(.985); }
+.imgm-print:disabled { background: rgba(255, 255, 255, .08); color: rgba(255, 255, 255, .35);
+                       cursor: not-allowed; filter: none; transform: none; }
+.imgm-entry .injm-banner   { min-height: 64px; padding: 8px 10px; }
+.imgm-entry .injm-banner-t { font-size: 36px; letter-spacing: 4px; }
 .imgm-entry .injm-banner-s { font-size: 14px; margin-top: 2px; }
 .imgm-entry .injm-chips    { margin-top: 8px; gap: 6px; }
 .imgm-entry .injm-chip     { padding: 5px 10px; font-size: 12px; }
 .imgm-entry .injm-chip b   { font-size: 14px; }
-/* 이력 카드가 키패드에 눌려 사라지지 않도록 최소 높이를 보장한다 */
-.imgm-hist { min-height: 150px; }
+.injm-result.wait { background: rgba(255, 255, 255, .08); color: rgba(255, 255, 255, .55); }
+/* 목록 카드가 상단 카드에 눌려 사라지지 않도록 최소 높이를 보장한다 */
+.imgm-hist { min-height: 220px; }
 .injm-actions.two { grid-template-columns: repeat(2, 1fr); }
 
 /* ---------- 도움말 단일 언어 표시 (HelpModal 언어 클래스) --------- */
