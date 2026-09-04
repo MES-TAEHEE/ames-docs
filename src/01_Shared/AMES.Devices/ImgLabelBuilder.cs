@@ -4,7 +4,7 @@ using System.Text;
 namespace AMES.Devices;
 
 /// <summary>
-/// IMG 완제품 라벨 2"×1"(406×203 dot @ 203dpi).
+/// IMG 완제품 라벨 4"×2"(812×406 dot @ 203dpi).
 /// 좌측 DataMatrix 는 고객 표준(ISO 15434 / MH10.8.2) 포맷:
 ///   [)> RS 06 GS V{수주처코드} GS P{품번(하이픈 제거)} GS S{PGN+ALC} GS T{yyMMdd}{part4M}{LotNo} GS E GS C: RS EOT
 /// 제어문자는 ^FH_ 로 16진 이스케이프(_1E RS · _1D GS · _04 EOT)한다 — 없으면 글자 그대로 찍힌다.
@@ -33,17 +33,17 @@ public static class ImgLabelBuilder
 
         var sb = new StringBuilder();
         sb.AppendLine("^XA");
-        sb.AppendLine("^PW406");
-        sb.AppendLine("^LL203");
+        sb.AppendLine("^PW812");
+        sb.AppendLine("^LL406");
         sb.AppendLine("^LH0,0");
         sb.AppendLine("^CI28");
-        sb.AppendLine($"^FO18,34^BXN,4,200^FH_^FD{dm}^FS");
-        Field(sb, "^FO160,25^A0N,62,48", l.Alc);
-        Field(sb, "^FO280,25^A0N,40,32", l.MountPos);
+        sb.AppendLine($"^FO36,68^BXN,7,200^FH_^FD{dm}^FS");
+        Field(sb, "^FO260,50^A0N,124,96", l.Alc);
+        Field(sb, "^FO500,50^A0N,80,64", l.MountPos);
         // Invariant 고정 — 서식의 '/' 는 문화권 날짜구분자로 치환된다(ko → '-').
-        sb.AppendLine($"^FO160,80^A0N,29,23^FD{l.IssuedAt.ToString("M/d/yyyy", CultureInfo.InvariantCulture)}^FS");
-        sb.AppendLine($"^FO160,110^A0N,39,28^FD{Zf(l.ItemNo)}^FS");
-        sb.AppendLine($"^FO160,150^A0N,39,28^FD{Zf(l.LotCode)}^FS");
+        sb.AppendLine($"^FO260,160^A0N,58,46^FD{l.IssuedAt.ToString("M/d/yyyy", CultureInfo.InvariantCulture)}^FS");
+        sb.AppendLine($"^FO260,220^A0N,78,56^FD{Zf(l.ItemNo)}^FS");
+        sb.AppendLine($"^FO260,300^A0N,78,56^FD{Zf(l.LotCode)}^FS");
         sb.Append("^XZ");
         return sb.ToString();
     }

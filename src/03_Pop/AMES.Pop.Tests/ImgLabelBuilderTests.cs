@@ -23,16 +23,16 @@ public class ImgLabelBuilderTests
         var expected = string.Join("\n", new[]
         {
             "^XA",
-            "^PW406",
-            "^LL203",
+            "^PW812",
+            "^LL406",
             "^LH0,0",
             "^CI28",
-            "^FO18,34^BXN,4,200^FH_^FD[)>_1E06_1DVBYU5_1DP83345P8000RBQ_1DS81328046_1DT2609041P8AA94W10002_1DE_1DC:_1E_04^FS",
-            "^FO160,25^A0N,62,48^FD8046^FS",
-            "^FO280,25^A0N,40,32^FDRR^FS",
-            "^FO160,80^A0N,29,23^FD9/4/2026^FS",
-            "^FO160,110^A0N,39,28^FD83345-P8000RBQ^FS",
-            "^FO160,150^A0N,39,28^FDA94W10002^FS",
+            "^FO36,68^BXN,7,200^FH_^FD[)>_1E06_1DVBYU5_1DP83345P8000RBQ_1DS81328046_1DT2609041P8AA94W10002_1DE_1DC:_1E_04^FS",
+            "^FO260,50^A0N,124,96^FD8046^FS",
+            "^FO500,50^A0N,80,64^FDRR^FS",
+            "^FO260,160^A0N,58,46^FD9/4/2026^FS",
+            "^FO260,220^A0N,78,56^FD83345-P8000RBQ^FS",
+            "^FO260,300^A0N,78,56^FDA94W10002^FS",
             "^XZ",
         });
         Assert.Equal(expected, zpl.Replace("\r\n", "\n"));
@@ -59,9 +59,9 @@ public class ImgLabelBuilderTests
         var zpl = ImgLabelBuilder.Build(l);
 
         Assert.Contains("_1DV_1DP83345P8000RBQ_1DS_1DT", zpl);
-        Assert.DoesNotContain("^FO160,25", zpl);
-        Assert.DoesNotContain("^FO280,25", zpl);
-        Assert.Contains("^FO160,150^A0N,39,28^FDA94W10002^FS", zpl);
+        Assert.DoesNotContain("^FO260,50", zpl);
+        Assert.DoesNotContain("^FO500,50", zpl);
+        Assert.Contains("^FO260,300^A0N,78,56^FDA94W10002^FS", zpl);
     }
 
     [Fact]
