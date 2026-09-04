@@ -417,6 +417,7 @@ public sealed class ImgLotRepository
                 FROM   dbo.PP_LineSchedule s
                 JOIN   dbo.PP_WorkOrder    w ON w.WoID = s.WoID
                 WHERE  s.LineID = @Line AND s.ScheduleDate = @Today AND s.EntryType = 'WO'
+                  AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
                 GROUP  BY w.ItemNo
             ),
             lots AS (
