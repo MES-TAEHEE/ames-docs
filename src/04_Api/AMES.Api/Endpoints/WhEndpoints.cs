@@ -63,11 +63,13 @@ public static class WhEndpoints
     public sealed record InboundDocumentResult(InboundDocumentRow? Document,
         List<InboundDocumentLineRow> Lines, List<InboundDocumentBoxRow> Boxes);
 
-    public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId);
+    public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId, bool SimulateFailure = false);
     public sealed record InboundCancelReq(string Mode, string Barcode);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
         string? ReasonNote, string SupervisorPin, string? SupervisorEmployeeNo = null);
     public sealed record SupervisorRow(string EmployeeNo, string EmployeeName);
+    public sealed record SupervisorPinReq(string EmployeeNo, string Pin);
+    public sealed record SupervisorPinResult(bool Success, string Message);
     public sealed record InboundReceiveResult(bool Success, string Message, InboundScanRow? Row);
     internal sealed record SupervisorPinProfile(string UserId, string EmployeeNo);
 
@@ -235,11 +237,16 @@ public static class WhEndpoints
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
-            var result = ExecuteInboundReceive(factory, body, s.EmployeeNo, PdaInboundReceiveLotProcedure, "Received");
+            var simulateFailure = body.SimulateFailure
+                && string.Equals(s.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+            var result = ExecuteInboundReceive(
+                factory, body, s.EmployeeNo, PdaInboundReceiveLotProcedure, "Received", simulateFailure);
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                 s, "RECEIVE", "WH002", "LOT", body.Barcode, result.Success ? "SUCCESS" : "FAIL", result.Message,
                 lotNo: result.Row?.LotNo ?? body.Barcode, partNo: result.Row?.PartNo, locationId: body.LocationId, qty: result.Row?.Qty));
-            return Results.Ok(result);
+            return simulateFailure && !result.Success
+                ? Results.Problem(result.Message, statusCode: StatusCodes.Status503ServiceUnavailable)
+                : Results.Ok(result);
         }
 
         g.MapPost("/inbound/receive-lot", ReceiveInboundLot);
@@ -308,6 +315,23 @@ public static class WhEndpoints
             catch
             {
                 return Results.Problem("Supervisor list is unavailable.", statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+        });
+
+        g.MapPost("/adjust/supervisor/validate", (HttpContext ctx, SupervisorPinReq body) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+
+            try
+            {
+                using var conn = factory.OpenConnection();
+                var valid = FindSupervisorByPin(conn, body.EmployeeNo, body.Pin) is not null;
+                return Results.Ok(new SupervisorPinResult(valid,
+                    valid ? "Supervisor PIN approved." : "The PIN does not match the selected supervisor."));
+            }
+            catch
+            {
+                return Results.Problem("Supervisor PIN validation is unavailable.", statusCode: StatusCodes.Status503ServiceUnavailable);
             }
         });
 
@@ -1060,19 +1084,56 @@ public static class WhEndpoints
 
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("""
+            ;WITH ReleaseLines AS
+            (
+                SELECT
+                    RS.ReleaseScheduleID,
+                    COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID)) AS PickSlipNo,
+                    RS.ItemNo,
+                    CASE
+                        WHEN COALESCE(RS.DemandQty, 0) > COALESCE(RS.PickedQty, 0)
+                            THEN COALESCE(RS.DemandQty, 0) - COALESCE(RS.PickedQty, 0)
+                        ELSE 0
+                    END AS RemainingBoxQty
+                FROM dbo.WH_ReleaseSchedule RS
+                WHERE UPPER(COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID))) = UPPER(@PickSlipNo)
+                  AND UPPER(COALESCE(RS.Status, N'OPEN')) NOT IN (N'CLOSED', N'RELEASED', N'CANCELED', N'CANCELLED')
+            ),
+            RankedLots AS
+            (
+                SELECT
+                    R.PickSlipNo,
+                    R.ReleaseScheduleID,
+                    R.ItemNo,
+                    R.RemainingBoxQty,
+                    L.LotCode,
+                    W.LocationID,
+                    COALESCE(W.OnHandQty, 0) AS Qty,
+                    L.ProducedAt,
+                    W.LastReceivedAt,
+                    ROW_NUMBER() OVER
+                    (
+                        PARTITION BY R.ReleaseScheduleID
+                        ORDER BY COALESCE(L.ProducedAt, CONVERT(datetime2, '9999-12-31')),
+                                 COALESCE(W.LastReceivedAt, CONVERT(datetime2, '9999-12-31')),
+                                 L.LotID
+                    ) AS FifoSeq
+                FROM ReleaseLines R
+                INNER JOIN dbo.WH_Inventory W ON W.ItemNo = R.ItemNo
+                INNER JOIN dbo.tbl_Lot L ON L.LotID = W.LotID
+                WHERE COALESCE(W.OnHandQty, 0) > 0
+                  AND UPPER(COALESCE(W.Status, N'RECEIVED')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
+            )
             SELECT
-                A.PickSlipNo AS PICK_SLIPNO,
-                A.ItemNo AS PARTNO,
-                A.LotNo AS LOTNO,
-                A.LocationID AS LOCATION_NO,
-                COALESCE(A.AllocatedQty, W.OnHandQty, 0) AS QTY,
-                CONVERT(nvarchar(20), COALESCE(A.ReceivedDate, A.ProductionDate), 23) AS PROD_DATE
-            FROM dbo.WH_ReleasePickAllocation A
-            LEFT JOIN dbo.WH_Inventory W ON W.LotID = A.LotID
-            WHERE UPPER(A.PickSlipNo) = UPPER(@PickSlipNo)
-              AND COALESCE(A.PickedBoxQty, 0) < COALESCE(A.AllocatedBoxQty, 1)
-              AND UPPER(COALESCE(A.Status, 'OPEN')) NOT IN ('FULFILLED','RELEASED','CANCELLED','CANCELED')
-            ORDER BY A.ReleaseScheduleID, A.AllocationSeq;
+                PickSlipNo AS PICK_SLIPNO,
+                ItemNo AS PARTNO,
+                LotCode AS LOTNO,
+                LocationID AS LOCATION_NO,
+                Qty AS QTY,
+                CONVERT(nvarchar(20), ProducedAt, 23) AS PROD_DATE
+            FROM RankedLots
+            WHERE FifoSeq <= RemainingBoxQty
+            ORDER BY ReleaseScheduleID, FifoSeq;
             """, conn);
         cmd.Parameters.AddWithValue("@PickSlipNo", pickSlipNo);
 
@@ -1509,11 +1570,6 @@ public static class WhEndpoints
                        ModifiedBy=@User, ModifiedTS=SYSDATETIME()
                  WHERE LotID=@LotID;
 
-                IF @AfterStatus<>@BeforeStatus AND OBJECT_ID(N'dbo.WH_LotStatusHistory',N'U') IS NOT NULL
-                    INSERT dbo.WH_LotStatusHistory
-                        (LotID,LotNo,BeforeStatus,AfterStatus,ReasonCode,ReferenceNo,ChangedBy)
-                    VALUES (@LotID,@LotNo,@BeforeStatus,@AfterStatus,@ReasonCode,@TargetCode,@User);
-
                 INSERT dbo.WH_InventoryTransaction
                     (TransactionTime,TransactionType,ItemNo,LocationID,LotID,QtyBefore,QtyChange,QtyAfter,
                      ReasonCode,RefDocType,RefDocID,OperatorID,Note,CreatedBy,CreatedTS)
@@ -1682,23 +1738,6 @@ public static class WhEndpoints
                        SET RemainingQty=0, InventoryStatus='RELEASED', Status='Released', CurrentLocationID=NULL,
                            ModifiedBy=@User, ModifiedTS=SYSDATETIME()
                      WHERE LotID=@LotID;
-
-                    INSERT dbo.WH_LotStatusHistory
-                        (LotID,LotNo,BeforeStatus,AfterStatus,ReasonCode,ReferenceNo,ChangedBy)
-                    VALUES (@LotID,@LotNo,@BeforeStatus,'RELEASED',@ReasonCode,@Slip,@User);
-
-                    ;WITH Target AS
-                    (
-                        SELECT TOP (1) * FROM dbo.WH_ReleasePickAllocation
-                        WHERE PickSlipNo=@Slip AND ReleaseScheduleID=@ScheduleID
-                          AND COALESCE(PickedBoxQty,0)<AllocatedBoxQty
-                        ORDER BY CASE WHEN LotID=@LotID THEN 0 ELSE 1 END, AllocationSeq
-                    )
-                    UPDATE Target
-                       SET LotID=@LotID, LotNo=@LotNo, LocationID=@LocationID,
-                           ProductionDate=@ProductionDate, ReceivedDate=@ReceivedDate, AllocatedQty=@Qty,
-                           PickedQty=@Qty, PickedBoxQty=AllocatedBoxQty, Status='FULFILLED',
-                           ModifiedBy=@User, ModifiedTS=SYSDATETIME();
 
                     INSERT dbo.WH_ReleasePicking
                         (PickingNo,ReleaseScheduleID,ItemNo,LocationID,LotID,PickedQty,PickedAt,PickedBy,TerminalID,FifoOverride,CreatedBy,CreatedTS)
@@ -1964,7 +2003,8 @@ public static class WhEndpoints
         InboundReceiveReq body,
         string userId,
         string proc,
-        string successMessage)
+        string successMessage,
+        bool simulateFailure = false)
     {
         try
         {
@@ -1978,6 +2018,8 @@ public static class WhEndpoints
             cmd.Parameters.Add("@LotBarcode", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
             cmd.Parameters.Add("@LocationId", SqlDbType.NVarChar, 30).Value = body.LocationId.Trim();
             cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 40).Value = userId;
+            if (string.Equals(proc, PdaInboundReceiveLotProcedure, StringComparison.OrdinalIgnoreCase))
+                cmd.Parameters.Add("@SimulateFailure", SqlDbType.Bit).Value = simulateFailure;
 
             using var rdr = cmd.ExecuteReader();
             var row = rdr.Read() ? ReadInboundScanRow(rdr) : null;

@@ -141,10 +141,6 @@ public sealed class PdaApi
     // ── WH ───────────────────────────────────────────────────────────────
     public sealed record InboundRow(int LotId, string LotCode, string? ItemNo, string? ItemName,
         decimal Qty, string? Vendor, DateTime? ArrivedAt);
-    public sealed record Wh001ScheduleInboundItem(int ScheduleItemId, string PurchaseOrderNo, int? PurchaseOrderLineNo,
-        string? SupplierName, string? MaterialNo, string? MaterialName, string? CarCode, string? UnitOfMeasure,
-        decimal PurchaseOrderQty, decimal ReceivedQty, decimal RemainingQty, DateTime? ExpectedArrivalDate,
-        DateTime? PurchaseOrderCreatedDate, string ReceiptStatus);
     public sealed record InboundScanRow(string ReceiveType, string? Yn, string LotNo, string Barcode,
         string? SourceTable, string? NoteNo, string? CaseBarcode, string? CaseNo, string? InvoiceNo,
         string? ContainerNo, string? PartNo, string? PartName, decimal Qty, string? Unit, string? PoNo,
@@ -187,9 +183,6 @@ public sealed class PdaApi
         string? PlantCode = null, string? LocationType = null, decimal? Capacity = null);
     public sealed record LocationMapItemRow(string LotNo, string? PartNo, string? PartName, decimal Qty, string? Unit,
         string? InventoryStatus, string? WorkDate, string? WorkTime);
-    public sealed record Wh001ScheduleReleaseItem(int WorkOrderId, string? WorkOrderNo,
-        string PartNo, string? PartName, decimal OrderQty, string? Unit,
-        DateTime? DueDate, string WorkOrderStatus, DateTime? ReleasedAt, string? LineId);
     public sealed record ReleaseSlipStatusRow(string PickSlipNo, bool Exists, bool IsClosed, int LineCount,
         string? RequestLocation, DateTime? RequestDate, DateTime? CloseDate, string Message);
     public sealed record ReleasePickLineRow(string PickSlipNo, string ItemNo, string? ItemName,
@@ -220,29 +213,21 @@ public sealed class PdaApi
         string? LocationId, decimal QtyBefore, decimal Delta, decimal QtyAfter, string? ReasonCode);
 
     public sealed record ReceiveReq(string LotCode, decimal Qty, string LocationId);
-    public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId);
+    public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId, bool SimulateFailure = false);
     public sealed record InboundCancelReq(string Mode, string Barcode);
     public sealed record InboundAdjustReq(string Mode, string Barcode, decimal DeltaQty, string ReasonCode,
         string? ReasonNote, string SupervisorPin, string? SupervisorEmployeeNo = null);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
         string? ReasonNote, string SupervisorPin, string? SupervisorEmployeeNo = null);
     public sealed record SupervisorRow(string EmployeeNo, string EmployeeName);
+    public sealed record SupervisorPinReq(string EmployeeNo, string Pin);
+    public sealed record SupervisorPinResult(bool Success, string Message);
     public sealed record InboundReceiveResult(bool Success, string Message, InboundScanRow? Row);
     public sealed record AdjustReq(string ItemNo, string LocationId, decimal Delta, string ReasonCode, string? Note);
     public sealed record PickReq(string PickSlipNo, string LotNo, decimal Qty);
     public sealed record PickResult(bool Success, string Message, ReleaseLotRow? Row);
 
     public Task<List<InboundRow>>         WhInboundTodayAsync()    => Get<List<InboundRow>>("/api/wh/inbound/today");
-    public async Task<List<Wh001ScheduleInboundItem>> Wh001ScheduleInboundAsync(int? year = null, int? quarter = null, string? vendorId = null)
-    {
-        var args = new List<string>();
-        if (year.HasValue) args.Add($"year={year.Value}");
-        if (quarter.HasValue) args.Add($"quarter={quarter.Value}");
-        if (!string.IsNullOrWhiteSpace(vendorId)) args.Add($"vendorId={Uri.EscapeDataString(vendorId)}");
-
-        var query = args.Count == 0 ? "" : "?" + string.Join("&", args);
-        return await Get<List<Wh001ScheduleInboundItem>>("/api/wh/schedule/inbound" + query);
-    }
     public async Task<List<InventoryRow>> WhInventoryAsync(string? q = null, DateTime? dateFrom = null, DateTime? dateTo = null)
     {
         try
@@ -394,11 +379,6 @@ public sealed class PdaApi
             return (await WhLocationsAsync()).FirstOrDefault()?.LocationId;
         }
     }
-    public Task<List<Wh001ScheduleReleaseItem>> Wh001ScheduleReleaseAsync(DateTime? dateFrom = null, DateTime? dateTo = null)
-    {
-        var query = $"?dateFrom={dateFrom:yyyy-MM-dd}&dateTo={dateTo:yyyy-MM-dd}";
-        return Get<List<Wh001ScheduleReleaseItem>>("/api/wh/schedule/release" + query);
-    }
     public async Task<ReleaseSlipStatusRow?> WhReleaseSlipStatusAsync(string pickSlipNo)
     {
         Authorize();
@@ -522,6 +502,17 @@ public sealed class PdaApi
         if (!resp.IsSuccessStatusCode)
             throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Supervisor list is unavailable."));
         return await resp.Content.ReadFromJsonAsync<List<SupervisorRow>>() ?? [];
+    }
+
+    public async Task<SupervisorPinResult> WhValidateSupervisorPinAsync(string employeeNo, string pin)
+    {
+        Authorize();
+        using var resp = await _http.PostAsJsonAsync("/api/wh/adjust/supervisor/validate",
+            new SupervisorPinReq(employeeNo, pin));
+        if (!resp.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Supervisor PIN validation is unavailable."));
+        return await resp.Content.ReadFromJsonAsync<SupervisorPinResult>()
+            ?? new SupervisorPinResult(false, "Supervisor PIN validation failed.");
     }
 
     public async Task<InboundScanRow?> WhScanAdjustAsync(string scanText)

@@ -47,17 +47,16 @@
                             </div>
                         </div>
                         <div class="wh07-lot-list">
-                            @foreach (var lot in LotsFor(line.ItemNo))
+                            @foreach (var lot in DisplayFifoLotsFor(line.ItemNo))
                             {
-                                var scanned = IsScannedLot(lot.LotNo);
-                                <div id="@LotElementId(lot.LotNo)" class="@($"wh07-lot-row {(scanned ? "scanned" : "")}")">
+                                <div class="wh07-lot-row @(IsPendingPick(lot.LotNo) ? "scanned" : "")">
                                     <div>
                                         <strong>@lot.LotNo</strong>
-                                        <span>@(lot.LocationNo ?? "-")</span>
+                                        <span>@Text(lot.LocationNo)</span>
                                     </div>
                                     <div class="wh07-lot-qty">
                                         <strong>@lot.Qty.ToString("N0")</strong>
-                                        <span>@(scanned ? "SCANNED" : "READY")</span>
+                                        <span>@Text(lot.ProductionDate)</span>
                                     </div>
                                 </div>
                             }
@@ -223,8 +222,6 @@
     private PdaApi.ReleaseLotRow? _scan;
     private PdaApi.DirectOutgoingLotRow? _directLot;
     private decimal _directQty = 1;
-    private string? _scrollLotNo;
-    private bool _scrollLotAfterRender;
     private bool _scrollOutgoingTypeAfterRender;
     private bool _highlightOutgoingType;
     private bool _isBusy;
@@ -263,12 +260,6 @@
         {
             _scrollOutgoingTypeAfterRender = false;
             await JS.InvokeVoidAsync("pdaScan.scrollTo", ".wh07-type-panel");
-        }
-        else if (_scrollLotAfterRender)
-        {
-            _scrollLotAfterRender = false;
-            if (!string.IsNullOrWhiteSpace(_scrollLotNo))
-                await JS.InvokeVoidAsync("pdaScan.scrollTo", $"#{LotElementId(_scrollLotNo)}");
         }
         await FocusScannerAsync();
     }
@@ -405,7 +396,6 @@
         {
             _loadedSlipNo = _pickSlipNo.Trim();
             _scan = null;
-            _scrollLotNo = null;
             _outgoingType = "";
             _highlightOutgoingType = false;
             _lines.Clear();
@@ -504,15 +494,10 @@
 
             _scan = _scan with { IsValid = true, Message = "LOT added. It will be saved when RELEASE is pressed." };
             _pendingPicks.Add(_scan);
-            _scrollLotNo = _scan.LotNo;
             if (CanCompleteRelease)
             {
                 _highlightOutgoingType = true;
                 _scrollOutgoingTypeAfterRender = true;
-            }
-            else
-            {
-                _scrollLotAfterRender = true;
             }
         }
         catch (Exception ex)
@@ -555,7 +540,19 @@
         }
     }
 
-    private static string LineCardClass(PdaApi.ReleasePickLineRow line) => "wh07-line-card";
+    private string LineCardClass(PdaApi.ReleasePickLineRow line)
+    {
+        var picked = DisplayPickedBox(line);
+        return picked >= line.RequestBoxQty
+            ? "wh07-line-card picked"
+            : picked > 0 ? "wh07-line-card partial" : "wh07-line-card open";
+    }
+
+    private IEnumerable<PdaApi.ReleaseFifoLotRow> DisplayFifoLotsFor(string itemNo)
+        => _fifoLots.Where(lot => string.Equals(lot.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase));
+
+    private bool IsPendingPick(string lotNo)
+        => _pendingPicks.Any(pick => string.Equals(pick.LotNo, lotNo, StringComparison.OrdinalIgnoreCase));
 
     private List<PdaApi.ReleaseFifoLotRow> FifoLotsFor(string itemNo)
         => _fifoLots.Where(lot => string.Equals(lot.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase)
@@ -611,20 +608,9 @@
         _scan = null;
         _directLot = null;
         _directQty = 1;
-        _scrollLotNo = null;
-        _scrollLotAfterRender = false;
         _scrollOutgoingTypeAfterRender = false;
         _highlightOutgoingType = false;
     }
-
-    private List<PdaApi.ReleaseFifoLotRow> LotsFor(string itemNo)
-        => _fifoLots.Where(lot => string.Equals(lot.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase)).ToList();
-
-    private bool IsScannedLot(string lotNo)
-        => _pendingPicks.Any(pick => string.Equals(pick.LotNo, lotNo, StringComparison.OrdinalIgnoreCase));
-
-    private static string LotElementId(string lotNo)
-        => $"wh07-lot-{string.Concat(lotNo.Select(ch => char.IsLetterOrDigit(ch) ? ch : '-'))}";
 
     private Task ReleaseAsync()
         => _directLot is null ? CompleteReleaseAsync() : CompleteDirectOutgoingAsync();

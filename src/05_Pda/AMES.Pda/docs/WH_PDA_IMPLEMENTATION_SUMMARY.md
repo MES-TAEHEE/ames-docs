@@ -22,10 +22,8 @@
 - `..\..\04_Api\AMES.Api\Endpoints\AuthEndpoints.cs`
 - `..\..\04_Api\AMES.Api\Endpoints\WhEndpoints.cs`
 - `..\..\..\dist\pda\README.md`
-- `..\..\..\dist\pda\migrate_pda_wh_schedule.sql`
-- `..\..\..\dist\pda\seed_pda_wh_demo_data.sql`
-- `..\..\..\dist\pda\migrate_pda_wh_inbound.sql`
-- `..\..\..\dist\pda\seed_pda_wh_inbound_demo_data.sql`
+- `..\..\..\dist\pda\PDA_SCHEMA.sql`
+- `..\..\..\dist\pda\PDA_SEED.sql`
 - `docs/sql/WH002_ADJUST_QTY.sql`
 
 테스트 DB 기준:
@@ -237,11 +235,11 @@ PDA 코드 호출:
 
 PDA DB 스크립트 관리 기준:
 
-- Schedule부터 PDA DB 변경사항은 화면별 `docs/sql/WH001_*.sql` 파일로 나누지 않고 `dist/pda/migrate_pda_wh_schedule.sql`에 통합 관리한다.
+- PDA WH/FG DB 변경사항은 화면별 SQL로 나누지 않고 `dist/pda/PDA_SCHEMA.sql`에 통합 관리한다.
 - 새 프로시저는 화면번호가 아닌 업무 기준 이름을 사용한다. 예: `dbo.WH_PDA_SCHEDULE_INBOUND_LIST`, `dbo.WH_PDA_SCHEDULE_RELEASE_LIST`.
 - PDA가 직접 관리하거나 demo seed로 채우는 Warehouse 업무 테이블은 기존 AMES 명명 규칙에 맞춰 `dbo.WH_...` 형식을 사용한다.
 - Schedule Inbound demo data는 `dbo.WH_PurchaseOrder`, Release demo data는 `dbo.WH_ReleaseSchedule`을 사용한다.
-- demo seed는 `dist/pda/seed_pda_wh_demo_data.sql`에 분리해 둔다.
+- PDA WH/FG demo seed는 `dist/pda/PDA_SEED.sql`에 통합 관리한다.
 
 프로시저 입력:
 
@@ -493,8 +491,8 @@ SQL Server `AMES_DEV`의 `dbo` 스키마에 아래 테이블 및 프로시저를
 - `dbo.WH_PDA_INBOUND_RECEIVE_LOT`
 - `dbo.WH_PDA_INBOUND_MOVE_LOCATION`
 - `dbo.WH_PDA_INBOUND_CANCEL_RECEIPT`
-- `dist/pda/migrate_pda_wh_inbound.sql`
-- `dist/pda/seed_pda_wh_inbound_demo_data.sql`
+- `dist/pda/PDA_SCHEMA.sql`
+- `dist/pda/PDA_SEED.sql`
 
 Inbound test data:
 

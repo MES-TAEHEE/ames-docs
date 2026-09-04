@@ -357,7 +357,7 @@
 
                     <div class="wh03-action-row">
                         <RadzenButton class="wh03-date-clear" Click="@ClearInventoryWork" Disabled="@InventoryBusy" Text="CLEAR" />
-                        <RadzenButton class="wh03-date-apply wh03-post-btn ready save" Click="@PostInventoryAdjust" Disabled="@InventoryBusy" Text="SAVE" />
+                        <RadzenButton class="wh03-date-apply wh03-post-btn ready save" Click="@PostInventoryAdjust" Disabled="@DisableInventoryAdjust" Text="SAVE" />
                     </div>
                 </RadzenCard>
             }
@@ -619,6 +619,7 @@
     private bool _pinPadOpen;
     private string _pinPadDraft = "";
     private string _invAdjustSupervisorEmployeeNo = "";
+    private bool _invSupervisorPinValid;
     private List<PdaApi.SupervisorRow> _invSupervisors = [];
     private string _invAdjustNote = "";
     private decimal _invAdjustDelta;
@@ -689,7 +690,7 @@
     private bool DisableInventoryLocationScan => !InventoryAlreadyReceived || InventoryBusy || string.IsNullOrWhiteSpace(_invLocationNo);
     private bool DisableInventoryAdjust => !InventoryAlreadyReceived || InventoryBusy || _invAdjustDelta == 0 || IsAdjustQtyBelowStock
         || string.IsNullOrWhiteSpace(_invAdjustReason) || string.IsNullOrWhiteSpace(_invAdjustSupervisorPin)
-        || string.IsNullOrWhiteSpace(_invAdjustSupervisorEmployeeNo);
+        || string.IsNullOrWhiteSpace(_invAdjustSupervisorEmployeeNo) || !_invSupervisorPinValid;
     private bool DisableInventoryMove => !InventoryAlreadyReceived || InventoryBusy || _invTargetLocation is null || InventoryTargetSameAsCurrent;
     private bool DisableAdjustQtyControls => !InventoryAlreadyReceived || InventoryBusy;
     private bool DisableAdjustQtyMinus => DisableAdjustQtyControls || _invAdjustDelta <= -InventoryBeforeQty;
@@ -1175,7 +1176,7 @@
             if (location is null
                 && string.Equals(lookup?.SearchKind, "LOCATION", StringComparison.OrdinalIgnoreCase))
             {
-                var locationNo = string.IsNullOrWhiteSpace(lookup.SearchText) ? scanText : lookup.SearchText.Trim();
+                var locationNo = string.IsNullOrWhiteSpace(lookup?.SearchText) ? scanText : lookup.SearchText.Trim();
                 location = _inventoryLocations.FirstOrDefault(row =>
                     string.Equals(row.LocationId, locationNo, StringComparison.OrdinalIgnoreCase));
                 location ??= await Api.WhScanLocationAsync(locationNo);
@@ -1345,6 +1346,7 @@
         _invAdjustReason = "COUNT_DIFF";
         ClearSupervisorPin();
         _invAdjustSupervisorEmployeeNo = "";
+        _invSupervisorPinValid = false;
         _invAdjustNote = "";
         _invAdjustDelta = 0;
     }
@@ -1352,6 +1354,7 @@
     private void ClearSupervisorPin()
     {
         _invAdjustSupervisorPin = "";
+        _invSupervisorPinValid = false;
         CloseSupervisorPinPad();
     }
 
@@ -1382,13 +1385,32 @@
             _pinPadDraft = _pinPadDraft[..^1];
     }
 
-    private void ConfirmSupervisorPin()
+    private async Task ConfirmSupervisorPin()
     {
         if (!_pinPadOpen || _pinPadDraft.Length < 4)
             return;
 
-        _invAdjustSupervisorPin = _pinPadDraft;
+        var pin = _pinPadDraft;
         CloseSupervisorPinPad();
+
+        try
+        {
+            var result = await Api.WhValidateSupervisorPinAsync(_invAdjustSupervisorEmployeeNo, pin);
+            _invSupervisorPinValid = result.Success;
+            _invAdjustSupervisorPin = result.Success ? pin : "";
+            _invMsg = result.Message;
+            _invCls = result.Success ? "ok" : "fail";
+            if (!result.Success)
+                ShowAlert("PIN Approval Failed", result.Message, "warn");
+        }
+        catch (Exception ex)
+        {
+            _invSupervisorPinValid = false;
+            _invAdjustSupervisorPin = "";
+            _invMsg = ex.Message;
+            _invCls = "fail";
+            ShowAlert("PIN Approval Failed", ex.Message, "warn");
+        }
     }
 
     private void CloseSupervisorPinPad()
@@ -1431,10 +1453,18 @@
             if (!IsAdjustTab && InventoryAlreadyReceived && !string.IsNullOrWhiteSpace(row.ReceivedLocation))
                 _inventoryCurrentLocation = await Api.WhScanLocationAsync(row.ReceivedLocation);
 
-            _invMsg = InventoryAlreadyReceived
-                ? "Inventory LOT loaded."
-                : "This LOT has not been received yet. Receive it before adjustment or locating.";
-            _invCls = InventoryAlreadyReceived ? "ok" : "warn";
+            if (IsAdjustTab && InventoryAlreadyReceived && InventoryBeforeQty <= 0)
+            {
+                _invMsg = "This LOT has zero stock. Only positive adjustments are allowed.";
+                _invCls = "warn";
+            }
+            else
+            {
+                _invMsg = InventoryAlreadyReceived
+                    ? "Inventory LOT loaded."
+                    : "This LOT has not been received yet. Receive it before adjustment or locating.";
+                _invCls = InventoryAlreadyReceived ? "ok" : "warn";
+            }
         }
         catch (Exception ex)
         {
