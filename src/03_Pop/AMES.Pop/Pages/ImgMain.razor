@@ -1,0 +1,449 @@
+@page "/imgmain"
+@using AMES.Contracts.Enums
+@using AMES.Pop.Pages.InjPopups
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AppState State
+@inject ConfirmService Confirmer
+@inject ToastService Toasts
+@inject AMES.Pop.Services.ScannerService Scanner
+
+@*  IMG-MAIN — IMG 통합 작업 화면. INJ-MAIN 과 같은 2단 레이아웃과 같은 LOT 모델(1 LOT = 1 EA).
+    좌측 스테이션 품번 당일 현황(PLAN/INPUT/NG/FINAL) + 우측 라벨 발행·스캔 확정·오늘 발행 LOT 목록.
+    IMG 는 에이전트가 없어 LOT 은 라벨 발행 버튼이 만들고 그 자리에서 라벨을 동기 출력한다.
+    실적은 라벨을 스캔해야 확정되며, 목록의 해당 행에 OK 가 붙는다. WO 접수 없음 — 품번 선택이 열린 WO 를 자동 해석.
+    불량·안돈은 팝업(Pages/InjPopups/*)을 공유한다. *@
+
+<div class="pop-shell injm-shell">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">IMG-MAIN · @Session?.TerminalId · @Session?.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            <span class="@_eqClass">● @PopLang.EqStatus(_eqStatus)</span>
+            @if (Scanner.IsEnabled)
+            {
+                <span class="@(_scannerOn ? "stat-on" : "stat-off")">🔌 @T("Scanner")</span>
+            }
+            <span>@Session?.EmployeeName · @PopLang.Shift(Session?.ShiftCode ?? "")</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+            <button class="injm-lang-btn" @onclick="ToggleLang">@(PopLang.IsKo ? "EN" : "한국어")</button>
+            <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.ImgMainHelp))" />
+            <button class="injm-logout-btn" @onclick="Logout">⏻ @T("Logout")</button>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="injm-grid">
+
+            @* ── 좌측: 스테이션 품번 당일 현황 ─────────────────────── *@
+            <div class="pop-card injm-left">
+                <div class="pop-card-h">▼ @T("PartNo") · @_now.ToString("yyyy-MM-dd") · @Session?.TerminalId</div>
+                @if (_refreshError is not null)
+                {
+                    <div class="injm-refresh-err">⚠ @T("DataRefreshFailed", _refreshErrorAt.ToString("HH:mm:ss")) — @_refreshError</div>
+                }
+                <div class="injm-tbl-wrap">
+                    <table class="injm-tbl">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;">@T("PartNo")</th>
+                                <th>@T("Plan")</th>
+                                <th>@T("Input")</th>
+                                <th>@T("Ng")</th>
+                                <th>@T("Final")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var it in _items)
+                        {
+                            var isSel = string.Equals(_selItemNo, it.ItemNo, StringComparison.OrdinalIgnoreCase);
+                            <tr class="@(isSel ? "active" : "")" @onclick="@(() => SelectItem(it))">
+                                <td class="mono" style="text-align:left;" title="@it.ItemName">
+                                    @it.ItemNo
+                                    @if (!it.InBop)
+                                    {
+                                        <span class="injm-dim-badge">@T("NotInBop")</span>
+                                    }
+                                    @if (!it.HasOpenWo)
+                                    {
+                                        <span class="injm-dim-badge">@T("NoOpenWo")</span>
+                                    }
+                                </td>
+                                <td>@it.PlanQty.ToString("0")</td>
+                                <td>@it.InputQty</td>
+                                <td class="@(it.NgQty > 0 ? "bad" : "")">@it.NgQty</td>
+                                <td class="ok">@it.FinalQty</td>
+                            </tr>
+                        }
+                        @if (_items.Count == 0 && _refreshError is null)
+                        {
+                            <tr><td colspan="5" style="padding:28px; color:rgba(255,255,255,.4); text-align:center; font-size:20px;">
+                                @T("NoBopItemsForStation")
+                            </td></tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="injm-total">
+                    <span>@T("Plan") <b>@_items.Sum(x => x.PlanQty).ToString("0")</b></span>
+                    <span>@T("Input") <b class="mod">@_items.Sum(x => x.InputQty)</b></span>
+                    <span>@T("Ng") <b class="bad">@_items.Sum(x => x.NgQty)</b></span>
+                    <span>@T("Final") <b class="ok">@_items.Sum(x => x.FinalQty)</b></span>
+                    <span>@T("Shortage") <b class="bad">@_items.Sum(x => Math.Max(0, x.PlanQty - x.FinalQty)).ToString("0")</b></span>
+                </div>
+            </div>
+
+            @* ── 우측: 라벨 발행 + 스캔 확정 + 오늘 발행 LOT ───────── *@
+            <div class="injm-right">
+                <div class="pop-card imgm-entry">
+                    <div class="pop-card-h">▼ @T("CurrentWo") (@T("PartNo"): @(_selItemNo ?? "—"))</div>
+                    <div class="imgm-wo-row">
+                        <span class="imgm-wo-no">@(_activeWo?.WoNumber ?? "—")</span>
+                        <span class="imgm-wo-name">@(_activeWo?.ItemName ?? T("SelectPartWithOpenWo"))</span>
+                    </div>
+                    <div class="imgm-prog">
+                        <span class="imgm-prog-v">@(_activeWo?.CompletedQty.ToString("0") ?? "—")<small>/ @(_activeWo?.OrderQty.ToString("0") ?? "—")</small></span>
+                        <div class="entry-bar"><div class="entry-bar-fill" style="width:@_pct%;"></div></div>
+                    </div>
+
+                    <button class="imgm-print" disabled="@(_activeWo is null || _printing)" @onclick="PrintLabel">
+                        🏷 @T("LabelPrint") · @(_selItemNo ?? "—")
+                    </button>
+
+                    <div class="input-label">@T("LotBarcodeScanConfirm")</div>
+                    <input @ref="_scanInput" @bind="_scanBuf" @bind:event="oninput"
+                           @onkeydown="OnScanKey" class="injm-scan-input"
+                           placeholder="A94W10001" autocomplete="off" />
+                    <div class="injm-banner @_bannerClass">
+                        <div class="injm-banner-t">@BannerTitle</div>
+                        @if (_bannerDetail.Length > 0)
+                        {
+                            <div class="injm-banner-s">@_bannerDetail</div>
+                        }
+                    </div>
+                    <div class="injm-chips">
+                        <span class="injm-chip">@T("TodayGood") <b class="ok">@_todayGood</b></span>
+                        <span class="injm-chip">@T("Defect") <b class="@_defClass">@_todayDef · @_defectPct</b></span>
+                        <span class="injm-chip">@T("Unconfirmed") <b class="@(_rawCount > 0 ? "warn" : "ok")">@_rawCount</b></span>
+                        <span class="injm-chip">@T("FabricRoll") <b class="@_fabricClass">@_fabricText</b></span>
+                        <span class="injm-chip">@T("BondRecipe") <b>@_bondText</b></span>
+                    </div>
+                </div>
+
+                <div class="pop-card injm-lots imgm-hist">
+                    <div class="pop-card-h">▼ @T("TodayLotsNewestFirst")</div>
+                    <div class="injm-scroll">
+                        <table class="injm-subtbl">
+                            <thead><tr>
+                                <th style="text-align:left;">@T("Lotno")</th>
+                                <th style="text-align:left;">@T("PartNo")</th>
+                                <th style="text-align:left;">@T("Time")</th>
+                                <th>@T("Status")</th>
+                                <th></th>
+                            </tr></thead>
+                            <tbody>
+                            @foreach (var lot in _lots)
+                            {
+                                <tr>
+                                    <td class="mono" style="cursor:pointer;"
+                                        @onclick="@(() => { _scanBuf = lot.LotCode; _focusScan = true; })">@lot.LotCode</td>
+                                    <td class="mono">@lot.ItemNo</td>
+                                    <td class="mono">@lot.CreatedTS.ToString("HH:mm:ss")</td>
+                                    <td style="text-align:center;">
+                                        @if (lot.IsConfirmed)
+                                        {
+                                            <span class="injm-result ok">@T("Ok")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="injm-result wait">@T("Waiting")</span>
+                                        }
+                                    </td>
+                                    <td style="text-align:right;"><button class="injm-mini-btn" @onclick="@(() => Reprint(lot))">🖨 @T("Reprint")@(lot.PrintedCount > 1 ? $" ×{lot.PrintedCount}" : "")</button></td>
+                                </tr>
+                            }
+                            @if (_lots.Count == 0)
+                            {
+                                <tr><td colspan="5" style="padding:14px 4px; color:rgba(255,255,255,.4);">@T("NoLotsToday")</td></tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                @* ── 기능 버튼 (팝업 런처) — 우측 패널 최하단 ─────────── *@
+                <div class="injm-actions two">
+                    <button class="nav-btn warn" @onclick="@(() => Open(Popup.Defect))">@T("Defect2")</button>
+                    <button class="nav-btn alert" @onclick="@(() => Open(Popup.Andon))">@T("Andon")</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── 팝업 ─────────────────────────────────────────────────────────── *@
+@switch (_popup)
+{
+    case Popup.Defect:
+        <DefectPopup Session="Session" Wo="_activeWo" LastResultId="_lastResultId" ProcessCode="IMG"
+                     OnClose="ClosePopup" OnChanged="Refresh" />
+        break;
+    case Popup.Andon:
+        <AndonPopup Session="Session" OnClose="ClosePopup" />
+        break;
+}
+
+@code {
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private static string T(string key, params object?[] args) => PopLang.T(key, args);
+
+    /// <summary>1 EA 당 원단 소비량. 확정 시 장착 롤에서 차감한다.</summary>
+    private const decimal MetresPerUnit = 0.25m;
+
+    private enum Popup { None, Defect, Andon }
+    private Popup _popup = Popup.None;
+
+    private List<InjItemDailyDto> _items = new();
+    private string? _selItemNo;
+    private InjItemDailyDto? SelItem =>
+        _items.FirstOrDefault(x => string.Equals(x.ItemNo, _selItemNo, StringComparison.OrdinalIgnoreCase));
+    private WorkOrderDto?  _activeWo;
+    private FabricRollDto? _roll;
+    private BondSetupDto?  _bond;
+    private List<ImgLotDto> _lots = new();
+
+    private int _pct, _todayGood, _todayDef, _rawCount, _lastResultId;
+    private string _defectPct = "0.0%", _defClass = "ok";
+    private string _fabricText = "—", _fabricClass = "warn", _bondText = "—";
+    private string _eqStatus = "OFFLINE", _eqClass = "stat-off";
+    private string?  _refreshError;
+    private DateTime _refreshErrorAt;
+    private bool _printing;
+
+    private string _bannerClass = "idle", _bannerDetail = "";
+    private string BannerTitle => _bannerClass switch
+    {
+        "ok"  => T("Success"),
+        "bad" => T("Fail"),
+        _     => T("Ready"),
+    };
+    private string _scanBuf = string.Empty;
+    private bool _focusScan;
+    private ElementReference _scanInput;
+    private bool _scannerOn;
+
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _clockTimer;
+    private System.Threading.Timer? _refreshTimer;
+
+    protected override void OnInitialized()
+    {
+        if (Session is null) return;
+        Refresh();
+        _scannerOn = Scanner.IsConnected;
+        Scanner.OnScan            += OnSerialScan;
+        Scanner.ConnectionChanged += OnScannerConnection;
+        _clockTimer   = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; StateHasChanged(); }),
+                                                   null, 1000, 1000);
+        _refreshTimer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); StateHasChanged(); }),
+                                                   null, 5000, 5000);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if ((firstRender || _focusScan) && _popup == Popup.None)
+        {
+            _focusScan = false;
+            try { await _scanInput.FocusAsync(); } catch { }
+        }
+    }
+
+    private void ToggleLang() => PopLang.Lang = PopLang.IsKo ? "en" : "ko";
+
+    private void Refresh()
+    {
+        if (Session is null) return;
+        try
+        {
+            _items = PopServices.ImgLots.GetDailyItemSummary(Session.LineId, Session.TerminalId);
+
+            if (SelItem is null)
+                _selItemNo = (_items.FirstOrDefault(x => x.HasOpenWo) ?? _items.FirstOrDefault())?.ItemNo;
+
+            // 접수가 없으므로 활성 WO 는 품번에서 매번 해석한다 — ConfirmByLotCode 와 같은 규칙.
+            _activeWo = _selItemNo is null ? null
+                      : PopServices.WorkOrders.FindOpenForItem(Session.LineId, _selItemNo);
+            _pct = _activeWo is null ? 0 : (int)Math.Clamp(_activeWo.ProgressPct, 0, 100);
+
+            // 칩은 좌측 행과 같은 당일 수치 — 두 숫자가 어긋나 보이면 작업자가 헷갈린다.
+            _todayGood = SelItem?.FinalQty ?? 0;
+            _todayDef  = SelItem?.NgQty    ?? 0;
+            var pct = (_todayGood + _todayDef) == 0 ? 0 : _todayDef * 100.0 / (_todayGood + _todayDef);
+            _defectPct = $"{pct:0.0}%";
+            _defClass  = pct >= 5 ? "bad" : pct >= 4 ? "warn" : "ok";
+
+            _roll = PopServices.Fabric.GetMountedRoll(Session.LineId);
+            if (_roll is null) { _fabricText = T("NoRoll"); _fabricClass = "warn"; }
+            else
+            {
+                _fabricText  = $"{_roll.LotCode} · {_roll.RemainingM:0.0} m";
+                _fabricClass = _roll.RemainingM <= 5 ? "bad" : _roll.RemainingM <= 10 ? "warn" : "ok";
+            }
+
+            _bond = PopServices.Bond.GetActiveForLine(Session.LineId);
+            _bondText = _bond is null ? T("NoRecipe")
+                      : $"{_bond.RecipeId} · {_bond.TempSp:0}°C / {_bond.PressureSp:0.0}bar / {_bond.HoldSecSp}s";
+
+            _lots     = PopServices.ImgLots.GetTodayLots(Session.LineId);
+            _rawCount = _lots.Count(x => !x.IsConfirmed);
+
+            var eq = PopServices.Equipment.GetPrimaryForLine(Session.LineId);
+            _eqStatus = (eq?.Status ?? "OFFLINE").ToUpperInvariant();
+            _eqClass  = _eqStatus is "RUN" or "IDLE" ? "stat-on" : "stat-off";
+            _refreshError = null;
+        }
+        catch (Exception ex)
+        {
+            // 스캔 결과 배너는 건드리지 않는다 — 5초마다 덮어쓰면 방금 스캔한 결과가 사라진다.
+            _refreshError   = ex.Message;
+            _refreshErrorAt = DateTime.Now;
+            System.Diagnostics.Debug.WriteLine($"[ImgMain refresh] {ex.Message}");
+        }
+    }
+
+    private void SelectItem(InjItemDailyDto it)
+    {
+        _selItemNo = it.ItemNo;
+        Refresh();
+        _focusScan = true;
+    }
+
+    // ── 라벨 발행: LOT 1개 생성 + 즉시 출력. 실적이 아니다 — 스캔해야 확정된다. ──
+    private void PrintLabel()
+    {
+        if (Session is null || _activeWo is null || _printing) return;
+        _printing = true;
+        try
+        {
+            var lot = PopServices.ImgLots.CreateRawLot(Session.LineId, _activeWo.ItemNo, Session.EmployeeNo);
+            try
+            {
+                LabelPrinter.Print(lot, Session.ShiftCode);
+                var printed = PopServices.ImgLots.IncrementPrintedCount(lot.LotId);
+                Toasts.Ok($"{T("LotIssued")}: {lot.LotCode} ({lot.ItemNo})");
+            }
+            catch (Exception ex)
+            {
+                // LOT 은 이미 만들어졌다 — 목록의 재출력 버튼으로 복구한다.
+                Toasts.Bad($"{T("PrintFailedLotKept")}: {lot.LotCode} — {ex.Message}");
+            }
+            Refresh();
+        }
+        catch (Exception ex) { Toasts.Bad($"{T("EntryFailed")}: {ex.Message}"); }
+        finally { _printing = false; _focusScan = true; }
+    }
+
+    // ── 스캔 확정 ────────────────────────────────────────────────────
+    // 리더 스레드에서 오므로 렌더러 스레드로 넘긴다. 팝업이 열려 있으면 무시.
+    private void OnSerialScan(string code)
+        => InvokeAsync(() =>
+        {
+            if (_popup != Popup.None) return;
+            ConfirmScan(code);
+            StateHasChanged();
+        });
+
+    private void OnScannerConnection(bool on)
+        => InvokeAsync(() => { _scannerOn = on; StateHasChanged(); });
+
+    private void OnScanKey(KeyboardEventArgs e)
+    {
+        if (e.Key != "Enter") return;
+        var code = _scanBuf.Trim();
+        _scanBuf = string.Empty;
+        if (code.Length == 0) return;
+        ConfirmScan(code);
+    }
+
+    private void ConfirmScan(string raw)
+    {
+        if (Session is null) return;
+        try
+        {
+            // 완제품 라벨의 DataMatrix 는 고객 표준 문자열 전체가 온다 — T 토큰 끝 9자가 우리 LotNo.
+            var lotCode = AMES.Devices.ImgScanParser.ExtractLotCode(raw);
+            if (lotCode is null)
+            {
+                SetBanner(false, $"{T("LotNotFound")}: {raw}");
+                return;
+            }
+
+            // 대상 WO 는 LOT 품번으로 리포지토리가 정한다. 원단·본딩은 확정 순간의 라인 상태를 넘긴다.
+            var (outcome, resultId, itemNo, woId) = PopServices.ImgLots.ConfirmByLotCode(
+                lotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo,
+                _roll?.LotId, MetresPerUnit, _bond);
+            var woNumber = woId > 0 ? PopServices.WorkOrders.GetById(woId)?.WoNumber : null;
+            var (ok, detail) = outcome switch
+            {
+                ImgConfirmOutcome.Confirmed        => (true,  $"{T("Confirmed")}: {lotCode} ({itemNo}){(woNumber is null ? "" : $" → {woNumber}")}"),
+                ImgConfirmOutcome.NotFound         => (false, $"{T("LotNotFound")}: {lotCode}"),
+                ImgConfirmOutcome.AlreadyConfirmed => (false, $"{T("AlreadyConfirmed")}: {lotCode}"),
+                ImgConfirmOutcome.WrongLine        => (false, $"{T("LotBelongsToAnotherLine")}: {lotCode}"),
+                ImgConfirmOutcome.NoWoForItem      => (false, $"{T("NoOpenWoForThisPart")}: {lotCode} ({itemNo})"),
+                _                                  => (false, $"{T("ConfirmFailed")}: {lotCode}"),
+            };
+            if (ok) { _lastResultId = resultId; _selItemNo = itemNo; }
+            SetBanner(ok, detail);
+            Refresh();
+        }
+        catch (Exception ex)
+        {
+            SetBanner(false, $"{T("ConfirmFailed")}: {ex.Message}");
+        }
+        finally { _focusScan = true; }
+    }
+
+    private void SetBanner(bool ok, string detail)
+    {
+        _bannerClass  = ok ? "ok" : "bad";
+        _bannerDetail = detail;
+    }
+
+    private void Reprint(ImgLotDto lot)
+    {
+        try
+        {
+            LabelPrinter.Print(lot, Session?.ShiftCode ?? "");
+            var printed = PopServices.ImgLots.IncrementPrintedCount(lot.LotId);
+            Toasts.Ok($"{T("LabelReprinted")}: {lot.LotCode} ({T("Total2")} {printed})");
+            Refresh();
+        }
+        catch (Exception ex) { Toasts.Bad($"{T("ReprintFailed")}: {ex.Message}"); }
+        finally { _focusScan = true; }
+    }
+
+    // ── 팝업 제어 ─────────────────────────────────────────────────────
+    private void Open(Popup p) => _popup = p;
+    private void ClosePopup() { _popup = Popup.None; _focusScan = true; Refresh(); }
+
+    private async Task Logout()
+    {
+        if (!await Confirmer.AskAsync(
+                T("LogoutConfirm"),
+                T("EndYourShiftAndReturnToTheLoginScreen"),
+                T("LogOut2"), T("Stay"), destructive: true)) return;
+        Nav.NavigateTo("/login", replace: true);
+        State.SignOut();
+    }
+
+    public void Dispose()
+    {
+        Scanner.OnScan            -= OnSerialScan;
+        Scanner.ConnectionChanged -= OnScannerConnection;
+        _clockTimer?.Dispose();
+        _refreshTimer?.Dispose();
+    }
+}

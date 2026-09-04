@@ -562,7 +562,11 @@ public sealed class WorkOrderRepository
         return list;
     }
 
-    /// <summary>WOë¥¼ Cancelledë¡œ ì „í™˜ (Draft/Planned/Releasedë§Œ). ë³€ê²½ í–‰ìˆ˜ ë°˜í™˜.</summary>
+    /// <summary>
+    /// WO 를 Cancelled 로 전환 (Draft/Planned/Released 만). 변경 행수 반환.
+    /// 취소된 WO 의 PP_LineSchedule 슬롯도 같이 지운다 — 남겨두면 그 (라인, 일자) 자리를
+    /// 계속 차지해 새 WO 배치가 밀리고, POP 당일 판의 PLAN 에도 계속 더해진다.
+    /// </summary>
     public int CancelWo(int woId, string actor)
     {
         const string sql = """
@@ -572,12 +576,24 @@ public sealed class WorkOrderRepository
                    ModifiedBy = @Actor
              WHERE WoID   = @WoID
                AND Status IN ('Draft','Planned','Released');
+
+            DECLARE @n int = @@ROWCOUNT;
+            IF @n > 0 DELETE FROM dbo.PP_LineSchedule WHERE WoID = @WoID;
+
+            SELECT @n;
             """;
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@WoID",  SqlDbType.Int).Value          = woId;
-        cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
-        return cmd.ExecuteNonQuery();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            using var cmd = new SqlCommand(sql, conn, tx);
+            cmd.Parameters.Add("@WoID",  SqlDbType.Int).Value          = woId;
+            cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
+            var n = Convert.ToInt32(cmd.ExecuteScalar());
+            tx.Commit();
+            return n;
+        }
+        catch { tx.Rollback(); throw; }
     }
 
     /// <summary>

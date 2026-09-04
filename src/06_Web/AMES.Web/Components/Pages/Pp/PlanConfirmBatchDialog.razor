@@ -178,12 +178,14 @@
         ApplyBaseDate();
     }
 
-    // 기준일 → 1단계, 뒤 단계는 앞 단계 +1일. 소요분도 다시 계산.
+    // 기준일 → 모든 단계 같은 날. 같은 날 뒤 단계는 서버가 앞 단계 슬롯 종료 이후로 밀어 배치한다.
+    // 단계를 하루씩 미루면 POP 당일 판(PP_LineSchedule.ScheduleDate = 오늘)에서 뒤 공정 PLAN 이 0 으로 보인다.
+    // 하루에 다 안 들어가면 그 단계만 Unplaced 로 보고되므로, 필요하면 행에서 날짜를 직접 미룬다.
     void ApplyBaseDate()
     {
         foreach (var r in _rows)
-            for (int i = 0; i < r.Steps.Count; i++)
-                r.Steps[i].Date = _baseDate.Date.AddDays(i);
+            foreach (var s in r.Steps)
+                s.Date = _baseDate.Date;
         RecomputeDurations();
     }
 

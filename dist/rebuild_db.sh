@@ -68,6 +68,7 @@ FILES=(
   pda/migrate_pda_wh_inbound.sql
   pda/migrate_pda_wh_release.sql
   cleanup_legacy_sis_test.sql
+  cleanup_cancelled_wo_slots.sql      # 취소 WO 가 남긴 라인 스케줄 슬롯 정리 (신규 DB 에서는 no-op)
 )
 
 echo "AMES DB rebuild — $DB @ container '$CONTAINER'"
