@@ -443,7 +443,15 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.MoldID))   { _modalErr = L["Err.MoldIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.MoldName))  { _modalErr = L["Err.MoldNameRequired"]; return; }
-        if (MD.MoldExists(_f.MoldID.Trim())) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], _f.MoldID.Trim()); return; }
+        var newId = _f.MoldID.Trim();
+        var dupId = MD.FindMoldIdByCleanCode(newId);
+        if (dupId is not null)
+        {
+            _modalErr = string.Equals(dupId, newId, StringComparison.OrdinalIgnoreCase)
+                ? string.Format(L["Err.AlreadyExistsFmt"], newId)
+                : string.Format(L["Err.MoldCodeCleanDupFmt"], newId, dupId);
+            return;
+        }
         _busy = true;
         try
         {

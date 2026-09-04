@@ -4614,6 +4614,9 @@
   <data name="Err.AlreadyExistsFmt" xml:space="preserve">
     <value>'{0}' ya existe.</value>
   </data>
+  <data name="Err.MoldCodeCleanDupFmt" xml:space="preserve">
+    <value>'{0}' es el mismo molde que el existente '{1}'. Los códigos de molde se comparan ignorando los guiones.</value>
+  </data>
   <data name="Lbl.Required" xml:space="preserve">
     <value>Requerido</value>
   </data>

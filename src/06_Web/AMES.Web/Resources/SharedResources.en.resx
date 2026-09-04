@@ -4617,6 +4617,9 @@
   <data name="Err.AlreadyExistsFmt" xml:space="preserve">
     <value>'{0}' already exists.</value>
   </data>
+  <data name="Err.MoldCodeCleanDupFmt" xml:space="preserve">
+    <value>'{0}' is the same mold as the existing '{1}'. Mold codes are compared ignoring hyphens.</value>
+  </data>
   <data name="Lbl.Required" xml:space="preserve">
     <value>Required</value>
   </data>

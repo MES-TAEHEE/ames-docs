@@ -1257,13 +1257,18 @@ public sealed class MasterDataRepository
         return list;
     }
 
-    public bool MoldExists(string moldId)
+    /// <summary>
+    /// 중복 판정은 PK(MoldID)가 아니라 UX_MD_Mold_MoldCodeClean 과 같은 규칙(하이픈 제거)으로
+    /// 봐야 한다 — 'LQ2DTRU' 는 PK 로는 새 값이지만 'LQ2-DTRU' 와 같은 금형이라 INSERT 가 깨진다.
+    /// 충돌한 기존 MoldID 를 돌려줘 호출부가 어느 금형과 겹치는지 알릴 수 있게 한다.
+    /// </summary>
+    public string? FindMoldIdByCleanCode(string moldId)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
-            "SELECT 1 FROM dbo.MD_Mold WHERE MoldID=@I;", conn);
+            "SELECT MoldID FROM dbo.MD_Mold WHERE MoldCodeClean = REPLACE(@I,'-','');", conn);
         cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
-        return cmd.ExecuteScalar() is not null;
+        return cmd.ExecuteScalar() as string;
     }
 
     public void InsertMold(
