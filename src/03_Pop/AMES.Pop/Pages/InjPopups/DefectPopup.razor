@@ -1,8 +1,8 @@
 @namespace AMES.Pop.Pages.InjPopups
 @using AMES.Pop.Common
 
-@*  INJ-005 불량 등록 — 팝업판. 불량코드 선택 + 수량 키패드,
-    로봇 NG 차단 LOT 확정 처리 포함. *@
+@*  불량 등록 팝업 — 불량코드 선택 + 수량 키패드. INJ 는 로봇 NG 차단 LOT 확정 처리를 포함하고,
+    다른 공정(IMG 등)은 ProcessCode 로 불량코드만 바꿔 쓴다. *@
 
 <PopupShell Title='@($"❌ {T("DefectRegister")}")' Width="1200px" CssClass="pmod-tall" OnClose="OnClose">
     @if (Wo is null)
@@ -78,6 +78,8 @@
     [Parameter] public PopSessionDto? Session       { get; set; }
     [Parameter] public WorkOrderDto?  Wo            { get; set; }
     [Parameter] public int            LastResultId  { get; set; }
+    /// <summary>불량코드 목록·등록 공정. INJ 일 때만 로봇 NG LOT 구역을 보여준다.</summary>
+    [Parameter] public string         ProcessCode   { get; set; } = "INJ";
     [Parameter] public EventCallback  OnClose       { get; set; }
     [Parameter] public EventCallback  OnChanged     { get; set; }
 
@@ -94,9 +96,12 @@
     protected override void OnInitialized()
     {
         if (Session is null) return;
-        _codes = PopServices.Defects.ListForProcess("INJ");
-        try { _ngLots = PopServices.InjLots.GetNgBlocked(Session.LineId); }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DefectPopup ngLots] {ex.Message}"); }
+        _codes = PopServices.Defects.ListForProcess(ProcessCode);
+        if (ProcessCode == "INJ")
+        {
+            try { _ngLots = PopServices.InjLots.GetNgBlocked(Session.LineId); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DefectPopup ngLots] {ex.Message}"); }
+        }
         RefreshRate();
     }
 
@@ -150,7 +155,7 @@
         try
         {
             PopServices.Defects.RecordDefect(LastResultId, Wo.WoId, lotId: null,
-                _selected.DefectCode, qty, Session.OperatorId, Session.EmployeeNo, "INJ");
+                _selected.DefectCode, qty, Session.OperatorId, Session.EmployeeNo, ProcessCode);
             _buf.Clear();
             RefreshRate();
             await OnChanged.InvokeAsync();

@@ -1751,6 +1751,37 @@ body {
 .pmod .line-tbl       { font-size: 17px; }
 .pmod .line-tbl th    { font-size: 13px; }
 
+/* ---------- IMG-MAIN 통합 화면 (ImgMain.razor) — injm-* 위에 얹는 차이분 ---- */
+.imgm-entry { flex-shrink: 0; display: flex; flex-direction: column; }
+.imgm-wo-row { display: flex; align-items: baseline; gap: 12px; margin-top: 8px; min-width: 0; }
+.imgm-wo-no  { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700;
+               color: var(--mod-tint); white-space: nowrap; }
+.imgm-wo-name { font-size: 17px; font-weight: 700; color: #fff;
+                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.imgm-prog { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+.imgm-prog-v { font-family: 'Bebas Neue', sans-serif; font-size: 34px; line-height: 1;
+               color: var(--ok); letter-spacing: 1px; white-space: nowrap; }
+.imgm-prog-v small { font-size: 20px; color: rgba(255, 255, 255, .4); margin-left: 4px; }
+.imgm-prog .entry-bar { flex: 1; height: 14px; margin-top: 0; }
+.imgm-entry .input-label   { margin-top: 8px; font-size: 13px; }
+.imgm-entry .input-display { font-size: 52px; line-height: 1.05; margin-top: 4px; padding: 2px 12px; }
+.imgm-entry .keypad        { flex: none; grid-auto-rows: 46px; gap: 6px; }
+.imgm-entry .kp            { font-size: 24px; }
+.imgm-confirm { margin-top: 8px; width: 100%; padding: 13px; border: none; border-radius: 8px;
+                background: var(--ok-dk); color: #fff; font-size: 19px; font-weight: 800;
+                cursor: pointer; }
+.imgm-confirm:disabled { background: rgba(255, 255, 255, .08); color: rgba(255, 255, 255, .35);
+                         cursor: not-allowed; }
+.imgm-entry .injm-banner   { min-height: 54px; padding: 6px 10px; margin-top: 8px; }
+.imgm-entry .injm-banner-t { font-size: 30px; letter-spacing: 4px; }
+.imgm-entry .injm-banner-s { font-size: 14px; margin-top: 2px; }
+.imgm-entry .injm-chips    { margin-top: 8px; gap: 6px; }
+.imgm-entry .injm-chip     { padding: 5px 10px; font-size: 12px; }
+.imgm-entry .injm-chip b   { font-size: 14px; }
+/* 이력 카드가 키패드에 눌려 사라지지 않도록 최소 높이를 보장한다 */
+.imgm-hist { min-height: 150px; }
+.injm-actions.two { grid-template-columns: repeat(2, 1fr); }
+
 /* ---------- 도움말 단일 언어 표시 (HelpModal 언어 클래스) --------- */
 .help-ko .help-step-en,
 .help-ko .help-step-hint,

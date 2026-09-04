@@ -11,7 +11,7 @@ namespace AMES.Pop.Forms;
 /// application. Session state lives in <see cref="AppState"/> (a singleton
 /// inside the WebView's DI container), so login / logout never needs to
 /// destroy and recreate this form — Login.razor signs in, AppState changes,
-/// the router moves to /injmain or /img03, logout signs out and goes back to
+/// the router moves to /injmain or /imgmain, logout signs out and goes back to
 /// /login.
 /// </summary>
 public class PopBlazorForm : PopForm
