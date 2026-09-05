@@ -52,4 +52,55 @@ public static class SlotPacker
         }
         return null;
     }
+
+    /// <summary>
+    /// 빈 틈을 축 순서대로 돌며 <paramref name="maxMin"/> 이 찰 때까지 잘라 넣는다. 틈마다 Interval 하나.
+    /// <see cref="Place"/> 는 통째로 들어가는 자리만 찾아서 다일 분할 배치에 못 쓴다 — 이쪽은 "있는 대로".
+    /// </summary>
+    /// <param name="minChunkMin">이보다 짧은 틈은 건너뛴다 — 호출자가 "1 EA 분" 을 넘겨 1 EA 도 안 되는 자투리 슬롯을 막는다.</param>
+    public static IReadOnlyList<Interval> FillDay(IReadOnlyList<Interval> operating, IReadOnlyList<Interval> occupied,
+                                                  int maxMin, int dayStart, int? notBeforeMin = null, int minChunkMin = 1)
+    {
+        var result = new List<Interval>();
+        if (maxMin <= 0) return result;
+
+        int Axis(int m) { int r = (m - dayStart) % 1440; return r < 0 ? r + 1440 : r; }
+        int AxisEnd(int startAbs, int endAbs) => Axis(startAbs) + (endAbs - startAbs);
+
+        var bands = operating
+            .Where(b => b.EndMin > b.StartMin)
+            .Select(b => (Lo: Axis(b.StartMin), Hi: AxisEnd(b.StartMin, b.EndMin), Abs: b))
+            .OrderBy(b => b.Lo)
+            .ToList();
+        var busy = occupied
+            .Where(o => o.EndMin > o.StartMin)
+            .Select(o => (Lo: Axis(o.StartMin), Hi: AxisEnd(o.StartMin, o.EndMin)))
+            .OrderBy(o => o.Lo)
+            .ToList();
+        int floor = notBeforeMin is int nb ? Axis(nb) : 0;
+        int chunk = Math.Max(1, minChunkMin);
+        int remaining = maxMin;
+
+        foreach (var band in bands)
+        {
+            int cursor = Math.Max(band.Lo, floor);
+            while (cursor < band.Hi && remaining > 0)
+            {
+                var inside = busy.FirstOrDefault(o => o.Lo <= cursor && cursor < o.Hi);
+                if (inside != default) { cursor = inside.Hi; continue; }
+
+                int gapEnd = Math.Min(band.Hi, busy.Where(o => o.Lo > cursor).Select(o => o.Lo).DefaultIfEmpty(band.Hi).Min());
+                int len = Math.Min(remaining, gapEnd - cursor);
+                if (len >= chunk)
+                {
+                    int startAbs = band.Abs.StartMin + (cursor - band.Lo);
+                    result.Add(new Interval(startAbs, startAbs + len));
+                    remaining -= len;
+                }
+                cursor = gapEnd;
+            }
+            if (remaining <= 0) break;
+        }
+        return result;
+    }
 }

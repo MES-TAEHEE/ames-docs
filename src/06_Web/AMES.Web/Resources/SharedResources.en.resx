@@ -2743,7 +2743,28 @@
     <value>Created WO Status</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Hint" xml:space="preserve">
-    <value>Each selected plan is created, released, and placed on each step's line schedule (DRAFT) in one go. Steps without room stay unplaced and are placed by hand on the PP-LSB board.</value>
+    <value>Each selected plan is created, released, and auto-scheduled from today so it finishes by its production deadline (due − {0} workdays). Overflow continues up to the due date; whatever still does not fit stays unplaced for the PP-LSB board.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.StartDate" xml:space="preserve">
+    <value>Start date</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Deadline" xml:space="preserve">
+    <value>Prod. deadline</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Span" xml:space="preserve">
+    <value>Scheduled</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.LateQty" xml:space="preserve">
+    <value>Past deadline</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.ShortQty" xml:space="preserve">
+    <value>Unplaced</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.Late" xml:space="preserve">
+    <value>{0} order(s) scheduled past their production deadline</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.Short" xml:space="preserve">
+    <value>{0} order(s) cannot be fully scheduled by their due date</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Run" xml:space="preserve">
     <value>Run WO Creation</value>
@@ -2945,6 +2966,9 @@
   </data>
   <data name="PP.WorkOrder.Detail.Routing" xml:space="preserve">
     <value>Progress by routing step</value>
+  </data>
+  <data name="PP.WorkOrder.Detail.ProdDeadline" xml:space="preserve">
+    <value>Prod. deadline</value>
   </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Material Reservation</value>
@@ -5613,44 +5637,14 @@
   <data name="PP.Delivery.Hint" xml:space="preserve">
     <value>Late = not fully shipped and past requested date (as of {0}) · shipped orders are not judged because no ship date is recorded</value>
   </data>
-  <data name="PP.PlanConfirm.Dlg.BaseDate" xml:space="preserve">
-    <value>Base production date</value>
-  </data>
-  <data name="PP.PlanConfirm.Dlg.ProdDate" xml:space="preserve">
-    <value>Prod. date</value>
-  </data>
-  <data name="PP.PlanConfirm.Dlg.DurMin" xml:space="preserve">
-    <value>Min</value>
-  </data>
-  <data name="PP.PlanConfirm.Dlg.RemainFmt" xml:space="preserve">
-    <value>{0} min left</value>
-  </data>
-  <data name="PP.PlanConfirm.Dlg.NoRoom" xml:space="preserve">
-    <value>No room</value>
-  </data>
-  <data name="PP.PlanConfirm.Dlg.NoPattern" xml:space="preserve">
-    <value>No pattern</value>
-  </data>
   <data name="PP.PlanConfirm.Dlg.NoSteps" xml:space="preserve">
     <value>No line-required step — released without a schedule</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Err.LineMissing" xml:space="preserve">
     <value>Some steps have no line.</value>
   </data>
-  <data name="PP.PlanConfirm.Dlg.Err.PastDate" xml:space="preserve">
-    <value>Production dates must be today or later.</value>
-  </data>
-  <data name="PP.PlanConfirm.Dlg.Err.StepOrder" xml:space="preserve">
-    <value>A later step cannot be dated before an earlier step.</value>
-  </data>
-  <data name="PP.PlanConfirm.Dlg.Err.Duration" xml:space="preserve">
-    <value>Duration must be at least 1 minute.</value>
-  </data>
-  <data name="PP.PlanConfirm.Dlg.Warn.AfterDue" xml:space="preserve">
-    <value>{0} plan(s) are produced after their due date</value>
-  </data>
   <data name="PP.PlanConfirm.Ok.Scheduled" xml:space="preserve">
-    <value>{0} work order(s) created · {1} step(s) placed · {2} unplaced</value>
+    <value>{0} work order(s) created · {1} past deadline · {2} cannot meet due date</value>
   </data>
   <data name="PP.Delivery.Cust.Unregistered" xml:space="preserve">
     <value>Unregistered</value>

@@ -2740,7 +2740,28 @@
     <value>Estado de OT Creada</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Hint" xml:space="preserve">
-    <value>Cada plan seleccionado se crea, libera y ubica en el programa de línea de cada etapa (BORRADOR) de una vez. Las etapas sin espacio quedan sin ubicar y se colocan a mano en el tablero PP-LSB.</value>
+    <value>Cada plan seleccionado se crea, libera y programa automáticamente desde hoy para terminar antes de su fecha límite de producción (entrega − {0} días hábiles). El excedente continúa hasta la fecha de entrega; lo que no quepa queda sin asignar para el tablero PP-LSB.</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.StartDate" xml:space="preserve">
+    <value>Fecha de inicio</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Deadline" xml:space="preserve">
+    <value>Fecha límite</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Span" xml:space="preserve">
+    <value>Programado</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.LateQty" xml:space="preserve">
+    <value>Fuera de plazo</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.ShortQty" xml:space="preserve">
+    <value>Sin asignar</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.Late" xml:space="preserve">
+    <value>{0} pedido(s) programados después de su fecha límite</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.Short" xml:space="preserve">
+    <value>{0} pedido(s) no se pueden programar por completo antes de la entrega</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Run" xml:space="preserve">
     <value>Ejecutar Creación de OT</value>
@@ -2942,6 +2963,9 @@
   </data>
   <data name="PP.WorkOrder.Detail.Routing" xml:space="preserve">
     <value>Progreso por paso de ruta</value>
+  </data>
+  <data name="PP.WorkOrder.Detail.ProdDeadline" xml:space="preserve">
+    <value>Fecha límite de producción</value>
   </data>
   <data name="PP.WorkOrder.Detail.Reservation" xml:space="preserve">
     <value>Reserva de Material</value>
@@ -5586,44 +5610,14 @@
   <data name="PP.Delivery.Hint" xml:space="preserve">
     <value>Retrasado = no enviado y fecha solicitada vencida (a {0}) · los enviados no se evalúan por falta de fecha de envío</value>
   </data>
-  <data name="PP.PlanConfirm.Dlg.BaseDate" xml:space="preserve">
-    <value>Fecha base de producción</value>
-  </data>
-  <data name="PP.PlanConfirm.Dlg.ProdDate" xml:space="preserve">
-    <value>Fecha prod.</value>
-  </data>
-  <data name="PP.PlanConfirm.Dlg.DurMin" xml:space="preserve">
-    <value>Min</value>
-  </data>
-  <data name="PP.PlanConfirm.Dlg.RemainFmt" xml:space="preserve">
-    <value>{0} min libres</value>
-  </data>
-  <data name="PP.PlanConfirm.Dlg.NoRoom" xml:space="preserve">
-    <value>Sin espacio</value>
-  </data>
-  <data name="PP.PlanConfirm.Dlg.NoPattern" xml:space="preserve">
-    <value>Sin patrón</value>
-  </data>
   <data name="PP.PlanConfirm.Dlg.NoSteps" xml:space="preserve">
     <value>Sin etapa con línea — liberada sin programa</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Err.LineMissing" xml:space="preserve">
     <value>Hay etapas sin línea.</value>
   </data>
-  <data name="PP.PlanConfirm.Dlg.Err.PastDate" xml:space="preserve">
-    <value>Las fechas de producción deben ser hoy o posteriores.</value>
-  </data>
-  <data name="PP.PlanConfirm.Dlg.Err.StepOrder" xml:space="preserve">
-    <value>Una etapa posterior no puede tener fecha anterior a la previa.</value>
-  </data>
-  <data name="PP.PlanConfirm.Dlg.Err.Duration" xml:space="preserve">
-    <value>La duración debe ser de al menos 1 minuto.</value>
-  </data>
-  <data name="PP.PlanConfirm.Dlg.Warn.AfterDue" xml:space="preserve">
-    <value>{0} plan(es) se producen después de su fecha de entrega</value>
-  </data>
   <data name="PP.PlanConfirm.Ok.Scheduled" xml:space="preserve">
-    <value>{0} orden(es) creadas · {1} etapa(s) ubicadas · {2} sin ubicar</value>
+    <value>{0} orden(es) creadas · {1} fuera de plazo · {2} no cumplen la entrega</value>
   </data>
   <data name="PP.Delivery.Cust.Unregistered" xml:space="preserve">
     <value>No registrado</value>

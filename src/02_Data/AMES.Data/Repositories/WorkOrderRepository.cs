@@ -133,7 +133,7 @@ public sealed class WorkOrderRepository
         const string sql = """
             SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
                    w.OrderQty, w.OpenQty, w.CompletedQty, w.LineID,
-                   w.MoldID, w.RecipeID, w.DueDate, w.Status, w.TerminalLock,
+                   w.MoldID, w.RecipeID, w.DueDate, w.ProdDeadline, w.Status, w.TerminalLock,
                    ISNULL(w.Priority,5) AS Priority,
                    w.RoutingType,
                    CAST(
@@ -668,6 +668,7 @@ public sealed class WorkOrderRepository
                 MoldId        = rdr["MoldID"]       as string,
                 RecipeId      = rdr["RecipeID"]     as string,
                 DueDate       = rdr["DueDate"]      as DateTime?,
+                ProdDeadline  = HasColumn(rdr, "ProdDeadline") ? rdr["ProdDeadline"] as DateTime? : null,
                 Status        = rdr["Status"]       as string ?? "Unknown",
                 TerminalLock  = rdr["TerminalLock"] as string,
                 Priority      = Convert.ToInt32(rdr["Priority"]),
