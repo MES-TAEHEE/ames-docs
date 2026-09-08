@@ -65,7 +65,7 @@
                             <div class="wh02-box-list">
                                 @foreach (var box in DocumentBoxes(line.PartNo))
                                 {
-                                    <div class="wh02-box-row @(IsBoxScanned(box) ? "scanned" : "")">
+                                    <div class="wh02-box-row @(string.Equals(box.Yn, "Y", StringComparison.OrdinalIgnoreCase) ? "received" : IsBoxScanned(box) ? "scanned" : "")">
                                         <span>@box.BoxBarcode</span>
                                         <strong>@QuantityText(box.Qty, box.Unit)</strong>
                                     </div>
@@ -780,8 +780,8 @@
             {
                 _barcode = "";
                 _msg = "This box has already been scanned.";
-                _cls = "warn";
-                ShowAlert("Box Already Scanned", _msg, "warn");
+                _cls = "fail";
+                ShowAlert("Box Already Scanned", _msg, "danger");
                 return;
             }
 
@@ -808,7 +808,7 @@
                 : AlreadyReceived
                     ? "This box is already received."
                     : "Box matched. Scan the location and receive.";
-            _cls = AlreadyReceived ? "warn" : "ok";
+            _cls = AlreadyReceived ? "fail" : "ok";
 
             if (DocumentReadyForLocation)
             {

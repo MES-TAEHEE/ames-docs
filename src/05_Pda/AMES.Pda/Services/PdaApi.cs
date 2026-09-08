@@ -219,10 +219,11 @@ public sealed class PdaApi
     public sealed record InboundAdjustReq(string Mode, string Barcode, decimal DeltaQty, string ReasonCode,
         string? ReasonNote, string SupervisorPin, string? SupervisorEmployeeNo = null);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
-        string? ReasonNote, string SupervisorPin, string? SupervisorEmployeeNo = null);
+        string? ReasonNote, string? SupervisorPin = null, string? SupervisorEmployeeNo = null, bool SimulateFailure = false);
     public sealed record SupervisorRow(string EmployeeNo, string EmployeeName);
     public sealed record SupervisorPinReq(string EmployeeNo, string Pin);
     public sealed record SupervisorPinResult(bool Success, string Message);
+    public sealed record AdjustTestResetResult(bool Success, string Message, string LotNo, decimal Qty);
     public sealed record InboundReceiveResult(bool Success, string Message, InboundScanRow? Row);
     public sealed record AdjustReq(string ItemNo, string LocationId, decimal Delta, string ReasonCode, string? Note);
     public sealed record PickReq(string PickSlipNo, string LotNo, decimal Qty);
@@ -537,6 +538,22 @@ public sealed class PdaApi
             ?? new SupervisorPinResult(false, "Supervisor PIN validation failed.");
     }
 
+    public sealed record AdjustmentStock(string Barcode, string LotNo, string PartNo, string? PartName, decimal Qty, string? Unit);
+    public sealed record AdjustmentLocation(string LocationId, List<AdjustmentStock> Items);
+
+    public async Task<AdjustmentLocation?> ScanAdjustmentLocationAsync(string barcode, bool finishedGoods)
+    {
+        Authorize();
+        using var response = await _http.GetAsync($"/api/{(finishedGoods ? "fg" : "wh")}/adjust/location?barcode={Uri.EscapeDataString(barcode.Trim())}");
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Adjustment location service is unavailable."));
+        // An unknown location returns an empty 200 response; the caller then tries a stock barcode.
+        if (response.Content.Headers.ContentLength == 0) return null;
+        var json = await response.Content.ReadAsStringAsync();
+        return string.IsNullOrWhiteSpace(json) ? null
+            : System.Text.Json.JsonSerializer.Deserialize<AdjustmentLocation>(json, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+    }
+
     public async Task<InboundScanRow?> WhScanAdjustAsync(string scanText)
     {
         try
@@ -559,7 +576,7 @@ public sealed class PdaApi
         }
     }
 
-    public async Task<List<WarehouseTransactionRow>> WhWarehouseTransactionsAsync(string? search = null, DateTime? dateFrom = null, DateTime? dateTo = null)
+    public async Task<List<WarehouseTransactionRow>> WhWarehouseTransactionsAsync(string? search = null, DateTime? dateFrom = null, DateTime? dateTo = null, bool finishedGoods = false)
     {
         Authorize();
         var query = new List<string>();
@@ -570,7 +587,7 @@ public sealed class PdaApi
         if (dateTo.HasValue)
             query.Add($"dateTo={Uri.EscapeDataString(dateTo.Value.ToString("yyyy-MM-dd"))}");
 
-        var url = "/api/wh/warehouse-transactions";
+        var url = finishedGoods ? "/api/fg/transactions" : "/api/wh/warehouse-transactions";
         if (query.Count > 0)
             url += "?" + string.Join("&", query);
 
@@ -652,6 +669,40 @@ public sealed class PdaApi
         {
             return new InboundReceiveResult(false, "Warehouse adjustment service is unavailable.", null);
         }
+    }
+
+    public async Task WhResetSimpleInboundTestAsync()
+    {
+        Authorize();
+        using var response = await _http.PostAsync("/api/wh/inbound/test/simple-reset", null);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Inbound test reset failed."));
+    }
+
+    public async Task WhResetPptTestAsync(string screen)
+    {
+        Authorize();
+        using var response = await _http.PostAsync($"/api/wh/test/ppt-reset/{Uri.EscapeDataString(screen)}", null);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "PPT test reset failed."));
+    }
+
+    public async Task FgResetPptTestAsync(string screen)
+    {
+        Authorize();
+        using var response = await _http.PostAsync($"/api/fg/test/ppt-reset/{Uri.EscapeDataString(screen)}", null);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "FG PPT test reset failed."));
+    }
+
+    public async Task<AdjustTestResetResult> WhResetAdjustTestAsync()
+    {
+        Authorize();
+        using var response = await _http.PostAsync("/api/wh/adjust/test/reset", null);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Adjust test reset failed."));
+        return await response.Content.ReadFromJsonAsync<AdjustTestResetResult>()
+               ?? new AdjustTestResetResult(false, "Adjust test reset returned no result.", "", 0);
     }
 
     public async Task<InboundScanRow?> FgScanAdjustAsync(string scanText)

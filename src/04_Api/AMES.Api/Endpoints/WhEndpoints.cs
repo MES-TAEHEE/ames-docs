@@ -67,10 +67,11 @@ public static class WhEndpoints
     public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId, bool SimulateFailure = false);
     public sealed record InboundCancelReq(string Mode, string Barcode);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
-        string? ReasonNote, string SupervisorPin, string? SupervisorEmployeeNo = null);
+        string? ReasonNote, string? SupervisorPin = null, string? SupervisorEmployeeNo = null, bool SimulateFailure = false);
     public sealed record SupervisorRow(string EmployeeNo, string EmployeeName);
     public sealed record SupervisorPinReq(string EmployeeNo, string Pin);
     public sealed record SupervisorPinResult(bool Success, string Message);
+    public sealed record AdjustTestResetResult(bool Success, string Message, string LotNo, decimal Qty);
     public sealed record InboundReceiveResult(bool Success, string Message, InboundScanRow? Row);
     internal sealed record SupervisorPinProfile(string UserId, string EmployeeNo);
 
@@ -121,6 +122,7 @@ public static class WhEndpoints
     public static void MapWh(this WebApplication app, AmesConnectionFactory factory)
     {
         var g = app.MapGroup("/api/wh").WithTags("Warehouse");
+        g.MapAdjustmentLocation(factory, finishedGoods: false);
 
         // WH-001 Schedule - inbound tab
         IResult GetWh001ScheduleInbound(HttpContext ctx, int? year, int? quarter, string? vendorId, string? lang)
@@ -371,16 +373,63 @@ public static class WhEndpoints
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
-            var result = ExecuteAdjustSave(factory, body, s.EmployeeNo);
+            var simulateFailure = body.SimulateFailure
+                && string.Equals(s.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+            var result = ExecuteAdjustSave(factory, body, s.EmployeeNo, s.OperatorId, simulateFailure);
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                 s, "ADJUST_SAVE", "WH005", "LOT", body.Barcode, result.Success ? "SUCCESS" : "FAIL", result.Message,
                 lotNo: result.Row?.LotNo ?? body.Barcode, partNo: result.Row?.PartNo,
                 locationId: result.Row?.ReceivedLocation, qty: body.DeltaQty));
-            return Results.Ok(result);
+            return simulateFailure && !result.Success
+                ? Results.Problem(result.Message, statusCode: StatusCodes.Status503ServiceUnavailable)
+                : Results.Ok(result);
         }
 
         g.MapPost("/adjust/save", SaveAdjustQuantity);
         g.MapPost("/inbound/adjust-qty", SaveAdjustQuantity);
+
+        g.MapPost("/adjust/test/reset", (HttpContext ctx) =>
+        {
+            if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+            if (!string.Equals(s.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase))
+                return Results.Forbid();
+
+            const string lotNo = "5011LL260904500001";
+            using var conn = factory.OpenConnection();
+            using var tx = conn.BeginTransaction();
+            try
+            {
+                using var cmd = new SqlCommand("""
+                    DECLARE @LotID int = (SELECT TOP (1) LotID FROM dbo.tbl_Lot WHERE LotCode = @LotNo);
+                    IF @LotID IS NULL
+                        THROW 51000, 'Adjust scenario test data was not found.', 1;
+
+                    DELETE FROM dbo.WH_InventoryTransaction
+                    WHERE LotID = @LotID AND CreatedBy = N'TEST';
+
+                    DELETE FROM dbo.WH_InventoryAdjust
+                    WHERE LotID = @LotID AND CreatedBy = N'TEST';
+
+                    UPDATE dbo.WH_Inventory
+                    SET OnHandQty = 10, Status = N'Received', ModifiedBy = N'TEST', ModifiedTS = SYSDATETIME()
+                    WHERE LotID = @LotID;
+
+                    UPDATE dbo.tbl_Lot
+                    SET RemainingQty = 10, Status = N'Received', InventoryStatus = N'STORED',
+                        ModifiedBy = N'TEST', ModifiedTS = SYSDATETIME()
+                    WHERE LotID = @LotID;
+                    """, conn, tx);
+                cmd.Parameters.Add("@LotNo", SqlDbType.NVarChar, 50).Value = lotNo;
+                cmd.ExecuteNonQuery();
+                tx.Commit();
+                return Results.Ok(new AdjustTestResetResult(true, "Adjust test stock reset to 10 EA.", lotNo, 10));
+            }
+            catch (Exception ex)
+            {
+                tx.Rollback();
+                return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+        });
 
         g.MapGet("/location/scan", (HttpContext ctx, string locationId) =>
         {
@@ -2133,17 +2182,12 @@ public static class WhEndpoints
         }
     }
 
-    private static InboundReceiveResult ExecuteAdjustSave(AmesConnectionFactory factory, AdjustSaveReq body, string userId)
+    private static InboundReceiveResult ExecuteAdjustSave(AmesConnectionFactory factory, AdjustSaveReq body, string userId, string operatorId,
+        bool simulateFailure = false)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(body.SupervisorEmployeeNo))
-                return new InboundReceiveResult(false, "Select a supervisor.", null);
-
             using var conn = factory.OpenConnection();
-            var supervisor = FindSupervisorByPin(conn, body.SupervisorEmployeeNo, body.SupervisorPin);
-            if (supervisor is null)
-                return new InboundReceiveResult(false, "The PIN does not match the selected supervisor.", null);
 
             using var cmd = new SqlCommand($"[dbo].[{PdaAdjustSaveQtyProcedure}]", conn)
             {
@@ -2157,10 +2201,10 @@ public static class WhEndpoints
             cmd.Parameters.Add("@ReasonCode", SqlDbType.NVarChar, 30).Value = body.ReasonCode.Trim();
             cmd.Parameters.Add("@ReasonNote", SqlDbType.NVarChar, 500).Value =
                 string.IsNullOrWhiteSpace(body.ReasonNote) ? DBNull.Value : body.ReasonNote.Trim();
-            cmd.Parameters.Add("@SupervisorPin", SqlDbType.NVarChar, 40).Value = body.SupervisorPin.Trim();
-            cmd.Parameters.Add("@SupervisorUserId", SqlDbType.NVarChar, 450).Value = supervisor.UserId;
-            cmd.Parameters.Add("@SupervisorEmployeeNo", SqlDbType.NVarChar, 40).Value = supervisor.EmployeeNo;
+            cmd.Parameters.Add("@SupervisorUserId", SqlDbType.NVarChar, 450).Value = operatorId;
+            cmd.Parameters.Add("@SupervisorEmployeeNo", SqlDbType.NVarChar, 40).Value = userId;
             cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 40).Value = userId;
+            cmd.Parameters.Add("@SimulateFailure", SqlDbType.Bit).Value = simulateFailure;
 
             using var rdr = cmd.ExecuteReader();
             var row = rdr.Read() ? ReadInboundScanRow(rdr) : null;
@@ -2475,7 +2519,7 @@ public static class WhEndpoints
             GetString(rdr, "Unit"));
     }
 
-    private static WarehouseTransactionRow ReadWarehouseTransactionRow(SqlDataReader rdr)
+    internal static WarehouseTransactionRow ReadWarehouseTransactionRow(SqlDataReader rdr)
     {
         return new WarehouseTransactionRow(
             GetLong(rdr, "ROW_NO") ?? 0,
