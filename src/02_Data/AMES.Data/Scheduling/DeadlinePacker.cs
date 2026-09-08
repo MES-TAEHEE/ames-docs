@@ -57,6 +57,8 @@ public static class DeadlinePacker
         var shortfalls = new List<StepShortfall>();
         // 탐색 상한 — 납기일. 없으면 마감일, 그것도 없으면 60일 (무한 루프 방지)
         var horizon = (dueDate ?? deadline ?? today.AddDays(60)).Date;
+        // 납기가 이미 지난 수주는 상한이 오늘 앞이라 한 슬롯도 못 놓는다 — "최대한 빨리" 로 보고 60일 안에 전량 Late 로 넣는다
+        if (horizon < today) horizon = today.AddDays(60);
 
         (DateTime Date, int End)? prevEnd = null;   // 앞 단계 마지막 슬롯
         decimal? prevPlaced = null;

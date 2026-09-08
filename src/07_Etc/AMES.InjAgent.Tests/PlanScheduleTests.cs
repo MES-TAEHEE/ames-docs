@@ -157,7 +157,7 @@ public class PlanScheduleTests
 
             // INJ 50 EA × 0.1분 = 5분, IMG 50 EA × 0.2분 = 10분 — 같은 날 INJ 뒤에
             var slots = Slots(f, woId);
-            Assert.Equal(new[] { (LineInj, D0, 480, 485, 50m, "DRAFT", Pattern), (LineImg, D0, 485, 495, 50m, "DRAFT", Pattern) }, slots);
+            Assert.Equal(new[] { (LineInj, D0, 480, 485, 50m, (string?)"DRAFT", (string?)Pattern), (LineImg, D0, 485, 495, 50m, (string?)"DRAFT", (string?)Pattern) }, slots);
             Assert.Empty(o.Shortfalls);
             Assert.Equal(0m, o.LateQty);
         }

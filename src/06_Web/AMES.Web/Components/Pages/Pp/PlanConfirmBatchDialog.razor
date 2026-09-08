@@ -108,9 +108,13 @@
     {
         <div class="ames-alert bad">@string.Format(L["PP.PlanConfirm.Dlg.SkipZero"].Value, SkipCount)</div>
     }
-    @if (LateCount > 0)
+    @if (OverdueCount > 0)
     {
-        <div class="ames-alert bad">@string.Format(L["PP.PlanConfirm.Dlg.Warn.Late"].Value, LateCount)</div>
+        <div class="ames-alert bad">@string.Format(L["PP.PlanConfirm.Dlg.Warn.Overdue"].Value, OverdueCount)</div>
+    }
+    @if (LateCount > OverdueCount)
+    {
+        <div class="ames-alert bad">@string.Format(L["PP.PlanConfirm.Dlg.Warn.Late"].Value, LateCount - OverdueCount)</div>
     }
     @if (ShortCount > 0)
     {
@@ -162,6 +166,8 @@
     decimal Qty(PpRepository.PlanLineRow l) => _useNet ? l.NetReq : l.OrderQty;
     int SkipCount  => Lines.Count(l => l.NetReq <= 0);
     int LateCount  => _rows.Count(r => r.Preview?.Placements.Any(p => p.Late) == true);
+    // 납기가 이미 지난 수주 — 전량 Late 가 당연하므로 "마감 초과" 와 섞지 않고 따로 알린다
+    int OverdueCount => _rows.Count(r => r.Line.DueDate is DateTime d && d.Date < _dbNow.Date && r.Preview?.Placements.Count > 0);
     int ShortCount => _rows.Count(r => r.Preview?.Shortfalls.Count > 0);
 
     protected override void OnInitialized()

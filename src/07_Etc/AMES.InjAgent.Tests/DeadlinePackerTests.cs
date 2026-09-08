@@ -190,6 +190,26 @@ public class DeadlinePackerTests
     }
 
     [Fact]
+    public void Past_due_order_is_scheduled_from_today_all_late()
+    {
+        // 납기가 이미 지난 수주 — 납기까지 탐색하면 구간이 없어 전량 미배치가 되므로 오늘부터 60일 안에 넣고 전부 Late
+        var r = Pack(new[] { Step(1, "A", 300) }, deadline: Mon.AddDays(-14), due: Mon.AddDays(-10));
+
+        Assert.Equal(300m, r.Placements.Sum(p => p.Qty));
+        Assert.All(r.Placements, p => { Assert.Equal(Mon, p.Date); Assert.True(p.Late); });
+        Assert.Empty(r.Shortfalls);
+    }
+
+    [Fact]
+    public void Due_tomorrow_still_stops_at_due_date()
+    {
+        var r = Pack(new[] { Step(1, "A", 3000) }, deadline: Mon, due: Tue);   // 2일 × 540 = 1080
+
+        Assert.Equal(1080m, r.Placements.Sum(p => p.Qty));
+        Assert.Equal(new[] { new StepShortfall(1, "A", 1920m) }, r.Shortfalls);
+    }
+
+    [Fact]
     public void No_capacity_and_no_dates_terminates_with_full_shortfall()
     {
         var days = Days((_, _) => Day());   // 가동 밴드 없음

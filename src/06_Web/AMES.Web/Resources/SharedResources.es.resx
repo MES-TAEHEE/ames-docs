@@ -2763,6 +2763,9 @@
   <data name="PP.PlanConfirm.Dlg.Warn.Short" xml:space="preserve">
     <value>{0} pedido(s) no se pueden programar por completo antes de la entrega</value>
   </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.Overdue" xml:space="preserve">
+    <value>{0} pedido(s) ya vencidos — programados desde hoy, todos marcados como atrasados</value>
+  </data>
   <data name="PP.PlanConfirm.Dlg.Run" xml:space="preserve">
     <value>Ejecutar Creación de OT</value>
   </data>

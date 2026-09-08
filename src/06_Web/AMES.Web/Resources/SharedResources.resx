@@ -2766,6 +2766,9 @@
   <data name="PP.PlanConfirm.Dlg.Warn.Short" xml:space="preserve">
     <value>납기일까지 배치하지 못한 수량이 있는 수주 {0}건 — 납기 불가</value>
   </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.Overdue" xml:space="preserve">
+    <value>납기가 이미 지난 수주 {0}건 — 오늘부터 배치하며 전량 지연으로 표시됩니다</value>
+  </data>
   <data name="PP.PlanConfirm.Dlg.Run" xml:space="preserve">
     <value>WO 생성 실행</value>
   </data>

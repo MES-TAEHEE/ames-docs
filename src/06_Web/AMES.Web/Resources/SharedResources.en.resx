@@ -2766,6 +2766,9 @@
   <data name="PP.PlanConfirm.Dlg.Warn.Short" xml:space="preserve">
     <value>{0} order(s) cannot be fully scheduled by their due date</value>
   </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.Overdue" xml:space="preserve">
+    <value>{0} order(s) are already past due — scheduled from today, all marked late</value>
+  </data>
   <data name="PP.PlanConfirm.Dlg.Run" xml:space="preserve">
     <value>Run WO Creation</value>
   </data>
