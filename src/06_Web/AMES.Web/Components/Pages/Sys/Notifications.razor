@@ -81,7 +81,7 @@
                 </RadzenStack>
             </div>
 
-            <RadzenDataGrid @ref="_ruleGrid" Page="OnRulePage" TItem="SysRepository.NotifRuleRow" Data="@_ruleRows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+            <RadzenDataGrid @ref="_ruleGrid" Page="OnRulePage" TItem="SysRepository.NotifRuleRow" Data="@_ruleRows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                             PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRuleRowClick" RowRender="@RuleRowRender" EmptyText="@L["SYS.Notifications.Rules.Empty"]" Class="ames-rz-grid">
                 <Columns>
                     <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="EventTypeCode" Title="@L["Col.EventCode"]" Width="130px">
@@ -139,7 +139,7 @@
                     }
                 </RadzenStack>
             </div>
-            <RadzenDataGrid @ref="_chGrid" Page="OnChPage" TItem="SysRepository.NotifChannelRow" Data="@_chRows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+            <RadzenDataGrid @ref="_chGrid" Page="OnChPage" TItem="SysRepository.NotifChannelRow" Data="@_chRows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                             PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnChRowClick" RowRender="@ChRowRender" EmptyText="@L["SYS.Notifications.Channels.Empty"]" Class="ames-rz-grid">
                 <Columns>
                     <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="UserName" Title="@L["Col.User"]" Width="300px">
@@ -185,7 +185,7 @@
                     <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyHistFilter" class="ames-rz-btn" />
                 </RadzenStack>
             </div>
-            <RadzenDataGrid TItem="SysRepository.NotifHistoryRow" Data="@_histRows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+            <RadzenDataGrid TItem="SysRepository.NotifHistoryRow" Data="@_histRows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                             PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["SYS.Notifications.History.Empty"]" Class="ames-rz-grid">
                 <Columns>
                     <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="SentAt" Title="@L["Col.SentAt"]" TextAlign="TextAlign.Center" Width="110px">
@@ -535,7 +535,7 @@
 </style>
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
     bool _bgMouseDownOnSelf, _canEdit;
     string _actor = "system";

@@ -60,7 +60,7 @@
                 </RadzenStack>
             </div>
             <div style="flex:1;min-height:0;overflow:hidden;">
-                <RadzenDataGrid @ref="_verGrid" Page="OnVerPage" TItem="MasterDataRepository.BomVersionRow" Data="_versions" AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
+                <RadzenDataGrid @ref="_verGrid" Page="OnVerPage" TItem="MasterDataRepository.BomVersionRow" Data="_versions" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
                                 ShowPagingSummary="false" RowRender="VerRowRender" RowSelect="OnVerRowSelect" EmptyText="@L["MD.Bom.NoVersions"]" Class="ames-rz-grid">
                     <Columns>
                         <RadzenDataGridColumn TItem="MasterDataRepository.BomVersionRow" Property="RootItemNo" Title="@L["Col.RootItemNo"]">
@@ -198,7 +198,7 @@
                 @* BOM 라인 그리드 *@
                 <div style="flex:1;min-height:0;overflow:hidden;">
                     @{ bool editable = _selVer.Status == "DRAFT"; }
-                    <RadzenDataGrid @ref="_lineGrid" Page="OnLinePage" TItem="MasterDataRepository.BomRow" Data="_lines" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
+                    <RadzenDataGrid @ref="_lineGrid" Page="OnLinePage" TItem="MasterDataRepository.BomRow" Data="_lines" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
                                     ShowPagingSummary="@_showPagerSummary" PageSizeOptions="@_pageSizeOptions" RowRender="@(args => LineRowRender(args, editable))" RowSelect="@(l => { if (editable) OpenLineEdit(l); })" EmptyText="@L["MD.Bom.NoLines"]" Class="ames-rz-grid">
                         <Columns>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="BOMLevel" Title="@L["Col.Level"]" TextAlign="TextAlign.Center" Width="50px">
@@ -338,7 +338,7 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
     List<MasterDataRepository.BomVersionRow> _versions = new();
     List<MasterDataRepository.BomRow>        _lines    = new();

@@ -505,7 +505,7 @@ a:hover { color: #c4dafe; }
 }
 .ames-card-h {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 11px; letter-spacing: 1.6px;
+    font-size: 13px; letter-spacing: 1.6px;
     color: #93c5fd; text-transform: uppercase;
     margin-bottom: 10px;
     padding-bottom: 8px;
@@ -545,7 +545,7 @@ a:hover { color: #c4dafe; }
 .ames-fld { display: flex; flex-direction: column; gap: 4px; }
 .ames-fld > label {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 9px; font-weight: 700; letter-spacing: .5px;
+    font-size: 11px; font-weight: 700; letter-spacing: .5px;
     text-transform: uppercase; color: #93a4bd;
 }
 
@@ -573,20 +573,20 @@ a:hover { color: #c4dafe; }
     align-items: baseline;
     justify-content: space-between;
 }
-.ames-kpi-l { font-family: 'JetBrains Mono', monospace; font-size: 9px;
+.ames-kpi-l { font-family: 'JetBrains Mono', monospace; font-size: 11px;
               color: rgba(147,197,253,.85); letter-spacing: 1.4px;
               text-transform: uppercase; }
 .ames-kpi-v { font-family: 'Bebas Neue', sans-serif; font-size: 28px;
               color: #fff; line-height: 1; margin-top: 5px; letter-spacing: 1px; }
-.ames-kpi-s { font-size: 10px; color: rgba(255,255,255,.5); margin-top: 4px;
+.ames-kpi-s { font-size: 12px; color: rgba(255,255,255,.5); margin-top: 4px;
               font-family: 'JetBrains Mono', monospace; }
 
 /* 컴팩트 KPI (화면별 옵션) — 세로 공간 축소 */
 .ames-kpis.compact { gap: 10px; margin-bottom: 12px; }
 .ames-kpis.compact .ames-kpi { padding: 8px 14px; }
-.ames-kpis.compact .ames-kpi-l { font-size: 10px; letter-spacing: 1px; }
+.ames-kpis.compact .ames-kpi-l { font-size: 12px; letter-spacing: 1px; }
 .ames-kpis.compact .ames-kpi-v { font-size: 24px; margin-top: 2px; }
-.ames-kpis.compact .ames-kpi-s { font-size: 11px; margin-top: 2px; }
+.ames-kpis.compact .ames-kpi-s { font-size: 13px; margin-top: 2px; }
 
 /* ── Tables ───────────────────────────────────────────────── */
 .ames-table {
@@ -865,7 +865,7 @@ select.ames-input option { background: #0d1b2e; }
 
 .ames-rz-modal-label {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 1.2px;
     line-height: 0.9;
@@ -1113,7 +1113,7 @@ select.ames-rz-input {
 
 /* ── Audit detail modal ─────────────────────────────────────── */
 .audit-section-label {
-    font-size: 11px; font-weight: 700; letter-spacing: 1.1px;
+    font-size: 13px; font-weight: 700; letter-spacing: 1.1px;
     text-transform: uppercase; color: #475569;
     border-bottom: 1px solid rgba(255,255,255,.06);
     padding-bottom: 5px; margin-top: 6px;
@@ -1124,7 +1124,7 @@ select.ames-rz-input {
 }
 .audit-kv { display: flex; flex-direction: column; gap: 3px; }
 .audit-kv-l {
-    font-size: 11px; color: #64748b;
+    font-size: 13px; color: #64748b;
     text-transform: uppercase; letter-spacing: .06em;
 }
 .audit-kv-v { font-size: 14px; color: #e5edf7; }

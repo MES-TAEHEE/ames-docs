@@ -74,7 +74,7 @@
         </div>
     }
 
-    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.LineTimePatternRow" Data="@_rows" AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.LineTimePatternRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.LinePat.Empty"]" Class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="PatternID" Title="@L["Col.PatternId"]" TextAlign="TextAlign.Center" Width="110px">
@@ -101,7 +101,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r"><span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(r.Status ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Title="@L["MD.LineTimePattern.Col.Schedule"]" Width="280px" Sortable="false">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Title="@L["MD.LineTimePattern.Col.Schedule"]" Width="500px" Sortable="false">
                 <Template Context="r">
                     @{ var segs = _allSegList.Where(s => s.PatternID == r.PatternID).ToList(); }
                     @if (segs.Count == 0)
@@ -110,7 +110,7 @@
                     }
                     else
                     {
-                        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                        <div style="display:flex;flex-wrap:nowrap;gap:4px;white-space:nowrap;">
                             @foreach (var st in _segStates)
                             {
                                 var mins = segs.Where(s => s.SegmentState == st.CodeValue).Sum(s => (s.EndMin ?? 0) - (s.StartMin ?? 0));
@@ -123,7 +123,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Sortable="false" TextAlign="TextAlign.Center" Width="140px">
                 <Template Context="r">
                     <div @onclick:stopPropagation>
-                        <RadzenButton Text="@L["MD.LineTimePattern.Btn.EditBands"]" Icon="schedule" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="@(() => OpenEditor(r.PatternID))" class="ames-rz-btn" />
+                        <RadzenButton Text="@L["MD.LineTimePattern.Btn.EditBands"]" Icon="schedule" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.ExtraSmall" Click="@(() => OpenEditor(r.PatternID))" class="ames-rz-btn" />
                     </div>
                 </Template>
             </RadzenDataGridColumn>
@@ -416,7 +416,7 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 10, 20, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
     List<MasterDataRepository.LineTimePatternRow>  _allRows  = new();
     List<MasterDataRepository.LineTimePatternRow>  _rows     = new();

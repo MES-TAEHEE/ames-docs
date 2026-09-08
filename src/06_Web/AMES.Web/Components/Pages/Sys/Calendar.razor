@@ -74,7 +74,7 @@
             </div>
         </div>
 
-        <RadzenDataGrid TItem="CalendarDaySummary" Data="@DaySummaries.ToList()" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
+        <RadzenDataGrid TItem="CalendarDaySummary" Data="@DaySummaries.ToList()" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
                         PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" AllowSorting="true" RowRender="@CalDayRowRender"
                         RowClick="@(args => { if (args.Data is not null) OpenEdit(args.Data.Date, args.Data.Shifts); })" EmptyText="@L["SYS.Calendar.Empty"]" Class="ames-rz-grid">
             <Columns>
@@ -421,7 +421,7 @@
 
 @code {
     // ── State ────────────────────────────────────────────────────────────
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
     List<MasterDataRepository.CodeItemRow> _dayTypes = new();
     List<MasterDataRepository.CodeItemRow> _plants   = new();

@@ -51,7 +51,7 @@
                 <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@LoadItems" class="ames-rz-btn" />
             </RadzenStack>
             <div style="flex:1;min-height:0;overflow:hidden;">
-                <RadzenDataGrid @ref="_itemGrid" Page="OnItemPage" TItem="MasterDataRepository.BopItemRow" Data="_items" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
+                <RadzenDataGrid @ref="_itemGrid" Page="OnItemPage" TItem="MasterDataRepository.BopItemRow" Data="_items" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
                                 ShowPagingSummary="false" RowRender="ItemRowRender" RowSelect="OnItemRowSelect" EmptyText="@L["MD.Bop.NoItems"]" Class="ames-rz-grid">
                     <Columns>
                         <RadzenDataGridColumn TItem="MasterDataRepository.BopItemRow" Property="ItemNo" Title="@L["Col.ItemNo"]">
@@ -114,7 +114,7 @@
 
                 @* ─── 공정 단계 그리드 ─── *@
                 <div style="flex:1;min-height:0;overflow:hidden;">
-                    <RadzenDataGrid @ref="_stepGrid" Page="OnStepPage" TItem="MasterDataRepository.BopRow" Data="_steps" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
+                    <RadzenDataGrid @ref="_stepGrid" Page="OnStepPage" TItem="MasterDataRepository.BopRow" Data="_steps" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
                                     ShowPagingSummary="@_showPagerSummary" PageSizeOptions="@_pageSizeOptions" RowRender="StepRowRender" RowSelect="OnStepRowSelect" EmptyText="@L["MD.Bop.NoSteps"]" Class="ames-rz-grid">
                         <Columns>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="RoutingType" Title="@L["Col.Routing"]" Width="70px" TextAlign="TextAlign.Center">
@@ -294,7 +294,7 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
     List<MasterDataRepository.BopItemRow>    _items    = new();
     List<MasterDataRepository.BopRow>        _steps    = new();

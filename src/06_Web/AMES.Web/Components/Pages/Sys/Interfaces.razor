@@ -66,7 +66,7 @@
     }
     else
     {
-        <RadzenDataGrid TItem="SysRepository.InterfaceRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+        <RadzenDataGrid TItem="SysRepository.InterfaceRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                         PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["SYS.Interfaces.Empty"]" Class="ames-rz-grid">
             <Columns>
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="InterfaceCode" Title="@L["SYS.Interfaces.Col.Code"]" Width="100px">
@@ -104,7 +104,7 @@
 </div>
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
     List<SysRepository.InterfaceRow> _allRows = new();
     List<SysRepository.InterfaceRow> _rows    = new();
