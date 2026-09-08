@@ -41,6 +41,7 @@ public sealed class PpRepository
         string? Status, int LineCount, decimal TotalPlannedQty);
 
     // PP-003 계획 검토 라인 — WO 미생성 확정 수주 + FG 재고 + 라인 부하.
+    // LineLoadPct = 그 라인의 앞으로 7일(근무일만) PP_LineSchedule WO 슬롯 분 ÷ 가동 분 — 스케줄러가 실제로 채운 시간 기준.
     public sealed record PlanLineRow(int SoId, string? SoNumber, int? SoLineNo, string? CustomerId,
         string ItemNo, string? ItemName, decimal OrderQty, decimal FgOnHand, DateTime? DueDate, bool ItemExists,
         string? LineId, int? LineLoadPct, string? RoutingType)
@@ -496,10 +497,7 @@ public sealed class PpRepository
                    s.RequestedDeliveryDate AS DueDate,
                    CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS ItemExists,
                    i.RoutingType,
-                   ln.LineID AS LineId,
-                   CASE WHEN ml.DailyCap > 0
-                        THEN CAST(ld.OpenLoad * 100.0 / (ml.DailyCap * 7) AS INT)
-                        ELSE NULL END AS LineLoadPct
+                   ln.LineID AS LineId
             FROM   dbo.PP_CustomerOrder s
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = s.ItemNo
             LEFT JOIN dbo.PP_WorkOrder wo ON wo.SoID = s.SoID AND wo.Status <> 'Cancelled'
@@ -509,11 +507,6 @@ public sealed class PpRepository
                          JOIN dbo.PP_WorkOrder w2 ON w2.WoID = r.WoID
                          WHERE w2.ItemNo = s.ItemNo AND r.LineID IS NOT NULL
                          ORDER BY w2.CreatedTS DESC, r.StepSeq) ln
-            LEFT JOIN dbo.MD_Line ml ON ml.LineID = ln.LineID
-            OUTER APPLY (SELECT ISNULL(SUM(w3.OpenQty),0) AS OpenLoad FROM dbo.PP_WorkOrder w3
-                         WHERE EXISTS (SELECT 1 FROM dbo.PP_WorkOrderRouting r3
-                                       WHERE r3.WoID = w3.WoID AND r3.LineID = ln.LineID)
-                           AND w3.Status IN ('Draft','Planned','Released','In Progress')) ld
             WHERE  s.Status = 'Confirmed' AND wo.WoID IS NULL
                AND (@Cust = '' OR s.CustomerID = @Cust)
                AND (@From IS NULL OR s.RequestedDeliveryDate >= @From)
@@ -534,9 +527,42 @@ public sealed class PpRepository
                 rdr.GetDecimal(rdr.GetOrdinal("OrderQty")),
                 rdr.GetDecimal(rdr.GetOrdinal("FgOnHand")),
                 rdr["DueDate"] as DateTime?, (int)rdr["ItemExists"] == 1,
-                rdr["LineId"] as string, rdr["LineLoadPct"] as int?,
+                rdr["LineId"] as string, null,
                 rdr["RoutingType"] as string));
-        return list;
+        rdr.Close();
+
+        var load = ReadWeekLoad(conn, list.Select(r => r.LineId).OfType<string>().Distinct());
+        return list.Select(r => r.LineId is string l && load.TryGetValue(l, out var pct) ? r with { LineLoadPct = pct } : r).ToList();
+    }
+
+    public const int LoadWindowDays = 7;
+
+    /// <summary>
+    /// 라인별 주간 부하 — 오늘부터 7일 중 근무일의 WO 슬롯 분 ÷ 가동 분(PM 제외). 능력 해석은 보드·스케줄러와 같은
+    /// ReadDayCapacity 를 쓴다. 예전 "열린 WO 수량 ÷ DailyCap×7" 은 사이클을 무시해 사이클이 긴 품번의 부하가 보이지 않았다.
+    /// 가동 분이 0 이면 null.
+    /// </summary>
+    static Dictionary<string, int?> ReadWeekLoad(SqlConnection conn, IEnumerable<string> lineIds)
+    {
+        var lines = lineIds.ToList();
+        var map   = new Dictionary<string, int?>();
+        if (lines.Count == 0) return map;
+
+        var today = ReadNow(conn, null).Date;
+        var cal   = new WorkdayCalendar(ReadCalendar(conn, null, today, today.AddDays(LoadWindowDays)));
+        foreach (var line in lines)
+        {
+            int operating = 0, wo = 0;
+            for (var d = today; d < today.AddDays(LoadWindowDays); d = d.AddDays(1))
+            {
+                if (!cal.IsWorkday(d)) continue;
+                var cap = LineScheduleRepository.ReadDayCapacity(conn, null, line, d);
+                operating += cap.OperatingMin;
+                wo        += cap.WoLoadMin;
+            }
+            map[line] = operating > 0 ? (int)(wo * 100L / operating) : null;
+        }
+        return map;
     }
 
     /// <summary>
@@ -667,7 +693,7 @@ public sealed class PpRepository
         catch { tx.Rollback(); throw; }
     }
 
-    static DateTime ReadNow(SqlConnection conn, SqlTransaction tx)
+    static DateTime ReadNow(SqlConnection conn, SqlTransaction? tx)
     {
         using var cmd = new SqlCommand("SELECT SYSDATETIME();", conn, tx);
         return (DateTime)cmd.ExecuteScalar()!;
@@ -687,7 +713,7 @@ public sealed class PpRepository
         return map;
     }
 
-    static List<(DateTime Date, string? DayType)> ReadCalendar(SqlConnection conn, SqlTransaction tx, DateTime from, DateTime to)
+    static List<(DateTime Date, string? DayType)> ReadCalendar(SqlConnection conn, SqlTransaction? tx, DateTime from, DateTime to)
     {
         using var cmd = new SqlCommand("""
             SELECT CalendarDate, DayType FROM dbo.SYS_FactoryCalendar

@@ -277,6 +277,37 @@ public class PlanScheduleTests
         }
     }
 
+    // ── PP-003 그리드 라인 부하 ─────────────────────────────────────────────
+
+    [SkippableFact]
+    public void Line_load_pct_is_slot_minutes_over_operating_minutes_for_the_coming_week()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Seed(f);
+        try
+        {
+            Run(f, Plan(SeedSo(f, "SO-ITEST-PS-7A")));   // 라인은 "같은 품번의 최근 WO 첫 단계" 로 해석되므로 WO 하나를 먼저 만든다
+            SeedSo(f, "SO-ITEST-PS-7B");                  // 후보 그리드에 뜨는 WO 미생성 확정 수주
+
+            var rows = new PpRepository(f).ListPlanCandidates("", null, null);
+
+            var row = Assert.Single(rows, r => r.SoNumber == "SO-ITEST-PS-7B");
+            Assert.Equal(LineInj, row.LineId);
+            // 독립 재계산: 오늘부터 7일 중 근무일(달력 행 없으면 토·일 제외)의 WO 슬롯 분 ÷ 가동 분
+            var lsb   = new LineScheduleRepository(f);
+            var today = DateTime.Today;
+            int op = 0, wo = 0;
+            for (var d = today; d < today.AddDays(PpRepository.LoadWindowDays); d = d.AddDays(1))
+            {
+                if (d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday) continue;
+                var cap = lsb.GetDayCapacity(row.LineId!, d);
+                op += cap.OperatingMin; wo += cap.WoLoadMin;
+            }
+            Assert.Equal(op > 0 ? (int?)(wo * 100L / op) : null, row.LineLoadPct);
+        }
+        finally { Cleanup(f); }
+    }
+
     // ── 하루 능력 조회 (다이얼로그 잔여 표시용) — 기존 그대로 ────────────────
 
     [SkippableFact]
