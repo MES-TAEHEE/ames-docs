@@ -41,6 +41,7 @@ public sealed class PpRepository
         string? Status, int LineCount, decimal TotalPlannedQty);
 
     // PP-003 계획 검토 라인 — WO 미생성 확정 수주 + FG 재고 + 라인 부하.
+    // LineLoadPct = 그 라인의 앞으로 7일(근무일만) PP_LineSchedule WO 슬롯 분 ÷ 가동 분 — 스케줄러가 실제로 채운 시간 기준.
     public sealed record PlanLineRow(int SoId, string? SoNumber, int? SoLineNo, string? CustomerId,
         string ItemNo, string? ItemName, decimal OrderQty, decimal FgOnHand, DateTime? DueDate, bool ItemExists,
         string? LineId, int? LineLoadPct, string? RoutingType)
@@ -496,10 +497,7 @@ public sealed class PpRepository
                    s.RequestedDeliveryDate AS DueDate,
                    CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS ItemExists,
                    i.RoutingType,
-                   ln.LineID AS LineId,
-                   CASE WHEN ml.DailyCap > 0
-                        THEN CAST(ld.OpenLoad * 100.0 / (ml.DailyCap * 7) AS INT)
-                        ELSE NULL END AS LineLoadPct
+                   ln.LineID AS LineId
             FROM   dbo.PP_CustomerOrder s
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = s.ItemNo
             LEFT JOIN dbo.PP_WorkOrder wo ON wo.SoID = s.SoID AND wo.Status <> 'Cancelled'
@@ -509,11 +507,6 @@ public sealed class PpRepository
                          JOIN dbo.PP_WorkOrder w2 ON w2.WoID = r.WoID
                          WHERE w2.ItemNo = s.ItemNo AND r.LineID IS NOT NULL
                          ORDER BY w2.CreatedTS DESC, r.StepSeq) ln
-            LEFT JOIN dbo.MD_Line ml ON ml.LineID = ln.LineID
-            OUTER APPLY (SELECT ISNULL(SUM(w3.OpenQty),0) AS OpenLoad FROM dbo.PP_WorkOrder w3
-                         WHERE EXISTS (SELECT 1 FROM dbo.PP_WorkOrderRouting r3
-                                       WHERE r3.WoID = w3.WoID AND r3.LineID = ln.LineID)
-                           AND w3.Status IN ('Draft','Planned','Released','In Progress')) ld
             WHERE  s.Status = 'Confirmed' AND wo.WoID IS NULL
                AND (@Cust = '' OR s.CustomerID = @Cust)
                AND (@From IS NULL OR s.RequestedDeliveryDate >= @From)
@@ -534,9 +527,42 @@ public sealed class PpRepository
                 rdr.GetDecimal(rdr.GetOrdinal("OrderQty")),
                 rdr.GetDecimal(rdr.GetOrdinal("FgOnHand")),
                 rdr["DueDate"] as DateTime?, (int)rdr["ItemExists"] == 1,
-                rdr["LineId"] as string, rdr["LineLoadPct"] as int?,
+                rdr["LineId"] as string, null,
                 rdr["RoutingType"] as string));
-        return list;
+        rdr.Close();
+
+        var load = ReadWeekLoad(conn, list.Select(r => r.LineId).OfType<string>().Distinct());
+        return list.Select(r => r.LineId is string l && load.TryGetValue(l, out var pct) ? r with { LineLoadPct = pct } : r).ToList();
+    }
+
+    public const int LoadWindowDays = 7;
+
+    /// <summary>
+    /// 라인별 주간 부하 — 오늘부터 7일 중 근무일의 WO 슬롯 분 ÷ 가동 분(PM 제외). 능력 해석은 보드·스케줄러와 같은
+    /// ReadDayCapacity 를 쓴다. 예전 "열린 WO 수량 ÷ DailyCap×7" 은 사이클을 무시해 사이클이 긴 품번의 부하가 보이지 않았다.
+    /// 가동 분이 0 이면 null.
+    /// </summary>
+    static Dictionary<string, int?> ReadWeekLoad(SqlConnection conn, IEnumerable<string> lineIds)
+    {
+        var lines = lineIds.ToList();
+        var map   = new Dictionary<string, int?>();
+        if (lines.Count == 0) return map;
+
+        var today = ReadNow(conn, null).Date;
+        var cal   = new WorkdayCalendar(ReadCalendar(conn, null, today, today.AddDays(LoadWindowDays)));
+        foreach (var line in lines)
+        {
+            int operating = 0, wo = 0;
+            for (var d = today; d < today.AddDays(LoadWindowDays); d = d.AddDays(1))
+            {
+                if (!cal.IsWorkday(d)) continue;
+                var cap = LineScheduleRepository.ReadDayCapacity(conn, null, line, d);
+                operating += cap.OperatingMin;
+                wo        += cap.WoLoadMin;
+            }
+            map[line] = operating > 0 ? (int)(wo * 100L / operating) : null;
+        }
+        return map;
     }
 
     /// <summary>
@@ -559,7 +585,7 @@ public sealed class PpRepository
             foreach (var soId in soIds)
             {
                 var wo = $"{prefix}{(seq + 1):D3}";
-                if (ExecInsertWoForOrder(ins, wo, soId) is not null) { created.Add(wo); seq++; }
+                if (ExecInsertWoForOrder(ins, wo, soId, null) is not null) { created.Add(wo); seq++; }
             }
             tx.Commit();
             return created;
@@ -567,39 +593,79 @@ public sealed class PpRepository
         catch { tx.Rollback(); throw; }
     }
 
-    // ── PP-003 계획 확정 + 단계별 라인 스케줄 ─────────────────────────────
-    /// <summary>라인 필수 단계 하나의 배치 계획 — 어느 라인, 어느 날, 몇 분.</summary>
-    public sealed record StepPlan(int StepSeq, string LineId, DateTime Date, int DurationMin);
-    public sealed record OrderPlan(int SoId, IReadOnlyList<StepPlan> Steps);
-    public sealed record UnplacedStep(string WoNumber, int StepSeq, string LineId, DateTime Date);
-    public sealed record ScheduledCreateResult(List<string> Created, int PlacedSteps, List<UnplacedStep> Unplaced);
+    // ── PP-003 계획 확정 + 마감일 기준 자동 배치 ─────────────────────────
+    /// <summary>라인 필수 단계 하나의 라인 선택. 날짜·분은 패커가 정한다.</summary>
+    public sealed record StepChoice(int StepSeq, string LineId);
+    public sealed record OrderPlan(int SoId, IReadOnlyList<StepChoice> Steps);
+
+    public sealed record OrderOutcome(string WoNumber, int SoId, DateTime? Deadline, DateTime? DueDate,
+                                      IReadOnlyList<DeadlinePacker.Placement> Placements,
+                                      IReadOnlyList<DeadlinePacker.StepShortfall> Shortfalls)
+    {
+        public DateTime? FirstDate => Placements.Count == 0 ? null : Placements.Min(p => p.Date);
+        public DateTime? LastDate  => Placements.Count == 0 ? null : Placements.Max(p => p.Date);
+        public decimal   LateQty   => Placements.Where(p => p.Late).Sum(p => p.Qty);
+        public decimal   ShortQty  => Shortfalls.Sum(s => s.Qty);
+    }
+
+    public sealed record ScheduledCreateResult(List<OrderOutcome> Orders)
+    {
+        public int Created => Orders.Count;
+        public int Late    => Orders.Count(o => o.LateQty  > 0);
+        public int Short   => Orders.Count(o => o.ShortQty > 0);
+    }
+
+    public const string BufferWorkdaysKey = "PP_PROD_BUFFER_WORKDAYS";
+    public const int    BufferWorkdaysDefault = 3;
 
     /// <summary>
-    /// PP-003 일괄 생성(스케줄 포함). 수주별로 WO 생성 → Release(단계 행, 계획의 라인) → 단계마다 (라인, 일자)에
-    /// 빈 자리를 찾아 PP_LineSchedule 슬롯(DRAFT) 추가. 전체가 한 트랜잭션이라 라인 검증 실패는 배치 전체 롤백.
-    /// 자리가 없는 단계는 슬롯 없이 Unplaced 로 보고하고 WO 는 그대로 Released 로 남긴다.
-    /// 슬롯은 같은 (라인, 일자)의 기존 WO 슬롯 뒤에 이어 붙이고, 같은 날 뒤 단계는 앞 단계 슬롯 종료 이후에 놓는다.
+    /// PP-003 일괄 생성(스케줄 포함). 수주를 납기 오름차순으로 돌며 WO 생성(ProdDeadline = 납기 − 버퍼 근무일) →
+    /// Release(단계 행, 계획의 라인) → DeadlinePacker 가 정한 슬롯을 PP_LineSchedule(DRAFT) 에 추가.
+    /// 전체가 한 트랜잭션이라 라인 검증 실패는 배치 전체 롤백. 자리가 모자란 수량은 Shortfall 로 보고하고 WO 는 Released 로 남긴다.
+    /// startDate 가 오늘보다 뒤면 그 날부터 배치(테스트·미래 계획용), 아니면 서버 현재 시각 이후부터.
     /// </summary>
-    public ScheduledCreateResult CreateScheduledWorkOrders(IReadOnlyList<OrderPlan> plans, string actor, bool useNetReq = false)
+    public ScheduledCreateResult CreateScheduledWorkOrders(IReadOnlyList<OrderPlan> plans, string actor,
+                                                           bool useNetReq = false, DateTime? startDate = null)
     {
-        var created  = new List<string>();
-        var unplaced = new List<UnplacedStep>();
-        int placed   = 0;
-        if (plans.Count == 0) return new(created, placed, unplaced);
+        var orders = new List<OrderOutcome>();
+        if (plans.Count == 0) return new(orders);
 
         var prefix = $"WO-{DateTime.Today:yyyyMMdd}-";
         using var conn = _f.OpenConnection();
-        using var tx   = conn.BeginTransaction();
+        // PP-003 다이얼로그 미리보기도 같은 메서드로 읽으므로 둘의 값이 반드시 일치해야 한다.
+        int bufferDays = new SysRepository(_f).GetConfigInt(BufferWorkdaysKey, BufferWorkdaysDefault);
+        using var tx = conn.BeginTransaction();
         try
         {
+            var now   = ReadNow(conn, tx);
+            var today = now.Date;
+            int nowMin = now.Hour * 60 + now.Minute;
+            if (startDate is { } sd && sd.Date > today) { today = sd.Date; nowMin = 0; }
+
+            var so       = ReadOrderKeys(conn, tx, plans.Select(p => p.SoId));
+            var lastDue  = so.Values.Select(v => v.Due).Where(d => d is not null).DefaultIfEmpty(today).Max() ?? today;
+            var calEnd   = lastDue > today.AddDays(61) ? lastDue.AddDays(1) : today.AddDays(61);
+            var cal      = new WorkdayCalendar(ReadCalendar(conn, tx, today.AddDays(-1), calEnd));
+            var dailyCap = ReadDailyCap(conn, tx);
+            var days     = new DeadlinePacker.DayStateCache((line, date) => LineScheduleRepository.ReadDayCapacity(conn, tx, line, date));
+
+            // 순방향 탐욕 채움은 순서에 민감하다 — 급한 납기부터(EDD). 그리드 정렬과 무관하게 서버가 정한다.
+            var ordered = plans
+                .OrderBy(p => so.TryGetValue(p.SoId, out var k) && k.Due is DateTime d ? d : DateTime.MaxValue)
+                .ThenBy(p => so.TryGetValue(p.SoId, out var k) ? k.SoNumber : null)
+                .ThenBy(p => so.TryGetValue(p.SoId, out var k) ? k.SoLineNo : null)
+                .ToList();
+
             var seq = NextWoSeq(conn, tx, prefix);
             using var ins = BuildInsertWoForOrder(conn, tx, actor, useNetReq);
-            foreach (var plan in plans)
+            foreach (var plan in ordered)
             {
+                var key = so.GetValueOrDefault(plan.SoId);
+                DateTime? deadline = key.Due is DateTime due ? cal.SubtractWorkdays(due, bufferDays) : null;
+
                 var wo = $"{prefix}{(seq + 1):D3}";
-                if (ExecInsertWoForOrder(ins, wo, plan.SoId) is not (int woId, decimal qty)) continue;
+                if (ExecInsertWoForOrder(ins, wo, plan.SoId, deadline) is not (int woId, decimal qty)) continue;
                 seq++;
-                created.Add(wo);
 
                 var template = WorkOrderRepository.ReadPreview(conn, tx, woId);
                 var choices  = template.Select(t => new WorkOrderRepository.StepLineChoice(
@@ -608,45 +674,73 @@ public sealed class PpRepository
                 if (WorkOrderRepository.ReleaseCore(conn, tx, woId, choices, actor) == 0)
                     throw new InvalidOperationException($"{wo}: release failed.");
 
-                (DateTime Date, int End)? prev = null;
-                foreach (var step in plan.Steps.OrderBy(s => s.StepSeq))
-                {
-                    var date = step.Date.Date;
-                    var cap  = LineScheduleRepository.ReadDayCapacity(conn, tx, step.LineId, date);
-                    int? notBefore = cap.LastWoEnd;
-                    if (prev is { } p && p.Date == date)
-                        notBefore = Later(cap.DayStart, notBefore, p.End);
+                var demands = plan.Steps.OrderBy(s => s.StepSeq).Select(s => new DeadlinePacker.StepDemand(
+                        s.StepSeq, s.LineId, qty,
+                        template.FirstOrDefault(t => t.StepSeq == s.StepSeq)?.StdCycleSec,
+                        dailyCap.GetValueOrDefault(s.LineId)))
+                    .ToList();
 
-                    if (SlotPacker.Place(cap.OperatingBands, cap.Occupied, step.DurationMin, cap.DayStart, notBefore) is not { } slot)
-                    {
-                        unplaced.Add(new UnplacedStep(wo, step.StepSeq, step.LineId, date));
-                        continue;
-                    }
-                    LineScheduleRepository.AppendWoSlot(conn, tx, step.LineId, date, cap.PatternId,
-                                                        woId, slot.StartMin, slot.EndMin, qty, actor);
-                    placed++;
-                    prev = (date, slot.EndMin);
-                }
+                var packed = DeadlinePacker.Pack(demands, today, nowMin, deadline, key.Due, cal, days);
+                foreach (var p in packed.Placements)
+                    LineScheduleRepository.AppendWoSlot(conn, tx, p.LineId, p.Date, days.Get(p.LineId, p.Date).PatternId,
+                                                        woId, p.StartMin, p.EndMin, p.Qty, actor);
+
+                orders.Add(new OrderOutcome(wo, plan.SoId, deadline, key.Due, packed.Placements, packed.Shortfalls));
             }
             tx.Commit();
-            return new(created, placed, unplaced);
+            return new(orders);
         }
         catch { tx.Rollback(); throw; }
     }
 
-    // 축(dayStart 기준)에서 더 늦은 시각
-    static int Later(int dayStart, int? a, int b)
+    static DateTime ReadNow(SqlConnection conn, SqlTransaction? tx)
     {
-        if (a is not int av) return b;
-        int Axis(int m) { int r = (m - dayStart) % 1440; return r < 0 ? r + 1440 : r; }
-        return Axis(av) >= Axis(b) ? av : b;
+        using var cmd = new SqlCommand("SELECT SYSDATETIME();", conn, tx);
+        return (DateTime)cmd.ExecuteScalar()!;
+    }
+
+    static Dictionary<int, (DateTime? Due, string? SoNumber, int? SoLineNo)> ReadOrderKeys(SqlConnection conn, SqlTransaction tx, IEnumerable<int> soIds)
+    {
+        var ids = soIds.Distinct().ToList();
+        var map = new Dictionary<int, (DateTime?, string?, int?)>();
+        if (ids.Count == 0) return map;
+        // ids 는 정수 ID 만 이어 붙이므로 인젝션 여지가 없다.
+        var sql = $"SELECT SoID, RequestedDeliveryDate, SoNumber, SoLineNo FROM dbo.PP_CustomerOrder WHERE SoID IN ({string.Join(",", ids)});";
+        using var cmd = new SqlCommand(sql, conn, tx);
+        using var rdr = cmd.ExecuteReader();
+        while (rdr.Read())
+            map[(int)rdr["SoID"]] = (rdr["RequestedDeliveryDate"] as DateTime?, rdr["SoNumber"] as string, rdr["SoLineNo"] as int?);
+        return map;
+    }
+
+    static List<(DateTime Date, string? DayType)> ReadCalendar(SqlConnection conn, SqlTransaction? tx, DateTime from, DateTime to)
+    {
+        using var cmd = new SqlCommand("""
+            SELECT CalendarDate, DayType FROM dbo.SYS_FactoryCalendar
+            WHERE  CalendarDate BETWEEN @From AND @To AND CalendarDate IS NOT NULL;
+            """, conn, tx);
+        cmd.Parameters.Add("@From", SqlDbType.Date).Value = from.Date;
+        cmd.Parameters.Add("@To",   SqlDbType.Date).Value = to.Date;
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<(DateTime, string?)>();
+        while (rdr.Read()) list.Add(((DateTime)rdr["CalendarDate"], rdr["DayType"] as string));
+        return list;
+    }
+
+    static Dictionary<string, int?> ReadDailyCap(SqlConnection conn, SqlTransaction tx)
+    {
+        using var cmd = new SqlCommand("SELECT LineID, DailyCap FROM dbo.MD_Line;", conn, tx);
+        using var rdr = cmd.ExecuteReader();
+        var map = new Dictionary<string, int?>();
+        while (rdr.Read()) map[(string)rdr["LineID"]] = rdr["DailyCap"] is int dc ? dc : null;
+        return map;
     }
 
     const string InsertWoForOrderSql = """
         INSERT INTO dbo.PP_WorkOrder
-               (WoNumber, SoID, ItemNo, OrderQty, OpenQty, DueDate, RoutingType, Status, CreatedBy, CreatedTS)
+               (WoNumber, SoID, ItemNo, OrderQty, OpenQty, DueDate, ProdDeadline, RoutingType, Status, CreatedBy, CreatedTS)
         OUTPUT INSERTED.WoID, INSERTED.OrderQty
-        SELECT @Wo, s.SoID, s.ItemNo, q.Qty, q.Qty, s.RequestedDeliveryDate, i.RoutingType,
+        SELECT @Wo, s.SoID, s.ItemNo, q.Qty, q.Qty, s.RequestedDeliveryDate, @Deadline, i.RoutingType,
                'Draft', @Actor, SYSDATETIME()
         FROM   dbo.PP_CustomerOrder s
         JOIN   dbo.MD_Item i ON i.ItemNo = s.ItemNo
@@ -665,18 +759,20 @@ public sealed class PpRepository
     static SqlCommand BuildInsertWoForOrder(SqlConnection conn, SqlTransaction tx, string actor, bool useNetReq)
     {
         var ins = new SqlCommand(InsertWoForOrderSql, conn, tx);
-        ins.Parameters.Add("@Wo",     SqlDbType.VarChar, 20);
-        ins.Parameters.Add("@SoID",   SqlDbType.Int);
-        ins.Parameters.Add("@Actor",  SqlDbType.NVarChar, 450).Value = actor;
-        ins.Parameters.Add("@UseNet", SqlDbType.Bit).Value = useNetReq;
+        ins.Parameters.Add("@Wo",       SqlDbType.VarChar, 20);
+        ins.Parameters.Add("@SoID",     SqlDbType.Int);
+        ins.Parameters.Add("@Deadline", SqlDbType.Date);
+        ins.Parameters.Add("@Actor",    SqlDbType.NVarChar, 450).Value = actor;
+        ins.Parameters.Add("@UseNet",   SqlDbType.Bit).Value = useNetReq;
         return ins;
     }
 
     /// <summary>1행 삽입되면 (WoID, 수량). 조건 미충족(미확정·라우팅 없음·WO 기존재·수량 0)이면 null.</summary>
-    static (int WoId, decimal Qty)? ExecInsertWoForOrder(SqlCommand ins, string wo, int soId)
+    static (int WoId, decimal Qty)? ExecInsertWoForOrder(SqlCommand ins, string wo, int soId, DateTime? deadline)
     {
-        ins.Parameters["@Wo"].Value   = wo;
-        ins.Parameters["@SoID"].Value = soId;
+        ins.Parameters["@Wo"].Value       = wo;
+        ins.Parameters["@SoID"].Value     = soId;
+        ins.Parameters["@Deadline"].Value = deadline is { } d ? d.Date : DBNull.Value;
         using var rdr = ins.ExecuteReader();
         if (!rdr.Read()) return null;
         return ((int)rdr["WoID"], rdr.GetDecimal(rdr.GetOrdinal("OrderQty")));

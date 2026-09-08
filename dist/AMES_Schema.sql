@@ -1302,6 +1302,7 @@ CREATE TABLE dbo.PP_WorkOrder (
   [ActualStart]               DATETIME2                NULL,
   [ActualEnd]                 DATETIME2                NULL,
   [DueDate]                   DATE                     NULL,
+  [ProdDeadline]              DATE                     NULL,  -- 생산 마감일 = 납기 − 버퍼 근무일 (PP-003 생성 시점 스냅샷)
   [Status]                    VARCHAR(20)              NULL,
   [TerminalLock]              VARCHAR(20)              NULL,
   [Priority]                  TINYINT                  NULL,

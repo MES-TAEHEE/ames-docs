@@ -693,7 +693,7 @@ public sealed class SysRepository
     // 단일 설정키의 값·활성여부 (컬처 결정/언어 스위처 판정용). 없으면 null.
     public (string? Value, bool IsActive)? GetConfigFlag(string key)
     {
-        const string sql = "SELECT TOP 1 ConfigValue, ISNULL(IsActive,1) AS IsActive FROM dbo.SYS_Config WHERE ConfigKey = @Key;";
+        const string sql = "SELECT TOP 1 ConfigValue, ISNULL(IsActive,1) AS IsActive FROM dbo.SYS_Config WHERE ConfigKey = @Key ORDER BY ConfigID;";
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@Key", SqlDbType.VarChar, 60).Value = key;

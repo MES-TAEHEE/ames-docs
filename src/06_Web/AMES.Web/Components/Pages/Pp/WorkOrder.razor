@@ -162,6 +162,8 @@ else
                     <div><div class="dim" style="font-size:.8em;">SAP SO</div><div>@(w.SoNumber ?? "—")</div></div>
                     <div><div class="dim" style="font-size:.8em;">@L["PP.PlanConfirm.Col.Due"]</div>
                          <div>@(w.DueDate?.ToString("yyyy-MM-dd") ?? "—")</div></div>
+                    <div><div class="dim" style="font-size:.8em;">@L["PP.WorkOrder.Detail.ProdDeadline"]</div>
+                         <div>@(w.ProdDeadline?.ToString("yyyy-MM-dd") ?? "—")</div></div>
                     <div><div class="dim" style="font-size:.8em;">@L["PP.WorkOrder.Detail.Reservation"]</div>
                          <div>@ReservationText(w.Status)</div></div>
                 </div>

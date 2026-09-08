@@ -230,7 +230,7 @@ else
         {
             _woCreated += r.Created;
             _selected.Clear();
-            ShowMsg(string.Format(L["PP.PlanConfirm.Ok.Scheduled"].Value, r.Created, r.Placed, r.Unplaced), r.Unplaced > 0);
+            ShowMsg(string.Format(L["PP.PlanConfirm.Ok.Scheduled"].Value, r.Created, r.Late, r.Short), r.Short > 0);
             Search();
         }
     }

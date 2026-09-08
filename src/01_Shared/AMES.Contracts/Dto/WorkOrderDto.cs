@@ -13,6 +13,8 @@ public sealed class WorkOrderDto
     public string?           MoldId        { get; init; }
     public string?           RecipeId      { get; init; }
     public DateTime?         DueDate       { get; init; }
+    /// <summary>생산 마감일 = 납기 − 버퍼 근무일. PP-003 생성 시점 스냅샷; 그 경로 밖에서 만든 WO 는 null.</summary>
+    public DateTime?         ProdDeadline  { get; init; }
     public required string   Status        { get; init; }
     public string?           TerminalLock  { get; init; }
     public int               Priority      { get; init; }

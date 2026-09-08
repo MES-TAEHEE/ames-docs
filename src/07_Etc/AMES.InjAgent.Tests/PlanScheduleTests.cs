@@ -1,27 +1,33 @@
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
+using AMES.Data.Scheduling;
 using Microsoft.Data.SqlClient;
 using Xunit;
 
 namespace AMES.InjAgent.Tests;
 
 /// <summary>
-/// PP-003 계획 확정 → WO 생성 + Release + 단계별 라인 스케줄 배치 (한 트랜잭션).
+/// PP-003 계획 확정 → WO 생성 + Release + 마감일 기준 다일·분할 자동 배치 (한 트랜잭션).
 /// AMES_DEV 통합 테스트, DB 미기동 시 skip. 라인/스테이션은 개발 시드(LINE-INJ-01, LINE-IMG-01, ST-INJ-01, ST-IMG-01)에 의존.
-/// 스케줄 일자는 먼 미래(+400일)로 잡고, (라인, 일자) 에 ITEST 패턴 placeholder 행을 미리 두어 패턴 해석을 고정한다.
+/// 배치 시작일(startDate)은 먼 미래의 월요일(+400일 이후)로 고정하고, 그 주 월~금 (라인, 일자) 에 ITEST 패턴
+/// placeholder 행을 미리 두어 패턴 해석을 고정한다. 그 주에 SYS_FactoryCalendar HOLIDAY 행이 없다고 가정한다.
 /// </summary>
 public class PlanScheduleTests
 {
     static readonly string Conn =
         Environment.GetEnvironmentVariable("AMES_TEST_CONN")
-        ?? "Server=192.168.2.137,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=10;";
+        ?? "Server=98.95.142.192,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;";
 
     const string Item     = "ITEST-PS-RTA";
     const string Pattern  = "ITEST-PS-PAT";
     const string LineInj  = "LINE-INJ-01";
     const string LineImg  = "LINE-IMG-01";
-    static readonly DateTime D0 = DateTime.Today.AddDays(400);
+    static readonly DateTime D0 = NextMonday(DateTime.Today.AddDays(400));
     static readonly DateTime D1 = D0.AddDays(1);
+    static readonly DateTime D4 = D0.AddDays(4);   // 금요일
+    static readonly DateTime[] Week = Enumerable.Range(0, 5).Select(i => D0.AddDays(i)).ToArray();
+
+    static DateTime NextMonday(DateTime d) => d.Date.AddDays(((int)DayOfWeek.Monday - (int)d.DayOfWeek + 7) % 7);
 
     static AmesConnectionFactory? TryFactory()
     {
@@ -62,7 +68,8 @@ public class PlanScheduleTests
         return list;
     }
 
-    /// <summary>A 라우팅 품목 + BOP(ST-INJ-01 사이클 6초, ST-IMG-01) + 가동 패턴(08:00~12:00, 휴식, 13:00~18:00) + 두 라인 D0/D1 placeholder.</summary>
+    /// <summary>A 라우팅 품목 + BOP(ST-INJ-01 사이클 6초 = 0.1분/EA, ST-IMG-01 사이클 12초 = 0.2분/EA)
+    /// + 가동 패턴(08:00~12:00, 휴식, 13:00~18:00 = 540분) + 두 라인 월~금 placeholder.</summary>
     static void Seed(AmesConnectionFactory f)
     {
         Cleanup(f);
@@ -70,27 +77,28 @@ public class PlanScheduleTests
             INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, ActiveFlag, CreatedBy)
             VALUES (@I, N'ITEST plan schedule', 'A', 1, 'ITEST');
             INSERT INTO dbo.MD_Bop (BOPID, ItemNo, RoutingType, StepSeq, StationCode, StdCycleTime, ActiveFlag, CreatedBy)
-            VALUES ('ITEST-PS-BOP-10', @I, 'A', 10, 'ST-INJ-01', 6, 1, 'ITEST'),
-                   ('ITEST-PS-BOP-20', @I, 'A', 20, 'ST-IMG-01', NULL, 1, 'ITEST');
+            VALUES ('ITEST-PS-BOP-10', @I, 'A', 10, 'ST-INJ-01', 6,  1, 'ITEST'),
+                   ('ITEST-PS-BOP-20', @I, 'A', 20, 'ST-IMG-01', 12, 1, 'ITEST');
             INSERT INTO dbo.MD_LineTimePattern (PatternID, LineID, PatternName, Status, CreatedBy)
             VALUES (@P, NULL, N'ITEST pattern', 'ACTIVE', 'ITEST');
             INSERT INTO dbo.MD_LineTimeSegment (SegmentID, PatternID, SeqNo, StartMin, EndMin, SegmentState, ShiftCode, CreatedBy)
             VALUES ('ITEST-PS-SEG-1', @P, 1, 480,  720,  'OPERATING', 'A', 'ITEST'),
                    ('ITEST-PS-SEG-2', @P, 2, 720,  780,  'BREAK',     'A', 'ITEST'),
                    ('ITEST-PS-SEG-3', @P, 3, 780,  1080, 'OPERATING', 'A', 'ITEST');
-            INSERT INTO dbo.PP_LineSchedule (LineID, ScheduleDate, PatternID, EntryType, PlannedQty, Status, CreatedBy)
-            VALUES (@LI, @D0, @P, 'WO', 0, 'DRAFT', 'ITEST'),
-                   (@LI, @D1, @P, 'WO', 0, 'DRAFT', 'ITEST'),
-                   (@LM, @D0, @P, 'WO', 0, 'DRAFT', 'ITEST'),
-                   (@LM, @D1, @P, 'WO', 0, 'DRAFT', 'ITEST');
-            """, ("@I", Item), ("@P", Pattern), ("@LI", LineInj), ("@LM", LineImg), ("@D0", D0), ("@D1", D1));
+            """, ("@I", Item), ("@P", Pattern));
+        foreach (var d in Week)
+            Exec(f, """
+                INSERT INTO dbo.PP_LineSchedule (LineID, ScheduleDate, PatternID, EntryType, PlannedQty, Status, CreatedBy)
+                VALUES (@LI, @D, @P, 'WO', 0, 'DRAFT', 'ITEST'),
+                       (@LM, @D, @P, 'WO', 0, 'DRAFT', 'ITEST');
+                """, ("@P", Pattern), ("@LI", LineInj), ("@LM", LineImg), ("@D", d));
     }
 
     static void Cleanup(AmesConnectionFactory f)
     {
         Exec(f, """
             DELETE s FROM dbo.PP_LineSchedule s JOIN dbo.PP_WorkOrder w ON w.WoID = s.WoID WHERE w.ItemNo = @I;
-            DELETE FROM dbo.PP_LineSchedule WHERE CreatedBy = 'ITEST' AND ScheduleDate IN (@D0, @D1);
+            DELETE FROM dbo.PP_LineSchedule WHERE CreatedBy = 'ITEST' AND ScheduleDate BETWEEN @D0 AND @D4;
             DELETE r FROM dbo.PP_WorkOrderRouting r JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID WHERE w.ItemNo = @I;
             DELETE FROM dbo.PP_WorkOrder     WHERE ItemNo = @I;
             DELETE FROM dbo.PP_CustomerOrder WHERE ItemNo = @I;
@@ -98,113 +106,134 @@ public class PlanScheduleTests
             DELETE FROM dbo.MD_Item          WHERE ItemNo = @I;
             DELETE FROM dbo.MD_LineTimeSegment WHERE PatternID = @P;
             DELETE FROM dbo.MD_LineTimePattern WHERE PatternID = @P;
-            """, ("@I", Item), ("@P", Pattern), ("@D0", D0), ("@D1", D1));
+            """, ("@I", Item), ("@P", Pattern), ("@D0", D0), ("@D4", D4));
     }
 
-    static int SeedSo(AmesConnectionFactory f, string soNo, decimal qty = 50) => (int)Scalar(f, """
+    /// <summary>납기 = D0 + dueOffset 일. 기본 9 → 다음 주 수요일 → 마감일(−3근무일) = 이번 주 금요일 D4.</summary>
+    static int SeedSo(AmesConnectionFactory f, string soNo, decimal qty = 50, int dueOffset = 9) => (int)Scalar(f, """
         INSERT INTO dbo.PP_CustomerOrder (SoNumber, SoLineNo, ItemNo, OrderQty, RequestedDeliveryDate, Status, CreatedBy)
         OUTPUT INSERTED.SoID
-        VALUES (@S, 1, @I, @Q, DATEADD(day, 410, CAST(GETDATE() AS date)), 'Confirmed', 'ITEST');
-        """, ("@S", soNo), ("@I", Item), ("@Q", qty))!;
+        VALUES (@S, 1, @I, @Q, @Due, 'Confirmed', 'ITEST');
+        """, ("@S", soNo), ("@I", Item), ("@Q", qty), ("@Due", D0.AddDays(dueOffset)))!;
 
     static int WoIdOf(AmesConnectionFactory f, string woNumber) =>
         (int)Scalar(f, "SELECT WoID FROM dbo.PP_WorkOrder WHERE WoNumber = @W;", ("@W", woNumber))!;
 
-    static PpRepository.OrderPlan Plan(int soId, DateTime injDate, DateTime imgDate, int injMin = 60, int imgMin = 30) =>
-        new(soId, new[]
-        {
-            new PpRepository.StepPlan(1, LineInj, injDate, injMin),
-            new PpRepository.StepPlan(2, LineImg, imgDate, imgMin),
-        });
+    static PpRepository.OrderPlan Plan(int soId) =>
+        new(soId, new[] { new PpRepository.StepChoice(1, LineInj), new PpRepository.StepChoice(2, LineImg) });
 
-    [SkippableFact]
-    public void Releases_wo_and_places_each_step_on_its_own_line_and_date()
+    static PpRepository.ScheduledCreateResult Run(AmesConnectionFactory f, params PpRepository.OrderPlan[] plans) =>
+        new PpRepository(f).CreateScheduledWorkOrders(plans, "itest", useNetReq: false, startDate: D0);
+
+    static void BlockInjAllWeek(AmesConnectionFactory f)
     {
-        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
-        Seed(f);
-        try
-        {
-            var so = SeedSo(f, "SO-ITEST-PS-1");
-
-            var res = new PpRepository(f).CreateScheduledWorkOrders(new[] { Plan(so, D0, D1) }, "itest", useNetReq: false);
-
-            Assert.Single(res.Created);
-            Assert.Empty(res.Unplaced);
-            var woId = WoIdOf(f, res.Created[0]);
-            Assert.Equal("Released", Scalar(f, "SELECT Status FROM dbo.PP_WorkOrder WHERE WoID = @W;", ("@W", woId)));
-            Assert.Equal(LineInj, Scalar(f, "SELECT LineID FROM dbo.PP_WorkOrderRouting WHERE WoID = @W AND StepSeq = 1;", ("@W", woId)));
-            Assert.Equal(LineImg, Scalar(f, "SELECT LineID FROM dbo.PP_WorkOrderRouting WHERE WoID = @W AND StepSeq = 2;", ("@W", woId)));
-
-            var slots = Slots(f, woId);
-            Assert.Equal(2, slots.Count);
-            Assert.Equal((LineInj, D0, 480, 540, 50m, "DRAFT", Pattern), slots[0]);
-            Assert.Equal((LineImg, D1, 480, 510, 50m, "DRAFT", Pattern), slots[1]);
-        }
-        finally { Cleanup(f); }
-    }
-
-    [SkippableFact]
-    public void Same_day_next_step_starts_after_previous_step_ends()
-    {
-        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
-        Seed(f);
-        try
-        {
-            var so  = SeedSo(f, "SO-ITEST-PS-2");
-            var res = new PpRepository(f).CreateScheduledWorkOrders(new[] { Plan(so, D0, D0) }, "itest", useNetReq: false);
-
-            var slots = Slots(f, WoIdOf(f, res.Created[0]));
-            Assert.Equal((LineInj, D0, 480, 540), (slots[0].Line, slots[0].Date, slots[0].Start, slots[0].End));
-            Assert.Equal((LineImg, D0, 540, 570), (slots[1].Line, slots[1].Date, slots[1].Start, slots[1].End));
-        }
-        finally { Cleanup(f); }
-    }
-
-    [SkippableFact]
-    public void Rows_in_one_batch_queue_on_the_same_line_and_date()
-    {
-        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
-        Seed(f);
-        try
-        {
-            var so1 = SeedSo(f, "SO-ITEST-PS-3A");
-            var so2 = SeedSo(f, "SO-ITEST-PS-3B");
-            var res = new PpRepository(f).CreateScheduledWorkOrders(
-                new[] { Plan(so1, D0, D1), Plan(so2, D0, D1) }, "itest", useNetReq: false);
-
-            Assert.Equal(2, res.Created.Count);
-            var a = Slots(f, WoIdOf(f, res.Created[0]))[0];
-            var b = Slots(f, WoIdOf(f, res.Created[1]))[0];
-            Assert.Equal((480, 540), (a.Start, a.End));
-            Assert.Equal((540, 600), (b.Start, b.End));
-        }
-        finally { Cleanup(f); }
-    }
-
-    [SkippableFact]
-    public void Step_without_room_is_reported_unplaced_but_wo_is_still_released()
-    {
-        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
-        Seed(f);
-        try
-        {
-            // INJ 라인 D0 의 가동 시간을 PM 밴드로 전부 막는다
+        foreach (var d in Week)
             Exec(f, """
                 INSERT INTO dbo.PP_LineSchedule (LineID, ScheduleDate, PatternID, EntryType, StartMin, EndMin, PlannedQty, Title, Status, CreatedBy)
                 VALUES (@L, @D, @P, 'PM', 480, 720,  0, N'ITEST PM', 'DRAFT', 'ITEST'),
                        (@L, @D, @P, 'PM', 780, 1080, 0, N'ITEST PM', 'DRAFT', 'ITEST');
-                """, ("@L", LineInj), ("@D", D0), ("@P", Pattern));
-            var so  = SeedSo(f, "SO-ITEST-PS-4");
+                """, ("@L", LineInj), ("@D", d), ("@P", Pattern));
+    }
 
-            var res = new PpRepository(f).CreateScheduledWorkOrders(new[] { Plan(so, D0, D1) }, "itest", useNetReq: false);
+    [SkippableFact]
+    public void Releases_wo_stamps_deadline_and_places_steps_from_start_date()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Seed(f);
+        try
+        {
+            var so  = SeedSo(f, "SO-ITEST-PS-1");
 
-            Assert.Single(res.Created);
-            var woId = WoIdOf(f, res.Created[0]);
+            var res = Run(f, Plan(so));
+
+            Assert.Equal(1, res.Created);
+            var o    = Assert.Single(res.Orders);
+            var woId = WoIdOf(f, o.WoNumber);
             Assert.Equal("Released", Scalar(f, "SELECT Status FROM dbo.PP_WorkOrder WHERE WoID = @W;", ("@W", woId)));
-            Assert.Equal(new[] { (res.Created[0], 1) }, res.Unplaced.Select(u => (u.WoNumber, u.StepSeq)).ToArray());
+            Assert.Equal(D4, (DateTime)Scalar(f, "SELECT ProdDeadline FROM dbo.PP_WorkOrder WHERE WoID = @W;", ("@W", woId))!);
+            Assert.Equal(D4, o.Deadline);
+            Assert.Equal(LineInj, Scalar(f, "SELECT LineID FROM dbo.PP_WorkOrderRouting WHERE WoID = @W AND StepSeq = 1;", ("@W", woId)));
+            Assert.Equal(LineImg, Scalar(f, "SELECT LineID FROM dbo.PP_WorkOrderRouting WHERE WoID = @W AND StepSeq = 2;", ("@W", woId)));
+
+            // INJ 50 EA × 0.1분 = 5분, IMG 50 EA × 0.2분 = 10분 — 같은 날, INJ 첫 슬롯과 같은 시각부터
             var slots = Slots(f, woId);
-            Assert.Single(slots);
-            Assert.Equal(LineImg, slots[0].Line);
+            var inj = Assert.Single(slots, s => s.Line == LineInj);
+            var img = Assert.Single(slots, s => s.Line == LineImg);
+            Assert.Equal((D0, 480, 485, 50m), (inj.Date, inj.Start, inj.End, inj.Qty));
+            Assert.Equal((D0, 480, 490, 50m), (img.Date, img.Start, img.End, img.Qty));   // IMG 는 INJ 첫 슬롯과 같은 시각부터 (수량 흐름 무관)
+            Assert.All(slots, s => { Assert.Equal("DRAFT", s.Status); Assert.Equal(Pattern, s.Pattern); });
+            Assert.Empty(o.Shortfalls);
+            Assert.Equal(0m, o.LateQty);
+        }
+        finally { Cleanup(f); }
+    }
+
+    [SkippableFact]
+    public void Large_qty_splits_across_days_and_next_step_follows()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Seed(f);
+        try
+        {
+            var so  = SeedSo(f, "SO-ITEST-PS-2", qty: 6000);   // INJ 600분 → D0 540 + D1 60, IMG 1200분
+
+            var res = Run(f, Plan(so));
+
+            var o     = Assert.Single(res.Orders);
+            var slots = Slots(f, WoIdOf(f, o.WoNumber));
+            var inj   = slots.Where(s => s.Line == LineInj).ToList();
+            var img   = slots.Where(s => s.Line == LineImg).ToList();
+            Assert.Equal(6000m, inj.Sum(s => s.Qty));
+            Assert.Equal(5400m, inj.Where(s => s.Date == D0).Sum(s => s.Qty));
+            Assert.Equal(600m,  inj.Where(s => s.Date == D1).Sum(s => s.Qty));
+            Assert.Equal(6000m, img.Sum(s => s.Qty));
+            Assert.Equal((D0, 480), (img[0].Date, img[0].Start));    // INJ 첫 슬롯과 같은 날·같은 시각부터
+            Assert.Empty(o.Shortfalls);
+            Assert.Equal(0m, o.LateQty);
+        }
+        finally { Cleanup(f); }
+    }
+
+    [SkippableFact]
+    public void Batch_is_scheduled_in_due_date_order_not_input_order()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Seed(f);
+        try
+        {
+            var later   = SeedSo(f, "SO-ITEST-PS-3A", dueOffset: 10);
+            var earlier = SeedSo(f, "SO-ITEST-PS-3B", dueOffset: 9);
+
+            var res = Run(f, Plan(later), Plan(earlier));
+
+            Assert.Equal(2, res.Created);
+            Assert.Equal(earlier, res.Orders[0].SoId);
+            var a = Slots(f, WoIdOf(f, res.Orders[0].WoNumber)).First(s => s.Line == LineInj);
+            var b = Slots(f, WoIdOf(f, res.Orders[1].WoNumber)).First(s => s.Line == LineInj);
+            Assert.Equal((480, 485), (a.Start, a.End));
+            Assert.Equal((485, 490), (b.Start, b.End));
+        }
+        finally { Cleanup(f); }
+    }
+
+    [SkippableFact]
+    public void No_room_until_due_reports_shortfall_but_wo_is_still_released()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Seed(f);
+        try
+        {
+            BlockInjAllWeek(f);
+            var so  = SeedSo(f, "SO-ITEST-PS-4", dueOffset: 4);   // 납기 = 금요일 D4 → 그 주 안에 INJ 자리 없음
+
+            var res = Run(f, Plan(so));
+
+            var o    = Assert.Single(res.Orders);
+            var woId = WoIdOf(f, o.WoNumber);
+            Assert.Equal("Released", Scalar(f, "SELECT Status FROM dbo.PP_WorkOrder WHERE WoID = @W;", ("@W", woId)));
+            Assert.Equal(new[] { new DeadlinePacker.StepShortfall(1, LineInj, 50m), new DeadlinePacker.StepShortfall(2, LineImg, 50m) }, o.Shortfalls);
+            Assert.Empty(Slots(f, woId));
+            Assert.Equal(1, res.Short);
         }
         finally { Cleanup(f); }
     }
@@ -218,17 +247,68 @@ public class PlanScheduleTests
         {
             var so1 = SeedSo(f, "SO-ITEST-PS-5A");
             var so2 = SeedSo(f, "SO-ITEST-PS-5B");
-            var bad = new PpRepository.OrderPlan(so2, new[] { new PpRepository.StepPlan(1, LineInj, D0, 60) });   // IMG 단계 누락
+            var bad = new PpRepository.OrderPlan(so2, new[] { new PpRepository.StepChoice(1, LineInj) });   // IMG 단계 누락
 
-            Assert.Throws<InvalidOperationException>(() =>
-                new PpRepository(f).CreateScheduledWorkOrders(new[] { Plan(so1, D0, D1), bad }, "itest", useNetReq: false));
+            Assert.Throws<InvalidOperationException>(() => Run(f, Plan(so1), bad));
 
             Assert.Equal(0, (int)Scalar(f, "SELECT COUNT(*) FROM dbo.PP_WorkOrder WHERE ItemNo = @I;", ("@I", Item))!);
         }
         finally { Cleanup(f); }
     }
 
-    // ── 하루 능력 조회 (다이얼로그 잔여 표시용) ─────────────────────────────
+    [SkippableFact]
+    public void Buffer_workdays_come_from_sys_config_not_the_default()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Seed(f);
+        Exec(f, "UPDATE dbo.SYS_Config SET ConfigValue = N'2' WHERE ConfigKey = @K;", ("@K", PpRepository.BufferWorkdaysKey));
+        try
+        {
+            var so  = SeedSo(f, "SO-ITEST-PS-6");   // 납기 = 다음 주 수요일 → −2근무일 = 다음 주 월요일
+
+            var res = Run(f, Plan(so));
+
+            Assert.Equal(D0.AddDays(7), Assert.Single(res.Orders).Deadline);
+        }
+        finally
+        {
+            Exec(f, "UPDATE dbo.SYS_Config SET ConfigValue = N'3' WHERE ConfigKey = @K;", ("@K", PpRepository.BufferWorkdaysKey));
+            Cleanup(f);
+        }
+    }
+
+    // ── PP-003 그리드 라인 부하 ─────────────────────────────────────────────
+
+    [SkippableFact]
+    public void Line_load_pct_is_slot_minutes_over_operating_minutes_for_the_coming_week()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Seed(f);
+        try
+        {
+            Run(f, Plan(SeedSo(f, "SO-ITEST-PS-7A")));   // 라인은 "같은 품번의 최근 WO 첫 단계" 로 해석되므로 WO 하나를 먼저 만든다
+            SeedSo(f, "SO-ITEST-PS-7B");                  // 후보 그리드에 뜨는 WO 미생성 확정 수주
+
+            var rows = new PpRepository(f).ListPlanCandidates("", null, null);
+
+            var row = Assert.Single(rows, r => r.SoNumber == "SO-ITEST-PS-7B");
+            Assert.Equal(LineInj, row.LineId);
+            // 독립 재계산: 오늘부터 7일 중 근무일(달력 행 없으면 토·일 제외)의 WO 슬롯 분 ÷ 가동 분
+            var lsb   = new LineScheduleRepository(f);
+            var today = DateTime.Today;
+            int op = 0, wo = 0;
+            for (var d = today; d < today.AddDays(PpRepository.LoadWindowDays); d = d.AddDays(1))
+            {
+                if (d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday) continue;
+                var cap = lsb.GetDayCapacity(row.LineId!, d);
+                op += cap.OperatingMin; wo += cap.WoLoadMin;
+            }
+            Assert.Equal(op > 0 ? (int?)(wo * 100L / op) : null, row.LineLoadPct);
+        }
+        finally { Cleanup(f); }
+    }
+
+    // ── 하루 능력 조회 (다이얼로그 잔여 표시용) — 기존 그대로 ────────────────
 
     [SkippableFact]
     public void GetDayCapacity_reports_operating_minus_pm_and_wo_load()
@@ -260,7 +340,7 @@ public class PlanScheduleTests
         Seed(f);
         try
         {
-            var d2 = D1.AddDays(1);
+            var d2 = D4.AddDays(3);   // placeholder 없는 다음 주 월요일
             var cap = new LineScheduleRepository(f).GetDayCapacity(LineInj, d2);
 
             Assert.NotNull(cap.PatternId);   // 라인 전용 또는 전역 ACTIVE 패턴 중 하나
