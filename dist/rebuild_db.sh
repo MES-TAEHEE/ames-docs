@@ -62,6 +62,8 @@ FILES=(
   migrate_routing_step.sql            # 라우팅: MD_RoutingStep 생성 + A/B 시퀀스 시드 (seed_admin_permissions 이후 — Admin 권한 필요)
   migrate_wo_step_line.sql            # WO 공정 단계: PP_WorkOrderRouting CompletedQty·TerminalLock·인덱스 + 백필 (migrate_routing_step 이후)
   migrate_wo_prod_deadline.sql        # WO 생산 마감일 컬럼 + PP_PROD_BUFFER_WORKDAYS 설정 (순서 무관)
+  migrate_md_worker.sql               # POP 전용 현장 작업자 마스터 MD_Worker (순서 무관)
+  seed_md_worker_dev.sql              #   → 개발용 작업자 5명 (W001~W005)
   migrate_wh_inventory_setting.sql    # 창고 재고 설정 시드
   migrate_wh_location_master_audit.sql # Warehouse Location Master audit + Admin role backfill
   migrate_wh_use_md_location_master.sql # 중복 WH Location Master 제거 (MD-018 사용)

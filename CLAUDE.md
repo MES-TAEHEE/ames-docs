@@ -251,7 +251,10 @@ appsettings 의 `PopTerminal:ModuleCode`/`LineId`/`StationId` 는 제거됐다 �
 모듈 코드는 `AppState.ModuleCode` 에 실리고, 라우팅과 라벨 디스패처 게이트가 이를 본다.
 
 ### 인증 흐름
-- **Pop**: `PopAuthService` → `AuthRepository.ValidateLogin()` → `PinHasher` (PBKDF2) → `PopSessionRepository.CreateSession()`
+- **Pop**: `PopAuthService` → `AuthRepository.FindByEmployeeNo()` → 없으면 `WorkerRepository.FindByWorkerNo()` → `PinHasher` (PBKDF2) → `PopSessionRepository.CreateSession()`
+  - POP 로그인은 두 곳을 본다: 웹 계정 작업자(`SYS_UserProfile` + `AspNetUsers`)와 POP 전용 작업자(`MD_Worker`). **사번이 겹치면 웹 계정이 이긴다.**
+  - `MD_Worker` 는 최소 구성이라 라인 배정도 실패 카운터도 없다 — 워커는 **전 라인 허용, PIN 오류로 잠기지 않는다**. 세션 `OperatorID` 에는 GUID 가 아니라 **WorkerNo 가 그대로** 들어가므로 사번은 전사 유일해야 한다.
+  - `AMES.Api` 의 `/api/auth/login` 도 같은 서비스를 쓰므로 **PDA 도 워커 로그인을 받는다.**
 - **Api**: `POST /api/auth/login` → `TokenStore.Issue()` → Bearer 헤더 검증 (`BearerAuth` 미들웨어)
 - **Web**: ASP.NET Identity, `ApplicationDbContext` (EF Core, Identity 테이블 전용)
 
@@ -290,6 +293,7 @@ appsettings 의 `PopTerminal:ModuleCode`/`LineId`/`StationId` 는 제거됐다 �
 LotNo 채번 기반(`SYS_LotSeq` · `MD_Line.LotPrefix` · `tbl_Lot.LotCode` 유니크 인덱스)은 `dist/migrate_lotno_rule.sql` — INJ 원천 Lot 과 실적 배치 Lot(`ProductionRepository.RecordCycle`, IMG-03 등)은 9자리 신규칙(`[년1][월1][일1][라인코드2][순번4]`, 년=A~Z 26년 순환)으로 `LotNoGenerator` 가 채번하며, `LotPrefix` 미등록 라인은 채번이 예외로 막힌다 (시드: INJ I1·I2 / IMG W1 / PNT P1·P2).
 INJ-MAIN 품번 패널·칩이 5초마다 세는 "라인의 오늘 LOT" 조회용 인덱스 `IX_tbl_Lot_Line_Created(LineID, CreatedTS)` 는 `dist/migrate_inj_lot_line_created.sql` — 스키마 변경 없이 인덱스만 추가하므로 순서 무관, 재실행 안전.
 IMG 원천 LOT(`PR_ImgLot`)은 `dist/migrate_img_lot.sql` — `migrate_lotno_rule.sql` 뒤에 적용. 이게 없으면 IMG-MAIN 이 5초마다 조회 예외를 띄우고 라벨 발행이 안 된다. 완제품 라벨 장착위치 컬럼 `MD_Item.MountPos` 는 `dist/migrate_md_item_mount_pos.sql` — 순서 무관, 재실행 안전. 둘 다 없으면 `ImgLotRepository` 의 LOT 조회가 예외다.
+POP 전용 현장 작업자 마스터 `MD_Worker` 는 `dist/migrate_md_worker.sql` — 순서 무관, 재실행 안전. 이게 없으면 POP 로그인 화면의 사원 픽커에 워커가 안 뜨고(웹 계정만 나온다), 등록되지 않은 사번으로 로그인을 시도하면 예외가 난다. 신 Pop/Api 배포 전에 먼저 적용할 것. 등록 화면은 Web 에 별도 개발 예정이라 마이그레이션 자체에는 시드가 없고, dev 는 `dist/seed_md_worker_dev.sql` 로 작업자 5명(W001~W005, PIN 전원 1234, W005 는 비활성)을 채운다 — PIN 해시가 고정 솔트 리터럴이라 **운영 금지**다. 사번을 W 로 두는 이유는 `seed_pop_users` 의 웹 계정(E/I/P/Q/S)과 겹치면 웹 계정이 이겨 워커가 로그인되지 않기 때문이다.
 WO 공정 단계(`PP_WorkOrderRouting.CompletedQty` · 인덱스 · 백필)는 `dist/migrate_wo_step_line.sql` — `migrate_routing_step.sql` 다음에 적용. 이 뒤로 라인 배정·상태·완료수량의 정본은 단계 행이며 `PP_WorkOrder.LineID` 는 쓰지 않는다(컬럼만 잔존). Pop 은 단계 `LineID` 로 WO 를 받고, 실적은 `WorkOrderRepository.BumpStepCompleted` 한 곳으로만 반영된다.
 생산 마감일 컬럼 `PP_WorkOrder.ProdDeadline` 과 설정 `SYS_Config.PP_PROD_BUFFER_WORKDAYS`(기본 3, 1 이상만 유효 — 0·미등록·파싱 실패는 3 으로 본다) 는 `dist/migrate_wo_prod_deadline.sql` — 순서 무관, 재실행 안전. PP-003 이 WO 를 만들 때 `납기 − 버퍼 근무일`(`SYS_FactoryCalendar` 의 WORKDAY·SPECIAL 만 근무일, 행 없는 날은 토·일만 휴일) 을 박아 두고, `AMES.Data.Scheduling.DeadlinePacker` 가 오늘부터 마감일까지 단계별·날짜별로 수량을 쪼개 자동 배치한다(마감일 초과분은 납기일까지 `Late`, 그래도 남으면 `Shortfall`; 납기가 이미 지난 수주는 오늘부터 60일 안에 전량 `Late` 로 넣는다). 이 마이그레이션 없이 신 Web 을 올리면 PP-003 배치뿐 아니라 `WorkOrderRepository.ListAll` 을 쓰는 PP-004·PP-CAL 도 매번 예외다.
 백필된 WO 중 헤더 라인이 마지막 라인 단계가 아닌 건(예: A 라우팅을 INJ 라인으로 발행)은 첫 후속 실적에서 헤더 `CompletedQty` 가 마지막 단계 값으로 내려갈 수 있다 — PP-04 진척률이 한 번 감소해 보인다.

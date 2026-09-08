@@ -37,6 +37,12 @@ public sealed class EmployeeProfileDto
     public required string PasswordHash { get; init; }
 
     /// <summary>
+    /// True when the profile came from MD_Worker (POP-only account, no AspNetUsers row).
+    /// The SYS_UserProfile lock counters must be skipped for these — there is no row to update.
+    /// </summary>
+    public bool IsWorker { get; init; }
+
+    /// <summary>
     /// SYS_UserProfile.PinHash — the operator's 4-digit POP PIN (PBKDF2), checked by
     /// PinHasher.Verify(pin, hash). Distinct from PasswordHash above. Null when no PIN is set.
     /// </summary>

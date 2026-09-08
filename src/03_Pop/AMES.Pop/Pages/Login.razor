@@ -184,9 +184,28 @@
 
     protected override void OnInitialized()
     {
-        _profiles = PopServices.Auth.ListAllProfiles();
+        _profiles = LoadPickerProfiles();
         _clock = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; StateHasChanged(); }), null, 1000, 1000);
         LoadLines();
+    }
+
+    // 웹계정(SYS_UserProfile) + 현장 작업자(MD_Worker) 를 한 목록으로 보여준다.
+    // 사번이 겹치면 웹계정만 남긴다 — PopAuthService 의 해석 순서와 같아야
+    // 픽커에서 고른 사람과 실제 로그인되는 사람이 어긋나지 않는다.
+    static List<EmployeeProfileDto> LoadPickerProfiles()
+    {
+        var all  = PopServices.Auth.ListAllProfiles();
+        var seen = all.Select(p => p.EmployeeNo).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            all.AddRange(PopServices.Workers.ListAllActive().Where(w => seen.Add(w.EmployeeNo)));
+        }
+        catch (Microsoft.Data.SqlClient.SqlException)
+        {
+            // migrate_md_worker.sql 미적용 등. 워커를 못 읽는다고 로그인 화면
+            // 자체를 못 띄우면 웹계정 작업자까지 갇힌다 — 웹계정만으로 연다.
+        }
+        return all;
     }
 
     void LoadLines()
