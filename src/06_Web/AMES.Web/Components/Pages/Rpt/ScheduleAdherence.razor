@@ -1,122 +1,335 @@
-﻿@page "/rpt/schedule-adherence"
+@page "/rpt/schedule-adherence"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.RptRepository Rpt
-@inject AMES.Data.Repositories.MasterDataRepository MD
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using Radzen
+
+@attribute [Authorize]
+
+@inject RptRepository Rpt
+@inject MasterDataRepository MD
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>RPT-008 @L["RPT.ScheduleAdherence.Title"] · AMES</PageTitle>
-
 <AmesPageHeader Code="RPT-008" TitleKey="RPT.ScheduleAdherence.Title" />
 
+@* ── KPI strip: 준수율 · 계획 WO · 정시 · 지연 · 미완료 ─────────────── *@
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.ScheduleAdherence.Kpi.Count"]</div>
-        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">day × line</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.ScheduleAdherence.Kpi.Plan"]</div>
-        <div class="ames-kpi-v">@_plan.ToString("N0")</div><div class="ames-kpi-s">planned qty</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["RPT.ScheduleAdherence.Kpi.Prod"]</div>
-        <div class="ames-kpi-v">@_prod.ToString("N0")</div><div class="ames-kpi-s">actual qty</div></div>
-    <div class="ames-kpi @(_adh >= 95m ? "ok" : _adh >= 85m ? "warn" : "bad")">
-        <div class="ames-kpi-l">@L["RPT.ScheduleAdherence.Kpi.Adh"]</div>
-        <div class="ames-kpi-v">@_adh.ToString("0.0")%</div>
-        <div class="ames-kpi-s">overall</div></div>
-</div>
-
-<div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["RPT.ScheduleAdherence.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <select class="ames-input" style="width:140px;" @bind="_fLine">
-                <option value="">@L["Filter.All"]</option>
-                @foreach (var l in _lineList)
-                {
-                    <option value="@l.LineID">@l.LineID@(l.LineName != null ? $" {l.LineName}" : "")</option>
-                }
-            </select>
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Period"]</label>
-            <select class="ames-input" style="width:100px;" @bind="_daysBack">
-                <option value="7">7@(L["Lbl.Days"])</option>
-                <option value="14">14@(L["Lbl.Days"])</option>
-                <option value="30">30@(L["Lbl.Days"])</option>
-                <option value="60">60@(L["Lbl.Days"])</option>
-                <option value="90">90@(L["Lbl.Days"])</option>
-            </select>
-            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
+    <div class="ames-kpi @AdhCls(Adherence)">
+        <div class="ames-kpi-l">@L["RPT.ScheduleAdherence.Kpi.Adherence"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@Pct(Adherence)</div>
+            <div class="ames-kpi-s">@L["RPT.ScheduleAdherence.Kpi.AdherenceSub"]</div>
         </div>
     </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["RPT.ScheduleAdherence.Kpi.Planned"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_wos.Count</div>
+            <div class="ames-kpi-s">@L["RPT.ScheduleAdherence.Kpi.PlannedSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["RPT.ScheduleAdherence.Kpi.OnSchedule"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@Count("on")</div>
+            <div class="ames-kpi-s">@L["RPT.ScheduleAdherence.Kpi.OnScheduleSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(Count("late") > 0 ? "warn" : "")">
+        <div class="ames-kpi-l">@L["RPT.ScheduleAdherence.Kpi.Late"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@Count("late")</div>
+            <div class="ames-kpi-s">@L["RPT.ScheduleAdherence.Kpi.LateSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(Count("inc") > 0 ? "bad" : "ok")">
+        <div class="ames-kpi-l">@L["RPT.ScheduleAdherence.Kpi.Incomplete"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@Count("inc")</div>
+            <div class="ames-kpi-s">@L["RPT.ScheduleAdherence.Kpi.IncompleteSub"]</div>
+        </div>
+    </div>
+</div>
 
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["RPT.ScheduleAdherence.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.Date"]</th><th>@L["Col.Line"]</th>
-                    <th class="num">@L["RPT.ScheduleAdherence.Col.Plan"]</th><th class="num">@L["RPT.ScheduleAdherence.Col.Prod"]</th>
-                    <th class="num">@L["RPT.ScheduleAdherence.Col.Adh"]</th><th>@L["RPT.ScheduleAdherence.Col.Bar"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    <tr>
-                        <td class="dim">@r.Day.ToString("MM-dd (ddd)")</td>
-                        <td>@(r.LineId ?? "—")</td>
-                        <td class="num">@r.PlannedQty.ToString("N0")</td>
-                        <td class="num">@r.ProducedQty.ToString("N0")</td>
-                        <td class="num">
-                            <span class="pill @(r.AdherencePct >= 95m ? "ok" : r.AdherencePct >= 85m ? "warn" : "bad")">
-                                @r.AdherencePct.ToString("0.0")%
-                            </span>
-                        </td>
-                        <td>
-                            <div style="background:@(r.AdherencePct >= 95m ? "rgba(134,239,172,.25)" : r.AdherencePct >= 85m ? "rgba(251,191,36,.25)" : "rgba(252,165,165,.25)");
-                                        border:1px solid rgba(255,255,255,.15);
-                                        height:14px;border-radius:4px;
-                                        width:@(Math.Min(r.AdherencePct, 120m).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%;"></div>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+}
+
+@* ── 조회 조건: 기간 · 라인 · 조회 · 인쇄 · 내보내기 ─────────────────── *@
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0;">
+        <span style="white-space:nowrap;">▼ @L["RPT.ScheduleAdherence.Filter.Title"] <span class="dim" style="font-weight:400;font-size:.85em;margin-left:6px;">@string.Format(L["RPT.ScheduleAdherence.Lbl.Range"].Value, _fFrom.ToString(DateFmt.Date), _fTo.ToString(DateFmt.Date)) · @(_fLine is null ? L["Filter.All"].Value : LineText(_fLine))</span></span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["Lbl.Period"]" Component="DatePickerFrom" />
+            <RadzenDatePicker TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <span class="dim">~</span>
+            <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
+            <RadzenButton Text="@L["RPT.ScheduleAdherence.Btn.Print"]" Icon="print" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@Print" class="ames-rz-btn" />
+            <RadzenButton Text="@L["RPT.ScheduleAdherence.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+</div>
+
+@* ── 일별 추이 (1.5) + 라인별 준수율 (1) ──────────────────────────── *@
+<div class="rpt-eo-grid2">
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span>▼ @L["RPT.ScheduleAdherence.Trend.Title"]</span>
+            <span class="mnt-db-hint">@L["RPT.ScheduleAdherence.Trend.Hint"]</span>
+        </div>
+        @if (_days.Count == 0)
+        {
+            <div class="mnt-db-empty">@L["RPT.ScheduleAdherence.Empty"]</div>
+        }
+        else
+        {
+            <div class="rpt-pa-wrap" style="height:210px;">
+                <div class="rpt-pa-cols">
+                    @foreach (var d in _days)
+                    {
+                        var day = d.Day;
+                        <div class="rpt-pa-col rpt-sa-col @(d.Adh >= TARGET ? "hit" : "") @(day == _selDay ? "sel" : "")" @onclick="() => ToggleDay(day)" title="@($"{day:yyyy-MM-dd} · {Pct(d.Adh)} · {d.On}/{d.Total}")">
+                            <span class="val">@d.Adh.ToString("0.0")</span>
+                            <div class="bar" style="height:@(Math.Max(2, (int)Math.Round(88.0 * (double)d.Adh / 100.0)))%;"></div>
+                            <span class="lbl">@day.ToString("MM/dd")</span>
+                        </div>
+                    }
+                </div>
+                <div class="rpt-pa-target" style="bottom:@(26 + 0.88 * (double)TARGET / 100.0 * (210 - 22 - 26))px;"><span>@TARGET%</span></div>
+            </div>
+        }
+    </div>
+
+    <div class="ames-card">
+        <div class="ames-card-h">▼ @L["RPT.ScheduleAdherence.ByLine.Title"]</div>
+        @if (_lines.Count == 0)
+        {
+            <div class="mnt-db-empty">@L["RPT.ScheduleAdherence.Empty"]</div>
+        }
+        else
+        {
+            @foreach (var ln in _lines)
+            {
+                <div class="mnt-dt-row" style="grid-template-columns:130px 1fr 70px;">
+                    <span class="lbl"><span class="code">@ln.LineId</span></span>
+                    <div class="mnt-dt-track"><div class="mnt-dt-fill" style="width:@(Math.Max(2, (int)Math.Round((double)ln.Adh)))%;background:@AdhColor(ln.Adh);"></div></div>
+                    <span class="mnt-dt-val" style="color:@AdhColor(ln.Adh);"><b>@Pct(ln.Adh)</b></span>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@* ── 작업지시 계획 대비 실적 ─────────────────────────────────────── *@
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">
+            ▼ @L["RPT.ScheduleAdherence.Detail.Title"] · @_rows.Count @L["Lbl.Items"]
+            @if (_selDay is { } sd) { <span> · </span><span class="pill info">@sd.ToString("MM/dd")</span> }
+        </span>
+        @if (_selDay is { })
+        {
+            <RadzenButton Text="@L["RPT.ScheduleAdherence.Btn.ClearSel"]" Icon="close" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => ToggleDay(_selDay!.Value))" class="ames-rz-btn" />
+        }
+    </div>
+
+    <RadzenDataGrid TItem="WoLine" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.ScheduleAdherence.Empty"]" Class="ames-rz-grid rpt-dp-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="WoLine" Property="WoNumber" Title="@L["RPT.ScheduleAdherence.Col.Wo"]" Width="160px">
+                <Template Context="r"><span class="code">@r.WoNumber</span></Template>
+                <FooterTemplate><b>@string.Format(L["RPT.ScheduleAdherence.TotalFmt"].Value, _rows.Count)</b></FooterTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WoLine" Property="LineId" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r"><span class="code dim">@r.LineId</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WoLine" Property="ItemName" Title="@L["Col.Item"]">
+                <Template Context="r"><span style="white-space:nowrap;">@r.ItemName</span>@if (!string.IsNullOrEmpty(r.ItemNo)) { <span class="dim code" style="font-size:.85em;margin-left:6px;">@r.ItemNo</span> }</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WoLine" Property="PlanQty" Title="@L["RPT.ScheduleAdherence.Col.PlanQty"]" TextAlign="TextAlign.Right" Width="90px">
+                <Template Context="r"><span class="code">@r.PlanQty.ToString("N0")</span></Template>
+                <FooterTemplate><span class="code">@TotalPlan.ToString("N0")</span></FooterTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WoLine" Property="ActualQty" Title="@L["RPT.ScheduleAdherence.Col.ActualQty"]" TextAlign="TextAlign.Right" Width="90px">
+                <Template Context="r"><b class="code">@(r.ActualQty > 0 ? r.ActualQty.ToString("N0") : "—")</b></Template>
+                <FooterTemplate><span class="code">@TotalActual.ToString("N0")</span></FooterTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WoLine" Property="PlanDate" Title="@L["RPT.ScheduleAdherence.Col.PlanDate"]" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="r"><span class="code dim" title="@(r.FirstPlanDate == r.PlanDate ? "" : $"{r.FirstPlanDate:MM/dd} ~ {r.PlanDate:MM/dd}")">@r.PlanDate.ToString("MM/dd")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WoLine" Property="ActualDate" Title="@L["RPT.ScheduleAdherence.Col.ActualDate"]" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="r"><span class="code dim">@(r.ActualDate?.ToString("MM/dd") ?? "-")</span></Template>
+                <FooterTemplate><b>@string.Format(L["RPT.ScheduleAdherence.QtyAch"].Value, Pct(TotalPlan > 0 ? 100m * TotalActual / TotalPlan : null))</b></FooterTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WoLine" Property="Deviation" Title="@L["RPT.ScheduleAdherence.Col.Deviation"]" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="r">
+                    @if (r.Deviation is { } dv) { <b class="code" style="color:@(dv > 0 ? "#f87171" : "#34d399");">@(dv > 0 ? $"+{dv}" : dv.ToString())</b> } else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WoLine" Property="State" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="r"><span class="pill @StateCls(r.State)">@StateLabel(r.State)</span></Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
 @code {
-    List<AMES.Data.Repositories.RptRepository.ScheduleAdherenceRow> _allRows = new();
-    List<AMES.Data.Repositories.RptRepository.ScheduleAdherenceRow> _rows    = new();
-    int _page = 0;
-    const int _pageSize = 20;
+    const decimal TARGET = 95m;
+    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    bool _showPagerSummary = true;
 
-    List<AMES.Data.Repositories.MasterDataRepository.LineRow> _lineList = new();
-    int     _daysBack = 14;
-    string  _fLine    = "";
-    decimal _plan, _prod, _adh;
+    List<WoLine>                        _wos      = new();
+    List<WoLine>                        _rows     = new();
+    List<DayAgg>                        _days     = new();
+    List<LineAgg>                       _lines    = new();
+    List<MasterDataRepository.LineRow>  _lineList = new();
+
+    DateTime  _fFrom = DateTime.Today.AddDays(-9), _fTo = DateTime.Today;
+    string?   _fLine;
+    DateTime? _selDay;
+    string    _msg = "";
+    bool      _isErr;
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    public sealed class WoLine
+    {
+        public int WoId; public string WoNumber = ""; public string LineId = ""; public string? ItemNo; public string ItemName = "";
+        public decimal PlanQty; public decimal ActualQty; public DateTime FirstPlanDate; public DateTime PlanDate; public DateTime? ActualDate;
+        public int? Deviation; public string State = "inc";
+    }
+    public sealed record DayAgg(DateTime Day, int On, int Total) { public decimal Adh => Total > 0 ? 100m * On / Total : 0m; }
+    public sealed record LineAgg(string LineId, int On, int Total) { public decimal Adh => Total > 0 ? 100m * On / Total : 0m; }
+
+    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
+
+    // ── KPI (라인 필터 적용 집합, 일자 선택 이전) ────────────────────────
+    int      Count(string s) => _wos.Count(w => w.State == s);
+    decimal? Adherence => _wos.Count > 0 ? 100m * Count("on") / _wos.Count : null;
+    decimal  TotalPlan   => _rows.Sum(r => r.PlanQty);
+    decimal  TotalActual => _rows.Sum(r => r.ActualQty);
 
     protected override void OnInitialized()
     {
         try { _lineList = MD.ListLines(); } catch { }
+
+        // 기본 기간: 최근 10일. 그 안에 계획이 없으면 마지막 계획일 기준 10일
+        try
+        {
+            var (_, mx) = Rpt.ScheduleDateExtent();
+            if (mx is { } m && m.Date < _fFrom) { _fTo = m.Date; _fFrom = _fTo.AddDays(-9); }
+        }
+        catch { }
+
         Reload();
     }
 
     void Reload()
     {
-        try { _allRows = Rpt.ListScheduleAdherence(_daysBack); } catch { _allRows = new(); }
-        ApplyFilter();
+        if (_fTo < _fFrom) (_fFrom, _fTo) = (_fTo, _fFrom);
+        List<RptRepository.ScheduleWoRow> raw;
+        try { raw = Rpt.ListScheduleWo(_fFrom, _fTo, _fLine); }
+        catch (Exception ex) { raw = new(); ShowMsg(ex.Message, true); }
+
+        var today = DateTime.Today;
+        _wos = raw.Select(r =>
+        {
+            var nm = MasterDataRepository.LocalName(r.ItemName, r.ItemNameEn);
+            var w = new WoLine
+            {
+                WoId = r.WoId, WoNumber = r.WoNumber ?? $"WO#{r.WoId}", LineId = r.LineId ?? "—", ItemNo = r.ItemNo,
+                ItemName = string.IsNullOrEmpty(nm) ? (r.ItemNo ?? L["RPT.ScheduleAdherence.Item.Unknown"].Value) : nm,
+                PlanQty = r.PlanQty, ActualQty = r.ActualQty, FirstPlanDate = r.FirstPlanDate.Date, PlanDate = r.PlanDate.Date, ActualDate = r.ActualDate?.Date,
+            };
+            // 판정: 계획 수량 달성 → 마지막 실적일 ≤ 계획일이면 정시, 아니면 지연.
+            //       미달성 → 계획일이 지났으면 지연(편차 = 오늘 − 계획일), 아직이면 미완료.
+            if (w.PlanQty > 0 && w.ActualQty >= w.PlanQty && w.ActualDate is { } ad)
+            {
+                w.Deviation = (ad - w.PlanDate).Days;
+                w.State = w.Deviation <= 0 ? "on" : "late";
+            }
+            else if (w.PlanDate < today)
+            {
+                w.Deviation = (today - w.PlanDate).Days;
+                w.State = "late";
+            }
+            else { w.Deviation = null; w.State = "inc"; }
+            return w;
+        }).OrderBy(w => w.LineId).ThenBy(w => w.PlanDate).ThenBy(w => w.WoNumber).ToList();
+
+        _days = _wos.GroupBy(w => w.PlanDate).OrderBy(g => g.Key)
+            .Select(g => new DayAgg(g.Key, g.Count(w => w.State == "on"), g.Count())).ToList();
+        _lines = _wos.GroupBy(w => w.LineId).OrderBy(g => g.Key)
+            .Select(g => new LineAgg(g.Key, g.Count(w => w.State == "on"), g.Count())).ToList();
+
+        if (_selDay is { } sd && !_days.Any(d => d.Day == sd)) _selDay = null;
+        ApplySelection();
     }
 
-    void ApplyFilter()
+    void ApplySelection() => _rows = _selDay is { } sd ? _wos.Where(w => w.PlanDate == sd).ToList() : _wos;
+
+    // 추이 막대 클릭 = 계획일 선택 토글 (상세 표만 좁힘)
+    void ToggleDay(DateTime day)
     {
-        _page = 0;
-        _rows = string.IsNullOrEmpty(_fLine)
-            ? _allRows
-            : _allRows.Where(r => r.LineId == _fLine).ToList();
-        _plan = _rows.Sum(r => r.PlannedQty);
-        _prod = _rows.Sum(r => r.ProducedQty);
-        _adh  = _plan > 0 ? _prod / _plan * 100m : 0m;
+        _selDay = _selDay == day ? null : day;
+        ApplySelection();
+    }
+
+    // ── 표시 헬퍼 ─────────────────────────────────────────────────────
+    string LineText(string id) => _lineList.FirstOrDefault(l => l.LineID == id) is { } l && MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{id}] {nm}" : $"[{id}]";
+    static string Pct(decimal? v) => v is { } x ? $"{x:0.0}%" : "—";
+    static string AdhCls(decimal? v)   => v is not { } x ? "" : x >= TARGET ? "ok" : x >= 80m ? "warn" : "bad";
+    static string AdhColor(decimal v)  => v >= TARGET ? "#059669" : v >= 80m ? "#f59e0b" : "#dc2626";
+    string StateLabel(string s) => s switch
+    {
+        "on"   => L["RPT.ScheduleAdherence.Status.OnSchedule"].Value,
+        "late" => L["RPT.ScheduleAdherence.Status.Late"].Value,
+        _      => L["RPT.ScheduleAdherence.Status.Incomplete"].Value,
+    };
+    static string StateCls(string s) => s switch { "on" => "ok", "late" => "warn", _ => "bad" };
+
+    async Task Print()
+    {
+        try { await JS.InvokeVoidAsync("print"); } catch { }
+    }
+
+    // 상세 표(선택분)를 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로 + 합계 행
+    async Task ExportXlsx()
+    {
+        if (_rows.Count == 0) { ShowMsg(L["RPT.ScheduleAdherence.Err.NoExport"], true); return; }
+        var headers = new[]
+        {
+            L["RPT.ScheduleAdherence.Col.Wo"].Value, L["Col.Line"].Value, L["Col.Item"].Value, L["Col.ItemName"].Value,
+            L["RPT.ScheduleAdherence.Col.PlanQty"].Value, L["RPT.ScheduleAdherence.Col.ActualQty"].Value,
+            L["RPT.ScheduleAdherence.Col.PlanDate"].Value, L["RPT.ScheduleAdherence.Col.ActualDate"].Value,
+            L["RPT.ScheduleAdherence.Col.Deviation"].Value, L["Col.Status"].Value,
+        };
+        var data = _rows.Select(r => (IReadOnlyList<object?>)new object?[]
+        {
+            r.WoNumber, r.LineId, r.ItemNo, r.ItemName, r.PlanQty, r.ActualQty,
+            r.PlanDate.ToString(DateFmt.Date), r.ActualDate?.ToString(DateFmt.Date), r.Deviation, StateLabel(r.State),
+        }).Append(new object?[]
+        {
+            string.Format(L["RPT.ScheduleAdherence.TotalFmt"].Value, _rows.Count), null, null, null, TotalPlan, TotalActual,
+            null, null, null, string.Format(L["RPT.ScheduleAdherence.QtyAch"].Value, Pct(TotalPlan > 0 ? 100m * TotalActual / TotalPlan : null)),
+        });
+        var bytes = AMES.Web.Services.XlsxWriter.Build(L["RPT.ScheduleAdherence.Title"].Value, headers, data);
+        var name  = $"ScheduleAdherence_{_fFrom:yyyyMMdd}-{_fTo:yyyyMMdd}.xlsx";
+        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        ShowMsg(string.Format(L["RPT.ScheduleAdherence.Ok.Exported"].Value, _rows.Count), false);
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
 }

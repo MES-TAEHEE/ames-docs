@@ -6216,4 +6216,946 @@
   <data name="MNT.PmSchedule.Type.All" xml:space="preserve">
     <value>Todos los tipos</value>
   </data>
+  <data name="RPT.DailyProduction.Kpi.Actual" xml:space="preserve">
+    <value>Producción Total · Real</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.ActualSub" xml:space="preserve">
+    <value>buenos + defectos · EA</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.Achievement" xml:space="preserve">
+    <value>Plan vs Real</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.AchievementSub" xml:space="preserve">
+    <value>objetivo ≥ 100%</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.YieldSub" xml:space="preserve">
+    <value>objetivo ≥ 98%</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.DefectQty" xml:space="preserve">
+    <value>Cantidad de Defectos</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.DefectSub" xml:space="preserve">
+    <value>suma de detalles de defecto</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.Plan" xml:space="preserve">
+    <value>Cantidad Planificada</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.PlanSub" xml:space="preserve">
+    <value>según programación de línea</value>
+  </data>
+  <data name="RPT.DailyProduction.Filter.Title" xml:space="preserve">
+    <value>Filtro</value>
+  </data>
+  <data name="RPT.DailyProduction.Hourly.Title" xml:space="preserve">
+    <value>Tendencia de Producción por Hora</value>
+  </data>
+  <data name="RPT.DailyProduction.Hourly.Hint" xml:space="preserve">
+    <value>00–23h · verde=bueno rojo=defecto · unidad EA</value>
+  </data>
+  <data name="RPT.DailyProduction.Hourly.Empty" xml:space="preserve">
+    <value>Sin resultados de producción en esta fecha.</value>
+  </data>
+  <data name="RPT.DailyProduction.Shift.Title" xml:space="preserve">
+    <value>Resumen por Turno</value>
+  </data>
+  <data name="RPT.DailyProduction.Shift.GoodDefect" xml:space="preserve">
+    <value>Buenos {0} · Defectos {1}</value>
+  </data>
+  <data name="RPT.DailyProduction.Shift.Yield" xml:space="preserve">
+    <value>Rendimiento {0}</value>
+  </data>
+  <data name="RPT.DailyProduction.Shift.Empty" xml:space="preserve">
+    <value>Sin resultados por turno.</value>
+  </data>
+  <data name="RPT.DailyProduction.ByLine.Title" xml:space="preserve">
+    <value>Producción por Línea</value>
+  </data>
+  <data name="RPT.DailyProduction.Col.Product" xml:space="preserve">
+    <value>Producto</value>
+  </data>
+  <data name="RPT.DailyProduction.Col.Actual" xml:space="preserve">
+    <value>Real</value>
+  </data>
+  <data name="RPT.DailyProduction.Col.Achievement" xml:space="preserve">
+    <value>Cumplimiento</value>
+  </data>
+  <data name="RPT.DailyProduction.Col.DefectQty" xml:space="preserve">
+    <value>Defecto</value>
+  </data>
+  <data name="RPT.DailyProduction.Total" xml:space="preserve">
+    <value>TOTAL</value>
+  </data>
+  <data name="RPT.DailyProduction.Item.Unknown" xml:space="preserve">
+    <value>(artículo desconocido)</value>
+  </data>
+  <data name="RPT.DailyProduction.Btn.Export" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="RPT.DailyProduction.Btn.Print" xml:space="preserve">
+    <value>Imprimir</value>
+  </data>
+  <data name="RPT.DailyProduction.Err.NoExport" xml:space="preserve">
+    <value>No hay datos para exportar.</value>
+  </data>
+  <data name="RPT.DailyProduction.Ok.Exported" xml:space="preserve">
+    <value>{0} filas exportadas a Excel.</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.TotalSub" xml:space="preserve">
+    <value>unidades defectuosas en el período</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.Rate" xml:space="preserve">
+    <value>Tasa de Defectos</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.RateSub" xml:space="preserve">
+    <value>defectos ÷ inspeccionados</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.Worst" xml:space="preserve">
+    <value>Peor Tipo de Defecto</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.WorstSub" xml:space="preserve">
+    <value>{0} · participación {1}</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.VitalFew" xml:space="preserve">
+    <value>Pocos Vitales</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.VitalFewSub" xml:space="preserve">
+    <value>tipos hasta 80% acumulado</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.VitalFewFmt" xml:space="preserve">
+    <value>{0} tipos</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.Inspected" xml:space="preserve">
+    <value>Cantidad Inspeccionada</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.InspectedSub" xml:space="preserve">
+    <value>producción (buenos + defectos)</value>
+  </data>
+  <data name="RPT.DefectPareto.Filter.Title" xml:space="preserve">
+    <value>Filtro</value>
+  </data>
+  <data name="RPT.DefectPareto.Lbl.Range" xml:space="preserve">
+    <value>{0} ~ {1}</value>
+  </data>
+  <data name="RPT.DefectPareto.Pareto.Title" xml:space="preserve">
+    <value>Pareto de Defectos por Tipo</value>
+  </data>
+  <data name="RPT.DefectPareto.Pareto.Hint" xml:space="preserve">
+    <value>Barras verdes=defectos · puntos azules=acumulado% · clic=filtro</value>
+  </data>
+  <data name="RPT.DefectPareto.ByProcess.Title" xml:space="preserve">
+    <value>Distribución de Defectos por Proceso</value>
+  </data>
+  <data name="RPT.DefectPareto.Cases" xml:space="preserve">
+    <value>{0} casos</value>
+  </data>
+  <data name="RPT.DefectPareto.Detail.Title" xml:space="preserve">
+    <value>Detalle por Tipo de Defecto</value>
+  </data>
+  <data name="RPT.DefectPareto.Col.Type" xml:space="preserve">
+    <value>Tipo de Defecto</value>
+  </data>
+  <data name="RPT.DefectPareto.Vital" xml:space="preserve">
+    <value>VITAL</value>
+  </data>
+  <data name="RPT.DefectPareto.Btn.ClearSel" xml:space="preserve">
+    <value>Quitar selección</value>
+  </data>
+  <data name="RPT.DefectPareto.Btn.Export" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="RPT.DefectPareto.Err.NoExport" xml:space="preserve">
+    <value>No hay datos para exportar.</value>
+  </data>
+  <data name="RPT.DefectPareto.Ok.Exported" xml:space="preserve">
+    <value>{0} filas exportadas a Excel.</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.ShippedQty" xml:space="preserve">
+    <value>Cantidad Enviada</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.ShippedQtySub" xml:space="preserve">
+    <value>órdenes enviadas · EA</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.Shipments" xml:space="preserve">
+    <value>Envíos</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.ShipmentsSub" xml:space="preserve">
+    <value>órdenes de envío del día</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.OnTime" xml:space="preserve">
+    <value>Tasa de Envío a Tiempo</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.OnTimeSub" xml:space="preserve">
+    <value>objetivo ≥ 98% · de enviados</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.Late" xml:space="preserve">
+    <value>Envíos Tardíos</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.LateSub" xml:space="preserve">
+    <value>enviados después de la fecha plan</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.Amount" xml:space="preserve">
+    <value>Monto de Envío</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.AmountSub" xml:space="preserve">
+    <value>costo unitario × cantidad</value>
+  </data>
+  <data name="RPT.DailyShipment.Filter.Title" xml:space="preserve">
+    <value>Filtro</value>
+  </data>
+  <data name="RPT.DailyShipment.ByCustomer.Title" xml:space="preserve">
+    <value>Envío por Cliente</value>
+  </data>
+  <data name="RPT.DailyShipment.ByCustomer.Fmt" xml:space="preserve">
+    <value>{0} EA · {1} envíos</value>
+  </data>
+  <data name="RPT.DailyShipment.Legend.OnTime" xml:space="preserve">
+    <value>A tiempo</value>
+  </data>
+  <data name="RPT.DailyShipment.Legend.Late" xml:space="preserve">
+    <value>Tardío</value>
+  </data>
+  <data name="RPT.DailyShipment.Legend.Pending" xml:space="preserve">
+    <value>Pendiente</value>
+  </data>
+  <data name="RPT.DailyShipment.ByCarrier.Title" xml:space="preserve">
+    <value>Resumen por Transportista</value>
+  </data>
+  <data name="RPT.DailyShipment.ByCarrier.Fmt" xml:space="preserve">
+    <value>{0}/{1} enviados · EA</value>
+  </data>
+  <data name="RPT.DailyShipment.Detail.Title" xml:space="preserve">
+    <value>Detalle de Envío</value>
+  </data>
+  <data name="RPT.DailyShipment.Records" xml:space="preserve">
+    <value>{0} registros</value>
+  </data>
+  <data name="RPT.DailyShipment.Col.ShipNo" xml:space="preserve">
+    <value>N.º de Envío</value>
+  </data>
+  <data name="RPT.DailyShipment.Col.ShipTime" xml:space="preserve">
+    <value>Hora de Envío</value>
+  </data>
+  <data name="RPT.DailyShipment.Col.PlanFmt" xml:space="preserve">
+    <value>(plan {0})</value>
+  </data>
+  <data name="RPT.DailyShipment.Col.Vehicle" xml:space="preserve">
+    <value>Vehículo</value>
+  </data>
+  <data name="RPT.DailyShipment.Total" xml:space="preserve">
+    <value>TOTAL</value>
+  </data>
+  <data name="RPT.DailyShipment.Completed" xml:space="preserve">
+    <value>{0} envíos completados</value>
+  </data>
+  <data name="RPT.DailyShipment.Item.Unknown" xml:space="preserve">
+    <value>(artículo desconocido)</value>
+  </data>
+  <data name="RPT.DailyShipment.Btn.Print" xml:space="preserve">
+    <value>Imprimir</value>
+  </data>
+  <data name="RPT.DailyShipment.Btn.Export" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="RPT.DailyShipment.Err.NoExport" xml:space="preserve">
+    <value>No hay datos para exportar.</value>
+  </data>
+  <data name="RPT.DailyShipment.Ok.Exported" xml:space="preserve">
+    <value>{0} filas exportadas a Excel.</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.Overall" xml:space="preserve">
+    <value>OTD General</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.OverallSub" xml:space="preserve">
+    <value>objetivo ≥ 98% · (todo − tarde) ÷ todo</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.OnTimeSub" xml:space="preserve">
+    <value>enviado o abierto dentro de fecha</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.LateSub" xml:space="preserve">
+    <value>no enviado · fecha solicitada vencida</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.AvgDelay" xml:space="preserve">
+    <value>Retraso Promedio</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.AvgDelaySub" xml:space="preserve">
+    <value>de entregas tardías</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.Below" xml:space="preserve">
+    <value>Clientes Bajo Objetivo</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.BelowSub" xml:space="preserve">
+    <value>OTD de cliente &lt; 98%</value>
+  </data>
+  <data name="RPT.OnTime.Filter.Title" xml:space="preserve">
+    <value>Filtro</value>
+  </data>
+  <data name="RPT.OnTime.Lbl.Range" xml:space="preserve">
+    <value>{0} ~ {1}</value>
+  </data>
+  <data name="RPT.OnTime.Heat.Title" xml:space="preserve">
+    <value>Mapa de Calor OTD por Cliente × Mes</value>
+  </data>
+  <data name="RPT.OnTime.Heat.Hint" xml:space="preserve">
+    <value>por mes de entrega solicitada · celda = OTD %</value>
+  </data>
+  <data name="RPT.OnTime.Heat.Customer" xml:space="preserve">
+    <value>Cliente</value>
+  </data>
+  <data name="RPT.OnTime.Heat.Avg" xml:space="preserve">
+    <value>Prom.</value>
+  </data>
+  <data name="RPT.OnTime.Heat.Overall" xml:space="preserve">
+    <value>Promedio General</value>
+  </data>
+  <data name="RPT.OnTime.Legend.Ex" xml:space="preserve">
+    <value>≥ 98% Excelente</value>
+  </data>
+  <data name="RPT.OnTime.Legend.Good" xml:space="preserve">
+    <value>96~98% Bueno</value>
+  </data>
+  <data name="RPT.OnTime.Legend.Caution" xml:space="preserve">
+    <value>92~96% Precaución</value>
+  </data>
+  <data name="RPT.OnTime.Legend.Low" xml:space="preserve">
+    <value>&lt; 92% Bajo Objetivo</value>
+  </data>
+  <data name="RPT.OnTime.Item.Title" xml:space="preserve">
+    <value>Desempeño de Entrega por Artículo</value>
+  </data>
+  <data name="RPT.OnTime.Col.Deliveries" xml:space="preserve">
+    <value>Entregas</value>
+  </data>
+  <data name="RPT.OnTime.Col.OnTime" xml:space="preserve">
+    <value>A tiempo</value>
+  </data>
+  <data name="RPT.OnTime.Col.Late" xml:space="preserve">
+    <value>Tarde</value>
+  </data>
+  <data name="RPT.OnTime.Col.AvgDelay" xml:space="preserve">
+    <value>Retraso Prom.</value>
+  </data>
+  <data name="RPT.OnTime.DaysFmt" xml:space="preserve">
+    <value>{0}d</value>
+  </data>
+  <data name="RPT.OnTime.Total" xml:space="preserve">
+    <value>TOTAL</value>
+  </data>
+  <data name="RPT.OnTime.Item.Unknown" xml:space="preserve">
+    <value>(artículo desconocido)</value>
+  </data>
+  <data name="RPT.OnTime.Btn.Print" xml:space="preserve">
+    <value>Imprimir</value>
+  </data>
+  <data name="RPT.OnTime.Btn.Export" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="RPT.OnTime.Err.NoExport" xml:space="preserve">
+    <value>No hay datos para exportar.</value>
+  </data>
+  <data name="RPT.OnTime.Ok.Exported" xml:space="preserve">
+    <value>{0} filas exportadas a Excel.</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.Sku" xml:space="preserve">
+    <value>N.º de SKU</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.SkuSub" xml:space="preserve">
+    <value>artículo × almacén</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.Value" xml:space="preserve">
+    <value>Valor de Inventario</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.ValueSub" xml:space="preserve">
+    <value>costo unitario × existencias</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.ValueNone" xml:space="preserve">
+    <value>sin costo unitario</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.Low" xml:space="preserve">
+    <value>Bajo Stock de Seguridad</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.LowSub" xml:space="preserve">
+    <value>bajo + agotado</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.Over" xml:space="preserve">
+    <value>Sobre Stock</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.OverSub" xml:space="preserve">
+    <value>sobre stock máximo</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.Turnover" xml:space="preserve">
+    <value>Rotación Promedio</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.TurnoverSub" xml:space="preserve">
+    <value>salidas 30d ÷ existencias</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.TurnoverNone" xml:space="preserve">
+    <value>sin historial de salidas</value>
+  </data>
+  <data name="RPT.Inventory.Filter.Title" xml:space="preserve">
+    <value>Filtro</value>
+  </data>
+  <data name="RPT.Inventory.AsOf" xml:space="preserve">
+    <value>existencias actuales</value>
+  </data>
+  <data name="RPT.Inventory.Ph.Search" xml:space="preserve">
+    <value>Código/Nombre</value>
+  </data>
+  <data name="RPT.Inventory.ByCat.Title" xml:space="preserve">
+    <value>Distribución por Categoría</value>
+  </data>
+  <data name="RPT.Inventory.ByCat.Value" xml:space="preserve">
+    <value>por valor</value>
+  </data>
+  <data name="RPT.Inventory.ByCat.Qty" xml:space="preserve">
+    <value>por cantidad · sin costo</value>
+  </data>
+  <data name="RPT.Inventory.ByWh.Title" xml:space="preserve">
+    <value>Inventario por Almacén</value>
+  </data>
+  <data name="RPT.Inventory.ByWh.Fmt" xml:space="preserve">
+    <value>{0} SKU · Bajo {1}</value>
+  </data>
+  <data name="RPT.Inventory.Wh.WH" xml:space="preserve">
+    <value>Almacén de Materiales</value>
+  </data>
+  <data name="RPT.Inventory.Wh.FG" xml:space="preserve">
+    <value>Almacén de Producto Terminado</value>
+  </data>
+  <data name="RPT.Inventory.Detail.Title" xml:space="preserve">
+    <value>Detalle de Inventario por Artículo</value>
+  </data>
+  <data name="RPT.Inventory.Col.ItemCode" xml:space="preserve">
+    <value>Código</value>
+  </data>
+  <data name="RPT.Inventory.Col.ItemName" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="RPT.Inventory.Col.Warehouse" xml:space="preserve">
+    <value>Almacén</value>
+  </data>
+  <data name="RPT.Inventory.Col.OnHand" xml:space="preserve">
+    <value>Existencias</value>
+  </data>
+  <data name="RPT.Inventory.Col.Safety" xml:space="preserve">
+    <value>Stock de Seguridad</value>
+  </data>
+  <data name="RPT.Inventory.Col.Value" xml:space="preserve">
+    <value>Valor</value>
+  </data>
+  <data name="RPT.Inventory.Col.Turnover" xml:space="preserve">
+    <value>Rotación</value>
+  </data>
+  <data name="RPT.Inventory.Status.Normal" xml:space="preserve">
+    <value>Normal</value>
+  </data>
+  <data name="RPT.Inventory.Status.Low" xml:space="preserve">
+    <value>Bajo</value>
+  </data>
+  <data name="RPT.Inventory.Status.Over" xml:space="preserve">
+    <value>Exceso</value>
+  </data>
+  <data name="RPT.Inventory.Status.Out" xml:space="preserve">
+    <value>Agotado</value>
+  </data>
+  <data name="RPT.Inventory.Cat.None" xml:space="preserve">
+    <value>(sin categoría)</value>
+  </data>
+  <data name="RPT.Inventory.TotalFmt" xml:space="preserve">
+    <value>TOTAL ({0} SKU)</value>
+  </data>
+  <data name="RPT.Inventory.Btn.Print" xml:space="preserve">
+    <value>Imprimir</value>
+  </data>
+  <data name="RPT.Inventory.Btn.Export" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="RPT.Inventory.Err.NoExport" xml:space="preserve">
+    <value>No hay datos para exportar.</value>
+  </data>
+  <data name="RPT.Inventory.Ok.Exported" xml:space="preserve">
+    <value>{0} filas exportadas a Excel.</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Overall" xml:space="preserve">
+    <value>OEE Global de Planta</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.OverallSub" xml:space="preserve">
+    <value>mes seleccionado · ponderado</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Availability" xml:space="preserve">
+    <value>Disponibilidad A</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Performance" xml:space="preserve">
+    <value>Rendimiento P</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Quality" xml:space="preserve">
+    <value>Calidad Q</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Best" xml:space="preserve">
+    <value>Mejor Línea</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.VsPrev" xml:space="preserve">
+    <value>vs mes anterior</value>
+  </data>
+  <data name="RPT.EquipmentOee.Filter.Title" xml:space="preserve">
+    <value>Filtro</value>
+  </data>
+  <data name="RPT.EquipmentOee.Lbl.Month" xml:space="preserve">
+    <value>Mes</value>
+  </data>
+  <data name="RPT.EquipmentOee.Trend.Title" xml:space="preserve">
+    <value>Tendencia Mensual de OEE</value>
+  </data>
+  <data name="RPT.EquipmentOee.Trend.Hint" xml:space="preserve">
+    <value>Últimos 6 meses · línea roja = objetivo 85% · clic = mes</value>
+  </data>
+  <data name="RPT.EquipmentOee.Callout.Title" xml:space="preserve">
+    <value>Mejor / Necesita Mejora</value>
+  </data>
+  <data name="RPT.EquipmentOee.Callout.Best" xml:space="preserve">
+    <value>Mejor Línea</value>
+  </data>
+  <data name="RPT.EquipmentOee.Callout.BestSub" xml:space="preserve">
+    <value>Grado {0} — objetivo {1}</value>
+  </data>
+  <data name="RPT.EquipmentOee.Callout.Worst" xml:space="preserve">
+    <value>Necesita Mejora</value>
+  </data>
+  <data name="RPT.EquipmentOee.Callout.WorstSub" xml:space="preserve">
+    <value>se recomienda análisis de paradas y pérdidas</value>
+  </data>
+  <data name="RPT.EquipmentOee.Above" xml:space="preserve">
+    <value>supera</value>
+  </data>
+  <data name="RPT.EquipmentOee.Below" xml:space="preserve">
+    <value>por debajo</value>
+  </data>
+  <data name="RPT.EquipmentOee.Detail.Title" xml:space="preserve">
+    <value>Detalle de OEE por Línea (Mes)</value>
+  </data>
+  <data name="RPT.EquipmentOee.Col.VsPrev" xml:space="preserve">
+    <value>vs Mes Anterior</value>
+  </data>
+  <data name="RPT.EquipmentOee.Col.Grade" xml:space="preserve">
+    <value>Grado</value>
+  </data>
+  <data name="RPT.EquipmentOee.PlantAvg" xml:space="preserve">
+    <value>Promedio de Planta</value>
+  </data>
+  <data name="RPT.EquipmentOee.Grade.WorldClass" xml:space="preserve">
+    <value>Clase Mundial</value>
+  </data>
+  <data name="RPT.EquipmentOee.Grade.Good" xml:space="preserve">
+    <value>Bueno</value>
+  </data>
+  <data name="RPT.EquipmentOee.Grade.Low" xml:space="preserve">
+    <value>Necesita Mejora</value>
+  </data>
+  <data name="RPT.EquipmentOee.Btn.Print" xml:space="preserve">
+    <value>Imprimir</value>
+  </data>
+  <data name="RPT.EquipmentOee.Btn.Export" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="RPT.EquipmentOee.Err.NoExport" xml:space="preserve">
+    <value>No hay datos para exportar.</value>
+  </data>
+  <data name="RPT.EquipmentOee.Ok.Exported" xml:space="preserve">
+    <value>{0} filas exportadas a Excel.</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Hero.Title" xml:space="preserve">
+    <value>Logro General de KPI</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Hero.Score" xml:space="preserve">
+    <value>PUNTOS</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Hero.Sub" xml:space="preserve">
+    <value>De {0} indicadores: {1} aprobados · {2} cerca · {3} fallidos — {4}</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Hero.Excellent" xml:space="preserve">
+    <value>Desempeño excelente.</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Hero.Good" xml:space="preserve">
+    <value>En general bueno, algunas mejoras necesarias.</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Hero.Poor" xml:space="preserve">
+    <value>Se requiere gestión de mejora enfocada.</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Hero.NoData" xml:space="preserve">
+    <value>Sin datos de indicadores para evaluar.</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Kpi.Pass" xml:space="preserve">
+    <value>Objetivo cumplido · Aprobado</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Kpi.Near" xml:space="preserve">
+    <value>Cerca del objetivo · Cerca</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Kpi.Fail" xml:space="preserve">
+    <value>Bajo objetivo · Fallido</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Kpi.AvgAch" xml:space="preserve">
+    <value>Logro Promedio</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Kpi.AvgAchSub" xml:space="preserve">
+    <value>promedio de logro (máx. 130%)</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Filter.Title" xml:space="preserve">
+    <value>Filtro</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Lbl.Month" xml:space="preserve">
+    <value>Mes</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Scorecard.Title" xml:space="preserve">
+    <value>Tarjeta de Puntuación KPI</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Scorecard.Hint" xml:space="preserve">
+    <value>Logro = real ÷ objetivo (objetivo ÷ real si menor es mejor) · Aprobado ≥ 100% · Cerca ≥ 95%</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Col.Indicator" xml:space="preserve">
+    <value>Indicador KPI</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Col.Target" xml:space="preserve">
+    <value>Objetivo</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Col.Actual" xml:space="preserve">
+    <value>Real</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Col.Achievement" xml:space="preserve">
+    <value>Logro</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Col.Trend" xml:space="preserve">
+    <value>Tendencia 6 Meses</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Status.Pass" xml:space="preserve">
+    <value>Aprobado</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Status.Near" xml:space="preserve">
+    <value>Cerca</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Status.Fail" xml:space="preserve">
+    <value>Fallido</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Status.NoData" xml:space="preserve">
+    <value>Sin datos</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Cat.Production" xml:space="preserve">
+    <value>Producción</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Cat.Quality" xml:space="preserve">
+    <value>Calidad</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Cat.Delivery" xml:space="preserve">
+    <value>Entrega</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Cat.Equipment" xml:space="preserve">
+    <value>Equipos</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Cat.Cost" xml:space="preserve">
+    <value>Costo</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.PlanAch" xml:space="preserve">
+    <value>Cumplimiento del Plan de Producción</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.Uptime" xml:space="preserve">
+    <value>Disponibilidad de Equipos</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.Ftt" xml:space="preserve">
+    <value>Bien a la Primera (FTT)</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.DefectRate" xml:space="preserve">
+    <value>Tasa de Defectos de Proceso</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.Claims" xml:space="preserve">
+    <value>Reclamos de Clientes</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.Otd" xml:space="preserve">
+    <value>Entrega a Tiempo (OTD)</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.ShipOnTime" xml:space="preserve">
+    <value>Tasa de Envío a Tiempo</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.Oee" xml:space="preserve">
+    <value>OEE General</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.Mtbf" xml:space="preserve">
+    <value>MTBF Promedio</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.Turnover" xml:space="preserve">
+    <value>Rotación de Inventario</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Unit.Cases" xml:space="preserve">
+    <value>casos</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Btn.Print" xml:space="preserve">
+    <value>Imprimir</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Btn.Export" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Err.NoExport" xml:space="preserve">
+    <value>No hay datos para exportar.</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ok.Exported" xml:space="preserve">
+    <value>{0} filas exportadas a Excel.</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.Adherence" xml:space="preserve">
+    <value>Cumplimiento del Plan</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.AdherenceSub" xml:space="preserve">
+    <value>objetivo ≥ 95% · a tiempo ÷ OT planificadas</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.Planned" xml:space="preserve">
+    <value>Órdenes Planificadas</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.PlannedSub" xml:space="preserve">
+    <value>OT × línea con turnos en el período</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.OnSchedule" xml:space="preserve">
+    <value>A Tiempo</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.OnScheduleSub" xml:space="preserve">
+    <value>cantidad cumplida en fecha</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.Late" xml:space="preserve">
+    <value>Completado Tarde</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.LateSub" xml:space="preserve">
+    <value>completado después · atrasado</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.Incomplete" xml:space="preserve">
+    <value>Incompleto</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.IncompleteSub" xml:space="preserve">
+    <value>sin producción · no vencido</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Filter.Title" xml:space="preserve">
+    <value>Filtro</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Lbl.Range" xml:space="preserve">
+    <value>{0} ~ {1}</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Trend.Title" xml:space="preserve">
+    <value>Tendencia Diaria de Cumplimiento</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Trend.Hint" xml:space="preserve">
+    <value>por fecha plan · línea roja = objetivo 95% · clic = filtrar día</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.ByLine.Title" xml:space="preserve">
+    <value>Cumplimiento por Línea</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Detail.Title" xml:space="preserve">
+    <value>Plan vs Real por Orden</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Col.Wo" xml:space="preserve">
+    <value>Orden de Trabajo</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Col.PlanQty" xml:space="preserve">
+    <value>Cant. Plan</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Col.ActualQty" xml:space="preserve">
+    <value>Cant. Real</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Col.PlanDate" xml:space="preserve">
+    <value>Fecha Plan</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Col.ActualDate" xml:space="preserve">
+    <value>Fecha Real</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Col.Deviation" xml:space="preserve">
+    <value>Desviación (Días)</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Status.OnSchedule" xml:space="preserve">
+    <value>A tiempo</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Status.Late" xml:space="preserve">
+    <value>Tarde</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Status.Incomplete" xml:space="preserve">
+    <value>Incompleto</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.TotalFmt" xml:space="preserve">
+    <value>TOTAL ({0} OT)</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.QtyAch" xml:space="preserve">
+    <value>Logro de Cantidad {0}</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Item.Unknown" xml:space="preserve">
+    <value>(artículo desconocido)</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Btn.ClearSel" xml:space="preserve">
+    <value>Quitar filtro de día</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Btn.Print" xml:space="preserve">
+    <value>Imprimir</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Btn.Export" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Err.NoExport" xml:space="preserve">
+    <value>No hay datos para exportar.</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Ok.Exported" xml:space="preserve">
+    <value>{0} filas exportadas a Excel.</value>
+  </data>
+  <data name="RPT.ReportBuilder.Hint" xml:space="preserve">
+    <value>Seleccione fuente, agrupación, medidas y período; el informe se genera a la derecha.</value>
+  </data>
+  <data name="RPT.ReportBuilder.Step.Source" xml:space="preserve">
+    <value>Fuente de Datos</value>
+  </data>
+  <data name="RPT.ReportBuilder.Step.Group" xml:space="preserve">
+    <value>Agrupar por (Fila)</value>
+  </data>
+  <data name="RPT.ReportBuilder.Step.Measures" xml:space="preserve">
+    <value>Medidas</value>
+  </data>
+  <data name="RPT.ReportBuilder.Step.Period" xml:space="preserve">
+    <value>Período</value>
+  </data>
+  <data name="RPT.ReportBuilder.Src.PROD" xml:space="preserve">
+    <value>Producción</value>
+  </data>
+  <data name="RPT.ReportBuilder.Src.DEFECT" xml:space="preserve">
+    <value>Defectos</value>
+  </data>
+  <data name="RPT.ReportBuilder.Src.SHIP" xml:space="preserve">
+    <value>Envíos</value>
+  </data>
+  <data name="RPT.ReportBuilder.Src.OEE" xml:space="preserve">
+    <value>OEE de Equipos</value>
+  </data>
+  <data name="RPT.ReportBuilder.Src.DOWNTIME" xml:space="preserve">
+    <value>Paradas</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.Line" xml:space="preserve">
+    <value>Línea</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.Date" xml:space="preserve">
+    <value>Fecha</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.Shift" xml:space="preserve">
+    <value>Turno</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.Item" xml:space="preserve">
+    <value>Artículo</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.Process" xml:space="preserve">
+    <value>Proceso</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.DefectCode" xml:space="preserve">
+    <value>Código de Defecto</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.Customer" xml:space="preserve">
+    <value>Cliente</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.Carrier" xml:space="preserve">
+    <value>Transportista</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.Equip" xml:space="preserve">
+    <value>Equipo</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.Reason" xml:space="preserve">
+    <value>Motivo</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.Production" xml:space="preserve">
+    <value>Producción</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.GoodQty" xml:space="preserve">
+    <value>Buenos</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.DefectQty" xml:space="preserve">
+    <value>Defectos</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.Entries" xml:space="preserve">
+    <value>Registros</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.Events" xml:space="preserve">
+    <value>Eventos</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.Orders" xml:space="preserve">
+    <value>Órdenes</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.OrderedQty" xml:space="preserve">
+    <value>Cant. Pedida</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.AllocatedQty" xml:space="preserve">
+    <value>Cant. Asignada</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.Oee" xml:space="preserve">
+    <value>OEE</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.Availability" xml:space="preserve">
+    <value>Disponibilidad</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.Performance" xml:space="preserve">
+    <value>Rendimiento</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.Quality" xml:space="preserve">
+    <value>Calidad</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.PlannedMin" xml:space="preserve">
+    <value>Min Planificados</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.DowntimeMin" xml:space="preserve">
+    <value>Min de Parada</value>
+  </data>
+  <data name="RPT.ReportBuilder.Unit.EA" xml:space="preserve">
+    <value>EA</value>
+  </data>
+  <data name="RPT.ReportBuilder.Unit.Pct" xml:space="preserve">
+    <value>%</value>
+  </data>
+  <data name="RPT.ReportBuilder.Unit.Min" xml:space="preserve">
+    <value>min</value>
+  </data>
+  <data name="RPT.ReportBuilder.Unit.Cnt" xml:space="preserve">
+    <value>cant.</value>
+  </data>
+  <data name="RPT.ReportBuilder.Report.TitleFmt" xml:space="preserve">
+    <value>{0} — {2} por {1}</value>
+  </data>
+  <data name="RPT.ReportBuilder.Report.MetaFmt" xml:space="preserve">
+    <value>Período {0} ~ {1} · Grupo {2} ({3}) · Medidas {4} · Generado {5}</value>
+  </data>
+  <data name="RPT.ReportBuilder.Sum.TotalFmt" xml:space="preserve">
+    <value>Total {0} ({1})</value>
+  </data>
+  <data name="RPT.ReportBuilder.Sum.AvgFmt" xml:space="preserve">
+    <value>Prom. {0} ({1})</value>
+  </data>
+  <data name="RPT.ReportBuilder.Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="RPT.ReportBuilder.Empty" xml:space="preserve">
+    <value>Sin datos para los criterios.</value>
+  </data>
+  <data name="RPT.ReportBuilder.Err.NoMeasure" xml:space="preserve">
+    <value>Seleccione al menos una medida.</value>
+  </data>
+  <data name="RPT.ReportBuilder.Chart.Bar" xml:space="preserve">
+    <value>Barras</value>
+  </data>
+  <data name="RPT.ReportBuilder.Chart.Line" xml:space="preserve">
+    <value>Línea</value>
+  </data>
+  <data name="RPT.ReportBuilder.Chart.Pie" xml:space="preserve">
+    <value>Circular</value>
+  </data>
+  <data name="RPT.ReportBuilder.Chart.Note" xml:space="preserve">
+    <value>los gráficos usan la primera medida</value>
+  </data>
+  <data name="RPT.ReportBuilder.Btn.Run" xml:space="preserve">
+    <value>Ejecutar</value>
+  </data>
+  <data name="RPT.ReportBuilder.Btn.Reset" xml:space="preserve">
+    <value>Restablecer</value>
+  </data>
+  <data name="RPT.ReportBuilder.Btn.Export" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="RPT.ReportBuilder.Err.NoExport" xml:space="preserve">
+    <value>No hay datos para exportar.</value>
+  </data>
+  <data name="RPT.ReportBuilder.Ok.Exported" xml:space="preserve">
+    <value>{0} filas exportadas a Excel.</value>
+  </data>
 </root>

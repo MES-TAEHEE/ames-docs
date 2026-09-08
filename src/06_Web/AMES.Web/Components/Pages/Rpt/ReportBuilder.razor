@@ -1,84 +1,253 @@
 @page "/rpt/report-builder"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using Radzen
+
+@attribute [Authorize]
+
+@inject RptRepository Rpt
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>RPT-010 @L["RPT.ReportBuilder.Title"] � AMES</PageTitle>
-
+<PageTitle>RPT-010 @L["RPT.ReportBuilder.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="RPT-010" TitleKey="RPT.ReportBuilder.Title" />
 
+@* ── 상단 안내 + 초기화 · 내보내기 ─────────────────────────────────── *@
 <div class="ames-card">
-    <div class="ames-card-h">? @L["RPT.ReportBuilder.Preview"]</div>
-    <p style="color:rgba(255,255,255,.7);font-size:13px;line-height:1.6;margin-bottom:18px">
-        @L["RPT.ReportBuilder.Desc"]
-    </p>
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0;">
+        <span class="dim" style="font-weight:400;">🧩 @L["RPT.ReportBuilder.Hint"]</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenButton Text="@L["RPT.ReportBuilder.Btn.Reset"]" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ResetAll" class="ames-rz-btn" />
+            <RadzenButton Text="@L["RPT.ReportBuilder.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+</div>
 
-    <div class="ames-form" style="max-width:520px">
-        <label>DATA SOURCE</label>
-        <select class="ames-input" disabled style="width:100%;">
-            <option>PR_ProductionResult � @L["RPT.ReportBuilder.Ds.Production"]</option>
-            <option>FG_ShipmentOrder   � @L["RPT.ReportBuilder.Ds.Shipment"]</option>
-            <option>MNT_OEELog         � @L["RPT.ReportBuilder.Ds.OEE"]</option>
-            <option>QC_Inspection      � @L["RPT.ReportBuilder.Ds.QC"]</option>
-            <option>PP_LineSchedule    � @L["RPT.ReportBuilder.Ds.LineSchedule"]</option>
-        </select>
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+}
 
-        <label>DIMENSIONS</label>
-        <select class="ames-input" disabled multiple style="width:100%;height:90px;">
-            <option selected>Day</option>
-            <option>Line</option>
-            <option>Shift</option>
-            <option>Equip</option>
-            <option>Item</option>
-            <option>Customer</option>
-        </select>
+<div class="rpt-rb-layout">
+    @* ── 좌: 설정 패널 ─────────────────────────────────────────────── *@
+    <div class="ames-card">
+        <div class="rpt-rb-step"><i>1</i>@L["RPT.ReportBuilder.Step.Source"]</div>
+        <RadzenDropDown TValue="string" Value="@_source" ValueChanged="@OnSourceChanged" Data="@SourceOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
-        <label>MEASURES</label>
-        <select class="ames-input" disabled multiple style="width:100%;height:90px;">
-            <option selected>SUM(GoodQty)</option>
-            <option>COUNT(*)</option>
-            <option>AVG(OEE)</option>
-            <option>SUM(DefectQty)</option>
-        </select>
+        <div class="rpt-rb-step"><i>2</i>@L["RPT.ReportBuilder.Step.Group"]</div>
+        <RadzenDropDown TValue="string" @bind-Value="_dim" Data="@DimOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
-        <label>DATE RANGE</label>
-        <select class="ames-input" disabled style="width:100%;">
-            <option>Last 7 days</option>
-            <option selected>Last 14 days</option>
-            <option>Last 30 days</option>
-            <option>Custom...</option>
-        </select>
+        <div class="rpt-rb-step"><i>3</i>@L["RPT.ReportBuilder.Step.Measures"]</div>
+        @foreach (var m in RptRepository.AdhocMeasures[_source])
+        {
+            var key = m;
+            @* 체크박스와 행 양쪽에 핸들러를 두면 클릭이 전파돼 두 번 토글된다 — 체크박스는 자기 핸들러, 글자는 별도 클릭 *@
+            <div class="rpt-rb-measure @(_measures.Contains(key) ? "on" : "")">
+                <RadzenCheckBox TValue="bool" Value="@_measures.Contains(key)" ValueChanged="@((bool v) => SetMeasure(key, v))" />
+                <span style="flex:1;cursor:pointer;" @onclick="() => ToggleMeasure(key)">@MLabel(key)<span class="u">(@MUnit(key))</span></span>
+            </div>
+        }
 
-        <div style="display:flex;gap:10px;margin-top:14px">
-            <button class="ames-btn" disabled>RUN QUERY</button>
-            <button class="ames-btn ghost" disabled>SAVE TEMPLATE</button>
-            <button class="ames-btn ghost" disabled>EXPORT CSV</button>
+        <div class="rpt-rb-step"><i>4</i>@L["RPT.ReportBuilder.Step.Period"]</div>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.4rem">
+            <RadzenDatePicker TValue="DateTime" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+            <span class="dim">~</span>
+            <RadzenDatePicker TValue="DateTime" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+        </RadzenStack>
+
+        <RadzenButton Text="@L["RPT.ReportBuilder.Btn.Run"]" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@Run" class="ames-rz-btn" Style="width:100%;margin-top:14px;" />
+    </div>
+
+    @* ── 우: 결과 (제목 · 요약 · 목록 · 차트 3종) ────────────────────── *@
+    <div class="ames-card">
+        <div class="rpt-rb-title">@ReportTitle</div>
+        <div class="rpt-rb-meta">@ReportMeta</div>
+
+        <div class="rpt-rb-sums">
+            @foreach (var m in _runMeasures)
+            {
+                <div class="rpt-rb-sum">
+                    <b>@Fmt(Agg(m), m)</b>
+                    <span>@string.Format(L[IsRate(m) ? "RPT.ReportBuilder.Sum.AvgFmt" : "RPT.ReportBuilder.Sum.TotalFmt"].Value, MLabel(m), MUnit(m))</span>
+                </div>
+            }
         </div>
+
+        <RadzenDataGrid TItem="RptRepository.AdhocRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                        PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.ReportBuilder.Empty"]" Class="ames-rz-grid rpt-dp-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="RptRepository.AdhocRow" Property="Key" Title="@DimLabel(_runDim)">
+                    <Template Context="r"><b class="code">@r.Key</b>@if (!string.IsNullOrEmpty(r.Label)) { <span class="dim" style="font-size:.85em;margin-left:6px;">@r.Label</span> }</Template>
+                    <FooterTemplate><b>@L["RPT.ReportBuilder.Total"]</b></FooterTemplate>
+                </RadzenDataGridColumn>
+                @foreach (var m in _runMeasures)
+                {
+                    var key = m;
+                    <RadzenDataGridColumn TItem="RptRepository.AdhocRow" Title="@($"{MLabel(key)} ({MUnit(key)})")" TextAlign="TextAlign.Right" Width="150px" Sortable="false">
+                        <Template Context="r"><span class="code">@Fmt(r.M.TryGetValue(key, out var v) ? v : 0m, key)</span></Template>
+                        <FooterTemplate><b class="code">@Fmt(Agg(key), key)</b></FooterTemplate>
+                    </RadzenDataGridColumn>
+                }
+            </Columns>
+        </RadzenDataGrid>
+
+        @if (_rows.Count > 0 && _runMeasures.Count > 0)
+        {
+            var m0 = _runMeasures[0];
+            var pts = _rows.Select(r => new ChartPoint(r.Key, (double)(r.M.TryGetValue(m0, out var v) ? v : 0m))).ToList();
+            <div class="rpt-rb-charts">
+                <div class="rpt-rb-chart">
+                    <div class="h">▮ @L["RPT.ReportBuilder.Chart.Bar"] · @MLabel(m0)</div>
+                    <RadzenChart class="rpt-dp-chart" Style="width:100%;height:220px;">
+                        <RadzenChartTooltipOptions Visible="true" />
+                        <RadzenLegend Visible="false" />
+                        <RadzenCategoryAxis Padding="10" />
+                        <RadzenValueAxis Min="0" FormatString="{0:N0}"><RadzenGridLines Visible="true" /></RadzenValueAxis>
+                        <RadzenColumnSeries TItem="ChartPoint" Data="@pts" CategoryProperty="Key" ValueProperty="Value" Title="@MLabel(m0)" Fill="#059669" />
+                    </RadzenChart>
+                </div>
+                <div class="rpt-rb-chart">
+                    <div class="h">📈 @L["RPT.ReportBuilder.Chart.Line"] · @MLabel(m0)</div>
+                    <RadzenChart class="rpt-dp-chart" Style="width:100%;height:220px;">
+                        <RadzenChartTooltipOptions Visible="true" />
+                        <RadzenLegend Visible="false" />
+                        <RadzenCategoryAxis Padding="10" />
+                        <RadzenValueAxis Min="0" FormatString="{0:N0}"><RadzenGridLines Visible="true" /></RadzenValueAxis>
+                        <RadzenLineSeries TItem="ChartPoint" Data="@pts" CategoryProperty="Key" ValueProperty="Value" Title="@MLabel(m0)" Stroke="#3b82f6" StrokeWidth="2">
+                            <RadzenMarkers MarkerType="MarkerType.Circle" Size="5" />
+                        </RadzenLineSeries>
+                    </RadzenChart>
+                </div>
+                <div class="rpt-rb-chart">
+                    <div class="h">◕ @L["RPT.ReportBuilder.Chart.Pie"] · @MLabel(m0)</div>
+                    <RadzenChart class="rpt-dp-chart" Style="width:100%;height:220px;">
+                        <RadzenChartTooltipOptions Visible="true" />
+                        <RadzenLegend Position="LegendPosition.Right" />
+                        <RadzenPieSeries TItem="ChartPoint" Data="@pts" CategoryProperty="Key" ValueProperty="Value" Title="@MLabel(m0)" Fills="@PieFills" />
+                    </RadzenChart>
+                </div>
+            </div>
+            <div class="dim" style="font-size:10px;margin-top:6px;">@L["RPT.ReportBuilder.Chart.Note"]</div>
+        }
     </div>
 </div>
 
-<div class="ames-card">
-    <div class="ames-card-h">? @L["RPT.ReportBuilder.Gallery"]</div>
-    <div class="ames-tiles">
-        <a class="ames-tile rpt" href="rpt/daily-production">
-            <div class="ames-tile-ic">??</div>
-            <div class="ames-tile-h">DAILY PROD BY LINE</div>
-            <div class="ames-tile-sub">RPT-001 �  ready-made template</div>
-        </a>
-        <a class="ames-tile rpt" href="rpt/defect-pareto">
-            <div class="ames-tile-ic">??</div>
-            <div class="ames-tile-h">TOP-20 DEFECT</div>
-            <div class="ames-tile-sub">RPT-002 �  pareto chart</div>
-        </a>
-        <a class="ames-tile rpt" href="rpt/equipment-oee">
-            <div class="ames-tile-ic">?</div>
-            <div class="ames-tile-h">EQUIPMENT OEE</div>
-            <div class="ames-tile-sub">RPT-006 �  30d ranking</div>
-        </a>
-        <a class="ames-tile rpt" href="rpt/on-time">
-            <div class="ames-tile-ic">??</div>
-            <div class="ames-tile-h">OTD TREND</div>
-            <div class="ames-tile-sub">RPT-004 �  daily on-time %</div>
-        </a>
-    </div>
-</div>
+@code {
+    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    bool _showPagerSummary = true;
+    static readonly string[] PieFills = { "#059669", "#3b82f6", "#f59e0b", "#8b5cf6", "#0891b2", "#dc2626", "#84cc16", "#f97316", "#64748b" };
+
+    // ── 설정 (좌) ────────────────────────────────────────────────────────
+    string _source = "PROD";
+    string _dim    = "Line";
+    HashSet<string> _measures = new() { "Production", "GoodQty" };
+    DateTime _fFrom = DateTime.Today.AddDays(-29), _fTo = DateTime.Today;
+
+    // ── 실행 결과 (우) — 조회 시점의 설정을 따로 들고 있어 좌측을 바꿔도 결과가 흔들리지 않는다 ─
+    List<RptRepository.AdhocRow> _rows = new();
+    string _runSource = "PROD", _runDim = "Line";
+    List<string> _runMeasures = new();
+    DateTime _runFrom, _runTo, _runAt;
+
+    string _msg = ""; bool _isErr;
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    public sealed record ChartPoint(string Key, double Value);
+
+    IEnumerable<DropDownItem> SourceOptions => RptRepository.AdhocDims.Keys.Select(s => new DropDownItem { Value = s, Text = L[$"RPT.ReportBuilder.Src.{s}"].Value });
+    IEnumerable<DropDownItem> DimOptions    => RptRepository.AdhocDims[_source].Select(d => new DropDownItem { Value = d, Text = DimLabel(d) });
+
+    string ReportTitle => _runMeasures.Count == 0 ? L["RPT.ReportBuilder.Title"].Value
+        : string.Format(L["RPT.ReportBuilder.Report.TitleFmt"].Value, L[$"RPT.ReportBuilder.Src.{_runSource}"].Value, DimLabel(_runDim), string.Join(" · ", _runMeasures.Select(MLabel)));
+    string ReportMeta => _runMeasures.Count == 0 ? L["RPT.ReportBuilder.Hint"].Value
+        : string.Format(L["RPT.ReportBuilder.Report.MetaFmt"].Value, _runFrom.ToString(DateFmt.Date), _runTo.ToString(DateFmt.Date), DimLabel(_runDim), _rows.Count, _runMeasures.Count, _runAt.ToString("HH:mm"));
+
+    protected override void OnInitialized() => Run();
+
+    void OnSourceChanged(string s)
+    {
+        _source = s;
+        _dim = RptRepository.AdhocDims[s][0];
+        _measures = RptRepository.AdhocMeasures[s].Take(2).ToHashSet();
+    }
+    void ToggleMeasure(string key) { if (!_measures.Remove(key)) _measures.Add(key); }
+    void SetMeasure(string key, bool on) { if (on) _measures.Add(key); else _measures.Remove(key); }
+
+    void ResetAll()
+    {
+        _source = "PROD"; _dim = "Line"; _measures = new() { "Production", "GoodQty" };
+        _fFrom = DateTime.Today.AddDays(-29); _fTo = DateTime.Today;
+        Run();
+    }
+
+    void Run()
+    {
+        if (_measures.Count == 0) { ShowMsg(L["RPT.ReportBuilder.Err.NoMeasure"], true); return; }
+        if (_fTo < _fFrom) (_fFrom, _fTo) = (_fTo, _fFrom);
+        try
+        {
+            _rows = Rpt.AdhocQuery(_source, _dim, _fFrom, _fTo);
+            _runSource = _source; _runDim = _dim;
+            _runMeasures = RptRepository.AdhocMeasures[_source].Where(_measures.Contains).ToList();   // 정의 순서 유지
+            _runFrom = _fFrom; _runTo = _fTo; _runAt = DateTime.Now;
+        }
+        catch (Exception ex) { _rows = new(); ShowMsg(ex.Message, true); }
+    }
+
+    // ── 표시 헬퍼 ─────────────────────────────────────────────────────
+    string DimLabel(string d) => L[$"RPT.ReportBuilder.Dim.{d}"].Value;
+    string MLabel(string m)   => L[$"RPT.ReportBuilder.M.{m}"].Value;
+    static bool IsRate(string m) => m is "Oee" or "Availability" or "Performance" or "Quality";
+    string MUnit(string m) => m switch
+    {
+        "Oee" or "Availability" or "Performance" or "Quality" => L["RPT.ReportBuilder.Unit.Pct"].Value,
+        "PlannedMin" or "DowntimeMin"                           => L["RPT.ReportBuilder.Unit.Min"].Value,
+        "Entries" or "Events" or "Orders"                       => L["RPT.ReportBuilder.Unit.Cnt"].Value,
+        _                                                       => L["RPT.ReportBuilder.Unit.EA"].Value,
+    };
+    static string Fmt(decimal v, string m) => IsRate(m) ? $"{v:0.0}%" : v.ToString("N0");
+
+    // 합계: 비율 지표(OEE·A·P·Q)는 계획시간 가중 평균, 그 외는 합
+    decimal Agg(string m)
+    {
+        if (_rows.Count == 0) return 0m;
+        if (!IsRate(m)) return _rows.Sum(r => r.M.TryGetValue(m, out var v) ? v : 0m);
+        decimal num = 0, den = 0;
+        foreach (var r in _rows)
+        {
+            var w = r.M.TryGetValue("PlannedMin", out var p) && p > 0 ? p : 1m;
+            num += (r.M.TryGetValue(m, out var v) ? v : 0m) * w; den += w;
+        }
+        return den > 0 ? num / den : 0m;
+    }
+
+    // 결과 표를 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로 + 합계 행
+    async Task ExportXlsx()
+    {
+        if (_rows.Count == 0) { ShowMsg(L["RPT.ReportBuilder.Err.NoExport"], true); return; }
+        var headers = new List<string> { DimLabel(_runDim), L["Col.Name"].Value };
+        headers.AddRange(_runMeasures.Select(m => $"{MLabel(m)} ({MUnit(m)})"));
+        var data = _rows.Select(r =>
+        {
+            var row = new List<object?> { r.Key, r.Label };
+            row.AddRange(_runMeasures.Select(m => (object?)(r.M.TryGetValue(m, out var v) ? (IsRate(m) ? Math.Round(v, 1) : v) : 0m)));
+            return (IReadOnlyList<object?>)row;
+        }).ToList();
+        var tot = new List<object?> { L["RPT.ReportBuilder.Total"].Value, null };
+        tot.AddRange(_runMeasures.Select(m => (object?)(IsRate(m) ? Math.Round(Agg(m), 1) : Agg(m))));
+        data.Add(tot);
+        var bytes = AMES.Web.Services.XlsxWriter.Build(ReportTitle, headers, data);
+        var name  = $"ReportBuilder_{_runSource}_{_runDim}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        ShowMsg(string.Format(L["RPT.ReportBuilder.Ok.Exported"].Value, _rows.Count), false);
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+}

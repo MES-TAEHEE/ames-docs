@@ -1,106 +1,311 @@
-﻿@page "/rpt/monthly-kpi"
+@page "/rpt/monthly-kpi"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.RptRepository Rpt
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using Radzen
+
+@attribute [Authorize]
+
+@inject RptRepository Rpt
+@inject SysRepository Sys
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>RPT-007 @L["RPT.MonthlyKpi.Title"] · AMES</PageTitle>
-
 <AmesPageHeader Code="RPT-007" TitleKey="RPT.MonthlyKpi.Title" />
 
-@if (_rows.Count > 0)
-{
-    var cur = _rows[^1];
-    <div class="ames-kpis">
-        <div class="ames-kpi ok"><div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.GoodQty"]</div>
-            <div class="ames-kpi-v">@cur.ProductionGoodQty.ToString("N0")</div>
-            <div class="ames-kpi-s">@cur.Year-@cur.Month.ToString("00")</div></div>
-        <div class="ames-kpi @(cur.YieldPct >= 99m ? "ok" : cur.YieldPct >= 95m ? "warn" : "bad")">
-            <div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.Yield"]</div>
-            <div class="ames-kpi-v">@cur.YieldPct.ToString("0.0")%</div>
-            <div class="ames-kpi-s">current month</div></div>
-        <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.ShipOrders"]</div>
-            <div class="ames-kpi-v">@cur.ShipmentOrders</div>
-            <div class="ames-kpi-s">shipped</div></div>
-        <div class="ames-kpi bad"><div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.Failures"]</div>
-            <div class="ames-kpi-v">@cur.FailureCount</div>
-            <div class="ames-kpi-s">MNT events</div></div>
+@* ── KPI strip: 통과 · 근접 · 미달 · 평균 달성률 ───────────────────── *@
+<div class="ames-kpis">
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.Pass"]</div>
+        <div class="ames-kpi-v">@PassCount</div>
     </div>
-}
-else
-{
-    <div class="ames-kpis">
-        <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.GoodQty"]</div><div class="ames-kpi-v">—</div></div>
-        <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.Yield"]</div><div class="ames-kpi-v">—</div></div>
-        <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.ShipOrders"]</div><div class="ames-kpi-v">—</div></div>
-        <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.Failures"]</div><div class="ames-kpi-v">—</div></div>
+    <div class="ames-kpi @(NearCount > 0 ? "warn" : "")">
+        <div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.Near"]</div>
+        <div class="ames-kpi-v">@NearCount</div>
     </div>
-}
-
-<div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["RPT.MonthlyKpi.List"] · @_rows.Count @L["RPT.MonthlyKpi.ListSuffix"]</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Lbl.Period"]</span>
-            <select class="ames-input" style="width:110px;" @bind="_monthsBack">
-                <option value="3">3@(L["RPT.MonthlyKpi.ListSuffix"])</option>
-                <option value="6">6@(L["RPT.MonthlyKpi.ListSuffix"])</option>
-                <option value="12">12@(L["RPT.MonthlyKpi.ListSuffix"])</option>
-                <option value="24">24@(L["RPT.MonthlyKpi.ListSuffix"])</option>
-            </select>
-            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
+    <div class="ames-kpi @(FailCount > 0 ? "bad" : "ok")">
+        <div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.Fail"]</div>
+        <div class="ames-kpi-v">@FailCount</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["RPT.MonthlyKpi.Kpi.AvgAch"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@(AvgAch is { } a ? $"{a:0.0}%" : "—")</div>
+            <div class="ames-kpi-s">@L["RPT.MonthlyKpi.Kpi.AvgAchSub"]</div>
         </div>
     </div>
+</div>
 
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+}
+
+@* ── 조회 조건: 월 · 카테고리 · 조회 · 인쇄 · 내보내기 ──────────────── *@
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0;">
+        <span style="white-space:nowrap;">▼ @L["RPT.MonthlyKpi.Filter.Title"] <span class="dim" style="font-weight:400;font-size:.85em;margin-left:6px;">@_month.ToString("yyyy-MM") · @(_fCat is null ? L["Filter.All"].Value : CatLabel(_fCat))</span></span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["RPT.MonthlyKpi.Lbl.Month"]" Component="DropDownMonth" />
+            <RadzenDropDown Name="DropDownMonth" @bind-Value="_fMonth" Data="@MonthOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenLabel Text="@L["Col.Category"]" Component="DropDownCat" />
+            <RadzenDropDown Name="DropDownCat" @bind-Value="_fCat" Data="@CatOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
+            <RadzenButton Text="@L["RPT.MonthlyKpi.Btn.Print"]" Icon="print" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@Print" class="ames-rz-btn" />
+            <RadzenButton Text="@L["RPT.MonthlyKpi.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+</div>
+
+@* ── 히어로: 종합 점수 도넛 + 요약 (조회부 바로 아래) ────────────────── *@
+<div class="rpt-mk-hero">
+    <div class="rpt-mk-donut" style="background:conic-gradient(@ScoreColor 0% @(Score ?? 0)%, rgba(255,255,255,.12) @(Score ?? 0)% 100%);">
+        <div class="c"><b style="color:@ScoreColor;">@(Score?.ToString() ?? "—")</b><span>@L["RPT.MonthlyKpi.Hero.Score"]</span></div>
+    </div>
+    <div>
+        <div class="t">@L["RPT.MonthlyKpi.Hero.Title"] <span style="font-weight:400;opacity:.6;font-size:13px;margin-left:8px;">@_month.ToString("yyyy-MM")</span></div>
+        <div class="s">@HeroSub</div>
+    </div>
+</div>
+
+@* ── KPI 상세 스코어카드 (카테고리별 구분 행) ───────────────────────── *@
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span>▼ @L["RPT.MonthlyKpi.Scorecard.Title"] · @_rows.Count @L["Lbl.Items"]</span>
+        <span class="mnt-db-hint">@L["RPT.MonthlyKpi.Scorecard.Hint"]</span>
+    </div>
     @if (_rows.Count == 0)
     {
-        <div class="ames-empty">@L["RPT.MonthlyKpi.Empty"]</div>
+        <div class="mnt-db-empty">@L["RPT.MonthlyKpi.Empty"]</div>
     }
     else
     {
-        <table class="ames-table">
+        <div style="overflow-x:auto;">
+        <table class="rpt-mk-table">
             <thead>
                 <tr>
-                    <th>@L["RPT.MonthlyKpi.Col.Period"]</th>
-                    <th class="num">@L["RPT.MonthlyKpi.Col.GoodQty"]</th><th class="num">@L["RPT.MonthlyKpi.Col.DefectQty"]</th>
-                    <th class="num">@L["RPT.MonthlyKpi.Col.Yield"]</th><th class="num">@L["RPT.MonthlyKpi.Col.ShipOrders"]</th>
-                    <th class="num">@L["RPT.MonthlyKpi.Col.Failures"]</th><th class="num">@L["RPT.MonthlyKpi.Col.AvgOee"]</th>
+                    <th>@L["RPT.MonthlyKpi.Col.Indicator"]</th>
+                    <th>@L["RPT.MonthlyKpi.Col.Target"]</th>
+                    <th>@L["RPT.MonthlyKpi.Col.Actual"]</th>
+                    <th>@L["RPT.MonthlyKpi.Col.Achievement"]</th>
+                    <th>@L["RPT.MonthlyKpi.Col.Trend"]</th>
+                    <th>@L["Col.Status"]</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
+                @foreach (var grp in _rows.GroupBy(k => k.Cat))
                 {
-                    <tr>
-                        <td class="code">@r.Year-@r.Month.ToString("00")</td>
-                        <td class="num">@r.ProductionGoodQty.ToString("N0")</td>
-                        <td class="num">@r.DefectQty</td>
-                        <td class="num">
-                            <span class="pill @(r.YieldPct >= 99m ? "ok" : r.YieldPct >= 95m ? "warn" : "bad")">
-                                @r.YieldPct.ToString("0.0")%
-                            </span>
-                        </td>
-                        <td class="num">@r.ShipmentOrders</td>
-                        <td class="num">@r.FailureCount</td>
-                        <td class="num">@(r.AvgOee > 0m ? r.AvgOee.ToString("0.0") + "%" : "—")</td>
-                    </tr>
+                    <tr class="cat"><td colspan="6">@CatIcon(grp.Key) @CatLabel(grp.Key)</td></tr>
+                    @foreach (var k in grp)
+                    {
+                        <tr class="row">
+                            <td><b>@k.Name</b></td>
+                            <td class="r dim">@Fmt(k.Target, k.Unit)</td>
+                            <td class="r"><b>@(k.Actual is { } av ? Fmt(av, k.Unit) : "—")</b></td>
+                            <td class="c">
+                                @if (k.Ach is { } ach)
+                                {
+                                    <span class="rpt-mk-ach"><i style="background:@StatusColor(k.Status);opacity:.9;width:@(Math.Max(10, Math.Min(64, (int)(64 * ach / 130m))))px;"></i><span style="color:@StatusColor(k.Status);">@($"{ach:0.0}%")</span></span>
+                                }
+                                else { <span class="dim">—</span> }
+                            </td>
+                            <td class="c">@Spark(k)</td>
+                            <td class="c"><span class="pill @StatusCls(k.Status)">@StatusLabel(k.Status)</span></td>
+                        </tr>
+                    }
                 }
             </tbody>
         </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+        </div>
     }
 </div>
 
 @code {
-    List<AMES.Data.Repositories.RptRepository.MonthlyKpiRow> _rows = new();
-    int _page = 0;
-    const int _pageSize = 20;
-    int _monthsBack = 6;
+    const int MONTHS = 6;   // 추세 길이(선택 월 포함)
 
-    protected override void OnInitialized() => Reload();
+    List<RptRepository.MonthlyMetricRow> _metrics = new();
+    List<Kpi> _all = new();
+    List<Kpi> _rows = new();
+
+    DateTime _month = FirstOfMonth(DateTime.Today);
+    string   _fMonth = FirstOfMonth(DateTime.Today).ToString("yyyy-MM");
+    string?  _fCat;
+    string   _msg = "";
+    bool     _isErr;
+
+    static readonly string[] Cats = { "Production", "Quality", "Delivery", "Equipment", "Cost" };
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    public sealed class Kpi
+    {
+        public string Cat = ""; public string Key = ""; public string Name = ""; public string Unit = "%";
+        public decimal Target; public decimal? Actual; public bool LowerBetter;
+        public List<decimal?> Trend = new();
+        public decimal? Ach;         // 달성률 %
+        public string Status = "nodata";
+    }
+
+    IEnumerable<DropDownItem> MonthOptions => Enumerable.Range(0, 12).Select(i => FirstOfMonth(DateTime.Today).AddMonths(-i)).Select(d => new DropDownItem { Value = d.ToString("yyyy-MM"), Text = d.ToString("yyyy-MM") });
+    IEnumerable<DropDownItem> CatOptions   => Cats.Select(c => new DropDownItem { Value = c, Text = CatLabel(c) });
+
+    // ── 점수 ───────────────────────────────────────────────────────────
+    int PassCount => _rows.Count(k => k.Status == "pass");
+    int NearCount => _rows.Count(k => k.Status == "near");
+    int FailCount => _rows.Count(k => k.Status == "fail");
+    int Rated     => PassCount + NearCount + FailCount;
+    decimal? AvgAch => _rows.Where(k => k.Ach is { }).Select(k => Math.Min(130m, k.Ach!.Value)).DefaultIfEmpty().Average() is var a && Rated > 0 ? a : null;
+    // 통과 100 · 근접 70 · 미달 30 가중 평균 (데이터 없는 지표 제외)
+    int? Score => Rated == 0 ? null : (int)Math.Round((PassCount * 100 + NearCount * 70 + FailCount * 30) / (double)Rated);
+    string ScoreColor => Score is not { } s ? "#94a3b8" : s >= 85 ? "#34d399" : s >= 70 ? "#fbbf24" : "#f87171";
+    string HeroSub => Score is not { } s ? L["RPT.MonthlyKpi.Hero.NoData"].Value
+        : string.Format(L["RPT.MonthlyKpi.Hero.Sub"].Value, Rated, PassCount, NearCount, FailCount,
+            s >= 85 ? L["RPT.MonthlyKpi.Hero.Excellent"].Value : s >= 70 ? L["RPT.MonthlyKpi.Hero.Good"].Value : L["RPT.MonthlyKpi.Hero.Poor"].Value);
+
+    static DateTime FirstOfMonth(DateTime d) => new(d.Year, d.Month, 1);
+
+    protected override void OnInitialized()
+    {
+        Reload();
+        // 이번 달에 평가 가능한 지표가 없으면 데이터가 있는 가장 최근 달로
+        if (Rated == 0)
+        {
+            var last = _metrics.LastOrDefault(m => m.GoodQty + m.DefectQty > 0 || m.Oee is { } || m.Orders > 0 || m.Shipped > 0);
+            if (last is { } && last.Month != _month) { _month = last.Month; _fMonth = _month.ToString("yyyy-MM"); Reload(); }
+        }
+    }
 
     void Reload()
     {
-        _page = 0;
-        try { _rows = Rpt.ListMonthlyKpi(_monthsBack); } catch { _rows = new(); }
+        if (DateTime.TryParseExact(_fMonth + "-01", "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out var m)) _month = m;
+        try { _metrics = Rpt.ListMonthlyMetrics(_month.AddMonths(-(MONTHS - 1)), _month); }
+        catch (Exception ex) { _metrics = new(); ShowMsg(ex.Message, true); }
+        Build();
+    }
+
+    // 목표: SYS_Config 키가 있으면 그 값, 없으면 기본값 (OTD/OEE/YIELD 는 기존 키 재사용)
+    decimal Target(string key, decimal fallback)
+    {
+        try { return Sys.GetConfigFlag(key) is { } r && decimal.TryParse(r.Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var v) && v > 0 ? v : fallback; }
+        catch { return fallback; }
+    }
+
+    void Build()
+    {
+        // 월별 지표 계산 — 각 지표의 정의
+        decimal? PlanAch(RptRepository.MonthlyMetricRow r)  => r.PlanQty > 0 ? 100m * (r.GoodQty + r.DefectQty) / r.PlanQty : null;   // (양품+불량) ÷ 라인스케줄 계획
+        decimal? Avail(RptRepository.MonthlyMetricRow r)    => r.Avail;                                                              // MNT_OEELog 가용률(계획시간 가중)
+        decimal? Ftt(RptRepository.MonthlyMetricRow r)      => r.GoodQty + r.DefectQty > 0 ? 100m * r.GoodQty / (r.GoodQty + r.DefectQty) : null;
+        decimal? DefRate(RptRepository.MonthlyMetricRow r)  => r.GoodQty + r.DefectQty > 0 ? 100m * r.DefectQty / (r.GoodQty + r.DefectQty) : null;
+        decimal? Claims(RptRepository.MonthlyMetricRow r)   => r.GoodQty + r.DefectQty > 0 || r.Shipped > 0 || r.Claims > 0 ? r.Claims : null;  // 활동이 있는 달만 평가
+        decimal? Otd(RptRepository.MonthlyMetricRow r)      => r.Orders > 0 ? 100m * (r.Orders - r.LateOrders) / r.Orders : null;        // PP-OTD 정의
+        decimal? ShipOt(RptRepository.MonthlyMetricRow r)   => r.Shipped > 0 ? 100m * r.ShippedOnTime / r.Shipped : null;
+        decimal? Oee(RptRepository.MonthlyMetricRow r)      => r.Oee;
+        decimal? Mtbf(RptRepository.MonthlyMetricRow r)     => r.OperMin > 0 ? (r.Failures > 0 ? r.OperMin / 60m / r.Failures : r.OperMin / 60m) : null;   // 가동시간(h) ÷ 고장 수
+        decimal? Turnover(RptRepository.MonthlyMetricRow r) => r.Issued > 0 && r.OnHand > 0 ? r.Issued / r.OnHand : null;                // 월 출고 ÷ 현재고
+
+        var defs = new (string Cat, string Key, string Unit, decimal Target, bool Lower, Func<RptRepository.MonthlyMetricRow, decimal?> Calc)[]
+        {
+            ("Production", "PlanAch",    "%",     Target("PLAN_ACH_TARGET_PCT",    100m),  false, PlanAch),
+            ("Production", "Uptime",     "%",     Target("AVAIL_TARGET_PCT",        90m),  false, Avail),
+            ("Quality",    "Ftt",        "%",     Target("YIELD_TARGET_PCT",        99m),  false, Ftt),
+            ("Quality",    "DefectRate", "%",     Target("DEFECT_RATE_TARGET_PCT",  1.5m), true,  DefRate),
+            ("Quality",    "Claims",     "cases", Target("CLAIM_TARGET_CNT",        2m),   true,  Claims),
+            ("Delivery",   "Otd",        "%",     Target("OTD_TARGET_PCT",          95m),  false, Otd),
+            ("Delivery",   "ShipOnTime", "%",     Target("SHIP_ONTIME_TARGET_PCT",  98m),  false, ShipOt),
+            ("Equipment",  "Oee",        "%",     Target("OEE_TARGET_PCT",          85m),  false, Oee),
+            ("Equipment",  "Mtbf",       "h",     Target("MTBF_TARGET_H",           350m), false, Mtbf),
+            ("Cost",       "Turnover",   "x",     Target("INV_TURNOVER_TARGET",     5m),   false, Turnover),
+        };
+
+        var cur = _metrics.FirstOrDefault(r => r.Month == _month);
+        _all = defs.Select(d =>
+        {
+            var k = new Kpi { Cat = d.Cat, Key = d.Key, Name = L[$"RPT.MonthlyKpi.Ind.{d.Key}"].Value, Unit = d.Unit, Target = d.Target, LowerBetter = d.Lower };
+            k.Trend  = _metrics.Select(d.Calc).ToList();
+            k.Actual = cur is { } c ? d.Calc(c) : null;
+            if (k.Actual is { } a)
+            {
+                // 낮을수록 좋은 지표: 목표 ÷ 실적 (실적 0 이면 130% 상한)
+                k.Ach = d.Lower ? (a <= 0 ? 130m : Math.Min(130m, 100m * d.Target / a)) : 100m * a / d.Target;
+                k.Status = k.Ach >= 100m ? "pass" : k.Ach >= 95m ? "near" : "fail";
+            }
+            return k;
+        }).ToList();
+
+        _rows = _all.Where(k => string.IsNullOrEmpty(_fCat) || k.Cat == _fCat).ToList();
+    }
+
+    // ── 표시 헬퍼 ─────────────────────────────────────────────────────
+    string CatLabel(string cat) => L[$"RPT.MonthlyKpi.Cat.{cat}"].Value;
+    static string CatIcon(string cat) => cat switch { "Production" => "🏭", "Quality" => "✓", "Delivery" => "🚚", "Equipment" => "⚙", _ => "💰" };
+    string Fmt(decimal v, string unit) => unit switch
+    {
+        "%"     => $"{v:0.0}%",
+        "cases" => $"{v:0} {L["RPT.MonthlyKpi.Unit.Cases"]}",
+        "h"     => $"{v:0}h",
+        "x"     => $"{v:0.0}x",
+        _       => v.ToString("0.0"),
+    };
+    string StatusLabel(string s) => s switch
+    {
+        "pass" => L["RPT.MonthlyKpi.Status.Pass"].Value,
+        "near" => L["RPT.MonthlyKpi.Status.Near"].Value,
+        "fail" => L["RPT.MonthlyKpi.Status.Fail"].Value,
+        _      => L["RPT.MonthlyKpi.Status.NoData"].Value,
+    };
+    static string StatusCls(string s)   => s switch { "pass" => "ok", "near" => "warn", "fail" => "bad", _ => "mute" };
+    static string StatusColor(string s) => s switch { "pass" => "#10b981", "near" => "#f59e0b", "fail" => "#dc2626", _ => "#94a3b8" };
+
+    // 6개월 스파크라인: 값 범위를 최소~최대로 정규화, 마지막(선택 월)은 상태색
+    static MarkupString Spark(Kpi k)
+    {
+        var vals = k.Trend;
+        if (vals.All(v => v is null)) return new MarkupString("<span class=\"dim\">—</span>");
+        var present = vals.Where(v => v is { }).Select(v => v!.Value).ToList();
+        decimal min = present.Min(), max = present.Max();
+        var sb = new System.Text.StringBuilder("<span class=\"mnt-oee-spark\" style=\"width:70px;\">");
+        for (int i = 0; i < vals.Count; i++)
+        {
+            var v = vals[i];
+            int h = v is { } x ? (max > min ? 15 + (int)(85 * (x - min) / (max - min)) : 60) : 0;
+            var last = i == vals.Count - 1;
+            var style = last && v is { } ? $"height:{h}%;background:{StatusColor(k.Status)};opacity:1" : $"height:{h}%";
+            sb.Append($"<i class=\"{(v is null ? "empty" : "")}\" style=\"{style}\" title=\"{(v is { } y ? y.ToString("0.0") : "—")}\"></i>");
+        }
+        return new MarkupString(sb.Append("</span>").ToString());
+    }
+
+    async Task Print()
+    {
+        try { await JS.InvokeVoidAsync("print"); } catch { }
+    }
+
+    // 스코어카드(필터 적용분)를 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로
+    async Task ExportXlsx()
+    {
+        if (_rows.Count == 0) { ShowMsg(L["RPT.MonthlyKpi.Err.NoExport"], true); return; }
+        var months = _metrics.Select(m => m.Month.ToString("yy-MM")).ToList();
+        var headers = new List<string> { L["Col.Category"].Value, L["RPT.MonthlyKpi.Col.Indicator"].Value, L["RPT.MonthlyKpi.Col.Target"].Value, L["RPT.MonthlyKpi.Col.Actual"].Value, L["RPT.MonthlyKpi.Col.Achievement"].Value, L["Col.Status"].Value };
+        headers.AddRange(months);
+        var data = _rows.Select(k =>
+        {
+            var row = new List<object?> { CatLabel(k.Cat), k.Name, Math.Round(k.Target, 2), k.Actual is { } a ? Math.Round(a, 2) : null, k.Ach is { } ach ? Math.Round(ach, 1) : null, StatusLabel(k.Status) };
+            row.AddRange(k.Trend.Select(t => (object?)(t is { } v ? Math.Round(v, 2) : null)));
+            return (IReadOnlyList<object?>)row;
+        });
+        var bytes = AMES.Web.Services.XlsxWriter.Build($"{L["RPT.MonthlyKpi.Title"].Value} {_month:yyyy-MM}", headers, data);
+        var name  = $"MonthlyKpi_{_month:yyyyMM}.xlsx";
+        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        ShowMsg(string.Format(L["RPT.MonthlyKpi.Ok.Exported"].Value, _rows.Count), false);
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
 }

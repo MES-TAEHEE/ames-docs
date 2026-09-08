@@ -1,104 +1,316 @@
-﻿@page "/rpt/defect-pareto"
+@page "/rpt/defect-pareto"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.RptRepository Rpt
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using Radzen
+
+@attribute [Authorize]
+
+@inject RptRepository Rpt
+@inject MasterDataRepository MD
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>RPT-002 @L["RPT.DefectPareto.Title"] · AMES</PageTitle>
-
 <AmesPageHeader Code="RPT-002" TitleKey="RPT.DefectPareto.Title" />
 
+@* ── KPI strip: 총 불량 · 불량률 · 최다 유형 · Vital Few · 검사 수량 ─── *@
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.Codes"]</div>
-        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">distinct codes</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.Total"]</div>
-        <div class="ames-kpi-v">@_total.ToString("N0")</div><div class="ames-kpi-s">defect units</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.Events"]</div>
-        <div class="ames-kpi-v">@_evts.ToString("N0")</div><div class="ames-kpi-s">log rows</div></div>
+    <div class="ames-kpi @(TotalDefect > 0 ? "bad" : "ok")">
+        <div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.Total"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@TotalDefect.ToString("N0")</div>
+            <div class="ames-kpi-s">@L["RPT.DefectPareto.Kpi.TotalSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(DefectRate is null ? "" : DefectRate <= 2 ? "ok" : DefectRate <= 5 ? "warn" : "bad")">
+        <div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.Rate"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@(DefectRate is { } r ? $"{r:0.00}%" : "—")</div>
+            <div class="ames-kpi-s">@L["RPT.DefectPareto.Kpi.RateSub"]</div>
+        </div>
+    </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.Top"]</div>
-        <div class="ames-kpi-v">@(_rows.Count > 0 ? _rows[0].DefectCode ?? "—" : "—")</div>
-        <div class="ames-kpi-s">@(_rows.Count > 0 ? _rows[0].PercentOfTotal.ToString("0.0") + L["RPT.DefectPareto.Kpi.TopPct"].Value : "no data")</div>
+        <div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.Worst"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v" style="font-size:18px;">@(_pareto.Count > 0 ? _pareto[0].Name : "—")</div>
+            <div class="ames-kpi-s">@(_pareto.Count > 0 ? string.Format(L["RPT.DefectPareto.Kpi.WorstSub"].Value, _pareto[0].Code, $"{_pareto[0].Pct:0.0}%") : "")</div>
+        </div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.VitalFew"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@(_pareto.Count > 0 ? string.Format(L["RPT.DefectPareto.Kpi.VitalFewFmt"].Value, _pareto.Count(p => p.Vital)) : "—")</div>
+            <div class="ames-kpi-s">@L["RPT.DefectPareto.Kpi.VitalFewSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.Inspected"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@Inspected.ToString("N0")</div>
+            <div class="ames-kpi-s">@L["RPT.DefectPareto.Kpi.InspectedSub"]</div>
+        </div>
     </div>
 </div>
 
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+}
+
+@* ── 조회 조건 ─────────────────────────────────────────────────── *@
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0;">
+        <span style="white-space:nowrap;">▼ @L["RPT.DefectPareto.Filter.Title"] <span class="dim" style="font-weight:400;font-size:.85em;margin-left:6px;">@string.Format(L["RPT.DefectPareto.Lbl.Range"].Value, _fFrom.ToString(DateFmt.Date), _fTo.ToString(DateFmt.Date))</span></span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["Lbl.Period"]" Component="DatePickerFrom" />
+            <RadzenDatePicker TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <span class="dim">~</span>
+            <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+            <RadzenLabel Text="@L["Col.Process"]" Component="DropDownProcess" />
+            <RadzenDropDown Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
+            <RadzenButton Text="@L["RPT.DefectPareto.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+</div>
+
+@* ── 파레토 차트 (막대 + 누적선, 막대 클릭 = 필터) ─────────────────── *@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["RPT.DefectPareto.List"] · @_rows.Count @L["Lbl.Items"]</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Period"]</label>
-            <select class="ames-input" style="width:100px;" @bind="_daysBack">
-                <option value="7">7@(L["Lbl.Days"])</option>
-                <option value="14">14@(L["Lbl.Days"])</option>
-                <option value="30">30@(L["Lbl.Days"])</option>
-                <option value="60">60@(L["Lbl.Days"])</option>
-                <option value="90">90@(L["Lbl.Days"])</option>
-            </select>
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">Top</label>
-            <select class="ames-input" style="width:70px;" @bind="_topN">
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-            </select>
-            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
-        </div>
+        <span>▼ @L["RPT.DefectPareto.Pareto.Title"] · @_pareto.Count @L["Lbl.Items"]</span>
+        <span class="mnt-db-hint">@L["RPT.DefectPareto.Pareto.Hint"]</span>
     </div>
-
-    @if (_rows.Count == 0)
+    @if (_pareto.Count == 0)
     {
-        <div class="ames-empty">@L["RPT.DefectPareto.Empty"]</div>
+        <div class="mnt-db-empty">@L["RPT.DefectPareto.Empty"]</div>
     }
     else
     {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["RPT.DefectPareto.Col.Rank"]</th><th>@L["RPT.DefectPareto.Col.DefectCode"]</th>
-                    <th class="num">@L["RPT.DefectPareto.Col.Qty"]</th><th class="num">@L["RPT.DefectPareto.Col.Events"]</th>
-                    <th class="num">@L["RPT.DefectPareto.Col.Pct"]</th><th class="num">@L["RPT.DefectPareto.Col.CumPct"]</th>
-                    <th>@L["RPT.DefectPareto.Col.Bar"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @for (int i = _page * _pageSize; i < Math.Min(_rows.Count, (_page + 1) * _pageSize); i++)
+        var max = _pareto.Max(p => p.Qty);
+        int n = _pareto.Count;
+        <div class="rpt-pa-wrap">
+            <div class="rpt-pa-cols">
+                @for (int i = 0; i < n; i++)
                 {
-                    var r = _rows[i];
-                    <tr>
-                        <td class="code">#@(i + 1)</td>
-                        <td><span class="pill bad">@(r.DefectCode ?? "—")</span></td>
-                        <td class="num">@r.TotalQty.ToString("N0")</td>
-                        <td class="num">@r.EventCount</td>
-                        <td class="num">@r.PercentOfTotal.ToString("0.0")%</td>
-                        <td class="num">@r.CumulativePct.ToString("0.0")%</td>
-                        <td>
-                            <div style="background:rgba(252,165,165,.25);border:1px solid rgba(252,165,165,.5);
-                                        height:14px;border-radius:4px;
-                                        width:@(Math.Min(r.PercentOfTotal * 3m, 100m).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%;"></div>
-                        </td>
-                    </tr>
+                    var p = _pareto[i];
+                    <div class="rpt-pa-col @(p.Code == _selCode ? "sel" : "")" @onclick="() => ToggleCode(p.Code)" title="@($"{p.Name} · {p.Qty} · {p.Pct:0.0}% · {p.Cum:0.0}%")">
+                        <span class="val">@p.Qty.ToString("N0")</span>
+                        <div class="bar" style="height:@(max > 0 ? Math.Max(2, (int)Math.Round(88.0 * p.Qty / max)) : 0)%;"></div>
+                        <span class="lbl">@p.Name</span>
+                    </div>
                 }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+            </div>
+            <div class="rpt-pa-target" style="bottom:@(26 + 0.8 * (230 - 22 - 26))px;"><span>80%</span></div>
+            <svg class="rpt-pa-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <polyline fill="none" stroke="#3b82f6" stroke-width="1.5" vector-effect="non-scaling-stroke"
+                          points="@string.Join(" ", _pareto.Select((p, i) => $"{((i + 0.5) * 100.0 / n).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)},{(100 - (double)p.Cum).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}"))" />
+            </svg>
+            @for (int i = 0; i < n; i++)
+            {
+                var p = _pareto[i];
+                <div class="rpt-pa-dot" style="left:calc(8px + (100% - 16px) * @(((i + 0.5) / n).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)));bottom:calc(26px + (100% - 48px) * @(((double)p.Cum / 100.0).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)));"></div>
+                <div class="rpt-pa-dotlbl" style="left:calc(8px + (100% - 16px) * @(((i + 0.5) / n).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)));bottom:calc(26px + (100% - 48px) * @(((double)p.Cum / 100.0).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)) + 14px);">@($"{p.Cum:0}%")</div>
+            }
+        </div>
     }
 </div>
 
+@* ── 공정별 분포 (1) + 유형 상세 (1.4) ─────────────────────────────── *@
+<div class="rpt-pa-grid2">
+    <div class="ames-card">
+        <div class="ames-card-h">▼ @L["RPT.DefectPareto.ByProcess.Title"]</div>
+        @if (_byProc.Count == 0)
+        {
+            <div class="mnt-db-empty">@L["RPT.DefectPareto.Empty"]</div>
+        }
+        else
+        {
+            @for (int i = 0; i < _byProc.Count; i++)
+            {
+                var x = _byProc[i];
+                <div class="mnt-dt-row" style="grid-template-columns:110px 1fr 90px;">
+                    <span class="lbl">@ProcessLabel(x.Code)</span>
+                    <div class="mnt-dt-track"><div class="mnt-dt-fill" style="width:@(Math.Max(2, (int)Math.Round(100.0 * x.Qty / _byProc[0].Qty)))%;background:@ProcColor(i);"></div></div>
+                    <span class="mnt-dt-val"><b>@string.Format(L["RPT.DefectPareto.Cases"].Value, x.Qty.ToString("N0"))</b></span>
+                </div>
+            }
+        }
+    </div>
+
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="white-space:nowrap;">
+                ▼ @L["RPT.DefectPareto.Detail.Title"] — <span style="color:#f87171;">@string.Format(L["RPT.DefectPareto.Cases"].Value, _rows.Sum(r => r.Qty).ToString("N0"))</span>
+                @if (_selCode is not null) { <span> · </span><span class="pill bad">@_selCode</span> }
+            </span>
+            @if (_selCode is not null)
+            {
+                <RadzenButton Text="@L["RPT.DefectPareto.Btn.ClearSel"]" Icon="close" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => ToggleCode(_selCode!))" class="ames-rz-btn" />
+            }
+        </div>
+        <RadzenDataGrid TItem="ParetoItem" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                        PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.DefectPareto.Empty"]" Class="ames-rz-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="ParetoItem" Property="Rank" Title="@L["RPT.DefectPareto.Col.Rank"]" TextAlign="TextAlign.Center" Width="60px">
+                    <Template Context="r"><span class="rpt-pa-rank @(r.Rank <= 3 ? $"r{r.Rank}" : "")">@r.Rank</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ParetoItem" Property="Name" Title="@L["RPT.DefectPareto.Col.Type"]">
+                    <Template Context="r"><b style="white-space:nowrap;">@r.Name</b><span class="dim code" style="font-size:.85em;margin-left:6px;">@r.Code</span>@if (r.Vital) { <span class="pill bad" style="margin-left:6px;font-size:9px;">@L["RPT.DefectPareto.Vital"]</span> }</Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ParetoItem" Property="Qty" Title="@L["RPT.DefectPareto.Col.Qty"]" TextAlign="TextAlign.Right" Width="70px">
+                    <Template Context="r"><b class="code" style="color:#f87171;">@r.Qty.ToString("N0")</b></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ParetoItem" Property="Events" Title="@L["RPT.DefectPareto.Col.Events"]" TextAlign="TextAlign.Right" Width="60px">
+                    <Template Context="r"><span class="code dim">@r.Events</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ParetoItem" Property="Pct" Title="@L["RPT.DefectPareto.Col.Pct"]" TextAlign="TextAlign.Right" Width="80px">
+                    <Template Context="r"><span class="code">@($"{r.Pct:0.0}%")</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ParetoItem" Property="Cum" Title="@L["RPT.DefectPareto.Col.CumPct"]" TextAlign="TextAlign.Right" Width="80px">
+                    <Template Context="r"><span class="code" style="@(r.Vital ? "color:#60a5fa;font-weight:700;" : "opacity:.6;")">@($"{r.Cum:0.0}%")</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ParetoItem" Property="ProcessCode" Title="@L["Col.Process"]" TextAlign="TextAlign.Center" Width="100px">
+                    <Template Context="r">@ProcessLabel(r.ProcessCode)</Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </div>
+</div>
+
 @code {
-    List<AMES.Data.Repositories.RptRepository.DefectParetoRow> _rows = new();
-    int _page = 0;
-    const int _pageSize = 20;
+    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    bool _showPagerSummary = true;
 
-    int     _daysBack = 30;
-    int     _topN     = 20;
-    long    _total, _evts;
+    List<RptRepository.DefectAggRow>          _raw        = new();
+    List<ParetoItem>                          _pareto     = new();
+    List<ParetoItem>                          _rows       = new();
+    List<(string Code, int Qty)>              _byProc     = new();
+    List<MasterDataRepository.LineRow>        _lineList   = new();
+    List<MasterDataRepository.DefectCodeRow>  _defectList = new();
+    List<MasterDataRepository.CodeItemRow>    _procItems  = new();
 
-    protected override void OnInitialized() => Reload();
+    DateTime _fFrom = DateTime.Today.AddDays(-29), _fTo = DateTime.Today;
+    string?  _fLine, _fProcess, _selCode;
+    string   _msg = "";
+    bool     _isErr;
+    (int Good, int Defect) _prod;
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    public sealed class ParetoItem
+    {
+        public int Rank; public string Code = ""; public string Name = ""; public string? ProcessCode;
+        public int Qty; public int Events; public decimal Pct; public decimal Cum; public bool Vital;
+    }
+
+    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
+    // 공정 콤보: 데이터에 등장한 공정만, 라벨은 PROCESS 공통코드
+    IEnumerable<DropDownItem> ProcessFilterOptions => _raw.Select(r => r.ProcessCode).Where(p => p != null).Distinct().OrderBy(p => p).Select(p => new DropDownItem { Value = p!, Text = $"[{p}] {ProcessLabel(p)}" });
+
+    // ── KPI ────────────────────────────────────────────────────────────
+    int      TotalDefect => _pareto.Sum(p => p.Qty);
+    int      Inspected   => _prod.Good + _prod.Defect;
+    decimal? DefectRate  => Inspected > 0 ? 100m * TotalDefect / Inspected : null;
+
+    protected override void OnInitialized()
+    {
+        try { _lineList   = MD.ListLines(); } catch { }
+        try { _defectList = MD.ListDefectCodes(); } catch { }
+        try { _procItems  = MD.ListCodeItems("PROCESS"); } catch { }
+
+        // 기본 기간: 최근 30일. 그 안에 불량이 없으면 마지막 발생일 기준 30일
+        try
+        {
+            var (_, mx) = Rpt.DefectDateExtent();
+            if (mx is { } m && m.Date < _fFrom) { _fTo = m.Date; _fFrom = _fTo.AddDays(-29); }
+        }
+        catch { }
+
+        Reload();
+    }
 
     void Reload()
     {
-        _page = 0;
-        try { _rows = Rpt.ListDefectPareto(_daysBack, _topN); } catch { _rows = new(); }
-        _total = _rows.Sum(r => (long)r.TotalQty);
-        _evts  = _rows.Sum(r => (long)r.EventCount);
+        if (_fTo < _fFrom) (_fFrom, _fTo) = (_fTo, _fFrom);
+        try { _raw  = Rpt.ListDefectAgg(_fFrom, _fTo, _fLine); }
+        catch (Exception ex) { _raw = new(); ShowMsg(ex.Message, true); }
+        try { _prod = Rpt.ProductionTotals(_fFrom, _fTo, _fLine); }
+        catch { _prod = (0, 0); }
+        Rebuild();
+    }
+
+    void Rebuild()
+    {
+        var rows = _raw.Where(r => string.IsNullOrEmpty(_fProcess) || r.ProcessCode == _fProcess).ToList();
+        var total = rows.Sum(r => r.Qty);
+
+        // 파레토: 불량코드별 수량 내림차순, 누적%, Vital Few = 누적 80% 에 도달하기까지의 유형(도달 항목 포함)
+        decimal cum = 0; bool reached = false; int rank = 0;
+        _pareto = rows.GroupBy(r => r.DefectCode ?? "—")
+            .Select(g => new { Code = g.Key, Qty = g.Sum(r => r.Qty), Events = g.Sum(r => r.Events),
+                               Proc = g.GroupBy(r => r.ProcessCode).OrderByDescending(x => x.Sum(r => r.Qty)).First().Key })
+            .OrderByDescending(x => x.Qty).ThenBy(x => x.Code)
+            .Select(x =>
+            {
+                var pct = total > 0 ? 100m * x.Qty / total : 0m;
+                cum += pct;
+                var vital = !reached;
+                if (cum >= 80m) reached = true;
+                return new ParetoItem { Rank = ++rank, Code = x.Code, Name = DefectName(x.Code), ProcessCode = x.Proc,
+                                        Qty = x.Qty, Events = x.Events, Pct = pct, Cum = Math.Min(100m, cum), Vital = vital };
+            }).ToList();
+
+        _byProc = rows.GroupBy(r => r.ProcessCode ?? "—")
+            .Select(g => (g.Key, g.Sum(r => r.Qty))).OrderByDescending(x => x.Item2).ToList();
+
+        if (_selCode is not null && !_pareto.Any(p => p.Code == _selCode)) _selCode = null;
+        ApplySelection();
+    }
+
+    void ApplySelection() => _rows = _selCode is null ? _pareto : _pareto.Where(p => p.Code == _selCode).ToList();
+
+    // 막대 클릭 = 유형 선택 토글 (상세 표만 좁힘)
+    void ToggleCode(string code)
+    {
+        _selCode = _selCode == code ? null : code;
+        ApplySelection();
+    }
+
+    // ── 표시 헬퍼 ─────────────────────────────────────────────────────
+    string DefectName(string code) =>
+        _defectList.FirstOrDefault(d => d.DefectCode == code) is { } d && MasterDataRepository.LocalName(d.DefectName, d.DefectNameEn) is { Length: > 0 } nm ? nm : code;
+    string ProcessLabel(string? code) =>
+        code is null ? "—" : _procItems.FirstOrDefault(c => c.CodeValue == code) is { } c ? MasterDataRepository.LocalName(c) : code;
+    static string ProcColor(int i) => i switch { 0 => "#dc2626", 1 => "#f59e0b", 2 => "#8b5cf6", 3 => "#0891b2", _ => "#94a3b8" };
+
+    // 상세 표(선택분)를 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로
+    async Task ExportXlsx()
+    {
+        if (_rows.Count == 0) { ShowMsg(L["RPT.DefectPareto.Err.NoExport"], true); return; }
+        var headers = new[]
+        {
+            L["RPT.DefectPareto.Col.Rank"].Value, L["Col.DefectCode"].Value, L["RPT.DefectPareto.Col.Type"].Value,
+            L["RPT.DefectPareto.Col.Qty"].Value, L["RPT.DefectPareto.Col.Events"].Value,
+            L["RPT.DefectPareto.Col.Pct"].Value, L["RPT.DefectPareto.Col.CumPct"].Value, L["RPT.DefectPareto.Vital"].Value, L["Col.Process"].Value,
+        };
+        var data = _rows.Select(r => (IReadOnlyList<object?>)new object?[]
+        {
+            r.Rank, r.Code, r.Name, r.Qty, r.Events, Math.Round(r.Pct, 1), Math.Round(r.Cum, 1), r.Vital ? "Y" : "", ProcessLabel(r.ProcessCode),
+        });
+        var bytes = AMES.Web.Services.XlsxWriter.Build(L["RPT.DefectPareto.Title"].Value, headers, data);
+        var name  = $"DefectPareto_{_fFrom:yyyyMMdd}-{_fTo:yyyyMMdd}.xlsx";
+        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        ShowMsg(string.Format(L["RPT.DefectPareto.Ok.Exported"].Value, _rows.Count), false);
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
 }

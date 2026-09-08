@@ -1,135 +1,350 @@
-﻿@page "/rpt/equipment-oee"
+@page "/rpt/equipment-oee"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.RptRepository Rpt
-@inject AMES.Data.Repositories.MasterDataRepository MD
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using Radzen
+
+@attribute [Authorize]
+
+@inject MntRepository Mnt
+@inject MasterDataRepository MD
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>RPT-006 @L["RPT.EquipmentOee.Title"] · AMES</PageTitle>
-
 <AmesPageHeader Code="RPT-006" TitleKey="RPT.EquipmentOee.Title" />
 
+@* ── KPI strip: 종합 OEE(전월 대비) · A · P · Q · 최우수 라인 ─────────── *@
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.EquipCount"]</div>
-        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">distinct units</div></div>
-    <div class="ames-kpi @(_a >= 85 ? "ok" : _a >= 75 ? "warn" : "bad")">
-        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.AvgA"]</div>
-        <div class="ames-kpi-v">@_a.ToString("0.0")%</div>
-        <div class="ames-kpi-s">availability</div></div>
-    <div class="ames-kpi @(_p >= 85 ? "ok" : _p >= 75 ? "warn" : "bad")">
-        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.AvgP"]</div>
-        <div class="ames-kpi-v">@_p.ToString("0.0")%</div>
-        <div class="ames-kpi-s">performance</div></div>
-    <div class="ames-kpi @(_oee >= 85 ? "ok" : _oee >= 75 ? "warn" : "bad")">
-        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.AvgOee"]</div>
-        <div class="ames-kpi-v">@_oee.ToString("0.0")%</div>
-        <div class="ames-kpi-s">overall</div></div>
-</div>
-
-<div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["RPT.EquipmentOee.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <select class="ames-input" style="width:140px;" @bind="_fLine">
-                <option value="">@L["Filter.All"]</option>
-                @foreach (var l in _lineList)
-                {
-                    <option value="@l.LineID">@l.LineID@(l.LineName != null ? $" {l.LineName}" : "")</option>
-                }
-            </select>
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Lbl.Period"]</span>
-            <select class="ames-input" style="width:100px;" @bind="_daysBack">
-                <option value="7">7@(L["Lbl.Days"])</option>
-                <option value="14">14@(L["Lbl.Days"])</option>
-                <option value="30">30@(L["Lbl.Days"])</option>
-                <option value="60">60@(L["Lbl.Days"])</option>
-                <option value="90">90@(L["Lbl.Days"])</option>
-            </select>
-            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
+    <div class="ames-kpi @GradeCls(_cur.Oee)">
+        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.Overall"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@Pct(_cur.Oee) @if (Delta(_cur.Oee, _prev.Oee) is { } od) { <span class="rpt-eo-delta @(od >= 0 ? "up" : "dn")" style="font-size:13px;margin-left:6px;">@DeltaText(od)</span> }</div>
+            <div class="ames-kpi-s">@L["RPT.EquipmentOee.Kpi.OverallSub"]</div>
         </div>
     </div>
+    <div class="ames-kpi @KpiCls(_cur.A, 80, 90)">
+        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.Availability"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@Pct(_cur.A)</div>
+            <div class="ames-kpi-s">@VsPrevText(_cur.A, _prev.A)</div>
+        </div>
+    </div>
+    <div class="ames-kpi @KpiCls(_cur.P, 80, 90)">
+        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.Performance"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@Pct(_cur.P)</div>
+            <div class="ames-kpi-s">@VsPrevText(_cur.P, _prev.P)</div>
+        </div>
+    </div>
+    <div class="ames-kpi @KpiCls(_cur.Q, 95, 99)">
+        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.Quality"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@Pct(_cur.Q)</div>
+            <div class="ames-kpi-s">@VsPrevText(_cur.Q, _prev.Q)</div>
+        </div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["RPT.EquipmentOee.Kpi.Best"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v" style="font-size:18px;">@(Best?.LineId ?? "—")</div>
+            <div class="ames-kpi-s">@(Best is { } b ? $"{b.LineName} · {Pct(b.Oee)}" : "")</div>
+        </div>
+    </div>
+</div>
 
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["RPT.EquipmentOee.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["RPT.DefectPareto.Col.Rank"]</th><th>@L["Col.Equip"]</th><th>@L["Col.Line"]</th>
-                    <th class="num">@L["Col.Availability"]</th><th class="num">@L["Col.Performance"]</th>
-                    <th class="num">@L["Col.Quality"]</th><th class="num">@L["Col.OEE"]</th>
-                    <th class="num">@L["RPT.EquipmentOee.Col.Days"]</th><th>@L["RPT.EquipmentOee.Col.Bar"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @for (int i = _page * _pageSize; i < Math.Min(_rows.Count, (_page + 1) * _pageSize); i++)
-                {
-                    var r = _rows[i];
-                    <tr>
-                        <td class="code">#@(i + 1)</td>
-                        <td>@(r.EquipId ?? "—")</td>
-                        <td class="dim">@(r.LineId ?? "—")</td>
-                        <td class="num">@r.AvgAvailability.ToString("0.0")</td>
-                        <td class="num">@r.AvgPerformance.ToString("0.0")</td>
-                        <td class="num">@r.AvgQuality.ToString("0.0")</td>
-                        <td class="num">
-                            <span class="pill @(r.AvgOee >= 85 ? "ok" : r.AvgOee >= 75 ? "warn" : "bad")">
-                                @r.AvgOee.ToString("0.0")%
-                            </span>
-                        </td>
-                        <td class="num dim">@r.Days</td>
-                        <td>
-                            <div style="background:rgba(147,197,253,.25);border:1px solid rgba(147,197,253,.5);
-                                        height:14px;border-radius:4px;
-                                        width:@(r.AvgOee.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%;"></div>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+}
+
+@* ── 조회 조건: 월 · 라인 · 조회 · 인쇄 · 내보내기 ─────────────────── *@
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0;">
+        <span style="white-space:nowrap;">▼ @L["RPT.EquipmentOee.Filter.Title"] <span class="dim" style="font-weight:400;font-size:.85em;margin-left:6px;">@_month.ToString("yyyy-MM") · @(_fLine is null ? L["Filter.All"].Value : LineText(_fLine))</span></span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["RPT.EquipmentOee.Lbl.Month"]" Component="DropDownMonth" />
+            <RadzenDropDown Name="DropDownMonth" @bind-Value="_fMonth" Data="@MonthOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
+            <RadzenButton Text="@L["RPT.EquipmentOee.Btn.Print"]" Icon="print" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@Print" class="ames-rz-btn" />
+            <RadzenButton Text="@L["RPT.EquipmentOee.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+</div>
+
+@* ── 월별 추이 (1.5) + 최우수/개선 필요 (1) ────────────────────────── *@
+<div class="rpt-eo-grid2">
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span>▼ @L["RPT.EquipmentOee.Trend.Title"]</span>
+            <span class="mnt-db-hint">@L["RPT.EquipmentOee.Trend.Hint"]</span>
+        </div>
+        @if (_trend.All(t => t.Oee is null))
+        {
+            <div class="mnt-db-empty">@L["RPT.EquipmentOee.Empty"]</div>
+        }
+        else
+        {
+            <div class="rpt-pa-wrap" style="height:210px;">
+                <div class="rpt-pa-cols">
+                    @foreach (var t in _trend)
+                    {
+                        var m = t.Month;
+                        var sel = m == _month;
+                        <div class="rpt-pa-col rpt-eo-col @(sel ? "sel" : "") @(sel ? (t.Oee >= TARGET ? "hit" : "miss") : "")" @onclick="() => SelectMonth(m)" title="@($"{m:yyyy-MM} · {Pct(t.Oee)}")">
+                            <span class="val">@(t.Oee is { } o ? o.ToString("0.0") : "—")</span>
+                            <div class="bar" style="height:@(t.Oee is { } v ? Math.Max(2, (int)Math.Round(88.0 * (double)Math.Min(100m, v) / 100.0)) : 0)%;"></div>
+                            <span class="lbl">@m.ToString("yy-MM")</span>
+                        </div>
+                    }
+                </div>
+                <div class="rpt-pa-target" style="bottom:@(26 + 0.88 * (double)TARGET / 100.0 * (210 - 22 - 26))px;"><span>@TARGET%</span></div>
+            </div>
+        }
+    </div>
+
+    <div class="ames-card">
+        <div class="ames-card-h">▼ @L["RPT.EquipmentOee.Callout.Title"]</div>
+        @if (Best is null)
+        {
+            <div class="mnt-db-empty">@L["RPT.EquipmentOee.Empty"]</div>
+        }
+        else
+        {
+            <div class="rpt-eo-call best">
+                <div class="h">🏆 @L["RPT.EquipmentOee.Callout.Best"]</div>
+                <div class="n">@Best.LineId <span class="dim" style="font-weight:400;">@Best.LineName</span></div>
+                <div class="v">@Pct(Best.Oee)</div>
+                <div class="s">@string.Format(L["RPT.EquipmentOee.Callout.BestSub"].Value, GradeLabel(Best.Oee), Best.Oee >= TARGET ? L["RPT.EquipmentOee.Above"].Value : L["RPT.EquipmentOee.Below"].Value)</div>
+            </div>
+            @if (Worst is { } w && w != Best)
+            {
+                <div class="rpt-eo-call worst">
+                    <div class="h">⚠ @L["RPT.EquipmentOee.Callout.Worst"]</div>
+                    <div class="n">@w.LineId <span class="dim" style="font-weight:400;">@w.LineName</span></div>
+                    <div class="v">@Pct(w.Oee)</div>
+                    <div class="s">@GradeLabel(w.Oee) — @L["RPT.EquipmentOee.Callout.WorstSub"]</div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@* ── 라인별 OEE 상세 (선택 월) ─────────────────────────────────────── *@
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["RPT.EquipmentOee.Detail.Title"] · @_lines.Count @L["Lbl.Items"]</span>
+    </div>
+
+    <RadzenDataGrid TItem="LineAgg" Data="@_lines" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.EquipmentOee.Empty"]" Class="ames-rz-grid rpt-dp-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="LineAgg" Property="LineId" Title="@L["Col.Line"]" Width="220px">
+                <Template Context="r"><span class="code">@r.LineId</span><span class="dim" style="font-size:.85em;margin-left:6px;">@r.LineName</span></Template>
+                <FooterTemplate><b>@L["RPT.EquipmentOee.PlantAvg"]</b></FooterTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineAgg" Property="A" Title="@L["RPT.EquipmentOee.Kpi.Availability"]" Width="150px">
+                <Template Context="r">@Bar(r.A, "a")</Template>
+                <FooterTemplate><b class="code">@Pct(_cur.A)</b></FooterTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineAgg" Property="P" Title="@L["RPT.EquipmentOee.Kpi.Performance"]" Width="150px">
+                <Template Context="r">@Bar(r.P, "p")</Template>
+                <FooterTemplate><b class="code">@Pct(_cur.P)</b></FooterTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineAgg" Property="Q" Title="@L["RPT.EquipmentOee.Kpi.Quality"]" Width="150px">
+                <Template Context="r">@Bar(r.Q, "q")</Template>
+                <FooterTemplate><b class="code">@Pct(_cur.Q)</b></FooterTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineAgg" Property="Oee" Title="@L["Col.OEE"]" TextAlign="TextAlign.Center" Width="90px">
+                <Template Context="r"><span class="pill @GradeCls(r.Oee)">@Pct(r.Oee)</span></Template>
+                <FooterTemplate><span class="pill @GradeCls(_cur.Oee)">@Pct(_cur.Oee)</span></FooterTemplate>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineAgg" Property="Delta" Title="@L["RPT.EquipmentOee.Col.VsPrev"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r">@if (r.Delta is { } d) { <span class="rpt-eo-delta @(d >= 0 ? "up" : "dn")">@DeltaText(d)</span> } else { <span class="dim">—</span> }</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineAgg" Property="Oee" Title="@L["RPT.EquipmentOee.Col.Grade"]" TextAlign="TextAlign.Center" Width="130px" Sortable="false">
+                <Template Context="r"><b style="color:@GradeColor(r.Oee);">@GradeLabel(r.Oee)</b></Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
 @code {
-    List<AMES.Data.Repositories.RptRepository.EquipmentOeeRow> _allRows = new();
-    List<AMES.Data.Repositories.RptRepository.EquipmentOeeRow> _rows    = new();
-    int _page = 0;
-    const int _pageSize = 20;
+    const decimal TARGET = 85m;
+    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    bool _showPagerSummary = true;
 
-    List<AMES.Data.Repositories.MasterDataRepository.LineRow> _lineList = new();
-    int     _daysBack = 30;
-    string  _fLine    = "";
-    decimal _a, _p, _q, _oee;
+    List<MntRepository.OeeRow>          _raw     = new();
+    List<MasterDataRepository.LineRow>  _lineList = new();
+    List<TrendPoint>                    _trend   = new();
+    List<LineAgg>                       _lines   = new();
+    (decimal? Oee, decimal? A, decimal? P, decimal? Q) _cur, _prev;
+
+    DateTime _month = FirstOfMonth(DateTime.Today);
+    string   _fMonth = FirstOfMonth(DateTime.Today).ToString("yyyy-MM");
+    string?  _fLine;
+    string   _msg = "";
+    bool     _isErr;
+    DateTime? _dataMax;
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    public sealed record TrendPoint(DateTime Month, decimal? Oee);
+    public sealed class LineAgg
+    {
+        public string LineId = ""; public string LineName = "";
+        public decimal? A, P, Q, Oee, Delta;
+    }
+
+    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
+    // 월 콤보: 데이터 마지막 달부터 12개월 (오늘까지 포함)
+    IEnumerable<DropDownItem> MonthOptions
+    {
+        get
+        {
+            var last = FirstOfMonth(_dataMax is { } m && m > DateTime.Today ? m : DateTime.Today);
+            return Enumerable.Range(0, 12).Select(i => last.AddMonths(-i)).Select(d => new DropDownItem { Value = d.ToString("yyyy-MM"), Text = d.ToString("yyyy-MM") });
+        }
+    }
+
+    LineAgg? Best  => _lines.Where(l => l.Oee is { }).OrderByDescending(l => l.Oee).FirstOrDefault();
+    LineAgg? Worst => _lines.Where(l => l.Oee is { }).OrderBy(l => l.Oee).FirstOrDefault();
+
+    static DateTime FirstOfMonth(DateTime d) => new(d.Year, d.Month, 1);
 
     protected override void OnInitialized()
     {
         try { _lineList = MD.ListLines(); } catch { }
+
+        // 기본 월: 이번 달. 이번 달 집계가 없으면 마지막 집계 월
+        try
+        {
+            var (_, mx) = Mnt.OeeDateExtent();
+            _dataMax = mx;
+            if (mx is { } m && FirstOfMonth(m) < _month) { _month = FirstOfMonth(m); _fMonth = _month.ToString("yyyy-MM"); }
+        }
+        catch { }
+
         Reload();
     }
 
     void Reload()
     {
-        try { _allRows = Rpt.ListEquipmentOee(_daysBack); } catch { _allRows = new(); }
-        ApplyFilter();
+        if (DateTime.TryParseExact(_fMonth + "-01", "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out var m)) _month = m;
+        Load();
     }
 
-    void ApplyFilter()
+    void SelectMonth(DateTime m)
     {
-        _page = 0;
-        _rows = string.IsNullOrEmpty(_fLine)
-            ? _allRows
-            : _allRows.Where(r => r.LineId == _fLine).ToList();
-        if (_rows.Count > 0)
+        _month = m; _fMonth = m.ToString("yyyy-MM");
+        Load();
+    }
+
+    void Load()
+    {
+        var from = _month.AddMonths(-5);
+        var to   = _month.AddMonths(1).AddDays(-1);
+        try { _raw = Mnt.ListOeeRange(from, to).Where(r => r.AggDate is { } && (string.IsNullOrEmpty(_fLine) || r.LineId == _fLine)).ToList(); }
+        catch (Exception ex) { _raw = new(); ShowMsg(ex.Message, true); }
+
+        _trend = Enumerable.Range(0, 6).Select(i => from.AddMonths(i))
+            .Select(mo => new TrendPoint(mo, Weighted(_raw.Where(r => FirstOfMonth(r.AggDate!.Value) == mo)).Oee)).ToList();
+
+        var curRows  = _raw.Where(r => FirstOfMonth(r.AggDate!.Value) == _month).ToList();
+        var prevRows = _raw.Where(r => FirstOfMonth(r.AggDate!.Value) == _month.AddMonths(-1)).ToList();
+        _cur  = Weighted(curRows);
+        _prev = Weighted(prevRows);
+
+        // 라인 단위: MNT_OEELog 는 설비 단위라 라인으로 묶어 계획시간 가중 평균
+        _lines = curRows.GroupBy(r => r.LineId ?? "—")
+            .Select(g =>
+            {
+                var w = Weighted(g);
+                var p = Weighted(prevRows.Where(r => (r.LineId ?? "—") == g.Key));
+                return new LineAgg { LineId = g.Key, LineName = LineName(g.Key), A = w.A, P = w.P, Q = w.Q, Oee = w.Oee, Delta = Delta(w.Oee, p.Oee) };
+            })
+            .OrderByDescending(l => l.Oee).ToList();
+    }
+
+    // 계획시간(PlannedTimeMin) 가중 평균 — Mnt/OeeAnalysis 와 동일. 값이 없는 행은 분모에서도 뺀다
+    static (decimal? Oee, decimal? A, decimal? P, decimal? Q) Weighted(IEnumerable<MntRepository.OeeRow> rows)
+    {
+        var list = rows as IList<MntRepository.OeeRow> ?? rows.ToList();
+        decimal? W(Func<MntRepository.OeeRow, decimal?> pick)
         {
-            _a   = _rows.Average(r => r.AvgAvailability);
-            _p   = _rows.Average(r => r.AvgPerformance);
-            _q   = _rows.Average(r => r.AvgQuality);
-            _oee = _rows.Average(r => r.AvgOee);
+            decimal num = 0, den = 0;
+            foreach (var r in list)
+            {
+                if (pick(r) is not { } v) continue;
+                var w = r.PlannedTimeMin is > 0 ? r.PlannedTimeMin.Value : 1;
+                num += v * w; den += w;
+            }
+            return den > 0 ? num / den : null;
         }
-        else { _a = _p = _q = _oee = 0m; }
+        return (W(r => r.Oee), W(r => r.Availability), W(r => r.Performance), W(r => r.Quality));
+    }
+
+    static decimal? Delta(decimal? cur, decimal? prev) => cur is { } c && prev is { } p ? c - p : null;
+    static string DeltaText(decimal d) => (d >= 0 ? "▲ +" : "▼ ") + d.ToString("0.0") + "%p";
+    string VsPrevText(decimal? cur, decimal? prev) => Delta(cur, prev) is { } d ? $"{L["RPT.EquipmentOee.Kpi.VsPrev"]} {DeltaText(d)}" : "";
+
+    // ── 표시 헬퍼 ─────────────────────────────────────────────────────
+    string LineName(string id) => _lineList.FirstOrDefault(l => l.LineID == id) is { } l ? MasterDataRepository.LocalName(l.LineName, l.LineNameEn) : "";
+    string LineText(string id) => LineName(id) is { Length: > 0 } nm ? $"[{id}] {nm}" : $"[{id}]";
+
+    static string Pct(decimal? v) => v is { } x ? $"{x:0.0}%" : "—";
+    static string KpiCls(decimal? v, decimal warn, decimal ok) => v is not { } x ? "" : x >= ok ? "ok" : x >= warn ? "warn" : "bad";
+    // 등급 임계: PP/MNT OEE 화면과 동일 (≥85 월드클래스 / ≥65 양호 / 그 외 개선 필요)
+    static string GradeCls(decimal? v) => v is not { } x ? "mute" : x >= 85m ? "ok" : x >= 65m ? "warn" : "bad";
+    static string GradeColor(decimal? v) => v is not { } x ? "inherit" : x >= 85m ? "#34d399" : x >= 65m ? "#fbbf24" : "#f87171";
+    string GradeLabel(decimal? v) => v is not { } x ? "—" : x >= 85m ? L["RPT.EquipmentOee.Grade.WorldClass"] : x >= 65m ? L["RPT.EquipmentOee.Grade.Good"] : L["RPT.EquipmentOee.Grade.Low"];
+
+    // A/P/Q 막대: PP-OEE 화면과 같은 구조·색
+    static MarkupString Bar(decimal? v, string key)
+    {
+        if (v is not { } x) return new MarkupString("<span class=\"dim\">—</span>");
+        var w = Math.Min(100m, Math.Max(0m, x)).ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+        return new MarkupString(
+            $"<div class=\"pp-oee-apq\"><div class=\"pp-oee-track\"><i class=\"pp-oee-fill-{key}\" style=\"width:{w}%\"></i></div>" +
+            $"<span class=\"pp-oee-apq-val\">{x:F1}%</span></div>");
+    }
+
+    async Task Print()
+    {
+        try { await JS.InvokeVoidAsync("print"); } catch { }
+    }
+
+    // 라인별 표(선택 월)를 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로 + 공장 평균 행
+    async Task ExportXlsx()
+    {
+        if (_lines.Count == 0) { ShowMsg(L["RPT.EquipmentOee.Err.NoExport"], true); return; }
+        var headers = new[]
+        {
+            L["RPT.EquipmentOee.Lbl.Month"].Value, L["Col.Line"].Value, L["Col.Name"].Value,
+            L["RPT.EquipmentOee.Kpi.Availability"].Value, L["RPT.EquipmentOee.Kpi.Performance"].Value, L["RPT.EquipmentOee.Kpi.Quality"].Value,
+            L["Col.OEE"].Value, L["RPT.EquipmentOee.Col.VsPrev"].Value, L["RPT.EquipmentOee.Col.Grade"].Value,
+        };
+        var data = _lines.Select(l => (IReadOnlyList<object?>)new object?[]
+        {
+            _month.ToString("yyyy-MM"), l.LineId, l.LineName, R(l.A), R(l.P), R(l.Q), R(l.Oee), R(l.Delta), GradeLabel(l.Oee),
+        }).Append(new object?[]
+        {
+            _month.ToString("yyyy-MM"), L["RPT.EquipmentOee.PlantAvg"].Value, null, R(_cur.A), R(_cur.P), R(_cur.Q), R(_cur.Oee), R(Delta(_cur.Oee, _prev.Oee)), GradeLabel(_cur.Oee),
+        });
+        var bytes = AMES.Web.Services.XlsxWriter.Build($"{L["RPT.EquipmentOee.Title"].Value} {_month:yyyy-MM}", headers, data);
+        var name  = $"EquipmentOee_{_month:yyyyMM}.xlsx";
+        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        ShowMsg(string.Format(L["RPT.EquipmentOee.Ok.Exported"].Value, _lines.Count), false);
+    }
+    static decimal? R(decimal? v) => v is { } x ? Math.Round(x, 1) : null;
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
 }

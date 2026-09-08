@@ -6216,4 +6216,946 @@
   <data name="MNT.PmSchedule.Type.All" xml:space="preserve">
     <value>전체 유형</value>
   </data>
+  <data name="RPT.DailyProduction.Kpi.Actual" xml:space="preserve">
+    <value>총 생산 · 실적</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.ActualSub" xml:space="preserve">
+    <value>양품 + 불량 · EA</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.Achievement" xml:space="preserve">
+    <value>계획 대비 달성률</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.AchievementSub" xml:space="preserve">
+    <value>목표 ≥ 100%</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.YieldSub" xml:space="preserve">
+    <value>목표 ≥ 98%</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.DefectQty" xml:space="preserve">
+    <value>불량 수량</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.DefectSub" xml:space="preserve">
+    <value>불량 상세 수량 합계</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.Plan" xml:space="preserve">
+    <value>계획 수량</value>
+  </data>
+  <data name="RPT.DailyProduction.Kpi.PlanSub" xml:space="preserve">
+    <value>라인 스케줄 기준</value>
+  </data>
+  <data name="RPT.DailyProduction.Filter.Title" xml:space="preserve">
+    <value>조회 조건</value>
+  </data>
+  <data name="RPT.DailyProduction.Hourly.Title" xml:space="preserve">
+    <value>시간대별 생산 추이</value>
+  </data>
+  <data name="RPT.DailyProduction.Hourly.Hint" xml:space="preserve">
+    <value>00 ~ 23시 · 녹색=양품 적색=불량 · 단위 EA</value>
+  </data>
+  <data name="RPT.DailyProduction.Hourly.Empty" xml:space="preserve">
+    <value>해당 일자에 생산 실적이 없습니다.</value>
+  </data>
+  <data name="RPT.DailyProduction.Shift.Title" xml:space="preserve">
+    <value>교대별 요약</value>
+  </data>
+  <data name="RPT.DailyProduction.Shift.GoodDefect" xml:space="preserve">
+    <value>양품 {0} · 불량 {1}</value>
+  </data>
+  <data name="RPT.DailyProduction.Shift.Yield" xml:space="preserve">
+    <value>양품률 {0}</value>
+  </data>
+  <data name="RPT.DailyProduction.Shift.Empty" xml:space="preserve">
+    <value>교대 실적이 없습니다.</value>
+  </data>
+  <data name="RPT.DailyProduction.ByLine.Title" xml:space="preserve">
+    <value>라인별 생산</value>
+  </data>
+  <data name="RPT.DailyProduction.Col.Product" xml:space="preserve">
+    <value>품목</value>
+  </data>
+  <data name="RPT.DailyProduction.Col.Actual" xml:space="preserve">
+    <value>실적</value>
+  </data>
+  <data name="RPT.DailyProduction.Col.Achievement" xml:space="preserve">
+    <value>달성률</value>
+  </data>
+  <data name="RPT.DailyProduction.Col.DefectQty" xml:space="preserve">
+    <value>불량</value>
+  </data>
+  <data name="RPT.DailyProduction.Total" xml:space="preserve">
+    <value>합계</value>
+  </data>
+  <data name="RPT.DailyProduction.Item.Unknown" xml:space="preserve">
+    <value>(품번 미상)</value>
+  </data>
+  <data name="RPT.DailyProduction.Btn.Export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="RPT.DailyProduction.Btn.Print" xml:space="preserve">
+    <value>인쇄</value>
+  </data>
+  <data name="RPT.DailyProduction.Err.NoExport" xml:space="preserve">
+    <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="RPT.DailyProduction.Ok.Exported" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.TotalSub" xml:space="preserve">
+    <value>기간 내 불량 수량</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.Rate" xml:space="preserve">
+    <value>불량률</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.RateSub" xml:space="preserve">
+    <value>불량 ÷ 검사 수량</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.Worst" xml:space="preserve">
+    <value>최다 불량 유형</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.WorstSub" xml:space="preserve">
+    <value>{0} · 점유 {1}</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.VitalFew" xml:space="preserve">
+    <value>Vital Few</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.VitalFewSub" xml:space="preserve">
+    <value>누적 80% 도달 유형 수</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.VitalFewFmt" xml:space="preserve">
+    <value>{0} 유형</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.Inspected" xml:space="preserve">
+    <value>검사 수량</value>
+  </data>
+  <data name="RPT.DefectPareto.Kpi.InspectedSub" xml:space="preserve">
+    <value>생산 실적 (양품 + 불량)</value>
+  </data>
+  <data name="RPT.DefectPareto.Filter.Title" xml:space="preserve">
+    <value>조회 조건</value>
+  </data>
+  <data name="RPT.DefectPareto.Lbl.Range" xml:space="preserve">
+    <value>{0} ~ {1}</value>
+  </data>
+  <data name="RPT.DefectPareto.Pareto.Title" xml:space="preserve">
+    <value>불량 유형별 파레토</value>
+  </data>
+  <data name="RPT.DefectPareto.Pareto.Hint" xml:space="preserve">
+    <value>녹색 막대=불량 수 · 청색 점=누적% · 막대 클릭=필터</value>
+  </data>
+  <data name="RPT.DefectPareto.ByProcess.Title" xml:space="preserve">
+    <value>공정별 불량 분포</value>
+  </data>
+  <data name="RPT.DefectPareto.Cases" xml:space="preserve">
+    <value>{0}건</value>
+  </data>
+  <data name="RPT.DefectPareto.Detail.Title" xml:space="preserve">
+    <value>불량 유형 상세</value>
+  </data>
+  <data name="RPT.DefectPareto.Col.Type" xml:space="preserve">
+    <value>불량 유형</value>
+  </data>
+  <data name="RPT.DefectPareto.Vital" xml:space="preserve">
+    <value>주요</value>
+  </data>
+  <data name="RPT.DefectPareto.Btn.ClearSel" xml:space="preserve">
+    <value>선택 해제</value>
+  </data>
+  <data name="RPT.DefectPareto.Btn.Export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="RPT.DefectPareto.Err.NoExport" xml:space="preserve">
+    <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="RPT.DefectPareto.Ok.Exported" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.ShippedQty" xml:space="preserve">
+    <value>출하 수량</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.ShippedQtySub" xml:space="preserve">
+    <value>출하 완료 오더 · EA</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.Shipments" xml:space="preserve">
+    <value>출하 건수</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.ShipmentsSub" xml:space="preserve">
+    <value>당일 출하 오더 수</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.OnTime" xml:space="preserve">
+    <value>정시 출하율</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.OnTimeSub" xml:space="preserve">
+    <value>목표 ≥ 98% · 출하 완료 기준</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.Late" xml:space="preserve">
+    <value>지연 출하</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.LateSub" xml:space="preserve">
+    <value>계획일 경과 출하</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.Amount" xml:space="preserve">
+    <value>출하 금액</value>
+  </data>
+  <data name="RPT.DailyShipment.Kpi.AmountSub" xml:space="preserve">
+    <value>품목 원가 × 수량</value>
+  </data>
+  <data name="RPT.DailyShipment.Filter.Title" xml:space="preserve">
+    <value>조회 조건</value>
+  </data>
+  <data name="RPT.DailyShipment.ByCustomer.Title" xml:space="preserve">
+    <value>고객사별 출하</value>
+  </data>
+  <data name="RPT.DailyShipment.ByCustomer.Fmt" xml:space="preserve">
+    <value>{0} EA · {1}건</value>
+  </data>
+  <data name="RPT.DailyShipment.Legend.OnTime" xml:space="preserve">
+    <value>정시</value>
+  </data>
+  <data name="RPT.DailyShipment.Legend.Late" xml:space="preserve">
+    <value>지연</value>
+  </data>
+  <data name="RPT.DailyShipment.Legend.Pending" xml:space="preserve">
+    <value>대기</value>
+  </data>
+  <data name="RPT.DailyShipment.ByCarrier.Title" xml:space="preserve">
+    <value>운송사별 요약</value>
+  </data>
+  <data name="RPT.DailyShipment.ByCarrier.Fmt" xml:space="preserve">
+    <value>{0}/{1} 출하 · EA</value>
+  </data>
+  <data name="RPT.DailyShipment.Detail.Title" xml:space="preserve">
+    <value>출하 상세</value>
+  </data>
+  <data name="RPT.DailyShipment.Records" xml:space="preserve">
+    <value>{0}건</value>
+  </data>
+  <data name="RPT.DailyShipment.Col.ShipNo" xml:space="preserve">
+    <value>출하번호</value>
+  </data>
+  <data name="RPT.DailyShipment.Col.ShipTime" xml:space="preserve">
+    <value>출하 시각</value>
+  </data>
+  <data name="RPT.DailyShipment.Col.PlanFmt" xml:space="preserve">
+    <value>(계획 {0})</value>
+  </data>
+  <data name="RPT.DailyShipment.Col.Vehicle" xml:space="preserve">
+    <value>차량</value>
+  </data>
+  <data name="RPT.DailyShipment.Total" xml:space="preserve">
+    <value>합계</value>
+  </data>
+  <data name="RPT.DailyShipment.Completed" xml:space="preserve">
+    <value>{0}건 출하 완료</value>
+  </data>
+  <data name="RPT.DailyShipment.Item.Unknown" xml:space="preserve">
+    <value>(품번 미상)</value>
+  </data>
+  <data name="RPT.DailyShipment.Btn.Print" xml:space="preserve">
+    <value>인쇄</value>
+  </data>
+  <data name="RPT.DailyShipment.Btn.Export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="RPT.DailyShipment.Err.NoExport" xml:space="preserve">
+    <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="RPT.DailyShipment.Ok.Exported" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.Overall" xml:space="preserve">
+    <value>종합 OTD</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.OverallSub" xml:space="preserve">
+    <value>목표 ≥ 98% · (전체 − 지연) ÷ 전체</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.OnTimeSub" xml:space="preserve">
+    <value>요청납기 경과 없이 출하·진행</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.LateSub" xml:space="preserve">
+    <value>미출하 · 요청납기 경과</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.AvgDelay" xml:space="preserve">
+    <value>평균 지연일</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.AvgDelaySub" xml:space="preserve">
+    <value>지연 건 기준</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.Below" xml:space="preserve">
+    <value>목표 미달 고객</value>
+  </data>
+  <data name="RPT.OnTime.Kpi.BelowSub" xml:space="preserve">
+    <value>고객 OTD &lt; 98%</value>
+  </data>
+  <data name="RPT.OnTime.Filter.Title" xml:space="preserve">
+    <value>조회 조건</value>
+  </data>
+  <data name="RPT.OnTime.Lbl.Range" xml:space="preserve">
+    <value>{0} ~ {1}</value>
+  </data>
+  <data name="RPT.OnTime.Heat.Title" xml:space="preserve">
+    <value>고객사 × 월 OTD 히트맵</value>
+  </data>
+  <data name="RPT.OnTime.Heat.Hint" xml:space="preserve">
+    <value>요청납기 월 기준 · 셀 = OTD %</value>
+  </data>
+  <data name="RPT.OnTime.Heat.Customer" xml:space="preserve">
+    <value>고객사</value>
+  </data>
+  <data name="RPT.OnTime.Heat.Avg" xml:space="preserve">
+    <value>평균</value>
+  </data>
+  <data name="RPT.OnTime.Heat.Overall" xml:space="preserve">
+    <value>전체 평균</value>
+  </data>
+  <data name="RPT.OnTime.Legend.Ex" xml:space="preserve">
+    <value>≥ 98% 우수</value>
+  </data>
+  <data name="RPT.OnTime.Legend.Good" xml:space="preserve">
+    <value>96~98% 양호</value>
+  </data>
+  <data name="RPT.OnTime.Legend.Caution" xml:space="preserve">
+    <value>92~96% 주의</value>
+  </data>
+  <data name="RPT.OnTime.Legend.Low" xml:space="preserve">
+    <value>&lt; 92% 미달</value>
+  </data>
+  <data name="RPT.OnTime.Item.Title" xml:space="preserve">
+    <value>품목별 납기 성과</value>
+  </data>
+  <data name="RPT.OnTime.Col.Deliveries" xml:space="preserve">
+    <value>납품 건</value>
+  </data>
+  <data name="RPT.OnTime.Col.OnTime" xml:space="preserve">
+    <value>준수</value>
+  </data>
+  <data name="RPT.OnTime.Col.Late" xml:space="preserve">
+    <value>지연</value>
+  </data>
+  <data name="RPT.OnTime.Col.AvgDelay" xml:space="preserve">
+    <value>평균 지연일</value>
+  </data>
+  <data name="RPT.OnTime.DaysFmt" xml:space="preserve">
+    <value>{0}일</value>
+  </data>
+  <data name="RPT.OnTime.Total" xml:space="preserve">
+    <value>합계</value>
+  </data>
+  <data name="RPT.OnTime.Item.Unknown" xml:space="preserve">
+    <value>(품번 미상)</value>
+  </data>
+  <data name="RPT.OnTime.Btn.Print" xml:space="preserve">
+    <value>인쇄</value>
+  </data>
+  <data name="RPT.OnTime.Btn.Export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="RPT.OnTime.Err.NoExport" xml:space="preserve">
+    <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="RPT.OnTime.Ok.Exported" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.Sku" xml:space="preserve">
+    <value>SKU 수</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.SkuSub" xml:space="preserve">
+    <value>품목 × 창고</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.Value" xml:space="preserve">
+    <value>재고 금액</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.ValueSub" xml:space="preserve">
+    <value>원가 × 재고 수량</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.ValueNone" xml:space="preserve">
+    <value>원가 미등록</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.Low" xml:space="preserve">
+    <value>안전재고 미달</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.LowSub" xml:space="preserve">
+    <value>부족 + 재고 없음</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.Over" xml:space="preserve">
+    <value>과잉 재고</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.OverSub" xml:space="preserve">
+    <value>최대재고 초과</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.Turnover" xml:space="preserve">
+    <value>평균 회전율</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.TurnoverSub" xml:space="preserve">
+    <value>최근 30일 출고 ÷ 재고</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.TurnoverNone" xml:space="preserve">
+    <value>출고 이력 없음</value>
+  </data>
+  <data name="RPT.Inventory.Filter.Title" xml:space="preserve">
+    <value>조회 조건</value>
+  </data>
+  <data name="RPT.Inventory.AsOf" xml:space="preserve">
+    <value>현재 재고 기준</value>
+  </data>
+  <data name="RPT.Inventory.Ph.Search" xml:space="preserve">
+    <value>품번/품명</value>
+  </data>
+  <data name="RPT.Inventory.ByCat.Title" xml:space="preserve">
+    <value>카테고리별 재고 분포</value>
+  </data>
+  <data name="RPT.Inventory.ByCat.Value" xml:space="preserve">
+    <value>금액 기준</value>
+  </data>
+  <data name="RPT.Inventory.ByCat.Qty" xml:space="preserve">
+    <value>수량 기준 · 원가 미등록</value>
+  </data>
+  <data name="RPT.Inventory.ByWh.Title" xml:space="preserve">
+    <value>창고별 재고</value>
+  </data>
+  <data name="RPT.Inventory.ByWh.Fmt" xml:space="preserve">
+    <value>{0} SKU · 부족 {1}</value>
+  </data>
+  <data name="RPT.Inventory.Wh.WH" xml:space="preserve">
+    <value>자재 창고</value>
+  </data>
+  <data name="RPT.Inventory.Wh.FG" xml:space="preserve">
+    <value>완성품 창고</value>
+  </data>
+  <data name="RPT.Inventory.Detail.Title" xml:space="preserve">
+    <value>품목별 재고 상세</value>
+  </data>
+  <data name="RPT.Inventory.Col.ItemCode" xml:space="preserve">
+    <value>품번</value>
+  </data>
+  <data name="RPT.Inventory.Col.ItemName" xml:space="preserve">
+    <value>품명</value>
+  </data>
+  <data name="RPT.Inventory.Col.Warehouse" xml:space="preserve">
+    <value>창고</value>
+  </data>
+  <data name="RPT.Inventory.Col.OnHand" xml:space="preserve">
+    <value>재고</value>
+  </data>
+  <data name="RPT.Inventory.Col.Safety" xml:space="preserve">
+    <value>안전재고</value>
+  </data>
+  <data name="RPT.Inventory.Col.Value" xml:space="preserve">
+    <value>금액</value>
+  </data>
+  <data name="RPT.Inventory.Col.Turnover" xml:space="preserve">
+    <value>회전율</value>
+  </data>
+  <data name="RPT.Inventory.Status.Normal" xml:space="preserve">
+    <value>정상</value>
+  </data>
+  <data name="RPT.Inventory.Status.Low" xml:space="preserve">
+    <value>부족</value>
+  </data>
+  <data name="RPT.Inventory.Status.Over" xml:space="preserve">
+    <value>과잉</value>
+  </data>
+  <data name="RPT.Inventory.Status.Out" xml:space="preserve">
+    <value>없음</value>
+  </data>
+  <data name="RPT.Inventory.Cat.None" xml:space="preserve">
+    <value>(미분류)</value>
+  </data>
+  <data name="RPT.Inventory.TotalFmt" xml:space="preserve">
+    <value>합계 ({0} SKU)</value>
+  </data>
+  <data name="RPT.Inventory.Btn.Print" xml:space="preserve">
+    <value>인쇄</value>
+  </data>
+  <data name="RPT.Inventory.Btn.Export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="RPT.Inventory.Err.NoExport" xml:space="preserve">
+    <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="RPT.Inventory.Ok.Exported" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Overall" xml:space="preserve">
+    <value>공장 종합 OEE</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.OverallSub" xml:space="preserve">
+    <value>선택 월 · 계획시간 가중</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Availability" xml:space="preserve">
+    <value>가용률 A</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Performance" xml:space="preserve">
+    <value>성능률 P</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Quality" xml:space="preserve">
+    <value>품질률 Q</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.Best" xml:space="preserve">
+    <value>최우수 라인</value>
+  </data>
+  <data name="RPT.EquipmentOee.Kpi.VsPrev" xml:space="preserve">
+    <value>전월 대비</value>
+  </data>
+  <data name="RPT.EquipmentOee.Filter.Title" xml:space="preserve">
+    <value>조회 조건</value>
+  </data>
+  <data name="RPT.EquipmentOee.Lbl.Month" xml:space="preserve">
+    <value>월</value>
+  </data>
+  <data name="RPT.EquipmentOee.Trend.Title" xml:space="preserve">
+    <value>월별 공장 OEE 추이</value>
+  </data>
+  <data name="RPT.EquipmentOee.Trend.Hint" xml:space="preserve">
+    <value>최근 6개월 · 적색 점선 = 목표 85% · 막대 클릭 = 월 선택</value>
+  </data>
+  <data name="RPT.EquipmentOee.Callout.Title" xml:space="preserve">
+    <value>최우수 / 개선 필요 라인</value>
+  </data>
+  <data name="RPT.EquipmentOee.Callout.Best" xml:space="preserve">
+    <value>최우수 라인</value>
+  </data>
+  <data name="RPT.EquipmentOee.Callout.BestSub" xml:space="preserve">
+    <value>{0} 등급 — 목표 {1}</value>
+  </data>
+  <data name="RPT.EquipmentOee.Callout.Worst" xml:space="preserve">
+    <value>개선 필요</value>
+  </data>
+  <data name="RPT.EquipmentOee.Callout.WorstSub" xml:space="preserve">
+    <value>비가동 · 성능 손실 분석 권장</value>
+  </data>
+  <data name="RPT.EquipmentOee.Above" xml:space="preserve">
+    <value>초과</value>
+  </data>
+  <data name="RPT.EquipmentOee.Below" xml:space="preserve">
+    <value>미달</value>
+  </data>
+  <data name="RPT.EquipmentOee.Detail.Title" xml:space="preserve">
+    <value>라인별 OEE 상세 (선택 월)</value>
+  </data>
+  <data name="RPT.EquipmentOee.Col.VsPrev" xml:space="preserve">
+    <value>전월 대비</value>
+  </data>
+  <data name="RPT.EquipmentOee.Col.Grade" xml:space="preserve">
+    <value>등급</value>
+  </data>
+  <data name="RPT.EquipmentOee.PlantAvg" xml:space="preserve">
+    <value>공장 평균</value>
+  </data>
+  <data name="RPT.EquipmentOee.Grade.WorldClass" xml:space="preserve">
+    <value>월드클래스</value>
+  </data>
+  <data name="RPT.EquipmentOee.Grade.Good" xml:space="preserve">
+    <value>양호</value>
+  </data>
+  <data name="RPT.EquipmentOee.Grade.Low" xml:space="preserve">
+    <value>개선 필요</value>
+  </data>
+  <data name="RPT.EquipmentOee.Btn.Print" xml:space="preserve">
+    <value>인쇄</value>
+  </data>
+  <data name="RPT.EquipmentOee.Btn.Export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="RPT.EquipmentOee.Err.NoExport" xml:space="preserve">
+    <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="RPT.EquipmentOee.Ok.Exported" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Hero.Title" xml:space="preserve">
+    <value>종합 KPI 달성도</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Hero.Score" xml:space="preserve">
+    <value>점수</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Hero.Sub" xml:space="preserve">
+    <value>지표 {0}개 중 통과 {1} · 근접 {2} · 미달 {3} — {4}</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Hero.Excellent" xml:space="preserve">
+    <value>우수한 성과입니다.</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Hero.Good" xml:space="preserve">
+    <value>대체로 양호하나 일부 개선이 필요합니다.</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Hero.Poor" xml:space="preserve">
+    <value>집중 개선 관리가 필요합니다.</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Hero.NoData" xml:space="preserve">
+    <value>평가할 지표 데이터가 없습니다.</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Kpi.Pass" xml:space="preserve">
+    <value>목표 달성 · 통과</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Kpi.Near" xml:space="preserve">
+    <value>목표 근접 · 근접</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Kpi.Fail" xml:space="preserve">
+    <value>목표 미달 · 미달</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Kpi.AvgAch" xml:space="preserve">
+    <value>평균 달성률</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Kpi.AvgAchSub" xml:space="preserve">
+    <value>지표 달성률 평균 (최대 130%)</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Filter.Title" xml:space="preserve">
+    <value>조회 조건</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Lbl.Month" xml:space="preserve">
+    <value>월</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Scorecard.Title" xml:space="preserve">
+    <value>KPI 상세 스코어카드</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Scorecard.Hint" xml:space="preserve">
+    <value>달성률 = 실적 ÷ 목표 (낮을수록 좋은 지표는 목표 ÷ 실적) · 통과 ≥ 100% · 근접 ≥ 95%</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Col.Indicator" xml:space="preserve">
+    <value>KPI 지표</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Col.Target" xml:space="preserve">
+    <value>목표</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Col.Actual" xml:space="preserve">
+    <value>실적</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Col.Achievement" xml:space="preserve">
+    <value>달성률</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Col.Trend" xml:space="preserve">
+    <value>6개월 추세</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Status.Pass" xml:space="preserve">
+    <value>통과</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Status.Near" xml:space="preserve">
+    <value>근접</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Status.Fail" xml:space="preserve">
+    <value>미달</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Status.NoData" xml:space="preserve">
+    <value>데이터 없음</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Cat.Production" xml:space="preserve">
+    <value>생산</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Cat.Quality" xml:space="preserve">
+    <value>품질</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Cat.Delivery" xml:space="preserve">
+    <value>납품</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Cat.Equipment" xml:space="preserve">
+    <value>설비</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Cat.Cost" xml:space="preserve">
+    <value>원가</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.PlanAch" xml:space="preserve">
+    <value>생산 계획 달성률</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.Uptime" xml:space="preserve">
+    <value>설비 가동률</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.Ftt" xml:space="preserve">
+    <value>양품률 (FTT)</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.DefectRate" xml:space="preserve">
+    <value>공정 불량률</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.Claims" xml:space="preserve">
+    <value>고객 클레임</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.Otd" xml:space="preserve">
+    <value>납기 준수율 (OTD)</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.ShipOnTime" xml:space="preserve">
+    <value>정시 출하율</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.Oee" xml:space="preserve">
+    <value>종합 OEE</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.Mtbf" xml:space="preserve">
+    <value>평균 MTBF</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ind.Turnover" xml:space="preserve">
+    <value>재고 회전율</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Unit.Cases" xml:space="preserve">
+    <value>건</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Btn.Print" xml:space="preserve">
+    <value>인쇄</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Btn.Export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Err.NoExport" xml:space="preserve">
+    <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="RPT.MonthlyKpi.Ok.Exported" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.Adherence" xml:space="preserve">
+    <value>계획 준수율</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.AdherenceSub" xml:space="preserve">
+    <value>목표 ≥ 95% · 정시 완료 ÷ 계획 WO</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.Planned" xml:space="preserve">
+    <value>계획 작업지시</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.PlannedSub" xml:space="preserve">
+    <value>기간 내 슬롯 배정 WO × 라인</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.OnSchedule" xml:space="preserve">
+    <value>정시 완료</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.OnScheduleSub" xml:space="preserve">
+    <value>계획일 내 계획 수량 달성</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.Late" xml:space="preserve">
+    <value>지연 완료</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.LateSub" xml:space="preserve">
+    <value>계획일 이후 완료 · 미달</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.Incomplete" xml:space="preserve">
+    <value>미완료</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Kpi.IncompleteSub" xml:space="preserve">
+    <value>실적 없음 · 계획일 미도래</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Filter.Title" xml:space="preserve">
+    <value>조회 조건</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Lbl.Range" xml:space="preserve">
+    <value>{0} ~ {1}</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Trend.Title" xml:space="preserve">
+    <value>일별 계획 준수율 추이</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Trend.Hint" xml:space="preserve">
+    <value>계획일 기준 · 적색 점선 = 목표 95% · 막대 클릭 = 일자 필터</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.ByLine.Title" xml:space="preserve">
+    <value>라인별 준수율</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Detail.Title" xml:space="preserve">
+    <value>작업지시 계획 대비 실적</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Col.Wo" xml:space="preserve">
+    <value>작업지시</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Col.PlanQty" xml:space="preserve">
+    <value>계획 수량</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Col.ActualQty" xml:space="preserve">
+    <value>실적 수량</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Col.PlanDate" xml:space="preserve">
+    <value>계획일</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Col.ActualDate" xml:space="preserve">
+    <value>실적일</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Col.Deviation" xml:space="preserve">
+    <value>편차(일)</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Status.OnSchedule" xml:space="preserve">
+    <value>정시</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Status.Late" xml:space="preserve">
+    <value>지연</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Status.Incomplete" xml:space="preserve">
+    <value>미완료</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.TotalFmt" xml:space="preserve">
+    <value>합계 ({0} WO)</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.QtyAch" xml:space="preserve">
+    <value>수량 달성률 {0}</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Item.Unknown" xml:space="preserve">
+    <value>(품번 미상)</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Btn.ClearSel" xml:space="preserve">
+    <value>일자 필터 해제</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Btn.Print" xml:space="preserve">
+    <value>인쇄</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Btn.Export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Err.NoExport" xml:space="preserve">
+    <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="RPT.ScheduleAdherence.Ok.Exported" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
+  <data name="RPT.ReportBuilder.Hint" xml:space="preserve">
+    <value>데이터 소스 · 그룹 기준 · 측정값 · 기간을 고르고 조회하면 오른쪽에 리포트가 생성됩니다.</value>
+  </data>
+  <data name="RPT.ReportBuilder.Step.Source" xml:space="preserve">
+    <value>데이터 소스</value>
+  </data>
+  <data name="RPT.ReportBuilder.Step.Group" xml:space="preserve">
+    <value>그룹 기준 (행)</value>
+  </data>
+  <data name="RPT.ReportBuilder.Step.Measures" xml:space="preserve">
+    <value>측정값</value>
+  </data>
+  <data name="RPT.ReportBuilder.Step.Period" xml:space="preserve">
+    <value>기간</value>
+  </data>
+  <data name="RPT.ReportBuilder.Src.PROD" xml:space="preserve">
+    <value>생산 실적</value>
+  </data>
+  <data name="RPT.ReportBuilder.Src.DEFECT" xml:space="preserve">
+    <value>불량</value>
+  </data>
+  <data name="RPT.ReportBuilder.Src.SHIP" xml:space="preserve">
+    <value>출하 주문</value>
+  </data>
+  <data name="RPT.ReportBuilder.Src.OEE" xml:space="preserve">
+    <value>설비 OEE</value>
+  </data>
+  <data name="RPT.ReportBuilder.Src.DOWNTIME" xml:space="preserve">
+    <value>비가동</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.Line" xml:space="preserve">
+    <value>라인</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.Date" xml:space="preserve">
+    <value>일자</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.Shift" xml:space="preserve">
+    <value>교대</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.Item" xml:space="preserve">
+    <value>품목</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.Process" xml:space="preserve">
+    <value>공정</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.DefectCode" xml:space="preserve">
+    <value>불량 코드</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.Customer" xml:space="preserve">
+    <value>고객사</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.Carrier" xml:space="preserve">
+    <value>운송사</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.Equip" xml:space="preserve">
+    <value>설비</value>
+  </data>
+  <data name="RPT.ReportBuilder.Dim.Reason" xml:space="preserve">
+    <value>사유</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.Production" xml:space="preserve">
+    <value>생산량</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.GoodQty" xml:space="preserve">
+    <value>양품</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.DefectQty" xml:space="preserve">
+    <value>불량</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.Entries" xml:space="preserve">
+    <value>실적 건수</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.Events" xml:space="preserve">
+    <value>발생 건수</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.Orders" xml:space="preserve">
+    <value>출하 오더</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.OrderedQty" xml:space="preserve">
+    <value>주문 수량</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.AllocatedQty" xml:space="preserve">
+    <value>배정 수량</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.Oee" xml:space="preserve">
+    <value>OEE</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.Availability" xml:space="preserve">
+    <value>가용률</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.Performance" xml:space="preserve">
+    <value>성능률</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.Quality" xml:space="preserve">
+    <value>품질률</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.PlannedMin" xml:space="preserve">
+    <value>계획 시간</value>
+  </data>
+  <data name="RPT.ReportBuilder.M.DowntimeMin" xml:space="preserve">
+    <value>비가동 시간</value>
+  </data>
+  <data name="RPT.ReportBuilder.Unit.EA" xml:space="preserve">
+    <value>EA</value>
+  </data>
+  <data name="RPT.ReportBuilder.Unit.Pct" xml:space="preserve">
+    <value>%</value>
+  </data>
+  <data name="RPT.ReportBuilder.Unit.Min" xml:space="preserve">
+    <value>분</value>
+  </data>
+  <data name="RPT.ReportBuilder.Unit.Cnt" xml:space="preserve">
+    <value>건</value>
+  </data>
+  <data name="RPT.ReportBuilder.Report.TitleFmt" xml:space="preserve">
+    <value>{0} — {1}별 {2}</value>
+  </data>
+  <data name="RPT.ReportBuilder.Report.MetaFmt" xml:space="preserve">
+    <value>기간 {0} ~ {1} · 그룹 {2} ({3}) · 측정값 {4} · 생성 {5}</value>
+  </data>
+  <data name="RPT.ReportBuilder.Sum.TotalFmt" xml:space="preserve">
+    <value>합계 {0} ({1})</value>
+  </data>
+  <data name="RPT.ReportBuilder.Sum.AvgFmt" xml:space="preserve">
+    <value>평균 {0} ({1})</value>
+  </data>
+  <data name="RPT.ReportBuilder.Total" xml:space="preserve">
+    <value>합계</value>
+  </data>
+  <data name="RPT.ReportBuilder.Empty" xml:space="preserve">
+    <value>조건에 맞는 데이터가 없습니다.</value>
+  </data>
+  <data name="RPT.ReportBuilder.Err.NoMeasure" xml:space="preserve">
+    <value>측정값을 하나 이상 선택하세요.</value>
+  </data>
+  <data name="RPT.ReportBuilder.Chart.Bar" xml:space="preserve">
+    <value>막대</value>
+  </data>
+  <data name="RPT.ReportBuilder.Chart.Line" xml:space="preserve">
+    <value>선</value>
+  </data>
+  <data name="RPT.ReportBuilder.Chart.Pie" xml:space="preserve">
+    <value>원형</value>
+  </data>
+  <data name="RPT.ReportBuilder.Chart.Note" xml:space="preserve">
+    <value>차트는 첫 번째 측정값 기준</value>
+  </data>
+  <data name="RPT.ReportBuilder.Btn.Run" xml:space="preserve">
+    <value>조회</value>
+  </data>
+  <data name="RPT.ReportBuilder.Btn.Reset" xml:space="preserve">
+    <value>초기화</value>
+  </data>
+  <data name="RPT.ReportBuilder.Btn.Export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="RPT.ReportBuilder.Err.NoExport" xml:space="preserve">
+    <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="RPT.ReportBuilder.Ok.Exported" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
 </root>
