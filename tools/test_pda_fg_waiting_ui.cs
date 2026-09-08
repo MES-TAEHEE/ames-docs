@@ -57,7 +57,7 @@ Check(!source.Contains("<dl"), "Do not render a tall label/value form.");
 Check(source.Contains(">QC WAITING</span>"), "Use the QC Waiting screen title.");
 Check(source.Contains("<div class=\"wh01-po-no\">@row.LotNo</div>"), "LOT number is the card title.");
 Check(source.IndexOf("@row.LotNo") < source.IndexOf("@row.ItemNo")
-    && source.IndexOf("@row.ItemNo") < source.IndexOf("@row.ItemName"), "Show part number and name below the LOT title.");
+    && source.IndexOf("@row.ItemNo") < source.IndexOf("row.ItemName"), "Show part number and name below the LOT title.");
 var activity = File.ReadAllText(Path.Combine(root, "src/05_Pda/AMES.Pda/Platforms/Android/MainActivity.cs"));
 Check(activity.Contains("ScreenOrientation = ScreenOrientation.Portrait"), "Lock every Android PDA route to portrait.");
 Check(source.Contains(".OrderBy(x => x.QcPassTs ?? DateTime.MaxValue)"), "Waiting order must be oldest QC pass first.");

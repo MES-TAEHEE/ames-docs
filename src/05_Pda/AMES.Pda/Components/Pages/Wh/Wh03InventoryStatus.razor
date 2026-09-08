@@ -12,9 +12,13 @@
         <div class="wh03-tbar-title">
             <span class="pda-tbar-brand">@PageTitle</span>
         </div>
-        @if (!IsAdjustTab)
+        @if (IsTestMode || IsPptTestMode || !IsAdjustTab)
         {
             <div class="wh03-tbar-actions">
+                @if (IsPptTestMode)
+                {
+                    <PptScenarioPanel @key='@(IsFinishedGoodsAdjust ? "fg-adjust" : IsAdjustTab ? "wh-adjust" : "wh-inventory")' Title="@(IsAdjustTab ? "ADJUST" : "INVENTORY")" Steps="@(IsFinishedGoodsAdjust ? PptFgAdjustSteps : IsAdjustTab ? PptAdjustSteps : PptInventorySteps)" Busy="@(InventoryBusy || _isLoading)" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+                }
                 @if (IsTestMode)
                 {
                     <button class="wh02-test-nav" @onclick="OpenTestPanel">SCENARIO</button>
@@ -1207,7 +1211,7 @@
 
         await InvokeAsync(async () =>
         {
-            if (_quantityPadOpen || _modalOpen || _testPanelOpen || InventoryBusy)
+            if (_quantityPadOpen || _modalOpen || _testPanelOpen || _pptOpen || InventoryBusy)
                 return;
 
             if (IsSearchTab)
@@ -1248,7 +1252,7 @@
 
     private async Task FocusScannerAsync()
     {
-        if (_quantityPadOpen || _modalOpen || _testPanelOpen || _dateFilterOpen || _locationModalOpen || _selectedInventoryLocation is not null)
+        if (_quantityPadOpen || _modalOpen || _testPanelOpen || _pptOpen || _dateFilterOpen || _locationModalOpen || _selectedInventoryLocation is not null)
             return;
 
         try

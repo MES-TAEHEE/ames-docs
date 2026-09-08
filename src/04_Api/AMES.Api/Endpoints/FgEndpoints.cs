@@ -99,6 +99,26 @@ public static class FgEndpoints
         var g = app.MapGroup("/api/fg").WithTags("Finished Goods");
         g.MapAdjustmentLocation(factory, finishedGoods: true);
 
+        g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
+        {
+            if (ctx.GetSession() is not { } session) return Results.Unauthorized();
+            if (!string.Equals(session.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase))
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
+            if (screen is not ("qc" or "putaway" or "inventory" or "release" or "loading" or "return" or "adjust" or "history"))
+                return Results.BadRequest(new { Message = "Unknown PPT test screen." });
+            try
+            {
+                using var connection = factory.OpenConnection();
+                using var command = new SqlCommand(screen == "history" ? "dbo.FG_PDA_HISTORY_TEST_RESET" : "dbo.FG_PDA_PPT_TEST_RESET", connection) { CommandType = CommandType.StoredProcedure };
+                if (screen != "history") command.Parameters.Add("@Screen", SqlDbType.VarChar, 10).Value = screen;
+                command.ExecuteNonQuery();
+                return Results.Ok(new { Success = true });
+            }
+            catch (SqlException ex)
+            {
+                return Results.Problem(ex.Message, statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+        });
 
         g.MapGet("/adjust/scan", (HttpContext ctx, string scanText) =>
         {

@@ -43,6 +43,45 @@ BEGIN
         VALUES
             (@TestUserId, 'TEST', N'Warehouse Test', 'QA', 'SEH-US-01', 'DAY',
              NULL, @TestPinHash, 'Active', 0, 'pda-seed', SYSDATETIME());
+
+    DECLARE @SimpleTestUserId nvarchar(450) = N'pda-simple-test-user';
+    MERGE dbo.AspNetUsers AS T
+    USING (SELECT @SimpleTestUserId AS Id) AS S ON T.Id = S.Id
+    WHEN MATCHED THEN UPDATE SET
+        UserName = N'TEST1', NormalizedUserName = N'TEST1',
+        LockoutEnabled = 1, AccessFailedCount = 0
+    WHEN NOT MATCHED THEN INSERT
+        (Id, UserName, NormalizedUserName, SecurityStamp, ConcurrencyStamp,
+         EmailConfirmed, PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnabled, AccessFailedCount)
+    VALUES
+        (@SimpleTestUserId, N'TEST1', N'TEST1', REPLACE(CONVERT(nvarchar(36), NEWID()), N'-', N''),
+         REPLACE(CONVERT(nvarchar(36), NEWID()), N'-', N''), 0, 0, 0, 1, 0);
+
+    IF EXISTS (SELECT 1 FROM dbo.SYS_UserProfile WHERE EmployeeNo = 'TEST1')
+        UPDATE dbo.SYS_UserProfile
+           SET UserID = @SimpleTestUserId, EmployeeName = N'Warehouse PPT Test', Department = 'QA',
+               AssignedLines = NULL, PinHash = @TestPinHash, AccountStatus = 'Active',
+               FailedLoginCount = 0, ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME()
+         WHERE EmployeeNo = 'TEST1';
+    ELSE
+        INSERT INTO dbo.SYS_UserProfile
+            (UserID, EmployeeNo, EmployeeName, Department, PlantCode, DefaultShift,
+             AssignedLines, PinHash, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
+        VALUES
+            (@SimpleTestUserId, 'TEST1', N'Warehouse PPT Test', 'QA', 'SEH-US-01', 'DAY',
+             NULL, @TestPinHash, 'Active', 0, 'pda-seed', SYSDATETIME());
+
+    -- TEST1 validates every PPT flow, including administrator-only Adjust screens.
+    DECLARE @AdminRoleId nvarchar(450) =
+        (SELECT TOP (1) Id FROM dbo.AspNetRoles WHERE UPPER(Name) = 'ADMIN');
+    IF @AdminRoleId IS NOT NULL
+       AND NOT EXISTS
+       (
+           SELECT 1 FROM dbo.AspNetUserRoles
+           WHERE UserId = @SimpleTestUserId AND RoleId = @AdminRoleId
+       )
+        INSERT INTO dbo.AspNetUserRoles (UserId, RoleId)
+        VALUES (@SimpleTestUserId, @AdminRoleId);
 END;
 GO
 
@@ -256,6 +295,45 @@ BEGIN
 END;
 
 -- Resettable LOCAL Inbound scenarios for direct PDA verification.
+DECLARE @SimpleInboundBoxes TABLE
+    (SequenceNo int, Barcode varchar(40), Mode nvarchar(10), DocumentBarcode nvarchar(50),
+     ItemNo varchar(20), VendorID varchar(20), Qty decimal(14,3));
+INSERT INTO @SimpleInboundBoxes VALUES
+    (1, '5011LL260908800001', N'LOCAL', '5011202609088001', '81710-PI000NNB', 'V1007', 20),
+    (2, '5011LL260908800002', N'LOCAL', '5011202609088001', '81710-PI000NNB', 'V1007', 20),
+    (3, '5011LL260908800003', N'LOCAL', '5011202609088001', '81711-PI000YGN', 'V1007', 10),
+    (4, 'CKD260908800000001', N'CKD', 'CKD202609080001CASE00001', '82301-PI000NNB', 'V2003', 30),
+    (5, 'CKD260908800000002', N'CKD', 'CKD202609080001CASE00001', '82301-PI000NNB', 'V2003', 30),
+    (6, 'CKD260908800000003', N'CKD', 'CKD202609080001CASE00001', '82301-PI000NNB', 'V2003', 30);
+
+INSERT INTO dbo.WH_PurchaseOrder
+    (PoNumber, PoLineNo, VendorID, ItemNo, OrderQty, ReceivedQty, UnitCode, OrderDate, DueDate, Status, CreatedBy)
+SELECT 'PPT-INBOUND', B.SequenceNo, B.VendorID, B.ItemNo, B.Qty, 0, 'EA',
+       CONVERT(date, GETDATE()), CONVERT(date, GETDATE()), 'Open', 'pda-simple-inbound'
+FROM @SimpleInboundBoxes B
+WHERE NOT EXISTS (SELECT 1 FROM dbo.WH_PurchaseOrder P WHERE P.PoNumber = 'PPT-INBOUND' AND P.PoLineNo = B.SequenceNo);
+
+INSERT INTO dbo.tbl_Lot
+    (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt, Status, CreatedBy)
+SELECT B.Barcode, B.ItemNo, B.Mode, B.Qty, B.Qty, SYSDATETIME(), 'Open', 'pda-simple-inbound'
+FROM @SimpleInboundBoxes B
+WHERE NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot L WHERE L.LotCode = B.Barcode);
+
+INSERT INTO dbo.WH_InboundPackage
+    (ReceiveType, DocumentBarcode, DocumentNo, VendorID, CaseNo, InvoiceNo, ContainerNo,
+     ShipDate, PackDate, DeliveryDate, ArrivalDate, BoxBarcode, LotID, ItemNo, PoID,
+     Qty, UnitCode, ProductionDate, Status, CreatedBy)
+SELECT B.Mode, B.DocumentBarcode, B.DocumentBarcode, B.VendorID,
+       CASE WHEN B.Mode = N'CKD' THEN 'CASE-PPT-001' END,
+       CASE WHEN B.Mode = N'CKD' THEN 'INV-PPT-001' END,
+       CASE WHEN B.Mode = N'CKD' THEN 'SEGU2609081' END,
+       CONVERT(date, GETDATE()), CONVERT(date, GETDATE()), CONVERT(date, GETDATE()), CONVERT(date, GETDATE()),
+       B.Barcode, L.LotID, B.ItemNo, P.PoID, B.Qty, 'EA', CONVERT(date, GETDATE()), N'Open', 'pda-simple-inbound'
+FROM @SimpleInboundBoxes B
+JOIN dbo.tbl_Lot L ON L.LotCode = B.Barcode
+JOIN dbo.WH_PurchaseOrder P ON P.PoNumber = 'PPT-INBOUND' AND P.PoLineNo = B.SequenceNo
+WHERE NOT EXISTS (SELECT 1 FROM dbo.WH_InboundPackage Existing WHERE Existing.BoxBarcode = B.Barcode);
+
 IF OBJECT_ID(N'dbo.WH_InboundPackage', N'U') IS NOT NULL
    AND OBJECT_ID(N'dbo.WH_PurchaseOrder', N'U') IS NOT NULL
    AND OBJECT_ID(N'dbo.tbl_Lot', N'U') IS NOT NULL
@@ -847,6 +925,40 @@ BEGIN
          119, 1, 120, 'COUNT_DIFF', 'WH_ADJUST', N'admin', N'admin', N'Adjustment scenario seed', 'pda-scenario-seed', SYSDATETIME());
 END;
 
+-- Repeatable WH005 Adjust scenario stock. The TEST-only reset API restores it to 10 EA.
+IF OBJECT_ID(N'dbo.WH_Inventory', N'U') IS NOT NULL
+   AND OBJECT_ID(N'dbo.tbl_Lot', N'U') IS NOT NULL
+BEGIN
+    DECLARE @AdjustScenarioLotNo varchar(40) = '5011LL260904500001';
+    DECLARE @AdjustScenarioLotID int =
+        (SELECT TOP (1) LotID FROM dbo.tbl_Lot WHERE LotCode = @AdjustScenarioLotNo);
+
+    IF @AdjustScenarioLotID IS NOT NULL
+    BEGIN
+        IF OBJECT_ID(N'dbo.WH_InventoryTransaction', N'U') IS NOT NULL
+            DELETE FROM dbo.WH_InventoryTransaction WHERE LotID = @AdjustScenarioLotID;
+        IF OBJECT_ID(N'dbo.WH_InventoryAdjust', N'U') IS NOT NULL
+            DELETE FROM dbo.WH_InventoryAdjust WHERE LotID = @AdjustScenarioLotID;
+        DELETE FROM dbo.WH_Inventory WHERE LotID = @AdjustScenarioLotID;
+        DELETE FROM dbo.tbl_Lot WHERE LotID = @AdjustScenarioLotID;
+    END;
+
+    INSERT INTO dbo.tbl_Lot
+        (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt,
+         Status, InventoryStatus, QualityFlag, CurrentLocationID, CreatedBy)
+    VALUES
+        (@AdjustScenarioLotNo, '81710-PI000NNB', 'WH', 10, 10, DATEADD(day, -2, SYSDATETIME()),
+         'Received', 'STORED', 'PASS', 'B0-12-B1', 'pda-adjust-test');
+
+    SET @AdjustScenarioLotID = CONVERT(int, SCOPE_IDENTITY());
+
+    INSERT INTO dbo.WH_Inventory
+        (ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt, Status, CreatedBy)
+    VALUES
+        ('81710-PI000NNB', 'B0-12-B1', @AdjustScenarioLotID, 10, 0,
+         DATEADD(day, -2, SYSDATETIME()), 'Received', 'pda-adjust-test');
+END;
+
 SELECT 'WH_WarehouseMaster' AS TableName, COUNT(*) AS DataRows
 FROM dbo.WH_WarehouseMaster
 WHERE CreatedBy = @LegacyActor
@@ -1015,6 +1127,39 @@ EXEC dbo.WH_PDA_RELEASE_PICK_LINES @PickSlipNo = @PickSlipNo;
 EXEC dbo.WH_PDA_RELEASE_SCAN_LOT @PickSlipNo = @PickSlipNo, @LotNo = N'5011LL260701000001';
 EXEC dbo.WH_PDA_RELEASE_SCAN_LOT @PickSlipNo = @PickSlipNo, @LotNo = N'5011LL260715000002';
 EXEC dbo.WH_PDA_RELEASE_SLIP_STATUS @PickSlipNo = @RollbackPickSlipNo;
+GO
+
+-- =====================================================================
+--  Warehouse PPT scenarios
+-- =====================================================================
+DECLARE @PptStocks TABLE (Screen varchar(10), Barcode varchar(40), ItemNo varchar(20), ItemName nvarchar(100), Qty decimal(14,3), ProducedAt datetime2);
+INSERT INTO @PptStocks VALUES
+    ('release', '5011LL260908810001', 'PPT-WH-REL-01', N'PPT Release Trim A', 20, '2026-09-01T08:00:00'),
+    ('release', '5011LL260908810002', 'PPT-WH-REL-01', N'PPT Release Trim A', 10, '2026-09-02T08:00:00'),
+    ('release', '5011LL260908810003', 'PPT-WH-REL-02', N'PPT Release Trim B', 16, '2026-09-01T08:00:00'),
+    ('release', '5011LL260908810004', 'PPT-WH-REL-02', N'PPT Release Trim B', 8, '2026-09-03T08:00:00'),
+    ('inventory', '5011LL260908820001', 'PPT-WH-INV-01', N'PPT Inventory Trim A', 30, '2026-09-01T08:00:00'),
+    ('inventory', '5011LL260908820002', 'PPT-WH-INV-01', N'PPT Inventory Trim A', 20, '2026-09-02T08:00:00'),
+    ('inventory', '5011LL260908820003', 'PPT-WH-INV-02', N'PPT Inventory Trim B', 12, '2026-09-01T08:00:00'),
+    ('adjust', '5011LL260908830001', 'PPT-WH-ADJ-01', N'PPT Adjust Trim', 10, '2026-09-01T08:00:00'),
+    ('history', '5011LL260908840001', 'PPT-WH-HIST-01', N'PPT Transaction Trim', 18, '2026-09-01T08:00:00');
+INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM, ActiveFlag, CreatedBy)
+SELECT DISTINCT ItemNo, ItemName, 'ASSY', 'TRIM', 'NE1A', 'EA', 1, 'pda-ppt-seed'
+FROM @PptStocks Sample
+WHERE NOT EXISTS (SELECT 1 FROM dbo.MD_Item Existing WHERE Existing.ItemNo = Sample.ItemNo);
+INSERT INTO dbo.tbl_Lot (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt, Status, InventoryStatus, QualityFlag, CreatedBy)
+SELECT Barcode, ItemNo, 'WH', Qty, Qty, ProducedAt, 'Received', 'RECEIVED', 'PASS', CONCAT('pda-ppt-', Screen)
+FROM @PptStocks Sample
+WHERE NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot Existing WHERE Existing.LotCode = Sample.Barcode);
+INSERT INTO dbo.WH_ReleaseSchedule
+    (WoID, ItemNo, DemandQty, PickedQty, RequiredAt, Priority, Status, CreatedBy, PickSlipNo, ReqLocation, ReqSeqNo, ReqUserId)
+SELECT NULL, Sample.ItemNo, Sample.Boxes, 0, SYSDATETIME(), 2, 'Open', 'pda-ppt-release', 'PS-PPT-WH-01', 'LINE-A', Sample.SequenceNo, 'TEST1'
+FROM (VALUES ('PPT-WH-REL-01', 2, 1), ('PPT-WH-REL-02', 1, 2)) Sample(ItemNo, Boxes, SequenceNo)
+WHERE NOT EXISTS (SELECT 1 FROM dbo.WH_ReleaseSchedule Existing WHERE Existing.PickSlipNo = 'PS-PPT-WH-01' AND Existing.ItemNo = Sample.ItemNo);
+EXEC dbo.WH_PDA_PPT_TEST_RESET @Screen = 'release';
+EXEC dbo.WH_PDA_PPT_TEST_RESET @Screen = 'inventory';
+EXEC dbo.WH_PDA_PPT_TEST_RESET @Screen = 'adjust';
+EXEC dbo.WH_PDA_PPT_TEST_RESET @Screen = 'history';
 GO
 
 -- =====================================================================
@@ -1536,4 +1681,59 @@ JOIN dbo.FG_LoadingConfirm L ON L.ShipmentOrderID = O.ShipmentOrderID
 LEFT JOIN dbo.FG_DeliveryNote D ON D.LoadingID = L.LoadingID
 WHERE L.LoadingNumber IN ('FG-LOAD-DEMO-001', 'FG-LOAD-DEMO-002')
 ORDER BY L.LoadingNumber;
+GO
+
+-- =====================================================================
+-- FG PPT TEST1: independent samples for all eight current FG screens.
+-- =====================================================================
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+DECLARE @FgPpt TABLE (Code varchar(6), Screen varchar(10), ItemNo varchar(20), ItemName nvarchar(80), Qty decimal(12,3));
+INSERT @FgPpt VALUES
+ ('900001','qc','PPT-FG-QC','PPT QC WAITING',32),('900002','qc','PPT-FG-QC','PPT QC WAITING',24),
+ ('900003','qc','PPT-FG-QC','PPT QC WAITING',16),('900004','qc','PPT-FG-QC','PPT QC WAITING',8),
+ ('910001','putaway','PPT-FG-PUT','PPT PUT-AWAY TRIM ASSY',24),
+ ('920001','inventory','PPT-FG-INV-01','PPT INVENTORY TRIM LH',30),('920002','inventory','PPT-FG-INV-01','PPT INVENTORY TRIM LH',20),
+ ('920003','inventory','PPT-FG-INV-02','PPT INVENTORY TRIM RH',12),
+ ('930001','release','PPT-FG-REL-01','PPT RELEASE TRIM LH',10),('930002','release','PPT-FG-REL-01','PPT RELEASE TRIM LH',14),
+ ('930003','release','PPT-FG-REL-02','PPT RELEASE TRIM RH',16),
+ ('940001','loading','PPT-FG-LOAD-01','PPT LOADING TRIM LH',20),('940002','loading','PPT-FG-LOAD-02','PPT LOADING TRIM RH',8),
+ ('940003','loading','PPT-FG-LOAD-01','PPT LOADING TRIM LH',6),
+ ('950001','return','PPT-FG-RETURN','PPT CUSTOMER RETURN TRIM',12),('950002','return','PPT-FG-RETURN','PPT CUSTOMER RETURN TRIM',8),
+ ('960001','adjust','PPT-FG-ADJ','PPT ADJUST TRIM ASSY',10),
+ ('970001','history','PPT-FG-HIST','PPT HISTORY TRIM ASSY',20);
+INSERT dbo.MD_Item (ItemNo,ItemName,ItemType,DefaultUOM,ActiveFlag,CreatedBy,CreatedTS)
+SELECT DISTINCT D.ItemNo,D.ItemName,'FG','EA',1,'pda-ppt-fg',SYSDATETIME()
+FROM @FgPpt D WHERE NOT EXISTS (SELECT 1 FROM dbo.MD_Item I WHERE I.ItemNo=D.ItemNo);
+INSERT dbo.MD_Location (LocationID,LocationName,ZoneCode,Aisle,Bay,Slot,Capacity,LocationType,PlantCode,ActiveFlag,CreatedBy,CreatedTS)
+SELECT CONCAT('FG-PPT-',V.Code,'1'),CONCAT('FG PPT ',V.Code),'FG','PPT',V.Code,'1',1000,'FG','EOS',1,'pda-ppt-fg',SYSDATETIME()
+FROM (VALUES ('A'),('B'),('C'),('D'),('E'),('F'),('G')) V(Code)
+WHERE NOT EXISTS (SELECT 1 FROM dbo.MD_Location L WHERE L.LocationID=CONCAT('FG-PPT-',V.Code,'1'));
+INSERT dbo.PP_WorkOrder (WoNumber,ItemNo,OrderQty,OpenQty,CompletedQty,LineID,Status,Priority,CreatedBy,CreatedTS)
+SELECT CONCAT('FG-PPT-WO-',D.Code),D.ItemNo,D.Qty,0,D.Qty,'FG-DEMO','Completed',3,CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
+FROM @FgPpt D WHERE NOT EXISTS (SELECT 1 FROM dbo.PP_WorkOrder W WHERE W.WoNumber=CONCAT('FG-PPT-WO-',D.Code));
+INSERT dbo.tbl_Lot (LotCode,ItemNo,WoID,LineID,ProcessCode,BatchSize,RemainingQty,ProducedAt,Status,QualityFlag,CreatedBy,CreatedTS)
+SELECT CONCAT('5011FG260908',D.Code),D.ItemNo,W.WoID,'FG-DEMO','FINAL',D.Qty,D.Qty,DATEADD(day,-15,SYSDATETIME()),'Completed','PASS',CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
+FROM @FgPpt D JOIN dbo.PP_WorkOrder W ON W.WoNumber=CONCAT('FG-PPT-WO-',D.Code) AND W.CreatedBy=CONCAT('pda-ppt-fg-',D.Screen)
+WHERE NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot L WHERE L.LotCode=CONCAT('5011FG260908',D.Code));
+INSERT dbo.QC_Inspection (InspectionNo,InspectionType,LotID,WoID,LineID,ItemNo,CustomerCode,Mode,SampleSize,BatchQty,CumulativeGood,DefectQtyTotal,Verdict,CriticalFlag,InspectorID,InsStartTS,InsEndTS,CreatedBy,CreatedTS)
+SELECT CONCAT('FG-PPT-QC-',D.Code),'FQC',L.LotID,L.WoID,'FG-DEMO',D.ItemNo,'PPT-CUSTOMER','Normal',1,D.Qty,CONVERT(int,D.Qty),0,'PASS',0,'TEST1',DATEADD(day,-16,SYSDATETIME()),DATEADD(day,-15,SYSDATETIME()),CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
+FROM @FgPpt D JOIN dbo.tbl_Lot L ON L.LotCode=CONCAT('5011FG260908',D.Code) AND L.CreatedBy=CONCAT('pda-ppt-fg-',D.Screen)
+WHERE NOT EXISTS (SELECT 1 FROM dbo.QC_Inspection Q WHERE Q.InspectionNo=CONCAT('FG-PPT-QC-',D.Code));
+INSERT dbo.FG_ShipmentOrder (ShipOrderNumber,OutgoingSlipNumber,CustomerCode,Source,ShipDate,DestPlant,Status,CreatedBy,CreatedTS)
+SELECT D.Number,D.Slip,'PPT-CUSTOMER','PDA',CAST(GETDATE() AS date),'PPT-DESTINATION','Open',CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
+FROM (VALUES ('FG-PPT-SO-REL','2609089001','release'),('FG-PPT-SO-LOAD','2609089002','loading'),
+             ('FG-PPT-SO-RETURN','2609089003','return'),('FG-PPT-SO-NOSHIP','2609089004','return'),
+             ('FG-PPT-SO-HIST','2609089005','history')) D(Number,Slip,Screen)
+WHERE NOT EXISTS (SELECT 1 FROM dbo.FG_ShipmentOrder O WHERE O.ShipOrderNumber=D.Number);
+EXEC dbo.FG_PDA_PPT_TEST_RESET 'qc';
+EXEC dbo.FG_PDA_PPT_TEST_RESET 'putaway';
+EXEC dbo.FG_PDA_PPT_TEST_RESET 'inventory';
+EXEC dbo.FG_PDA_PPT_TEST_RESET 'release';
+EXEC dbo.FG_PDA_PPT_TEST_RESET 'loading';
+EXEC dbo.FG_PDA_PPT_TEST_RESET 'return';
+EXEC dbo.FG_PDA_PPT_TEST_RESET 'adjust';
+EXEC dbo.FG_PDA_HISTORY_TEST_RESET;
+COMMIT TRANSACTION;
 GO

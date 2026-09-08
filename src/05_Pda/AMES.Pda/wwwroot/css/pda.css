@@ -1181,6 +1181,27 @@ body { font-family: 'Inter', sans-serif; background: #0c1320; color: #e8eef7; fo
     font-weight: 900;
 }
 
+.wh02-simple-guide {
+  margin: 0;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.wh02-simple-modes button {
+    flex-basis: 80px;
+}
+
+.wh02-simple-panel .wh02-test-values b {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.wh02-simple-panel .wh02-test-actions {
+    grid-template-columns: 1fr;
+}
+
 .wh02-test-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;

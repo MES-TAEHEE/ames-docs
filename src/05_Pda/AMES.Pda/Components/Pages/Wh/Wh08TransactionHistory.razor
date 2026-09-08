@@ -1,6 +1,7 @@
 @page "/wh/08"
 @page "/fg/history"
 @inject PdaApi Api
+@inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @implements IAsyncDisposable
@@ -12,6 +13,10 @@
             <span class="pda-tbar-brand">TRANSACTIONS</span>
         </div>
         <div class="wh08-tbar-actions">
+            @if (IsPptTestMode)
+            {
+                <PptScenarioPanel @key="IsFinishedGoods" Title="@(IsFinishedGoods ? "FG TRANSACTIONS" : "TRANSACTIONS")" Steps="@(IsFinishedGoods ? FgPptSteps : PptSteps)" Busy="_loading" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+            }
             <RadzenButton class="wh08-refresh" Click="@Load" Disabled="@_loading" Text="REFRESH" />
         </div>
     </div>
@@ -246,6 +251,7 @@
         _dateFrom = DefaultDateFrom;
         _dateTo = DefaultDateTo;
         _detailRow = null;
+        _pptReady = _pptOpen = false;
         await Load();
     }
 
@@ -276,7 +282,7 @@
 
         await InvokeAsync(async () =>
         {
-            if (_detailRow is not null || _loading)
+            if (_detailRow is not null || _loading || _pptOpen)
                 return;
             _search = value;
             await Load();
@@ -291,7 +297,7 @@
 
     private async Task FocusScannerAsync()
     {
-        if (_editingFilters || _editingBarcode || _detailRow is not null)
+        if (_editingFilters || _editingBarcode || _detailRow is not null || _pptOpen)
             return;
 
         try
@@ -474,11 +480,11 @@
     {
         var value = status?.Trim().ToLowerInvariant() ?? "";
         if (value == "in") return "in";
+        if (value is "put-away" or "return") return "in";
+        if (value is "release" or "loading") return "out";
         if (value.Contains("adjust")) return "adjust";
         if (value.Contains("cancel")) return "cancel";
         if (value.Contains("out")) return "out";
-        if (value is "put-away" or "return") return "in";
-        if (value is "release" or "loading") return "out";
         if (value.Contains("loss")) return "loss";
         return "stock";
     }

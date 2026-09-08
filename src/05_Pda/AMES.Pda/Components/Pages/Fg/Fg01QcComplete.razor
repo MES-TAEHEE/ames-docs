@@ -1,5 +1,6 @@
 @page "/fg/01"
 @inject PdaApi Api
+@inject AuthState Auth
 @inject NavigationManager Nav
 
 <div class="pda-shell wh wh01-shell fg-waiting-shell">
@@ -9,6 +10,10 @@
             <span class="pda-tbar-brand">QC WAITING</span>
         </div>
         <RadzenButton class="wh01-tbar-refresh" Click="Load" Disabled="@_isLoading" Text="REFRESH" />
+        @if (IsPptTestMode)
+        {
+            <PptScenarioPanel Title="QC WAITING" Steps="PptSteps" Busy="@_isLoading" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" />
+        }
     </div>
 
     <div class="pda-bd wh01-body">

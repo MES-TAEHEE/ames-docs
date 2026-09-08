@@ -15,6 +15,10 @@
         {
             <button class="wh02-test-nav" @onclick="OpenTestPanel">SCENARIO</button>
         }
+        @if (IsPptTestMode)
+        {
+            <PptScenarioPanel Title="RELEASE" Steps="PptSteps" Busy="_isBusy" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+        }
     </div>
 
     <div class="pda-bd wh07-body">
@@ -467,6 +471,7 @@
 
         await InvokeAsync(async () =>
         {
+            if (_pptOpen) return;
             await ProcessBarcodeAsync(value);
             StateHasChanged();
         });
@@ -479,7 +484,7 @@
 
     private async Task FocusScannerAsync()
     {
-        if (_modalOpen || _testPanelOpen)
+        if (_modalOpen || _testPanelOpen || _pptOpen)
             return;
 
         try

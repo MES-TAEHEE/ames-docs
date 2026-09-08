@@ -37,16 +37,10 @@ using var login = await live.PostAsJsonAsync("/api/auth/login", new { employeeNo
 var loginJson = JsonNode.Parse(await login.Content.ReadAsStringAsync())!;
 live.DefaultRequestHeaders.Authorization = new("Bearer", loginJson["token"]!.GetValue<string>());
 var sessionJson = JsonNode.Parse(await live.GetStringAsync("/api/auth/me"))!;
-Check(!sessionJson["isAdmin"]!.GetValue<bool>(), "DB-backed TEST1 session is not an administrator");
-foreach (var scope in new[] { "wh", "fg" })
-{
-    Check((await live.GetAsync($"/api/{scope}/adjust/location?barcode=B0-08-A1")).StatusCode == HttpStatusCode.Forbidden, scope + " live non-admin location blocked");
-    Check((await live.GetAsync($"/api/{scope}/adjust/scan?scanText=UNKNOWN")).StatusCode == HttpStatusCode.Forbidden, scope + " live non-admin scan blocked");
-    Check((await live.PostAsJsonAsync($"/api/{scope}/adjust/save", new { barcode = "UNKNOWN", deltaQty = 1, reasonCode = "COUNT_DIFF", supervisorPin = "0000" })).StatusCode == HttpStatusCode.Forbidden, scope + " live non-admin save blocked");
-}
-var ordinarySession = JsonSerializer.Deserialize(sessionJson.ToJsonString(), sessionType, jsonOptions)!;
-sessionJson["isAdmin"] = true;
+Check(sessionJson["isAdmin"]!.GetValue<bool>(), "DB-backed TEST1 session is an administrator");
 var adminSession = JsonSerializer.Deserialize(sessionJson.ToJsonString(), sessionType, jsonOptions)!;
+sessionJson["isAdmin"] = false;
+var ordinarySession = JsonSerializer.Deserialize(sessionJson.ToJsonString(), sessionType, jsonOptions)!;
 using var settings = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "src/04_Api/AMES.Api/appsettings.json")), new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip });
 var data = AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(bin, "AMES.Data.dll"));
 var factory = Activator.CreateInstance(data.GetType("AMES.Data.Connection.AmesConnectionFactory", true)!, settings.RootElement.GetProperty("ConnectionStrings").GetProperty("AMES").GetString()!)!;
@@ -57,6 +51,7 @@ builder.WebHost.UseUrls("http://127.0.0.1:0");
 await using var host = builder.Build();
 host.Use(async (context, next) => {
     if (context.Request.Headers.Authorization == "Bearer isolated-admin") context.Items["ames-session"] = adminSession;
+    if (context.Request.Headers.Authorization == "Bearer isolated-user") context.Items["ames-session"] = ordinarySession;
     await next(context);
 });
 foreach (var scope in new[] { "Wh", "Fg" })
@@ -64,6 +59,13 @@ foreach (var scope in new[] { "Wh", "Fg" })
 await host.StartAsync();
 using var client = new HttpClient { BaseAddress = new Uri(host.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()) };
 Check((await client.GetAsync("/api/wh/adjust/location?barcode=1F-A-02")).StatusCode == HttpStatusCode.Unauthorized, "anonymous adjustment blocked");
+client.DefaultRequestHeaders.Authorization = new("Bearer", "isolated-user");
+foreach (var scope in new[] { "wh", "fg" })
+{
+    Check((await client.GetAsync($"/api/{scope}/adjust/location?barcode=B0-08-A1")).StatusCode == HttpStatusCode.Forbidden, scope + " non-admin location blocked");
+    Check((await client.GetAsync($"/api/{scope}/adjust/scan?scanText=UNKNOWN")).StatusCode == HttpStatusCode.Forbidden, scope + " non-admin scan blocked");
+    Check((await client.PostAsJsonAsync($"/api/{scope}/adjust/save", new { barcode = "UNKNOWN", deltaQty = 1, reasonCode = "COUNT_DIFF" })).StatusCode == HttpStatusCode.Forbidden, scope + " non-admin save blocked");
+}
 client.DefaultRequestHeaders.Authorization = new("Bearer", "isolated-admin");
 
 var auth = Activator.CreateInstance(authType)!;

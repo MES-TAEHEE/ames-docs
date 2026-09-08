@@ -241,7 +241,10 @@ public static class WhEndpoints
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
             var simulateFailure = body.SimulateFailure
-                && string.Equals(s.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+                && (string.Equals(s.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase)
+                    || (string.Equals(s.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase)
+                        && body.Barcode is "5011LL260908800001" or "5011LL260908800002" or "5011LL260908800003"
+                            or "CKD260908800000001" or "CKD260908800000002" or "CKD260908800000003"));
             var result = ExecuteInboundReceive(
                 factory, body, s.EmployeeNo, PdaInboundReceiveLotProcedure, "Received", simulateFailure);
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
@@ -254,6 +257,27 @@ public static class WhEndpoints
 
         g.MapPost("/inbound/receive-lot", ReceiveInboundLot);
         g.MapPost("/inbound/receive-sis", ReceiveInboundLot);
+
+        g.MapPost("/inbound/test/simple-reset", (HttpContext ctx) =>
+        {
+            if (ctx.GetSession() is not { } session) return Results.Unauthorized();
+            if (!string.Equals(session.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase))
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
+            try
+            {
+                using var connection = factory.OpenConnection();
+                using var command = new SqlCommand("dbo.WH_PDA_INBOUND_SIMPLE_TEST_RESET", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                command.ExecuteNonQuery();
+                return Results.Ok(new { Success = true });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+        });
 
         g.MapPost("/inbound/move-location", (HttpContext ctx, InboundReceiveReq body) =>
         {
@@ -947,6 +971,30 @@ public static class WhEndpoints
                 r.GetDecimal(r.GetOrdinal("Delta")),
                 r.GetDecimal(r.GetOrdinal("QtyAfter")),
                 r["ReasonCode"] as string));
+        });
+
+        g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
+        {
+            if (ctx.GetSession() is not { } session) return Results.Unauthorized();
+            if (!string.Equals(session.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase))
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
+            if (screen is not ("release" or "inventory" or "adjust" or "history"))
+                return Results.BadRequest(new { Message = "Unknown PPT test screen." });
+            try
+            {
+                using var connection = factory.OpenConnection();
+                using var command = new SqlCommand("dbo.WH_PDA_PPT_TEST_RESET", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                command.Parameters.Add("@Screen", SqlDbType.VarChar, 10).Value = screen;
+                command.ExecuteNonQuery();
+                return Results.Ok(new { Success = true });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
         });
 
         g.MapGet("/warehouse-transactions", (

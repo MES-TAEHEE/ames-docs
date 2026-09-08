@@ -221,4 +221,52 @@ Check(apiSource.Contains("simulateFailure == true")
       && apiSource.Contains("/inventory/test/toggle-qty"),
     "Inventory failure and quantity controls must be TEST-only API operations.");
 
-Console.WriteLine("PASS: Warehouse Inbound, Release and Inventory scenario guards, FIFO, rollback and test controls.");
+Check(inventorySource.Contains("ADJUST TEST SCENARIOS") && inventorySource.Contains("WH005-TC-020"),
+    "TEST login must expose all executable WH005 scenarios.");
+Check(inventorySource.Contains("_simulateAdjustApiFailure")
+      && inventorySource.Contains("OPEN TRANSACTIONS")
+      && inventorySource.Contains("WhResetAdjustTestAsync")
+      && inventorySource.Contains("PREPARE_SAVE"),
+    "Adjust scenarios must expose repeatable stock, transaction navigation and API failure controls.");
+
+var adjustScenarios = (Array)inventoryType.GetField("AdjustTestScenarios", StaticFlags)!.GetValue(null)!;
+Check(adjustScenarios.Length == 20, "WH005 must expose exactly 20 executable scenarios.");
+var expectedAdjustFirstValues = new string?[]
+{
+    "5011LL260904500001", "5011LL269999999999", "5011LL260901000099",
+    "5011LL260904500001", "5011LL260904500001", "5011LL260904500001",
+    "5011LL260904500001", "5011LL260904500001", "5011LL260904500001",
+    "5011LL260904500001", "5011LL260904500001", "5011LL260904500001",
+    "5011LL260904500001", "5011LL260904500001", "5011LL260904500001",
+    "5011LL260904500001", "5011LL260904500001", null, null, "5011LL260904500001"
+};
+for (var index = 0; index < adjustScenarios.Length; index++)
+{
+    var scenario = adjustScenarios.GetValue(index)!;
+    var scenarioType = scenario.GetType();
+    var no = (int)scenarioType.GetProperty("No")!.GetValue(scenario)!;
+    var testCaseId = (string)scenarioType.GetProperty("TestCaseId")!.GetValue(scenario)!;
+    var autoRun = (bool)scenarioType.GetProperty("AutoRun")!.GetValue(scenario)!;
+    var resetStock = (bool)scenarioType.GetProperty("ResetStock")!.GetValue(scenario)!;
+    var values = (Array)scenarioType.GetProperty("Values")!.GetValue(scenario)!;
+    var firstValue = values.Length == 0
+        ? null
+        : (string)values.GetValue(0)!.GetType().GetProperty("Value")!.GetValue(values.GetValue(0)!)!;
+    Check(no == index + 1, $"Adjust scenario number is not continuous at index {index}.");
+    Check(testCaseId == $"WH005-TC-{index + 1:000}", $"Adjust scenario ID does not match scenario {index + 1}.");
+    Check(firstValue == expectedAdjustFirstValues[index], $"Adjust scenario {index + 1} has the wrong primary test value.");
+    Check(autoRun == (index is not 17 and not 18), $"Adjust scenario {index + 1} has the wrong auto-run setting.");
+    Check(resetStock == (index is not 1 and not 2 and not 17 and not 18),
+        $"Adjust scenario {index + 1} has the wrong reset-stock setting.");
+}
+
+Check(apiSource.Contains("/adjust/test/reset")
+      && apiSource.Contains("body.SimulateFailure")
+      && apiSource.Contains("s.EmployeeNo, \"TEST\""),
+    "Adjust reset and failure simulation must be TEST-only API operations.");
+Check(schema.Contains("Simulated Adjust API failure. Database transaction was rolled back."),
+    "Adjust API failure must be raised inside the stock transaction.");
+foreach (var value in new[] { "5011LL260904500001", "pda-adjust-test" })
+    Check(seed.Contains(value), "Missing adjust scenario seed: " + value);
+
+Console.WriteLine("PASS: Warehouse Inbound, Release, Inventory and Adjust scenario guards, FIFO, rollback and test controls.");

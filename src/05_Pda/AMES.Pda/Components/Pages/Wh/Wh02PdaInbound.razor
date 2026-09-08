@@ -200,14 +200,14 @@
     @if (IsTestMode && _testPanelOpen)
     {
         <div class="wh02-test-backdrop" @onclick="CloseTestPanel">
-            <section class="wh02-test-panel" @onclick:stopPropagation="true">
+            <section class="wh02-test-panel @(IsSimpleTestMode ? "wh02-simple-panel" : "")" @onclick:stopPropagation="true">
                 <div class="wh02-test-head">
-                    <div><span>TEST MODE</span><strong>INBOUND TEST SCENARIOS</strong></div>
-                    <b>@CurrentTestScenario.No.ToString("00") / @InboundTestScenarios.Length</b>
+                    <div><span>@(IsSimpleTestMode ? "PPT CHECK" : "TEST MODE")</span><strong>@(IsSimpleTestMode ? "INBOUND 간편 검수" : "INBOUND TEST SCENARIOS")</strong></div>
+                    <b>@CurrentTestScenario.No.ToString("00") / @ActiveTestScenarios.Length</b>
                     <button class="wh02-test-close" @onclick="CloseTestPanel" aria-label="Close scenarios">×</button>
                 </div>
                 <div class="wh02-test-tabs">
-                    @foreach (var scenario in InboundTestScenarios)
+                    @foreach (var scenario in ActiveTestScenarios)
                     {
                         var index = scenario.No - 1;
                         <button class="@(index == _testScenarioIndex ? "on" : "")"
@@ -219,10 +219,18 @@
                         <span>@CurrentTestScenario.TestCaseId</span>
                         <strong>@CurrentTestScenario.Title</strong>
                     </div>
-                    @if (CurrentTestScenario.Values.Length > 0)
+                    @if (IsSimpleTestMode)
+                    {
+                        <p class="wh02-simple-guide">@CurrentTestScenario.Steps</p>
+                        <div class="wh02-test-tabs wh02-simple-modes">
+                            <button class="@(_simpleMode == "LOCAL" ? "on" : "")" @onclick='@(() => SelectSimpleMode("LOCAL"))'>LOCAL</button>
+                            <button class="@(_simpleMode == "CKD" ? "on" : "")" @onclick='@(() => SelectSimpleMode("CKD"))'>CKD</button>
+                        </div>
+                    }
+                    @if (CurrentTestValues.Length > 0)
                     {
                         <div class="wh02-test-values">
-                            @foreach (var value in CurrentTestScenario.Values)
+                            @foreach (var value in CurrentTestValues)
                             {
                                 <button @onclick="@(() => LoadTestValue(value))">
                                     <span>@value.Label</span><b>@value.Value</b>
@@ -230,21 +238,27 @@
                             }
                         </div>
                     }
-                    @if (CurrentTestScenario.No == 16)
+                    @if (!IsSimpleTestMode && CurrentTestScenario.No == 16)
                     {
                         <div class="wh02-test-actions">
                             <button @onclick='@(() => OpenScenarioPage("/wh/03"))'>OPEN INVENTORY</button>
                             <button @onclick='@(() => OpenScenarioPage("/wh/08"))'>OPEN TRANSACTIONS</button>
                         </div>
                     }
-                    else if (CurrentTestScenario.No == 18)
+                    else if (CurrentTestScenario.No == (IsSimpleTestMode ? 5 : 18))
                     {
                         <button class="@($"wh02-test-error {(_simulateReceiveApiFailure ? "on" : "")}")"
                                 @onclick="ToggleReceiveApiFailure">
                             API ERROR: @(_simulateReceiveApiFailure ? "ON" : "OFF")
                         </button>
                     }
-                    <button class="wh02-test-start" @onclick="StartTestScenario">START SCENARIO</button>
+                    <button class="wh02-test-start" disabled="@_simpleBusy" @onclick="StartTestScenario">@(IsSimpleTestMode ? "이 단계 시작" : "START SCENARIO")</button>
+                    @if (IsSimpleTestMode)
+                    {
+                        <div class="wh02-test-actions">
+                            <button disabled="@_simpleBusy" @onclick="ResetSimpleTestData">테스트 데이터 초기화</button>
+                        </div>
+                    }
                 </div>
             </section>
         </div>
@@ -385,8 +399,12 @@
     private bool _testPanelOpen;
     private bool _simulateReceiveApiFailure;
 
-    private bool IsTestMode => string.Equals(Auth.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
-    private InboundTestScenario CurrentTestScenario => InboundTestScenarios[_testScenarioIndex];
+    private bool IsSimpleTestMode => string.Equals(Auth?.Session?.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase);
+    private bool IsTestMode => IsSimpleTestMode || string.Equals(Auth.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+    private InboundTestScenario[] ActiveTestScenarios => IsSimpleTestMode ? SimpleTestScenarios : InboundTestScenarios;
+    private InboundTestScenario CurrentTestScenario => ActiveTestScenarios[_testScenarioIndex];
+    private InboundTestValue[] CurrentTestValues => IsSimpleTestMode ? SimpleTestValues() : CurrentTestScenario.Values;
+    private bool SimulateReceiveFailure => IsTestMode && CurrentTestScenario.No == (IsSimpleTestMode ? 5 : 18) && _simulateReceiveApiFailure;
 
     private void OpenTestPanel() => _testPanelOpen = true;
     private void CloseTestPanel() => _testPanelOpen = false;
@@ -399,17 +417,23 @@
 
     private void SelectTestScenario(int index)
     {
-        if (index < 0 || index >= InboundTestScenarios.Length)
+        if (index < 0 || index >= ActiveTestScenarios.Length)
             return;
 
         _testScenarioIndex = index;
-        if (CurrentTestScenario.No != 18)
+        if (CurrentTestScenario.No != (IsSimpleTestMode ? 5 : 18))
             _simulateReceiveApiFailure = false;
-        PrepareTestScenario(CurrentTestScenario);
+        if (!IsSimpleTestMode)
+            PrepareTestScenario(CurrentTestScenario);
     }
 
     private async Task StartTestScenario()
     {
+        if (IsSimpleTestMode)
+        {
+            await StartSimpleTestScenario();
+            return;
+        }
         var scenario = CurrentTestScenario;
         CloseTestPanel();
         PrepareTestScenario(scenario);
@@ -432,6 +456,11 @@
 
     private async Task LoadTestValue(InboundTestValue value)
     {
+        if (IsSimpleTestMode)
+        {
+            await LoadSimpleTestValue(value);
+            return;
+        }
         CloseTestPanel();
         if (CurrentTestScenario.Mode is null)
             _mode = "";
@@ -592,6 +621,8 @@
 
     private void SetMode(string mode)
     {
+        if (IsSimpleTestMode)
+            _simpleMode = mode;
         if (string.Equals(_mode, mode, StringComparison.OrdinalIgnoreCase)) return;
 
         SaveModeState(_mode);
@@ -960,7 +991,7 @@
                 foreach (var boxBarcode in boxes)
                 {
                     var batchResult = await Api.WhReceiveInboundAsync(
-                        new PdaApi.InboundReceiveReq(_mode, boxBarcode, _selectedLocation.LocationId));
+                        new PdaApi.InboundReceiveReq(_mode, boxBarcode, _selectedLocation.LocationId, SimulateReceiveFailure));
                     if (!batchResult.Success)
                     {
                         await RefreshDocumentAsync();
@@ -987,7 +1018,7 @@
                 _mode,
                 scan.Barcode,
                 _selectedLocation.LocationId,
-                IsTestMode && CurrentTestScenario.No == 18 && _simulateReceiveApiFailure));
+                SimulateReceiveFailure));
             if (!result.Success)
             {
                 _msg = result.Message;

@@ -574,6 +574,109 @@ GO
 -- =====================================================================
 --  Inbound / Receive LOT
 -- =====================================================================
+CREATE OR ALTER PROCEDURE dbo.WH_PDA_PPT_TEST_RESET
+    @Screen varchar(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    IF @Screen NOT IN ('release', 'inventory', 'adjust', 'history')
+        THROW 51522, 'Unknown PPT test screen.', 1;
+    BEGIN TRANSACTION;
+    DECLARE @Lots TABLE (LotID int, LotCode varchar(40), ItemNo varchar(20), Qty decimal(14,3), LocationID varchar(20), ProducedAt datetime2);
+    INSERT INTO @Lots
+    SELECT LotID, LotCode, ItemNo, BatchSize,
+           CASE WHEN LotCode IN ('5011LL260908810002', '5011LL260908810003', '5011LL260908840001')
+                THEN 'B0-10-B1' ELSE 'B0-10-A1' END, ProducedAt
+    FROM dbo.tbl_Lot WITH (UPDLOCK, HOLDLOCK)
+    WHERE CreatedBy = CONCAT('pda-ppt-', @Screen)
+      AND LotCode IN ('5011LL260908810001', '5011LL260908810002', '5011LL260908810003', '5011LL260908810004',
+          '5011LL260908820001', '5011LL260908820002', '5011LL260908820003', '5011LL260908830001', '5011LL260908840001');
+    IF (SELECT COUNT(*) FROM @Lots) <> CASE @Screen WHEN 'release' THEN 4 WHEN 'inventory' THEN 3 ELSE 1 END
+        THROW 51523, 'PPT test data is missing. Apply PDA_SEED.sql first.', 1;
+
+    DELETE FROM dbo.WH_InventoryTransaction WHERE LotID IN (SELECT LotID FROM @Lots);
+    DELETE FROM dbo.WH_ReleasePicking WHERE LotID IN (SELECT LotID FROM @Lots);
+    DELETE FROM dbo.WH_InventoryAdjust WHERE LotID IN (SELECT LotID FROM @Lots);
+    DELETE FROM dbo.WH_Inventory WHERE LotID IN (SELECT LotID FROM @Lots);
+    INSERT INTO dbo.WH_Inventory
+        (ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt, Status, CreatedBy)
+    SELECT ItemNo, LocationID, LotID, Qty, 0, ProducedAt, 'Received', CONCAT('pda-ppt-', @Screen) FROM @Lots;
+    UPDATE Lot
+    SET RemainingQty = Sample.Qty, CurrentLocationID = Sample.LocationID, Status = 'Received',
+        InventoryStatus = 'RECEIVED', ModifiedBy = 'TEST1', ModifiedTS = SYSDATETIME()
+    FROM dbo.tbl_Lot Lot JOIN @Lots Sample ON Sample.LotID = Lot.LotID;
+
+    IF @Screen = 'release'
+    BEGIN
+        IF (SELECT COUNT(*) FROM dbo.WH_ReleaseSchedule WHERE PickSlipNo = 'PS-PPT-WH-01' AND CreatedBy = 'pda-ppt-release') <> 2
+            THROW 51524, 'PPT Pick Slip is missing. Apply PDA_SEED.sql first.', 1;
+        UPDATE dbo.WH_ReleaseSchedule
+        SET PickedQty = 0, Status = 'Open', CloseDate = NULL, CloseUserId = NULL,
+            RequiredAt = SYSDATETIME(), ModifiedBy = 'TEST1', ModifiedTS = SYSDATETIME()
+        WHERE PickSlipNo = 'PS-PPT-WH-01' AND CreatedBy = 'pda-ppt-release';
+    END;
+    IF @Screen = 'history'
+    BEGIN
+        DECLARE @Today datetime2 = CONVERT(date, SYSDATETIME());
+        INSERT INTO dbo.WH_InventoryTransaction
+            (TransactionTime, TransactionType, ItemNo, LocationID, LotID, QtyBefore, QtyChange, QtyAfter,
+             ReasonCode, OperatorID, ApproverID, Note, CreatedBy, CreatedTS)
+        SELECT DATEADD(second, Sample.OffsetSeconds, @Today), Sample.Kind, Lot.ItemNo, Lot.LocationID, Lot.LotID,
+               Sample.BeforeQty, Sample.DeltaQty, Sample.AfterQty, Sample.Reason, 'TEST1',
+               CASE WHEN Sample.Kind = 'ADJ' THEN 'TEST1' END, Sample.Note, 'pda-ppt-history', DATEADD(second, Sample.OffsetSeconds, @Today)
+        FROM @Lots Lot CROSS JOIN (VALUES
+            (1, 'IN', 0, 20, 20, 'INBOUND_RECEIVE', N'PPT inbound 20 EA'),
+            (2, 'OUT', 20, -4, 16, 'PRODUCTION', N'PPT outgoing 4 EA'),
+            (3, 'ADJ', 16, 2, 18, 'COUNT_DIFF', N'PPT count correction +2 EA')
+        ) Sample(OffsetSeconds, Kind, BeforeQty, DeltaQty, AfterQty, Reason, Note);
+    END;
+    COMMIT TRANSACTION;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.WH_PDA_INBOUND_SIMPLE_TEST_RESET
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    BEGIN TRANSACTION;
+    DECLARE @Lots TABLE (LotID int, Barcode varchar(40), PoID int);
+    INSERT INTO @Lots
+    SELECT Package.LotID, Package.BoxBarcode, Package.PoID
+    FROM dbo.WH_InboundPackage Package WITH (UPDLOCK, HOLDLOCK)
+    JOIN dbo.tbl_Lot Lot ON Lot.LotID = Package.LotID
+    JOIN dbo.WH_PurchaseOrder Purchase ON Purchase.PoID = Package.PoID
+    WHERE Package.CreatedBy = 'pda-simple-inbound'
+      AND Lot.CreatedBy = 'pda-simple-inbound'
+      AND Purchase.CreatedBy = 'pda-simple-inbound'
+      AND Purchase.PoNumber = 'PPT-INBOUND'
+      AND Package.BoxBarcode IN
+        ('5011LL260908800001', '5011LL260908800002', '5011LL260908800003',
+         'CKD260908800000001', 'CKD260908800000002', 'CKD260908800000003');
+
+    IF (SELECT COUNT(*) FROM @Lots) <> 6
+        THROW 51521, 'PPT Inbound test data is missing. Apply PDA_SEED.sql first.', 1;
+
+    DELETE FROM dbo.WH_InventoryTransaction WHERE LotID IN (SELECT LotID FROM @Lots);
+    DELETE FROM dbo.WH_InventoryAdjust WHERE LotID IN (SELECT LotID FROM @Lots);
+    DELETE FROM dbo.WH_Inventory WHERE LotID IN (SELECT LotID FROM @Lots);
+    DELETE FROM dbo.WH_Receiving WHERE LotCode IN (SELECT Barcode FROM @Lots);
+    UPDATE dbo.tbl_Lot
+    SET Status = 'Open', CurrentLocationID = NULL, RemainingQty = BatchSize,
+        InventoryStatus = NULL, ModifiedBy = 'TEST1', ModifiedTS = SYSDATETIME()
+    WHERE LotID IN (SELECT LotID FROM @Lots);
+    UPDATE dbo.WH_InboundPackage
+    SET Status = N'Open', ReceivedAt = NULL, ReceivedBy = NULL,
+        ModifiedBy = 'TEST1', ModifiedTS = SYSDATETIME()
+    WHERE LotID IN (SELECT LotID FROM @Lots);
+    UPDATE dbo.WH_PurchaseOrder
+    SET ReceivedQty = 0, Status = 'Open', ModifiedBy = 'TEST1', ModifiedTS = SYSDATETIME()
+    WHERE PoID IN (SELECT PoID FROM @Lots);
+    COMMIT TRANSACTION;
+END;
+GO
+
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_INBOUND_RECEIVE_LOT
     @ReceiveMode nvarchar(10),
     @LotBarcode nvarchar(50),
