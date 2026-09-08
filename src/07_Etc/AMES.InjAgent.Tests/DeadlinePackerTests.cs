@@ -69,13 +69,24 @@ public class DeadlinePackerTests
     }
 
     [Fact]
-    public void Next_step_starts_after_previous_step_last_slot()
+    public void Next_step_starts_on_previous_step_first_day_not_after_it_ends()
     {
-        var r = Pack(new[] { Step(1, "A", 300), Step(2, "B", 300) }, deadline: Wed, due: Fri);
+        // 1단계가 3일 걸려도 2단계는 1단계 첫 슬롯과 같은 날·같은 시각부터 (다른 라인, 수량 흐름 무관)
+        var r = Pack(new[] { Step(1, "A", 1500), Step(2, "B", 300) }, deadline: Fri, due: Fri);
 
         var second = r.Placements.Where(p => p.StepSeq == 2).OrderBy(p => p.Date).ThenBy(p => p.StartMin).ToList();
-        Assert.Equal((Mon, 840, 1080, 240m), (second[0].Date, second[0].StartMin, second[0].EndMin, second[0].Qty));
-        Assert.Equal((Tue, 480, 540, 60m),  (second[1].Date, second[1].StartMin, second[1].EndMin, second[1].Qty));
+        Assert.Equal((Mon, 480, 720, 240m), (second[0].Date, second[0].StartMin, second[0].EndMin, second[0].Qty));
+        Assert.Equal((Mon, 780, 840, 60m),  (second[1].Date, second[1].StartMin, second[1].EndMin, second[1].Qty));
+    }
+
+    [Fact]
+    public void Same_line_next_step_waits_for_previous_step_slots()
+    {
+        // 같은 라인이면 Occupy 가 자리를 막아 앞 단계 슬롯 뒤에 붙는다
+        var r = Pack(new[] { Step(1, "A", 300), Step(2, "A", 100) }, deadline: Wed, due: Fri);
+
+        var second = Assert.Single(r.Placements, p => p.StepSeq == 2);
+        Assert.Equal((Mon, 840, 940), (second.Date, second.StartMin, second.EndMin));
     }
 
     [Fact]

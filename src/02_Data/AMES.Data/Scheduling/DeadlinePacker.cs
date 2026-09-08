@@ -6,7 +6,7 @@ namespace AMES.Data.Scheduling;
 /// <summary>
 /// PP-003 자동 배치. 단계를 StepSeq 순으로 돌며 오늘부터 앞으로 하루씩 채우되 마감일에서 멈추고,
 /// 잔량이 남으면 납기일까지 이어 붙인다(Late). 납기일까지도 못 넣은 수량은 Shortfall.
-/// 단계 간에는 날짜 순서만 보장한다 — 뒤 단계 첫 슬롯은 앞 단계 마지막 슬롯 이후.
+/// 단계 간에는 시작 순서만 보장한다 — 뒤 단계 첫 슬롯은 앞 단계 첫 슬롯 이후(같은 날 시작 가능, 수량 흐름은 보지 않는다).
 /// 능력은 IDayState 로 받고 배치할 때마다 Occupy 로 누적해, 같은 배치의 다음 WO 가 그 자리를 다시 쓰지 않게 한다.
 /// </summary>
 public static class DeadlinePacker
@@ -60,7 +60,7 @@ public static class DeadlinePacker
         // 납기가 이미 지난 수주는 상한이 오늘 앞이라 한 슬롯도 못 놓는다 — "최대한 빨리" 로 보고 60일 안에 전량 Late 로 넣는다
         if (horizon < today) horizon = today.AddDays(60);
 
-        (DateTime Date, int End)? prevEnd = null;   // 앞 단계 마지막 슬롯
+        (DateTime Date, int Start)? prevStart = null;   // 앞 단계 첫 슬롯 — 뒤 공정은 앞 공정이 첫 개를 만들기 시작한 뒤부터
         decimal? prevPlaced = null;
 
         foreach (var step in steps.OrderBy(s => s.StepSeq))
@@ -68,8 +68,8 @@ public static class DeadlinePacker
             decimal target    = Math.Floor(prevPlaced is decimal pp ? Math.Min(step.Qty, pp) : step.Qty);
             decimal remaining = target;
             decimal placed    = 0;
-            (DateTime Date, int End)? lastEnd = null;
-            var date = prevEnd is { } pe && pe.Date > today ? pe.Date : today;
+            (DateTime Date, int Start)? firstStart = null;
+            var date = prevStart is { } ps && ps.Date > today ? ps.Date : today;
 
             while (remaining > 0 && date <= horizon)
             {
@@ -77,7 +77,7 @@ public static class DeadlinePacker
 
                 var cap = days.Get(step.LineId, date);
                 int? notBefore = cap.LastWoEnd;
-                if (prevEnd is { } p && p.Date == date) notBefore = Later(cap.DayStart, notBefore, p.End);
+                if (prevStart is { } p && p.Date == date) notBefore = Later(cap.DayStart, notBefore, p.Start);
                 // now 는 캘린더 날짜의 절대 분이고 ScheduleDate 의 창은 DayStart 부터 시작하므로, DayStart 이전이면
                 // 그 창의 어느 부분도 아직 지나지 않아 바닥이 필요 없다 — DayStart 이후라야 지난 구간이 [DayStart, now) 로 Later/Axis 와 맞는다
                 if (date == today && nowMinOfToday >= cap.DayStart) notBefore = Later(cap.DayStart, notBefore, nowMinOfToday);
@@ -87,7 +87,7 @@ public static class DeadlinePacker
                 {
                     placements.Add(new Placement(step.StepSeq, step.LineId, date, slot.StartMin, slot.EndMin, qty, late));
                     days.Occupy(step.LineId, date, slot);
-                    lastEnd    = (date, slot.EndMin);
+                    firstStart ??= (date, slot.StartMin);
                     placed    += qty;
                     remaining -= qty;
                 }
@@ -119,7 +119,7 @@ public static class DeadlinePacker
             decimal missing = Math.Floor(step.Qty) - placed;
             if (missing > 0) shortfalls.Add(new StepShortfall(step.StepSeq, step.LineId, missing));
 
-            if (lastEnd is { } le) prevEnd = le;
+            if (firstStart is { } fs) prevStart = fs;
             prevPlaced = placed;
         }
         return new Result(placements, shortfalls);

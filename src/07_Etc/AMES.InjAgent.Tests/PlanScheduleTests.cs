@@ -155,9 +155,13 @@ public class PlanScheduleTests
             Assert.Equal(LineInj, Scalar(f, "SELECT LineID FROM dbo.PP_WorkOrderRouting WHERE WoID = @W AND StepSeq = 1;", ("@W", woId)));
             Assert.Equal(LineImg, Scalar(f, "SELECT LineID FROM dbo.PP_WorkOrderRouting WHERE WoID = @W AND StepSeq = 2;", ("@W", woId)));
 
-            // INJ 50 EA × 0.1분 = 5분, IMG 50 EA × 0.2분 = 10분 — 같은 날 INJ 뒤에
+            // INJ 50 EA × 0.1분 = 5분, IMG 50 EA × 0.2분 = 10분 — 같은 날, INJ 첫 슬롯과 같은 시각부터
             var slots = Slots(f, woId);
-            Assert.Equal(new[] { (LineInj, D0, 480, 485, 50m, (string?)"DRAFT", (string?)Pattern), (LineImg, D0, 485, 495, 50m, (string?)"DRAFT", (string?)Pattern) }, slots);
+            var inj = Assert.Single(slots, s => s.Line == LineInj);
+            var img = Assert.Single(slots, s => s.Line == LineImg);
+            Assert.Equal((D0, 480, 485, 50m), (inj.Date, inj.Start, inj.End, inj.Qty));
+            Assert.Equal((D0, 480, 490, 50m), (img.Date, img.Start, img.End, img.Qty));   // IMG 는 INJ 첫 슬롯과 같은 시각부터 (수량 흐름 무관)
+            Assert.All(slots, s => { Assert.Equal("DRAFT", s.Status); Assert.Equal(Pattern, s.Pattern); });
             Assert.Empty(o.Shortfalls);
             Assert.Equal(0m, o.LateQty);
         }
@@ -183,7 +187,7 @@ public class PlanScheduleTests
             Assert.Equal(5400m, inj.Where(s => s.Date == D0).Sum(s => s.Qty));
             Assert.Equal(600m,  inj.Where(s => s.Date == D1).Sum(s => s.Qty));
             Assert.Equal(6000m, img.Sum(s => s.Qty));
-            Assert.Equal((D1, 540), (img[0].Date, img[0].Start));    // INJ 의 D1 슬롯(480~540) 뒤
+            Assert.Equal((D0, 480), (img[0].Date, img[0].Start));    // INJ 첫 슬롯과 같은 날·같은 시각부터
             Assert.Empty(o.Shortfalls);
             Assert.Equal(0m, o.LateQty);
         }
@@ -204,8 +208,8 @@ public class PlanScheduleTests
 
             Assert.Equal(2, res.Created);
             Assert.Equal(earlier, res.Orders[0].SoId);
-            var a = Slots(f, WoIdOf(f, res.Orders[0].WoNumber))[0];
-            var b = Slots(f, WoIdOf(f, res.Orders[1].WoNumber))[0];
+            var a = Slots(f, WoIdOf(f, res.Orders[0].WoNumber)).First(s => s.Line == LineInj);
+            var b = Slots(f, WoIdOf(f, res.Orders[1].WoNumber)).First(s => s.Line == LineInj);
             Assert.Equal((480, 485), (a.Start, a.End));
             Assert.Equal((485, 490), (b.Start, b.End));
         }
