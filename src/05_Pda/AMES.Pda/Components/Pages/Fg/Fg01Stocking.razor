@@ -11,7 +11,7 @@
         <span class="pda-tbar-brand">PUT-AWAY</span>
         @if (IsPptTestMode)
         {
-            <PptScenarioPanel Title="PUT-AWAY" Steps="PptSteps" Busy="@IsBusy" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+            <PptScenarioPanel Title="PUT-AWAY" Steps="ActiveScenarioSteps" ModeLabel="@ScenarioModeLabel" Busy="@IsBusy" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
         }
     </div>
 

@@ -3,7 +3,10 @@ namespace AMES.Pda.Components.Pages.Fg;
 public partial class Fg01Stocking
 {
     private const string PptLot = "5011FG260908910001";
-    private bool IsPptTestMode => string.Equals(Auth?.Session?.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase);
+    private bool IsDetailedTestMode => string.Equals(Auth?.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+    private bool IsPptTestMode => IsDetailedTestMode || string.Equals(Auth?.Session?.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase);
+    private PptScenarioPanel.Step[] ActiveScenarioSteps => IsDetailedTestMode ? FgDetailedScenarioCatalog.PutAway(PptSteps) : PptSteps;
+    private string ScenarioModeLabel => IsDetailedTestMode ? "TEST MODE" : "PPT CHECK";
     private bool _pptOpen, _pptReady;
     private static readonly PptScenarioPanel.Step[] PptSteps =
     [
