@@ -2,7 +2,10 @@ namespace AMES.Pda.Components.Pages.Fg;
 
 public partial class Fg02Inventory
 {
-    private bool IsPptTestMode => string.Equals(Auth?.Session?.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase);
+    private bool IsDetailedTestMode => string.Equals(Auth?.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+    private bool IsPptTestMode => IsDetailedTestMode || string.Equals(Auth?.Session?.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase);
+    private PptScenarioPanel.Step[] ActiveScenarioSteps => IsDetailedTestMode ? FgDetailedScenarioCatalog.Inventory(PptSteps) : PptSteps;
+    private string ScenarioModeLabel => IsDetailedTestMode ? "TEST MODE" : "PPT CHECK";
     private bool _pptOpen, _pptReady;
     private static readonly PptScenarioPanel.Step[] PptSteps =
     [
