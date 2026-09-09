@@ -1,6 +1,8 @@
 using AMES.Api.Auth;
 using AMES.Api.Logging;
+using AMES.Contracts.Dto;
 using AMES.Data.Connection;
+using AMES.Data.Repositories;
 using AMES.Data.Security;
 using System.Data;
 using Microsoft.Data.SqlClient;
@@ -121,6 +123,7 @@ public static class WhEndpoints
     // ── Routes ───────────────────────────────────────────────────────────
     public static void MapWh(this WebApplication app, AmesConnectionFactory factory)
     {
+        var master = new MasterDataRepository(factory);
         var g = app.MapGroup("/api/wh").WithTags("Warehouse");
         g.MapAdjustmentLocation(factory, finishedGoods: false);
 
@@ -241,8 +244,8 @@ public static class WhEndpoints
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
             var simulateFailure = body.SimulateFailure
-                && (string.Equals(s.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase)
-                    || (string.Equals(s.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase)
+                && (PdaScenarioUsers.IsDetailed(s.EmployeeNo)
+                    || (PdaScenarioUsers.IsSimple(s.EmployeeNo)
                         && body.Barcode is "5011LL260908800001" or "5011LL260908800002" or "5011LL260908800003"
                             or "CKD260908800000001" or "CKD260908800000002" or "CKD260908800000003"));
             var result = ExecuteInboundReceive(
@@ -261,7 +264,7 @@ public static class WhEndpoints
         g.MapPost("/inbound/test/simple-reset", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
-            if (!string.Equals(session.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase))
+            if (!PdaScenarioUsers.IsSimple(session.EmployeeNo))
                 return Results.StatusCode(StatusCodes.Status403Forbidden);
             try
             {
@@ -396,9 +399,10 @@ public static class WhEndpoints
         IResult SaveAdjustQuantity(HttpContext ctx, AdjustSaveReq body)
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+            if (master.FindActiveCodeItem("INV_ADJUST_REASON", body.ReasonCode?.Trim() ?? "") is null)
+                return Results.BadRequest(new InboundReceiveResult(false, "Select a valid reason code.", null));
 
-            var simulateFailure = body.SimulateFailure
-                && string.Equals(s.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+            var simulateFailure = body.SimulateFailure && PdaScenarioUsers.IsDetailed(s.EmployeeNo);
             var result = ExecuteAdjustSave(factory, body, s.EmployeeNo, s.OperatorId, simulateFailure);
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                 s, "ADJUST_SAVE", "WH005", "LOT", body.Barcode, result.Success ? "SUCCESS" : "FAIL", result.Message,
@@ -415,7 +419,7 @@ public static class WhEndpoints
         g.MapPost("/adjust/test/reset", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
-            if (!string.Equals(s.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase))
+            if (!PdaScenarioUsers.IsDetailed(s.EmployeeNo))
                 return Results.Forbid();
 
             const string lotNo = "5011LL260904500001";
@@ -486,7 +490,7 @@ public static class WhEndpoints
         g.MapGet("/inventory", (HttpContext ctx, string? q, bool? simulateFailure) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
-            if (simulateFailure == true && string.Equals(s.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase))
+            if (simulateFailure == true && PdaScenarioUsers.IsDetailed(s.EmployeeNo))
                 return Results.Problem("Simulated Inventory API failure.", statusCode: StatusCodes.Status503ServiceUnavailable);
 
             var sql = """
@@ -508,7 +512,7 @@ public static class WhEndpoints
         g.MapPost("/inventory/test/toggle-qty", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
-            if (!string.Equals(s.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase))
+            if (!PdaScenarioUsers.IsDetailed(s.EmployeeNo))
                 return Results.Forbid();
 
             const string lotNo = "5011LL260804000001";
@@ -882,18 +886,12 @@ public static class WhEndpoints
             if (body.Lots is not { Count: > 0 })
                 return Results.BadRequest(new ReleaseCompleteResult(false, "Scan every requested LOT before Release."));
 
-            var reasonCode = body.OutgoingType?.Trim().ToUpperInvariant() switch
-            {
-                "PRODUCTION" => "TO_PRODUCTION_LINE",
-                "OTHER" => "OTHER_OUTGOING",
-                "DEFECT" => "DEFECT_OUTGOING",
-                _ => null
-            };
-            if (reasonCode is null)
+            var outgoingType = master.FindActiveCodeItem("WH_OUTGOING_TYPE", body.OutgoingType?.Trim() ?? "");
+            var reasonCode = outgoingType?.Attribute1;
+            if (string.IsNullOrWhiteSpace(reasonCode))
                 return Results.BadRequest(new ReleaseCompleteResult(false, "Select an outgoing type."));
 
-            var simulateFailure = body.SimulateFailure
-                && string.Equals(s.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+            var simulateFailure = body.SimulateFailure && PdaScenarioUsers.IsDetailed(s.EmployeeNo);
             var result = ExecuteReleaseBatch(factory, pickSlipNo, body.Lots, reasonCode,
                 s.OperatorId, s.TerminalId, simulateFailure);
             if (!result.Success)
@@ -936,7 +934,10 @@ public static class WhEndpoints
         g.MapPost("/release/outgoing", (HttpContext ctx, DirectOutgoingReq body) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
-            var result = ExecuteDirectOutgoing(factory, body, s.OperatorId);
+            var outgoingType = master.FindActiveCodeItem("WH_OUTGOING_TYPE", body.OutgoingType?.Trim() ?? "");
+            var result = string.IsNullOrWhiteSpace(outgoingType?.Attribute1)
+                ? new DirectOutgoingResult(false, "Select a valid outgoing type.")
+                : ExecuteDirectOutgoing(factory, body, outgoingType.Attribute1, s.OperatorId);
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                 s, "DIRECT_OUTGOING", "WH003", "LOT", body.LotNo,
                 result.Success ? "SUCCESS" : "FAIL", result.Message,
@@ -976,7 +977,7 @@ public static class WhEndpoints
         g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
-            if (!string.Equals(session.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase))
+            if (!PdaScenarioUsers.IsSimple(session.EmployeeNo))
                 return Results.StatusCode(StatusCodes.Status403Forbidden);
             if (screen is not ("release" or "inventory" or "adjust" or "history"))
                 return Results.BadRequest(new { Message = "Unknown PPT test screen." });
@@ -988,6 +989,28 @@ public static class WhEndpoints
                     CommandType = CommandType.StoredProcedure
                 };
                 command.Parameters.Add("@Screen", SqlDbType.VarChar, 10).Value = screen;
+                command.ExecuteNonQuery();
+                return Results.Ok(new { Success = true });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+        });
+
+        g.MapPost("/transactions/test/reset", (HttpContext ctx) =>
+        {
+            if (ctx.GetSession() is not { } session) return Results.Unauthorized();
+            if (!PdaScenarioUsers.IsDetailed(session.EmployeeNo))
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
+            try
+            {
+                using var connection = factory.OpenConnection();
+                using var command = new SqlCommand("dbo.WH_PDA_PPT_TEST_RESET", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                command.Parameters.Add("@Screen", SqlDbType.VarChar, 10).Value = "history";
                 command.ExecuteNonQuery();
                 return Results.Ok(new { Success = true });
             }
@@ -1634,19 +1657,9 @@ public static class WhEndpoints
     }
 
     private static DirectOutgoingResult ExecuteDirectOutgoing(
-        AmesConnectionFactory factory, DirectOutgoingReq body, string userId)
+        AmesConnectionFactory factory, DirectOutgoingReq body, string reasonCode, string userId)
     {
         var type = body.OutgoingType?.Trim().ToUpperInvariant() ?? "";
-        var reasonCode = type switch
-        {
-            "PRODUCTION" => "TO_PRODUCTION_LINE",
-            "SUPPLIER" => "TO_SUPPLIER",
-            "OTHER" => "OTHER_OUTGOING",
-            "DEFECT" => "DEFECT_OUTGOING",
-            _ => null
-        };
-        if (reasonCode is null)
-            return new DirectOutgoingResult(false, "Select a valid outgoing type.");
         if (string.IsNullOrWhiteSpace(body.LotNo))
             return new DirectOutgoingResult(false, "Scan a LOT No first.");
         if (type == "SUPPLIER" && string.IsNullOrWhiteSpace(body.TargetCode))

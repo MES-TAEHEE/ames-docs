@@ -15,9 +15,9 @@
             {
                 @foreach (var r in _rows)
                 {
-                    var cls = r.Status switch
+                    var cls = r.Status?.ToUpperInvariant() switch
                     {
-                        "Shipped" => "ok", "Ready" => "warn", _ => ""
+                        "SHIPPED" => "ok", "READY" => "warn", _ => ""
                     };
                     <div class="pda-row3 @cls">
                         <div class="r3-l">

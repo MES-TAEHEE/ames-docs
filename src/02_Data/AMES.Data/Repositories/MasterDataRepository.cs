@@ -68,6 +68,15 @@ public sealed class MasterDataRepository
         return (int)cmd.ExecuteScalar()! > 0;
     }
 
+    public bool CodeGroupIsActive(string groupCode)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "SELECT COUNT(1) FROM dbo.MD_CodeGroup WHERE GroupCode=@G AND ISNULL(UseFlag,1)=1", conn);
+        cmd.Parameters.AddWithValue("@G", groupCode);
+        return (int)cmd.ExecuteScalar()! > 0;
+    }
+
     public void InsertCodeGroup(string groupCode, string? groupName, string? groupNameEn,
         string? description, bool useFlag, string createdBy)
         => Exec("""
@@ -126,6 +135,10 @@ public sealed class MasterDataRepository
                 r["ModifiedBy"]   as string,
                 r["ModifiedTS"]   is DateTime mt ? mt : null),
             ("@G", groupCode));
+
+    public CodeItemRow? FindActiveCodeItem(string groupCode, string codeValue)
+        => !CodeGroupIsActive(groupCode) ? null : ListCodeItems(groupCode).FirstOrDefault(x =>
+            x.UseFlag && string.Equals(x.CodeValue, codeValue, StringComparison.OrdinalIgnoreCase));
 
     public bool CodeItemExists(string codeId)
     {

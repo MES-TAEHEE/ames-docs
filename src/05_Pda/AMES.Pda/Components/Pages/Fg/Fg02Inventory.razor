@@ -12,7 +12,7 @@
         <div class="wh03-tbar-actions"><RadzenButton class="wh03-refresh" Click="LoadInventory" Disabled="@_isLoading" Text="REFRESH" /></div>
         @if (IsPptTestMode)
         {
-            <PptScenarioPanel Title="INVENTORY" Steps="PptSteps" Busy="@_isLoading" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+            <PptScenarioPanel Title="INVENTORY" Steps="ActiveScenarioSteps" ModeLabel="@ScenarioModeLabel" Busy="@_isLoading" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
         }
     </div>
 

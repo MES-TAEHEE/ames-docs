@@ -12,7 +12,8 @@ using Microsoft.AspNetCore.Components;
 
 static string SourcePath([System.Runtime.CompilerServices.CallerFilePath] string path = "") => path;
 var root = Directory.GetParent(Path.GetDirectoryName(SourcePath())!)!.FullName;
-var bin = Path.Combine(root, "src/05_Pda/AMES.Pda/bin/Debug/net10.0-windows10.0.19041.0/win-x64");
+var bin = Environment.GetEnvironmentVariable("AMES_PDA_TEST_BIN")
+    ?? Path.Combine(root, "src/05_Pda/AMES.Pda/bin/Debug/net10.0-windows10.0.19041.0/win-x64");
 AssemblyLoadContext.Default.Resolving += (_, name) => File.Exists(Path.Combine(bin, name.Name + ".dll"))
     ? AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(bin, name.Name + ".dll")) : null;
 var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(bin, "AMES.Pda.dll"));
@@ -34,8 +35,8 @@ foreach (var screen in new[] { "qc", "putaway", "inventory", "release", "loading
     Check(response.StatusCode == HttpStatusCode.Unauthorized, "Anonymous reset must be denied.");
 }
 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await Login("TEST"));
-using (var forbidden = await client.PostAsync("/api/fg/test/ppt-reset/release", null))
-    Check(forbidden.StatusCode == HttpStatusCode.Forbidden, "TEST must not reset TEST1 data.");
+using (var detailedReset = await client.PostAsync("/api/fg/test/ppt-reset/release", null))
+    Check(detailedReset.IsSuccessStatusCode, "TEST must reset detailed FG scenario data.");
 var token = await Login("TEST1");
 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 using (var invalid = await client.PostAsync("/api/fg/test/ppt-reset/other", null))
@@ -51,6 +52,31 @@ var connectionString = settings.RootElement.GetProperty("ConnectionStrings").Get
 var dataAssembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(bin, "AMES.Data.dll"));
 var factory = Activator.CreateInstance(dataAssembly.GetType("AMES.Data.Connection.AmesConnectionFactory", true)!, [connectionString])!;
 var api = Activator.CreateInstance(assembly.GetType("AMES.Pda.Services.PdaApi", true)!, [client, auth, factory])!;
+
+void CheckDetailedCatalog(string method, string pageType, string sourceField, int expected, string prefix)
+{
+    var catalog = assembly.GetType("AMES.Pda.Components.FgDetailedScenarioCatalog", true)!;
+    var page = assembly.GetType(pageType, true)!;
+    var source = (Array)page.GetField(sourceField, BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+    var scenarios = (Array)catalog.GetMethod(method, BindingFlags.Static | BindingFlags.Public)!.Invoke(null, [source])!;
+    Check(scenarios.Length == expected, $"{prefix} detailed scenario count must be {expected}.");
+    for (var index = 0; index < scenarios.Length; index++)
+    {
+        var scenario = scenarios.GetValue(index)!;
+        var type = scenario.GetType();
+        Check((string)type.GetProperty("TestCaseId")!.GetValue(scenario)! == $"{prefix}-TC-{index + 1:000}", $"{prefix} test case numbering must be sequential.");
+        var sourceStep = (int)type.GetProperty("SourceStep")!.GetValue(scenario)!;
+        Check(sourceStep >= 1 && sourceStep <= source.Length, $"{prefix} source step must be valid.");
+    }
+}
+CheckDetailedCatalog("Qc", "AMES.Pda.Components.Pages.Fg.Fg01QcComplete", "PptSteps", 6, "FG001");
+CheckDetailedCatalog("PutAway", "AMES.Pda.Components.Pages.Fg.Fg01Stocking", "PptSteps", 13, "FG002");
+CheckDetailedCatalog("Inventory", "AMES.Pda.Components.Pages.Fg.Fg02Inventory", "PptSteps", 13, "FG003");
+CheckDetailedCatalog("Picking", "AMES.Pda.Components.Pages.Fg.Fg04FifoPicking", "PptSteps", 15, "FG004");
+CheckDetailedCatalog("Loading", "AMES.Pda.Components.Pages.Fg.Fg05Loading", "PptSteps", 18, "FG005");
+CheckDetailedCatalog("Returns", "AMES.Pda.Components.Pages.Fg.FgRtnReturn", "PptSteps", 11, "FG006");
+CheckDetailedCatalog("Adjust", "AMES.Pda.Components.Pages.Wh.Wh03InventoryStatus", "PptFgAdjustSteps", 18, "FG007");
+CheckDetailedCatalog("Transactions", "AMES.Pda.Components.Pages.Wh.Wh08TransactionHistory", "FgPptSteps", 13, "FG008");
 Driver Page(string name, string route) => new(assembly.GetType("AMES.Pda.Components.Pages." + (name.StartsWith("Wh") ? "Wh." : "Fg.") + name, true)!, auth, api, route);
 async Task ResetAll()
 {
@@ -207,7 +233,7 @@ try
     using (var saved = JsonDocument.Parse(await client.GetStringAsync("/api/fg/adjust/scan?scanText=5011FG260908960001")))
         Check(saved.RootElement.GetProperty("qty").GetDecimal() == 13, "FG adjusted quantity must persist.");
 
-    Console.WriteLine("PASS: all 36 FG PPT steps; TEST1-only scoped reset; QC aging; Put-Away storage/confirm; Inventory details; Release partial/FIFO/complete; Loading sequence/duplicate/confirm; Return reason/note/duplicate; admin Adjust quantity/save.");
+    Console.WriteLine("PASS: 107 FG detailed scenarios; all 36 FG PPT steps; TEST and TEST1 scoped reset; QC aging; Put-Away storage/confirm; Inventory details; Release partial/FIFO/complete; Loading sequence/duplicate/confirm; Return reason/note/duplicate; admin Adjust quantity/save.");
 }
 finally { await ResetAll(); }
 

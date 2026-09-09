@@ -399,8 +399,8 @@
     private bool _testPanelOpen;
     private bool _simulateReceiveApiFailure;
 
-    private bool IsSimpleTestMode => string.Equals(Auth?.Session?.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase);
-    private bool IsTestMode => IsSimpleTestMode || string.Equals(Auth.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+    private bool IsSimpleTestMode => PdaScenarioUsers.IsSimple(Auth?.Session?.EmployeeNo);
+    private bool IsTestMode => IsSimpleTestMode || PdaScenarioUsers.IsDetailed(Auth.Session?.EmployeeNo);
     private InboundTestScenario[] ActiveTestScenarios => IsSimpleTestMode ? SimpleTestScenarios : InboundTestScenarios;
     private InboundTestScenario CurrentTestScenario => ActiveTestScenarios[_testScenarioIndex];
     private InboundTestValue[] CurrentTestValues => IsSimpleTestMode ? SimpleTestValues() : CurrentTestScenario.Values;
