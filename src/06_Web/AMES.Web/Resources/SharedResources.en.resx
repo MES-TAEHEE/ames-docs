@@ -7347,4 +7347,82 @@
   <data name="MNT.PmSchedule.Ok.Deleted" xml:space="preserve">
     <value>PM {0} deleted.</value>
   </data>
+  <data name="MNT.PmSchedule.Ok.CreatedWo" xml:space="preserve">
+    <value>PM {0} created and work order {1} issued.</value>
+  </data>
+  <data name="MNT.Failure.Lbl.FailNo" xml:space="preserve">
+    <value>Failure no.</value>
+  </data>
+  <data name="MNT.Failure.Ph.FailNo" xml:space="preserve">
+    <value>Blank = auto number (FAIL-YYMM-NNN)</value>
+  </data>
+  <data name="MNT.Failure.Lbl.ReportedAt" xml:space="preserve">
+    <value>Reported at</value>
+  </data>
+  <data name="MNT.Failure.Lbl.ResolvedAt" xml:space="preserve">
+    <value>Resolved at</value>
+  </data>
+  <data name="MNT.Failure.Hint.Wo" xml:space="preserve">
+    <value>Saving also issues a corrective (CM) work order; its priority follows severity (CRITICAL→HIGH, MAJOR→MED, MINOR→LOW).</value>
+  </data>
+  <data name="MNT.Failure.Err.EquipRequired" xml:space="preserve">
+    <value>Equipment is required.</value>
+  </data>
+  <data name="MNT.Failure.Err.TypeRequired" xml:space="preserve">
+    <value>Failure type is required.</value>
+  </data>
+  <data name="MNT.Failure.Err.SeverityRequired" xml:space="preserve">
+    <value>Severity is required.</value>
+  </data>
+  <data name="MNT.Failure.Err.SymptomRequired" xml:space="preserve">
+    <value>Symptom is required.</value>
+  </data>
+  <data name="MNT.Failure.Err.ReportedRequired" xml:space="preserve">
+    <value>Reported time is required.</value>
+  </data>
+  <data name="MNT.Failure.Err.ResolvedBefore" xml:space="preserve">
+    <value>Resolved time must be after the reported time.</value>
+  </data>
+  <data name="MNT.Failure.Err.Duplicate" xml:space="preserve">
+    <value>Failure no. {0} already exists.</value>
+  </data>
+  <data name="MNT.Failure.Ok.CreatedWo" xml:space="preserve">
+    <value>Failure {0} created and work order {1} issued.</value>
+  </data>
+  <data name="MNT.Failure.Ok.Updated" xml:space="preserve">
+    <value>Failure {0} updated.</value>
+  </data>
+  <data name="MNT.Failure.Ok.Deleted" xml:space="preserve">
+    <value>Failure {0} deleted.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Modal.Card" xml:space="preserve">
+    <value>Equipment card</value>
+  </data>
+  <data name="MNT.EquipmentCard.Hint.Create" xml:space="preserve">
+    <value>Only equipment in the master (MD_Equipment) can be registered; equipment that already has a card is not listed.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Hint.System" xml:space="preserve">
+    <value>OEE, open WO and PLC link are system-fed and are not edited here.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Lbl.Unregistered" xml:space="preserve">
+    <value>Card not registered</value>
+  </data>
+  <data name="MNT.EquipmentCard.Err.EquipRequired" xml:space="preserve">
+    <value>Equipment is required.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Err.Duplicate" xml:space="preserve">
+    <value>Equipment {0} already has a card.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Err.NoCandidates" xml:space="preserve">
+    <value>Every equipment already has a card. Add equipment in the master (MD-014) first.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Ok.Created" xml:space="preserve">
+    <value>Card for {0} created.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Ok.Updated" xml:space="preserve">
+    <value>Card for {0} updated.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Ok.Deleted" xml:space="preserve">
+    <value>Card for {0} deleted.</value>
+  </data>
 </root>

@@ -7320,4 +7320,82 @@
   <data name="MNT.PmSchedule.Ok.Deleted" xml:space="preserve">
     <value>PM {0} eliminado.</value>
   </data>
+  <data name="MNT.PmSchedule.Ok.CreatedWo" xml:space="preserve">
+    <value>PM {0} creado y orden de trabajo {1} emitida.</value>
+  </data>
+  <data name="MNT.Failure.Lbl.FailNo" xml:space="preserve">
+    <value>N.º de fallo</value>
+  </data>
+  <data name="MNT.Failure.Ph.FailNo" xml:space="preserve">
+    <value>Vacío = numeración automática (FAIL-YYMM-NNN)</value>
+  </data>
+  <data name="MNT.Failure.Lbl.ReportedAt" xml:space="preserve">
+    <value>Fecha de reporte</value>
+  </data>
+  <data name="MNT.Failure.Lbl.ResolvedAt" xml:space="preserve">
+    <value>Fecha de resolución</value>
+  </data>
+  <data name="MNT.Failure.Hint.Wo" xml:space="preserve">
+    <value>Al guardar se emite una orden de trabajo correctiva (CM); la prioridad sigue la severidad (CRITICAL→HIGH, MAJOR→MED, MINOR→LOW).</value>
+  </data>
+  <data name="MNT.Failure.Err.EquipRequired" xml:space="preserve">
+    <value>Seleccione el equipo.</value>
+  </data>
+  <data name="MNT.Failure.Err.TypeRequired" xml:space="preserve">
+    <value>Seleccione el tipo de fallo.</value>
+  </data>
+  <data name="MNT.Failure.Err.SeverityRequired" xml:space="preserve">
+    <value>Seleccione la severidad.</value>
+  </data>
+  <data name="MNT.Failure.Err.SymptomRequired" xml:space="preserve">
+    <value>El síntoma es obligatorio.</value>
+  </data>
+  <data name="MNT.Failure.Err.ReportedRequired" xml:space="preserve">
+    <value>La fecha de reporte es obligatoria.</value>
+  </data>
+  <data name="MNT.Failure.Err.ResolvedBefore" xml:space="preserve">
+    <value>La resolución debe ser posterior al reporte.</value>
+  </data>
+  <data name="MNT.Failure.Err.Duplicate" xml:space="preserve">
+    <value>El n.º de fallo {0} ya existe.</value>
+  </data>
+  <data name="MNT.Failure.Ok.CreatedWo" xml:space="preserve">
+    <value>Fallo {0} creado y orden de trabajo {1} emitida.</value>
+  </data>
+  <data name="MNT.Failure.Ok.Updated" xml:space="preserve">
+    <value>Fallo {0} actualizado.</value>
+  </data>
+  <data name="MNT.Failure.Ok.Deleted" xml:space="preserve">
+    <value>Fallo {0} eliminado.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Modal.Card" xml:space="preserve">
+    <value>Ficha de equipo</value>
+  </data>
+  <data name="MNT.EquipmentCard.Hint.Create" xml:space="preserve">
+    <value>Solo se puede registrar equipo del maestro (MD_Equipment); el equipo que ya tiene ficha no aparece.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Hint.System" xml:space="preserve">
+    <value>OEE, OT abierta y enlace PLC los alimenta el sistema; no se editan aquí.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Lbl.Unregistered" xml:space="preserve">
+    <value>Sin ficha</value>
+  </data>
+  <data name="MNT.EquipmentCard.Err.EquipRequired" xml:space="preserve">
+    <value>Seleccione el equipo.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Err.Duplicate" xml:space="preserve">
+    <value>El equipo {0} ya tiene ficha.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Err.NoCandidates" xml:space="preserve">
+    <value>Todo el equipo ya tiene ficha. Registre equipo en el maestro (MD-014) primero.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Ok.Created" xml:space="preserve">
+    <value>Ficha de {0} creada.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Ok.Updated" xml:space="preserve">
+    <value>Ficha de {0} actualizada.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Ok.Deleted" xml:space="preserve">
+    <value>Ficha de {0} eliminada.</value>
+  </data>
 </root>

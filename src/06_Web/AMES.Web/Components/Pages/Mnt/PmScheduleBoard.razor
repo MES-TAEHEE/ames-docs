@@ -232,7 +232,7 @@
 {
     var editing = _modal == "edit";
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">
                 @PmClassName(PmClass) PM — @(editing ? L["Modal.Edit"] : L["Modal.Create"])
                 @if (editing) { <span class="dim" style="font-weight:400;font-size:.9em;margin-left:6px;">@_f.PlanNo</span> }
@@ -256,14 +256,14 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.BasisCycle"]" class="ames-rz-modal-label" Component="PmDropDownBasis" />
-                    <RadzenDropDown Name="PmDropDownBasis" @bind-Value="_f.CycleBasis" Data="@CodeOptions(_cycleBases)" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+                    <RadzenDropDown Name="PmDropDownBasis" @bind-Value="_f.CycleBasis" Data="@CodeOptions(_cycleBases)" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                     <RadzenLabel Text="@L["MNT.PmSchedule.Lbl.CycleValue"]" class="ames-rz-modal-label" Component="PmNumericCycle" />
                     <RadzenNumeric TValue="int?" Name="PmNumericCycle" @bind-Value="_f.CycleValue" Min="1" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.LastPm"]" class="ames-rz-modal-label" Component="PmDateLast" />
-                    <RadzenDatePicker TValue="DateTime?" Name="PmDateLast" @bind-Value="_f.LastPmDate" DateFormat="@DateFmt.Date" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+                    <RadzenDatePicker TValue="DateTime?" Name="PmDateLast" @bind-Value="_f.LastPmDate" DateFormat="@DateFmt.Date" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                     <RadzenLabel Text='@($"{L["Col.NextDue"]} *")' class="ames-rz-modal-label" Component="PmDateDue" />
                     <RadzenDatePicker TValue="DateTime?" Name="PmDateDue" @bind-Value="_f.NextDueDate" DateFormat="@DateFmt.Date" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
@@ -280,7 +280,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.Status"]" class="ames-rz-modal-label" Component="PmDropDownStatus" />
-                    <RadzenDropDown Name="PmDropDownStatus" @bind-Value="_f.Status" Data="@CodeOptions(_pmStatuses)" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+                    <RadzenDropDown Name="PmDropDownStatus" @bind-Value="_f.Status" Data="@CodeOptions(_pmStatuses)" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
             </RadzenStack>
 
@@ -493,9 +493,9 @@
             }
             else
             {
-                Mnt.InsertPm(PmClass, planNo, _f.EquipId, _f.PmType, NE(_f.CycleBasis), _f.CycleValue,
+                var (_, woNo) = Mnt.InsertPm(PmClass, planNo, _f.EquipId, _f.PmType, NE(_f.CycleBasis), _f.CycleValue,
                     _f.LastPmDate, _f.NextDueDate.Value, NE(_f.ChecklistId), NE(_f.TechId), NE(_f.Status), _actor);
-                ShowMsg(string.Format(L["MNT.PmSchedule.Ok.Created"].Value, planNo), false);
+                ShowMsg(string.Format(L["MNT.PmSchedule.Ok.CreatedWo"].Value, planNo, woNo), false);
             }
             // 저장한 예정일의 달로 이동해 결과가 바로 보이게
             _calYear = _f.NextDueDate.Value.Year; _calMonth = _f.NextDueDate.Value.Month;

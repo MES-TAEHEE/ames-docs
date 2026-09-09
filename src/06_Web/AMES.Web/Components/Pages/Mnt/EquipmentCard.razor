@@ -7,6 +7,10 @@
 
 @attribute [Authorize]
 
+@using AMES.Web.Services
+
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
 @inject MntRepository Mnt
 @inject MasterDataRepository MD
 @inject IJSRuntime JS
@@ -58,6 +62,10 @@
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
             <RadzenButton Text="@L["MNT.EquipmentCard.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => OpenCreate(null))" class="ames-rz-btn" />
+            }
         </RadzenStack>
     </div>
 
@@ -111,7 +119,9 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MNT.EquipmentCard.Title"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.EquipId</span></div>
+            <div class="ames-modal-h">@L["MNT.EquipmentCard.Title"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.EquipId</span>
+                @if (_sel.EquipStatusId is null) { <span class="pill warn" style="margin-left:8px;font-size:10px;">@L["MNT.EquipmentCard.Lbl.Unregistered"]</span> }
+            </div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["Col.EquipName"]" class="ames-rz-modal-label" Component="DetailTextBoxEquipName" />
@@ -185,7 +195,89 @@
             </RadzenRow>
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                @if (_canEdit)
+                {
+                    @if (_sel.EquipStatusId is null)
+                    {
+                        <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => OpenCreate(_sel))" class="ames-rz-btn" />
+                    }
+                    else
+                    {
+                        <RadzenButton Text="@L["Btn.Edit"]" Icon="edit" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => OpenEdit(_sel))" class="ames-rz-btn" />
+                    }
+                }
                 <RadzenButton Text="@L["Btn.Close"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@* ── 등록 / 수정 모달 — MNT_EquipmentStatus (설비 카드) — MD_Equipment 기준, 설비 1대당 1장 ── *@
+@if (_modal is "create" or "edit")
+{
+    var editing = _modal == "edit";
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">
+                @L["MNT.EquipmentCard.Modal.Card"] — @(editing ? L["Modal.Edit"] : L["Modal.Create"])
+                @if (editing) { <span class="dim" style="font-weight:400;font-size:.9em;margin-left:6px;">@_f.EquipId</span> }
+            </div>
+            <div class="dim" style="font-size:10px;">@(editing ? L["MNT.EquipmentCard.Hint.System"] : L["MNT.EquipmentCard.Hint.Create"])</div>
+
+            <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["Col.Equip"]} *")' class="ames-rz-modal-label" Component="CardDropDownEquip" />
+                    @if (editing)
+                    {
+                        <RadzenTextBox Name="CardDropDownEquip" Value="@EquipText(_f.EquipId)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    }
+                    else
+                    {
+                        <RadzenDropDown AllowFiltering="true" Name="CardDropDownEquip" @bind-Value="_f.EquipId" Data="@UnregisteredEquipOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    }
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["Col.Status"]" class="ames-rz-modal-label" Component="CardDropDownStatus" />
+                    <RadzenDropDown Name="CardDropDownStatus" @bind-Value="_f.Status" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["Col.Runtime"]" class="ames-rz-modal-label" Component="CardNumericRuntime" />
+                    <RadzenNumeric TValue="decimal?" Name="CardNumericRuntime" @bind-Value="_f.RuntimeHours" Min="0" Step="0.1" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenLabel Text="@L["Col.Cycles"]" class="ames-rz-modal-label" Component="CardNumericCycles" />
+                    <RadzenNumeric TValue="long?" Name="CardNumericCycles" @bind-Value="_f.CycleCount" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["Col.NextPm"]" class="ames-rz-modal-label" Component="CardDateNextPm" />
+                    <RadzenDatePicker TValue="DateTime?" Name="CardDateNextPm" @bind-Value="_f.NextPmDate" DateFormat="@DateFmt.Date" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenLabel Text="@L["Col.MoldId"]" class="ames-rz-modal-label" Component="CardDropDownMold" />
+                    <RadzenDropDown AllowFiltering="true" Name="CardDropDownMold" @bind-Value="_f.MountedMoldId" Data="@MoldOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+            </RadzenStack>
+
+            @if (editing && _confirmDelete)
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : (editing ? L["Btn.Save"] : L["Btn.Create"]))" Click="@Save" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                @if (editing)
+                {
+                    <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                }
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
     </div>
@@ -202,10 +294,21 @@
 
     string _fSearch = "";
     string? _fLine, _fType, _fStatus;
-    string _modal = "", _msg = "";
-    bool _bgMouseDownOnSelf, _isErr;
+    string _modal = "", _msg = "", _modalErr = "";
+    bool _bgMouseDownOnSelf, _isErr, _busy, _confirmDelete, _canEdit;
+    string _actor = "system";
+    int? _editId;
+    FormModel _f = new();
+    List<MasterDataRepository.MoldRow> _molds = new();
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
+    // 등록 후보 = 설비 마스터에는 있으나 카드(MNT_EquipmentStatus)가 없는 설비 — 중복 등록 방지의 1차 관문
+    IEnumerable<DropDownItem> UnregisteredEquipOptions => _allRows.Where(r => r.EquipStatusId is null)
+        .Select(r => new DropDownItem { Value = r.EquipId, Text = EquipText(r.EquipId) });
+    IEnumerable<DropDownItem> MoldOptions => _molds.Select(m => new DropDownItem { Value = m.MoldID, Text = string.IsNullOrEmpty(m.MoldName) ? $"[{m.MoldID}]" : $"[{m.MoldID}] {m.MoldName}" });
+    string EquipText(string? id) =>
+        id is null ? "" : _allRows.FirstOrDefault(r => r.EquipId == id) is { } r && !string.IsNullOrEmpty(r.EquipName) ? $"[{id}] {r.EquipName}" : $"[{id}]";
 
     IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
     IEnumerable<DropDownItem> EquipTypeOptions => _allRows.Select(r => r.EquipType).Where(x => x != null).Distinct().OrderBy(x => x).Select(t => new DropDownItem { Value = t!, Text = t! });
@@ -224,11 +327,91 @@
         }
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("mnt/equipment-card");
+
         try { _lineList    = MD.ListLines();                   } catch { }
         try { _equipStatus = MD.ListCodeItems("EQUIP_STATUS"); } catch { }
+        try { _molds       = MD.ListMolds();                   } catch { }
         Reload();
+    }
+
+    // ── 등록 / 수정 / 삭제 ─────────────────────────────────────────────
+    void OpenCreate(MntRepository.EquipCardRow? preselect)
+    {
+        if (!_allRows.Any(r => r.EquipStatusId is null)) { ShowMsg(L["MNT.EquipmentCard.Err.NoCandidates"], true); return; }
+        _f = new() { EquipId = preselect?.EquipId ?? "", Status = preselect?.Status ?? "IDLE", NextPmDate = preselect?.NextPmDate };
+        _editId = null; _sel = null; _modalErr = ""; _confirmDelete = false;
+        _modal = "create";
+    }
+
+    void OpenEdit(MntRepository.EquipCardRow? r)
+    {
+        if (r is null || r.EquipStatusId is null || !_canEdit) return;
+        _f = new()
+        {
+            EquipId = r.EquipId, Status = r.Status ?? "", RuntimeHours = r.RuntimeHours, CycleCount = r.CycleCount,
+            NextPmDate = r.NextPmDate, MountedMoldId = r.MountedMoldId ?? "",
+        };
+        _editId = r.EquipStatusId; _sel = null; _modalErr = ""; _confirmDelete = false;
+        _modal = "edit";
+    }
+
+    async Task Save()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.EquipId)) { _modalErr = L["MNT.EquipmentCard.Err.EquipRequired"]; return; }
+
+        _busy = true;
+        try
+        {
+            if (_editId is int id)
+            {
+                Mnt.UpdateEquipStatus(id, NE(_f.Status), _f.RuntimeHours, _f.CycleCount, _f.NextPmDate, NE(_f.MountedMoldId), _actor);
+                ShowMsg(string.Format(L["MNT.EquipmentCard.Ok.Updated"].Value, _f.EquipId), false);
+            }
+            else
+            {
+                // 2차 관문: 다른 세션이 먼저 등록했을 수 있으므로 저장 직전 DB 에서 다시 확인 (INSERT 자체도 중복이면 THROW)
+                if (Mnt.EquipStatusExists(_f.EquipId)) { _modalErr = string.Format(L["MNT.EquipmentCard.Err.Duplicate"].Value, _f.EquipId); return; }
+                Mnt.InsertEquipStatus(_f.EquipId, NE(_f.Status), _f.RuntimeHours, _f.CycleCount, _f.NextPmDate, NE(_f.MountedMoldId), _actor);
+                ShowMsg(string.Format(L["MNT.EquipmentCard.Ok.Created"].Value, _f.EquipId), false);
+            }
+            CloseModal(); await ReloadRestorePage();
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    async Task SaveDelete()
+    {
+        if (_editId is not int id) return;
+        _busy = true;
+        try
+        {
+            var equipId = _f.EquipId;
+            Mnt.DeleteEquipStatus(id);
+            CloseModal(); await ReloadRestorePage();
+            ShowMsg(string.Format(L["MNT.EquipmentCard.Ok.Deleted"].Value, equipId), false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+    class FormModel
+    {
+        public string    EquipId       { get; set; } = "";
+        public string    Status        { get; set; } = "";
+        public decimal?  RuntimeHours  { get; set; }
+        public long?     CycleCount    { get; set; }
+        public DateTime? NextPmDate    { get; set; }
+        public string    MountedMoldId { get; set; } = "";
     }
 
     RadzenDataGrid<MntRepository.EquipCardRow>? _pgGrid;
@@ -282,7 +465,7 @@
 
     void OpenDetail(MntRepository.EquipCardRow r) { _sel = r; _modal = "detail"; }
 
-    void CloseModal() { _modal = ""; _sel = null; }
+    void CloseModal() { _modal = ""; _sel = null; _editId = null; _modalErr = ""; _confirmDelete = false; }
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }

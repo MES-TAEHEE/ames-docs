@@ -3,12 +3,16 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
+@using AMES.Web.Services
 @using Radzen
 
 @attribute [Authorize]
 
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
 @inject MntRepository Mnt
 @inject MasterDataRepository MD
+@inject SysRepository Sys
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
@@ -63,6 +67,10 @@
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Search" class="ames-rz-btn" />
             <RadzenButton Text="@L["MNT.Failure.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
+            }
         </RadzenStack>
     </div>
 
@@ -79,7 +87,7 @@
                 <Template Context="r">@(r.EquipName ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="FailureType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="110px">
-                <Template Context="r"><span class="pill">@(r.FailureType ?? "—")</span></Template>
+                <Template Context="r"><span class="pill">@TypeName(r.FailureType)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Symptom" Title="@L["Col.Symptom"]">
                 <Template Context="r"><span style="white-space:nowrap;">@(r.Symptom ?? "—")</span></Template>
@@ -88,7 +96,7 @@
                 <Template Context="r"><span class="pill @SeverityCls(r.Severity)">@SeverityLabel(r.Severity)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Source" Title="@L["Col.Source"]" TextAlign="TextAlign.Center" Width="90px">
-                <Template Context="r"><span class="dim">@(r.Source ?? "—")</span></Template>
+                <Template Context="r"><span class="dim">@SourceName(r.Source)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r"><span class="pill @StatusCls(r.Status)">@StatusLabel(r.Status)</span></Template>
@@ -127,7 +135,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Type"]" />
-                    <RadzenTextBox Value="@(_sel.FailureType ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox Value="@TypeName(_sel.FailureType)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -156,11 +164,11 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Source"]" />
-                    <RadzenTextBox Value="@(_sel.Source ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox Value="@SourceName(_sel.Source)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ReportedBy"]" />
-                    <RadzenTextBox Value="@(_sel.ReportedBy ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox Value="@UserText(_sel.ReportedBy)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -185,7 +193,92 @@
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                @if (_canEdit)
+                {
+                    <RadzenButton Text="@L["Btn.Edit"]" Icon="edit" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => OpenEdit(_sel))" class="ames-rz-btn" />
+                }
                 <RadzenButton Text="@L["Btn.Close"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@* ── 등록 / 수정 모달 (MD·SYS 등록 모달 패턴) — 등록 시 CM 작업지시 동시 발행 ── *@
+@if (_modal is "create" or "edit")
+{
+    var editing = _modal == "edit";
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">
+                @L["MNT.Failure.Title"] — @(editing ? L["Modal.Edit"] : L["Modal.Create"])
+                @if (editing) { <span class="dim" style="font-weight:400;font-size:.9em;margin-left:6px;">@_f.FailNo</span> }
+            </div>
+            <div class="dim" style="font-size:10px;">@L["MNT.Failure.Hint.Wo"]</div>
+
+            <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["MNT.Failure.Lbl.FailNo"]" class="ames-rz-modal-label" Component="FailTextBoxNo" />
+                    <RadzenTextBox Name="FailTextBoxNo" @bind-Value="_f.FailNo" MaxLength="24" Placeholder="@L["MNT.Failure.Ph.FailNo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["Col.Equip"]} *")' class="ames-rz-modal-label" Component="FailDropDownEquip" />
+                    <RadzenDropDown AllowFiltering="true" Name="FailDropDownEquip" @bind-Value="_f.EquipId" Data="@EquipOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["Col.Type"]} *")' class="ames-rz-modal-label" Component="FailDropDownType" />
+                    <RadzenDropDown Name="FailDropDownType" @bind-Value="_f.FailureType" Data="@CodeOptions(_typeItems)" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenLabel Text='@($"{L["Col.Severity"]} *")' class="ames-rz-modal-label" Component="FailDropDownSeverity" />
+                    <RadzenDropDown Name="FailDropDownSeverity" @bind-Value="_f.Severity" Data="@CodeOptions(_sevItems)" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["Col.Source"]" class="ames-rz-modal-label" Component="FailDropDownSource" />
+                    <RadzenDropDown Name="FailDropDownSource" @bind-Value="_f.Source" Data="@CodeOptions(_sourceItems)" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenLabel Text="@L["Col.Status"]" class="ames-rz-modal-label" Component="FailDropDownStatus" />
+                    <RadzenDropDown Name="FailDropDownStatus" @bind-Value="_f.Status" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["MNT.Failure.Lbl.ReportedAt"]} *")' class="ames-rz-modal-label" Component="FailDateReported" />
+                    <RadzenDatePicker TValue="DateTime?" Name="FailDateReported" @bind-Value="_f.ReportedAt" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenLabel Text="@L["MNT.Failure.Lbl.ResolvedAt"]" class="ames-rz-modal-label" Component="FailDateResolved" />
+                    <RadzenDatePicker TValue="DateTime?" Name="FailDateResolved" @bind-Value="_f.ResolvedAt" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["Col.ReportedBy"]" class="ames-rz-modal-label" Component="FailDropDownReporter" />
+                    <RadzenDropDown AllowFiltering="true" Name="FailDropDownReporter" @bind-Value="_f.ReportedBy" Data="@UserOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Vertical" Gap="2px" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["Col.Symptom"]} *")' Component="FailTextAreaSymptom" Style="margin-bottom:6px;" />
+                    <RadzenTextArea Name="FailTextAreaSymptom" @bind-Value="_f.Symptom" MaxLength="500" Rows="3" class="ames-rz-input" Style="width:100%;" />
+                </RadzenStack>
+            </RadzenStack>
+
+            @if (editing && _confirmDelete)
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : (editing ? L["Btn.Save"] : L["Btn.Create"]))" Click="@Save" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                @if (editing)
+                {
+                    <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                }
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
     </div>
@@ -201,20 +294,42 @@
     string   _fSearch = "";
     DateTime _fFrom = DateTime.Today.AddDays(-30), _fTo = DateTime.Today;
     string?  _fStatus, _fSeverity;
-    string   _modal = "", _msg = "";
-    bool     _bgMouseDownOnSelf, _isErr;
+    string   _modal = "", _msg = "", _modalErr = "";
+    bool     _bgMouseDownOnSelf, _isErr, _busy, _confirmDelete, _canEdit;
+    string   _actor = "system", _actorUserId = "";
+    int?     _editId;
+    FormModel _f = new();
 
     static readonly string[] StatusCodes  = { "OPEN", "IN_PROGRESS", "RESOLVED" };
-    List<MasterDataRepository.CodeItemRow> _sevItems = new();   // 심각도 = 공통코드 DEFECT_SEVERITY
+    List<MasterDataRepository.CodeItemRow>  _sevItems    = new();   // 심각도 = 공통코드 DEFECT_SEVERITY
+    List<MasterDataRepository.CodeItemRow>  _typeItems   = new();   // 공통코드 FAILURE_TYPE
+    List<MasterDataRepository.CodeItemRow>  _sourceItems = new();   // 공통코드 FAILURE_SOURCE
+    List<MasterDataRepository.EquipmentRow> _equipList   = new();
+    List<SysRepository.UserRow>             _users       = new();
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
     IEnumerable<DropDownItem> StatusFilterOptions  => StatusCodes.Select(s => new DropDownItem { Value = s, Text = $"[{s}] {StatusLabel(s)}" });
-    IEnumerable<DropDownItem> SeverityFilterOptions => _sevItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    IEnumerable<DropDownItem> SeverityFilterOptions => CodeOptions(_sevItems);
+    IEnumerable<DropDownItem> CodeOptions(List<MasterDataRepository.CodeItemRow> items) =>
+        items.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    IEnumerable<DropDownItem> EquipOptions => _equipList.Select(e => new DropDownItem { Value = e.EquipID, Text = string.IsNullOrEmpty(e.EquipName) ? $"[{e.EquipID}]" : $"[{e.EquipID}] {e.EquipName}" });
+    IEnumerable<DropDownItem> UserOptions  => _users.Select(u => new DropDownItem { Value = u.UserId, Text = UserText(u.UserId) });
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        try { _sevItems = MD.ListCodeItems("DEFECT_SEVERITY"); } catch { }
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("mnt/failure");
+
+        try { _sevItems    = MD.ListCodeItems("DEFECT_SEVERITY"); } catch { }
+        try { _typeItems   = MD.ListCodeItems("FAILURE_TYPE");    } catch { }
+        try { _sourceItems = MD.ListCodeItems("FAILURE_SOURCE");  } catch { }
+        try { _equipList   = MD.ListEquipments(); } catch { }
+        try { _users       = Sys.ListUsers(500); } catch { }
+        // 보고자 기본값 = 로그인 사용자 (이메일로 AspNetUsers.Id 해석)
+        _actorUserId = _users.FirstOrDefault(u => string.Equals(u.Email, _actor, StringComparison.OrdinalIgnoreCase))?.UserId ?? "";
 
         // 기본 기간: 최근 30일. 그 안에 데이터가 없으면 마지막 발생일 기준으로 30일을 잡는다
         try
@@ -277,7 +392,109 @@
 
     void OpenDetail(MntRepository.FailureRow r) { _sel = r; _modal = "detail"; }
 
-    void CloseModal() { _modal = ""; _sel = null; }
+    void CloseModal() { _modal = ""; _sel = null; _editId = null; _modalErr = ""; _confirmDelete = false; }
+
+    // ── 등록 / 수정 / 삭제 ─────────────────────────────────────────────
+    void OpenCreate()
+    {
+        _f = new() { ReportedAt = DateTime.Now, Status = "OPEN", Source = "WEB", ReportedBy = _actorUserId };
+        _editId = null; _sel = null; _modalErr = ""; _confirmDelete = false;
+        _modal = "create";
+    }
+
+    void OpenEdit(MntRepository.FailureRow? r)
+    {
+        if (r is null || !_canEdit) return;
+        _f = new()
+        {
+            FailNo = r.FailureNumber ?? "", EquipId = r.EquipId ?? "", FailureType = r.FailureType ?? "",
+            Symptom = r.Symptom ?? "", Severity = r.Severity ?? "", Source = r.Source ?? "",
+            Status = NormStatus(r.Status) is { Length: > 0 } st ? st : "OPEN",
+            ReportedAt = r.ReportedAt, ResolvedAt = r.ResolvedAt, ReportedBy = r.ReportedBy ?? "",
+        };
+        _editId = r.FailureId; _sel = null; _modalErr = ""; _confirmDelete = false;
+        _modal = "edit";
+    }
+
+    async Task Save()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.EquipId))      { _modalErr = L["MNT.Failure.Err.EquipRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.FailureType))  { _modalErr = L["MNT.Failure.Err.TypeRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.Severity))     { _modalErr = L["MNT.Failure.Err.SeverityRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.Symptom))      { _modalErr = L["MNT.Failure.Err.SymptomRequired"]; return; }
+        if (_f.ReportedAt is null)                      { _modalErr = L["MNT.Failure.Err.ReportedRequired"]; return; }
+        if (_f.ResolvedAt is { } res && res < _f.ReportedAt) { _modalErr = L["MNT.Failure.Err.ResolvedBefore"]; return; }
+
+        _busy = true;
+        try
+        {
+            var failNo = _f.FailNo.Trim();
+            if (failNo.Length == 0) failNo = Mnt.NextFailureNumber(DateTime.Today);
+            if (Mnt.FailureNumberExists(failNo, _editId)) { _modalErr = string.Format(L["MNT.Failure.Err.Duplicate"].Value, failNo); return; }
+            var status = string.IsNullOrEmpty(_f.Status) ? "OPEN" : _f.Status;
+
+            if (_editId is int id)
+            {
+                Mnt.UpdateFailure(id, failNo, _f.EquipId, _f.FailureType, _f.Symptom.Trim(), _f.Severity,
+                    NE(_f.Source), _f.ReportedAt.Value, _f.ResolvedAt, status, NE(_f.ReportedBy), _actor);
+                ShowMsg(string.Format(L["MNT.Failure.Ok.Updated"].Value, failNo), false);
+            }
+            else
+            {
+                var (_, woNo) = Mnt.InsertFailure(failNo, _f.EquipId, _f.FailureType, _f.Symptom.Trim(), _f.Severity,
+                    NE(_f.Source), _f.ReportedAt.Value, _f.ResolvedAt, status, NE(_f.ReportedBy), _actor);
+                ShowMsg(string.Format(L["MNT.Failure.Ok.CreatedWo"].Value, failNo, woNo), false);
+            }
+            // 발생일이 조회 기간 밖이면 기간을 넓혀 결과가 바로 보이게
+            var rep = _f.ReportedAt.Value.Date;
+            if (rep < _fFrom) _fFrom = rep;
+            if (rep > _fTo)   _fTo   = rep;
+            CloseModal(); await Search();
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    async Task SaveDelete()
+    {
+        if (_editId is not int id) return;
+        _busy = true;
+        try
+        {
+            var failNo = _f.FailNo;
+            Mnt.DeleteFailure(id);
+            CloseModal(); await Search();
+            ShowMsg(string.Format(L["MNT.Failure.Ok.Deleted"].Value, failNo), false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+    class FormModel
+    {
+        public string    FailNo      { get; set; } = "";
+        public string    EquipId     { get; set; } = "";
+        public string    FailureType { get; set; } = "";
+        public string    Symptom     { get; set; } = "";
+        public string    Severity    { get; set; } = "";
+        public string    Source      { get; set; } = "";
+        public string    Status      { get; set; } = "OPEN";
+        public DateTime? ReportedAt  { get; set; }
+        public DateTime? ResolvedAt  { get; set; }
+        public string    ReportedBy  { get; set; } = "";
+    }
+
+    // 공통코드 명칭 — 코드에 없는 값은 코드 그대로
+    static string CodeName(List<MasterDataRepository.CodeItemRow> items, string? c) =>
+        c is null ? "—" : items.FirstOrDefault(x => string.Equals(x.CodeValue, c, StringComparison.OrdinalIgnoreCase)) is { } i ? MasterDataRepository.LocalName(i) : c;
+    string TypeName(string? c)   => CodeName(_typeItems, c);
+    string SourceName(string? c) => CodeName(_sourceItems, c);
+    string UserText(string? id) =>
+        string.IsNullOrEmpty(id) ? "" : _users.FirstOrDefault(u => u.UserId == id) is { } u
+            ? (string.IsNullOrEmpty(u.EmployeeNo) ? (u.EmployeeName ?? u.UserName ?? id) : $"[{u.EmployeeNo}] {u.EmployeeName ?? u.UserName}") : id;
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
@@ -297,7 +514,7 @@
         var data = _rows.Select(r => (IReadOnlyList<object?>)new object?[]
         {
             FailNo(r), r.EquipId, r.EquipName, r.LineId,
-            r.FailureType, r.Symptom, SeverityLabel(r.Severity), r.Source,
+            TypeName(r.FailureType), r.Symptom, SeverityLabel(r.Severity), SourceName(r.Source),
             StatusLabel(r.Status), r.ReportedAt?.ToString(DateFmt.DateTime), r.ResolvedAt?.ToString(DateFmt.DateTime), r.ReportedBy,
             r.WorkOrderId, r.AndonRefId, r.DowntimeId,
         });

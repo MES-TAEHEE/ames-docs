@@ -69,6 +69,7 @@ FILES=(
   migrate_wh_fg_screens.sql           # Web WH·FG 화면 SYS_Screen 등록 + 구 코드 권한 이관 (순서 무관)
   migrate_mnt_pm_class_type.sql       # MNT_PMSchedule.PMClass 추가·PMType ANNUALLY·공통코드 PM_CLASS/PM_TYPE (순서 무관)
   migrate_mnt_pm_screens.sql          # MNT-005 설비 PM·MNT-010 보전 PM 화면 등록 + 공통코드 PM_CYCLE_BASIS/PM_STATUS (순서 무관)
+  migrate_mnt_failure_codes.sql       # MNT-002 고장 등록 모달용 공통코드 FAILURE_TYPE/FAILURE_SOURCE (순서 무관)
   pda/PDA_SCHEMA.sql                  # consolidated WH/FG PDA schema
   pda/PDA_SEED.sql                    # consolidated re-runnable WH/FG PDA seed
   cleanup_legacy_sis_test.sql

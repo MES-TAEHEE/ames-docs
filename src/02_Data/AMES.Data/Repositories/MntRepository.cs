@@ -17,7 +17,8 @@ public sealed class MntRepository
     public sealed record EquipCardRow(string EquipId, string? EquipName, string? LineId,
         string? EquipType, string? MakerModel, DateTime? InstallDate, string? Status,
         decimal? TodayOee, decimal? RuntimeHours, long? CycleCount,
-        DateTime? NextPmDate, string? MountedMoldId, int? OpenWoId, DateTime? PlcConnTs);
+        DateTime? NextPmDate, string? MountedMoldId, int? OpenWoId, DateTime? PlcConnTs,
+        int? EquipStatusId = null);   // null = MD_Equipment 만 있고 설비 카드(MNT_EquipmentStatus) 미등록
 
     public sealed record FailureRow(int FailureId, string? FailureNumber, string? EquipId,
         string? FailureType, string? Symptom, string? Severity, string? Source,
@@ -70,7 +71,7 @@ public sealed class MntRepository
             SELECT  e.EquipID, e.EquipName, e.LineID, e.EquipType, e.MakerModel, e.InstallDate,
                     COALESCE(es.Status, e.Status, 'UNKNOWN') AS Status,
                     es.TodayOEE, es.RuntimeHours, es.CycleCount, es.NextPMDate,
-                    es.MountedMoldID, es.OpenWoID, es.PLCConnTS
+                    es.MountedMoldID, es.OpenWoID, es.PLCConnTS, es.EquipStatusID
             FROM    dbo.MD_Equipment e
             LEFT JOIN dbo.MNT_EquipmentStatus es ON es.EquipID = e.EquipID
             WHERE   ISNULL(e.ActiveFlag,1) = 1
@@ -82,8 +83,77 @@ public sealed class MntRepository
             r["EquipType"] as string, r["MakerModel"] as string, r["InstallDate"] as DateTime?,
             r["Status"] as string, r["TodayOEE"] as decimal?, r["RuntimeHours"] as decimal?,
             r["CycleCount"] as long?, r["NextPMDate"] as DateTime?,
-            r["MountedMoldID"] as string, r["OpenWoID"] as int?, r["PLCConnTS"] as DateTime?),
+            r["MountedMoldID"] as string, r["OpenWoID"] as int?, r["PLCConnTS"] as DateTime?,
+            r["EquipStatusID"] as int?),
             ("@L", (object?)lineId ?? DBNull.Value));
+    }
+
+    // ── MNT-001 설비 카드 등록·수정·삭제 — MNT_EquipmentStatus (설비 1대당 1행, MD_Equipment 기준) ──
+    public bool EquipStatusExists(string equipId)
+    {
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand("SELECT 1 FROM dbo.MNT_EquipmentStatus WHERE EquipID = @E", conn);
+        cmd.Parameters.Add("@E", SqlDbType.VarChar, 20).Value = equipId;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    /// <summary>설비 카드 등록. LineID 는 MD_Equipment 의 라인을 그대로 옮긴다. 같은 설비가 이미 있으면 예외.</summary>
+    public int InsertEquipStatus(string equipId, string? status, decimal? runtimeHours, long? cycleCount,
+        DateTime? nextPmDate, string? mountedMoldId, string actor)
+    {
+        const string sql = """
+            IF EXISTS (SELECT 1 FROM dbo.MNT_EquipmentStatus WHERE EquipID = @E)
+                THROW 51000, 'Equipment card already registered', 1;
+            INSERT INTO dbo.MNT_EquipmentStatus
+                (EquipID, LineID, Status, RuntimeHours, CycleCount, NextPMDate, MountedMoldID, CreatedBy, CreatedTS)
+            SELECT @E, e.LineID, @St, @Run, @Cyc, @Pm, @Mold, @By, SYSDATETIME()
+            FROM   dbo.MD_Equipment e WHERE e.EquipID = @E;
+            SELECT CAST(SCOPE_IDENTITY() AS int);
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@E",    SqlDbType.VarChar, 20).Value = equipId;
+        cmd.Parameters.Add("@St",   SqlDbType.VarChar, 10).Value = (object?)status ?? DBNull.Value;
+        cmd.Parameters.Add("@Run",  SqlDbType.Decimal).Value      = (object?)runtimeHours ?? DBNull.Value;
+        cmd.Parameters["@Run"].Precision = 10; cmd.Parameters["@Run"].Scale = 1;
+        cmd.Parameters.Add("@Cyc",  SqlDbType.BigInt).Value       = (object?)cycleCount ?? DBNull.Value;
+        cmd.Parameters.Add("@Pm",   SqlDbType.Date).Value         = (object?)nextPmDate?.Date ?? DBNull.Value;
+        cmd.Parameters.Add("@Mold", SqlDbType.VarChar, 20).Value = (object?)mountedMoldId ?? DBNull.Value;
+        cmd.Parameters.Add("@By",   SqlDbType.VarChar, 50).Value = actor;
+        var id = cmd.ExecuteScalar();
+        if (id is null || id is DBNull) throw new InvalidOperationException($"MD_Equipment '{equipId}' not found");
+        return Convert.ToInt32(id);
+    }
+
+    /// <summary>설비 카드 수정. EquipID 는 바꾸지 않는다(설비 1대당 1행). OEE·OpenWoID·PLC 연결은 시스템 값이라 손대지 않는다.</summary>
+    public void UpdateEquipStatus(int equipStatusId, string? status, decimal? runtimeHours, long? cycleCount,
+        DateTime? nextPmDate, string? mountedMoldId, string actor)
+    {
+        const string sql = """
+            UPDATE dbo.MNT_EquipmentStatus
+            SET    Status = @St, RuntimeHours = @Run, CycleCount = @Cyc, NextPMDate = @Pm, MountedMoldID = @Mold,
+                   ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+            WHERE  EquipStatusID = @Id;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Id",   SqlDbType.Int).Value          = equipStatusId;
+        cmd.Parameters.Add("@St",   SqlDbType.VarChar, 10).Value = (object?)status ?? DBNull.Value;
+        cmd.Parameters.Add("@Run",  SqlDbType.Decimal).Value      = (object?)runtimeHours ?? DBNull.Value;
+        cmd.Parameters["@Run"].Precision = 10; cmd.Parameters["@Run"].Scale = 1;
+        cmd.Parameters.Add("@Cyc",  SqlDbType.BigInt).Value       = (object?)cycleCount ?? DBNull.Value;
+        cmd.Parameters.Add("@Pm",   SqlDbType.Date).Value         = (object?)nextPmDate?.Date ?? DBNull.Value;
+        cmd.Parameters.Add("@Mold", SqlDbType.VarChar, 20).Value = (object?)mountedMoldId ?? DBNull.Value;
+        cmd.Parameters.Add("@By",   SqlDbType.NVarChar, 450).Value = actor;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteEquipStatus(int equipStatusId)
+    {
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand("DELETE FROM dbo.MNT_EquipmentStatus WHERE EquipStatusID = @Id", conn);
+        cmd.Parameters.Add("@Id", SqlDbType.Int).Value = equipStatusId;
+        cmd.ExecuteNonQuery();
     }
 
     // ── MNT-002 Failure Register ────────────────────────────────────────
@@ -341,67 +411,345 @@ public sealed class MntRepository
         return $"{prefix}{next:D3}";
     }
 
-    public int InsertPm(string pmClass, string planNo, string equipId, string pmType, string? cycleBasis, int? cycleValue,
-        DateTime? lastPm, DateTime nextDue, string? checklistId, string? techId, string? status, string actor)
+    // ── MNT-002 고장 등록·수정·삭제 — 등록 시 정비 작업지시(WoType='CM') 를 같은 트랜잭션으로 발행 ──
+    public bool FailureNumberExists(string failNo, int? excludeId = null)
     {
-        const string sql = """
-            INSERT INTO dbo.MNT_PMSchedule
-                (PMPlanNumber, EquipID, PMClass, PMType, CycleBasis, CycleValue, LastPMDate, NextDueDate,
-                 ChecklistID, AssignedTechID, Status, CreatedBy, CreatedTS)
-            VALUES (@No, @Eq, @Cls, @Type, @Basis, @Val, @Last, @Due, @Chk, @Tech, @St, @By, SYSDATETIME());
-            SELECT CAST(SCOPE_IDENTITY() AS int);
-            """;
         using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@No",    SqlDbType.VarChar,   30).Value = planNo;
-        cmd.Parameters.Add("@Eq",    SqlDbType.VarChar,   20).Value = equipId;
-        cmd.Parameters.Add("@Cls",   SqlDbType.VarChar,   10).Value = pmClass;
-        cmd.Parameters.Add("@Type",  SqlDbType.VarChar,   60).Value = pmType;
-        cmd.Parameters.Add("@Basis", SqlDbType.VarChar,   10).Value = (object?)cycleBasis ?? DBNull.Value;
-        cmd.Parameters.Add("@Val",   SqlDbType.Int).Value            = (object?)cycleValue ?? DBNull.Value;
-        cmd.Parameters.Add("@Last",  SqlDbType.Date).Value           = (object?)lastPm?.Date ?? DBNull.Value;
-        cmd.Parameters.Add("@Due",   SqlDbType.Date).Value           = nextDue.Date;
-        cmd.Parameters.Add("@Chk",   SqlDbType.VarChar,   20).Value = (object?)checklistId ?? DBNull.Value;
-        cmd.Parameters.Add("@Tech",  SqlDbType.NVarChar, 450).Value = (object?)techId ?? DBNull.Value;
-        cmd.Parameters.Add("@St",    SqlDbType.VarChar,   10).Value = (object?)status ?? DBNull.Value;
-        cmd.Parameters.Add("@By",    SqlDbType.VarChar,   50).Value = actor;
-        return Convert.ToInt32(cmd.ExecuteScalar());
+        using var cmd  = new SqlCommand(
+            "SELECT 1 FROM dbo.MNT_FailureRegister WHERE FailureNumber = @N AND (@X IS NULL OR FailureID <> @X)", conn);
+        cmd.Parameters.Add("@N", SqlDbType.VarChar, 24).Value = failNo;
+        cmd.Parameters.Add("@X", SqlDbType.Int).Value = (object?)excludeId ?? DBNull.Value;
+        return cmd.ExecuteScalar() is not null;
     }
 
-    /// <summary>PMClass 는 화면이 정하므로 바꾸지 않는다(설비 PM 화면에서 보전 PM 으로 옮길 수 없음).</summary>
+    /// <summary>고장번호 자동 채번: FAIL-yyMM-nnn (mnt-seed 와 같은 양식).</summary>
+    public string NextFailureNumber(DateTime today)
+    {
+        var prefix = $"FAIL-{today:yyMM}-";
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand("""
+            SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(FailureNumber, LEN(@P) + 1, 10) AS int)), 0)
+            FROM   dbo.MNT_FailureRegister WHERE FailureNumber LIKE @P + '%'
+            """, conn);
+        cmd.Parameters.Add("@P", SqlDbType.VarChar, 24).Value = prefix;
+        return $"{prefix}{Convert.ToInt32(cmd.ExecuteScalar()) + 1:D3}";
+    }
+
+    // 심각도(DEFECT_SEVERITY) → 작업지시 우선순위. 기존 MWO 데이터 어휘(LOW/MED/HIGH)를 따른다.
+    private static string WoPriorityFor(string? severity) => severity?.ToUpperInvariant() switch
+    {
+        "CRITICAL" => "HIGH",
+        "MAJOR"    => "MED",
+        _          => "LOW",
+    };
+
+    private static string WoDescFor(string failNo, string? failureType, string symptom)
+    {
+        var s = symptom.Trim();
+        if (s.Length > 200) s = s[..200];
+        return $"{failureType ?? "CM"} — {failNo}: {s}";
+    }
+
+    /// <summary>
+    /// 고장 등록 = MNT_FailureRegister 1행 + 정비 작업지시(MNT_WorkOrder, WoType='CM', SourceType='FAILURE') 1행.
+    /// 고장 행의 WorkOrderID 가 작업지시를 가리킨다. 우선순위는 심각도에서 정한다.
+    /// </summary>
+    public (int FailureId, string WoNumber) InsertFailure(string failNo, string equipId, string failureType, string symptom, string severity,
+        string? source, DateTime reportedAt, DateTime? resolvedAt, string status, string? reportedBy, string actor)
+    {
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            int failId;
+            using (var cmd = new SqlCommand("""
+                INSERT INTO dbo.MNT_FailureRegister
+                    (FailureNumber, EquipID, FailureType, Symptom, Severity, Source, Status, ReportedBy, ReportedAt, ResolvedAt, CreatedBy, CreatedTS)
+                VALUES (@No, @Eq, @Type, @Sym, @Sev, @Src, @St, @By, @Rep, @Res, @Actor, SYSDATETIME());
+                SELECT CAST(SCOPE_IDENTITY() AS int);
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@No",    SqlDbType.VarChar,   24).Value = failNo;
+                cmd.Parameters.Add("@Eq",    SqlDbType.VarChar,   20).Value = equipId;
+                cmd.Parameters.Add("@Type",  SqlDbType.VarChar,   15).Value = failureType;
+                cmd.Parameters.Add("@Sym",   SqlDbType.NVarChar, 500).Value = symptom;
+                cmd.Parameters.Add("@Sev",   SqlDbType.VarChar,   10).Value = severity;
+                cmd.Parameters.Add("@Src",   SqlDbType.VarChar,   15).Value = (object?)source ?? DBNull.Value;
+                cmd.Parameters.Add("@St",    SqlDbType.VarChar,   15).Value = status;
+                cmd.Parameters.Add("@By",    SqlDbType.NVarChar, 450).Value = (object?)reportedBy ?? DBNull.Value;
+                cmd.Parameters.Add("@Rep",   SqlDbType.DateTime2).Value      = reportedAt;
+                cmd.Parameters.Add("@Res",   SqlDbType.DateTime2).Value      = (object?)resolvedAt ?? DBNull.Value;
+                cmd.Parameters.Add("@Actor", SqlDbType.VarChar,   50).Value = actor;
+                failId = Convert.ToInt32(cmd.ExecuteScalar());
+            }
+
+            var woNumber = NextMwoNumber(conn, tx, DateTime.Today);
+            int woId;
+            using (var cmd = new SqlCommand("""
+                INSERT INTO dbo.MNT_WorkOrder
+                    (WoNumber, WoType, EquipID, Priority, SourceType, SourceRefID, AssignedTechID,
+                     ActionDesc, Status, IssuedAt, CreatedBy, CreatedTS)
+                VALUES (@Wo, 'CM', @Eq, @Pri, 'FAILURE', @Ref, NULL, @Desc, 'ISSUED', SYSDATETIME(), @By, SYSDATETIME());
+                SELECT CAST(SCOPE_IDENTITY() AS int);
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Wo",   SqlDbType.VarChar,    28).Value = woNumber;
+                cmd.Parameters.Add("@Eq",   SqlDbType.VarChar,    20).Value = equipId;
+                cmd.Parameters.Add("@Pri",  SqlDbType.VarChar,    10).Value = WoPriorityFor(severity);
+                cmd.Parameters.Add("@Ref",  SqlDbType.VarChar,    24).Value = failNo;
+                cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 1000).Value = WoDescFor(failNo, failureType, symptom);
+                cmd.Parameters.Add("@By",   SqlDbType.VarChar,    50).Value = actor;
+                woId = Convert.ToInt32(cmd.ExecuteScalar());
+            }
+
+            using (var cmd = new SqlCommand("UPDATE dbo.MNT_FailureRegister SET WorkOrderID = @Wo WHERE FailureID = @Id", conn, tx))
+            {
+                cmd.Parameters.Add("@Wo", SqlDbType.Int).Value = woId;
+                cmd.Parameters.Add("@Id", SqlDbType.Int).Value = failId;
+                cmd.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+            return (failId, woNumber);
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    /// <summary>고장 수정. 연결된 작업지시가 착수 전(ISSUED/OPEN)이면 설비·우선순위·설명을 같이 맞춘다.</summary>
+    public void UpdateFailure(int id, string failNo, string equipId, string failureType, string symptom, string severity,
+        string? source, DateTime reportedAt, DateTime? resolvedAt, string status, string? reportedBy, string actor)
+    {
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            using (var cmd = new SqlCommand("""
+                UPDATE dbo.MNT_FailureRegister
+                SET    FailureNumber = @No, EquipID = @Eq, FailureType = @Type, Symptom = @Sym, Severity = @Sev, Source = @Src,
+                       Status = @St, ReportedBy = @By, ReportedAt = @Rep, ResolvedAt = @Res,
+                       ModifiedBy = @Actor, ModifiedTS = SYSDATETIME()
+                WHERE  FailureID = @Id;
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Id",    SqlDbType.Int).Value            = id;
+                cmd.Parameters.Add("@No",    SqlDbType.VarChar,   24).Value = failNo;
+                cmd.Parameters.Add("@Eq",    SqlDbType.VarChar,   20).Value = equipId;
+                cmd.Parameters.Add("@Type",  SqlDbType.VarChar,   15).Value = failureType;
+                cmd.Parameters.Add("@Sym",   SqlDbType.NVarChar, 500).Value = symptom;
+                cmd.Parameters.Add("@Sev",   SqlDbType.VarChar,   10).Value = severity;
+                cmd.Parameters.Add("@Src",   SqlDbType.VarChar,   15).Value = (object?)source ?? DBNull.Value;
+                cmd.Parameters.Add("@St",    SqlDbType.VarChar,   15).Value = status;
+                cmd.Parameters.Add("@By",    SqlDbType.NVarChar, 450).Value = (object?)reportedBy ?? DBNull.Value;
+                cmd.Parameters.Add("@Rep",   SqlDbType.DateTime2).Value      = reportedAt;
+                cmd.Parameters.Add("@Res",   SqlDbType.DateTime2).Value      = (object?)resolvedAt ?? DBNull.Value;
+                cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
+                cmd.ExecuteNonQuery();
+            }
+
+            using (var cmd = new SqlCommand("""
+                UPDATE w
+                SET    w.EquipID = @Eq, w.Priority = @Pri, w.SourceRefID = @Ref, w.ActionDesc = @Desc,
+                       w.ModifiedBy = @By, w.ModifiedTS = SYSDATETIME()
+                FROM   dbo.MNT_WorkOrder w
+                JOIN   dbo.MNT_FailureRegister f ON f.WorkOrderID = w.WorkOrderID
+                WHERE  f.FailureID = @Id AND w.Status IN ('ISSUED', 'OPEN');
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Id",   SqlDbType.Int).Value             = id;
+                cmd.Parameters.Add("@Eq",   SqlDbType.VarChar,    20).Value = equipId;
+                cmd.Parameters.Add("@Pri",  SqlDbType.VarChar,    10).Value = WoPriorityFor(severity);
+                cmd.Parameters.Add("@Ref",  SqlDbType.VarChar,    24).Value = failNo;
+                cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 1000).Value = WoDescFor(failNo, failureType, symptom);
+                cmd.Parameters.Add("@By",   SqlDbType.NVarChar,  450).Value = actor;
+                cmd.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    /// <summary>고장 삭제. 착수 전(ISSUED/OPEN) 작업지시는 함께 지우고, 진행·완료된 것은 남긴다.</summary>
+    public void DeleteFailure(int id)
+    {
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            using (var cmd = new SqlCommand("""
+                DELETE w
+                FROM   dbo.MNT_WorkOrder w
+                JOIN   dbo.MNT_FailureRegister f ON f.WorkOrderID = w.WorkOrderID
+                WHERE  f.FailureID = @Id AND w.Status IN ('ISSUED', 'OPEN');
+                DELETE FROM dbo.MNT_FailureRegister WHERE FailureID = @Id;
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Id", SqlDbType.Int).Value = id;
+                cmd.ExecuteNonQuery();
+            }
+            tx.Commit();
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    /// <summary>
+    /// PM 등록 = MNT_PMSchedule 1행 + 정비 작업지시(MNT_WorkOrder, WoType='PM') 1행을 한 트랜잭션으로 만든다.
+    /// 작업지시는 ISSUED 상태로 발행되고 PM 행의 ActiveWoID 가 이를 가리킨다.
+    /// </summary>
+    public (int PmScheduleId, string WoNumber) InsertPm(string pmClass, string planNo, string equipId, string pmType, string? cycleBasis, int? cycleValue,
+        DateTime? lastPm, DateTime nextDue, string? checklistId, string? techId, string? status, string actor)
+    {
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            int pmId;
+            using (var cmd = new SqlCommand("""
+                INSERT INTO dbo.MNT_PMSchedule
+                    (PMPlanNumber, EquipID, PMClass, PMType, CycleBasis, CycleValue, LastPMDate, NextDueDate,
+                     ChecklistID, AssignedTechID, Status, CreatedBy, CreatedTS)
+                VALUES (@No, @Eq, @Cls, @Type, @Basis, @Val, @Last, @Due, @Chk, @Tech, @St, @By, SYSDATETIME());
+                SELECT CAST(SCOPE_IDENTITY() AS int);
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@No",    SqlDbType.VarChar,   30).Value = planNo;
+                cmd.Parameters.Add("@Eq",    SqlDbType.VarChar,   20).Value = equipId;
+                cmd.Parameters.Add("@Cls",   SqlDbType.VarChar,   10).Value = pmClass;
+                cmd.Parameters.Add("@Type",  SqlDbType.VarChar,   60).Value = pmType;
+                cmd.Parameters.Add("@Basis", SqlDbType.VarChar,   10).Value = (object?)cycleBasis ?? DBNull.Value;
+                cmd.Parameters.Add("@Val",   SqlDbType.Int).Value            = (object?)cycleValue ?? DBNull.Value;
+                cmd.Parameters.Add("@Last",  SqlDbType.Date).Value           = (object?)lastPm?.Date ?? DBNull.Value;
+                cmd.Parameters.Add("@Due",   SqlDbType.Date).Value           = nextDue.Date;
+                cmd.Parameters.Add("@Chk",   SqlDbType.VarChar,   20).Value = (object?)checklistId ?? DBNull.Value;
+                cmd.Parameters.Add("@Tech",  SqlDbType.NVarChar, 450).Value = (object?)techId ?? DBNull.Value;
+                cmd.Parameters.Add("@St",    SqlDbType.VarChar,   10).Value = (object?)status ?? DBNull.Value;
+                cmd.Parameters.Add("@By",    SqlDbType.VarChar,   50).Value = actor;
+                pmId = Convert.ToInt32(cmd.ExecuteScalar());
+            }
+
+            var woNumber = NextMwoNumber(conn, tx, DateTime.Today);
+            int woId;
+            using (var cmd = new SqlCommand("""
+                INSERT INTO dbo.MNT_WorkOrder
+                    (WoNumber, WoType, EquipID, Priority, SourceType, SourceRefID, AssignedTechID, ChecklistID,
+                     ActionDesc, Status, IssuedAt, CreatedBy, CreatedTS)
+                VALUES (@Wo, 'PM', @Eq, 'MED', 'PM', @Ref, @Tech, @Chk, @Desc, 'ISSUED', SYSDATETIME(), @By, SYSDATETIME());
+                SELECT CAST(SCOPE_IDENTITY() AS int);
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Wo",   SqlDbType.VarChar,    28).Value = woNumber;
+                cmd.Parameters.Add("@Eq",   SqlDbType.VarChar,    20).Value = equipId;
+                cmd.Parameters.Add("@Ref",  SqlDbType.VarChar,    24).Value = pmId.ToString();
+                cmd.Parameters.Add("@Tech", SqlDbType.NVarChar,  450).Value = (object?)techId ?? DBNull.Value;
+                cmd.Parameters.Add("@Chk",  SqlDbType.VarChar,    20).Value = (object?)checklistId ?? DBNull.Value;
+                cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 1000).Value = $"{pmType} PM — {planNo} ({nextDue:yyyy-MM-dd})";
+                cmd.Parameters.Add("@By",   SqlDbType.VarChar,    50).Value = actor;
+                woId = Convert.ToInt32(cmd.ExecuteScalar());
+            }
+
+            using (var cmd = new SqlCommand("UPDATE dbo.MNT_PMSchedule SET ActiveWoID = @Wo WHERE PMScheduleID = @Id", conn, tx))
+            {
+                cmd.Parameters.Add("@Wo", SqlDbType.Int).Value = woId;
+                cmd.Parameters.Add("@Id", SqlDbType.Int).Value = pmId;
+                cmd.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+            return (pmId, woNumber);
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    /// <summary>작업지시 번호 자동 채번: MWO-yyMM-nnn (mnt-seed 와 같은 양식).</summary>
+    private static string NextMwoNumber(SqlConnection conn, SqlTransaction tx, DateTime today)
+    {
+        var prefix = $"MWO-{today:yyMM}-";
+        using var cmd = new SqlCommand("""
+            SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(WoNumber, LEN(@P) + 1, 10) AS int)), 0)
+            FROM   dbo.MNT_WorkOrder WHERE WoNumber LIKE @P + '%'
+            """, conn, tx);
+        cmd.Parameters.Add("@P", SqlDbType.VarChar, 28).Value = prefix;
+        return $"{prefix}{Convert.ToInt32(cmd.ExecuteScalar()) + 1:D3}";
+    }
+
+    /// <summary>
+    /// PMClass 는 화면이 정하므로 바꾸지 않는다(설비 PM 화면에서 보전 PM 으로 옮길 수 없음).
+    /// 연결된 작업지시가 아직 착수 전(ISSUED/OPEN)이면 설비·담당자·템플릿·설명을 같이 맞춘다.
+    /// </summary>
     public void UpdatePm(int id, string planNo, string equipId, string pmType, string? cycleBasis, int? cycleValue,
         DateTime? lastPm, DateTime nextDue, string? checklistId, string? techId, string? status, string actor)
     {
-        const string sql = """
-            UPDATE dbo.MNT_PMSchedule
-            SET    PMPlanNumber = @No, EquipID = @Eq, PMType = @Type, CycleBasis = @Basis, CycleValue = @Val,
-                   LastPMDate = @Last, NextDueDate = @Due, ChecklistID = @Chk, AssignedTechID = @Tech, Status = @St,
-                   ModifiedBy = @By, ModifiedTS = SYSDATETIME()
-            WHERE  PMScheduleID = @Id;
-            """;
         using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@Id",    SqlDbType.Int).Value            = id;
-        cmd.Parameters.Add("@No",    SqlDbType.VarChar,   30).Value = planNo;
-        cmd.Parameters.Add("@Eq",    SqlDbType.VarChar,   20).Value = equipId;
-        cmd.Parameters.Add("@Type",  SqlDbType.VarChar,   60).Value = pmType;
-        cmd.Parameters.Add("@Basis", SqlDbType.VarChar,   10).Value = (object?)cycleBasis ?? DBNull.Value;
-        cmd.Parameters.Add("@Val",   SqlDbType.Int).Value            = (object?)cycleValue ?? DBNull.Value;
-        cmd.Parameters.Add("@Last",  SqlDbType.Date).Value           = (object?)lastPm?.Date ?? DBNull.Value;
-        cmd.Parameters.Add("@Due",   SqlDbType.Date).Value           = nextDue.Date;
-        cmd.Parameters.Add("@Chk",   SqlDbType.VarChar,   20).Value = (object?)checklistId ?? DBNull.Value;
-        cmd.Parameters.Add("@Tech",  SqlDbType.NVarChar, 450).Value = (object?)techId ?? DBNull.Value;
-        cmd.Parameters.Add("@St",    SqlDbType.VarChar,   10).Value = (object?)status ?? DBNull.Value;
-        cmd.Parameters.Add("@By",    SqlDbType.NVarChar, 450).Value = actor;
-        cmd.ExecuteNonQuery();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            using (var cmd = new SqlCommand("""
+                UPDATE dbo.MNT_PMSchedule
+                SET    PMPlanNumber = @No, EquipID = @Eq, PMType = @Type, CycleBasis = @Basis, CycleValue = @Val,
+                       LastPMDate = @Last, NextDueDate = @Due, ChecklistID = @Chk, AssignedTechID = @Tech, Status = @St,
+                       ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+                WHERE  PMScheduleID = @Id;
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Id",    SqlDbType.Int).Value            = id;
+                cmd.Parameters.Add("@No",    SqlDbType.VarChar,   30).Value = planNo;
+                cmd.Parameters.Add("@Eq",    SqlDbType.VarChar,   20).Value = equipId;
+                cmd.Parameters.Add("@Type",  SqlDbType.VarChar,   60).Value = pmType;
+                cmd.Parameters.Add("@Basis", SqlDbType.VarChar,   10).Value = (object?)cycleBasis ?? DBNull.Value;
+                cmd.Parameters.Add("@Val",   SqlDbType.Int).Value            = (object?)cycleValue ?? DBNull.Value;
+                cmd.Parameters.Add("@Last",  SqlDbType.Date).Value           = (object?)lastPm?.Date ?? DBNull.Value;
+                cmd.Parameters.Add("@Due",   SqlDbType.Date).Value           = nextDue.Date;
+                cmd.Parameters.Add("@Chk",   SqlDbType.VarChar,   20).Value = (object?)checklistId ?? DBNull.Value;
+                cmd.Parameters.Add("@Tech",  SqlDbType.NVarChar, 450).Value = (object?)techId ?? DBNull.Value;
+                cmd.Parameters.Add("@St",    SqlDbType.VarChar,   10).Value = (object?)status ?? DBNull.Value;
+                cmd.Parameters.Add("@By",    SqlDbType.NVarChar, 450).Value = actor;
+                cmd.ExecuteNonQuery();
+            }
+
+            using (var cmd = new SqlCommand("""
+                UPDATE w
+                SET    w.EquipID = @Eq, w.AssignedTechID = @Tech, w.ChecklistID = @Chk,
+                       w.ActionDesc = @Desc, w.ModifiedBy = @By, w.ModifiedTS = SYSDATETIME()
+                FROM   dbo.MNT_WorkOrder w
+                JOIN   dbo.MNT_PMSchedule p ON p.ActiveWoID = w.WorkOrderID
+                WHERE  p.PMScheduleID = @Id AND w.Status IN ('ISSUED', 'OPEN');
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Id",   SqlDbType.Int).Value             = id;
+                cmd.Parameters.Add("@Eq",   SqlDbType.VarChar,    20).Value = equipId;
+                cmd.Parameters.Add("@Tech", SqlDbType.NVarChar,  450).Value = (object?)techId ?? DBNull.Value;
+                cmd.Parameters.Add("@Chk",  SqlDbType.VarChar,    20).Value = (object?)checklistId ?? DBNull.Value;
+                cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 1000).Value = $"{pmType} PM — {planNo} ({nextDue:yyyy-MM-dd})";
+                cmd.Parameters.Add("@By",   SqlDbType.NVarChar,  450).Value = actor;
+                cmd.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+        }
+        catch { tx.Rollback(); throw; }
     }
 
+    /// <summary>PM 삭제. 연결된 작업지시가 착수 전(ISSUED/OPEN)이면 함께 지우고, 이미 진행·완료된 WO 는 남긴다.</summary>
     public void DeletePm(int id)
     {
         using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand("DELETE FROM dbo.MNT_PMSchedule WHERE PMScheduleID = @Id", conn);
-        cmd.Parameters.Add("@Id", SqlDbType.Int).Value = id;
-        cmd.ExecuteNonQuery();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            using (var cmd = new SqlCommand("""
+                DELETE w
+                FROM   dbo.MNT_WorkOrder w
+                JOIN   dbo.MNT_PMSchedule p ON p.ActiveWoID = w.WorkOrderID
+                WHERE  p.PMScheduleID = @Id AND w.Status IN ('ISSUED', 'OPEN');
+                DELETE FROM dbo.MNT_PMSchedule WHERE PMScheduleID = @Id;
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Id", SqlDbType.Int).Value = id;
+                cmd.ExecuteNonQuery();
+            }
+            tx.Commit();
+        }
+        catch { tx.Rollback(); throw; }
     }
 
     public List<MwoRow> ListWorkOrders(int topN = 100, string? statusFilter = null)
