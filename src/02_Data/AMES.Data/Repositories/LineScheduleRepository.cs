@@ -504,12 +504,12 @@ public sealed class LineScheduleRepository
     // ── PM 후보 (MNT_PMSchedule → 해당 라인 설비) ─────────────────────────────
     // 라인은 설비(MD_Equipment.LineID)로 해석. 마감(완료)된 PM은 제외.
     public sealed record PmCandidate(
-        int PmScheduleId, string EquipId, string? EquipName, string? PmType, DateTime? NextDueDate);
+        int PmScheduleId, string EquipId, string? EquipName, string? PmType, DateTime? NextDueDate, string? PmClass = null);
 
     public List<PmCandidate> ListDuePmForLine(string lineId)
     {
         const string sql = """
-            SELECT p.PMScheduleID, p.EquipID, e.EquipName, p.PMType, p.NextDueDate
+            SELECT p.PMScheduleID, p.EquipID, e.EquipName, p.PMType, p.NextDueDate, p.PMClass
             FROM   dbo.MNT_PMSchedule p
             JOIN   dbo.MD_Equipment   e ON e.EquipID = p.EquipID
             WHERE  e.LineID = @LineId
@@ -527,7 +527,8 @@ public sealed class LineScheduleRepository
                 (string)rdr["EquipID"],
                 rdr["EquipName"]   as string,
                 rdr["PMType"]      as string,
-                rdr["NextDueDate"] as DateTime?));
+                rdr["NextDueDate"] as DateTime?,
+                rdr["PMClass"]     as string));
         return list;
     }
 

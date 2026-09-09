@@ -29,11 +29,12 @@ USING (VALUES
   ('MNT-02', 'MNT', N'고장 등록',                 N'Failure Register',            'mnt/failure',            'MNT-002', 2, 1),
   ('MNT-03', 'MNT', N'OEE 분석',                  N'OEE Analysis',                'mnt/oee-analysis',       'MNT-003', 3, 1),
   ('MNT-04', 'MNT', N'금형 관리',                 N'Mold Management',             'mnt/mold',               'MNT-004', 4, 1),
-  ('MNT-05', 'MNT', N'PM 일정',                   N'PM Schedule',                 'mnt/pm-schedule',        'MNT-005', 5, 1),
+  ('MNT-05', 'MNT', N'설비 PM 일정',              N'Equipment PM Schedule',       'mnt/pm-schedule',        'MNT-005', 5, 1),
   ('MNT-06', 'MNT', N'비가동 이력',               N'Downtime Log',                'mnt/downtime',           'MNT-006', 6, 1),
   ('MNT-07', 'MNT', N'작업 지시',                 N'Work Order',                  'mnt/work-order',         'MNT-007', 7, 1),
   ('MNT-08', 'MNT', N'예비 부품',                 N'Spare Parts',                 'mnt/spare-parts',        'MNT-008', 8, 1),
   ('MNT-09', 'MNT', N'대시보드',                  N'Dashboard',                   'mnt/dashboard',          'MNT-009', 9, 1),
+  ('MNT-10', 'MNT', N'보전 PM 일정',              N'Maintenance PM Schedule',     'mnt/maint-pm-schedule',  'MNT-010', 10, 1),
   -- RPT · 보고서
   ('RPT-01', 'RPT', N'일별 생산 실적',             N'Daily Production',            'rpt/daily-production',   'RPT-001',  1, 1),
   ('RPT-02', 'RPT', N'불량 파레토',               N'Defect Pareto',               'rpt/defect-pareto',      'RPT-002',  2, 1),

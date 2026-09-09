@@ -174,7 +174,7 @@
                 @foreach (var p in _pms)
                 {
                     <div class="mnt-db-row">
-                        <span class="t">@EquipName(p.EquipId)<small>@(p.PmType ?? p.PmPlanNumber ?? "")</small></span>
+                        <span class="t">@EquipName(p.EquipId)<small>@(p.PmType is null ? (p.PmPlanNumber ?? "") : PmTypeName(p.PmType))</small></span>
                         <span class="pill @PmCls(p.DaysToDue)">@PmBadge(p.DaysToDue)</span>
                     </div>
                 }
@@ -297,6 +297,7 @@
     protected override async Task OnInitializedAsync()
     {
         try { _sevItems = MD.ListCodeItems("DEFECT_SEVERITY"); } catch { }
+        try { _pmTypes  = MD.ListCodeItems("PM_TYPE"); } catch { }
         try { await PermSvc.EnsureAsync(AuthPrvd); } catch { }
         try { _equipStatus = MD.ListCodeItems("EQUIP_STATUS"); } catch { }
 
@@ -421,6 +422,8 @@
 
     // 심각도 = 공통코드 DEFECT_SEVERITY. 코드에 없는 값(구 URGENT/HIGH/MED/LOW)은 그대로 표시
     List<MasterDataRepository.CodeItemRow> _sevItems = new();
+    List<MasterDataRepository.CodeItemRow> _pmTypes  = new();   // 공통코드 PM_TYPE
+    string PmTypeName(string? c) => c is null ? "" : _pmTypes.FirstOrDefault(x => string.Equals(x.CodeValue, c, StringComparison.OrdinalIgnoreCase)) is { } i ? MasterDataRepository.LocalName(i) : c;
     string SeverityLabel(string? u) => u is null ? "—" : _sevItems.FirstOrDefault(c => string.Equals(c.CodeValue, u, StringComparison.OrdinalIgnoreCase)) is { } c ? MasterDataRepository.LocalName(c) : u;
     static string SeverityCls(string? u) => u switch
     { "CRITICAL" => "bad", "MAJOR" => "orange", "MINOR" => "info", _ => "mute" };

@@ -7296,4 +7296,55 @@
   <data name="MD.Workers.Ok.PinCleared" xml:space="preserve">
     <value>PIN cleared for worker {0}.</value>
   </data>
+  <data name="MNT.PmSchedule.Col.Class" xml:space="preserve">
+    <value>PM class</value>
+  </data>
+  <data name="MNT.EquipPmSchedule.Title" xml:space="preserve">
+    <value>Equipment PM Schedule</value>
+  </data>
+  <data name="MNT.MaintPmSchedule.Title" xml:space="preserve">
+    <value>Maintenance PM Schedule</value>
+  </data>
+  <data name="MNT.PmSchedule.Hint.Class" xml:space="preserve">
+    <value>This screen manages PM class '{0}' only. New PM plans are saved under this class.</value>
+  </data>
+  <data name="MNT.PmSchedule.Lbl.PlanNo" xml:space="preserve">
+    <value>PM plan no.</value>
+  </data>
+  <data name="MNT.PmSchedule.Ph.PlanNo" xml:space="preserve">
+    <value>Blank = auto number (PM-YYMM-NNN)</value>
+  </data>
+  <data name="MNT.PmSchedule.Lbl.CycleValue" xml:space="preserve">
+    <value>Cycle value</value>
+  </data>
+  <data name="MNT.PmSchedule.Lbl.Checklist" xml:space="preserve">
+    <value>Checklist template</value>
+  </data>
+  <data name="MNT.PmSchedule.Lbl.Tech" xml:space="preserve">
+    <value>Technician</value>
+  </data>
+  <data name="MNT.PmSchedule.Err.EquipRequired" xml:space="preserve">
+    <value>Equipment is required.</value>
+  </data>
+  <data name="MNT.PmSchedule.Err.TypeRequired" xml:space="preserve">
+    <value>PM type is required.</value>
+  </data>
+  <data name="MNT.PmSchedule.Err.DueRequired" xml:space="preserve">
+    <value>Next due date is required.</value>
+  </data>
+  <data name="MNT.PmSchedule.Err.CycleValue" xml:space="preserve">
+    <value>Cycle value must be 1 or more.</value>
+  </data>
+  <data name="MNT.PmSchedule.Err.Duplicate" xml:space="preserve">
+    <value>PM plan no. {0} already exists.</value>
+  </data>
+  <data name="MNT.PmSchedule.Ok.Created" xml:space="preserve">
+    <value>PM {0} created.</value>
+  </data>
+  <data name="MNT.PmSchedule.Ok.Updated" xml:space="preserve">
+    <value>PM {0} updated.</value>
+  </data>
+  <data name="MNT.PmSchedule.Ok.Deleted" xml:space="preserve">
+    <value>PM {0} deleted.</value>
+  </data>
 </root>

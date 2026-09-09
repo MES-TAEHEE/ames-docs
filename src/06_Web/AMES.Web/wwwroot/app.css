@@ -121,7 +121,7 @@ a:hover { color: #c4dafe; }
 
 /* ── Sidebar ──────────────────────────────────────────────── */
 .ames-side {
-    flex: 0 0 320px;
+    flex: 0 0 330px;   /* 좌측 메뉴 폭 320 → 330 */
     overflow: hidden;
     background: linear-gradient(180deg, rgba(10,20,38,.92), rgba(5,10,20,.92));
     border-right: 1px solid rgba(255,255,255,.06);
@@ -176,7 +176,7 @@ a:hover { color: #c4dafe; }
 .ames-side--collapsed .ames-nav-link > span:not(.lid) { display: none; }
 
 .ames-brand {
-    flex: 0 0 320px;
+    flex: 0 0 330px;   /* 좌측 메뉴 폭 320 → 330 */
     padding: 0 24px 0 20px;
     height: 100%;
     display: flex;
@@ -261,6 +261,7 @@ a:hover { color: #c4dafe; }
     padding: 10px 12px; margin-bottom: 4px;
     color: rgba(255,255,255,.78);
     font-weight: 700; font-size: 14px;
+    line-height: 1.25;
     border-radius: 8px;
     transition: background .12s, color .12s;
 }
@@ -324,10 +325,12 @@ a:hover { color: #c4dafe; }
 .ames-nav-sub-body { flex: 1; min-width: 0; }
 .ames-nav-sub-t {
     font-size: 13px; font-weight: 700;
+    line-height: 1.25;
     color: rgba(255,255,255,.88); white-space: nowrap;
 }
 .ames-nav-sub-s {
     font-size: 11px; color: rgba(255,255,255,.4); margin-top: 1px;
+    line-height: 1.2;
     font-family: 'JetBrains Mono', monospace;
 }
 .ames-nav-sub-chevron { font-size: 11px; opacity: .6; flex-shrink: 0; }
@@ -342,6 +345,7 @@ a:hover { color: #c4dafe; }
     padding: 6px 12px;
     color: rgba(255,255,255,.6);
     font-size: 14px;
+    line-height: 1.25;   /* 명시하지 않으면 한글 폴백 글꼴의 normal 행간이 Inter 보다 커서 언어에 따라 메뉴 높이가 달라진다 */
     border-radius: 7px;
     margin: 1px 0;
     transition: background .12s, color .12s;

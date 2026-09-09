@@ -3174,7 +3174,8 @@ CREATE TABLE dbo.MNT_PMSchedule (
   [PMScheduleID]              INT IDENTITY         NOT NULL,
   [PMPlanNumber]              VARCHAR(30)              NULL,
   [EquipID]                   VARCHAR(20)              NULL,  -- FK -> MD_Equipment.EquipID
-  [PMType]                    VARCHAR(60)              NULL,
+  [PMClass]                   VARCHAR(10)              NULL,  -- 공통코드 PM_CLASS (EQUIP 설비 / MAINT 보전)
+  [PMType]                    VARCHAR(60)              NULL,  -- 공통코드 PM_TYPE (DAILY/WEEKLY/MONTHLY/QUARTERLY/ANNUALLY)
   [CycleBasis]                VARCHAR(10)              NULL,
   [CycleValue]                INT                      NULL,
   [LastPMDate]                DATE                     NULL,

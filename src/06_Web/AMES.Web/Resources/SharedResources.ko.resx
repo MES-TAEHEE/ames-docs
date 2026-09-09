@@ -7269,4 +7269,55 @@
   <data name="MD.Workers.Ok.PinCleared" xml:space="preserve">
     <value>작업자 {0} 의 PIN 을 삭제했습니다.</value>
   </data>
+  <data name="MNT.PmSchedule.Col.Class" xml:space="preserve">
+    <value>PM 분류</value>
+  </data>
+  <data name="MNT.EquipPmSchedule.Title" xml:space="preserve">
+    <value>설비 PM 일정</value>
+  </data>
+  <data name="MNT.MaintPmSchedule.Title" xml:space="preserve">
+    <value>보전 PM 일정</value>
+  </data>
+  <data name="MNT.PmSchedule.Hint.Class" xml:space="preserve">
+    <value>이 화면은 PM 분류 '{0}' 만 관리합니다. 등록한 PM 은 자동으로 이 분류로 저장됩니다.</value>
+  </data>
+  <data name="MNT.PmSchedule.Lbl.PlanNo" xml:space="preserve">
+    <value>PM 계획번호</value>
+  </data>
+  <data name="MNT.PmSchedule.Ph.PlanNo" xml:space="preserve">
+    <value>비우면 자동 채번 (PM-YYMM-NNN)</value>
+  </data>
+  <data name="MNT.PmSchedule.Lbl.CycleValue" xml:space="preserve">
+    <value>주기값</value>
+  </data>
+  <data name="MNT.PmSchedule.Lbl.Checklist" xml:space="preserve">
+    <value>점검 템플릿</value>
+  </data>
+  <data name="MNT.PmSchedule.Lbl.Tech" xml:space="preserve">
+    <value>담당자</value>
+  </data>
+  <data name="MNT.PmSchedule.Err.EquipRequired" xml:space="preserve">
+    <value>설비를 선택하세요.</value>
+  </data>
+  <data name="MNT.PmSchedule.Err.TypeRequired" xml:space="preserve">
+    <value>PM 유형을 선택하세요.</value>
+  </data>
+  <data name="MNT.PmSchedule.Err.DueRequired" xml:space="preserve">
+    <value>다음 예정일은 필수입니다.</value>
+  </data>
+  <data name="MNT.PmSchedule.Err.CycleValue" xml:space="preserve">
+    <value>주기값은 1 이상이어야 합니다.</value>
+  </data>
+  <data name="MNT.PmSchedule.Err.Duplicate" xml:space="preserve">
+    <value>PM 계획번호 {0} 은(는) 이미 있습니다.</value>
+  </data>
+  <data name="MNT.PmSchedule.Ok.Created" xml:space="preserve">
+    <value>PM {0} 을(를) 등록했습니다.</value>
+  </data>
+  <data name="MNT.PmSchedule.Ok.Updated" xml:space="preserve">
+    <value>PM {0} 을(를) 수정했습니다.</value>
+  </data>
+  <data name="MNT.PmSchedule.Ok.Deleted" xml:space="preserve">
+    <value>PM {0} 을(를) 삭제했습니다.</value>
+  </data>
 </root>

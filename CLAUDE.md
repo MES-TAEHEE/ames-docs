@@ -203,8 +203,8 @@ ASP.NET Identity 쿠키 인증. 개발 기본 계정: `admin@ames.local / Dev202
 `Forecast` / `Delivery` / `Mrp` / `SupplyPlanImport` / `PurchaseReq`
 `Oee` / `Downtime` / `DowntimeMonitor`
 
-#### MNT (설비보전) — 9화면
-`Dashboard` / `EquipmentCard` / `WorkOrder` / `PmSchedule` / `Downtime`
+#### MNT (설비보전) — 10화면
+`Dashboard` / `EquipmentCard` / `WorkOrder` / `EquipPmSchedule`(MNT-005, PM_CLASS=EQUIP) / `MaintPmSchedule`(MNT-010, PM_CLASS=MAINT — 둘 다 `PmScheduleBoard` 공유, 테이블 `MNT_PMSchedule` 공용) / `Downtime`
 `Failure` / `Mold` / `OeeAnalysis` / `SpareParts`
 
 #### RPT (보고서) — 10화면

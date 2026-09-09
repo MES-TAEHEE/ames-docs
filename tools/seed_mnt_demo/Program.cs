@@ -218,7 +218,7 @@ internal static class Program
             "SELECT TOP 15 EquipID FROM dbo.MD_Equipment WHERE ISNULL(ActiveFlag,1)=1 ORDER BY EquipID");
         if (equips.Count == 0) return;
 
-        var types = new[] { "DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "ANNUAL" };
+        var types = new[] { "DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "ANNUALLY" };   // 공통코드 PM_TYPE
         var bases = new[] { "TIME",  "TIME",   "CYCLE",   "TIME",      "TIME"   };
         var cycles = new[] { 1,        7,       50_000,    90,           365     };
 
@@ -231,9 +231,9 @@ internal static class Program
             var st  = due < 0 ? "OVERDUE" : (due <= 3 ? "DUE" : "OK");
             Exec(conn, $"""
                 INSERT INTO dbo.MNT_PMSchedule
-                    (PMPlanNumber, EquipID, PMType, CycleBasis, CycleValue,
+                    (PMPlanNumber, EquipID, PMClass, PMType, CycleBasis, CycleValue,
                      LastPMDate, NextDueDate, Status, CreatedBy, CreatedTS)
-                VALUES (@P, @E, @T, @B, {cycles[ti]},
+                VALUES (@P, @E, 'EQUIP', @T, @B, {cycles[ti]},
                         DATEADD(DAY, -{rng.Next(2, 60)}, CAST(SYSDATETIME() AS DATE)),
                         DATEADD(DAY,  {due},             CAST(SYSDATETIME() AS DATE)),
                         @S, 'mnt-seed', SYSDATETIME());

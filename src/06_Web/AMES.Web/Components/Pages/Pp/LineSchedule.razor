@@ -510,6 +510,8 @@
 
     // ── PM(예방보전) 밴드 스테이징 ──
     List<LineScheduleRepository.PmCandidate> _pmCandidates = new();
+    List<MasterDataRepository.CodeItemRow>   _pmTypes = new();   // 공통코드 PM_TYPE — 후보 표시명
+    string PmTypeName(string? c) => c is null ? "PM" : _pmTypes.FirstOrDefault(x => string.Equals(x.CodeValue, c, StringComparison.OrdinalIgnoreCase)) is { } i ? MasterDataRepository.LocalName(i) : c;
     List<PmBand> _pmBands   = new();
     int          _pmTempSeq = -1;      // 신규 PM 밴드 임시 Id(음수) — DB ScheduleID(양수)와 구분
     bool         _showPmModal;
@@ -641,7 +643,7 @@
         _pmCandidates.Select(p => new DropDownItem
         {
             Value = p.PmScheduleId.ToString(),
-            Text  = $"[{p.EquipId}] {p.EquipName ?? p.EquipId} · {p.PmType ?? "PM"}"
+            Text  = $"[{p.EquipId}] {p.EquipName ?? p.EquipId} · {PmTypeName(p.PmType)}"
                   + (p.NextDueDate.HasValue ? $" · {p.NextDueDate.Value:MM-dd}" : "")
         });
 
@@ -690,6 +692,7 @@
         try { _segStates   = MD.ListCodeItems("SEGMENT_STATE"); } catch { }
         try { _workShifts  = MD.ListCodeItems("WORK_SHIFT"); } catch { }
         try { _schedStatuses = MD.ListCodeItems("SCHEDULE_STATUS"); } catch { }
+        try { _pmTypes = MD.ListCodeItems("PM_TYPE"); } catch { }
         // Now line 기준: DB 서버시각 1회 조회 후 오프셋 저장 (이후 재조회 없이 클라이언트 시계로 진행)
         try { _dbOffset = LSB.GetDbNow() - DateTime.Now; } catch { }
         _date = ServerNow.Date;
@@ -736,7 +739,7 @@
     {
         if (refType == "PMSCH" && refId is int id &&
             _pmCandidates.FirstOrDefault(c => c.PmScheduleId == id) is { } c)
-            return $"[{c.EquipId}] {c.EquipName ?? c.EquipId} · {c.PmType ?? "PM"}";
+            return $"[{c.EquipId}] {c.EquipName ?? c.EquipId} · {PmTypeName(c.PmType)}";
         return null;
     }
 
@@ -961,7 +964,7 @@
     {
         if (_pmRefId is int id && _pmCandidates.FirstOrDefault(c => c.PmScheduleId == id) is { } c
             && string.IsNullOrWhiteSpace(_pmTitle))
-            _pmTitle = $"{c.EquipName ?? c.EquipId} {c.PmType ?? "PM"}";
+            _pmTitle = $"{c.EquipName ?? c.EquipId} {PmTypeName(c.PmType)}";
     }
 
     void SavePm()

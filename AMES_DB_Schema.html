@@ -1668,6 +1668,7 @@ header{padding:24px 32px 16px;border-bottom:1px solid var(--border2);display:fle
   <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">PMScheduleID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">PMPlanNumber</div><div class="col-type">VARCHAR(30)</div><div class="col-note">UNIQUE PM-{Eq}-{SEQ}</div></div>
   <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">EquipID</div><div class="col-type">VARCHAR(20)</div><div class="col-note">→ MD_Equipment</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">PMClass</div><div class="col-type">VARCHAR(10)</div><div class="col-note">PM_CLASS: EQUIP/MAINT</div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">PMType / CycleBasis / Value</div><div class="col-type">NVARCHAR/VARCHAR/INT</div><div class="col-note">CAL/RUNTIME/COUNTER</div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">LastPMDate / NextDueDate</div><div class="col-type">DATE</div><div class="col-note"></div></div>
   <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">ChecklistID / AssignedTechID</div><div class="col-type">VARCHAR/FK</div><div class="col-note">→ MD/User</div></div>

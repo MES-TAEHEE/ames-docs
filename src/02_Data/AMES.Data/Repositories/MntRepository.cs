@@ -38,7 +38,8 @@ public sealed class MntRepository
 
     public sealed record PmRow(int PmScheduleId, string? PmPlanNumber, string? EquipId, string? PmType,
         string? CycleBasis, int? CycleValue, DateTime? LastPmDate, DateTime? NextDueDate,
-        string? ChecklistId, string? AssignedTechId, string? Status, int? ActiveWoId, int DaysToDue);
+        string? ChecklistId, string? AssignedTechId, string? Status, int? ActiveWoId, int DaysToDue,
+        string? PmClass = null);   // 공통코드 PM_CLASS (EQUIP/MAINT)
 
     public sealed record DowntimeRow(int DowntimeId, string? LineId, DateTime? StartTs, DateTime? EndTs,
         int? DurationMin, string? ReasonCode, string? CauseCode, string? Comment, int? WoId,
@@ -202,16 +203,18 @@ public sealed class MntRepository
     }
 
     // ── MNT-005 PM Schedule ─────────────────────────────────────────────
-    public List<PmRow> ListPmSchedule(int daysAhead = 30, int daysBack = 7)
+    /// <summary>pmClass(EQUIP/MAINT) 를 주면 그 분류만 — MNT-005 설비 PM / MNT-010 보전 PM 화면 분리용.</summary>
+    public List<PmRow> ListPmSchedule(int daysAhead = 30, int daysBack = 7, string? pmClass = null)
     {
         const string sql = """
-            SELECT  PMScheduleID, PMPlanNumber, EquipID, PMType, CycleBasis, CycleValue,
+            SELECT  PMScheduleID, PMPlanNumber, EquipID, PMClass, PMType, CycleBasis, CycleValue,
                     LastPMDate, NextDueDate, ChecklistID, AssignedTechID, Status, ActiveWoID,
                     DATEDIFF(DAY, CAST(SYSDATETIME() AS DATE), NextDueDate) AS DaysToDue
             FROM    dbo.MNT_PMSchedule
-            WHERE   NextDueDate IS NULL
-               OR   NextDueDate BETWEEN DATEADD(DAY, -@B, CAST(SYSDATETIME() AS DATE))
-                                    AND DATEADD(DAY,  @A, CAST(SYSDATETIME() AS DATE))
+            WHERE   (NextDueDate IS NULL
+               OR    NextDueDate BETWEEN DATEADD(DAY, -@B, CAST(SYSDATETIME() AS DATE))
+                                     AND DATEADD(DAY,  @A, CAST(SYSDATETIME() AS DATE)))
+              AND   (@C IS NULL OR PMClass = @C)
             ORDER BY NextDueDate, EquipID;
             """;
         return Query(sql, r => new PmRow(
@@ -220,8 +223,8 @@ public sealed class MntRepository
             r["LastPMDate"] as DateTime?, r["NextDueDate"] as DateTime?,
             r["ChecklistID"] as string, r["AssignedTechID"] as string,
             r["Status"] as string, r["ActiveWoID"] as int?,
-            r["DaysToDue"] as int? ?? 0),
-            ("@A", daysAhead), ("@B", daysBack));
+            r["DaysToDue"] as int? ?? 0, r["PMClass"] as string),
+            ("@A", daysAhead), ("@B", daysBack), ("@C", (object?)pmClass ?? DBNull.Value));
     }
 
     // ── MNT-006 Downtime Log ────────────────────────────────────────────
@@ -271,14 +274,15 @@ public sealed class MntRepository
 
     // ── MNT-007 Work Order (MWO) ────────────────────────────────────────
     /// <summary>달력용: 예정일(NextDueDate) 또는 마지막 PM 일(LastPMDate)이 기간 안에 드는 PM. DaysToDue 는 오늘 기준.</summary>
-    public List<PmRow> ListPmCalendar(DateTime from, DateTime to)
+    public List<PmRow> ListPmCalendar(DateTime from, DateTime to, string? pmClass = null)
     {
         const string sql = """
-            SELECT  PMScheduleID, PMPlanNumber, EquipID, PMType, CycleBasis, CycleValue,
+            SELECT  PMScheduleID, PMPlanNumber, EquipID, PMClass, PMType, CycleBasis, CycleValue,
                     LastPMDate, NextDueDate, ChecklistID, AssignedTechID, Status, ActiveWoID,
                     DATEDIFF(DAY, CAST(SYSDATETIME() AS DATE), NextDueDate) AS DaysToDue
             FROM    dbo.MNT_PMSchedule
-            WHERE   (NextDueDate BETWEEN @F AND @T) OR (LastPMDate BETWEEN @F AND @T)
+            WHERE   ((NextDueDate BETWEEN @F AND @T) OR (LastPMDate BETWEEN @F AND @T))
+              AND   (@C IS NULL OR PMClass = @C)
             ORDER BY NextDueDate, EquipID;
             """;
         return Query(sql, r => new PmRow(
@@ -287,15 +291,15 @@ public sealed class MntRepository
             r["LastPMDate"] as DateTime?, r["NextDueDate"] as DateTime?,
             r["ChecklistID"] as string, r["AssignedTechID"] as string,
             r["Status"] as string, r["ActiveWoID"] as int?,
-            r["DaysToDue"] as int? ?? 0),
-            ("@F", from.Date), ("@T", to.Date));
+            r["DaysToDue"] as int? ?? 0, r["PMClass"] as string),
+            ("@F", from.Date), ("@T", to.Date), ("@C", (object?)pmClass ?? DBNull.Value));
     }
 
     /// <summary>예정일(NextDueDate)이 기간 안에 드는 PM. DaysToDue 는 기간 시작일 기준 — MNT-009 "예정 예방보전" 패널용.</summary>
     public List<PmRow> ListPmDueRange(DateTime from, DateTime to)
     {
         const string sql = """
-            SELECT  PMScheduleID, PMPlanNumber, EquipID, PMType, CycleBasis, CycleValue,
+            SELECT  PMScheduleID, PMPlanNumber, EquipID, PMClass, PMType, CycleBasis, CycleValue,
                     LastPMDate, NextDueDate, ChecklistID, AssignedTechID, Status, ActiveWoID,
                     DATEDIFF(DAY, @F, NextDueDate) AS DaysToDue
             FROM    dbo.MNT_PMSchedule
@@ -308,8 +312,96 @@ public sealed class MntRepository
             r["LastPMDate"] as DateTime?, r["NextDueDate"] as DateTime?,
             r["ChecklistID"] as string, r["AssignedTechID"] as string,
             r["Status"] as string, r["ActiveWoID"] as int?,
-            r["DaysToDue"] as int? ?? 0),
+            r["DaysToDue"] as int? ?? 0, r["PMClass"] as string),
             ("@F", from.Date), ("@T", to.Date));
+    }
+
+    // ── MNT-005 설비 PM / MNT-010 보전 PM — 등록·수정·삭제 (테이블 공용, PMClass 로 구분) ──
+    public bool PmPlanNumberExists(string planNo, int? excludeId = null)
+    {
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(
+            "SELECT 1 FROM dbo.MNT_PMSchedule WHERE PMPlanNumber = @N AND (@X IS NULL OR PMScheduleID <> @X)", conn);
+        cmd.Parameters.Add("@N", SqlDbType.VarChar, 30).Value = planNo;
+        cmd.Parameters.Add("@X", SqlDbType.Int).Value = (object?)excludeId ?? DBNull.Value;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    /// <summary>계획번호 자동 채번: PM-yyMM-nnn (그 달 접두어의 최대 순번 + 1). mnt-seed 와 같은 양식.</summary>
+    public string NextPmPlanNumber(DateTime today)
+    {
+        var prefix = $"PM-{today:yyMM}-";
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand("""
+            SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(PMPlanNumber, LEN(@P) + 1, 10) AS int)), 0)
+            FROM   dbo.MNT_PMSchedule WHERE PMPlanNumber LIKE @P + '%'
+            """, conn);
+        cmd.Parameters.Add("@P", SqlDbType.VarChar, 30).Value = prefix;
+        var next = Convert.ToInt32(cmd.ExecuteScalar()) + 1;
+        return $"{prefix}{next:D3}";
+    }
+
+    public int InsertPm(string pmClass, string planNo, string equipId, string pmType, string? cycleBasis, int? cycleValue,
+        DateTime? lastPm, DateTime nextDue, string? checklistId, string? techId, string? status, string actor)
+    {
+        const string sql = """
+            INSERT INTO dbo.MNT_PMSchedule
+                (PMPlanNumber, EquipID, PMClass, PMType, CycleBasis, CycleValue, LastPMDate, NextDueDate,
+                 ChecklistID, AssignedTechID, Status, CreatedBy, CreatedTS)
+            VALUES (@No, @Eq, @Cls, @Type, @Basis, @Val, @Last, @Due, @Chk, @Tech, @St, @By, SYSDATETIME());
+            SELECT CAST(SCOPE_IDENTITY() AS int);
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@No",    SqlDbType.VarChar,   30).Value = planNo;
+        cmd.Parameters.Add("@Eq",    SqlDbType.VarChar,   20).Value = equipId;
+        cmd.Parameters.Add("@Cls",   SqlDbType.VarChar,   10).Value = pmClass;
+        cmd.Parameters.Add("@Type",  SqlDbType.VarChar,   60).Value = pmType;
+        cmd.Parameters.Add("@Basis", SqlDbType.VarChar,   10).Value = (object?)cycleBasis ?? DBNull.Value;
+        cmd.Parameters.Add("@Val",   SqlDbType.Int).Value            = (object?)cycleValue ?? DBNull.Value;
+        cmd.Parameters.Add("@Last",  SqlDbType.Date).Value           = (object?)lastPm?.Date ?? DBNull.Value;
+        cmd.Parameters.Add("@Due",   SqlDbType.Date).Value           = nextDue.Date;
+        cmd.Parameters.Add("@Chk",   SqlDbType.VarChar,   20).Value = (object?)checklistId ?? DBNull.Value;
+        cmd.Parameters.Add("@Tech",  SqlDbType.NVarChar, 450).Value = (object?)techId ?? DBNull.Value;
+        cmd.Parameters.Add("@St",    SqlDbType.VarChar,   10).Value = (object?)status ?? DBNull.Value;
+        cmd.Parameters.Add("@By",    SqlDbType.VarChar,   50).Value = actor;
+        return Convert.ToInt32(cmd.ExecuteScalar());
+    }
+
+    /// <summary>PMClass 는 화면이 정하므로 바꾸지 않는다(설비 PM 화면에서 보전 PM 으로 옮길 수 없음).</summary>
+    public void UpdatePm(int id, string planNo, string equipId, string pmType, string? cycleBasis, int? cycleValue,
+        DateTime? lastPm, DateTime nextDue, string? checklistId, string? techId, string? status, string actor)
+    {
+        const string sql = """
+            UPDATE dbo.MNT_PMSchedule
+            SET    PMPlanNumber = @No, EquipID = @Eq, PMType = @Type, CycleBasis = @Basis, CycleValue = @Val,
+                   LastPMDate = @Last, NextDueDate = @Due, ChecklistID = @Chk, AssignedTechID = @Tech, Status = @St,
+                   ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+            WHERE  PMScheduleID = @Id;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Id",    SqlDbType.Int).Value            = id;
+        cmd.Parameters.Add("@No",    SqlDbType.VarChar,   30).Value = planNo;
+        cmd.Parameters.Add("@Eq",    SqlDbType.VarChar,   20).Value = equipId;
+        cmd.Parameters.Add("@Type",  SqlDbType.VarChar,   60).Value = pmType;
+        cmd.Parameters.Add("@Basis", SqlDbType.VarChar,   10).Value = (object?)cycleBasis ?? DBNull.Value;
+        cmd.Parameters.Add("@Val",   SqlDbType.Int).Value            = (object?)cycleValue ?? DBNull.Value;
+        cmd.Parameters.Add("@Last",  SqlDbType.Date).Value           = (object?)lastPm?.Date ?? DBNull.Value;
+        cmd.Parameters.Add("@Due",   SqlDbType.Date).Value           = nextDue.Date;
+        cmd.Parameters.Add("@Chk",   SqlDbType.VarChar,   20).Value = (object?)checklistId ?? DBNull.Value;
+        cmd.Parameters.Add("@Tech",  SqlDbType.NVarChar, 450).Value = (object?)techId ?? DBNull.Value;
+        cmd.Parameters.Add("@St",    SqlDbType.VarChar,   10).Value = (object?)status ?? DBNull.Value;
+        cmd.Parameters.Add("@By",    SqlDbType.NVarChar, 450).Value = actor;
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeletePm(int id)
+    {
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand("DELETE FROM dbo.MNT_PMSchedule WHERE PMScheduleID = @Id", conn);
+        cmd.Parameters.Add("@Id", SqlDbType.Int).Value = id;
+        cmd.ExecuteNonQuery();
     }
 
     public List<MwoRow> ListWorkOrders(int topN = 100, string? statusFilter = null)

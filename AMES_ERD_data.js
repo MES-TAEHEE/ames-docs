@@ -1685,6 +1685,7 @@ MNT: { cols: 3, tables: [
     ['PMScheduleID','INT IDENTITY','PK'],
     ['PMPlanNumber','VARCHAR(30)',''],
     ['EquipID','VARCHAR(20)','FK:MD_Equipment.EquipID'],
+    ['PMClass','VARCHAR(10)',''],
     ['PMType','VARCHAR(60)',''],
     ['CycleBasis','VARCHAR(10)',''],
     ['CycleValue','INT',''],
