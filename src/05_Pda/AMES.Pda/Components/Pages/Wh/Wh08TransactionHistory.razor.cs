@@ -63,11 +63,10 @@ public partial class Wh08TransactionHistory
         new("조정 상세", "DETAIL에서 Before 16, Change +2, After 18과 Reason·Note·Worker·Supervisor를 확인합니다.", new PptScenarioPanel.Value("DETAIL", "조정 상세 열기", "DETAIL"))
     ];
     private bool IsDetailedWhTestMode => !IsFinishedGoods
-        && string.Equals(Auth?.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+        && PdaScenarioUsers.IsDetailed(Auth?.Session?.EmployeeNo);
     private bool IsDetailedFgTestMode => IsFinishedGoods
-        && string.Equals(Auth?.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
-    private bool IsPptTestMode => IsDetailedFgTestMode
-        || string.Equals(Auth?.Session?.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase);
+        && PdaScenarioUsers.IsDetailed(Auth?.Session?.EmployeeNo);
+    private bool IsPptTestMode => IsDetailedFgTestMode || PdaScenarioUsers.IsSimple(Auth?.Session?.EmployeeNo);
     private PptScenarioPanel.Step[] ActivePptSteps => IsDetailedFgTestMode
         ? FgDetailedScenarioCatalog.Transactions(FgPptSteps)
         : IsFinishedGoods ? FgPptSteps : PptSteps;

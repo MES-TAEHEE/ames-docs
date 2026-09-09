@@ -2,8 +2,8 @@ namespace AMES.Pda.Components.Pages.Fg;
 
 public partial class Fg01QcComplete
 {
-    private bool IsDetailedTestMode => string.Equals(Auth?.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
-    private bool IsPptTestMode => IsDetailedTestMode || string.Equals(Auth?.Session?.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase);
+    private bool IsDetailedTestMode => PdaScenarioUsers.IsDetailed(Auth?.Session?.EmployeeNo);
+    private bool IsPptTestMode => IsDetailedTestMode || PdaScenarioUsers.IsSimple(Auth?.Session?.EmployeeNo);
     private PptScenarioPanel.Step[] ActiveScenarioSteps => IsDetailedTestMode ? FgDetailedScenarioCatalog.Qc(PptSteps) : PptSteps;
     private string ScenarioModeLabel => IsDetailedTestMode ? "TEST MODE" : "PPT CHECK";
     private bool _pptReady;

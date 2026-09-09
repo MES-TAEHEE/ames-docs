@@ -28,9 +28,8 @@ public partial class Wh03InventoryStatus
         _ => step
     }).ToArray();
     private bool IsDetailedFgTestMode => IsFinishedGoodsAdjust
-        && string.Equals(Auth?.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
-    private bool IsPptTestMode => IsDetailedFgTestMode
-        || string.Equals(Auth?.Session?.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase);
+        && PdaScenarioUsers.IsDetailed(Auth?.Session?.EmployeeNo);
+    private bool IsPptTestMode => IsDetailedFgTestMode || PdaScenarioUsers.IsSimple(Auth?.Session?.EmployeeNo);
     private PptScenarioPanel.Step[] ActivePptSteps => IsDetailedFgTestMode
         ? FgDetailedScenarioCatalog.Adjust(PptFgAdjustSteps)
         : IsFinishedGoodsAdjust ? PptFgAdjustSteps : IsAdjustTab ? PptAdjustSteps : PptInventorySteps;

@@ -1,4 +1,4 @@
--- =====================================================================
+﻿-- =====================================================================
 --  PDA_SEED.sql
 --  Consolidated Warehouse and Finished Goods demo/test data for the PDA
 --
@@ -10,68 +10,68 @@
 USE [AMES_DEV];
 GO
 
--- TEST / 0000: PDA scenario-runner account. Keep it unrestricted so every
--- Warehouse test screen can reuse the same login as scenario helpers expand.
+-- SCTEST2 / 0000: detailed scenario account.
+-- SCTEST1 / 0000: simple PPT validation account.
 IF OBJECT_ID(N'dbo.AspNetUsers', N'U') IS NOT NULL
    AND OBJECT_ID(N'dbo.SYS_UserProfile', N'U') IS NOT NULL
 BEGIN
-    DECLARE @TestUserId nvarchar(450) = N'pda-test-user';
+    DECLARE @TestUserId nvarchar(450) = N'pda-detailed-scenario-user';
     DECLARE @TestPinHash nvarchar(200) = N'AQAAAAEAACcQAAAAEJFoD5NntyEZN/tZd1NHiMZtqlIJPCqGlrClvFmOcSGzPWghpal/Q1PscOkb3c9kyQ==';
 
     MERGE dbo.AspNetUsers AS T
     USING (SELECT @TestUserId AS Id) AS S ON T.Id = S.Id
     WHEN MATCHED THEN UPDATE SET
-        UserName = N'TEST', NormalizedUserName = N'TEST',
+        UserName = N'SCTEST2', NormalizedUserName = N'SCTEST2',
         LockoutEnabled = 1, AccessFailedCount = 0
     WHEN NOT MATCHED THEN INSERT
         (Id, UserName, NormalizedUserName, SecurityStamp, ConcurrencyStamp,
          EmailConfirmed, PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnabled, AccessFailedCount)
     VALUES
-        (@TestUserId, N'TEST', N'TEST', REPLACE(CONVERT(nvarchar(36), NEWID()), N'-', N''),
+        (@TestUserId, N'SCTEST2', N'SCTEST2', REPLACE(CONVERT(nvarchar(36), NEWID()), N'-', N''),
          REPLACE(CONVERT(nvarchar(36), NEWID()), N'-', N''), 0, 0, 0, 1, 0);
 
-    IF EXISTS (SELECT 1 FROM dbo.SYS_UserProfile WHERE EmployeeNo = 'TEST')
+    IF EXISTS (SELECT 1 FROM dbo.SYS_UserProfile WHERE EmployeeNo = 'SCTEST2')
         UPDATE dbo.SYS_UserProfile
-           SET UserID = @TestUserId, EmployeeName = N'Warehouse Test', Department = 'QA',
+           SET UserID = @TestUserId, EmployeeName = N'Detailed Scenario Test', Department = 'QA',
                AssignedLines = NULL, PinHash = @TestPinHash, AccountStatus = 'Active',
                FailedLoginCount = 0, ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME()
-         WHERE EmployeeNo = 'TEST';
+         WHERE EmployeeNo = 'SCTEST2';
     ELSE
         INSERT INTO dbo.SYS_UserProfile
             (UserID, EmployeeNo, EmployeeName, Department, PlantCode, DefaultShift,
              AssignedLines, PinHash, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
         VALUES
-            (@TestUserId, 'TEST', N'Warehouse Test', 'QA', 'SEH-US-01', 'DAY',
+            (@TestUserId, 'SCTEST2', N'Detailed Scenario Test', 'QA', 'SEH-US-01', 'DAY',
              NULL, @TestPinHash, 'Active', 0, 'pda-seed', SYSDATETIME());
 
-    DECLARE @SimpleTestUserId nvarchar(450) = N'pda-simple-test-user';
+    DECLARE @SimpleTestUserId nvarchar(450) = N'pda-simple-scenario-user';
     MERGE dbo.AspNetUsers AS T
     USING (SELECT @SimpleTestUserId AS Id) AS S ON T.Id = S.Id
     WHEN MATCHED THEN UPDATE SET
-        UserName = N'TEST1', NormalizedUserName = N'TEST1',
+        UserName = N'SCTEST1', NormalizedUserName = N'SCTEST1',
         LockoutEnabled = 1, AccessFailedCount = 0
     WHEN NOT MATCHED THEN INSERT
         (Id, UserName, NormalizedUserName, SecurityStamp, ConcurrencyStamp,
          EmailConfirmed, PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnabled, AccessFailedCount)
     VALUES
-        (@SimpleTestUserId, N'TEST1', N'TEST1', REPLACE(CONVERT(nvarchar(36), NEWID()), N'-', N''),
+        (@SimpleTestUserId, N'SCTEST1', N'SCTEST1', REPLACE(CONVERT(nvarchar(36), NEWID()), N'-', N''),
          REPLACE(CONVERT(nvarchar(36), NEWID()), N'-', N''), 0, 0, 0, 1, 0);
 
-    IF EXISTS (SELECT 1 FROM dbo.SYS_UserProfile WHERE EmployeeNo = 'TEST1')
+    IF EXISTS (SELECT 1 FROM dbo.SYS_UserProfile WHERE EmployeeNo = 'SCTEST1')
         UPDATE dbo.SYS_UserProfile
-           SET UserID = @SimpleTestUserId, EmployeeName = N'Warehouse PPT Test', Department = 'QA',
+           SET UserID = @SimpleTestUserId, EmployeeName = N'Simple Scenario Test', Department = 'QA',
                AssignedLines = NULL, PinHash = @TestPinHash, AccountStatus = 'Active',
                FailedLoginCount = 0, ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME()
-         WHERE EmployeeNo = 'TEST1';
+         WHERE EmployeeNo = 'SCTEST1';
     ELSE
         INSERT INTO dbo.SYS_UserProfile
             (UserID, EmployeeNo, EmployeeName, Department, PlantCode, DefaultShift,
              AssignedLines, PinHash, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
         VALUES
-            (@SimpleTestUserId, 'TEST1', N'Warehouse PPT Test', 'QA', 'SEH-US-01', 'DAY',
+            (@SimpleTestUserId, 'SCTEST1', N'Simple Scenario Test', 'QA', 'SEH-US-01', 'DAY',
              NULL, @TestPinHash, 'Active', 0, 'pda-seed', SYSDATETIME());
 
-    -- TEST1 validates every PPT flow, including administrator-only Adjust screens.
+    -- Both scenario accounts validate administrator-only Adjust screens.
     DECLARE @AdminRoleId nvarchar(450) =
         (SELECT TOP (1) Id FROM dbo.AspNetRoles WHERE UPPER(Name) = 'ADMIN');
     IF @AdminRoleId IS NOT NULL
@@ -82,6 +82,14 @@ BEGIN
        )
         INSERT INTO dbo.AspNetUserRoles (UserId, RoleId)
         VALUES (@SimpleTestUserId, @AdminRoleId);
+    IF @AdminRoleId IS NOT NULL
+       AND NOT EXISTS
+       (
+           SELECT 1 FROM dbo.AspNetUserRoles
+           WHERE UserId = @TestUserId AND RoleId = @AdminRoleId
+       )
+        INSERT INTO dbo.AspNetUserRoles (UserId, RoleId)
+        VALUES (@TestUserId, @AdminRoleId);
 END;
 GO
 

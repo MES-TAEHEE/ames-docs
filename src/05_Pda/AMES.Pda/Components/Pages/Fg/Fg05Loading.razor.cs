@@ -4,8 +4,8 @@ public partial class Fg05Loading
 {
     private const string PptTruck = "TRUCK:PPT-FG-01", PptOrder = "FG-PPT-SO-LOAD";
     private static readonly string[] PptStocks = ["FG-PPT-STK-940001", "FG-PPT-STK-940002", "FG-PPT-STK-940003"];
-    private bool IsDetailedTestMode => string.Equals(Auth?.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
-    private bool IsPptTestMode => IsDetailedTestMode || string.Equals(Auth?.Session?.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase);
+    private bool IsDetailedTestMode => PdaScenarioUsers.IsDetailed(Auth?.Session?.EmployeeNo);
+    private bool IsPptTestMode => IsDetailedTestMode || PdaScenarioUsers.IsSimple(Auth?.Session?.EmployeeNo);
     private PptScenarioPanel.Step[] ActiveScenarioSteps => IsDetailedTestMode ? FgDetailedScenarioCatalog.Loading(PptSteps) : PptSteps;
     private string ScenarioModeLabel => IsDetailedTestMode ? "TEST MODE" : "PPT CHECK";
     private bool _pptOpen, _pptReady;

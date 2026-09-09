@@ -376,7 +376,7 @@
     private bool _testPanelOpen;
     private bool _simulateReleaseApiFailure;
 
-    private bool IsTestMode => string.Equals(Auth.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+    private bool IsTestMode => PdaScenarioUsers.IsDetailed(Auth.Session?.EmployeeNo);
     private ReleaseTestScenario CurrentTestScenario => ReleaseTestScenarios[_testScenarioIndex];
 
     private void OpenTestPanel() => _testPanelOpen = true;

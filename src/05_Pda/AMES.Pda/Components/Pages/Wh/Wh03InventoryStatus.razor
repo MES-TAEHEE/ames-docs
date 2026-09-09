@@ -901,7 +901,7 @@
 
     private string PageTitle => IsAdjustTab ? "Adjust" : "Inventory";
     private bool IsTestMode => !IsFinishedGoodsAdjust
-        && string.Equals(Auth.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+        && PdaScenarioUsers.IsDetailed(Auth.Session?.EmployeeNo);
     private InventoryTestScenario CurrentTestScenario => InventoryTestScenarios[_testScenarioIndex];
     private AdjustTestScenario CurrentAdjustTestScenario => AdjustTestScenarios[_adjustTestScenarioIndex];
     private bool ShouldSimulateInventoryApiFailure => IsTestMode
