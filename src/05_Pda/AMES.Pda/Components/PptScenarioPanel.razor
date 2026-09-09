@@ -4,7 +4,7 @@
     <div class="wh02-test-backdrop" @onclick="Close">
         <section class="wh02-test-panel wh02-simple-panel" role="dialog" aria-modal="true" aria-label="PPT scenarios" @onclick:stopPropagation="true">
             <div class="wh02-test-head">
-                <div><span>PPT CHECK</span><strong>@Title 간편 검수</strong></div>
+                <div><span>@ModeLabel</span><strong>@Title @(IsDetailed ? "상세 검수" : "간편 검수")</strong></div>
                 <b>@(_index + 1) / @Steps.Length</b>
                 <button class="wh02-test-close" @onclick="Close" aria-label="Close scenarios">×</button>
             </div>
@@ -16,7 +16,7 @@
                 }
             </div>
             <div class="wh02-test-case">
-                <div class="wh02-test-summary"><span>PPT @(_index + 1)</span><strong>@Current.Title</strong></div>
+                <div class="wh02-test-summary"><span>@(IsDetailed ? Current.TestCaseId : $"PPT {_index + 1}")</span><strong>@Current.Title</strong></div>
                 <p class="wh02-simple-guide">@Current.Guide</p>
                 @if (!string.IsNullOrEmpty(_error))
                 {
@@ -28,7 +28,7 @@
                         <button @onclick="@(() => Run(() => OnValue.InvokeAsync(value.Command)))"><span>@value.Label</span><b>@value.Text</b></button>
                     }
                 </div>
-                <button class="wh02-test-start" @onclick="@(() => Run(() => OnStart.InvokeAsync(_index + 1)))">이 단계 시작</button>
+                <button class="wh02-test-start" @onclick="@(() => Run(() => OnStart.InvokeAsync(Current.SourceStep > 0 ? Current.SourceStep : _index + 1)))">@(IsDetailed ? "시나리오 시작" : "이 단계 시작")</button>
                 <div class="wh02-test-actions">
                     <button @onclick="@(() => Run(() => OnReset.InvokeAsync()))">테스트 데이터 초기화</button>
                 </div>
@@ -39,8 +39,13 @@
 
 @code {
     public sealed record Value(string Label, string Text, string Command);
-    public sealed record Step(string Title, string Guide, params Value[] Values);
+    public sealed record Step(string Title, string Guide, params Value[] Values)
+    {
+        public int SourceStep { get; init; }
+        public string TestCaseId { get; init; } = "";
+    }
     [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string ModeLabel { get; set; } = "PPT CHECK";
     [Parameter] public Step[] Steps { get; set; } = [];
     [Parameter] public bool Busy { get; set; }
     [Parameter] public EventCallback<int> OnStart { get; set; }
@@ -52,6 +57,7 @@
     private int _index;
     private string _error = "";
     private Step Current => Steps[_index];
+    private bool IsDetailed => !string.IsNullOrWhiteSpace(Current.TestCaseId);
     private async Task Open() { _open = true; await OpenChanged.InvokeAsync(true); }
     private async Task Close() { _open = false; await OpenChanged.InvokeAsync(false); }
     private async Task Run(Func<Task> action)

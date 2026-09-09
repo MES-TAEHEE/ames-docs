@@ -102,7 +102,8 @@ public static class FgEndpoints
         g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
-            if (!string.Equals(session.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(session.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(session.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase))
                 return Results.StatusCode(StatusCodes.Status403Forbidden);
             if (screen is not ("qc" or "putaway" or "inventory" or "release" or "loading" or "return" or "adjust" or "history"))
                 return Results.BadRequest(new { Message = "Unknown PPT test screen." });
