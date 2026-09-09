@@ -8,7 +8,7 @@ internal enum AndonUiState { Ready, Open, SupAcked, DeptCalled, PickDept }
 internal enum AndonReject
 {
     EmptyBadge, NotSupervisor, CauseRequired, DeptRequired,
-    NoPendingDept, NotArrived, DeptAlreadyCalled, UnknownBadge,
+    NoPendingDept, NotArrived, DeptAlreadyCalled, UnknownBadge, SeverityRequired,
 }
 
 /// <summary>
@@ -31,7 +31,9 @@ internal sealed class AndonWorkflow
     public AndonCallDto? Call  { get; private set; }
     public IReadOnlyList<AndonCauseDto> Causes { get; private set; } = Array.Empty<AndonCauseDto>();
     public IReadOnlyList<AndonDeptDto>  Depts  { get; private set; } = Array.Empty<AndonDeptDto>();
+    public IReadOnlyList<AndonSeverityDto> Severities { get; private set; } = Array.Empty<AndonSeverityDto>();
     public string? SelectedCause { get; private set; }
+    public string? SelectedSeverity { get; private set; }
     public IReadOnlySet<string> SelectedDepts => _selectedDepts;
     public (string No, string? Name)? PendingScan { get; private set; }
 
@@ -67,12 +69,18 @@ internal sealed class AndonWorkflow
             // 마지막 AckDept 커밋 후 Resolve 가 실패하면 전 부서 ACK 인데 DEPT_CALLED 로 남을 수 있다 —
             // 재진입할 때마다 그 전이를 마저 끝낸다.
             var id = Call!.AndonId;
-            _store.Resolve(id, null);
+            _store.Resolve(id, null, null);
             Finish(id);
             return;
         }
         if (State == AndonUiState.Ready) { Call = null; ResetSelection(); }
-        else SelectedCause ??= Call?.CauseCode;
+        else
+        {
+            SelectedCause ??= Call?.CauseCode;
+            // 발동이 남긴 임시값(HIGH 등)은 코드 목록에 없다 — 슈퍼바이저가 실제로 고른 값만 선택으로 본다.
+            SelectedSeverity ??= Severities.Any(s => string.Equals(s.Code, Call?.Severity, StringComparison.OrdinalIgnoreCase))
+                                 ? Call!.Severity : null;
+        }
         Changed?.Invoke();
     }
 
@@ -134,6 +142,13 @@ internal sealed class AndonWorkflow
         Changed?.Invoke();
     }
 
+    public void SelectSeverity(string code)
+    {
+        if (State is not (AndonUiState.SupAcked or AndonUiState.DeptCalled)) return;
+        SelectedSeverity = code;
+        Changed?.Invoke();
+    }
+
     public void ToggleDept(string code)
     {
         if (State is not (AndonUiState.SupAcked or AndonUiState.DeptCalled)) return;
@@ -146,12 +161,13 @@ internal sealed class AndonWorkflow
     public void CallDepts()
     {
         if (State is not (AndonUiState.SupAcked or AndonUiState.DeptCalled) || Call is null) return;
-        if (SelectedCause is null)  { Reject(AndonReject.CauseRequired); return; }
+        if (SelectedCause is null)    { Reject(AndonReject.CauseRequired); return; }
+        if (SelectedSeverity is null) { Reject(AndonReject.SeverityRequired); return; }
         if (_selectedDepts.Count == 0) { Reject(AndonReject.DeptRequired); return; }
         // 다른 터미널이 먼저 같은 부서를 호출했을 수 있다 — 선택이 오래됐을 수 있으니 재확인한다.
         var toCall = _selectedDepts.Where(d => !IsAlreadyCalled(d)).ToList();
         if (toCall.Count == 0) { Reject(AndonReject.DeptRequired); return; }
-        _store.CallDepts(Call.AndonId, SelectedCause, toCall, Call.SupervisorNo ?? _operatorNo);
+        _store.CallDepts(Call.AndonId, SelectedCause, SelectedSeverity, toCall, Call.SupervisorNo ?? _operatorNo);
         ResetSelection(keepCause: true);
         Load();
     }
@@ -159,9 +175,10 @@ internal sealed class AndonWorkflow
     public void ResolveSelf()
     {
         if (State != AndonUiState.SupAcked || Call is null) return;
-        if (SelectedCause is null) { Reject(AndonReject.CauseRequired); return; }
+        if (SelectedCause is null)    { Reject(AndonReject.CauseRequired); return; }
+        if (SelectedSeverity is null) { Reject(AndonReject.SeverityRequired); return; }
         var id = Call.AndonId;
-        _store.Resolve(id, SelectedCause);
+        _store.Resolve(id, SelectedCause, SelectedSeverity);
         Finish(id);
     }
 
@@ -201,8 +218,9 @@ internal sealed class AndonWorkflow
 
     private void EnsureMasters()
     {
-        if (Causes.Count == 0) Causes = _store.ListCauses();
-        if (Depts.Count == 0)  Depts  = _store.ListDepts();
+        if (Causes.Count == 0)     Causes     = _store.ListCauses();
+        if (Depts.Count == 0)      Depts      = _store.ListDepts();
+        if (Severities.Count == 0) Severities = _store.ListSeverities();
     }
 
     private bool IsAlreadyCalled(string deptCode)
@@ -213,7 +231,7 @@ internal sealed class AndonWorkflow
 
     private void ResetSelection(bool keepCause = false)
     {
-        if (!keepCause) SelectedCause = null;
+        if (!keepCause) { SelectedCause = null; SelectedSeverity = null; }
         _selectedDepts.Clear();
         _deptsTouched = false;
         PendingScan = null;

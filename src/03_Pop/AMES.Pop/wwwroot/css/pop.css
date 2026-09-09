@@ -568,6 +568,7 @@ body {
                    background: transparent; color: #fff; font-size: 22px; font-weight: 700; cursor: pointer; }
 .andon-dept-chip.on { background: var(--ok-dk); border-color: var(--ok-dk); }
 .andon-dept-chip.called { opacity: .4; cursor: default; }
+.andon-dept-chip.andon-sev.on { background: #b45309; border-color: #b45309; }
 .andon-dept-tbl { width: min(1100px, 92vw); border-collapse: collapse; font-size: 22px;
                   background: rgba(0,0,0,.35); border-radius: 10px; overflow: hidden; }
 .andon-dept-tbl th { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #fca5a5;

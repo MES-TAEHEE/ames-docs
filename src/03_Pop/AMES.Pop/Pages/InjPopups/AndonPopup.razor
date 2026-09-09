@@ -45,6 +45,13 @@
 
                 case AndonUiState.SupAcked:
                     <div class="andon-sup">👤 @T("AndonSupervisor") · @SupLabel · @_wf.Call?.SupervisorAt?.ToString("HH:mm:ss")</div>
+                    <div class="andon-cause-l">▼ @T("AndonSeverity")</div>
+                    <div class="andon-dept-chips">
+                        @foreach (var sv in _wf.Severities)
+                        {
+                            <button class="andon-dept-chip andon-sev @(IsSeverity(sv.Code) ? "on" : "")" @onclick="@(() => _wf.SelectSeverity(sv.Code))">@Name(sv.Name, sv.NameEn)</button>
+                        }
+                    </div>
                     <div class="andon-cause-l">▼ @T("AndonCause")</div>
                     <div class="andon-cause-grid">
                         @foreach (var c in _wf.Causes)
@@ -67,7 +74,7 @@
 
                 case AndonUiState.DeptCalled:
                 case AndonUiState.PickDept:
-                    <div class="andon-sup">👤 @T("AndonSupervisor") · @SupLabel · @T("AndonCause"): @CauseLabel</div>
+                    <div class="andon-sup">👤 @T("AndonSupervisor") · @SupLabel · @T("AndonCause"): @CauseLabel · @T("AndonSeverity"): @SeverityLabel</div>
                     <div class="andon-subtitle">📷 @T("AndonScanResponderBadge")</div>
                     <table class="andon-dept-tbl">
                         <thead><tr><th>@T("AndonDepts")</th><th>@T("AndonWaiting")</th><th>@T("AndonArrived")</th><th>@T("AndonDone")</th><th></th></tr></thead>
@@ -91,6 +98,13 @@
                     </table>
                     @if (_addingDept)
                     {
+                        <div class="andon-cause-l">▼ @T("AndonSeverity")</div>
+                        <div class="andon-dept-chips">
+                            @foreach (var sv in _wf.Severities)
+                            {
+                                <button class="andon-dept-chip andon-sev @(IsSeverity(sv.Code) ? "on" : "")" @onclick="@(() => _wf.SelectSeverity(sv.Code))">@Name(sv.Name, sv.NameEn)</button>
+                            }
+                        </div>
                         <div class="andon-cause-l">▼ @T("AndonDepts")</div>
                         <div class="andon-dept-chips">
                             @foreach (var d in _wf.Depts)
@@ -170,6 +184,16 @@
         }
     }
     private bool IsCause(string code) => string.Equals(_wf.SelectedCause, code, StringComparison.OrdinalIgnoreCase);
+    private bool IsSeverity(string code) => string.Equals(_wf.SelectedSeverity, code, StringComparison.OrdinalIgnoreCase);
+    private string SeverityLabel
+    {
+        get
+        {
+            var code = _wf.SelectedSeverity ?? _wf.Call?.Severity;
+            var s = _wf.Severities.FirstOrDefault(x => x.Code == code);
+            return s is null ? code ?? "—" : Name(s.Name, s.NameEn);
+        }
+    }
 
     protected override void OnInitialized()
     {
@@ -291,6 +315,7 @@
         AndonReject.NotArrived        => T("AndonNotArrived"),
         AndonReject.DeptAlreadyCalled => T("AndonDeptAlreadyCalled"),
         AndonReject.UnknownBadge      => T("AndonUnknownBadge"),
+        AndonReject.SeverityRequired  => T("AndonSeverityRequired"),
         _                             => r.ToString(),
     };
 

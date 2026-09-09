@@ -392,6 +392,8 @@ INJ-MAIN 은 HID(키보드 웨지) 외에 시리얼 스캔도 받는다. 호스�
 - 부서 담당자 스캔은 소속을 검증하지 않지만 EOS 양식 배지이거나 등록된 사번이어야 한다. 그 안에서는 누가 찍든 그 사람이 도착자로 기록된다.
 - 안돈 팝업이 열려 있는 동안 스캔은 전부 배지로 해석된다. LOT 라벨을 찍으면 거부 토스트가 뜬다 — 실적 확정은 팝업을 닫고 한다. 팝업을 닫아도 안돈은 DB 에 남고 상단바 `🚨 안돈 진행중` 칩으로 다시 연다.
 - 배포 순서: ① `dist/migrate_andon_workflow.sql` ② 슈퍼바이저 등록 ③ AMES.Pop 신버전. 롤백은 Pop 구버전으로만(새 테이블·컬럼은 구버전이 안 쓴다).
+- **심각도는 필수**다. 슈퍼바이저가 `DEFECT_SEVERITY`(MINOR/MAJOR/CRITICAL) 중 하나를 골라야 부서 호출·자체 해결 종료가 되고, 값은 `PR_AndonCall.Severity` 에 남는다(발동 직후는 NULL).
+- **연동 테이블**: 발동 시 `PP_LineDowntimeLog`(ReasonCode `ANDON`, `AndonID`) 1행이 열리고 종료 시 `EndTS`·`DurationMin` 이 닫힌다(자체 해결 포함). 보전(`ANDON_DEPT` 코드 `MAINT`, `AndonDeptCodes.Maint`)이 호출되면 `MNT_FailureRegister` 1행(`Source='ANDON'`, `AndonRefID`=안돈 ID, `FailureNumber`=`FAIL-yyMM-NNN`, `Severity`=선택값, `FailureType`=원인 코드)이 생기고 도착·ACK 가 `MNT_FailureAction`(ARRIVED/ACK) 으로, 안돈 종료가 `Status='RESOLVED'` 로 이어진다. 품질·자재 호출은 고장을 만들지 않는다. `MNT_FailureRegister.Severity` 컬럼은 `dev` 의 `migrate_mnt_failure_severity.sql` 이 만든다 — 그 마이그레이션 없는 DB 에서는 보전 호출이 예외 토스트로 실패한다.
 
 ---
 

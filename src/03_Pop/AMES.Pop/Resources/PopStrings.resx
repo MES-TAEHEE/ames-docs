@@ -31,6 +31,8 @@
   <data name="AndonResolved" xml:space="preserve"><value>안돈 #{0} 종료 — 생산 재개</value></data>
   <data name="AndonScanResponderBadge" xml:space="preserve"><value>부서 담당자 사원증을 스캔하세요</value></data>
   <data name="AndonScanSupervisorBadge" xml:space="preserve"><value>슈퍼바이저 사원증을 스캔하세요</value></data>
+  <data name="AndonSeverity" xml:space="preserve"><value>심각도</value></data>
+  <data name="AndonSeverityRequired" xml:space="preserve"><value>심각도를 선택하세요.</value></data>
   <data name="AndonSupervisor" xml:space="preserve"><value>슈퍼바이저</value></data>
   <data name="AndonSupervisorCalled" xml:space="preserve"><value>슈퍼바이저 호출됨</value></data>
   <data name="AndonUnknownBadge" xml:space="preserve"><value>등록되지 않은 사번입니다.</value></data>

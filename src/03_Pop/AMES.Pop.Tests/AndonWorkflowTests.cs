@@ -12,9 +12,9 @@ public class AndonWorkflowTests
         public int NextId = 1;
         public string? Status;
         public int AndonId;
-        public string? SupNo, SupName, Cause;
+        public string? SupNo, SupName, Cause, Severity;
         public bool ResolvedCalled;
-        public string? ResolveCause;
+        public string? ResolveCause, ResolveSeverity, CallSeverity;
         public List<(string Dept, string By)> Called = new();
         public List<string[]> CallArgs = new();
         public HashSet<string> Supervisors = new(StringComparer.OrdinalIgnoreCase) { "S001" };
@@ -33,11 +33,15 @@ public class AndonWorkflowTests
             new("QC", "품질", "Quality"),
             new("MATERIAL", "자재", "Material"),
         };
+        public List<AndonSeverityDto> Severities = new()
+        {
+            new("MINOR", "MINOR", "MINOR"), new("MAJOR", "MAJOR", "MAJOR"), new("CRITICAL", "CRITICAL", "CRITICAL"),
+        };
 
         public AndonCallDto? GetOpenForLine(string lineId) => Status is null or "RESOLVED" ? null : new AndonCallDto
         {
             AndonId = AndonId, LineId = lineId, Status = Status, TriggeredAt = new DateTime(2026, 9, 9, 8, 0, 0),
-            TriggeredBy = "W001", SupervisorNo = SupNo, SupervisorName = SupName, CauseCode = Cause,
+            TriggeredBy = "W001", SupervisorNo = SupNo, SupervisorName = SupName, CauseCode = Cause, Severity = Severity,
             Depts = DeptRows.Select(Clone).ToList(),
         };
 
@@ -54,6 +58,7 @@ public class AndonWorkflowTests
         public bool IsLineSupervisor(string lineId, string workerNo) => Supervisors.Contains(workerNo);
         public List<AndonCauseDto> ListCauses() => Causes;
         public List<AndonDeptDto>  ListDepts()  => Depts;
+        public List<AndonSeverityDto> ListSeverities() => Severities;
 
         public void AcknowledgeBySupervisor(int andonId, string workerNo, string? name)
         {
@@ -61,11 +66,11 @@ public class AndonWorkflowTests
             SupNo = workerNo; SupName = name; Status = "SUP_ACKED";
         }
 
-        public void CallDepts(int andonId, string causeCode, IEnumerable<string> deptCodes, string calledBy)
+        public void CallDepts(int andonId, string causeCode, string severity, IEnumerable<string> deptCodes, string calledBy)
         {
             var codes = deptCodes.ToArray();
             CallArgs.Add(codes);
-            Cause = causeCode; Status = "DEPT_CALLED";
+            Cause = causeCode; Severity = severity; CallSeverity = severity; Status = "DEPT_CALLED";
             foreach (var d in codes)
             {
                 if (DeptRows.Any(r => r.DeptCode == d)) continue;
@@ -101,9 +106,9 @@ public class AndonWorkflowTests
             };
         }
 
-        public void Resolve(int andonId, string? causeCode)
+        public void Resolve(int andonId, string? causeCode, string? severity)
         {
-            ResolvedCalled = true; ResolveCause = causeCode; Status = "RESOLVED";
+            ResolvedCalled = true; ResolveCause = causeCode; ResolveSeverity = severity; Status = "RESOLVED";
         }
     }
 
@@ -128,10 +133,12 @@ public class AndonWorkflowTests
         return (w, s, rejects, done);
     }
 
+    // 심각도는 호출·자체해결 모두 필수라 헬퍼에서 미리 고른다. 심각도 규칙은 전용 테스트가 본다.
     static AndonWorkflow ToSupAcked(AndonWorkflow w)
     {
         w.Raise();
         w.OnBadgeScan("EOS*S001*Sup One");
+        w.SelectSeverity("MAJOR");
         return w;
     }
 
@@ -459,6 +466,7 @@ public class AndonWorkflowTests
         var w2 = new AndonWorkflow(throwing, new FakeNames(), "LINE-INJ-01", null, "W001");
         w2.Load();
         w2.SelectCause("EQUIP");
+        w2.SelectSeverity("MAJOR");
         Assert.Throws<InvalidOperationException>(() => w2.CallDepts());
         Assert.Equal(AndonUiState.SupAcked, w2.State);
     }
@@ -472,11 +480,73 @@ public class AndonWorkflowTests
         public bool IsLineSupervisor(string lineId, string workerNo) => _inner.IsLineSupervisor(lineId, workerNo);
         public List<AndonCauseDto> ListCauses() => _inner.ListCauses();
         public List<AndonDeptDto> ListDepts() => _inner.ListDepts();
+        public List<AndonSeverityDto> ListSeverities() => _inner.ListSeverities();
         public void AcknowledgeBySupervisor(int andonId, string workerNo, string? name) => _inner.AcknowledgeBySupervisor(andonId, workerNo, name);
-        public void CallDepts(int andonId, string causeCode, IEnumerable<string> deptCodes, string calledBy) => throw new InvalidOperationException("db down");
+        public void CallDepts(int andonId, string causeCode, string severity, IEnumerable<string> deptCodes, string calledBy) => throw new InvalidOperationException("db down");
         public void RecordArrival(int deptCallId, string workerNo, string? name) => _inner.RecordArrival(deptCallId, workerNo, name);
         public void AckDept(int deptCallId) => _inner.AckDept(deptCallId);
-        public void Resolve(int andonId, string? causeCode) => _inner.Resolve(andonId, causeCode);
+        public void Resolve(int andonId, string? causeCode, string? severity) => _inner.Resolve(andonId, causeCode, severity);
+    }
+
+    [Fact]
+    public void Supervisor_ack_loads_severity_master()
+    {
+        var (w, _, _, _) = Build();
+        w.Raise();
+        w.OnBadgeScan("EOS*S001*Sup One");
+        Assert.Equal(3, w.Severities.Count);
+        Assert.Null(w.SelectedSeverity);
+    }
+
+    [Fact]
+    public void CallDepts_requires_severity_regardless_of_depts()
+    {
+        var (w, s, r, _) = Build();
+        w.Raise();
+        w.OnBadgeScan("EOS*S001*Sup One");
+        w.SelectCause("QUALITY");           // 기본 부서 QC — 보전이 없어도 심각도는 필수
+        w.CallDepts();
+        Assert.Equal(AndonReject.SeverityRequired, r.Last());
+        Assert.Empty(s.CallArgs);
+        Assert.Equal(AndonUiState.SupAcked, w.State);
+
+        w.SelectSeverity("CRITICAL");
+        w.CallDepts();
+        Assert.Equal("CRITICAL", s.CallSeverity);
+        Assert.Equal(AndonUiState.DeptCalled, w.State);
+    }
+
+    [Fact]
+    public void ResolveSelf_requires_severity_and_passes_it()
+    {
+        var (w, s, r, _) = Build();
+        w.Raise();
+        w.OnBadgeScan("EOS*S001*Sup One");
+        w.SelectCause("OTHER");
+        w.ResolveSelf();
+        Assert.Equal(AndonReject.SeverityRequired, r.Last());
+        Assert.False(s.ResolvedCalled);
+
+        w.SelectSeverity("MINOR");
+        w.ResolveSelf();
+        Assert.True(s.ResolvedCalled);
+        Assert.Equal("MINOR", s.ResolveSeverity);
+    }
+
+    [Fact]
+    public void Load_restores_severity_only_when_it_is_a_known_code()
+    {
+        var s1 = new FakeStore { AndonId = 5, Status = "DEPT_CALLED", SupNo = "S001", Cause = "EQUIP", Severity = "MAJOR" };
+        s1.DeptRows.Add(new AndonDeptCallDto { DeptCallId = 1, DeptCode = "MAINT", DeptName = "보전", CalledAt = DateTime.Now });
+        var w1 = new AndonWorkflow(s1, new FakeNames(), "LINE-INJ-01", null, "W001");
+        w1.Load();
+        Assert.Equal("MAJOR", w1.SelectedSeverity);
+
+        // Raise 가 남긴 임시값(HIGH 등)은 코드 목록에 없으니 선택으로 치지 않는다 — 슈퍼바이저가 골라야 한다.
+        var s2 = new FakeStore { AndonId = 6, Status = "SUP_ACKED", SupNo = "S001", Severity = "HIGH" };
+        var w2 = new AndonWorkflow(s2, new FakeNames(), "LINE-INJ-01", null, "W001");
+        w2.Load();
+        Assert.Null(w2.SelectedSeverity);
     }
 
     [Fact]

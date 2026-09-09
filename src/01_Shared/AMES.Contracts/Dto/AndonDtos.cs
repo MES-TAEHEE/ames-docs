@@ -13,6 +13,8 @@ public sealed class AndonCallDto
     public string?           SupervisorName { get; init; }
     public DateTime?         SupervisorAt   { get; init; }
     public string?           CauseCode      { get; init; }
+    /// <summary>슈퍼바이저가 고른 심각도(DEFECT_SEVERITY.CodeValue). 발동 직후에는 null.</summary>
+    public string?           Severity       { get; init; }
     public DateTime?         ResolvedAt     { get; init; }
     public List<AndonDeptCallDto> Depts     { get; init; } = new();
 }
@@ -38,3 +40,12 @@ public sealed record AndonCauseDto(string Code, string Name, string? NameEn, str
 
 /// <summary>MD_CodeItem ANDON_DEPT.</summary>
 public sealed record AndonDeptDto(string Code, string Name, string? NameEn);
+
+/// <summary>MD_CodeItem DEFECT_SEVERITY — 안돈 심각도로 재사용.</summary>
+public sealed record AndonSeverityDto(string Code, string Name, string? NameEn);
+
+public static class AndonDeptCodes
+{
+    /// <summary>ANDON_DEPT 의 보전 코드. 이 부서가 호출되면 MNT_FailureRegister 가 생긴다.</summary>
+    public const string Maint = "MAINT";
+}

@@ -31,6 +31,8 @@
   <data name="AndonResolved" xml:space="preserve"><value>Andon #{0} resolved — production resumed</value></data>
   <data name="AndonScanResponderBadge" xml:space="preserve"><value>Scan the responder's employee badge</value></data>
   <data name="AndonScanSupervisorBadge" xml:space="preserve"><value>Scan the supervisor's employee badge</value></data>
+  <data name="AndonSeverity" xml:space="preserve"><value>SEVERITY</value></data>
+  <data name="AndonSeverityRequired" xml:space="preserve"><value>Select a severity first.</value></data>
   <data name="AndonSupervisor" xml:space="preserve"><value>Supervisor</value></data>
   <data name="AndonSupervisorCalled" xml:space="preserve"><value>SUPERVISOR CALLED</value></data>
   <data name="AndonUnknownBadge" xml:space="preserve"><value>Unknown employee number.</value></data>
