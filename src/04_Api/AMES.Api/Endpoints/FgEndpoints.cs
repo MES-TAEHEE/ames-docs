@@ -46,7 +46,7 @@ public static class FgEndpoints
         DateTime? ArrivalDate, DateTime? ShipDate, DateTime? PackDate, string? ReceivedLocation,
         string? ReceivedStatus);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
-        string? ReasonNote, string SupervisorPin, string? SupervisorEmployeeNo = null);
+        string? ReasonNote, string? SupervisorPin = null, string? SupervisorEmployeeNo = null);
     public sealed record AdjustResult(bool Success, string Message, AdjustScanRow? Row);
 
     public sealed record PutAwayReq(int WoId, string ItemNo, decimal Qty, string ActualLoc, int PalletCount);
@@ -97,6 +97,28 @@ public static class FgEndpoints
     public static void MapFg(this WebApplication app, AmesConnectionFactory factory)
     {
         var g = app.MapGroup("/api/fg").WithTags("Finished Goods");
+        g.MapAdjustmentLocation(factory, finishedGoods: true);
+
+        g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
+        {
+            if (ctx.GetSession() is not { } session) return Results.Unauthorized();
+            if (!string.Equals(session.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase))
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
+            if (screen is not ("qc" or "putaway" or "inventory" or "release" or "loading" or "return" or "adjust" or "history"))
+                return Results.BadRequest(new { Message = "Unknown PPT test screen." });
+            try
+            {
+                using var connection = factory.OpenConnection();
+                using var command = new SqlCommand(screen == "history" ? "dbo.FG_PDA_HISTORY_TEST_RESET" : "dbo.FG_PDA_PPT_TEST_RESET", connection) { CommandType = CommandType.StoredProcedure };
+                if (screen != "history") command.Parameters.Add("@Screen", SqlDbType.VarChar, 10).Value = screen;
+                command.ExecuteNonQuery();
+                return Results.Ok(new { Success = true });
+            }
+            catch (SqlException ex)
+            {
+                return Results.Problem(ex.Message, statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+        });
 
         g.MapGet("/adjust/scan", (HttpContext ctx, string scanText) =>
         {
@@ -129,7 +151,7 @@ public static class FgEndpoints
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
-            var result = ExecuteAdjustSave(factory, body, s.EmployeeNo);
+            var result = ExecuteAdjustSave(factory, body, s.EmployeeNo, s.OperatorId);
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                 s, "ADJUST_SAVE", "FG007", "LOT", body.Barcode,
                 result.Success ? "SUCCESS" : "FAIL", result.Message,
@@ -181,6 +203,22 @@ public static class FgEndpoints
                 r["ItemNo"] as string ?? "", r["ItemName"] as string, r["CustomerCode"] as string,
                 r.GetDecimal(r.GetOrdinal("Qty")), r["Unit"] as string,
                 r["ProducedAt"] as DateTime?, r["QcPassTs"] as DateTime?));
+        });
+
+        g.MapGet("/transactions", (HttpContext ctx, string? search, DateTime? dateFrom, DateTime? dateTo) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            if (dateFrom.HasValue && dateTo.HasValue && dateFrom.Value.Date > dateTo.Value.Date)
+                return Results.BadRequest(new { Message = "From date cannot be after To date." });
+            using var connection = factory.OpenConnection();
+            using var command = new SqlCommand("dbo.FG_PDA_TRANSACTION_LIST", connection) { CommandType = CommandType.StoredProcedure };
+            command.Parameters.Add("@SearchText", SqlDbType.NVarChar, 120).Value = (object?)search?.Trim() ?? DBNull.Value;
+            command.Parameters.Add("@DateFrom", SqlDbType.Date).Value = (object?)dateFrom?.Date ?? DBNull.Value;
+            command.Parameters.Add("@DateTo", SqlDbType.Date).Value = (object?)dateTo?.Date ?? DBNull.Value;
+            using var reader = command.ExecuteReader();
+            var rows = new List<WhEndpoints.WarehouseTransactionRow>();
+            while (reader.Read()) rows.Add(WhEndpoints.ReadWarehouseTransactionRow(reader));
+            return Results.Ok(rows);
         });
 
         // FG-01 PDA Put-Away - scan QC passed FG LOT or WO.
@@ -1511,7 +1549,7 @@ public static class FgEndpoints
                     UPPER(ISNULL(NULLIF(PS.PackType, ''), 'LOCATION')) AS StorageMethod
                 FROM dbo.MD_PackagingSpec PS
                 WHERE PS.ItemID = COALESCE(NULLIF(L.ItemNo, ''), W.ItemNo)
-                  AND ISNULL(PS.ActiveFlag, 1) = 1
+                  AND UPPER(ISNULL(PS.Status, 'ACTIVE')) IN ('ACTIVE', 'USE', 'Y')
                 ORDER BY
                     CASE UPPER(ISNULL(PS.PackType, ''))
                         WHEN 'PALLET' THEN 0
@@ -2031,17 +2069,11 @@ public static class FgEndpoints
         return rdr.Read() ? ReadAdjustScanRow(rdr) : null;
     }
 
-    private static AdjustResult ExecuteAdjustSave(AmesConnectionFactory factory, AdjustSaveReq body, string userId)
+    private static AdjustResult ExecuteAdjustSave(AmesConnectionFactory factory, AdjustSaveReq body, string userId, string operatorId)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(body.SupervisorEmployeeNo))
-                return new AdjustResult(false, "Select a supervisor.", null);
-
             using var conn = factory.OpenConnection();
-            var supervisor = WhEndpoints.FindSupervisorByPin(conn, body.SupervisorEmployeeNo, body.SupervisorPin);
-            if (supervisor is null)
-                return new AdjustResult(false, "The PIN does not match the selected supervisor.", null);
 
             using var cmd = new SqlCommand($"[dbo].[{PdaAdjustSaveQtyProcedure}]", conn)
             {
@@ -2053,8 +2085,8 @@ public static class FgEndpoints
             cmd.Parameters.Add("@ReasonCode", SqlDbType.NVarChar, 30).Value = body.ReasonCode.Trim();
             cmd.Parameters.Add("@ReasonNote", SqlDbType.NVarChar, 500).Value =
                 string.IsNullOrWhiteSpace(body.ReasonNote) ? DBNull.Value : body.ReasonNote.Trim();
-            cmd.Parameters.Add("@SupervisorUserId", SqlDbType.NVarChar, 450).Value = supervisor.UserId;
-            cmd.Parameters.Add("@SupervisorEmployeeNo", SqlDbType.NVarChar, 40).Value = supervisor.EmployeeNo;
+            cmd.Parameters.Add("@SupervisorUserId", SqlDbType.NVarChar, 450).Value = operatorId;
+            cmd.Parameters.Add("@SupervisorEmployeeNo", SqlDbType.NVarChar, 40).Value = userId;
             cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 40).Value = userId;
 
             using var rdr = cmd.ExecuteReader();

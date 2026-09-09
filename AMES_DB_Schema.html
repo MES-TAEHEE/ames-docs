@@ -643,19 +643,6 @@ header{padding:24px 32px 16px;border-bottom:1px solid var(--border2);display:fle
 </div></div>
 
 <div class="tbl-card" data-mod="WH">
-<div class="tbl-head"><span class="tbl-badge" style="background:#164e63;color:#06b6d4">WH</span><span class="tbl-name">WH_InventorySnapshot</span><span class="tbl-ko">재고 일일 스냅샷</span></div>
-<div class="tbl-body">
-  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">SnapshotID</div><div class="col-type">BIGINT IDENTITY</div><div class="col-note"></div></div>
-  <div class="col-row"><div class="col-icon"></div><div class="col-name">SnapshotDate</div><div class="col-type">DATE</div><div class="col-note">UNIQUE 4-col</div></div>
-  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">ItemNo</div><div class="col-type">VARCHAR(20)</div><div class="col-note">→ MD_Item</div></div>
-  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">LocationID</div><div class="col-type">VARCHAR(20)</div><div class="col-note">→ MD_Location</div></div>
-  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">LotID</div><div class="col-type">INT</div><div class="col-note">→ tbl_Lot</div></div>
-  <div class="col-row"><div class="col-icon"></div><div class="col-name">OnHandQty</div><div class="col-type">DECIMAL(14,3)</div><div class="col-note"></div></div>
-  <div class="col-row"><div class="col-icon"></div><div class="col-name">UnitCost / TotalValue</div><div class="col-type">DECIMAL</div><div class="col-note">= Qty × Cost</div></div>
-  <div class="col-row"><div class="col-icon"></div><div class="col-name">CreatedAt</div><div class="col-type">DATETIME2</div><div class="col-note">batch run</div></div>
-</div></div>
-
-<div class="tbl-card" data-mod="WH">
 <div class="tbl-head"><span class="tbl-badge" style="background:#164e63;color:#06b6d4">WH</span><span class="tbl-name">WH_InventoryAdjust</span><span class="tbl-ko">재고 조정 이력</span></div>
 <div class="tbl-body">
   <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">AdjustID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>

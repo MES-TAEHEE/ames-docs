@@ -18,4 +18,5 @@ public sealed class PopSessionDto
     public required AuthMethod AuthMethod { get; init; }
     public required DateTime StartedAt { get; init; }
     public required DateTime ExpiresAt { get; init; }
+    public bool IsAdmin { get; init; }
 }

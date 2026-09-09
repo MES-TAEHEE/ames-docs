@@ -1,5 +1,6 @@
 @page "/wh/07"
 @inject PdaApi Api
+@inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @implements IAsyncDisposable
@@ -10,6 +11,14 @@
         <div class="wh07-tbar-title">
             <span class="pda-tbar-brand">RELEASE</span>
         </div>
+        @if (IsTestMode)
+        {
+            <button class="wh02-test-nav" @onclick="OpenTestPanel">SCENARIO</button>
+        }
+        @if (IsPptTestMode)
+        {
+            <PptScenarioPanel Title="RELEASE" Steps="PptSteps" Busy="_isBusy" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+        }
     </div>
 
     <div class="pda-bd wh07-body">
@@ -47,17 +56,16 @@
                             </div>
                         </div>
                         <div class="wh07-lot-list">
-                            @foreach (var lot in LotsFor(line.ItemNo))
+                            @foreach (var lot in DisplayFifoLotsFor(line.ItemNo))
                             {
-                                var scanned = IsScannedLot(lot.LotNo);
-                                <div id="@LotElementId(lot.LotNo)" class="@($"wh07-lot-row {(scanned ? "scanned" : "")}")">
+                                <div class="wh07-lot-row @(IsPendingPick(lot.LotNo) ? "scanned" : "")">
                                     <div>
                                         <strong>@lot.LotNo</strong>
-                                        <span>@(lot.LocationNo ?? "-")</span>
+                                        <span>@Text(lot.LocationNo)</span>
                                     </div>
                                     <div class="wh07-lot-qty">
                                         <strong>@lot.Qty.ToString("N0")</strong>
-                                        <span>@(scanned ? "SCANNED" : "READY")</span>
+                                        <span>@Text(lot.ProductionDate)</span>
                                     </div>
                                 </div>
                             }
@@ -185,6 +193,59 @@
         *@
     </div>
 
+    @if (IsTestMode && _testPanelOpen)
+    {
+        <div class="wh02-test-backdrop" @onclick="CloseTestPanel">
+            <section class="wh02-test-panel" @onclick:stopPropagation="true">
+                <div class="wh02-test-head">
+                    <div><span>TEST MODE</span><strong>RELEASE TEST SCENARIOS</strong></div>
+                    <b>@CurrentTestScenario.No.ToString("00") / @ReleaseTestScenarios.Length</b>
+                    <button class="wh02-test-close" @onclick="CloseTestPanel" aria-label="Close scenarios">×</button>
+                </div>
+                <div class="wh02-test-tabs">
+                    @foreach (var scenario in ReleaseTestScenarios)
+                    {
+                        var index = scenario.No - 1;
+                        <button class="@(index == _testScenarioIndex ? "on" : "")"
+                                @onclick="@(() => SelectTestScenario(index))">@scenario.No.ToString("00")</button>
+                    }
+                </div>
+                <div class="wh02-test-case">
+                    <div class="wh02-test-summary">
+                        <span>@CurrentTestScenario.TestCaseId</span>
+                        <strong>@CurrentTestScenario.Title</strong>
+                    </div>
+                    @if (CurrentTestScenario.Values.Length > 0)
+                    {
+                        <div class="wh02-test-values">
+                            @foreach (var value in CurrentTestScenario.Values)
+                            {
+                                <button @onclick="@(() => LoadTestValue(value))">
+                                    <span>@value.Label</span><b>@value.Value</b>
+                                </button>
+                            }
+                        </div>
+                    }
+                    @if (CurrentTestScenario.No == 17)
+                    {
+                        <div class="wh02-test-actions">
+                            <button @onclick='@(() => OpenScenarioPage("/wh/03"))'>OPEN INVENTORY</button>
+                            <button @onclick='@(() => OpenScenarioPage("/wh/08"))'>OPEN TRANSACTIONS</button>
+                        </div>
+                    }
+                    else if (CurrentTestScenario.No == 18)
+                    {
+                        <button class="@($"wh02-test-error {(_simulateReleaseApiFailure ? "on" : "")}")"
+                                @onclick="ToggleReleaseApiFailure">
+                            API ERROR: @(_simulateReleaseApiFailure ? "ON" : "OFF")
+                        </button>
+                    }
+                    <button class="wh02-test-start" @onclick="StartTestScenario">START SCENARIO</button>
+                </div>
+            </section>
+        </div>
+    }
+
     @if (_modalOpen)
     {
         <div class="wh-modal-backdrop" @onclick="DismissModal">
@@ -202,12 +263,89 @@
 
 @code {
     private sealed record OutgoingTypeOption(string Code, string Name);
+    private sealed record ReleaseTestValue(string Label, string Value, bool IsOutgoingType = false);
+    private sealed record ReleaseTestScenario(int No, string TestCaseId, string Title, string Steps,
+        bool AutoScan, params ReleaseTestValue[] Values);
 
     private static readonly IReadOnlyList<OutgoingTypeOption> OutgoingTypes =
     [
         new("PRODUCTION", "To Production Line"),
         new("OTHER", "Other Outgoing"),
         new("DEFECT", "Defect Outgoing")
+    ];
+
+    private static readonly ReleaseTestScenario[] ReleaseTestScenarios =
+    [
+        new(1, "WH003-TC-001", "Pick Slip 바코드 분기",
+            "Pick Slip을 스캔해 요청 품목 목록이 조회되는지 확인합니다.", true,
+            new ReleaseTestValue("PICK SLIP", "2026082801")),
+        new(2, "WH003-TC-002", "LOT 단일 출고 분기",
+            "Pick Slip 없이 LOT을 스캔해 단일 출고 정보가 조회되는지 확인합니다.", true,
+            new ReleaseTestValue("STANDALONE LOT", "5011LL260820000010")),
+        new(3, "WH003-TC-003", "지원하지 않는 바코드",
+            "등록되지 않은 바코드를 스캔해 오류 알림을 확인합니다.", true,
+            new ReleaseTestValue("UNKNOWN", "WH-RELEASE-UNKNOWN-999999")),
+        new(4, "WH003-TC-004", "요청 품목·수량 조회",
+            "Pick Slip의 Part No, 요청 Box 수량과 LOT 목록을 확인합니다.", true,
+            new ReleaseTestValue("PICK SLIP", "2026082801")),
+        new(5, "WH003-TC-005", "FIFO 순서 조회",
+            "표시된 LOT이 ProducedAt, LastReceivedAt, LotID 순서인지 확인합니다.", true,
+            new("PICK SLIP", "2026082801"),
+            new("FIFO 1", "5011LL260701000001"), new("FIFO 2", "5011LL260715000002"),
+            new("FIFO 3", "5011LL260801000003"), new("OTHER PART", "5011LL260601000004")),
+        new(6, "WH003-TC-006", "요청 LOT 하이라이트",
+            "첫 FIFO LOT을 스캔해 해당 행만 초록색으로 바뀌는지 확인합니다.", true,
+            new("PICK SLIP", "2026082801"), new("FIFO LOT", "5011LL260701000001")),
+        new(7, "WH003-TC-007", "비요청 LOT 차단",
+            "Pick Slip에 없는 LOT을 스캔해 Pick Blocked 알림을 확인합니다.", true,
+            new("PICK SLIP", "2026082801"), new("NOT REQUESTED", "5011LL260101000018")),
+        new(8, "WH003-TC-008", "동일 LOT 중복 차단",
+            "FIFO LOT을 두 번 눌러 Already Scanned 알림과 수량 유지 여부를 확인합니다.", true,
+            new("PICK SLIP", "2026082801"), new("SCAN TWICE", "5011LL260701000001")),
+        new(9, "WH003-TC-009", "부분 스캔 Release 차단",
+            "요청 LOT 일부만 스캔했을 때 RELEASE가 비활성인지 확인합니다.", true,
+            new("PICK SLIP", "2026082801"), new("ONE LOT", "5011LL260701000001")),
+        new(10, "WH003-TC-010", "FIFO 위반 차단",
+            "두 번째 LOT을 먼저 스캔해 먼저 스캔할 LOT과 위치 안내를 확인합니다.", true,
+            new("PICK SLIP", "2026082801"), new("SKIP FIFO", "5011LL260715000002")),
+        new(11, "WH003-TC-011", "FIFO 정상 스캔",
+            "첫 FIFO LOT을 스캔해 정상 반영되는지 확인합니다.", true,
+            new("PICK SLIP", "2026082801"), new("FIFO LOT", "5011LL260701000001")),
+        new(12, "WH003-TC-012", "전체 LOT 스캔",
+            "모든 LOT을 순서대로 스캔해 OUTGOING TYPE이 나타나는지 확인합니다.", true,
+            new("PICK SLIP", "2026082801"),
+            new("LOT 1", "5011LL260701000001"), new("LOT 2", "5011LL260715000002"),
+            new("LOT 3", "5011LL260801000003"), new("LOT 4", "5011LL260601000004")),
+        new(13, "WH003-TC-013", "Production Line 유형 선택",
+            "전체 스캔 후 Production Line을 선택해 RELEASE 활성화를 확인합니다.", true,
+            new("PICK SLIP", "2026082801"),
+            new("LOT 1", "5011LL260701000001"), new("LOT 2", "5011LL260715000002"),
+            new("LOT 3", "5011LL260801000003"), new("LOT 4", "5011LL260601000004"),
+            new("OUTGOING TYPE", "PRODUCTION", true)),
+        new(14, "WH003-TC-014", "Other / Defect 유형 선택",
+            "전체 스캔 후 Other와 Defect 유형이 각각 선택되는지 확인합니다.", true,
+            new("PICK SLIP", "2026082801"),
+            new("LOT 1", "5011LL260701000001"), new("LOT 2", "5011LL260715000002"),
+            new("LOT 3", "5011LL260801000003"), new("LOT 4", "5011LL260601000004"),
+            new("OTHER", "OTHER", true), new("DEFECT", "DEFECT", true)),
+        new(15, "WH003-TC-015", "출고 유형 미선택 차단",
+            "전체 LOT만 스캔하고 유형을 선택하지 않아 RELEASE가 비활성인지 확인합니다.", true,
+            new("PICK SLIP", "2026082801"),
+            new("LOT 1", "5011LL260701000001"), new("LOT 2", "5011LL260715000002"),
+            new("LOT 3", "5011LL260801000003"), new("LOT 4", "5011LL260601000004")),
+        new(16, "WH003-TC-016", "Release 완료",
+            "모든 LOT과 유형을 선택한 뒤 RELEASE를 눌러 완료 알림을 확인합니다.", true,
+            new("PICK SLIP", "2026082801"),
+            new("LOT 1", "5011LL260701000001"), new("LOT 2", "5011LL260715000002"),
+            new("LOT 3", "5011LL260801000003"), new("LOT 4", "5011LL260601000004"),
+            new("OUTGOING TYPE", "PRODUCTION", true)),
+        new(17, "WH003-TC-017", "재고·거래이력 검증",
+            "시나리오 16 완료 후 Inventory와 Transactions에서 출고 결과를 확인합니다.", false,
+            new ReleaseTestValue("RELEASED LOT", "5011LL260701000001")),
+        new(18, "WH003-TC-018", "Release API 실패 및 롤백",
+            "API ERROR를 켜고 전체 스캔·유형 선택 후 RELEASE하여 롤백과 입력 유지 여부를 확인합니다.", true,
+            new("ROLLBACK SLIP", "PDA-REL-TEST-02"), new("ROLLBACK LOT", "5011LL260101000018"),
+            new("OUTGOING TYPE", "PRODUCTION", true))
     ];
 
     [SupplyParameterFromQuery]
@@ -223,8 +361,6 @@
     private PdaApi.ReleaseLotRow? _scan;
     private PdaApi.DirectOutgoingLotRow? _directLot;
     private decimal _directQty = 1;
-    private string? _scrollLotNo;
-    private bool _scrollLotAfterRender;
     private bool _scrollOutgoingTypeAfterRender;
     private bool _highlightOutgoingType;
     private bool _isBusy;
@@ -236,6 +372,65 @@
     private string _modalMessage = "";
     private Func<Task>? _modalAfterOk;
     private DotNetObjectReference<Wh07PdaRelease>? _scannerRef;
+    private int _testScenarioIndex;
+    private bool _testPanelOpen;
+    private bool _simulateReleaseApiFailure;
+
+    private bool IsTestMode => string.Equals(Auth.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+    private ReleaseTestScenario CurrentTestScenario => ReleaseTestScenarios[_testScenarioIndex];
+
+    private void OpenTestPanel() => _testPanelOpen = true;
+    private void CloseTestPanel() => _testPanelOpen = false;
+    private void OpenScenarioPage(string route)
+    {
+        CloseTestPanel();
+        Nav.NavigateTo(route);
+    }
+    private void ToggleReleaseApiFailure() => _simulateReleaseApiFailure = !_simulateReleaseApiFailure;
+
+    private void SelectTestScenario(int index)
+    {
+        if (index < 0 || index >= ReleaseTestScenarios.Length)
+            return;
+
+        _testScenarioIndex = index;
+        if (CurrentTestScenario.No != 18)
+            _simulateReleaseApiFailure = false;
+        PrepareTestScenario(CurrentTestScenario);
+    }
+
+    private async Task StartTestScenario()
+    {
+        var scenario = CurrentTestScenario;
+        CloseTestPanel();
+        PrepareTestScenario(scenario);
+
+        if (scenario.AutoScan && !string.IsNullOrWhiteSpace(_barcode))
+            await ProcessBarcodeAsync(_barcode);
+        else
+            ShowModal($"Scenario {scenario.No:00} Ready", scenario.Steps, "info");
+    }
+
+    private void PrepareTestScenario(ReleaseTestScenario scenario)
+    {
+        ClearRelease();
+        var first = scenario.Values.FirstOrDefault(value => !value.IsOutgoingType);
+        if (first is not null)
+            _barcode = first.Value;
+    }
+
+    private async Task LoadTestValue(ReleaseTestValue value)
+    {
+        CloseTestPanel();
+        if (value.IsOutgoingType)
+        {
+            OnOutgoingTypeChanged(value.Value);
+            return;
+        }
+
+        _barcode = value.Value;
+        await ProcessBarcodeAsync(value.Value);
+    }
 
     private static bool ShowDeveloperScanButtons => MauiProgram.IsDeveloperMode;
     protected override async Task OnParametersSetAsync()
@@ -264,12 +459,6 @@
             _scrollOutgoingTypeAfterRender = false;
             await JS.InvokeVoidAsync("pdaScan.scrollTo", ".wh07-type-panel");
         }
-        else if (_scrollLotAfterRender)
-        {
-            _scrollLotAfterRender = false;
-            if (!string.IsNullOrWhiteSpace(_scrollLotNo))
-                await JS.InvokeVoidAsync("pdaScan.scrollTo", $"#{LotElementId(_scrollLotNo)}");
-        }
         await FocusScannerAsync();
     }
 
@@ -282,6 +471,7 @@
 
         await InvokeAsync(async () =>
         {
+            if (_pptOpen) return;
             await ProcessBarcodeAsync(value);
             StateHasChanged();
         });
@@ -294,7 +484,7 @@
 
     private async Task FocusScannerAsync()
     {
-        if (_modalOpen)
+        if (_modalOpen || _testPanelOpen || _pptOpen)
             return;
 
         try
@@ -405,7 +595,6 @@
         {
             _loadedSlipNo = _pickSlipNo.Trim();
             _scan = null;
-            _scrollLotNo = null;
             _outgoingType = "";
             _highlightOutgoingType = false;
             _lines.Clear();
@@ -504,15 +693,10 @@
 
             _scan = _scan with { IsValid = true, Message = "LOT added. It will be saved when RELEASE is pressed." };
             _pendingPicks.Add(_scan);
-            _scrollLotNo = _scan.LotNo;
             if (CanCompleteRelease)
             {
                 _highlightOutgoingType = true;
                 _scrollOutgoingTypeAfterRender = true;
-            }
-            else
-            {
-                _scrollLotAfterRender = true;
             }
         }
         catch (Exception ex)
@@ -555,7 +739,19 @@
         }
     }
 
-    private static string LineCardClass(PdaApi.ReleasePickLineRow line) => "wh07-line-card";
+    private string LineCardClass(PdaApi.ReleasePickLineRow line)
+    {
+        var picked = DisplayPickedBox(line);
+        return picked >= line.RequestBoxQty
+            ? "wh07-line-card picked"
+            : picked > 0 ? "wh07-line-card partial" : "wh07-line-card open";
+    }
+
+    private IEnumerable<PdaApi.ReleaseFifoLotRow> DisplayFifoLotsFor(string itemNo)
+        => _fifoLots.Where(lot => string.Equals(lot.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase));
+
+    private bool IsPendingPick(string lotNo)
+        => _pendingPicks.Any(pick => string.Equals(pick.LotNo, lotNo, StringComparison.OrdinalIgnoreCase));
 
     private List<PdaApi.ReleaseFifoLotRow> FifoLotsFor(string itemNo)
         => _fifoLots.Where(lot => string.Equals(lot.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase)
@@ -611,20 +807,9 @@
         _scan = null;
         _directLot = null;
         _directQty = 1;
-        _scrollLotNo = null;
-        _scrollLotAfterRender = false;
         _scrollOutgoingTypeAfterRender = false;
         _highlightOutgoingType = false;
     }
-
-    private List<PdaApi.ReleaseFifoLotRow> LotsFor(string itemNo)
-        => _fifoLots.Where(lot => string.Equals(lot.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase)).ToList();
-
-    private bool IsScannedLot(string lotNo)
-        => _pendingPicks.Any(pick => string.Equals(pick.LotNo, lotNo, StringComparison.OrdinalIgnoreCase));
-
-    private static string LotElementId(string lotNo)
-        => $"wh07-lot-{string.Concat(lotNo.Select(ch => char.IsLetterOrDigit(ch) ? ch : '-'))}";
 
     private Task ReleaseAsync()
         => _directLot is null ? CompleteReleaseAsync() : CompleteDirectOutgoingAsync();
@@ -640,7 +825,8 @@
                 .Select(pick => new PdaApi.ReleasePickInput(pick.LotNo, pick.Qty))
                 .ToList();
             var response = await Api.WhReleaseCompleteAsync(new PdaApi.ReleaseCompleteReq(
-                _loadedSlipNo, releaseLots, _outgoingType));
+                _loadedSlipNo, releaseLots, _outgoingType,
+                IsTestMode && CurrentTestScenario.No == 18 && _simulateReleaseApiFailure));
             var result = await response.Content.ReadFromJsonAsync<PdaApi.ReleaseCompleteResult>();
             if (response.IsSuccessStatusCode && result?.Success == true)
             {

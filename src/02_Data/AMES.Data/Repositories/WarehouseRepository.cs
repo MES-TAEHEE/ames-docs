@@ -921,39 +921,6 @@ public sealed class WarehouseRepository
                 INNER JOIN Base B
                         ON B.ReleaseScheduleID = P.ReleaseScheduleID
                 GROUP BY P.ReleaseScheduleID
-            ),
-            AllocationLocations AS
-            (
-                SELECT
-                    A.ReleaseScheduleID,
-                    CONCAT(COALESCE(NULLIF(ML.ZoneCode, N''), N'-'), N'|', A.LocationID) AS LocationLabel,
-                    SUM(A.AllocatedQty) AS AllocatedQty,
-                    ROW_NUMBER() OVER
-                    (
-                        PARTITION BY A.ReleaseScheduleID
-                        ORDER BY MIN(COALESCE(A.ProductionDate, CONVERT(datetime2, '9999-12-31'))),
-                                 A.LocationID
-                    ) AS RN
-                FROM dbo.WH_ReleasePickAllocation A
-                LEFT JOIN dbo.MD_Location ML
-                       ON ML.LocationID = A.LocationID
-                INNER JOIN Base B
-                        ON B.ReleaseScheduleID = A.ReleaseScheduleID
-                GROUP BY A.ReleaseScheduleID, A.LocationID, ML.ZoneCode
-            ),
-            Locations AS
-            (
-                SELECT
-                    ReleaseScheduleID,
-                    MAX(CASE WHEN RN = 1 THEN LocationLabel END) AS LOC_01,
-                    MAX(CASE WHEN RN = 1 THEN AllocatedQty END) AS LOC_01_QTY,
-                    MAX(CASE WHEN RN = 2 THEN LocationLabel END) AS LOC_02,
-                    MAX(CASE WHEN RN = 2 THEN AllocatedQty END) AS LOC_02_QTY,
-                    MAX(CASE WHEN RN = 3 THEN LocationLabel END) AS LOC_03,
-                    MAX(CASE WHEN RN = 3 THEN AllocatedQty END) AS LOC_03_QTY
-                FROM AllocationLocations
-                WHERE RN <= 3
-                GROUP BY ReleaseScheduleID
             )
             SELECT
                 B.PICK_SLIPNO,
@@ -966,12 +933,12 @@ public sealed class WarehouseRepository
                 B.RequestUserId AS REQ_USERID,
                 B.LineCode AS LINECD,
                 B.LineName AS LINENM,
-                L.LOC_01,
-                COALESCE(L.LOC_01_QTY, 0) AS LOC_01_QTY,
-                L.LOC_02,
-                COALESCE(L.LOC_02_QTY, 0) AS LOC_02_QTY,
-                L.LOC_03,
-                COALESCE(L.LOC_03_QTY, 0) AS LOC_03_QTY,
+                CAST(NULL AS nvarchar(50)) AS LOC_01,
+                CAST(0 AS decimal(14,3)) AS LOC_01_QTY,
+                CAST(NULL AS nvarchar(50)) AS LOC_02,
+                CAST(0 AS decimal(14,3)) AS LOC_02_QTY,
+                CAST(NULL AS nvarchar(50)) AS LOC_03,
+                CAST(0 AS decimal(14,3)) AS LOC_03_QTY,
                 CASE
                     WHEN UPPER(COALESCE(B.Status, 'OPEN')) IN ('CLOSED', 'CANCELED') THEN N'Closed'
                     WHEN B.DemandQty > 0 AND B.PickedQty >= B.DemandQty THEN N'Picked'
@@ -981,8 +948,6 @@ public sealed class WarehouseRepository
             FROM Base B
             LEFT JOIN PickedPhysical P
                    ON P.ReleaseScheduleID = B.ReleaseScheduleID
-            LEFT JOIN Locations L
-                   ON L.ReleaseScheduleID = B.ReleaseScheduleID
             ORDER BY B.SEQNO, B.ReleaseScheduleID;
             """, r => new PickingSlipLineRow(
                 GetString(r, "PICK_SLIPNO") ?? pickSlipNo,
@@ -1167,7 +1132,6 @@ public sealed class WarehouseRepository
                         (@PickSlipNo, @ReqLocation, @ReqSeqNo, @ReqUserId,
                          @PartNo, @ReqBoxQty, 0, @RequiredAt, @Priority, 'Open',
                          @ReqUserId, SYSDATETIME());
-                    SELECT CAST(SCOPE_IDENTITY() AS int);
                     """, conn, tx);
                 cmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo;
                 cmd.Parameters.Add("@ReqLocation", SqlDbType.NVarChar, 40).Value = line.LineCode;
@@ -1177,8 +1141,7 @@ public sealed class WarehouseRepository
                 AddQtyDecimal(cmd, "@ReqBoxQty", line.ReqBoxQty);
                 cmd.Parameters.Add("@RequiredAt", SqlDbType.DateTime2).Value = reqDate.Date;
                 cmd.Parameters.Add("@Priority", SqlDbType.TinyInt).Value = Math.Clamp(seq, 1, 9);
-                var releaseScheduleId = Convert.ToInt32(cmd.ExecuteScalar());
-                BuildPickAllocations(conn, tx, pickSlipNo, releaseScheduleId, line.PartNo, line.ReqBoxQty, reqUserId);
+                cmd.ExecuteNonQuery();
                 seq++;
             }
 
@@ -1200,82 +1163,6 @@ public sealed class WarehouseRepository
             tx.Rollback();
             throw;
         }
-    }
-
-    private static void BuildPickAllocations(
-        SqlConnection conn,
-        SqlTransaction tx,
-        string pickSlipNo,
-        int releaseScheduleId,
-        string itemNo,
-        decimal requestedBoxQty,
-        string createdBy)
-    {
-        decimal remainingBoxes = requestedBoxQty;
-        var allocationSeq = 1;
-
-        using var source = new SqlCommand("""
-            SELECT
-                W.LotID,
-                W.LocationID,
-                L.LotCode,
-                L.ProducedAt,
-                COALESCE(W.OnHandQty, 0) AS OnHandQty
-            FROM dbo.WH_Inventory W
-            INNER JOIN dbo.tbl_Lot L
-                    ON L.LotID = W.LotID
-            WHERE W.ItemNo = @ItemNo
-              AND COALESCE(W.OnHandQty, 0) > 0
-              AND UPPER(COALESCE(W.Status, 'RECEIVED')) NOT IN ('CANCELED', 'RELEASED', 'PICKED')
-            ORDER BY COALESCE(L.ProducedAt, CONVERT(datetime2, '9999-12-31')),
-                     W.LocationID,
-                     L.LotCode;
-            """, conn, tx);
-        source.Parameters.Add("@ItemNo", SqlDbType.VarChar, 20).Value = itemNo;
-
-        using var reader = source.ExecuteReader();
-        var allocations = new List<(int LotId, string LocationId, string LotNo, DateTime? ProductionDate, decimal Qty)>();
-        while (reader.Read() && remainingBoxes > 0)
-        {
-            var available = reader.GetDecimal(reader.GetOrdinal("OnHandQty"));
-            if (available <= 0) continue;
-
-            allocations.Add((
-                reader.GetInt32(reader.GetOrdinal("LotID")),
-                reader.GetString(reader.GetOrdinal("LocationID")),
-                reader.GetString(reader.GetOrdinal("LotCode")),
-                reader.IsDBNull(reader.GetOrdinal("ProducedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("ProducedAt")),
-                available));
-            remainingBoxes -= 1;
-        }
-        reader.Close();
-
-        foreach (var allocation in allocations)
-        {
-            using var insert = new SqlCommand("""
-                INSERT INTO dbo.WH_ReleasePickAllocation
-                    (PickSlipNo, ReleaseScheduleID, ItemNo, AllocationSeq, LocationID, LotID, LotNo,
-                     ProductionDate, AllocatedQty, AllocatedBoxQty, PickedQty, PickedBoxQty, Status, CreatedBy)
-                VALUES
-                    (@PickSlipNo, @ReleaseScheduleID, @ItemNo, @AllocationSeq, @LocationID, @LotID, @LotNo,
-                     @ProductionDate, @AllocatedQty, 1, 0, 0, 'Open', @CreatedBy);
-                """, conn, tx);
-            insert.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo;
-            insert.Parameters.Add("@ReleaseScheduleID", SqlDbType.Int).Value = releaseScheduleId;
-            insert.Parameters.Add("@ItemNo", SqlDbType.VarChar, 20).Value = itemNo;
-            insert.Parameters.Add("@AllocationSeq", SqlDbType.Int).Value = allocationSeq++;
-            insert.Parameters.Add("@LocationID", SqlDbType.VarChar, 20).Value = allocation.LocationId;
-            insert.Parameters.Add("@LotID", SqlDbType.Int).Value = allocation.LotId;
-            insert.Parameters.Add("@LotNo", SqlDbType.VarChar, 50).Value = allocation.LotNo;
-            insert.Parameters.Add("@ProductionDate", SqlDbType.DateTime2).Value = (object?)allocation.ProductionDate ?? DBNull.Value;
-            AddQtyDecimal(insert, "@AllocatedQty", allocation.Qty);
-            insert.Parameters.Add("@CreatedBy", SqlDbType.NVarChar, 80).Value = Truncate(createdBy, 80);
-            insert.ExecuteNonQuery();
-        }
-
-        // A pick slip is a request, not a physical-pick completion.  Keep the
-        // FIFO allocations that exist and let the printout show the remaining
-        // locations as Shortage instead of cancelling the whole request.
     }
 
     public void MarkPickingSlipPrinted(string pickSlipNo, string printedBy)
@@ -1734,179 +1621,67 @@ public sealed class WarehouseRepository
         DateTime? to = null)
     {
         using var conn = _factory.OpenConnection();
-        EnsureOperationLogTable(conn);
         using var cmd = new SqlCommand("""
-            ;WITH InventoryActivity AS
-            (
-                SELECT
-                    OperationLogID, EventTime, EventType,
-                    CASE
-                        WHEN EventType IN ('RECEIVE', 'CANCEL_RECEIPT') THEN 'INBOUND'
-                        WHEN EventType = 'RELEASE_PICK' THEN 'OUTBOUND'
-                        WHEN EventType = 'MOVE_LOCATION' THEN 'RELOCATION'
-                        WHEN EventType = 'ADJUST_SAVE' THEN 'ADJUSTMENT'
-                    END AS OperationType,
-                    ScreenCode, EmployeeNo, EmployeeName, WorkerID, TerminalID,
-                    LineID, ShiftCode, ScanType, ScanValue, Result, Message,
-                    ClientIP, RefDocType, RefDocNo, LotNo, PartNo, LocationID, Qty
-                FROM dbo.WH_OperationLog
-                WHERE Result = 'SUCCESS'
-                  AND EventType IN ('RECEIVE', 'CANCEL_RECEIPT', 'RELEASE_PICK', 'MOVE_LOCATION', 'ADJUST_SAVE')
-
-                UNION ALL
-
-                SELECT
-                    -H.LotStatusHistoryID, H.ChangedAt, 'STATUS_CHANGE', 'STATUS',
-                    NULL, H.ChangedBy, NULL, H.ChangedBy, NULL,
-                    NULL, NULL, NULL, H.LotNo, 'SUCCESS',
-                    CONCAT(COALESCE(H.BeforeStatus, 'CREATED'), ' -> ', H.AfterStatus),
-                    NULL, H.ReasonCode, H.ReferenceNo, H.LotNo, L.ItemNo, NULL, NULL
-                FROM dbo.WH_LotStatusHistory H
-                LEFT JOIN dbo.tbl_Lot L ON L.LotID = H.LotID
-
-                UNION ALL
-
-                SELECT
-                    CAST(-1000000000 AS bigint) - R.ReceivingID,
-                    R.ReceivedAt, 'RECEIVE', 'INBOUND', 'WH002',
-                    R.ReceivedBy, NULL, R.ReceivedBy, R.TerminalID,
-                    NULL, NULL, 'LOT', R.LotCode, 'SUCCESS',
-                    CONCAT('Inbound received: ', R.ReceivedQty, ' ', COALESCE(I.DefaultUom, 'EA')),
-                    NULL, 'WH_Receiving', R.ReceivingNo, R.LotCode, R.ItemNo, R.LocationID, R.ReceivedQty
-                FROM dbo.WH_Receiving R
-                LEFT JOIN dbo.MD_Item I ON I.ItemNo = R.ItemNo
-                WHERE NOT EXISTS
-                (
-                    SELECT 1
-                    FROM dbo.WH_OperationLog O
-                    WHERE O.Result = 'SUCCESS'
-                      AND O.EventType = 'RECEIVE'
-                      AND (O.LotNo = R.LotCode OR O.ScanValue = R.LotCode)
-                      AND ABS(DATEDIFF(minute, O.EventTime, R.ReceivedAt)) <= 5
-                )
-
-                UNION ALL
-
-                SELECT
-                    CAST(-2000000000 AS bigint) - T.TransactionID,
-                    T.TransactionTime,
-                    CASE UPPER(T.TransactionType)
-                        WHEN 'IN' THEN 'RECEIVE'
-                        WHEN 'OUT' THEN 'RELEASE_PICK'
-                        WHEN 'ADJ' THEN 'ADJUST_SAVE'
-                        WHEN 'MOVE' THEN 'MOVE_LOCATION'
-                        WHEN 'CANCEL' THEN 'CANCEL_RECEIPT'
-                        ELSE UPPER(T.TransactionType)
-                    END,
-                    CASE UPPER(T.TransactionType)
-                        WHEN 'IN' THEN 'INBOUND'
-                        WHEN 'OUT' THEN 'OUTBOUND'
-                        WHEN 'ADJ' THEN 'ADJUSTMENT'
-                        WHEN 'MOVE' THEN 'RELOCATION'
-                        WHEN 'CANCEL' THEN 'INBOUND'
-                    END,
-                    CASE UPPER(T.TransactionType)
-                        WHEN 'OUT' THEN 'WH003'
-                        WHEN 'ADJ' THEN 'WH005'
-                        ELSE 'WH002'
-                    END,
-                    T.OperatorID, NULL, T.OperatorID, NULL,
-                    NULL, NULL, 'LOT', L.LotCode, 'SUCCESS',
-                    CONCAT(
-                        COALESCE(NULLIF(T.Note, ''), COALESCE(T.ReasonCode, T.TransactionType)),
-                        ' (', COALESCE(T.QtyBefore, 0), ' -> ', COALESCE(T.QtyAfter, 0), ')'),
-                    NULL, T.RefDocType, CONVERT(nvarchar(80), T.RefDocID),
-                    L.LotCode, T.ItemNo, T.LocationID, T.QtyChange
-                FROM dbo.WH_InventoryTransaction T
-                LEFT JOIN dbo.tbl_Lot L ON L.LotID = T.LotID
-                WHERE NOT (UPPER(T.TransactionType) = 'IN' AND T.RefDocType = 'WH_Receiving')
-                  AND NOT EXISTS
-                  (
-                      SELECT 1
-                      FROM dbo.WH_OperationLog O
-                      WHERE O.Result = 'SUCCESS'
-                        AND O.EventType = CASE UPPER(T.TransactionType)
-                            WHEN 'IN' THEN 'RECEIVE'
-                            WHEN 'OUT' THEN 'RELEASE_PICK'
-                            WHEN 'ADJ' THEN 'ADJUST_SAVE'
-                            WHEN 'MOVE' THEN 'MOVE_LOCATION'
-                            WHEN 'CANCEL' THEN 'CANCEL_RECEIPT'
-                            ELSE UPPER(T.TransactionType)
-                        END
-                        AND (O.LotNo = L.LotCode OR O.PartNo = T.ItemNo)
-                        AND ABS(DATEDIFF(minute, O.EventTime, T.TransactionTime)) <= 5
-                  )
-
-                UNION ALL
-
-                SELECT
-                    CAST(-3000000000 AS bigint) - P.PickingID,
-                    P.PickedAt, 'RELEASE_PICK', 'OUTBOUND', 'WH003',
-                    P.PickedBy, NULL, P.PickedBy, P.TerminalID,
-                    NULL, NULL, 'LOT', L.LotCode, 'SUCCESS',
-                    CONCAT('Outbound picked: ', P.PickedQty, ' ', COALESCE(I.DefaultUom, 'EA')),
-                    NULL, 'WH_ReleasePicking', P.PickingNo, L.LotCode, P.ItemNo, P.LocationID, -P.PickedQty
-                FROM dbo.WH_ReleasePicking P
-                LEFT JOIN dbo.tbl_Lot L ON L.LotID = P.LotID
-                LEFT JOIN dbo.MD_Item I ON I.ItemNo = P.ItemNo
-                WHERE NOT EXISTS
-                (
-                    SELECT 1
-                    FROM dbo.WH_InventoryTransaction T
-                    WHERE UPPER(T.TransactionType) = 'OUT'
-                      AND T.LotID = P.LotID
-                      AND ABS(DATEDIFF(minute, T.TransactionTime, P.PickedAt)) <= 5
-                )
-                  AND NOT EXISTS
-                  (
-                      SELECT 1
-                      FROM dbo.WH_OperationLog O
-                      WHERE O.Result = 'SUCCESS'
-                        AND O.EventType = 'RELEASE_PICK'
-                        AND (O.LotNo = L.LotCode OR O.PartNo = P.ItemNo)
-                        AND ABS(DATEDIFF(minute, O.EventTime, P.PickedAt)) <= 5
-                  )
-            )
             SELECT TOP (500)
-                OperationLogID,
-                EventTime,
-                EventType,
-                ScreenCode,
-                EmployeeNo,
-                EmployeeName,
-                WorkerID,
-                TerminalID,
-                LineID,
-                ShiftCode,
-                ScanType,
-                ScanValue,
-                Result,
-                Message,
-                ClientIP,
-                RefDocType,
-                RefDocNo,
-                LotNo,
-                PartNo,
-                LocationID,
-                Qty
-            FROM InventoryActivity
-            WHERE (@OperationType IS NULL OR OperationType = @OperationType)
-              AND (@DateFrom IS NULL OR EventTime >= @DateFrom)
-              AND (@DateTo IS NULL OR EventTime < DATEADD(day, 1, @DateTo))
+                T.TransactionID AS OperationLogID,
+                T.TransactionTime AS EventTime,
+                X.EventType,
+                X.ScreenCode,
+                T.OperatorID AS EmployeeNo,
+                CAST(NULL AS nvarchar(120)) AS EmployeeName,
+                T.OperatorID AS WorkerID,
+                CAST(NULL AS nvarchar(80)) AS TerminalID,
+                CAST(NULL AS nvarchar(40)) AS LineID,
+                CAST(NULL AS nvarchar(20)) AS ShiftCode,
+                'LOT' AS ScanType,
+                L.LotCode AS ScanValue,
+                'SUCCESS' AS Result,
+                CONCAT(COALESCE(NULLIF(T.Note, ''), COALESCE(T.ReasonCode, T.TransactionType)),
+                       ' (', COALESCE(T.QtyBefore, 0), ' -> ', COALESCE(T.QtyAfter, 0), ')') AS Message,
+                CAST(NULL AS nvarchar(64)) AS ClientIP,
+                T.RefDocType,
+                CONVERT(nvarchar(80), T.RefDocID) AS RefDocNo,
+                L.LotCode AS LotNo,
+                T.ItemNo AS PartNo,
+                T.LocationID,
+                T.QtyChange AS Qty
+            FROM dbo.WH_InventoryTransaction T
+            LEFT JOIN dbo.tbl_Lot L ON L.LotID = T.LotID
+            CROSS APPLY (SELECT
+                CASE UPPER(T.TransactionType)
+                    WHEN 'IN' THEN 'RECEIVE'
+                    WHEN 'OUT' THEN 'RELEASE_PICK'
+                    WHEN 'ADJ' THEN 'ADJUST_SAVE'
+                    WHEN 'MOVE' THEN 'MOVE_LOCATION'
+                    WHEN 'CANCEL' THEN 'CANCEL_RECEIPT'
+                    ELSE UPPER(T.TransactionType)
+                END AS EventType,
+                CASE UPPER(T.TransactionType)
+                    WHEN 'IN' THEN 'INBOUND'
+                    WHEN 'OUT' THEN 'OUTBOUND'
+                    WHEN 'ADJ' THEN 'ADJUSTMENT'
+                    WHEN 'MOVE' THEN 'RELOCATION'
+                    WHEN 'CANCEL' THEN 'INBOUND'
+                END AS OperationType,
+                CASE UPPER(T.TransactionType)
+                    WHEN 'OUT' THEN 'WH003'
+                    WHEN 'ADJ' THEN 'WH005'
+                    ELSE 'WH002'
+                END AS ScreenCode) X
+            WHERE (@OperationType IS NULL OR X.OperationType = @OperationType)
+              AND (@DateFrom IS NULL OR T.TransactionTime >= @DateFrom)
+              AND (@DateTo IS NULL OR T.TransactionTime < DATEADD(day, 1, @DateTo))
               AND (@Like IS NULL
-                   OR EventType LIKE @Like
-                   OR ScreenCode LIKE @Like
-                   OR EmployeeNo LIKE @Like
-                   OR EmployeeName LIKE @Like
-                   OR WorkerID LIKE @Like
-                   OR TerminalID LIKE @Like
-                   OR ScanValue LIKE @Like
-                   OR Message LIKE @Like
-                   OR LotNo LIKE @Like
-                   OR PartNo LIKE @Like
-                   OR LocationID LIKE @Like
-                   OR RefDocNo LIKE @Like)
-            ORDER BY EventTime DESC, OperationLogID DESC;
+                   OR X.EventType LIKE @Like
+                   OR X.ScreenCode LIKE @Like
+                   OR T.OperatorID LIKE @Like
+                   OR L.LotCode LIKE @Like
+                   OR T.Note LIKE @Like
+                   OR T.ReasonCode LIKE @Like
+                   OR T.ItemNo LIKE @Like
+                   OR T.LocationID LIKE @Like
+                   OR CONVERT(nvarchar(80), T.RefDocID) LIKE @Like)
+            ORDER BY T.TransactionTime DESC, T.TransactionID DESC;
             """, conn)
         {
             CommandTimeout = 15
@@ -1952,45 +1727,6 @@ public sealed class WarehouseRepository
         return list;
     }
 
-    public long WriteWebOperationLog(
-        string eventType,
-        string? screenCode,
-        string? workerId,
-        string? workerName,
-        string? message,
-        string? refDocType = null,
-        string? refDocNo = null,
-        string? locationId = null,
-        string result = "SUCCESS")
-    {
-        if (string.IsNullOrWhiteSpace(eventType))
-            throw new ArgumentException("Event Type is required.", nameof(eventType));
-
-        using var conn = _factory.OpenConnection();
-        EnsureOperationLogTable(conn);
-
-        using var insert = new SqlCommand("""
-            INSERT INTO dbo.WH_OperationLog
-            (
-                EventTime, EventType, ScreenCode, EmployeeNo, EmployeeName, WorkerID,
-                TerminalID, ScanType, ScanValue, Result, Message,
-                RefDocType, RefDocNo, LocationID, CreatedBy, CreatedTS
-            )
-            OUTPUT INSERTED.OperationLogID
-            VALUES
-            (
-                SYSDATETIME(), @EventType, @ScreenCode, @EmployeeNo, @EmployeeName, @WorkerID,
-                @TerminalID, @ScanType, @ScanValue, @Result, @Message,
-                @RefDocType, @RefDocNo, @LocationID, @CreatedBy, SYSDATETIME()
-            );
-            """, conn)
-        {
-            CommandTimeout = 15
-        };
-        AddOperationLogParameters(insert, eventType, screenCode, workerId, workerName, message, refDocType, refDocNo, locationId, result);
-        return Convert.ToInt64(insert.ExecuteScalar());
-    }
-
     public bool TryWriteWebOperationLog(
         string eventType,
         string? screenCode,
@@ -2002,15 +1738,7 @@ public sealed class WarehouseRepository
         string? locationId = null,
         string result = "SUCCESS")
     {
-        try
-        {
-            WriteWebOperationLog(eventType, screenCode, workerId, workerName, message, refDocType, refDocNo, locationId, result);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
+        return true;
     }
 
     public List<InventorySettingRow> ListInventorySettings(string? search = null, string? status = null)
@@ -2185,58 +1913,11 @@ public sealed class WarehouseRepository
             IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.WH_ReleaseSchedule') AND name = N'IX_WH_ReleaseSchedule_PickSlipNo')
                 CREATE INDEX IX_WH_ReleaseSchedule_PickSlipNo ON dbo.WH_ReleaseSchedule (PickSlipNo, ReqSeqNo, ReleaseScheduleID);
 
-            IF OBJECT_ID(N'dbo.WH_ReleasePickAllocation', N'U') IS NULL
-            BEGIN
-                CREATE TABLE dbo.WH_ReleasePickAllocation
-                (
-                    PickAllocationID int IDENTITY(1,1) NOT NULL PRIMARY KEY,
-                    PickSlipNo nvarchar(40) NOT NULL,
-                    ReleaseScheduleID int NOT NULL,
-                    ItemNo varchar(20) NOT NULL,
-                    AllocationSeq int NOT NULL,
-                    LocationID varchar(20) NOT NULL,
-                    LotID int NOT NULL,
-                    LotNo varchar(50) NOT NULL,
-                    ProductionDate datetime2 NULL,
-                    AllocatedQty decimal(14,3) NOT NULL,
-                    AllocatedBoxQty decimal(14,3) NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_AllocatedBoxQty DEFAULT (1),
-                    PickedQty decimal(14,3) NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_PickedQty DEFAULT (0),
-                    PickedBoxQty decimal(14,3) NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_PickedBoxQty DEFAULT (0),
-                    Status varchar(20) NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_Status DEFAULT ('Open'),
-                    CreatedBy nvarchar(80) NULL,
-                    CreatedTS datetime2 NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_CreatedTS DEFAULT (SYSDATETIME()),
-                    ModifiedBy nvarchar(80) NULL,
-                    ModifiedTS datetime2 NULL,
-                    CONSTRAINT UQ_WH_ReleasePickAllocation_Lot UNIQUE (ReleaseScheduleID, LotID)
-                );
-
-                CREATE INDEX IX_WH_ReleasePickAllocation_Slip
-                    ON dbo.WH_ReleasePickAllocation (PickSlipNo, ReleaseScheduleID, AllocationSeq);
-            END;
-
-            IF COL_LENGTH(N'dbo.WH_ReleasePickAllocation', N'AllocatedBoxQty') IS NULL
-                ALTER TABLE dbo.WH_ReleasePickAllocation
-                    ADD AllocatedBoxQty decimal(14,3) NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_AllocatedBoxQty_Existing DEFAULT (1);
-
-            IF COL_LENGTH(N'dbo.WH_ReleasePickAllocation', N'PickedBoxQty') IS NULL
-                ALTER TABLE dbo.WH_ReleasePickAllocation
-                    ADD PickedBoxQty decimal(14,3) NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_PickedBoxQty_Existing DEFAULT (0);
-
             """, conn)
         {
             CommandTimeout = 15
         };
         cmd.ExecuteNonQuery();
-
-        using var backfill = new SqlCommand("""
-            UPDATE dbo.WH_ReleasePickAllocation
-               SET AllocatedBoxQty = 1
-             WHERE COALESCE(AllocatedBoxQty, 0) = 0;
-            """, conn)
-        {
-            CommandTimeout = 15
-        };
-        backfill.ExecuteNonQuery();
     }
 
     private static bool PickSlipExists(SqlConnection conn, SqlTransaction tx, string pickSlipNo)
@@ -2318,122 +1999,6 @@ public sealed class WarehouseRepository
                 ALTER TABLE dbo.WH_AreaLayout ALTER COLUMN H_PCT DECIMAL(8,2) NOT NULL;
             END;
         """, conn);
-        cmd.ExecuteNonQuery();
-    }
-
-    private static void EnsureOperationLogTable(SqlConnection conn)
-    {
-        using var cmd = new SqlCommand("""
-            IF OBJECT_ID(N'dbo.WH_OperationLog', N'U') IS NULL
-            BEGIN
-                CREATE TABLE dbo.WH_OperationLog
-                (
-                    OperationLogID bigint IDENTITY(1,1) NOT NULL,
-                    EventTime datetime2 NOT NULL CONSTRAINT DF_WH_OperationLog_EventTime DEFAULT SYSDATETIME(),
-                    EventType varchar(40) NOT NULL,
-                    ScreenCode varchar(20) NULL,
-                    EmployeeNo nvarchar(40) NULL,
-                    EmployeeName nvarchar(120) NULL,
-                    WorkerID nvarchar(450) NULL,
-                    TerminalID nvarchar(80) NULL,
-                    LineID nvarchar(40) NULL,
-                    ShiftCode nvarchar(20) NULL,
-                    ScanType varchar(30) NULL,
-                    ScanValue nvarchar(120) NULL,
-                    Result varchar(20) NOT NULL CONSTRAINT DF_WH_OperationLog_Result DEFAULT 'INFO',
-                    Message nvarchar(500) NULL,
-                    ClientIP nvarchar(64) NULL,
-                    UserAgent nvarchar(300) NULL,
-                    RefDocType varchar(30) NULL,
-                    RefDocNo nvarchar(80) NULL,
-                    LotNo nvarchar(80) NULL,
-                    PartNo nvarchar(80) NULL,
-                    LocationID nvarchar(80) NULL,
-                    Qty decimal(14,3) NULL,
-                    CreatedBy varchar(50) NOT NULL CONSTRAINT DF_WH_OperationLog_CreatedBy DEFAULT 'system',
-                    CreatedTS datetime2 NOT NULL CONSTRAINT DF_WH_OperationLog_CreatedTS DEFAULT SYSDATETIME(),
-                    CONSTRAINT PK_WH_OperationLog PRIMARY KEY CLUSTERED (OperationLogID)
-                );
-            END;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'EventTime') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD EventTime datetime2 NOT NULL DEFAULT SYSDATETIME();
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'EventType') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD EventType varchar(40) NOT NULL DEFAULT 'INFO';
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'ScreenCode') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD ScreenCode varchar(20) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'EmployeeNo') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD EmployeeNo nvarchar(40) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'EmployeeName') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD EmployeeName nvarchar(120) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'WorkerID') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD WorkerID nvarchar(450) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'TerminalID') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD TerminalID nvarchar(80) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'LineID') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD LineID nvarchar(40) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'ShiftCode') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD ShiftCode nvarchar(20) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'ScanType') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD ScanType varchar(30) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'ScanValue') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD ScanValue nvarchar(120) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'Result') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD Result varchar(20) NOT NULL DEFAULT 'INFO';
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'Message') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD Message nvarchar(500) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'ClientIP') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD ClientIP nvarchar(64) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'UserAgent') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD UserAgent nvarchar(300) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'RefDocType') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD RefDocType varchar(30) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'RefDocNo') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD RefDocNo nvarchar(80) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'LotNo') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD LotNo nvarchar(80) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'PartNo') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD PartNo nvarchar(80) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'LocationID') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD LocationID nvarchar(80) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'Qty') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD Qty decimal(14,3) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'CreatedBy') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD CreatedBy varchar(50) NOT NULL CONSTRAINT DF_WH_OperationLog_CreatedBy DEFAULT 'system';
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'CreatedTS') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD CreatedTS datetime2 NOT NULL CONSTRAINT DF_WH_OperationLog_CreatedTS DEFAULT SYSDATETIME();
-
-            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_WH_OperationLog_Time' AND object_id = OBJECT_ID(N'dbo.WH_OperationLog'))
-                CREATE INDEX IX_WH_OperationLog_Time ON dbo.WH_OperationLog (EventTime DESC, OperationLogID DESC);
-
-            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_WH_OperationLog_Search' AND object_id = OBJECT_ID(N'dbo.WH_OperationLog'))
-                CREATE INDEX IX_WH_OperationLog_Search ON dbo.WH_OperationLog (EventType, EmployeeNo, WorkerID, ScanValue);
-            """, conn)
-        {
-            CommandTimeout = 15
-        };
         cmd.ExecuteNonQuery();
     }
 
@@ -2678,45 +2243,6 @@ public sealed class WarehouseRepository
     {
         var p = cmd.Parameters.Add(name, type, size);
         p.Value = string.IsNullOrWhiteSpace(value) ? DBNull.Value : value.Trim();
-    }
-
-    private static void AddOperationLogParameters(
-        SqlCommand cmd,
-        string eventType,
-        string? screenCode,
-        string? workerId,
-        string? workerName,
-        string? message,
-        string? refDocType,
-        string? refDocNo,
-        string? locationId,
-        string result)
-    {
-        AddNullable(cmd, "@EventType", SqlDbType.VarChar, 40, eventType.ToUpperInvariant());
-        AddNullable(cmd, "@ScreenCode", SqlDbType.VarChar, 20, TruncateOrNull(screenCode, 20));
-        AddNullable(cmd, "@EmployeeNo", SqlDbType.NVarChar, 40, TruncateOrNull(workerId, 40));
-        AddNullable(cmd, "@EmployeeName", SqlDbType.NVarChar, 120, TruncateOrNull(workerName, 120));
-        AddNullable(cmd, "@WorkerID", SqlDbType.NVarChar, 450, TruncateOrNull(workerId, 450));
-        AddNullable(cmd, "@TerminalID", SqlDbType.NVarChar, 80, "WEB");
-        AddNullable(cmd, "@ScanType", SqlDbType.VarChar, 30, "MASTER");
-        AddNullable(cmd, "@ScanValue", SqlDbType.NVarChar, 120, TruncateOrNull(refDocNo ?? locationId, 120));
-        AddNullable(cmd, "@Result", SqlDbType.VarChar, 20, string.IsNullOrWhiteSpace(result) ? "SUCCESS" : result.ToUpperInvariant());
-        AddNullable(cmd, "@Message", SqlDbType.NVarChar, 500, TruncateOrNull(message, 500));
-        AddNullable(cmd, "@ClientIP", SqlDbType.NVarChar, 64, null);
-        AddNullable(cmd, "@UserAgent", SqlDbType.NVarChar, 300, null);
-        AddNullable(cmd, "@RefDocType", SqlDbType.VarChar, 30, TruncateOrNull(refDocType, 30));
-        AddNullable(cmd, "@RefDocNo", SqlDbType.NVarChar, 80, TruncateOrNull(refDocNo, 80));
-        AddNullable(cmd, "@LotNo", SqlDbType.NVarChar, 80, null);
-        AddNullable(cmd, "@PartNo", SqlDbType.NVarChar, 80, null);
-        AddNullable(cmd, "@LocationID", SqlDbType.NVarChar, 80, TruncateOrNull(locationId, 80));
-        if (!cmd.Parameters.Contains("@Qty"))
-        {
-            var qty = cmd.Parameters.Add("@Qty", SqlDbType.Decimal);
-            qty.Precision = 14;
-            qty.Scale = 3;
-            qty.Value = DBNull.Value;
-        }
-        AddNullable(cmd, "@CreatedBy", SqlDbType.VarChar, 50, TruncateOrNull(workerId, 50) ?? "web");
     }
 
     private static string? TruncateOrNull(string? value, int maxLength)

@@ -1,6 +1,7 @@
 @page "/wh/03"
 @page "/fg/adjust"
 @inject PdaApi Api
+@inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @implements IAsyncDisposable
@@ -11,10 +12,21 @@
         <div class="wh03-tbar-title">
             <span class="pda-tbar-brand">@PageTitle</span>
         </div>
-        @if (!IsAdjustTab)
+        @if (IsTestMode || IsPptTestMode || !IsAdjustTab)
         {
             <div class="wh03-tbar-actions">
-                <RadzenButton class="wh03-refresh" Click="@Load" Disabled="@_isLoading" Text="REFRESH" />
+                @if (IsPptTestMode)
+                {
+                    <PptScenarioPanel @key='@(IsFinishedGoodsAdjust ? "fg-adjust" : IsAdjustTab ? "wh-adjust" : "wh-inventory")' Title="@(IsAdjustTab ? "ADJUST" : "INVENTORY")" Steps="@(IsFinishedGoodsAdjust ? PptFgAdjustSteps : IsAdjustTab ? PptAdjustSteps : PptInventorySteps)" Busy="@(InventoryBusy || _isLoading)" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+                }
+                @if (IsTestMode)
+                {
+                    <button class="wh02-test-nav" @onclick="OpenTestPanel">SCENARIO</button>
+                }
+                @if (!IsAdjustTab)
+                {
+                    <RadzenButton class="wh03-refresh" Click="@Load" Disabled="@_isLoading" Text="REFRESH" />
+                }
             </div>
         }
     </div>
@@ -102,7 +114,8 @@
                             @foreach (var lot in _selectedLocationLots)
                             {
                                 <div class="inventory-table-row inventory-lot-grid">
-                                    <strong>@Text(lot.LotNo)</strong><strong>@Qty(lot.Qty, lot.Unit)</strong><strong>@Text(_selectedInventoryLocation.LocationId)</strong>
+                                    <span class="inventory-part-cell"><strong>@Text(lot.LotNo)</strong><small>@Text(lot.InventoryStatus)</small></span>
+                                    <strong>@Qty(lot.Qty, lot.Unit)</strong><strong>@Text(_selectedInventoryLocation.LocationId)</strong>
                                 </div>
                             }
                         </div>
@@ -114,7 +127,7 @@
                         <div class="inventory-detail-head">
                             <RadzenButton class="inventory-back" Click="@CloseLocationInventory" Text="&lt; BACK" />
                             <div><span>LOCATION</span><strong>@Text(_selectedInventoryLocation.LocationId)</strong><em>@Text(_selectedInventoryLocation.LocationName)</em></div>
-                            <strong>@Qty(_selectedInventoryLocation.TotalQty, null)</strong>
+                            <strong>@Qty(_selectedInventoryLocation.TotalQty, _selectedInventoryLocation.Unit)</strong>
                         </div>
                         <div class="inventory-table-head inventory-part-detail-grid"><span>PART</span><span>QTY</span></div>
                         <div class="inventory-table-list">
@@ -160,7 +173,8 @@
                             @foreach (var location in VisibleInventoryLocations)
                             {
                                 <button type="button" class="inventory-table-row inventory-location-grid" @onclick="@(() => OpenInventoryLocation(location.LocationId))">
-                                    <strong>@Text(location.LocationId)</strong><strong>@Qty(location.TotalQty, null)</strong>
+                                    <span class="inventory-part-cell"><strong>@Text(location.LocationId)</strong><small>@Text(location.LocationName)</small></span>
+                                    <strong>@Qty(location.TotalQty, location.Unit)</strong>
                                 </button>
                             }
                         </div>
@@ -245,7 +259,7 @@
 
                 <div class="@($"wh03-work-scan {ScanPanelClass}")">
                     <div class="pda-fld">
-                        <label>LOT NO SCAN</label>
+                        <label>@(IsAdjustTab ? "LOCATION / LOT SCAN" : "LOT NO SCAN")</label>
                         <RadzenTextBox class="pda-input wh03-work-input pda-scan-input"
                                        Value="@_invBarcode"
                                        @oninput="OnInventoryBarcodeInput"
@@ -258,6 +272,26 @@
                     }
                 </div>
             </RadzenCard>
+
+            @if (IsAdjustTab && _adjustLocation is not null)
+            {
+                <section class="wh03-adjust-location-list">
+                    <div class="wh03-section-title">@_adjustLocation.LocationId · SELECT STOCK</div>
+                    @foreach (var stock in _adjustLocation.Items)
+                    {
+                        <button type="button" class="wh03-adjust-location-item @(_invScan?.LotNo == stock.LotNo ? "selected" : "")"
+                                disabled="@InventoryBusy" @onclick="@(() => SelectAdjustmentStock(stock))">
+                            <span><strong>@stock.PartNo</strong><b>@Qty(stock.Qty, stock.Unit)</b></span>
+                            <span>@stock.PartName</span>
+                            <small>@stock.LotNo</small>
+                        </button>
+                    }
+                    @if (_adjustLocation.Items.Count == 0)
+                    {
+                        <div class="pda-status dim">No adjustable stock at this location.</div>
+                    }
+                </section>
+            }
 
             @if (IsAdjustTab && _invScan is not null)
             {
@@ -314,40 +348,25 @@
                             </div>
                         </div>
                         <div class="pda-fld">
-                            <label>ADJUST QTY</label>
+                            <label>NEW QUANTITY</label>
                             <div class="wh03-qty-stepper">
                                 <button type="button"
                                         class="wh03-qty-step"
                                         @onclick="@(() => StepInventoryAdjust(-1))"
                                         disabled="@DisableAdjustQtyMinus">-</button>
-                                <div class="@($"wh03-qty-readout {AdjustDeltaClass}")" aria-live="polite">
-                                    <strong>@AdjustQuantityLabel</strong>
-                                </div>
+                                    <input type="text" class="wh03-qty-input" aria-label="New quantity" inputmode="none"
+                                           readonly aria-haspopup="dialog" disabled="@DisableAdjustQtyControls"
+                                           value="@(_adjustQuantityInput ?? InventoryAfterQty.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))"
+                                           @onclick="OpenQuantityPad" @onkeydown="OnQuantityPadKey" />
                                 <button type="button"
                                         class="wh03-qty-step"
                                         @onclick="@(() => StepInventoryAdjust(1))"
                                         disabled="@DisableAdjustQtyPlus">+</button>
                             </div>
-                        </div>
-                        <div class="pda-fld">
-                            <label>SUPERVISOR</label>
-                            <div class="wh03-reason-select">
-                                <select class="pda-input wh03-work-input" aria-label="Supervisor" @bind="_invAdjustSupervisorEmployeeNo" @bind:after="ClearSupervisorPin" disabled="@(!InventoryAlreadyReceived || InventoryBusy || _invSupervisors.Count == 0)">
-                                    <option value="">@(_invSupervisors.Count == 0 ? "No supervisors available" : "Select supervisor")</option>
-                                    @foreach (var supervisor in _invSupervisors)
-                                    {
-                                        <option value="@supervisor.EmployeeNo">@supervisor.EmployeeName (@supervisor.EmployeeNo)</option>
-                                    }
-                                </select>
-                                <RadzenIcon Icon="expand_more" class="wh03-reason-arrow" aria-hidden="true" />
-                            </div>
-                        </div>
-                        <div class="pda-fld">
-                            <label>PIN</label>
-                            <input class="pda-input wh03-work-input" type="password" inputmode="none" autocomplete="off"
-                                   value="@_invAdjustSupervisorPin" readonly aria-label="Supervisor PIN" aria-haspopup="dialog"
-                                   @onclick="OpenSupervisorPinPad" @onkeydown="OnSupervisorPinKey"
-                                   disabled="@(!InventoryAlreadyReceived || InventoryBusy || string.IsNullOrWhiteSpace(_invAdjustSupervisorEmployeeNo))" />
+                            @if (_adjustQuantityInvalid)
+                            {
+                                <span class="pda-status fail">Enter a whole number from 0 to 999999999.</span>
+                            }
                         </div>
                         <div class="pda-fld wh03-form-wide">
                             <label>NOTE</label>
@@ -357,7 +376,7 @@
 
                     <div class="wh03-action-row">
                         <RadzenButton class="wh03-date-clear" Click="@ClearInventoryWork" Disabled="@InventoryBusy" Text="CLEAR" />
-                        <RadzenButton class="wh03-date-apply wh03-post-btn ready save" Click="@PostInventoryAdjust" Disabled="@InventoryBusy" Text="SAVE" />
+                        <RadzenButton class="wh03-date-apply wh03-post-btn ready save" Click="@PostInventoryAdjust" Disabled="@DisableInventoryAdjust" Text="SAVE" />
                     </div>
                 </RadzenCard>
             }
@@ -434,6 +453,99 @@
         }
     </div>
 
+    @if (IsTestMode && _testPanelOpen)
+    {
+        <div class="wh02-test-backdrop" @onclick="CloseTestPanel">
+            <section class="wh02-test-panel" @onclick:stopPropagation="true">
+                <div class="wh02-test-head">
+                    <div><span>TEST MODE</span><strong>@(IsAdjustTab ? "ADJUST TEST SCENARIOS" : "INVENTORY TEST SCENARIOS")</strong></div>
+                    <b>@(IsAdjustTab ? $"{CurrentAdjustTestScenario.No:00} / {AdjustTestScenarios.Length}" : $"{CurrentTestScenario.No:00} / {InventoryTestScenarios.Length}")</b>
+                    <button class="wh02-test-close" @onclick="CloseTestPanel" aria-label="Close scenarios">×</button>
+                </div>
+                <div class="wh02-test-tabs">
+                    @if (IsAdjustTab)
+                    {
+                        @foreach (var scenario in AdjustTestScenarios)
+                        {
+                            var index = scenario.No - 1;
+                            <button class="@(index == _adjustTestScenarioIndex ? "on" : "")"
+                                    @onclick="@(() => SelectAdjustTestScenario(index))">@scenario.No.ToString("00")</button>
+                        }
+                    }
+                    else
+                    {
+                        @foreach (var scenario in InventoryTestScenarios)
+                        {
+                            var index = scenario.No - 1;
+                            <button class="@(index == _testScenarioIndex ? "on" : "")"
+                                    @onclick="@(() => SelectTestScenario(index))">@scenario.No.ToString("00")</button>
+                        }
+                    }
+                </div>
+                <div class="wh02-test-case">
+                    @if (IsAdjustTab)
+                    {
+                        <div class="wh02-test-summary">
+                            <span>@CurrentAdjustTestScenario.TestCaseId</span>
+                            <strong>@CurrentAdjustTestScenario.Title</strong>
+                        </div>
+                        @if (CurrentAdjustTestScenario.Values.Length > 0)
+                        {
+                            <div class="wh02-test-values">
+                                @foreach (var value in CurrentAdjustTestScenario.Values)
+                                {
+                                    <button @onclick="@(() => LoadAdjustTestValue(value))">
+                                        <span>@value.Label</span><b>@value.Value</b>
+                                    </button>
+                                }
+                            </div>
+                        }
+                        @if (CurrentAdjustTestScenario.No == 18)
+                        {
+                            <div class="wh02-test-actions">
+                                <button @onclick='@(() => OpenAdjustScenarioPage("/wh/08"))'>OPEN TRANSACTIONS</button>
+                            </div>
+                        }
+                        else if (CurrentAdjustTestScenario.No == 20)
+                        {
+                            <button class="@($"wh02-test-error {(_simulateAdjustApiFailure ? "on" : "")}")"
+                                    @onclick="ToggleAdjustApiFailure">
+                                API ERROR: @(_simulateAdjustApiFailure ? "ON" : "OFF")
+                            </button>
+                        }
+                        <button class="wh02-test-start" @onclick="StartAdjustTestScenario">START SCENARIO</button>
+                    }
+                    else
+                    {
+                        <div class="wh02-test-summary">
+                            <span>@CurrentTestScenario.TestCaseId</span>
+                            <strong>@CurrentTestScenario.Title</strong>
+                        </div>
+                        @if (CurrentTestScenario.Values.Length > 0)
+                        {
+                            <div class="wh02-test-values">
+                                @foreach (var value in CurrentTestScenario.Values)
+                                {
+                                    <button @onclick="@(() => LoadTestValue(value))">
+                                        <span>@value.Label</span><b>@value.Value</b>
+                                    </button>
+                                }
+                            </div>
+                        }
+                        @if (CurrentTestScenario.No == 11)
+                        {
+                            <button class="@($"wh02-test-error {(_simulateInventoryApiFailure ? "on" : "")}")"
+                                    @onclick="ToggleInventoryApiFailure">
+                                API ERROR: @(_simulateInventoryApiFailure ? "ON" : "OFF")
+                            </button>
+                        }
+                        <button class="wh02-test-start" @onclick="StartTestScenario">START SCENARIO</button>
+                    }
+                </div>
+            </section>
+        </div>
+    }
+
     @if (_dateFilterOpen)
     {
         <div class="wh03-filter-backdrop" @onclick="CloseDateFilters">
@@ -475,30 +587,25 @@
         </div>
     }
 
-    @if (_pinPadOpen)
+    @if (_quantityPadOpen)
     {
-        <div class="wh-modal-backdrop" @onclick="CloseSupervisorPinPad">
-            <RadzenCard class="wh-modal-card wh03-pin-dialog" role="dialog" aria-modal="true" aria-labelledby="wh03-pin-title" @onclick:stopPropagation="true">
-                <div id="wh03-pin-title" class="wh-modal-title">Supervisor PIN</div>
-                <div class="pda-pin-dots" aria-label="@($"{_pinPadDraft.Length} digits entered")" aria-live="polite">
-                    @for (var i = 0; i < Math.Max(4, _pinPadDraft.Length); i++)
-                    {
-                        <span class="pda-pin-dot @(i < _pinPadDraft.Length ? "on" : "")" aria-hidden="true"></span>
-                    }
-                </div>
+        <div class="wh-modal-backdrop" @onclick="CloseQuantityPad">
+            <RadzenCard class="wh-modal-card wh03-pin-dialog wh03-quantity-dialog" role="dialog" aria-modal="true" aria-labelledby="wh03-quantity-title" @onclick:stopPropagation="true">
+                <div id="wh03-quantity-title" class="wh-modal-title">NEW QUANTITY</div>
+                <output class="wh03-quantity-pad-value" aria-live="polite">@(_quantityPadDraft.Length == 0 ? "0" : _quantityPadDraft)</output>
                 <div class="pda-keypad">
                     @foreach (var digit in new[] { "1", "2", "3", "4", "5", "6", "7", "8", "9" })
                     {
-                        <button type="button" class="pda-key" @onclick="@(() => PressSupervisorPin(digit))">@digit</button>
+                        <button type="button" class="pda-key" @onclick="@(() => PressQuantityDigit(digit))">@digit</button>
                     }
-                    <button type="button" class="pda-key del" aria-label="Delete last digit" @onclick="DeleteSupervisorPin">
+                    <button type="button" class="pda-key del" aria-label="Delete last digit" @onclick="DeleteQuantityDigit">
                         <RadzenIcon Icon="backspace" />
                     </button>
-                    <button type="button" class="pda-key" @onclick='@(() => PressSupervisorPin("0"))'>0</button>
-                    <button type="button" class="pda-key ok" disabled="@(_pinPadDraft.Length < 4)" @onclick="ConfirmSupervisorPin">OK</button>
+                    <button type="button" class="pda-key" @onclick='@(() => PressQuantityDigit("0"))'>0</button>
+                    <button type="button" class="pda-key ok" disabled="@(_quantityPadDraft.Length == 0)" @onclick="ConfirmQuantityPad">OK</button>
                 </div>
                 <div class="wh-modal-actions">
-                    <RadzenButton class="wh-modal-btn secondary" Click="@CloseSupervisorPinPad" Text="CANCEL" />
+                    <RadzenButton class="wh-modal-btn secondary" Click="@CloseQuantityPad" Text="CANCEL" />
                 </div>
             </RadzenCard>
         </div>
@@ -600,6 +707,127 @@
 </div>
 
 @code {
+    private sealed record InventoryTestValue(string Label, string Value, string Action = "SEARCH");
+    private sealed record InventoryTestScenario(int No, string TestCaseId, string Title, string Steps,
+        bool AutoRun, params InventoryTestValue[] Values);
+    private sealed record AdjustTestValue(string Label, string Value, string Action = "LOT");
+    private sealed record AdjustTestScenario(int No, string TestCaseId, string Title, string Steps,
+        bool AutoRun, bool ResetStock, params AdjustTestValue[] Values);
+
+    private static readonly InventoryTestScenario[] InventoryTestScenarios =
+    [
+        new(1, "WH004-TC-001", "재고 보유 Location 목록",
+            "재고 수량이 0보다 큰 Location만 목록에 표시되는지 확인합니다.", true,
+            new InventoryTestValue("LIST", "ALL STOCKED LOCATIONS", "LIST")),
+        new(2, "WH004-TC-002", "Location 요약 정보",
+            "Location No, 이름, 수량과 단위가 함께 표시되는지 확인합니다.", true,
+            new InventoryTestValue("LIST", "ALL STOCKED LOCATIONS", "LIST")),
+        new(3, "WH004-TC-003", "REFRESH 최신 재고 반영",
+            "START 후 CHANGE QTY를 실행하고 REFRESH를 눌러 B0-09-D2 수량이 갱신되는지 확인합니다.", true,
+            new InventoryTestValue("LIST", "B0-09-D2 / CURRENT QTY", "LIST"),
+            new InventoryTestValue("CHANGE QTY", "5011LL260804000001 (120 ↔ 121)", "CHANGE_QTY")),
+        new(4, "WH004-TC-004", "Part No 검색",
+            "Part No를 검색해 재고가 있는 Location만 표시되는지 확인합니다.", true,
+            new InventoryTestValue("PART NO", "81710-PI000NNB")),
+        new(5, "WH004-TC-005", "Location No 검색",
+            "Location No를 검색해 일치하는 한 행만 표시되는지 확인합니다.", true,
+            new InventoryTestValue("LOCATION", "B0-10-A1")),
+        new(6, "WH004-TC-006", "검색 결과 없음",
+            "존재하지 않는 값 검색 시 이전 결과 없이 빈 결과 문구가 표시되는지 확인합니다.", true,
+            new InventoryTestValue("UNKNOWN", "WH-INV-UNKNOWN-999999")),
+        new(7, "WH004-TC-007", "CLEAR 검색 초기화",
+            "검색 결과가 표시된 후 CLEAR를 눌러 전체 Location 목록이 복원되는지 확인합니다.", true,
+            new InventoryTestValue("PART NO", "81710-PI000NNB")),
+        new(8, "WH004-TC-008", "Location 상세 정보",
+            "Location을 열어 Part No, Part Name, LOT No, Qty, Unit, Status를 확인합니다.", true,
+            new InventoryTestValue("LOCATION", "B0-10-A1", "OPEN_LOCATION")),
+        new(9, "WH004-TC-009", "상세 수량 합계 검증",
+            "B0-10-A1의 LOT 수량 4 + 24 + 45가 Location 합계 73 EA와 일치하는지 확인합니다.", true,
+            new InventoryTestValue("LOCATION", "B0-10-A1 / 73 EA", "OPEN_LOCATION")),
+        new(10, "WH004-TC-010", "BACK 상태 유지",
+            "상세 화면에서 BACK을 눌렀을 때 기존 B0-10-A1 검색 조건과 위치가 유지되는지 확인합니다.", true,
+            new InventoryTestValue("LOCATION", "B0-10-A1", "OPEN_LOCATION")),
+        new(11, "WH004-TC-011", "Inventory API 오류 및 재시도",
+            "API ERROR를 ON으로 하고 START해 오류 알림과 화면 유지 여부를 확인한 뒤 OFF로 재시도합니다.", true,
+            new InventoryTestValue("PART NO", "81710-PI000NNB", "API_QUERY"))
+    ];
+
+    private static readonly AdjustTestScenario[] AdjustTestScenarios =
+    [
+        new(1, "WH005-TC-001", "LOT 스캔 및 재고 조회",
+            "LOT을 스캔해 Part No, Part Name, 현재수량과 Location을 확인합니다.", true, true,
+            new AdjustTestValue("LOT", "5011LL260904500001")),
+        new(2, "WH005-TC-002", "미등록 LOT 차단",
+            "등록되지 않은 LOT을 스캔해 오류 안내와 입력 비활성 상태를 확인합니다.", true, false,
+            new AdjustTestValue("UNKNOWN", "5011LL269999999999")),
+        new(3, "WH005-TC-003", "재고 0 LOT 안내",
+            "수량 0 LOT을 스캔해 현재수량과 양수 조정만 허용된다는 안내를 확인합니다.", true, false,
+            new AdjustTestValue("ZERO STOCK", "5011LL260901000099")),
+        new(4, "WH005-TC-004", "수량 3 증가",
+            "START 후 +3을 눌러 Before 10, Change +3, After 13을 확인합니다.", true, true,
+            new AdjustTestValue("LOT", "5011LL260904500001"),
+            new AdjustTestValue("CHANGE", "+3", "DELTA")),
+        new(5, "WH005-TC-005", "수량 3 감소",
+            "START 후 -3을 눌러 Before 10, Change -3, After 7을 확인합니다.", true, true,
+            new AdjustTestValue("LOT", "5011LL260904500001"),
+            new AdjustTestValue("CHANGE", "-3", "DELTA")),
+        new(6, "WH005-TC-006", "재고를 0까지 감소",
+            "START 후 -10을 눌러 After Qty 0이 허용되는지 확인합니다.", true, true,
+            new AdjustTestValue("LOT", "5011LL260904500001"),
+            new AdjustTestValue("CHANGE", "-10", "DELTA")),
+        new(7, "WH005-TC-007", "음수 재고 방지",
+            "START 후 -11을 눌러 0 아래로 내려가지 않고 안내가 표시되는지 확인합니다.", true, true,
+            new AdjustTestValue("LOT", "5011LL260904500001"),
+            new AdjustTestValue("BELOW ZERO", "-11", "DELTA")),
+        new(8, "WH005-TC-008", "조정 정보 한 화면 확인",
+            "수량과 Reason을 입력해 조정 전·증감·조정 후 정보가 함께 보이는지 확인합니다.", true, true,
+            new AdjustTestValue("LOT", "5011LL260904500001"),
+            new AdjustTestValue("READY", "+3 / DAMAGED / TEST", "PREPARE")),
+        new(9, "WH005-TC-009", "Note 입력 유지",
+            "Note 테스트값을 불러와 한글·영문·숫자가 입력란에 유지되는지 확인합니다.", true, true,
+            new AdjustTestValue("LOT", "5011LL260904500001"),
+            new AdjustTestValue("NOTE", "조정 테스트 ABC 123", "NOTE")),
+        new(10, "WH005-TC-010", "CLEAR 작업 초기화",
+            "READY를 불러온 뒤 화면의 CLEAR를 눌러 입력값이 모두 초기화되는지 확인합니다.", true, true,
+            new AdjustTestValue("LOT", "5011LL260904500001"),
+            new AdjustTestValue("READY", "+3 / DAMAGED / TEST", "PREPARE")),
+        new(11, "WH005-TC-011", "Reason Code 목록",
+            "Reason 목록에 Count Diff, Damaged, Lost, Found, Other가 표시되는지 확인합니다.", true, true,
+            new AdjustTestValue("LOT", "5011LL260904500001")),
+        new(12, "WH005-TC-012", "Reason 선택 반영",
+            "Damaged를 불러와 선택한 Reason이 화면에 반영되는지 확인합니다.", true, true,
+            new AdjustTestValue("LOT", "5011LL260904500001"),
+            new AdjustTestValue("REASON", "DAMAGED", "REASON")),
+        new(13, "WH005-TC-013", "수량 숫자 패드",
+            "수량 입력란을 눌러 숫자 패드가 열리고 숫자·DELETE·CANCEL이 동작하는지 확인합니다.", true, true,
+            new AdjustTestValue("LOT", "5011LL260904500001"),
+            new AdjustTestValue("NUMBER PAD", "10", "OPEN_QTY")),
+        new(14, "WH005-TC-014", "정수 수량 입력",
+            "정수 수량을 입력하면 SAVE가 활성화되는지 확인합니다.", true, true,
+            new AdjustTestValue("LOT", "5011LL260904500001"),
+            new AdjustTestValue("QUANTITY", "15", "QTY_VALID")),
+        new(15, "WH005-TC-015", "소수 수량 차단",
+            "소수 수량은 허용되지 않고 SAVE가 비활성화되는지 확인합니다.", true, true,
+            new AdjustTestValue("LOT", "5011LL260904500001"),
+            new AdjustTestValue("DECIMAL", "1.5", "QTY_DECIMAL")),
+        new(16, "WH005-TC-016", "빈 수량 차단",
+            "수량을 비우면 SAVE가 비활성화되는지 확인합니다.", true, true,
+            new AdjustTestValue("LOT", "5011LL260904500001"),
+            new AdjustTestValue("EMPTY", "CLEAR", "QTY_EMPTY")),
+        new(17, "WH005-TC-017", "재고 조정 저장 완료",
+            "READY TO SAVE를 불러온 뒤 SAVE를 눌러 Saved 알림과 수량 변경을 확인합니다.", true, true,
+            new AdjustTestValue("LOT", "5011LL260904500001"),
+            new AdjustTestValue("READY TO SAVE", "+3 / DAMAGED", "PREPARE_SAVE")),
+        new(18, "WH005-TC-018", "조정 거래이력 검증",
+            "시나리오 17 완료 후 Transactions에서 Before, Change, After, Reason, Worker를 확인합니다.", false, false),
+        new(19, "WH005-TC-019", "저장 성공 후 초기화",
+            "시나리오 17의 Saved 알림을 닫고 LOT·수량·Reason·Note 초기화를 확인합니다.", false, false),
+        new(20, "WH005-TC-020", "저장 API 실패 및 롤백",
+            "API ERROR를 ON으로 하고 READY TO SAVE 후 SAVE하여 오류, 입력 유지와 재고·이력 롤백을 확인합니다.", true, true,
+            new AdjustTestValue("LOT", "5011LL260904500001"),
+            new AdjustTestValue("READY TO SAVE", "+3 / DAMAGED", "PREPARE_SAVE"))
+    ];
+
     private string _q = "";
     private DateTime? _dateFrom;
     private DateTime? _dateTo;
@@ -615,13 +843,13 @@
     private string _invMsg = "";
     private string _invCls = "dim";
     private string _invAdjustReason = "COUNT_DIFF";
-    private string _invAdjustSupervisorPin = "";
-    private bool _pinPadOpen;
-    private string _pinPadDraft = "";
-    private string _invAdjustSupervisorEmployeeNo = "";
-    private List<PdaApi.SupervisorRow> _invSupervisors = [];
+    private bool _quantityPadOpen;
+    private string _quantityPadDraft = "";
     private string _invAdjustNote = "";
     private decimal _invAdjustDelta;
+    private PdaApi.AdjustmentLocation? _adjustLocation;
+    private string? _adjustQuantityInput;
+    private bool _adjustQuantityInvalid;
     private bool _isLoading;
     private bool _locationsLoading;
     private bool _locationModalOpen;
@@ -631,6 +859,11 @@
     private bool _isInventoryMoving;
     private bool _modalOpen;
     private bool _dateFilterOpen;
+    private bool _testPanelOpen;
+    private bool _simulateInventoryApiFailure;
+    private int _testScenarioIndex;
+    private bool _simulateAdjustApiFailure;
+    private int _adjustTestScenarioIndex;
     private DateTime? _lastSyncAt;
     private string _modalTitle = "";
     private string _modalMessage = "";
@@ -667,6 +900,16 @@
     ];
 
     private string PageTitle => IsAdjustTab ? "Adjust" : "Inventory";
+    private bool IsTestMode => !IsFinishedGoodsAdjust
+        && string.Equals(Auth.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+    private InventoryTestScenario CurrentTestScenario => InventoryTestScenarios[_testScenarioIndex];
+    private AdjustTestScenario CurrentAdjustTestScenario => AdjustTestScenarios[_adjustTestScenarioIndex];
+    private bool ShouldSimulateInventoryApiFailure => IsTestMode
+        && CurrentTestScenario.No == 11
+        && _simulateInventoryApiFailure;
+    private bool ShouldSimulateAdjustApiFailure => IsTestMode
+        && CurrentAdjustTestScenario.No == 20
+        && _simulateAdjustApiFailure;
     private bool IsFinishedGoodsAdjust => string.Equals(
         Nav.ToAbsoluteUri(Nav.Uri).AbsolutePath.TrimEnd('/'),
         "/fg/adjust",
@@ -687,20 +930,20 @@
     private bool DisableInventoryScan => InventoryBusy || string.IsNullOrWhiteSpace(_invBarcode);
     private bool DisableLocationInventoryScan => _isLoading || string.IsNullOrWhiteSpace(_locationQuery);
     private bool DisableInventoryLocationScan => !InventoryAlreadyReceived || InventoryBusy || string.IsNullOrWhiteSpace(_invLocationNo);
-    private bool DisableInventoryAdjust => !InventoryAlreadyReceived || InventoryBusy || _invAdjustDelta == 0 || IsAdjustQtyBelowStock
-        || string.IsNullOrWhiteSpace(_invAdjustReason) || string.IsNullOrWhiteSpace(_invAdjustSupervisorPin)
-        || string.IsNullOrWhiteSpace(_invAdjustSupervisorEmployeeNo);
+    private bool DisableInventoryAdjust => Auth.Session?.IsAdmin != true || _adjustQuantityInvalid || !InventoryAlreadyReceived || InventoryBusy || _invAdjustDelta == 0 || IsAdjustQtyBelowStock
+        || InventoryAfterQty != decimal.Truncate(InventoryAfterQty) || InventoryAfterQty > 999999999
+        || string.IsNullOrWhiteSpace(_invAdjustReason);
     private bool DisableInventoryMove => !InventoryAlreadyReceived || InventoryBusy || _invTargetLocation is null || InventoryTargetSameAsCurrent;
     private bool DisableAdjustQtyControls => !InventoryAlreadyReceived || InventoryBusy;
     private bool DisableAdjustQtyMinus => DisableAdjustQtyControls || _invAdjustDelta <= -InventoryBeforeQty;
-    private bool DisableAdjustQtyPlus => DisableAdjustQtyControls;
+    private bool DisableAdjustQtyPlus => DisableAdjustQtyControls || InventoryAfterQty >= 999999999m;
     private decimal InventoryBeforeQty => _invScan?.Qty ?? 0;
     private decimal InventoryAfterQty => InventoryBeforeQty + _invAdjustDelta;
     private string AdjustQuantityLabel => $"{InventoryAfterQty:#,##0.###} {Unit(_invScan?.Unit)} ({_invAdjustDelta:+#,##0.###;-#,##0.###;0})";
     private bool IsAdjustQtyBelowStock => _invAdjustDelta < -InventoryBeforeQty;
-    private string InventoryBarcodePlaceholder => IsFinishedGoodsAdjust
-        ? "Scan Finished Goods Lot No"
-        : IsAdjustTab ? "Scan Lot No" : _invMode == "CKD" ? "Scan CKD lot no" : "Scan local lot no";
+    private string InventoryBarcodePlaceholder => IsAdjustTab
+        ? "Scan location or lot barcode"
+        : _invMode == "CKD" ? "Scan CKD lot no" : "Scan local lot no";
     private string InventoryLotCardClass => InventoryAlreadyReceived ? "ready" : "blocked";
     private string InventoryStatusClass => InventoryAlreadyReceived ? "normal" : "below";
     private string InventoryStatusLabel => _invScan is null
@@ -756,6 +999,197 @@
         }
     }
 
+    private void OpenTestPanel() => _testPanelOpen = true;
+    private void CloseTestPanel() => _testPanelOpen = false;
+    private void ToggleInventoryApiFailure() => _simulateInventoryApiFailure = !_simulateInventoryApiFailure;
+
+    private void SelectTestScenario(int index)
+    {
+        if (index < 0 || index >= InventoryTestScenarios.Length)
+            return;
+
+        _testScenarioIndex = index;
+        if (CurrentTestScenario.No != 11)
+            _simulateInventoryApiFailure = false;
+        PrepareTestScenario(CurrentTestScenario);
+    }
+
+    private async Task StartTestScenario()
+    {
+        var scenario = CurrentTestScenario;
+        CloseTestPanel();
+        PrepareTestScenario(scenario);
+
+        if (scenario.AutoRun && scenario.Values.FirstOrDefault() is { } value)
+            await ExecuteTestValue(value);
+        else
+            ShowAlert($"Scenario {scenario.No:00} Ready", scenario.Steps, "info");
+    }
+
+    private void PrepareTestScenario(InventoryTestScenario scenario)
+    {
+        _workTab = "Search";
+        _inventoryView = scenario.Values.FirstOrDefault()?.Action == "API_QUERY" ? "Part" : "Location";
+        _q = "";
+        _locationQuery = "";
+        _matchedLocationIds = null;
+        _msg = "";
+        _locationMsg = "";
+        CloseBrowsePart();
+        CloseLocationInventory();
+
+        if (scenario.Values.FirstOrDefault() is { } value)
+        {
+            if (value.Action == "API_QUERY")
+                _q = value.Value;
+            else if (value.Action is "SEARCH" or "OPEN_LOCATION")
+                _locationQuery = value.Value;
+        }
+    }
+
+    private async Task LoadTestValue(InventoryTestValue value)
+    {
+        CloseTestPanel();
+        await ExecuteTestValue(value);
+    }
+
+    private async Task ExecuteTestValue(InventoryTestValue value)
+    {
+        _workTab = "Search";
+        switch (value.Action)
+        {
+            case "LIST":
+                _inventoryView = "Location";
+                _locationQuery = "";
+                _matchedLocationIds = null;
+                CloseLocationInventory();
+                await LoadInventoryLocations();
+                break;
+            case "OPEN_LOCATION":
+                _inventoryView = "Location";
+                _locationQuery = value.Value.Split('/')[0].Trim();
+                _matchedLocationIds = new(StringComparer.OrdinalIgnoreCase) { _locationQuery };
+                if (_inventoryLocations.Count == 0)
+                    await LoadInventoryLocations();
+                await OpenInventoryLocation(_locationQuery);
+                break;
+            case "CHANGE_QTY":
+                try
+                {
+                    var result = await Api.WhToggleInventoryTestQtyAsync();
+                    ShowAlert("Test Stock Changed", result.Message, result.Success ? "success" : "warn");
+                }
+                catch (Exception ex)
+                {
+                    ShowAlert("Test Stock Change Failed", ex.Message, "fail");
+                }
+                break;
+            case "API_QUERY":
+                _inventoryView = "Part";
+                _q = value.Value;
+                await Load();
+                break;
+            default:
+                _inventoryView = "Location";
+                _locationQuery = value.Value;
+                await LoadLocationInventory();
+                break;
+        }
+    }
+
+    private void ToggleAdjustApiFailure() => _simulateAdjustApiFailure = !_simulateAdjustApiFailure;
+
+    private void OpenAdjustScenarioPage(string route)
+    {
+        CloseTestPanel();
+        Nav.NavigateTo(route);
+    }
+
+    private void SelectAdjustTestScenario(int index)
+    {
+        if (index < 0 || index >= AdjustTestScenarios.Length)
+            return;
+
+        _adjustTestScenarioIndex = index;
+        if (CurrentAdjustTestScenario.No != 20)
+            _simulateAdjustApiFailure = false;
+        PrepareAdjustTestScenario();
+    }
+
+    private async Task StartAdjustTestScenario()
+    {
+        var scenario = CurrentAdjustTestScenario;
+        CloseTestPanel();
+        PrepareAdjustTestScenario();
+
+        if (scenario.AutoRun && scenario.Values.FirstOrDefault() is { } value)
+            await ExecuteAdjustTestValue(value, scenario.ResetStock);
+        else
+            ShowAlert($"Scenario {scenario.No:00} Ready", scenario.Steps, "info");
+    }
+
+    private void PrepareAdjustTestScenario()
+    {
+        _workTab = "Adjust";
+        ClearInventoryWork();
+    }
+
+    private async Task LoadAdjustTestValue(AdjustTestValue value)
+    {
+        CloseTestPanel();
+        await ExecuteAdjustTestValue(value, CurrentAdjustTestScenario.ResetStock && value.Action == "LOT");
+    }
+
+    private async Task ExecuteAdjustTestValue(AdjustTestValue value, bool resetStock = false)
+    {
+        _workTab = "Adjust";
+        if (resetStock)
+        {
+            try
+            {
+                await Api.WhResetAdjustTestAsync();
+            }
+            catch (Exception ex)
+            {
+                ShowAlert("Test Reset Failed", ex.Message, "fail");
+                return;
+            }
+        }
+
+        switch (value.Action)
+        {
+            case "DELTA":
+                var requested = Convert.ToDecimal(value.Value, System.Globalization.CultureInfo.InvariantCulture);
+                _invAdjustDelta = Math.Max(-InventoryBeforeQty, requested);
+                if (requested < -InventoryBeforeQty)
+                    ShowAlert("Invalid Quantity", "After Qty cannot be below zero.", "warn");
+                break;
+            case "REASON":
+                _invAdjustReason = value.Value;
+                break;
+            case "NOTE":
+                _invAdjustNote = value.Value;
+                break;
+            case "OPEN_QTY": OpenQuantityPad(); break;
+            case "QTY_VALID": OnAdjustmentQuantityInput(new ChangeEventArgs { Value = "15" }); break;
+            case "QTY_DECIMAL": OnAdjustmentQuantityInput(new ChangeEventArgs { Value = "1.5" }); break;
+            case "QTY_EMPTY": OnAdjustmentQuantityInput(new ChangeEventArgs { Value = "" }); break;
+            case "PREPARE":
+                _invAdjustDelta = 3;
+                _invAdjustReason = "DAMAGED";
+                break;
+            case "PREPARE_SAVE":
+                _invAdjustDelta = 3;
+                _invAdjustReason = "DAMAGED";
+                _invAdjustNote = "WH005 scenario adjustment";
+                break;
+            default:
+                _invBarcode = value.Value;
+                await ScanInventoryLot();
+                break;
+        }
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -777,7 +1211,7 @@
 
         await InvokeAsync(async () =>
         {
-            if (_pinPadOpen || _modalOpen || InventoryBusy)
+            if (_quantityPadOpen || _modalOpen || _testPanelOpen || _pptOpen || InventoryBusy)
                 return;
 
             if (IsSearchTab)
@@ -818,7 +1252,7 @@
 
     private async Task FocusScannerAsync()
     {
-        if (_pinPadOpen || _modalOpen || _dateFilterOpen || _locationModalOpen || _selectedInventoryLocation is not null)
+        if (_quantityPadOpen || _modalOpen || _testPanelOpen || _pptOpen || _dateFilterOpen || _locationModalOpen || _selectedInventoryLocation is not null)
             return;
 
         try
@@ -862,6 +1296,12 @@
     protected override async Task OnInitializedAsync()
     {
         ApplyInitialTab();
+        if (IsAdjustTab && Auth.Session?.IsAdmin != true)
+        {
+            _workTab = "Search";
+            Nav.NavigateTo(IsFinishedGoodsAdjust ? "/fg" : "/wh", replace: true);
+            return;
+        }
         await Load();
     }
 
@@ -912,6 +1352,7 @@
 
     private void SetWorkTab(string tab)
     {
+        if (string.Equals(tab, "Adjust", StringComparison.OrdinalIgnoreCase) && Auth.Session?.IsAdmin != true) return;
         _workTab = tab;
         _invMsg = "";
         _invCls = "dim";
@@ -1009,11 +1450,76 @@
         if (DisableAdjustQtyControls)
             return;
 
-        var next = _invAdjustDelta + delta;
+        var next = decimal.Truncate(InventoryAfterQty) + delta - InventoryBeforeQty;
         if (next < -InventoryBeforeQty)
             next = -InventoryBeforeQty;
+        next = Math.Min(next, 999999999m - InventoryBeforeQty);
 
         _invAdjustDelta = next;
+        _adjustQuantityInput = null;
+        _adjustQuantityInvalid = false;
+    }
+
+    private void OnAdjustmentQuantityInput(ChangeEventArgs e)
+    {
+        if (DisableAdjustQtyControls) return;
+        _adjustQuantityInput = Convert.ToString(e.Value) ?? "";
+        _adjustQuantityInvalid = !decimal.TryParse(_adjustQuantityInput,
+            System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var quantity)
+            || quantity < 0 || quantity > 999999999m;
+        if (!_adjustQuantityInvalid) _invAdjustDelta = quantity - InventoryBeforeQty;
+    }
+
+    private void OpenQuantityPad()
+    {
+        if (DisableAdjustQtyControls) return;
+        _quantityPadDraft = decimal.Truncate(InventoryAfterQty).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        _quantityPadOpen = true;
+    }
+
+    private void OnQuantityPadKey(KeyboardEventArgs e)
+    {
+        if (e.Key is "Enter" or " ") OpenQuantityPad();
+    }
+
+    private void PressQuantityDigit(string digit)
+    {
+        if (!_quantityPadOpen || digit.Length != 1 || digit[0] is < '0' or > '9') return;
+        if (_quantityPadDraft == "0") _quantityPadDraft = "";
+        if (_quantityPadDraft.Length < 9) _quantityPadDraft += digit;
+    }
+
+    private void DeleteQuantityDigit()
+    {
+        if (_quantityPadDraft.Length > 0) _quantityPadDraft = _quantityPadDraft[..^1];
+    }
+
+    private void ConfirmQuantityPad()
+    {
+        if (_quantityPadDraft.Length == 0) return;
+        OnAdjustmentQuantityInput(new ChangeEventArgs { Value = _quantityPadDraft });
+        CloseQuantityPad();
+    }
+
+    private void CloseQuantityPad()
+    {
+        _quantityPadOpen = false;
+        _quantityPadDraft = "";
+    }
+
+    private async Task SelectAdjustmentStock(PdaApi.AdjustmentStock stock)
+    {
+        if (InventoryBusy) return;
+        var location = _adjustLocation;
+        _invBarcode = stock.Barcode;
+        await ScanInventoryLot();
+        if (_invScan is not null && !string.Equals(_invScan.ReceivedLocation, location?.LocationId, StringComparison.OrdinalIgnoreCase))
+        {
+            _invScan = null;
+            _invMsg = "Stock location changed. Scan the location again.";
+            _invCls = "fail";
+        }
+        else _adjustLocation = location;
     }
 
     private async Task OnInventoryLocationKey(KeyboardEventArgs e)
@@ -1028,21 +1534,6 @@
 
         if (IsAdjustTab)
         {
-            _isLoading = true;
-            try
-            {
-                _invSupervisors = await Api.WhAdjustSupervisorsAsync();
-            }
-            catch
-            {
-                _invSupervisors = [];
-                _invMsg = "Supervisor list is unavailable.";
-                _invCls = "fail";
-            }
-            finally
-            {
-                _isLoading = false;
-            }
             return;
         }
 
@@ -1080,7 +1571,7 @@
                 return;
             }
 
-            _rows = await Api.WhInventoryAsync(_q, DateFrom, DateTo);
+            _rows = await Api.WhInventoryAsync(_q, DateFrom, DateTo, ShouldSimulateInventoryApiFailure);
             _lastSyncAt = DateTime.Now;
             if (!StockStatuses.Contains(_statusFilter, StringComparer.OrdinalIgnoreCase))
                 _statusFilter = "ALL";
@@ -1089,6 +1580,11 @@
             {
                 _msg = "No inventory matches.";
             }
+        }
+        catch (Exception ex)
+        {
+            _msg = ex.Message;
+            ShowAlert("Inventory Load Failed", ex.Message, "fail");
         }
         finally
         {
@@ -1175,7 +1671,7 @@
             if (location is null
                 && string.Equals(lookup?.SearchKind, "LOCATION", StringComparison.OrdinalIgnoreCase))
             {
-                var locationNo = string.IsNullOrWhiteSpace(lookup.SearchText) ? scanText : lookup.SearchText.Trim();
+                var locationNo = string.IsNullOrWhiteSpace(lookup?.SearchText) ? scanText : lookup.SearchText.Trim();
                 location = _inventoryLocations.FirstOrDefault(row =>
                     string.Equals(row.LocationId, locationNo, StringComparison.OrdinalIgnoreCase));
                 location ??= await Api.WhScanLocationAsync(locationNo);
@@ -1330,6 +1826,7 @@
 
     private void ClearInventoryWork()
     {
+        _adjustLocation = null;
         _invBarcode = "";
         _invLocationNo = "";
         _invMsg = "";
@@ -1342,66 +1839,21 @@
 
     private void ResetInventoryAdjust()
     {
+        _adjustQuantityInput = null;
+        _adjustQuantityInvalid = false;
         _invAdjustReason = "COUNT_DIFF";
-        ClearSupervisorPin();
-        _invAdjustSupervisorEmployeeNo = "";
+        CloseQuantityPad();
         _invAdjustNote = "";
         _invAdjustDelta = 0;
-    }
-
-    private void ClearSupervisorPin()
-    {
-        _invAdjustSupervisorPin = "";
-        CloseSupervisorPinPad();
-    }
-
-    private void OpenSupervisorPinPad()
-    {
-        if (!InventoryAlreadyReceived || InventoryBusy || string.IsNullOrWhiteSpace(_invAdjustSupervisorEmployeeNo))
-            return;
-
-        _pinPadDraft = _invAdjustSupervisorPin;
-        _pinPadOpen = true;
-    }
-
-    private void OnSupervisorPinKey(KeyboardEventArgs e)
-    {
-        if (e.Key is "Enter" or " ")
-            OpenSupervisorPinPad();
-    }
-
-    private void PressSupervisorPin(string digit)
-    {
-        if (_pinPadOpen && _pinPadDraft.Length < 12 && digit.Length == 1 && digit[0] is >= '0' and <= '9')
-            _pinPadDraft += digit;
-    }
-
-    private void DeleteSupervisorPin()
-    {
-        if (_pinPadDraft.Length > 0)
-            _pinPadDraft = _pinPadDraft[..^1];
-    }
-
-    private void ConfirmSupervisorPin()
-    {
-        if (!_pinPadOpen || _pinPadDraft.Length < 4)
-            return;
-
-        _invAdjustSupervisorPin = _pinPadDraft;
-        CloseSupervisorPinPad();
-    }
-
-    private void CloseSupervisorPinPad()
-    {
-        _pinPadOpen = false;
-        _pinPadDraft = "";
     }
 
     private async Task ScanInventoryLot()
     {
         if (DisableInventoryScan) return;
+        if (IsAdjustTab && Auth.Session?.IsAdmin != true) return;
 
         _isInventoryScanning = true;
+        _adjustLocation = null;
         _invMsg = "Scanning Lot No...";
         _invCls = "dim";
         _invScan = null;
@@ -1412,6 +1864,16 @@
 
         try
         {
+            if (IsAdjustTab)
+            {
+                _adjustLocation = await Api.ScanAdjustmentLocationAsync(_invBarcode, IsFinishedGoodsAdjust);
+                if (_adjustLocation is not null)
+                {
+                    _invMsg = _adjustLocation.Items.Count == 0 ? "No adjustable stock at this location." : "Select stock from the location list.";
+                    _invCls = _adjustLocation.Items.Count == 0 ? "dim" : "ok";
+                    return;
+                }
+            }
             var row = await ScanInventoryLotByModeAsync(_invBarcode.Trim());
             if (row is null)
             {
@@ -1425,16 +1887,21 @@
             _invScan = row;
             _invBarcode = row.Barcode;
 
-            if (IsAdjustTab && _invSupervisors.Count == 0)
-                await Load();
-
             if (!IsAdjustTab && InventoryAlreadyReceived && !string.IsNullOrWhiteSpace(row.ReceivedLocation))
                 _inventoryCurrentLocation = await Api.WhScanLocationAsync(row.ReceivedLocation);
 
-            _invMsg = InventoryAlreadyReceived
-                ? "Inventory LOT loaded."
-                : "This LOT has not been received yet. Receive it before adjustment or locating.";
-            _invCls = InventoryAlreadyReceived ? "ok" : "warn";
+            if (IsAdjustTab && InventoryAlreadyReceived && InventoryBeforeQty <= 0)
+            {
+                _invMsg = "This LOT has zero stock. Only positive adjustments are allowed.";
+                _invCls = "warn";
+            }
+            else
+            {
+                _invMsg = InventoryAlreadyReceived
+                    ? "Inventory LOT loaded."
+                    : "This LOT has not been received yet. Receive it before adjustment or locating.";
+                _invCls = InventoryAlreadyReceived ? "ok" : "warn";
+            }
         }
         catch (Exception ex)
         {
@@ -1531,6 +1998,12 @@
     private async Task PostInventoryAdjust()
     {
         if (InventoryBusy) return;
+        if (Auth.Session?.IsAdmin != true) return;
+        if (_adjustQuantityInvalid || InventoryAfterQty != decimal.Truncate(InventoryAfterQty) || InventoryAfterQty > 999999999)
+        {
+            ShowAlert("Invalid Quantity", "Enter a whole number from 0 to 999999999.", "warn");
+            return;
+        }
 
         if (_invScan is null)
         {
@@ -1562,18 +2035,6 @@
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(_invAdjustSupervisorEmployeeNo))
-        {
-            ShowAlert("Supervisor Required", "Select a supervisor.", "warn");
-            return;
-        }
-
-        if (_invAdjustSupervisorPin.Trim().Length < 4)
-        {
-            ShowAlert("Supervisor Required", "Supervisor PIN must be at least 4 digits.", "warn");
-            return;
-        }
-
         var deltaQty = _invAdjustDelta;
 
         _isInventoryAdjusting = true;
@@ -1588,8 +2049,7 @@
                 deltaQty,
                 _invAdjustReason,
                 _invAdjustNote,
-                _invAdjustSupervisorPin,
-                _invAdjustSupervisorEmployeeNo);
+                SimulateFailure: ShouldSimulateAdjustApiFailure);
             var result = IsFinishedGoodsAdjust
                 ? await Api.FgSaveAdjustQtyAsync(request)
                 : await Api.WhSaveAdjustQtyAsync(request);
@@ -1598,6 +2058,7 @@
             {
                 _invMsg = result.Message;
                 _invCls = "fail";
+                ShowAlert("Adjustment Failed", result.Message, "fail");
                 return;
             }
 
@@ -1610,6 +2071,7 @@
         {
             _invMsg = ex.Message;
             _invCls = "fail";
+            ShowAlert("Adjustment Failed", ex.Message, "fail");
         }
         finally
         {

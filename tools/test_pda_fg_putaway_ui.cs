@@ -68,6 +68,10 @@ Check(Field("_scan") is null && Field("_storageMethod") is null && (string)Field
 
 var api = AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(bins[1], "AMES.Api.dll"));
 var endpoints = api.GetType("AMES.Api.Endpoints.FgEndpoints", true)!;
+var apiSource = File.ReadAllText(Path.Combine(root, "src/04_Api/AMES.Api/Endpoints/FgEndpoints.cs"));
+Check(!apiSource.Contains("PS.ActiveFlag")
+    && apiSource.Contains("UPPER(ISNULL(PS.Status, 'ACTIVE')) IN ('ACTIVE', 'USE', 'Y')"),
+    "Put-Away packaging lookup must use the existing Status column, not ActiveFlag.");
 var validate = endpoints.GetMethod("ValidatePutAwayContainer", BindingFlags.NonPublic | BindingFlags.Static)!;
 string? Error(string method, string? barcode) => (string?)validate.Invoke(null, [method, barcode]);
 foreach (var method in new[] { "BOX", "PALLET", "RACK" }) {

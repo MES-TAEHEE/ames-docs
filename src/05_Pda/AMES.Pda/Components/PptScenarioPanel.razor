@@ -1,0 +1,67 @@
+<button class="wh02-test-nav" disabled="@(Busy || _busy)" @onclick="Open">SCENARIO</button>
+@if (_open)
+{
+    <div class="wh02-test-backdrop" @onclick="Close">
+        <section class="wh02-test-panel wh02-simple-panel" role="dialog" aria-modal="true" aria-label="PPT scenarios" @onclick:stopPropagation="true">
+            <div class="wh02-test-head">
+                <div><span>PPT CHECK</span><strong>@Title 간편 검수</strong></div>
+                <b>@(_index + 1) / @Steps.Length</b>
+                <button class="wh02-test-close" @onclick="Close" aria-label="Close scenarios">×</button>
+            </div>
+            <div class="wh02-test-tabs">
+                @for (var index = 0; index < Steps.Length; index++)
+                {
+                    var selectedIndex = index;
+                    <button class="@(_index == index ? "on" : "")" @onclick="@(() => _index = selectedIndex)">@((index + 1).ToString("00"))</button>
+                }
+            </div>
+            <div class="wh02-test-case">
+                <div class="wh02-test-summary"><span>PPT @(_index + 1)</span><strong>@Current.Title</strong></div>
+                <p class="wh02-simple-guide">@Current.Guide</p>
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <p class="wh02-simple-guide" role="alert">@_error</p>
+                }
+                <div class="wh02-test-values">
+                    @foreach (var value in Current.Values)
+                    {
+                        <button @onclick="@(() => Run(() => OnValue.InvokeAsync(value.Command)))"><span>@value.Label</span><b>@value.Text</b></button>
+                    }
+                </div>
+                <button class="wh02-test-start" @onclick="@(() => Run(() => OnStart.InvokeAsync(_index + 1)))">이 단계 시작</button>
+                <div class="wh02-test-actions">
+                    <button @onclick="@(() => Run(() => OnReset.InvokeAsync()))">테스트 데이터 초기화</button>
+                </div>
+            </div>
+        </section>
+    </div>
+}
+
+@code {
+    public sealed record Value(string Label, string Text, string Command);
+    public sealed record Step(string Title, string Guide, params Value[] Values);
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public Step[] Steps { get; set; } = [];
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public EventCallback<int> OnStart { get; set; }
+    [Parameter] public EventCallback<string> OnValue { get; set; }
+    [Parameter] public EventCallback OnReset { get; set; }
+    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
+    private bool _open;
+    private bool _busy;
+    private int _index;
+    private string _error = "";
+    private Step Current => Steps[_index];
+    private async Task Open() { _open = true; await OpenChanged.InvokeAsync(true); }
+    private async Task Close() { _open = false; await OpenChanged.InvokeAsync(false); }
+    private async Task Run(Func<Task> action)
+    {
+        if (_busy || Busy) return;
+        _busy = true;
+        _error = "";
+        await Close();
+        try { await action(); }
+        catch (Exception ex) { _error = ex.Message; await Open(); }
+        finally { _busy = false; }
+    }
+}

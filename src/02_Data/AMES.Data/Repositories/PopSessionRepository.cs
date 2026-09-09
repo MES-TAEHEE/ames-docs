@@ -58,6 +58,16 @@ public sealed class PopSessionRepository
 
         var sessionId = (int)cmd.ExecuteScalar()!;
 
+        using var roleCmd = new SqlCommand("""
+            SELECT CAST(CASE WHEN EXISTS (
+                SELECT 1 FROM dbo.AspNetUserRoles ur
+                JOIN dbo.AspNetRoles r ON r.Id = ur.RoleId
+                WHERE ur.UserId = @UserId AND UPPER(r.Name) = 'ADMIN'
+            ) THEN 1 ELSE 0 END AS bit);
+            """, conn);
+        roleCmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = profile.UserId;
+        var isAdmin = (bool)roleCmd.ExecuteScalar()!;
+
         return new PopSessionDto
         {
             SessionId    = sessionId,
@@ -70,6 +80,7 @@ public sealed class PopSessionRepository
             AuthMethod   = method,
             StartedAt    = startedAt,
             ExpiresAt    = expiresAt,
+            IsAdmin      = isAdmin,
         };
     }
 

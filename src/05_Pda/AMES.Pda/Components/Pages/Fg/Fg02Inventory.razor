@@ -1,5 +1,6 @@
 @page "/fg/03"
 @inject PdaApi Api
+@inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @implements IAsyncDisposable
@@ -9,6 +10,10 @@
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
         <div class="wh03-tbar-title"><span class="pda-tbar-brand">INVENTORY</span></div>
         <div class="wh03-tbar-actions"><RadzenButton class="wh03-refresh" Click="LoadInventory" Disabled="@_isLoading" Text="REFRESH" /></div>
+        @if (IsPptTestMode)
+        {
+            <PptScenarioPanel Title="INVENTORY" Steps="PptSteps" Busy="@_isLoading" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+        }
     </div>
 
     <div class="pda-bd wh03-body">
@@ -159,6 +164,7 @@
     [JSInvokable]
     public async Task OnHardwareScanAsync(string scanText)
     {
+        if (_pptOpen) return;
         _query = NormalizeScan(scanText);
         if (!string.IsNullOrWhiteSpace(_query)) await Search();
         await InvokeAsync(StateHasChanged);

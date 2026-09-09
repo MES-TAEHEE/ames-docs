@@ -1,5 +1,6 @@
 @page "/fg/02"
 @inject PdaApi Api
+@inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @implements IAsyncDisposable
@@ -8,6 +9,10 @@
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
         <span class="pda-tbar-brand">PUT-AWAY</span>
+        @if (IsPptTestMode)
+        {
+            <PptScenarioPanel Title="PUT-AWAY" Steps="PptSteps" Busy="@IsBusy" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+        }
     </div>
 
     <div class="pda-bd wh02-body fg01-body">
@@ -225,6 +230,7 @@
     [JSInvokable]
     public async Task OnHardwareScanAsync(string scanText)
     {
+        if (_pptOpen) return;
         var value = NormalizeHardwareScan(scanText);
         if (string.IsNullOrWhiteSpace(value))
             return;
@@ -264,7 +270,7 @@
 
     private async Task FocusScannerAsync()
     {
-        if (_modalOpen || IsBusy || (ReadyForStorage && string.IsNullOrEmpty(_storageMethod)))
+        if (_pptOpen || _modalOpen || IsBusy || (ReadyForStorage && string.IsNullOrEmpty(_storageMethod)))
             return;
 
         try

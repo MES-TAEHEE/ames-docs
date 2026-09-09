@@ -1,5 +1,6 @@
 @page "/fg/05"
 @inject PdaApi Api
+@inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @implements IAsyncDisposable
@@ -8,6 +9,10 @@
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
         <div class="wh07-tbar-title"><span class="pda-tbar-brand">TRUCK LOADING</span></div>
+        @if (IsPptTestMode)
+        {
+            <PptScenarioPanel Title="TRUCK LOADING" Steps="PptSteps" Busy="@_isBusy" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+        }
     </div>
 
     <div class="fg05-scan-guide">
@@ -163,6 +168,7 @@
     [JSInvokable]
     public async Task OnHardwareScanAsync(string scanText)
     {
+        if (_pptOpen) return;
         var value = Normalize(scanText);
         if (string.IsNullOrWhiteSpace(value)) return;
 
@@ -378,6 +384,7 @@
 
     private async Task FocusScannerAsync()
     {
+        if (_pptOpen || _modalOpen) return;
         try { await JS.InvokeVoidAsync("pdaScan.focus", ".fg05-shell .fg05-barcode-input"); } catch { }
     }
 
