@@ -70,6 +70,64 @@ public sealed class WorkerRepository
         return list;
     }
 
+    /// <summary>
+    /// Creates a badge-only worker row when WorkerNo is not registered yet, and
+    /// returns true when this call is the one that created it.
+    ///
+    /// Feeds the POP login screen's badge scan: a scanned EOS badge whose number
+    /// nobody knows becomes a worker on the spot so the operator is not stuck at
+    /// the terminal. Only ever inserts — an ActiveFlag=0 row stays disabled, so a
+    /// worker an administrator switched off cannot come back by rescanning the
+    /// badge, and a name already corrected in the admin screen is not overwritten.
+    /// PinHash is left null, which means the account can only sign in by badge.
+    /// </summary>
+    /// <param name="workerName">Name read off the badge; falls back to the number.</param>
+    public bool EnsureRegistered(string workerNo, string? workerName = null)
+    {
+        const string sql = """
+            INSERT INTO dbo.MD_Worker (WorkerNo, WorkerName, ActiveFlag, CreatedBy)
+            SELECT @WorkerNo, @WorkerName, 1, 'POP-SCAN'
+            WHERE  NOT EXISTS (SELECT 1 FROM dbo.MD_Worker WHERE WorkerNo = @WorkerNo);
+            """;
+
+        var name = string.IsNullOrWhiteSpace(workerName) ? workerNo : workerName.Trim();
+        if (name.Length > 50) name = name[..50];   // MD_Worker.WorkerName NVARCHAR(50)
+
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@WorkerNo",   SqlDbType.VarChar,  20).Value = workerNo;
+        cmd.Parameters.Add("@WorkerName", SqlDbType.NVarChar, 50).Value = name;
+
+        try { return cmd.ExecuteNonQuery() > 0; }
+        catch (SqlException ex) when (ex.Number is 2601 or 2627)
+        {
+            // Two terminals scanned the same new badge at once — the unique index
+            // did its job and the row exists either way.
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Stores the operator's POP PIN. Called when a badge-only worker picks one on
+    /// the login screen, which is the only backup path they have if the scanner dies.
+    /// </summary>
+    public void SetPin(string workerNo, string pinHash)
+    {
+        const string sql = """
+            UPDATE dbo.MD_Worker
+            SET    PinHash    = @PinHash,
+                   ModifiedBy = 'POP-PIN',
+                   ModifiedTS = SYSDATETIME()
+            WHERE  WorkerNo   = @WorkerNo;
+            """;
+
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@WorkerNo", SqlDbType.VarChar,   20).Value = workerNo;
+        cmd.Parameters.Add("@PinHash",  SqlDbType.NVarChar, 200).Value = pinHash;
+        cmd.ExecuteNonQuery();
+    }
+
     private static EmployeeProfileDto MapToDto(SqlDataReader rdr)
     {
         var workerNo = (string)rdr["WorkerNo"];
