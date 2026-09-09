@@ -521,7 +521,8 @@ body {
     50%      { background: #7f1d1d; }
 }
 .andon-bd { flex: 1; display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
+            align-items: center; justify-content: safe center;
+            overflow-y: auto; min-height: 0;
             padding: 40px 60px; gap: 26px; text-align: center; }
 .andon-icon-big { font-size: 180px; line-height: 1; }
 .andon-title    { font-family: 'Bebas Neue', sans-serif;
@@ -552,6 +553,41 @@ body {
 .andon-strip { background: #b91c1c; padding: 10px 24px;
                font-size: 13px; font-family: 'JetBrains Mono', monospace;
                letter-spacing: .5px; }
+
+.andon-x { position: static; margin-left: 20px; font-size: 22px; }
+.andon-badge-input { position: absolute; opacity: 0; width: 1px; height: 1px; left: -9999px; }
+.andon-sup { font-size: 24px; font-weight: 700; background: rgba(0,0,0,.35);
+             padding: 12px 24px; border-radius: 8px; }
+.andon-cause-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                    gap: 14px; width: min(1100px, 92vw); }
+.andon-cause-btn { padding: 26px 18px; border-radius: 10px; border: 2px solid rgba(255,255,255,.25);
+                   background: rgba(0,0,0,.35); color: #fff; font-size: 26px; font-weight: 700; cursor: pointer; }
+.andon-cause-btn.on { background: #fbbf24; color: #1a0303; border-color: #fbbf24; }
+.andon-dept-chips { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.andon-dept-chip { padding: 16px 28px; border-radius: 999px; border: 2px solid rgba(255,255,255,.35);
+                   background: transparent; color: #fff; font-size: 22px; font-weight: 700; cursor: pointer; }
+.andon-dept-chip.on { background: var(--ok-dk); border-color: var(--ok-dk); }
+.andon-dept-chip.called { opacity: .4; cursor: default; }
+.andon-dept-tbl { width: min(1100px, 92vw); border-collapse: collapse; font-size: 22px;
+                  background: rgba(0,0,0,.35); border-radius: 10px; overflow: hidden; }
+.andon-dept-tbl th { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #fca5a5;
+                     letter-spacing: .5px; text-transform: uppercase; padding: 10px 16px; text-align: left; }
+.andon-dept-tbl td { padding: 14px 16px; border-top: 1px solid rgba(255,255,255,.12); text-align: left; }
+.andon-dept-tbl tr.arrived td { background: rgba(251,191,36,.15); }
+.andon-dept-tbl tr.done td    { background: rgba(22,163,74,.2); color: rgba(255,255,255,.6); }
+.andon-dept-name { font-weight: 700; }
+.andon-btn-sm { padding: 10px 18px; font-size: 16px; }
+.andon-pick-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.7);
+                       display: flex; align-items: center; justify-content: center; z-index: 2; }
+.andon-pick { background: #1a0303; border: 2px solid #fca5a5; border-radius: 14px;
+              padding: 36px 48px; display: flex; flex-direction: column; gap: 22px; align-items: center; }
+.andon-pick-title { font-size: 32px; font-weight: 700; }
+.andon-pick-who   { font-size: 22px; color: #fca5a5; }
+
+/* 상단바 진행중 안돈 칩 (INJ/IMG-MAIN) */
+.injm-andon-chip { background: #b91c1c; color: #fff; border: none; border-radius: 6px;
+                   padding: 6px 14px; font-size: 15px; font-weight: 700; cursor: pointer;
+                   animation: andon-bar-blink 1s infinite; }
 
 /* ============================================================
    Login screen
@@ -1421,7 +1457,7 @@ body {
 
 /* Toast stack (top-right) ------------------------------------ */
 .toast-host {
-    position: fixed; top: 90px; right: 24px; z-index: 8000;
+    position: fixed; top: 90px; right: 24px; z-index: 9500; /* above pmod-andon-overlay(8500)·confirm(8500)·help(9000) — toasts are the andon popup's only feedback channel */
     display: flex; flex-direction: column; gap: 10px;
     pointer-events: none;
 }

@@ -168,10 +168,10 @@ internal static class Program
                 ('LINE-INJ-01', @E, 'OPERATOR', 'HIGH',
                  DATEADD(minute,-90,SYSDATETIME()), 'user-s001', DATEADD(minute,-88,SYSDATETIME()),
                  'MACHINE', N'Acked, supervisor inspecting',
-                 NULL, NULL, 'Acked', 'enrich', SYSDATETIME()),
+                 NULL, NULL, 'ACKED', 'enrich', SYSDATETIME()),
                 ('LINE-INJ-01', @E, 'OPERATOR', 'HIGH',
                  DATEADD(minute,-3,SYSDATETIME()), NULL, NULL,
-                 'MATERIAL', NULL, NULL, NULL, 'Open', 'enrich', SYSDATETIME());
+                 'MATERIAL', NULL, NULL, NULL, 'OPEN', 'enrich', SYSDATETIME());
             """, ("@E", equipId));
         Console.WriteLine("  inj  3 andon calls (1 Resolved, 1 Acked, 1 Open)");
     }

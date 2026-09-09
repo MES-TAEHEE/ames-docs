@@ -21,6 +21,10 @@
             <span class="pop-tbar-id">IMG-MAIN · @Session?.TerminalId · @Session?.LineId</span>
         </div>
         <div class="pop-tbar-r">
+            @if (_openAndon is { } oa)
+            {
+                <button class="injm-andon-chip" @onclick="@(() => Open(Popup.Andon))">🚨 @T("AndonActive") · #@oa.AndonId · @AndonElapsed(oa)</button>
+            }
             <span class="@_eqClass">● @PopLang.EqStatus(_eqStatus)</span>
             @if (Scanner.IsEnabled)
             {
@@ -219,6 +223,12 @@
     private string _defectPct = "0.0%", _defClass = "ok";
     private string _fabricText = "—", _fabricClass = "warn", _bondText = "—";
     private string _eqStatus = "OFFLINE", _eqClass = "stat-off";
+    private AndonCallDto? _openAndon;
+    private static string AndonElapsed(AndonCallDto a)
+    {
+        var t = DateTime.Now - a.TriggeredAt;
+        return $"{(int)t.TotalMinutes:00}:{t.Seconds:00}";
+    }
     private string?  _refreshError;
     private DateTime _refreshErrorAt;
     private bool _printing;
@@ -303,6 +313,8 @@
             var eq = PopServices.Equipment.GetPrimaryForLine(Session.LineId);
             _eqStatus = (eq?.Status ?? "OFFLINE").ToUpperInvariant();
             _eqClass  = _eqStatus is "RUN" or "IDLE" ? "stat-on" : "stat-off";
+
+            _openAndon = PopServices.Andon.GetOpenForLine(Session.LineId);
             _refreshError = null;
         }
         catch (Exception ex)
