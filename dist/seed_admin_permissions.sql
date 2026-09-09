@@ -76,6 +76,19 @@ USING (VALUES
   ('MD-028', 'MD', N'라인 시간 패턴 관리',        N'Line Time Pattern Master',    'md/rp/line-time-pattern','MD-028', 28, 1),
   ('MD-029', 'MD', N'레시피 관리',                N'Recipe Master',               'md/ql/recipe',              'MD-029', 29, 1),
   ('MD-030', 'MD', N'코드 기준정보 관리',         N'Common Code Master',          'md/ql/common-code',         'MD-030', 30, 1),
+  ('MD-032', 'MD', N'현장 작업자 관리',           N'Worker Master',               'md/fd/workers',             'MD-032', 32, 1),
+  -- WH · 창고관리 (Web)
+  ('WH-006', 'WH', N'재고 조회', N'Inventory Search', 'wh/inventory', 'WH-006', 1, 1),
+  ('WH-003', 'WH', N'로케이션 맵', N'Location Map', 'wh/location-map', 'WH-003', 2, 1),
+  ('WH-004', 'WH', N'재고 이력', N'Inventory History', 'wh/log-history', 'WH-004', 3, 1),
+  ('WH-002', 'WH', N'피킹 오더', N'Picking Orders', 'wh/picking-orders', 'WH-002', 4, 1),
+  ('WH-005', 'WH', N'재고 설정', N'Inventory Setting', 'wh/inventory-setting', 'WH-005', 5, 1),
+  -- FG · 완제품 (Web)
+  ('FG-001', 'FG', N'재고 조회', N'Inventory Search', 'fg/inventory', 'FG-001', 1, 1),
+  ('FG-002', 'FG', N'로케이션 맵', N'Location Map', 'fg/location-map', 'FG-002', 2, 1),
+  ('FG-003', 'FG', N'고객사 리턴', N'Customer Returns', 'fg/customer-returns', 'FG-003', 3, 1),
+  ('FG-004', 'FG', N'출하 목록', N'Shipments', 'fg/shipments', 'FG-004', 4, 1),
+  ('FG-005', 'FG', N'작업 이력', N'History', 'fg/history', 'FG-005', 5, 1),
   -- SYS · 시스템
   ('SYS-001', 'SYS', N'사용자 관리',              N'User Management',             'sys/users',              'SYS-001',  1, 1),
   ('SYS-002', 'SYS', N'역할 관리',                N'Role Management',             'sys/roles',              'SYS-002',  2, 1),

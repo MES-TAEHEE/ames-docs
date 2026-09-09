@@ -7,7 +7,7 @@
 const ERD_DATA = {
 
 // ──────────────────────────────────────────────────────────────────────
-// MD · Master Data (33 tables, natural-key PKs)
+// MD · Master Data (34 tables, natural-key PKs)
 // ──────────────────────────────────────────────────────────────────────
 MD: { cols: 4, tables: [
   {name:'MD_Item', ko:'품목 (MD-01)', cols:[
@@ -440,6 +440,17 @@ MD: { cols: 4, tables: [
     ['Version','VARCHAR(10)',''],
     ['EffectiveDate','DATE',''],
     ['Status','VARCHAR(10)','']
+  ]},
+  {name:'MD_Worker', ko:'POP 현장 작업자 (MD-032)', cols:[
+    ['WorkerID','INT IDENTITY','PK'],
+    ['WorkerNo','VARCHAR(20)',''],
+    ['WorkerName','NVARCHAR(50)',''],
+    ['PinHash','NVARCHAR(200)',''],
+    ['ActiveFlag','BIT',''],
+    ['CreatedBy','VARCHAR(50)',''],
+    ['CreatedTS','DATETIME2',''],
+    ['ModifiedBy','NVARCHAR(450)',''],
+    ['ModifiedTS','DATETIME2','']
   ]}
 ]},
 

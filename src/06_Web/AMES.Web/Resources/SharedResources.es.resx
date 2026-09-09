@@ -7161,4 +7161,112 @@
   <data name="MNT.OeeAnalysis.Trend.Range" xml:space="preserve">
     <value>Últimas {0} semanas ({1} ~ {2})</value>
   </data>
+  <data name="MD.Workers.Title" xml:space="preserve">
+    <value>Maestro de operarios</value>
+  </data>
+  <data name="MD.Workers.List" xml:space="preserve">
+    <value>Lista de operarios</value>
+  </data>
+  <data name="MD.Workers.Empty" xml:space="preserve">
+    <value>No hay operarios registrados.</value>
+  </data>
+  <data name="MD.Workers.Hint" xml:space="preserve">
+    <value>Operarios que inician sesión en POP con número + PIN o tarjeta, sin cuenta web. Si el número coincide con una cuenta web, prevalece la cuenta web.</value>
+  </data>
+  <data name="MD.Workers.Kpi.NoPin" xml:space="preserve">
+    <value>Sin PIN</value>
+  </data>
+  <data name="MD.Workers.Kpi.BadgeCreated" xml:space="preserve">
+    <value>Auto-registro por tarjeta</value>
+  </data>
+  <data name="MD.Workers.Ph.Search" xml:space="preserve">
+    <value>N.º / Nombre</value>
+  </data>
+  <data name="MD.Workers.Col.WorkerNo" xml:space="preserve">
+    <value>N.º operario</value>
+  </data>
+  <data name="MD.Workers.Col.WorkerName" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="MD.Workers.Col.Pin" xml:space="preserve">
+    <value>PIN</value>
+  </data>
+  <data name="MD.Workers.Col.CreatedBy" xml:space="preserve">
+    <value>Creado por</value>
+  </data>
+  <data name="MD.Workers.Col.CreatedTs" xml:space="preserve">
+    <value>Creado</value>
+  </data>
+  <data name="MD.Workers.Col.ModifiedTs" xml:space="preserve">
+    <value>Modificado</value>
+  </data>
+  <data name="MD.Workers.Pin.Set" xml:space="preserve">
+    <value>Configurado</value>
+  </data>
+  <data name="MD.Workers.Pin.None" xml:space="preserve">
+    <value>Sin configurar</value>
+  </data>
+  <data name="MD.Workers.Src.Badge" xml:space="preserve">
+    <value>Escaneo tarjeta</value>
+  </data>
+  <data name="MD.Workers.Lbl.WorkerNo" xml:space="preserve">
+    <value>N.º operario</value>
+  </data>
+  <data name="MD.Workers.Lbl.WorkerName" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="MD.Workers.Lbl.Pin" xml:space="preserve">
+    <value>PIN (4 dígitos)</value>
+  </data>
+  <data name="MD.Workers.Lbl.NewPin" xml:space="preserve">
+    <value>Nuevo PIN</value>
+  </data>
+  <data name="MD.Workers.Lbl.Modified" xml:space="preserve">
+    <value>Modificado</value>
+  </data>
+  <data name="MD.Workers.Ph.WorkerNo" xml:space="preserve">
+    <value>p. ej. W001 — número de tarjeta</value>
+  </data>
+  <data name="MD.Workers.Ph.WorkerName" xml:space="preserve">
+    <value>Nombre del operario</value>
+  </data>
+  <data name="MD.Workers.Ph.Pin" xml:space="preserve">
+    <value>4 dígitos (vacío = solo tarjeta)</value>
+  </data>
+  <data name="MD.Workers.Ph.NewPin" xml:space="preserve">
+    <value>Solo para cambiar</value>
+  </data>
+  <data name="MD.Workers.Hint.WorkerNoFixed" xml:space="preserve">
+    <value>El n.º queda registrado en sesiones y resultados de POP; no se puede cambiar.</value>
+  </data>
+  <data name="MD.Workers.Hint.NoPin" xml:space="preserve">
+    <value>Solo tarjeta · se exigirá el PIN en el próximo acceso.</value>
+  </data>
+  <data name="MD.Workers.Btn.ClearPin" xml:space="preserve">
+    <value>Borrar PIN</value>
+  </data>
+  <data name="MD.Workers.Err.WorkerNoRequired" xml:space="preserve">
+    <value>El n.º es obligatorio.</value>
+  </data>
+  <data name="MD.Workers.Err.NameRequired" xml:space="preserve">
+    <value>El nombre es obligatorio.</value>
+  </data>
+  <data name="MD.Workers.Err.PinFormat" xml:space="preserve">
+    <value>El PIN debe tener 4 dígitos.</value>
+  </data>
+  <data name="MD.Workers.Err.Duplicate" xml:space="preserve">
+    <value>El n.º {0} ya existe.</value>
+  </data>
+  <data name="MD.Workers.Ok.Created" xml:space="preserve">
+    <value>Operario {0} creado.</value>
+  </data>
+  <data name="MD.Workers.Ok.Updated" xml:space="preserve">
+    <value>Operario {0} actualizado.</value>
+  </data>
+  <data name="MD.Workers.Ok.Deleted" xml:space="preserve">
+    <value>Operario {0} eliminado.</value>
+  </data>
+  <data name="MD.Workers.Ok.PinCleared" xml:space="preserve">
+    <value>PIN de {0} borrado.</value>
+  </data>
 </root>

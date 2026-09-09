@@ -121,6 +121,7 @@ builder.Services.AddSingleton(sp => new WarehouseRepository(factory));
 builder.Services.AddSingleton(sp => new FinishedGoodsRepository(factory));
 builder.Services.AddSingleton(sp => new SysRepository(factory));
 builder.Services.AddSingleton(sp => new AuthRepository(factory));
+builder.Services.AddSingleton(sp => new WorkerRepository(factory));
 builder.Services.AddSingleton(sp => new LineScheduleRepository(factory));
 builder.Services.AddSingleton(sp => new OeeRepository(factory));
 builder.Services.AddSingleton<ServerMonitorService>();

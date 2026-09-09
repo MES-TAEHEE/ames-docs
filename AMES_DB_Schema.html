@@ -79,7 +79,7 @@ header{padding:24px 32px 16px;border-bottom:1px solid var(--border2);display:fle
 <!-- ═══════════════════════════════════════════ MD 기준정보 (31 tables, natural-key PKs) -->
 <div class="section-header" style="border-color:#f59e0b;color:#f59e0b" data-mod="MD">
   <div class="s-dot" style="background:#f59e0b"></div>MD — Master Data <span style="font-weight:400;color:#78562a;font-size:11px">기준정보 · 자연키 PK</span>
-  <span class="s-count">31 tables · MD-01 ~ MD-29 (+2 sub-entities)</span>
+  <span class="s-count">32 tables · MD-01 ~ MD-32 (+2 sub-entities)</span>
 </div>
 
 <!-- @MD_TABLES_START -->
@@ -582,6 +582,15 @@ header{padding:24px 32px 16px;border-bottom:1px solid var(--border2);display:fle
   <div class="col-row"><div class="col-icon"></div><div class="col-name">Version</div><div class="col-type">VARCHAR(10)</div><div class="col-note">v1.0...</div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">EffectiveDate</div><div class="col-type">DATE</div><div class="col-note"></div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">Status</div><div class="col-type">VARCHAR(10)</div><div class="col-note">DRAFT/ACTIVE/OBS</div></div>
+</div></div>
+<div class="tbl-card" data-mod="MD">
+<div class="tbl-head"><span class="tbl-badge" style="background:#78562a;color:#f59e0b">MD-032</span><span class="tbl-name">MD_Worker</span><span class="tbl-ko">POP 현장 작업자 (웹 계정 없음)</span></div>
+<div class="tbl-body">
+  <div class="col-row pk"><div class="col-icon pk">PK</div><div class="col-name">WorkerID</div><div class="col-type">INT IDENTITY</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">WorkerNo</div><div class="col-type">VARCHAR(20)</div><div class="col-note">UNIQUE · 사번/배지 번호 = POP 로그인 ID</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">WorkerName</div><div class="col-type">NVARCHAR(50)</div><div class="col-note"></div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">PinHash</div><div class="col-type">NVARCHAR(200)</div><div class="col-note">PBKDF2 · NULL = 배지 전용</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">ActiveFlag</div><div class="col-type">BIT</div><div class="col-note">DEFAULT 1</div></div>
 </div></div>
 <!-- @MD_TABLES_END -->
 

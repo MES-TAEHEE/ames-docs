@@ -16,7 +16,7 @@
 --  그대로 들어간다(웹 계정은 AspNetUsers.Id GUID). 사번이 양쪽에 겹치면
 --  과거 실적의 작성자 구분이 불가능해지므로 사번은 전사 유일하게 유지할 것.
 --
---  등록 화면(SYS): 별도 개발 예정. 이 스크립트는 시드를 넣지 않는다.
+--  등록 화면: Web MD-032 (md/fd/workers) — 메뉴·권한은 migrate_md_worker_screen.sql. 이 스크립트는 시드를 넣지 않는다.
 --
 --  스키마 변경: 테이블 추가만. 순서 무관, 재실행 안전.
 --  적용:  sqlcmd -S 192.168.1.100,1433 -U ames_app -P !Dev2026 -d AMES_DEV -f 65001 -i dist/migrate_md_worker.sql

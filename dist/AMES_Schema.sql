@@ -2,7 +2,7 @@
 -- A-MES Database Schema (Auto-generated)
 -- Generated: 2026-06-08 16:33:54
 -- Source: AMES_ERD_data.js
--- Total tables: 159   (자동생성 이후 손으로 흡수한 분 포함 — 2026-08-03 기준 실 DB 와 일치)
+-- Total tables: 164   (자동생성 이후 손으로 흡수한 분 포함 — 2026-09-10 기준: MD_Worker · PR_ImgLot 까지 반영)
 -- Engine: SQL Server 2022/2025
 -- Pattern: Stored Procedure + ADO.NET (per VOL01 Tech Stack)
 -- FK constraints: not applied (commented as -- FK -> Target.Col)
@@ -963,6 +963,25 @@ CREATE TABLE dbo.MD_Recipe (
   [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_Recipe PRIMARY KEY CLUSTERED ([RecipeID])
 );
+GO
+
+-- ── MD_Worker  (POP 전용 현장 작업자 (MD-032))
+--    웹 계정(AspNetUsers) 없이 사번+PIN 또는 사원증 배지로 POP 에 로그인하는 작업자.
+--    라인 배정·PIN 잠금 카운터 없음(전 라인 허용, 잠기지 않음). 사번은 PR_PopSession.OperatorID 로 그대로 남는다.
+CREATE TABLE dbo.MD_Worker (
+  [WorkerID]                  INT IDENTITY         NOT NULL,
+  [WorkerNo]                  VARCHAR(20)          NOT NULL,  -- POP 로그인 ID (사번 / 배지 번호), 전사 유일
+  [WorkerName]                NVARCHAR(50)         NOT NULL,
+  [PinHash]                   NVARCHAR(200)            NULL,  -- POP 4자리 PIN (PBKDF2) — SYS_UserProfile.PinHash 와 동일 포맷, NULL = 배지 전용
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
+  [CreatedBy]                 VARCHAR(50)          NOT NULL,
+  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
+  CONSTRAINT PK_MD_Worker PRIMARY KEY CLUSTERED ([WorkerID])
+);
+GO
+CREATE UNIQUE INDEX UQ_MD_Worker_WorkerNo ON dbo.MD_Worker ([WorkerNo]);
 GO
 
 -- ╔══════════════════════════════════════════════════════════════════════╗
@@ -2050,6 +2069,30 @@ CREATE TABLE dbo.PR_FabricDeductionLog (
   [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_PR_FabricDeductionLog PRIMARY KEY CLUSTERED ([DeductionID])
 );
+GO
+
+-- ── PR_ImgLot  (tbl_Lot 1:1 확장 — IMG 원단/래핑 원천 LOT 속성)
+--    IMG-MAIN 라벨 발행이 만들고(RAW), 라벨 스캔 확정이 CONFIRMED 로 올린다. ImgLotRepository 전용.
+CREATE TABLE dbo.PR_ImgLot (
+  [LotID]                     INT                  NOT NULL,  -- PK & FK -> tbl_Lot.LotID (1:1)
+  [EquipID]                   VARCHAR(20)              NULL,  -- FK -> MD_Equipment.EquipID (라인 대표 설비)
+  [ConfirmStatus]             VARCHAR(16)          NOT NULL DEFAULT 'RAW',  -- RAW / CONFIRMED
+  [ConfirmedAt]               DATETIME2                NULL,
+  [ConfirmedBy]               NVARCHAR(450)            NULL,
+  [ConfirmedSessionID]        INT                      NULL,
+  [CustomerCode]              VARCHAR(20)              NULL,  -- 발행 시점 열린 WO 의 수주처 MD_Customer.CustomerCode (라벨 V 토큰)
+  [FabricRollLotID]           INT                      NULL,  -- FK -> tbl_Lot.LotID (확정 시 차감한 롤)
+  [FabricConsumedM]           DECIMAL(8,3)             NULL,
+  [BondSetupID]               INT                      NULL,  -- FK -> PR_BondSetup.BondSetupID
+  [PrintedCount]              INT                  NOT NULL DEFAULT 0,
+  [CreatedBy]                 VARCHAR(50)          NOT NULL,
+  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
+  CONSTRAINT PK_PR_ImgLot PRIMARY KEY CLUSTERED ([LotID])
+);
+GO
+CREATE INDEX IX_PR_ImgLot_Status ON dbo.PR_ImgLot([ConfirmStatus]);
 GO
 
 -- ── PR_BondSetup  (IMG 본드 설정)

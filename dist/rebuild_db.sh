@@ -65,6 +65,8 @@ FILES=(
   migrate_mnt_failure_severity.sql    # MNT 고장 등록: Urgency → Severity 컬럼명 변경 (순서 무관)
   migrate_md_worker.sql               # POP 전용 현장 작업자 마스터 MD_Worker (순서 무관)
   seed_md_worker_dev.sql              #   → 개발용 작업자 5명 (W001~W005)
+  migrate_md_worker_screen.sql        # MD-032 현장 작업자 관리 화면 등록 + Admin 권한 (순서 무관)
+  migrate_wh_fg_screens.sql           # Web WH·FG 화면 SYS_Screen 등록 + 구 코드 권한 이관 (순서 무관)
   pda/PDA_SCHEMA.sql                  # consolidated WH/FG PDA schema
   pda/PDA_SEED.sql                    # consolidated re-runnable WH/FG PDA seed
   cleanup_legacy_sis_test.sql

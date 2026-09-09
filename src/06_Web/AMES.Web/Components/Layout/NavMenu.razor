@@ -179,37 +179,20 @@
     // DB 조회 실패/빈 결과 시 아래 정적 목록으로 폴백(권한 필터 미적용, 서브그룹 미표시).
     List<NavItem> _items = new();
 
-    static readonly NavItem[] _warehouseItems =
-    {
-        new("wh", "wh/inventory",       "WH-01", "재고 조회",   "Inventory Search"),
-        new("wh", "wh/location-map",    "WH-02", "로케이션 맵", "Location Map"),
-        new("wh", "wh/log-history",     "WH-03", "재고 이력",   "Inventory History"),
-        new("wh", "wh/picking-orders",  "WH-04", "피킹 오더",   "Picking Orders"),
-    };
-
-    static readonly NavItem[] _finishedGoodsItems =
-    {
-        new("fg", "fg/inventory",        "FG-01", "재고 조회",   "Inventory Search"),
-        new("fg", "fg/location-map",     "FG-02", "로케이션 맵", "Location Map"),
-        new("fg", "fg/customer-returns", "FG-03", "고객사 리턴", "Customer Returns"),
-        new("fg", "fg/shipments",        "FG-04", "출하 목록",   "Shipments"),
-        new("fg", "fg/history",          "FG-05", "작업 이력",   "History"),
-    };
-
     static readonly NavItem[] _fallbackItems =
     {
         // -- WH --
-        new("wh", "wh/inventory",       "WH-01", "재고 조회",   "Inventory Search"),
-        new("wh", "wh/location-map",    "WH-02", "로케이션 맵", "Location Map"),
-        new("wh", "wh/log-history",     "WH-03", "재고 이력",   "Inventory History"),
-        new("wh", "wh/picking-orders",  "WH-04", "피킹 오더",   "Picking Orders"),
+        new("wh", "wh/inventory",       "WH-006", "재고 조회",   "Inventory Search"),
+        new("wh", "wh/location-map",    "WH-003", "로케이션 맵", "Location Map"),
+        new("wh", "wh/log-history",     "WH-004", "재고 이력",   "Inventory History"),
+        new("wh", "wh/picking-orders",  "WH-002", "피킹 오더",   "Picking Orders"),
 
         // -- FG --
-        new("fg", "fg/inventory",        "FG-01", "재고 조회",   "Inventory Search"),
-        new("fg", "fg/location-map",     "FG-02", "로케이션 맵", "Location Map"),
-        new("fg", "fg/customer-returns", "FG-03", "고객사 리턴", "Customer Returns"),
-        new("fg", "fg/shipments",        "FG-04", "출하 목록",   "Shipments"),
-        new("fg", "fg/history",          "FG-05", "작업 이력",   "History"),
+        new("fg", "fg/inventory",        "FG-001", "재고 조회",   "Inventory Search"),
+        new("fg", "fg/location-map",     "FG-002", "로케이션 맵", "Location Map"),
+        new("fg", "fg/customer-returns", "FG-003", "고객사 리턴", "Customer Returns"),
+        new("fg", "fg/shipments",        "FG-004", "출하 목록",   "Shipments"),
+        new("fg", "fg/history",          "FG-005", "작업 이력",   "History"),
 
         // ── PP ──
         new("pp", "pp/forecast",         "PP-001", "수요 예측",        "Forecast"),
@@ -355,15 +338,12 @@
         "wh/picking-orders",
     };
 
-    // 권한 필터: DB 로딩 시 PermissionService 기준, 폴백 시 전부 표시
+    // 권한 필터: DB 로딩 시 PermissionService 기준(WH·FG 포함, SYS_Screen 등록이 정본), 폴백 시 전부 표시
     bool V(string href)
     {
         var normalized = href.TrimStart('/');
         return !_hiddenItems.Contains(normalized)
-            && (_usingFallback
-                || normalized.StartsWith("wh/", StringComparison.OrdinalIgnoreCase)
-                || normalized.StartsWith("fg/", StringComparison.OrdinalIgnoreCase)
-                || PermSvc.IsVisible(normalized));
+            && (_usingFallback || PermSvc.IsVisible(normalized));
     }
 
     List<(string Key, string Letter, string Ko, string En, string Es, List<NavItem> Items)> GroupedMd(List<NavItem> mdItems)
@@ -427,16 +407,13 @@
                     s.ProcessCode!.ToLowerInvariant(),
                     s.HRef!.TrimStart('/'),
                     s.LidLabel ?? s.ScreenCode,
-                    s.HRef.Trim('/').Equals("wh/log-history", StringComparison.OrdinalIgnoreCase) ? "재고 이력" : s.ScreenName,
-                    s.HRef.Trim('/').Equals("wh/log-history", StringComparison.OrdinalIgnoreCase) ? "Inventory History" : s.ScreenNameEn ?? s.ScreenName,
+                    s.ScreenName,
+                    s.ScreenNameEn ?? s.ScreenName,
                     s.SubProcessCode))
                 .ToList();
 
             if (rows.Count > 0)
             {
-                AddMissingStaticItems(rows, _warehouseItems);
-                AddMissingStaticItems(rows, _finishedGoodsItems);
-                ApplyOperationalLabels(rows);
                 _items = rows;
                 _usingFallback = false;
                 try { _subprocessItems = MD.ListCodeItems("SUBPROCESS"); }
@@ -447,47 +424,11 @@
         catch { /* fall through to fallback */ }
 
         _items = _fallbackItems.ToList();
-        ApplyOperationalLabels(_items);
         _usingFallback = true;
     }
 
-    List<NavItem> SectionItems(string section)
-    {
-        var items = _items.Where(item => item.Section == section && V(item.Href));
-        var order = section switch
-        {
-            "wh" => _warehouseItems,
-            "fg" => _finishedGoodsItems,
-            _ => []
-        };
-
-        if (order.Length == 0) return items.ToList();
-        var ranks = order.Select((item, index) => (item.Href, index))
-            .ToDictionary(x => x.Href, x => x.index, StringComparer.OrdinalIgnoreCase);
-        return items.OrderBy(item => ranks.GetValueOrDefault(item.Href, int.MaxValue)).ToList();
-    }
-
-    static void ApplyOperationalLabels(List<NavItem> rows)
-    {
-        var fixedItems = _warehouseItems.Concat(_finishedGoodsItems)
-            .ToDictionary(x => x.Href, StringComparer.OrdinalIgnoreCase);
-
-        for (var index = 0; index < rows.Count; index++)
-        {
-            if (fixedItems.TryGetValue(rows[index].Href, out var fixedItem))
-                rows[index] = rows[index] with { Lid = fixedItem.Lid, Ko = fixedItem.Ko, En = fixedItem.En };
-        }
-    }
-
-    static void AddMissingStaticItems(List<NavItem> rows, IEnumerable<NavItem> extras)
-    {
-        var existing = rows.Select(r => r.Href).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var item in extras)
-        {
-            if (existing.Add(item.Href))
-                rows.Add(item);
-        }
-    }
+    List<NavItem> SectionItems(string section) =>
+        _items.Where(item => item.Section == section && V(item.Href)).ToList();
 
     static bool IsRemovedMenu(string href)
     {
@@ -725,23 +666,10 @@
             $"{WebUtility.HtmlEncode(p)}<span style=\"display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;\">{WebUtility.HtmlEncode(s)}</span>");
     }
 
-    string DisplayLid(NavItem item)
-    {
-        if (item.Section is not ("wh" or "fg")) return item.Lid;
+    // 화면 표기(lid)는 SYS_Screen.LidLabel 그대로 — WH·FG 도 다른 모듈과 같다
+    static string DisplayLid(NavItem item) => item.Lid;
 
-        var index = SectionItems(item.Section)
-            .TakeWhile(candidate => !candidate.Href.Equals(item.Href, StringComparison.OrdinalIgnoreCase))
-            .Count();
-        return $"{item.Section.ToUpperInvariant()}-{index + 1:00}";
-    }
-
-    MarkupString NavLabel(NavItem item)
-    {
-        if (item.Section is not ("wh" or "fg")) return NL(item.Ko, item.En, EsFor(item.Href));
-
-        return new MarkupString(
-            $"{WebUtility.HtmlEncode(item.En)}<span class=\"ames-nav-korean-detail\">{WebUtility.HtmlEncode(item.Ko)}</span>");
-    }
+    MarkupString NavLabel(NavItem item) => NL(item.Ko, item.En, EsFor(item.Href));
 
     public void Dispose() => Nav.LocationChanged -= OnLocChanged;
 }
