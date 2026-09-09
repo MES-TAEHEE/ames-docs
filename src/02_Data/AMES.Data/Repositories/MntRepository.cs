@@ -20,7 +20,7 @@ public sealed class MntRepository
         DateTime? NextPmDate, string? MountedMoldId, int? OpenWoId, DateTime? PlcConnTs);
 
     public sealed record FailureRow(int FailureId, string? FailureNumber, string? EquipId,
-        string? FailureType, string? Symptom, string? Urgency, string? Source,
+        string? FailureType, string? Symptom, string? Severity, string? Source,
         string? Status, DateTime? ReportedAt, DateTime? ResolvedAt, int? WorkOrderId,
         string? EquipName = null, string? LineId = null, string? ReportedBy = null,
         string? AndonRefId = null, int? DowntimeId = null);
@@ -87,7 +87,7 @@ public sealed class MntRepository
 
     // ── MNT-002 Failure Register ────────────────────────────────────────
     private const string FailureSelect = """
-        SELECT f.FailureID, f.FailureNumber, f.EquipID, f.FailureType, f.Symptom, f.Urgency,
+        SELECT f.FailureID, f.FailureNumber, f.EquipID, f.FailureType, f.Symptom, f.Severity,
                f.Source, f.Status, f.ReportedAt, f.ResolvedAt, f.WorkOrderID,
                e.EquipName, e.LineID, f.ReportedBy, f.AndonRefID, f.DowntimeID
         FROM   dbo.MNT_FailureRegister f
@@ -96,7 +96,7 @@ public sealed class MntRepository
 
     private static FailureRow MapFailure(IDataReader r) => new(
         (int)r["FailureID"], r["FailureNumber"] as string, r["EquipID"] as string,
-        r["FailureType"] as string, r["Symptom"] as string, r["Urgency"] as string,
+        r["FailureType"] as string, r["Symptom"] as string, r["Severity"] as string,
         r["Source"] as string, r["Status"] as string,
         r["ReportedAt"] as DateTime?, r["ResolvedAt"] as DateTime?, r["WorkOrderID"] as int?,
         r["EquipName"] as string, r["LineID"] as string, r["ReportedBy"] as string,

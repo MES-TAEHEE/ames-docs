@@ -8,6 +8,7 @@
 @attribute [Authorize]
 
 @inject MntRepository Mnt
+@inject MasterDataRepository MD
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
@@ -37,7 +38,7 @@
     </div>
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["MNT.Failure.Kpi.Urg"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => IsUrgent(r.Urgency) && !IsRes(r.Status))</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => IsCritical(r.Severity) && !IsRes(r.Status))</div>
     </div>
 </div>
 
@@ -57,8 +58,8 @@
             <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
-            <RadzenLabel Text="@L["Col.Priority"]" Component="DropDownUrgency" />
-            <RadzenDropDown Name="DropDownUrgency" @bind-Value="_fUrgency" Data="@UrgencyFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenLabel Text="@L["Col.Severity"]" Component="DropDownSeverity" />
+            <RadzenDropDown Name="DropDownSeverity" @bind-Value="_fSeverity" Data="@SeverityFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Search" class="ames-rz-btn" />
             <RadzenButton Text="@L["MNT.Failure.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
@@ -83,8 +84,8 @@
             <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Symptom" Title="@L["Col.Symptom"]">
                 <Template Context="r"><span style="white-space:nowrap;">@(r.Symptom ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Urgency" Title="@L["Col.Priority"]" TextAlign="TextAlign.Center" Width="90px">
-                <Template Context="r"><span class="pill @UrgencyCls(r.Urgency)">@UrgencyLabel(r.Urgency)</span></Template>
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Severity" Title="@L["Col.Severity"]" TextAlign="TextAlign.Center" Width="90px">
+                <Template Context="r"><span class="pill @SeverityCls(r.Severity)">@SeverityLabel(r.Severity)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Source" Title="@L["Col.Source"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r"><span class="dim">@(r.Source ?? "—")</span></Template>
@@ -132,8 +133,8 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.Priority"]" />
-                    <div style="padding-top:4px;"><span class="pill @UrgencyCls(_sel.Urgency)">@UrgencyLabel(_sel.Urgency)</span></div>
+                    <RadzenLabel Text="@L["Col.Severity"]" />
+                    <div style="padding-top:4px;"><span class="pill @SeverityCls(_sel.Severity)">@SeverityLabel(_sel.Severity)</span></div>
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
@@ -199,20 +200,21 @@
 
     string   _fSearch = "";
     DateTime _fFrom = DateTime.Today.AddDays(-30), _fTo = DateTime.Today;
-    string?  _fStatus, _fUrgency;
+    string?  _fStatus, _fSeverity;
     string   _modal = "", _msg = "";
     bool     _bgMouseDownOnSelf, _isErr;
 
     static readonly string[] StatusCodes  = { "OPEN", "IN_PROGRESS", "RESOLVED" };
-    static readonly string[] UrgencyCodes = { "URGENT", "HIGH", "MED", "LOW" };
+    List<MasterDataRepository.CodeItemRow> _sevItems = new();   // 심각도 = 공통코드 DEFECT_SEVERITY
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
     IEnumerable<DropDownItem> StatusFilterOptions  => StatusCodes.Select(s => new DropDownItem { Value = s, Text = $"[{s}] {StatusLabel(s)}" });
-    IEnumerable<DropDownItem> UrgencyFilterOptions => UrgencyCodes.Select(u => new DropDownItem { Value = u, Text = $"[{u}] {UrgencyLabel(u)}" });
+    IEnumerable<DropDownItem> SeverityFilterOptions => _sevItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
 
     protected override void OnInitialized()
     {
+        try { _sevItems = MD.ListCodeItems("DEFECT_SEVERITY"); } catch { }
 
         // 기본 기간: 최근 30일. 그 안에 데이터가 없으면 마지막 발생일 기준으로 30일을 잡는다
         try
@@ -252,7 +254,7 @@
             EquipDisplayName(r).Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.Symptom   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fStatus)  || NormStatus(r.Status) == _fStatus) &&
-        (string.IsNullOrEmpty(_fUrgency) || r.Urgency == _fUrgency)
+        (string.IsNullOrEmpty(_fSeverity) || r.Severity == _fSeverity)
     ).ToList();
     }
 
@@ -288,14 +290,14 @@
         var headers = new[]
         {
             L["Col.FailNo"].Value, L["Col.EquipId"].Value, L["Col.EquipName"].Value, L["Col.Line"].Value,
-            L["Col.Type"].Value, L["Col.Symptom"].Value, L["Col.Priority"].Value, L["Col.Source"].Value,
+            L["Col.Type"].Value, L["Col.Symptom"].Value, L["Col.Severity"].Value, L["Col.Source"].Value,
             L["Col.Status"].Value, L["Col.Reported"].Value, L["Col.Resolved"].Value, L["Col.ReportedBy"].Value,
             L["Col.MwoNo"].Value, L["MNT.Failure.Col.AndonRef"].Value, L["MNT.Failure.Col.Downtime"].Value,
         };
         var data = _rows.Select(r => (IReadOnlyList<object?>)new object?[]
         {
             FailNo(r), r.EquipId, r.EquipName, r.LineId,
-            r.FailureType, r.Symptom, UrgencyLabel(r.Urgency), r.Source,
+            r.FailureType, r.Symptom, SeverityLabel(r.Severity), r.Source,
             StatusLabel(r.Status), r.ReportedAt?.ToString(DateFmt.DateTime), r.ResolvedAt?.ToString(DateFmt.DateTime), r.ReportedBy,
             r.WorkOrderId, r.AndonRefId, r.DowntimeId,
         });
@@ -326,18 +328,19 @@
     static bool IsOpen(string? s)   => s is "OPEN" or "REGISTERED";
     static bool IsProg(string? s)   => s == "IN_PROGRESS";
     static bool IsRes(string? s)    => s is "RESOLVED" or "CLOSED";
-    static bool IsUrgent(string? u) => u is "URGENT" or "HIGH";
+    static bool IsCritical(string? u) => u is "CRITICAL";
 
     static string NormStatus(string? s) => IsOpen(s) ? "OPEN" : IsRes(s) ? "RESOLVED" : s ?? "";
 
     string StatusLabel(string? s) =>
         s is null ? "—" : IsOpen(s) ? L["MNT.Failure.Open"] : IsProg(s) ? L["MNT.Failure.InProgress"] : IsRes(s) ? L["MNT.Failure.Resolved"] : s;
 
-    string UrgencyLabel(string? u) =>
-        u is null ? "—" : UrgencyCodes.Contains(u) ? L[$"MNT.Failure.Urg.{u}"] : u;
+    // 공통코드에 없는 값(구 URGENT/HIGH/MED/LOW 데이터)은 코드 그대로 보여 준다
+    string SeverityLabel(string? u) =>
+        u is null ? "—" : _sevItems.FirstOrDefault(c => string.Equals(c.CodeValue, u, StringComparison.OrdinalIgnoreCase)) is { } c ? MasterDataRepository.LocalName(c) : u;
 
     static string StatusCls(string? s) => IsOpen(s) ? "bad" : IsProg(s) ? "orange" : IsRes(s) ? "ok" : "mute";
 
-    static string UrgencyCls(string? u) => u switch
-    { "URGENT" => "bad", "HIGH" => "orange", "MED" => "info", "LOW" => "mute", _ => "mute" };
+    static string SeverityCls(string? u) => u switch
+    { "CRITICAL" => "bad", "MAJOR" => "orange", "MINOR" => "info", _ => "mute" };
 }

@@ -3065,7 +3065,7 @@ CREATE TABLE dbo.MNT_FailureRegister (
   [EquipID]                   VARCHAR(20)              NULL,  -- FK -> MD_Equipment.EquipID
   [FailureType]               VARCHAR(15)              NULL,
   [Symptom]                   NVARCHAR(500)            NULL,
-  [Urgency]                   VARCHAR(10)              NULL,
+  [Severity]                  VARCHAR(10)              NULL,  -- 공통코드 DEFECT_SEVERITY
   [PhotoURLs]                 NVARCHAR(MAX)            NULL,
   [Source]                    VARCHAR(15)              NULL,
   [AndonRefID]                VARCHAR(24)              NULL,

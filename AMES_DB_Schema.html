@@ -1627,7 +1627,7 @@ header{padding:24px 32px 16px;border-bottom:1px solid var(--border2);display:fle
   <div class="col-row"><div class="col-icon"></div><div class="col-name">FailureNumber</div><div class="col-type">VARCHAR(24)</div><div class="col-note">UNIQUE FL-YYMMDD</div></div>
   <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">EquipID</div><div class="col-type">VARCHAR(20)</div><div class="col-note">→ MD_Equipment</div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">FailureType</div><div class="col-type">VARCHAR(15)</div><div class="col-note">HYD/ELEC/THERMAL/MECH/CTRL</div></div>
-  <div class="col-row"><div class="col-icon"></div><div class="col-name">Symptom / Urgency</div><div class="col-type">NVARCHAR/VARCHAR</div><div class="col-note">URG/NORM/LOW</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">Symptom / Severity</div><div class="col-type">NVARCHAR/VARCHAR</div><div class="col-note">DEFECT_SEVERITY</div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">PhotoURLs</div><div class="col-type">NVARCHAR(MAX)</div><div class="col-note">JSON max 5</div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">Source / AndonRefID</div><div class="col-type">VARCHAR</div><div class="col-note">MANUAL/ANDON_AUTO</div></div>
   <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">WorkOrderID / DowntimeID</div><div class="col-type">INT</div><div class="col-note">auto-created</div></div>

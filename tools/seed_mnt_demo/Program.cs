@@ -97,18 +97,18 @@ internal static class Program
 
         var samples = new (string Type, string Sym, string Urg, string Src, string St, int HoursAgo)[]
         {
-            ("MECHANICAL", "Hydraulic pressure fluctuation",     "HIGH",   "OPERATOR", "OPEN",        2),
-            ("ELECTRICAL", "Servo amp E-stop tripped",            "URGENT", "ANDON",    "IN_PROGRESS", 6),
-            ("TOOLING",    "Mold cooling water low flow",         "MED",    "PLC",      "RESOLVED",   28),
-            ("MECHANICAL", "Clamp cylinder seal leak",            "MED",    "OPERATOR", "OPEN",       10),
-            ("ELECTRICAL", "PLC IO module timeout",               "HIGH",   "PLC",      "IN_PROGRESS",15),
-            ("QUALITY",    "Burn marks on flow front",            "LOW",    "QC",       "OPEN",        3),
-            ("PROCESS",    "Cycle time drift +12 %",              "LOW",    "OPERATOR", "OPEN",       18),
-            ("TOOLING",    "Mold venting blocked",                "MED",    "OPERATOR", "RESOLVED",   45),
-            ("MECHANICAL", "Robot arm calibration drift",         "MED",    "ANDON",    "OPEN",       20),
-            ("ELECTRICAL", "Heater band failure zone 4",          "URGENT", "PLC",      "IN_PROGRESS", 1),
-            ("PROCESS",    "Short shot on cavity 3",              "MED",    "QC",       "OPEN",        8),
-            ("MECHANICAL", "Ejector pin sticking",                "LOW",    "OPERATOR", "RESOLVED",   60),
+            ("MECHANICAL", "Hydraulic pressure fluctuation",     "MAJOR",  "OPERATOR", "OPEN",        2),
+            ("ELECTRICAL", "Servo amp E-stop tripped",            "CRITICAL", "ANDON",    "IN_PROGRESS", 6),
+            ("TOOLING",    "Mold cooling water low flow",         "MINOR",  "PLC",      "RESOLVED",   28),
+            ("MECHANICAL", "Clamp cylinder seal leak",            "MINOR",  "OPERATOR", "OPEN",       10),
+            ("ELECTRICAL", "PLC IO module timeout",               "MAJOR",  "PLC",      "IN_PROGRESS",15),
+            ("QUALITY",    "Burn marks on flow front",            "MINOR",  "QC",       "OPEN",        3),
+            ("PROCESS",    "Cycle time drift +12 %",              "MINOR",  "OPERATOR", "OPEN",       18),
+            ("TOOLING",    "Mold venting blocked",                "MINOR",  "OPERATOR", "RESOLVED",   45),
+            ("MECHANICAL", "Robot arm calibration drift",         "MINOR",  "ANDON",    "OPEN",       20),
+            ("ELECTRICAL", "Heater band failure zone 4",          "CRITICAL", "PLC",      "IN_PROGRESS", 1),
+            ("PROCESS",    "Short shot on cavity 3",              "MINOR",  "QC",       "OPEN",        8),
+            ("MECHANICAL", "Ejector pin sticking",                "MINOR",  "OPERATOR", "RESOLVED",   60),
         };
         int n = 0;
         for (int i = 0; i < samples.Length; i++)
@@ -117,7 +117,7 @@ internal static class Program
             var eq = equips[i % equips.Count];
             Exec(conn, $"""
                 INSERT INTO dbo.MNT_FailureRegister
-                    (FailureNumber, EquipID, FailureType, Symptom, Urgency, Source, Status,
+                    (FailureNumber, EquipID, FailureType, Symptom, Severity, Source, Status,
                      ReportedAt, ResolvedAt, CreatedBy, CreatedTS)
                 VALUES (@N, @E, @T, @Sym, @U, @Sr, @St,
                         DATEADD(HOUR, -{s.HoursAgo}, SYSDATETIME()),
@@ -255,14 +255,14 @@ internal static class Program
 
         var samples = new (string Typ, string Pr, string Src, string St, int HoursAgo, int Lab)[]
         {
-            ("CM",  "HIGH",   "FAILURE", "IN_PROGRESS", 3,  90),
-            ("PM",  "MED",    "PM",      "ISSUED",      6,   0),
-            ("CM",  "URGENT", "ANDON",   "IN_PROGRESS", 2, 120),
-            ("PM",  "LOW",    "PM",      "COMPLETED",  30, 180),
-            ("CM",  "MED",    "FAILURE", "COMPLETED",  48, 240),
-            ("PdM", "LOW",    "MANUAL",  "ISSUED",     12,   0),
-            ("CM",  "HIGH",   "ANDON",   "OPEN",        1,   0),
-            ("PM",  "MED",    "PM",      "COMPLETED",  72, 150),
+            ("CM",  "MAJOR",  "FAILURE", "IN_PROGRESS", 3,  90),
+            ("PM",  "MINOR",  "PM",      "ISSUED",      6,   0),
+            ("CM",  "CRITICAL", "ANDON",   "IN_PROGRESS", 2, 120),
+            ("PM",  "MINOR",  "PM",      "COMPLETED",  30, 180),
+            ("CM",  "MINOR",  "FAILURE", "COMPLETED",  48, 240),
+            ("PdM", "MINOR",  "MANUAL",  "ISSUED",     12,   0),
+            ("CM",  "MAJOR",  "ANDON",   "OPEN",        1,   0),
+            ("PM",  "MINOR",  "PM",      "COMPLETED",  72, 150),
         };
         int n = 0;
         for (int i = 0; i < samples.Length; i++)

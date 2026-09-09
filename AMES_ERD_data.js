@@ -1632,7 +1632,7 @@ MNT: { cols: 3, tables: [
     ['EquipID','VARCHAR(20)','FK:MD_Equipment.EquipID'],
     ['FailureType','VARCHAR(15)',''],
     ['Symptom','NVARCHAR(500)',''],
-    ['Urgency','VARCHAR(10)',''],
+    ['Severity','VARCHAR(10)',''],
     ['PhotoURLs','NVARCHAR(MAX)',''],
     ['Source','VARCHAR(15)',''],
     ['AndonRefID','VARCHAR(24)',''],

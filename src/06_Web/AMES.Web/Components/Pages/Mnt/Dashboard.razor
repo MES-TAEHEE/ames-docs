@@ -148,9 +148,9 @@
                 @foreach (var f in _alerts)
                 {
                     <div class="mnt-db-row" title="@f.Symptom">
-                        <span class="dot" style="background:@UrgencyColor(f.Urgency);"></span>
+                        <span class="dot" style="background:@SeverityColor(f.Severity);"></span>
                         <span class="t">@(string.IsNullOrEmpty(f.EquipName) ? f.EquipId : f.EquipName)<small>@(f.Symptom ?? "")</small></span>
-                        <span class="pill @UrgencyCls(f.Urgency)">@UrgencyLabel(f.Urgency)</span>
+                        <span class="pill @SeverityCls(f.Severity)">@SeverityLabel(f.Severity)</span>
                         <span class="r">@When(f.ReportedAt)</span>
                     </div>
                 }
@@ -296,6 +296,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        try { _sevItems = MD.ListCodeItems("DEFECT_SEVERITY"); } catch { }
         try { await PermSvc.EnsureAsync(AuthPrvd); } catch { }
         try { _equipStatus = MD.ListCodeItems("EQUIP_STATUS"); } catch { }
 
@@ -418,12 +419,13 @@
     static string ReasonColor(string reason) => reason switch
     { "MACHINE" => "#dc2626", "CHANGEOVER" => "#eab308", "MATERIAL" => "#f97316", "QUALITY" => "#3b82f6", _ => "#94a3b8" };
 
-    static readonly string[] UrgencyCodes = { "URGENT", "HIGH", "MED", "LOW" };
-    string UrgencyLabel(string? u) => u is null ? "—" : UrgencyCodes.Contains(u) ? L[$"MNT.Failure.Urg.{u}"] : u;
-    static string UrgencyCls(string? u) => u switch
-    { "URGENT" => "bad", "HIGH" => "orange", "MED" => "info", "LOW" => "mute", _ => "mute" };
-    static string UrgencyColor(string? u) => u switch
-    { "URGENT" => "#dc2626", "HIGH" => "#f97316", "MED" => "#f59e0b", "LOW" => "#94a3b8", _ => "#94a3b8" };
+    // 심각도 = 공통코드 DEFECT_SEVERITY. 코드에 없는 값(구 URGENT/HIGH/MED/LOW)은 그대로 표시
+    List<MasterDataRepository.CodeItemRow> _sevItems = new();
+    string SeverityLabel(string? u) => u is null ? "—" : _sevItems.FirstOrDefault(c => string.Equals(c.CodeValue, u, StringComparison.OrdinalIgnoreCase)) is { } c ? MasterDataRepository.LocalName(c) : u;
+    static string SeverityCls(string? u) => u switch
+    { "CRITICAL" => "bad", "MAJOR" => "orange", "MINOR" => "info", _ => "mute" };
+    static string SeverityColor(string? u) => u switch
+    { "CRITICAL" => "#dc2626", "MAJOR" => "#f97316", "MINOR" => "#3b82f6", _ => "#94a3b8" };
 
     string OeeClass() => _k.OeeDate is null ? "" : _k.AvgOeeToday >= 85 ? "ok" : _k.AvgOeeToday >= 65 ? "warn" : "bad";
 
