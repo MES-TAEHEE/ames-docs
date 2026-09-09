@@ -1,6 +1,10 @@
 # PDF build intermediates (per-file PDFs / cover / toc HTML)
 build/
 
+# Local verification builds, scratch scripts, and generated documents/screenshots
+/.tmp/
+/outputs/
+
 # .NET build artifacts (solution under src/ and every console tool under tools/)
 src/**/bin/
 src/**/obj/
