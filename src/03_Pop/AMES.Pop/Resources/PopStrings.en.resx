@@ -25,7 +25,7 @@
   <data name="ChangeRunning" xml:space="preserve"><value>Change running</value></data>
   <data name="Close" xml:space="preserve"><value>Close</value></data>
   <data name="CloseEsc" xml:space="preserve"><value>CLOSE (Esc)</value></data>
-  <data name="Code128BarcodeUsbHidScannerOrTapHereToPi" xml:space="preserve"><value>Code-128 barcode · USB HID scanner · or tap here to pick</value></data>
+  <data name="Code128BarcodeUsbHidScannerOrTapHereToPi" xml:space="preserve"><value>Scan your employee QR badge · or tap here to pick</value></data>
   <data name="CompleteResetTo0" xml:space="preserve"><value>Complete · Reset to 0</value></data>
   <data name="Confirm" xml:space="preserve"><value>Confirm</value></data>
   <data name="ConfirmFailed" xml:space="preserve"><value>Confirm failed</value></data>
@@ -137,6 +137,12 @@
   <data name="ScanEmployeeBadge" xml:space="preserve"><value>Scan Employee Badge</value></data>
   <data name="ScanHistoryToday" xml:space="preserve"><value>SCAN HISTORY · TODAY</value></data>
   <data name="ScanYourBadgeOrEnterYourPin" xml:space="preserve"><value>Scan your badge or enter your PIN</value></data>
+  <data name="SetYourPin" xml:space="preserve"><value>Set your PIN</value></data>
+  <data name="EnterNewPin" xml:space="preserve"><value>Enter a new 4-digit PIN</value></data>
+  <data name="ReenterPin" xml:space="preserve"><value>Re-enter the PIN to confirm</value></data>
+  <data name="PinMismatch" xml:space="preserve"><value>PINs do not match · start again</value></data>
+  <data name="PinSaved" xml:space="preserve"><value>PIN saved</value></data>
+  <data name="PinSaveFailed" xml:space="preserve"><value>Could not save the PIN · {0}</value></data>
   <data name="Scanner" xml:space="preserve"><value>SCANNER</value></data>
   <data name="SecShot" xml:space="preserve"><value>sec / shot</value></data>
   <data name="SelectReplacement" xml:space="preserve"><value>select replacement</value></data>
@@ -211,4 +217,9 @@
   <data name="LotIssued" xml:space="preserve"><value>Lot issued</value></data>
   <data name="PrintFailedLotKept" xml:space="preserve"><value>Print failed — lot created, reprint it from the list</value></data>
   <data name="NoLotsToday" xml:space="preserve"><value>No lots issued today — press LABEL PRINT</value></data>
+  <data name="IdleWarnTitle" xml:space="preserve"><value>AUTO LOGOUT</value></data>
+  <data name="IdleSeconds" xml:space="preserve"><value>SEC</value></data>
+  <data name="IdleWarnBody" xml:space="preserve"><value>No activity — returning to the login screen. Touch anywhere to stay.</value></data>
+  <data name="IdleStayLoggedIn" xml:space="preserve"><value>STAY</value></data>
+  <data name="IdleLoggedOut" xml:space="preserve"><value>Logged out for inactivity</value></data>
 </root>

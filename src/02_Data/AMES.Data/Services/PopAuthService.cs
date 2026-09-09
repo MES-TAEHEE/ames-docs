@@ -17,11 +17,13 @@ namespace AMES.Data.Services;
 public sealed class PopAuthService
 {
     private readonly AuthRepository       _auth;
+    private readonly WorkerRepository     _workers;
     private readonly PopSessionRepository _sessions;
 
-    public PopAuthService(AuthRepository auth, PopSessionRepository sessions)
+    public PopAuthService(AuthRepository auth, WorkerRepository workers, PopSessionRepository sessions)
     {
         _auth     = auth     ?? throw new ArgumentNullException(nameof(auth));
+        _workers  = workers  ?? throw new ArgumentNullException(nameof(workers));
         _sessions = sessions ?? throw new ArgumentNullException(nameof(sessions));
     }
 
@@ -31,7 +33,11 @@ public sealed class PopAuthService
 
         // 1) Find the operator. Both Badge and Pin paths key off EmployeeNo
         //    because the badge barcode encodes the EmployeeNo as well.
-        var profile = _auth.FindByEmployeeNo(req.AttemptedId);
+        //
+        //    Web-account profiles win over MD_Worker on a duplicated badge number
+        //    so an existing office user keeps behaving exactly as before.
+        var profile = _auth.FindByEmployeeNo(req.AttemptedId)
+                      ?? _workers.FindByWorkerNo(req.AttemptedId);
         if (profile is null)
         {
             _sessions.WriteAuthLog(req.TerminalId, req.AttemptedId, req.Method,
@@ -53,7 +59,10 @@ public sealed class PopAuthService
         {
             if (string.IsNullOrEmpty(req.Pin) || !PinHasher.Verify(req.Pin, profile.PinHash))
             {
-                var isNowLocked = _auth.IncrementFailedCount(profile.UserId);
+                // MD_Worker has no failure counter, and profile.UserId is a badge
+                // number there — running the SYS_UserProfile update would silently
+                // match nothing. Skip it rather than rely on that no-op.
+                var isNowLocked = !profile.IsWorker && _auth.IncrementFailedCount(profile.UserId);
                 if (isNowLocked)
                 {
                     _sessions.WriteAuthLog(req.TerminalId, req.AttemptedId, req.Method,
@@ -85,7 +94,7 @@ public sealed class PopAuthService
                                               req.ShiftCode, req.Method);
         _sessions.WriteAuthLog(req.TerminalId, req.AttemptedId, req.Method,
                                AuthResult.Ok, null);
-        _auth.RecordSuccessfulLogin(profile.UserId);
+        if (!profile.IsWorker) _auth.RecordSuccessfulLogin(profile.UserId);
 
         return LoginOutcome.Success(session);
     }

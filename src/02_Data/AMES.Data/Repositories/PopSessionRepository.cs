@@ -81,6 +81,8 @@ public sealed class PopSessionRepository
             StartedAt    = startedAt,
             ExpiresAt    = expiresAt,
             IsAdmin      = isAdmin,
+            IsWorker     = profile.IsWorker,
+            HasPin       = !string.IsNullOrEmpty(profile.PinHash),
         };
     }
 

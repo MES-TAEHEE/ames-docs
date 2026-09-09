@@ -12,9 +12,11 @@ var cs = builder.Configuration.GetConnectionString("AMES")
 var factory = new AmesConnectionFactory(cs);
 builder.Services.AddSingleton(factory);
 builder.Services.AddSingleton(new AuthRepository(factory));
+builder.Services.AddSingleton(new WorkerRepository(factory));
 builder.Services.AddSingleton(new PopSessionRepository(factory));
 builder.Services.AddSingleton(sp => new PopAuthService(
     sp.GetRequiredService<AuthRepository>(),
+    sp.GetRequiredService<WorkerRepository>(),
     sp.GetRequiredService<PopSessionRepository>()));
 
 // ── Auth token registry ─────────────────────────────────────────────────

@@ -1,8 +1,10 @@
 @page "/login"
 @implements IDisposable
 @using AMES.Data.Repositories
+@using AMES.Data.Security
 @inject AppState State
 @inject NavigationManager Nav
+@inject ScannerService Scanner
 
 @*  Mirrors the VOL05_INJ01 SHIFT-LOGIN mockup: top bar with terminal id,
     centered card with badge-scan zone + PIN keypad + info row, animated
@@ -18,6 +20,10 @@
         </div>
         <div class="pop-tbar-r">
             <span class="stat-on">● @T("Online")</span>
+            @if (Scanner.IsEnabled)
+            {
+                <span class="@(_scannerOn ? "stat-on" : "stat-off")">🔌 @T("Scanner")</span>
+            }
             <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
             <button class="injm-lang-btn" @onclick="ToggleLang">@(PopLang.IsKo ? "EN" : "한국어")</button>
             <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.LoginHelp))" />
@@ -88,6 +94,42 @@
             <div class="login-status @_statusClass">@_status</div>
         </div>
     </div>
+
+    @if (_pinSetup is not null)
+    {
+        @* 취소 버튼이 없다 — 배지 전용 계정은 PIN 을 정해야 통과한다. *@
+        <div class="picker-backdrop">
+            <div class="picker-modal" @onclick:stopPropagation="true">
+                <div class="picker-h">🔒 @T("SetYourPin")</div>
+                <div class="login-sub" style="text-align:center;">
+                    @_pinSetup.EmployeeNo · @_pinSetup.EmployeeName
+                </div>
+                <div class="login-sub" style="text-align:center;">
+                    @(_pinConfirming ? T("ReenterPin") : T("EnterNewPin"))
+                </div>
+
+                <div class="pin-dots">
+                    @for (var i = 0; i < 4; i++)
+                    {
+                        <div class="pin-dot @(i < _pin.Length ? "on" : "")"></div>
+                    }
+                </div>
+
+                <div class="login-keypad">
+                    @foreach (var d in new[] { "1","2","3","4","5","6","7","8","9" })
+                    {
+                        var k = d;
+                        <button class="login-key" @onclick="@(() => Press(k))">@k</button>
+                    }
+                    <button class="login-key del" @onclick="Backspace">←</button>
+                    <button class="login-key"     @onclick="@(() => Press("0"))">0</button>
+                    <button class="login-key ok"  @onclick="SubmitPinSetup">✓</button>
+                </div>
+
+                <div class="login-status @_statusClass">@_status</div>
+            </div>
+        </div>
+    }
 
     @if (_showPicker)
     {
@@ -177,16 +219,95 @@
     MasterDataRepository.PopLineOptionRow? _selLine;
     MasterDataRepository.StationRow?       _selStation;
     bool _showLinePicker, _showStationPicker;
+    bool _scannerOn, _loggingIn;
     string? _loadErr;
+
+    // PIN 설정 대기 중인 세션. null 이 아니면 오버레이가 떠 있고 키패드는
+    // 로그인이 아니라 PIN 설정으로 간다.
+    PopSessionDto? _pinSetup;
+    string? _pinFirst;
+    bool _pinConfirming;
 
     // 프로세스 수명 동안 직전 선택 프리필 (재시작하면 빈 상태 — 스펙 결정사항)
     static string? s_lastLineId, s_lastStationCode;
 
     protected override void OnInitialized()
     {
-        _profiles = PopServices.Auth.ListAllProfiles();
+        _profiles = LoadPickerProfiles();
         _clock = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; StateHasChanged(); }), null, 1000, 1000);
         LoadLines();
+
+        _scannerOn = Scanner.IsConnected;
+        Scanner.OnScan            += OnBadgeScan;
+        Scanner.ConnectionChanged += OnScannerConnection;
+        State.OnChange            += OnAppStateChanged;
+    }
+
+    // 유휴 만료가 AppRoot 에서 PIN 설정 세션을 걷어가면 오버레이도 같이 닫아야 한다.
+    void OnAppStateChanged() => InvokeAsync(() =>
+    {
+        if (_pinSetup is null || State.PendingSession is not null) return;
+        _pinSetup      = null;
+        _pinFirst      = null;
+        _pinConfirming = false;
+        _pin.Clear();
+        _loggingIn     = false;
+        SetStatus(T("IdleLoggedOut"), "dim");
+        StateHasChanged();
+    });
+
+    // 리더 스레드에서 온다 — UI 스레드로 넘긴다.
+    // 픽커가 열려 있으면 무시한다: 라인/스테이션을 고르는 중에 들어온 스캔이
+    // 직전 선택으로 로그인시켜 버리면 작업자가 엉뚱한 자리에 붙는다.
+    void OnBadgeScan(string code) => InvokeAsync(() =>
+    {
+        if (_loggingIn || _pinSetup is not null
+            || _showPicker || _showLinePicker || _showStationPicker) return;
+
+        var scan = AMES.Devices.BadgeScanParser.Parse(code);
+        if (scan.WorkerNo.Length == 0) return;
+
+        if (_selLine is null || _selStation is null)
+        {
+            SetStatus(T("SelectLineAndStationFirst"), "fail");
+            StateHasChanged();
+            return;
+        }
+
+        _pickedNo   = scan.WorkerNo;
+        _pickedName = scan.WorkerName;
+        _pin.Clear();
+
+        // 우리가 발행한 EOS 배지는 모르는 사번이면 그 자리에서 MD_Worker 에 만든다.
+        // 로그인 화면 스캔에서만 — PopAuthService 를 공유하는 PDA/API 는 종전대로
+        // 등록된 사람만 받는다. 20자는 정책이 아니라 WorkerNo 컬럼 길이다.
+        if (scan.IsEosFormat && scan.WorkerNo.Length <= 20)
+            PopServices.Workers.EnsureRegistered(scan.WorkerNo, scan.WorkerName);
+
+        Authenticate(scan.WorkerNo, null, AMES.Contracts.Enums.AuthMethod.Badge);
+        StateHasChanged();
+    });
+
+    void OnScannerConnection(bool on) =>
+        InvokeAsync(() => { _scannerOn = on; StateHasChanged(); });
+
+    // 웹계정(SYS_UserProfile) + 현장 작업자(MD_Worker) 를 한 목록으로 보여준다.
+    // 사번이 겹치면 웹계정만 남긴다 — PopAuthService 의 해석 순서와 같아야
+    // 픽커에서 고른 사람과 실제 로그인되는 사람이 어긋나지 않는다.
+    static List<EmployeeProfileDto> LoadPickerProfiles()
+    {
+        var all  = PopServices.Auth.ListAllProfiles();
+        var seen = all.Select(p => p.EmployeeNo).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            all.AddRange(PopServices.Workers.ListAllActive().Where(w => seen.Add(w.EmployeeNo)));
+        }
+        catch (Microsoft.Data.SqlClient.SqlException)
+        {
+            // migrate_md_worker.sql 미적용 등. 워커를 못 읽는다고 로그인 화면
+            // 자체를 못 띄우면 웹계정 작업자까지 갇힌다 — 웹계정만으로 연다.
+        }
+        return all;
     }
 
     void LoadLines()
@@ -267,7 +388,8 @@
     {
         if (_pin.Length >= 4) return;
         _pin.Append(d);
-        if (_pin.Length == 4) Submit();
+        if (_pin.Length < 4) return;
+        if (_pinSetup is not null) SubmitPinSetup(); else Submit();
     }
     void Backspace() { if (_pin.Length > 0) _pin.Length--; }
 
@@ -278,38 +400,134 @@
         if (_pin.Length < 4) { SetStatus(T("PinMustBe4Digits"), "fail"); return; }
 
         var attemptedId = _pickedNo ?? "E001";
-        var outcome = PopServices.PopAuth.Login(new AMES.Contracts.Auth.LoginRequest
+        var pin         = _pin.ToString();
+        _pin.Clear();
+        Authenticate(attemptedId, pin, AMES.Contracts.Enums.AuthMethod.Pin);
+    }
+
+    // PIN 키패드와 배지 스캔이 공유한다. 성공하면 화면 전환까지 여기서 끝낸다.
+    void Authenticate(string attemptedId, string? pin, AMES.Contracts.Enums.AuthMethod method)
+    {
+        if (_selLine is null || _selStation is null) return;
+
+        _loggingIn = true;
+        try
         {
-            AttemptedId = attemptedId,
-            Pin         = _pin.ToString(),
-            Method      = AMES.Contracts.Enums.AuthMethod.Pin,
-            TerminalId  = _selStation.StationCode,
-            LineId      = _selLine.LineID,
-            ShiftCode   = AppConfig.Current.DefaultShift,
+            var outcome = PopServices.PopAuth.Login(new AMES.Contracts.Auth.LoginRequest
+            {
+                AttemptedId = attemptedId,
+                Pin         = pin,
+                Method      = method,
+                TerminalId  = _selStation.StationCode,
+                LineId      = _selLine.LineID,
+                ShiftCode   = AppConfig.Current.DefaultShift,
+            });
+
+            if (outcome.IsSuccess && outcome.Session is not null)
+            {
+                s_lastLineId      = _selLine.LineID;
+                s_lastStationCode = _selStation.StationCode;
+
+                // 배지 전용 워커는 PIN 을 정해야 통과한다. 스캐너가 죽으면
+                // 그 사람은 들어올 방법이 없어지기 때문이다.
+                if (outcome.Session.IsWorker && !outcome.Session.HasPin)
+                {
+                    _pinSetup      = outcome.Session;
+                    State.BeginPinSetup(outcome.Session);   // 이 구간도 유휴 만료 대상
+                    _pinFirst      = null;
+                    _pinConfirming = false;
+                    _pin.Clear();
+                    _loggingIn     = false;
+                    SetStatus(T("EnterNewPin"), "dim");
+                    return;
+                }
+
+                SetStatus(T("WelcomeUser", outcome.Session.EmployeeName), "ok");
+                EnterShopFloor(outcome.Session);
+                return;
+            }
+
+            _loggingIn = false;
+            SetStatus($"× {outcome.Result} — {outcome.FailReason}", "fail");
+        }
+        catch
+        {
+            _loggingIn = false;   // DB 장애 등 — 플래그가 켜진 채 굳으면 재시도가 막힌다
+            throw;
+        }
+    }
+
+    // 모듈의 권위는 선택 라인의 WC ProcessCode — appsettings 아님.
+    void EnterShopFloor(PopSessionDto session)
+    {
+        if (_selLine is null) return;
+        State.SignIn(session, _selLine.ProcessCode);
+        // _loggingIn 은 켠 채로 둔다 — 화면을 떠나는 중에 들어온 스캔을 막는다.
+        _loggingIn = true;
+        Nav.NavigateTo(_selLine.ProcessCode switch
+        {
+            "QC"  => "/qc07",
+            "PNT" => "/pnt02",
+            "IMG" => "/imgmain",
+            _     => "/injmain"
         });
+    }
+
+    // 4자리를 두 번 받아 일치할 때만 저장한다. 오타 하나로 다음 교대에
+    // 못 들어오는 일을 막으려는 것이다.
+    void SubmitPinSetup()
+    {
+        if (_pinSetup is null) return;
+        if (_pin.Length < 4) { SetStatus(T("PinMustBe4Digits"), "fail"); return; }
+
+        var entered = _pin.ToString();
         _pin.Clear();
 
-        if (outcome.IsSuccess && outcome.Session is not null)
+        if (!_pinConfirming)
         {
-            SetStatus(T("WelcomeUser", outcome.Session.EmployeeName), "ok");
-            s_lastLineId      = _selLine.LineID;
-            s_lastStationCode = _selStation.StationCode;
-            // 모듈의 권위는 선택 라인의 WC ProcessCode — appsettings 아님.
-            State.SignIn(outcome.Session, _selLine.ProcessCode);
-            var target = _selLine.ProcessCode switch
-            {
-                "QC"  => "/qc07",
-                "PNT" => "/pnt02",
-                "IMG" => "/imgmain",
-                _     => "/injmain"
-            };
-            Nav.NavigateTo(target);
+            _pinFirst      = entered;
+            _pinConfirming = true;
+            SetStatus(T("ReenterPin"), "dim");
             return;
         }
-        SetStatus($"× {outcome.Result} — {outcome.FailReason}", "fail");
+
+        if (entered != _pinFirst)
+        {
+            _pinFirst      = null;
+            _pinConfirming = false;
+            SetStatus(T("PinMismatch"), "fail");
+            return;
+        }
+
+        try
+        {
+            PopServices.Workers.SetPin(_pinSetup.EmployeeNo, PinHasher.Hash(entered));
+        }
+        catch (Exception ex)
+        {
+            // 저장에 실패하면 통과시키지 않는다 — PIN 이 없는 채로 들여보내면
+            // 다음 로그인에 또 같은 자리에 선다.
+            _pinFirst      = null;
+            _pinConfirming = false;
+            SetStatus(T("PinSaveFailed", ex.Message), "fail");
+            return;
+        }
+
+        var session = _pinSetup;
+        _pinSetup = null;
+        State.EndPinSetup();
+        _pinFirst = null;
+        SetStatus(T("PinSaved"), "ok");
+        EnterShopFloor(session);
     }
 
     void SetStatus(string text, string cls) { _status = text; _statusClass = cls; }
 
-    public void Dispose() => _clock?.Dispose();
+    public void Dispose()
+    {
+        Scanner.OnScan            -= OnBadgeScan;
+        Scanner.ConnectionChanged -= OnScannerConnection;
+        State.OnChange            -= OnAppStateChanged;
+        _clock?.Dispose();
+    }
 }

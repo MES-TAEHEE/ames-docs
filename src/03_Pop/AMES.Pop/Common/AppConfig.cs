@@ -34,6 +34,12 @@ public sealed class AppConfig
     /// <summary>포트 열기 실패·끊김 후 재시도 간격(ms).</summary>
     public int ScannerReconnectMs { get; }
 
+    /// <summary>무작업이 이만큼 이어지면 로그인 화면으로 되돌린다(분). 0 이하면 비활성.</summary>
+    public int IdleLogoutMinutes { get; }
+
+    /// <summary>자동 로그아웃 몇 초 전에 카운트다운 경고를 띄울지.</summary>
+    public int IdleWarnSeconds { get; }
+
     private static readonly Lazy<AppConfig> _instance = new(Load);
     public static AppConfig Current => _instance.Value;
 
@@ -55,6 +61,10 @@ public sealed class AppConfig
 
         ScannerPortName    = (root["PopTerminal:Scanner:PortName"] ?? string.Empty).Trim();
         ScannerReconnectMs = int.TryParse(root["PopTerminal:Scanner:ReconnectMs"], out var srm) && srm > 0 ? srm : 3000;
+
+        // 값이 이상해도 여기서 막지 않는다 — IdleWatcher 가 경고 창을 유휴 시간에 맞춰 접는다.
+        IdleLogoutMinutes = int.TryParse(root["PopTerminal:IdleLogoutMinutes"], out var ilm) ? ilm : 30;
+        IdleWarnSeconds   = int.TryParse(root["PopTerminal:IdleWarnSeconds"],   out var iws) ? iws : 60;
     }
 
     private static AppConfig Load()
