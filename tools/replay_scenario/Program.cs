@@ -93,7 +93,7 @@ internal static class Program
                     'user-s001',
                     DATEADD(second, -60, SYSDATETIME()),
                     'MACHINE', N'Supervisor on site, inspecting',
-                    NULL, NULL, 'Acked', 'scenario:andon', SYSDATETIME());
+                    NULL, NULL, 'ACKED', 'scenario:andon', SYSDATETIME());
             """, ("@E", equipId));
 
         Console.WriteLine("  → ANDON raised 90 s ago, supervisor acked 60 s ago");
@@ -143,7 +143,7 @@ internal static class Program
                  Disposition, Status, ReportedBy, ReportedAt, CreatedBy, CreatedTS)
             VALUES (CONCAT('NCR-SCN-', FORMAT(SYSDATETIME(),'yyMMddHHmm')),
                     'INSPECTION', 'IP-SCN', 'Major', 'DR-TRM-LH-A1', 96, 'HOLD',
-                    'Open', 'user-q001', DATEADD(minute,-7,SYSDATETIME()),
+                    'OPEN', 'user-q001', DATEADD(minute,-7,SYSDATETIME()),
                     'scenario:qc-escalation', SYSDATETIME());
             """);
         var ncrId = Scalar<int>(conn, """

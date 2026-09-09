@@ -130,7 +130,7 @@ appcmd set apppool "AMES.Web" /processModel.loadUserProfile:true /processModel.s
 | INJ-MAIN | `Pages/InjMain.razor` | **통합 작업 화면** (기본 진입점) — 좌측 스테이션 BOP 품번 × 당일 PLAN/INPUT/NG/FINAL 그리드 + 스캔 실적확정 + 우측 패널 기능 버튼 (하단바 없음, 로그아웃은 상단바). WO 접수 없음: 품번 행 선택 → `WorkOrderRepository.FindOpenForItem` 이 열린 WO 를 자동 해석(`ConfirmByLotCode` 와 같은 규칙) |
 | (팝업) | `Pages/InjPopups/ManualEntryPopup.razor` | 수동 실적 입력 (구 INJ-04 키패드) |
 | (팝업) | `Pages/InjPopups/DefectPopup.razor` | 불량 입력 (구 INJ-05) |
-| (팝업) | `Pages/InjPopups/AndonPopup.razor` | 안돈 — 전체 화면 오버레이 (구 INJ-08) |
+| (팝업) | `Pages/InjPopups/AndonPopup.razor` | 안돈 — 전체 화면 오버레이. 확인창 → 슈퍼바이저 배지 스캔 → 원인·부서 호출 → 담당자 배지 도착 → ACK → 자동 종료. 흐름은 `Services/AndonWorkflow`(단위 테스트 `AndonWorkflowTests`) |
 
 대시보드(INJ-02)·작업지시 접수(INJ-03)·금형 교체(INJ-06)·생산 현황(INJ-07)은 미사용으로 삭제됨 (화면·팝업·레거시 WinForms 폼 포함).
 구 단독 화면(`/inj02`~`/inj08` 라우트)도 모두 삭제됨 — INJ 는 INJ-MAIN + 팝업(수동입력·불량·안돈)만 남는다. 팝업 공통 셸은 `Pages/InjPopups/PopupShell.razor`.
@@ -303,12 +303,13 @@ WO 공정 단계(`PP_WorkOrderRouting.CompletedQty` · 인덱스 · 백필)는 `
 생산 마감일 컬럼 `PP_WorkOrder.ProdDeadline` 과 설정 `SYS_Config.PP_PROD_BUFFER_WORKDAYS`(기본 3, 1 이상만 유효 — 0·미등록·파싱 실패는 3 으로 본다) 는 `dist/migrate_wo_prod_deadline.sql` — 순서 무관, 재실행 안전. PP-003 이 WO 를 만들 때 `납기 − 버퍼 근무일`(`SYS_FactoryCalendar` 의 WORKDAY·SPECIAL 만 근무일, 행 없는 날은 토·일만 휴일) 을 박아 두고, `AMES.Data.Scheduling.DeadlinePacker` 가 오늘부터 마감일까지 단계별·날짜별로 수량을 쪼개 자동 배치한다(마감일 초과분은 납기일까지 `Late`, 그래도 남으면 `Shortfall`; 납기가 이미 지난 수주는 오늘부터 60일 안에 전량 `Late` 로 넣는다). 이 마이그레이션 없이 신 Web 을 올리면 PP-003 배치뿐 아니라 `WorkOrderRepository.ListAll` 을 쓰는 PP-004·PP-CAL 도 매번 예외다.
 백필된 WO 중 헤더 라인이 마지막 라인 단계가 아닌 건(예: A 라우팅을 INJ 라인으로 발행)은 첫 후속 실적에서 헤더 `CompletedQty` 가 마지막 단계 값으로 내려갈 수 있다 — PP-04 진척률이 한 번 감소해 보인다.
 PP-003 일괄 생성은 WO 생성 → Release(단계별 라인) → 단계마다 PP_LineSchedule 슬롯(DRAFT) 배치까지 **한 트랜잭션**으로 처리한다(PpRepository.CreateScheduledWorkOrders). 배치 위치·날짜·수량은 AMES.Data.Scheduling.DeadlinePacker(순수 함수, 하루 안은 SlotPacker.FillDay)가 정하고, 하루 능력은 LineScheduleRepository.GetDayCapacity(패턴 해석: 그 날 저장 행 → 라인 전용 ACTIVE → 전역)로 읽는다. 자리가 없는 단계는 슬롯 없이 Released 로 남아 PP-LSB 보드의 미배치 목록에서 수동 배치한다. Pop INJ-MAIN 은 오늘 슬롯을 계획으로 읽으므로, 이 경로가 아니면 WO 가 Pop 에 안 뜬다.
+안돈 대응 워크플로(`MD_LineSupervisor` · `PR_AndonDeptCall` · `PR_AndonCall.SupervisorName` · 공통코드 `ANDON_DEPT`/`ANDON_CAUSE`)는 `dist/migrate_andon_workflow.sql` — 순서 무관, 재실행 안전. 이게 없으면 INJ-MAIN·IMG-MAIN 이 5초마다 진행중 안돈을 조회하다 예외를 내 좌측 헤더에 갱신 실패 스트립이 계속 뜨고 안돈 버튼도 예외 토스트를 띄운다 — 실적 확정 자체는 계속 동작한다. `ANDON_CAUSE.Attribute1` 이 기본 호출 부서이며 둘 다 MD-26 공통코드 화면에서 관리한다. 라인별 슈퍼바이저 등록 화면은 Web 에 별도 개발 예정이라 dev 는 `dist/seed_andon_dev.sql`(전 라인 W001, 운영 금지)로 채운다.
 
 ---
 
 ## POP 시리얼 스캐너 (Zebra DS3678, USB CDC)
 
-INJ-MAIN 은 HID(키보드 웨지) 외에 시리얼 스캔도 받는다. 호스트(`PopBlazorForm`)가 앱 기동 시 `SerialScannerReader` 로 COM 포트를 열고, `ScannerService.OnScan` 으로 화면에 전달하며, INJ-MAIN 이 구독해 HID 와 같은 `ConfirmScan` 경로로 확정한다. 팝업이 열려 있으면 시리얼 스캔은 무시된다.
+INJ-MAIN 은 HID(키보드 웨지) 외에 시리얼 스캔도 받는다. 호스트(`PopBlazorForm`)가 앱 기동 시 `SerialScannerReader` 로 COM 포트를 열고, `ScannerService.OnScan` 으로 화면에 전달하며, INJ-MAIN 이 구독해 HID 와 같은 `ConfirmScan` 경로로 확정한다. 팝업이 열려 있으면 시리얼 스캔은 무시된다 — 단 안돈 팝업은 예외로, 직접 구독해 모든 스캔을 사원증으로 해석한다.
 
 ```json
 "PopTerminal": { "Scanner": { "PortName": "COM5", "ReconnectMs": 3000 } }
@@ -380,6 +381,19 @@ INJ-MAIN 은 HID(키보드 웨지) 외에 시리얼 스캔도 받는다. 호스�
 | 구 Web + 신 DB | 라벨 순서와 달리 **안전한 실패 쪽이다.** 구 Web 은 헤더 `LineID` 에 기록하고 단계는 `Pending` 으로 남으며, 마이그레이션 §3(백필)을 다시 돌리면 단계 행이 정리된다 |
 
 **INJ 스테이션마다 `MD_Bop`(StationCode) 등록이 선행돼야 한다.** 비어 있으면 INJ-MAIN 좌측 패널이 비고(당일 실적 있는 품번만 "미등록"으로 뜸) 수동입력·불량 팝업이 동작하지 않는다 — 스캔 확정은 LOT 품번으로 WO를 찾으므로 계속 동작한다. dev 는 `dist/seed_md_bop_inj_dev.sql`, 운영은 MD-005 화면에서 등록.
+
+---
+
+## POP 안돈 — 운영 전제
+
+안돈 흐름: 확인창 → `OPEN`(슈퍼바이저 호출) → 슈퍼바이저 배지 스캔 `SUP_ACKED` → 원인(`ANDON_CAUSE`)·부서(`ANDON_DEPT`) 호출 `DEPT_CALLED` → 담당자 배지 도착 → ACK → 전 부서 ACK 시 `RESOLVED`. 부서 호출 없이 슈퍼바이저가 자체 해결 종료할 수도 있다. 호출 수단은 DB 기록 + POP 화면뿐이다(알림 채널 없음, Web 대시보드는 후속).
+
+- **라인마다 `MD_LineSupervisor` 에 슈퍼바이저 사번이 등록돼 있어야 한다.** 없으면 발동된 안돈이 `OPEN` 에서 못 벗어난다 — 스캔마다 "이 라인의 슈퍼바이저가 아닙니다" 만 뜬다. 등록만이 탈출구다.
+- 부서 담당자 스캔은 소속을 검증하지 않지만 EOS 양식 배지이거나 등록된 사번이어야 한다. 그 안에서는 누가 찍든 그 사람이 도착자로 기록된다.
+- 안돈 팝업이 열려 있는 동안 스캔은 전부 배지로 해석된다. LOT 라벨을 찍으면 거부 토스트가 뜬다 — 실적 확정은 팝업을 닫고 한다. 팝업을 닫아도 안돈은 DB 에 남고 상단바 `🚨 안돈 진행중` 칩으로 다시 연다.
+- 배포 순서: ① `dist/migrate_andon_workflow.sql` ② 슈퍼바이저 등록 ③ AMES.Pop 신버전. 롤백은 Pop 구버전으로만(새 테이블·컬럼은 구버전이 안 쓴다).
+- **심각도는 필수**다. 슈퍼바이저가 `DEFECT_SEVERITY`(MINOR/MAJOR/CRITICAL) 중 하나를 골라야 부서 호출·자체 해결 종료가 되고, 값은 `PR_AndonCall.Severity` 에 남는다(발동 직후는 NULL).
+- **연동 테이블**: 발동 시 `PP_LineDowntimeLog`(ReasonCode `ANDON`, `AndonID`) 1행이 열리고 종료 시 `EndTS`·`DurationMin` 이 닫힌다(자체 해결 포함). 보전(`ANDON_DEPT` 코드 `MAINT`, `AndonDeptCodes.Maint`)이 호출되면 `MNT_FailureRegister` 1행(`Source='ANDON'`, `AndonRefID`=안돈 ID, `FailureNumber`=`FAIL-yyMM-NNN`, `Severity`=선택값, `FailureType`=원인 코드)이 생기고 도착·ACK 가 `MNT_FailureAction`(ARRIVED/ACK) 으로, 안돈 종료가 `Status='RESOLVED'` 로 이어진다. 품질·자재 호출은 고장을 만들지 않는다. `MNT_FailureRegister.Severity` 컬럼은 `dev` 의 `migrate_mnt_failure_severity.sql` 이 만든다 — 그 마이그레이션 없는 DB 에서는 보전 호출이 예외 토스트로 실패한다.
 
 ---
 

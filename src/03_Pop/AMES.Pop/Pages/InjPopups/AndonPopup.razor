@@ -1,150 +1,329 @@
 @namespace AMES.Pop.Pages.InjPopups
 @using AMES.Pop.Common
+@using AMES.Pop.Services
+@inject ToastService Toasts
+@inject ScannerService Scanner
 @implements IDisposable
 
-@*  INJ-008 안돈 — 팝업판. 라인 정지 특성상 전체 화면을 덮는 오버레이로 표시. *@
+@*  안돈 팝업 — 전체 화면 오버레이. 흐름은 AndonWorkflow 가 결정하고 여기서는 그리기·스캔 수신·
+    확인창·설비 상태 로그만 한다. 배지 스캔은 시리얼(ScannerService)과 HID(숨은 입력) 둘 다 받는다. *@
 
 <div class="pmod-backdrop pmod-andon-overlay">
     <div class="andon-shell" style="position:relative; width:100%; height:100%;">
         <div class="andon-bar">
-            <span>🚨 @T("Andon") · @(_openId == 0 ? T("Ready") : T("Active")) · @Session?.LineId</span>
-            <span>@(_openId == 0 ? "—" : $"{T("Andonid")} #{_openId} · {_triggered:HH:mm:ss}")</span>
+            <span>🚨 @T("Andon") · @StateLabel · @Session?.LineId</span>
+            <span>
+                @if (_wf.Call is { } bc) { <text>#@bc.AndonId · @bc.TriggeredAt.ToString("HH:mm:ss") · @_elapsed</text> }
+                <button class="pmod-x andon-x" @onclick="Close" title="Close">✕</button>
+            </span>
         </div>
+
+        <input @ref="_badgeInput" class="andon-badge-input" @bind="_badgeBuf" @bind:event="oninput"
+               @onkeydown="OnBadgeKey" autocomplete="off" />
 
         <div class="andon-bd">
-            @if (_openId == 0)
+            @switch (_wf.State)
             {
-                <div class="andon-icon-big">🚨</div>
-                <div class="andon-title">@T("Ready")</div>
-                <div class="andon-subtitle">@T("NoActiveAndonTapRaiseToHaltTheLineManual")</div>
-            }
-            else if (_acked)
-            {
-                <div class="andon-icon-big">✓</div>
-                <div class="andon-title" style="color:var(--warn);">@T("Acked")</div>
-                <div class="andon-subtitle">@T("SupervisorAcknowledged30SSafetyHoldBefor")</div>
-            }
-            else
-            {
-                <div class="andon-icon-big">⛔</div>
-                <div class="andon-title">@T("Stopped")</div>
-                <div class="andon-subtitle">@T("ProductionHaltedSupervisorPinRequiredToA")</div>
-            }
+                case AndonUiState.Ready:
+                    <div class="andon-icon-big">🚨</div>
+                    <div class="andon-title">@T("Ready")</div>
+                    <div class="andon-actions">
+                        <button class="andon-btn andon-btn-call" @onclick="Close">← @T("Close")</button>
+                        <button class="andon-btn andon-btn-ack" style="background:#b91c1c;" @onclick="RaiseRetry">🚨 @T("RaiseAndon")</button>
+                    </div>
+                    break;
 
-            <div class="andon-cause">
-                <div class="andon-cause-l">▼ @T("Cause")</div>
-                <div class="andon-cause-v">@(_cause ?? T("AwaitingTrigger"))</div>
-                <div class="andon-cause-detail">@_causeDetail</div>
-            </div>
+                case AndonUiState.Open:
+                    <div class="andon-icon-big">⛔</div>
+                    <div class="andon-title">@T("AndonSupervisorCalled")</div>
+                    <div class="andon-subtitle">📷 @T("AndonScanSupervisorBadge")</div>
+                    <div class="andon-meta">
+                        <div><div class="andon-meta-l">@T("Operator")</div><div class="andon-meta-v">@_wf.Call?.TriggeredBy</div></div>
+                        <div><div class="andon-meta-l">@T("Elapsed")</div><div class="andon-meta-v">@_elapsed</div></div>
+                    </div>
+                    break;
 
-            <div class="andon-meta">
-                <div>
-                    <div class="andon-meta-l">@T("Operator")</div>
-                    <div class="andon-meta-v">@Session?.EmployeeNo</div>
-                </div>
-                <div>
-                    <div class="andon-meta-l">@T("Elapsed")</div>
-                    <div class="andon-meta-v">@_elapsed</div>
-                </div>
-                <div>
-                    <div class="andon-meta-l">@T("Severity")</div>
-                    <div class="andon-meta-v">@T("High2")</div>
-                </div>
-            </div>
+                case AndonUiState.SupAcked:
+                    <div class="andon-sup">👤 @T("AndonSupervisor") · @SupLabel · @_wf.Call?.SupervisorAt?.ToString("HH:mm:ss")</div>
+                    <div class="andon-cause-l">▼ @T("AndonSeverity")</div>
+                    <div class="andon-dept-chips">
+                        @foreach (var sv in _wf.Severities)
+                        {
+                            <button class="andon-dept-chip andon-sev @(IsSeverity(sv.Code) ? "on" : "")" @onclick="@(() => _wf.SelectSeverity(sv.Code))">@Name(sv.Name, sv.NameEn)</button>
+                        }
+                    </div>
+                    <div class="andon-cause-l">▼ @T("AndonCause")</div>
+                    <div class="andon-cause-grid">
+                        @foreach (var c in _wf.Causes)
+                        {
+                            <button class="andon-cause-btn @(IsCause(c.Code) ? "on" : "")" @onclick="@(() => _wf.SelectCause(c.Code))">@Name(c.Name, c.NameEn)</button>
+                        }
+                    </div>
+                    <div class="andon-cause-l">▼ @T("AndonDepts")</div>
+                    <div class="andon-dept-chips">
+                        @foreach (var d in _wf.Depts)
+                        {
+                            <button class="andon-dept-chip @(_wf.SelectedDepts.Contains(d.Code) ? "on" : "")" @onclick="@(() => _wf.ToggleDept(d.Code))">@Name(d.Name, d.NameEn)</button>
+                        }
+                    </div>
+                    <div class="andon-actions">
+                        <button class="andon-btn andon-btn-call" @onclick="Guard(_wf.ResolveSelf)">✓ @T("AndonResolveSelf")</button>
+                        <button class="andon-btn andon-btn-ack" @onclick="Guard(_wf.CallDepts)">📞 @T("AndonCallDepts")</button>
+                    </div>
+                    break;
 
-            <div class="andon-actions">
-                @if (_openId == 0)
-                {
-                    <button class="andon-btn andon-btn-call" @onclick="Close">← @T("Close")</button>
-                    <button class="andon-btn andon-btn-ack" style="background:#b91c1c;" @onclick="Raise">🚨 @T("RaiseAndon")</button>
-                }
-                else if (!_acked)
-                {
-                    <button class="andon-btn andon-btn-call">📞 @T("SupervisorCalled")</button>
-                    <button class="andon-btn andon-btn-ack" @onclick="Ack">🔓 @T("AckSupervisorPinAutoAccept")</button>
-                }
-                else
-                {
-                    <button class="andon-btn andon-btn-ack" @onclick="Resume">▶ @T("ResumeProduction")</button>
-                }
-            </div>
+                case AndonUiState.DeptCalled:
+                case AndonUiState.PickDept:
+                    <div class="andon-sup">👤 @T("AndonSupervisor") · @SupLabel · @T("AndonCause"): @CauseLabel · @T("AndonSeverity"): @SeverityLabel</div>
+                    <div class="andon-subtitle">📷 @T("AndonScanResponderBadge")</div>
+                    <table class="andon-dept-tbl">
+                        <thead><tr><th>@T("AndonDepts")</th><th>@T("AndonWaiting")</th><th>@T("AndonArrived")</th><th>@T("AndonDone")</th><th></th></tr></thead>
+                        <tbody>
+                        @foreach (var d in _wf.Call?.Depts ?? new())
+                        {
+                            <tr class="@(d.IsAcked ? "done" : d.IsArrived ? "arrived" : "")">
+                                <td class="andon-dept-name">@Name(d.DeptName, d.DeptNameEn)</td>
+                                <td>@d.CalledAt.ToString("HH:mm")</td>
+                                <td>@(d.IsArrived ? $"{d.ArrivedAt:HH:mm} · {d.ArrivedNo} {d.ArrivedName}" : "—")</td>
+                                <td>@(d.IsAcked ? d.AckedAt?.ToString("HH:mm") : "—")</td>
+                                <td>
+                                    @if (d.IsArrived && !d.IsAcked)
+                                    {
+                                        <button class="andon-btn andon-btn-ack andon-btn-sm" @onclick="@(() => Guard(() => _wf.AckDept(d.DeptCallId))())">✓ @T("AndonAckDone")</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                    @if (_addingDept)
+                    {
+                        <div class="andon-cause-l">▼ @T("AndonSeverity")</div>
+                        <div class="andon-dept-chips">
+                            @foreach (var sv in _wf.Severities)
+                            {
+                                <button class="andon-dept-chip andon-sev @(IsSeverity(sv.Code) ? "on" : "")" @onclick="@(() => _wf.SelectSeverity(sv.Code))">@Name(sv.Name, sv.NameEn)</button>
+                            }
+                        </div>
+                        <div class="andon-cause-l">▼ @T("AndonDepts")</div>
+                        <div class="andon-dept-chips">
+                            @foreach (var d in _wf.Depts)
+                            {
+                                var called = _wf.Call?.Depts.Any(x => x.DeptCode == d.Code) == true;
+                                <button class="andon-dept-chip @(called ? "called" : _wf.SelectedDepts.Contains(d.Code) ? "on" : "")"
+                                        disabled="@called" @onclick="@(() => _wf.ToggleDept(d.Code))">@Name(d.Name, d.NameEn)</button>
+                            }
+                        </div>
+                        <div class="andon-actions">
+                            <button class="andon-btn andon-btn-call" @onclick="@(() => _addingDept = false)">← @T("Close")</button>
+                            <button class="andon-btn andon-btn-ack" @onclick="@(() => { Guard(_wf.CallDepts)(); _addingDept = false; })">📞 @T("AndonCallDepts")</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="andon-actions">
+                            <button class="andon-btn andon-btn-call" @onclick="@(() => _addingDept = true)">＋ @T("AndonAddDept")</button>
+                        </div>
+                    }
+                    break;
+            }
         </div>
+
+        @if (_wf.State == AndonUiState.PickDept)
+        {
+            <div class="andon-pick-backdrop">
+                <div class="andon-pick">
+                    <div class="andon-pick-title">@T("AndonPickDeptTitle")</div>
+                    <div class="andon-pick-who">@_wf.PendingScan?.No @_wf.PendingScan?.Name</div>
+                    <div class="andon-dept-chips">
+                        @foreach (var d in _wf.PendingArrivalDepts)
+                        {
+                            <button class="andon-dept-chip" @onclick="@(() => Guard(() => _wf.AssignArrival(d.DeptCallId))())">@Name(d.DeptName, d.DeptNameEn)</button>
+                        }
+                    </div>
+                    <div class="andon-actions">
+                        <button class="andon-btn andon-btn-call" @onclick="_wf.CancelPick">← @T("Close")</button>
+                    </div>
+                </div>
+            </div>
+        }
     </div>
 </div>
 
 @code {
-    [Parameter] public PopSessionDto? Session       { get; set; }
-    [Parameter] public EventCallback  OnClose       { get; set; }
+    [Parameter] public PopSessionDto? Session { get; set; }
+    [Parameter] public EventCallback  OnClose { get; set; }
+    /// <summary>메인 화면이 확인창을 이미 받았을 때 true — 열리자마자 발동한다.</summary>
+    [Parameter] public bool           AutoRaise { get; set; }
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
+    private static string Name(string ko, string? en) => PopLang.IsKo || string.IsNullOrEmpty(en) ? ko : en;
 
-    private int      _openId;
-    private DateTime _triggered;
-    private bool     _acked;
-    private string?  _cause;
-    private string   _causeDetail = "";
-    private string   _elapsed = "00:00";
+    private AndonWorkflow _wf = null!;
+    private string _elapsed = "00:00";
+    private string _badgeBuf = string.Empty;
+    private bool   _addingDept;
+    private ElementReference _badgeInput;
     private System.Threading.Timer? _timer;
+    private int _tick;
+    private string? _lastLoadErr;
+
+    private string StateLabel => _wf.State switch
+    {
+        AndonUiState.Ready => T("Ready"),
+        _                  => T("AndonActive"),
+    };
+    private string SupLabel   => $"{_wf.Call?.SupervisorNo} {_wf.Call?.SupervisorName}".Trim();
+    private string CauseLabel
+    {
+        get
+        {
+            var code = _wf.Call?.CauseCode ?? _wf.SelectedCause;
+            var c = _wf.Causes.FirstOrDefault(x => x.Code == code);
+            return c is null ? code ?? "—" : Name(c.Name, c.NameEn);
+        }
+    }
+    private bool IsCause(string code) => string.Equals(_wf.SelectedCause, code, StringComparison.OrdinalIgnoreCase);
+    private bool IsSeverity(string code) => string.Equals(_wf.SelectedSeverity, code, StringComparison.OrdinalIgnoreCase);
+    private string SeverityLabel
+    {
+        get
+        {
+            var code = _wf.SelectedSeverity ?? _wf.Call?.Severity;
+            var s = _wf.Severities.FirstOrDefault(x => x.Code == code);
+            return s is null ? code ?? "—" : Name(s.Name, s.NameEn);
+        }
+    }
 
     protected override void OnInitialized()
     {
         if (Session is null) return;
+        var equipId = TryGetEquipId();
+        _wf = new AndonWorkflow(new RepoAndonStore(), new RepoBadgeResolver(), Session.LineId, equipId, Session.EmployeeNo);
+        _wf.Changed  += () => InvokeAsync(StateHasChanged);
+        _wf.Rejected += r  => InvokeAsync(() => Toasts.Warn(RejectText(r)));
+        _wf.Resolved += id => InvokeAsync(() => OnResolved(id));
+        try
+        {
+            _wf.Load();
+            if (AutoRaise && _wf.State == AndonUiState.Ready) Raise();
+        }
+        catch (Exception ex) { Toasts.Bad(ex.Message); }
+
+        Scanner.OnScan += OnSerialScan;
         _timer = new System.Threading.Timer(_ => InvokeAsync(() =>
         {
-            if (_openId != 0)
+            if (_wf.Call is { } c)
             {
-                var t = DateTime.Now - _triggered;
+                var t = DateTime.Now - c.TriggeredAt;
                 _elapsed = $"{(int)t.TotalMinutes:00}:{t.Seconds:00}";
                 StateHasChanged();
+            }
+
+            // 다른 터미널이 같은 안돈을 ACK/Resolve 했을 수 있다 — 5초마다 따라간다.
+            // PickDept 는 Load() 가 PendingScan 을 지워버리므로 절대 폴링하지 않는다.
+            if (++_tick % 5 == 0 && _wf.State is not (AndonUiState.Ready or AndonUiState.PickDept))
+            {
+                try { _wf.Load(); _lastLoadErr = null; }
+                catch (Exception ex)
+                {
+                    if (_lastLoadErr != ex.Message) { Toasts.Bad(ex.Message); _lastLoadErr = ex.Message; }
+                }
             }
         }), null, 1000, 1000);
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // 상태가 바뀔 때마다 숨은 입력이 포커스를 되찾아야 HID 스캔이 들어온다.
+        if (_wf.State is AndonUiState.Open or AndonUiState.DeptCalled)
+        {
+            try { await _badgeInput.FocusAsync(); } catch { }
+        }
+    }
+
+    // 확인창은 메인 화면이 띄운다. Ready 화면의 버튼은 자동 발동이 DB 예외로 실패했을 때의 재시도용.
     private void Raise()
+    {
+        _wf.Raise();
+        LogEquip("STOP", "ANDON");
+    }
+
+    private void RaiseRetry()
+    {
+        try { Raise(); }
+        catch (Exception ex) { Toasts.Bad(ex.Message); }
+    }
+
+    private void OnSerialScan(string code) => InvokeAsync(() => HandleScan(code));
+
+    private void OnBadgeKey(KeyboardEventArgs e)
+    {
+        if (e.Key != "Enter") return;
+        var code = _badgeBuf.Trim();
+        _badgeBuf = string.Empty;
+        if (code.Length > 0) HandleScan(code);
+    }
+
+    private void HandleScan(string code)
+    {
+        try { _wf.OnBadgeScan(code); }
+        catch (Exception ex) { Toasts.Bad(ex.Message); }
+        StateHasChanged();
+    }
+
+    // 워크플로 호출을 감싸 저장소 예외를 토스트로 돌린다.
+    private Action Guard(Action act) => () =>
+    {
+        try { act(); }
+        catch (Exception ex) { Toasts.Bad(ex.Message); }
+    };
+
+    private async Task OnResolved(int andonId)
+    {
+        LogEquip("RUN", "RESUMED");
+        Toasts.Ok(T("AndonResolved", andonId));
+        _addingDept = false;
+        await OnClose.InvokeAsync();
+    }
+
+    private string? TryGetEquipId()
+    {
+        try { return PopServices.Equipment.GetPrimaryForLine(Session!.LineId)?.EquipId; }
+        catch { return null; }
+    }
+
+    private void LogEquip(string status, string reason)
     {
         if (Session is null) return;
         try
         {
-            var equipId = PopServices.Equipment.GetPrimaryForLine(Session.LineId)?.EquipId;
-            _openId = PopServices.Andon.Raise(Session.LineId, equipId,
-                triggerSource: "MANUAL", ruleId: "INJ-008-MANUAL", severity: "HIGH",
-                Session.EmployeeNo);
-            _triggered   = DateTime.Now;
-            _cause       = T("ManualAndonBy", Session.EmployeeName);
-            _causeDetail = T("AndonHaltDetail", _openId);
+            var equipId = TryGetEquipId();
             if (!string.IsNullOrEmpty(equipId))
-                PopServices.Equipment.LogStatus(equipId, Session.LineId, "STOP", "ANDON", null, Session.EmployeeNo);
+                PopServices.Equipment.LogStatus(equipId, Session.LineId, status, reason, null, Session.EmployeeNo);
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[AndonPopup Raise] {ex.Message}"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[AndonPopup LogEquip] {ex.Message}"); }
     }
 
-    private void Ack()
+    private static string RejectText(AndonReject r) => r switch
     {
-        if (_openId == 0 || Session is null) return;
-        try
-        {
-            PopServices.Andon.Acknowledge(_openId, Session.OperatorId,
-                reasonCode: "LINE-CHK", correctiveAction: "Acknowledged at line");
-            _acked = true;
-        }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[AndonPopup Ack] {ex.Message}"); }
-    }
-
-    private async Task Resume()
-    {
-        if (_openId == 0 || Session is null) return;
-        try
-        {
-            PopServices.Andon.Resume(_openId, Session.OperatorId);
-            var equipId = PopServices.Equipment.GetPrimaryForLine(Session.LineId)?.EquipId;
-            if (!string.IsNullOrEmpty(equipId))
-                PopServices.Equipment.LogStatus(equipId, Session.LineId, "RUN", "RESUMED", null, Session.EmployeeNo);
-            _openId = 0; _acked = false; _cause = null; _causeDetail = "";
-            await OnClose.InvokeAsync();
-        }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[AndonPopup Resume] {ex.Message}"); }
-    }
+        AndonReject.EmptyBadge        => T("AndonEmptyBadge"),
+        AndonReject.NotSupervisor     => T("AndonNotSupervisor"),
+        AndonReject.CauseRequired     => T("AndonCauseRequired"),
+        AndonReject.DeptRequired      => T("AndonDeptRequired"),
+        AndonReject.NoPendingDept     => T("AndonNoPendingDept"),
+        AndonReject.NotArrived        => T("AndonNotArrived"),
+        AndonReject.DeptAlreadyCalled => T("AndonDeptAlreadyCalled"),
+        AndonReject.UnknownBadge      => T("AndonUnknownBadge"),
+        AndonReject.SeverityRequired  => T("AndonSeverityRequired"),
+        _                             => r.ToString(),
+    };
 
     private Task Close() => OnClose.InvokeAsync();
-    public void Dispose() => _timer?.Dispose();
+
+    public void Dispose()
+    {
+        Scanner.OnScan -= OnSerialScan;
+        _timer?.Dispose();
+    }
 }

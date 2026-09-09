@@ -21,6 +21,10 @@
             <span class="pop-tbar-id">INJ-MAIN · @Session?.TerminalId · @Session?.LineId</span>
         </div>
         <div class="pop-tbar-r">
+            @if (_openAndon is { } oa)
+            {
+                <button class="injm-andon-chip" @onclick="@(() => Open(Popup.Andon))">🚨 @T("AndonActive") · #@oa.AndonId · @AndonElapsed(oa)</button>
+            }
             <span class="@_eqClass">● @PopLang.EqStatus(_eqStatus)</span>
             @if (Scanner.IsEnabled)
             {
@@ -173,7 +177,7 @@
                 <div class="injm-actions">
                     <button class="nav-btn" @onclick="@(() => Open(Popup.Manual))">@T("ManualEntry")</button>
                     <button class="nav-btn warn" @onclick="@(() => Open(Popup.Defect))">@T("Defect2")</button>
-                    <button class="nav-btn alert" @onclick="@(() => Open(Popup.Andon))">@T("Andon")</button>
+                    <button class="nav-btn alert" @onclick="OpenAndon">@T("Andon")</button>
                 </div>
             </div>
         </div>
@@ -192,7 +196,7 @@
                      OnClose="ClosePopup" OnChanged="Refresh" />
         break;
     case Popup.Andon:
-        <AndonPopup Session="Session" OnClose="ClosePopup" />
+        <AndonPopup Session="Session" OnClose="ClosePopup" AutoRaise="_andonAutoRaise" />
         break;
 }
 
@@ -219,6 +223,13 @@
     private string _defectPct = "0.0%", _defClass = "ok";
     private string _moldText = "—", _moldClass = "ok";
     private string _eqStatus = "OFFLINE", _eqClass = "stat-off";
+    private AndonCallDto? _openAndon;
+    private bool _andonAutoRaise;
+    private static string AndonElapsed(AndonCallDto a)
+    {
+        var t = DateTime.Now - a.TriggeredAt;
+        return $"{(int)t.TotalMinutes:00}:{t.Seconds:00}";
+    }
     private string?  _refreshError;
     private DateTime _refreshErrorAt;
 
@@ -306,6 +317,8 @@
             var eq = PopServices.Equipment.GetPrimaryForLine(Session.LineId);
             _eqStatus = (eq?.Status ?? "OFFLINE").ToUpperInvariant();
             _eqClass  = _eqStatus is "RUN" or "IDLE" ? "stat-on" : "stat-off";
+
+            _openAndon = PopServices.Andon.GetOpenForLine(Session.LineId);
             _refreshError = null;
         }
         catch (Exception ex)
@@ -407,7 +420,21 @@
     }
 
     // ── 팝업 제어 ─────────────────────────────────────────────────────
-    private void Open(Popup p) => _popup = p;
+    private void Open(Popup p) { _andonAutoRaise = false; _popup = p; }
+
+    // 진행중 안돈이 있으면 그냥 연다. 없으면 여기서 확인받고 팝업이 열리자마자 발동한다 —
+    // 팝업 안에서 한 번 더 버튼을 누르게 하지 않는다.
+    private async Task OpenAndon()
+    {
+        if (_openAndon is null)
+        {
+            if (!await Confirmer.AskAsync(T("AndonConfirmTitle"), T("AndonConfirmBody"),
+                                          T("RaiseAndon"), T("Close"), destructive: true)) return;
+            _andonAutoRaise = true;
+        }
+        else _andonAutoRaise = false;
+        _popup = Popup.Andon;
+    }
     private void ClosePopup() { _popup = Popup.None; _focusScan = true; Refresh(); }
 
     // 수동 발행분은 아직 실적이 아니다 — 미확정 LOT 목록에 쌓이고, 스캔해야 확정된다.
