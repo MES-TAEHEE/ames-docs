@@ -11,7 +11,7 @@
         <span class="pda-tbar-brand">CUSTOMER RETURN</span>
         @if (IsPptTestMode)
         {
-            <PptScenarioPanel Title="CUSTOMER RETURN" Steps="PptSteps" Busy="@_isBusy" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+            <PptScenarioPanel Title="CUSTOMER RETURN" Steps="ActiveScenarioSteps" ModeLabel="@ScenarioModeLabel" Busy="@_isBusy" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
         }
     </div>
 
