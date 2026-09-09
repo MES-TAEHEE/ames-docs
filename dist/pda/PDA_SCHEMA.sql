@@ -1609,6 +1609,10 @@ BEGIN
         THROW 51511, 'Adjustment quantity must be different from zero.', 1;
     IF @Reason = N''
         THROW 51512, 'Reason code is required.', 1;
+    IF NOT EXISTS
+       (SELECT 1 FROM dbo.MD_CodeItem
+        WHERE GroupCode='INV_ADJUST_REASON' AND CodeValue=@Reason AND ISNULL(UseFlag,1)=1)
+        THROW 51520, 'Unsupported inventory adjustment reason.', 1;
 
     SELECT TOP (1)
         @LotID = L.LotID
@@ -1814,9 +1818,9 @@ BEGIN
     SET XACT_ABORT ON;
 
     DECLARE @NormalizedStatus varchar(30) = UPPER(LTRIM(RTRIM(@Status)));
-    IF @NormalizedStatus NOT IN
-       ('CREATED','RECEIVED','STORED','RELEASED','RECEIPT_CANCELLED',
-        'RELEASE_CANCELLED','RETURN_RECEIVED','DEFECTIVE','DISPOSED')
+    IF NOT EXISTS
+       (SELECT 1 FROM dbo.MD_CodeItem
+        WHERE GroupCode='WH_INV_STATUS' AND CodeValue=@NormalizedStatus AND ISNULL(UseFlag,1)=1)
         THROW 51610, 'Unsupported LOT inventory status.', 1;
 
     DECLARE @LotID int, @BeforeStatus varchar(30);
@@ -2678,6 +2682,10 @@ BEGIN
         THROW 51611, 'Adjustment quantity must be different from zero.', 1;
     IF @Reason = N''
         THROW 51612, 'Reason code is required.', 1;
+    IF NOT EXISTS
+       (SELECT 1 FROM dbo.MD_CodeItem
+        WHERE GroupCode='INV_ADJUST_REASON' AND CodeValue=@Reason AND ISNULL(UseFlag,1)=1)
+        THROW 51619, 'Unsupported inventory adjustment reason.', 1;
 
     DECLARE
         @StockID int,
@@ -2728,7 +2736,7 @@ BEGIN
 
     UPDATE dbo.FG_Inventory
        SET Qty = @AfterQty,
-           Status = N'Available',
+           Status = N'AVAILABLE',
            ModifiedTS = SYSDATETIME(),
            ModifiedBy = @User
      WHERE StockID = @StockID;
@@ -2938,6 +2946,7 @@ BEGIN
             CAST(COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') AS varchar(20)) AS AreaCode
         FROM dbo.MD_Location
         WHERE COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') IS NOT NULL
+        GROUP BY CAST(COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') AS varchar(20))
     ) AS src ON tgt.AreaCode = src.AreaCode
     WHEN NOT MATCHED THEN INSERT
         (WhCode, AreaCode, AreaName, ActiveFlag, CreatedBy, CreatedTS)
@@ -2997,6 +3006,8 @@ BEGIN
             CAST(COALESCE(NULLIF(LocationType, ''), 'DEFAULT') AS varchar(20)) AS SectionCode
         FROM dbo.MD_Location
         WHERE COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') IS NOT NULL
+        GROUP BY CAST(COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') AS varchar(20)),
+                 CAST(COALESCE(NULLIF(LocationType, ''), 'DEFAULT') AS varchar(20))
     ) AS src
        ON tgt.AreaCode = src.AreaCode
       AND tgt.SectionCode = src.SectionCode
@@ -3153,11 +3164,11 @@ BEGIN
     IF @Stock IS NULL
     BEGIN
         INSERT dbo.FG_Inventory(StockNumber,WoID,ItemNo,LotID,CustomerCode,Qty,Location,Status,HoldFlag,StockTS,CreatedBy,CreatedTS)
-        VALUES('FG-PPT-STK-970001',@Wo,'PPT-FG-HIST',@Lot,'PPT-CUSTOMER',22,'FG-PPT-G1','Shipped',0,DATEADD(second,1,@Today),@By,@Today);
+        VALUES('FG-PPT-STK-970001',@Wo,'PPT-FG-HIST',@Lot,'PPT-CUSTOMER',22,'FG-PPT-G1','SHIPPED',0,DATEADD(second,1,@Today),@By,@Today);
         SET @Stock=SCOPE_IDENTITY();
     END;
-    UPDATE dbo.FG_Inventory SET Qty=22,Status='Shipped',Location='FG-PPT-G1',StockTS=DATEADD(second,1,@Today) WHERE StockID=@Stock;
-    UPDATE dbo.FG_ShipmentOrder SET Status='Shipped',ShipDate=CAST(@Today AS date) WHERE ShipmentOrderID=@Order;
+    UPDATE dbo.FG_Inventory SET Qty=22,Status='SHIPPED',Location='FG-PPT-G1',StockTS=DATEADD(second,1,@Today) WHERE StockID=@Stock;
+    UPDATE dbo.FG_ShipmentOrder SET Status='SHIPPED',ShipDate=CAST(@Today AS date) WHERE ShipmentOrderID=@Order;
     INSERT dbo.FG_PutAway(StockID,WoID,ItemNo,Qty,ActualLoc,StorageMethod,OperatorID,Status,CreatedBy,CreatedTS)
     VALUES(@Stock,@Wo,'PPT-FG-HIST',20,'FG-PPT-G1','LOCATION','TEST1','Confirmed',@By,DATEADD(second,1,@Today));
     INSERT dbo.FG_InventoryAdjust(AdjustNo,StockID,ItemNo,Location,LotID,QtyBefore,Delta,QtyAfter,ReasonCode,ReasonNote,Status,RequestedBy,ApprovedBy,CreatedBy,CreatedTS)
@@ -3171,7 +3182,7 @@ BEGIN
     INSERT dbo.FG_LoadingConfirm(LoadingNumber,ShipmentOrderID,LicensePlate,PalletsLoadedJSON,DepartureTS,OTDStatus,OperatorID,ConfirmedAt,CreatedBy,CreatedTS)
     VALUES('FG-PPT-HIST-LOAD',@Order,'PPT-FG-HISTORY',@Json,DATEADD(second,4,@Today),'OnTime','TEST1',DATEADD(second,4,@Today),@By,DATEADD(second,4,@Today));
     INSERT dbo.FG_CustomerReturn(ReturnNumber,OriginalShipmentOrderID,CustomerCode,ReturnReason,Note,ItemsJSON,Status,ReceivedAt,ReceivedBy,CreatedBy,CreatedTS)
-    VALUES('FG-PPT-HIST-RETURN',@Order,'PPT-CUSTOMER','Damaged in transit','PPT return note',@Json,'Open',DATEADD(second,5,@Today),'TEST1',@By,DATEADD(second,5,@Today));
+    VALUES('FG-PPT-HIST-RETURN',@Order,'PPT-CUSTOMER','DAMAGED_TRANSIT','PPT return note',@Json,'Open',DATEADD(second,5,@Today),'TEST1',@By,DATEADD(second,5,@Today));
     COMMIT TRANSACTION;
 END;
 GO
@@ -3225,10 +3236,10 @@ BEGIN
     ELSE
     BEGIN
         INSERT dbo.FG_Inventory (StockNumber,WoID,ItemNo,LotID,CustomerCode,Qty,Location,Status,HoldFlag,StockTS,CreatedBy,CreatedTS)
-        SELECT CONCAT('FG-PPT-STK-',RIGHT(LotCode,6)),WoID,ItemNo,LotID,'PPT-CUSTOMER',Qty,LocationID,'Available',0,SYSDATETIME(),@SeedBy,SYSDATETIME()
+        SELECT CONCAT('FG-PPT-STK-',RIGHT(LotCode,6)),WoID,ItemNo,LotID,'PPT-CUSTOMER',Qty,LocationID,'AVAILABLE',0,SYSDATETIME(),@SeedBy,SYSDATETIME()
         FROM @Lots L WHERE NOT EXISTS (SELECT 1 FROM dbo.FG_Inventory S WHERE S.LotID=L.LotID);
         UPDATE S SET Qty=L.Qty, Location=L.LocationID, HoldFlag=0,
-            Status=CASE WHEN @Screen='loading' THEN 'Reserved' WHEN @Screen='return' AND RIGHT(L.LotCode,6)='950001' THEN 'Shipped' ELSE 'Available' END,
+            Status=CASE WHEN @Screen='loading' THEN 'RESERVED' WHEN @Screen='return' AND RIGHT(L.LotCode,6)='950001' THEN 'SHIPPED' ELSE 'AVAILABLE' END,
             StockTS=DATEADD(day,-5+CONVERT(int,RIGHT(L.LotCode,1)),SYSDATETIME()),ModifiedBy=@SeedBy,ModifiedTS=SYSDATETIME()
         FROM dbo.FG_Inventory S JOIN @Lots L ON L.LotID=S.LotID;
     END;
@@ -3239,7 +3250,7 @@ BEGIN
         UPDATE Q SET InsEndTS=DATEADD(hour,-CASE RIGHT(L.LotCode,6) WHEN '900002' THEN 48 WHEN '900003' THEN 144 WHEN '900004' THEN 264 ELSE 2 END,SYSDATETIME())
         FROM dbo.QC_Inspection Q JOIN @Lots L ON L.LotID=Q.LotID WHERE Q.CreatedBy=@SeedBy;
 
-    UPDATE O SET Status=CASE WHEN @Screen='release' THEN 'Released' WHEN @Screen='loading' THEN 'Ready' WHEN O.ShipOrderNumber='FG-PPT-SO-RETURN' THEN 'Shipped' ELSE 'Open' END,
+    UPDATE O SET Status=CASE WHEN @Screen='release' THEN 'RELEASED' WHEN @Screen='loading' THEN 'READY' WHEN O.ShipOrderNumber='FG-PPT-SO-RETURN' THEN 'SHIPPED' ELSE 'OPEN' END,
         ShipDate=CAST(GETDATE() AS date),ModifiedBy=@SeedBy,ModifiedTS=SYSDATETIME()
     FROM dbo.FG_ShipmentOrder O JOIN @Orders T ON T.ID=O.ShipmentOrderID;
     IF @Screen='release'

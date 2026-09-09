@@ -52,7 +52,7 @@
                 <div class="pda-fld">
                     <label>STORAGE</label>
                     <RadzenDropDown TValue="string" class="fg01-storage-select"
-                                    Data="@StorageOptions" TextProperty="Name" ValueProperty="Code"
+                                    Data="@StorageOptions" TextProperty="Name" ValueProperty="CodeValue"
                                     Value="@_storageMethod" Change="@OnStorageChanged"
                                     Disabled="@IsBusy" Placeholder="Select Storage" />
                 </div>
@@ -190,11 +190,7 @@
     private bool DisableConfirm => IsBusy || !ReadyForLocation || _selectedLocation is not { IsValid: true };
     private string ConfirmButtonClass => DisableConfirm ? "blocked" : "ready";
     private string LotCardClass => _scan is null ? "" : _scan.AlreadyStocked ? "stocked" : _scan.IsQcPassed ? "ready" : "blocked";
-    private sealed record StorageOption(string Code, string Name);
-    private static readonly StorageOption[] StorageOptions =
-    [
-        new("BOX", "Box"), new("PALLET", "Pallet"), new("RACK", "Rack"), new("LOCATION", "Location Only")
-    ];
+    private List<PdaApi.CodeOption> StorageOptions = [];
     private string ContainerTitle => _storageMethod switch
     {
         "BOX" => "Box",
@@ -226,6 +222,9 @@
         }
         await FocusScannerAsync();
     }
+
+    protected override async Task OnInitializedAsync()
+        => StorageOptions = await Api.CodeItemsAsync("FG_STORAGE_METHOD");
 
     [JSInvokable]
     public async Task OnHardwareScanAsync(string scanText)

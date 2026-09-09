@@ -138,6 +138,18 @@ public sealed class PdaApi
         return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<PopSessionDto>() : null;
     }
 
+    public sealed record CodeOption(string CodeValue, string? CodeName, string? CodeNameEn, string? Attribute1)
+    {
+        public string Name => string.IsNullOrWhiteSpace(CodeNameEn) ? CodeName ?? CodeValue : CodeNameEn;
+    }
+
+    public async Task<List<CodeOption>> CodeItemsAsync(string groupCode)
+    {
+        Authorize();
+        return await _http.GetFromJsonAsync<List<CodeOption>>(
+            $"/api/sys/code-items/{Uri.EscapeDataString(groupCode)}") ?? [];
+    }
+
     // ── WH ───────────────────────────────────────────────────────────────
     public sealed record InboundRow(int LotId, string LotCode, string? ItemNo, string? ItemName,
         decimal Qty, string? Vendor, DateTime? ArrivedAt);

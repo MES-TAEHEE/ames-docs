@@ -1,4 +1,4 @@
-﻿-- =====================================================================
+-- =====================================================================
 --  PDA_SEED.sql
 --  Consolidated Warehouse and Finished Goods demo/test data for the PDA
 --
@@ -90,6 +90,116 @@ BEGIN
        )
         INSERT INTO dbo.AspNetUserRoles (UserId, RoleId)
         VALUES (@TestUserId, @AdminRoleId);
+END;
+GO
+
+-- =====================================================================
+--  WH / FG common codes used by the PDA
+-- =====================================================================
+IF OBJECT_ID(N'dbo.MD_CodeGroup', N'U') IS NOT NULL
+   AND OBJECT_ID(N'dbo.MD_CodeItem', N'U') IS NOT NULL
+BEGIN
+    DECLARE @PdaCodeGroups TABLE
+    (
+        GroupCode varchar(20) PRIMARY KEY,
+        GroupName nvarchar(60),
+        GroupNameEn nvarchar(60),
+        Description nvarchar(200)
+    );
+
+    INSERT INTO @PdaCodeGroups VALUES
+        ('WH_OUTGOING_TYPE', N'창고 출고 유형', N'Warehouse Outgoing Type', N'Warehouse release destination type'),
+        ('INV_ADJUST_REASON', N'재고 조정 사유', N'Inventory Adjust Reason', N'Warehouse and finished goods quantity adjustment reason'),
+        ('FG_STORAGE_METHOD', N'완제품 적치 방식', N'FG Storage Method', N'Finished goods put-away storage method'),
+        ('FG_RETURN_REASON', N'완제품 반품 사유', N'FG Return Reason', N'Finished goods customer return reason'),
+        ('WH_INV_STATUS', N'창고 재고 상태', N'Warehouse Inventory Status', N'Warehouse LOT inventory lifecycle status'),
+        ('FG_STOCK_STATUS', N'완제품 재고 상태', N'FG Stock Status', N'Finished goods stock lifecycle status'),
+        ('FG_SHIP_STATUS', N'완제품 출하 상태', N'FG Shipment Status', N'Finished goods shipment lifecycle status'),
+        ('INV_TXN_TYPE', N'재고 트랜잭션 유형', N'Inventory Transaction Type', N'Warehouse and finished goods inventory transaction type');
+
+    MERGE dbo.MD_CodeGroup AS T
+    USING @PdaCodeGroups AS S ON S.GroupCode = T.GroupCode
+    WHEN MATCHED THEN UPDATE SET
+        GroupName = S.GroupName, GroupNameEn = S.GroupNameEn, Description = S.Description,
+        UseFlag = 1, ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME()
+    WHEN NOT MATCHED THEN INSERT
+        (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy, CreatedTS)
+    VALUES
+        (S.GroupCode, S.GroupName, S.GroupNameEn, S.Description, 1, 'pda-seed', SYSDATETIME());
+
+    DECLARE @PdaCodeItems TABLE
+    (
+        GroupCode varchar(20),
+        CodeValue varchar(20),
+        CodeName nvarchar(60),
+        CodeNameEn nvarchar(60),
+        SortOrder int,
+        Attribute1 nvarchar(40),
+        Description nvarchar(120),
+        PRIMARY KEY (GroupCode, CodeValue)
+    );
+
+    INSERT INTO @PdaCodeItems VALUES
+        ('WH_OUTGOING_TYPE', 'PRODUCTION', N'생산라인 출고', N'To Production Line', 10, N'TO_PRODUCTION_LINE', N'Issue material to production'),
+        ('WH_OUTGOING_TYPE', 'OTHER', N'기타 출고', N'Other Outgoing', 20, N'OTHER_OUTGOING', N'Other warehouse issue'),
+        ('WH_OUTGOING_TYPE', 'DEFECT', N'불량 출고', N'Defect Outgoing', 30, N'DEFECT_OUTGOING', N'Issue defective material'),
+        ('INV_ADJUST_REASON', 'COUNT_DIFF', N'실사 차이', N'Count Diff', 10, NULL, N'Physical count difference'),
+        ('INV_ADJUST_REASON', 'DAMAGED', N'파손', N'Damaged', 20, NULL, N'Damaged inventory'),
+        ('INV_ADJUST_REASON', 'LOST', N'분실', N'Lost', 30, NULL, N'Lost inventory'),
+        ('INV_ADJUST_REASON', 'FOUND', N'재고 발견', N'Found', 40, NULL, N'Found inventory'),
+        ('INV_ADJUST_REASON', 'OTHER', N'기타', N'Other', 50, NULL, N'Other adjustment reason'),
+        ('FG_STORAGE_METHOD', 'BOX', N'박스', N'Box', 10, NULL, N'Box storage'),
+        ('FG_STORAGE_METHOD', 'PALLET', N'팔레트', N'Pallet', 20, NULL, N'Pallet storage'),
+        ('FG_STORAGE_METHOD', 'RACK', N'랙', N'Rack', 30, NULL, N'Rack storage'),
+        ('FG_STORAGE_METHOD', 'LOCATION', N'로케이션', N'Location Only', 40, NULL, N'Direct location storage'),
+        ('FG_RETURN_REASON', 'DEFECT', N'불량', N'Defect', 10, NULL, N'Defective product'),
+        ('FG_RETURN_REASON', 'WRONG_ITEM', N'오출하', N'Wrong Item', 20, NULL, N'Wrong item shipped'),
+        ('FG_RETURN_REASON', 'DAMAGED_TRANSIT', N'운송 중 파손', N'Damaged in Transit', 30, NULL, N'Damaged during transit'),
+        ('FG_RETURN_REASON', 'CUSTOMER_CHANGE', N'고객 요청 변경', N'Customer Change', 40, NULL, N'Customer-requested change'),
+        ('FG_RETURN_REASON', 'OTHER', N'기타', N'Other', 50, NULL, N'Other return reason'),
+        ('WH_INV_STATUS', 'CREATED', N'생성', N'Created', 10, NULL, N'LOT created before receipt'),
+        ('WH_INV_STATUS', 'RECEIVED', N'입고', N'Received', 20, NULL, N'Received into warehouse'),
+        ('WH_INV_STATUS', 'STORED', N'적치', N'Stored', 30, NULL, N'Stored at a location'),
+        ('WH_INV_STATUS', 'RELEASED', N'출고', N'Released', 40, NULL, N'Released from warehouse'),
+        ('WH_INV_STATUS', 'RECEIPT_CANCELLED', N'입고 취소', N'Receipt Cancelled', 50, NULL, N'Receipt was cancelled'),
+        ('WH_INV_STATUS', 'RELEASE_CANCELLED', N'출고 취소', N'Release Cancelled', 60, NULL, N'Release was cancelled'),
+        ('WH_INV_STATUS', 'RETURN_RECEIVED', N'반품 입고', N'Return Received', 70, NULL, N'Returned inventory received'),
+        ('WH_INV_STATUS', 'DEFECTIVE', N'불량', N'Defective', 80, NULL, N'Defective inventory'),
+        ('WH_INV_STATUS', 'DISPOSED', N'폐기', N'Disposed', 90, NULL, N'Disposed inventory'),
+        ('FG_STOCK_STATUS', 'AVAILABLE', N'가용', N'Available', 10, NULL, N'Available finished goods stock'),
+        ('FG_STOCK_STATUS', 'RESERVED', N'예약', N'Reserved', 20, NULL, N'Reserved for shipment'),
+        ('FG_STOCK_STATUS', 'PICKED', N'피킹', N'Picked', 30, NULL, N'Picked for loading'),
+        ('FG_STOCK_STATUS', 'LOADED', N'상차', N'Loaded', 40, NULL, N'Loaded onto truck'),
+        ('FG_STOCK_STATUS', 'SHIPPED', N'출하', N'Shipped', 50, NULL, N'Shipped finished goods'),
+        ('FG_STOCK_STATUS', 'HOLD', N'보류', N'Hold', 60, NULL, N'Stock on hold'),
+        ('FG_SHIP_STATUS', 'OPEN', N'오픈', N'Open', 10, NULL, N'Shipment order opened'),
+        ('FG_SHIP_STATUS', 'RELEASED', N'릴리즈', N'Released', 20, NULL, N'Shipment order released'),
+        ('FG_SHIP_STATUS', 'READY', N'출하 준비', N'Ready', 30, NULL, N'Ready for loading'),
+        ('FG_SHIP_STATUS', 'PICKED', N'피킹 완료', N'Picked', 40, NULL, N'Products picked'),
+        ('FG_SHIP_STATUS', 'LOADED', N'상차 완료', N'Loaded', 50, NULL, N'Products loaded'),
+        ('FG_SHIP_STATUS', 'SHIPPED', N'출하 완료', N'Shipped', 60, NULL, N'Shipment departed'),
+        ('INV_TXN_TYPE', 'IN', N'입고', N'Inbound', 10, NULL, N'Inventory receipt or put-away'),
+        ('INV_TXN_TYPE', 'OUT', N'출고', N'Outbound', 20, NULL, N'Warehouse inventory issue'),
+        ('INV_TXN_TYPE', 'PICK', N'피킹', N'Picking', 30, NULL, N'Finished goods picking'),
+        ('INV_TXN_TYPE', 'LOAD', N'상차', N'Loading', 40, NULL, N'Finished goods loading'),
+        ('INV_TXN_TYPE', 'RETURN', N'반품', N'Return', 50, NULL, N'Customer return receipt'),
+        ('INV_TXN_TYPE', 'ADJ', N'수량 조정', N'Adjustment', 60, NULL, N'Inventory quantity adjustment');
+
+    MERGE dbo.MD_CodeItem AS T
+    USING @PdaCodeItems AS S
+       ON T.CodeID = CONCAT(S.GroupCode, '_', S.CodeValue)
+    WHEN MATCHED THEN UPDATE SET
+        GroupCode = S.GroupCode, CodeValue = S.CodeValue, CodeName = S.CodeName,
+        CodeNameEn = S.CodeNameEn, SortOrder = S.SortOrder, Attribute1 = S.Attribute1,
+        UseFlag = 1, Description = S.Description,
+        ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME()
+    WHEN NOT MATCHED THEN INSERT
+        (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, SortOrder,
+         Attribute1, UseFlag, Description, CreatedBy, CreatedTS)
+    VALUES
+        (CONCAT(S.GroupCode, '_', S.CodeValue), S.GroupCode, S.CodeValue,
+         S.CodeName, S.CodeNameEn, S.SortOrder, S.Attribute1, 1,
+         S.Description, 'pda-seed', SYSDATETIME());
 END;
 GO
 
@@ -1245,14 +1355,14 @@ DECLARE @Demo TABLE
 INSERT INTO @Demo VALUES
  (1, 'FG-DEMO-WO-001', CONCAT('5011FG', CONVERT(char(6), DATEADD(hour,-2,SYSDATETIME()), 12), '000901'), @Item1, 32, DATEADD(hour,-2,SYSDATETIME()), NULL, NULL),
  (2, 'FG-DEMO-WO-002', CONCAT('5011FG', CONVERT(char(6), DATEADD(day,-2,SYSDATETIME()), 12), '000902'), @Item2, 24, DATEADD(day,-2,SYSDATETIME()), NULL, NULL),
- (3, 'FG-DEMO-WO-003', '5011FG260821000201', @Item1, 24, DATEADD(day,-10,SYSDATETIME()), @Loc1, 'Available'),
- (4, 'FG-DEMO-WO-004', '5011FG260822000202', @Item2, 16, DATEADD(day,-8,SYSDATETIME()),  @Loc2, 'Available'),
- (5, 'FG-DEMO-WO-005', '5011FG260823000203', @Item3, 20, DATEADD(day,-6,SYSDATETIME()),  @Loc3, 'Reserved'),
- (6, 'FG-DEMO-WO-006', '5011FG260824000204', @Item1, 12, DATEADD(day,-4,SYSDATETIME()),  @Loc4, 'Hold'),
- (7, 'FG-DEMO-WO-007', '5011FG260819000205', @Item1, 10, DATEADD(day,-12,SYSDATETIME()), @Loc1, 'Available'),
- (8, 'FG-DEMO-WO-008', '5011FG260820000206', @Item1, 14, DATEADD(day,-11,SYSDATETIME()), @Loc1, 'Available'),
- (9, 'FG-DEMO-WO-009', '5011FG260825000207', @Item2,  8, DATEADD(day,-5,SYSDATETIME()),  @Loc2, 'Reserved'),
- (10,'FG-DEMO-WO-010', '5011FG260826000208', @Item3,  6, DATEADD(day,-3,SYSDATETIME()),  @Loc3, 'Reserved');
+ (3, 'FG-DEMO-WO-003', '5011FG260821000201', @Item1, 24, DATEADD(day,-10,SYSDATETIME()), @Loc1, 'AVAILABLE'),
+ (4, 'FG-DEMO-WO-004', '5011FG260822000202', @Item2, 16, DATEADD(day,-8,SYSDATETIME()),  @Loc2, 'AVAILABLE'),
+ (5, 'FG-DEMO-WO-005', '5011FG260823000203', @Item3, 20, DATEADD(day,-6,SYSDATETIME()),  @Loc3, 'RESERVED'),
+ (6, 'FG-DEMO-WO-006', '5011FG260824000204', @Item1, 12, DATEADD(day,-4,SYSDATETIME()),  @Loc4, 'HOLD'),
+ (7, 'FG-DEMO-WO-007', '5011FG260819000205', @Item1, 10, DATEADD(day,-12,SYSDATETIME()), @Loc1, 'AVAILABLE'),
+ (8, 'FG-DEMO-WO-008', '5011FG260820000206', @Item1, 14, DATEADD(day,-11,SYSDATETIME()), @Loc1, 'AVAILABLE'),
+ (9, 'FG-DEMO-WO-009', '5011FG260825000207', @Item2,  8, DATEADD(day,-5,SYSDATETIME()),  @Loc2, 'RESERVED'),
+ (10,'FG-DEMO-WO-010', '5011FG260826000208', @Item3,  6, DATEADD(day,-3,SYSDATETIME()),  @Loc3, 'RESERVED');
 
 INSERT INTO dbo.PP_WorkOrder
     (WoNumber, ItemNo, OrderQty, OpenQty, CompletedQty, LineID, PlannedStart, PlannedEnd,
@@ -1288,7 +1398,7 @@ INSERT INTO dbo.FG_Inventory
      StockTS, CreatedBy, CreatedTS)
 SELECT CONCAT('FG-DEMO-STK-', RIGHT('000' + CAST(d.Seq AS varchar(3)),3)), w.WoID, d.ItemNo,
        l.LotID, 'DEMO-CUSTOMER', d.Qty, d.LocationID, d.InventoryStatus,
-       CASE WHEN d.InventoryStatus = 'Hold' THEN 1 ELSE 0 END,
+       CASE WHEN d.InventoryStatus = 'HOLD' THEN 1 ELSE 0 END,
        DATEADD(minute,30,d.ProducedAt), @SeedBy, SYSDATETIME()
 FROM @Demo d
 JOIN dbo.PP_WorkOrder w ON w.WoNumber = d.WoNumber AND w.CreatedBy = @SeedBy
@@ -1299,9 +1409,9 @@ INSERT INTO dbo.FG_ShipmentOrder
     (ShipOrderNumber, OutgoingSlipNumber, CustomerCode, CustomerPO, Source, ShipDate, CarrierCode, DestPlant,
      DestDock, ReceiverName, Status, PickslipID, OTDFlag, CreatedBy, CreatedTS)
 VALUES
- ('FG-SO-DEMO-001', '2609020001', 'DEMO-CUSTOMER', 'PO-DEMO-001', 'PDA', DATEADD(day,1,CAST(GETDATE() AS date)), 'EOS-TRUCK', 'CUSTOMER-A', 'DOCK-A', 'Receiving A', 'Released', 'FG-PICK-DEMO-001', 'OnTime', @SeedBy, SYSDATETIME()),
- ('FG-SO-DEMO-002', '2609020002', 'DEMO-CUSTOMER', 'PO-DEMO-002', 'PDA', CAST(GETDATE() AS date),            'EOS-TRUCK', 'CUSTOMER-B', 'DOCK-B', 'Receiving B', 'Ready',    'FG-PICK-DEMO-002', 'OnTime', @SeedBy, SYSDATETIME()),
- ('FG-SO-DEMO-003', '2609020003', 'DEMO-CUSTOMER', 'PO-DEMO-003', 'PDA', DATEADD(day,2,CAST(GETDATE() AS date)), 'EOS-TRUCK', 'CUSTOMER-C', 'DOCK-C', 'Receiving C', 'Open',     'FG-PICK-DEMO-003', 'OnTime', @SeedBy, SYSDATETIME());
+ ('FG-SO-DEMO-001', '2609020001', 'DEMO-CUSTOMER', 'PO-DEMO-001', 'PDA', DATEADD(day,1,CAST(GETDATE() AS date)), 'EOS-TRUCK', 'CUSTOMER-A', 'DOCK-A', 'Receiving A', 'RELEASED', 'FG-PICK-DEMO-001', 'OnTime', @SeedBy, SYSDATETIME()),
+ ('FG-SO-DEMO-002', '2609020002', 'DEMO-CUSTOMER', 'PO-DEMO-002', 'PDA', CAST(GETDATE() AS date),            'EOS-TRUCK', 'CUSTOMER-B', 'DOCK-B', 'Receiving B', 'READY',    'FG-PICK-DEMO-002', 'OnTime', @SeedBy, SYSDATETIME()),
+ ('FG-SO-DEMO-003', '2609020003', 'DEMO-CUSTOMER', 'PO-DEMO-003', 'PDA', DATEADD(day,2,CAST(GETDATE() AS date)), 'EOS-TRUCK', 'CUSTOMER-C', 'DOCK-C', 'Receiving C', 'OPEN',     'FG-PICK-DEMO-003', 'OnTime', @SeedBy, SYSDATETIME());
 
 DECLARE @Order1 int = (SELECT ShipmentOrderID FROM dbo.FG_ShipmentOrder WHERE ShipOrderNumber='FG-SO-DEMO-001' AND CreatedBy=@SeedBy);
 DECLARE @Order2 int = (SELECT ShipmentOrderID FROM dbo.FG_ShipmentOrder WHERE ShipOrderNumber='FG-SO-DEMO-002' AND CreatedBy=@SeedBy);
@@ -1338,10 +1448,10 @@ INSERT INTO dbo.FG_CustomerReturn
     (ReturnNumber, RMANo, CustomerCode, OriginalShipmentOrderID, ReturnReason, ItemsJSON,
      Status, ReceivedAt, ReceivedBy, CapaTriggered, CreatedBy, CreatedTS)
 VALUES
- ('FG-RMA-DEMO-001', 'RMA-DEMO-001', 'DEMO-CUSTOMER', @Order2, 'Damaged in transit',
+ ('FG-RMA-DEMO-001', 'RMA-DEMO-001', 'DEMO-CUSTOMER', @Order2, 'DAMAGED_TRANSIT',
   CONCAT('[{"itemNo":"', @Item3, '","qty":2}]'), 'Open', DATEADD(hour,-3,SYSDATETIME()),
   'admin', 0, @SeedBy, SYSDATETIME()),
- ('FG-RMA-DEMO-002', 'RMA-DEMO-002', 'DEMO-CUSTOMER', @Order1, 'Wrong item',
+ ('FG-RMA-DEMO-002', 'RMA-DEMO-002', 'DEMO-CUSTOMER', @Order1, 'WRONG_ITEM',
   CONCAT('[{"itemNo":"', @Item2, '","qty":1}]'), 'Inspecting', DATEADD(day,-1,SYSDATETIME()),
   'admin', 0, @SeedBy, SYSDATETIME());
 
@@ -1730,7 +1840,7 @@ SELECT CONCAT('FG-PPT-QC-',D.Code),'FQC',L.LotID,L.WoID,'FG-DEMO',D.ItemNo,'PPT-
 FROM @FgPpt D JOIN dbo.tbl_Lot L ON L.LotCode=CONCAT('5011FG260908',D.Code) AND L.CreatedBy=CONCAT('pda-ppt-fg-',D.Screen)
 WHERE NOT EXISTS (SELECT 1 FROM dbo.QC_Inspection Q WHERE Q.InspectionNo=CONCAT('FG-PPT-QC-',D.Code));
 INSERT dbo.FG_ShipmentOrder (ShipOrderNumber,OutgoingSlipNumber,CustomerCode,Source,ShipDate,DestPlant,Status,CreatedBy,CreatedTS)
-SELECT D.Number,D.Slip,'PPT-CUSTOMER','PDA',CAST(GETDATE() AS date),'PPT-DESTINATION','Open',CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
+SELECT D.Number,D.Slip,'PPT-CUSTOMER','PDA',CAST(GETDATE() AS date),'PPT-DESTINATION','OPEN',CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
 FROM (VALUES ('FG-PPT-SO-REL','2609089001','release'),('FG-PPT-SO-LOAD','2609089002','loading'),
              ('FG-PPT-SO-RETURN','2609089003','return'),('FG-PPT-SO-NOSHIP','2609089004','return'),
              ('FG-PPT-SO-HIST','2609089005','history')) D(Number,Slip,Screen)

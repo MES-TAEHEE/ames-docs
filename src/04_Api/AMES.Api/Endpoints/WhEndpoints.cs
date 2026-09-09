@@ -2,6 +2,7 @@ using AMES.Api.Auth;
 using AMES.Api.Logging;
 using AMES.Contracts.Dto;
 using AMES.Data.Connection;
+using AMES.Data.Repositories;
 using AMES.Data.Security;
 using System.Data;
 using Microsoft.Data.SqlClient;
@@ -122,6 +123,7 @@ public static class WhEndpoints
     // ── Routes ───────────────────────────────────────────────────────────
     public static void MapWh(this WebApplication app, AmesConnectionFactory factory)
     {
+        var master = new MasterDataRepository(factory);
         var g = app.MapGroup("/api/wh").WithTags("Warehouse");
         g.MapAdjustmentLocation(factory, finishedGoods: false);
 
@@ -397,6 +399,8 @@ public static class WhEndpoints
         IResult SaveAdjustQuantity(HttpContext ctx, AdjustSaveReq body)
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+            if (master.FindActiveCodeItem("INV_ADJUST_REASON", body.ReasonCode?.Trim() ?? "") is null)
+                return Results.BadRequest(new InboundReceiveResult(false, "Select a valid reason code.", null));
 
             var simulateFailure = body.SimulateFailure && PdaScenarioUsers.IsDetailed(s.EmployeeNo);
             var result = ExecuteAdjustSave(factory, body, s.EmployeeNo, s.OperatorId, simulateFailure);
@@ -882,14 +886,9 @@ public static class WhEndpoints
             if (body.Lots is not { Count: > 0 })
                 return Results.BadRequest(new ReleaseCompleteResult(false, "Scan every requested LOT before Release."));
 
-            var reasonCode = body.OutgoingType?.Trim().ToUpperInvariant() switch
-            {
-                "PRODUCTION" => "TO_PRODUCTION_LINE",
-                "OTHER" => "OTHER_OUTGOING",
-                "DEFECT" => "DEFECT_OUTGOING",
-                _ => null
-            };
-            if (reasonCode is null)
+            var outgoingType = master.FindActiveCodeItem("WH_OUTGOING_TYPE", body.OutgoingType?.Trim() ?? "");
+            var reasonCode = outgoingType?.Attribute1;
+            if (string.IsNullOrWhiteSpace(reasonCode))
                 return Results.BadRequest(new ReleaseCompleteResult(false, "Select an outgoing type."));
 
             var simulateFailure = body.SimulateFailure && PdaScenarioUsers.IsDetailed(s.EmployeeNo);
@@ -935,7 +934,10 @@ public static class WhEndpoints
         g.MapPost("/release/outgoing", (HttpContext ctx, DirectOutgoingReq body) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
-            var result = ExecuteDirectOutgoing(factory, body, s.OperatorId);
+            var outgoingType = master.FindActiveCodeItem("WH_OUTGOING_TYPE", body.OutgoingType?.Trim() ?? "");
+            var result = string.IsNullOrWhiteSpace(outgoingType?.Attribute1)
+                ? new DirectOutgoingResult(false, "Select a valid outgoing type.")
+                : ExecuteDirectOutgoing(factory, body, outgoingType.Attribute1, s.OperatorId);
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                 s, "DIRECT_OUTGOING", "WH003", "LOT", body.LotNo,
                 result.Success ? "SUCCESS" : "FAIL", result.Message,
@@ -1655,19 +1657,9 @@ public static class WhEndpoints
     }
 
     private static DirectOutgoingResult ExecuteDirectOutgoing(
-        AmesConnectionFactory factory, DirectOutgoingReq body, string userId)
+        AmesConnectionFactory factory, DirectOutgoingReq body, string reasonCode, string userId)
     {
         var type = body.OutgoingType?.Trim().ToUpperInvariant() ?? "";
-        var reasonCode = type switch
-        {
-            "PRODUCTION" => "TO_PRODUCTION_LINE",
-            "SUPPLIER" => "TO_SUPPLIER",
-            "OTHER" => "OTHER_OUTGOING",
-            "DEFECT" => "DEFECT_OUTGOING",
-            _ => null
-        };
-        if (reasonCode is null)
-            return new DirectOutgoingResult(false, "Select a valid outgoing type.");
         if (string.IsNullOrWhiteSpace(body.LotNo))
             return new DirectOutgoingResult(false, "Scan a LOT No first.");
         if (type == "SUPPLIER" && string.IsNullOrWhiteSpace(body.TargetCode))

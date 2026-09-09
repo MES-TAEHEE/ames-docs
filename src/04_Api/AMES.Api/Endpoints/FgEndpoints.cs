@@ -2,6 +2,7 @@ using AMES.Api.Auth;
 using AMES.Api.Logging;
 using AMES.Contracts.Dto;
 using AMES.Data.Connection;
+using AMES.Data.Repositories;
 using System.Data;
 using Microsoft.Data.SqlClient;
 using System.Text.Json;
@@ -89,14 +90,12 @@ public static class FgEndpoints
     private const string BarcodePallet = "PALLET";
     private const string BarcodeRack = "RACK";
     private const string BarcodeUnknown = "UNKNOWN";
-    private static readonly string[] ReturnReasons =
-        ["Defect", "Wrong item", "Damaged in transit", "Customer change", "Other"];
-
     private sealed record ParsedFgBarcode(string Raw, string Value, string Kind);
 
     // ── Routes ───────────────────────────────────────────────────────────
     public static void MapFg(this WebApplication app, AmesConnectionFactory factory)
     {
+        var master = new MasterDataRepository(factory);
         var g = app.MapGroup("/api/fg").WithTags("Finished Goods");
         g.MapAdjustmentLocation(factory, finishedGoods: true);
 
@@ -151,6 +150,8 @@ public static class FgEndpoints
         g.MapPost("/adjust/save", (HttpContext ctx, AdjustSaveReq body) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+            if (master.FindActiveCodeItem("INV_ADJUST_REASON", body.ReasonCode?.Trim() ?? "") is null)
+                return Results.BadRequest(new AdjustResult(false, "Select a valid reason code.", null));
 
             var result = ExecuteAdjustSave(factory, body, s.EmployeeNo, s.OperatorId);
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
@@ -261,7 +262,9 @@ public static class FgEndpoints
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
             var method = storageMethod.Trim().ToUpperInvariant();
-            var error = method == BarcodeLocation
+            var error = master.FindActiveCodeItem("FG_STORAGE_METHOD", method) is null
+                ? "Select a valid storage method."
+                : method == BarcodeLocation
                 ? "Location Only does not require a container barcode."
                 : ValidatePutAwayContainer(method, barcode);
             return error is null
@@ -293,6 +296,8 @@ public static class FgEndpoints
                 return Results.BadRequest(new PutAwayResult(false, "Scan Location No first.", null, null, null));
 
             var storageMethod = body.StorageMethod?.Trim().ToUpperInvariant() ?? "";
+            if (master.FindActiveCodeItem("FG_STORAGE_METHOD", storageMethod) is null)
+                return Results.BadRequest(new PutAwayResult(false, "Select a valid storage method.", null, null, null));
             var containerError = ValidatePutAwayContainer(storageMethod, body.ContainerBarcode);
             if (containerError is not null)
                 return Results.BadRequest(new PutAwayResult(false, containerError, null, null, null));
@@ -607,7 +612,7 @@ public static class FgEndpoints
                         THROW 51005, 'A scanned LOT violates FIFO order.', 1;
 
                     UPDATE S
-                    SET Status='Reserved', ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
+                    SET Status='RESERVED', ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
                     FROM dbo.FG_Inventory S JOIN @ScannedLots P ON P.StockID=S.StockID;
 
                     ;WITH RankedLots AS
@@ -656,7 +661,7 @@ public static class FgEndpoints
                     DECLARE @PickID int = SCOPE_IDENTITY();
 
                     UPDATE dbo.FG_ShipmentOrder
-                    SET Status='Picked', ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
+                    SET Status='PICKED', ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
                     WHERE ShipmentOrderID=@SlipId;
 
                     COMMIT TRANSACTION;
@@ -849,10 +854,10 @@ public static class FgEndpoints
                   AND StockID IN (SELECT TRY_CONVERT(int, [value]) FROM OPENJSON(@StockIds));
 
                 UPDATE dbo.FG_Inventory
-                SET Status='Loaded', ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
+                SET Status='LOADED', ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
                 WHERE StockID IN (SELECT TRY_CONVERT(int, [value]) FROM OPENJSON(@StockIds));
 
-                UPDATE dbo.FG_ShipmentOrder SET Status='Loaded', ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
+                UPDATE dbo.FG_ShipmentOrder SET Status='LOADED', ModifiedBy=@Op, ModifiedTS=SYSDATETIME()
                 WHERE  ShipmentOrderID = @So;
                 """, conn, tx);
             cmd.Parameters.AddWithValue("@So", body.ShipmentOrderId);
@@ -974,9 +979,8 @@ public static class FgEndpoints
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
-            var returnReason = ReturnReasons.FirstOrDefault(x =>
-                string.Equals(x, body.ReturnReason?.Trim(), StringComparison.OrdinalIgnoreCase));
-            if (returnReason is null)
+            var returnReason = master.FindActiveCodeItem("FG_RETURN_REASON", body.ReturnReason?.Trim() ?? "")?.CodeValue;
+            if (string.IsNullOrWhiteSpace(returnReason))
             {
                 return Results.BadRequest(new ReturnResult(false,
                     "Select a valid return reason.", null, null));
@@ -1744,7 +1748,7 @@ public static class FgEndpoints
             OUTPUT INSERTED.StockID
             VALUES (CONCAT('FG-', FORMAT(SYSDATETIME(), 'yyyyMMdd-HHmmss')),
                     NULL, @WoID, @ItemNo, @LotID, @CustomerCode, @Qty, @Location,
-                    'Available', 0, SYSDATETIME(), @OperatorID, SYSDATETIME());
+                    'AVAILABLE', 0, SYSDATETIME(), @OperatorID, SYSDATETIME());
             """, conn, tx))
         {
             AddNullable(cmd, "@WoID", SqlDbType.Int, row.WoId);

@@ -40,7 +40,7 @@ public partial class FgRtnReturn
         await PreparePptProduct();
         if (_product is null) throw new InvalidOperationException("반품 완료된 샘플은 테스트 데이터 초기화 후 다시 시작하세요. " + _modalMessage);
         if (step == 3) _reasonOpen = true;
-        if (step == 4) { SelectReason("Damaged in transit"); _note = "PPT return note"; }
+        if (step == 4) { SelectReason("DAMAGED_TRANSIT"); _note = "PPT return note"; }
     }
     private async Task RunPptValue(string command)
     {
@@ -52,6 +52,6 @@ public partial class FgRtnReturn
         }
         if (command == "PRODUCT" || _product is null) await PreparePptProduct();
         if (command == "NO_REASON") { _reason = null; await Submit(); }
-        if (command == "REASON") { SelectReason("Damaged in transit"); _note = "PPT return note"; }
+        if (command == "REASON") { SelectReason("DAMAGED_TRANSIT"); _note = "PPT return note"; }
     }
 }

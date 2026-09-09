@@ -107,7 +107,7 @@
                 <div class="pda-fld">
                     <label>OUTGOING TYPE</label>
                     <RadzenDropDown TValue="string" class="wh07-type-select"
-                                    Data="@OutgoingTypes" TextProperty="Name" ValueProperty="Code"
+                                    Data="@OutgoingTypes" TextProperty="Name" ValueProperty="CodeValue"
                                     Value="@_outgoingType" Change="@OnOutgoingTypeChanged"
                                     Placeholder="Select Outgoing Type" />
                 </div>
@@ -262,17 +262,11 @@
 </div>
 
 @code {
-    private sealed record OutgoingTypeOption(string Code, string Name);
     private sealed record ReleaseTestValue(string Label, string Value, bool IsOutgoingType = false);
     private sealed record ReleaseTestScenario(int No, string TestCaseId, string Title, string Steps,
         bool AutoScan, params ReleaseTestValue[] Values);
 
-    private static readonly IReadOnlyList<OutgoingTypeOption> OutgoingTypes =
-    [
-        new("PRODUCTION", "To Production Line"),
-        new("OTHER", "Other Outgoing"),
-        new("DEFECT", "Defect Outgoing")
-    ];
+    private List<PdaApi.CodeOption> OutgoingTypes = [];
 
     private static readonly ReleaseTestScenario[] ReleaseTestScenarios =
     [
@@ -437,6 +431,8 @@
     {
         if (_initialized) return;
         _initialized = true;
+
+        OutgoingTypes = await Api.CodeItemsAsync("WH_OUTGOING_TYPE");
 
         if (!string.IsNullOrWhiteSpace(PickSlipNo))
         {
