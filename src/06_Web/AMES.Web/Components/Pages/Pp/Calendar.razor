@@ -142,7 +142,15 @@
     @* ── WEEK VIEW ──────────────────────────────────────────────────── *@
     @* ══════════════════════════════════════════════════════════════════ *@
     <AmesTab Title="@($"≡ {L["PP.Calendar.Tab.Week"].Value}")">
-        @{ var weekDates = GetWeekDates(); }
+        @{
+            var weekDates = GetWeekDates();
+            // 주 탭 7행의 총 높이를 월 탭 달력 높이와 맞춘다.
+            // 월 달력 = 요일 헤더 35px + 주 수 × (셀 166px + 간격 3px)  (app.css .pp-wo-grid .ames-cal-cell / .ames-cal-grid gap)
+            // 주 목록 = 7행 × 행높이 + 6 × 행간 5px
+            var monthFirst = new DateTime(_calYear, _calMonth, 1);
+            int monthRows  = (int)Math.Ceiling(((int)monthFirst.DayOfWeek + DateTime.DaysInMonth(_calYear, _calMonth)) / 7.0);
+            var weekRowH   = ((35 + 169.0 * monthRows - 30) / 7).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        }
         <div class="ames-card">
             <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
                 <div style="display:flex;align-items:center;gap:10px;">
@@ -172,7 +180,7 @@
                                                   : "border-color:rgba(255,255,255,.06);";
                     <div style="display:grid;grid-template-columns:90px 1fr;gap:0;
                                 border:1px solid;border-radius:6px;margin-bottom:5px;
-                                min-height:44px;overflow:hidden;@rowBg">
+                                min-height:@(weekRowH)px;overflow:hidden;@rowBg">
                         <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;
                                     border-right:1px solid rgba(255,255,255,.06);">
                             <span style="font-family:'JetBrains Mono',monospace;font-size:10px;
