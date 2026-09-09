@@ -8,7 +8,8 @@ using System.Runtime.Loader;
 
 static string SourcePath([System.Runtime.CompilerServices.CallerFilePath] string path = "") => path;
 var root = Directory.GetParent(Path.GetDirectoryName(SourcePath())!)!.FullName;
-var bin = Path.Combine(root, "src/05_Pda/AMES.Pda/bin/Debug/net10.0-windows10.0.19041.0/win-x64");
+var bin = Environment.GetEnvironmentVariable("AMES_PDA_TEST_BIN")
+    ?? Path.Combine(root, "src/05_Pda/AMES.Pda/bin/Debug/net10.0-windows10.0.19041.0/win-x64");
 AssemblyLoadContext.Default.Resolving += (_, name) =>
     File.Exists(Path.Combine(bin, name.Name + ".dll"))
         ? AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(bin, name.Name + ".dll"))
@@ -269,4 +270,35 @@ Check(schema.Contains("Simulated Adjust API failure. Database transaction was ro
 foreach (var value in new[] { "5011LL260904500001", "pda-adjust-test" })
     Check(seed.Contains(value), "Missing adjust scenario seed: " + value);
 
-Console.WriteLine("PASS: Warehouse Inbound, Release, Inventory and Adjust scenario guards, FIFO, rollback and test controls.");
+var transactionSource = File.ReadAllText(Path.Combine(root, "src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh08TransactionHistory.razor"));
+var transactionCode = File.ReadAllText(Path.Combine(root, "src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh08TransactionHistory.razor.cs"));
+Check(transactionSource.Contains("TRANSACTIONS TEST SCENARIOS")
+      && transactionCode.Contains("WH006-TC-017")
+      && transactionCode.Contains("EmployeeNo, \"TEST\""),
+    "TEST login must expose all executable WH006 scenarios.");
+Check(transactionSource.Contains("API ERROR:")
+      && transactionCode.Contains("_simulateHistoryApiFailure")
+      && transactionCode.Contains("WhResetHistoryTestAsync"),
+    "Transactions must provide repeatable data and a TEST-only API failure switch.");
+Check(apiSource.Contains("/transactions/test/reset")
+      && apiSource.Contains("session.EmployeeNo, \"TEST\""),
+    "Transaction reset must be restricted to TEST login.");
+
+var transactionType = assembly.GetType("AMES.Pda.Components.Pages.Wh.Wh08TransactionHistory", throwOnError: true)!;
+var transactionScenarios = (Array)transactionType.GetField("DetailedTestScenarios", StaticFlags)!.GetValue(null)!;
+Check(transactionScenarios.Length == 17, "WH006 must expose exactly 17 executable scenarios.");
+for (var index = 0; index < transactionScenarios.Length; index++)
+{
+    var scenario = transactionScenarios.GetValue(index)!;
+    var scenarioType = scenario.GetType();
+    var no = (int)scenarioType.GetProperty("No")!.GetValue(scenario)!;
+    var testCaseId = (string)scenarioType.GetProperty("TestCaseId")!.GetValue(scenario)!;
+    Check(no == index + 1, $"Transaction scenario number is not continuous at index {index}.");
+    Check(testCaseId == $"WH006-TC-{index + 1:000}", $"Transaction scenario ID does not match scenario {index + 1}.");
+}
+
+foreach (var value in new[] { "PPT-WH-HIST-01", "5011LL260908840001" })
+    Check(seed.Contains(value), "Missing transaction scenario seed: " + value);
+Check(schema.Contains("pda-ppt-history"), "Missing repeatable transaction reset procedure.");
+
+Console.WriteLine("PASS: Warehouse Inbound, Release, Inventory, Adjust and Transactions scenario guards, rollback and test controls.");

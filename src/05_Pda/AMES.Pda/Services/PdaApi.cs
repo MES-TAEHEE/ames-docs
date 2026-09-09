@@ -687,6 +687,14 @@ public sealed class PdaApi
             throw new InvalidOperationException(await ReadServiceErrorAsync(response, "PPT test reset failed."));
     }
 
+    public async Task WhResetHistoryTestAsync()
+    {
+        Authorize();
+        using var response = await _http.PostAsync("/api/wh/transactions/test/reset", null);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Transaction test reset failed."));
+    }
+
     public async Task FgResetPptTestAsync(string screen)
     {
         Authorize();

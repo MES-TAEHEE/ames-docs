@@ -997,6 +997,28 @@ public static class WhEndpoints
             }
         });
 
+        g.MapPost("/transactions/test/reset", (HttpContext ctx) =>
+        {
+            if (ctx.GetSession() is not { } session) return Results.Unauthorized();
+            if (!string.Equals(session.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase))
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
+            try
+            {
+                using var connection = factory.OpenConnection();
+                using var command = new SqlCommand("dbo.WH_PDA_PPT_TEST_RESET", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                command.Parameters.Add("@Screen", SqlDbType.VarChar, 10).Value = "history";
+                command.ExecuteNonQuery();
+                return Results.Ok(new { Success = true });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+        });
+
         g.MapGet("/warehouse-transactions", (
             HttpContext ctx,
             string? search,
