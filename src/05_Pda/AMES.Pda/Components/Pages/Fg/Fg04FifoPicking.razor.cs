@@ -4,7 +4,10 @@ public partial class Fg04FifoPicking
 {
     private const string PptSlip = "2609089001";
     private static readonly string[] PptLots = ["5011FG260908930001", "5011FG260908930002", "5011FG260908930003"];
-    private bool IsPptTestMode => string.Equals(Auth?.Session?.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase);
+    private bool IsDetailedTestMode => string.Equals(Auth?.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+    private bool IsPptTestMode => IsDetailedTestMode || string.Equals(Auth?.Session?.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase);
+    private PptScenarioPanel.Step[] ActiveScenarioSteps => IsDetailedTestMode ? FgDetailedScenarioCatalog.Picking(PptSteps) : PptSteps;
+    private string ScenarioModeLabel => IsDetailedTestMode ? "TEST MODE" : "PPT CHECK";
     private bool _pptOpen, _pptReady;
     private static readonly PptScenarioPanel.Step[] PptSteps =
     [

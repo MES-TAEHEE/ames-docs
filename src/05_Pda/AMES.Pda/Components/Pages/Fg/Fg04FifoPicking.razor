@@ -11,7 +11,7 @@
         <div class="wh07-tbar-title"><span class="pda-tbar-brand">PICKING LIST</span></div>
         @if (IsPptTestMode)
         {
-            <PptScenarioPanel Title="PICKING LIST" Steps="PptSteps" Busy="@_isBusy" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+            <PptScenarioPanel Title="PICKING LIST" Steps="ActiveScenarioSteps" ModeLabel="@ScenarioModeLabel" Busy="@_isBusy" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
         }
     </div>
 
