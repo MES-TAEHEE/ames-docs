@@ -1554,7 +1554,7 @@ public static class FgEndpoints
                     UPPER(ISNULL(NULLIF(PS.PackType, ''), 'LOCATION')) AS StorageMethod
                 FROM dbo.MD_PackagingSpec PS
                 WHERE PS.ItemID = COALESCE(NULLIF(L.ItemNo, ''), W.ItemNo)
-                  AND UPPER(ISNULL(PS.Status, 'ACTIVE')) IN ('ACTIVE', 'USE', 'Y')
+                  AND ISNULL(PS.ActiveFlag, 1) = 1
                 ORDER BY
                     CASE UPPER(ISNULL(PS.PackType, ''))
                         WHEN 'PALLET' THEN 0
@@ -1718,7 +1718,7 @@ public static class FgEndpoints
                      * ISNULL(NULLIF(OuterPerPallet, 0), 1) AS PalletQty
                 FROM dbo.MD_PackagingSpec
                 WHERE ItemID = @ItemNo
-                  AND UPPER(ISNULL(Status, 'ACTIVE')) IN ('ACTIVE', 'USE', 'Y')
+                  AND ISNULL(ActiveFlag, 1) = 1
                 ORDER BY PackSpecID;
                 """, conn, tx);
             cmd.Parameters.Add("@ItemNo", SqlDbType.NVarChar, 40).Value = itemNo;
