@@ -1,7 +1,6 @@
 @namespace AMES.Pop.Pages.InjPopups
 @using AMES.Pop.Common
 @using AMES.Pop.Services
-@inject ConfirmService Confirmer
 @inject ToastService Toasts
 @inject ScannerService Scanner
 @implements IDisposable
@@ -30,7 +29,7 @@
                     <div class="andon-title">@T("Ready")</div>
                     <div class="andon-actions">
                         <button class="andon-btn andon-btn-call" @onclick="Close">← @T("Close")</button>
-                        <button class="andon-btn andon-btn-ack" style="background:#b91c1c;" @onclick="RaiseAsync">🚨 @T("RaiseAndon")</button>
+                        <button class="andon-btn andon-btn-ack" style="background:#b91c1c;" @onclick="RaiseRetry">🚨 @T("RaiseAndon")</button>
                     </div>
                     break;
 
@@ -140,6 +139,8 @@
 @code {
     [Parameter] public PopSessionDto? Session { get; set; }
     [Parameter] public EventCallback  OnClose { get; set; }
+    /// <summary>메인 화면이 확인창을 이미 받았을 때 true — 열리자마자 발동한다.</summary>
+    [Parameter] public bool           AutoRaise { get; set; }
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
     private static string Name(string ko, string? en) => PopLang.IsKo || string.IsNullOrEmpty(en) ? ko : en;
@@ -178,7 +179,11 @@
         _wf.Changed  += () => InvokeAsync(StateHasChanged);
         _wf.Rejected += r  => InvokeAsync(() => Toasts.Warn(RejectText(r)));
         _wf.Resolved += id => InvokeAsync(() => OnResolved(id));
-        try { _wf.Load(); }
+        try
+        {
+            _wf.Load();
+            if (AutoRaise && _wf.State == AndonUiState.Ready) Raise();
+        }
         catch (Exception ex) { Toasts.Bad(ex.Message); }
 
         Scanner.OnScan += OnSerialScan;
@@ -213,15 +218,16 @@
         }
     }
 
-    private async Task RaiseAsync()
+    // 확인창은 메인 화면이 띄운다. Ready 화면의 버튼은 자동 발동이 DB 예외로 실패했을 때의 재시도용.
+    private void Raise()
     {
-        if (!await Confirmer.AskAsync(T("AndonConfirmTitle"), T("AndonConfirmBody"),
-                                      T("RaiseAndon"), T("Close"), destructive: true)) return;
-        try
-        {
-            _wf.Raise();
-            LogEquip("STOP", "ANDON");
-        }
+        _wf.Raise();
+        LogEquip("STOP", "ANDON");
+    }
+
+    private void RaiseRetry()
+    {
+        try { Raise(); }
         catch (Exception ex) { Toasts.Bad(ex.Message); }
     }
 
