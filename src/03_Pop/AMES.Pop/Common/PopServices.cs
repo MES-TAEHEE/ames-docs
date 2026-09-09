@@ -16,6 +16,7 @@ internal static class PopServices
 {
     public static AmesConnectionFactory  ConnectionFactory { get; private set; } = null!;
     public static AuthRepository         Auth              { get; private set; } = null!;
+    public static WorkerRepository       Workers           { get; private set; } = null!;
     public static PopSessionRepository   Sessions          { get; private set; } = null!;
     public static PopAuthService         PopAuth           { get; private set; } = null!;
     public static WorkOrderRepository    WorkOrders        { get; private set; } = null!;
@@ -37,8 +38,9 @@ internal static class PopServices
     {
         ConnectionFactory = new AmesConnectionFactory(AppConfig.Current.ConnectionString);
         Auth              = new AuthRepository      (ConnectionFactory);
+        Workers           = new WorkerRepository    (ConnectionFactory);
         Sessions          = new PopSessionRepository(ConnectionFactory);
-        PopAuth           = new PopAuthService      (Auth, Sessions);
+        PopAuth           = new PopAuthService      (Auth, Workers, Sessions);
 
         WorkOrders        = new WorkOrderRepository (ConnectionFactory);
         Production        = new ProductionRepository(ConnectionFactory);

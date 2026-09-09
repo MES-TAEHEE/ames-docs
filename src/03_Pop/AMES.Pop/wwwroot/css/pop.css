@@ -1792,3 +1792,51 @@ body {
 .help-en .h-call-ko { display: none; }
 .help-ko .help-step-ko { font-size: 15px; color: #fff; }
 .h-sec-en, .h-sec-ko { margin-left: 6px; }
+
+/* ── 유휴 자동 로그아웃 ───────────────────────────────────────────── */
+/* AppRoot 의 활동 감지 래퍼. 박스를 만들지 않아야 #app 의 height:100% 사슬이 그대로 이어진다. */
+.idle-hook { display: contents; }
+
+/* 안돈(9000)·확인창(8500) 위에 떠야 한다 — 그 화면들에서도 로그아웃은 예고돼야 하므로. */
+.idle-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.86);
+    backdrop-filter: blur(6px);
+    z-index: 9500;
+    display: flex; align-items: center; justify-content: center;
+    animation: cf-fade .2s ease;
+}
+.idle-modal {
+    width: min(560px, 92vw);
+    background: #0f1620;
+    border: 1px solid rgba(255,255,255,.14);
+    border-top: 4px solid #fbbf24;
+    border-radius: 14px;
+    padding: 32px 36px;
+    text-align: center;
+    box-shadow: 0 30px 80px rgba(0,0,0,.7);
+    animation: cf-pop .22s cubic-bezier(.2,1.2,.5,1);
+}
+.idle-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 30px; letter-spacing: 2px;
+    color: #fbbf24;
+}
+.idle-count {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 96px; line-height: 1.05;
+    color: #fff;
+}
+.idle-count span { font-size: 26px; color: rgba(255,255,255,.55); margin-left: 8px; }
+.idle-body { color: rgba(255,255,255,.78); font-size: 16px; line-height: 1.55; margin: 8px 0 26px; }
+.idle-btn {
+    width: 100%;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid rgba(251,191,36,.5);
+    background: rgba(251,191,36,.16);
+    color: #fde68a;
+    font-size: 22px; font-weight: 700; letter-spacing: 1px;
+    cursor: pointer;
+}
+.idle-btn:active { background: rgba(251,191,36,.3); }

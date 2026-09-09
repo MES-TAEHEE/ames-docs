@@ -63,6 +63,8 @@ FILES=(
   migrate_wo_step_line.sql            # WO 공정 단계: PP_WorkOrderRouting CompletedQty·TerminalLock·인덱스 + 백필 (migrate_routing_step 이후)
   migrate_wo_prod_deadline.sql        # WO 생산 마감일 컬럼 + PP_PROD_BUFFER_WORKDAYS 설정 (순서 무관)
   migrate_mnt_failure_severity.sql    # MNT 고장 등록: Urgency → Severity 컬럼명 변경 (순서 무관)
+  migrate_md_worker.sql               # POP 전용 현장 작업자 마스터 MD_Worker (순서 무관)
+  seed_md_worker_dev.sql              #   → 개발용 작업자 5명 (W001~W005)
   pda/PDA_SCHEMA.sql                  # consolidated WH/FG PDA schema
   pda/PDA_SEED.sql                    # consolidated re-runnable WH/FG PDA seed
   cleanup_legacy_sis_test.sql
