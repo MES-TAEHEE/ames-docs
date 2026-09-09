@@ -240,7 +240,21 @@
         _scannerOn = Scanner.IsConnected;
         Scanner.OnScan            += OnBadgeScan;
         Scanner.ConnectionChanged += OnScannerConnection;
+        State.OnChange            += OnAppStateChanged;
     }
+
+    // 유휴 만료가 AppRoot 에서 PIN 설정 세션을 걷어가면 오버레이도 같이 닫아야 한다.
+    void OnAppStateChanged() => InvokeAsync(() =>
+    {
+        if (_pinSetup is null || State.PendingSession is not null) return;
+        _pinSetup      = null;
+        _pinFirst      = null;
+        _pinConfirming = false;
+        _pin.Clear();
+        _loggingIn     = false;
+        SetStatus(T("IdleLoggedOut"), "dim");
+        StateHasChanged();
+    });
 
     // 리더 스레드에서 온다 — UI 스레드로 넘긴다.
     // 픽커가 열려 있으면 무시한다: 라인/스테이션을 고르는 중에 들어온 스캔이
@@ -419,6 +433,7 @@
                 if (outcome.Session.IsWorker && !outcome.Session.HasPin)
                 {
                     _pinSetup      = outcome.Session;
+                    State.BeginPinSetup(outcome.Session);   // 이 구간도 유휴 만료 대상
                     _pinFirst      = null;
                     _pinConfirming = false;
                     _pin.Clear();
@@ -500,6 +515,7 @@
 
         var session = _pinSetup;
         _pinSetup = null;
+        State.EndPinSetup();
         _pinFirst = null;
         SetStatus(T("PinSaved"), "ok");
         EnterShopFloor(session);
@@ -511,6 +527,7 @@
     {
         Scanner.OnScan            -= OnBadgeScan;
         Scanner.ConnectionChanged -= OnScannerConnection;
+        State.OnChange            -= OnAppStateChanged;
         _clock?.Dispose();
     }
 }

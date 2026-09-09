@@ -217,4 +217,9 @@
   <data name="LotIssued" xml:space="preserve"><value>LOT 발행</value></data>
   <data name="PrintFailedLotKept" xml:space="preserve"><value>라벨 출력 실패 — LOT 은 생성됨, 목록에서 재출력하세요</value></data>
   <data name="NoLotsToday" xml:space="preserve"><value>오늘 발행된 LOT 이 없습니다 — 라벨 발행을 누르세요</value></data>
+  <data name="IdleWarnTitle" xml:space="preserve"><value>자동 로그아웃</value></data>
+  <data name="IdleSeconds" xml:space="preserve"><value>초</value></data>
+  <data name="IdleWarnBody" xml:space="preserve"><value>작업이 없어 곧 로그인 화면으로 돌아갑니다. 화면을 누르면 계속합니다.</value></data>
+  <data name="IdleStayLoggedIn" xml:space="preserve"><value>계속 작업</value></data>
+  <data name="IdleLoggedOut" xml:space="preserve"><value>무작업으로 로그아웃되었습니다</value></data>
 </root>

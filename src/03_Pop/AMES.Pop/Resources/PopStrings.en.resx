@@ -217,4 +217,9 @@
   <data name="LotIssued" xml:space="preserve"><value>Lot issued</value></data>
   <data name="PrintFailedLotKept" xml:space="preserve"><value>Print failed — lot created, reprint it from the list</value></data>
   <data name="NoLotsToday" xml:space="preserve"><value>No lots issued today — press LABEL PRINT</value></data>
+  <data name="IdleWarnTitle" xml:space="preserve"><value>AUTO LOGOUT</value></data>
+  <data name="IdleSeconds" xml:space="preserve"><value>SEC</value></data>
+  <data name="IdleWarnBody" xml:space="preserve"><value>No activity — returning to the login screen. Touch anywhere to stay.</value></data>
+  <data name="IdleStayLoggedIn" xml:space="preserve"><value>STAY</value></data>
+  <data name="IdleLoggedOut" xml:space="preserve"><value>Logged out for inactivity</value></data>
 </root>
