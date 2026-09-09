@@ -19,7 +19,7 @@
             }
             else if (IsPptTestMode)
             {
-                <PptScenarioPanel @key="IsFinishedGoods" Title="@(IsFinishedGoods ? "FG TRANSACTIONS" : "TRANSACTIONS")" Steps="@(IsFinishedGoods ? FgPptSteps : PptSteps)" Busy="_loading" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+                <PptScenarioPanel @key="IsFinishedGoods" Title="@(IsFinishedGoods ? "FG TRANSACTIONS" : "TRANSACTIONS")" Steps="ActivePptSteps" ModeLabel="@ScenarioModeLabel" Busy="_loading" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
             }
             <RadzenButton class="wh08-refresh" Click="@Load" Disabled="@_loading" Text="REFRESH" />
         </div>

@@ -64,7 +64,14 @@ public partial class Wh08TransactionHistory
     ];
     private bool IsDetailedWhTestMode => !IsFinishedGoods
         && string.Equals(Auth?.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
-    private bool IsPptTestMode => string.Equals(Auth?.Session?.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase);
+    private bool IsDetailedFgTestMode => IsFinishedGoods
+        && string.Equals(Auth?.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+    private bool IsPptTestMode => IsDetailedFgTestMode
+        || string.Equals(Auth?.Session?.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase);
+    private PptScenarioPanel.Step[] ActivePptSteps => IsDetailedFgTestMode
+        ? FgDetailedScenarioCatalog.Transactions(FgPptSteps)
+        : IsFinishedGoods ? FgPptSteps : PptSteps;
+    private string ScenarioModeLabel => IsDetailedFgTestMode ? "TEST MODE" : "PPT CHECK";
     private bool IsScenarioPanelOpen => _pptOpen || _testPanelOpen;
     private bool SimulateHistoryApiFailure => IsDetailedWhTestMode
         && CurrentDetailedTestScenario.No == 17
