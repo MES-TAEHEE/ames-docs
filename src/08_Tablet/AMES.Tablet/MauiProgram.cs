@@ -39,9 +39,5 @@ public static class MauiProgram
 
     private static string ConnectionString =>
         Environment.GetEnvironmentVariable("AMES_CONNECTION_STRING")
-#if ANDROID
         ?? "Server=tcp:192.168.1.100,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=5;";
-#else
-        ?? "Server=localhost,1433;Database=AMES_DEV;User Id=sa;Password=AmesDev!2026Sa;TrustServerCertificate=True;Encrypt=True;Connect Timeout=5;";
-#endif
 }
