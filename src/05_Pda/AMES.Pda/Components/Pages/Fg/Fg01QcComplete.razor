@@ -12,7 +12,7 @@
         <RadzenButton class="wh01-tbar-refresh" Click="Load" Disabled="@_isLoading" Text="REFRESH" />
         @if (IsPptTestMode)
         {
-            <PptScenarioPanel Title="QC WAITING" Steps="PptSteps" Busy="@_isLoading" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" />
+            <PptScenarioPanel Title="QC WAITING" Steps="ActiveScenarioSteps" ModeLabel="@ScenarioModeLabel" Busy="@_isLoading" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" />
         }
     </div>
 

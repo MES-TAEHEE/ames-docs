@@ -138,6 +138,18 @@ public sealed class PdaApi
         return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<PopSessionDto>() : null;
     }
 
+    public sealed record CodeOption(string CodeValue, string? CodeName, string? CodeNameEn, string? Attribute1)
+    {
+        public string Name => string.IsNullOrWhiteSpace(CodeNameEn) ? CodeName ?? CodeValue : CodeNameEn;
+    }
+
+    public async Task<List<CodeOption>> CodeItemsAsync(string groupCode)
+    {
+        Authorize();
+        return await _http.GetFromJsonAsync<List<CodeOption>>(
+            $"/api/sys/code-items/{Uri.EscapeDataString(groupCode)}") ?? [];
+    }
+
     // ── WH ───────────────────────────────────────────────────────────────
     public sealed record InboundRow(int LotId, string LotCode, string? ItemNo, string? ItemName,
         decimal Qty, string? Vendor, DateTime? ArrivedAt);
@@ -685,6 +697,14 @@ public sealed class PdaApi
         using var response = await _http.PostAsync($"/api/wh/test/ppt-reset/{Uri.EscapeDataString(screen)}", null);
         if (!response.IsSuccessStatusCode)
             throw new InvalidOperationException(await ReadServiceErrorAsync(response, "PPT test reset failed."));
+    }
+
+    public async Task WhResetHistoryTestAsync()
+    {
+        Authorize();
+        using var response = await _http.PostAsync("/api/wh/transactions/test/reset", null);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Transaction test reset failed."));
     }
 
     public async Task FgResetPptTestAsync(string screen)

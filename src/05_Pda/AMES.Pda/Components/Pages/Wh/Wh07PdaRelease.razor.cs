@@ -19,7 +19,7 @@ public partial class Wh07PdaRelease
         new("Release Complete", "이 단계 시작 후 화면의 RELEASE를 눌러 완료 알림과 화면 초기화를 확인합니다.",
             new PptScenarioPanel.Value("이력 확인", "Transactions", "HISTORY"))
     ];
-    private bool IsPptTestMode => string.Equals(Auth?.Session?.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase);
+    private bool IsPptTestMode => PdaScenarioUsers.IsSimple(Auth?.Session?.EmployeeNo);
     private bool _pptOpen;
     private bool _pptReady;
     private async Task EnsurePptData()

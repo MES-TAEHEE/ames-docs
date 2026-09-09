@@ -17,7 +17,7 @@
             <div class="wh03-tbar-actions">
                 @if (IsPptTestMode)
                 {
-                    <PptScenarioPanel @key='@(IsFinishedGoodsAdjust ? "fg-adjust" : IsAdjustTab ? "wh-adjust" : "wh-inventory")' Title="@(IsAdjustTab ? "ADJUST" : "INVENTORY")" Steps="@(IsFinishedGoodsAdjust ? PptFgAdjustSteps : IsAdjustTab ? PptAdjustSteps : PptInventorySteps)" Busy="@(InventoryBusy || _isLoading)" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+                    <PptScenarioPanel @key='@(IsFinishedGoodsAdjust ? "fg-adjust" : IsAdjustTab ? "wh-adjust" : "wh-inventory")' Title="@(IsAdjustTab ? "ADJUST" : "INVENTORY")" Steps="ActivePptSteps" ModeLabel="@ScenarioModeLabel" Busy="@(InventoryBusy || _isLoading)" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
                 }
                 @if (IsTestMode)
                 {
@@ -341,7 +341,7 @@
                                 <select class="pda-input wh03-work-input" aria-label="Reason code" @bind="_invAdjustReason" disabled="@(!InventoryAlreadyReceived || InventoryBusy)">
                                     @foreach (var reason in AdjustReasons)
                                     {
-                                        <option value="@reason.Code">@reason.Label</option>
+                                        <option value="@reason.CodeValue">@reason.Name</option>
                                     }
                                 </select>
                                 <RadzenIcon Icon="expand_more" class="wh03-reason-arrow" aria-hidden="true" />
@@ -890,18 +890,11 @@
     private static bool ShowDeveloperScanButtons => MauiProgram.IsDeveloperMode;
     private static string ScanPanelClass => ShowDeveloperScanButtons ? "dev-scan-panel" : "hardware-scan-panel";
 
-    private static readonly (string Code, string Label)[] AdjustReasons =
-    [
-        ("COUNT_DIFF", "Count Diff"),
-        ("DAMAGED", "Damaged"),
-        ("LOST", "Lost"),
-        ("FOUND", "Found"),
-        ("OTHER", "Other")
-    ];
+    private List<PdaApi.CodeOption> AdjustReasons = [];
 
     private string PageTitle => IsAdjustTab ? "Adjust" : "Inventory";
     private bool IsTestMode => !IsFinishedGoodsAdjust
-        && string.Equals(Auth.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+        && PdaScenarioUsers.IsDetailed(Auth.Session?.EmployeeNo);
     private InventoryTestScenario CurrentTestScenario => InventoryTestScenarios[_testScenarioIndex];
     private AdjustTestScenario CurrentAdjustTestScenario => AdjustTestScenarios[_adjustTestScenarioIndex];
     private bool ShouldSimulateInventoryApiFailure => IsTestMode
@@ -1302,6 +1295,9 @@
             Nav.NavigateTo(IsFinishedGoodsAdjust ? "/fg" : "/wh", replace: true);
             return;
         }
+        AdjustReasons = await Api.CodeItemsAsync("INV_ADJUST_REASON");
+        if (!AdjustReasons.Any(x => string.Equals(x.CodeValue, _invAdjustReason, StringComparison.OrdinalIgnoreCase)))
+            _invAdjustReason = AdjustReasons.FirstOrDefault()?.CodeValue ?? "";
         await Load();
     }
 

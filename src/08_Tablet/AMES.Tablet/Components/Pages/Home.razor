@@ -95,11 +95,30 @@
                 <div class="search-panel">
                     <label for="inventory-search">PART NO / PART NAME / LOT / LOCATION</label>
                     <div class="search-row">
-                        <RadzenTextBox id="inventory-search"
-                                       class="inventory-search"
-                                       @bind-Value="_query"
-                                       @onkeydown="HandleSearchKey"
-                                       Placeholder="Enter part no, part name, lot, or location" />
+                        <div class="part-search-combobox" @onfocusout="ClosePartSuggestions">
+                            <input id="inventory-search" class="inventory-search rz-textbox" value="@_query"
+                                   @oninput="OnPartSearchInput" @onfocus="OpenPartSuggestions" @onkeydown="HandleSearchKey"
+                                   role="combobox" aria-autocomplete="list" aria-controls="part-suggestions"
+                                   aria-expanded="@(_showPartSuggestions && PartSuggestions.Count > 0)"
+                                   aria-activedescendant="@(_activePartSuggestion >= 0 ? $"part-option-{_activePartSuggestion}" : null)"
+                                   autocomplete="off" placeholder="Enter part no, part name, lot, or location" />
+                            @if (_showPartSuggestions && PartSuggestions.Count > 0)
+                            {
+                                <div id="part-suggestions" class="part-suggestions" role="listbox" aria-label="Matching parts">
+                                    @for (var index = 0; index < PartSuggestions.Count; index++)
+                                    {
+                                        var optionIndex = index;
+                                        var part = PartSuggestions[index];
+                                        <button id="@($"part-option-{index}")" type="button" role="option" tabindex="-1"
+                                                aria-selected="@(index == _activePartSuggestion)" class="@(index == _activePartSuggestion ? "active" : "")"
+                                                @onpointerdown:preventDefault="true" @onclick="@(() => SelectPartSuggestion(part))">
+                                            <span><strong>@part.PartNo</strong><b>@part.Floors</b></span>
+                                            <small>@part.PartName</small>
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
                         <RadzenButton class="search-button" Icon="search" Text="SEARCH" Click="Search" Disabled="@_loading" />
                         <RadzenButton class="reset-button" Icon="refresh" Text="RESET" Click="Reset" title="Reset search" />
                     </div>
@@ -115,7 +134,7 @@
                         <div class="detail-title">
                             <div>
                                 <span class="eyebrow">SELECTED INVENTORY</span>
-                                <h2>@Text(_selected.PartNo)</h2>
+                                <h2>@Text(_selected.PartNo) <span class="part-floor">@(FloorOf(_selected))F</span></h2>
                                 <p>@Text(_selected.PartName)</p>
                             </div>
                             <RadzenBadge class="qty-badge" Text="@Qty(_selected)" />
@@ -155,7 +174,7 @@
                                         <tr class="@ResultClass(row)" @onclick="@(() => SelectResult(row))">
                                             <td>@row.LocationNo</td>
                                             <td>@Text(row.LotNo)</td>
-                                            <td>@Text(row.PartNo)</td>
+                                            <td>@Text(row.PartNo)<span class="part-floor">@(FloorOf(row))F</span></td>
                                             <td title="@row.PartName">@Text(row.PartName)</td>
                                             <td>@Qty(row)</td>
                                         </tr>
@@ -183,6 +202,16 @@
     private HashSet<string> _matchedLocations = new(StringComparer.OrdinalIgnoreCase);
     private TabletInventoryService.InventoryRow? _selected;
     private string _query = "";
+    private sealed record PartSuggestion(string PartNo, string? PartName, string Floors);
+    private bool _showPartSuggestions;
+    private int _activePartSuggestion = -1;
+    private List<PartSuggestion> PartSuggestions => string.IsNullOrWhiteSpace(_query) ? [] : AllStockRows()
+        .GroupBy(row => row.PartNo, StringComparer.OrdinalIgnoreCase)
+        .Where(group => Contains(group.Key, _query.Trim()) || group.Any(row => Contains(row.PartName, _query.Trim())))
+        .Take(12)
+        .Select(group => new PartSuggestion(group.Key!, group.First().PartName,
+            string.Join(", ", group.Select(FloorOf).Distinct().Order().Select(floor => $"{floor}F"))))
+        .ToList();
     private string? _notice;
     private bool _loading = true;
     private bool _usingDemo;
@@ -232,6 +261,7 @@
 
     private async Task Search()
     {
+        ClosePartSuggestions();
         var query = _query.Trim();
         if (query.Length == 0)
         {
@@ -260,6 +290,7 @@
 
     private void Reset()
     {
+        ClosePartSuggestions();
         _query = "";
         _notice = _usingDemo ? "Demo data is active." : null;
         ShowAllStock();
@@ -299,9 +330,31 @@
 
     private async Task HandleSearchKey(KeyboardEventArgs args)
     {
-        if (args.Key == "Enter")
-            await Search();
+        var suggestions = PartSuggestions;
+        if (args.Key == "Escape") ClosePartSuggestions();
+        else if (args.Key is "ArrowDown" or "ArrowUp" && suggestions.Count > 0)
+        {
+            _showPartSuggestions = true;
+            _activePartSuggestion = (_activePartSuggestion + (args.Key == "ArrowDown" ? 1 : -1) + suggestions.Count) % suggestions.Count;
+        }
+        else if (args.Key == "Enter")
+        {
+            if (_showPartSuggestions && _activePartSuggestion >= 0 && _activePartSuggestion < suggestions.Count)
+                await SelectPartSuggestion(suggestions[_activePartSuggestion]);
+            else await Search();
+        }
     }
+
+    private void OnPartSearchInput(ChangeEventArgs e)
+    {
+        _query = Convert.ToString(e.Value) ?? "";
+        _activePartSuggestion = -1;
+        _showPartSuggestions = true;
+    }
+
+    private void OpenPartSuggestions() => _showPartSuggestions = true;
+    private void ClosePartSuggestions() { _showPartSuggestions = false; _activePartSuggestion = -1; }
+    private Task SelectPartSuggestion(PartSuggestion part) { _query = part.PartNo; return Search(); }
 
     private Task ScrollTo(string locationNo)
     {
@@ -319,6 +372,7 @@
     private void SelectFloor(int floor)
     {
         if (floor is < 1 or > 4) return;
+        ClosePartSuggestions();
         _selectedFloor = floor;
         _selectingFloor = false;
         _rackSlots = BuildRackSlots(_rows, floor);

@@ -13,9 +13,13 @@
             <span class="pda-tbar-brand">TRANSACTIONS</span>
         </div>
         <div class="wh08-tbar-actions">
-            @if (IsPptTestMode)
+            @if (IsDetailedWhTestMode)
             {
-                <PptScenarioPanel @key="IsFinishedGoods" Title="@(IsFinishedGoods ? "FG TRANSACTIONS" : "TRANSACTIONS")" Steps="@(IsFinishedGoods ? FgPptSteps : PptSteps)" Busy="_loading" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+                <button class="wh02-test-nav" disabled="@_loading" @onclick="OpenDetailedTestPanel">SCENARIO</button>
+            }
+            else if (IsPptTestMode)
+            {
+                <PptScenarioPanel @key="IsFinishedGoods" Title="@(IsFinishedGoods ? "FG TRANSACTIONS" : "TRANSACTIONS")" Steps="ActivePptSteps" ModeLabel="@ScenarioModeLabel" Busy="_loading" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
             }
             <RadzenButton class="wh08-refresh" Click="@Load" Disabled="@_loading" Text="REFRESH" />
         </div>
@@ -165,6 +169,53 @@
         }
     </div>
 
+    @if (IsDetailedWhTestMode && _testPanelOpen)
+    {
+        <div class="wh02-test-backdrop" @onclick="CloseDetailedTestPanel">
+            <section class="wh02-test-panel" role="dialog" aria-modal="true" aria-label="Warehouse transaction test scenarios" @onclick:stopPropagation="true">
+                <div class="wh02-test-head">
+                    <div><span>TEST MODE</span><strong>TRANSACTIONS TEST SCENARIOS</strong></div>
+                    <b>@CurrentDetailedTestScenario.No.ToString("00") / @DetailedTestScenarios.Length</b>
+                    <button class="wh02-test-close" @onclick="CloseDetailedTestPanel" aria-label="Close scenarios">×</button>
+                </div>
+                <div class="wh02-test-tabs">
+                    @foreach (var scenario in DetailedTestScenarios)
+                    {
+                        var index = scenario.No - 1;
+                        <button class="@(index == _testScenarioIndex ? "on" : "")"
+                                @onclick="@(() => SelectDetailedTestScenario(index))">@scenario.No.ToString("00")</button>
+                    }
+                </div>
+                <div class="wh02-test-case">
+                    <div class="wh02-test-summary">
+                        <span>@CurrentDetailedTestScenario.TestCaseId</span>
+                        <strong>@CurrentDetailedTestScenario.Title</strong>
+                    </div>
+                    <p class="wh02-simple-guide">@CurrentDetailedTestScenario.Steps</p>
+                    @if (CurrentDetailedTestScenario.Values.Length > 0)
+                    {
+                        <div class="wh02-test-values">
+                            @foreach (var value in CurrentDetailedTestScenario.Values)
+                            {
+                                <button @onclick="@(() => RunDetailedTestValue(value))">
+                                    <span>@value.Label</span><b>@value.Value</b>
+                                </button>
+                            }
+                        </div>
+                    }
+                    @if (CurrentDetailedTestScenario.No == 17)
+                    {
+                        <button class="@($"wh02-test-error {(_simulateHistoryApiFailure ? "on" : "")}")"
+                                @onclick="ToggleHistoryApiFailure">
+                            API ERROR: @(_simulateHistoryApiFailure ? "ON" : "OFF")
+                        </button>
+                    }
+                    <button class="wh02-test-start" disabled="@_loading" @onclick="StartDetailedTestScenario">START SCENARIO</button>
+                </div>
+            </section>
+        </div>
+    }
+
     @if (_detailRow is { } detail)
     {
         <div class="wh-modal-backdrop" @onclick="CloseDetail" @onkeydown="OnDetailKey" tabindex="-1" @ref="_detailDialog">
@@ -251,7 +302,7 @@
         _dateFrom = DefaultDateFrom;
         _dateTo = DefaultDateTo;
         _detailRow = null;
-        _pptReady = _pptOpen = false;
+        _pptReady = _pptOpen = _testPanelOpen = false;
         await Load();
     }
 
@@ -282,7 +333,7 @@
 
         await InvokeAsync(async () =>
         {
-            if (_detailRow is not null || _loading || _pptOpen)
+            if (_detailRow is not null || _loading || IsScenarioPanelOpen)
                 return;
             _search = value;
             await Load();
@@ -297,7 +348,7 @@
 
     private async Task FocusScannerAsync()
     {
-        if (_editingFilters || _editingBarcode || _detailRow is not null || _pptOpen)
+        if (_editingFilters || _editingBarcode || _detailRow is not null || IsScenarioPanelOpen)
             return;
 
         try
@@ -341,6 +392,9 @@
 
         try
         {
+            if (SimulateHistoryApiFailure)
+                throw new HttpRequestException("Simulated warehouse transaction API failure.");
+
             if (DateFrom.HasValue && DateTo.HasValue && DateFrom.Value > DateTo.Value)
             {
                 _rows = new();

@@ -10,7 +10,14 @@ public static class SysEndpoints
     public static void MapSys(this WebApplication app, AmesConnectionFactory factory)
     {
         var repo = new SysRepository(factory);
+        var master = new MasterDataRepository(factory);
         var g = app.MapGroup("/api/sys").WithTags("System Admin");
+
+        g.MapGet("/code-items/{groupCode}", (HttpContext ctx, string groupCode) =>
+            ctx.GetSession() is null ? Results.Unauthorized()
+                : Results.Ok((master.CodeGroupIsActive(groupCode) ? master.ListCodeItems(groupCode) : [])
+                    .Where(x => x.UseFlag)
+                    .Select(x => new { x.CodeValue, x.CodeName, x.CodeNameEn, x.Attribute1 })));
 
         g.MapGet("/users", (HttpContext ctx, int? topN) =>
             ctx.GetSession() is null ? Results.Unauthorized()
