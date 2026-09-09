@@ -2941,8 +2941,8 @@ BEGIN
 
     MERGE dbo.WH_AreaMaster AS tgt
     USING (
-        SELECT DISTINCT
-            CAST(COALESCE(NULLIF(PlantCode, ''), 'WH') AS varchar(20)) AS WhCode,
+        SELECT
+            MIN(CAST(COALESCE(NULLIF(PlantCode, ''), 'WH') AS varchar(20))) AS WhCode,
             CAST(COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') AS varchar(20)) AS AreaCode
         FROM dbo.MD_Location
         WHERE COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') IS NOT NULL
@@ -3000,8 +3000,8 @@ BEGIN
 
     MERGE dbo.WH_AreaSection AS tgt
     USING (
-        SELECT DISTINCT
-            CAST(COALESCE(NULLIF(PlantCode, ''), 'WH') AS varchar(20)) AS WhCode,
+        SELECT
+            MIN(CAST(COALESCE(NULLIF(PlantCode, ''), 'WH') AS varchar(20))) AS WhCode,
             CAST(COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') AS varchar(20)) AS AreaCode,
             CAST(COALESCE(NULLIF(LocationType, ''), 'DEFAULT') AS varchar(20)) AS SectionCode
         FROM dbo.MD_Location
