@@ -141,10 +141,6 @@ public sealed class PdaApi
     // ── WH ───────────────────────────────────────────────────────────────
     public sealed record InboundRow(int LotId, string LotCode, string? ItemNo, string? ItemName,
         decimal Qty, string? Vendor, DateTime? ArrivedAt);
-    public sealed record Wh001ScheduleInboundItem(int ScheduleItemId, string PurchaseOrderNo, int? PurchaseOrderLineNo,
-        string? SupplierName, string? MaterialNo, string? MaterialName, string? CarCode, string? UnitOfMeasure,
-        decimal PurchaseOrderQty, decimal ReceivedQty, decimal RemainingQty, DateTime? ExpectedArrivalDate,
-        DateTime? PurchaseOrderCreatedDate, string ReceiptStatus);
     public sealed record InboundScanRow(string ReceiveType, string? Yn, string LotNo, string Barcode,
         string? SourceTable, string? NoteNo, string? CaseBarcode, string? CaseNo, string? InvoiceNo,
         string? ContainerNo, string? PartNo, string? PartName, decimal Qty, string? Unit, string? PoNo,
@@ -184,12 +180,10 @@ public sealed class PdaApi
     public sealed record LocationRow(string LocationId, string? LocationName, string? Zone, int LineCount, decimal TotalQty,
         string? WarehouseCode = null, string? WarehouseName = null, string? AreaCode = null, string? AreaName = null,
         string? ZoneName = null, string? X = null, string? Y = null, string? Z = null,
-        string? PlantCode = null, string? LocationType = null, decimal? Capacity = null);
+        string? PlantCode = null, string? LocationType = null, decimal? Capacity = null, string? Unit = null);
     public sealed record LocationMapItemRow(string LotNo, string? PartNo, string? PartName, decimal Qty, string? Unit,
         string? InventoryStatus, string? WorkDate, string? WorkTime);
-    public sealed record Wh001ScheduleReleaseItem(int WorkOrderId, string? WorkOrderNo,
-        string PartNo, string? PartName, decimal OrderQty, string? Unit,
-        DateTime? DueDate, string WorkOrderStatus, DateTime? ReleasedAt, string? LineId);
+    public sealed record InventoryTestChangeResult(bool Success, string Message, string LotNo, decimal Qty);
     public sealed record ReleaseSlipStatusRow(string PickSlipNo, bool Exists, bool IsClosed, int LineCount,
         string? RequestLocation, DateTime? RequestDate, DateTime? CloseDate, string Message);
     public sealed record ReleasePickLineRow(string PickSlipNo, string ItemNo, string? ItemName,
@@ -203,7 +197,7 @@ public sealed class PdaApi
         decimal Qty, string? ProductionDate);
     public sealed record ReleasePickInput(string LotNo, decimal Qty);
     public sealed record ReleaseCompleteReq(string PickSlipNo, List<ReleasePickInput>? Lots = null,
-        string? OutgoingType = null);
+        string? OutgoingType = null, bool SimulateFailure = false);
     public sealed record ReleaseCompleteResult(bool Success, string Message);
     public sealed record DirectOutgoingLotRow(int LotId, string LotNo, string? ItemNo, string? ItemName,
         decimal Qty, string? Unit, string? LocationId, string InventoryStatus, bool IsValid, string Message);
@@ -220,31 +214,35 @@ public sealed class PdaApi
         string? LocationId, decimal QtyBefore, decimal Delta, decimal QtyAfter, string? ReasonCode);
 
     public sealed record ReceiveReq(string LotCode, decimal Qty, string LocationId);
-    public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId);
+    public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId, bool SimulateFailure = false);
     public sealed record InboundCancelReq(string Mode, string Barcode);
     public sealed record InboundAdjustReq(string Mode, string Barcode, decimal DeltaQty, string ReasonCode,
         string? ReasonNote, string SupervisorPin, string? SupervisorEmployeeNo = null);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
-        string? ReasonNote, string SupervisorPin, string? SupervisorEmployeeNo = null);
+        string? ReasonNote, string? SupervisorPin = null, string? SupervisorEmployeeNo = null, bool SimulateFailure = false);
     public sealed record SupervisorRow(string EmployeeNo, string EmployeeName);
+    public sealed record SupervisorPinReq(string EmployeeNo, string Pin);
+    public sealed record SupervisorPinResult(bool Success, string Message);
+    public sealed record AdjustTestResetResult(bool Success, string Message, string LotNo, decimal Qty);
     public sealed record InboundReceiveResult(bool Success, string Message, InboundScanRow? Row);
     public sealed record AdjustReq(string ItemNo, string LocationId, decimal Delta, string ReasonCode, string? Note);
     public sealed record PickReq(string PickSlipNo, string LotNo, decimal Qty);
     public sealed record PickResult(bool Success, string Message, ReleaseLotRow? Row);
 
     public Task<List<InboundRow>>         WhInboundTodayAsync()    => Get<List<InboundRow>>("/api/wh/inbound/today");
-    public async Task<List<Wh001ScheduleInboundItem>> Wh001ScheduleInboundAsync(int? year = null, int? quarter = null, string? vendorId = null)
+    public async Task<List<InventoryRow>> WhInventoryAsync(string? q = null, DateTime? dateFrom = null, DateTime? dateTo = null,
+        bool simulateFailure = false)
     {
-        var args = new List<string>();
-        if (year.HasValue) args.Add($"year={year.Value}");
-        if (quarter.HasValue) args.Add($"quarter={quarter.Value}");
-        if (!string.IsNullOrWhiteSpace(vendorId)) args.Add($"vendorId={Uri.EscapeDataString(vendorId)}");
+        if (simulateFailure)
+        {
+            Authorize();
+            var query = string.IsNullOrWhiteSpace(q) ? "" : $"&q={Uri.EscapeDataString(q)}";
+            using var response = await _http.GetAsync($"/api/wh/inventory?simulateFailure=true{query}");
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Inventory service is unavailable."));
+            return await response.Content.ReadFromJsonAsync<List<InventoryRow>>() ?? [];
+        }
 
-        var query = args.Count == 0 ? "" : "?" + string.Join("&", args);
-        return await Get<List<Wh001ScheduleInboundItem>>("/api/wh/schedule/inbound" + query);
-    }
-    public async Task<List<InventoryRow>> WhInventoryAsync(string? q = null, DateTime? dateFrom = null, DateTime? dateTo = null)
-    {
         try
         {
             return await QueryWhInventoryDbAsync(q, dateFrom, dateTo);
@@ -253,6 +251,16 @@ public sealed class PdaApi
         {
             return await Get<List<InventoryRow>>("/api/wh/inventory" + (string.IsNullOrEmpty(q) ? "" : $"?q={Uri.EscapeDataString(q)}"));
         }
+    }
+
+    public async Task<InventoryTestChangeResult> WhToggleInventoryTestQtyAsync()
+    {
+        Authorize();
+        using var response = await _http.PostAsync("/api/wh/inventory/test/toggle-qty", null);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Inventory refresh test failed."));
+        return await response.Content.ReadFromJsonAsync<InventoryTestChangeResult>()
+               ?? new InventoryTestChangeResult(false, "Inventory refresh test returned no result.", "", 0);
     }
 
     public async Task<InventoryScanLookupRow?> WhInventoryScanAsync(string? scanText)
@@ -394,11 +402,6 @@ public sealed class PdaApi
             return (await WhLocationsAsync()).FirstOrDefault()?.LocationId;
         }
     }
-    public Task<List<Wh001ScheduleReleaseItem>> Wh001ScheduleReleaseAsync(DateTime? dateFrom = null, DateTime? dateTo = null)
-    {
-        var query = $"?dateFrom={dateFrom:yyyy-MM-dd}&dateTo={dateTo:yyyy-MM-dd}";
-        return Get<List<Wh001ScheduleReleaseItem>>("/api/wh/schedule/release" + query);
-    }
     public async Task<ReleaseSlipStatusRow?> WhReleaseSlipStatusAsync(string pickSlipNo)
     {
         Authorize();
@@ -524,6 +527,33 @@ public sealed class PdaApi
         return await resp.Content.ReadFromJsonAsync<List<SupervisorRow>>() ?? [];
     }
 
+    public async Task<SupervisorPinResult> WhValidateSupervisorPinAsync(string employeeNo, string pin)
+    {
+        Authorize();
+        using var resp = await _http.PostAsJsonAsync("/api/wh/adjust/supervisor/validate",
+            new SupervisorPinReq(employeeNo, pin));
+        if (!resp.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Supervisor PIN validation is unavailable."));
+        return await resp.Content.ReadFromJsonAsync<SupervisorPinResult>()
+            ?? new SupervisorPinResult(false, "Supervisor PIN validation failed.");
+    }
+
+    public sealed record AdjustmentStock(string Barcode, string LotNo, string PartNo, string? PartName, decimal Qty, string? Unit);
+    public sealed record AdjustmentLocation(string LocationId, List<AdjustmentStock> Items);
+
+    public async Task<AdjustmentLocation?> ScanAdjustmentLocationAsync(string barcode, bool finishedGoods)
+    {
+        Authorize();
+        using var response = await _http.GetAsync($"/api/{(finishedGoods ? "fg" : "wh")}/adjust/location?barcode={Uri.EscapeDataString(barcode.Trim())}");
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Adjustment location service is unavailable."));
+        // An unknown location returns an empty 200 response; the caller then tries a stock barcode.
+        if (response.Content.Headers.ContentLength == 0) return null;
+        var json = await response.Content.ReadAsStringAsync();
+        return string.IsNullOrWhiteSpace(json) ? null
+            : System.Text.Json.JsonSerializer.Deserialize<AdjustmentLocation>(json, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+    }
+
     public async Task<InboundScanRow?> WhScanAdjustAsync(string scanText)
     {
         try
@@ -546,7 +576,7 @@ public sealed class PdaApi
         }
     }
 
-    public async Task<List<WarehouseTransactionRow>> WhWarehouseTransactionsAsync(string? search = null, DateTime? dateFrom = null, DateTime? dateTo = null)
+    public async Task<List<WarehouseTransactionRow>> WhWarehouseTransactionsAsync(string? search = null, DateTime? dateFrom = null, DateTime? dateTo = null, bool finishedGoods = false)
     {
         Authorize();
         var query = new List<string>();
@@ -557,7 +587,7 @@ public sealed class PdaApi
         if (dateTo.HasValue)
             query.Add($"dateTo={Uri.EscapeDataString(dateTo.Value.ToString("yyyy-MM-dd"))}");
 
-        var url = "/api/wh/warehouse-transactions";
+        var url = finishedGoods ? "/api/fg/transactions" : "/api/wh/warehouse-transactions";
         if (query.Count > 0)
             url += "?" + string.Join("&", query);
 
@@ -639,6 +669,40 @@ public sealed class PdaApi
         {
             return new InboundReceiveResult(false, "Warehouse adjustment service is unavailable.", null);
         }
+    }
+
+    public async Task WhResetSimpleInboundTestAsync()
+    {
+        Authorize();
+        using var response = await _http.PostAsync("/api/wh/inbound/test/simple-reset", null);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Inbound test reset failed."));
+    }
+
+    public async Task WhResetPptTestAsync(string screen)
+    {
+        Authorize();
+        using var response = await _http.PostAsync($"/api/wh/test/ppt-reset/{Uri.EscapeDataString(screen)}", null);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "PPT test reset failed."));
+    }
+
+    public async Task FgResetPptTestAsync(string screen)
+    {
+        Authorize();
+        using var response = await _http.PostAsync($"/api/fg/test/ppt-reset/{Uri.EscapeDataString(screen)}", null);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "FG PPT test reset failed."));
+    }
+
+    public async Task<AdjustTestResetResult> WhResetAdjustTestAsync()
+    {
+        Authorize();
+        using var response = await _http.PostAsync("/api/wh/adjust/test/reset", null);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Adjust test reset failed."));
+        return await response.Content.ReadFromJsonAsync<AdjustTestResetResult>()
+               ?? new AdjustTestResetResult(false, "Adjust test reset returned no result.", "", 0);
     }
 
     public async Task<InboundScanRow?> FgScanAdjustAsync(string scanText)
@@ -1314,6 +1378,10 @@ public sealed class PdaApi
                 L.PlantCode,
                 L.LocationType,
                 L.Capacity,
+                CASE WHEN COUNT(DISTINCT NULLIF(M.DefaultUOM,N'')) = 1
+                     THEN MAX(M.DefaultUOM)
+                     WHEN COUNT(DISTINCT NULLIF(M.DefaultUOM,N'')) > 1 THEN N'MIXED'
+                     ELSE NULL END AS Unit,
                 COUNT(I.InventoryID) AS LineCount,
                 COALESCE(SUM(I.OnHandQty), 0) AS TotalQty
             FROM dbo.MD_Location L
@@ -1326,6 +1394,7 @@ public sealed class PdaApi
                    ON I.LocationID = L.LocationID
                   AND COALESCE(I.OnHandQty, 0) > 0
                   AND UPPER(COALESCE(I.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
+            LEFT JOIN dbo.MD_Item M ON M.ItemNo = I.ItemNo
             WHERE COALESCE(L.ActiveFlag, 1) = 1
             GROUP BY L.LocationID, L.LocationName, L.ZoneCode, L.PlantCode,
                 WM.WhName, AM.AreaName, L.Aisle, L.Bay, L.Slot, L.LocationType, L.Capacity
@@ -1935,7 +2004,8 @@ public sealed class PdaApi
             GetString(rdr, "Slot"),
             GetString(rdr, "PlantCode"),
             GetString(rdr, "LocationType"),
-            GetNullableDecimal(rdr, "Capacity"));
+            GetNullableDecimal(rdr, "Capacity"),
+            GetString(rdr, "Unit"));
     }
 
     private static LocationMapItemRow ReadLocationMapItemRow(SqlDataReader rdr)

@@ -1,5 +1,6 @@
 @page "/wh/02"
 @inject PdaApi Api
+@inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @implements IAsyncDisposable
@@ -8,6 +9,10 @@
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
         <span class="pda-tbar-brand">INBOUND</span>
+        @if (IsTestMode)
+        {
+            <button class="wh02-test-nav" @onclick="OpenTestPanel">SCENARIO</button>
+        }
     </div>
 
     <div class="pda-bd wh02-body">
@@ -60,7 +65,7 @@
                             <div class="wh02-box-list">
                                 @foreach (var box in DocumentBoxes(line.PartNo))
                                 {
-                                    <div class="wh02-box-row @(IsBoxScanned(box) ? "scanned" : "")">
+                                    <div class="wh02-box-row @(string.Equals(box.Yn, "Y", StringComparison.OrdinalIgnoreCase) ? "received" : IsBoxScanned(box) ? "scanned" : "")">
                                         <span>@box.BoxBarcode</span>
                                         <strong>@QuantityText(box.Qty, box.Unit)</strong>
                                     </div>
@@ -192,6 +197,73 @@
         </div>
     </div>
 
+    @if (IsTestMode && _testPanelOpen)
+    {
+        <div class="wh02-test-backdrop" @onclick="CloseTestPanel">
+            <section class="wh02-test-panel @(IsSimpleTestMode ? "wh02-simple-panel" : "")" @onclick:stopPropagation="true">
+                <div class="wh02-test-head">
+                    <div><span>@(IsSimpleTestMode ? "PPT CHECK" : "TEST MODE")</span><strong>@(IsSimpleTestMode ? "INBOUND 간편 검수" : "INBOUND TEST SCENARIOS")</strong></div>
+                    <b>@CurrentTestScenario.No.ToString("00") / @ActiveTestScenarios.Length</b>
+                    <button class="wh02-test-close" @onclick="CloseTestPanel" aria-label="Close scenarios">×</button>
+                </div>
+                <div class="wh02-test-tabs">
+                    @foreach (var scenario in ActiveTestScenarios)
+                    {
+                        var index = scenario.No - 1;
+                        <button class="@(index == _testScenarioIndex ? "on" : "")"
+                                @onclick="@(() => SelectTestScenario(index))">@scenario.No.ToString("00")</button>
+                    }
+                </div>
+                <div class="wh02-test-case">
+                    <div class="wh02-test-summary">
+                        <span>@CurrentTestScenario.TestCaseId</span>
+                        <strong>@CurrentTestScenario.Title</strong>
+                    </div>
+                    @if (IsSimpleTestMode)
+                    {
+                        <p class="wh02-simple-guide">@CurrentTestScenario.Steps</p>
+                        <div class="wh02-test-tabs wh02-simple-modes">
+                            <button class="@(_simpleMode == "LOCAL" ? "on" : "")" @onclick='@(() => SelectSimpleMode("LOCAL"))'>LOCAL</button>
+                            <button class="@(_simpleMode == "CKD" ? "on" : "")" @onclick='@(() => SelectSimpleMode("CKD"))'>CKD</button>
+                        </div>
+                    }
+                    @if (CurrentTestValues.Length > 0)
+                    {
+                        <div class="wh02-test-values">
+                            @foreach (var value in CurrentTestValues)
+                            {
+                                <button @onclick="@(() => LoadTestValue(value))">
+                                    <span>@value.Label</span><b>@value.Value</b>
+                                </button>
+                            }
+                        </div>
+                    }
+                    @if (!IsSimpleTestMode && CurrentTestScenario.No == 16)
+                    {
+                        <div class="wh02-test-actions">
+                            <button @onclick='@(() => OpenScenarioPage("/wh/03"))'>OPEN INVENTORY</button>
+                            <button @onclick='@(() => OpenScenarioPage("/wh/08"))'>OPEN TRANSACTIONS</button>
+                        </div>
+                    }
+                    else if (CurrentTestScenario.No == (IsSimpleTestMode ? 5 : 18))
+                    {
+                        <button class="@($"wh02-test-error {(_simulateReceiveApiFailure ? "on" : "")}")"
+                                @onclick="ToggleReceiveApiFailure">
+                            API ERROR: @(_simulateReceiveApiFailure ? "ON" : "OFF")
+                        </button>
+                    }
+                    <button class="wh02-test-start" disabled="@_simpleBusy" @onclick="StartTestScenario">@(IsSimpleTestMode ? "이 단계 시작" : "START SCENARIO")</button>
+                    @if (IsSimpleTestMode)
+                    {
+                        <div class="wh02-test-actions">
+                            <button disabled="@_simpleBusy" @onclick="ResetSimpleTestData">테스트 데이터 초기화</button>
+                        </div>
+                    }
+                </div>
+            </section>
+        </div>
+    }
+
     @if (_modalOpen)
     {
         <div class="wh-modal-backdrop" @onclick="DismissModal">
@@ -213,6 +285,71 @@
 </div>
 
 @code {
+    private sealed record InboundTestValue(string Label, string Value, bool IsLocation = false);
+    private sealed record InboundTestScenario(int No, string TestCaseId, string Title, string? Mode,
+        string Steps, string Expected, bool AutoScan, params InboundTestValue[] Values);
+
+    private static readonly InboundTestScenario[] InboundTestScenarios =
+    [
+        new(1, "WH002-TC-001", "LOCAL 작업 유형 선택", "LOCAL",
+            "Start and confirm that LOCAL is selected.", "LOCAL is selected and barcode scanning is enabled.", false),
+        new(2, "WH002-TC-002", "CKD 작업 유형 선택", "CKD",
+            "Start and confirm that CKD is selected.", "CKD is selected and CKD rules are applied.", false),
+        new(3, "WH002-TC-003", "LOT 단일 바코드 조회", "LOCAL",
+            "Start to load one unreceived LOT.", "Part, name, quantity, LOT and box information are displayed.", true,
+            new InboundTestValue("LOT", "5011LL260903900001")),
+        new(4, "WH002-TC-004", "Box 단일 바코드 조회", "LOCAL",
+            "Start to load one box from the LOCAL inbound list.", "Only the selected box information is displayed.", true,
+            new InboundTestValue("BOX", "5011LL260828000001")),
+        new(5, "WH002-TC-005", "Delivery Note 내부 품목 조회", "LOCAL",
+            "Start to load the Delivery Note containing three boxes.", "All contained LOT/Box rows and total count are displayed.", true,
+            new("DELIVERY NOTE", "5011202608280001"), new("BOX 1", "5011LL260828000001"),
+            new("BOX 2", "5011LL260828000002"), new("BOX 3", "5011LL260828000003")),
+        new(6, "WH002-TC-006", "Case 내부 품목 조회", "CKD",
+            "Start to load the CKD Case containing three boxes.", "Every box in the Case is displayed.", true,
+            new("CASE", "CKD202608280001CASE00001"), new("BOX 1", "CKD260828000000001"),
+            new("BOX 2", "CKD260828000000002"), new("BOX 3", "CKD260828000000003")),
+        new(7, "WH002-TC-007", "알 수 없는 바코드", "LOCAL",
+            "Start to scan an unregistered barcode.", "Barcode Not Found is shown and the work state remains safe.", true,
+            new InboundTestValue("UNKNOWN", "WH-UNKNOWN-999999")),
+        new(8, "WH002-TC-008", "내부 품목 연속 스캔 및 하이라이트", "LOCAL",
+            "Start, then tap BOX 1 and BOX 2 below and press Enter after each.", "Only scanned rows highlight and the completed count increases.", true,
+            new("DELIVERY NOTE", "5011202608280001"), new("BOX 1", "5011LL260828000001"),
+            new("BOX 2", "5011LL260828000002")),
+        new(9, "WH002-TC-009", "목록에 없는 Box 스캔", "LOCAL",
+            "Start, load OTHER DOCUMENT BOX, then press Enter.", "Wrong Document Box is shown and the box is not counted.", true,
+            new("DELIVERY NOTE", "5011202608280001"), new("OTHER DOCUMENT BOX", "5011LL260903900001")),
+        new(10, "WH002-TC-010", "동일 Box 중복 스캔", "LOCAL",
+            "Start, scan BOX 1 twice by loading it and pressing Enter twice.", "Duplicate scan is shown and the count does not increase twice.", true,
+            new("DELIVERY NOTE", "5011202608280001"), new("BOX 1 - SCAN TWICE", "5011LL260828000001")),
+        new(11, "WH002-TC-011", "전체 품목 스캔 후 Location 단계 이동", "LOCAL",
+            "Start, then scan BOX 1, BOX 2 and BOX 3 in order.", "The Location input becomes enabled after the final box.", true,
+            new("DELIVERY NOTE", "5011202608280001"), new("BOX 1", "5011LL260828000001"),
+            new("BOX 2", "5011LL260828000002"), new("BOX 3", "5011LL260828000003")),
+        new(12, "WH002-TC-012", "유효 Location 스캔", "LOCAL",
+            "Start, then load VALID LOCATION and press Enter.", "Warehouse, Area, Zone and Rack are shown and RECEIVE is enabled.", true,
+            new("BOX", "5011LL260903900001"), new("VALID LOCATION", "WH010201", true)),
+        new(13, "WH002-TC-013", "존재하지 않는 Location", "LOCAL",
+            "Start, then load UNKNOWN LOCATION and press Enter.", "Location Not Found is shown and RECEIVE remains disabled.", true,
+            new("BOX", "5011LL260903900001"), new("UNKNOWN LOCATION", "WH999999", true)),
+        new(14, "WH002-TC-014", "입고 불가/용량 초과 Location", "LOCAL",
+            "Start, then test each Location separately.", "The applicable reason is shown and inbound is blocked.", true,
+            new("BOX", "5011LL260903900001"), new("BLOCKED", "WH019901", true),
+            new("CAPACITY 50", "WH019902", true)),
+        new(15, "WH002-TC-015", "입고 처리 완료", "LOCAL",
+            "Start, load VALID LOCATION, press Enter, then RECEIVE.", "Inventory/location update, completion alert and form reset occur.", true,
+            new("RESETTABLE BOX", "5011LL260903900001"), new("VALID LOCATION", "WH010201", true)),
+        new(16, "WH002-TC-016", "입고 후 재고·거래이력 검증", "LOCAL",
+            "Complete scenario 15, then check Inventory and Transactions.", "Stock increases by 120 and one IN transaction is recorded.", false,
+            new("LOT", "5011LL260903900001"), new("LOCATION", "WH010201", true)),
+        new(17, "WH002-TC-017", "이미 입고된 Box 재처리", "LOCAL",
+            "Start to scan a pre-received LOT.", "Duplicate receiving is blocked without increasing inventory.", true,
+            new InboundTestValue("RECEIVED LOT", "260827014")),
+        new(18, "WH002-TC-018", "Receive API 실패 및 롤백", "LOCAL",
+            "Start, load the Location, stop the API, press RECEIVE, then restart and retry.", "No partial inventory/history is saved and the entered state remains for retry.", true,
+            new("RESETTABLE BOX", "5011LL260903900002"), new("VALID LOCATION", "WH010201", true))
+    ];
+
     private sealed class ModeState
     {
         public string Barcode { get; set; } = "";
@@ -237,7 +374,7 @@
         ["CKD"] = new()
     };
 
-    private string _mode = "LOCAL";
+    private string _mode = "";
     private string _barcode = "";
     private string _loc = "";
     private string _msg = "";
@@ -258,6 +395,88 @@
     private Func<Task>? _modalPrimaryAction;
     private Func<Task>? _modalAfterCloseAction;
     private DotNetObjectReference<Wh02PdaInbound>? _scannerRef;
+    private int _testScenarioIndex;
+    private bool _testPanelOpen;
+    private bool _simulateReceiveApiFailure;
+
+    private bool IsSimpleTestMode => string.Equals(Auth?.Session?.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase);
+    private bool IsTestMode => IsSimpleTestMode || string.Equals(Auth.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+    private InboundTestScenario[] ActiveTestScenarios => IsSimpleTestMode ? SimpleTestScenarios : InboundTestScenarios;
+    private InboundTestScenario CurrentTestScenario => ActiveTestScenarios[_testScenarioIndex];
+    private InboundTestValue[] CurrentTestValues => IsSimpleTestMode ? SimpleTestValues() : CurrentTestScenario.Values;
+    private bool SimulateReceiveFailure => IsTestMode && CurrentTestScenario.No == (IsSimpleTestMode ? 5 : 18) && _simulateReceiveApiFailure;
+
+    private void OpenTestPanel() => _testPanelOpen = true;
+    private void CloseTestPanel() => _testPanelOpen = false;
+    private void OpenScenarioPage(string route)
+    {
+        CloseTestPanel();
+        Nav.NavigateTo(route);
+    }
+    private void ToggleReceiveApiFailure() => _simulateReceiveApiFailure = !_simulateReceiveApiFailure;
+
+    private void SelectTestScenario(int index)
+    {
+        if (index < 0 || index >= ActiveTestScenarios.Length)
+            return;
+
+        _testScenarioIndex = index;
+        if (CurrentTestScenario.No != (IsSimpleTestMode ? 5 : 18))
+            _simulateReceiveApiFailure = false;
+        if (!IsSimpleTestMode)
+            PrepareTestScenario(CurrentTestScenario);
+    }
+
+    private async Task StartTestScenario()
+    {
+        if (IsSimpleTestMode)
+        {
+            await StartSimpleTestScenario();
+            return;
+        }
+        var scenario = CurrentTestScenario;
+        CloseTestPanel();
+        PrepareTestScenario(scenario);
+
+        if (scenario.AutoScan && !string.IsNullOrWhiteSpace(_barcode))
+            await Scan();
+        else
+            ShowAlert($"Scenario {scenario.No:00} Ready", scenario.Steps, "info");
+    }
+
+    private void PrepareTestScenario(InboundTestScenario scenario)
+    {
+        ResetAllForms();
+        _mode = scenario.Mode ?? "";
+
+        var first = scenario.Values.FirstOrDefault(value => !value.IsLocation);
+        if (first is not null)
+            _barcode = first.Value;
+    }
+
+    private async Task LoadTestValue(InboundTestValue value)
+    {
+        if (IsSimpleTestMode)
+        {
+            await LoadSimpleTestValue(value);
+            return;
+        }
+        CloseTestPanel();
+        if (CurrentTestScenario.Mode is null)
+            _mode = "";
+
+        if (value.IsLocation)
+        {
+            _loc = value.Value;
+            _selectedLocation = null;
+            await ScanLocation();
+        }
+        else
+        {
+            _barcode = value.Value;
+            await Scan();
+        }
+    }
     private string? _changeFromLocation;
     private PdaApi.LocationRow? _currentLocation;
     private PdaApi.LocationRow? _selectedLocation;
@@ -288,6 +507,7 @@
     private bool DisableReceive => IsBusy
         || (_document is not null ? !DocumentReadyForLocation : _scan is null || AlreadyReceived)
         || _selectedLocation is null
+        || LocationValidationMessage(_selectedLocation) is not null
         || !string.Equals(_selectedLocation.LocationId, _loc.Trim(), StringComparison.OrdinalIgnoreCase);
     private bool DisableCancel => IsBusy || _document is not null || _scan is null || !AlreadyReceived;
     private int DisplayScannedBoxes => _document is null
@@ -401,6 +621,8 @@
 
     private void SetMode(string mode)
     {
+        if (IsSimpleTestMode)
+            _simpleMode = mode;
         if (string.Equals(_mode, mode, StringComparison.OrdinalIgnoreCase)) return;
 
         SaveModeState(_mode);
@@ -410,6 +632,8 @@
 
     private void SaveModeState(string mode)
     {
+        if (string.IsNullOrWhiteSpace(mode)) return;
+
         if (!_modeStates.TryGetValue(mode, out var state))
         {
             state = new ModeState();
@@ -527,6 +751,14 @@
 
     private async Task Scan()
     {
+        if (string.IsNullOrWhiteSpace(_mode))
+        {
+            _msg = "Select LOCAL or CKD before scanning.";
+            _cls = "fail";
+            ShowAlert("Receive Type Required", _msg, "warn");
+            return;
+        }
+
         if (DisableScan) return;
 
         _isScanning = true;
@@ -579,8 +811,8 @@
             {
                 _barcode = "";
                 _msg = "This box has already been scanned.";
-                _cls = "warn";
-                ShowAlert("Box Already Scanned", _msg, "warn");
+                _cls = "fail";
+                ShowAlert("Box Already Scanned", _msg, "danger");
                 return;
             }
 
@@ -607,7 +839,7 @@
                 : AlreadyReceived
                     ? "This box is already received."
                     : "Box matched. Scan the location and receive.";
-            _cls = AlreadyReceived ? "warn" : "ok";
+            _cls = AlreadyReceived ? "fail" : "ok";
 
             if (DocumentReadyForLocation)
             {
@@ -698,6 +930,15 @@
             _loc = location.LocationId;
             _highlightLocationScan = false;
 
+            var locationIssue = LocationValidationMessage(location);
+            if (locationIssue is not null)
+            {
+                _msg = locationIssue;
+                _cls = "fail";
+                ShowAlert("Location Not Available", locationIssue, "warn");
+                return;
+            }
+
             if (_isLocationChangeMode && IsSameAsCurrentLocation(location.LocationId))
             {
                 _selectedLocation = null;
@@ -750,7 +991,7 @@
                 foreach (var boxBarcode in boxes)
                 {
                     var batchResult = await Api.WhReceiveInboundAsync(
-                        new PdaApi.InboundReceiveReq(_mode, boxBarcode, _selectedLocation.LocationId));
+                        new PdaApi.InboundReceiveReq(_mode, boxBarcode, _selectedLocation.LocationId, SimulateReceiveFailure));
                     if (!batchResult.Success)
                     {
                         await RefreshDocumentAsync();
@@ -773,7 +1014,11 @@
             var scan = _scan;
             if (scan is null) return;
 
-            var result = await Api.WhReceiveInboundAsync(new PdaApi.InboundReceiveReq(_mode, scan.Barcode, _selectedLocation.LocationId));
+            var result = await Api.WhReceiveInboundAsync(new PdaApi.InboundReceiveReq(
+                _mode,
+                scan.Barcode,
+                _selectedLocation.LocationId,
+                SimulateReceiveFailure));
             if (!result.Success)
             {
                 _msg = result.Message;
@@ -1032,6 +1277,9 @@
                 return "Scan a Location No first.";
             if (_selectedLocation is null)
                 return "Load the location information first.";
+            var documentLocationIssue = LocationValidationMessage(_selectedLocation);
+            if (documentLocationIssue is not null)
+                return documentLocationIssue;
             if (!string.Equals(_selectedLocation.LocationId, _loc.Trim(), StringComparison.OrdinalIgnoreCase))
                 return "The entered Location No does not match the loaded location.";
             return null;
@@ -1047,8 +1295,31 @@
             return "Enter or scan a Location No first.";
         if (_selectedLocation is null)
             return "Tap Location No SCAN to load the location information first.";
+        var locationIssue = LocationValidationMessage(_selectedLocation);
+        if (locationIssue is not null)
+            return locationIssue;
         if (!string.Equals(_selectedLocation.LocationId, _loc.Trim(), StringComparison.OrdinalIgnoreCase))
             return "The entered Location No does not match the loaded location. Scan the Location No again.";
+
+        return null;
+    }
+
+    private string? LocationValidationMessage(PdaApi.LocationRow? location)
+    {
+        if (location is null) return null;
+
+        var type = location.LocationType?.Trim();
+        if (type is not null && (type.Equals("BLOCKED", StringComparison.OrdinalIgnoreCase)
+            || type.Equals("HOLD", StringComparison.OrdinalIgnoreCase)
+            || type.Equals("QUARANTINE", StringComparison.OrdinalIgnoreCase)
+            || type.Equals("INACTIVE", StringComparison.OrdinalIgnoreCase)))
+            return $"Location {location.LocationId} is blocked for inbound.";
+
+        var incomingQty = _document is not null
+            ? _documentBoxes.Where(box => _pendingDocumentBoxes.Contains(box.BoxBarcode)).Sum(box => box.Qty)
+            : _scan?.Qty ?? 0;
+        if (location.Capacity is > 0 && location.TotalQty + incomingQty > location.Capacity.Value)
+            return $"Location {location.LocationId} capacity would be exceeded ({location.TotalQty + incomingQty:N0}/{location.Capacity:N0}).";
 
         return null;
     }

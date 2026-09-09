@@ -491,16 +491,6 @@ WH: { cols: 3, tables: [
     ['ExpiryDate','DATE',''],
     ['Status','VARCHAR(20)','']
   ]},
-  {name:'WH_InventorySnapshot', ko:'재고 일일 스냅샷', cols:[
-    ['SnapshotID','BIGINT IDENTITY','PK'],
-    ['SnapshotDate','DATE',''],
-    ['ItemNo','VARCHAR(20)','FK:MD_Item.ItemNo'],
-    ['LocationID','VARCHAR(20)','FK:MD_Location.LocationID'],
-    ['LotID','INT','FK:tbl_Lot.LotID'],
-    ['OnHandQty','DECIMAL(14,3)',''],
-    ['UnitCost','DECIMAL(14,4)',''],
-    ['TotalValue','DECIMAL(16,2)','']
-  ]},
   {name:'WH_InventoryAdjust', ko:'재고 조정', cols:[
     ['AdjustID','INT IDENTITY','PK'],
     ['AdjustNo','VARCHAR(24)',''],

@@ -62,12 +62,8 @@ FILES=(
   migrate_routing_step.sql            # 라우팅: MD_RoutingStep 생성 + A/B 시퀀스 시드 (seed_admin_permissions 이후 — Admin 권한 필요)
   migrate_wo_step_line.sql            # WO 공정 단계: PP_WorkOrderRouting CompletedQty·TerminalLock·인덱스 + 백필 (migrate_routing_step 이후)
   migrate_wo_prod_deadline.sql        # WO 생산 마감일 컬럼 + PP_PROD_BUFFER_WORKDAYS 설정 (순서 무관)
-  migrate_wh_inventory_setting.sql    # 창고 재고 설정 시드
-  migrate_wh_location_master_audit.sql # Warehouse Location Master audit + Admin role backfill
-  migrate_wh_use_md_location_master.sql # 중복 WH Location Master 제거 (MD-018 사용)
-  pda/migrate_pda_wh_schedule.sql     # PDA 창고: 입고예정/출고예정/조정
-  pda/migrate_pda_wh_inbound.sql
-  pda/migrate_pda_wh_release.sql
+  pda/PDA_SCHEMA.sql                  # consolidated WH/FG PDA schema
+  pda/PDA_SEED.sql                    # consolidated re-runnable WH/FG PDA seed
   cleanup_legacy_sis_test.sql
   cleanup_cancelled_wo_slots.sql      # 취소 WO 가 남긴 라인 스케줄 슬롯 정리 (신규 DB 에서는 no-op)
 )

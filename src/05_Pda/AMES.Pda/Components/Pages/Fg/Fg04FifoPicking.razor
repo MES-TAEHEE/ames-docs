@@ -1,5 +1,6 @@
 @page "/fg/04"
 @inject PdaApi Api
+@inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @implements IAsyncDisposable
@@ -7,7 +8,11 @@
 <div class="pda-shell wh wh07-shell fg04-shell">
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
-        <div class="wh07-tbar-title"><span class="pda-tbar-brand">RELEASE PICKING</span></div>
+        <div class="wh07-tbar-title"><span class="pda-tbar-brand">PICKING LIST</span></div>
+        @if (IsPptTestMode)
+        {
+            <PptScenarioPanel Title="PICKING LIST" Steps="PptSteps" Busy="@_isBusy" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+        }
     </div>
 
     <div class="pda-bd wh07-body">
@@ -106,6 +111,7 @@
     [JSInvokable]
     public async Task OnHardwareScanAsync(string scanText)
     {
+        if (_pptOpen) return;
         var value = Normalize(scanText);
         if (string.IsNullOrWhiteSpace(value)) return;
         if (_selectedSlip is null) { _slipBarcode = value; await LoadOutgoingSlip(); }
@@ -233,7 +239,7 @@
     private void Clear() { _selectedSlip = null; _lines.Clear(); _scannedQty.Clear(); _scannedLots.Clear(); _slipBarcode = _lotBarcode = ""; }
     private void ShowModal(string title, string message, string kind) { _modalTitle = title; _modalMessage = message; _modalKind = kind; _modalOpen = true; }
     private void CloseModal() { _modalOpen = false; _ = FocusAsync(); }
-    private async Task FocusAsync() { try { await JS.InvokeVoidAsync("pdaScan.focus", ".fg04-shell .pda-scan-input"); } catch { } }
+    private async Task FocusAsync() { if (_pptOpen || _modalOpen) return; try { await JS.InvokeVoidAsync("pdaScan.focus", ".fg04-shell .pda-scan-input"); } catch { } }
     private static bool CompletedStatus(string? status) => status?.Trim().ToUpperInvariant() is "PICKED" or "SHIPPED" or "CANCELLED" or "CLOSED";
     private static bool LooksLikeFgLotBarcode(string value) => value.Length >= 6 && value.AsSpan(4, 2).Equals("FG", StringComparison.OrdinalIgnoreCase);
     private static string Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? "" : value.Replace("\u0002", "").Replace("\u0003", "").Trim();

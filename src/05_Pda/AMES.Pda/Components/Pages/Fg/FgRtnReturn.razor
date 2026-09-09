@@ -1,5 +1,6 @@
 @page "/fg/06"
 @inject PdaApi Api
+@inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @implements IAsyncDisposable
@@ -8,6 +9,10 @@
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
         <span class="pda-tbar-brand">CUSTOMER RETURN</span>
+        @if (IsPptTestMode)
+        {
+            <PptScenarioPanel Title="CUSTOMER RETURN" Steps="PptSteps" Busy="@_isBusy" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+        }
     </div>
 
     <div class="pda-bd wh02-body fg01-body fg-return-body">
@@ -137,6 +142,7 @@
     [JSInvokable]
     public async Task OnHardwareScanAsync(string scanText)
     {
+        if (_pptOpen) return;
         _barcode = NormalizeScan(scanText);
         if (!string.IsNullOrWhiteSpace(_barcode)) await LookupProduct();
         await InvokeAsync(StateHasChanged);
@@ -236,7 +242,7 @@
     }
 
     private void CloseModal() { _modalOpen = false; _ = FocusScannerAsync(); }
-    private async Task FocusScannerAsync() { try { await JS.InvokeVoidAsync("pdaScan.focus", ".fg06-shell .pda-scan-input"); } catch { } }
+    private async Task FocusScannerAsync() { if (_pptOpen || _modalOpen) return; try { await JS.InvokeVoidAsync("pdaScan.focus", ".fg06-shell .pda-scan-input"); } catch { } }
     private static string NormalizeScan(string? value) => string.IsNullOrWhiteSpace(value) ? "" : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
 

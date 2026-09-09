@@ -35,14 +35,13 @@ Call("PressSupervisorPin", "3");
 Call("PressSupervisorPin", "5");
 Call("DeleteSupervisorPin");
 Call("PressSupervisorPin", "4");
-Call("ConfirmSupervisorPin");
-Check((string)Get("_invAdjustSupervisorPin")! == "1234" && !(bool)Get("_pinPadOpen")!, "Confirm PIN without saving inventory.");
-Check((string)Get("_pinPadDraft")! == "", "Clear popup draft after confirmation.");
+Check((string)Get("_pinPadDraft")! == "1234", "Prepare PIN for server-side approval.");
+Call("CloseSupervisorPinPad");
 
 Set("_pinPadOpen", true);
 Set("_pinPadDraft", "9999");
 Call("CloseSupervisorPinPad");
-Check((string)Get("_invAdjustSupervisorPin")! == "1234", "Cancel must preserve the confirmed PIN.");
+Check((string)Get("_pinPadDraft")! == "", "Cancel must discard the unconfirmed PIN.");
 Set("_pinPadOpen", true);
 Set("_pinPadDraft", "123456789012");
 Call("PressSupervisorPin", "3");
@@ -60,6 +59,8 @@ Check((decimal)Get("_invAdjustDelta")! == 0 && !(bool)Get("_pinPadOpen")!, "Clea
 Check(Get("_invScan") is null, "Clear scanned stock.");
 
 var source = File.ReadAllText(Path.Combine(root, "src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh03InventoryStatus.razor"));
+Check(source.Contains("WhValidateSupervisorPinAsync") && source.Contains("Disabled=\"@DisableInventoryAdjust\""),
+    "Supervisor PIN must be approved before SAVE is enabled.");
 Check(source.Contains("ClearInventoryWork();\n            ShowAlert(\"Saved\"", StringComparison.Ordinal)
     || source.Contains("ClearInventoryWork();\r\n            ShowAlert(\"Saved\"", StringComparison.Ordinal),
     "Successful save must reset the form before showing confirmation.");

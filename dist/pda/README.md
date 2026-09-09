@@ -1,10 +1,11 @@
 # AMES PDA Database Scripts
 
-This folder contains database scripts owned by the PDA application.
+This folder contains the consolidated WH/FG database contract used by the PDA
+and its related current web screens.
 
-Use this folder for PDA-specific tables, procedures, and demo data instead of
-creating one SQL file per PDA screen. Screen numbers can change, but the PDA
-database contract should stay named by business workflow.
+Use `PDA_SCHEMA.sql` for WH/FG tables, columns, indexes and procedures. Use
+`PDA_SEED.sql` for rerunnable development data and current menu cleanup. Do not
+create separate migration or seed files per screen.
 
 ## Naming
 
@@ -14,8 +15,6 @@ database contract should stay named by business workflow.
 
 Examples:
 
-- `dbo.WH_PDA_SCHEDULE_INBOUND_LIST`
-- `dbo.WH_PDA_SCHEDULE_RELEASE_LIST`
 - `dbo.WH_PDA_INBOUND_SCAN_LOT`
 - `dbo.WH_PDA_INBOUND_RECEIVE_LOT`
 - `dbo.WH_PDA_INBOUND_MOVE_LOCATION`
@@ -36,16 +35,9 @@ Examples:
 ## Apply
 
 ```powershell
-sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -d AMES_DEV -i dist\pda\migrate_pda_wh_schedule.sql
-sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -d AMES_DEV -i dist\pda\seed_pda_wh_demo_data.sql
-sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -d AMES_DEV -i dist\pda\migrate_pda_wh_inbound.sql
-sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -d AMES_DEV -i dist\pda\seed_pda_wh_inbound_demo_data.sql
-sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -d AMES_DEV -i dist\pda\migrate_pda_wh_inventory.sql
-sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -d AMES_DEV -i dist\pda\migrate_pda_wh_release.sql
-sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -d AMES_DEV -i dist\pda\seed_pda_wh_release_demo_data.sql
-sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -d AMES_DEV -i dist\pda\migrate_pda_fg_putaway.sql
-sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -d AMES_DEV -i dist\pda\seed_pda_fg_putaway_demo_data.sql
+sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -b -d AMES_DEV -i dist\pda\PDA_SCHEMA.sql
+sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -b -d AMES_DEV -i dist\pda\PDA_SEED.sql
 ```
 
-The scripts should be idempotent where possible so they can be applied again
-on a local Docker database or a shared development database.
+Apply the base `dist/AMES_Schema.sql` first. Both PDA scripts are rerunnable, but
+`PDA_SEED.sql` resets its named test records and must not be run on production data.
