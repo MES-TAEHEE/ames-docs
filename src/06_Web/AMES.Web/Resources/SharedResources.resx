@@ -5806,7 +5806,7 @@
     <value>전체 평균</value>
   </data>
   <data name="MNT.OeeAnalysis.Trend.Note" xml:space="preserve">
-    <value>막대 = OEE · 선 = A / P / Q · 점선 = 목표 85% · 기간이 62일을 넘으면 월 단위로 집계</value>
+    <value>막대 = OEE · 선 = A / P / Q · 점선 = 목표 85% · 조회 기간과 무관하게 오늘 기준 최근 12주를 주(월요일 시작) 단위로 집계</value>
   </data>
   <data name="MNT.OeeAnalysis.Trend.Target" xml:space="preserve">
     <value>목표 85%</value>
@@ -7184,5 +7184,8 @@
   </data>
   <data name="RPT.ReportBuilder.Ok.Exported" xml:space="preserve">
     <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Trend.Range" xml:space="preserve">
+    <value>최근 {0}주 ({1} ~ {2})</value>
   </data>
 </root>

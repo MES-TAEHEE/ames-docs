@@ -5806,7 +5806,7 @@
     <value>Overall Average</value>
   </data>
   <data name="MNT.OeeAnalysis.Trend.Note" xml:space="preserve">
-    <value>Bars = OEE · Lines = A / P / Q · Dashed = 85% target · Monthly buckets when the period exceeds 62 days</value>
+    <value>Bars = OEE · Lines = A / P / Q · Dashed = 85% target · Weekly buckets (Mon start) for the last 12 weeks up to today, independent of the search period</value>
   </data>
   <data name="MNT.OeeAnalysis.Trend.Target" xml:space="preserve">
     <value>Target 85%</value>
@@ -7184,5 +7184,8 @@
   </data>
   <data name="RPT.ReportBuilder.Ok.Exported" xml:space="preserve">
     <value>Exported {0} rows to Excel.</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Trend.Range" xml:space="preserve">
+    <value>Last {0} weeks ({1} ~ {2})</value>
   </data>
 </root>

@@ -5779,7 +5779,7 @@
     <value>Promedio General</value>
   </data>
   <data name="MNT.OeeAnalysis.Trend.Note" xml:space="preserve">
-    <value>Barras = OEE · Líneas = A / P / Q · Punteada = objetivo 85% · Mensual si el período supera 62 días</value>
+    <value>Barras = OEE · Líneas = A / P / Q · Punteada = objetivo 85% · Semanal (inicio lunes) para las últimas 12 semanas hasta hoy, independiente del período de consulta</value>
   </data>
   <data name="MNT.OeeAnalysis.Trend.Target" xml:space="preserve">
     <value>Objetivo 85%</value>
@@ -7157,5 +7157,8 @@
   </data>
   <data name="RPT.ReportBuilder.Ok.Exported" xml:space="preserve">
     <value>{0} filas exportadas a Excel.</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Trend.Range" xml:space="preserve">
+    <value>Últimas {0} semanas ({1} ~ {2})</value>
   </data>
 </root>
