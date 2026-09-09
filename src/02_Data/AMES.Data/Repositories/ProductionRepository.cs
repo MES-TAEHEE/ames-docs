@@ -64,21 +64,25 @@ public sealed class ProductionRepository
                 lotId = (int)cmd.ExecuteScalar()!;
             }
 
-            // 2) PR_ProductionResult
+            // 2) PR_ProductionResult — 전기일·교대는 공통코드(DAY_CUTOFF·WORK_SHIFT)로 서버 시각에 판정
+            var (now, prodDate, shiftCode) = ProdCalendar.ResolveNow(conn, tx);
             int resultId;
             using (var cmd = new SqlCommand("""
                 INSERT INTO dbo.PR_ProductionResult
                     (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec,
-                     MoldID, OperatorID, SessionID, DefectFlag, EntryAt, CreatedBy, CreatedTS)
+                     MoldID, OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS)
                 OUTPUT INSERTED.ResultID
                 VALUES
                     (@EntryNo, @WoID, @LotID, @LineID, @Proc, @Good, @CT,
-                     @Mold, @Op, @Sess, @DF, SYSDATETIME(), @By, SYSDATETIME());
+                     @Mold, @Op, @Sess, @DF, @Now, @ProdDate, @Shift, @By, SYSDATETIME());
                 """, conn, tx))
             {
-                var entryNo = $"{processCode}-{DateTime.Now:yyyyMMdd}-{lineId}-{DateTime.Now:HHmmssfff}";
+                var entryNo = $"{processCode}-{now:yyyyMMdd}-{lineId}-{now:HHmmssfff}";
                 if (entryNo.Length > 28) entryNo = entryNo[..28];
                 cmd.Parameters.Add("@EntryNo", SqlDbType.VarChar, 28).Value = entryNo;
+                cmd.Parameters.Add("@Now",      SqlDbType.DateTime2     ).Value = now;
+                cmd.Parameters.Add("@ProdDate", SqlDbType.Date          ).Value = prodDate;
+                cmd.Parameters.Add("@Shift",    SqlDbType.VarChar, 10   ).Value = (object?)shiftCode ?? DBNull.Value;
                 cmd.Parameters.Add("@WoID",    SqlDbType.Int           ).Value = woId;
                 cmd.Parameters.Add("@LotID",   SqlDbType.Int           ).Value = lotId;
                 cmd.Parameters.Add("@LineID",  SqlDbType.VarChar, 20   ).Value = lineId;

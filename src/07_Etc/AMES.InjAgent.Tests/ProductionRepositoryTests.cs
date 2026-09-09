@@ -71,6 +71,19 @@ public class ProductionRepositoryTests
             cmd.Parameters.AddWithValue("@L", lotId);
             var lotCode = (string)cmd.ExecuteScalar()!;
             Assert.Matches(@"^[A-Z][1-9A-C][1-9A-V]W1\d{4}$", lotCode);
+
+            // 전기일·교대가 공통코드 판정과 같은 값으로 저장돼야 한다
+            using var cmd3 = new Microsoft.Data.SqlClient.SqlCommand(
+                "SELECT EntryAt, ProdDate, ShiftCode FROM dbo.PR_ProductionResult WHERE ResultID = @R;", conn);
+            cmd3.Parameters.AddWithValue("@R", resultId);
+            using var rdr = cmd3.ExecuteReader();
+            Assert.True(rdr.Read());
+            var entryAt  = (DateTime)rdr["EntryAt"];
+            var prodDate = (DateTime)rdr["ProdDate"];
+            var (_, expectedDate, expectedShift) = AMES.Data.Services.ProdCalendar.ResolveNow(f.OpenConnection(), null);
+            Assert.Equal(expectedDate, prodDate);
+            Assert.Equal(expectedShift, rdr["ShiftCode"] as string);
+            Assert.InRange(entryAt, DateTime.Now.AddMinutes(-5), DateTime.Now.AddMinutes(5));
         }
         finally
         {

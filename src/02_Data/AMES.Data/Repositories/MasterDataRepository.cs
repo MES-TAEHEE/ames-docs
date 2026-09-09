@@ -1,5 +1,6 @@
 using System.Data;
 using AMES.Data.Connection;
+using AMES.Data.Services;
 using Microsoft.Data.SqlClient;
 
 namespace AMES.Data.Repositories;
@@ -27,6 +28,16 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@R", SqlDbType.VarChar, 20).Value = recipeId;
         var v = cmd.ExecuteScalar();
         return v is int i ? i : null;
+    }
+
+    /// <summary>
+    /// 지금(서버 시각) 어느 교대인지 — 공통코드 WORK_SHIFT 창 기준. 어느 창에도 안 걸리면 null.
+    /// POP 로그인 세션의 ShiftCode 를 정할 때 쓴다.
+    /// </summary>
+    public string? CurrentShiftCode()
+    {
+        using var conn = _factory.OpenConnection();
+        return ProdCalendar.ResolveNow(conn, null).ShiftCode;
     }
 
     // ── MD-01 CodeGroup ──────────────────────────────────────────────────
@@ -4322,7 +4333,7 @@ public sealed class MasterDataRepository
             while (rdr.Read())
             {
                 if (rdr["CodeValue"] as string is not { } code) continue;
-                if (TryParseShiftWindow(rdr["Attribute1"] as string, out int s, out int e) && e > s)
+                if (ProdCalendar.TryParseWindow(rdr["Attribute1"] as string, out int s, out int e) && e > s)
                     shifts.Add((code, s, e));
             }
 
@@ -4365,22 +4376,6 @@ public sealed class MasterDataRepository
             cmd.Parameters.Add("@P",  SqlDbType.VarChar, 20).Value = patternId;
             cmd.ExecuteNonQuery();
         }
-    }
-
-    // 'HHMM-HHMM' → 시작/종료 분. 2400 = 1440.
-    private static bool TryParseShiftWindow(string? a, out int start, out int end)
-    {
-        start = 0; end = 0;
-        if (string.IsNullOrWhiteSpace(a)) return false;
-        var parts = a.Split('-');
-        return parts.Length == 2 && TryHHMM(parts[0], out start) && TryHHMM(parts[1], out end);
-    }
-    private static bool TryHHMM(string s, out int min)
-    {
-        min = 0; s = s.Trim();
-        if (s.Length != 4 || !int.TryParse(s[..2], out var h) || !int.TryParse(s.Substring(2, 2), out var m)) return false;
-        if (h < 0 || h > 24 || m < 0 || m > 59) return false;
-        min = h * 60 + m; return true;
     }
 
     // ── MD_Recipe CRUD ───────────────────────────────────────────────

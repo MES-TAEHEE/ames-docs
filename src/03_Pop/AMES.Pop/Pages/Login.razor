@@ -405,6 +405,14 @@
         Authenticate(attemptedId, pin, AMES.Contracts.Enums.AuthMethod.Pin);
     }
 
+    // 세션 교대는 공통코드 WORK_SHIFT 창으로 로그인 시각(서버)에 정한다.
+    // 창에 안 걸리거나 조회가 실패하면 appsettings DefaultShift 로 떨어진다 — 로그인 자체를 막지 않기 위해서다.
+    static string ResolveShiftCode()
+    {
+        try { return PopServices.Master.CurrentShiftCode() ?? AppConfig.Current.DefaultShift; }
+        catch { return AppConfig.Current.DefaultShift; }
+    }
+
     // PIN 키패드와 배지 스캔이 공유한다. 성공하면 화면 전환까지 여기서 끝낸다.
     void Authenticate(string attemptedId, string? pin, AMES.Contracts.Enums.AuthMethod method)
     {
@@ -420,7 +428,7 @@
                 Method      = method,
                 TerminalId  = _selStation.StationCode,
                 LineId      = _selLine.LineID,
-                ShiftCode   = AppConfig.Current.DefaultShift,
+                ShiftCode   = ResolveShiftCode(),
             });
 
             if (outcome.IsSuccess && outcome.Session is not null)
