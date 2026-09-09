@@ -61,6 +61,7 @@ FILES=(
   migrate_mold_master.sql             # 금형: 매핑/색상/라인 시드 + FK 3종
   migrate_routing_step.sql            # 라우팅: MD_RoutingStep 생성 + A/B 시퀀스 시드 (seed_admin_permissions 이후 — Admin 권한 필요)
   migrate_wo_step_line.sql            # WO 공정 단계: PP_WorkOrderRouting CompletedQty·TerminalLock·인덱스 + 백필 (migrate_routing_step 이후)
+  migrate_wo_prod_deadline.sql        # WO 생산 마감일 컬럼 + PP_PROD_BUFFER_WORKDAYS 설정 (순서 무관)
   pda/PDA_SCHEMA.sql                  # consolidated WH/FG PDA schema
   pda/PDA_SEED.sql                    # consolidated re-runnable WH/FG PDA seed
   cleanup_legacy_sis_test.sql
