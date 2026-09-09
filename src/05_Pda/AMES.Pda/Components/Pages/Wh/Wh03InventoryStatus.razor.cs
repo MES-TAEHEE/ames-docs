@@ -27,7 +27,14 @@ public partial class Wh03InventoryStatus
         6 => step with { Values = [new("이력 확인", "TRANSACTIONS", "HISTORY")] },
         _ => step
     }).ToArray();
-    private bool IsPptTestMode => string.Equals(Auth?.Session?.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase);
+    private bool IsDetailedFgTestMode => IsFinishedGoodsAdjust
+        && string.Equals(Auth?.Session?.EmployeeNo, "TEST", StringComparison.OrdinalIgnoreCase);
+    private bool IsPptTestMode => IsDetailedFgTestMode
+        || string.Equals(Auth?.Session?.EmployeeNo, "TEST1", StringComparison.OrdinalIgnoreCase);
+    private PptScenarioPanel.Step[] ActivePptSteps => IsDetailedFgTestMode
+        ? FgDetailedScenarioCatalog.Adjust(PptFgAdjustSteps)
+        : IsFinishedGoodsAdjust ? PptFgAdjustSteps : IsAdjustTab ? PptAdjustSteps : PptInventorySteps;
+    private string ScenarioModeLabel => IsDetailedFgTestMode ? "TEST MODE" : "PPT CHECK";
     private bool _pptOpen;
     private readonly HashSet<string> _pptReadyScreens = [];
     private async Task EnsurePptData()

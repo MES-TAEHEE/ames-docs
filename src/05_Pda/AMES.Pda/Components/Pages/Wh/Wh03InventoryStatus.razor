@@ -17,7 +17,7 @@
             <div class="wh03-tbar-actions">
                 @if (IsPptTestMode)
                 {
-                    <PptScenarioPanel @key='@(IsFinishedGoodsAdjust ? "fg-adjust" : IsAdjustTab ? "wh-adjust" : "wh-inventory")' Title="@(IsAdjustTab ? "ADJUST" : "INVENTORY")" Steps="@(IsFinishedGoodsAdjust ? PptFgAdjustSteps : IsAdjustTab ? PptAdjustSteps : PptInventorySteps)" Busy="@(InventoryBusy || _isLoading)" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+                    <PptScenarioPanel @key='@(IsFinishedGoodsAdjust ? "fg-adjust" : IsAdjustTab ? "wh-adjust" : "wh-inventory")' Title="@(IsAdjustTab ? "ADJUST" : "INVENTORY")" Steps="ActivePptSteps" ModeLabel="@ScenarioModeLabel" Busy="@(InventoryBusy || _isLoading)" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
                 }
                 @if (IsTestMode)
                 {
