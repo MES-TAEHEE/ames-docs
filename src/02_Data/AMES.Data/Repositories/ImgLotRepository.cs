@@ -201,6 +201,70 @@ public sealed class ImgLotRepository
     }
 
     /// <summary>
+    /// 라인 불량 팝업의 LOT 스캔 등록 — INJ 와 같은 순서(잠금·검사 → 역분개 → PR_DefectDetail → LOT DEFECT).
+    /// 원단 롤 차감·본딩 로그는 되돌리지 않는다 — 원단은 이미 소비됐다.
+    /// </summary>
+    public (DefectRegisterOutcome Outcome, int DefectId, string ItemNo) RegisterDefect(
+        string lotCode, string lineId, string defectCode,
+        string operatorId, int? sessionId, string employeeNo)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            int lotId; string itemNo, status;
+            using (var cmd = new SqlCommand("""
+                SELECT l.LotID, l.ItemNo, l.LineID, e.ConfirmStatus
+                FROM   dbo.tbl_Lot   l WITH (UPDLOCK, ROWLOCK)
+                JOIN   dbo.PR_ImgLot e WITH (UPDLOCK, ROWLOCK) ON e.LotID = l.LotID
+                WHERE  l.LotCode = @Code;
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = lotCode;
+                using var rdr = cmd.ExecuteReader();
+                if (!rdr.Read()) { rdr.Close(); tx.Rollback(); return (DefectRegisterOutcome.NotFound, 0, string.Empty); }
+                lotId  = (int)rdr["LotID"];
+                itemNo = rdr["ItemNo"] as string ?? string.Empty;
+                status = (string)rdr["ConfirmStatus"];
+                var lotLine = rdr["LineID"] as string;
+                if (!string.Equals(lotLine, lineId, StringComparison.OrdinalIgnoreCase))
+                { rdr.Close(); tx.Rollback(); return (DefectRegisterOutcome.WrongLine, 0, itemNo); }
+            }
+
+            // 상태 검사가 PR_DefectDetail 보다 먼저다 — DEFECT 면 여기서 tbl_Lot 잠금을 놓고 나가므로
+            // ReworkRepository(PR_DefectDetail → tbl_Lot 순)와 잠금 순서가 엇갈려도 교착이 없다. 순서를 바꾸면 순환이 생긴다.
+            var check = LotDefectRules.CheckRegister(status);
+            if (check != DefectRegisterOutcome.Registered) { tx.Rollback(); return (check, 0, itemNo); }
+
+            int? origResultId = null, reversalId = null, woId = null;
+            if (LotDefectRules.ReversesResult(status))
+                (origResultId, reversalId, woId) = LotDefectWriter.ReverseConfirmedResult(conn, tx, lotId, lineId, operatorId, sessionId, employeeNo);
+            woId ??= LotDefectWriter.ResolveOpenWo(conn, tx, lineId, itemNo)?.WoId;
+
+            var defectId = LotDefectWriter.InsertDefectDetail(conn, tx, lotId, woId, origResultId, ProcessCode, defectCode,
+                                                              status, reversalId, null, operatorId, employeeNo);
+
+            using (var cmd = new SqlCommand("""
+                UPDATE dbo.PR_ImgLot
+                SET    ConfirmStatus = 'DEFECT', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+                WHERE  LotID = @Lot;
+                UPDATE dbo.tbl_Lot
+                SET    QualityFlag = 'NG', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+                WHERE  LotID = @Lot;
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Lot", SqlDbType.Int          ).Value = lotId;
+                cmd.Parameters.Add("@Op",  SqlDbType.NVarChar, 450).Value = operatorId;
+                cmd.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+            return (DefectRegisterOutcome.Registered, defectId, itemNo);
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    /// <summary>
     /// 라벨 스캔 확정 — 한 트랜잭션으로:
     ///   ① LOT 잠금·상태 검사 → ② LOT 품번의 열린 WO 단계 해석 (INJ 와 같은 규칙)
     ///   → ③ PR_ProductionResult 1 EA → ④ 원단 롤 차감 + PR_FabricDeductionLog (롤이 있을 때)
@@ -238,7 +302,13 @@ public sealed class ImgLotRepository
                 if (!string.Equals(lotLine, lineId, StringComparison.OrdinalIgnoreCase))
                 { rdr.Close(); tx.Rollback(); return (ImgConfirmOutcome.WrongLine, 0, itemNo, 0); }
             }
-            if (status == "CONFIRMED") { tx.Rollback(); return (ImgConfirmOutcome.AlreadyConfirmed, 0, itemNo, 0); }
+            switch (LotDefectRules.ConfirmBlock(status))
+            {
+                case LotConfirmBlock.AlreadyConfirmed: tx.Rollback(); return (ImgConfirmOutcome.AlreadyConfirmed, 0, itemNo, 0);
+                case LotConfirmBlock.InRework:         tx.Rollback(); return (ImgConfirmOutcome.InRework,         0, itemNo, 0);
+                case LotConfirmBlock.Scrapped:         tx.Rollback(); return (ImgConfirmOutcome.Scrapped,         0, itemNo, 0);
+                case LotConfirmBlock.NgBlocked:        throw new InvalidOperationException("IMG lot cannot be NG_BLOCKED.");
+            }
 
             int woId, stepId;
             using (var cmd = new SqlCommand("""
@@ -404,8 +474,7 @@ public sealed class ImgLotRepository
     /// <summary>
     /// IMG-MAIN 좌측 패널: 스테이션 BOP 품번 ∪ 오늘 실적/일정이 있는 품번의 당일 현황.
     /// INJ 판과 같은 항등식 INPUT = FINAL + NG + 미확정. 기준일은 LOT 생성일.
-    /// NG 는 오늘 등록된 IMG 수동 불량(PR_DefectDetail, LotID 없음)이고 FINAL 은
-    /// 확정 LOT 수에서 그 불량을 뺀 값(0 미만은 0).
+    /// 전부 LOT 상태로 센다: FINAL = CONFIRMED, NG = DEFECT + SCRAPPED, 미확정 = RAW.
     /// </summary>
     public List<InjItemDailyDto> GetDailyItemSummary(string lineId, string stationCode)
     {
@@ -427,39 +496,28 @@ public sealed class ImgLotRepository
             ),
             lots AS (
                 SELECT l.ItemNo,
-                       COUNT(*)                                                       AS InputQty,
-                       SUM(CASE WHEN e.ConfirmStatus = 'CONFIRMED' THEN 1 ELSE 0 END) AS ConfirmedQty,
-                       SUM(CASE WHEN e.ConfirmStatus = 'RAW'       THEN 1 ELSE 0 END) AS PendingQty
+                       COUNT(*)                                                                  AS InputQty,
+                       SUM(CASE WHEN e.ConfirmStatus = 'CONFIRMED' THEN 1 ELSE 0 END)            AS ConfirmedQty,
+                       SUM(CASE WHEN e.ConfirmStatus IN ('DEFECT','SCRAPPED') THEN 1 ELSE 0 END) AS NgQty,
+                       SUM(CASE WHEN e.ConfirmStatus = 'RAW'       THEN 1 ELSE 0 END)            AS PendingQty
                 FROM   dbo.tbl_Lot   l
                 JOIN   dbo.PR_ImgLot e ON e.LotID = l.LotID
                 WHERE  l.LineID = @Line
                   AND  l.CreatedTS >= @Today AND l.CreatedTS < DATEADD(day, 1, @Today)
                 GROUP  BY l.ItemNo
             ),
-            manual AS (
-                SELECT w.ItemNo, SUM(ISNULL(d.Qty,0)) AS ManualDefect
-                FROM   dbo.PR_DefectDetail d
-                JOIN   dbo.PP_WorkOrder    w ON w.WoID = d.WoID
-                WHERE  d.LotID IS NULL
-                  AND  d.ProcessCode = @Proc
-                  AND  CAST(d.DetectedAt AS date) = @Today
-                  AND  EXISTS (SELECT 1 FROM dbo.PP_WorkOrderRouting r
-                               WHERE  r.WoID = w.WoID AND r.LineID = @Line)
-                GROUP  BY w.ItemNo
-            ),
             itemkeys AS (
                 SELECT ItemNo FROM bop
                 UNION SELECT ItemNo FROM sched
                 UNION SELECT ItemNo FROM lots
-                UNION SELECT ItemNo FROM manual
             )
             SELECT k.ItemNo,
                    COALESCE(i.ItemName, N'')  AS ItemName,
                    ISNULL(p.PlanQty, 0)       AS PlanQty,
                    ISNULL(t.InputQty, 0)      AS InputQty,
                    ISNULL(t.ConfirmedQty, 0)  AS ConfirmedQty,
+                   ISNULL(t.NgQty, 0)         AS NgQty,
                    ISNULL(t.PendingQty, 0)    AS PendingQty,
-                   ISNULL(m.ManualDefect, 0)  AS ManualDefect,
                    CASE WHEN b.ItemNo IS NULL THEN 0 ELSE 1 END AS InBop,
                    CASE WHEN EXISTS (
                         SELECT 1
@@ -473,28 +531,24 @@ public sealed class ImgLotRepository
             LEFT JOIN bop    b ON b.ItemNo = k.ItemNo
             LEFT JOIN sched  p ON p.ItemNo = k.ItemNo
             LEFT JOIN lots   t ON t.ItemNo = k.ItemNo
-            LEFT JOIN manual m ON m.ItemNo = k.ItemNo
             ORDER  BY InBop DESC, k.ItemNo;
             """;
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@Line",    SqlDbType.VarChar, 20).Value = lineId;
         cmd.Parameters.Add("@Station", SqlDbType.VarChar, 20).Value = stationCode;
-        cmd.Parameters.Add("@Proc",    SqlDbType.VarChar, 10).Value = ProcessCode;
         using var rdr = cmd.ExecuteReader();
         var list = new List<InjItemDailyDto>();
         while (rdr.Read())
         {
-            var confirmed = Convert.ToInt32(rdr["ConfirmedQty"]);
-            var manual    = Convert.ToInt32(rdr["ManualDefect"]);
             list.Add(new InjItemDailyDto
             {
                 ItemNo     = (string)rdr["ItemNo"],
                 ItemName   = (string)rdr["ItemName"],
                 PlanQty    = Convert.ToDecimal(rdr["PlanQty"]),
                 InputQty   = Convert.ToInt32(rdr["InputQty"]),
-                NgQty      = manual,
-                FinalQty   = Math.Max(0, confirmed - manual),
+                NgQty      = Convert.ToInt32(rdr["NgQty"]),
+                FinalQty   = Convert.ToInt32(rdr["ConfirmedQty"]),
                 PendingQty = Convert.ToInt32(rdr["PendingQty"]),
                 InBop      = Convert.ToInt32(rdr["InBop"]) == 1,
                 HasOpenWo  = Convert.ToInt32(rdr["HasOpenWo"]) == 1,
