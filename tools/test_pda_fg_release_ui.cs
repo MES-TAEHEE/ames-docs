@@ -19,12 +19,15 @@ Check(System.Text.RegularExpressions.Regex.Matches(source, "<RadzenTextBox[^>]*p
     "FG Release must keep one barcode input and no SCAN button.");
 Check(source.Contains("OUTGOING SLIP BARCODE") && !source.Contains("SHIPMENT ORDER") && !source.Contains("ShipOrder"),
     "FG Release must use outgoing-slip terminology only.");
-Check(source.Contains("Api.FgInventoryAsync(_slipBarcode)")
-    && source.Contains("LooksLikeFgLotBarcode(_slipBarcode)")
+Check(source.Contains("LooksLikeFgLotBarcode(_slipBarcode)")
+    && !source.Contains("Api.FgInventoryAsync(_slipBarcode)")
     && source.Contains("Please scan the outgoing slip first.")
     && source.Contains("The outgoing slip barcode was not found.")
-    && source.Contains("The scanned FG LOT was not found."),
-    "A known LOT scanned first must request the outgoing slip without replacing existing not-found alerts.");
+    && source.Contains("Picking Service Error"),
+    "A LOT scanned first must request the outgoing slip while service failures stay visible.");
+Check(source.Contains("Only RELEASED outgoing slips can be picked")
+    && source.Contains("string.Equals(_selectedSlip.Status, \"Released\""),
+    "Only a released outgoing slip may enter picking.");
 var plannedStart = source.IndexOf("@foreach (var line in _lines)", StringComparison.Ordinal);
 var actionsStart = source.IndexOf("<div class=\"wh07-action-spacer\">", StringComparison.Ordinal);
 Check(plannedStart >= 0 && actionsStart > plannedStart && !source[plannedStart..actionsStart].Contains("LOT NO"),
@@ -37,26 +40,31 @@ var completeStart = source.IndexOf("private async Task CompleteRelease()", Strin
 Check(scanStart >= 0 && completeStart > scanStart, "Expected scan and complete methods.");
 var scanCode = source[scanStart..completeStart];
 Check(!scanCode.Contains("FgCompleteReleaseAsync") && scanCode.Contains("_scannedLots.Add")
-    && scanCode.Contains("stock.ItemNo") && scanCode.Contains("stock.Qty > remaining")
+    && scanCode.Contains("FgReleaseLotScanAsync") && !scanCode.Contains("FgInventoryAsync")
     && scanCode.Contains("ScannedQty(line) + stock.Qty"),
-    "LOT scan must validate the part and accumulate partial LOT quantities client-side.");
-Check(scanCode.Contains("OrderBy(x => x.StockTs ?? DateTime.MaxValue)")
-    && scanCode.Contains("ThenBy(x => x.StockId)")
-    && scanCode.Contains("FIFO Order") && scanCode.Contains("Scan {fifoLot.LotNo} first"),
-    "LOT scans must enforce the oldest available stock timestamp per part.");
+    "LOT scan must use the dedicated server validation and accumulate accepted quantities client-side.");
 Check(source[completeStart..].Contains("FgCompleteReleaseAsync"), "Only COMPLETE may persist scanned LOTs.");
 var api = File.ReadAllText(Path.Combine(root, "src/04_Api/AMES.Api/Endpoints/FgEndpoints.cs"));
-Check(api.Contains("/release/outgoing-slips/{barcode}") && api.Contains("/release/complete")
-    && api.Contains("BEGIN TRANSACTION") && api.Contains("ROLLBACK TRANSACTION"),
-    "COMPLETE must persist all LOTs in one server transaction.");
-Check(api.Contains("OutgoingSlipLineID int '$.OutgoingSlipLineId'")
-    && api.Contains("ISNULL(S.ItemNo,'') <> ISNULL(L.ItemNo,'')")
-    && api.Contains("StockID int PRIMARY KEY") && api.Contains("SUM(Qty) AS Qty"),
-    "COMPLETE must bind multiple scanned LOTs to the matching part line and validate their total quantity.");
-Check(api.Contains("ISNULL(Older.StockTS,'9999-12-31') < ISNULL(Chosen.StockTS,'9999-12-31')")
-    && api.Contains("A scanned LOT violates FIFO order."),
-    "COMPLETE must revalidate FIFO order inside the server transaction.");
+Check(api.Contains("/release/outgoing-slips/{barcode}") && api.Contains("/release/lot/scan")
+    && api.Contains("dbo.FG_PDA_PICKING_SCAN") && api.Contains("dbo.FG_PDA_PICKING_COMPLETE"),
+    "Picking scan and complete must use the database procedures.");
 var migration = File.ReadAllText(Path.Combine(root, "dist/pda/PDA_SCHEMA.sql"));
-Check(migration.Contains("OutgoingSlipNumber") && migration.Contains("CREATE UNIQUE INDEX"),
-    "Outgoing-slip barcode migration is required.");
+Check(migration.Contains("CREATE TABLE dbo.FG_PickingDetail")
+    && migration.Contains("CREATE OR ALTER PROCEDURE dbo.FG_PDA_PICKING_SCAN")
+    && migration.Contains("CREATE OR ALTER PROCEDURE dbo.FG_PDA_PICKING_COMPLETE")
+    && migration.Contains("FROM dbo.FG_ShipmentOrder WITH(UPDLOCK,HOLDLOCK)")
+    && migration.Contains("ISNULL(S.HoldFlag,0)=1")
+    && migration.Contains("This FG LOT belongs to a different customer.")
+    && migration.Contains("Only RELEASED outgoing slips can be completed.")
+    && migration.Contains("INSERT dbo.FG_PickingDetail"),
+    "Schema must enforce release status, hold/customer checks, concurrency and LOT detail persistence.");
+var scanProcedure = migration[migration.IndexOf("CREATE OR ALTER PROCEDURE dbo.FG_PDA_PICKING_SCAN", StringComparison.Ordinal)..
+    migration.IndexOf("CREATE OR ALTER PROCEDURE dbo.FG_PDA_PICKING_COMPLETE", StringComparison.Ordinal)];
+Check(!scanProcedure.Contains("SELECT TOP 100")
+    && scanProcedure.Contains("ORDER BY ISNULL(F.StockTS,'9999-12-31'),F.StockID"),
+    "Picking FIFO must inspect the complete eligible inventory queue.");
+Check(migration.Contains("CREATE OR ALTER PROCEDURE dbo.FG_PDA_LOADING_ORDER_SCAN")
+    && migration.Contains("FROM dbo.FG_PickingDetail D")
+    && migration.Contains("No completed picking detail exists for this shipment order."),
+    "Truck loading must use the persisted picking details.");
 Console.WriteLine("PASS: separated outgoing/part sections, partial LOT accumulation and atomic COMPLETE gate.");
