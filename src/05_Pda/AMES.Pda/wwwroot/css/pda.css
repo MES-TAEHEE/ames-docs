@@ -8501,6 +8501,15 @@ body:has(.pda-shell.wh),
     color: #ffffff !important;
 }
 
+/* Keep unavailable Save clickable for validation feedback, never green. */
+.pda-shell.wh.wh03-shell .wh03-post-btn.save.rz-button[aria-disabled="true"] {
+    border-color: #475569 !important;
+    background: #272e3b !important;
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+    cursor: not-allowed;
+}
+
 .pda-shell.wh.wh08-shell > .pda-tbar,
 .pda-shell.wh.wh08-shell .pda-tbar {
     min-height: 68px !important;

@@ -8,7 +8,7 @@ using System.Runtime.Loader;
 
 static string SourcePath([System.Runtime.CompilerServices.CallerFilePath] string path = "") => path;
 var root = Directory.GetParent(Path.GetDirectoryName(SourcePath())!)!.FullName;
-var bin = Path.Combine(root, "src/05_Pda/AMES.Pda/bin/Debug/net10.0-windows10.0.19041.0/win-x64");
+var bin = Path.GetFullPath(args.FirstOrDefault() ?? Path.Combine(root, "src/05_Pda/AMES.Pda/bin/Debug/net10.0-windows10.0.19041.0/win-x64"));
 AssemblyLoadContext.Default.Resolving += (_, name) =>
     File.Exists(Path.Combine(bin, name.Name + ".dll"))
         ? AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(bin, name.Name + ".dll"))
@@ -25,42 +25,34 @@ void Check(bool condition, string message)
     if (!condition) throw new Exception(message);
 }
 
-Set("_pinPadOpen", true);
-Call("PressSupervisorPin", "1");
-Call("PressSupervisorPin", "x");
-Call("ConfirmSupervisorPin");
-Check((string)Get("_pinPadDraft")! == "1" && (bool)Get("_pinPadOpen")!, "Reject non-digits and incomplete PIN.");
-Call("PressSupervisorPin", "2");
-Call("PressSupervisorPin", "3");
-Call("PressSupervisorPin", "5");
-Call("DeleteSupervisorPin");
-Call("PressSupervisorPin", "4");
-Check((string)Get("_pinPadDraft")! == "1234", "Prepare PIN for server-side approval.");
-Call("CloseSupervisorPinPad");
-
-Set("_pinPadOpen", true);
-Set("_pinPadDraft", "9999");
-Call("CloseSupervisorPinPad");
-Check((string)Get("_pinPadDraft")! == "", "Cancel must discard the unconfirmed PIN.");
-Set("_pinPadOpen", true);
-Set("_pinPadDraft", "123456789012");
-Call("PressSupervisorPin", "3");
-Check((string)Get("_pinPadDraft")! == "123456789012", "PIN must remain within 12 digits.");
+Set("_quantityPadOpen", true);
+Call("PressQuantityDigit", "1");
+Call("PressQuantityDigit", "x");
+Check((string)Get("_quantityPadDraft")! == "1", "Reject non-digits.");
+Call("PressQuantityDigit", "2");
+Call("DeleteQuantityDigit");
+Check((string)Get("_quantityPadDraft")! == "1", "Quantity keypad backspace.");
+Set("_quantityPadDraft", "123456789");
+Call("PressQuantityDigit", "0");
+Check((string)Get("_quantityPadDraft")! == "123456789", "Quantity must remain within 9 digits.");
+Call("CloseQuantityPad");
+Check((string)Get("_quantityPadDraft")! == "", "Cancel must discard unconfirmed quantity.");
 
 Set("_invBarcode", "5011LL260804000001");
-Set("_invAdjustSupervisorEmployeeNo", "test-supervisor");
 Set("_invAdjustReason", "DAMAGE");
 Set("_invAdjustNote", "test");
 Set("_invAdjustDelta", 3m);
 Call("ClearInventoryWork");
-foreach (var field in new[] { "_invBarcode", "_invAdjustSupervisorPin", "_invAdjustSupervisorEmployeeNo", "_invAdjustNote", "_pinPadDraft" })
+foreach (var field in new[] { "_invBarcode", "_invAdjustNote", "_quantityPadDraft" })
     Check((string)Get(field)! == "", "Clear did not reset " + field);
-Check((decimal)Get("_invAdjustDelta")! == 0 && !(bool)Get("_pinPadOpen")!, "Clear quantity and close keypad.");
+Check((decimal)Get("_invAdjustDelta")! == 0 && !(bool)Get("_quantityPadOpen")!, "Clear quantity and close keypad.");
 Check(Get("_invScan") is null, "Clear scanned stock.");
 
 var source = File.ReadAllText(Path.Combine(root, "src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh03InventoryStatus.razor"));
-Check(source.Contains("WhValidateSupervisorPinAsync") && source.Contains("Disabled=\"@DisableInventoryAdjust\""),
-    "Supervisor PIN must be approved before SAVE is enabled.");
+Check(!source.Contains("Supervisor") && source.Contains("aria-disabled=\"@(DisableInventoryAdjust"),
+    "Adjust must not require obsolete supervisor approval.");
+var request = assembly.GetType("AMES.Pda.Services.PdaApi+AdjustSaveReq", throwOnError: true)!;
+Check(!request.GetProperties().Any(p => p.Name.Contains("Supervisor")), "Request must not send supervisor fields.");
 Check(source.Contains("ClearInventoryWork();\n            ShowAlert(\"Saved\"", StringComparison.Ordinal)
     || source.Contains("ClearInventoryWork();\r\n            ShowAlert(\"Saved\"", StringComparison.Ordinal),
     "Successful save must reset the form before showing confirmation.");
@@ -71,4 +63,4 @@ Check(css.Contains("--pda-safe-top: 0px;") && !css.Contains("max(env(safe-area-i
     "The shared shell must not add a fixed top spacer.");
 var mainPage = File.ReadAllText(Path.Combine(root, "src/05_Pda/AMES.Pda/MainPage.xaml"));
 Check(mainPage.Contains("SafeAreaEdges=\"Container\""), "Native system bars must remain outside the content.");
-Console.WriteLine("PASS: Adjust PIN keypad, form reset, scan width and native safe-area layout.");
+Console.WriteLine("PASS: Adjust quantity keypad, form reset, no supervisor fields, scan width and native safe-area layout.");
