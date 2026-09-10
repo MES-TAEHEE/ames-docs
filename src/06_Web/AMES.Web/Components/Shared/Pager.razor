@@ -1,6 +1,6 @@
 @inject IStringLocalizer<SharedResources> L
 
-@if (TotalPages > 1)
+@if (TotalPages > 1 || (HasSizeOptions && Total > PageSizeOptions!.Min()))
 {
     <div class="ames-pager">
         <button class="ames-pager-btn" disabled="@(Page == 0)" @onclick='() => Go(0)'>«</button>
@@ -15,6 +15,16 @@
         <button class="ames-pager-btn" disabled="@(Page >= TotalPages - 1)" @onclick='() => Go(Page + 1)'>›</button>
         <button class="ames-pager-btn" disabled="@(Page >= TotalPages - 1)" @onclick='() => Go(TotalPages - 1)'>»</button>
 
+        @if (HasSizeOptions)
+        {
+            <select class="ames-pager-size" value="@PageSize" @onchange="OnSizeChanged">
+                @foreach (var s in PageSizeOptions!)
+                {
+                    <option value="@s">@s</option>
+                }
+            </select>
+        }
+
         <span class="ames-pager-info">
             @(Page + 1) / @TotalPages @L["Lbl.Page"] &nbsp;·&nbsp; @Total @L["Lbl.Items"]
         </span>
@@ -25,9 +35,20 @@
     [Parameter] public int Page     { get; set; }
     [Parameter] public int Total    { get; set; }
     [Parameter] public int PageSize { get; set; } = 20;
+    [Parameter] public IEnumerable<int>? PageSizeOptions { get; set; }
     [Parameter] public EventCallback<int> OnPageChange { get; set; }
+    [Parameter] public EventCallback<int> OnPageSizeChange { get; set; }
+
+    bool HasSizeOptions => PageSizeOptions != null && PageSizeOptions.Any();
 
     int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)Total / PageSize) : 1;
 
     void Go(int p) => OnPageChange.InvokeAsync(Math.Clamp(p, 0, TotalPages - 1));
+
+    async Task OnSizeChanged(ChangeEventArgs e)
+    {
+        if (!int.TryParse(e.Value?.ToString(), out var size) || size <= 0) return;
+        await OnPageSizeChange.InvokeAsync(size);
+        await OnPageChange.InvokeAsync(0);
+    }
 }

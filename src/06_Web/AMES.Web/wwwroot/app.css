@@ -1723,6 +1723,13 @@ select.ames-rz-input {
 .ames-pager-info {
     margin-left: 8px; font-size: .78rem; color: rgba(255,255,255,.4);
 }
+.ames-pager-size {
+    margin-left: 8px; height: 28px; padding: 0 6px;
+    border-radius: 5px; border: 1px solid rgba(255,255,255,.15);
+    background: rgba(255,255,255,.04); color: rgba(255,255,255,.7);
+    font-size: .82rem; cursor: pointer;
+}
+.ames-pager-size option { background: #1e293b; color: #fff; }
 
 .ames-form-row {
     display: flex; align-items: center; gap: .75rem; margin-bottom: .65rem;

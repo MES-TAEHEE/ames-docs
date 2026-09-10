@@ -262,7 +262,7 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 15, 25, 50, 100 };
     bool _showPagerSummary = true;
     List<MntRepository.DowntimeRow>         _allRows  = new();   // 기간 조회 원본
     List<MntRepository.DowntimeRow>         _base     = new();   // 검색·라인·상태 적용 (KPI·파레토·순위 기준)

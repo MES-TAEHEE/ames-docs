@@ -73,14 +73,15 @@
                 }
             </tbody>
         </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
+        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" PageSizeOptions="_pageSizeOptions" OnPageChange="p => _page = p" OnPageSizeChange="s => _pageSize = s" />
     }
 </div>
 
 @code {
     List<AMES.Data.Repositories.MntRepository.MwoRow> _rows = new();
     int _page = 0;
-    const int _pageSize = 20;
+    int _pageSize = 25;
+    static readonly int[] _pageSizeOptions = { 25, 50, 100 };
     int    _open, _prog, _done, _lab;
     int    _topN = 100;
     string _statusFilter = "";
