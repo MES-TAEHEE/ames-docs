@@ -8,7 +8,7 @@ using Microsoft.Data.SqlClient;
 namespace AMES.Data.Repositories;
 
 /// <summary>
-/// 사출 원천 LOT (tbl_Lot 'RAW' + PR_InjLot) 의 생성·확정·NG 전이.
+/// 사출 원천 LOT (tbl_Lot + PR_InjLot) 의 생성·확정·로봇 NG 차단·불량 등록. 상태 기계는 LotDefectRules.
 /// 실적 확정(= PR_ProductionResult 생성)은 반드시 스캔 경유 — 스캔 전 LOT 는 실적이 아니다.
 /// </summary>
 public sealed class InjLotRepository
@@ -335,23 +335,6 @@ public sealed class InjLotRepository
         return list;
     }
 
-    /// <summary>Inj05 로봇 NG 목록 — 수동 불량 확정 대기.</summary>
-    public List<InjLotDto> GetNgBlocked(string lineId)
-    {
-        var sql = SelectLotView + """
-
-            WHERE  l.LineID = @Line AND e.ConfirmStatus = 'NG_BLOCKED'
-            ORDER  BY l.CreatedTS DESC;
-            """;
-        using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
-        using var rdr = cmd.ExecuteReader();
-        var list = new List<InjLotDto>();
-        while (rdr.Read()) list.Add(MapToDto(rdr));
-        return list;
-    }
-
     /// <summary>라벨 재출력용 단건 조회.</summary>
     public InjLotDto? GetByLotCode(string lotCode)
     {
@@ -505,8 +488,13 @@ public sealed class InjLotRepository
                 { rdr.Close(); tx.Rollback(); return (InjConfirmOutcome.WrongLine, 0, itemNo, 0); }
             }
 
-            if (status is "CONFIRMED") { tx.Rollback(); return (InjConfirmOutcome.AlreadyConfirmed, 0, itemNo, 0); }
-            if (status is "NG_BLOCKED" or "NG_CONFIRMED") { tx.Rollback(); return (InjConfirmOutcome.NgBlocked, 0, itemNo, 0); }
+            switch (LotDefectRules.ConfirmBlock(status))
+            {
+                case LotConfirmBlock.AlreadyConfirmed: tx.Rollback(); return (InjConfirmOutcome.AlreadyConfirmed, 0, itemNo, 0);
+                case LotConfirmBlock.NgBlocked:        tx.Rollback(); return (InjConfirmOutcome.NgBlocked,        0, itemNo, 0);
+                case LotConfirmBlock.InRework:         tx.Rollback(); return (InjConfirmOutcome.InRework,         0, itemNo, 0);
+                case LotConfirmBlock.Scrapped:         tx.Rollback(); return (InjConfirmOutcome.Scrapped,         0, itemNo, 0);
+            }
 
             int woId, stepId;
             using (var cmd = new SqlCommand("""
@@ -641,26 +629,82 @@ public sealed class InjLotRepository
         cmd.ExecuteNonQuery();
     }
 
-    /// <summary>Inj05 수동 불량 확정 후 상태 마감: NG_BLOCKED → NG_CONFIRMED.</summary>
-    public void MarkNgConfirmed(int lotId, string operatorId)
+    /// <summary>
+    /// 라인 불량 팝업의 LOT 스캔 등록 — 한 트랜잭션으로:
+    ///   ① LOT 잠금·라인 검증·상태 검사(LotDefectRules) → ② CONFIRMED 였으면 실적 역분개(−1)·단계 −1
+    ///   → ③ PR_DefectDetail 1행 (Disposition NULL = 재작업 대기) → ④ LOT DEFECT + tbl_Lot QualityFlag NG.
+    /// RAW·NG_BLOCKED 는 실적이 없으므로 WO 는 열린 단계로 해석만 하고(없으면 NULL) 수리 시점에 다시 정한다.
+    /// 로봇 NG(NG_BLOCKED) 는 검사 요약을 ReasonNote 에 남긴다.
+    /// </summary>
+    public (DefectRegisterOutcome Outcome, int DefectId, string ItemNo) RegisterDefect(
+        string lotCode, string lineId, string defectCode,
+        string operatorId, int? sessionId, string employeeNo)
     {
-        const string sql = """
-            BEGIN TRAN;
-            UPDATE dbo.PR_InjLot
-            SET    ConfirmStatus = 'NG_CONFIRMED', ConfirmedAt = SYSDATETIME(),
-                   ConfirmedBy = @Op, ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
-            WHERE  LotID = @Lot AND ConfirmStatus = 'NG_BLOCKED';
-            IF @@ROWCOUNT = 1
-              UPDATE dbo.tbl_Lot
-              SET    Status = 'NG', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
-              WHERE  LotID = @Lot;
-            COMMIT;
-            """;
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@Lot", SqlDbType.Int          ).Value = lotId;
-        cmd.Parameters.Add("@Op",  SqlDbType.NVarChar, 450).Value = operatorId;
-        cmd.ExecuteNonQuery();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            int lotId; string itemNo, status; string? inspection;
+            using (var cmd = new SqlCommand("""
+                SELECT l.LotID, l.ItemNo, l.LineID, e.ConfirmStatus,
+                       CASE WHEN ri.InspectionID IS NULL THEN NULL ELSE
+                         LTRIM(STUFF(
+                           CASE WHEN ri.ShortMold = 'NG' THEN N', 미성형 NG'   ELSE N'' END +
+                           CASE WHEN ri.WeldLine  = 'NG' THEN N', 웰드라인 NG' ELSE N'' END +
+                           CASE WHEN ri.Gas       = 'NG' THEN N', 가스 NG'     ELSE N'' END +
+                           CASE WHEN ri.Weight    = 'NG' THEN N', 중량 NG'     ELSE N'' END,
+                         1, 1, N'')) END AS InspectionSummary
+                FROM   dbo.tbl_Lot   l WITH (UPDLOCK, ROWLOCK)
+                JOIN   dbo.PR_InjLot e WITH (UPDLOCK, ROWLOCK) ON e.LotID = l.LotID
+                OUTER  APPLY (SELECT TOP 1 * FROM dbo.PR_RobotInspection r
+                              WHERE r.LotID = l.LotID ORDER BY r.InspectionID DESC) ri
+                WHERE  l.LotCode = @Code;
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = lotCode;
+                using var rdr = cmd.ExecuteReader();
+                if (!rdr.Read()) { rdr.Close(); tx.Rollback(); return (DefectRegisterOutcome.NotFound, 0, string.Empty); }
+                lotId      = (int)rdr["LotID"];
+                itemNo     = rdr["ItemNo"] as string ?? string.Empty;
+                status     = (string)rdr["ConfirmStatus"];
+                inspection = rdr["InspectionSummary"] as string;
+                var lotLine = rdr["LineID"] as string;
+                if (!string.Equals(lotLine, lineId, StringComparison.OrdinalIgnoreCase))
+                { rdr.Close(); tx.Rollback(); return (DefectRegisterOutcome.WrongLine, 0, itemNo); }
+            }
+
+            // 상태 검사가 PR_DefectDetail 보다 먼저다 — DEFECT 면 여기서 tbl_Lot 잠금을 놓고 나가므로
+            // ReworkRepository(PR_DefectDetail → tbl_Lot 순)와 잠금 순서가 엇갈려도 교착이 없다. 순서를 바꾸면 순환이 생긴다.
+            var check = LotDefectRules.CheckRegister(status);
+            if (check != DefectRegisterOutcome.Registered) { tx.Rollback(); return (check, 0, itemNo); }
+
+            int? origResultId = null, reversalId = null, woId = null;
+            if (LotDefectRules.ReversesResult(status))
+                (origResultId, reversalId, woId) = LotDefectWriter.ReverseConfirmedResult(conn, tx, lotId, lineId, operatorId, sessionId, employeeNo);
+            woId ??= LotDefectWriter.ResolveOpenWo(conn, tx, lineId, itemNo)?.WoId;
+
+            var note = status == LotDefectRules.NgBlocked ? $"ROBOT NG: {inspection ?? "NG"}" : null;
+            var defectId = LotDefectWriter.InsertDefectDetail(conn, tx, lotId, woId, origResultId, "INJ", defectCode,
+                                                              status, reversalId, note, operatorId, employeeNo);
+
+            using (var cmd = new SqlCommand("""
+                UPDATE dbo.PR_InjLot
+                SET    ConfirmStatus = 'DEFECT', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+                WHERE  LotID = @Lot;
+                UPDATE dbo.tbl_Lot
+                SET    QualityFlag = 'NG', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+                WHERE  LotID = @Lot;
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Lot", SqlDbType.Int          ).Value = lotId;
+                cmd.Parameters.Add("@Op",  SqlDbType.NVarChar, 450).Value = operatorId;
+                cmd.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+            return (DefectRegisterOutcome.Registered, defectId, itemNo);
+        }
+        catch { tx.Rollback(); throw; }
     }
 
     /// <summary>Inj02 카드용: 오늘 샷수(캐비티1 기준) / 미확정 / NG 차단 카운트.</summary>
@@ -687,10 +731,10 @@ public sealed class InjLotRepository
 
     /// <summary>
     /// INJ-MAIN 좌측 패널: 스테이션 BOP 품번 ∪ 오늘 실적/일정이 있는 품번의 당일 현황.
-    /// 모든 LOT 수치는 LOT 생성일이 오늘인 것만 센다 — 확정 시각 기준으로 하면
+    /// 모든 수치는 LOT 생성일이 오늘인 것만 센다 — 확정 시각 기준으로 하면
     /// 어제 생성·오늘 확정 LOT 이 INPUT 과 FINAL 에 다른 날로 잡혀 항등식이 깨진다.
-    /// 로봇 NG 는 상태(NG_BLOCKED/NG_CONFIRMED)로만 세고 PR_DefectDetail 은 LotID 없는
-    /// 수동 등록분만 더한다 — NG 확정은 둘 다 남기므로 같이 더하면 이중 계상.
+    /// 전부 LOT 상태로 센다: FINAL = CONFIRMED, NG = NG_BLOCKED + DEFECT + SCRAPPED, 미확정 = RAW.
+    /// PR_DefectDetail 은 읽지 않는다 — 불량은 LOT 상태에 이미 반영돼 있어 더하면 이중 계상이다.
     /// </summary>
     public List<InjItemDailyDto> GetDailyItemSummary(string lineId, string stationCode)
     {
@@ -712,41 +756,28 @@ public sealed class InjLotRepository
             ),
             lots AS (
                 SELECT l.ItemNo,
-                       COUNT(*)                                                                    AS InputQty,
-                       SUM(CASE WHEN e.ConfirmStatus = 'CONFIRMED' THEN 1 ELSE 0 END)              AS ConfirmedQty,
-                       SUM(CASE WHEN e.ConfirmStatus IN ('NG_BLOCKED','NG_CONFIRMED') THEN 1 ELSE 0 END) AS NgLotQty,
-                       SUM(CASE WHEN e.ConfirmStatus = 'RAW' THEN 1 ELSE 0 END)                    AS PendingQty
+                       COUNT(*)                                                                               AS InputQty,
+                       SUM(CASE WHEN e.ConfirmStatus = 'CONFIRMED' THEN 1 ELSE 0 END)                         AS ConfirmedQty,
+                       SUM(CASE WHEN e.ConfirmStatus IN ('NG_BLOCKED','DEFECT','SCRAPPED') THEN 1 ELSE 0 END) AS NgQty,
+                       SUM(CASE WHEN e.ConfirmStatus = 'RAW' THEN 1 ELSE 0 END)                               AS PendingQty
                 FROM   dbo.tbl_Lot   l
                 JOIN   dbo.PR_InjLot e ON e.LotID = l.LotID
                 WHERE  l.LineID = @Line
                   AND  l.CreatedTS >= @Today AND l.CreatedTS < DATEADD(day, 1, @Today)
                 GROUP  BY l.ItemNo
             ),
-            manual AS (
-                SELECT w.ItemNo, SUM(ISNULL(d.Qty,0)) AS ManualDefect
-                FROM   dbo.PR_DefectDetail d
-                JOIN   dbo.PP_WorkOrder    w ON w.WoID = d.WoID
-                WHERE  d.LotID IS NULL
-                  AND  d.ProcessCode = 'INJ'
-                  AND  CAST(d.DetectedAt AS date) = @Today
-                  AND  EXISTS (SELECT 1 FROM dbo.PP_WorkOrderRouting r
-                               WHERE  r.WoID = w.WoID AND r.LineID = @Line)
-                GROUP  BY w.ItemNo
-            ),
             itemkeys AS (
                 SELECT ItemNo FROM bop
                 UNION SELECT ItemNo FROM sched
                 UNION SELECT ItemNo FROM lots
-                UNION SELECT ItemNo FROM manual
             )
             SELECT k.ItemNo,
                    COALESCE(i.ItemName, N'')  AS ItemName,
                    ISNULL(p.PlanQty, 0)       AS PlanQty,
                    ISNULL(t.InputQty, 0)      AS InputQty,
                    ISNULL(t.ConfirmedQty, 0)  AS ConfirmedQty,
-                   ISNULL(t.NgLotQty, 0)      AS NgLotQty,
+                   ISNULL(t.NgQty, 0)         AS NgQty,
                    ISNULL(t.PendingQty, 0)    AS PendingQty,
-                   ISNULL(m.ManualDefect, 0)  AS ManualDefect,
                    CASE WHEN b.ItemNo IS NULL THEN 0 ELSE 1 END AS InBop,
                    CASE WHEN EXISTS (
                         SELECT 1
@@ -760,7 +791,6 @@ public sealed class InjLotRepository
             LEFT JOIN bop    b ON b.ItemNo = k.ItemNo
             LEFT JOIN sched  p ON p.ItemNo = k.ItemNo
             LEFT JOIN lots   t ON t.ItemNo = k.ItemNo
-            LEFT JOIN manual m ON m.ItemNo = k.ItemNo
             ORDER  BY InBop DESC, k.ItemNo;
             """;
         using var conn = _factory.OpenConnection();
@@ -771,17 +801,14 @@ public sealed class InjLotRepository
         var list = new List<InjItemDailyDto>();
         while (rdr.Read())
         {
-            var confirmed = Convert.ToInt32(rdr["ConfirmedQty"]);
-            var ngLots    = Convert.ToInt32(rdr["NgLotQty"]);
-            var manual    = Convert.ToInt32(rdr["ManualDefect"]);
             list.Add(new InjItemDailyDto
             {
                 ItemNo     = (string)rdr["ItemNo"],
                 ItemName   = (string)rdr["ItemName"],
                 PlanQty    = Convert.ToDecimal(rdr["PlanQty"]),
                 InputQty   = Convert.ToInt32(rdr["InputQty"]),
-                NgQty      = ngLots + manual,
-                FinalQty   = Math.Max(0, confirmed - manual),
+                NgQty      = Convert.ToInt32(rdr["NgQty"]),
+                FinalQty   = Convert.ToInt32(rdr["ConfirmedQty"]),
                 PendingQty = Convert.ToInt32(rdr["PendingQty"]),
                 InBop      = Convert.ToInt32(rdr["InBop"]) == 1,
                 HasOpenWo  = Convert.ToInt32(rdr["HasOpenWo"]) == 1,

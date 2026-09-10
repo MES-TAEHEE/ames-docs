@@ -1,0 +1,348 @@
+@page "/rework"
+@using AMES.Contracts.Enums
+@using AMES.Pop.Common
+@implements IDisposable
+@inject NavigationManager Nav
+@inject AppState State
+@inject ConfirmService Confirmer
+@inject AMES.Pop.Services.ScannerService Scanner
+
+@*  REWORK — 독립 재작업 스테이션(공정코드 RWK). 좌측 전 라인 재작업 대기열, 우측 판정.
+    LOT 스캔(HID + 시리얼) 또는 행 터치로 선택 → 원인코드(필수)·조치 메모(선택) → 수리 완료/폐기.
+    INJ-MAIN 과 같은 상단바·레이아웃(injm-*), 하단바 없음. 실적 확정·라벨 발행은 하지 않는다. *@
+
+<div class="pop-shell injm-shell">
+    <div class="pop-tbar">
+        <div style="display:flex; align-items:center;">
+            <span class="pop-tbar-logo">A-MES</span>
+            <span class="pop-tbar-id">REWORK · @Session?.TerminalId · @Session?.LineId</span>
+        </div>
+        <div class="pop-tbar-r">
+            @if (Scanner.IsEnabled)
+            {
+                <span class="@(_scannerOn ? "stat-on" : "stat-off")">🔌 @T("Scanner")</span>
+            }
+            <span>@Session?.EmployeeName · @PopLang.Shift(Session?.ShiftCode ?? "")</span>
+            <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+            <button class="injm-lang-btn" @onclick="ToggleLang">@(PopLang.IsKo ? "EN" : "한국어")</button>
+            <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.ReworkHelp))" />
+            <button class="injm-logout-btn" @onclick="Logout">⏻ @T("Logout")</button>
+        </div>
+    </div>
+
+    <div class="pop-bd">
+        <div class="injm-grid">
+
+            @* ── 좌측: 재작업 대기열 (전 라인) ─────────────────────── *@
+            <div class="pop-card injm-left">
+                <div class="pop-card-h">▼ @T("RwkPendingAllLines")</div>
+                @if (_refreshError is not null)
+                {
+                    <div class="injm-refresh-err">⚠ @T("DataRefreshFailed", _refreshErrorAt.ToString("HH:mm:ss")) — @_refreshError</div>
+                }
+                <div class="injm-chips" style="margin-bottom:8px;">
+                    <span class="injm-chip">@T("RwkPending") <b class="@(_stats.Pending > 0 ? "warn" : "ok")">@_stats.Pending</b></span>
+                    <span class="injm-chip">@T("RwkTodayReworked") <b class="ok">@_stats.TodayReworked</b></span>
+                    <span class="injm-chip">@T("RwkTodayScrapped") <b class="bad">@_stats.TodayScrapped</b></span>
+                </div>
+                <div class="injm-tbl-wrap">
+                    <table class="injm-tbl">
+                        <thead><tr>
+                            <th style="text-align:left;">@T("Process")</th>
+                            <th style="text-align:left;">@T("Lotno")</th>
+                            <th style="text-align:left;">@T("PartNo")</th>
+                            <th style="text-align:left;">@T("Defect")</th>
+                            <th>@T("Time")</th>
+                        </tr></thead>
+                        <tbody>
+                        @foreach (var p in _pending)
+                        {
+                            var row = p;
+                            <tr class="@(_sel?.DefectId == row.DefectId ? "sel" : "")" @onclick="@(() => Select(row))">
+                                <td><b>@row.ProcessCode</b></td>
+                                <td class="mono">@row.LotCode</td>
+                                <td class="mono">@row.ItemNo</td>
+                                <td>@row.DefectCode @(PopLang.IsKo ? row.DefectName : row.DefectNameEn ?? row.DefectName)</td>
+                                <td class="mono" style="text-align:center;">@row.DetectedAt.ToString("HH:mm")</td>
+                            </tr>
+                        }
+                        @if (_pending.Count == 0)
+                        {
+                            <tr><td colspan="5" style="padding:14px 4px; color:rgba(255,255,255,.4);">@T("RwkNoPending")</td></tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            @* ── 우측: 판정 / 오늘 판정 이력 탭 ─────────────────────── *@
+            <div class="injm-right">
+                <div class="rwk-tabs">
+                    <button class="rwk-tab @(_tab == Tab.Verdict ? "on" : "")" @onclick="@(() => SwitchTab(Tab.Verdict))">@T("RwkVerdict")</button>
+                    <button class="rwk-tab @(_tab == Tab.Decided ? "on" : "")" @onclick="@(() => SwitchTab(Tab.Decided))">@T("RwkTodayDecided") (@_decided.Count)</button>
+                </div>
+
+                @if (_tab == Tab.Verdict)
+                {
+                <div class="pop-card injm-scan rwk-verdict">
+                    <input @ref="_scanInput" @bind="_scanBuf" @bind:event="oninput" @onkeydown="OnScanKey"
+                           class="injm-scan-input" placeholder="@T("DfScanPrompt")" autocomplete="off" />
+                    <div class="injm-banner @_bannerClass">
+                        <div class="injm-banner-t">@BannerTitle</div>
+                        @if (_bannerDetail.Length > 0) { <div class="injm-banner-s">@_bannerDetail</div> }
+                    </div>
+
+                    @if (_sel is { } s)
+                    {
+                        <div class="dfp-lot">
+                            <b>@s.ProcessCode</b>
+                            <span class="mono dfp-lot-code">@s.LotCode</span>
+                            <span>@s.ItemNo @(s.ItemName.Length == 0 ? "" : $"· {s.ItemName}")</span>
+                            <span>@s.LineId</span>
+                        </div>
+                        <div class="dfp-lot">
+                            <span>@s.DefectCode @(PopLang.IsKo ? s.DefectName : s.DefectNameEn ?? s.DefectName)</span>
+                            <span>@T("RwkRegistered") @s.DetectedAt.ToString("MM-dd HH:mm") · @s.RegisteredBy</span>
+                            <span class="dfp-lot-status @(s.PriorStatus == "CONFIRMED" ? "warn" : "")">@T("RwkPriorStatus") @s.PriorStatus</span>
+                            @if (s.ReasonNote is not null) { <span class="dfp-lot-note">@s.ReasonNote</span> }
+                        </div>
+
+                        <div class="rwk-cause-h">@T("RwkCause")</div>
+                        @if (_causes.Count == 0)
+                        {
+                            <div class="injm-refresh-err">@T("RwkNoCauses")</div>
+                        }
+                        <div class="def-grid rwk-causes">
+                            @foreach (var c in _causes)
+                            {
+                                var isSel = _causeCode == c.CauseCode;
+                                <div class="def-btn @(isSel ? "on" : "")" @onclick="@(() => _causeCode = c.CauseCode)">
+                                    <div class="def-btn-code">@c.CauseCode @(isSel ? "✓" : "")</div>
+                                    <div class="def-btn-name">@(PopLang.IsKo ? c.CauseName : c.CauseNameEn ?? c.CauseName)</div>
+                                </div>
+                            }
+                        </div>
+
+                        <input @bind="_note" class="rwk-note" maxlength="500" placeholder="@T("RwkNote")" />
+
+                        <div class="injm-actions">
+                            <button class="nav-btn good" @onclick="DoRework" disabled="@(!CanDecide)">@T("RwkReworkBtn")</button>
+                            <button class="nav-btn alert" @onclick="DoScrap" disabled="@(!CanDecide)">@T("RwkScrapBtn")</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="pmod-empty">@T("RwkSelectPrompt")</div>
+                    }
+                </div>
+                }
+                else
+                {
+                <div class="pop-card injm-hist rwk-decided">
+                    <div class="injm-scroll">
+                        <table class="injm-subtbl">
+                            <tbody>
+                            @foreach (var d in _decided)
+                            {
+                                <tr>
+                                    <td class="mono">@d.LotCode</td>
+                                    <td class="mono">@d.ItemNo</td>
+                                    <td class="mono">@(d.DispositionAt?.ToString("HH:mm:ss"))</td>
+                                    <td><span class="injm-result @(d.Disposition == "REWORKED" ? "ok" : "bad")">@(d.Disposition == "REWORKED" ? T("RwkDoneRework") : T("RwkDoneScrap"))</span></td>
+                                </tr>
+                            }
+                            @if (_decided.Count == 0)
+                            {
+                                <tr><td colspan="4" style="padding:14px 4px; color:rgba(255,255,255,.4);">—</td></tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public PopSessionDto? Session { get; set; }
+
+    private static string T(string key, params object?[] args) => PopLang.T(key, args);
+
+    private enum Tab { Verdict, Decided }
+    private Tab _tab = Tab.Verdict;
+
+    private List<ReworkItemDto>  _pending = new();
+    private List<ReworkItemDto>  _decided = new();
+    private ReworkStatsDto       _stats   = new() { Pending = 0, TodayReworked = 0, TodayScrapped = 0 };
+    private ReworkItemDto?       _sel;
+    private List<DefectCauseDto> _causes  = new();
+    private string?              _causeCode;
+    private string               _note    = string.Empty;
+    private bool                 _busy;
+    private bool CanDecide => _sel is not null && !string.IsNullOrEmpty(_causeCode) && !_busy;
+
+    private string?  _refreshError;
+    private DateTime _refreshErrorAt;
+    private string _bannerClass = "idle", _bannerDetail = "";
+    private string BannerTitle => _bannerClass switch { "ok" => T("Success"), "bad" => T("Fail"), _ => T("Ready") };
+    private string _scanBuf = string.Empty;
+    private bool _focusScan;
+    private ElementReference _scanInput;
+    private bool _scannerOn;
+    private DateTime _now = DateTime.Now;
+    private System.Threading.Timer? _clockTimer, _refreshTimer;
+
+    protected override void OnInitialized()
+    {
+        if (Session is null) return;
+        Refresh();
+        _scannerOn = Scanner.IsConnected;
+        Scanner.OnScan            += OnSerialScan;
+        Scanner.ConnectionChanged += OnScannerConnection;
+        _clockTimer   = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; StateHasChanged(); }), null, 1000, 1000);
+        _refreshTimer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); StateHasChanged(); }), null, 5000, 5000);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender || _focusScan)
+        {
+            _focusScan = false;
+            try { await _scanInput.FocusAsync(); } catch { }
+        }
+    }
+
+    private void ToggleLang() => PopLang.Lang = PopLang.IsKo ? "en" : "ko";
+
+    // 선택은 유지하되 다른 터미널이 먼저 판정했으면 놓아 준다.
+    private void Refresh()
+    {
+        try
+        {
+            _pending = PopServices.Rework.ListPending();
+            _decided = PopServices.Rework.ListTodayDecided();
+            _stats   = PopServices.Rework.GetTodayStats();
+            if (_sel is { } s && _pending.All(p => p.DefectId != s.DefectId))
+            {
+                ClearSelection();
+                SetBanner(false, $"{T("RwkAlreadyDecided")}: {s.LotCode}");
+            }
+            _refreshError = null;
+        }
+        catch (Exception ex)
+        {
+            _refreshError   = ex.Message;
+            _refreshErrorAt = DateTime.Now;
+        }
+    }
+
+    // 이력 탭을 보던 중 스캔하거나 행을 누르면 판정 탭으로 돌아온다 — 스캔 입력란은 판정 탭에만 있다.
+    private void SwitchTab(Tab t) { _tab = t; if (t == Tab.Verdict) _focusScan = true; }
+
+    private void Select(ReworkItemDto row)
+    {
+        _tab  = Tab.Verdict;
+        _sel  = row;
+        _note = string.Empty;
+        try
+        {
+            _causes = PopServices.Defects.ListCausesForProcess(row.ProcessCode);
+            SetBanner(true, $"{row.LotCode} ({row.ItemNo})");
+        }
+        catch (Exception ex) { _causes = new(); SetBanner(false, ex.Message); }
+        _causeCode = _causes.Any(c => c.CauseCode == row.DefaultCauseCode) ? row.DefaultCauseCode : null;
+        _focusScan = true;
+    }
+
+    private void ClearSelection() { _sel = null; _causeCode = null; _note = string.Empty; _causes = new(); }
+
+    private void OnSerialScan(string code) => InvokeAsync(() => { HandleScan(code); StateHasChanged(); });
+    private void OnScannerConnection(bool on) => InvokeAsync(() => { _scannerOn = on; StateHasChanged(); });
+
+    private void OnScanKey(KeyboardEventArgs e)
+    {
+        if (e.Key != "Enter") return;
+        var code = _scanBuf.Trim();
+        _scanBuf = string.Empty;
+        if (code.Length > 0) HandleScan(code);
+    }
+
+    // INJ 라벨(LotCode 그대로)과 IMG DataMatrix 둘 다 온다 — 파서가 둘 다 처리한다.
+    private void HandleScan(string raw)
+    {
+        _focusScan = true;
+        try
+        {
+            var lotCode = AMES.Devices.ImgScanParser.ExtractLotCode(raw);
+            if (string.IsNullOrEmpty(lotCode)) { SetBanner(false, $"{T("LotNotFound")}: {raw}"); return; }
+            var row = PopServices.Rework.FindPendingByLotCode(lotCode);
+            if (row is null) { SetBanner(false, $"{T("RwkNotPending")}: {lotCode}"); return; }
+            Select(row);
+        }
+        catch (Exception ex) { SetBanner(false, ex.Message); }
+    }
+
+    // 확인창을 기다리는 동안 5초 갱신이 선택을 지울 수 있다 — 판정 대상은 확인 전에 지역 변수로 잡아 둔다.
+    private async Task DoRework()
+    {
+        if (Session is null || _sel is not { } sel || _causeCode is not { } cause) return;
+        var session = Session; var note = _note;
+        if (!await Confirmer.AskAsync(T("RwkConfirmReworkTitle"), T("RwkConfirmReworkBody", sel.LotCode),
+                                      T("RwkReworkBtn"), T("Cancel"))) return;
+        Decide(sel.LotCode,
+               () => PopServices.Rework.Rework(sel.DefectId, cause, note, session.LineId,
+                                               session.OperatorId, session.SessionId, session.EmployeeNo),
+               T("RwkDoneRework"));
+    }
+
+    private async Task DoScrap()
+    {
+        if (Session is null || _sel is not { } sel || _causeCode is not { } cause) return;
+        var session = Session; var note = _note;
+        if (!await Confirmer.AskAsync(T("RwkConfirmScrapTitle"), T("RwkConfirmScrapBody", sel.LotCode),
+                                      T("RwkScrapBtn"), T("Cancel"), destructive: true)) return;
+        Decide(sel.LotCode,
+               () => PopServices.Rework.Scrap(sel.DefectId, cause, note, session.OperatorId, session.EmployeeNo),
+               T("RwkDoneScrap"));
+    }
+
+    private void Decide(string lotCode, Func<ReworkOutcome> act, string doneText)
+    {
+        _busy = true;
+        try
+        {
+            var (ok, detail) = act() switch
+            {
+                ReworkOutcome.Done           => (true,  $"{doneText}: {lotCode}"),
+                ReworkOutcome.AlreadyDecided => (false, $"{T("RwkAlreadyDecided")}: {lotCode}"),
+                ReworkOutcome.NoWo           => (false, $"{T("RwkNoWo")}: {lotCode}"),
+                ReworkOutcome.NotFound       => (false, $"{T("RwkNotFound")}: {lotCode}"),
+                _                            => (false, $"{T("Fail")}: {lotCode}"),
+            };
+            if (ok) { ClearSelection(); Refresh(); }
+            SetBanner(ok, detail);
+        }
+        catch (Exception ex) { SetBanner(false, ex.Message); }
+        finally { _busy = false; _focusScan = true; }
+    }
+
+    private void SetBanner(bool ok, string detail) { _bannerClass = ok ? "ok" : "bad"; _bannerDetail = detail; }
+
+    private async Task Logout()
+    {
+        if (!await Confirmer.AskAsync(T("LogoutConfirm"), T("EndYourShiftAndReturnToTheLoginScreen"),
+                                      T("LogOut2"), T("Stay"), destructive: true)) return;
+        Nav.NavigateTo("/login", replace: true);
+        State.SignOut();
+    }
+
+    public void Dispose()
+    {
+        Scanner.OnScan            -= OnSerialScan;
+        Scanner.ConnectionChanged -= OnScannerConnection;
+        _clockTimer?.Dispose();
+        _refreshTimer?.Dispose();
+    }
+}

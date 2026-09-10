@@ -15,5 +15,6 @@
     <ProjectReference Include="..\AMES.Pop\AMES.Pop.csproj" />
     <ProjectReference Include="..\..\01_Shared\AMES.Contracts\AMES.Contracts.csproj" />
     <ProjectReference Include="..\..\01_Shared\AMES.Devices\AMES.Devices.csproj" />
+    <ProjectReference Include="..\..\02_Data\AMES.Data\AMES.Data.csproj" />
   </ItemGroup>
 </Project>

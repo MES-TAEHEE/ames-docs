@@ -344,6 +344,7 @@ public sealed class WorkOrderRepository
     /// 이 단계가 "라인이 있는 마지막 단계"(LineID NOT NULL 중 최대 StepSeq)면 헤더 CompletedQty 를 동기화하고,
     /// 도달 시 헤더 Closed·ActualEnd. 반환: 단계의 새 CompletedQty. 단계가 없으면 SqlException(50001).
     /// 첫 실적에서 단계·헤더를 Released → In Progress 로 올리고 ActualStart 를 찍는다(INJ 는 AcceptWo 를 부르지 않는다).
+    /// qty 가 음수(불량 역분개)면 OrderQty 밑으로 내려간 Closed 단계를 In Progress 로 되돌리고 ActualEnd 를 지운다; 헤더는 마지막 라인 단계일 때만 같이 되돌린다.
     /// </summary>
     internal static decimal BumpStepCompleted(SqlConnection conn, SqlTransaction tx, int routingLineId, decimal qty, string actor)
     {
@@ -356,14 +357,19 @@ public sealed class WorkOrderRepository
             WHERE  r.RoutingLineID = @RL;
             IF @WoID IS NULL THROW 50001, 'Routing step not found.', 1;
 
-            -- 접수(AcceptWo)가 없는 INJ 에서는 첫 실적이 착수다. Released 만 올린다 — Closed 는 되돌리지 않는다.
+            -- 접수(AcceptWo)가 없는 INJ 에서는 첫 실적이 착수다. Released 만 올린다.
+            -- 양수는 Closed 를 되돌리지 않지만, 음수(불량 역분개)는 OrderQty 밑으로 떨어지면 단계 Closed 를 다시 연다.
+            -- 헤더는 마지막 라인 단계의 동기화 블록에서만 다시 연다 — 헤더 CompletedQty 를 움직이는 건 그 단계뿐이다.
             UPDATE dbo.PP_WorkOrderRouting
             SET    CompletedQty = CompletedQty + @Qty,
-                   Status       = CASE WHEN CompletedQty + @Qty >= @OrderQty THEN 'Closed'
-                                       WHEN Status = 'Released'              THEN 'In Progress'
+                   Status       = CASE WHEN CompletedQty + @Qty >= @OrderQty          THEN 'Closed'
+                                       WHEN @Qty < 0 AND Status = 'Closed'            THEN 'In Progress'
+                                       WHEN Status = 'Released'                       THEN 'In Progress'
                                        ELSE Status END,
                    ActualStart  = ISNULL(ActualStart, SYSDATETIME()),
-                   ActualEnd    = CASE WHEN CompletedQty + @Qty >= @OrderQty AND ActualEnd IS NULL THEN SYSDATETIME() ELSE ActualEnd END,
+                   ActualEnd    = CASE WHEN CompletedQty + @Qty >= @OrderQty THEN ISNULL(ActualEnd, SYSDATETIME())
+                                       WHEN @Qty < 0                         THEN NULL
+                                       ELSE ActualEnd END,
                    ModifiedBy   = @Actor, ModifiedTS = SYSDATETIME()
             WHERE  RoutingLineID = @RL;
 
@@ -379,8 +385,12 @@ public sealed class WorkOrderRepository
             IF @Seq = @LastSeq
                 UPDATE dbo.PP_WorkOrder
                 SET    CompletedQty = @New,
-                       Status       = CASE WHEN @New >= @OrderQty THEN 'Closed' ELSE Status END,
-                       ActualEnd    = CASE WHEN @New >= @OrderQty AND ActualEnd IS NULL THEN SYSDATETIME() ELSE ActualEnd END,
+                       Status       = CASE WHEN @New >= @OrderQty                  THEN 'Closed'
+                                           WHEN @Qty < 0 AND Status = 'Closed'     THEN 'In Progress'
+                                           ELSE Status END,
+                       ActualEnd    = CASE WHEN @New >= @OrderQty THEN ISNULL(ActualEnd, SYSDATETIME())
+                                           WHEN @Qty < 0          THEN NULL
+                                           ELSE ActualEnd END,
                        ModifiedBy   = @Actor, ModifiedTS = SYSDATETIME()
                 WHERE  WoID = @WoID;
 

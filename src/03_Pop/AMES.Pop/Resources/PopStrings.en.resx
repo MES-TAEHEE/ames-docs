@@ -53,7 +53,6 @@
   <data name="ConfirmFailed" xml:space="preserve"><value>Confirm failed</value></data>
   <data name="Confirmed" xml:space="preserve"><value>Confirmed</value></data>
   <data name="Ct" xml:space="preserve"><value>CT</value></data>
-  <data name="CurrentDefectRateWoCumulative" xml:space="preserve"><value>Current Defect Rate · WO cumulative</value></data>
   <data name="CurrentShots" xml:space="preserve"><value>Current Shots</value></data>
   <data name="CurrentWo" xml:space="preserve"><value>CURRENT WO</value></data>
   <data name="CycleTime" xml:space="preserve"><value>CYCLE TIME</value></data>
@@ -62,7 +61,6 @@
   <data name="Defect" xml:space="preserve"><value>Defect</value></data>
   <data name="Defect2" xml:space="preserve"><value>Defect</value></data>
   <data name="Defect3" xml:space="preserve"><value>Defect %</value></data>
-  <data name="DefectQty" xml:space="preserve"><value>DEFECT QTY</value></data>
   <data name="DefectRate" xml:space="preserve"><value>Defect Rate</value></data>
   <data name="DefectRegister" xml:space="preserve"><value>DEFECT REGISTER</value></data>
   <data name="DownMachines" xml:space="preserve"><value>Down Machines</value></data>
@@ -78,7 +76,6 @@
   <data name="EquipmentStatus" xml:space="preserve"><value>EQUIPMENT STATUS</value></data>
   <data name="Fail" xml:space="preserve"><value>FAIL</value></data>
   <data name="Final" xml:space="preserve"><value>FINAL</value></data>
-  <data name="Good" xml:space="preserve"><value>Good</value></data>
   <data name="Hard" xml:space="preserve"><value>HARD</value></data>
   <data name="HardStop" xml:space="preserve"><value>⛔ 110% — HARD STOP</value></data>
   <data name="HourlyOutput" xml:space="preserve"><value>HOURLY OUTPUT</value></data>
@@ -118,7 +115,6 @@
   <data name="Ng" xml:space="preserve"><value>NG</value></data>
   <data name="Ng2" xml:space="preserve"><value>NG</value></data>
   <data name="NgBlocked" xml:space="preserve"><value>NG Blocked</value></data>
-  <data name="NgLotFixedAt1" xml:space="preserve"><value>(NG lot: fixed at 1)</value></data>
   <data name="NoActiveWo" xml:space="preserve"><value>(no active WO)</value></data>
   <data name="NoActiveWorkOrderAcceptAWoFirst" xml:space="preserve"><value>No active work order — select a part that has an open WO first</value></data>
   <data name="NoChangeInProgress" xml:space="preserve"><value>No change in progress</value></data>
@@ -147,7 +143,6 @@
   <data name="Reprint" xml:space="preserve"><value>Reprint</value></data>
   <data name="ReprintFailed" xml:space="preserve"><value>Reprint failed</value></data>
   <data name="Result" xml:space="preserve"><value>RESULT</value></data>
-  <data name="RobotNgBlockedLotsSelectThenConfirmWithA" xml:space="preserve"><value>ROBOT NG · BLOCKED LOTS — select, then confirm with a defect code</value></data>
   <data name="Routing" xml:space="preserve"><value>ROUTING</value></data>
   <data name="Run" xml:space="preserve"><value>RUN</value></data>
   <data name="Running" xml:space="preserve"><value>running</value></data>
@@ -235,4 +230,48 @@
   <data name="IdleWarnBody" xml:space="preserve"><value>No activity — returning to the login screen. Touch anywhere to stay.</value></data>
   <data name="IdleStayLoggedIn" xml:space="preserve"><value>STAY</value></data>
   <data name="IdleLoggedOut" xml:space="preserve"><value>Logged out for inactivity</value></data>
+  <data name="DfScanPrompt" xml:space="preserve"><value>Scan the LOT label</value></data>
+  <data name="DfScanned" xml:space="preserve"><value>Scanned — pick a defect code and register</value></data>
+  <data name="DfScanFirst" xml:space="preserve"><value>Scan a LOT first</value></data>
+  <data name="DfSelectCode" xml:space="preserve"><value>Select a defect code</value></data>
+  <data name="DfRegisterBtn" xml:space="preserve"><value>REGISTER DEFECT ✓</value></data>
+  <data name="DfRegistered" xml:space="preserve"><value>Defect registered</value></data>
+  <data name="DfAlreadyInRework" xml:space="preserve"><value>LOT already awaiting rework</value></data>
+  <data name="DfScrapped" xml:space="preserve"><value>Scrapped LOT</value></data>
+  <data name="DfPriorConfirmed" xml:space="preserve"><value>Confirmed LOT — 1 EA reversed</value></data>
+  <data name="DfTodayRegistered" xml:space="preserve"><value>Registered this session</value></data>
+  <data name="LotInRework" xml:space="preserve"><value>LOT awaiting rework</value></data>
+  <data name="LotScrapped" xml:space="preserve"><value>Scrapped LOT</value></data>
+  <data name="Process" xml:space="preserve"><value>Process</value></data>
+  <data name="RwkPendingAllLines" xml:space="preserve"><value>REWORK QUEUE · ALL LINES</value></data>
+  <data name="RwkPending" xml:space="preserve"><value>Pending</value></data>
+  <data name="RwkTodayReworked" xml:space="preserve"><value>Reworked today</value></data>
+  <data name="RwkTodayScrapped" xml:space="preserve"><value>Scrapped today</value></data>
+  <data name="RwkVerdict" xml:space="preserve"><value>VERDICT</value></data>
+  <data name="RwkSelectPrompt" xml:space="preserve"><value>Pick a row on the left or scan the LOT label</value></data>
+  <data name="RwkNotPending" xml:space="preserve"><value>LOT is not awaiting rework</value></data>
+  <data name="RwkRegistered" xml:space="preserve"><value>Registered</value></data>
+  <data name="RwkPriorStatus" xml:space="preserve"><value>Status at registration</value></data>
+  <data name="RwkCause" xml:space="preserve"><value>Cause code</value></data>
+  <data name="RwkNote" xml:space="preserve"><value>Action note (optional)</value></data>
+  <data name="RwkReworkBtn" xml:space="preserve"><value>🔧 Reworked → Good</value></data>
+  <data name="RwkScrapBtn" xml:space="preserve"><value>🗑 Scrap</value></data>
+  <data name="RwkConfirmReworkTitle" xml:space="preserve"><value>Confirm rework</value></data>
+  <data name="RwkConfirmReworkBody" xml:space="preserve"><value>Confirm {0} as good. 1 EA is booked to the original work order.</value></data>
+  <data name="RwkConfirmScrapTitle" xml:space="preserve"><value>Confirm scrap</value></data>
+  <data name="RwkConfirmScrapBody" xml:space="preserve"><value>Scrap {0}. This cannot be undone.</value></data>
+  <data name="RwkDoneRework" xml:space="preserve"><value>Reworked and confirmed good</value></data>
+  <data name="RwkDoneScrap" xml:space="preserve"><value>Scrapped</value></data>
+  <data name="RwkAlreadyDecided" xml:space="preserve"><value>LOT already decided</value></data>
+  <data name="RwkNoWo" xml:space="preserve"><value>No open work order for this part — cannot confirm good; scrap is still possible</value></data>
+  <data name="RwkNotFound" xml:space="preserve"><value>Rework row not found</value></data>
+  <data name="RwkTodayDecided" xml:space="preserve"><value>Decided today</value></data>
+  <data name="RwkNoPending" xml:space="preserve"><value>No LOT awaiting rework</value></data>
+  <data name="RwkNoCauses" xml:space="preserve"><value>No defect causes registered — add them in Web MD-013</value></data>
+  <data name="HelpReworkSub" xml:space="preserve"><value>Scan a defective LOT and decide: reworked good or scrap</value></data>
+  <data name="HelpRework1" xml:space="preserve"><value>Left: LOTs awaiting rework from every line. Tap a row or scan the label to select.</value></data>
+  <data name="HelpRework2" xml:space="preserve"><value>Cause code is required; the defect code's default cause is preselected. The action note is optional.</value></data>
+  <data name="HelpRework3" xml:space="preserve"><value>Reworked → Good books 1 EA to the original work order and returns the LOT to confirmed.</value></data>
+  <data name="HelpRework4" xml:space="preserve"><value>Scrap marks the LOT scrapped; production counts do not change. It cannot be undone.</value></data>
+  <data name="HelpRework5" xml:space="preserve"><value>A part with no open work order cannot be confirmed good — ask planning to release one.</value></data>
 </root>
