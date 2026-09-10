@@ -61,9 +61,9 @@
             <span class="dim">~</span>
             <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
-            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
             <RadzenLabel Text="@L["Col.Severity"]" Component="DropDownSeverity" />
-            <RadzenDropDown Name="DropDownSeverity" @bind-Value="_fSeverity" Data="@SeverityFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDropDown Name="DropDownSeverity" @bind-Value="_fSeverity" Data="@SeverityFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Search" class="ames-rz-btn" />
             <RadzenButton Text="@L["MNT.Failure.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
@@ -77,37 +77,37 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MntRepository.FailureRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.Failure.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="FailureNumber" Title="@L["Col.FailNo"]" TextAlign="TextAlign.Center" Width="130px">
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="FailureNumber" Title="@L["Col.FailNo"]" TextAlign="TextAlign.Center" Width="140px">
                 <Template Context="r"><span class="code">@FailNo(r)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="EquipId" Title="@L["Col.EquipId"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="code">@(r.EquipId ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="EquipName" Title="@L["Col.EquipName"]" Width="150px">
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="EquipName" Title="@L["Col.EquipName"]">
                 <Template Context="r">@(r.EquipName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="FailureType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="FailureType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="180px">
                 <Template Context="r"><span class="pill">@TypeName(r.FailureType)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Symptom" Title="@L["Col.Symptom"]">
                 <Template Context="r"><span style="white-space:nowrap;">@(r.Symptom ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Severity" Title="@L["Col.Severity"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Severity" Title="@L["Col.Severity"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="pill @SeverityCls(r.Severity)">@SeverityLabel(r.Severity)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Source" Title="@L["Col.Source"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Source" Title="@L["Col.Source"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="dim">@SourceName(r.Source)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="pill @StatusCls(r.Status)">@StatusLabel(r.Status)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="ReportedAt" Title="@L["Col.Reported"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="ReportedAt" Title="@L["Col.Reported"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="dim">@(r.ReportedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="ResolvedAt" Title="@L["Col.Resolved"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="ResolvedAt" Title="@L["Col.Resolved"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="dim">@(r.ResolvedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="WorkOrderId" Title="@L["Col.MwoNo"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="WorkOrderId" Title="@L["Col.MwoNo"]" TextAlign="TextAlign.Center" Width="150px">
                 <Template Context="r">
                     @if (r.WorkOrderId is { } wo) { <span class="pill orange">@wo</span> } else { <span class="dim">—</span> }
                 </Template>

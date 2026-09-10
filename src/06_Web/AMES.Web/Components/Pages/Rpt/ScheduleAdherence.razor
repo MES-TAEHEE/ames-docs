@@ -69,7 +69,7 @@
             <span class="dim">~</span>
             <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
             <RadzenButton Text="@L["RPT.ScheduleAdherence.Btn.Print"]" Icon="print" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@Print" class="ames-rz-btn" />
@@ -154,27 +154,27 @@
             <RadzenDataGridColumn TItem="WoLine" Property="ItemName" Title="@L["Col.Item"]">
                 <Template Context="r"><span style="white-space:nowrap;">@r.ItemName</span>@if (!string.IsNullOrEmpty(r.ItemNo)) { <span class="dim code" style="font-size:.85em;margin-left:6px;">@r.ItemNo</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WoLine" Property="PlanQty" Title="@L["RPT.ScheduleAdherence.Col.PlanQty"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="WoLine" Property="PlanQty" Title="@L["RPT.ScheduleAdherence.Col.PlanQty"]" TextAlign="TextAlign.Right" Width="110px">
                 <Template Context="r"><span class="code">@r.PlanQty.ToString("N0")</span></Template>
                 <FooterTemplate><span class="code">@TotalPlan.ToString("N0")</span></FooterTemplate>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WoLine" Property="ActualQty" Title="@L["RPT.ScheduleAdherence.Col.ActualQty"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="WoLine" Property="ActualQty" Title="@L["RPT.ScheduleAdherence.Col.ActualQty"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r"><b class="code">@(r.ActualQty > 0 ? r.ActualQty.ToString("N0") : "—")</b></Template>
                 <FooterTemplate><span class="code">@TotalActual.ToString("N0")</span></FooterTemplate>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WoLine" Property="PlanDate" Title="@L["RPT.ScheduleAdherence.Col.PlanDate"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="WoLine" Property="PlanDate" Title="@L["RPT.ScheduleAdherence.Col.PlanDate"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="code dim" title="@(r.FirstPlanDate == r.PlanDate ? "" : $"{r.FirstPlanDate:MM/dd} ~ {r.PlanDate:MM/dd}")">@r.PlanDate.ToString("MM/dd")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WoLine" Property="ActualDate" Title="@L["RPT.ScheduleAdherence.Col.ActualDate"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="WoLine" Property="ActualDate" Title="@L["RPT.ScheduleAdherence.Col.ActualDate"]" TextAlign="TextAlign.Center" Width="180px">
                 <Template Context="r"><span class="code dim">@(r.ActualDate?.ToString("MM/dd") ?? "-")</span></Template>
                 <FooterTemplate><b>@string.Format(L["RPT.ScheduleAdherence.QtyAch"].Value, Pct(TotalPlan > 0 ? 100m * TotalActual / TotalPlan : null))</b></FooterTemplate>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WoLine" Property="Deviation" Title="@L["RPT.ScheduleAdherence.Col.Deviation"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="WoLine" Property="Deviation" Title="@L["RPT.ScheduleAdherence.Col.Deviation"]" TextAlign="TextAlign.Center" Width="170px">
                 <Template Context="r">
                     @if (r.Deviation is { } dv) { <b class="code" style="color:@(dv > 0 ? "#f87171" : "#34d399");">@(dv > 0 ? $"+{dv}" : dv.ToString())</b> } else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WoLine" Property="State" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="WoLine" Property="State" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="pill @StateCls(r.State)">@StateLabel(r.State)</span></Template>
             </RadzenDataGridColumn>
         </Columns>

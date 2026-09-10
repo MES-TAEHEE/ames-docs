@@ -144,24 +144,24 @@
             <RadzenDataGridColumn TItem="Sku" Property="CatLabel" Title="@L["Col.Category"]" Width="120px">
                 <Template Context="r"><span class="dim">@r.CatLabel</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="Sku" Property="Source" Title="@L["RPT.Inventory.Col.Warehouse"]" Width="140px">
+            <RadzenDataGridColumn TItem="Sku" Property="Source" Title="@L["RPT.Inventory.Col.Warehouse"]">
                 <Template Context="r"><span>@WhLabel(r.Source)</span><span class="dim code" style="font-size:.8em;margin-left:6px;">@r.Locations</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="Sku" Property="Qty" Title="@L["RPT.Inventory.Col.OnHand"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="Sku" Property="Qty" Title="@L["RPT.Inventory.Col.OnHand"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r"><b class="code">@r.Qty.ToString("N0")</b></Template>
                 <FooterTemplate><span class="code">@_rows.Sum(x => x.Qty).ToString("N0")</span></FooterTemplate>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="Sku" Property="Safety" Title="@L["RPT.Inventory.Col.Safety"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="Sku" Property="Safety" Title="@L["RPT.Inventory.Col.Safety"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r"><span class="code dim">@(r.Safety?.ToString("N0") ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="Sku" Property="Value" Title="@L["RPT.Inventory.Col.Value"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r"><span class="code">@(r.Value is { } v ? v.ToString("N0") : "—")</span></Template>
                 <FooterTemplate><span class="code">@(HasCost ? TotalValue.ToString("N0") : "—")</span></FooterTemplate>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="Sku" Property="Turnover" Title="@L["RPT.Inventory.Col.Turnover"]" TextAlign="TextAlign.Right" Width="80px">
+            <RadzenDataGridColumn TItem="Sku" Property="Turnover" Title="@L["RPT.Inventory.Col.Turnover"]" TextAlign="TextAlign.Right" Width="110px">
                 <Template Context="r"><span class="code">@(r.Turnover is { } t ? t.ToString("0.0") : "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="Sku" Property="State" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="Sku" Property="State" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="pill @StateCls(r.State)">@StateLabel(r.State)</span></Template>
             </RadzenDataGridColumn>
         </Columns>

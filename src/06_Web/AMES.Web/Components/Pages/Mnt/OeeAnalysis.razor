@@ -69,9 +69,9 @@
             <span class="dim">~</span>
             <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
             <RadzenLabel Text="@L["Col.Equip"]" Component="DropDownEquip" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownEquip" @bind-Value="_fEquip" Data="@EquipFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownEquip" @bind-Value="_fEquip" Data="@EquipFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:320px;" />
             <RadzenLabel Text="@L["Col.Shift"]" Component="DropDownShift" />
             <RadzenDropDown Name="DropDownShift" @bind-Value="_fShift" Data="@ShiftFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
 
@@ -90,7 +90,7 @@
             <RadzenDataGridColumn TItem="EquipAgg" Property="EquipName" Title="@L["Col.EquipName"]">
                 <Template Context="a">@(a.EquipName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="EquipAgg" Property="EquipType" Title="@L["Col.EquipType"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="EquipAgg" Property="EquipType" Title="@L["Col.EquipType"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="a"><span class="pill">@(a.EquipType ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EquipAgg" Property="LineId" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="120px">
@@ -102,22 +102,22 @@
             <RadzenDataGridColumn TItem="EquipAgg" Title="@L["MNT.OeeAnalysis.Col.Trend"]" TextAlign="TextAlign.Center" Width="130px" Sortable="false">
                 <Template Context="a">@Spark(a.Spark)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="EquipAgg" Property="MtbfH" Title="@L["MNT.OeeAnalysis.Col.Mtbf"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="EquipAgg" Property="MtbfH" Title="@L["MNT.OeeAnalysis.Col.Mtbf"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="a"><span class="code" style="@(a.MtbfH is < 200 ? "color:#f87171;" : "color:#34d399;")">@(a.MtbfH?.ToString("N0") ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="EquipAgg" Property="MttrMin" Title="@L["MNT.OeeAnalysis.Col.Mttr"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="EquipAgg" Property="MttrMin" Title="@L["MNT.OeeAnalysis.Col.Mttr"]" TextAlign="TextAlign.Right" Width="110px">
                 <Template Context="a"><span class="code" style="@(a.MttrMin is > 60 ? "color:#f87171;" : "color:#34d399;")">@(a.MttrMin?.ToString("N0") ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="EquipAgg" Property="Failures" Title="@L["MNT.OeeAnalysis.Col.Failures"]" TextAlign="TextAlign.Right" Width="70px">
+            <RadzenDataGridColumn TItem="EquipAgg" Property="Failures" Title="@L["MNT.OeeAnalysis.Col.Failures"]" TextAlign="TextAlign.Right" Width="110px">
                 <Template Context="a"><b style="@(a.Failures >= 3 ? "color:#f87171;" : "")">@a.Failures</b></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="EquipAgg" Property="A" Title="@L["Col.Availability"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="EquipAgg" Property="A" Title="@L["Col.Availability"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="a">@Pct(a.A)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="EquipAgg" Property="P" Title="@L["Col.Performance"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="EquipAgg" Property="P" Title="@L["Col.Performance"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="a">@Pct(a.P)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="EquipAgg" Property="Q" Title="@L["Col.Quality"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="EquipAgg" Property="Q" Title="@L["Col.Quality"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="a">@Pct(a.Q)</Template>
             </RadzenDataGridColumn>
         </Columns>

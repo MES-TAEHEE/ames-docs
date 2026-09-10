@@ -67,7 +67,7 @@
             <RadzenLabel Text="@L["RPT.EquipmentOee.Lbl.Month"]" Component="DropDownMonth" />
             <RadzenDropDown Name="DropDownMonth" @bind-Value="_fMonth" Data="@MonthOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
             <RadzenButton Text="@L["RPT.EquipmentOee.Btn.Print"]" Icon="print" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@Print" class="ames-rz-btn" />
@@ -143,11 +143,11 @@
     <RadzenDataGrid TItem="LineAgg" Data="@_lines" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.EquipmentOee.Empty"]" Class="ames-rz-grid rpt-dp-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="LineAgg" Property="LineId" Title="@L["Col.Line"]" Width="220px">
+            <RadzenDataGridColumn TItem="LineAgg" Property="LineId" Title="@L["Col.Line"]">
                 <Template Context="r"><span class="code">@r.LineId</span><span class="dim" style="font-size:.85em;margin-left:6px;">@r.LineName</span></Template>
                 <FooterTemplate><b>@L["RPT.EquipmentOee.PlantAvg"]</b></FooterTemplate>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="LineAgg" Property="A" Title="@L["RPT.EquipmentOee.Kpi.Availability"]" Width="150px">
+            <RadzenDataGridColumn TItem="LineAgg" Property="A" Title="@L["RPT.EquipmentOee.Kpi.Availability"]" Width="160px">
                 <Template Context="r">@Bar(r.A, "a")</Template>
                 <FooterTemplate><b class="code">@Pct(_cur.A)</b></FooterTemplate>
             </RadzenDataGridColumn>
@@ -163,7 +163,7 @@
                 <Template Context="r"><span class="pill @GradeCls(r.Oee)">@Pct(r.Oee)</span></Template>
                 <FooterTemplate><span class="pill @GradeCls(_cur.Oee)">@Pct(_cur.Oee)</span></FooterTemplate>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="LineAgg" Property="Delta" Title="@L["RPT.EquipmentOee.Col.VsPrev"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="LineAgg" Property="Delta" Title="@L["RPT.EquipmentOee.Col.VsPrev"]" TextAlign="TextAlign.Center" Width="150px">
                 <Template Context="r">@if (r.Delta is { } d) { <span class="rpt-eo-delta @(d >= 0 ? "up" : "dn")">@DeltaText(d)</span> } else { <span class="dim">—</span> }</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" Property="Oee" Title="@L["RPT.EquipmentOee.Col.Grade"]" TextAlign="TextAlign.Center" Width="130px" Sortable="false">

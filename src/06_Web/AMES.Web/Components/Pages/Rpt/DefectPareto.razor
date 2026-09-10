@@ -69,9 +69,9 @@
             <span class="dim">~</span>
             <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
             <RadzenLabel Text="@L["Col.Process"]" Component="DropDownProcess" />
-            <RadzenDropDown Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+            <RadzenDropDown Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
             <RadzenButton Text="@L["RPT.DefectPareto.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
@@ -156,25 +156,25 @@
         <RadzenDataGrid TItem="ParetoItem" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                         PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.DefectPareto.Empty"]" Class="ames-rz-grid">
             <Columns>
-                <RadzenDataGridColumn TItem="ParetoItem" Property="Rank" Title="@L["RPT.DefectPareto.Col.Rank"]" TextAlign="TextAlign.Center" Width="60px">
+                <RadzenDataGridColumn TItem="ParetoItem" Property="Rank" Title="@L["RPT.DefectPareto.Col.Rank"]" TextAlign="TextAlign.Center" Width="80px">
                     <Template Context="r"><span class="rpt-pa-rank @(r.Rank <= 3 ? $"r{r.Rank}" : "")">@r.Rank</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ParetoItem" Property="Name" Title="@L["RPT.DefectPareto.Col.Type"]">
                     <Template Context="r"><b style="white-space:nowrap;">@r.Name</b><span class="dim code" style="font-size:.85em;margin-left:6px;">@r.Code</span>@if (r.Vital) { <span class="pill bad" style="margin-left:6px;font-size:9px;">@L["RPT.DefectPareto.Vital"]</span> }</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ParetoItem" Property="Qty" Title="@L["RPT.DefectPareto.Col.Qty"]" TextAlign="TextAlign.Right" Width="70px">
+                <RadzenDataGridColumn TItem="ParetoItem" Property="Qty" Title="@L["RPT.DefectPareto.Col.Qty"]" TextAlign="TextAlign.Right" Width="90px">
                     <Template Context="r"><b class="code" style="color:#f87171;">@r.Qty.ToString("N0")</b></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ParetoItem" Property="Events" Title="@L["RPT.DefectPareto.Col.Events"]" TextAlign="TextAlign.Right" Width="60px">
+                <RadzenDataGridColumn TItem="ParetoItem" Property="Events" Title="@L["RPT.DefectPareto.Col.Events"]" TextAlign="TextAlign.Right" Width="90px">
                     <Template Context="r"><span class="code dim">@r.Events</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ParetoItem" Property="Pct" Title="@L["RPT.DefectPareto.Col.Pct"]" TextAlign="TextAlign.Right" Width="80px">
+                <RadzenDataGridColumn TItem="ParetoItem" Property="Pct" Title="@L["RPT.DefectPareto.Col.Pct"]" TextAlign="TextAlign.Right" Width="90px">
                     <Template Context="r"><span class="code">@($"{r.Pct:0.0}%")</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ParetoItem" Property="Cum" Title="@L["RPT.DefectPareto.Col.CumPct"]" TextAlign="TextAlign.Right" Width="80px">
+                <RadzenDataGridColumn TItem="ParetoItem" Property="Cum" Title="@L["RPT.DefectPareto.Col.CumPct"]" TextAlign="TextAlign.Right" Width="120px">
                     <Template Context="r"><span class="code" style="@(r.Vital ? "color:#60a5fa;font-weight:700;" : "opacity:.6;")">@($"{r.Cum:0.0}%")</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ParetoItem" Property="ProcessCode" Title="@L["Col.Process"]" TextAlign="TextAlign.Center" Width="100px">
+                <RadzenDataGridColumn TItem="ParetoItem" Property="ProcessCode" Title="@L["Col.Process"]" TextAlign="TextAlign.Center" Width="130px">
                     <Template Context="r">@ProcessLabel(r.ProcessCode)</Template>
                 </RadzenDataGridColumn>
             </Columns>

@@ -70,7 +70,7 @@
             <span class="dim">~</span>
             <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
 
@@ -145,7 +145,7 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MntRepository.DowntimeRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.Downtime.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="StartTs" Title="@L["MNT.Downtime.Col.DateTime"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="StartTs" Title="@L["MNT.Downtime.Col.DateTime"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="code">@(r.StartTs?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Title="@L["Col.Name"]" Width="170px" Sortable="false">
@@ -162,10 +162,10 @@
             <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="CauseCode" Title="@L["Col.Cause"]" Width="110px">
                 <Template Context="r"><span class="dim">@(r.CauseCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="DurationMin" Title="@L["Col.MinDown"]" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="DurationMin" Title="@L["Col.MinDown"]" TextAlign="TextAlign.Right" Width="110px">
                 <Template Context="r"><b class="code" style="@(r.DurationMin > 60 ? "color:#f87171;" : "")">@(r.DurationMin?.ToString("N0") ?? "—")</b></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="EndTs" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="EndTs" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r">
                     @if (r.EndTs is null) { <span class="pill bad">@L["MNT.Downtime.Status.Open"]</span> } else { <span class="pill ok">@L["MNT.Downtime.Status.Closed"]</span> }
                 </Template>

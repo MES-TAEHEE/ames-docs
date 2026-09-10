@@ -69,7 +69,7 @@
             <span class="dim">~</span>
             <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Customer"]" Component="DropDownCustomer" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownCustomer" @bind-Value="_fCustomer" Data="@CustomerFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:260px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownCustomer" @bind-Value="_fCustomer" Data="@CustomerFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
             <RadzenButton Text="@L["RPT.OnTime.Btn.Print"]" Icon="print" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@Print" class="ames-rz-btn" />
@@ -136,22 +136,22 @@
                 <Template Context="r"><b style="white-space:nowrap;">@r.ItemName</b><span class="dim code" style="font-size:.85em;margin-left:6px;">@r.ItemNo</span></Template>
                 <FooterTemplate><b>@L["RPT.OnTime.Total"]</b></FooterTemplate>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ItemAgg" Property="CustomerId" Title="@L["Col.Customer"]" Width="200px">
+            <RadzenDataGridColumn TItem="ItemAgg" Property="CustomerId" Title="@L["Col.Customer"]" Width="250px">
                 <Template Context="r"><span class="code">@r.CustomerId</span><span class="dim" style="font-size:.85em;margin-left:6px;">@CustomerName(r.CustomerId)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ItemAgg" Property="Deliveries" Title="@L["RPT.OnTime.Col.Deliveries"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="ItemAgg" Property="Deliveries" Title="@L["RPT.OnTime.Col.Deliveries"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r"><span class="code">@r.Deliveries</span></Template>
                 <FooterTemplate><span class="code">@_items.Sum(i => i.Deliveries)</span></FooterTemplate>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ItemAgg" Property="OnTime" Title="@L["RPT.OnTime.Col.OnTime"]" TextAlign="TextAlign.Right" Width="80px">
+            <RadzenDataGridColumn TItem="ItemAgg" Property="OnTime" Title="@L["RPT.OnTime.Col.OnTime"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r"><span class="code" style="color:#34d399;">@r.OnTime</span></Template>
                 <FooterTemplate><span class="code" style="color:#34d399;">@_items.Sum(i => i.OnTime)</span></FooterTemplate>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ItemAgg" Property="Late" Title="@L["RPT.OnTime.Col.Late"]" TextAlign="TextAlign.Right" Width="80px">
+            <RadzenDataGridColumn TItem="ItemAgg" Property="Late" Title="@L["RPT.OnTime.Col.Late"]" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="r"><span class="code" style="@(r.Late > 0 ? "color:#f87171;" : "")">@r.Late</span></Template>
                 <FooterTemplate><span class="code" style="@(LateCount > 0 ? "color:#f87171;" : "")">@_items.Sum(i => i.Late)</span></FooterTemplate>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ItemAgg" Property="AvgDelay" Title="@L["RPT.OnTime.Col.AvgDelay"]" TextAlign="TextAlign.Right" Width="110px">
+            <RadzenDataGridColumn TItem="ItemAgg" Property="AvgDelay" Title="@L["RPT.OnTime.Col.AvgDelay"]" TextAlign="TextAlign.Right" Width="160px">
                 <Template Context="r"><span class="code">@(r.AvgDelay is { } d ? string.Format(L["RPT.OnTime.DaysFmt"].Value, d.ToString("0.0")) : "—")</span></Template>
                 <FooterTemplate><span class="code">@(AvgDelay is { } d ? string.Format(L["RPT.OnTime.DaysFmt"].Value, d.ToString("0.0")) : "—")</span></FooterTemplate>
             </RadzenDataGridColumn>

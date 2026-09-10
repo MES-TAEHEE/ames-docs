@@ -147,13 +147,13 @@
             <RadzenDataGridColumn TItem="ShipLine" Property="CustomerCode" Title="@L["Col.Customer"]" Width="170px">
                 <Template Context="r"><span class="code">@r.CustomerCode</span><span class="dim" style="font-size:.85em;margin-left:6px;">@CustomerName(r.CustomerCode)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ShipLine" Property="Carrier" Title="@L["Col.Carrier"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="ShipLine" Property="Carrier" Title="@L["Col.Carrier"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="dim">@(r.Carrier ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ShipLine" Property="ItemName" Title="@L["Col.Item"]">
                 <Template Context="r"><span style="white-space:nowrap;">@r.ItemName</span>@if (!string.IsNullOrEmpty(r.ItemNo)) { <span class="dim code" style="font-size:.85em;margin-left:6px;">@r.ItemNo</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ShipLine" Property="Qty" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right" Width="80px">
+            <RadzenDataGridColumn TItem="ShipLine" Property="Qty" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="r"><b class="code">@r.Qty.ToString("N0")</b></Template>
                 <FooterTemplate><span class="code">@_rows.Sum(x => x.Qty).ToString("N0")</span></FooterTemplate>
             </RadzenDataGridColumn>
@@ -167,7 +167,7 @@
             <RadzenDataGridColumn TItem="ShipLine" Property="Vehicle" Title="@L["RPT.DailyShipment.Col.Vehicle"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code dim">@(r.Vehicle ?? (r.State == "pending" ? L["RPT.DailyShipment.Legend.Pending"].Value : "—"))</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ShipLine" Property="State" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="ShipLine" Property="State" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="pill @StateCls(r.State)">@StateLabel(r.State)</span></Template>
                 <FooterTemplate><span class="code">@Amount.ToString("N0")</span></FooterTemplate>
             </RadzenDataGridColumn>

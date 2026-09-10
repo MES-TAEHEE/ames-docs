@@ -65,11 +65,11 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MNT.WorkOrder.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
-            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
             <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
             <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@TypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Priority"]" Component="DropDownPriority" />
-            <RadzenDropDown Name="DropDownPriority" @bind-Value="_fPriority" Data="@PriorityFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDropDown Name="DropDownPriority" @bind-Value="_fPriority" Data="@PriorityFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
             <RadzenLabel Text="@L["Lbl.Recent"]" Component="DropDownTopN" />
             <RadzenDropDown Name="DropDownTopN" @bind-Value="_topN" Data="@TopNOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
 
@@ -82,10 +82,10 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MntRepository.MwoRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.WorkOrder.Empty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="WoNumber" Title="@L["Col.MwoNo"]" TextAlign="TextAlign.Center" Width="130px">
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="WoNumber" Title="@L["Col.MwoNo"]" TextAlign="TextAlign.Center" Width="150px">
                 <Template Context="r"><span class="code">@WoNo(r)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="WoType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="WoType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="pill @TypeCls(r.WoType)">@TypeLabel(r.WoType)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="EquipId" Title="@L["Col.EquipId"]" TextAlign="TextAlign.Center" Width="120px">
@@ -94,31 +94,31 @@
             <RadzenDataGridColumn TItem="MntRepository.MwoRow" Title="@L["Col.EquipName"]">
                 <Template Context="r"><span style="white-space:nowrap;">@EquipName(r.EquipId)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="Priority" Title="@L["Col.Priority"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="Priority" Title="@L["Col.Priority"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="pill @PrCls(r.Priority)">@(r.Priority ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="SourceType" Title="@L["Col.Source"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="SourceType" Title="@L["Col.Source"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="dim">@SourceLabel(r.SourceType)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="AssignedTechId" Title="@L["Col.AssignedTech"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="AssignedTechId" Title="@L["Col.AssignedTech"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="dim">@(r.AssignedTechId ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="pill @StCls(r.Status)">@StatusLabel(r.Status)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="IssuedAt" Title="@L["Col.IssuedDate"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="IssuedAt" Title="@L["Col.IssuedDate"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="dim">@(r.IssuedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="StartedAt" Title="@L["Col.StartedDate"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="StartedAt" Title="@L["Col.StartedDate"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="dim">@(r.StartedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="CompletedAt" Title="@L["Col.CompletedDate"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="CompletedAt" Title="@L["Col.CompletedDate"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="dim">@(r.CompletedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="LaborMinutes" Title="@L["Col.Duration"]" TextAlign="TextAlign.Right" Width="80px">
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="LaborMinutes" Title="@L["Col.Duration"]" TextAlign="TextAlign.Right" Width="110px">
                 <Template Context="r">@(r.LaborMinutes?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="TaskDone" Title="@L["Col.Tasks"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="TaskDone" Title="@L["Col.Tasks"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r"><span class="@(r.TaskCount == 0 ? "dim" : "")">@r.TaskDone / @r.TaskCount</span></Template>
             </RadzenDataGridColumn>
         </Columns>

@@ -80,34 +80,34 @@
             <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="PartName" Title="@L["Col.Name"]">
                 <Template Context="r"><span style="white-space:nowrap;">@(r.PartName ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="Category" Title="@L["Col.Cat"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="Category" Title="@L["Col.Cat"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="pill">@CatLabel(r.Category)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="Uom" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="r"><span class="dim">@(r.Uom ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="OnHand" Title="@L["Col.OnHand"]" TextAlign="TextAlign.Right" Width="80px">
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="OnHand" Title="@L["Col.OnHand"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r"><b>@r.OnHand.ToString("N0")</b></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="SafetyStock" Title="@L["Col.Safety"]" TextAlign="TextAlign.Right" Width="80px">
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="SafetyStock" Title="@L["Col.Safety"]" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="r">@(r.SafetyStock?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="ReorderPoint" Title="@L["Col.Reorder"]" TextAlign="TextAlign.Right" Width="80px">
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="ReorderPoint" Title="@L["Col.Reorder"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">@(r.ReorderPoint?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="ReorderQty" Title="@L["Col.ReorderQty"]" TextAlign="TextAlign.Right" Width="80px">
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="ReorderQty" Title="@L["Col.ReorderQty"]" TextAlign="TextAlign.Right" Width="130px">
                 <Template Context="r">@(r.ReorderQty?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="LeadTimeDays" Title="@L["Col.LeadDays"]" TextAlign="TextAlign.Right" Width="80px">
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="LeadTimeDays" Title="@L["Col.LeadDays"]" TextAlign="TextAlign.Right" Width="170px">
                 <Template Context="r">@(r.LeadTimeDays?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="StorageLoc" Title="@L["Col.StorageLoc"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="StorageLoc" Title="@L["Col.StorageLoc"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="dim">@(r.StorageLoc ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="SupplierId" Title="@L["Col.Supplier"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="dim">@(r.SupplierId ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Title="@L["Col.Flag"]" TextAlign="TextAlign.Center" Width="80px" Sortable="false">
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Title="@L["Col.Flag"]" TextAlign="TextAlign.Center" Width="100px" Sortable="false">
                 <Template Context="r"><span class="pill @(IsLow(r) ? "bad" : "ok")">@(IsLow(r) ? L["MNT.SpareParts.Flag.Low"] : L["MNT.SpareParts.Flag.Ok"])</span></Template>
             </RadzenDataGridColumn>
         </Columns>
@@ -133,10 +133,10 @@
     <RadzenDataGrid @ref="_txnGrid" Page="OnTxnPage" TItem="MntRepository.SparePartsTxnRow" Data="@_txns" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["MNT.SpareParts.TxnEmpty"]" Class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="SparePartsTxnId" Title="@L["Col.TxnNo"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="SparePartsTxnId" Title="@L["Col.TxnNo"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="t"><span class="code">@t.SparePartsTxnId</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="TxnAt" Title="@L["Col.When"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="TxnAt" Title="@L["Col.When"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="t"><span class="dim">@(t.TxnAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="PartNo" Title="@L["Col.PartNo"]" TextAlign="TextAlign.Center" Width="120px">
@@ -145,19 +145,19 @@
             <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="PartName" Title="@L["Col.Name"]">
                 <Template Context="t"><span style="white-space:nowrap;">@(t.PartName ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="MoveType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="MoveType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="t"><span class="pill @MoveCls(t.MoveType)">@MoveLabel(t.MoveType)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="Qty" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right" Width="70px">
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="Qty" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="t">@(t.Qty?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="BalanceAfter" Title="@L["Col.Balance"]" TextAlign="TextAlign.Right" Width="70px">
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="BalanceAfter" Title="@L["Col.Balance"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="t">@(t.BalanceAfter?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="UnitPrice" Title="@L["Col.UnitPrice"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="UnitPrice" Title="@L["Col.UnitPrice"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="t">@(t.UnitPrice?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="StorageLoc" Title="@L["Col.StorageLoc"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="StorageLoc" Title="@L["Col.StorageLoc"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="t"><span class="dim">@(t.StorageLoc ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="RefId" Title="@L["Col.Ref"]" TextAlign="TextAlign.Center" Width="120px">
