@@ -66,7 +66,7 @@
             </RadzenStack>
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@SearchParts" class="ames-rz-btn" />
-            <RadzenButton Text="@L["MNT.SpareParts.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportParts" class="ames-rz-btn" />
+            <RadzenButton Text="@L["MNT.SpareParts.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@ExportParts" class="ames-rz-btn" />
         </RadzenStack>
     </div>
     <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["MNT.SpareParts.Hint.Detail"]</div>
@@ -126,7 +126,7 @@
             <RadzenDropDown Name="DropDownTxnTopN" @bind-Value="_txnTopN" Data="@TopNOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@SearchTxn" class="ames-rz-btn" />
-            <RadzenButton Text="@L["MNT.SpareParts.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportTxn" class="ames-rz-btn" />
+            <RadzenButton Text="@L["MNT.SpareParts.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@ExportTxn" class="ames-rz-btn" />
         </RadzenStack>
     </div>
 

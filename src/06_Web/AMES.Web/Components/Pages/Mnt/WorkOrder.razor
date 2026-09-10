@@ -74,7 +74,7 @@
             <RadzenDropDown Name="DropDownTopN" @bind-Value="_topN" Data="@TopNOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Search" class="ames-rz-btn" />
-            <RadzenButton Text="@L["MNT.WorkOrder.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+            <RadzenButton Text="@L["MNT.WorkOrder.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
         </RadzenStack>
     </div>
     <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["MNT.WorkOrder.Hint.Detail"]</div>

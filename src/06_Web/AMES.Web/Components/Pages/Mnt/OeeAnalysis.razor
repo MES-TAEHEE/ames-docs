@@ -76,7 +76,7 @@
             <RadzenDropDown Name="DropDownShift" @bind-Value="_fShift" Data="@ShiftFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Search" class="ames-rz-btn" />
-            <RadzenButton Text="@L["MNT.OeeAnalysis.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+            <RadzenButton Text="@L["MNT.OeeAnalysis.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
         </RadzenStack>
     </div>
     <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["MNT.OeeAnalysis.Reliability.Hint"]</div>

@@ -70,7 +70,7 @@
             <RadzenDropDown Name="DropDownGrade" @bind-Value="_fGrade" Data="@GradeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
-            <RadzenButton Text="@L["MNT.Mold.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+            <RadzenButton Text="@L["MNT.Mold.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
         </RadzenStack>
     </div>
     <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["MNT.Mold.Hint.Detail"]</div>

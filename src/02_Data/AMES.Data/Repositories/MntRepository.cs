@@ -365,13 +365,13 @@ public sealed class MntRepository
             ("@F", from.Date), ("@T", to.Date), ("@C", (object?)pmClass ?? DBNull.Value));
     }
 
-    /// <summary>예정일(NextDueDate)이 기간 안에 드는 PM. DaysToDue 는 기간 시작일 기준 — MNT-009 "예정 예방보전" 패널용.</summary>
+    /// <summary>예정일(NextDueDate)이 기간 안에 드는 PM — MNT-009 "예정 예방보전" 패널용. DaysToDue 는 다른 PM 조회와 같이 오늘(서버 날짜) 기준.</summary>
     public List<PmRow> ListPmDueRange(DateTime from, DateTime to)
     {
         const string sql = """
             SELECT  PMScheduleID, PMPlanNumber, EquipID, PMClass, PMType, CycleBasis, CycleValue,
                     LastPMDate, NextDueDate, ChecklistID, AssignedTechID, Status, ActiveWoID,
-                    DATEDIFF(DAY, @F, NextDueDate) AS DaysToDue
+                    DATEDIFF(DAY, CAST(SYSDATETIME() AS DATE), NextDueDate) AS DaysToDue
             FROM    dbo.MNT_PMSchedule
             WHERE   NextDueDate BETWEEN @F AND @T
             ORDER BY NextDueDate, EquipID;
