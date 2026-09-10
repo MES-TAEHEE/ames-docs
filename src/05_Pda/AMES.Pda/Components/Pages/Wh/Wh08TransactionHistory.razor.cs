@@ -37,7 +37,7 @@ public partial class Wh08TransactionHistory
             new("IN", "Inbound color", "IN"), new("OUT", "Outbound color", "OUT"), new("ADJ", "Adjust color", "ADJ")),
         new(14, "WH006-TC-014", "ADJ 상세 열기", "ADJ 행의 DETAIL을 열어 Before 16, Change +2, After 18과 부가정보를 확인합니다.",
             new TransactionTestValue("DETAIL", "Open adjustment", "DETAIL")),
-        new(15, "WH006-TC-015", "ADJ 상세 정합성", "상세의 수량, Reason, Note, Worker, Supervisor가 저장된 테스트 거래와 일치하는지 확인합니다.",
+        new(15, "WH006-TC-015", "ADJ 상세 정합성", "상세의 수량, Reason, Note, Worker가 저장된 테스트 거래와 일치하는지 확인합니다.",
             new TransactionTestValue("DETAIL", "16 / +2 / 18", "DETAIL")),
         new(16, "WH006-TC-016", "상세 CLOSE", "DETAIL을 연 뒤 CLOSE를 눌러 기존 기간, 유형, 검색 조건을 유지한 목록으로 복귀하는지 확인합니다.",
             new TransactionTestValue("DETAIL", "Open then CLOSE", "DETAIL")),
@@ -60,7 +60,7 @@ public partial class Wh08TransactionHistory
         new("조회 기간·필터", "시작일·종료일을 선택하고 APPLY로 조회합니다. 오늘은 3건, 어제는 0건입니다.", new PptScenarioPanel.Value("기간", "오늘", "TODAY"), new PptScenarioPanel.Value("기간", "어제", "YESTERDAY")),
         new("바코드 검색", "LOT 또는 Part를 눌러 검색한 뒤 화면의 CLEAR로 검색어를 초기화합니다.", new PptScenarioPanel.Value("LOT", PptHistoryLot, "LOT"), new PptScenarioPanel.Value("PART", "PPT-WH-HIST-01", "PART"), new PptScenarioPanel.Value("검색 없음", "PPT-NOT-FOUND", "UNKNOWN")),
         new("거래 목록", "입고 20, 출고 4, 조정 +2의 일시·LOT·품목·위치·색상·작업자를 확인합니다.", new PptScenarioPanel.Value("이력", "샘플 3건 조회", "ROWS")),
-        new("조정 상세", "DETAIL에서 Before 16, Change +2, After 18과 Reason·Note·Worker·Supervisor를 확인합니다.", new PptScenarioPanel.Value("DETAIL", "조정 상세 열기", "DETAIL"))
+        new("조정 상세", "DETAIL에서 Before 16, Change +2, After 18과 Reason·Note·Worker를 확인합니다.", new PptScenarioPanel.Value("DETAIL", "조정 상세 열기", "DETAIL"))
     ];
     private bool IsDetailedWhTestMode => !IsFinishedGoods
         && PdaScenarioUsers.IsDetailed(Auth?.Session?.EmployeeNo);

@@ -19,15 +19,22 @@
     <div class="pda-bd wh01-body">
         <section class="wh01-head">
             <div class="pda-card-h">QC WAITING</div>
+            @if (!_loadError && !_isLoading)
+            {
             <div class="wh01-summary">
                 <RadzenCard class="wh01-stat"><span>Total</span><strong>@_rows.Count</strong></RadzenCard>
                 <RadzenCard class="wh01-stat waiting-age waiting-age-1"><span>Over 1 Day</span><strong>@OverDaysCount(1)</strong></RadzenCard>
                 <RadzenCard class="wh01-stat waiting-age waiting-age-5"><span>Over 5 Days</span><strong>@OverDaysCount(5)</strong></RadzenCard>
                 <RadzenCard class="wh01-stat waiting-age waiting-age-10"><span>Over 10 Days</span><strong>@OverDaysCount(10)</strong></RadzenCard>
             </div>
+            }
         </section>
 
-        @if (_rows.Count == 0)
+        @if (_loadError)
+        {
+            <div class="pda-status fail" role="alert">@_message</div>
+        }
+        else if (_rows.Count == 0)
         {
             <div class="pda-empty">@_message</div>
         }
@@ -57,6 +64,7 @@
 @code {
     private List<PdaApi.FgQcCompletedRow> _rows = new();
     private bool _isLoading;
+    private bool _loadError;
     private string _message = "Loading...";
     private DateTime _asOf = DateTime.Now;
     private bool IsOverDays(PdaApi.FgQcCompletedRow row, int days) => row.QcPassTs < _asOf.AddDays(-days);
@@ -72,6 +80,8 @@
     {
         if (_isLoading) return;
         _isLoading = true;
+        _loadError = false;
+        _message = "Loading...";
         try
         {
             _rows = (await Api.FgQcCompletedAsync())
@@ -81,6 +91,12 @@
                 .ToList();
             _asOf = DateTime.Now;
             _message = _rows.Count == 0 ? "No finished goods are waiting for put-away." : "";
+        }
+        catch (Exception ex)
+        {
+            _rows.Clear();
+            _loadError = true;
+            _message = ex.Message;
         }
         finally { _isLoading = false; }
     }

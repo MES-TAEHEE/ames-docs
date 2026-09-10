@@ -146,8 +146,33 @@ public sealed class PdaApi
     public async Task<List<CodeOption>> CodeItemsAsync(string groupCode)
     {
         Authorize();
-        return await _http.GetFromJsonAsync<List<CodeOption>>(
-            $"/api/sys/code-items/{Uri.EscapeDataString(groupCode)}") ?? [];
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        try
+        {
+            using var response = await _http.GetAsync(
+                $"/api/sys/code-items/{Uri.EscapeDataString(groupCode)}", timeout.Token);
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+                throw new InvalidOperationException("Your session has expired. Go back and sign in again.");
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+                throw new InvalidOperationException("You do not have permission to load this code list.");
+            response.EnsureSuccessStatusCode();
+            var items = await response.Content.ReadFromJsonAsync<List<CodeOption>>(cancellationToken: timeout.Token);
+            if (items is not { Count: > 0 })
+                throw new InvalidOperationException($"No active codes are configured for {groupCode}. Contact an administrator.");
+            return items;
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new InvalidOperationException("Code service is unavailable. Check the API connection and reopen this screen.", ex);
+        }
+        catch (OperationCanceledException ex)
+        {
+            throw new InvalidOperationException("Code service timed out. Check the API connection and reopen this screen.", ex);
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException("Code service returned an invalid response. Contact an administrator.", ex);
+        }
     }
 
     // ── WH ───────────────────────────────────────────────────────────────
@@ -228,16 +253,10 @@ public sealed class PdaApi
     public sealed record ReceiveReq(string LotCode, decimal Qty, string LocationId);
     public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId, bool SimulateFailure = false);
     public sealed record InboundCancelReq(string Mode, string Barcode);
-    public sealed record InboundAdjustReq(string Mode, string Barcode, decimal DeltaQty, string ReasonCode,
-        string? ReasonNote, string SupervisorPin, string? SupervisorEmployeeNo = null);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
-        string? ReasonNote, string? SupervisorPin = null, string? SupervisorEmployeeNo = null, bool SimulateFailure = false);
-    public sealed record SupervisorRow(string EmployeeNo, string EmployeeName);
-    public sealed record SupervisorPinReq(string EmployeeNo, string Pin);
-    public sealed record SupervisorPinResult(bool Success, string Message);
+        string? ReasonNote, bool SimulateFailure = false);
     public sealed record AdjustTestResetResult(bool Success, string Message, string LotNo, decimal Qty);
     public sealed record InboundReceiveResult(bool Success, string Message, InboundScanRow? Row);
-    public sealed record AdjustReq(string ItemNo, string LocationId, decimal Delta, string ReasonCode, string? Note);
     public sealed record PickReq(string PickSlipNo, string LotNo, decimal Qty);
     public sealed record PickResult(bool Success, string Message, ReleaseLotRow? Row);
 
@@ -530,25 +549,6 @@ public sealed class PdaApi
         }
     }
 
-    public async Task<List<SupervisorRow>> WhAdjustSupervisorsAsync()
-    {
-        Authorize();
-        using var resp = await _http.GetAsync("/api/wh/adjust/supervisors");
-        if (!resp.IsSuccessStatusCode)
-            throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Supervisor list is unavailable."));
-        return await resp.Content.ReadFromJsonAsync<List<SupervisorRow>>() ?? [];
-    }
-
-    public async Task<SupervisorPinResult> WhValidateSupervisorPinAsync(string employeeNo, string pin)
-    {
-        Authorize();
-        using var resp = await _http.PostAsJsonAsync("/api/wh/adjust/supervisor/validate",
-            new SupervisorPinReq(employeeNo, pin));
-        if (!resp.IsSuccessStatusCode)
-            throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Supervisor PIN validation is unavailable."));
-        return await resp.Content.ReadFromJsonAsync<SupervisorPinResult>()
-            ?? new SupervisorPinResult(false, "Supervisor PIN validation failed.");
-    }
 
     public sealed record AdjustmentStock(string Barcode, string LotNo, string PartNo, string? PartName, decimal Qty, string? Unit);
     public sealed record AdjustmentLocation(string LocationId, List<AdjustmentStock> Items);
@@ -760,17 +760,6 @@ public sealed class PdaApi
         }
     }
 
-    public Task<InboundReceiveResult> WhAdjustInboundQtyAsync(InboundAdjustReq body) =>
-        WhSaveAdjustQtyAsync(new AdjustSaveReq(
-            body.Mode,
-            body.Barcode,
-            body.DeltaQty,
-            body.ReasonCode,
-            body.ReasonNote,
-            body.SupervisorPin,
-            body.SupervisorEmployeeNo));
-
-    public Task<HttpResponseMessage> WhAdjustAsync (AdjustReq  body) => Post("/api/wh/inventory/adjust", body);
     public Task<HttpResponseMessage> WhPickAsync   (PickReq    body) => Post("/api/wh/release/pick",      body);
 
     // ── FG ───────────────────────────────────────────────────────────────
@@ -796,13 +785,12 @@ public sealed class PdaApi
         DateTime? QcPassTs);
     public sealed record FgReturnRow(int ReturnId, string? ReturnNumber, string? CustomerCode,
         string? ItemNo, decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt);
-    public sealed record FgReturnScanRow(string Barcode, string? StockNumber, string? LotNo,
+    public sealed record FgReturnScanRow(string Barcode, int StockId, string? StockNumber, int? LotId, string? LotNo,
         int ShipmentOrderId, string? ShipOrderNumber, string CustomerCode,
-        string ItemNo, string? ItemName, DateTime ShippedAt);
+        string ItemNo, string? ItemName, DateTime ShippedAt, decimal Qty);
     public sealed record FgReturnResult(bool Success, string Message, int? ReturnId, FgReturnScanRow? Row);
 
-    public sealed record FgPutAwayReq(int WoId, string ItemNo, decimal Qty, string ActualLoc, int PalletCount);
-    public sealed record FgPutAwayScanRow(int? LotId, string LotNo, int? WoId, string? WoNumber,
+    public sealed record FgPutAwayScanRow(int? LotId, string LotNo, int? WoId,
         string ItemNo, string? ItemName, string? CustomerCode, decimal Qty, string? Unit,
         DateTime? MfgDate, DateTime? ExpiryDate, string? QcInspectionNo, DateTime? QcPassTs,
         bool IsQcPassed, bool AlreadyStocked, int? ExistingStockId, string? ExistingLocation,
@@ -818,7 +806,11 @@ public sealed class PdaApi
     public sealed record FgPutAwayResult(bool Success, string Message, int? StockId, FgPutAwayScanRow? Row,
         FgPutAwayLocationRow? Location);
     public sealed record FgReleaseLotReq(int OutgoingSlipLineId, int StockId, decimal Qty);
+    public sealed record FgReleaseLotScanReq(int OutgoingSlipId, string Barcode, List<FgReleaseLotReq>? ScannedLots);
+    public sealed record FgReleaseLotScanResult(bool Success, string Code, string Message,
+        FgStockRow? Stock, int? OutgoingSlipLineId);
     public sealed record FgCompleteReleaseReq(int OutgoingSlipId, List<FgReleaseLotReq> Lots);
+    public sealed record FgCompleteReleaseResult(bool Success, string Message, int? PickId);
     public sealed record FgLoadingTruckRow(string Barcode, string LicensePlate, bool Ready, string Message);
     public sealed record FgLoadingItemRow(int StockId, int ShipmentOrderLineId, int ShipmentOrderId,
         string ShipOrderNumber, string CustomerCode, string ItemNo, string? ItemName,
@@ -835,14 +827,43 @@ public sealed class PdaApi
 
     public Task<List<FgStockRow>>   FgInventoryAsync(string? q = null)
         => Get<List<FgStockRow>>("/api/fg/inventory" + (string.IsNullOrEmpty(q) ? "" : $"?q={Uri.EscapeDataString(q)}"));
-    public Task<List<FgQcCompletedRow>> FgQcCompletedAsync() => Get<List<FgQcCompletedRow>>("/api/fg/qc-completed");
+    public async Task<List<FgQcCompletedRow>> FgQcCompletedAsync()
+    {
+        Authorize();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        try
+        {
+            using var response = await _http.GetAsync("/api/fg/qc-completed", timeout.Token);
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+                throw new InvalidOperationException("Your session has expired. Go back and sign in again.");
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+                throw new InvalidOperationException("You do not have permission to view QC Waiting.");
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<List<FgQcCompletedRow>>(cancellationToken: timeout.Token)
+                ?? throw new InvalidOperationException("QC Waiting returned an invalid response. Press REFRESH to retry.");
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new InvalidOperationException("QC Waiting could not be loaded. Check the API/DB connection and press REFRESH to retry.", ex);
+        }
+        catch (OperationCanceledException ex)
+        {
+            throw new InvalidOperationException("QC Waiting timed out. Check the connection and press REFRESH to retry.", ex);
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException("QC Waiting returned an invalid response. Press REFRESH to retry.", ex);
+        }
+    }
     public Task<List<FgOrderRow>>   FgOrdersAsync()  => Get<List<FgOrderRow>>("/api/fg/orders");
     public Task<List<FgOrderLineRow>> FgOrderLinesAsync(string shipOrderNumber)
         => Get<List<FgOrderLineRow>>($"/api/fg/orders/{Uri.EscapeDataString(shipOrderNumber)}/lines");
     public async Task<FgOutgoingSlipRow?> FgOutgoingSlipAsync(string barcode)
-        => (await Get<List<FgOutgoingSlipRow>>($"/api/fg/release/outgoing-slips/{Uri.EscapeDataString(barcode)}")).FirstOrDefault();
+        => (await GetPickingAsync<List<FgOutgoingSlipRow>>(
+            $"/api/fg/release/outgoing-slips/{Uri.EscapeDataString(barcode)}")).FirstOrDefault();
     public Task<List<FgOutgoingSlipLineRow>> FgOutgoingSlipLinesAsync(string barcode)
-        => Get<List<FgOutgoingSlipLineRow>>($"/api/fg/release/outgoing-slips/{Uri.EscapeDataString(barcode)}/lines");
+        => GetPickingAsync<List<FgOutgoingSlipLineRow>>(
+            $"/api/fg/release/outgoing-slips/{Uri.EscapeDataString(barcode)}/lines");
     public Task<List<FgHistoryRow>> FgHistoryAsync() => Get<List<FgHistoryRow>>("/api/fg/history");
     public Task<List<FgReturnRow>> FgReturnsAsync() => Get<List<FgReturnRow>>("/api/fg/returns");
     public Task<FgReturnResult> FgReturnScanAsync(string barcode)
@@ -859,7 +880,6 @@ public sealed class PdaApi
         catch { return new FgDashboard(0,0,0,0,0,0); }
     }
 
-    public Task<HttpResponseMessage> FgPutAwayAsync (FgPutAwayReq body)  => Post("/api/fg/putaway",  body);
     public Task<FgPutAwayResult> FgPutAwayScanAsync(string barcode)
         => GetFgPutAwayResultAsync($"/api/fg/putaway/scan?barcode={Uri.EscapeDataString(barcode)}");
     public Task<FgPutAwayResult> FgValidatePutAwayContainerAsync(string storageMethod, string barcode)
@@ -868,7 +888,35 @@ public sealed class PdaApi
         => GetFgPutAwayLocationAsync($"/api/fg/putaway/location?locationId={Uri.EscapeDataString(locationId)}&itemNo={Uri.EscapeDataString(itemNo)}&customerCode={Uri.EscapeDataString(customerCode ?? "")}&qty={qty}&expectedScanType={Uri.EscapeDataString(expectedScanType ?? "")}");
     public Task<FgPutAwayResult> FgConfirmPutAwayAsync(FgPutAwayConfirmReq body)
         => PostFgPutAwayResultAsync("/api/fg/putaway/confirm", body);
-    public Task<HttpResponseMessage> FgCompleteReleaseAsync(FgCompleteReleaseReq body) => Post("/api/fg/release/complete", body);
+    public async Task<FgReleaseLotScanResult> FgReleaseLotScanAsync(FgReleaseLotScanReq body)
+    {
+        Authorize();
+        try
+        {
+            var response = await _http.PostAsJsonAsync("/api/fg/release/lot/scan", body);
+            return await response.Content.ReadFromJsonAsync<FgReleaseLotScanResult>()
+                ?? new(false, "SERVICE_ERROR", "Picking service returned an empty response.", null, null);
+        }
+        catch (Exception ex)
+        {
+            return new(false, "SERVICE_ERROR", $"Picking service is unavailable. {ex.Message}", null, null);
+        }
+    }
+
+    public async Task<FgCompleteReleaseResult> FgCompleteReleaseAsync(FgCompleteReleaseReq body)
+    {
+        Authorize();
+        try
+        {
+            var response = await _http.PostAsJsonAsync("/api/fg/release/complete", body);
+            return await response.Content.ReadFromJsonAsync<FgCompleteReleaseResult>()
+                ?? new(false, "Picking service returned an empty response.", null);
+        }
+        catch (Exception ex)
+        {
+            return new(false, $"Picking service is unavailable. {ex.Message}", null);
+        }
+    }
     public Task<FgLoadingOrderResult> FgLoadingOrderScanAsync(string barcode)
         => GetFgLoadingOrderResultAsync($"/api/fg/loading/order/scan?barcode={Uri.EscapeDataString(barcode)}");
     public Task<FgLoadingResult> FgLoadingTruckScanAsync(string barcode)
@@ -905,9 +953,13 @@ public sealed class PdaApi
             var resp = await _http.GetAsync(url);
             return await ReadFgLoadingResultAsync(resp);
         }
-        catch (Exception ex)
+        catch (HttpRequestException)
         {
-            return new FgLoadingResult(false, ex.Message, null, null, null);
+            return new FgLoadingResult(false, "Truck loading service is unavailable. Check the API and database connection.", null, null, null);
+        }
+        catch (Exception)
+        {
+            return new FgLoadingResult(false, "Truck loading service returned an invalid response.", null, null, null);
         }
     }
 
@@ -933,9 +985,13 @@ public sealed class PdaApi
                 resp.IsSuccessStatusCode ? "Shipment order loaded." : $"Shipment order service failed. HTTP {(int)resp.StatusCode}.",
                 null);
         }
-        catch (Exception ex)
+        catch (HttpRequestException)
         {
-            return new FgLoadingOrderResult(false, ex.Message, null);
+            return new FgLoadingOrderResult(false, "Truck loading service is unavailable. Check the API and database connection.", null);
+        }
+        catch (Exception)
+        {
+            return new FgLoadingOrderResult(false, "Truck loading service returned an invalid response.", null);
         }
     }
 
@@ -947,9 +1003,13 @@ public sealed class PdaApi
             var resp = await _http.PostAsJsonAsync(url, body);
             return await ReadFgLoadingResultAsync(resp);
         }
-        catch (Exception ex)
+        catch (HttpRequestException)
         {
-            return new FgLoadingResult(false, ex.Message, null, null, null);
+            return new FgLoadingResult(false, "Truck loading service is unavailable. Check the API and database connection.", null, null, null);
+        }
+        catch (Exception)
+        {
+            return new FgLoadingResult(false, "Truck loading service returned an invalid response.", null, null, null);
         }
     }
 
@@ -1078,6 +1138,28 @@ public sealed class PdaApi
             ? "FG Put-Away completed."
             : $"FG Put-Away service failed. HTTP {(int)resp.StatusCode}.";
         return new FgPutAwayResult(resp.IsSuccessStatusCode, message, null, null, null);
+    }
+
+    private async Task<T> GetPickingAsync<T>(string url)
+    {
+        Authorize();
+        try
+        {
+            var response = await _http.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException(await ReadServiceErrorAsync(response,
+                    $"Picking service failed. HTTP {(int)response.StatusCode}."));
+            return await response.Content.ReadFromJsonAsync<T>()
+                ?? throw new InvalidOperationException("Picking service returned an empty response.");
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException("Picking service is unavailable. Check the API/DB connection.", ex);
+        }
     }
 
     private async Task<T> Get<T>(string url) where T : new()
@@ -1308,27 +1390,27 @@ public sealed class PdaApi
                         CONVERT(nvarchar(10), A.CreatedTS, 23) AS WDATE,
                         CONVERT(nvarchar(8), A.CreatedTS, 108) AS WTIME,
                         A.LocationID AS LOCATION_NO,
-                        COALESCE(A.QtyAfter, 0) AS QTY,
+                        COALESCE(A.QtyChange, 0) AS QTY,
                         N'Adjust' AS STATUS,
                         N'ADJ' AS DIRECTION,
-                        COALESCE(A.ApprovedBy, A.RequestedBy, A.CreatedBy) AS WORKER_ID,
+                        COALESCE(A.OperatorID, A.CreatedBy) AS WORKER_ID,
                         A.ReasonCode AS REASON_CODE,
-                        A.ReasonNote AS REASON_NOTE,
-                        COALESCE(A.ApprovedBy, A.RequestedBy, A.CreatedBy) AS SUPERVISOR,
+                        A.Note AS REASON_NOTE,
+                        A.ApproverID AS SUPERVISOR,
                         A.QtyBefore AS BEFORE_QTY,
-                        A.Delta AS DELTA_QTY,
+                        A.QtyChange AS DELTA_QTY,
                         A.QtyAfter AS AFTER_QTY,
                         N'QTY BEFORE' AS BEFORE_STATUS,
                         N'QTY AFTER' AS AFTER_STATUS,
                         A.LocationID AS BEFORE_LOCATION,
                         A.LocationID AS AFTER_LOCATION,
-                        N'WH_InventoryAdjust' AS SOURCE,
-                        CONCAT(A.ReasonCode, N' ', CASE WHEN A.Delta > 0 THEN N'+' ELSE N'' END, CONVERT(nvarchar(40), A.Delta)) AS NOTE,
-                        COALESCE(A.CreatedTS, SYSUTCDATETIME()) AS SORT_TS
-                    FROM dbo.WH_InventoryAdjust A
+                        N'WH_InventoryTransaction' AS SOURCE,
+                        CONCAT(A.ReasonCode, N' ', CASE WHEN A.QtyChange > 0 THEN N'+' ELSE N'' END, CONVERT(nvarchar(40), A.QtyChange)) AS NOTE,
+                        COALESCE(A.TransactionTime, A.CreatedTS, SYSUTCDATETIME()) AS SORT_TS
+                    FROM dbo.WH_InventoryTransaction A
                     LEFT JOIN dbo.tbl_Lot L
                            ON L.LotID = A.LotID
-                    WHERE (@IN_SEARCH IS NULL
+                    WHERE A.TransactionType = 'ADJ' AND (@IN_SEARCH IS NULL
                         OR L.LotCode LIKE @IN_SEARCH ESCAPE N'\'
                         OR A.ItemNo LIKE @IN_SEARCH ESCAPE N'\'
                         OR A.LocationID LIKE @IN_SEARCH ESCAPE N'\'

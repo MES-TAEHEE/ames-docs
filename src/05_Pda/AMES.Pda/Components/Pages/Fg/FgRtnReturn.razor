@@ -132,7 +132,10 @@
     private string SelectedReasonName => Reasons.FirstOrDefault(x => x.CodeValue == _reason)?.Name ?? _reason ?? "";
 
     protected override async Task OnInitializedAsync()
-        => Reasons = await Api.CodeItemsAsync("FG_RETURN_REASON");
+    {
+        try { Reasons = await Api.CodeItemsAsync("FG_RETURN_REASON"); }
+        catch (Exception ex) { ShowModal("Code List Unavailable", ex.Message, "fail"); }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

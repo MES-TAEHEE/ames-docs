@@ -432,7 +432,12 @@
         if (_initialized) return;
         _initialized = true;
 
-        OutgoingTypes = await Api.CodeItemsAsync("WH_OUTGOING_TYPE");
+        try { OutgoingTypes = await Api.CodeItemsAsync("WH_OUTGOING_TYPE"); }
+        catch (Exception ex)
+        {
+            ShowModal("Code List Unavailable", ex.Message, "fail");
+            return;
+        }
 
         if (!string.IsNullOrWhiteSpace(PickSlipNo))
         {

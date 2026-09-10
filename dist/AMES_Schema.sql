@@ -53,10 +53,12 @@ IF OBJECT_ID(N'dbo.FG_CustomerReturn', N'U') IS NOT NULL DROP TABLE dbo.FG_Custo
 IF OBJECT_ID(N'dbo.FG_DayEndClose', N'U') IS NOT NULL DROP TABLE dbo.FG_DayEndClose;
 IF OBJECT_ID(N'dbo.FG_DeliveryNote', N'U') IS NOT NULL DROP TABLE dbo.FG_DeliveryNote;
 IF OBJECT_ID(N'dbo.FG_LoadingConfirm', N'U') IS NOT NULL DROP TABLE dbo.FG_LoadingConfirm;
+IF OBJECT_ID(N'dbo.FG_PickingDetail', N'U') IS NOT NULL DROP TABLE dbo.FG_PickingDetail;
 IF OBJECT_ID(N'dbo.FG_PickingFifo', N'U') IS NOT NULL DROP TABLE dbo.FG_PickingFifo;
 IF OBJECT_ID(N'dbo.FG_ShipmentOrderLine', N'U') IS NOT NULL DROP TABLE dbo.FG_ShipmentOrderLine;
 IF OBJECT_ID(N'dbo.FG_ShipmentOrder', N'U') IS NOT NULL DROP TABLE dbo.FG_ShipmentOrder;
 IF OBJECT_ID(N'dbo.FG_PutAway', N'U') IS NOT NULL DROP TABLE dbo.FG_PutAway;
+IF OBJECT_ID(N'dbo.FG_Inventory', N'U') IS NOT NULL DROP TABLE dbo.FG_Inventory;
 IF OBJECT_ID(N'dbo.FG_Stock', N'U') IS NOT NULL DROP TABLE dbo.FG_Stock;
 IF OBJECT_ID(N'dbo.QC_Disposition', N'U') IS NOT NULL DROP TABLE dbo.QC_Disposition;
 IF OBJECT_ID(N'dbo.QC_CAPA_Action', N'U') IS NOT NULL DROP TABLE dbo.QC_CAPA_Action;
@@ -1055,28 +1057,6 @@ CREATE TABLE dbo.WH_Inventory (
 );
 GO
 
--- ── WH_InventoryAdjust  (재고 조정)
-CREATE TABLE dbo.WH_InventoryAdjust (
-  [AdjustID]                  INT IDENTITY         NOT NULL,
-  [AdjustNo]                  VARCHAR(24)              NULL,
-  [ItemNo]                    VARCHAR(20)              NULL,  -- FK -> MD_Item.ItemNo
-  [LocationID]                VARCHAR(20)              NULL,  -- FK -> MD_Location.LocationID
-  [LotID]                     INT                      NULL,  -- FK -> tbl_Lot.LotID
-  [QtyBefore]                 DECIMAL(14,3)            NULL,
-  [Delta]                     DECIMAL(14,3)            NULL,
-  [QtyAfter]                  DECIMAL(14,3)            NULL,
-  [ReasonCode]                VARCHAR(30)              NULL,
-  [ReasonNote]                NVARCHAR(500)            NULL,
-  [Status]                    VARCHAR(20)              NULL,
-  [RequestedBy]               NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
-  [ApprovedBy]                NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
-  [CreatedBy]                 VARCHAR(50)          NOT NULL,
-  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedBy]                NVARCHAR(450)            NULL,
-  [ModifiedTS]                DATETIME2                NULL,
-  CONSTRAINT PK_WH_InventoryAdjust PRIMARY KEY CLUSTERED ([AdjustID])
-);
-GO
 
 -- ── WH_ReleaseSchedule  (출고 예정 (WO 수요))
 CREATE TABLE dbo.WH_ReleaseSchedule (
@@ -2929,16 +2909,11 @@ GO
 CREATE TABLE dbo.FG_PickingFifo (
   [PickID]                    INT IDENTITY         NOT NULL,
   [PickNumber]                VARCHAR(24)              NULL,
-  [PickslipID]                VARCHAR(24)              NULL,
   [ShipmentOrderID]           INT                      NULL,  -- FK -> FG_ShipmentOrder.ShipmentOrderID
   [PickerID]                  NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [StartTS]                   DATETIME2                NULL,
   [EndTS]                     DATETIME2                NULL,
   [PicksJSON]                 NVARCHAR(MAX)            NULL,
-  [FifoViolations]            INT                      NULL,
-  [OverrideCount]             INT                      NULL,
-  [OverrideApprovedBy]        NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
-  [PartialPicksJSON]          NVARCHAR(MAX)            NULL,
   [PickedQty]                 DECIMAL(12,3)            NULL,
   [OrderedQty]                DECIMAL(12,3)            NULL,
   [Status]                    VARCHAR(15)              NULL,
@@ -2950,25 +2925,37 @@ CREATE TABLE dbo.FG_PickingFifo (
 );
 GO
 
+-- ── FG_PickingDetail  (피킹 LOT 상세)
+CREATE TABLE dbo.FG_PickingDetail (
+  [PickDetailID]              INT IDENTITY         NOT NULL,
+  [PickID]                    INT                  NOT NULL,  -- FK -> FG_PickingFifo.PickID
+  [ShipmentOrderLineID]       INT                  NOT NULL,  -- FK -> FG_ShipmentOrderLine.ShipmentOrderLineID
+  [StockID]                   INT                  NOT NULL,  -- FK -> FG_Stock.StockID
+  [LotID]                     INT                      NULL,  -- FK -> tbl_Lot.LotID
+  [ItemNo]                    VARCHAR(20)          NOT NULL,  -- FK -> MD_Item.ItemNo
+  [Qty]                       DECIMAL(12,3)        NOT NULL,
+  [Location]                  VARCHAR(20)              NULL,  -- FK -> MD_Location.LocationID
+  [PickSeq]                   INT                  NOT NULL,
+  [CreatedBy]                 VARCHAR(50)          NOT NULL,
+  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
+  CONSTRAINT PK_FG_PickingDetail PRIMARY KEY CLUSTERED ([PickDetailID])
+);
+GO
+
 -- ── FG_LoadingConfirm  (상차 (Chain-of-Custody))
 CREATE TABLE dbo.FG_LoadingConfirm (
   [LoadingID]                 INT IDENTITY         NOT NULL,
-  [LoadingNumber]             VARCHAR(24)              NULL,
-  [ShipmentOrderID]           INT                      NULL,  -- FK -> FG_ShipmentOrder.ShipmentOrderID
+  [LoadingNumber]             VARCHAR(24)          NOT NULL,
+  [ShipmentOrderID]           INT                  NOT NULL,  -- FK -> FG_ShipmentOrder.ShipmentOrderID
   [PickID]                    INT                      NULL,  -- FK -> FG_PickingFifo.PickID
-  [LicensePlate]              VARCHAR(20)              NULL,
+  [LicensePlate]              VARCHAR(20)          NOT NULL,
   [CarrierCode]               VARCHAR(20)              NULL,
-  [DriverID]                  VARCHAR(30)              NULL,
   [DriverName]                VARCHAR(50)              NULL,
-  [DriverPhone]               VARCHAR(30)              NULL,
   [DockNo]                    VARCHAR(10)              NULL,
   [ArrivalTS]                 DATETIME2                NULL,
   [DepartureTS]               DATETIME2                NULL,
   [PalletsLoadedJSON]         NVARCHAR(MAX)            NULL,
   [SealNo]                    VARCHAR(20)              NULL,
-  [DriverSigURL]              VARCHAR(255)             NULL,
-  [DriverPhotoURL]            VARCHAR(255)             NULL,
-  [GPSCoord]                  VARCHAR(30)              NULL,
   [OTDStatus]                 VARCHAR(10)              NULL,
   [OperatorID]                NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [ConfirmedAt]               DATETIME2                NULL,
@@ -2976,8 +2963,16 @@ CREATE TABLE dbo.FG_LoadingConfirm (
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
   [ModifiedTS]                DATETIME2                NULL,
-  CONSTRAINT PK_FG_LoadingConfirm PRIMARY KEY CLUSTERED ([LoadingID])
+  CONSTRAINT PK_FG_LoadingConfirm PRIMARY KEY CLUSTERED ([LoadingID]),
+  CONSTRAINT FK_FG_LoadingConfirm_Order FOREIGN KEY ([ShipmentOrderID]) REFERENCES dbo.FG_ShipmentOrder([ShipmentOrderID]),
+  CONSTRAINT FK_FG_LoadingConfirm_Pick FOREIGN KEY ([PickID]) REFERENCES dbo.FG_PickingFifo([PickID]),
+  CONSTRAINT CK_FG_LoadingConfirm_LoadedJSON CHECK ([PalletsLoadedJSON] IS NULL OR ISJSON([PalletsLoadedJSON]) = 1)
 );
+GO
+
+CREATE UNIQUE INDEX UX_FG_LoadingConfirm_LoadingNumber ON dbo.FG_LoadingConfirm([LoadingNumber]);
+CREATE UNIQUE INDEX UX_FG_LoadingConfirm_Order ON dbo.FG_LoadingConfirm([ShipmentOrderID]);
+CREATE INDEX IX_FG_LoadingConfirm_Truck ON dbo.FG_LoadingConfirm([LicensePlate], [DepartureTS] DESC);
 GO
 
 -- ── FG_DeliveryNote  (★ 거래명세서 / BOL)
@@ -3030,18 +3025,22 @@ GO
 -- ── FG_CustomerReturn  (고객 반품 (RMA))
 CREATE TABLE dbo.FG_CustomerReturn (
   [ReturnID]                  INT IDENTITY         NOT NULL,
-  [ReturnNumber]              VARCHAR(24)              NULL,
+  [ReturnNumber]              VARCHAR(24)          NOT NULL,
   [RMANo]                     VARCHAR(40)              NULL,
-  [CustomerCode]              VARCHAR(20)              NULL,
+  [CustomerCode]              VARCHAR(20)          NOT NULL,
   [CustomerClaimID]           VARCHAR(24)              NULL,
-  [OriginalShipmentOrderID]   INT                      NULL,  -- FK -> FG_ShipmentOrder.ShipmentOrderID
+  [OriginalShipmentOrderID]   INT                  NOT NULL,  -- FK -> FG_ShipmentOrder.ShipmentOrderID
   [OriginalDeliveryNoteID]    INT                      NULL,  -- FK -> FG_DeliveryNote.DeliveryNoteID
-  [ReturnReason]              VARCHAR(60)              NULL,
+  [StockID]                   INT                  NOT NULL,  -- FK -> FG_Stock.StockID
+  [LotID]                     INT                      NULL,  -- FK -> tbl_Lot.LotID
+  [ItemNo]                    VARCHAR(20)          NOT NULL,  -- FK -> MD_Item.ItemNo
+  [ReturnQty]                 DECIMAL(12,3)        NOT NULL,
+  [ReturnReason]              VARCHAR(60)          NOT NULL,
   [Note]                      NVARCHAR(500)            NULL,
-  [ItemsJSON]                 NVARCHAR(MAX)            NULL,
-  [Status]                    VARCHAR(15)              NULL,
-  [ReceivedAt]                DATETIME2                NULL,
-  [ReceivedBy]                NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
+  [ItemsJSON]                 NVARCHAR(MAX)        NOT NULL,
+  [Status]                    VARCHAR(15)          NOT NULL,
+  [ReceivedAt]                DATETIME2            NOT NULL,
+  [ReceivedBy]                NVARCHAR(450)        NOT NULL,  -- FK -> AspNetUsers.Id
   [NcrID]                     INT                      NULL,  -- FK -> QC_NCR.NcrID
   [CapaTriggered]             BIT                      NULL,
   [ClosedAt]                  DATETIME2                NULL,
@@ -3050,29 +3049,22 @@ CREATE TABLE dbo.FG_CustomerReturn (
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
   [ModifiedTS]                DATETIME2                NULL,
-  CONSTRAINT PK_FG_CustomerReturn PRIMARY KEY CLUSTERED ([ReturnID])
+  CONSTRAINT PK_FG_CustomerReturn PRIMARY KEY CLUSTERED ([ReturnID]),
+  CONSTRAINT FK_FG_CustomerReturn_Order FOREIGN KEY ([OriginalShipmentOrderID]) REFERENCES dbo.FG_ShipmentOrder([ShipmentOrderID]),
+  CONSTRAINT FK_FG_CustomerReturn_Stock FOREIGN KEY ([StockID]) REFERENCES dbo.FG_Stock([StockID]),
+  CONSTRAINT FK_FG_CustomerReturn_Lot FOREIGN KEY ([LotID]) REFERENCES dbo.tbl_Lot([LotID]),
+  CONSTRAINT FK_FG_CustomerReturn_Item FOREIGN KEY ([ItemNo]) REFERENCES dbo.MD_Item([ItemNo]),
+  CONSTRAINT CK_FG_CustomerReturn_Qty CHECK ([ReturnQty] IS NULL OR [ReturnQty] > 0),
+  CONSTRAINT CK_FG_CustomerReturn_ItemsJSON CHECK ([ItemsJSON] IS NULL OR ISJSON([ItemsJSON]) = 1)
 );
 GO
 
--- ── FG_ReturnDisposition  (반품 처분)
-CREATE TABLE dbo.FG_ReturnDisposition (
-  [ReturnDispositionID]       INT IDENTITY         NOT NULL,
-  [ReturnID]                  INT                      NULL,  -- FK -> FG_CustomerReturn.ReturnID
-  [PalletSeq]                 INT                      NULL,
-  [ItemNo]                    VARCHAR(20)              NULL,  -- FK -> MD_Item.ItemNo
-  [LotID]                     INT                      NULL,  -- FK -> tbl_Lot.LotID
-  [Qty]                       DECIMAL(12,3)            NULL,
-  [Action]                    VARCHAR(15)              NULL,
-  [Reason]                    NVARCHAR(500)            NULL,
-  [DownstreamRefID]           VARCHAR(24)              NULL,
-  [ApprovedBy]                NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
-  [ApprovedAt]                DATETIME2                NULL,
-  [CreatedBy]                 VARCHAR(50)          NOT NULL,
-  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
-  [ModifiedBy]                NVARCHAR(450)            NULL,
-  [ModifiedTS]                DATETIME2                NULL,
-  CONSTRAINT PK_FG_ReturnDisposition PRIMARY KEY CLUSTERED ([ReturnDispositionID])
-);
+CREATE UNIQUE INDEX UX_FG_CustomerReturn_ReturnNumber
+  ON dbo.FG_CustomerReturn([ReturnNumber]) WHERE [ReturnNumber] IS NOT NULL;
+CREATE UNIQUE INDEX UX_FG_CustomerReturn_Stock
+  ON dbo.FG_CustomerReturn([StockID]) WHERE [StockID] IS NOT NULL;
+CREATE INDEX IX_FG_CustomerReturn_Received
+  ON dbo.FG_CustomerReturn([ReceivedAt] DESC, [ReturnID] DESC);
 GO
 
 -- ╔══════════════════════════════════════════════════════════════════════╗

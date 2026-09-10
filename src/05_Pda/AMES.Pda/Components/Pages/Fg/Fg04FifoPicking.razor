@@ -144,23 +144,20 @@
             {
                 if (LooksLikeFgLotBarcode(_slipBarcode))
                 {
-                    var lots = await Api.FgInventoryAsync(_slipBarcode);
-                    var lotExists = lots.Any(x => string.Equals(x.LotNo, _slipBarcode, StringComparison.OrdinalIgnoreCase));
                     _lines.Clear();
                     _slipBarcode = "";
-                    ShowModal(lotExists ? "Outgoing Slip Required" : "LOT Not Found",
-                        lotExists ? "Please scan the outgoing slip first." : "The scanned FG LOT was not found.", "warn");
+                    ShowModal("Outgoing Slip Required", "Please scan the outgoing slip first.", "warn");
                     return;
                 }
                 _lines.Clear();
                 ShowModal("Outgoing Slip Not Found", "The outgoing slip barcode was not found.", "warn");
                 return;
             }
-            if (CompletedStatus(_selectedSlip.Status))
+            if (!string.Equals(_selectedSlip.Status, "Released", StringComparison.OrdinalIgnoreCase))
             {
                 var status = Text(_selectedSlip.Status);
                 _selectedSlip = null;
-                ShowModal("Outgoing Slip Unavailable", $"This outgoing slip is currently {status}.", "warn");
+                ShowModal("Outgoing Slip Unavailable", $"Only RELEASED outgoing slips can be picked. Current status: {status}.", "warn");
                 return;
             }
             _slipBarcode = _selectedSlip.OutgoingSlipBarcode;
@@ -168,6 +165,12 @@
             _scannedQty.Clear();
             _scannedLots.Clear();
             if (_lines.Count == 0) ShowModal("No Outgoing Lines", "No Part/LOT lines were found for this outgoing slip.", "warn");
+        }
+        catch (Exception ex)
+        {
+            _selectedSlip = null;
+            _lines.Clear();
+            ShowModal("Picking Service Error", ex.Message, "danger");
         }
         finally { _isBusy = false; await FocusAsync(); }
     }
@@ -179,37 +182,19 @@
         try
         {
             _lotBarcode = _lotBarcode.Trim();
-            var matches = await Api.FgInventoryAsync(_lotBarcode);
-            var stock = matches.FirstOrDefault(x => string.Equals(x.LotNo, _lotBarcode, StringComparison.OrdinalIgnoreCase));
-            if (stock is null) { ShowModal("LOT Not Found", "The scanned FG LOT was not found.", "warn"); return; }
-            if (_scannedLots.Any(x => x.Stock.StockId == stock.StockId)) { ShowModal("LOT Already Scanned", $"{_lotBarcode} is already scanned.", "warn"); return; }
-            if (!string.Equals(stock.Status, "Available", StringComparison.OrdinalIgnoreCase))
+            var result = await Api.FgReleaseLotScanAsync(new PdaApi.FgReleaseLotScanReq(
+                _selectedSlip.OutgoingSlipId,
+                _lotBarcode,
+                _scannedLots.Select(x => new PdaApi.FgReleaseLotReq(
+                    x.OutgoingSlipLineId, x.Stock.StockId, x.Stock.Qty)).ToList()));
+            if (!result.Success || result.Stock is null || result.OutgoingSlipLineId is null)
             {
-                ShowModal("LOT Not Available", $"{stock.LotNo} is currently {Text(stock.Status)}.", "warn");
+                ShowModal(ReleaseScanTitle(result.Code), result.Message,
+                    result.Code is "WRONG_PART" or "WRONG_CUSTOMER" ? "danger" : "warn");
                 return;
             }
-            var line = _lines.FirstOrDefault(x => string.Equals(x.PartNo, stock.ItemNo, StringComparison.OrdinalIgnoreCase)
-                && ScannedQty(x) < x.RequiredQty);
-            if (line is null) { ShowModal("Wrong Part", $"{stock.ItemNo} is not required by this outgoing slip.", "danger"); return; }
-            var remaining = line.RequiredQty - ScannedQty(line);
-            var fifoLot = (await Api.FgInventoryAsync(stock.ItemNo))
-                .Where(x => string.Equals(x.ItemNo, stock.ItemNo, StringComparison.OrdinalIgnoreCase)
-                    && string.Equals(x.Status, "Available", StringComparison.OrdinalIgnoreCase)
-                    && x.Qty > 0
-                    && !_scannedLots.Any(scanned => scanned.Stock.StockId == x.StockId))
-                .OrderBy(x => x.StockTs ?? DateTime.MaxValue)
-                .ThenBy(x => x.StockId)
-                .FirstOrDefault();
-            if (fifoLot is not null && fifoLot.StockId != stock.StockId)
-            {
-                ShowModal("FIFO Order", $"Scan {fifoLot.LotNo} first. Location: {Text(fifoLot.Location)}.", "warn");
-                return;
-            }
-            if (stock.Qty > remaining)
-            {
-                ShowModal("Quantity Exceeds Remaining", $"LOT quantity {stock.Qty:0.###} exceeds remaining quantity {remaining:0.###}.", "warn");
-                return;
-            }
+            var stock = result.Stock;
+            var line = _lines.First(x => x.OutgoingSlipLineId == result.OutgoingSlipLineId.Value);
             _scannedLots.Add(new ScannedLotRow(line.OutgoingSlipLineId, line.PartNo, stock));
             _scannedQty[line.OutgoingSlipLineId] = ScannedQty(line) + stock.Qty;
             ShowModal("LOT Scanned", $"{stock.LotNo} / {ScannedQty(line):0.###} of {line.RequiredQty:0.###}", "success");
@@ -229,7 +214,7 @@
             var result = await Api.FgCompleteReleaseAsync(new PdaApi.FgCompleteReleaseReq(
                 _selectedSlip.OutgoingSlipId,
                 _scannedLots.Select(x => new PdaApi.FgReleaseLotReq(x.OutgoingSlipLineId, x.Stock.StockId, x.Stock.Qty)).ToList()));
-            if (!result.IsSuccessStatusCode) { ShowModal("Complete Failed", $"HTTP {(int)result.StatusCode}", "danger"); return; }
+            if (!result.Success) { ShowModal("Complete Failed", result.Message, "danger"); return; }
             var slipBarcode = _selectedSlip.OutgoingSlipBarcode;
             Clear();
             ShowModal("Release Complete", $"Outgoing slip {slipBarcode} is ready for loading.", "success");
@@ -240,7 +225,19 @@
     private void ShowModal(string title, string message, string kind) { _modalTitle = title; _modalMessage = message; _modalKind = kind; _modalOpen = true; }
     private void CloseModal() { _modalOpen = false; _ = FocusAsync(); }
     private async Task FocusAsync() { if (_pptOpen || _modalOpen) return; try { await JS.InvokeVoidAsync("pdaScan.focus", ".fg04-shell .pda-scan-input"); } catch { } }
-    private static bool CompletedStatus(string? status) => status?.Trim().ToUpperInvariant() is "PICKED" or "SHIPPED" or "CANCELLED" or "CLOSED";
+    private static string ReleaseScanTitle(string code) => code switch
+    {
+        "FIFO_ORDER" => "FIFO Order",
+        "LOT_NOT_FOUND" => "LOT Not Found",
+        "LOT_ALREADY_SCANNED" => "LOT Already Scanned",
+        "LOT_NOT_AVAILABLE" => "LOT Not Available",
+        "LOT_ON_HOLD" => "LOT On Hold",
+        "WRONG_CUSTOMER" => "Wrong Customer",
+        "WRONG_PART" => "Wrong Part",
+        "QUANTITY_EXCEEDS_REMAINING" => "Quantity Exceeds Remaining",
+        "SLIP_NOT_RELEASED" => "Outgoing Slip Unavailable",
+        _ => "LOT Scan Failed"
+    };
     private static bool LooksLikeFgLotBarcode(string value) => value.Length >= 6 && value.AsSpan(4, 2).Equals("FG", StringComparison.OrdinalIgnoreCase);
     private static string Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? "" : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();

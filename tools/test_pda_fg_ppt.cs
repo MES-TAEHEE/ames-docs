@@ -34,10 +34,10 @@ foreach (var screen in new[] { "qc", "putaway", "inventory", "release", "loading
     using var response = await client.PostAsync($"/api/fg/test/ppt-reset/{screen}", null);
     Check(response.StatusCode == HttpStatusCode.Unauthorized, "Anonymous reset must be denied.");
 }
-client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await Login("TEST"));
+client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await Login("SCTEST2"));
 using (var detailedReset = await client.PostAsync("/api/fg/test/ppt-reset/release", null))
-    Check(detailedReset.IsSuccessStatusCode, "TEST must reset detailed FG scenario data.");
-var token = await Login("TEST1");
+    Check(detailedReset.IsSuccessStatusCode, "SCTEST2 must reset detailed FG scenario data.");
+var token = await Login("SCTEST1");
 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 using (var invalid = await client.PostAsync("/api/fg/test/ppt-reset/other", null))
     Check(invalid.StatusCode == HttpStatusCode.BadRequest, "Unknown reset scope must be rejected.");
@@ -223,7 +223,7 @@ try
     await adjust.Act("StartPptStep", 4);
     await adjust.Act("RunPptValue", "REASON");
     await adjust.Act("StartPptStep", 5);
-    Check(!adjust.Bool("DisableInventoryAdjust"), "FG whole-number quantity must enable save for TEST1 admin.");
+    Check(!adjust.Bool("DisableInventoryAdjust"), "FG whole-number quantity must enable save for SCTEST1 admin.");
     await adjust.Act("StartPptStep", 6);
     Check(adjust.Bool("_adjustQuantityInvalid") && adjust.Bool("DisableInventoryAdjust"), "FG decimal quantity must block save.");
     await adjust.Act("StartPptStep", 7);
@@ -233,7 +233,7 @@ try
     using (var saved = JsonDocument.Parse(await client.GetStringAsync("/api/fg/adjust/scan?scanText=5011FG260908960001")))
         Check(saved.RootElement.GetProperty("qty").GetDecimal() == 13, "FG adjusted quantity must persist.");
 
-    Console.WriteLine("PASS: 107 FG detailed scenarios; all 36 FG PPT steps; TEST and TEST1 scoped reset; QC aging; Put-Away storage/confirm; Inventory details; Release partial/FIFO/complete; Loading sequence/duplicate/confirm; Return reason/note/duplicate; admin Adjust quantity/save.");
+    Console.WriteLine("PASS: 107 FG detailed scenarios; all 36 FG PPT steps; SCTEST2 and SCTEST1 scoped reset; QC aging; Put-Away storage/confirm; Inventory details; Release partial/FIFO/complete; Loading sequence/duplicate/confirm; Return reason/note/duplicate; admin Adjust quantity/save.");
 }
 finally { await ResetAll(); }
 

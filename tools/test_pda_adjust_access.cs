@@ -33,11 +33,11 @@ var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 void Check(bool condition, string label) { if (!condition) throw new Exception(label); Console.WriteLine("PASS " + label); }
 
 using var live = new HttpClient { BaseAddress = new Uri("http://localhost:5210") };
-using var login = await live.PostAsJsonAsync("/api/auth/login", new { employeeNo = "TEST1", pin = "0000", terminalId = "PDA-DEV-01", lineId = "LINE-INJ-01", shiftCode = "A" });
+using var login = await live.PostAsJsonAsync("/api/auth/login", new { employeeNo = "SCTEST1", pin = "0000", terminalId = "PDA-DEV-01", lineId = "LINE-INJ-01", shiftCode = "A" });
 var loginJson = JsonNode.Parse(await login.Content.ReadAsStringAsync())!;
 live.DefaultRequestHeaders.Authorization = new("Bearer", loginJson["token"]!.GetValue<string>());
 var sessionJson = JsonNode.Parse(await live.GetStringAsync("/api/auth/me"))!;
-Check(sessionJson["isAdmin"]!.GetValue<bool>(), "DB-backed TEST1 session is an administrator");
+Check(sessionJson["isAdmin"]!.GetValue<bool>(), "DB-backed SCTEST1 session is an administrator");
 var adminSession = JsonSerializer.Deserialize(sessionJson.ToJsonString(), sessionType, jsonOptions)!;
 sessionJson["isAdmin"] = false;
 var ordinarySession = JsonSerializer.Deserialize(sessionJson.ToJsonString(), sessionType, jsonOptions)!;
@@ -54,7 +54,7 @@ host.Use(async (context, next) => {
     if (context.Request.Headers.Authorization == "Bearer isolated-user") context.Items["ames-session"] = ordinarySession;
     await next(context);
 });
-foreach (var scope in new[] { "Wh", "Fg" })
+foreach (var scope in new[] { "Wh", "Fg", "Sys" })
     apiAssembly.GetType($"AMES.Api.Endpoints.{scope}Endpoints", true)!.GetMethod("Map" + scope)!.Invoke(null, [host, factory]);
 await host.StartAsync();
 using var client = new HttpClient { BaseAddress = new Uri(host.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()) };
@@ -102,8 +102,24 @@ foreach (var scope in new[] { "Wh", "Fg" })
 }
 await Render("AMES.Pda.Components.Pages.Wh.Wh03InventoryStatus", "/wh/03?tab=adjust", false, (_, _, _) => Task.CompletedTask);
 await Render("AMES.Pda.Components.Pages.Wh.Wh03InventoryStatus", "/fg/adjust", false, (_, _, _) => Task.CompletedTask);
-foreach (var (scope, location) in new[] { ("wh", "1F-A-02"), ("fg", "B0-08-A1") })
+foreach (var scope in new[] { "wh", "fg" })
 {
+    using var fixtureConnection = (System.Data.Common.DbConnection)factory.GetType().GetMethod("OpenConnection")!.Invoke(factory, null)!;
+    using var fixtureQuery = fixtureConnection.CreateCommand();
+    fixtureQuery.CommandText = scope == "wh" ? """
+        SELECT TOP(1) W.LocationID FROM dbo.WH_Inventory W
+        JOIN dbo.tbl_Lot L ON L.LotID=W.LotID
+        JOIN dbo.MD_Location M ON M.LocationID=W.LocationID AND ISNULL(M.ActiveFlag,1)=1
+        WHERE W.OnHandQty>0 AND UPPER(ISNULL(W.Status,'')) NOT IN ('CANCELED','CANCELLED','RELEASED','PICKED')
+        ORDER BY W.InventoryID
+        """ : """
+        SELECT TOP(1) F.Location FROM dbo.FG_Inventory F
+        JOIN dbo.tbl_Lot L ON L.LotID=F.LotID
+        JOIN dbo.MD_Location M ON M.LocationID=F.Location AND ISNULL(M.ActiveFlag,1)=1
+        WHERE F.Qty>0 AND UPPER(ISNULL(F.Status,'')) NOT IN ('SHIPPED','DELIVERED','CLOSED','CANCELED','CANCELLED')
+        ORDER BY F.StockID
+        """;
+    var location = fixtureQuery.ExecuteScalar() as string ?? throw new Exception(scope + " has no stocked location fixture");
     var route = scope == "wh" ? "/wh/03?tab=adjust" : "/fg/adjust";
     await Render("AMES.Pda.Components.Pages.Wh.Wh03InventoryStatus", route, true, async (page, type, html) => {
         object? Field(string name) => type.GetField(name, flags)!.GetValue(page);
@@ -118,6 +134,8 @@ foreach (var (scope, location) in new[] { ("wh", "1F-A-02"), ("fg", "B0-08-A1") 
         await Act("SelectAdjustmentStock", stocks[0]);
         Check(Field("_invScan") is not null, scope + " stock selected and revalidated: " + Field("_invMsg"));
         var before = (decimal)Prop("InventoryBeforeQty")!;
+        Check((bool)Prop("DisableInventoryAdjust")! && (string)Field("_invAdjustReason")! == "", scope + " reason must be selected explicitly");
+        type.GetField("_invAdjustReason", flags)!.SetValue(page, "COUNT_DIFF");
         var stockBarcode = (string)Field("_invBarcode")!;
         await Act("OpenQuantityPad");
         Check((bool)Field("_quantityPadOpen")! && html().Contains("NEW QUANTITY") && html().Contains("inputmode=\"none\"") && html().Contains("readonly"), scope + " quantity keypad opens from readonly input");
@@ -150,7 +168,7 @@ foreach (var (scope, location) in new[] { ("wh", "1F-A-02"), ("fg", "B0-08-A1") 
             var request = JsonSerializer.Deserialize(JsonSerializer.Serialize(new { barcode, deltaQty = delta, reasonCode = "COUNT_DIFF", reasonNote = "Rollback-only integer adjustment check" }), requestType, jsonOptions)!;
             using var transaction = new TransactionScope(TransactionScopeOption.RequiresNew, TransactionScopeAsyncFlowOption.Enabled);
             object[] arguments = scope == "wh"
-                ? [factory, request, sessionJson["employeeNo"]!.GetValue<string>(), sessionJson["operatorId"]!.GetValue<string>(), false]
+                ? [factory, request, sessionJson["employeeNo"]!.GetValue<string>(), false]
                 : [factory, request, sessionJson["employeeNo"]!.GetValue<string>(), sessionJson["operatorId"]!.GetValue<string>()];
             var result = endpoint.GetMethod("ExecuteAdjustSave", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, arguments)!;
             var success = (bool)result.GetType().GetProperty("Success")!.GetValue(result)!;

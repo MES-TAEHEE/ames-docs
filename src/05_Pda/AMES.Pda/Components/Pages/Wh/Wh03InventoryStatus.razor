@@ -330,7 +330,7 @@
                 </RadzenCard>
             }
 
-            @if (IsAdjustTab && _invScan is not null)
+            @if (IsAdjustTab)
             {
                 <RadzenCard class="@($"wh03-work-card wh03-action-card {(!InventoryAlreadyReceived ? "disabled" : "")}")">
                     <div class="wh03-section-title">ADJUSTMENT</div>
@@ -339,6 +339,7 @@
                             <label>REASON CODE</label>
                             <div class="wh03-reason-select">
                                 <select class="pda-input wh03-work-input" aria-label="Reason code" @bind="_invAdjustReason" disabled="@(!InventoryAlreadyReceived || InventoryBusy)">
+                                    <option value="">Select a reason code</option>
                                     @foreach (var reason in AdjustReasons)
                                     {
                                         <option value="@reason.CodeValue">@reason.Name</option>
@@ -376,7 +377,8 @@
 
                     <div class="wh03-action-row">
                         <RadzenButton class="wh03-date-clear" Click="@ClearInventoryWork" Disabled="@InventoryBusy" Text="CLEAR" />
-                        <RadzenButton class="wh03-date-apply wh03-post-btn ready save" Click="@PostInventoryAdjust" Disabled="@DisableInventoryAdjust" Text="SAVE" />
+                        <RadzenButton class="@($"wh03-date-apply wh03-post-btn save {(DisableInventoryAdjust ? "blocked" : "ready")}")"
+                                      Click="@PostInventoryAdjust" aria-disabled="@(DisableInventoryAdjust ? "true" : "false")" Text="SAVE" />
                     </div>
                 </RadzenCard>
             }
@@ -842,7 +844,7 @@
     private string _invLocationNo = "";
     private string _invMsg = "";
     private string _invCls = "dim";
-    private string _invAdjustReason = "COUNT_DIFF";
+    private string _invAdjustReason = "";
     private bool _quantityPadOpen;
     private string _quantityPadDraft = "";
     private string _invAdjustNote = "";
@@ -923,9 +925,16 @@
     private bool DisableInventoryScan => InventoryBusy || string.IsNullOrWhiteSpace(_invBarcode);
     private bool DisableLocationInventoryScan => _isLoading || string.IsNullOrWhiteSpace(_locationQuery);
     private bool DisableInventoryLocationScan => !InventoryAlreadyReceived || InventoryBusy || string.IsNullOrWhiteSpace(_invLocationNo);
-    private bool DisableInventoryAdjust => Auth.Session?.IsAdmin != true || _adjustQuantityInvalid || !InventoryAlreadyReceived || InventoryBusy || _invAdjustDelta == 0 || IsAdjustQtyBelowStock
-        || InventoryAfterQty != decimal.Truncate(InventoryAfterQty) || InventoryAfterQty > 999999999
-        || string.IsNullOrWhiteSpace(_invAdjustReason);
+    private string? InventoryAdjustBlockedReason =>
+        Auth.Session?.IsAdmin != true ? "Administrator access is required for quantity adjustment." :
+        InventoryBusy ? "An operation is in progress. Please wait." :
+        _invScan is null ? "Scan a location and select stock, or scan a LOT barcode first." :
+        !InventoryAlreadyReceived ? "This LOT is not available for adjustment." :
+        AdjustReasons.Count == 0 ? "Reason codes are unavailable. Reopen this screen to load them." :
+        !AdjustReasons.Any(x => string.Equals(x.CodeValue, _invAdjustReason, StringComparison.OrdinalIgnoreCase)) ? "Select a reason code before saving." :
+        _adjustQuantityInvalid || IsAdjustQtyBelowStock || InventoryAfterQty != decimal.Truncate(InventoryAfterQty) || InventoryAfterQty > 999999999 ? "Enter a whole number from 0 to 999999999." :
+        _invAdjustDelta == 0 ? "Change the quantity before saving." : null;
+    private bool DisableInventoryAdjust => InventoryAdjustBlockedReason is not null;
     private bool DisableInventoryMove => !InventoryAlreadyReceived || InventoryBusy || _invTargetLocation is null || InventoryTargetSameAsCurrent;
     private bool DisableAdjustQtyControls => !InventoryAlreadyReceived || InventoryBusy;
     private bool DisableAdjustQtyMinus => DisableAdjustQtyControls || _invAdjustDelta <= -InventoryBeforeQty;
@@ -1295,9 +1304,18 @@
             Nav.NavigateTo(IsFinishedGoodsAdjust ? "/fg" : "/wh", replace: true);
             return;
         }
-        AdjustReasons = await Api.CodeItemsAsync("INV_ADJUST_REASON");
-        if (!AdjustReasons.Any(x => string.Equals(x.CodeValue, _invAdjustReason, StringComparison.OrdinalIgnoreCase)))
-            _invAdjustReason = AdjustReasons.FirstOrDefault()?.CodeValue ?? "";
+        try
+        {
+            AdjustReasons = await Api.CodeItemsAsync("INV_ADJUST_REASON");
+            if (!AdjustReasons.Any(x => string.Equals(x.CodeValue, _invAdjustReason, StringComparison.OrdinalIgnoreCase)))
+                _invAdjustReason = "";
+        }
+        catch (Exception ex)
+        {
+            AdjustReasons = [];
+            _invAdjustReason = "";
+            ShowAlert("Code List Unavailable", ex.Message, "fail");
+        }
         await Load();
     }
 
@@ -1837,7 +1855,7 @@
     {
         _adjustQuantityInput = null;
         _adjustQuantityInvalid = false;
-        _invAdjustReason = "COUNT_DIFF";
+        _invAdjustReason = "";
         CloseQuantityPad();
         _invAdjustNote = "";
         _invAdjustDelta = 0;
@@ -1993,41 +2011,9 @@
 
     private async Task PostInventoryAdjust()
     {
-        if (InventoryBusy) return;
-        if (Auth.Session?.IsAdmin != true) return;
-        if (_adjustQuantityInvalid || InventoryAfterQty != decimal.Truncate(InventoryAfterQty) || InventoryAfterQty > 999999999)
+        if (InventoryAdjustBlockedReason is { } blockedReason)
         {
-            ShowAlert("Invalid Quantity", "Enter a whole number from 0 to 999999999.", "warn");
-            return;
-        }
-
-        if (_invScan is null)
-        {
-            ShowAlert("Scan Required", "Scan a Lot No first.", "warn");
-            return;
-        }
-
-        if (!InventoryAlreadyReceived)
-        {
-            ShowAlert("Incoming Required", "This LOT has not been received yet.", "warn");
-            return;
-        }
-
-        if (_invAdjustDelta == 0)
-        {
-            ShowAlert("No Changes", "Enter an adjustment quantity before saving.", "warn");
-            return;
-        }
-
-        if (IsAdjustQtyBelowStock)
-        {
-            ShowAlert("Invalid Quantity", "Adjustment Qty cannot be less than the current stock quantity.", "warn");
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(_invAdjustReason))
-        {
-            ShowAlert("Reason Required", "Select a reason code.", "warn");
+            ShowAlert("Cannot Save", blockedReason, "warn");
             return;
         }
 
@@ -2041,7 +2027,7 @@
         {
             var request = new PdaApi.AdjustSaveReq(
                 _invMode,
-                _invScan.Barcode,
+                _invScan!.Barcode,
                 deltaQty,
                 _invAdjustReason,
                 _invAdjustNote,
