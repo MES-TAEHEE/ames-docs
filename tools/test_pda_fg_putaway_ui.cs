@@ -9,8 +9,8 @@ using Microsoft.AspNetCore.Components;
 static string SourcePath([System.Runtime.CompilerServices.CallerFilePath] string path = "") => path;
 var root = Directory.GetParent(Path.GetDirectoryName(SourcePath())!)!.FullName;
 var bins = new[] {
-    Path.Combine(root, "src/05_Pda/AMES.Pda/bin/Debug/net10.0-windows10.0.19041.0/win-x64"),
-    Path.Combine(root, "src/04_Api/AMES.Api/bin/Debug/net10.0")
+    Path.GetFullPath(args.ElementAtOrDefault(0) ?? Path.Combine(root, "src/05_Pda/AMES.Pda/bin/Debug/net10.0-windows10.0.19041.0/win-x64")),
+    Path.GetFullPath(args.ElementAtOrDefault(1) ?? Path.Combine(root, "src/04_Api/AMES.Api/bin/Debug/net10.0"))
 };
 AssemblyLoadContext.Default.Resolving += (_, name) => {
     var path = bins.Select(bin => Path.Combine(bin, name.Name + ".dll")).FirstOrDefault(File.Exists);
@@ -69,9 +69,24 @@ Check(Field("_scan") is null && Field("_storageMethod") is null && (string)Field
 var api = AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(bins[1], "AMES.Api.dll"));
 var endpoints = api.GetType("AMES.Api.Endpoints.FgEndpoints", true)!;
 var apiSource = File.ReadAllText(Path.Combine(root, "src/04_Api/AMES.Api/Endpoints/FgEndpoints.cs"));
-Check(!apiSource.Contains("PS.ActiveFlag")
-    && apiSource.Contains("UPPER(ISNULL(PS.Status, 'ACTIVE')) IN ('ACTIVE', 'USE', 'Y')"),
-    "Put-Away packaging lookup must use the existing Status column, not ActiveFlag.");
+Check(apiSource.Contains("ISNULL(PS.ActiveFlag, 1) = 1"),
+    "Put-Away packaging lookup must use the actual ActiveFlag column.");
+Check(apiSource.Contains("WHERE QI.LotID = L.LotID")
+    && apiSource.Contains("ORDER BY COALESCE(QI.InsEndTS, QI.InsStartTS, QI.CreatedTS) DESC, QI.InspectionID DESC")
+    && apiSource.Contains("WHERE FS.LotID = L.LotID"),
+    "Use the latest inspection and existing inventory for the scanned LOT only.");
+var putAwayQuery = apiSource[apiSource.IndexOf("private static PutAwayScanRow? FindPutAwayScanRow", StringComparison.Ordinal)..
+    apiSource.IndexOf("private static PutAwayLocationRow? ValidatePutAwayLocation", StringComparison.Ordinal)];
+Check(!putAwayQuery.Contains("PP_WorkOrder")
+    && !putAwayQuery.Contains("W.CompletedQty")
+    && !putAwayQuery.Contains("W.OrderQty")
+    && putAwayQuery.Contains("L.WoID"),
+    "Put-Away must use LOT/QC data and retain only tbl_Lot.WoID for traceability.");
+Check(apiSource.Contains("parsed.Kind == BarcodeWo || IsStorageBarcode(parsed.Kind)")
+    && !apiSource.Contains("g.MapPost(\"/putaway\","), "Reject WO scans and remove the unsafe legacy write endpoint.");
+Check(apiSource.Contains("AcquirePutAwayLock(conn, tx, \"LOT\"")
+    && apiSource.Contains("AcquirePutAwayLock(conn, tx, \"LOCATION\"")
+    && apiSource.Contains("sys.sp_getapplock"), "Serialize concurrent confirmation by LOT and location.");
 var validate = endpoints.GetMethod("ValidatePutAwayContainer", BindingFlags.NonPublic | BindingFlags.Static)!;
 string? Error(string method, string? barcode) => (string?)validate.Invoke(null, [method, barcode]);
 foreach (var method in new[] { "BOX", "PALLET", "RACK" }) {

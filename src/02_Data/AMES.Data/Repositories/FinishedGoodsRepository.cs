@@ -306,8 +306,8 @@ public sealed class FinishedGoodsRepository
                 R.OriginalShipmentOrderID,
                 O.ShipOrderNumber,
                 O.CustomerPO,
-                JSON_VALUE(R.ItemsJSON, '$[0].itemNo') AS ItemNo,
-                TRY_CONVERT(decimal(14,3), JSON_VALUE(R.ItemsJSON, '$[0].qty')) AS Qty,
+                COALESCE(R.ItemNo, JSON_VALUE(R.ItemsJSON, '$[0].itemNo')) AS ItemNo,
+                COALESCE(R.ReturnQty, TRY_CONVERT(decimal(14,3), JSON_VALUE(R.ItemsJSON, '$[0].qty'))) AS Qty,
                 R.ReturnReason,
                 R.Status,
                 R.ReceivedAt,
@@ -511,13 +511,13 @@ public sealed class FinishedGoodsRepository
                 SELECT
                     COALESCE(P.EndTS, P.StartTS, P.CreatedTS),
                     'PICK',
-                    CAST(COALESCE(P.PickNumber, P.PickslipID, CONCAT('PICK-', P.PickID)) AS nvarchar(80)),
+                    CAST(COALESCE(P.PickNumber, CONCAT('PICK-', P.PickID)) AS nvarchar(80)),
                     CAST(O.ShipOrderNumber AS nvarchar(80)),
                     CAST(ISNULL(P.PickedQty, 0) AS decimal(14,3)),
                     NULL,
                     CAST(COALESCE(P.PickerID, P.CreatedBy) AS nvarchar(120)),
                     CAST(P.Status AS nvarchar(40)),
-                    CAST(CONCAT('FIFO violations ', ISNULL(P.FifoViolations, 0), ' / Ordered ', ISNULL(P.OrderedQty, 0)) AS nvarchar(300))
+                    CAST(CONCAT('Picked ', ISNULL(P.PickedQty, 0), ' / Ordered ', ISNULL(P.OrderedQty, 0)) AS nvarchar(300))
                 FROM dbo.FG_PickingFifo P
                 LEFT JOIN dbo.FG_ShipmentOrder O ON O.ShipmentOrderID = P.ShipmentOrderID
 
@@ -574,7 +574,7 @@ public sealed class FinishedGoodsRepository
                     'RETURN',
                     CAST(COALESCE(R.ReturnNumber, R.RMANo, CONCAT('RETURN-', R.ReturnID)) AS nvarchar(80)),
                     CAST(R.CustomerCode AS nvarchar(80)),
-                    CAST(ISNULL(TRY_CONVERT(decimal(14,3), JSON_VALUE(R.ItemsJSON, '$[0].qty')), 0) AS decimal(14,3)),
+                    CAST(COALESCE(R.ReturnQty, TRY_CONVERT(decimal(14,3), JSON_VALUE(R.ItemsJSON, '$[0].qty')), 0) AS decimal(14,3)),
                     NULL,
                     CAST(COALESCE(R.ReceivedBy, R.CreatedBy) AS nvarchar(120)),
                     CAST(R.Status AS nvarchar(40)),

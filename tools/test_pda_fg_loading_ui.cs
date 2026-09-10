@@ -66,8 +66,25 @@ Check(api.Contains("Expected TRUCK:<license plate>")
     && api.Contains(".Equals(\"TRUCK\", StringComparison.OrdinalIgnoreCase)")
     && api.Contains("new LoadingTruckRow($\"TRUCK:{truck}\", truck"),
     "Shipment orders must not be accepted as truck barcodes.");
+Check(api.Contains("dbo.FG_PDA_LOADING_ORDER_SCAN")
+    && api.Contains("dbo.FG_PDA_LOADING_STOCK_SCAN")
+    && api.Contains("dbo.FG_PDA_LOADING_COMPLETE")
+    && !api.Contains("body.StockIds.Count > 100"),
+    "Truck Loading must use server procedures without a 100-stock ceiling.");
 var seed = File.ReadAllText(Path.Combine(root, "dist/pda/PDA_SEED.sql"));
 Check(seed.Contains("FG-DEMO-STK-005") && seed.Contains("FG-DEMO-STK-009")
-    && seed.Contains("FG-DEMO-STK-010") && seed.Contains("0, 0, 34, 34, 'Picked'"),
+    && seed.Contains("FG-DEMO-STK-010") && seed.Contains("'PICKED',   'FG-PICK-DEMO-002'")
+    && seed.Contains("INSERT dbo.FG_PickingDetail"),
     "The loading demo shipment must contain three independently scannable stock rows.");
+var schema = File.ReadAllText(Path.Combine(root, "dist/pda/PDA_SCHEMA.sql"));
+Check(schema.Contains("CREATE OR ALTER PROCEDURE dbo.FG_PDA_LOADING_ORDER_SCAN")
+    && schema.Contains("CREATE OR ALTER PROCEDURE dbo.FG_PDA_LOADING_STOCK_SCAN")
+    && schema.Contains("CREATE OR ALTER PROCEDURE dbo.FG_PDA_LOADING_COMPLETE")
+    && schema.Contains("D.Qty,S.Qty")
+    && schema.Contains("ISNULL(S.HoldFlag,0)")
+    && schema.Contains("@Status<>'PICKED'")
+    && schema.Contains("DepartureTS,PalletsLoadedJSON")
+    && schema.Contains("UX_FG_LoadingConfirm_LoadingNumber")
+    && schema.Contains("FK_FG_LoadingConfirm_Pick"),
+    "Truck Loading must preserve picking quantity, revalidate held stock, and enforce loading integrity.");
 Console.WriteLine("PASS: one scanner, Truck -> Shipment Order -> Product, squared list UI.");

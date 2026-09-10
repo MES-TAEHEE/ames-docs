@@ -244,7 +244,10 @@
                     <div><dt>Reason</dt><dd>@Text(detail.ReasonCode)</dd></div>
                     <div><dt>Note</dt><dd>@Text(detail.ReasonNote)</dd></div>
                     <div><dt>Worker</dt><dd>@Text(detail.WorkerId)</dd></div>
-                    <div><dt>Supervisor</dt><dd>@Text(detail.Supervisor)</dd></div>
+                    @if (IsFinishedGoods)
+                    {
+                        <div><dt>Supervisor</dt><dd>@Text(detail.Supervisor)</dd></div>
+                    }
                 </dl>
                 <div class="wh-modal-actions">
                     <RadzenButton class="wh-modal-btn primary wh08-detail-close" Click="CloseDetail" Text="CLOSE" />

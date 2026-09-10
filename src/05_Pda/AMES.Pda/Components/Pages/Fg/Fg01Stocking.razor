@@ -224,7 +224,10 @@
     }
 
     protected override async Task OnInitializedAsync()
-        => StorageOptions = await Api.CodeItemsAsync("FG_STORAGE_METHOD");
+    {
+        try { StorageOptions = await Api.CodeItemsAsync("FG_STORAGE_METHOD"); }
+        catch (Exception ex) { ShowAlert("Code List Unavailable", ex.Message, "fail"); }
+    }
 
     [JSInvokable]
     public async Task OnHardwareScanAsync(string scanText)
@@ -533,7 +536,7 @@
     private string? ConfirmValidationMessage()
     {
         if (_scan is null)
-            return "Scan FG LOT or WO first.";
+            return "Scan FG LOT first.";
         if (!_scan.IsQcPassed)
             return "QC PASS is required before FG Put-Away.";
         if (_scan.AlreadyStocked)

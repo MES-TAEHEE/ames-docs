@@ -18,7 +18,6 @@ internal static class Program
         SeedStock(conn);
         SeedOrders(conn);
         SeedLoadingHistory(conn);
-        SeedReturns(conn);
         SeedDayEnd(conn);
 
         Console.WriteLine();
@@ -27,11 +26,11 @@ internal static class Program
     }
 
     private static void Wipe(SqlConnection conn) => Exec(conn, """
-        DELETE FROM dbo.FG_ReturnDisposition WHERE CreatedBy='fg-seed';
         DELETE FROM dbo.FG_CustomerReturn    WHERE CreatedBy='fg-seed';
         DELETE FROM dbo.FG_DayEndClose       WHERE CreatedBy='fg-seed';
         DELETE FROM dbo.FG_DeliveryNote      WHERE CreatedBy='fg-seed';
         DELETE FROM dbo.FG_LoadingConfirm    WHERE CreatedBy='fg-seed';
+        DELETE D FROM dbo.FG_PickingDetail D JOIN dbo.FG_PickingFifo P ON P.PickID=D.PickID WHERE P.CreatedBy='fg-seed';
         DELETE FROM dbo.FG_PickingFifo       WHERE CreatedBy='fg-seed';
         DELETE FROM dbo.FG_ShipmentOrderLine WHERE CreatedBy='fg-seed';
         DELETE FROM dbo.FG_ShipmentOrder     WHERE CreatedBy='fg-seed';
@@ -125,14 +124,40 @@ internal static class Program
                                WHERE CreatedBy='fg-seed' AND Status='Shipped');
             IF @So IS NULL RETURN;
 
+            DECLARE @LeftStock INT=(SELECT TOP(1) StockID FROM dbo.FG_Inventory
+                WHERE CreatedBy='fg-seed' AND CustomerCode='SAV' AND ItemNo='DR-TRM-LH-A1' ORDER BY StockID);
+            DECLARE @RightStock INT=(SELECT TOP(1) StockID FROM dbo.FG_Inventory
+                WHERE CreatedBy='fg-seed' AND CustomerCode='SAV' AND ItemNo='DR-TRM-RH-A1' ORDER BY StockID);
+            UPDATE L SET StockID=CASE L.LineSeq WHEN 1 THEN @LeftStock ELSE @RightStock END,
+                AllocatedQty=OrderedQty,ReservationStatus='Shipped'
+            FROM dbo.FG_ShipmentOrderLine L WHERE L.ShipmentOrderID=@So;
+            UPDATE S SET Status='Shipped' FROM dbo.FG_Inventory S
+            WHERE S.StockID IN (@LeftStock,@RightStock);
+
+            DECLARE @PickJson nvarchar(max)=(SELECT S.StockID AS stockId,S.ItemNo AS itemNo,
+                S.StockNumber AS stockNumber,S.Qty AS qty,S.Location AS location
+                FROM dbo.FG_ShipmentOrderLine L JOIN dbo.FG_Inventory S ON S.StockID=L.StockID
+                WHERE L.ShipmentOrderID=@So ORDER BY L.LineSeq FOR JSON PATH);
+            INSERT dbo.FG_PickingFifo(PickNumber,ShipmentOrderID,PickerID,StartTS,EndTS,PicksJSON,
+                PickedQty,OrderedQty,Status,CreatedBy,CreatedTS)
+            SELECT 'PICK-SEED-001',@So,'user-e001',DATEADD(hour,-25,SYSDATETIME()),DATEADD(hour,-24,SYSDATETIME()),
+                @PickJson,SUM(OrderedQty),SUM(OrderedQty),'Picked','fg-seed',SYSDATETIME()
+            FROM dbo.FG_ShipmentOrderLine WHERE ShipmentOrderID=@So;
+            DECLARE @Pick INT=CONVERT(int,SCOPE_IDENTITY());
+            INSERT dbo.FG_PickingDetail(PickID,ShipmentOrderLineID,StockID,LotID,ItemNo,Qty,Location,PickSeq,CreatedBy,CreatedTS)
+            SELECT @Pick,L.ShipmentOrderLineID,S.StockID,S.LotID,S.ItemNo,S.Qty,S.Location,
+                ROW_NUMBER() OVER(ORDER BY L.LineSeq),'fg-seed',SYSDATETIME()
+            FROM dbo.FG_ShipmentOrderLine L JOIN dbo.FG_Inventory S ON S.StockID=L.StockID
+            WHERE L.ShipmentOrderID=@So;
+
             INSERT INTO dbo.FG_LoadingConfirm
-                (LoadingNumber, ShipmentOrderID, LicensePlate, CarrierCode,
-                 DriverName, DriverPhone, DockNo, ArrivalTS, DepartureTS,
-                 SealNo, OTDStatus, OperatorID, ConfirmedAt, CreatedBy, CreatedTS)
-            VALUES ('LDG-SEED-001', @So, 'AL-2026-X1', 'FedEx',
-                    N'Mike Johnson', '+1-555-0150', 'DOCK-1',
+                (LoadingNumber, ShipmentOrderID, PickID, LicensePlate, CarrierCode,
+                 DriverName, DockNo, ArrivalTS, DepartureTS,
+                 PalletsLoadedJSON, SealNo, OTDStatus, OperatorID, ConfirmedAt, CreatedBy, CreatedTS)
+            VALUES ('LDG-SEED-001', @So, @Pick, 'AL-2026-X1', 'FedEx',
+                    N'Mike Johnson', 'DOCK-1',
                     DATEADD(hour, -25, SYSDATETIME()), DATEADD(hour, -22, SYSDATETIME()),
-                    'SEAL-9912', 'OnTime', 'user-e001',
+                    @PickJson, 'SEAL-9912', 'OnTime', 'user-e001',
                     DATEADD(hour, -22, SYSDATETIME()), 'fg-seed', SYSDATETIME());
 
             DECLARE @Ld INT = SCOPE_IDENTITY();
@@ -146,28 +171,6 @@ internal static class Program
                     'Sent', 'fg-seed', SYSDATETIME());
             """);
         Console.WriteLine("  ldg   1 loading + 1 delivery note for the shipped order");
-    }
-
-    private static void SeedReturns(SqlConnection conn)
-    {
-        Exec(conn, """
-            INSERT INTO dbo.FG_CustomerReturn
-                (ReturnNumber, RMANo, CustomerCode, ReturnReason,
-                 ItemsJSON, Status, ReceivedAt, ReceivedBy,
-                 CapaTriggered, CreatedBy, CreatedTS)
-            VALUES
-                ('RMA-SEED-001', 'SAV-RMA-2026-007', 'SAV',
-                 N'Bond adhesion below spec',
-                 N'[{"itemNo":"DR-TRM-LH-A1","qty":6}]',
-                 'Open', DATEADD(hour, -36, SYSDATETIME()), 'user-q001',
-                 1, 'fg-seed', SYSDATETIME()),
-                ('RMA-SEED-002', 'GEO-RMA-2026-002', 'GEO',
-                 N'Cosmetic — paint orange peel',
-                 N'[{"itemNo":"DR-TRM-RH-A1","qty":3}]',
-                 'Inspecting', DATEADD(hour, -8, SYSDATETIME()), 'user-q001',
-                 0, 'fg-seed', SYSDATETIME());
-            """);
-        Console.WriteLine("  rtn   2 customer returns (1 Open · 1 Inspecting)");
     }
 
     private static void SeedDayEnd(SqlConnection conn)

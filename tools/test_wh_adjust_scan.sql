@@ -32,7 +32,7 @@ END CATCH;
 
 BEGIN TRY
     EXEC dbo.WH_PDA_ADJUST_SAVE_QTY @ScanText=N'123', @DeltaQty=1,
-        @ReasonCode=N'COUNT_DIFF', @SupervisorPin=N'0000', @UserId=N'VALIDATION_TEST';
+        @ReasonCode=N'COUNT_DIFF', @UserId=N'VALIDATION_TEST';
     THROW 51994, 'Save accepted an invalid barcode format.', 1;
 END TRY
 BEGIN CATCH

@@ -7,7 +7,7 @@ using System.Runtime.Loader;
 
 static string SourcePath([System.Runtime.CompilerServices.CallerFilePath] string path = "") => path;
 var root = Directory.GetParent(Path.GetDirectoryName(SourcePath())!)!.FullName;
-var bin = Path.Combine(root, "src/05_Pda/AMES.Pda/bin/Debug/net10.0-windows10.0.19041.0/win-x64");
+var bin = Path.GetFullPath(args.FirstOrDefault() ?? Path.Combine(root, "src/05_Pda/AMES.Pda/bin/Debug/net10.0-windows10.0.19041.0/win-x64"));
 AssemblyLoadContext.Default.Resolving += (_, name) =>
     File.Exists(Path.Combine(bin, name.Name + ".dll"))
         ? AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(bin, name.Name + ".dll"))
@@ -63,5 +63,49 @@ Check(activity.Contains("ScreenOrientation = ScreenOrientation.Portrait"), "Lock
 Check(source.Contains(".OrderBy(x => x.QcPassTs ?? DateTime.MaxValue)"), "Waiting order must be oldest QC pass first.");
 var api = File.ReadAllText(Path.Combine(root, "src/04_Api/AMES.Api/Endpoints/FgEndpoints.cs"));
 Check(api.Contains("ORDER BY CASE WHEN Q.InsEndTS IS NULL THEN 1 ELSE 0 END,")
-    && api.Contains("Q.InsEndTS, L.ProducedAt, L.LotID;"), "Order oldest first before applying the API row limit.");
+    && api.Contains("Q.InsEndTS, L.ProducedAt, L.LotID;"), "Order oldest QC pass first.");
+Check(source.Contains("role=\"alert\"") && source.Contains("@if (!_loadError && !_isLoading)"), "Errors must be visible without misleading zero counters.");
+
+var apiType = assembly.GetType("AMES.Pda.Services.PdaApi", true)!;
+var auth = Activator.CreateInstance(assembly.GetType("AMES.Pda.Services.AuthState", true)!)!;
+var data = AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(bin, "AMES.Data.dll"));
+var factory = Activator.CreateInstance(data.GetType("AMES.Data.Connection.AmesConnectionFactory", true)!, "Server=unused;Database=unused;Integrated Security=True")!;
+var handler = new QcHandler();
+using var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
+type.GetProperty("Api", Flags)!.SetValue(component, Activator.CreateInstance(apiType, client, auth, factory));
+async Task Load(string mode)
+{
+    handler.Mode = mode;
+    await (Task)type.GetMethod("Load", Flags)!.Invoke(component, null)!;
+    Check(!(bool)type.GetField("_isLoading", Flags)!.GetValue(component)!, "REFRESH must recover after every result.");
+}
+foreach (var (mode, message) in new[] { ("401", "session has expired"), ("403", "permission"), ("500", "API/DB connection"),
+    ("offline", "API/DB connection"), ("timeout", "timed out"), ("json", "invalid response"), ("null", "invalid response") })
+{
+    await Load("ok");
+    Check(((System.Collections.IList)type.GetField("_rows", Flags)!.GetValue(component)!).Count == 1, "Load waiting stock before testing refresh failure.");
+    await Load(mode);
+    Check((bool)type.GetField("_loadError", Flags)!.GetValue(component)! && ((System.Collections.IList)type.GetField("_rows", Flags)!.GetValue(component)!).Count == 0,
+        "Refresh error must clear stale stock: " + mode);
+    Check(((string)type.GetField("_message", Flags)!.GetValue(component)!).Contains(message), "Expected error: " + mode);
+    await Load("empty");
+    Check(!(bool)type.GetField("_loadError", Flags)!.GetValue(component)! && ((string)type.GetField("_message", Flags)!.GetValue(component)!).Contains("No finished goods"),
+        "Successful empty response must remain distinct from failure.");
+}
 Console.WriteLine("PASS: FG Waiting Schedule layout, four counters, 1/5/10-day boundaries and oldest-first query.");
+Console.WriteLine("PASS: QC Waiting 401/403/500/offline/timeout/invalid/null errors, stale data clearing and REFRESH recovery.");
+
+sealed class QcHandler : HttpMessageHandler
+{
+    public string Mode = "ok";
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+    {
+        if (request.RequestUri!.AbsolutePath != "/api/fg/qc-completed") throw new Exception("Unexpected request");
+        if (Mode == "offline") throw new HttpRequestException();
+        if (Mode == "timeout") throw new TaskCanceledException();
+        var body = Mode switch { "empty" => "[]", "json" => "invalid", "null" => "null",
+            _ => """[{"lotId":1,"lotNo":"TEST","itemNo":"PART","qty":10,"qcPassTs":"2026-09-01T00:00:00"}]""" };
+        return Task.FromResult(new HttpResponseMessage(int.TryParse(Mode, out var code) ? (System.Net.HttpStatusCode)code : System.Net.HttpStatusCode.OK)
+            { Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json") });
+    }
+}
