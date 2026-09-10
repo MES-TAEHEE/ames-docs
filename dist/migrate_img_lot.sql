@@ -24,7 +24,7 @@ BEGIN
     CREATE TABLE dbo.PR_ImgLot (
       [LotID]                     INT                  NOT NULL,  -- PK & FK -> tbl_Lot.LotID (1:1)
       [EquipID]                   VARCHAR(20)              NULL,  -- FK -> MD_Equipment.EquipID (라인 대표 설비)
-      [ConfirmStatus]             VARCHAR(16)          NOT NULL DEFAULT 'RAW',  -- RAW / CONFIRMED
+      [ConfirmStatus]             VARCHAR(16)          NOT NULL DEFAULT 'RAW',  -- RAW / CONFIRMED / DEFECT / SCRAPPED
       [ConfirmedAt]               DATETIME2                NULL,
       [ConfirmedBy]               NVARCHAR(450)            NULL,
       [ConfirmedSessionID]        INT                      NULL,

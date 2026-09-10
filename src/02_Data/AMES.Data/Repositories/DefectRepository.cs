@@ -6,8 +6,8 @@ using Microsoft.Data.SqlClient;
 namespace AMES.Data.Repositories;
 
 /// <summary>
-/// Reads MD_DefectCode (picker list on INJ-05) and writes PR_DefectDetail
-/// per cycle. Defect-rate evaluation lives in the calling form / service.
+/// MD_DefectCode(라인 불량 팝업 코드 버튼)·MD_DefectCause(REWORK 원인 버튼) 읽기 전용.
+/// PR_DefectDetail 쓰기는 LotDefectWriter(등록)와 ReworkRepository(판정)가 트랜잭션 안에서 한다.
 /// </summary>
 public sealed class DefectRepository
 {
@@ -43,58 +43,29 @@ public sealed class DefectRepository
         return list;
     }
 
-    /// <summary>Inserts one PR_DefectDetail row. `processCode` is the reporting module (INJ/IMG/...) — callers must
-    /// pass their own module code so per-process readers (e.g. InjLotRepository.GetDailyItemSummary) don't leak
-    /// other modules' manual defects.</summary>
-    public int RecordDefect(
-        int     resultId,
-        int     woId,
-        int?    lotId,
-        string  defectCode,
-        int     qty,
-        string  operatorId,
-        string  employeeNo,
-        string  processCode,
-        string? note = null)
+    /// <summary>REWORK 원인 버튼: 그 공정의 활성 원인 + 공정 미지정(공통) 원인. SortOrder 순.</summary>
+    public List<DefectCauseDto> ListCausesForProcess(string processCode)
     {
         const string sql = """
-            INSERT INTO dbo.PR_DefectDetail
-                (ResultID, WoID, LotID, ProcessCode, DefectCode, Qty,
-                 ReasonNote, DetectedAt, RegisteredBy, CreatedBy, CreatedTS)
-            OUTPUT INSERTED.DefectID
-            VALUES
-                (@R, @W, @L, @P, @C, @Q, @N, SYSDATETIME(), @Op, @By, SYSDATETIME());
+            SELECT CauseCode, CauseName, CauseNameEn, ProcessCode
+            FROM   dbo.MD_DefectCause
+            WHERE  ISNULL(ActiveFlag,1) = 1
+              AND  (ProcessCode = @P OR ProcessCode IS NULL)
+            ORDER  BY ISNULL(SortOrder,9999), CauseCode;
             """;
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@R",  SqlDbType.Int).Value = resultId;
-        cmd.Parameters.Add("@W",  SqlDbType.Int).Value = woId;
-        cmd.Parameters.Add("@L",  SqlDbType.Int).Value = (object?)lotId ?? DBNull.Value;
-        cmd.Parameters.Add("@P",  SqlDbType.VarChar,  10 ).Value = processCode;
-        cmd.Parameters.Add("@C",  SqlDbType.VarChar,  16 ).Value = defectCode;
-        cmd.Parameters.Add("@Q",  SqlDbType.Int           ).Value = qty;
-        cmd.Parameters.Add("@N",  SqlDbType.NVarChar, 500 ).Value = (object?)note ?? DBNull.Value;
-        cmd.Parameters.Add("@Op", SqlDbType.NVarChar, 450 ).Value = operatorId;
-        cmd.Parameters.Add("@By", SqlDbType.VarChar,  50  ).Value = employeeNo;
-        return (int)cmd.ExecuteScalar()!;
-    }
-
-    /// <summary>
-    /// (Good, Defect) totals for one WO, summed across the WO's whole lifetime.
-    /// Used to compute live defect rate on INJ-05.
-    /// </summary>
-    public (int Good, int Defect) GetWoTotals(int woId)
-    {
-        const string sql = """
-            SELECT
-              (SELECT ISNULL(SUM(GoodQty),0) FROM dbo.PR_ProductionResult WHERE WoID = @W) AS G,
-              (SELECT ISNULL(SUM(Qty),    0) FROM dbo.PR_DefectDetail    WHERE WoID = @W) AS D;
-            """;
-        using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@W", SqlDbType.Int).Value = woId;
+        cmd.Parameters.Add("@P", SqlDbType.VarChar, 10).Value = processCode;
         using var rdr = cmd.ExecuteReader();
-        if (!rdr.Read()) return (0, 0);
-        return (Convert.ToInt32(rdr["G"]), Convert.ToInt32(rdr["D"]));
+        var list = new List<DefectCauseDto>();
+        while (rdr.Read())
+            list.Add(new DefectCauseDto
+            {
+                CauseCode   = (string)rdr["CauseCode"],
+                CauseName   = rdr["CauseName"]   as string ?? string.Empty,
+                CauseNameEn = rdr["CauseNameEn"] as string,
+                ProcessCode = rdr["ProcessCode"] as string,
+            });
+        return list;
     }
 }

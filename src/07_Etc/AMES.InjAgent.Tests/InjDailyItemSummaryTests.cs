@@ -1,4 +1,4 @@
-using AMES.Data.Connection;
+﻿using AMES.Data.Connection;
 using AMES.Data.Repositories;
 using Microsoft.Data.SqlClient;
 using Xunit;
@@ -17,8 +17,7 @@ public class InjDailyItemSummaryTests
     const string ItemA   = "ITEST-DLY-A";   // BOP 있음, 실적·일정 있음
     const string ItemB   = "ITEST-DLY-B";   // BOP 없음, 실적 있음 → InBop=false
     const string ItemC   = "ITEST-DLY-C";   // BOP 있음, 아무것도 없음 → 0 행
-    const string ItemD   = "ITEST-DLY-D";   // BOP 있음, 수동 불량 > 확정 → FINAL 0
-    const string ItemE   = "ITEST-DLY-E";   // WO 가 INJ+IMG 두 단계 — IMG 쪽 수동 불량이 INJ 패널에 새면 안 됨
+    const string ItemD   = "ITEST-DLY-D";   // BOP 있음, WO 있음, LOT 없음
 
     static void Cleanup(AmesConnectionFactory f)
     {
@@ -64,22 +63,6 @@ public class InjDailyItemSummaryTests
             """, ("@W", woNumber), ("@I", itemNo), ("@L", Line))!;
     }
 
-    /// <summary>WO 하나에 INJ(StepSeq 1, Line) + IMG(StepSeq 2, LINE-IMG-01) 두 라우팅 단계.</summary>
-    static int AddWoWithImgStep(AmesConnectionFactory f, string itemNo, string woNumber)
-    {
-        return (int)Scalar(f, """
-            DECLARE @Out TABLE (WoID int);
-            INSERT INTO dbo.PP_WorkOrder (WoNumber, ItemNo, OrderQty, OpenQty, CompletedQty, Status, Priority, CreatedBy)
-            OUTPUT INSERTED.WoID INTO @Out
-            VALUES (@W, @I, 100, 100, 0, 'Released', 5, 'ITEST');
-            INSERT INTO dbo.PP_WorkOrderRouting (WoID, StepSeq, ProcessCode, LineID, Status, CompletedQty, CreatedBy)
-            SELECT WoID, 1, 'INJ', @L,   'Released', 0, 'ITEST' FROM @Out
-            UNION ALL
-            SELECT WoID, 2, 'IMG', @Img, 'Released', 0, 'ITEST' FROM @Out;
-            SELECT WoID FROM @Out;
-            """, ("@W", woNumber), ("@I", itemNo), ("@L", Line), ("@Img", "LINE-IMG-01"))!;
-    }
-
     /// <summary>원천 LOT 1건. dayOffset 으로 생성일을 어제(-1)로 밀 수 있다.</summary>
     static int AddLot(AmesConnectionFactory f, string itemNo, string lineId, string status, int dayOffset = 0)
     {
@@ -95,12 +78,6 @@ public class InjDailyItemSummaryTests
             SELECT LotID FROM @Out;
             """, ("@Code", code), ("@Item", itemNo), ("@Line", lineId), ("@Status", status), ("@D", dayOffset))!;
     }
-
-    static void AddDefect(AmesConnectionFactory f, int woId, int? lotId, int qty, string processCode = "INJ")
-        => Exec(f, """
-            INSERT INTO dbo.PR_DefectDetail (ResultID, WoID, LotID, ProcessCode, DefectCode, Qty, DetectedAt, CreatedBy)
-            VALUES (0, @W, @L, @P, 'ITEST', @Q, SYSDATETIME(), 'ITEST');
-            """, ("@W", woId), ("@L", (object?)lotId ?? DBNull.Value), ("@P", processCode), ("@Q", qty));
 
     /// <summary>entryType 'PM' 이면 WoID 는 항상 NULL (PM 밴드는 WO 에 안 걸림) 이고 Title 이 채워진다.</summary>
     static void AddPlan(AmesConnectionFactory f, int woId, string lineId, int dayOffset, decimal qty, string entryType = "WO")
@@ -120,10 +97,9 @@ public class InjDailyItemSummaryTests
         {
             for (var i = 0; i < 3; i++) AddLot(f, ItemA, Line, "RAW");
             for (var i = 0; i < 4; i++) AddLot(f, ItemA, Line, "CONFIRMED");
-            AddLot(f, ItemA, Line, "NG_BLOCKED");
-            var ngConfirmed = AddLot(f, ItemA, Line, "NG_CONFIRMED");
-            AddDefect(f, woA, ngConfirmed, 1);      // LOT 연결 불량 — 상태에서 이미 셈, 중복 금지
-            AddDefect(f, woA, null, 1);             // 수동 불량 — NG 에 더하고 FINAL 에서 뺌
+            AddLot(f, ItemA, Line, "NG_BLOCKED");                 // 로봇 NG 차단
+            AddLot(f, ItemA, Line, "DEFECT");                     // 불량 등록 → 재작업 대기
+            AddLot(f, ItemA, Line, "SCRAPPED");                   // 폐기 판정
             AddLot(f, ItemA, Line, "CONFIRMED", dayOffset: -1);   // 어제 → 제외
             AddLot(f, ItemA, "LINE-INJ-02", "CONFIRMED");         // 다른 라인 → 제외
             AddPlan(f, woA, Line, 0, 60);
@@ -135,10 +111,10 @@ public class InjDailyItemSummaryTests
             var row = new InjLotRepository(f).GetDailyItemSummary(Line, Station).Single(x => x.ItemNo == ItemA);
 
             Assert.Equal(100m, row.PlanQty);
-            Assert.Equal(9,    row.InputQty);
-            Assert.Equal(3,    row.NgQty);        // NG LOT 2 + 수동 1
-            Assert.Equal(3,    row.FinalQty);     // CONFIRMED 4 − 수동 1
-            Assert.Equal(3,    row.PendingQty);
+            Assert.Equal(10,   row.InputQty);     // 오늘 이 라인 LOT 전부
+            Assert.Equal(3,    row.NgQty);        // NG_BLOCKED + DEFECT + SCRAPPED
+            Assert.Equal(4,    row.FinalQty);     // CONFIRMED
+            Assert.Equal(3,    row.PendingQty);   // RAW
             Assert.Equal(row.InputQty, row.FinalQty + row.NgQty + row.PendingQty);
             Assert.True(row.InBop);
             Assert.True(row.HasOpenWo);
@@ -174,51 +150,6 @@ public class InjDailyItemSummaryTests
             Assert.True(rows.IndexOf(b) > rows.IndexOf(c));                         // 미등록은 뒤
             Assert.Equal(rows.Where(x => x.InBop).Select(x => x.ItemNo).OrderBy(x => x),
                          rows.Where(x => x.InBop).Select(x => x.ItemNo));             // BOP 품번은 ItemNo 순
-        }
-        finally { Cleanup(f); }
-    }
-
-    [SkippableFact]
-    public void Summary_clamps_final_at_zero_when_manual_defects_exceed_confirmed()
-    {
-        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
-        var (_, _, woD) = Seed(f);
-        try
-        {
-            AddLot(f, ItemD, Line, "CONFIRMED");
-            AddDefect(f, woD, null, 3);
-
-            var d = new InjLotRepository(f).GetDailyItemSummary(Line, Station).Single(x => x.ItemNo == ItemD);
-
-            Assert.Equal(1, d.InputQty);
-            Assert.Equal(3, d.NgQty);
-            Assert.Equal(0, d.FinalQty);
-        }
-        finally { Cleanup(f); }
-    }
-
-    /// <summary>
-    /// WO 가 INJ(1단계, LINE-INJ-01)·IMG(2단계, LINE-IMG-01) 두 라우팅 단계를 갖고, 같은 WO 에
-    /// ProcessCode='IMG' 수동 불량이 있으면 그 수량이 INJ 패널의 NG/FINAL 에 새면 안 된다.
-    /// </summary>
-    [SkippableFact]
-    public void Summary_counts_only_INJ_process_code_manual_defects()
-    {
-        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
-        Cleanup(f);
-        try
-        {
-            var woE = AddWoWithImgStep(f, ItemE, "ITEST-DLY-WO-E");
-            AddLot(f, ItemE, Line, "CONFIRMED");
-            AddLot(f, ItemE, Line, "CONFIRMED");
-            AddDefect(f, woE, null, 1, processCode: "INJ");
-            AddDefect(f, woE, null, 5, processCode: "IMG");   // 같은 WO 의 IMG 단계 수동 불량 — INJ 패널에 새면 안 됨
-
-            var row = new InjLotRepository(f).GetDailyItemSummary(Line, Station).Single(x => x.ItemNo == ItemE);
-
-            Assert.Equal(2, row.InputQty);
-            Assert.Equal(1, row.NgQty);        // INJ 수동 불량 1건만
-            Assert.Equal(1, row.FinalQty);     // 확정 2 − INJ 수동 1 (IMG 5 는 빼지 않음)
         }
         finally { Cleanup(f); }
     }

@@ -297,6 +297,7 @@ body {
 .nav-btn.primary  { background: var(--mod); }
 .nav-btn.warn     { background: #a04a14; }
 .nav-btn.alert    { background: #b91c1c; }
+.nav-btn.good     { background: #15803d; }
 .nav-btn.gold     { background: #a37410; }
 .nav-btn.muted    { background: #3a3a3a; }
 
@@ -1715,10 +1716,22 @@ body {
     display: flex; flex-direction: column;
 }
 .pmod-empty { padding: 40px; text-align: center; color: rgba(255, 255, 255, .45); font-size: 18px; }
-.pmod-def-grid {
-    display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px;
-    flex: 1; min-height: 0;
-}
+/* 불량 등록 팝업 — 스캔 → 코드 → 등록 */
+.dfp-scan   { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.dfp-lot    { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 10px 14px; margin-bottom: 10px;
+              background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); border-radius: 8px; font-size: 18px; }
+.dfp-lot-code   { font-size: 22px; font-weight: 700; }
+.dfp-lot-status { padding: 2px 10px; border-radius: 6px; background: rgba(37,99,235,.2); }
+.dfp-lot-status.warn { background: rgba(245,158,11,.25); }
+.dfp-lot-note   { color: var(--warn); }
+/* 카드가 남는 높이를 나눠 갖지 않도록 행을 내용 높이로 고정한다 — 코드가 많으면 스크롤 */
+.dfp-codes  { flex: 0 1 auto; max-height: 48vh; overflow-y: auto;
+              align-content: start; grid-auto-rows: max-content; gap: 12px; }
+.dfp-codes .def-btn { padding: 14px 18px; }
+.dfp-footer { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.dfp-today  { flex: 1; display: flex; flex-wrap: wrap; gap: 10px; font-size: 15px; color: rgba(255,255,255,.7); }
+.dfp-today-h { color: rgba(255,255,255,.45); letter-spacing: 1px; }
+.dfp-register:disabled { opacity: .4; cursor: not-allowed; }
 .pmod-andon-overlay { padding: 0; z-index: 8500; }
 .pmod-andon-overlay .andon-shell { width: 100%; height: 100%; }
 
@@ -1877,3 +1890,25 @@ body {
     cursor: pointer;
 }
 .idle-btn:active { background: rgba(251,191,36,.3); }
+
+/* ---------- REWORK ---------- */
+.rwk-verdict  { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+.rwk-cause-h  { font-size: 15px; letter-spacing: 1.5px; color: rgba(255,255,255,.55); margin-top: 4px; }
+.rwk-causes   { grid-template-columns: repeat(4, 1fr); gap: 10px; flex: 0 0 auto; }
+.rwk-note     { width: 100%; box-sizing: border-box; font-size: 20px; padding: 10px 14px; border-radius: 8px;
+                background: #0a1628; border: 2px solid rgba(255,255,255,.15); color: #fff; }
+.rwk-note:focus { outline: none; border-color: var(--mod); }
+.injm-tbl tr.sel td { background: rgba(37,99,235,.18); }
+.injm-tbl tbody tr { cursor: pointer; }
+/* 브라우저 탭처럼: 탭 스트립이 패널 위에 걸터앉고, 활성 탭은 패널과 같은 배경·테두리로 이어진다.
+   injm-right 의 gap(12px) 만큼 아래로 끌어내려 패널 상단 테두리를 활성 탭이 1px 덮는다. */
+.rwk-tabs { display: flex; gap: 6px; flex: 0 0 auto; padding: 0 16px;
+            margin-bottom: -12px; position: relative; z-index: 1; }
+.rwk-tab  { flex: 0 0 auto; min-width: 240px; font-size: 18px; font-weight: 700; letter-spacing: 1.5px;
+            padding: 14px 26px; margin-bottom: 1px;
+            background: transparent; border: 1px solid transparent; border-bottom: none;
+            border-radius: 12px 12px 0 0; color: rgba(255,255,255,.5); cursor: pointer; }
+.rwk-tab:hover { color: rgba(255,255,255,.8); background: rgba(255,255,255,.04); }
+.rwk-tab.on { background: #0a1628; border-color: rgba(37, 99, 235, .25); color: #fff;
+              margin-bottom: -1px; padding-bottom: 16px; }
+.rwk-decided { flex: 1; min-height: 0; }

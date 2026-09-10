@@ -156,13 +156,12 @@
                                     <td class="mono">@lot.ItemNo</td>
                                     <td class="mono">@lot.CreatedTS.ToString("HH:mm:ss")</td>
                                     <td style="text-align:center;">
-                                        @if (lot.IsConfirmed)
+                                        @switch (lot.ConfirmStatus)
                                         {
-                                            <span class="injm-result ok">@T("Ok")</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="injm-result wait">@T("Waiting")</span>
+                                            case "CONFIRMED": <span class="injm-result ok">@T("Ok")</span> break;
+                                            case "DEFECT":    <span class="injm-result bad">@T("LotInRework")</span> break;
+                                            case "SCRAPPED":  <span class="injm-result bad">@T("LotScrapped")</span> break;
+                                            default:          <span class="injm-result wait">@T("Waiting")</span> break;
                                         }
                                     </td>
                                     <td style="text-align:right;"><button class="injm-mini-btn" @onclick="@(() => Reprint(lot))">🖨 @T("Reprint")@(lot.PrintedCount > 1 ? $" ×{lot.PrintedCount}" : "")</button></td>
@@ -191,8 +190,7 @@
 @switch (_popup)
 {
     case Popup.Defect:
-        <DefectPopup Session="Session" Wo="_activeWo" LastResultId="_lastResultId" ProcessCode="IMG"
-                     OnClose="ClosePopup" OnChanged="Refresh" />
+        <DefectPopup Session="Session" ProcessCode="IMG" OnClose="ClosePopup" OnChanged="Refresh" />
         break;
     case Popup.Andon:
         <AndonPopup Session="Session" OnClose="ClosePopup" AutoRaise="_andonAutoRaise" />
@@ -219,7 +217,7 @@
     private BondSetupDto?  _bond;
     private List<ImgLotDto> _lots = new();
 
-    private int _pct, _todayGood, _todayDef, _rawCount, _lastResultId;
+    private int _pct, _todayGood, _todayDef, _rawCount;
     private string _defectPct = "0.0%", _defClass = "ok";
     private string _fabricText = "—", _fabricClass = "warn", _bondText = "—";
     private string _eqStatus = "OFFLINE", _eqClass = "stat-off";
@@ -309,7 +307,7 @@
                       : $"{_bond.RecipeId} · {_bond.TempSp:0}°C / {_bond.PressureSp:0.0}bar / {_bond.HoldSecSp}s";
 
             _lots     = PopServices.ImgLots.GetTodayLots(Session.LineId);
-            _rawCount = _lots.Count(x => !x.IsConfirmed);
+            _rawCount = _lots.Count(x => x.ConfirmStatus == "RAW");
 
             var eq = PopServices.Equipment.GetPrimaryForLine(Session.LineId);
             _eqStatus = (eq?.Status ?? "OFFLINE").ToUpperInvariant();
@@ -395,7 +393,7 @@
             }
 
             // 대상 WO 는 LOT 품번으로 리포지토리가 정한다. 원단·본딩은 확정 순간의 라인 상태를 넘긴다.
-            var (outcome, resultId, itemNo, woId) = PopServices.ImgLots.ConfirmByLotCode(
+            var (outcome, _, itemNo, woId) = PopServices.ImgLots.ConfirmByLotCode(
                 lotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo,
                 _roll?.LotId, MetresPerUnit, _bond);
             var woNumber = woId > 0 ? PopServices.WorkOrders.GetById(woId)?.WoNumber : null;
@@ -405,10 +403,12 @@
                 ImgConfirmOutcome.NotFound         => (false, $"{T("LotNotFound")}: {lotCode}"),
                 ImgConfirmOutcome.AlreadyConfirmed => (false, $"{T("AlreadyConfirmed")}: {lotCode}"),
                 ImgConfirmOutcome.WrongLine        => (false, $"{T("LotBelongsToAnotherLine")}: {lotCode}"),
+                ImgConfirmOutcome.InRework         => (false, $"{T("LotInRework")}: {lotCode}"),
+                ImgConfirmOutcome.Scrapped         => (false, $"{T("LotScrapped")}: {lotCode}"),
                 ImgConfirmOutcome.NoWoForItem      => (false, $"{T("NoOpenWoForThisPart")}: {lotCode} ({itemNo})"),
                 _                                  => (false, $"{T("ConfirmFailed")}: {lotCode}"),
             };
-            if (ok) { _lastResultId = resultId; _selItemNo = itemNo; }
+            if (ok) { _selItemNo = itemNo; }
             SetBanner(ok, detail);
             Refresh();
         }
