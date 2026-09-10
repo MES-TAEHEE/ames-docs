@@ -1,173 +1,439 @@
-﻿@page "/mnt/spare-parts"
+@page "/mnt/spare-parts"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.MntRepository Mnt
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using Radzen
+
+@attribute [Authorize]
+
+@inject MntRepository Mnt
+@inject MasterDataRepository MD
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>MNT-008 @L["MNT.SpareParts.Title"] · AMES</PageTitle>
-
 <AmesPageHeader Code="MNT-008" TitleKey="MNT.SpareParts.Title" />
 
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">PARTS</div>
-        <div class="ames-kpi-v">@_parts.Count</div><div class="ames-kpi-s">active SKUs</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">LOW STOCK</div>
-        <div class="ames-kpi-v">@_low</div><div class="ames-kpi-s">≤ reorder point</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">ON HAND VAL</div>
-        <div class="ames-kpi-v">$@_value.ToString("N0")</div><div class="ames-kpi-s">inventory $ approx.</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">RECENT TXN</div>
-        <div class="ames-kpi-v">@_txns.Count</div><div class="ames-kpi-s">last @_txnTopN</div></div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MNT.SpareParts.Kpi.Parts"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_allParts.Count</div>
+            <div class="ames-kpi-s">@L["MNT.SpareParts.Kpi.PartsSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(LowCount > 0 ? "bad" : "ok")">
+        <div class="ames-kpi-l">@L["MNT.SpareParts.Kpi.Low"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@LowCount</div>
+            <div class="ames-kpi-s">@L["MNT.SpareParts.Kpi.LowSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MNT.SpareParts.Kpi.Value"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_value.ToString("N0")</div>
+            <div class="ames-kpi-s">@L["MNT.SpareParts.Kpi.ValueSub"]</div>
+        </div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MNT.SpareParts.Kpi.Txn"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_allTxns.Count</div>
+            <div class="ames-kpi-s">@string.Format(L["MNT.SpareParts.Kpi.TxnSub"].Value, _txnTopN)</div>
+        </div>
+    </div>
 </div>
 
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+}
+
+@* ── 부품 목록 ───────────────────────────────────────────────────── *@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MNT.SpareParts.List"] · @_parts.Count @L["Lbl.Items"]@(_parts.Count < _allParts.Count ? $" / {L["Lbl.TotalOf"]} {_allParts.Count}" : "")</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" style="width:120px;padding:4px 8px;"
-                   placeholder="@L["MNT.SpareParts.Ph.Part"]" @bind="_fPart" autocomplete="off" />
-            <input class="ames-input" style="width:100px;padding:4px 8px;"
-                   placeholder="@L["MNT.SpareParts.Ph.Cat"]" @bind="_fCat" autocomplete="off" />
-            <label style="display:flex;align-items:center;gap:4px;font-size:.85rem;color:#64748b;cursor:pointer;">
-                <input type="checkbox" @bind="_fLowOnly" />@L["MNT.SpareParts.LowOnly"]
-            </label>
-            <button class="ames-btn ok" @onclick="ApplyFilter">@L["Btn.Reload"]</button>
-        </div>
-    </div>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fPart" Change="@(v => _fPart = v ?? "")" @onkeydown="OnPartKeyDown" Immediate="true" Placeholder="@L["MNT.SpareParts.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+            <RadzenLabel Text="@L["Col.Cat"]" Component="DropDownCat" />
+            <RadzenDropDown Name="DropDownCat" @bind-Value="_fCat" Data="@CatFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.25rem">
+                <RadzenCheckBox TValue="bool" @bind-Value="_fLowOnly" Name="ChkLowOnly" />
+                <RadzenLabel Text="@L["MNT.SpareParts.LowOnly"]" Component="ChkLowOnly" />
+            </RadzenStack>
 
-    @if (_parts.Count == 0)
-    {
-        <div class="ames-empty">@L["MNT.SpareParts.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.PartNo"]</th><th>@L["Col.Name"]</th><th>@L["Col.Cat"]</th>
-                    <th class="num">@L["Col.OnHand"]</th><th class="num">@L["Col.Safety"]</th>
-                    <th class="num">@L["Col.Reorder"]</th><th class="num">@L["Col.LeadDays"]</th>
-                    <th>@L["Col.Loc"]</th><th>@L["Col.Supplier"]</th><th>@L["Col.Flag"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var p in _parts.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    var low = p.OnHand <= (p.ReorderPoint ?? 0);
-                    <tr>
-                        <td class="code">@p.PartNo</td>
-                        <td>@(p.PartName ?? "—")</td>
-                        <td class="dim">@(p.Category ?? "—")</td>
-                        <td class="num">@p.OnHand</td>
-                        <td class="num">@(p.SafetyStock?.ToString() ?? "—")</td>
-                        <td class="num">@(p.ReorderPoint?.ToString() ?? "—")</td>
-                        <td class="num">@(p.LeadTimeDays?.ToString() ?? "—")</td>
-                        <td class="dim">@(p.StorageLoc ?? "—")</td>
-                        <td class="dim">@(p.SupplierId ?? "—")</td>
-                        <td>@(low ? (MarkupString)"<span class=\"pill bad\">LOW</span>"
-                                  : (MarkupString)"<span class=\"pill ok\">OK</span>")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_parts.Count" PageSize="_pageSize" PageSizeOptions="_pageSizeOptions" OnPageChange="p => _page = p" OnPageSizeChange="s => _pageSize = s" />
-    }
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@SearchParts" class="ames-rz-btn" />
+            <RadzenButton Text="@L["MNT.SpareParts.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportParts" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+    <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["MNT.SpareParts.Hint.Detail"]</div>
+
+    <RadzenDataGrid @ref="_partGrid" Page="OnPartPage" TItem="MntRepository.SparePartRow" Data="@_parts" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnPartRowClick" RowRender="@RowRender" EmptyText="@L["MNT.SpareParts.Empty"]" Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="PartNo" Title="@L["Col.PartNo"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r"><span class="code">@r.PartNo</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="PartName" Title="@L["Col.Name"]">
+                <Template Context="r"><span style="white-space:nowrap;">@(r.PartName ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="Category" Title="@L["Col.Cat"]" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="r"><span class="pill">@CatLabel(r.Category)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="Uom" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="70px">
+                <Template Context="r"><span class="dim">@(r.Uom ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="OnHand" Title="@L["Col.OnHand"]" TextAlign="TextAlign.Right" Width="80px">
+                <Template Context="r"><b>@r.OnHand.ToString("N0")</b></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="SafetyStock" Title="@L["Col.Safety"]" TextAlign="TextAlign.Right" Width="80px">
+                <Template Context="r">@(r.SafetyStock?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="ReorderPoint" Title="@L["Col.Reorder"]" TextAlign="TextAlign.Right" Width="80px">
+                <Template Context="r">@(r.ReorderPoint?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="ReorderQty" Title="@L["Col.ReorderQty"]" TextAlign="TextAlign.Right" Width="80px">
+                <Template Context="r">@(r.ReorderQty?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="LeadTimeDays" Title="@L["Col.LeadDays"]" TextAlign="TextAlign.Right" Width="80px">
+                <Template Context="r">@(r.LeadTimeDays?.ToString() ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="StorageLoc" Title="@L["Col.StorageLoc"]" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="r"><span class="dim">@(r.StorageLoc ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="SupplierId" Title="@L["Col.Supplier"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r"><span class="dim">@(r.SupplierId ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Title="@L["Col.Flag"]" TextAlign="TextAlign.Center" Width="80px" Sortable="false">
+                <Template Context="r"><span class="pill @(IsLow(r) ? "bad" : "ok")">@(IsLow(r) ? L["MNT.SpareParts.Flag.Low"] : L["MNT.SpareParts.Flag.Ok"])</span></Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
+@* ── 입출고 이력 ─────────────────────────────────────────────────── *@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MNT.SpareParts.TxnList"] · @_txns.Count @L["Lbl.Items"]</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" style="width:120px;padding:4px 8px;"
-                   placeholder="@L["MNT.SpareParts.Ph.TxnPart"]" @bind="_fTxnPart" autocomplete="off" />
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Recent"]</label>
-            <select class="ames-input" style="width:110px;" @bind="_txnTopN">
-                <option value="50">50@(L["Lbl.Items"])</option>
-                <option value="100">100@(L["Lbl.Items"])</option>
-                <option value="200">200@(L["Lbl.Items"])</option>
-            </select>
-            <button class="ames-btn ok" @onclick="ReloadTxn">@L["Btn.Reload"]</button>
-        </div>
+        <span style="white-space:nowrap;">▼ @L["MNT.SpareParts.TxnList"] · @_txns.Count @L["Lbl.Items"]@(_txns.Count < _allTxns.Count ? $" / {L["Lbl.TotalOf"]} {_allTxns.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fTxnPart" Change="@(v => _fTxnPart = v ?? "")" @onkeydown="OnTxnKeyDown" Immediate="true" Placeholder="@L["MNT.SpareParts.Ph.TxnSearch"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+            <RadzenLabel Text="@L["Col.Type"]" Component="DropDownMove" />
+            <RadzenDropDown Name="DropDownMove" @bind-Value="_fMove" Data="@MoveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
+            <RadzenLabel Text="@L["Lbl.Recent"]" Component="DropDownTxnTopN" />
+            <RadzenDropDown Name="DropDownTxnTopN" @bind-Value="_txnTopN" Data="@TopNOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@SearchTxn" class="ames-rz-btn" />
+            <RadzenButton Text="@L["MNT.SpareParts.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportTxn" class="ames-rz-btn" />
+        </RadzenStack>
     </div>
 
-    @if (_txns.Count == 0)
-    {
-        <div class="ames-empty">@L["MNT.SpareParts.TxnEmpty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.TxnNo"]</th><th>@L["Col.Part"]</th><th>@L["Col.Type"]</th>
-                    <th class="num">@L["Col.Qty"]</th><th class="num">@L["Col.Balance"]</th>
-                    <th>@L["Col.Ref"]</th><th>@L["Col.When"]</th><th>@L["Col.Note"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var t in _txns.Skip(_page2 * _pageSize2).Take(_pageSize2))
-                {
-                    <tr>
-                        <td class="code">@t.SparePartsTxnId</td>
-                        <td>@(t.PartNo ?? "—") <span class="dim">@(t.PartName ?? "")</span></td>
-                        <td><span class="pill @(t.MoveType == "IN" ? "ok" : "warn")">@(t.MoveType ?? "—")</span></td>
-                        <td class="num">@(t.Qty?.ToString() ?? "—")</td>
-                        <td class="num">@(t.BalanceAfter?.ToString() ?? "—")</td>
-                        <td class="dim">@(t.RefType ?? "—") @(t.RefId ?? "")</td>
-                        <td class="dim">@(t.TxnAt?.ToString("MM-dd HH:mm") ?? "—")</td>
-                        <td class="dim">@(t.Note ?? "—")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page2" Total="_txns.Count" PageSize="_pageSize2" PageSizeOptions="_pageSizeOptions" OnPageChange="p => _page2 = p" OnPageSizeChange="s => _pageSize2 = s" />
-    }
+    <RadzenDataGrid @ref="_txnGrid" Page="OnTxnPage" TItem="MntRepository.SparePartsTxnRow" Data="@_txns" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["MNT.SpareParts.TxnEmpty"]" Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="SparePartsTxnId" Title="@L["Col.TxnNo"]" TextAlign="TextAlign.Center" Width="80px">
+                <Template Context="t"><span class="code">@t.SparePartsTxnId</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="TxnAt" Title="@L["Col.When"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="t"><span class="dim">@(t.TxnAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="PartNo" Title="@L["Col.PartNo"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="t"><span class="code">@(t.PartNo ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="PartName" Title="@L["Col.Name"]">
+                <Template Context="t"><span style="white-space:nowrap;">@(t.PartName ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="MoveType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="80px">
+                <Template Context="t"><span class="pill @MoveCls(t.MoveType)">@MoveLabel(t.MoveType)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="Qty" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right" Width="70px">
+                <Template Context="t">@(t.Qty?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="BalanceAfter" Title="@L["Col.Balance"]" TextAlign="TextAlign.Right" Width="70px">
+                <Template Context="t">@(t.BalanceAfter?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="UnitPrice" Title="@L["Col.UnitPrice"]" TextAlign="TextAlign.Right" Width="90px">
+                <Template Context="t">@(t.UnitPrice?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="StorageLoc" Title="@L["Col.StorageLoc"]" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="t"><span class="dim">@(t.StorageLoc ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="RefId" Title="@L["Col.Ref"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="t"><span class="dim">@RefText(t)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="Note" Title="@L["Col.Note"]">
+                <Template Context="t"><span class="dim" style="white-space:nowrap;">@(t.Note ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
+@* ── Detail Modal (읽기 전용) ─────────────────────────────────────── *@
+@if (_modal == "detail" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MNT.SpareParts.Title"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.PartNo</span></div>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text="@L["Col.Name"]" class="ames-rz-modal-label" Component="DetailTextBoxName" />
+                <RadzenTextBox Name="DetailTextBoxName" Value="@(_sel.PartName ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+            </RadzenStack>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Cat"]" />
+                    <RadzenTextBox Value="@CatLabel(_sel.Category)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Uom"]" />
+                    <RadzenTextBox Value="@(_sel.Uom ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Flag"]" />
+                    <div style="padding-top:4px;"><span class="pill @(IsLow(_sel) ? "bad" : "ok")">@(IsLow(_sel) ? L["MNT.SpareParts.Flag.Low"] : L["MNT.SpareParts.Flag.Ok"])</span></div>
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="3">
+                    <RadzenLabel Text="@L["Col.OnHand"]" />
+                    <RadzenTextBox Value="@_sel.OnHand.ToString("N0")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="3">
+                    <RadzenLabel Text="@L["Col.Safety"]" />
+                    <RadzenTextBox Value="@(_sel.SafetyStock?.ToString("N0") ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="3">
+                    <RadzenLabel Text="@L["Col.Reorder"]" />
+                    <RadzenTextBox Value="@(_sel.ReorderPoint?.ToString("N0") ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="3">
+                    <RadzenLabel Text="@L["Col.ReorderQty"]" />
+                    <RadzenTextBox Value="@(_sel.ReorderQty?.ToString("N0") ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.LeadDays"]" />
+                    <RadzenTextBox Value="@(_sel.LeadTimeDays?.ToString() ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.StorageLoc"]" />
+                    <RadzenTextBox Value="@(_sel.StorageLoc ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Supplier"]" />
+                    <RadzenTextBox Value="@(_sel.SupplierId ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["MNT.SpareParts.Btn.ShowTxn"]" Click="@ShowTxnForSelected" Icon="history" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Close"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
 @code {
-    List<AMES.Data.Repositories.MntRepository.SparePartRow>     _allParts = new();
-    List<AMES.Data.Repositories.MntRepository.SparePartRow>     _parts    = new();
-    List<AMES.Data.Repositories.MntRepository.SparePartsTxnRow> _txns     = new();
-    int _page = 0;
-    int _pageSize = 25;
-    int _page2 = 0;
-    int _pageSize2 = 25;
-    static readonly int[] _pageSizeOptions = { 25, 50, 100 };
-    int     _low;
-    decimal _value;
-    string  _fPart = "", _fCat = "", _fTxnPart = "";
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
+    bool _showPagerSummary = true;
+    List<MntRepository.SparePartRow>       _allParts = new();
+    List<MntRepository.SparePartRow>       _parts    = new();
+    List<MntRepository.SparePartsTxnRow>   _allTxns  = new();
+    List<MntRepository.SparePartsTxnRow>   _txns     = new();
+    List<MasterDataRepository.CodeItemRow> _catItems = new();   // 공통코드 SPAREPARTS_CATEGORY
+    MntRepository.SparePartRow? _sel;
+
+    string  _fPart = "", _fTxnPart = "";
+    string? _fCat, _fMove;
     bool    _fLowOnly;
     int     _txnTopN = 50;
+    decimal _value;
+    string  _modal = "", _msg = "";
+    bool    _bgMouseDownOnSelf, _isErr;
 
-    protected override void OnInitialized() => Reload();
+    static readonly string[] MoveCodes = { "IN", "OUT" };
+    static readonly int[]    TopNs     = { 50, 100, 200, 500 };
 
-    void Reload()
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    public class TopNItem     { public string Text { get; set; } = ""; public int Value { get; set; } }
+
+    // 분류 콤보: SPAREPARTS_CATEGORY 공통코드 ∪ 데이터에만 있는 값 — 코드 미등록 값도 걸러 볼 수 있게
+    IEnumerable<DropDownItem> CatFilterOptions =>
+        _catItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" })
+        .Concat(_allParts.Select(p => p.Category).Where(c => c is { Length: > 0 } && !_catItems.Any(x => x.CodeValue == c)).Distinct().Select(c => new DropDownItem { Value = c!, Text = $"[{c}]" }));
+    IEnumerable<DropDownItem> MoveFilterOptions => MoveCodes.Select(m => new DropDownItem { Value = m, Text = $"[{m}] {MoveLabel(m)}" });
+    IEnumerable<TopNItem>     TopNOptions       => TopNs.Select(n => new TopNItem { Value = n, Text = $"{n}{L["Lbl.Items"]}" });
+
+    int LowCount => _allParts.Count(IsLow);
+
+    protected override void OnInitialized()
     {
-        try { _allParts = Mnt.ListSpareParts(); } catch { _allParts = new(); }
+        try { _catItems = MD.ListCodeItems("SPAREPARTS_CATEGORY"); } catch { }
+        try { _allParts = Mnt.ListSpareParts(); }
+        catch (Exception ex) { _allParts = new(); ShowMsg(ex.Message, true); }
         ReloadTxn();
-        ApplyFilter();
+        ApplyPartFilter();
     }
 
+    RadzenDataGrid<MntRepository.SparePartRow>?     _partGrid;
+    RadzenDataGrid<MntRepository.SparePartsTxnRow>? _txnGrid;
+    int _partPgIndex, _txnPgIndex;
+    void OnPartPage(PagerEventArgs args) => _partPgIndex = args.PageIndex;
+    void OnTxnPage(PagerEventArgs args)  => _txnPgIndex  = args.PageIndex;
+
+    // ── 부품 목록 ──────────────────────────────────────────────────────
+    async Task SearchParts()
+    {
+        _partPgIndex = 0;
+        ApplyPartFilter();
+        await InvokeAsync(StateHasChanged);
+        if (_partGrid is not null) await _partGrid.GoToPage(0);
+    }
+
+    void ApplyPartFilter() { _parts = _allParts.Where(p =>
+        (string.IsNullOrEmpty(_fPart) ||
+            p.PartNo.Contains(_fPart, StringComparison.OrdinalIgnoreCase) ||
+            (p.PartName ?? "").Contains(_fPart, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fCat) || p.Category == _fCat) &&
+        (!_fLowOnly || IsLow(p))
+    ).ToList();
+    }
+
+    async Task OnPartKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") await SearchParts(); }
+
+    // ── 입출고 이력 ────────────────────────────────────────────────────
+    async Task SearchTxn()
+    {
+        _txnPgIndex = 0;
+        ReloadTxn();
+        await InvokeAsync(StateHasChanged);
+        if (_txnGrid is not null) await _txnGrid.GoToPage(0);
+    }
+
+    // 검색어가 등록 부품번호와 정확히 일치하면 서버에서 그 부품만 최근 N건을 가져온다 — 최근 N건 안에서
+    // 부분 일치로 거르면 오래된 이력이 잘려 특정 부품의 이력이 비어 보이기 때문. 그 외는 최근 N건 내 부분 일치.
     void ReloadTxn()
     {
-        _page2 = 0;
-        try { _txns = Mnt.ListSparePartsTxn(_txnTopN, string.IsNullOrWhiteSpace(_fTxnPart) ? null : _fTxnPart); }
-        catch { _txns = new(); }
-        var priceLookup = _txns.GroupBy(t => t.PartNo ?? "")
-                               .ToDictionary(g => g.Key, g => g.First().UnitPrice ?? 0m);
-        _value = _allParts.Sum(p => p.OnHand * (priceLookup.GetValueOrDefault(p.PartNo, 0m)));
+        var exact = _allParts.FirstOrDefault(p => p.PartNo.Equals(_fTxnPart.Trim(), StringComparison.OrdinalIgnoreCase))?.PartNo;
+        try { _allTxns = Mnt.ListSparePartsTxn(_txnTopN, exact); }
+        catch (Exception ex) { _allTxns = new(); ShowMsg(ex.Message, true); }
+
+        var q = _fTxnPart.Trim();
+        _txns = _allTxns.Where(t =>
+            (exact is not null || string.IsNullOrEmpty(q) ||
+                (t.PartNo   ?? "").Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                (t.PartName ?? "").Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                RefText(t).Contains(q, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(_fMove) || t.MoveType == _fMove)
+        ).ToList();
+
+        // 재고 금액 = 재고 × 그 부품의 최근 거래 단가 (부품 마스터에 단가가 없다)
+        var priceLookup = _allTxns.GroupBy(t => t.PartNo ?? "")
+                                  .ToDictionary(g => g.Key, g => g.First().UnitPrice ?? 0m);
+        _value = _allParts.Sum(p => p.OnHand * priceLookup.GetValueOrDefault(p.PartNo, 0m));
     }
 
-    void ApplyFilter()
+    async Task OnTxnKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") await SearchTxn(); }
+
+    async Task ShowTxnForSelected()
     {
-        _page = 0;
-        _parts = _allParts;
-        if (!string.IsNullOrWhiteSpace(_fPart))
-            _parts = _parts.Where(p => p.PartNo.Contains(_fPart, StringComparison.OrdinalIgnoreCase) ||
-                                       (p.PartName ?? "").Contains(_fPart, StringComparison.OrdinalIgnoreCase)).ToList();
-        if (!string.IsNullOrWhiteSpace(_fCat))
-            _parts = _parts.Where(p => (p.Category ?? "").Contains(_fCat, StringComparison.OrdinalIgnoreCase)).ToList();
-        if (_fLowOnly)
-            _parts = _parts.Where(p => p.OnHand <= (p.ReorderPoint ?? 0)).ToList();
-        _low = _parts.Count(p => p.OnHand <= (p.ReorderPoint ?? 0));
+        if (_sel is null) return;
+        _fTxnPart = _sel.PartNo; _fMove = null;
+        CloseModal();
+        await SearchTxn();
     }
+
+    // ── 행 클릭 · 모달 ────────────────────────────────────────────────
+    void RowRender(RowRenderEventArgs<MntRepository.SparePartRow> args)
+    {
+        if (args.Attributes.TryGetValue("class", out var existing))
+            args.Attributes["class"] = existing + " ames-row-link";
+        else
+            args.Attributes["class"] = "ames-row-link";
+    }
+
+    void OnPartRowClick(DataGridRowMouseEventArgs<MntRepository.SparePartRow> args)
+    {
+        if (args.Data is not null) { _sel = args.Data; _modal = "detail"; }
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    // ── 내보내기 — 화면 컬럼 순서 그대로 ──────────────────────────────
+    async Task ExportParts()
+    {
+        if (_parts.Count == 0) { ShowMsg(L["MNT.SpareParts.Err.NoExport"], true); return; }
+
+        var headers = new[]
+        {
+            L["Col.PartNo"].Value, L["Col.Name"].Value, L["Col.Cat"].Value, L["Col.Uom"].Value,
+            L["Col.OnHand"].Value, L["Col.Safety"].Value, L["Col.Reorder"].Value, L["Col.ReorderQty"].Value,
+            L["Col.LeadDays"].Value, L["Col.StorageLoc"].Value, L["Col.Supplier"].Value, L["Col.Flag"].Value,
+        };
+        var data = _parts.Select(p => (IReadOnlyList<object?>)new object?[]
+        {
+            p.PartNo, p.PartName, CatLabel(p.Category), p.Uom,
+            p.OnHand, p.SafetyStock, p.ReorderPoint, p.ReorderQty,
+            p.LeadTimeDays, p.StorageLoc, p.SupplierId, IsLow(p) ? L["MNT.SpareParts.Flag.Low"].Value : L["MNT.SpareParts.Flag.Ok"].Value,
+        });
+        await Download(L["MNT.SpareParts.List"].Value, "SpareParts", headers, data, _parts.Count);
+    }
+
+    async Task ExportTxn()
+    {
+        if (_txns.Count == 0) { ShowMsg(L["MNT.SpareParts.Err.NoExport"], true); return; }
+
+        var headers = new[]
+        {
+            L["Col.TxnNo"].Value, L["Col.When"].Value, L["Col.PartNo"].Value, L["Col.Name"].Value, L["Col.Type"].Value,
+            L["Col.Qty"].Value, L["Col.Balance"].Value, L["Col.UnitPrice"].Value, L["Col.StorageLoc"].Value,
+            L["Col.Ref"].Value, L["Col.Note"].Value,
+        };
+        var data = _txns.Select(t => (IReadOnlyList<object?>)new object?[]
+        {
+            t.SparePartsTxnId, t.TxnAt?.ToString(DateFmt.DateTime), t.PartNo, t.PartName, MoveLabel(t.MoveType),
+            t.Qty, t.BalanceAfter, t.UnitPrice, t.StorageLoc,
+            RefText(t), t.Note,
+        });
+        await Download(L["MNT.SpareParts.TxnList"].Value, "SparePartsTxn", headers, data, _txns.Count);
+    }
+
+    async Task Download(string sheet, string prefix, string[] headers, IEnumerable<IReadOnlyList<object?>> data, int count)
+    {
+        var bytes = AMES.Web.Services.XlsxWriter.Build(sheet, headers, data);
+        var name  = $"{prefix}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        ShowMsg(string.Format(L["MNT.SpareParts.Ok.Exported"].Value, count), false);
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    // ── 표시 헬퍼 ─────────────────────────────────────────────────────
+    static bool IsLow(MntRepository.SparePartRow p) => p.OnHand <= (p.ReorderPoint ?? 0);
+
+    string CatLabel(string? c) =>
+        c is null ? "—" : _catItems.FirstOrDefault(x => x.CodeValue == c) is { } item ? MasterDataRepository.LocalName(item) : c;
+
+    string MoveLabel(string? m) => m switch { null => "—", "IN" => L["MNT.SpareParts.Move.In"], "OUT" => L["MNT.SpareParts.Move.Out"], _ => m };
+    static string MoveCls(string? m) => m switch { "IN" => "ok", "OUT" => "warn", _ => "mute" };
+
+    // RefID 가 이미 유형 접두어를 품고 있으면(MWO-2606-003) 유형을 다시 붙이지 않는다
+    static string RefText(MntRepository.SparePartsTxnRow t) =>
+        string.IsNullOrEmpty(t.RefType) && string.IsNullOrEmpty(t.RefId) ? "—"
+        : !string.IsNullOrEmpty(t.RefType) && (t.RefId ?? "").StartsWith(t.RefType, StringComparison.OrdinalIgnoreCase) ? t.RefId!
+        : $"{t.RefType} {t.RefId}".Trim();
 }

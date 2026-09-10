@@ -58,7 +58,9 @@ public sealed class PpRepository
 
     public sealed record PrRow(int PrId, string? PrNumber, string ItemNo, string? ItemName,
         string? VendorId, decimal RequiredQty, DateTime? RequiredDate, string? Status,
-        string? SapPoNumber);
+        string? SapPoNumber,
+        int? WoId = null, string? WoNumber = null, string? ApprovedBy = null, DateTime? ApprovedAt = null,
+        string? CreatedBy = null, DateTime? CreatedTs = null);
 
     public sealed record WoLite(int WoId, string? WoNumber, string ItemNo, string? ItemName,
         decimal OrderQty, decimal CompletedQty, string? RouteLines, DateTime? DueDate,
@@ -821,9 +823,11 @@ public sealed class PpRepository
         var sql = $$"""
             SELECT TOP ({{topN}}) p.PrID, p.PrNumber, p.ItemNo, i.ItemName,
                    p.VendorID, ISNULL(p.RequiredQty,0) AS RequiredQty,
-                   p.RequiredDate, p.Status, p.SapPoNumber
+                   p.RequiredDate, p.Status, p.SapPoNumber,
+                   p.WoID, w.WoNumber, p.ApprovedBy, p.ApprovedAt, p.CreatedBy, p.CreatedTS
             FROM   dbo.PP_PurchaseRequest p
-            LEFT JOIN dbo.MD_Item i ON i.ItemNo = p.ItemNo
+            LEFT JOIN dbo.MD_Item      i ON i.ItemNo = p.ItemNo
+            LEFT JOIN dbo.PP_WorkOrder w ON w.WoID   = p.WoID
             ORDER BY ISNULL(p.RequiredDate, '9999-01-01'), p.PrID DESC;
             """;
         return Query(sql, r => new PrRow(
@@ -831,7 +835,9 @@ public sealed class PpRepository
             r["ItemNo"] as string ?? "", r["ItemName"] as string,
             r["VendorID"] as string, r.GetDecimal(r.GetOrdinal("RequiredQty")),
             r["RequiredDate"] as DateTime?, r["Status"] as string,
-            r["SapPoNumber"] as string));
+            r["SapPoNumber"] as string,
+            r["WoID"] as int?, r["WoNumber"] as string, r["ApprovedBy"] as string, r["ApprovedAt"] as DateTime?,
+            r["CreatedBy"] as string, r["CreatedTS"] as DateTime?));
     }
 
     // ── PP-007 WO Release — draft/planned WOs awaiting release ─────────

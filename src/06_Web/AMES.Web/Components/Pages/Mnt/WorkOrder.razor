@@ -1,108 +1,389 @@
-﻿@page "/mnt/work-order"
+@page "/mnt/work-order"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.MntRepository Mnt
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using Radzen
+
+@attribute [Authorize]
+
+@inject MntRepository Mnt
+@inject MasterDataRepository MD
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>MNT-007 @L["MNT.WorkOrder.Title"] · AMES</PageTitle>
-
 <AmesPageHeader Code="MNT-007" TitleKey="MNT.WorkOrder.Title" />
 
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
-    <div class="ames-kpi bad"><div class="ames-kpi-l">OPEN</div>
-        <div class="ames-kpi-v">@_open</div><div class="ames-kpi-s">new / issued</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">IN PROGRESS</div>
-        <div class="ames-kpi-v">@_prog</div><div class="ames-kpi-s">started</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">COMPLETED</div>
-        <div class="ames-kpi-v">@_done</div><div class="ames-kpi-s">closed</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">LABOR (min)</div>
-        <div class="ames-kpi-v">@_lab.ToString("N0")</div><div class="ames-kpi-s">total recorded</div></div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["Lbl.Total"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_allRows.Count</div>
+            <div class="ames-kpi-s">@string.Format(L["MNT.WorkOrder.Kpi.TotalSub"].Value, _topN)</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(OpenCount > 0 ? "bad" : "")">
+        <div class="ames-kpi-l">@L["MNT.WorkOrder.Kpi.Open"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@OpenCount</div>
+            <div class="ames-kpi-s">OPEN · ISSUED</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(ProgCount > 0 ? "warn" : "")">
+        <div class="ames-kpi-l">@L["MNT.WorkOrder.Kpi.Prog"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@ProgCount</div>
+            <div class="ames-kpi-s">IN_PROGRESS</div>
+        </div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["MNT.WorkOrder.Kpi.Done"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@DoneCount</div>
+            <div class="ames-kpi-s">COMPLETED · CLOSED</div>
+        </div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MNT.WorkOrder.Kpi.Labor"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_allRows.Sum(r => r.LaborMinutes ?? 0).ToString("N0")</div>
+            <div class="ames-kpi-s">@L["MNT.WorkOrder.Kpi.LaborSub"]</div>
+        </div>
+    </div>
 </div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+}
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MNT.WorkOrder.List"] · @_rows.Count @L["Lbl.Items"]</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <select class="ames-input" style="width:110px;" @bind="_statusFilter">
-                <option value="">@L["Filter.All"]</option>
-                <option value="OPEN">OPEN</option>
-                <option value="IN_PROGRESS">@L["MNT.WorkOrder.InProgress"]</option>
-                <option value="COMPLETED">@L["MNT.WorkOrder.Completed"]</option>
-            </select>
-            <label style="font-size:.85rem;color:#64748b;white-space:nowrap;">@L["Lbl.Recent"]</label>
-            <select class="ames-input" style="width:110px;" @bind="_topN">
-                <option value="50">50@(L["Lbl.Items"])</option>
-                <option value="100">100@(L["Lbl.Items"])</option>
-                <option value="200">200@(L["Lbl.Items"])</option>
-            </select>
-            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
-        </div>
-    </div>
+        <span style="white-space:nowrap;">▼ @L["MNT.WorkOrder.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MNT.WorkOrder.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px;" />
+            <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+            <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
+            <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@TypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenLabel Text="@L["Col.Priority"]" Component="DropDownPriority" />
+            <RadzenDropDown Name="DropDownPriority" @bind-Value="_fPriority" Data="@PriorityFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenLabel Text="@L["Lbl.Recent"]" Component="DropDownTopN" />
+            <RadzenDropDown Name="DropDownTopN" @bind-Value="_topN" Data="@TopNOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
 
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["MNT.WorkOrder.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.MwoNo"]</th><th>@L["Col.Type"]</th><th>@L["Col.Equip"]</th><th>@L["Col.Priority"]</th>
-                    <th>@L["Col.Source"]</th><th>@L["Col.Status"]</th>
-                    <th>@L["Col.IssuedDate"]</th><th>@L["Col.StartedDate"]</th><th>@L["Col.CompletedDate"]</th>
-                    <th class="num">@L["Col.Duration"]</th><th class="num">@L["Col.Tasks"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var w in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    <tr>
-                        <td class="code">@(w.WoNumber ?? $"MWO#{w.WorkOrderId}")</td>
-                        <td>@(w.WoType ?? "—")</td>
-                        <td>@(w.EquipId ?? "—")</td>
-                        <td><span class="pill @PrClass(w.Priority)">@(w.Priority ?? "—")</span></td>
-                        <td class="dim">@(w.SourceType ?? "—")</td>
-                        <td><span class="pill @StClass(w.Status)">@(w.Status ?? "—")</span></td>
-                        <td class="dim">@(w.IssuedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
-                        <td class="dim">@(w.StartedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
-                        <td class="dim">@(w.CompletedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
-                        <td class="num">@(w.LaborMinutes?.ToString() ?? "—")</td>
-                        <td class="num">@w.TaskDone / @w.TaskCount</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" PageSizeOptions="_pageSizeOptions" OnPageChange="p => _page = p" OnPageSizeChange="s => _pageSize = s" />
-    }
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Search" class="ames-rz-btn" />
+            <RadzenButton Text="@L["MNT.WorkOrder.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+    <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["MNT.WorkOrder.Hint.Detail"]</div>
+
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MntRepository.MwoRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.WorkOrder.Empty"]" Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="WoNumber" Title="@L["Col.MwoNo"]" TextAlign="TextAlign.Center" Width="130px">
+                <Template Context="r"><span class="code">@WoNo(r)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="WoType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="90px">
+                <Template Context="r"><span class="pill @TypeCls(r.WoType)">@TypeLabel(r.WoType)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="EquipId" Title="@L["Col.EquipId"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r"><span class="code">@(r.EquipId ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Title="@L["Col.EquipName"]">
+                <Template Context="r"><span style="white-space:nowrap;">@EquipName(r.EquipId)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="Priority" Title="@L["Col.Priority"]" TextAlign="TextAlign.Center" Width="90px">
+                <Template Context="r"><span class="pill @PrCls(r.Priority)">@(r.Priority ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="SourceType" Title="@L["Col.Source"]" TextAlign="TextAlign.Center" Width="90px">
+                <Template Context="r"><span class="dim">@SourceLabel(r.SourceType)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="AssignedTechId" Title="@L["Col.AssignedTech"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r"><span class="dim">@(r.AssignedTechId ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="r"><span class="pill @StCls(r.Status)">@StatusLabel(r.Status)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="IssuedAt" Title="@L["Col.IssuedDate"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r"><span class="dim">@(r.IssuedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="StartedAt" Title="@L["Col.StartedDate"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r"><span class="dim">@(r.StartedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="CompletedAt" Title="@L["Col.CompletedDate"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r"><span class="dim">@(r.CompletedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="LaborMinutes" Title="@L["Col.Duration"]" TextAlign="TextAlign.Right" Width="80px">
+                <Template Context="r">@(r.LaborMinutes?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="TaskDone" Title="@L["Col.Tasks"]" TextAlign="TextAlign.Center" Width="80px">
+                <Template Context="r"><span class="@(r.TaskCount == 0 ? "dim" : "")">@r.TaskDone / @r.TaskCount</span></Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
-@code {
-    List<AMES.Data.Repositories.MntRepository.MwoRow> _rows = new();
-    int _page = 0;
-    int _pageSize = 25;
-    static readonly int[] _pageSizeOptions = { 25, 50, 100 };
-    int    _open, _prog, _done, _lab;
-    int    _topN = 100;
-    string _statusFilter = "";
+@* ── Detail Modal (읽기 전용) ─────────────────────────────────────── *@
+@if (_modal == "detail" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MNT.WorkOrder.Title"] <span class="dim" style="font-weight:400;font-size:.9em;">@WoNo(_sel)</span></div>
 
-    protected override void OnInitialized() => Reload();
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text="@L["Col.Equip"]" class="ames-rz-modal-label" Component="DetailTextBoxEquip" />
+                <RadzenTextBox Name="DetailTextBoxEquip" Value="@EquipText(_sel.EquipId)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+            </RadzenStack>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Type"]" />
+                    <div style="padding-top:4px;"><span class="pill @TypeCls(_sel.WoType)">@TypeLabel(_sel.WoType)</span></div>
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Priority"]" />
+                    <div style="padding-top:4px;"><span class="pill @PrCls(_sel.Priority)">@(_sel.Priority ?? "—")</span></div>
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Status"]" />
+                    <div style="padding-top:4px;"><span class="pill @StCls(_sel.Status)">@StatusLabel(_sel.Status)</span></div>
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Source"]" />
+                    <RadzenTextBox Value="@SourceLabel(_sel.SourceType)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.AssignedTech"]" />
+                    <RadzenTextBox Value="@(_sel.AssignedTechId ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.IssuedDate"]" />
+                    <RadzenTextBox Value="@(_sel.IssuedAt?.ToString(DateFmt.DateTime) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.StartedDate"]" />
+                    <RadzenTextBox Value="@(_sel.StartedAt?.ToString(DateFmt.DateTime) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.CompletedDate"]" />
+                    <RadzenTextBox Value="@(_sel.CompletedAt?.ToString(DateFmt.DateTime) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Duration"]" />
+                    <RadzenTextBox Value="@(_sel.LaborMinutes?.ToString("N0") ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Tasks"]" />
+                    <RadzenTextBox Value="@($"{_sel.TaskDone} / {_sel.TaskCount}")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Progress"]" />
+                    <div style="padding-top:6px;">@(_sel.TaskCount > 0 ? Bar(100m * _sel.TaskDone / _sel.TaskCount) : Dash)</div>
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Close"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@code {
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
+    bool _showPagerSummary = true;
+    List<MntRepository.MwoRow>              _allRows   = new();
+    List<MntRepository.MwoRow>              _rows      = new();
+    List<MasterDataRepository.EquipmentRow> _equipList = new();
+    MntRepository.MwoRow? _sel;
+
+    string  _fSearch = "";
+    string? _fStatus, _fType, _fPriority;
+    int     _topN = 100;
+    string  _modal = "", _msg = "";
+    bool    _bgMouseDownOnSelf, _isErr;
+
+    // 상태·유형·우선순위는 공통코드 그룹이 없어 발행 코드가 쓰는 값을 정본으로 두고, 데이터에만 있는 값을 뒤에 붙인다
+    static readonly string[] StatusCodes   = { "OPEN", "ISSUED", "IN_PROGRESS", "COMPLETED", "CLOSED" };
+    static readonly string[] TypeCodes     = { "PM", "CM", "PdM" };
+    static readonly string[] PriorityCodes = { "URGENT", "HIGH", "MED", "LOW" };
+    static readonly int[]    TopNs         = { 50, 100, 200, 500 };
+    static readonly MarkupString Dash = new("<span class=\"dim\">—</span>");
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    public class TopNItem     { public string Text { get; set; } = ""; public int Value { get; set; } }
+
+    IEnumerable<DropDownItem> StatusFilterOptions   => WithDataValues(StatusCodes,   _allRows.Select(r => r.Status),   StatusLabel);
+    IEnumerable<DropDownItem> TypeFilterOptions     => WithDataValues(TypeCodes,     _allRows.Select(r => r.WoType),   TypeLabel);
+    IEnumerable<DropDownItem> PriorityFilterOptions => WithDataValues(PriorityCodes, _allRows.Select(r => r.Priority), p => p ?? "");
+    IEnumerable<TopNItem>     TopNOptions           => TopNs.Select(n => new TopNItem { Value = n, Text = $"{n}{L["Lbl.Items"]}" });
+
+    static IEnumerable<DropDownItem> WithDataValues(string[] codes, IEnumerable<string?> data, Func<string?, string> label) =>
+        codes.Concat(data.Where(v => v is { Length: > 0 } && !codes.Contains(v)).Distinct()!)
+             .Select(c => new DropDownItem { Value = c!, Text = $"[{c}] {label(c)}" });
+
+    int OpenCount => _allRows.Count(r => IsOpen(r.Status));
+    int ProgCount => _allRows.Count(r => IsProg(r.Status));
+    int DoneCount => _allRows.Count(r => IsDone(r.Status));
+
+    protected override void OnInitialized()
+    {
+        try { _equipList = MD.ListEquipments(); } catch { }
+        Reload();
+    }
+
+    RadzenDataGrid<MntRepository.MwoRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task Search()
+    {
+        _pgIndex = 0;
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null) await _pgGrid.GoToPage(0);
+    }
 
     void Reload()
     {
-        _page = 0;
-        try { _rows = Mnt.ListWorkOrders(_topN, string.IsNullOrWhiteSpace(_statusFilter) ? null : _statusFilter); }
-        catch { _rows = new(); }
-        _open = _rows.Count(r => r.Status is "OPEN" or "ISSUED");
-        _prog = _rows.Count(r => r.Status == "IN_PROGRESS");
-        _done = _rows.Count(r => r.Status is "COMPLETED" or "CLOSED");
-        _lab  = _rows.Sum(r => r.LaborMinutes ?? 0);
+        try { _allRows = Mnt.ListWorkOrders(_topN); }
+        catch (Exception ex) { _allRows = new(); ShowMsg(ex.Message, true); }
+        ApplyFilter();
     }
 
-    static string PrClass(string? p) => p switch
-    { "URGENT" or "HIGH" => "bad", "MED" => "warn", "LOW" => "info", _ => "info" };
-    static string StClass(string? s) => s switch
-    { "OPEN" or "ISSUED"        => "bad",
-      "IN_PROGRESS"             => "warn",
-      "COMPLETED" or "CLOSED"   => "ok", _ => "info" };
+    void ApplyFilter() { _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            WoNo(r).Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.EquipId ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            EquipName(r.EquipId).Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.AssignedTechId ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fStatus)   || r.Status   == _fStatus) &&
+        (string.IsNullOrEmpty(_fType)     || r.WoType   == _fType) &&
+        (string.IsNullOrEmpty(_fPriority) || r.Priority == _fPriority)
+    ).ToList();
+    }
+
+    void OnSearchChanged(string value) => _fSearch = value ?? "";
+
+    async Task OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") await Search(); }
+
+    void RowRender(RowRenderEventArgs<MntRepository.MwoRow> args)
+    {
+        if (args.Attributes.TryGetValue("class", out var existing))
+            args.Attributes["class"] = existing + " ames-row-link";
+        else
+            args.Attributes["class"] = "ames-row-link";
+    }
+
+    void OnRowClick(DataGridRowMouseEventArgs<MntRepository.MwoRow> args)
+    {
+        if (args.Data is not null) OpenDetail(args.Data);
+    }
+
+    void OpenDetail(MntRepository.MwoRow r) { _sel = r; _modal = "detail"; }
+
+    void CloseModal() { _modal = ""; _sel = null; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    // 현재 조회 결과(필터 적용분)를 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로
+    async Task ExportXlsx()
+    {
+        if (_rows.Count == 0) { ShowMsg(L["MNT.WorkOrder.Err.NoExport"], true); return; }
+
+        var headers = new[]
+        {
+            L["Col.MwoNo"].Value, L["Col.Type"].Value, L["Col.EquipId"].Value, L["Col.EquipName"].Value,
+            L["Col.Priority"].Value, L["Col.Source"].Value, L["Col.AssignedTech"].Value, L["Col.Status"].Value,
+            L["Col.IssuedDate"].Value, L["Col.StartedDate"].Value, L["Col.CompletedDate"].Value,
+            L["Col.Duration"].Value, L["Col.Tasks"].Value,
+        };
+        var data = _rows.Select(r => (IReadOnlyList<object?>)new object?[]
+        {
+            WoNo(r), TypeLabel(r.WoType), r.EquipId, EquipName(r.EquipId),
+            r.Priority, SourceLabel(r.SourceType), r.AssignedTechId, StatusLabel(r.Status),
+            r.IssuedAt?.ToString(DateFmt.DateTime), r.StartedAt?.ToString(DateFmt.DateTime), r.CompletedAt?.ToString(DateFmt.DateTime),
+            r.LaborMinutes, $"{r.TaskDone} / {r.TaskCount}",
+        });
+
+        var bytes = AMES.Web.Services.XlsxWriter.Build(L["MNT.WorkOrder.Title"].Value, headers, data);
+        var name  = $"MaintWorkOrder_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        ShowMsg(string.Format(L["MNT.WorkOrder.Ok.Exported"].Value, _rows.Count), false);
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    // ── 표시 헬퍼 ─────────────────────────────────────────────────────
+    static string WoNo(MntRepository.MwoRow r) => r.WoNumber ?? $"MWO#{r.WorkOrderId}";
+
+    string EquipName(string? id) =>
+        id is null ? "—" : _equipList.FirstOrDefault(e => e.EquipID == id)?.EquipName is { Length: > 0 } n ? n : "—";
+    string EquipText(string? id) =>
+        id is null ? "" : EquipName(id) is var n && n != "—" ? $"[{id}] {n}" : $"[{id}]";
+
+    static bool IsOpen(string? s) => s is "OPEN" or "ISSUED";
+    static bool IsProg(string? s) => s == "IN_PROGRESS";
+    static bool IsDone(string? s) => s is "COMPLETED" or "CLOSED";
+
+    string StatusLabel(string? s) => s switch
+    {
+        null          => "—",
+        "OPEN"        => L["MNT.WorkOrder.St.Open"],
+        "ISSUED"      => L["MNT.WorkOrder.St.Issued"],
+        "IN_PROGRESS" => L["MNT.WorkOrder.InProgress"],
+        "COMPLETED"   => L["MNT.WorkOrder.Completed"],
+        "CLOSED"      => L["MNT.WorkOrder.St.Closed"],
+        _             => s,
+    };
+    static string StCls(string? s) => IsOpen(s) ? "bad" : IsProg(s) ? "warn" : IsDone(s) ? "ok" : "mute";
+
+    string TypeLabel(string? t) => t switch
+    {
+        null  => "—",
+        "PM"  => L["MNT.WorkOrder.Type.PM"],
+        "CM"  => L["MNT.WorkOrder.Type.CM"],
+        "PdM" => L["MNT.WorkOrder.Type.PdM"],
+        _     => t,
+    };
+    static string TypeCls(string? t) => t switch { "PM" => "info", "CM" => "orange", "PdM" => "ok", _ => "mute" };
+
+    string SourceLabel(string? s) => s switch
+    {
+        null      => "—",
+        "PM"      => L["MNT.WorkOrder.Src.PM"],
+        "FAILURE" => L["MNT.WorkOrder.Src.Failure"],
+        "ANDON"   => L["MNT.WorkOrder.Src.Andon"],
+        "MANUAL"  => L["MNT.WorkOrder.Src.Manual"],
+        _         => s,
+    };
+
+    static string PrCls(string? p) => p switch { "URGENT" or "HIGH" => "bad", "MED" => "warn", "LOW" => "info", _ => "mute" };
+
+    // MNT-004 금형 소진율과 같은 막대 구조 — 점검 항목 완료율
+    static MarkupString Bar(decimal v)
+    {
+        var w   = Math.Min(100m, Math.Max(0m, v)).ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+        var cls = v >= 100m ? "ok" : v > 0m ? "warn" : "crit";
+        return new MarkupString(
+            $"<div class=\"mnt-mold-bar\"><div class=\"mnt-mold-track\"><i class=\"mnt-mold-fill-{cls}\" style=\"width:{w}%\"></i></div>" +
+            $"<span class=\"mnt-mold-bar-val\">{v:F0}%</span></div>");
+    }
 }

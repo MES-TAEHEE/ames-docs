@@ -402,15 +402,6 @@
   <data name="MNT.SpareParts.TxnEmpty" xml:space="preserve">
     <value>No transaction data.</value>
   </data>
-  <data name="MNT.SpareParts.Ph.Part" xml:space="preserve">
-    <value>Part No / Name</value>
-  </data>
-  <data name="MNT.SpareParts.Ph.Cat" xml:space="preserve">
-    <value>Category</value>
-  </data>
-  <data name="MNT.SpareParts.Ph.TxnPart" xml:space="preserve">
-    <value>Part No filter</value>
-  </data>
   <data name="MNT.SpareParts.LowOnly" xml:space="preserve">
     <value>Low stock only</value>
   </data>
@@ -2882,12 +2873,6 @@
   </data>
   <data name="PP.WoRelease.Kpi.Pending" xml:space="preserve">
     <value>Waiting for Release</value>
-  </data>
-  <data name="PP.WoRelease.Btn.Release" xml:space="preserve">
-    <value>▶ Release</value>
-  </data>
-  <data name="PP.WoRelease.Ok.Released" xml:space="preserve">
-    <value>{0} released.</value>
   </data>
   <data name="PP.WoRelease.Dlg.Phase0Warn" xml:space="preserve">
     <value>BOM/BOP master data is incomplete. Release is allowed, but complete it before shop-floor execution.</value>
@@ -7424,5 +7409,197 @@
   </data>
   <data name="MNT.EquipmentCard.Ok.Deleted" xml:space="preserve">
     <value>Card for {0} deleted.</value>
+  </data>
+  <data name="MNT.WorkOrder.Kpi.TotalSub" xml:space="preserve">
+    <value>last {0} orders</value>
+  </data>
+  <data name="MNT.WorkOrder.Kpi.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="MNT.WorkOrder.Kpi.Prog" xml:space="preserve">
+    <value>In Progress</value>
+  </data>
+  <data name="MNT.WorkOrder.Kpi.Done" xml:space="preserve">
+    <value>Completed</value>
+  </data>
+  <data name="MNT.WorkOrder.Kpi.Labor" xml:space="preserve">
+    <value>Labor (min)</value>
+  </data>
+  <data name="MNT.WorkOrder.Kpi.LaborSub" xml:space="preserve">
+    <value>total recorded</value>
+  </data>
+  <data name="MNT.WorkOrder.Ph.Search" xml:space="preserve">
+    <value>WO no · equipment · technician</value>
+  </data>
+  <data name="MNT.WorkOrder.Btn.Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.Exported" xml:space="preserve">
+    <value>Exported {0} rows to Excel.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.NoExport" xml:space="preserve">
+    <value>No data to export.</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.Detail" xml:space="preserve">
+    <value>Click a row for details. Work orders are issued from the PM schedule and failure screens.</value>
+  </data>
+  <data name="MNT.WorkOrder.St.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="MNT.WorkOrder.St.Issued" xml:space="preserve">
+    <value>Issued</value>
+  </data>
+  <data name="MNT.WorkOrder.St.Closed" xml:space="preserve">
+    <value>Closed</value>
+  </data>
+  <data name="MNT.WorkOrder.Type.PM" xml:space="preserve">
+    <value>Preventive</value>
+  </data>
+  <data name="MNT.WorkOrder.Type.CM" xml:space="preserve">
+    <value>Corrective</value>
+  </data>
+  <data name="MNT.WorkOrder.Type.PdM" xml:space="preserve">
+    <value>Predictive</value>
+  </data>
+  <data name="MNT.WorkOrder.Src.PM" xml:space="preserve">
+    <value>PM Schedule</value>
+  </data>
+  <data name="MNT.WorkOrder.Src.Failure" xml:space="preserve">
+    <value>Failure</value>
+  </data>
+  <data name="MNT.WorkOrder.Src.Andon" xml:space="preserve">
+    <value>Andon</value>
+  </data>
+  <data name="MNT.WorkOrder.Src.Manual" xml:space="preserve">
+    <value>Manual</value>
+  </data>
+  <data name="Col.AssignedTech" xml:space="preserve">
+    <value>Technician</value>
+  </data>
+  <data name="MNT.SpareParts.Kpi.Parts" xml:space="preserve">
+    <value>Parts</value>
+  </data>
+  <data name="MNT.SpareParts.Kpi.PartsSub" xml:space="preserve">
+    <value>active SKUs</value>
+  </data>
+  <data name="MNT.SpareParts.Kpi.Low" xml:space="preserve">
+    <value>Low Stock</value>
+  </data>
+  <data name="MNT.SpareParts.Kpi.LowSub" xml:space="preserve">
+    <value>≤ reorder point</value>
+  </data>
+  <data name="MNT.SpareParts.Kpi.Value" xml:space="preserve">
+    <value>On-hand Value</value>
+  </data>
+  <data name="MNT.SpareParts.Kpi.ValueSub" xml:space="preserve">
+    <value>at last txn price</value>
+  </data>
+  <data name="MNT.SpareParts.Kpi.Txn" xml:space="preserve">
+    <value>Transactions</value>
+  </data>
+  <data name="MNT.SpareParts.Kpi.TxnSub" xml:space="preserve">
+    <value>last {0} txns</value>
+  </data>
+  <data name="MNT.SpareParts.Ph.Search" xml:space="preserve">
+    <value>part no · name</value>
+  </data>
+  <data name="MNT.SpareParts.Ph.TxnSearch" xml:space="preserve">
+    <value>part no · name · ref</value>
+  </data>
+  <data name="MNT.SpareParts.Btn.Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="MNT.SpareParts.Btn.ShowTxn" xml:space="preserve">
+    <value>Show Transactions</value>
+  </data>
+  <data name="MNT.SpareParts.Ok.Exported" xml:space="preserve">
+    <value>Exported {0} rows to Excel.</value>
+  </data>
+  <data name="MNT.SpareParts.Err.NoExport" xml:space="preserve">
+    <value>No data to export.</value>
+  </data>
+  <data name="MNT.SpareParts.Hint.Detail" xml:space="preserve">
+    <value>Click a row for part details and its transaction history.</value>
+  </data>
+  <data name="MNT.SpareParts.Flag.Low" xml:space="preserve">
+    <value>LOW</value>
+  </data>
+  <data name="MNT.SpareParts.Flag.Ok" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="MNT.SpareParts.Move.In" xml:space="preserve">
+    <value>In</value>
+  </data>
+  <data name="MNT.SpareParts.Move.Out" xml:space="preserve">
+    <value>Out</value>
+  </data>
+  <data name="PP.WoRelease.Kpi.TotalSub" xml:space="preserve">
+    <value>incl. closed in last {0} days</value>
+  </data>
+  <data name="PP.WoRelease.Kpi.Done" xml:space="preserve">
+    <value>Completed</value>
+  </data>
+  <data name="PP.WoRelease.Ph.Search" xml:space="preserve">
+    <value>WO no · item no · item name</value>
+  </data>
+  <data name="PP.WoRelease.Hint.Detail" xml:space="preserve">
+    <value>Click a row for details and routing steps. Only Draft/Planned orders can be released.</value>
+  </data>
+  <data name="PP.WoRelease.Btn.Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="PP.WoRelease.Ok.Exported" xml:space="preserve">
+    <value>Exported {0} rows to Excel.</value>
+  </data>
+  <data name="PP.WoRelease.Err.NoExport" xml:space="preserve">
+    <value>No data to export.</value>
+  </data>
+  <data name="PP.WoRelease.Detail.Steps" xml:space="preserve">
+    <value>Routing Steps</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.TotalSub" xml:space="preserve">
+    <value>last {0} requests</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.Approved" xml:space="preserve">
+    <value>Approved</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.Sent" xml:space="preserve">
+    <value>Sent to SAP</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.SentSub" xml:space="preserve">
+    <value>PO number set</value>
+  </data>
+  <data name="PP.PurchaseReq.Sap.Sent" xml:space="preserve">
+    <value>Sent</value>
+  </data>
+  <data name="PP.PurchaseReq.Sap.NotSent" xml:space="preserve">
+    <value>Not sent</value>
+  </data>
+  <data name="PP.PurchaseReq.Btn.Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="PP.PurchaseReq.Ok.Exported" xml:space="preserve">
+    <value>Exported {0} rows to Excel.</value>
+  </data>
+  <data name="PP.PurchaseReq.Err.NoExport" xml:space="preserve">
+    <value>No data to export.</value>
+  </data>
+  <data name="PP.PurchaseReq.Hint.Detail" xml:space="preserve">
+    <value>Click a row for details.</value>
+  </data>
+  <data name="PP.PurchaseReq.Col.CreatedBy" xml:space="preserve">
+    <value>Requested By</value>
+  </data>
+  <data name="PP.PurchaseReq.Col.CreatedAt" xml:space="preserve">
+    <value>Requested At</value>
+  </data>
+  <data name="PP.PurchaseReq.Col.ApprovedBy" xml:space="preserve">
+    <value>Approved By</value>
+  </data>
+  <data name="PP.PurchaseReq.Col.ApprovedAt" xml:space="preserve">
+    <value>Approved At</value>
   </data>
 </root>

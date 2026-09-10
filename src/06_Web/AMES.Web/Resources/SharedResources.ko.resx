@@ -402,15 +402,6 @@
   <data name="MNT.SpareParts.TxnEmpty" xml:space="preserve">
     <value>입출고 데이터가 없습니다.</value>
   </data>
-  <data name="MNT.SpareParts.Ph.Part" xml:space="preserve">
-    <value>품번/품명</value>
-  </data>
-  <data name="MNT.SpareParts.Ph.Cat" xml:space="preserve">
-    <value>카테고리</value>
-  </data>
-  <data name="MNT.SpareParts.Ph.TxnPart" xml:space="preserve">
-    <value>품번 필터</value>
-  </data>
   <data name="MNT.SpareParts.LowOnly" xml:space="preserve">
     <value>부족만</value>
   </data>
@@ -2878,13 +2869,7 @@
     <value>해당 조건에 작업 지시가 없습니다.</value>
   </data>
   <data name="PP.WoRelease.Kpi.Pending" xml:space="preserve">
-    <value>출하 대기</value>
-  </data>
-  <data name="PP.WoRelease.Btn.Release" xml:space="preserve">
-    <value>▶ 출하</value>
-  </data>
-  <data name="PP.WoRelease.Ok.Released" xml:space="preserve">
-    <value>{0} 출하 완료.</value>
+    <value>릴리스 대기</value>
   </data>
   <data name="PP.WoRelease.Dlg.Phase0Warn" xml:space="preserve">
     <value>BOM/BOP 기준정보가 미완성입니다. 릴리스는 가능하나 현장 진행 전 보완이 필요합니다.</value>
@@ -7397,5 +7382,197 @@
   </data>
   <data name="MNT.EquipmentCard.Ok.Deleted" xml:space="preserve">
     <value>설비 {0} 카드를 삭제했습니다.</value>
+  </data>
+  <data name="MNT.WorkOrder.Kpi.TotalSub" xml:space="preserve">
+    <value>최근 {0}건 조회</value>
+  </data>
+  <data name="MNT.WorkOrder.Kpi.Open" xml:space="preserve">
+    <value>미착수</value>
+  </data>
+  <data name="MNT.WorkOrder.Kpi.Prog" xml:space="preserve">
+    <value>진행 중</value>
+  </data>
+  <data name="MNT.WorkOrder.Kpi.Done" xml:space="preserve">
+    <value>완료</value>
+  </data>
+  <data name="MNT.WorkOrder.Kpi.Labor" xml:space="preserve">
+    <value>작업시간(분)</value>
+  </data>
+  <data name="MNT.WorkOrder.Kpi.LaborSub" xml:space="preserve">
+    <value>조회분 합계</value>
+  </data>
+  <data name="MNT.WorkOrder.Ph.Search" xml:space="preserve">
+    <value>WO번호 · 설비 · 담당자</value>
+  </data>
+  <data name="MNT.WorkOrder.Btn.Export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.Exported" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.NoExport" xml:space="preserve">
+    <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.Detail" xml:space="preserve">
+    <value>행을 클릭하면 상세 내용을 확인합니다. 작업지시는 PM 일정·고장 등록 화면에서 발행됩니다.</value>
+  </data>
+  <data name="MNT.WorkOrder.St.Open" xml:space="preserve">
+    <value>접수</value>
+  </data>
+  <data name="MNT.WorkOrder.St.Issued" xml:space="preserve">
+    <value>발행</value>
+  </data>
+  <data name="MNT.WorkOrder.St.Closed" xml:space="preserve">
+    <value>마감</value>
+  </data>
+  <data name="MNT.WorkOrder.Type.PM" xml:space="preserve">
+    <value>예방정비</value>
+  </data>
+  <data name="MNT.WorkOrder.Type.CM" xml:space="preserve">
+    <value>사후정비</value>
+  </data>
+  <data name="MNT.WorkOrder.Type.PdM" xml:space="preserve">
+    <value>예지정비</value>
+  </data>
+  <data name="MNT.WorkOrder.Src.PM" xml:space="preserve">
+    <value>PM 일정</value>
+  </data>
+  <data name="MNT.WorkOrder.Src.Failure" xml:space="preserve">
+    <value>고장</value>
+  </data>
+  <data name="MNT.WorkOrder.Src.Andon" xml:space="preserve">
+    <value>안돈</value>
+  </data>
+  <data name="MNT.WorkOrder.Src.Manual" xml:space="preserve">
+    <value>수동</value>
+  </data>
+  <data name="Col.AssignedTech" xml:space="preserve">
+    <value>담당자</value>
+  </data>
+  <data name="MNT.SpareParts.Kpi.Parts" xml:space="preserve">
+    <value>등록 부품</value>
+  </data>
+  <data name="MNT.SpareParts.Kpi.PartsSub" xml:space="preserve">
+    <value>활성 SKU</value>
+  </data>
+  <data name="MNT.SpareParts.Kpi.Low" xml:space="preserve">
+    <value>재주문 필요</value>
+  </data>
+  <data name="MNT.SpareParts.Kpi.LowSub" xml:space="preserve">
+    <value>재주문점 이하</value>
+  </data>
+  <data name="MNT.SpareParts.Kpi.Value" xml:space="preserve">
+    <value>재고 금액</value>
+  </data>
+  <data name="MNT.SpareParts.Kpi.ValueSub" xml:space="preserve">
+    <value>최근 거래 단가 기준</value>
+  </data>
+  <data name="MNT.SpareParts.Kpi.Txn" xml:space="preserve">
+    <value>입출고</value>
+  </data>
+  <data name="MNT.SpareParts.Kpi.TxnSub" xml:space="preserve">
+    <value>최근 {0}건 조회</value>
+  </data>
+  <data name="MNT.SpareParts.Ph.Search" xml:space="preserve">
+    <value>부품번호 · 명칭</value>
+  </data>
+  <data name="MNT.SpareParts.Ph.TxnSearch" xml:space="preserve">
+    <value>부품번호 · 명칭 · 참조</value>
+  </data>
+  <data name="MNT.SpareParts.Btn.Export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="MNT.SpareParts.Btn.ShowTxn" xml:space="preserve">
+    <value>입출고 이력</value>
+  </data>
+  <data name="MNT.SpareParts.Ok.Exported" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
+  <data name="MNT.SpareParts.Err.NoExport" xml:space="preserve">
+    <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="MNT.SpareParts.Hint.Detail" xml:space="preserve">
+    <value>행을 클릭하면 부품 상세를 확인하고 그 부품의 입출고 이력을 조회할 수 있습니다.</value>
+  </data>
+  <data name="MNT.SpareParts.Flag.Low" xml:space="preserve">
+    <value>부족</value>
+  </data>
+  <data name="MNT.SpareParts.Flag.Ok" xml:space="preserve">
+    <value>정상</value>
+  </data>
+  <data name="MNT.SpareParts.Move.In" xml:space="preserve">
+    <value>입고</value>
+  </data>
+  <data name="MNT.SpareParts.Move.Out" xml:space="preserve">
+    <value>출고</value>
+  </data>
+  <data name="PP.WoRelease.Kpi.TotalSub" xml:space="preserve">
+    <value>완료 최근 {0}일 포함</value>
+  </data>
+  <data name="PP.WoRelease.Kpi.Done" xml:space="preserve">
+    <value>완료</value>
+  </data>
+  <data name="PP.WoRelease.Ph.Search" xml:space="preserve">
+    <value>WO번호 · 품목번호 · 품목명</value>
+  </data>
+  <data name="PP.WoRelease.Hint.Detail" xml:space="preserve">
+    <value>행을 클릭하면 상세와 라우팅 단계를 확인합니다. Draft·Planned 상태만 릴리스할 수 있습니다.</value>
+  </data>
+  <data name="PP.WoRelease.Btn.Export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="PP.WoRelease.Ok.Exported" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
+  <data name="PP.WoRelease.Err.NoExport" xml:space="preserve">
+    <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="PP.WoRelease.Detail.Steps" xml:space="preserve">
+    <value>라우팅 단계</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.TotalSub" xml:space="preserve">
+    <value>최근 {0}건 조회</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.Pending" xml:space="preserve">
+    <value>승인 대기</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.Approved" xml:space="preserve">
+    <value>승인</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.Sent" xml:space="preserve">
+    <value>SAP 전송</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.SentSub" xml:space="preserve">
+    <value>PO 번호 있음</value>
+  </data>
+  <data name="PP.PurchaseReq.Sap.Sent" xml:space="preserve">
+    <value>전송</value>
+  </data>
+  <data name="PP.PurchaseReq.Sap.NotSent" xml:space="preserve">
+    <value>미전송</value>
+  </data>
+  <data name="PP.PurchaseReq.Btn.Export" xml:space="preserve">
+    <value>내보내기</value>
+  </data>
+  <data name="PP.PurchaseReq.Ok.Exported" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건</value>
+  </data>
+  <data name="PP.PurchaseReq.Err.NoExport" xml:space="preserve">
+    <value>내보낼 데이터가 없습니다.</value>
+  </data>
+  <data name="PP.PurchaseReq.Hint.Detail" xml:space="preserve">
+    <value>행을 클릭하면 상세 내용을 확인합니다.</value>
+  </data>
+  <data name="PP.PurchaseReq.Col.CreatedBy" xml:space="preserve">
+    <value>요청자</value>
+  </data>
+  <data name="PP.PurchaseReq.Col.CreatedAt" xml:space="preserve">
+    <value>요청일시</value>
+  </data>
+  <data name="PP.PurchaseReq.Col.ApprovedBy" xml:space="preserve">
+    <value>승인자</value>
+  </data>
+  <data name="PP.PurchaseReq.Col.ApprovedAt" xml:space="preserve">
+    <value>승인일시</value>
   </data>
 </root>

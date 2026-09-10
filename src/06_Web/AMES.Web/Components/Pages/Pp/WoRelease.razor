@@ -1,184 +1,398 @@
-﻿@page "/pp/wo-release"
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@page "/pp/wo-release"
 @rendermode InteractiveServer
-@inject AMES.Data.Repositories.PpRepository Pp
-@inject AMES.Data.Repositories.MasterDataRepository MD
-@inject AMES.Data.Repositories.WorkOrderRepository Wos
-@inject DialogService Dialog
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
+@using Radzen
+
+@attribute [Authorize]
+
 @inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject PpRepository Pp
+@inject MasterDataRepository MD
+@inject WorkOrderRepository Wos
+@inject DialogService Dialog
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>@L["PP.WoRelease.Title"] · AMES</PageTitle>
-
+<PageTitle>PP-007 @L["PP.WoRelease.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="PP-007" TitleKey="PP.WoRelease.Title" />
 
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
-    <div class="ames-kpi warn">
-        <div class="ames-kpi-l">DRAFT / PLANNED</div>
-        <div class="ames-kpi-v">@_all.Count(r => r.Status is "Draft" or "Planned")</div>
-        <div class="ames-kpi-s">@L["PP.WoRelease.Kpi.Pending"]</div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["Lbl.Total"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_allRows.Count</div>
+            <div class="ames-kpi-s">@string.Format(L["PP.WoRelease.Kpi.TotalSub"].Value, _recentDays)</div>
+        </div>
     </div>
-    <div class="ames-kpi ok">
-        <div class="ames-kpi-l">RELEASED</div>
-        <div class="ames-kpi-v">@_all.Count(r => r.Status == "Released")</div>
-        <div class="ames-kpi-s">@L["PP.WorkOrder.Kpi.Waiting"]</div>
+    <div class="ames-kpi @(PendingCount > 0 ? "warn" : "")">
+        <div class="ames-kpi-l">@L["PP.WoRelease.Kpi.Pending"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@PendingCount</div>
+            <div class="ames-kpi-s">Draft · Planned</div>
+        </div>
     </div>
     <div class="ames-kpi info">
-        <div class="ames-kpi-l">IN PROGRESS</div>
-        <div class="ames-kpi-v">@_all.Count(r => r.Status == "In Progress")</div>
-        <div class="ames-kpi-s">@L["PP.WorkOrder.Kpi.InProgress"]</div>
+        <div class="ames-kpi-l">@L["PP.WorkOrder.Kpi.Waiting"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Released")</div>
+            <div class="ames-kpi-s">Released</div>
+        </div>
     </div>
-    <div class="ames-kpi dim">
-        <div class="ames-kpi-l">CLOSED</div>
-        <div class="ames-kpi-v">@_all.Count(r => r.Status == "Closed")</div>
-        <div class="ames-kpi-s">@string.Format(L["PP.WorkOrder.Kpi.ClosedN"].Value, _recentDays)</div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["PP.WorkOrder.Kpi.InProgress"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "In Progress")</div>
+            <div class="ames-kpi-s">In Progress</div>
+        </div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["PP.WoRelease.Kpi.Done"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_allRows.Count(r => IsDone(r.Status))</div>
+            <div class="ames-kpi-s">@string.Format(L["PP.WorkOrder.Kpi.ClosedN"].Value, _recentDays)</div>
+        </div>
     </div>
 </div>
 
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["PP.WoRelease.Title"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _all.Count ? $" / {L["Lbl.TotalOf"]} {_all.Count}" : "")</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <select class="ames-input" style="width:140px;" @bind="_fLine">
-                <option value="">@L["Filter.All"]</option>
-                @foreach (var l in _lineList)
-                {
-                    <option value="@l.LineID">@l.LineID@(l.LineName != null ? $" {l.LineName}" : "")</option>
-                }
-            </select>
-            <select class="ames-input" style="width:130px;" @bind="_fStatus">
-                <option value="">@L["Filter.All"]</option>
-                <option value="Draft">Draft</option>
-                <option value="Planned">Planned</option>
-                <option value="Released">Released</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Closed">Closed</option>
-            </select>
-            <select class="ames-input" style="width:110px;" @bind="_recentDays">
-                <option value="7">@L["PP.WorkOrder.Filter.Closed7"]</option>
-                <option value="30">@L["PP.WorkOrder.Filter.Closed30"]</option>
-                <option value="60">@L["PP.WorkOrder.Filter.Closed60"]</option>
-                <option value="90">@L["PP.WorkOrder.Filter.Closed90"]</option>
-            </select>
-            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Search"]</button>
-        </div>
-    </div>
+        <span style="white-space:nowrap;">▼ @L["PP.WoRelease.Title"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Change="@(v => _fSearch = v ?? "")" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["PP.WoRelease.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px;" />
+            <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
+            <RadzenDropDown Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" AllowFiltering="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+            <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+            <RadzenLabel Text="@L["PP.WorkOrder.Filter.ClosedDays"]" Component="DropDownDays" />
+            <RadzenDropDown Name="DropDownDays" @bind-Value="_recentDays" Data="@DayOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
 
-    @if (_err is not null)
-    {
-        <div class="ames-empty bad">@_err</div>
-    }
-    else if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["PP.WoRelease.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th style="width:120px;">@L["Col.WO"]</th>
-                    <th>@L["Col.Item"]</th>
-                    <th style="width:130px;">@L["Col.Line"]</th>
-                    <th style="width:80px;text-align:right;">@L["Col.Qty"]</th>
-                    <th style="width:100px;">@L["Col.Due"]</th>
-                    <th style="width:100px;">@L["Col.Status"]</th>
-                    <th style="width:110px;">@L["Col.Released"]</th>
-                    <th style="width:90px;"></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var w in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    var stCls = w.Status switch {
-                        "Released"    => "ok",
-                        "In Progress" => "info",
-                        "Draft" or "Planned" => "warn",
-                        _ => "dim"
-                    };
-                    <tr>
-                        <td class="code">@w.WoNumber</td>
-                        <td title="@w.ItemNo">@(w.ItemName ?? w.ItemNo)</td>
-                        <td class="code dim">@(w.RouteLines ?? "—")</td>
-                        <td style="text-align:right;">@w.OrderQty.ToString("N0")</td>
-                        <td class="dim">@(w.DueDate?.ToString("yyyy-MM-dd") ?? "—")</td>
-                        <td><span class="pill @stCls">@w.Status</span></td>
-                        <td class="dim">@(w.ReleasedAt?.ToString("MM-dd HH:mm") ?? "—")</td>
-                        <td>
-                            @if (w.Status is "Draft" or "Planned")
-                            {
-                                <button class="ames-btn" @onclick="() => DoRelease(w)">@L["PP.WoRelease.Btn.Release"]</button>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Search" class="ames-rz-btn" />
+            <RadzenButton Text="@L["PP.WoRelease.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+    <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["PP.WoRelease.Hint.Detail"]</div>
+
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="PpRepository.WoLite" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["PP.WoRelease.Empty"]" Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="PpRepository.WoLite" Property="WoNumber" Title="@L["Col.WoNo"]" TextAlign="TextAlign.Center" Width="140px">
+                <Template Context="w"><span class="code">@WoNo(w)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.WoLite" Property="ItemNo" Title="@L["Col.ItemNo"]" TextAlign="TextAlign.Center" Width="130px">
+                <Template Context="w"><span class="code">@w.ItemNo</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.WoLite" Property="ItemName" Title="@L["Col.ItemName"]">
+                <Template Context="w"><span style="white-space:nowrap;">@(w.ItemName ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.WoLite" Property="RouteLines" Title="@L["Col.Line"]" Width="200px">
+                <Template Context="w"><span class="code dim" style="white-space:nowrap;">@(w.RouteLines ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.WoLite" Property="OrderQty" Title="@L["Col.Order"]" TextAlign="TextAlign.Right" Width="90px">
+                <Template Context="w">@w.OrderQty.ToString("N0")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.WoLite" Property="CompletedQty" Title="@L["Col.Done"]" TextAlign="TextAlign.Right" Width="90px">
+                <Template Context="w">@w.CompletedQty.ToString("N0")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.WoLite" Title="@L["Col.Progress"]" Width="160px" Sortable="false">
+                <Template Context="w">@(Progress(w) is { } p ? Bar(p) : Dash)</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.WoLite" Property="DueDate" Title="@L["Col.Due"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="w"><span class="dim">@(w.DueDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.WoLite" Title="D-Day" TextAlign="TextAlign.Center" Width="80px" Sortable="false">
+                <Template Context="w"><span class="pill @DdCls(w)">@DdText(w)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.WoLite" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="w"><span class="pill @StCls(w.Status)">@(w.Status ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.WoLite" Property="ReleasedAt" Title="@L["Col.Released"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="w"><span class="dim">@(w.ReleasedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.WoLite" Title="@L["PP.WorkOrder.Col.Action"]" TextAlign="TextAlign.Center" Width="100px" Sortable="false">
+                <Template Context="w">
+                    @if (_canEdit && IsPending(w.Status))
+                    {
+                        @* 행 클릭(상세 모달)과 겹치지 않게 버튼 클릭은 행으로 올리지 않는다 *@
+                        <span @onclick:stopPropagation @onmousedown:stopPropagation>
+                            <RadzenButton Text="@L["PP.WorkOrder.Btn.Release"]" Icon="play_arrow" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.ExtraSmall" Click="@(() => DoRelease(w))" class="ames-rz-btn" />
+                        </span>
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
-@code {
-    List<AMES.Data.Repositories.PpRepository.WoLite> _all  = [];
-    List<AMES.Data.Repositories.PpRepository.WoLite> _rows = [];
-    int _page = 0;
-    const int _pageSize = 20;
-    List<AMES.Data.Repositories.MasterDataRepository.LineRow> _lineList = [];
-    string  _fLine      = "";
-    string  _fStatus    = "";
-    int     _recentDays = 30;
-    string? _err;
-    string  _msg  = "";
-    bool    _isErr;
+@* ── Detail Modal (읽기 전용 + 릴리스) ────────────────────────────── *@
+@if (_modal == "detail" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["PP.WoRelease.Title"] <span class="dim" style="font-weight:400;font-size:.9em;">@WoNo(_sel)</span></div>
 
-    protected override void OnInitialized()
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text="@L["Col.Item"]" class="ames-rz-modal-label" Component="DetailTextBoxItem" />
+                <RadzenTextBox Name="DetailTextBoxItem" Value="@($"[{_sel.ItemNo}] {_sel.ItemName}".Trim())" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+            </RadzenStack>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="3">
+                    <RadzenLabel Text="@L["Col.Order"]" />
+                    <RadzenTextBox Value="@_sel.OrderQty.ToString("N0")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="3">
+                    <RadzenLabel Text="@L["Col.Done"]" />
+                    <RadzenTextBox Value="@_sel.CompletedQty.ToString("N0")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Progress"]" />
+                    <div style="padding-top:6px;">@(Progress(_sel) is { } p ? Bar(p) : Dash)</div>
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="3">
+                    <RadzenLabel Text="@L["Col.Due"]" />
+                    <RadzenTextBox Value="@(_sel.DueDate?.ToString(DateFmt.Date) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="3">
+                    <RadzenLabel Text="D-Day" />
+                    <div style="padding-top:4px;"><span class="pill @DdCls(_sel)">@DdText(_sel)</span></div>
+                </RadzenColumn>
+                <RadzenColumn Size="3">
+                    <RadzenLabel Text="@L["Col.Status"]" />
+                    <div style="padding-top:4px;"><span class="pill @StCls(_sel.Status)">@(_sel.Status ?? "—")</span></div>
+                </RadzenColumn>
+                <RadzenColumn Size="3">
+                    <RadzenLabel Text="@L["Col.Released"]" />
+                    <RadzenTextBox Value="@(_sel.ReleasedAt?.ToString(DateFmt.DateTime) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <div style="margin-top:10px;">
+                <RadzenLabel Text="@L["PP.WoRelease.Detail.Steps"]" />
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-top:6px;">
+                    @if (_selSteps.Count == 0)
+                    {
+                        <span class="dim">@(_sel.RouteLines ?? "—")</span>
+                    }
+                    else
+                    {
+                        for (var i = 0; i < _selSteps.Count; i++)
+                        {
+                            var s = _selSteps[i];
+                            <span class="pill @StepCls(s.Status)" title="@s.Status">@s.ProcessCode <span class="dim">@(s.LineId ?? "—") · @s.CompletedQty.ToString("N0")</span></span>
+                            @if (i < _selSteps.Count - 1) { <span class="dim">→</span> }
+                        }
+                    }
+                </div>
+            </div>
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                @if (_canEdit && IsPending(_sel.Status))
+                {
+                    <RadzenButton Text="@L["PP.WorkOrder.Btn.Release"]" Icon="play_arrow" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="@(() => DoRelease(_sel))" class="ames-rz-btn" />
+                }
+                <RadzenButton Text="@L["Btn.Close"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@code {
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
+    bool _showPagerSummary = true;
+    List<PpRepository.WoLite>              _allRows  = new();
+    List<PpRepository.WoLite>              _rows     = new();
+    List<MasterDataRepository.LineRow>     _lineList = new();
+    List<WorkOrderRepository.StepRow>      _selSteps = new();
+    PpRepository.WoLite? _sel;
+
+    string  _fSearch = "";
+    string? _fLine, _fStatus;
+    int     _recentDays = 30;
+    string  _modal = "", _msg = "", _actor = "system";
+    bool    _bgMouseDownOnSelf, _isErr, _canEdit;
+
+    // WO 상태는 공통코드가 없어 PP-004 와 같은 고정 목록을 쓰고, 데이터에만 있는 값(Completed·Stocked 등)을 뒤에 붙인다
+    static readonly string[] StatusCodes = { "Draft", "Planned", "Released", "In Progress", "Closed", "Cancelled" };
+    static readonly int[]    DayOpts     = { 7, 30, 60, 90 };
+    static readonly MarkupString Dash = new("<span class=\"dim\">—</span>");
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    public class DayItem      { public string Text { get; set; } = ""; public int Value { get; set; } }
+
+    IEnumerable<DropDownItem> LineFilterOptions =>
+        _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = LineText(l) });
+    IEnumerable<DropDownItem> StatusFilterOptions =>
+        StatusCodes.Concat(_allRows.Select(r => r.Status).Where(s => s is { Length: > 0 } && !StatusCodes.Contains(s)).Distinct()!)
+                   .Select(s => new DropDownItem { Value = s!, Text = s! });
+    IEnumerable<DayItem> DayOptions =>
+        DayOpts.Select(d => new DayItem { Value = d, Text = L[$"PP.WorkOrder.Filter.Closed{d}"] });
+
+    int PendingCount => _allRows.Count(r => IsPending(r.Status));
+
+    protected override async Task OnInitializedAsync()
     {
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("pp/wo-release");
+
         try { _lineList = MD.ListLines(); } catch { }
         Reload();
     }
 
-    void Reload()
+    RadzenDataGrid<PpRepository.WoLite>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task Search()
     {
-        _page = 0;
-        _err = null;
-        try
-        {
-            _all = Pp.ListAllWo(
-                lineId:          string.IsNullOrWhiteSpace(_fLine)   ? null : _fLine.Trim(),
-                status:          string.IsNullOrWhiteSpace(_fStatus) ? null : _fStatus,
-                recentClosedDays: _recentDays);
-            _rows = _all;
-        }
-        catch (Exception ex) { _err = string.Format(L["Err.LoadFailed"].Value, ex.Message); _all = []; _rows = []; }
+        _pgIndex = 0;
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null) await _pgGrid.GoToPage(0);
     }
 
-    async Task DoRelease(AMES.Data.Repositories.PpRepository.WoLite w)
+    // 라인·상태·완료 일수는 서버 조회 조건, 검색어는 조회 결과 안에서 부분 일치
+    void Reload()
     {
+        try { _allRows = Pp.ListAllWo(_fLine, _fStatus, _recentDays); }
+        catch (Exception ex) { _allRows = new(); ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
+        ApplyFilter();
+    }
+
+    void ApplyFilter() { _rows = _allRows.Where(r =>
+        string.IsNullOrEmpty(_fSearch) ||
+        WoNo(r).Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+        r.ItemNo.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+        (r.ItemName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)
+    ).ToList();
+    }
+
+    async Task OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") await Search(); }
+
+    void RowRender(RowRenderEventArgs<PpRepository.WoLite> args)
+    {
+        if (args.Attributes.TryGetValue("class", out var existing))
+            args.Attributes["class"] = existing + " ames-row-link";
+        else
+            args.Attributes["class"] = "ames-row-link";
+    }
+
+    void OnRowClick(DataGridRowMouseEventArgs<PpRepository.WoLite> args)
+    {
+        if (args.Data is not null) OpenDetail(args.Data);
+    }
+
+    void OpenDetail(PpRepository.WoLite w)
+    {
+        _sel = w; _modal = "detail";
+        try { _selSteps = Wos.ListSteps(w.WoId); } catch { _selSteps = new(); }
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _selSteps = new(); }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    // ── 릴리스 — 단계별 라인 선택 다이얼로그(PP-004 와 공유) 뒤 WorkOrderRepository.ReleaseWo ──
+    async Task DoRelease(PpRepository.WoLite w)
+    {
+        if (!_canEdit) return;
         var result = await Dialog.OpenAsync<WoReleaseLineDialog>(
-            $"{L["PP.WoRelease.Btn.Release"].Value} · {w.WoNumber}",
+            $"{L["PP.WorkOrder.Btn.Release"].Value} · {WoNo(w)}",
             new Dictionary<string, object?> { ["WoId"] = w.WoId },
             new DialogOptions { Width = "640px" });
         if (result is not WoReleaseLineDialog.Result r) return;
 
         try
         {
-            var auth  = await AuthPrvd.GetAuthenticationStateAsync();
-            var actor = auth.User.Identity?.Name ?? "system";
-            var n = Wos.ReleaseWo(w.WoId, r.Steps, actor);
-            if (n > 0) ShowMsg(string.Format(L["PP.WoRelease.Ok.Released"].Value, w.WoNumber), false);
+            var n = Wos.ReleaseWo(w.WoId, r.Steps, _actor);
+            if (n > 0) ShowMsg(string.Format(L["PP.WorkOrder.Ok.Released"].Value, WoNo(w)), false);
+            CloseModal();
             Reload();
         }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
+    }
+
+    // 현재 조회 결과(필터 적용분)를 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로
+    async Task ExportXlsx()
+    {
+        if (_rows.Count == 0) { ShowMsg(L["PP.WoRelease.Err.NoExport"], true); return; }
+
+        var headers = new[]
+        {
+            L["Col.WoNo"].Value, L["Col.ItemNo"].Value, L["Col.ItemName"].Value, L["Col.Line"].Value,
+            L["Col.Order"].Value, L["Col.Done"].Value, L["Col.Progress"].Value,
+            L["Col.Due"].Value, "D-Day", L["Col.Status"].Value, L["Col.Released"].Value,
+        };
+        var data = _rows.Select(w => (IReadOnlyList<object?>)new object?[]
+        {
+            WoNo(w), w.ItemNo, w.ItemName, w.RouteLines,
+            w.OrderQty, w.CompletedQty, Progress(w) is { } p ? Math.Round(p, 1) : null,
+            w.DueDate?.ToString(DateFmt.Date), DdText(w), w.Status, w.ReleasedAt?.ToString(DateFmt.DateTime),
+        });
+
+        var bytes = AMES.Web.Services.XlsxWriter.Build(L["PP.WoRelease.Title"].Value, headers, data);
+        var name  = $"WoRelease_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        ShowMsg(string.Format(L["PP.WoRelease.Ok.Exported"].Value, _rows.Count), false);
     }
 
     void ShowMsg(string msg, bool isErr)
     {
         _msg = msg; _isErr = isErr;
         _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    // ── 표시 헬퍼 ─────────────────────────────────────────────────────
+    static string WoNo(PpRepository.WoLite w) => w.WoNumber ?? $"WO#{w.WoId}";
+
+    static string LineText(MasterDataRepository.LineRow l) =>
+        MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } n ? $"[{l.LineID}] {n}" : $"[{l.LineID}]";
+
+    static bool IsPending(string? s) => s is "Draft" or "Planned";
+    static bool IsDone(string? s)    => s is "Closed" or "Completed" or "Stocked";
+
+    static string StCls(string? s) => s switch
+    {
+        "Draft" or "Planned" => "warn",
+        "Released"           => "info",
+        "In Progress"        => "ok",
+        "Cancelled"          => "bad",
+        _                    => "mute",
+    };
+    static string StepCls(string? s) => s switch { "Closed" => "ok", "In Progress" => "warn", _ => "mute" };
+
+    static decimal? Progress(PpRepository.WoLite w) =>
+        w.OrderQty > 0 ? Math.Min(100m, 100m * w.CompletedQty / w.OrderQty) : null;
+
+    // D-Day 는 납기 기준, 완료·취소 건은 표시하지 않는다
+    static int? DaysToDue(PpRepository.WoLite w) =>
+        w.DueDate is { } d && !IsDone(w.Status) && w.Status != "Cancelled" ? (d.Date - DateTime.Today).Days : null;
+    static string DdCls(PpRepository.WoLite w)  => DaysToDue(w) is not int d ? "mute" : d < 0 ? "bad" : d <= 3 ? "warn" : "ok";
+    static string DdText(PpRepository.WoLite w) => DaysToDue(w) is not int d ? "—" : d < 0 ? $"D+{-d}" : d == 0 ? "D-Day" : $"D-{d}";
+
+    // MNT-004 금형 소진율과 같은 막대 구조 — 완료율
+    static MarkupString Bar(decimal v)
+    {
+        var w   = Math.Min(100m, Math.Max(0m, v)).ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+        var cls = v >= 100m ? "ok" : v > 0m ? "warn" : "crit";
+        return new MarkupString(
+            $"<div class=\"mnt-mold-bar\"><div class=\"mnt-mold-track\"><i class=\"mnt-mold-fill-{cls}\" style=\"width:{w}%\"></i></div>" +
+            $"<span class=\"mnt-mold-bar-val\">{v:F0}%</span></div>");
     }
 }

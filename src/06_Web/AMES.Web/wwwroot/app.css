@@ -247,6 +247,11 @@ a:hover { color: #c4dafe; }
 }
 .ames-user-out:hover { background: rgba(252,165,165,.2); }
 
+/* ── 언어 전환 (TopBar) ─────────────────────────────────────── */
+.culture-switcher .culture-sep { color: #475569; font-size: .75em; line-height: 1; }
+.culture-switcher a { font-size: .78em; text-decoration: none; cursor: pointer; color: #94a3b8; font-weight: 400; }
+.culture-switcher a.cur { color: #38bdf8; font-weight: 700; }
+
 .ames-nav {
     flex: 1 1 auto;
     min-height: 0;
@@ -3678,6 +3683,14 @@ html[data-theme="light"] .ames-brand-logo { color: var(--ames-chrome-text); }
 html[data-theme="light"] .ames-brand-sub { color: var(--ames-accent); }
 html[data-theme="light"] .ames-user { background: linear-gradient(180deg, rgba(37,99,235,.10), rgba(37,99,235,.03)); border-color: rgba(37,99,235,.28); }
 html[data-theme="light"] .ames-user-name { color: var(--ames-chrome-text); }
+/* 다크용 연파랑·연빨강·흰색 반투명은 밝은 크롬 위에서 사라진다 — 크롬 텍스트 토큰으로 재정의 */
+html[data-theme="light"] .ames-loc-code { color: var(--ames-accent); background: rgba(37,99,235,.10); border-color: rgba(37,99,235,.35); }
+html[data-theme="light"] .ames-user-role { color: var(--ames-chrome-dim); }
+html[data-theme="light"] .ames-user-out { background: rgba(185,28,28,.08); border-color: rgba(185,28,28,.35); color: #b91c1c; }
+html[data-theme="light"] .ames-user-out:hover { background: rgba(185,28,28,.16); }
+html[data-theme="light"] .culture-switcher .culture-sep { color: var(--ames-chrome-dim); }
+html[data-theme="light"] .culture-switcher a { color: var(--ames-chrome-dim); }
+html[data-theme="light"] .culture-switcher a.cur { color: var(--ames-accent); }
 /* Sidebar / nav — 밝은 푸른 크롬 */
 html[data-theme="light"] .ames-side { background: linear-gradient(180deg, var(--ames-chrome), var(--ames-chrome-2)); border-right: 1px solid var(--ames-chrome-border); }
 html[data-theme="light"] .ames-side-toggle { background: var(--ames-chrome-hover); border-color: var(--ames-chrome-border); color: var(--ames-chrome-dim); }
@@ -3692,6 +3705,10 @@ html[data-theme="light"] .ames-nav-link:hover { color: var(--ames-chrome-text); 
 html[data-theme="light"] .ames-nav-link .lid { background: var(--ames-chrome-hover); border-color: var(--ames-chrome-border); color: var(--ames-chrome-dim); }
 html[data-theme="light"] .ames-nav-search { background: rgba(255,255,255,.5); border-color: var(--ames-chrome-border); }
 html[data-theme="light"] .ames-nav-search input { color: var(--ames-chrome-text); }
+html[data-theme="light"] .ames-nav-search input::placeholder { color: var(--ames-chrome-dim); opacity: .85; }
+html[data-theme="light"] .ames-nav-search-ic { opacity: .8; }
+html[data-theme="light"] .ames-nav-search-x { color: var(--ames-chrome-dim); }
+html[data-theme="light"] .ames-nav-search-x:hover { color: var(--ames-chrome-text); }
 html[data-theme="light"] .ames-nav-sub-t { color: var(--ames-chrome-text); }
 html[data-theme="light"] .ames-nav-sub-s { color: var(--ames-chrome-dim); }
 html[data-theme="light"] .ames-nav-sub-letter { color: #6d28d9; }

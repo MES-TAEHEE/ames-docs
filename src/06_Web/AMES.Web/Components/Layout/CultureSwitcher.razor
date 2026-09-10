@@ -8,13 +8,11 @@
         var lang = langs[i];
         @if (i > 0)
         {
-            <span style="color:#475569;font-size:.75em;line-height:1;">|</span>
+            <span class="culture-sep">|</span>
         }
-        <a href="javascript:void(0)"
-           onclick="@($"document.cookie='.AspNetCore.Culture=c={lang.Culture}|uic={lang.Uic};path=/;max-age=31536000;SameSite=Lax';location.reload();")"
-           style="font-size:.78em;text-decoration:none;cursor:pointer;
-                  color:@(IsCurrent(lang.Uic) ? "#38bdf8" : "#94a3b8");
-                  font-weight:@(IsCurrent(lang.Uic) ? "700" : "400");">@lang.Label</a>
+        @* 색은 app.css(.culture-switcher a / a.cur)에서 — 라이트 테마가 덮어쓸 수 있게 인라인 색상을 두지 않는다 *@
+        <a href="javascript:void(0)" class="@(IsCurrent(lang.Uic) ? "cur" : null)"
+           onclick="@($"document.cookie='.AspNetCore.Culture=c={lang.Culture}|uic={lang.Uic};path=/;max-age=31536000;SameSite=Lax';location.reload();")">@lang.Label</a>
     }
 </div>
 
