@@ -1055,8 +1055,6 @@ BEGIN
     BEGIN
         IF OBJECT_ID(N'dbo.WH_InventoryTransaction', N'U') IS NOT NULL
             DELETE FROM dbo.WH_InventoryTransaction WHERE LotID = @AdjustScenarioLotID;
-        IF OBJECT_ID(N'dbo.WH_InventoryAdjust', N'U') IS NOT NULL
-            DELETE FROM dbo.WH_InventoryAdjust WHERE LotID = @AdjustScenarioLotID;
         DELETE FROM dbo.WH_Inventory WHERE LotID = @AdjustScenarioLotID;
         DELETE FROM dbo.tbl_Lot WHERE LotID = @AdjustScenarioLotID;
     END;
@@ -1293,6 +1291,16 @@ SET CONCAT_NULL_YIELDS_NULL ON;
 SET ARITHABORT ON;
 SET NUMERIC_ROUNDABORT OFF;
 
+INSERT dbo.MD_Item(ItemNo,ItemName,ItemType,ItemCategory,DefaultUOM,ActiveFlag,CreatedBy,CreatedTS)
+SELECT V.ItemNo,V.ItemName,'FG','TRIM','EA',1,'pda-seed',SYSDATETIME()
+FROM (VALUES ('DR-TRM-LH-A1',N'DOOR TRIM LH'),('DR-TRM-RH-A1',N'DOOR TRIM RH')) V(ItemNo,ItemName)
+WHERE NOT EXISTS(SELECT 1 FROM dbo.MD_Item I WHERE I.ItemNo=V.ItemNo);
+
+INSERT dbo.MD_Location(LocationID,LocationName,ZoneCode,Aisle,Bay,Slot,Capacity,LocationType,PlantCode,ActiveFlag,CreatedBy,CreatedTS)
+SELECT V.LocationID,V.LocationID,'FG',V.Aisle,V.Bay,'01',1000,'FG','EOS',1,'pda-seed',SYSDATETIME()
+FROM (VALUES ('FG-A-01','A','01'),('FG-A-02','A','02'),('FG-B-01','B','01')) V(LocationID,Aisle,Bay)
+WHERE NOT EXISTS(SELECT 1 FROM dbo.MD_Location L WHERE L.LocationID=V.LocationID);
+
 DECLARE @SeedBy varchar(50) = 'pda-fg-six-demo';
 DECLARE @Item1 varchar(20), @Item2 varchar(20), @Item3 varchar(20);
 DECLARE @Loc1 varchar(20), @Loc2 varchar(20), @Loc3 varchar(20), @Loc4 varchar(20);
@@ -1330,6 +1338,7 @@ BEGIN TRANSACTION;
 
 -- Remove only this script's prior transactional demo rows.
 DELETE FROM dbo.FG_LoadingConfirm WHERE CreatedBy = @SeedBy;
+DELETE FROM dbo.FG_PickingDetail WHERE PickID IN (SELECT PickID FROM dbo.FG_PickingFifo WHERE CreatedBy = @SeedBy);
 DELETE FROM dbo.FG_PickingFifo WHERE CreatedBy = @SeedBy;
 DELETE FROM dbo.FG_CustomerReturn WHERE CreatedBy = @SeedBy;
 DELETE FROM dbo.FG_ShipmentOrderLine WHERE CreatedBy = @SeedBy;
@@ -1410,7 +1419,7 @@ INSERT INTO dbo.FG_ShipmentOrder
      DestDock, ReceiverName, Status, PickslipID, OTDFlag, CreatedBy, CreatedTS)
 VALUES
  ('FG-SO-DEMO-001', '2609020001', 'DEMO-CUSTOMER', 'PO-DEMO-001', 'PDA', DATEADD(day,1,CAST(GETDATE() AS date)), 'EOS-TRUCK', 'CUSTOMER-A', 'DOCK-A', 'Receiving A', 'RELEASED', 'FG-PICK-DEMO-001', 'OnTime', @SeedBy, SYSDATETIME()),
- ('FG-SO-DEMO-002', '2609020002', 'DEMO-CUSTOMER', 'PO-DEMO-002', 'PDA', CAST(GETDATE() AS date),            'EOS-TRUCK', 'CUSTOMER-B', 'DOCK-B', 'Receiving B', 'READY',    'FG-PICK-DEMO-002', 'OnTime', @SeedBy, SYSDATETIME()),
+ ('FG-SO-DEMO-002', '2609020002', 'DEMO-CUSTOMER', 'PO-DEMO-002', 'PDA', CAST(GETDATE() AS date),            'EOS-TRUCK', 'CUSTOMER-B', 'DOCK-B', 'Receiving B', 'PICKED',   'FG-PICK-DEMO-002', 'OnTime', @SeedBy, SYSDATETIME()),
  ('FG-SO-DEMO-003', '2609020003', 'DEMO-CUSTOMER', 'PO-DEMO-003', 'PDA', DATEADD(day,2,CAST(GETDATE() AS date)), 'EOS-TRUCK', 'CUSTOMER-C', 'DOCK-C', 'Receiving C', 'OPEN',     'FG-PICK-DEMO-003', 'OnTime', @SeedBy, SYSDATETIME());
 
 DECLARE @Order1 int = (SELECT ShipmentOrderID FROM dbo.FG_ShipmentOrder WHERE ShipOrderNumber='FG-SO-DEMO-001' AND CreatedBy=@SeedBy);
@@ -1438,22 +1447,18 @@ UNION ALL
 SELECT @Order3, 10, @Item1, 12, 0, NULL, NULL, @Loc4, 'Open', NULL, @SeedBy, SYSDATETIME();
 
 INSERT INTO dbo.FG_PickingFifo
-    (PickNumber, PickslipID, ShipmentOrderID, PickerID, StartTS, EndTS, FifoViolations,
-     OverrideCount, PickedQty, OrderedQty, Status, CreatedBy, CreatedTS)
+    (PickNumber, ShipmentOrderID, PickerID, StartTS, EndTS,
+     PickedQty, OrderedQty, Status, CreatedBy, CreatedTS)
 VALUES
- ('FG-PICK-DEMO-002', 'FG-PICK-DEMO-002', @Order2, 'admin', DATEADD(minute,-30,SYSDATETIME()),
-  DATEADD(minute,-20,SYSDATETIME()), 0, 0, 34, 34, 'Picked', @SeedBy, SYSDATETIME());
+ ('FG-PICK-DEMO-002', @Order2, 'admin', DATEADD(minute,-30,SYSDATETIME()),
+  DATEADD(minute,-20,SYSDATETIME()), 34, 34, 'Picked', @SeedBy, SYSDATETIME());
 
-INSERT INTO dbo.FG_CustomerReturn
-    (ReturnNumber, RMANo, CustomerCode, OriginalShipmentOrderID, ReturnReason, ItemsJSON,
-     Status, ReceivedAt, ReceivedBy, CapaTriggered, CreatedBy, CreatedTS)
-VALUES
- ('FG-RMA-DEMO-001', 'RMA-DEMO-001', 'DEMO-CUSTOMER', @Order2, 'DAMAGED_TRANSIT',
-  CONCAT('[{"itemNo":"', @Item3, '","qty":2}]'), 'Open', DATEADD(hour,-3,SYSDATETIME()),
-  'admin', 0, @SeedBy, SYSDATETIME()),
- ('FG-RMA-DEMO-002', 'RMA-DEMO-002', 'DEMO-CUSTOMER', @Order1, 'WRONG_ITEM',
-  CONCAT('[{"itemNo":"', @Item2, '","qty":1}]'), 'Inspecting', DATEADD(day,-1,SYSDATETIME()),
-  'admin', 0, @SeedBy, SYSDATETIME());
+DECLARE @DemoPickID int=(SELECT PickID FROM dbo.FG_PickingFifo WHERE PickNumber='FG-PICK-DEMO-002' AND CreatedBy=@SeedBy);
+INSERT dbo.FG_PickingDetail(PickID,ShipmentOrderLineID,StockID,LotID,ItemNo,Qty,Location,PickSeq,CreatedBy,CreatedTS)
+SELECT @DemoPickID,L.ShipmentOrderLineID,S.StockID,S.LotID,S.ItemNo,S.Qty,S.Location,
+       ROW_NUMBER() OVER(ORDER BY L.LineSeq,L.ShipmentOrderLineID),@SeedBy,SYSDATETIME()
+FROM dbo.FG_ShipmentOrderLine L JOIN dbo.FG_Inventory S ON S.StockID=L.StockID
+WHERE L.ShipmentOrderID=@Order2;
 
 COMMIT TRANSACTION;
 
@@ -1832,13 +1837,13 @@ DECLARE @LoadedOrderID int = (SELECT ShipmentOrderID FROM dbo.FG_ShipmentOrder W
 DECLARE @ShippedOrderID int = (SELECT ShipmentOrderID FROM dbo.FG_ShipmentOrder WHERE ShipOrderNumber = 'FG-SO-WEB-002' AND CreatedBy = @SeedBy);
 
 INSERT INTO dbo.FG_LoadingConfirm
-    (LoadingNumber, ShipmentOrderID, LicensePlate, CarrierCode, DriverID, DriverName,
+    (LoadingNumber, ShipmentOrderID, LicensePlate, CarrierCode, DriverName,
      DockNo, ArrivalTS, DepartureTS, SealNo, OTDStatus, OperatorID, ConfirmedAt, CreatedBy, CreatedTS)
 VALUES
-    ('FG-LOAD-DEMO-001', @LoadedOrderID, 'GA-EOS-2601', 'EOS-TRUCK', 'DRV-001', 'Alex Morgan',
+    ('FG-LOAD-DEMO-001', @LoadedOrderID, 'GA-EOS-2601', 'EOS-TRUCK', 'Alex Morgan',
      'D01', '2026-08-11T07:40:00', NULL, 'SEAL-260811-A', 'OnTime', 'admin@ames.local',
      '2026-08-11T08:00:00', @SeedBy, '2026-08-11T08:00:00'),
-    ('FG-LOAD-DEMO-002', @ShippedOrderID, 'GA-EOS-2602', 'EOS-TRUCK', 'DRV-002', 'Jordan Lee',
+    ('FG-LOAD-DEMO-002', @ShippedOrderID, 'GA-EOS-2602', 'EOS-TRUCK', 'Jordan Lee',
      'D02', '2026-08-11T08:10:00', '2026-08-11T08:35:00', 'SEAL-260811-B', 'OnTime',
      'admin@ames.local', '2026-08-11T08:30:00', @SeedBy, '2026-08-11T08:30:00');
 

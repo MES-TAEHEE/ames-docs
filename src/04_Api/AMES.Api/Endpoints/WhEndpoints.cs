@@ -3,7 +3,6 @@ using AMES.Api.Logging;
 using AMES.Contracts.Dto;
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
-using AMES.Data.Security;
 using System.Data;
 using Microsoft.Data.SqlClient;
 
@@ -69,13 +68,9 @@ public static class WhEndpoints
     public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId, bool SimulateFailure = false);
     public sealed record InboundCancelReq(string Mode, string Barcode);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
-        string? ReasonNote, string? SupervisorPin = null, string? SupervisorEmployeeNo = null, bool SimulateFailure = false);
-    public sealed record SupervisorRow(string EmployeeNo, string EmployeeName);
-    public sealed record SupervisorPinReq(string EmployeeNo, string Pin);
-    public sealed record SupervisorPinResult(bool Success, string Message);
+        string? ReasonNote, bool SimulateFailure = false);
     public sealed record AdjustTestResetResult(bool Success, string Message, string LotNo, decimal Qty);
     public sealed record InboundReceiveResult(bool Success, string Message, InboundScanRow? Row);
-    internal sealed record SupervisorPinProfile(string UserId, string EmployeeNo);
 
     public sealed record Wh001ScheduleReleaseItem(int WorkOrderId, string? WorkOrderNo,
         string PartNo, string? PartName, decimal OrderQty, string? Unit,
@@ -116,7 +111,6 @@ public static class WhEndpoints
         string? Source, string? Note, string? Unit = null);
 
     public sealed record ReceiveReq(string LotCode, decimal Qty, string LocationId);
-    public sealed record AdjustReq(string ItemNo, string LocationId, decimal Delta, string ReasonCode, string? Note);
     public sealed record PickReq(string PickSlipNo, string LotNo, decimal Qty);
     public sealed record PickResult(bool Success, string Message, ReleaseLotRow? Row);
 
@@ -324,46 +318,6 @@ public static class WhEndpoints
             return Results.Ok(result);
         });
 
-        g.MapGet("/adjust/supervisors", (HttpContext ctx) =>
-        {
-            if (ctx.GetSession() is null) return Results.Unauthorized();
-            try
-            {
-                using var conn = factory.OpenConnection();
-                using var cmd = new SqlCommand("""
-                    SELECT EmployeeNo, COALESCE(NULLIF(EmployeeName, N''), EmployeeNo) AS EmployeeName
-                    FROM dbo.SYS_UserProfile
-                    WHERE PinHash IS NOT NULL AND ISNULL(AccountStatus, 'Active') = 'Active'
-                    ORDER BY EmployeeName, EmployeeNo;
-                    """, conn) { CommandTimeout = 15 };
-                using var rdr = cmd.ExecuteReader();
-                var rows = new List<SupervisorRow>();
-                while (rdr.Read())
-                    rows.Add(new SupervisorRow(rdr.GetString(0), rdr.GetString(1)));
-                return Results.Ok(rows);
-            }
-            catch
-            {
-                return Results.Problem("Supervisor list is unavailable.", statusCode: StatusCodes.Status503ServiceUnavailable);
-            }
-        });
-
-        g.MapPost("/adjust/supervisor/validate", (HttpContext ctx, SupervisorPinReq body) =>
-        {
-            if (ctx.GetSession() is null) return Results.Unauthorized();
-
-            try
-            {
-                using var conn = factory.OpenConnection();
-                var valid = FindSupervisorByPin(conn, body.EmployeeNo, body.Pin) is not null;
-                return Results.Ok(new SupervisorPinResult(valid,
-                    valid ? "Supervisor PIN approved." : "The PIN does not match the selected supervisor."));
-            }
-            catch
-            {
-                return Results.Problem("Supervisor PIN validation is unavailable.", statusCode: StatusCodes.Status503ServiceUnavailable);
-            }
-        });
 
         g.MapGet("/adjust/scan", (HttpContext ctx, string scanText) =>
         {
@@ -403,7 +357,7 @@ public static class WhEndpoints
                 return Results.BadRequest(new InboundReceiveResult(false, "Select a valid reason code.", null));
 
             var simulateFailure = body.SimulateFailure && PdaScenarioUsers.IsDetailed(s.EmployeeNo);
-            var result = ExecuteAdjustSave(factory, body, s.EmployeeNo, s.OperatorId, simulateFailure);
+            var result = ExecuteAdjustSave(factory, body, s.EmployeeNo, simulateFailure);
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                 s, "ADJUST_SAVE", "WH005", "LOT", body.Barcode, result.Success ? "SUCCESS" : "FAIL", result.Message,
                 lotNo: result.Row?.LotNo ?? body.Barcode, partNo: result.Row?.PartNo,
@@ -433,9 +387,6 @@ public static class WhEndpoints
                         THROW 51000, 'Adjust scenario test data was not found.', 1;
 
                     DELETE FROM dbo.WH_InventoryTransaction
-                    WHERE LotID = @LotID AND CreatedBy = N'TEST';
-
-                    DELETE FROM dbo.WH_InventoryAdjust
                     WHERE LotID = @LotID AND CreatedBy = N'TEST';
 
                     UPDATE dbo.WH_Inventory
@@ -662,34 +613,6 @@ public static class WhEndpoints
                 GetString(r, "Unit")));
         });
 
-        // WH-05 Inventory Adjust
-        g.MapPost("/inventory/adjust", (HttpContext ctx, AdjustReq body) =>
-        {
-            if (ctx.GetSession() is not { } s) return Results.Unauthorized();
-            using var conn = factory.OpenConnection();
-            using var cmd  = new SqlCommand("""
-                DECLARE @Before DECIMAL(14,3) =
-                    ISNULL((SELECT TOP 1 OnHandQty FROM dbo.WH_Inventory
-                            WHERE ItemNo=@I AND LocationID=@Loc), 0);
-                DECLARE @After  DECIMAL(14,3) = @Before + @D;
-
-                INSERT INTO dbo.WH_InventoryAdjust
-                    (AdjustNo, ItemNo, LocationID, QtyBefore, Delta, QtyAfter,
-                     ReasonCode, ReasonNote, Status, RequestedBy, CreatedBy, CreatedTS)
-                OUTPUT INSERTED.AdjustID
-                VALUES (CONCAT('ADJ-', FORMAT(SYSDATETIME(),'yyMMddHHmmss')),
-                        @I, @Loc, @Before, @D, @After, @R, @N,
-                        'Posted', @By, 'pda', SYSDATETIME());
-                """, conn);
-            cmd.Parameters.AddWithValue("@I",   body.ItemNo);
-            cmd.Parameters.AddWithValue("@Loc", body.LocationId);
-            cmd.Parameters.AddWithValue("@D",   body.Delta);
-            cmd.Parameters.AddWithValue("@R",   body.ReasonCode);
-            cmd.Parameters.AddWithValue("@N",   (object?)body.Note ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@By",  s.OperatorId);
-            var id = (int)cmd.ExecuteScalar()!;
-            return Results.Ok(new { AdjustId = id });
-        });
 
         // WH-001 Schedule - release tab
         IResult GetWh001ScheduleRelease(HttpContext ctx, DateTime? dateFrom, DateTime? dateTo)
@@ -2243,7 +2166,7 @@ public static class WhEndpoints
         }
     }
 
-    private static InboundReceiveResult ExecuteAdjustSave(AmesConnectionFactory factory, AdjustSaveReq body, string userId, string operatorId,
+    private static InboundReceiveResult ExecuteAdjustSave(AmesConnectionFactory factory, AdjustSaveReq body, string userId,
         bool simulateFailure = false)
     {
         try
@@ -2262,8 +2185,6 @@ public static class WhEndpoints
             cmd.Parameters.Add("@ReasonCode", SqlDbType.NVarChar, 30).Value = body.ReasonCode.Trim();
             cmd.Parameters.Add("@ReasonNote", SqlDbType.NVarChar, 500).Value =
                 string.IsNullOrWhiteSpace(body.ReasonNote) ? DBNull.Value : body.ReasonNote.Trim();
-            cmd.Parameters.Add("@SupervisorUserId", SqlDbType.NVarChar, 450).Value = operatorId;
-            cmd.Parameters.Add("@SupervisorEmployeeNo", SqlDbType.NVarChar, 40).Value = userId;
             cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 40).Value = userId;
             cmd.Parameters.Add("@SimulateFailure", SqlDbType.Bit).Value = simulateFailure;
 
@@ -2277,39 +2198,6 @@ public static class WhEndpoints
         }
     }
 
-    internal static SupervisorPinProfile? FindSupervisorByPin(SqlConnection conn, string employeeNo, string? supervisorPin)
-    {
-        var pin = supervisorPin?.Trim();
-        if (string.IsNullOrWhiteSpace(pin) || pin.Length < 4)
-            return null;
-
-        const string sql = """
-            SELECT
-                COALESCE(NULLIF(UserID, N''), EmployeeNo) AS UserID,
-                EmployeeNo,
-                PinHash
-            FROM dbo.SYS_UserProfile
-            WHERE EmployeeNo = @EmployeeNo
-              AND PinHash IS NOT NULL
-              AND ISNULL(AccountStatus, 'Active') = 'Active';
-            """;
-
-        using var cmd = new SqlCommand(sql, conn) { CommandTimeout = 15 };
-        cmd.Parameters.Add("@EmployeeNo", SqlDbType.VarChar, 40).Value = employeeNo.Trim();
-        using var rdr = cmd.ExecuteReader();
-        while (rdr.Read())
-        {
-            var pinHash = rdr["PinHash"] as string;
-            if (!PinHasher.Verify(pin, pinHash))
-                continue;
-
-            return new SupervisorPinProfile(
-                Convert.ToString(rdr["UserID"]) ?? "",
-                Convert.ToString(rdr["EmployeeNo"]) ?? "");
-        }
-
-        return null;
-    }
 
     private static LocationRow? QuerySisLocation(AmesConnectionFactory factory, string locationId)
     {

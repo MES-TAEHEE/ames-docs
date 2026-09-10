@@ -86,6 +86,30 @@ BEGIN
 END;
 GO
 
+-- WH adjustment history consolidation. Preserve legacy reference IDs for audit;
+-- new adjustments are recorded directly as ADJ transactions without approval.
+IF OBJECT_ID(N'dbo.WH_InventoryAdjust', N'U') IS NOT NULL
+BEGIN
+    SET XACT_ABORT ON;
+    BEGIN TRANSACTION;
+    INSERT dbo.WH_InventoryTransaction
+        (TransactionTime, TransactionType, ItemNo, LocationID, LotID,
+         QtyBefore, QtyChange, QtyAfter, ReasonCode, RefDocType, RefDocID,
+         OperatorID, ApproverID, Note, CreatedBy, CreatedTS, ModifiedBy, ModifiedTS)
+    SELECT COALESCE(A.CreatedTS, SYSDATETIME()), 'ADJ', A.ItemNo, A.LocationID, A.LotID,
+           A.QtyBefore, COALESCE(A.Delta, 0), A.QtyAfter, A.ReasonCode,
+           'WH_InventoryAdjust', A.AdjustID, COALESCE(A.RequestedBy, A.CreatedBy),
+           A.ApprovedBy, A.ReasonNote, A.CreatedBy, COALESCE(A.CreatedTS, SYSDATETIME()),
+           A.ModifiedBy, A.ModifiedTS
+    FROM dbo.WH_InventoryAdjust A
+    WHERE NOT EXISTS
+        (SELECT 1 FROM dbo.WH_InventoryTransaction T
+         WHERE T.RefDocType='WH_InventoryAdjust' AND T.RefDocID=A.AdjustID);
+    DROP TABLE dbo.WH_InventoryAdjust;
+    COMMIT TRANSACTION;
+END;
+GO
+
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_WH_InventoryTransaction_Time' AND object_id = OBJECT_ID(N'dbo.WH_InventoryTransaction'))
     CREATE INDEX IX_WH_InventoryTransaction_Time ON dbo.WH_InventoryTransaction (TransactionTime DESC, TransactionID DESC);
 GO
@@ -597,7 +621,6 @@ BEGIN
 
     DELETE FROM dbo.WH_InventoryTransaction WHERE LotID IN (SELECT LotID FROM @Lots);
     DELETE FROM dbo.WH_ReleasePicking WHERE LotID IN (SELECT LotID FROM @Lots);
-    DELETE FROM dbo.WH_InventoryAdjust WHERE LotID IN (SELECT LotID FROM @Lots);
     DELETE FROM dbo.WH_Inventory WHERE LotID IN (SELECT LotID FROM @Lots);
     INSERT INTO dbo.WH_Inventory
         (ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt, Status, CreatedBy)
@@ -624,7 +647,7 @@ BEGIN
              ReasonCode, OperatorID, ApproverID, Note, CreatedBy, CreatedTS)
         SELECT DATEADD(second, Sample.OffsetSeconds, @Today), Sample.Kind, Lot.ItemNo, Lot.LocationID, Lot.LotID,
                Sample.BeforeQty, Sample.DeltaQty, Sample.AfterQty, Sample.Reason, 'TEST1',
-               CASE WHEN Sample.Kind = 'ADJ' THEN 'TEST1' END, Sample.Note, 'pda-ppt-history', DATEADD(second, Sample.OffsetSeconds, @Today)
+               NULL, Sample.Note, 'pda-ppt-history', DATEADD(second, Sample.OffsetSeconds, @Today)
         FROM @Lots Lot CROSS JOIN (VALUES
             (1, 'IN', 0, 20, 20, 'INBOUND_RECEIVE', N'PPT inbound 20 EA'),
             (2, 'OUT', 20, -4, 16, 'PRODUCTION', N'PPT outgoing 4 EA'),
@@ -659,7 +682,6 @@ BEGIN
         THROW 51521, 'PPT Inbound test data is missing. Apply PDA_SEED.sql first.', 1;
 
     DELETE FROM dbo.WH_InventoryTransaction WHERE LotID IN (SELECT LotID FROM @Lots);
-    DELETE FROM dbo.WH_InventoryAdjust WHERE LotID IN (SELECT LotID FROM @Lots);
     DELETE FROM dbo.WH_Inventory WHERE LotID IN (SELECT LotID FROM @Lots);
     DELETE FROM dbo.WH_Receiving WHERE LotCode IN (SELECT Barcode FROM @Lots);
     UPDATE dbo.tbl_Lot
@@ -1557,16 +1579,13 @@ GO
 -- =====================================================================
 --  Adjust / save quantity change
 --  Target: dbo.WH_Inventory, dbo.tbl_Lot
---  Audit:  dbo.WH_InventoryAdjust, dbo.WH_InventoryTransaction
+--  Audit:  dbo.WH_InventoryTransaction only (no separate approval workflow)
 -- =====================================================================
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_ADJUST_SAVE_QTY
     @ScanText nvarchar(80),
     @DeltaQty decimal(18,3),
     @ReasonCode nvarchar(30),
     @ReasonNote nvarchar(500) = NULL,
-    @SupervisorPin nvarchar(40) = NULL,
-    @SupervisorUserId nvarchar(450) = NULL,
-    @SupervisorEmployeeNo nvarchar(40) = NULL,
     @UserId nvarchar(40),
     @SimulateFailure bit = 0
 AS
@@ -1578,11 +1597,6 @@ BEGIN
     DECLARE @Reason nvarchar(30) = UPPER(LTRIM(RTRIM(ISNULL(@ReasonCode, N''))));
     DECLARE @Note nvarchar(500) = NULLIF(LTRIM(RTRIM(@ReasonNote)), N'');
     DECLARE @User nvarchar(40) = COALESCE(NULLIF(LTRIM(RTRIM(@UserId)), N''), N'PDA');
-    DECLARE @Supervisor nvarchar(450) = COALESCE(
-        NULLIF(LTRIM(RTRIM(@SupervisorEmployeeNo)), N''),
-        NULLIF(LTRIM(RTRIM(@SupervisorUserId)), N''),
-        @User
-    );
     DECLARE @LotID int;
 
     IF @Scan = N''
@@ -1629,8 +1643,7 @@ BEGIN
         @LocationID varchar(20),
         @LotCode varchar(40),
         @BeforeQty decimal(18,3),
-        @AfterQty decimal(18,3),
-        @AdjustID int;
+        @AfterQty decimal(18,3);
 
     BEGIN TRAN;
 
@@ -1677,26 +1690,13 @@ BEGIN
     IF @SimulateFailure = 1
         THROW 51520, 'Simulated Adjust API failure. Database transaction was rolled back.', 1;
 
-    DECLARE @InsertedAdjust TABLE (AdjustID int NOT NULL);
-
-    INSERT INTO dbo.WH_InventoryAdjust
-        (AdjustNo, ItemNo, LocationID, LotID, QtyBefore, Delta, QtyAfter,
-         ReasonCode, ReasonNote, Status, RequestedBy, ApprovedBy, CreatedBy, CreatedTS)
-    OUTPUT INSERTED.AdjustID INTO @InsertedAdjust
-    VALUES
-        (CONCAT('ADJ-', FORMAT(SYSDATETIME(), 'yyMMddHHmmss')),
-         @ItemNo, @LocationID, @LotID, @BeforeQty, @DeltaQty, @AfterQty,
-         CONVERT(varchar(30), @Reason), @Note, N'Posted', @User, @Supervisor, @User, SYSDATETIME());
-
-    SELECT TOP (1) @AdjustID = AdjustID FROM @InsertedAdjust;
-
     INSERT INTO dbo.WH_InventoryTransaction
         (TransactionType, ItemNo, LocationID, LotID, QtyBefore, QtyChange, QtyAfter,
          ReasonCode, RefDocType, RefDocID, OperatorID, ApproverID, Note, CreatedBy, CreatedTS)
     VALUES
         (N'ADJ', @ItemNo, @LocationID, @LotID, @BeforeQty, @DeltaQty, @AfterQty,
-         CONVERT(varchar(30), @Reason), N'WH_InventoryAdjust', @AdjustID,
-         @User, @Supervisor, @Note, @User, SYSDATETIME());
+         CONVERT(varchar(30), @Reason), N'LOT', @LotID,
+         @User, NULL, @Note, @User, SYSDATETIME());
 
     COMMIT TRAN;
 
@@ -2805,6 +2805,590 @@ BEGIN
         WHERE OutgoingSlipNumber IS NOT NULL;
 END;
 GO
+
+IF OBJECT_ID(N'dbo.FG_PickingDetail', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.FG_PickingDetail
+    (
+        PickDetailID int IDENTITY(1,1) NOT NULL CONSTRAINT PK_FG_PickingDetail PRIMARY KEY,
+        PickID int NOT NULL,
+        ShipmentOrderLineID int NOT NULL,
+        StockID int NOT NULL,
+        LotID int NULL,
+        ItemNo varchar(20) NOT NULL,
+        Qty decimal(12,3) NOT NULL,
+        Location varchar(20) NULL,
+        PickSeq int NOT NULL,
+        CreatedBy varchar(50) NOT NULL,
+        CreatedTS datetime2 NULL CONSTRAINT DF_FG_PickingDetail_CreatedTS DEFAULT SYSDATETIME()
+    );
+END;
+GO
+
+-- Preserve the one useful legacy value before removing unused picking columns.
+IF COL_LENGTH(N'dbo.FG_PickingFifo', N'PickslipID') IS NOT NULL
+BEGIN
+    EXEC sys.sp_executesql N'
+        UPDATE O
+           SET PickslipID=COALESCE(NULLIF(O.PickslipID, ''''), P.PickslipID)
+        FROM dbo.FG_ShipmentOrder O
+        JOIN dbo.FG_PickingFifo P ON P.ShipmentOrderID=O.ShipmentOrderID
+        WHERE NULLIF(P.PickslipID, '''') IS NOT NULL;';
+    ALTER TABLE dbo.FG_PickingFifo DROP COLUMN PickslipID;
+END;
+GO
+IF COL_LENGTH(N'dbo.FG_PickingFifo', N'FifoViolations') IS NOT NULL
+    ALTER TABLE dbo.FG_PickingFifo DROP COLUMN FifoViolations;
+IF COL_LENGTH(N'dbo.FG_PickingFifo', N'OverrideCount') IS NOT NULL
+    ALTER TABLE dbo.FG_PickingFifo DROP COLUMN OverrideCount;
+IF COL_LENGTH(N'dbo.FG_PickingFifo', N'OverrideApprovedBy') IS NOT NULL
+    ALTER TABLE dbo.FG_PickingFifo DROP COLUMN OverrideApprovedBy;
+IF COL_LENGTH(N'dbo.FG_PickingFifo', N'PartialPicksJSON') IS NOT NULL
+    ALTER TABLE dbo.FG_PickingFifo DROP COLUMN PartialPicksJSON;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_ShipmentOrderLine') AND name=N'IX_FG_ShipmentOrderLine_Order')
+    CREATE INDEX IX_FG_ShipmentOrderLine_Order ON dbo.FG_ShipmentOrderLine(ShipmentOrderID, LineSeq, ShipmentOrderLineID);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_Inventory') AND name=N'IX_FG_Inventory_Picking')
+    CREATE INDEX IX_FG_Inventory_Picking ON dbo.FG_Inventory(ItemNo, Status, HoldFlag, StockTS, StockID)
+        INCLUDE (LotID, CustomerCode, Qty, Location, StockNumber);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_PickingFifo') AND name=N'IX_FG_PickingFifo_Order')
+    CREATE INDEX IX_FG_PickingFifo_Order ON dbo.FG_PickingFifo(ShipmentOrderID, EndTS DESC);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_PickingFifo') AND name=N'UX_FG_PickingFifo_PickNumber')
+    CREATE UNIQUE INDEX UX_FG_PickingFifo_PickNumber ON dbo.FG_PickingFifo(PickNumber) WHERE PickNumber IS NOT NULL;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_PickingDetail') AND name=N'UX_FG_PickingDetail_Pick_Stock')
+    CREATE UNIQUE INDEX UX_FG_PickingDetail_Pick_Stock ON dbo.FG_PickingDetail(PickID, StockID);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_PickingDetail') AND name=N'IX_FG_PickingDetail_Stock')
+    CREATE INDEX IX_FG_PickingDetail_Stock ON dbo.FG_PickingDetail(StockID, PickID);
+IF EXISTS (SELECT 1 FROM dbo.FG_LoadingConfirm WHERE LoadingNumber IS NULL OR ShipmentOrderID IS NULL OR LicensePlate IS NULL)
+    THROW 51920, 'FG_LoadingConfirm contains rows without loading number, shipment order, or truck.', 1;
+ALTER TABLE dbo.FG_LoadingConfirm ALTER COLUMN LoadingNumber varchar(24) NOT NULL;
+ALTER TABLE dbo.FG_LoadingConfirm ALTER COLUMN ShipmentOrderID int NOT NULL;
+ALTER TABLE dbo.FG_LoadingConfirm ALTER COLUMN LicensePlate varchar(20) NOT NULL;
+IF COL_LENGTH(N'dbo.FG_LoadingConfirm', N'DriverID') IS NOT NULL
+    ALTER TABLE dbo.FG_LoadingConfirm DROP COLUMN DriverID;
+IF COL_LENGTH(N'dbo.FG_LoadingConfirm', N'DriverPhone') IS NOT NULL
+    ALTER TABLE dbo.FG_LoadingConfirm DROP COLUMN DriverPhone;
+IF COL_LENGTH(N'dbo.FG_LoadingConfirm', N'DriverSigURL') IS NOT NULL
+    ALTER TABLE dbo.FG_LoadingConfirm DROP COLUMN DriverSigURL;
+IF COL_LENGTH(N'dbo.FG_LoadingConfirm', N'DriverPhotoURL') IS NOT NULL
+    ALTER TABLE dbo.FG_LoadingConfirm DROP COLUMN DriverPhotoURL;
+IF COL_LENGTH(N'dbo.FG_LoadingConfirm', N'GPSCoord') IS NOT NULL
+    ALTER TABLE dbo.FG_LoadingConfirm DROP COLUMN GPSCoord;
+UPDATE C SET PickID=P.PickID
+FROM dbo.FG_LoadingConfirm C
+OUTER APPLY
+(
+    SELECT TOP(1) F.PickID FROM dbo.FG_PickingFifo F
+    WHERE F.ShipmentOrderID=C.ShipmentOrderID
+    ORDER BY ISNULL(F.EndTS,F.CreatedTS) DESC,F.PickID DESC
+) P
+WHERE C.PickID IS NULL AND P.PickID IS NOT NULL;
+UPDATE C SET PalletsLoadedJSON=J.Items
+FROM dbo.FG_LoadingConfirm C
+CROSS APPLY
+(
+    SELECT L.StockID AS stockId,L.ShipmentOrderLineID AS shipmentOrderLineId,L.ItemNo AS itemNo,
+        LOT.LotCode AS lotNo,S.StockNumber AS stockNumber,COALESCE(NULLIF(L.AllocatedQty,0),S.Qty,L.OrderedQty) AS qty,
+        I.DefaultUOM AS unit,COALESCE(L.Location,S.Location) AS location
+    FROM dbo.FG_ShipmentOrderLine L
+    JOIN dbo.FG_Inventory S ON S.StockID=L.StockID
+    LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID=COALESCE(L.LotID,S.LotID)
+    LEFT JOIN dbo.MD_Item I ON I.ItemNo=L.ItemNo
+    WHERE L.ShipmentOrderID=C.ShipmentOrderID
+    ORDER BY L.LineSeq,L.ShipmentOrderLineID FOR JSON PATH
+) J(Items)
+WHERE ISNULL(ISJSON(C.PalletsLoadedJSON),0)<>1 AND J.Items<>N'[]';
+UPDATE C SET DepartureTS=COALESCE(C.ConfirmedAt,C.CreatedTS,SYSDATETIME())
+FROM dbo.FG_LoadingConfirm C
+JOIN dbo.FG_ShipmentOrder O ON O.ShipmentOrderID=C.ShipmentOrderID
+WHERE C.DepartureTS IS NULL AND UPPER(ISNULL(O.Status,'')) IN ('LOADED','SHIPPED','CLOSED');
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_LoadingConfirm') AND name=N'UX_FG_LoadingConfirm_LoadingNumber')
+    CREATE UNIQUE INDEX UX_FG_LoadingConfirm_LoadingNumber ON dbo.FG_LoadingConfirm(LoadingNumber);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_LoadingConfirm') AND name=N'UX_FG_LoadingConfirm_Order')
+    CREATE UNIQUE INDEX UX_FG_LoadingConfirm_Order ON dbo.FG_LoadingConfirm(ShipmentOrderID);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_LoadingConfirm') AND name=N'IX_FG_LoadingConfirm_Truck')
+    CREATE INDEX IX_FG_LoadingConfirm_Truck ON dbo.FG_LoadingConfirm(LicensePlate, DepartureTS DESC)
+        INCLUDE (LoadingNumber, OTDStatus, ConfirmedAt);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_ShipmentOrderLine_Order')
+    ALTER TABLE dbo.FG_ShipmentOrderLine WITH CHECK ADD CONSTRAINT FK_FG_ShipmentOrderLine_Order
+        FOREIGN KEY(ShipmentOrderID) REFERENCES dbo.FG_ShipmentOrder(ShipmentOrderID);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_ShipmentOrderLine_Item')
+    ALTER TABLE dbo.FG_ShipmentOrderLine WITH CHECK ADD CONSTRAINT FK_FG_ShipmentOrderLine_Item
+        FOREIGN KEY(ItemNo) REFERENCES dbo.MD_Item(ItemNo);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_ShipmentOrderLine_Stock')
+    ALTER TABLE dbo.FG_ShipmentOrderLine WITH CHECK ADD CONSTRAINT FK_FG_ShipmentOrderLine_Stock
+        FOREIGN KEY(StockID) REFERENCES dbo.FG_Inventory(StockID);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_ShipmentOrderLine_Lot')
+    ALTER TABLE dbo.FG_ShipmentOrderLine WITH CHECK ADD CONSTRAINT FK_FG_ShipmentOrderLine_Lot
+        FOREIGN KEY(LotID) REFERENCES dbo.tbl_Lot(LotID);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_ShipmentOrderLine_Location')
+    ALTER TABLE dbo.FG_ShipmentOrderLine WITH CHECK ADD CONSTRAINT FK_FG_ShipmentOrderLine_Location
+        FOREIGN KEY(Location) REFERENCES dbo.MD_Location(LocationID);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_Inventory_Item')
+    ALTER TABLE dbo.FG_Inventory WITH CHECK ADD CONSTRAINT FK_FG_Inventory_Item
+        FOREIGN KEY(ItemNo) REFERENCES dbo.MD_Item(ItemNo);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_Inventory_Lot')
+    ALTER TABLE dbo.FG_Inventory WITH CHECK ADD CONSTRAINT FK_FG_Inventory_Lot
+        FOREIGN KEY(LotID) REFERENCES dbo.tbl_Lot(LotID);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_Inventory_Location')
+    ALTER TABLE dbo.FG_Inventory WITH CHECK ADD CONSTRAINT FK_FG_Inventory_Location
+        FOREIGN KEY(Location) REFERENCES dbo.MD_Location(LocationID);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_PickingFifo_Order')
+    ALTER TABLE dbo.FG_PickingFifo WITH CHECK ADD CONSTRAINT FK_FG_PickingFifo_Order
+        FOREIGN KEY(ShipmentOrderID) REFERENCES dbo.FG_ShipmentOrder(ShipmentOrderID);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_PickingDetail_Pick')
+    ALTER TABLE dbo.FG_PickingDetail WITH CHECK ADD CONSTRAINT FK_FG_PickingDetail_Pick
+        FOREIGN KEY(PickID) REFERENCES dbo.FG_PickingFifo(PickID);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_PickingDetail_Line')
+    ALTER TABLE dbo.FG_PickingDetail WITH CHECK ADD CONSTRAINT FK_FG_PickingDetail_Line
+        FOREIGN KEY(ShipmentOrderLineID) REFERENCES dbo.FG_ShipmentOrderLine(ShipmentOrderLineID);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_PickingDetail_Stock')
+    ALTER TABLE dbo.FG_PickingDetail WITH CHECK ADD CONSTRAINT FK_FG_PickingDetail_Stock
+        FOREIGN KEY(StockID) REFERENCES dbo.FG_Inventory(StockID);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_PickingDetail_Lot')
+    ALTER TABLE dbo.FG_PickingDetail WITH CHECK ADD CONSTRAINT FK_FG_PickingDetail_Lot
+        FOREIGN KEY(LotID) REFERENCES dbo.tbl_Lot(LotID);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_PickingDetail_Item')
+    ALTER TABLE dbo.FG_PickingDetail WITH CHECK ADD CONSTRAINT FK_FG_PickingDetail_Item
+        FOREIGN KEY(ItemNo) REFERENCES dbo.MD_Item(ItemNo);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_PickingDetail_Location')
+    ALTER TABLE dbo.FG_PickingDetail WITH CHECK ADD CONSTRAINT FK_FG_PickingDetail_Location
+        FOREIGN KEY(Location) REFERENCES dbo.MD_Location(LocationID);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_LoadingConfirm_Order')
+    ALTER TABLE dbo.FG_LoadingConfirm WITH CHECK ADD CONSTRAINT FK_FG_LoadingConfirm_Order
+        FOREIGN KEY(ShipmentOrderID) REFERENCES dbo.FG_ShipmentOrder(ShipmentOrderID);
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_LoadingConfirm_Pick')
+    ALTER TABLE dbo.FG_LoadingConfirm WITH CHECK ADD CONSTRAINT FK_FG_LoadingConfirm_Pick
+        FOREIGN KEY(PickID) REFERENCES dbo.FG_PickingFifo(PickID);
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name=N'CK_FG_LoadingConfirm_LoadedJSON')
+    ALTER TABLE dbo.FG_LoadingConfirm WITH CHECK ADD CONSTRAINT CK_FG_LoadingConfirm_LoadedJSON
+        CHECK(PalletsLoadedJSON IS NULL OR ISJSON(PalletsLoadedJSON)=1);
+GO
+
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_PICKING_SCAN
+    @OutgoingSlipID int,
+    @LotBarcode varchar(80),
+    @ScannedLots nvarchar(max)=N'[]'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    DECLARE @Status varchar(15), @OrderCustomer varchar(20);
+    SELECT @Status=UPPER(ISNULL(Status,'')), @OrderCustomer=CustomerCode
+    FROM dbo.FG_ShipmentOrder
+    WHERE ShipmentOrderID=@OutgoingSlipID AND NULLIF(OutgoingSlipNumber,'') IS NOT NULL;
+    IF @Status IS NULL THROW 51800, 'Outgoing slip was not found.', 1;
+    IF @Status<>'RELEASED'
+    BEGIN
+        DECLARE @StatusMessage nvarchar(2048)=CONCAT('Only RELEASED outgoing slips can be picked. Current status: ',@Status,'.');
+        THROW 51801, @StatusMessage, 1;
+    END;
+    IF ISJSON(COALESCE(@ScannedLots,N''))<>1 THROW 51803, 'The scanned LOT list is invalid.', 1;
+
+    DECLARE @Scanned TABLE(OutgoingSlipLineID int NOT NULL,StockID int NOT NULL PRIMARY KEY,Qty decimal(12,3) NOT NULL);
+    IF EXISTS
+    (
+        SELECT StockID FROM OPENJSON(@ScannedLots)
+        WITH(StockID int '$.StockId') GROUP BY StockID HAVING StockID IS NULL OR COUNT(*)>1
+    ) THROW 51803, 'This FG LOT is already scanned.', 1;
+    INSERT @Scanned
+    SELECT OutgoingSlipLineID,StockID,Qty
+    FROM OPENJSON(@ScannedLots)
+    WITH(OutgoingSlipLineID int '$.OutgoingSlipLineId',StockID int '$.StockId',Qty decimal(12,3) '$.Qty');
+
+    DECLARE @StockID int,@StockNumber varchar(24),@ItemNo varchar(20),@LotID int,@LotNo varchar(40),
+            @StockCustomer varchar(20),@Qty decimal(12,3),@Location varchar(20),@StockStatus varchar(15),
+            @HoldFlag bit,@StockTS datetime2;
+    SELECT TOP(1) @StockID=S.StockID,@StockNumber=S.StockNumber,@ItemNo=S.ItemNo,@LotID=S.LotID,
+        @LotNo=L.LotCode,@StockCustomer=S.CustomerCode,@Qty=ISNULL(S.Qty,0),@Location=S.Location,
+        @StockStatus=UPPER(ISNULL(S.Status,'')),@HoldFlag=ISNULL(S.HoldFlag,0),@StockTS=S.StockTS
+    FROM dbo.tbl_Lot L JOIN dbo.FG_Inventory S ON S.LotID=L.LotID
+    WHERE UPPER(ISNULL(L.LotCode,''))=UPPER(LTRIM(RTRIM(@LotBarcode)))
+    ORDER BY S.StockID DESC;
+    IF @StockID IS NULL THROW 51802, 'The scanned FG LOT was not found.', 1;
+    IF EXISTS(SELECT 1 FROM @Scanned WHERE StockID=@StockID) THROW 51803, 'This FG LOT is already scanned.', 1;
+    IF @StockStatus<>'AVAILABLE' OR @Qty<=0 THROW 51804, 'This FG LOT is not available.', 1;
+    IF @HoldFlag=1 THROW 51805, 'This FG LOT is on hold.', 1;
+    IF NULLIF(@StockCustomer,'') IS NOT NULL AND ISNULL(@OrderCustomer,'')<>@StockCustomer
+        THROW 51806, 'This FG LOT belongs to a different customer.', 1;
+
+    DECLARE @LineID int,@RequiredQty decimal(12,3),@AlreadyQty decimal(12,3),@RemainingTotal decimal(12,3);
+    SELECT TOP(1) @LineID=L.ShipmentOrderLineID,@RequiredQty=ISNULL(L.OrderedQty,0),@AlreadyQty=ISNULL(P.Qty,0)
+    FROM dbo.FG_ShipmentOrderLine L
+    OUTER APPLY(SELECT SUM(S.Qty) Qty FROM @Scanned S WHERE S.OutgoingSlipLineID=L.ShipmentOrderLineID) P
+    WHERE L.ShipmentOrderID=@OutgoingSlipID AND L.ItemNo=@ItemNo
+      AND ISNULL(L.OrderedQty,0)-ISNULL(P.Qty,0)>=@Qty
+    ORDER BY ISNULL(L.LineSeq,0),L.ShipmentOrderLineID;
+    SELECT @RemainingTotal=SUM(ISNULL(L.OrderedQty,0)-ISNULL(P.Qty,0))
+    FROM dbo.FG_ShipmentOrderLine L
+    OUTER APPLY(SELECT SUM(S.Qty) Qty FROM @Scanned S WHERE S.OutgoingSlipLineID=L.ShipmentOrderLineID) P
+    WHERE L.ShipmentOrderID=@OutgoingSlipID AND L.ItemNo=@ItemNo;
+    IF @RemainingTotal IS NULL THROW 51807, 'This part is not required by the outgoing slip.', 1;
+    IF @LineID IS NULL THROW 51808, 'LOT quantity exceeds the remaining part quantity.', 1;
+
+    DECLARE @FifoStockID int,@FifoLotNo varchar(40),@FifoLocation varchar(20);
+    SELECT TOP(1) @FifoStockID=F.StockID,@FifoLotNo=FL.LotCode,@FifoLocation=F.Location
+    FROM dbo.FG_Inventory F
+    LEFT JOIN dbo.tbl_Lot FL ON FL.LotID=F.LotID
+    LEFT JOIN @Scanned Seen ON Seen.StockID=F.StockID
+    WHERE F.ItemNo=@ItemNo AND UPPER(ISNULL(F.Status,''))='AVAILABLE'
+      AND ISNULL(F.HoldFlag,0)=0 AND ISNULL(F.Qty,0)>0 AND Seen.StockID IS NULL
+      AND (NULLIF(F.CustomerCode,'') IS NULL OR F.CustomerCode=@OrderCustomer)
+      AND EXISTS
+      (
+          SELECT 1 FROM dbo.FG_ShipmentOrderLine L
+          OUTER APPLY(SELECT SUM(S.Qty) Qty FROM @Scanned S WHERE S.OutgoingSlipLineID=L.ShipmentOrderLineID) P
+          WHERE L.ShipmentOrderID=@OutgoingSlipID AND L.ItemNo=@ItemNo
+            AND ISNULL(L.OrderedQty,0)-ISNULL(P.Qty,0)>=ISNULL(F.Qty,0)
+      )
+    ORDER BY ISNULL(F.StockTS,'9999-12-31'),F.StockID;
+    IF @FifoStockID<>@StockID
+    BEGIN
+        DECLARE @FifoMessage nvarchar(2048)=CONCAT('Scan ',COALESCE(@FifoLotNo,'-'),' first. Location: ',COALESCE(@FifoLocation,'-'),'.');
+        THROW 51809, @FifoMessage, 1;
+    END;
+
+    SELECT S.StockID,S.StockNumber,S.ItemNo,I.ItemName,S.LotID,L.LotCode AS LotNo,S.CustomerCode,
+        ISNULL(S.Qty,0) Qty,I.DefaultUOM AS Unit,S.Location,S.Status,S.StockTS,@LineID AS OutgoingSlipLineID
+    FROM dbo.FG_Inventory S
+    LEFT JOIN dbo.tbl_Lot L ON L.LotID=S.LotID
+    LEFT JOIN dbo.MD_Item I ON I.ItemNo=S.ItemNo
+    WHERE S.StockID=@StockID;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_PICKING_COMPLETE
+    @OutgoingSlipID int,
+    @Lots nvarchar(max),
+    @OperatorID nvarchar(450)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        DECLARE @Status varchar(15),@OrderCustomer varchar(20);
+        SELECT @Status=UPPER(ISNULL(Status,'')),@OrderCustomer=CustomerCode
+        FROM dbo.FG_ShipmentOrder WITH(UPDLOCK,HOLDLOCK)
+        WHERE ShipmentOrderID=@OutgoingSlipID AND NULLIF(OutgoingSlipNumber,'') IS NOT NULL;
+        IF @Status IS NULL THROW 51820, 'Outgoing slip was not found.', 1;
+        IF @Status<>'RELEASED' THROW 51821, 'Only RELEASED outgoing slips can be completed.', 1;
+        IF ISJSON(COALESCE(@Lots,N''))<>1 THROW 51822, 'The scanned LOT list is invalid.', 1;
+
+        DECLARE @Scanned TABLE(OutgoingSlipLineID int NOT NULL,StockID int NOT NULL PRIMARY KEY,Qty decimal(12,3) NOT NULL);
+        IF EXISTS
+        (
+            SELECT StockID FROM OPENJSON(@Lots)
+            WITH(StockID int '$.StockId') GROUP BY StockID HAVING StockID IS NULL OR COUNT(*)>1
+        ) THROW 51822, 'The scanned LOT list contains a duplicate or invalid LOT.', 1;
+        INSERT @Scanned
+        SELECT OutgoingSlipLineID,StockID,Qty
+        FROM OPENJSON(@Lots)
+        WITH(OutgoingSlipLineID int '$.OutgoingSlipLineId',StockID int '$.StockId',Qty decimal(12,3) '$.Qty');
+        IF NOT EXISTS(SELECT 1 FROM @Scanned) THROW 51822, 'Scan every listed LOT before completing.', 1;
+
+        IF EXISTS
+        (
+            SELECT 1 FROM dbo.FG_ShipmentOrderLine L
+            LEFT JOIN(SELECT OutgoingSlipLineID,SUM(Qty) Qty FROM @Scanned GROUP BY OutgoingSlipLineID) P
+              ON P.OutgoingSlipLineID=L.ShipmentOrderLineID
+            WHERE L.ShipmentOrderID=@OutgoingSlipID AND ISNULL(P.Qty,0)<>ISNULL(L.OrderedQty,0)
+        ) THROW 51823, 'Scanned LOT quantities must equal every listed part quantity.', 1;
+        IF EXISTS
+        (
+            SELECT 1 FROM @Scanned P LEFT JOIN dbo.FG_ShipmentOrderLine L
+              ON L.ShipmentOrderID=@OutgoingSlipID AND L.ShipmentOrderLineID=P.OutgoingSlipLineID
+            WHERE L.ShipmentOrderLineID IS NULL
+        ) THROW 51824, 'A scanned LOT is not listed on this outgoing slip.', 1;
+        IF EXISTS
+        (
+            SELECT 1 FROM @Scanned P
+            JOIN dbo.FG_ShipmentOrderLine L ON L.ShipmentOrderID=@OutgoingSlipID AND L.ShipmentOrderLineID=P.OutgoingSlipLineID
+            LEFT JOIN dbo.FG_Inventory S WITH(UPDLOCK,HOLDLOCK) ON S.StockID=P.StockID
+            WHERE S.StockID IS NULL OR UPPER(ISNULL(S.Status,''))<>'AVAILABLE' OR ISNULL(S.HoldFlag,0)=1
+               OR P.Qty<=0 OR P.Qty<>S.Qty OR ISNULL(S.ItemNo,'')<>ISNULL(L.ItemNo,'')
+               OR (NULLIF(S.CustomerCode,'') IS NOT NULL AND ISNULL(@OrderCustomer,'')<>S.CustomerCode)
+        ) THROW 51825, 'A scanned LOT customer, part, quantity, hold, or inventory status is invalid.', 1;
+        IF EXISTS
+        (
+            SELECT 1 FROM @Scanned P
+            JOIN dbo.FG_ShipmentOrderLine L ON L.ShipmentOrderID=@OutgoingSlipID AND L.ShipmentOrderLineID=P.OutgoingSlipLineID
+            JOIN dbo.FG_Inventory Chosen ON Chosen.StockID=P.StockID
+            JOIN dbo.FG_Inventory Older WITH(UPDLOCK,HOLDLOCK)
+              ON Older.ItemNo=L.ItemNo AND UPPER(ISNULL(Older.Status,''))='AVAILABLE'
+             AND ISNULL(Older.HoldFlag,0)=0 AND ISNULL(Older.Qty,0)>0
+             AND (NULLIF(Older.CustomerCode,'') IS NULL OR Older.CustomerCode=@OrderCustomer)
+             AND (ISNULL(Older.StockTS,'9999-12-31')<ISNULL(Chosen.StockTS,'9999-12-31')
+               OR (ISNULL(Older.StockTS,'9999-12-31')=ISNULL(Chosen.StockTS,'9999-12-31') AND Older.StockID<Chosen.StockID))
+            LEFT JOIN @Scanned Earlier ON Earlier.StockID=Older.StockID
+            WHERE Earlier.StockID IS NULL
+              AND EXISTS(SELECT 1 FROM dbo.FG_ShipmentOrderLine E
+                         WHERE E.ShipmentOrderID=@OutgoingSlipID AND E.ItemNo=Older.ItemNo
+                           AND ISNULL(E.OrderedQty,0)>=ISNULL(Older.Qty,0))
+        ) THROW 51826, 'A scanned LOT violates FIFO order.', 1;
+
+        DECLARE @Qty decimal(12,3)=(SELECT SUM(Qty) FROM @Scanned);
+        INSERT dbo.FG_PickingFifo(PickNumber,ShipmentOrderID,PickerID,StartTS,EndTS,PicksJSON,PickedQty,OrderedQty,Status,CreatedBy,CreatedTS)
+        VALUES(CONCAT('PICK-',FORMAT(SYSDATETIME(),'yyMMddHHmmssfff'),RIGHT(REPLACE(CONVERT(varchar(36),NEWID()),'-',''),4)),
+               @OutgoingSlipID,@OperatorID,SYSDATETIME(),SYSDATETIME(),@Lots,@Qty,@Qty,'Picked','pda',SYSDATETIME());
+        DECLARE @PickID int=CONVERT(int,SCOPE_IDENTITY());
+
+        INSERT dbo.FG_PickingDetail(PickID,ShipmentOrderLineID,StockID,LotID,ItemNo,Qty,Location,PickSeq,CreatedBy,CreatedTS)
+        SELECT @PickID,P.OutgoingSlipLineID,P.StockID,S.LotID,S.ItemNo,P.Qty,S.Location,
+               ROW_NUMBER() OVER(ORDER BY ISNULL(L.LineSeq,0),ISNULL(S.StockTS,'9999-12-31'),S.StockID),
+               'pda',SYSDATETIME()
+        FROM @Scanned P JOIN dbo.FG_Inventory S ON S.StockID=P.StockID
+        JOIN dbo.FG_ShipmentOrderLine L ON L.ShipmentOrderLineID=P.OutgoingSlipLineID;
+
+        UPDATE S SET Status='RESERVED',ModifiedBy=@OperatorID,ModifiedTS=SYSDATETIME()
+        FROM dbo.FG_Inventory S JOIN @Scanned P ON P.StockID=S.StockID;
+        UPDATE L SET AllocatedQty=OrderedQty,ReservationStatus='Picked',ReservedAt=SYSDATETIME(),
+            ModifiedBy=@OperatorID,ModifiedTS=SYSDATETIME()
+        FROM dbo.FG_ShipmentOrderLine L WHERE L.ShipmentOrderID=@OutgoingSlipID;
+        UPDATE dbo.FG_ShipmentOrder SET Status='PICKED',ModifiedBy=@OperatorID,ModifiedTS=SYSDATETIME()
+        WHERE ShipmentOrderID=@OutgoingSlipID;
+        COMMIT TRANSACTION;
+        SELECT @PickID;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT>0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_LOADING_ORDER_SCAN
+    @OrderNumber varchar(40)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    DECLARE @OrderID int,@PickID int,@Status varchar(15),@CustomerCode varchar(20),
+            @ShipOrderNumber varchar(40),@ShipDate date,@Destination varchar(30);
+    SELECT TOP(1) @OrderID=ShipmentOrderID,@ShipOrderNumber=ShipOrderNumber,
+        @CustomerCode=CustomerCode,@ShipDate=ShipDate,@Destination=DestPlant,
+        @Status=UPPER(ISNULL(Status,''))
+    FROM dbo.FG_ShipmentOrder
+    WHERE UPPER(ISNULL(ShipOrderNumber,''))=UPPER(LTRIM(RTRIM(@OrderNumber)))
+    ORDER BY ShipmentOrderID DESC;
+    IF @OrderID IS NULL THROW 51900, 'Shipment order barcode was not found.', 1;
+    IF @Status<>'PICKED' THROW 51901, 'Only PICKED shipment orders can be loaded.', 1;
+    IF EXISTS(SELECT 1 FROM dbo.FG_LoadingConfirm WHERE ShipmentOrderID=@OrderID)
+        THROW 51902, 'This shipment order was already loaded.', 1;
+
+    SELECT TOP(1) @PickID=PickID
+    FROM dbo.FG_PickingFifo
+    WHERE ShipmentOrderID=@OrderID AND UPPER(ISNULL(Status,''))='PICKED'
+    ORDER BY ISNULL(EndTS,CreatedTS) DESC,PickID DESC;
+    IF @PickID IS NULL OR NOT EXISTS(SELECT 1 FROM dbo.FG_PickingDetail WHERE PickID=@PickID)
+        THROW 51903, 'No completed picking detail exists for this shipment order.', 1;
+    IF EXISTS
+    (
+        SELECT 1
+        FROM dbo.FG_PickingDetail D
+        JOIN dbo.FG_ShipmentOrderLine L ON L.ShipmentOrderLineID=D.ShipmentOrderLineID
+        LEFT JOIN dbo.FG_Inventory S ON S.StockID=D.StockID
+        WHERE D.PickID=@PickID
+          AND (L.ShipmentOrderID<>@OrderID OR S.StockID IS NULL
+               OR UPPER(ISNULL(L.ReservationStatus,''))<>'PICKED'
+               OR UPPER(ISNULL(S.Status,''))<>'RESERVED' OR ISNULL(S.HoldFlag,0)=1
+               OR D.Qty<=0 OR D.Qty<>S.Qty OR D.ItemNo<>S.ItemNo OR D.ItemNo<>L.ItemNo
+               OR (NULLIF(S.CustomerCode,'') IS NOT NULL AND ISNULL(@CustomerCode,'')<>S.CustomerCode))
+    ) THROW 51904, 'A picked product changed status, quantity, hold, customer, or part before loading.', 1;
+
+    SELECT @OrderID AS ShipmentOrderID,@ShipOrderNumber AS Barcode,
+        @ShipOrderNumber AS ShipOrderNumber,@CustomerCode AS CustomerCode,
+        @ShipDate AS ShipDate,@Destination AS Destination;
+    SELECT S.StockID,D.ShipmentOrderLineID,@OrderID AS ShipmentOrderID,
+        @ShipOrderNumber AS ShipOrderNumber,@CustomerCode AS CustomerCode,
+        D.ItemNo,I.ItemName,LOT.LotCode AS LotNo,S.StockNumber,D.Qty,
+        I.DefaultUOM AS Unit,D.Location
+    FROM dbo.FG_PickingDetail D
+    JOIN dbo.FG_ShipmentOrderLine L ON L.ShipmentOrderLineID=D.ShipmentOrderLineID
+    JOIN dbo.FG_Inventory S ON S.StockID=D.StockID
+    LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID=D.LotID
+    LEFT JOIN dbo.MD_Item I ON I.ItemNo=D.ItemNo
+    WHERE D.PickID=@PickID
+    ORDER BY D.PickSeq,D.PickDetailID;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_LOADING_STOCK_SCAN
+    @Barcode varchar(80),
+    @ShipmentOrderID int
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    DECLARE @Status varchar(15),@CustomerCode varchar(20),@ShipOrderNumber varchar(40),@PickID int;
+    SELECT @Status=UPPER(ISNULL(Status,'')),@CustomerCode=CustomerCode,@ShipOrderNumber=ShipOrderNumber
+    FROM dbo.FG_ShipmentOrder WHERE ShipmentOrderID=@ShipmentOrderID;
+    IF @Status IS NULL THROW 51900, 'Shipment order was not found.', 1;
+    IF @Status<>'PICKED' THROW 51901, 'Only PICKED shipment orders can be loaded.', 1;
+    IF EXISTS(SELECT 1 FROM dbo.FG_LoadingConfirm WHERE ShipmentOrderID=@ShipmentOrderID)
+        THROW 51902, 'This shipment order was already loaded.', 1;
+    SELECT TOP(1) @PickID=PickID FROM dbo.FG_PickingFifo
+    WHERE ShipmentOrderID=@ShipmentOrderID AND UPPER(ISNULL(Status,''))='PICKED'
+    ORDER BY ISNULL(EndTS,CreatedTS) DESC,PickID DESC;
+    IF @PickID IS NULL THROW 51903, 'No completed picking detail exists for this shipment order.', 1;
+
+    DECLARE @Normalized varchar(80)=LTRIM(RTRIM(@Barcode));
+    IF NOT EXISTS
+    (
+        SELECT 1 FROM dbo.FG_Inventory S LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID=S.LotID
+        WHERE UPPER(ISNULL(S.StockNumber,''))=UPPER(@Normalized)
+           OR UPPER(ISNULL(LOT.LotCode,''))=UPPER(@Normalized)
+    ) THROW 51905, 'This barcode does not match an FG LOT or stock record.', 1;
+
+    DECLARE @StockID int,@LineID int,@ItemNo varchar(20),@ItemName nvarchar(120),
+            @LotNo varchar(80),@StockNumber varchar(80),@Qty decimal(12,3),@InventoryQty decimal(12,3),
+            @Unit varchar(10),@Location varchar(20),@StockStatus varchar(15),
+            @Hold bit,@StockCustomer varchar(20),@StockItemNo varchar(20),@LineItemNo varchar(20),@LineStatus varchar(15);
+    SELECT TOP(1) @StockID=S.StockID,@LineID=D.ShipmentOrderLineID,@ItemNo=D.ItemNo,
+        @ItemName=I.ItemName,@LotNo=LOT.LotCode,@StockNumber=S.StockNumber,@Qty=D.Qty,@InventoryQty=S.Qty,
+        @Unit=I.DefaultUOM,@Location=D.Location,@StockStatus=UPPER(ISNULL(S.Status,'')),
+        @Hold=ISNULL(S.HoldFlag,0),@StockCustomer=S.CustomerCode,@StockItemNo=S.ItemNo,
+        @LineItemNo=L.ItemNo,@LineStatus=UPPER(ISNULL(L.ReservationStatus,''))
+    FROM dbo.FG_PickingDetail D
+    JOIN dbo.FG_Inventory S ON S.StockID=D.StockID
+    JOIN dbo.FG_ShipmentOrderLine L ON L.ShipmentOrderLineID=D.ShipmentOrderLineID
+    LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID=S.LotID
+    LEFT JOIN dbo.MD_Item I ON I.ItemNo=D.ItemNo
+    WHERE D.PickID=@PickID
+      AND (UPPER(ISNULL(S.StockNumber,''))=UPPER(@Normalized)
+        OR UPPER(ISNULL(LOT.LotCode,''))=UPPER(@Normalized))
+    ORDER BY D.PickSeq,D.PickDetailID;
+    IF @StockID IS NULL
+    BEGIN
+        IF EXISTS
+        (
+            SELECT 1 FROM dbo.FG_PickingDetail D
+            JOIN dbo.FG_PickingFifo P ON P.PickID=D.PickID
+            JOIN dbo.FG_Inventory S ON S.StockID=D.StockID
+            LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID=S.LotID
+            WHERE P.ShipmentOrderID<>@ShipmentOrderID
+              AND (UPPER(ISNULL(S.StockNumber,''))=UPPER(@Normalized)
+                OR UPPER(ISNULL(LOT.LotCode,''))=UPPER(@Normalized))
+        ) THROW 51906, 'This product belongs to a different shipment order.', 1;
+        THROW 51907, 'This product has not completed release picking for this shipment order.', 1;
+    END;
+    IF @StockStatus<>'RESERVED' THROW 51908, 'This picked product is no longer reserved.', 1;
+    IF @Hold=1 THROW 51909, 'This picked product is on hold.', 1;
+    IF NULLIF(@StockCustomer,'') IS NOT NULL AND ISNULL(@CustomerCode,'')<>@StockCustomer
+        THROW 51910, 'This picked product belongs to a different customer.', 1;
+    IF @Qty<>@InventoryQty OR @ItemNo<>@StockItemNo OR @ItemNo<>@LineItemNo OR @LineStatus<>'PICKED'
+        THROW 51904, 'This picked product changed quantity, part, or line status before loading.', 1;
+
+    SELECT @StockID AS StockID,@LineID AS ShipmentOrderLineID,@ShipmentOrderID AS ShipmentOrderID,
+        @ShipOrderNumber AS ShipOrderNumber,@CustomerCode AS CustomerCode,@ItemNo AS ItemNo,
+        @ItemName AS ItemName,@LotNo AS LotNo,@StockNumber AS StockNumber,@Qty AS Qty,
+        @Unit AS Unit,@Location AS Location;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_LOADING_COMPLETE
+    @LicensePlate varchar(20),
+    @ShipmentOrderID int,
+    @StockIDs nvarchar(max),
+    @OperatorID nvarchar(450)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        DECLARE @Status varchar(15),@CustomerCode varchar(20),@ShipDate date,@PickID int;
+        SELECT @Status=UPPER(ISNULL(Status,'')),@CustomerCode=CustomerCode,@ShipDate=ShipDate
+        FROM dbo.FG_ShipmentOrder WITH(UPDLOCK,HOLDLOCK)
+        WHERE ShipmentOrderID=@ShipmentOrderID;
+        IF @Status IS NULL THROW 51900, 'Shipment order was not found.', 1;
+        IF @Status<>'PICKED' THROW 51901, 'Only PICKED shipment orders can be loaded.', 1;
+        IF EXISTS(SELECT 1 FROM dbo.FG_LoadingConfirm WITH(UPDLOCK,HOLDLOCK) WHERE ShipmentOrderID=@ShipmentOrderID)
+            THROW 51902, 'This shipment order was already loaded.', 1;
+        IF ISJSON(COALESCE(@StockIDs,N''))<>1 THROW 51911, 'The scanned stock list is invalid.', 1;
+
+        DECLARE @Scanned TABLE(StockID int NOT NULL PRIMARY KEY);
+        IF EXISTS
+        (
+            SELECT TRY_CONVERT(int,[value]) StockID FROM OPENJSON(@StockIDs)
+            GROUP BY TRY_CONVERT(int,[value]) HAVING TRY_CONVERT(int,[value]) IS NULL OR COUNT(*)>1
+        ) THROW 51911, 'The scanned stock list contains a duplicate or invalid product.', 1;
+        INSERT @Scanned SELECT TRY_CONVERT(int,[value]) FROM OPENJSON(@StockIDs);
+        IF NOT EXISTS(SELECT 1 FROM @Scanned) THROW 51911, 'Scan every picked product before confirming.', 1;
+
+        SELECT TOP(1) @PickID=PickID FROM dbo.FG_PickingFifo WITH(UPDLOCK,HOLDLOCK)
+        WHERE ShipmentOrderID=@ShipmentOrderID AND UPPER(ISNULL(Status,''))='PICKED'
+        ORDER BY ISNULL(EndTS,CreatedTS) DESC,PickID DESC;
+        IF @PickID IS NULL THROW 51903, 'No completed picking detail exists for this shipment order.', 1;
+
+        DECLARE @Expected TABLE
+        (
+            StockID int NOT NULL PRIMARY KEY,ShipmentOrderLineID int NOT NULL,LotID int NULL,
+            ItemNo varchar(20) NOT NULL,LotNo varchar(80) NULL,StockNumber varchar(80) NULL,
+            Qty decimal(12,3) NOT NULL,InventoryQty decimal(12,3) NOT NULL,Unit varchar(10) NULL,Location varchar(20) NULL,
+            StockStatus varchar(15) NULL,HoldFlag bit NOT NULL,StockCustomer varchar(20) NULL,
+            LineStatus varchar(15) NULL,LineItemNo varchar(20) NULL,StockItemNo varchar(20) NULL,PickSeq int NOT NULL
+        );
+        INSERT @Expected
+        SELECT S.StockID,D.ShipmentOrderLineID,D.LotID,D.ItemNo,LOT.LotCode,S.StockNumber,D.Qty,S.Qty,
+            I.DefaultUOM,D.Location,UPPER(ISNULL(S.Status,'')),ISNULL(S.HoldFlag,0),S.CustomerCode,
+            UPPER(ISNULL(L.ReservationStatus,'')),L.ItemNo,S.ItemNo,D.PickSeq
+        FROM dbo.FG_PickingDetail D
+        JOIN dbo.FG_ShipmentOrderLine L WITH(UPDLOCK,HOLDLOCK) ON L.ShipmentOrderLineID=D.ShipmentOrderLineID
+        JOIN dbo.FG_Inventory S WITH(UPDLOCK,HOLDLOCK) ON S.StockID=D.StockID
+        LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID=D.LotID
+        LEFT JOIN dbo.MD_Item I ON I.ItemNo=D.ItemNo
+        WHERE D.PickID=@PickID AND L.ShipmentOrderID=@ShipmentOrderID;
+        IF NOT EXISTS(SELECT 1 FROM @Expected) THROW 51903, 'No completed picking detail exists for this shipment order.', 1;
+        IF EXISTS
+        (
+            SELECT 1 FROM @Expected
+            WHERE StockStatus<>'RESERVED' OR HoldFlag=1 OR Qty<=0
+               OR ItemNo<>LineItemNo OR ItemNo<>StockItemNo
+               OR LineStatus<>'PICKED'
+               OR (NULLIF(StockCustomer,'') IS NOT NULL AND ISNULL(@CustomerCode,'')<>StockCustomer)
+               OR Qty<>InventoryQty
+        ) THROW 51904, 'A picked product changed status, quantity, hold, customer, or part before loading.', 1;
+        IF EXISTS(SELECT 1 FROM @Expected E LEFT JOIN @Scanned S ON S.StockID=E.StockID WHERE S.StockID IS NULL)
+            THROW 51912, 'Scan all picked products before confirming.', 1;
+        IF EXISTS(SELECT 1 FROM @Scanned S LEFT JOIN @Expected E ON E.StockID=S.StockID WHERE E.StockID IS NULL)
+            THROW 51913, 'The loading list contains a product that is not assigned to this shipment order.', 1;
+
+        DECLARE @Now datetime2=SYSDATETIME(),@LoadingNumber varchar(24),@LoadedJson nvarchar(max),@OTDStatus varchar(10);
+        SET @LoadingNumber=CONCAT('LDG-',FORMAT(@Now,'yyMMddHHmmssfff'),RIGHT(REPLACE(CONVERT(varchar(36),NEWID()),'-',''),5));
+        SET @OTDStatus=CASE WHEN @ShipDate IS NULL THEN 'Unknown' WHEN CAST(@Now AS date)<=@ShipDate THEN 'OnTime' ELSE 'Late' END;
+        SET @LoadedJson=(SELECT StockID AS stockId,ShipmentOrderLineID AS shipmentOrderLineId,
+            ItemNo AS itemNo,LotNo AS lotNo,StockNumber AS stockNumber,Qty AS qty,Unit AS unit,Location AS location
+            FROM @Expected ORDER BY PickSeq,StockID FOR JSON PATH);
+
+        INSERT dbo.FG_LoadingConfirm(LoadingNumber,ShipmentOrderID,PickID,LicensePlate,CarrierCode,
+            DockNo,ArrivalTS,DepartureTS,PalletsLoadedJSON,OTDStatus,OperatorID,ConfirmedAt,CreatedBy,CreatedTS)
+        VALUES(@LoadingNumber,@ShipmentOrderID,@PickID,@LicensePlate,
+            (SELECT CarrierCode FROM dbo.FG_ShipmentOrder WHERE ShipmentOrderID=@ShipmentOrderID),
+            'PDA',@Now,@Now,@LoadedJson,@OTDStatus,@OperatorID,@Now,'pda',@Now);
+        DECLARE @LoadingID int=CONVERT(int,SCOPE_IDENTITY());
+
+        UPDATE L SET ReservationStatus='Loaded',ReleasedAt=@Now,ModifiedBy=@OperatorID,ModifiedTS=@Now
+        FROM dbo.FG_ShipmentOrderLine L
+        WHERE EXISTS(SELECT 1 FROM @Expected E WHERE E.ShipmentOrderLineID=L.ShipmentOrderLineID);
+        UPDATE S SET Status='LOADED',ModifiedBy=@OperatorID,ModifiedTS=@Now
+        FROM dbo.FG_Inventory S JOIN @Expected E ON E.StockID=S.StockID;
+        UPDATE dbo.FG_ShipmentOrder SET Status='LOADED',ModifiedBy=@OperatorID,ModifiedTS=@Now
+        WHERE ShipmentOrderID=@ShipmentOrderID;
+        COMMIT TRANSACTION;
+        SELECT @LoadingID AS LoadingID,@LoadingNumber AS LoadingNumber,(SELECT COUNT(*) FROM @Expected) AS LoadedCount,@OTDStatus AS OTDStatus;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT>0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
+END;
 GO
 
 -- =====================================================================
@@ -2819,7 +3403,268 @@ IF OBJECT_ID(N'dbo.FG_CustomerReturn', N'U') IS NULL
 IF COL_LENGTH(N'dbo.FG_CustomerReturn', N'Note') IS NULL
     ALTER TABLE dbo.FG_CustomerReturn ADD [Note] NVARCHAR(500) NULL;
 
-SELECT COL_LENGTH(N'dbo.FG_CustomerReturn', N'Note') AS NoteColumnBytes;
+IF COL_LENGTH(N'dbo.FG_CustomerReturn', N'StockID') IS NULL
+    ALTER TABLE dbo.FG_CustomerReturn ADD StockID INT NULL;
+IF COL_LENGTH(N'dbo.FG_CustomerReturn', N'LotID') IS NULL
+    ALTER TABLE dbo.FG_CustomerReturn ADD LotID INT NULL;
+IF COL_LENGTH(N'dbo.FG_CustomerReturn', N'ItemNo') IS NULL
+    ALTER TABLE dbo.FG_CustomerReturn ADD ItemNo VARCHAR(20) NULL;
+IF COL_LENGTH(N'dbo.FG_CustomerReturn', N'ReturnQty') IS NULL
+    ALTER TABLE dbo.FG_CustomerReturn ADD ReturnQty DECIMAL(12,3) NULL;
+GO
+
+UPDATE R
+SET ItemNo=COALESCE(R.ItemNo,NULLIF(JSON_VALUE(J.SafeJson,'$[0].itemNo'),'')),
+    ReturnQty=COALESCE(R.ReturnQty,TRY_CONVERT(decimal(12,3),JSON_VALUE(J.SafeJson,'$[0].qty')))
+FROM dbo.FG_CustomerReturn R
+CROSS APPLY(SELECT CASE WHEN ISJSON(R.ItemsJSON)=1 THEN R.ItemsJSON ELSE N'[]' END) J(SafeJson)
+WHERE R.ItemNo IS NULL OR R.ReturnQty IS NULL;
+
+UPDATE R
+SET StockID=COALESCE(R.StockID,X.StockID),
+    LotID=COALESCE(R.LotID,X.LotID),
+    ItemNo=COALESCE(R.ItemNo,X.ItemNo),
+    ReturnQty=COALESCE(R.ReturnQty,X.Qty)
+FROM dbo.FG_CustomerReturn R
+CROSS APPLY(SELECT CASE WHEN ISJSON(R.ItemsJSON)=1 THEN R.ItemsJSON ELSE N'[]' END) J(SafeJson)
+OUTER APPLY
+(
+    SELECT TOP(1) S.StockID,S.LotID,S.ItemNo,S.Qty
+    FROM dbo.FG_Inventory S
+    LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID=S.LotID
+    LEFT JOIN dbo.FG_ShipmentOrderLine L ON L.StockID=S.StockID AND L.ShipmentOrderID=R.OriginalShipmentOrderID
+    WHERE (NULLIF(JSON_VALUE(J.SafeJson,'$[0].stockNumber'),'') IS NOT NULL
+           AND UPPER(S.StockNumber)=UPPER(JSON_VALUE(J.SafeJson,'$[0].stockNumber')))
+       OR (NULLIF(JSON_VALUE(J.SafeJson,'$[0].lotNo'),'') IS NOT NULL
+           AND UPPER(LOT.LotCode)=UPPER(JSON_VALUE(J.SafeJson,'$[0].lotNo')))
+       OR (R.OriginalShipmentOrderID IS NOT NULL AND L.ShipmentOrderLineID IS NOT NULL
+           AND (R.ItemNo IS NULL OR S.ItemNo=R.ItemNo))
+    ORDER BY CASE WHEN UPPER(S.StockNumber)=UPPER(JSON_VALUE(J.SafeJson,'$[0].stockNumber')) THEN 0
+                  WHEN UPPER(LOT.LotCode)=UPPER(JSON_VALUE(J.SafeJson,'$[0].lotNo')) THEN 1 ELSE 2 END,
+             S.StockID DESC
+) X
+WHERE R.StockID IS NULL OR R.LotID IS NULL;
+
+-- Remove only obsolete demo returns that never represented a shipped stock.
+DELETE dbo.FG_CustomerReturn
+WHERE StockID IS NULL
+  AND ((CreatedBy='fg-seed' AND ReturnNumber IN ('RMA-SEED-001','RMA-SEED-002'))
+    OR (CreatedBy='pda-fg-six-demo' AND ReturnNumber='FG-RMA-DEMO-002'));
+
+IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WHERE ReturnNumber IS NULL OR CustomerCode IS NULL
+          OR OriginalShipmentOrderID IS NULL OR StockID IS NULL OR ItemNo IS NULL OR ReturnQty IS NULL
+          OR ReturnReason IS NULL OR ItemsJSON IS NULL OR Status IS NULL OR ReceivedAt IS NULL OR ReceivedBy IS NULL)
+    THROW 52022, 'FG_CustomerReturn contains incomplete rows that require manual correction.', 1;
+IF EXISTS
+(
+    SELECT 1 FROM sys.columns
+    WHERE object_id=OBJECT_ID(N'dbo.FG_CustomerReturn') AND is_nullable=1
+      AND name IN ('ReturnNumber','CustomerCode','OriginalShipmentOrderID','StockID','ItemNo','ReturnQty',
+                   'ReturnReason','ItemsJSON','Status','ReceivedAt','ReceivedBy')
+)
+BEGIN
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_CustomerReturn') AND name=N'UX_FG_CustomerReturn_ReturnNumber')
+    DROP INDEX UX_FG_CustomerReturn_ReturnNumber ON dbo.FG_CustomerReturn;
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_CustomerReturn') AND name=N'UX_FG_CustomerReturn_Stock')
+    DROP INDEX UX_FG_CustomerReturn_Stock ON dbo.FG_CustomerReturn;
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_CustomerReturn') AND name=N'IX_FG_CustomerReturn_Received')
+    DROP INDEX IX_FG_CustomerReturn_Received ON dbo.FG_CustomerReturn;
+IF EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_CustomerReturn_Order')
+    ALTER TABLE dbo.FG_CustomerReturn DROP CONSTRAINT FK_FG_CustomerReturn_Order;
+IF EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_CustomerReturn_Stock')
+    ALTER TABLE dbo.FG_CustomerReturn DROP CONSTRAINT FK_FG_CustomerReturn_Stock;
+IF EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_CustomerReturn_Lot')
+    ALTER TABLE dbo.FG_CustomerReturn DROP CONSTRAINT FK_FG_CustomerReturn_Lot;
+IF EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_CustomerReturn_Item')
+    ALTER TABLE dbo.FG_CustomerReturn DROP CONSTRAINT FK_FG_CustomerReturn_Item;
+IF EXISTS(SELECT 1 FROM sys.check_constraints WHERE name=N'CK_FG_CustomerReturn_Qty')
+    ALTER TABLE dbo.FG_CustomerReturn DROP CONSTRAINT CK_FG_CustomerReturn_Qty;
+IF EXISTS(SELECT 1 FROM sys.check_constraints WHERE name=N'CK_FG_CustomerReturn_ItemsJSON')
+    ALTER TABLE dbo.FG_CustomerReturn DROP CONSTRAINT CK_FG_CustomerReturn_ItemsJSON;
+ALTER TABLE dbo.FG_CustomerReturn ALTER COLUMN ReturnNumber varchar(24) NOT NULL;
+ALTER TABLE dbo.FG_CustomerReturn ALTER COLUMN CustomerCode varchar(20) NOT NULL;
+ALTER TABLE dbo.FG_CustomerReturn ALTER COLUMN OriginalShipmentOrderID int NOT NULL;
+ALTER TABLE dbo.FG_CustomerReturn ALTER COLUMN StockID int NOT NULL;
+ALTER TABLE dbo.FG_CustomerReturn ALTER COLUMN ItemNo varchar(20) NOT NULL;
+ALTER TABLE dbo.FG_CustomerReturn ALTER COLUMN ReturnQty decimal(12,3) NOT NULL;
+ALTER TABLE dbo.FG_CustomerReturn ALTER COLUMN ReturnReason varchar(60) NOT NULL;
+ALTER TABLE dbo.FG_CustomerReturn ALTER COLUMN ItemsJSON nvarchar(max) NOT NULL;
+ALTER TABLE dbo.FG_CustomerReturn ALTER COLUMN Status varchar(15) NOT NULL;
+ALTER TABLE dbo.FG_CustomerReturn ALTER COLUMN ReceivedAt datetime2 NOT NULL;
+ALTER TABLE dbo.FG_CustomerReturn ALTER COLUMN ReceivedBy nvarchar(450) NOT NULL;
+END;
+
+IF EXISTS(SELECT StockID FROM dbo.FG_CustomerReturn WHERE StockID IS NOT NULL GROUP BY StockID HAVING COUNT(*)>1)
+    THROW 52020, 'FG_CustomerReturn contains duplicate StockID values.', 1;
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_CustomerReturn') AND name=N'UX_FG_CustomerReturn_ReturnNumber')
+    CREATE UNIQUE INDEX UX_FG_CustomerReturn_ReturnNumber ON dbo.FG_CustomerReturn(ReturnNumber) WHERE ReturnNumber IS NOT NULL;
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_CustomerReturn') AND name=N'UX_FG_CustomerReturn_Stock')
+    CREATE UNIQUE INDEX UX_FG_CustomerReturn_Stock ON dbo.FG_CustomerReturn(StockID) WHERE StockID IS NOT NULL;
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_CustomerReturn') AND name=N'IX_FG_CustomerReturn_Received')
+    CREATE INDEX IX_FG_CustomerReturn_Received ON dbo.FG_CustomerReturn(ReceivedAt DESC,ReturnID DESC);
+
+IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_CustomerReturn_Order')
+    ALTER TABLE dbo.FG_CustomerReturn WITH CHECK ADD CONSTRAINT FK_FG_CustomerReturn_Order
+        FOREIGN KEY(OriginalShipmentOrderID) REFERENCES dbo.FG_ShipmentOrder(ShipmentOrderID);
+IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_CustomerReturn_Stock')
+    ALTER TABLE dbo.FG_CustomerReturn WITH CHECK ADD CONSTRAINT FK_FG_CustomerReturn_Stock
+        FOREIGN KEY(StockID) REFERENCES dbo.FG_Inventory(StockID);
+IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_CustomerReturn_Lot')
+    ALTER TABLE dbo.FG_CustomerReturn WITH CHECK ADD CONSTRAINT FK_FG_CustomerReturn_Lot
+        FOREIGN KEY(LotID) REFERENCES dbo.tbl_Lot(LotID);
+IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_CustomerReturn_Item')
+    ALTER TABLE dbo.FG_CustomerReturn WITH CHECK ADD CONSTRAINT FK_FG_CustomerReturn_Item
+        FOREIGN KEY(ItemNo) REFERENCES dbo.MD_Item(ItemNo);
+IF NOT EXISTS(SELECT 1 FROM sys.check_constraints WHERE name=N'CK_FG_CustomerReturn_Qty')
+    ALTER TABLE dbo.FG_CustomerReturn WITH CHECK ADD CONSTRAINT CK_FG_CustomerReturn_Qty
+        CHECK(ReturnQty IS NULL OR ReturnQty>0);
+IF NOT EXISTS(SELECT 1 FROM sys.check_constraints WHERE name=N'CK_FG_CustomerReturn_ItemsJSON')
+    ALTER TABLE dbo.FG_CustomerReturn WITH CHECK ADD CONSTRAINT CK_FG_CustomerReturn_ItemsJSON
+        CHECK(ItemsJSON IS NULL OR ISJSON(ItemsJSON)=1);
+GO
+
+IF OBJECT_ID(N'dbo.FG_ReturnDisposition',N'U') IS NOT NULL
+BEGIN
+    IF EXISTS(SELECT 1 FROM dbo.FG_ReturnDisposition)
+        THROW 52021, 'FG_ReturnDisposition contains data and cannot be removed automatically.', 1;
+    DROP TABLE dbo.FG_ReturnDisposition;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_RETURN_SCAN
+    @Barcode varchar(80)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @B varchar(80)=LTRIM(RTRIM(ISNULL(@Barcode,'')));
+    IF LEN(@B)<3 OR LEN(@B)>80 OR @B COLLATE Latin1_General_100_BIN2 LIKE '%[^A-Za-z0-9_./-]%'
+        THROW 52000, 'The finished-good return barcode format is invalid.', 1;
+
+    DECLARE @Candidates TABLE
+    (
+        StockID int NOT NULL,StockNumber varchar(80) NULL,LotID int NULL,LotNo varchar(80) NULL,
+        ShipmentOrderID int NOT NULL,ShipOrderNumber varchar(40) NULL,CustomerCode varchar(20) NULL,
+        ItemNo varchar(20) NULL,ItemName nvarchar(120) NULL,ShippedAt datetime2 NULL,
+        Qty decimal(12,3) NULL,StockStatus varchar(20) NULL,HoldFlag bit NOT NULL
+    );
+
+    INSERT @Candidates
+    SELECT DISTINCT S.StockID,S.StockNumber,S.LotID,LOT.LotCode,O.ShipmentOrderID,O.ShipOrderNumber,
+        O.CustomerCode,D.ItemNo,I.ItemName,C.DepartureTS,D.Qty,UPPER(ISNULL(S.Status,'')),ISNULL(S.HoldFlag,0)
+    FROM dbo.FG_LoadingConfirm C
+    JOIN dbo.FG_ShipmentOrder O ON O.ShipmentOrderID=C.ShipmentOrderID
+    JOIN dbo.FG_PickingDetail D ON D.PickID=C.PickID
+    JOIN dbo.FG_ShipmentOrderLine L ON L.ShipmentOrderLineID=D.ShipmentOrderLineID AND L.ShipmentOrderID=O.ShipmentOrderID
+    JOIN dbo.FG_Inventory S ON S.StockID=D.StockID
+    LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID=S.LotID
+    LEFT JOIN dbo.MD_Item I ON I.ItemNo=D.ItemNo
+    WHERE C.DepartureTS IS NOT NULL
+      AND (UPPER(ISNULL(S.StockNumber,''))=UPPER(@B) OR UPPER(ISNULL(LOT.LotCode,''))=UPPER(@B));
+
+    INSERT @Candidates
+    SELECT DISTINCT S.StockID,S.StockNumber,S.LotID,LOT.LotCode,O.ShipmentOrderID,O.ShipOrderNumber,
+        O.CustomerCode,L.ItemNo,I.ItemName,C.DepartureTS,
+        COALESCE(NULLIF(L.AllocatedQty,0),NULLIF(S.Qty,0),NULLIF(L.OrderedQty,0)),
+        UPPER(ISNULL(S.Status,'')),ISNULL(S.HoldFlag,0)
+    FROM dbo.FG_LoadingConfirm C
+    JOIN dbo.FG_ShipmentOrder O ON O.ShipmentOrderID=C.ShipmentOrderID
+    JOIN dbo.FG_ShipmentOrderLine L ON L.ShipmentOrderID=O.ShipmentOrderID
+    JOIN dbo.FG_Inventory S ON S.StockID=L.StockID
+    LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID=S.LotID
+    LEFT JOIN dbo.MD_Item I ON I.ItemNo=L.ItemNo
+    WHERE C.DepartureTS IS NOT NULL
+      AND (C.PickID IS NULL OR NOT EXISTS(SELECT 1 FROM dbo.FG_PickingDetail D WHERE D.PickID=C.PickID))
+      AND (UPPER(ISNULL(S.StockNumber,''))=UPPER(@B) OR UPPER(ISNULL(LOT.LotCode,''))=UPPER(@B))
+      AND NOT EXISTS(SELECT 1 FROM @Candidates X WHERE X.StockID=S.StockID AND X.ShipmentOrderID=O.ShipmentOrderID);
+
+    IF NOT EXISTS(SELECT 1 FROM @Candidates)
+    BEGIN
+        IF EXISTS(SELECT 1 FROM dbo.FG_Inventory S LEFT JOIN dbo.tbl_Lot L ON L.LotID=S.LotID
+                  WHERE UPPER(ISNULL(S.StockNumber,''))=UPPER(@B) OR UPPER(ISNULL(L.LotCode,''))=UPPER(@B))
+            THROW 52001, 'The product exists, but no completed shipment history was found.', 1;
+        THROW 52002, 'This barcode does not match a finished-good LOT or stock record.', 1;
+    END;
+    IF EXISTS(SELECT 1 FROM @Candidates WHERE ShippedAt>DATEADD(minute,5,SYSDATETIME()))
+        THROW 52003, 'The shipment date is in the future. Verify the loading record.', 1;
+    IF (SELECT COUNT(*) FROM (SELECT StockID,ShipmentOrderID FROM @Candidates GROUP BY StockID,ShipmentOrderID) X)>1
+        THROW 52004, 'This barcode matches multiple shipped products. Scan the unique stock barcode.', 1;
+
+    DECLARE @StockID int=(SELECT TOP(1) StockID FROM @Candidates ORDER BY ShippedAt DESC);
+    IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WHERE StockID=@StockID)
+        THROW 52005, 'This product was already received as a customer return.', 1;
+    IF EXISTS(SELECT 1 FROM @Candidates WHERE StockID=@StockID AND StockStatus NOT IN ('LOADED','SHIPPED'))
+        THROW 52006, 'Only loaded or shipped finished goods can be received as a customer return.', 1;
+    IF EXISTS(SELECT 1 FROM @Candidates WHERE StockID=@StockID AND HoldFlag=1)
+        THROW 52007, 'This finished good is already on hold.', 1;
+    IF EXISTS(SELECT 1 FROM @Candidates WHERE StockID=@StockID AND
+       (NULLIF(ShipOrderNumber,'') IS NULL OR NULLIF(CustomerCode,'') IS NULL OR
+        NULLIF(ItemNo,'') IS NULL OR NULLIF(ItemName,'') IS NULL OR ISNULL(Qty,0)<=0))
+        THROW 52008, 'The shipment record is incomplete. Verify shipment, customer, part, and quantity.', 1;
+
+    SELECT TOP(1) @B AS Barcode,StockID,StockNumber,LotID,LotNo,ShipmentOrderID,ShipOrderNumber,
+        CustomerCode,ItemNo,ItemName,ShippedAt,Qty
+    FROM @Candidates WHERE StockID=@StockID ORDER BY ShippedAt DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_RETURN_RECEIVE
+    @Barcode varchar(80),
+    @ReturnReason varchar(60),
+    @Note nvarchar(500)=NULL,
+    @OperatorID nvarchar(450)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    DECLARE @Reason varchar(60)=UPPER(LTRIM(RTRIM(ISNULL(@ReturnReason,''))));
+    DECLARE @CleanNote nvarchar(500)=NULLIF(LTRIM(RTRIM(@Note)),N'');
+    IF NOT EXISTS(SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='FG_RETURN_REASON' AND CodeValue=@Reason AND ISNULL(UseFlag,1)=1)
+        THROW 52009, 'Select a valid return reason.', 1;
+    IF LEN(ISNULL(@CleanNote,N''))>500 THROW 52010, 'Return note must be 500 characters or fewer.', 1;
+
+    DECLARE @P TABLE
+    (
+        Barcode varchar(80),StockID int,StockNumber varchar(80),LotID int,LotNo varchar(80),
+        ShipmentOrderID int,ShipOrderNumber varchar(40),CustomerCode varchar(20),ItemNo varchar(20),
+        ItemName nvarchar(120),ShippedAt datetime2,Qty decimal(12,3)
+    );
+    INSERT @P EXEC dbo.FG_PDA_RETURN_SCAN @Barcode;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        DECLARE @StockID int=(SELECT StockID FROM @P),@Now datetime2=SYSDATETIME(),@ReturnID int,@ReturnNumber varchar(24);
+        IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WITH(UPDLOCK,HOLDLOCK) WHERE StockID=@StockID)
+            THROW 52005, 'This product was already received as a customer return.', 1;
+        IF NOT EXISTS(SELECT 1 FROM dbo.FG_Inventory WITH(UPDLOCK,HOLDLOCK)
+                      WHERE StockID=@StockID AND UPPER(ISNULL(Status,'')) IN ('LOADED','SHIPPED') AND ISNULL(HoldFlag,0)=0)
+            THROW 52011, 'The finished-good inventory status changed before return receipt.', 1;
+
+        SET @ReturnNumber=CONCAT('RMA-',FORMAT(@Now,'yyMMddHHmmssfff'),LEFT(REPLACE(CONVERT(varchar(36),NEWID()),'-',''),5));
+        INSERT dbo.FG_CustomerReturn
+            (ReturnNumber,CustomerCode,OriginalShipmentOrderID,StockID,LotID,ItemNo,ReturnQty,
+             ReturnReason,Note,ItemsJSON,Status,ReceivedAt,ReceivedBy,CapaTriggered,CreatedBy,CreatedTS)
+        SELECT @ReturnNumber,CustomerCode,ShipmentOrderID,StockID,LotID,ItemNo,Qty,@Reason,@CleanNote,
+            (SELECT StockID AS stockId,ItemNo AS itemNo,LotNo AS lotNo,StockNumber AS stockNumber,
+                    Barcode AS barcode,Qty AS qty FOR JSON PATH),
+            'Open',@Now,@OperatorID,0,'pda',@Now
+        FROM @P;
+        SET @ReturnID=CONVERT(int,SCOPE_IDENTITY());
+
+        UPDATE dbo.FG_Inventory
+        SET Status='RETURN_HOLD',HoldFlag=1,Location=NULL,ModifiedBy=@OperatorID,ModifiedTS=@Now
+        WHERE StockID=@StockID;
+        COMMIT TRANSACTION;
+
+        SELECT @ReturnID AS ReturnID,Barcode,StockID,StockNumber,LotID,LotNo,ShipmentOrderID,
+            ShipOrderNumber,CustomerCode,ItemNo,ItemName,ShippedAt,Qty
+        FROM @P;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT>0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
+END;
+GO
 GO
 
 
@@ -3113,10 +3958,13 @@ BEGIN
         LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID=COALESCE(S.LotID,L.LotID)
         WHERE UPPER(ISNULL(C.OTDStatus,'')) NOT IN ('CANCELLED','CANCELED') AND COALESCE(J.Qty,L.AllocatedQty,L.OrderedQty)>0
         UNION ALL
-        SELECT COALESCE(R.ReceivedAt,R.CreatedTS),CONCAT('RETURN-',R.ReturnID,'-',J.LotNo,'-',J.StockNumber,'-',J.ItemNo),
-            J.LotNo,J.StockNumber,J.ItemNo,NULL,J.Qty,'RETURN','Return',COALESCE(R.ReceivedBy,R.CreatedBy),R.ReturnReason,R.Note,NULL,NULL,NULL,NULL,'FG_CustomerReturn',R.ReturnNumber,O.OutgoingSlipNumber
+        SELECT COALESCE(R.ReceivedAt,R.CreatedTS),CONCAT('RETURN-',R.ReturnID,'-',COALESCE(LOT.LotCode,J.LotNo),'-',COALESCE(S.StockNumber,J.StockNumber),'-',COALESCE(R.ItemNo,J.ItemNo)),
+            COALESCE(LOT.LotCode,J.LotNo),COALESCE(S.StockNumber,J.StockNumber),COALESCE(R.ItemNo,J.ItemNo),NULL,COALESCE(R.ReturnQty,J.Qty),
+            'RETURN','Return',COALESCE(R.ReceivedBy,R.CreatedBy),R.ReturnReason,R.Note,NULL,NULL,NULL,NULL,'FG_CustomerReturn',R.ReturnNumber,O.OutgoingSlipNumber
         FROM dbo.FG_CustomerReturn R LEFT JOIN dbo.FG_ShipmentOrder O ON O.ShipmentOrderID=R.OriginalShipmentOrderID
-        CROSS APPLY OPENJSON(CASE WHEN ISJSON(R.ItemsJSON)=1 THEN R.ItemsJSON ELSE N'[]' END)
+        LEFT JOIN dbo.FG_Inventory S ON S.StockID=R.StockID
+        LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID=COALESCE(R.LotID,S.LotID)
+        OUTER APPLY OPENJSON(CASE WHEN ISJSON(R.ItemsJSON)=1 THEN R.ItemsJSON ELSE N'[]' END)
             WITH (LotNo varchar(80) '$.lotNo',StockNumber varchar(80) '$.stockNumber',ItemNo varchar(20) '$.itemNo',Qty decimal(18,3) '$.qty') J
         WHERE UPPER(ISNULL(R.Status,'')) NOT IN ('CANCELLED','CANCELED','REJECTED')
         UNION ALL
@@ -3153,10 +4001,10 @@ BEGIN
     SELECT @Stock=StockID FROM dbo.FG_Inventory WHERE LotID=@Lot;
     IF EXISTS (SELECT 1 FROM dbo.FG_ShipmentOrderLine WHERE StockID=@Stock AND ShipmentOrderID<>@Order)
         THROW 51731,'History sample belongs to another order. Reset cancelled.',1;
-    DELETE D FROM dbo.FG_ReturnDisposition D JOIN dbo.FG_CustomerReturn R ON R.ReturnID=D.ReturnID WHERE R.OriginalShipmentOrderID=@Order;
     DELETE dbo.FG_CustomerReturn WHERE OriginalShipmentOrderID=@Order;
     DELETE dbo.FG_DeliveryNote WHERE ShipmentOrderID=@Order;
     DELETE dbo.FG_LoadingConfirm WHERE ShipmentOrderID=@Order;
+    DELETE D FROM dbo.FG_PickingDetail D JOIN dbo.FG_PickingFifo P ON P.PickID=D.PickID WHERE P.ShipmentOrderID=@Order;
     DELETE dbo.FG_PickingFifo WHERE ShipmentOrderID=@Order;
     DELETE dbo.FG_ShipmentOrderLine WHERE ShipmentOrderID=@Order;
     DELETE dbo.FG_InventoryAdjust WHERE LotID=@Lot;
@@ -3179,10 +4027,16 @@ BEGIN
     DECLARE @Json nvarchar(max)=(SELECT @Stock AS stockId,'5011FG260908970001' AS lotNo,'FG-PPT-STK-970001' AS stockNumber,'PPT-FG-HIST' AS itemNo,22 AS qty,'EA' AS unit,'FG-PPT-G1' AS location FOR JSON PATH);
     INSERT dbo.FG_PickingFifo(PickNumber,ShipmentOrderID,PickerID,EndTS,PicksJSON,PickedQty,OrderedQty,Status,CreatedBy,CreatedTS)
     VALUES('FG-PPT-HIST-PICK',@Order,'TEST1',DATEADD(second,3,@Today),@PickJson,22,22,'Picked',@By,DATEADD(second,3,@Today));
-    INSERT dbo.FG_LoadingConfirm(LoadingNumber,ShipmentOrderID,LicensePlate,PalletsLoadedJSON,DepartureTS,OTDStatus,OperatorID,ConfirmedAt,CreatedBy,CreatedTS)
-    VALUES('FG-PPT-HIST-LOAD',@Order,'PPT-FG-HISTORY',@Json,DATEADD(second,4,@Today),'OnTime','TEST1',DATEADD(second,4,@Today),@By,DATEADD(second,4,@Today));
-    INSERT dbo.FG_CustomerReturn(ReturnNumber,OriginalShipmentOrderID,CustomerCode,ReturnReason,Note,ItemsJSON,Status,ReceivedAt,ReceivedBy,CreatedBy,CreatedTS)
-    VALUES('FG-PPT-HIST-RETURN',@Order,'PPT-CUSTOMER','DAMAGED_TRANSIT','PPT return note',@Json,'Open',DATEADD(second,5,@Today),'TEST1',@By,DATEADD(second,5,@Today));
+    DECLARE @Pick int=CONVERT(int,SCOPE_IDENTITY());
+    INSERT dbo.FG_PickingDetail(PickID,ShipmentOrderLineID,StockID,LotID,ItemNo,Qty,Location,PickSeq,CreatedBy,CreatedTS)
+    SELECT @Pick,ShipmentOrderLineID,@Stock,@Lot,'PPT-FG-HIST',22,'FG-PPT-G1',1,@By,DATEADD(second,3,@Today)
+    FROM dbo.FG_ShipmentOrderLine WHERE ShipmentOrderID=@Order;
+    INSERT dbo.FG_LoadingConfirm(LoadingNumber,ShipmentOrderID,PickID,LicensePlate,PalletsLoadedJSON,DepartureTS,OTDStatus,OperatorID,ConfirmedAt,CreatedBy,CreatedTS)
+    VALUES('FG-PPT-HIST-LOAD',@Order,@Pick,'PPT-FG-HISTORY',@Json,DATEADD(second,4,@Today),'OnTime','TEST1',DATEADD(second,4,@Today),@By,DATEADD(second,4,@Today));
+    INSERT dbo.FG_CustomerReturn(ReturnNumber,OriginalShipmentOrderID,CustomerCode,StockID,LotID,ItemNo,ReturnQty,
+        ReturnReason,Note,ItemsJSON,Status,ReceivedAt,ReceivedBy,CreatedBy,CreatedTS)
+    VALUES('FG-PPT-HIST-RETURN',@Order,'PPT-CUSTOMER',@Stock,@Lot,'PPT-FG-HIST',22,
+        'DAMAGED_TRANSIT','PPT return note',@Json,'Open',DATEADD(second,5,@Today),'TEST1',@By,DATEADD(second,5,@Today));
     COMMIT TRANSACTION;
 END;
 GO
@@ -3221,11 +4075,10 @@ BEGIN
                WHERE S.LotID IN (SELECT LotID FROM @Lots) AND L.ShipmentOrderID NOT IN (SELECT ID FROM @Orders))
         THROW 51703, 'A PPT stock is assigned to another order. Reset was cancelled.', 1;
 
-    DELETE D FROM dbo.FG_ReturnDisposition D JOIN dbo.FG_CustomerReturn R ON R.ReturnID=D.ReturnID
-    WHERE R.OriginalShipmentOrderID IN (SELECT ID FROM @Orders);
     DELETE FROM dbo.FG_CustomerReturn WHERE OriginalShipmentOrderID IN (SELECT ID FROM @Orders);
     DELETE FROM dbo.FG_DeliveryNote WHERE ShipmentOrderID IN (SELECT ID FROM @Orders);
     DELETE FROM dbo.FG_LoadingConfirm WHERE ShipmentOrderID IN (SELECT ID FROM @Orders);
+    DELETE D FROM dbo.FG_PickingDetail D JOIN dbo.FG_PickingFifo P ON P.PickID=D.PickID WHERE P.ShipmentOrderID IN (SELECT ID FROM @Orders);
     DELETE FROM dbo.FG_PickingFifo WHERE ShipmentOrderID IN (SELECT ID FROM @Orders);
     DELETE FROM dbo.FG_ShipmentOrderLine WHERE ShipmentOrderID IN (SELECT ID FROM @Orders);
     DELETE FROM dbo.FG_InventoryAdjust WHERE LotID IN (SELECT LotID FROM @Lots);
@@ -3250,7 +4103,7 @@ BEGIN
         UPDATE Q SET InsEndTS=DATEADD(hour,-CASE RIGHT(L.LotCode,6) WHEN '900002' THEN 48 WHEN '900003' THEN 144 WHEN '900004' THEN 264 ELSE 2 END,SYSDATETIME())
         FROM dbo.QC_Inspection Q JOIN @Lots L ON L.LotID=Q.LotID WHERE Q.CreatedBy=@SeedBy;
 
-    UPDATE O SET Status=CASE WHEN @Screen='release' THEN 'RELEASED' WHEN @Screen='loading' THEN 'READY' WHEN O.ShipOrderNumber='FG-PPT-SO-RETURN' THEN 'SHIPPED' ELSE 'OPEN' END,
+    UPDATE O SET Status=CASE WHEN @Screen='release' THEN 'RELEASED' WHEN @Screen='loading' THEN 'PICKED' WHEN O.ShipOrderNumber='FG-PPT-SO-RETURN' THEN 'SHIPPED' ELSE 'OPEN' END,
         ShipDate=CAST(GETDATE() AS date),ModifiedBy=@SeedBy,ModifiedTS=SYSDATETIME()
     FROM dbo.FG_ShipmentOrder O JOIN @Orders T ON T.ID=O.ShipmentOrderID;
     IF @Screen='release'
@@ -3263,10 +4116,48 @@ BEGIN
             CASE WHEN @Screen='loading' THEN 'Picked' WHEN O.Number='FG-PPT-SO-RETURN' THEN 'Shipped' ELSE 'Open' END,SYSDATETIME(),@SeedBy,SYSDATETIME()
         FROM @Lots L JOIN dbo.FG_Inventory S ON S.LotID=L.LotID
         JOIN @Orders O ON @Screen='loading' OR O.Number=CASE RIGHT(L.LotCode,6) WHEN '950001' THEN 'FG-PPT-SO-RETURN' ELSE 'FG-PPT-SO-NOSHIP' END;
+    IF @Screen='loading'
+    BEGIN
+        DECLARE @LoadingOrderID int=(SELECT ID FROM @Orders),@LoadingPickID int,@LoadingJson nvarchar(max),@LoadingQty decimal(12,3);
+        SELECT @LoadingQty=SUM(S.Qty),@LoadingJson=(SELECT S2.StockID AS stockId,S2.Qty AS qty
+            FROM dbo.FG_ShipmentOrderLine L2 JOIN dbo.FG_Inventory S2 ON S2.StockID=L2.StockID
+            WHERE L2.ShipmentOrderID=@LoadingOrderID ORDER BY L2.LineSeq FOR JSON PATH)
+        FROM dbo.FG_ShipmentOrderLine L JOIN dbo.FG_Inventory S ON S.StockID=L.StockID
+        WHERE L.ShipmentOrderID=@LoadingOrderID;
+        INSERT dbo.FG_PickingFifo(PickNumber,ShipmentOrderID,PickerID,StartTS,EndTS,PicksJSON,PickedQty,OrderedQty,Status,CreatedBy,CreatedTS)
+        VALUES(CONCAT('PICK-PPT-',RIGHT(REPLACE(CONVERT(varchar(36),NEWID()),'-',''),15)),@LoadingOrderID,'TEST1',
+               SYSDATETIME(),SYSDATETIME(),@LoadingJson,@LoadingQty,@LoadingQty,'Picked',@SeedBy,SYSDATETIME());
+        SET @LoadingPickID=CONVERT(int,SCOPE_IDENTITY());
+        INSERT dbo.FG_PickingDetail(PickID,ShipmentOrderLineID,StockID,LotID,ItemNo,Qty,Location,PickSeq,CreatedBy,CreatedTS)
+        SELECT @LoadingPickID,L.ShipmentOrderLineID,S.StockID,S.LotID,S.ItemNo,S.Qty,S.Location,
+               ROW_NUMBER() OVER(ORDER BY L.LineSeq,L.ShipmentOrderLineID),@SeedBy,SYSDATETIME()
+        FROM dbo.FG_ShipmentOrderLine L JOIN dbo.FG_Inventory S ON S.StockID=L.StockID
+        WHERE L.ShipmentOrderID=@LoadingOrderID;
+    END;
     IF @Screen='return'
-        INSERT dbo.FG_LoadingConfirm (LoadingNumber,ShipmentOrderID,LicensePlate,DepartureTS,OTDStatus,ConfirmedAt,CreatedBy,CreatedTS)
-        SELECT 'FG-PPT-RETURN-LOAD',ID,'PPT-FG-RETURN',DATEADD(day,-1,SYSDATETIME()),'OnTime',DATEADD(day,-1,SYSDATETIME()),@SeedBy,SYSDATETIME()
-        FROM @Orders WHERE Number='FG-PPT-SO-RETURN';
+    BEGIN
+        DECLARE @ReturnOrderID int=(SELECT ID FROM @Orders WHERE Number='FG-PPT-SO-RETURN');
+        DECLARE @ReturnPickID int,@ReturnJson nvarchar(max),@ReturnQty decimal(12,3);
+        SELECT @ReturnQty=SUM(S.Qty),@ReturnJson=(SELECT S2.StockID AS stockId,S2.ItemNo AS itemNo,L2.LotCode AS lotNo,
+            S2.StockNumber AS stockNumber,S2.Qty AS qty,S2.Location AS location
+            FROM dbo.FG_ShipmentOrderLine SL2 JOIN dbo.FG_Inventory S2 ON S2.StockID=SL2.StockID
+            LEFT JOIN dbo.tbl_Lot L2 ON L2.LotID=S2.LotID
+            WHERE SL2.ShipmentOrderID=@ReturnOrderID ORDER BY SL2.LineSeq FOR JSON PATH)
+        FROM dbo.FG_ShipmentOrderLine SL JOIN dbo.FG_Inventory S ON S.StockID=SL.StockID
+        WHERE SL.ShipmentOrderID=@ReturnOrderID;
+        INSERT dbo.FG_PickingFifo(PickNumber,ShipmentOrderID,PickerID,StartTS,EndTS,PicksJSON,PickedQty,OrderedQty,Status,CreatedBy,CreatedTS)
+        VALUES(CONCAT('PICK-RETURN-',RIGHT(REPLACE(CONVERT(varchar(36),NEWID()),'-',''),11)),@ReturnOrderID,'TEST1',
+               DATEADD(day,-1,SYSDATETIME()),DATEADD(day,-1,SYSDATETIME()),@ReturnJson,@ReturnQty,@ReturnQty,'Picked',@SeedBy,SYSDATETIME());
+        SET @ReturnPickID=CONVERT(int,SCOPE_IDENTITY());
+        INSERT dbo.FG_PickingDetail(PickID,ShipmentOrderLineID,StockID,LotID,ItemNo,Qty,Location,PickSeq,CreatedBy,CreatedTS)
+        SELECT @ReturnPickID,SL.ShipmentOrderLineID,S.StockID,S.LotID,S.ItemNo,S.Qty,S.Location,
+               ROW_NUMBER() OVER(ORDER BY SL.LineSeq,SL.ShipmentOrderLineID),@SeedBy,SYSDATETIME()
+        FROM dbo.FG_ShipmentOrderLine SL JOIN dbo.FG_Inventory S ON S.StockID=SL.StockID
+        WHERE SL.ShipmentOrderID=@ReturnOrderID;
+        INSERT dbo.FG_LoadingConfirm(LoadingNumber,ShipmentOrderID,PickID,LicensePlate,PalletsLoadedJSON,DepartureTS,OTDStatus,ConfirmedAt,CreatedBy,CreatedTS)
+        VALUES('FG-PPT-RETURN-LOAD',@ReturnOrderID,@ReturnPickID,'PPT-FG-RETURN',@ReturnJson,
+               DATEADD(day,-1,SYSDATETIME()),'OnTime',DATEADD(day,-1,SYSDATETIME()),@SeedBy,SYSDATETIME());
+    END;
     COMMIT TRANSACTION;
 END;
 GO
