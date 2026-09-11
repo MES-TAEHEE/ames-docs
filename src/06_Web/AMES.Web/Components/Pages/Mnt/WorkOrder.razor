@@ -4,12 +4,16 @@
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Contracts.Dto
 @using AMES.Data.Repositories
+@using AMES.Web.Services
 @using Radzen
 
 @attribute [Authorize]
 
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
 @inject MntRepository Mnt
 @inject MasterDataRepository MD
+@inject SysRepository Sys
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
@@ -30,6 +34,13 @@
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@OpenCount</div>
             <div class="ames-kpi-s">OPEN · ISSUED</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(UnassignedCount > 0 ? "warn" : "")">
+        <div class="ames-kpi-l">@L["MNT.WorkOrder.Kpi.Unassigned"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@UnassignedCount</div>
+            <div class="ames-kpi-s">@L["MNT.WorkOrder.Kpi.UnassignedSub"]</div>
         </div>
     </div>
     <div class="ames-kpi @(ProgCount > 0 ? "warn" : "")">
@@ -101,8 +112,8 @@
             <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="SourceType" Title="@L["Col.Source"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="dim">@SourceLabel(r.SourceType)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="AssignedTechId" Title="@L["Col.AssignedTech"]" TextAlign="TextAlign.Center" Width="120px">
-                <Template Context="r"><span class="dim">@(r.AssignedTechId ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="AssignedTechId" Title="@L["Col.AssignedTech"]" TextAlign="TextAlign.Center" Width="150px">
+                <Template Context="r"><span class="@(r.AssignedTechId is null ? "dim" : "")" style="white-space:nowrap;">@TechText(r.AssignedTechId)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="pill @StCls(r.Status)">@StatusLabel(r.Status)</span></Template>
@@ -126,9 +137,10 @@
     </RadzenDataGrid>
 </div>
 
-@* ── Detail Modal (읽기 전용) ─────────────────────────────────────── *@
+@* ── Detail Modal (읽기 + 배정·착수·완료 진입) ────────────────────── *@
 @if (_modal == "detail" && _sel is not null)
 {
+    var res = MntRepository.ParseResult(_sel.ResultJson);
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MNT.WorkOrder.Title"] <span class="dim" style="font-weight:400;font-size:.9em;">@WoNo(_sel)</span></div>
@@ -154,13 +166,17 @@
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Source"]" />
                     <RadzenTextBox Value="@SourceLabel(_sel.SourceType)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.SourceRef"]" />
+                    <RadzenTextBox Value="@(_sel.SourceRefId ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.AssignedTech"]" />
-                    <RadzenTextBox Value="@(_sel.AssignedTechId ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox Value="@(_sel.AssignedTechId is null ? "" : TechText(_sel.AssignedTechId))" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -194,8 +210,127 @@
                 </RadzenColumn>
             </RadzenRow>
 
+            <RadzenStack Orientation="Orientation.Vertical" Gap="2px" Style="margin-top:6px;">
+                <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.Desc"]" />
+                <RadzenTextArea Value="@(_sel.ActionDesc ?? "")" Disabled="true" Rows="2" class="ames-rz-input" Style="width:100%;" />
+            </RadzenStack>
+
+            @if (res is not null || !string.IsNullOrEmpty(_sel.PartsUsedJson))
+            {
+                <RadzenRow Gap="8px" Style="margin-top:6px;">
+                    <RadzenColumn Size="4">
+                        <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.Result"]" />
+                        <div style="padding-top:4px;"><span class="pill @ResultCls(res?.Result)">@ResultLabel(res?.Result)</span></div>
+                    </RadzenColumn>
+                    <RadzenColumn Size="8">
+                        <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.RootCause"]" />
+                        <RadzenTextBox Value="@(res?.RootCause ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    </RadzenColumn>
+                </RadzenRow>
+                <RadzenStack Orientation="Orientation.Vertical" Gap="2px" Style="margin-top:6px;">
+                    <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.Action"]" />
+                    <RadzenTextArea Value="@(res?.Action ?? "")" Disabled="true" Rows="2" class="ames-rz-input" Style="width:100%;" />
+                </RadzenStack>
+                <RadzenStack Orientation="Orientation.Vertical" Gap="2px" Style="margin-top:6px;">
+                    <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.Parts"]" />
+                    <RadzenTextBox Value="@PartsText(_sel.PartsUsedJson)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenStack>
+            }
+
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                @if (_canEdit && !IsDone(_sel.Status))
+                {
+                    <RadzenButton Text="@L["MNT.WorkOrder.Btn.Assign"]" Icon="person_add" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="@(() => OpenAssign(_sel))" class="ames-rz-btn" />
+                    @if (IsOpen(_sel.Status))
+                    {
+                        <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["MNT.WorkOrder.Btn.Start"])" Icon="play_arrow" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@(() => Start(_sel))" Disabled="@_busy" class="ames-rz-btn" />
+                    }
+                    <RadzenButton Text="@L["MNT.WorkOrder.Btn.Complete"]" Icon="task_alt" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => OpenComplete(_sel))" class="ames-rz-btn" />
+                }
                 <RadzenButton Text="@L["Btn.Close"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@* ── 배정 모달 ─────────────────────────────────────────────────────── *@
+@if (_modal == "assign" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MNT.WorkOrder.Modal.Assign"] <span class="dim" style="font-weight:400;font-size:.9em;margin-left:6px;">@WoNo(_sel)</span></div>
+            <div class="dim" style="font-size:10px;">@L["MNT.WorkOrder.Hint.Assign"]</div>
+
+            <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.Tech"]} *")' class="ames-rz-modal-label" Component="AssignDropDownTech" />
+                    <RadzenDropDown AllowFiltering="true" Name="AssignDropDownTech" @bind-Value="_f.TechId" Data="@TechOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+            </RadzenStack>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveAssign" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@(() => OpenDetail(_sel))" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@* ── 완료 모달 — 완료 시 고장 RESOLVED · PM 실시일/예정일 갱신 · 실행 이력 (MntRepository.CompleteWorkOrder) ── *@
+@if (_modal == "complete" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MNT.WorkOrder.Modal.Complete"] <span class="dim" style="font-weight:400;font-size:.9em;margin-left:6px;">@WoNo(_sel) · @EquipText(_sel.EquipId)</span></div>
+            <div class="dim" style="font-size:10px;">@L["MNT.WorkOrder.Hint.Complete"]</div>
+
+            <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.Result"]} *")' class="ames-rz-modal-label" Component="CompleteDropDownResult" />
+                    <RadzenDropDown Name="CompleteDropDownResult" @bind-Value="_f.Result" Data="@ResultOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.CompletedAt"]} *")' class="ames-rz-modal-label" Component="CompleteDateAt" />
+                    <RadzenDatePicker TValue="DateTime?" Name="CompleteDateAt" @bind-Value="_f.CompletedAt" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.Labor"]" class="ames-rz-modal-label" Component="CompleteNumericLabor" />
+                    <RadzenNumeric TValue="int?" Name="CompleteNumericLabor" @bind-Value="_f.LaborMinutes" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.Tech"]" class="ames-rz-modal-label" Component="CompleteDropDownTech" />
+                    <RadzenDropDown AllowFiltering="true" Name="CompleteDropDownTech" @bind-Value="_f.TechId" Data="@TechOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                @if (HasFailureSource(_sel))
+                {
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                        <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.RootCause"]" class="ames-rz-modal-label" Component="CompleteTextBoxRootCause" />
+                        <RadzenTextBox Name="CompleteTextBoxRootCause" @bind-Value="_f.RootCause" MaxLength="200" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    </RadzenStack>
+                }
+
+                <RadzenStack Orientation="Orientation.Vertical" Gap="2px" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.Action"]} *")' Component="CompleteTextAreaAction" Style="margin-bottom:6px;" />
+                    <RadzenTextArea Name="CompleteTextAreaAction" @bind-Value="_f.Action" MaxLength="500" Rows="3" class="ames-rz-input" Style="width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Vertical" Gap="2px" Style="width:100%;">
+                    <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.Parts"]" Component="CompleteTextAreaParts" Style="margin-bottom:6px;" />
+                    <RadzenTextArea Name="CompleteTextAreaParts" @bind-Value="_f.Parts" MaxLength="1000" Rows="2" Placeholder="@L["MNT.WorkOrder.Ph.Parts"]" class="ames-rz-input" Style="width:100%;" />
+                </RadzenStack>
+            </RadzenStack>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["MNT.WorkOrder.Btn.Complete"])" Click="@SaveComplete" Disabled="@_busy" Icon="task_alt" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@(() => OpenDetail(_sel))" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
     </div>
@@ -205,20 +340,24 @@
     IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
     int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
-    List<MntRepository.MwoRow>              _allRows   = new();
-    List<MntRepository.MwoRow>              _rows      = new();
-    List<MasterDataRepository.EquipmentRow> _equipList = new();
-    List<MasterDataRepository.CodeItemRow>  _typeItems = new();   // 공통코드 MWO_TYPE (PM/CM/PdM)
+    List<MntRepository.MwoRow>              _allRows     = new();
+    List<MntRepository.MwoRow>              _rows        = new();
+    List<MasterDataRepository.EquipmentRow> _equipList   = new();
+    List<MasterDataRepository.CodeItemRow>  _typeItems   = new();   // 공통코드 MWO_TYPE (PM/CM/PdM)
+    List<MasterDataRepository.CodeItemRow>  _resultItems = new();   // 공통코드 MWO_RESULT (OK/PARTIAL/FOLLOWUP)
+    List<SysRepository.UserRow>             _users       = new();   // 담당자 후보 = 웹 사용자 (PM 일정의 AssignedTechID 와 같은 기준)
     MntRepository.MwoRow? _sel;
 
     string  _fSearch = "";
     string? _fStatus, _fType, _fPriority;
     int     _topN = 100;
-    string  _modal = "", _msg = "";
-    bool    _bgMouseDownOnSelf, _isErr;
+    string  _modal = "", _msg = "", _modalErr = "";
+    bool    _bgMouseDownOnSelf, _isErr, _busy, _canEdit;
+    string  _actor = "system";
+    FormModel _f = new();
 
-    // 상태·유형·우선순위는 공통코드 그룹이 없어 발행 코드가 쓰는 값을 정본으로 두고, 데이터에만 있는 값을 뒤에 붙인다
-    static readonly string[] StatusCodes   = { "OPEN", "ISSUED", "IN_PROGRESS", "COMPLETED", "CLOSED" };
+    // 상태·우선순위는 공통코드 그룹이 없어 발행 코드가 쓰는 값을 정본으로 두고, 데이터에만 있는 값을 뒤에 붙인다
+    static readonly string[] StatusCodes   = { MwoStatusCodes.Open, MwoStatusCodes.Issued, MwoStatusCodes.InProgress, MwoStatusCodes.Completed, MwoStatusCodes.Closed };
     static readonly string[] PriorityCodes = { "URGENT", "HIGH", "MED", "LOW" };
     static readonly int[]    TopNs         = { 50, 100, 200, 500 };
     static readonly MarkupString Dash = new("<span class=\"dim\">—</span>");
@@ -233,19 +372,31 @@
         .Concat(_allRows.Select(r => r.WoType).Where(t => t is { Length: > 0 } && !_typeItems.Any(c => c.CodeValue == t)).Distinct().Select(t => new DropDownItem { Value = t!, Text = $"[{t}]" }));
     IEnumerable<DropDownItem> PriorityFilterOptions => WithDataValues(PriorityCodes, _allRows.Select(r => r.Priority), p => p ?? "");
     IEnumerable<TopNItem>     TopNOptions           => TopNs.Select(n => new TopNItem { Value = n, Text = $"{n}{L["Lbl.Items"]}" });
+    IEnumerable<DropDownItem> ResultOptions =>
+        _resultItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    IEnumerable<DropDownItem> TechOptions => _users.Where(u => !string.IsNullOrEmpty(u.EmployeeName) || !string.IsNullOrEmpty(u.UserName))
+        .Select(u => new DropDownItem { Value = u.UserId, Text = TechText(u.UserId) });
 
     static IEnumerable<DropDownItem> WithDataValues(string[] codes, IEnumerable<string?> data, Func<string?, string> label) =>
         codes.Concat(data.Where(v => v is { Length: > 0 } && !codes.Contains(v)).Distinct()!)
              .Select(c => new DropDownItem { Value = c!, Text = $"[{c}] {label(c)}" });
 
-    int OpenCount => _allRows.Count(r => IsOpen(r.Status));
-    int ProgCount => _allRows.Count(r => IsProg(r.Status));
-    int DoneCount => _allRows.Count(r => IsDone(r.Status));
+    int OpenCount       => _allRows.Count(r => IsOpen(r.Status));
+    int ProgCount       => _allRows.Count(r => IsProg(r.Status));
+    int DoneCount       => _allRows.Count(r => IsDone(r.Status));
+    int UnassignedCount => _allRows.Count(r => !IsDone(r.Status) && string.IsNullOrEmpty(r.AssignedTechId));
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        try { _equipList = MD.ListEquipments(); } catch { }
-        try { _typeItems = MD.ListCodeItems(MwoTypeCodes.Group); } catch { }
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("mnt/work-order");
+
+        try { _equipList   = MD.ListEquipments(); } catch { }
+        try { _typeItems   = MD.ListCodeItems(MwoTypeCodes.Group); } catch { }
+        try { _resultItems = MD.ListCodeItems(MwoResultCodes.Group); } catch { }
+        try { _users       = Sys.ListUsers(500); } catch { }
         Reload();
     }
 
@@ -273,7 +424,7 @@
             WoNo(r).Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.EquipId ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             EquipName(r.EquipId).Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-            (r.AssignedTechId ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+            TechText(r.AssignedTechId).Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fStatus)   || r.Status   == _fStatus) &&
         (string.IsNullOrEmpty(_fType)     || r.WoType   == _fType) &&
         (string.IsNullOrEmpty(_fPriority) || r.Priority == _fPriority)
@@ -297,12 +448,119 @@
         if (args.Data is not null) OpenDetail(args.Data);
     }
 
-    void OpenDetail(MntRepository.MwoRow r) { _sel = r; _modal = "detail"; }
+    void OpenDetail(MntRepository.MwoRow? r) { if (r is null) return; _sel = r; _modal = "detail"; _modalErr = ""; }
 
-    void CloseModal() { _modal = ""; _sel = null; }
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; }
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    // ── 배정 · 착수 · 완료 ─────────────────────────────────────────────
+    void OpenAssign(MntRepository.MwoRow? r)
+    {
+        if (r is null || !_canEdit) return;
+        _sel = r; _f = new() { TechId = r.AssignedTechId ?? "" }; _modalErr = "";
+        _modal = "assign";
+    }
+
+    async Task SaveAssign()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.TechId)) { _modalErr = L["MNT.WorkOrder.Err.TechRequired"]; return; }
+        _busy = true;
+        try
+        {
+            Mnt.AssignWorkOrder(_sel.WorkOrderId, _f.TechId, _actor);
+            ShowMsg(string.Format(L["MNT.WorkOrder.Ok.Assigned"].Value, WoNo(_sel), TechText(_f.TechId)), false);
+            await AfterChange(_sel.WorkOrderId);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    async Task Start(MntRepository.MwoRow? r)
+    {
+        if (r is null || !_canEdit) return;
+        _busy = true;
+        try
+        {
+            Mnt.StartWorkOrder(r.WorkOrderId, _actor);
+            ShowMsg(string.Format(L["MNT.WorkOrder.Ok.Started"].Value, WoNo(r)), false);
+            await AfterChange(r.WorkOrderId);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void OpenComplete(MntRepository.MwoRow? r)
+    {
+        if (r is null || !_canEdit) return;
+        _sel = r; _modalErr = "";
+        _f = new()
+        {
+            Result = MwoResultCodes.Ok, CompletedAt = DateTime.Now, TechId = r.AssignedTechId ?? "",
+            // 착수 시각이 있으면 소요 시간 기본값 = 착수 → 지금
+            LaborMinutes = r.StartedAt is { } st && st < DateTime.Now ? (int)Math.Round((DateTime.Now - st).TotalMinutes) : null,
+        };
+        _modal = "complete";
+    }
+
+    async Task SaveComplete()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.Result))     { _modalErr = L["MNT.WorkOrder.Err.ResultRequired"]; return; }
+        if (_f.CompletedAt is null)                   { _modalErr = L["MNT.WorkOrder.Err.CompletedRequired"]; return; }
+        if (_sel.IssuedAt is { } iss && _f.CompletedAt < iss) { _modalErr = L["MNT.WorkOrder.Err.CompletedBefore"]; return; }
+        if (_f.LaborMinutes is < 0)                   { _modalErr = L["MNT.WorkOrder.Err.LaborInvalid"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.Action))     { _modalErr = L["MNT.WorkOrder.Err.ActionRequired"]; return; }
+
+        _busy = true;
+        try
+        {
+            var o = Mnt.CompleteWorkOrder(_sel.WorkOrderId, _f.Result, _f.Action.Trim(), NE(_f.RootCause), _f.LaborMinutes,
+                NE(_f.Parts), _f.CompletedAt.Value, NE(_f.TechId), _actor);
+            ShowMsg(CompleteMsg(o), false);
+            await AfterChange(_sel.WorkOrderId);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    // 완료 메시지: WO 완료 + 역방향으로 닫힌 고장 · 갱신된 PM · 발행된 다음 WO
+    string CompleteMsg(MntRepository.WoCompleteOutcome o)
+    {
+        var parts = new List<string> { string.Format(L["MNT.WorkOrder.Ok.Completed"].Value, o.WoNumber) };
+        if (o.FailureNumber is not null) parts.Add(string.Format(L["MNT.WorkOrder.Ok.FailureResolved"].Value, o.FailureNumber));
+        if (o.PmPlanNumber  is not null) parts.Add(o.PmNextDue is { } nd
+            ? string.Format(L["MNT.WorkOrder.Ok.PmAdvanced"].Value, o.PmPlanNumber, nd.ToString(DateFmt.Date))
+            : string.Format(L["MNT.WorkOrder.Ok.PmDone"].Value, o.PmPlanNumber));
+        if (o.NextWoNumber  is not null) parts.Add(string.Format(L["MNT.WorkOrder.Ok.NextWo"].Value, o.NextWoNumber));
+        return string.Join(" · ", parts);
+    }
+
+    // 저장 뒤 목록을 다시 읽고 같은 WO 의 상세를 다시 연다(갱신된 상태·시각이 바로 보이게)
+    async Task AfterChange(int woId)
+    {
+        Reload();
+        var again = _allRows.FirstOrDefault(r => r.WorkOrderId == woId);
+        if (again is not null) OpenDetail(again); else CloseModal();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+    class FormModel
+    {
+        public string    TechId       { get; set; } = "";
+        public string    Result       { get; set; } = "";
+        public DateTime? CompletedAt  { get; set; }
+        public int?      LaborMinutes { get; set; }
+        public string    RootCause    { get; set; } = "";
+        public string    Action       { get; set; } = "";
+        public string    Parts        { get; set; } = "";
+    }
 
     // 현재 조회 결과(필터 적용분)를 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로
     async Task ExportXlsx()
@@ -319,7 +577,7 @@
         var data = _rows.Select(r => (IReadOnlyList<object?>)new object?[]
         {
             WoNo(r), TypeLabel(r.WoType), r.EquipId, EquipName(r.EquipId),
-            r.Priority, SourceLabel(r.SourceType), r.AssignedTechId, StatusLabel(r.Status),
+            r.Priority, SourceLabel(r.SourceType), r.AssignedTechId is null ? null : TechText(r.AssignedTechId), StatusLabel(r.Status),
             r.IssuedAt?.ToString(DateFmt.DateTime), r.StartedAt?.ToString(DateFmt.DateTime), r.CompletedAt?.ToString(DateFmt.DateTime),
             r.LaborMinutes, $"{r.TaskDone} / {r.TaskCount}",
         });
@@ -334,7 +592,7 @@
     void ShowMsg(string msg, bool isErr)
     {
         _msg = msg; _isErr = isErr;
-        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+        _ = Task.Delay(6000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
 
     // ── 표시 헬퍼 ─────────────────────────────────────────────────────
@@ -344,20 +602,26 @@
         id is null ? "—" : _equipList.FirstOrDefault(e => e.EquipID == id)?.EquipName is { Length: > 0 } n ? n : "—";
     string EquipText(string? id) =>
         id is null ? "" : EquipName(id) is var n && n != "—" ? $"[{id}] {n}" : $"[{id}]";
+    // 담당자 = AspNetUsers.Id → [사번] 이름. 사용자 목록에 없는 값(구 데이터)은 그대로
+    string TechText(string? id) =>
+        string.IsNullOrEmpty(id) ? "—" : _users.FirstOrDefault(u => u.UserId == id) is { } u
+            ? (string.IsNullOrEmpty(u.EmployeeNo) ? (u.EmployeeName ?? u.UserName ?? id) : $"[{u.EmployeeNo}] {u.EmployeeName ?? u.UserName}") : id;
 
-    static bool IsOpen(string? s) => s is "OPEN" or "ISSUED";
-    static bool IsProg(string? s) => s == "IN_PROGRESS";
-    static bool IsDone(string? s) => s is "COMPLETED" or "CLOSED";
+    static bool IsOpen(string? s) => s is MwoStatusCodes.Open or MwoStatusCodes.Issued;
+    static bool IsProg(string? s) => s == MwoStatusCodes.InProgress;
+    static bool IsDone(string? s) => s is MwoStatusCodes.Completed or MwoStatusCodes.Closed;
+    // 고장·안돈 원천이면 완료 모달에 근본 원인 칸을 보인다
+    static bool HasFailureSource(MntRepository.MwoRow r) => r.SourceType is "FAILURE" or "ANDON" || r.WoType == MwoTypeCodes.Cm;
 
     string StatusLabel(string? s) => s switch
     {
-        null          => "—",
-        "OPEN"        => L["MNT.WorkOrder.St.Open"],
-        "ISSUED"      => L["MNT.WorkOrder.St.Issued"],
-        "IN_PROGRESS" => L["MNT.WorkOrder.InProgress"],
-        "COMPLETED"   => L["MNT.WorkOrder.Completed"],
-        "CLOSED"      => L["MNT.WorkOrder.St.Closed"],
-        _             => s,
+        null                      => "—",
+        MwoStatusCodes.Open       => L["MNT.WorkOrder.St.Open"],
+        MwoStatusCodes.Issued     => L["MNT.WorkOrder.St.Issued"],
+        MwoStatusCodes.InProgress => L["MNT.WorkOrder.InProgress"],
+        MwoStatusCodes.Completed  => L["MNT.WorkOrder.Completed"],
+        MwoStatusCodes.Closed     => L["MNT.WorkOrder.St.Closed"],
+        _                         => s,
     };
     static string StCls(string? s) => IsOpen(s) ? "bad" : IsProg(s) ? "warn" : IsDone(s) ? "ok" : "mute";
 
@@ -365,6 +629,18 @@
     string TypeLabel(string? t) =>
         t is null ? "—" : _typeItems.FirstOrDefault(c => c.CodeValue == t) is { } c ? MasterDataRepository.LocalName(c) : t;
     static string TypeCls(string? t) => t switch { MwoTypeCodes.Pm => "info", MwoTypeCodes.Cm => "orange", MwoTypeCodes.PdM => "ok", _ => "mute" };
+
+    string ResultLabel(string? c) =>
+        c is null ? "—" : _resultItems.FirstOrDefault(x => x.CodeValue == c) is { } i ? MasterDataRepository.LocalName(i) : c;
+    static string ResultCls(string? c) => c switch { MwoResultCodes.Ok => "ok", MwoResultCodes.Partial => "warn", MwoResultCodes.FollowUp => "bad", _ => "mute" };
+
+    // PartsUsedJSON = 문자열 배열. 다른 형식(구 데이터)이면 원문
+    static string PartsText(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return "";
+        try { return string.Join(", ", System.Text.Json.JsonSerializer.Deserialize<string[]>(json) ?? Array.Empty<string>()); }
+        catch { return json; }
+    }
 
     string SourceLabel(string? s) => s switch
     {

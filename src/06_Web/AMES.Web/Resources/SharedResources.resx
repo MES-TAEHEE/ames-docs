@@ -7593,4 +7593,133 @@
   <data name="PP.PurchaseReq.Col.ApprovedAt" xml:space="preserve">
     <value>승인일시</value>
   </data>
+  <data name="MNT.WorkOrder.Kpi.Unassigned" xml:space="preserve">
+    <value>미배정</value>
+  </data>
+  <data name="MNT.WorkOrder.Kpi.UnassignedSub" xml:space="preserve">
+    <value>진행 전 · 담당자 없음</value>
+  </data>
+  <data name="MNT.WorkOrder.Btn.Assign" xml:space="preserve">
+    <value>배정</value>
+  </data>
+  <data name="MNT.WorkOrder.Btn.Start" xml:space="preserve">
+    <value>착수</value>
+  </data>
+  <data name="MNT.WorkOrder.Btn.Complete" xml:space="preserve">
+    <value>완료</value>
+  </data>
+  <data name="MNT.WorkOrder.Modal.Assign" xml:space="preserve">
+    <value>담당자 배정</value>
+  </data>
+  <data name="MNT.WorkOrder.Modal.Complete" xml:space="preserve">
+    <value>정비 완료</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.Tech" xml:space="preserve">
+    <value>담당자</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.Result" xml:space="preserve">
+    <value>결과</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.CompletedAt" xml:space="preserve">
+    <value>완료 시각</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.Labor" xml:space="preserve">
+    <value>소요 시간(분)</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.Action" xml:space="preserve">
+    <value>조치 내용</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.RootCause" xml:space="preserve">
+    <value>근본 원인</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.Parts" xml:space="preserve">
+    <value>사용 부품</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.Desc" xml:space="preserve">
+    <value>작업 내용</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.SourceRef" xml:space="preserve">
+    <value>원천 참조</value>
+  </data>
+  <data name="MNT.WorkOrder.Ph.Parts" xml:space="preserve">
+    <value>부품번호 또는 명칭을 쉼표·줄바꿈으로 구분</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.Assign" xml:space="preserve">
+    <value>담당자는 웹 사용자 중에서 고릅니다. PM 에서 발행된 작업지시는 PM 일정의 담당자도 함께 바뀝니다.</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.Complete" xml:space="preserve">
+    <value>완료하면 연결된 고장은 해결(RESOLVED)로 닫히고, PM 은 마지막 실시일·다음 예정일이 갱신되며 실행 이력이 남습니다. 기간 주기 PM 은 다음 작업지시가 자동 발행됩니다.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.TechRequired" xml:space="preserve">
+    <value>담당자를 선택하세요.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.ResultRequired" xml:space="preserve">
+    <value>결과를 선택하세요.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.ActionRequired" xml:space="preserve">
+    <value>조치 내용을 입력하세요.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.CompletedRequired" xml:space="preserve">
+    <value>완료 시각을 입력하세요.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.CompletedBefore" xml:space="preserve">
+    <value>완료 시각이 발행 시각보다 앞섭니다.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.LaborInvalid" xml:space="preserve">
+    <value>소요 시간은 0 이상이어야 합니다.</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.Assigned" xml:space="preserve">
+    <value>{0} 담당자를 {1} (으)로 배정했습니다.</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.Started" xml:space="preserve">
+    <value>{0} 착수 처리했습니다.</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.Completed" xml:space="preserve">
+    <value>{0} 완료 처리했습니다.</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.FailureResolved" xml:space="preserve">
+    <value>고장 {0} 해결</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.PmAdvanced" xml:space="preserve">
+    <value>PM {0} 다음 예정일 {1}</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.PmDone" xml:space="preserve">
+    <value>PM {0} 완료</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.NextWo" xml:space="preserve">
+    <value>다음 작업지시 {0} 발행</value>
+  </data>
+  <data name="MNT.Failure.Btn.Resolve" xml:space="preserve">
+    <value>수리 완료</value>
+  </data>
+  <data name="MNT.Failure.Modal.Resolve" xml:space="preserve">
+    <value>수리 완료</value>
+  </data>
+  <data name="MNT.Failure.Hint.Resolve" xml:space="preserve">
+    <value>연결된 작업지시가 열려 있으면 함께 완료 처리되고, 근본 원인과 조치는 조치 이력에 기록됩니다.</value>
+  </data>
+  <data name="MNT.Failure.Err.RootCauseRequired" xml:space="preserve">
+    <value>근본 원인을 입력하세요.</value>
+  </data>
+  <data name="MNT.Failure.Ok.Resolved" xml:space="preserve">
+    <value>고장 {0} 을(를) 해결 처리했습니다.</value>
+  </data>
+  <data name="MNT.Failure.Ok.ResolvedWo" xml:space="preserve">
+    <value>고장 {0} 을(를) 해결하고 작업지시 {1} 을(를) 완료했습니다.</value>
+  </data>
+  <data name="MNT.PmSchedule.Btn.Complete" xml:space="preserve">
+    <value>완료 처리</value>
+  </data>
+  <data name="MNT.PmSchedule.Modal.Complete" xml:space="preserve">
+    <value>PM 완료</value>
+  </data>
+  <data name="MNT.PmSchedule.Hint.Complete" xml:space="preserve">
+    <value>마지막 실시일이 완료일로 바뀌고, 기간 주기면 다음 예정일이 주기만큼 미뤄지며 다음 작업지시가 발행됩니다. 연결된 작업지시는 완료 처리됩니다.</value>
+  </data>
+  <data name="MNT.PmSchedule.Lbl.Note" xml:space="preserve">
+    <value>비고</value>
+  </data>
+  <data name="MNT.PmSchedule.Ok.Completed" xml:space="preserve">
+    <value>PM {0} 완료 처리했습니다.</value>
+  </data>
 </root>

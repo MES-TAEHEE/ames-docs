@@ -218,10 +218,53 @@
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 @if (_canEdit)
                 {
-                    <RadzenButton Text="@L["Btn.Edit"]" Icon="edit" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => OpenEdit(d))" class="ames-rz-btn" />
+                    <RadzenButton Text="@L["MNT.PmSchedule.Btn.Complete"]" Icon="task_alt" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => OpenComplete(d))" class="ames-rz-btn" />
+                    <RadzenButton Text="@L["Btn.Edit"]" Icon="edit" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="@(() => OpenEdit(d))" class="ames-rz-btn" />
                 }
                 <RadzenButton Text="@L["MNT.Dashboard.Tile.Wo"]" Icon="list" ButtonStyle="ButtonStyle.Info" Size="ButtonSize.Small" Click='() => Nav.NavigateTo("/mnt/work-order")' class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="() => _showDetail = false" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@* ── PM 완료 모달 — 실행 이력 + 마지막 실시일/다음 예정일 갱신 + 활성 작업지시 완료 (MntRepository.CompletePm) ── *@
+@if (_modal == "complete" && _cpm is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MNT.PmSchedule.Modal.Complete"] <span class="dim" style="font-weight:400;font-size:.9em;margin-left:6px;">@(_cpm.PmPlanNumber ?? $"PM#{_cpm.PmScheduleId}") · @EquipText(_cpm.EquipId)</span></div>
+            <div class="dim" style="font-size:10px;">@L["MNT.PmSchedule.Hint.Complete"]</div>
+
+            <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.Result"]} *")' class="ames-rz-modal-label" Component="PmCompleteDropDownResult" />
+                    <RadzenDropDown Name="PmCompleteDropDownResult" @bind-Value="_c.Result" Data="@CodeOptions(_results)" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.CompletedAt"]} *")' class="ames-rz-modal-label" Component="PmCompleteDateAt" />
+                    <RadzenDatePicker TValue="DateTime?" Name="PmCompleteDateAt" @bind-Value="_c.CompletedAt" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.Labor"]" class="ames-rz-modal-label" Component="PmCompleteNumericLabor" />
+                    <RadzenNumeric TValue="int?" Name="PmCompleteNumericLabor" @bind-Value="_c.LaborMinutes" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenLabel Text="@L["MNT.PmSchedule.Lbl.Tech"]" class="ames-rz-modal-label" Component="PmCompleteDropDownTech" />
+                    <RadzenDropDown AllowFiltering="true" Name="PmCompleteDropDownTech" @bind-Value="_c.TechId" Data="@TechOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Vertical" Gap="2px" Style="width:100%;">
+                    <RadzenLabel Text="@L["MNT.PmSchedule.Lbl.Note"]" Component="PmCompleteTextAreaNote" Style="margin-bottom:6px;" />
+                    <RadzenTextArea Name="PmCompleteTextAreaNote" @bind-Value="_c.Note" MaxLength="500" Rows="3" class="ames-rz-input" Style="width:100%;" />
+                </RadzenStack>
+            </RadzenStack>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["MNT.PmSchedule.Btn.Complete"])" Click="@SaveComplete" Disabled="@_busy" Icon="task_alt" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
     </div>
@@ -330,6 +373,7 @@
     List<MasterDataRepository.CodeItemRow>  _pmClasses  = new();   // 공통코드 PM_CLASS
     List<MasterDataRepository.CodeItemRow>  _cycleBases = new();   // 공통코드 PM_CYCLE_BASIS
     List<MasterDataRepository.CodeItemRow>  _pmStatuses = new();   // 공통코드 PM_STATUS
+    List<MasterDataRepository.CodeItemRow>  _results    = new();   // 공통코드 MWO_RESULT (완료 결과)
 
     int _calYear  = DateTime.Today.Year;
     int _calMonth = DateTime.Today.Month;
@@ -343,9 +387,11 @@
     bool      _showDetail;
     PmEvent?  _detail;
 
-    string _modal = "";   // "" | "create" | "edit"
+    string _modal = "";   // "" | "create" | "edit" | "complete"
     int?   _editId;
     FormModel _f = new();
+    MntRepository.PmRow? _cpm;   // 완료 모달 대상
+    CompleteModel _c = new();
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
     // 설비 콤보: 마스터(MD_Equipment) 기준 [ID] 명칭 — 다른 MNT 화면과 같은 규칙
@@ -379,6 +425,7 @@
         try { _pmClasses   = MD.ListCodeItems("PM_CLASS"); } catch { }
         try { _cycleBases  = MD.ListCodeItems("PM_CYCLE_BASIS"); } catch { }
         try { _pmStatuses  = MD.ListCodeItems("PM_STATUS"); } catch { }
+        try { _results     = MD.ListCodeItems(AMES.Contracts.Dto.MwoResultCodes.Group); } catch { }
         Reload();
 
         // 이번 달에 PM 이 하나도 없으면 데이터가 있는 가장 최근 달로 이동
@@ -466,8 +513,53 @@
         _modal = "edit";
     }
 
-    void CloseModal() { _modal = ""; _editId = null; _modalErr = ""; _confirmDelete = false; }
+    void CloseModal() { _modal = ""; _editId = null; _modalErr = ""; _confirmDelete = false; _cpm = null; }
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+
+    // ── 완료 처리 — 활성 작업지시가 있으면 그 완료로, 없으면(구 데이터) 실행 이력·예정일만 ──
+    void OpenComplete(MntRepository.PmRow p)
+    {
+        if (!_canEdit) return;
+        _showDetail = false;
+        _cpm = p; _modalErr = "";
+        _c = new() { Result = AMES.Contracts.Dto.MwoResultCodes.Ok, CompletedAt = DateTime.Now, TechId = p.AssignedTechId ?? "" };
+        _modal = "complete";
+    }
+
+    void SaveComplete()
+    {
+        if (_cpm is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_c.Result)) { _modalErr = L["MNT.WorkOrder.Err.ResultRequired"]; return; }
+        if (_c.CompletedAt is null)               { _modalErr = L["MNT.WorkOrder.Err.CompletedRequired"]; return; }
+        if (_c.LaborMinutes is < 0)               { _modalErr = L["MNT.WorkOrder.Err.LaborInvalid"]; return; }
+
+        _busy = true;
+        try
+        {
+            var planNo = _cpm.PmPlanNumber ?? $"PM#{_cpm.PmScheduleId}";
+            var o = Mnt.CompletePm(_cpm.PmScheduleId, _c.Result, NE(_c.Note), _c.LaborMinutes, _c.CompletedAt.Value, NE(_c.TechId), _actor);
+            var parts = new List<string> { string.Format(L["MNT.PmSchedule.Ok.Completed"].Value, planNo) };
+            if (o.WoNumber is { Length: > 0 }) parts.Add(string.Format(L["MNT.WorkOrder.Ok.Completed"].Value, o.WoNumber));
+            if (o.PmNextDue is { } nd)         parts.Add(string.Format(L["MNT.WorkOrder.Ok.PmAdvanced"].Value, planNo, nd.ToString(DateFmt.Date)));
+            if (o.NextWoNumber is not null)    parts.Add(string.Format(L["MNT.WorkOrder.Ok.NextWo"].Value, o.NextWoNumber));
+            ShowMsg(string.Join(" · ", parts), false);
+            // 완료일의 달로 이동해 완료 칩이 바로 보이게
+            _calYear = _c.CompletedAt.Value.Year; _calMonth = _c.CompletedAt.Value.Month;
+            CloseModal(); Reload();
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    class CompleteModel
+    {
+        public string    Result       { get; set; } = "";
+        public DateTime? CompletedAt  { get; set; }
+        public int?      LaborMinutes { get; set; }
+        public string    TechId       { get; set; } = "";
+        public string    Note         { get; set; } = "";
+    }
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
     void Save()

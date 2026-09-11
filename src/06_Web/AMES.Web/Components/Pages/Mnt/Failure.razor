@@ -107,9 +107,9 @@
             <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="ResolvedAt" Title="@L["Col.Resolved"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="dim">@(r.ResolvedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="WorkOrderId" Title="@L["Col.MwoNo"]" TextAlign="TextAlign.Center" Width="150px">
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="WoNumber" Title="@L["Col.MwoNo"]" TextAlign="TextAlign.Center" Width="150px">
                 <Template Context="r">
-                    @if (r.WorkOrderId is { } wo) { <span class="pill orange">@wo</span> } else { <span class="dim">—</span> }
+                    @if (r.WorkOrderId is { } wo) { <span class="pill @WoCls(r.WoStatus)">@(r.WoNumber ?? $"#{wo}")</span> } else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
         </Columns>
@@ -175,7 +175,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.MwoNo"]" />
-                    <RadzenTextBox Value="@(_sel.WorkOrderId?.ToString() ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox Value="@(_sel.WorkOrderId is { } wo ? $"{_sel.WoNumber ?? $"#{wo}"} · {_sel.WoStatus ?? ""}" : "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["MNT.Failure.Col.AndonRef"]" />
@@ -195,9 +195,53 @@
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 @if (_canEdit)
                 {
-                    <RadzenButton Text="@L["Btn.Edit"]" Icon="edit" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => OpenEdit(_sel))" class="ames-rz-btn" />
+                    @if (!IsRes(_sel.Status))
+                    {
+                        <RadzenButton Text="@L["MNT.Failure.Btn.Resolve"]" Icon="task_alt" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => OpenResolve(_sel))" class="ames-rz-btn" />
+                    }
+                    <RadzenButton Text="@L["Btn.Edit"]" Icon="edit" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="@(() => OpenEdit(_sel))" class="ames-rz-btn" />
                 }
                 <RadzenButton Text="@L["Btn.Close"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@* ── 수리 완료 모달 — 고장 RESOLVED + 조치 이력, 열린 작업지시가 있으면 함께 완료 (MntRepository.ResolveFailure) ── *@
+@if (_modal == "resolve" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MNT.Failure.Modal.Resolve"] <span class="dim" style="font-weight:400;font-size:.9em;margin-left:6px;">@FailNo(_sel) · @EquipText(_sel)</span></div>
+            <div class="dim" style="font-size:10px;">@L["MNT.Failure.Hint.Resolve"]</div>
+
+            <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.CompletedAt"]} *")' class="ames-rz-modal-label" Component="ResolveDateAt" />
+                    <RadzenDatePicker TValue="DateTime?" Name="ResolveDateAt" @bind-Value="_r.ResolvedAt" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.Labor"]" class="ames-rz-modal-label" Component="ResolveNumericLabor" />
+                    <RadzenNumeric TValue="int?" Name="ResolveNumericLabor" @bind-Value="_r.LaborMinutes" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.RootCause"]} *")' class="ames-rz-modal-label" Component="ResolveTextBoxRootCause" />
+                    <RadzenTextBox Name="ResolveTextBoxRootCause" @bind-Value="_r.RootCause" MaxLength="200" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Vertical" Gap="2px" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.Action"]} *")' Component="ResolveTextAreaAction" Style="margin-bottom:6px;" />
+                    <RadzenTextArea Name="ResolveTextAreaAction" @bind-Value="_r.Action" MaxLength="500" Rows="3" class="ames-rz-input" Style="width:100%;" />
+                </RadzenStack>
+            </RadzenStack>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["MNT.Failure.Btn.Resolve"])" Click="@SaveResolve" Disabled="@_busy" Icon="task_alt" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@(() => OpenDetail(_sel))" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
     </div>
@@ -391,9 +435,57 @@
         if (args.Data is not null) OpenDetail(args.Data);
     }
 
-    void OpenDetail(MntRepository.FailureRow r) { _sel = r; _modal = "detail"; }
+    void OpenDetail(MntRepository.FailureRow? r) { if (r is null) return; _sel = r; _modal = "detail"; _modalErr = ""; }
 
     void CloseModal() { _modal = ""; _sel = null; _editId = null; _modalErr = ""; _confirmDelete = false; }
+
+    // ── 수리 완료 ────────────────────────────────────────────────────────
+    ResolveModel _r = new();
+
+    void OpenResolve(MntRepository.FailureRow? r)
+    {
+        if (r is null || !_canEdit) return;
+        _sel = r; _modalErr = "";
+        _r = new() { ResolvedAt = DateTime.Now };
+        _modal = "resolve";
+    }
+
+    async Task SaveResolve()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        if (_r.ResolvedAt is null)                       { _modalErr = L["MNT.WorkOrder.Err.CompletedRequired"]; return; }
+        if (_sel.ReportedAt is { } rep && _r.ResolvedAt < rep) { _modalErr = L["MNT.Failure.Err.ResolvedBefore"]; return; }
+        if (_r.LaborMinutes is < 0)                      { _modalErr = L["MNT.WorkOrder.Err.LaborInvalid"]; return; }
+        if (string.IsNullOrWhiteSpace(_r.RootCause))     { _modalErr = L["MNT.Failure.Err.RootCauseRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_r.Action))        { _modalErr = L["MNT.WorkOrder.Err.ActionRequired"]; return; }
+
+        _busy = true;
+        try
+        {
+            var (failNo, woNo) = Mnt.ResolveFailure(_sel.FailureId, _r.RootCause.Trim(), _r.Action.Trim(), _r.ResolvedAt.Value, _r.LaborMinutes, _actor);
+            ShowMsg(woNo is null ? string.Format(L["MNT.Failure.Ok.Resolved"].Value, failNo)
+                                 : string.Format(L["MNT.Failure.Ok.ResolvedWo"].Value, failNo, woNo), false);
+            var id = _sel.FailureId;
+            CloseModal(); Reload();
+            // 갱신된 상태로 상세를 다시 연다
+            var again = _allRows.FirstOrDefault(x => x.FailureId == id);
+            if (again is not null) OpenDetail(again);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    class ResolveModel
+    {
+        public DateTime? ResolvedAt   { get; set; }
+        public int?      LaborMinutes { get; set; }
+        public string    RootCause    { get; set; } = "";
+        public string    Action       { get; set; } = "";
+    }
+
+    static string WoCls(string? woStatus) => woStatus is "COMPLETED" or "CLOSED" ? "ok" : woStatus == "IN_PROGRESS" ? "warn" : "orange";
 
     // ── 등록 / 수정 / 삭제 ─────────────────────────────────────────────
     void OpenCreate()
@@ -517,7 +609,7 @@
             FailNo(r), r.EquipId, r.EquipName, r.LineId,
             TypeName(r.FailureType), r.Symptom, SeverityLabel(r.Severity), SourceName(r.Source),
             StatusLabel(r.Status), r.ReportedAt?.ToString(DateFmt.DateTime), r.ResolvedAt?.ToString(DateFmt.DateTime), r.ReportedBy,
-            r.WorkOrderId, r.AndonRefId, r.DowntimeId,
+            r.WoNumber ?? r.WorkOrderId?.ToString(), r.AndonRefId, r.DowntimeId,
         });
 
         var bytes = AMES.Web.Services.XlsxWriter.Build(L["MNT.Failure.Title"].Value, headers, data);

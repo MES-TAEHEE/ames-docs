@@ -7593,4 +7593,133 @@
   <data name="PP.PurchaseReq.Col.ApprovedAt" xml:space="preserve">
     <value>Approved At</value>
   </data>
+  <data name="MNT.WorkOrder.Kpi.Unassigned" xml:space="preserve">
+    <value>Unassigned</value>
+  </data>
+  <data name="MNT.WorkOrder.Kpi.UnassignedSub" xml:space="preserve">
+    <value>open · no technician</value>
+  </data>
+  <data name="MNT.WorkOrder.Btn.Assign" xml:space="preserve">
+    <value>Assign</value>
+  </data>
+  <data name="MNT.WorkOrder.Btn.Start" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="MNT.WorkOrder.Btn.Complete" xml:space="preserve">
+    <value>Complete</value>
+  </data>
+  <data name="MNT.WorkOrder.Modal.Assign" xml:space="preserve">
+    <value>Assign Technician</value>
+  </data>
+  <data name="MNT.WorkOrder.Modal.Complete" xml:space="preserve">
+    <value>Complete Maintenance</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.Tech" xml:space="preserve">
+    <value>Technician</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.Result" xml:space="preserve">
+    <value>Result</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.CompletedAt" xml:space="preserve">
+    <value>Completed At</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.Labor" xml:space="preserve">
+    <value>Duration (min)</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.Action" xml:space="preserve">
+    <value>Action Taken</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.RootCause" xml:space="preserve">
+    <value>Root Cause</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.Parts" xml:space="preserve">
+    <value>Parts Used</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.Desc" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.SourceRef" xml:space="preserve">
+    <value>Source Ref.</value>
+  </data>
+  <data name="MNT.WorkOrder.Ph.Parts" xml:space="preserve">
+    <value>Part no. or name, separated by comma or newline</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.Assign" xml:space="preserve">
+    <value>Technician is chosen among web users. For PM-issued orders the PM schedule's technician is updated too.</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.Complete" xml:space="preserve">
+    <value>On completion the linked failure is resolved, the PM schedule's last/next dates are updated and an execution record is written. Time-based PMs get their next work order issued automatically.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.TechRequired" xml:space="preserve">
+    <value>Select a technician.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.ResultRequired" xml:space="preserve">
+    <value>Select a result.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.ActionRequired" xml:space="preserve">
+    <value>Enter the action taken.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.CompletedRequired" xml:space="preserve">
+    <value>Enter the completion time.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.CompletedBefore" xml:space="preserve">
+    <value>Completion time is earlier than the issue time.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.LaborInvalid" xml:space="preserve">
+    <value>Duration must be 0 or more.</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.Assigned" xml:space="preserve">
+    <value>{0} assigned to {1}.</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.Started" xml:space="preserve">
+    <value>{0} started.</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.Completed" xml:space="preserve">
+    <value>{0} completed.</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.FailureResolved" xml:space="preserve">
+    <value>failure {0} resolved</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.PmAdvanced" xml:space="preserve">
+    <value>PM {0} next due {1}</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.PmDone" xml:space="preserve">
+    <value>PM {0} done</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.NextWo" xml:space="preserve">
+    <value>next work order {0} issued</value>
+  </data>
+  <data name="MNT.Failure.Btn.Resolve" xml:space="preserve">
+    <value>Complete Repair</value>
+  </data>
+  <data name="MNT.Failure.Modal.Resolve" xml:space="preserve">
+    <value>Complete Repair</value>
+  </data>
+  <data name="MNT.Failure.Hint.Resolve" xml:space="preserve">
+    <value>If a linked work order is open it is completed as well; root cause and action are logged to the action history.</value>
+  </data>
+  <data name="MNT.Failure.Err.RootCauseRequired" xml:space="preserve">
+    <value>Enter the root cause.</value>
+  </data>
+  <data name="MNT.Failure.Ok.Resolved" xml:space="preserve">
+    <value>Failure {0} resolved.</value>
+  </data>
+  <data name="MNT.Failure.Ok.ResolvedWo" xml:space="preserve">
+    <value>Failure {0} resolved and work order {1} completed.</value>
+  </data>
+  <data name="MNT.PmSchedule.Btn.Complete" xml:space="preserve">
+    <value>Complete</value>
+  </data>
+  <data name="MNT.PmSchedule.Modal.Complete" xml:space="preserve">
+    <value>Complete PM</value>
+  </data>
+  <data name="MNT.PmSchedule.Hint.Complete" xml:space="preserve">
+    <value>Last PM date becomes the completion date; for time-based cycles the next due date advances by the cycle and a new work order is issued. The linked work order is completed.</value>
+  </data>
+  <data name="MNT.PmSchedule.Lbl.Note" xml:space="preserve">
+    <value>Note</value>
+  </data>
+  <data name="MNT.PmSchedule.Ok.Completed" xml:space="preserve">
+    <value>PM {0} completed.</value>
+  </data>
 </root>
