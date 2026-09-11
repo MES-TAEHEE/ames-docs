@@ -863,10 +863,8 @@ DECLARE @ScrollActor varchar(50) = 'CODEX_SAMPLE';
 DELETE FROM dbo.WH_ReleaseSchedule WHERE CreatedBy = @LegacyActor;
 DELETE FROM dbo.WH_Inventory WHERE CreatedBy IN (@OldActor, @LegacyActor, @ScrollActor);
 DELETE FROM dbo.tbl_Lot WHERE CreatedBy IN (@LegacyActor, @ScrollActor);
-DELETE FROM dbo.MD_Item WHERE CreatedBy IN (@OldActor, @ScrollActor);
-DELETE FROM dbo.MD_Location WHERE CreatedBy IN (@OldActor, @LegacyActor);
-DELETE FROM dbo.WH_AreaMaster WHERE CreatedBy IN (@OldActor, @LegacyActor);
-DELETE FROM dbo.WH_WarehouseMaster WHERE CreatedBy IN (@OldActor, @LegacyActor);
+-- Shared master rows can already be referenced by FG/WH transactions. Keep them
+-- and refresh the required demo values through the UPDATE/INSERT statements below.
 
 IF NOT EXISTS (SELECT 1 FROM dbo.WH_WarehouseMaster WHERE WhCode = 'B')
     INSERT INTO dbo.WH_WarehouseMaster (WhCode, WhName, ActiveFlag, CreatedBy)
@@ -1043,7 +1041,7 @@ BEGIN
          119, 1, 120, 'COUNT_DIFF', 'WH_ADJUST', N'admin', N'admin', N'Adjustment scenario seed', 'pda-scenario-seed', SYSDATETIME());
 END;
 
--- Repeatable WH005 Adjust scenario stock. The TEST-only reset API restores it to 10 EA.
+-- Repeatable WH005 Adjust scenario stock. The scenario-only reset API restores it to 10 EA.
 IF OBJECT_ID(N'dbo.WH_Inventory', N'U') IS NOT NULL
    AND OBJECT_ID(N'dbo.tbl_Lot', N'U') IS NOT NULL
 BEGIN
@@ -1871,7 +1869,7 @@ ORDER BY L.LoadingNumber;
 GO
 
 -- =====================================================================
--- FG PPT TEST1: independent samples for all eight current FG screens.
+-- FG PPT SCTEST1: independent samples for all eight current FG screens.
 -- =====================================================================
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
