@@ -61,7 +61,7 @@
             </div>
             <div style="flex:1;min-height:0;overflow:hidden;">
                 <RadzenDataGrid @ref="_verGrid" Page="OnVerPage" TItem="MasterDataRepository.BomVersionRow" Data="_versions" AllowPaging="true" PageSize="VerPageSize" PagerHorizontalAlign="HorizontalAlign.Center"
-                                ShowPagingSummary="false" RowRender="VerRowRender" RowSelect="OnVerRowSelect" EmptyText="@L["MD.Bom.NoVersions"]" Class="ames-rz-grid">
+                                ShowPagingSummary="false" RowRender="VerRowRender" RowSelect="OnVerRowSelect" EmptyText="@L["MD.Bom.NoVersions"]" Class="ames-rz-grid ames-grid-fill">
                     <Columns>
                         <RadzenDataGridColumn TItem="MasterDataRepository.BomVersionRow" Property="RootItemNo" Title="@L["Col.RootItemNo"]">
                             <Template Context="v">

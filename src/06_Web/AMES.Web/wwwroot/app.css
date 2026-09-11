@@ -4882,4 +4882,6 @@ html[data-theme="light"] .rpt-rb-measure, html[data-theme="light"] .rpt-rb-sum, 
    자체 100vh 분할 레이아웃(BOM 등)의 카드 안에서, 그리드가 래퍼 높이를 다 차지하고 본문만 스크롤해
    페이저가 항상 카드 바닥에 온다. 래퍼는 flex:1; min-height:0; overflow:hidden 이어야 한다. */
 .ames-grid-fill { display: flex !important; flex-direction: column; height: 100%; min-height: 0; }
-.ames-grid-fill .rz-data-grid-data { flex: 1 1 auto; min-height: 0; overflow: auto !important; }
+.ames-grid-fill .rz-data-grid-data { flex: 1 1 auto; min-height: 0; overflow: auto !important; scrollbar-gutter: stable; }
+/* scrollbar-gutter: 카드 안쪽 폭이 소수점(예: 472.72px)이면 세로 스크롤바가 생기는 첫 레이아웃에서 Chromium 이
+   실제 넘침 0 인데도 가로 스크롤바를 함께 그린다(재배치되면 사라지는 잔상). 세로 스크롤바 자리를 항상 확보해 막는다. */

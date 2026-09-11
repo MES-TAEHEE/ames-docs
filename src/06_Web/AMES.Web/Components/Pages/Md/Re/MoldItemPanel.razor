@@ -24,7 +24,7 @@
             </RadzenStack>
             <div style="flex:1;min-height:0;overflow:hidden;">
                 <RadzenDataGrid TItem="MasterDataRepository.MoldRow" Data="_molds" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
-                                ShowPagingSummary="false" RowRender="MoldRowRender" RowSelect="OnMoldRowSelect" EmptyText="@L["MD.Mold.Empty"]" Class="ames-rz-grid">
+                                ShowPagingSummary="false" RowRender="MoldRowRender" RowSelect="OnMoldRowSelect" EmptyText="@L["MD.Mold.Empty"]" Class="ames-rz-grid ames-grid-fill">
                     <Columns>
                         <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="MoldID" Title="@L["Col.MoldId"]" TextAlign="TextAlign.Center" Width="110px">
                             <Template Context="m"><span class="code">@m.MoldID</span></Template>
@@ -67,7 +67,7 @@
                 </div>
                 <div style="flex:1;min-height:0;overflow:hidden;">
                     <RadzenDataGrid TItem="MasterDataRepository.MoldItemRow" Data="_items" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
-                                    ShowPagingSummary="@_showPagerSummary" PageSizeOptions="@_pageSizeOptions" RowRender="ItemRowRender" RowSelect="OpenEdit" EmptyText="@L["MD.MoldItem.Empty"]" Class="ames-rz-grid">
+                                    ShowPagingSummary="@_showPagerSummary" PageSizeOptions="@_pageSizeOptions" RowRender="ItemRowRender" RowSelect="OpenEdit" EmptyText="@L["MD.MoldItem.Empty"]" Class="ames-rz-grid ames-grid-fill">
                         <Columns>
                             <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="ItemNo" Title="@L["Col.ItemNo"]" TextAlign="TextAlign.Center" Width="130px">
                                 <Template Context="i"><span class="code">@i.ItemNo</span></Template>

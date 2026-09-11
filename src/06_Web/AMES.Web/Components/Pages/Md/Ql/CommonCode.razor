@@ -61,7 +61,7 @@
             </div>
             <div style="flex:1;min-height:0;overflow:hidden;">
             <RadzenDataGrid @ref="_grpGrid" TItem="MasterDataRepository.CodeGroupRow" Data="_groups" AllowPaging="true" PageSize="GrpPageSize" PagerHorizontalAlign="HorizontalAlign.Center"
-                            ShowPagingSummary="false" Page="OnGrpPage" RowRender="GrpRowRender" RowSelect="OnGroupRowSelect" Class="ames-rz-grid">
+                            ShowPagingSummary="false" Page="OnGrpPage" RowRender="GrpRowRender" RowSelect="OnGroupRowSelect" Class="ames-rz-grid ames-grid-fill">
                 <Columns>
                     <RadzenDataGridColumn Property="GroupCode" Title='@L["Col.GroupCode"]' Width="160px">
                         <Template Context="g"><span class="code">@g.GroupCode</span></Template>

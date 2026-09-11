@@ -52,7 +52,7 @@
             </RadzenStack>
             <div style="flex:1;min-height:0;overflow:hidden;">
                 <RadzenDataGrid @ref="_itemGrid" Page="OnItemPage" TItem="MasterDataRepository.BopItemRow" Data="_items" AllowPaging="true" PageSize="ItemPageSize" PagerHorizontalAlign="HorizontalAlign.Center"
-                                ShowPagingSummary="false" RowRender="ItemRowRender" RowSelect="OnItemRowSelect" EmptyText="@L["MD.Bop.NoItems"]" Class="ames-rz-grid">
+                                ShowPagingSummary="false" RowRender="ItemRowRender" RowSelect="OnItemRowSelect" EmptyText="@L["MD.Bop.NoItems"]" Class="ames-rz-grid ames-grid-fill">
                     <Columns>
                         <RadzenDataGridColumn TItem="MasterDataRepository.BopItemRow" Property="ItemNo" Title="@L["Col.ItemNo"]">
                             <Template Context="item">
@@ -115,7 +115,7 @@
                 @* ─── 공정 단계 그리드 ─── *@
                 <div style="flex:1;min-height:0;overflow:hidden;">
                     <RadzenDataGrid @ref="_stepGrid" Page="OnStepPage" TItem="MasterDataRepository.BopRow" Data="_steps" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
-                                    ShowPagingSummary="@_showPagerSummary" PageSizeOptions="@_pageSizeOptions" RowRender="StepRowRender" RowSelect="OnStepRowSelect" EmptyText="@L["MD.Bop.NoSteps"]" Class="ames-rz-grid">
+                                    ShowPagingSummary="@_showPagerSummary" PageSizeOptions="@_pageSizeOptions" RowRender="StepRowRender" RowSelect="OnStepRowSelect" EmptyText="@L["MD.Bop.NoSteps"]" Class="ames-rz-grid ames-grid-fill">
                         <Columns>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="RoutingType" Title="@L["Col.Routing"]" Width="70px" TextAlign="TextAlign.Center">
                                 <Template Context="step"><span class="pill @Ui.RoutingClass(step.RoutingType)">@(step.RoutingType ?? "—")</span></Template>
