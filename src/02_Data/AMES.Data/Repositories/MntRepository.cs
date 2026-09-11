@@ -1,4 +1,5 @@
 using System.Data;
+using AMES.Contracts.Dto;
 using AMES.Data.Connection;
 using Microsoft.Data.SqlClient;
 
@@ -489,11 +490,12 @@ public sealed class MntRepository
                 INSERT INTO dbo.MNT_WorkOrder
                     (WoNumber, WoType, EquipID, Priority, SourceType, SourceRefID, AssignedTechID,
                      ActionDesc, Status, IssuedAt, CreatedBy, CreatedTS)
-                VALUES (@Wo, 'CM', @Eq, @Pri, 'FAILURE', @Ref, NULL, @Desc, 'ISSUED', SYSDATETIME(), @By, SYSDATETIME());
+                VALUES (@Wo, @Type, @Eq, @Pri, 'FAILURE', @Ref, NULL, @Desc, 'ISSUED', SYSDATETIME(), @By, SYSDATETIME());
                 SELECT CAST(SCOPE_IDENTITY() AS int);
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@Wo",   SqlDbType.VarChar,    28).Value = woNumber;
+                cmd.Parameters.Add("@Type", SqlDbType.VarChar,    15).Value = MwoTypeCodes.Cm;
                 cmd.Parameters.Add("@Eq",   SqlDbType.VarChar,    20).Value = equipId;
                 cmd.Parameters.Add("@Pri",  SqlDbType.VarChar,    10).Value = WoPriorityFor(severity);
                 cmd.Parameters.Add("@Ref",  SqlDbType.VarChar,    24).Value = failNo;
@@ -633,11 +635,12 @@ public sealed class MntRepository
                 INSERT INTO dbo.MNT_WorkOrder
                     (WoNumber, WoType, EquipID, Priority, SourceType, SourceRefID, AssignedTechID, ChecklistID,
                      ActionDesc, Status, IssuedAt, CreatedBy, CreatedTS)
-                VALUES (@Wo, 'PM', @Eq, 'MED', 'PM', @Ref, @Tech, @Chk, @Desc, 'ISSUED', SYSDATETIME(), @By, SYSDATETIME());
+                VALUES (@Wo, @Type, @Eq, 'MED', 'PM', @Ref, @Tech, @Chk, @Desc, 'ISSUED', SYSDATETIME(), @By, SYSDATETIME());
                 SELECT CAST(SCOPE_IDENTITY() AS int);
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@Wo",   SqlDbType.VarChar,    28).Value = woNumber;
+                cmd.Parameters.Add("@Type", SqlDbType.VarChar,    15).Value = MwoTypeCodes.Pm;
                 cmd.Parameters.Add("@Eq",   SqlDbType.VarChar,    20).Value = equipId;
                 cmd.Parameters.Add("@Ref",  SqlDbType.VarChar,    24).Value = pmId.ToString();
                 cmd.Parameters.Add("@Tech", SqlDbType.NVarChar,  450).Value = (object?)techId ?? DBNull.Value;

@@ -7425,15 +7425,6 @@
   <data name="MNT.WorkOrder.St.Closed" xml:space="preserve">
     <value>Cerrada</value>
   </data>
-  <data name="MNT.WorkOrder.Type.PM" xml:space="preserve">
-    <value>Preventivo</value>
-  </data>
-  <data name="MNT.WorkOrder.Type.CM" xml:space="preserve">
-    <value>Correctivo</value>
-  </data>
-  <data name="MNT.WorkOrder.Type.PdM" xml:space="preserve">
-    <value>Predictivo</value>
-  </data>
   <data name="MNT.WorkOrder.Src.PM" xml:space="preserve">
     <value>Plan PM</value>
   </data>

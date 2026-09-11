@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 
 @using Microsoft.AspNetCore.Authorization
+@using AMES.Contracts.Dto
 @using AMES.Data.Repositories
 @using Radzen
 
@@ -67,7 +68,7 @@
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
             <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
-            <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@TypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@TypeFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;" />
             <RadzenLabel Text="@L["Col.Priority"]" Component="DropDownPriority" />
             <RadzenDropDown Name="DropDownPriority" @bind-Value="_fPriority" Data="@PriorityFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
             <RadzenLabel Text="@L["Lbl.Recent"]" Component="DropDownTopN" />
@@ -206,6 +207,7 @@
     List<MntRepository.MwoRow>              _allRows   = new();
     List<MntRepository.MwoRow>              _rows      = new();
     List<MasterDataRepository.EquipmentRow> _equipList = new();
+    List<MasterDataRepository.CodeItemRow>  _typeItems = new();   // 공통코드 MWO_TYPE (PM/CM/PdM)
     MntRepository.MwoRow? _sel;
 
     string  _fSearch = "";
@@ -216,7 +218,6 @@
 
     // 상태·유형·우선순위는 공통코드 그룹이 없어 발행 코드가 쓰는 값을 정본으로 두고, 데이터에만 있는 값을 뒤에 붙인다
     static readonly string[] StatusCodes   = { "OPEN", "ISSUED", "IN_PROGRESS", "COMPLETED", "CLOSED" };
-    static readonly string[] TypeCodes     = { "PM", "CM", "PdM" };
     static readonly string[] PriorityCodes = { "URGENT", "HIGH", "MED", "LOW" };
     static readonly int[]    TopNs         = { 50, 100, 200, 500 };
     static readonly MarkupString Dash = new("<span class=\"dim\">—</span>");
@@ -225,7 +226,10 @@
     public class TopNItem     { public string Text { get; set; } = ""; public int Value { get; set; } }
 
     IEnumerable<DropDownItem> StatusFilterOptions   => WithDataValues(StatusCodes,   _allRows.Select(r => r.Status),   StatusLabel);
-    IEnumerable<DropDownItem> TypeFilterOptions     => WithDataValues(TypeCodes,     _allRows.Select(r => r.WoType),   TypeLabel);
+    // 유형 콤보: MWO_TYPE 공통코드 ∪ 데이터에만 있는 값(코드 미등록 값도 걸러 볼 수 있게)
+    IEnumerable<DropDownItem> TypeFilterOptions =>
+        _typeItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" })
+        .Concat(_allRows.Select(r => r.WoType).Where(t => t is { Length: > 0 } && !_typeItems.Any(c => c.CodeValue == t)).Distinct().Select(t => new DropDownItem { Value = t!, Text = $"[{t}]" }));
     IEnumerable<DropDownItem> PriorityFilterOptions => WithDataValues(PriorityCodes, _allRows.Select(r => r.Priority), p => p ?? "");
     IEnumerable<TopNItem>     TopNOptions           => TopNs.Select(n => new TopNItem { Value = n, Text = $"{n}{L["Lbl.Items"]}" });
 
@@ -240,6 +244,7 @@
     protected override void OnInitialized()
     {
         try { _equipList = MD.ListEquipments(); } catch { }
+        try { _typeItems = MD.ListCodeItems(MwoTypeCodes.Group); } catch { }
         Reload();
     }
 
@@ -355,15 +360,10 @@
     };
     static string StCls(string? s) => IsOpen(s) ? "bad" : IsProg(s) ? "warn" : IsDone(s) ? "ok" : "mute";
 
-    string TypeLabel(string? t) => t switch
-    {
-        null  => "—",
-        "PM"  => L["MNT.WorkOrder.Type.PM"],
-        "CM"  => L["MNT.WorkOrder.Type.CM"],
-        "PdM" => L["MNT.WorkOrder.Type.PdM"],
-        _     => t,
-    };
-    static string TypeCls(string? t) => t switch { "PM" => "info", "CM" => "orange", "PdM" => "ok", _ => "mute" };
+    // 유형 라벨은 MWO_TYPE 공통코드 LocalName, 미등록 코드는 원문
+    string TypeLabel(string? t) =>
+        t is null ? "—" : _typeItems.FirstOrDefault(c => c.CodeValue == t) is { } c ? MasterDataRepository.LocalName(c) : t;
+    static string TypeCls(string? t) => t switch { MwoTypeCodes.Pm => "info", MwoTypeCodes.Cm => "orange", MwoTypeCodes.PdM => "ok", _ => "mute" };
 
     string SourceLabel(string? s) => s switch
     {

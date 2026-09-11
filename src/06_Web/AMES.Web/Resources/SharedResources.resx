@@ -7452,15 +7452,6 @@
   <data name="MNT.WorkOrder.St.Closed" xml:space="preserve">
     <value>마감</value>
   </data>
-  <data name="MNT.WorkOrder.Type.PM" xml:space="preserve">
-    <value>예방정비</value>
-  </data>
-  <data name="MNT.WorkOrder.Type.CM" xml:space="preserve">
-    <value>사후정비</value>
-  </data>
-  <data name="MNT.WorkOrder.Type.PdM" xml:space="preserve">
-    <value>예지정비</value>
-  </data>
   <data name="MNT.WorkOrder.Src.PM" xml:space="preserve">
     <value>PM 일정</value>
   </data>
