@@ -26,9 +26,9 @@ async Task<string> Login(string employee) {
 }
 Check((await client.GetAsync("/api/fg/transactions")).StatusCode==HttpStatusCode.Unauthorized,"Anonymous history blocked");
 Check((await client.PostAsync("/api/fg/test/ppt-reset/history",null)).StatusCode==HttpStatusCode.Unauthorized,"Anonymous reset blocked");
-client.DefaultRequestHeaders.Authorization=new("Bearer",await Login("TEST"));
-Check((await client.PostAsync("/api/fg/test/ppt-reset/history",null)).StatusCode==HttpStatusCode.Forbidden,"TEST cannot reset TEST1 history");
-var token=await Login("TEST1"); client.DefaultRequestHeaders.Authorization=new("Bearer",token);
+client.DefaultRequestHeaders.Authorization=new("Bearer",await Login("SCTEST2"));
+Check((await client.PostAsync("/api/fg/test/ppt-reset/history",null)).IsSuccessStatusCode,"SCTEST2 must reset detailed history");
+var token=await Login("SCTEST1"); client.DefaultRequestHeaders.Authorization=new("Bearer",token);
 (await client.PostAsync("/api/fg/test/ppt-reset/history",null)).EnsureSuccessStatusCode();
 Check((await client.GetAsync("/api/fg/transactions?dateFrom=2026-09-09&dateTo=2026-09-01")).StatusCode==HttpStatusCode.BadRequest,"Inverted date range blocked");
 var authType=asm.GetType("AMES.Pda.Services.AuthState",true)!; var auth=Activator.CreateInstance(authType)!;
@@ -66,9 +66,12 @@ await renderer.Dispatcher.InvokeAsync(async () => {
     await Act("StartPptStep",5); detail=Field("_detailRow")!;
     Check((decimal)detail.GetType().GetProperty("BeforeQty")!.GetValue(detail)! == 20 && (decimal)detail.GetType().GetProperty("AfterQty")!.GetValue(detail)! == 22,"Adjustment before/after"); await Shot(5);
     type.GetMethod("CloseDetail",f)!.Invoke(page,null); Check(Field("_detailRow")==null && (string)Field("_search")! == "5011FG260908970001","Close preserves search");
+    await Act("RunPptValue","API_ERROR");
+    Check((string)Field("_msg")! == "FG transaction service is unavailable. Please try again." && Count()==0,
+        "FG transaction API failure must be visible and clear stale rows");
 });
 File.Copy(Path.Combine(root,"src/05_Pda/AMES.Pda/wwwroot/css/pda.css"),Path.Combine(output,"pda.css"),true);
-Console.WriteLine("PASS: FG History authorization, five scenario flows, five operation types, dates, barcode searches, return/adjust details and actual Razor HTML renders.");
+Console.WriteLine("PASS: FG Transactions authorization, operation types, searches, details, API errors and Razor HTML renders.");
 
 sealed class TestNavigation:NavigationManager { public TestNavigation()=>Initialize("http://localhost/","http://localhost/fg/history"); protected override void NavigateToCore(string uri,bool forceLoad)=>Uri=ToAbsoluteUri(uri).ToString(); }
 sealed class NoJs:IJSRuntime { public ValueTask<T> InvokeAsync<T>(string id,object?[]? args)=>ValueTask.FromResult(default(T)!); public ValueTask<T> InvokeAsync<T>(string id,CancellationToken c,object?[]? args)=>InvokeAsync<T>(id,args); }

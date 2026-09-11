@@ -13,7 +13,8 @@ public partial class Fg02Inventory
         new("Location Parts", "FG-PPT-B1의 Part No·Part Name·Qty를 확인하고 품목을 누릅니다.", new PptScenarioPanel.Value("LOCATION", "FG-PPT-B1", "LOCATION")),
         new("Location LOT Details", "같은 품목 LOT 2개의 수량 30/20 EA와 위치를 확인합니다.", new PptScenarioPanel.Value("LOT 상세", "PPT-FG-INV-01", "LOCATION_LOTS")),
         new("By Part", "동일 품목·위치가 50 EA로 합산되는지 확인합니다.", new PptScenarioPanel.Value("PART", "PPT-FG-INV-01", "PART")),
-        new("Part LOT Details", "Part를 선택해 LOT별 수량·단위·위치를 확인하고 BACK으로 돌아옵니다.", new PptScenarioPanel.Value("LOT 상세", "PPT-FG-INV-01", "PART_LOTS"))
+        new("Part LOT Details", "Part를 선택해 LOT별 수량·단위·위치를 확인하고 BACK으로 돌아옵니다.", new PptScenarioPanel.Value("LOT 상세", "PPT-FG-INV-01", "PART_LOTS")),
+        new("API Error", "조회 실패를 빈 재고로 처리하지 않고 오류 안내가 표시되는지 확인합니다.", new PptScenarioPanel.Value("API 오류", "연결 오류 표시", "API_ERROR"))
     ];
     private async Task ResetPptData()
     {
@@ -43,6 +44,13 @@ public partial class Fg02Inventory
     }
     private async Task RunPptValue(string command)
     {
+        if (IsPptTestMode && command == "API_ERROR")
+        {
+            _simulateApiFailure = true;
+            await LoadInventory();
+            _simulateApiFailure = false;
+            return;
+        }
         await StartPptStep(command switch { "LOCATION" => 2, "LOCATION_LOTS" => 3, "PART" => 4, "PART_LOTS" => 5, _ => 1 });
         if (IsPptTestMode && command == "SEARCH") { _query = "PPT-FG-INV-01"; await Search(); }
     }

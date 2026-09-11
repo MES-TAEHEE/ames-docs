@@ -32,7 +32,8 @@ public static class FgDetailedScenarioCatalog
         new(3,"Location별 LOT 목록","선택한 Location과 품목에 속한 모든 LOT이 표시되는지 확인합니다."), new(3,"LOT 목록 항목","LOT, Qty, Unit, Location이 표시되는지 확인합니다."),
         new(4,"품목 기준 재고 조회","By Part 모드에서 여러 Location의 FG 재고가 품목 기준으로 표시되는지 확인합니다."), new(4,"품목 및 Location 정보","Part, Qty, Location이 표시되는지 확인합니다."),
         new(4,"동일 재고 합산","동일 Part와 Location의 재고가 하나의 행으로 합산되는지 확인합니다."), new(5,"품목별 LOT 열기","품목 선택 시 해당 품목의 LOT 목록이 열리는지 확인합니다."),
-        new(5,"품목별 LOT 항목","각 LOT 행에 Qty, Unit, Location이 표시되는지 확인합니다."));
+        new(5,"품목별 LOT 항목","각 LOT 행에 Qty, Unit, Location이 표시되는지 확인합니다."),
+        new(6,"조회 오류 표시","API 또는 DB 연결 오류를 빈 재고 목록으로 처리하지 않고 오류 안내를 표시하는지 확인합니다."));
 
     public static PptScenarioPanel.Step[] Picking(PptScenarioPanel.Step[] source) => Build("FG004", source,
         new(1,"출고전표 스캔","정상 출고전표를 스캔하면 Customer, Destination, Ship Date가 표시되는지 확인합니다."), new(1,"요구 수량","각 품목에 Required와 Scanned 수량이 표시되는지 확인합니다."),
@@ -81,5 +82,6 @@ public static class FgDetailedScenarioCatalog
         new(3,"검색 결과 없음","존재하지 않는 바코드는 빈 결과를 표시하고 CLEAR로 초기화되는지 확인합니다."), new(4,"거래 목록 항목","Date, LOT, Part, Location, Qty, Worker, Type이 표시되는지 확인합니다."),
         new(4,"피킹과 적재 구분","PICK과 LOAD가 서로 다른 거래 유형으로 기록되는지 확인합니다."), new(4,"반품 상세 정보","반품 상세에 Reason, Note, Reference가 표시되는지 확인합니다."),
         new(5,"수량 조정 상세 열기","ADJ 행의 DETAIL을 누르면 수량 조정 상세가 열리는지 확인합니다."), new(5,"수량 조정 값","상세 화면에 Before 20, Change +2, After 22가 표시되는지 확인합니다."),
-        new(5,"상세 화면 닫기","CLOSE 실행 후 기존 검색어와 필터 조건이 유지되는지 확인합니다."));
+        new(5,"상세 화면 닫기","CLOSE 실행 후 기존 검색어와 필터 조건이 유지되는지 확인합니다."),
+        new(6,"조회 오류 표시","API 또는 DB 연결 오류를 빈 거래 목록으로 처리하지 않고 오류 안내를 표시하는지 확인합니다."));
 }

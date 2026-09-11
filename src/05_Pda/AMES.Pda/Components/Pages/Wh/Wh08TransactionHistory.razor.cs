@@ -52,7 +52,8 @@ public partial class Wh08TransactionHistory
         new("조회 기간·필터", "시작일·종료일과 APPLY를 확인합니다. 샘플은 오늘 5건, 어제 0건이며 Worker·Reason으로도 검색합니다.", new PptScenarioPanel.Value("기간", "오늘", "TODAY"), new PptScenarioPanel.Value("기간", "어제", "YESTERDAY"), new PptScenarioPanel.Value("작업자", "TEST1", "WORKER")),
         new("바코드 검색", "LOT·Stock·Part·출고전표로 이력을 검색하고 CLEAR로 검색어를 초기화합니다.", new PptScenarioPanel.Value("LOT", "5011FG260908970001", "LOT"), new PptScenarioPanel.Value("STOCK", "FG-PPT-STK-970001", "STOCK"), new PptScenarioPanel.Value("PART", "PPT-FG-HIST", "PART"), new PptScenarioPanel.Value("출고전표", "2609089005", "SLIP"), new PptScenarioPanel.Value("검색 없음", "PPT-NOT-FOUND", "UNKNOWN")),
         new("작업 이력 상세", "Put-Away 20, 조정 +2, 피킹·적재·반품 각 22 EA의 일시·LOT·위치·작업자와 DETAIL을 확인합니다.", new PptScenarioPanel.Value("반품 상세", "Reason·Note·Reference", "RETURN_DETAIL"), new PptScenarioPanel.Value("전체", "샘플 5건", "ROWS")),
-        new("조정 상세", "DETAIL에서 Before 20, Change +2, After 22와 사유·Note·작업자·승인자를 확인합니다.", new PptScenarioPanel.Value("DETAIL", "조정 상세 열기", "DETAIL"))
+        new("조정 상세", "DETAIL에서 Before 20, Change +2, After 22와 사유·Note·작업자를 확인합니다.", new PptScenarioPanel.Value("DETAIL", "조정 상세 열기", "DETAIL")),
+        new("API 오류", "거래 조회 실패 시 빈 목록으로 오인하지 않고 오류 안내가 표시되는지 확인합니다.", new PptScenarioPanel.Value("API 오류", "연결 오류 표시", "API_ERROR"))
     ];
     private static readonly PptScenarioPanel.Step[] PptSteps =
     [
@@ -72,14 +73,14 @@ public partial class Wh08TransactionHistory
         : IsFinishedGoods ? FgPptSteps : PptSteps;
     private string ScenarioModeLabel => IsDetailedFgTestMode ? "TEST MODE" : "PPT CHECK";
     private bool IsScenarioPanelOpen => _pptOpen || _testPanelOpen;
-    private bool SimulateHistoryApiFailure => IsDetailedWhTestMode
-        && CurrentDetailedTestScenario.No == 17
-        && _simulateHistoryApiFailure;
+    private bool SimulateHistoryApiFailure => _simulateFgHistoryApiFailure ||
+        (IsDetailedWhTestMode && CurrentDetailedTestScenario.No == 17 && _simulateHistoryApiFailure);
     private TransactionTestScenario CurrentDetailedTestScenario => DetailedTestScenarios[_testScenarioIndex];
     private bool _pptOpen;
     private bool _pptReady;
     private bool _testPanelOpen;
     private bool _simulateHistoryApiFailure;
+    private bool _simulateFgHistoryApiFailure;
     private int _testScenarioIndex;
 
     private void OpenDetailedTestPanel() => _testPanelOpen = true;
@@ -228,7 +229,14 @@ public partial class Wh08TransactionHistory
         if (command == "PART") _search = IsFinishedGoods ? "PPT-FG-HIST" : "PPT-WH-HIST-01";
         if (IsFinishedGoods && command == "STOCK") _search = "FG-PPT-STK-970001";
         if (IsFinishedGoods && command == "SLIP") _search = "2609089005";
-        if (IsFinishedGoods && command == "WORKER") _worker = "TEST1";
+        if (IsFinishedGoods && command == "WORKER") _worker = "SCTEST1";
+        if (IsFinishedGoods && command == "API_ERROR")
+        {
+            _simulateFgHistoryApiFailure = true;
+            await Load();
+            _simulateFgHistoryApiFailure = false;
+            return;
+        }
         if (IsFinishedGoods && command == "RETURN_DETAIL") { OpenDetail(_rows.First(row => row.Direction == "RETURN")); return; }
         if (command == "UNKNOWN") _search = "PPT-NOT-FOUND";
         if (command == "DETAIL") { OpenDetail(_rows.First(IsAdjust)); return; }

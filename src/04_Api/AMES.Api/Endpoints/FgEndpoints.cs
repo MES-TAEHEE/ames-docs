@@ -48,7 +48,7 @@ public static class FgEndpoints
         DateTime? ArrivalDate, DateTime? ShipDate, DateTime? PackDate, string? ReceivedLocation,
         string? ReceivedStatus);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
-        string? ReasonNote, string? SupervisorPin = null, string? SupervisorEmployeeNo = null);
+        string? ReasonNote);
     public sealed record AdjustResult(bool Success, string Message, AdjustScanRow? Row);
 
     public sealed record PutAwayScanRow(int? LotId, string LotNo, int? WoId,
@@ -156,7 +156,7 @@ public static class FgEndpoints
             if (master.FindActiveCodeItem("INV_ADJUST_REASON", body.ReasonCode?.Trim() ?? "") is null)
                 return Results.BadRequest(new AdjustResult(false, "Select a valid reason code.", null));
 
-            var result = ExecuteAdjustSave(factory, body, s.EmployeeNo, s.OperatorId);
+            var result = ExecuteAdjustSave(factory, body, s.EmployeeNo);
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                 s, "ADJUST_SAVE", "FG007", "LOT", body.Barcode,
                 result.Success ? "SUCCESS" : "FAIL", result.Message,
@@ -395,28 +395,33 @@ public static class FgEndpoints
         g.MapGet("/inventory", (HttpContext ctx, string? q) =>
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
-            const string sql = """
-                SELECT TOP 100 s.StockID, s.StockNumber, s.ItemNo, m.ItemName,
-                       s.LotID, l.LotCode AS LotNo, s.CustomerCode, ISNULL(s.Qty,0) AS Qty,
-                       m.DefaultUOM AS Unit,
-                       s.Location, s.Status, s.StockTS
-                FROM   dbo.FG_Inventory s
-                LEFT JOIN dbo.MD_Item m ON m.ItemNo = s.ItemNo
-                LEFT JOIN dbo.tbl_Lot l ON l.LotID = s.LotID
-                WHERE  (@Q = ''
-                    OR s.ItemNo LIKE '%' + @Q + '%'
-                    OR m.ItemName LIKE '%' + @Q + '%'
-                    OR l.LotCode LIKE '%' + @Q + '%'
-                    OR s.Location LIKE '%' + @Q + '%')
-                ORDER BY s.StockTS DESC;
-                """;
-            return QueryWithParam(factory, sql, "@Q", q ?? "", r => new StockRow(
-                (int)r["StockID"], r["StockNumber"] as string,
-                r["ItemNo"] as string ?? "", r["ItemName"] as string,
-                r["LotID"] as int?, r["LotNo"] as string, r["CustomerCode"] as string,
-                r.GetDecimal(r.GetOrdinal("Qty")),
-                r["Unit"] as string,
-                r["Location"] as string, r["Status"] as string, r["StockTS"] as DateTime?));
+            using var connection = factory.OpenConnection();
+            using var command = new SqlCommand("dbo.FG_PDA_INVENTORY_LIST", connection)
+            {
+                CommandType = CommandType.StoredProcedure,
+                CommandTimeout = 15
+            };
+            command.Parameters.Add("@SearchText", SqlDbType.NVarChar, 120).Value =
+                string.IsNullOrWhiteSpace(q) ? DBNull.Value : q.Trim();
+            using var reader = command.ExecuteReader();
+            var rows = new List<StockRow>();
+            while (reader.Read())
+            {
+                rows.Add(new StockRow(
+                    GetInt(reader, "StockID") ?? 0,
+                    GetString(reader, "StockNumber"),
+                    GetString(reader, "ItemNo") ?? "",
+                    GetString(reader, "ItemName"),
+                    GetInt(reader, "LotID"),
+                    GetString(reader, "LotNo"),
+                    GetString(reader, "CustomerCode"),
+                    GetDecimal(reader, "Qty"),
+                    GetString(reader, "Unit"),
+                    GetString(reader, "Location"),
+                    GetString(reader, "Status"),
+                    GetDate(reader, "StockTS")));
+            }
+            return Results.Ok(rows);
         });
 
         // FG-03 Shipment Order list
@@ -1650,7 +1655,7 @@ public static class FgEndpoints
         return rdr.Read() ? ReadAdjustScanRow(rdr) : null;
     }
 
-    private static AdjustResult ExecuteAdjustSave(AmesConnectionFactory factory, AdjustSaveReq body, string userId, string operatorId)
+    private static AdjustResult ExecuteAdjustSave(AmesConnectionFactory factory, AdjustSaveReq body, string userId)
     {
         try
         {
@@ -1666,8 +1671,6 @@ public static class FgEndpoints
             cmd.Parameters.Add("@ReasonCode", SqlDbType.NVarChar, 30).Value = body.ReasonCode.Trim();
             cmd.Parameters.Add("@ReasonNote", SqlDbType.NVarChar, 500).Value =
                 string.IsNullOrWhiteSpace(body.ReasonNote) ? DBNull.Value : body.ReasonNote.Trim();
-            cmd.Parameters.Add("@SupervisorUserId", SqlDbType.NVarChar, 450).Value = operatorId;
-            cmd.Parameters.Add("@SupervisorEmployeeNo", SqlDbType.NVarChar, 40).Value = userId;
             cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 40).Value = userId;
 
             using var rdr = cmd.ExecuteReader();
