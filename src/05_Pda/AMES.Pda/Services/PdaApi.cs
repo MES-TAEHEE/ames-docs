@@ -825,8 +825,37 @@ public sealed class PdaApi
     public sealed record FgDayEndReq(string CloseMode, string? Note);
     public sealed record FgReturnReq(string Barcode, string ReturnReason, string? Note);
 
-    public Task<List<FgStockRow>>   FgInventoryAsync(string? q = null)
-        => Get<List<FgStockRow>>("/api/fg/inventory" + (string.IsNullOrEmpty(q) ? "" : $"?q={Uri.EscapeDataString(q)}"));
+    public async Task<List<FgStockRow>> FgInventoryAsync(string? q = null)
+    {
+        Authorize();
+        var url = "/api/fg/inventory" + (string.IsNullOrWhiteSpace(q) ? "" : $"?q={Uri.EscapeDataString(q.Trim())}");
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        try
+        {
+            using var response = await _http.GetAsync(url, timeout.Token);
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+                throw new InvalidOperationException("Your session has expired. Go back and sign in again.");
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+                throw new InvalidOperationException("You do not have permission to view finished goods inventory.");
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException(await ReadServiceErrorAsync(response,
+                    $"Inventory service failed. HTTP {(int)response.StatusCode}."));
+            return await response.Content.ReadFromJsonAsync<List<FgStockRow>>(cancellationToken: timeout.Token)
+                ?? throw new InvalidOperationException("Inventory service returned an invalid response. Press REFRESH to retry.");
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
+        catch (OperationCanceledException ex)
+        {
+            throw new InvalidOperationException("Inventory request timed out. Check the connection and press REFRESH to retry.", ex);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException("Inventory could not be loaded. Check the API/DB connection and press REFRESH to retry.", ex);
+        }
+    }
     public async Task<List<FgQcCompletedRow>> FgQcCompletedAsync()
     {
         Authorize();

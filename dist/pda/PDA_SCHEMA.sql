@@ -2546,6 +2546,28 @@ BEGIN
 END;
 GO
 
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_INVENTORY_LIST
+    @SearchText nvarchar(120) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Search nvarchar(130) = N'%' + NULLIF(LTRIM(RTRIM(@SearchText)), N'') + N'%';
+
+    SELECT S.StockID,S.StockNumber,S.ItemNo,I.ItemName,S.LotID,L.LotCode AS LotNo,
+        S.CustomerCode,COALESCE(S.Qty,0) AS Qty,I.DefaultUOM AS Unit,
+        S.Location,S.Status,S.StockTS
+    FROM dbo.FG_Inventory S
+    LEFT JOIN dbo.MD_Item I ON I.ItemNo=S.ItemNo
+    LEFT JOIN dbo.tbl_Lot L ON L.LotID=S.LotID
+    WHERE COALESCE(S.Qty,0)>0
+      AND UPPER(COALESCE(S.Status,'AVAILABLE')) NOT IN
+          ('SHIPPED','DELIVERED','CANCELED','CANCELLED','CLOSED')
+      AND (@Search IS NULL OR S.StockNumber LIKE @Search OR S.ItemNo LIKE @Search
+        OR I.ItemName LIKE @Search OR L.LotCode LIKE @Search OR S.Location LIKE @Search)
+    ORDER BY S.StockTS DESC,S.StockID DESC;
+END;
+GO
+
 -- =====================================================================
 --  FG Adjust
 -- =====================================================================

@@ -122,6 +122,7 @@
     private string _query = "";
     private string _message = "No finished goods inventory found.";
     private bool _isLoading;
+    private bool _simulateApiFailure;
     private List<PdaApi.FgStockRow> _rows = [];
     private HashSet<int>? _matchedStockIds;
     private FgLocationSummary? _selectedLocation;
@@ -189,6 +190,7 @@
         _isLoading = true;
         try
         {
+            if (_simulateApiFailure) throw new HttpRequestException("Simulated finished goods inventory API failure.");
             _rows = await Api.FgInventoryAsync();
             _matchedStockIds = null;
             _message = VisibleRows.Any() ? "" : "No finished goods inventory found.";
@@ -208,8 +210,16 @@
         try
         {
             var matches = await Api.FgInventoryAsync(_query.Trim());
+            var current = _rows.ToDictionary(row => row.StockId);
+            foreach (var match in matches) current[match.StockId] = match;
+            _rows = current.Values.ToList();
             _matchedStockIds = matches.Where(IsCurrentStock).Select(row => row.StockId).ToHashSet();
             _message = _matchedStockIds.Count == 0 ? "No finished goods stock matches this barcode." : "";
+        }
+        catch (Exception ex)
+        {
+            _matchedStockIds = [];
+            _message = ex.Message;
         }
         finally { _isLoading = false; }
     }
