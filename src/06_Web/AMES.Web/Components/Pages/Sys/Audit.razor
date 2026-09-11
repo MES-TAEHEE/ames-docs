@@ -68,7 +68,7 @@
     </div>
 
     <RadzenDataGrid TItem="SysRepository.AuditRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Audit.Empty"]" Class="ames-rz-grid">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Audit.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="EventTs" Title="@L["SYS.Audit.Col.Time"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="a"><span class="code dim" style="font-size:13px;white-space:nowrap;">@(a.EventTs?.ToString(DateFmt.MonthDayTimeSec) ?? "—")</span></Template>
@@ -199,6 +199,7 @@
 @code {
     IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<SysRepository.AuditRow> _allRows = new();
     List<SysRepository.AuditRow> _rows    = new();
     SysRepository.AuditRow? _sel;

@@ -143,7 +143,7 @@
     <div class="dim" style="font-size:10px;padding:0 0 6px;">@(HasSelection ? L["MNT.Downtime.Hint.Detail"] : L["MNT.Downtime.Detail.Hint"])</div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MntRepository.DowntimeRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.Downtime.Empty"]" Class="ames-rz-grid">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.Downtime.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="StartTs" Title="@L["MNT.Downtime.Col.DateTime"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="code">@(r.StartTs?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
@@ -264,6 +264,7 @@
 @code {
     IEnumerable<int> _pageSizeOptions = new int[] { 15, 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 15;   // 고정 페이저(.ames-grid-fixed) — 이 화면은 기본 15행
     List<MntRepository.DowntimeRow>         _allRows  = new();   // 기간 조회 원본
     List<MntRepository.DowntimeRow>         _base     = new();   // 검색·라인·상태 적용 (KPI·파레토·순위 기준)
     List<MntRepository.DowntimeRow>         _rows     = new();   // + 그래프 선택(사유·라인) — 상세 목록, 선택 없으면 전체

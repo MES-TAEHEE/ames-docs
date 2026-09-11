@@ -76,7 +76,7 @@
 
         <RadzenDataGrid TItem="CalendarDaySummary" Data="@DaySummaries.ToList()" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
                         PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" AllowSorting="true" RowRender="@CalDayRowRender"
-                        RowClick="@(args => { if (args.Data is not null) OpenEdit(args.Data.Date, args.Data.Shifts); })" EmptyText="@L["SYS.Calendar.Empty"]" Class="ames-rz-grid">
+                        RowClick="@(args => { if (args.Data is not null) OpenEdit(args.Data.Date, args.Data.Shifts); })" EmptyText="@L["SYS.Calendar.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
             <Columns>
                 <RadzenDataGridColumn TItem="CalendarDaySummary" Property="Date" Title="@L["SYS.Calendar.Col.Date"]" TextAlign="TextAlign.Center" Width="130px">
                     <Template Context="row"><span class="code">@(row.Date.ToString(DateFmt.DateWeekday))</span></Template>
@@ -423,6 +423,7 @@
     // ── State ────────────────────────────────────────────────────────────
     IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<MasterDataRepository.CodeItemRow> _dayTypes = new();
     List<MasterDataRepository.CodeItemRow> _plants   = new();
     List<SysRepository.CalendarRow> _rows = new();

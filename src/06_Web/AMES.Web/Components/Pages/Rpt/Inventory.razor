@@ -132,7 +132,7 @@
     </div>
 
     <RadzenDataGrid TItem="Sku" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.Inventory.Empty"]" Class="ames-rz-grid rpt-dp-grid">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.Inventory.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid rpt-dp-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="Sku" Property="ItemNo" Title="@L["RPT.Inventory.Col.ItemCode"]" Width="150px">
                 <Template Context="r"><span class="code">@r.ItemNo</span></Template>
@@ -171,6 +171,7 @@
 @code {
     IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 15;   // 고정 페이저(.ames-grid-fixed) — 보고서는 기본 15행
 
     List<RptRepository.InventorySkuRow>     _raw       = new();
     Dictionary<string, decimal>             _issued    = new();

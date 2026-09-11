@@ -51,7 +51,7 @@
                 <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@LoadItems" class="ames-rz-btn" />
             </RadzenStack>
             <div style="flex:1;min-height:0;overflow:hidden;">
-                <RadzenDataGrid @ref="_itemGrid" Page="OnItemPage" TItem="MasterDataRepository.BopItemRow" Data="_items" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
+                <RadzenDataGrid @ref="_itemGrid" Page="OnItemPage" TItem="MasterDataRepository.BopItemRow" Data="_items" AllowPaging="true" PageSize="ItemPageSize" PagerHorizontalAlign="HorizontalAlign.Center"
                                 ShowPagingSummary="false" RowRender="ItemRowRender" RowSelect="OnItemRowSelect" EmptyText="@L["MD.Bop.NoItems"]" Class="ames-rz-grid">
                     <Columns>
                         <RadzenDataGridColumn TItem="MasterDataRepository.BopItemRow" Property="ItemNo" Title="@L["Col.ItemNo"]">
@@ -333,6 +333,7 @@
         LoadItems();
     }
 
+    const int ItemPageSize = 24;   // 좌측 품목 목록 — 공통코드 그룹 목록과 같이 24행 고정, 페이지 크기 선택기 없음
     RadzenDataGrid<MasterDataRepository.BopItemRow>? _itemGrid;
     RadzenDataGrid<MasterDataRepository.BopRow>?     _stepGrid;
     int _itemPage, _stepPage;

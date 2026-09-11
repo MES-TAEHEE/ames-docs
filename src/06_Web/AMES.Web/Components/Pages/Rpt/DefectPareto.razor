@@ -154,7 +154,7 @@
             }
         </div>
         <RadzenDataGrid TItem="ParetoItem" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                        PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.DefectPareto.Empty"]" Class="ames-rz-grid">
+                        PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.DefectPareto.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
             <Columns>
                 <RadzenDataGridColumn TItem="ParetoItem" Property="Rank" Title="@L["RPT.DefectPareto.Col.Rank"]" TextAlign="TextAlign.Center" Width="80px">
                     <Template Context="r"><span class="rpt-pa-rank @(r.Rank <= 3 ? $"r{r.Rank}" : "")">@r.Rank</span></Template>
@@ -185,6 +185,7 @@
 @code {
     IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 15;   // 고정 페이저(.ames-grid-fixed) — 보고서는 기본 15행
 
     List<RptRepository.DefectAggRow>          _raw        = new();
     List<ParetoItem>                          _pareto     = new();

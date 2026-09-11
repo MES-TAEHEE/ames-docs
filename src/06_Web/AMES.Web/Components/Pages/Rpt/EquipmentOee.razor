@@ -141,7 +141,7 @@
     </div>
 
     <RadzenDataGrid TItem="LineAgg" Data="@_lines" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.EquipmentOee.Empty"]" Class="ames-rz-grid rpt-dp-grid">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.EquipmentOee.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid rpt-dp-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="LineAgg" Property="LineId" Title="@L["Col.Line"]">
                 <Template Context="r"><span class="code">@r.LineId</span><span class="dim" style="font-size:.85em;margin-left:6px;">@r.LineName</span></Template>
@@ -177,6 +177,7 @@
     const decimal TARGET = 85m;
     IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 15;   // 고정 페이저(.ames-grid-fixed) — 보고서는 기본 15행
 
     List<MntRepository.OeeRow>          _raw     = new();
     List<MasterDataRepository.LineRow>  _lineList = new();

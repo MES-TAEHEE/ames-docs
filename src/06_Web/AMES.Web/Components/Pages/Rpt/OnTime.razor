@@ -130,7 +130,7 @@
     </div>
 
     <RadzenDataGrid TItem="ItemAgg" Data="@_items" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.OnTime.Empty"]" Class="ames-rz-grid rpt-dp-grid">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.OnTime.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid rpt-dp-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="ItemAgg" Property="ItemName" Title="@L["Col.Item"]">
                 <Template Context="r"><b style="white-space:nowrap;">@r.ItemName</b><span class="dim code" style="font-size:.85em;margin-left:6px;">@r.ItemNo</span></Template>
@@ -166,6 +166,7 @@
 @code {
     IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 15;   // 고정 페이저(.ames-grid-fixed) — 보고서는 기본 15행
 
     List<PpRepository.OtdRow>               _rows      = new();
     List<DateTime>                          _months    = new();

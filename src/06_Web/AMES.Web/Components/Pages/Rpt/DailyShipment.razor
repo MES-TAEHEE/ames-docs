@@ -138,7 +138,7 @@
     </div>
 
     <RadzenDataGrid TItem="ShipLine" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.DailyShipment.Empty"]" Class="ames-rz-grid rpt-dp-grid">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.DailyShipment.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid rpt-dp-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="ShipLine" Property="ShipNo" Title="@L["RPT.DailyShipment.Col.ShipNo"]" Width="140px">
                 <Template Context="r"><span class="code">@r.ShipNo</span></Template>
@@ -178,6 +178,7 @@
 @code {
     IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 15;   // 고정 페이저(.ames-grid-fixed) — 보고서는 기본 15행
 
     List<RptRepository.ShipmentDetailRow>   _raw       = new();
     List<ShipLine>                          _rows      = new();

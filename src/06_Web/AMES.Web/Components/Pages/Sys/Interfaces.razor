@@ -67,7 +67,7 @@
     else
     {
         <RadzenDataGrid TItem="SysRepository.InterfaceRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                        PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["SYS.Interfaces.Empty"]" Class="ames-rz-grid">
+                        PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["SYS.Interfaces.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
             <Columns>
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="InterfaceCode" Title="@L["SYS.Interfaces.Col.Code"]" Width="100px">
                     <Template Context="i"><span class="code">@(i.InterfaceCode ?? "—")</span></Template>
@@ -106,6 +106,7 @@
 @code {
     IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<SysRepository.InterfaceRow> _allRows = new();
     List<SysRepository.InterfaceRow> _rows    = new();
     List<MasterDataRepository.CodeItemRow> _statusItems = new();

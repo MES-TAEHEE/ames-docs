@@ -72,7 +72,7 @@
     <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["MNT.SpareParts.Hint.Detail"]</div>
 
     <RadzenDataGrid @ref="_partGrid" Page="OnPartPage" TItem="MntRepository.SparePartRow" Data="@_parts" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnPartRowClick" RowRender="@RowRender" EmptyText="@L["MNT.SpareParts.Empty"]" Class="ames-rz-grid">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnPartRowClick" RowRender="@RowRender" EmptyText="@L["MNT.SpareParts.Empty"]" PageSizeChanged="@(s => _partPageRows = s)" Style="@($"--ames-page-rows:{_partPageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="PartNo" Title="@L["Col.PartNo"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="code">@r.PartNo</span></Template>
@@ -131,7 +131,7 @@
     </div>
 
     <RadzenDataGrid @ref="_txnGrid" Page="OnTxnPage" TItem="MntRepository.SparePartsTxnRow" Data="@_txns" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["MNT.SpareParts.TxnEmpty"]" Class="ames-rz-grid">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["MNT.SpareParts.TxnEmpty"]" PageSizeChanged="@(s => _txnPageRows = s)" Style="@($"--ames-page-rows:{_txnPageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="SparePartsTxnId" Title="@L["Col.TxnNo"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="t"><span class="code">@t.SparePartsTxnId</span></Template>
@@ -242,6 +242,7 @@
 @code {
     IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _partPageRows = 25, _txnPageRows = 25;   // 고정 페이저(.ames-grid-fixed) 그리드별 페이지 행 수
     List<MntRepository.SparePartRow>       _allParts = new();
     List<MntRepository.SparePartRow>       _parts    = new();
     List<MntRepository.SparePartsTxnRow>   _allTxns  = new();

@@ -4852,3 +4852,34 @@ html[data-theme="light"] .rpt-mk-table td { border-bottom-color: rgba(80,60,20,.
 html[data-theme="light"] .rpt-rb-step { color: #047857; }
 html[data-theme="light"] .rpt-rb-sum b { color: #047857; }
 html[data-theme="light"] .rpt-rb-measure, html[data-theme="light"] .rpt-rb-sum, html[data-theme="light"] .rpt-rb-chart { border-color: rgba(80,60,20,.16); }
+
+/* ── 고정 페이저 그리드 (.ames-grid-fixed) ─────────────────────────────
+   그리드 본문 높이를 "헤더 + 페이지 행 수 × 행 높이" 로 고정해, 목록이 페이지 크기보다 적어도
+   페이저가 같은 자리에 온다. 페이지 크기는 --ames-page-rows(그리드 Style 로 바인딩, 25/50/100).
+   콘텐츠 영역보다 크면(작은 모니터·100행) 본문이 줄어들며 안에서 스크롤하고 페이저는 보인다 —
+   카드가 .ames-content 의 직계 자식이고 그리드가 카드의 직계 자식일 때만(:has 체인) 적용된다. */
+.ames-grid-fixed { --ames-grid-head: 36px; --ames-grid-row: 40px; }
+.ames-grid-fixed .rz-data-grid-data {
+    /* +6px: 행 높이 소수점 누적으로 꽉 찬 페이지에 세로 스크롤바가 생기는 것을 막는 여유 */
+    height: calc(var(--ames-grid-head) + var(--ames-page-rows, 25) * var(--ames-grid-row) + 6px);
+    overflow: auto !important;
+    /* 뷰포트가 모자라면 여기까지만 줄어든다(헤더 + 5행). 그 아래로는 페이지가 스크롤된다 — 위쪽 패널이 큰 화면(ReportBuilder)에서 본문이 0 으로 붕괴하는 것을 막는다 */
+    flex: 0 1 auto; min-height: calc(var(--ames-grid-head) + 5 * var(--ames-grid-row) + 6px);
+}
+/* 합계(tfoot) 행이 있는 그리드는 그 높이만큼 더 준다 — 없으면 마지막 행이 스크롤 뒤로 밀린다 */
+.ames-grid-fixed:has(tfoot) .rz-data-grid-data {
+    height: calc(var(--ames-grid-head) + var(--ames-page-rows, 25) * var(--ames-grid-row) + var(--ames-grid-foot, 40px) + 6px);
+}
+.ames-grid-fixed .rz-data-grid-data > table > tbody:empty,
+.ames-grid-fixed .rz-datatable-emptymessage { height: auto; }
+/* 콘텐츠 영역 → 그리드까지의 조상 중 카드·탭 패널만 세로 flex 로 만들어, 뷰포트가 모자라면 그리드 본문만 줄어들게 한다.
+   조상 전부(*)를 바꾸면 2단 grid/flex-row 래퍼(ReportBuilder .rpt-rb-layout 등)가 세로로 무너진다 — 그런 래퍼 안의 그리드는 고정 높이만 적용되고 축소 없이 페이지가 스크롤된다. SYS·MD·MNT·RPT 섹션에 적용 */
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt):has(.ames-grid-fixed) { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; min-height: 0; }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt):has(.ames-grid-fixed) :is(.ames-card, .ames-tabpanel):has(.ames-grid-fixed) { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt) .ames-grid-fixed { display: flex !important; flex-direction: column; flex: 0 1 auto; min-height: 0; }
+
+/* ── 꽉 채우는 그리드 (.ames-grid-fill) ───────────────────────────────
+   자체 100vh 분할 레이아웃(BOM 등)의 카드 안에서, 그리드가 래퍼 높이를 다 차지하고 본문만 스크롤해
+   페이저가 항상 카드 바닥에 온다. 래퍼는 flex:1; min-height:0; overflow:hidden 이어야 한다. */
+.ames-grid-fill { display: flex !important; flex-direction: column; height: 100%; min-height: 0; }
+.ames-grid-fill .rz-data-grid-data { flex: 1 1 auto; min-height: 0; overflow: auto !important; }

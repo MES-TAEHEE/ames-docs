@@ -60,7 +60,7 @@
                 </RadzenStack>
             </div>
             <div style="flex:1;min-height:0;overflow:hidden;">
-                <RadzenDataGrid @ref="_verGrid" Page="OnVerPage" TItem="MasterDataRepository.BomVersionRow" Data="_versions" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
+                <RadzenDataGrid @ref="_verGrid" Page="OnVerPage" TItem="MasterDataRepository.BomVersionRow" Data="_versions" AllowPaging="true" PageSize="VerPageSize" PagerHorizontalAlign="HorizontalAlign.Center"
                                 ShowPagingSummary="false" RowRender="VerRowRender" RowSelect="OnVerRowSelect" EmptyText="@L["MD.Bom.NoVersions"]" Class="ames-rz-grid">
                     <Columns>
                         <RadzenDataGridColumn TItem="MasterDataRepository.BomVersionRow" Property="RootItemNo" Title="@L["Col.RootItemNo"]">
@@ -199,7 +199,7 @@
                 <div style="flex:1;min-height:0;overflow:hidden;">
                     @{ bool editable = _selVer.Status == "DRAFT"; }
                     <RadzenDataGrid @ref="_lineGrid" Page="OnLinePage" TItem="MasterDataRepository.BomRow" Data="_lines" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
-                                    ShowPagingSummary="@_showPagerSummary" PageSizeOptions="@_pageSizeOptions" RowRender="@(args => LineRowRender(args, editable))" RowSelect="@(l => { if (editable) OpenLineEdit(l); })" EmptyText="@L["MD.Bom.NoLines"]" Class="ames-rz-grid">
+                                    ShowPagingSummary="@_showPagerSummary" PageSizeOptions="@_pageSizeOptions" RowRender="@(args => LineRowRender(args, editable))" RowSelect="@(l => { if (editable) OpenLineEdit(l); })" EmptyText="@L["MD.Bom.NoLines"]" Class="ames-rz-grid ames-grid-fill">
                         <Columns>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="BOMLevel" Title="@L["Col.Level"]" TextAlign="TextAlign.Center" Width="50px">
                                 <Template Context="line"><span class="dim">@(line.BOMLevel ?? 0)</span></Template>
@@ -453,6 +453,7 @@
         _          => ""
     };
 
+    const int VerPageSize = 16;   // 좌측 버전 목록 — 16행 고정, 페이지 크기 선택기 없음
     RadzenDataGrid<MasterDataRepository.BomVersionRow>? _verGrid;
     RadzenDataGrid<MasterDataRepository.BomRow>?        _lineGrid;
     int _verPage, _linePage;
