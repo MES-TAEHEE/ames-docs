@@ -2591,7 +2591,6 @@ BEGIN
         ReasonNote nvarchar(500) NULL,
         Status varchar(20) NULL,
         RequestedBy nvarchar(450) NULL,
-        ApprovedBy nvarchar(450) NULL,
         CreatedBy varchar(50) NOT NULL,
         CreatedTS datetime2 NOT NULL CONSTRAINT DF_FG_InventoryAdjust_CreatedTS DEFAULT SYSDATETIME(),
         CONSTRAINT PK_FG_InventoryAdjust PRIMARY KEY CLUSTERED (AdjustID)
@@ -2600,6 +2599,10 @@ BEGIN
     CREATE INDEX IX_FG_InventoryAdjust_Stock
         ON dbo.FG_InventoryAdjust (StockID, CreatedTS DESC);
 END;
+GO
+
+IF COL_LENGTH(N'dbo.FG_InventoryAdjust', N'ApprovedBy') IS NOT NULL
+    ALTER TABLE dbo.FG_InventoryAdjust DROP COLUMN ApprovedBy;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.FG_PDA_ADJUST_SCAN_STOCK
@@ -2680,8 +2683,6 @@ CREATE OR ALTER PROCEDURE dbo.FG_PDA_ADJUST_SAVE_QTY
     @DeltaQty decimal(18,3),
     @ReasonCode nvarchar(30),
     @ReasonNote nvarchar(500) = NULL,
-    @SupervisorUserId nvarchar(450) = NULL,
-    @SupervisorEmployeeNo nvarchar(40) = NULL,
     @UserId nvarchar(40)
 AS
 BEGIN
@@ -2692,11 +2693,6 @@ BEGIN
     DECLARE @Reason nvarchar(30) = UPPER(LTRIM(RTRIM(ISNULL(@ReasonCode, N''))));
     DECLARE @Note nvarchar(500) = NULLIF(LTRIM(RTRIM(@ReasonNote)), N'');
     DECLARE @User nvarchar(40) = COALESCE(NULLIF(LTRIM(RTRIM(@UserId)), N''), N'PDA');
-    DECLARE @Supervisor nvarchar(450) = COALESCE(
-        NULLIF(LTRIM(RTRIM(@SupervisorEmployeeNo)), N''),
-        NULLIF(LTRIM(RTRIM(@SupervisorUserId)), N''),
-        @User
-    );
 
     IF @Scan = N''
         THROW 51610, 'Finished goods Lot No is required.', 1;
@@ -2781,11 +2777,11 @@ BEGIN
 
     INSERT INTO dbo.FG_InventoryAdjust
         (AdjustNo, StockID, ItemNo, Location, LotID, QtyBefore, Delta, QtyAfter,
-         ReasonCode, ReasonNote, Status, RequestedBy, ApprovedBy, CreatedBy, CreatedTS)
+         ReasonCode, ReasonNote, Status, RequestedBy, CreatedBy, CreatedTS)
     VALUES
         (CONCAT('FGADJ-', FORMAT(SYSDATETIME(), 'yyMMddHHmmss')),
          @StockID, @ItemNo, @Location, @LotID, @BeforeQty, @DeltaQty, @AfterQty,
-         CONVERT(varchar(30), @Reason), @Note, N'Posted', @User, @Supervisor, @User, SYSDATETIME());
+         CONVERT(varchar(30), @Reason), @Note, N'Posted', @User, @User, SYSDATETIME());
 
     COMMIT TRAN;
 

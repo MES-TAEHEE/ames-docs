@@ -53,6 +53,12 @@ Check(!source.Contains("Supervisor") && source.Contains("aria-disabled=\"@(Disab
     "Adjust must not require obsolete supervisor approval.");
 var request = assembly.GetType("AMES.Pda.Services.PdaApi+AdjustSaveReq", throwOnError: true)!;
 Check(!request.GetProperties().Any(p => p.Name.Contains("Supervisor")), "Request must not send supervisor fields.");
+var endpoint = File.ReadAllText(Path.Combine(root, "src/04_Api/AMES.Api/Endpoints/FgEndpoints.cs"));
+var schema = File.ReadAllText(Path.Combine(root, "dist/pda/PDA_SCHEMA.sql"));
+Check(!endpoint.Contains("@SupervisorUserId") && !endpoint.Contains("@SupervisorEmployeeNo")
+    && !schema.Contains("@SupervisorUserId") && !schema.Contains("@SupervisorEmployeeNo")
+    && schema.Contains("ALTER TABLE dbo.FG_InventoryAdjust DROP COLUMN ApprovedBy"),
+    "FG Adjust must not retain supervisor parameters or approval storage.");
 Check(source.Contains("ClearInventoryWork();\n            ShowAlert(\"Saved\"", StringComparison.Ordinal)
     || source.Contains("ClearInventoryWork();\r\n            ShowAlert(\"Saved\"", StringComparison.Ordinal),
     "Successful save must reset the form before showing confirmation.");

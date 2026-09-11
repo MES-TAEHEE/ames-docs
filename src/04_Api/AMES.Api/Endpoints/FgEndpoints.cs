@@ -48,7 +48,7 @@ public static class FgEndpoints
         DateTime? ArrivalDate, DateTime? ShipDate, DateTime? PackDate, string? ReceivedLocation,
         string? ReceivedStatus);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
-        string? ReasonNote, string? SupervisorPin = null, string? SupervisorEmployeeNo = null);
+        string? ReasonNote);
     public sealed record AdjustResult(bool Success, string Message, AdjustScanRow? Row);
 
     public sealed record PutAwayScanRow(int? LotId, string LotNo, int? WoId,
@@ -156,7 +156,7 @@ public static class FgEndpoints
             if (master.FindActiveCodeItem("INV_ADJUST_REASON", body.ReasonCode?.Trim() ?? "") is null)
                 return Results.BadRequest(new AdjustResult(false, "Select a valid reason code.", null));
 
-            var result = ExecuteAdjustSave(factory, body, s.EmployeeNo, s.OperatorId);
+            var result = ExecuteAdjustSave(factory, body, s.EmployeeNo);
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                 s, "ADJUST_SAVE", "FG007", "LOT", body.Barcode,
                 result.Success ? "SUCCESS" : "FAIL", result.Message,
@@ -1655,7 +1655,7 @@ public static class FgEndpoints
         return rdr.Read() ? ReadAdjustScanRow(rdr) : null;
     }
 
-    private static AdjustResult ExecuteAdjustSave(AmesConnectionFactory factory, AdjustSaveReq body, string userId, string operatorId)
+    private static AdjustResult ExecuteAdjustSave(AmesConnectionFactory factory, AdjustSaveReq body, string userId)
     {
         try
         {
@@ -1671,8 +1671,6 @@ public static class FgEndpoints
             cmd.Parameters.Add("@ReasonCode", SqlDbType.NVarChar, 30).Value = body.ReasonCode.Trim();
             cmd.Parameters.Add("@ReasonNote", SqlDbType.NVarChar, 500).Value =
                 string.IsNullOrWhiteSpace(body.ReasonNote) ? DBNull.Value : body.ReasonNote.Trim();
-            cmd.Parameters.Add("@SupervisorUserId", SqlDbType.NVarChar, 450).Value = operatorId;
-            cmd.Parameters.Add("@SupervisorEmployeeNo", SqlDbType.NVarChar, 40).Value = userId;
             cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 40).Value = userId;
 
             using var rdr = cmd.ExecuteReader();
