@@ -62,7 +62,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.LocationRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Location.Empty"]" Class="ames-rz-grid">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Location.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="LocationID" Title="@L["Col.LocationId"]" TextAlign="TextAlign.Center" Width="140px">
                 <Template Context="r"><span class="code">@r.LocationID</span></Template>
@@ -253,6 +253,7 @@
 @code {
     IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<MasterDataRepository.LocationRow> _allRows = new();
     List<MasterDataRepository.LocationRow> _rows    = new();
     List<MasterDataRepository.CodeItemRow> _plantCodes = new();
@@ -300,10 +301,10 @@
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/fd/location");
         try { _plantCodes = MD.ListCodeItems("PLANT"); } catch { }
-        try { _zoneCodes  = MD.ListCodeItems("WAREHOUSE_ZONE");  } catch { }
-        try { _aisleCodes = MD.ListCodeItems("WAREHOUSE_AISLE"); } catch { }
-        try { _bayCodes   = MD.ListCodeItems("WAREHOUSE_BAY");   } catch { }
-        try { _slotCodes  = MD.ListCodeItems("WAREHOUSE_SLOT");  } catch { }
+        try { _zoneCodes  = MD.ListCodeItems("WH_ZONE");  } catch { }
+        try { _aisleCodes = MD.ListCodeItems("WH_AISLE"); } catch { }
+        try { _bayCodes   = MD.ListCodeItems("WH_BAY");   } catch { }
+        try { _slotCodes  = MD.ListCodeItems("WH_SLOT");  } catch { }
         try { _typeCodes  = MD.ListCodeItems("LOCATION_TYPE");   } catch { }
         try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
         Reload();
