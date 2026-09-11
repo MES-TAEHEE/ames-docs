@@ -71,12 +71,12 @@ void CheckDetailedCatalog(string method, string pageType, string sourceField, in
 }
 CheckDetailedCatalog("Qc", "AMES.Pda.Components.Pages.Fg.Fg01QcComplete", "PptSteps", 6, "FG001");
 CheckDetailedCatalog("PutAway", "AMES.Pda.Components.Pages.Fg.Fg01Stocking", "PptSteps", 13, "FG002");
-CheckDetailedCatalog("Inventory", "AMES.Pda.Components.Pages.Fg.Fg02Inventory", "PptSteps", 13, "FG003");
+CheckDetailedCatalog("Inventory", "AMES.Pda.Components.Pages.Fg.Fg02Inventory", "PptSteps", 14, "FG003");
 CheckDetailedCatalog("Picking", "AMES.Pda.Components.Pages.Fg.Fg04FifoPicking", "PptSteps", 15, "FG004");
 CheckDetailedCatalog("Loading", "AMES.Pda.Components.Pages.Fg.Fg05Loading", "PptSteps", 18, "FG005");
 CheckDetailedCatalog("Returns", "AMES.Pda.Components.Pages.Fg.FgRtnReturn", "PptSteps", 11, "FG006");
 CheckDetailedCatalog("Adjust", "AMES.Pda.Components.Pages.Wh.Wh03InventoryStatus", "PptFgAdjustSteps", 18, "FG007");
-CheckDetailedCatalog("Transactions", "AMES.Pda.Components.Pages.Wh.Wh08TransactionHistory", "FgPptSteps", 13, "FG008");
+CheckDetailedCatalog("Transactions", "AMES.Pda.Components.Pages.Wh.Wh08TransactionHistory", "FgPptSteps", 14, "FG008");
 Driver Page(string name, string route) => new(assembly.GetType("AMES.Pda.Components.Pages." + (name.StartsWith("Wh") ? "Wh." : "Fg.") + name, true)!, auth, api, route);
 async Task ResetAll()
 {
@@ -137,6 +137,9 @@ try
     Check(inventory.Count("LocationRows") == 1, "Search must filter one sample location.");
     inventory.Call("ClearSearch");
     Check(inventory.Text("_query") == "", "CLEAR must remove inventory filter.");
+    await inventory.Act("RunPptValue", "API_ERROR");
+    Check(inventory.Text("_message").Contains("Simulated finished goods inventory API failure"),
+        "Inventory API failures must remain visible instead of appearing as empty stock.");
 
     var release = Page("Fg04FifoPicking", "/fg/04");
     await release.Act("RunPptValue", "LOT_FIRST");
@@ -207,6 +210,7 @@ try
     await returns.Act("ResetPptData");
 
     var adjust = Page("Wh03InventoryStatus", "/fg/adjust");
+    await adjust.Act("OnInitializedAsync");
     adjust.Set("_workTab", "Adjust");
     await adjust.Act("StartPptStep", 1);
     Check((decimal)adjust.Property("InventoryBeforeQty")! == 10, "FG Adjust sample must begin at 10 EA.");
@@ -233,7 +237,7 @@ try
     using (var saved = JsonDocument.Parse(await client.GetStringAsync("/api/fg/adjust/scan?scanText=5011FG260908960001")))
         Check(saved.RootElement.GetProperty("qty").GetDecimal() == 13, "FG adjusted quantity must persist.");
 
-    Console.WriteLine("PASS: 107 FG detailed scenarios; all 36 FG PPT steps; SCTEST2 and SCTEST1 scoped reset; QC aging; Put-Away storage/confirm; Inventory details; Release partial/FIFO/complete; Loading sequence/duplicate/confirm; Return reason/note/duplicate; admin Adjust quantity/save.");
+    Console.WriteLine("PASS: FG detailed scenarios and PPT steps; SCTEST2 and SCTEST1 scoped reset; Inventory error visibility; QC, Put-Away, Picking, Loading, Return and Adjust flows.");
 }
 finally { await ResetAll(); }
 
