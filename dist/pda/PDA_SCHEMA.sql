@@ -3661,11 +3661,12 @@ BEGIN
         INSERT dbo.FG_CustomerReturn
             (ReturnNumber,CustomerCode,OriginalShipmentOrderID,StockID,LotID,ItemNo,ReturnQty,
              ReturnReason,Note,ItemsJSON,Status,ReceivedAt,ReceivedBy,CapaTriggered,CreatedBy,CreatedTS)
-        SELECT @ReturnNumber,CustomerCode,ShipmentOrderID,StockID,LotID,ItemNo,Qty,@Reason,@CleanNote,
-            (SELECT StockID AS stockId,ItemNo AS itemNo,LotNo AS lotNo,StockNumber AS stockNumber,
-                    Barcode AS barcode,Qty AS qty FOR JSON PATH),
+        SELECT @ReturnNumber,P.CustomerCode,P.ShipmentOrderID,P.StockID,P.LotID,P.ItemNo,P.Qty,@Reason,@CleanNote,
+            (SELECT P.StockID AS stockId,P.ItemNo AS itemNo,P.LotNo AS lotNo,P.StockNumber AS stockNumber,
+                    P.Barcode AS barcode,P.Qty AS qty,S.Location AS location FOR JSON PATH),
             'Open',@Now,@OperatorID,0,'pda',@Now
-        FROM @P;
+        FROM @P P
+        JOIN dbo.FG_Inventory S ON S.StockID=P.StockID;
         SET @ReturnID=CONVERT(int,SCOPE_IDENTITY());
 
         UPDATE dbo.FG_Inventory
@@ -3942,7 +3943,60 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @From date=COALESCE(@DateFrom,DATEADD(day,-30,CAST(GETDATE() AS date))), @To date=COALESCE(@DateTo,CAST(GETDATE() AS date));
     DECLARE @Search nvarchar(130)=N'%'+NULLIF(LTRIM(RTRIM(@SearchText)),N'')+N'%';
-    ;WITH Events AS
+    ;WITH PickRows AS
+    (
+        SELECT P.PickID,D.ShipmentOrderLineID,D.StockID,D.LotID,D.ItemNo,D.Qty,D.Location
+        FROM dbo.FG_PickingFifo P
+        JOIN dbo.FG_PickingDetail D ON D.PickID=P.PickID
+        UNION ALL
+        SELECT P.PickID,L.ShipmentOrderLineID,COALESCE(J.StockID,J.LowerStockID),
+            COALESCE(L.LotID,S.LotID),COALESCE(S.ItemNo,L.ItemNo),
+            COALESCE(J.Qty,J.LowerQty,NULLIF(L.AllocatedQty,0),L.OrderedQty),COALESCE(L.Location,S.Location)
+        FROM dbo.FG_PickingFifo P
+        CROSS APPLY OPENJSON(CASE WHEN ISJSON(P.PicksJSON)=1 THEN P.PicksJSON ELSE N'[]' END)
+            WITH (StockID int '$.StockId',LowerStockID int '$.stockId',Qty decimal(18,3) '$.Qty',LowerQty decimal(18,3) '$.qty') J
+        LEFT JOIN dbo.FG_ShipmentOrderLine L ON L.ShipmentOrderID=P.ShipmentOrderID
+            AND L.StockID=COALESCE(J.StockID,J.LowerStockID)
+        LEFT JOIN dbo.FG_Inventory S ON S.StockID=COALESCE(J.StockID,J.LowerStockID,L.StockID)
+        WHERE NOT EXISTS(SELECT 1 FROM dbo.FG_PickingDetail D WHERE D.PickID=P.PickID)
+          AND COALESCE(J.Qty,J.LowerQty,L.AllocatedQty,L.OrderedQty)>0
+        UNION ALL
+        SELECT P.PickID,L.ShipmentOrderLineID,L.StockID,L.LotID,L.ItemNo,
+            COALESCE(NULLIF(L.AllocatedQty,0),L.OrderedQty),L.Location
+        FROM dbo.FG_PickingFifo P
+        JOIN dbo.FG_ShipmentOrderLine L ON L.ShipmentOrderID=P.ShipmentOrderID
+        WHERE NOT EXISTS(SELECT 1 FROM dbo.FG_PickingDetail D WHERE D.PickID=P.PickID)
+          AND NOT EXISTS(SELECT 1 FROM OPENJSON(CASE WHEN ISJSON(P.PicksJSON)=1 THEN P.PicksJSON ELSE N'[]' END))
+          AND COALESCE(NULLIF(L.AllocatedQty,0),L.OrderedQty)>0
+    ),
+    LoadRows AS
+    (
+        SELECT C.LoadingID,J.StockID,COALESCE(S.LotID,L.LotID) AS LotID,J.LotNo,J.StockNumber,
+            COALESCE(J.ItemNo,S.ItemNo,L.ItemNo) AS ItemNo,COALESCE(J.Location,L.Location,S.Location) AS Location,
+            COALESCE(J.Qty,NULLIF(L.AllocatedQty,0),L.OrderedQty) AS Qty
+        FROM dbo.FG_LoadingConfirm C
+        CROSS APPLY OPENJSON(CASE WHEN ISJSON(C.PalletsLoadedJSON)=1 THEN C.PalletsLoadedJSON ELSE N'[]' END)
+            WITH (StockID int '$.stockId',LotNo varchar(80) '$.lotNo',StockNumber varchar(80) '$.stockNumber',ItemNo varchar(20) '$.itemNo',Location varchar(20) '$.location',Qty decimal(18,3) '$.qty') J
+        LEFT JOIN dbo.FG_ShipmentOrderLine L ON L.ShipmentOrderID=C.ShipmentOrderID AND L.StockID=J.StockID
+        LEFT JOIN dbo.FG_Inventory S ON S.StockID=COALESCE(J.StockID,L.StockID)
+        WHERE COALESCE(J.Qty,L.AllocatedQty,L.OrderedQty)>0
+        UNION ALL
+        SELECT C.LoadingID,D.StockID,D.LotID,NULL,S.StockNumber,D.ItemNo,D.Location,D.Qty
+        FROM dbo.FG_LoadingConfirm C
+        JOIN dbo.FG_PickingDetail D ON D.PickID=C.PickID
+        LEFT JOIN dbo.FG_Inventory S ON S.StockID=D.StockID
+        WHERE NOT EXISTS(SELECT 1 FROM OPENJSON(CASE WHEN ISJSON(C.PalletsLoadedJSON)=1 THEN C.PalletsLoadedJSON ELSE N'[]' END))
+        UNION ALL
+        SELECT C.LoadingID,L.StockID,L.LotID,NULL,S.StockNumber,L.ItemNo,COALESCE(L.Location,S.Location),
+            COALESCE(NULLIF(L.AllocatedQty,0),L.OrderedQty)
+        FROM dbo.FG_LoadingConfirm C
+        JOIN dbo.FG_ShipmentOrderLine L ON L.ShipmentOrderID=C.ShipmentOrderID
+        LEFT JOIN dbo.FG_Inventory S ON S.StockID=L.StockID
+        WHERE NOT EXISTS(SELECT 1 FROM OPENJSON(CASE WHEN ISJSON(C.PalletsLoadedJSON)=1 THEN C.PalletsLoadedJSON ELSE N'[]' END))
+          AND NOT EXISTS(SELECT 1 FROM dbo.FG_PickingDetail D WHERE D.PickID=C.PickID)
+          AND COALESCE(NULLIF(L.AllocatedQty,0),L.OrderedQty)>0
+    ),
+    Events AS
     (
         SELECT P.CreatedTS AS EventTime,CONCAT('IN-',P.PutAwayID) AS EventID,L.LotCode AS LotNo,S.StockNumber,
             P.ItemNo,P.ActualLoc AS LocationID,P.Qty,'IN' AS Direction,'Put-Away' AS Status,
@@ -3953,52 +4007,49 @@ BEGIN
         FROM dbo.FG_PutAway P LEFT JOIN dbo.FG_Inventory S ON S.StockID=P.StockID LEFT JOIN dbo.tbl_Lot L ON L.LotID=S.LotID
         WHERE UPPER(ISNULL(P.Status,'')) NOT IN ('CANCELLED','CANCELED')
         UNION ALL
-        SELECT COALESCE(P.EndTS,P.CreatedTS),CONCAT('PICK-',P.PickID,'-',S.StockID),LOT.LotCode,S.StockNumber,
-            COALESCE(S.ItemNo,L.ItemNo),COALESCE(L.Location,S.Location),COALESCE(J.Qty,J.LowerQty,NULLIF(L.AllocatedQty,0),L.OrderedQty),
+        SELECT COALESCE(P.EndTS,P.CreatedTS),CONCAT('PICK-',P.PickID,'-',COALESCE(CONVERT(varchar(20),R.StockID),CONCAT('LINE',R.ShipmentOrderLineID))),
+            LOT.LotCode,S.StockNumber,R.ItemNo,R.Location,R.Qty,
             'PICK','Release',COALESCE(P.PickerID,P.CreatedBy),NULL,NULL,NULL,NULL,NULL,NULL,'FG_PickingFifo',O.ShipOrderNumber,O.OutgoingSlipNumber
         FROM dbo.FG_PickingFifo P JOIN dbo.FG_ShipmentOrder O ON O.ShipmentOrderID=P.ShipmentOrderID
-        OUTER APPLY OPENJSON(CASE WHEN ISJSON(P.PicksJSON)=1 THEN P.PicksJSON ELSE N'[]' END)
-            WITH (StockID int '$.StockId',LowerStockID int '$.stockId',Qty decimal(18,3) '$.Qty',LowerQty decimal(18,3) '$.qty') J
-        LEFT JOIN dbo.FG_ShipmentOrderLine L ON L.ShipmentOrderID=P.ShipmentOrderID
-            AND (L.StockID=COALESCE(J.StockID,J.LowerStockID) OR (J.StockID IS NULL AND J.LowerStockID IS NULL))
-        LEFT JOIN dbo.FG_Inventory S ON S.StockID=COALESCE(J.StockID,J.LowerStockID,L.StockID)
-        LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID=COALESCE(S.LotID,L.LotID)
-        WHERE UPPER(ISNULL(P.Status,'')) NOT IN ('CANCELLED','CANCELED') AND COALESCE(J.Qty,J.LowerQty,L.AllocatedQty,L.OrderedQty)>0
+        JOIN PickRows R ON R.PickID=P.PickID
+        LEFT JOIN dbo.FG_Inventory S ON S.StockID=R.StockID
+        LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID=COALESCE(R.LotID,S.LotID)
+        WHERE UPPER(ISNULL(P.Status,'')) NOT IN ('CANCELLED','CANCELED') AND R.Qty>0
         UNION ALL
-        SELECT COALESCE(C.ConfirmedAt,C.CreatedTS),CONCAT('LOAD-',C.LoadingID,'-',S.StockID),COALESCE(J.LotNo,LOT.LotCode),COALESCE(J.StockNumber,S.StockNumber),
-            COALESCE(J.ItemNo,S.ItemNo,L.ItemNo),COALESCE(J.Location,L.Location,S.Location),COALESCE(J.Qty,NULLIF(L.AllocatedQty,0),L.OrderedQty),
+        SELECT COALESCE(C.ConfirmedAt,C.CreatedTS),CONCAT('LOAD-',C.LoadingID,'-',COALESCE(R.StockID,0)),COALESCE(R.LotNo,LOT.LotCode),COALESCE(R.StockNumber,S.StockNumber),
+            R.ItemNo,R.Location,R.Qty,
             'LOAD','Loading',COALESCE(C.OperatorID,C.CreatedBy),NULL,CONCAT('Truck: ',C.LicensePlate),NULL,NULL,NULL,NULL,'FG_LoadingConfirm',O.ShipOrderNumber,O.OutgoingSlipNumber
         FROM dbo.FG_LoadingConfirm C JOIN dbo.FG_ShipmentOrder O ON O.ShipmentOrderID=C.ShipmentOrderID
-        OUTER APPLY OPENJSON(CASE WHEN ISJSON(C.PalletsLoadedJSON)=1 THEN C.PalletsLoadedJSON ELSE N'[]' END)
-            WITH (StockID int '$.stockId',LotNo varchar(80) '$.lotNo',StockNumber varchar(80) '$.stockNumber',ItemNo varchar(20) '$.itemNo',Location varchar(20) '$.location',Qty decimal(18,3) '$.qty') J
-        LEFT JOIN dbo.FG_ShipmentOrderLine L ON L.ShipmentOrderID=C.ShipmentOrderID AND (L.StockID=J.StockID OR J.StockID IS NULL)
-        LEFT JOIN dbo.FG_Inventory S ON S.StockID=COALESCE(J.StockID,L.StockID)
-        LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID=COALESCE(S.LotID,L.LotID)
-        WHERE UPPER(ISNULL(C.OTDStatus,'')) NOT IN ('CANCELLED','CANCELED') AND COALESCE(J.Qty,L.AllocatedQty,L.OrderedQty)>0
+        JOIN LoadRows R ON R.LoadingID=C.LoadingID
+        LEFT JOIN dbo.FG_Inventory S ON S.StockID=R.StockID
+        LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID=COALESCE(R.LotID,S.LotID)
+        WHERE UPPER(ISNULL(C.OTDStatus,'')) NOT IN ('CANCELLED','CANCELED') AND R.Qty>0
         UNION ALL
         SELECT COALESCE(R.ReceivedAt,R.CreatedTS),CONCAT('RETURN-',R.ReturnID,'-',COALESCE(LOT.LotCode,J.LotNo),'-',COALESCE(S.StockNumber,J.StockNumber),'-',COALESCE(R.ItemNo,J.ItemNo)),
-            COALESCE(LOT.LotCode,J.LotNo),COALESCE(S.StockNumber,J.StockNumber),COALESCE(R.ItemNo,J.ItemNo),NULL,COALESCE(R.ReturnQty,J.Qty),
+            COALESCE(LOT.LotCode,J.LotNo),COALESCE(S.StockNumber,J.StockNumber),COALESCE(R.ItemNo,J.ItemNo),COALESCE(J.Location,PD.Location),COALESCE(R.ReturnQty,J.Qty),
             'RETURN','Return',COALESCE(R.ReceivedBy,R.CreatedBy),R.ReturnReason,R.Note,NULL,NULL,NULL,NULL,'FG_CustomerReturn',R.ReturnNumber,O.OutgoingSlipNumber
         FROM dbo.FG_CustomerReturn R LEFT JOIN dbo.FG_ShipmentOrder O ON O.ShipmentOrderID=R.OriginalShipmentOrderID
         LEFT JOIN dbo.FG_Inventory S ON S.StockID=R.StockID
         LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID=COALESCE(R.LotID,S.LotID)
         OUTER APPLY OPENJSON(CASE WHEN ISJSON(R.ItemsJSON)=1 THEN R.ItemsJSON ELSE N'[]' END)
-            WITH (LotNo varchar(80) '$.lotNo',StockNumber varchar(80) '$.stockNumber',ItemNo varchar(20) '$.itemNo',Qty decimal(18,3) '$.qty') J
+            WITH (LotNo varchar(80) '$.lotNo',StockNumber varchar(80) '$.stockNumber',ItemNo varchar(20) '$.itemNo',Location varchar(20) '$.location',Qty decimal(18,3) '$.qty') J
+        OUTER APPLY (SELECT TOP(1) D.Location FROM dbo.FG_PickingDetail D JOIN dbo.FG_PickingFifo P ON P.PickID=D.PickID
+                     WHERE D.StockID=R.StockID AND P.ShipmentOrderID=R.OriginalShipmentOrderID ORDER BY P.PickID DESC) PD
         WHERE UPPER(ISNULL(R.Status,'')) NOT IN ('CANCELLED','CANCELED','REJECTED')
         UNION ALL
         SELECT A.CreatedTS,CONCAT('ADJ-',A.AdjustID),L.LotCode,S.StockNumber,A.ItemNo,A.Location,A.Delta,
-            'ADJ','Adjust',COALESCE(A.RequestedBy,A.CreatedBy),A.ReasonCode,A.ReasonNote,A.ApprovedBy,A.QtyBefore,A.Delta,A.QtyAfter,'FG_InventoryAdjust',A.AdjustNo,NULL
+            'ADJ','Adjust',COALESCE(A.RequestedBy,A.CreatedBy),A.ReasonCode,A.ReasonNote,NULL,A.QtyBefore,A.Delta,A.QtyAfter,'FG_InventoryAdjust',A.AdjustNo,NULL
         FROM dbo.FG_InventoryAdjust A LEFT JOIN dbo.FG_Inventory S ON S.StockID=A.StockID LEFT JOIN dbo.tbl_Lot L ON L.LotID=COALESCE(A.LotID,S.LotID)
         WHERE UPPER(ISNULL(A.Status,''))='POSTED'
     )
     SELECT ROW_NUMBER() OVER(ORDER BY E.EventTime DESC,E.EventID DESC) AS ROW_NO,
-        E.LotNo AS LOTNO,E.ItemNo AS PARTNO,CONVERT(nvarchar(10),E.EventTime,23) AS WDATE,CONVERT(nvarchar(8),E.EventTime,108) AS WTIME,
-        E.LocationID AS LOCATION_NO,COALESCE(E.Qty,0) AS QTY,I.DefaultUOM AS UNIT,E.Status AS STATUS,E.Direction AS DIRECTION,
+        COALESCE(NULLIF(E.LotNo,''),'N/A') AS LOTNO,E.ItemNo AS PARTNO,CONVERT(nvarchar(10),E.EventTime,23) AS WDATE,CONVERT(nvarchar(8),E.EventTime,108) AS WTIME,
+        COALESCE(NULLIF(E.LocationID,''),'N/A') AS LOCATION_NO,COALESCE(E.Qty,0) AS QTY,I.DefaultUOM AS UNIT,E.Status AS STATUS,E.Direction AS DIRECTION,
         COALESCE(NULLIF(U.UserName,''),E.Worker) AS WORKER_ID,E.ReasonCode AS REASON_CODE,E.ReasonNote AS REASON_NOTE,
-        COALESCE(NULLIF(SU.UserName,''),E.Supervisor) AS SUPERVISOR,E.BeforeQty AS BEFORE_QTY,E.DeltaQty AS DELTA_QTY,E.AfterQty AS AFTER_QTY,
+        E.Supervisor AS SUPERVISOR,E.BeforeQty AS BEFORE_QTY,E.DeltaQty AS DELTA_QTY,E.AfterQty AS AFTER_QTY,
         NULL AS BEFORE_STATUS,NULL AS AFTER_STATUS,NULL AS BEFORE_LOCATION,NULL AS AFTER_LOCATION,E.Source AS SOURCE,E.Reference AS NOTE
     FROM Events E LEFT JOIN dbo.MD_Item I ON I.ItemNo=E.ItemNo
-    LEFT JOIN dbo.AspNetUsers U ON U.Id=E.Worker LEFT JOIN dbo.AspNetUsers SU ON SU.Id=E.Supervisor
+    LEFT JOIN dbo.AspNetUsers U ON U.Id=E.Worker
     WHERE E.EventTime>=@From AND E.EventTime<DATEADD(day,1,@To)
       AND (@Search IS NULL OR E.LotNo LIKE @Search OR E.StockNumber LIKE @Search OR E.ItemNo LIKE @Search
         OR I.ItemName LIKE @Search OR E.LocationID LIKE @Search OR E.Reference LIKE @Search OR E.OutgoingSlip LIKE @Search)
@@ -4037,24 +4088,24 @@ BEGIN
     UPDATE dbo.FG_ShipmentOrder SET Status='SHIPPED',ShipDate=CAST(@Today AS date) WHERE ShipmentOrderID=@Order;
     INSERT dbo.FG_PutAway(StockID,WoID,ItemNo,Qty,ActualLoc,StorageMethod,OperatorID,Status,CreatedBy,CreatedTS)
     VALUES(@Stock,@Wo,'PPT-FG-HIST',20,'FG-PPT-G1','LOCATION','TEST1','Confirmed',@By,DATEADD(second,1,@Today));
-    INSERT dbo.FG_InventoryAdjust(AdjustNo,StockID,ItemNo,Location,LotID,QtyBefore,Delta,QtyAfter,ReasonCode,ReasonNote,Status,RequestedBy,ApprovedBy,CreatedBy,CreatedTS)
-    VALUES('FG-PPT-HIST-ADJ',@Stock,'PPT-FG-HIST','FG-PPT-G1',@Lot,20,2,22,'COUNT_DIFF','PPT count correction','Posted','TEST1','TEST1',@By,DATEADD(second,2,@Today));
+    INSERT dbo.FG_InventoryAdjust(AdjustNo,StockID,ItemNo,Location,LotID,QtyBefore,Delta,QtyAfter,ReasonCode,ReasonNote,Status,RequestedBy,CreatedBy,CreatedTS)
+    VALUES('FG-PPT-HIST-ADJ',@Stock,'PPT-FG-HIST','FG-PPT-G1',@Lot,20,2,22,'COUNT_DIFF','PPT count correction','Posted','SCTEST1',@By,DATEADD(second,2,@Today));
     INSERT dbo.FG_ShipmentOrderLine(ShipmentOrderID,LineSeq,ItemNo,OrderedQty,AllocatedQty,StockID,LotID,Location,ReservationStatus,CreatedBy,CreatedTS)
     VALUES(@Order,10,'PPT-FG-HIST',22,22,@Stock,@Lot,'FG-PPT-G1','Shipped',@By,DATEADD(second,3,@Today));
     DECLARE @PickJson nvarchar(max)=(SELECT @Stock AS StockId,22 AS Qty FOR JSON PATH);
     DECLARE @Json nvarchar(max)=(SELECT @Stock AS stockId,'5011FG260908970001' AS lotNo,'FG-PPT-STK-970001' AS stockNumber,'PPT-FG-HIST' AS itemNo,22 AS qty,'EA' AS unit,'FG-PPT-G1' AS location FOR JSON PATH);
     INSERT dbo.FG_PickingFifo(PickNumber,ShipmentOrderID,PickerID,EndTS,PicksJSON,PickedQty,OrderedQty,Status,CreatedBy,CreatedTS)
-    VALUES('FG-PPT-HIST-PICK',@Order,'TEST1',DATEADD(second,3,@Today),@PickJson,22,22,'Picked',@By,DATEADD(second,3,@Today));
+    VALUES('FG-PPT-HIST-PICK',@Order,'SCTEST1',DATEADD(second,3,@Today),@PickJson,22,22,'Picked',@By,DATEADD(second,3,@Today));
     DECLARE @Pick int=CONVERT(int,SCOPE_IDENTITY());
     INSERT dbo.FG_PickingDetail(PickID,ShipmentOrderLineID,StockID,LotID,ItemNo,Qty,Location,PickSeq,CreatedBy,CreatedTS)
     SELECT @Pick,ShipmentOrderLineID,@Stock,@Lot,'PPT-FG-HIST',22,'FG-PPT-G1',1,@By,DATEADD(second,3,@Today)
     FROM dbo.FG_ShipmentOrderLine WHERE ShipmentOrderID=@Order;
     INSERT dbo.FG_LoadingConfirm(LoadingNumber,ShipmentOrderID,PickID,LicensePlate,PalletsLoadedJSON,DepartureTS,OTDStatus,OperatorID,ConfirmedAt,CreatedBy,CreatedTS)
-    VALUES('FG-PPT-HIST-LOAD',@Order,@Pick,'PPT-FG-HISTORY',@Json,DATEADD(second,4,@Today),'OnTime','TEST1',DATEADD(second,4,@Today),@By,DATEADD(second,4,@Today));
+    VALUES('FG-PPT-HIST-LOAD',@Order,@Pick,'PPT-FG-HISTORY',@Json,DATEADD(second,4,@Today),'OnTime','SCTEST1',DATEADD(second,4,@Today),@By,DATEADD(second,4,@Today));
     INSERT dbo.FG_CustomerReturn(ReturnNumber,OriginalShipmentOrderID,CustomerCode,StockID,LotID,ItemNo,ReturnQty,
         ReturnReason,Note,ItemsJSON,Status,ReceivedAt,ReceivedBy,CreatedBy,CreatedTS)
     VALUES('FG-PPT-HIST-RETURN',@Order,'PPT-CUSTOMER',@Stock,@Lot,'PPT-FG-HIST',22,
-        'DAMAGED_TRANSIT','PPT return note',@Json,'Open',DATEADD(second,5,@Today),'TEST1',@By,DATEADD(second,5,@Today));
+        'DAMAGED_TRANSIT','PPT return note',@Json,'Open',DATEADD(second,5,@Today),'SCTEST1',@By,DATEADD(second,5,@Today));
     COMMIT TRANSACTION;
 END;
 GO

@@ -244,10 +244,6 @@
                     <div><dt>Reason</dt><dd>@Text(detail.ReasonCode)</dd></div>
                     <div><dt>Note</dt><dd>@Text(detail.ReasonNote)</dd></div>
                     <div><dt>Worker</dt><dd>@Text(detail.WorkerId)</dd></div>
-                    @if (IsFinishedGoods)
-                    {
-                        <div><dt>Supervisor</dt><dd>@Text(detail.Supervisor)</dd></div>
-                    }
                 </dl>
                 <div class="wh-modal-actions">
                     <RadzenButton class="wh-modal-btn primary wh08-detail-close" Click="CloseDetail" Text="CLOSE" />
@@ -306,6 +302,7 @@
         _dateTo = DefaultDateTo;
         _detailRow = null;
         _pptReady = _pptOpen = _testPanelOpen = false;
+        _simulateFgHistoryApiFailure = false;
         await Load();
     }
 
@@ -414,7 +411,7 @@
         catch
         {
             _rows = new();
-            _msg = IsFinishedGoods ? "FG history service is unavailable. Please try again." : "Warehouse transaction service is unavailable. Please try again.";
+            _msg = IsFinishedGoods ? "FG transaction service is unavailable. Please try again." : "Warehouse transaction service is unavailable. Please try again.";
         }
         finally
         {
