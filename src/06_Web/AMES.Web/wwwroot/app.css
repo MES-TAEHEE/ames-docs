@@ -3976,6 +3976,17 @@ html[data-theme="light"] .wh-location-directory-card:hover { background: rgba(37
     flex-wrap: wrap;
 }
 
+.master-list-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.master-list-toolbar > span { white-space: nowrap; }
+.inventory-summary-grid .rz-data-row { cursor: pointer; }
+
 .fg-web-form-grid,
 .fg-return-detail-grid {
     display: grid;
@@ -4874,9 +4885,9 @@ html[data-theme="light"] .rpt-rb-measure, html[data-theme="light"] .rpt-rb-sum, 
 .ames-grid-fixed .rz-datatable-emptymessage { height: auto; }
 /* 콘텐츠 영역 → 그리드까지의 조상 중 카드·탭 패널만 세로 flex 로 만들어, 뷰포트가 모자라면 그리드 본문만 줄어들게 한다.
    조상 전부(*)를 바꾸면 2단 grid/flex-row 래퍼(ReportBuilder .rpt-rb-layout 등)가 세로로 무너진다 — 그런 래퍼 안의 그리드는 고정 높이만 적용되고 축소 없이 페이지가 스크롤된다. SYS·MD·MNT·RPT 섹션에 적용 */
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt):has(.ames-grid-fixed) { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; min-height: 0; }
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt):has(.ames-grid-fixed) :is(.ames-card, .ames-tabpanel):has(.ames-grid-fixed) { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt) .ames-grid-fixed { display: flex !important; flex-direction: column; flex: 0 1 auto; min-height: 0; }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-wh, .ames-sec-fg):has(.ames-grid-fixed) { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; min-height: 0; }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-wh, .ames-sec-fg):has(.ames-grid-fixed) :is(.ames-card, .ames-tabpanel):has(.ames-grid-fixed) { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-wh, .ames-sec-fg) .ames-grid-fixed { display: flex !important; flex-direction: column; flex: 0 1 auto; min-height: 0; }
 
 /* ── 꽉 채우는 그리드 (.ames-grid-fill) ───────────────────────────────
    자체 100vh 분할 레이아웃(BOM 등)의 카드 안에서, 그리드가 래퍼 높이를 다 차지하고 본문만 스크롤해
