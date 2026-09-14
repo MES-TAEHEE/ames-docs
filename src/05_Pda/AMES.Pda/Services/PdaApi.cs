@@ -16,6 +16,7 @@ namespace AMES.Pda.Services;
 /// </summary>
 public sealed class PdaApi
 {
+    public const string SparePartsAreaCode = "SPARE_PARTS_AREA";
     private const string WhLocationCorcd = "5010";
     private const string WhLocationBizcd = "5011";
 
@@ -247,6 +248,10 @@ public sealed class PdaApi
             ? VendorId
             : $"{VendorId} / {VendorName}";
     }
+    public sealed record SparePartLotRow(int LotId, string EosSpNo, string? Category,
+        string? ApplicableEquipment, string? PartName, string? PartNo, string? Maker,
+        string? Vendor, decimal Qty, string? Unit, string? StorageLocation, string? AreaCode,
+        string InventoryStatus, bool IsReceived, bool IsReleaseEligible);
     public sealed record TransactionRow(long TxnId, DateTime TxnTime, string TxnType, string? ItemNo,
         string? LocationId, decimal QtyBefore, decimal Delta, decimal QtyAfter, string? ReasonCode);
 
@@ -262,7 +267,7 @@ public sealed class PdaApi
 
     public Task<List<InboundRow>>         WhInboundTodayAsync()    => Get<List<InboundRow>>("/api/wh/inbound/today");
     public async Task<List<InventoryRow>> WhInventoryAsync(string? q = null, DateTime? dateFrom = null, DateTime? dateTo = null,
-        bool simulateFailure = false)
+        bool simulateFailure = false, string? areaCode = null)
     {
         if (simulateFailure)
         {
@@ -271,16 +276,18 @@ public sealed class PdaApi
             using var response = await _http.GetAsync($"/api/wh/inventory?simulateFailure=true{query}");
             if (!response.IsSuccessStatusCode)
                 throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Inventory service is unavailable."));
-            return await response.Content.ReadFromJsonAsync<List<InventoryRow>>() ?? [];
+            return await FilterByAreaAsync(await response.Content.ReadFromJsonAsync<List<InventoryRow>>() ?? [], row => row.LocationId, areaCode);
         }
 
         try
         {
-            return await QueryWhInventoryDbAsync(q, dateFrom, dateTo);
+            return await FilterByAreaAsync(await QueryWhInventoryDbAsync(q, dateFrom, dateTo, areaCode), row => row.LocationId, areaCode);
         }
         catch
         {
-            return await Get<List<InventoryRow>>("/api/wh/inventory" + (string.IsNullOrEmpty(q) ? "" : $"?q={Uri.EscapeDataString(q)}"));
+            return await FilterByAreaAsync(
+                await Get<List<InventoryRow>>("/api/wh/inventory" + (string.IsNullOrEmpty(q) ? "" : $"?q={Uri.EscapeDataString(q)}")),
+                row => row.LocationId, areaCode);
         }
     }
 
@@ -310,24 +317,25 @@ public sealed class PdaApi
         }
     }
 
-    public async Task<List<InventoryLocationRow>> WhInventoryLocationsAsync(string itemNo, DateTime? dateFrom = null, DateTime? dateTo = null)
+    public async Task<List<InventoryLocationRow>> WhInventoryLocationsAsync(string itemNo, DateTime? dateFrom = null, DateTime? dateTo = null,
+        string? areaCode = null)
     {
         try
         {
-            return await QueryWhInventoryLocationsDbAsync(itemNo, dateFrom, dateTo);
+            return FilterByArea(await QueryWhInventoryLocationsDbAsync(itemNo, dateFrom, dateTo, areaCode), row => row.AreaCode, areaCode);
         }
         catch
         {
             return new List<InventoryLocationRow>();
         }
     }
-    public async Task<List<LocationRow>> WhLocationsAsync()
+    public async Task<List<LocationRow>> WhLocationsAsync(string? areaCode = null)
     {
         if (OperatingSystem.IsAndroid())
         {
             try
             {
-                return NormalizeLocationRows(await Get<List<LocationRow>>("/api/wh/locations"));
+                return FilterByArea(NormalizeLocationRows(await Get<List<LocationRow>>("/api/wh/locations")), row => row.AreaCode, areaCode);
             }
             catch
             {
@@ -337,13 +345,13 @@ public sealed class PdaApi
 
         try
         {
-            return NormalizeLocationRows(await QueryWhLocationsDbAsync());
+            return FilterByArea(NormalizeLocationRows(await QueryWhLocationsDbAsync()), row => row.AreaCode, areaCode);
         }
         catch
         {
             try
             {
-                return NormalizeLocationRows(await Get<List<LocationRow>>("/api/wh/locations"));
+                return FilterByArea(NormalizeLocationRows(await Get<List<LocationRow>>("/api/wh/locations")), row => row.AreaCode, areaCode);
             }
             catch
             {
@@ -398,7 +406,7 @@ public sealed class PdaApi
             return await QueryApiAsync();
         }
     }
-    public async Task<LocationRow?> WhScanLocationAsync(string locationId)
+    public async Task<LocationRow?> WhScanLocationAsync(string locationId, string? areaCode = null)
     {
         try
         {
@@ -411,7 +419,9 @@ public sealed class PdaApi
             if (!resp.IsSuccessStatusCode)
                 throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Warehouse location service is unavailable."));
 
-            return await resp.Content.ReadFromJsonAsync<LocationRow>();
+            var row = await resp.Content.ReadFromJsonAsync<LocationRow>();
+            EnsureArea(row?.AreaCode, areaCode);
+            return row;
         }
         catch (InvalidOperationException)
         {
@@ -449,23 +459,33 @@ public sealed class PdaApi
     }
     public Task<List<ReleasePickLineRow>> WhReleaseLinesAsync(string pickSlipNo)
         => Get<List<ReleasePickLineRow>>($"/api/wh/release/schedule/{Uri.EscapeDataString(pickSlipNo)}/lines");
-    public Task<List<ReleaseFifoLotRow>> WhReleaseFifoLotsAsync(string pickSlipNo)
-        => Get<List<ReleaseFifoLotRow>>($"/api/wh/release/schedule/{Uri.EscapeDataString(pickSlipNo)}/fifo-lots");
-    public async Task<ReleaseLotRow?> WhReleaseLotAsync(string pickSlipNo, string lotNo)
+    public async Task<List<ReleaseFifoLotRow>> WhReleaseFifoLotsAsync(string pickSlipNo, string? areaCode = null)
+        => await FilterByAreaAsync(
+            await Get<List<ReleaseFifoLotRow>>($"/api/wh/release/schedule/{Uri.EscapeDataString(pickSlipNo)}/fifo-lots"),
+            row => row.LocationNo, areaCode);
+    public async Task<ReleaseLotRow?> WhReleaseLotAsync(string pickSlipNo, string lotNo, string? areaCode = null)
     {
         Authorize();
         try
         {
             var url = $"/api/wh/release/lot?pickSlipNo={Uri.EscapeDataString(pickSlipNo)}&lotNo={Uri.EscapeDataString(lotNo)}";
             var resp = await _http.GetAsync(url);
-            return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<ReleaseLotRow>() : null;
+            if (!resp.IsSuccessStatusCode) return null;
+            var row = await resp.Content.ReadFromJsonAsync<ReleaseLotRow>();
+            if (row is not null && !string.IsNullOrWhiteSpace(areaCode))
+                await WhScanLocationAsync(row.LocationNo ?? "", areaCode);
+            return row;
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
         }
         catch
         {
             return null;
         }
     }
-    public async Task<List<LotStatusRow>> WhLotStatusesAsync(string? q = null)
+    public async Task<List<LotStatusRow>> WhLotStatusesAsync(string? q = null, string? areaCode = null)
     {
         try
         {
@@ -491,27 +511,49 @@ public sealed class PdaApi
                     rdr.GetInt32(rdr.GetOrdinal("LotID")), GetString(rdr,"LotNo") ?? "",
                     GetString(rdr,"ItemNo"), GetString(rdr,"ItemName"), GetString(rdr,"InventoryStatus") ?? "CREATED",
                     GetDecimal(rdr,"RemainingQty"), GetString(rdr,"LocationID"), GetDate(rdr,"ProducedAt"), GetDate(rdr,"LastChangedAt")));
-            return rows;
+            return await FilterByAreaAsync(rows, row => row.LocationId, areaCode);
         }
         catch
         {
-            return await Get<List<LotStatusRow>>("/api/wh/inventory/lots" + (string.IsNullOrWhiteSpace(q) ? "" : $"?q={Uri.EscapeDataString(q)}"));
+            return await FilterByAreaAsync(
+                await Get<List<LotStatusRow>>("/api/wh/inventory/lots" + (string.IsNullOrWhiteSpace(q) ? "" : $"?q={Uri.EscapeDataString(q)}")),
+                row => row.LocationId, areaCode);
         }
     }
     public Task<HttpResponseMessage> WhReleaseCompleteAsync(ReleaseCompleteReq body)
         => Post("/api/wh/release/complete", body);
     public Task<List<OutgoingVendorRow>> WhOutgoingVendorsAsync()
         => Get<List<OutgoingVendorRow>>("/api/wh/release/outgoing/vendors");
-    public async Task<DirectOutgoingLotRow?> WhDirectOutgoingLotAsync(string lotNo)
+    public async Task<DirectOutgoingLotRow?> WhDirectOutgoingLotAsync(string lotNo, string? areaCode = null)
     {
         Authorize();
         var resp = await _http.GetAsync($"/api/wh/release/outgoing/lot?lotNo={Uri.EscapeDataString(lotNo.Trim())}");
         if (!resp.IsSuccessStatusCode)
             throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Warehouse outgoing service is unavailable."));
-        return await resp.Content.ReadFromJsonAsync<DirectOutgoingLotRow>();
+        var row = await resp.Content.ReadFromJsonAsync<DirectOutgoingLotRow>();
+        if (row is not null && !string.IsNullOrWhiteSpace(areaCode))
+            await WhScanLocationAsync(row.LocationId ?? "", areaCode);
+        return row;
     }
     public Task<HttpResponseMessage> WhDirectOutgoingAsync(DirectOutgoingReq body)
         => Post("/api/wh/release/outgoing", body);
+    public async Task<SparePartLotRow?> SpLotAsync(string lotNo)
+    {
+        Authorize();
+        using var response = await _http.GetAsync($"/api/wh/sp/lot?lotNo={Uri.EscapeDataString(lotNo.Trim())}");
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Spare parts LOT service is unavailable."));
+        return await response.Content.ReadFromJsonAsync<SparePartLotRow>();
+    }
+
+    public async Task SpResetTestAsync()
+    {
+        Authorize();
+        using var response = await _http.PostAsync("/api/wh/sp/test/reset", null);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Spare parts test reset failed."));
+    }
     public Task<List<TransactionRow>>     WhTransactionsAsync(int days = 7) => Get<List<TransactionRow>>($"/api/wh/transactions?days={days}");
 
     public Task<HttpResponseMessage> WhReceiveAsync(ReceiveReq body) => Post("/api/wh/inbound/receive", body);
@@ -553,7 +595,7 @@ public sealed class PdaApi
     public sealed record AdjustmentStock(string Barcode, string LotNo, string PartNo, string? PartName, decimal Qty, string? Unit);
     public sealed record AdjustmentLocation(string LocationId, List<AdjustmentStock> Items);
 
-    public async Task<AdjustmentLocation?> ScanAdjustmentLocationAsync(string barcode, bool finishedGoods)
+    public async Task<AdjustmentLocation?> ScanAdjustmentLocationAsync(string barcode, bool finishedGoods, string? areaCode = null)
     {
         Authorize();
         using var response = await _http.GetAsync($"/api/{(finishedGoods ? "fg" : "wh")}/adjust/location?barcode={Uri.EscapeDataString(barcode.Trim())}");
@@ -562,11 +604,14 @@ public sealed class PdaApi
         // An unknown location returns an empty 200 response; the caller then tries a stock barcode.
         if (response.Content.Headers.ContentLength == 0) return null;
         var json = await response.Content.ReadAsStringAsync();
-        return string.IsNullOrWhiteSpace(json) ? null
+        var row = string.IsNullOrWhiteSpace(json) ? null
             : System.Text.Json.JsonSerializer.Deserialize<AdjustmentLocation>(json, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+        if (row is not null && !finishedGoods && !string.IsNullOrWhiteSpace(areaCode))
+            await WhScanLocationAsync(row.LocationId, areaCode);
+        return row;
     }
 
-    public async Task<InboundScanRow?> WhScanAdjustAsync(string scanText)
+    public async Task<InboundScanRow?> WhScanAdjustAsync(string scanText, string? areaCode = null)
     {
         try
         {
@@ -576,7 +621,10 @@ public sealed class PdaApi
             if (!resp.IsSuccessStatusCode)
                 throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Warehouse adjust scan service is unavailable."));
 
-            return await resp.Content.ReadFromJsonAsync<InboundScanRow>();
+            var row = await resp.Content.ReadFromJsonAsync<InboundScanRow>();
+            if (row is not null && !string.IsNullOrWhiteSpace(areaCode))
+                await WhScanLocationAsync(row.ReceivedLocation ?? "", areaCode);
+            return row;
         }
         catch (InvalidOperationException)
         {
@@ -588,7 +636,8 @@ public sealed class PdaApi
         }
     }
 
-    public async Task<List<WarehouseTransactionRow>> WhWarehouseTransactionsAsync(string? search = null, DateTime? dateFrom = null, DateTime? dateTo = null, bool finishedGoods = false)
+    public async Task<List<WarehouseTransactionRow>> WhWarehouseTransactionsAsync(string? search = null, DateTime? dateFrom = null,
+        DateTime? dateTo = null, bool finishedGoods = false, string? areaCode = null)
     {
         Authorize();
         var query = new List<string>();
@@ -603,8 +652,9 @@ public sealed class PdaApi
         if (query.Count > 0)
             url += "?" + string.Join("&", query);
 
-        return await _http.GetFromJsonAsync<List<WarehouseTransactionRow>>(url)
+        var rows = await _http.GetFromJsonAsync<List<WarehouseTransactionRow>>(url)
             ?? new List<WarehouseTransactionRow>();
+        return finishedGoods ? rows : await FilterByAreaAsync(rows, row => row.LocationId, areaCode);
     }
 
     public async Task<string?> WhInboundTestBarcodeAsync(string mode)
@@ -1498,15 +1548,15 @@ public sealed class PdaApi
                 L.LocationID,
                 L.LocationName,
                 L.ZoneCode,
-                L.PlantCode AS WarehouseCode,
+                L.WhCode AS WarehouseCode,
                 WM.WhName AS WarehouseName,
-                L.ZoneCode AS AreaCode,
+                L.AreaCode,
                 AM.AreaName,
                 L.LocationName AS ZoneName,
                 L.Aisle,
                 L.Bay,
                 L.Slot,
-                L.PlantCode,
+                L.WhCode AS PlantCode,
                 L.LocationType,
                 L.Capacity,
                 CASE WHEN COUNT(DISTINCT NULLIF(M.DefaultUOM,N'')) = 1
@@ -1517,17 +1567,17 @@ public sealed class PdaApi
                 COALESCE(SUM(I.OnHandQty), 0) AS TotalQty
             FROM dbo.MD_Location L
             LEFT JOIN dbo.WH_WarehouseMaster WM
-                   ON WM.WhCode = L.PlantCode
+                   ON WM.WhCode = L.WhCode
             LEFT JOIN dbo.WH_AreaMaster AM
-                   ON AM.WhCode = L.PlantCode
-                  AND AM.AreaCode = L.ZoneCode
+                   ON AM.WhCode = L.WhCode
+                  AND AM.AreaCode = L.AreaCode
             LEFT JOIN dbo.WH_Inventory I
                    ON I.LocationID = L.LocationID
                   AND COALESCE(I.OnHandQty, 0) > 0
                   AND UPPER(COALESCE(I.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
             LEFT JOIN dbo.MD_Item M ON M.ItemNo = I.ItemNo
             WHERE COALESCE(L.ActiveFlag, 1) = 1
-            GROUP BY L.LocationID, L.LocationName, L.ZoneCode, L.PlantCode,
+            GROUP BY L.LocationID, L.LocationName, L.ZoneCode, L.WhCode, L.AreaCode,
                 WM.WhName, AM.AreaName, L.Aisle, L.Bay, L.Slot, L.LocationType, L.Capacity
             ORDER BY L.LocationID;
             """, conn);
@@ -1709,7 +1759,8 @@ public sealed class PdaApi
         return rows;
     }
 
-    private async Task<List<InventoryRow>> QueryWhInventoryDbAsync(string? q, DateTime? dateFrom, DateTime? dateTo)
+    private async Task<List<InventoryRow>> QueryWhInventoryDbAsync(string? q, DateTime? dateFrom, DateTime? dateTo,
+        string? areaCode)
     {
         await using var conn = _db.CreateConnection();
         await conn.OpenAsync();
@@ -1728,6 +1779,8 @@ public sealed class PdaApi
                 dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
             cmd.Parameters.Add("@StockDateTo", SqlDbType.Date).Value =
                 dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
+            cmd.Parameters.Add("@AreaCode", SqlDbType.NVarChar, 20).Value =
+                string.IsNullOrWhiteSpace(areaCode) ? DBNull.Value : areaCode.Trim();
         }
         else
         {
@@ -1871,7 +1924,8 @@ public sealed class PdaApi
         return new InventoryScanLookupRow("TEXT", scanText, null);
     }
 
-    private async Task<List<InventoryLocationRow>> QueryWhInventoryLocationsDbAsync(string itemNo, DateTime? dateFrom, DateTime? dateTo)
+    private async Task<List<InventoryLocationRow>> QueryWhInventoryLocationsDbAsync(string itemNo, DateTime? dateFrom, DateTime? dateTo,
+        string? areaCode)
     {
         await using var conn = _db.CreateConnection();
         await conn.OpenAsync();
@@ -1889,6 +1943,8 @@ public sealed class PdaApi
                 dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
             cmd.Parameters.Add("@StockDateTo", SqlDbType.Date).Value =
                 dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
+            cmd.Parameters.Add("@AreaCode", SqlDbType.NVarChar, 20).Value =
+                string.IsNullOrWhiteSpace(areaCode) ? DBNull.Value : areaCode.Trim();
         }
         else
         {
@@ -2064,6 +2120,37 @@ public sealed class PdaApi
             GetString(rdr, "SOURCE"),
             GetString(rdr, "NOTE"),
             GetString(rdr, "UNIT"));
+    }
+
+    private async Task<List<T>> FilterByAreaAsync<T>(IEnumerable<T> rows, Func<T, string?> locationSelector,
+        string? areaCode)
+    {
+        var list = rows.ToList();
+        if (string.IsNullOrWhiteSpace(areaCode)) return list;
+
+        var locationIds = (await WhLocationsAsync(areaCode))
+            .Select(row => row.LocationId)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return list.Where(row => locationIds.Contains(locationSelector(row) ?? "")).ToList();
+    }
+
+    private static List<T> FilterByArea<T>(IEnumerable<T> rows, Func<T, string?> areaSelector,
+        string? areaCode)
+    {
+        var list = rows.ToList();
+        return string.IsNullOrWhiteSpace(areaCode)
+            ? list
+            : list.Where(row => string.Equals(areaSelector(row), areaCode, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
+    private static void EnsureArea(string? actualAreaCode, string? expectedAreaCode)
+    {
+        if (string.IsNullOrWhiteSpace(expectedAreaCode)) return;
+        if (string.Equals(actualAreaCode, expectedAreaCode, StringComparison.OrdinalIgnoreCase)) return;
+
+        throw new InvalidOperationException(string.Equals(expectedAreaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase)
+            ? "This location does not belong to the Spare Parts Area."
+            : $"This location does not belong to {expectedAreaCode}.");
     }
 
     private static List<LocationRow> NormalizeLocationRows(IEnumerable<LocationRow> rows)

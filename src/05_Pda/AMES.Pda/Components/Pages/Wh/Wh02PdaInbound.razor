@@ -7,7 +7,7 @@
 
 <div class="pda-shell wh wh02-shell">
     <div class="pda-tbar">
-        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo(ModuleHome))' Text="&lt;" />
         <span class="pda-tbar-brand">INBOUND</span>
         @if (IsTestMode)
         {
@@ -399,8 +399,11 @@
     private bool _testPanelOpen;
     private bool _simulateReceiveApiFailure;
 
-    private bool IsSimpleTestMode => PdaScenarioUsers.IsSimple(Auth?.Session?.EmployeeNo);
-    private bool IsTestMode => IsSimpleTestMode || PdaScenarioUsers.IsDetailed(Auth.Session?.EmployeeNo);
+    private bool IsSpareParts => Nav.ToAbsoluteUri(Nav.Uri).AbsolutePath.StartsWith("/sp/", StringComparison.OrdinalIgnoreCase);
+    private string ModuleHome => IsSpareParts ? "/sp" : "/wh";
+    private string? AreaScope => IsSpareParts ? PdaApi.SparePartsAreaCode : null;
+    private bool IsSimpleTestMode => !IsSpareParts && PdaScenarioUsers.IsSimple(Auth?.Session?.EmployeeNo);
+    private bool IsTestMode => !IsSpareParts && (IsSimpleTestMode || PdaScenarioUsers.IsDetailed(Auth.Session?.EmployeeNo));
     private InboundTestScenario[] ActiveTestScenarios => IsSimpleTestMode ? SimpleTestScenarios : InboundTestScenarios;
     private InboundTestScenario CurrentTestScenario => ActiveTestScenarios[_testScenarioIndex];
     private InboundTestValue[] CurrentTestValues => IsSimpleTestMode ? SimpleTestValues() : CurrentTestScenario.Values;
@@ -826,7 +829,7 @@
             {
                 _loc = row.ReceivedLocation;
                 _changeFromLocation = row.ReceivedLocation;
-                _selectedLocation = await Api.WhScanLocationAsync(row.ReceivedLocation);
+                _selectedLocation = await Api.WhScanLocationAsync(row.ReceivedLocation, AreaScope);
                 _currentLocation = _selectedLocation;
             }
 
@@ -916,7 +919,7 @@
 
         try
         {
-            var location = await Api.WhScanLocationAsync(locationNo);
+            var location = await Api.WhScanLocationAsync(locationNo, AreaScope);
             if (location is null)
             {
                 _selectedLocation = null;
@@ -1057,7 +1060,7 @@
         _currentLocation = _selectedLocation ?? _currentLocation;
         if (_currentLocation is null && !string.IsNullOrWhiteSpace(_changeFromLocation))
         {
-            _currentLocation = await Api.WhScanLocationAsync(_changeFromLocation);
+            _currentLocation = await Api.WhScanLocationAsync(_changeFromLocation, AreaScope);
         }
 
         _loc = "";
@@ -1373,7 +1376,7 @@
 
         try
         {
-            var location = await Api.WhScanLocationAsync(_loc.Trim());
+            var location = await Api.WhScanLocationAsync(_loc.Trim(), AreaScope);
             if (location is null)
             {
                 _selectedLocation = null;

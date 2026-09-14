@@ -2743,7 +2743,7 @@ public sealed class MasterDataRepository
 
     // ── MD_Location ──────────────────────────────────────────────────
     public record LocationRow(
-        string LocationID, string? LocationName, string? ZoneCode,
+        string LocationID, string? LocationName, string WhCode, string AreaCode, string? ZoneCode,
         string? Aisle, string? Bay, string? Slot,
         decimal? Capacity, string? LocationType, string? PlantCode, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
@@ -2752,7 +2752,7 @@ public sealed class MasterDataRepository
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
-            "SELECT LocationID,LocationName,ZoneCode,Aisle,Bay,Slot," +
+            "SELECT LocationID,LocationName,WhCode,AreaCode,ZoneCode,Aisle,Bay,Slot," +
             "Capacity,LocationType,PlantCode,ISNULL(ActiveFlag,1)," +
             "CreatedBy,CreatedTS,ModifiedBy,ModifiedTS " +
             "FROM dbo.MD_Location ORDER BY LocationID;", conn);
@@ -2762,18 +2762,20 @@ public sealed class MasterDataRepository
             list.Add(new LocationRow(
                 rdr.GetString(0),
                 rdr.IsDBNull(1)  ? null : rdr.GetString(1),
-                rdr.IsDBNull(2)  ? null : rdr.GetString(2),
-                rdr.IsDBNull(3)  ? null : rdr.GetString(3),
+                rdr.GetString(2),
+                rdr.GetString(3),
                 rdr.IsDBNull(4)  ? null : rdr.GetString(4),
                 rdr.IsDBNull(5)  ? null : rdr.GetString(5),
-                rdr.IsDBNull(6)  ? null : rdr.GetDecimal(6),
+                rdr.IsDBNull(6)  ? null : rdr.GetString(6),
                 rdr.IsDBNull(7)  ? null : rdr.GetString(7),
-                rdr.IsDBNull(8)  ? null : rdr.GetString(8),
-                rdr.GetBoolean(9),
+                rdr.IsDBNull(8)  ? null : rdr.GetDecimal(8),
+                rdr.IsDBNull(9)  ? null : rdr.GetString(9),
                 rdr.IsDBNull(10) ? null : rdr.GetString(10),
-                rdr.IsDBNull(11) ? null : rdr.GetDateTime(11),
+                rdr.GetBoolean(11),
                 rdr.IsDBNull(12) ? null : rdr.GetString(12),
-                rdr.IsDBNull(13) ? null : rdr.GetDateTime(13)));
+                rdr.IsDBNull(13) ? null : rdr.GetDateTime(13),
+                rdr.IsDBNull(14) ? null : rdr.GetString(14),
+                rdr.IsDBNull(15) ? null : rdr.GetDateTime(15)));
         return list;
     }
 
@@ -2787,7 +2789,7 @@ public sealed class MasterDataRepository
     }
 
     public void InsertLocation(
-        string locationId, string? name, string? zoneCode,
+        string locationId, string? name, string whCode, string areaCode, string? zoneCode,
         string? aisle, string? bay, string? slot,
         decimal? capacity, string? locationType, string? plantCode,
         bool activeFlag, string createdBy)
@@ -2795,11 +2797,13 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_Location" +
-            "(LocationID,LocationName,ZoneCode,Aisle,Bay,Slot," +
+            "(LocationID,LocationName,WhCode,AreaCode,ZoneCode,Aisle,Bay,Slot," +
             "Capacity,LocationType,PlantCode,ActiveFlag,CreatedBy)" +
-            " VALUES(@I,@N,@Z,@A,@B,@S,@CAP,@LT,@PL,@AF,@CB);", conn);
+            " VALUES(@I,@N,@WH,@AR,@Z,@A,@B,@S,@CAP,@LT,@PL,@AF,@CB);", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = locationId;
         cmd.Parameters.Add("@N",   SqlDbType.NVarChar,  60).Value = (object?)name         ?? DBNull.Value;
+        cmd.Parameters.Add("@WH",  SqlDbType.VarChar,   20).Value = whCode;
+        cmd.Parameters.Add("@AR",  SqlDbType.VarChar,   20).Value = areaCode;
         cmd.Parameters.Add("@Z",   SqlDbType.VarChar,   10).Value = (object?)zoneCode      ?? DBNull.Value;
         cmd.Parameters.Add("@A",   SqlDbType.VarChar,    5).Value = (object?)aisle         ?? DBNull.Value;
         cmd.Parameters.Add("@B",   SqlDbType.VarChar,    5).Value = (object?)bay           ?? DBNull.Value;
@@ -2814,7 +2818,7 @@ public sealed class MasterDataRepository
     }
 
     public void UpdateLocation(
-        string locationId, string? name, string? zoneCode,
+        string locationId, string? name, string whCode, string areaCode, string? zoneCode,
         string? aisle, string? bay, string? slot,
         decimal? capacity, string? locationType, string? plantCode,
         bool activeFlag, string modifiedBy)
@@ -2822,12 +2826,14 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_Location SET " +
-            "LocationName=@N,ZoneCode=@Z,Aisle=@A,Bay=@B,Slot=@S," +
+            "LocationName=@N,WhCode=@WH,AreaCode=@AR,ZoneCode=@Z,Aisle=@A,Bay=@B,Slot=@S," +
             "Capacity=@CAP,LocationType=@LT,PlantCode=@PL,ActiveFlag=@AF," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB " +
             "WHERE LocationID=@I;", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = locationId;
         cmd.Parameters.Add("@N",   SqlDbType.NVarChar,  60).Value = (object?)name         ?? DBNull.Value;
+        cmd.Parameters.Add("@WH",  SqlDbType.VarChar,   20).Value = whCode;
+        cmd.Parameters.Add("@AR",  SqlDbType.VarChar,   20).Value = areaCode;
         cmd.Parameters.Add("@Z",   SqlDbType.VarChar,   10).Value = (object?)zoneCode      ?? DBNull.Value;
         cmd.Parameters.Add("@A",   SqlDbType.VarChar,    5).Value = (object?)aisle         ?? DBNull.Value;
         cmd.Parameters.Add("@B",   SqlDbType.VarChar,    5).Value = (object?)bay           ?? DBNull.Value;

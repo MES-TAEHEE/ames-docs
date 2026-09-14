@@ -225,6 +225,14 @@ GO
 -- =====================================================================
 --  WH Inbound
 -- =====================================================================
+IF COL_LENGTH(N'dbo.MD_Item', N'SparePartNo') IS NULL
+    ALTER TABLE dbo.MD_Item ADD SparePartNo nvarchar(80) NULL;
+IF COL_LENGTH(N'dbo.MD_Item', N'ApplicableEquipment') IS NULL
+    ALTER TABLE dbo.MD_Item ADD ApplicableEquipment nvarchar(80) NULL;
+IF COL_LENGTH(N'dbo.MD_Item', N'MakerName') IS NULL
+    ALTER TABLE dbo.MD_Item ADD MakerName nvarchar(80) NULL;
+GO
+
 -- =====================================================================
 --  PDA Warehouse Inbound database contract
 -- =====================================================================
@@ -1118,7 +1126,8 @@ GO
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_INVENTORY_STATUS_LIST
     @SearchText nvarchar(80) = NULL,
     @StockDateFrom date = NULL,
-    @StockDateTo date = NULL
+    @StockDateTo date = NULL,
+    @AreaCode nvarchar(20) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -1136,8 +1145,11 @@ BEGIN
             COUNT(DISTINCT CASE WHEN COALESCE(W.OnHandQty, 0) > 0 THEN W.LotID END) AS LOT_COUNT,
             COUNT(DISTINCT CASE WHEN COALESCE(W.OnHandQty, 0) > 0 THEN W.LocationID END) AS LOCATION_COUNT
         FROM dbo.WH_Inventory W
+        LEFT JOIN dbo.MD_Location WL
+               ON WL.LocationID = W.LocationID
         WHERE W.ItemNo IS NOT NULL
           AND UPPER(COALESCE(W.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
+          AND (@AreaCode IS NULL OR WL.AreaCode = @AreaCode)
           AND (@StockDateFrom IS NULL OR CONVERT(date, W.LastReceivedAt) >= @StockDateFrom)
           AND (@StockDateTo IS NULL OR CONVERT(date, W.LastReceivedAt) <= @StockDateTo)
         GROUP BY W.ItemNo
@@ -1177,6 +1189,7 @@ BEGIN
             WHERE W.ItemNo = I.ItemNo
               AND COALESCE(W.OnHandQty, 0) > 0
               AND UPPER(COALESCE(W.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
+              AND (@AreaCode IS NULL OR L.AreaCode = @AreaCode)
               AND (@StockDateFrom IS NULL OR CONVERT(date, W.LastReceivedAt) >= @StockDateFrom)
               AND (@StockDateTo IS NULL OR CONVERT(date, W.LastReceivedAt) <= @StockDateTo)
             ORDER BY
@@ -1204,6 +1217,7 @@ BEGIN
               OR COALESCE(I.MinStock, 0) > 0
               OR COALESCE(I.MaxStock, 0) > 0
           )
+          AND (@AreaCode IS NULL OR S.ItemNo IS NOT NULL)
           AND
           (
               @Q IS NULL
@@ -1225,6 +1239,7 @@ BEGIN
                          ON L.LocationID = W.LocationID
                   WHERE W.ItemNo = I.ItemNo
                     AND UPPER(COALESCE(W.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
+                    AND (@AreaCode IS NULL OR L.AreaCode = @AreaCode)
                     AND (@StockDateFrom IS NULL OR CONVERT(date, W.LastReceivedAt) >= @StockDateFrom)
                     AND (@StockDateTo IS NULL OR CONVERT(date, W.LastReceivedAt) <= @StockDateTo)
                     AND
@@ -1366,7 +1381,8 @@ GO
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_INVENTORY_LOCATION_LIST
     @ItemNo nvarchar(40),
     @StockDateFrom date = NULL,
-    @StockDateTo date = NULL
+    @StockDateTo date = NULL,
+    @AreaCode nvarchar(20) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -1378,10 +1394,10 @@ BEGIN
         W.ItemNo AS PARTNO,
         COALESCE(L.LocationID, W.LocationID, N'-') AS LOCATION_NO,
         L.LocationName AS LOCATION_NM,
-        L.PlantCode AS WHCD,
-        L.PlantCode AS WHNM,
-        L.ZoneCode AS AREACD,
-        L.ZoneCode AS AREANM,
+        L.WhCode AS WHCD,
+        COALESCE(WM.WhName, L.WhCode) AS WHNM,
+        L.AreaCode AS AREACD,
+        COALESCE(AM.AreaName, L.AreaCode) AS AREANM,
         L.ZoneCode AS ZONECD,
         L.LocationName AS ZONENM,
         L.Aisle AS RACK_X,
@@ -1391,10 +1407,16 @@ BEGIN
     FROM dbo.WH_Inventory W
     LEFT JOIN dbo.MD_Location L
            ON L.LocationID = W.LocationID
+    LEFT JOIN dbo.WH_WarehouseMaster WM
+           ON WM.WhCode = L.WhCode
+    LEFT JOIN dbo.WH_AreaMaster AM
+           ON AM.WhCode = L.WhCode
+          AND AM.AreaCode = L.AreaCode
     WHERE @PartNo IS NOT NULL
       AND W.ItemNo = @PartNo
       AND COALESCE(W.OnHandQty, 0) > 0
       AND UPPER(COALESCE(W.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
+      AND (@AreaCode IS NULL OR L.AreaCode = @AreaCode)
       AND (@StockDateFrom IS NULL OR CONVERT(date, W.LastReceivedAt) >= @StockDateFrom)
       AND (@StockDateTo IS NULL OR CONVERT(date, W.LastReceivedAt) <= @StockDateTo)
     GROUP BY
@@ -1402,7 +1424,10 @@ BEGIN
         W.LocationID,
         L.LocationID,
         L.LocationName,
-        L.PlantCode,
+        L.WhCode,
+        WM.WhName,
+        L.AreaCode,
+        AM.AreaName,
         L.ZoneCode,
         L.Aisle,
         L.Bay,
@@ -3750,13 +3775,109 @@ BEGIN
 END;
 GO
 
+CREATE OR ALTER PROCEDURE dbo.SP_PDA_SIMPLE_TEST_RESET
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    DECLARE @InboundLotID int = (SELECT TOP (1) LotID FROM dbo.tbl_Lot WHERE LotCode = 'EOS-SP-A1-260009');
+    DECLARE @ReleaseLotID int = (SELECT TOP (1) LotID FROM dbo.tbl_Lot WHERE LotCode = 'EOS-SP-A1-260001');
+
+    IF @InboundLotID IS NULL OR @ReleaseLotID IS NULL
+        THROW 51800, 'Spare parts test data was not found. Run PDA_SEED.sql first.', 1;
+
+    BEGIN TRANSACTION;
+
+    DELETE FROM dbo.WH_InventoryTransaction
+    WHERE LotID IN (@InboundLotID, @ReleaseLotID)
+      AND CreatedBy IN (N'SCTEST1', N'SCTEST2');
+
+    DELETE FROM dbo.WH_Receiving WHERE LotCode = 'EOS-SP-A1-260009';
+    DELETE FROM dbo.WH_Inventory WHERE LotID = @InboundLotID;
+
+    MERGE dbo.WH_Inventory AS T
+    USING (SELECT @ReleaseLotID LotID) AS S ON T.LotID = S.LotID
+    WHEN MATCHED THEN UPDATE SET
+        ItemNo = 'PRCDTP7HLQK15', LocationID = 'SP-CAB1-03', OnHandQty = 1,
+        ReservedQty = 0, LastReceivedAt = SYSDATETIME(), Status = 'Received',
+        ModifiedBy = N'pda-test-reset', ModifiedTS = SYSDATETIME()
+    WHEN NOT MATCHED THEN INSERT
+        (ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt, Status, CreatedBy, CreatedTS)
+    VALUES
+        ('PRCDTP7HLQK15', 'SP-CAB1-03', S.LotID, 1, 0, SYSDATETIME(), 'Received', N'pda-test-reset', SYSDATETIME());
+
+    UPDATE dbo.tbl_Lot
+       SET RemainingQty = 1, Status = 'Open', InventoryStatus = 'CREATED',
+           CurrentLocationID = NULL, ModifiedBy = N'pda-test-reset', ModifiedTS = SYSDATETIME()
+     WHERE LotID = @InboundLotID;
+
+    UPDATE dbo.tbl_Lot
+       SET RemainingQty = 1, Status = 'Received', InventoryStatus = 'RECEIVED',
+           CurrentLocationID = 'SP-CAB1-03', ModifiedBy = N'pda-test-reset', ModifiedTS = SYSDATETIME()
+     WHERE LotID = @ReleaseLotID;
+
+    UPDATE dbo.WH_InboundPackage
+       SET Status = CASE WHEN LotID = @InboundLotID THEN N'Open' ELSE N'Received' END,
+           ReceivedAt = CASE WHEN LotID = @InboundLotID THEN NULL ELSE SYSDATETIME() END,
+           ReceivedBy = NULL, ModifiedBy = N'pda-test-reset', ModifiedTS = SYSDATETIME()
+     WHERE LotID IN (@InboundLotID, @ReleaseLotID);
+
+    COMMIT TRANSACTION;
+END;
+GO
+
+-- MD_Location owns the physical hierarchy. Aisle/Bay/Slot remain optional
+-- because areas such as spare-parts storage only use Zone + rack level.
+IF OBJECT_ID(N'dbo.MD_Location', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH(N'dbo.MD_Location', N'WhCode') IS NULL
+        ALTER TABLE dbo.MD_Location ADD WhCode VARCHAR(20) NULL;
+
+    IF COL_LENGTH(N'dbo.MD_Location', N'AreaCode') IS NULL
+        ALTER TABLE dbo.MD_Location ADD AreaCode VARCHAR(20) NULL;
+
+    IF COL_LENGTH(N'dbo.MD_Location', N'ZoneCode') < 20
+        ALTER TABLE dbo.MD_Location ALTER COLUMN ZoneCode VARCHAR(20) NULL;
+END;
+GO
+
+IF OBJECT_ID(N'dbo.MD_Location', N'U') IS NOT NULL
+BEGIN
+    UPDATE dbo.MD_Location
+       SET WhCode = 'EOS',
+           AreaCode = CASE
+               WHEN UPPER(LocationID) LIKE 'SP-%' THEN 'SPARE_PARTS_AREA'
+               WHEN UPPER(LocationID) LIKE 'FG%'
+                 OR UPPER(COALESCE(LocationType, '')) IN ('FG', 'FINISHED_GOODS', 'FINISHED GOODS')
+                   THEN 'FG_AREA'
+               ELSE 'MAT_AREA'
+           END;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.default_constraints dc
+        JOIN sys.columns c ON c.object_id = dc.parent_object_id AND c.column_id = dc.parent_column_id
+        WHERE dc.parent_object_id = OBJECT_ID(N'dbo.MD_Location') AND c.name = N'WhCode')
+        ALTER TABLE dbo.MD_Location ADD CONSTRAINT DF_MD_Location_WhCode DEFAULT ('EOS') FOR WhCode;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.default_constraints dc
+        JOIN sys.columns c ON c.object_id = dc.parent_object_id AND c.column_id = dc.parent_column_id
+        WHERE dc.parent_object_id = OBJECT_ID(N'dbo.MD_Location') AND c.name = N'AreaCode')
+        ALTER TABLE dbo.MD_Location ADD CONSTRAINT DF_MD_Location_AreaCode DEFAULT ('MAT_AREA') FOR AreaCode;
+
+    ALTER TABLE dbo.MD_Location ALTER COLUMN WhCode VARCHAR(20) NOT NULL;
+    ALTER TABLE dbo.MD_Location ALTER COLUMN AreaCode VARCHAR(20) NOT NULL;
+END;
+GO
+
 IF OBJECT_ID(N'dbo.MD_Location', N'U') IS NOT NULL
 BEGIN
     MERGE dbo.WH_WarehouseMaster AS tgt
     USING (
-        SELECT DISTINCT CAST(COALESCE(NULLIF(PlantCode, ''), 'WH') AS varchar(20)) AS WhCode
+        SELECT DISTINCT CAST(WhCode AS varchar(20)) AS WhCode
         FROM dbo.MD_Location
-        WHERE COALESCE(NULLIF(PlantCode, ''), 'WH') IS NOT NULL
+        WHERE NULLIF(WhCode, '') IS NOT NULL
     ) AS src ON tgt.WhCode = src.WhCode
     WHEN NOT MATCHED THEN INSERT
         (WhCode, WhName, ActiveFlag, CreatedBy, CreatedTS)
@@ -3795,22 +3916,22 @@ BEGIN
        SET WhCode = COALESCE(NULLIF(A.WhCode, ''), X.WhCode, A.AreaCode)
     FROM dbo.WH_AreaMaster A
     OUTER APPLY (
-        SELECT TOP (1) L.PlantCode AS WhCode
+        SELECT TOP (1) L.WhCode
         FROM dbo.MD_Location L
-        WHERE COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = A.AreaCode
-          AND NULLIF(L.PlantCode, '') IS NOT NULL
-        ORDER BY L.PlantCode
+        WHERE L.AreaCode = A.AreaCode
+          AND NULLIF(L.WhCode, '') IS NOT NULL
+        ORDER BY L.WhCode
     ) X
     WHERE NULLIF(A.WhCode, '') IS NULL;
 
     MERGE dbo.WH_AreaMaster AS tgt
     USING (
         SELECT
-            MIN(CAST(COALESCE(NULLIF(PlantCode, ''), 'WH') AS varchar(20))) AS WhCode,
-            CAST(COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') AS varchar(20)) AS AreaCode
+            MIN(CAST(WhCode AS varchar(20))) AS WhCode,
+            CAST(AreaCode AS varchar(20)) AS AreaCode
         FROM dbo.MD_Location
-        WHERE COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') IS NOT NULL
-        GROUP BY CAST(COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') AS varchar(20))
+        WHERE NULLIF(AreaCode, '') IS NOT NULL
+        GROUP BY CAST(AreaCode AS varchar(20))
     ) AS src ON tgt.AreaCode = src.AreaCode
     WHEN NOT MATCHED THEN INSERT
         (WhCode, AreaCode, AreaName, ActiveFlag, CreatedBy, CreatedTS)
@@ -3853,25 +3974,25 @@ BEGIN
     LEFT JOIN dbo.WH_AreaMaster A
            ON A.AreaCode = S.AreaCode
     OUTER APPLY (
-        SELECT TOP (1) L.PlantCode AS WhCode
+        SELECT TOP (1) L.WhCode
         FROM dbo.MD_Location L
-        WHERE COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = S.AreaCode
-          AND COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = S.SectionCode
-          AND NULLIF(L.PlantCode, '') IS NOT NULL
-        ORDER BY L.PlantCode
+        WHERE L.AreaCode = S.AreaCode
+          AND COALESCE(NULLIF(L.ZoneCode, ''), 'DEFAULT') = S.SectionCode
+          AND NULLIF(L.WhCode, '') IS NOT NULL
+        ORDER BY L.WhCode
     ) X
     WHERE NULLIF(S.WhCode, '') IS NULL;
 
     MERGE dbo.WH_AreaSection AS tgt
     USING (
         SELECT
-            MIN(CAST(COALESCE(NULLIF(PlantCode, ''), 'WH') AS varchar(20))) AS WhCode,
-            CAST(COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') AS varchar(20)) AS AreaCode,
-            CAST(COALESCE(NULLIF(LocationType, ''), 'DEFAULT') AS varchar(20)) AS SectionCode
+            MIN(CAST(WhCode AS varchar(20))) AS WhCode,
+            CAST(AreaCode AS varchar(20)) AS AreaCode,
+            CAST(COALESCE(NULLIF(ZoneCode, ''), 'DEFAULT') AS varchar(20)) AS SectionCode
         FROM dbo.MD_Location
-        WHERE COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') IS NOT NULL
-        GROUP BY CAST(COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') AS varchar(20)),
-                 CAST(COALESCE(NULLIF(LocationType, ''), 'DEFAULT') AS varchar(20))
+        WHERE NULLIF(AreaCode, '') IS NOT NULL
+        GROUP BY CAST(AreaCode AS varchar(20)),
+                 CAST(COALESCE(NULLIF(ZoneCode, ''), 'DEFAULT') AS varchar(20))
     ) AS src
        ON tgt.AreaCode = src.AreaCode
       AND tgt.SectionCode = src.SectionCode

@@ -11,6 +11,12 @@ public partial class Wh03InventoryStatus
         new("By Part", "Part 기준으로 품번·품명·수량·위치가 표시되는지 확인합니다.", new PptScenarioPanel.Value("PART", "PPT-WH-INV-01", "PART")),
         new("Part LOT Details", "Part를 선택해 LOT별 수량·단위·위치를 확인하고 BACK으로 돌아옵니다.", new PptScenarioPanel.Value("LOT 상세", "PPT-WH-INV-01", "PART_LOTS"))
     ];
+    private static readonly PptScenarioPanel.Step[] SpPptInventorySteps =
+    [
+        new("LOT 검색", "엑셀 샘플 LOT의 품목, 수량과 SP 보관 위치를 확인합니다.", new PptScenarioPanel.Value("LOT", "EOS-SP-A1-260001", "SP_LOT")),
+        new("위치별 재고", "SP-CAB1-03 위치에 보관된 Spare Part 목록을 확인합니다.", new PptScenarioPanel.Value("LOCATION", "SP-CAB1-03", "SP_LOCATION")),
+        new("파트별 재고", "Part No로 검색하여 LOT별 수량과 위치를 확인합니다.", new PptScenarioPanel.Value("PART", "PRCDTP7HLQK15", "SP_PART"))
+    ];
     private static readonly PptScenarioPanel.Step[] PptAdjustSteps =
     [
         new("LOT 스캔", "LOT을 스캔해 품목·수량·위치를 조회합니다.", new PptScenarioPanel.Value("LOT", PptAdjustLot, "SCAN")),
@@ -29,19 +35,22 @@ public partial class Wh03InventoryStatus
     }).ToArray();
     private bool IsDetailedFgTestMode => IsFinishedGoodsAdjust
         && PdaScenarioUsers.IsDetailed(Auth?.Session?.EmployeeNo);
-    private bool IsPptTestMode => IsDetailedFgTestMode || PdaScenarioUsers.IsSimple(Auth?.Session?.EmployeeNo);
+    private bool IsPptTestMode => IsDetailedFgTestMode
+        || (PdaScenarioUsers.IsSimple(Auth?.Session?.EmployeeNo) && (!IsSpareParts || !IsAdjustTab));
     private PptScenarioPanel.Step[] ActivePptSteps => IsDetailedFgTestMode
         ? FgDetailedScenarioCatalog.Adjust(PptFgAdjustSteps)
+        : IsSpareParts ? SpPptInventorySteps
         : IsFinishedGoodsAdjust ? PptFgAdjustSteps : IsAdjustTab ? PptAdjustSteps : PptInventorySteps;
     private string ScenarioModeLabel => IsDetailedFgTestMode ? "TEST MODE" : "PPT CHECK";
     private bool _pptOpen;
     private readonly HashSet<string> _pptReadyScreens = [];
     private async Task EnsurePptData()
     {
-        var screen = IsFinishedGoodsAdjust ? "fg-adjust" : IsAdjustTab ? "adjust" : "inventory";
+        var screen = IsSpareParts ? "sp-inventory" : IsFinishedGoodsAdjust ? "fg-adjust" : IsAdjustTab ? "adjust" : "inventory";
         if (!_pptReadyScreens.Contains(screen))
         {
-            if (IsFinishedGoodsAdjust) await Api.FgResetPptTestAsync("adjust");
+            if (IsSpareParts) await Api.SpResetTestAsync();
+            else if (IsFinishedGoodsAdjust) await Api.FgResetPptTestAsync("adjust");
             else await Api.WhResetPptTestAsync(screen);
             _pptReadyScreens.Add(screen);
         }
@@ -49,13 +58,14 @@ public partial class Wh03InventoryStatus
     private async Task ResetPptData()
     {
         if (!IsPptTestMode || InventoryBusy || _isLoading) return;
-        var screen = IsFinishedGoodsAdjust ? "fg-adjust" : IsAdjustTab ? "adjust" : "inventory";
-        if (IsFinishedGoodsAdjust) await Api.FgResetPptTestAsync("adjust");
+        var screen = IsSpareParts ? "sp-inventory" : IsFinishedGoodsAdjust ? "fg-adjust" : IsAdjustTab ? "adjust" : "inventory";
+        if (IsSpareParts) await Api.SpResetTestAsync();
+        else if (IsFinishedGoodsAdjust) await Api.FgResetPptTestAsync("adjust");
         else await Api.WhResetPptTestAsync(screen);
         _pptReadyScreens.Add(screen);
         if (IsAdjustTab) ClearInventoryWork();
         else await PreparePptInventory(1);
-        ShowAlert("Test Data Ready", IsAdjustTab ? "조정용 LOT을 10 EA로 초기화했습니다." : "조회용 LOT 3개를 초기화했습니다.", "success");
+        ShowAlert("Test Data Ready", IsSpareParts ? "Spare Parts 샘플 재고를 초기화했습니다." : IsAdjustTab ? "조정용 LOT을 10 EA로 초기화했습니다." : "조회용 LOT 3개를 초기화했습니다.", "success");
     }
     private async Task PreparePptInventory(int step)
     {
@@ -68,6 +78,14 @@ public partial class Wh03InventoryStatus
         _matchedLocationIds = null;
         CloseBrowsePart();
         CloseLocationInventory();
+        if (IsSpareParts)
+        {
+            _inventoryView = step == 3 ? "Part" : "Location";
+            if (step == 3) _q = "PRCDTP7HLQK15";
+            await Load();
+            if (step == 2) await OpenInventoryLocation("SP-CAB1-03");
+            return;
+        }
         _inventoryView = step >= 4 ? "Part" : "Location";
         if (step >= 4) _q = "PPT-WH-INV-01";
         await Load();
@@ -124,6 +142,18 @@ public partial class Wh03InventoryStatus
         }
         if (!IsAdjustTab)
         {
+            if (IsSpareParts)
+            {
+                var spStep = command switch { "SP_LOCATION" => 2, "SP_PART" => 3, _ => 1 };
+                await PreparePptInventory(spStep);
+                if (command == "SP_LOT")
+                {
+                    _inventoryView = "Part";
+                    _q = "EOS-SP-A1-260001";
+                    await Load();
+                }
+                return;
+            }
             var step = command switch { "LOCATION" => 2, "LOCATION_LOTS" => 3, "PART" => 4, "PART_LOTS" => 5, _ => 1 };
             await PreparePptInventory(step);
             if (command == "SEARCH") { _locationQuery = "PPT-WH-INV-01"; await LoadLocationInventory(); }

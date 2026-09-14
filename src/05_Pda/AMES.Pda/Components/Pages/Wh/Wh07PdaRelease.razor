@@ -7,7 +7,7 @@
 
 <div class="pda-shell wh wh07-shell">
     <div class="pda-tbar">
-        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo(ModuleHome))' Text="&lt;" />
         <div class="wh07-tbar-title">
             <span class="pda-tbar-brand">RELEASE</span>
         </div>
@@ -370,7 +370,10 @@
     private bool _testPanelOpen;
     private bool _simulateReleaseApiFailure;
 
-    private bool IsTestMode => PdaScenarioUsers.IsDetailed(Auth.Session?.EmployeeNo);
+    private bool IsSpareParts => Nav.ToAbsoluteUri(Nav.Uri).AbsolutePath.StartsWith("/sp/", StringComparison.OrdinalIgnoreCase);
+    private string ModuleHome => IsSpareParts ? "/sp" : "/wh";
+    private string? AreaScope => IsSpareParts ? PdaApi.SparePartsAreaCode : null;
+    private bool IsTestMode => !IsSpareParts && PdaScenarioUsers.IsDetailed(Auth.Session?.EmployeeNo);
     private ReleaseTestScenario CurrentTestScenario => ReleaseTestScenarios[_testScenarioIndex];
 
     private void OpenTestPanel() => _testPanelOpen = true;
@@ -626,7 +629,7 @@
             }
 
             _lines = await Api.WhReleaseLinesAsync(_loadedSlipNo);
-            _fifoLots = await Api.WhReleaseFifoLotsAsync(_loadedSlipNo);
+            _fifoLots = await Api.WhReleaseFifoLotsAsync(_loadedSlipNo, AreaScope);
 
             if (_lines.Count == 0)
             {
@@ -657,7 +660,7 @@
         _isBusy = true;
         try
         {
-            _scan = await Api.WhReleaseLotAsync(_loadedSlipNo, scanText.Trim());
+            _scan = await Api.WhReleaseLotAsync(_loadedSlipNo, scanText.Trim(), AreaScope);
             if (_scan is null)
             {
                 ShowModal("Scan Failed", "LOT lookup failed. Check API connection.", "fail");
@@ -715,7 +718,7 @@
         _isBusy = true;
         try
         {
-            _directLot = await Api.WhDirectOutgoingLotAsync(barcode.Trim());
+            _directLot = await Api.WhDirectOutgoingLotAsync(barcode.Trim(), AreaScope);
             if (_directLot is null || !_directLot.IsValid)
             {
                 var message = _directLot?.Message ?? "LOT lookup failed. Check API connection.";

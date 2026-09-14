@@ -117,10 +117,10 @@ public sealed class FinishedGoodsRepository
             SELECT
                 L.LocationID,
                 L.LocationName,
-                L.PlantCode AS WarehouseCode,
-                COALESCE(NULLIF(W.WhName, ''), L.PlantCode) AS WarehouseName,
-                L.ZoneCode AS AreaCode,
-                L.LocationType AS ZoneCode,
+                L.WhCode AS WarehouseCode,
+                COALESCE(NULLIF(W.WhName, ''), L.WhCode) AS WarehouseName,
+                L.AreaCode AS AreaCode,
+                L.ZoneCode AS ZoneCode,
                 L.Aisle AS ColumnNo,
                 L.Bay AS RowNo,
                 L.Slot AS LevelNo,
@@ -137,7 +137,7 @@ public sealed class FinishedGoodsRepository
                 END AS Status
             FROM dbo.MD_Location L
             LEFT JOIN dbo.FG_LocationMaster FGM ON FGM.LocationID = L.LocationID
-            LEFT JOIN dbo.WH_WarehouseMaster W ON W.WhCode = L.PlantCode
+            LEFT JOIN dbo.WH_WarehouseMaster W ON W.WhCode = L.WhCode
             LEFT JOIN FgStock S ON S.Location = L.LocationID
             WHERE
                 (
@@ -148,17 +148,18 @@ public sealed class FinishedGoodsRepository
                     OR S.Location IS NOT NULL
                 )
               AND (@IncludeInactive = 1 OR (ISNULL(L.ActiveFlag, 1) = 1 AND ISNULL(FGM.ActiveFlag, 1) = 1))
-              AND (@WarehouseCode IS NULL OR L.PlantCode = @WarehouseCode)
-              AND (@AreaCode IS NULL OR L.ZoneCode = @AreaCode)
-              AND (@ZoneCode IS NULL OR L.LocationType = @ZoneCode)
+              AND (@WarehouseCode IS NULL OR L.WhCode = @WarehouseCode)
+              AND (@AreaCode IS NULL OR L.AreaCode = @AreaCode)
+              AND (@ZoneCode IS NULL OR L.ZoneCode = @ZoneCode)
               AND (@LevelNo IS NULL OR L.Slot = @LevelNo)
               AND (@Search IS NULL
                    OR L.LocationID LIKE @Search
                    OR L.LocationName LIKE @Search
-                   OR L.PlantCode LIKE @Search
+                   OR L.WhCode LIKE @Search
+                   OR L.AreaCode LIKE @Search
                    OR L.ZoneCode LIKE @Search
                    OR L.LocationType LIKE @Search)
-            ORDER BY L.PlantCode, L.ZoneCode, L.LocationType,
+            ORDER BY L.WhCode, L.AreaCode, L.ZoneCode,
                      TRY_CONVERT(int, L.Slot), L.Slot,
                      TRY_CONVERT(int, L.Bay), L.Bay,
                      TRY_CONVERT(int, L.Aisle), L.Aisle,
@@ -224,9 +225,11 @@ public sealed class FinishedGoodsRepository
                ON target.LocationID = source.LocationID
             WHEN MATCHED THEN UPDATE SET
                 LocationName = @LocationName,
+                WhCode = @WarehouseCode,
+                AreaCode = @AreaCode,
+                ZoneCode = @ZoneCode,
                 PlantCode = @WarehouseCode,
-                ZoneCode = @AreaCode,
-                LocationType = @ZoneCode,
+                LocationType = 'FG',
                 Aisle = @ColumnNo,
                 Bay = @RowNo,
                 Slot = @LevelNo,
@@ -235,10 +238,10 @@ public sealed class FinishedGoodsRepository
                 ModifiedBy = @ModifiedBy,
                 ModifiedTS = SYSDATETIME()
             WHEN NOT MATCHED THEN INSERT
-                (LocationID, LocationName, PlantCode, ZoneCode, LocationType, Aisle, Bay, Slot,
+                (LocationID, LocationName, WhCode, AreaCode, ZoneCode, PlantCode, LocationType, Aisle, Bay, Slot,
                  Capacity, ActiveFlag, CreatedBy, CreatedTS)
             VALUES
-                (@LocationID, @LocationName, @WarehouseCode, @AreaCode, @ZoneCode, @ColumnNo, @RowNo, @LevelNo,
+                (@LocationID, @LocationName, @WarehouseCode, @AreaCode, @ZoneCode, @WarehouseCode, 'FG', @ColumnNo, @RowNo, @LevelNo,
                  @Capacity, @Active, @ModifiedBy, SYSDATETIME());
 
             MERGE dbo.FG_LocationMaster AS target
