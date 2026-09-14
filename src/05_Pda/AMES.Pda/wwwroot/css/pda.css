@@ -193,6 +193,7 @@ body { font-family: 'Inter', sans-serif; background: #0c1320; color: #e8eef7; fo
 }
 .pda-tile:active { transform: translateY(2px); }
 .pda-tile.wh { border-top: 4px solid #93c5fd; }
+.pda-tile.sp { border-top: 4px solid #34d399; }
 .pda-tile.fg { border-top: 4px solid #fbbf24; }
 .pda-tile.sm { padding: 16px 8px; }
 .pda-tile-ic  { font-size: 36px; line-height: 1; }
@@ -12301,4 +12302,36 @@ body:has(.wh01-shell, .wh08-shell) .rz-datepicker-calendar :is(button, select, i
     color: #fff;
     font-size: 28px;
     font-weight: 900;
+}
+.sp-body {
+  padding-bottom: 106px;
+}
+
+.sp-detail-grid {
+  border-top: 1px solid var(--wh-line);
+}
+
+.sp-detail-row {
+  display: grid;
+  grid-template-columns: minmax(108px, .9fr) minmax(0, 1.55fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 42px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--wh-line);
+}
+
+.sp-detail-row span {
+  color: var(--wh-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+
+.sp-detail-row strong {
+  min-width: 0;
+  color: var(--wh-text);
+  font-size: 13px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
