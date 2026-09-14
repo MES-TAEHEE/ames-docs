@@ -1,4 +1,5 @@
 @page "/wh/08"
+@page "/sp/08"
 @page "/fg/history"
 @inject PdaApi Api
 @inject AuthState Auth
@@ -8,7 +9,7 @@
 
 <div class="@($"pda-shell wh wh08-shell {(IsFinishedGoods ? "fg-history-shell" : "")}")">
     <div class="pda-tbar">
-        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo(IsFinishedGoods ? "/fg" : "/wh"))' Text="&lt;" />
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo(ModuleHome))' Text="&lt;" />
         <div class="wh08-tbar-title">
             <span class="pda-tbar-brand">TRANSACTIONS</span>
         </div>
@@ -256,6 +257,10 @@
 
 @code {
     private bool IsFinishedGoods => Nav?.Uri?.Contains("/fg/history", StringComparison.OrdinalIgnoreCase) == true;
+    private bool IsSpareParts => Nav.ToAbsoluteUri(Nav.Uri).AbsolutePath.StartsWith("/sp/", StringComparison.OrdinalIgnoreCase);
+    private string ModuleHome => IsFinishedGoods ? "/fg" : IsSpareParts ? "/sp" : "/wh";
+    private string ModuleKey => IsFinishedGoods ? "FG" : IsSpareParts ? "SP" : "WH";
+    private string? AreaScope => IsSpareParts ? PdaApi.SparePartsAreaCode : null;
     private static readonly string[] FgHistoryTypes = ["", "IN", "PICK", "LOAD", "RETURN", "ADJ"];
     private static string FgTypeClass(string type) => type switch { "IN" or "RETURN" => "in", "PICK" or "LOAD" => "out", "ADJ" => "adj", _ => "all" };
     private static DateTime DefaultDateFrom => DateTime.Today.AddDays(-30);
@@ -292,11 +297,11 @@
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .OrderBy(r => r);
 
-    private bool? _lastHistoryMode;
+    private string? _lastHistoryMode;
     protected override async Task OnParametersSetAsync()
     {
-        if (_lastHistoryMode == IsFinishedGoods) return;
-        _lastHistoryMode = IsFinishedGoods;
+        if (_lastHistoryMode == ModuleKey) return;
+        _lastHistoryMode = ModuleKey;
         _search = _worker = _reason = _type = "";
         _dateFrom = DefaultDateFrom;
         _dateTo = DefaultDateTo;
@@ -402,7 +407,7 @@
                 return;
             }
 
-            _rows = await Api.WhWarehouseTransactionsAsync(_search, DateFrom, DateTo, IsFinishedGoods);
+            _rows = await Api.WhWarehouseTransactionsAsync(_search, DateFrom, DateTo, IsFinishedGoods, AreaScope);
             _detailRow = null;
             _msg = string.IsNullOrWhiteSpace(_search)
                 ? "No transactions found for the selected conditions."
@@ -411,7 +416,11 @@
         catch
         {
             _rows = new();
-            _msg = IsFinishedGoods ? "FG transaction service is unavailable. Please try again." : "Warehouse transaction service is unavailable. Please try again.";
+            _msg = IsFinishedGoods
+                ? "FG transaction service is unavailable. Please try again."
+                : IsSpareParts
+                    ? "Spare parts transaction service is unavailable. Please try again."
+                    : "Warehouse transaction service is unavailable. Please try again.";
         }
         finally
         {

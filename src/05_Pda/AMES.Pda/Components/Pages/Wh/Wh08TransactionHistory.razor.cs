@@ -63,11 +63,12 @@ public partial class Wh08TransactionHistory
         new("거래 목록", "입고 20, 출고 4, 조정 +2의 일시·LOT·품목·위치·색상·작업자를 확인합니다.", new PptScenarioPanel.Value("이력", "샘플 3건 조회", "ROWS")),
         new("조정 상세", "DETAIL에서 Before 16, Change +2, After 18과 Reason·Note·Worker를 확인합니다.", new PptScenarioPanel.Value("DETAIL", "조정 상세 열기", "DETAIL"))
     ];
-    private bool IsDetailedWhTestMode => !IsFinishedGoods
+    private bool IsDetailedWhTestMode => !IsFinishedGoods && !IsSpareParts
         && PdaScenarioUsers.IsDetailed(Auth?.Session?.EmployeeNo);
     private bool IsDetailedFgTestMode => IsFinishedGoods
         && PdaScenarioUsers.IsDetailed(Auth?.Session?.EmployeeNo);
-    private bool IsPptTestMode => IsDetailedFgTestMode || PdaScenarioUsers.IsSimple(Auth?.Session?.EmployeeNo);
+    private bool IsPptTestMode => !IsSpareParts
+        && (IsDetailedFgTestMode || PdaScenarioUsers.IsSimple(Auth?.Session?.EmployeeNo));
     private PptScenarioPanel.Step[] ActivePptSteps => IsDetailedFgTestMode
         ? FgDetailedScenarioCatalog.Transactions(FgPptSteps)
         : IsFinishedGoods ? FgPptSteps : PptSteps;
