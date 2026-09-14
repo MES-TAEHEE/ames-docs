@@ -17,16 +17,17 @@
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
             <span class="dim">@L["PP.PlanConfirm.Dlg.QtyBasis"]</span>
-            <RadzenRadioButtonList @bind-Value="_useNet" @bind-Value:after="Recompute" TValue="bool"
+            <RadzenRadioButtonList @bind-Value="_qtyMode" @bind-Value:after="OnQtyModeChanged" TValue="string"
                                    Orientation="Radzen.Orientation.Horizontal" Disabled="_busy">
                 <Items>
-                    <RadzenRadioButtonListItem Text="@L["PP.PlanConfirm.Dlg.QtyNet"].Value" Value="true" TValue="bool" />
-                    <RadzenRadioButtonListItem Text="@L["PP.PlanConfirm.Dlg.QtyOrder"].Value" Value="false" TValue="bool" />
+                    <RadzenRadioButtonListItem Text="@L["PP.PlanConfirm.Dlg.QtyNet"].Value" Value="@QtyNet" TValue="string" />
+                    <RadzenRadioButtonListItem Text="@L["PP.PlanConfirm.Dlg.QtyOrder"].Value" Value="@QtyOrder" TValue="string" />
+                    <RadzenRadioButtonListItem Text="@L["PP.PlanConfirm.Dlg.QtyManual"].Value" Value="@QtyManual" TValue="string" />
                 </Items>
             </RadzenRadioButtonList>
         </div>
         <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
-            <span class="dim">@L[_useNet ? "PP.PlanConfirm.Dlg.NetTotal" : "PP.PlanConfirm.Dlg.OrderTotal"]</span>
+            <span class="dim">@L[TotalKey]</span>
             <span class="code">@Lines.Sum(Qty).ToString("#,0") EA</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
@@ -44,7 +45,7 @@
             <thead>
                 <tr>
                     <th>@L["Col.SoNo"] · @L["Col.PartNo"]</th>
-                    <th style="width:64px;text-align:right;">@L["Col.Qty"]</th>
+                    <th style="width:120px;text-align:right;">@L["Col.Qty"]</th>
                     <th style="width:28px;">#</th>
                     <th style="width:70px;">@L["PP.WoRelease.Dlg.Step"]</th>
                     <th style="width:168px;">@L["Col.Line"]</th>
@@ -62,7 +63,7 @@
                     {
                         <tr>
                             <td><span class="code">@r.Line.SoNumber</span><div>@r.Line.ItemNo</div></td>
-                            <td style="text-align:right;">@qty.ToString("#,0")</td>
+                            @QtyCell(r, 1)
                             <td colspan="6"><span class="pill bad">@L["PP.PlanConfirm.Dlg.Err.NoMold"]</span></td>
                         </tr>
                         continue;
@@ -71,7 +72,7 @@
                     {
                         <tr>
                             <td><span class="code">@r.Line.SoNumber</span><div>@r.Line.ItemNo</div></td>
-                            <td style="text-align:right;" class="@(qty <= 0 ? "dim" : "")">@qty.ToString("#,0")</td>
+                            @QtyCell(r, 1)
                             <td colspan="6"><span class="dim">@L["PP.PlanConfirm.Dlg.NoSteps"]</span></td>
                         </tr>
                     }
@@ -89,7 +90,7 @@
                                     @if (r.Line.DueDate is DateTime d) { <div class="dim" style="font-size:.85em;">@L["Col.Due"] @d.ToString("yyyy-MM-dd")</div> }
                                     @if (r.Deadline is DateTime dl) { <div class="dim" style="font-size:.85em;">@L["PP.PlanConfirm.Dlg.Deadline"] @dl.ToString("yyyy-MM-dd")</div> }
                                 </td>
-                                <td rowspan="@n" style="vertical-align:top;text-align:right;" class="@(qty <= 0 ? "dim" : "")">@qty.ToString("#,0")</td>
+                                @QtyCell(r, n)
                             }
                             <td class="code">@s.Step.StepSeq</td>
                             <td class="code">@s.Step.ProcessCode</td>
@@ -117,7 +118,7 @@
         </table>
     </div>
 
-    @if (_useNet && SkipCount > 0)
+    @if (SkipCount > 0)
     {
         <div class="ames-alert bad">@string.Format(L["PP.PlanConfirm.Dlg.SkipZero"].Value, SkipCount)</div>
     }
@@ -173,7 +174,10 @@
     int RejectCount => _rows.Count(r => r.NoMold);
 
     bool     _busy;
-    bool     _useNet    = true;
+    const string QtyNet = "net", QtyOrder = "order", QtyManual = "manual";
+    string   _qtyMode   = QtyNet;
+    readonly Dictionary<int, decimal> _manual      = new();   // 직접 입력 수량 (SoId 별) — 모드 전환 시 직전 기준값으로 채운다
+    readonly Dictionary<int, decimal> _lastAutoQty = new();   // 직전에 화면에 보이던 기준 수량 — 직접 입력의 초기값
     DateTime _startDate = DateTime.Today;
     string   _err       = "";
     int      _bufferDays = PpRepository.BufferWorkdaysDefault;
@@ -182,8 +186,60 @@
     List<RowVm> _rows   = new();
     Dictionary<string, int?> _dailyCap = new();
 
-    decimal Qty(PpRepository.PlanLineRow l) => _useNet ? l.NetReq : l.OrderQty;
-    int SkipCount  => Lines.Count(l => l.NetReq <= 0);
+    // 순수요·수주량 기준은 기발행분을 뺀 잔량(PlanLineRow), 직접 입력은 사용자 값 그대로 — 수주량 초과도 허용(경고 표시만)
+    decimal Qty(PpRepository.PlanLineRow l) => _qtyMode switch
+    {
+        QtyManual => _manual.GetValueOrDefault(l.SoId),
+        QtyOrder  => l.RemainQty,
+        _         => l.NetReq,
+    };
+    string TotalKey => _qtyMode switch { QtyManual => "PP.PlanConfirm.Dlg.ManualTotal", QtyOrder => "PP.PlanConfirm.Dlg.OrderTotal", _ => "PP.PlanConfirm.Dlg.NetTotal" };
+    int SkipCount  => Lines.Count(l => Qty(l) <= 0);
+
+    void OnQtyModeChanged()
+    {
+        // 직접 입력으로 바꾸면 이미 보이던 값(순수요/수주량)을 초기값으로 — 고칠 행만 고치면 된다
+        if (_qtyMode == QtyManual)
+            foreach (var l in Lines)
+                if (!_manual.ContainsKey(l.SoId)) _manual[l.SoId] = _lastAutoQty.GetValueOrDefault(l.SoId, l.NetReq);
+        Recompute();
+    }
+
+    void SetManual(int soId, decimal v) { _manual[soId] = Math.Max(0m, Math.Floor(v)); Recompute(); }
+
+    // 수량 셀 — 직접 입력 모드에서는 숫자 입력란, 잔량 초과면 경고 필, 기발행이 있으면 기발행/수주 표시
+    RenderFragment QtyCell(RowVm r, int span) => __b =>
+    {
+        var l = r.Line; var q = Qty(l);
+        __b.OpenElement(0, "td"); __b.AddAttribute(1, "rowspan", span); __b.AddAttribute(2, "style", "vertical-align:top;text-align:right;"); __b.AddAttribute(3, "class", q <= 0 ? "dim" : "");
+        if (_qtyMode == QtyManual)
+        {
+            __b.OpenComponent<RadzenNumeric<decimal>>(4);
+            __b.AddAttribute(5, "Value", q);
+            __b.AddAttribute(6, "ValueChanged", EventCallback.Factory.Create<decimal>(this, v => SetManual(l.SoId, v)));
+            __b.AddAttribute(7, "Min", (decimal?)0m);
+            __b.AddAttribute(8, "Step", "1");
+            __b.AddAttribute(23, "Format", "#,0");
+            __b.AddAttribute(9, "Disabled", _busy);
+            __b.AddAttribute(10, "InputSize", InputSize.Small);
+            __b.AddAttribute(11, "class", "ames-rz-input");
+            __b.AddAttribute(12, "Style", "width:100px;");
+            __b.CloseComponent();
+        }
+        else __b.AddContent(13, q.ToString("#,0"));
+        if (q > l.RemainQty)
+        {
+            __b.OpenElement(14, "div"); __b.OpenElement(15, "span"); __b.AddAttribute(16, "class", "pill warn");
+            __b.AddAttribute(17, "title", string.Format(L["PP.PlanConfirm.Dlg.OverOrderTip"].Value, l.RemainQty.ToString("#,0")));
+            __b.AddContent(18, L["PP.PlanConfirm.Dlg.OverOrder"].Value); __b.CloseElement(); __b.CloseElement();
+        }
+        if (l.IssuedQty > 0)
+        {
+            __b.OpenElement(19, "div"); __b.AddAttribute(20, "class", "dim"); __b.AddAttribute(21, "style", "font-size:.8em;");
+            __b.AddContent(22, $"{L["PP.PlanConfirm.Col.Issued"]} {l.IssuedQty:#,0}/{l.OrderQty:#,0}"); __b.CloseElement();
+        }
+        __b.CloseElement();
+    };
     int LateCount  => _rows.Count(r => r.Preview?.Placements.Any(p => p.Late) == true);
     // 납기가 이미 지난 수주 — 전량 Late 가 당연하므로 "마감 초과" 와 섞지 않고 따로 알린다
     int OverdueCount => _rows.Count(r => r.Line.DueDate is DateTime d && d.Date < _dbNow.Date && r.Preview?.Placements.Count > 0);
@@ -243,6 +299,7 @@
             r.Deadline = r.Line.DueDate is DateTime d ? _cal.SubtractWorkdays(d, _bufferDays) : null;
             r.NoMold   = false;
             var qty = Qty(r.Line);
+            if (_qtyMode != QtyManual) _lastAutoQty[r.Line.SoId] = qty;
             if (qty <= 0 || r.Steps.Count == 0 || r.Steps.Any(s => string.IsNullOrEmpty(s.LineId))) { r.Preview = null; continue; }
 
             var demands = new List<DeadlinePacker.StepDemand>();
@@ -296,9 +353,10 @@
             var auth  = await AuthPrvd.GetAuthenticationStateAsync();
             var actor = auth.User.Identity?.Name ?? "system";
             var plans = _rows.Where(r => !r.NoMold).Select(r => new PpRepository.OrderPlan(r.Line.SoId,
-                            r.Steps.Select(s => new PpRepository.StepChoice(s.Step.StepSeq, s.LineId!)).ToList()))
+                            r.Steps.Select(s => new PpRepository.StepChoice(s.Step.StepSeq, s.LineId!)).ToList(),
+                            _qtyMode == QtyManual ? Qty(r.Line) : null))
                         .ToList();
-            var res = Pp.CreateScheduledWorkOrders(plans, actor, _useNet, _startDate.Date);
+            var res = Pp.CreateScheduledWorkOrders(plans, actor, _qtyMode == QtyNet, _startDate.Date);
             Dialog.Close(new Result(res.Created, res.Late, res.Short, res.RejectedCount));
         }
         catch (Exception ex) { _err = ex.Message; _busy = false; }

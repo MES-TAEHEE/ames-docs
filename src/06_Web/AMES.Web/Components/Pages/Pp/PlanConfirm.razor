@@ -98,6 +98,12 @@ else
                                   TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">@r.OrderQty.ToString("#,0")</Template>
             </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="IssuedQty" Title="@L["PP.PlanConfirm.Col.Issued"].Value"
+                                  TextAlign="TextAlign.Right" Width="100px">
+                <Template Context="r">
+                    @if (r.IssuedQty > 0) { <span style="color:#fbbf24;">@r.IssuedQty.ToString("#,0")</span> } else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="FgOnHand" Title="@L["PP.PlanConfirm.Col.FgStock"].Value"
                                   TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r"><span style="color:#86efac;">@r.FgOnHand.ToString("#,0")</span></Template>
@@ -135,6 +141,10 @@ else
                     @if (r.Blocked)
                     {
                         <span class="pill bad">@L[r.NoRouting ? "PP.PlanConfirm.Status.NoRouting" : "PP.PlanConfirm.Status.Blocked"]</span>
+                    }
+                    else if (r.IssuedQty > 0)
+                    {
+                        <span class="pill warn" title="@($"{r.IssuedQty:#,0} / {r.OrderQty:#,0}")">@L["PP.PlanConfirm.Status.Partial"]</span>
                     }
                     else
                     {

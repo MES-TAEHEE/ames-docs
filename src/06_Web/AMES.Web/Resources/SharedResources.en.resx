@@ -2721,8 +2721,29 @@
   <data name="PP.PlanConfirm.Dlg.QtyOrder" xml:space="preserve">
     <value>Full order qty</value>
   </data>
+  <data name="PP.PlanConfirm.Dlg.QtyManual" xml:space="preserve">
+    <value>Manual entry</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.ManualTotal" xml:space="preserve">
+    <value>Entered qty total</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.OverOrder" xml:space="preserve">
+    <value>Over order</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.OverOrderTip" xml:space="preserve">
+    <value>Exceeds remaining {0} (build-ahead). Creation is allowed.</value>
+  </data>
+  <data name="PP.PlanConfirm.Col.Issued" xml:space="preserve">
+    <value>Issued</value>
+  </data>
+  <data name="PP.PlanConfirm.Status.Partial" xml:space="preserve">
+    <value>Partially issued</value>
+  </data>
+  <data name="PP.SupplyPlanImport.WoMoreTip" xml:space="preserve">
+    <value>{0} WOs on this order (latest shown)</value>
+  </data>
   <data name="PP.PlanConfirm.Dlg.SkipZero" xml:space="preserve">
-    <value>{0} line(s) with net requirement ≤ 0 will be skipped.</value>
+    <value>{0} order(s) with qty 0 or less will be skipped.</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Validation" xml:space="preserve">
     <value>Master Data Validation</value>

@@ -2718,8 +2718,29 @@
   <data name="PP.PlanConfirm.Dlg.QtyOrder" xml:space="preserve">
     <value>Cantidad total del pedido</value>
   </data>
+  <data name="PP.PlanConfirm.Dlg.QtyManual" xml:space="preserve">
+    <value>Entrada manual</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.ManualTotal" xml:space="preserve">
+    <value>Total ingresado</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.OverOrder" xml:space="preserve">
+    <value>Excede pedido</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.OverOrderTip" xml:space="preserve">
+    <value>Supera el restante {0} (producción anticipada). Se permite crear.</value>
+  </data>
+  <data name="PP.PlanConfirm.Col.Issued" xml:space="preserve">
+    <value>Emitido</value>
+  </data>
+  <data name="PP.PlanConfirm.Status.Partial" xml:space="preserve">
+    <value>Parcialmente emitido</value>
+  </data>
+  <data name="PP.SupplyPlanImport.WoMoreTip" xml:space="preserve">
+    <value>{0} OT en este pedido (se muestra la última)</value>
+  </data>
   <data name="PP.PlanConfirm.Dlg.SkipZero" xml:space="preserve">
-    <value>Se omitirán {0} línea(s) con requerimiento neto ≤ 0.</value>
+    <value>{0} pedido(s) con cantidad 0 o menos se omitirán.</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Validation" xml:space="preserve">
     <value>Validación de Datos Maestros</value>
