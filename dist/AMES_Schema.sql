@@ -1536,20 +1536,6 @@ CREATE TABLE dbo.PP_ProductionCalendarOverride (
 );
 GO
 
--- ── PP_EquipSignal  (설비 가동 신호 — InjAgent/PLC 수집, 라인 상태 판정용)
-CREATE TABLE dbo.PP_EquipSignal (
-  [SignalId]                  INT IDENTITY(1,1)    NOT NULL,
-  [LineId]                    VARCHAR(20)          NOT NULL,
-  [SignalTime]                DATETIME2            NOT NULL DEFAULT SYSDATETIME(),
-  [IsRunning]                 BIT                  NOT NULL DEFAULT 0,
-  [Source]                    VARCHAR(30)              NULL DEFAULT 'WEB',
-  [CreatedBy]                 VARCHAR(50)              NULL,
-  CONSTRAINT PK_PP_EquipSignal PRIMARY KEY CLUSTERED ([SignalId])
-);
-GO
-CREATE NONCLUSTERED INDEX IX_PP_EquipSignal_Line_Time ON dbo.PP_EquipSignal([LineId], [SignalTime]);
-GO
-
 -- ╔══════════════════════════════════════════════════════════════════════╗
 -- ║  Module: PR                                                           ║
 -- ╚══════════════════════════════════════════════════════════════════════╝
