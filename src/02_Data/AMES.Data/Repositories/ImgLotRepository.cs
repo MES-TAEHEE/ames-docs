@@ -202,7 +202,7 @@ public sealed class ImgLotRepository
 
     /// <summary>
     /// 라인 불량 팝업의 LOT 스캔 등록 — INJ 와 같은 순서(잠금·검사 → 역분개 → PR_DefectDetail → LOT DEFECT).
-    /// 원단 롤 차감·본딩 로그는 되돌리지 않는다 — 원단은 이미 소비됐다.
+    /// 본딩 로그는 되돌리지 않는다.
     /// </summary>
     public (DefectRegisterOutcome Outcome, int DefectId, string ItemNo) RegisterDefect(
         string lotCode, string lineId, string defectCode,
@@ -267,16 +267,14 @@ public sealed class ImgLotRepository
     /// <summary>
     /// 라벨 스캔 확정 — 한 트랜잭션으로:
     ///   ① LOT 잠금·상태 검사 → ② LOT 품번의 열린 WO 단계 해석 (INJ 와 같은 규칙)
-    ///   → ③ PR_ProductionResult 1 EA → ④ 원단 롤 차감 + PR_FabricDeductionLog (롤이 있을 때)
-    ///   → ⑤ PR_BondCycleLog (본딩 설정이 있을 때) → ⑥ LOT CONFIRMED + 단계 CompletedQty +1.
-    /// 롤 잔량이 부족해도 확정은 막지 않는다 — 실물은 이미 만들어졌다. 남은 만큼만 차감하고
-    /// 실제 차감량을 LOT 에 남긴다.
+    ///   → ③ PR_ProductionResult 1 EA → ④ PR_BondCycleLog (본딩 설정이 있을 때)
+    ///   → ⑤ LOT CONFIRMED + 단계 CompletedQty +1.
+    /// 원단 롤은 다루지 않는다 — 롤 차감·롤 ID 기록 없음.
     /// CycleSec = 같은 라인의 직전 IMG LOT 과 이 LOT 의 생성 시각 차.
     /// </summary>
     public (ImgConfirmOutcome Outcome, int ResultId, string ItemNo, int WoId) ConfirmByLotCode(
         string lotCode, string lineId,
         string operatorId, int? sessionId, string employeeNo,
-        int? fabricRollLotId, decimal fabricConsumedM,
         BondSetupDto? bond)
     {
         using var conn = _factory.OpenConnection();
@@ -340,48 +338,18 @@ public sealed class ImgLotRepository
                 if (cycleSec is < 0 or > 86400) cycleSec = 0;
             }
 
-            // ④ 원단 차감 — FabricRepository.DeductFromRoll 과 같은 규칙을 같은 트랜잭션 안에서.
-            //    차감 로그(PR_FabricDeductionLog)는 ResultID 가 필요해 ③ 실적 INSERT 뒤에 쓴다.
-            decimal? consumed = null;
-            decimal  rollBefore = 0m, rollAfter = 0m;
-            if (fabricRollLotId is int rollId && fabricConsumedM > 0)
-            {
-                using (var cmd = new SqlCommand(
-                    "SELECT ISNULL(RemainingQty,0) FROM dbo.tbl_Lot WITH (UPDLOCK, ROWLOCK) WHERE LotID = @L;", conn, tx))
-                {
-                    cmd.Parameters.Add("@L", SqlDbType.Int).Value = rollId;
-                    rollBefore = Convert.ToDecimal(cmd.ExecuteScalar() ?? 0m);
-                }
-                consumed  = Math.Min(rollBefore, fabricConsumedM);
-                rollAfter = rollBefore - consumed.Value;
-
-                using (var cmd = new SqlCommand("""
-                    UPDATE dbo.tbl_Lot
-                    SET    RemainingQty = @After,
-                           Status       = CASE WHEN @After <= 0 THEN 'EXHAUSTED' ELSE Status END,
-                           ModifiedBy   = @Op, ModifiedTS = SYSDATETIME()
-                    WHERE  LotID = @L;
-                    """, conn, tx))
-                {
-                    cmd.Parameters.Add("@After", SqlDbType.Decimal       ).Value = rollAfter;
-                    cmd.Parameters.Add("@L",     SqlDbType.Int           ).Value = rollId;
-                    cmd.Parameters.Add("@Op",    SqlDbType.NVarChar, 450 ).Value = operatorId;
-                    cmd.ExecuteNonQuery();
-                }
-            }
-
             // 전기일·교대는 공통코드(DAY_CUTOFF·WORK_SHIFT)로 확정 시점 서버 시각에 판정
             var (now, prodDate, shiftCode) = ProdCalendar.ResolveNow(conn, tx);
             int resultId;
             using (var cmd = new SqlCommand("""
                 INSERT INTO dbo.PR_ProductionResult
                     (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec,
-                     FabricRollID, FabricConsumedM, BondTempAvg,
+                     BondTempAvg,
                      OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS)
                 OUTPUT INSERTED.ResultID
                 VALUES
                     (@EntryNo, @WoID, @LotID, @LineID, @Proc, 1, @CT,
-                     @Roll, @Consumed, @BondTemp,
+                     @BondTemp,
                      @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME());
                 """, conn, tx))
             {
@@ -396,29 +364,11 @@ public sealed class ImgLotRepository
                 cmd.Parameters.Add("@LineID",   SqlDbType.VarChar, 20  ).Value = lineId;
                 cmd.Parameters.Add("@Proc",     SqlDbType.VarChar, 10  ).Value = ProcessCode;
                 cmd.Parameters.Add("@CT",       SqlDbType.Int          ).Value = cycleSec;
-                cmd.Parameters.Add("@Roll",     SqlDbType.Int          ).Value = (object?)fabricRollLotId ?? DBNull.Value;
-                cmd.Parameters.Add("@Consumed", SqlDbType.Decimal      ).Value = (object?)consumed ?? DBNull.Value;
                 cmd.Parameters.Add("@BondTemp", SqlDbType.Decimal      ).Value = (object?)bond?.TempSp ?? DBNull.Value;
                 cmd.Parameters.Add("@Op",       SqlDbType.NVarChar, 450).Value = operatorId;
                 cmd.Parameters.Add("@Sess",     SqlDbType.Int          ).Value = (object?)sessionId ?? DBNull.Value;
                 cmd.Parameters.Add("@By",       SqlDbType.VarChar, 50  ).Value = employeeNo;
                 resultId = (int)cmd.ExecuteScalar()!;
-            }
-
-            if (consumed is decimal c && fabricRollLotId is int logRollId)
-            {
-                using var cmd = new SqlCommand("""
-                    INSERT INTO dbo.PR_FabricDeductionLog
-                        (FabricRollLotID, ResultID, ConsumedM, BeforeM, AfterM, DeductedAt, CreatedBy, CreatedTS)
-                    VALUES (@L, @R, @C, @Before, @After, SYSDATETIME(), @By, SYSDATETIME());
-                    """, conn, tx);
-                cmd.Parameters.Add("@L",      SqlDbType.Int        ).Value = logRollId;
-                cmd.Parameters.Add("@R",      SqlDbType.Int        ).Value = resultId;
-                cmd.Parameters.Add("@C",      SqlDbType.Decimal    ).Value = c;
-                cmd.Parameters.Add("@Before", SqlDbType.Decimal    ).Value = rollBefore;
-                cmd.Parameters.Add("@After",  SqlDbType.Decimal    ).Value = rollAfter;
-                cmd.Parameters.Add("@By",     SqlDbType.VarChar, 50).Value = employeeNo;
-                cmd.ExecuteNonQuery();
             }
 
             if (bond is not null)
@@ -448,7 +398,7 @@ public sealed class ImgLotRepository
                 UPDATE dbo.PR_ImgLot
                 SET    ConfirmStatus = 'CONFIRMED', ConfirmedAt = SYSDATETIME(),
                        ConfirmedBy = @Op, ConfirmedSessionID = @Sess,
-                       FabricRollLotID = @Roll, FabricConsumedM = @Consumed, BondSetupID = @Bond,
+                       BondSetupID = @Bond,
                        ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
                 WHERE  LotID = @LotID;
                 """, conn, tx))
@@ -457,8 +407,6 @@ public sealed class ImgLotRepository
                 cmd.Parameters.Add("@LotID",    SqlDbType.Int          ).Value = lotId;
                 cmd.Parameters.Add("@Op",       SqlDbType.NVarChar, 450).Value = operatorId;
                 cmd.Parameters.Add("@Sess",     SqlDbType.Int          ).Value = (object?)sessionId ?? DBNull.Value;
-                cmd.Parameters.Add("@Roll",     SqlDbType.Int          ).Value = (object?)fabricRollLotId ?? DBNull.Value;
-                cmd.Parameters.Add("@Consumed", SqlDbType.Decimal      ).Value = (object?)consumed ?? DBNull.Value;
                 cmd.Parameters.Add("@Bond",     SqlDbType.Int          ).Value = (object?)bond?.BondSetupId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }

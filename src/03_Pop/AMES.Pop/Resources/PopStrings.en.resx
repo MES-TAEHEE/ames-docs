@@ -210,9 +210,7 @@
     <value>SHIFT C</value>
   </data>
   <data name="HelpImgMainSub" xml:space="preserve"><value>Select a part, print a label, scan it to confirm — no work-order acceptance</value></data>
-  <data name="FabricRoll" xml:space="preserve"><value>Fabric roll</value></data>
   <data name="BondRecipe" xml:space="preserve"><value>Bond recipe</value></data>
-  <data name="NoRoll" xml:space="preserve"><value>no roll</value></data>
   <data name="NoRecipe" xml:space="preserve"><value>no recipe</value></data>
   <data name="SelectPartWithOpenWo" xml:space="preserve"><value>Select a part with an open work order</value></data>
   <data name="LabelPrint" xml:space="preserve"><value>LABEL PRINT</value></data>

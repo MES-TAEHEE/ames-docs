@@ -131,7 +131,6 @@
                         <span class="injm-chip">@T("TodayGood") <b class="ok">@_todayGood</b></span>
                         <span class="injm-chip">@T("Defect") <b class="@_defClass">@_todayDef · @_defectPct</b></span>
                         <span class="injm-chip">@T("Unconfirmed") <b class="@(_rawCount > 0 ? "warn" : "ok")">@_rawCount</b></span>
-                        <span class="injm-chip">@T("FabricRoll") <b class="@_fabricClass">@_fabricText</b></span>
                         <span class="injm-chip">@T("BondRecipe") <b>@_bondText</b></span>
                     </div>
                 </div>
@@ -202,9 +201,6 @@
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
 
-    /// <summary>1 EA 당 원단 소비량. 확정 시 장착 롤에서 차감한다.</summary>
-    private const decimal MetresPerUnit = 0.25m;
-
     private enum Popup { None, Defect, Andon }
     private Popup _popup = Popup.None;
 
@@ -213,13 +209,12 @@
     private InjItemDailyDto? SelItem =>
         _items.FirstOrDefault(x => string.Equals(x.ItemNo, _selItemNo, StringComparison.OrdinalIgnoreCase));
     private WorkOrderDto?  _activeWo;
-    private FabricRollDto? _roll;
     private BondSetupDto?  _bond;
     private List<ImgLotDto> _lots = new();
 
     private int _pct, _todayGood, _todayDef, _rawCount;
     private string _defectPct = "0.0%", _defClass = "ok";
-    private string _fabricText = "—", _fabricClass = "warn", _bondText = "—";
+    private string _bondText = "—";
     private string _eqStatus = "OFFLINE", _eqClass = "stat-off";
     private AndonCallDto? _openAndon;
     private bool _andonAutoRaise;
@@ -293,14 +288,6 @@
             var pct = (_todayGood + _todayDef) == 0 ? 0 : _todayDef * 100.0 / (_todayGood + _todayDef);
             _defectPct = $"{pct:0.0}%";
             _defClass  = pct >= 5 ? "bad" : pct >= 4 ? "warn" : "ok";
-
-            _roll = PopServices.Fabric.GetMountedRoll(Session.LineId);
-            if (_roll is null) { _fabricText = T("NoRoll"); _fabricClass = "warn"; }
-            else
-            {
-                _fabricText  = $"{_roll.LotCode} · {_roll.RemainingM:0.0} m";
-                _fabricClass = _roll.RemainingM <= 5 ? "bad" : _roll.RemainingM <= 10 ? "warn" : "ok";
-            }
 
             _bond = PopServices.Bond.GetActiveForLine(Session.LineId);
             _bondText = _bond is null ? T("NoRecipe")
@@ -392,10 +379,10 @@
                 return;
             }
 
-            // 대상 WO 는 LOT 품번으로 리포지토리가 정한다. 원단·본딩은 확정 순간의 라인 상태를 넘긴다.
+            // 대상 WO 는 LOT 품번으로 리포지토리가 정한다. 본딩은 확정 순간의 라인 상태를 넘긴다.
             var (outcome, _, itemNo, woId) = PopServices.ImgLots.ConfirmByLotCode(
                 lotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo,
-                _roll?.LotId, MetresPerUnit, _bond);
+                _bond);
             var woNumber = woId > 0 ? PopServices.WorkOrders.GetById(woId)?.WoNumber : null;
             var (ok, detail) = outcome switch
             {
