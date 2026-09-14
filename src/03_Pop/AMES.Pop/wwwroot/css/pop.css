@@ -1739,6 +1739,14 @@ body {
 .injm-shell .pop-tbar-id   { font-size: 19px; }
 .injm-shell .pop-tbar-r    { font-size: 18px; }
 .injm-shell .pop-card-h    { font-size: 16px; letter-spacing: 1.5px; }
+.imgm-date-h { display: flex; align-items: center; gap: 10px; }
+.imgm-date-input {
+    padding: 5px 10px; border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, .25);
+    background: #1c263c; color: #fff; color-scheme: dark;
+    font-family: 'JetBrains Mono', monospace; font-size: 17px;
+    cursor: pointer; caret-color: transparent; user-select: none;
+}
 .injm-lang-btn {
     padding: 8px 14px; border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, .25);

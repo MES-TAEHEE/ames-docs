@@ -730,17 +730,16 @@ public sealed class InjLotRepository
     }
 
     /// <summary>
-    /// INJ-MAIN 좌측 패널: 스테이션 BOP 품번 ∪ 오늘 실적/일정이 있는 품번의 당일 현황.
-    /// 모든 수치는 LOT 생성일이 오늘인 것만 센다 — 확정 시각 기준으로 하면
+    /// INJ-MAIN 좌측 패널: 스테이션 BOP 품번 ∪ 그 날 실적/일정이 있는 품번의 지정일 현황.
+    /// 모든 수치는 LOT 생성일이 지정일인 것만 센다 — 확정 시각 기준으로 하면
     /// 어제 생성·오늘 확정 LOT 이 INPUT 과 FINAL 에 다른 날로 잡혀 항등식이 깨진다.
+    /// HasOpenWo 는 날짜와 무관한 현재 상태다.
     /// 전부 LOT 상태로 센다: FINAL = CONFIRMED, NG = NG_BLOCKED + DEFECT + SCRAPPED, 미확정 = RAW.
     /// PR_DefectDetail 은 읽지 않는다 — 불량은 LOT 상태에 이미 반영돼 있어 더하면 이중 계상이다.
     /// </summary>
-    public List<InjItemDailyDto> GetDailyItemSummary(string lineId, string stationCode)
+    public List<InjItemDailyDto> GetDailyItemSummary(string lineId, string stationCode, DateTime date)
     {
         const string sql = """
-            DECLARE @Today date = CAST(SYSDATETIME() AS date);
-
             WITH bop AS (
                 SELECT DISTINCT b.ItemNo
                 FROM   dbo.MD_Bop b
@@ -797,6 +796,7 @@ public sealed class InjLotRepository
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@Line",    SqlDbType.VarChar, 20).Value = lineId;
         cmd.Parameters.Add("@Station", SqlDbType.VarChar, 20).Value = stationCode;
+        cmd.Parameters.Add("@Today",   SqlDbType.Date       ).Value = date.Date;
         using var rdr = cmd.ExecuteReader();
         var list = new List<InjItemDailyDto>();
         while (rdr.Read())

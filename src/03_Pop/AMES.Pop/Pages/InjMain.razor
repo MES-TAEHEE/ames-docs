@@ -43,7 +43,14 @@
 
             @* ── 좌측: 스테이션 품번 당일 현황 ─────────────────────── *@
             <div class="pop-card injm-left">
-                <div class="pop-card-h">▼ @T("PartNo") · @_now.ToString("yyyy-MM-dd") · @Session?.TerminalId</div>
+                <div class="pop-card-h imgm-date-h">
+                    <span>▼ @T("PartNo")</span>
+                    @* 타이핑 금지 — 누르면 달력만 뜬다. 키 입력을 막아 HID 스캔이 날짜 칸으로 새지도 않는다. *@
+                    <input type="date" class="imgm-date-input" value="@ViewDate.ToString("yyyy-MM-dd")"
+                           max="@DateTime.Today.ToString("yyyy-MM-dd")" @onchange="OnDateChange"
+                           onclick="try { this.showPicker(); } catch (e) { }"
+                           onkeydown="return false" onpaste="return false" ondrop="return false" />
+                </div>
                 @if (_refreshError is not null)
                 {
                     <div class="injm-refresh-err">⚠ @T("DataRefreshFailed", _refreshErrorAt.ToString("HH:mm:ss")) — @_refreshError</div>
@@ -206,6 +213,11 @@
     private sealed record ScanRecord(string LotCode, DateTime At, bool Ok, string Message);
 
     private List<InjItemDailyDto> _items = new();
+
+    // null = 금일 추종 — 자정을 넘기면 좌측 패널도 다음 날로 넘어간다.
+    private DateTime? _viewDate;
+    private DateTime ViewDate => _viewDate ?? DateTime.Today;
+    private bool IsToday => ViewDate >= DateTime.Today;
     private string? _selItemNo;
     private InjItemDailyDto? SelItem =>
         _items.FirstOrDefault(x => string.Equals(x.ItemNo, _selItemNo, StringComparison.OrdinalIgnoreCase));
@@ -273,7 +285,9 @@
         if (Session is null) return;
         try
         {
-            _items = PopServices.InjLots.GetDailyItemSummary(Session.LineId, Session.TerminalId);
+            var today = PopServices.InjLots.GetDailyItemSummary(Session.LineId, Session.TerminalId, DateTime.Today);
+            _items = IsToday ? today
+                   : PopServices.InjLots.GetDailyItemSummary(Session.LineId, Session.TerminalId, ViewDate);
 
             // 선택이 없거나 목록에서 사라졌으면 열린 WO 가 있는 첫 품번, 없으면 첫 행.
             if (SelItem is null)
@@ -283,9 +297,10 @@
             _activeWo = _selItemNo is null ? null
                       : PopServices.WorkOrders.FindOpenForItem(Session.LineId, _selItemNo);
 
-            // 칩은 좌측 행과 같은 당일 수치를 보여준다 — 두 숫자가 어긋나 보이면 작업자가 헷갈린다.
-            _todayGood = SelItem?.FinalQty ?? 0;
-            _todayDef  = SelItem?.NgQty    ?? 0;
+            // 칩은 좌측 날짜와 무관하게 금일 수치다 — 금일 양품/불량 라벨을 달고 있다.
+            var todayRow = today.FirstOrDefault(x => string.Equals(x.ItemNo, _selItemNo, StringComparison.OrdinalIgnoreCase));
+            _todayGood = todayRow?.FinalQty ?? 0;
+            _todayDef  = todayRow?.NgQty    ?? 0;
             var pct = (_todayGood + _todayDef) == 0 ? 0 : _todayDef * 100.0 / (_todayGood + _todayDef);
             _defectPct = $"{pct:0.0}%";
             _defClass  = pct >= 5 ? "bad" : pct >= 4 ? "warn" : "ok";
@@ -324,6 +339,17 @@
             _refreshErrorAt = DateTime.Now;
             System.Diagnostics.Debug.WriteLine($"[InjMain refresh] {ex.Message}");
         }
+    }
+
+    private void OnDateChange(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value as string, out var d)) SetDate(d);
+    }
+    private void SetDate(DateTime d)
+    {
+        _viewDate = d.Date >= DateTime.Today ? null : d.Date;
+        Refresh();
+        _focusScan = true;
     }
 
     private void SelectItem(InjItemDailyDto it)
@@ -380,7 +406,8 @@
                 _                                  => (false, $"{T("ConfirmFailed")}: {lotCode}"),
             };
             // 확정은 LOT 품번으로 WO 를 정했다 — 화면 선택도 그 품번으로 따라간다.
-            if (ok) { _selItemNo = itemNo; Refresh(); }
+            // 확정분은 금일 수치에 올라가므로 과거 날짜를 보고 있었다면 금일로 돌린다.
+            if (ok) { _selItemNo = itemNo; _viewDate = null; Refresh(); }
             SetBanner(ok, detail);
             _scanHistory.Insert(0, new ScanRecord(lotCode, DateTime.Now, ok, detail));
             if (_scanHistory.Count > 50) _scanHistory.RemoveAt(_scanHistory.Count - 1);

@@ -394,15 +394,14 @@ public sealed class ImgLotRepository
     }
 
     /// <summary>
-    /// IMG-MAIN 좌측 패널: 스테이션 BOP 품번 ∪ 오늘 실적/일정이 있는 품번의 당일 현황.
+    /// IMG-MAIN 좌측 패널: 스테이션 BOP 품번 ∪ 그 날 실적/일정이 있는 품번의 지정일 현황.
+    /// HasOpenWo 는 날짜와 무관한 현재 상태다.
     /// INJ 판과 같은 항등식 INPUT = FINAL + NG + 미확정. 기준일은 LOT 생성일.
     /// 전부 LOT 상태로 센다: FINAL = CONFIRMED, NG = DEFECT + SCRAPPED, 미확정 = RAW.
     /// </summary>
-    public List<InjItemDailyDto> GetDailyItemSummary(string lineId, string stationCode)
+    public List<InjItemDailyDto> GetDailyItemSummary(string lineId, string stationCode, DateTime date)
     {
         const string sql = """
-            DECLARE @Today date = CAST(SYSDATETIME() AS date);
-
             WITH bop AS (
                 SELECT DISTINCT b.ItemNo
                 FROM   dbo.MD_Bop b
@@ -459,6 +458,7 @@ public sealed class ImgLotRepository
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@Line",    SqlDbType.VarChar, 20).Value = lineId;
         cmd.Parameters.Add("@Station", SqlDbType.VarChar, 20).Value = stationCode;
+        cmd.Parameters.Add("@Today",   SqlDbType.Date       ).Value = date.Date;
         using var rdr = cmd.ExecuteReader();
         var list = new List<InjItemDailyDto>();
         while (rdr.Read())
