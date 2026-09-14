@@ -66,7 +66,7 @@ public sealed class MntRepository
 
     public sealed record SparePartRow(string PartNo, string? PartName, string? Category, string? Uom,
         int? SafetyStock, int? ReorderPoint, int? ReorderQty, int? LeadTimeDays,
-        string? StorageLoc, string? SupplierId, int OnHand,
+        string? SupplierId, int OnHand,
         string? ApplicableEquip = null,    // 공통코드 SPAREPARTS_EQUIP (1~9)
         string? SparePartNo = null,        // EOS-SP-{분류}{적용설비}-{yy}{순번4}
         decimal? UnitCost = null);         // 마스터 단가 — 재고 금액 = OnHand × UnitCost
@@ -1205,7 +1205,7 @@ public sealed class MntRepository
         // 현재고는 마스터 OnHandQty (입출고가 한 트랜잭션으로 갱신)
         const string sql = """
             SELECT  p.PartNo, p.PartName, p.Category, p.UOM, p.SafetyStock, p.ReorderPoint,
-                    p.ReorderQty, p.LeadTimeDays, p.StorageLoc, p.SupplierID,
+                    p.ReorderQty, p.LeadTimeDays, p.SupplierID,
                     p.OnHandQty AS OnHand, p.ApplicableEquip, p.SparePartNo, p.UnitCost
             FROM    dbo.MD_SparePart p
             WHERE   ISNULL(p.ActiveFlag,1) = 1
@@ -1215,7 +1215,7 @@ public sealed class MntRepository
             (string)r["PartNo"], r["PartName"] as string, r["Category"] as string,
             r["UOM"] as string, r["SafetyStock"] as int?, r["ReorderPoint"] as int?,
             r["ReorderQty"] as int?, r["LeadTimeDays"] as int?,
-            r["StorageLoc"] as string, r["SupplierID"] as string,
+            r["SupplierID"] as string,
             r["OnHand"] as int? ?? 0, r["ApplicableEquip"] as string, r["SparePartNo"] as string,
             r["UnitCost"] as decimal?));
     }

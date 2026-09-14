@@ -7770,4 +7770,28 @@
   <data name="MD.SparePart.Ok.StockAdjusted" xml:space="preserve">
     <value>현재고 {0} → {1} (조정 이력 기록)</value>
   </data>
+  <data name="Col.Image" xml:space="preserve">
+    <value>이미지</value>
+  </data>
+  <data name="MD.SparePart.Hint.Image" xml:space="preserve">
+    <value>이미지 선택 시 어떤 크기든 320×180 이내로 자동 축소해 저장합니다 (JPEG·PNG)</value>
+  </data>
+  <data name="MD.SparePart.NoImage" xml:space="preserve">
+    <value>이미지 없음</value>
+  </data>
+  <data name="MD.SparePart.Btn.RemoveImage" xml:space="preserve">
+    <value>이미지 삭제</value>
+  </data>
+  <data name="MD.SparePart.Err.ImageType" xml:space="preserve">
+    <value>이미지 파일만 업로드할 수 있습니다</value>
+  </data>
+  <data name="MD.SparePart.Err.ImageFailed" xml:space="preserve">
+    <value>이미지 처리에 실패했습니다: {0}</value>
+  </data>
+  <data name="MD.SparePart.Lbl.ImageSize" xml:space="preserve">
+    <value>{0} KB</value>
+  </data>
+  <data name="MD.SparePart.Btn.SelectImage" xml:space="preserve">
+    <value>이미지 선택</value>
+  </data>
 </root>

@@ -834,6 +834,9 @@ CREATE TABLE dbo.MD_SparePart (
   [PartNo]                    VARCHAR(20)          NOT NULL,  -- 제조사/구매 부품번호 (고유)
   [PartName]                  NVARCHAR(60)             NULL,
   [UnitCost]                  DECIMAL(12,2)            NULL,
+  [SparePartImage]            VARBINARY(MAX)           NULL,  -- 부품 이미지(320×180 이내 JPEG/PNG 바이트, MD-026 업로드)
+  [ZoneCode]                  VARCHAR(20)              NULL,  -- 보관 구역, 공통코드 MNT_ZONE (MD_Location.ZoneCode 와 같은 형)
+  [Slot]                      VARCHAR(5)               NULL,  -- 보관 칸(층), 공통코드 MNT_SLOT (MD_Location.Slot 과 같은 형)
   [UOM]                       VARCHAR(10)              NULL,  -- FK -> MD_Uom.UOMCode
   [OnHandQty]                 INT                  NOT NULL DEFAULT 0,  -- 현재고 (MNT_SparePartsTxn 로만 변경)
   [SafetyStock]               INT                      NULL,
@@ -841,7 +844,6 @@ CREATE TABLE dbo.MD_SparePart (
   [ReorderQty]                INT                      NULL,
   [LeadTimeDays]              INT                      NULL,
   [SupplierID]                VARCHAR(20)              NULL,  -- FK -> MD_Vendor.VendorID
-  [StorageLoc]                VARCHAR(20)              NULL,
   [ActiveFlag]                BIT                      NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
@@ -935,7 +937,7 @@ GO
 CREATE TABLE dbo.MD_Location (
   [LocationID]                VARCHAR(20)          NOT NULL,
   [LocationName]              NVARCHAR(60)             NULL,
-  [ZoneCode]                  VARCHAR(10)              NULL,
+  [ZoneCode]                  VARCHAR(20)              NULL,
   [Aisle]                     VARCHAR(5)               NULL,
   [Bay]                       VARCHAR(5)               NULL,
   [Slot]                      VARCHAR(5)               NULL,

@@ -349,14 +349,14 @@ internal static class Program
                 INSERT INTO dbo.MD_SparePart
                     (SparePartNo, PartNo, PartName, Category, ApplicableEquip, UnitCost, UOM,
                      SafetyStock, ReorderPoint, ReorderQty, LeadTimeDays,
-                     StorageLoc, ActiveFlag, CreatedBy, CreatedTS)
+                     ActiveFlag, CreatedBy, CreatedTS)
                 VALUES (@SP, @N, @Nm, @C, '9', @UC, 'EA',
-                        @SS, @RP, @RQ, @LT, @SL, 1, 'mnt-seed', SYSDATETIME());
+                        @SS, @RP, @RQ, @LT, 1, 'mnt-seed', SYSDATETIME());
                 """,
                 ("@SP", pfx + spSeq[pfx].ToString("D4")),
                 ("@N", p.No), ("@Nm", p.Name), ("@C", p.Cat), ("@UC", p.Cost),
                 ("@SS", p.Safety), ("@RP", p.Reorder), ("@RQ", p.Reorder * 2),
-                ("@LT", p.Lead), ("@SL", p.Loc));
+                ("@LT", p.Lead));
         }
 
         // initial stock + a couple of issue transactions per part

@@ -7770,4 +7770,28 @@
   <data name="MD.SparePart.Ok.StockAdjusted" xml:space="preserve">
     <value>on-hand {0} → {1} (adjustment logged)</value>
   </data>
+  <data name="Col.Image" xml:space="preserve">
+    <value>Image</value>
+  </data>
+  <data name="MD.SparePart.Hint.Image" xml:space="preserve">
+    <value>Any image is scaled down to fit 320×180 before saving (JPEG/PNG)</value>
+  </data>
+  <data name="MD.SparePart.NoImage" xml:space="preserve">
+    <value>No image</value>
+  </data>
+  <data name="MD.SparePart.Btn.RemoveImage" xml:space="preserve">
+    <value>Remove image</value>
+  </data>
+  <data name="MD.SparePart.Err.ImageType" xml:space="preserve">
+    <value>Only image files can be uploaded</value>
+  </data>
+  <data name="MD.SparePart.Err.ImageFailed" xml:space="preserve">
+    <value>Image processing failed: {0}</value>
+  </data>
+  <data name="MD.SparePart.Lbl.ImageSize" xml:space="preserve">
+    <value>{0} KB</value>
+  </data>
+  <data name="MD.SparePart.Btn.SelectImage" xml:space="preserve">
+    <value>Select image</value>
+  </data>
 </root>

@@ -103,6 +103,25 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="UnitCost" Title="@L["Col.UnitPrice"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">@(r.UnitCost?.ToString("N2") ?? "—")</Template>
             </RadzenDataGridColumn>
+            @* 목록은 이미지 유무만 표시(MD-005 BOP 의 QC 열과 같은 체크 아이콘) — 이미지 자체는 수정 모달에서 본다 *@
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="HasImage" Title="@L["Col.Image"]" TextAlign="TextAlign.Center" Width="70px">
+                <Template Context="r">
+                    @if (r.HasImage)
+                    {
+                        <RadzenIcon Icon="check_circle" Style="color:#4ade80;vertical-align:middle;" />
+                    }
+                    else
+                    {
+                        <span class="dim">—</span>
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ZoneCode" Title="@L["Col.Zone"]" TextAlign="TextAlign.Center" Width="90px">
+                <Template Context="r"><span class="pill">@CodeLabel(_zoneItems, r.ZoneCode)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="Slot" Title="@L["Col.Slot"]" TextAlign="TextAlign.Center" Width="70px">
+                <Template Context="r"><span class="dim">@CodeLabel(_slotItems, r.Slot)</span></Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="OnHandQty" Title="@L["Col.OnHand"]" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="r"><b>@r.OnHandQty.ToString("N0")</b></Template>
             </RadzenDataGridColumn>
@@ -128,9 +147,6 @@
                     }
                     else { <span class="dim">—</span> }
                 </Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="StorageLoc" Title="@L["Col.StorageLoc"]" Width="110px">
-                <Template Context="r"><span class="dim">@(r.StorageLoc ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r">
@@ -200,6 +216,20 @@
             @* 현재고는 이력과 어긋나면 안 되므로 등록 시 초기 재고는 IN, 수정 시 차이는 ADJ 이력으로 남긴다 *@
             <div class="dim" style="font-size:10px;padding:2px 0 0;">@(_modal == "create" ? L["MD.SparePart.Hint.InitStock"] : L["MD.SparePart.Hint.OnHand"])</div>
 
+            @ImageBlock
+
+            @* 보관 구역·칸 — 공통코드 MNT_ZONE · MNT_SLOT (DB 컬럼 순서: 이미지 다음) *@
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Zone"]" />
+                    <RadzenDropDown AllowFiltering="true" AllowClear="true" @bind-Value="_f.ZoneCode" Data="@ZoneOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Slot"]" />
+                    <RadzenDropDown AllowClear="true" @bind-Value="_f.Slot" Data="@SlotOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Reorder"]" />
@@ -219,13 +249,6 @@
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Supplier"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.SupplierID" Data="VendorOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-            </RadzenRow>
-
-            <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.StorageLoc"]" />
-                    <RadzenTextBox @bind-Value="_f.StorageLoc" Placeholder="A-01-01" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -291,6 +314,20 @@
             @* 현재고는 이력과 어긋나면 안 되므로 등록 시 초기 재고는 IN, 수정 시 차이는 ADJ 이력으로 남긴다 *@
             <div class="dim" style="font-size:10px;padding:2px 0 0;">@(_modal == "create" ? L["MD.SparePart.Hint.InitStock"] : L["MD.SparePart.Hint.OnHand"])</div>
 
+            @ImageBlock
+
+            @* 보관 구역·칸 — 공통코드 MNT_ZONE · MNT_SLOT (DB 컬럼 순서: 이미지 다음) *@
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Zone"]" />
+                    <RadzenDropDown AllowFiltering="true" AllowClear="true" @bind-Value="_f.ZoneCode" Data="@ZoneOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Slot"]" />
+                    <RadzenDropDown AllowClear="true" @bind-Value="_f.Slot" Data="@SlotOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Reorder"]" />
@@ -310,13 +347,6 @@
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Supplier"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.SupplierID" Data="VendorOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-            </RadzenRow>
-
-            <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.StorageLoc"]" />
-                    <RadzenTextBox @bind-Value="_f.StorageLoc" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -374,6 +404,13 @@
     IEnumerable<DropDownItem> CategoryOptions => _categoryItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     List<MasterDataRepository.CodeItemRow> _equipItems = new();      // 공통코드 SPAREPARTS_EQUIP (1~9)
     IEnumerable<DropDownItem> EquipOptions => _equipItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    List<MasterDataRepository.CodeItemRow> _zoneItems = new();       // 공통코드 MNT_ZONE (보관 구역)
+    List<MasterDataRepository.CodeItemRow> _slotItems = new();       // 공통코드 MNT_SLOT (보관 칸)
+    IEnumerable<DropDownItem> ZoneOptions => _zoneItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    IEnumerable<DropDownItem> SlotOptions => _slotItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    static string CodeLabel(List<MasterDataRepository.CodeItemRow> codes, string? value)
+        => string.IsNullOrEmpty(value) ? "—"
+         : codes.FirstOrDefault(c => c.CodeValue == value) is { } ci ? MasterDataRepository.LocalName(ci) : value;
     string? _fEquip;
     List<MasterDataRepository.CodeItemRow> _activeFlagItems = new();
     IEnumerable<DropDownItem> ActiveFilterOptions =>
@@ -393,6 +430,8 @@
         try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
         try { _categoryItems = MD.ListCodeItems("SPAREPARTS_CATEGORY"); } catch { }
         try { _equipItems    = MD.ListCodeItems("SPAREPARTS_EQUIP"); } catch { }
+        try { _zoneItems     = MD.ListCodeItems("MNT_ZONE"); } catch { }
+        try { _slotItems     = MD.ListCodeItems("MNT_SLOT"); } catch { }
         Reload();
     }
 
@@ -475,12 +514,14 @@
             OnHandQty    = r.OnHandQty,
             UOM          = r.UOM          ?? "",
             UnitCost     = r.UnitCost,
+            Image        = r.HasImage ? LoadImage(r.SparePartNo) : null,
             SafetyStock  = r.SafetyStock,
             ReorderPoint = r.ReorderPoint,
             ReorderQty   = r.ReorderQty,
             LeadTimeDays = r.LeadTimeDays,
             SupplierID   = r.SupplierID   ?? "",
-            StorageLoc   = r.StorageLoc   ?? "",
+            ZoneCode     = r.ZoneCode     ?? "",
+            Slot         = r.Slot         ?? "",
             ActiveFlag   = r.ActiveFlag,
         };
         _modal = "edit";
@@ -506,7 +547,7 @@
             var spNo = MD.InsertSparePart(no, NE(_f.PartName), NE(_f.Category), NE(_f.ApplicableEquip),
                 _f.UnitCost, NE(_f.UOM),
                 _f.SafetyStock, _f.ReorderPoint, _f.ReorderQty, _f.LeadTimeDays,
-                NE(_f.SupplierID), NE(_f.StorageLoc), _f.ActiveFlag, _actor);
+                NE(_f.SupplierID), _f.ActiveFlag, _actor, _f.Image, NE(_f.ZoneCode), NE(_f.Slot));
             // 초기 재고는 마스터에 직접 쓰지 않고 입고(IN) 이력으로 남긴다 — 현재고의 정본은 이력과 같이 움직인다
             if (_f.OnHandQty > 0)
                 Mnt.AdjustSparePartStock(spNo, MntRepository.SpareMoveTypes.In, _f.OnHandQty, "ADJ", null, L["MD.SparePart.Note.InitStock"].Value, _actor);
@@ -531,7 +572,9 @@
             MD.UpdateSparePart(_sel.SparePartNo, NE(_f.PartName), NE(_f.Category), NE(_f.ApplicableEquip),
                 _f.UnitCost, NE(_f.UOM),
                 _f.SafetyStock, _f.ReorderPoint, _f.ReorderQty, _f.LeadTimeDays,
-                NE(_f.SupplierID), NE(_f.StorageLoc), _f.ActiveFlag, _actor);
+                NE(_f.SupplierID), _f.ActiveFlag, _actor, NE(_f.ZoneCode), NE(_f.Slot));
+            // 이미지는 바뀐 경우에만 따로 쓴다 — 매 수정마다 바이트를 다시 보내지 않기 위해
+            if (_f.ImageChanged) MD.UpdateSparePartImage(_sel.SparePartNo, _f.Image, _actor);
             // 현재고 변경은 차이만큼 조정(ADJ) 이력으로 — 마스터 값을 직접 덮어쓰지 않는다
             var msg = $"{_sel.PartNo} {L["Msg.Updated"]}";
             if (_f.OnHandQty != _sel.OnHandQty)
@@ -571,8 +614,71 @@
 
     static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
 
+    // ── 부품 이미지 ─────────────────────────────────────────────────
+    // 브라우저(canvas)가 320×180 이내로 비율을 지켜 축소한 바이트만 받는다 — 어떤 크기를 올려도 DB 에는 축소본만 들어간다.
+    // 미리보기(저장 전)와 저장 후 표시가 같은 바이트를 쓰므로 보이는 그대로 저장된다. PNG 는 투명을 지키고 나머지는 JPEG.
+    const int  ImgMaxW = 320, ImgMaxH = 180;
+    const long MaxImageBytes = 2 * 1024 * 1024;   // 축소본 상한 — 320×180 PNG 도 수십 KB 라 넉넉하다
+
+    async Task OnImageSelected(InputFileChangeEventArgs e)
+    {
+        _modalErr = "";
+        var file = e.File;
+        if (!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) { _modalErr = L["MD.SparePart.Err.ImageType"]; return; }
+        try
+        {
+            var format  = file.ContentType.Equals("image/png", StringComparison.OrdinalIgnoreCase) ? "image/png" : "image/jpeg";
+            var resized = await file.RequestImageFileAsync(format, ImgMaxW, ImgMaxH);
+            using var ms = new MemoryStream();
+            await using (var s = resized.OpenReadStream(MaxImageBytes)) await s.CopyToAsync(ms);
+            _f.Image = ms.ToArray(); _f.ImageChanged = true;
+        }
+        catch (Exception ex) { _modalErr = string.Format(L["MD.SparePart.Err.ImageFailed"].Value, ex.Message); }
+    }
+
+    void RemoveImage() { _f.Image = null; _f.ImageChanged = true; }
+
+    byte[]? LoadImage(string sparePartNo) { try { return MD.GetSparePartImage(sparePartNo); } catch { return null; } }
+
+    string ImageSizeLabel => _f.Image is { } b ? string.Format(L["MD.SparePart.Lbl.ImageSize"].Value, Math.Max(1, b.Length / 1024)) : "";
+
+    RenderFragment ImageBlock => @<RadzenRow Gap="8px" Style="margin-top:6px;">
+        <RadzenColumn Size="4">
+            <RadzenLabel Text="@L["Col.Image"]" />
+            <div class="ames-img-preview">
+                @if (_f.Image is { Length: > 0 })
+                {
+                    <img src="@ImageBytes.DataUrl(_f.Image)" alt="" />
+                }
+                else
+                {
+                    <span class="dim" style="font-size:11px;">@L["MD.SparePart.NoImage"]</span>
+                }
+            </div>
+        </RadzenColumn>
+        <RadzenColumn Size="8">
+            <div style="display:flex;flex-direction:column;gap:6px;padding-top:20px;">
+                @* 브라우저 기본 파일 입력은 글자("파일 선택 · 선택된 파일 없음")가 브라우저 언어라 다국어가 안 된다 → 숨기고 label 버튼으로 연다 *@
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <InputFile id="spImgInput" OnChange="OnImageSelected" accept="image/*" style="display:none;" disabled="@_busy" />
+                    <label for="spImgInput" class="rz-button rz-button-sm rz-variant-filled rz-base rz-shade-default ames-rz-btn" style="cursor:pointer;margin:0;text-transform:none;letter-spacing:normal;font-family:inherit;font-weight:inherit;">
+                        <span class="rz-button-box"><i class="rz-button-icon-left rzi">image</i><span class="rz-button-text">@L["MD.SparePart.Btn.SelectImage"]</span></span>
+                    </label>
+                    @if (_f.Image is { Length: > 0 })
+                    {
+                        <span class="dim" style="font-size:10px;">@ImageSizeLabel</span>
+                        <RadzenButton Text="@L["MD.SparePart.Btn.RemoveImage"]" Click="@RemoveImage" Icon="delete" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Disabled="@_busy" class="ames-rz-btn" />
+                    }
+                </div>
+                <div class="dim" style="font-size:10px;">@L["MD.SparePart.Hint.Image"]</div>
+            </div>
+        </RadzenColumn>
+    </RadzenRow>;
+
     class FormModel
     {
+        public byte[]?  Image        { get; set; }
+        public bool     ImageChanged { get; set; }
         public string   PartNo       { get; set; } = "";
         public string   PartName     { get; set; } = "";
         public string   Category     { get; set; } = "";
@@ -585,7 +691,8 @@
         public int?     ReorderQty   { get; set; }
         public int?     LeadTimeDays { get; set; }
         public string   SupplierID   { get; set; } = "";
-        public string   StorageLoc   { get; set; } = "";
+        public string   ZoneCode     { get; set; } = "";
+        public string   Slot         { get; set; } = "";
         public bool     ActiveFlag   { get; set; } = true;
     }
 }

@@ -3177,15 +3177,19 @@ public sealed class MasterDataRepository
         string SparePartNo, string PartNo, string? PartName, string? Category, string? ApplicableEquip,
         decimal? UnitCost, string? UOM, int OnHandQty,
         int? SafetyStock, int? ReorderPoint, int? ReorderQty, int? LeadTimeDays,
-        string? SupplierID, string? StorageLoc, bool ActiveFlag,
-        string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
+        string? SupplierID, bool ActiveFlag,
+        string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS,
+        bool HasImage = false,    // 이미지 바이트는 목록에 싣지 않는다 — GetSparePartImage 로 건별 조회
+        string? ZoneCode = null, string? Slot = null);   // 보관 구역·칸: 공통코드 MNT_ZONE · MNT_SLOT (구 StorageLoc 대체)
 
     public List<SparePartMasterRow> ListSparePartMasters() => Query("""
         SELECT SparePartNo, PartNo, PartName, Category, ApplicableEquip,
                UnitCost, UOM, OnHandQty,
                SafetyStock, ReorderPoint, ReorderQty, LeadTimeDays,
-               SupplierID, StorageLoc, ISNULL(ActiveFlag,1) AS ActiveFlag,
-               CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
+               SupplierID, ISNULL(ActiveFlag,1) AS ActiveFlag,
+               CreatedBy, CreatedTS, ModifiedBy, ModifiedTS,
+               CAST(CASE WHEN SparePartImage IS NULL THEN 0 ELSE 1 END AS bit) AS HasImage,
+               ZoneCode, Slot
         FROM dbo.MD_SparePart ORDER BY SparePartNo
         """, r => new SparePartMasterRow(
             r.GetString("SparePartNo"),
@@ -3201,12 +3205,35 @@ public sealed class MasterDataRepository
             r["ReorderQty"]   is int     rq2 ? rq2 : null,
             r["LeadTimeDays"] is int     ltd ? ltd : null,
             r["SupplierID"]   as string,
-            r["StorageLoc"]   as string,
             (bool)r["ActiveFlag"],
             r["CreatedBy"]    as string,
             r["CreatedTS"]    is DateTime ct ? ct : null,
             r["ModifiedBy"]   as string,
-            r["ModifiedTS"]   is DateTime mt ? mt : null));
+            r["ModifiedTS"]   is DateTime mt ? mt : null,
+            r["HasImage"]     is bool hi && hi,
+            r["ZoneCode"]     as string,
+            r["Slot"]         as string));
+
+    /// <summary>부품 이미지 바이트(없으면 null). 목록에는 싣지 않고 상세·썸네일 요청 때만 읽는다.</summary>
+    public byte[]? GetSparePartImage(string sparePartNo)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("SELECT SparePartImage FROM dbo.MD_SparePart WHERE SparePartNo=@P;", conn);
+        cmd.Parameters.Add("@P", SqlDbType.VarChar, 16).Value = sparePartNo;
+        return cmd.ExecuteScalar() as byte[];
+    }
+
+    /// <summary>부품 이미지 교체(null 이면 제거). 화면이 320×180 이내로 축소한 바이트만 넘긴다.</summary>
+    public void UpdateSparePartImage(string sparePartNo, byte[]? image, string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "UPDATE dbo.MD_SparePart SET SparePartImage=@IMG, ModifiedTS=SYSDATETIME(), ModifiedBy=@MB WHERE SparePartNo=@P;", conn);
+        cmd.Parameters.Add("@P",   SqlDbType.VarChar,   16).Value = sparePartNo;
+        cmd.Parameters.Add("@IMG", SqlDbType.VarBinary, -1).Value = (object?)image ?? DBNull.Value;
+        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar, 450).Value = modifiedBy;
+        cmd.ExecuteNonQuery();
+    }
 
     // ── MD_PmTemplate ────────────────────────────────────────────────
     public record PmTemplateRow(
@@ -3861,7 +3888,8 @@ public sealed class MasterDataRepository
     public string InsertSparePart(string partNo, string? partName, string? category, string? applicableEquip,
         decimal? unitCost, string? uom,
         int? safetyStock, int? reorderPoint, int? reorderQty, int? leadTimeDays,
-        string? supplierId, string? storageLoc, bool activeFlag, string createdBy)
+        string? supplierId, bool activeFlag, string createdBy, byte[]? image = null,
+        string? zoneCode = null, string? slot = null)
     {
         if (category is not { Length: 1 } || applicableEquip is not { Length: 1 })
             throw new ArgumentException("Category and ApplicableEquip must be single-character codes to generate SparePartNo.");
@@ -3879,9 +3907,12 @@ public sealed class MasterDataRepository
             }
 
             using var cmd = new SqlCommand(
-                "INSERT INTO dbo.MD_SparePart(SparePartNo,PartNo,PartName,Category,ApplicableEquip,UnitCost,UOM," +
-                "SafetyStock,ReorderPoint,ReorderQty,LeadTimeDays,SupplierID,StorageLoc,ActiveFlag,CreatedBy)" +
-                " VALUES(@SP,@P,@PN,@CAT,@EQ,@UC,@UOM,@SS,@RP,@RQ,@LT,@SI,@SL,@AF,@CB);", conn, tx);
+                "INSERT INTO dbo.MD_SparePart(SparePartNo,PartNo,PartName,Category,ApplicableEquip,UnitCost,SparePartImage,UOM," +
+                "SafetyStock,ReorderPoint,ReorderQty,LeadTimeDays,SupplierID,ActiveFlag,CreatedBy,ZoneCode,Slot)" +
+                " VALUES(@SP,@P,@PN,@CAT,@EQ,@UC,@IMG,@UOM,@SS,@RP,@RQ,@LT,@SI,@AF,@CB,@ZC,@SLT);", conn, tx);
+            cmd.Parameters.Add("@IMG", SqlDbType.VarBinary, -1).Value = (object?)image ?? DBNull.Value;
+            cmd.Parameters.Add("@ZC",  SqlDbType.VarChar,   20).Value = (object?)zoneCode ?? DBNull.Value;
+            cmd.Parameters.Add("@SLT", SqlDbType.VarChar,    5).Value = (object?)slot     ?? DBNull.Value;
             cmd.Parameters.Add("@SP",  SqlDbType.VarChar,   16).Value = spNo;
             cmd.Parameters.Add("@P",   SqlDbType.VarChar,   30).Value = partNo;
             cmd.Parameters.Add("@PN",  SqlDbType.NVarChar, 100).Value = (object?)partName    ?? DBNull.Value;
@@ -3895,7 +3926,6 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@RQ",  SqlDbType.Int).Value           = (object?)reorderQty  ?? DBNull.Value;
         cmd.Parameters.Add("@LT",  SqlDbType.Int).Value           = (object?)leadTimeDays ?? DBNull.Value;
         cmd.Parameters.Add("@SI",  SqlDbType.VarChar,   20).Value = (object?)supplierId  ?? DBNull.Value;
-            cmd.Parameters.Add("@SL",  SqlDbType.VarChar,   30).Value = (object?)storageLoc  ?? DBNull.Value;
             cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
             cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
             cmd.ExecuteNonQuery();
@@ -3909,15 +3939,18 @@ public sealed class MasterDataRepository
     public void UpdateSparePart(string sparePartNo, string? partName, string? category, string? applicableEquip,
         decimal? unitCost, string? uom,
         int? safetyStock, int? reorderPoint, int? reorderQty, int? leadTimeDays,
-        string? supplierId, string? storageLoc, bool activeFlag, string modifiedBy)
+        string? supplierId, bool activeFlag, string modifiedBy,
+        string? zoneCode = null, string? slot = null)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_SparePart SET PartName=@PN,Category=@CAT,ApplicableEquip=@EQ,UnitCost=@UC,UOM=@UOM," +
             "SafetyStock=@SS,ReorderPoint=@RP,ReorderQty=@RQ,LeadTimeDays=@LT," +
-            "SupplierID=@SI,StorageLoc=@SL,ActiveFlag=@AF," +
+            "SupplierID=@SI,ActiveFlag=@AF,ZoneCode=@ZC,Slot=@SLT," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE SparePartNo=@P;", conn);
         cmd.Parameters.Add("@P",   SqlDbType.VarChar,   16).Value  = sparePartNo;
+        cmd.Parameters.Add("@ZC",  SqlDbType.VarChar,   20).Value  = (object?)zoneCode ?? DBNull.Value;
+        cmd.Parameters.Add("@SLT", SqlDbType.VarChar,    5).Value  = (object?)slot     ?? DBNull.Value;
         cmd.Parameters.Add("@PN",  SqlDbType.NVarChar, 100).Value  = (object?)partName    ?? DBNull.Value;
         cmd.Parameters.Add("@CAT", SqlDbType.VarChar,    1).Value  = (object?)category    ?? DBNull.Value;
         cmd.Parameters.Add("@EQ",  SqlDbType.VarChar,    1).Value  = (object?)applicableEquip ?? DBNull.Value;
@@ -3929,7 +3962,6 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@RQ",  SqlDbType.Int).Value            = (object?)reorderQty  ?? DBNull.Value;
         cmd.Parameters.Add("@LT",  SqlDbType.Int).Value            = (object?)leadTimeDays ?? DBNull.Value;
         cmd.Parameters.Add("@SI",  SqlDbType.VarChar,   20).Value  = (object?)supplierId  ?? DBNull.Value;
-        cmd.Parameters.Add("@SL",  SqlDbType.VarChar,   30).Value  = (object?)storageLoc  ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value            = activeFlag;
         cmd.Parameters.Add("@MB",  SqlDbType.NVarChar, 450).Value  = modifiedBy;
         cmd.ExecuteNonQuery();

@@ -109,9 +109,6 @@
             <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="LeadTimeDays" Title="@L["Col.LeadDays"]" TextAlign="TextAlign.Right" Width="180px">
                 <Template Context="r">@(r.LeadTimeDays?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="StorageLoc" Title="@L["Col.StorageLoc"]" TextAlign="TextAlign.Center" Width="130px">
-                <Template Context="r"><span class="dim">@(r.StorageLoc ?? "—")</span></Template>
-            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="SupplierId" Title="@L["Col.Supplier"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="dim">@(r.SupplierId ?? "—")</span></Template>
             </RadzenDataGridColumn>
@@ -232,10 +229,6 @@
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.LeadDays"]" />
                     <RadzenTextBox Value="@(_sel.LeadTimeDays?.ToString() ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-                <RadzenColumn Size="4">
-                    <RadzenLabel Text="@L["Col.StorageLoc"]" />
-                    <RadzenTextBox Value="@(_sel.StorageLoc ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Supplier"]" />
@@ -402,13 +395,13 @@
         {
             L["Col.SparePartNo"].Value, L["Col.PartNo"].Value, L["Col.Name"].Value, L["Col.Cat"].Value, L["Col.ApplicableEquip"].Value, L["Col.Uom"].Value,
             L["Col.OnHand"].Value, L["Col.Safety"].Value, L["Col.Reorder"].Value, L["Col.ReorderQty"].Value,
-            L["Col.LeadDays"].Value, L["Col.StorageLoc"].Value, L["Col.Supplier"].Value, L["Col.Flag"].Value,
+            L["Col.LeadDays"].Value, L["Col.Supplier"].Value, L["Col.Flag"].Value,
         };
         var data = _parts.Select(p => (IReadOnlyList<object?>)new object?[]
         {
             p.SparePartNo, p.PartNo, p.PartName, CatLabel(p.Category), EquipLabel(p.ApplicableEquip), p.Uom,
             p.OnHand, p.SafetyStock, p.ReorderPoint, p.ReorderQty,
-            p.LeadTimeDays, p.StorageLoc, p.SupplierId, IsLow(p) ? L["MNT.SpareParts.Flag.Low"].Value : L["MNT.SpareParts.Flag.Ok"].Value,
+            p.LeadTimeDays, p.SupplierId, IsLow(p) ? L["MNT.SpareParts.Flag.Low"].Value : L["MNT.SpareParts.Flag.Ok"].Value,
         });
         await Download(L["MNT.SpareParts.List"].Value, "SpareParts", headers, data, _parts.Count);
     }
