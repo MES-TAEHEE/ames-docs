@@ -20,20 +20,19 @@
     <div class="pda-bd wh02-body sp-body">
         <RadzenCard class="wh02-panel wh02-scan-panel hardware-scan-panel">
             <div class="pda-fld">
-                <label>LOT NO</label>
+                <label>EOS SP NO</label>
                 <RadzenTextBox class="pda-input wh02-barcode-input pda-scan-input"
                                Value="@_lotNo" @oninput="OnLotInput" @onkeydown="OnLotKey"
-                               Placeholder="Scan LOT barcode" />
+                               Placeholder="Scan EOS SP No" />
             </div>
         </RadzenCard>
 
         @if (_lot is not null)
         {
-            <RadzenCard class="@($"wh02-lot-card {(_lot.IsReceived ? "received" : "ready")}")">
+            <RadzenCard class="wh02-lot-card ready">
                 <div class="wh02-lot-top">
                     <div class="wh02-lot-main"><span>EOS SP NO</span><strong>@_lot.EosSpNo</strong></div>
-                    <RadzenBadge class="@($"wh02-status-chip {(_lot.IsReceived ? "received" : "ready")}")"
-                                 Text="@(_lot.IsReceived ? "RECEIVED" : "READY")" />
+                    <RadzenBadge class="wh02-status-chip ready" Text="READY" />
                 </div>
                 <div class="sp-detail-grid">
                     @foreach (var field in DetailFields())
@@ -43,22 +42,19 @@
                 </div>
             </RadzenCard>
 
-            @if (!_lot.IsReceived)
+            <RadzenCard class="wh02-panel wh02-location-panel hardware-scan-panel">
+                <div class="pda-fld">
+                    <label>STORAGE LOCATION</label>
+                    <RadzenTextBox class="pda-input wh02-location-input pda-scan-input"
+                                   Value="@_locationNo" @oninput="OnLocationInput" @onkeydown="OnLocationKey"
+                                   Placeholder="Scan SP location" />
+                </div>
+            </RadzenCard>
+            @if (_location is not null)
             {
-                <RadzenCard class="wh02-panel wh02-location-panel hardware-scan-panel">
-                    <div class="pda-fld">
-                        <label>STORAGE LOCATION</label>
-                        <RadzenTextBox class="pda-input wh02-location-input pda-scan-input"
-                                       Value="@_locationNo" @oninput="OnLocationInput" @onkeydown="OnLocationKey"
-                                       Placeholder="Scan SP location" />
-                    </div>
+                <RadzenCard class="wh02-location-card">
+                    <div class="wh02-location-card-top"><span>STORAGE LOCATION</span><strong>@_location.LocationId</strong></div>
                 </RadzenCard>
-                @if (_location is not null)
-                {
-                    <RadzenCard class="wh02-location-card">
-                        <div class="wh02-location-card-top"><span>STORAGE LOCATION</span><strong>@_location.LocationId</strong></div>
-                    </RadzenCard>
-                }
             }
         }
 
@@ -90,16 +86,14 @@
 @code {
     private static readonly PptScenarioPanel.Step[] ScenarioSteps =
     [
-        new("신규 LOT 입고", "LOT를 조회하고 SP 위치를 스캔한 뒤 RECEIVE를 확인합니다.",
-            new PptScenarioPanel.Value("LOT", "EOS-SP-A1-260009", "INBOUND"), new PptScenarioPanel.Value("위치", "SP-EXTRA", "LOCATION")),
-        new("중복 입고", "이미 입고된 LOT를 스캔했을 때 RECEIVED로 표시되는지 확인합니다.",
-            new PptScenarioPanel.Value("LOT", "EOS-SP-A1-260001", "DUPLICATE")),
-        new("미등록 LOT", "등록되지 않은 LOT 스캔 오류를 확인합니다.",
-            new PptScenarioPanel.Value("LOT", "EOS-SP-UNKNOWN-001", "UNKNOWN"))
+        new("EOS SP No 입고", "EOS SP No와 SP 위치를 스캔한 뒤 1 EA 입고를 확인합니다.",
+            new PptScenarioPanel.Value("EOS SP NO", "EOS-SP-K9-269999", "INBOUND"), new PptScenarioPanel.Value("위치", "SP-EXTRA", "LOCATION")),
+        new("미등록 EOS SP No", "등록되지 않은 EOS SP No의 조회 오류를 확인합니다.",
+            new PptScenarioPanel.Value("EOS SP NO", "EOS-SP-X0-000000", "UNKNOWN"))
     ];
 
     private bool IsSimpleTestMode => PdaScenarioUsers.IsSimple(Auth.Session?.EmployeeNo);
-    private bool CanReceive => _lot is { IsReceived: false } && _location is not null;
+    private bool CanReceive => _lot is not null && _location is not null;
     private string _lotNo = "";
     private string _locationNo = "";
     private string _message = "";
@@ -110,7 +104,7 @@
     private string _modalTitle = "";
     private string _modalMessage = "";
     private string _modalKind = "info";
-    private PdaApi.SparePartLotRow? _lot;
+    private PdaApi.SparePartRow? _lot;
     private PdaApi.LocationRow? _location;
     private DotNetObjectReference<SpInbound>? _scannerRef;
 
@@ -128,7 +122,7 @@
     {
         if (_busy || _scenarioOpen || _modalOpen) return;
         var value = NormalizeScan(scanText);
-        if (_lot is { IsReceived: false } && _location is null)
+        if (_lot is not null && _location is null)
         {
             _locationNo = value;
             await ScanLocation();
@@ -150,18 +144,18 @@
     private async Task ScanLot()
     {
         var value = NormalizeScan(_lotNo);
-        if (value.Length == 0) { ShowModal("LOT Required", "Scan an EOS SP No.", "warn"); return; }
+        if (value.Length == 0) { ShowModal("EOS SP No Required", "Scan an EOS SP No.", "warn"); return; }
         _busy = true;
         _lot = null;
         _location = null;
         _locationNo = "";
         try
         {
-            _lot = await Api.SpLotAsync(value);
-            if (_lot is null) { _message = "Spare parts LOT was not found."; _messageClass = "fail"; return; }
+            _lot = await Api.SpItemAsync(value);
+            if (_lot is null) { _message = "EOS SP No was not found."; _messageClass = "fail"; return; }
             _lotNo = _lot.EosSpNo;
-            _message = _lot.IsReceived ? "This LOT is already received." : "LOT loaded. Scan a storage location.";
-            _messageClass = _lot.IsReceived ? "fail" : "ok";
+            _message = "Spare part loaded. Scan a storage location.";
+            _messageClass = "ok";
         }
         catch (Exception ex) { _message = ex.Message; _messageClass = "fail"; }
         finally { _busy = false; }
@@ -169,7 +163,7 @@
 
     private async Task ScanLocation()
     {
-        if (_lot is null || _lot.IsReceived) return;
+        if (_lot is null) return;
         var value = NormalizeScan(_locationNo);
         if (value.Length == 0) { ShowModal("Location Required", "Scan a Spare Parts Area location.", "warn"); return; }
         _busy = true;
@@ -186,14 +180,14 @@
 
     private async Task Receive()
     {
-        if (!CanReceive) { ShowModal("Not Ready", _lot is null ? "Scan a LOT first." : "Scan a storage location first.", "warn"); return; }
+        if (!CanReceive) { ShowModal("Not Ready", _lot is null ? "Scan an EOS SP No first." : "Scan a storage location first.", "warn"); return; }
         _busy = true;
         try
         {
-            var result = await Api.WhReceiveInboundAsync(new("LOCAL", _lot!.EosSpNo, _location!.LocationId));
+            var result = await Api.SpReceiveAsync(new(_lot!.EosSpNo, 1, _location!.LocationId, "PDA spare parts inbound"));
             if (!result.Success) { ShowModal("Inbound Failed", result.Message, "fail"); return; }
-            _lot = await Api.SpLotAsync(_lot.EosSpNo);
-            ShowModal("Inbound Complete", $"{_lotNo} was received at {_locationNo}.", "success");
+            _lot = result.Row ?? await Api.SpItemAsync(_lot.EosSpNo);
+            ShowModal("Inbound Complete", $"1 EA of {_lotNo} was received at {_locationNo}.", "success");
         }
         catch (Exception ex) { ShowModal("Inbound Failed", ex.Message, "fail"); }
         finally { _busy = false; }
@@ -210,13 +204,13 @@
     private async Task StartScenario(int step)
     {
         await Api.SpResetTestAsync();
-        await RunScenario(step switch { 1 => "INBOUND", 2 => "DUPLICATE", _ => "UNKNOWN" });
+        await RunScenario(step == 1 ? "INBOUND" : "UNKNOWN");
     }
 
     private async Task RunScenario(string command)
     {
         if (command == "LOCATION") { _locationNo = "SP-EXTRA"; await ScanLocation(); return; }
-        _lotNo = command switch { "INBOUND" => "EOS-SP-A1-260009", "DUPLICATE" => "EOS-SP-A1-260001", _ => "EOS-SP-UNKNOWN-001" };
+        _lotNo = command == "INBOUND" ? "EOS-SP-K9-269999" : "EOS-SP-X0-000000";
         await ScanLot();
     }
 
@@ -224,7 +218,7 @@
     {
         await Api.SpResetTestAsync();
         Clear();
-        ShowModal("Test Data Ready", "SP inbound and release sample LOTs were reset.", "success");
+        ShowModal("Test Data Ready", "The EOS SP No test stock was reset.", "success");
     }
 
     private void Clear() { _lotNo = _locationNo = _message = ""; _lot = null; _location = null; }

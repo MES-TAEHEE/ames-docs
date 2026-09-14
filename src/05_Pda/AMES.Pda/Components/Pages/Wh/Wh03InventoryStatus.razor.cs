@@ -13,9 +13,9 @@ public partial class Wh03InventoryStatus
     ];
     private static readonly PptScenarioPanel.Step[] SpPptInventorySteps =
     [
-        new("LOT 검색", "엑셀 샘플 LOT의 품목, 수량과 SP 보관 위치를 확인합니다.", new PptScenarioPanel.Value("LOT", "EOS-SP-A1-260001", "SP_LOT")),
-        new("위치별 재고", "SP-CAB1-03 위치에 보관된 Spare Part 목록을 확인합니다.", new PptScenarioPanel.Value("LOCATION", "SP-CAB1-03", "SP_LOCATION")),
-        new("파트별 재고", "Part No로 검색하여 LOT별 수량과 위치를 확인합니다.", new PptScenarioPanel.Value("PART", "PRCDTP7HLQK15", "SP_PART"))
+        new("EOS SP No 검색", "EOS SP No로 품목, 수량과 SP 보관 위치를 확인합니다.", new PptScenarioPanel.Value("EOS SP NO", "EOS-SP-K9-269999", "SP_LOT")),
+        new("위치별 재고", "SP-EXTRA 위치에 보관된 Spare Part 목록을 확인합니다.", new PptScenarioPanel.Value("LOCATION", "SP-EXTRA", "SP_LOCATION")),
+        new("파트별 재고", "Part No로 검색하여 EOS SP No별 수량과 위치를 확인합니다.", new PptScenarioPanel.Value("PART", "PDA-SP-TEST-001", "SP_PART"))
     ];
     private static readonly PptScenarioPanel.Step[] PptAdjustSteps =
     [
@@ -81,9 +81,9 @@ public partial class Wh03InventoryStatus
         if (IsSpareParts)
         {
             _inventoryView = step == 3 ? "Part" : "Location";
-            if (step == 3) _q = "PRCDTP7HLQK15";
+            if (step == 3) _q = "PDA-SP-TEST-001";
             await Load();
-            if (step == 2) await OpenInventoryLocation("SP-CAB1-03");
+            if (step == 2) await OpenInventoryLocation("SP-EXTRA");
             return;
         }
         _inventoryView = step >= 4 ? "Part" : "Location";
@@ -149,7 +149,7 @@ public partial class Wh03InventoryStatus
                 if (command == "SP_LOT")
                 {
                     _inventoryView = "Part";
-                    _q = "EOS-SP-A1-260001";
+                    _q = "EOS-SP-K9-269999";
                     await Load();
                 }
                 return;

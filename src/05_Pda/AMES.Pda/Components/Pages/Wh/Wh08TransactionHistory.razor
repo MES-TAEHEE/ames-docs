@@ -223,7 +223,7 @@
             <RadzenCard class="wh-modal-card wh08-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="wh08-detail-title" @onclick:stopPropagation="true">
                 <h2 id="wh08-detail-title" class="wh-modal-title">@(IsAdjust(detail) ? "Adjustment Detail" : "Transaction Detail")</h2>
                 <dl class="wh08-value-rows wh08-detail-rows">
-                    <div><dt>Lot No</dt><dd>@Text(detail.LotNo)</dd></div>
+                    <div><dt>@(IsSpareParts ? "EOS SP No" : "Lot No")</dt><dd>@Text(detail.LotNo)</dd></div>
                     <div><dt>Part No</dt><dd>@Text(detail.PartNo)</dd></div>
                     <div><dt>Location</dt><dd>@Text(detail.LocationId)</dd></div>
                     <div><dt>Date</dt><dd>@LogDateText(detail)</dd></div>

@@ -248,10 +248,13 @@ public sealed class PdaApi
             ? VendorId
             : $"{VendorId} / {VendorName}";
     }
-    public sealed record SparePartLotRow(int LotId, string EosSpNo, string? Category,
+    public sealed record SparePartRow(string EosSpNo, string? Category,
         string? ApplicableEquipment, string? PartName, string? PartNo, string? Maker,
         string? Vendor, decimal Qty, string? Unit, string? StorageLocation, string? AreaCode,
-        string InventoryStatus, bool IsReceived, bool IsReleaseEligible);
+        string InventoryStatus, bool IsReleaseEligible, string? ImageDataUrl);
+    public sealed record SparePartMoveReq(string EosSpNo, int Qty = 1,
+        string? LocationId = null, string? Note = null);
+    public sealed record SparePartMoveResult(bool Success, string Message, SparePartRow? Row = null);
     public sealed record TransactionRow(long TxnId, DateTime TxnTime, string TxnType, string? ItemNo,
         string? LocationId, decimal QtyBefore, decimal Delta, decimal QtyAfter, string? ReasonCode);
 
@@ -269,6 +272,11 @@ public sealed class PdaApi
     public async Task<List<InventoryRow>> WhInventoryAsync(string? q = null, DateTime? dateFrom = null, DateTime? dateTo = null,
         bool simulateFailure = false, string? areaCode = null)
     {
+        if (string.Equals(areaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase))
+            return await GetRequiredAsync<List<InventoryRow>>(
+                "/api/wh/sp/inventory" + (string.IsNullOrWhiteSpace(q) ? "" : $"?q={Uri.EscapeDataString(q.Trim())}"),
+                "Spare parts inventory service is unavailable.");
+
         if (simulateFailure)
         {
             Authorize();
@@ -301,12 +309,19 @@ public sealed class PdaApi
                ?? new InventoryTestChangeResult(false, "Inventory refresh test returned no result.", "", 0);
     }
 
-    public async Task<InventoryScanLookupRow?> WhInventoryScanAsync(string? scanText)
+    public async Task<InventoryScanLookupRow?> WhInventoryScanAsync(string? scanText, string? areaCode = null)
     {
         if (string.IsNullOrWhiteSpace(scanText))
             return null;
 
         var value = scanText.Trim();
+        if (string.Equals(areaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase))
+        {
+            var sparePart = await SpItemAsync(value);
+            return sparePart is null
+                ? new InventoryScanLookupRow("TEXT", value, null)
+                : new InventoryScanLookupRow("PART", sparePart.EosSpNo, sparePart.PartName);
+        }
         try
         {
             return await QueryWhInventoryScanDbAsync(value);
@@ -320,6 +335,11 @@ public sealed class PdaApi
     public async Task<List<InventoryLocationRow>> WhInventoryLocationsAsync(string itemNo, DateTime? dateFrom = null, DateTime? dateTo = null,
         string? areaCode = null)
     {
+        if (string.Equals(areaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase))
+            return await GetRequiredAsync<List<InventoryLocationRow>>(
+                $"/api/wh/sp/inventory/locations?eosSpNo={Uri.EscapeDataString(itemNo.Trim())}",
+                "Spare parts inventory location service is unavailable.");
+
         try
         {
             return FilterByArea(await QueryWhInventoryLocationsDbAsync(itemNo, dateFrom, dateTo, areaCode), row => row.AreaCode, areaCode);
@@ -331,6 +351,10 @@ public sealed class PdaApi
     }
     public async Task<List<LocationRow>> WhLocationsAsync(string? areaCode = null)
     {
+        if (string.Equals(areaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase))
+            return await GetRequiredAsync<List<LocationRow>>("/api/wh/sp/locations",
+                "Spare parts location service is unavailable.");
+
         if (OperatingSystem.IsAndroid())
         {
             try
@@ -377,8 +401,14 @@ public sealed class PdaApi
             }
         }
     }
-    public async Task<List<LocationMapItemRow>> WhLocationMapItemsAsync(string locationId, DateTime? dateFrom = null, DateTime? dateTo = null)
+    public async Task<List<LocationMapItemRow>> WhLocationMapItemsAsync(string locationId, DateTime? dateFrom = null, DateTime? dateTo = null,
+        string? areaCode = null)
     {
+        if (string.Equals(areaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase))
+            return await GetRequiredAsync<List<LocationMapItemRow>>(
+                $"/api/wh/sp/inventory/location/{Uri.EscapeDataString(locationId.Trim())}/items",
+                "Spare parts location inventory service is unavailable.");
+
         async Task<List<LocationMapItemRow>> QueryApiAsync()
         {
             var query = new List<string>();
@@ -487,6 +517,11 @@ public sealed class PdaApi
     }
     public async Task<List<LotStatusRow>> WhLotStatusesAsync(string? q = null, string? areaCode = null)
     {
+        if (string.Equals(areaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase))
+            return await GetRequiredAsync<List<LotStatusRow>>(
+                "/api/wh/sp/inventory/lots" + (string.IsNullOrWhiteSpace(q) ? "" : $"?q={Uri.EscapeDataString(q.Trim())}"),
+                "Spare parts inventory service is unavailable.");
+
         try
         {
             await using var conn = _db.CreateConnection();
@@ -537,14 +572,28 @@ public sealed class PdaApi
     }
     public Task<HttpResponseMessage> WhDirectOutgoingAsync(DirectOutgoingReq body)
         => Post("/api/wh/release/outgoing", body);
-    public async Task<SparePartLotRow?> SpLotAsync(string lotNo)
+    public async Task<SparePartRow?> SpItemAsync(string eosSpNo)
     {
         Authorize();
-        using var response = await _http.GetAsync($"/api/wh/sp/lot?lotNo={Uri.EscapeDataString(lotNo.Trim())}");
+        using var response = await _http.GetAsync($"/api/wh/sp/item?eosSpNo={Uri.EscapeDataString(eosSpNo.Trim())}");
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
         if (!response.IsSuccessStatusCode)
-            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Spare parts LOT service is unavailable."));
-        return await response.Content.ReadFromJsonAsync<SparePartLotRow>();
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Spare parts service is unavailable."));
+        return await response.Content.ReadFromJsonAsync<SparePartRow>();
+    }
+
+    public async Task<SparePartMoveResult> SpReceiveAsync(SparePartMoveReq body)
+    {
+        Authorize();
+        using var response = await _http.PostAsJsonAsync("/api/wh/sp/inbound", body);
+        return await ReadSparePartMoveResultAsync(response, "Spare parts inbound failed.");
+    }
+
+    public async Task<SparePartMoveResult> SpReleaseAsync(SparePartMoveReq body)
+    {
+        Authorize();
+        using var response = await _http.PostAsJsonAsync("/api/wh/sp/release", body);
+        return await ReadSparePartMoveResultAsync(response, "Spare parts release failed.");
     }
 
     public async Task SpResetTestAsync()
@@ -598,7 +647,10 @@ public sealed class PdaApi
     public async Task<AdjustmentLocation?> ScanAdjustmentLocationAsync(string barcode, bool finishedGoods, string? areaCode = null)
     {
         Authorize();
-        using var response = await _http.GetAsync($"/api/{(finishedGoods ? "fg" : "wh")}/adjust/location?barcode={Uri.EscapeDataString(barcode.Trim())}");
+        var path = string.Equals(areaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase)
+            ? "/api/wh/sp/adjust/location"
+            : $"/api/{(finishedGoods ? "fg" : "wh")}/adjust/location";
+        using var response = await _http.GetAsync($"{path}?barcode={Uri.EscapeDataString(barcode.Trim())}");
         if (!response.IsSuccessStatusCode)
             throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Adjustment location service is unavailable."));
         // An unknown location returns an empty 200 response; the caller then tries a stock barcode.
@@ -616,7 +668,9 @@ public sealed class PdaApi
         try
         {
             Authorize();
-            var url = $"/api/wh/adjust/scan?scanText={Uri.EscapeDataString(scanText.Trim())}";
+            var url = string.Equals(areaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase)
+                ? $"/api/wh/sp/adjust/scan?scanText={Uri.EscapeDataString(scanText.Trim())}"
+                : $"/api/wh/adjust/scan?scanText={Uri.EscapeDataString(scanText.Trim())}";
             var resp = await _http.GetAsync(url);
             if (!resp.IsSuccessStatusCode)
                 throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Warehouse adjust scan service is unavailable."));
@@ -648,13 +702,18 @@ public sealed class PdaApi
         if (dateTo.HasValue)
             query.Add($"dateTo={Uri.EscapeDataString(dateTo.Value.ToString("yyyy-MM-dd"))}");
 
-        var url = finishedGoods ? "/api/fg/transactions" : "/api/wh/warehouse-transactions";
+        var url = finishedGoods ? "/api/fg/transactions"
+            : string.Equals(areaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase)
+                ? "/api/wh/sp/transactions"
+                : "/api/wh/warehouse-transactions";
         if (query.Count > 0)
             url += "?" + string.Join("&", query);
 
         var rows = await _http.GetFromJsonAsync<List<WarehouseTransactionRow>>(url)
             ?? new List<WarehouseTransactionRow>();
-        return finishedGoods ? rows : await FilterByAreaAsync(rows, row => row.LocationId, areaCode);
+        return finishedGoods || string.Equals(areaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase)
+            ? rows
+            : await FilterByAreaAsync(rows, row => row.LocationId, areaCode);
     }
 
     public async Task<string?> WhInboundTestBarcodeAsync(string mode)
@@ -705,6 +764,13 @@ public sealed class PdaApi
         }
     }
 
+    public async Task<InboundReceiveResult> SpMoveLocationAsync(InboundReceiveReq body)
+    {
+        Authorize();
+        using var response = await _http.PostAsJsonAsync("/api/wh/sp/move-location", body);
+        return await ReadInboundReceiveResultAsync(response);
+    }
+
     public async Task<InboundReceiveResult> WhCancelInboundAsync(InboundCancelReq body)
     {
         try
@@ -731,6 +797,13 @@ public sealed class PdaApi
         {
             return new InboundReceiveResult(false, "Warehouse adjustment service is unavailable.", null);
         }
+    }
+
+    public async Task<InboundReceiveResult> SpSaveAdjustQtyAsync(AdjustSaveReq body)
+    {
+        Authorize();
+        using var response = await _http.PostAsJsonAsync("/api/wh/sp/adjust/save", body);
+        return await ReadInboundReceiveResultAsync(response);
     }
 
     public async Task WhResetSimpleInboundTestAsync()
@@ -1241,6 +1314,16 @@ public sealed class PdaApi
         }
     }
 
+    private async Task<T> GetRequiredAsync<T>(string url, string fallback)
+    {
+        Authorize();
+        using var response = await _http.GetAsync(url);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, fallback));
+        return await response.Content.ReadFromJsonAsync<T>()
+            ?? throw new InvalidOperationException(fallback);
+    }
+
     private async Task<T> Get<T>(string url) where T : new()
     {
         Authorize();
@@ -1266,6 +1349,15 @@ public sealed class PdaApi
             .Replace("%", @"\%")
             .Replace("_", @"\_")
             .Replace("[", @"\[");
+    }
+
+    private static async Task<SparePartMoveResult> ReadSparePartMoveResultAsync(HttpResponseMessage response, string fallback)
+    {
+        if (!response.IsSuccessStatusCode)
+            return new SparePartMoveResult(false, await ReadServiceErrorAsync(response, fallback));
+
+        return await response.Content.ReadFromJsonAsync<SparePartMoveResult>()
+               ?? new SparePartMoveResult(false, fallback);
     }
 
     private static async Task<InboundReceiveResult> ReadInboundReceiveResultAsync(HttpResponseMessage resp)

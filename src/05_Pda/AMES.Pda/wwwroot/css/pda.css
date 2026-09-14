@@ -12311,6 +12311,20 @@ body:has(.wh01-shell, .wh08-shell) .rz-datepicker-calendar :is(button, select, i
   border-top: 1px solid var(--wh-line);
 }
 
+.sp-release-image {
+  display: flex;
+  justify-content: center;
+  padding: 10px 12px;
+  border-top: 1px solid var(--wh-line);
+}
+
+.sp-release-image img {
+  display: block;
+  max-width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+}
+
 .sp-detail-row {
   display: grid;
   grid-template-columns: minmax(108px, .9fr) minmax(0, 1.55fr);
