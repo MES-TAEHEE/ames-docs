@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -274,4 +274,9 @@
   <data name="HelpRework3" xml:space="preserve"><value>수리 완료 → 양품: 원래 작업지시에 실적 1 EA 가 반영되고 LOT 은 확정 상태로 돌아간다.</value></data>
   <data name="HelpRework4" xml:space="preserve"><value>폐기: LOT 은 폐기 상태가 되고 실적은 변하지 않는다. 되돌릴 수 없다.</value></data>
   <data name="HelpRework5" xml:space="preserve"><value>열린 작업지시가 없는 품번은 양품 처리가 안 된다 — 계획 담당에게 작업지시 발행을 요청한다.</value></data>
+  <data name="RwkDetailTitle" xml:space="preserve"><value>판정 상세</value></data>
+  <data name="RwkWo" xml:space="preserve"><value>작업지시</value></data>
+  <data name="RwkNoteLabel" xml:space="preserve"><value>조치 메모</value></data>
+  <data name="RwkDecidedBy" xml:space="preserve"><value>판정자</value></data>
+  <data name="RwkDecidedAt" xml:space="preserve"><value>판정 시각</value></data>
 </root>

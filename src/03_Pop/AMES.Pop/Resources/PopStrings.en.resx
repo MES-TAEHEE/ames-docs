@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -274,4 +274,9 @@
   <data name="HelpRework3" xml:space="preserve"><value>Reworked → Good books 1 EA to the original work order and returns the LOT to confirmed.</value></data>
   <data name="HelpRework4" xml:space="preserve"><value>Scrap marks the LOT scrapped; production counts do not change. It cannot be undone.</value></data>
   <data name="HelpRework5" xml:space="preserve"><value>A part with no open work order cannot be confirmed good — ask planning to release one.</value></data>
+  <data name="RwkDetailTitle" xml:space="preserve"><value>DECISION DETAIL</value></data>
+  <data name="RwkWo" xml:space="preserve"><value>Work order</value></data>
+  <data name="RwkNoteLabel" xml:space="preserve"><value>Action note</value></data>
+  <data name="RwkDecidedBy" xml:space="preserve"><value>Decided by</value></data>
+  <data name="RwkDecidedAt" xml:space="preserve"><value>Decided at</value></data>
 </root>

@@ -1912,3 +1912,10 @@ body {
 .rwk-tab.on { background: #0a1628; border-color: rgba(37, 99, 235, .25); color: #fff;
               margin-bottom: -1px; padding-bottom: 16px; }
 .rwk-decided { flex: 1; min-height: 0; }
+.rwk-decided-row { cursor: pointer; }
+.rwk-decided-row:hover td { background: rgba(255,255,255,.05); }
+/* 판정 상세 팝업 — 라벨/값 2열 */
+.rwk-detail { display: grid; grid-template-columns: 150px 1fr; gap: 10px 18px; align-items: center; font-size: 19px; }
+.rwk-detail-l   { font-size: 14px; letter-spacing: 1.5px; color: rgba(255,255,255,.5); text-transform: uppercase; }
+.rwk-detail-lot { font-size: 24px; font-weight: 700; }
+.rwk-detail-sep { grid-column: 1 / -1; height: 1px; background: rgba(255,255,255,.1); margin: 4px 0; }
