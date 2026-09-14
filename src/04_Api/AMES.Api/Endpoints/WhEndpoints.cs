@@ -99,6 +99,10 @@ public static class WhEndpoints
         string? TargetCode = null, string? Note = null);
     public sealed record DirectOutgoingResult(bool Success, string Message, DirectOutgoingLotRow? Row = null);
     public sealed record OutgoingVendorRow(string VendorId, string? VendorName);
+    public sealed record SparePartLotRow(int LotId, string EosSpNo, string? Category,
+        string? ApplicableEquipment, string? PartName, string? PartNo, string? Maker,
+        string? Vendor, decimal Qty, string? Unit, string? StorageLocation, string? AreaCode,
+        string InventoryStatus, bool IsReceived, bool IsReleaseEligible);
 
     public sealed record TransactionRow(long TxnId, DateTime TxnTime, string TxnType, string? ItemNo,
         string? LocationId, decimal QtyBefore, decimal Delta, decimal QtyAfter, string? ReasonCode);
@@ -254,6 +258,36 @@ public static class WhEndpoints
 
         g.MapPost("/inbound/receive-lot", ReceiveInboundLot);
         g.MapPost("/inbound/receive-sis", ReceiveInboundLot);
+
+        g.MapGet("/sp/lot", (HttpContext ctx, string lotNo) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            var row = QuerySparePartLot(factory, lotNo);
+            return row is null
+                ? Results.Problem("Spare parts LOT was not found.", statusCode: StatusCodes.Status404NotFound)
+                : Results.Ok(row);
+        });
+
+        g.MapPost("/sp/test/reset", (HttpContext ctx) =>
+        {
+            if (ctx.GetSession() is not { } session) return Results.Unauthorized();
+            if (!PdaScenarioUsers.IsSimple(session.EmployeeNo) && !PdaScenarioUsers.IsDetailed(session.EmployeeNo))
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
+            try
+            {
+                using var connection = factory.OpenConnection();
+                using var command = new SqlCommand("dbo.SP_PDA_SIMPLE_TEST_RESET", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                command.ExecuteNonQuery();
+                return Results.Ok(new { Success = true });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+        });
 
         g.MapPost("/inbound/test/simple-reset", (HttpContext ctx) =>
         {
@@ -574,9 +608,9 @@ public static class WhEndpoints
                 SELECT l.LocationID, l.LocationName, l.ZoneCode,
                        COUNT(i.InventoryID) AS LineCount,
                        COALESCE(SUM(i.OnHandQty),0) AS TotalQty,
-                       l.PlantCode AS WarehouseCode,
+                       l.WhCode AS WarehouseCode,
                        wm.WhName AS WarehouseName,
-                       l.ZoneCode AS AreaCode,
+                       l.AreaCode AS AreaCode,
                        am.AreaName AS AreaName,
                        l.ZoneCode AS ZoneName,
                        l.Aisle, l.Bay, l.Slot,
@@ -587,17 +621,17 @@ public static class WhEndpoints
                             ELSE NULL END AS Unit
                 FROM dbo.MD_Location l
                 LEFT JOIN dbo.WH_WarehouseMaster wm
-                  ON wm.WhCode = l.PlantCode
+                  ON wm.WhCode = l.WhCode
                 LEFT JOIN dbo.WH_AreaMaster am
-                  ON am.WhCode = l.PlantCode
-                 AND am.AreaCode = l.ZoneCode
+                  ON am.WhCode = l.WhCode
+                 AND am.AreaCode = l.AreaCode
                 LEFT JOIN dbo.WH_Inventory i
                   ON i.LocationID = l.LocationID
                  AND COALESCE(i.OnHandQty,0) > 0
                  AND UPPER(COALESCE(i.Status,N'Received')) NOT IN (N'CANCELED',N'RELEASED',N'PICKED')
                 LEFT JOIN dbo.MD_Item mi ON mi.ItemNo = i.ItemNo
                 WHERE ISNULL(l.ActiveFlag,1) = 1
-                GROUP BY l.LocationID, l.LocationName, l.ZoneCode, l.PlantCode,
+                GROUP BY l.LocationID, l.LocationName, l.ZoneCode, l.WhCode, l.AreaCode, l.PlantCode,
                          wm.WhName, am.AreaName,
                          l.Aisle, l.Bay, l.Slot, l.LocationType, l.Capacity
                 ORDER BY l.ZoneCode, l.LocationID;
@@ -1579,6 +1613,65 @@ public static class WhEndpoints
             valid ? "LOT is ready for outgoing." : $"LOT cannot be released. Current status: {status}.");
     }
 
+    private static SparePartLotRow? QuerySparePartLot(AmesConnectionFactory factory, string lotNo)
+    {
+        var normalizedLot = lotNo?.Trim() ?? "";
+        if (normalizedLot.Length == 0) return null;
+
+        using var conn = factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT TOP (1)
+                L.LotID, L.LotCode AS EosSpNo, I.ItemCategory AS Category,
+                I.ApplicableEquipment, I.ItemName AS PartName,
+                COALESCE(I.SparePartNo, I.ItemNo) AS PartNo, I.MakerName AS Maker,
+                COALESCE(V.VendorName, P.VendorID) AS Vendor,
+                COALESCE(W.OnHandQty, P.Qty, L.RemainingQty, 0) AS Qty,
+                COALESCE(I.DefaultUOM, P.UnitCode, 'EA') AS Unit,
+                W.LocationID AS StorageLocation, ML.AreaCode,
+                UPPER(COALESCE(NULLIF(L.InventoryStatus,''), NULLIF(W.Status,''), 'CREATED')) AS InventoryStatus
+            FROM dbo.tbl_Lot L
+            INNER JOIN dbo.MD_Item I ON I.ItemNo = L.ItemNo
+            OUTER APPLY
+            (
+                SELECT TOP (1) IP.VendorID, IP.Qty, IP.UnitCode
+                FROM dbo.WH_InboundPackage IP
+                WHERE IP.LotID = L.LotID
+                ORDER BY IP.InboundPackageID DESC
+            ) P
+            LEFT JOIN dbo.MD_Vendor V ON V.VendorID = P.VendorID
+            OUTER APPLY
+            (
+                SELECT TOP (1) X.LocationID, X.OnHandQty, X.Status
+                FROM dbo.WH_Inventory X
+                WHERE X.LotID = L.LotID
+                ORDER BY CASE WHEN COALESCE(X.OnHandQty,0) > 0 THEN 0 ELSE 1 END, X.InventoryID DESC
+            ) W
+            LEFT JOIN dbo.MD_Location ML ON ML.LocationID = W.LocationID
+            WHERE UPPER(L.LotCode) = UPPER(@LotNo)
+              AND UPPER(COALESCE(I.ItemType,'')) = 'SPARE';
+            """, conn);
+        cmd.Parameters.AddWithValue("@LotNo", normalizedLot);
+        using var rdr = cmd.ExecuteReader();
+        if (!rdr.Read()) return null;
+
+        var qty = GetDecimal(rdr, "Qty");
+        var status = GetString(rdr, "InventoryStatus") ?? "CREATED";
+        var location = GetString(rdr, "StorageLocation");
+        var areaCode = GetString(rdr, "AreaCode");
+        var received = qty > 0 && !string.IsNullOrWhiteSpace(location);
+        var releaseEligible = received
+            && string.Equals(areaCode, "SPARE_PARTS_AREA", StringComparison.OrdinalIgnoreCase)
+            && new[] { "RECEIVED", "STORED", "RETURN_RECEIVED", "RELEASE_CANCELLED" }
+                .Contains(status, StringComparer.OrdinalIgnoreCase);
+
+        return new SparePartLotRow(
+            rdr.GetInt32(rdr.GetOrdinal("LotID")), GetString(rdr, "EosSpNo") ?? normalizedLot,
+            GetString(rdr, "Category"), GetString(rdr, "ApplicableEquipment"),
+            GetString(rdr, "PartName"), GetString(rdr, "PartNo"), GetString(rdr, "Maker"),
+            GetString(rdr, "Vendor"), qty, GetString(rdr, "Unit"), location, areaCode,
+            status, received, releaseEligible);
+    }
+
     private static DirectOutgoingResult ExecuteDirectOutgoing(
         AmesConnectionFactory factory, DirectOutgoingReq body, string reasonCode, string userId)
     {
@@ -2325,18 +2418,10 @@ public static class WhEndpoints
                 L.LocationID,
                 L.LocationName,
                 L.ZoneCode,
-                CASE
-                    WHEN UPPER(L.LocationID) LIKE N'WH[0-9][0-9]%'
-                    THEN UPPER(LEFT(L.LocationID, 4))
-                    ELSE NULL
-                END AS WarehouseCode,
-                CASE
-                    WHEN UPPER(L.LocationID) LIKE N'WH[0-9][0-9]%'
-                    THEN CONCAT(N'Warehouse ', SUBSTRING(L.LocationID, 3, 2))
-                    ELSE NULL
-                END AS WarehouseName,
-                L.ZoneCode AS AreaCode,
-                L.ZoneCode AS AreaName,
+                L.WhCode AS WarehouseCode,
+                COALESCE(NULLIF(W.WhName, N''), L.WhCode) AS WarehouseName,
+                L.AreaCode AS AreaCode,
+                COALESCE(NULLIF(A.AreaName, N''), L.AreaCode) AS AreaName,
                 L.ZoneCode AS ZoneName,
                 L.Aisle,
                 L.Bay,
@@ -2347,14 +2432,16 @@ public static class WhEndpoints
                 COUNT(I.InventoryID) AS LineCount,
                 COALESCE(SUM(I.OnHandQty), 0) AS TotalQty
             FROM dbo.MD_Location L
+            LEFT JOIN dbo.WH_WarehouseMaster W ON W.WhCode = L.WhCode
+            LEFT JOIN dbo.WH_AreaMaster A ON A.WhCode = L.WhCode AND A.AreaCode = L.AreaCode
             LEFT JOIN dbo.WH_Inventory I
                 ON I.LocationID = L.LocationID
                AND COALESCE(I.Status, 'Received') <> 'Canceled'
                AND COALESCE(I.OnHandQty, 0) > 0
             WHERE COALESCE(L.ActiveFlag, 1) = 1
               AND UPPER(L.LocationID) = UPPER(@LocationID)
-            GROUP BY L.LocationID, L.LocationName, L.ZoneCode, L.Aisle, L.Bay, L.Slot,
-                L.PlantCode, L.LocationType, L.Capacity
+            GROUP BY L.LocationID, L.LocationName, L.WhCode, W.WhName, L.AreaCode, A.AreaName,
+                L.ZoneCode, L.Aisle, L.Bay, L.Slot, L.PlantCode, L.LocationType, L.Capacity
             ORDER BY L.LocationID;
             """, conn)
         {
