@@ -195,6 +195,9 @@ CREATE TABLE dbo.MD_Item (
   [ItemNameEN]                NVARCHAR(80)             NULL,
   [ItemType]                  VARCHAR(10)              NULL,
   [ItemCategory]              VARCHAR(30)              NULL,
+  [SparePartNo]               NVARCHAR(80)             NULL,
+  [ApplicableEquipment]       NVARCHAR(80)             NULL,
+  [MakerName]                 NVARCHAR(80)             NULL,
   [CarType]                   VARCHAR(10)              NULL,
   [DefaultUOM]                VARCHAR(10)              NULL,  -- FK -> MD_Uom.UOMCode
   [RoutingType]               CHAR(1)                  NULL,
@@ -932,7 +935,9 @@ GO
 CREATE TABLE dbo.MD_Location (
   [LocationID]                VARCHAR(20)          NOT NULL,
   [LocationName]              NVARCHAR(60)             NULL,
-  [ZoneCode]                  VARCHAR(10)              NULL,
+  [WhCode]                    VARCHAR(20)          NOT NULL DEFAULT 'EOS',
+  [AreaCode]                  VARCHAR(20)          NOT NULL DEFAULT 'MAT_AREA',
+  [ZoneCode]                  VARCHAR(20)              NULL,
   [Aisle]                     VARCHAR(5)               NULL,
   [Bay]                       VARCHAR(5)               NULL,
   [Slot]                      VARCHAR(5)               NULL,
