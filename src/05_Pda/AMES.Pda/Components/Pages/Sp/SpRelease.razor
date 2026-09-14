@@ -1,0 +1,198 @@
+@page "/sp/07"
+@inject PdaApi Api
+@inject AuthState Auth
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="pda-shell wh wh07-shell sp-screen">
+    <div class="pda-tbar">
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/sp"))' Text="&lt;" />
+        <span class="pda-tbar-brand">RELEASE</span>
+        @if (IsSimpleTestMode)
+        {
+            <PptScenarioPanel Title="SP RELEASE" Steps="ScenarioSteps" Busy="_busy"
+                              OnStart="StartScenario" OnValue="RunScenario" OnReset="ResetScenario"
+                              OpenChanged="@((bool open) => _scenarioOpen = open)" />
+        }
+    </div>
+
+    <div class="pda-bd wh02-body sp-body">
+        <RadzenCard class="wh02-panel wh02-scan-panel hardware-scan-panel">
+            <div class="pda-fld">
+                <label>LOT NO</label>
+                <RadzenTextBox class="pda-input wh02-barcode-input pda-scan-input"
+                               Value="@_lotNo" @oninput="OnLotInput" @onkeydown="OnLotKey"
+                               Placeholder="Scan LOT barcode" />
+            </div>
+        </RadzenCard>
+
+        @if (_lot is not null)
+        {
+            <RadzenCard class="@($"wh02-lot-card {(_lot.IsReleaseEligible ? "ready" : "received")}")">
+                <div class="wh02-lot-top">
+                    <div class="wh02-lot-main"><span>EOS SP NO</span><strong>@_lot.EosSpNo</strong></div>
+                    <RadzenBadge class="@($"wh02-status-chip {(_lot.IsReleaseEligible ? "ready" : "received")}")"
+                                 Text="@(_lot.IsReleaseEligible ? "READY" : _lot.InventoryStatus)" />
+                </div>
+                <div class="sp-detail-grid">
+                    @foreach (var field in DetailFields())
+                    {
+                        <div class="sp-detail-row"><span>@field.Label</span><strong>@Text(field.Value)</strong></div>
+                    }
+                </div>
+            </RadzenCard>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <div class="pda-status @_messageClass">@_message</div>
+        }
+
+        <div class="wh02-action-bar has-reset">
+            <RadzenButton class="wh02-clear-btn" Text="CLEAR" Click="Clear" Disabled="@_busy" />
+            <RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-receive-action-btn {(_lot?.IsReleaseEligible == true ? "ready" : "blocked")}")"
+                          Text="RELEASE" Click="Release" Disabled="@_busy" />
+        </div>
+    </div>
+
+    @if (_modalOpen)
+    {
+        <div class="wh-modal-backdrop" @onclick="CloseModal">
+            <RadzenCard class="@($"wh-modal-card {_modalKind}")" @onclick:stopPropagation="true">
+                <div class="wh-modal-mark">@(_modalKind == "success" ? "OK" : "!")</div>
+                <div class="wh-modal-title">@_modalTitle</div>
+                <div class="wh-modal-message">@_modalMessage</div>
+                <div class="wh-modal-actions"><RadzenButton class="wh-modal-btn primary" Click="CloseModal" Text="OK" /></div>
+            </RadzenCard>
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly PptScenarioPanel.Step[] ScenarioSteps =
+    [
+        new("LOT 출고", "보관 중인 LOT를 조회하고 Storage Location 확인 후 RELEASE를 실행합니다.",
+            new PptScenarioPanel.Value("LOT", "EOS-SP-A1-260001", "READY")),
+        new("이미 출고된 LOT", "첫 단계에서 출고한 LOT를 다시 스캔해 출고 불가 상태를 확인합니다.",
+            new PptScenarioPanel.Value("LOT", "EOS-SP-A1-260001", "RELEASED")),
+        new("미등록 LOT", "등록되지 않은 LOT 스캔 오류를 확인합니다.",
+            new PptScenarioPanel.Value("LOT", "EOS-SP-UNKNOWN-001", "UNKNOWN"))
+    ];
+
+    private bool IsSimpleTestMode => PdaScenarioUsers.IsSimple(Auth.Session?.EmployeeNo);
+    private string _lotNo = "";
+    private string _message = "";
+    private string _messageClass = "dim";
+    private bool _busy;
+    private bool _scenarioOpen;
+    private bool _modalOpen;
+    private string _modalTitle = "";
+    private string _modalMessage = "";
+    private string _modalKind = "info";
+    private PdaApi.SparePartLotRow? _lot;
+    private DotNetObjectReference<SpRelease>? _scannerRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        PdaBarcodeHub.Scanned += OnNativeBarcodeScanned;
+        _scannerRef = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("pdaScan.register", _scannerRef, new { minLength = 3, developerMode = MauiProgram.IsDeveloperMode });
+        await FocusScannerAsync();
+    }
+
+    [JSInvokable]
+    public async Task OnHardwareScanAsync(string scanText)
+    {
+        if (_busy || _scenarioOpen || _modalOpen) return;
+        _lotNo = NormalizeScan(scanText);
+        await ScanLot();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnNativeBarcodeScanned(string value) => _ = InvokeAsync(() => OnHardwareScanAsync(value));
+    private void OnLotInput(ChangeEventArgs e) => _lotNo = e.Value?.ToString() ?? "";
+    private async Task OnLotKey(KeyboardEventArgs e) { if (e.Key == "Enter") await ScanLot(); }
+
+    private async Task ScanLot()
+    {
+        var value = NormalizeScan(_lotNo);
+        if (value.Length == 0) { ShowModal("LOT Required", "Scan an EOS SP No.", "warn"); return; }
+        _busy = true;
+        _lot = null;
+        try
+        {
+            _lot = await Api.SpLotAsync(value);
+            if (_lot is null) { _message = "Spare parts LOT was not found."; _messageClass = "fail"; return; }
+            _lotNo = _lot.EosSpNo;
+            _message = _lot.IsReleaseEligible ? "LOT loaded. Ready to release." : $"LOT cannot be released. Current status: {_lot.InventoryStatus}.";
+            _messageClass = _lot.IsReleaseEligible ? "ok" : "fail";
+        }
+        catch (Exception ex) { _message = ex.Message; _messageClass = "fail"; }
+        finally { _busy = false; }
+    }
+
+    private async Task Release()
+    {
+        if (_lot?.IsReleaseEligible != true) { ShowModal("Not Ready", _lot is null ? "Scan a LOT first." : "This LOT cannot be released.", "warn"); return; }
+        _busy = true;
+        try
+        {
+            using var response = await Api.WhDirectOutgoingAsync(new("OTHER", _lot.EosSpNo, _lot.Qty, Note: "Spare parts release"));
+            var result = await response.Content.ReadFromJsonAsync<PdaApi.DirectOutgoingResult>();
+            if (!response.IsSuccessStatusCode || result?.Success != true)
+            {
+                ShowModal("Release Failed", result?.Message ?? "Spare parts release failed.", "fail");
+                return;
+            }
+            var lotNo = _lot.EosSpNo;
+            Clear();
+            ShowModal("Release Complete", $"{lotNo} was released.", "success");
+        }
+        catch (Exception ex) { ShowModal("Release Failed", ex.Message, "fail"); }
+        finally { _busy = false; }
+    }
+
+    private (string Label, string? Value)[] DetailFields() =>
+    [
+        ("CATEGORY", _lot?.Category), ("APPLICABLE EQUIPMENT", _lot?.ApplicableEquipment),
+        ("PART NAME", _lot?.PartName), ("PART NO", _lot?.PartNo),
+        ("MAKER", _lot?.Maker), ("VENDOR", _lot?.Vendor),
+        ("QTY", _lot is null ? null : $"{_lot.Qty:N0} {Text(_lot.Unit)}"),
+        ("STORAGE LOCATION", _lot?.StorageLocation)
+    ];
+
+    private async Task StartScenario(int step)
+    {
+        if (step == 1) await Api.SpResetTestAsync();
+        await RunScenario(step switch { 1 => "READY", 2 => "RELEASED", _ => "UNKNOWN" });
+    }
+
+    private async Task RunScenario(string command)
+    {
+        _lotNo = command == "UNKNOWN" ? "EOS-SP-UNKNOWN-001" : "EOS-SP-A1-260001";
+        await ScanLot();
+    }
+
+    private async Task ResetScenario()
+    {
+        await Api.SpResetTestAsync();
+        Clear();
+        ShowModal("Test Data Ready", "SP inbound and release sample LOTs were reset.", "success");
+    }
+
+    private void Clear() { _lotNo = _message = ""; _lot = null; }
+    private void ShowModal(string title, string message, string kind) { _modalTitle = title; _modalMessage = message; _modalKind = kind; _modalOpen = true; }
+    private void CloseModal() { _modalOpen = false; _ = FocusScannerAsync(); }
+    private async Task FocusScannerAsync() { try { await JS.InvokeVoidAsync("pdaScan.focus", ".sp-screen .pda-scan-input"); } catch { } }
+    private static string NormalizeScan(string? value) => string.IsNullOrWhiteSpace(value) ? "" : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
+    private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+
+    public async ValueTask DisposeAsync()
+    {
+        PdaBarcodeHub.Scanned -= OnNativeBarcodeScanned;
+        try { await JS.InvokeVoidAsync("pdaScan.unregister"); } catch { }
+        _scannerRef?.Dispose();
+    }
+}

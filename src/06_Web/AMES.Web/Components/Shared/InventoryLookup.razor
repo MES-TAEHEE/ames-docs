@@ -1,64 +1,41 @@
 <div class="inventory-lookup">
-    <section class="inventory-filter-panel">
-        <div class="inventory-filter-field compact">
-            <label>WAREHOUSE</label>
-            <select value="@_warehouse" @onchange="ChangeWarehouse">
-                <option value="">All Warehouses</option>
-                @foreach (var warehouse in WarehouseOptions)
-                {
-                    <option value="@warehouse.Code">@warehouse.Name</option>
-                }
-            </select>
-        </div>
-        <div class="inventory-filter-field compact">
-            <label>AREA</label>
-            <select value="@_area" @onchange="ChangeArea">
-                <option value="">All Areas</option>
-                @foreach (var area in AreaOptions)
-                {
-                    <option value="@area.Code">@area.Name</option>
-                }
-            </select>
-        </div>
-        <div class="inventory-filter-field">
-            <label for="@SearchId">PART NO / PART NAME / LOT / LOCATION</label>
-            <input id="@SearchId" value="@_query" @oninput="UpdateQuery" @onkeydown="HandleKey" placeholder="Enter search value" />
-        </div>
-        <button type="button" class="inventory-search-button" @onclick="Search"><RadzenIcon Icon="search" /> SEARCH</button>
-        <button type="button" class="inventory-reset-button" @onclick="Reset"><RadzenIcon Icon="restart_alt" /> RESET</button>
-    </section>
+    <div class="ames-kpis">
+        <div class="ames-kpi"><div class="ames-kpi-l">Parts</div><div class="ames-kpi-v">@SummaryRows.Count</div></div>
+        <div class="ames-kpi ok"><div class="ames-kpi-l">Quantity</div><div class="ames-kpi-v">@FilteredInventory.Sum(x => x.Qty).ToString("N0")</div></div>
+        <div class="ames-kpi warn"><div class="ames-kpi-l">Locations</div><div class="ames-kpi-v">@FilteredInventory.Select(x => x.LocationNo).Distinct(StringComparer.OrdinalIgnoreCase).Count()</div></div>
+        <div class="ames-kpi"><div class="ames-kpi-l">Lots</div><div class="ames-kpi-v">@FilteredInventory.Select(x => x.LotNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count()</div></div>
+    </div>
 
-    <section class="inventory-table-panel inventory-summary-panel">
-        <header><span>INVENTORY BY PART</span><strong>@SummaryRows.Count item(s)</strong></header>
-        <div class="inventory-table-scroll">
-            <table class="inventory-lookup-table">
-                <thead>
-                    <tr><th>No.</th><th>Part No</th><th>Part Name</th><th>Status</th><th>Unit</th><th>Total Qty</th><th>Locations</th><th>Lots</th></tr>
-                </thead>
-                <tbody>
-                    @if (SummaryRows.Count == 0)
-                    {
-                        <tr><td colspan="8" class="inventory-no-results">No inventory found.</td></tr>
-                    }
-                    else
-                    {
-                        @foreach (var row in SummaryRows.Select((value, index) => (value, index)))
-                        {
-                            <tr class="@(row.value.PartNo == _selectedPart ? "selected" : "")" @onclick="() => SelectPart(row.value.PartNo)">
-                                <td>@(row.index + 1)</td>
-                                <td>@row.value.PartNo</td>
-                                <td title="@row.value.PartName">@row.value.PartName</td>
-                                <td><span class="inventory-status">Available</span></td>
-                                <td>@row.value.Unit</td>
-                                <td class="number">@row.value.Qty.ToString("N0")</td>
-                                <td class="number">@row.value.LocationCount</td>
-                                <td class="number">@row.value.LotCount</td>
-                            </tr>
-                        }
-                    }
-                </tbody>
-            </table>
+    <section class="ames-card inventory-summary-panel">
+        <div class="ames-card-h master-list-toolbar">
+            <span>▼ Inventory by Part · @SummaryRows.Count item(s)</span>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+                <RadzenTextBox Name="@SearchId" @bind-Value="_query" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" AutoComplete="false" @onkeydown="HandleKey" />
+                <RadzenLabel Text="Warehouse" Component="InventoryWarehouse" />
+                <RadzenDropDown Name="InventoryWarehouse" Value="@_warehouse" Change="ChangeWarehouse" Data="@WarehouseOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" Placeholder="All Warehouses" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
+                <RadzenLabel Text="Area" Component="InventoryArea" />
+                <RadzenDropDown Name="InventoryArea" Value="@_area" Change="ChangeArea" Data="@AreaOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" Placeholder="All Areas" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+                <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Search" class="ames-rz-btn" />
+                <RadzenButton Text="Clear" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reset" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
+
+        <RadzenDataGrid TItem="SummaryRow" Data="@SummaryRows" AllowPaging="true" PageSize="25"
+                        PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center"
+                        ShowPagingSummary="true" AllowSorting="true" RowSelect="SelectPartRow"
+                        SelectionMode="DataGridSelectionMode.Single" EmptyText="No inventory found."
+                        PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
+                        Class="ames-rz-grid ames-grid-fixed inventory-summary-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="SummaryRow" Property="PartNo" Title="Part No" TextAlign="TextAlign.Center" Width="160px"><Template Context="r"><span class="code">@r.PartNo</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" Property="PartName" Title="Part Name" />
+                <RadzenDataGridColumn TItem="SummaryRow" Title="Status" TextAlign="TextAlign.Center" Width="110px" Sortable="false"><Template Context="r"><span class="pill ok">Available</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" Property="Unit" Title="Unit" TextAlign="TextAlign.Center" Width="80px"><Template Context="r"><span class="code dim">@r.Unit</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" Property="Qty" Title="Total Qty" TextAlign="TextAlign.Right" Width="110px"><Template Context="r">@r.Qty.ToString("N0")</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" Property="LocationCount" Title="Locations" TextAlign="TextAlign.Right" Width="105px" />
+                <RadzenDataGridColumn TItem="SummaryRow" Property="LotCount" Title="Lots" TextAlign="TextAlign.Right" Width="85px" />
+            </Columns>
+        </RadzenDataGrid>
     </section>
 
 
@@ -165,18 +142,19 @@
         if (_selectedPart is not null && SummaryRows.All(x => x.PartNo != _selectedPart)) CloseDetail();
     }
 
-    private void UpdateQuery(ChangeEventArgs args) => _query = args.Value?.ToString() ?? "";
+    private readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 };
+    private int _pageRows = 25;
 
-    private void ChangeWarehouse(ChangeEventArgs args)
+    private void ChangeWarehouse(object? value)
     {
-        _warehouse = args.Value?.ToString() ?? "";
+        _warehouse = value?.ToString() ?? "";
         _area = "";
         CloseDetail();
     }
 
-    private void ChangeArea(ChangeEventArgs args)
+    private void ChangeArea(object? value)
     {
-        _area = args.Value?.ToString() ?? "";
+        _area = value?.ToString() ?? "";
         CloseDetail();
     }
 
@@ -193,9 +171,11 @@
 
     private void Reset()
     {
-        _query = _filter = "";
+        _query = _filter = _warehouse = _area = "";
         CloseDetail();
     }
+
+    private void SelectPartRow(SummaryRow row) => SelectPart(row.PartNo);
 
     private void SelectPart(string partNo)
     {

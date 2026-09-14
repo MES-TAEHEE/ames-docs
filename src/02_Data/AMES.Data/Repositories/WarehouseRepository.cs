@@ -207,12 +207,12 @@ public sealed class WarehouseRepository
             SELECT
                 L.LocationID AS LOCATION_NO,
                 L.LocationName AS LOCATION_NM,
-                L.PlantCode AS WHCD,
-                COALESCE(NULLIF(W.WhName, ''), L.PlantCode) AS WHNM,
-                COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) AS AREACD,
-                COALESCE(NULLIF(A.AreaName, ''), COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode)) AS AREANM,
+                L.WhCode AS WHCD,
+                COALESCE(NULLIF(W.WhName, ''), L.WhCode) AS WHNM,
+                L.AreaCode AS AREACD,
+                COALESCE(NULLIF(A.AreaName, ''), L.AreaCode) AS AREANM,
                 L.ZoneCode AS ZONECD,
-                L.LocationType AS ZONENM,
+                L.ZoneCode AS ZONENM,
                 L.Aisle AS RACK_X,
                 L.Bay AS RACK_Y,
                 L.Slot AS RACK_Z,
@@ -222,27 +222,27 @@ public sealed class WarehouseRepository
                 COALESCE(SUM(S.OnHandQty), 0) AS TOTAL_QTY
             FROM dbo.MD_Location L
             LEFT JOIN dbo.WH_WarehouseMaster W
-                   ON W.WhCode = L.PlantCode
+                   ON W.WhCode = L.WhCode
             LEFT JOIN dbo.WH_AreaMaster A
-                   ON A.AreaCode = COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode)
-                  AND COALESCE(A.WhCode, L.PlantCode) = L.PlantCode
+                   ON A.AreaCode = L.AreaCode
+                  AND COALESCE(A.WhCode, L.WhCode) = L.WhCode
             LEFT JOIN dbo.WH_Inventory S
                    ON S.LocationID = L.LocationID
                   AND COALESCE(S.OnHandQty, 0) <> 0
                   AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
             WHERE (@IncludeInactive = 1 OR COALESCE(L.ActiveFlag, 1) = 1)
-              AND (@WhCode IS NULL OR L.PlantCode = @WhCode)
-              AND (@AreaCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = @AreaCode)
-              AND (@SectionCode IS NULL OR COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = @SectionCode)
+              AND (@WhCode IS NULL OR L.WhCode = @WhCode)
+              AND (@AreaCode IS NULL OR L.AreaCode = @AreaCode)
+              AND (@SectionCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), 'DEFAULT') = @SectionCode)
               AND (@Search IS NULL
                    OR L.LocationID LIKE @Search
                    OR L.LocationName LIKE @Search
                    OR L.ZoneCode LIKE @Search
-                   OR L.LocationType LIKE @Search
-                   OR L.PlantCode LIKE @Search)
-            GROUP BY L.LocationID, L.LocationName, L.PlantCode, W.WhName, L.ZoneCode, A.AreaName,
+                   OR L.AreaCode LIKE @Search
+                   OR L.WhCode LIKE @Search)
+            GROUP BY L.LocationID, L.LocationName, L.WhCode, W.WhName, L.AreaCode, L.ZoneCode, A.AreaName,
                      L.LocationType, L.Aisle, L.Bay, L.Slot, L.ActiveFlag
-            ORDER BY L.PlantCode, COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode), L.ZoneCode,
+            ORDER BY L.WhCode, L.AreaCode, L.ZoneCode,
                      TRY_CONVERT(int, L.Aisle), L.Aisle,
                      TRY_CONVERT(int, L.Bay), L.Bay,
                      TRY_CONVERT(int, L.Slot), L.Slot,
@@ -288,7 +288,7 @@ public sealed class WarehouseRepository
                    ON A.WhCode = W.WhCode
                   AND COALESCE(A.ActiveFlag, 1) = 1
             LEFT JOIN dbo.MD_Location L
-                   ON L.PlantCode = W.WhCode
+                   ON L.WhCode = W.WhCode
                   AND COALESCE(L.ActiveFlag, 1) = 1
             LEFT JOIN dbo.WH_Inventory S
                    ON S.LocationID = L.LocationID
@@ -358,7 +358,7 @@ public sealed class WarehouseRepository
         using var check = new SqlCommand("""
             SELECT COUNT(1)
             FROM dbo.MD_Location
-            WHERE PlantCode = @WhCode;
+            WHERE WhCode = @WhCode;
             """, conn);
         check.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = whCode.Trim();
         if (Convert.ToInt32(check.ExecuteScalar()) > 0)
@@ -390,8 +390,8 @@ public sealed class WarehouseRepository
             LEFT JOIN dbo.WH_WarehouseMaster W
                    ON W.WhCode = A.WhCode
             LEFT JOIN dbo.MD_Location L
-                   ON COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = A.AreaCode
-                  AND (@WhCode IS NULL OR L.PlantCode = @WhCode)
+                   ON L.AreaCode = A.AreaCode
+                  AND (@WhCode IS NULL OR L.WhCode = @WhCode)
                   AND COALESCE(L.ActiveFlag, 1) = 1
             LEFT JOIN dbo.WH_Inventory S
                    ON S.LocationID = L.LocationID
@@ -432,9 +432,9 @@ public sealed class WarehouseRepository
                 COALESCE(SUM(I.OnHandQty), 0) AS TOTAL_QTY
             FROM dbo.WH_AreaSection S
             LEFT JOIN dbo.MD_Location L
-                   ON COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = S.AreaCode
-                  AND COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = S.SectionCode
-                  AND (@WhCode IS NULL OR L.PlantCode = @WhCode)
+                   ON L.AreaCode = S.AreaCode
+                  AND COALESCE(NULLIF(L.ZoneCode, ''), 'DEFAULT') = S.SectionCode
+                  AND (@WhCode IS NULL OR L.WhCode = @WhCode)
                   AND COALESCE(L.ActiveFlag, 1) = 1
             LEFT JOIN dbo.WH_Inventory I
                    ON I.LocationID = L.LocationID
@@ -522,9 +522,9 @@ public sealed class WarehouseRepository
         using var check = new SqlCommand("""
             SELECT COUNT(1)
             FROM dbo.MD_Location
-            WHERE COALESCE(NULLIF(ZoneCode, ''), PlantCode) = @AreaCode
-              AND COALESCE(NULLIF(LocationType, ''), 'DEFAULT') = @SectionCode
-              AND (@WhCode IS NULL OR PlantCode = @WhCode);
+            WHERE AreaCode = @AreaCode
+              AND COALESCE(NULLIF(ZoneCode, ''), 'DEFAULT') = @SectionCode
+              AND (@WhCode IS NULL OR WhCode = @WhCode);
             """, conn);
         check.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = areaCode.Trim();
         check.Parameters.Add("@SectionCode", SqlDbType.VarChar, 20).Value = sectionCode.Trim();
@@ -601,8 +601,8 @@ public sealed class WarehouseRepository
         using var check = new SqlCommand("""
             SELECT COUNT(1)
             FROM dbo.MD_Location
-            WHERE COALESCE(NULLIF(ZoneCode, ''), PlantCode) = @AreaCode
-              AND (@WhCode IS NULL OR PlantCode = @WhCode);
+            WHERE AreaCode = @AreaCode
+              AND (@WhCode IS NULL OR WhCode = @WhCode);
             """, conn);
         check.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = areaCode.Trim();
         check.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(whCode) ?? DBNull.Value;
@@ -653,10 +653,10 @@ public sealed class WarehouseRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_Location
-                (LocationID, LocationName, ZoneCode, Aisle, Bay, Slot,
+                (LocationID, LocationName, WhCode, AreaCode, ZoneCode, Aisle, Bay, Slot,
                  LocationType, PlantCode, ActiveFlag, CreatedBy, CreatedTS)
             VALUES
-                (@LocationNo, @LocationName, @ZoneCode, @RackX, @RackY, @RackZ,
+                (@LocationNo, @LocationName, @WhCode, @AreaCode, @ZoneCode, @RackX, @RackY, @RackZ,
                  @LocationType, @PlantCode, @UseYn, 'web', SYSDATETIME());
             """, conn);
         AddLocationParameters(cmd, locationNo, locationName, whCode,
@@ -682,6 +682,8 @@ public sealed class WarehouseRepository
         using var cmd = new SqlCommand("""
             UPDATE dbo.MD_Location
             SET LocationName = @LocationName,
+                WhCode = @WhCode,
+                AreaCode = @AreaCode,
                 ZoneCode = @ZoneCode,
                 Aisle = @RackX,
                 Bay = @RackY,
@@ -1248,10 +1250,10 @@ public sealed class WarehouseRepository
             SELECT
                 L.LocationID AS LOCATION_NO,
                 L.LocationName AS LOCATION_NM,
-                COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) AS AREACD,
-                COALESCE(NULLIF(A.AreaName, ''), COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode)) AS AREANM,
+                L.AreaCode AS AREACD,
+                COALESCE(NULLIF(A.AreaName, ''), L.AreaCode) AS AREANM,
                 L.ZoneCode AS ZONECD,
-                L.LocationType AS ZONENM,
+                L.ZoneCode AS ZONENM,
                 L.Aisle AS RACK_X,
                 L.Bay AS RACK_Y,
                 L.Slot AS RACK_Z,
@@ -1265,20 +1267,20 @@ public sealed class WarehouseRepository
                 END AS STATUS
             FROM dbo.MD_Location L
             LEFT JOIN dbo.WH_AreaMaster A
-                   ON A.AreaCode = COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode)
-                  AND COALESCE(A.WhCode, L.PlantCode) = L.PlantCode
+                   ON A.AreaCode = L.AreaCode
+                  AND COALESCE(A.WhCode, L.WhCode) = L.WhCode
             LEFT JOIN dbo.WH_Inventory S
                    ON S.LocationID = L.LocationID
                   AND COALESCE(S.OnHandQty, 0) <> 0
                   AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
             WHERE COALESCE(L.ActiveFlag, 1) = 1
-              AND (@WhCode IS NULL OR L.PlantCode = @WhCode)
-              AND (@AreaCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = @AreaCode)
-              AND (@ZoneCode IS NULL OR COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = @ZoneCode)
+              AND (@WhCode IS NULL OR L.WhCode = @WhCode)
+              AND (@AreaCode IS NULL OR L.AreaCode = @AreaCode)
+              AND (@ZoneCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), 'DEFAULT') = @ZoneCode)
               AND (@RackZ IS NULL OR L.Slot = @RackZ)
-            GROUP BY L.LocationID, L.LocationName, L.PlantCode, L.ZoneCode, A.AreaName,
+            GROUP BY L.LocationID, L.LocationName, L.WhCode, L.AreaCode, L.ZoneCode, A.AreaName,
                      L.LocationType, L.Aisle, L.Bay, L.Slot
-            ORDER BY COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode), L.ZoneCode,
+            ORDER BY L.AreaCode, L.ZoneCode,
                      TRY_CONVERT(int, L.Aisle), L.Aisle,
                      TRY_CONVERT(int, L.Bay), L.Bay,
                      TRY_CONVERT(int, L.Slot), L.Slot,
@@ -1319,11 +1321,11 @@ public sealed class WarehouseRepository
                 COALESCE(NULLIF(I.ItemName, N''), S.ItemNo) AS PART_NAME,
                 I.DefaultUOM AS UOM,
                 S.LocationID AS LOCATION_NO,
-                L.PlantCode AS WHCD,
-                COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) AS AREACD,
-                COALESCE(NULLIF(A.AreaName, ''), COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode)) AS AREANM,
-                COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') AS ZONECD,
-                COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') AS ZONENM,
+                L.WhCode AS WHCD,
+                L.AreaCode AS AREACD,
+                COALESCE(NULLIF(A.AreaName, ''), L.AreaCode) AS AREANM,
+                COALESCE(NULLIF(L.ZoneCode, ''), 'DEFAULT') AS ZONECD,
+                COALESCE(NULLIF(L.ZoneCode, ''), 'DEFAULT') AS ZONENM,
                 L.Aisle AS RACK_X,
                 L.Bay AS RACK_Y,
                 L.Slot AS RACK_Z,
@@ -1332,25 +1334,23 @@ public sealed class WarehouseRepository
             INNER JOIN dbo.MD_Location L ON L.LocationID = S.LocationID
             LEFT JOIN dbo.MD_Item I ON I.ItemNo = S.ItemNo
             LEFT JOIN dbo.WH_AreaMaster A
-                   ON A.AreaCode = COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode)
-                  AND COALESCE(A.WhCode, L.PlantCode) = L.PlantCode
+                   ON A.AreaCode = L.AreaCode
+                  AND COALESCE(A.WhCode, L.WhCode) = L.WhCode
             WHERE COALESCE(S.OnHandQty, 0) <> 0
               AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
               AND COALESCE(L.ActiveFlag, 1) = 1
-              AND (@WhCode IS NULL OR L.PlantCode = @WhCode)
-              AND (@AreaCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = @AreaCode)
-              AND (@ZoneCode IS NULL OR COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = @ZoneCode)
+              AND (@WhCode IS NULL OR L.WhCode = @WhCode)
+              AND (@AreaCode IS NULL OR L.AreaCode = @AreaCode)
+              AND (@ZoneCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), 'DEFAULT') = @ZoneCode)
               AND (@RackZ IS NULL OR L.Slot = @RackZ)
               AND (@Search IS NULL
                    OR S.ItemNo LIKE @Search
                    OR I.ItemName LIKE @Search
                    OR S.LocationID LIKE @Search)
             GROUP BY S.ItemNo, I.ItemName, I.DefaultUOM, S.LocationID,
-                     L.PlantCode, L.ZoneCode, A.AreaName, L.LocationType,
+                     L.WhCode, L.AreaCode, L.ZoneCode, A.AreaName,
                      L.Aisle, L.Bay, L.Slot
-            ORDER BY S.ItemNo, L.PlantCode,
-                     COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode),
-                     COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT'),
+            ORDER BY S.ItemNo, L.WhCode, L.AreaCode, L.ZoneCode,
                      TRY_CONVERT(int, L.Slot), L.Slot,
                      TRY_CONVERT(int, L.Bay), L.Bay,
                      TRY_CONVERT(int, L.Aisle), L.Aisle,
@@ -1479,9 +1479,9 @@ public sealed class WarehouseRepository
             INNER JOIN dbo.MD_Location L
                     ON M.AREACD = CONCAT(N'LOC|', L.LocationID)
             WHERE COALESCE(L.ActiveFlag, 1) = 1
-              AND (@WhCode IS NULL OR L.PlantCode = @WhCode)
-              AND (@AreaCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = @AreaCode)
-              AND (@ZoneCode IS NULL OR COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = @ZoneCode)
+              AND (@WhCode IS NULL OR L.WhCode = @WhCode)
+              AND (@AreaCode IS NULL OR L.AreaCode = @AreaCode)
+              AND (@ZoneCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), 'DEFAULT') = @ZoneCode)
             ORDER BY M.MODIFIED_TS, M.AREACD;
             """, r => new LocationAreaLayoutRow(
                 GetString(r, "AREACD") ?? "",
@@ -2022,9 +2022,9 @@ public sealed class WarehouseRepository
             MERGE dbo.WH_WarehouseMaster AS tgt
             USING (
                 SELECT DISTINCT
-                    CAST(COALESCE(NULLIF(PlantCode, ''), 'WH') AS varchar(20)) AS WhCode
+                    CAST(WhCode AS varchar(20)) AS WhCode
                 FROM dbo.MD_Location
-                WHERE COALESCE(NULLIF(PlantCode, ''), 'WH') IS NOT NULL
+                WHERE NULLIF(WhCode, '') IS NOT NULL
             ) AS src ON tgt.WhCode = src.WhCode
             WHEN NOT MATCHED THEN INSERT
                 (WhCode, WhName, ActiveFlag, CreatedBy, CreatedTS)
@@ -2068,11 +2068,11 @@ public sealed class WarehouseRepository
                SET WhCode = COALESCE(NULLIF(A.WhCode, ''), X.WhCode, A.AreaCode)
             FROM dbo.WH_AreaMaster A
             OUTER APPLY (
-                SELECT TOP (1) L.PlantCode AS WhCode
+                SELECT TOP (1) L.WhCode
                 FROM dbo.MD_Location L
-                WHERE COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = A.AreaCode
-                  AND NULLIF(L.PlantCode, '') IS NOT NULL
-                ORDER BY L.PlantCode
+                WHERE L.AreaCode = A.AreaCode
+                  AND NULLIF(L.WhCode, '') IS NOT NULL
+                ORDER BY L.WhCode
             ) X
             WHERE NULLIF(A.WhCode, '') IS NULL;
         """, conn))
@@ -2084,10 +2084,10 @@ public sealed class WarehouseRepository
             MERGE dbo.WH_AreaMaster AS tgt
             USING (
                 SELECT DISTINCT
-                    CAST(COALESCE(NULLIF(PlantCode, ''), 'WH') AS varchar(20)) AS WhCode,
-                    CAST(COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') AS varchar(20)) AS AreaCode
+                    CAST(WhCode AS varchar(20)) AS WhCode,
+                    CAST(AreaCode AS varchar(20)) AS AreaCode
                 FROM dbo.MD_Location
-                WHERE COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') IS NOT NULL
+                WHERE NULLIF(AreaCode, '') IS NOT NULL
             ) AS src ON tgt.AreaCode = src.AreaCode
             WHEN NOT MATCHED THEN INSERT
                 (WhCode, AreaCode, AreaName, ActiveFlag, CreatedBy, CreatedTS)
@@ -2137,12 +2137,12 @@ public sealed class WarehouseRepository
             LEFT JOIN dbo.WH_AreaMaster A
                    ON A.AreaCode = S.AreaCode
             OUTER APPLY (
-                SELECT TOP (1) L.PlantCode AS WhCode
+                SELECT TOP (1) L.WhCode
                 FROM dbo.MD_Location L
-                WHERE COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = S.AreaCode
-                  AND COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = S.SectionCode
-                  AND NULLIF(L.PlantCode, '') IS NOT NULL
-                ORDER BY L.PlantCode
+                WHERE L.AreaCode = S.AreaCode
+                  AND COALESCE(NULLIF(L.ZoneCode, ''), 'DEFAULT') = S.SectionCode
+                  AND NULLIF(L.WhCode, '') IS NOT NULL
+                ORDER BY L.WhCode
             ) X
             WHERE NULLIF(S.WhCode, '') IS NULL;
         """, conn))
@@ -2154,11 +2154,11 @@ public sealed class WarehouseRepository
             MERGE dbo.WH_AreaSection AS tgt
             USING (
                 SELECT DISTINCT
-                    CAST(COALESCE(NULLIF(PlantCode, ''), 'WH') AS varchar(20)) AS WhCode,
-                    CAST(COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') AS varchar(20)) AS AreaCode,
-                    CAST(COALESCE(NULLIF(LocationType, ''), 'DEFAULT') AS varchar(20)) AS SectionCode
+                    CAST(WhCode AS varchar(20)) AS WhCode,
+                    CAST(AreaCode AS varchar(20)) AS AreaCode,
+                    CAST(COALESCE(NULLIF(ZoneCode, ''), 'DEFAULT') AS varchar(20)) AS SectionCode
                 FROM dbo.MD_Location
-                WHERE COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') IS NOT NULL
+                WHERE NULLIF(AreaCode, '') IS NOT NULL
             ) AS src
                ON tgt.AreaCode = src.AreaCode
               AND tgt.SectionCode = src.SectionCode
@@ -2188,8 +2188,10 @@ public sealed class WarehouseRepository
     {
         cmd.Parameters.Add("@LocationNo", SqlDbType.VarChar, 20).Value = Truncate(locationNo, 20);
         AddNullable(cmd, "@LocationName", SqlDbType.NVarChar, 120, locationName);
+        AddNullable(cmd, "@WhCode", SqlDbType.VarChar, 20, whCode);
+        AddNullable(cmd, "@AreaCode", SqlDbType.VarChar, 20, areaCode);
         AddNullable(cmd, "@PlantCode", SqlDbType.VarChar, 20, whCode);
-        AddNullable(cmd, "@ZoneCode", SqlDbType.VarChar, 10, FirstNonBlank(areaCode, zoneCode));
+        AddNullable(cmd, "@ZoneCode", SqlDbType.VarChar, 20, zoneCode);
         AddNullable(cmd, "@LocationType", SqlDbType.VarChar, 20, FirstNonBlank(zoneCode, zoneName, areaName));
         AddNullable(cmd, "@RackX", SqlDbType.VarChar, 5, rackX);
         AddNullable(cmd, "@RackY", SqlDbType.VarChar, 5, rackY);

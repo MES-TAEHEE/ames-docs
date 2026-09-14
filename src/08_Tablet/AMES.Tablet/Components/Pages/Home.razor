@@ -466,10 +466,18 @@
 
     private static bool TryMapPosition(TabletInventoryService.InventoryRow row, out string rowCode, out int column)
     {
-        rowCode = row.RackX?.Trim().ToUpperInvariant() ?? "";
+        var rackX = row.RackX?.Trim().ToUpperInvariant() ?? "";
+        var rackY = row.RackY?.Trim().ToUpperInvariant() ?? "";
+        rowCode = rackX;
         column = 0;
-        return FloorRowCodes.Contains(rowCode, StringComparer.OrdinalIgnoreCase)
-            && int.TryParse(row.RackY, out column)
+        if (FloorRowCodes.Contains(rackX, StringComparer.OrdinalIgnoreCase)
+            && int.TryParse(rackY, out column)
+            && column is >= 1 and <= FloorColumnCount)
+            return true;
+
+        rowCode = rackY;
+        return FloorRowCodes.Contains(rackY, StringComparer.OrdinalIgnoreCase)
+            && int.TryParse(rackX, out column)
             && column is >= 1 and <= FloorColumnCount;
     }
 

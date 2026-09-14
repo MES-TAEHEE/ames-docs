@@ -1,4 +1,5 @@
 @page "/wh/03"
+@page "/sp/03"
 @page "/fg/adjust"
 @inject PdaApi Api
 @inject AuthState Auth
@@ -8,7 +9,7 @@
 
 <div class="@($"pda-shell wh wh03-shell inventory-browser-shell {(IsFinishedGoodsAdjust ? "fg fg-adjust-shell" : "")} {(IsSearchTab ? "wh03-map-only" : IsAdjustTab ? "wh03-adjust-only" : "")}")">
     <div class="pda-tbar">
-        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo(IsFinishedGoodsAdjust ? "/fg" : "/wh"))' Text="&lt;" />
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo(ModuleHome))' Text="&lt;" />
         <div class="wh03-tbar-title">
             <span class="pda-tbar-brand">@PageTitle</span>
         </div>
@@ -17,7 +18,7 @@
             <div class="wh03-tbar-actions">
                 @if (IsPptTestMode)
                 {
-                    <PptScenarioPanel @key='@(IsFinishedGoodsAdjust ? "fg-adjust" : IsAdjustTab ? "wh-adjust" : "wh-inventory")' Title="@(IsAdjustTab ? "ADJUST" : "INVENTORY")" Steps="ActivePptSteps" ModeLabel="@ScenarioModeLabel" Busy="@(InventoryBusy || _isLoading)" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+                    <PptScenarioPanel @key='@(IsSpareParts ? "sp-inventory" : IsFinishedGoodsAdjust ? "fg-adjust" : IsAdjustTab ? "wh-adjust" : "wh-inventory")' Title="@(IsSpareParts ? "SP INVENTORY" : IsAdjustTab ? "ADJUST" : "INVENTORY")" Steps="ActivePptSteps" ModeLabel="@ScenarioModeLabel" Busy="@(InventoryBusy || _isLoading)" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
                 }
                 @if (IsTestMode)
                 {
@@ -241,7 +242,7 @@
                 <div class="wh03-work-head">
                     <div>
                         <span>@_workTab.ToUpperInvariant()</span>
-                        <strong>@(IsAdjustTab ? IsFinishedGoodsAdjust ? "Finished Goods Quantity Adjustment" : "Warehouse Quantity Adjustment" : "Inventory Location Change")</strong>
+                        <strong>@(IsAdjustTab ? IsFinishedGoodsAdjust ? "Finished Goods Quantity Adjustment" : IsSpareParts ? "Spare Parts Quantity Adjustment" : "Warehouse Quantity Adjustment" : "Inventory Location Change")</strong>
                     </div>
                     @if (!IsAdjustTab)
                     {
@@ -895,7 +896,10 @@
     private List<PdaApi.CodeOption> AdjustReasons = [];
 
     private string PageTitle => IsAdjustTab ? "Adjust" : "Inventory";
-    private bool IsTestMode => !IsFinishedGoodsAdjust
+    private bool IsSpareParts => Nav.ToAbsoluteUri(Nav.Uri).AbsolutePath.StartsWith("/sp/", StringComparison.OrdinalIgnoreCase);
+    private string ModuleHome => IsFinishedGoodsAdjust ? "/fg" : IsSpareParts ? "/sp" : "/wh";
+    private string? AreaScope => IsSpareParts ? PdaApi.SparePartsAreaCode : null;
+    private bool IsTestMode => !IsFinishedGoodsAdjust && !IsSpareParts
         && PdaScenarioUsers.IsDetailed(Auth.Session?.EmployeeNo);
     private InventoryTestScenario CurrentTestScenario => InventoryTestScenarios[_testScenarioIndex];
     private AdjustTestScenario CurrentAdjustTestScenario => AdjustTestScenarios[_adjustTestScenarioIndex];
@@ -1301,7 +1305,7 @@
         if (IsAdjustTab && Auth.Session?.IsAdmin != true)
         {
             _workTab = "Search";
-            Nav.NavigateTo(IsFinishedGoodsAdjust ? "/fg" : "/wh", replace: true);
+            Nav.NavigateTo(ModuleHome, replace: true);
             return;
         }
         try
@@ -1585,7 +1589,7 @@
                 return;
             }
 
-            _rows = await Api.WhInventoryAsync(_q, DateFrom, DateTo, ShouldSimulateInventoryApiFailure);
+            _rows = await Api.WhInventoryAsync(_q, DateFrom, DateTo, ShouldSimulateInventoryApiFailure, AreaScope);
             _lastSyncAt = DateTime.Now;
             if (!StockStatuses.Contains(_statusFilter, StringComparer.OrdinalIgnoreCase))
                 _statusFilter = "ALL";
@@ -1634,7 +1638,7 @@
         _isLoading = true;
         try
         {
-            _lotStatuses = await Api.WhLotStatusesAsync(_q);
+            _lotStatuses = await Api.WhLotStatusesAsync(_q, AreaScope);
             _lastSyncAt = DateTime.Now;
         }
         finally
@@ -1677,7 +1681,7 @@
         try
         {
             if (_inventoryLocations.Count == 0)
-                _inventoryLocations = await Api.WhLocationsAsync();
+                _inventoryLocations = await Api.WhLocationsAsync(AreaScope);
 
             var lookup = await Api.WhInventoryScanAsync(scanText);
             var location = _inventoryLocations.FirstOrDefault(row =>
@@ -1688,7 +1692,7 @@
                 var locationNo = string.IsNullOrWhiteSpace(lookup?.SearchText) ? scanText : lookup.SearchText.Trim();
                 location = _inventoryLocations.FirstOrDefault(row =>
                     string.Equals(row.LocationId, locationNo, StringComparison.OrdinalIgnoreCase));
-                location ??= await Api.WhScanLocationAsync(locationNo);
+                location ??= await Api.WhScanLocationAsync(locationNo, AreaScope);
             }
 
             if (location is not null)
@@ -1704,12 +1708,12 @@
             }
 
             var searchText = string.IsNullOrWhiteSpace(lookup?.SearchText) ? scanText : lookup.SearchText.Trim();
-            var inventoryRows = await Api.WhInventoryAsync(searchText);
+            var inventoryRows = await Api.WhInventoryAsync(searchText, areaCode: AreaScope);
             var locationIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var row in inventoryRows)
             {
-                var itemLocations = await Api.WhInventoryLocationsAsync(row.ItemNo);
+                var itemLocations = await Api.WhInventoryLocationsAsync(row.ItemNo, areaCode: AreaScope);
                 foreach (var itemLocation in itemLocations.Where(itemLocation => itemLocation.Qty > 0))
                     locationIds.Add(itemLocation.LocationId);
 
@@ -1740,7 +1744,7 @@
 
         try
         {
-            _inventoryLocations = await Api.WhLocationsAsync();
+            _inventoryLocations = await Api.WhLocationsAsync(AreaScope);
             _locationMsg = _inventoryLocations.Count == 0 ? "No locations found." : "";
         }
         catch (Exception ex)
@@ -1763,7 +1767,7 @@
 
         try
         {
-            var location = await Api.WhScanLocationAsync(locationNo.Trim())
+            var location = await Api.WhScanLocationAsync(locationNo.Trim(), AreaScope)
                 ?? _inventoryLocations.FirstOrDefault(row =>
                     string.Equals(row.LocationId, locationNo.Trim(), StringComparison.OrdinalIgnoreCase));
             if (location is null)
@@ -1821,7 +1825,7 @@
         _selectedBrowsePart = part;
         try
         {
-            _browsePartLots = (await Api.WhLotStatusesAsync(part.PartNo))
+            _browsePartLots = (await Api.WhLotStatusesAsync(part.PartNo, AreaScope))
                 .Where(row => row.RemainingQty > 0
                     && string.Equals(row.ItemNo, part.PartNo, StringComparison.OrdinalIgnoreCase)
                     && string.Equals(row.LocationId, part.Location, StringComparison.OrdinalIgnoreCase))
@@ -1880,7 +1884,7 @@
         {
             if (IsAdjustTab)
             {
-                _adjustLocation = await Api.ScanAdjustmentLocationAsync(_invBarcode, IsFinishedGoodsAdjust);
+                _adjustLocation = await Api.ScanAdjustmentLocationAsync(_invBarcode, IsFinishedGoodsAdjust, AreaScope);
                 if (_adjustLocation is not null)
                 {
                     _invMsg = _adjustLocation.Items.Count == 0 ? "No adjustable stock at this location." : "Select stock from the location list.";
@@ -1902,7 +1906,7 @@
             _invBarcode = row.Barcode;
 
             if (!IsAdjustTab && InventoryAlreadyReceived && !string.IsNullOrWhiteSpace(row.ReceivedLocation))
-                _inventoryCurrentLocation = await Api.WhScanLocationAsync(row.ReceivedLocation);
+                _inventoryCurrentLocation = await Api.WhScanLocationAsync(row.ReceivedLocation, AreaScope);
 
             if (IsAdjustTab && InventoryAlreadyReceived && InventoryBeforeQty <= 0)
             {
@@ -1940,7 +1944,7 @@
 
         var adjustRow = IsFinishedGoodsAdjust
             ? await Api.FgScanAdjustAsync(barcode)
-            : await Api.WhScanAdjustAsync(barcode);
+            : await Api.WhScanAdjustAsync(barcode, AreaScope);
         ApplyDetectedMode(adjustRow);
         return adjustRow;
     }
@@ -1974,7 +1978,7 @@
 
         try
         {
-            var location = await Api.WhScanLocationAsync(locationNo);
+            var location = await Api.WhScanLocationAsync(locationNo, AreaScope);
             if (location is null)
             {
                 _invTargetLocation = null;
@@ -2130,7 +2134,7 @@
             }
 
             _invScan = result.Row ?? await Api.WhScanInboundAsync(_invMode, _invScan.Barcode);
-            _inventoryCurrentLocation = await Api.WhScanLocationAsync(toLocation);
+            _inventoryCurrentLocation = await Api.WhScanLocationAsync(toLocation, AreaScope);
             _invTargetLocation = null;
             _invLocationNo = "";
             _invMsg = $"Location changed. {fromLocation} -> {toLocation}";
@@ -2162,7 +2166,7 @@
 
         try
         {
-            _locationRows = await Api.WhInventoryLocationsAsync(row.ItemNo, DateFrom, DateTo);
+            _locationRows = await Api.WhInventoryLocationsAsync(row.ItemNo, DateFrom, DateTo, AreaScope);
         }
         finally
         {

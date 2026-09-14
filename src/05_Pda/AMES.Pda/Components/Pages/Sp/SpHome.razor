@@ -1,0 +1,45 @@
+@page "/sp"
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+<div class="pda-shell wh wh-home-shell">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='@(() => Nav.NavigateTo("/home"))'>&lt;</button>
+        <div class="wh-home-title">
+            <span class="pda-tbar-brand">SPARE PARTS</span>
+            <span>@Auth.Session?.EmployeeNo</span>
+        </div>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-tile-grid wh-home-grid">
+            <button class="pda-tile sm wh-home-tile inbound" @onclick='@(() => Nav.NavigateTo("/sp/02"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="qr_code_scanner" /></span>
+                <div class="wh-home-tile-copy"><div class="pda-tile-cap">Inbound</div></div>
+                <span class="wh-home-tile-go">&gt;</span>
+            </button>
+            <button class="pda-tile sm wh-home-tile release" @onclick='@(() => Nav.NavigateTo("/sp/07"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="outbox" /></span>
+                <div class="wh-home-tile-copy"><div class="pda-tile-cap">Release</div></div>
+                <span class="wh-home-tile-go">&gt;</span>
+            </button>
+            <button class="pda-tile sm wh-home-tile inventory" @onclick='@(() => Nav.NavigateTo("/sp/03"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="inventory_2" /></span>
+                <div class="wh-home-tile-copy"><div class="pda-tile-cap">Inventory</div></div>
+                <span class="wh-home-tile-go">&gt;</span>
+            </button>
+            @if (Auth.Session?.IsAdmin == true)
+            {
+                <button class="pda-tile sm wh-home-tile adjust" @onclick='@(() => Nav.NavigateTo("/sp/03?tab=adjust"))'>
+                    <span class="wh-home-tile-ic"><RadzenIcon Icon="tune" /></span>
+                    <div class="wh-home-tile-copy"><div class="pda-tile-cap">Adjust</div></div>
+                    <span class="wh-home-tile-go">&gt;</span>
+                </button>
+            }
+            <button class="pda-tile sm wh-home-tile transactions" @onclick='@(() => Nav.NavigateTo("/sp/08"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="history" /></span>
+                <div class="wh-home-tile-copy"><div class="pda-tile-cap">Transactions</div></div>
+                <span class="wh-home-tile-go">&gt;</span>
+            </button>
+        </div>
+    </div>
+</div>
