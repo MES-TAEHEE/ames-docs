@@ -28,4 +28,16 @@ if (singleLocations.Any(location => !seed.Contains($"('{location}'")))
 if (rackZones.Length * 5 + singleLocations.Length != 108)
     throw new Exception("Expected 108 spare-parts locations.");
 
-Console.WriteLine("PASS: 20 five-level racks + 8 single-level locations = 108 locations.");
+if (!seed.Contains("'MNT_ZONE'") || !seed.Contains("'MNT_SLOT'"))
+    throw new Exception("MNT_ZONE or MNT_SLOT common-code group is missing.");
+if (rackZones.Any(zone => !seed.Contains($"('MNT_ZONE', '{zone}'")))
+    throw new Exception("A spare-parts zone is not assigned to MNT_ZONE.");
+if (Enumerable.Range(1, 5).Any(level =>
+        !seed.Contains($"('MNT_SLOT', '{level:00}'")))
+    throw new Exception("MNT_SLOT must contain rack levels 01 through 05.");
+if (seed.Contains("('WH_ZONE', 'SP_"))
+    throw new Exception("An SP zone is still assigned to WH_ZONE.");
+if (!seed.Contains("WHERE GroupCode = 'MNT_ZONE'"))
+    throw new Exception("WH_AreaSection is not sourced from MNT_ZONE.");
+
+Console.WriteLine("PASS: MNT_ZONE 28 zones + MNT_SLOT 5 levels + 108 physical locations.");

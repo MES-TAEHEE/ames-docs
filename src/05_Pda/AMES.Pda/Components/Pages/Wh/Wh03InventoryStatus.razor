@@ -58,7 +58,7 @@
                             <div><span>PART</span><strong>@Text(_selectedBrowsePart.PartNo)</strong><em>@Text(_selectedBrowsePart.PartName)</em></div>
                             <strong>@Qty(_selectedBrowsePart.Qty, _selectedBrowsePart.Unit)</strong>
                         </div>
-                        <div class="inventory-table-head inventory-lot-grid"><span>LOT</span><span>QTY</span><span>LOCATION</span></div>
+                        <div class="inventory-table-head inventory-lot-grid"><span>@(IsSpareParts ? "EOS SP NO" : "LOT")</span><span>QTY</span><span>LOCATION</span></div>
                         <div class="inventory-table-list">
                             @foreach (var lot in _browsePartLots)
                             {
@@ -74,7 +74,7 @@
                     <RadzenCard class="@($"wh03-search-card wh03-scan-card {ScanPanelClass}")">
                         <div class="pda-fld">
                             <label>INVENTORY SCAN</label>
-                            <RadzenTextBox class="pda-input wh03-search-input pda-scan-input" Value="@_q" @oninput="OnScanInput" @onkeydown="OnKey" Placeholder="Scan Lot, Part, or Location No" />
+                            <RadzenTextBox class="pda-input wh03-search-input pda-scan-input" Value="@_q" @oninput="OnScanInput" @onkeydown="OnKey" Placeholder="@(IsSpareParts ? "Scan EOS SP No, Part, or Location" : "Scan Lot, Part, or Location No")" />
                         </div>
                         @if (ShowDeveloperScanButtons)
                         {
@@ -110,7 +110,7 @@
                             <div><span>PART</span><strong>@Text(_selectedLocationPart.PartNo)</strong><em>@Text(_selectedLocationPart.PartName)</em></div>
                             <strong>@Qty(_selectedLocationPart.Qty, _selectedLocationPart.Unit)</strong>
                         </div>
-                        <div class="inventory-table-head inventory-lot-grid"><span>LOT</span><span>QTY</span><span>LOCATION</span></div>
+                        <div class="inventory-table-head inventory-lot-grid"><span>@(IsSpareParts ? "EOS SP NO" : "LOT")</span><span>QTY</span><span>LOCATION</span></div>
                         <div class="inventory-table-list">
                             @foreach (var lot in _selectedLocationLots)
                             {
@@ -151,7 +151,7 @@
                                        Value="@_locationQuery"
                                        @oninput="OnLocationQueryInput"
                                        @onkeydown="OnLocationQueryKey"
-                                       Placeholder="Scan Lot, Part, or Location No" />
+                                       Placeholder="@(IsSpareParts ? "Scan EOS SP No, Part, or Location" : "Scan Lot, Part, or Location No")" />
                     </div>
                     @if (ShowDeveloperScanButtons)
                     {
@@ -190,12 +190,12 @@
             {
                 <RadzenCard class="@($"wh03-search-card wh03-scan-card {ScanPanelClass}")">
                     <div class="pda-fld">
-                        <label>LOT / PART SCAN</label>
+                        <label>@(IsSpareParts ? "EOS SP NO / PART SCAN" : "LOT / PART SCAN")</label>
                         <RadzenTextBox class="pda-input wh03-search-input pda-scan-input"
                                        Value="@_q"
                                        @oninput="OnScanInput"
                                        @onkeydown="OnKey"
-                                       Placeholder="Scan LOT or Part No" />
+                                       Placeholder="@(IsSpareParts ? "Scan EOS SP No or Part No" : "Scan LOT or Part No")" />
                     </div>
                     @if (ShowDeveloperScanButtons)
                     {
@@ -205,11 +205,11 @@
 
                 @if (_isLoading)
                 {
-                    <div class="pda-empty">Loading LOT status...</div>
+                    <div class="pda-empty">@(IsSpareParts ? "Loading spare parts..." : "Loading LOT status...")</div>
                 }
                 else if (_lotStatuses.Count == 0)
                 {
-                    <div class="pda-empty">No LOT matches.</div>
+                    <div class="pda-empty">@(IsSpareParts ? "No spare parts match." : "No LOT matches.")</div>
                 }
                 else
                 {
@@ -246,11 +246,11 @@
                     </div>
                     @if (!IsAdjustTab)
                     {
-                        <em>Scan LOT No first</em>
+                        <em>@(IsSpareParts ? "Scan EOS SP No first" : "Scan LOT No first")</em>
                     }
                 </div>
 
-                @if (!IsAdjustTab)
+                @if (!IsAdjustTab && !IsSpareParts)
                 {
                     <div class="wh03-mode-row">
                         <RadzenButton class="@InvModeClass("LOCAL")" Click='@(() => SetInventoryMode("LOCAL"))' Text="LOCAL" />
@@ -260,7 +260,7 @@
 
                 <div class="@($"wh03-work-scan {ScanPanelClass}")">
                     <div class="pda-fld">
-                        <label>@(IsAdjustTab ? "LOCATION / LOT SCAN" : "LOT NO SCAN")</label>
+                        <label>@(IsSpareParts ? IsAdjustTab ? "LOCATION / EOS SP NO" : "EOS SP NO" : IsAdjustTab ? "LOCATION / LOT SCAN" : "LOT NO SCAN")</label>
                         <RadzenTextBox class="pda-input wh03-work-input pda-scan-input"
                                        Value="@_invBarcode"
                                        @oninput="OnInventoryBarcodeInput"
@@ -310,7 +310,7 @@
                 <RadzenCard class="@($"wh03-work-card wh03-lot-card {InventoryLotCardClass}")">
                     <div class="wh03-lot-top">
                         <div>
-                            <span>LOT NO</span>
+                            <span>@(IsSpareParts ? "EOS SP NO" : "LOT NO")</span>
                             <strong>@Text(_invScan.LotNo)</strong>
                         </div>
                         <RadzenBadge class="@($"wh03-status-badge {InventoryStatusClass}")" Text="@InventoryStatusLabel" />
@@ -932,8 +932,8 @@
     private string? InventoryAdjustBlockedReason =>
         Auth.Session?.IsAdmin != true ? "Administrator access is required for quantity adjustment." :
         InventoryBusy ? "An operation is in progress. Please wait." :
-        _invScan is null ? "Scan a location and select stock, or scan a LOT barcode first." :
-        !InventoryAlreadyReceived ? "This LOT is not available for adjustment." :
+        _invScan is null ? IsSpareParts ? "Scan a location and select stock, or scan an EOS SP No first." : "Scan a location and select stock, or scan a LOT barcode first." :
+        !InventoryAlreadyReceived ? IsSpareParts ? "This spare part is not available for adjustment." : "This LOT is not available for adjustment." :
         AdjustReasons.Count == 0 ? "Reason codes are unavailable. Reopen this screen to load them." :
         !AdjustReasons.Any(x => string.Equals(x.CodeValue, _invAdjustReason, StringComparison.OrdinalIgnoreCase)) ? "Select a reason code before saving." :
         _adjustQuantityInvalid || IsAdjustQtyBelowStock || InventoryAfterQty != decimal.Truncate(InventoryAfterQty) || InventoryAfterQty > 999999999 ? "Enter a whole number from 0 to 999999999." :
@@ -947,7 +947,9 @@
     private decimal InventoryAfterQty => InventoryBeforeQty + _invAdjustDelta;
     private string AdjustQuantityLabel => $"{InventoryAfterQty:#,##0.###} {Unit(_invScan?.Unit)} ({_invAdjustDelta:+#,##0.###;-#,##0.###;0})";
     private bool IsAdjustQtyBelowStock => _invAdjustDelta < -InventoryBeforeQty;
-    private string InventoryBarcodePlaceholder => IsAdjustTab
+    private string InventoryBarcodePlaceholder => IsSpareParts
+        ? IsAdjustTab ? "Scan location or EOS SP No" : "Scan EOS SP No"
+        : IsAdjustTab
         ? "Scan location or lot barcode"
         : _invMode == "CKD" ? "Scan CKD lot no" : "Scan local lot no";
     private string InventoryLotCardClass => InventoryAlreadyReceived ? "ready" : "blocked";
@@ -1623,7 +1625,7 @@
         var scanText = _q.Trim();
         if (!string.IsNullOrWhiteSpace(scanText))
         {
-            var lookup = await Api.WhInventoryScanAsync(scanText);
+            var lookup = await Api.WhInventoryScanAsync(scanText, AreaScope);
             if (lookup is not null && !string.IsNullOrWhiteSpace(lookup.SearchText))
                 _q = lookup.SearchText.Trim();
         }
@@ -1683,7 +1685,7 @@
             if (_inventoryLocations.Count == 0)
                 _inventoryLocations = await Api.WhLocationsAsync(AreaScope);
 
-            var lookup = await Api.WhInventoryScanAsync(scanText);
+            var lookup = await Api.WhInventoryScanAsync(scanText, AreaScope);
             var location = _inventoryLocations.FirstOrDefault(row =>
                 string.Equals(row.LocationId, scanText, StringComparison.OrdinalIgnoreCase));
             if (location is null
@@ -1779,7 +1781,7 @@
             }
 
             _selectedInventoryLocation = location;
-            _locationItems = await Api.WhLocationMapItemsAsync(location.LocationId);
+            _locationItems = await Api.WhLocationMapItemsAsync(location.LocationId, areaCode: AreaScope);
             _locationMsg = _locationItems.Count == 0
                 ? "No inventory exists in this location."
                 : "";
@@ -1872,7 +1874,7 @@
 
         _isInventoryScanning = true;
         _adjustLocation = null;
-        _invMsg = "Scanning Lot No...";
+        _invMsg = IsSpareParts ? "Scanning EOS SP No..." : "Scanning Lot No...";
         _invCls = "dim";
         _invScan = null;
         _inventoryCurrentLocation = null;
@@ -1895,9 +1897,9 @@
             var row = await ScanInventoryLotByModeAsync(_invBarcode.Trim());
             if (row is null)
             {
-                _invMsg = IsAdjustTab
-                    ? "The specified Lot No could not be found."
-                    : "LOT No was not found in the PO list.";
+                _invMsg = IsSpareParts
+                    ? "The specified EOS SP No could not be found."
+                    : IsAdjustTab ? "The specified Lot No could not be found." : "LOT No was not found in the PO list.";
                 _invCls = "fail";
                 return;
             }
@@ -1910,14 +1912,14 @@
 
             if (IsAdjustTab && InventoryAlreadyReceived && InventoryBeforeQty <= 0)
             {
-                _invMsg = "This LOT has zero stock. Only positive adjustments are allowed.";
+                _invMsg = IsSpareParts ? "This spare part has zero stock. Only positive adjustments are allowed." : "This LOT has zero stock. Only positive adjustments are allowed.";
                 _invCls = "warn";
             }
             else
             {
                 _invMsg = InventoryAlreadyReceived
-                    ? "Inventory LOT loaded."
-                    : "This LOT has not been received yet. Receive it before adjustment or locating.";
+                    ? IsSpareParts ? "Spare part loaded." : "Inventory LOT loaded."
+                    : IsSpareParts ? "This spare part is not available." : "This LOT has not been received yet. Receive it before adjustment or locating.";
                 _invCls = InventoryAlreadyReceived ? "ok" : "warn";
             }
         }
@@ -1935,6 +1937,9 @@
 
     private async Task<PdaApi.InboundScanRow?> ScanInventoryLotByModeAsync(string barcode)
     {
+        if (!IsAdjustTab && IsSpareParts)
+            return await Api.WhScanAdjustAsync(barcode, AreaScope);
+
         if (!IsAdjustTab)
         {
             var row = await Api.WhScanInboundAsync(_invMode, barcode);
@@ -1954,7 +1959,9 @@
         if (row is null || string.IsNullOrWhiteSpace(row.ReceiveType))
             return;
 
-        _invMode = IsFinishedGoodsAdjust
+        _invMode = IsSpareParts
+            ? "SP"
+            : IsFinishedGoodsAdjust
             ? "FG"
             : string.Equals(row.ReceiveType, "CKD", StringComparison.OrdinalIgnoreCase) ? "CKD" : "LOCAL";
     }
@@ -1967,7 +1974,7 @@
         if (IsCurrentInventoryLocation(locationNo))
         {
             _invTargetLocation = null;
-            _invMsg = "This LOT is already in the selected location.";
+            _invMsg = IsSpareParts ? "This spare part is already in the selected location." : "This LOT is already in the selected location.";
             _invCls = "fail";
             return;
         }
@@ -1991,7 +1998,7 @@
             {
                 _invTargetLocation = null;
                 _invLocationNo = location.LocationId;
-                _invMsg = "This LOT is already in the selected location.";
+                _invMsg = IsSpareParts ? "This spare part is already in the selected location." : "This LOT is already in the selected location.";
                 _invCls = "fail";
                 return;
             }
@@ -2038,7 +2045,9 @@
                 SimulateFailure: ShouldSimulateAdjustApiFailure);
             var result = IsFinishedGoodsAdjust
                 ? await Api.FgSaveAdjustQtyAsync(request)
-                : await Api.WhSaveAdjustQtyAsync(request);
+                : IsSpareParts
+                    ? await Api.SpSaveAdjustQtyAsync(request)
+                    : await Api.WhSaveAdjustQtyAsync(request);
 
             if (!result.Success)
             {
@@ -2125,7 +2134,10 @@
 
         try
         {
-            var result = await Api.WhMoveInboundLocationAsync(new PdaApi.InboundReceiveReq(_invMode, _invScan.Barcode, toLocation));
+            var moveRequest = new PdaApi.InboundReceiveReq(_invMode, _invScan.Barcode, toLocation);
+            var result = IsSpareParts
+                ? await Api.SpMoveLocationAsync(moveRequest)
+                : await Api.WhMoveInboundLocationAsync(moveRequest);
             if (!result.Success)
             {
                 _invMsg = result.Message;
@@ -2133,7 +2145,9 @@
                 return;
             }
 
-            _invScan = result.Row ?? await Api.WhScanInboundAsync(_invMode, _invScan.Barcode);
+            _invScan = result.Row ?? (IsSpareParts
+                ? await Api.WhScanAdjustAsync(_invScan.Barcode, AreaScope)
+                : await Api.WhScanInboundAsync(_invMode, _invScan.Barcode));
             _inventoryCurrentLocation = await Api.WhScanLocationAsync(toLocation, AreaScope);
             _invTargetLocation = null;
             _invLocationNo = "";
@@ -2202,6 +2216,11 @@
         if (_invScan is null) yield break;
 
         yield return ("Qty", Qty(_invScan.Qty, _invScan.Unit));
+        if (IsSpareParts)
+        {
+            yield return ("Current Loc", Text(_invScan.ReceivedLocation));
+            yield break;
+        }
         yield return ("PO No", Text(_invScan.PoNo));
         yield return ("PO Seq", _invScan.PoSeq?.ToString() ?? "-");
         yield return ("Vendor", Text(_invScan.VendorName ?? _invScan.VendorId));

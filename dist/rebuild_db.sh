@@ -59,6 +59,7 @@ FILES=(
   reseed_md_item_partmaster.sql       # 품목(파트마스터)
   migrate_inj_agent.sql               # 사출: MD_Mold 4종 + 사출조건 시드
   migrate_mold_master.sql             # 금형: 매핑/색상/라인 시드 + FK 3종
+  migrate_mold_change_plan.sql        # 금형 교체 시간: MD_Mold.MoldChangeMin + PP_LineSchedule.MoldID (순서 무관)
   migrate_routing_step.sql            # 라우팅: MD_RoutingStep 생성 + A/B 시퀀스 시드 (seed_admin_permissions 이후 — Admin 권한 필요)
   migrate_wo_step_line.sql            # WO 공정 단계: PP_WorkOrderRouting CompletedQty·TerminalLock·인덱스 + 백필 (migrate_routing_step 이후)
   migrate_wo_prod_deadline.sql        # WO 생산 마감일 컬럼 + PP_PROD_BUFFER_WORKDAYS 설정 (순서 무관)

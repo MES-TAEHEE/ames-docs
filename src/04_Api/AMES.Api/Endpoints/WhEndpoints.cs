@@ -25,6 +25,7 @@ public static class WhEndpoints
     private const string PdaReleasePickLinesProcedure = "WH_PDA_RELEASE_PICK_LINES";
     private const string PdaReleaseScanLotProcedure = "WH_PDA_RELEASE_SCAN_LOT";
     private const string PdaReleasePickLotProcedure = "WH_PDA_RELEASE_PICK_LOT";
+    private const string PdaSparePartStockMoveProcedure = "SP_PDA_STOCK_MOVE";
 
     // ── DTOs ─────────────────────────────────────────────────────────────
     public sealed record Wh001ScheduleInboundItem(int ScheduleItemId, string PurchaseOrderNo, int? PurchaseOrderLineNo,
@@ -33,7 +34,11 @@ public static class WhEndpoints
         DateTime? PurchaseOrderCreatedDate, string ReceiptStatus);
 
     public sealed record InventoryRow(int InventoryId, string ItemNo, string? ItemName, string LocationId,
-        int? LotId, decimal OnHandQty, decimal ReservedQty, DateTime? ExpiryDate);
+        int? LotId, decimal OnHandQty, decimal ReservedQty, DateTime? ExpiryDate,
+        string? CarCode = null, string? Unit = null, decimal? MinDays = null, decimal? MinQty = null,
+        decimal? MaxDays = null, decimal? MaxQty = null, int LotCount = 0, int LocationCount = 0,
+        string? Status = null, string? StatusName = null, DateTime? LastReceivedDate = null,
+        string? LotNo = null);
     public sealed record LotStatusRow(int LotId, string LotNo, string? ItemNo, string? ItemName,
         string InventoryStatus, decimal RemainingQty, string? LocationId, DateTime? ProductionDate,
         DateTime? LastChangedAt);
@@ -44,6 +49,9 @@ public static class WhEndpoints
         string? PlantCode = null, string? LocationType = null, decimal? Capacity = null, string? Unit = null);
     public sealed record LocationMapItemRow(string LotNo, string? PartNo, string? PartName, decimal Qty, string? Unit,
         string? InventoryStatus, string? WorkDate, string? WorkTime);
+    public sealed record InventoryLocationRow(int RowNo, string ItemNo, string LocationId, string? LocationName,
+        string? WarehouseCode, string? WarehouseName, string? AreaCode, string? AreaName,
+        string? ZoneCode, string? ZoneName, string? RackX, string? RackY, string? RackZ, decimal Qty);
     public sealed record InventoryTestChangeResult(bool Success, string Message, string LotNo, decimal Qty);
 
     public sealed record InboundScanRow(string ReceiveType, string? Yn, string LotNo, string Barcode,
@@ -99,10 +107,16 @@ public static class WhEndpoints
         string? TargetCode = null, string? Note = null);
     public sealed record DirectOutgoingResult(bool Success, string Message, DirectOutgoingLotRow? Row = null);
     public sealed record OutgoingVendorRow(string VendorId, string? VendorName);
-    public sealed record SparePartLotRow(int LotId, string EosSpNo, string? Category,
+    public sealed record SparePartRow(string EosSpNo, string? Category,
         string? ApplicableEquipment, string? PartName, string? PartNo, string? Maker,
         string? Vendor, decimal Qty, string? Unit, string? StorageLocation, string? AreaCode,
-        string InventoryStatus, bool IsReceived, bool IsReleaseEligible);
+        string InventoryStatus, bool IsReleaseEligible, string? ImageDataUrl);
+    public sealed record SparePartMoveReq(string EosSpNo, int Qty = 1,
+        string? LocationId = null, string? Note = null);
+    public sealed record SparePartMoveResult(bool Success, string Message, SparePartRow? Row = null);
+    public sealed record SparePartAdjustmentStock(string Barcode, string LotNo, string PartNo,
+        string? PartName, decimal Qty, string? Unit);
+    public sealed record SparePartAdjustmentLocation(string LocationId, List<SparePartAdjustmentStock> Items);
 
     public sealed record TransactionRow(long TxnId, DateTime TxnTime, string TxnType, string? ItemNo,
         string? LocationId, decimal QtyBefore, decimal Delta, decimal QtyAfter, string? ReasonCode);
@@ -122,6 +136,7 @@ public static class WhEndpoints
     public static void MapWh(this WebApplication app, AmesConnectionFactory factory)
     {
         var master = new MasterDataRepository(factory);
+        var maintenance = new MntRepository(factory);
         var g = app.MapGroup("/api/wh").WithTags("Warehouse");
         g.MapAdjustmentLocation(factory, finishedGoods: false);
 
@@ -259,14 +274,83 @@ public static class WhEndpoints
         g.MapPost("/inbound/receive-lot", ReceiveInboundLot);
         g.MapPost("/inbound/receive-sis", ReceiveInboundLot);
 
-        g.MapGet("/sp/lot", (HttpContext ctx, string lotNo) =>
+        IResult GetSparePart(HttpContext ctx, string eosSpNo)
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
-            var row = QuerySparePartLot(factory, lotNo);
+            var row = QuerySparePart(factory, eosSpNo);
             return row is null
-                ? Results.Problem("Spare parts LOT was not found.", statusCode: StatusCodes.Status404NotFound)
+                ? Results.Problem("EOS SP No was not found.", statusCode: StatusCodes.Status404NotFound)
+                : Results.Ok(row);
+        }
+
+        g.MapGet("/sp/item", GetSparePart);
+
+        IResult MoveSparePart(HttpContext ctx, SparePartMoveReq body, string moveType)
+        {
+            if (ctx.GetSession() is not { } session) return Results.Unauthorized();
+            var result = ExecuteSparePartMove(factory, body, moveType, session.EmployeeNo);
+            return result.Success
+                ? Results.Ok(result)
+                : Results.Problem(result.Message, statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        g.MapPost("/sp/inbound", (HttpContext ctx, SparePartMoveReq body) => MoveSparePart(ctx, body, "IN"));
+        g.MapPost("/sp/release", (HttpContext ctx, SparePartMoveReq body) => MoveSparePart(ctx, body, "OUT"));
+
+        g.MapGet("/sp/inventory", (HttpContext ctx, string? q) =>
+            ctx.GetSession() is null ? Results.Unauthorized() : Results.Ok(QuerySparePartInventory(factory, q)));
+        g.MapGet("/sp/inventory/lots", (HttpContext ctx, string? q) =>
+            ctx.GetSession() is null ? Results.Unauthorized() : Results.Ok(QuerySparePartLotStatuses(factory, q)));
+        g.MapGet("/sp/inventory/locations", (HttpContext ctx, string eosSpNo) =>
+            ctx.GetSession() is null ? Results.Unauthorized() : Results.Ok(QuerySparePartInventoryLocations(factory, eosSpNo)));
+        g.MapGet("/sp/inventory/location/{locationId}/items", (HttpContext ctx, string locationId) =>
+            ctx.GetSession() is null ? Results.Unauthorized() : Results.Ok(QuerySparePartLocationItems(factory, locationId)));
+        g.MapGet("/sp/locations", (HttpContext ctx) =>
+            ctx.GetSession() is null ? Results.Unauthorized() : Results.Ok(QuerySparePartLocations(factory)));
+
+        g.MapGet("/sp/adjust/location", (HttpContext ctx, string barcode) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            return Results.Ok(QuerySparePartAdjustmentLocation(factory, barcode));
+        });
+        g.MapGet("/sp/adjust/scan", (HttpContext ctx, string scanText) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            var row = QuerySparePartInboundRow(factory, scanText);
+            return row is null
+                ? Results.Problem("EOS SP No was not found.", statusCode: StatusCodes.Status404NotFound)
                 : Results.Ok(row);
         });
+        g.MapPost("/sp/adjust/save", (HttpContext ctx, AdjustSaveReq body) =>
+        {
+            if (ctx.GetSession() is not { } session) return Results.Unauthorized();
+            var reasonCode = body.ReasonCode?.Trim() ?? "";
+            if (master.FindActiveCodeItem("INV_ADJUST_REASON", reasonCode) is null)
+                return Results.BadRequest(new InboundReceiveResult(false, "Select a valid reason code.", null));
+            if (body.DeltaQty == 0 || body.DeltaQty != decimal.Truncate(body.DeltaQty))
+                return Results.BadRequest(new InboundReceiveResult(false, "Enter a non-zero whole-number adjustment.", null));
+            try
+            {
+                maintenance.AdjustSparePartStock(body.Barcode.Trim(), "ADJ", decimal.ToInt32(body.DeltaQty),
+                    "PDA_ADJUST", reasonCode, body.ReasonNote, session.EmployeeNo);
+                return Results.Ok(new InboundReceiveResult(true, "Quantity adjusted",
+                    QuerySparePartInboundRow(factory, body.Barcode)));
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new InboundReceiveResult(false, WarehouseProcedureMessage(ex), null));
+            }
+        });
+        g.MapPost("/sp/move-location", (HttpContext ctx, InboundReceiveReq body) =>
+        {
+            if (ctx.GetSession() is not { } session) return Results.Unauthorized();
+            var result = ExecuteSparePartLocationMove(factory, body.Barcode, body.LocationId, session.EmployeeNo);
+            return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+        });
+        g.MapGet("/sp/transactions", (HttpContext ctx, string? search, DateTime? dateFrom, DateTime? dateTo) =>
+            ctx.GetSession() is null
+                ? Results.Unauthorized()
+                : Results.Ok(QuerySparePartTransactions(factory, search, dateFrom, dateTo)));
 
         g.MapPost("/sp/test/reset", (HttpContext ctx) =>
         {
@@ -1613,63 +1697,397 @@ public static class WhEndpoints
             valid ? "LOT is ready for outgoing." : $"LOT cannot be released. Current status: {status}.");
     }
 
-    private static SparePartLotRow? QuerySparePartLot(AmesConnectionFactory factory, string lotNo)
+    private static SparePartRow? QuerySparePart(AmesConnectionFactory factory, string eosSpNo)
     {
-        var normalizedLot = lotNo?.Trim() ?? "";
-        if (normalizedLot.Length == 0) return null;
+        var normalized = eosSpNo?.Trim() ?? "";
+        if (normalized.Length == 0) return null;
 
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            SELECT TOP (1)
-                L.LotID, L.LotCode AS EosSpNo, I.ItemCategory AS Category,
-                I.ApplicableEquipment, I.ItemName AS PartName,
-                COALESCE(I.SparePartNo, I.ItemNo) AS PartNo, I.MakerName AS Maker,
-                COALESCE(V.VendorName, P.VendorID) AS Vendor,
-                COALESCE(W.OnHandQty, P.Qty, L.RemainingQty, 0) AS Qty,
-                COALESCE(I.DefaultUOM, P.UnitCode, 'EA') AS Unit,
-                W.LocationID AS StorageLocation, ML.AreaCode,
-                UPPER(COALESCE(NULLIF(L.InventoryStatus,''), NULLIF(W.Status,''), 'CREATED')) AS InventoryStatus
-            FROM dbo.tbl_Lot L
-            INNER JOIN dbo.MD_Item I ON I.ItemNo = L.ItemNo
-            OUTER APPLY
-            (
-                SELECT TOP (1) IP.VendorID, IP.Qty, IP.UnitCode
-                FROM dbo.WH_InboundPackage IP
-                WHERE IP.LotID = L.LotID
-                ORDER BY IP.InboundPackageID DESC
-            ) P
-            LEFT JOIN dbo.MD_Vendor V ON V.VendorID = P.VendorID
-            OUTER APPLY
-            (
-                SELECT TOP (1) X.LocationID, X.OnHandQty, X.Status
-                FROM dbo.WH_Inventory X
-                WHERE X.LotID = L.LotID
-                ORDER BY CASE WHEN COALESCE(X.OnHandQty,0) > 0 THEN 0 ELSE 1 END, X.InventoryID DESC
-            ) W
-            LEFT JOIN dbo.MD_Location ML ON ML.LocationID = W.LocationID
-            WHERE UPPER(L.LotCode) = UPPER(@LotNo)
-              AND UPPER(COALESCE(I.ItemType,'')) = 'SPARE';
+            SELECT
+                P.SparePartNo AS EosSpNo,
+                COALESCE(C.CodeNameEn, C.CodeName, P.Category) AS Category,
+                COALESCE(E.CodeNameEn, E.CodeName, P.ApplicableEquip) AS ApplicableEquipment,
+                P.PartName, P.PartNo, P.Maker, P.SparePartImage,
+                COALESCE(V.VendorName, P.SupplierID) AS Vendor,
+                P.OnHandQty AS Qty, COALESCE(P.UOM, 'EA') AS Unit,
+                L.LocationID AS StorageLocation, L.AreaCode,
+                CASE WHEN P.OnHandQty > 0 THEN 'IN STOCK' ELSE 'OUT OF STOCK' END AS InventoryStatus
+            FROM dbo.MD_SparePart P
+            LEFT JOIN dbo.MD_CodeItem C
+              ON C.GroupCode = 'SPAREPARTS_CATEGORY' AND C.CodeValue = P.Category AND COALESCE(C.UseFlag,1) = 1
+            LEFT JOIN dbo.MD_CodeItem E
+              ON E.GroupCode = 'SPAREPARTS_EQUIP' AND E.CodeValue = P.ApplicableEquip AND COALESCE(E.UseFlag,1) = 1
+            LEFT JOIN dbo.MD_Vendor V ON V.VendorID = P.SupplierID
+            LEFT JOIN dbo.MD_Location L
+              ON L.AreaCode = 'SPARE_PARTS_AREA'
+             AND L.ZoneCode = P.ZoneCode
+             AND COALESCE(L.Slot, '') = COALESCE(P.Slot, '')
+            WHERE UPPER(P.SparePartNo) = UPPER(@EosSpNo)
+              AND COALESCE(P.ActiveFlag,1) = 1;
             """, conn);
-        cmd.Parameters.AddWithValue("@LotNo", normalizedLot);
+        cmd.Parameters.AddWithValue("@EosSpNo", normalized);
         using var rdr = cmd.ExecuteReader();
         if (!rdr.Read()) return null;
 
         var qty = GetDecimal(rdr, "Qty");
-        var status = GetString(rdr, "InventoryStatus") ?? "CREATED";
-        var location = GetString(rdr, "StorageLocation");
-        var areaCode = GetString(rdr, "AreaCode");
-        var received = qty > 0 && !string.IsNullOrWhiteSpace(location);
-        var releaseEligible = received
-            && string.Equals(areaCode, "SPARE_PARTS_AREA", StringComparison.OrdinalIgnoreCase)
-            && new[] { "RECEIVED", "STORED", "RETURN_RECEIVED", "RELEASE_CANCELLED" }
-                .Contains(status, StringComparer.OrdinalIgnoreCase);
-
-        return new SparePartLotRow(
-            rdr.GetInt32(rdr.GetOrdinal("LotID")), GetString(rdr, "EosSpNo") ?? normalizedLot,
+        return new SparePartRow(
+            GetString(rdr, "EosSpNo") ?? normalized,
             GetString(rdr, "Category"), GetString(rdr, "ApplicableEquipment"),
             GetString(rdr, "PartName"), GetString(rdr, "PartNo"), GetString(rdr, "Maker"),
-            GetString(rdr, "Vendor"), qty, GetString(rdr, "Unit"), location, areaCode,
-            status, received, releaseEligible);
+            GetString(rdr, "Vendor"), qty, GetString(rdr, "Unit"), GetString(rdr, "StorageLocation"),
+            GetString(rdr, "AreaCode"), GetString(rdr, "InventoryStatus") ?? "OUT OF STOCK", qty > 0,
+            GetImageDataUrl(rdr, "SparePartImage"));
+    }
+
+    private static List<InventoryRow> QuerySparePartInventory(AmesConnectionFactory factory, string? search)
+    {
+        using var conn = factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT CAST(ROW_NUMBER() OVER (ORDER BY P.SparePartNo) AS int) AS InventoryID,
+                   P.PartNo AS ItemNo, P.SparePartNo AS LotNo, P.PartName AS ItemName, COALESCE(L.LocationID, '') AS LocationID,
+                   CAST(P.OnHandQty AS decimal(18,3)) AS OnHandQty, COALESCE(P.UOM, 'EA') AS Unit,
+                   CAST(P.SafetyStock AS decimal(18,3)) AS MinQty,
+                   CAST(NULL AS decimal(18,3)) AS MaxQty,
+                   CASE WHEN P.OnHandQty <= 0 THEN 'OUT'
+                        WHEN P.SafetyStock IS NOT NULL AND P.OnHandQty < P.SafetyStock THEN 'BELOW_MIN'
+                        ELSE 'NORMAL' END AS StockStatus,
+                   COALESCE(P.ModifiedTS, P.CreatedTS) AS LastChangedAt
+            FROM dbo.MD_SparePart P
+            LEFT JOIN dbo.MD_Location L
+              ON L.AreaCode = 'SPARE_PARTS_AREA'
+             AND L.ZoneCode = P.ZoneCode
+             AND COALESCE(L.Slot, '') = COALESCE(P.Slot, '')
+            WHERE COALESCE(P.ActiveFlag,1) = 1
+              AND (@Q = '' OR P.SparePartNo LIKE '%' + @Q + '%' OR P.PartNo LIKE '%' + @Q + '%' OR P.PartName LIKE '%' + @Q + '%')
+            ORDER BY P.SparePartNo;
+            """, conn);
+        cmd.Parameters.Add("@Q", SqlDbType.NVarChar, 120).Value = search?.Trim() ?? "";
+        using var rdr = cmd.ExecuteReader();
+        var rows = new List<InventoryRow>();
+        while (rdr.Read())
+            rows.Add(new InventoryRow(
+                rdr.GetInt32(rdr.GetOrdinal("InventoryID")), GetString(rdr, "ItemNo") ?? "",
+                GetString(rdr, "ItemName"), GetString(rdr, "LocationID") ?? "", null,
+                GetDecimal(rdr, "OnHandQty"), 0, null, Unit: GetString(rdr, "Unit"),
+                MinQty: GetNullableDecimal(rdr, "MinQty"), MaxQty: GetNullableDecimal(rdr, "MaxQty"),
+                LotCount: 1, LocationCount: string.IsNullOrWhiteSpace(GetString(rdr, "LocationID")) ? 0 : 1,
+                Status: GetString(rdr, "StockStatus"), StatusName: GetString(rdr, "StockStatus"),
+                LastReceivedDate: GetDate(rdr, "LastChangedAt"), LotNo: GetString(rdr, "LotNo")));
+        return rows;
+    }
+
+    private static List<LotStatusRow> QuerySparePartLotStatuses(AmesConnectionFactory factory, string? search)
+    {
+        using var conn = factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT CAST(ROW_NUMBER() OVER (ORDER BY P.SparePartNo) AS int) AS RowNo,
+                   P.SparePartNo, P.PartNo, P.PartName, P.OnHandQty, L.LocationID AS StorageLoc,
+                   CASE WHEN P.OnHandQty > 0 THEN 'IN STOCK' ELSE 'OUT OF STOCK' END AS InventoryStatus,
+                   COALESCE(P.ModifiedTS, P.CreatedTS) AS LastChangedAt
+            FROM dbo.MD_SparePart P
+            LEFT JOIN dbo.MD_Location L
+              ON L.AreaCode = 'SPARE_PARTS_AREA'
+             AND L.ZoneCode = P.ZoneCode
+             AND COALESCE(L.Slot, '') = COALESCE(P.Slot, '')
+            WHERE COALESCE(P.ActiveFlag,1) = 1
+              AND (@Q = '' OR P.SparePartNo LIKE '%' + @Q + '%' OR P.PartNo LIKE '%' + @Q + '%' OR P.PartName LIKE '%' + @Q + '%')
+            ORDER BY P.SparePartNo;
+            """, conn);
+        cmd.Parameters.Add("@Q", SqlDbType.NVarChar, 120).Value = search?.Trim() ?? "";
+        using var rdr = cmd.ExecuteReader();
+        var rows = new List<LotStatusRow>();
+        while (rdr.Read())
+            rows.Add(new LotStatusRow(rdr.GetInt32(rdr.GetOrdinal("RowNo")),
+                GetString(rdr, "SparePartNo") ?? "", GetString(rdr, "PartNo"),
+                GetString(rdr, "PartName"), GetString(rdr, "InventoryStatus") ?? "OUT OF STOCK",
+                GetDecimal(rdr, "OnHandQty"), GetString(rdr, "StorageLoc"), null,
+                GetDate(rdr, "LastChangedAt")));
+        return rows;
+    }
+
+    private static List<InventoryLocationRow> QuerySparePartInventoryLocations(
+        AmesConnectionFactory factory, string eosSpNo)
+    {
+        using var conn = factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT P.SparePartNo, P.PartNo, L.LocationID AS StorageLoc, P.OnHandQty,
+                   L.LocationName, L.WhCode, W.WhName, L.AreaCode, A.AreaName,
+                   L.ZoneCode, L.ZoneCode AS ZoneName, L.Aisle, L.Bay, L.Slot
+            FROM dbo.MD_SparePart P
+            LEFT JOIN dbo.MD_Location L
+              ON L.AreaCode = 'SPARE_PARTS_AREA'
+             AND L.ZoneCode = P.ZoneCode
+             AND COALESCE(L.Slot, '') = COALESCE(P.Slot, '')
+            LEFT JOIN dbo.WH_WarehouseMaster W ON W.WhCode = L.WhCode
+            LEFT JOIN dbo.WH_AreaMaster A ON A.WhCode = L.WhCode AND A.AreaCode = L.AreaCode
+            WHERE (UPPER(P.SparePartNo) = UPPER(@SparePartNo) OR UPPER(P.PartNo) = UPPER(@SparePartNo))
+              AND COALESCE(P.ActiveFlag,1) = 1;
+            """, conn);
+        cmd.Parameters.Add("@SparePartNo", SqlDbType.VarChar, 16).Value = eosSpNo.Trim();
+        using var rdr = cmd.ExecuteReader();
+        var rows = new List<InventoryLocationRow>();
+        if (rdr.Read() && !string.IsNullOrWhiteSpace(GetString(rdr, "StorageLoc")))
+            rows.Add(new InventoryLocationRow(1, GetString(rdr, "PartNo") ?? "",
+                GetString(rdr, "StorageLoc") ?? "", GetString(rdr, "LocationName"),
+                GetString(rdr, "WhCode"), GetString(rdr, "WhName"), GetString(rdr, "AreaCode"),
+                GetString(rdr, "AreaName"), GetString(rdr, "ZoneCode"), GetString(rdr, "ZoneName"),
+                GetString(rdr, "Aisle"), GetString(rdr, "Bay"), GetString(rdr, "Slot"),
+                GetDecimal(rdr, "OnHandQty")));
+        return rows;
+    }
+
+    private static List<LocationMapItemRow> QuerySparePartLocationItems(
+        AmesConnectionFactory factory, string locationId)
+    {
+        using var conn = factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT P.SparePartNo, P.PartNo, P.PartName, P.OnHandQty, COALESCE(P.UOM,'EA') AS Unit,
+                   CASE WHEN P.OnHandQty > 0 THEN 'IN STOCK' ELSE 'OUT OF STOCK' END AS InventoryStatus,
+                   CONVERT(char(10), COALESCE(P.ModifiedTS,P.CreatedTS), 23) AS WorkDate,
+                   CONVERT(char(8), COALESCE(P.ModifiedTS,P.CreatedTS), 108) AS WorkTime
+            FROM dbo.MD_SparePart P
+            JOIN dbo.MD_Location L
+              ON L.LocationID = @LocationId
+             AND L.AreaCode = 'SPARE_PARTS_AREA'
+             AND L.ZoneCode = P.ZoneCode
+             AND COALESCE(L.Slot, '') = COALESCE(P.Slot, '')
+            WHERE COALESCE(P.ActiveFlag,1) = 1
+            ORDER BY P.SparePartNo;
+            """, conn);
+        cmd.Parameters.Add("@LocationId", SqlDbType.VarChar, 20).Value = locationId.Trim();
+        using var rdr = cmd.ExecuteReader();
+        var rows = new List<LocationMapItemRow>();
+        while (rdr.Read())
+            rows.Add(new LocationMapItemRow(GetString(rdr, "SparePartNo") ?? "", GetString(rdr, "PartNo"),
+                GetString(rdr, "PartName"), GetDecimal(rdr, "OnHandQty"), GetString(rdr, "Unit"),
+                GetString(rdr, "InventoryStatus"), GetString(rdr, "WorkDate"), GetString(rdr, "WorkTime")));
+        return rows;
+    }
+
+    private static List<LocationRow> QuerySparePartLocations(AmesConnectionFactory factory)
+    {
+        using var conn = factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT L.LocationID, L.LocationName, L.ZoneCode, L.WhCode, W.WhName, L.AreaCode, A.AreaName,
+                   L.Aisle, L.Bay, L.Slot, L.PlantCode, L.LocationType, L.Capacity,
+                   COUNT(CASE WHEN P.OnHandQty > 0 THEN 1 END) AS LineCount,
+                   COALESCE(SUM(CASE WHEN P.OnHandQty > 0 THEN P.OnHandQty ELSE 0 END),0) AS TotalQty,
+                   CAST('EA' AS varchar(10)) AS Unit
+            FROM dbo.MD_Location L
+            LEFT JOIN dbo.WH_WarehouseMaster W ON W.WhCode = L.WhCode
+            LEFT JOIN dbo.WH_AreaMaster A ON A.WhCode = L.WhCode AND A.AreaCode = L.AreaCode
+            LEFT JOIN dbo.MD_SparePart P
+              ON P.ZoneCode = L.ZoneCode
+             AND COALESCE(P.Slot, '') = COALESCE(L.Slot, '')
+             AND COALESCE(P.ActiveFlag,1) = 1
+            WHERE L.AreaCode = 'SPARE_PARTS_AREA' AND COALESCE(L.ActiveFlag,1) = 1
+            GROUP BY L.LocationID, L.LocationName, L.ZoneCode, L.WhCode, W.WhName, L.AreaCode, A.AreaName,
+                     L.Aisle, L.Bay, L.Slot, L.PlantCode, L.LocationType, L.Capacity
+            ORDER BY L.ZoneCode, L.LocationID;
+            """, conn);
+        using var rdr = cmd.ExecuteReader();
+        var rows = new List<LocationRow>();
+        while (rdr.Read())
+            rows.Add(new LocationRow(GetString(rdr, "LocationID") ?? "", GetString(rdr, "LocationName"),
+                GetString(rdr, "ZoneCode"), Convert.ToInt32(rdr["LineCount"]), GetDecimal(rdr, "TotalQty"),
+                GetString(rdr, "WhCode"), GetString(rdr, "WhName"), GetString(rdr, "AreaCode"),
+                GetString(rdr, "AreaName"), GetString(rdr, "ZoneCode"), GetString(rdr, "Aisle"),
+                GetString(rdr, "Bay"), GetString(rdr, "Slot"), GetString(rdr, "PlantCode"),
+                GetString(rdr, "LocationType"), GetNullableDecimal(rdr, "Capacity"), GetString(rdr, "Unit")));
+        return rows;
+    }
+
+    private static SparePartAdjustmentLocation? QuerySparePartAdjustmentLocation(
+        AmesConnectionFactory factory, string barcode)
+    {
+        using var conn = factory.OpenConnection();
+        using var location = new SqlCommand("""
+            SELECT LocationID FROM dbo.MD_Location
+            WHERE UPPER(LocationID)=UPPER(@Barcode) AND AreaCode='SPARE_PARTS_AREA' AND COALESCE(ActiveFlag,1)=1;
+            """, conn);
+        location.Parameters.Add("@Barcode", SqlDbType.NVarChar, 80).Value = barcode.Trim();
+        if (location.ExecuteScalar() is not string locationId) return null;
+
+        using var cmd = new SqlCommand("""
+            SELECT P.SparePartNo, P.PartNo, P.PartName, P.OnHandQty, COALESCE(P.UOM,'EA') AS Unit
+            FROM dbo.MD_SparePart P
+            JOIN dbo.MD_Location L
+              ON L.LocationID = @LocationId
+             AND L.ZoneCode = P.ZoneCode
+             AND COALESCE(L.Slot, '') = COALESCE(P.Slot, '')
+            WHERE COALESCE(P.ActiveFlag,1)=1
+            ORDER BY P.SparePartNo;
+            """, conn);
+        cmd.Parameters.Add("@LocationId", SqlDbType.VarChar, 20).Value = locationId;
+        using var rdr = cmd.ExecuteReader();
+        var items = new List<SparePartAdjustmentStock>();
+        while (rdr.Read())
+        {
+            var eosSpNo = GetString(rdr, "SparePartNo") ?? "";
+            items.Add(new SparePartAdjustmentStock(eosSpNo, eosSpNo, GetString(rdr, "PartNo") ?? "",
+                GetString(rdr, "PartName"), GetDecimal(rdr, "OnHandQty"), GetString(rdr, "Unit")));
+        }
+        return new SparePartAdjustmentLocation(locationId, items);
+    }
+
+    private static InboundScanRow? QuerySparePartInboundRow(AmesConnectionFactory factory, string eosSpNo)
+    {
+        var row = QuerySparePart(factory, eosSpNo);
+        return row is null ? null : new InboundScanRow(
+            "SP", "N", row.EosSpNo, row.EosSpNo, "MD_SparePart",
+            null, null, null, null, null, row.PartNo, row.PartName, row.Qty, row.Unit,
+            null, null, null, row.Vendor, null, null, null, null, null,
+            row.StorageLocation, row.InventoryStatus);
+    }
+
+    private static InboundReceiveResult ExecuteSparePartLocationMove(
+        AmesConnectionFactory factory, string eosSpNo, string locationId, string userId)
+    {
+        try
+        {
+            using var conn = factory.OpenConnection();
+            using var tx = conn.BeginTransaction();
+            using var location = new SqlCommand("""
+                SELECT LocationID, ZoneCode, Slot FROM dbo.MD_Location
+                WHERE UPPER(LocationID)=UPPER(@LocationId) AND AreaCode='SPARE_PARTS_AREA' AND COALESCE(ActiveFlag,1)=1;
+                """, conn, tx);
+            location.Parameters.Add("@LocationId", SqlDbType.VarChar, 20).Value = locationId.Trim();
+            string target;
+            string targetZone;
+            string? targetSlot;
+            using (var rdr = location.ExecuteReader())
+            {
+                if (!rdr.Read())
+                    throw new InvalidOperationException("The location does not belong to the Spare Parts Area.");
+                target = GetString(rdr, "LocationID")!;
+                targetZone = GetString(rdr, "ZoneCode")!;
+                targetSlot = GetString(rdr, "Slot");
+            }
+
+            string? current;
+            int qty;
+            using (var stock = new SqlCommand("""
+                SELECT L.LocationID AS StorageLocation, P.OnHandQty
+                FROM dbo.MD_SparePart P WITH (UPDLOCK,HOLDLOCK)
+                LEFT JOIN dbo.MD_Location L
+                  ON L.AreaCode = 'SPARE_PARTS_AREA'
+                 AND L.ZoneCode = P.ZoneCode
+                 AND COALESCE(L.Slot, '') = COALESCE(P.Slot, '')
+                WHERE UPPER(P.SparePartNo)=UPPER(@SparePartNo) AND COALESCE(P.ActiveFlag,1)=1;
+                """, conn, tx))
+            {
+                stock.Parameters.Add("@SparePartNo", SqlDbType.VarChar, 16).Value = eosSpNo.Trim();
+                using var rdr = stock.ExecuteReader();
+                if (!rdr.Read()) throw new InvalidOperationException("EOS SP No was not found.");
+                current = GetString(rdr, "StorageLocation");
+                qty = Convert.ToInt32(rdr["OnHandQty"]);
+            }
+            if (string.Equals(current, target, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("This spare part is already in the selected location.");
+
+            using (var cmd = new SqlCommand("""
+                UPDATE dbo.MD_SparePart SET ZoneCode=@ZoneCode, Slot=@Slot, ModifiedBy=@UserId, ModifiedTS=SYSDATETIME()
+                WHERE UPPER(SparePartNo)=UPPER(@SparePartNo);
+                INSERT INTO dbo.MNT_SparePartsTxn
+                    (SparePartNo,MoveType,Qty,BalanceBefore,BalanceAfter,RefType,RefID,Note,TxnAt,ActorID,CreatedBy,CreatedTS)
+                VALUES (@SparePartNo,'MOVE',0,@Qty,@Qty,'LOCATION',@LocationId,@Note,SYSDATETIME(),@UserId,LEFT(@UserId,50),SYSDATETIME());
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@SparePartNo", SqlDbType.VarChar, 16).Value = eosSpNo.Trim();
+                cmd.Parameters.Add("@LocationId", SqlDbType.VarChar, 20).Value = target;
+                cmd.Parameters.Add("@ZoneCode", SqlDbType.VarChar, 20).Value = targetZone;
+                cmd.Parameters.Add("@Slot", SqlDbType.VarChar, 5).Value = (object?)targetSlot ?? DBNull.Value;
+                cmd.Parameters.Add("@Qty", SqlDbType.Int).Value = qty;
+                cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = userId;
+                cmd.Parameters.Add("@Note", SqlDbType.NVarChar, 1000).Value = $"{current ?? "-"} -> {target}";
+                cmd.ExecuteNonQuery();
+            }
+            tx.Commit();
+            return new InboundReceiveResult(true, "Location changed", QuerySparePartInboundRow(factory, eosSpNo));
+        }
+        catch (Exception ex)
+        {
+            return new InboundReceiveResult(false, WarehouseProcedureMessage(ex), null);
+        }
+    }
+
+    private static List<WarehouseTransactionRow> QuerySparePartTransactions(
+        AmesConnectionFactory factory, string? search, DateTime? dateFrom, DateTime? dateTo)
+    {
+        using var conn = factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT T.SparePartsTxnID, T.SparePartNo, P.PartNo, L.LocationID AS StorageLoc, T.MoveType, T.Qty,
+                   T.BalanceBefore, T.BalanceAfter, T.RefType, T.RefID, T.Note, T.ActorID,
+                   CONVERT(char(10),T.TxnAt,23) AS WorkDate, CONVERT(char(8),T.TxnAt,108) AS WorkTime
+            FROM dbo.MNT_SparePartsTxn T
+            LEFT JOIN dbo.MD_SparePart P ON P.SparePartNo=T.SparePartNo
+            LEFT JOIN dbo.MD_Location L
+              ON L.AreaCode = 'SPARE_PARTS_AREA'
+             AND L.ZoneCode = P.ZoneCode
+             AND COALESCE(L.Slot, '') = COALESCE(P.Slot, '')
+            WHERE (@Q='' OR T.SparePartNo LIKE '%'+@Q+'%' OR P.PartNo LIKE '%'+@Q+'%' OR P.PartName LIKE '%'+@Q+'%'
+                         OR T.ActorID LIKE '%'+@Q+'%' OR T.RefID LIKE '%'+@Q+'%')
+              AND (@DateFrom IS NULL OR T.TxnAt>=@DateFrom)
+              AND (@DateTo IS NULL OR T.TxnAt<DATEADD(day,1,@DateTo))
+            ORDER BY T.TxnAt DESC,T.SparePartsTxnID DESC;
+            """, conn);
+        cmd.Parameters.Add("@Q", SqlDbType.NVarChar, 120).Value = search?.Trim() ?? "";
+        cmd.Parameters.Add("@DateFrom", SqlDbType.Date).Value = (object?)dateFrom?.Date ?? DBNull.Value;
+        cmd.Parameters.Add("@DateTo", SqlDbType.Date).Value = (object?)dateTo?.Date ?? DBNull.Value;
+        using var rdr = cmd.ExecuteReader();
+        var rows = new List<WarehouseTransactionRow>();
+        while (rdr.Read())
+        {
+            var move = GetString(rdr, "MoveType") ?? "";
+            var reason = string.Equals(GetString(rdr, "RefType"), "PDA_ADJUST", StringComparison.OrdinalIgnoreCase)
+                ? GetString(rdr, "RefID") : null;
+            rows.Add(new WarehouseTransactionRow(Convert.ToInt64(rdr["SparePartsTxnID"]),
+                GetString(rdr, "SparePartNo"), GetString(rdr, "PartNo"), GetString(rdr, "WorkDate"),
+                GetString(rdr, "WorkTime"), GetString(rdr, "StorageLoc"), GetDecimal(rdr, "Qty"),
+                move, move, GetString(rdr, "ActorID"), reason, GetString(rdr, "Note"), null,
+                GetNullableDecimal(rdr, "BalanceBefore"),
+                move == "OUT" ? -GetNullableDecimal(rdr, "Qty") : move == "MOVE" ? 0 : GetNullableDecimal(rdr, "Qty"),
+                GetNullableDecimal(rdr, "BalanceAfter"), null, null, null,
+                move == "MOVE" ? GetString(rdr, "RefID") : null, GetString(rdr, "RefType"),
+                GetString(rdr, "Note"), "EA"));
+        }
+        return rows;
+    }
+
+    private static SparePartMoveResult ExecuteSparePartMove(
+        AmesConnectionFactory factory, SparePartMoveReq body, string moveType, string userId)
+    {
+        if (string.IsNullOrWhiteSpace(body.EosSpNo))
+            return new SparePartMoveResult(false, "Scan an EOS SP No first.");
+        if (body.Qty <= 0)
+            return new SparePartMoveResult(false, "Quantity must be greater than zero.");
+
+        try
+        {
+            using var conn = factory.OpenConnection();
+            using var cmd = new SqlCommand(PdaSparePartStockMoveProcedure, conn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            cmd.Parameters.Add("@SparePartNo", SqlDbType.VarChar, 16).Value = body.EosSpNo.Trim();
+            cmd.Parameters.Add("@MoveType", SqlDbType.VarChar, 10).Value = moveType;
+            cmd.Parameters.Add("@Qty", SqlDbType.Int).Value = body.Qty;
+            cmd.Parameters.Add("@LocationId", SqlDbType.VarChar, 20).Value =
+                string.IsNullOrWhiteSpace(body.LocationId) ? DBNull.Value : body.LocationId.Trim();
+            cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = userId;
+            cmd.Parameters.Add("@Note", SqlDbType.NVarChar, 500).Value =
+                string.IsNullOrWhiteSpace(body.Note) ? DBNull.Value : body.Note.Trim();
+            cmd.ExecuteNonQuery();
+
+            return new SparePartMoveResult(true,
+                moveType == "IN" ? "Spare part received." : "Spare part released.",
+                QuerySparePart(factory, body.EosSpNo));
+        }
+        catch (Exception ex)
+        {
+            return new SparePartMoveResult(false, WarehouseProcedureMessage(ex));
+        }
     }
 
     private static DirectOutgoingResult ExecuteDirectOutgoing(
@@ -2619,6 +3037,15 @@ public static class WhEndpoints
         if (!HasColumn(rdr, name)) return null;
         var value = rdr[name];
         return value == DBNull.Value ? null : Convert.ToString(value);
+    }
+
+    private static string? GetImageDataUrl(SqlDataReader rdr, string name)
+    {
+        if (!HasColumn(rdr, name) || rdr[name] is not byte[] { Length: > 0 } bytes) return null;
+        var contentType = bytes.Length >= 8 && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47
+            ? "image/png"
+            : "image/jpeg";
+        return $"data:{contentType};base64,{Convert.ToBase64String(bytes)}";
     }
 
     private static int? GetInt(SqlDataReader rdr, string name)

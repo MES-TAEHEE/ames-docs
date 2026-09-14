@@ -3775,53 +3775,104 @@ BEGIN
 END;
 GO
 
+IF OBJECT_ID(N'dbo.MD_SparePart', N'U') IS NOT NULL
+   AND COL_LENGTH(N'dbo.MD_SparePart', N'Maker') IS NULL
+BEGIN
+    ALTER TABLE dbo.MD_SparePart ADD Maker NVARCHAR(100) NULL;
+    PRINT 'Added dbo.MD_SparePart.Maker';
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.SP_PDA_STOCK_MOVE
+    @SparePartNo varchar(16),
+    @MoveType varchar(10),
+    @Qty int = 1,
+    @LocationId varchar(20) = NULL,
+    @UserId nvarchar(450),
+    @Note nvarchar(500) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    DECLARE @SpNo varchar(16) = UPPER(LTRIM(RTRIM(ISNULL(@SparePartNo, ''))));
+    DECLARE @Move varchar(10) = UPPER(LTRIM(RTRIM(ISNULL(@MoveType, ''))));
+    DECLARE @Location varchar(20) = NULLIF(UPPER(LTRIM(RTRIM(@LocationId))), '');
+    DECLARE @User nvarchar(450) = COALESCE(NULLIF(LTRIM(RTRIM(@UserId)), N''), N'PDA');
+    DECLARE @Before int;
+    DECLARE @After int;
+    DECLARE @ZoneCode varchar(20);
+    DECLARE @Slot varchar(5);
+
+    IF @SpNo = '' THROW 51810, 'EOS SP No is required.', 1;
+    IF @Move NOT IN ('IN', 'OUT') THROW 51811, 'Move type must be IN or OUT.', 1;
+    IF COALESCE(@Qty, 0) <= 0 THROW 51812, 'Quantity must be greater than zero.', 1;
+    IF @Move = 'IN' AND @Location IS NULL THROW 51813, 'Storage location is required.', 1;
+    IF @Move = 'IN' AND NOT EXISTS
+    (
+        SELECT 1 FROM dbo.MD_Location
+        WHERE LocationID = @Location AND AreaCode = 'SPARE_PARTS_AREA' AND COALESCE(ActiveFlag, 1) = 1
+    )
+        THROW 51814, 'The location does not belong to the Spare Parts Area.', 1;
+
+    IF @Move = 'IN'
+        SELECT @ZoneCode = ZoneCode, @Slot = Slot
+        FROM dbo.MD_Location
+        WHERE LocationID = @Location;
+
+    BEGIN TRANSACTION;
+
+    SELECT @Before = OnHandQty
+    FROM dbo.MD_SparePart WITH (UPDLOCK, HOLDLOCK)
+    WHERE SparePartNo = @SpNo AND COALESCE(ActiveFlag, 1) = 1;
+
+    IF @Before IS NULL THROW 51815, 'EOS SP No was not found.', 1;
+
+    SET @After = @Before + CASE WHEN @Move = 'IN' THEN @Qty ELSE -@Qty END;
+    IF @After < 0 THROW 51816, 'Spare part is out of stock.', 1;
+
+    UPDATE dbo.MD_SparePart
+       SET OnHandQty = @After,
+           ZoneCode = CASE WHEN @Move = 'IN' THEN @ZoneCode ELSE ZoneCode END,
+           Slot = CASE WHEN @Move = 'IN' THEN @Slot ELSE Slot END,
+           ModifiedBy = @User,
+           ModifiedTS = SYSDATETIME()
+     WHERE SparePartNo = @SpNo;
+
+    INSERT INTO dbo.MNT_SparePartsTxn
+        (SparePartNo, MoveType, Qty, BalanceBefore, BalanceAfter, RefType, RefID,
+         Note, TxnAt, ActorID, CreatedBy, CreatedTS)
+    VALUES
+        (@SpNo, @Move, @Qty, @Before, @After, 'PDA', @Location,
+         @Note, SYSDATETIME(), @User, LEFT(@User, 50), SYSDATETIME());
+
+    COMMIT TRANSACTION;
+END;
+GO
+
 CREATE OR ALTER PROCEDURE dbo.SP_PDA_SIMPLE_TEST_RESET
 AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @InboundLotID int = (SELECT TOP (1) LotID FROM dbo.tbl_Lot WHERE LotCode = 'EOS-SP-A1-260009');
-    DECLARE @ReleaseLotID int = (SELECT TOP (1) LotID FROM dbo.tbl_Lot WHERE LotCode = 'EOS-SP-A1-260001');
-
-    IF @InboundLotID IS NULL OR @ReleaseLotID IS NULL
-        THROW 51800, 'Spare parts test data was not found. Run PDA_SEED.sql first.', 1;
-
     BEGIN TRANSACTION;
 
-    DELETE FROM dbo.WH_InventoryTransaction
-    WHERE LotID IN (@InboundLotID, @ReleaseLotID)
-      AND CreatedBy IN (N'SCTEST1', N'SCTEST2');
+    IF NOT EXISTS (SELECT 1 FROM dbo.MD_SparePart WHERE SparePartNo = 'EOS-SP-K9-269999')
+        INSERT INTO dbo.MD_SparePart
+            (SparePartNo, Category, ApplicableEquip, PartNo, PartName, Maker, UOM, OnHandQty,
+             SafetyStock, SupplierID, ZoneCode, Slot, ActiveFlag, CreatedBy, CreatedTS)
+        VALUES
+            ('EOS-SP-K9-269999', 'K', '9', 'PDA-SP-TEST-001', N'PDA Spare Parts Test', N'DEMO INDUSTRIAL', 'EA', 1,
+             1, 'SP-DEMO-V01', 'SP_EXTRA', NULL, 1, 'pda-test-reset', SYSDATETIME());
 
-    DELETE FROM dbo.WH_Receiving WHERE LotCode = 'EOS-SP-A1-260009';
-    DELETE FROM dbo.WH_Inventory WHERE LotID = @InboundLotID;
+    DELETE FROM dbo.MNT_SparePartsTxn WHERE SparePartNo = 'EOS-SP-K9-269999';
 
-    MERGE dbo.WH_Inventory AS T
-    USING (SELECT @ReleaseLotID LotID) AS S ON T.LotID = S.LotID
-    WHEN MATCHED THEN UPDATE SET
-        ItemNo = 'PRCDTP7HLQK15', LocationID = 'SP-CAB1-03', OnHandQty = 1,
-        ReservedQty = 0, LastReceivedAt = SYSDATETIME(), Status = 'Received',
-        ModifiedBy = N'pda-test-reset', ModifiedTS = SYSDATETIME()
-    WHEN NOT MATCHED THEN INSERT
-        (ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt, Status, CreatedBy, CreatedTS)
-    VALUES
-        ('PRCDTP7HLQK15', 'SP-CAB1-03', S.LotID, 1, 0, SYSDATETIME(), 'Received', N'pda-test-reset', SYSDATETIME());
-
-    UPDATE dbo.tbl_Lot
-       SET RemainingQty = 1, Status = 'Open', InventoryStatus = 'CREATED',
-           CurrentLocationID = NULL, ModifiedBy = N'pda-test-reset', ModifiedTS = SYSDATETIME()
-     WHERE LotID = @InboundLotID;
-
-    UPDATE dbo.tbl_Lot
-       SET RemainingQty = 1, Status = 'Received', InventoryStatus = 'RECEIVED',
-           CurrentLocationID = 'SP-CAB1-03', ModifiedBy = N'pda-test-reset', ModifiedTS = SYSDATETIME()
-     WHERE LotID = @ReleaseLotID;
-
-    UPDATE dbo.WH_InboundPackage
-       SET Status = CASE WHEN LotID = @InboundLotID THEN N'Open' ELSE N'Received' END,
-           ReceivedAt = CASE WHEN LotID = @InboundLotID THEN NULL ELSE SYSDATETIME() END,
-           ReceivedBy = NULL, ModifiedBy = N'pda-test-reset', ModifiedTS = SYSDATETIME()
-     WHERE LotID IN (@InboundLotID, @ReleaseLotID);
+    UPDATE dbo.MD_SparePart
+       SET Maker = N'DEMO INDUSTRIAL', SupplierID = 'SP-DEMO-V01',
+           OnHandQty = 1, ZoneCode = 'SP_EXTRA', Slot = NULL, ActiveFlag = 1,
+           ModifiedBy = N'pda-test-reset', ModifiedTS = SYSDATETIME()
+     WHERE SparePartNo = 'EOS-SP-K9-269999';
 
     COMMIT TRANSACTION;
 END;

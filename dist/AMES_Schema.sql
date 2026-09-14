@@ -401,6 +401,7 @@ CREATE TABLE dbo.MD_Mold (
   [CarType]                   VARCHAR(20)              NULL,                -- APM2110.VINCD
   [RefCode]                   VARCHAR(20)              NULL,                -- APM2110.REFCD
   [AssyInjResultFlag]         BIT                  NOT NULL DEFAULT 0,      -- APM2110.ASSY_INJ_RSLT_YN
+  [MoldChangeMin]             INT                      NULL,                -- 금형 기본 교체 시간(분). 라인별 값은 MD_MoldLine.PrepTime 이 우선 (migrate_mold_change_plan.sql)
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
@@ -1429,10 +1430,11 @@ CREATE TABLE dbo.PP_LineSchedule (
   [EndMin]                    SMALLINT                 NULL,
   [PlannedQty]                DECIMAL(14,3)            NULL,
   [PatternID]                 VARCHAR(20)              NULL,  -- FK -> MD_LineTimePattern.PatternID
-  [EntryType]                 VARCHAR(10)          NOT NULL CONSTRAINT DF_PP_LineSchedule_EntryType DEFAULT 'WO',  -- 'WO' WO배치 / 'PM' 예방보전 밴드
-  [Title]                     NVARCHAR(100)            NULL,  -- PM 밴드 표시명
-  [RefType]                   VARCHAR(10)              NULL,  -- MNT 연계: 'PMSCH' MNT_PMSchedule / 'MNTWO' MNT_WorkOrder
+  [EntryType]                 VARCHAR(10)          NOT NULL CONSTRAINT DF_PP_LineSchedule_EntryType DEFAULT 'WO',  -- 'WO' WO배치 / 'PM' 예방보전 밴드 / 'MC' 금형 교체
+  [Title]                     NVARCHAR(100)            NULL,  -- PM 밴드 표시명 / MC 는 '구금형→신금형'
+  [RefType]                   VARCHAR(10)              NULL,  -- MNT 연계: 'PMSCH' MNT_PMSchedule / 'MNTWO' MNT_WorkOrder / 'WO' MC 가 뒤따르는 WO
   [RefID]                     INT                      NULL,  -- 연계 대상 PK (MNT_PMSchedule.PMScheduleID 등)
+  [MoldID]                    VARCHAR(20)              NULL,  -- WO 슬롯의 금형 / MC 행의 신금형 (migrate_mold_change_plan.sql)
   [Status]                    VARCHAR(20)              NULL,
   [PublishedAt]               DATETIME2                NULL,
   [PublishedBy]               NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id

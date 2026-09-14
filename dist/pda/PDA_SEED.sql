@@ -213,7 +213,8 @@ BEGIN
     USING (VALUES
         (CONVERT(varchar(20), 'WH_CODE'), CONVERT(nvarchar(60), N'창고'), CONVERT(nvarchar(60), N'Warehouse'), CONVERT(nvarchar(200), N'Warehouse code')),
         ('WH_AREA', N'창고 구역', N'Warehouse Area', N'Warehouse area by storage purpose'),
-        ('WH_ZONE', N'창고 위치', N'Warehouse Zone', N'Physical zone within a warehouse area')
+        ('MNT_ZONE', N'보전 위치', N'Maintenance Zone', N'Spare-parts storage zone'),
+        ('MNT_SLOT', N'보전 랙 층', N'Maintenance Rack Level', N'Spare-parts rack level')
     ) AS S(GroupCode, GroupName, GroupNameEn, Description)
        ON T.GroupCode = S.GroupCode
     WHEN MATCHED THEN UPDATE SET
@@ -236,34 +237,39 @@ BEGIN
         ('WH_AREA', 'MAT_AREA', N'자재 보관 구역', N'Material Storage Area', 'WH_CODE_EOS', 10),
         ('WH_AREA', 'FG_AREA', N'완제품 보관 구역', N'Finished Goods Storage Area', 'WH_CODE_EOS', 20),
         ('WH_AREA', 'SPARE_PARTS_AREA', N'예비품 보관 구역', N'Spare Parts Storage Area', 'WH_CODE_EOS', 30),
-        ('WH_ZONE', 'SP_CAB1', N'CAB1', N'CAB1', 'WH_AREA_SPARE_PARTS_AREA', 10),
-        ('WH_ZONE', 'SP_CAB2', N'CAB2', N'CAB2', 'WH_AREA_SPARE_PARTS_AREA', 20),
-        ('WH_ZONE', 'SP_A1', N'A1', N'A1', 'WH_AREA_SPARE_PARTS_AREA', 30),
-        ('WH_ZONE', 'SP_A2', N'A2', N'A2', 'WH_AREA_SPARE_PARTS_AREA', 40),
-        ('WH_ZONE', 'SP_A3', N'A3', N'A3', 'WH_AREA_SPARE_PARTS_AREA', 50),
-        ('WH_ZONE', 'SP_B1', N'B1', N'B1', 'WH_AREA_SPARE_PARTS_AREA', 60),
-        ('WH_ZONE', 'SP_B2', N'B2', N'B2', 'WH_AREA_SPARE_PARTS_AREA', 70),
-        ('WH_ZONE', 'SP_B3', N'B3', N'B3', 'WH_AREA_SPARE_PARTS_AREA', 80),
-        ('WH_ZONE', 'SP_C1', N'C1', N'C1', 'WH_AREA_SPARE_PARTS_AREA', 90),
-        ('WH_ZONE', 'SP_C2', N'C2', N'C2', 'WH_AREA_SPARE_PARTS_AREA', 100),
-        ('WH_ZONE', 'SP_C3', N'C3', N'C3', 'WH_AREA_SPARE_PARTS_AREA', 110),
-        ('WH_ZONE', 'SP_D1', N'D1', N'D1', 'WH_AREA_SPARE_PARTS_AREA', 120),
-        ('WH_ZONE', 'SP_D2', N'D2', N'D2', 'WH_AREA_SPARE_PARTS_AREA', 130),
-        ('WH_ZONE', 'SP_D3', N'D3', N'D3', 'WH_AREA_SPARE_PARTS_AREA', 140),
-        ('WH_ZONE', 'SP_E1', N'E1', N'E1', 'WH_AREA_SPARE_PARTS_AREA', 150),
-        ('WH_ZONE', 'SP_E2', N'E2', N'E2', 'WH_AREA_SPARE_PARTS_AREA', 160),
-        ('WH_ZONE', 'SP_E3', N'E3', N'E3', 'WH_AREA_SPARE_PARTS_AREA', 170),
-        ('WH_ZONE', 'SP_F1', N'F1', N'F1', 'WH_AREA_SPARE_PARTS_AREA', 180),
-        ('WH_ZONE', 'SP_F2', N'F2', N'F2', 'WH_AREA_SPARE_PARTS_AREA', 190),
-        ('WH_ZONE', 'SP_F3', N'F3', N'F3', 'WH_AREA_SPARE_PARTS_AREA', 200),
-        ('WH_ZONE', 'SP_R_RACKS_1', N'R/Racks-1', N'R/Racks-1', 'WH_AREA_SPARE_PARTS_AREA', 210),
-        ('WH_ZONE', 'SP_R_RACKS_2', N'R/Racks-2', N'R/Racks-2', 'WH_AREA_SPARE_PARTS_AREA', 220),
-        ('WH_ZONE', 'SP_C_RACK_1', N'C/Rack-1', N'C/Rack-1', 'WH_AREA_SPARE_PARTS_AREA', 230),
-        ('WH_ZONE', 'SP_FL1', N'FL1', N'FL1', 'WH_AREA_SPARE_PARTS_AREA', 240),
-        ('WH_ZONE', 'SP_FL2', N'FL2', N'FL2', 'WH_AREA_SPARE_PARTS_AREA', 250),
-        ('WH_ZONE', 'SP_FL3', N'FL3', N'FL3', 'WH_AREA_SPARE_PARTS_AREA', 260),
-        ('WH_ZONE', 'SP_FL4', N'FL4', N'FL4', 'WH_AREA_SPARE_PARTS_AREA', 270),
-        ('WH_ZONE', 'SP_EXTRA', N'Extra', N'Extra', 'WH_AREA_SPARE_PARTS_AREA', 280);
+        ('MNT_ZONE', 'SP_CAB1', N'CAB1', N'CAB1', 'WH_AREA_SPARE_PARTS_AREA', 10),
+        ('MNT_ZONE', 'SP_CAB2', N'CAB2', N'CAB2', 'WH_AREA_SPARE_PARTS_AREA', 20),
+        ('MNT_ZONE', 'SP_A1', N'A1', N'A1', 'WH_AREA_SPARE_PARTS_AREA', 30),
+        ('MNT_ZONE', 'SP_A2', N'A2', N'A2', 'WH_AREA_SPARE_PARTS_AREA', 40),
+        ('MNT_ZONE', 'SP_A3', N'A3', N'A3', 'WH_AREA_SPARE_PARTS_AREA', 50),
+        ('MNT_ZONE', 'SP_B1', N'B1', N'B1', 'WH_AREA_SPARE_PARTS_AREA', 60),
+        ('MNT_ZONE', 'SP_B2', N'B2', N'B2', 'WH_AREA_SPARE_PARTS_AREA', 70),
+        ('MNT_ZONE', 'SP_B3', N'B3', N'B3', 'WH_AREA_SPARE_PARTS_AREA', 80),
+        ('MNT_ZONE', 'SP_C1', N'C1', N'C1', 'WH_AREA_SPARE_PARTS_AREA', 90),
+        ('MNT_ZONE', 'SP_C2', N'C2', N'C2', 'WH_AREA_SPARE_PARTS_AREA', 100),
+        ('MNT_ZONE', 'SP_C3', N'C3', N'C3', 'WH_AREA_SPARE_PARTS_AREA', 110),
+        ('MNT_ZONE', 'SP_D1', N'D1', N'D1', 'WH_AREA_SPARE_PARTS_AREA', 120),
+        ('MNT_ZONE', 'SP_D2', N'D2', N'D2', 'WH_AREA_SPARE_PARTS_AREA', 130),
+        ('MNT_ZONE', 'SP_D3', N'D3', N'D3', 'WH_AREA_SPARE_PARTS_AREA', 140),
+        ('MNT_ZONE', 'SP_E1', N'E1', N'E1', 'WH_AREA_SPARE_PARTS_AREA', 150),
+        ('MNT_ZONE', 'SP_E2', N'E2', N'E2', 'WH_AREA_SPARE_PARTS_AREA', 160),
+        ('MNT_ZONE', 'SP_E3', N'E3', N'E3', 'WH_AREA_SPARE_PARTS_AREA', 170),
+        ('MNT_ZONE', 'SP_F1', N'F1', N'F1', 'WH_AREA_SPARE_PARTS_AREA', 180),
+        ('MNT_ZONE', 'SP_F2', N'F2', N'F2', 'WH_AREA_SPARE_PARTS_AREA', 190),
+        ('MNT_ZONE', 'SP_F3', N'F3', N'F3', 'WH_AREA_SPARE_PARTS_AREA', 200),
+        ('MNT_ZONE', 'SP_R_RACKS_1', N'R/Racks-1', N'R/Racks-1', 'WH_AREA_SPARE_PARTS_AREA', 210),
+        ('MNT_ZONE', 'SP_R_RACKS_2', N'R/Racks-2', N'R/Racks-2', 'WH_AREA_SPARE_PARTS_AREA', 220),
+        ('MNT_ZONE', 'SP_C_RACK_1', N'C/Rack-1', N'C/Rack-1', 'WH_AREA_SPARE_PARTS_AREA', 230),
+        ('MNT_ZONE', 'SP_FL1', N'FL1', N'FL1', 'WH_AREA_SPARE_PARTS_AREA', 240),
+        ('MNT_ZONE', 'SP_FL2', N'FL2', N'FL2', 'WH_AREA_SPARE_PARTS_AREA', 250),
+        ('MNT_ZONE', 'SP_FL3', N'FL3', N'FL3', 'WH_AREA_SPARE_PARTS_AREA', 260),
+        ('MNT_ZONE', 'SP_FL4', N'FL4', N'FL4', 'WH_AREA_SPARE_PARTS_AREA', 270),
+        ('MNT_ZONE', 'SP_EXTRA', N'Extra', N'Extra', 'WH_AREA_SPARE_PARTS_AREA', 280),
+        ('MNT_SLOT', '01', N'1층', N'Level 1', NULL, 10),
+        ('MNT_SLOT', '02', N'2층', N'Level 2', NULL, 20),
+        ('MNT_SLOT', '03', N'3층', N'Level 3', NULL, 30),
+        ('MNT_SLOT', '04', N'4층', N'Level 4', NULL, 40),
+        ('MNT_SLOT', '05', N'5층', N'Level 5', NULL, 50);
 
     MERGE dbo.MD_CodeItem AS T
     USING @LocationCodes AS S
@@ -281,13 +287,17 @@ BEGIN
          S.CodeName, S.CodeNameEn, S.ParentCodeID, S.SortOrder, 1,
          'pda-seed', SYSDATETIME());
 
+    DELETE FROM dbo.MD_CodeItem
+     WHERE GroupCode = 'WH_ZONE'
+       AND ParentCodeID = 'WH_AREA_SPARE_PARTS_AREA';
+
     IF OBJECT_ID(N'dbo.WH_AreaSection', N'U') IS NOT NULL
     BEGIN
         MERGE dbo.WH_AreaSection AS T
         USING (
             SELECT CodeValue AS SectionCode, CodeName AS SectionName
             FROM @LocationCodes
-            WHERE GroupCode = 'WH_ZONE'
+            WHERE GroupCode = 'MNT_ZONE'
         ) AS S
            ON T.AreaCode = 'SPARE_PARTS_AREA' AND T.SectionCode = S.SectionCode
         WHEN MATCHED THEN UPDATE SET
@@ -390,150 +400,60 @@ END;
 GO
 
 -- =====================================================================
---  Spare Parts samples from 260914_Tools & Storage Plan
+--  Spare Parts PDA test master (production rows come from MD_SparePart)
 -- =====================================================================
-IF OBJECT_ID(N'dbo.MD_Item', N'U') IS NOT NULL
-BEGIN
-    DECLARE @SpareItems TABLE
-    (
-        ItemNo varchar(20) PRIMARY KEY,
-        ItemName nvarchar(80),
-        SparePartNo nvarchar(80),
-        Category varchar(30),
-        Equipment nvarchar(80),
-        Maker nvarchar(80),
-        SafetyQty decimal(14,4)
-    );
-
-    INSERT INTO @SpareItems VALUES
-        ('PRCDTP7HLQK15', N'Pendant', N'DTP7H-LQKC405_15M', 'A-Robot & Servo Parts', N'Injection', N'Yaskawa', 2),
-        ('PAXVPS6102VNAM', N'Vacuum Sensor', N'MPS-V9M-NCA DC24V', 'I-Pneumatic Parts', N'Injection', N'Myotoku / CONVUM', 2),
-        ('PAXVAV015HS888', N'Vacuum Pump #15', N'VACUUM_PUMP(MCV-015HS-L6)', 'I-Pneumatic Parts', N'Injection', NULL, 1),
-        ('PAXVAV020HS888', N'Vacuum Pump #20', N'VACUUM_PUMP(AV-20HS)', 'I-Pneumatic Parts', N'Injection', NULL, 1),
-        ('MF130BAA4030ZZ0', N'Sol Valve Assy', N'SOL_VALVE_ASSY', 'I-Pneumatic Parts', N'Injection', NULL, 2),
-        ('PBD1612BATT008', N'Brake Board', N'BATTERY_BOARD(1612_BATT_00)', 'A-Robot & Servo Parts', N'Injection', N'Yaskawa', 2),
-        ('PBD1612BATT009', N'Brake Board', N'BATTERY_BOARD(1612_BATT_00)', 'A-Robot & Servo Parts', N'Injection', N'Yaskawa', 2),
-        ('PSPPGB10088888', N'Gas Filling Machine', N'GAS_BOOSTER(PGB-100)', 'A-Robot & Servo Parts', N'Injection', NULL, 1),
-        ('PSPTSL1500225HY', N'Gas Cylinder', N'GAS_SPRING(TSL1500*225-HY)', 'A-Robot & Servo Parts', N'Injection', NULL, 3);
-
-    MERGE dbo.MD_Item AS T
-    USING @SpareItems AS S ON T.ItemNo = S.ItemNo
-    WHEN MATCHED THEN UPDATE SET
-        ItemName = S.ItemName, ItemType = 'SPARE', ItemCategory = S.Category,
-        SparePartNo = S.SparePartNo, ApplicableEquipment = S.Equipment, MakerName = S.Maker,
-        DefaultUOM = 'EA', SafetyStock = S.SafetyQty, ActiveFlag = 1,
-        ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME()
-    WHEN NOT MATCHED THEN INSERT
-        (ItemNo, ItemName, ItemType, ItemCategory, SparePartNo, ApplicableEquipment, MakerName,
-         DefaultUOM, SafetyStock, ActiveFlag, CreatedBy, CreatedTS)
-    VALUES
-        (S.ItemNo, S.ItemName, 'SPARE', S.Category, S.SparePartNo, S.Equipment, S.Maker,
-         'EA', S.SafetyQty, 1, N'pda-seed', SYSDATETIME());
-END;
-
 IF OBJECT_ID(N'dbo.MD_Vendor', N'U') IS NOT NULL
 BEGIN
     MERGE dbo.MD_Vendor AS T
-    USING (SELECT CAST('NAU_ROBOTICS' AS varchar(20)) VendorID, CAST(N'NAU ROBOTICS' AS nvarchar(80)) VendorName) S
-       ON T.VendorID = S.VendorID
-    WHEN MATCHED THEN UPDATE SET VendorName = S.VendorName, ActiveFlag = 1,
-        ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME()
-    WHEN NOT MATCHED THEN INSERT (VendorID, VendorName, VendorType, VendorCategory, ActiveFlag, CreatedBy, CreatedTS)
-        VALUES (S.VendorID, S.VendorName, 'LOCAL', N'Spare Parts', 1, N'pda-seed', SYSDATETIME());
+    USING (VALUES
+        (CONVERT(varchar(20), 'SP-DEMO-V01'), CONVERT(nvarchar(80), N'Demo Spare Parts Supply'))
+    ) AS S(VendorID, VendorName) ON T.VendorID = S.VendorID
+    WHEN MATCHED THEN UPDATE SET
+        VendorName = S.VendorName, VendorType = 'SUPPLIER', VendorCategory = N'Spare Parts',
+        ActiveFlag = 1, ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME()
+    WHEN NOT MATCHED THEN INSERT
+        (VendorID, VendorName, VendorType, VendorCategory, ActiveFlag, CreatedBy, CreatedTS)
+    VALUES
+        (S.VendorID, S.VendorName, 'SUPPLIER', N'Spare Parts', 1, N'pda-seed', SYSDATETIME());
+END;
+GO
+
+IF OBJECT_ID(N'dbo.MD_SparePart', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM dbo.MD_SparePart WHERE SparePartNo = 'EOS-SP-K9-269999')
+BEGIN
+    INSERT INTO dbo.MD_SparePart
+        (SparePartNo, Category, ApplicableEquip, PartNo, PartName, Maker, UOM, OnHandQty,
+         SafetyStock, SupplierID, ZoneCode, Slot, ActiveFlag, CreatedBy, CreatedTS)
+    VALUES
+        ('EOS-SP-K9-269999', 'K', '9', 'PDA-SP-TEST-001', N'PDA Spare Parts Test', N'DEMO INDUSTRIAL', 'EA', 1,
+         1, 'SP-DEMO-V01', 'SP_EXTRA', NULL, 1, N'pda-seed', SYSDATETIME());
 END;
 
-IF OBJECT_ID(N'dbo.tbl_Lot', N'U') IS NOT NULL
+IF OBJECT_ID(N'dbo.MD_SparePart', N'U') IS NOT NULL
 BEGIN
-    DECLARE @SpareLots TABLE
-    (
-        LotCode varchar(40) PRIMARY KEY,
-        ItemNo varchar(20),
-        LocationID varchar(20),
-        IsReceived bit
-    );
+    DECLARE @SparePartSource TABLE (PartNo varchar(20), Maker nvarchar(100));
+    INSERT INTO @SparePartSource VALUES
+        ('SP-BRG-6204', N'DEMO MOTION'),
+        ('SP-BRG-6206', N'DEMO MOTION'),
+        ('SP-SEAL-32', N'DEMO MOTION'),
+        ('SP-SEAL-50', N'DEMO MOTION'),
+        ('SP-FLT-HYD', N'DEMO INDUSTRIAL'),
+        ('SP-FLT-AIR', N'DEMO INDUSTRIAL'),
+        ('SP-HTR-2KW', N'DEMO CONTROLS'),
+        ('SP-SENS-PT100', N'DEMO CONTROLS'),
+        ('SP-MOT-1HP', N'DEMO CONTROLS'),
+        ('SP-OIL-46', N'DEMO INDUSTRIAL'),
+        ('SP-GREASE-EP', N'DEMO INDUSTRIAL'),
+        ('SP-FUSE-25A', N'DEMO CONTROLS'),
+        ('PDA-SP-TEST-001', N'DEMO INDUSTRIAL');
 
-    INSERT INTO @SpareLots VALUES
-        ('EOS-SP-A1-260001', 'PRCDTP7HLQK15', 'SP-CAB1-03', 1),
-        ('EOS-SP-A1-260002', 'PRCDTP7HLQK15', 'SP-CAB1-03', 1),
-        ('EOS-SP-I1-260001', 'PAXVPS6102VNAM', 'SP-C1-03', 1),
-        ('EOS-SP-I1-260002', 'PAXVPS6102VNAM', 'SP-C1-03', 1),
-        ('EOS-SP-I1-260003', 'PAXVAV015HS888', 'SP-C1-03', 1),
-        ('EOS-SP-I1-260004', 'PAXVAV020HS888', 'SP-C1-03', 1),
-        ('EOS-SP-I1-260005', 'MF130BAA4030ZZ0', 'SP-C1-02', 1),
-        ('EOS-SP-I1-260006', 'MF130BAA4030ZZ0', 'SP-C1-02', 1),
-        ('EOS-SP-A1-260003', 'PBD1612BATT008', 'SP-CAB1-01', 1),
-        ('EOS-SP-A1-260004', 'PBD1612BATT009', 'SP-CAB1-01', 1),
-        ('EOS-SP-A1-260005', 'PSPPGB10088888', 'SP-CAB1-01', 1),
-        ('EOS-SP-A1-260006', 'PSPTSL1500225HY', 'SP-CAB1-01', 1),
-        ('EOS-SP-A1-260007', 'PSPTSL1500225HY', 'SP-CAB1-01', 1),
-        ('EOS-SP-A1-260008', 'PSPTSL1500225HY', 'SP-CAB1-01', 1),
-        ('EOS-SP-A1-260009', 'PRCDTP7HLQK15', NULL, 0);
-
-    MERGE dbo.tbl_Lot AS T
-    USING @SpareLots AS S ON T.LotCode = S.LotCode
-    WHEN MATCHED THEN UPDATE SET
-        ItemNo = S.ItemNo, ProcessCode = 'LOCAL', BatchSize = 1, RemainingQty = 1,
-        Status = CASE WHEN S.IsReceived = 1 THEN 'Received' ELSE 'Open' END,
-        InventoryStatus = CASE WHEN S.IsReceived = 1 THEN 'RECEIVED' ELSE 'CREATED' END,
-        CurrentLocationID = S.LocationID, ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME()
-    WHEN NOT MATCHED THEN INSERT
-        (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt, Status,
-         InventoryStatus, CurrentLocationID, CreatedBy, CreatedTS)
-    VALUES
-        (S.LotCode, S.ItemNo, 'LOCAL', 1, 1, DATEADD(day, -1, SYSDATETIME()),
-         CASE WHEN S.IsReceived = 1 THEN 'Received' ELSE 'Open' END,
-         CASE WHEN S.IsReceived = 1 THEN 'RECEIVED' ELSE 'CREATED' END,
-         S.LocationID, N'pda-seed', SYSDATETIME());
-
-    IF OBJECT_ID(N'dbo.WH_InboundPackage', N'U') IS NOT NULL
-    BEGIN
-        MERGE dbo.WH_InboundPackage AS T
-        USING
-        (
-            SELECT L.LotID, S.LotCode, S.ItemNo, S.IsReceived
-            FROM @SpareLots S
-            JOIN dbo.tbl_Lot L ON L.LotCode = S.LotCode
-        ) AS S ON T.BoxBarcode = S.LotCode
-        WHEN MATCHED THEN UPDATE SET
-            ReceiveType = N'LOCAL', DocumentBarcode = N'SP-PLAN-260914', DocumentNo = N'SP-PLAN-260914',
-            VendorID = 'NAU_ROBOTICS', LotID = S.LotID, ItemNo = S.ItemNo, Qty = 1, UnitCode = 'EA',
-            Status = CASE WHEN S.IsReceived = 1 THEN N'Received' ELSE N'Open' END,
-            ReceivedAt = CASE WHEN S.IsReceived = 1 THEN COALESCE(T.ReceivedAt, SYSDATETIME()) ELSE NULL END,
-            ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME()
-        WHEN NOT MATCHED THEN INSERT
-            (ReceiveType, DocumentBarcode, DocumentNo, VendorID, BoxBarcode, LotID, ItemNo,
-             Qty, UnitCode, ProductionDate, Status, ReceivedAt, CreatedBy, CreatedTS)
-        VALUES
-            (N'LOCAL', N'SP-PLAN-260914', N'SP-PLAN-260914', 'NAU_ROBOTICS', S.LotCode, S.LotID, S.ItemNo,
-             1, 'EA', CONVERT(date, DATEADD(day, -1, SYSDATETIME())),
-             CASE WHEN S.IsReceived = 1 THEN N'Received' ELSE N'Open' END,
-             CASE WHEN S.IsReceived = 1 THEN SYSDATETIME() ELSE NULL END, N'pda-seed', SYSDATETIME());
-    END;
-
-    IF OBJECT_ID(N'dbo.WH_Inventory', N'U') IS NOT NULL
-    BEGIN
-        MERGE dbo.WH_Inventory AS T
-        USING
-        (
-            SELECT L.LotID, S.ItemNo, S.LocationID
-            FROM @SpareLots S
-            JOIN dbo.tbl_Lot L ON L.LotCode = S.LotCode
-            WHERE S.IsReceived = 1
-        ) AS S ON T.LotID = S.LotID
-        WHEN MATCHED THEN UPDATE SET
-            ItemNo = S.ItemNo, LocationID = S.LocationID, OnHandQty = 1, ReservedQty = 0,
-            LastReceivedAt = SYSDATETIME(), Status = 'Received',
-            ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME()
-        WHEN NOT MATCHED THEN INSERT
-            (ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt, Status, CreatedBy, CreatedTS)
-        VALUES
-            (S.ItemNo, S.LocationID, S.LotID, 1, 0, SYSDATETIME(), 'Received', N'pda-seed', SYSDATETIME());
-
-        DELETE I
-        FROM dbo.WH_Inventory I
-        JOIN dbo.tbl_Lot L ON L.LotID = I.LotID
-        WHERE L.LotCode = 'EOS-SP-A1-260009';
-    END;
+    UPDATE P
+       SET P.Maker = S.Maker,
+           P.SupplierID = 'SP-DEMO-V01',
+           P.ModifiedBy = N'pda-seed',
+           P.ModifiedTS = SYSDATETIME()
+      FROM dbo.MD_SparePart P
+      JOIN @SparePartSource S ON S.PartNo = P.PartNo;
 END;
 GO
 

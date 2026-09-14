@@ -336,6 +336,44 @@
     </div>
 }
 
+@* ── MC(금형 교체) 블록 수정 모달 — PP-003 이 만든 블록의 시각·소요분만 손본다. 뒤따르는 WO 슬롯은 따로 편집 ── *@
+@if (_showMcModal && _editMc is { } mcEdit)
+{
+    <div class="ames-modal-bg" @onmousedown="OnMcModalBgDown" @onclick="OnMcModalBgClick">
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["PP.LineSchedule.Mc.EditTitle"]</div>
+
+            <RadzenStack Orientation="Orientation.Vertical" Gap="0.75rem" Style="width:100%;">
+                <div>
+                    <RadzenLabel Text="@L["PP.LineSchedule.Mc.Mold"]" />
+                    <div class="code" style="padding:6px 0 2px;">@(string.IsNullOrWhiteSpace(mcEdit.Title) ? (mcEdit.MoldId ?? "—") : mcEdit.Title)</div>
+                </div>
+                <RadzenRow Gap="8px">
+                    <RadzenColumn Size="6">
+                        <RadzenLabel Text="@L["PP.LineSchedule.Lbl.StartTime"]" />
+                        <RadzenDatePicker TValue="DateTime?" @bind-Value="McStartDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    </RadzenColumn>
+                    <RadzenColumn Size="6">
+                        <RadzenLabel Text="@L["PP.LineSchedule.Lbl.Duration"]" />
+                        <RadzenNumeric TValue="int" @bind-Value="_mcDurMin" Min="1" Max="1440" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    </RadzenColumn>
+                </RadzenRow>
+            </RadzenStack>
+
+            @if (!string.IsNullOrEmpty(_mcModalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_mcModalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["PP.LineSchedule.Btn.Update"]" Icon="check" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="@SaveMc" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@DeleteEditingMc" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseMcModal" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
 @* ── 초기화(삭제) 확인 ─────────────────────────────────────────────── *@
 @if (_confirmReset)
 {
@@ -459,6 +497,23 @@
             __b.OpenElement(114, "span"); __b.AddAttribute(115, "class", "pp-blk-s"); __b.AddContent(116, $"{wMin}{L["Lbl.Min"]}"); __b.CloseElement();
             __b.CloseElement();
         }
+        // 금형 교체(MC) 블록 — WO 레인(하단 반절), 보라. PP-003 이 만들고 클릭하면 시각·소요분 수정/삭제(WO 삭제 시에도 같이 없어진다)
+        foreach (var mc in _mcBlocks)
+        {
+            if (mc.StartMin >= mc.EndMin) continue;
+            int rlo = Rel(mc.StartMin), rhi = RelEnd(mc.EndMin);
+            if (rhi <= rlo) continue;
+            var capMc = mc; int wMin = mc.EndMin - mc.StartMin;
+            string mcCls = "pp-gantt-mc" + (Editable ? " editable" : "") + (_editMcId == mc.Id ? " sel" : "");
+            string label = string.IsNullOrWhiteSpace(mc.Title) ? "MC" : mc.Title!;
+            string range = $"{MinToTime(mc.StartMin)}~{MinToTime(mc.EndMin)}";
+            __b.OpenElement(120, "div"); __b.AddAttribute(121, "class", mcCls); __b.AddAttribute(122, "style", $"left:{LeftPct(rlo)};width:{WidthPct(rlo, rhi)};padding:0;top:50%;height:calc(50% - 4px);");
+            __b.AddAttribute(123, "title", $"{L["PP.LineSchedule.Mc.Name"]} {label}\n{range}  ({wMin}{L["Lbl.Min"]})");
+            if (Editable) __b.AddAttribute(124, "onclick", EventCallback.Factory.Create(this, () => EditMc(capMc.Id)));
+            __b.OpenElement(125, "span"); __b.AddAttribute(126, "class", "pp-blk-t"); __b.AddContent(127, label); __b.CloseElement();
+            __b.OpenElement(128, "span"); __b.AddAttribute(129, "class", "pp-blk-s"); __b.AddContent(130, $"{wMin}{L["Lbl.Min"]}"); __b.CloseElement();
+            __b.CloseElement();
+        }
         NowLine(85);
         __b.CloseElement(); // 스케줄 행 (밴드 + WO 오버레이)
 
@@ -477,6 +532,7 @@
     List<MasterDataRepository.CodeItemRow>          _schedStatuses = new();  // 공통코드 SCHEDULE_STATUS
     List<LineScheduleRepository.WoRow>              _lineWos     = new();
     List<StagedWo>                                  _slots       = new();
+    List<McBlock>                                   _mcBlocks    = new();
 
     string    _lineId    = "";
     DateTime  _date      = DateTime.Today;
@@ -523,11 +579,22 @@
     string       _pmModalErr = "";
     bool         _pmModalBgDown;
 
+    // ── MC(금형 교체) 블록 수정 스테이징 — 적용/발행 때 SaveSchedule 이 반영 ──
+    bool     _showMcModal;
+    int?     _editMcId;
+    TimeOnly _mcStartTime = new(9, 0);
+    int      _mcDurMin = 30;
+    string   _mcModalErr = "";
+    bool     _mcModalBgDown;
+    McBlock? _editMc => _editMcId is int mid ? _mcBlocks.FirstOrDefault(m => m.Id == mid) : null;
+
     int _dayStart = 6 * 60;   // 하루 시작 분(= 첫 교대 시작, 축이 A→B→C 순이 되도록)
     string _err = "", _msg = "";
 
-    record StagedWo(int WoId, string WoNumber, string? ItemName, int StartMin, int EndMin, decimal Qty);
+    record StagedWo(int WoId, string WoNumber, string? ItemName, int StartMin, int EndMin, decimal Qty, string? MoldId = null);
     record PmBand(int Id, int StartMin, int EndMin, string? Title, string? RefType, int? RefId, string? RefLabel);
+    /// <summary>금형 교체 블록(EntryType MC). PP-003 이 만들며 보드는 표시·보존만 한다. WoRefId 의 WO 슬롯을 지우면 같이 없어진다.</summary>
+    record McBlock(int Id, int StartMin, int EndMin, string? Title, int? WoRefId, string? MoldId);
     record Band(int StartMin, int EndMin, string State, string? Shift);
 
     // ── Computed ─────────────────────────────────────────────────────────
@@ -557,17 +624,19 @@
         }
     }
 
-    // [start,end] 에서 PM 밴드 구간들을 뺀 잔여 구간 목록 (겹치는 PM 다수도 병합 처리)
+    // [start,end] 에서 PM 밴드 구간들을 뺀 잔여 구간 목록 (겹치는 구간 다수도 병합 처리).
+    // MC(금형 교체)는 여기서 빼지 않는다 — 가동을 깎는 게 아니라 WO 처럼 부하(WoLoadMin)다. 서버 ReadDayCapacity·발행 스냅샷과 같은 정의.
     IEnumerable<(int Start, int End)> SubtractPm(int start, int end)
     {
-        var pms = _pmBands.Where(p => p.EndMin > p.StartMin && Overlap(start, end, p.StartMin, p.EndMin))
-                          .OrderBy(p => p.StartMin).ToList();
+        var busy = _pmBands.Where(p => p.EndMin > p.StartMin).Select(p => (S: p.StartMin, E: p.EndMin))
+                            .Where(b => Overlap(start, end, b.S, b.E))
+                            .OrderBy(b => b.S).ToList();
         int cur = start;
-        foreach (var p in pms)
+        foreach (var b in busy)
         {
-            int ps = Math.Max(start, p.StartMin);
+            int ps = Math.Max(start, b.S);
             if (ps > cur) yield return (cur, ps);
-            cur = Math.Max(cur, Math.Min(end, p.EndMin));
+            cur = Math.Max(cur, Math.Min(end, b.E));
         }
         if (cur < end) yield return (cur, end);
     }
@@ -578,7 +647,8 @@
 
     int     OperatingMin => EffectiveBands.Where(b => b.State == "OPERATING").Sum(b => b.EndMin - b.StartMin);
     int     DowntimeMin  => Bands.Where(b => b.State is "PLANNED_DOWNTIME" or "BREAK").Sum(b => b.EndMin - b.StartMin);
-    int     WoLoadMin    => _slots.Sum(s => s.EndMin - s.StartMin);
+    int     McLoadMin    => _mcBlocks.Sum(m => m.EndMin - m.StartMin);
+    int     WoLoadMin    => _slots.Sum(s => s.EndMin - s.StartMin) + McLoadMin;   // MC 는 부하 — 서버 DayCapacity.WoLoadMin 과 같은 정의
     int     RemainMin    => OperatingMin - WoLoadMin;
     int     Utilization  => OperatingMin > 0 ? Math.Min(999, WoLoadMin * 100 / OperatingMin) : 0;
     decimal PlannedQty   => _slots.Sum(s => s.Qty);
@@ -596,6 +666,7 @@
             {
                 if (!InsideOperating(ord[i].StartMin, ord[i].EndMin)) set.Add(ord[i].WoId);
                 if (_pmBands.Any(p => Overlap(ord[i].StartMin, ord[i].EndMin, p.StartMin, p.EndMin))) set.Add(ord[i].WoId);
+                if (_mcBlocks.Any(m => Overlap(ord[i].StartMin, ord[i].EndMin, m.StartMin, m.EndMin))) set.Add(ord[i].WoId);
                 for (int j = i + 1; j < ord.Count; j++)
                 {
                     if (ord[j].StartMin >= ord[i].EndMin) break;
@@ -661,6 +732,13 @@
         set => _pmStartTime = value.HasValue ? TimeOnly.FromDateTime(value.Value) : _pmStartTime;
     }
 
+    // MC 시작시각 어댑터 — 백킹은 _mcStartTime(TimeOnly)
+    DateTime? McStartDt
+    {
+        get => DateTime.Today.Add(_mcStartTime.ToTimeSpan());
+        set => _mcStartTime = value.HasValue ? TimeOnly.FromDateTime(value.Value) : _mcStartTime;
+    }
+
     // WO 콤보(문자열 값) ↔ _placeWoId(int) 어댑터
     string _placeWoIdStr
     {
@@ -710,7 +788,7 @@
 
     void LoadData()
     {
-        _err = ""; _slots = new(); _segments = new(); _pmBands = new();
+        _err = ""; _slots = new(); _segments = new(); _pmBands = new(); _mcBlocks = new();
         _patternId = ""; _savedStatus = null; _publishedAt = null; _publishedBy = null; _dirty = false;
         if (string.IsNullOrEmpty(_lineId)) { _lineWos = new(); _pmCandidates = new(); ResetPlaceForm(); return; }
         try
@@ -722,12 +800,15 @@
             _savedStatus = rows.FirstOrDefault()?.Status;
             _publishedAt = rows.FirstOrDefault(r => r.PublishedAt.HasValue)?.PublishedAt;
             _publishedBy = rows.FirstOrDefault(r => r.PublishedBy != null)?.PublishedBy;
-            _slots = rows.Where(r => r.EntryType != "PM" && r.WoId.HasValue && r.EndMin > r.StartMin)
-                         .Select(r => new StagedWo(r.WoId!.Value, r.WoNumber ?? $"#{r.WoId}", r.ItemName, r.StartMin, r.EndMin, r.PlannedQty))
+            _slots = rows.Where(r => r.EntryType is not ("PM" or "MC") && r.WoId.HasValue && r.EndMin > r.StartMin)
+                         .Select(r => new StagedWo(r.WoId!.Value, r.WoNumber ?? $"#{r.WoId}", r.ItemName, r.StartMin, r.EndMin, r.PlannedQty, r.MoldId))
                          .ToList();
             _pmBands = rows.Where(r => r.EntryType == "PM" && r.EndMin > r.StartMin)
                            .Select(r => new PmBand(r.ScheduleId, r.StartMin, r.EndMin, r.Title, r.RefType, r.RefId, PmRefLabel(r.RefType, r.RefId)))
                            .ToList();
+            _mcBlocks = rows.Where(r => r.EntryType == "MC" && r.EndMin > r.StartMin)
+                            .Select(r => new McBlock(r.ScheduleId, r.StartMin, r.EndMin, r.Title, r.RefType == "WO" ? r.RefId : null, r.MoldId))
+                            .ToList();
             if (!string.IsNullOrEmpty(_patternId)) LoadSegments();
             ResetPlaceForm();
         }
@@ -812,7 +893,7 @@
         {
             var wo = AvailableWos.FirstOrDefault(w => w.WoId == woId);
             if (wo is null) return;
-            cand.Add(new StagedWo(wo.WoId, wo.WoNumber ?? $"#{wo.WoId}", wo.ItemName ?? wo.ItemNo, startMin, endMin, _placeQty));
+            cand.Add(new StagedWo(wo.WoId, wo.WoNumber ?? $"#{wo.WoId}", wo.ItemName ?? wo.ItemNo, startMin, endMin, _placeQty, _slots.FirstOrDefault(s => s.WoId == wo.WoId)?.MoldId));
         }
 
         // 검증 (전체 후보 기준)
@@ -821,10 +902,11 @@
         var ord = cand.OrderBy(s => s.StartMin).ToList();
         for (int i = 1; i < ord.Count; i++)
             if (ord[i].StartMin < ord[i - 1].EndMin) { _modalErr = L["PP.LineSchedule.Err.Overlap"]; return; }
-        // WO는 PM 밴드와 겹칠 수 없음
-        if (cand.Any(s => _pmBands.Any(p => Overlap(s.StartMin, s.EndMin, p.StartMin, p.EndMin))))
+        // WO는 PM 밴드·MC(금형 교체) 블록과 겹칠 수 없음
+        if (cand.Any(s => _pmBands.Any(p => Overlap(s.StartMin, s.EndMin, p.StartMin, p.EndMin))
+                       || _mcBlocks.Any(m => Overlap(s.StartMin, s.EndMin, m.StartMin, m.EndMin))))
         { _modalErr = L["PP.LineSchedule.Err.Overlap"]; return; }
-        int load = cand.Sum(s => s.EndMin - s.StartMin);
+        int load = cand.Sum(s => s.EndMin - s.StartMin) + McLoadMin;
         if (load > OperatingMin)
         { _modalErr = string.Format(L["PP.LineSchedule.Err.CapOver"].Value, OperatingMin - (load - _placeDurMin), _placeDurMin); return; }
 
@@ -853,6 +935,7 @@
     {
         if (!Editable) return;
         _slots.RemoveAll(s => s.WoId == woId);
+        _mcBlocks.RemoveAll(m => m.WoRefId == woId);   // 교체 블록은 그 WO 를 위한 것 — WO 가 빠지면 같이 뺀다
         if (_editWoId == woId) ResetPlaceForm();
         _dirty = true;
     }
@@ -883,8 +966,9 @@
         if (!Editable) return;
         _modalErr = "";
         // 밴드 내 이미 배치된 슬롯의 끝(가장 늦은) 다음부터, 없으면 밴드 시작부터
-        var ends = _slots.Where(s => s.StartMin < band.EndMin && s.EndMin > band.StartMin)
-                         .Select(s => s.EndMin).ToList();
+        var ends = _slots.Where(s => s.StartMin < band.EndMin && s.EndMin > band.StartMin).Select(s => s.EndMin)
+                         .Concat(_mcBlocks.Where(m => m.StartMin < band.EndMin && m.EndMin > band.StartMin).Select(m => m.EndMin))   // MC 는 밴드를 쪼개지 않으므로 그 뒤부터 제안
+                         .ToList();
         int start = ends.Count > 0 ? Math.Max(band.StartMin, ends.Max()) : band.StartMin;
         // 남은 시간이 없으면(가득 참) 모달을 열지 않고 안내
         if (start >= band.EndMin) { ShowMsg(L["PP.LineSchedule.Msg.BandFull"].Value); return; }
@@ -1004,6 +1088,53 @@
     void OnPmModalBgDown() => _pmModalBgDown = true;
     void OnPmModalBgClick() { if (_pmModalBgDown) ClosePmModal(); _pmModalBgDown = false; }
 
+    // ── MC(금형 교체) 블록 수정 / 삭제 (메모리 스테이징) ─────────────────────
+    // PP-003 이 계획한 교체 시각·소요분을 현장 사정에 맞춰 손보는 용도. 뒤따르는 WO 슬롯은 자동으로 옮기지 않는다.
+    void EditMc(int id)
+    {
+        if (!Editable) return;
+        var m = _mcBlocks.FirstOrDefault(x => x.Id == id);
+        if (m is null) return;
+        _mcModalErr = ""; _editMcId = id;
+        _mcStartTime = new TimeOnly(m.StartMin / 60, m.StartMin % 60);
+        _mcDurMin = m.EndMin - m.StartMin;
+        _showMcModal = true;
+    }
+
+    void SaveMc()
+    {
+        _mcModalErr = "";
+        if (!Editable) { _mcModalErr = L["PP.LineSchedule.Err.PastDate"]; return; }
+        if (_editMcId is not int id) return;
+        if (_mcDurMin <= 0) { _mcModalErr = L["PP.LineSchedule.Pm.Err.NoDur"]; return; }
+
+        int startMin = _mcStartTime.Hour * 60 + _mcStartTime.Minute;
+        int endMin   = startMin + _mcDurMin;
+        // 교체는 가동시간대 안에서만, WO·PM·다른 MC 와 겹칠 수 없음 — WO 배치와 같은 규칙
+        if (!InsideOperating(startMin, endMin)) { _mcModalErr = L["PP.LineSchedule.Err.NotInOperating"]; return; }
+        if (_slots.Any(s => Overlap(startMin, endMin, s.StartMin, s.EndMin))
+            || _pmBands.Any(p => Overlap(startMin, endMin, p.StartMin, p.EndMin))
+            || _mcBlocks.Any(m => m.Id != id && Overlap(startMin, endMin, m.StartMin, m.EndMin)))
+        { _mcModalErr = L["PP.LineSchedule.Err.Overlap"]; return; }
+
+        int i = _mcBlocks.FindIndex(m => m.Id == id);
+        if (i >= 0) _mcBlocks[i] = _mcBlocks[i] with { StartMin = startMin, EndMin = endMin };
+        ShowMsg(L["PP.LineSchedule.Ok.Updated"].Value);
+        _dirty = true;
+        CloseMcModal();
+    }
+
+    // 교체가 실제로 필요 없었을 때 지운다. WO 슬롯은 남는다
+    void DeleteEditingMc()
+    {
+        if (_editMcId is int id) { _mcBlocks.RemoveAll(m => m.Id == id); _dirty = true; }
+        CloseMcModal();
+    }
+
+    void CloseMcModal() { _showMcModal = false; _mcModalErr = ""; _editMcId = null; }
+    void OnMcModalBgDown() => _mcModalBgDown = true;
+    void OnMcModalBgClick() { if (_mcModalBgDown) CloseMcModal(); _mcModalBgDown = false; }
+
     void PmRowRender(RowRenderEventArgs<PmBand> args)
     {
         if (Editable) args.Attributes["class"] = "ames-row-link";
@@ -1018,8 +1149,9 @@
         try
         {
             LSB.SaveSchedule(_lineId, _date, _patternId,
-                _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty)),
-                _pmBands.Select(p => (p.StartMin, p.EndMin, p.Title, p.RefType, p.RefId)), _actor);
+                _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty, s.MoldId)),
+                _pmBands.Select(p => (p.StartMin, p.EndMin, p.Title, p.RefType, p.RefId)), _actor,
+                _mcBlocks.Select(m => (m.StartMin, m.EndMin, m.Title, m.WoRefId, m.MoldId)));
             ShowMsg(L["PP.LineSchedule.Ok.Applied"].Value);
             LoadData();
         }
@@ -1035,8 +1167,9 @@
         try
         {
             LSB.SaveSchedule(_lineId, _date, _patternId,
-                _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty)),
-                _pmBands.Select(p => (p.StartMin, p.EndMin, p.Title, p.RefType, p.RefId)), _actor);
+                _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty, s.MoldId)),
+                _pmBands.Select(p => (p.StartMin, p.EndMin, p.Title, p.RefType, p.RefId)), _actor,
+                _mcBlocks.Select(m => (m.StartMin, m.EndMin, m.Title, m.WoRefId, m.MoldId)));
             LSB.PublishSchedule(_lineId, _date, _actor);
             ShowMsg(L["PP.LineSchedule.Ok.Published"].Value);
             LoadData();

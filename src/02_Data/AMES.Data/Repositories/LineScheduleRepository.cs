@@ -99,7 +99,8 @@ public sealed class LineScheduleRepository
         int ScheduleId, string? PatternId, int? WoId, string? WoNumber, string? ItemName,
         int StartMin, int EndMin, decimal PlannedQty, string? Status,
         DateTime? PublishedAt, string? PublishedBy,
-        string? EntryType, string? Title, string? RefType, int? RefId);
+        string? EntryType, string? Title, string? RefType, int? RefId,
+        string? MoldId = null);
 
     public List<ScheduleRow> GetSchedule(string lineId, DateTime date)
     {
@@ -109,7 +110,7 @@ public sealed class LineScheduleRepository
                    ISNULL(s.EndMin,0)     AS EndMin,
                    ISNULL(s.PlannedQty,0) AS PlannedQty,
                    s.Status, s.PublishedAt, s.PublishedBy,
-                   s.EntryType, s.Title, s.RefType, s.RefID
+                   s.EntryType, s.Title, s.RefType, s.RefID, s.MoldID
             FROM   dbo.PP_LineSchedule s
             LEFT JOIN dbo.PP_WorkOrder w ON w.WoID   = s.WoID
             LEFT JOIN dbo.MD_Item      i ON i.ItemNo = w.ItemNo
@@ -138,15 +139,17 @@ public sealed class LineScheduleRepository
                 rdr["EntryType"]   as string,
                 rdr["Title"]       as string,
                 rdr["RefType"]     as string,
-                rdr["RefID"]       as int?));
+                rdr["RefID"]       as int?,
+                rdr["MoldID"]      as string));
         return list;
     }
 
-    // 적용: (라인, 일자)의 기존 행을 지우고 패턴 + WO 배치 + PM 밴드를 Draft로 저장.
+    // 적용: (라인, 일자)의 기존 행을 지우고 패턴 + WO 배치 + PM 밴드 + 금형 교체(MC) 블록을 Draft로 저장.
     public void SaveSchedule(string lineId, DateTime date, string? patternId,
-        IEnumerable<(int WoId, int StartMin, int EndMin, decimal Qty)> slots,
+        IEnumerable<(int WoId, int StartMin, int EndMin, decimal Qty, string? MoldId)> slots,
         IEnumerable<(int StartMin, int EndMin, string? Title, string? RefType, int? RefId)> pmBands,
-        string actor)
+        string actor,
+        IEnumerable<(int StartMin, int EndMin, string? Title, int? WoRefId, string? MoldId)>? mcBlocks = null)
     {
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
@@ -162,16 +165,19 @@ public sealed class LineScheduleRepository
 
             var rows = slots.Where(s => s.EndMin > s.StartMin).ToList();
             var pms  = pmBands.Where(p => p.EndMin > p.StartMin).ToList();
+            var mcs  = (mcBlocks ?? Array.Empty<(int, int, string?, int?, string?)>()).Where(m => m.EndMin > m.StartMin).ToList();
             // 상태값은 공통코드 SCHEDULE_STATUS(DRAFT/PUBLISHED) 참조.
-            // WO·PM 모두 없어도 패턴/상태 보관용 placeholder 행 1개는 남긴다.
-            if (rows.Count == 0 && pms.Count == 0)
+            // WO·PM·MC 모두 없어도 패턴/상태 보관용 placeholder 행 1개는 남긴다.
+            if (rows.Count == 0 && pms.Count == 0 && mcs.Count == 0)
                 InsertRow(conn, tx, lineId, date, patternId, "WO", null, null, null, 0m, null, null, null, "DRAFT", actor);
             else
             {
                 foreach (var s in rows)
-                    InsertRow(conn, tx, lineId, date, patternId, "WO", s.WoId, s.StartMin, s.EndMin, s.Qty, null, null, null, "DRAFT", actor);
+                    InsertRow(conn, tx, lineId, date, patternId, "WO", s.WoId, s.StartMin, s.EndMin, s.Qty, null, null, null, "DRAFT", actor, s.MoldId);
                 foreach (var p in pms)
                     InsertRow(conn, tx, lineId, date, patternId, "PM", null, p.StartMin, p.EndMin, 0m, p.Title, p.RefType, p.RefId, "DRAFT", actor);
+                foreach (var m in mcs)
+                    InsertRow(conn, tx, lineId, date, patternId, "MC", null, m.StartMin, m.EndMin, 0m, m.Title, "WO", m.WoRefId, "DRAFT", actor, m.MoldId);
             }
 
             tx.Commit();
@@ -181,14 +187,14 @@ public sealed class LineScheduleRepository
 
     static void InsertRow(SqlConnection conn, SqlTransaction tx, string lineId, DateTime date,
         string? patternId, string entryType, int? woId, int? startMin, int? endMin, decimal qty,
-        string? title, string? refType, int? refId, string status, string actor)
+        string? title, string? refType, int? refId, string status, string actor, string? moldId = null)
     {
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.PP_LineSchedule
                    (LineID, ScheduleDate, WoID, StartMin, EndMin, PlannedQty, PatternID,
-                    EntryType, Title, RefType, RefID, Status, CreatedBy, CreatedTS)
+                    EntryType, Title, RefType, RefID, Status, MoldID, CreatedBy, CreatedTS)
             VALUES (@LineId, @Date, @WoId, @Start, @End, @Qty, @Pattern,
-                    @EntryType, @Title, @RefType, @RefID, @Status, @By, SYSDATETIME());
+                    @EntryType, @Title, @RefType, @RefID, @Status, @MoldId, @By, SYSDATETIME());
             """, conn, tx);
         cmd.Parameters.Add("@LineId",    SqlDbType.VarChar, 20).Value  = lineId;
         cmd.Parameters.Add("@Date",      SqlDbType.Date).Value         = date.Date;
@@ -202,6 +208,7 @@ public sealed class LineScheduleRepository
         cmd.Parameters.Add("@RefType",   SqlDbType.VarChar, 10).Value  = (object?)refType ?? DBNull.Value;
         cmd.Parameters.Add("@RefID",     SqlDbType.Int).Value          = (object?)refId ?? DBNull.Value;
         cmd.Parameters.Add("@Status",    SqlDbType.VarChar, 20).Value  = status;
+        cmd.Parameters.Add("@MoldId",    SqlDbType.VarChar, 20).Value  = (object?)moldId ?? DBNull.Value;
         cmd.Parameters.Add("@By",        SqlDbType.VarChar, 50).Value  = actor;
         cmd.ExecuteNonQuery();
     }
@@ -373,7 +380,8 @@ public sealed class LineScheduleRepository
         string? PatternId, int DayStart,
         IReadOnlyList<SlotPacker.Interval> OperatingBands,
         IReadOnlyList<SlotPacker.Interval> Occupied,
-        int OperatingMin, int WoLoadMin, int? LastWoEnd)
+        int OperatingMin, int WoLoadMin, int? LastWoEnd,
+        string? LastMoldId = null)
     {
         public int RemainMin => OperatingMin - WoLoadMin;
     }
@@ -407,7 +415,7 @@ public sealed class LineScheduleRepository
             WHERE  s.PatternID = @Pat
               AND  s.StartMin IS NOT NULL AND s.EndMin IS NOT NULL AND s.EndMin > s.StartMin;
 
-            SELECT s.EntryType, ISNULL(s.StartMin,0) AS StartMin, ISNULL(s.EndMin,0) AS EndMin
+            SELECT s.EntryType, ISNULL(s.StartMin,0) AS StartMin, ISNULL(s.EndMin,0) AS EndMin, s.MoldID
             FROM   dbo.PP_LineSchedule s
             WHERE  s.LineID = @LineId AND s.ScheduleDate = @Date
               AND  ISNULL(s.EndMin,0) > ISNULL(s.StartMin,0);
@@ -425,13 +433,14 @@ public sealed class LineScheduleRepository
                 segs.Add((Convert.ToInt32(rdr["StartMin"]), Convert.ToInt32(rdr["EndMin"]),
                           rdr["SegmentState"] as string ?? "", Convert.ToInt32(rdr["ShiftSort"])));
 
-        var wo = new List<SlotPacker.Interval>();
+        var wo = new List<(SlotPacker.Interval Iv, string? Mold)>();
         var pm = new List<SlotPacker.Interval>();
         if (rdr.NextResult())
             while (rdr.Read())
             {
                 var iv = new SlotPacker.Interval(Convert.ToInt32(rdr["StartMin"]), Convert.ToInt32(rdr["EndMin"]));
-                if (rdr["EntryType"] as string == "PM") pm.Add(iv); else wo.Add(iv);
+                // MC(금형 교체) 는 PM 처럼 가동을 깎는 게 아니라 WO 와 같은 부하다
+                if (rdr["EntryType"] as string == "PM") pm.Add(iv); else wo.Add((iv, rdr["MoldID"] as string));
             }
 
         // 하루 시작 = 첫 교대(SortOrder 최소)의 가장 이른 시작 — 보드 AdjustRange 와 동일
@@ -444,11 +453,15 @@ public sealed class LineScheduleRepository
         var operating = segs.Where(s => s.State == "OPERATING")
                             .Select(s => new SlotPacker.Interval(s.Start, s.End)).ToList();
         int operatingMin = operating.Sum(b => Subtract(b, pm).Sum(x => x.EndMin - x.StartMin));
-        int woLoad       = wo.Sum(w => w.EndMin - w.StartMin);
+        int woLoad       = wo.Sum(w => w.Iv.EndMin - w.Iv.StartMin);
         int Axis(int m) { int r = (m - dayStart) % 1440; return r < 0 ? r + 1440 : r; }
-        int? lastWoEnd = wo.Count == 0 ? null : wo.MaxBy(w => Axis(w.StartMin) + (w.EndMin - w.StartMin)).EndMin;
+        int AxisEnd((SlotPacker.Interval Iv, string? Mold) w) => Axis(w.Iv.StartMin) + (w.Iv.EndMin - w.Iv.StartMin);
+        int?    lastWoEnd  = wo.Count == 0 ? null : wo.MaxBy(AxisEnd).Iv.EndMin;
+        // 마지막 슬롯에 금형이 없으면(구 데이터·IMG) 그 날의 마지막 금형 있는 슬롯으로
+        string? lastMoldId = wo.Where(w => w.Mold is not null).OrderByDescending(AxisEnd).Select(w => w.Mold).FirstOrDefault();
 
-        return new DayCapacity(patternId, dayStart, operating, wo.Concat(pm).ToList(), operatingMin, woLoad, lastWoEnd);
+        return new DayCapacity(patternId, dayStart, operating, wo.Select(w => w.Iv).Concat(pm).ToList(),
+                               operatingMin, woLoad, lastWoEnd, lastMoldId);
     }
 
     // band 에서 holes 를 뺀 잔여 구간 (보드 SubtractPm 과 같은 규칙)
@@ -464,10 +477,53 @@ public sealed class LineScheduleRepository
         if (cur < band.EndMin) yield return new(cur, band.EndMin);
     }
 
+    /// <summary>
+    /// date 이전 그 라인의 마지막 금형. 금형이 기록된(WO·MC) 가장 늦은 날짜를 찾아 그 날의 LastMoldId(축 기준)를 쓰고,
+    /// 없으면 MNT_EquipmentStatus.MountedMoldID(현재 장착, Date=MinValue). 그것도 없으면 null.
+    /// </summary>
+    public (DateTime Date, string MoldId)? GetLineLastMoldBefore(string lineId, DateTime date)
+    {
+        using var conn = _f.OpenConnection();
+        return LineLastMoldBefore(conn, null, lineId, date);
+    }
+
+    internal static (DateTime Date, string MoldId)? LineLastMoldBefore(SqlConnection conn, SqlTransaction? tx, string lineId, DateTime date)
+    {
+        DateTime? lastDate;
+        using (var cmd = new SqlCommand("""
+            SELECT MAX(ScheduleDate) FROM dbo.PP_LineSchedule
+            WHERE  LineID = @LineId AND ScheduleDate < @Date AND MoldID IS NOT NULL
+              AND  EntryType IN ('WO','MC') AND ISNULL(EndMin,0) > ISNULL(StartMin,0);
+            """, conn, tx))
+        {
+            cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
+            cmd.Parameters.Add("@Date",   SqlDbType.Date).Value        = date.Date;
+            lastDate = cmd.ExecuteScalar() as DateTime?;
+        }
+        if (lastDate is DateTime ld && ReadDayCapacity(conn, tx, lineId, ld).LastMoldId is { } mold)
+            return (ld, mold);
+
+        using (var cmd = new SqlCommand("""
+            SELECT TOP 1 MountedMoldID FROM dbo.MNT_EquipmentStatus
+            WHERE  LineID = @LineId AND MountedMoldID IS NOT NULL
+            ORDER  BY ISNULL(ModifiedTS, CreatedTS) DESC, EquipStatusID DESC;
+            """, conn, tx))
+        {
+            cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
+            return cmd.ExecuteScalar() is string mounted ? (DateTime.MinValue, mounted) : null;
+        }
+    }
+
     /// <summary>호출자 트랜잭션 안에서 WO 슬롯 1행 추가(DRAFT). 그 날의 다른 행은 건드리지 않는다.</summary>
     internal static void AppendWoSlot(SqlConnection conn, SqlTransaction tx, string lineId, DateTime date,
-        string? patternId, int woId, int startMin, int endMin, decimal qty, string actor)
-        => InsertRow(conn, tx, lineId, date, patternId, "WO", woId, startMin, endMin, qty, null, null, null, "DRAFT", actor);
+        string? patternId, int woId, int startMin, int endMin, decimal qty, string? moldId, string actor)
+        => InsertRow(conn, tx, lineId, date, patternId, "WO", woId, startMin, endMin, qty, null, null, null, "DRAFT", actor, moldId);
+
+    /// <summary>금형 교체 블록 1행(EntryType MC, WoID 없음, RefType WO/RefID = 뒤따르는 WO). WO 취소 시 같이 지워진다.</summary>
+    internal static void AppendMoldChangeSlot(SqlConnection conn, SqlTransaction tx, string lineId, DateTime date,
+        string? patternId, int woId, string? fromMoldId, string toMoldId, int startMin, int endMin, string actor)
+        => InsertRow(conn, tx, lineId, date, patternId, "MC", null, startMin, endMin, 0m,
+                     $"{fromMoldId ?? ""}→{toMoldId}", "WO", woId, "DRAFT", actor, toMoldId);
 
     // 라인 배치용 WO 후보 (Released/In Progress). MD_Item 미등록 품목도 포함하도록 LEFT JOIN.
     public sealed record WoRow(int WoId, string? WoNumber, string? ItemNo, string? ItemName, decimal OpenQty, string? Status);

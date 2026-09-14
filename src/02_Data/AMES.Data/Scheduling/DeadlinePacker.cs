@@ -8,27 +8,44 @@ namespace AMES.Data.Scheduling;
 /// 잔량이 남으면 납기일까지 이어 붙인다(Late). 납기일까지도 못 넣은 수량은 Shortfall.
 /// 단계 간에는 시작 순서만 보장한다 — 뒤 단계 첫 슬롯은 앞 단계 첫 슬롯 이후(같은 날 시작 가능, 수량 흐름은 보지 않는다).
 /// 능력은 IDayState 로 받고 배치할 때마다 Occupy 로 누적해, 같은 배치의 다음 WO 가 그 자리를 다시 쓰지 않게 한다.
+/// 금형(MoldId) 이 있는 단계는 그 날 직전 금형(IDayState.LastMoldId)과 다르면 ChangeMin 만큼의 교체 블록을
+/// 생산 슬롯 앞에 먼저 잡는다 — 교체 자리가 없거나 교체 뒤 1 EA 도 못 넣으면 그 날은 건너뛴다.
+/// 앞 날 꼬리가 나중 수주로 바뀌어도 뒷 날 첫 슬롯의 교체는 소급하지 않는다(일자별 append 구조).
 /// </summary>
 public static class DeadlinePacker
 {
-    public sealed record StepDemand(int StepSeq, string LineId, decimal Qty, int? CycleSec, int? DailyCap);
-    public sealed record Placement(int StepSeq, string LineId, DateTime Date, int StartMin, int EndMin, decimal Qty, bool Late);
+    public sealed record StepDemand(int StepSeq, string LineId, decimal Qty, int? CycleSec, int? DailyCap,
+                                    string? MoldId = null, int ChangeMin = 0);
+    public sealed record Placement(int StepSeq, string LineId, DateTime Date, int StartMin, int EndMin, decimal Qty, bool Late,
+                                   string? MoldId = null);
+    public sealed record MoldChange(int StepSeq, string LineId, DateTime Date, int StartMin, int EndMin,
+                                    string? FromMoldId, string ToMoldId, bool Late);
     public sealed record StepShortfall(int StepSeq, string LineId, decimal Qty);
-    public sealed record Result(IReadOnlyList<Placement> Placements, IReadOnlyList<StepShortfall> Shortfalls);
+    public sealed record Result(IReadOnlyList<Placement> Placements, IReadOnlyList<StepShortfall> Shortfalls,
+                                IReadOnlyList<MoldChange> MoldChanges);
 
     public interface IDayState
     {
         LineScheduleRepository.DayCapacity Get(string lineId, DateTime date);
-        void Occupy(string lineId, DateTime date, Interval slot);
+        /// <summary>그 날 마지막 슬롯의 금형. 그 날 슬롯이 없으면 그 라인의 이전 날짜 마지막 금형 → 장착 금형 → null.</summary>
+        string? LastMoldId(string lineId, DateTime date);
+        void Occupy(string lineId, DateTime date, Interval slot, string? moldId);
     }
 
     /// <summary>(라인, 날짜) 당 한 번만 읽고 이후는 메모리에 누적. 조회 횟수는 실제 배치된 일수에 비례한다.</summary>
     public sealed class DayStateCache : IDayState
     {
         readonly Func<string, DateTime, LineScheduleRepository.DayCapacity> _load;
+        readonly Func<string, DateTime, (DateTime Date, string MoldId)?> _lastMoldBefore;
         readonly Dictionary<(string Line, DateTime Date), LineScheduleRepository.DayCapacity> _days = new();
 
-        public DayStateCache(Func<string, DateTime, LineScheduleRepository.DayCapacity> load) => _load = load;
+        /// <param name="lastMoldBefore">(라인, 날짜) 이전의 마지막 금형과 그 날짜 — DB 조회. 장착 금형 폴백은 Date=MinValue.</param>
+        public DayStateCache(Func<string, DateTime, LineScheduleRepository.DayCapacity> load,
+                             Func<string, DateTime, (DateTime Date, string MoldId)?>? lastMoldBefore = null)
+        {
+            _load = load;
+            _lastMoldBefore = lastMoldBefore ?? ((_, _) => null);
+        }
 
         public LineScheduleRepository.DayCapacity Get(string lineId, DateTime date)
         {
@@ -37,14 +54,30 @@ public static class DeadlinePacker
             return cap;
         }
 
-        public void Occupy(string lineId, DateTime date, Interval slot)
+        public string? LastMoldId(string lineId, DateTime date)
+        {
+            date = date.Date;
+            if (Get(lineId, date).LastMoldId is { } sameDay) return sameDay;
+            // 이 배치에서 이미 채운 앞 날(캐시)과 DB 의 이전 날짜 중 더 늦은 쪽 — 같은 날짜면 캐시(메모리 누적분 포함)
+            (DateTime Date, string MoldId)? cached = null;
+            foreach (var kv in _days)
+                if (kv.Key.Line == lineId && kv.Key.Date < date && kv.Value.LastMoldId is { } m &&
+                    (cached is null || kv.Key.Date > cached.Value.Date))
+                    cached = (kv.Key.Date, m);
+            var db = _lastMoldBefore(lineId, date);
+            if (cached is { } c && (db is null || c.Date >= db.Value.Date)) return c.MoldId;
+            return db?.MoldId;
+        }
+
+        public void Occupy(string lineId, DateTime date, Interval slot, string? moldId)
         {
             var cap = Get(lineId, date);
             _days[(lineId, date.Date)] = cap with
             {
-                Occupied  = cap.Occupied.Append(slot).ToList(),
-                WoLoadMin = cap.WoLoadMin + (slot.EndMin - slot.StartMin),
-                LastWoEnd = Later(cap.DayStart, cap.LastWoEnd, slot.EndMin),
+                Occupied   = cap.Occupied.Append(slot).ToList(),
+                WoLoadMin  = cap.WoLoadMin + (slot.EndMin - slot.StartMin),
+                LastWoEnd  = Later(cap.DayStart, cap.LastWoEnd, slot.EndMin),
+                LastMoldId = moldId ?? cap.LastMoldId,
             };
         }
     }
@@ -53,8 +86,9 @@ public static class DeadlinePacker
                               DateTime? deadline, DateTime? dueDate, WorkdayCalendar cal, IDayState days)
     {
         today = today.Date;
-        var placements = new List<Placement>();
-        var shortfalls = new List<StepShortfall>();
+        var placements  = new List<Placement>();
+        var shortfalls  = new List<StepShortfall>();
+        var moldChanges = new List<MoldChange>();
         // 탐색 상한 — 납기일. 없으면 마감일, 그것도 없으면 60일 (무한 루프 방지)
         var horizon = (dueDate ?? deadline ?? today.AddDays(60)).Date;
         // 납기가 이미 지난 수주는 상한이 오늘 앞이라 한 슬롯도 못 놓는다 — "최대한 빨리" 로 보고 60일 안에 전량 Late 로 넣는다
@@ -83,33 +117,61 @@ public static class DeadlinePacker
                 if (date == today && nowMinOfToday >= cap.DayStart) notBefore = Later(cap.DayStart, notBefore, nowMinOfToday);
                 bool late = deadline is DateTime dl && date > dl.Date;
 
-                void Add(Interval slot, decimal qty)
+                // 금형 교체 — 직전 금형과 다르면 교체 블록을 먼저 잡고, 생산은 그 뒤부터
+                IReadOnlyList<Interval> occupied = cap.Occupied;
+                Interval? change = null;
+                string? fromMold = null;
+                if (step.MoldId is { } mold && step.ChangeMin > 0)
                 {
-                    placements.Add(new Placement(step.StepSeq, step.LineId, date, slot.StartMin, slot.EndMin, qty, late));
-                    days.Occupy(step.LineId, date, slot);
-                    firstStart ??= (date, slot.StartMin);
-                    placed    += qty;
-                    remaining -= qty;
+                    fromMold = days.LastMoldId(step.LineId, date);
+                    if (!string.Equals(fromMold, mold, StringComparison.OrdinalIgnoreCase))
+                    {
+                        change = Place(cap.OperatingBands, occupied, step.ChangeMin, cap.DayStart, notBefore);
+                        if (change is null) { date = date.AddDays(1); continue; }
+                        occupied  = occupied.Append(change.Value).ToList();
+                        notBefore = change.Value.EndMin;
+                    }
                 }
 
+                var pending = new List<(Interval Slot, decimal Qty)>();
                 if (MinutesPerEa(step, cap.OperatingMin) is not decimal minPerEa)
                 {
                     // 사이클·DailyCap 없음 — 분↔수량 환산이 없으니 60분 단일 블록으로 전량. 안 들어가면 다음 날.
-                    if (Place(cap.OperatingBands, cap.Occupied, 60, cap.DayStart, notBefore) is { } block)
-                        Add(block, remaining);
+                    if (Place(cap.OperatingBands, occupied, 60, cap.DayStart, notBefore) is { } block)
+                        pending.Add((block, remaining));
                 }
                 else
                 {
                     int wantMin  = (int)Math.Ceiling(remaining * minPerEa);
                     int chunkMin = Math.Max(1, (int)Math.Ceiling(minPerEa));
-                    foreach (var slot in FillDay(cap.OperatingBands, cap.Occupied, wantMin, cap.DayStart, notBefore, chunkMin))
+                    decimal left = remaining;
+                    foreach (var slot in FillDay(cap.OperatingBands, occupied, wantMin, cap.DayStart, notBefore, chunkMin))
                     {
-                        decimal qty = Math.Min(remaining, Math.Floor((slot.EndMin - slot.StartMin) / minPerEa));
+                        decimal qty = Math.Min(left, Math.Floor((slot.EndMin - slot.StartMin) / minPerEa));
                         if (qty <= 0) continue;
                         // 내림으로 남는 분은 슬롯을 줄여 돌려준다 — 분 올림 때문에 총 배치 시간이 늘지 않게
                         int useMin = (int)Math.Ceiling(qty * minPerEa);
-                        Add(new Interval(slot.StartMin, slot.StartMin + useMin), qty);
-                        if (remaining <= 0) break;
+                        pending.Add((new Interval(slot.StartMin, slot.StartMin + useMin), qty));
+                        left -= qty;
+                        if (left <= 0) break;
+                    }
+                }
+
+                // 교체 뒤 1 EA 도 못 넣으면 교체 블록도 내지 않는다 — 빈 교체로 하루를 잡아먹지 않게
+                if (pending.Count > 0)
+                {
+                    if (change is { } mc)
+                    {
+                        moldChanges.Add(new MoldChange(step.StepSeq, step.LineId, date, mc.StartMin, mc.EndMin, fromMold, step.MoldId!, late));
+                        days.Occupy(step.LineId, date, mc, step.MoldId);
+                    }
+                    foreach (var (slot, qty) in pending)
+                    {
+                        placements.Add(new Placement(step.StepSeq, step.LineId, date, slot.StartMin, slot.EndMin, qty, late, step.MoldId));
+                        days.Occupy(step.LineId, date, slot, step.MoldId);
+                        firstStart ??= (date, slot.StartMin);
+                        placed    += qty;
+                        remaining -= qty;
                     }
                 }
                 date = date.AddDays(1);
@@ -122,7 +184,7 @@ public static class DeadlinePacker
             if (firstStart is { } fs) prevStart = fs;
             prevPlaced = placed;
         }
-        return new Result(placements, shortfalls);
+        return new Result(placements, shortfalls, moldChanges);
     }
 
     // 분/EA: BOP 사이클 → 라인 DailyCap 비례(그 날 가동분 기준) → 없음(null = 분할 불가)
