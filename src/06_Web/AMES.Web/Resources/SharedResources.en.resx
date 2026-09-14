@@ -5313,6 +5313,12 @@
   <data name="PP.LineSchedule.Mc.Name" xml:space="preserve">
     <value>Mold change</value>
   </data>
+  <data name="PP.LineSchedule.Mc.EditTitle" xml:space="preserve">
+    <value>Edit Mold Change</value>
+  </data>
+  <data name="PP.LineSchedule.Mc.Mold" xml:space="preserve">
+    <value>Mold</value>
+  </data>
   <data name="PP.LineSchedule.Pm.Empty" xml:space="preserve">
     <value>No PM bands registered</value>
   </data>

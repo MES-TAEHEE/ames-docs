@@ -5310,6 +5310,12 @@
   <data name="PP.LineSchedule.Mc.Name" xml:space="preserve">
     <value>Cambio de molde</value>
   </data>
+  <data name="PP.LineSchedule.Mc.EditTitle" xml:space="preserve">
+    <value>Editar cambio de molde</value>
+  </data>
+  <data name="PP.LineSchedule.Mc.Mold" xml:space="preserve">
+    <value>Molde</value>
+  </data>
   <data name="PP.LineSchedule.Pm.Empty" xml:space="preserve">
     <value>Sin franjas PM registradas</value>
   </data>

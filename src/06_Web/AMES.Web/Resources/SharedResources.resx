@@ -5313,6 +5313,12 @@
   <data name="PP.LineSchedule.Mc.Name" xml:space="preserve">
     <value>금형 교체</value>
   </data>
+  <data name="PP.LineSchedule.Mc.EditTitle" xml:space="preserve">
+    <value>금형 교체 수정</value>
+  </data>
+  <data name="PP.LineSchedule.Mc.Mold" xml:space="preserve">
+    <value>금형</value>
+  </data>
   <data name="PP.LineSchedule.Pm.Empty" xml:space="preserve">
     <value>등록된 PM 밴드가 없습니다</value>
   </data>
