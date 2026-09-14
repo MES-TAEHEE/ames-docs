@@ -131,7 +131,6 @@
                         <span class="injm-chip">@T("TodayGood") <b class="ok">@_todayGood</b></span>
                         <span class="injm-chip">@T("Defect") <b class="@_defClass">@_todayDef · @_defectPct</b></span>
                         <span class="injm-chip">@T("Unconfirmed") <b class="@(_rawCount > 0 ? "warn" : "ok")">@_rawCount</b></span>
-                        <span class="injm-chip">@T("BondRecipe") <b>@_bondText</b></span>
                     </div>
                 </div>
 
@@ -209,12 +208,10 @@
     private InjItemDailyDto? SelItem =>
         _items.FirstOrDefault(x => string.Equals(x.ItemNo, _selItemNo, StringComparison.OrdinalIgnoreCase));
     private WorkOrderDto?  _activeWo;
-    private BondSetupDto?  _bond;
     private List<ImgLotDto> _lots = new();
 
     private int _pct, _todayGood, _todayDef, _rawCount;
     private string _defectPct = "0.0%", _defClass = "ok";
-    private string _bondText = "—";
     private string _eqStatus = "OFFLINE", _eqClass = "stat-off";
     private AndonCallDto? _openAndon;
     private bool _andonAutoRaise;
@@ -289,9 +286,6 @@
             _defectPct = $"{pct:0.0}%";
             _defClass  = pct >= 5 ? "bad" : pct >= 4 ? "warn" : "ok";
 
-            _bond = PopServices.Bond.GetActiveForLine(Session.LineId);
-            _bondText = _bond is null ? T("NoRecipe")
-                      : $"{_bond.RecipeId} · {_bond.TempSp:0}°C / {_bond.PressureSp:0.0}bar / {_bond.HoldSecSp}s";
 
             _lots     = PopServices.ImgLots.GetTodayLots(Session.LineId);
             _rawCount = _lots.Count(x => x.ConfirmStatus == "RAW");
@@ -379,10 +373,9 @@
                 return;
             }
 
-            // 대상 WO 는 LOT 품번으로 리포지토리가 정한다. 본딩은 확정 순간의 라인 상태를 넘긴다.
+            // 대상 WO 는 LOT 품번으로 리포지토리가 정한다.
             var (outcome, _, itemNo, woId) = PopServices.ImgLots.ConfirmByLotCode(
-                lotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo,
-                _bond);
+                lotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
             var woNumber = woId > 0 ? PopServices.WorkOrders.GetById(woId)?.WoNumber : null;
             var (ok, detail) = outcome switch
             {

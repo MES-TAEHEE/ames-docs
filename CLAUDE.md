@@ -147,7 +147,7 @@ INJ 는 `AcceptWo` 를 부르지 않으므로 `BumpStepCompleted` 가 첫 실적
 구 단독 화면(IMG-02~07, `/img02`~`/img07`)은 모두 삭제됨 (화면·도움말·레거시 WinForms 폼·전용 CSS 포함) — IMG 는 IMG-MAIN + 팝업(불량·안돈)만 남는다.
 IMG 도 INJ 와 같은 LOT 모델(1 LOT = 1 EA, RAW → CONFIRMED)을 쓰되 테이블은 별도 `PR_ImgLot`(`dist/migrate_img_lot.sql`)이고 리포지토리는 `ImgLotRepository` 다. 에이전트가 없으므로 LOT 은 **라벨 발행 버튼**이 만들고(`CreateRawLot`) 그 자리에서 `LabelPrinter.Print(ImgLotDto, shift)` 로 동기 출력한다 — `LabelDispatcher` 는 INJ 세션에서만 돌아 이중 발행이 없다.
 IMG 라벨은 INJ 양식이 아니라 **완제품 고객 표준 라벨**(`AMES.Devices.ImgLabelBuilder`)이다: 좌측 DataMatrix = `[)>RS06GSV{수주처}GSP{품번,하이픈제거}GSS{PGN+ALC}GST{yyMMdd}{part4M}{LotNo}GSEGSC:RSEOT`(`^FH_` 16진 이스케이프), 우측 글자 = ALC(대)·장착위치·발행일·품번·LotNo. part4M = `1` + 하이픈 뺀 품번 6·7번째 글자 + 교대 글자(DAY=A·NIGHT=B·그 외 C, `LabelPrinter.ShiftLetter`). 수주처 코드는 발행 시점 열린 WO → `PP_CustomerOrder.SoID` → `MD_Customer.CustomerCode` 로 정해 `PR_ImgLot.CustomerCode` 에 박아 둔다(재출력 불변). PGN·ALC 는 `MD_Item`, 장착위치는 `MD_Item.MountPos`(`dist/migrate_md_item_mount_pos.sql`, FL/FR/RL/RR). 샘플 라벨 우측 하단 'D' 칸은 정의 전이라 비워 둔다.
-스캐너는 DataMatrix 문자열 전체를 보내므로 `ImgScanParser.ExtractLotCode` 가 T 토큰 끝 9자를 LotNo 로 뽑는다 — 시리얼(제어문자 보존)·HID 웨지(제어문자 소실)·단순 LotNo 라벨 모두 처리하며 단위 테스트(`AMES.Pop.Tests/ImgScanParserTests`)가 정본이다. 발행은 실적이 아니며 라벨을 스캔해야 `ConfirmByLotCode` 가 한 트랜잭션으로 열린 WO 해석 → PR_ProductionResult 1 EA → 본딩 사이클 로그 → LOT CONFIRMED + `BumpStepCompleted` 를 처리한다. 원단 롤은 다루지 않는다(차감·롤 ID 기록·화면 칩 없음) — 본딩 설정만 `PR_ImgLot` 에 남는다.
+스캐너는 DataMatrix 문자열 전체를 보내므로 `ImgScanParser.ExtractLotCode` 가 T 토큰 끝 9자를 LotNo 로 뽑는다 — 시리얼(제어문자 보존)·HID 웨지(제어문자 소실)·단순 LotNo 라벨 모두 처리하며 단위 테스트(`AMES.Pop.Tests/ImgScanParserTests`)가 정본이다. 발행은 실적이 아니며 라벨을 스캔해야 `ConfirmByLotCode` 가 한 트랜잭션으로 열린 WO 해석 → PR_ProductionResult 1 EA → LOT CONFIRMED + `BumpStepCompleted` 를 처리한다. 원단 롤·본딩은 다루지 않는다(차감·롤 ID·본딩 사이클 로그·`BondSetupID` 기록과 화면 칩 모두 없음).
 좌측 당일 수치는 `ImgLotRepository.GetDailyItemSummary` — INJ 판과 같이 LOT 생성일 기준으로 `INPUT = FINAL + NG + 미확정` 이 성립한다. 우측 목록은 `GetTodayLots`(오늘 발행 LOT 전부, 최신순). dev DB 는 `dist/seed_md_bop_img_dev.sql` 로 ST-IMG-01 스테이션·데모 품번·BOP 를 채운다 (IMG 라인은 스키마에 스테이션이 없어 이 시드 없이는 로그인 자체가 안 된다).
 
 #### RWK (재작업 스테이션) — 1화면
@@ -157,7 +157,7 @@ IMG 라벨은 INJ 양식이 아니라 **완제품 고객 표준 라벨**(`AMES.D
 
 LOT 상태 기계(`PR_InjLot`·`PR_ImgLot.ConfirmStatus`, 정본 `AMES.Data.Services.LotDefectRules`): `RAW → CONFIRMED`(스캔), `RAW/CONFIRMED/NG_BLOCKED → DEFECT`(라인 불량 팝업), `DEFECT → CONFIRMED`(수리) / `→ SCRAPPED`(폐기). `NG_CONFIRMED` 는 폐지됐다.
 수리 양품은 `ReworkRepository.Rework` 가 원래 WO 에 `PR_ProductionResult` +1(`ProcessCode='RWK'`, `LineID='LINE-RWK-01'`) + `BumpStepCompleted(+1)` 로 확정한다. WO 는 등록 행의 `WoID` → 없으면 원래 라인 `FindOpenForItem` 순으로 해석하고, 둘 다 없으면 `NoWo` 로 거부(폐기는 가능). 폐기는 실적을 건드리지 않는다.
-확정 후 LOT 의 불량 등록은 `PR_ProductionResult` 역분개 행(`GoodQty=-1`, `DefectFlag=0` — 불량은 `PR_DefectDetail` 에 있다, 보고서 이중 계상 방지) + 단계 `CompletedQty −1` 이며, `BumpStepCompleted` 는 음수일 때 단계 `Closed → In Progress` 를 되돌리고 `ActualEnd` 를 지운다; 헤더는 그 단계가 마지막 라인 단계일 때만 같이 되돌린다(헤더 `CompletedQty` 를 움직이는 건 그 단계뿐이다). IMG 본딩 로그는 되돌리지 않는다.
+확정 후 LOT 의 불량 등록은 `PR_ProductionResult` 역분개 행(`GoodQty=-1`, `DefectFlag=0` — 불량은 `PR_DefectDetail` 에 있다, 보고서 이중 계상 방지) + 단계 `CompletedQty −1` 이며, `BumpStepCompleted` 는 음수일 때 단계 `Closed → In Progress` 를 되돌리고 `ActualEnd` 를 지운다; 헤더는 그 단계가 마지막 라인 단계일 때만 같이 되돌린다(헤더 `CompletedQty` 를 움직이는 건 그 단계뿐이다).
 REWORK 로그인은 `LINE-RWK-01`(WC `WC-RWK`, ProcessCode `RWK`) 선택 — 마스터가 없으면 로그인 불가. `AppState.ModuleCode="RWK"` 라 `LabelDispatcher` 는 돌지 않는다. 대기열은 전 라인 공용이다.
 
 #### PNT (도장 공정) — 9화면

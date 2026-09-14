@@ -202,7 +202,6 @@ public sealed class ImgLotRepository
 
     /// <summary>
     /// 라인 불량 팝업의 LOT 스캔 등록 — INJ 와 같은 순서(잠금·검사 → 역분개 → PR_DefectDetail → LOT DEFECT).
-    /// 본딩 로그는 되돌리지 않는다.
     /// </summary>
     public (DefectRegisterOutcome Outcome, int DefectId, string ItemNo) RegisterDefect(
         string lotCode, string lineId, string defectCode,
@@ -267,15 +266,13 @@ public sealed class ImgLotRepository
     /// <summary>
     /// 라벨 스캔 확정 — 한 트랜잭션으로:
     ///   ① LOT 잠금·상태 검사 → ② LOT 품번의 열린 WO 단계 해석 (INJ 와 같은 규칙)
-    ///   → ③ PR_ProductionResult 1 EA → ④ PR_BondCycleLog (본딩 설정이 있을 때)
-    ///   → ⑤ LOT CONFIRMED + 단계 CompletedQty +1.
-    /// 원단 롤은 다루지 않는다 — 롤 차감·롤 ID 기록 없음.
+    ///   → ③ PR_ProductionResult 1 EA → ④ LOT CONFIRMED + 단계 CompletedQty +1.
+    /// 원단 롤·본딩은 기록하지 않는다.
     /// CycleSec = 같은 라인의 직전 IMG LOT 과 이 LOT 의 생성 시각 차.
     /// </summary>
     public (ImgConfirmOutcome Outcome, int ResultId, string ItemNo, int WoId) ConfirmByLotCode(
         string lotCode, string lineId,
-        string operatorId, int? sessionId, string employeeNo,
-        BondSetupDto? bond)
+        string operatorId, int? sessionId, string employeeNo)
     {
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();
@@ -344,12 +341,10 @@ public sealed class ImgLotRepository
             using (var cmd = new SqlCommand("""
                 INSERT INTO dbo.PR_ProductionResult
                     (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec,
-                     BondTempAvg,
                      OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS)
                 OUTPUT INSERTED.ResultID
                 VALUES
                     (@EntryNo, @WoID, @LotID, @LineID, @Proc, 1, @CT,
-                     @BondTemp,
                      @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME());
                 """, conn, tx))
             {
@@ -364,29 +359,10 @@ public sealed class ImgLotRepository
                 cmd.Parameters.Add("@LineID",   SqlDbType.VarChar, 20  ).Value = lineId;
                 cmd.Parameters.Add("@Proc",     SqlDbType.VarChar, 10  ).Value = ProcessCode;
                 cmd.Parameters.Add("@CT",       SqlDbType.Int          ).Value = cycleSec;
-                cmd.Parameters.Add("@BondTemp", SqlDbType.Decimal      ).Value = (object?)bond?.TempSp ?? DBNull.Value;
                 cmd.Parameters.Add("@Op",       SqlDbType.NVarChar, 450).Value = operatorId;
                 cmd.Parameters.Add("@Sess",     SqlDbType.Int          ).Value = (object?)sessionId ?? DBNull.Value;
                 cmd.Parameters.Add("@By",       SqlDbType.VarChar, 50  ).Value = employeeNo;
                 resultId = (int)cmd.ExecuteScalar()!;
-            }
-
-            if (bond is not null)
-            {
-                using var cmd = new SqlCommand("""
-                    INSERT INTO dbo.PR_BondCycleLog
-                        (ResultID, BondSetupID, PressureAvg, TempAvg, HoldActualSec,
-                         TensionAvg, WithinSpec, SampledAt, CreatedBy, CreatedTS)
-                    VALUES (@R, @B, @P, @T, @H, @Tn, 1, SYSDATETIME(), @By, SYSDATETIME());
-                    """, conn, tx);
-                cmd.Parameters.Add("@R",  SqlDbType.Int        ).Value = resultId;
-                cmd.Parameters.Add("@B",  SqlDbType.Int        ).Value = bond.BondSetupId;
-                cmd.Parameters.Add("@P",  SqlDbType.Decimal    ).Value = bond.PressureSp;
-                cmd.Parameters.Add("@T",  SqlDbType.Decimal    ).Value = bond.TempSp;
-                cmd.Parameters.Add("@H",  SqlDbType.Int        ).Value = bond.HoldSecSp;
-                cmd.Parameters.Add("@Tn", SqlDbType.Decimal    ).Value = (object?)bond.TensionSp ?? DBNull.Value;
-                cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = employeeNo;
-                cmd.ExecuteNonQuery();
             }
 
             using (var cmd = new SqlCommand("""
@@ -398,7 +374,6 @@ public sealed class ImgLotRepository
                 UPDATE dbo.PR_ImgLot
                 SET    ConfirmStatus = 'CONFIRMED', ConfirmedAt = SYSDATETIME(),
                        ConfirmedBy = @Op, ConfirmedSessionID = @Sess,
-                       BondSetupID = @Bond,
                        ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
                 WHERE  LotID = @LotID;
                 """, conn, tx))
@@ -407,7 +382,6 @@ public sealed class ImgLotRepository
                 cmd.Parameters.Add("@LotID",    SqlDbType.Int          ).Value = lotId;
                 cmd.Parameters.Add("@Op",       SqlDbType.NVarChar, 450).Value = operatorId;
                 cmd.Parameters.Add("@Sess",     SqlDbType.Int          ).Value = (object?)sessionId ?? DBNull.Value;
-                cmd.Parameters.Add("@Bond",     SqlDbType.Int          ).Value = (object?)bond?.BondSetupId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
 
