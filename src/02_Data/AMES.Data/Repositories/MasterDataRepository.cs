@@ -3174,25 +3174,28 @@ public sealed class MasterDataRepository
 
     // ── MD_SparePart (마스터) ────────────────────────────────────────
     public record SparePartMasterRow(
-        string PartNo, string? PartName, string? Category,
-        decimal? UnitCost, string? UOM,
+        string SparePartNo, string PartNo, string? PartName, string? Category, string? ApplicableEquip,
+        decimal? UnitCost, string? UOM, int OnHandQty,
         int? SafetyStock, int? ReorderPoint, int? ReorderQty, int? LeadTimeDays,
         string? SupplierID, string? StorageLoc, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
 
     public List<SparePartMasterRow> ListSparePartMasters() => Query("""
-        SELECT PartNo, PartName, Category,
-               UnitCost, UOM,
+        SELECT SparePartNo, PartNo, PartName, Category, ApplicableEquip,
+               UnitCost, UOM, OnHandQty,
                SafetyStock, ReorderPoint, ReorderQty, LeadTimeDays,
                SupplierID, StorageLoc, ISNULL(ActiveFlag,1) AS ActiveFlag,
                CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
-        FROM dbo.MD_SparePart ORDER BY PartNo
+        FROM dbo.MD_SparePart ORDER BY SparePartNo
         """, r => new SparePartMasterRow(
+            r.GetString("SparePartNo"),
             r.GetString("PartNo"),
             r["PartName"]     as string,
             r["Category"]     as string,
+            r["ApplicableEquip"] as string,
             r["UnitCost"]     is decimal uc  ? uc  : null,
             r["UOM"]          as string,
+            r["OnHandQty"]    is int     oh  ? oh  : 0,
             r["SafetyStock"]  is int     ss2 ? ss2 : null,
             r["ReorderPoint"] is int     rpo ? rpo : null,
             r["ReorderQty"]   is int     rq2 ? rq2 : null,
@@ -3831,19 +3834,59 @@ public sealed class MasterDataRepository
         return cmd.ExecuteScalar() is not null;
     }
 
-    public void InsertSparePart(string partNo, string? partName, string? category,
+    /// <summary>예비품번호 채번 규칙: EOS-SP-{분류}{적용설비}-{yy}{순번4}. 분류·적용설비·연도별로 0001 부터.</summary>
+    private static string SparePartNoPrefix(string category, string applicableEquip) =>
+        $"EOS-SP-{category}{applicableEquip}-{DateTime.Today:yy}";
+
+    private const string NextSparePartSeqSql = """
+        SELECT ISNULL(MAX(TRY_CAST(RIGHT(SparePartNo, 4) AS int)), 0) + 1
+        FROM   dbo.MD_SparePart {0}
+        WHERE  SparePartNo LIKE @Pfx + '%' AND LEN(SparePartNo) = 16;
+        """;
+
+    /// <summary>다음 예비품번호 미리보기(잠금 없음). 실제 번호는 InsertSparePart 가 트랜잭션 안에서 다시 정한다.</summary>
+    public string NextSparePartNo(string category, string applicableEquip)
+    {
+        var pfx = SparePartNoPrefix(category, applicableEquip);
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(string.Format(NextSparePartSeqSql, ""), conn);
+        cmd.Parameters.Add("@Pfx", SqlDbType.VarChar, 12).Value = pfx;
+        return pfx + Convert.ToInt32(cmd.ExecuteScalar()).ToString("D4");
+    }
+
+    /// <summary>
+    /// 예비품 등록. SparePartNo 는 같은 트랜잭션에서 채번(UPDLOCK/HOLDLOCK 으로 동시 등록 시 중복 방지)해 돌려준다.
+    /// 분류·적용설비는 번호의 일부라 필수.
+    /// </summary>
+    public string InsertSparePart(string partNo, string? partName, string? category, string? applicableEquip,
         decimal? unitCost, string? uom,
         int? safetyStock, int? reorderPoint, int? reorderQty, int? leadTimeDays,
         string? supplierId, string? storageLoc, bool activeFlag, string createdBy)
     {
+        if (category is not { Length: 1 } || applicableEquip is not { Length: 1 })
+            throw new ArgumentException("Category and ApplicableEquip must be single-character codes to generate SparePartNo.");
+        var pfx = SparePartNoPrefix(category, applicableEquip);
+
         using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "INSERT INTO dbo.MD_SparePart(PartNo,PartName,Category,UnitCost,UOM," +
-            "SafetyStock,ReorderPoint,ReorderQty,LeadTimeDays,SupplierID,StorageLoc,ActiveFlag,CreatedBy)" +
-            " VALUES(@P,@PN,@CAT,@UC,@UOM,@SS,@RP,@RQ,@LT,@SI,@SL,@AF,@CB);", conn);
-        cmd.Parameters.Add("@P",   SqlDbType.VarChar,   30).Value = partNo;
-        cmd.Parameters.Add("@PN",  SqlDbType.NVarChar, 100).Value = (object?)partName    ?? DBNull.Value;
-        cmd.Parameters.Add("@CAT", SqlDbType.VarChar,   20).Value = (object?)category    ?? DBNull.Value;
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            string spNo;
+            using (var seq = new SqlCommand(string.Format(NextSparePartSeqSql, "WITH (UPDLOCK, HOLDLOCK)"), conn, tx))
+            {
+                seq.Parameters.Add("@Pfx", SqlDbType.VarChar, 12).Value = pfx;
+                spNo = pfx + Convert.ToInt32(seq.ExecuteScalar()).ToString("D4");
+            }
+
+            using var cmd = new SqlCommand(
+                "INSERT INTO dbo.MD_SparePart(SparePartNo,PartNo,PartName,Category,ApplicableEquip,UnitCost,UOM," +
+                "SafetyStock,ReorderPoint,ReorderQty,LeadTimeDays,SupplierID,StorageLoc,ActiveFlag,CreatedBy)" +
+                " VALUES(@SP,@P,@PN,@CAT,@EQ,@UC,@UOM,@SS,@RP,@RQ,@LT,@SI,@SL,@AF,@CB);", conn, tx);
+            cmd.Parameters.Add("@SP",  SqlDbType.VarChar,   16).Value = spNo;
+            cmd.Parameters.Add("@P",   SqlDbType.VarChar,   30).Value = partNo;
+            cmd.Parameters.Add("@PN",  SqlDbType.NVarChar, 100).Value = (object?)partName    ?? DBNull.Value;
+            cmd.Parameters.Add("@CAT", SqlDbType.VarChar,    1).Value = category;
+            cmd.Parameters.Add("@EQ",  SqlDbType.VarChar,    1).Value = applicableEquip;
         cmd.Parameters.Add("@UC",  SqlDbType.Decimal).Value       = (object?)unitCost    ?? DBNull.Value;
         if (unitCost.HasValue) { cmd.Parameters["@UC"].Precision = 12; cmd.Parameters["@UC"].Scale = 2; }
         cmd.Parameters.Add("@UOM", SqlDbType.VarChar,   10).Value = (object?)uom         ?? DBNull.Value;
@@ -3852,26 +3895,32 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@RQ",  SqlDbType.Int).Value           = (object?)reorderQty  ?? DBNull.Value;
         cmd.Parameters.Add("@LT",  SqlDbType.Int).Value           = (object?)leadTimeDays ?? DBNull.Value;
         cmd.Parameters.Add("@SI",  SqlDbType.VarChar,   20).Value = (object?)supplierId  ?? DBNull.Value;
-        cmd.Parameters.Add("@SL",  SqlDbType.VarChar,   30).Value = (object?)storageLoc  ?? DBNull.Value;
-        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
-        cmd.ExecuteNonQuery();
+            cmd.Parameters.Add("@SL",  SqlDbType.VarChar,   30).Value = (object?)storageLoc  ?? DBNull.Value;
+            cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
+            cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
+            cmd.ExecuteNonQuery();
+            tx.Commit();
+            return spNo;
+        }
+        catch { tx.Rollback(); throw; }
     }
 
-    public void UpdateSparePart(string partNo, string? partName, string? category,
+    /// <summary>키는 SparePartNo. PartNo 는 속성이라 수정 대상이 아니고(고유 인덱스), 현재고(OnHandQty)는 입출고로만 바뀐다.</summary>
+    public void UpdateSparePart(string sparePartNo, string? partName, string? category, string? applicableEquip,
         decimal? unitCost, string? uom,
         int? safetyStock, int? reorderPoint, int? reorderQty, int? leadTimeDays,
         string? supplierId, string? storageLoc, bool activeFlag, string modifiedBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
-            "UPDATE dbo.MD_SparePart SET PartName=@PN,Category=@CAT,UnitCost=@UC,UOM=@UOM," +
+            "UPDATE dbo.MD_SparePart SET PartName=@PN,Category=@CAT,ApplicableEquip=@EQ,UnitCost=@UC,UOM=@UOM," +
             "SafetyStock=@SS,ReorderPoint=@RP,ReorderQty=@RQ,LeadTimeDays=@LT," +
             "SupplierID=@SI,StorageLoc=@SL,ActiveFlag=@AF," +
-            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE PartNo=@P;", conn);
-        cmd.Parameters.Add("@P",   SqlDbType.VarChar,   30).Value  = partNo;
+            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE SparePartNo=@P;", conn);
+        cmd.Parameters.Add("@P",   SqlDbType.VarChar,   16).Value  = sparePartNo;
         cmd.Parameters.Add("@PN",  SqlDbType.NVarChar, 100).Value  = (object?)partName    ?? DBNull.Value;
-        cmd.Parameters.Add("@CAT", SqlDbType.VarChar,   20).Value  = (object?)category    ?? DBNull.Value;
+        cmd.Parameters.Add("@CAT", SqlDbType.VarChar,    1).Value  = (object?)category    ?? DBNull.Value;
+        cmd.Parameters.Add("@EQ",  SqlDbType.VarChar,    1).Value  = (object?)applicableEquip ?? DBNull.Value;
         cmd.Parameters.Add("@UC",  SqlDbType.Decimal).Value        = (object?)unitCost    ?? DBNull.Value;
         if (unitCost.HasValue) { cmd.Parameters["@UC"].Precision = 12; cmd.Parameters["@UC"].Scale = 2; }
         cmd.Parameters.Add("@UOM", SqlDbType.VarChar,   10).Value  = (object?)uom         ?? DBNull.Value;
@@ -3886,12 +3935,25 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void DeleteSparePart(string partNo)
+    /// <summary>
+    /// 입출고 이력(MNT_SparePartsTxn)이 있으면 InvalidOperationException — 화면은 비활성 처리를 안내한다.
+    /// MNT_SparePartsTxn.SparePartNo 는 FK 없는 논리 참조라 고아 이력을 막는 책임이 여기 있다.
+    /// </summary>
+    public void DeleteSparePart(string sparePartNo)
     {
         using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("DELETE FROM dbo.MD_SparePart WHERE PartNo=@P;", conn);
-        cmd.Parameters.Add("@P", SqlDbType.VarChar, 30).Value = partNo;
-        cmd.ExecuteNonQuery();
+        using var cmd = new SqlCommand("""
+            IF EXISTS (SELECT 1 FROM dbo.MNT_SparePartsTxn WHERE SparePartNo = @P)
+                SELECT 1;
+            ELSE
+            BEGIN
+                DELETE FROM dbo.MD_SparePart WHERE SparePartNo = @P;
+                SELECT 0;
+            END
+            """, conn);
+        cmd.Parameters.Add("@P", SqlDbType.VarChar, 16).Value = sparePartNo;
+        if (Convert.ToInt32(cmd.ExecuteScalar()) == 1)
+            throw new InvalidOperationException($"{sparePartNo} has stock transactions and cannot be deleted.");
     }
 
     // ── MD_PmTemplate CRUD ───────────────────────────────────────────

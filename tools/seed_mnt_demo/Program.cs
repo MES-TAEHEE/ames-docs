@@ -326,29 +326,34 @@ internal static class Program
     {
         var parts = new (string No, string Name, string Cat, int Safety, int Reorder, int Lead, decimal Cost, string Loc)[]
         {
-            ("SP-BRG-6204", "Ball bearing 6204",     "BRG",  20,  30, 14,    8.50m, "WH-MNT-A1"),
-            ("SP-BRG-6206", "Ball bearing 6206",     "BRG",  15,  25, 14,   11.20m, "WH-MNT-A1"),
-            ("SP-SEAL-32",  "Cylinder seal Ø32",     "SEAL", 30,  50,  7,    2.40m, "WH-MNT-A2"),
-            ("SP-SEAL-50",  "Cylinder seal Ø50",     "SEAL", 25,  40,  7,    3.60m, "WH-MNT-A2"),
-            ("SP-FLT-HYD",  "Hydraulic filter",      "FLT",  10,  20, 21,   38.00m, "WH-MNT-B1"),
-            ("SP-FLT-AIR",  "Air filter cart",       "FLT",  12,  18, 14,   18.00m, "WH-MNT-B1"),
-            ("SP-HTR-2KW",  "Heater band 2kW",       "ELE",   8,  12, 28,   54.00m, "WH-MNT-C1"),
-            ("SP-SENS-PT100","Temp sensor PT100",    "ELE",   6,  10, 21,   32.00m, "WH-MNT-C1"),
-            ("SP-MOT-1HP",  "Servo motor 1HP",       "ELE",   2,   3, 45,  680.00m, "WH-MNT-C2"),
-            ("SP-OIL-46",   "Hydraulic oil ISO 46",  "LUB",  50, 100,  3,    4.20m, "WH-MNT-D1"),
-            ("SP-GREASE-EP","Grease EP-2 cart",      "LUB",  20,  35,  3,    6.80m, "WH-MNT-D1"),
-            ("SP-FUSE-25A", "Fuse 25A NH00",         "ELE",  40,  60,  7,    1.20m, "WH-MNT-C3"),
+            ("SP-BRG-6204", "Ball bearing 6204",     "G"  ,  20,  30, 14,    8.50m, "WH-MNT-A1"),
+            ("SP-BRG-6206", "Ball bearing 6206",     "G"  ,  15,  25, 14,   11.20m, "WH-MNT-A1"),
+            ("SP-SEAL-32",  "Cylinder seal Ø32",     "H"   , 30,  50,  7,    2.40m, "WH-MNT-A2"),
+            ("SP-SEAL-50",  "Cylinder seal Ø50",     "H"   , 25,  40,  7,    3.60m, "WH-MNT-A2"),
+            ("SP-FLT-HYD",  "Hydraulic filter",      "H"  ,  10,  20, 21,   38.00m, "WH-MNT-B1"),
+            ("SP-FLT-AIR",  "Air filter cart",       "I"  ,  12,  18, 14,   18.00m, "WH-MNT-B1"),
+            ("SP-HTR-2KW",  "Heater band 2kW",       "C"  ,   8,  12, 28,   54.00m, "WH-MNT-C1"),
+            ("SP-SENS-PT100","Temp sensor PT100",    "C"  ,   6,  10, 21,   32.00m, "WH-MNT-C1"),
+            ("SP-MOT-1HP",  "Servo motor 1HP",       "E"  ,   2,   3, 45,  680.00m, "WH-MNT-C2"),
+            ("SP-OIL-46",   "Hydraulic oil ISO 46",  "H"  ,  50, 100,  3,    4.20m, "WH-MNT-D1"),
+            ("SP-GREASE-EP","Grease EP-2 cart",      "K"  ,  20,  35,  3,    6.80m, "WH-MNT-D1"),
+            ("SP-FUSE-25A", "Fuse 25A NH00",         "C"  ,  40,  60,  7,    1.20m, "WH-MNT-C3"),
         };
+        // SparePartNo = EOS-SP-{분류}{적용설비}-{yy}{순번4} — 시연 부품은 적용설비 9(기타), 분류별 순번
+        var spSeq = new Dictionary<string, int>();
         foreach (var p in parts)
         {
+            var pfx = $"EOS-SP-{p.Cat}9-{DateTime.Today:yy}";
+            spSeq[pfx] = spSeq.GetValueOrDefault(pfx) + 1;
             Exec(conn, """
                 INSERT INTO dbo.MD_SparePart
-                    (PartNo, PartName, Category, UnitCost, UOM,
+                    (SparePartNo, PartNo, PartName, Category, ApplicableEquip, UnitCost, UOM,
                      SafetyStock, ReorderPoint, ReorderQty, LeadTimeDays,
                      StorageLoc, ActiveFlag, CreatedBy, CreatedTS)
-                VALUES (@N, @Nm, @C, @UC, 'EA',
+                VALUES (@SP, @N, @Nm, @C, '9', @UC, 'EA',
                         @SS, @RP, @RQ, @LT, @SL, 1, 'mnt-seed', SYSDATETIME());
                 """,
+                ("@SP", pfx + spSeq[pfx].ToString("D4")),
                 ("@N", p.No), ("@Nm", p.Name), ("@C", p.Cat), ("@UC", p.Cost),
                 ("@SS", p.Safety), ("@RP", p.Reorder), ("@RQ", p.Reorder * 2),
                 ("@LT", p.Lead), ("@SL", p.Loc));
@@ -361,16 +366,16 @@ internal static class Program
         {
             var open = p.Reorder + rng.Next(-5, 30);   // some below RP
             // initial receipt
+            // 이력은 SparePartNo 로 연결, 처리 전/후 재고 스냅샷만 (부품명·분류·위치는 마스터에)
             Exec(conn, """
                 INSERT INTO dbo.MNT_SparePartsTxn
-                    (PartNo, PartName, Category, MoveType, Qty, BalanceAfter, UnitPrice,
-                     StorageLoc, RefType, RefID, TxnAt, Note, CreatedBy, CreatedTS)
-                VALUES (@N, @Nm, @C, 'IN', @Q, @Q, @UC, @SL, 'PO', @REF,
-                        DATEADD(DAY, -30, SYSDATETIME()), 'opening receipt',
-                        'mnt-seed', SYSDATETIME());
+                    (SparePartNo, MoveType, Qty, BalanceBefore, BalanceAfter,
+                     RefType, RefID, TxnAt, Note, CreatedBy, CreatedTS)
+                SELECT SparePartNo, 'IN', @Q, 0, @Q, 'PO', @REF,
+                       DATEADD(DAY, -30, SYSDATETIME()), 'opening receipt', 'mnt-seed', SYSDATETIME()
+                FROM   dbo.MD_SparePart WHERE PartNo = @N;
                 """,
-                ("@N", p.No), ("@Nm", p.Name), ("@C", p.Cat),
-                ("@Q", open + 30), ("@UC", p.Cost), ("@SL", p.Loc),
+                ("@N", p.No), ("@Q", open + 30),
                 ("@REF", $"PO-2026-{rng.Next(100, 999)}"));
             tx++;
 
@@ -379,22 +384,23 @@ internal static class Program
             for (int i = 0; i < 2; i++)
             {
                 var q = rng.Next(2, 15);
+                var before = bal;
                 bal -= q;
                 Exec(conn, """
                     INSERT INTO dbo.MNT_SparePartsTxn
-                        (PartNo, PartName, Category, MoveType, Qty, BalanceAfter, UnitPrice,
-                         StorageLoc, RefType, RefID, TxnAt, Note, CreatedBy, CreatedTS)
-                    VALUES (@N, @Nm, @C, 'OUT', @Q, @B, @UC, @SL, 'MWO', @REF,
-                            DATEADD(HOUR, -@H, SYSDATETIME()), 'issued to MWO',
-                            'mnt-seed', SYSDATETIME());
+                        (SparePartNo, MoveType, Qty, BalanceBefore, BalanceAfter,
+                         RefType, RefID, TxnAt, Note, CreatedBy, CreatedTS)
+                    SELECT SparePartNo, 'OUT', @Q, @BB, @B, 'MWO', @REF,
+                           DATEADD(HOUR, -@H, SYSDATETIME()), 'issued to MWO', 'mnt-seed', SYSDATETIME()
+                    FROM   dbo.MD_SparePart WHERE PartNo = @N;
                     """,
-                    ("@N", p.No), ("@Nm", p.Name), ("@C", p.Cat),
-                    ("@Q", q), ("@B", bal), ("@UC", p.Cost),
-                    ("@SL", p.Loc),
+                    ("@N", p.No), ("@Q", q), ("@BB", before), ("@B", bal),
                     ("@REF", $"MWO-{DateTime.Today:yyMM}-{rng.Next(1, 8):D3}"),
                     ("@H", rng.Next(1, 120)));
                 tx++;
             }
+            // 마스터 현재고 = 마지막 잔량
+            Exec(conn, "UPDATE dbo.MD_SparePart SET OnHandQty = @B WHERE PartNo = @N;", ("@N", p.No), ("@B", bal));
         }
         Console.WriteLine($"  sp    {parts.Length} spare parts + {tx} stock txns");
     }

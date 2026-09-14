@@ -66,11 +66,20 @@ public sealed class MntRepository
 
     public sealed record SparePartRow(string PartNo, string? PartName, string? Category, string? Uom,
         int? SafetyStock, int? ReorderPoint, int? ReorderQty, int? LeadTimeDays,
-        string? StorageLoc, string? SupplierId, int OnHand);
+        string? StorageLoc, string? SupplierId, int OnHand,
+        string? ApplicableEquip = null,    // 공통코드 SPAREPARTS_EQUIP (1~9)
+        string? SparePartNo = null,        // EOS-SP-{분류}{적용설비}-{yy}{순번4}
+        decimal? UnitCost = null);         // 마스터 단가 — 재고 금액 = OnHand × UnitCost
 
-    public sealed record SparePartsTxnRow(int SparePartsTxnId, string? PartNo, string? PartName,
-        string? MoveType, int? Qty, int? BalanceAfter, decimal? UnitPrice, string? StorageLoc,
-        string? RefType, string? RefId, DateTime? TxnAt, string? Note);
+    // 입출고 이력 — 부품번호·명칭은 마스터 조인. 재고는 처리 전/후 스냅샷만 남긴다.
+    public sealed record SparePartsTxnRow(int SparePartsTxnId, string SparePartNo, string? PartNo, string? PartName,
+        string MoveType, int Qty, int BalanceBefore, int BalanceAfter,
+        string? RefType, string? RefId, DateTime TxnAt, string? Note, string? ActorId);
+
+    /// <summary>재고 증감 결과 — 처리 전/후 현재고와 이력 ID.</summary>
+    public sealed record StockMoveResult(int SparePartsTxnId, int BalanceBefore, int BalanceAfter);
+
+    public static class SpareMoveTypes { public const string In = "IN"; public const string Out = "OUT"; public const string Adjust = "ADJ"; }
 
     public sealed record DashboardKpi(int EquipTotal, int EquipRun, int EquipDown, int EquipIdle,
         int OpenFailures, int OpenWos, int PmDueIn7d, int LowStockParts,
@@ -1193,46 +1202,103 @@ public sealed class MntRepository
     // ── MNT-008 Spare Parts ─────────────────────────────────────────────
     public List<SparePartRow> ListSpareParts()
     {
-        // OnHand = last BalanceAfter per part from MNT_SparePartsTxn
+        // 현재고는 마스터 OnHandQty (입출고가 한 트랜잭션으로 갱신)
         const string sql = """
             SELECT  p.PartNo, p.PartName, p.Category, p.UOM, p.SafetyStock, p.ReorderPoint,
                     p.ReorderQty, p.LeadTimeDays, p.StorageLoc, p.SupplierID,
-                    ISNULL(b.OnHand, 0) AS OnHand
+                    p.OnHandQty AS OnHand, p.ApplicableEquip, p.SparePartNo, p.UnitCost
             FROM    dbo.MD_SparePart p
-            OUTER APPLY (
-                SELECT TOP 1 BalanceAfter AS OnHand
-                FROM   dbo.MNT_SparePartsTxn t
-                WHERE  t.PartNo = p.PartNo
-                ORDER  BY t.TxnAt DESC, t.SparePartsTxnID DESC
-            ) b
             WHERE   ISNULL(p.ActiveFlag,1) = 1
-            ORDER BY p.PartNo;
+            ORDER BY p.SparePartNo;
             """;
         return Query(sql, r => new SparePartRow(
             (string)r["PartNo"], r["PartName"] as string, r["Category"] as string,
             r["UOM"] as string, r["SafetyStock"] as int?, r["ReorderPoint"] as int?,
             r["ReorderQty"] as int?, r["LeadTimeDays"] as int?,
             r["StorageLoc"] as string, r["SupplierID"] as string,
-            r["OnHand"] as int? ?? 0));
+            r["OnHand"] as int? ?? 0, r["ApplicableEquip"] as string, r["SparePartNo"] as string,
+            r["UnitCost"] as decimal?));
     }
 
-    public List<SparePartsTxnRow> ListSparePartsTxn(int topN = 50, string? partNo = null)
+    /// <summary>입출고 이력 최근 N건. sparePartNo 를 주면 그 부품만.</summary>
+    public List<SparePartsTxnRow> ListSparePartsTxn(int topN = 50, string? sparePartNo = null)
     {
         const string sql = """
             SELECT TOP (@N)
-                   SparePartsTxnID, PartNo, PartName, MoveType, Qty, BalanceAfter,
-                   UnitPrice, StorageLoc, RefType, RefID, TxnAt, Note
-            FROM   dbo.MNT_SparePartsTxn
-            WHERE  (@P IS NULL OR PartNo = @P)
-            ORDER  BY TxnAt DESC, SparePartsTxnID DESC;
+                   t.SparePartsTxnID, t.SparePartNo, p.PartNo, p.PartName, t.MoveType, t.Qty, t.BalanceBefore, t.BalanceAfter,
+                   t.RefType, t.RefID, t.TxnAt, t.Note, t.ActorID
+            FROM   dbo.MNT_SparePartsTxn t
+            LEFT JOIN dbo.MD_SparePart p ON p.SparePartNo = t.SparePartNo
+            WHERE  (@P IS NULL OR t.SparePartNo = @P)
+            ORDER  BY t.TxnAt DESC, t.SparePartsTxnID DESC;
             """;
         return Query(sql, r => new SparePartsTxnRow(
-            (int)r["SparePartsTxnID"], r["PartNo"] as string, r["PartName"] as string,
-            r["MoveType"] as string, r["Qty"] as int?, r["BalanceAfter"] as int?,
-            r["UnitPrice"] as decimal?, r["StorageLoc"] as string,
+            (int)r["SparePartsTxnID"], (string)r["SparePartNo"], r["PartNo"] as string, r["PartName"] as string,
+            (string)r["MoveType"], (int)r["Qty"], (int)r["BalanceBefore"], (int)r["BalanceAfter"],
             r["RefType"] as string, r["RefID"] as string,
-            r["TxnAt"] as DateTime?, r["Note"] as string),
-            ("@N", topN), ("@P", (object?)partNo ?? DBNull.Value));
+            (DateTime)r["TxnAt"], r["Note"] as string, r["ActorID"] as string),
+            ("@N", topN), ("@P", (object?)sparePartNo ?? DBNull.Value));
+    }
+
+    /// <summary>
+    /// 재고 증감 — 마스터 OnHandQty 갱신 + 이력 1행을 한 트랜잭션으로. 현재고의 정본은 마스터이고 이력은 전/후 스냅샷이다.
+    ///   IN  : qty 만큼 증가(qty > 0)   OUT : qty 만큼 감소(qty > 0, 재고 부족이면 거부)   ADJ : qty 부호대로 보정(결과가 음수면 거부)
+    /// </summary>
+    public StockMoveResult AdjustSparePartStock(string sparePartNo, string moveType, int qty,
+        string? refType, string? refId, string? note, string actor)
+    {
+        moveType = moveType?.Trim().ToUpperInvariant() ?? "";
+        if (moveType is not (SpareMoveTypes.In or SpareMoveTypes.Out or SpareMoveTypes.Adjust))
+            throw new ArgumentException($"Unknown move type '{moveType}'.");
+        if (moveType != SpareMoveTypes.Adjust && qty <= 0)
+            throw new ArgumentException("Qty must be positive for IN/OUT.");
+
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            int before;
+            using (var cmd = new SqlCommand("SELECT OnHandQty FROM dbo.MD_SparePart WITH (UPDLOCK, HOLDLOCK) WHERE SparePartNo = @SP", conn, tx))
+            {
+                cmd.Parameters.Add("@SP", SqlDbType.VarChar, 16).Value = sparePartNo;
+                var o = cmd.ExecuteScalar();
+                if (o is null) throw new InvalidOperationException($"Spare part {sparePartNo} not found.");
+                before = Convert.ToInt32(o);
+            }
+            var delta = moveType switch { SpareMoveTypes.In => qty, SpareMoveTypes.Out => -qty, _ => qty };
+            var after = before + delta;
+            if (after < 0) throw new InvalidOperationException($"Insufficient stock for {sparePartNo}: on hand {before}, requested {-delta}.");
+
+            using (var cmd = new SqlCommand("UPDATE dbo.MD_SparePart SET OnHandQty = @A, ModifiedBy = @By, ModifiedTS = SYSDATETIME() WHERE SparePartNo = @SP", conn, tx))
+            {
+                cmd.Parameters.Add("@SP", SqlDbType.VarChar,   16).Value = sparePartNo;
+                cmd.Parameters.Add("@A",  SqlDbType.Int).Value           = after;
+                cmd.Parameters.Add("@By", SqlDbType.NVarChar, 450).Value = actor;
+                cmd.ExecuteNonQuery();
+            }
+            int txnId;
+            using (var cmd = new SqlCommand("""
+                INSERT INTO dbo.MNT_SparePartsTxn (SparePartNo, MoveType, Qty, BalanceBefore, BalanceAfter, RefType, RefID, Note, TxnAt, ActorID, CreatedBy, CreatedTS)
+                VALUES (@SP, @MT, @Q, @B, @A, @RT, @RID, @Note, SYSDATETIME(), @Actor, @By, SYSDATETIME());
+                SELECT CAST(SCOPE_IDENTITY() AS int);
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@SP",    SqlDbType.VarChar,   16).Value = sparePartNo;
+                cmd.Parameters.Add("@MT",    SqlDbType.VarChar,   10).Value = moveType;
+                cmd.Parameters.Add("@Q",     SqlDbType.Int).Value           = Math.Abs(qty);
+                cmd.Parameters.Add("@B",     SqlDbType.Int).Value           = before;
+                cmd.Parameters.Add("@A",     SqlDbType.Int).Value           = after;
+                cmd.Parameters.Add("@RT",    SqlDbType.VarChar,   15).Value = (object?)refType ?? DBNull.Value;
+                cmd.Parameters.Add("@RID",   SqlDbType.VarChar,   24).Value = (object?)refId ?? DBNull.Value;
+                cmd.Parameters.Add("@Note",  SqlDbType.NVarChar, 500).Value = (object?)note ?? DBNull.Value;
+                cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
+                cmd.Parameters.Add("@By",    SqlDbType.VarChar,   50).Value = actor.Length > 50 ? actor[..50] : actor;
+                txnId = Convert.ToInt32(cmd.ExecuteScalar());
+            }
+            tx.Commit();
+            return new StockMoveResult(txnId, before, after);
+        }
+        catch { tx.Rollback(); throw; }
     }
 
     // ── MNT-009 Dashboard ───────────────────────────────────────────────
@@ -1251,9 +1317,7 @@ public sealed class MntRepository
               (SELECT COUNT(*) FROM dbo.MNT_PMSchedule
                  WHERE NextDueDate BETWEEN @today AND DATEADD(DAY, 7, @today))                                           AS PmDueIn7d,
               (SELECT COUNT(*) FROM dbo.MD_SparePart p
-                 OUTER APPLY (SELECT TOP 1 BalanceAfter FROM dbo.MNT_SparePartsTxn t
-                              WHERE t.PartNo = p.PartNo ORDER BY t.TxnAt DESC, t.SparePartsTxnID DESC) b
-                 WHERE ISNULL(b.BalanceAfter,0) <= ISNULL(p.ReorderPoint,0)
+                 WHERE p.OnHandQty <= ISNULL(p.ReorderPoint,0)
                    AND ISNULL(p.ActiveFlag,1)=1)                                                                          AS LowStockParts,
               -- 오늘 집계가 없으면(야간·휴일·집계 지연) 가장 최근 집계일 평균을 쓰고 그 날짜를 함께 돌려준다
               ISNULL((SELECT AVG(OEE) FROM dbo.MNT_OEELog WHERE AggDate = o.LastDate), 0)                                AS AvgOeeToday,

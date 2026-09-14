@@ -7483,7 +7483,7 @@
     <value>On-hand Value</value>
   </data>
   <data name="MNT.SpareParts.Kpi.ValueSub" xml:space="preserve">
-    <value>at last txn price</value>
+    <value>on hand × master unit cost</value>
   </data>
   <data name="MNT.SpareParts.Kpi.Txn" xml:space="preserve">
     <value>Transactions</value>
@@ -7492,10 +7492,10 @@
     <value>last {0} txns</value>
   </data>
   <data name="MNT.SpareParts.Ph.Search" xml:space="preserve">
-    <value>part no · name</value>
+    <value>spare part no · part no · name</value>
   </data>
   <data name="MNT.SpareParts.Ph.TxnSearch" xml:space="preserve">
-    <value>part no · name · ref</value>
+    <value>spare part no · part no · name · ref</value>
   </data>
   <data name="MNT.SpareParts.Btn.Export" xml:space="preserve">
     <value>Export</value>
@@ -7721,5 +7721,53 @@
   </data>
   <data name="MNT.PmSchedule.Ok.Completed" xml:space="preserve">
     <value>PM {0} completed.</value>
+  </data>
+  <data name="Col.ApplicableEquip" xml:space="preserve">
+    <value>For Equip.</value>
+  </data>
+  <data name="Col.SparePartNo" xml:space="preserve">
+    <value>Spare Part No</value>
+  </data>
+  <data name="MD.SparePart.Ph.AutoNo" xml:space="preserve">
+    <value>Generated on save</value>
+  </data>
+  <data name="MD.SparePart.Hint.AutoNo" xml:space="preserve">
+    <value>The spare part number is generated on save as EOS-SP-[category][equip]-[yy][seq4]. Choose category and equipment to preview the next number.</value>
+  </data>
+  <data name="MD.SparePart.Err.CategoryRequired" xml:space="preserve">
+    <value>Select a category.</value>
+  </data>
+  <data name="MD.SparePart.Err.EquipRequired" xml:space="preserve">
+    <value>Select the applicable equipment.</value>
+  </data>
+  <data name="MD.SparePart.Ok.CreatedNo" xml:space="preserve">
+    <value>{0} created — spare part no {1}</value>
+  </data>
+  <data name="Col.BalanceBefore" xml:space="preserve">
+    <value>Before</value>
+  </data>
+  <data name="MD.SparePart.Err.HasTxn" xml:space="preserve">
+    <value>This spare part has stock transactions and cannot be deleted. Deactivate it instead.</value>
+  </data>
+  <data name="MNT.SpareParts.Move.Adj" xml:space="preserve">
+    <value>Adjust</value>
+  </data>
+  <data name="MD.SparePart.Hint.OnHand" xml:space="preserve">
+    <value>Changing on-hand writes an adjustment (ADJ) transaction for the difference.</value>
+  </data>
+  <data name="MD.SparePart.Hint.InitStock" xml:space="preserve">
+    <value>Initial stock is recorded as a receipt (IN) transaction.</value>
+  </data>
+  <data name="MD.SparePart.Note.InitStock" xml:space="preserve">
+    <value>Initial stock at master registration</value>
+  </data>
+  <data name="MD.SparePart.Note.MasterAdjust" xml:space="preserve">
+    <value>On-hand edited on master screen {0} → {1}</value>
+  </data>
+  <data name="MD.SparePart.Err.OnHandInvalid" xml:space="preserve">
+    <value>On-hand must be 0 or more.</value>
+  </data>
+  <data name="MD.SparePart.Ok.StockAdjusted" xml:space="preserve">
+    <value>on-hand {0} → {1} (adjustment logged)</value>
   </data>
 </root>

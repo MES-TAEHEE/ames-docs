@@ -7456,7 +7456,7 @@
     <value>Valor en stock</value>
   </data>
   <data name="MNT.SpareParts.Kpi.ValueSub" xml:space="preserve">
-    <value>al último precio</value>
+    <value>existencia × costo unitario maestro</value>
   </data>
   <data name="MNT.SpareParts.Kpi.Txn" xml:space="preserve">
     <value>Movimientos</value>
@@ -7465,10 +7465,10 @@
     <value>últimos {0} mov.</value>
   </data>
   <data name="MNT.SpareParts.Ph.Search" xml:space="preserve">
-    <value>n.º pieza · nombre</value>
+    <value>n.º repuesto · n.º pieza · nombre</value>
   </data>
   <data name="MNT.SpareParts.Ph.TxnSearch" xml:space="preserve">
-    <value>n.º pieza · nombre · ref</value>
+    <value>n.º repuesto · n.º pieza · nombre · ref</value>
   </data>
   <data name="MNT.SpareParts.Btn.Export" xml:space="preserve">
     <value>Exportar</value>
@@ -7694,5 +7694,53 @@
   </data>
   <data name="MNT.PmSchedule.Ok.Completed" xml:space="preserve">
     <value>PM {0} completado.</value>
+  </data>
+  <data name="Col.ApplicableEquip" xml:space="preserve">
+    <value>Equipo</value>
+  </data>
+  <data name="Col.SparePartNo" xml:space="preserve">
+    <value>Nº repuesto</value>
+  </data>
+  <data name="MD.SparePart.Ph.AutoNo" xml:space="preserve">
+    <value>Se genera al guardar</value>
+  </data>
+  <data name="MD.SparePart.Hint.AutoNo" xml:space="preserve">
+    <value>El número de repuesto se genera al guardar como EOS-SP-[categoría][equipo]-[aa][sec4]. Elija categoría y equipo para ver el siguiente número.</value>
+  </data>
+  <data name="MD.SparePart.Err.CategoryRequired" xml:space="preserve">
+    <value>Seleccione una categoría.</value>
+  </data>
+  <data name="MD.SparePart.Err.EquipRequired" xml:space="preserve">
+    <value>Seleccione el equipo aplicable.</value>
+  </data>
+  <data name="MD.SparePart.Ok.CreatedNo" xml:space="preserve">
+    <value>{0} creado — nº repuesto {1}</value>
+  </data>
+  <data name="Col.BalanceBefore" xml:space="preserve">
+    <value>Antes</value>
+  </data>
+  <data name="MD.SparePart.Err.HasTxn" xml:space="preserve">
+    <value>Este repuesto tiene movimientos de stock y no se puede eliminar. Desactívelo.</value>
+  </data>
+  <data name="MNT.SpareParts.Move.Adj" xml:space="preserve">
+    <value>Ajuste</value>
+  </data>
+  <data name="MD.SparePart.Hint.OnHand" xml:space="preserve">
+    <value>Cambiar la existencia registra un ajuste (ADJ) por la diferencia.</value>
+  </data>
+  <data name="MD.SparePart.Hint.InitStock" xml:space="preserve">
+    <value>La existencia inicial se registra como entrada (IN).</value>
+  </data>
+  <data name="MD.SparePart.Note.InitStock" xml:space="preserve">
+    <value>Existencia inicial al registrar el maestro</value>
+  </data>
+  <data name="MD.SparePart.Note.MasterAdjust" xml:space="preserve">
+    <value>Existencia editada en el maestro {0} → {1}</value>
+  </data>
+  <data name="MD.SparePart.Err.OnHandInvalid" xml:space="preserve">
+    <value>La existencia debe ser 0 o más.</value>
+  </data>
+  <data name="MD.SparePart.Ok.StockAdjusted" xml:space="preserve">
+    <value>existencia {0} → {1} (ajuste registrado)</value>
   </data>
 </root>

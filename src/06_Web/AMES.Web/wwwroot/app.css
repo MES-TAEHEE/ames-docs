@@ -922,6 +922,11 @@ select.ames-rz-input {
 .ames-row-link:hover .rz-data-cell { background: rgba(99,179,237,.08) !important; }
 .ames-row-selected td,
 .ames-row-selected .rz-data-cell   { background: rgba(99,179,237,.15) !important; }
+/* 재고 부족 행(현재고 < 안전재고) — 예비품 MD-026·MNT-008. 호버보다 우선 */
+.ames-row-low td,
+.ames-row-low .rz-data-cell        { background: rgba(220,53,69,.14) !important; }
+.ames-row-low:hover td,
+.ames-row-low:hover .rz-data-cell  { background: rgba(220,53,69,.22) !important; }
 
 /* ── RadzenDataGrid — AMES 스타일 (humanistic-dark-base.css 위에 덮어씀) ── */
 

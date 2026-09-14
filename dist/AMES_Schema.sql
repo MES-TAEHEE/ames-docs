@@ -828,12 +828,14 @@ GO
 
 -- ── MD_SparePart  (정비 자재 (MD-27))
 CREATE TABLE dbo.MD_SparePart (
-  [PartNo]                    VARCHAR(20)          NOT NULL,
+  [SparePartNo]               VARCHAR(16)          NOT NULL,  -- EOS-SP-{분류}{적용설비}-{yy}{순번4}, 저장 시 자동 채번
+  [Category]                  VARCHAR(1)               NULL,  -- 공통코드 SPAREPARTS_CATEGORY (A~K)
+  [ApplicableEquip]           VARCHAR(1)               NULL,  -- 공통코드 SPAREPARTS_EQUIP (1~9)
+  [PartNo]                    VARCHAR(20)          NOT NULL,  -- 제조사/구매 부품번호 (고유)
   [PartName]                  NVARCHAR(60)             NULL,
-  [Category]                  VARCHAR(16)              NULL,
-  [CompatEquipJSON]           NVARCHAR(MAX)            NULL,
   [UnitCost]                  DECIMAL(12,2)            NULL,
   [UOM]                       VARCHAR(10)              NULL,  -- FK -> MD_Uom.UOMCode
+  [OnHandQty]                 INT                  NOT NULL DEFAULT 0,  -- 현재고 (MNT_SparePartsTxn 로만 변경)
   [SafetyStock]               INT                      NULL,
   [ReorderPoint]              INT                      NULL,
   [ReorderQty]                INT                      NULL,
@@ -845,7 +847,8 @@ CREATE TABLE dbo.MD_SparePart (
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
   [ModifiedTS]                DATETIME2                NULL,
-  CONSTRAINT PK_MD_SparePart PRIMARY KEY CLUSTERED ([PartNo])
+  CONSTRAINT PK_MD_SparePart PRIMARY KEY CLUSTERED ([SparePartNo]),
+  CONSTRAINT UX_MD_SparePart_PartNo UNIQUE ([PartNo])
 );
 GO
 
@@ -3254,19 +3257,15 @@ GO
 -- ── MNT_SparePartsTxn  (정비 자재 입출고)
 CREATE TABLE dbo.MNT_SparePartsTxn (
   [SparePartsTxnID]           INT IDENTITY         NOT NULL,
-  [PartNo]                    VARCHAR(20)              NULL,  -- FK -> MD_SparePart.PartNo
-  [PartName]                  NVARCHAR(60)             NULL,
-  [Category]                  VARCHAR(15)              NULL,
-  [MoveType]                  VARCHAR(10)              NULL,
-  [Qty]                       INT                      NULL,
-  [BalanceAfter]              INT                      NULL,
-  [UnitPrice]                 DECIMAL(12,2)            NULL,
-  [StorageLoc]                VARCHAR(20)              NULL,
+  [SparePartNo]               VARCHAR(16)          NOT NULL,  -- 참조 -> MD_SparePart.SparePartNo (FK 없음, 리포지토리가 정합 보장)
+  [MoveType]                  VARCHAR(10)          NOT NULL,  -- IN 입고 / OUT 출고 / ADJ 조정
+  [Qty]                       INT                  NOT NULL,
+  [BalanceBefore]             INT                  NOT NULL,  -- 처리 전 현재고
+  [BalanceAfter]              INT                  NOT NULL,  -- 처리 후 현재고
   [RefType]                   VARCHAR(15)              NULL,
   [RefID]                     VARCHAR(24)              NULL,
-  [SupplierCode]              VARCHAR(20)              NULL,  -- FK -> MD_Vendor.VendorID
   [Note]                      NVARCHAR(500)            NULL,
-  [TxnAt]                     DATETIME2                NULL,
+  [TxnAt]                     DATETIME2            NOT NULL DEFAULT SYSDATETIME(),
   [ActorID]                   NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
@@ -3274,6 +3273,8 @@ CREATE TABLE dbo.MNT_SparePartsTxn (
   [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MNT_SparePartsTxn PRIMARY KEY CLUSTERED ([SparePartsTxnID])
 );
+GO
+CREATE INDEX IX_MNT_SparePartsTxn_Part ON dbo.MNT_SparePartsTxn([SparePartNo], [TxnAt] DESC, [SparePartsTxnID] DESC);
 GO
 
 -- ── MNT_MoldShotCount  (금형 쇼트 운영 카운터)
