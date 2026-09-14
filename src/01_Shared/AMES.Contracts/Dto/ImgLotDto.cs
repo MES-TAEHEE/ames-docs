@@ -17,7 +17,7 @@ public sealed class ImgLotDto
     public string?   CustomerCode     { get; init; }
     public string?   LineId           { get; init; }
     public string?   EquipId          { get; init; }
-    /// <summary>RAW(발행됨·미확정) / CONFIRMED(스캔 확정).</summary>
+    /// <summary>RAW(발행됨·미확정) / CONFIRMED(스캔 확정) / DEFECT(재작업 대기) / SCRAPPED(폐기).</summary>
     public string    ConfirmStatus    { get; init; } = "RAW";
     public DateTime? ConfirmedAt      { get; init; }
     /// <summary>확정 시 차감한 원단 롤 LotID. 롤 미장착이면 null.</summary>

@@ -1,166 +1,179 @@
 @namespace AMES.Pop.Pages.InjPopups
+@using AMES.Contracts.Enums
+@using AMES.Data.Services
 @using AMES.Pop.Common
+@inject AMES.Pop.Services.ScannerService Scanner
+@implements IDisposable
 
-@*  불량 등록 팝업 — 불량코드 선택 + 수량 키패드. INJ 는 로봇 NG 차단 LOT 확정 처리를 포함하고,
-    다른 공정(IMG 등)은 ProcessCode 로 불량코드만 바꿔 쓴다. *@
+@*  불량 등록 팝업 — LOT 라벨 스캔 → 불량코드 선택 → 등록. 수량 입력은 없다(1 LOT = 1 EA).
+    INJ·IMG 가 ProcessCode 로 공유한다. 등록된 LOT 은 DEFECT 가 되어 REWORK 스테이션 대기열로 간다.
+    시리얼 스캔은 메인 화면이 팝업 중엔 무시하므로 여기서 직접 구독한다(안돈 팝업과 같은 방식). *@
 
-<PopupShell Title='@($"❌ {T("DefectRegister")}")' Width="1200px" CssClass="pmod-tall" OnClose="OnClose">
-    @if (Wo is null)
-    {
-        <div class="pmod-empty">@T("NoActiveWorkOrderAcceptAWoFirst")</div>
-    }
-    else
-    {
-        <div class="def-rate" style="margin-bottom:10px;">
-            <div>
-                <div class="def-rate-l">▼ @T("CurrentDefectRateWoCumulative")</div>
-                <div class="def-rate-s">@T("Good") @_good · @T("Defect") @_defect → @_rateText</div>
-            </div>
-            <div class="def-rate-v @_rateClass">@_rateText</div>
+<PopupShell Title='@($"❌ {T("DefectRegister")}")' Width="1200px" OnClose="OnClose">
+    <div class="dfp-scan">
+        <input @ref="_scanInput" @bind="_scanBuf" @bind:event="oninput" @onkeydown="OnScanKey"
+               class="injm-scan-input" placeholder="@T("DfScanPrompt")" autocomplete="off" />
+        <div class="injm-banner @_bannerClass">
+            <div class="injm-banner-t">@BannerTitle</div>
+            @if (_bannerDetail.Length > 0) { <div class="injm-banner-s">@_bannerDetail</div> }
         </div>
+    </div>
 
-        @if (_ngLots.Count > 0)
+    @if (_lot is { } lot)
+    {
+        <div class="dfp-lot">
+            <span class="mono dfp-lot-code">@lot.LotCode</span>
+            <span>@lot.ItemNo @(lot.ItemName is null ? "" : $"· {lot.ItemName}")</span>
+            <span class="dfp-lot-status @(lot.Status == LotDefectRules.Confirmed ? "warn" : "")">@lot.Status · @lot.CreatedTS.ToString("HH:mm:ss")</span>
+            @if (lot.Status == LotDefectRules.Confirmed) { <span class="dfp-lot-note">@T("DfPriorConfirmed")</span> }
+            @if (lot.Note is not null) { <span class="dfp-lot-note">@lot.Note</span> }
+        </div>
+    }
+
+    <div class="def-grid dfp-codes">
+        @foreach (var c in _codes)
         {
-            <div class="pop-card" style="margin-bottom:10px;">
-                <div class="pop-card-h">▼ @T("RobotNgBlockedLotsSelectThenConfirmWithA")</div>
-                <div style="overflow-y:auto; max-height:120px;">
-                    <table style="width:100%; border-collapse:collapse; font-size:15px;">
-                        <tbody>
-                        @foreach (var lot in _ngLots)
-                        {
-                            var isSel = _ngSelected?.LotId == lot.LotId;
-                            <tr style="border-top:1px solid rgba(255,255,255,.08); cursor:pointer;
-                                       @(isSel ? "background:rgba(255,180,0,.15);" : "")"
-                                @onclick="@(() => _ngSelected = isSel ? null : lot)">
-                                <td style="padding:6px 4px; font-family:Consolas,monospace;">@lot.LotCode @(isSel ? "✓" : "")</td>
-                                <td style="padding:6px 4px;">@lot.CavityPos</td>
-                                <td style="padding:6px 4px;">@lot.ItemNo</td>
-                                <td style="padding:6px 4px; color:var(--warn);">@(lot.InspectionSummary ?? "NG")</td>
-                                <td style="padding:6px 4px;">@lot.CreatedTS.ToString("HH:mm:ss")</td>
-                            </tr>
-                        }
-                        </tbody>
-                    </table>
-                </div>
+            var isSel = _selected?.DefectCode == c.DefectCode;
+            <div class="def-btn @(isSel ? "on" : "")" @onclick="@(() => _selected = c)">
+                <div class="def-btn-code">@c.DefectCode @(isSel ? "✓" : "")</div>
+                <div class="def-btn-name">@(PopLang.IsKo ? c.DefectName : c.DefectNameEn ?? c.DefectName)</div>
             </div>
         }
+    </div>
 
-        <div class="pmod-def-grid">
-            <div class="def-grid" style="overflow-y:auto;">
-                @foreach (var c in _codes)
-                {
-                    var isSel = _selected?.DefectCode == c.DefectCode;
-                    <div class="def-btn @(isSel ? "on" : "")" @onclick="@(() => _selected = c)">
-                        <div class="def-btn-code">@c.DefectCode @(isSel ? "✓" : "")</div>
-                        <div class="def-btn-name">@(PopLang.IsKo ? c.DefectName : c.DefectNameEn)</div>
-                    </div>
-                }
-            </div>
-            <div class="def-numpad-card">
-                <div class="def-info-h">@T("DefectQty") @(_ngSelected is not null ? T("NgLotFixedAt1") : "")</div>
-                <div class="def-disp">@(_ngSelected is not null ? "1" : _buf.Length == 0 ? "0" : _buf.ToString())</div>
-                <div class="keypad" style="margin-top:8px;">
-                    @foreach (var d in new[] { "1","2","3","4","5","6","7","8","9" })
-                    {
-                        var k = d;
-                        <div class="kp" @onclick="@(() => Press(k))">@k</div>
-                    }
-                    <div class="kp del" @onclick="Backspace">←</div>
-                    <div class="kp"     @onclick="@(() => Press("0"))">0</div>
-                    <div class="kp ok"  @onclick="Confirm">✓</div>
-                </div>
-            </div>
+    <div class="dfp-footer">
+        <div class="dfp-today">
+            <span class="dfp-today-h">@T("DfTodayRegistered") (@_today.Count)</span>
+            @foreach (var t in _today.Take(6))
+            {
+                <span class="mono">@t.LotCode @t.DefectCode @t.At.ToString("HH:mm")</span>
+            }
         </div>
-    }
+        <button class="nav-btn warn dfp-register" @onclick="Register" disabled="@(_lot is null || _selected is null || _busy)">@T("DfRegisterBtn")</button>
+        <button class="nav-btn" @onclick="OnClose">@T("Close")</button>
+    </div>
 </PopupShell>
 
 @code {
-    [Parameter] public PopSessionDto? Session       { get; set; }
-    [Parameter] public WorkOrderDto?  Wo            { get; set; }
-    [Parameter] public int            LastResultId  { get; set; }
-    /// <summary>불량코드 목록·등록 공정. INJ 일 때만 로봇 NG LOT 구역을 보여준다.</summary>
-    [Parameter] public string         ProcessCode   { get; set; } = "INJ";
-    [Parameter] public EventCallback  OnClose       { get; set; }
-    [Parameter] public EventCallback  OnChanged     { get; set; }
+    [Parameter] public PopSessionDto? Session     { get; set; }
+    /// <summary>불량코드 목록·등록 공정 INJ / IMG.</summary>
+    [Parameter] public string         ProcessCode { get; set; } = "INJ";
+    [Parameter] public EventCallback  OnClose     { get; set; }
+    [Parameter] public EventCallback  OnChanged   { get; set; }
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
 
+    private sealed record LotInfo(string LotCode, string ItemNo, string? ItemName, string? LineId, string Status, DateTime CreatedTS, string? Note);
+    private sealed record TodayRow(string LotCode, string DefectCode, DateTime At);
+
     private List<DefectCodeDto> _codes = new();
     private DefectCodeDto?      _selected;
-    private List<InjLotDto>     _ngLots = new();
-    private InjLotDto?          _ngSelected;
-    private readonly System.Text.StringBuilder _buf = new();
-    private int _good, _defect;
-    private string _rateText = "0.0%", _rateClass = "ok";
+    private LotInfo?            _lot;
+    private readonly List<TodayRow> _today = new();
+    private bool   _busy;
+    private string _scanBuf = string.Empty;
+    private ElementReference _scanInput;
+    private bool   _focusScan = true;
+
+    private string _bannerClass = "idle", _bannerDetail = "";
+    private string BannerTitle => _bannerClass switch { "ok" => T("Success"), "bad" => T("Fail"), _ => T("Ready") };
 
     protected override void OnInitialized()
     {
         if (Session is null) return;
-        _codes = PopServices.Defects.ListForProcess(ProcessCode);
-        if (ProcessCode == "INJ")
+        try { _codes = PopServices.Defects.ListForProcess(ProcessCode); }
+        catch (Exception ex) { SetBanner(false, ex.Message); }
+        Scanner.OnScan += OnSerialScan;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender || _focusScan)
         {
-            try { _ngLots = PopServices.InjLots.GetNgBlocked(Session.LineId); }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DefectPopup ngLots] {ex.Message}"); }
+            _focusScan = false;
+            try { await _scanInput.FocusAsync(); } catch { }
         }
-        RefreshRate();
     }
 
-    private void RefreshRate()
+    private void OnSerialScan(string code) => InvokeAsync(() => { HandleScan(code); StateHasChanged(); });
+
+    private void OnScanKey(KeyboardEventArgs e)
     {
-        if (Wo is null) return;
-        var (g, d) = PopServices.Defects.GetWoTotals(Wo.WoId);
-        _good = g; _defect = d;
-        var pct = (g + d) == 0 ? 0 : d * 100.0 / (g + d);
-        _rateText  = $"{pct:0.0}%";
-        _rateClass = pct >= 5 ? "alert" : pct >= 4 ? "warn" : "ok";
+        if (e.Key != "Enter") return;
+        var code = _scanBuf.Trim();
+        _scanBuf = string.Empty;
+        if (code.Length > 0) HandleScan(code);
     }
 
-    private void Press(string d)
+    // 스캔은 조회만 한다 — 등록은 ✓ 버튼. 라인·상태 검사는 미리 보여 주되 리포지토리가 트랜잭션 안에서 다시 확인한다.
+    private void HandleScan(string raw)
     {
-        if (_buf.Length >= 2) return;
-        if (_buf.Length == 0 && d == "0") return;
-        _buf.Append(d);
-    }
-    private void Backspace() { if (_buf.Length > 0) _buf.Length--; }
-
-    private async Task Confirm()
-    {
-        if (Wo is null || _selected is null || Session is null) return;
-
-        // 로봇 NG LOT 불량확정: 수량 1 고정, LOT 연결 + 상태 마감
-        // 제약 1: 원천 LOT 는 WO 미배정이므로 불량은 "확정 시점의 활성 WO"에 귀속된다 —
-        //   NG 발생과 확정 사이에 WO 가 바뀌면 불량이 다음 WO 실적에 잡힐 수 있다.
-        // 제약 2: RecordDefect 와 MarkNgConfirmed 는 별도 커넥션(비원자) — 후자 실패 시
-        //   LOT 가 NG_BLOCKED 로 남아 목록에 재노출되며, 재확정하면 불량이 중복 집계될 수 있다.
-        //   (RecordDefect 를 먼저 실행하는 순서는 의도 — 반대면 불량 이력 없이 상태만 마감될 수 있음)
-        if (_ngSelected is not null)
-        {
-            try
-            {
-                PopServices.Defects.RecordDefect(0, Wo.WoId, _ngSelected.LotId,
-                    _selected.DefectCode, 1, Session.OperatorId, Session.EmployeeNo, "INJ",
-                    note: $"ROBOT NG: {_ngSelected.InspectionSummary}");
-                PopServices.InjLots.MarkNgConfirmed(_ngSelected.LotId, Session.OperatorId);
-                _ngLots.RemoveAll(x => x.LotId == _ngSelected.LotId);
-                _ngSelected = null;
-                _buf.Clear();
-                RefreshRate();
-                await OnChanged.InvokeAsync();
-            }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DefectPopup NG Confirm] {ex.Message}"); }
-            return;
-        }
-
-        if (!int.TryParse(_buf.ToString(), out var qty) || qty <= 0) return;
+        if (Session is null) return;
+        _focusScan = true;
         try
         {
-            PopServices.Defects.RecordDefect(LastResultId, Wo.WoId, lotId: null,
-                _selected.DefectCode, qty, Session.OperatorId, Session.EmployeeNo, ProcessCode);
-            _buf.Clear();
-            RefreshRate();
-            await OnChanged.InvokeAsync();
-            await OnClose.InvokeAsync();
+            var lotCode = ProcessCode == "IMG" ? AMES.Devices.ImgScanParser.ExtractLotCode(raw) : raw.Trim();
+            if (string.IsNullOrEmpty(lotCode)) { SetBanner(false, $"{T("LotNotFound")}: {raw}"); return; }
+
+            LotInfo? info = null;
+            if (ProcessCode == "IMG")
+            {
+                if (PopServices.ImgLots.GetByLotCode(lotCode) is { } im)
+                    info = new LotInfo(im.LotCode, im.ItemNo, im.ItemName, im.LineId, im.ConfirmStatus, im.CreatedTS, null);
+            }
+            else if (PopServices.InjLots.GetByLotCode(lotCode) is { } ij)
+            {
+                info = new LotInfo(ij.LotCode, ij.ItemNo, ij.ItemName, ij.LineId, ij.ConfirmStatus, ij.CreatedTS, ij.InspectionSummary);
+            }
+
+            if (info is null) { _lot = null; SetBanner(false, $"{T("LotNotFound")}: {lotCode}"); return; }
+            if (!string.Equals(info.LineId, Session.LineId, StringComparison.OrdinalIgnoreCase))
+            { _lot = null; SetBanner(false, $"{T("LotBelongsToAnotherLine")}: {lotCode}"); return; }
+
+            switch (LotDefectRules.CheckRegister(info.Status))
+            {
+                case DefectRegisterOutcome.AlreadyInRework: _lot = null; SetBanner(false, $"{T("DfAlreadyInRework")}: {lotCode}"); return;
+                case DefectRegisterOutcome.Scrapped:        _lot = null; SetBanner(false, $"{T("DfScrapped")}: {lotCode}");        return;
+            }
+            _lot = info;
+            SetBanner(true, $"{T("DfScanned")}: {lotCode}");
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[DefectPopup Confirm] {ex.Message}"); }
+        catch (Exception ex) { _lot = null; SetBanner(false, ex.Message); }
     }
+
+    private async Task Register()
+    {
+        if (Session is null) return;
+        if (_lot is null)      { SetBanner(false, T("DfScanFirst"));  return; }
+        if (_selected is null) { SetBanner(false, T("DfSelectCode")); return; }
+        _busy = true;
+        try
+        {
+            var (outcome, _, itemNo) = ProcessCode == "IMG"
+                ? PopServices.ImgLots.RegisterDefect(_lot.LotCode, Session.LineId, _selected.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo)
+                : PopServices.InjLots.RegisterDefect(_lot.LotCode, Session.LineId, _selected.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
+            var (ok, detail) = outcome switch
+            {
+                DefectRegisterOutcome.Registered      => (true,  $"{T("DfRegistered")}: {_lot.LotCode} ({itemNo}) · {_selected.DefectCode}"),
+                DefectRegisterOutcome.NotFound        => (false, $"{T("LotNotFound")}: {_lot.LotCode}"),
+                DefectRegisterOutcome.WrongLine       => (false, $"{T("LotBelongsToAnotherLine")}: {_lot.LotCode}"),
+                DefectRegisterOutcome.AlreadyInRework => (false, $"{T("DfAlreadyInRework")}: {_lot.LotCode}"),
+                DefectRegisterOutcome.Scrapped        => (false, $"{T("DfScrapped")}: {_lot.LotCode}"),
+                _                                     => (false, $"{T("Fail")}: {_lot.LotCode}"),
+            };
+            if (ok)
+            {
+                _today.Insert(0, new TodayRow(_lot.LotCode, _selected.DefectCode, DateTime.Now));
+                _lot = null; _selected = null;
+                await OnChanged.InvokeAsync();
+            }
+            SetBanner(ok, detail);
+        }
+        catch (Exception ex) { SetBanner(false, ex.Message); }
+        finally { _busy = false; _focusScan = true; }
+    }
+
+    private void SetBanner(bool ok, string detail) { _bannerClass = ok ? "ok" : "bad"; _bannerDetail = detail; }
+
+    public void Dispose() => Scanner.OnScan -= OnSerialScan;
 }

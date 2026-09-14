@@ -43,4 +43,8 @@ public class ImgScanParserTests
     [Fact]
     public void Empty_returns_null()
         => Assert.Null(ImgScanParser.ExtractLotCode("   "));
+
+    [Fact]
+    public void Plain_inj_lot_code_passes_through_unchanged()
+        => Assert.Equal("A91I10001", ImgScanParser.ExtractLotCode("A91I10001\r"));
 }

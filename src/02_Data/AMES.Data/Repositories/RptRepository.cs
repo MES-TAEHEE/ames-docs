@@ -133,17 +133,21 @@ public sealed class RptRepository
     // ── RPT-002 Defect Pareto (기간 조회) ─────────────────────────────────
     public sealed record DefectAggRow(string? DefectCode, string? ProcessCode, string? LineId, int Qty, int Events);
 
-    /// <summary>기간 내 불량 상세를 불량코드×공정×라인으로 집계. 라인은 실적(PR_ProductionResult) 조인.</summary>
+    /// <summary>
+    /// 기간 내 불량 상세를 불량코드×공정×라인으로 집계. 라인은 실적(PR_ProductionResult) 조인이되,
+    /// 미확정(RAW)·로봇 NG LOT 의 불량은 ResultID 가 없으므로 LOT 의 라인으로 대신 귀속시킨다.
+    /// </summary>
     public List<DefectAggRow> ListDefectAgg(DateTime from, DateTime to, string? lineId = null)
     {
         const string sql = """
-            SELECT  d.DefectCode, d.ProcessCode, r.LineID,
+            SELECT  d.DefectCode, d.ProcessCode, COALESCE(r.LineID, tl.LineID) AS LineID,
                     ISNULL(SUM(d.Qty), 0) AS Qty, COUNT(*) AS Events
             FROM    dbo.PR_DefectDetail d
             LEFT JOIN dbo.PR_ProductionResult r ON r.ResultID = d.ResultID
+            LEFT JOIN dbo.tbl_Lot             tl ON tl.LotID  = d.LotID
             WHERE   d.DetectedAt >= @F AND d.DetectedAt < @T
-              AND  (@L IS NULL OR r.LineID = @L)
-            GROUP BY d.DefectCode, d.ProcessCode, r.LineID;
+              AND  (@L IS NULL OR COALESCE(r.LineID, tl.LineID) = @L)
+            GROUP BY d.DefectCode, d.ProcessCode, COALESCE(r.LineID, tl.LineID);
             """;
         return Query(sql, r => new DefectAggRow(
             r["DefectCode"] as string, r["ProcessCode"] as string, r["LineID"] as string,

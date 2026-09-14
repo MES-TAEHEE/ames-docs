@@ -316,9 +316,11 @@ public sealed class QcRepository
                           WHEN r.LineID LIKE 'LINE-IMG-%' THEN 'IMG'
                           ELSE 'OTHER' END AS Module,
                      ISNULL(SUM(r.GoodQty),0) AS GoodQty,
+                     -- 미확정(RAW)·로봇 NG LOT 의 불량은 ResultID 가 없다 — LOT 의 라인으로 귀속시킨다
                      ISNULL((SELECT SUM(d.Qty) FROM dbo.PR_DefectDetail d
-                              JOIN dbo.PR_ProductionResult r2 ON r2.ResultID = d.ResultID
-                              WHERE r2.LineID = r.LineID
+                              LEFT JOIN dbo.PR_ProductionResult r2 ON r2.ResultID = d.ResultID
+                              LEFT JOIN dbo.tbl_Lot             tl ON tl.LotID    = d.LotID
+                              WHERE COALESCE(r2.LineID, tl.LineID) = r.LineID
                                 AND CAST(d.DetectedAt AS DATE)=CAST(GETDATE() AS DATE)), 0) AS DefectQty
               FROM   dbo.PR_ProductionResult r
               WHERE  CAST(r.EntryAt AS DATE) = CAST(GETDATE() AS DATE)

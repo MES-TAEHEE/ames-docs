@@ -1836,7 +1836,7 @@ CREATE TABLE dbo.PR_InjLot (
   [CavityPos]                 VARCHAR(4)               NULL,  -- LH / RH
   [PressType]                 VARCHAR(2)               NULL,  -- 1~5 / M(에이전트)
   [MachineShotCount]          BIGINT                   NULL,  -- PLC 샷카운터 값
-  [ConfirmStatus]             VARCHAR(16)          NOT NULL DEFAULT 'RAW',  -- RAW/CONFIRMED/NG_BLOCKED/NG_CONFIRMED
+  [ConfirmStatus]             VARCHAR(16)          NOT NULL DEFAULT 'RAW',  -- RAW/CONFIRMED/NG_BLOCKED/DEFECT/SCRAPPED
   [ConfirmedAt]               DATETIME2                NULL,
   [ConfirmedBy]               NVARCHAR(450)            NULL,
   [ConfirmedSessionID]        INT                      NULL,
