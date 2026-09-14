@@ -47,7 +47,7 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Location.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Zone"]" Component="DropDownZone" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownZone" @bind-Value="_fZone" Data="@ZoneOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownZone" @bind-Value="_fZone" Data="@FilterZoneOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
             <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@TypeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Active"]" Component="DropDownActive" />
@@ -315,9 +315,12 @@
     }
     private IEnumerable<DropDownItem> WhOptions    => CodeOptions(_whCodes);
     private IEnumerable<DropDownItem> AreaOptions  => CodeOptions(_areaCodes);
+    private IEnumerable<DropDownItem> FilterZoneOptions => CodeOptions(_zoneCodes);
     private IEnumerable<DropDownItem> AisleOptions => CodeOptions(_aisleCodes);
     private IEnumerable<DropDownItem> BayOptions   => CodeOptions(_bayCodes);
-    private IEnumerable<DropDownItem> SlotOptions  => CodeOptions(_slotCodes);
+    private IEnumerable<DropDownItem> SlotOptions  => CodeOptions(_slotCodes
+        .Where(x => x.GroupCode == (_f.AreaCode == "SPARE_PARTS_AREA" ? "MNT_SLOT" : "WH_SLOT"))
+        .ToList());
     private IEnumerable<DropDownItem> TypeOptions  => CodeOptions(_typeCodes);
     private IEnumerable<DropDownItem> PlantOptions => _plantCodes.Where(p => p.UseFlag).Select(p => new DropDownItem { Value = p.CodeValue ?? "", Text = $"[{p.CodeValue}] {MasterDataRepository.LocalName(p)}" });
 
@@ -341,10 +344,20 @@
         try { _whCodes    = MD.ListCodeItems("WH_CODE"); } catch { }
         try { _areaCodes  = MD.ListCodeItems("WH_AREA"); } catch { }
         try { _plantCodes = MD.ListCodeItems("PLANT"); } catch { }
-        try { _zoneCodes  = MD.ListCodeItems("WH_ZONE");  } catch { }
+        try
+        {
+            _zoneCodes = MD.ListCodeItems("WH_ZONE");
+            _zoneCodes.AddRange(MD.ListCodeItems("MNT_ZONE"));
+        }
+        catch { }
         try { _aisleCodes = MD.ListCodeItems("WH_AISLE"); } catch { }
         try { _bayCodes   = MD.ListCodeItems("WH_BAY");   } catch { }
-        try { _slotCodes  = MD.ListCodeItems("WH_SLOT");  } catch { }
+        try
+        {
+            _slotCodes = MD.ListCodeItems("WH_SLOT");
+            _slotCodes.AddRange(MD.ListCodeItems("MNT_SLOT"));
+        }
+        catch { }
         try { _typeCodes  = MD.ListCodeItems("LOCATION_TYPE");   } catch { }
         try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
         Reload();
