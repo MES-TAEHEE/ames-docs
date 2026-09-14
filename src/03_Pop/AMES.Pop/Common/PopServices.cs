@@ -27,12 +27,11 @@ internal static class PopServices
     public static AndonRepository        Andon             { get; private set; } = null!;
     public static DashboardRepository    Dashboard         { get; private set; } = null!;
     public static MasterDataRepository   Master            { get; private set; } = null!;
-    public static FabricRepository       Fabric            { get; private set; } = null!;
-    public static BondRepository         Bond              { get; private set; } = null!;
     public static PntRepository          Pnt               { get; private set; } = null!;
     public static QcRepository           Qc                { get; private set; } = null!;
     public static InjLotRepository      InjLots           { get; private set; } = null!;
     public static ImgLotRepository      ImgLots           { get; private set; } = null!;
+    public static ReworkRepository      Rework            { get; private set; } = null!;
 
     public static void Initialize()
     {
@@ -50,11 +49,10 @@ internal static class PopServices
         Andon             = new AndonRepository     (ConnectionFactory);
         Dashboard         = new DashboardRepository (ConnectionFactory);
         Master            = new MasterDataRepository(ConnectionFactory);
-        Fabric            = new FabricRepository    (ConnectionFactory);
-        Bond              = new BondRepository      (ConnectionFactory);
         Pnt               = new PntRepository       (ConnectionFactory);
         Qc                = new QcRepository        (ConnectionFactory);
         InjLots           = new InjLotRepository    (ConnectionFactory);
         ImgLots           = new ImgLotRepository    (ConnectionFactory);
+        Rework            = new ReworkRepository    (ConnectionFactory);
     }
 }

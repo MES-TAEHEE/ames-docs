@@ -1930,7 +1930,7 @@ public sealed class MasterDataRepository
             FROM   dbo.MD_Line l
             JOIN   dbo.MD_WorkCenter wc ON wc.WCID = l.WCID
             WHERE  ISNULL(l.Status,'ACTIVE') <> 'INACTIVE'
-              AND  wc.ProcessCode IN ('INJ','IMG','PNT','QC')
+              AND  wc.ProcessCode IN ('INJ','IMG','PNT','QC','RWK')
             ORDER  BY l.LineID;
             """, conn);
         using var r = cmd.ExecuteReader();

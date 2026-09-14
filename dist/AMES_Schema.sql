@@ -1539,20 +1539,6 @@ CREATE TABLE dbo.PP_ProductionCalendarOverride (
 );
 GO
 
--- ── PP_EquipSignal  (설비 가동 신호 — InjAgent/PLC 수집, 라인 상태 판정용)
-CREATE TABLE dbo.PP_EquipSignal (
-  [SignalId]                  INT IDENTITY(1,1)    NOT NULL,
-  [LineId]                    VARCHAR(20)          NOT NULL,
-  [SignalTime]                DATETIME2            NOT NULL DEFAULT SYSDATETIME(),
-  [IsRunning]                 BIT                  NOT NULL DEFAULT 0,
-  [Source]                    VARCHAR(30)              NULL DEFAULT 'WEB',
-  [CreatedBy]                 VARCHAR(50)              NULL,
-  CONSTRAINT PK_PP_EquipSignal PRIMARY KEY CLUSTERED ([SignalId])
-);
-GO
-CREATE NONCLUSTERED INDEX IX_PP_EquipSignal_Line_Time ON dbo.PP_EquipSignal([LineId], [SignalTime]);
-GO
-
 -- ╔══════════════════════════════════════════════════════════════════════╗
 -- ║  Module: PR                                                           ║
 -- ╚══════════════════════════════════════════════════════════════════════╝
@@ -1839,7 +1825,7 @@ CREATE TABLE dbo.PR_InjLot (
   [CavityPos]                 VARCHAR(4)               NULL,  -- LH / RH
   [PressType]                 VARCHAR(2)               NULL,  -- 1~5 / M(에이전트)
   [MachineShotCount]          BIGINT                   NULL,  -- PLC 샷카운터 값
-  [ConfirmStatus]             VARCHAR(16)          NOT NULL DEFAULT 'RAW',  -- RAW/CONFIRMED/NG_BLOCKED/NG_CONFIRMED
+  [ConfirmStatus]             VARCHAR(16)          NOT NULL DEFAULT 'RAW',  -- RAW/CONFIRMED/NG_BLOCKED/DEFECT/SCRAPPED
   [ConfirmedAt]               DATETIME2                NULL,
   [ConfirmedBy]               NVARCHAR(450)            NULL,
   [ConfirmedSessionID]        INT                      NULL,
