@@ -8,6 +8,7 @@
 @inject IStringLocalizer<SharedResources> L
 @using AMES.Data.Repositories
 @using AMES.Data.Scheduling
+@using AMES.Data.Services
 
 <div style="display:flex;flex-direction:column;gap:10px;min-width:900px;">
     <div style="border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:4px 14px;">
@@ -57,6 +58,15 @@
                 {
                     var n = Math.Max(1, r.Steps.Count);
                     var qty = Qty(r.Line);
+                    @if (r.NoMold)
+                    {
+                        <tr>
+                            <td><span class="code">@r.Line.SoNumber</span><div>@r.Line.ItemNo</div></td>
+                            <td style="text-align:right;">@qty.ToString("#,0")</td>
+                            <td colspan="6"><span class="pill bad">@L["PP.PlanConfirm.Dlg.Err.NoMold"]</span></td>
+                        </tr>
+                        continue;
+                    }
                     @if (r.Steps.Count == 0)
                     {
                         <tr>
@@ -90,7 +100,10 @@
                                                 AllowClear="true" AllowFiltering="true" Disabled="_busy"
                                                 Placeholder="—" Style="width:100%" />
                             </td>
-                            <td class="code">@Span(ps)</td>
+                            <td class="code">
+                                @Span(ps)
+                                @if (ChangeMin(r, s) is > 0 and var cm) { <div class="dim" style="font-size:.85em;">@string.Format(L["PP.PlanConfirm.Dlg.MoldChange"].Value, cm)</div> }
+                            </td>
                             <td style="text-align:right;">
                                 @if (late > 0) { <span class="pill warn">@late.ToString("#,0")</span> } else { <span class="dim">—</span> }
                             </td>
@@ -120,6 +133,10 @@
     {
         <div class="ames-alert bad">@string.Format(L["PP.PlanConfirm.Dlg.Warn.Short"].Value, ShortCount)</div>
     }
+    @if (RejectCount > 0)
+    {
+        <div class="ames-alert bad">@string.Format(L["PP.PlanConfirm.Dlg.Warn.NoMold"].Value, RejectCount)</div>
+    }
 
     <span class="dim" style="font-size:.8em;line-height:1.5;">@string.Format(L["PP.PlanConfirm.Dlg.Hint"].Value, _bufferDays)</span>
 
@@ -132,7 +149,7 @@
         <RadzenButton Text="@L["Btn.Cancel"]" ButtonStyle="ButtonStyle.Light" Disabled="_busy"
                       Click="@(() => Dialog.Close(null))" />
         <RadzenButton Text="@(_busy ? L["Lbl.Loading"].Value : L["PP.PlanConfirm.Dlg.Run"].Value)"
-                      ButtonStyle="ButtonStyle.Success" Icon="play_arrow" Disabled="@(_busy || Lines.Count == 0)"
+                      ButtonStyle="ButtonStyle.Success" Icon="play_arrow" Disabled="@(_busy || Lines.Count == 0 || _rows.All(r => r.NoMold))"
                       Click="Run" />
     </div>
 </div>
@@ -151,7 +168,9 @@
         public required List<StepVm>             Steps { get; init; }
         public DateTime?              Deadline { get; set; }
         public DeadlinePacker.Result? Preview  { get; set; }
+        public bool                   NoMold   { get; set; }   // INJ 단계 품번에 금형 매핑 없음 — 생성 대상에서 제외
     }
+    int RejectCount => _rows.Count(r => r.NoMold);
 
     bool     _busy;
     bool     _useNet    = true;
@@ -200,7 +219,7 @@
         Recompute();
     }
 
-    // 미리보기 — 서버와 같은 패커·같은 입력. 확정 사이에 남이 자리를 채우면 달라질 수 있으므로 확정 후 서버 결과가 정본이다.
+    // 미리보기 — 서버와 같은 패커·같은 입력·같은 금형 규칙. 확정 사이에 남이 자리를 채우면 달라질 수 있으므로 확정 후 서버 결과가 정본이다.
     void Recompute()
     {
         var today  = _dbNow.Date;
@@ -216,20 +235,38 @@
                 if (string.IsNullOrEmpty(_err)) _err = ex.Message;
                 return new LineScheduleRepository.DayCapacity(null, 480, Array.Empty<SlotPacker.Interval>(), Array.Empty<SlotPacker.Interval>(), 0, 0, null);
             }
-        });
+        },
+        (line, date) => { try { return LSB.GetLineLastMoldBefore(line, date); } catch { return null; } });
 
         foreach (var r in _rows)
         {
             r.Deadline = r.Line.DueDate is DateTime d ? _cal.SubtractWorkdays(d, _bufferDays) : null;
+            r.NoMold   = false;
             var qty = Qty(r.Line);
             if (qty <= 0 || r.Steps.Count == 0 || r.Steps.Any(s => string.IsNullOrEmpty(s.LineId))) { r.Preview = null; continue; }
 
-            var demands = r.Steps.Select(s => new DeadlinePacker.StepDemand(
-                    s.Step.StepSeq, s.LineId!, qty, s.Step.StdCycleSec, _dailyCap.GetValueOrDefault(s.LineId!)))
-                .ToList();
+            var demands = new List<DeadlinePacker.StepDemand>();
+            foreach (var s in r.Steps)
+            {
+                MoldResolver.MoldCandidate? mold = null;
+                if (MoldResolver.NeedsMold(s.Step.ProcessCode))
+                {
+                    List<MoldResolver.MoldCandidate> cands;
+                    try { cands = MD.ListMoldCandidates(r.Line.ItemNo, s.LineId!); }
+                    catch (Exception ex) { if (string.IsNullOrEmpty(_err)) _err = ex.Message; cands = new(); }
+                    mold = MoldResolver.Choose(cands, days.LastMoldId(s.LineId!, today));
+                    if (mold is null) { r.NoMold = true; break; }
+                }
+                demands.Add(new DeadlinePacker.StepDemand(s.Step.StepSeq, s.LineId!, qty, s.Step.StdCycleSec,
+                                                          _dailyCap.GetValueOrDefault(s.LineId!), mold?.MoldId, mold?.ChangeMin ?? 0));
+            }
+            if (r.NoMold) { r.Preview = null; continue; }
             r.Preview = DeadlinePacker.Pack(demands, today, nowMin, r.Deadline, r.Line.DueDate, _cal, days);
         }
     }
+
+    static int ChangeMin(RowVm r, StepVm s) =>
+        r.Preview?.MoldChanges.Where(m => m.StepSeq == s.Step.StepSeq).Sum(m => m.EndMin - m.StartMin) ?? 0;
 
     static List<DeadlinePacker.Placement> Placements(RowVm r, StepVm s) =>
         r.Preview?.Placements.Where(p => p.StepSeq == s.Step.StepSeq).ToList() ?? new();
@@ -243,7 +280,7 @@
 
     string? Validate()
     {
-        foreach (var r in _rows)
+        foreach (var r in _rows.Where(r => !r.NoMold))
             foreach (var s in r.Steps)
                 if (string.IsNullOrEmpty(s.LineId)) return L["PP.PlanConfirm.Dlg.Err.LineMissing"];
         return null;
@@ -258,14 +295,14 @@
         {
             var auth  = await AuthPrvd.GetAuthenticationStateAsync();
             var actor = auth.User.Identity?.Name ?? "system";
-            var plans = _rows.Select(r => new PpRepository.OrderPlan(r.Line.SoId,
+            var plans = _rows.Where(r => !r.NoMold).Select(r => new PpRepository.OrderPlan(r.Line.SoId,
                             r.Steps.Select(s => new PpRepository.StepChoice(s.Step.StepSeq, s.LineId!)).ToList()))
                         .ToList();
             var res = Pp.CreateScheduledWorkOrders(plans, actor, _useNet, _startDate.Date);
-            Dialog.Close(new Result(res.Created, res.Late, res.Short));
+            Dialog.Close(new Result(res.Created, res.Late, res.Short, res.RejectedCount));
         }
         catch (Exception ex) { _err = ex.Message; _busy = false; }
     }
 
-    public record Result(int Created, int Late, int Short);
+    public record Result(int Created, int Late, int Short, int Rejected);
 }

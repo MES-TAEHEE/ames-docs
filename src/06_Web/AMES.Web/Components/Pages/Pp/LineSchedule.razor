@@ -459,6 +459,21 @@
             __b.OpenElement(114, "span"); __b.AddAttribute(115, "class", "pp-blk-s"); __b.AddContent(116, $"{wMin}{L["Lbl.Min"]}"); __b.CloseElement();
             __b.CloseElement();
         }
+        // 금형 교체(MC) 블록 — WO 레인(하단 반절), 보라. 편집 불가: PP-003 이 만들고 WO 삭제로만 없어진다
+        foreach (var mc in _mcBlocks)
+        {
+            if (mc.StartMin >= mc.EndMin) continue;
+            int rlo = Rel(mc.StartMin), rhi = RelEnd(mc.EndMin);
+            if (rhi <= rlo) continue;
+            int wMin = mc.EndMin - mc.StartMin;
+            string label = string.IsNullOrWhiteSpace(mc.Title) ? "MC" : mc.Title!;
+            string range = $"{MinToTime(mc.StartMin)}~{MinToTime(mc.EndMin)}";
+            __b.OpenElement(120, "div"); __b.AddAttribute(121, "class", "pp-gantt-mc"); __b.AddAttribute(122, "style", $"left:{LeftPct(rlo)};width:{WidthPct(rlo, rhi)};padding:0;top:50%;height:calc(50% - 4px);");
+            __b.AddAttribute(123, "title", $"{L["PP.LineSchedule.Mc.Name"]} {label}\n{range}  ({wMin}{L["Lbl.Min"]})");
+            __b.OpenElement(124, "span"); __b.AddAttribute(125, "class", "pp-blk-t"); __b.AddContent(126, label); __b.CloseElement();
+            __b.OpenElement(127, "span"); __b.AddAttribute(128, "class", "pp-blk-s"); __b.AddContent(129, $"{wMin}{L["Lbl.Min"]}"); __b.CloseElement();
+            __b.CloseElement();
+        }
         NowLine(85);
         __b.CloseElement(); // 스케줄 행 (밴드 + WO 오버레이)
 
@@ -477,6 +492,7 @@
     List<MasterDataRepository.CodeItemRow>          _schedStatuses = new();  // 공통코드 SCHEDULE_STATUS
     List<LineScheduleRepository.WoRow>              _lineWos     = new();
     List<StagedWo>                                  _slots       = new();
+    List<McBlock>                                   _mcBlocks    = new();
 
     string    _lineId    = "";
     DateTime  _date      = DateTime.Today;
@@ -526,8 +542,10 @@
     int _dayStart = 6 * 60;   // 하루 시작 분(= 첫 교대 시작, 축이 A→B→C 순이 되도록)
     string _err = "", _msg = "";
 
-    record StagedWo(int WoId, string WoNumber, string? ItemName, int StartMin, int EndMin, decimal Qty);
+    record StagedWo(int WoId, string WoNumber, string? ItemName, int StartMin, int EndMin, decimal Qty, string? MoldId = null);
     record PmBand(int Id, int StartMin, int EndMin, string? Title, string? RefType, int? RefId, string? RefLabel);
+    /// <summary>금형 교체 블록(EntryType MC). PP-003 이 만들며 보드는 표시·보존만 한다. WoRefId 의 WO 슬롯을 지우면 같이 없어진다.</summary>
+    record McBlock(int Id, int StartMin, int EndMin, string? Title, int? WoRefId, string? MoldId);
     record Band(int StartMin, int EndMin, string State, string? Shift);
 
     // ── Computed ─────────────────────────────────────────────────────────
@@ -557,17 +575,19 @@
         }
     }
 
-    // [start,end] 에서 PM 밴드 구간들을 뺀 잔여 구간 목록 (겹치는 PM 다수도 병합 처리)
+    // [start,end] 에서 PM 밴드 + MC(금형 교체) 블록 구간들을 뺀 잔여 구간 목록 (겹치는 구간 다수도 병합 처리)
     IEnumerable<(int Start, int End)> SubtractPm(int start, int end)
     {
-        var pms = _pmBands.Where(p => p.EndMin > p.StartMin && Overlap(start, end, p.StartMin, p.EndMin))
-                          .OrderBy(p => p.StartMin).ToList();
+        var busy = _pmBands.Where(p => p.EndMin > p.StartMin).Select(p => (S: p.StartMin, E: p.EndMin))
+                            .Concat(_mcBlocks.Where(m => m.EndMin > m.StartMin).Select(m => (S: m.StartMin, E: m.EndMin)))
+                            .Where(b => Overlap(start, end, b.S, b.E))
+                            .OrderBy(b => b.S).ToList();
         int cur = start;
-        foreach (var p in pms)
+        foreach (var b in busy)
         {
-            int ps = Math.Max(start, p.StartMin);
+            int ps = Math.Max(start, b.S);
             if (ps > cur) yield return (cur, ps);
-            cur = Math.Max(cur, Math.Min(end, p.EndMin));
+            cur = Math.Max(cur, Math.Min(end, b.E));
         }
         if (cur < end) yield return (cur, end);
     }
@@ -596,6 +616,7 @@
             {
                 if (!InsideOperating(ord[i].StartMin, ord[i].EndMin)) set.Add(ord[i].WoId);
                 if (_pmBands.Any(p => Overlap(ord[i].StartMin, ord[i].EndMin, p.StartMin, p.EndMin))) set.Add(ord[i].WoId);
+                if (_mcBlocks.Any(m => Overlap(ord[i].StartMin, ord[i].EndMin, m.StartMin, m.EndMin))) set.Add(ord[i].WoId);
                 for (int j = i + 1; j < ord.Count; j++)
                 {
                     if (ord[j].StartMin >= ord[i].EndMin) break;
@@ -710,7 +731,7 @@
 
     void LoadData()
     {
-        _err = ""; _slots = new(); _segments = new(); _pmBands = new();
+        _err = ""; _slots = new(); _segments = new(); _pmBands = new(); _mcBlocks = new();
         _patternId = ""; _savedStatus = null; _publishedAt = null; _publishedBy = null; _dirty = false;
         if (string.IsNullOrEmpty(_lineId)) { _lineWos = new(); _pmCandidates = new(); ResetPlaceForm(); return; }
         try
@@ -722,12 +743,15 @@
             _savedStatus = rows.FirstOrDefault()?.Status;
             _publishedAt = rows.FirstOrDefault(r => r.PublishedAt.HasValue)?.PublishedAt;
             _publishedBy = rows.FirstOrDefault(r => r.PublishedBy != null)?.PublishedBy;
-            _slots = rows.Where(r => r.EntryType != "PM" && r.WoId.HasValue && r.EndMin > r.StartMin)
-                         .Select(r => new StagedWo(r.WoId!.Value, r.WoNumber ?? $"#{r.WoId}", r.ItemName, r.StartMin, r.EndMin, r.PlannedQty))
+            _slots = rows.Where(r => r.EntryType is not ("PM" or "MC") && r.WoId.HasValue && r.EndMin > r.StartMin)
+                         .Select(r => new StagedWo(r.WoId!.Value, r.WoNumber ?? $"#{r.WoId}", r.ItemName, r.StartMin, r.EndMin, r.PlannedQty, r.MoldId))
                          .ToList();
             _pmBands = rows.Where(r => r.EntryType == "PM" && r.EndMin > r.StartMin)
                            .Select(r => new PmBand(r.ScheduleId, r.StartMin, r.EndMin, r.Title, r.RefType, r.RefId, PmRefLabel(r.RefType, r.RefId)))
                            .ToList();
+            _mcBlocks = rows.Where(r => r.EntryType == "MC" && r.EndMin > r.StartMin)
+                            .Select(r => new McBlock(r.ScheduleId, r.StartMin, r.EndMin, r.Title, r.RefType == "WO" ? r.RefId : null, r.MoldId))
+                            .ToList();
             if (!string.IsNullOrEmpty(_patternId)) LoadSegments();
             ResetPlaceForm();
         }
@@ -812,7 +836,7 @@
         {
             var wo = AvailableWos.FirstOrDefault(w => w.WoId == woId);
             if (wo is null) return;
-            cand.Add(new StagedWo(wo.WoId, wo.WoNumber ?? $"#{wo.WoId}", wo.ItemName ?? wo.ItemNo, startMin, endMin, _placeQty));
+            cand.Add(new StagedWo(wo.WoId, wo.WoNumber ?? $"#{wo.WoId}", wo.ItemName ?? wo.ItemNo, startMin, endMin, _placeQty, _slots.FirstOrDefault(s => s.WoId == wo.WoId)?.MoldId));
         }
 
         // 검증 (전체 후보 기준)
@@ -821,8 +845,9 @@
         var ord = cand.OrderBy(s => s.StartMin).ToList();
         for (int i = 1; i < ord.Count; i++)
             if (ord[i].StartMin < ord[i - 1].EndMin) { _modalErr = L["PP.LineSchedule.Err.Overlap"]; return; }
-        // WO는 PM 밴드와 겹칠 수 없음
-        if (cand.Any(s => _pmBands.Any(p => Overlap(s.StartMin, s.EndMin, p.StartMin, p.EndMin))))
+        // WO는 PM 밴드·MC(금형 교체) 블록과 겹칠 수 없음
+        if (cand.Any(s => _pmBands.Any(p => Overlap(s.StartMin, s.EndMin, p.StartMin, p.EndMin))
+                       || _mcBlocks.Any(m => Overlap(s.StartMin, s.EndMin, m.StartMin, m.EndMin))))
         { _modalErr = L["PP.LineSchedule.Err.Overlap"]; return; }
         int load = cand.Sum(s => s.EndMin - s.StartMin);
         if (load > OperatingMin)
@@ -853,6 +878,7 @@
     {
         if (!Editable) return;
         _slots.RemoveAll(s => s.WoId == woId);
+        _mcBlocks.RemoveAll(m => m.WoRefId == woId);   // 교체 블록은 그 WO 를 위한 것 — WO 가 빠지면 같이 뺀다
         if (_editWoId == woId) ResetPlaceForm();
         _dirty = true;
     }
@@ -1018,8 +1044,9 @@
         try
         {
             LSB.SaveSchedule(_lineId, _date, _patternId,
-                _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty)),
-                _pmBands.Select(p => (p.StartMin, p.EndMin, p.Title, p.RefType, p.RefId)), _actor);
+                _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty, s.MoldId)),
+                _pmBands.Select(p => (p.StartMin, p.EndMin, p.Title, p.RefType, p.RefId)), _actor,
+                _mcBlocks.Select(m => (m.StartMin, m.EndMin, m.Title, m.WoRefId, m.MoldId)));
             ShowMsg(L["PP.LineSchedule.Ok.Applied"].Value);
             LoadData();
         }
@@ -1035,8 +1062,9 @@
         try
         {
             LSB.SaveSchedule(_lineId, _date, _patternId,
-                _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty)),
-                _pmBands.Select(p => (p.StartMin, p.EndMin, p.Title, p.RefType, p.RefId)), _actor);
+                _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty, s.MoldId)),
+                _pmBands.Select(p => (p.StartMin, p.EndMin, p.Title, p.RefType, p.RefId)), _actor,
+                _mcBlocks.Select(m => (m.StartMin, m.EndMin, m.Title, m.WoRefId, m.MoldId)));
             LSB.PublishSchedule(_lineId, _date, _actor);
             ShowMsg(L["PP.LineSchedule.Ok.Published"].Value);
             LoadData();

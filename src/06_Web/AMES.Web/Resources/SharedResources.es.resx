@@ -5121,8 +5121,11 @@
   <data name="Col.UPH" xml:space="preserve">
     <value>UPH</value>
   </data>
+  <data name="Col.MoldChangeMin" xml:space="preserve">
+    <value>Cambio de molde (min)</value>
+  </data>
   <data name="Col.PrepTime" xml:space="preserve">
-    <value>Tiempo de Preparación</value>
+    <value>Tiempo de cambio (min, línea)</value>
   </data>
   <data name="Err.MoldInUse" xml:space="preserve">
     <value>No se puede eliminar: usado por {0} ítem(s) y {1} asignación(es) de línea</value>
@@ -5303,6 +5306,9 @@
   </data>
   <data name="PP.LineSchedule.Pm.ListTitle" xml:space="preserve">
     <value>Franjas de Mantenimiento (PM)</value>
+  </data>
+  <data name="PP.LineSchedule.Mc.Name" xml:space="preserve">
+    <value>Cambio de molde</value>
   </data>
   <data name="PP.LineSchedule.Pm.Empty" xml:space="preserve">
     <value>Sin franjas PM registradas</value>
@@ -5600,6 +5606,18 @@
   </data>
   <data name="PP.PlanConfirm.Dlg.NoSteps" xml:space="preserve">
     <value>Sin etapa con línea — liberada sin programa</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Err.NoMold" xml:space="preserve">
+    <value>Sin molde asignado — no se puede producir</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.NoMold" xml:space="preserve">
+    <value>{0} pedido(s) excluidos: sin molde — regístrelo en MD-007 y vuelva a ejecutar</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.MoldChange" xml:space="preserve">
+    <value>Cambio {0} min</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Rejected" xml:space="preserve">
+    <value>{0} excluidos (sin molde)</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Err.LineMissing" xml:space="preserve">
     <value>Hay etapas sin línea.</value>

@@ -12,6 +12,8 @@ namespace AMES.InjAgent.Tests;
 /// 배치 시작일(startDate)은 먼 미래의 월요일(+400일 이후)로 고정하고, 그 주 월~금 (라인, 일자) 에 ITEST 패턴
 /// placeholder 행을 미리 두어 패턴 해석을 고정한다. 그 주에 SYS_FactoryCalendar HOLIDAY 행이 없다고 가정한다.
 /// </summary>
+// MoldPlanningTests 와 같은 LINE-INJ-01/LINE-IMG-01 + 같은 +400일 주(D0)를 쓰므로 같은 컬렉션으로 묶어 직렬화한다.
+[Collection("AMES_DEV plan week")]
 public class PlanScheduleTests
 {
     static readonly string Conn =
@@ -76,6 +78,10 @@ public class PlanScheduleTests
         Exec(f, """
             INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, ActiveFlag, CreatedBy)
             VALUES (@I, N'ITEST plan schedule', 'A', 1, 'ITEST');
+            INSERT INTO dbo.MD_Mold (MoldID, MoldName, Status, MoldChangeMin, CreatedBy)
+            VALUES ('ITEST-PS-M', N'ITEST plan mold', 'AVAILABLE', 0, 'ITEST');
+            INSERT INTO dbo.MD_MoldItem (MoldID, ItemNo, Color, CavitySeq, CavityPos, CavityCount, MoldCategory, ActiveFlag, CreatedBy)
+            VALUES ('ITEST-PS-M', @I, 'CBK', 1, 'LH', 1, 'INJECTION', 1, 'ITEST');
             INSERT INTO dbo.MD_Bop (BOPID, ItemNo, RoutingType, StepSeq, StationCode, StdCycleTime, ActiveFlag, CreatedBy)
             VALUES ('ITEST-PS-BOP-10', @I, 'A', 10, 'ST-INJ-01', 6,  1, 'ITEST'),
                    ('ITEST-PS-BOP-20', @I, 'A', 20, 'ST-IMG-01', 12, 1, 'ITEST');
@@ -98,11 +104,14 @@ public class PlanScheduleTests
     {
         Exec(f, """
             DELETE s FROM dbo.PP_LineSchedule s JOIN dbo.PP_WorkOrder w ON w.WoID = s.WoID WHERE w.ItemNo = @I;
+            DELETE s FROM dbo.PP_LineSchedule s JOIN dbo.PP_WorkOrder w ON w.WoID = s.RefID AND s.RefType = 'WO' WHERE w.ItemNo = @I;
             DELETE FROM dbo.PP_LineSchedule WHERE CreatedBy = 'ITEST' AND ScheduleDate BETWEEN @D0 AND @D4;
             DELETE r FROM dbo.PP_WorkOrderRouting r JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID WHERE w.ItemNo = @I;
             DELETE FROM dbo.PP_WorkOrder     WHERE ItemNo = @I;
             DELETE FROM dbo.PP_CustomerOrder WHERE ItemNo = @I;
             DELETE FROM dbo.MD_Bop           WHERE ItemNo = @I;
+            DELETE FROM dbo.MD_MoldItem WHERE MoldID = 'ITEST-PS-M';
+            DELETE FROM dbo.MD_Mold     WHERE MoldID = 'ITEST-PS-M';
             DELETE FROM dbo.MD_Item          WHERE ItemNo = @I;
             DELETE FROM dbo.MD_LineTimeSegment WHERE PatternID = @P;
             DELETE FROM dbo.MD_LineTimePattern WHERE PatternID = @P;

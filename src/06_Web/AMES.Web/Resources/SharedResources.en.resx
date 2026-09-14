@@ -5124,8 +5124,11 @@
   <data name="Col.UPH" xml:space="preserve">
     <value>UPH</value>
   </data>
+  <data name="Col.MoldChangeMin" xml:space="preserve">
+    <value>Mold Change (min)</value>
+  </data>
   <data name="Col.PrepTime" xml:space="preserve">
-    <value>Prep Time</value>
+    <value>Change Time (min, line override)</value>
   </data>
   <data name="Err.MoldInUse" xml:space="preserve">
     <value>Cannot delete: used by {0} item(s) and {1} line assignment(s)</value>
@@ -5306,6 +5309,9 @@
   </data>
   <data name="PP.LineSchedule.Pm.ListTitle" xml:space="preserve">
     <value>Maintenance (PM) Bands</value>
+  </data>
+  <data name="PP.LineSchedule.Mc.Name" xml:space="preserve">
+    <value>Mold change</value>
   </data>
   <data name="PP.LineSchedule.Pm.Empty" xml:space="preserve">
     <value>No PM bands registered</value>
@@ -5627,6 +5633,18 @@
   </data>
   <data name="PP.PlanConfirm.Dlg.NoSteps" xml:space="preserve">
     <value>No line-required step — released without a schedule</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Err.NoMold" xml:space="preserve">
+    <value>No mold mapped — cannot produce</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.NoMold" xml:space="preserve">
+    <value>{0} order(s) excluded: no mold mapped — register in MD-007 mold items and rerun</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.MoldChange" xml:space="preserve">
+    <value>Changeover {0} min</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Rejected" xml:space="preserve">
+    <value>{0} excluded (no mold)</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Err.LineMissing" xml:space="preserve">
     <value>Some steps have no line.</value>

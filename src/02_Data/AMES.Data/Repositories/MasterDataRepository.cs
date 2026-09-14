@@ -1243,7 +1243,7 @@ public sealed class MasterDataRepository
         string? CreatedBy, DateTime? CreatedTS,
         string? ModifiedBy, DateTime? ModifiedTS,
         string? CarType = null, string? RefCode = null,
-        bool AssyInjResultFlag = false, long CumulativeShots = 0);
+        bool AssyInjResultFlag = false, long CumulativeShots = 0, int? MoldChangeMin = null);
 
     public List<MoldRow> ListMolds()
     {
@@ -1253,7 +1253,7 @@ public sealed class MasterDataRepository
                    RatedShots, CurrentShots, CavityCount, Tonnage,
                    StorageLoc, LastMaintDate, Status,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS,
-                   CarType, RefCode, AssyInjResultFlag, CumulativeShots
+                   CarType, RefCode, AssyInjResultFlag, CumulativeShots, MoldChangeMin
             FROM   dbo.MD_Mold
             ORDER  BY MoldID;
             """, conn);
@@ -1277,7 +1277,8 @@ public sealed class MasterDataRepository
                 r["CarType"]       as string,
                 r["RefCode"]       as string,
                 r["AssyInjResultFlag"] is bool af && af,
-                r["CumulativeShots"]   is long cum ? cum : 0));
+                r["CumulativeShots"]   is long cum ? cum : 0,
+                r["MoldChangeMin"]     is int mcm ? mcm : null));
         return list;
     }
 
@@ -1299,21 +1300,22 @@ public sealed class MasterDataRepository
         string moldId, string? moldName,
         int? ratedShots, int? currentShots, int? cavityCount, int? tonnage,
         string? storageLoc, DateOnly? lastMaintDate, string? status, string createdBy,
-        string? carType = null, string? refCode = null, bool assyInjResultFlag = false)
+        string? carType = null, string? refCode = null, bool assyInjResultFlag = false, int? moldChangeMin = null)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_Mold
               (MoldID, MoldName, RatedShots, CurrentShots, CavityCount, Tonnage,
-               StorageLoc, LastMaintDate, Status, CarType, RefCode, AssyInjResultFlag,
+               StorageLoc, LastMaintDate, Status, CarType, RefCode, AssyInjResultFlag, MoldChangeMin,
                CreatedBy, CreatedTS)
             VALUES
               (@ID, @Name, @RS, @CS, @CC, @Ton,
-               @Loc, @Maint, @St, @Car, @Ref, @Assy, @By, SYSDATETIME());
+               @Loc, @Maint, @St, @Car, @Ref, @Assy, @Chg, @By, SYSDATETIME());
             """, conn);
         cmd.Parameters.Add("@Car",  SqlDbType.VarChar, 20).Value = (object?)carType ?? DBNull.Value;
         cmd.Parameters.Add("@Ref",  SqlDbType.VarChar, 20).Value = (object?)refCode ?? DBNull.Value;
         cmd.Parameters.Add("@Assy", SqlDbType.Bit).Value         = assyInjResultFlag;
+        cmd.Parameters.Add("@Chg",  SqlDbType.Int).Value         = (object?)moldChangeMin ?? DBNull.Value;
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = moldId;
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar, 50).Value = (object?)moldName     ?? DBNull.Value;
         cmd.Parameters.Add("@RS",    SqlDbType.Int).Value          = (object?)ratedShots   ?? DBNull.Value;
@@ -1333,7 +1335,7 @@ public sealed class MasterDataRepository
         string moldId, string? moldName,
         int? ratedShots, int? currentShots, int? cavityCount, int? tonnage,
         string? storageLoc, DateOnly? lastMaintDate, string? status, string modifiedBy,
-        string? carType = null, string? refCode = null, bool assyInjResultFlag = false)
+        string? carType = null, string? refCode = null, bool assyInjResultFlag = false, int? moldChangeMin = null)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
@@ -1341,13 +1343,14 @@ public sealed class MasterDataRepository
               MoldName=@Name, RatedShots=@RS, CurrentShots=@CS,
               CavityCount=@CC, Tonnage=@Ton, StorageLoc=@Loc,
               LastMaintDate=@Maint, Status=@St,
-              CarType=@Car, RefCode=@Ref, AssyInjResultFlag=@Assy,
+              CarType=@Car, RefCode=@Ref, AssyInjResultFlag=@Assy, MoldChangeMin=@Chg,
               ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  MoldID=@ID;
             """, conn);
         cmd.Parameters.Add("@Car",  SqlDbType.VarChar, 20).Value = (object?)carType ?? DBNull.Value;
         cmd.Parameters.Add("@Ref",  SqlDbType.VarChar, 20).Value = (object?)refCode ?? DBNull.Value;
         cmd.Parameters.Add("@Assy", SqlDbType.Bit).Value         = assyInjResultFlag;
+        cmd.Parameters.Add("@Chg",  SqlDbType.Int).Value         = (object?)moldChangeMin ?? DBNull.Value;
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,   20).Value = moldId;
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar,  50).Value = (object?)moldName     ?? DBNull.Value;
         cmd.Parameters.Add("@RS",    SqlDbType.Int).Value           = (object?)ratedShots   ?? DBNull.Value;
@@ -1643,6 +1646,38 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineCode;
         cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
         cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>
+    /// 계획 배치용 금형 후보 — 품번의 활성 MD_MoldItem 금형(LH/RH 여러 행이라도 금형당 1건).
+    /// AssignedToLine = 그 라인에 MD_MoldLine 배정, ChangeMin = COALESCE(라인 PrepTime, 금형 MoldChangeMin, 0) 올림.
+    /// 선택 규칙은 AMES.Data.Services.MoldResolver.Choose.
+    /// </summary>
+    public List<MoldResolver.MoldCandidate> ListMoldCandidates(string itemNo, string lineId)
+    {
+        using var conn = _factory.OpenConnection();
+        return ReadMoldCandidates(conn, null, itemNo, lineId);
+    }
+
+    internal static List<MoldResolver.MoldCandidate> ReadMoldCandidates(SqlConnection conn, SqlTransaction? tx, string itemNo, string lineId)
+    {
+        using var cmd = new SqlCommand("""
+            SELECT DISTINCT mi.MoldID,
+                   CAST(CASE WHEN ml.MoldID IS NULL THEN 0 ELSE 1 END AS bit) AS AssignedToLine,
+                   CAST(CEILING(COALESCE(ml.PrepTime, CAST(m.MoldChangeMin AS decimal(18,4)), 0)) AS int) AS ChangeMin
+            FROM   dbo.MD_MoldItem mi
+            JOIN   dbo.MD_Mold     m  ON m.MoldID  = mi.MoldID
+            LEFT   JOIN dbo.MD_MoldLine ml ON ml.MoldID = mi.MoldID AND ml.LineCode = @Line
+            WHERE  mi.ItemNo = @Item AND ISNULL(mi.ActiveFlag, 1) = 1
+            ORDER  BY mi.MoldID;
+            """, conn, tx);
+        cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+        cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
+        using var r = cmd.ExecuteReader();
+        var list = new List<MoldResolver.MoldCandidate>();
+        while (r.Read())
+            list.Add(new MoldResolver.MoldCandidate((string)r["MoldID"], (bool)r["AssignedToLine"], Convert.ToInt32(r["ChangeMin"])));
+        return list;
     }
 
     // ╔══════════════════════════════════════════════════════════════════╗

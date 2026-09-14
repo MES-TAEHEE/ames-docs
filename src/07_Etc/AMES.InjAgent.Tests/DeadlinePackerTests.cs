@@ -24,11 +24,20 @@ public class DeadlinePackerTests
     static LineScheduleRepository.DayCapacity Day(params Interval[] bands) =>
         new("PAT", 480, bands, Array.Empty<Interval>(), bands.Sum(b => b.EndMin - b.StartMin), 0, null);
 
-    static DayStateCache Days(Func<string, DateTime, LineScheduleRepository.DayCapacity>? load = null) =>
-        new(load ?? ((_, _) => Day(Std)));
+    /// <summary>기존 슬롯이 있는 하루 — occupied 가 전부 WO 라고 보고 LastWoEnd/LastMoldId 를 채운다.</summary>
+    static LineScheduleRepository.DayCapacity DayWith(string? lastMold, Interval[] occupied, params Interval[] bands) =>
+        new("PAT", 480, bands, occupied, bands.Sum(b => b.EndMin - b.StartMin), occupied.Sum(o => o.EndMin - o.StartMin),
+            occupied.Length == 0 ? null : occupied.Max(o => o.EndMin), lastMold);
 
-    static StepDemand Step(int seq, string line, decimal qty, int? cycleSec = 60, int? dailyCap = null) =>
-        new(seq, line, qty, cycleSec, dailyCap);
+    static DayStateCache Days(Func<string, DateTime, LineScheduleRepository.DayCapacity>? load = null,
+                              Func<string, DateTime, (DateTime Date, string MoldId)?>? lastMoldBefore = null) =>
+        new(load ?? ((_, _) => Day(Std)), lastMoldBefore);
+
+    static StepDemand Step(int seq, string line, decimal qty, int? cycleSec = 60, int? dailyCap = null,
+                           string? moldId = null, int changeMin = 0) =>
+        new(seq, line, qty, cycleSec, dailyCap, moldId, changeMin);
+
+    static (DateTime Date, string MoldId)? Mounted(string mold) => (DateTime.MinValue, mold);
 
     static Result Pack(IReadOnlyList<StepDemand> steps, DateTime? deadline, DateTime? due,
                        DateTime? today = null, int nowMin = 0, WorkdayCalendar? cal = null, IDayState? days = null) =>
@@ -237,5 +246,151 @@ public class DeadlinePackerTests
 
         Assert.Empty(r.Placements);
         Assert.Empty(r.Shortfalls);
+    }
+
+    // ── 금형 교체 ───────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Different_mold_inserts_change_block_before_first_slot()
+    {
+        var days = Days(lastMoldBefore: (_, _) => Mounted("M1"));
+        var r = Pack(new[] { Step(1, "A", 100, moldId: "M2", changeMin: 30) }, deadline: Wed, due: Fri, days: days);
+
+        Assert.Equal(new[] { (Mon, 480, 510, (string?)"M1", "M2") },
+                     r.MoldChanges.Select(m => (m.Date, m.StartMin, m.EndMin, m.FromMoldId, m.ToMoldId)).ToArray());
+        Assert.Equal((Mon, 510, 610, "M2"), (r.Placements[0].Date, r.Placements[0].StartMin, r.Placements[0].EndMin, r.Placements[0].MoldId));
+        Assert.Empty(r.Shortfalls);
+    }
+
+    [Fact]
+    public void Same_mold_needs_no_change()
+    {
+        var days = Days(lastMoldBefore: (_, _) => Mounted("M2"));
+        var r = Pack(new[] { Step(1, "A", 100, moldId: "M2", changeMin: 30) }, deadline: Wed, due: Fri, days: days);
+
+        Assert.Empty(r.MoldChanges);
+        Assert.Equal(480, r.Placements[0].StartMin);
+    }
+
+    [Fact]
+    public void No_prior_mold_still_mounts_the_new_mold()
+    {
+        var r = Pack(new[] { Step(1, "A", 100, moldId: "M2", changeMin: 30) }, deadline: Wed, due: Fri);
+
+        var mc = Assert.Single(r.MoldChanges);
+        Assert.Null(mc.FromMoldId);
+        Assert.Equal("M2", mc.ToMoldId);
+        Assert.Equal(510, r.Placements[0].StartMin);
+    }
+
+    [Fact]
+    public void Change_min_zero_places_no_block()
+    {
+        var days = Days(lastMoldBefore: (_, _) => Mounted("M1"));
+        var r = Pack(new[] { Step(1, "A", 100, moldId: "M2", changeMin: 0) }, deadline: Wed, due: Fri, days: days);
+
+        Assert.Empty(r.MoldChanges);
+        Assert.Equal(480, r.Placements[0].StartMin);
+        Assert.Equal("M2", r.Placements[0].MoldId);
+    }
+
+    [Fact]
+    public void Step_without_mold_is_unaffected_and_never_asks_previous_mold()
+    {
+        bool asked = false;
+        var days = Days(lastMoldBefore: (_, _) => { asked = true; return Mounted("M1"); });
+        var r = Pack(new[] { Step(1, "A", 100) }, deadline: Wed, due: Fri, days: days);
+
+        Assert.False(asked);
+        Assert.Empty(r.MoldChanges);
+        Assert.Null(r.Placements[0].MoldId);
+    }
+
+    [Fact]
+    public void Continuation_day_keeps_the_mold_from_previous_day_tail()
+    {
+        var days = Days(lastMoldBefore: (_, _) => Mounted("M1"));
+        var r = Pack(new[] { Step(1, "A", 1000, moldId: "M2", changeMin: 30) }, deadline: Fri, due: Fri, days: days);
+
+        Assert.Single(r.MoldChanges);                       // 월요일 한 번만
+        Assert.Equal(510m, r.Placements.Where(p => p.Date == Mon).Sum(p => p.Qty));   // 540 − 30
+        Assert.Equal(480,  r.Placements.First(p => p.Date == Tue).StartMin);
+    }
+
+    [Fact]
+    public void Other_mold_already_on_next_day_forces_a_change_there()
+    {
+        var days = Days(
+            load: (_, d) => d == Tue ? DayWith("M3", new[] { I(480, 600) }, Std) : Day(Std),
+            lastMoldBefore: (_, _) => Mounted("M2"));
+        var r = Pack(new[] { Step(1, "A", 700, moldId: "M2", changeMin: 30) }, deadline: Fri, due: Fri, days: days);
+
+        var mc = Assert.Single(r.MoldChanges);
+        Assert.Equal((Tue, 600, 630, "M3", "M2"), (mc.Date, mc.StartMin, mc.EndMin, mc.FromMoldId, mc.ToMoldId));
+        Assert.Equal(630, r.Placements.First(p => p.Date == Tue).StartMin);
+    }
+
+    [Fact]
+    public void No_room_for_the_change_block_skips_that_day()
+    {
+        // 월요일은 끝에 20분만 남음 — 교체 30분이 안 들어가므로 월요일 배치 없음
+        var days = Days(
+            load: (_, d) => d == Mon ? DayWith("M1", new[] { I(480, 720), I(780, 1060) }, Std) : Day(Std),
+            lastMoldBefore: (_, _) => Mounted("M1"));
+        var r = Pack(new[] { Step(1, "A", 100, moldId: "M2", changeMin: 30) }, deadline: Fri, due: Fri, days: days);
+
+        Assert.DoesNotContain(r.Placements, p => p.Date == Mon);
+        Assert.DoesNotContain(r.MoldChanges, m => m.Date == Mon);
+        Assert.Equal((Tue, 480, 510), (r.MoldChanges[0].Date, r.MoldChanges[0].StartMin, r.MoldChanges[0].EndMin));
+    }
+
+    [Fact]
+    public void Change_that_leaves_no_room_for_one_ea_is_not_emitted()
+    {
+        // 월요일 끝에 딱 30분 — 교체는 들어가지만 1 EA 도 못 넣으니 교체 블록도 내지 않는다
+        var days = Days(
+            load: (_, d) => d == Mon ? DayWith("M1", new[] { I(480, 720), I(780, 1050) }, Std) : Day(Std),
+            lastMoldBefore: (_, _) => Mounted("M1"));
+        var r = Pack(new[] { Step(1, "A", 100, moldId: "M2", changeMin: 30) }, deadline: Fri, due: Fri, days: days);
+
+        Assert.DoesNotContain(r.MoldChanges, m => m.Date == Mon);
+        Assert.DoesNotContain(r.Placements,  p => p.Date == Mon);
+        Assert.Equal(510, days.Get("A", Mon).WoLoadMin);   // 월요일 부하는 그대로 (240 + 270)
+    }
+
+    [Fact]
+    public void Second_order_sharing_day_state_changes_from_first_orders_mold()
+    {
+        var days = Days();
+        var a = Pack(new[] { Step(1, "A", 100, moldId: "M1", changeMin: 30) }, deadline: Wed, due: Fri, days: days);
+        var b = Pack(new[] { Step(1, "A", 100, moldId: "M2", changeMin: 30) }, deadline: Wed, due: Fri, days: days);
+
+        Assert.Equal((Mon, 480, 510, (string?)null, "M1"), (a.MoldChanges[0].Date, a.MoldChanges[0].StartMin, a.MoldChanges[0].EndMin, a.MoldChanges[0].FromMoldId, a.MoldChanges[0].ToMoldId));
+        Assert.Equal((Mon, 610, 640, "M1", "M2"),          (b.MoldChanges[0].Date, b.MoldChanges[0].StartMin, b.MoldChanges[0].EndMin, b.MoldChanges[0].FromMoldId, b.MoldChanges[0].ToMoldId));
+        Assert.Equal(640, b.Placements[0].StartMin);
+    }
+
+    [Fact]
+    public void Change_block_counts_toward_day_load_and_last_end()
+    {
+        var days = Days();
+        Pack(new[] { Step(1, "A", 100, moldId: "M2", changeMin: 30) }, deadline: Wed, due: Fri, days: days);
+
+        var cap = days.Get("A", Mon);
+        Assert.Equal(130, cap.WoLoadMin);
+        Assert.Equal(610, cap.LastWoEnd);
+        Assert.Equal("M2", days.LastMoldId("A", Mon));
+    }
+
+    [Fact]
+    public void Last_mold_prefers_the_later_of_cached_and_db_days()
+    {
+        var days = Days(
+            load: (_, d) => d == Mon ? DayWith("M1", new[] { I(480, 600) }, Std) : Day(Std),
+            lastMoldBefore: (_, d) => (Mon.AddDays(-3), "M0"));    // DB 는 지난주 금요일 M0
+        days.Get("A", Mon);                                          // 월요일 캐시(M1) 적재
+
+        Assert.Equal("M1", days.LastMoldId("A", Tue));               // 캐시된 월요일이 더 늦다
+        Assert.Equal("M0", days.LastMoldId("A", Mon.AddDays(-1)));   // 일요일 이전엔 DB 값
     }
 }

@@ -1,6 +1,7 @@
 using System.Data;
 using AMES.Data.Connection;
 using AMES.Data.Scheduling;
+using AMES.Data.Services;
 using Microsoft.Data.SqlClient;
 
 namespace AMES.Data.Repositories;
@@ -602,7 +603,8 @@ public sealed class PpRepository
 
     public sealed record OrderOutcome(string WoNumber, int SoId, DateTime? Deadline, DateTime? DueDate,
                                       IReadOnlyList<DeadlinePacker.Placement> Placements,
-                                      IReadOnlyList<DeadlinePacker.StepShortfall> Shortfalls)
+                                      IReadOnlyList<DeadlinePacker.StepShortfall> Shortfalls,
+                                      IReadOnlyList<DeadlinePacker.MoldChange> MoldChanges)
     {
         public DateTime? FirstDate => Placements.Count == 0 ? null : Placements.Min(p => p.Date);
         public DateTime? LastDate  => Placements.Count == 0 ? null : Placements.Max(p => p.Date);
@@ -610,11 +612,16 @@ public sealed class PpRepository
         public decimal   ShortQty  => Shortfalls.Sum(s => s.Qty);
     }
 
-    public sealed record ScheduledCreateResult(List<OrderOutcome> Orders)
+    /// <summary>계획에서 제외된 수주. Reason = RejectNoMold(INJ 단계 품번에 금형 매핑 없음).</summary>
+    public sealed record RejectedOrder(int SoId, string? SoNumber, string? ItemNo, string Reason);
+    public const string RejectNoMold = "NoMold";
+
+    public sealed record ScheduledCreateResult(List<OrderOutcome> Orders, List<RejectedOrder> Rejected)
     {
-        public int Created => Orders.Count;
-        public int Late    => Orders.Count(o => o.LateQty  > 0);
-        public int Short   => Orders.Count(o => o.ShortQty > 0);
+        public int Created       => Orders.Count;
+        public int Late          => Orders.Count(o => o.LateQty  > 0);
+        public int Short         => Orders.Count(o => o.ShortQty > 0);
+        public int RejectedCount => Rejected.Count;
     }
 
     public const string BufferWorkdaysKey = "PP_PROD_BUFFER_WORKDAYS";
@@ -625,12 +632,15 @@ public sealed class PpRepository
     /// Release(단계 행, 계획의 라인) → DeadlinePacker 가 정한 슬롯을 PP_LineSchedule(DRAFT) 에 추가.
     /// 전체가 한 트랜잭션이라 라인 검증 실패는 배치 전체 롤백. 자리가 모자란 수량은 Shortfall 로 보고하고 WO 는 Released 로 남긴다.
     /// startDate 가 오늘보다 뒤면 그 날부터 배치(테스트·미래 계획용), 아니면 서버 현재 시각 이후부터.
+    /// INJ 단계는 MoldResolver 로 금형을 정하고 직전 금형과 다르면 EntryType='MC' 행을 슬롯 앞에 넣으며,
+    /// 활성 MD_MoldItem 이 없는 품번의 수주는 WO 를 만들지 않고 Rejected(NoMold) 로 돌려준다.
     /// </summary>
     public ScheduledCreateResult CreateScheduledWorkOrders(IReadOnlyList<OrderPlan> plans, string actor,
                                                            bool useNetReq = false, DateTime? startDate = null)
     {
-        var orders = new List<OrderOutcome>();
-        if (plans.Count == 0) return new(orders);
+        var orders   = new List<OrderOutcome>();
+        var rejected = new List<RejectedOrder>();
+        if (plans.Count == 0) return new(orders, rejected);
 
         var prefix = $"WO-{DateTime.Today:yyyyMMdd}-";
         using var conn = _f.OpenConnection();
@@ -649,7 +659,9 @@ public sealed class PpRepository
             var calEnd   = lastDue > today.AddDays(61) ? lastDue.AddDays(1) : today.AddDays(61);
             var cal      = new WorkdayCalendar(ReadCalendar(conn, tx, today.AddDays(-1), calEnd));
             var dailyCap = ReadDailyCap(conn, tx);
-            var days     = new DeadlinePacker.DayStateCache((line, date) => LineScheduleRepository.ReadDayCapacity(conn, tx, line, date));
+            var days = new DeadlinePacker.DayStateCache(
+                (line, date) => LineScheduleRepository.ReadDayCapacity(conn, tx, line, date),
+                (line, date) => LineScheduleRepository.LineLastMoldBefore(conn, tx, line, date));
 
             // 순방향 탐욕 채움은 순서에 민감하다 — 급한 납기부터(EDD). 그리드 정렬과 무관하게 서버가 정한다.
             var ordered = plans
@@ -662,35 +674,53 @@ public sealed class PpRepository
             using var ins = BuildInsertWoForOrder(conn, tx, actor, useNetReq);
             foreach (var plan in ordered)
             {
-                var key = so.GetValueOrDefault(plan.SoId);
+                if (so.GetValueOrDefault(plan.SoId) is not { } key) continue;
                 DateTime? deadline = key.Due is DateTime due ? cal.SubtractWorkdays(due, bufferDays) : null;
+
+                // 템플릿은 WO 생성 전에 품목·라우팅으로 읽는다 — 금형 거부는 WO 를 만들기 전에 판정해야 한다
+                var template = key.ItemNo is null || key.RoutingType is null
+                    ? new List<WorkOrderRepository.RoutingStepPreview>()
+                    : WorkOrderRepository.ReadPreview(conn, tx, key.ItemNo, key.RoutingType);
+                var molds = ResolveMolds(conn, tx, key.ItemNo, template, plan.Steps, days, today);
+                if (molds.Values.Any(m => m is null))
+                {
+                    rejected.Add(new RejectedOrder(plan.SoId, key.SoNumber, key.ItemNo, RejectNoMold));
+                    continue;
+                }
 
                 var wo = $"{prefix}{(seq + 1):D3}";
                 if (ExecInsertWoForOrder(ins, wo, plan.SoId, deadline) is not (int woId, decimal qty)) continue;
                 seq++;
 
-                var template = WorkOrderRepository.ReadPreview(conn, tx, woId);
                 var choices  = template.Select(t => new WorkOrderRepository.StepLineChoice(
                         t.StepSeq, plan.Steps.FirstOrDefault(s => s.StepSeq == t.StepSeq)?.LineId))
                     .ToList();
                 if (WorkOrderRepository.ReleaseCore(conn, tx, woId, choices, actor) == 0)
                     throw new InvalidOperationException($"{wo}: release failed.");
 
-                var demands = plan.Steps.OrderBy(s => s.StepSeq).Select(s => new DeadlinePacker.StepDemand(
-                        s.StepSeq, s.LineId, qty,
-                        template.FirstOrDefault(t => t.StepSeq == s.StepSeq)?.StdCycleSec,
-                        dailyCap.GetValueOrDefault(s.LineId)))
+                var demands = plan.Steps.OrderBy(s => s.StepSeq).Select(s =>
+                    {
+                        var mold = molds.GetValueOrDefault(s.StepSeq);
+                        return new DeadlinePacker.StepDemand(
+                            s.StepSeq, s.LineId, qty,
+                            template.FirstOrDefault(t => t.StepSeq == s.StepSeq)?.StdCycleSec,
+                            dailyCap.GetValueOrDefault(s.LineId),
+                            mold?.MoldId, mold?.ChangeMin ?? 0);
+                    })
                     .ToList();
 
                 var packed = DeadlinePacker.Pack(demands, today, nowMin, deadline, key.Due, cal, days);
+                foreach (var m in packed.MoldChanges)
+                    LineScheduleRepository.AppendMoldChangeSlot(conn, tx, m.LineId, m.Date, days.Get(m.LineId, m.Date).PatternId,
+                                                                woId, m.FromMoldId, m.ToMoldId, m.StartMin, m.EndMin, actor);
                 foreach (var p in packed.Placements)
                     LineScheduleRepository.AppendWoSlot(conn, tx, p.LineId, p.Date, days.Get(p.LineId, p.Date).PatternId,
-                                                        woId, p.StartMin, p.EndMin, p.Qty, actor);
+                                                        woId, p.StartMin, p.EndMin, p.Qty, p.MoldId, actor);
 
-                orders.Add(new OrderOutcome(wo, plan.SoId, deadline, key.Due, packed.Placements, packed.Shortfalls));
+                orders.Add(new OrderOutcome(wo, plan.SoId, deadline, key.Due, packed.Placements, packed.Shortfalls, packed.MoldChanges));
             }
             tx.Commit();
-            return new(orders);
+            return new(orders, rejected);
         }
         catch { tx.Rollback(); throw; }
     }
@@ -701,17 +731,44 @@ public sealed class PpRepository
         return (DateTime)cmd.ExecuteScalar()!;
     }
 
-    static Dictionary<int, (DateTime? Due, string? SoNumber, int? SoLineNo)> ReadOrderKeys(SqlConnection conn, SqlTransaction tx, IEnumerable<int> soIds)
+    /// <summary>
+    /// INJ 단계마다 금형을 정한다(키 = StepSeq). 후보가 없으면 값이 null — 호출부가 그 수주를 거부한다.
+    /// 직전 금형은 그 라인의 "오늘 꼬리"(이미 배치된 앞 수주 포함) 기준. 미리보기(PlanConfirmBatchDialog)도 같은 규칙.
+    /// </summary>
+    static Dictionary<int, MoldResolver.MoldCandidate?> ResolveMolds(SqlConnection conn, SqlTransaction tx, string? itemNo,
+        List<WorkOrderRepository.RoutingStepPreview> template, IReadOnlyList<StepChoice> steps,
+        DeadlinePacker.IDayState days, DateTime today)
+    {
+        var map = new Dictionary<int, MoldResolver.MoldCandidate?>();
+        if (itemNo is null) return map;
+        foreach (var s in steps)
+        {
+            var t = template.FirstOrDefault(x => x.StepSeq == s.StepSeq);
+            if (t is null || !MoldResolver.NeedsMold(t.ProcessCode)) continue;
+            var cands = MasterDataRepository.ReadMoldCandidates(conn, tx, itemNo, s.LineId);
+            map[s.StepSeq] = MoldResolver.Choose(cands, days.LastMoldId(s.LineId, today));
+        }
+        return map;
+    }
+
+    sealed record OrderKey(DateTime? Due, string? SoNumber, int? SoLineNo, string? ItemNo, string? RoutingType);
+
+    static Dictionary<int, OrderKey> ReadOrderKeys(SqlConnection conn, SqlTransaction tx, IEnumerable<int> soIds)
     {
         var ids = soIds.Distinct().ToList();
-        var map = new Dictionary<int, (DateTime?, string?, int?)>();
+        var map = new Dictionary<int, OrderKey>();
         if (ids.Count == 0) return map;
         // ids 는 정수 ID 만 이어 붙이므로 인젝션 여지가 없다.
-        var sql = $"SELECT SoID, RequestedDeliveryDate, SoNumber, SoLineNo FROM dbo.PP_CustomerOrder WHERE SoID IN ({string.Join(",", ids)});";
+        var sql = $"""
+            SELECT s.SoID, s.RequestedDeliveryDate, s.SoNumber, s.SoLineNo, s.ItemNo, i.RoutingType
+            FROM   dbo.PP_CustomerOrder s LEFT JOIN dbo.MD_Item i ON i.ItemNo = s.ItemNo
+            WHERE  s.SoID IN ({string.Join(",", ids)});
+            """;
         using var cmd = new SqlCommand(sql, conn, tx);
         using var rdr = cmd.ExecuteReader();
         while (rdr.Read())
-            map[(int)rdr["SoID"]] = (rdr["RequestedDeliveryDate"] as DateTime?, rdr["SoNumber"] as string, rdr["SoLineNo"] as int?);
+            map[(int)rdr["SoID"]] = new OrderKey(rdr["RequestedDeliveryDate"] as DateTime?, rdr["SoNumber"] as string,
+                                                 rdr["SoLineNo"] as int?, rdr["ItemNo"] as string, rdr["RoutingType"] as string);
         return map;
     }
 
