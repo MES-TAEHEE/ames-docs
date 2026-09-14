@@ -324,20 +324,34 @@ internal static class Program
     // ── MNT-08 Spare parts master + transactions ────────────────────────
     private static void SeedSpareParts(SqlConnection conn)
     {
-        var parts = new (string No, string Name, string Cat, int Safety, int Reorder, int Lead, decimal Cost, string Loc)[]
+        const string vendorId = "SP-DEMO-V01";
+        Exec(conn, """
+            MERGE dbo.MD_Vendor AS T
+            USING (SELECT @ID AS VendorID) AS S ON T.VendorID = S.VendorID
+            WHEN MATCHED THEN UPDATE SET
+                VendorName = N'Demo Spare Parts Supply', VendorType = 'SUPPLIER',
+                VendorCategory = N'Spare Parts', ActiveFlag = 1,
+                ModifiedBy = N'mnt-seed', ModifiedTS = SYSDATETIME()
+            WHEN NOT MATCHED THEN INSERT
+                (VendorID, VendorName, VendorType, VendorCategory, ActiveFlag, CreatedBy, CreatedTS)
+            VALUES
+                (@ID, N'Demo Spare Parts Supply', 'SUPPLIER', N'Spare Parts', 1, N'mnt-seed', SYSDATETIME());
+            """, ("@ID", vendorId));
+
+        var parts = new (string No, string Name, string Cat, string Maker, int Safety, int Reorder, int Lead, decimal Cost, string Loc)[]
         {
-            ("SP-BRG-6204", "Ball bearing 6204",     "G"  ,  20,  30, 14,    8.50m, "WH-MNT-A1"),
-            ("SP-BRG-6206", "Ball bearing 6206",     "G"  ,  15,  25, 14,   11.20m, "WH-MNT-A1"),
-            ("SP-SEAL-32",  "Cylinder seal Ø32",     "H"   , 30,  50,  7,    2.40m, "WH-MNT-A2"),
-            ("SP-SEAL-50",  "Cylinder seal Ø50",     "H"   , 25,  40,  7,    3.60m, "WH-MNT-A2"),
-            ("SP-FLT-HYD",  "Hydraulic filter",      "H"  ,  10,  20, 21,   38.00m, "WH-MNT-B1"),
-            ("SP-FLT-AIR",  "Air filter cart",       "I"  ,  12,  18, 14,   18.00m, "WH-MNT-B1"),
-            ("SP-HTR-2KW",  "Heater band 2kW",       "C"  ,   8,  12, 28,   54.00m, "WH-MNT-C1"),
-            ("SP-SENS-PT100","Temp sensor PT100",    "C"  ,   6,  10, 21,   32.00m, "WH-MNT-C1"),
-            ("SP-MOT-1HP",  "Servo motor 1HP",       "E"  ,   2,   3, 45,  680.00m, "WH-MNT-C2"),
-            ("SP-OIL-46",   "Hydraulic oil ISO 46",  "H"  ,  50, 100,  3,    4.20m, "WH-MNT-D1"),
-            ("SP-GREASE-EP","Grease EP-2 cart",      "K"  ,  20,  35,  3,    6.80m, "WH-MNT-D1"),
-            ("SP-FUSE-25A", "Fuse 25A NH00",         "C"  ,  40,  60,  7,    1.20m, "WH-MNT-C3"),
+            ("SP-BRG-6204", "Ball bearing 6204",     "G", "DEMO MOTION",      20,  30, 14,    8.50m, "SP-A1-01"),
+            ("SP-BRG-6206", "Ball bearing 6206",     "G", "DEMO MOTION",      15,  25, 14,   11.20m, "SP-A1-01"),
+            ("SP-SEAL-32",  "Cylinder seal Ø32",     "H", "DEMO MOTION",      30,  50,  7,    2.40m, "SP-A2-01"),
+            ("SP-SEAL-50",  "Cylinder seal Ø50",     "H", "DEMO MOTION",      25,  40,  7,    3.60m, "SP-A2-01"),
+            ("SP-FLT-HYD",  "Hydraulic filter",      "H", "DEMO INDUSTRIAL",  10,  20, 21,   38.00m, "SP-B1-01"),
+            ("SP-FLT-AIR",  "Air filter cart",       "I", "DEMO INDUSTRIAL",  12,  18, 14,   18.00m, "SP-B1-01"),
+            ("SP-HTR-2KW",  "Heater band 2kW",       "C", "DEMO CONTROLS",     8,  12, 28,   54.00m, "SP-C1-01"),
+            ("SP-SENS-PT100","Temp sensor PT100",    "C", "DEMO CONTROLS",     6,  10, 21,   32.00m, "SP-C1-01"),
+            ("SP-MOT-1HP",  "Servo motor 1HP",       "E", "DEMO CONTROLS",     2,   3, 45,  680.00m, "SP-C2-01"),
+            ("SP-OIL-46",   "Hydraulic oil ISO 46",  "H", "DEMO INDUSTRIAL",  50, 100,  3,    4.20m, "SP-D1-01"),
+            ("SP-GREASE-EP","Grease EP-2 cart",      "K", "DEMO INDUSTRIAL",  20,  35,  3,    6.80m, "SP-D1-01"),
+            ("SP-FUSE-25A", "Fuse 25A NH00",         "C", "DEMO CONTROLS",    40,  60,  7,    1.20m, "SP-C3-01"),
         };
         // SparePartNo = EOS-SP-{분류}{적용설비}-{yy}{순번4} — 시연 부품은 적용설비 9(기타), 분류별 순번
         var spSeq = new Dictionary<string, int>();
@@ -345,18 +359,19 @@ internal static class Program
         {
             var pfx = $"EOS-SP-{p.Cat}9-{DateTime.Today:yy}";
             spSeq[pfx] = spSeq.GetValueOrDefault(pfx) + 1;
+            var location = p.Loc.Split('-');
             Exec(conn, """
                 INSERT INTO dbo.MD_SparePart
-                    (SparePartNo, PartNo, PartName, Category, ApplicableEquip, UnitCost, UOM,
+                    (SparePartNo, PartNo, PartName, Category, ApplicableEquip, Maker, UnitCost, UOM,
                      SafetyStock, ReorderPoint, ReorderQty, LeadTimeDays,
-                     ActiveFlag, CreatedBy, CreatedTS)
-                VALUES (@SP, @N, @Nm, @C, '9', @UC, 'EA',
-                        @SS, @RP, @RQ, @LT, 1, 'mnt-seed', SYSDATETIME());
+                     SupplierID, ZoneCode, Slot, ActiveFlag, CreatedBy, CreatedTS)
+                VALUES (@SP, @N, @Nm, @C, '9', @MK, @UC, 'EA',
+                        @SS, @RP, @RQ, @LT, @VI, @ZN, @SL, 1, 'mnt-seed', SYSDATETIME());
                 """,
                 ("@SP", pfx + spSeq[pfx].ToString("D4")),
-                ("@N", p.No), ("@Nm", p.Name), ("@C", p.Cat), ("@UC", p.Cost),
+                ("@N", p.No), ("@Nm", p.Name), ("@C", p.Cat), ("@MK", p.Maker), ("@UC", p.Cost),
                 ("@SS", p.Safety), ("@RP", p.Reorder), ("@RQ", p.Reorder * 2),
-                ("@LT", p.Lead));
+                ("@LT", p.Lead), ("@VI", vendorId), ("@ZN", $"SP_{location[1]}"), ("@SL", location[2]));
         }
 
         // initial stock + a couple of issue transactions per part
