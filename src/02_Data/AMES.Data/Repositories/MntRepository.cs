@@ -69,7 +69,10 @@ public sealed class MntRepository
         string? SupplierId, int OnHand,
         string? ApplicableEquip = null,    // 공통코드 SPAREPARTS_EQUIP (1~9)
         string? SparePartNo = null,        // EOS-SP-{분류}{적용설비}-{yy}{순번4}
-        decimal? UnitCost = null);         // 마스터 단가 — 재고 금액 = OnHand × UnitCost
+        decimal? UnitCost = null,          // 마스터 단가 — 재고 금액 = OnHand × UnitCost
+        bool HasImage = false,             // 이미지 바이트는 싣지 않는다 — MasterDataRepository.GetSparePartImage 로 건별 조회
+        string? ZoneCode = null, string? Slot = null,   // 보관 구역·칸(공통코드 MNT_ZONE · MNT_SLOT)
+        string? Maker = null, bool ActiveFlag = true);  // MD-026 목록과 같은 열 구성용
 
     // 입출고 이력 — 부품번호·명칭은 마스터 조인. 재고는 처리 전/후 스냅샷만 남긴다.
     public sealed record SparePartsTxnRow(int SparePartsTxnId, string SparePartNo, string? PartNo, string? PartName,
@@ -1206,7 +1209,9 @@ public sealed class MntRepository
         const string sql = """
             SELECT  p.PartNo, p.PartName, p.Category, p.UOM, p.SafetyStock, p.ReorderPoint,
                     p.ReorderQty, p.LeadTimeDays, p.SupplierID,
-                    p.OnHandQty AS OnHand, p.ApplicableEquip, p.SparePartNo, p.UnitCost
+                    p.OnHandQty AS OnHand, p.ApplicableEquip, p.SparePartNo, p.UnitCost,
+                    CAST(CASE WHEN p.SparePartImage IS NULL THEN 0 ELSE 1 END AS bit) AS HasImage,
+                    p.ZoneCode, p.Slot, p.Maker, CAST(ISNULL(p.ActiveFlag,1) AS bit) AS ActiveFlag
             FROM    dbo.MD_SparePart p
             WHERE   ISNULL(p.ActiveFlag,1) = 1
             ORDER BY p.SparePartNo;
@@ -1217,7 +1222,10 @@ public sealed class MntRepository
             r["ReorderQty"] as int?, r["LeadTimeDays"] as int?,
             r["SupplierID"] as string,
             r["OnHand"] as int? ?? 0, r["ApplicableEquip"] as string, r["SparePartNo"] as string,
-            r["UnitCost"] as decimal?));
+            r["UnitCost"] as decimal?,
+            r["HasImage"] is bool hi && hi,
+            r["ZoneCode"] as string, r["Slot"] as string, r["Maker"] as string,
+            r["ActiveFlag"] is bool af ? af : true));
     }
 
     /// <summary>입출고 이력 최근 N건. sparePartNo 를 주면 그 부품만.</summary>

@@ -80,7 +80,7 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ApplicableEquip" Title="@L["Col.ApplicableEquip"]" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ApplicableEquip" Title="@L["Col.ApplicableEquip"]" Width="100px">
                 <Template Context="r">
                     @{ var ei = _equipItems.FirstOrDefault(x => x.CodeValue == r.ApplicableEquip); }
                     @if (!string.IsNullOrEmpty(r.ApplicableEquip))
@@ -116,7 +116,7 @@
                     }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ZoneCode" Title="@L["Col.Zone"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ZoneCode" Title="@L["Col.Zone"]" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="r"><span class="pill">@CodeLabel(_zoneItems, r.ZoneCode)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="Slot" Title="@L["Col.Slot"]" TextAlign="TextAlign.Center" Width="70px">
