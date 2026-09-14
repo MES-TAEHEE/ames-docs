@@ -7794,4 +7794,7 @@
   <data name="MD.SparePart.Btn.SelectImage" xml:space="preserve">
     <value>이미지 선택</value>
   </data>
+  <data name="Col.Maker" xml:space="preserve">
+    <value>제조사</value>
+  </data>
 </root>

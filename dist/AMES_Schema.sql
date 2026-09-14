@@ -846,6 +846,7 @@ CREATE TABLE dbo.MD_SparePart (
   [ReorderPoint]              INT                      NULL,
   [ReorderQty]                INT                      NULL,
   [LeadTimeDays]              INT                      NULL,
+  [Maker]                     NVARCHAR(100)            NULL,  -- 제조사(자유 입력, MD-026)
   [SupplierID]                VARCHAR(20)              NULL,  -- FK -> MD_Vendor.VendorID
   [ActiveFlag]                BIT                      NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,

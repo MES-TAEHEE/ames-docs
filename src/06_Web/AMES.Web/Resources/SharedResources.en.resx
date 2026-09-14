@@ -7794,4 +7794,7 @@
   <data name="MD.SparePart.Btn.SelectImage" xml:space="preserve">
     <value>Select image</value>
   </data>
+  <data name="Col.Maker" xml:space="preserve">
+    <value>Maker</value>
+  </data>
 </root>
