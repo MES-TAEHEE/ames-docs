@@ -7,11 +7,11 @@
 <PageTitle>FG-003 Customer Returns - AMES</PageTitle>
 <AmesPageHeader Code="FG-003" Title="Customer Returns" />
 
-<div class="ames-kpis compact">
-    <div class="ames-kpi"><div class="ames-kpi-l">Returns</div><div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">current result</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">Open</div><div class="ames-kpi-v">@CountStatus("OPEN")</div><div class="ames-kpi-s">awaiting review</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">Inspecting</div><div class="ames-kpi-v">@CountStatus("INSPECTING")</div><div class="ames-kpi-s">under inspection</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">Closed</div><div class="ames-kpi-v">@CountStatus("CLOSED")</div><div class="ames-kpi-s">completed returns</div></div>
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">Returns</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">Open</div><div class="ames-kpi-v">@CountStatus("OPEN")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">Inspecting</div><div class="ames-kpi-v">@CountStatus("INSPECTING")</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">Closed</div><div class="ames-kpi-v">@CountStatus("CLOSED")</div></div>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(_message))
@@ -20,23 +20,24 @@
 }
 
 <div class="ames-card">
-    <div class="ames-card-h fg-web-toolbar">
-        <div><span>CUSTOMER RETURN HISTORY</span><div class="dim">Returned finished goods with original shipment, reason, and receiving history.</div></div>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Placeholder="Search return, RMA, item, or customer" InputSize="InputSize.Small" class="ames-rz-input" Style="width:245px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
-            <RadzenDropDown @bind-Value="_status" Data="@StatusOptions" AllowClear="true" Placeholder="Status" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
-            <RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="From" InputSize="InputSize.Small" class="ames-rz-input" Style="width:145px;" />
-            <RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="To" InputSize="InputSize.Small" class="ames-rz-input" Style="width:145px;" />
-            <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
+    <div class="ames-card-h master-list-toolbar">
+        <span>▼ Customer Returns · @_rows.Count item(s)</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:210px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
+            <RadzenDropDown @bind-Value="_status" Data="@StatusOptions" AllowClear="true" Placeholder="Status" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
+            <RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="From" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="To" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
             <RadzenButton Text="Clear" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="ClearFilters" class="ames-rz-btn" />
         </RadzenStack>
     </div>
 
     <RadzenDataGrid TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow"
-                    Data="@_rows" AllowPaging="true" PageSize="20" PageSizeOptions="@(new[] { 20, 50, 100 })"
+                    Data="@_rows" AllowPaging="true" PageSize="25" PageSizeOptions="@_pageSizeOptions"
                     PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" AllowSorting="true"
                     RowSelect="OpenDetail" SelectionMode="DataGridSelectionMode.Single"
-                    EmptyText="No customer return history found." Class="ames-rz-grid fg-return-grid">
+                    EmptyText="No customer return history found." PageSizeChanged="@(s => _pageRows = s)"
+                    Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed fg-return-grid">
         <Columns>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReceivedAt" Title="Received" Width="145px"><Template Context="r">@(r.ReceivedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReturnNumber" Title="Return No" Width="150px"><Template Context="r"><span class="code">@r.ReturnNumber</span></Template></RadzenDataGridColumn>
@@ -81,6 +82,8 @@
 
 @code {
     List<AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow> _rows = new();
+    readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 };
+    int _pageRows = 25;
     AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow? _detail;
     string _search = "", _message = "";
     string? _status;
