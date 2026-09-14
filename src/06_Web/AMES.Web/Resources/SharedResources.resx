@@ -2721,8 +2721,29 @@
   <data name="PP.PlanConfirm.Dlg.QtyOrder" xml:space="preserve">
     <value>수주 전량</value>
   </data>
+  <data name="PP.PlanConfirm.Dlg.QtyManual" xml:space="preserve">
+    <value>직접 입력</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.ManualTotal" xml:space="preserve">
+    <value>입력 수량 합계</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.OverOrder" xml:space="preserve">
+    <value>수주 초과</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.OverOrderTip" xml:space="preserve">
+    <value>잔량 {0} 을 넘는 수량입니다 (선행 생산). 생성은 허용됩니다.</value>
+  </data>
+  <data name="PP.PlanConfirm.Col.Issued" xml:space="preserve">
+    <value>기발행</value>
+  </data>
+  <data name="PP.PlanConfirm.Status.Partial" xml:space="preserve">
+    <value>부분 발행</value>
+  </data>
+  <data name="PP.SupplyPlanImport.WoMoreTip" xml:space="preserve">
+    <value>이 수주에 WO {0}건 (최근 1건만 표시)</value>
+  </data>
   <data name="PP.PlanConfirm.Dlg.SkipZero" xml:space="preserve">
-    <value>순소요 0 이하 {0}건은 생성에서 제외됩니다.</value>
+    <value>수량 0 이하 {0}건은 생성에서 제외됩니다.</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Validation" xml:space="preserve">
     <value>마스터 데이터 검증</value>
@@ -5124,8 +5145,11 @@
   <data name="Col.UPH" xml:space="preserve">
     <value>UPH</value>
   </data>
+  <data name="Col.MoldChangeMin" xml:space="preserve">
+    <value>교체시간(분)</value>
+  </data>
   <data name="Col.PrepTime" xml:space="preserve">
-    <value>준비시간(분)</value>
+    <value>교체시간(분, 라인 오버라이드)</value>
   </data>
   <data name="Err.MoldInUse" xml:space="preserve">
     <value>제품정보 {0}건·라인배정 {1}건에서 사용 중이라 삭제할 수 없습니다</value>
@@ -5306,6 +5330,15 @@
   </data>
   <data name="PP.LineSchedule.Pm.ListTitle" xml:space="preserve">
     <value>예방보전(PM) 밴드</value>
+  </data>
+  <data name="PP.LineSchedule.Mc.Name" xml:space="preserve">
+    <value>금형 교체</value>
+  </data>
+  <data name="PP.LineSchedule.Mc.EditTitle" xml:space="preserve">
+    <value>금형 교체 수정</value>
+  </data>
+  <data name="PP.LineSchedule.Mc.Mold" xml:space="preserve">
+    <value>금형</value>
   </data>
   <data name="PP.LineSchedule.Pm.Empty" xml:space="preserve">
     <value>등록된 PM 밴드가 없습니다</value>
@@ -5627,6 +5660,18 @@
   </data>
   <data name="PP.PlanConfirm.Dlg.NoSteps" xml:space="preserve">
     <value>라인 필수 공정 없음 — 스케줄 없이 발행</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Err.NoMold" xml:space="preserve">
+    <value>금형 미등록 — 생산 불가</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.NoMold" xml:space="preserve">
+    <value>금형이 등록되지 않아 제외된 수주 {0}건 — MD-007 금형 제품정보에 등록 후 다시 실행</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.MoldChange" xml:space="preserve">
+    <value>교체 {0}분</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Rejected" xml:space="preserve">
+    <value>금형 미등록으로 제외 {0}건</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Err.LineMissing" xml:space="preserve">
     <value>라인이 지정되지 않은 단계가 있습니다.</value>

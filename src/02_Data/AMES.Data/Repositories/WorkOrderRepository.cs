@@ -61,7 +61,7 @@ public sealed class WorkOrderRepository
         return ReadPreview(conn, tx, itemNo, routingType);
     }
 
-    private static List<RoutingStepPreview> ReadPreview(SqlConnection conn, SqlTransaction? tx, string itemNo, string routingType)
+    internal static List<RoutingStepPreview> ReadPreview(SqlConnection conn, SqlTransaction? tx, string itemNo, string routingType)
     {
         const string sql = """
             SELECT rs.StepSeq, rs.ProcessCode,
@@ -588,7 +588,11 @@ public sealed class WorkOrderRepository
                AND Status IN ('Draft','Planned','Released');
 
             DECLARE @n int = @@ROWCOUNT;
-            IF @n > 0 DELETE FROM dbo.PP_LineSchedule WHERE WoID = @WoID;
+            IF @n > 0
+            BEGIN
+                DELETE FROM dbo.PP_LineSchedule WHERE WoID = @WoID;
+                DELETE FROM dbo.PP_LineSchedule WHERE EntryType = 'MC' AND RefType = 'WO' AND RefID = @WoID;
+            END
 
             SELECT @n;
             """;

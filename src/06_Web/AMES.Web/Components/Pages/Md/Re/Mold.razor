@@ -77,6 +77,9 @@
                     <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="Tonnage" Title="@L["Col.Tonnage"]" TextAlign="TextAlign.Right" Width="100px">
                         <Template Context="r">@(r.Tonnage?.ToString("N0") ?? "—")</Template>
                     </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="MoldChangeMin" Title="@L["Col.MoldChangeMin"]" TextAlign="TextAlign.Right" Width="100px">
+                        <Template Context="r">@(r.MoldChangeMin?.ToString("N0") ?? "—")</Template>
+                    </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="RatedShots" Title="@L["Col.ShotsLifetime"]" TextAlign="TextAlign.Right" Width="100px">
                         <Template Context="r">@(r.RatedShots?.ToString("N0") ?? "—")</Template>
                     </RadzenDataGridColumn>
@@ -186,6 +189,10 @@
                     <RadzenLabel Text="@L["Col.Status"]" />
                     <RadzenDropDown @bind-Value="_f.Status" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.MoldChangeMin"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.MoldChangeMin" Min="0" Max="1440" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -266,6 +273,10 @@
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
                     <RadzenDropDown @bind-Value="_f.Status" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.MoldChangeMin"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.MoldChangeMin" Min="0" Max="1440" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -422,6 +433,7 @@
             CurrentShots      = r.CurrentShots,
             CavityCount       = r.CavityCount,
             Tonnage           = r.Tonnage,
+            MoldChangeMin     = r.MoldChangeMin,
             StorageLoc        = r.StorageLoc    ?? "",
             LastMaintDate     = r.LastMaintDate,
             Status            = r.Status        ?? "AVAILABLE",
@@ -459,7 +471,7 @@
             MD.InsertMold(_f.MoldID.Trim(), _f.MoldName,
                 _f.RatedShots, _f.CurrentShots, _f.CavityCount, _f.Tonnage,
                 NE(_f.StorageLoc), _f.LastMaintDate, _f.Status, _actor,
-                carType: NE(_f.CarType), refCode: NE(_f.RefCode), assyInjResultFlag: _f.AssyInjResultFlag);
+                carType: NE(_f.CarType), refCode: NE(_f.RefCode), assyInjResultFlag: _f.AssyInjResultFlag, moldChangeMin: _f.MoldChangeMin);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.MoldName} {L["Msg.Created"]}", false);
         }
@@ -478,7 +490,7 @@
             MD.UpdateMold(_sel.MoldID, _f.MoldName,
                 _f.RatedShots, _f.CurrentShots, _f.CavityCount, _f.Tonnage,
                 NE(_f.StorageLoc), _f.LastMaintDate, _f.Status, _actor,
-                carType: NE(_f.CarType), refCode: NE(_f.RefCode), assyInjResultFlag: _f.AssyInjResultFlag);
+                carType: NE(_f.CarType), refCode: NE(_f.RefCode), assyInjResultFlag: _f.AssyInjResultFlag, moldChangeMin: _f.MoldChangeMin);
             var name = _f.MoldName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -557,6 +569,7 @@
         public int?      CurrentShots      { get; set; }
         public int?      CavityCount       { get; set; }
         public int?      Tonnage           { get; set; }
+        public int?      MoldChangeMin     { get; set; }
         public string    StorageLoc        { get; set; } = "";
         public DateOnly? LastMaintDate     { get; set; }
         public string    Status            { get; set; } = "AVAILABLE";
