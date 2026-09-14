@@ -127,28 +127,28 @@ appcmd set apppool "AMES.Web" /processModel.loadUserProfile:true /processModel.s
 | 화면 ID | 파일 | 설명 |
 |---------|------|------|
 | Login | `Pages/Login.razor` | PIN 인증, 사원 선택 |
-| INJ-MAIN | `Pages/InjMain.razor` | **통합 작업 화면** (기본 진입점) — 좌측 스테이션 BOP 품번 × 당일 PLAN/INPUT/NG/FINAL 그리드 + 스캔 실적확정 + 우측 패널 기능 버튼 (하단바 없음, 로그아웃은 상단바). WO 접수 없음: 품번 행 선택 → `WorkOrderRepository.FindOpenForItem` 이 열린 WO 를 자동 해석(`ConfirmByLotCode` 와 같은 규칙) |
-| (팝업) | `Pages/InjPopups/ManualEntryPopup.razor` | 수동 실적 입력 (구 INJ-04 키패드) |
+| INJ-MAIN | `Pages/InjMain.razor` | **통합 작업 화면** (기본 진입점) — 좌측 스테이션 BOP 품번 × 선택일(기본 금일, 헤더 달력으로 과거일 조회) PLAN/INPUT/NG/FINAL 그리드 + 스캔 실적확정 + 우측 패널 기능 버튼 (하단바 없음, 로그아웃은 상단바). WO 접수 없음: 품번 행 선택 → `WorkOrderRepository.FindOpenForItem` 이 열린 WO 를 자동 해석(`ConfirmByLotCode` 와 같은 규칙) |
+| (버튼) | `Pages/InjMain.razor` `CreateManualLabel` | 수동 라벨 생성 — 누를 때마다 원천 LOT(RAW) 1개(`CreateManualRawLots` qty=1). 수량 입력 없음. 라벨은 `LabelDispatcher` 가 뽑고, 스캔해야 실적 확정 |
 | (팝업) | `Pages/InjPopups/DefectPopup.razor` | 불량 등록 — LOT 라벨 스캔 → 불량코드 → 등록(1 LOT = 1 EA, 수량 입력 없음). 등록된 LOT 은 DEFECT 가 되어 REWORK 스테이션으로 간다. 확정 후 LOT 은 실적을 역분개(−1)한다 |
 | (팝업) | `Pages/InjPopups/AndonPopup.razor` | 안돈 — 전체 화면 오버레이. 확인창 → 슈퍼바이저 배지 스캔 → 원인·부서 호출 → 담당자 배지 도착 → ACK → 자동 종료. 흐름은 `Services/AndonWorkflow`(단위 테스트 `AndonWorkflowTests`) |
 
 대시보드(INJ-02)·작업지시 접수(INJ-03)·금형 교체(INJ-06)·생산 현황(INJ-07)은 미사용으로 삭제됨 (화면·팝업·레거시 WinForms 폼 포함).
-구 단독 화면(`/inj02`~`/inj08` 라우트)도 모두 삭제됨 — INJ 는 INJ-MAIN + 팝업(수동입력·불량·안돈)만 남는다. 팝업 공통 셸은 `Pages/InjPopups/PopupShell.razor`.
-좌측 품번 목록은 `MD_Bop.StationCode` = 세션 스테이션(`PopSessionDto.TerminalId`) 기준이고, 당일 수치는 `InjLotRepository.GetDailyItemSummary` — LOT 생성일 기준으로 `INPUT = FINAL + NG + 미확정` 이 성립한다. 전부 LOT 상태로 센다 — FINAL = CONFIRMED, NG = NG_BLOCKED + DEFECT + SCRAPPED (IMG 는 DEFECT + SCRAPPED), 미확정 = RAW. PR_DefectDetail 은 집계에 쓰지 않는다. dev DB 는 `dist/seed_md_bop_inj_dev.sql` 로 ST-INJ-01 BOP 를 채운다.
+구 단독 화면(`/inj02`~`/inj08` 라우트)도 모두 삭제됨 — INJ 는 INJ-MAIN(+ 수동 라벨 생성 버튼) + 팝업(불량·안돈)만 남는다. 팝업 공통 셸은 `Pages/InjPopups/PopupShell.razor`.
+좌측 품번 목록은 `MD_Bop.StationCode` = 세션 스테이션(`PopSessionDto.TerminalId`) 기준이고, 좌측 수치는 `InjLotRepository.GetDailyItemSummary(line, station, date)` — 우측 칩은 좌측 날짜와 무관하게 금일 수치이고, 스캔 확정에 성공하면 좌측도 금일로 돌아간다. LOT 생성일 기준으로 `INPUT = FINAL + NG + 미확정` 이 성립한다. 전부 LOT 상태로 센다 — FINAL = CONFIRMED, NG = NG_BLOCKED + DEFECT + SCRAPPED (IMG 는 DEFECT + SCRAPPED), 미확정 = RAW. PR_DefectDetail 은 집계에 쓰지 않는다. dev DB 는 `dist/seed_md_bop_inj_dev.sql` 로 ST-INJ-01 BOP 를 채운다.
 INJ 는 `AcceptWo` 를 부르지 않으므로 `BumpStepCompleted` 가 첫 실적에서 단계·헤더를 `Released → In Progress` 로 올리고 `ActualStart` 를 찍는다. `TerminalLock` 은 INJ 에서 기록하지 않는다(IMG 는 `AcceptWo` 그대로).
 
 #### IMG (원단/래핑 공정) — 통합 메인 + 팝업 구조
 | 화면 ID | 파일 | 설명 |
 |---------|------|------|
-| IMG-MAIN | `Pages/ImgMain.razor` | **통합 작업 화면** (IMG 기본 진입점) — 좌측 스테이션 BOP 품번 × 당일 PLAN/INPUT/NG/FINAL 그리드 + 우측 **라벨 발행** 버튼 · 스캔 확정 · 오늘 발행 LOT 목록(대기/OK · 재출력) + 불량·안돈 팝업 버튼. INJ-MAIN 과 같은 레이아웃(`injm-*` CSS 공유)이며 WO 접수 없음: 품번 행 선택 → `FindOpenForItem` 이 열린 WO 를 자동 해석 |
+| IMG-MAIN | `Pages/ImgMain.razor` | **통합 작업 화면** (IMG 기본 진입점) — 좌측 스테이션 BOP 품번 × 선택일(기본 금일, 헤더 달력으로 과거일 조회) PLAN/INPUT/NG/FINAL 그리드 + 우측 **라벨 발행** 버튼 · 스캔 확정 · 오늘 발행 LOT 목록(대기/OK · 재출력) + 불량·안돈 팝업 버튼. INJ-MAIN 과 같은 레이아웃(`injm-*` CSS 공유)이며 WO 접수 없음: 품번 행 선택 → `FindOpenForItem` 이 열린 WO 를 자동 해석 |
 | (팝업) | `Pages/InjPopups/DefectPopup.razor` | 불량 등록 — LOT 라벨 스캔 → 불량코드 → 등록(1 LOT = 1 EA, 수량 입력 없음). 등록된 LOT 은 DEFECT 가 되어 REWORK 스테이션으로 간다. 확정 후 LOT 은 실적을 역분개(−1)한다 — `ProcessCode="IMG"` 로 INJ 와 공유 (IMG 는 로봇 NG LOT 구역 없음) |
 | (팝업) | `Pages/InjPopups/AndonPopup.razor` | 안돈 — INJ 와 공유 |
 
 구 단독 화면(IMG-02~07, `/img02`~`/img07`)은 모두 삭제됨 (화면·도움말·레거시 WinForms 폼·전용 CSS 포함) — IMG 는 IMG-MAIN + 팝업(불량·안돈)만 남는다.
 IMG 도 INJ 와 같은 LOT 모델(1 LOT = 1 EA, RAW → CONFIRMED)을 쓰되 테이블은 별도 `PR_ImgLot`(`dist/migrate_img_lot.sql`)이고 리포지토리는 `ImgLotRepository` 다. 에이전트가 없으므로 LOT 은 **라벨 발행 버튼**이 만들고(`CreateRawLot`) 그 자리에서 `LabelPrinter.Print(ImgLotDto, shift)` 로 동기 출력한다 — `LabelDispatcher` 는 INJ 세션에서만 돌아 이중 발행이 없다.
 IMG 라벨은 INJ 양식이 아니라 **완제품 고객 표준 라벨**(`AMES.Devices.ImgLabelBuilder`)이다: 좌측 DataMatrix = `[)>RS06GSV{수주처}GSP{품번,하이픈제거}GSS{PGN+ALC}GST{yyMMdd}{part4M}{LotNo}GSEGSC:RSEOT`(`^FH_` 16진 이스케이프), 우측 글자 = ALC(대)·장착위치·발행일·품번·LotNo. part4M = `1` + 하이픈 뺀 품번 6·7번째 글자 + 교대 글자(DAY=A·NIGHT=B·그 외 C, `LabelPrinter.ShiftLetter`). 수주처 코드는 발행 시점 열린 WO → `PP_CustomerOrder.SoID` → `MD_Customer.CustomerCode` 로 정해 `PR_ImgLot.CustomerCode` 에 박아 둔다(재출력 불변). PGN·ALC 는 `MD_Item`, 장착위치는 `MD_Item.MountPos`(`dist/migrate_md_item_mount_pos.sql`, FL/FR/RL/RR). 샘플 라벨 우측 하단 'D' 칸은 정의 전이라 비워 둔다.
-스캐너는 DataMatrix 문자열 전체를 보내므로 `ImgScanParser.ExtractLotCode` 가 T 토큰 끝 9자를 LotNo 로 뽑는다 — 시리얼(제어문자 보존)·HID 웨지(제어문자 소실)·단순 LotNo 라벨 모두 처리하며 단위 테스트(`AMES.Pop.Tests/ImgScanParserTests`)가 정본이다. 발행은 실적이 아니며 라벨을 스캔해야 `ConfirmByLotCode` 가 한 트랜잭션으로 열린 WO 해석 → PR_ProductionResult 1 EA → 원단 롤 차감(장착 롤이 있을 때 0.25 m/EA, 잔량 부족해도 확정은 막지 않고 남은 만큼만 차감) → 본딩 사이클 로그 → LOT CONFIRMED + `BumpStepCompleted` 를 처리한다. 차감한 롤·길이·본딩 설정은 `PR_ImgLot` 에 남는다.
-좌측 당일 수치는 `ImgLotRepository.GetDailyItemSummary` — INJ 판과 같이 LOT 생성일 기준으로 `INPUT = FINAL + NG + 미확정` 이 성립한다. 우측 목록은 `GetTodayLots`(오늘 발행 LOT 전부, 최신순). dev DB 는 `dist/seed_md_bop_img_dev.sql` 로 ST-IMG-01 스테이션·데모 품번·BOP 를 채운다 (IMG 라인은 스키마에 스테이션이 없어 이 시드 없이는 로그인 자체가 안 된다).
+스캐너는 DataMatrix 문자열 전체를 보내므로 `ImgScanParser.ExtractLotCode` 가 T 토큰 끝 9자를 LotNo 로 뽑는다 — 시리얼(제어문자 보존)·HID 웨지(제어문자 소실)·단순 LotNo 라벨 모두 처리하며 단위 테스트(`AMES.Pop.Tests/ImgScanParserTests`)가 정본이다. 발행은 실적이 아니며 라벨을 스캔해야 `ConfirmByLotCode` 가 한 트랜잭션으로 열린 WO 해석 → PR_ProductionResult 1 EA → LOT CONFIRMED + `BumpStepCompleted` 를 처리한다. 원단 롤·본딩은 다루지 않는다(차감·롤 ID·본딩 사이클 로그·`BondSetupID` 기록과 화면 칩 모두 없음).
+좌측 수치는 `ImgLotRepository.GetDailyItemSummary(line, station, date)` — 우측 칩은 좌측 날짜와 무관하게 금일 수치이고, 스캔 확정에 성공하면 좌측도 금일로 돌아간다. INJ 판과 같이 LOT 생성일 기준으로 `INPUT = FINAL + NG + 미확정` 이 성립한다. 우측 목록은 `GetTodayLots`(오늘 발행 LOT 전부, 최신순). dev DB 는 `dist/seed_md_bop_img_dev.sql` 로 ST-IMG-01 스테이션·데모 품번·BOP 를 채운다 (IMG 라인은 스키마에 스테이션이 없어 이 시드 없이는 로그인 자체가 안 된다).
 
 #### RWK (재작업 스테이션) — 1화면
 | 화면 ID | 파일 | 설명 |
@@ -157,7 +157,7 @@ IMG 라벨은 INJ 양식이 아니라 **완제품 고객 표준 라벨**(`AMES.D
 
 LOT 상태 기계(`PR_InjLot`·`PR_ImgLot.ConfirmStatus`, 정본 `AMES.Data.Services.LotDefectRules`): `RAW → CONFIRMED`(스캔), `RAW/CONFIRMED/NG_BLOCKED → DEFECT`(라인 불량 팝업), `DEFECT → CONFIRMED`(수리) / `→ SCRAPPED`(폐기). `NG_CONFIRMED` 는 폐지됐다.
 수리 양품은 `ReworkRepository.Rework` 가 원래 WO 에 `PR_ProductionResult` +1(`ProcessCode='RWK'`, `LineID='LINE-RWK-01'`) + `BumpStepCompleted(+1)` 로 확정한다. WO 는 등록 행의 `WoID` → 없으면 원래 라인 `FindOpenForItem` 순으로 해석하고, 둘 다 없으면 `NoWo` 로 거부(폐기는 가능). 폐기는 실적을 건드리지 않는다.
-확정 후 LOT 의 불량 등록은 `PR_ProductionResult` 역분개 행(`GoodQty=-1`, `DefectFlag=0` — 불량은 `PR_DefectDetail` 에 있다, 보고서 이중 계상 방지) + 단계 `CompletedQty −1` 이며, `BumpStepCompleted` 는 음수일 때 단계 `Closed → In Progress` 를 되돌리고 `ActualEnd` 를 지운다; 헤더는 그 단계가 마지막 라인 단계일 때만 같이 되돌린다(헤더 `CompletedQty` 를 움직이는 건 그 단계뿐이다). IMG 원단 차감·본딩 로그는 되돌리지 않는다.
+확정 후 LOT 의 불량 등록은 `PR_ProductionResult` 역분개 행(`GoodQty=-1`, `DefectFlag=0` — 불량은 `PR_DefectDetail` 에 있다, 보고서 이중 계상 방지) + 단계 `CompletedQty −1` 이며, `BumpStepCompleted` 는 음수일 때 단계 `Closed → In Progress` 를 되돌리고 `ActualEnd` 를 지운다; 헤더는 그 단계가 마지막 라인 단계일 때만 같이 되돌린다(헤더 `CompletedQty` 를 움직이는 건 그 단계뿐이다).
 REWORK 로그인은 `LINE-RWK-01`(WC `WC-RWK`, ProcessCode `RWK`) 선택 — 마스터가 없으면 로그인 불가. `AppState.ModuleCode="RWK"` 라 `LabelDispatcher` 는 돌지 않는다. 대기열은 전 라인 공용이다.
 
 #### PNT (도장 공정) — 9화면
@@ -410,7 +410,7 @@ INJ-MAIN 은 HID(키보드 웨지) 외에 시리얼 스캔도 받는다. 호스�
 | 마이그레이션 없이 신 바이너리 | `PP_WorkOrderRouting.CompletedQty`·`TerminalLock` 컬럼이 없어 **PP-04 라인 로드·Pop WO 목록 조회가 매번 예외.** 배포 전 컬럼 존재를 반드시 확인할 것 |
 | 구 Web + 신 DB | 라벨 순서와 달리 **안전한 실패 쪽이다.** 구 Web 은 헤더 `LineID` 에 기록하고 단계는 `Pending` 으로 남으며, 마이그레이션 §3(백필)을 다시 돌리면 단계 행이 정리된다 |
 
-**INJ 스테이션마다 `MD_Bop`(StationCode) 등록이 선행돼야 한다.** 비어 있으면 INJ-MAIN 좌측 패널이 비고(당일 실적 있는 품번만 "미등록"으로 뜸) 수동입력·불량 팝업이 동작하지 않는다 — 스캔 확정은 LOT 품번으로 WO를 찾으므로 계속 동작한다. dev 는 `dist/seed_md_bop_inj_dev.sql`, 운영은 MD-005 화면에서 등록.
+**INJ 스테이션마다 `MD_Bop`(StationCode) 등록이 선행돼야 한다.** 비어 있으면 INJ-MAIN 좌측 패널이 비고(당일 실적 있는 품번만 "미등록"으로 뜸) 수동 라벨 생성·불량 팝업이 동작하지 않는다 — 스캔 확정은 LOT 품번으로 WO를 찾으므로 계속 동작한다. dev 는 `dist/seed_md_bop_inj_dev.sql`, 운영은 MD-005 화면에서 등록.
 
 ---
 

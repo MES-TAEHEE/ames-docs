@@ -108,7 +108,7 @@ public class InjDailyItemSummaryTests
             AddPlan(f, woA, "LINE-INJ-02", 0, 999);               // 다른 라인 → 제외
             AddPlan(f, woA, Line, 0, 999, entryType: "PM");       // PM 밴드(WoID NULL) → PLAN 집계 제외
 
-            var row = new InjLotRepository(f).GetDailyItemSummary(Line, Station).Single(x => x.ItemNo == ItemA);
+            var row = new InjLotRepository(f).GetDailyItemSummary(Line, Station, DateTime.Today).Single(x => x.ItemNo == ItemA);
 
             Assert.Equal(100m, row.PlanQty);
             Assert.Equal(10,   row.InputQty);     // 오늘 이 라인 LOT 전부
@@ -133,7 +133,7 @@ public class InjDailyItemSummaryTests
             AddLot(f, ItemB, Line, "RAW");
             AddLot(f, ItemB, Line, "RAW");
 
-            var rows = new InjLotRepository(f).GetDailyItemSummary(Line, Station)
+            var rows = new InjLotRepository(f).GetDailyItemSummary(Line, Station, DateTime.Today)
                        .Where(x => x.ItemNo.StartsWith("ITEST-DLY-")).ToList();
 
             var c = rows.Single(x => x.ItemNo == ItemC);

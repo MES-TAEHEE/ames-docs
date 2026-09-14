@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -52,7 +52,6 @@
   <data name="Confirm" xml:space="preserve"><value>Confirm</value></data>
   <data name="ConfirmFailed" xml:space="preserve"><value>Confirm failed</value></data>
   <data name="Confirmed" xml:space="preserve"><value>Confirmed</value></data>
-  <data name="Ct" xml:space="preserve"><value>CT</value></data>
   <data name="CurrentShots" xml:space="preserve"><value>Current Shots</value></data>
   <data name="CurrentWo" xml:space="preserve"><value>CURRENT WO</value></data>
   <data name="CycleTime" xml:space="preserve"><value>CYCLE TIME</value></data>
@@ -96,12 +95,9 @@
   <data name="LotBelongsToAnotherLine" xml:space="preserve"><value>Lot belongs to another line</value></data>
   <data name="LotNotFound" xml:space="preserve"><value>Lot not found</value></data>
   <data name="Lotno" xml:space="preserve"><value>LOTNO</value></data>
-  <data name="ManualEntry" xml:space="preserve"><value>Manual Entry</value></data>
+  <data name="ManualLabelCreate" xml:space="preserve"><value>Manual Label Create</value></data>
   <data name="ManualEntryGoodQtyPerCycleEa" xml:space="preserve"><value>MANUAL ENTRY · GOOD QTY PER CYCLE (EA)</value></data>
-  <data name="IssueLots" xml:space="preserve"><value>Issue lots</value></data>
-  <data name="ManualLotIssueQtyEa" xml:space="preserve"><value>Manual lot issue · Qty (EA)</value></data>
-  <data name="ManualLotsCreated" xml:space="preserve"><value>{0} lots issued — labels print shortly. Scan to confirm</value></data>
-  <data name="ScanIssuedLabelsToConfirm" xml:space="preserve"><value>Scan the issued labels to confirm production</value></data>
+  <data name="ManualLotCreated" xml:space="preserve"><value>Lot {0} created — label prints shortly. Scan to confirm</value></data>
   <data name="ManualSaved" xml:space="preserve"><value>Manual entry {0} EA recorded</value></data>
   <data name="Mold" xml:space="preserve"><value>Mold</value></data>
   <data name="MoldAvailable" xml:space="preserve"><value>Available</value></data>
@@ -214,10 +210,6 @@
     <value>SHIFT C</value>
   </data>
   <data name="HelpImgMainSub" xml:space="preserve"><value>Select a part, print a label, scan it to confirm — no work-order acceptance</value></data>
-  <data name="FabricRoll" xml:space="preserve"><value>Fabric roll</value></data>
-  <data name="BondRecipe" xml:space="preserve"><value>Bond recipe</value></data>
-  <data name="NoRoll" xml:space="preserve"><value>no roll</value></data>
-  <data name="NoRecipe" xml:space="preserve"><value>no recipe</value></data>
   <data name="SelectPartWithOpenWo" xml:space="preserve"><value>Select a part with an open work order</value></data>
   <data name="LabelPrint" xml:space="preserve"><value>LABEL PRINT</value></data>
   <data name="TodayLotsNewestFirst" xml:space="preserve"><value>TODAY'S LOTS · NEWEST FIRST</value></data>
@@ -274,4 +266,9 @@
   <data name="HelpRework3" xml:space="preserve"><value>Reworked → Good books 1 EA to the original work order and returns the LOT to confirmed.</value></data>
   <data name="HelpRework4" xml:space="preserve"><value>Scrap marks the LOT scrapped; production counts do not change. It cannot be undone.</value></data>
   <data name="HelpRework5" xml:space="preserve"><value>A part with no open work order cannot be confirmed good — ask planning to release one.</value></data>
+  <data name="RwkDetailTitle" xml:space="preserve"><value>DECISION DETAIL</value></data>
+  <data name="RwkWo" xml:space="preserve"><value>Work order</value></data>
+  <data name="RwkNoteLabel" xml:space="preserve"><value>Action note</value></data>
+  <data name="RwkDecidedBy" xml:space="preserve"><value>Decided by</value></data>
+  <data name="RwkDecidedAt" xml:space="preserve"><value>Decided at</value></data>
 </root>

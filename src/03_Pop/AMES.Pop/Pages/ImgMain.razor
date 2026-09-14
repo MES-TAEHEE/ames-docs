@@ -43,7 +43,14 @@
 
             @* ── 좌측: 스테이션 품번 당일 현황 ─────────────────────── *@
             <div class="pop-card injm-left">
-                <div class="pop-card-h">▼ @T("PartNo") · @_now.ToString("yyyy-MM-dd") · @Session?.TerminalId</div>
+                <div class="pop-card-h imgm-date-h">
+                    <span>▼ @T("PartNo")</span>
+                    @* 타이핑 금지 — 누르면 달력만 뜬다. 키 입력을 막아 HID 스캔이 날짜 칸으로 새지도 않는다. *@
+                    <input type="date" class="imgm-date-input" value="@ViewDate.ToString("yyyy-MM-dd")"
+                           max="@DateTime.Today.ToString("yyyy-MM-dd")" @onchange="OnDateChange"
+                           onclick="try { this.showPicker(); } catch (e) { }"
+                           onkeydown="return false" onpaste="return false" ondrop="return false" />
+                </div>
                 @if (_refreshError is not null)
                 {
                     <div class="injm-refresh-err">⚠ @T("DataRefreshFailed", _refreshErrorAt.ToString("HH:mm:ss")) — @_refreshError</div>
@@ -131,8 +138,6 @@
                         <span class="injm-chip">@T("TodayGood") <b class="ok">@_todayGood</b></span>
                         <span class="injm-chip">@T("Defect") <b class="@_defClass">@_todayDef · @_defectPct</b></span>
                         <span class="injm-chip">@T("Unconfirmed") <b class="@(_rawCount > 0 ? "warn" : "ok")">@_rawCount</b></span>
-                        <span class="injm-chip">@T("FabricRoll") <b class="@_fabricClass">@_fabricText</b></span>
-                        <span class="injm-chip">@T("BondRecipe") <b>@_bondText</b></span>
                     </div>
                 </div>
 
@@ -202,24 +207,23 @@
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
 
-    /// <summary>1 EA 당 원단 소비량. 확정 시 장착 롤에서 차감한다.</summary>
-    private const decimal MetresPerUnit = 0.25m;
-
     private enum Popup { None, Defect, Andon }
     private Popup _popup = Popup.None;
 
     private List<InjItemDailyDto> _items = new();
+
+    // null = 금일 추종 — 자정을 넘기면 좌측 패널도 다음 날로 넘어간다.
+    private DateTime? _viewDate;
+    private DateTime ViewDate => _viewDate ?? DateTime.Today;
+    private bool IsToday => ViewDate >= DateTime.Today;
     private string? _selItemNo;
     private InjItemDailyDto? SelItem =>
         _items.FirstOrDefault(x => string.Equals(x.ItemNo, _selItemNo, StringComparison.OrdinalIgnoreCase));
     private WorkOrderDto?  _activeWo;
-    private FabricRollDto? _roll;
-    private BondSetupDto?  _bond;
     private List<ImgLotDto> _lots = new();
 
     private int _pct, _todayGood, _todayDef, _rawCount;
     private string _defectPct = "0.0%", _defClass = "ok";
-    private string _fabricText = "—", _fabricClass = "warn", _bondText = "—";
     private string _eqStatus = "OFFLINE", _eqClass = "stat-off";
     private AndonCallDto? _openAndon;
     private bool _andonAutoRaise;
@@ -277,7 +281,9 @@
         if (Session is null) return;
         try
         {
-            _items = PopServices.ImgLots.GetDailyItemSummary(Session.LineId, Session.TerminalId);
+            var today = PopServices.ImgLots.GetDailyItemSummary(Session.LineId, Session.TerminalId, DateTime.Today);
+            _items = IsToday ? today
+                   : PopServices.ImgLots.GetDailyItemSummary(Session.LineId, Session.TerminalId, ViewDate);
 
             if (SelItem is null)
                 _selItemNo = (_items.FirstOrDefault(x => x.HasOpenWo) ?? _items.FirstOrDefault())?.ItemNo;
@@ -287,24 +293,14 @@
                       : PopServices.WorkOrders.FindOpenForItem(Session.LineId, _selItemNo);
             _pct = _activeWo is null ? 0 : (int)Math.Clamp(_activeWo.ProgressPct, 0, 100);
 
-            // 칩은 좌측 행과 같은 당일 수치 — 두 숫자가 어긋나 보이면 작업자가 헷갈린다.
-            _todayGood = SelItem?.FinalQty ?? 0;
-            _todayDef  = SelItem?.NgQty    ?? 0;
+            // 칩은 좌측 날짜와 무관하게 금일 수치다 — 금일 양품/불량 라벨을 달고 있다.
+            var todayRow = today.FirstOrDefault(x => string.Equals(x.ItemNo, _selItemNo, StringComparison.OrdinalIgnoreCase));
+            _todayGood = todayRow?.FinalQty ?? 0;
+            _todayDef  = todayRow?.NgQty    ?? 0;
             var pct = (_todayGood + _todayDef) == 0 ? 0 : _todayDef * 100.0 / (_todayGood + _todayDef);
             _defectPct = $"{pct:0.0}%";
             _defClass  = pct >= 5 ? "bad" : pct >= 4 ? "warn" : "ok";
 
-            _roll = PopServices.Fabric.GetMountedRoll(Session.LineId);
-            if (_roll is null) { _fabricText = T("NoRoll"); _fabricClass = "warn"; }
-            else
-            {
-                _fabricText  = $"{_roll.LotCode} · {_roll.RemainingM:0.0} m";
-                _fabricClass = _roll.RemainingM <= 5 ? "bad" : _roll.RemainingM <= 10 ? "warn" : "ok";
-            }
-
-            _bond = PopServices.Bond.GetActiveForLine(Session.LineId);
-            _bondText = _bond is null ? T("NoRecipe")
-                      : $"{_bond.RecipeId} · {_bond.TempSp:0}°C / {_bond.PressureSp:0.0}bar / {_bond.HoldSecSp}s";
 
             _lots     = PopServices.ImgLots.GetTodayLots(Session.LineId);
             _rawCount = _lots.Count(x => x.ConfirmStatus == "RAW");
@@ -323,6 +319,17 @@
             _refreshErrorAt = DateTime.Now;
             System.Diagnostics.Debug.WriteLine($"[ImgMain refresh] {ex.Message}");
         }
+    }
+
+    private void OnDateChange(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value as string, out var d)) SetDate(d);
+    }
+    private void SetDate(DateTime d)
+    {
+        _viewDate = d.Date >= DateTime.Today ? null : d.Date;
+        Refresh();
+        _focusScan = true;
     }
 
     private void SelectItem(InjItemDailyDto it)
@@ -392,10 +399,9 @@
                 return;
             }
 
-            // 대상 WO 는 LOT 품번으로 리포지토리가 정한다. 원단·본딩은 확정 순간의 라인 상태를 넘긴다.
+            // 대상 WO 는 LOT 품번으로 리포지토리가 정한다.
             var (outcome, _, itemNo, woId) = PopServices.ImgLots.ConfirmByLotCode(
-                lotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo,
-                _roll?.LotId, MetresPerUnit, _bond);
+                lotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
             var woNumber = woId > 0 ? PopServices.WorkOrders.GetById(woId)?.WoNumber : null;
             var (ok, detail) = outcome switch
             {
@@ -408,7 +414,8 @@
                 ImgConfirmOutcome.NoWoForItem      => (false, $"{T("NoOpenWoForThisPart")}: {lotCode} ({itemNo})"),
                 _                                  => (false, $"{T("ConfirmFailed")}: {lotCode}"),
             };
-            if (ok) { _selItemNo = itemNo; }
+            // 확정분은 금일 수치에 올라가므로 과거 날짜를 보고 있었다면 금일로 돌린다.
+            if (ok) { _selItemNo = itemNo; _viewDate = null; }
             SetBanner(ok, detail);
             Refresh();
         }

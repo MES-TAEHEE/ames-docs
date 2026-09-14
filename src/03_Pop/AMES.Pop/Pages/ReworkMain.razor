@@ -1,6 +1,7 @@
 @page "/rework"
 @using AMES.Contracts.Enums
 @using AMES.Pop.Common
+@using AMES.Pop.Pages.InjPopups
 @implements IDisposable
 @inject NavigationManager Nav
 @inject AppState State
@@ -144,7 +145,8 @@
                             <tbody>
                             @foreach (var d in _decided)
                             {
-                                <tr>
+                                var row = d;
+                                <tr class="rwk-decided-row" @onclick="@(() => OpenDetail(row))">
                                     <td class="mono">@d.LotCode</td>
                                     <td class="mono">@d.ItemNo</td>
                                     <td class="mono">@(d.DispositionAt?.ToString("HH:mm:ss"))</td>
@@ -164,6 +166,40 @@
         </div>
     </div>
 </div>
+
+@* ── 판정 상세 팝업 (오늘 판정 이력 행 터치) ─────────────────────── *@
+@if (_detail is { } dt)
+{
+    <PopupShell Title='@($"🔎 {T("RwkDetailTitle")}")' Width="820px" OnClose="CloseDetail">
+        <div class="rwk-detail">
+            <div class="rwk-detail-l">@T("Process")</div>      <div><b>@dt.ProcessCode</b> · @dt.LineId</div>
+            <div class="rwk-detail-l">@T("Lotno")</div>        <div class="mono rwk-detail-lot">@dt.LotCode</div>
+            <div class="rwk-detail-l">@T("PartNo")</div>       <div class="mono">@dt.ItemNo @(dt.ItemName.Length == 0 ? "" : $"· {dt.ItemName}")</div>
+            <div class="rwk-detail-l">@T("RwkWo")</div>        <div class="mono">@(dt.WoNumber ?? "—")</div>
+
+            <div class="rwk-detail-sep"></div>
+
+            <div class="rwk-detail-l">@T("Defect")</div>       <div>@dt.DefectCode @(PopLang.IsKo ? dt.DefectName : dt.DefectNameEn ?? dt.DefectName)</div>
+            <div class="rwk-detail-l">@T("RwkRegistered")</div><div>@dt.DetectedAt.ToString("yyyy-MM-dd HH:mm:ss") · @dt.RegisteredBy</div>
+            <div class="rwk-detail-l">@T("RwkPriorStatus")</div><div><span class="dfp-lot-status @(dt.PriorStatus == "CONFIRMED" ? "warn" : "")">@dt.PriorStatus</span></div>
+            @if (dt.ReasonNote is not null)
+            {
+                <div class="rwk-detail-l"></div>               <div class="dfp-lot-note">@dt.ReasonNote</div>
+            }
+
+            <div class="rwk-detail-sep"></div>
+
+            <div class="rwk-detail-l">@T("RwkVerdict")</div>   <div><span class="injm-result @(dt.Disposition == "REWORKED" ? "ok" : "bad")">@(dt.Disposition == "REWORKED" ? T("RwkDoneRework") : T("RwkDoneScrap"))</span></div>
+            <div class="rwk-detail-l">@T("RwkCause")</div>     <div>@(dt.CauseCode ?? "—") @_detailCauseName</div>
+            <div class="rwk-detail-l">@T("RwkNoteLabel")</div> <div>@(string.IsNullOrWhiteSpace(dt.CorrectiveAction) ? "—" : dt.CorrectiveAction)</div>
+            <div class="rwk-detail-l">@T("RwkDecidedBy")</div> <div>@(dt.DispositionBy ?? "—")</div>
+            <div class="rwk-detail-l">@T("RwkDecidedAt")</div> <div>@(dt.DispositionAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "—")</div>
+        </div>
+        <div class="dfp-footer" style="justify-content:flex-end;">
+            <button class="nav-btn" @onclick="CloseDetail">@T("Close")</button>
+        </div>
+    </PopupShell>
+}
 
 @code {
     [CascadingParameter] public PopSessionDto? Session { get; set; }
@@ -243,6 +279,7 @@
 
     private void Select(ReworkItemDto row)
     {
+        _detail = null;
         _tab  = Tab.Verdict;
         _sel  = row;
         _note = string.Empty;
@@ -257,6 +294,25 @@
     }
 
     private void ClearSelection() { _sel = null; _causeCode = null; _note = string.Empty; _causes = new(); }
+
+    // 판정 상세 팝업 — 이력 행은 DTO 에 원인코드만 있어 이름은 그 공정의 원인 목록에서 찾아 붙인다.
+    private ReworkItemDto? _detail;
+    private string _detailCauseName = string.Empty;
+
+    private void OpenDetail(ReworkItemDto row)
+    {
+        _detail = row;
+        _detailCauseName = string.Empty;
+        if (row.CauseCode is null) return;
+        try
+        {
+            var c = PopServices.Defects.ListCausesForProcess(row.ProcessCode).FirstOrDefault(x => x.CauseCode == row.CauseCode);
+            if (c is not null) _detailCauseName = PopLang.IsKo ? c.CauseName : c.CauseNameEn ?? c.CauseName;
+        }
+        catch { /* 이름은 장식이다 — 조회 실패해도 코드만 보여 주면 된다 */ }
+    }
+
+    private void CloseDetail() { _detail = null; _focusScan = _tab == Tab.Verdict; }
 
     private void OnSerialScan(string code) => InvokeAsync(() => { HandleScan(code); StateHasChanged(); });
     private void OnScannerConnection(bool on) => InvokeAsync(() => { _scannerOn = on; StateHasChanged(); });

@@ -11,7 +11,7 @@
 
 @*  INJ-MAIN — INJ03~08 통합 작업 화면.
     좌측 스테이션 품번 당일 현황(PLAN/INPUT/NG/FINAL) + 우측 스캔/결과 패널을 상시 표시하고,
-    수동입력·불량·안돈은 팝업(Pages/InjPopups/*)으로 띄운다. WO 접수 없음 — 품번 선택이 열린 WO를 자동 해석.
+    수동 라벨 생성은 버튼 1회 = LOT 1개, 불량·안돈은 팝업(Pages/InjPopups/*)으로 띄운다. WO 접수 없음 — 품번 선택이 열린 WO를 자동 해석.
     문구는 PopLang(T)로 ko/en 단일 언어 표시. 구 단독 화면(/inj02~/inj08)은 모두 제거됨. *@
 
 <div class="pop-shell injm-shell">
@@ -43,7 +43,14 @@
 
             @* ── 좌측: 스테이션 품번 당일 현황 ─────────────────────── *@
             <div class="pop-card injm-left">
-                <div class="pop-card-h">▼ @T("PartNo") · @_now.ToString("yyyy-MM-dd") · @Session?.TerminalId</div>
+                <div class="pop-card-h imgm-date-h">
+                    <span>▼ @T("PartNo")</span>
+                    @* 타이핑 금지 — 누르면 달력만 뜬다. 키 입력을 막아 HID 스캔이 날짜 칸으로 새지도 않는다. *@
+                    <input type="date" class="imgm-date-input" value="@ViewDate.ToString("yyyy-MM-dd")"
+                           max="@DateTime.Today.ToString("yyyy-MM-dd")" @onchange="OnDateChange"
+                           onclick="try { this.showPicker(); } catch (e) { }"
+                           onkeydown="return false" onpaste="return false" ondrop="return false" />
+                </div>
                 @if (_refreshError is not null)
                 {
                     <div class="injm-refresh-err">⚠ @T("DataRefreshFailed", _refreshErrorAt.ToString("HH:mm:ss")) — @_refreshError</div>
@@ -175,7 +182,7 @@
 
                 @* ── 기능 버튼 (팝업 런처) — 우측 패널 최하단 ─────────── *@
                 <div class="injm-actions">
-                    <button class="nav-btn" @onclick="@(() => Open(Popup.Manual))">@T("ManualEntry")</button>
+                    <button class="nav-btn" disabled="@_creatingLabel" @onclick="CreateManualLabel">@T("ManualLabelCreate")</button>
                     <button class="nav-btn warn" @onclick="@(() => Open(Popup.Defect))">@T("Defect2")</button>
                     <button class="nav-btn alert" @onclick="OpenAndon">@T("Andon")</button>
                 </div>
@@ -187,10 +194,6 @@
 @* ── 팝업 ─────────────────────────────────────────────────────────── *@
 @switch (_popup)
 {
-    case Popup.Manual:
-        <ManualEntryPopup Session="Session" Wo="_activeWo"
-                          OnClose="ClosePopup" OnCreated="OnManualLotsIssued" />
-        break;
     case Popup.Defect:
         <DefectPopup Session="Session" OnClose="ClosePopup" OnChanged="Refresh" />
         break;
@@ -204,12 +207,17 @@
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
 
-    private enum Popup { None, Manual, Defect, Andon }
+    private enum Popup { None, Defect, Andon }
     private Popup _popup = Popup.None;
 
     private sealed record ScanRecord(string LotCode, DateTime At, bool Ok, string Message);
 
     private List<InjItemDailyDto> _items = new();
+
+    // null = 금일 추종 — 자정을 넘기면 좌측 패널도 다음 날로 넘어간다.
+    private DateTime? _viewDate;
+    private DateTime ViewDate => _viewDate ?? DateTime.Today;
+    private bool IsToday => ViewDate >= DateTime.Today;
     private string? _selItemNo;
     private InjItemDailyDto? SelItem =>
         _items.FirstOrDefault(x => string.Equals(x.ItemNo, _selItemNo, StringComparison.OrdinalIgnoreCase));
@@ -277,7 +285,9 @@
         if (Session is null) return;
         try
         {
-            _items = PopServices.InjLots.GetDailyItemSummary(Session.LineId, Session.TerminalId);
+            var today = PopServices.InjLots.GetDailyItemSummary(Session.LineId, Session.TerminalId, DateTime.Today);
+            _items = IsToday ? today
+                   : PopServices.InjLots.GetDailyItemSummary(Session.LineId, Session.TerminalId, ViewDate);
 
             // 선택이 없거나 목록에서 사라졌으면 열린 WO 가 있는 첫 품번, 없으면 첫 행.
             if (SelItem is null)
@@ -287,9 +297,10 @@
             _activeWo = _selItemNo is null ? null
                       : PopServices.WorkOrders.FindOpenForItem(Session.LineId, _selItemNo);
 
-            // 칩은 좌측 행과 같은 당일 수치를 보여준다 — 두 숫자가 어긋나 보이면 작업자가 헷갈린다.
-            _todayGood = SelItem?.FinalQty ?? 0;
-            _todayDef  = SelItem?.NgQty    ?? 0;
+            // 칩은 좌측 날짜와 무관하게 금일 수치다 — 금일 양품/불량 라벨을 달고 있다.
+            var todayRow = today.FirstOrDefault(x => string.Equals(x.ItemNo, _selItemNo, StringComparison.OrdinalIgnoreCase));
+            _todayGood = todayRow?.FinalQty ?? 0;
+            _todayDef  = todayRow?.NgQty    ?? 0;
             var pct = (_todayGood + _todayDef) == 0 ? 0 : _todayDef * 100.0 / (_todayGood + _todayDef);
             _defectPct = $"{pct:0.0}%";
             _defClass  = pct >= 5 ? "bad" : pct >= 4 ? "warn" : "ok";
@@ -328,6 +339,17 @@
             _refreshErrorAt = DateTime.Now;
             System.Diagnostics.Debug.WriteLine($"[InjMain refresh] {ex.Message}");
         }
+    }
+
+    private void OnDateChange(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value as string, out var d)) SetDate(d);
+    }
+    private void SetDate(DateTime d)
+    {
+        _viewDate = d.Date >= DateTime.Today ? null : d.Date;
+        Refresh();
+        _focusScan = true;
     }
 
     private void SelectItem(InjItemDailyDto it)
@@ -384,7 +406,8 @@
                 _                                  => (false, $"{T("ConfirmFailed")}: {lotCode}"),
             };
             // 확정은 LOT 품번으로 WO 를 정했다 — 화면 선택도 그 품번으로 따라간다.
-            if (ok) { _selItemNo = itemNo; Refresh(); }
+            // 확정분은 금일 수치에 올라가므로 과거 날짜를 보고 있었다면 금일로 돌린다.
+            if (ok) { _selItemNo = itemNo; _viewDate = null; Refresh(); }
             SetBanner(ok, detail);
             _scanHistory.Insert(0, new ScanRecord(lotCode, DateTime.Now, ok, detail));
             if (_scanHistory.Count > 50) _scanHistory.RemoveAt(_scanHistory.Count - 1);
@@ -438,8 +461,25 @@
     }
     private void ClosePopup() { _popup = Popup.None; _focusScan = true; Refresh(); }
 
-    // 수동 발행분은 아직 실적이 아니다 — 미확정 LOT 목록에 쌓이고, 스캔해야 확정된다.
-    private void OnManualLotsIssued() => ClosePopup();
+    // ── 수동 라벨 생성: 누를 때마다 원천 LOT(RAW) 1개. PLC 누락 보정용이며 실적이 아니다 —
+    // 미확정 LOT 목록에 쌓이고 스캔해야 확정된다. 라벨은 LabelDispatcher 가 뽑는다 —
+    // 여기서 뽑으면 디스패처와 이중 발행된다.
+    private bool _creatingLabel;
+    private void CreateManualLabel()
+    {
+        if (Session is null || _creatingLabel) return;
+        if (_activeWo is null) { Toasts.Bad(T("NoActiveWorkOrderAcceptAWoFirst")); return; }
+        _creatingLabel = true;
+        try
+        {
+            var lot = PopServices.InjLots.CreateManualRawLots(
+                _activeWo.LineId, _activeWo.ItemNo, _activeWo.MoldId, 1, Session.EmployeeNo)[0];
+            Toasts.Ok(T("ManualLotCreated", lot.LotCode));
+            Refresh();
+        }
+        catch (Exception ex) { Toasts.Bad($"{T("EntryFailed")}: {ex.Message}"); }
+        finally { _creatingLabel = false; _focusScan = true; }
+    }
 
     private async Task Logout()
     {
