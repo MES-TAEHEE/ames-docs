@@ -128,12 +128,12 @@ appcmd set apppool "AMES.Web" /processModel.loadUserProfile:true /processModel.s
 |---------|------|------|
 | Login | `Pages/Login.razor` | PIN 인증, 사원 선택 |
 | INJ-MAIN | `Pages/InjMain.razor` | **통합 작업 화면** (기본 진입점) — 좌측 스테이션 BOP 품번 × 당일 PLAN/INPUT/NG/FINAL 그리드 + 스캔 실적확정 + 우측 패널 기능 버튼 (하단바 없음, 로그아웃은 상단바). WO 접수 없음: 품번 행 선택 → `WorkOrderRepository.FindOpenForItem` 이 열린 WO 를 자동 해석(`ConfirmByLotCode` 와 같은 규칙) |
-| (팝업) | `Pages/InjPopups/ManualEntryPopup.razor` | 수동 실적 입력 (구 INJ-04 키패드) |
+| (버튼) | `Pages/InjMain.razor` `CreateManualLabel` | 수동 라벨 생성 — 누를 때마다 원천 LOT(RAW) 1개(`CreateManualRawLots` qty=1). 수량 입력 없음. 라벨은 `LabelDispatcher` 가 뽑고, 스캔해야 실적 확정 |
 | (팝업) | `Pages/InjPopups/DefectPopup.razor` | 불량 등록 — LOT 라벨 스캔 → 불량코드 → 등록(1 LOT = 1 EA, 수량 입력 없음). 등록된 LOT 은 DEFECT 가 되어 REWORK 스테이션으로 간다. 확정 후 LOT 은 실적을 역분개(−1)한다 |
 | (팝업) | `Pages/InjPopups/AndonPopup.razor` | 안돈 — 전체 화면 오버레이. 확인창 → 슈퍼바이저 배지 스캔 → 원인·부서 호출 → 담당자 배지 도착 → ACK → 자동 종료. 흐름은 `Services/AndonWorkflow`(단위 테스트 `AndonWorkflowTests`) |
 
 대시보드(INJ-02)·작업지시 접수(INJ-03)·금형 교체(INJ-06)·생산 현황(INJ-07)은 미사용으로 삭제됨 (화면·팝업·레거시 WinForms 폼 포함).
-구 단독 화면(`/inj02`~`/inj08` 라우트)도 모두 삭제됨 — INJ 는 INJ-MAIN + 팝업(수동입력·불량·안돈)만 남는다. 팝업 공통 셸은 `Pages/InjPopups/PopupShell.razor`.
+구 단독 화면(`/inj02`~`/inj08` 라우트)도 모두 삭제됨 — INJ 는 INJ-MAIN(+ 수동 라벨 생성 버튼) + 팝업(불량·안돈)만 남는다. 팝업 공통 셸은 `Pages/InjPopups/PopupShell.razor`.
 좌측 품번 목록은 `MD_Bop.StationCode` = 세션 스테이션(`PopSessionDto.TerminalId`) 기준이고, 당일 수치는 `InjLotRepository.GetDailyItemSummary` — LOT 생성일 기준으로 `INPUT = FINAL + NG + 미확정` 이 성립한다. 전부 LOT 상태로 센다 — FINAL = CONFIRMED, NG = NG_BLOCKED + DEFECT + SCRAPPED (IMG 는 DEFECT + SCRAPPED), 미확정 = RAW. PR_DefectDetail 은 집계에 쓰지 않는다. dev DB 는 `dist/seed_md_bop_inj_dev.sql` 로 ST-INJ-01 BOP 를 채운다.
 INJ 는 `AcceptWo` 를 부르지 않으므로 `BumpStepCompleted` 가 첫 실적에서 단계·헤더를 `Released → In Progress` 로 올리고 `ActualStart` 를 찍는다. `TerminalLock` 은 INJ 에서 기록하지 않는다(IMG 는 `AcceptWo` 그대로).
 
@@ -410,7 +410,7 @@ INJ-MAIN 은 HID(키보드 웨지) 외에 시리얼 스캔도 받는다. 호스�
 | 마이그레이션 없이 신 바이너리 | `PP_WorkOrderRouting.CompletedQty`·`TerminalLock` 컬럼이 없어 **PP-04 라인 로드·Pop WO 목록 조회가 매번 예외.** 배포 전 컬럼 존재를 반드시 확인할 것 |
 | 구 Web + 신 DB | 라벨 순서와 달리 **안전한 실패 쪽이다.** 구 Web 은 헤더 `LineID` 에 기록하고 단계는 `Pending` 으로 남으며, 마이그레이션 §3(백필)을 다시 돌리면 단계 행이 정리된다 |
 
-**INJ 스테이션마다 `MD_Bop`(StationCode) 등록이 선행돼야 한다.** 비어 있으면 INJ-MAIN 좌측 패널이 비고(당일 실적 있는 품번만 "미등록"으로 뜸) 수동입력·불량 팝업이 동작하지 않는다 — 스캔 확정은 LOT 품번으로 WO를 찾으므로 계속 동작한다. dev 는 `dist/seed_md_bop_inj_dev.sql`, 운영은 MD-005 화면에서 등록.
+**INJ 스테이션마다 `MD_Bop`(StationCode) 등록이 선행돼야 한다.** 비어 있으면 INJ-MAIN 좌측 패널이 비고(당일 실적 있는 품번만 "미등록"으로 뜸) 수동 라벨 생성·불량 팝업이 동작하지 않는다 — 스캔 확정은 LOT 품번으로 WO를 찾으므로 계속 동작한다. dev 는 `dist/seed_md_bop_inj_dev.sql`, 운영은 MD-005 화면에서 등록.
 
 ---
 
