@@ -1112,7 +1112,8 @@ public sealed class PpRepository
 
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
-        var prefix = $"PR-{DateTime.Today:yyyy}-";
+        // WO-yyyyMMdd-NNN 과 같은 일별 채번 — 연 단위 3자리는 부족 자재마다 PR 이 나와 금방 소진된다
+        var prefix = $"PR-{DateTime.Today:yyyyMMdd}-";
         var seq = NextPrSeq(conn, tx, prefix);
 
         foreach (var req in requests.DistinctBy(r => r.ItemNo, StringComparer.OrdinalIgnoreCase))
@@ -1143,7 +1144,7 @@ public sealed class PpRepository
             }
 
             var qty = req.Qty ?? shortage;
-            var prNumber = prefix + (++seq).ToString("D3");
+            var prNumber = prefix + (++seq).ToString("D4");
             using var ins = new SqlCommand("""
                 INSERT INTO dbo.PP_PurchaseRequest (PrNumber, ItemNo, VendorID, RequiredQty, RequiredDate, WoID, Status, CreatedBy)
                 OUTPUT INSERTED.PrID
@@ -1206,7 +1207,7 @@ public sealed class PpRepository
         r["WoID"] as int?, r["WoNumber"] as string, r["ApprovedBy"] as string, r["ApprovedAt"] as DateTime?,
         r["CreatedBy"] as string, r["CreatedTS"] as DateTime?);
 
-    /// <summary>접두사(PR-yyyy-) 내 마지막 채번. NextWoSeq 와 같은 범위 잠금.</summary>
+    /// <summary>접두사(PR-yyyyMMdd-) 내 마지막 채번. NextWoSeq 와 같은 범위 잠금.</summary>
     static int NextPrSeq(SqlConnection conn, SqlTransaction tx, string prefix)
     {
         using var cmd = new SqlCommand("""

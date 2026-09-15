@@ -122,7 +122,7 @@ public class MrpRepositoryTests
             var created = repo.CreateShortagePrs(runId, new[] { Rm, Ok }, Actor);   // OK 는 부족이 아니라 무시
             var only = Assert.Single(created);
             Assert.Equal(Rm, only.ItemNo);
-            Assert.Matches(@"^PR-\d{4}-\d{3}$", only.PrNumber);
+            Assert.Matches($@"^PR-{DateTime.Today:yyyyMMdd}-\d{{4}}$", only.PrNumber);   // WO-yyyyMMdd-NNN 과 같은 일별 채번
 
             var pr = repo.ListPurchaseRequests(500).Single(p => p.ItemNo == Rm);
             Assert.Equal(only.PrNumber, pr.PrNumber);
