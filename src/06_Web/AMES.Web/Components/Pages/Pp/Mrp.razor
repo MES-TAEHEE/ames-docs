@@ -121,7 +121,11 @@ else
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="PrNumber" Title="@L["Col.PrNo"].Value" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r">
-                    @if (r.PrId is not null) { <span class="code" style="color:#93c5fd;">@(r.PrNumber ?? $"PR#{r.PrId}")</span> } else { <span class="dim">—</span> }
+                    @if (r.PrId is not null)
+                    {
+                        <a class="code mrp-prlink" href="@($"pp/purchase-req?pr={Uri.EscapeDataString(r.PrNumber ?? $"PR#{r.PrId}")}")" title="PP-006">@(r.PrNumber ?? $"PR#{r.PrId}")</a>
+                    }
+                    else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Title="@L["PP.Mrp.Col.Action"].Value" TextAlign="TextAlign.Center" Width="90px" Sortable="false">

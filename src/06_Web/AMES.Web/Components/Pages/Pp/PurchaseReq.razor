@@ -220,11 +220,30 @@
 
     int PendingCount => _allRows.Count(r => IsPending(r.Status));
 
+    /// <summary>PP-005 MRP 등에서 `?pr=PR-yyyy-NNN` 으로 진입하면 그 번호로 검색하고 상세 모달을 바로 연다.</summary>
+    [SupplyParameterFromQuery(Name = "pr")] public string? PrQuery { get; set; }
+    string? _openedPr;
+
     protected override void OnInitialized()
     {
         try { _vendors = MD.ListVendors(); } catch { }
         Reload();
     }
+
+    protected override void OnParametersSet()
+    {
+        var pr = PrQuery?.Trim();
+        if (string.IsNullOrEmpty(pr) || pr == _openedPr) return;
+        _openedPr = pr;
+        _fSearch = pr; _fVendor = _fStatus = _fSap = null;
+        Reload();
+        // 최근 N 건 밖의 PR 이면 최대 범위로 다시 읽는다
+        if (!_allRows.Any(r => Matches(r, pr)) && _topN < TopNs.Max()) { _topN = TopNs.Max(); Reload(); }
+        var hit = _allRows.FirstOrDefault(r => Matches(r, pr));
+        if (hit is not null) { _sel = hit; _modal = "detail"; }
+    }
+
+    static bool Matches(PpRepository.PrRow r, string pr) => string.Equals(PrNo(r), pr, StringComparison.OrdinalIgnoreCase);
 
     RadzenDataGrid<PpRepository.PrRow>? _pgGrid;
     int _pgIndex;
