@@ -7815,4 +7815,307 @@
   <data name="Col.Maker" xml:space="preserve">
     <value>Fabricante</value>
   </data>
+  <data name="PP.Mrp.Subtitle" xml:space="preserve">
+    <value>Explosión BOM · faltantes · bloqueo OT · enlace PR</value>
+  </data>
+  <data name="PP.Mrp.LastRun" xml:space="preserve">
+    <value>Última ejecución</value>
+  </data>
+  <data name="PP.Mrp.NoRun" xml:space="preserve">
+    <value>Sin ejecuciones</value>
+  </data>
+  <data name="PP.Mrp.Btn.Run" xml:space="preserve">
+    <value>Ejecutar MRP</value>
+  </data>
+  <data name="PP.Mrp.Running" xml:space="preserve">
+    <value>Calculando MRP...</value>
+  </data>
+  <data name="PP.Mrp.Scope" xml:space="preserve">
+    <value>Alcance</value>
+  </data>
+  <data name="PP.Mrp.Scope.All" xml:space="preserve">
+    <value>Todos los materiales</value>
+  </data>
+  <data name="PP.Mrp.Scope.Short" xml:space="preserve">
+    <value>Solo faltantes</value>
+  </data>
+  <data name="PP.Mrp.Scope.Ok" xml:space="preserve">
+    <value>Solo suficientes</value>
+  </data>
+  <data name="PP.Mrp.Ph.Search" xml:space="preserve">
+    <value>Código/nombre de material...</value>
+  </data>
+  <data name="PP.Mrp.Btn.BulkPr" xml:space="preserve">
+    <value>Crear PR de faltantes</value>
+  </data>
+  <data name="PP.Mrp.Btn.Export" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="PP.Mrp.Btn.Pr" xml:space="preserve">
+    <value>Crear PR</value>
+  </data>
+  <data name="PP.Mrp.Kpi.Calc" xml:space="preserve">
+    <value>Materiales calculados</value>
+  </data>
+  <data name="PP.Mrp.Kpi.Ok" xml:space="preserve">
+    <value>Suficiente</value>
+  </data>
+  <data name="PP.Mrp.Kpi.Short" xml:space="preserve">
+    <value>Faltante</value>
+  </data>
+  <data name="PP.Mrp.Kpi.Blocked" xml:space="preserve">
+    <value>OT bloqueadas</value>
+  </data>
+  <data name="PP.Mrp.Grid.Title" xml:space="preserve">
+    <value>Resultados MRP</value>
+  </data>
+  <data name="PP.Mrp.Hint" xml:space="preserve">
+    <value>Faltante = Requerido − Existencias − En pedido · Filas rojas requieren PR</value>
+  </data>
+  <data name="PP.Mrp.NoMatch" xml:space="preserve">
+    <value>Ningún material coincide con los filtros.</value>
+  </data>
+  <data name="PP.Mrp.Col.Material" xml:space="preserve">
+    <value>Material</value>
+  </data>
+  <data name="PP.Mrp.Col.Required" xml:space="preserve">
+    <value>Requerido</value>
+  </data>
+  <data name="PP.Mrp.Col.Stock" xml:space="preserve">
+    <value>Existencias</value>
+  </data>
+  <data name="PP.Mrp.Col.OnOrder" xml:space="preserve">
+    <value>En pedido</value>
+  </data>
+  <data name="PP.Mrp.Col.Shortage" xml:space="preserve">
+    <value>Faltante/Excedente</value>
+  </data>
+  <data name="PP.Mrp.Col.LeadTime" xml:space="preserve">
+    <value>L/T</value>
+  </data>
+  <data name="PP.Mrp.Col.OrderDue" xml:space="preserve">
+    <value>Fecha límite</value>
+  </data>
+  <data name="PP.Mrp.Col.Action" xml:space="preserve">
+    <value>Acción</value>
+  </data>
+  <data name="PP.Mrp.St.Short" xml:space="preserve">
+    <value>⛔ Faltante</value>
+  </data>
+  <data name="PP.Mrp.St.Balanced" xml:space="preserve">
+    <value>±0 Equilibrado</value>
+  </data>
+  <data name="PP.Mrp.St.Ok" xml:space="preserve">
+    <value>✓ Suficiente</value>
+  </data>
+  <data name="PP.Mrp.St.Pr" xml:space="preserve">
+    <value>PR en pedido</value>
+  </data>
+  <data name="PP.Mrp.Unit.Days" xml:space="preserve">
+    <value>{0}d</value>
+  </data>
+  <data name="PP.Mrp.Detail.Required" xml:space="preserve">
+    <value>Requerido BOM</value>
+  </data>
+  <data name="PP.Mrp.Detail.Available" xml:space="preserve">
+    <value>Disponible (existencias + en pedido)</value>
+  </data>
+  <data name="PP.Mrp.Detail.LeadTime" xml:space="preserve">
+    <value>L/T de compra</value>
+  </data>
+  <data name="PP.Mrp.Detail.Wos" xml:space="preserve">
+    <value>Órdenes de trabajo bloqueadas por este faltante</value>
+  </data>
+  <data name="PP.Mrp.Detail.NoWos" xml:space="preserve">
+    <value>Sin OT afectadas</value>
+  </data>
+  <data name="PP.Mrp.Detail.HintShort" xml:space="preserve">
+    <value>Faltante de {0} {1} — pedir antes de {2} (L/T {3}d). Use [Crear PR] para enviar a PP-006.</value>
+  </data>
+  <data name="PP.Mrp.Detail.HintPr" xml:space="preserve">
+    <value>{0} en pedido — cantidad reflejada en En pedido, faltante resuelto.</value>
+  </data>
+  <data name="PP.Mrp.Bulk.Title" xml:space="preserve">
+    <value>Crear PR de faltantes en lote</value>
+  </data>
+  <data name="PP.Mrp.Bulk.Targets" xml:space="preserve">
+    <value>Objetivos PR (materiales faltantes)</value>
+  </data>
+  <data name="PP.Mrp.Bulk.EarliestDue" xml:space="preserve">
+    <value>Fecha límite más próxima</value>
+  </data>
+  <data name="PP.Mrp.Bulk.Dest" xml:space="preserve">
+    <value>Destino PR</value>
+  </data>
+  <data name="PP.Mrp.Bulk.Note" xml:space="preserve">
+    <value>Se crea una solicitud de compra (PR) por cada material faltante y se envía a PP-006. La cantidad del PR se suma a En pedido, resolviendo el faltante y desbloqueando las OT afectadas.</value>
+  </data>
+  <data name="PP.Mrp.Bulk.Confirm" xml:space="preserve">
+    <value>Crear PRs</value>
+  </data>
+  <data name="PP.Mrp.Ok.Run" xml:space="preserve">
+    <value>Recalculo MRP completo — {0} materiales · {1} faltantes · {2} OT bloqueadas</value>
+  </data>
+  <data name="PP.Mrp.Ok.Pr" xml:space="preserve">
+    <value>PR creado — {0} ({1}) · enlazado a PP-006</value>
+  </data>
+  <data name="PP.Mrp.Ok.Bulk" xml:space="preserve">
+    <value>PRs creados para {0} materiales faltantes. Pendiente de envío a SAP B1 en PP-006.</value>
+  </data>
+  <data name="PP.Mrp.Ok.Reset" xml:space="preserve">
+    <value>Filtros restablecidos.</value>
+  </data>
+  <data name="PP.Mrp.Ok.Exported" xml:space="preserve">
+    <value>Se exportaron {0} filas MRP.</value>
+  </data>
+  <data name="PP.Mrp.Err.Run" xml:space="preserve">
+    <value>Fallo en la ejecución MRP: {0}</value>
+  </data>
+  <data name="PP.Mrp.Err.NoShort" xml:space="preserve">
+    <value>No hay materiales faltantes para crear PR.</value>
+  </data>
+  <data name="PP.Mrp.Err.NoExport" xml:space="preserve">
+    <value>No hay datos para exportar.</value>
+  </data>
+  <data name="PP.Mrp.Btn.CreatePrs" xml:space="preserve">
+    <value>Crear PR ({0})</value>
+  </data>
+  <data name="PP.Mrp.Err.NoneSelected" xml:space="preserve">
+    <value>No hay materiales faltantes seleccionados.</value>
+  </data>
+  <data name="PP.Mrp.Bulk.Qty" xml:space="preserve">
+    <value>Cant. PR</value>
+  </data>
+  <data name="PP.Mrp.Bulk.Total" xml:space="preserve">
+    <value>Cantidad total PR</value>
+  </data>
+  <data name="PP.Mrp.Bulk.Partial" xml:space="preserve">
+    <value>Pedir menos que el faltante deja un faltante residual (sin segundo PR en esta ejecución; vuelva a ejecutar MRP).</value>
+  </data>
+  <data name="PP.Mrp.Err.Qty" xml:space="preserve">
+    <value>La cantidad del PR debe ser mayor que 0.</value>
+  </data>
+  <data name="PP.Mrp.Detail.OpenPrs" xml:space="preserve">
+    <value>Solicitudes de compra abiertas (en pedido, sin PO)</value>
+  </data>
+  <data name="PP.Mrp.Detail.NoPrs" xml:space="preserve">
+    <value>Sin solicitudes de compra abiertas.</value>
+  </data>
+  <data name="PP.PurchaseReq.St.Draft" xml:space="preserve">
+    <value>Borrador</value>
+  </data>
+  <data name="PP.PurchaseReq.St.Sent" xml:space="preserve">
+    <value>Enviado</value>
+  </data>
+  <data name="PP.PurchaseReq.St.Approved" xml:space="preserve">
+    <value>Aprobado · PO</value>
+  </data>
+  <data name="PP.PurchaseReq.St.Failed" xml:space="preserve">
+    <value>Fallido</value>
+  </data>
+  <data name="PP.PurchaseReq.St.FailedN" xml:space="preserve">
+    <value>⚠ Fallido {0}×</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.Draft.Sub" xml:space="preserve">
+    <value>En borrador · pendiente de envío</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.Sent.Sub" xml:space="preserve">
+    <value>Enviado · pendiente de PO</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.Approved.Sub" xml:space="preserve">
+    <value>PO creada</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.Failed.Sub" xml:space="preserve">
+    <value>Envío fallido · reintentar</value>
+  </data>
+  <data name="PP.PurchaseReq.Fld.RequiredFrom" xml:space="preserve">
+    <value>Requerido desde</value>
+  </data>
+  <data name="PP.PurchaseReq.Btn.BatchSend" xml:space="preserve">
+    <value>Enviar a SAP B1 ({0})</value>
+  </data>
+  <data name="PP.PurchaseReq.Col.DocNum" xml:space="preserve">
+    <value>SAP DocNum</value>
+  </data>
+  <data name="PP.PurchaseReq.Hint.Grid" xml:space="preserve">
+    <value>Seleccione filas Draft/Failed para enviar · apruebe PO desde el detalle · registre fallos desde el detalle (confirmación manual hasta integrar Service Layer)</value>
+  </data>
+  <data name="PP.PurchaseReq.NoMatch" xml:space="preserve">
+    <value>Ningún PR coincide con los filtros.</value>
+  </data>
+  <data name="PP.PurchaseReq.Dlg.Send.Title" xml:space="preserve">
+    <value>Envío en lote a SAP B1 — Confirmar</value>
+  </data>
+  <data name="PP.PurchaseReq.Dlg.Send.Targets" xml:space="preserve">
+    <value>Objetivos de envío (Draft · Failed)</value>
+  </data>
+  <data name="PP.PurchaseReq.Dlg.Send.Endpoint" xml:space="preserve">
+    <value>Método</value>
+  </data>
+  <data name="PP.PurchaseReq.Dlg.Send.Manual" xml:space="preserve">
+    <value>Confirmación manual (antes de Service Layer)</value>
+  </data>
+  <data name="PP.PurchaseReq.Dlg.Send.Note" xml:space="preserve">
+    <value>Marca los PR seleccionados como Sent y registra el envío. Ingrese el SAP DocNum desde el detalle; confirme la PO con [Aprobar]. Registre fallos con motivo desde el detalle.</value>
+  </data>
+  <data name="PP.PurchaseReq.Dlg.Send.Confirm" xml:space="preserve">
+    <value>Confirmar envío</value>
+  </data>
+  <data name="PP.PurchaseReq.Detail.Log" xml:space="preserve">
+    <value>Historial de envío (PP_PRSendLog)</value>
+  </data>
+  <data name="PP.PurchaseReq.Detail.Created" xml:space="preserve">
+    <value>PR creado</value>
+  </data>
+  <data name="PP.PurchaseReq.Detail.LinkedWo" xml:space="preserve">
+    <value>Orden de trabajo vinculada</value>
+  </data>
+  <data name="PP.PurchaseReq.Detail.Mrp" xml:space="preserve">
+    <value>Ver en MRP</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.DocNum" xml:space="preserve">
+    <value>SAP DocNum (opcional)</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.Send" xml:space="preserve">
+    <value>Enviar a SAP B1</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.Retry" xml:space="preserve">
+    <value>Reintentar envío</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.FailReason" xml:space="preserve">
+    <value>Motivo del fallo</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.Fail" xml:space="preserve">
+    <value>Registrar fallo</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.PoNo" xml:space="preserve">
+    <value>Número de PO SAP</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.Approve" xml:space="preserve">
+    <value>Aprobar (PO creada)</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.SaveVendor" xml:space="preserve">
+    <value>Guardar proveedor</value>
+  </data>
+  <data name="PP.PurchaseReq.Ok.Sent" xml:space="preserve">
+    <value>{0} PR marcados como Sent.</value>
+  </data>
+  <data name="PP.PurchaseReq.Ok.Failed" xml:space="preserve">
+    <value>Fallo registrado para {0} ({1}×).</value>
+  </data>
+  <data name="PP.PurchaseReq.Ok.Approved" xml:space="preserve">
+    <value>{0} aprobado — PO {1}</value>
+  </data>
+  <data name="PP.PurchaseReq.Ok.Vendor" xml:space="preserve">
+    <value>Proveedor guardado.</value>
+  </data>
+  <data name="PP.PurchaseReq.Err.NoneSelected" xml:space="preserve">
+    <value>No hay PR enviables seleccionados.</value>
+  </data>
+  <data name="PP.PurchaseReq.Err.Reason" xml:space="preserve">
+    <value>Ingrese el motivo del fallo.</value>
+  </data>
+  <data name="PP.PurchaseReq.Err.PoNo" xml:space="preserve">
+    <value>Ingrese el número de PO.</value>
+  </data>
 </root>

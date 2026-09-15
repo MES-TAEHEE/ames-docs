@@ -3,6 +3,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
+@using AMES.Data.Services
 @using Radzen
 
 @attribute [Authorize]
@@ -10,171 +11,183 @@
 @inject PpRepository Pp
 @inject MasterDataRepository MD
 @inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthPrvd
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>PP-006 @L["PP.PurchaseReq.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="PP-006" TitleKey="PP.PurchaseReq.Title" />
 
-@* ── KPI strip ──────────────────────────────────────────────────── *@
-<div class="ames-kpis">
-    <div class="ames-kpi">
-        <div class="ames-kpi-l">@L["Lbl.Total"]</div>
-        <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_allRows.Count</div>
-            <div class="ames-kpi-s">@string.Format(L["PP.PurchaseReq.Kpi.TotalSub"].Value, _topN)</div>
-        </div>
-    </div>
-    <div class="ames-kpi @(PendingCount > 0 ? "warn" : "")">
-        <div class="ames-kpi-l">@L["PP.PurchaseReq.Kpi.Pending"]</div>
-        <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@PendingCount</div>
-            <div class="ames-kpi-s">Draft · Pending</div>
-        </div>
-    </div>
-    <div class="ames-kpi ok">
-        <div class="ames-kpi-l">@L["PP.PurchaseReq.Kpi.Approved"]</div>
-        <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Approved")</div>
-            <div class="ames-kpi-s">Approved</div>
-        </div>
-    </div>
-    <div class="ames-kpi info">
-        <div class="ames-kpi-l">@L["PP.PurchaseReq.Kpi.Sent"]</div>
-        <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_allRows.Count(IsSent)</div>
-            <div class="ames-kpi-s">@L["PP.PurchaseReq.Kpi.SentSub"]</div>
-        </div>
-    </div>
-</div>
-
+<div class="pr-page">
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
 }
 
-<div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["PP.PurchaseReq.Title"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@(v => _fSearch = v ?? "")" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["PP.PurchaseReq.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px;" />
-            <RadzenLabel Text="@L["Col.Vendor"]" Component="DropDownVendor" />
-            <RadzenDropDown Name="DropDownVendor" @bind-Value="_fVendor" Data="@VendorFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" AllowFiltering="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
-            <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
-            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
-            <RadzenLabel Text="@L["Col.SapPo"]" Component="DropDownSap" />
-            <RadzenDropDown Name="DropDownSap" @bind-Value="_fSap" Data="@SapFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenLabel Text="@L["Lbl.Recent"]" Component="DropDownTopN" />
-            <RadzenDropDown Name="DropDownTopN" @bind-Value="_topN" Data="@TopNOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
+@* ── KPI strip — 상태 흐름 순서 ─────────────────────────────────── *@
+<div class="ames-kpis compact">
+    <div class="ames-kpi @(Count(PrStatusRules.Draft) > 0 ? "warn" : "")"><div class="ames-kpi-l">@L["PP.PurchaseReq.St.Draft"]</div><div class="ames-kpi-row"><div class="ames-kpi-v">@Count(PrStatusRules.Draft)</div><div class="ames-kpi-s">@L["PP.PurchaseReq.Kpi.Draft.Sub"]</div></div></div>
+    <div class="ames-kpi info"><div class="ames-kpi-l">@L["PP.PurchaseReq.St.Sent"]</div><div class="ames-kpi-row"><div class="ames-kpi-v">@Count(PrStatusRules.Sent)</div><div class="ames-kpi-s">@L["PP.PurchaseReq.Kpi.Sent.Sub"]</div></div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["PP.PurchaseReq.St.Approved"]</div><div class="ames-kpi-row"><div class="ames-kpi-v">@Count(PrStatusRules.Approved)</div><div class="ames-kpi-s">@L["PP.PurchaseReq.Kpi.Approved.Sub"]</div></div></div>
+    <div class="ames-kpi @(Count(PrStatusRules.Failed) > 0 ? "bad" : "")"><div class="ames-kpi-l">@L["PP.PurchaseReq.St.Failed"]</div><div class="ames-kpi-row"><div class="ames-kpi-v">@Count(PrStatusRules.Failed)</div><div class="ames-kpi-s">@L["PP.PurchaseReq.Kpi.Failed.Sub"]</div></div></div>
+</div>
 
-            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Search" class="ames-rz-btn" />
-            <RadzenButton Text="@L["PP.PurchaseReq.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
-        </RadzenStack>
+@* ── Toolbar ────────────────────────────────────────────────────── *@
+<div class="ames-card-h" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;text-transform:none;">
+    <div class="ames-fld">
+        <label>@L["Col.Status"]</label>
+        <RadzenDropDown @bind-Value="_fStatus" @bind-Value:after="ApplyFilter" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value"
+                        Placeholder="@L["Filter.All"].Value" AllowClear="true" Style="width:140px" />
     </div>
-    <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["PP.PurchaseReq.Hint.Detail"]</div>
+    <div class="ames-fld">
+        <label>@L["Col.Vendor"]</label>
+        <RadzenDropDown @bind-Value="_fVendor" @bind-Value:after="ApplyFilter" Data="@VendorFilterOptions" TextProperty="Text" ValueProperty="Value"
+                        Placeholder="@L["Filter.All"].Value" AllowClear="true" AllowFiltering="true" Style="width:200px" />
+    </div>
+    <div class="ames-fld">
+        <label>@L["PP.PurchaseReq.Fld.RequiredFrom"]</label>
+        <RadzenDatePicker @bind-Value="_fFrom" @bind-Value:after="ApplyFilter" DateFormat="@DateFmt.Date" AllowClear="true" Placeholder="—" Style="width:150px" />
+    </div>
+    <div class="ames-fld">
+        <label>@L["Col.PrNo"] / @L["Col.ItemNo"]</label>
+        <RadzenTextBox @bind-Value="_fSearch" @bind-Value:after="ApplyFilter" Placeholder="@L["PP.PurchaseReq.Ph.Search"]" Style="width:200px" />
+    </div>
+    <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+        <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Click="ResetFilters" />
+        <RadzenButton Text="@L["PP.PurchaseReq.Btn.Export"].Value" Icon="download" ButtonStyle="ButtonStyle.Dark" Click="ExportXlsx" />
+        <RadzenButton Text="@string.Format(L["PP.PurchaseReq.Btn.BatchSend"].Value, _selected.Count)" Icon="send"
+                      ButtonStyle="ButtonStyle.Success" Disabled="@(_busy || _selected.Count == 0)" Click="OpenBatch" />
+    </div>
+</div>
+<div class="dim" style="font-size:10px;padding:0 0 6px;">📤 @L["PP.PurchaseReq.Hint.Grid"]</div>
 
-    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="PpRepository.PrRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["PP.PurchaseReq.Empty"]" Class="ames-rz-grid">
+<div class="pr-grid">
+@if (_rows.Count == 0)
+{
+    <div class="ames-empty">@(_allRows.Count == 0 ? L["PP.PurchaseReq.Empty"] : L["PP.PurchaseReq.NoMatch"])</div>
+}
+else
+{
+    <RadzenDataGrid Data="_rows" TItem="PpRepository.PrRow" AllowVirtualization="true" Style="height:100%"
+                    AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
+                    RowRender="@RowRender" class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="PrNumber" Title="@L["Col.PrNo"]" TextAlign="TextAlign.Center" Width="140px">
-                <Template Context="r"><span class="code">@PrNo(r)</span></Template>
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" Width="46px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center" Frozen="true">
+                <HeaderTemplate>
+                    <input type="checkbox" class="pr-ck" checked="@AllSelected" @onchange="e => ToggleAll((bool)(e.Value ?? false))" />
+                </HeaderTemplate>
+                <Template Context="r">
+                    <input type="checkbox" class="pr-ck" disabled="@(!PrStatusRules.CanSend(r.Status))"
+                           checked="@_selected.Contains(r.PrId)" @onchange="e => ToggleRow(r.PrId, (bool)(e.Value ?? false))" />
+                </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="ItemNo" Title="@L["Col.ItemNo"]" TextAlign="TextAlign.Center" Width="130px">
-                <Template Context="r"><span class="code">@r.ItemNo</span></Template>
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="PrNumber" Title="@L["Col.PrNo"].Value" Frozen="true" Width="150px">
+                <Template Context="r"><span class="code @(r.Status == PrStatusRules.Failed ? "pr-neg" : "")" style="font-weight:700;">@PrNo(r)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="ItemName" Title="@L["Col.ItemName"]">
-                <Template Context="r"><span style="white-space:nowrap;">@(r.ItemName ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="SapDocNum" Title="@L["PP.PurchaseReq.Col.DocNum"].Value" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r">@if (r.SapDocNum is { Length: > 0 }) { <span class="code pr-pos">@r.SapDocNum</span> } else { <span class="dim">—</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="VendorId" Title="@L["Col.Vendor"]" Width="180px">
-                <Template Context="r"><span style="white-space:nowrap;">@VendorText(r.VendorId)</span></Template>
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="ItemNo" Title="@L["Col.Item"].Value" Width="260px">
+                <Template Context="r"><span class="code">@r.ItemNo</span>@if (!string.IsNullOrEmpty(r.ItemName)) { <span class="dim"> · @r.ItemName</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="RequiredQty" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right" Width="90px">
-                <Template Context="r">@r.RequiredQty.ToString("N0")</Template>
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="RequiredQty" Title="@L["Col.Qty"].Value" TextAlign="TextAlign.Right" Width="110px">
+                <Template Context="r"><span style="font-weight:700;">@Q(r.RequiredQty)</span> <span class="dim">@r.Uom</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="RequiredDate" Title="@L["Col.Required"]" TextAlign="TextAlign.Center" Width="110px">
-                <Template Context="r"><span class="dim">@(r.RequiredDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="RequiredDate" Title="@L["Col.Required"].Value" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r"><span class="code dim">@(r.RequiredDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.PrRow" Title="D-Day" TextAlign="TextAlign.Center" Width="80px" Sortable="false">
                 <Template Context="r"><span class="pill @DdCls(r)">@DdText(r)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
-                <Template Context="r"><span class="pill @StCls(r.Status)">@(r.Status ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="VendorId" Title="@L["Col.Vendor"].Value" Width="170px">
+                <Template Context="r"><span style="white-space:nowrap;">@VendorText(r.VendorId)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="WoNumber" Title="@L["Col.WoNo"]" TextAlign="TextAlign.Center" Width="140px">
-                <Template Context="r"><span class="code dim">@(r.WoNumber ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="Status" Title="@L["Col.Status"].Value" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r"><span class="pill @StCls(r.Status)">@StText(r)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="SapPoNumber" Title="@L["Col.SapPo"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="SapPoNumber" Title="@L["Col.SapPo"].Value" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r">@if (r.SapPoNumber is { Length: > 0 }) { <span class="pill ok">@r.SapPoNumber</span> } else { <span class="dim">—</span> }</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" Title="@L["PP.Mrp.Col.Action"].Value" TextAlign="TextAlign.Center" Width="90px" Sortable="false">
                 <Template Context="r">
-                    @if (IsSent(r)) { <span class="pill info">@r.SapPoNumber</span> } else { <span class="dim">—</span> }
+                    <RadzenButton Text="Detail" Icon="info" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" Click="@(() => OpenDetail(r))" class="ames-rz-btn" />
                 </Template>
             </RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
+}
+</div>
 </div>
 
-@* ── Detail Modal (읽기 전용) ─────────────────────────────────────── *@
+@* ── Detail modal — 정보 + 상태별 액션 ───────────────────────────── *@
 @if (_modal == "detail" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["PP.PurchaseReq.Title"] <span class="dim" style="font-weight:400;font-size:.9em;">@PrNo(_sel)</span></div>
+            <div class="ames-modal-h">
+                @L["PP.PurchaseReq.Title"] <span class="code" style="font-weight:400;font-size:.9em;">@PrNo(_sel)</span>
+                <span class="pill @StCls(_sel.Status)" style="margin-left:8px;">@StText(_sel)</span>
+            </div>
 
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
-                <RadzenLabel Text="@L["Col.Item"]" class="ames-rz-modal-label" Component="DetailTextBoxItem" />
-                <RadzenTextBox Name="DetailTextBoxItem" Value="@($"[{_sel.ItemNo}] {_sel.ItemName}".Trim())" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
-            </RadzenStack>
+            <div class="pr-dgrid">
+                <div class="pr-dt"><div class="pr-dl">@L["Col.Item"] / @L["Col.Qty"]</div><div class="pr-dv"><span class="code">@_sel.ItemNo</span> · @Q(_sel.RequiredQty) @_sel.Uom</div><div class="dim" style="font-size:11px;">@_sel.ItemName</div></div>
+                <div class="pr-dt"><div class="pr-dl">@L["Col.Required"]</div><div class="pr-dv">@(_sel.RequiredDate?.ToString(DateFmt.Date) ?? "—") <span class="pill @DdCls(_sel)" style="margin-left:6px;">@DdText(_sel)</span></div></div>
+                <div class="pr-dt"><div class="pr-dl">@L["PP.PurchaseReq.Col.DocNum"] / @L["Col.SapPo"]</div><div class="pr-dv code">@(_sel.SapDocNum ?? "—") / @(_sel.SapPoNumber ?? "—")</div></div>
+                <div class="pr-dt"><div class="pr-dl">@L["Col.Status"]</div><div class="pr-dv">@StText(_sel)</div>
+                    @if (_sel.LastError is { Length: > 0 }) { <div class="pr-neg" style="font-size:11px;">@_sel.LastError</div> }</div>
+            </div>
 
-            <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.Vendor"]" />
-                    <RadzenTextBox Value="@VendorText(_sel.VendorId)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-                <RadzenColumn Size="3">
-                    <RadzenLabel Text="@L["Col.Qty"]" />
-                    <RadzenTextBox Value="@_sel.RequiredQty.ToString("N0")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-                <RadzenColumn Size="3">
-                    <RadzenLabel Text="@L["Col.Status"]" />
-                    <div style="padding-top:4px;"><span class="pill @StCls(_sel.Status)">@(_sel.Status ?? "—")</span></div>
-                </RadzenColumn>
-            </RadzenRow>
+            <div class="pr-drow">
+                <span class="pr-dl" style="width:110px;">@L["Col.Vendor"]</span>
+                <RadzenDropDown @bind-Value="_actVendor" Data="@VendorOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true"
+                                Placeholder="—" Disabled="@(!PrStatusRules.CanSend(_sel.Status) || _busy)" Style="width:260px" InputSize="InputSize.Small" class="ames-rz-input" />
+                @if (PrStatusRules.CanSend(_sel.Status))
+                {
+                    <RadzenButton Text="@L["PP.PurchaseReq.Act.SaveVendor"].Value" Icon="save" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" Click="SaveVendor" Disabled="@_busy" class="ames-rz-btn" />
+                }
+            </div>
 
-            <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="3">
-                    <RadzenLabel Text="@L["Col.Required"]" />
-                    <RadzenTextBox Value="@(_sel.RequiredDate?.ToString(DateFmt.Date) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-                <RadzenColumn Size="3">
-                    <RadzenLabel Text="D-Day" />
-                    <div style="padding-top:4px;"><span class="pill @DdCls(_sel)">@DdText(_sel)</span></div>
-                </RadzenColumn>
-                <RadzenColumn Size="3">
-                    <RadzenLabel Text="@L["Col.WoNo"]" />
-                    <RadzenTextBox Value="@(_sel.WoNumber ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-                <RadzenColumn Size="3">
-                    <RadzenLabel Text="@L["Col.SapPo"]" />
-                    <RadzenTextBox Value="@(_sel.SapPoNumber ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-            </RadzenRow>
+            <div class="pr-dsub">@L["PP.PurchaseReq.Detail.LinkedWo"]</div>
+            @if (_sel.WoNumber is { Length: > 0 }) { <span class="pr-wochip">@_sel.WoNumber</span> } else { <span class="dim" style="font-size:11px;">—</span> }
+            <a class="pr-link" href="@($"pp/mrp?item={Uri.EscapeDataString(_sel.ItemNo)}")" style="margin-left:10px;font-size:11px;">→ @L["PP.PurchaseReq.Detail.Mrp"]</a>
 
-            <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="3">
-                    <RadzenLabel Text="@L["PP.PurchaseReq.Col.CreatedBy"]" />
-                    <RadzenTextBox Value="@(_sel.CreatedBy ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-                <RadzenColumn Size="3">
-                    <RadzenLabel Text="@L["PP.PurchaseReq.Col.CreatedAt"]" />
-                    <RadzenTextBox Value="@(_sel.CreatedTs?.ToString(DateFmt.DateTime) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-                <RadzenColumn Size="3">
-                    <RadzenLabel Text="@L["PP.PurchaseReq.Col.ApprovedBy"]" />
-                    <RadzenTextBox Value="@(_sel.ApprovedBy ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-                <RadzenColumn Size="3">
-                    <RadzenLabel Text="@L["PP.PurchaseReq.Col.ApprovedAt"]" />
-                    <RadzenTextBox Value="@(_sel.ApprovedAt?.ToString(DateFmt.DateTime) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-            </RadzenRow>
+            <div class="pr-dsub">@L["PP.PurchaseReq.Detail.Log"]</div>
+            <div class="pr-log">
+                <div class="pr-logline"><span class="pr-pos">@(_sel.CreatedTs?.ToString(DateFmt.DateTime) ?? "—")</span> · @L["PP.PurchaseReq.Detail.Created"] <span class="dim">(@(_sel.CreatedBy ?? "—"))</span></div>
+                @foreach (var g in _log)
+                {
+                    <div class="pr-logline @LogCls(g.Result)">
+                        <span class="dim">@(g.SentAt?.ToString(DateFmt.DateTime) ?? "—")</span> · #@g.AttemptNo @g.Result
+                        @if (g.Message is { Length: > 0 }) { <span> — @g.Message</span> }
+                        <span class="dim"> (@(g.By ?? "—"))</span>
+                    </div>
+                }
+            </div>
+
+            @* 상태별 액션 *@
+            @if (PrStatusRules.CanSend(_sel.Status))
+            {
+                <div class="pr-act">
+                    <span class="pr-dl">@L["PP.PurchaseReq.Act.DocNum"]</span>
+                    <RadzenTextBox @bind-Value="_actDocNum" MaxLength="20" Placeholder="PR-B1-…" InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px" Disabled="@_busy" />
+                    <RadzenButton Text="@(_sel.Status == PrStatusRules.Failed ? L["PP.PurchaseReq.Act.Retry"].Value : L["PP.PurchaseReq.Act.Send"].Value)" Icon="send" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="SendOne" Disabled="@_busy" class="ames-rz-btn" />
+                </div>
+            }
+            @if (PrStatusRules.CanApprove(_sel.Status))
+            {
+                <div class="pr-act">
+                    <span class="pr-dl">@L["PP.PurchaseReq.Act.PoNo"]</span>
+                    <RadzenTextBox @bind-Value="_actPo" MaxLength="20" Placeholder="PO-B1-…" InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px" Disabled="@_busy" />
+                    <RadzenButton Text="@L["PP.PurchaseReq.Act.Approve"].Value" Icon="task_alt" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="ApproveOne" Disabled="@(_busy || string.IsNullOrWhiteSpace(_actPo))" class="ames-rz-btn" />
+                </div>
+            }
+            @if (PrStatusRules.CanFail(_sel.Status))
+            {
+                <div class="pr-act">
+                    <span class="pr-dl">@L["PP.PurchaseReq.Act.FailReason"]</span>
+                    <RadzenTextBox @bind-Value="_actReason" MaxLength="200" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px" Disabled="@_busy" />
+                    <RadzenButton Text="@L["PP.PurchaseReq.Act.Fail"].Value" Icon="report" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="FailOne" Disabled="@(_busy || string.IsNullOrWhiteSpace(_actReason))" class="ames-rz-btn" />
+                </div>
+            }
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@L["Btn.Close"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
@@ -183,98 +196,191 @@
     </div>
 }
 
+@* ── Batch send modal ───────────────────────────────────────────── *@
+@if (_modal == "batch")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["PP.PurchaseReq.Dlg.Send.Title"]</div>
+            <div class="pr-dgrid" style="grid-template-columns:repeat(2,1fr);">
+                <div class="pr-dt"><div class="pr-dl">@L["PP.PurchaseReq.Dlg.Send.Targets"]</div><div class="pr-dv">@SelectedRows.Count</div></div>
+                <div class="pr-dt"><div class="pr-dl">@L["PP.PurchaseReq.Dlg.Send.Endpoint"]</div><div class="pr-dv" style="font-size:12px;">@L["PP.PurchaseReq.Dlg.Send.Manual"]</div></div>
+            </div>
+            <div class="pr-list">
+                @foreach (var r in SelectedRows)
+                {
+                    <div class="pr-item"><span><span class="code">@PrNo(r)</span> · @r.ItemNo <span class="dim">@r.ItemName</span></span><span class="code">@Q(r.RequiredQty) @r.Uom</span></div>
+                }
+            </div>
+            <div class="dim" style="font-size:11px;margin-top:8px;">@L["PP.PurchaseReq.Dlg.Send.Note"]</div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["PP.PurchaseReq.Dlg.Send.Confirm"]" Click="@DoBatch" Icon="send" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Disabled="@_busy" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
-    bool _showPagerSummary = true;
-    List<PpRepository.PrRow>               _allRows = new();
-    List<PpRepository.PrRow>               _rows    = new();
-    List<MasterDataRepository.VendorRow>   _vendors = new();
+    List<PpRepository.PrRow>             _allRows = new();
+    List<PpRepository.PrRow>             _rows    = new();
+    List<MasterDataRepository.VendorRow> _vendors = new();
+    List<PpRepository.PrSendLogRow>      _log     = new();
+    HashSet<int> _selected = new();
     PpRepository.PrRow? _sel;
 
-    string  _fSearch = "";
-    string? _fVendor, _fStatus, _fSap;
-    int     _topN = 100;
-    string  _modal = "", _msg = "";
-    bool    _bgMouseDownOnSelf, _isErr;
+    string    _fSearch = "";
+    string?   _fVendor, _fStatus;
+    DateTime? _fFrom;
+    string    _modal = "", _msg = "", _actor = "system";
+    string?   _actVendor, _actDocNum, _actPo, _actReason;
+    bool      _busy, _isErr, _bgMouseDownOnSelf;
 
-    // PR 상태는 공통코드가 없어 고정 목록 ∪ 데이터값
-    static readonly string[] StatusCodes = { "Draft", "Pending", "Approved", "Rejected" };
-    static readonly int[]    TopNs       = { 50, 100, 200, 500 };
+    /// <summary>PP-005 MRP 등에서 `?pr=PR-…` 으로 진입하면 그 번호로 검색하고 상세 모달을 바로 연다.</summary>
+    [SupplyParameterFromQuery(Name = "pr")] public string? PrQuery { get; set; }
+    string? _openedPr;
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
-    public class TopNItem     { public string Text { get; set; } = ""; public int Value { get; set; } }
 
-    // 공급업체 콤보: 벤더 마스터 ∪ 데이터에만 있는 코드
+    static readonly string[] Statuses = { PrStatusRules.Draft, PrStatusRules.Sent, PrStatusRules.Approved, PrStatusRules.Failed };
+    IEnumerable<DropDownItem> StatusOptions => Statuses.Select(s => new DropDownItem { Value = s, Text = StLabel(s) });
+    IEnumerable<DropDownItem> VendorOptions => _vendors.Select(v => new DropDownItem { Value = v.VendorID, Text = VendorText(v.VendorID) });
+    // 거래처 필터: 마스터 ∪ 데이터에만 있는 코드
     IEnumerable<DropDownItem> VendorFilterOptions =>
-        _vendors.Select(v => new DropDownItem { Value = v.VendorID, Text = VendorText(v.VendorID) })
-        .Concat(_allRows.Select(r => r.VendorId).Where(v => v is { Length: > 0 } && !_vendors.Any(x => x.VendorID == v)).Distinct().Select(v => new DropDownItem { Value = v!, Text = $"[{v}]" }));
-    IEnumerable<DropDownItem> StatusFilterOptions =>
-        StatusCodes.Concat(_allRows.Select(r => r.Status).Where(s => s is { Length: > 0 } && !StatusCodes.Contains(s)).Distinct()!)
-                   .Select(s => new DropDownItem { Value = s!, Text = s! });
-    IEnumerable<DropDownItem> SapFilterOptions => new[]
-    {
-        new DropDownItem { Value = "SENT",    Text = L["PP.PurchaseReq.Sap.Sent"] },
-        new DropDownItem { Value = "NOTSENT", Text = L["PP.PurchaseReq.Sap.NotSent"] },
-    };
-    IEnumerable<TopNItem> TopNOptions => TopNs.Select(n => new TopNItem { Value = n, Text = $"{n}{L["Lbl.Items"]}" });
+        VendorOptions.Concat(_allRows.Select(r => r.VendorId).Where(v => v is { Length: > 0 } && !_vendors.Any(x => x.VendorID == v)).Distinct().Select(v => new DropDownItem { Value = v!, Text = $"[{v}]" }));
 
-    int PendingCount => _allRows.Count(r => IsPending(r.Status));
+    int Count(string status) => _allRows.Count(r => r.Status == status);
+    IEnumerable<PpRepository.PrRow> Selectable => _rows.Where(r => PrStatusRules.CanSend(r.Status));
+    bool AllSelected => Selectable.Any() && Selectable.All(r => _selected.Contains(r.PrId));
+    List<PpRepository.PrRow> SelectedRows => _allRows.Where(r => PrStatusRules.CanSend(r.Status) && _selected.Contains(r.PrId)).ToList();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
         try { _vendors = MD.ListVendors(); } catch { }
         Reload();
     }
 
-    RadzenDataGrid<PpRepository.PrRow>? _pgGrid;
-    int _pgIndex;
-    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
-
-    async Task Search()
+    protected override void OnParametersSet()
     {
-        _pgIndex = 0;
-        Reload();
-        await InvokeAsync(StateHasChanged);
-        if (_pgGrid is not null) await _pgGrid.GoToPage(0);
+        var pr = PrQuery?.Trim();
+        if (string.IsNullOrEmpty(pr) || pr == _openedPr) return;
+        _openedPr = pr;
+        _fSearch = pr; _fVendor = _fStatus = null; _fFrom = null;
+        ApplyFilter();
+        var hit = _allRows.FirstOrDefault(r => string.Equals(PrNo(r), pr, StringComparison.OrdinalIgnoreCase));
+        if (hit is not null) OpenDetail(hit);
     }
 
     void Reload()
     {
-        try { _allRows = Pp.ListPurchaseRequests(_topN); }
+        try { _allRows = Pp.ListPurchaseRequests(); }
         catch (Exception ex) { _allRows = new(); ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
+        _selected.RemoveWhere(id => !_allRows.Any(r => r.PrId == id && PrStatusRules.CanSend(r.Status)));
         ApplyFilter();
     }
 
     void ApplyFilter() { _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
             PrNo(r).Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.SapDocNum ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             r.ItemNo.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.ItemName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.WoNumber ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.SapPoNumber ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fVendor) || r.VendorId == _fVendor) &&
-        (string.IsNullOrEmpty(_fStatus) || r.Status   == _fStatus) &&
-        (string.IsNullOrEmpty(_fSap)    || (_fSap == "SENT") == IsSent(r))
+        (string.IsNullOrEmpty(_fStatus) || r.Status == _fStatus) &&
+        (_fFrom is null || (r.RequiredDate is { } d && d.Date >= _fFrom.Value.Date))
     ).ToList();
     }
 
-    async Task OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") await Search(); }
+    void ResetFilters() { _fSearch = ""; _fVendor = _fStatus = null; _fFrom = null; ApplyFilter(); }
+
+    void ToggleRow(int prId, bool on) { if (on) _selected.Add(prId); else _selected.Remove(prId); }
+    void ToggleAll(bool on) { foreach (var r in Selectable) if (on) _selected.Add(r.PrId); else _selected.Remove(r.PrId); }
 
     void RowRender(RowRenderEventArgs<PpRepository.PrRow> args)
     {
-        if (args.Attributes.TryGetValue("class", out var existing))
-            args.Attributes["class"] = existing + " ames-row-link";
-        else
-            args.Attributes["class"] = "ames-row-link";
+        var cls = args.Data.Status == PrStatusRules.Failed ? "pr-failed" : args.Data.Status == PrStatusRules.Approved ? "pr-approved" : "";
+        if (cls.Length == 0) return;
+        args.Attributes["class"] = args.Attributes.TryGetValue("class", out var existing) ? $"{existing} {cls}" : cls;
     }
 
-    void OnRowClick(DataGridRowMouseEventArgs<PpRepository.PrRow> args)
+    // ── 상세 + 액션 ────────────────────────────────────────────────────
+    void OpenDetail(PpRepository.PrRow r)
     {
-        if (args.Data is not null) { _sel = args.Data; _modal = "detail"; }
+        _sel = r; _actVendor = r.VendorId; _actDocNum = r.SapDocNum; _actPo = null; _actReason = null;
+        try { _log = Pp.ListPrSendLog(r.PrId); } catch (Exception ex) { _log = new(); ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
+        _modal = "detail";
+    }
+
+    /// <summary>전이 후 목록을 다시 읽고, 모달이 열려 있으면 같은 PR 의 최신 행으로 갱신한다.</summary>
+    void RefreshAfterAction()
+    {
+        var id = _sel?.PrId;
+        Reload();
+        if (id is { } pid && _modal == "detail")
+        {
+            var fresh = _allRows.FirstOrDefault(r => r.PrId == pid);
+            if (fresh is not null) OpenDetail(fresh); else CloseModal();
+        }
+    }
+
+    void Run(Action action, Func<string> okMsg)
+    {
+        if (_busy) return;
+        _busy = true;
+        try { action(); RefreshAfterAction(); ShowMsg(okMsg(), false); }
+        catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
+        finally { _busy = false; }
+    }
+
+    void SendOne()
+    {
+        if (_sel is null) return;
+        var pr = PrNo(_sel);
+        Run(() => Pp.SendPrs(new[] { _sel.PrId }, _actDocNum, _actor), () => string.Format(L["PP.PurchaseReq.Ok.Sent"].Value, 1) + $" · {pr}");
+    }
+
+    void FailOne()
+    {
+        if (_sel is null) return;
+        if (string.IsNullOrWhiteSpace(_actReason)) { ShowMsg(L["PP.PurchaseReq.Err.Reason"], true); return; }
+        var pr = PrNo(_sel); var n = _sel.RetryCount + 1;
+        Run(() => Pp.FailPr(_sel.PrId, _actReason!, _actor), () => string.Format(L["PP.PurchaseReq.Ok.Failed"].Value, pr, n));
+    }
+
+    void ApproveOne()
+    {
+        if (_sel is null) return;
+        if (string.IsNullOrWhiteSpace(_actPo)) { ShowMsg(L["PP.PurchaseReq.Err.PoNo"], true); return; }
+        var pr = PrNo(_sel); var po = _actPo!.Trim();
+        Run(() => Pp.ApprovePr(_sel.PrId, po, _actor), () => string.Format(L["PP.PurchaseReq.Ok.Approved"].Value, pr, po));
+    }
+
+    void SaveVendor()
+    {
+        if (_sel is null) return;
+        Run(() => Pp.UpdatePrVendor(_sel.PrId, _actVendor, _actor), () => L["PP.PurchaseReq.Ok.Vendor"].Value);
+    }
+
+    void OpenBatch()
+    {
+        if (SelectedRows.Count == 0) { ShowMsg(L["PP.PurchaseReq.Err.NoneSelected"], true); return; }
+        _modal = "batch";
+    }
+
+    void DoBatch()
+    {
+        var ids = SelectedRows.Select(r => r.PrId).ToList();
+        CloseModal();
+        var n = 0;
+        Run(() => n = Pp.SendPrs(ids, null, _actor).Count, () => string.Format(L["PP.PurchaseReq.Ok.Sent"].Value, n));
+        _selected.Clear();
     }
 
     void CloseModal() { _modal = ""; _sel = null; }
-
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
@@ -282,27 +388,24 @@
     async Task ExportXlsx()
     {
         if (_rows.Count == 0) { ShowMsg(L["PP.PurchaseReq.Err.NoExport"], true); return; }
-
         var headers = new[]
         {
-            L["Col.PrNo"].Value, L["Col.ItemNo"].Value, L["Col.ItemName"].Value, L["Col.Vendor"].Value,
-            L["Col.Qty"].Value, L["Col.Required"].Value, "D-Day", L["Col.Status"].Value,
+            L["Col.PrNo"].Value, L["PP.PurchaseReq.Col.DocNum"].Value, L["Col.ItemNo"].Value, L["Col.ItemName"].Value,
+            L["Col.Qty"].Value, L["Col.Uom"].Value, L["Col.Required"].Value, "D-Day", L["Col.Vendor"].Value, L["Col.Status"].Value,
             L["Col.WoNo"].Value, L["Col.SapPo"].Value,
             L["PP.PurchaseReq.Col.CreatedBy"].Value, L["PP.PurchaseReq.Col.CreatedAt"].Value,
             L["PP.PurchaseReq.Col.ApprovedBy"].Value, L["PP.PurchaseReq.Col.ApprovedAt"].Value,
         };
         var data = _rows.Select(r => (IReadOnlyList<object?>)new object?[]
         {
-            PrNo(r), r.ItemNo, r.ItemName, VendorText(r.VendorId),
-            r.RequiredQty, r.RequiredDate?.ToString(DateFmt.Date), DdText(r), r.Status,
+            PrNo(r), r.SapDocNum, r.ItemNo, r.ItemName,
+            r.RequiredQty, r.Uom, r.RequiredDate?.ToString(DateFmt.Date), DdText(r), VendorText(r.VendorId), StText(r),
             r.WoNumber, r.SapPoNumber,
             r.CreatedBy, r.CreatedTs?.ToString(DateFmt.DateTime),
             r.ApprovedBy, r.ApprovedAt?.ToString(DateFmt.DateTime),
         });
-
         var bytes = AMES.Web.Services.XlsxWriter.Build(L["PP.PurchaseReq.Title"].Value, headers, data);
-        var name  = $"PurchaseReq_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
-        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
+        await JS.InvokeVoidAsync("amesDownload", $"PurchaseReq_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx", Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         ShowMsg(string.Format(L["PP.PurchaseReq.Ok.Exported"].Value, _rows.Count), false);
     }
@@ -315,23 +418,28 @@
 
     // ── 표시 헬퍼 ─────────────────────────────────────────────────────
     static string PrNo(PpRepository.PrRow r) => r.PrNumber ?? $"PR#{r.PrId}";
+    static string Q(decimal v) => v.ToString("#,##0.###");
 
     string VendorText(string? id) =>
         id is null ? "—" : _vendors.FirstOrDefault(v => v.VendorID == id)?.VendorName is { Length: > 0 } n ? $"[{id}] {n}" : $"[{id}]";
 
-    static bool IsPending(string? s) => s is "Draft" or "Pending";
-    static bool IsSent(PpRepository.PrRow r) => !string.IsNullOrEmpty(r.SapPoNumber);
-
+    string StLabel(string? s) => s switch
+    {
+        PrStatusRules.Sent     => L["PP.PurchaseReq.St.Sent"],
+        PrStatusRules.Approved => L["PP.PurchaseReq.St.Approved"],
+        PrStatusRules.Failed   => L["PP.PurchaseReq.St.Failed"],
+        _                      => L["PP.PurchaseReq.St.Draft"],
+    };
+    string StText(PpRepository.PrRow r) =>
+        r.Status == PrStatusRules.Failed && r.RetryCount > 0 ? string.Format(L["PP.PurchaseReq.St.FailedN"].Value, r.RetryCount) : StLabel(r.Status);
     static string StCls(string? s) => s switch
     {
-        "Draft" or "Pending" => "warn",
-        "Approved"           => "ok",
-        "Rejected"           => "bad",
-        _                    => "mute",
+        PrStatusRules.Sent => "info", PrStatusRules.Approved => "ok", PrStatusRules.Failed => "bad", _ => "warn",
     };
+    static string LogCls(string? result) => result switch { "Failed" => "pr-neg", "Sent" or "Approved" => "pr-pos", _ => "" };
 
-    // D-Day 는 소요일 기준, 승인·전송이 끝난 건도 납품 기한 관리가 필요하므로 상태와 무관하게 보여준다
-    static int? DaysToReq(PpRepository.PrRow r) => r.RequiredDate is { } d ? (d.Date - DateTime.Today).Days : null;
-    static string DdCls(PpRepository.PrRow r)  => DaysToReq(r) is not int d ? "mute" : d < 0 ? "bad" : d <= 3 ? "warn" : "ok";
-    static string DdText(PpRepository.PrRow r) => DaysToReq(r) is not int d ? "—" : d < 0 ? $"D+{-d}" : d == 0 ? "D-Day" : $"D-{d}";
+    static int? Dd(PpRepository.PrRow r) => r.RequiredDate is { } d ? (d.Date - DateTime.Today).Days : null;
+    static string DdText(PpRepository.PrRow r) => Dd(r) is { } n ? (n == 0 ? "D-Day" : n > 0 ? $"D-{n}" : $"D+{-n}") : "—";
+    static string DdCls(PpRepository.PrRow r) =>
+        r.Status == PrStatusRules.Approved ? "mute" : Dd(r) is { } n ? (n < 0 ? "bad" : n <= 7 ? "warn" : "ok") : "mute";
 }
