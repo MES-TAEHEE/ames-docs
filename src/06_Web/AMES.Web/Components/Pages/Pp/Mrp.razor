@@ -394,7 +394,8 @@ else
 
     void RowRender(RowRenderEventArgs<PpRepository.MrpMaterialRow> args)
     {
-        var cls = args.Data.IsShort ? "mrp-short" : args.Data.PrId is not null ? "mrp-fixed" : "";
+        if (args.Data is not { } d) return;
+        var cls = d.IsShort ? "mrp-short" : d.PrId is not null ? "mrp-fixed" : "";
         if (cls.Length == 0) return;
         args.Attributes["class"] = args.Attributes.TryGetValue("class", out var existing) ? $"{existing} {cls}" : cls;
     }

@@ -302,7 +302,8 @@ else
 
     void RowRender(RowRenderEventArgs<PpRepository.PrRow> args)
     {
-        var cls = args.Data.Status == PrStatusRules.Failed ? "pr-failed" : args.Data.Status == PrStatusRules.Approved ? "pr-approved" : "";
+        if (args.Data is not { } d) return;
+        var cls = d.Status == PrStatusRules.Failed ? "pr-failed" : d.Status == PrStatusRules.Approved ? "pr-approved" : "";
         if (cls.Length == 0) return;
         args.Attributes["class"] = args.Attributes.TryGetValue("class", out var existing) ? $"{existing} {cls}" : cls;
     }
