@@ -82,7 +82,8 @@
         <div class="ames-card-h">▼ @L["SYS.Health.Res.Title"]</div>
         @if (_srv is not null)
         {
-            <div style="display:flex;flex-direction:column;gap:28px;padding:8px 0;">
+            @* 항목마다 머리줄(이름 좌측 · 용량/퍼센트 우측 끝) + 그 아래 막대 *@
+            <div class="sh-res">
             @foreach (var (lbl, pct, val) in new[] {
                 (L["SYS.Health.Res.Cpu"].Value,  _srv.CpuPct,  $"{_srv.Cores} cores · {Math.Max(_srv.CpuPct, 0)}%"),
                 (L["SYS.Health.Res.Mem"].Value,  _srv.MemPct,  $"{_srv.MemTotalGb} GB · {Math.Max(_srv.MemPct, 0)}%"),
@@ -91,10 +92,12 @@
             })
             {
                 var barStyle = pct >= 90 ? ProgressBarStyle.Danger : pct >= 75 ? ProgressBarStyle.Warning : ProgressBarStyle.Success;
-                <div class="pp-oee-bar-row">
-                    <span class="pp-oee-bar-lbl">@lbl</span>
-                    <RadzenProgressBar Value="@Math.Clamp(pct, 0, 100)" Max="100" ShowValue="false" ProgressBarStyle="@barStyle" Style="flex:1;" />
-                    <span class="pp-oee-bar-val" style="width:auto;white-space:nowrap;text-align:left;">@val</span>
+                <div class="sh-res-row">
+                    <div class="sh-res-head">
+                        <span class="sh-res-lbl">@lbl</span>
+                        <span class="sh-res-val">@val</span>
+                    </div>
+                    <RadzenProgressBar Value="@Math.Clamp(pct, 0, 100)" Max="100" ShowValue="false" ProgressBarStyle="@barStyle" Style="width:100%;" />
                 </div>
             }
         </div>

@@ -4974,3 +4974,12 @@ html[data-theme="light"] .ames-map-link { background: rgba(37,99,235,.05); borde
 html[data-theme="light"] a.ames-map-link:hover { background: rgba(37,99,235,.12); color: var(--ames-text); }
 html[data-theme="light"] .ames-map-link .lid { color: #1d4ed8; }
 html[data-theme="light"] .ames-map-group-h { color: #1d4ed8; }
+
+/* ── SYS-010 리소스 사용률: 머리줄(이름 좌 · 용량/퍼센트 우측 끝) + 막대 ─────────── */
+.sh-res      { display: flex; flex-direction: column; gap: 16px; padding: 6px 0 2px; }
+.sh-res-row  { display: flex; flex-direction: column; gap: 6px; }
+.sh-res-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.sh-res-lbl  { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 1.5px; color: #93c5fd; }
+.sh-res-val  { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(148,163,184,.9); white-space: nowrap; text-align: right; }
+html[data-theme="light"] .sh-res-lbl { color: var(--ames-accent); }
+html[data-theme="light"] .sh-res-val { color: var(--ames-text-dim); }
