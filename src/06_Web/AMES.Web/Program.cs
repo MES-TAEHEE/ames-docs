@@ -78,6 +78,7 @@ else
     builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<PermissionService>();
+builder.Services.AddScoped<AMES.Web.Services.MenuCatalog>();   // 좌측 메뉴·홈 사이트맵 공용 화면 카탈로그(SYS_Screen WEB)
 builder.Services.AddHttpClient();
 
 builder.Services.AddEndpointsApiExplorer();

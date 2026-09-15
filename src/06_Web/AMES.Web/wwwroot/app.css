@@ -176,31 +176,30 @@ a:hover { color: #c4dafe; }
 .ames-side--collapsed .ames-nav-link > span:not(.lid) { display: none; }
 
 .ames-brand {
-    flex: 0 0 330px;   /* 좌측 메뉴 폭 320 → 330 */
-    padding: 0 24px 0 20px;
+    flex: 0 0 330px;   /* 좌측 메뉴(.ames-side)와 같은 폭 — 내용이 넘쳐도 늘어나지 않게 min-width/overflow 고정 */
+    min-width: 0; max-width: 330px; overflow: hidden;
+    padding: 0 20px 0 20px;
     height: 100%;
     display: flex;
     align-items: center;
     border-right: 1px solid rgba(255,255,255,.07);
 }
-.ames-brand-row { display: flex; align-items: center; gap: 12px; }
+.ames-brand-row { display: flex; align-items: center; gap: 10px; }
+/* 회사 CI 로고(brand/eos-logo.png, 521×120 투명 PNG — 원본 1213×363 에서 흰 배경 제거·여백 트림). 브랜드 칸 330px 안에 로고 + A-MES + OFFICE WEB 이 한 줄에 들어가도록 36px 높이로 */
 .ames-brand-mark {
-    width: 38px; height: 38px;
-    display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, #2563eb, #7c3aed);
-    color: #fff; font-size: 22px;
-    border-radius: 10px;
-    box-shadow: 0 6px 18px -8px rgba(124,58,237,.7);
+    display: block;
+    height: 28px; width: auto;   /* 521×120 → 122×28: 로고 + A-MES + OFFICE WEB 합계가 330px 안에 들어가는 크기 */
 }
+html:not([data-theme="light"]) .ames-brand-mark { filter: drop-shadow(0 0 3px rgba(147,197,253,.45)); }   /* 짙은 남색 로고가 어두운 상단바에 묻히지 않게 */
 .ames-brand-logo {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 31px; letter-spacing: 3px;
-    color: #fff; line-height: 1;
+    font-size: 26px; letter-spacing: 2px;
+    color: #fff; line-height: 1; white-space: nowrap;
 }
 .ames-brand-sub {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 11px; letter-spacing: 2.5px;
-    color: rgba(147,197,253,.6);
+    font-size: 9px; letter-spacing: 1.5px;
+    color: rgba(147,197,253,.6); white-space: nowrap;
 }
 
 .ames-user {
@@ -212,16 +211,26 @@ a:hover { color: #c4dafe; }
     display: flex; align-items: center; gap: 10px;
 }
 .ames-user.dim { opacity: .55; }
+/* 사용자 아바타 — 역할별 Material 아이콘을 담은 단색 원 (역할 키는 TopBar.RoleVisual) */
 .ames-user-av {
-    width: 36px; height: 36px;
-    background: linear-gradient(135deg, #38bdf8, #2563eb);
-    color: #fff; font-weight: 800;
-    border-radius: 10px;
+    width: 36px; height: 36px; flex: 0 0 36px;
+    border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 22px; letter-spacing: 1px;
-    box-shadow: 0 4px 12px -4px rgba(37,99,235,.6);
+    background: var(--av-bg, rgba(59,130,246,.16));
+    border: 1px solid var(--av-line, rgba(147,197,253,.35));
+    color: var(--av-fg, #93c5fd);
 }
+.ames-user-av .rzi { font-size: 20px !important; line-height: 1; color: inherit; }
+.ames-user-av--admin { --av-bg: rgba(59,130,246,.18);  --av-line: rgba(147,197,253,.4);  --av-fg: #93c5fd; }
+.ames-user-av--maint { --av-bg: rgba(245,158,11,.16);  --av-line: rgba(251,191,36,.4);   --av-fg: #fbbf24; }
+.ames-user-av--oper  { --av-bg: rgba(34,197,94,.16);   --av-line: rgba(74,222,128,.4);   --av-fg: #4ade80; }
+.ames-user-av--user  { --av-bg: rgba(148,163,184,.16); --av-line: rgba(148,163,184,.4);  --av-fg: #cbd5e1; }
+.ames-user-av--none  { --av-bg: rgba(148,163,184,.10); --av-line: rgba(148,163,184,.25); --av-fg: #94a3b8; }
+html[data-theme="light"] .ames-user-av--admin { --av-bg: rgba(37,99,235,.10);  --av-fg: #1d4ed8; }
+html[data-theme="light"] .ames-user-av--maint { --av-bg: rgba(217,119,6,.10);  --av-fg: #b45309; }
+html[data-theme="light"] .ames-user-av--oper  { --av-bg: rgba(22,163,74,.10);  --av-fg: #15803d; }
+html[data-theme="light"] .ames-user-av--user,
+html[data-theme="light"] .ames-user-av--none  { --av-bg: rgba(100,116,139,.10); --av-fg: #475569; }
 .ames-user-info { flex: 1; min-width: 0; }
 .ames-user-name {
     font-family: 'Inter', sans-serif;
@@ -4918,3 +4927,50 @@ html[data-theme="light"] .rpt-rb-measure, html[data-theme="light"] .rpt-rb-sum, 
 .ames-img-preview  { width: 320px; max-width: 100%; aspect-ratio: 16 / 9; display: flex; align-items: center; justify-content: center;
                      border: 1px dashed var(--ames-border, rgba(127,127,127,.35)); border-radius: 6px; background: rgba(127,127,127,.06); overflow: hidden; }
 .ames-img-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+/* ── 홈 사이트맵: 대분류 타일(좌) + 화면 링크 칩(우), 권한 없는 화면은 비활성 ─────────── */
+.ames-sitemap { display: flex; flex-direction: column; gap: 14px; margin-top: 20px; }
+.ames-sitemap-h { display: flex; align-items: baseline; gap: 12px; margin-top: 22px; }
+.ames-sitemap-h .t { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; color: #93c5fd; }
+.ames-sitemap-h .s { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(148,163,184,.8); }
+/* 좌 타일 폭 = 좌측 메뉴 폭(.ames-side 330px). 화면이 좁으면 타일 아래로 링크 칸이 내려간다 */
+.ames-map-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch; }
+.ames-map-tile { flex: 0 0 330px; max-width: 100%; }
+.ames-map-links { flex: 1 1 520px; }
+.ames-map-tile { padding: 16px 18px; gap: 10px; justify-content: space-between; text-decoration: none; cursor: default; }
+.ames-map-tile:hover { transform: none; box-shadow: none; border-color: rgba(255,255,255,.08); }
+.ames-map-tile-top { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.ames-map-tile .ames-tile-ic { font-size: 28px; flex: 0 0 auto; }
+.ames-map-tile .ames-tile-h  { font-size: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ames-map-tile-cnt { text-align: right; }
+.ames-tile.wh  { border-top: 3px solid #67e8f9; }
+.ames-tile.fg  { border-top: 3px solid #f9a8d4; }
+.ames-map-row.is-locked .ames-map-tile { opacity: .5; cursor: default; }
+.ames-map-row.is-locked .ames-map-tile:hover { transform: none; box-shadow: none; border-color: rgba(255,255,255,.08); }
+.ames-map-links {
+    background: linear-gradient(180deg, rgba(15,29,51,.85), rgba(10,20,38,.85));
+    border: 1px solid rgba(255,255,255,.06); border-radius: 14px;
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0;
+}
+.ames-map-group-h { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1.5px; color: rgba(147,197,253,.85); display: flex; align-items: center; gap: 8px; }
+.ames-map-group-h .letter { display: inline-flex; width: 18px; height: 18px; align-items: center; justify-content: center; border-radius: 4px; background: rgba(59,130,246,.2); color: #93c5fd; font-size: 10px; font-weight: 700; }
+/* 링크 칩은 250px 고정 — 열 수는 남는 폭만큼, 넘치면 다음 줄 */
+.ames-map-chips { display: grid; grid-template-columns: repeat(auto-fill, 250px); gap: 8px; }
+.ames-map-link {
+    display: inline-flex; align-items: center; gap: 8px; width: 250px; box-sizing: border-box; min-width: 0;
+    padding: 6px 11px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.04);
+    color: #e2e8f0; text-decoration: none; font-size: 13px; line-height: 1.2;
+    transition: border-color .12s, background .12s, transform .12s;
+}
+a.ames-map-link:hover { border-color: rgba(147,197,253,.55); background: rgba(59,130,246,.16); color: #fff; transform: translateY(-1px); }
+.ames-map-link .lid { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px; color: #93c5fd; flex: 0 0 58px; width: 58px; white-space: nowrap; }   /* 화면 코드 폭 고정 — 코드 길이가 달라도 화면명 시작 위치가 같게 */
+.ames-map-link .t { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ames-map-link.is-off { opacity: .42; cursor: not-allowed; }
+.ames-map-link.is-off .rzi { font-size: 14px !important; color: #94a3b8; flex: 0 0 auto; }
+html[data-theme="light"] .ames-sitemap-h .t { color: var(--ames-accent); }
+html[data-theme="light"] .ames-map-links { background: var(--ames-surface); border-color: var(--ames-border); }
+html[data-theme="light"] .ames-map-link { background: rgba(37,99,235,.05); border-color: var(--ames-border); color: var(--ames-text); }
+html[data-theme="light"] a.ames-map-link:hover { background: rgba(37,99,235,.12); color: var(--ames-text); }
+html[data-theme="light"] .ames-map-link .lid { color: #1d4ed8; }
+html[data-theme="light"] .ames-map-group-h { color: #1d4ed8; }

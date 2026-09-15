@@ -1,8 +1,13 @@
 @page "/"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using System.Globalization
+@using AMES.Web.Services
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject AMES.Data.Repositories.WorkOrderRepository Wo
+@inject MenuCatalog Catalog
+@inject PermissionService PermSvc
+@inject IStringLocalizer<SharedResources> L
 
 <PageTitle>A-MES Office Web</PageTitle>
 
@@ -31,42 +36,63 @@
     </div>
 </div>
 
-<div class="ames-tiles">
-    <a class="ames-tile pp" href="pp/work-order">
-        <div class="ames-tile-ic">📅</div>
-        <div class="ames-tile-h">PP · PRODUCTION PLAN</div>
-        <div class="ames-tile-sub">13 screens · forecast · work orders · MRP · OEE · OTD</div>
-    </a>
-    <a class="ames-tile mnt" href="mnt/dashboard">
-        <div class="ames-tile-ic">🔧</div>
-        <div class="ames-tile-h">MNT · MAINTENANCE</div>
-        <div class="ames-tile-sub">9 screens · equipment · PM · spare parts · failures</div>
-    </a>
-    <a class="ames-tile rpt" href="rpt/daily-production">
-        <div class="ames-tile-ic">📊</div>
-        <div class="ames-tile-h">RPT · REPORTS</div>
-        <div class="ames-tile-sub">10 screens · KPI · pareto · OTD · custom builder</div>
-    </a>
-    <a class="ames-tile md" href="md/line">
-        <div class="ames-tile-ic">🗂️</div>
-        <div class="ames-tile-h">MD · MASTER DATA</div>
-        <div class="ames-tile-sub">30 screens · items · BOM · equipment · customers · codes</div>
-    </a>
-    <a class="ames-tile sys" href="sys/users">
-        <div class="ames-tile-ic">⚙️</div>
-        <div class="ames-tile-h">SYS · SYSTEM</div>
-        <div class="ames-tile-sub">10 screens · users · RBAC · audit · config · health</div>
-    </a>
+@* ── 사이트맵(제목 없음): 좌측 메뉴와 같은 대분류·화면 순서. 메뉴는 권한 없는 화면을 숨기지만 여기서는 전부 보이고 권한 없는 화면만 비활성 ── *@
+<div class="ames-sitemap">
+    @foreach (var sec in MenuCatalog.Sections)
+    {
+        var items = Catalog.SectionItems(sec.Key);
+        if (items.Count == 0) { continue; }
+        var open  = items.Count(i => Vis(i.Href));
+        <div class="ames-map-row @sec.Key @(open == 0 ? "is-locked" : "")">
+            @* 타일은 링크가 아니다(사용자 요청) — 이동은 우측 화면 칩으로만 *@
+            <div class="ames-tile ames-map-tile @sec.Key" title="@(open == 0 ? L["Home.Map.Locked"].Value : "")">
+                <div class="ames-map-tile-top"><span class="ames-tile-ic">@sec.Icon</span><span class="ames-tile-h">@sec.Key.ToUpperInvariant() · @MenuCatalog.Label(sec, _lang)</span></div>
+                <div class="ames-tile-sub ames-map-tile-cnt">@string.Format(L["Home.Map.Access"].Value, open, items.Count)</div>
+            </div>
+            <div class="ames-map-links">
+                @if (sec.Key == "md" && Catalog.SubprocessItems.Count > 0)
+                {
+                    @foreach (var g in Catalog.GroupedMd(items))
+                    {
+                        <div class="ames-map-group">
+                            <div class="ames-map-group-h"><span class="letter">@g.Letter</span>@GroupLabel(g)</div>
+                            <div class="ames-map-chips">@foreach (var it in g.Items) { @Chip(it) }</div>
+                        </div>
+                    }
+                    var rest = Catalog.UngroupedMd(items);
+                    @if (rest.Count > 0)
+                    {
+                        <div class="ames-map-chips">@foreach (var it in rest) { @Chip(it) }</div>
+                    }
+                }
+                else
+                {
+                    <div class="ames-map-chips">@foreach (var it in items) { @Chip(it) }</div>
+                }
+            </div>
+        </div>
+    }
 </div>
 
 @code {
+    [CascadingParameter] Task<Microsoft.AspNetCore.Components.Authorization.AuthenticationState>? AuthState { get; set; }
+
     int _kpiReleasable;
     int _kpiSchedule;
     int _kpiDt;
     double _kpiOtdPct;
+    string _lang = "ko";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        _lang = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        Catalog.Load();
+        if (AuthState is not null)
+        {
+            try { await PermSvc.EnsureAsync(AuthState); }
+            catch { /* 권한 로딩 실패 — 전부 허용으로 표시 */ }
+        }
+
         try { _kpiReleasable = Pp.ListReleasable(200).Count; } catch {}
         try { _kpiSchedule = Pp.ListSchedule(7).Count; } catch {}
         try { _kpiDt = Pp.ListDowntime(7).Count; } catch {}
@@ -81,4 +107,23 @@
         }
         catch {}
     }
+
+    // 좌측 메뉴(NavMenu.V)와 같은 판정 — DB 폴백 시 전부 허용
+    bool Vis(string href) => Catalog.UsingFallback || PermSvc.IsVisible(href.TrimStart('/'));
+
+    string GroupLabel(MenuCatalog.MdGroup g) => _lang switch { "en" => g.En, "es" => g.Es, _ => g.Ko };
+
+    // 화면 칩: 권한 있으면 링크, 없으면 잠금 아이콘이 붙은 비활성 칩
+    RenderFragment Chip(MenuCatalog.Item it) => __builder =>
+    {
+        var label = MenuCatalog.Label(it, _lang);
+        if (Vis(it.Href))
+        {
+            <a class="ames-map-link" href="@it.Href"><span class="lid">@it.Lid</span><span class="t">@label</span></a>
+        }
+        else
+        {
+            <span class="ames-map-link is-off" title="@L["Home.Map.NoAccess"]" aria-disabled="true"><span class="lid">@it.Lid</span><span class="t">@label</span><RadzenIcon Icon="lock" /></span>
+        }
+    };
 }

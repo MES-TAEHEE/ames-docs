@@ -4,12 +4,15 @@
 @inject PageHeaderState Header
 @inject AMES.Web.Services.AppLanguageState Lang
 @inject IJSRuntime JS
+@inject IStringLocalizer<SharedResources> L
+@using System.Security.Claims
 
 <header class="ames-topbar">
     <div class="ames-brand">
         <div class="ames-brand-row">
-            <span class="ames-brand-mark">⬢</span>
-            <div style="display:flex;align-items:baseline;gap:10px;">
+            @* 회사 CI(EOS) — 흰 배경을 지운 PNG. 파비콘은 같은 CI 의 체브런만 잘라 wwwroot/favicon.png 로 둔다 *@
+            <img class="ames-brand-mark" src="brand/eos-logo.png" alt="EOS" />
+            <div style="display:flex;align-items:baseline;gap:8px;">
                 <div class="ames-brand-logo">A-MES</div>
                 <div class="ames-brand-sub">OFFICE WEB</div>
             </div>
@@ -42,10 +45,12 @@
     <AuthorizeView>
         <Authorized>
             <div class="ames-user">
-                <div class="ames-user-av">@(context.User.Identity?.Name?.Substring(0,1).ToUpper() ?? "?")</div>
+                @* 역할별 아이콘(Material Symbols) — 이메일 첫 글자 대신. 역할이 없으면 회색 person *@
+                <div class="ames-user-av ames-user-av--@RoleKey(context.User)" title="@RoleTip(context.User)"><RadzenIcon Icon="@RoleIcon(context.User)" /></div>
                 <div class="ames-user-info">
                     <div class="ames-user-name">@context.User.Identity?.Name</div>
-                    <div class="ames-user-role">Administrator</div>
+                    @* 역할은 로그인 쿠키의 Role 클레임(AspNetUserRoles) — PermissionService 가 권한을 판정하는 것과 같은 출처 *@
+                    <div class="ames-user-role">@RoleText(context.User)</div>
                 </div>
                 <form action="Account/Logout" method="post" style="display:inline;">
                     <AntiforgeryToken />
@@ -56,7 +61,7 @@
         </Authorized>
         <NotAuthorized>
             <div class="ames-user dim">
-                <div class="ames-user-av">?</div>
+                <div class="ames-user-av ames-user-av--none"><RadzenIcon Icon="person" /></div>
                 <div class="ames-user-info"><div class="ames-user-name">Not signed in</div></div>
             </div>
         </NotAuthorized>
@@ -87,6 +92,41 @@
     }
 
     void OnHeaderChanged() => InvokeAsync(StateHasChanged);
+
+    static List<string> Roles(ClaimsPrincipal user) =>
+        user.FindAll(ClaimTypes.Role).Select(c => c.Value).Where(v => !string.IsNullOrWhiteSpace(v)).Distinct().ToList();
+
+    string RoleText(ClaimsPrincipal user)
+    {
+        var roles = Roles(user);
+        return roles.Count == 0 ? L["TopBar.NoRole"] : string.Join(", ", roles);
+    }
+
+    // 여러 역할이면 첫 역할 기준. 새 역할이 생기면 여기 매핑 한 줄만 추가하면 된다(CSS 는 --admin/--maint/--oper/--user/--none 다섯 색상)
+    static (string Key, string Icon) RoleVisual(ClaimsPrincipal user) => Roles(user).FirstOrDefault()?.ToUpperInvariant() switch
+    {
+        null          => ("none",  "person"),
+        "ADMIN"       => ("admin", "admin_panel_settings"),
+        "MAINTENANCE" => ("maint", "engineering"),
+        "OPERATOR"    => ("oper",  "precision_manufacturing"),
+        _             => ("user",  "person"),
+    };
+    static string RoleKey(ClaimsPrincipal user)  => RoleVisual(user).Key;
+    static string RoleIcon(ClaimsPrincipal user) => RoleVisual(user).Icon;
+
+    // 툴팁 = 역할 이름 + 역할 설명(resx TopBar.RoleDesc.*). 역할 설명은 DB 에 없어 리소스로 둔다 — 여러 역할이면 첫 역할의 설명
+    string RoleTip(ClaimsPrincipal user)
+    {
+        var descKey = RoleKey(user) switch
+        {
+            "admin" => "TopBar.RoleDesc.Admin",
+            "maint" => "TopBar.RoleDesc.Maintenance",
+            "oper"  => "TopBar.RoleDesc.Operator",
+            "none"  => "TopBar.RoleDesc.None",
+            _       => "TopBar.RoleDesc.Default",
+        };
+        return $"{RoleText(user)}\n{L[descKey]}";
+    }
 
     public void Dispose() => Header.OnChanged -= OnHeaderChanged;
 }

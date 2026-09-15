@@ -7842,4 +7842,37 @@
   <data name="Col.Maker" xml:space="preserve">
     <value>Maker</value>
   </data>
+  <data name="TopBar.NoRole" xml:space="preserve">
+    <value>No role</value>
+  </data>
+  <data name="TopBar.RoleDesc.Admin" xml:space="preserve">
+    <value>System administrator — full access to every screen, manages users and role permissions</value>
+  </data>
+  <data name="TopBar.RoleDesc.Maintenance" xml:space="preserve">
+    <value>Maintenance staff — failure register, PM schedules, work orders, spare parts</value>
+  </data>
+  <data name="TopBar.RoleDesc.Operator" xml:space="preserve">
+    <value>Shop-floor operator — runs POP/PDA operations, mostly read-only on the web</value>
+  </data>
+  <data name="TopBar.RoleDesc.Default" xml:space="preserve">
+    <value>Registered role — screen permissions follow the SYS role settings</value>
+  </data>
+  <data name="TopBar.RoleDesc.None" xml:space="preserve">
+    <value>No role assigned, so no screen access. Ask an administrator to assign a role</value>
+  </data>
+  <data name="Home.Map.Title" xml:space="preserve">
+    <value>Site map</value>
+  </data>
+  <data name="Home.Map.Hint" xml:space="preserve">
+    <value>The menu lists only permitted screens; this map shows every screen and greys out the ones you cannot open</value>
+  </data>
+  <data name="Home.Map.Access" xml:space="preserve">
+    <value>{0} of {1} screens accessible</value>
+  </data>
+  <data name="Home.Map.NoAccess" xml:space="preserve">
+    <value>No permission — ask an administrator for access</value>
+  </data>
+  <data name="Home.Map.Locked" xml:space="preserve">
+    <value>No accessible screens</value>
+  </data>
 </root>
