@@ -198,17 +198,18 @@ public class MrpRepositoryTests
             Exec(f!, """
                 INSERT INTO dbo.PP_PurchaseRequest (PrNumber, ItemNo, RequiredQty, RequiredDate, Status, SapPoNumber, CreatedBy)
                 VALUES ('ITEST-PR-PO', @RM, 5, '2026-01-01', 'Approved', 'PO-ITEST', @By),
-                       ('ITEST-PR-REJ', @RM, 5, '2026-01-01', 'Rejected', NULL, @By),
+                       ('ITEST-PR-FAIL', @RM, 5, '2026-01-01', 'Failed', NULL, @By),
+                       ('ITEST-PR-SENT', @RM, 7, '2026-01-02', 'Sent', NULL, @By),
                        ('ITEST-PR-OTHER', @OK, 5, '2026-01-01', 'Draft', NULL, @By);
                 """, ("@RM", Rm), ("@OK", Ok), ("@By", Actor));
             var repo = new PpRepository(f!);
             var runId = repo.RunMrp(Actor);
+            Assert.Equal(2m + 7m, Row(repo.GetLatestMrp()!, Rm).OnOrder);   // Open PO 2 + Sent PR 7 (Failed·PO 전환분 제외)
             var created = Assert.Single(repo.CreateShortagePrs(runId, new[] { Rm }, Actor));
 
             var open = repo.ListOpenPrsForItem(Rm);
-            var only = Assert.Single(open);
-            Assert.Equal(created.PrNumber, only.PrNumber);
-            Assert.Equal("ITEST-MRP-WO-1", only.WoNumber);
+            Assert.Equal(new[] { "ITEST-PR-SENT", created.PrNumber }, open.Select(p => p.PrNumber));
+            Assert.Equal("ITEST-MRP-WO-1", open[1].WoNumber);
             Assert.Empty(repo.ListOpenPrsForItem("ITEST-MRP-NONE"));
         }
         finally { Cleanup(f!); }

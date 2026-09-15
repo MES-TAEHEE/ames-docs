@@ -8001,4 +8001,121 @@
   <data name="PP.Mrp.Detail.NoPrs" xml:space="preserve">
     <value>진행 중인 구매요청이 없습니다.</value>
   </data>
+  <data name="PP.PurchaseReq.St.Draft" xml:space="preserve">
+    <value>Draft</value>
+  </data>
+  <data name="PP.PurchaseReq.St.Sent" xml:space="preserve">
+    <value>Sent</value>
+  </data>
+  <data name="PP.PurchaseReq.St.Approved" xml:space="preserve">
+    <value>Approved · PO</value>
+  </data>
+  <data name="PP.PurchaseReq.St.Failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="PP.PurchaseReq.St.FailedN" xml:space="preserve">
+    <value>⚠ Failed {0}회</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.Draft.Sub" xml:space="preserve">
+    <value>작성중 · 전송 대기</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.Sent.Sub" xml:space="preserve">
+    <value>전송됨 · PO 대기</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.Approved.Sub" xml:space="preserve">
+    <value>PO 생성 완료</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.Failed.Sub" xml:space="preserve">
+    <value>전송 실패 · 재시도 필요</value>
+  </data>
+  <data name="PP.PurchaseReq.Fld.RequiredFrom" xml:space="preserve">
+    <value>필요일 이후</value>
+  </data>
+  <data name="PP.PurchaseReq.Btn.BatchSend" xml:space="preserve">
+    <value>선택 SAP 전송 ({0})</value>
+  </data>
+  <data name="PP.PurchaseReq.Col.DocNum" xml:space="preserve">
+    <value>SAP DocNum</value>
+  </data>
+  <data name="PP.PurchaseReq.Hint.Grid" xml:space="preserve">
+    <value>Draft·Failed 행을 선택해 SAP 전송 · Sent 행은 상세에서 PO 승인 · 실패는 상세에서 기록 (Service Layer 연동 전 수동 확정)</value>
+  </data>
+  <data name="PP.PurchaseReq.NoMatch" xml:space="preserve">
+    <value>조건에 맞는 구매요청이 없습니다.</value>
+  </data>
+  <data name="PP.PurchaseReq.Dlg.Send.Title" xml:space="preserve">
+    <value>SAP B1 일괄 전송 — 확인</value>
+  </data>
+  <data name="PP.PurchaseReq.Dlg.Send.Targets" xml:space="preserve">
+    <value>전송 대상 (Draft · Failed)</value>
+  </data>
+  <data name="PP.PurchaseReq.Dlg.Send.Endpoint" xml:space="preserve">
+    <value>전송 방식</value>
+  </data>
+  <data name="PP.PurchaseReq.Dlg.Send.Manual" xml:space="preserve">
+    <value>수동 확정 (Service Layer 연동 전)</value>
+  </data>
+  <data name="PP.PurchaseReq.Dlg.Send.Note" xml:space="preserve">
+    <value>선택한 PR 을 Sent 로 확정하고 전송 이력을 남깁니다. SAP DocNum 은 상세에서 입력하고, PO 생성은 [PO 승인 처리] 로 확정합니다. 실패는 상세에서 사유와 함께 기록합니다.</value>
+  </data>
+  <data name="PP.PurchaseReq.Dlg.Send.Confirm" xml:space="preserve">
+    <value>전송 확정</value>
+  </data>
+  <data name="PP.PurchaseReq.Detail.Log" xml:space="preserve">
+    <value>전송 이력 (PP_PRSendLog)</value>
+  </data>
+  <data name="PP.PurchaseReq.Detail.Created" xml:space="preserve">
+    <value>PR 생성</value>
+  </data>
+  <data name="PP.PurchaseReq.Detail.LinkedWo" xml:space="preserve">
+    <value>연결 작업지시</value>
+  </data>
+  <data name="PP.PurchaseReq.Detail.Mrp" xml:space="preserve">
+    <value>MRP 에서 보기</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.DocNum" xml:space="preserve">
+    <value>SAP DocNum (선택)</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.Send" xml:space="preserve">
+    <value>SAP 전송</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.Retry" xml:space="preserve">
+    <value>재전송</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.FailReason" xml:space="preserve">
+    <value>실패 사유</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.Fail" xml:space="preserve">
+    <value>전송 실패 기록</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.PoNo" xml:space="preserve">
+    <value>SAP PO 번호</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.Approve" xml:space="preserve">
+    <value>PO 승인 처리</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.SaveVendor" xml:space="preserve">
+    <value>거래처 저장</value>
+  </data>
+  <data name="PP.PurchaseReq.Ok.Sent" xml:space="preserve">
+    <value>{0}건을 Sent 로 확정했습니다.</value>
+  </data>
+  <data name="PP.PurchaseReq.Ok.Failed" xml:space="preserve">
+    <value>{0} 전송 실패를 기록했습니다 ({1}회).</value>
+  </data>
+  <data name="PP.PurchaseReq.Ok.Approved" xml:space="preserve">
+    <value>{0} 승인 — PO {1}</value>
+  </data>
+  <data name="PP.PurchaseReq.Ok.Vendor" xml:space="preserve">
+    <value>거래처를 저장했습니다.</value>
+  </data>
+  <data name="PP.PurchaseReq.Err.NoneSelected" xml:space="preserve">
+    <value>선택한 전송 대상이 없습니다.</value>
+  </data>
+  <data name="PP.PurchaseReq.Err.Reason" xml:space="preserve">
+    <value>실패 사유를 입력하세요.</value>
+  </data>
+  <data name="PP.PurchaseReq.Err.PoNo" xml:space="preserve">
+    <value>PO 번호를 입력하세요.</value>
+  </data>
 </root>

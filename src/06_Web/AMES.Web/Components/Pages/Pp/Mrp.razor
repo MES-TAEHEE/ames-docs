@@ -282,11 +282,24 @@ else
     bool AllSelected => Selectable.Any() && Selectable.All(r => _selected.Contains(r.ItemNo));
     List<PpRepository.MrpMaterialRow> SelectedRows => Materials.Where(r => r.IsShort && _selected.Contains(r.ItemNo)).ToList();
 
+    /// <summary>PP-006 상세의 "MRP 에서 보기" — `?item=품번` 으로 진입하면 그 품번으로 검색해 둔다.</summary>
+    [SupplyParameterFromQuery(Name = "item")] public string? ItemQuery { get; set; }
+    string? _appliedItem;
+
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
         Reload();
+    }
+
+    protected override void OnParametersSet()
+    {
+        var item = ItemQuery?.Trim();
+        if (string.IsNullOrEmpty(item) || item == _appliedItem) return;
+        _appliedItem = item;
+        _fSearch = item; _fScope = "";
+        ApplyFilter();
     }
 
     void Reload()

@@ -8028,4 +8028,121 @@
   <data name="PP.Mrp.Detail.NoPrs" xml:space="preserve">
     <value>No open purchase requests.</value>
   </data>
+  <data name="PP.PurchaseReq.St.Draft" xml:space="preserve">
+    <value>Draft</value>
+  </data>
+  <data name="PP.PurchaseReq.St.Sent" xml:space="preserve">
+    <value>Sent</value>
+  </data>
+  <data name="PP.PurchaseReq.St.Approved" xml:space="preserve">
+    <value>Approved · PO</value>
+  </data>
+  <data name="PP.PurchaseReq.St.Failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="PP.PurchaseReq.St.FailedN" xml:space="preserve">
+    <value>⚠ Failed {0}×</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.Draft.Sub" xml:space="preserve">
+    <value>In Drafting · awaiting send</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.Sent.Sub" xml:space="preserve">
+    <value>Transmitted · awaiting PO</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.Approved.Sub" xml:space="preserve">
+    <value>PO Created</value>
+  </data>
+  <data name="PP.PurchaseReq.Kpi.Failed.Sub" xml:space="preserve">
+    <value>Transmission Failed · retry</value>
+  </data>
+  <data name="PP.PurchaseReq.Fld.RequiredFrom" xml:space="preserve">
+    <value>Required From</value>
+  </data>
+  <data name="PP.PurchaseReq.Btn.BatchSend" xml:space="preserve">
+    <value>Send to SAP B1 ({0})</value>
+  </data>
+  <data name="PP.PurchaseReq.Col.DocNum" xml:space="preserve">
+    <value>SAP DocNum</value>
+  </data>
+  <data name="PP.PurchaseReq.Hint.Grid" xml:space="preserve">
+    <value>Select Draft/Failed rows to send to SAP B1 · approve PO from detail · record failures from detail (manual confirmation until Service Layer integration)</value>
+  </data>
+  <data name="PP.PurchaseReq.NoMatch" xml:space="preserve">
+    <value>No PRs match the current filters.</value>
+  </data>
+  <data name="PP.PurchaseReq.Dlg.Send.Title" xml:space="preserve">
+    <value>Batch Send to SAP B1 — Confirm</value>
+  </data>
+  <data name="PP.PurchaseReq.Dlg.Send.Targets" xml:space="preserve">
+    <value>Send Targets (Draft · Failed)</value>
+  </data>
+  <data name="PP.PurchaseReq.Dlg.Send.Endpoint" xml:space="preserve">
+    <value>Endpoint</value>
+  </data>
+  <data name="PP.PurchaseReq.Dlg.Send.Manual" xml:space="preserve">
+    <value>Manual confirmation (before Service Layer)</value>
+  </data>
+  <data name="PP.PurchaseReq.Dlg.Send.Note" xml:space="preserve">
+    <value>Marks the selected PRs as Sent and writes a send-log entry. Enter the SAP DocNum from the detail view; confirm PO creation with [Approve]. Record failures with a reason from the detail view.</value>
+  </data>
+  <data name="PP.PurchaseReq.Dlg.Send.Confirm" xml:space="preserve">
+    <value>Confirm Send</value>
+  </data>
+  <data name="PP.PurchaseReq.Detail.Log" xml:space="preserve">
+    <value>Send log (PP_PRSendLog)</value>
+  </data>
+  <data name="PP.PurchaseReq.Detail.Created" xml:space="preserve">
+    <value>PR created</value>
+  </data>
+  <data name="PP.PurchaseReq.Detail.LinkedWo" xml:space="preserve">
+    <value>Linked work order</value>
+  </data>
+  <data name="PP.PurchaseReq.Detail.Mrp" xml:space="preserve">
+    <value>View in MRP</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.DocNum" xml:space="preserve">
+    <value>SAP DocNum (optional)</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.Send" xml:space="preserve">
+    <value>Send to SAP B1</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.Retry" xml:space="preserve">
+    <value>Retry send</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.FailReason" xml:space="preserve">
+    <value>Failure reason</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.Fail" xml:space="preserve">
+    <value>Record failure</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.PoNo" xml:space="preserve">
+    <value>SAP PO number</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.Approve" xml:space="preserve">
+    <value>Approve (PO created)</value>
+  </data>
+  <data name="PP.PurchaseReq.Act.SaveVendor" xml:space="preserve">
+    <value>Save vendor</value>
+  </data>
+  <data name="PP.PurchaseReq.Ok.Sent" xml:space="preserve">
+    <value>Marked {0} PR(s) as Sent.</value>
+  </data>
+  <data name="PP.PurchaseReq.Ok.Failed" xml:space="preserve">
+    <value>Recorded failure for {0} ({1}×).</value>
+  </data>
+  <data name="PP.PurchaseReq.Ok.Approved" xml:space="preserve">
+    <value>{0} approved — PO {1}</value>
+  </data>
+  <data name="PP.PurchaseReq.Ok.Vendor" xml:space="preserve">
+    <value>Vendor saved.</value>
+  </data>
+  <data name="PP.PurchaseReq.Err.NoneSelected" xml:space="preserve">
+    <value>No sendable PRs selected.</value>
+  </data>
+  <data name="PP.PurchaseReq.Err.Reason" xml:space="preserve">
+    <value>Enter a failure reason.</value>
+  </data>
+  <data name="PP.PurchaseReq.Err.PoNo" xml:space="preserve">
+    <value>Enter the PO number.</value>
+  </data>
 </root>

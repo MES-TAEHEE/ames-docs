@@ -1,0 +1,48 @@
+/* PP-006 구매요청 — PP-003/PP-005 와 같은 전체 높이 가상화 그리드 + 선택 체크박스, 실패/승인 행 강조, 상세·일괄 전송 모달.
+   TopBar 60px + .ames-content 상단 12 / 하단 16 패딩 = 88px */
+.pr-page {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 88px);
+    min-height: 360px;
+}
+
+.pr-grid { flex: 1; min-height: 0; }
+.pr-grid ::deep .rz-data-grid,
+.pr-grid ::deep .rz-datatable { height: 100%; }
+
+/* 선택 체크박스 — Draft/Failed 행만 활성 */
+::deep .pr-ck { width: 15px; height: 15px; cursor: pointer; accent-color: #2563eb; }
+::deep .pr-ck:disabled { cursor: not-allowed; opacity: .4; }
+
+::deep .pr-neg { color: #fca5a5; font-weight: 700; }
+::deep .pr-pos { color: #86efac; font-weight: 700; }
+::deep .pr-link { color: #93c5fd; text-decoration: none; border-bottom: 1px dashed rgba(147,197,253,.5); }
+::deep .pr-link:hover { color: #bfdbfe; border-bottom-style: solid; }
+
+::deep tr.pr-failed .rz-data-cell,
+::deep tr.pr-failed td { background: rgba(220, 38, 38, .09) !important; }
+::deep tr.pr-approved .rz-data-cell,
+::deep tr.pr-approved td { background: rgba(34, 197, 94, .05) !important; }
+/* 고정 셀은 반투명 강조색만 두면 가로 스크롤된 뒤 컬럼이 비친다 — app.css 의 불투명 고정 배경 위에 겹친다 */
+::deep tr.pr-failed td.rz-frozen-cell   { background: linear-gradient(rgba(220, 38, 38, .09), rgba(220, 38, 38, .09)), var(--ames-frozen-bg) !important; }
+::deep tr.pr-approved td.rz-frozen-cell { background: linear-gradient(rgba(34, 197, 94, .05), rgba(34, 197, 94, .05)), var(--ames-frozen-bg) !important; }
+
+/* 상세 모달 */
+.pr-dgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+.pr-dt { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+.pr-dl { font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: #94a3b8; margin-bottom: 4px; }
+.pr-dv { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.pr-drow { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.pr-dsub { font-size: 11px; color: #94a3b8; margin: 10px 0 6px; }
+.pr-wochip { display: inline-block; padding: 2px 8px; border-radius: 6px; font-family: ui-monospace, monospace; font-size: 11px;
+             background: rgba(147,197,253,.12); color: #93c5fd; border: 1px solid rgba(147,197,253,.3); }
+.pr-log { border: 1px solid rgba(255,255,255,.08); border-radius: 8px; padding: 6px 10px; max-height: 160px; overflow-y: auto; }
+.pr-logline { font-family: ui-monospace, monospace; font-size: 11px; padding: 2px 0; }
+.pr-act { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,.1); }
+.pr-act .pr-dl { margin: 0; width: 130px; }
+
+/* 일괄 전송 모달 */
+.pr-list { max-height: 260px; overflow-y: auto; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; }
+.pr-item { display: flex; justify-content: space-between; gap: 12px; padding: 6px 10px; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,.06); }
+.pr-item:last-child { border-bottom: 0; }

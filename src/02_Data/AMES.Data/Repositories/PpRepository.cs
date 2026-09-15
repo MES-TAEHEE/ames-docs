@@ -63,7 +63,12 @@ public sealed class PpRepository
         string? VendorId, decimal RequiredQty, DateTime? RequiredDate, string? Status,
         string? SapPoNumber,
         int? WoId = null, string? WoNumber = null, string? ApprovedBy = null, DateTime? ApprovedAt = null,
-        string? CreatedBy = null, DateTime? CreatedTs = null);
+        string? CreatedBy = null, DateTime? CreatedTs = null,
+        string? SapDocNum = null, DateTime? SentAt = null, int RetryCount = 0, string? LastError = null,
+        string? Uom = null);
+
+    /// <summary>PP_PRSendLog 한 행 — Result = Sent/Failed/Approved, Message = 실패 사유·PO 번호 등 응답 요약.</summary>
+    public sealed record PrSendLogRow(long SendLogId, int AttemptNo, DateTime? SentAt, string? Result, string? Message, string? By);
 
     public sealed record WoLite(int WoId, string? WoNumber, string ItemNo, string? ItemName,
         decimal OrderQty, decimal CompletedQty, string? RouteLines, DateTime? DueDate,
@@ -951,7 +956,7 @@ public sealed class PpRepository
                  + (SELECT ISNULL(SUM(ISNULL(q.RequiredQty,0)),0)
                     FROM dbo.PP_PurchaseRequest q
                     WHERE q.ItemNo = i.ItemNo AND q.SapPoNumber IS NULL
-                      AND q.Status IN ('Draft','Pending','Approved')) AS OnOrder
+                      AND q.Status IN ('Draft','Sent','Approved')) AS OnOrder
             FROM   dbo.MD_Item i
             WHERE  EXISTS (SELECT 1 FROM dbo.MD_Bom b WHERE b.CompItemNo = i.ItemNo);
             """, r => new MrpCalculator.Supply((string)r["ItemNo"],
@@ -1180,19 +1185,16 @@ public sealed class PpRepository
     }
 
     /// <summary>
-    /// 자재의 진행 중 구매요청 — PO 미전환(SapPoNumber 없음) Draft/Pending/Approved. RunMrp 가 발주중으로 세는 PR 과 같은 범위.
+    /// 자재의 진행 중 구매요청 — PO 미전환(SapPoNumber 없음) Draft/Sent/Approved. RunMrp 가 발주중으로 세는 PR 과 같은 범위.
     /// </summary>
     public List<PrRow> ListOpenPrsForItem(string itemNo)
     {
-        const string sql = """
-            SELECT p.PrID, p.PrNumber, p.ItemNo, i.ItemName,
-                   p.VendorID, ISNULL(p.RequiredQty,0) AS RequiredQty,
-                   p.RequiredDate, p.Status, p.SapPoNumber,
-                   p.WoID, w.WoNumber, p.ApprovedBy, p.ApprovedAt, p.CreatedBy, p.CreatedTS
+        var sql = $"""
+            SELECT {PrSelect}
             FROM   dbo.PP_PurchaseRequest p
             LEFT JOIN dbo.MD_Item      i ON i.ItemNo = p.ItemNo
             LEFT JOIN dbo.PP_WorkOrder w ON w.WoID   = p.WoID
-            WHERE  p.ItemNo = @I AND p.SapPoNumber IS NULL AND p.Status IN ('Draft','Pending','Approved')
+            WHERE  p.ItemNo = @I AND p.SapPoNumber IS NULL AND p.Status IN ('Draft','Sent','Approved')
             ORDER BY ISNULL(p.RequiredDate, '9999-01-01'), p.PrID;
             """;
         return Query(sql, MapPr, ("@I", itemNo));
@@ -1202,10 +1204,147 @@ public sealed class PpRepository
         (int)r["PrID"], r["PrNumber"] as string,
         r["ItemNo"] as string ?? "", r["ItemName"] as string,
         r["VendorID"] as string, r.GetDecimal(r.GetOrdinal("RequiredQty")),
-        r["RequiredDate"] as DateTime?, r["Status"] as string,
+        r["RequiredDate"] as DateTime?, PrStatusRules.Normalize(r["Status"] as string),
         r["SapPoNumber"] as string,
         r["WoID"] as int?, r["WoNumber"] as string, r["ApprovedBy"] as string, r["ApprovedAt"] as DateTime?,
-        r["CreatedBy"] as string, r["CreatedTS"] as DateTime?);
+        r["CreatedBy"] as string, r["CreatedTS"] as DateTime?,
+        r["SapDocNum"] as string, r["SentAt"] as DateTime?, Convert.ToInt32(r["RetryCount"]), r["LastError"] as string,
+        r["DefaultUOM"] as string);
+
+    // ── PP-006 상태 전이 — 규칙은 PrStatusRules, 전이마다 PP_PRSendLog 1행, 한 트랜잭션 ─────────
+    /// <summary>
+    /// 선택한 PR 중 전송 가능한(Draft/Failed) 행을 Sent 로 올린다. docNum 은 단건 전송 때 입력한 SAP DocNum(없으면 유지).
+    /// 전송 불가 상태는 건너뛰고, 실제로 전이된 PrID 만 돌려준다.
+    /// </summary>
+    public List<int> SendPrs(IReadOnlyCollection<int> prIds, string? docNum, string by)
+    {
+        var sent = new List<int>();
+        if (prIds.Count == 0) return sent;
+        docNum = string.IsNullOrWhiteSpace(docNum) ? null : docNum.Trim();
+
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        foreach (var prId in prIds.Distinct())
+        {
+            var status = LockPrStatus(conn, tx, prId);
+            if (status is null || !PrStatusRules.CanSend(status)) continue;
+
+            using var upd = new SqlCommand("""
+                UPDATE dbo.PP_PurchaseRequest
+                SET    Status = 'Sent', SentAt = SYSDATETIME(), SapDocNum = COALESCE(@Doc, SapDocNum), LastError = NULL,
+                       ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+                WHERE  PrID = @P;
+                """, conn, tx);
+            upd.Parameters.Add("@P",   SqlDbType.Int).Value = prId;
+            upd.Parameters.Add("@Doc", SqlDbType.VarChar, 20).Value = (object?)docNum ?? DBNull.Value;
+            upd.Parameters.Add("@By",  SqlDbType.NVarChar, 450).Value = by;
+            upd.ExecuteNonQuery();
+            InsertPrLog(conn, tx, prId, "Sent", docNum, by);
+            sent.Add(prId);
+        }
+        tx.Commit();
+        return sent;
+    }
+
+    /// <summary>전송 실패 기록: Failed 로 두고 RetryCount +1, 사유 저장. Approved 는 거부.</summary>
+    public void FailPr(int prId, string reason, string by)
+    {
+        if (string.IsNullOrWhiteSpace(reason)) throw new ArgumentException("Failure reason is required.", nameof(reason));
+        reason = reason.Trim();
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        var status = LockPrStatus(conn, tx, prId) ?? throw new InvalidOperationException($"PR {prId} not found.");
+        PrStatusRules.Next(status, PrStatusRules.PrAction.Fail);
+
+        using var upd = new SqlCommand("""
+            UPDATE dbo.PP_PurchaseRequest
+            SET    Status = 'Failed', RetryCount = ISNULL(RetryCount,0) + 1, LastError = @Err,
+                   ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+            WHERE  PrID = @P;
+            """, conn, tx);
+        upd.Parameters.Add("@P",   SqlDbType.Int).Value = prId;
+        upd.Parameters.Add("@Err", SqlDbType.NVarChar, 200).Value = reason.Length > 200 ? reason[..200] : reason;
+        upd.Parameters.Add("@By",  SqlDbType.NVarChar, 450).Value = by;
+        upd.ExecuteNonQuery();
+        InsertPrLog(conn, tx, prId, "Failed", reason, by);
+        tx.Commit();
+    }
+
+    /// <summary>SAP PO 생성 확인: Sent → Approved, PO 번호·승인자·승인시각 기록. PO 번호 필수.</summary>
+    public void ApprovePr(int prId, string poNumber, string by)
+    {
+        if (string.IsNullOrWhiteSpace(poNumber)) throw new ArgumentException("PO number is required.", nameof(poNumber));
+        poNumber = poNumber.Trim();
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        var status = LockPrStatus(conn, tx, prId) ?? throw new InvalidOperationException($"PR {prId} not found.");
+        PrStatusRules.Next(status, PrStatusRules.PrAction.Approve);
+
+        using var upd = new SqlCommand("""
+            UPDATE dbo.PP_PurchaseRequest
+            SET    Status = 'Approved', SapPoNumber = @Po, ApprovedBy = @By, ApprovedAt = SYSDATETIME(),
+                   ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+            WHERE  PrID = @P;
+            """, conn, tx);
+        upd.Parameters.Add("@P",  SqlDbType.Int).Value = prId;
+        upd.Parameters.Add("@Po", SqlDbType.VarChar, 20).Value = poNumber;
+        upd.Parameters.Add("@By", SqlDbType.NVarChar, 450).Value = by;
+        upd.ExecuteNonQuery();
+        InsertPrLog(conn, tx, prId, "Approved", poNumber, by);
+        tx.Commit();
+    }
+
+    /// <summary>거래처 지정/해제 — 전송 전(Draft/Failed)에만.</summary>
+    public void UpdatePrVendor(int prId, string? vendorId, string by)
+    {
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        var status = LockPrStatus(conn, tx, prId) ?? throw new InvalidOperationException($"PR {prId} not found.");
+        if (!PrStatusRules.CanSend(status)) throw new InvalidOperationException($"PR status '{status}' does not allow vendor change.");
+
+        using var upd = new SqlCommand("""
+            UPDATE dbo.PP_PurchaseRequest SET VendorID = @V, ModifiedBy = @By, ModifiedTS = SYSDATETIME() WHERE PrID = @P;
+            """, conn, tx);
+        upd.Parameters.Add("@P",  SqlDbType.Int).Value = prId;
+        upd.Parameters.Add("@V",  SqlDbType.VarChar, 20).Value = string.IsNullOrWhiteSpace(vendorId) ? DBNull.Value : vendorId.Trim();
+        upd.Parameters.Add("@By", SqlDbType.NVarChar, 450).Value = by;
+        upd.ExecuteNonQuery();
+        tx.Commit();
+    }
+
+    public List<PrSendLogRow> ListPrSendLog(int prId)
+        => Query("""
+            SELECT SendLogID, ISNULL(AttemptNo,0) AS AttemptNo, SentAt, Result, ResponsePayload, CreatedBy
+            FROM   dbo.PP_PRSendLog
+            WHERE  PrID = @P
+            ORDER BY SendLogID;
+            """, r => new PrSendLogRow((long)r["SendLogID"], Convert.ToInt32(r["AttemptNo"]), r["SentAt"] as DateTime?,
+                r["Result"] as string, r["ResponsePayload"] as string, r["CreatedBy"] as string),
+            ("@P", prId));
+
+    /// <summary>행 잠금 후 현재 상태(정규화). 없으면 null.</summary>
+    static string? LockPrStatus(SqlConnection conn, SqlTransaction tx, int prId)
+    {
+        using var cmd = new SqlCommand("SELECT Status FROM dbo.PP_PurchaseRequest WITH (UPDLOCK, ROWLOCK) WHERE PrID = @P;", conn, tx);
+        cmd.Parameters.Add("@P", SqlDbType.Int).Value = prId;
+        using var rdr = cmd.ExecuteReader();
+        return rdr.Read() ? PrStatusRules.Normalize(rdr["Status"] as string) : null;
+    }
+
+    /// <summary>PP_PRSendLog 1행. AttemptNo 는 그 PR 의 이력 수 + 1. Endpoint 는 화면 확정임을 남긴다(연동 후 실제 URL).</summary>
+    static void InsertPrLog(SqlConnection conn, SqlTransaction tx, int prId, string result, string? message, string by)
+    {
+        using var cmd = new SqlCommand("""
+            INSERT INTO dbo.PP_PRSendLog (PrID, AttemptNo, SentAt, Endpoint, ResponsePayload, Result, CreatedBy)
+            SELECT @P, ISNULL(MAX(AttemptNo),0) + 1, SYSDATETIME(), 'MANUAL', @Msg, @R, @By
+            FROM   dbo.PP_PRSendLog WHERE PrID = @P;
+            """, conn, tx);
+        cmd.Parameters.Add("@P",   SqlDbType.Int).Value = prId;
+        cmd.Parameters.Add("@Msg", SqlDbType.NVarChar, -1).Value = (object?)message ?? DBNull.Value;
+        cmd.Parameters.Add("@R",   SqlDbType.VarChar, 20).Value = result;
+        cmd.Parameters.Add("@By",  SqlDbType.VarChar, 50).Value = Trunc(by, 50);
+        cmd.ExecuteNonQuery();
+    }
 
     /// <summary>접두사(PR-yyyyMMdd-) 내 마지막 채번. NextWoSeq 와 같은 범위 잠금.</summary>
     static int NextPrSeq(SqlConnection conn, SqlTransaction tx, string prefix)
@@ -1220,27 +1359,27 @@ public sealed class PpRepository
     }
 
     // ── PP-006 Purchase Request ─────────────────────────────────────────
-    public List<PrRow> ListPurchaseRequests(int topN = 50)
+    /// <summary>구매요청 전체(topN 0) 또는 최근 N 건. 필요일 오름차순.</summary>
+    public List<PrRow> ListPurchaseRequests(int topN = 0)
     {
-        var sql = $$"""
-            SELECT TOP ({{topN}}) p.PrID, p.PrNumber, p.ItemNo, i.ItemName,
-                   p.VendorID, ISNULL(p.RequiredQty,0) AS RequiredQty,
-                   p.RequiredDate, p.Status, p.SapPoNumber,
-                   p.WoID, w.WoNumber, p.ApprovedBy, p.ApprovedAt, p.CreatedBy, p.CreatedTS
+        var top = topN > 0 ? $"TOP ({topN})" : "";
+        var sql = $"""
+            SELECT {top} {PrSelect}
             FROM   dbo.PP_PurchaseRequest p
             LEFT JOIN dbo.MD_Item      i ON i.ItemNo = p.ItemNo
             LEFT JOIN dbo.PP_WorkOrder w ON w.WoID   = p.WoID
             ORDER BY ISNULL(p.RequiredDate, '9999-01-01'), p.PrID DESC;
             """;
-        return Query(sql, r => new PrRow(
-            (int)r["PrID"], r["PrNumber"] as string,
-            r["ItemNo"] as string ?? "", r["ItemName"] as string,
-            r["VendorID"] as string, r.GetDecimal(r.GetOrdinal("RequiredQty")),
-            r["RequiredDate"] as DateTime?, r["Status"] as string,
-            r["SapPoNumber"] as string,
-            r["WoID"] as int?, r["WoNumber"] as string, r["ApprovedBy"] as string, r["ApprovedAt"] as DateTime?,
-            r["CreatedBy"] as string, r["CreatedTS"] as DateTime?));
+        return Query(sql, MapPr);
     }
+
+    const string PrSelect = """
+        p.PrID, p.PrNumber, p.ItemNo, i.ItemName, i.DefaultUOM,
+               p.VendorID, ISNULL(p.RequiredQty,0) AS RequiredQty,
+               p.RequiredDate, p.Status, p.SapPoNumber,
+               p.WoID, w.WoNumber, p.ApprovedBy, p.ApprovedAt, p.CreatedBy, p.CreatedTS,
+               p.SapDocNum, p.SentAt, ISNULL(p.RetryCount,0) AS RetryCount, p.LastError
+        """;
 
     // ── PP-007 WO Release — draft/planned WOs awaiting release ─────────
     public List<WoLite> ListReleasable(int topN = 50)
