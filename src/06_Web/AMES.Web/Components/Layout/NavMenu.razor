@@ -5,6 +5,7 @@
 @inject AMES.Data.Repositories.SysRepository Sys
 @inject AMES.Data.Repositories.MasterDataRepository MD
 @inject AMES.Web.Services.PermissionService PermSvc
+@inject AMES.Web.Services.ScreenCatalogNotifier ScreenCatalog
 @inject AMES.Web.Services.AppLanguageState Lang
 @using System.Globalization
 @using System.Net
@@ -394,6 +395,7 @@
 
         OpenCurrentSection();
         Nav.LocationChanged += OnLocChanged;
+        ScreenCatalog.Changed += OnScreensChanged;
     }
 
     void LoadItems()
@@ -401,7 +403,7 @@
         try
         {
             var rows = Sys.ListScreens("WEB")
-                .Where(s => !string.IsNullOrEmpty(s.ProcessCode) && !string.IsNullOrEmpty(s.HRef))
+                .Where(s => s.IsVisible && !string.IsNullOrEmpty(s.ProcessCode) && !string.IsNullOrEmpty(s.HRef))
                 .Where(s => !IsRemovedMenu(s.HRef!))
                 .OrderBy(s => s.SortOrder ?? 999).ThenBy(s => s.ScreenCode)
                 .Select(s => new NavItem(
@@ -503,6 +505,15 @@
         _ = PersistOpen();
         StateHasChanged();
     }
+
+    void OnScreensChanged() => _ = InvokeAsync(async () =>
+    {
+        LoadItems();
+        PermSvc.Reset();
+        if (AuthState is not null) await PermSvc.EnsureAsync(AuthState);
+        OpenCurrentSub(_url ?? "");
+        StateHasChanged();
+    });
 
     void Toggle(string key)
     {
@@ -673,5 +684,9 @@
 
     MarkupString NavLabel(NavItem item) => NL(item.Ko, item.En, EsFor(item.Href));
 
-    public void Dispose() => Nav.LocationChanged -= OnLocChanged;
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocChanged;
+        ScreenCatalog.Changed -= OnScreensChanged;
+    }
 }
