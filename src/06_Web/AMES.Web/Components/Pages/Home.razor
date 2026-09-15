@@ -7,7 +7,9 @@
 @inject AMES.Data.Repositories.WorkOrderRepository Wo
 @inject MenuCatalog Catalog
 @inject PermissionService PermSvc
+@inject ScreenCatalogNotifier ScreenCatalog
 @inject IStringLocalizer<SharedResources> L
+@implements IDisposable
 
 <PageTitle>A-MES Office Web</PageTitle>
 
@@ -92,6 +94,7 @@
             try { await PermSvc.EnsureAsync(AuthState); }
             catch { /* 권한 로딩 실패 — 전부 허용으로 표시 */ }
         }
+        ScreenCatalog.Changed += OnScreensChanged;   // SYS-003 화면 마스터 편집 시 좌측 메뉴와 같이 갱신
 
         try { _kpiReleasable = Pp.ListReleasable(200).Count; } catch {}
         try { _kpiSchedule = Pp.ListSchedule(7).Count; } catch {}
@@ -107,6 +110,16 @@
         }
         catch {}
     }
+
+    void OnScreensChanged() => _ = InvokeAsync(async () =>
+    {
+        Catalog.Reload();
+        PermSvc.Reset();
+        if (AuthState is not null) { try { await PermSvc.EnsureAsync(AuthState); } catch { } }
+        StateHasChanged();
+    });
+
+    public void Dispose() => ScreenCatalog.Changed -= OnScreensChanged;
 
     // 좌측 메뉴(NavMenu.V)와 같은 판정 — DB 폴백 시 전부 허용
     bool Vis(string href) => Catalog.UsingFallback || PermSvc.IsVisible(href.TrimStart('/'));

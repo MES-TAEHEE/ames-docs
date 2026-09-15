@@ -538,6 +538,18 @@ public sealed class SysRepository
         int? sortOrder, bool isVisible, string modifiedBy)
     {
         const string sql = """
+            SET XACT_ABORT ON;
+            BEGIN TRANSACTION;
+            DECLARE @OldCode varchar(20);
+            SELECT @OldCode = ScreenCode FROM dbo.SYS_Screen WITH (UPDLOCK, HOLDLOCK) WHERE ScreenID = @Id;
+            IF @OldCode IS NULL THROW 51821, 'Screen was not found.', 1;
+            IF @OldCode <> @Code AND EXISTS
+                (SELECT 1 FROM dbo.SYS_Screen WHERE ScreenCode = @Code AND ScreenID <> @Id)
+                THROW 51822, 'Screen code is already in use.', 1;
+            IF @OldCode <> @Code AND EXISTS
+                (SELECT 1 FROM dbo.SYS_RolePermission WHERE ScreenCode = @Code)
+                THROW 51823, 'Screen code already has role permissions.', 1;
+
             UPDATE dbo.SYS_Screen
             SET    ScreenCode      = @Code,
                    ModuleCode      = @Module,
@@ -551,7 +563,15 @@ public sealed class SysRepository
                    IsVisible       = @Visible,
                    ModifiedBy      = @ModifiedBy,
                    ModifiedTS      = SYSDATETIME()
-            WHERE  ScreenID = @Id
+            WHERE  ScreenID = @Id;
+
+            UPDATE dbo.SYS_RolePermission
+               SET ScreenCode = @Code, ModuleCode = @Module, ProcessCode = @Process,
+                   ModifiedBy = @ModifiedBy, ModifiedTS = SYSDATETIME()
+             WHERE ScreenCode = @OldCode
+               AND (@OldCode <> @Code OR ISNULL(ModuleCode, '') <> @Module
+                    OR ISNULL(ProcessCode, '') <> ISNULL(@Process, ''));
+            COMMIT TRANSACTION;
             """;
         Exec(sql,
             ("@Id",         screenId),

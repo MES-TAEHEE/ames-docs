@@ -32,6 +32,7 @@ builder.Services.AddRadzenCookieThemeService(options =>
 builder.Services.AddLocalization();
 
 builder.Services.AddScoped<AMES.Web.Services.PageHeaderState>();
+builder.Services.AddSingleton<ScreenCatalogNotifier>();
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();

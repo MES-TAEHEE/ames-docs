@@ -154,6 +154,9 @@ public sealed class MenuCatalog
             || path.Equals("fg/locations", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>SYS-003 화면 마스터 편집 뒤 다시 읽기(ScreenCatalogNotifier 수신 측에서 호출)</summary>
+    public void Reload() { _loaded = false; Load(); }
+
     public void Load()
     {
         if (_loaded) return;
@@ -161,7 +164,7 @@ public sealed class MenuCatalog
         try
         {
             var rows = _sys.ListScreens("WEB")
-                .Where(s => !string.IsNullOrEmpty(s.ProcessCode) && !string.IsNullOrEmpty(s.HRef))
+                .Where(s => s.IsVisible && !string.IsNullOrEmpty(s.ProcessCode) && !string.IsNullOrEmpty(s.HRef))
                 .Where(s => !IsRemovedMenu(s.HRef!))
                 .OrderBy(s => s.SortOrder ?? 999).ThenBy(s => s.ScreenCode)
                 .Select(s => new Item(

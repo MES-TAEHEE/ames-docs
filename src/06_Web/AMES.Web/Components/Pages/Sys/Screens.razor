@@ -10,6 +10,7 @@
 
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
+@inject ScreenCatalogNotifier ScreenCatalog
 @inject SysRepository Sys
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
@@ -407,6 +408,7 @@
                 Nz(_f.SubProcessCode),
                 _f.ScreenName.Trim(), Nz(_f.ScreenNameEn), Nz(_f.HRef), Nz(_f.LidLabel),
                 _f.SortOrder, _f.IsVisible, _actor);
+            ScreenCatalog.Notify();
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Screen.Ok.Created"].Value, _f.ScreenCode), false);
         }
@@ -424,11 +426,17 @@
         _busy = true;
         try
         {
+            var code = _f.ScreenCode.Trim();
+            var lid = Nz(_f.LidLabel);
+            if (!string.Equals(code, _sel.ScreenCode, StringComparison.OrdinalIgnoreCase) &&
+                (string.IsNullOrWhiteSpace(lid) || string.Equals(lid.Trim(), _sel.ScreenCode, StringComparison.OrdinalIgnoreCase)))
+                lid = code;
             Sys.UpdateScreen(
-                _sel.ScreenId, _f.ScreenCode.Trim(), _f.ModuleCode.Trim(), Nz(_f.ProcessCode),
+                _sel.ScreenId, code, _f.ModuleCode.Trim(), Nz(_f.ProcessCode),
                 Nz(_f.SubProcessCode),
-                _f.ScreenName.Trim(), Nz(_f.ScreenNameEn), Nz(_f.HRef), Nz(_f.LidLabel),
+                _f.ScreenName.Trim(), Nz(_f.ScreenNameEn), Nz(_f.HRef), lid,
                 _f.SortOrder, _f.IsVisible, _actor);
+            ScreenCatalog.Notify();
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Screen.Ok.Updated"].Value, _f.ScreenCode), false);
         }
@@ -444,6 +452,7 @@
         {
             var code = _sel.ScreenCode;
             Sys.DeleteScreen(_sel.ScreenId, _actor);
+            ScreenCatalog.Notify();
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Screen.Ok.Deleted"].Value, code), false);
         }

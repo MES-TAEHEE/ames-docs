@@ -5,6 +5,7 @@
 @inject AMES.Web.Services.PermissionService PermSvc
 @inject AMES.Web.Services.MenuCatalog Catalog
 @using AMES.Web.Services
+@inject AMES.Web.Services.ScreenCatalogNotifier ScreenCatalog
 @inject AMES.Web.Services.AppLanguageState Lang
 @using System.Globalization
 @using System.Net
@@ -243,6 +244,7 @@
 
         OpenCurrentSection();
         Nav.LocationChanged += OnLocChanged;
+        ScreenCatalog.Changed += OnScreensChanged;
     }
 
 
@@ -316,6 +318,15 @@
         StateHasChanged();
     }
 
+    void OnScreensChanged() => _ = InvokeAsync(async () =>
+    {
+        Catalog.Reload();   // SYS-003 화면 마스터 편집 반영 — 카탈로그를 다시 읽는다
+        PermSvc.Reset();
+        if (AuthState is not null) await PermSvc.EnsureAsync(AuthState);
+        OpenCurrentSub(_url ?? "");
+        StateHasChanged();
+    });
+
     void Toggle(string key)
     {
         var isOpen = _open.Contains(key);
@@ -385,5 +396,9 @@
 
     MarkupString NavLabel(MenuCatalog.Item item) => NL(item.Ko, item.En, MenuCatalog.EsFor(item.Href));
 
-    public void Dispose() => Nav.LocationChanged -= OnLocChanged;
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocChanged;
+        ScreenCatalog.Changed -= OnScreensChanged;
+    }
 }
