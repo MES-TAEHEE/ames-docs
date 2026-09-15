@@ -1,51 +1,385 @@
-﻿@page "/pp/mrp"
+@page "/pp/mrp"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.PpRepository Pp
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using Radzen
+
+@attribute [Authorize]
+
+@inject PpRepository Pp
+@inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthPrvd
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>@L["PP.Mrp.Title"] · AMES</PageTitle>
-
+<PageTitle>PP-005 @L["PP.Mrp.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="PP-005" TitleKey="PP.Mrp.Title" />
 
-<div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">RUNS</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">WOS LAST RUN</div><div class="ames-kpi-v">@(_rows.FirstOrDefault()?.WosConsidered ?? 0)</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">PRS LAST RUN</div><div class="ames-kpi-v">@(_rows.FirstOrDefault()?.PrsCreated ?? 0)</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">SHORTAGES</div><div class="ames-kpi-v">@(_rows.FirstOrDefault()?.ShortageCount ?? 0)</div></div>
+<div class="mrp-page">
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+}
+
+@* ── KPI strip ──────────────────────────────────────────────────── *@
+<div class="ames-kpis compact">
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.Mrp.Kpi.Calc"]</div><div class="ames-kpi-v">@Materials.Count</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["PP.Mrp.Kpi.Ok"]</div><div class="ames-kpi-v">@Materials.Count(m => !m.IsShort)</div></div>
+    <div class="ames-kpi @(ShortCount > 0 ? "bad" : "")"><div class="ames-kpi-l">@L["PP.Mrp.Kpi.Short"]</div><div class="ames-kpi-v">@ShortCount</div></div>
+    <div class="ames-kpi @(BlockedWoCount > 0 ? "warn" : "")"><div class="ames-kpi-l">@L["PP.Mrp.Kpi.Blocked"]</div><div class="ames-kpi-v">@BlockedWoCount</div></div>
 </div>
 
-<div class="ames-card">
-    <div class="ames-card-h">▼ MRP RUNS</div>
-    <p style="margin-bottom:14px;"><button class="ames-btn">▶ Run MRP Now</button></p>
-    @if (_rows.Count == 0) { <div class="ames-empty">@L["PP.Mrp.Empty"]</div> }
-    else
-    {
-        <table class="ames-table">
-            <thead><tr><th>@L["Col.RunNo"]</th><th>@L["Col.RunAt"]</th><th>@L["Col.Horizon"]</th><th class="num">@L["Col.WOs"]</th><th class="num">@L["Col.PRs"]</th><th class="num">@L["Col.Shortages"]</th><th class="num">@L["Col.Duration"]</th><th>@L["Col.Status"]</th></tr></thead>
-            <tbody>
-                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    <tr>
-                        <td class="code">@r.MrpRunId</td>
-                        <td class="dim">@(r.RunAt?.ToString("MM-dd HH:mm") ?? "—")</td>
-                        <td class="dim">@(r.HorizonStart?.ToString("yyyy-MM-dd")) ~ @(r.HorizonEnd?.ToString("yyyy-MM-dd"))</td>
-                        <td class="num">@r.WosConsidered</td>
-                        <td class="num">@r.PrsCreated</td>
-                        <td class="num">@r.ShortageCount</td>
-                        <td class="num">@r.DurationMs ms</td>
-                        <td>@r.Status</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
+@* ── Toolbar ────────────────────────────────────────────────────── *@
+<div class="ames-card-h" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;text-transform:none;">
+    <div class="ames-fld">
+        <label>@L["PP.Mrp.LastRun"]</label>
+        <span class="pill @(_snap is null ? "mute" : "ok")" style="font-weight:600;line-height:22px;">
+            @(_snap?.Run.RunAt?.ToString(DateFmt.DateTime) ?? L["PP.Mrp.NoRun"].Value)
+        </span>
+    </div>
+    <div class="ames-fld">
+        <label>@L["PP.Mrp.Scope"]</label>
+        <RadzenDropDown @bind-Value="_fScope" @bind-Value:after="ApplyFilter" Data="@ScopeOptions" TextProperty="Text" ValueProperty="Value" Style="width:160px" />
+    </div>
+    <div class="ames-fld">
+        <label>@L["PP.Mrp.Col.Material"]</label>
+        <RadzenTextBox @bind-Value="_fSearch" @bind-Value:after="ApplyFilter" Placeholder="@L["PP.Mrp.Ph.Search"]" Style="width:200px" />
+    </div>
+    <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+        <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Click="ResetFilters" />
+        <RadzenButton Text="@L["PP.Mrp.Btn.Export"].Value" Icon="download" ButtonStyle="ButtonStyle.Dark" Click="ExportXlsx" />
+        <RadzenButton Text="@L["PP.Mrp.Btn.Run"].Value" Icon="play_arrow" Click="RunMrp" Disabled="@_running" />
+        <RadzenButton Text="@string.Format(L["PP.Mrp.Btn.CreatePrs"].Value, _selected.Count)" Icon="add_shopping_cart"
+                      ButtonStyle="ButtonStyle.Success" Disabled="@(_running || _selected.Count == 0)" Click="OpenBulk" />
+    </div>
 </div>
+
+@if (_running)
+{
+    <div class="mrp-runbar">
+        <span>@L["PP.Mrp.Running"]</span>
+        <RadzenProgressBar Mode="ProgressBarMode.Indeterminate" ShowValue="false" Style="flex:1;height:8px;" />
+    </div>
+}
+<div class="dim" style="font-size:10px;padding:0 0 6px;">🧮 @L["PP.Mrp.Hint"]</div>
+
+<div class="mrp-grid">
+@if (_rows.Count == 0)
+{
+    <div class="ames-empty">@(_snap is null ? L["PP.Mrp.Empty"] : L["PP.Mrp.NoMatch"])</div>
+}
+else
+{
+    <RadzenDataGrid Data="_rows" TItem="PpRepository.MrpMaterialRow" AllowVirtualization="true" Style="height:100%"
+                    AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
+                    RowRender="@RowRender" class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Width="46px" Sortable="false"
+                                  Filterable="false" TextAlign="TextAlign.Center" Frozen="true">
+                <HeaderTemplate>
+                    <input type="checkbox" class="mrp-ck" checked="@AllSelected"
+                           @onchange="e => ToggleAll((bool)(e.Value ?? false))" />
+                </HeaderTemplate>
+                <Template Context="r">
+                    <input type="checkbox" class="mrp-ck" disabled="@(!r.IsShort)"
+                           checked="@_selected.Contains(r.ItemNo)"
+                           @onchange="e => ToggleRow(r.ItemNo, (bool)(e.Value ?? false))" />
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="ItemNo" Title="@L["PP.Mrp.Col.Material"].Value" Frozen="true" Width="260px">
+                <Template Context="r">
+                    <span class="code">@r.ItemNo</span>
+                    @if (!string.IsNullOrEmpty(r.ItemName)) { <span class="dim"> · @r.ItemName</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="Required" Title="@L["PP.Mrp.Col.Required"].Value" TextAlign="TextAlign.Right" Width="120px">
+                <Template Context="r">@Q(r.Required) <span class="dim">@r.Uom</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="Stock" Title="@L["PP.Mrp.Col.Stock"].Value" TextAlign="TextAlign.Right" Width="100px">
+                <Template Context="r">@Q(r.Stock)</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="OnOrder" Title="@L["PP.Mrp.Col.OnOrder"].Value" TextAlign="TextAlign.Right" Width="100px">
+                <Template Context="r">@(r.OnOrder == 0 ? "—" : Q(r.OnOrder))</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="Shortage" Title="@L["PP.Mrp.Col.Shortage"].Value" TextAlign="TextAlign.Right" Width="140px">
+                <Template Context="r">
+                    @if (r.Shortage > 0) { <span class="mrp-neg">−@Q(r.Shortage) @r.Uom</span> }
+                    else if (r.Shortage == 0) { <span class="dim" style="font-weight:700;">±0</span> }
+                    else { <span class="mrp-pos">+@Q(-r.Shortage) @r.Uom</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="LeadTimeDays" Title="@L["PP.Mrp.Col.LeadTime"].Value" TextAlign="TextAlign.Center" Width="70px">
+                <Template Context="r"><span class="code">@(r.LeadTimeDays is { } lt ? string.Format(L["PP.Mrp.Unit.Days"].Value, lt) : "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="OrderDue" Title="@L["PP.Mrp.Col.OrderDue"].Value" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r">
+                    @if (r.IsShort && r.OrderDue is { } due) { <span class="code mrp-neg">@due.ToString(DateFmt.Date)</span> } else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Title="@L["Col.Status"].Value" TextAlign="TextAlign.Center" Width="120px" Sortable="false">
+                <Template Context="r"><span class="pill @StCls(r)">@StText(r)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="PrNumber" Title="@L["Col.PrNo"].Value" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r">
+                    @if (r.PrId is not null) { <span class="code" style="color:#93c5fd;">@(r.PrNumber ?? $"PR#{r.PrId}")</span> } else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Title="@L["PP.Mrp.Col.Action"].Value" TextAlign="TextAlign.Center" Width="90px" Sortable="false">
+                <Template Context="r">
+                    <RadzenButton Text="Detail" Icon="info" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" Click="@(() => OpenDetail(r))" class="ames-rz-btn" />
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}
+</div>
+</div>
+
+@* ── Detail modal ───────────────────────────────────────────────── *@
+@if (_modal == "detail" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["PP.Mrp.Col.Material"] <span class="code" style="font-weight:400;font-size:.9em;">@_sel.ItemNo</span> <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.ItemName</span></div>
+            <div class="mrp-dgrid">
+                <div class="mrp-dt"><div class="mrp-dl">@L["PP.Mrp.Detail.Required"]</div><div class="mrp-dv">@Q(_sel.Required) @_sel.Uom</div></div>
+                <div class="mrp-dt"><div class="mrp-dl">@L["PP.Mrp.Detail.Available"]</div><div class="mrp-dv">@Q(_sel.Stock + _sel.OnOrder) @_sel.Uom</div></div>
+                <div class="mrp-dt"><div class="mrp-dl">@L["PP.Mrp.Col.Shortage"]</div><div class="mrp-dv @(_sel.Shortage > 0 ? "neg" : "pos")">@Signed(-_sel.Shortage) @_sel.Uom</div></div>
+                <div class="mrp-dt"><div class="mrp-dl">@L["PP.Mrp.Detail.LeadTime"]</div><div class="mrp-dv">@(_sel.LeadTimeDays is { } lt ? string.Format(L["PP.Mrp.Unit.Days"].Value, lt) : "—")</div></div>
+            </div>
+            <div class="mrp-dsub">@L["PP.Mrp.Detail.Wos"]</div>
+            @if (_sel.Wos.Count == 0) { <span class="dim" style="font-size:11px;">@L["PP.Mrp.Detail.NoWos"]</span> }
+            else
+            {
+                foreach (var w in _sel.Wos)
+                {
+                    <span class="mrp-wochip" title="@(w.DueDate?.ToString(DateFmt.Date))">@(w.WoNumber ?? $"WO#{w.WoId}") · @Q(w.Qty)</span>
+                }
+            }
+            @if (_sel.IsShort)
+            {
+                <div class="mrp-hint neg">⚠ @string.Format(L["PP.Mrp.Detail.HintShort"].Value, Q(_sel.Shortage), _sel.Uom, _sel.OrderDue?.ToString(DateFmt.Date) ?? "—", _sel.LeadTimeDays?.ToString() ?? "—")</div>
+            }
+            else if (_sel.PrId is not null)
+            {
+                <div class="mrp-hint info">✓ @string.Format(L["PP.Mrp.Detail.HintPr"].Value, _sel.PrNumber ?? $"PR#{_sel.PrId}")</div>
+            }
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Close"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@* ── Create PRs for selected rows ───────────────────────────────── *@
+@if (_modal == "bulk")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["PP.Mrp.Bulk.Title"]</div>
+
+            <div class="mrp-dgrid" style="grid-template-columns:repeat(3,1fr);">
+                <div class="mrp-dt"><div class="mrp-dl">@L["PP.Mrp.Bulk.Targets"]</div><div class="mrp-dv">@SelectedRows.Count</div></div>
+                <div class="mrp-dt"><div class="mrp-dl">@L["PP.Mrp.Bulk.EarliestDue"]</div><div class="mrp-dv neg">@(SelectedRows.Select(r => r.OrderDue).Where(d => d is not null).Min()?.ToString(DateFmt.Date) ?? "—")</div></div>
+                <div class="mrp-dt"><div class="mrp-dl">@L["PP.Mrp.Bulk.Dest"]</div><div class="mrp-dv">SAP B1</div></div>
+            </div>
+            <div class="mrp-bulk-list">
+                <div class="mrp-bulk-item mrp-bulk-head">
+                    <span>@L["PP.Mrp.Col.Material"]</span>
+                    <span class="mrp-bulk-qty">@L["PP.Mrp.Kpi.Short"]</span>
+                    <span class="mrp-bulk-qty">@L["PP.Mrp.Bulk.Qty"]</span>
+                </div>
+                @foreach (var r in SelectedRows)
+                {
+                    var qty = _prQty.GetValueOrDefault(r.ItemNo);
+                    <div class="mrp-bulk-item @(qty <= 0 ? "bad" : qty < r.Shortage ? "warn" : "")">
+                        <span><span class="code">@r.ItemNo</span> · @r.ItemName</span>
+                        <span class="code mrp-neg mrp-bulk-qty">−@Q(r.Shortage) @r.Uom</span>
+                        <span class="mrp-bulk-qty">
+                            <RadzenNumeric TValue="decimal" Value="@qty" Change="@((decimal v) => _prQty[r.ItemNo] = v)"
+                                           Min="0" Step="1" Format="#,##0.###" ShowUpDown="false"
+                                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;text-align:right;" />
+                            <span class="dim">@r.Uom</span>
+                        </span>
+                    </div>
+                }
+            </div>
+            <div class="mrp-bulk-foot">
+                <span class="dim">@L["PP.Mrp.Bulk.Total"]</span>
+                <span class="code">@Q(SelectedRows.Sum(r => _prQty.GetValueOrDefault(r.ItemNo)))</span>
+            </div>
+            @if (SelectedRows.Any(r => _prQty.GetValueOrDefault(r.ItemNo) <= 0))
+            {
+                <div class="mrp-hint neg">⚠ @L["PP.Mrp.Err.Qty"]</div>
+            }
+            else if (SelectedRows.Any(r => _prQty.GetValueOrDefault(r.ItemNo) < r.Shortage))
+            {
+                <div class="mrp-hint warn">⚠ @L["PP.Mrp.Bulk.Partial"]</div>
+            }
+            <div class="dim" style="font-size:11px;margin-top:8px;">@L["PP.Mrp.Bulk.Note"]</div>
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["PP.Mrp.Bulk.Confirm"]" Click="@DoBulk" Icon="add_shopping_cart" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                              Disabled="@(_running || !QtyValid)" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
 
 @code {
-    List<AMES.Data.Repositories.PpRepository.MrpRunRow> _rows = new();
-    int _page = 0;
-    const int _pageSize = 20;
-    protected override void OnInitialized() { try { _rows = Pp.ListMrpRuns(); } catch { } }
+    PpRepository.MrpSnapshot?          _snap;
+    List<PpRepository.MrpMaterialRow>  _rows = new();
+    List<PpRepository.MrpMaterialRow>  Materials => _snap?.Materials ?? new();
+    HashSet<string> _selected = new(StringComparer.OrdinalIgnoreCase);
+    PpRepository.MrpMaterialRow? _sel;
+
+    string _fSearch = "", _fScope = "", _modal = "", _msg = "", _actor = "system";
+    bool   _running, _isErr, _bgMouseDownOnSelf;
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    IEnumerable<DropDownItem> ScopeOptions => new[]
+    {
+        new DropDownItem { Value = "",      Text = L["PP.Mrp.Scope.All"] },
+        new DropDownItem { Value = "short", Text = L["PP.Mrp.Scope.Short"] },
+        new DropDownItem { Value = "ok",    Text = L["PP.Mrp.Scope.Ok"] },
+    };
+
+    int ShortCount => Materials.Count(m => m.IsShort);
+    int BlockedWoCount => Materials.Where(m => m.IsShort).SelectMany(m => m.Wos).Select(w => w.WoId).Distinct().Count();
+
+    // 선택 가능 = 현재 표시 중인 부족(PR 미생성) 행
+    IEnumerable<PpRepository.MrpMaterialRow> Selectable => _rows.Where(r => r.IsShort);
+    bool AllSelected => Selectable.Any() && Selectable.All(r => _selected.Contains(r.ItemNo));
+    List<PpRepository.MrpMaterialRow> SelectedRows => Materials.Where(r => r.IsShort && _selected.Contains(r.ItemNo)).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        Reload();
+    }
+
+    void Reload()
+    {
+        try { _snap = Pp.GetLatestMrp(); }
+        catch (Exception ex) { _snap = null; ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
+        _selected.RemoveWhere(i => !Materials.Any(m => m.IsShort && string.Equals(m.ItemNo, i, StringComparison.OrdinalIgnoreCase)));
+        ApplyFilter();
+    }
+
+    void ApplyFilter() { _rows = Materials.Where(r =>
+        (_fScope != "short" || r.IsShort) &&
+        (_fScope != "ok"    || !r.IsShort) &&
+        (string.IsNullOrEmpty(_fSearch) ||
+            r.ItemNo.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.ItemName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase))
+    ).ToList();
+    }
+
+    void ResetFilters() { _fSearch = ""; _fScope = ""; ApplyFilter(); ShowMsg(L["PP.Mrp.Ok.Reset"], false); }
+
+    void ToggleRow(string itemNo, bool on)
+    {
+        if (on) _selected.Add(itemNo); else _selected.Remove(itemNo);
+    }
+
+    void ToggleAll(bool on)
+    {
+        foreach (var r in Selectable)
+            if (on) _selected.Add(r.ItemNo); else _selected.Remove(r.ItemNo);
+    }
+
+    // 계산은 DB 왕복이 길 수 있어 스레드풀로 넘기고 진행 표시를 유지한다
+    async Task RunMrp()
+    {
+        if (_running) return;
+        _running = true;
+        try
+        {
+            await Task.Run(() => Pp.RunMrp(_actor));
+            Reload();
+            ShowMsg(string.Format(L["PP.Mrp.Ok.Run"].Value, Materials.Count, ShortCount, BlockedWoCount), false);
+        }
+        catch (Exception ex) { ShowMsg(string.Format(L["PP.Mrp.Err.Run"].Value, ex.Message), true); }
+        finally { _running = false; }
+    }
+
+    void OpenDetail(PpRepository.MrpMaterialRow r) { _sel = r; _modal = "detail"; }
+
+    // 모달의 PR 수량 — 기본 부족량, 사용자가 조절(부족량 미만은 잔여 부족, 초과 허용, 0 이하 불가)
+    readonly Dictionary<string, decimal> _prQty = new(StringComparer.OrdinalIgnoreCase);
+    bool QtyValid => SelectedRows.Count > 0 && SelectedRows.All(r => _prQty.GetValueOrDefault(r.ItemNo) > 0);
+
+    void OpenBulk()
+    {
+        if (SelectedRows.Count == 0) { ShowMsg(L["PP.Mrp.Err.NoneSelected"], true); return; }
+        _prQty.Clear();
+        foreach (var r in SelectedRows) _prQty[r.ItemNo] = r.Shortage;
+        _modal = "bulk";
+    }
+
+    void DoBulk()
+    {
+        if (_snap is null) return;
+        if (!QtyValid) { ShowMsg(L["PP.Mrp.Err.Qty"], true); return; }
+        try
+        {
+            var requests = SelectedRows.Select(r => new PpRepository.MrpPrRequest(r.ItemNo, _prQty[r.ItemNo])).ToList();
+            var created = Pp.CreateShortagePrs(_snap.Run.MrpRunId, requests, _actor);
+            CloseModal();
+            _selected.Clear();
+            Reload();
+            ShowMsg(string.Format(L["PP.Mrp.Ok.Bulk"].Value, created.Count), false);
+        }
+        catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; }
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    void RowRender(RowRenderEventArgs<PpRepository.MrpMaterialRow> args)
+    {
+        var cls = args.Data.IsShort ? "mrp-short" : args.Data.PrId is not null ? "mrp-fixed" : "";
+        if (cls.Length == 0) return;
+        args.Attributes["class"] = args.Attributes.TryGetValue("class", out var existing) ? $"{existing} {cls}" : cls;
+    }
+
+    // 현재 조회 결과(필터 적용분)를 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로
+    async Task ExportXlsx()
+    {
+        if (_rows.Count == 0) { ShowMsg(L["PP.Mrp.Err.NoExport"], true); return; }
+        var headers = new[]
+        {
+            L["Col.ItemNo"].Value, L["Col.ItemName"].Value, L["PP.Mrp.Col.Required"].Value, L["PP.Mrp.Col.Stock"].Value,
+            L["PP.Mrp.Col.OnOrder"].Value, L["PP.Mrp.Col.Shortage"].Value, L["Col.Uom"].Value, L["PP.Mrp.Col.LeadTime"].Value,
+            L["PP.Mrp.Col.OrderDue"].Value, L["Col.Status"].Value, L["Col.PrNo"].Value, L["Col.WoNo"].Value,
+        };
+        var data = _rows.Select(r => (IReadOnlyList<object?>)new object?[]
+        {
+            r.ItemNo, r.ItemName, r.Required, r.Stock, r.OnOrder, -r.Shortage, r.Uom, r.LeadTimeDays,
+            r.OrderDue?.ToString(DateFmt.Date), StText(r), r.PrNumber,
+            string.Join(", ", r.Wos.Select(w => w.WoNumber ?? $"WO#{w.WoId}")),
+        });
+        var bytes = AMES.Web.Services.XlsxWriter.Build(L["PP.Mrp.Title"].Value, headers, data);
+        await JS.InvokeVoidAsync("amesDownload", $"MRP_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx", Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        ShowMsg(string.Format(L["PP.Mrp.Ok.Exported"].Value, _rows.Count), false);
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    // ── 표시 헬퍼 ─────────────────────────────────────────────────────
+    static string Q(decimal v) => v.ToString("#,##0.###");
+    static string Signed(decimal v) => v > 0 ? "+" + Q(v) : v < 0 ? "−" + Q(-v) : "±0";
+
+    string StText(PpRepository.MrpMaterialRow r) =>
+        r.PrId is not null ? L["PP.Mrp.St.Pr"] : r.Shortage > 0 ? L["PP.Mrp.St.Short"] : r.Shortage == 0 ? L["PP.Mrp.St.Balanced"] : L["PP.Mrp.St.Ok"];
+    static string StCls(PpRepository.MrpMaterialRow r) =>
+        r.PrId is not null ? "info" : r.Shortage > 0 ? "bad" : r.Shortage == 0 ? "mute" : "ok";
 }

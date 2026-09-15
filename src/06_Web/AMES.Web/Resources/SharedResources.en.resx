@@ -7842,4 +7842,184 @@
   <data name="Col.Maker" xml:space="preserve">
     <value>Maker</value>
   </data>
+  <data name="PP.Mrp.Subtitle" xml:space="preserve">
+    <value>BOM explosion · shortage calc · WO blocking · PR linkage</value>
+  </data>
+  <data name="PP.Mrp.LastRun" xml:space="preserve">
+    <value>Last Run</value>
+  </data>
+  <data name="PP.Mrp.NoRun" xml:space="preserve">
+    <value>Never run</value>
+  </data>
+  <data name="PP.Mrp.Btn.Run" xml:space="preserve">
+    <value>Run MRP</value>
+  </data>
+  <data name="PP.Mrp.Running" xml:space="preserve">
+    <value>Calculating MRP...</value>
+  </data>
+  <data name="PP.Mrp.Scope" xml:space="preserve">
+    <value>Scope</value>
+  </data>
+  <data name="PP.Mrp.Scope.All" xml:space="preserve">
+    <value>All Materials</value>
+  </data>
+  <data name="PP.Mrp.Scope.Short" xml:space="preserve">
+    <value>Shortages Only</value>
+  </data>
+  <data name="PP.Mrp.Scope.Ok" xml:space="preserve">
+    <value>Sufficient Only</value>
+  </data>
+  <data name="PP.Mrp.Ph.Search" xml:space="preserve">
+    <value>Material code/name...</value>
+  </data>
+  <data name="PP.Mrp.Btn.BulkPr" xml:space="preserve">
+    <value>Create Shortage PRs</value>
+  </data>
+  <data name="PP.Mrp.Btn.Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="PP.Mrp.Btn.Pr" xml:space="preserve">
+    <value>Create PR</value>
+  </data>
+  <data name="PP.Mrp.Kpi.Calc" xml:space="preserve">
+    <value>Materials Calculated</value>
+  </data>
+  <data name="PP.Mrp.Kpi.Ok" xml:space="preserve">
+    <value>Sufficient</value>
+  </data>
+  <data name="PP.Mrp.Kpi.Short" xml:space="preserve">
+    <value>Shortage</value>
+  </data>
+  <data name="PP.Mrp.Kpi.Blocked" xml:space="preserve">
+    <value>WO Blocked</value>
+  </data>
+  <data name="PP.Mrp.Grid.Title" xml:space="preserve">
+    <value>MRP Results</value>
+  </data>
+  <data name="PP.Mrp.Hint" xml:space="preserve">
+    <value>Shortage = Required − Stock − On Order · Red rows require PR creation</value>
+  </data>
+  <data name="PP.Mrp.NoMatch" xml:space="preserve">
+    <value>No materials match the current filters.</value>
+  </data>
+  <data name="PP.Mrp.Col.Material" xml:space="preserve">
+    <value>Material</value>
+  </data>
+  <data name="PP.Mrp.Col.Required" xml:space="preserve">
+    <value>Required</value>
+  </data>
+  <data name="PP.Mrp.Col.Stock" xml:space="preserve">
+    <value>Stock</value>
+  </data>
+  <data name="PP.Mrp.Col.OnOrder" xml:space="preserve">
+    <value>On Order</value>
+  </data>
+  <data name="PP.Mrp.Col.Shortage" xml:space="preserve">
+    <value>Shortage/Surplus</value>
+  </data>
+  <data name="PP.Mrp.Col.LeadTime" xml:space="preserve">
+    <value>L/T</value>
+  </data>
+  <data name="PP.Mrp.Col.OrderDue" xml:space="preserve">
+    <value>Order Due</value>
+  </data>
+  <data name="PP.Mrp.Col.Action" xml:space="preserve">
+    <value>Action</value>
+  </data>
+  <data name="PP.Mrp.St.Short" xml:space="preserve">
+    <value>⛔ Short</value>
+  </data>
+  <data name="PP.Mrp.St.Balanced" xml:space="preserve">
+    <value>±0 Balanced</value>
+  </data>
+  <data name="PP.Mrp.St.Ok" xml:space="preserve">
+    <value>✓ Sufficient</value>
+  </data>
+  <data name="PP.Mrp.St.Pr" xml:space="preserve">
+    <value>PR On Order</value>
+  </data>
+  <data name="PP.Mrp.Unit.Days" xml:space="preserve">
+    <value>{0}d</value>
+  </data>
+  <data name="PP.Mrp.Detail.Required" xml:space="preserve">
+    <value>BOM Required</value>
+  </data>
+  <data name="PP.Mrp.Detail.Available" xml:space="preserve">
+    <value>Available (Stock + On Order)</value>
+  </data>
+  <data name="PP.Mrp.Detail.LeadTime" xml:space="preserve">
+    <value>Procurement L/T</value>
+  </data>
+  <data name="PP.Mrp.Detail.Wos" xml:space="preserve">
+    <value>Work orders blocked by this shortage</value>
+  </data>
+  <data name="PP.Mrp.Detail.NoWos" xml:space="preserve">
+    <value>No affected WOs</value>
+  </data>
+  <data name="PP.Mrp.Detail.HintShort" xml:space="preserve">
+    <value>Shortage of {0} {1} — must order by {2} (L/T {3}d). Use [Create PR] to send to PP-006.</value>
+  </data>
+  <data name="PP.Mrp.Detail.HintPr" xml:space="preserve">
+    <value>{0} on order — quantity reflected in On Order, shortage cleared.</value>
+  </data>
+  <data name="PP.Mrp.Bulk.Title" xml:space="preserve">
+    <value>Batch Create Shortage PRs</value>
+  </data>
+  <data name="PP.Mrp.Bulk.Targets" xml:space="preserve">
+    <value>PR Targets (Shortage Materials)</value>
+  </data>
+  <data name="PP.Mrp.Bulk.EarliestDue" xml:space="preserve">
+    <value>Earliest Order Due</value>
+  </data>
+  <data name="PP.Mrp.Bulk.Dest" xml:space="preserve">
+    <value>PR Destination</value>
+  </data>
+  <data name="PP.Mrp.Bulk.Note" xml:space="preserve">
+    <value>A Purchase Requisition (PR) is created for each shortage material and forwarded to PP-006. The PR quantity is added to On Order, clearing the shortage and unblocking the affected WOs.</value>
+  </data>
+  <data name="PP.Mrp.Bulk.Confirm" xml:space="preserve">
+    <value>Create PRs</value>
+  </data>
+  <data name="PP.Mrp.Ok.Run" xml:space="preserve">
+    <value>MRP recalculation complete — {0} materials · {1} shortages · {2} WOs blocked</value>
+  </data>
+  <data name="PP.Mrp.Ok.Pr" xml:space="preserve">
+    <value>PR created — {0} ({1}) · linked to PP-006</value>
+  </data>
+  <data name="PP.Mrp.Ok.Bulk" xml:space="preserve">
+    <value>Created PRs for {0} shortage materials. Awaiting SAP B1 transmission in PP-006.</value>
+  </data>
+  <data name="PP.Mrp.Ok.Reset" xml:space="preserve">
+    <value>Filters reset.</value>
+  </data>
+  <data name="PP.Mrp.Ok.Exported" xml:space="preserve">
+    <value>Exported {0} MRP rows.</value>
+  </data>
+  <data name="PP.Mrp.Err.Run" xml:space="preserve">
+    <value>MRP run failed: {0}</value>
+  </data>
+  <data name="PP.Mrp.Err.NoShort" xml:space="preserve">
+    <value>There are no shortage materials to create PRs for.</value>
+  </data>
+  <data name="PP.Mrp.Err.NoExport" xml:space="preserve">
+    <value>No data to export.</value>
+  </data>
+  <data name="PP.Mrp.Btn.CreatePrs" xml:space="preserve">
+    <value>Create PRs ({0})</value>
+  </data>
+  <data name="PP.Mrp.Err.NoneSelected" xml:space="preserve">
+    <value>No shortage materials selected.</value>
+  </data>
+  <data name="PP.Mrp.Bulk.Qty" xml:space="preserve">
+    <value>PR Qty</value>
+  </data>
+  <data name="PP.Mrp.Bulk.Total" xml:space="preserve">
+    <value>Total PR Qty</value>
+  </data>
+  <data name="PP.Mrp.Bulk.Partial" xml:space="preserve">
+    <value>Ordering less than the shortage leaves a residual shortage (no second PR in this run; re-run MRP to recalculate).</value>
+  </data>
+  <data name="PP.Mrp.Err.Qty" xml:space="preserve">
+    <value>PR quantity must be greater than 0.</value>
+  </data>
 </root>

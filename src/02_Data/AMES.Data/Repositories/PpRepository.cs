@@ -885,6 +885,311 @@ public sealed class PpRepository
             (int)r["DurationMs"], r["Status"] as string));
     }
 
+    // ── PP-005 MRP — run / latest snapshot / shortage PR ────────────────
+    public sealed record MrpWoRef(int WoId, string? WoNumber, decimal Qty, DateTime? DueDate);
+
+    /// <summary>실행 스냅샷 한 행. PR 이 연결된 행은 부족이 발주중으로 옮겨져 <see cref="IsShort"/> 가 아니다.</summary>
+    public sealed record MrpMaterialRow(int MrpRunId, string ItemNo, string? ItemName, string? Uom,
+        decimal Required, decimal Stock, decimal OnOrder, decimal Shortage, int? LeadTimeDays, DateTime? OrderDue,
+        int? PrId, string? PrNumber, IReadOnlyList<MrpWoRef> Wos)
+    {
+        public bool IsShort => Shortage > 0 && PrId is null;
+    }
+
+    public sealed record MrpSnapshot(MrpRunRow Run, List<MrpMaterialRow> Materials);
+    public sealed record MrpPrCreated(string ItemNo, int PrId, string PrNumber);
+
+    /// <summary>PR 생성 요청. Qty 가 null 이면 결과 행의 부족량을 그대로 쓴다.</summary>
+    public sealed record MrpPrRequest(string ItemNo, decimal? Qty = null);
+
+    /// <summary>열린 WO 상태 — Completed/Closed/Stocked/Cancelled 는 자재 수요가 없다.</summary>
+    const string MrpOpenWoWhere = "ISNULL(w.Status,'Draft') NOT IN ('Completed','Closed','Stocked','Cancelled') AND w.ItemNo IS NOT NULL";
+
+    /// <summary>
+    /// MRP 실행: 열린 WO 잔량 → 유효 APPROVED BOM 분해 → 재고·발주중 대조 → PP_MRPLog + PP_MRPResult(Wo) 스냅샷.
+    /// 계산 규칙은 <see cref="MrpCalculator"/>. BOM 순환이면 Failed 로그만 남기고 <see cref="MrpCalculator.MrpCycleException"/>.
+    /// </summary>
+    public int RunMrp(string runBy)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var today = DateTime.Today;
+
+        var demands = Query($"""
+            SELECT w.WoID, w.ItemNo, ISNULL(w.OrderQty,0) - ISNULL(w.CompletedQty,0) AS Qty, w.DueDate
+            FROM   dbo.PP_WorkOrder w
+            WHERE  {MrpOpenWoWhere};
+            """, r => new MrpCalculator.Demand((int)r["WoID"], (string)r["ItemNo"],
+                r.GetDecimal(r.GetOrdinal("Qty")), r["DueDate"] as DateTime?));
+
+        // 부모 품번마다 유효(APPROVED·기간 내) 버전 중 EffFrom 최신 하나만 쓴다 — 버전이 겹치면 이중 계상되기 때문
+        var bom = Query("""
+            WITH eff AS (
+                SELECT v.VersionID, v.EffFrom
+                FROM   dbo.MD_BomVersion v
+                WHERE  v.Status = 'APPROVED'
+                  AND (v.EffFrom IS NULL OR v.EffFrom <= @Today)
+                  AND (v.EffTo   IS NULL OR v.EffTo   >= @Today)),
+            lines AS (
+                SELECT b.ParentItemNo, b.CompItemNo, ISNULL(b.QtyPer,0) AS QtyPer, ISNULL(b.ScrapPct,0) AS ScrapPct,
+                       DENSE_RANK() OVER (PARTITION BY b.ParentItemNo ORDER BY e.EffFrom DESC, e.VersionID DESC) AS Rk
+                FROM   dbo.MD_Bom b
+                JOIN   eff e ON e.VersionID = b.VersionID
+                WHERE  ISNULL(b.ActiveFlag,1) = 1 AND b.ParentItemNo IS NOT NULL AND b.CompItemNo IS NOT NULL)
+            SELECT ParentItemNo, CompItemNo, QtyPer, ScrapPct FROM lines WHERE Rk = 1;
+            """, r => new MrpCalculator.BomLine((string)r["ParentItemNo"], (string)r["CompItemNo"],
+                r.GetDecimal(r.GetOrdinal("QtyPer")), r.GetDecimal(r.GetOrdinal("ScrapPct"))),
+            ("@Today", today));
+
+        var supply = Query("""
+            SELECT i.ItemNo, i.LeadTimeDays,
+                   (SELECT ISNULL(SUM(ISNULL(x.OnHandQty,0) - ISNULL(x.ReservedQty,0)),0)
+                    FROM dbo.WH_Inventory x WHERE x.ItemNo = i.ItemNo) AS Stock,
+                   (SELECT ISNULL(SUM(ISNULL(p.OrderQty,0) - ISNULL(p.ReceivedQty,0)),0)
+                    FROM dbo.WH_PurchaseOrder p
+                    WHERE p.ItemNo = i.ItemNo AND p.Status IN ('Open','Partial')
+                      AND ISNULL(p.OrderQty,0) > ISNULL(p.ReceivedQty,0))
+                 + (SELECT ISNULL(SUM(ISNULL(q.RequiredQty,0)),0)
+                    FROM dbo.PP_PurchaseRequest q
+                    WHERE q.ItemNo = i.ItemNo AND q.SapPoNumber IS NULL
+                      AND q.Status IN ('Draft','Pending','Approved')) AS OnOrder
+            FROM   dbo.MD_Item i
+            WHERE  EXISTS (SELECT 1 FROM dbo.MD_Bom b WHERE b.CompItemNo = i.ItemNo);
+            """, r => new MrpCalculator.Supply((string)r["ItemNo"],
+                r.GetDecimal(r.GetOrdinal("Stock")), r.GetDecimal(r.GetOrdinal("OnOrder")),
+                r["LeadTimeDays"] as int?))
+            .ToDictionary(s => s.ItemNo, StringComparer.OrdinalIgnoreCase);
+
+        MrpCalculator.Result result;
+        try { result = MrpCalculator.Explode(demands, bom, supply, today); }
+        catch (MrpCalculator.MrpCycleException)
+        {
+            InsertMrpLog(null, null, runBy, today, today, 0, 0, (int)sw.ElapsedMilliseconds, "Failed");
+            throw;
+        }
+
+        var horizonEnd = demands.Where(d => d.Qty > 0).Select(d => d.DueDate).Max() ?? today;
+        var shortCount = result.Materials.Count(m => m.IsShort);
+
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        var runId = InsertMrpLog(conn, tx, runBy, today, horizonEnd, result.WosConsidered, shortCount,
+                                 (int)sw.ElapsedMilliseconds, "Completed");
+
+        using var ins = new SqlCommand("""
+            INSERT INTO dbo.PP_MRPResult
+                (MrpRunID, ItemNo, RequiredQty, StockQty, OnOrderQty, ShortageQty, LeadTimeDays, OrderDue, CreatedBy)
+            VALUES (@R, @I, @Req, @Stock, @OnOrder, @Short, @Lt, @Due, @By);
+            """, conn, tx);
+        ins.Parameters.Add("@R",       SqlDbType.Int).Value = runId;
+        ins.Parameters.Add("@I",       SqlDbType.VarChar, 20);
+        ins.Parameters.Add("@Req",     SqlDbType.Decimal).Precision = 14; ins.Parameters["@Req"].Scale = 3;
+        ins.Parameters.Add("@Stock",   SqlDbType.Decimal).Precision = 14; ins.Parameters["@Stock"].Scale = 3;
+        ins.Parameters.Add("@OnOrder", SqlDbType.Decimal).Precision = 14; ins.Parameters["@OnOrder"].Scale = 3;
+        ins.Parameters.Add("@Short",   SqlDbType.Decimal).Precision = 14; ins.Parameters["@Short"].Scale = 3;
+        ins.Parameters.Add("@Lt",      SqlDbType.Int);
+        ins.Parameters.Add("@Due",     SqlDbType.Date);
+        ins.Parameters.Add("@By",      SqlDbType.VarChar, 50).Value = Trunc(runBy, 50);
+
+        using var insWo = new SqlCommand("""
+            INSERT INTO dbo.PP_MRPResultWo (MrpRunID, ItemNo, WoID, RequiredQty) VALUES (@R, @I, @W, @Q);
+            """, conn, tx);
+        insWo.Parameters.Add("@R", SqlDbType.Int).Value = runId;
+        insWo.Parameters.Add("@I", SqlDbType.VarChar, 20);
+        insWo.Parameters.Add("@W", SqlDbType.Int);
+        insWo.Parameters.Add("@Q", SqlDbType.Decimal).Precision = 14; insWo.Parameters["@Q"].Scale = 3;
+
+        foreach (var m in result.Materials)
+        {
+            ins.Parameters["@I"].Value       = m.ItemNo;
+            ins.Parameters["@Req"].Value     = m.Required;
+            ins.Parameters["@Stock"].Value   = m.Stock;
+            ins.Parameters["@OnOrder"].Value = m.OnOrder;
+            ins.Parameters["@Short"].Value   = m.Shortage;
+            ins.Parameters["@Lt"].Value      = (object?)m.LeadTimeDays ?? DBNull.Value;
+            ins.Parameters["@Due"].Value     = (object?)m.OrderDue ?? DBNull.Value;
+            ins.ExecuteNonQuery();
+            foreach (var w in m.Wos)
+            {
+                insWo.Parameters["@I"].Value = m.ItemNo;
+                insWo.Parameters["@W"].Value = w.WoId;
+                insWo.Parameters["@Q"].Value = w.Qty;
+                insWo.ExecuteNonQuery();
+            }
+        }
+        tx.Commit();
+        return runId;
+    }
+
+    int InsertMrpLog(SqlConnection? conn, SqlTransaction? tx, string runBy, DateTime start, DateTime end,
+        int wos, int shortages, int durationMs, string status)
+    {
+        const string sql = """
+            INSERT INTO dbo.PP_MRPLog
+                (RunAt, RunBy, HorizonStart, HorizonEnd, WosConsidered, PrsCreated, ShortageCount, DurationMs, Status, CreatedBy)
+            OUTPUT INSERTED.MrpRunID
+            VALUES (SYSDATETIME(), @RunBy, @S, @E, @Wos, 0, @Short, @Ms, @St, @By);
+            """;
+        using var own = conn is null ? _f.OpenConnection() : null;
+        using var cmd = new SqlCommand(sql, conn ?? own, tx);
+        cmd.Parameters.Add("@RunBy", SqlDbType.NVarChar, 450).Value = runBy;
+        cmd.Parameters.Add("@S",     SqlDbType.Date).Value = start;
+        cmd.Parameters.Add("@E",     SqlDbType.Date).Value = end;
+        cmd.Parameters.Add("@Wos",   SqlDbType.Int).Value = wos;
+        cmd.Parameters.Add("@Short", SqlDbType.Int).Value = shortages;
+        cmd.Parameters.Add("@Ms",    SqlDbType.Int).Value = durationMs;
+        cmd.Parameters.Add("@St",    SqlDbType.VarChar, 20).Value = status;
+        cmd.Parameters.Add("@By",    SqlDbType.VarChar, 50).Value = Trunc(runBy, 50);
+        return (int)cmd.ExecuteScalar();
+    }
+
+    static string Trunc(string s, int max) => s.Length <= max ? s : s[..max];
+
+    /// <summary>최근 Completed 실행의 스냅샷. 실행 이력이 없으면 null.</summary>
+    public MrpSnapshot? GetLatestMrp()
+    {
+        var run = Query("""
+            SELECT TOP (1) MrpRunID, RunAt, HorizonStart, HorizonEnd,
+                   ISNULL(WosConsidered,0) AS WosConsidered, ISNULL(PrsCreated,0) AS PrsCreated,
+                   ISNULL(ShortageCount,0) AS ShortageCount, ISNULL(DurationMs,0) AS DurationMs, Status
+            FROM   dbo.PP_MRPLog
+            WHERE  Status = 'Completed'
+            ORDER BY MrpRunID DESC;
+            """, r => new MrpRunRow((int)r["MrpRunID"], r["RunAt"] as DateTime?,
+                r["HorizonStart"] as DateTime?, r["HorizonEnd"] as DateTime?,
+                (int)r["WosConsidered"], (int)r["PrsCreated"], (int)r["ShortageCount"],
+                (int)r["DurationMs"], r["Status"] as string)).FirstOrDefault();
+        if (run is null) return null;
+
+        var wos = Query("""
+            SELECT rw.ItemNo, rw.WoID, w.WoNumber, rw.RequiredQty, w.DueDate
+            FROM   dbo.PP_MRPResultWo rw
+            LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = rw.WoID
+            WHERE  rw.MrpRunID = @R
+            ORDER BY ISNULL(w.DueDate,'9999-12-31'), rw.WoID;
+            """, r => (ItemNo: (string)r["ItemNo"], Wo: new MrpWoRef((int)r["WoID"], r["WoNumber"] as string,
+                r.GetDecimal(r.GetOrdinal("RequiredQty")), r["DueDate"] as DateTime?)),
+            ("@R", run.MrpRunId))
+            .GroupBy(x => x.ItemNo, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<MrpWoRef>)g.Select(x => x.Wo).ToList(), StringComparer.OrdinalIgnoreCase);
+
+        var materials = Query("""
+            SELECT r.ItemNo, i.ItemName, i.DefaultUOM, r.RequiredQty, r.StockQty, r.OnOrderQty, r.ShortageQty,
+                   r.LeadTimeDays, r.OrderDue, r.PrID, p.PrNumber
+            FROM   dbo.PP_MRPResult r
+            LEFT JOIN dbo.MD_Item i ON i.ItemNo = r.ItemNo
+            LEFT JOIN dbo.PP_PurchaseRequest p ON p.PrID = r.PrID
+            WHERE  r.MrpRunID = @R
+            ORDER BY CASE WHEN r.ShortageQty > 0 AND r.PrID IS NULL THEN 0 ELSE 1 END, r.ItemNo;
+            """, r =>
+            {
+                var itemNo = (string)r["ItemNo"];
+                return new MrpMaterialRow(run.MrpRunId, itemNo, r["ItemName"] as string, r["DefaultUOM"] as string,
+                    r.GetDecimal(r.GetOrdinal("RequiredQty")), r.GetDecimal(r.GetOrdinal("StockQty")),
+                    r.GetDecimal(r.GetOrdinal("OnOrderQty")), r.GetDecimal(r.GetOrdinal("ShortageQty")),
+                    r["LeadTimeDays"] as int?, r["OrderDue"] as DateTime?,
+                    r["PrID"] as int?, r["PrNumber"] as string,
+                    wos.TryGetValue(itemNo, out var w) ? w : Array.Empty<MrpWoRef>());
+            }, ("@R", run.MrpRunId));
+
+        return new MrpSnapshot(run, materials);
+    }
+
+    /// <summary>부족량 그대로 PR 을 만든다. <see cref="CreateShortagePrs(int, IReadOnlyCollection{MrpPrRequest}, string)"/> 참조.</summary>
+    public List<MrpPrCreated> CreateShortagePrs(int runId, IReadOnlyCollection<string> itemNos, string by)
+        => CreateShortagePrs(runId, itemNos.Select(i => new MrpPrRequest(i)).ToList(), by);
+
+    /// <summary>
+    /// 요청 행마다 PP_PurchaseRequest(Draft, 수량 = 요청 수량(기본 부족량), 필요일 = 발주 기한 → 최단 WO 납기 → 오늘, WoID = 최단 납기 WO) 를 만들고
+    /// 결과 행에 연결한다(요청 수량만큼 부족 → 발주중 이관, 부족량보다 적으면 잔여 부족이 남는다). 이미 PR 이 있거나
+    /// 부족이 아닌 품번은 건너뛴다. 수량이 0 이하면 전체 거부. 한 트랜잭션.
+    /// </summary>
+    public List<MrpPrCreated> CreateShortagePrs(int runId, IReadOnlyCollection<MrpPrRequest> requests, string by)
+    {
+        var created = new List<MrpPrCreated>();
+        if (requests.Count == 0) return created;
+        foreach (var r in requests)
+            if (r.Qty is <= 0) throw new ArgumentOutOfRangeException(nameof(requests), $"{r.ItemNo}: PR quantity must be positive.");
+
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        var prefix = $"PR-{DateTime.Today:yyyy}-";
+        var seq = NextPrSeq(conn, tx, prefix);
+
+        foreach (var req in requests.DistinctBy(r => r.ItemNo, StringComparer.OrdinalIgnoreCase))
+        {
+            var itemNo = req.ItemNo;
+            using var sel = new SqlCommand("""
+                SELECT r.ShortageQty, r.OrderDue,
+                       (SELECT TOP (1) rw.WoID FROM dbo.PP_MRPResultWo rw
+                        LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = rw.WoID
+                        WHERE rw.MrpRunID = r.MrpRunID AND rw.ItemNo = r.ItemNo
+                        ORDER BY ISNULL(w.DueDate,'9999-12-31'), rw.WoID) AS WoID,
+                       (SELECT MIN(w.DueDate) FROM dbo.PP_MRPResultWo rw
+                        JOIN dbo.PP_WorkOrder w ON w.WoID = rw.WoID
+                        WHERE rw.MrpRunID = r.MrpRunID AND rw.ItemNo = r.ItemNo) AS WoDue
+                FROM   dbo.PP_MRPResult r WITH (UPDLOCK, HOLDLOCK)
+                WHERE  r.MrpRunID = @R AND r.ItemNo = @I AND r.PrID IS NULL AND r.ShortageQty > 0;
+                """, conn, tx);
+            sel.Parameters.Add("@R", SqlDbType.Int).Value = runId;
+            sel.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = itemNo;
+            decimal shortage; DateTime? orderDue, woDue; int? woId;
+            using (var rdr = sel.ExecuteReader())
+            {
+                if (!rdr.Read()) continue;
+                shortage = rdr.GetDecimal(rdr.GetOrdinal("ShortageQty"));
+                orderDue = rdr["OrderDue"] as DateTime?;
+                woId     = rdr["WoID"] as int?;
+                woDue    = rdr["WoDue"] as DateTime?;
+            }
+
+            var qty = req.Qty ?? shortage;
+            var prNumber = prefix + (++seq).ToString("D3");
+            using var ins = new SqlCommand("""
+                INSERT INTO dbo.PP_PurchaseRequest (PrNumber, ItemNo, VendorID, RequiredQty, RequiredDate, WoID, Status, CreatedBy)
+                OUTPUT INSERTED.PrID
+                VALUES (@Pr, @I, NULL, @Qty, @Due, @Wo, 'Draft', @By);
+                """, conn, tx);
+            ins.Parameters.Add("@Pr",  SqlDbType.VarChar, 20).Value = prNumber;
+            ins.Parameters.Add("@I",   SqlDbType.VarChar, 20).Value = itemNo;
+            var q = ins.Parameters.Add("@Qty", SqlDbType.Decimal); q.Precision = 14; q.Scale = 3; q.Value = qty;
+            ins.Parameters.Add("@Due", SqlDbType.Date).Value = (orderDue ?? woDue ?? DateTime.Today).Date;
+            ins.Parameters.Add("@Wo",  SqlDbType.Int).Value = (object?)woId ?? DBNull.Value;
+            ins.Parameters.Add("@By",  SqlDbType.VarChar, 50).Value = Trunc(by, 50);
+            var prId = (int)ins.ExecuteScalar();
+
+            using var upd = new SqlCommand("""
+                UPDATE dbo.PP_MRPResult
+                SET    PrID = @P, OnOrderQty = OnOrderQty + @Qty, ShortageQty = ShortageQty - @Qty,
+                       ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+                WHERE  MrpRunID = @R AND ItemNo = @I;
+                UPDATE dbo.PP_MRPLog SET PrsCreated = ISNULL(PrsCreated,0) + 1, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+                WHERE  MrpRunID = @R;
+                """, conn, tx);
+            upd.Parameters.Add("@P",  SqlDbType.Int).Value = prId;
+            var uq = upd.Parameters.Add("@Qty", SqlDbType.Decimal); uq.Precision = 14; uq.Scale = 3; uq.Value = qty;
+            upd.Parameters.Add("@R",  SqlDbType.Int).Value = runId;
+            upd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value = itemNo;
+            upd.Parameters.Add("@By", SqlDbType.NVarChar, 450).Value = by;
+            upd.ExecuteNonQuery();
+
+            created.Add(new MrpPrCreated(itemNo, prId, prNumber));
+        }
+        tx.Commit();
+        return created;
+    }
+
+    /// <summary>접두사(PR-yyyy-) 내 마지막 채번. NextWoSeq 와 같은 범위 잠금.</summary>
+    static int NextPrSeq(SqlConnection conn, SqlTransaction tx, string prefix)
+    {
+        using var cmd = new SqlCommand("""
+            SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(PrNumber, LEN(@P) + 1, 10) AS INT)), 0)
+            FROM   dbo.PP_PurchaseRequest WITH (UPDLOCK, HOLDLOCK)
+            WHERE  PrNumber LIKE @P + '%';
+            """, conn, tx);
+        cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = prefix;
+        return (int)cmd.ExecuteScalar();
+    }
+
     // ── PP-006 Purchase Request ─────────────────────────────────────────
     public List<PrRow> ListPurchaseRequests(int topN = 50)
     {

@@ -1,0 +1,69 @@
+/* PP-005 MRP — PP-003 과 같은 전체 높이 그리드 + 선택 체크박스, 부족/PR 행 강조, 상세·일괄 PR 모달.
+   TopBar 60px + .ames-content 상단 12 / 하단 16 패딩 = 88px */
+.mrp-page {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 88px);
+    min-height: 360px;
+}
+
+.mrp-grid {
+    flex: 1;
+    min-height: 0;
+}
+
+.mrp-grid ::deep .rz-data-grid,
+.mrp-grid ::deep .rz-datatable {
+    height: 100%;
+}
+
+/* 선택 체크박스 — 테마 액센트 (부족·PR 미생성 행만 활성) */
+::deep .mrp-ck {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    accent-color: #2563eb;
+}
+::deep .mrp-ck:disabled {
+    cursor: not-allowed;
+    opacity: .4;
+}
+
+.mrp-runbar { display: flex; align-items: center; gap: 12px; padding: 6px 0 10px; font-size: 12px; color: #93c5fd; }
+
+::deep .mrp-neg { color: #fca5a5; font-weight: 800; }
+::deep .mrp-pos { color: #86efac; font-weight: 700; }
+
+::deep tr.mrp-short .rz-data-cell,
+::deep tr.mrp-short td { background: rgba(220, 38, 38, .09) !important; }
+::deep tr.mrp-fixed .rz-data-cell,
+::deep tr.mrp-fixed td { background: rgba(37, 99, 235, .08) !important; }
+
+/* 고정(Frozen) 셀은 반투명 강조색만 두면 가로 스크롤된 뒤 컬럼이 비친다 —
+   app.css 의 불투명 고정 배경 위에 강조색을 겹친다 (범위 CSS 가 우선순위가 높아 여기서 다시 지정) */
+::deep tr.mrp-short td.rz-frozen-cell { background: linear-gradient(rgba(220, 38, 38, .09), rgba(220, 38, 38, .09)), var(--ames-frozen-bg) !important; }
+::deep tr.mrp-fixed td.rz-frozen-cell { background: linear-gradient(rgba(37, 99, 235, .08), rgba(37, 99, 235, .08)), var(--ames-frozen-bg) !important; }
+
+.mrp-dgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+.mrp-dt { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 8px; padding: 8px 10px; }
+.mrp-dl { font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: #94a3b8; margin-bottom: 4px; }
+.mrp-dv { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.mrp-dv.neg { color: #fca5a5; }
+.mrp-dv.pos { color: #86efac; }
+.mrp-dsub { font-size: 11px; color: #94a3b8; margin: 4px 0 6px; }
+.mrp-wochip { display: inline-block; margin: 0 6px 6px 0; padding: 2px 8px; border-radius: 6px; font-family: ui-monospace, monospace; font-size: 11px;
+              background: rgba(147,197,253,.12); color: #93c5fd; border: 1px solid rgba(147,197,253,.3); }
+.mrp-hint { margin-top: 8px; font-size: 11px; font-weight: 600; }
+.mrp-hint.neg  { color: #fca5a5; }
+.mrp-hint.info { color: #93c5fd; }
+
+.mrp-bulk-list { max-height: 300px; overflow-y: auto; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; }
+.mrp-bulk-item { display: flex; align-items: center; gap: 12px; padding: 6px 10px; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,.06); }
+.mrp-bulk-item > :first-child { flex: 1; min-width: 0; }
+.mrp-bulk-item:last-child { border-bottom: 0; }
+.mrp-bulk-item.warn { background: rgba(217,119,6,.08); }
+.mrp-bulk-item.bad  { background: rgba(220,38,38,.10); }
+.mrp-bulk-head { font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: #94a3b8; background: rgba(255,255,255,.03); }
+.mrp-bulk-qty { width: 150px; flex: none; text-align: right; display: inline-flex; justify-content: flex-end; align-items: center; gap: 6px; }
+.mrp-bulk-foot { display: flex; justify-content: space-between; padding: 7px 10px 0; font-size: 12px; }
+.mrp-hint.warn { color: #fbbf24; }
