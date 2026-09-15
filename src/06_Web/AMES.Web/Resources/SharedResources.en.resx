@@ -8022,4 +8022,10 @@
   <data name="PP.Mrp.Err.Qty" xml:space="preserve">
     <value>PR quantity must be greater than 0.</value>
   </data>
+  <data name="PP.Mrp.Detail.OpenPrs" xml:space="preserve">
+    <value>Open purchase requests (counted in On Order, no PO yet)</value>
+  </data>
+  <data name="PP.Mrp.Detail.NoPrs" xml:space="preserve">
+    <value>No open purchase requests.</value>
+  </data>
 </root>

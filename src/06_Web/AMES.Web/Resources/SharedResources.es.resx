@@ -7995,4 +7995,10 @@
   <data name="PP.Mrp.Err.Qty" xml:space="preserve">
     <value>La cantidad del PR debe ser mayor que 0.</value>
   </data>
+  <data name="PP.Mrp.Detail.OpenPrs" xml:space="preserve">
+    <value>Solicitudes de compra abiertas (en pedido, sin PO)</value>
+  </data>
+  <data name="PP.Mrp.Detail.NoPrs" xml:space="preserve">
+    <value>Sin solicitudes de compra abiertas.</value>
+  </data>
 </root>

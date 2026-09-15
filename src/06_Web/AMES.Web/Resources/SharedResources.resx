@@ -8022,4 +8022,10 @@
   <data name="PP.Mrp.Err.Qty" xml:space="preserve">
     <value>PR 수량은 0보다 커야 합니다.</value>
   </data>
+  <data name="PP.Mrp.Detail.OpenPrs" xml:space="preserve">
+    <value>구매 요청중 (발주중 반영분, PO 미전환)</value>
+  </data>
+  <data name="PP.Mrp.Detail.NoPrs" xml:space="preserve">
+    <value>진행 중인 구매요청이 없습니다.</value>
+  </data>
 </root>

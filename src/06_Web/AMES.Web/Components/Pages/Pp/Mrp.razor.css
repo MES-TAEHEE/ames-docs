@@ -69,4 +69,7 @@
 .mrp-bulk-head { font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: #94a3b8; background: rgba(255,255,255,.03); }
 .mrp-bulk-qty { width: 150px; flex: none; text-align: right; display: inline-flex; justify-content: flex-end; align-items: center; gap: 6px; }
 .mrp-bulk-foot { display: flex; justify-content: space-between; padding: 7px 10px 0; font-size: 12px; }
+/* 상세 모달 — 진행 중 구매요청 열 */
+.mrp-pr-col { width: 96px; flex: none; text-align: right; }
+.mrp-pr-col.wide { width: 150px; }
 .mrp-hint.warn { color: #fbbf24; }

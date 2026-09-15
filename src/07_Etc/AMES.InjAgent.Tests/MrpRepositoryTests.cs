@@ -189,6 +189,32 @@ public class MrpRepositoryTests
     }
 
     [SkippableFact]
+    public void ListOpenPrsForItem_returns_only_prs_not_yet_converted_to_po()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Seed(f!);
+        try
+        {
+            Exec(f!, """
+                INSERT INTO dbo.PP_PurchaseRequest (PrNumber, ItemNo, RequiredQty, RequiredDate, Status, SapPoNumber, CreatedBy)
+                VALUES ('ITEST-PR-PO', @RM, 5, '2026-01-01', 'Approved', 'PO-ITEST', @By),
+                       ('ITEST-PR-REJ', @RM, 5, '2026-01-01', 'Rejected', NULL, @By),
+                       ('ITEST-PR-OTHER', @OK, 5, '2026-01-01', 'Draft', NULL, @By);
+                """, ("@RM", Rm), ("@OK", Ok), ("@By", Actor));
+            var repo = new PpRepository(f!);
+            var runId = repo.RunMrp(Actor);
+            var created = Assert.Single(repo.CreateShortagePrs(runId, new[] { Rm }, Actor));
+
+            var open = repo.ListOpenPrsForItem(Rm);
+            var only = Assert.Single(open);
+            Assert.Equal(created.PrNumber, only.PrNumber);
+            Assert.Equal("ITEST-MRP-WO-1", only.WoNumber);
+            Assert.Empty(repo.ListOpenPrsForItem("ITEST-MRP-NONE"));
+        }
+        finally { Cleanup(f!); }
+    }
+
+    [SkippableFact]
     public void RunMrp_with_circular_bom_logs_failed_run_and_throws()
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");

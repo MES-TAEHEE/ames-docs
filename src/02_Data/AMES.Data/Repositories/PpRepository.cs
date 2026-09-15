@@ -1178,6 +1178,34 @@ public sealed class PpRepository
         return created;
     }
 
+    /// <summary>
+    /// 자재의 진행 중 구매요청 — PO 미전환(SapPoNumber 없음) Draft/Pending/Approved. RunMrp 가 발주중으로 세는 PR 과 같은 범위.
+    /// </summary>
+    public List<PrRow> ListOpenPrsForItem(string itemNo)
+    {
+        const string sql = """
+            SELECT p.PrID, p.PrNumber, p.ItemNo, i.ItemName,
+                   p.VendorID, ISNULL(p.RequiredQty,0) AS RequiredQty,
+                   p.RequiredDate, p.Status, p.SapPoNumber,
+                   p.WoID, w.WoNumber, p.ApprovedBy, p.ApprovedAt, p.CreatedBy, p.CreatedTS
+            FROM   dbo.PP_PurchaseRequest p
+            LEFT JOIN dbo.MD_Item      i ON i.ItemNo = p.ItemNo
+            LEFT JOIN dbo.PP_WorkOrder w ON w.WoID   = p.WoID
+            WHERE  p.ItemNo = @I AND p.SapPoNumber IS NULL AND p.Status IN ('Draft','Pending','Approved')
+            ORDER BY ISNULL(p.RequiredDate, '9999-01-01'), p.PrID;
+            """;
+        return Query(sql, MapPr, ("@I", itemNo));
+    }
+
+    static PrRow MapPr(IDataReader r) => new(
+        (int)r["PrID"], r["PrNumber"] as string,
+        r["ItemNo"] as string ?? "", r["ItemName"] as string,
+        r["VendorID"] as string, r.GetDecimal(r.GetOrdinal("RequiredQty")),
+        r["RequiredDate"] as DateTime?, r["Status"] as string,
+        r["SapPoNumber"] as string,
+        r["WoID"] as int?, r["WoNumber"] as string, r["ApprovedBy"] as string, r["ApprovedAt"] as DateTime?,
+        r["CreatedBy"] as string, r["CreatedTS"] as DateTime?);
+
     /// <summary>접두사(PR-yyyy-) 내 마지막 채번. NextWoSeq 와 같은 범위 잠금.</summary>
     static int NextPrSeq(SqlConnection conn, SqlTransaction tx, string prefix)
     {

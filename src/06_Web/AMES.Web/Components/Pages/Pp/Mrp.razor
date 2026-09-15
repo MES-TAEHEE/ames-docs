@@ -168,6 +168,31 @@ else
             {
                 <div class="mrp-hint info">✓ @string.Format(L["PP.Mrp.Detail.HintPr"].Value, _sel.PrNumber ?? $"PR#{_sel.PrId}")</div>
             }
+
+            <div class="mrp-dsub" style="margin-top:12px;">@L["PP.Mrp.Detail.OpenPrs"] · @_selPrs.Count</div>
+            @if (_selPrs.Count == 0) { <span class="dim" style="font-size:11px;">@L["PP.Mrp.Detail.NoPrs"]</span> }
+            else
+            {
+                <div class="mrp-bulk-list">
+                    <div class="mrp-bulk-item mrp-bulk-head">
+                        <span>@L["Col.PrNo"]</span>
+                        <span class="mrp-pr-col">@L["Col.Qty"]</span>
+                        <span class="mrp-pr-col">@L["Col.Required"]</span>
+                        <span class="mrp-pr-col">@L["Col.Status"]</span>
+                        <span class="mrp-pr-col wide">@L["Col.WoNo"]</span>
+                    </div>
+                    @foreach (var p in _selPrs)
+                    {
+                        <div class="mrp-bulk-item">
+                            <span><a class="code mrp-prlink" href="@($"pp/purchase-req?pr={Uri.EscapeDataString(p.PrNumber ?? $"PR#{p.PrId}")}")" title="PP-006">@(p.PrNumber ?? $"PR#{p.PrId}")</a></span>
+                            <span class="mrp-pr-col code">@Q(p.RequiredQty) <span class="dim">@_sel.Uom</span></span>
+                            <span class="mrp-pr-col dim">@(p.RequiredDate?.ToString(DateFmt.Date) ?? "—")</span>
+                            <span class="mrp-pr-col"><span class="pill @PrStCls(p.Status)">@(p.Status ?? "—")</span></span>
+                            <span class="mrp-pr-col wide code dim">@(p.WoNumber ?? "—")</span>
+                        </div>
+                    }
+                </div>
+            }
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@L["Btn.Close"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
@@ -309,7 +334,18 @@ else
         finally { _running = false; }
     }
 
-    void OpenDetail(PpRepository.MrpMaterialRow r) { _sel = r; _modal = "detail"; }
+    List<PpRepository.PrRow> _selPrs = new();
+
+    void OpenDetail(PpRepository.MrpMaterialRow r)
+    {
+        _sel = r;
+        try { _selPrs = Pp.ListOpenPrsForItem(r.ItemNo); }
+        catch (Exception ex) { _selPrs = new(); ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
+        _modal = "detail";
+    }
+
+    // PP-006 과 같은 상태 색
+    static string PrStCls(string? s) => s switch { "Approved" => "ok", "Pending" => "warn", "Rejected" => "bad", _ => "mute" };
 
     // 모달의 PR 수량 — 기본 부족량, 사용자가 조절(부족량 미만은 잔여 부족, 초과 허용, 0 이하 불가)
     readonly Dictionary<string, decimal> _prQty = new(StringComparer.OrdinalIgnoreCase);
