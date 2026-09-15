@@ -10,7 +10,11 @@
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["AMES.Web.styles.css"]" />
     <ImportMap />
-    <link rel="icon" type="image/png" href="favicon.png" />
+    @* 파비콘은 브라우저가 URL 단위로 오래 캐시한다 — 이미지를 바꾸면 ?v= 값을 올려 다시 받게 한다 (2026-09-15 회사 CI 체브런) *@
+    <link rel="icon" type="image/png" sizes="64x64" href="favicon.png?v=eos1" />
+    <link rel="icon" type="image/png" sizes="32x32" href="brand/favicon-32.png?v=eos1" />
+    <link rel="icon" type="image/png" sizes="16x16" href="brand/favicon-16.png?v=eos1" />
+    <link rel="shortcut icon" href="favicon.png?v=eos1" />
     <HeadOutlet />
 </head>
 
