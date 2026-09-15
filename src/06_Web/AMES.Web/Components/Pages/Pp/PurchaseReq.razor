@@ -104,9 +104,6 @@ else
             <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="Status" Title="@L["Col.Status"].Value" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="pill @StCls(r.Status)">@StText(r)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="WoNumber" Title="@L["Col.WoNo"].Value" TextAlign="TextAlign.Center" Width="150px">
-                <Template Context="r"><span class="code dim">@(r.WoNumber ?? "—")</span></Template>
-            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="SapPoNumber" Title="@L["Col.SapPo"].Value" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r">@if (r.SapPoNumber is { Length: > 0 }) { <span class="pill ok">@r.SapPoNumber</span> } else { <span class="dim">—</span> }</Template>
             </RadzenDataGridColumn>
