@@ -28,3 +28,14 @@ foreach (var file in new[]
 
 var layout = Read("src/06_Web/AMES.Web/Components/Layout/MainLayout.razor");
 Check(layout.Contains("ames-sec-wh") && layout.Contains("ames-sec-fg"), "WH and FG sections receive fixed-grid layout scope");
+
+var screens = Read("src/06_Web/AMES.Web/Components/Pages/Sys/Screens.razor");
+var nav = Read("src/06_Web/AMES.Web/Components/Layout/NavMenu.razor");
+var header = Read("src/06_Web/AMES.Web/Components/Layout/AmesPageHeader.razor");
+var repo = Read("src/02_Data/AMES.Data/Repositories/SysRepository.cs");
+Check(screens.Contains("ScreenCatalog.Notify()") && nav.Contains("ScreenCatalog.Changed += OnScreensChanged") &&
+      header.Contains("ScreenCatalog.Changed += OnScreensChanged"), "Screen Master saves refresh open menus and headers");
+Check(header.Contains("Sys.ListScreens(\"WEB\")") && nav.Contains("s.LidLabel ?? s.ScreenCode") &&
+      nav.Contains("s.IsVisible"), "Menu and page header use visible Screen Master entries");
+Check(screens.Contains("lid = code") && repo.Contains("BEGIN TRANSACTION;") &&
+      repo.Contains("UPDATE dbo.SYS_RolePermission"), "Screen code edits retain labels and role permissions");
