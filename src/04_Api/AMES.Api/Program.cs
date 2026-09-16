@@ -31,6 +31,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "AMES API", Version = "v1" });
+    // 엔드포인트 파일마다 같은 이름의 중첩 요청 레코드(예: Wh/Fg 의 AdjustSaveReq)가 있어
+    // 기본 schemaId(타입 단순명)로는 충돌해 swagger.json 이 500 을 낸다 — 선언 타입까지 포함한 이름을 쓴다.
+    c.CustomSchemaIds(SwaggerSchemaId);
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Name        = "Authorization",
@@ -73,3 +76,17 @@ app.MapRpt(factory);
 app.MapSys(factory);
 
 app.Run();
+
+// Swagger schemaId: 중첩 레코드는 선언 타입까지, 제너릭은 인자 이름까지 포함해 유일하게 만든다.
+static string SwaggerSchemaId(Type t)
+{
+    if (t.IsGenericType)
+    {
+        var bare = t.Name[..t.Name.IndexOf('`')];
+        return bare + "Of" + string.Join("And", t.GetGenericArguments().Select(SwaggerSchemaId));
+    }
+    return (t.FullName ?? t.Name)
+        .Replace("AMES.Api.Endpoints.", "")
+        .Replace("AMES.Contracts.Dto.", "")
+        .Replace('+', '.');
+}

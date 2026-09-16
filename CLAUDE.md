@@ -94,7 +94,10 @@ tools\publish-web.ps1                               # 개발서버 복사용 패
 tools\publish-web.ps1 -Zip                          # + zip
 tools\publish-web.ps1 -Target Local                 # 로컬 IIS 반영 (개발서버 DB)
 tools\publish-web.ps1 -Target Local -DbTarget Local # 로컬 IIS 반영 (비상: 로컬 DB)
+tools\publish-api.ps1 [-Zip] [-Target Local [-EnsureIis] [-DbTarget Local]]   # AMES.Api 도 같은 방식 → publish\AMES.Api / C:\inetpub\wwwroot\Source\AMES.Api
 ```
+
+AMES.Api 는 로컬 IIS 사이트 `AMES.Api`(앱풀 `AMES.Api`, `http *:5210` — Web 의 `Services:ApiBaseUrl` 과 같은 포트, 물리 경로 `C:\inetpub\wwwroot\Source\AMES.Api`)로 구동된다(09-16). 앱풀은 Web 과 반드시 분리한다 — in-process 는 앱풀 하나에 앱 하나만 허용해 같이 두면 500.30 이 난다. 사이트·앱풀이 없는 PC 에서는 `-EnsureIis`(관리자)로 만든다. IIS 아래에서는 appsettings 의 `Urls` 가 무시되고 바인딩 포트를 쓴다. 기동 확인은 `GET http://localhost:5210/api/health`.
 
 - **라이브 IIS 폴더로 직접 게시하면 반드시 실패한다** — `w3wp`가 `AMES.Web.dll`을 잡고 있다.
   `-Target Local`은 `app_offline.htm`을 먼저 떨궈 ANCM이 앱을 내리게 하므로 잠금이 풀리고 관리자 권한도 필요 없다.
