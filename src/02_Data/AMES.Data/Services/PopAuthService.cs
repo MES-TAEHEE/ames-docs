@@ -37,7 +37,7 @@ public sealed class PopAuthService
         //    Web-account profiles win over MD_Worker on a duplicated badge number
         //    so an existing office user keeps behaving exactly as before.
         var profile = _auth.FindByEmployeeNo(req.AttemptedId)
-                      ?? _workers.FindByWorkerNo(req.AttemptedId);
+                      ?? _workers.FindByEmployeeNo(req.AttemptedId);
         if (profile is null)
         {
             _sessions.WriteAuthLog(req.TerminalId, req.AttemptedId, req.Method,

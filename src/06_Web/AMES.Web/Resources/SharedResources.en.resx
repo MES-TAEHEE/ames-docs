@@ -7237,10 +7237,10 @@
     <value>Badge auto-registered</value>
   </data>
   <data name="MD.Workers.Ph.Search" xml:space="preserve">
-    <value>Worker No / Name</value>
+    <value>Employee No / Name</value>
   </data>
   <data name="MD.Workers.Col.WorkerNo" xml:space="preserve">
-    <value>Worker No</value>
+    <value>Employee No</value>
   </data>
   <data name="MD.Workers.Col.WorkerName" xml:space="preserve">
     <value>Name</value>
@@ -7267,7 +7267,7 @@
     <value>Badge scan</value>
   </data>
   <data name="MD.Workers.Lbl.WorkerNo" xml:space="preserve">
-    <value>Worker No</value>
+    <value>Employee No</value>
   </data>
   <data name="MD.Workers.Lbl.WorkerName" xml:space="preserve">
     <value>Name</value>
@@ -7294,7 +7294,7 @@
     <value>Enter only to change</value>
   </data>
   <data name="MD.Workers.Hint.WorkerNoFixed" xml:space="preserve">
-    <value>Worker No is recorded on POP sessions and results, so it cannot be changed.</value>
+    <value>Employee No is recorded on POP sessions and results, so it cannot be changed.</value>
   </data>
   <data name="MD.Workers.Hint.NoPin" xml:space="preserve">
     <value>Badge sign-in only · PIN setup is forced at the next badge sign-in.</value>
@@ -7303,7 +7303,7 @@
     <value>Clear PIN</value>
   </data>
   <data name="MD.Workers.Err.WorkerNoRequired" xml:space="preserve">
-    <value>Worker No is required.</value>
+    <value>Employee No is required.</value>
   </data>
   <data name="MD.Workers.Err.NameRequired" xml:space="preserve">
     <value>Name is required.</value>
@@ -7312,7 +7312,7 @@
     <value>PIN must be exactly 4 digits.</value>
   </data>
   <data name="MD.Workers.Err.Duplicate" xml:space="preserve">
-    <value>Worker No {0} already exists.</value>
+    <value>Employee No {0} already exists.</value>
   </data>
   <data name="MD.Workers.Ok.Created" xml:space="preserve">
     <value>Worker {0} created.</value>
@@ -8228,5 +8228,74 @@
   </data>
   <data name="Col.ChangedBy" xml:space="preserve">
     <value>Changed by</value>
+  </data>
+  <data name="MD.LineSupervisors.Title" xml:space="preserve">
+    <value>Line Supervisor Master</value>
+  </data>
+  <data name="MD.LineSupervisors.List" xml:space="preserve">
+    <value>Line supervisors</value>
+  </data>
+  <data name="MD.LineSupervisors.Hint" xml:space="preserve">
+    <value>Click a row to edit. Only supervisors registered here can acknowledge an andon on that line by badge scan.</value>
+  </data>
+  <data name="MD.LineSupervisors.Empty" xml:space="preserve">
+    <value>No supervisors registered</value>
+  </data>
+  <data name="MD.LineSupervisors.Ph.Search" xml:space="preserve">
+    <value>Line / Employee No / Name</value>
+  </data>
+  <data name="MD.LineSupervisors.Col.EmployeeNo" xml:space="preserve">
+    <value>Employee No</value>
+  </data>
+  <data name="MD.LineSupervisors.Col.Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="MD.LineSupervisors.Col.Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="MD.LineSupervisors.Src.Worker" xml:space="preserve">
+    <value>Worker</value>
+  </data>
+  <data name="MD.LineSupervisors.Src.User" xml:space="preserve">
+    <value>Web user</value>
+  </data>
+  <data name="MD.LineSupervisors.Src.Unknown" xml:space="preserve">
+    <value>Not found</value>
+  </data>
+  <data name="MD.LineSupervisors.Lbl.Person" xml:space="preserve">
+    <value>Supervisor</value>
+  </data>
+  <data name="MD.LineSupervisors.Hint.Person" xml:space="preserve">
+    <value>Only active employees from Worker Master and web users holding the Supervisor role can be selected.</value>
+  </data>
+  <data name="MD.LineSupervisors.Hint.KeyFixed" xml:space="preserve">
+    <value>Line and employee are the key and cannot be changed. Delete and register again instead.</value>
+  </data>
+  <data name="MD.LineSupervisors.Err.LineRequired" xml:space="preserve">
+    <value>Select a line.</value>
+  </data>
+  <data name="MD.LineSupervisors.Err.PersonRequired" xml:space="preserve">
+    <value>Select a supervisor.</value>
+  </data>
+  <data name="MD.LineSupervisors.Err.Duplicate" xml:space="preserve">
+    <value>{1} is already registered on line {0}.</value>
+  </data>
+  <data name="MD.LineSupervisors.Ok.Created" xml:space="preserve">
+    <value>Registered {1} on {0}.</value>
+  </data>
+  <data name="MD.LineSupervisors.Ok.Updated" xml:space="preserve">
+    <value>Updated {1} on {0}.</value>
+  </data>
+  <data name="MD.LineSupervisors.Ok.Deleted" xml:space="preserve">
+    <value>Deleted {1} from {0}.</value>
+  </data>
+  <data name="MD.LineSupervisors.Kpi.Lines" xml:space="preserve">
+    <value>Lines covered</value>
+  </data>
+  <data name="MD.LineSupervisors.Kpi.LinesSub" xml:space="preserve">
+    <value>of {0} active lines</value>
+  </data>
+  <data name="MD.LineSupervisors.Kpi.NoSup" xml:space="preserve">
+    <value>Lines without supervisor</value>
   </data>
 </root>

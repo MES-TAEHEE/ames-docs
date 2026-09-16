@@ -39,7 +39,7 @@ internal sealed class RepoBadgeResolver : IBadgeResolver
         try
         {
             return PopServices.Auth.FindByEmployeeNo(workerNo)?.EmployeeName
-                ?? PopServices.Workers.FindByWorkerNo(workerNo)?.EmployeeName;
+                ?? PopServices.Workers.FindByEmployeeNo(workerNo)?.EmployeeName;
         }
         catch (Microsoft.Data.SqlClient.SqlException)
         {

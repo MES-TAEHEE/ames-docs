@@ -280,7 +280,7 @@
 
         // 우리가 발행한 EOS 배지는 모르는 사번이면 그 자리에서 MD_Worker 에 만든다.
         // 로그인 화면 스캔에서만 — PopAuthService 를 공유하는 PDA/API 는 종전대로
-        // 등록된 사람만 받는다. 20자는 정책이 아니라 WorkerNo 컬럼 길이다.
+        // 등록된 사람만 받는다. 20자는 정책이 아니라 MD_Worker.EmployeeNo 컬럼 길이다.
         if (scan.IsEosFormat && scan.WorkerNo.Length <= 20)
             PopServices.Workers.EnsureRegistered(scan.WorkerNo, scan.WorkerName);
 

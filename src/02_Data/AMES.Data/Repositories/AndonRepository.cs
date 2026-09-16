@@ -147,7 +147,7 @@ public sealed class AndonRepository
     {
         const string sql = """
             SELECT 1 FROM dbo.MD_LineSupervisor
-            WHERE  LineID = @L AND WorkerNo = @W AND ActiveFlag = 1;
+            WHERE  LineID = @L AND EmployeeNo = @W AND ActiveFlag = 1;
             """;
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);

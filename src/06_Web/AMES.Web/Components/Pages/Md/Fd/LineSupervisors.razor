@@ -1,0 +1,375 @@
+@page "/md/fd/line-supervisors"
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
+@using Radzen
+
+@attribute [Authorize]
+
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject LineSupervisorRepository SupRepo
+@inject MasterDataRepository MD
+@inject IStringLocalizer<SharedResources> L
+
+<PageTitle>MD-033 @L["MD.LineSupervisors.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="MD-033" TitleKey="MD.LineSupervisors.Title" />
+
+@* ── KPI strip ──────────────────────────────────────────────────── *@
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["Lbl.Total"]</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MD.LineSupervisors.Kpi.Lines"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@CoveredLines</div>
+            <div class="ames-kpi-s">@string.Format(L["MD.LineSupervisors.Kpi.LinesSub"].Value, ActiveLines.Count())</div>
+        </div>
+    </div>
+    <div class="ames-kpi @(UncoveredLines > 0 ? "warn" : "ok")">
+        <div class="ames-kpi-l">@L["MD.LineSupervisors.Kpi.NoSup"]</div>
+        <div class="ames-kpi-v">@UncoveredLines</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["MD.LineSupervisors.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Change="@(v => _fSearch = v ?? "")" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.LineSupervisors.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+            <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
+            <RadzenDropDown Name="DropDownLine" @bind-Value="_fLine" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
+            <RadzenLabel Text="@L["Col.Active"]" Component="DropDownStatus" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@(args => Reload())" class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
+            }
+        </RadzenStack>
+    </div>
+    <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["MD.LineSupervisors.Hint"]</div>
+
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="LineSupervisorRepository.Row" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.LineSupervisors.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+        <Columns>
+            <RadzenDataGridColumn TItem="LineSupervisorRepository.Row" Property="LineId" Title="@L["Col.Line"]" Width="260px">
+                <Template Context="s">
+                    <span class="code">@s.LineId</span>
+                    @if (!string.IsNullOrEmpty(LineName(s))) { <span class="dim" style="font-size:.8em;margin-left:4px;">@LineName(s)</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineSupervisorRepository.Row" Property="EmployeeNo" Title="@L["MD.LineSupervisors.Col.EmployeeNo"]" TextAlign="TextAlign.Center" Width="130px">
+                <Template Context="s"><span class="code">@s.EmployeeNo</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineSupervisorRepository.Row" Property="EmployeeName" Title="@L["MD.LineSupervisors.Col.Name"]">
+                <Template Context="s">@(string.IsNullOrEmpty(s.EmployeeName) ? "—" : s.EmployeeName)</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineSupervisorRepository.Row" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="s">
+                    @if (s.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
+                    else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineSupervisorRepository.Row" Property="CreatedBy" Title="@L["MD.Workers.Col.CreatedBy"]" TextAlign="TextAlign.Center" Width="150px">
+                <Template Context="s"><span class="dim">@s.CreatedBy</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineSupervisorRepository.Row" Property="CreatedTs" Title="@L["MD.Workers.Col.CreatedTs"]" TextAlign="TextAlign.Center" Width="130px">
+                <Template Context="s"><span class="dim">@(s.CreatedTs?.ToString(DateFmt.MonthDayTime) ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="LineSupervisorRepository.Row" Property="ModifiedTs" Title="@L["MD.Workers.Col.ModifiedTs"]" TextAlign="TextAlign.Center" Width="130px">
+                <Template Context="s"><span class="dim">@(s.ModifiedTs?.ToString(DateFmt.MonthDayTime) ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+@* ── Create Modal ─────────────────────────────────────────────────── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.LineSupervisors.Title"] — @L["Modal.Create"]</div>
+
+            <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["Col.Line"]} *")' class="ames-rz-modal-label" Component="CreateDropDownLine" />
+                    <RadzenDropDown AllowFiltering="true" Name="CreateDropDownLine" @bind-Value="_f.LineId" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["MD.LineSupervisors.Lbl.Person"]} *")' class="ames-rz-modal-label" Component="CreateDropDownPerson" />
+                    <RadzenDropDown AllowFiltering="true" Name="CreateDropDownPerson" @bind-Value="_f.EmployeeNo" Data="@PersonOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["Col.Active"]" class="ames-rz-modal-label" Component="CreateChkActive" />
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="CreateChkActive" />
+                </RadzenStack>
+            </RadzenStack>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Click="@SaveCreate" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@* ── Edit Modal — 키(라인·사번)는 고정, 활성 여부·삭제만 ─────────────── *@
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.LineSupervisors.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.LineId · @_sel.EmployeeNo</span></div>
+
+            <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["Col.Line"]" class="ames-rz-modal-label" Component="EditTextBoxLine" />
+                    <RadzenTextBox Name="EditTextBoxLine" Value="@LineText(_sel.LineId)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["MD.LineSupervisors.Lbl.Person"]" class="ames-rz-modal-label" Component="EditTextBoxPerson" />
+                    <RadzenTextBox Name="EditTextBoxPerson" Value="@PersonText(_sel.EmployeeNo, _sel.EmployeeName)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["Col.Active"]" class="ames-rz-modal-label" Component="EditChkActive" />
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="EditChkActive" />
+                </RadzenStack>
+
+                <div class="dim" style="font-size:10px;">
+                    @L["MD.Workers.Col.CreatedBy"]: @_sel.CreatedBy · @(_sel.CreatedTs?.ToString(DateFmt.MonthDayTime) ?? "—")
+                    @if (!string.IsNullOrEmpty(_sel.ModifiedBy)) { <span> · @L["MD.Workers.Lbl.Modified"]: @_sel.ModifiedBy · @(_sel.ModifiedTs?.ToString(DateFmt.MonthDayTime) ?? "—")</span> }
+                </div>
+            </RadzenStack>
+
+            @if (_confirmDelete)
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@code {
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
+    bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
+    List<LineSupervisorRepository.Row>       _allRows = new();
+    List<LineSupervisorRepository.Row>       _rows    = new();
+    List<LineSupervisorRepository.PersonRow> _people  = new();   // Supervisor 역할 웹 사용자
+    List<MasterDataRepository.LineRow>       _lines   = new();
+    List<MasterDataRepository.CodeItemRow>   _activeFlagItems = new();
+    LineSupervisorRepository.Row? _sel;
+
+    string  _fSearch = "";
+    string? _fLine, _fActive;
+
+    string _modal = "";   // "" | "create" | "edit"
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf, _canEdit, _isErr;
+    string _actor = "system";
+    string _msg = "", _modalErr = "";
+
+    FormModel _f = new();
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
+    // 라인 콤보: 마스터(MD_Line) 활성 라인 — 안돈은 활성 라인에서만 발동된다
+    IEnumerable<MasterDataRepository.LineRow> ActiveLines => _lines.Where(l => !string.Equals(l.Status, "INACTIVE", StringComparison.OrdinalIgnoreCase));
+    IEnumerable<DropDownItem> LineOptions => ActiveLines.Select(l => new DropDownItem { Value = l.LineID, Text = LineText(l.LineID) });
+    // 슈퍼바이저 콤보: Supervisor 역할 웹 사용자 중 막히지 않은 계정만, "[사번] 이름"
+    IEnumerable<DropDownItem> PersonOptions => _people.Where(p => p.Active).Select(p => new DropDownItem { Value = p.EmployeeNo, Text = PersonText(p.EmployeeNo, p.Name) });
+    IEnumerable<DropDownItem> ActiveFilterOptions =>
+        _activeFlagItems.Where(a => a.UseFlag).Select(a => new DropDownItem { Value = a.CodeValue ?? "", Text = MasterDataRepository.LocalName(a) });
+
+    int CoveredLines   => ActiveLines.Count(l => _allRows.Any(r => r.ActiveFlag && r.LineId == l.LineID));
+    int UncoveredLines => ActiveLines.Count() - CoveredLines;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "system";
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("md/fd/line-supervisors");
+        try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
+        try { _lines  = MD.ListLines(); } catch { }
+        try { _people = SupRepo.ListPeople(); } catch (Exception ex) { ShowMsg(ex.Message, true); }
+        Reload();
+    }
+
+    RadzenDataGrid<LineSupervisorRepository.Row>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task ReloadRestorePage()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_rows.Count / (double)_pgGrid.PageSize));
+            await _pgGrid.GoToPage(Math.Min(_pgIndex, pages - 1));
+        }
+    }
+
+    void Reload()
+    {
+        try { _allRows = SupRepo.ListAll(); }
+        catch (Exception ex) { _allRows = new(); ShowMsg(ex.Message, true); }
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _rows = _allRows.Where(r =>
+            (string.IsNullOrEmpty(_fSearch) ||
+                r.LineId.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                LineName(r).Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                r.EmployeeNo.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                (r.EmployeeName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(_fLine) || r.LineId == _fLine) &&
+            (string.IsNullOrEmpty(_fActive) || (_fActive == "ACTIVE" ? r.ActiveFlag : !r.ActiveFlag))
+        ).ToList();
+    }
+
+    void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
+
+    void RowRender(RowRenderEventArgs<LineSupervisorRepository.Row> args)
+    {
+        args.Attributes["class"] = args.Attributes.TryGetValue("class", out var existing) ? $"{existing} ames-row-link" : "ames-row-link";
+    }
+
+    void OnRowClick(DataGridRowMouseEventArgs<LineSupervisorRepository.Row> args)
+    {
+        if (args.Data is not null) OpenEdit(args.Data);
+    }
+
+    void OpenCreate()
+    {
+        _f = new() { LineId = _fLine ?? "" }; _modalErr = ""; _confirmDelete = false;
+        _modal = "create";
+    }
+
+    void OpenEdit(LineSupervisorRepository.Row s)
+    {
+        if (!_canEdit) return;
+        _sel = s; _modalErr = ""; _confirmDelete = false;
+        _f = new() { LineId = s.LineId, EmployeeNo = s.EmployeeNo, ActiveFlag = s.ActiveFlag };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    async Task SaveCreate()
+    {
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.LineId))     { _modalErr = L["MD.LineSupervisors.Err.LineRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.EmployeeNo)) { _modalErr = L["MD.LineSupervisors.Err.PersonRequired"]; return; }
+
+        _busy = true;
+        try
+        {
+            if (SupRepo.Exists(_f.LineId, _f.EmployeeNo)) { _modalErr = string.Format(L["MD.LineSupervisors.Err.Duplicate"].Value, _f.LineId, _f.EmployeeNo); return; }
+            SupRepo.Insert(_f.LineId, _f.EmployeeNo, _f.ActiveFlag, _actor);
+            var (line, emp) = (_f.LineId, _f.EmployeeNo);
+            CloseModal(); await ReloadRestorePage();
+            ShowMsg(string.Format(L["MD.LineSupervisors.Ok.Created"].Value, line, emp), false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    async Task SaveEdit()
+    {
+        if (_sel is null) return;
+        _modalErr = "";
+        _busy = true;
+        try
+        {
+            SupRepo.SetActive(_sel.LineId, _sel.EmployeeNo, _f.ActiveFlag, _actor);
+            var (line, emp) = (_sel.LineId, _sel.EmployeeNo);
+            CloseModal(); await ReloadRestorePage();
+            ShowMsg(string.Format(L["MD.LineSupervisors.Ok.Updated"].Value, line, emp), false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    async Task SaveDelete()
+    {
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            SupRepo.Delete(_sel.LineId, _sel.EmployeeNo);
+            var (line, emp) = (_sel.LineId, _sel.EmployeeNo);
+            CloseModal(); await ReloadRestorePage();
+            ShowMsg(string.Format(L["MD.LineSupervisors.Ok.Deleted"].Value, line, emp), false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string LineId     { get; set; } = "";
+        public string EmployeeNo { get; set; } = "";
+        public bool   ActiveFlag { get; set; } = true;
+    }
+
+    // ── 표시 헬퍼 ─────────────────────────────────────────────────────
+    // 라인명은 컬처에 따라 한/영 — 다른 MD 화면과 같은 규칙
+    string LineName(LineSupervisorRepository.Row r) =>
+        (System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko" ? r.LineName : r.LineNameEn ?? r.LineName) ?? "";
+    string LineText(string lineId)
+    {
+        var l = _lines.FirstOrDefault(x => x.LineID == lineId);
+        var nm = l is null ? null : (System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko" ? l.LineName : l.LineNameEn ?? l.LineName);
+        return string.IsNullOrEmpty(nm) ? $"[{lineId}]" : $"[{lineId}] {nm}";
+    }
+    static string PersonText(string empNo, string? name) => $"[{empNo}] {(string.IsNullOrEmpty(name) ? "—" : name)}";
+}

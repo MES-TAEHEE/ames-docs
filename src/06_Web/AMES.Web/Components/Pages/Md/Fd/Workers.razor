@@ -65,10 +65,10 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="WorkerRepository.WorkerRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Workers.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="WorkerNo" Title="@L["MD.Workers.Col.WorkerNo"]" TextAlign="TextAlign.Center" Width="140px">
-                <Template Context="w"><span class="code">@w.WorkerNo</span></Template>
+            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="EmployeeNo" Title="@L["MD.Workers.Col.WorkerNo"]" TextAlign="TextAlign.Center" Width="140px">
+                <Template Context="w"><span class="code">@w.EmployeeNo</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="WorkerName" Title="@L["MD.Workers.Col.WorkerName"]" />
+            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="EmployeeName" Title="@L["MD.Workers.Col.WorkerName"]" />
             <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="HasPin" Title="@L["MD.Workers.Col.Pin"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="w">
                     @if (w.HasPin) { <span class="pill ok">@L["MD.Workers.Pin.Set"]</span> }
@@ -110,13 +110,13 @@
 
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
-                    <RadzenLabel Text='@($"{L["MD.Workers.Lbl.WorkerNo"]} *")' class="ames-rz-modal-label" Component="CreateTextBoxWorkerNo" />
-                    <RadzenTextBox Name="CreateTextBoxWorkerNo" @bind-Value="_f.WorkerNo" MaxLength="20" Placeholder="@L["MD.Workers.Ph.WorkerNo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenLabel Text='@($"{L["MD.Workers.Lbl.WorkerNo"]} *")' class="ames-rz-modal-label" Component="CreateTextBoxEmployeeNo" />
+                    <RadzenTextBox Name="CreateTextBoxEmployeeNo" @bind-Value="_f.EmployeeNo" MaxLength="20" Placeholder="@L["MD.Workers.Ph.WorkerNo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
-                    <RadzenLabel Text='@($"{L["MD.Workers.Lbl.WorkerName"]} *")' class="ames-rz-modal-label" Component="CreateTextBoxWorkerName" />
-                    <RadzenTextBox Name="CreateTextBoxWorkerName" @bind-Value="_f.WorkerName" MaxLength="50" Placeholder="@L["MD.Workers.Ph.WorkerName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenLabel Text='@($"{L["MD.Workers.Lbl.WorkerName"]} *")' class="ames-rz-modal-label" Component="CreateTextBoxEmployeeName" />
+                    <RadzenTextBox Name="CreateTextBoxEmployeeName" @bind-Value="_f.EmployeeName" MaxLength="50" Placeholder="@L["MD.Workers.Ph.WorkerName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -148,21 +148,21 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.Workers.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.WorkerNo</span></div>
+            <div class="ames-modal-h">@L["MD.Workers.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.EmployeeNo</span></div>
 
             <input type="text"     style="display:none" autocomplete="username" />
             <input type="password" style="display:none" autocomplete="new-password" />
 
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
-                    <RadzenLabel Text="@L["MD.Workers.Lbl.WorkerNo"]" class="ames-rz-modal-label" Component="EditTextBoxWorkerNo" />
-                    <RadzenTextBox Name="EditTextBoxWorkerNo" Value="@_sel.WorkerNo" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenLabel Text="@L["MD.Workers.Lbl.WorkerNo"]" class="ames-rz-modal-label" Component="EditTextBoxEmployeeNo" />
+                    <RadzenTextBox Name="EditTextBoxEmployeeNo" Value="@_sel.EmployeeNo" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
                 <div class="dim" style="font-size:10px;margin-top:-10px;">@L["MD.Workers.Hint.WorkerNoFixed"]</div>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
-                    <RadzenLabel Text='@($"{L["MD.Workers.Lbl.WorkerName"]} *")' class="ames-rz-modal-label" Component="EditTextBoxWorkerName" />
-                    <RadzenTextBox Name="EditTextBoxWorkerName" @bind-Value="_f.WorkerName" MaxLength="50" Placeholder="@L["MD.Workers.Ph.WorkerName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenLabel Text='@($"{L["MD.Workers.Lbl.WorkerName"]} *")' class="ames-rz-modal-label" Component="EditTextBoxEmployeeName" />
+                    <RadzenTextBox Name="EditTextBoxEmployeeName" @bind-Value="_f.EmployeeName" MaxLength="50" Placeholder="@L["MD.Workers.Ph.WorkerName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -288,8 +288,8 @@
     {
         _rows = _allRows.Where(r =>
             (string.IsNullOrEmpty(_fSearch) ||
-                r.WorkerNo.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-                r.WorkerName.Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+                r.EmployeeNo.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                r.EmployeeName.Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
             (string.IsNullOrEmpty(_fPin) || (_fPin == "SET" ? r.HasPin : !r.HasPin)) &&
             (string.IsNullOrEmpty(_fActive) || (_fActive == "ACTIVE" ? r.ActiveFlag : !r.ActiveFlag))
         ).ToList();
@@ -318,7 +318,7 @@
     {
         if (!_canEdit) return;
         _sel = w; _modalErr = ""; _confirmDelete = false;
-        _f = new() { WorkerNo = w.WorkerNo, WorkerName = w.WorkerName, ActiveFlag = w.ActiveFlag };
+        _f = new() { EmployeeNo = w.EmployeeNo, EmployeeName = w.EmployeeName, ActiveFlag = w.ActiveFlag };
         _modal = "edit";
     }
 
@@ -330,16 +330,16 @@
     async Task SaveCreate()
     {
         _modalErr = "";
-        var no = _f.WorkerNo.Trim();
+        var no = _f.EmployeeNo.Trim();
         if (string.IsNullOrWhiteSpace(no))            { _modalErr = L["MD.Workers.Err.WorkerNoRequired"]; return; }
-        if (string.IsNullOrWhiteSpace(_f.WorkerName)) { _modalErr = L["MD.Workers.Err.NameRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["MD.Workers.Err.NameRequired"]; return; }
         if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["MD.Workers.Err.PinFormat"]; return; }
 
         _busy = true;
         try
         {
             if (WorkerRepo.Exists(no)) { _modalErr = string.Format(L["MD.Workers.Err.Duplicate"].Value, no); return; }
-            WorkerRepo.Insert(no, _f.WorkerName.Trim(),
+            WorkerRepo.Insert(no, _f.EmployeeName.Trim(),
                 string.IsNullOrWhiteSpace(_f.Pin) ? null : PinHasher.Hash(_f.Pin), _f.ActiveFlag, _actor);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Workers.Ok.Created"].Value, no), false);
@@ -352,17 +352,17 @@
     {
         if (_sel is null) return;
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_f.WorkerName)) { _modalErr = L["MD.Workers.Err.NameRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["MD.Workers.Err.NameRequired"]; return; }
         if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["MD.Workers.Err.PinFormat"]; return; }
 
         _busy = true;
         try
         {
-            WorkerRepo.Update(_sel.WorkerId, _f.WorkerName.Trim(), _f.ActiveFlag, _actor);
+            WorkerRepo.Update(_sel.WorkerId, _f.EmployeeName.Trim(), _f.ActiveFlag, _actor);
             if (!string.IsNullOrWhiteSpace(_f.Pin))
                 WorkerRepo.SetPinByAdmin(_sel.WorkerId, PinHasher.Hash(_f.Pin), _actor);
 
-            var no = _sel.WorkerNo;
+            var no = _sel.EmployeeNo;
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Workers.Ok.Updated"].Value, no), false);
         }
@@ -378,7 +378,7 @@
         try
         {
             WorkerRepo.SetPinByAdmin(_sel.WorkerId, null, _actor);
-            var no = _sel.WorkerNo;
+            var no = _sel.EmployeeNo;
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Workers.Ok.PinCleared"].Value, no), false);
         }
@@ -393,7 +393,7 @@
         try
         {
             WorkerRepo.Delete(_sel.WorkerId);
-            var no = _sel.WorkerNo;
+            var no = _sel.EmployeeNo;
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Workers.Ok.Deleted"].Value, no), false);
         }
@@ -409,8 +409,8 @@
 
     class FormModel
     {
-        public string WorkerNo   { get; set; } = "";
-        public string WorkerName { get; set; } = "";
+        public string EmployeeNo   { get; set; } = "";
+        public string EmployeeName { get; set; } = "";
         public string Pin        { get; set; } = "";
         public bool   ActiveFlag { get; set; } = true;
     }

@@ -819,9 +819,9 @@ CREATE TABLE dbo.MD_CodeItem (
   [CodeNameEn]                NVARCHAR(60)             NULL,
   [ParentCodeID]              VARCHAR(41)              NULL,  -- FK -> MD_CodeItem.CodeID
   [SortOrder]                 INT                      NULL,
-  [Attribute1]                NVARCHAR(40)             NULL,
+  [Attribute1]                NVARCHAR(200)            NULL,  -- migrate_md_codeitem_widen.sql
   [UseFlag]                   BIT                      NULL DEFAULT 1,
-  [Description]               NVARCHAR(120)            NULL,
+  [Description]               NVARCHAR(500)            NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
@@ -984,8 +984,8 @@ GO
 --    라인 배정·PIN 잠금 카운터 없음(전 라인 허용, 잠기지 않음). 사번은 PR_PopSession.OperatorID 로 그대로 남는다.
 CREATE TABLE dbo.MD_Worker (
   [WorkerID]                  INT IDENTITY         NOT NULL,
-  [WorkerNo]                  VARCHAR(20)          NOT NULL,  -- POP 로그인 ID (사번 / 배지 번호), 전사 유일
-  [WorkerName]                NVARCHAR(50)         NOT NULL,
+  [EmployeeNo]                VARCHAR(20)          NOT NULL,  -- 사번 = POP 로그인 ID (배지 번호), 전사 유일. SYS_UserProfile.EmployeeNo 와 같은 이름·형 (migrate_employee_no_rename.sql)
+  [EmployeeName]              NVARCHAR(50)         NOT NULL,  -- SYS_UserProfile.EmployeeName 과 같은 이름·형
   [PinHash]                   NVARCHAR(200)            NULL,  -- POP 4자리 PIN (PBKDF2) — SYS_UserProfile.PinHash 와 동일 포맷, NULL = 배지 전용
   [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
@@ -993,6 +993,19 @@ CREATE TABLE dbo.MD_Worker (
   [ModifiedBy]                NVARCHAR(450)            NULL,
   [ModifiedTS]                DATETIME2                NULL,
   CONSTRAINT PK_MD_Worker PRIMARY KEY CLUSTERED ([WorkerID])
+);
+GO
+
+-- ── MD_LineSupervisor  (라인별 안돈 슈퍼바이저 — MD-033, migrate_andon_workflow.sql)
+CREATE TABLE dbo.MD_LineSupervisor (
+  [LineID]                    VARCHAR(20)          NOT NULL,  -- FK -> MD_Line.LineID
+  [EmployeeNo]                VARCHAR(20)          NOT NULL,  -- 사번. SYS_UserProfile.EmployeeNo / MD_Worker.EmployeeNo 공용
+  [ActiveFlag]                BIT                  NOT NULL DEFAULT 1,
+  [CreatedBy]                 VARCHAR(50)          NOT NULL,
+  [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(450)            NULL,
+  [ModifiedTS]                DATETIME2                NULL,
+  CONSTRAINT PK_MD_LineSupervisor PRIMARY KEY CLUSTERED ([LineID], [EmployeeNo])
 );
 GO
 CREATE UNIQUE INDEX UQ_MD_Worker_WorkerNo ON dbo.MD_Worker ([WorkerNo]);

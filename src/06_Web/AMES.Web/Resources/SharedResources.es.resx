@@ -7213,7 +7213,7 @@
     <value>N.º / Nombre</value>
   </data>
   <data name="MD.Workers.Col.WorkerNo" xml:space="preserve">
-    <value>N.º operario</value>
+    <value>N.º empleado</value>
   </data>
   <data name="MD.Workers.Col.WorkerName" xml:space="preserve">
     <value>Nombre</value>
@@ -7240,7 +7240,7 @@
     <value>Escaneo tarjeta</value>
   </data>
   <data name="MD.Workers.Lbl.WorkerNo" xml:space="preserve">
-    <value>N.º operario</value>
+    <value>N.º empleado</value>
   </data>
   <data name="MD.Workers.Lbl.WorkerName" xml:space="preserve">
     <value>Nombre</value>
@@ -8201,5 +8201,74 @@
   </data>
   <data name="Col.ChangedBy" xml:space="preserve">
     <value>Cambiado por</value>
+  </data>
+  <data name="MD.LineSupervisors.Title" xml:space="preserve">
+    <value>Maestro de supervisores de línea</value>
+  </data>
+  <data name="MD.LineSupervisors.List" xml:space="preserve">
+    <value>Supervisores de línea</value>
+  </data>
+  <data name="MD.LineSupervisors.Hint" xml:space="preserve">
+    <value>Haga clic en una fila para editar. Solo los supervisores registrados aquí pueden atender un andon de esa línea.</value>
+  </data>
+  <data name="MD.LineSupervisors.Empty" xml:space="preserve">
+    <value>Sin supervisores registrados</value>
+  </data>
+  <data name="MD.LineSupervisors.Ph.Search" xml:space="preserve">
+    <value>Línea / N.º / Nombre</value>
+  </data>
+  <data name="MD.LineSupervisors.Col.EmployeeNo" xml:space="preserve">
+    <value>N.º empleado</value>
+  </data>
+  <data name="MD.LineSupervisors.Col.Name" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="MD.LineSupervisors.Col.Source" xml:space="preserve">
+    <value>Origen</value>
+  </data>
+  <data name="MD.LineSupervisors.Src.Worker" xml:space="preserve">
+    <value>Operario</value>
+  </data>
+  <data name="MD.LineSupervisors.Src.User" xml:space="preserve">
+    <value>Usuario web</value>
+  </data>
+  <data name="MD.LineSupervisors.Src.Unknown" xml:space="preserve">
+    <value>No encontrado</value>
+  </data>
+  <data name="MD.LineSupervisors.Lbl.Person" xml:space="preserve">
+    <value>Supervisor</value>
+  </data>
+  <data name="MD.LineSupervisors.Hint.Person" xml:space="preserve">
+    <value>Solo se pueden elegir empleados activos del maestro de operarios y usuarios web con el rol Supervisor.</value>
+  </data>
+  <data name="MD.LineSupervisors.Hint.KeyFixed" xml:space="preserve">
+    <value>Línea y n.º son la clave y no se pueden cambiar. Elimine y vuelva a registrar.</value>
+  </data>
+  <data name="MD.LineSupervisors.Err.LineRequired" xml:space="preserve">
+    <value>Seleccione una línea.</value>
+  </data>
+  <data name="MD.LineSupervisors.Err.PersonRequired" xml:space="preserve">
+    <value>Seleccione un supervisor.</value>
+  </data>
+  <data name="MD.LineSupervisors.Err.Duplicate" xml:space="preserve">
+    <value>{1} ya está registrado en la línea {0}.</value>
+  </data>
+  <data name="MD.LineSupervisors.Ok.Created" xml:space="preserve">
+    <value>Registrado {1} en {0}.</value>
+  </data>
+  <data name="MD.LineSupervisors.Ok.Updated" xml:space="preserve">
+    <value>Actualizado {1} en {0}.</value>
+  </data>
+  <data name="MD.LineSupervisors.Ok.Deleted" xml:space="preserve">
+    <value>Eliminado {1} de {0}.</value>
+  </data>
+  <data name="MD.LineSupervisors.Kpi.Lines" xml:space="preserve">
+    <value>Líneas cubiertas</value>
+  </data>
+  <data name="MD.LineSupervisors.Kpi.LinesSub" xml:space="preserve">
+    <value>de {0} líneas activas</value>
+  </data>
+  <data name="MD.LineSupervisors.Kpi.NoSup" xml:space="preserve">
+    <value>Líneas sin supervisor</value>
   </data>
 </root>

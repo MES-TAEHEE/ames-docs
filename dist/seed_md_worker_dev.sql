@@ -2,7 +2,7 @@
 --  seed_md_worker_dev.sql
 --  MD_Worker 개발 시드 — POP 전용 현장 작업자 5명
 --
---  WorkerNo  Name            PIN     ActiveFlag
+--  EmployeeNo  Name            PIN     ActiveFlag
 --  --------  --------------  ------  ----------
 --  W001      Jang Dae-ho     1234    1
 --  W002      Oh Se-rin       1234    1
@@ -32,13 +32,13 @@ END
 GO
 
 DECLARE @seed TABLE (
-    WorkerNo   VARCHAR(20),
-    WorkerName NVARCHAR(50),
+    EmployeeNo   VARCHAR(20),
+    EmployeeName NVARCHAR(50),
     PinHash    NVARCHAR(200),
     ActiveFlag BIT
 );
 
-INSERT INTO @seed (WorkerNo, WorkerName, PinHash, ActiveFlag) VALUES
+INSERT INTO @seed (EmployeeNo, EmployeeName, PinHash, ActiveFlag) VALUES
  ('W001', N'Jang Dae-ho',  N'AQAAAAEAACcQAAAAENOhgxypR/CyomaSpVDlizwXrg4pjAUc6QcY2pJdN7zlT8PJVny1F75ncH3HHF/dIA==', 1),
  ('W002', N'Oh Se-rin',    N'AQAAAAEAACcQAAAAEE3xHC11cHQsuQeT+MsdIKPO/SiTuDvbWs+oEjQUotdJtuEIoPX+fjEqVjaLjo5TFg==', 1),
  ('W003', N'Seo Kang-min', N'AQAAAAEAACcQAAAAENvSRnSwa6Bc1VTWm5KbotdTFwCTu7keGkovuhnG3OzDnqaRcZL0IZUGI5UHrsDIyQ==', 1),
@@ -46,22 +46,22 @@ INSERT INTO @seed (WorkerNo, WorkerName, PinHash, ActiveFlag) VALUES
  ('W005', N'Noh Tae-il',   N'AQAAAAEAACcQAAAAENNxtW/yUocWAMVhU3Cx+2pXC1+Wyi8HY4h/28kWRiN1xEm20TLOQvxn5QeyoBn3xg==', 0);
 
 UPDATE w
-SET    w.WorkerName = s.WorkerName,
+SET    w.EmployeeName = s.EmployeeName,
        w.PinHash    = s.PinHash,
        w.ActiveFlag = s.ActiveFlag,
        w.ModifiedBy = 'seed_dev',
        w.ModifiedTS = SYSDATETIME()
 FROM   dbo.MD_Worker w
-JOIN   @seed         s ON s.WorkerNo = w.WorkerNo;
+JOIN   @seed         s ON s.EmployeeNo = w.EmployeeNo;
 
-INSERT INTO dbo.MD_Worker (WorkerNo, WorkerName, PinHash, ActiveFlag, CreatedBy)
-SELECT s.WorkerNo, s.WorkerName, s.PinHash, s.ActiveFlag, 'seed_dev'
+INSERT INTO dbo.MD_Worker (EmployeeNo, EmployeeName, PinHash, ActiveFlag, CreatedBy)
+SELECT s.EmployeeNo, s.EmployeeName, s.PinHash, s.ActiveFlag, 'seed_dev'
 FROM   @seed s
-WHERE  NOT EXISTS (SELECT 1 FROM dbo.MD_Worker w WHERE w.WorkerNo = s.WorkerNo);
+WHERE  NOT EXISTS (SELECT 1 FROM dbo.MD_Worker w WHERE w.EmployeeNo = s.EmployeeNo);
 GO
 
-SELECT WorkerID, WorkerNo, WorkerName, ActiveFlag,
+SELECT WorkerID, EmployeeNo, EmployeeName, ActiveFlag,
        CASE WHEN PinHash IS NULL THEN 'NO PIN' ELSE 'set' END AS Pin
 FROM   dbo.MD_Worker
-ORDER  BY WorkerNo;
+ORDER  BY EmployeeNo;
 GO

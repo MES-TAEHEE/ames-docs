@@ -125,6 +125,8 @@ public sealed class MenuCatalog
         new("md", "md/rp/line-time-pattern",   "MD-028", "라인 시간 패턴 관리",     "Line Time Pattern Master"),
         new("md", "md/ql/recipe",              "MD-029", "레시피 관리",           "Recipe Master"),
         new("md", "md/ql/common-code",         "MD-030", "코드 기준정보 관리",     "Common Code Master"),
+        new("md", "md/fd/workers",             "MD-032", "현장 작업자 관리",       "Worker Master"),
+        new("md", "md/fd/line-supervisors",    "MD-033", "라인 책임자 관리",    "Line Supervisor Master"),
 
         // ── SYS ──
         new("sys", "sys/users",         "SYS-001", "사용자 관리",         "User Management"),
@@ -293,6 +295,8 @@ public sealed class MenuCatalog
         ["md/ql/inspection-standard"] = "Maestro de Estándares de Inspección",
         ["md/fd/location"] = "Maestro de Ubicaciones de Almacén",
         ["md/fd/uom"] = "Maestro de UOM",
+        ["md/fd/workers"] = "Maestro de operarios",
+        ["md/fd/line-supervisors"] = "Maestro de supervisores de línea",
         ["md/rm/rfid-tag"] = "Maestro de Etiquetas RFID",
         ["md/rm/ral-color"] = "Maestro de Colores RAL",
         ["md/rm/rfid-reader"] = "Maestro de Lectores RFID",
