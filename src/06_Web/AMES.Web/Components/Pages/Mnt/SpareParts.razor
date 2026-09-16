@@ -74,8 +74,8 @@
     </div>
     <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["MNT.SpareParts.Hint.Detail"]</div>
 
-    <RadzenDataGrid @ref="_partGrid" Page="OnPartPage" TItem="MntRepository.SparePartRow" Data="@_parts" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnPartRowClick" RowRender="@RowRender" EmptyText="@L["MNT.SpareParts.Empty"]" PageSizeChanged="@(s => _partPageRows = s)" Style="@($"--ames-page-rows:{_partPageRows}")" Class="ames-rz-grid ames-grid-fixed">
+    <RadzenDataGrid @ref="_partGrid" Page="OnPartPage" TItem="MntRepository.SparePartRow" Data="@_parts" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_partPageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnPartRowClick" RowRender="@RowRender" EmptyText="@L["MNT.SpareParts.Empty"]" PageSizeChanged="@(s => _partPageRows = s)" Style="@($"--ames-page-rows:{_partPageRows}")" Class="ames-rz-grid ames-grid-fixed ames-grid-top">
         <Columns>
             <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="SparePartNo" Title="@L["Col.SparePartNo"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="r"><span class="code">@(r.SparePartNo ?? "—")</span></Template>
@@ -172,8 +172,8 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid @ref="_txnGrid" Page="OnTxnPage" TItem="MntRepository.SparePartsTxnRow" Data="@_txns" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["MNT.SpareParts.TxnEmpty"]" PageSizeChanged="@(s => _txnPageRows = s)" Style="@($"--ames-page-rows:{_txnPageRows}")" Class="ames-rz-grid ames-grid-fixed">
+    <RadzenDataGrid @ref="_txnGrid" Page="OnTxnPage" TItem="MntRepository.SparePartsTxnRow" Data="@_txns" AllowPaging="true" PageSize="5" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_txnPageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["MNT.SpareParts.TxnEmpty"]" PageSizeChanged="@(s => _txnPageRows = s)" Style="@($"--ames-page-rows:{_txnPageRows}")" Class="ames-rz-grid ames-grid-fixed ames-grid-rest">
         <Columns>
             <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="SparePartsTxnId" Title="@L["Col.TxnNo"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="t"><span class="code">@t.SparePartsTxnId</span></Template>
@@ -322,9 +322,11 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
+    // 상·하 2단 목록: 상단 부품 15행(15/30/50/100), 하단 이력 5행(5/10/20/30/50) — 고정 페이저 높이가 페이지 행 수를 따라간다(.ames-grid-fixed)
+    IEnumerable<int> _partPageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _txnPageSizeOptions  = new int[] { 5, 10, 20, 30, 50 };
     bool _showPagerSummary = true;
-    int  _partPageRows = 25, _txnPageRows = 25;   // 고정 페이저(.ames-grid-fixed) 그리드별 페이지 행 수
+    int  _partPageRows = 15, _txnPageRows = 5;    // 고정 페이저(.ames-grid-fixed) 그리드별 페이지 행 수
     List<MntRepository.SparePartRow>       _allParts = new();
     List<MntRepository.SparePartRow>       _parts    = new();
     List<MntRepository.SparePartsTxnRow>   _allTxns  = new();

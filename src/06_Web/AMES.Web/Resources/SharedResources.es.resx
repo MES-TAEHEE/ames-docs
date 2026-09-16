@@ -8172,4 +8172,34 @@
   <data name="MNT.PmSchedule.Exec.NoDue" xml:space="preserve">
     <value>Sin fecha prevista</value>
   </data>
+  <data name="MNT.Mold.ChangeList" xml:space="preserve">
+    <value>Historial de cambios de molde</value>
+  </data>
+  <data name="MNT.Mold.ChangeEmpty" xml:space="preserve">
+    <value>Sin cambios de molde</value>
+  </data>
+  <data name="MNT.Mold.Ph.ChangeSearch" xml:space="preserve">
+    <value>Buscar molde, equipo, línea, motivo</value>
+  </data>
+  <data name="MNT.Mold.Btn.ShowChanges" xml:space="preserve">
+    <value>Ver cambios</value>
+  </data>
+  <data name="Col.ChangeNo" xml:space="preserve">
+    <value>N.º cambio</value>
+  </data>
+  <data name="Col.OldMold" xml:space="preserve">
+    <value>Molde anterior</value>
+  </data>
+  <data name="Col.NewMold" xml:space="preserve">
+    <value>Molde nuevo</value>
+  </data>
+  <data name="Col.OldFinalShots" xml:space="preserve">
+    <value>Shots finales ant.</value>
+  </data>
+  <data name="Col.NewStartShots" xml:space="preserve">
+    <value>Shots iniciales</value>
+  </data>
+  <data name="Col.ChangedBy" xml:space="preserve">
+    <value>Cambiado por</value>
+  </data>
 </root>

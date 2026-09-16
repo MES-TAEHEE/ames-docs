@@ -8199,4 +8199,34 @@
   <data name="MNT.PmSchedule.Exec.NoDue" xml:space="preserve">
     <value>No due date</value>
   </data>
+  <data name="MNT.Mold.ChangeList" xml:space="preserve">
+    <value>Mold change history</value>
+  </data>
+  <data name="MNT.Mold.ChangeEmpty" xml:space="preserve">
+    <value>No mold changes</value>
+  </data>
+  <data name="MNT.Mold.Ph.ChangeSearch" xml:space="preserve">
+    <value>Search mold, equip, line, reason</value>
+  </data>
+  <data name="MNT.Mold.Btn.ShowChanges" xml:space="preserve">
+    <value>Show changes</value>
+  </data>
+  <data name="Col.ChangeNo" xml:space="preserve">
+    <value>Change No</value>
+  </data>
+  <data name="Col.OldMold" xml:space="preserve">
+    <value>Old mold</value>
+  </data>
+  <data name="Col.NewMold" xml:space="preserve">
+    <value>New mold</value>
+  </data>
+  <data name="Col.OldFinalShots" xml:space="preserve">
+    <value>Old final shots</value>
+  </data>
+  <data name="Col.NewStartShots" xml:space="preserve">
+    <value>New start shots</value>
+  </data>
+  <data name="Col.ChangedBy" xml:space="preserve">
+    <value>Changed by</value>
+  </data>
 </root>

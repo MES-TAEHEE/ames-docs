@@ -8172,4 +8172,34 @@
   <data name="MNT.PmSchedule.Exec.NoDue" xml:space="preserve">
     <value>예정일 없음</value>
   </data>
+  <data name="MNT.Mold.ChangeList" xml:space="preserve">
+    <value>금형 교체 이력</value>
+  </data>
+  <data name="MNT.Mold.ChangeEmpty" xml:space="preserve">
+    <value>교체 이력이 없습니다</value>
+  </data>
+  <data name="MNT.Mold.Ph.ChangeSearch" xml:space="preserve">
+    <value>금형·설비·라인·사유 검색</value>
+  </data>
+  <data name="MNT.Mold.Btn.ShowChanges" xml:space="preserve">
+    <value>교체 이력 보기</value>
+  </data>
+  <data name="Col.ChangeNo" xml:space="preserve">
+    <value>교체번호</value>
+  </data>
+  <data name="Col.OldMold" xml:space="preserve">
+    <value>이전 금형</value>
+  </data>
+  <data name="Col.NewMold" xml:space="preserve">
+    <value>신규 금형</value>
+  </data>
+  <data name="Col.OldFinalShots" xml:space="preserve">
+    <value>이전 최종 Shot</value>
+  </data>
+  <data name="Col.NewStartShots" xml:space="preserve">
+    <value>신규 시작 Shot</value>
+  </data>
+  <data name="Col.ChangedBy" xml:space="preserve">
+    <value>교체자</value>
+  </data>
 </root>

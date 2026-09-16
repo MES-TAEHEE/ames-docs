@@ -299,6 +299,36 @@ public sealed class MntRepository
             r["CumulativeShots"] as int?));
     }
 
+    // ── MNT-004 금형 교체 이력 (PR_MoldChange — POP 금형 교체가 기록, 웹은 조회만) ──
+    public sealed record MoldChangeRow(int MoldChangeId, string? EquipId, string? EquipName, string? LineId, string? LineName,
+        string? OldMoldId, string? OldMoldName, string? NewMoldId, string? NewMoldName, int? OldMoldFinalShots, int? NewMoldStartShots,
+        string? Reason, int? MntWoId, string? WoNumber, int? DowntimeMin, DateTime? StartedAt, DateTime? CompletedAt, string? ChangedBy);
+
+    /// <summary>최근 N건, 시작 시각 내림차순. moldId 를 주면 그 금형이 이전·신규 어느 쪽이든 관련된 이력만(서버 필터 — 최근 N건 안에서 거르면 오래된 이력이 잘린다).</summary>
+    public List<MoldChangeRow> ListMoldChanges(int topN = 100, string? moldId = null)
+    {
+        const string sql = """
+            SELECT  TOP (@N) c.MoldChangeID, c.EquipID, e.EquipName, c.LineID, l.LineName,
+                    c.OldMoldID, om.MoldName AS OldMoldName, c.NewMoldID, nm.MoldName AS NewMoldName,
+                    c.OldMoldFinalShots, c.NewMoldStartShots, c.Reason, c.MntWoID, w.WoNumber,
+                    c.DowntimeMin, c.StartedAt, c.CompletedAt, c.ChangedBy
+            FROM    dbo.PR_MoldChange c
+            LEFT JOIN dbo.MD_Equipment e ON e.EquipID = c.EquipID
+            LEFT JOIN dbo.MD_Line      l ON l.LineID  = c.LineID
+            LEFT JOIN dbo.MD_Mold     om ON om.MoldID = c.OldMoldID
+            LEFT JOIN dbo.MD_Mold     nm ON nm.MoldID = c.NewMoldID
+            LEFT JOIN dbo.MNT_WorkOrder w ON w.WorkOrderID = c.MntWoID
+            WHERE   (@M IS NULL OR c.OldMoldID = @M OR c.NewMoldID = @M)
+            ORDER BY COALESCE(c.StartedAt, c.CreatedTS) DESC, c.MoldChangeID DESC;
+            """;
+        return Query(sql, r => new MoldChangeRow(
+            (int)r["MoldChangeID"], r["EquipID"] as string, r["EquipName"] as string, r["LineID"] as string, r["LineName"] as string,
+            r["OldMoldID"] as string, r["OldMoldName"] as string, r["NewMoldID"] as string, r["NewMoldName"] as string,
+            r["OldMoldFinalShots"] as int?, r["NewMoldStartShots"] as int?, r["Reason"] as string, r["MntWoID"] as int?, r["WoNumber"] as string,
+            r["DowntimeMin"] as int?, r["StartedAt"] as DateTime?, r["CompletedAt"] as DateTime?, r["ChangedBy"] as string),
+            ("@N", topN), ("@M", (object?)moldId ?? DBNull.Value));
+    }
+
     // ── MNT-005 PM Schedule ─────────────────────────────────────────────
     /// <summary>pmClass(EQUIP/MAINT) 를 주면 그 분류만 — MNT-005 설비 PM / MNT-010 보전 PM 화면 분리용.</summary>
     public List<PmRow> ListPmSchedule(int daysAhead = 30, int daysBack = 7, string? pmClass = null)
