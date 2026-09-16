@@ -19,7 +19,11 @@ var forbidden = new[] { "AmesConnectionFactory", "SqlConnection", "SqlCommand", 
 Check(forbidden.All(token => pdaSources.All(source => !source.Contains(token, StringComparison.Ordinal))),
     "PDA has no direct database dependency");
 
-var client = Read("src/05_Pda/AMES.Pda/Services/PdaApi.cs");
+var sharedClient = Read("src/05_Pda/AMES.Pda/Services/PdaApi.cs");
+var authClient = Read("src/05_Pda/AMES.Pda/Services/AuthApi.cs");
+var warehouseClient = Read("src/05_Pda/AMES.Pda/Services/WarehouseApi.cs");
+var finishedGoodsClient = Read("src/05_Pda/AMES.Pda/Services/FinishedGoodsApi.cs");
+var sparePartsClient = Read("src/05_Pda/AMES.Pda/Services/SparePartsApi.cs");
 var mauiProgram = Read("src/05_Pda/AMES.Pda/MauiProgram.cs");
 var components = Directory.EnumerateFiles(Path.Combine(pdaRoot, "Components"), "*.razor", SearchOption.AllDirectories)
     .Select(File.ReadAllText)
@@ -27,7 +31,7 @@ var components = Directory.EnumerateFiles(Path.Combine(pdaRoot, "Components"), "
 foreach (var service in new[] { "AuthApi", "WarehouseApi", "FinishedGoodsApi", "SparePartsApi" })
 {
     Check(File.Exists(Path.Combine(pdaRoot, "Services", service + ".cs")), $"PDA exposes {service}");
-    Check(mauiProgram.Contains($"AddTransient<{service}>", StringComparison.Ordinal), $"PDA registers {service}");
+    Check(mauiProgram.Contains($"AddHttpClient<{service}>", StringComparison.Ordinal), $"PDA registers {service}");
 }
 Check(components.All(source => !source.Contains("@inject PdaApi", StringComparison.Ordinal)),
     "PDA screens use domain API services instead of the combined client");
@@ -35,7 +39,14 @@ var endpoints = Read("src/04_Api/AMES.Api/Endpoints/WhEndpoints.cs");
 var fgEndpoints = Read("src/04_Api/AMES.Api/Endpoints/FgEndpoints.cs");
 var apiProgram = Read("src/04_Api/AMES.Api/Program.cs");
 foreach (var route in new[] { "/api/wh/inventory", "/api/wh/inventory/scan", "/api/wh/inventory/locations", "/api/wh/locations", "/api/wh/inventory/lots" })
-    Check(client.Contains(route, StringComparison.Ordinal), $"PDA uses API route {route}");
+    Check(warehouseClient.Contains(route, StringComparison.Ordinal), $"WarehouseApi uses API route {route}");
+Check(authClient.Contains("/api/auth/login", StringComparison.Ordinal), "AuthApi owns authentication calls");
+Check(finishedGoodsClient.Contains("/api/fg/inventory", StringComparison.Ordinal), "FinishedGoodsApi owns FG calls");
+Check(sparePartsClient.Contains("/api/wh/sp/inventory", StringComparison.Ordinal), "SparePartsApi owns spare-parts calls");
+Check(!sharedClient.Contains("/api/auth/", StringComparison.Ordinal)
+      && !sharedClient.Contains("/api/wh/", StringComparison.Ordinal)
+      && !sharedClient.Contains("/api/fg/", StringComparison.Ordinal),
+    "PdaApi contains no domain endpoint implementation");
 foreach (var route in new[] { "MapGet(\"/inventory\"", "MapGet(\"/inventory/scan\"", "MapGet(\"/inventory/locations\"" })
     Check(endpoints.Contains(route, StringComparison.Ordinal), $"API exposes {route[8..^1]}");
 Check(apiProgram.Contains("CustomSchemaIds", StringComparison.Ordinal)
