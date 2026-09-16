@@ -49,8 +49,8 @@ public partial class Wh03InventoryStatus
         var screen = IsSpareParts ? "sp-inventory" : IsFinishedGoodsAdjust ? "fg-adjust" : IsAdjustTab ? "adjust" : "inventory";
         if (!_pptReadyScreens.Contains(screen))
         {
-            if (IsSpareParts) await Api.SpResetTestAsync();
-            else if (IsFinishedGoodsAdjust) await Api.FgResetPptTestAsync("adjust");
+            if (IsSpareParts) await SpApi.SpResetTestAsync();
+            else if (IsFinishedGoodsAdjust) await FgApi.FgResetPptTestAsync("adjust");
             else await Api.WhResetPptTestAsync(screen);
             _pptReadyScreens.Add(screen);
         }
@@ -59,8 +59,8 @@ public partial class Wh03InventoryStatus
     {
         if (!IsPptTestMode || InventoryBusy || _isLoading) return;
         var screen = IsSpareParts ? "sp-inventory" : IsFinishedGoodsAdjust ? "fg-adjust" : IsAdjustTab ? "adjust" : "inventory";
-        if (IsSpareParts) await Api.SpResetTestAsync();
-        else if (IsFinishedGoodsAdjust) await Api.FgResetPptTestAsync("adjust");
+        if (IsSpareParts) await SpApi.SpResetTestAsync();
+        else if (IsFinishedGoodsAdjust) await FgApi.FgResetPptTestAsync("adjust");
         else await Api.WhResetPptTestAsync(screen);
         _pptReadyScreens.Add(screen);
         if (IsAdjustTab) ClearInventoryWork();

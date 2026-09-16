@@ -1,7 +1,9 @@
 @page "/wh/03"
 @page "/sp/03"
 @page "/fg/adjust"
-@inject PdaApi Api
+@inject WarehouseApi Api
+@inject FinishedGoodsApi FgApi
+@inject SparePartsApi SpApi
 @inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
@@ -1948,7 +1950,7 @@
         }
 
         var adjustRow = IsFinishedGoodsAdjust
-            ? await Api.FgScanAdjustAsync(barcode)
+            ? await FgApi.FgScanAdjustAsync(barcode)
             : await Api.WhScanAdjustAsync(barcode, AreaScope);
         ApplyDetectedMode(adjustRow);
         return adjustRow;
@@ -2044,9 +2046,9 @@
                 _invAdjustNote,
                 SimulateFailure: ShouldSimulateAdjustApiFailure);
             var result = IsFinishedGoodsAdjust
-                ? await Api.FgSaveAdjustQtyAsync(request)
+                ? await FgApi.FgSaveAdjustQtyAsync(request)
                 : IsSpareParts
-                    ? await Api.SpSaveAdjustQtyAsync(request)
+                    ? await SpApi.SpSaveAdjustQtyAsync(request)
                     : await Api.WhSaveAdjustQtyAsync(request);
 
             if (!result.Success)
@@ -2136,7 +2138,7 @@
         {
             var moveRequest = new PdaApi.InboundReceiveReq(_invMode, _invScan.Barcode, toLocation);
             var result = IsSpareParts
-                ? await Api.SpMoveLocationAsync(moveRequest)
+                ? await SpApi.SpMoveLocationAsync(moveRequest)
                 : await Api.WhMoveInboundLocationAsync(moveRequest);
             if (!result.Success)
             {

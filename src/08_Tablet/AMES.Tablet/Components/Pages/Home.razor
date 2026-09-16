@@ -1,5 +1,5 @@
 @page "/map"
-@inject TabletInventoryService Inventory
+@inject TabletInventoryApi Inventory
 @inject TabletAuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
@@ -197,10 +197,10 @@
     private const int MaxZoomLevel = 5;
     private static readonly string[] FloorRowCodes = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M"];
 
-    private List<TabletInventoryService.InventoryRow> _rows = [];
-    private List<TabletInventoryService.InventoryRow> _results = [];
+    private List<TabletInventoryApi.InventoryRow> _rows = [];
+    private List<TabletInventoryApi.InventoryRow> _results = [];
     private HashSet<string> _matchedLocations = new(StringComparer.OrdinalIgnoreCase);
-    private TabletInventoryService.InventoryRow? _selected;
+    private TabletInventoryApi.InventoryRow? _selected;
     private string _query = "";
     private sealed record PartSuggestion(string PartNo, string? PartName, string Floors);
     private bool _showPartSuggestions;
@@ -311,7 +311,7 @@
         _notice = _results.Count == 0 ? $"{slot.LocationNo} is empty." : $"{_results.Count} inventory rows at {slot.LocationNo}.";
     }
 
-    private async Task SelectResult(TabletInventoryService.InventoryRow row)
+    private async Task SelectResult(TabletInventoryApi.InventoryRow row)
     {
         _selected = row;
         ShowResultFloor(row);
@@ -319,7 +319,7 @@
         await ScrollTo(row.LocationNo);
     }
 
-    private void ShowResultFloor(TabletInventoryService.InventoryRow row)
+    private void ShowResultFloor(TabletInventoryApi.InventoryRow row)
     {
         _selectedFloor = FloorOf(row);
         _selectingFloor = false;
@@ -381,7 +381,7 @@
         ShowAllStock();
     }
 
-    private List<TabletInventoryService.InventoryRow> AllStockRows()
+    private List<TabletInventoryApi.InventoryRow> AllStockRows()
         => _rows.Where(x => !string.IsNullOrWhiteSpace(x.PartNo)
                          && x.Qty > 0
                          && TryMapPosition(x, out _, out _))
@@ -390,7 +390,7 @@
             .ThenBy(x => x.LotNo)
             .ToList();
 
-    private List<TabletInventoryService.InventoryRow> StockRows()
+    private List<TabletInventoryApi.InventoryRow> StockRows()
         => AllStockRows().Where(x => FloorOf(x) == _selectedFloor).ToList();
 
     private string RackClass(RackSlot slot)
@@ -401,20 +401,20 @@
         return string.Join(' ', classes);
     }
 
-    private string ResultClass(TabletInventoryService.InventoryRow row)
+    private string ResultClass(TabletInventoryApi.InventoryRow row)
         => ReferenceEquals(row, _selected) ? "selected" : "";
 
     private static string RackElementId(RackSlot slot) => RackElementId(slot.RowCode, slot.Column);
     private static string RackElementId(string rowCode, int column) => $"rack-{rowCode}-{column:00}";
 
-    private static string RackPosition(TabletInventoryService.InventoryRow row)
+    private static string RackPosition(TabletInventoryApi.InventoryRow row)
         => string.Join('-', new[] { row.RackX, row.RackY, row.RackZ }.Where(x => !string.IsNullOrWhiteSpace(x)));
 
-    private static string RackAddress(TabletInventoryService.InventoryRow row)
+    private static string RackAddress(TabletInventoryApi.InventoryRow row)
         => string.Join(" / ", new[] { row.WarehouseCode, row.AreaCode, row.ZoneCode, RackPosition(row) }
             .Where(x => !string.IsNullOrWhiteSpace(x)));
 
-    private static List<RackSlot> BuildRackSlots(IEnumerable<TabletInventoryService.InventoryRow> rows, int floor)
+    private static List<RackSlot> BuildRackSlots(IEnumerable<TabletInventoryApi.InventoryRow> rows, int floor)
     {
         var mapped = rows
             .Where(row => FloorOf(row) == floor && TryMapPosition(row, out _, out _))
@@ -451,7 +451,7 @@
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Count();
 
-    private static int FloorOf(TabletInventoryService.InventoryRow row)
+    private static int FloorOf(TabletInventoryApi.InventoryRow row)
     {
         var values = new[] { row.LocationNo, row.LocationName, row.WarehouseCode, row.AreaCode, row.ZoneCode, row.LineCode };
         foreach (var floor in Enumerable.Range(1, 4))
@@ -464,7 +464,7 @@
         return 4;
     }
 
-    private static bool TryMapPosition(TabletInventoryService.InventoryRow row, out string rowCode, out int column)
+    private static bool TryMapPosition(TabletInventoryApi.InventoryRow row, out string rowCode, out int column)
     {
         var rackX = row.RackX?.Trim().ToUpperInvariant() ?? "";
         var rackY = row.RackY?.Trim().ToUpperInvariant() ?? "";
@@ -481,7 +481,7 @@
             && column is >= 1 and <= FloorColumnCount;
     }
 
-    private static string? MapCellKey(TabletInventoryService.InventoryRow row)
+    private static string? MapCellKey(TabletInventoryApi.InventoryRow row)
         => TryMapPosition(row, out var rowCode, out var column) ? MapCellKey(rowCode, column) : null;
 
     private static string MapCellKey(RackSlot slot) => MapCellKey(slot.RowCode, slot.Column);
@@ -491,5 +491,5 @@
         => value?.Contains(query, StringComparison.OrdinalIgnoreCase) == true;
 
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
-    private static string Qty(TabletInventoryService.InventoryRow row) => $"{row.Qty:N0} {row.Unit}";
+    private static string Qty(TabletInventoryApi.InventoryRow row) => $"{row.Qty:N0} {row.Unit}";
 }

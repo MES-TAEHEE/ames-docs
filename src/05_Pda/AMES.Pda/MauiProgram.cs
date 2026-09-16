@@ -50,6 +50,10 @@ public static class MauiProgram
         // ── Auth + API ──────────────────────────────────────────────────
         builder.Services.AddSingleton<AuthState>();
         builder.Services.AddHttpClient<PdaApi>(c => c.BaseAddress = new Uri(ApiBaseUrl));
+        builder.Services.AddTransient<AuthApi>();
+        builder.Services.AddTransient<WarehouseApi>();
+        builder.Services.AddTransient<FinishedGoodsApi>();
+        builder.Services.AddTransient<SparePartsApi>();
 
         return builder.Build();
     }

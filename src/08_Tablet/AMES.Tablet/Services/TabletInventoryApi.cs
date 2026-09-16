@@ -1,9 +1,8 @@
-using AMES.Data.Connection;
-using Microsoft.Data.SqlClient;
+using System.Net.Http.Json;
 
 namespace AMES.Tablet.Services;
 
-public sealed class TabletInventoryService(AmesConnectionFactory db)
+public sealed class TabletInventoryApi(HttpClient http)
 {
     public sealed record InventoryRow(
         string LocationNo,
@@ -27,60 +26,7 @@ public sealed class TabletInventoryService(AmesConnectionFactory db)
     {
         try
         {
-            await using var conn = db.CreateConnection();
-            await conn.OpenAsync();
-            await using var cmd = new SqlCommand("""
-                SELECT
-                    L.LocationID AS LOCATION_NO,
-                    L.LocationName AS LOCATION_NAME,
-                    COALESCE(NULLIF(L.ZoneCode, N''), NULLIF(L.AreaCode, N''), N'STORAGE') AS LINE_CODE,
-                    L.WhCode AS WH_CODE,
-                    L.AreaCode AS AREA_CODE,
-                    L.ZoneCode AS ZONE_CODE,
-                    L.Aisle AS RACK_X,
-                    L.Bay AS RACK_Y,
-                    L.Slot AS RACK_Z,
-                    CASE WHEN W.InventoryID IS NULL THEN NULL ELSE COALESCE(NULLIF(LOT.LotCode, N''), CONCAT(N'LOT-', W.LotID)) END AS LOT_NO,
-                    W.ItemNo AS PART_NO,
-                    I.ItemName AS PART_NAME,
-                    COALESCE(W.OnHandQty, 0) AS QTY,
-                    COALESCE(NULLIF(I.DefaultUOM, N''), N'EA') AS UNIT
-                FROM dbo.MD_Location L
-                LEFT JOIN dbo.WH_Inventory W
-                       ON W.LocationID = L.LocationID
-                      AND COALESCE(W.OnHandQty, 0) > 0
-                      AND UPPER(COALESCE(W.Status, N'RECEIVED')) <> N'CANCELED'
-                LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID = W.LotID
-                LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.ItemNo
-                WHERE COALESCE(L.ActiveFlag, 1) = 1
-                ORDER BY LINE_CODE,
-                         TRY_CONVERT(int, L.Bay), L.Bay,
-                         TRY_CONVERT(int, L.Aisle), L.Aisle,
-                         TRY_CONVERT(int, L.Slot), L.Slot,
-                         L.LocationID,
-                         LOT.LotCode;
-                """, conn);
-
-            await using var reader = await cmd.ExecuteReaderAsync();
-            var rows = new List<InventoryRow>();
-            while (await reader.ReadAsync())
-            {
-                rows.Add(new InventoryRow(
-                    Text(reader, "LOCATION_NO") ?? "-",
-                    Text(reader, "LOCATION_NAME"),
-                    Text(reader, "LINE_CODE") ?? "STORAGE",
-                    Text(reader, "WH_CODE"),
-                    Text(reader, "AREA_CODE"),
-                    Text(reader, "ZONE_CODE"),
-                    Text(reader, "RACK_X"),
-                    Text(reader, "RACK_Y"),
-                    Text(reader, "RACK_Z"),
-                    Text(reader, "LOT_NO"),
-                    Text(reader, "PART_NO"),
-                    Text(reader, "PART_NAME"),
-                    reader.GetDecimal(reader.GetOrdinal("QTY")),
-                    Text(reader, "UNIT") ?? "EA"));
-            }
+            var rows = await http.GetFromJsonAsync<List<InventoryRow>>("/api/tablet/inventory") ?? [];
 
             return rows.Count > 0
                 ? new InventorySnapshot(rows, false, null)
@@ -88,14 +34,8 @@ public sealed class TabletInventoryService(AmesConnectionFactory db)
         }
         catch (Exception ex)
         {
-            return new InventorySnapshot(DemoRows(), true, $"Database unavailable. Showing demo data. {ex.Message}");
+            return new InventorySnapshot(DemoRows(), true, $"Inventory API unavailable. Showing demo data. {ex.Message}");
         }
-    }
-
-    private static string? Text(SqlDataReader reader, string name)
-    {
-        var ordinal = reader.GetOrdinal(name);
-        return reader.IsDBNull(ordinal) ? null : Convert.ToString(reader.GetValue(ordinal))?.Trim();
     }
 
     private static List<InventoryRow> DemoRows()

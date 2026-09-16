@@ -193,7 +193,7 @@ public partial class Wh08TransactionHistory
     {
         if (!_pptReady) { await ResetPptHistory(); _pptReady = true; }
     }
-    private Task ResetPptHistory() => IsFinishedGoods ? Api.FgResetPptTestAsync("history") : Api.WhResetPptTestAsync("history");
+    private Task ResetPptHistory() => IsFinishedGoods ? FgApi.FgResetPptTestAsync("history") : Api.WhResetPptTestAsync("history");
     private async Task PreparePptRows()
     {
         _dateFrom = DateTime.Today;

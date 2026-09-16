@@ -34,7 +34,7 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "AMES API",
         Version = "v1",
-        Description = "PDA Warehouse, Finished Goods, Spare Parts, authentication and shared AMES endpoints. Sign in with POST /api/auth/login, then enter the returned token in Authorize."
+        Description = "PDA, Tablet, authentication and shared AMES endpoints. Sign in with POST /api/auth/login, then enter the returned token in Authorize."
     });
     // 엔드포인트 파일마다 같은 이름의 중첩 요청 레코드(예: Wh/Fg 의 AdjustSaveReq)가 있어
     // 기본 schemaId(타입 단순명)로는 충돌해 swagger.json 이 500 을 낸다 — 선언 타입까지 포함한 이름을 쓴다.
@@ -81,6 +81,7 @@ app.MapGet("/api/health", () => Results.Ok(new { status = "ok", at = DateTime.Ut
 app.MapAuth(app.Services.GetRequiredService<PopAuthService>(), tokens);
 app.MapWh(factory);
 app.MapFg(factory);
+app.MapTablet(factory);
 app.MapPp(factory);
 app.MapMnt(factory);
 app.MapRpt(factory);
