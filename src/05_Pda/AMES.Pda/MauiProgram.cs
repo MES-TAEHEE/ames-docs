@@ -49,11 +49,10 @@ public static class MauiProgram
 
         // ── Auth + API ──────────────────────────────────────────────────
         builder.Services.AddSingleton<AuthState>();
-        builder.Services.AddHttpClient<PdaApi>(c => c.BaseAddress = new Uri(ApiBaseUrl));
-        builder.Services.AddTransient<AuthApi>();
-        builder.Services.AddTransient<WarehouseApi>();
-        builder.Services.AddTransient<FinishedGoodsApi>();
-        builder.Services.AddTransient<SparePartsApi>();
+        builder.Services.AddHttpClient<AuthApi>(c => c.BaseAddress = new Uri(ApiBaseUrl));
+        builder.Services.AddHttpClient<WarehouseApi>(c => c.BaseAddress = new Uri(ApiBaseUrl));
+        builder.Services.AddHttpClient<FinishedGoodsApi>(c => c.BaseAddress = new Uri(ApiBaseUrl));
+        builder.Services.AddHttpClient<SparePartsApi>(c => c.BaseAddress = new Uri(ApiBaseUrl));
 
         return builder.Build();
     }
