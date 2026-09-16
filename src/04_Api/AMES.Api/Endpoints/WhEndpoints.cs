@@ -372,7 +372,7 @@ public static class WhEndpoints
             {
                 return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
             }
-        });
+        }).WithTags("PDA Test Scenarios");
 
         g.MapPost("/inbound/test/simple-reset", (HttpContext ctx) =>
         {
@@ -393,7 +393,7 @@ public static class WhEndpoints
             {
                 return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
             }
-        });
+        }).WithTags("PDA Test Scenarios");
 
         g.MapPost("/inbound/move-location", (HttpContext ctx, InboundReceiveReq body) =>
         {
@@ -527,7 +527,7 @@ public static class WhEndpoints
                 tx.Rollback();
                 return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
             }
-        });
+        }).WithTags("PDA Test Scenarios");
 
         g.MapGet("/location/scan", (HttpContext ctx, string locationId) =>
         {
@@ -633,7 +633,7 @@ public static class WhEndpoints
                 tx.Rollback();
                 return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
             }
-        });
+        }).WithTags("PDA Test Scenarios");
 
         g.MapGet("/inventory/location/{locationId}", (HttpContext ctx, string locationId, DateTime? dateFrom, DateTime? dateTo) =>
         {
@@ -1038,7 +1038,7 @@ public static class WhEndpoints
             {
                 return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
             }
-        });
+        }).WithTags("PDA Test Scenarios");
 
         g.MapPost("/transactions/test/reset", (HttpContext ctx) =>
         {
@@ -1060,7 +1060,7 @@ public static class WhEndpoints
             {
                 return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
             }
-        });
+        }).WithTags("PDA Test Scenarios");
 
         g.MapGet("/warehouse-transactions", (
             HttpContext ctx,
