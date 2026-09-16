@@ -20,6 +20,17 @@ Check(forbidden.All(token => pdaSources.All(source => !source.Contains(token, St
     "PDA has no direct database dependency");
 
 var client = Read("src/05_Pda/AMES.Pda/Services/PdaApi.cs");
+var mauiProgram = Read("src/05_Pda/AMES.Pda/MauiProgram.cs");
+var components = Directory.EnumerateFiles(Path.Combine(pdaRoot, "Components"), "*.razor", SearchOption.AllDirectories)
+    .Select(File.ReadAllText)
+    .ToList();
+foreach (var service in new[] { "AuthApi", "WarehouseApi", "FinishedGoodsApi", "SparePartsApi" })
+{
+    Check(File.Exists(Path.Combine(pdaRoot, "Services", service + ".cs")), $"PDA exposes {service}");
+    Check(mauiProgram.Contains($"AddTransient<{service}>", StringComparison.Ordinal), $"PDA registers {service}");
+}
+Check(components.All(source => !source.Contains("@inject PdaApi", StringComparison.Ordinal)),
+    "PDA screens use domain API services instead of the combined client");
 var endpoints = Read("src/04_Api/AMES.Api/Endpoints/WhEndpoints.cs");
 var fgEndpoints = Read("src/04_Api/AMES.Api/Endpoints/FgEndpoints.cs");
 var apiProgram = Read("src/04_Api/AMES.Api/Program.cs");
