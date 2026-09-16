@@ -14,17 +14,31 @@ public sealed class AuthApi(HttpClient http, AuthState auth) : PdaApi(http, auth
     /// rebuilt the Authorization header.
     /// Returns null on any auth failure or unreachable API.
     /// </summary>
-    public async Task<(string Token, PopSessionDto Session, string? Reason)?> LoginAsync(
+    public Task<(string Token, PopSessionDto Session, string? Reason)?> LoginAsync(
         string employeeNo, string pin,
         string terminalId = "PDA-DEV-01",
         string lineId = "LINE-INJ-01",
         string shiftCode = "A")
+        => LoginCoreAsync("/api/auth/login",
+            new LoginReq(employeeNo, pin, terminalId, lineId, shiftCode),
+            "Check Employee No and PIN.");
+
+    public Task<(string Token, PopSessionDto Session, string? Reason)?> LoginByBarcodeAsync(
+        string barcode,
+        string terminalId = "PDA-DEV-01",
+        string lineId = "LINE-INJ-01",
+        string shiftCode = "A")
+        => LoginCoreAsync("/api/auth/barcode-login",
+            new BarcodeLoginReq(barcode, terminalId, lineId, shiftCode),
+            "Scan or enter a valid employee barcode.");
+
+    private async Task<(string Token, PopSessionDto Session, string? Reason)?> LoginCoreAsync<T>(
+        string path, T request, string defaultReason)
     {
         HttpResponseMessage resp;
         try
         {
-            resp = await _http.PostAsJsonAsync("/api/auth/login",
-                new LoginReq(employeeNo, pin, terminalId, lineId, shiftCode));
+            resp = await _http.PostAsJsonAsync(path, request);
         }
         catch (Exception)
         {
@@ -32,7 +46,7 @@ public sealed class AuthApi(HttpClient http, AuthState auth) : PdaApi(http, auth
         }
 
         if (!resp.IsSuccessStatusCode)
-            return (Token: "", Session: null!, Reason: await LoginHttpErrorAsync(resp));
+            return (Token: "", Session: null!, Reason: await LoginHttpErrorAsync(resp, defaultReason));
 
         LoginRes? login;
         try
@@ -45,7 +59,7 @@ public sealed class AuthApi(HttpClient http, AuthState auth) : PdaApi(http, auth
         }
 
         if (login is null || string.IsNullOrEmpty(login.Token))
-            return (Token: "", Session: null!, Reason: NormalizeLoginReason(login?.Reason));
+            return (Token: "", Session: null!, Reason: NormalizeLoginReason(login?.Reason, defaultReason));
 
         _http.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", login.Token);
@@ -60,7 +74,7 @@ public sealed class AuthApi(HttpClient http, AuthState auth) : PdaApi(http, auth
             : (login.Token, session, null);
     }
 
-    private static async Task<string> LoginHttpErrorAsync(HttpResponseMessage resp)
+    private static async Task<string> LoginHttpErrorAsync(HttpResponseMessage resp, string defaultReason)
     {
         if ((int)resp.StatusCode >= 500)
             return "Authentication service failed. Check API database connection.";
@@ -71,13 +85,13 @@ public sealed class AuthApi(HttpClient http, AuthState auth) : PdaApi(http, auth
 
         return string.IsNullOrWhiteSpace(body)
             ? $"Authentication request failed ({(int)resp.StatusCode})."
-            : NormalizeLoginReason(body);
+            : NormalizeLoginReason(body, defaultReason);
     }
 
-    private static string NormalizeLoginReason(string? reason)
+    private static string NormalizeLoginReason(string? reason, string defaultReason)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            return "Check Employee No and PIN.";
+            return defaultReason;
 
         var text = reason.Trim();
         if (text.Contains("SqlException", StringComparison.OrdinalIgnoreCase)
@@ -87,7 +101,7 @@ public sealed class AuthApi(HttpClient http, AuthState auth) : PdaApi(http, auth
 
         if (text.Equals("bad pin", StringComparison.OrdinalIgnoreCase)
             || text.Equals("unknown employee", StringComparison.OrdinalIgnoreCase))
-            return "Check Employee No and PIN.";
+            return defaultReason;
 
         if (text.Length > 160)
             text = text[..160] + "...";

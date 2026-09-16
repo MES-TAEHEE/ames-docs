@@ -1,121 +1,98 @@
 @page "/login"
+@implements IAsyncDisposable
 @inject AuthState Auth
 @inject AuthApi Api
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 <div class="pda-login">
     <div class="pda-login-brand">A-MES</div>
-    <div class="pda-login-sub">SHIFT LOGIN / PDA</div>
+    <div class="pda-login-sub">BARCODE LOGIN / PDA</div>
 
-    <div class="pda-fld">
-        <label>EMPLOYEE NO</label>
-        <input class="pda-input"
-               @bind="_empNo"
-               @bind:event="oninput"
-               placeholder="admin"
-               disabled="@_submitting" />
+    <div class="pda-login-center">
+        <div class="pda-login-panel">
+            <div class="pda-fld">
+                <label>EMPLOYEE BARCODE</label>
+                <input class="pda-input pda-login-barcode"
+                       @bind="_barcode"
+                       @bind:event="oninput"
+                       @onkeydown="OnBarcodeKeyDown"
+                       placeholder="Scan employee barcode"
+                       autocomplete="off"
+                       disabled="@_submitting" />
+            </div>
+            <button class="pda-login-submit"
+                    disabled="@(_submitting || string.IsNullOrWhiteSpace(_barcode))"
+                    @onclick="SubmitBarcodeAsync">
+                @(_submitting ? "SIGNING IN..." : "SIGN IN")
+            </button>
+        </div>
+
+        <div class="pda-login-scan-state">
+            <RadzenIcon Icon="barcode_scanner" />
+            <strong>READY TO SCAN</strong>
+        </div>
+
+        <div class="pda-status @_cls">@_status</div>
     </div>
-
-    <div class="pda-pin-dots">
-        @for (var i = 0; i < 4; i++)
-        {
-            <span class="pda-pin-dot @(i < _pin.Length ? "on" : "")"></span>
-        }
-    </div>
-
-    <div class="pda-keypad">
-        @foreach (var d in new[] { "1", "2", "3", "4", "5", "6", "7", "8", "9" })
-        {
-            var k = d;
-            <button class="pda-key" disabled="@_submitting" @onclick="@(() => PressAsync(k))">@k</button>
-        }
-        <button class="pda-key del" disabled="@_submitting" @onclick="Back">DEL</button>
-        <button class="pda-key" disabled="@_submitting" @onclick='@(() => PressAsync("0"))'>0</button>
-        <button class="pda-key ok" disabled="@_submitting" @onclick="SubmitCurrentAsync">OK</button>
-    </div>
-
-    <div class="pda-status @_cls">@_status</div>
 </div>
 
 @code {
-    private string _empNo = "admin";
-    private string _pin = "";
+    private string _barcode = "";
     private string _status = " ";
     private string _cls = "dim";
     private bool _submitting;
+    private DotNetObjectReference<Login>? _scannerRef;
 
-    private async Task PressAsync(string digit)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_submitting || _pin.Length >= 4)
-            return;
-        if (digit.Length != 1 || !char.IsDigit(digit[0]))
-            return;
-
-        _pin += digit;
-        Set(" ", "dim");
-
-        if (_pin.Length == 4)
-            await SubmitAsync(_pin);
+        if (!firstRender) return;
+        PdaBarcodeHub.Scanned += OnNativeBarcodeScanned;
+        _scannerRef = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("pdaScan.register", _scannerRef,
+            new { minLength = 5, developerMode = MauiProgram.IsDeveloperMode });
     }
 
-    private void Back()
+    [JSInvokable]
+    public async Task OnHardwareScanAsync(string scanText)
     {
-        if (_submitting)
-            return;
+        if (_submitting) return;
+        _barcode = NormalizeScan(scanText);
+        if (_barcode.Length == 0) return;
 
-        if (_pin.Length > 0)
-        {
-            _pin = _pin[..^1];
-            Set(" ", "dim");
-        }
+        await AuthenticateBarcodeAsync();
     }
 
-    private Task SubmitCurrentAsync() => SubmitAsync(_pin);
-
-    private async Task SubmitAsync(string pin)
+    private async Task OnBarcodeKeyDown(KeyboardEventArgs e)
     {
-        pin = pin.Trim();
-        var employeeNo = _empNo.Trim();
+        if (e.Key == "Enter")
+            await SubmitBarcodeAsync();
+    }
 
-        if (string.IsNullOrWhiteSpace(employeeNo))
+    private Task SubmitBarcodeAsync()
+    {
+        _barcode = NormalizeScan(_barcode);
+        if (_barcode.Length == 0)
         {
-            Set("Employee No is required.", "fail");
-            return;
+            Set("Scan or enter an employee barcode.", "fail");
+            return Task.CompletedTask;
         }
 
-        if (pin.Length != 4 || !pin.All(char.IsDigit))
-        {
-            Set("PIN must be 4 digits.", "fail");
-            return;
-        }
+        return AuthenticateBarcodeAsync();
+    }
 
+    private async Task AuthenticateBarcodeAsync()
+    {
         _submitting = true;
-        Set("Signing in...", "dim");
-
+        Set("Signing in with employee barcode...", "dim");
         try
         {
-            var res = await Api.LoginAsync(employeeNo, pin);
-            if (res is null)
-            {
-                Set("Authentication service is unavailable.", "fail");
-                _pin = "";
-                return;
-            }
-
-            if (res.Value.Session is null)
-            {
-                Set("Sign-in failed. " + (res.Value.Reason ?? "Check Employee No and PIN."), "fail");
-                _pin = "";
-                return;
-            }
-
-            Auth.SignIn(res.Value.Token, res.Value.Session);
-            Nav.NavigateTo("/home", replace: true);
+            var res = await Api.LoginByBarcodeAsync(_barcode);
+            TrySignIn(res, "Scan or enter a valid employee barcode.");
         }
         catch (Exception ex)
         {
             Set("Sign-in failed. " + ex.Message, "fail");
-            _pin = "";
         }
         finally
         {
@@ -123,9 +100,43 @@
         }
     }
 
+    private void OnNativeBarcodeScanned(string barcode) =>
+        _ = InvokeAsync(() => OnHardwareScanAsync(barcode));
+
+    private bool TrySignIn((string Token, PopSessionDto Session, string? Reason)? result, string fallback)
+    {
+        if (result is null)
+        {
+            Set("Authentication service is unavailable.", "fail");
+            return false;
+        }
+
+        if (result.Value.Session is null)
+        {
+            Set("Sign-in failed. " + (result.Value.Reason ?? fallback), "fail");
+            return false;
+        }
+
+        Auth.SignIn(result.Value.Token, result.Value.Session);
+        Nav.NavigateTo("/home", replace: true);
+        return true;
+    }
+
+    private static string NormalizeScan(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? ""
+            : value.Replace("\u0002", "").Replace("\u0003", "").Replace("\r", "").Replace("\n", "").Trim();
+
     private void Set(string message, string cssClass)
     {
         _status = message;
         _cls = cssClass;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        PdaBarcodeHub.Scanned -= OnNativeBarcodeScanned;
+        try { await JS.InvokeVoidAsync("pdaScan.unregister"); } catch { }
+        _scannerRef?.Dispose();
     }
 }

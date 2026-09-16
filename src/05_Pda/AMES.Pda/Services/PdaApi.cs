@@ -23,6 +23,7 @@ public abstract class PdaApi
 
     // ── Auth ─────────────────────────────────────────────────────────────
     public sealed record LoginReq(string EmployeeNo, string Pin, string TerminalId, string LineId, string ShiftCode);
+    public sealed record BarcodeLoginReq(string Barcode, string TerminalId, string LineId, string ShiftCode);
     public sealed record LoginRes(string Token, int Result, string? Reason,
                                    string? EmployeeNo, string? EmployeeName,
                                    string? LineId, string? ShiftCode, DateTime? ExpiresAt);
