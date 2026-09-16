@@ -2886,15 +2886,6 @@
   <data name="PP.SupplyPlanImport.Err.NoneSelected" xml:space="preserve">
     <value>Select at least one order to confirm.</value>
   </data>
-  <data name="PP.WoRelease.Title" xml:space="preserve">
-    <value>WO Release</value>
-  </data>
-  <data name="PP.WoRelease.Empty" xml:space="preserve">
-    <value>No work orders match the conditions.</value>
-  </data>
-  <data name="PP.WoRelease.Kpi.Pending" xml:space="preserve">
-    <value>Waiting for Release</value>
-  </data>
   <data name="PP.WoRelease.Dlg.Phase0Warn" xml:space="preserve">
     <value>BOM/BOP master data is incomplete. Release is allowed, but complete it before shop-floor execution.</value>
   </data>
@@ -7568,30 +7559,6 @@
   </data>
   <data name="MNT.SpareParts.Move.Out" xml:space="preserve">
     <value>Out</value>
-  </data>
-  <data name="PP.WoRelease.Kpi.TotalSub" xml:space="preserve">
-    <value>incl. closed in last {0} days</value>
-  </data>
-  <data name="PP.WoRelease.Kpi.Done" xml:space="preserve">
-    <value>Completed</value>
-  </data>
-  <data name="PP.WoRelease.Ph.Search" xml:space="preserve">
-    <value>WO no · item no · item name</value>
-  </data>
-  <data name="PP.WoRelease.Hint.Detail" xml:space="preserve">
-    <value>Click a row for details and routing steps. Only Draft/Planned orders can be released.</value>
-  </data>
-  <data name="PP.WoRelease.Btn.Export" xml:space="preserve">
-    <value>Export</value>
-  </data>
-  <data name="PP.WoRelease.Ok.Exported" xml:space="preserve">
-    <value>Exported {0} rows to Excel.</value>
-  </data>
-  <data name="PP.WoRelease.Err.NoExport" xml:space="preserve">
-    <value>No data to export.</value>
-  </data>
-  <data name="PP.WoRelease.Detail.Steps" xml:space="preserve">
-    <value>Routing Steps</value>
   </data>
   <data name="PP.PurchaseReq.Kpi.TotalSub" xml:space="preserve">
     <value>last {0} requests</value>
