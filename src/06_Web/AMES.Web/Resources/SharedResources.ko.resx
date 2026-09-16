@@ -8151,4 +8151,25 @@
   <data name="PP.PurchaseReq.Err.PoNo" xml:space="preserve">
     <value>PO 번호를 입력하세요.</value>
   </data>
+  <data name="MNT.PmSchedule.Modal.Exec" xml:space="preserve">
+    <value>PM 완료 내역 —</value>
+  </data>
+  <data name="MNT.PmSchedule.Hist" xml:space="preserve">
+    <value>실행 이력</value>
+  </data>
+  <data name="MNT.PmSchedule.Hist.Empty" xml:space="preserve">
+    <value>실행 이력이 없습니다</value>
+  </data>
+  <data name="MNT.PmSchedule.Exec.Delay" xml:space="preserve">
+    <value>지연</value>
+  </data>
+  <data name="MNT.PmSchedule.Exec.OnTime" xml:space="preserve">
+    <value>기한 내</value>
+  </data>
+  <data name="MNT.PmSchedule.Exec.LateFmt" xml:space="preserve">
+    <value>{0}일 지연</value>
+  </data>
+  <data name="MNT.PmSchedule.Exec.NoDue" xml:space="preserve">
+    <value>예정일 없음</value>
+  </data>
 </root>

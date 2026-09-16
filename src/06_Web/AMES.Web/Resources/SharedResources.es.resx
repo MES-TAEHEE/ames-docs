@@ -8151,4 +8151,25 @@
   <data name="PP.PurchaseReq.Err.PoNo" xml:space="preserve">
     <value>Ingrese el número de PO.</value>
   </data>
+  <data name="MNT.PmSchedule.Modal.Exec" xml:space="preserve">
+    <value>Ejecución de PM —</value>
+  </data>
+  <data name="MNT.PmSchedule.Hist" xml:space="preserve">
+    <value>Historial de ejecución</value>
+  </data>
+  <data name="MNT.PmSchedule.Hist.Empty" xml:space="preserve">
+    <value>Sin ejecuciones registradas</value>
+  </data>
+  <data name="MNT.PmSchedule.Exec.Delay" xml:space="preserve">
+    <value>Retraso</value>
+  </data>
+  <data name="MNT.PmSchedule.Exec.OnTime" xml:space="preserve">
+    <value>A tiempo</value>
+  </data>
+  <data name="MNT.PmSchedule.Exec.LateFmt" xml:space="preserve">
+    <value>{0} d de retraso</value>
+  </data>
+  <data name="MNT.PmSchedule.Exec.NoDue" xml:space="preserve">
+    <value>Sin fecha prevista</value>
+  </data>
 </root>

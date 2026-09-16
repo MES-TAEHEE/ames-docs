@@ -413,6 +413,50 @@ public sealed class MntRepository
             ("@F", from.Date), ("@T", to.Date));
     }
 
+    // ── MNT-005/010 PM 실행 이력 (MNT_PMExecution) — 완료 시 AdvancePm 이 남긴 스냅샷 행 ──
+    /// <summary>PM 실행 이력 1행. 분류·계획번호·설비·유형·예정일은 완료 시점 스냅샷이라 일정이 지워져도 남는다. WoNumber·PartsUsedJson 은 작업지시 조인.</summary>
+    public sealed record PmExecRow(int PmExecutionId, int? PmScheduleId, string? PmPlanNumber, string? EquipId, string? PmClass, string? PmType,
+        DateTime? DueDate, int? WorkOrderId, string? WoNumber, DateTime? CompletedAt, int? LaborMinutes, string? TechnicianId,
+        string? Result, string? ResultNote, string? PartsUsedJson, string? CreatedBy, DateTime? CreatedTs);
+
+    private const string PmExecSelect = """
+        SELECT  e.PMExecutionID, e.PMScheduleID, e.PMPlanNumber, e.EquipID, e.PMClass, e.PMType, e.DueDate,
+                e.WorkOrderID, w.WoNumber, e.CompletedAt, e.LaborMinutes, e.TechnicianID, e.Result, e.ResultNote,
+                w.PartsUsedJSON, e.CreatedBy, e.CreatedTS
+        FROM    dbo.MNT_PMExecution e
+        LEFT JOIN dbo.MNT_WorkOrder w ON w.WorkOrderID = e.WorkOrderID
+        """;
+
+    private static PmExecRow MapPmExec(IDataReader r) => new(
+        (int)r["PMExecutionID"], r["PMScheduleID"] as int?, r["PMPlanNumber"] as string, r["EquipID"] as string,
+        r["PMClass"] as string, r["PMType"] as string, r["DueDate"] as DateTime?, r["WorkOrderID"] as int?, r["WoNumber"] as string,
+        r["CompletedAt"] as DateTime?, r["LaborMinutes"] as int?, r["TechnicianID"] as string, r["Result"] as string,
+        r["ResultNote"] as string, r["PartsUsedJSON"] as string, r["CreatedBy"] as string, r["CreatedTS"] as DateTime?);
+
+    /// <summary>달력용: 완료일이 기간 안(to 는 당일 포함)에 드는 실행 이력. pmClass 를 주면 그 분류만(MNT-005 EQUIP / MNT-010 MAINT).</summary>
+    public List<PmExecRow> ListPmExecutions(DateTime from, DateTime to, string? pmClass = null)
+    {
+        const string sql = $"""
+            {PmExecSelect}
+            WHERE   e.CompletedAt >= @F AND e.CompletedAt < @T
+              AND   (@C IS NULL OR e.PMClass = @C)
+            ORDER BY e.CompletedAt, e.EquipID;
+            """;
+        return Query(sql, MapPmExec, ("@F", from.Date), ("@T", to.Date.AddDays(1)), ("@C", (object?)pmClass ?? DBNull.Value));
+    }
+
+    /// <summary>한 일정의 실행 이력, 최신순 상위 N — PM 상세 모달의 이력 목록.</summary>
+    public List<PmExecRow> ListPmExecutionsFor(int pmScheduleId, int top = 10)
+    {
+        const string sql = $"""
+            {PmExecSelect}
+            WHERE   e.PMScheduleID = @Id
+            ORDER BY e.CompletedAt DESC, e.PMExecutionID DESC
+            OFFSET 0 ROWS FETCH NEXT @N ROWS ONLY;
+            """;
+        return Query(sql, MapPmExec, ("@Id", pmScheduleId), ("@N", top));
+    }
+
     // ── MNT-005 설비 PM / MNT-010 보전 PM — 등록·수정·삭제 (테이블 공용, PMClass 로 구분) ──
     public bool PmPlanNumberExists(string planNo, int? excludeId = null)
     {
@@ -989,7 +1033,7 @@ public sealed class MntRepository
                 o = CompleteWoCore(conn, tx, w, result, note ?? "", null, laborMinutes, null, completedAt, techId, actor);
             else
             {
-                var (planNo, next, nextWo) = AdvancePm(conn, tx, pm, null, result, note, completedAt, techId, actor);
+                var (planNo, next, nextWo) = AdvancePm(conn, tx, pm, null, result, note, laborMinutes, completedAt, techId, actor);
                 o = new WoCompleteOutcome(0, "", null, planNo, next, nextWo);
             }
             tx.Commit();
@@ -1068,7 +1112,7 @@ public sealed class MntRepository
         }
         string? pmNo = null; DateTime? nextDue = null; string? nextWo = null;
         if (pm is not null)
-            (pmNo, nextDue, nextWo) = AdvancePm(conn, tx, pm, woId, result, actionTaken, completedAt, techId, actor);
+            (pmNo, nextDue, nextWo) = AdvancePm(conn, tx, pm, woId, result, actionTaken, laborMinutes, completedAt, techId, actor);
 
         return new WoCompleteOutcome(woId, woNumber, failures.Count > 0 ? string.Join(", ", failures.Select(f => f.No)) : null, pmNo, nextDue, nextWo);
     }
@@ -1098,32 +1142,42 @@ public sealed class MntRepository
     }
 
     private sealed record PmCore(int Id, string? PlanNo, string? EquipId, string? PmType, string? CycleBasis, int? CycleValue,
-        string? ChecklistId, string? TechId);
+        string? ChecklistId, string? TechId, string? PmClass, DateTime? NextDue);
 
     private const string PmCoreCols =
-        "p.PMScheduleID, p.PMPlanNumber, p.EquipID, p.PMType, p.CycleBasis, p.CycleValue, p.ChecklistID, p.AssignedTechID, p.ActiveWoID";
+        "p.PMScheduleID, p.PMPlanNumber, p.EquipID, p.PMType, p.CycleBasis, p.CycleValue, p.ChecklistID, p.AssignedTechID, p.ActiveWoID, p.PMClass, p.NextDueDate";
 
     private static PmCore MapPmCore(IDataReader r) => new(
         (int)r["PMScheduleID"], r["PMPlanNumber"] as string, r["EquipID"] as string, r["PMType"] as string,
-        r["CycleBasis"] as string, r["CycleValue"] as int?, r["ChecklistID"] as string, r["AssignedTechID"] as string);
+        r["CycleBasis"] as string, r["CycleValue"] as int?, r["ChecklistID"] as string, r["AssignedTechID"] as string,
+        r["PMClass"] as string, r["NextDueDate"] as DateTime?);
 
     /// <summary>
     /// PM 실행 이력 + 일정 전진. 기간(TIME) 주기면 다음 예정일 = 완료일 + 주기 로 두고 다음 작업지시(ISSUED)를 발행해 ActiveWoID 를 잇는다.
     /// 사이클(CYCLE) 주기는 날짜로 다음 예정을 정할 수 없어 예정일은 그대로, Status = DONE 으로 둔다(ActiveWoID 는 비움).
+    /// 이력 행에는 분류·계획번호·설비·유형·이행한 예정일을 스냅샷으로 남긴다 — 일정이 지워지거나 바뀌어도 달력의 완료 칩은 그대로다.
     /// </summary>
     private (string? PlanNo, DateTime? NextDue, string? NextWoNumber) AdvancePm(SqlConnection conn, SqlTransaction tx, PmCore pm, int? woId,
-        string result, string? note, DateTime completedAt, string? techId, string actor)
+        string result, string? note, int? laborMinutes, DateTime completedAt, string? techId, string actor)
     {
         var tech = techId ?? pm.TechId;
         var resultNote = note is { Length: > 500 } ? note[..500] : note;
 
         using (var cmd = new SqlCommand("""
-            INSERT INTO dbo.MNT_PMExecution (PMScheduleID, WorkOrderID, CompletedAt, TechnicianID, Result, ResultNote, CreatedBy, CreatedTS)
-            VALUES (@Pm, @Wo, @At, @Tech, @Res, @Note, @By, SYSDATETIME());
+            INSERT INTO dbo.MNT_PMExecution
+                (PMScheduleID, PMPlanNumber, EquipID, PMClass, PMType, DueDate, WorkOrderID, CompletedAt, LaborMinutes,
+                 TechnicianID, Result, ResultNote, CreatedBy, CreatedTS)
+            VALUES (@Pm, @PlanNo, @Eq, @Cls, @Type, @Due, @Wo, @At, @Labor, @Tech, @Res, @Note, @By, SYSDATETIME());
             """, conn, tx))
         {
-            cmd.Parameters.Add("@Pm",   SqlDbType.Int).Value            = pm.Id;
-            cmd.Parameters.Add("@Wo",   SqlDbType.Int).Value            = (object?)woId ?? DBNull.Value;
+            cmd.Parameters.Add("@Pm",     SqlDbType.Int).Value          = pm.Id;
+            cmd.Parameters.Add("@Cls",    SqlDbType.VarChar, 10).Value  = (object?)pm.PmClass ?? DBNull.Value;
+            cmd.Parameters.Add("@PlanNo", SqlDbType.VarChar, 30).Value  = (object?)pm.PlanNo ?? DBNull.Value;
+            cmd.Parameters.Add("@Eq",     SqlDbType.VarChar, 20).Value  = (object?)pm.EquipId ?? DBNull.Value;
+            cmd.Parameters.Add("@Type",   SqlDbType.VarChar, 60).Value  = (object?)pm.PmType ?? DBNull.Value;
+            cmd.Parameters.Add("@Due",    SqlDbType.Date).Value         = (object?)pm.NextDue?.Date ?? DBNull.Value;
+            cmd.Parameters.Add("@Wo",     SqlDbType.Int).Value          = (object?)woId ?? DBNull.Value;
+            cmd.Parameters.Add("@Labor",  SqlDbType.Int).Value          = (object?)laborMinutes ?? DBNull.Value;
             cmd.Parameters.Add("@At",   SqlDbType.DateTime2).Value      = completedAt;
             cmd.Parameters.Add("@Tech", SqlDbType.NVarChar, 450).Value = (object?)tech ?? DBNull.Value;
             cmd.Parameters.Add("@Res",  SqlDbType.VarChar,   15).Value = result;

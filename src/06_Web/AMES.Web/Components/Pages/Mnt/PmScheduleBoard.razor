@@ -169,7 +169,7 @@
                 var capEv = ev;
                 <div class="ames-cal-wo @ev.Cls" style="font-size:12px;padding:5px 8px;margin-bottom:4px;"
                      @onclick="() => { _showDay = false; ShowDetail(capEv); }">
-                    <span style="font-weight:700;">@ev.Pm.PmPlanNumber</span>
+                    <span style="font-weight:700;">@(ev.Exec?.PmPlanNumber ?? ev.Pm?.PmPlanNumber)</span>
                     <span style="opacity:.75;margin-left:6px;">@ev.Label</span>
                     <span class="pill @PillCls(ev.Cls)" style="float:right;font-size:10px;padding:1px 6px;">@LegendText(ev.Cls)</span>
                 </div>
@@ -181,8 +181,51 @@
     </div>
 }
 
+@* ── PM 완료 내역 보기 모달 — MNT_PMExecution 1행. 상세 내용 + 닫기만 (완료된 PM 은 수정·완료 처리 대상이 아니다) ── *@
+@if (_showExec && _exec is not null)
+{
+    var x = _exec;
+    <div class="ames-modal-bg" @onclick="() => _showExec = false">
+        <div class="ames-modal" @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MNT.PmSchedule.Modal.Exec"] @(x.PmPlanNumber ?? (x.PmScheduleId is { } sid ? $"PM#{sid}" : "—"))</div>
+            <div class="ames-detail-grid">
+                <div class="ames-detail-label">@L["Col.Equip"]</div>
+                <div>@EquipText(x.EquipId)</div>
+                <div class="ames-detail-label">@L["MNT.PmSchedule.Col.Class"]</div>
+                <div><span class="pill mute">@PmClassName(x.PmClass)</span></div>
+                <div class="ames-detail-label">@L["Col.Type"]</div>
+                <div><span class="pill info">@PmTypeName(x.PmType)</span></div>
+                <div class="ames-detail-label">@L["MNT.PmSchedule.Lbl.Due"]</div>
+                <div>@(x.DueDate?.ToString("yyyy-MM-dd") ?? "—")</div>
+                <div class="ames-detail-label">@L["MNT.WorkOrder.Lbl.CompletedAt"]</div>
+                <div>@(x.CompletedAt?.ToString(DateFmt.DateTime) ?? "—")</div>
+                <div class="ames-detail-label">@L["MNT.PmSchedule.Exec.Delay"]</div>
+                <div>
+                    @{ var late = LateDays(x); }
+                    <span class="pill @(late is null ? "dim" : late > 0 ? "bad" : "ok")">@LateText(late)</span>
+                </div>
+                <div class="ames-detail-label">@L["MNT.WorkOrder.Lbl.Result"]</div>
+                <div>@if (x.Result is { Length: > 0 }) { <span class="pill @(x.Result == AMES.Contracts.Dto.MwoResultCodes.Ok ? "ok" : "warn")">@CodeName(_results, x.Result)</span> } else { <span>—</span> }</div>
+                <div class="ames-detail-label">@L["MNT.WorkOrder.Lbl.Labor"]</div>
+                <div>@(x.LaborMinutes?.ToString("N0") ?? "—")</div>
+                <div class="ames-detail-label">@L["MNT.PmSchedule.Lbl.Tech"]</div>
+                <div>@TechText(x.TechnicianId)</div>
+                <div class="ames-detail-label">@L["Col.WoNo"]</div>
+                <div>@(x.WoNumber ?? (x.WorkOrderId is { } wo ? $"#{wo}" : "—"))</div>
+                <div class="ames-detail-label">@L["MNT.WorkOrder.Lbl.Parts"]</div>
+                <div>@PartsText(x.PartsUsedJson)</div>
+                <div class="ames-detail-label">@L["MNT.PmSchedule.Lbl.Note"]</div>
+                <div style="white-space:pre-wrap;">@(string.IsNullOrWhiteSpace(x.ResultNote) ? "—" : x.ResultNote)</div>
+            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="() => _showExec = false" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
 @* ── PM Detail Modal (읽기 전용, Pp/Calendar 상세 패턴) ─────────────── *@
-@if (_showDetail && _detail is not null)
+@if (_showDetail && _detail?.Pm is not null)
 {
     var d = _detail.Pm;
     <div class="ames-modal-bg" @onclick="() => _showDetail = false">
@@ -214,6 +257,26 @@
                 <div><span class="pill @PillCls(_detail.Cls)">@LegendText(_detail.Cls)</span> <span class="dim" style="font-size:11px;margin-left:6px;">@CodeName(_pmStatuses, d.Status)</span></div>
                 <div class="ames-detail-label">@L["Col.OpenWo"]</div>
                 <div>@(d.ActiveWoId is { } wo ? $"#{wo}" : "—")</div>
+                <div class="ames-detail-label">@L["MNT.PmSchedule.Hist"]</div>
+                <div>
+                    @if (_detailHist.Count == 0)
+                    {
+                        <span class="dim">@L["MNT.PmSchedule.Hist.Empty"]</span>
+                    }
+                    else
+                    {
+                        @foreach (var h in _detailHist)
+                        {
+                            var capH = h;
+                            <div class="ames-cal-wo pm-done" style="position:static;display:block;font-size:12px;padding:4px 8px;margin-bottom:4px;opacity:1;"
+                                 title="@L["MNT.PmSchedule.Modal.Exec"]" @onclick="() => ShowExec(capH)">
+                                <span style="font-weight:700;">@(h.CompletedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</span>
+                                <span style="opacity:.8;margin-left:6px;">@CodeName(_results, h.Result) · @TechText(h.TechnicianId)</span>
+                                @if (h.LaborMinutes is { } lm) { <span style="opacity:.6;margin-left:6px;">@lm min</span> }
+                            </div>
+                        }
+                    }
+                </div>
             </div>
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 @if (_canEdit)
@@ -359,10 +422,13 @@
     /// <summary>권한 키(SYS_Screen.HRef).</summary>
     [Parameter] public string Href { get; set; } = "mnt/pm-schedule";
 
-    // 달력 이벤트: 예정일(NextDueDate) → 예정/오늘/지연, 마지막 PM 일(LastPMDate) → 완료
-    public sealed record PmEvent(MntRepository.PmRow Pm, DateTime Date, string Cls, string Label);
+    // 달력 이벤트: 예정일(NextDueDate) → 예정/오늘/지연, 실행 이력(MNT_PMExecution.CompletedAt) → 완료.
+    // Exec 가 있으면 완료 칩(일정이 지워졌으면 Pm 은 null), 없으면 일정 칩. 구 데이터(이력 없이 LastPMDate 만)는 Pm 만 있는 완료 칩.
+    public sealed record PmEvent(MntRepository.PmRow? Pm, DateTime Date, string Cls, string Label, MntRepository.PmExecRow? Exec = null);
 
     List<MntRepository.PmRow>               _all       = new();
+    List<MntRepository.PmExecRow>           _execs     = new();   // 표시 중인 달의 실행 이력
+    List<MntRepository.PmExecRow>           _detailHist = new();  // 상세 모달의 일정별 최근 이력
     List<PmEvent>                           _events    = new();
     Dictionary<DateTime, List<PmEvent>>     _byDate    = new();
     Dictionary<DateTime, string>            _holidays  = new();
@@ -386,6 +452,8 @@
     DateTime? _dayDate;
     bool      _showDetail;
     PmEvent?  _detail;
+    bool      _showExec;
+    MntRepository.PmExecRow? _exec;   // 완료 내역 보기 모달 대상
 
     string _modal = "";   // "" | "create" | "edit" | "complete"
     int?   _editId;
@@ -446,6 +514,8 @@
         var to   = from.AddMonths(1).AddDays(-1);
         try { _all = Mnt.ListPmCalendar(from, to, PmClass); }
         catch (Exception ex) { ShowMsg(ex.Message, true); _all = new(); }
+        try { _execs = Mnt.ListPmExecutions(from, to, PmClass); }
+        catch (Exception ex) { ShowMsg(ex.Message, true); _execs = new(); }
         try { _holidays = Sys.ListCalendarRange(from, to).Where(c => c.CalendarDate is { } && !string.IsNullOrEmpty(c.HolidayName)).GroupBy(c => c.CalendarDate!.Value.Date).ToDictionary(g => g.Key, g => g.First().HolidayName!); }
         catch { _holidays = new(); }
         Rebuild();
@@ -460,10 +530,21 @@
         var rows = _all.Where(p => string.IsNullOrEmpty(_fEquip) || p.EquipId == _fEquip);
 
         var list = new List<PmEvent>();
+
+        // 완료 칩 = 실행 이력(완료 시각의 날짜). 일정이 지워진 이력은 스냅샷(설비·유형)으로 표시한다.
+        foreach (var x in _execs.Where(x => x.CompletedAt is { } && (string.IsNullOrEmpty(_fEquip) || x.EquipId == _fEquip)))
+        {
+            var pm = x.PmScheduleId is { } sid ? _all.FirstOrDefault(p => p.PmScheduleId == sid) : null;
+            var label = $"{ShortEquip(x.EquipId)} {(x.PmType is null ? "" : PmTypeName(x.PmType))}".Trim();
+            list.Add(new PmEvent(pm, x.CompletedAt!.Value.Date, "pm-done", label, x));
+        }
+
         foreach (var p in rows)
         {
             var label = $"{ShortEquip(p.EquipId)} {(p.PmType is null ? "" : PmTypeName(p.PmType))}".Trim();
-            if (p.LastPmDate is { } done && done.Date >= from && done.Date <= to)
+            // 구 데이터: 실행 이력 없이 LastPMDate 만 있는 일정은 그 날짜에 완료 칩 (같은 날 이력이 있으면 이력 칩이 대신한다)
+            if (p.LastPmDate is { } done && done.Date >= from && done.Date <= to
+                && !_execs.Any(x => x.PmScheduleId == p.PmScheduleId && x.CompletedAt?.Date == done.Date))
                 list.Add(new PmEvent(p, done.Date, "pm-done", label));
             if (p.NextDueDate is { } due && due.Date >= from && due.Date <= to)
             {
@@ -471,12 +552,14 @@
                 var cls = due.Date == today ? "pm-today"
                         : due.Date > today  ? "pm-planned"
                         : p.LastPmDate is { } lp && lp.Date >= due.Date ? "pm-done" : "pm-overdue";
-                if (!(cls == "pm-done" && p.LastPmDate!.Value.Date == due.Date && list.Any(e => e.Pm == p && e.Cls == "pm-done")))
+                // 이행된 예정일: 그 뒤 실행 이력이 있으면 이력 칩이 이미 대신하므로 예정일 자리에 완료 칩을 또 놓지 않는다(구 데이터만 예정일 자리 표시)
+                bool coveredByExec = cls == "pm-done" && _execs.Any(x => x.PmScheduleId == p.PmScheduleId && x.CompletedAt?.Date >= due.Date);
+                if (!coveredByExec && !(cls == "pm-done" && p.LastPmDate!.Value.Date == due.Date && list.Any(e => e.Pm == p && e.Cls == "pm-done")))
                     list.Add(new PmEvent(p, due.Date, cls, label));
             }
         }
         if (!string.IsNullOrEmpty(_fStatus)) list = list.Where(e => e.Cls == _fStatus).ToList();
-        _events = list.OrderBy(e => e.Date).ThenBy(e => e.Pm.EquipId).ToList();
+        _events = list.OrderBy(e => e.Date).ThenBy(e => e.Exec?.EquipId ?? e.Pm?.EquipId).ToList();
         _byDate = _events.GroupBy(e => e.Date).ToDictionary(g => g.Key, g => g.ToList());
     }
 
@@ -488,7 +571,45 @@
     void GoToday()   { _calYear = DateTime.Today.Year; _calMonth = DateTime.Today.Month; Reload(); }
 
     void ShowDayModal(DateTime date) { _dayDate = date; _showDay = true; }
-    void ShowDetail(PmEvent ev) { _detail = ev; _showDetail = true; }
+
+    // 완료 칩은 보기 전용 모달(이력 1행), 나머지는 일정 상세(완료 처리·수정 버튼 포함)
+    void ShowDetail(PmEvent ev)
+    {
+        if (ev.Cls == "pm-done")
+        {
+            ShowExec(ev.Exec ?? LegacyExec(ev.Pm!));
+            return;
+        }
+        if (ev.Pm is null) return;
+        _detail = ev; _showDetail = true;
+        try { _detailHist = Mnt.ListPmExecutionsFor(ev.Pm.PmScheduleId, 5); } catch { _detailHist = new(); }
+    }
+
+    void ShowExec(MntRepository.PmExecRow x) { _exec = x; _showDetail = false; _showExec = true; }
+
+    // 실행 이력 없이 LastPMDate 만 남은 구 일정 — 일정 값으로 보기 모달을 채운다(결과·소요·비고 없음).
+    // 예정일은 실시일 이전에 머물러 있을 때(사이클 주기)만 그 실행이 이행한 예정일로 본다.
+    static MntRepository.PmExecRow LegacyExec(MntRepository.PmRow p) => new(0, p.PmScheduleId, p.PmPlanNumber, p.EquipId, p.PmClass, p.PmType,
+        p.NextDueDate is { } nd && p.LastPmDate is { } lp && nd.Date <= lp.Date ? nd.Date : null,
+        null, null, p.LastPmDate, null, p.AssignedTechId, null, null, null, null, null);
+
+    // 예정일 대비 지연 일수(완료일 − 예정일). 예정일을 모르면 null.
+    static int? LateDays(MntRepository.PmExecRow x) =>
+        x.DueDate is { } due && x.CompletedAt is { } at ? (at.Date - due.Date).Days : null;
+    string LateText(int? late) => late switch
+    {
+        null => L["MNT.PmSchedule.Exec.NoDue"].Value,
+        > 0  => string.Format(L["MNT.PmSchedule.Exec.LateFmt"].Value, late.Value),
+        _    => L["MNT.PmSchedule.Exec.OnTime"].Value,
+    };
+
+    // MNT_WorkOrder.PartsUsedJSON(문자열 배열) → "a, b". JSON 이 아니면 원문.
+    static string PartsText(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return "—";
+        try { var arr = System.Text.Json.JsonSerializer.Deserialize<string[]>(json); return arr is { Length: > 0 } ? string.Join(", ", arr) : "—"; }
+        catch { return json; }
+    }
 
     // ── 등록 / 수정 / 삭제 ─────────────────────────────────────────────
     void OpenCreate()
@@ -652,8 +773,11 @@
     // 칩은 좁아서 설비 ID 만 (목업의 "INJ#1" 처럼 짧게)
     static string ShortEquip(string? id) => id ?? "—";
 
-    string Tip(PmEvent ev) =>
-        $"{ev.Pm.PmPlanNumber} | {EquipText(ev.Pm.EquipId)}\n{PmClassName(ev.Pm.PmClass)} · {PmTypeName(ev.Pm.PmType)} · {CodeName(_cycleBases, ev.Pm.CycleBasis)} {ev.Pm.CycleValue}\n{LegendText(ev.Cls)} | {L["Col.LastPm"]}: {ev.Pm.LastPmDate?.ToString("MM-dd") ?? "—"} | {L["Col.NextDue"]}: {ev.Pm.NextDueDate?.ToString("MM-dd") ?? "—"}";
+    string Tip(PmEvent ev) => ev.Exec is { } x
+        ? $"{x.PmPlanNumber} | {EquipText(x.EquipId)}\n{PmClassName(x.PmClass)} · {PmTypeName(x.PmType)}\n{LegendText(ev.Cls)} | {x.CompletedAt?.ToString("MM-dd HH:mm") ?? "—"} | {CodeName(_results, x.Result)} | {TechText(x.TechnicianId)}"
+        : ev.Pm is { } p
+        ? $"{p.PmPlanNumber} | {EquipText(p.EquipId)}\n{PmClassName(p.PmClass)} · {PmTypeName(p.PmType)} · {CodeName(_cycleBases, p.CycleBasis)} {p.CycleValue}\n{LegendText(ev.Cls)} | {L["Col.LastPm"]}: {p.LastPmDate?.ToString("MM-dd") ?? "—"} | {L["Col.NextDue"]}: {p.NextDueDate?.ToString("MM-dd") ?? "—"}"
+        : ev.Label;
 
     string DdTxt(int? days) => days switch
     {

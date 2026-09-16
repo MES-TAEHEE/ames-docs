@@ -3187,10 +3187,16 @@ GO
 CREATE TABLE dbo.MNT_PMExecution (
   [PMExecutionID]             INT IDENTITY         NOT NULL,
   [PMScheduleID]              INT                      NULL,  -- FK -> MNT_PMSchedule.PMScheduleID
+  [PMPlanNumber]              VARCHAR(30)              NULL,  -- 완료 시점 일정 스냅샷 — 이하 MNT_PMSchedule 과 같은 순서 (migrate_mnt_pm_execution_class.sql)
+  [EquipID]                   VARCHAR(20)              NULL,  -- 일정 스냅샷 (FK -> MD_Equipment.EquipID)
+  [PMClass]                   VARCHAR(10)              NULL,  -- 공통코드 PM_CLASS (EQUIP / MAINT) — 일정 스냅샷
+  [PMType]                    VARCHAR(60)              NULL,  -- 공통코드 PM_TYPE — 일정 스냅샷
+  [DueDate]                   DATE                     NULL,  -- 이행한 예정일
   [WorkOrderID]               INT                      NULL,  -- FK -> MNT_WorkOrder.WorkOrderID
   [CompletedAt]               DATETIME2                NULL,
+  [LaborMinutes]              INT                      NULL,
   [TechnicianID]              NVARCHAR(450)            NULL,  -- FK -> AspNetUsers.Id
-  [Result]                    VARCHAR(15)              NULL,
+  [Result]                    VARCHAR(15)              NULL,  -- 공통코드 MWO_RESULT
   [ResultNote]                NVARCHAR(500)            NULL,
   [ChecklistResultsJSON]      NVARCHAR(MAX)            NULL,
   [CreatedBy]                 VARCHAR(50)          NOT NULL,
