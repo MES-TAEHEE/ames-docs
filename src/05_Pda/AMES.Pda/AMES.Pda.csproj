@@ -43,7 +43,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\02_Data\AMES.Data\AMES.Data.csproj" />
         <ProjectReference Include="..\..\01_Shared\AMES.Contracts\AMES.Contracts.csproj" />
     </ItemGroup>
 

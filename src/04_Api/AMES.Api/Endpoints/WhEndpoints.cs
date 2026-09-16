@@ -52,6 +52,7 @@ public static class WhEndpoints
     public sealed record InventoryLocationRow(int RowNo, string ItemNo, string LocationId, string? LocationName,
         string? WarehouseCode, string? WarehouseName, string? AreaCode, string? AreaName,
         string? ZoneCode, string? ZoneName, string? RackX, string? RackY, string? RackZ, decimal Qty);
+    public sealed record InventoryScanLookupRow(string SearchKind, string SearchText, string? DisplayText);
     public sealed record InventoryTestChangeResult(bool Success, string Message, string LotNo, decimal Qty);
 
     public sealed record InboundScanRow(string ReceiveType, string? Yn, string LotNo, string Barcode,
@@ -556,26 +557,26 @@ public static class WhEndpoints
         });
 
         // WH-03 Inventory Status
-        g.MapGet("/inventory", (HttpContext ctx, string? q, bool? simulateFailure) =>
+        g.MapGet("/inventory", (HttpContext ctx, string? q, DateTime? dateFrom, DateTime? dateTo,
+            string? areaCode, bool? simulateFailure) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
             if (simulateFailure == true && PdaScenarioUsers.IsDetailed(s.EmployeeNo))
                 return Results.Problem("Simulated Inventory API failure.", statusCode: StatusCodes.Status503ServiceUnavailable);
+            return Results.Ok(QueryInventory(factory, q, dateFrom, dateTo, areaCode));
+        });
 
-            var sql = """
-                SELECT TOP 100 inv.InventoryID, inv.ItemNo, i.ItemName, inv.LocationID,
-                       inv.LotID, ISNULL(inv.OnHandQty,0) AS OnHandQty,
-                       ISNULL(inv.ReservedQty,0) AS ReservedQty, inv.ExpiryDate
-                FROM   dbo.WH_Inventory inv
-                LEFT JOIN dbo.MD_Item i ON i.ItemNo = inv.ItemNo
-                WHERE  (@Q = '' OR inv.ItemNo LIKE '%' + @Q + '%' OR i.ItemName LIKE '%' + @Q + '%')
-                ORDER BY inv.ItemNo, inv.LocationID;
-                """;
-            return QueryWithParam(factory, sql, "@Q", q ?? "", r => new InventoryRow(
-                (int)r["InventoryID"], r["ItemNo"] as string ?? "", r["ItemName"] as string,
-                r["LocationID"] as string ?? "", r["LotID"] as int?,
-                r.GetDecimal(r.GetOrdinal("OnHandQty")), r.GetDecimal(r.GetOrdinal("ReservedQty")),
-                r["ExpiryDate"] as DateTime?));
+        g.MapGet("/inventory/scan", (HttpContext ctx, string scanText) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            return Results.Ok(QueryInventoryScan(factory, scanText));
+        });
+
+        g.MapGet("/inventory/locations", (HttpContext ctx, string itemNo, DateTime? dateFrom,
+            DateTime? dateTo, string? areaCode) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            return Results.Ok(QueryInventoryLocations(factory, itemNo, dateFrom, dateTo, areaCode));
         });
 
         g.MapPost("/inventory/test/toggle-qty", (HttpContext ctx) =>
@@ -1380,6 +1381,156 @@ public static class WhEndpoints
                 GetString(rdr, "LOCATION_NO"),
                 GetDecimal(rdr, "QTY"),
                 GetString(rdr, "PROD_DATE")));
+        }
+        return rows;
+    }
+
+    private static List<InventoryRow> QueryInventory(AmesConnectionFactory factory, string? search,
+        DateTime? dateFrom, DateTime? dateTo, string? areaCode)
+    {
+        using var conn = factory.OpenConnection();
+        var usePdaProcedure = ProcedureExists(conn, "dbo", "WH_PDA_INVENTORY_STATUS_LIST");
+        using var cmd = new SqlCommand(
+            usePdaProcedure ? "[dbo].[WH_PDA_INVENTORY_STATUS_LIST]" : "[SIS_TEST].[PDA_WH03_INVENTORY_STATUS]", conn)
+        {
+            CommandType = CommandType.StoredProcedure
+        };
+        if (usePdaProcedure)
+        {
+            cmd.Parameters.Add("@SearchText", SqlDbType.NVarChar, 80).Value =
+                string.IsNullOrWhiteSpace(search) ? DBNull.Value : search.Trim();
+            cmd.Parameters.Add("@StockDateFrom", SqlDbType.Date).Value = dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
+            cmd.Parameters.Add("@StockDateTo", SqlDbType.Date).Value = dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
+            cmd.Parameters.Add("@AreaCode", SqlDbType.NVarChar, 20).Value =
+                string.IsNullOrWhiteSpace(areaCode) ? DBNull.Value : areaCode.Trim();
+        }
+        else
+        {
+            cmd.Parameters.Add("@IN_CORCD", SqlDbType.NVarChar, 10).Value = WhLocationCorcd;
+            cmd.Parameters.Add("@IN_BIZCD", SqlDbType.NVarChar, 10).Value = WhLocationBizcd;
+            cmd.Parameters.Add("@IN_Q", SqlDbType.NVarChar, 80).Value =
+                string.IsNullOrWhiteSpace(search) ? DBNull.Value : search.Trim();
+            cmd.Parameters.Add("@IN_DATE_FROM", SqlDbType.Date).Value = dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
+            cmd.Parameters.Add("@IN_DATE_TO", SqlDbType.Date).Value = dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
+            cmd.Parameters.Add("@IN_LANG_SET", SqlDbType.NVarChar, 10).Value = "EN";
+        }
+
+        using var rdr = cmd.ExecuteReader();
+        var rows = new List<InventoryRow>();
+        while (rdr.Read())
+        {
+            rows.Add(new InventoryRow(
+                GetInt(rdr, "INVENTORY_ID") ?? 0,
+                GetString(rdr, "PARTNO") ?? "",
+                GetString(rdr, "PARTNM"),
+                GetString(rdr, "PRIMARY_LOCATION") ?? "-",
+                null,
+                GetDecimal(rdr, "SUM_QTY"),
+                GetDecimal(rdr, "RESERVED_QTY"),
+                GetDate(rdr, "LAST_RECEIVED_DATE"),
+                GetString(rdr, "VINCD"),
+                GetString(rdr, "UNIT"),
+                GetNullableDecimal(rdr, "MIN_INV_DAY"),
+                GetNullableDecimal(rdr, "MIN_INV_QTY"),
+                GetNullableDecimal(rdr, "MAX_INV_DAY"),
+                GetNullableDecimal(rdr, "MAX_INV_QTY"),
+                GetInt(rdr, "LOT_COUNT") ?? 0,
+                GetInt(rdr, "LOCATION_COUNT") ?? 0,
+                GetString(rdr, "STATUS"),
+                GetString(rdr, "STATUSNM"),
+                GetDate(rdr, "LAST_RECEIVED_DATE"),
+                GetString(rdr, "LOTNO")));
+        }
+        return rows;
+    }
+
+    private static InventoryScanLookupRow QueryInventoryScan(AmesConnectionFactory factory, string scanText)
+    {
+        var value = scanText.Trim();
+        using var conn = factory.OpenConnection();
+        if (ProcedureExists(conn, "dbo", "WH_PDA_INVENTORY_SCAN_LOOKUP"))
+        {
+            using var cmd = new SqlCommand("[dbo].[WH_PDA_INVENTORY_SCAN_LOOKUP]", conn)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            cmd.Parameters.Add("@ScanText", SqlDbType.NVarChar, 80).Value = value;
+            using var rdr = cmd.ExecuteReader();
+            if (rdr.Read())
+                return new InventoryScanLookupRow(
+                    GetString(rdr, "SEARCH_KIND") ?? "TEXT",
+                    GetString(rdr, "SEARCH_TEXT") ?? value,
+                    GetString(rdr, "DISPLAY_TEXT"));
+        }
+
+        var lookups = new (string Kind, string Schema, string Table, string Sql)[]
+        {
+            ("LOCATION", "dbo", "MD_Location", "SELECT TOP (1) LocationID FROM dbo.MD_Location WHERE UPPER(LocationID)=UPPER(@ScanText) AND COALESCE(ActiveFlag,1)=1"),
+            ("PART", "dbo", "tbl_Lot", "SELECT TOP (1) ItemNo FROM dbo.tbl_Lot WHERE UPPER(LotCode)=UPPER(@ScanText) OR UPPER(ItemNo)=UPPER(@ScanText) ORDER BY CASE WHEN UPPER(LotCode)=UPPER(@ScanText) THEN 0 ELSE 1 END, LotID DESC"),
+            ("PART", "dbo", "MD_Item", "SELECT TOP (1) ItemNo FROM dbo.MD_Item WHERE UPPER(ItemNo)=UPPER(@ScanText) AND COALESCE(ActiveFlag,1)=1"),
+            ("LOCATION", "SIS_TEST", "WMS1040", "SELECT TOP (1) LOCATION_NO FROM SIS_TEST.WMS1040 WHERE UPPER(LOCATION_NO)=UPPER(@ScanText) AND COALESCE(USE_YN,N'Y')=N'Y'"),
+            ("LOCATION", "SIS_TEST", "WMS2000", "SELECT TOP (1) LOCATION_NO FROM SIS_TEST.WMS2000 WHERE UPPER(LOCATION_NO)=UPPER(@ScanText) AND COALESCE(QTY,0)>0"),
+            ("PART", "SIS_TEST", "WMS2020", "SELECT TOP (1) PARTNO FROM SIS_TEST.WMS2020 WHERE UPPER(LOTNO)=UPPER(@ScanText) OR UPPER(PARTNO)=UPPER(@ScanText) ORDER BY CASE WHEN UPPER(LOTNO)=UPPER(@ScanText) THEN 0 ELSE 1 END"),
+            ("PART", "SIS_TEST", "WMS2010", "SELECT TOP (1) PARTNO FROM SIS_TEST.WMS2010 WHERE UPPER(LOTNO)=UPPER(@ScanText) OR UPPER(PARTNO)=UPPER(@ScanText) ORDER BY CASE WHEN UPPER(LOTNO)=UPPER(@ScanText) THEN 0 ELSE 1 END"),
+            ("PART", "SIS_TEST", "ACD0020", "SELECT TOP (1) PARTNO FROM SIS_TEST.ACD0020 WHERE UPPER(PARTNO)=UPPER(@ScanText)")
+        };
+        foreach (var lookup in lookups)
+        {
+            if (!TableExists(conn, null, lookup.Schema, lookup.Table)) continue;
+            var result = ScalarString(conn, null, lookup.Sql, ("@ScanText", value));
+            if (!string.IsNullOrWhiteSpace(result))
+                return new InventoryScanLookupRow(lookup.Kind, result, null);
+        }
+        return new InventoryScanLookupRow("TEXT", value, null);
+    }
+
+    private static List<InventoryLocationRow> QueryInventoryLocations(AmesConnectionFactory factory, string itemNo,
+        DateTime? dateFrom, DateTime? dateTo, string? areaCode)
+    {
+        using var conn = factory.OpenConnection();
+        var usePdaProcedure = ProcedureExists(conn, "dbo", "WH_PDA_INVENTORY_LOCATION_LIST");
+        using var cmd = new SqlCommand(
+            usePdaProcedure ? "[dbo].[WH_PDA_INVENTORY_LOCATION_LIST]" : "[SIS_TEST].[PDA_WH03_INVENTORY_LOCATIONS]", conn)
+        {
+            CommandType = CommandType.StoredProcedure
+        };
+        if (usePdaProcedure)
+        {
+            cmd.Parameters.Add("@ItemNo", SqlDbType.NVarChar, 40).Value = itemNo.Trim();
+            cmd.Parameters.Add("@StockDateFrom", SqlDbType.Date).Value = dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
+            cmd.Parameters.Add("@StockDateTo", SqlDbType.Date).Value = dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
+            cmd.Parameters.Add("@AreaCode", SqlDbType.NVarChar, 20).Value =
+                string.IsNullOrWhiteSpace(areaCode) ? DBNull.Value : areaCode.Trim();
+        }
+        else
+        {
+            cmd.Parameters.Add("@IN_CORCD", SqlDbType.NVarChar, 10).Value = WhLocationCorcd;
+            cmd.Parameters.Add("@IN_BIZCD", SqlDbType.NVarChar, 10).Value = WhLocationBizcd;
+            cmd.Parameters.Add("@IN_PARTNO", SqlDbType.NVarChar, 40).Value = itemNo.Trim();
+            cmd.Parameters.Add("@IN_DATE_FROM", SqlDbType.Date).Value = dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
+            cmd.Parameters.Add("@IN_DATE_TO", SqlDbType.Date).Value = dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
+            cmd.Parameters.Add("@IN_LANG_SET", SqlDbType.NVarChar, 10).Value = "EN";
+        }
+
+        using var rdr = cmd.ExecuteReader();
+        var rows = new List<InventoryLocationRow>();
+        while (rdr.Read())
+        {
+            rows.Add(new InventoryLocationRow(
+                GetInt(rdr, "ROW_NO") ?? 0,
+                GetString(rdr, "PARTNO") ?? "",
+                GetString(rdr, "LOCATION_NO") ?? "-",
+                GetString(rdr, "LOCATION_NM"),
+                GetString(rdr, "WHCD"),
+                GetString(rdr, "WHNM"),
+                GetString(rdr, "AREACD"),
+                GetString(rdr, "AREANM"),
+                GetString(rdr, "ZONECD"),
+                GetString(rdr, "ZONENM"),
+                GetString(rdr, "RACK_X"),
+                GetString(rdr, "RACK_Y"),
+                GetString(rdr, "RACK_Z"),
+                GetDecimal(rdr, "SUM_QTY")));
         }
         return rows;
     }

@@ -1,4 +1,3 @@
-using AMES.Data.Connection;
 using AMES.Pda.Services;
 using Microsoft.Extensions.Logging;
 using Radzen;
@@ -50,8 +49,6 @@ public static class MauiProgram
 
         // ── Auth + API ──────────────────────────────────────────────────
         builder.Services.AddSingleton<AuthState>();
-        builder.Services.AddSingleton(new AmesConnectionFactory(
-            "Server=192.168.1.100,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=5;"));
         builder.Services.AddHttpClient<PdaApi>(c => c.BaseAddress = new Uri(ApiBaseUrl));
 
         return builder.Build();

@@ -47,11 +47,12 @@ Check(api.Contains("public const string SparePartsAreaCode = \"SPARE_PARTS_AREA\
       && api.Contains("SpSaveAdjustQtyAsync")
       && api.Contains("SpMoveLocationAsync")
       && api.Contains("/api/wh/sp/transactions"), "PDA routes SP inventory, adjustment, location, and transactions to the spare-parts ledger");
-Check(api.Contains("L.WhCode AS WarehouseCode") && api.Contains("L.AreaCode"), "Direct location query uses normalized warehouse and area columns");
-
 var schema = Read("dist/pda/PDA_SCHEMA.sql");
 var seed = Read("dist/pda/PDA_SEED.sql");
 var apiEndpoints = Read("src/04_Api/AMES.Api/Endpoints/WhEndpoints.cs");
+Check(api.Contains("/api/wh/locations")
+      && apiEndpoints.Contains("l.WhCode AS WarehouseCode")
+      && apiEndpoints.Contains("l.AreaCode AS AreaCode"), "Location API uses normalized warehouse and area columns");
 Check(schema.Contains("CREATE OR ALTER PROCEDURE dbo.SP_PDA_STOCK_MOVE")
       && schema.Contains("UPDATE dbo.MD_SparePart")
       && schema.Contains("INSERT INTO dbo.MNT_SparePartsTxn")
