@@ -3908,11 +3908,20 @@ public sealed class MasterDataRepository
     private static string SparePartNoPrefix(string category, string applicableEquip) =>
         $"EOS-SP-{category}{applicableEquip}-{DateTime.Today:yy}";
 
+    // 순번 9999 는 PDA 테스트 고정 데이터(PDA_SCHEMA.sql 이 EOS-SP-K9-269999 를 시드)라 MAX 에서 뺀다 — 포함하면 다음 순번이 10000 이 되어
+    // 17자 번호가 VARCHAR(16) 파라미터에서 조용히 잘려 'EOS-SP-K9-261000' 같은 깨진 번호가 등록됐다(2026-09-16 실제 발생).
     private const string NextSparePartSeqSql = """
         SELECT ISNULL(MAX(TRY_CAST(RIGHT(SparePartNo, 4) AS int)), 0) + 1
         FROM   dbo.MD_SparePart {0}
-        WHERE  SparePartNo LIKE @Pfx + '%' AND LEN(SparePartNo) = 16;
+        WHERE  SparePartNo LIKE @Pfx + '%' AND LEN(SparePartNo) = 16 AND RIGHT(SparePartNo, 4) <> '9999';
         """;
+
+    private const int SparePartSeqMax = 9998;
+
+    /// <summary>순번을 4자리로 — 범위를 넘으면 잘린 번호를 만들지 않고 막는다.</summary>
+    private static string SparePartNoOf(string pfx, int seq) =>
+        seq is >= 1 and <= SparePartSeqMax ? pfx + seq.ToString("D4")
+        : throw new InvalidOperationException($"SparePartNo sequence exhausted for {pfx} (max {SparePartSeqMax}).");
 
     /// <summary>다음 예비품번호 미리보기(잠금 없음). 실제 번호는 InsertSparePart 가 트랜잭션 안에서 다시 정한다.</summary>
     public string NextSparePartNo(string category, string applicableEquip)
@@ -3921,7 +3930,7 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(string.Format(NextSparePartSeqSql, ""), conn);
         cmd.Parameters.Add("@Pfx", SqlDbType.VarChar, 12).Value = pfx;
-        return pfx + Convert.ToInt32(cmd.ExecuteScalar()).ToString("D4");
+        return SparePartNoOf(pfx, Convert.ToInt32(cmd.ExecuteScalar()));
     }
 
     /// <summary>
@@ -3946,7 +3955,7 @@ public sealed class MasterDataRepository
             using (var seq = new SqlCommand(string.Format(NextSparePartSeqSql, "WITH (UPDLOCK, HOLDLOCK)"), conn, tx))
             {
                 seq.Parameters.Add("@Pfx", SqlDbType.VarChar, 12).Value = pfx;
-                spNo = pfx + Convert.ToInt32(seq.ExecuteScalar()).ToString("D4");
+                spNo = SparePartNoOf(pfx, Convert.ToInt32(seq.ExecuteScalar()));
             }
 
             using var cmd = new SqlCommand(
