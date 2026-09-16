@@ -121,7 +121,7 @@ public static class FgEndpoints
             {
                 return Results.Problem(ex.Message, statusCode: StatusCodes.Status503ServiceUnavailable);
             }
-        });
+        }).WithTags("PDA Test Scenarios");
 
         g.MapGet("/adjust/scan", (HttpContext ctx, string scanText) =>
         {

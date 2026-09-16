@@ -30,7 +30,12 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "AMES API", Version = "v1" });
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "AMES API",
+        Version = "v1",
+        Description = "PDA Warehouse, Finished Goods, Spare Parts, authentication and shared AMES endpoints. Sign in with POST /api/auth/login, then enter the returned token in Authorize."
+    });
     // 엔드포인트 파일마다 같은 이름의 중첩 요청 레코드(예: Wh/Fg 의 AdjustSaveReq)가 있어
     // 기본 schemaId(타입 단순명)로는 충돌해 swagger.json 이 500 을 낸다 — 선언 타입까지 포함한 이름을 쓴다.
     c.CustomSchemaIds(SwaggerSchemaId);
@@ -63,7 +68,13 @@ app.UseCors();
 app.UseBearerAuth(tokens);
 
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "AMES API v1");
+    c.RoutePrefix = "swagger";
+    c.EnablePersistAuthorization();
+    c.DisplayRequestDuration();
+});
 
 // ── Endpoints ───────────────────────────────────────────────────────────
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", at = DateTime.UtcNow }));
