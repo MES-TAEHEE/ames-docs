@@ -211,8 +211,8 @@ API 서버(`AMES.Api`)와 HTTP 통신. Bearer Token 인증.
 
 ASP.NET Identity 쿠키 인증. 개발 기본 계정: `admin@ames.local / Dev2026!`
 
-#### PP (생산계획) — 13화면
-`WorkOrder` / `WoRelease` / `LineSchedule` / `Calendar` / `PlanConfirm`
+#### PP (생산계획) — 12화면
+`WorkOrder` / `LineSchedule` / `Calendar` / `PlanConfirm`
 `Forecast` / `Delivery` / `Mrp` / `SupplyPlanImport` / `PurchaseReq`
 `Oee` / `Downtime` / `DowntimeMonitor`
 

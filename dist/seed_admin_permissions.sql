@@ -17,7 +17,6 @@ USING (VALUES
   ('PP-04',  'PP', N'작업 지시',                  N'Work Order',                  'pp/work-order',          'PP-004',  4, 1),
   ('PP-05',  'PP', N'MRP',                         N'MRP',                         'pp/mrp',                 'PP-005',  5, 1),
   ('PP-06',  'PP', N'구매 요청',                  N'Purchase Req',                'pp/purchase-req',        'PP-006',  6, 1),
-  ('PP-07',  'PP', N'작업 지시 릴리스',           N'WO Release',                  'pp/wo-release',          'PP-007',  7, 1),
   ('PP-CAL', 'PP', N'캘린더',                     N'Calendar',                    'pp/calendar',            'CAL',     8, 1),
   ('PP-LSB', 'PP', N'라인 일정',                  N'Line Schedule',               'pp/line-schedule',       'LSB',     9, 1),
   ('PP-OEE', 'PP', N'라인 OEE',                   N'Line OEE',                    'pp/oee',                 'OEE',    10, 1),

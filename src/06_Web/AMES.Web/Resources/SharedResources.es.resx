@@ -2883,15 +2883,6 @@
   <data name="PP.SupplyPlanImport.Err.NoneSelected" xml:space="preserve">
     <value>Seleccione al menos un pedido para confirmar.</value>
   </data>
-  <data name="PP.WoRelease.Title" xml:space="preserve">
-    <value>Liberación de OT</value>
-  </data>
-  <data name="PP.WoRelease.Empty" xml:space="preserve">
-    <value>Ninguna orden de trabajo coincide con las condiciones.</value>
-  </data>
-  <data name="PP.WoRelease.Kpi.Pending" xml:space="preserve">
-    <value>Pendiente de liberar</value>
-  </data>
   <data name="PP.WoRelease.Dlg.Phase0Warn" xml:space="preserve">
     <value>Los datos maestros BOM/BOP están incompletos. Se permite liberar, pero complételos antes de la ejecución en planta.</value>
   </data>
@@ -7541,30 +7532,6 @@
   </data>
   <data name="MNT.SpareParts.Move.Out" xml:space="preserve">
     <value>Salida</value>
-  </data>
-  <data name="PP.WoRelease.Kpi.TotalSub" xml:space="preserve">
-    <value>incl. cerradas últimos {0} días</value>
-  </data>
-  <data name="PP.WoRelease.Kpi.Done" xml:space="preserve">
-    <value>Completadas</value>
-  </data>
-  <data name="PP.WoRelease.Ph.Search" xml:space="preserve">
-    <value>N.º OT · n.º artículo · nombre</value>
-  </data>
-  <data name="PP.WoRelease.Hint.Detail" xml:space="preserve">
-    <value>Haga clic en una fila para ver detalles y pasos de ruta. Solo se liberan órdenes Draft/Planned.</value>
-  </data>
-  <data name="PP.WoRelease.Btn.Export" xml:space="preserve">
-    <value>Exportar</value>
-  </data>
-  <data name="PP.WoRelease.Ok.Exported" xml:space="preserve">
-    <value>{0} filas exportadas a Excel.</value>
-  </data>
-  <data name="PP.WoRelease.Err.NoExport" xml:space="preserve">
-    <value>No hay datos para exportar.</value>
-  </data>
-  <data name="PP.WoRelease.Detail.Steps" xml:space="preserve">
-    <value>Pasos de ruta</value>
   </data>
   <data name="PP.PurchaseReq.Kpi.TotalSub" xml:space="preserve">
     <value>últimas {0} solicitudes</value>

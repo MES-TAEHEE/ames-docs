@@ -1381,7 +1381,7 @@ public sealed class PpRepository
                p.SapDocNum, p.SentAt, ISNULL(p.RetryCount,0) AS RetryCount, p.LastError
         """;
 
-    // ── PP-007 WO Release — draft/planned WOs awaiting release ─────────
+    // ── Releasable WOs (Home KPI · API) — draft/planned first ───────────
     public List<WoLite> ListReleasable(int topN = 50)
     {
         var sql = $$"""
@@ -1398,43 +1398,6 @@ public sealed class PpRepository
                      ISNULL(w.DueDate,'9999-01-01'), w.WoID;
             """;
         return Query(sql, MapWoLite);
-    }
-
-    /// <summary>PP-007 관리 화면용: 전체 상태 WO 조회. Closed는 최근 <paramref name="recentClosedDays"/>일만.</summary>
-    public List<WoLite> ListAllWo(string? lineId = null, string? status = null, int recentClosedDays = 30)
-    {
-        const string sql = """
-            SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
-                   ISNULL(w.OrderQty,0)     AS OrderQty,
-                   ISNULL(w.CompletedQty,0) AS CompletedQty,
-                   (SELECT STRING_AGG(CAST(COALESCE(r.LineID, r.ProcessCode + N'(—)') AS nvarchar(40)), N' → ')
-                               WITHIN GROUP (ORDER BY r.StepSeq)
-                    FROM dbo.PP_WorkOrderRouting r WHERE r.WoID = w.WoID) AS RouteLines,
-                   w.DueDate, ISNULL(w.Status,'Draft') AS Status, w.ReleasedAt
-            FROM   dbo.PP_WorkOrder w
-            LEFT JOIN dbo.MD_Item i ON i.ItemNo = w.ItemNo
-            WHERE  (@LineID IS NULL
-                    OR EXISTS (SELECT 1 FROM dbo.PP_WorkOrderRouting r WHERE r.WoID = w.WoID AND r.LineID = @LineID))
-              AND  (@Status IS NULL OR ISNULL(w.Status,'Draft') = @Status)
-              AND  (ISNULL(w.Status,'Draft') <> 'Closed'
-                    OR w.ActualEnd >= DATEADD(day, -@Days, CAST(GETDATE() AS date)))
-            ORDER BY CASE ISNULL(w.Status,'Draft')
-                          WHEN 'Draft'       THEN 0
-                          WHEN 'Planned'     THEN 1
-                          WHEN 'Released'    THEN 2
-                          WHEN 'In Progress' THEN 3
-                          ELSE 4 END,
-                     ISNULL(w.DueDate,'9999-01-01'), w.WoID;
-            """;
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@LineID", SqlDbType.VarChar, 20).Value = (object?)lineId  ?? DBNull.Value;
-        cmd.Parameters.Add("@Status", SqlDbType.VarChar, 20).Value = (object?)status  ?? DBNull.Value;
-        cmd.Parameters.Add("@Days",   SqlDbType.Int          ).Value = recentClosedDays;
-        using var rdr  = cmd.ExecuteReader();
-        var list = new List<WoLite>();
-        while (rdr.Read()) list.Add(MapWoLite(rdr));
-        return list;
     }
 
     /// <summary>SO 상태를 Confirmed로 변경 (PP-002). Open 건만 대상. 변경 행수 반환.</summary>

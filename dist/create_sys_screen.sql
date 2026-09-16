@@ -40,7 +40,6 @@ INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, ScreenName, Scr
   ('PP-04',  'WEB','PP', N'작업 지시',        N'Work Order',        'pp/work-order',       'PP-04',   4, 1, 'admin'),
   ('PP-05',  'WEB','PP', N'MRP',              N'MRP',               'pp/mrp',              'PP-05',   5, 1, 'admin'),
   ('PP-06',  'WEB','PP', N'구매 요청',        N'Purchase Req',      'pp/purchase-req',     'PP-06',   6, 1, 'admin'),
-  ('PP-07',  'WEB','PP', N'작업 지시 릴리스', N'WO Release',        'pp/wo-release',       'PP-07',   7, 1, 'admin'),
   ('PP-CAL', 'WEB','PP', N'캘린더',           N'Calendar',          'pp/calendar',         'CAL',     8, 1, 'admin'),
   ('PP-LSB', 'WEB','PP', N'라인 일정',        N'Line Schedule',     'pp/line-schedule',    'LSB',     9, 1, 'admin'),
   ('PP-OEE', 'WEB','PP', N'라인 OEE',         N'Line OEE',          'pp/oee',              'OEE',    10, 1, 'admin'),
