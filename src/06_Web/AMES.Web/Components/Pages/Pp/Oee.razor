@@ -237,8 +237,9 @@
         }
         else if (_tab == "snaps")
         {
-            <RadzenDataGrid TItem="OeeSnapshotDto" Data="@lineSnaps" AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
-                            AllowSorting="true" EmptyText="@L["PP.Oee.Trend.NoSnap"]" Class="ames-rz-grid pp-oee-lines">
+            <RadzenDataGrid TItem="OeeSnapshotDto" Data="@lineSnaps" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
+                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
+                            AllowSorting="true" EmptyText="@L["PP.Oee.Trend.NoSnap"]" Class="ames-rz-grid ames-grid-fixed ames-grid-top">
                 <Columns>
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="PeriodDate" Title="@L["PP.Oee.Snap.Col.Date"]" Width="110px">
                         <Template Context="s"><span class="code">@s.PeriodDate.ToString("yyyy-MM-dd")</span></Template>
@@ -349,6 +350,9 @@
     // ── 상수 ─────────────────────────────────────────────────────────────
     const decimal WORLD_CLASS = 85m;
     const decimal GOOD        = 65m;
+    static readonly int[] _pageSizeOptions = [25, 50, 100];
+    // 긴 대시보드 맨 아래 드릴다운이라 뷰포트에 맞춰 줄이지 않는다(.ames-grid-top) — 줄이면 헤더 + 5행으로 찌부러진다
+    int _pageRows = 25;
 
 
     // ── 필터 상태 ─────────────────────────────────────────────────────────

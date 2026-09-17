@@ -17,14 +17,14 @@
 <PageTitle>PP-006 @L["PP.PurchaseReq.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="PP-006" TitleKey="PP.PurchaseReq.Title" />
 
-<div class="pr-page">
+<div class="ames-page-fill">
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat" AllowClose="false">@_msg</RadzenAlert>
 }
 
 @* ── KPI strip — 상태 흐름 순서 ─────────────────────────────────── *@
-<div class="ames-kpis compact">
+<div class="ames-kpis">
     <div class="ames-kpi @(Count(PrStatusRules.Draft) > 0 ? "warn" : "")"><div class="ames-kpi-l">@L["PP.PurchaseReq.St.Draft"]</div><div class="ames-kpi-row"><div class="ames-kpi-v">@Count(PrStatusRules.Draft)</div><div class="ames-kpi-s">@L["PP.PurchaseReq.Kpi.Draft.Sub"]</div></div></div>
     <div class="ames-kpi info"><div class="ames-kpi-l">@L["PP.PurchaseReq.St.Sent"]</div><div class="ames-kpi-row"><div class="ames-kpi-v">@Count(PrStatusRules.Sent)</div><div class="ames-kpi-s">@L["PP.PurchaseReq.Kpi.Sent.Sub"]</div></div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">@L["PP.PurchaseReq.St.Approved"]</div><div class="ames-kpi-row"><div class="ames-kpi-v">@Count(PrStatusRules.Approved)</div><div class="ames-kpi-s">@L["PP.PurchaseReq.Kpi.Approved.Sub"]</div></div></div>
@@ -32,35 +32,30 @@
 </div>
 
 @* ── Toolbar ────────────────────────────────────────────────────── *@
-<div class="ames-card-h" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;text-transform:none;">
-    <div class="ames-fld">
-        <label>@L["Col.Status"]</label>
-        <RadzenDropDown @bind-Value="_fStatus" @bind-Value:after="ApplyFilter" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value"
-                        Placeholder="@L["Filter.All"].Value" AllowClear="true" Style="width:140px" />
-    </div>
-    <div class="ames-fld">
-        <label>@L["Col.Vendor"]</label>
-        <RadzenDropDown @bind-Value="_fVendor" @bind-Value:after="ApplyFilter" Data="@VendorFilterOptions" TextProperty="Text" ValueProperty="Value"
-                        Placeholder="@L["Filter.All"].Value" AllowClear="true" AllowFiltering="true" Style="width:200px" />
-    </div>
-    <div class="ames-fld">
-        <label>@L["PP.PurchaseReq.Fld.RequiredFrom"]</label>
-        <RadzenDatePicker @bind-Value="_fFrom" @bind-Value:after="ApplyFilter" DateFormat="@DateFmt.Date" AllowClear="true" Placeholder="—" Style="width:150px" />
-    </div>
-    <div class="ames-fld">
-        <label>@L["Col.PrNo"] / @L["Col.ItemNo"]</label>
-        <RadzenTextBox @bind-Value="_fSearch" @bind-Value:after="ApplyFilter" Placeholder="@L["PP.PurchaseReq.Ph.Search"]" Style="width:200px" />
-    </div>
-    <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
-        <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Click="ResetFilters" />
-        <RadzenButton Text="@L["PP.PurchaseReq.Btn.Export"].Value" Icon="download" ButtonStyle="ButtonStyle.Dark" Click="ExportXlsx" />
-        <RadzenButton Text="@string.Format(L["PP.PurchaseReq.Btn.BatchSend"].Value, _selected.Count)" Icon="send"
-                      ButtonStyle="ButtonStyle.Success" Disabled="@(_busy || _selected.Count == 0)" Click="OpenBatch" />
-    </div>
-</div>
-<div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">📤 @L["PP.PurchaseReq.Hint.Grid"]</div>
+<div class="ames-card ames-card-fill">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["PP.PurchaseReq.Title"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["Col.Status"]" />
+            <RadzenDropDown @bind-Value="_fStatus" @bind-Value:after="ApplyFilter" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value"
+                            Placeholder="@L["Filter.All"].Value" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
+            <RadzenLabel Text="@L["Col.Vendor"]" />
+            <RadzenDropDown @bind-Value="_fVendor" @bind-Value:after="ApplyFilter" Data="@VendorFilterOptions" TextProperty="Text" ValueProperty="Value"
+                            Placeholder="@L["Filter.All"].Value" AllowClear="true" AllowFiltering="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+            <RadzenLabel Text="@L["PP.PurchaseReq.Fld.RequiredFrom"]" />
+            <RadzenDatePicker @bind-Value="_fFrom" @bind-Value:after="ApplyFilter" DateFormat="@DateFmt.Date" AllowClear="true" Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenLabel Text='@($"{L["Col.PrNo"]} / {L["Col.ItemNo"]}")' />
+            <RadzenTextBox @bind-Value="_fSearch" @bind-Value:after="ApplyFilter" Placeholder="@L["PP.PurchaseReq.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
 
-<div class="pr-grid">
+            <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="ResetFilters" />
+            <RadzenButton Text="@L["PP.PurchaseReq.Btn.Export"].Value" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" class="ames-rz-btn" Click="ExportXlsx" />
+            <RadzenButton Text="@string.Format(L["PP.PurchaseReq.Btn.BatchSend"].Value, _selected.Count)" Icon="send"
+                          ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" Disabled="@(_busy || _selected.Count == 0)" Click="OpenBatch" />
+        </RadzenStack>
+    </div>
+    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">📤 @L["PP.PurchaseReq.Hint.Grid"]</div>
+
+<div class="ames-grid-virtual">
 @if (_rows.Count == 0)
 {
     <div class="ames-empty">@(_allRows.Count == 0 ? L["PP.PurchaseReq.Empty"] : L["PP.PurchaseReq.NoMatch"])</div>
@@ -115,6 +110,7 @@ else
         </Columns>
     </RadzenDataGrid>
 }
+</div>
 </div>
 </div>
 

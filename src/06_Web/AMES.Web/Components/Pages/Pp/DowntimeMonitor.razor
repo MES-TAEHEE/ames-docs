@@ -163,9 +163,10 @@
         <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["PP.DowntimeMonitor.Hint.Edit"]</div>
     }
 
-    <RadzenDataGrid TItem="PpRepository.DowntimeRow" Data="@_dtlRows" AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
+    <RadzenDataGrid TItem="PpRepository.DowntimeRow" Data="@_dtlRows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
                     AllowSorting="true" RowClick="@(e => { if (e.Data is { } d) OpenEdit(d); })" RowRender="@RowRender"
-                    EmptyText="@L["PP.DowntimeMonitor.History.Empty"]" Class="ames-rz-grid pp-dtl-grid">
+                    EmptyText="@L["PP.DowntimeMonitor.History.Empty"]" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="LineId" Title="@L["Col.Line"]" Width="120px">
                 <Template Context="r"><span class="code">@(r.LineId ?? "—")</span></Template>
@@ -237,6 +238,8 @@
     const int WINDOW    = 60;   // 타임라인 분
     const int STALE_MIN = 10;   // 마지막 로그가 이보다 오래되면 '신호없음'
     const int ALERT_MIN = 10;   // 실제비가동 경보 기준 분
+    static readonly int[] _pageSizeOptions = [25, 50, 100];
+    int _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
 
     /// <summary>?asof=yyyy-MM-ddTHH:mm 으로 과거 시점을 열 수 있다 (재생 모드).</summary>
     [SupplyParameterFromQuery(Name = "asof")] public string? AsOfParam { get; set; }

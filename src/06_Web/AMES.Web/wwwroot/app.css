@@ -4235,7 +4235,7 @@ html[data-theme="light"] .ames-rz-grid tr.otd-row-late .rz-data-cell { backgroun
     flex: 0 0 auto;
     padding: 4px 7px;
     color: #94a3b8;
-    font: 800 .72rem 'JetBrains Mono', monospace;
+    font: 800 .72rem var(--ames-font-mono);
     border: 0;
     background: transparent;
     cursor: pointer;
@@ -4255,7 +4255,7 @@ html[data-theme="light"] .ames-rz-grid tr.otd-row-late .rz-data-cell { backgroun
     gap: 6px;
     padding: 0 12px;
     color: #f8fafc;
-    font: 800 .7rem 'JetBrains Mono', monospace;
+    font: 800 .7rem var(--ames-font-mono);
     letter-spacing: .04em;
     border: 1px solid #2563eb;
     border-radius: 5px;
@@ -4319,10 +4319,10 @@ html[data-theme="light"] .ames-rz-grid tr.otd-row-late .rz-data-cell { backgroun
     outline: 0;
     transform: translateY(-2px);
 }
-.location-stage-card > span { color: #7dd3fc; font: 900 .68rem 'JetBrains Mono', monospace; letter-spacing: .08em; text-transform: uppercase; }
+.location-stage-card > span { color: #7dd3fc; font: 900 .68rem var(--ames-font-mono); letter-spacing: .08em; text-transform: uppercase; }
 .location-stage-card > strong { max-width: 100%; overflow: hidden; color: #f8fafc; font-size: clamp(1rem, 1.5vw, 1.35rem); text-overflow: ellipsis; white-space: nowrap; }
 .location-stage-card > small { color: #94a3b8; font-size: .76rem; }
-.location-stage-card > b { margin-top: 12px; color: #86efac; font: 900 1.15rem 'JetBrains Mono', monospace; }
+.location-stage-card > b { margin-top: 12px; color: #86efac; font: 900 1.15rem var(--ames-font-mono); }
 .location-stage-card > b em { color: #64748b; font-size: .62rem; font-style: normal; }
 
 .location-map-view { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
@@ -4336,7 +4336,7 @@ html[data-theme="light"] .ames-rz-grid tr.otd-row-late .rz-data-cell { backgroun
     border-bottom: 1px solid rgba(148,163,184,.18);
 }
 .location-map-heading > div:first-child { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.location-map-heading > div:first-child span { overflow: hidden; color: #7dd3fc; font: 800 .7rem 'JetBrains Mono', monospace; text-overflow: ellipsis; white-space: nowrap; }
+.location-map-heading > div:first-child span { overflow: hidden; color: #7dd3fc; font: 800 .7rem var(--ames-font-mono); text-overflow: ellipsis; white-space: nowrap; }
 .location-map-heading > div:first-child strong { color: #f8fafc; font-size: .82rem; }
 .location-map-tools { gap: 16px; }
 .location-map-legend { gap: 11px; color: #94a3b8; font-size: .67rem; }
@@ -4347,7 +4347,7 @@ html[data-theme="light"] .ames-rz-grid tr.otd-row-late .rz-data-cell { backgroun
 .location-map-zoom { overflow: hidden; border: 1px solid rgba(148,163,184,.28); border-radius: 5px; }
 .location-map-zoom button { width: 31px; height: 31px; color: #e2e8f0; border: 0; background: rgba(30,41,59,.75); cursor: pointer; }
 .location-map-zoom button:disabled { color: #475569; cursor: default; }
-.location-map-zoom span { min-width: 48px; color: #cbd5e1; font: 800 .66rem 'JetBrains Mono', monospace; text-align: center; }
+.location-map-zoom span { min-width: 48px; color: #cbd5e1; font: 800 .66rem var(--ames-font-mono); text-align: center; }
 
 .location-map-scroll-shell { position: relative; min-height: 0; overflow: hidden; }
 .location-coordinate-scroll { width: 100%; height: 100%; min-height: 0; overflow: auto; padding: 10px; scrollbar-color: #486076 #101827; scrollbar-width: thin; }
@@ -4384,7 +4384,7 @@ html[data-theme="light"] .ames-rz-grid tr.otd-row-late .rz-data-cell { backgroun
     align-items: center;
     justify-content: center;
     color: #93c5fd;
-    font: 900 .7rem 'JetBrains Mono', monospace;
+    font: 900 .7rem var(--ames-font-mono);
     border: 1px solid rgba(148,163,184,.16);
     background: rgba(30,41,59,.48);
 }
@@ -4399,7 +4399,7 @@ html[data-theme="light"] .ames-rz-grid tr.otd-row-late .rz-data-cell { backgroun
     gap: 5px;
     padding: 6px;
     color: #94a3b8;
-    font: 800 .68rem 'JetBrains Mono', monospace;
+    font: 800 .68rem var(--ames-font-mono);
     border: 1px solid rgba(148,163,184,.25);
     border-radius: 4px;
     background: rgba(30,41,59,.62);
@@ -4418,7 +4418,7 @@ html[data-theme="light"] .ames-rz-grid tr.otd-row-late .rz-data-cell { backgroun
 .location-search-panel,
 .location-result-panel { min-width: 0; border-bottom: 1px solid rgba(148,163,184,.18); }
 .location-search-panel { padding: 12px; }
-.location-search-panel > label { display: block; margin-bottom: 7px; color: #93c5fd; font: 900 .66rem 'JetBrains Mono', monospace; letter-spacing: .06em; }
+.location-search-panel > label { display: block; margin-bottom: 7px; color: #93c5fd; font: 900 .66rem var(--ames-font-mono); letter-spacing: .06em; }
 .location-search-row { gap: 7px; }
 .location-search-input { min-width: 0; flex: 1 1 auto; width: auto !important; }
 .location-search-button,
@@ -4493,7 +4493,7 @@ html[data-theme="light"] .location-result-table tbody tr.selected { background: 
     background: rgba(15,23,42,.36);
 }
 .inventory-filter-field { min-width: 0; display: grid; gap: 6px; }
-.inventory-filter-field label { color: #93c5fd; font: 900 .68rem 'JetBrains Mono', monospace; letter-spacing: .05em; }
+.inventory-filter-field label { color: #93c5fd; font: 900 .68rem var(--ames-font-mono); letter-spacing: .05em; }
 .inventory-filter-field input,
 .inventory-filter-field select {
     width: 100%;
@@ -4518,7 +4518,7 @@ html[data-theme="light"] .location-result-table tbody tr.selected { background: 
     gap: 6px;
     padding: 0 15px;
     color: #fff;
-    font: 800 .72rem 'JetBrains Mono', monospace;
+    font: 800 .72rem var(--ames-font-mono);
     border: 1px solid #2563eb;
     border-radius: 3px;
     background: #1d4ed8;
@@ -4527,7 +4527,7 @@ html[data-theme="light"] .location-result-table tbody tr.selected { background: 
 .inventory-reset-button { color: #cbd5e1; border-color: rgba(148,163,184,.34); background: rgba(30,41,59,.6); }
 .inventory-table-panel { min-width: 0; min-height: 0; border: 1px solid rgba(148,163,184,.22); background: rgba(15,23,42,.36); }
 .inventory-table-panel > header { min-height: 40px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1px solid rgba(148,163,184,.2); }
-.inventory-table-panel > header span { color: #93c5fd; font: 900 .7rem 'JetBrains Mono', monospace; letter-spacing: .05em; }
+.inventory-table-panel > header span { color: #93c5fd; font: 900 .7rem var(--ames-font-mono); letter-spacing: .05em; }
 .inventory-table-panel > header strong { color: #94a3b8; font-size: .72rem; }
 .inventory-table-scroll { min-height: 0; overflow: auto; }
 .inventory-summary-panel { display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
@@ -4570,8 +4570,8 @@ html[data-theme="light"] .location-result-table tbody tr.selected { background: 
     border-bottom: 1px solid rgba(148,163,184,.2);
 }
 .inventory-drawer-header > div { min-width: 0; display: grid; gap: 5px; }
-.inventory-drawer-header span { color: #7dd3fc; font: 900 .68rem 'JetBrains Mono', monospace; letter-spacing: .07em; }
-.inventory-drawer-header strong { color: #f8fafc; font: 900 1.05rem 'JetBrains Mono', monospace; }
+.inventory-drawer-header span { color: #7dd3fc; font: 900 .68rem var(--ames-font-mono); letter-spacing: .07em; }
+.inventory-drawer-header strong { color: #f8fafc; font: 900 1.05rem var(--ames-font-mono); }
 .inventory-drawer-header small { overflow: hidden; color: #94a3b8; font-size: .8rem; text-overflow: ellipsis; white-space: nowrap; }
 .inventory-drawer-header button {
     flex: 0 0 36px;
@@ -4588,8 +4588,8 @@ html[data-theme="light"] .location-result-table tbody tr.selected { background: 
 .inventory-drawer-summary { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid rgba(148,163,184,.2); }
 .inventory-drawer-summary > div { display: grid; gap: 5px; padding: 16px 18px; border-right: 1px solid rgba(148,163,184,.16); }
 .inventory-drawer-summary > div:last-child { border-right: 0; }
-.inventory-drawer-summary span { color: #64748b; font: 800 .62rem 'JetBrains Mono', monospace; }
-.inventory-drawer-summary strong { color: #e2e8f0; font: 900 .86rem 'JetBrains Mono', monospace; }
+.inventory-drawer-summary span { color: #64748b; font: 800 .62rem var(--ames-font-mono); }
+.inventory-drawer-summary strong { color: #e2e8f0; font: 900 .86rem var(--ames-font-mono); }
 .inventory-drawer-table-wrap { min-height: 0; overflow: auto; }
 .inventory-drawer-table { min-width: 520px; }
 .inventory-drawer-table th:nth-child(1) { width: 28%; }
@@ -4918,10 +4918,10 @@ html[data-theme="light"] .rpt-rb-measure, html[data-theme="light"] .rpt-rb-sum, 
 .ames-grid-fixed .rz-data-grid-data > table > tbody:empty,
 .ames-grid-fixed .rz-datatable-emptymessage { height: auto; }
 /* 콘텐츠 영역 → 그리드까지의 조상 중 카드·탭 패널만 세로 flex 로 만들어, 뷰포트가 모자라면 그리드 본문만 줄어들게 한다.
-   조상 전부(*)를 바꾸면 2단 grid/flex-row 래퍼(ReportBuilder .rpt-rb-layout 등)가 세로로 무너진다 — 그런 래퍼 안의 그리드는 고정 높이만 적용되고 축소 없이 페이지가 스크롤된다. SYS·MD·MNT·RPT 섹션에 적용 */
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-wh, .ames-sec-fg):has(.ames-grid-fixed) { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; min-height: 0; }
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-wh, .ames-sec-fg):has(.ames-grid-fixed) :is(.ames-card, .ames-tabpanel):has(.ames-grid-fixed) { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-wh, .ames-sec-fg) .ames-grid-fixed { display: flex !important; flex-direction: column; flex: 0 1 auto; min-height: 0; }
+   조상 전부(*)를 바꾸면 2단 grid/flex-row 래퍼(ReportBuilder .rpt-rb-layout 등)가 세로로 무너진다 — 그런 래퍼 안의 그리드는 고정 높이만 적용되고 축소 없이 페이지가 스크롤된다. SYS·MD·MNT·RPT·PP 섹션에 적용 */
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg):has(.ames-grid-fixed) { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; min-height: 0; }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg):has(.ames-grid-fixed) :is(.ames-card, .ames-tabpanel):has(.ames-grid-fixed) { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg) .ames-grid-fixed { display: flex !important; flex-direction: column; flex: 0 1 auto; min-height: 0; }
 
 /* ── 상·하 2단 목록 (MNT-004 금형·교체 이력, MNT-008 예비품·입출고 이력) ──
    상단(.ames-grid-top)은 선택한 페이지 행 수만큼의 높이를 항상 지키고(축소 없음),
@@ -4932,14 +4932,25 @@ html[data-theme="light"] .rpt-rb-measure, html[data-theme="light"] .rpt-rb-sum, 
    여유는 가로 스크롤바(열이 많아 뷰포트를 넘칠 때 실측 15px) 몫 16px 만 둔다 */
 .ames-grid-fixed.ames-grid-top .rz-data-grid-data { flex-shrink: 0; height: calc(var(--ames-grid-head) + var(--ames-page-rows, 15) * var(--ames-grid-row) + 16px); }
 .ames-grid-fixed.ames-grid-top .rz-data-grid-data tbody > tr > td { height: var(--ames-grid-row); box-sizing: border-box; }
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-wh, .ames-sec-fg):has(.ames-grid-fixed) .ames-card:has(.ames-grid-top) { flex: 0 0 auto; }
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-wh, .ames-sec-fg) .ames-grid-fixed.ames-grid-top { flex: 0 0 auto; }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg):has(.ames-grid-fixed) .ames-card:has(.ames-grid-top) { flex: 0 0 auto; }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg) .ames-grid-fixed.ames-grid-top { flex: 0 0 auto; }
 /* 하단 카드·그리드의 최소 높이 = 본문 최소(헤더 36 + 5행 × 40 + 6) + 페이저 52 (+ 카드 머리줄 37·여백 10·패딩 10×2).
    min-height:auto 로 두면 스크롤 본문의 min-content(행 전체)가 올라와 하단이 줄지 않고, 0 으로 두면 카드가 본문보다 작아져 페이저가 카드 밖으로 넘친다.
    이 최소보다 모자라면 콘텐츠가 넘쳐 .ames-main 이 스크롤된다. */
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-wh, .ames-sec-fg):has(.ames-grid-fixed) .ames-card:has(.ames-grid-rest) { flex: 1 1 auto; min-height: calc(36px + 5 * 40px + 6px + 52px + 2px + 37px + 10px + 20px); }
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-wh, .ames-sec-fg) .ames-grid-fixed.ames-grid-rest { flex: 1 1 auto; min-height: calc(var(--ames-grid-head) + 5 * var(--ames-grid-row) + 6px + 52px + 2px); }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg):has(.ames-grid-fixed) .ames-card:has(.ames-grid-rest) { flex: 1 1 auto; min-height: calc(36px + 5 * 40px + 6px + 52px + 2px + 37px + 10px + 20px); }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg) .ames-grid-fixed.ames-grid-rest { flex: 1 1 auto; min-height: calc(var(--ames-grid-head) + 5 * var(--ames-grid-row) + 6px + 52px + 2px); }
 .ames-grid-fixed.ames-grid-rest .rz-data-grid-data { flex: 1 1 auto; height: auto; }
+
+/* ── 전체 높이 가상화 그리드 (.ames-page-fill · .ames-card-fill · .ames-grid-virtual) ──────────
+   PP-001~006 처럼 가상화(AllowVirtualization) 그리드가 페이징 없이 화면 남은 세로 영역을 꽉 채운다.
+   페이지 래퍼 = TopBar 60px + .ames-content 상단 12 / 하단 16 패딩(88px)을 뺀 높이.
+   래퍼 안에 KPI·알림은 제 높이, 카드(또는 AmesTabs 패널 안 카드)가 남은 높이를 받고 그리드는 카드 안 남은 높이를 채운다. */
+.ames-page-fill { display: flex; flex-direction: column; height: calc(100vh - 88px); min-height: 360px; }
+.ames-page-fill > .ames-tabstrip { flex: 0 0 auto; }
+.ames-page-fill > .ames-tabpanel { flex: 1 1 auto; min-height: 0; margin-bottom: 0; display: flex; flex-direction: column; overflow: hidden; }
+.ames-card-fill { flex: 1 1 auto; min-height: 0; margin-bottom: 0; display: flex; flex-direction: column; }
+.ames-grid-virtual { flex: 1 1 auto; min-height: 0; }
+.ames-grid-virtual .rz-data-grid, .ames-grid-virtual .rz-datatable { height: 100%; }
 
 /* ── 꽉 채우는 그리드 (.ames-grid-fill) ───────────────────────────────
    자체 100vh 분할 레이아웃(BOM 등)의 카드 안에서, 그리드가 래퍼 높이를 다 차지하고 본문만 스크롤해

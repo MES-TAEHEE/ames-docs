@@ -79,9 +79,10 @@
         <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["PP.Downtime.Hint.Edit"]</div>
     }
 
-    <RadzenDataGrid TItem="PpRepository.DowntimeRow" Data="@_rows" AllowPaging="true" PageSize="20" PagerHorizontalAlign="HorizontalAlign.Center"
+    <RadzenDataGrid TItem="PpRepository.DowntimeRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
                     AllowSorting="true" RowClick="@(e => { if (e.Data is { } d) OpenEdit(d); })" RowRender="@RowRender"
-                    EmptyText="@L["PP.Downtime.Empty"]" Class="ames-rz-grid pp-dtl-grid">
+                    EmptyText="@L["PP.Downtime.Empty"]" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="LineId" Title="@L["Col.Line"]" Width="120px">
                 <Template Context="r"><span class="code">@(r.LineId ?? "—")</span></Template>
@@ -164,6 +165,8 @@
 
 @code {
     const int LIMIT = 500;
+    static readonly int[] _pageSizeOptions = [25, 50, 100];
+    int _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
 
     // ── 데이터 ───────────────────────────────────────────────────────────
     List<PpRepository.DowntimeRow>      _rows      = [];

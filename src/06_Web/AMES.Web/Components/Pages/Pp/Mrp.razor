@@ -15,14 +15,14 @@
 <PageTitle>PP-005 @L["PP.Mrp.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="PP-005" TitleKey="PP.Mrp.Title" />
 
-<div class="mrp-page">
+<div class="ames-page-fill">
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat" AllowClose="false">@_msg</RadzenAlert>
 }
 
 @* ── KPI strip ──────────────────────────────────────────────────── *@
-<div class="ames-kpis compact">
+<div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.Mrp.Kpi.Calc"]</div><div class="ames-kpi-v">@Materials.Count</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">@L["PP.Mrp.Kpi.Ok"]</div><div class="ames-kpi-v">@Materials.Count(m => !m.IsShort)</div></div>
     <div class="ames-kpi @(ShortCount > 0 ? "bad" : "")"><div class="ames-kpi-l">@L["PP.Mrp.Kpi.Short"]</div><div class="ames-kpi-v">@ShortCount</div></div>
@@ -30,40 +30,37 @@
 </div>
 
 @* ── Toolbar ────────────────────────────────────────────────────── *@
-<div class="ames-card-h" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;text-transform:none;">
-    <div class="ames-fld">
-        <label>@L["PP.Mrp.LastRun"]</label>
-        <span class="pill @(_snap is null ? "mute" : "ok")" style="font-weight:600;line-height:22px;">
-            @(_snap?.Run.RunAt?.ToString(DateFmt.DateTime) ?? L["PP.Mrp.NoRun"].Value)
-        </span>
-    </div>
-    <div class="ames-fld">
-        <label>@L["PP.Mrp.Scope"]</label>
-        <RadzenDropDown @bind-Value="_fScope" @bind-Value:after="ApplyFilter" Data="@ScopeOptions" TextProperty="Text" ValueProperty="Value" Style="width:160px" />
-    </div>
-    <div class="ames-fld">
-        <label>@L["PP.Mrp.Col.Material"]</label>
-        <RadzenTextBox @bind-Value="_fSearch" @bind-Value:after="ApplyFilter" Placeholder="@L["PP.Mrp.Ph.Search"]" Style="width:200px" />
-    </div>
-    <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
-        <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Click="ResetFilters" />
-        <RadzenButton Text="@L["PP.Mrp.Btn.Export"].Value" Icon="download" ButtonStyle="ButtonStyle.Dark" Click="ExportXlsx" />
-        <RadzenButton Text="@L["PP.Mrp.Btn.Run"].Value" Icon="play_arrow" Click="RunMrp" Disabled="@_running" />
-        <RadzenButton Text="@string.Format(L["PP.Mrp.Btn.CreatePrs"].Value, _selected.Count)" Icon="add_shopping_cart"
-                      ButtonStyle="ButtonStyle.Success" Disabled="@(_running || _selected.Count == 0)" Click="OpenBulk" />
-    </div>
-</div>
+<div class="ames-card ames-card-fill">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["PP.Mrp.Title"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < Materials.Count ? $" / {L["Lbl.TotalOf"]} {Materials.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["PP.Mrp.LastRun"]" />
+            <span class="pill @(_snap is null ? "mute" : "ok")" style="font-weight:600;line-height:22px;">
+                @(_snap?.Run.RunAt?.ToString(DateFmt.DateTime) ?? L["PP.Mrp.NoRun"].Value)
+            </span>
+            <RadzenLabel Text="@L["PP.Mrp.Scope"]" />
+            <RadzenDropDown @bind-Value="_fScope" @bind-Value:after="ApplyFilter" Data="@ScopeOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px" />
+            <RadzenLabel Text="@L["PP.Mrp.Col.Material"]" />
+            <RadzenTextBox @bind-Value="_fSearch" @bind-Value:after="ApplyFilter" Placeholder="@L["PP.Mrp.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
 
-@if (_running)
-{
-    <div class="mrp-runbar">
-        <span>@L["PP.Mrp.Running"]</span>
-        <RadzenProgressBar Mode="ProgressBarMode.Indeterminate" ShowValue="false" Style="flex:1;height:8px;" />
+            <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="ResetFilters" />
+            <RadzenButton Text="@L["PP.Mrp.Btn.Export"].Value" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" class="ames-rz-btn" Click="ExportXlsx" />
+            <RadzenButton Text="@L["PP.Mrp.Btn.Run"].Value" Icon="play_arrow" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" Click="RunMrp" Disabled="@_running" />
+            <RadzenButton Text="@string.Format(L["PP.Mrp.Btn.CreatePrs"].Value, _selected.Count)" Icon="add_shopping_cart"
+                          ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" Disabled="@(_running || _selected.Count == 0)" Click="OpenBulk" />
+        </RadzenStack>
     </div>
-}
-<div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">🧮 @L["PP.Mrp.Hint"]</div>
 
-<div class="mrp-grid">
+    @if (_running)
+    {
+        <div class="mrp-runbar">
+            <span>@L["PP.Mrp.Running"]</span>
+            <RadzenProgressBar Mode="ProgressBarMode.Indeterminate" ShowValue="false" Style="flex:1;height:8px;" />
+        </div>
+    }
+    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">🧮 @L["PP.Mrp.Hint"]</div>
+
+<div class="ames-grid-virtual">
 @if (_rows.Count == 0)
 {
     <div class="ames-empty">@(_snap is null ? L["PP.Mrp.Empty"] : L["PP.Mrp.NoMatch"])</div>
@@ -136,6 +133,7 @@ else
         </Columns>
     </RadzenDataGrid>
 }
+</div>
 </div>
 </div>
 
