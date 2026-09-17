@@ -1,4 +1,6 @@
 using AMES.Api.Auth;
+using AMES.Api.Workers;
+using AMES.Api.Workers.PoSync;
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
 
@@ -63,5 +65,9 @@ public static class PpEndpoints
         g.MapGet("/otd", (HttpContext ctx, int? daysBack) =>
             ctx.GetSession() is null ? Results.Unauthorized()
                 : Results.Ok(repo.ListOtd(daysBack ?? 30)));
+
+        g.MapPost("/po-sync/run", (HttpContext ctx, string? source, PoSyncWorker worker, CancellationToken ct) =>
+            ScheduledWorkerEndpoints.RunAsync(ctx, worker, source, ct))
+         .WithDescription("고객사 SRM PO 수집을 즉시 실행. source 생략 시 활성 소스 전부.");
     }
 }

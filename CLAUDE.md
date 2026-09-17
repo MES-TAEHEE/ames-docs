@@ -13,7 +13,7 @@
   - 비상용(로컬): `localhost\MSSQLSERVER01` — **명명 인스턴스**다. 개발서버가 죽었을 때만 쓰며, 개발서버와 동일하게 유지한다
   - **`Connect Timeout=30` 을 낮추지 말 것.** 5로 두면 원격 + `Encrypt=True` 의 TLS 사전 로그인 핸드셰이크(실측 5초 초과)에 걸려 연결이 끊긴다. TCP 1433 은 열려 있어서 오진하기 쉽다
   - 전환은 파일 수정이 아니라 환경변수 `ConnectionStrings__AMES` 오버라이드로 한다
-- **솔루션**: `src/AMES.sln` (Visual Studio 2022) — 12개 프로젝트
+- **솔루션**: `src/AMES.sln` (Visual Studio 2022) — 13개 프로젝트
 
 ---
 
@@ -33,6 +33,7 @@
                               ※ 현재 스캐폴드 단계 (Home/NotFound 만 존재), Data 직접 참조
 
 02_Data/AMES.Data.Tests    ← AMES.Data 테스트 (순수 함수 + AMES_DEV 통합, net10.0)
+04_Api/AMES.Api.Tests      ← AMES.Api 테스트 (ScheduledWorker 스케줄 규칙·수동 실행 HTTP 규칙, DB 불필요)
 03_Pop/AMES.Pop.Tests      ← AMES.Pop · AMES.Devices(ZPL·스캔 파서) 테스트
 07_Etc/AMES.InjAgent.Tests ← AMES.InjAgent 테스트만 (PLC 코덱·FEnet·폴러)
 ```
@@ -327,6 +328,43 @@ LOT 단위 불량·재작업(`PR_DefectDetail` 컬럼 `CauseCode`·`DispositionB
 금형 교체 시간(`MD_Mold.MoldChangeMin` · `PP_LineSchedule.MoldID`)은 `dist/migrate_mold_change_plan.sql` — 순서 무관, 재실행 안전. 이게 없으면 MD-007 금형 목록·PP-003 배치·PP-LSB 능력 조회가 매번 예외다(구 Web 은 컬럼을 안 읽어 안전). PP-003 은 INJ 단계마다 `AMES.Data.Services.MoldResolver`(① 직전 금형 → ② 라인 배정 중 교체 최소 → ③ MoldID 순)로 금형을 정하고, 직전 금형(`LineScheduleRepository.LineLastMoldBefore`: 그 라인 이전 날짜 마지막 슬롯 → `MNT_EquipmentStatus.MountedMoldID`)과 다르면 `EntryType='MC'` 행(`WoID NULL`, `RefType='WO'`·`RefID`=WoID, `MoldID`=신금형)을 WO 슬롯 앞에 넣는다. 유효 교체 시간은 `COALESCE(MD_MoldLine.PrepTime, MD_Mold.MoldChangeMin, 0)`. **INJ 단계 품번에 활성 `MD_MoldItem` 이 없으면 그 수주는 거부**(`RejectedOrder.Reason='NoMold'`)되며 라인 미배정은 거부 사유가 아니다. POP 은 `EntryType='WO'` 로 계획을 읽어 MC 를 보지 않는다. PP-LSB 는 MC 를 표시·보존하고 클릭하면 시각·소요분 수정/삭제(적용·발행 때 반영)할 수 있으나 수동 배치 시 자동 삽입은 하지 않는다(후속). 보드에서 MC 는 PM 과 달리 가동을 깎지 않고 WO 처럼 부하로 센다. 정본 테스트는 `AMES.Data.Tests/MoldResolverTests`·`DeadlinePackerTests`·`MoldPlanningTests`.
 PP-005 MRP 결과 스냅샷(`PP_MRPResult` · `PP_MRPResultWo`)과 품목 조달 리드타임 `MD_Item.LeadTimeDays` 는 `dist/migrate_pp_mrp_result.sql` — 순서 무관, 재실행 안전. 이게 없으면 PP-005 화면 진입·실행이 매번 예외다(구 Web 은 `PP_MRPLog` 만 읽어 안전). `PpRepository.RunMrp` 가 열린 WO(Completed·Closed·Stocked·Cancelled 제외) 잔량을 유효 APPROVED BOM(`MD_BomVersion` Status·EffFrom/EffTo, 부모 품번당 EffFrom 최신 버전 하나)으로 leaf 까지 분해하고, 재고 = `WH_Inventory` OnHand − Reserved 합, 발주중 = `WH_PurchaseOrder` Open/Partial 미입고분 + `SapPoNumber` 없는 Draft/Sent/Approved PR 수량, 부족 = 소요 − 재고 − 발주중(양수가 부족), 발주 기한 = 영향 WO 최단 납기 − 리드타임(부족일 때만·둘 중 하나라도 없으면 NULL)으로 계산해 `PP_MRPLog` 헤더 + 결과 두 테이블을 한 트랜잭션으로 남긴다. BOM 없는 WO 는 건너뛰고(`WosConsidered` 제외), BOM 순환은 `Status='Failed'` 로그만 남기고 `MrpCalculator.MrpCycleException`. 화면은 최근 Completed 실행만 보이며 야간 자동 실행·`PP_WorkOrder.IsBlocked` 는 없다 — "차단 WO" KPI 는 부족·PR 미생성 자재의 영향 WO 수를 화면에서 센다. 화면은 PP-003 과 같은 전체 높이 가상화 그리드(고정 체크박스 열, 부족·PR 미생성 행만 선택 가능, 헤더 체크박스로 표시분 전체 선택)이고 PR 생성(`CreateShortagePrs`)은 **체크한 행만** 확인 모달을 거쳐 일괄 처리한다. 모달에서 자재별 PR 수량을 조절할 수 있다(기본 부족량, 0 이하 거부, 초과 허용, 부족량 미만이면 결과 행에 잔여 부족이 남지만 같은 실행에서 두 번째 PR 은 못 만든다 — 재실행하면 다시 집계) — `PP_PurchaseRequest`(Draft, `PR-yyyyMMdd-NNNN` 일별 채번, 수량 = 입력 수량, 필요일 = 발주 기한 → 최단 WO 납기 → 오늘, `WoID` = 최단 납기 WO, `VendorID` NULL) 를 만들고 결과 행에 `PrID` 를 연결하며 입력 수량만큼 부족을 발주중으로 옮긴다(재생성 없음). 행 Detail 모달은 소요·가용·부족·L/T·영향 WO 와 함께 그 자재의 **진행 중 구매요청**(`ListOpenPrsForItem`: `SapPoNumber` 없는 Draft/Sent/Approved — 발주중에 세는 PR 과 같은 범위)을 나열한다. 그리드·모달의 PR 번호는 `pp/purchase-req?pr=PR-…` 링크이고 PP-006 은 `pr` 쿼리를 받으면 그 번호로 검색(최근 N 건 밖이면 500 건으로 재조회)한 뒤 상세 모달을 바로 연다. 다음 실행부터는 그 PR 이 발주중으로 잡힌다. 계산 규칙 정본은 순수 함수 `AMES.Data.Services.MrpCalculator`(`AMES.Data.Tests/MrpCalculatorTests`), DB 경로는 `MrpRepositoryTests`(AMES_DEV 필요). MD 품목 화면의 리드타임 입력란은 후속.
 PP-006 구매요청의 SAP 전송 상태(`PP_PurchaseRequest.SapDocNum` · `SentAt` · `RetryCount` · `LastError`, 상태 어휘 Draft/Sent/Approved/Failed 로 이관 — 구 Pending → Draft, Rejected → Failed, PO 번호 보유 행 → Approved)는 `dist/migrate_pp_pr_send.sql` — 순서 무관, 재실행 안전. 이게 없으면 PP-006 목록·PP-005 상세의 구매요청 조회가 매번 예외다. **SAP B1 Service Layer 연동은 없다** — 전이는 화면이 확정하고(`Endpoint='MANUAL'`) `PP_PRSendLog` 에 전이마다 1행(AttemptNo = 그 PR 의 이력 수 + 1, Result = Sent/Failed/Approved, ResponsePayload = DocNum·사유·PO 번호)을 남긴다. 규칙 정본은 `AMES.Data.Services.PrStatusRules`(`PrStatusRulesTests`): Draft/Failed →(Send) Sent →(Approve, PO 번호 필수) Approved, Draft/Failed/Sent →(Fail, 사유 필수, RetryCount +1) Failed, Approved 는 종결. 리포지토리 `SendPrs`(선택 행 일괄, 전송 불가 상태는 건너뜀, 단건은 DocNum 선택 입력) · `FailPr` · `ApprovePr` · `UpdatePrVendor`(Draft/Failed 만) · `ListPrSendLog` 는 행 잠금 + 한 트랜잭션(`PrRepositoryTests`, AMES_DEV 필요). 화면은 PP-005 와 같은 전체 높이 가상화 그리드(고정 체크박스 열 — Draft/Failed 만 선택, 헤더 체크박스로 표시분 전체 선택), KPI Draft·Sent·Approved·Failed, 필터 상태·거래처·필요일 이후·검색, 툴바 "선택 SAP 전송" 확인 모달(DocNum 없이 Sent 확정), 상세 모달(정보 타일 · 거래처 지정 · 연결 WO — 그리드에는 WO 열이 없고 상세·내보내기·검색에만 있다 · `pp/mrp?item=` 링크 · 전송 이력 · 상태별 액션: 전송/재전송 + DocNum, 실패 기록 + 사유, PO 승인 + PO 번호). `?pr=` 진입은 그 번호로 검색 후 상세를 연다. 거래처는 필수가 아니다. MRP 발주중과 상세 "구매 요청중" 은 `SapPoNumber` 없는 Draft/Sent/Approved 를 센다(Failed 제외). PO 전환 뒤 입고 예정은 `WH_PurchaseOrder` 로 잡히는 구조라, PO 번호를 승인해도 `WH_PurchaseOrder` 행이 없으면 다음 MRP 에서 그 수량이 발주중에서 빠진다(SAP 동기화 후속).
+
+---
+
+## 외부 API 연동 Worker — AMES.Api
+
+외부 시스템을 주기적으로 호출하는 연동(가져오기·내보내기)은 **API 마다 Worker 하나**를 두고, 모두 `AMES.Api/Workers/ScheduledWorker<TTarget, TResult>` 를 상속한다(첫 Worker 는 아래 PO Sync). 베이스가 가진 공통 규칙(정본 `AMES.Api.Tests/ScheduledWorkerTests`):
+
+- 틱마다 `LoadPlan()` 을 다시 읽고(캐시 없음) 대상별 주기(`IntervalMinOf`, 0 이하는 그 대상만 중지)가 지난 것만 순차 실행. `ScheduledPlan.Enabled=false` 면 스케줄러 전체 중지(수동 실행은 허용).
+- **시간 설정은 2단 — Worker 마다 다른 값은 공통코드, 공통 기본값은 appsettings**(정본 `ScheduledWorkerSettings`): 틱 간격·시작 지연은 `ScheduledPlan.TickSec`/`StartupDelaySec`(Worker 가 자기 공통코드에서 읽어 채움) → appsettings `ScheduledWorker:TickSec`(기본 60) · `ScheduledWorker:StartupDelaySec`(기본 10) 순, HTTP 타임아웃도 같은 방식으로 `ScheduledWorker:TimeoutSec`(기본 60). 범위 밖 값(틱·타임아웃 1 미만, 지연 음수)은 없는 것으로 본다. 고정 타이머가 아니라 **틱이 끝날 때마다 그 틱에서 읽은 계획으로 다음 대기**를 정하므로 틱 간격 변경도 다음 틱부터 반영되고, 틱 시작 간격은 실행 시간 + 틱 간격이다(계획 로드 실패 시 직전 값). 시작 지연을 정하려고 기동 때 계획을 한 번 읽으며, 실패하면 공통 기본값으로 기다린다.
+- 마지막 실행 시각은 메모리라 Api 재시작 직후 모든 대상이 한 번 돈다. 대상별 잠금으로 틱과 수동 실행이 겹치지 않는다.
+- 수동 실행 `RunNowAsync(key)`: 대상별 60초 쿨다운(틱 실행도 시계를 채운다). 단건은 미등록 키 404 · 진행 중/쿨다운 409, 전체 실행은 해당 대상을 결과 안에 `busy`/`cooldown` 으로 담고 나머지는 계속. 엔드포인트는 자기 경로·쿼리 이름을 유지하고 `ScheduledWorkerEndpoints.RunAsync` 한 줄로 이 HTTP 규칙을 쓴다(세션 없으면 401).
+- 계획 로드 자체가 실패(DB 접속 등)하면 모니터 행 `{Code}-CONFIG` 에 남기고 예외를 다시 던진다. 대상 모니터 행 `{Code}-{키}` 는 20자(`SYS_InterfaceMonitor.InterfaceCode`)를 넘지 않게 Worker 가 키 길이를 제한한다.
+- **공통코드 그룹 이름 규칙**: Worker 설정 그룹은 모두 **`SW_{Code}`** 로 시작하고(`SW_{Code}` 전역 · `SW_{Code}_SOURCE` 등), 그룹 이름(한·영)은 **`ScheduledWorker · `** 로 시작한다 — MD-26 그룹 검색(GroupCode·이름 부분 일치)에 `SW_` 나 `ScheduledWorker` 를 넣으면 모든 Worker 설정이 나온다. `MD_CodeGroup.GroupCode` 가 VARCHAR(20) 이라 `_SOURCE` 를 붙이는 Worker 는 `Code` 를 10자 이내로 둔다. 그룹 이름 상수는 도메인 설정 클래스 한 곳에 두고 `"SW_" + Code` 에서 파생한다(PoSync: `PoSyncConfig.GroupGlobal` 등).
+- **새 API 추가**: `Workers/{이름}/{이름}Worker` 가 베이스를 상속해 `Code`·`Name`·`LoadPlan`·`KeyOf`·`IntervalMinOf`·`RunTargetAsync`·`RecordConfigError`·`Skipped`·`IsOk` 를 구현 → `Program.cs` 에 `AddSingleton<X>()` + `AddHostedService(sp => sp.GetRequiredService<X>())`(엔드포인트가 같은 인스턴스를 주입받아야 한다) → 엔드포인트 한 줄. 도메인 로직(설정 해석·매핑·실행기)은 `AMES.Data.Services.{이름}` 에 두고 `AMES.Data.Tests` 에서 테스트한다.
+- Worker 마다 타이머가 따로 돌고 **Worker 간 실행 순서 조율은 없다**(API 마다 Worker 를 두기로 한 결정의 대가).
+
+## PO 자동 수집 (PO Sync) — AMES.Api
+
+고객사 SRM 의 MM31006 `INQUERY` 결과를 REST 로 받아 PP-002 와 같은 `PpRepository.UpsertCustomerOrders` 로 `PP_CustomerOrder` 에 업서트한다(actor `PO-SYNC`, 새 행 `Open`, 확정은 PP-002 에서). `AMES.Api/Workers/PoSync/PoSyncWorker`(위 `ScheduledWorker` 상속, `Code=POSYNC`)가 돌리며 설정은 전부 **공통코드(MD-26)** 다 — 주기·고객사·URL·인증 토큰까지. 마이그레이션 `dist/migrate_po_sync.sql` 은 그룹 4개와 전역 기본값만 만든다(재실행 안전). 09-17 에 그룹을 `PO_SYNC*` → `SW_POSYNC*` 로 바꿨고, 구 이름으로 적용된 DB 는 같은 스크립트를 다시 돌리면 항목을 새 그룹으로 옮기고(CodeID 접두어 포함) 빈 구 그룹을 지운다. URL·토큰이 긴 값이라 공용 `dist/migrate_md_codeitem_widen.sql`(`Attribute1` 200 · `Description` 500)이 먼저 적용돼 있어야 MD-26 에서 저장된다. 이게 없으면 워커는 소스 0개로 돌 뿐 예외는 없다.
+
+| 그룹 | CodeValue | Attribute1 | Description |
+|---|---|---|---|
+| `SW_POSYNC` | `INTERVAL` | 기본 주기(분), 0 = 전체 중지 | |
+| `SW_POSYNC` | `WINDOW` | `-60,0` (발주일 `PO_DATE` 오늘−60 ~ 오늘) | |
+| `SW_POSYNC` | `TICK_SEC` · `STARTUP_DELAY_SEC` · `TIMEOUT_SEC` | 초 — 선택, 없으면 appsettings `ScheduledWorker` 기본값 (시드 안 함) | |
+| `SW_POSYNC_SOURCE` | 소스 키(≤13자) | 귀속 `MD_Customer.CustomerID` | `CORCD=;BIZCD=;VENDCD=;PURC_ORG=` 필수, `INTERVAL=;WINDOW=` 선택(그 밖의 키는 무시) |
+| `SW_POSYNC_URL` | 소스 키 | | 엔드포인트 URL (쿼리 없이) |
+| `SW_POSYNC_AUTH` | 소스 키 | `Query:{이름}` / `Bearer` / `Basic` / `Header:{이름}` | 키 / 토큰 / `user:pw` / 헤더값 |
+
+- 소스마다 순차 실행, 한 소스 실패는 다른 소스를 막지 않는다. 결과는 `SYS_InterfaceMonitor` 의 `POSYNC-{키}` 행(SYS-Interfaces 화면, Direction `INBOUND` — 공통코드 `IF_DIRECTION` 값, 09-17 이전 행의 `IN`·`ERR` 은 `migrate_po_sync.sql` §4 가 보정)에만 남는다 — 성공 `OK`·건수·시각, 실패 `ERROR`(공통코드 `IF_STATUS` 값 — 화면 장애 KPI 는 `DOWN`/`ERROR`/`FAULT` 를 세며 `ERR` 는 어디에도 안 잡힌다)·메시지·RetryCount(마지막 성공 시각은 유지). 설정이 깨진 소스(URL·CustomerID·필수 파라미터 누락)도 `ERROR` 로 보인다. 공통코드 로딩 자체가 실패(DB 접속 등)하면 `POSYNC-CONFIG` 행 하나로 남는다(베이스 규칙).
+- 마지막 실행 시각은 메모리라 **Api 재시작 직후 모든 소스가 한 번 돈다.** 주기 변경은 다음 틱부터. 전역 `SW_POSYNC.INTERVAL=0` 은 스케줄러 전체를 멈춘다(수동 실행은 그대로 동작) — 소스 자신의 `INTERVAL=0` 은 그 소스만 멈춘다.
+- 매핑(`AMES.Data.Services.PoSync.SrmPoMapper`, 정본 `SrmPoMapperTests`): `PONO` `4100172316-10` → SoNumber/SoLineNo, `PO_QTY`→OrderQty, `DELI_QTY`→ShippedQty, `PO_DATE`/`PO_DELI_DATE`. `PO_QTY<0`·`LOEKZ='L'`·`PARTNO` 빈 값·20자 초과는 제외, `ELIKZ='X'`(납품완료)는 포함. 매핑 0행은 정상. `SW_POSYNC_SOURCE`·`SW_POSYNC_URL`·`SW_POSYNC_AUTH` 에 같은 키 행이 2개 이상이면 그 소스는 `ERROR` 로 빠지고, 전역 `SW_POSYNC` 의 중복 행은 마지막 행이 이긴다(`PoSyncConfig.Resolve`, PK 가 `CodeID` 라 MD-26 에서 키 중복 등록이 가능하다).
+- 원격 요청(`AMES.Api/Workers/PoSync/HttpPoSource`, 정본 `AMES.Api.Tests/HttpPoSourceTests`, 09-17 테스트 서버 `WEBSRV_INQUERY_PO.ashx` 실측): **GET + 쿼리 `CORCD`·`BIZCD`·`PURC_ORG`·`VENDCD`·`PO_DATE_BEG`·`PO_DATE_TO`(yyyy-MM-dd)** — 6개 모두 필수이고 **그 밖의 매개변수는 400**(POST 는 405)이라 다른 값을 붙이지 않는다. 날짜 창은 납기일이 아니라 **발주일(`PO_DATE`) 기준**이다. 테스트 서버 인증은 쿼리 `APIKEY` 뿐(헤더로 보내면 401) → `SW_POSYNC_AUTH` = `Query:APIKEY`. 응답은 루트 배열(첫 배열 프로퍼티도 허용). HttpClient 로그는 쿼리를 `?*` 로 가려 키가 남지 않는다.
+- 수동 실행 `POST /api/pp/po-sync/run?source=SEMS`(Bearer, 생략 시 전부) — 상태 코드·busy·cooldown 규칙은 위 베이스 그대로이고, 결과 행에서는 `ok=false, error="busy"`/`"cooldown"` 으로 보인다.
+- appsettings 에는 PoSync 전용 섹션이 없다 — 틱·시작 지연·타임아웃의 공통 기본값만 `ScheduledWorker` 섹션에 있고, PoSync 만 다르게 줄 값은 위 `SW_POSYNC` 공통코드다. 타임아웃은 요청마다 해석한다.
+- dev: `dist/seed_po_sync_dev.sql`(소스 `SEMS` = Seoyon E-Hwa Manufacturing Savannah, URL 은 자리표시자 — MD-26 에서 `SW_POSYNC_URL`·`SW_POSYNC_AUTH` 를 실제 값으로 바꿔야 호출된다. 개발 DB 는 09-17 에 고객사 테스트 서버 `http://192.168.1.68:5220/Service/WEBSRV_INQUERY_PO.ashx` + `Query:APIKEY` 로 설정돼 있다). `migrate_po_sync.sql` 의 MERGE 는 없는 행만 넣으므로 이미 적용된 DB 의 `WINDOW`·그룹 설명은 MD-26 에서 직접 고친다. 토큰은 MD-26 을 볼 수 있는 모든 사용자에게 보인다(사용자 결정). 응답 샘플 `src/02_Data/AMES.Data.Tests/TestData/PO_7700_310471_EN_data.json` 은 매핑 테스트(`SrmPoMapperTests`) 전용이다.
+- **정합성 미비(후속 과제, Important #2)**: 상대 SRM 에서 취소·삭제된 PO 라인은 조회 결과에서 사라질 뿐 AMES 에는 반영되지 않아 `Open` 으로 남고, 이미 `Confirmed` 인 수주도 수량·납기가 바뀌면 매 주기 덮어써진다(감사 행 없음) — PP-002 수동 업로드와 같은 동작이며, 정합 처리(미조회 라인 플래그·확정분 변경 경고)는 후속 과제다.
 
 ---
 
