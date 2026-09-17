@@ -2,7 +2,7 @@ using AMES.Data.Scheduling;
 using Xunit;
 using static AMES.Data.Scheduling.SlotPacker;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>
 /// 하루 부분 채움 — Place 가 "통째로 들어가는 첫 자리" 라면 FillDay 는 "앞에서부터 있는 대로".

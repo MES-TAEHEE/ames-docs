@@ -2,7 +2,7 @@ using AMES.Data.Connection;
 using AMES.Data.Services;
 using Xunit;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>
 /// ProdCalendar.ResolveNow 통합 테스트 — 공통코드 DAY_CUTOFF·WORK_SHIFT 를 실제로 읽는다.

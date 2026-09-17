@@ -2,7 +2,7 @@ using AMES.Data.Services;
 using Xunit;
 using static AMES.Data.Services.MoldResolver;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>품번→금형 선택 규칙: ① 직전 금형과 같은 후보 → ② 라인 배정 후보 중 교체 시간 최소 → ③ MoldId 순.</summary>
 public class MoldResolverTests

@@ -1,7 +1,7 @@
 using AMES.Data.Scheduling;
 using Xunit;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>
 /// 생산 마감일 역산용 근무일 달력. SYS_FactoryCalendar 행이 있으면 그 날짜 행 중 하나라도 WORKDAY·SPECIAL(특근일) 이면 근무일,

@@ -2,7 +2,7 @@ using AMES.Data.Services;
 using Xunit;
 using static AMES.Data.Services.PrStatusRules;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>PP-006 구매요청 상태 기계: Draft/Failed →(Send) Sent →(Approve) Approved, Draft/Failed/Sent →(Fail) Failed. Approved 는 종결.</summary>
 public class PrStatusRulesTests

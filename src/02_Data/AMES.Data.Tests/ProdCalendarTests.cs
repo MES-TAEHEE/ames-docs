@@ -1,7 +1,7 @@
 using AMES.Data.Services;
 using Xunit;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>전기일(DAY_CUTOFF)·교대(WORK_SHIFT) 판정 순수 함수 — DB 불필요.</summary>
 public class ProdCalendarTests

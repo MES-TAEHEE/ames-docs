@@ -4,7 +4,7 @@ using AMES.Data.Services;
 using Microsoft.Data.SqlClient;
 using Xunit;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>
 /// 금형 교체 시간의 계획 반영 — AMES_DEV 통합 테스트, DB 미기동 시 skip.

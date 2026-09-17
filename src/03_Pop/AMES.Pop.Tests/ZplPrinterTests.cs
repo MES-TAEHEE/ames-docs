@@ -1,7 +1,7 @@
 using AMES.Devices;
 using Xunit;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Pop.Tests;
 
 public class ZplPrinterTests
 {

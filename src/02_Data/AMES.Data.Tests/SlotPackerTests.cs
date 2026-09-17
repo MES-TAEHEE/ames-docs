@@ -2,7 +2,7 @@ using AMES.Data.Scheduling;
 using Xunit;
 using static AMES.Data.Scheduling.SlotPacker;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>
 /// PP-003 자동 배치 — 가동 밴드·기존 슬롯·소요분으로 (시작, 끝) 을 고른다. 순수 함수, DB 없음.

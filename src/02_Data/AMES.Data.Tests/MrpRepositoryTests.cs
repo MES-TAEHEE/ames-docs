@@ -1,9 +1,9 @@
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
 using Xunit;
-using static AMES.InjAgent.Tests.AmesDevDb;
+using static AMES.Data.Tests.AmesDevDb;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>
 /// PP-005 MRP 실행·스냅샷·부족 PR 생성. AMES_DEV 통합 테스트, DB 미기동 시 skip.

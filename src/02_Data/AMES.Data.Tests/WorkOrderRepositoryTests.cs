@@ -2,9 +2,9 @@ using AMES.Data.Connection;
 using AMES.Data.Repositories;
 using Microsoft.Data.SqlClient;
 using Xunit;
-using static AMES.InjAgent.Tests.AmesDevDb;
+using static AMES.Data.Tests.AmesDevDb;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>
 /// WO 생성 시 품목 RoutingType 필수 규칙. AMES_DEV 통합 테스트, DB 미기동 시 skip.

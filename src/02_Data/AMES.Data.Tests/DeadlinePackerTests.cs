@@ -4,7 +4,7 @@ using Xunit;
 using static AMES.Data.Scheduling.DeadlinePacker;
 using static AMES.Data.Scheduling.SlotPacker;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>
 /// PP-003 자동 배치 — 단계 목록 + 날짜별 능력 → 오늘부터 앞으로 채우되 마감일에서 멈추고, 넘치면 납기일까지 Late,

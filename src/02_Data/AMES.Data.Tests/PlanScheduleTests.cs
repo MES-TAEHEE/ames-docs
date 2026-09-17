@@ -4,7 +4,7 @@ using AMES.Data.Scheduling;
 using Microsoft.Data.SqlClient;
 using Xunit;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>
 /// PP-003 계획 확정 → WO 생성 + Release + 마감일 기준 다일·분할 자동 배치 (한 트랜잭션).

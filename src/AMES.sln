@@ -37,6 +37,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "08_Tablet", "08_Tablet", "{
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AMES.Tablet", "08_Tablet\AMES.Tablet\AMES.Tablet.csproj", "{B1A96C4D-DC05-4158-BBBE-79706007DCD8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AMES.Data.Tests", "02_Data\AMES.Data.Tests\AMES.Data.Tests.csproj", "{3C3DFAED-9B69-485F-A5DA-000A842B704B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -178,6 +180,18 @@ Global
 		{B1A96C4D-DC05-4158-BBBE-79706007DCD8}.Release|x64.Build.0 = Release|Any CPU
 		{B1A96C4D-DC05-4158-BBBE-79706007DCD8}.Release|x86.ActiveCfg = Release|Any CPU
 		{B1A96C4D-DC05-4158-BBBE-79706007DCD8}.Release|x86.Build.0 = Release|Any CPU
+		{3C3DFAED-9B69-485F-A5DA-000A842B704B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C3DFAED-9B69-485F-A5DA-000A842B704B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C3DFAED-9B69-485F-A5DA-000A842B704B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3C3DFAED-9B69-485F-A5DA-000A842B704B}.Debug|x64.Build.0 = Debug|Any CPU
+		{3C3DFAED-9B69-485F-A5DA-000A842B704B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3C3DFAED-9B69-485F-A5DA-000A842B704B}.Debug|x86.Build.0 = Debug|Any CPU
+		{3C3DFAED-9B69-485F-A5DA-000A842B704B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C3DFAED-9B69-485F-A5DA-000A842B704B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C3DFAED-9B69-485F-A5DA-000A842B704B}.Release|x64.ActiveCfg = Release|Any CPU
+		{3C3DFAED-9B69-485F-A5DA-000A842B704B}.Release|x64.Build.0 = Release|Any CPU
+		{3C3DFAED-9B69-485F-A5DA-000A842B704B}.Release|x86.ActiveCfg = Release|Any CPU
+		{3C3DFAED-9B69-485F-A5DA-000A842B704B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

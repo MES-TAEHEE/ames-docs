@@ -2,7 +2,7 @@ using AMES.Data.Connection;
 using AMES.Data.Repositories;
 using Xunit;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>
 /// 로컬/원격 AMES_DEV 통합 테스트. DB 미기동 시 skip — InjLotRepositoryTests 와 같은 방식.

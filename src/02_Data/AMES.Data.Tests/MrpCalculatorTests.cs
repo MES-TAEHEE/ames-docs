@@ -2,7 +2,7 @@ using AMES.Data.Services;
 using Xunit;
 using static AMES.Data.Services.MrpCalculator;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>PP-005 MRP 계산 규칙: BOM leaf 분해 → 소요 집계 → 부족 = 소요 − 재고 − 발주중 → 발주 기한 = 최단 납기 − L/T.</summary>
 public class MrpCalculatorTests

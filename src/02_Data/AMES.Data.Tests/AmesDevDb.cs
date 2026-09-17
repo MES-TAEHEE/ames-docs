@@ -1,7 +1,7 @@
 using AMES.Data.Connection;
 using Microsoft.Data.SqlClient;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>AMES_DEV 통합 테스트 공용 헬퍼 — 접속·SQL 실행. 여러 *Tests 클래스가 공유한다.</summary>
 internal static class AmesDevDb

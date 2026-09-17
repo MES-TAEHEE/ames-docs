@@ -2,9 +2,9 @@
 using AMES.Data.Repositories;
 using Microsoft.Data.SqlClient;
 using Xunit;
-using static AMES.InjAgent.Tests.AmesDevDb;
+using static AMES.Data.Tests.AmesDevDb;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>
 /// INJ-MAIN 좌측 품번 패널 집계. AMES_DEV 통합 테스트, DB 미기동 시 skip.

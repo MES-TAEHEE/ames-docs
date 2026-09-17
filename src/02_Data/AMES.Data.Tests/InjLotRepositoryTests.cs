@@ -4,7 +4,7 @@ using AMES.Data.Connection;
 using AMES.Data.Repositories;
 using Xunit;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>
 /// 로컬 AMES_DEV(Docker) 통합 테스트. DB 미기동 시 각 테스트가 skip 된다.

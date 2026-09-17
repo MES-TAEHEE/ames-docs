@@ -2,9 +2,9 @@ using AMES.Data.Connection;
 using AMES.Data.Repositories;
 using AMES.Data.Services;
 using Xunit;
-using static AMES.InjAgent.Tests.AmesDevDb;
+using static AMES.Data.Tests.AmesDevDb;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>
 /// PP-006 구매요청 상태 전이(전송·실패·PO 승인·거래처 지정)와 PP_PRSendLog 기록. AMES_DEV 통합 테스트, DB 미기동 시 skip.

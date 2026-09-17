@@ -1,7 +1,7 @@
 using AMES.Data.Services;
 using Xunit;
 
-namespace AMES.InjAgent.Tests;
+namespace AMES.Data.Tests;
 
 /// <summary>인코딩 순수 함수 테스트 — DB 불필요, 항상 실행된다.</summary>
 public class LotNoGeneratorTests
