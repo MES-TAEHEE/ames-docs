@@ -26,7 +26,7 @@ USING (VALUES
     ('SW_POSYNC',        N'ScheduledWorker · PO 자동수집 설정',   N'ScheduledWorker · PO Sync Settings',
      N'INTERVAL: Attribute1=기본 주기(분, 0=전체 중지) / WINDOW: Attribute1=발주일(PO_DATE) 창 "-N,M"(오늘-N ~ 오늘+M일) / 선택 TICK_SEC·STARTUP_DELAY_SEC·TIMEOUT_SEC: Attribute1=초, 없으면 Api appsettings ScheduledWorker 기본값'),
     ('SW_POSYNC_SOURCE', N'ScheduledWorker · PO 자동수집 고객사', N'ScheduledWorker · PO Sync Sources',
-     N'CodeValue=소스 키(13자 이하). Attribute1=귀속 MD_Customer.CustomerID. Description="CORCD=;BIZCD=;VENDCD=;PURC_ORG=" 필수, "INTERVAL=분;WINDOW=-N,M" 선택. UseFlag=0 이면 건너뜀'),
+     N'CodeValue=소스 키(13자 이하). Attribute1=귀속 MD_Customer.CustomerID. Description="CORCD=;BIZCD=;VENDCD=;PURC_ORG=" 필수, "WINDOW=-N,M" 선택(주기는 전역 INTERVAL 만). UseFlag=0 이면 건너뜀'),
     ('SW_POSYNC_URL',    N'ScheduledWorker · PO 자동수집 URL',    N'ScheduledWorker · PO Sync Endpoints',
      N'CodeValue=소스 키. Description=엔드포인트 절대 URL'),
     ('SW_POSYNC_AUTH',   N'ScheduledWorker · PO 자동수집 인증',   N'ScheduledWorker · PO Sync Auth',

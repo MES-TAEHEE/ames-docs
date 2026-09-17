@@ -77,14 +77,14 @@ public class PoSyncConfigTests
     }
 
     [Fact]
-    public void Resolve_source_overrides_interval_and_window_and_ignores_unknown_params()
+    public void Resolve_source_overrides_window_and_ignores_unknown_params()
     {
-        // 원격 API 는 모르는 매개변수를 400 으로 거부한다 — 설명란에 남은 구 파라미터는 조용히 무시돼야 한다.
+        // 주기는 전역만 쓴다(소스별 INTERVAL 폐지) — 설명란에 남은 구 파라미터는 조용히 무시돼야 한다.
         var r = Resolve([G("INTERVAL", "45"), G("WINDOW", "-5,40"),
                          Src("SEMS", "C", Params + ";INTERVAL=120;WINDOW=-3,30;PO_TYPE=1KNB;STR_LOC=3110"), Url("SEMS", "u")]);
         Assert.Empty(r.Errors);
         var s = Assert.Single(r.Sources);
-        Assert.Equal(120, s.IntervalMin);
+        Assert.Equal(45, s.IntervalMin);
         Assert.Equal((-3, 30), (s.WindowFrom, s.WindowTo));
     }
 
@@ -138,10 +138,12 @@ public class PoSyncConfigTests
     }
 
     [Fact]
-    public void Resolve_interval_zero_disables_source_without_error()
+    public void Resolve_global_interval_zero_disables_every_source_without_error()
     {
-        var r = Resolve([Src("SEMS", "C", Params + ";INTERVAL=0"), Url("SEMS", "u")]);
-        Assert.Equal(0, Assert.Single(r.Sources).IntervalMin);
+        var r = Resolve([G("INTERVAL", "0"), Src("SEMS", "C", Params), Url("SEMS", "u"),
+                         Src("OTHER", "C2", Params), Url("OTHER", "u2")]);
+        Assert.Equal(0, r.GlobalIntervalMin);
+        Assert.All(r.Sources, s => Assert.Equal(0, s.IntervalMin));
         Assert.Empty(r.Errors);
     }
 

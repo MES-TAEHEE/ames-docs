@@ -123,7 +123,7 @@ public static class PoSyncConfig
                 continue;
             }
 
-            int interval = p.TryGetValue("INTERVAL", out var iv) && int.TryParse(iv, out var ivn) && ivn >= 0 ? ivn : gInterval;
+            // 주기는 전역 하나뿐이다 — 소스마다 다르게 둘 이유가 없어 설명란의 INTERVAL 은 무시한다.
             if (!TryParseWindow(p.GetValueOrDefault("WINDOW"), out int from, out int to)) (from, to) = (gFrom, gTo);
 
             string? scheme = null, authVal = null;
@@ -135,7 +135,7 @@ public static class PoSyncConfig
 
             sources.Add(new PoSyncSource(key, name, cust!, url!, scheme, authVal,
                 p["CORCD"], p["BIZCD"], p["VENDCD"], p["PURC_ORG"],
-                interval, from, to, timeoutSec));
+                gInterval, from, to, timeoutSec));
         }
 
         return new PoSyncConfigResult(sources, errors, gInterval, tickSec, delaySec, timeoutSec);

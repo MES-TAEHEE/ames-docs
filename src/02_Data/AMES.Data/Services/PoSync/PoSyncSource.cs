@@ -12,7 +12,7 @@ public sealed record PoSyncSource(
     string  BizCd,
     string  VendCd,
     string  PurcOrg,
-    int     IntervalMin,
+    int     IntervalMin,   // 전역 SW_POSYNC.INTERVAL — 소스별 주기는 없다
     int     WindowFrom,
     int     WindowTo,
     int?    TimeoutSec = null)

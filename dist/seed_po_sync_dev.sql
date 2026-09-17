@@ -24,7 +24,7 @@ END
 MERGE dbo.MD_CodeItem AS tgt
 USING (VALUES
     ('SW_POSYNC_SOURCE_SEMS', 'SW_POSYNC_SOURCE', 'SEMS', N'Seoyon E-Hwa Manufacturing Savannah', N'Seoyon E-Hwa Manufacturing Savannah', @Cust,
-     N'CORCD=7700;BIZCD=7710;VENDCD=310471;PURC_ORG=1A7700;INTERVAL=30', 1),
+     N'CORCD=7700;BIZCD=7710;VENDCD=310471;PURC_ORG=1A7700', 1),
     ('SW_POSYNC_URL_SEMS',    'SW_POSYNC_URL',    'SEMS', N'Seoyon E-Hwa Manufacturing Savannah PO API', N'Seoyon E-Hwa Manufacturing Savannah PO API', NULL,
      N'https://srm.example.invalid/api/mm31006/inquery', 1)
 ) AS src(CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, Attribute1, Description, SortOrder)

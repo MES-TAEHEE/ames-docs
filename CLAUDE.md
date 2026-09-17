@@ -350,15 +350,15 @@ PP-006 구매요청의 SAP 전송 상태(`PP_PurchaseRequest.SapDocNum` · `Sent
 
 | 그룹 | CodeValue | Attribute1 | Description |
 |---|---|---|---|
-| `SW_POSYNC` | `INTERVAL` | 기본 주기(분), 0 = 전체 중지 | |
+| `SW_POSYNC` | `INTERVAL` | 수집 주기(분) — 전 소스 공통, 0 = 전체 중지 | |
 | `SW_POSYNC` | `WINDOW` | `-60,0` (발주일 `PO_DATE` 오늘−60 ~ 오늘) | |
 | `SW_POSYNC` | `TICK_SEC` · `STARTUP_DELAY_SEC` · `TIMEOUT_SEC` | 초 — 선택, 없으면 appsettings `ScheduledWorker` 기본값 (시드 안 함) | |
-| `SW_POSYNC_SOURCE` | 소스 키(≤13자) | 귀속 `MD_Customer.CustomerID` | `CORCD=;BIZCD=;VENDCD=;PURC_ORG=` 필수, `INTERVAL=;WINDOW=` 선택(그 밖의 키는 무시) |
+| `SW_POSYNC_SOURCE` | 소스 키(≤13자) | 귀속 `MD_Customer.CustomerID` | `CORCD=;BIZCD=;VENDCD=;PURC_ORG=` 필수, `WINDOW=` 선택(그 밖의 키는 무시) |
 | `SW_POSYNC_URL` | 소스 키 | | 엔드포인트 URL (쿼리 없이) |
 | `SW_POSYNC_AUTH` | 소스 키 | `Query:{이름}` / `Bearer` / `Basic` / `Header:{이름}` | 키 / 토큰 / `user:pw` / 헤더값 |
 
 - 소스마다 순차 실행, 한 소스 실패는 다른 소스를 막지 않는다. 결과는 `SYS_InterfaceMonitor` 의 `POSYNC-{키}` 행(SYS-Interfaces 화면, Direction `INBOUND` — 공통코드 `IF_DIRECTION` 값, 09-17 이전 행의 `IN`·`ERR` 은 `migrate_po_sync.sql` §4 가 보정)에만 남는다 — 성공 `OK`·건수·시각, 실패 `ERROR`(공통코드 `IF_STATUS` 값 — 화면 장애 KPI 는 `DOWN`/`ERROR`/`FAULT` 를 세며 `ERR` 는 어디에도 안 잡힌다)·메시지·RetryCount(마지막 성공 시각은 유지). 설정이 깨진 소스(URL·CustomerID·필수 파라미터 누락)도 `ERROR` 로 보인다. 공통코드 로딩 자체가 실패(DB 접속 등)하면 `POSYNC-CONFIG` 행 하나로 남는다(베이스 규칙).
-- 마지막 실행 시각은 메모리라 **Api 재시작 직후 모든 소스가 한 번 돈다.** 주기 변경은 다음 틱부터. 전역 `SW_POSYNC.INTERVAL=0` 은 스케줄러 전체를 멈춘다(수동 실행은 그대로 동작) — 소스 자신의 `INTERVAL=0` 은 그 소스만 멈춘다.
+- 마지막 실행 시각은 메모리라 **Api 재시작 직후 모든 소스가 한 번 돈다.** 주기 변경은 다음 틱부터. 주기는 전역 `SW_POSYNC.INTERVAL` 하나뿐이다(소스별 주기 없음, 설명란의 `INTERVAL=` 은 무시) — `0` 이면 스케줄러 전체를 멈춘다(수동 실행은 그대로 동작). 소스 하나만 멈추려면 그 `SW_POSYNC_SOURCE` 행의 `UseFlag=0`.
 - 매핑(`AMES.Data.Services.PoSync.SrmPoMapper`, 정본 `SrmPoMapperTests`): `PONO` `4100172316-10` → SoNumber/SoLineNo, `PO_QTY`→OrderQty, `DELI_QTY`→ShippedQty, `PO_DATE`/`PO_DELI_DATE`. `PO_QTY<0`·`LOEKZ='L'`·`PARTNO` 빈 값·20자 초과는 제외, `ELIKZ='X'`(납품완료)는 포함. 매핑 0행은 정상. `SW_POSYNC_SOURCE`·`SW_POSYNC_URL`·`SW_POSYNC_AUTH` 에 같은 키 행이 2개 이상이면 그 소스는 `ERROR` 로 빠지고, 전역 `SW_POSYNC` 의 중복 행은 마지막 행이 이긴다(`PoSyncConfig.Resolve`, PK 가 `CodeID` 라 MD-26 에서 키 중복 등록이 가능하다).
 - 원격 요청(`AMES.Api/Workers/PoSync/HttpPoSource`, 정본 `AMES.Api.Tests/HttpPoSourceTests`, 09-17 테스트 서버 `WEBSRV_INQUERY_PO.ashx` 실측): **GET + 쿼리 `CORCD`·`BIZCD`·`PURC_ORG`·`VENDCD`·`PO_DATE_BEG`·`PO_DATE_TO`(yyyy-MM-dd)** — 6개 모두 필수이고 **그 밖의 매개변수는 400**(POST 는 405)이라 다른 값을 붙이지 않는다. 날짜 창은 납기일이 아니라 **발주일(`PO_DATE`) 기준**이다. 테스트 서버 인증은 쿼리 `APIKEY` 뿐(헤더로 보내면 401) → `SW_POSYNC_AUTH` = `Query:APIKEY`. 응답은 루트 배열(첫 배열 프로퍼티도 허용). HttpClient 로그는 쿼리를 `?*` 로 가려 키가 남지 않는다.
 - 수동 실행 `POST /api/pp/po-sync/run?source=SEMS`(Bearer, 생략 시 전부) — 상태 코드·busy·cooldown 규칙은 위 베이스 그대로이고, 결과 행에서는 `ok=false, error="busy"`/`"cooldown"` 으로 보인다.
