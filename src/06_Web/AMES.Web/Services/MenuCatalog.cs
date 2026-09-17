@@ -142,7 +142,6 @@ public sealed class MenuCatalog
     static readonly HashSet<string> HiddenItems = new(StringComparer.OrdinalIgnoreCase)
     {
         "wh/locations",
-        "wh/picking-orders",
     };
 
     public static bool IsHidden(string href) => HiddenItems.Contains(href.TrimStart('/'));
