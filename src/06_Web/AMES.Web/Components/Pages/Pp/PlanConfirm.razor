@@ -3,6 +3,9 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject AMES.Data.Repositories.MasterDataRepository MD
+@inject AMES.Web.Services.PermissionService PermSvc
+@inject AuthenticationStateProvider AuthPrvd
+@inject NavigationManager Nav
 @inject DialogService Dialog
 @inject IStringLocalizer<SharedResources> L
 
@@ -43,9 +46,12 @@
 
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="Search" />
             <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reset" />
-            <RadzenButton Text="@string.Format(L["PP.PlanConfirm.Btn.Batch"].Value, _selected.Count)"
-                          Icon="play_arrow" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" 
-                          Disabled="@(_selected.Count == 0)" Click="OpenBatch" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@string.Format(L["PP.PlanConfirm.Btn.Batch"].Value, _selected.Count)"
+                              Icon="play_arrow" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn"
+                              Disabled="@(_selected.Count == 0)" Click="OpenBatch" />
+            }
         </RadzenStack>
     </div>
 
@@ -60,7 +66,8 @@ else
                     AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
                     class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Width="46px" Sortable="false"
+            @* 선택은 WO 일괄 생성에만 쓰이므로 E 권한이 없으면 열 자체를 내린다 *@
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Width="46px" Sortable="false" Visible="@_canEdit"
                                   Filterable="false" TextAlign="TextAlign.Center" Frozen="true">
                 <HeaderTemplate>
                     <input type="checkbox" class="pc-ck" checked="@AllSelected"
@@ -174,8 +181,17 @@ else
     IEnumerable<PpRepository.PlanLineRow> Selectable => _view.Where(r => !r.Blocked);
     bool AllSelected => Selectable.Any() && Selectable.All(r => _selected.Contains(r.SoId));
 
-    protected override void OnInitialized()
+    // 권한 키(SYS_Screen.HRef) — R = 화면 조회, E = WO 일괄 생성
+    const string Href = "pp/plan-confirm";
+    bool _canEdit;
+
+    protected override async Task OnInitializedAsync()
     {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        // 메뉴에서 숨겨도 주소를 직접 치면 열리므로 읽기 권한은 화면에서도 확인한다
+        if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
+        _canEdit = PermSvc.CanEdit(Href);
+
         try { _customers = MD.ListCustomers(); } catch { }
         Search();
     }
@@ -224,6 +240,8 @@ else
 
     async Task OpenBatch()
     {
+        if (!_canEdit) return;   // 버튼을 숨겨도 핸들러에서 한 번 더 막는다
+
         var lines = _rows.Where(r => _selected.Contains(r.SoId) && !r.Blocked).ToList();
         if (lines.Count == 0) { ShowMsg(L["PP.PlanConfirm.Err.NoneSelected"], true); return; }
 
