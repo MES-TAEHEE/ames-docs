@@ -350,10 +350,9 @@
                 return;
             }
 
-            var truck = _truck.LicensePlate;
-            var count = _scannedStockIds.Count;
             Clear();
-            ShowModal("Loading Complete", $"{count} product(s) were loaded onto truck {truck}.", "success");
+            ShowModal("Loading Complete", result.Message,
+                result.Message.Contains("transmission failed", StringComparison.OrdinalIgnoreCase) ? "warn" : "success");
         }
         finally { _isBusy = false; }
     }

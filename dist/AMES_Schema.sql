@@ -2977,7 +2977,7 @@ GO
 -- ── FG_DeliveryNote  (★ 거래명세서 / BOL)
 CREATE TABLE dbo.FG_DeliveryNote (
   [DeliveryNoteID]            INT IDENTITY         NOT NULL,
-  [DnNumber]                  VARCHAR(30)              NULL,
+  [DnNumber]                  VARCHAR(60)              NULL,
   [ShipmentOrderID]           INT                      NULL,  -- FK -> FG_ShipmentOrder.ShipmentOrderID
   [LoadingID]                 INT                      NULL,  -- FK -> FG_LoadingConfirm.LoadingID
   [CustomerCode]              VARCHAR(20)              NULL,

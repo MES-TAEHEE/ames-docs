@@ -1,5 +1,6 @@
 using AMES.Api.Auth;
 using AMES.Api.Endpoints;
+using AMES.Api.Services;
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
 using AMES.Data.Services;
@@ -18,6 +19,8 @@ builder.Services.AddSingleton(sp => new PopAuthService(
     sp.GetRequiredService<AuthRepository>(),
     sp.GetRequiredService<WorkerRepository>(),
     sp.GetRequiredService<PopSessionRepository>()));
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<ShipmentDispatchService>();
 
 // ── Auth token registry ─────────────────────────────────────────────────
 var tokens = new TokenStore();
@@ -80,7 +83,7 @@ app.UseSwaggerUI(c =>
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", at = DateTime.UtcNow }));
 app.MapAuth(app.Services.GetRequiredService<PopAuthService>(), tokens);
 app.MapWh(factory);
-app.MapFg(factory);
+app.MapFg(factory, app.Services.GetRequiredService<ShipmentDispatchService>());
 app.MapTablet(factory);
 app.MapPp(factory);
 app.MapMnt(factory);
