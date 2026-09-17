@@ -38,11 +38,11 @@
     </div>
 </div>
 
-@* ── 사이트맵(제목 없음): 좌측 메뉴와 같은 대분류·화면 순서. 메뉴는 권한 없는 화면을 숨기지만 여기서는 전부 보이고 권한 없는 화면만 비활성 ── *@
+@* ── 사이트맵(제목 없음): 좌측 메뉴와 동일하게 R 권한이 있는 화면만 표시 ── *@
 <div class="ames-sitemap">
     @foreach (var sec in MenuCatalog.Sections)
     {
-        var items = Catalog.SectionItems(sec.Key);
+        var items = Catalog.SectionItems(sec.Key).Where(i => Vis(i.Href)).ToList();
         if (items.Count == 0) { continue; }
         var open  = items.Count(i => Vis(i.Href));
         <div class="ames-map-row @sec.Key @(open == 0 ? "is-locked" : "")">

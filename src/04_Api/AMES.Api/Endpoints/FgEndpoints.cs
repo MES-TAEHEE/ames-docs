@@ -1,5 +1,6 @@
 using AMES.Api.Auth;
 using AMES.Api.Logging;
+using AMES.Api.Services;
 using AMES.Contracts.Dto;
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
@@ -96,7 +97,7 @@ public static class FgEndpoints
     private sealed record ParsedFgBarcode(string Raw, string Value, string Kind);
 
     // ── Routes ───────────────────────────────────────────────────────────
-    public static void MapFg(this WebApplication app, AmesConnectionFactory factory)
+    public static void MapFg(this WebApplication app, AmesConnectionFactory factory, ShipmentDispatchService shipments)
     {
         var master = new MasterDataRepository(factory);
         var g = app.MapGroup("/api/fg").WithTags("Finished Goods");
@@ -723,8 +724,22 @@ public static class FgEndpoints
                     return Results.Json(new LoadingResult(false, "Truck loading service returned no confirmation.", null, null, null), statusCode: 503);
                 var id = GetInt(rdr, "LoadingID");
                 var loadedCount = GetInt(rdr, "LoadedCount") ?? body.StockIds.Count;
+                rdr.Close();
+                var shipmentMessage = "";
+                if (id is > 0)
+                {
+                    try
+                    {
+                        var sent = shipments.Send(id.Value, s.EmployeeNo);
+                        shipmentMessage = $" Shipment sent. Delivery note: {sent.DeliveryNote}.";
+                    }
+                    catch (Exception ex)
+                    {
+                        shipmentMessage = $" Loading was saved, but shipment transmission failed: {ex.Message}";
+                    }
+                }
                 return Results.Ok(new LoadingResult(true,
-                    $"{loadedCount} product(s) were loaded onto truck {truck}.", id,
+                    $"{loadedCount} product(s) were loaded onto truck {truck}.{shipmentMessage}", id,
                     new LoadingTruckRow($"TRUCK:{truck}", truck, true, "Loading confirmed."), null));
             }
             catch (SqlException ex) when (ex.Number is >= 51900 and <= 51919)

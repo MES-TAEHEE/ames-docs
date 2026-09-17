@@ -3,6 +3,8 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.WarehouseRepository Wh
 @inject AuthenticationStateProvider AuthPrvd
+@inject AMES.Web.Services.PermissionService PermSvc
+@inject NavigationManager Nav
 @inject IJSRuntime JS
 @using System.Text
 @using AMES.Data.Repositories
@@ -21,7 +23,7 @@
         <div class="ames-card-h wh-pick-card-head">
             <span>Create Picking Slip</span>
             <RadzenButton Text="Create" Icon="add" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
-                          Click="@CreateSlipAsync" Disabled="@_busy" class="ames-rz-btn" />
+                          Click="@CreateSlipAsync" Disabled="@(_busy || !_canEdit)" class="ames-rz-btn" />
         </div>
 
         <div class="wh-pick-form">
@@ -102,7 +104,7 @@
                     {
                         <div class="wh-pick-action-row">
                             <RadzenButton Text="Add" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall"
-                                          Click="@(() => AddCandidate(candidate))" aria-label="Add to Pick Slip" class="ames-rz-btn" />
+                                          Click="@(() => AddCandidate(candidate))" Disabled="@(!_canEdit)" aria-label="Add to Pick Slip" class="ames-rz-btn" />
                         </div>
                     }
                 </div>
@@ -152,7 +154,7 @@
                         {
                             <div class="wh-pick-action-row">
                                 <RadzenButton Text="Remove" Icon="close" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall"
-                                              Click="@(() => RemoveLine(line))" aria-label="Remove line" class="ames-rz-btn" />
+                                              Click="@(() => RemoveLine(line))" Disabled="@(!_canEdit)" aria-label="Remove line" class="ames-rz-btn" />
                             </div>
                         }
                     </div>
@@ -211,9 +213,9 @@
             <span>Pick Slip Detail - @_selectedSlip.PickSlipNo</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem">
                 <RadzenButton Text="Print" Icon="print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small"
-                              Click="@PrintSelectedAsync" Disabled="@_busy" class="ames-rz-btn" />
+                              Click="@PrintSelectedAsync" Disabled="@(_busy || !_canEdit)" class="ames-rz-btn" />
                 <RadzenButton Text="Close" Icon="task_alt" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
-                              Click="@CloseSelectedAsync" Disabled="@(_busy || IsSelectedSlipClosed)" class="ames-rz-btn" />
+                              Click="@CloseSelectedAsync" Disabled="@(_busy || !_canEdit || IsSelectedSlipClosed)" class="ames-rz-btn" />
                 <RadzenButton Text="Close Preview" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small"
                               Click="@ClearSelection" class="ames-rz-btn" />
             </RadzenStack>
@@ -331,11 +333,20 @@
     string _msg = "";
     bool _isErr;
     bool _busy;
+    bool _canEdit;
     bool _includeClosed = true;
     DateTime _reqDate = DbClock.Today;
 
     protected override async Task OnInitializedAsync()
     {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        if (!PermSvc.IsVisible("wh/picking-orders"))
+        {
+            Nav.NavigateTo("/Account/AccessDenied", replace: true);
+            return;
+        }
+
+        _canEdit = PermSvc.CanEdit("wh/picking-orders");
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "planner";
         LoadLines();
@@ -394,6 +405,7 @@
 
     void AddCandidate(CandidateUi candidate)
     {
+        if (!_canEdit) return;
         var existing = _createLines.FirstOrDefault(l =>
             l.PartNo.Equals(candidate.PartNo, StringComparison.OrdinalIgnoreCase) &&
             l.LineCode.Equals(candidate.LineCode, StringComparison.OrdinalIgnoreCase));
@@ -412,12 +424,13 @@
 
     void RemoveLine(CreateLineUi line)
     {
+        if (!_canEdit) return;
         _createLines.Remove(line);
     }
 
     async Task CreateSlipAsync()
     {
-        if (_busy) return;
+        if (_busy || !_canEdit) return;
         if (_createLines.Count == 0)
         {
             ShowMsg("Add at least one material line before creating a Pick Slip.", true);
@@ -482,7 +495,7 @@
 
     async Task PrintSelectedAsync()
     {
-        if (_selectedSlip is null || _busy) return;
+        if (_selectedSlip is null || _busy || !_canEdit) return;
         _busy = true;
         try
         {
@@ -504,7 +517,7 @@
 
     async Task CloseSelectedAsync()
     {
-        if (_selectedSlip is null || _busy || _selectedSlip.Status == "Closed") return;
+        if (_selectedSlip is null || _busy || !_canEdit || _selectedSlip.Status == "Closed") return;
         var proceed = await JS.InvokeAsync<bool>("confirm", $"Close Pick Slip {_selectedSlip.PickSlipNo}? This cannot be reopened from this screen.");
         if (!proceed) return;
 

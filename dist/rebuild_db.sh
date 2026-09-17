@@ -54,6 +54,7 @@ FILES=(
   create_sys_screen.sql               # SYS_Screen 레지스트리 (화면 목록)
   reseed_menu.sql                     #   → 메뉴/HRef 정본 재시드
   seed_admin_permissions.sql          #   → Admin RBAC(REA) + admin@ames.local 계정
+  seed_wh_picking_rbac_test.sql       #   → WH Picking Orders R 권한 비교용 Web 계정 2개
   seed_md_code.sql                    # 마스터 공통코드
   seed_md_routing_step.sql            # 라우팅 템플릿(A/B) 시드 (테이블은 AMES_Schema.sql)
   reseed_md_item_partmaster.sql       # 품목(파트마스터)

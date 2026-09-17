@@ -66,13 +66,20 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
             return await spareParts.LocationsAsync();
 
         return FilterByArea(
-            NormalizeLocationRows(await GetRequiredAsync<List<LocationRow>>("/api/wh/locations", "Location service is unavailable.")),
+            await GetRequiredAsync<List<LocationRow>>("/api/wh/locations", "Location service is unavailable."),
             row => row.AreaCode, areaCode);
     }
     public async Task<List<LocationRow>> WhLocationMapAsync()
     {
-        return NormalizeLocationRows(
-            await GetRequiredAsync<List<LocationRow>>("/api/wh/locations", "Location map service is unavailable."));
+        var rows = await GetRequiredAsync<List<LocationRow>>("/api/wh/locations", "Location map service is unavailable.");
+        var warehouseRows = rows.Where(row => !string.Equals(
+            row.AreaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (warehouseRows.Any(row => string.IsNullOrWhiteSpace(row.AreaCode)
+            || string.IsNullOrWhiteSpace(row.X)
+            || string.IsNullOrWhiteSpace(row.Y)
+            || string.IsNullOrWhiteSpace(row.Z)))
+            throw new InvalidOperationException("Warehouse location coordinates are incomplete in the database.");
+        return warehouseRows;
     }
     public async Task<List<LocationMapItemRow>> WhLocationMapItemsAsync(string locationId, DateTime? dateFrom = null, DateTime? dateTo = null,
         string? areaCode = null)

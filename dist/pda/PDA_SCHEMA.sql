@@ -3440,6 +3440,11 @@ GO
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 
+IF OBJECT_ID(N'dbo.FG_DeliveryNote', N'U') IS NOT NULL
+   AND COL_LENGTH(N'dbo.FG_DeliveryNote', N'DnNumber') < 60
+    ALTER TABLE dbo.FG_DeliveryNote ALTER COLUMN DnNumber VARCHAR(60) NULL;
+GO
+
 IF OBJECT_ID(N'dbo.FG_CustomerReturn', N'U') IS NULL
     THROW 50001, 'dbo.FG_CustomerReturn does not exist.', 1;
 

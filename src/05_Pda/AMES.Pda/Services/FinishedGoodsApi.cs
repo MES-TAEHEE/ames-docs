@@ -144,16 +144,7 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
     public Task<FgReturnResult> FgReturnScanAsync(string barcode)
         => GetFgReturnResultAsync($"/api/fg/return/scan?barcode={Uri.EscapeDataString(barcode)}");
     public async Task<FgDashboard>  FgDashboardAsync()
-    {
-        Authorize();
-        try
-        {
-            var r = await _http.GetAsync("/api/fg/dashboard");
-            if (!r.IsSuccessStatusCode) return new FgDashboard(0,0,0,0,0,0);
-            return await r.Content.ReadFromJsonAsync<FgDashboard>() ?? new FgDashboard(0,0,0,0,0,0);
-        }
-        catch { return new FgDashboard(0,0,0,0,0,0); }
-    }
+        => await GetRequiredAsync<FgDashboard>("/api/fg/dashboard", "Finished goods dashboard service is unavailable.");
 
     public Task<FgPutAwayResult> FgPutAwayScanAsync(string barcode)
         => GetFgPutAwayResultAsync($"/api/fg/putaway/scan?barcode={Uri.EscapeDataString(barcode)}");

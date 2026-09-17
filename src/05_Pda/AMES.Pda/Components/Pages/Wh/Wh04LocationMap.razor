@@ -466,6 +466,11 @@
         {
             _items = await Api.WhLocationMapItemsAsync(location.LocationId);
         }
+        catch (Exception ex)
+        {
+            _scanMessage = $"Location inventory could not be loaded. {ShortError(ex.Message)}";
+            _scanMessageClass = "fail";
+        }
         finally
         {
             _loadingItems = false;

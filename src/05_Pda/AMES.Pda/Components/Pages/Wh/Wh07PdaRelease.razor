@@ -637,6 +637,13 @@
                 _loadedSlipNo = null;
             }
         }
+        catch (Exception ex)
+        {
+            _loadedSlipNo = null;
+            _lines.Clear();
+            _fifoLots.Clear();
+            ShowModal("Load Failed", ex.Message, "fail");
+        }
         finally
         {
             _isBusy = false;
