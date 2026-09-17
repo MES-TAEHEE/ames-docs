@@ -12,13 +12,13 @@
 <PageTitle>PP-004 @L["PP.WorkOrder.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="PP-004" TitleKey="PP.WorkOrder.Title" />
 
-<div class="wo-page">
+<div class="ames-page-fill">
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat" AllowClose="false">@_msg</RadzenAlert>
 }
 
-<div class="ames-kpis compact">
+<div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">DRAFT</div><div class="ames-kpi-v">@Count("Draft")</div></div>
     <div class="ames-kpi info"><div class="ames-kpi-l">RELEASED</div><div class="ames-kpi-v">@Count("Released")</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">IN PROGRESS</div><div class="ames-kpi-v">@Count("In Progress")</div></div>
@@ -26,35 +26,30 @@
     <div class="ames-kpi @(CriticalCount > 0 ? "warn" : "")"><div class="ames-kpi-l">D-3 CRITICAL</div><div class="ames-kpi-v">@CriticalCount</div></div>
 </div>
 
-<div class="ames-card-h" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;text-transform:none;">
-    <div class="ames-fld">
-        <label>@L["Col.Status"]</label>
-        <RadzenDropDown Data="_statuses" @bind-Value="_fStatus" @bind-Value:after="ApplyFilters"
-                        AllowClear="true" Placeholder="@L["Filter.All"].Value" Style="width:150px" />
-    </div>
-    <div class="ames-fld">
-        <label>@L["Col.Routing"]</label>
-        <RadzenDropDown Data="_routings" @bind-Value="_fRouting" @bind-Value:after="ApplyFilters"
-                        AllowClear="true" Placeholder="@L["Filter.All"].Value" Style="width:110px" />
-    </div>
-    <div class="ames-fld">
-        <label>@L["Col.WoNo"] / @L["Col.Item"]</label>
-        <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"
-                       Placeholder="—" Style="width:200px" />
-    </div>
-    <div class="ames-fld">
-        <label>@L["PP.WorkOrder.Filter.ClosedDays"]</label>
-        <RadzenDropDown AllowFiltering="true" Data="_dayOpts" @bind-Value="_recentDays" @bind-Value:after="Reload" Style="width:130px" />
-    </div>
-    <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
-        <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Reload" />
-        <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Click="Reset" />
-        <RadzenButton Text="@L["PP.WorkOrder.Btn.Export"].Value" Icon="download" ButtonStyle="ButtonStyle.Dark" Click="ExportCsv" />
-        <RadzenButton Text="@L["PP.WorkOrder.Btn.Manual"].Value" Icon="add" ButtonStyle="ButtonStyle.Secondary" Click="OpenManual" />
-    </div>
-</div>
+<div class="ames-card ames-card-fill">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["PP.WorkOrder.Title"] · @_view.Count @L["Lbl.Items"]@(_view.Count < _rows.Count ? $" / {L["Lbl.TotalOf"]} {_rows.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["Col.Status"]" />
+            <RadzenDropDown Data="_statuses" @bind-Value="_fStatus" @bind-Value:after="ApplyFilters"
+                            AllowClear="true" Placeholder="@L["Filter.All"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenLabel Text="@L["Col.Routing"]" />
+            <RadzenDropDown Data="_routings" @bind-Value="_fRouting" @bind-Value:after="ApplyFilters"
+                            AllowClear="true" Placeholder="@L["Filter.All"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px" />
+            <RadzenLabel Text='@($"{L["Col.WoNo"]} / {L["Col.Item"]}")' />
+            <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"
+                           Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+            <RadzenLabel Text="@L["PP.WorkOrder.Filter.ClosedDays"]" />
+            <RadzenDropDown AllowFiltering="true" Data="_dayOpts" @bind-Value="_recentDays" @bind-Value:after="Reload" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px" />
 
-<div class="wo-grid">
+            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reload" />
+            <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reset" />
+            <RadzenButton Text="@L["PP.WorkOrder.Btn.Export"].Value" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" class="ames-rz-btn" Click="ExportCsv" />
+            <RadzenButton Text="@L["PP.WorkOrder.Btn.Manual"].Value" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenManual" />
+        </RadzenStack>
+    </div>
+
+<div class="ames-grid-virtual">
 @if (_rows.Count == 0)
 {
     <div class="ames-empty">@L["PP.WorkOrder.Empty"]</div>
@@ -171,6 +166,7 @@ else
         </Template>
     </RadzenDataGrid>
 }
+</div>
 </div>
 </div>
 

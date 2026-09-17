@@ -4933,6 +4933,17 @@ html[data-theme="light"] .rpt-rb-measure, html[data-theme="light"] .rpt-rb-sum, 
 .ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg) .ames-grid-fixed.ames-grid-rest { flex: 1 1 auto; min-height: calc(var(--ames-grid-head) + 5 * var(--ames-grid-row) + 6px + 52px + 2px); }
 .ames-grid-fixed.ames-grid-rest .rz-data-grid-data { flex: 1 1 auto; height: auto; }
 
+/* ── 전체 높이 가상화 그리드 (.ames-page-fill · .ames-card-fill · .ames-grid-virtual) ──────────
+   PP-001~006 처럼 가상화(AllowVirtualization) 그리드가 페이징 없이 화면 남은 세로 영역을 꽉 채운다.
+   페이지 래퍼 = TopBar 60px + .ames-content 상단 12 / 하단 16 패딩(88px)을 뺀 높이.
+   래퍼 안에 KPI·알림은 제 높이, 카드(또는 AmesTabs 패널 안 카드)가 남은 높이를 받고 그리드는 카드 안 남은 높이를 채운다. */
+.ames-page-fill { display: flex; flex-direction: column; height: calc(100vh - 88px); min-height: 360px; }
+.ames-page-fill > .ames-tabstrip { flex: 0 0 auto; }
+.ames-page-fill > .ames-tabpanel { flex: 1 1 auto; min-height: 0; margin-bottom: 0; display: flex; flex-direction: column; overflow: hidden; }
+.ames-card-fill { flex: 1 1 auto; min-height: 0; margin-bottom: 0; display: flex; flex-direction: column; }
+.ames-grid-virtual { flex: 1 1 auto; min-height: 0; }
+.ames-grid-virtual .rz-data-grid, .ames-grid-virtual .rz-datatable { height: 100%; }
+
 /* ── 꽉 채우는 그리드 (.ames-grid-fill) ───────────────────────────────
    자체 100vh 분할 레이아웃(BOM 등)의 카드 안에서, 그리드가 래퍼 높이를 다 차지하고 본문만 스크롤해
    페이저가 항상 카드 바닥에 온다. 래퍼는 flex:1; min-height:0; overflow:hidden 이어야 한다. */

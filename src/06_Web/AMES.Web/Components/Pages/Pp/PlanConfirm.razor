@@ -10,51 +10,46 @@
 
 <AmesPageHeader Code="PP-003" TitleKey="PP.PlanConfirm.Title" />
 
-<div class="pc-page">
+<div class="ames-page-fill">
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat" AllowClose="false">@_msg</RadzenAlert>
 }
 
-<div class="ames-kpis compact">
+<div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">PLAN LINES</div><div class="ames-kpi-v">@_rows.Count</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">SELECTED</div><div class="ames-kpi-v">@_selected.Count</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">WO CREATED</div><div class="ames-kpi-v">@_woCreated</div></div>
     <div class="ames-kpi @(BlockedCount > 0 ? "bad" : "")"><div class="ames-kpi-l">BLOCKED</div><div class="ames-kpi-v">@BlockedCount</div></div>
 </div>
 
-<div class="ames-card-h" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;text-transform:none;">
-    <div class="ames-fld">
-        <label>@L["Col.Customer"]</label>
-        <RadzenDropDown AllowFiltering="true" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
-                        @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
-                        Style="width:200px" />
-    </div>
-    <div class="ames-fld">
-        <label>@L["PP.PlanConfirm.Col.Due"] @L["PP.Forecast.Fld.Period"]</label>
-        <div style="display:flex;align-items:center;gap:6px;">
+<div class="ames-card ames-card-fill">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["PP.PlanConfirm.Title"] · @_view.Count @L["Lbl.Items"]@(_view.Count < _rows.Count ? $" / {L["Lbl.TotalOf"]} {_rows.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["Col.Customer"]" />
+            <RadzenDropDown AllowFiltering="true" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+                            @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+            <RadzenLabel Text='@($"{L["PP.PlanConfirm.Col.Due"]} {L["PP.Forecast.Fld.Period"]}")' />
             <RadzenDatePicker @bind-Value="_fFrom" DateFormat="MM/dd/yyyy" AllowClear="true"
-                              Placeholder="—" Style="width:165px" />
+                              Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <span class="dim">~</span>
             <RadzenDatePicker @bind-Value="_fTo" DateFormat="MM/dd/yyyy" AllowClear="true"
-                              Placeholder="—" Style="width:165px" />
-        </div>
-    </div>
-    <div class="ames-fld">
-        <label>@L["Col.SoNo"] / @L["Col.PartNo"]</label>
-        <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"
-                       Placeholder="—" Style="width:200px" />
-    </div>
-    <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
-        <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Search" />
-        <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Click="Reset" />
-        <RadzenButton Text="@string.Format(L["PP.PlanConfirm.Btn.Batch"].Value, _selected.Count)"
-                      Icon="play_arrow" ButtonStyle="ButtonStyle.Success"
-                      Disabled="@(_selected.Count == 0)" Click="OpenBatch" />
-    </div>
-</div>
+                              Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenLabel Text='@($"{L["Col.SoNo"]} / {L["Col.PartNo"]}")' />
+            <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"
+                           Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
 
-<div class="pc-grid">
+            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="Search" />
+            <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reset" />
+            <RadzenButton Text="@string.Format(L["PP.PlanConfirm.Btn.Batch"].Value, _selected.Count)"
+                          Icon="play_arrow" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" 
+                          Disabled="@(_selected.Count == 0)" Click="OpenBatch" />
+        </RadzenStack>
+    </div>
+
+<div class="ames-grid-virtual">
 @if (_rows.Count == 0)
 {
     <div class="ames-empty">@L["PP.PlanConfirm.Empty"]</div>
@@ -155,6 +150,7 @@ else
         </Columns>
     </RadzenDataGrid>
 }
+</div>
 </div>
 </div>
 
