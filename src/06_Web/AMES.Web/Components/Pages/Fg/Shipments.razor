@@ -1,8 +1,11 @@
 @page "/fg/shipments"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.FinishedGoodsRepository Fg
+@using AMES.Data.Repositories
 @using Radzen
+@inject FinishedGoodsRepository Fg
+@inject IConfiguration Config
+@inject IJSRuntime JS
 
 <PageTitle>Shipments - AMES</PageTitle>
 <AmesPageHeader Code="FG-004" Title="Shipments" />
@@ -13,28 +16,260 @@
     <div class="ames-kpi ok"><div class="ames-kpi-l">Shipped</div><div class="ames-kpi-v">@_rows.Count(x => IsShipped(x.Status))</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">Quantity</div><div class="ames-kpi-v">@_rows.Sum(x => x.OrderedQty).ToString("N0")</div></div>
 </div>
-@if (!string.IsNullOrWhiteSpace(_message)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_message</RadzenAlert> }
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_message</RadzenAlert>
+}
+
 <div class="ames-card">
-    <div class="ames-card-h master-list-toolbar"><span>▼ Shipments · @_rows.Count item(s)</span><RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap"><RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:210px;" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' /><RadzenDropDown @bind-Value="_status" Data="@StatusOptions" AllowClear="true" Placeholder="Status" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" /><RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="From" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" /><RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="To" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" /><RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" /><RadzenButton Text="Clear" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Clear" class="ames-rz-btn" /></RadzenStack></div>
-    <RadzenDataGrid TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Data="@_rows" AllowPaging="true" PageSize="25" PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true" ShowPagingSummary="true" EmptyText="No loaded or shipped orders found." PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+    <div class="ames-card-h master-list-toolbar">
+        <span>▼ Shipments · @_rows.Count item(s)</span>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:210px;" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
+            <RadzenDropDown @bind-Value="_status" Data="@StatusOptions" AllowClear="true" Placeholder="Status" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
+            <RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="From" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="To" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
+            <RadzenButton Text="Clear" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Clear" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+    <RadzenDataGrid TItem="FinishedGoodsRepository.ShipmentRow" Data="@_rows" AllowPaging="true" PageSize="25"
+                    PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    ShowPagingSummary="true" EmptyText="No loaded or shipped orders found." RowSelect="OpenDocuments"
+                    SelectionMode="DataGridSelectionMode.Single" PageSizeChanged="@(s => _pageRows = s)"
+                    Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="ConfirmedAt" Title="Loaded At" Width="150px"><Template Context="r">@(r.ConfirmedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="ShipOrderNumber" Title="Ship Order" Width="155px"><Template Context="r"><span class="code">@(r.ShipOrderNumber ?? "-")</span></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="LoadingNumber" Title="Loading No" Width="155px" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="CustomerCode" Title="Customer" Width="110px" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="LicensePlate" Title="Truck" Width="120px" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="DockNo" Title="Dock" Width="80px" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="LineCount" Title="Lines" Width="75px" TextAlign="TextAlign.Right" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="OrderedQty" Title="Qty" Width="90px" TextAlign="TextAlign.Right"><Template Context="r">@r.OrderedQty.ToString("N0")</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="Destination" Title="Destination" Width="150px" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow" Property="Status" Title="Status" Width="105px" TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @(IsShipped(r.Status) ? "ok" : "warn")">@(r.Status ?? "LOADED")</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ConfirmedAt" Title="Loaded At" Width="150px"><Template Context="r">@(r.ConfirmedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShipOrderNumber" Title="Ship Order" Width="150px"><Template Context="r"><span class="code">@(r.ShipOrderNumber ?? "-")</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="DeliveryNoteNumber" Title="DCR / Delivery Note" Width="170px"><Template Context="r"><span class="code">@(r.DeliveryNoteNumber ?? "-")</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="CustomerCode" Title="Customer" Width="110px" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="LicensePlate" Title="Truck" Width="120px" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="LineCount" Title="Lines" Width="70px" TextAlign="TextAlign.Right" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="OrderedQty" Title="Qty" Width="85px" TextAlign="TextAlign.Right"><Template Context="r">@r.OrderedQty.ToString("N0")</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="Destination" Title="Destination" Width="145px" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="Status" Title="Status" Width="100px" TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @(IsShipped(r.Status) ? "ok" : "warn")">@(r.Status ?? "LOADED")</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Title="Documents" Width="125px" Sortable="false" TextAlign="TextAlign.Center">
+                <Template Context="r">
+                    <RadzenButton Text="View / Print" Icon="print" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base"
+                                  Disabled="@(!CanPrint(r))" Click="@(() => OpenDocuments(r))" @onclick:stopPropagation="true" class="ames-rz-btn" />
+                </Template>
+            </RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
 </div>
+
+@if (_document is not null)
+{
+    <div class="fg-document-backdrop" @onclick="CloseDocuments">
+        <aside class="fg-document-drawer" role="dialog" aria-modal="true" aria-label="Shipment documents" @onclick:stopPropagation="true">
+            <header class="fg-document-header">
+                <div>
+                    <span>SHIPMENT DOCUMENTS</span>
+                    <strong>@Text(_document.DeliveryNoteNumber)</strong>
+                    <small>@Text(_document.ShipOrderNumber) · @Text(_document.CustomerName)</small>
+                </div>
+                <button type="button" @onclick="CloseDocuments" aria-label="Close shipment documents"><RadzenIcon Icon="close" /></button>
+            </header>
+
+            <div class="fg-document-toolbar">
+                <div class="fg-document-tabs">
+                    <button type="button" class="@(_documentTab == "dcr" ? "active" : null)" @onclick='() => _documentTab = "dcr"'>DCR</button>
+                    <button type="button" class="@(_documentTab == "labels" ? "active" : null)" @onclick='() => _documentTab = "labels"'>Internal Labels (@LabelRows.Count)</button>
+                </div>
+                <RadzenButton Text="Print" Icon="print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="PrintAsync" class="ames-rz-btn" />
+            </div>
+
+            <div class="fg-document-preview">
+                @if (_documentTab == "dcr")
+                {
+                    <section class="fg-print-area fg-dcr-paper">
+                        <div class="fg-doc-watermark">AMES</div>
+                        <h1>Delivery Note</h1>
+                        <div class="fg-doc-subtitle">DCR · @Text(_document.DeliveryNoteNumber)</div>
+
+                        <div class="fg-dcr-parties">
+                            <table><thead><tr><th colspan="2">Sender</th></tr></thead><tbody><tr><th>Company</th><td>@SenderCompany</td></tr><tr><th>Address</th><td>@SenderAddress</td></tr></tbody></table>
+                            <table><thead><tr><th colspan="2">Customer</th></tr></thead><tbody><tr><th>Company</th><td>@Text(_document.CustomerName)</td></tr><tr><th>Address</th><td>@Text(_document.CustomerAddress)</td></tr></tbody></table>
+                        </div>
+
+                        <div class="fg-dcr-summary">
+                            <div class="fg-dcr-barcode-block">
+                                <div><b>Arrival Date:</b> @Date(_document.ArrivalAt ?? _document.ConfirmedAt)</div>
+                                <div><b>Arrival Time:</b> @Time(_document.ArrivalAt ?? _document.ConfirmedAt)</div>
+                                <div><b>Delivery Date:</b> @Date(_document.ShipDate)</div>
+                                <Code128Barcode Value="@BarcodeValue" CssClass="fg-doc-barcode" Height="72" />
+                                <strong>@BarcodeValue</strong>
+                            </div>
+                            <div class="fg-dcr-destination">
+                                <div><b>Plant:</b> @Text(_document.DestPlant)</div>
+                                <div><b>Dock:</b> @Text(_document.DestDock)</div>
+                                <div><b>Supplier:</b> @VendorCode @SenderCompany</div>
+                                <table><thead><tr><th>PO QTY</th><th>DELI QTY</th><th>Box Qty</th></tr></thead><tbody><tr><td>@Fmt(DcrLines.Sum(x => x.OrderedQty))</td><td>@Fmt(DcrLines.Sum(x => x.DeliveryQty))</td><td>@DcrLines.Sum(x => x.BoxQty)</td></tr></tbody></table>
+                            </div>
+                        </div>
+
+                        <table class="fg-dcr-lines">
+                            <thead><tr><th>No</th><th>Part No / Part Name</th><th>Unit</th><th>PO No</th><th>PO Qty</th><th>Del Qty</th><th>Box Qty</th><th>Lot No</th></tr></thead>
+                            <tbody>
+                                @if (DcrLines.Count == 0)
+                                {
+                                    <tr><td colspan="8" class="fg-doc-empty">No shipment lines were recorded.</td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var line in DcrLines)
+                                    {
+                                        <tr>
+                                            <td>@line.LineSeq</td><td><b>@line.ItemNo</b><small>@Text(line.ItemName)</small></td><td>@Text(line.Unit)</td>
+                                            <td>@Text(_document.CustomerPo)</td><td>@Fmt(line.OrderedQty)</td><td>@Fmt(line.DeliveryQty)</td><td>@line.BoxQty</td><td>@Text(line.LotNo)</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+
+                        <div class="fg-dcr-signatures">
+                            <div><b>Sender signature and stamp</b></div>
+                            <div><b>Driver signature</b><span>Truck number</span><strong>@Text(_document.LicensePlate)</strong></div>
+                            <div><b>Customer signature and stamp</b></div>
+                        </div>
+                        <footer><span>@Text(_document.LoadingNumber)</span><b>@SenderCompany</b><span>@DateTimeStamp(_document.DeliveryNoteIssuedAt ?? _document.ConfirmedAt)</span></footer>
+                    </section>
+                }
+                else
+                {
+                    <section class="fg-print-area fg-label-sheet">
+                        @if (LabelRows.Count == 0)
+                        {
+                            <div class="fg-doc-empty">No loaded products were recorded for internal labels.</div>
+                        }
+                        else
+                        {
+                            @foreach (var label in LabelRows)
+                            {
+                                <article class="fg-product-label">
+                                    <header><b>@SenderCompany</b><span>@Date(_document.ShipDate) - @label.BoxIndex</span></header>
+                                    <Code128Barcode Value="@label.Barcode" CssClass="fg-label-barcode" Height="68" />
+                                    <div class="fg-label-readable">@label.Barcode</div>
+                                    <div class="fg-label-product"><span>Product:</span><strong>@label.Line.ItemNo</strong></div>
+                                    <div class="fg-label-desc"><span>Desc:</span><b>@Text(label.Line.ItemName)</b></div>
+                                    <div class="fg-label-grid">
+                                        <div><span>FIFO:</span><b>@Date(label.Line.ProducedAt ?? _document.ShipDate)</b></div>
+                                        <div><span>DCR:</span><b>@Text(_document.DeliveryNoteNumber)</b></div>
+                                        <div><span>Quantity:</span><b>@Fmt(label.Quantity) @Text(label.Line.Unit)</b></div>
+                                        <div><span>Box Cnt:</span><b>@label.BoxIndex / @label.BoxCount</b></div>
+                                        <div><span>Delivery:</span><b>@Text(_document.DestPlant)</b></div>
+                                        <div><span>Lot No:</span><b>@Text(label.Line.LotNo)</b></div>
+                                    </div>
+                                    <div class="fg-label-part"><span>Part No:</span><Code128Barcode Value="@label.Line.ItemNo" CssClass="fg-label-part-barcode" Height="52" /></div>
+                                    <footer><span>@Text(_document.CustomerName)</span><span>@DateTimeStamp(_document.ConfirmedAt)</span></footer>
+                                </article>
+                            }
+                        }
+                    </section>
+                }
+            </div>
+        </aside>
+    </div>
+}
+
 @code {
-    List<AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow> _rows = new(); readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 }; int _pageRows = 25; string _search = "", _message = ""; string? _status; DateTime? _from = DateTime.Today.AddMonths(-1), _to = DateTime.Today; string[] StatusOptions = ["Loaded", "Shipped"];
+    private List<FinishedGoodsRepository.ShipmentRow> _rows = new();
+    private readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 };
+    private int _pageRows = 25;
+    private string _search = "", _message = "", _documentTab = "dcr";
+    private string? _status;
+    private DateTime? _from = DateTime.Today.AddMonths(-6), _to = DateTime.Today;
+    private readonly string[] StatusOptions = ["Loaded", "Shipped"];
+    private FinishedGoodsRepository.ShipmentDocument? _document;
+
+    private string SenderCompany => Config["ShippingDocuments:SenderCompany"] ?? "KRA OPERATIONS, LLC";
+    private string SenderAddress => Config["ShippingDocuments:SenderAddress"] ?? "130 Mid Carolina Court Prosperity";
+    private string VendorCode => Config["ShippingDocuments:VendorCode"] ?? "310471";
+    private string BarcodeValue => Text(_document?.DeliveryNoteNumber ?? _document?.ShipOrderNumber);
+
+    private List<DcrLine> DcrLines => _document?.Lines
+        .GroupBy(x => new { x.LineSeq, x.ItemNo, x.ItemName, x.Unit })
+        .Select(g => new DcrLine(g.Key.LineSeq, g.Key.ItemNo, g.Key.ItemName, g.Key.Unit,
+            g.Max(x => x.OrderedQty), g.Sum(x => x.DeliveryQty), g.Sum(BoxCount),
+            string.Join(", ", g.Select(x => x.LotNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct())))
+        .OrderBy(x => x.LineSeq).ToList() ?? [];
+
+    private List<LabelRow> LabelRows => BuildLabels(_document?.Lines ?? []);
+
     protected override void OnInitialized() => Reload();
-    void Reload() { if (_from > _to) { _message = "From date cannot be later than To date."; return; } try { _rows = Fg.ListShipments(_search, _status, _from, _to); _message = ""; } catch (Exception ex) { _rows = new(); _message = ex.Message; } }
-    void Clear() { _search = ""; _status = null; _from = DateTime.Today.AddMonths(-1); _to = DateTime.Today; Reload(); }
-    static bool IsShipped(string? value) => string.Equals(value, "SHIPPED", StringComparison.OrdinalIgnoreCase);
+
+    private void Reload()
+    {
+        if (_from > _to) { _message = "From date cannot be later than To date."; return; }
+        try { _rows = Fg.ListShipments(_search, _status, _from, _to); _message = ""; }
+        catch (Exception ex) { _rows = new(); _message = ex.Message; }
+    }
+
+    private void Clear()
+    {
+        _search = ""; _status = null; _from = DateTime.Today.AddMonths(-6); _to = DateTime.Today;
+        CloseDocuments(); Reload();
+    }
+
+    private void OpenDocuments(FinishedGoodsRepository.ShipmentRow row)
+    {
+        if (!CanPrint(row))
+        {
+            _message = "DCR and internal labels are available after shipment and delivery-note creation.";
+            return;
+        }
+        try
+        {
+            _document = Fg.GetShipmentDocument(row.ShipmentOrderId);
+            _documentTab = "dcr";
+            _message = _document is null ? "Shipment document data was not found." : "";
+        }
+        catch (Exception ex) { _document = null; _message = ex.Message; }
+    }
+
+    private void CloseDocuments() => _document = null;
+
+    private async Task PrintAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(50);
+        await JS.InvokeVoidAsync("window.print");
+    }
+
+    private static bool CanPrint(FinishedGoodsRepository.ShipmentRow row) =>
+        IsShipped(row.Status) && !string.IsNullOrWhiteSpace(row.DeliveryNoteNumber);
+    private static bool IsShipped(string? value) => string.Equals(value, "SHIPPED", StringComparison.OrdinalIgnoreCase);
+    private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    private static string Date(DateTime? value) => value?.ToString("MM/dd/yyyy") ?? "-";
+    private static string Time(DateTime? value) => value?.ToString("HH:mm") ?? "-";
+    private static string DateTimeStamp(DateTime? value) => value?.ToString("yyyy-MM-dd HH:mm") ?? "-";
+    private static string Fmt(decimal value) => value % 1 == 0 ? value.ToString("N0") : value.ToString("N3").TrimEnd('0').TrimEnd('.');
+    private static int BoxCount(FinishedGoodsRepository.ShipmentDocumentLine line) =>
+        Math.Max(1, (int)Math.Ceiling(line.DeliveryQty / Math.Max(line.UnitPackQty, line.DeliveryQty > 0 ? line.DeliveryQty : 1)));
+
+    private static List<LabelRow> BuildLabels(IReadOnlyList<FinishedGoodsRepository.ShipmentDocumentLine> lines)
+    {
+        var result = new List<LabelRow>();
+        foreach (var line in lines)
+        {
+            var count = BoxCount(line);
+            var remaining = line.DeliveryQty;
+            for (var index = 1; index <= count; index++)
+            {
+                var quantity = index == count ? remaining : Math.Min(line.UnitPackQty, remaining);
+                remaining -= quantity;
+                var baseBarcode = Text(line.StockNumber ?? line.LotNo ?? $"{line.ItemNo}-{line.LineSeq}");
+                var barcode = count == 1 ? baseBarcode : $"{baseBarcode}-{index:D2}";
+                result.Add(new LabelRow(line, index, count, quantity, barcode));
+            }
+        }
+        return result;
+    }
+
+    private sealed record DcrLine(int LineSeq, string ItemNo, string? ItemName, string? Unit,
+        decimal OrderedQty, decimal DeliveryQty, int BoxQty, string? LotNo);
+    private sealed record LabelRow(FinishedGoodsRepository.ShipmentDocumentLine Line, int BoxIndex,
+        int BoxCount, decimal Quantity, string Barcode);
 }
