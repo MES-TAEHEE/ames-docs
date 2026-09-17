@@ -8238,4 +8238,22 @@
   <data name="MD.LineSupervisors.Kpi.NoSup" xml:space="preserve">
     <value>Líneas sin supervisor</value>
   </data>
+  <data name="PP.WoRelease.Badge.Bop" xml:space="preserve">
+    <value>BOP</value>
+  </data>
+  <data name="PP.WoRelease.Badge.Changed" xml:space="preserve">
+    <value>Cambiado</value>
+  </data>
+  <data name="PP.WoRelease.Badge.NoBop" xml:space="preserve">
+    <value>Sin BOP</value>
+  </data>
+  <data name="PP.WoRelease.Dlg.Step" xml:space="preserve">
+    <value>Paso de proceso</value>
+  </data>
+  <data name="PP.WoRelease.Err.NoSteps" xml:space="preserve">
+    <value>No hay plantilla de ruta; no se puede liberar. Revise el tipo de ruta del artículo.</value>
+  </data>
+  <data name="PP.WoRelease.NoLineProcess" xml:space="preserve">
+    <value>Sin línea · no asignado a un terminal</value>
+  </data>
 </root>
