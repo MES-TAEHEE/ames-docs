@@ -4,7 +4,7 @@ using AMES.Contracts.Dto;
 
 namespace AMES.Pda.Services;
 
-public sealed class AuthApi(HttpClient http, AuthState auth) : PdaApi(http, auth)
+public sealed class AuthApi(HttpClient http, AuthState auth, PdaSettings settings) : PdaApi(http, auth)
 {
     /// <summary>
     /// Login + session fetch in one call. The API hands back an opaque
@@ -14,22 +14,14 @@ public sealed class AuthApi(HttpClient http, AuthState auth) : PdaApi(http, auth
     /// rebuilt the Authorization header.
     /// Returns null on any auth failure or unreachable API.
     /// </summary>
-    public Task<(string Token, PopSessionDto Session, string? Reason)?> LoginAsync(
-        string employeeNo, string pin,
-        string terminalId = "PDA-DEV-01",
-        string lineId = "LINE-INJ-01",
-        string shiftCode = "A")
+    public Task<(string Token, PopSessionDto Session, string? Reason)?> LoginAsync(string employeeNo, string pin)
         => LoginCoreAsync("/api/auth/login",
-            new LoginReq(employeeNo, pin, terminalId, lineId, shiftCode),
+            new LoginReq(employeeNo, pin, settings.TerminalId, settings.LineId, settings.ShiftCode),
             "Check Employee No and PIN.");
 
-    public Task<(string Token, PopSessionDto Session, string? Reason)?> LoginByBarcodeAsync(
-        string barcode,
-        string terminalId = "PDA-DEV-01",
-        string lineId = "LINE-INJ-01",
-        string shiftCode = "A")
+    public Task<(string Token, PopSessionDto Session, string? Reason)?> LoginByBarcodeAsync(string barcode)
         => LoginCoreAsync("/api/auth/barcode-login",
-            new BarcodeLoginReq(barcode, terminalId, lineId, shiftCode),
+            new BarcodeLoginReq(barcode, settings.TerminalId, settings.LineId, settings.ShiftCode),
             "Scan or enter a valid employee barcode.");
 
     private async Task<(string Token, PopSessionDto Session, string? Reason)?> LoginCoreAsync<T>(

@@ -17,20 +17,9 @@ public static class MauiProgram
         }
     }
 
-    /// <summary>
-    /// API base URL used by the PDA client.
-    /// Windows / macCatalyst → localhost. Override at runtime later via
-    /// a settings screen.
-    /// </summary>
-    public static string ApiBaseUrl =>
-#if ANDROID
-        "http://192.168.1.100:5210";
-#else
-        "http://localhost:5210";
-#endif
-
     public static MauiApp CreateMauiApp()
     {
+        var settings = PdaSettings.Load();
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
@@ -49,10 +38,11 @@ public static class MauiProgram
 
         // ── Auth + API ──────────────────────────────────────────────────
         builder.Services.AddSingleton<AuthState>();
-        builder.Services.AddHttpClient<AuthApi>(c => c.BaseAddress = new Uri(ApiBaseUrl));
-        builder.Services.AddHttpClient<WarehouseApi>(c => c.BaseAddress = new Uri(ApiBaseUrl));
-        builder.Services.AddHttpClient<FinishedGoodsApi>(c => c.BaseAddress = new Uri(ApiBaseUrl));
-        builder.Services.AddHttpClient<SparePartsApi>(c => c.BaseAddress = new Uri(ApiBaseUrl));
+        builder.Services.AddSingleton(settings);
+        builder.Services.AddHttpClient<AuthApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl));
+        builder.Services.AddHttpClient<WarehouseApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl));
+        builder.Services.AddHttpClient<FinishedGoodsApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl));
+        builder.Services.AddHttpClient<SparePartsApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl));
 
         return builder.Build();
     }
