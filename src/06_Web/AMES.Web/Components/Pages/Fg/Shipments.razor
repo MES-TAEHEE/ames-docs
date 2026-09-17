@@ -12,7 +12,6 @@
 
 <div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">Total</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">Loaded</div><div class="ames-kpi-v">@_rows.Count(x => x.LoadingId.HasValue)</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">Shipped</div><div class="ames-kpi-v">@_rows.Count(x => IsShipped(x.Status))</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">Quantity</div><div class="ames-kpi-v">@_rows.Sum(x => x.OrderedQty).ToString("N0")</div></div>
 </div>
@@ -27,7 +26,6 @@
         <span>▼ Shipments · @_rows.Count item(s)</span>
         <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:210px;" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
-            <RadzenDropDown @bind-Value="_status" Data="@StatusOptions" AllowClear="true" Placeholder="Status" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
             <RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="From" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="To" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
@@ -36,11 +34,11 @@
     </div>
     <RadzenDataGrid TItem="FinishedGoodsRepository.ShipmentRow" Data="@_rows" AllowPaging="true" PageSize="25"
                     PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    ShowPagingSummary="true" EmptyText="No loaded or shipped orders found." RowSelect="OpenDocuments"
+                    ShowPagingSummary="true" EmptyText="No shipped orders found." RowSelect="OpenDocuments"
                     SelectionMode="DataGridSelectionMode.Single" PageSizeChanged="@(s => _pageRows = s)"
                     Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ConfirmedAt" Title="Loaded At" Width="150px"><Template Context="r">@(r.ConfirmedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="DeliveryNoteIssuedAt" Title="Shipped At" Width="150px"><Template Context="r">@(r.DeliveryNoteIssuedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShipOrderNumber" Title="Ship Order" Width="150px"><Template Context="r"><span class="code">@(r.ShipOrderNumber ?? "-")</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="DeliveryNoteNumber" Title="DCR / Delivery Note" Width="170px"><Template Context="r"><span class="code">@(r.DeliveryNoteNumber ?? "-")</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="CustomerCode" Title="Customer" Width="110px" />
@@ -179,9 +177,7 @@
     private readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 };
     private int _pageRows = 25;
     private string _search = "", _message = "", _documentTab = "dcr";
-    private string? _status;
     private DateTime? _from = DateTime.Today.AddMonths(-6), _to = DateTime.Today;
-    private readonly string[] StatusOptions = ["Loaded", "Shipped"];
     private FinishedGoodsRepository.ShipmentDocument? _document;
 
     private string SenderCompany => Config["ShippingDocuments:SenderCompany"] ?? "KRA OPERATIONS, LLC";
@@ -203,13 +199,13 @@
     private void Reload()
     {
         if (_from > _to) { _message = "From date cannot be later than To date."; return; }
-        try { _rows = Fg.ListShipments(_search, _status, _from, _to); _message = ""; }
+        try { _rows = Fg.ListShipments(_search, _from, _to); _message = ""; }
         catch (Exception ex) { _rows = new(); _message = ex.Message; }
     }
 
     private void Clear()
     {
-        _search = ""; _status = null; _from = DateTime.Today.AddMonths(-6); _to = DateTime.Today;
+        _search = ""; _from = DateTime.Today.AddMonths(-6); _to = DateTime.Today;
         CloseDocuments(); Reload();
     }
 

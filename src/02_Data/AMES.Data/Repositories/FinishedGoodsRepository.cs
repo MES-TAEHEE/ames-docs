@@ -433,7 +433,7 @@ public sealed class FinishedGoodsRepository
             ("@Search", Like(search)));
     }
 
-    public List<ShipmentRow> ListShipments(string? search = null, string? status = null, DateTime? from = null, DateTime? to = null)
+    public List<ShipmentRow> ListShipments(string? search = null, DateTime? from = null, DateTime? to = null)
     {
         const string sql = """
             WITH LineSummary AS
@@ -448,7 +448,7 @@ public sealed class FinishedGoodsRepository
                 O.CustomerCode,
                 O.CustomerPO,
                 O.ShipDate,
-                CASE WHEN UPPER(ISNULL(D.EdiStatus, '')) = 'SENT' THEN 'SHIPPED' ELSE O.Status END AS Status,
+                'SHIPPED' AS Status,
                 O.PickslipID,
                 COALESCE(NULLIF(L.CarrierCode, ''), O.CarrierCode) AS CarrierCode,
                 CONCAT_WS(' / ', NULLIF(O.DestPlant, ''), NULLIF(O.DestDock, '')) AS Destination,
@@ -463,7 +463,7 @@ public sealed class FinishedGoodsRepository
                 L.OperatorID,
                 L.OTDStatus,
                 D.DnNumber,
-                D.IssuedAt,
+                COALESCE(D.CustomerAckTS, D.IssuedAt) AS IssuedAt,
                 ISNULL(S.LineCount, 0) AS LineCount,
                 CAST(ISNULL(S.OrderedQty, 0) AS decimal(14,3)) AS OrderedQty
             FROM dbo.FG_ShipmentOrder O
@@ -471,19 +471,14 @@ public sealed class FinishedGoodsRepository
             LEFT JOIN dbo.FG_LoadingConfirm L ON L.ShipmentOrderID = O.ShipmentOrderID
             OUTER APPLY
             (
-                SELECT TOP 1 DN.DnNumber, DN.IssuedAt, DN.EdiStatus
+                SELECT TOP 1 DN.DnNumber, DN.IssuedAt, DN.CustomerAckTS, DN.EdiStatus
                 FROM dbo.FG_DeliveryNote DN
                 WHERE DN.ShipmentOrderID = O.ShipmentOrderID
                 ORDER BY DN.IssuedAt DESC, DN.DeliveryNoteID DESC
             ) D
-            WHERE (L.LoadingID IS NOT NULL OR UPPER(ISNULL(O.Status, '')) IN ('LOADED', 'SHIPPED'))
-              AND (@Status IS NULL
-                   OR (@Status = 'LOADED' AND L.LoadingID IS NOT NULL
-                       AND UPPER(ISNULL(O.Status, '')) <> 'SHIPPED' AND UPPER(ISNULL(D.EdiStatus, '')) <> 'SENT')
-                   OR (@Status = 'SHIPPED'
-                       AND (UPPER(ISNULL(O.Status, '')) = 'SHIPPED' OR UPPER(ISNULL(D.EdiStatus, '')) = 'SENT')))
-              AND (@From IS NULL OR COALESCE(L.ConfirmedAt, L.DepartureTS, O.ModifiedTS, O.ConfirmedAt, O.CreatedTS) >= @From)
-              AND (@To IS NULL OR COALESCE(L.ConfirmedAt, L.DepartureTS, O.ModifiedTS, O.ConfirmedAt, O.CreatedTS) < DATEADD(day, 1, @To))
+            WHERE UPPER(ISNULL(D.EdiStatus, '')) = 'SENT'
+              AND (@From IS NULL OR COALESCE(D.CustomerAckTS, D.IssuedAt) >= @From)
+              AND (@To IS NULL OR COALESCE(D.CustomerAckTS, D.IssuedAt) < DATEADD(day, 1, @To))
               AND (@Search IS NULL
                    OR O.ShipOrderNumber LIKE @Search
                    OR O.PickslipID LIKE @Search
@@ -493,7 +488,7 @@ public sealed class FinishedGoodsRepository
                    OR L.LicensePlate LIKE @Search
                    OR L.DriverName LIKE @Search
                    OR D.DnNumber LIKE @Search)
-            ORDER BY COALESCE(L.ConfirmedAt, L.DepartureTS, O.ModifiedTS, O.ConfirmedAt, O.CreatedTS) DESC,
+            ORDER BY COALESCE(D.CustomerAckTS, D.IssuedAt) DESC,
                      O.ShipmentOrderID DESC;
             """;
 
@@ -522,7 +517,6 @@ public sealed class FinishedGoodsRepository
             GetInt(r, "LineCount"),
             GetDecimal(r, "OrderedQty")),
             ("@Search", Like(search)),
-            ("@Status", NullIfBlank(status)?.ToUpperInvariant()),
             ("@From", from?.Date),
             ("@To", to?.Date));
     }
