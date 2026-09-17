@@ -4910,10 +4910,10 @@ html[data-theme="light"] .rpt-rb-measure, html[data-theme="light"] .rpt-rb-sum, 
 .ames-grid-fixed .rz-data-grid-data > table > tbody:empty,
 .ames-grid-fixed .rz-datatable-emptymessage { height: auto; }
 /* 콘텐츠 영역 → 그리드까지의 조상 중 카드·탭 패널만 세로 flex 로 만들어, 뷰포트가 모자라면 그리드 본문만 줄어들게 한다.
-   조상 전부(*)를 바꾸면 2단 grid/flex-row 래퍼(ReportBuilder .rpt-rb-layout 등)가 세로로 무너진다 — 그런 래퍼 안의 그리드는 고정 높이만 적용되고 축소 없이 페이지가 스크롤된다. SYS·MD·MNT·RPT 섹션에 적용 */
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-wh, .ames-sec-fg):has(.ames-grid-fixed) { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; min-height: 0; }
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-wh, .ames-sec-fg):has(.ames-grid-fixed) :is(.ames-card, .ames-tabpanel):has(.ames-grid-fixed) { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-wh, .ames-sec-fg) .ames-grid-fixed { display: flex !important; flex-direction: column; flex: 0 1 auto; min-height: 0; }
+   조상 전부(*)를 바꾸면 2단 grid/flex-row 래퍼(ReportBuilder .rpt-rb-layout 등)가 세로로 무너진다 — 그런 래퍼 안의 그리드는 고정 높이만 적용되고 축소 없이 페이지가 스크롤된다. SYS·MD·MNT·RPT·PP 섹션에 적용 */
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg):has(.ames-grid-fixed) { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; min-height: 0; }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg):has(.ames-grid-fixed) :is(.ames-card, .ames-tabpanel):has(.ames-grid-fixed) { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg) .ames-grid-fixed { display: flex !important; flex-direction: column; flex: 0 1 auto; min-height: 0; }
 
 /* ── 상·하 2단 목록 (MNT-004 금형·교체 이력, MNT-008 예비품·입출고 이력) ──
    상단(.ames-grid-top)은 선택한 페이지 행 수만큼의 높이를 항상 지키고(축소 없음),
@@ -4924,14 +4924,25 @@ html[data-theme="light"] .rpt-rb-measure, html[data-theme="light"] .rpt-rb-sum, 
    여유는 가로 스크롤바(열이 많아 뷰포트를 넘칠 때 10px) 몫 12px 만 둔다 */
 .ames-grid-fixed.ames-grid-top .rz-data-grid-data { flex-shrink: 0; height: calc(var(--ames-grid-head) + var(--ames-page-rows, 15) * var(--ames-grid-row) + 12px); }
 .ames-grid-fixed.ames-grid-top .rz-data-grid-data tbody > tr > td { height: var(--ames-grid-row); box-sizing: border-box; }
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-wh, .ames-sec-fg):has(.ames-grid-fixed) .ames-card:has(.ames-grid-top) { flex: 0 0 auto; }
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-wh, .ames-sec-fg) .ames-grid-fixed.ames-grid-top { flex: 0 0 auto; }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg):has(.ames-grid-fixed) .ames-card:has(.ames-grid-top) { flex: 0 0 auto; }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg) .ames-grid-fixed.ames-grid-top { flex: 0 0 auto; }
 /* 하단 카드·그리드의 최소 높이 = 본문 최소(헤더 36 + 5행 × 40 + 6) + 페이저 52 (+ 카드 머리줄 37·여백 10·패딩 10×2).
    min-height:auto 로 두면 스크롤 본문의 min-content(행 전체)가 올라와 하단이 줄지 않고, 0 으로 두면 카드가 본문보다 작아져 페이저가 카드 밖으로 넘친다.
    이 최소보다 모자라면 콘텐츠가 넘쳐 .ames-main 이 스크롤된다. */
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-wh, .ames-sec-fg):has(.ames-grid-fixed) .ames-card:has(.ames-grid-rest) { flex: 1 1 auto; min-height: calc(36px + 5 * 40px + 6px + 52px + 2px + 37px + 10px + 20px); }
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-wh, .ames-sec-fg) .ames-grid-fixed.ames-grid-rest { flex: 1 1 auto; min-height: calc(var(--ames-grid-head) + 5 * var(--ames-grid-row) + 6px + 52px + 2px); }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg):has(.ames-grid-fixed) .ames-card:has(.ames-grid-rest) { flex: 1 1 auto; min-height: calc(36px + 5 * 40px + 6px + 52px + 2px + 37px + 10px + 20px); }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg) .ames-grid-fixed.ames-grid-rest { flex: 1 1 auto; min-height: calc(var(--ames-grid-head) + 5 * var(--ames-grid-row) + 6px + 52px + 2px); }
 .ames-grid-fixed.ames-grid-rest .rz-data-grid-data { flex: 1 1 auto; height: auto; }
+
+/* ── 전체 높이 가상화 그리드 (.ames-page-fill · .ames-card-fill · .ames-grid-virtual) ──────────
+   PP-001~006 처럼 가상화(AllowVirtualization) 그리드가 페이징 없이 화면 남은 세로 영역을 꽉 채운다.
+   페이지 래퍼 = TopBar 60px + .ames-content 상단 12 / 하단 16 패딩(88px)을 뺀 높이.
+   래퍼 안에 KPI·알림은 제 높이, 카드(또는 AmesTabs 패널 안 카드)가 남은 높이를 받고 그리드는 카드 안 남은 높이를 채운다. */
+.ames-page-fill { display: flex; flex-direction: column; height: calc(100vh - 88px); min-height: 360px; }
+.ames-page-fill > .ames-tabstrip { flex: 0 0 auto; }
+.ames-page-fill > .ames-tabpanel { flex: 1 1 auto; min-height: 0; margin-bottom: 0; display: flex; flex-direction: column; overflow: hidden; }
+.ames-card-fill { flex: 1 1 auto; min-height: 0; margin-bottom: 0; display: flex; flex-direction: column; }
+.ames-grid-virtual { flex: 1 1 auto; min-height: 0; }
+.ames-grid-virtual .rz-data-grid, .ames-grid-virtual .rz-datatable { height: 100%; }
 
 /* ── 꽉 채우는 그리드 (.ames-grid-fill) ───────────────────────────────
    자체 100vh 분할 레이아웃(BOM 등)의 카드 안에서, 그리드가 래퍼 높이를 다 차지하고 본문만 스크롤해

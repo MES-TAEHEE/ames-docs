@@ -1,15 +1,4 @@
-/* PP-006 구매요청 — PP-003/PP-005 와 같은 전체 높이 가상화 그리드 + 선택 체크박스, 실패/승인 행 강조, 상세·일괄 전송 모달.
-   TopBar 60px + .ames-content 상단 12 / 하단 16 패딩 = 88px */
-.pr-page {
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 88px);
-    min-height: 360px;
-}
-
-.pr-grid { flex: 1; min-height: 0; }
-.pr-grid ::deep .rz-data-grid,
-.pr-grid ::deep .rz-datatable { height: 100%; }
+/* PP-006 구매요청 — PP-003/PP-005 와 같은 전체 높이 가상화 그리드 + 선택 체크박스, 실패/승인 행 강조, 상세·일괄 전송 모달. */
 
 /* 선택 체크박스 — Draft/Failed 행만 활성 */
 ::deep .pr-ck { width: 15px; height: 15px; cursor: pointer; accent-color: #2563eb; }

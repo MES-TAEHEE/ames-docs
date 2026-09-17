@@ -11,13 +11,13 @@
 
 <AmesPageHeader Code="PP-001" TitleKey="PP.Forecast.Title" />
 
-<div class="fc-page">
+<div class="ames-page-fill">
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat" AllowClose="false">@_msg</RadzenAlert>
 }
 
-<div class="ames-kpis compact">
+<div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">ITEMS</div><div class="ames-kpi-v">@_items.Count</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">WEEKS</div><div class="ames-kpi-v">@_weeks.Count</div></div>
     <div class="ames-kpi warn"><div class="ames-kpi-l">TOTAL QTY</div><div class="ames-kpi-v">@_items.Sum(i => i.Qty.Values.Sum()).ToString("#,0")</div></div>
@@ -26,36 +26,31 @@
 
 <AmesTabs>
     <AmesTab Title="@L["PP.Forecast.Tab.Status"].Value">
-    <div class="ames-card-h" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;text-transform:none;">
-        <div class="ames-fld">
-            <label>@L["Col.Customer"]</label>
+    <div class="ames-card ames-card-fill">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["PP.Forecast.Tab.Status"] · @_view.Count @L["Lbl.Items"]@(_view.Count < _items.Count ? $" / {L["Lbl.TotalOf"]} {_items.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["Col.Customer"]" />
             <RadzenDropDown AllowFiltering="true" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
                             @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
-                            Style="width:200px" />
-        </div>
-        <div class="ames-fld">
-            <label>@L["PP.Forecast.Fld.Period"]</label>
-            <div style="display:flex;align-items:center;gap:6px;">
-                <RadzenDatePicker @bind-Value="_fFrom" DateFormat="MM/dd/yyyy" Style="width:165px" />
-                <span class="dim">~</span>
-                <RadzenDatePicker @bind-Value="_fTo" DateFormat="MM/dd/yyyy" Style="width:165px" />
-            </div>
-        </div>
-        <div class="ames-fld">
-            <label>@L["Col.PartNo"]</label>
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+            <RadzenLabel Text="@L["PP.Forecast.Fld.Period"]" />
+            <RadzenDatePicker @bind-Value="_fFrom" DateFormat="MM/dd/yyyy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <span class="dim">~</span>
+            <RadzenDatePicker @bind-Value="_fTo" DateFormat="MM/dd/yyyy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenLabel Text="@L["Col.PartNo"]" />
             <RadzenTextBox @bind-Value="_fPartNo" @bind-Value:after="ApplyPartNo"
-                           Placeholder="@L["PP.Forecast.Fld.PartNoPh"].Value" Style="width:200px" />
-        </div>
-        <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
-            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Search" />
+                           Placeholder="@L["PP.Forecast.Fld.PartNoPh"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+
+            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="Search" />
             <RadzenButton Text="@L["PP.Forecast.Btn.ExcelUpload"].Value" Icon="upload"
-                          ButtonStyle="ButtonStyle.Secondary" Click="OpenUpload" />
+                          ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenUpload" />
             <RadzenButton Text="@L["PP.Forecast.Btn.Export"].Value" Icon="download"
-                          ButtonStyle="ButtonStyle.Dark" Click="ExportCsv" />
-        </div>
+                          ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" class="ames-rz-btn" Click="ExportCsv" />
+        </RadzenStack>
     </div>
 
-    <div class="fc-grid">
+    <div class="ames-grid-virtual">
     @if (_items.Count == 0)
     {
         <div class="ames-empty">@L["PP.Forecast.Empty"]</div>
@@ -104,32 +99,30 @@
         </RadzenDataGrid>
     }
     </div>
+    </div>
     </AmesTab>
 
     <AmesTab Title="@L["PP.Forecast.Tab.History"].Value">
-        <div class="ames-card-h" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;text-transform:none;">
-            <div class="ames-fld">
-                <label>@L["Col.Customer"]</label>
-                <RadzenDropDown AllowFiltering="true" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
-                                @bind-Value="_hCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
-                                Style="width:200px" />
-            </div>
-            <div class="ames-fld">
-                <label>@L["PP.Forecast.Fld.Period"]</label>
-                <div style="display:flex;align-items:center;gap:6px;">
-                    <RadzenDatePicker @bind-Value="_hFrom" DateFormat="MM/dd/yyyy" AllowClear="true"
-                                      Placeholder="—" Style="width:165px" />
-                    <span class="dim">~</span>
-                    <RadzenDatePicker @bind-Value="_hTo" DateFormat="MM/dd/yyyy" AllowClear="true"
-                                      Placeholder="—" Style="width:165px" />
-                </div>
-            </div>
-            <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
-                <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="SearchHistory" />
-            </div>
-        </div>
+    <div class="ames-card ames-card-fill">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["PP.Forecast.Tab.History"] · @_batches.Count @L["Lbl.Items"]</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["Col.Customer"]" />
+            <RadzenDropDown AllowFiltering="true" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+                            @bind-Value="_hCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+            <RadzenLabel Text="@L["PP.Forecast.Fld.Period"]" />
+            <RadzenDatePicker @bind-Value="_hFrom" DateFormat="MM/dd/yyyy" AllowClear="true"
+                              Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <span class="dim">~</span>
+            <RadzenDatePicker @bind-Value="_hTo" DateFormat="MM/dd/yyyy" AllowClear="true"
+                              Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
 
-        <div class="fc-grid">
+            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="SearchHistory" />
+        </RadzenStack>
+    </div>
+
+        <div class="ames-grid-virtual">
         @if (_batches.Count == 0)
         {
             <div class="ames-empty">@L["PP.Forecast.Hist.Empty"]</div>
@@ -170,6 +163,7 @@
             </RadzenDataGrid>
         }
         </div>
+    </div>
     </AmesTab>
 </AmesTabs>
 </div>
