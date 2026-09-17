@@ -81,6 +81,41 @@ public sealed class FinishedGoodsRepository
         int LineCount,
         decimal OrderedQty);
 
+    public record ShipmentDocument(
+        int ShipmentOrderId,
+        string? ShipOrderNumber,
+        string? CustomerCode,
+        string? CustomerName,
+        string? CustomerAddress,
+        string? CustomerPo,
+        string? DestPlant,
+        string? DestDock,
+        DateTime? ShipDate,
+        int? LoadingId,
+        string? LoadingNumber,
+        string? LicensePlate,
+        string? DriverName,
+        DateTime? ArrivalAt,
+        DateTime? ConfirmedAt,
+        string? DeliveryNoteNumber,
+        DateTime? DeliveryNoteIssuedAt,
+        string? EdiStatus,
+        IReadOnlyList<ShipmentDocumentLine> Lines);
+
+    public record ShipmentDocumentLine(
+        int LineSeq,
+        string ItemNo,
+        string? ItemName,
+        string? CustomerItemNo,
+        decimal OrderedQty,
+        decimal DeliveryQty,
+        decimal UnitPackQty,
+        string? Unit,
+        string? LotNo,
+        string? StockNumber,
+        string? Location,
+        DateTime? ProducedAt);
+
     public record HistoryRow(
         DateTime EventAt,
         string EventType,
@@ -398,7 +433,7 @@ public sealed class FinishedGoodsRepository
             ("@Search", Like(search)));
     }
 
-    public List<ShipmentRow> ListShipments(string? search = null, string? status = null, DateTime? from = null, DateTime? to = null)
+    public List<ShipmentRow> ListShipments(string? search = null, DateTime? from = null, DateTime? to = null)
     {
         const string sql = """
             WITH LineSummary AS
@@ -413,7 +448,7 @@ public sealed class FinishedGoodsRepository
                 O.CustomerCode,
                 O.CustomerPO,
                 O.ShipDate,
-                O.Status,
+                'SHIPPED' AS Status,
                 O.PickslipID,
                 COALESCE(NULLIF(L.CarrierCode, ''), O.CarrierCode) AS CarrierCode,
                 CONCAT_WS(' / ', NULLIF(O.DestPlant, ''), NULLIF(O.DestDock, '')) AS Destination,
@@ -428,7 +463,7 @@ public sealed class FinishedGoodsRepository
                 L.OperatorID,
                 L.OTDStatus,
                 D.DnNumber,
-                D.IssuedAt,
+                COALESCE(D.CustomerAckTS, D.IssuedAt) AS IssuedAt,
                 ISNULL(S.LineCount, 0) AS LineCount,
                 CAST(ISNULL(S.OrderedQty, 0) AS decimal(14,3)) AS OrderedQty
             FROM dbo.FG_ShipmentOrder O
@@ -436,17 +471,14 @@ public sealed class FinishedGoodsRepository
             LEFT JOIN dbo.FG_LoadingConfirm L ON L.ShipmentOrderID = O.ShipmentOrderID
             OUTER APPLY
             (
-                SELECT TOP 1 DN.DnNumber, DN.IssuedAt
+                SELECT TOP 1 DN.DnNumber, DN.IssuedAt, DN.CustomerAckTS, DN.EdiStatus
                 FROM dbo.FG_DeliveryNote DN
                 WHERE DN.ShipmentOrderID = O.ShipmentOrderID
                 ORDER BY DN.IssuedAt DESC, DN.DeliveryNoteID DESC
             ) D
-            WHERE (L.LoadingID IS NOT NULL OR UPPER(ISNULL(O.Status, '')) IN ('LOADED', 'SHIPPED'))
-              AND (@Status IS NULL
-                   OR (@Status = 'LOADED' AND L.LoadingID IS NOT NULL AND UPPER(ISNULL(O.Status, '')) <> 'SHIPPED')
-                   OR (@Status = 'SHIPPED' AND UPPER(ISNULL(O.Status, '')) = 'SHIPPED'))
-              AND (@From IS NULL OR COALESCE(L.ConfirmedAt, L.DepartureTS, O.ModifiedTS, O.ConfirmedAt, O.CreatedTS) >= @From)
-              AND (@To IS NULL OR COALESCE(L.ConfirmedAt, L.DepartureTS, O.ModifiedTS, O.ConfirmedAt, O.CreatedTS) < DATEADD(day, 1, @To))
+            WHERE UPPER(ISNULL(D.EdiStatus, '')) = 'SENT'
+              AND (@From IS NULL OR COALESCE(D.CustomerAckTS, D.IssuedAt) >= @From)
+              AND (@To IS NULL OR COALESCE(D.CustomerAckTS, D.IssuedAt) < DATEADD(day, 1, @To))
               AND (@Search IS NULL
                    OR O.ShipOrderNumber LIKE @Search
                    OR O.PickslipID LIKE @Search
@@ -456,7 +488,7 @@ public sealed class FinishedGoodsRepository
                    OR L.LicensePlate LIKE @Search
                    OR L.DriverName LIKE @Search
                    OR D.DnNumber LIKE @Search)
-            ORDER BY COALESCE(L.ConfirmedAt, L.DepartureTS, O.ModifiedTS, O.ConfirmedAt, O.CreatedTS) DESC,
+            ORDER BY COALESCE(D.CustomerAckTS, D.IssuedAt) DESC,
                      O.ShipmentOrderID DESC;
             """;
 
@@ -485,9 +517,158 @@ public sealed class FinishedGoodsRepository
             GetInt(r, "LineCount"),
             GetDecimal(r, "OrderedQty")),
             ("@Search", Like(search)),
-            ("@Status", NullIfBlank(status)?.ToUpperInvariant()),
             ("@From", from?.Date),
             ("@To", to?.Date));
+    }
+
+    public ShipmentDocument? GetShipmentDocument(int shipmentOrderId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT TOP (1)
+                O.ShipmentOrderID, O.ShipOrderNumber, O.CustomerCode,
+                COALESCE(NULLIF(C.CustomerNameEn, ''), NULLIF(C.CustomerName, ''), O.CustomerCode) AS CustomerName,
+                SD.Address AS CustomerAddress, O.CustomerPO, O.DestPlant, O.DestDock, O.ShipDate,
+                L.LoadingID, L.LoadingNumber, L.LicensePlate, L.DriverName, L.ArrivalTS, L.ConfirmedAt,
+                DN.DnNumber, DN.IssuedAt, DN.EdiStatus
+            FROM dbo.FG_ShipmentOrder O
+            LEFT JOIN dbo.FG_LoadingConfirm L ON L.ShipmentOrderID = O.ShipmentOrderID
+            OUTER APPLY
+            (
+                SELECT TOP (1) D.DnNumber, D.IssuedAt, D.EdiStatus
+                FROM dbo.FG_DeliveryNote D
+                WHERE D.ShipmentOrderID = O.ShipmentOrderID
+                ORDER BY D.IssuedAt DESC, D.DeliveryNoteID DESC
+            ) DN
+            OUTER APPLY
+            (
+                SELECT TOP (1) CustomerID, CustomerName, CustomerNameEn
+                FROM dbo.MD_Customer
+                WHERE CustomerID = O.CustomerCode OR CustomerCode = O.CustomerCode
+                ORDER BY CASE WHEN CustomerCode = O.CustomerCode THEN 0 ELSE 1 END
+            ) C
+            OUTER APPLY
+            (
+                SELECT TOP (1) D.Address
+                FROM dbo.MD_ShipmentDest D
+                WHERE D.CustomerID = C.CustomerID
+                  AND (D.ShipDestID = O.DestPlant OR D.DestName = O.DestPlant OR O.DestPlant IS NULL)
+                ORDER BY CASE WHEN D.ShipDestID = O.DestPlant THEN 0 ELSE 1 END, D.ShipDestID
+            ) SD
+            WHERE O.ShipmentOrderID = @ShipmentOrderID;
+
+            ;WITH LoadedLines AS
+            (
+                SELECT
+                    SL.LineSeq, PD.ItemNo, I.ItemName,
+                    COALESCE(NULLIF(I.CustItemNoSAV, ''), NULLIF(I.CustItemNoGEO, ''), PD.ItemNo) AS CustomerItemNo,
+                    CAST(ISNULL(SL.OrderedQty, 0) AS decimal(14,3)) AS OrderedQty,
+                    CAST(ISNULL(PD.Qty, 0) AS decimal(14,3)) AS DeliveryQty,
+                    CAST(CASE WHEN ISNULL(PK.QtyPerInner, 0) > 0 THEN PK.QtyPerInner ELSE ISNULL(PD.Qty, 1) END AS decimal(14,3)) AS UnitPackQty,
+                    I.DefaultUOM AS Unit, LOT.LotCode AS LotNo, S.StockNumber,
+                    COALESCE(PD.Location, S.Location, SL.Location) AS Location, LOT.ProducedAt, PD.PickSeq
+                FROM dbo.FG_LoadingConfirm LC
+                JOIN dbo.FG_PickingDetail PD ON PD.PickID = LC.PickID
+                JOIN dbo.FG_ShipmentOrderLine SL ON SL.ShipmentOrderLineID = PD.ShipmentOrderLineID
+                LEFT JOIN dbo.FG_Inventory S ON S.StockID = PD.StockID
+                LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID = COALESCE(PD.LotID, S.LotID, SL.LotID)
+                LEFT JOIN dbo.MD_Item I ON I.ItemNo = PD.ItemNo
+                OUTER APPLY
+                (
+                    SELECT TOP (1) P.QtyPerInner
+                    FROM dbo.MD_PackagingSpec P
+                    WHERE P.ItemID = PD.ItemNo AND ISNULL(P.ActiveFlag, 1) = 1
+                    ORDER BY P.PackSpecID
+                ) PK
+                WHERE LC.ShipmentOrderID = @ShipmentOrderID
+
+                UNION ALL
+
+                SELECT
+                    SL.LineSeq, SL.ItemNo, I.ItemName,
+                    COALESCE(NULLIF(I.CustItemNoSAV, ''), NULLIF(I.CustItemNoGEO, ''), SL.ItemNo),
+                    CAST(ISNULL(SL.OrderedQty, 0) AS decimal(14,3)),
+                    CAST(COALESCE(NULLIF(SL.AllocatedQty, 0), S.Qty, SL.OrderedQty, 0) AS decimal(14,3)),
+                    CAST(CASE WHEN ISNULL(PK.QtyPerInner, 0) > 0 THEN PK.QtyPerInner
+                              ELSE COALESCE(NULLIF(SL.AllocatedQty, 0), S.Qty, SL.OrderedQty, 1) END AS decimal(14,3)),
+                    I.DefaultUOM, LOT.LotCode, S.StockNumber, COALESCE(SL.Location, S.Location), LOT.ProducedAt, SL.LineSeq
+                FROM dbo.FG_ShipmentOrderLine SL
+                LEFT JOIN dbo.FG_Inventory S ON S.StockID = SL.StockID
+                LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID = COALESCE(SL.LotID, S.LotID)
+                LEFT JOIN dbo.MD_Item I ON I.ItemNo = SL.ItemNo
+                OUTER APPLY
+                (
+                    SELECT TOP (1) P.QtyPerInner
+                    FROM dbo.MD_PackagingSpec P
+                    WHERE P.ItemID = SL.ItemNo AND ISNULL(P.ActiveFlag, 1) = 1
+                    ORDER BY P.PackSpecID
+                ) PK
+                WHERE SL.ShipmentOrderID = @ShipmentOrderID
+                  AND NOT EXISTS
+                  (
+                      SELECT 1
+                      FROM dbo.FG_LoadingConfirm LC
+                      JOIN dbo.FG_PickingDetail PD ON PD.PickID = LC.PickID
+                      WHERE LC.ShipmentOrderID = @ShipmentOrderID
+                  )
+            )
+            SELECT LineSeq, ItemNo, ItemName, CustomerItemNo, OrderedQty, DeliveryQty,
+                   UnitPackQty, Unit, LotNo, StockNumber, Location, ProducedAt
+            FROM LoadedLines
+            ORDER BY LineSeq, PickSeq, StockNumber;
+            """, conn);
+        cmd.Parameters.Add("@ShipmentOrderID", SqlDbType.Int).Value = shipmentOrderId;
+
+        using var reader = cmd.ExecuteReader();
+        if (!reader.Read()) return null;
+        var header = new
+        {
+            ShipmentOrderId = GetInt(reader, "ShipmentOrderID"),
+            ShipOrderNumber = GetString(reader, "ShipOrderNumber"),
+            CustomerCode = GetString(reader, "CustomerCode"),
+            CustomerName = GetString(reader, "CustomerName"),
+            CustomerAddress = GetString(reader, "CustomerAddress"),
+            CustomerPo = GetString(reader, "CustomerPO"),
+            DestPlant = GetString(reader, "DestPlant"),
+            DestDock = GetString(reader, "DestDock"),
+            ShipDate = GetDate(reader, "ShipDate"),
+            LoadingId = GetNullableInt(reader, "LoadingID"),
+            LoadingNumber = GetString(reader, "LoadingNumber"),
+            LicensePlate = GetString(reader, "LicensePlate"),
+            DriverName = GetString(reader, "DriverName"),
+            ArrivalAt = GetDate(reader, "ArrivalTS"),
+            ConfirmedAt = GetDate(reader, "ConfirmedAt"),
+            DeliveryNoteNumber = GetString(reader, "DnNumber"),
+            DeliveryNoteIssuedAt = GetDate(reader, "IssuedAt"),
+            EdiStatus = GetString(reader, "EdiStatus")
+        };
+
+        var lines = new List<ShipmentDocumentLine>();
+        if (reader.NextResult())
+        {
+            while (reader.Read())
+            {
+                lines.Add(new ShipmentDocumentLine(
+                    GetInt(reader, "LineSeq"),
+                    GetString(reader, "ItemNo") ?? "-",
+                    GetString(reader, "ItemName"),
+                    GetString(reader, "CustomerItemNo"),
+                    GetDecimal(reader, "OrderedQty"),
+                    GetDecimal(reader, "DeliveryQty"),
+                    GetDecimal(reader, "UnitPackQty"),
+                    GetString(reader, "Unit"),
+                    GetString(reader, "LotNo"),
+                    GetString(reader, "StockNumber"),
+                    GetString(reader, "Location"),
+                    GetDate(reader, "ProducedAt")));
+            }
+        }
+
+        return new ShipmentDocument(
+            header.ShipmentOrderId, header.ShipOrderNumber, header.CustomerCode, header.CustomerName,
+            header.CustomerAddress, header.CustomerPo, header.DestPlant, header.DestDock, header.ShipDate,
+            header.LoadingId, header.LoadingNumber, header.LicensePlate, header.DriverName, header.ArrivalAt,
+            header.ConfirmedAt, header.DeliveryNoteNumber, header.DeliveryNoteIssuedAt, header.EdiStatus, lines);
     }
 
     public List<HistoryRow> ListHistory(string? search = null, string? eventType = null, DateTime? from = null, DateTime? to = null)
