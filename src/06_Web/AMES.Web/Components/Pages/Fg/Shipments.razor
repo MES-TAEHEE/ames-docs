@@ -60,7 +60,7 @@
 @if (_document is not null)
 {
     <div class="fg-document-backdrop" @onclick="CloseDocuments">
-        <aside class="fg-document-drawer" role="dialog" aria-modal="true" aria-label="Shipment documents" @onclick:stopPropagation="true">
+        <section class="fg-document-modal" role="dialog" aria-modal="true" aria-label="Shipment documents" @onclick:stopPropagation="true">
             <header class="fg-document-header">
                 <div>
                     <span>SHIPMENT DOCUMENTS</span>
@@ -168,7 +168,7 @@
                     </section>
                 }
             </div>
-        </aside>
+        </section>
     </div>
 }
 
