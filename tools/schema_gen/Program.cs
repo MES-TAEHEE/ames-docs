@@ -264,7 +264,7 @@ static void EmitSeedData(StringBuilder sb) {
     // Customers
     sb.AppendLine("-- Customers");
     sb.AppendLine("INSERT INTO dbo.MD_Customer (CustomerID, CustomerCode, CustomerName, CustomerNameEn, CustomerType, Country, EDIFlag, CurrencyCode, Status, CreatedBy, CreatedTS) VALUES");
-    sb.AppendLine("  ('CUS-SAV',    'SAV',  N'SEYON E-HWA Detroit',   'SAV (Detroit Plant)',     'PLANT', 'USA', 0, 'USD', 'ACTIVE', 'admin', SYSDATETIME()),");
+    sb.AppendLine("  ('CUS-SAV',    'SAV',  N'Seoyon E-Hwa Manufacturing Savannah', 'SAV (Savannah Plant)', 'PLANT', 'USA', 0, 'USD', 'ACTIVE', 'admin', SYSDATETIME()),");
     sb.AppendLine("  ('CUS-GEO',    'GEO',  N'SEYON E-HWA Birmingham','GEO (Birmingham Plant)',  'PLANT', 'USA', 0, 'USD', 'ACTIVE', 'admin', SYSDATETIME()),");
     sb.AppendLine("  ('CUS-FORD',   'FORD', N'Ford Motor Company',    'Ford Motor Company',      'OEM',   'USA', 1, 'USD', 'ACTIVE', 'admin', SYSDATETIME()),");
     sb.AppendLine("  ('CUS-GM',     'GM',   N'General Motors',        'General Motors',          'OEM',   'USA', 1, 'USD', 'ACTIVE', 'admin', SYSDATETIME()),");
