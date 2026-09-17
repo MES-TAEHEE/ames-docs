@@ -99,8 +99,9 @@
     </div>
     <div class="dim" style="font-size:10px;padding:0 0 6px;">@string.Format(L["PP.Delivery.Hint"].Value, DateTime.Today.ToString("yyyy-MM-dd"))</div>
 
-    <RadzenDataGrid TItem="PpRepository.OtdRow" Data="@_rows" AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
-                    AllowSorting="true" RowRender="@RowRender" EmptyText="@L["PP.Delivery.Empty"]" Class="ames-rz-grid pp-dtl-grid">
+    <RadzenDataGrid TItem="PpRepository.OtdRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
+                    AllowSorting="true" RowRender="@RowRender" EmptyText="@L["PP.Delivery.Empty"]" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="SoNumber" Title="@L["Col.SoNo"]" Width="130px">
                 <Template Context="r"><span class="code">@(r.SoNumber ?? "—")</span>@(r.SoLineNo is { } ln ? $"-{ln}" : "")</Template>
@@ -163,6 +164,8 @@
 
 @code {
     const int LIMIT = 500;
+    static readonly int[] _pageSizeOptions = [25, 50, 100];
+    int _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
 
     List<PpRepository.OtdRow>              _rows      = [];
     List<MasterDataRepository.CustomerRow> _customers = [];   // MD_Customer 마스터 (조회부·고객별 준수율·목록 명칭의 기준)
