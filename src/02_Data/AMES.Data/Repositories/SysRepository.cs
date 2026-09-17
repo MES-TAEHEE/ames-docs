@@ -342,6 +342,51 @@ public sealed class SysRepository
             (bool)r["IsEnabled"], r["MinutesSince"] as int? ?? 0));
     }
 
+    /// <summary>
+    /// 인터페이스 모니터 1행 업서트 — 외부 연동 Worker 가 대상마다 실행 뒤 부른다.
+    /// 실패 시 LastSyncTS 는 건드리지 않는다(마지막 성공 시각이어야 SYS-Interfaces 의 경과분이 의미 있다).
+    /// actor 는 새 행의 CreatedBy·갱신 시 ModifiedBy — 어느 연동이 쓴 행인지 호출자가 밝힌다.
+    /// </summary>
+    public void UpsertInterfaceMonitor(string code, string name, string endpoint, int maxGapMin,
+        bool ok, int? recordCount, string? error, string actor)
+    {
+        const string sql = """
+            UPDATE dbo.SYS_InterfaceMonitor
+            SET    InterfaceName   = @Name,
+                   Endpoint        = @Ep,
+                   MaxGapMinutes   = @Gap,
+                   ConnStatus      = CASE WHEN @Ok = 1 THEN 'OK' ELSE 'ERROR' END,
+                   LastSyncTS      = CASE WHEN @Ok = 1 THEN SYSDATETIME() ELSE LastSyncTS END,
+                   LastRecordCount = CASE WHEN @Ok = 1 THEN @Cnt ELSE LastRecordCount END,
+                   LastErrorMsg    = CASE WHEN @Ok = 1 THEN NULL ELSE @Err END,
+                   RetryCount      = CASE WHEN @Ok = 1 THEN 0 ELSE ISNULL(RetryCount, 0) + 1 END,
+                   ModifiedBy      = @Actor, ModifiedTS = SYSDATETIME()
+            WHERE  InterfaceCode = @Code;
+            IF @@ROWCOUNT = 0
+                INSERT INTO dbo.SYS_InterfaceMonitor
+                       (InterfaceCode, InterfaceName, Direction, Endpoint, Protocol, ConnStatus,
+                        LastSyncTS, MaxGapMinutes, LastRecordCount, RetryCount, LastErrorMsg, IsEnabled, CreatedBy)
+                VALUES (@Code, @Name, 'INBOUND', @Ep, 'REST',
+                        CASE WHEN @Ok = 1 THEN 'OK' ELSE 'ERROR' END,
+                        CASE WHEN @Ok = 1 THEN SYSDATETIME() ELSE NULL END,
+                        @Gap, CASE WHEN @Ok = 1 THEN @Cnt ELSE NULL END,
+                        CASE WHEN @Ok = 1 THEN 0 ELSE 1 END,
+                        CASE WHEN @Ok = 1 THEN NULL ELSE @Err END, 1, @Actor);
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Code", SqlDbType.VarChar, 20).Value   = code;
+        cmd.Parameters.Add("@Name", SqlDbType.NVarChar, 60).Value  = name.Length > 60 ? name[..60] : name;
+        cmd.Parameters.Add("@Ep",   SqlDbType.VarChar, 255).Value  = endpoint.Length > 255 ? endpoint[..255] : endpoint;
+        cmd.Parameters.Add("@Gap",  SqlDbType.Int).Value           = maxGapMin;
+        cmd.Parameters.Add("@Ok",   SqlDbType.Bit).Value           = ok;
+        cmd.Parameters.Add("@Cnt",  SqlDbType.Int).Value           = (object?)recordCount ?? DBNull.Value;
+        var err = error is null ? null : error.Length > 1000 ? error[..1000] : error;
+        cmd.Parameters.Add("@Err",  SqlDbType.NVarChar, 1000).Value = (object?)err ?? DBNull.Value;
+        cmd.Parameters.Add("@Actor", SqlDbType.VarChar, 50).Value  = actor;   // CreatedBy VARCHAR(50)
+        cmd.ExecuteNonQuery();
+    }
+
     // ── SYS-05 Audit Log ────────────────────────────────────────────────
     public void InsertAuditLog(
         string? moduleCode, string? screenCode,

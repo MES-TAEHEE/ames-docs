@@ -9,7 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="AMES.InjAgent.Tests" />
+    <InternalsVisibleTo Include="AMES.Data.Tests" />
   </ItemGroup>
 
   <PropertyGroup>
