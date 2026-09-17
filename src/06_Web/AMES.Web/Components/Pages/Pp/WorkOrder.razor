@@ -3,6 +3,8 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.WorkOrderRepository Wos
 @inject AMES.Data.Repositories.MasterDataRepository MD
+@inject AMES.Web.Services.PermissionService PermSvc
+@inject NavigationManager Nav
 @inject DialogService Dialog
 @inject AuthenticationStateProvider AuthPrvd
 @inject IJSRuntime JS
@@ -45,7 +47,10 @@
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reload" />
             <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reset" />
             <RadzenButton Text="@L["PP.WorkOrder.Btn.Export"].Value" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" class="ames-rz-btn" Click="ExportCsv" />
-            <RadzenButton Text="@L["PP.WorkOrder.Btn.Manual"].Value" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenManual" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["PP.WorkOrder.Btn.Manual"].Value" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenManual" />
+            }
         </RadzenStack>
     </div>
 
@@ -112,14 +117,14 @@ else
             <RadzenDataGridColumn TItem="WorkOrderDto" Title="@L["PP.WorkOrder.Col.Action"].Value"
                                   Sortable="false" Filterable="false" Width="180px">
                 <Template Context="w">
-                    @if (w.Status == "Draft")
+                    @if (_canEdit && w.Status == "Draft")
                     {
                         <RadzenButton Text="@L["PP.WorkOrder.Btn.Release"].Value" Icon="play_arrow" ButtonStyle="ButtonStyle.Success"
                                       Size="ButtonSize.ExtraSmall" Click="@(() => Release(w))" />
                         <RadzenButton Text="@L["PP.WorkOrder.Btn.Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Danger"
                                       Size="ButtonSize.ExtraSmall" Click="@(() => Cancel(w))" style="margin-left:4px;" />
                     }
-                    else if (w.Status == "Released")
+                    else if (_canEdit && w.Status == "Released")
                     {
                         <RadzenButton Text="@L["PP.WorkOrder.Btn.Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Danger"
                                       Size="ButtonSize.ExtraSmall" Click="@(() => Cancel(w))" />
@@ -203,8 +208,17 @@ else
     int CriticalCount => _rows.Count(r => r.DaysToDue is int d && d <= 3
                                           && (r.Status is "Draft" or "Released" or "In Progress"));
 
-    protected override void OnInitialized()
+    // 권한 키(SYS_Screen.HRef) — R = 화면 조회, E = 수동 발행·Release·Cancel
+    const string Href = "pp/work-order";
+    bool _canEdit;
+
+    protected override async Task OnInitializedAsync()
     {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        // 메뉴에서 숨겨도 주소를 직접 치면 열리므로 읽기 권한은 화면에서도 확인한다
+        if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
+        _canEdit = PermSvc.CanEdit(Href);
+
         // 라우팅 옵션·공정 시퀀스를 공통코드 ROUTING / MD_RoutingStep 에서 로드
         try { _routings = MD.ListCodeItems("ROUTING").Where(c => c.UseFlag).Select(c => c.CodeValue ?? "").Where(v => v.Length > 0).ToArray(); }
         catch { _routings = new[] { "A", "B" }; }
@@ -271,6 +285,8 @@ else
 
     async Task Release(WorkOrderDto w)
     {
+        if (!_canEdit) return;   // 버튼을 숨겨도 핸들러에서 한 번 더 막는다
+
         var result = await Dialog.OpenAsync<WoReleaseLineDialog>(
             $"{L["PP.WorkOrder.Btn.Release"].Value} · {w.WoNumber}",
             new Dictionary<string, object?>
@@ -292,6 +308,8 @@ else
 
     async Task Cancel(WorkOrderDto w)
     {
+        if (!_canEdit) return;
+
         var ok = await Dialog.Confirm(
             string.Format(L["PP.WorkOrder.Cancel.Confirm"].Value, w.WoNumber, w.ItemNo, w.OrderQty.ToString("#,0")),
             L["PP.WorkOrder.Cancel.Title"].Value,
@@ -308,6 +326,8 @@ else
 
     async Task OpenManual()
     {
+        if (!_canEdit) return;
+
         List<WorkOrderManualDialog.ItemVm> items;
         try
         {

@@ -10,6 +10,8 @@
 
 @inject PpRepository Pp
 @inject MasterDataRepository MD
+@inject AMES.Web.Services.PermissionService PermSvc
+@inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthPrvd
 @inject IStringLocalizer<SharedResources> L
@@ -49,8 +51,11 @@
 
             <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="ResetFilters" />
             <RadzenButton Text="@L["PP.PurchaseReq.Btn.Export"].Value" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" class="ames-rz-btn" Click="ExportXlsx" />
-            <RadzenButton Text="@string.Format(L["PP.PurchaseReq.Btn.BatchSend"].Value, _selected.Count)" Icon="send"
-                          ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" Disabled="@(_busy || _selected.Count == 0)" Click="OpenBatch" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@string.Format(L["PP.PurchaseReq.Btn.BatchSend"].Value, _selected.Count)" Icon="send"
+                              ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" Disabled="@(_busy || _selected.Count == 0)" Click="OpenBatch" />
+            }
         </RadzenStack>
     </div>
     <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">📤 @L["PP.PurchaseReq.Hint.Grid"]</div>
@@ -66,7 +71,8 @@ else
                     AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
                     RowRender="@RowRender" class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Width="46px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center" Frozen="true">
+            @* 선택은 일괄 전송에만 쓰이므로 E 권한이 없으면 열 자체를 내린다 *@
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" Width="46px" Sortable="false" Visible="@_canEdit" Filterable="false" TextAlign="TextAlign.Center" Frozen="true">
                 <HeaderTemplate>
                     <input type="checkbox" class="pr-ck" checked="@AllSelected" @onchange="e => ToggleAll((bool)(e.Value ?? false))" />
                 </HeaderTemplate>
@@ -135,8 +141,8 @@ else
             <div class="pr-drow">
                 <span class="pr-dl" style="width:110px;">@L["Col.Vendor"]</span>
                 <RadzenDropDown @bind-Value="_actVendor" Data="@VendorOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true"
-                                Placeholder="—" Disabled="@(!PrStatusRules.CanSend(_sel.Status) || _busy)" Style="width:260px" InputSize="InputSize.Small" class="ames-rz-input" />
-                @if (PrStatusRules.CanSend(_sel.Status))
+                                Placeholder="—" Disabled="@(!_canEdit || !PrStatusRules.CanSend(_sel.Status) || _busy)" Style="width:260px" InputSize="InputSize.Small" class="ames-rz-input" />
+                @if (_canEdit && PrStatusRules.CanSend(_sel.Status))
                 {
                     <RadzenButton Text="@L["PP.PurchaseReq.Act.SaveVendor"].Value" Icon="save" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" Click="SaveVendor" Disabled="@_busy" class="ames-rz-btn" />
                 }
@@ -159,8 +165,8 @@ else
                 }
             </div>
 
-            @* 상태별 액션 *@
-            @if (PrStatusRules.CanSend(_sel.Status))
+            @* 상태별 액션 — 전부 E 권한 필요 *@
+            @if (_canEdit && PrStatusRules.CanSend(_sel.Status))
             {
                 <div class="pr-act">
                     <span class="pr-dl">@L["PP.PurchaseReq.Act.DocNum"]</span>
@@ -168,7 +174,7 @@ else
                     <RadzenButton Text="@(_sel.Status == PrStatusRules.Failed ? L["PP.PurchaseReq.Act.Retry"].Value : L["PP.PurchaseReq.Act.Send"].Value)" Icon="send" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="SendOne" Disabled="@_busy" class="ames-rz-btn" />
                 </div>
             }
-            @if (PrStatusRules.CanApprove(_sel.Status))
+            @if (_canEdit && PrStatusRules.CanApprove(_sel.Status))
             {
                 <div class="pr-act">
                     <span class="pr-dl">@L["PP.PurchaseReq.Act.PoNo"]</span>
@@ -176,7 +182,7 @@ else
                     <RadzenButton Text="@L["PP.PurchaseReq.Act.Approve"].Value" Icon="task_alt" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="ApproveOne" Disabled="@(_busy || string.IsNullOrWhiteSpace(_actPo))" class="ames-rz-btn" />
                 </div>
             }
-            @if (PrStatusRules.CanFail(_sel.Status))
+            @if (_canEdit && PrStatusRules.CanFail(_sel.Status))
             {
                 <div class="pr-act">
                     <span class="pr-dl">@L["PP.PurchaseReq.Act.FailReason"]</span>
@@ -250,8 +256,17 @@ else
     bool AllSelected => Selectable.Any() && Selectable.All(r => _selected.Contains(r.PrId));
     List<PpRepository.PrRow> SelectedRows => _allRows.Where(r => PrStatusRules.CanSend(r.Status) && _selected.Contains(r.PrId)).ToList();
 
+    // 권한 키(SYS_Screen.HRef) — R = 화면 조회, E = SAP 전송·승인·실패 기록·거래처 지정
+    const string Href = "pp/purchase-req";
+    bool _canEdit;
+
     protected override async Task OnInitializedAsync()
     {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        // 메뉴에서 숨겨도 주소를 직접 치면 열리므로 읽기 권한은 화면에서도 확인한다
+        if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
+        _canEdit = PermSvc.CanEdit(Href);
+
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = auth.User.Identity?.Name ?? "system";
         try { _vendors = MD.ListVendors(); } catch { }
@@ -324,8 +339,10 @@ else
         }
     }
 
+    // 전송·승인·실패·거래처 지정이 모두 이 한 곳을 지난다 — 버튼을 숨겨도 여기서 한 번 더 막는다
     void Run(Action action, Func<string> okMsg)
     {
+        if (!_canEdit) return;
         if (_busy) return;
         _busy = true;
         try { action(); RefreshAfterAction(); ShowMsg(okMsg(), false); }
@@ -364,12 +381,15 @@ else
 
     void OpenBatch()
     {
+        if (!_canEdit) return;
         if (SelectedRows.Count == 0) { ShowMsg(L["PP.PurchaseReq.Err.NoneSelected"], true); return; }
         _modal = "batch";
     }
 
     void DoBatch()
     {
+        if (!_canEdit) return;
+
         var ids = SelectedRows.Select(r => r.PrId).ToList();
         CloseModal();
         var n = 0;

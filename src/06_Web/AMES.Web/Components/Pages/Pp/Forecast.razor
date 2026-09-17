@@ -3,6 +3,9 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject AMES.Data.Repositories.MasterDataRepository MD
+@inject AMES.Web.Services.PermissionService PermSvc
+@inject AuthenticationStateProvider AuthPrvd
+@inject NavigationManager Nav
 @inject DialogService Dialog
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
@@ -43,8 +46,11 @@
                            Placeholder="@L["PP.Forecast.Fld.PartNoPh"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
 
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="Search" />
-            <RadzenButton Text="@L["PP.Forecast.Btn.ExcelUpload"].Value" Icon="upload"
-                          ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenUpload" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["PP.Forecast.Btn.ExcelUpload"].Value" Icon="upload"
+                              ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenUpload" />
+            }
             <RadzenButton Text="@L["PP.Forecast.Btn.Export"].Value" Icon="download"
                           ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" class="ames-rz-btn" Click="ExportCsv" />
         </RadzenStack>
@@ -197,8 +203,17 @@
 
     int UnmatchedCount => _items.Count(i => !i.ItemExists);
 
-    protected override void OnInitialized()
+    // 권한 키(SYS_Screen.HRef) — R = 화면 조회, E = 엑셀 업로드
+    const string Href = "pp/forecast";
+    bool _canEdit;
+
+    protected override async Task OnInitializedAsync()
     {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        // 메뉴에서 숨겨도 주소를 직접 치면 열리므로 읽기 권한은 화면에서도 확인한다
+        if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
+        _canEdit = PermSvc.CanEdit(Href);
+
         try { _customers = MD.ListCustomers(); } catch { }
         Search();
         SearchHistory();
@@ -214,6 +229,8 @@
     // ── 업로드 다이얼로그 ────────────────────────────────────────
     async Task OpenUpload()
     {
+        if (!_canEdit) return;   // 버튼을 숨겨도 핸들러에서 한 번 더 막는다
+
         var result = await Dialog.OpenAsync<ForecastUploadDialog>(
             L["PP.Forecast.Upload.Title"].Value,
             new Dictionary<string, object?> { ["Customers"] = _customers });
