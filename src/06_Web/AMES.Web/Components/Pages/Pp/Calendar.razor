@@ -5,6 +5,8 @@
 @inject AMES.Data.Repositories.MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthPrvd
+@inject AMES.Web.Services.PermissionService PermSvc
 @using AMES.Contracts.Dto
 @using Radzen
 
@@ -296,7 +298,10 @@
                 </div>
             </div>
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                <RadzenButton Text="@L["PP.Calendar.Btn.Reschedule"]" Icon="event" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@OpenReschedule" class="ames-rz-btn" />
+                @if (_canEdit)
+                {
+                    <RadzenButton Text="@L["PP.Calendar.Btn.Reschedule"]" Icon="event" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@OpenReschedule" class="ames-rz-btn" />
+                }
                 <RadzenButton Text="@L["PP.Calendar.Btn.WorkOrder"]" Icon="list" ButtonStyle="ButtonStyle.Info" Size="ButtonSize.Small" Click='() => Nav.NavigateTo("/pp/work-order")' class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="() => _showDetail = false" class="ames-rz-btn" />
             </RadzenStack>
@@ -403,8 +408,17 @@
         <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
     </div>;
 
-    protected override void OnInitialized()
+    // 권한 키(SYS_Screen.HRef) — MD·SYS 화면과 같은 규칙: R = 화면 조회, E = 납기 변경
+    const string Href = "pp/calendar";
+    bool _canEdit;
+
+    protected override async Task OnInitializedAsync()
     {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        // 메뉴에서 숨겨도 주소를 직접 치면 열리므로 읽기 권한은 화면에서도 확인한다
+        if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
+        _canEdit = PermSvc.CanEdit(Href);
+
         try { _routingItems = MD.ListCodeItems("ROUTING"); } catch { }
         Reload();
     }
@@ -472,6 +486,7 @@
 
     void OpenReschedule()
     {
+        if (!_canEdit) return;
         _reschedDate    = _detail?.DueDate ?? DbClock.Today.AddDays(1);
         _pinInput       = "";
         _pinError       = "";
@@ -480,6 +495,7 @@
 
     void ConfirmReschedule()
     {
+        if (!_canEdit) return;   // 버튼을 숨겨도 핸들러에서 한 번 더 막는다
         if (_pinInput != DevPin) { _pinError = L["PP.Calendar.Err.WrongPin"]; return; }
         if (_detail is null) return;
         try
