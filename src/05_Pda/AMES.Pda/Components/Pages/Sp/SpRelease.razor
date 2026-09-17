@@ -170,12 +170,20 @@
 
     private async Task StartScenario(int step)
     {
-        if (step == 1) await Api.SpResetTestAsync();
         await RunScenario(step switch { 1 => "READY", 2 => "RELEASED", _ => "UNKNOWN" });
     }
 
     private async Task RunScenario(string command)
     {
+        if (command is "READY" or "RELEASED")
+        {
+            await Api.SpResetTestAsync();
+            if (command == "RELEASED")
+            {
+                var result = await Api.SpReleaseAsync(new("EOS-SP-K9-269999", 1, Note: "PDA spare parts release scenario"));
+                if (!result.Success) throw new InvalidOperationException(result.Message);
+            }
+        }
         _lotNo = command == "UNKNOWN" ? "EOS-SP-X0-000000" : "EOS-SP-K9-269999";
         await ScanLot();
     }

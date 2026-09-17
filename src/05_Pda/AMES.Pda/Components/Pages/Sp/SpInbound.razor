@@ -203,13 +203,13 @@
 
     private async Task StartScenario(int step)
     {
-        await Api.SpResetTestAsync();
         await RunScenario(step == 1 ? "INBOUND" : "UNKNOWN");
     }
 
     private async Task RunScenario(string command)
     {
         if (command == "LOCATION") { _locationNo = "SP-EXTRA"; await ScanLocation(); return; }
+        if (command == "INBOUND") await Api.SpResetTestAsync();
         _lotNo = command == "INBOUND" ? "EOS-SP-K9-269999" : "EOS-SP-X0-000000";
         await ScanLot();
     }
