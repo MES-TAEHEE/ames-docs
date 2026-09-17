@@ -41,7 +41,15 @@
     string _msg = "Loading…";
     protected override async Task OnInitializedAsync()
     {
-        _rows = await Api.FgHistoryAsync();
-        if (_rows.Count == 0) _msg = "No shipment history.";
+        try
+        {
+            _rows = await Api.FgHistoryAsync();
+            if (_rows.Count == 0) _msg = "No shipment history.";
+        }
+        catch (Exception ex)
+        {
+            _rows.Clear();
+            _msg = $"Shipment history could not be loaded. {ex.Message}";
+        }
     }
 }

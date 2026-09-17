@@ -47,7 +47,15 @@
     async Task Load()
     {
         _msg = "Loading…";
-        _rows = await Api.FgOrdersAsync();
-        if (_rows.Count == 0) _msg = "No shipment orders.";
+        try
+        {
+            _rows = await Api.FgOrdersAsync();
+            if (_rows.Count == 0) _msg = "No shipment orders.";
+        }
+        catch (Exception ex)
+        {
+            _rows.Clear();
+            _msg = $"Shipment orders could not be loaded. {ex.Message}";
+        }
     }
 }

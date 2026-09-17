@@ -233,17 +233,8 @@ public abstract class PdaApi
             ?? throw new InvalidOperationException(fallback);
     }
 
-    protected async Task<T> Get<T>(string url) where T : new()
-    {
-        Authorize();
-        try
-        {
-            var resp = await _http.GetAsync(url);
-            if (!resp.IsSuccessStatusCode) return new T();
-            return await resp.Content.ReadFromJsonAsync<T>() ?? new T();
-        }
-        catch { return new T(); }
-    }
+    protected Task<T> Get<T>(string url) where T : new()
+        => GetRequiredAsync<T>(url, "PDA service is unavailable.");
     protected async Task<HttpResponseMessage> Post<TBody>(string url, TBody body)
     {
         Authorize();
@@ -325,57 +316,6 @@ public abstract class PdaApi
         throw new InvalidOperationException(string.Equals(expectedAreaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase)
             ? "This location does not belong to the Spare Parts Area."
             : $"This location does not belong to {expectedAreaCode}.");
-    }
-
-    protected static List<LocationRow> NormalizeLocationRows(IEnumerable<LocationRow> rows)
-    {
-        return rows.Select(NormalizeLocationRow).ToList();
-    }
-
-    protected static LocationRow NormalizeLocationRow(LocationRow row)
-    {
-        if (!string.IsNullOrWhiteSpace(row.AreaCode)
-            && (!string.IsNullOrWhiteSpace(row.X) || !string.IsNullOrWhiteSpace(row.Y) || !string.IsNullOrWhiteSpace(row.Z)))
-            return row;
-
-        var fallback = GuessLocationPosition(row);
-        return row with
-        {
-            AreaCode = FirstText(row.AreaCode, row.Zone, fallback.Area),
-            AreaName = FirstText(row.AreaName, row.ZoneName, row.LocationName),
-            X = FirstText(row.X, fallback.Column),
-            Y = FirstText(row.Y, fallback.Row),
-            Z = FirstText(row.Z, fallback.Level)
-        };
-    }
-
-    protected static (string Area, string Column, string Row, string Level) GuessLocationPosition(LocationRow row)
-    {
-        var locationId = row.LocationId?.Trim() ?? "";
-        var compact = new string(locationId.Where(char.IsLetterOrDigit).ToArray());
-        var digits = new string(compact.Where(char.IsDigit).ToArray());
-
-        var area = !string.IsNullOrWhiteSpace(row.Zone) ? row.Zone.Trim()
-            : compact.Length >= 4 ? compact[..4]
-            : compact.Length > 0 ? compact
-            : "AREA";
-
-        var column = digits.Length >= 2 ? digits[..2] : "1";
-        var locationRow = digits.Length >= 4 ? digits.Substring(2, 2) : "1";
-        var level = digits.Length >= 6 ? digits.Substring(4, 2) : "1";
-
-        return (area, column, locationRow, level);
-    }
-
-    protected static string? FirstText(params string?[] values)
-    {
-        foreach (var value in values)
-        {
-            if (!string.IsNullOrWhiteSpace(value))
-                return value.Trim();
-        }
-
-        return null;
     }
 
     protected void Authorize()

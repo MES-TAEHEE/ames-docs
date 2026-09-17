@@ -8,6 +8,10 @@
         <span class="pda-tbar-brand">FG-009 DASHBOARD</span>
     </div>
     <div class="pda-bd">
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="pda-alert err">@_error</div>
+        }
         <div class="pda-kpi-grid">
             <div class="pda-kpi"><div class="lbl">OPEN ORDERS</div><div class="val">@_d.OpenOrders</div></div>
             <div class="pda-kpi warn"><div class="lbl">READY TO SHIP</div><div class="val">@_d.ReadyToShip</div></div>
@@ -22,6 +26,12 @@
 
 @code {
     PdaApi.FgDashboard _d = new(0,0,0,0,0,0);
+    string? _error;
     protected override async Task OnInitializedAsync() => await Load();
-    async Task Load() { _d = await Api.FgDashboardAsync(); }
+    async Task Load()
+    {
+        _error = null;
+        try { _d = await Api.FgDashboardAsync(); }
+        catch (Exception ex) { _error = $"Dashboard could not be loaded. {ex.Message}"; }
+    }
 }
