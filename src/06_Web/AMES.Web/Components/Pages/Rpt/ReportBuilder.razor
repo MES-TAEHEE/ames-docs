@@ -129,7 +129,7 @@
                     </RadzenChart>
                 </div>
             </div>
-            <div class="dim" style="font-size:10px;margin-top:6px;">@L["RPT.ReportBuilder.Chart.Note"]</div>
+            <div class="dim" style="font-size:var(--ames-fs-hint);margin-top:6px;">@L["RPT.ReportBuilder.Chart.Note"]</div>
         }
     </div>
 </div>
@@ -143,7 +143,7 @@
     string _source = "PROD";
     string _dim    = "Line";
     HashSet<string> _measures = new() { "Production", "GoodQty" };
-    DateTime _fFrom = DateTime.Today.AddDays(-29), _fTo = DateTime.Today;
+    DateTime _fFrom = DbClock.Today.AddDays(-29), _fTo = DbClock.Today;
 
     // ── 실행 결과 (우) — 조회 시점의 설정을 따로 들고 있어 좌측을 바꿔도 결과가 흔들리지 않는다 ─
     List<RptRepository.AdhocRow> _rows = new();
@@ -178,7 +178,7 @@
     void ResetAll()
     {
         _source = "PROD"; _dim = "Line"; _measures = new() { "Production", "GoodQty" };
-        _fFrom = DateTime.Today.AddDays(-29); _fTo = DateTime.Today;
+        _fFrom = DbClock.Today.AddDays(-29); _fTo = DbClock.Today;
         Run();
     }
 
@@ -191,7 +191,7 @@
             _rows = Rpt.AdhocQuery(_source, _dim, _fFrom, _fTo);
             _runSource = _source; _runDim = _dim;
             _runMeasures = RptRepository.AdhocMeasures[_source].Where(_measures.Contains).ToList();   // 정의 순서 유지
-            _runFrom = _fFrom; _runTo = _fTo; _runAt = DateTime.Now;
+            _runFrom = _fFrom; _runTo = _fTo; _runAt = DbClock.Now;
         }
         catch (Exception ex) { _rows = new(); ShowMsg(ex.Message, true); }
     }
@@ -239,7 +239,7 @@
         tot.AddRange(_runMeasures.Select(m => (object?)(IsRate(m) ? Math.Round(Agg(m), 1) : Agg(m))));
         data.Add(tot);
         var bytes = AMES.Web.Services.XlsxWriter.Build(ReportTitle, headers, data);
-        var name  = $"ReportBuilder_{_runSource}_{_runDim}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        var name  = $"ReportBuilder_{_runSource}_{_runDim}_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx";
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         ShowMsg(string.Format(L["RPT.ReportBuilder.Ok.Exported"].Value, _rows.Count), false);

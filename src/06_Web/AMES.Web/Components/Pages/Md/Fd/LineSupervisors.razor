@@ -62,7 +62,7 @@
             }
         </RadzenStack>
     </div>
-    <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["MD.LineSupervisors.Hint"]</div>
+    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["MD.LineSupervisors.Hint"]</div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="LineSupervisorRepository.Row" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.LineSupervisors.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
@@ -157,7 +157,7 @@
                     <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="EditChkActive" />
                 </RadzenStack>
 
-                <div class="dim" style="font-size:10px;">
+                <div class="dim" style="font-size:var(--ames-fs-hint);">
                     @L["MD.Workers.Col.CreatedBy"]: @_sel.CreatedBy · @(_sel.CreatedTs?.ToString(DateFmt.MonthDayTime) ?? "—")
                     @if (!string.IsNullOrEmpty(_sel.ModifiedBy)) { <span> · @L["MD.Workers.Lbl.Modified"]: @_sel.ModifiedBy · @(_sel.ModifiedTs?.ToString(DateFmt.MonthDayTime) ?? "—")</span> }
                 </div>

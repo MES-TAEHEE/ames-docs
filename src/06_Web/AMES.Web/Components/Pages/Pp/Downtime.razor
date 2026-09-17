@@ -76,7 +76,7 @@
     </div>
     @if (_canEdit)
     {
-        <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["PP.Downtime.Hint.Edit"]</div>
+        <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["PP.Downtime.Hint.Edit"]</div>
     }
 
     <RadzenDataGrid TItem="PpRepository.DowntimeRow" Data="@_rows" AllowPaging="true" PageSize="20" PagerHorizontalAlign="HorizontalAlign.Center"
@@ -122,7 +122,7 @@
 
     @if (_rows.Count >= LIMIT)
     {
-        <div class="dim" style="padding:.5rem 0 0;font-size:11px;">@L["PP.Downtime.LimitNote"]</div>
+        <div class="dim" style="padding:.5rem 0 0;font-size:calc(11px + var(--ames-fs-bump));">@L["PP.Downtime.LimitNote"]</div>
     }
 </div>
 
@@ -172,8 +172,8 @@
 
     // ── 조회부 ───────────────────────────────────────────────────────────
     string?  _fLine;
-    DateTime _fFrom = DateTime.Today.AddDays(-6);
-    DateTime _fTo   = DateTime.Today;
+    DateTime _fFrom = DbClock.Today.AddDays(-6);
+    DateTime _fTo   = DbClock.Today;
     string?  _fStatus;
     string?  _fReason;
 
@@ -254,8 +254,8 @@
     void ResetFilter()
     {
         _fLine = null; _fStatus = null; _fReason = null;
-        var last = _rows.Count > 0 ? _fTo : DateTime.Today;
-        try { last = Pp.LatestDowntimeStart()?.Date ?? DateTime.Today; } catch { }
+        var last = _rows.Count > 0 ? _fTo : DbClock.Today;
+        try { last = Pp.LatestDowntimeStart()?.Date ?? DbClock.Today; } catch { }
         _fTo = last; _fFrom = last.AddDays(-6);
         ApplyFilter();
     }

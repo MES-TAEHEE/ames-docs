@@ -120,7 +120,7 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MNT.EquipmentCard.Title"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.EquipId</span>
-                @if (_sel.EquipStatusId is null) { <span class="pill warn" style="margin-left:8px;font-size:10px;">@L["MNT.EquipmentCard.Lbl.Unregistered"]</span> }
+                @if (_sel.EquipStatusId is null) { <span class="pill warn" style="margin-left:8px;font-size:var(--ames-fs-hint);">@L["MNT.EquipmentCard.Lbl.Unregistered"]</span> }
             </div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -222,7 +222,7 @@
                 @L["MNT.EquipmentCard.Modal.Card"] — @(editing ? L["Modal.Edit"] : L["Modal.Create"])
                 @if (editing) { <span class="dim" style="font-weight:400;font-size:.9em;margin-left:6px;">@_f.EquipId</span> }
             </div>
-            <div class="dim" style="font-size:10px;">@(editing ? L["MNT.EquipmentCard.Hint.System"] : L["MNT.EquipmentCard.Hint.Create"])</div>
+            <div class="dim" style="font-size:var(--ames-fs-hint);">@(editing ? L["MNT.EquipmentCard.Hint.System"] : L["MNT.EquipmentCard.Hint.Create"])</div>
 
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -492,7 +492,7 @@
         });
 
         var bytes = AMES.Web.Services.XlsxWriter.Build(L["MNT.EquipmentCard.Title"].Value, headers, data);
-        var name  = $"EquipmentCard_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        var name  = $"EquipmentCard_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx";
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         ShowMsg(string.Format(L["MNT.EquipmentCard.Ok.Exported"].Value, _rows.Count), false);
@@ -515,5 +515,5 @@
     static string StatusCls(string? s) =>
         IsRun(s) ? "ok" : IsDown(s) ? "bad" : s == "PM" ? "orange" : IsIdle(s) ? "mute" : "mute";
 
-    static bool IsPmOverdue(DateTime? d) => d is { } dt && dt.Date < DateTime.Today;
+    static bool IsPmOverdue(DateTime? d) => d is { } dt && dt.Date < DbClock.Today;
 }

@@ -87,7 +87,7 @@
     AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow? _detail;
     string _search = "", _message = "";
     string? _status;
-    DateTime? _from = DateTime.Today.AddMonths(-1), _to = DateTime.Today;
+    DateTime? _from = DbClock.Today.AddMonths(-1), _to = DbClock.Today;
     string[] StatusOptions = ["Open", "Inspecting", "Closed", "Rejected", "Received"];
 
     protected override void OnInitialized() => Reload();
@@ -97,7 +97,7 @@
         try { _rows = Fg.ListReturns(_search, _status, _from, _to); _message = ""; }
         catch (Exception ex) { _rows = new(); _message = ex.Message; }
     }
-    void ClearFilters() { _search = ""; _status = null; _from = DateTime.Today.AddMonths(-1); _to = DateTime.Today; Reload(); }
+    void ClearFilters() { _search = ""; _status = null; _from = DbClock.Today.AddMonths(-1); _to = DbClock.Today; Reload(); }
     int CountStatus(string status) => _rows.Count(x => string.Equals(x.Status, status, StringComparison.OrdinalIgnoreCase));
     void OpenDetail(AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow row) => _detail = row;
     void CloseDetail() => _detail = null;

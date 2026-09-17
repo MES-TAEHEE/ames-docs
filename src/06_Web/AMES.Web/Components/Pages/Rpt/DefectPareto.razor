@@ -160,7 +160,7 @@
                     <Template Context="r"><span class="rpt-pa-rank @(r.Rank <= 3 ? $"r{r.Rank}" : "")">@r.Rank</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ParetoItem" Property="Name" Title="@L["RPT.DefectPareto.Col.Type"]">
-                    <Template Context="r"><b style="white-space:nowrap;">@r.Name</b><span class="dim code" style="font-size:.85em;margin-left:6px;">@r.Code</span>@if (r.Vital) { <span class="pill bad" style="margin-left:6px;font-size:9px;">@L["RPT.DefectPareto.Vital"]</span> }</Template>
+                    <Template Context="r"><b style="white-space:nowrap;">@r.Name</b><span class="dim code" style="font-size:.85em;margin-left:6px;">@r.Code</span>@if (r.Vital) { <span class="pill bad" style="margin-left:6px;font-size:calc(9px + var(--ames-fs-bump));">@L["RPT.DefectPareto.Vital"]</span> }</Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ParetoItem" Property="Qty" Title="@L["RPT.DefectPareto.Col.Qty"]" TextAlign="TextAlign.Right" Width="90px">
                     <Template Context="r"><b class="code" style="color:#f87171;">@r.Qty.ToString("N0")</b></Template>
@@ -195,7 +195,7 @@
     List<MasterDataRepository.DefectCodeRow>  _defectList = new();
     List<MasterDataRepository.CodeItemRow>    _procItems  = new();
 
-    DateTime _fFrom = DateTime.Today.AddDays(-29), _fTo = DateTime.Today;
+    DateTime _fFrom = DbClock.Today.AddDays(-29), _fTo = DbClock.Today;
     string?  _fLine, _fProcess, _selCode;
     string   _msg = "";
     bool     _isErr;

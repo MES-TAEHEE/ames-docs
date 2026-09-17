@@ -74,6 +74,8 @@
 
     protected override void OnInitialized()
     {
+        // 로그인(회로 시작)마다 DB 시각 보정을 확인 — 10분 안에 맞춘 값이 있으면 DB 를 가지 않는다
+        DbClock.EnsureSynced(TimeSpan.FromMinutes(10));
         _url = Nav.ToBaseRelativePath(Nav.Uri);
         Header.OnChanged += OnHeaderChanged;
     }

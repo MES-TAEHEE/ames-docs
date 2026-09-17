@@ -72,7 +72,7 @@
             <RadzenButton Text="@L["MNT.SpareParts.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@ExportParts" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["MNT.SpareParts.Hint.Detail"]</div>
+    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["MNT.SpareParts.Hint.Detail"]</div>
 
     <RadzenDataGrid @ref="_partGrid" Page="OnPartPage" TItem="MntRepository.SparePartRow" Data="@_parts" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_partPageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnPartRowClick" RowRender="@RowRender" EmptyText="@L["MNT.SpareParts.Empty"]" PageSizeChanged="@(s => _partPageRows = s)" Style="@($"--ames-page-rows:{_partPageRows}")" Class="ames-rz-grid ames-grid-fixed ames-grid-top">
@@ -265,7 +265,7 @@
                         }
                         else
                         {
-                            <span class="dim" style="font-size:11px;">@L["MD.SparePart.NoImage"]</span>
+                            <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">@L["MD.SparePart.NoImage"]</span>
                         }
                     </div>
                 </RadzenColumn>
@@ -519,7 +519,7 @@
     async Task Download(string sheet, string prefix, string[] headers, IEnumerable<IReadOnlyList<object?>> data, int count)
     {
         var bytes = AMES.Web.Services.XlsxWriter.Build(sheet, headers, data);
-        var name  = $"{prefix}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        var name  = $"{prefix}_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx";
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         ShowMsg(string.Format(L["MNT.SpareParts.Ok.Exported"].Value, count), false);

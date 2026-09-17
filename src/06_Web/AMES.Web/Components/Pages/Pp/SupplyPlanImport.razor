@@ -242,8 +242,8 @@ else
         _view = q.ToList();
     }
 
-    static int? DaysTo(DateTime? d) => d is DateTime x ? (x.Date - DateTime.Today).Days : null;
-    static bool IsUrgent(DateTime d) => (d.Date - DateTime.Today).Days <= 14;
+    static int? DaysTo(DateTime? d) => d is DateTime x ? (x.Date - DbClock.Today).Days : null;
+    static bool IsUrgent(DateTime d) => (d.Date - DbClock.Today).Days <= 14;
 
     async Task Confirm(int soId)
     {
@@ -322,7 +322,7 @@ else
 
         var bytes = System.Text.Encoding.UTF8.GetPreamble()
             .Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
-        var name = $"SupplyPlanImport_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+        var name = $"SupplyPlanImport_{DbClock.Now:yyyyMMdd_HHmmss}.csv";
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes), "text/csv");
         ShowMsg(string.Format(L["PP.SupplyPlanImport.Ok.Exported"].Value, _rows.Count), false);
     }

@@ -187,7 +187,7 @@
     List<MasterDataRepository.CodeItemRow>  _shiftItems = new();
     List<(string Code, int From, int To)>   _shiftRanges = new();
 
-    DateTime _fDate = DateTime.Today;
+    DateTime _fDate = DbClock.Today;
     string?  _fLine, _fShift;
     string   _msg = "";
     bool     _isErr;
@@ -229,7 +229,7 @@
         try
         {
             var (_, mx) = Rpt.ProductionDateExtent();
-            if (mx is { } m && m.Date < DateTime.Today) _fDate = m.Date;
+            if (mx is { } m && m.Date < DbClock.Today) _fDate = m.Date;
         }
         catch { }
 
@@ -354,7 +354,7 @@
         });
 
         var bytes = AMES.Web.Services.XlsxWriter.Build($"{L["RPT.DailyProduction.Title"].Value} {_fDate:yyyy-MM-dd}", headers, data);
-        var name  = $"DailyProduction_{_fDate:yyyyMMdd}_{DateTime.Now:HHmmss}.xlsx";
+        var name  = $"DailyProduction_{_fDate:yyyyMMdd}_{DbClock.Now:HHmmss}.xlsx";
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         ShowMsg(string.Format(L["RPT.DailyProduction.Ok.Exported"].Value, _lines.Count), false);

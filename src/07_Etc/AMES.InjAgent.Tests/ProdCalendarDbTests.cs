@@ -50,7 +50,10 @@ public class ProdCalendarDbTests
 
         var (now, prodDate, shift) = ProdCalendar.ResolveNow(conn, null);
 
-        Assert.InRange(now, DateTime.Now.AddMinutes(-5), DateTime.Now.AddMinutes(5));
+        // ResolveNow 의 now 는 DB 서버 시각이다 — 테스트 PC 시계와 비교하면 DB 와 시간대가 다른 PC(예: 한국시간 PC + 미국 동부시간 DB)에서 실패한다
+        DateTime dbNow;
+        using (var c2 = new Microsoft.Data.SqlClient.SqlCommand("SELECT SYSDATETIME();", conn)) dbNow = (DateTime)c2.ExecuteScalar()!;
+        Assert.InRange(now, dbNow.AddMinutes(-5), dbNow.AddMinutes(5));
         var expected = ProdCalendar.Resolve(now, cutoffAttr, shifts);
         Assert.Equal(expected.ProdDate, prodDate);
         Assert.Equal(expected.ShiftCode, shift);

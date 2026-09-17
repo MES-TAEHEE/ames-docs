@@ -3906,7 +3906,7 @@ public sealed class MasterDataRepository
 
     /// <summary>예비품번호 채번 규칙: EOS-SP-{분류}{적용설비}-{yy}{순번4}. 분류·적용설비·연도별로 0001 부터.</summary>
     private static string SparePartNoPrefix(string category, string applicableEquip) =>
-        $"EOS-SP-{category}{applicableEquip}-{DateTime.Today:yy}";
+        $"EOS-SP-{category}{applicableEquip}-{DbClock.Today:yy}";
 
     // 순번 9999 는 PDA 테스트 고정 데이터(PDA_SCHEMA.sql 이 EOS-SP-K9-269999 를 시드)라 MAX 에서 뺀다 — 포함하면 다음 순번이 10000 이 되어
     // 17자 번호가 VARCHAR(16) 파라미터에서 조용히 잘려 'EOS-SP-K9-261000' 같은 깨진 번호가 등록됐다(2026-09-16 실제 발생).

@@ -33,7 +33,7 @@
         <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
             <span class="dim">@L["PP.PlanConfirm.Dlg.StartDate"]</span>
             <RadzenDatePicker @bind-Value="_startDate" @bind-Value:after="Recompute" TValue="DateTime"
-                              DateFormat="yyyy-MM-dd" Min="DateTime.Today" Disabled="_busy" Style="width:165px" />
+                              DateFormat="yyyy-MM-dd" Min="DbClock.Today" Disabled="_busy" Style="width:165px" />
         </div>
         <div style="display:flex;justify-content:space-between;padding:7px 0;">
             <span class="dim">@L["PP.PlanConfirm.Dlg.WoStatus"]</span><span>Released → PP-LSB</span>
@@ -178,10 +178,10 @@
     string   _qtyMode   = QtyNet;
     readonly Dictionary<int, decimal> _manual      = new();   // 직접 입력 수량 (SoId 별) — 모드 전환 시 직전 기준값으로 채운다
     readonly Dictionary<int, decimal> _lastAutoQty = new();   // 직전에 화면에 보이던 기준 수량 — 직접 입력의 초기값
-    DateTime _startDate = DateTime.Today;
+    DateTime _startDate = DbClock.Today;
     string   _err       = "";
     int      _bufferDays = PpRepository.BufferWorkdaysDefault;
-    DateTime _dbNow     = DateTime.Now;
+    DateTime _dbNow     = DbClock.Now;
     WorkdayCalendar _cal = WorkdayCalendar.Empty;
     List<RowVm> _rows   = new();
     Dictionary<string, int?> _dailyCap = new();

@@ -63,7 +63,7 @@
     @if (_segStates.Count > 0)
     {
         <div style="display:flex;flex-wrap:wrap;gap:6px 14px;padding:4px 14px 8px;font-size:12px;align-items:center;justify-content:flex-end;">
-            <span class="dim" style="font-size:11px;">@L["MD.LineTimePattern.Col.Schedule"]</span>
+            <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">@L["MD.LineTimePattern.Col.Schedule"]</span>
             @foreach (var st in _segStates)
             {
                 <span style="display:inline-flex;align-items:center;gap:4px;">
@@ -167,7 +167,7 @@
                 }
                 <RadzenButton Text="@L["MD.LineTimePattern.Btn.Clear"]" Icon="delete_sweep" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@ClearAll" class="ames-rz-btn" />
             </div>
-            <div style="padding:2px 14px 2px;font-size:11px;color:#64748b;">@L["MD.LineTimePattern.DragHint"]</div>
+            <div style="padding:2px 14px 2px;font-size:calc(11px + var(--ames-fs-bump));color:#64748b;">@L["MD.LineTimePattern.DragHint"]</div>
         }
 
         @* ── Shift별 타임라인 (커스텀) ── *@
@@ -212,7 +212,7 @@
         }
 
         @{ var _downStates = _segStates.Where(s => s.CodeValue != "OPERATING").ToList(); }
-        <div style="display:flex;gap:20px;padding:10px 14px 8px;font-family:'JetBrains Mono',monospace;font-size:12px;flex-wrap:wrap;">
+        <div style="display:flex;gap:20px;padding:10px 14px 8px;font-family:var(--ames-font-mono);font-size:12px;flex-wrap:wrap;">
             <span style="color:var(--seg-operating);">@string.Format(L["MD.LineTimePattern.Stat.Operating"].Value, OperatingMin)</span>
             <span style="color:var(--seg-downtime);">@string.Format(L["MD.LineTimePattern.Stat.Down"].Value, DownMin)
                 <span class="dim">(@for (int di = 0; di < _downStates.Count; di++)
@@ -675,7 +675,7 @@
 
     // 새 세그먼트(메모리 임시) 생성
     MasterDataRepository.LineTimeSegmentRow NewSeg(int s, int e, string state, string? reason, string? shift)
-        => new("TMP" + Guid.NewGuid().ToString("N")[..21], _editId, null, s, e, state, reason, shift, null, _actor, DateTime.Now);
+        => new("TMP" + Guid.NewGuid().ToString("N")[..21], _editId, null, s, e, state, reason, shift, null, _actor, DbClock.Now);
 
     // 메모리 카브: 해당 Shift를 분단위 맵으로 재구성해 [start,end)를 state로 덮어씀.
     // 분단위 재구성이라 겹침이 구조적으로 불가능하고, 연속 구간은 자동 병합됨.

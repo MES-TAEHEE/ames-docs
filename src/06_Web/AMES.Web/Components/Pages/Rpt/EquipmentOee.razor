@@ -185,8 +185,8 @@
     List<LineAgg>                       _lines   = new();
     (decimal? Oee, decimal? A, decimal? P, decimal? Q) _cur, _prev;
 
-    DateTime _month = FirstOfMonth(DateTime.Today);
-    string   _fMonth = FirstOfMonth(DateTime.Today).ToString("yyyy-MM");
+    DateTime _month = FirstOfMonth(DbClock.Today);
+    string   _fMonth = FirstOfMonth(DbClock.Today).ToString("yyyy-MM");
     string?  _fLine;
     string   _msg = "";
     bool     _isErr;
@@ -206,7 +206,7 @@
     {
         get
         {
-            var last = FirstOfMonth(_dataMax is { } m && m > DateTime.Today ? m : DateTime.Today);
+            var last = FirstOfMonth(_dataMax is { } m && m > DbClock.Today ? m : DbClock.Today);
             return Enumerable.Range(0, 12).Select(i => last.AddMonths(-i)).Select(d => new DropDownItem { Value = d.ToString("yyyy-MM"), Text = d.ToString("yyyy-MM") });
         }
     }

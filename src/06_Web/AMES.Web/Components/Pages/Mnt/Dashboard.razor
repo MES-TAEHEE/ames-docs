@@ -98,7 +98,7 @@
             <span class="dim" style="margin-left:8px;">|</span>
             <RadzenSwitch Name="SwitchLive" Value="@_live" Change="@OnLiveChanged" title="@L["MNT.Dashboard.LiveSub"]" />
             <RadzenLabel Text="@L["MNT.Dashboard.Live"]" Component="SwitchLive" style="cursor:pointer;" />
-            <span class="dim" style="font-size:10px;">@L["MNT.Dashboard.LiveSub"]</span>
+            <span class="dim" style="font-size:var(--ames-fs-hint);">@L["MNT.Dashboard.LiveSub"]</span>
         </RadzenStack>
     </div>
 </div>
@@ -283,7 +283,7 @@
     List<StatusSlice>                       _statusDist = new();
     List<MasterDataRepository.CodeItemRow>  _equipStatus = new();
 
-    DateTime  _fFrom = DateTime.Today.AddDays(-6), _fTo = DateTime.Today;
+    DateTime  _fFrom = DbClock.Today.AddDays(-6), _fTo = DbClock.Today;
     bool      _live = true;
     DateTime? _lastRefresh;
 
@@ -306,7 +306,7 @@
         {
             var (_, fMax) = Mnt.FailureDateExtent();
             var (_, dMax) = Mnt.DowntimeDateExtent();
-            var last = new[] { fMax, dMax }.Where(x => x is { }).Select(x => x!.Value.Date).DefaultIfEmpty(DateTime.Today).Max();
+            var last = new[] { fMax, dMax }.Where(x => x is { }).Select(x => x!.Value.Date).DefaultIfEmpty(DbClock.Today).Max();
             if (last < _fFrom) { _fTo = last; _fFrom = _fTo.AddDays(-6); }
         }
         catch { }
@@ -348,7 +348,7 @@
         catch { _lowStock = new(); }
 
         _statusDist = BuildStatusDist();
-        _lastRefresh = DateTime.Now;
+        _lastRefresh = DbClock.Now;
     }
 
     // ── 설비 상태 도넛 ────────────────────────────────────────────────
@@ -403,7 +403,7 @@
         id is null ? "—" : _equips.FirstOrDefault(e => e.EquipId == id) is { EquipName.Length: > 0 } e ? e.EquipName! : id;
 
     string When(DateTime? t) =>
-        t is not { } d ? "—" : d.Date == DateTime.Today ? d.ToString("HH:mm") : d.ToString("MM-dd HH:mm");
+        t is not { } d ? "—" : d.Date == DbClock.Today ? d.ToString("HH:mm") : d.ToString("MM-dd HH:mm");
 
     string PmBadge(int days) => days switch
     {

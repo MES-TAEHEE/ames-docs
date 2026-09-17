@@ -3,6 +3,7 @@ using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
 using AMES.Data.Connection;
 using Microsoft.Data.SqlClient;
+using AMES.Data.Services;
 
 namespace AMES.Data.Repositories;
 
@@ -32,7 +33,7 @@ public sealed class PopSessionRepository
         string shiftCode,
         AuthMethod method)
     {
-        var startedAt  = DateTime.Now;
+        var startedAt  = DbClock.Now;
         var expiresAt  = startedAt + DefaultLifetime;
 
         const string sql = """

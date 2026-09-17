@@ -40,7 +40,7 @@
 
     string    _item = "";
     decimal   _qty  = 1;
-    DateTime? _due  = DateTime.Today.AddDays(14);
+    DateTime? _due  = DbClock.Today.AddDays(14);
     bool      _busy;
     string    _err = "";
 

@@ -2,6 +2,7 @@
 using AMES.Contracts.Dto;
 using AMES.Data.Connection;
 using Microsoft.Data.SqlClient;
+using AMES.Data.Services;
 
 namespace AMES.Data.Repositories;
 
@@ -616,7 +617,7 @@ public sealed class WorkOrderRepository
     /// </summary>
     public string CreateManualWo(string itemNo, decimal qty, DateTime? due, string actor)
     {
-        var prefix = $"WO-{DateTime.Today:yyyyMMdd}-";
+        var prefix = $"WO-{DbClock.Today:yyyyMMdd}-";
         const string insSql = """
             INSERT INTO dbo.PP_WorkOrder
                    (WoNumber, ItemNo, OrderQty, OpenQty, DueDate, RoutingType, Status, CreatedBy, CreatedTS)

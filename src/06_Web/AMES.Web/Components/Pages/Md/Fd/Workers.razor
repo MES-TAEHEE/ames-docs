@@ -60,7 +60,7 @@
             }
         </RadzenStack>
     </div>
-    <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["MD.Workers.Hint"]</div>
+    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["MD.Workers.Hint"]</div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="WorkerRepository.WorkerRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Workers.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
@@ -158,7 +158,7 @@
                     <RadzenLabel Text="@L["MD.Workers.Lbl.WorkerNo"]" class="ames-rz-modal-label" Component="EditTextBoxEmployeeNo" />
                     <RadzenTextBox Name="EditTextBoxEmployeeNo" Value="@_sel.EmployeeNo" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
-                <div class="dim" style="font-size:10px;margin-top:-10px;">@L["MD.Workers.Hint.WorkerNoFixed"]</div>
+                <div class="dim" style="font-size:var(--ames-fs-hint);margin-top:-10px;">@L["MD.Workers.Hint.WorkerNoFixed"]</div>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text='@($"{L["MD.Workers.Lbl.WorkerName"]} *")' class="ames-rz-modal-label" Component="EditTextBoxEmployeeName" />
@@ -180,7 +180,7 @@
                     else
                     {
                         <span class="pill warn">@L["MD.Workers.Pin.None"]</span>
-                        <span class="dim" style="font-size:10px;">@L["MD.Workers.Hint.NoPin"]</span>
+                        <span class="dim" style="font-size:var(--ames-fs-hint);">@L["MD.Workers.Hint.NoPin"]</span>
                     }
                 </RadzenStack>
 
@@ -189,7 +189,7 @@
                     <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="EditChkActive" />
                 </RadzenStack>
 
-                <div class="dim" style="font-size:10px;">
+                <div class="dim" style="font-size:var(--ames-fs-hint);">
                     @L["MD.Workers.Col.CreatedBy"]: @_sel.CreatedBy · @(_sel.CreatedTs?.ToString(DateFmt.MonthDayTime) ?? "—")
                     @if (!string.IsNullOrEmpty(_sel.ModifiedBy)) { <span> · @L["MD.Workers.Lbl.Modified"]: @_sel.ModifiedBy · @(_sel.ModifiedTs?.ToString(DateFmt.MonthDayTime) ?? "—")</span> }
                 </div>

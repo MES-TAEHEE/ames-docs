@@ -53,7 +53,7 @@ public sealed class ProductionRepository
                      SYSDATETIME(), 'OPEN', 'PENDING', @By, SYSDATETIME());
                 """, conn, tx))
             {
-                var lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DateTime.Now);
+                var lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DbClock.Now);
                 cmd.Parameters.Add("@LotCode", SqlDbType.VarChar, 40).Value = lotCode;
                 cmd.Parameters.Add("@ItemNo",  SqlDbType.VarChar, 20).Value = itemNo;
                 cmd.Parameters.Add("@WoID",    SqlDbType.Int       ).Value = woId;

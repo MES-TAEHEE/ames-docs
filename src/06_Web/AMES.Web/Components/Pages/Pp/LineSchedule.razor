@@ -94,7 +94,7 @@
     @if (_publishedAt.HasValue)
     {
         <div style="display:flex;justify-content:flex-end;padding:0 14px 8px;">
-            <span class="dim" style="font-size:11px;">
+            <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">
                 @_publishedAt.Value.ToString("MM-dd HH:mm") @(_publishedBy is null ? "" : $"· {_publishedBy}")
             </span>
         </div>
@@ -129,7 +129,7 @@
 
         @GanttView()
 
-        <div class="dim" style="font-size:11px;padding:6px 14px 10px;">@L["PP.LineSchedule.Hint.Board"]</div>
+        <div class="dim" style="font-size:calc(11px + var(--ames-fs-bump));padding:6px 14px 10px;">@L["PP.LineSchedule.Hint.Board"]</div>
 
         @if (TotalConflicts > 0)
         {
@@ -535,13 +535,12 @@
     List<McBlock>                                   _mcBlocks    = new();
 
     string    _lineId    = "";
-    DateTime  _date      = DateTime.Today;
+    DateTime  _date      = DbClock.Today;
     string    _patternId = "";
 
-    TimeSpan  _dbOffset  = TimeSpan.Zero;      // DB 서버시각 − 클라이언트시각 (Now line 앵커, 1회 조회)
     System.Threading.Timer? _nowTimer;         // 이후 진행은 DB 재조회 없이 클라이언트 시계로 갱신
     bool      _disposed;                        // dispose 직후 타이머 콜백 방지
-    DateTime  ServerNow  => DateTime.Now + _dbOffset;
+    DateTime  ServerNow  => DbClock.Now;   // DB 서버 시각(공용 DbClock — 기동·로그인 시 동기화)
     string?   _savedStatus;
     DateTime? _publishedAt;
     string?   _publishedBy;
@@ -728,14 +727,14 @@
     // PM 시작시각 어댑터 — 백킹은 _pmStartTime(TimeOnly)
     DateTime? PmStartDt
     {
-        get => DateTime.Today.Add(_pmStartTime.ToTimeSpan());
+        get => DbClock.Today.Add(_pmStartTime.ToTimeSpan());
         set => _pmStartTime = value.HasValue ? TimeOnly.FromDateTime(value.Value) : _pmStartTime;
     }
 
     // MC 시작시각 어댑터 — 백킹은 _mcStartTime(TimeOnly)
     DateTime? McStartDt
     {
-        get => DateTime.Today.Add(_mcStartTime.ToTimeSpan());
+        get => DbClock.Today.Add(_mcStartTime.ToTimeSpan());
         set => _mcStartTime = value.HasValue ? TimeOnly.FromDateTime(value.Value) : _mcStartTime;
     }
 
@@ -749,7 +748,7 @@
     // RadzenDatePicker(TimeOnly) 어댑터 — 백킹은 _placeStartTime(TimeOnly) 유지
     DateTime? PlaceStartDt
     {
-        get => DateTime.Today.Add(_placeStartTime.ToTimeSpan());
+        get => DbClock.Today.Add(_placeStartTime.ToTimeSpan());
         set => _placeStartTime = value.HasValue ? TimeOnly.FromDateTime(value.Value) : _placeStartTime;
     }
 
@@ -772,7 +771,7 @@
         try { _schedStatuses = MD.ListCodeItems("SCHEDULE_STATUS"); } catch { }
         try { _pmTypes = MD.ListCodeItems("PM_TYPE"); } catch { }
         // Now line 기준: DB 서버시각 1회 조회 후 오프셋 저장 (이후 재조회 없이 클라이언트 시계로 진행)
-        try { _dbOffset = LSB.GetDbNow() - DateTime.Now; } catch { }
+        DbClock.EnsureSynced(TimeSpan.FromMinutes(1));   // Now 선은 분 단위로 보이므로 이 화면은 더 자주 맞춘다
         _date = ServerNow.Date;
         if (_lines.Count > 0) { _lineId = _lines[0].LineID; LoadData(); }
         // 30초마다 재렌더 → Now line이 DB 재조회 없이 흐르게 (모달 편집 중에는 건너뜀)

@@ -187,7 +187,7 @@
     List<CarrierAgg>                        _byCarrier = new();
     List<MasterDataRepository.CustomerRow>  _customers = new();
 
-    DateTime _fDate = DateTime.Today;
+    DateTime _fDate = DbClock.Today;
     string?  _fCustomer, _fCarrier;
     string   _msg = "";
     bool     _isErr;
@@ -225,7 +225,7 @@
         try
         {
             var (_, mx) = Rpt.ShipmentDateExtent();
-            if (mx is { } m && m.Date < DateTime.Today) _fDate = m.Date;
+            if (mx is { } m && m.Date < DbClock.Today) _fDate = m.Date;
         }
         catch { }
 
@@ -323,7 +323,7 @@
             string.Format(L["RPT.DailyShipment.Completed"].Value, _orders.Count(o => o.Shipped)), null, null, null, Amount,
         });
         var bytes = AMES.Web.Services.XlsxWriter.Build($"{L["RPT.DailyShipment.Title"].Value} {_fDate:yyyy-MM-dd}", headers, data);
-        var name  = $"DailyShipment_{_fDate:yyyyMMdd}_{DateTime.Now:HHmmss}.xlsx";
+        var name  = $"DailyShipment_{_fDate:yyyyMMdd}_{DbClock.Now:HHmmss}.xlsx";
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         ShowMsg(string.Format(L["RPT.DailyShipment.Ok.Exported"].Value, _rows.Count), false);

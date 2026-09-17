@@ -89,7 +89,7 @@
             <RadzenButton Text="@L["MNT.WorkOrder.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["MNT.WorkOrder.Hint.Detail"]</div>
+    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["MNT.WorkOrder.Hint.Detail"]</div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MntRepository.MwoRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.WorkOrder.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
@@ -259,7 +259,7 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MNT.WorkOrder.Modal.Assign"] <span class="dim" style="font-weight:400;font-size:.9em;margin-left:6px;">@WoNo(_sel)</span></div>
-            <div class="dim" style="font-size:10px;">@L["MNT.WorkOrder.Hint.Assign"]</div>
+            <div class="dim" style="font-size:var(--ames-fs-hint);">@L["MNT.WorkOrder.Hint.Assign"]</div>
 
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -287,7 +287,7 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MNT.WorkOrder.Modal.Complete"] <span class="dim" style="font-weight:400;font-size:.9em;margin-left:6px;">@WoNo(_sel) · @EquipText(_sel.EquipId)</span></div>
-            <div class="dim" style="font-size:10px;">@L["MNT.WorkOrder.Hint.Complete"]</div>
+            <div class="dim" style="font-size:var(--ames-fs-hint);">@L["MNT.WorkOrder.Hint.Complete"]</div>
 
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -499,9 +499,9 @@
         _sel = r; _modalErr = "";
         _f = new()
         {
-            Result = MwoResultCodes.Ok, CompletedAt = DateTime.Now, TechId = r.AssignedTechId ?? "",
+            Result = MwoResultCodes.Ok, CompletedAt = DbClock.Now, TechId = r.AssignedTechId ?? "",
             // 착수 시각이 있으면 소요 시간 기본값 = 착수 → 지금
-            LaborMinutes = r.StartedAt is { } st && st < DateTime.Now ? (int)Math.Round((DateTime.Now - st).TotalMinutes) : null,
+            LaborMinutes = r.StartedAt is { } st && st < DbClock.Now ? (int)Math.Round((DbClock.Now - st).TotalMinutes) : null,
         };
         _modal = "complete";
     }
@@ -583,7 +583,7 @@
         });
 
         var bytes = AMES.Web.Services.XlsxWriter.Build(L["MNT.WorkOrder.Title"].Value, headers, data);
-        var name  = $"MaintWorkOrder_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        var name  = $"MaintWorkOrder_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx";
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         ShowMsg(string.Format(L["MNT.WorkOrder.Ok.Exported"].Value, _rows.Count), false);

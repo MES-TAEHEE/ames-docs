@@ -221,7 +221,7 @@ else
             if (on) _selected.Add(r.SoId); else _selected.Remove(r.SoId);
     }
 
-    static bool IsUrgent(DateTime d) => (d.Date - DateTime.Today).Days <= 14;
+    static bool IsUrgent(DateTime d) => (d.Date - DbClock.Today).Days <= 14;
 
     // 라인 부하 색: >90 과부하(빨강) · 70~90 주의(주황) · <70 여유(초록)
     static string LoadColor(int p) => p > 90 ? "#f87171" : p >= 70 ? "#fbbf24" : "#4ade80";

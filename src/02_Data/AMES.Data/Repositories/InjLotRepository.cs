@@ -63,7 +63,7 @@ public sealed class InjLotRepository
         using var tx   = conn.BeginTransaction();
         try
         {
-            var lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DateTime.Now);
+            var lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DbClock.Now);
             int lotId;
             using (var cmd = new SqlCommand("""
                 INSERT INTO dbo.tbl_Lot
@@ -206,7 +206,7 @@ public sealed class InjLotRepository
 
             for (var i = 0; i < qty; i++)
             {
-                var lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DateTime.Now);
+                var lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DbClock.Now);
 
                 int lotId; DateTime createdTs;
                 using (var cmd = new SqlCommand("""

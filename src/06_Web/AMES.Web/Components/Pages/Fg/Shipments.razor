@@ -32,9 +32,9 @@
     </RadzenDataGrid>
 </div>
 @code {
-    List<AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow> _rows = new(); readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 }; int _pageRows = 25; string _search = "", _message = ""; string? _status; DateTime? _from = DateTime.Today.AddMonths(-1), _to = DateTime.Today; string[] StatusOptions = ["Loaded", "Shipped"];
+    List<AMES.Data.Repositories.FinishedGoodsRepository.ShipmentRow> _rows = new(); readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 }; int _pageRows = 25; string _search = "", _message = ""; string? _status; DateTime? _from = DbClock.Today.AddMonths(-1), _to = DbClock.Today; string[] StatusOptions = ["Loaded", "Shipped"];
     protected override void OnInitialized() => Reload();
     void Reload() { if (_from > _to) { _message = "From date cannot be later than To date."; return; } try { _rows = Fg.ListShipments(_search, _status, _from, _to); _message = ""; } catch (Exception ex) { _rows = new(); _message = ex.Message; } }
-    void Clear() { _search = ""; _status = null; _from = DateTime.Today.AddMonths(-1); _to = DateTime.Today; Reload(); }
+    void Clear() { _search = ""; _status = null; _from = DbClock.Today.AddMonths(-1); _to = DbClock.Today; Reload(); }
     static bool IsShipped(string? value) => string.Equals(value, "SHIPPED", StringComparison.OrdinalIgnoreCase);
 }

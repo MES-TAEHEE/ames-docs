@@ -77,7 +77,7 @@
                     <Template Context="i"><span class="dim">@DirName(i.Direction)</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="Endpoint" Title="@L["SYS.Interfaces.Col.Endpoint"]" Width="240px">
-                    <Template Context="i"><span class="dim" style="font-family:'JetBrains Mono',monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:260px;">@(i.Endpoint ?? "—")</span></Template>
+                    <Template Context="i"><span class="dim" style="font-family:var(--ames-font-mono);font-size:calc(11px + var(--ames-fs-bump));overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:260px;">@(i.Endpoint ?? "—")</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="Protocol" Title="@L["SYS.Interfaces.Col.Protocol"]" Width="120px">
                     <Template Context="i"><span class="dim">@(i.Protocol ?? "—")</span></Template>

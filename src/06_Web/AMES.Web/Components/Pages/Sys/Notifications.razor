@@ -195,7 +195,7 @@
                         <Template Context="h"><span class="code">@(h.EventTypeCode ?? "—")</span></Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="RecipientUserId" Title="@L["Col.Recipient"]" Width="300px">
-                        <Template Context="h"><span class="dim" style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;display:block;">@(h.RecipientUserId ?? "—")</span></Template>
+                        <Template Context="h"><span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));max-width:140px;overflow:hidden;text-overflow:ellipsis;display:block;">@(h.RecipientUserId ?? "—")</span></Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="Channel" Title="@L["Col.Channel"]" TextAlign="TextAlign.Center" Width="100px">
                         <Template Context="h"><span class="pill info">@(h.Channel ?? "—")</span></Template>
@@ -622,7 +622,7 @@
         try { _hist     = Sys.ListNotificationHistory(); }  catch { }
         try { _channels = Sys.ListNotificationChannels(); } catch { }
 
-        var recent = _hist.Where(h => h.SentAt.HasValue && (DateTime.Now - h.SentAt.Value).TotalHours <= 24).ToList();
+        var recent = _hist.Where(h => h.SentAt.HasValue && (DbClock.Now - h.SentAt.Value).TotalHours <= 24).ToList();
         _sent   = recent.Count(h => h.Status == "SENT");
         _failed = recent.Count(h => h.Status == "FAILED");
 
@@ -959,7 +959,7 @@
         {
             builder.OpenElement(seq++, "span");
             builder.AddAttribute(seq++, "class", "pill info");
-            builder.AddAttribute(seq++, "style", "font-size:11px;margin-right:2px;");
+            builder.AddAttribute(seq++, "style", "font-size:calc(11px + var(--ames-fs-bump));margin-right:2px;");
             builder.AddContent(seq++, item);
             builder.CloseElement();
         }

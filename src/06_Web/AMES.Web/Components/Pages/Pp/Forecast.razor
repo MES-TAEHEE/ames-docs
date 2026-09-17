@@ -180,8 +180,8 @@
     // 예측 현황 조회 필터
     string   _fCustomer = "";
     string   _fPartNo   = "";
-    DateTime _fFrom = DateTime.Today;
-    DateTime _fTo   = DateTime.Today.AddDays(154);   // 22주
+    DateTime _fFrom = DbClock.Today;
+    DateTime _fTo   = DbClock.Today.AddDays(154);   // 22주
 
     // 업로드 이력 조회 필터 (업로드 일시 기준, null = 무제한)
     string    _hCustomer = "";
@@ -263,7 +263,7 @@
         // UTF-8 BOM — Excel에서 한글 품명 정상 표시
         var bytes = System.Text.Encoding.UTF8.GetPreamble()
             .Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
-        var name = $"Forecast_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+        var name = $"Forecast_{DbClock.Now:yyyyMMdd_HHmmss}.csv";
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes), "text/csv");
         ShowMsg(string.Format(L["PP.Forecast.Ok.Exported"].Value, _items.Count), false);
     }

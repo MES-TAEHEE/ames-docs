@@ -251,6 +251,11 @@ Health check: `GET /api/health`
 
 ## 아키텍처 원칙
 
+### 시각 기준 — DbClock
+- 기록 시각의 정본은 DB 서버 시각(`SYSDATETIME()`, 공장 현지시각 — 개발서버는 미국 동부시간)이다. 화면 기본값·"오늘" 필터·채번 접두어에 **`DateTime.Now`/`DateTime.Today` 를 쓰지 말고 `DbClock.Now`/`DbClock.Today`**(`AMES.Data.Services.DbClock`, Web 은 `GlobalUsings.cs` 의 전역 별칭)를 쓴다.
+- `DbClock` 은 DB 시각 − 호스트 시각(Offset)을 한 번 읽어 두고 `DateTime.Now + Offset` 으로 계산한다(호출마다 DB 를 가지 않음, Kind=Unspecified). Web 은 기동 시 `Program.cs` 가 1회, 로그인(회로 시작) 때 `TopBar` 가 10분보다 오래됐을 때만 다시 맞춘다. PP-LSB 는 Now 선 때문에 1분 기준. 상태는 `GET /api/health` 의 `dbClock`(now·offsetMinutes·syncAgeSec)로 확인한다.
+- `Configure` 하지 않은 프로세스(POP·API)는 Offset 0 = 호스트 시계 그대로다. 웹과 DB 가 같은 기계면 Offset 은 0 에 가깝고, 한국시간 PC 의 로컬 IIS + 개발 DB 조합에서는 −780분이 정상이다.
+
 ### Repository 패턴
 - 모든 DB 접근은 `AMES.Data.Repositories.*Repository` 경유
 - 각 메서드마다 `using var conn = _connFactory.OpenConnection()` (connection-per-method)

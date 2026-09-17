@@ -590,7 +590,7 @@ public sealed class PpRepository
         var created = new List<string>();
         if (soIds.Count == 0) return created;
 
-        var prefix = $"WO-{DateTime.Today:yyyyMMdd}-";
+        var prefix = $"WO-{DbClock.Today:yyyyMMdd}-";
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
@@ -655,7 +655,7 @@ public sealed class PpRepository
         var rejected = new List<RejectedOrder>();
         if (plans.Count == 0) return new(orders, rejected);
 
-        var prefix = $"WO-{DateTime.Today:yyyyMMdd}-";
+        var prefix = $"WO-{DbClock.Today:yyyyMMdd}-";
         using var conn = _f.OpenConnection();
         // PP-003 다이얼로그 미리보기도 같은 메서드로 읽으므로 둘의 값이 반드시 일치해야 한다.
         int bufferDays = new SysRepository(_f).GetConfigInt(BufferWorkdaysKey, BufferWorkdaysDefault);
@@ -917,7 +917,7 @@ public sealed class PpRepository
     public int RunMrp(string runBy)
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
-        var today = DateTime.Today;
+        var today = DbClock.Today;
 
         var demands = Query($"""
             SELECT w.WoID, w.ItemNo, ISNULL(w.OrderQty,0) - ISNULL(w.CompletedQty,0) AS Qty, w.DueDate
@@ -1118,7 +1118,7 @@ public sealed class PpRepository
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
         // WO-yyyyMMdd-NNN 과 같은 일별 채번 — 연 단위 3자리는 부족 자재마다 PR 이 나와 금방 소진된다
-        var prefix = $"PR-{DateTime.Today:yyyyMMdd}-";
+        var prefix = $"PR-{DbClock.Today:yyyyMMdd}-";
         var seq = NextPrSeq(conn, tx, prefix);
 
         foreach (var req in requests.DistinctBy(r => r.ItemNo, StringComparer.OrdinalIgnoreCase))
@@ -1158,7 +1158,7 @@ public sealed class PpRepository
             ins.Parameters.Add("@Pr",  SqlDbType.VarChar, 20).Value = prNumber;
             ins.Parameters.Add("@I",   SqlDbType.VarChar, 20).Value = itemNo;
             var q = ins.Parameters.Add("@Qty", SqlDbType.Decimal); q.Precision = 14; q.Scale = 3; q.Value = qty;
-            ins.Parameters.Add("@Due", SqlDbType.Date).Value = (orderDue ?? woDue ?? DateTime.Today).Date;
+            ins.Parameters.Add("@Due", SqlDbType.Date).Value = (orderDue ?? woDue ?? DbClock.Today).Date;
             ins.Parameters.Add("@Wo",  SqlDbType.Int).Value = (object?)woId ?? DBNull.Value;
             ins.Parameters.Add("@By",  SqlDbType.VarChar, 50).Value = Trunc(by, 50);
             var prId = (int)ins.ExecuteScalar();
@@ -1733,7 +1733,7 @@ public sealed class PpRepository
             WHERE  o.RequestedDeliveryDate > DATEADD(day, -@D, @Today)
             ORDER BY o.RequestedDeliveryDate;
             """;
-        return Query(sql, MapOtd, ("@D", daysBack), ("@Today", DateTime.Today));
+        return Query(sql, MapOtd, ("@D", daysBack), ("@Today", DbClock.Today));
     }
 
     /// <summary>PP-OTD 필터 조회 — 기간·고객(정규화 ID)·상태 조합.</summary>
@@ -1758,7 +1758,7 @@ public sealed class PpRepository
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@Limit", SqlDbType.Int).Value  = limit;
-        cmd.Parameters.Add("@Today", SqlDbType.Date).Value = DateTime.Today;
+        cmd.Parameters.Add("@Today", SqlDbType.Date).Value = DbClock.Today;
         if (from       != null) cmd.Parameters.Add("@From",     SqlDbType.Date).Value        = from.Value.Date;
         if (to         != null) cmd.Parameters.Add("@To",       SqlDbType.Date).Value        = to.Value.Date.AddDays(1);
         if (customerId != null) cmd.Parameters.Add("@Customer", SqlDbType.VarChar, 30).Value = customerId;

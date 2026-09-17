@@ -213,7 +213,7 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MNT.Failure.Modal.Resolve"] <span class="dim" style="font-weight:400;font-size:.9em;margin-left:6px;">@FailNo(_sel) · @EquipText(_sel)</span></div>
-            <div class="dim" style="font-size:10px;">@L["MNT.Failure.Hint.Resolve"]</div>
+            <div class="dim" style="font-size:var(--ames-fs-hint);">@L["MNT.Failure.Hint.Resolve"]</div>
 
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -257,7 +257,7 @@
                 @L["MNT.Failure.Title"] — @(editing ? L["Modal.Edit"] : L["Modal.Create"])
                 @if (editing) { <span class="dim" style="font-weight:400;font-size:.9em;margin-left:6px;">@_f.FailNo</span> }
             </div>
-            <div class="dim" style="font-size:10px;">@L["MNT.Failure.Hint.Wo"]</div>
+            <div class="dim" style="font-size:var(--ames-fs-hint);">@L["MNT.Failure.Hint.Wo"]</div>
 
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -337,7 +337,7 @@
     MntRepository.FailureRow? _sel;
 
     string   _fSearch = "";
-    DateTime _fFrom = DateTime.Today.AddDays(-30), _fTo = DateTime.Today;
+    DateTime _fFrom = DbClock.Today.AddDays(-30), _fTo = DbClock.Today;
     string?  _fStatus, _fSeverity;
     string   _modal = "", _msg = "", _modalErr = "";
     bool     _bgMouseDownOnSelf, _isErr, _busy, _confirmDelete, _canEdit;
@@ -446,7 +446,7 @@
     {
         if (r is null || !_canEdit) return;
         _sel = r; _modalErr = "";
-        _r = new() { ResolvedAt = DateTime.Now };
+        _r = new() { ResolvedAt = DbClock.Now };
         _modal = "resolve";
     }
 
@@ -490,7 +490,7 @@
     // ── 등록 / 수정 / 삭제 ─────────────────────────────────────────────
     void OpenCreate()
     {
-        _f = new() { ReportedAt = DateTime.Now, Status = "OPEN", Source = "WEB", ReportedBy = _actorUserId };
+        _f = new() { ReportedAt = DbClock.Now, Status = "OPEN", Source = "WEB", ReportedBy = _actorUserId };
         _editId = null; _sel = null; _modalErr = ""; _confirmDelete = false;
         _modal = "create";
     }
@@ -523,7 +523,7 @@
         try
         {
             var failNo = _f.FailNo.Trim();
-            if (failNo.Length == 0) failNo = Mnt.NextFailureNumber(DateTime.Today);
+            if (failNo.Length == 0) failNo = Mnt.NextFailureNumber(DbClock.Today);
             if (Mnt.FailureNumberExists(failNo, _editId)) { _modalErr = string.Format(L["MNT.Failure.Err.Duplicate"].Value, failNo); return; }
             var status = string.IsNullOrEmpty(_f.Status) ? "OPEN" : _f.Status;
 
@@ -613,7 +613,7 @@
         });
 
         var bytes = AMES.Web.Services.XlsxWriter.Build(L["MNT.Failure.Title"].Value, headers, data);
-        var name  = $"Failure_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        var name  = $"Failure_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx";
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         ShowMsg(string.Format(L["MNT.Failure.Ok.Exported"].Value, _rows.Count), false);

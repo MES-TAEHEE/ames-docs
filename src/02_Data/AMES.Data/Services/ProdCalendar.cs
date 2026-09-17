@@ -95,7 +95,7 @@ public static class ProdCalendar
             ORDER  BY ISNULL(SortOrder,0), CodeValue;
             """, conn, tx);
         using var rdr = cmd.ExecuteReader();
-        var now = rdr.Read() ? rdr.GetDateTime(0) : DateTime.Now;
+        var now = rdr.Read() ? rdr.GetDateTime(0) : DbClock.Now;
         if (rdr.NextResult() && rdr.Read()) cutoffAttr = rdr["Attribute1"] as string;
         if (rdr.NextResult())
             while (rdr.Read())

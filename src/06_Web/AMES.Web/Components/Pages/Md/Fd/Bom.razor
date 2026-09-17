@@ -547,8 +547,8 @@
     {
         _fv = new()
         {
-            EffFrom = DateOnly.FromDateTime(DateTime.Today),
-            EffTo   = DateOnly.FromDateTime(DateTime.Today.AddYears(1)),
+            EffFrom = DateOnly.FromDateTime(DbClock.Today),
+            EffTo   = DateOnly.FromDateTime(DbClock.Today.AddYears(1)),
         };
         _modalErr = ""; _modal = "ver-create";
     }

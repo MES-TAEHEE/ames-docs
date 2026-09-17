@@ -1,6 +1,7 @@
 using System.Data;
 using AMES.Data.Connection;
 using Microsoft.Data.SqlClient;
+using AMES.Data.Services;
 
 namespace AMES.Data.Repositories;
 
@@ -1088,7 +1089,7 @@ public sealed class WarehouseRepository
         decimal reqBoxQty,
         string reqUserId)
     {
-        var requiredAt = DateTime.TryParse(reqDate, out var parsedDate) ? parsedDate.Date : DateTime.Today;
+        var requiredAt = DateTime.TryParse(reqDate, out var parsedDate) ? parsedDate.Date : DbClock.Today;
         var slip = CreatePickingSlip(requiredAt, reqUserId, new[] { new CreatePickingSlipLine(partNo, reqLocation, reqBoxQty) }, pickSlipNo);
         return slip;
     }
@@ -1943,7 +1944,7 @@ public sealed class WarehouseRepository
 
             SELECT @Prefix + RIGHT(N'00' + CONVERT(nvarchar(10), COALESCE(@Seq, 1)), 2);
             """, conn, tx);
-        return Convert.ToString(cmd.ExecuteScalar()) ?? DateTime.Now.ToString("yyyyMMdd") + "01";
+        return Convert.ToString(cmd.ExecuteScalar()) ?? DbClock.Now.ToString("yyyyMMdd") + "01";
     }
 
     private void EnsureAreaLayoutTable()

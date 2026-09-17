@@ -175,7 +175,7 @@
     List<ItemAgg>                           _items     = new();
     List<MasterDataRepository.CustomerRow>  _customers = new();
 
-    DateTime _fFrom = FirstOfMonth(DateTime.Today).AddMonths(-5), _fTo = FirstOfMonth(DateTime.Today).AddMonths(1).AddDays(-1);
+    DateTime _fFrom = FirstOfMonth(DbClock.Today).AddMonths(-5), _fTo = FirstOfMonth(DbClock.Today).AddMonths(1).AddDays(-1);
     string?  _fCustomer;
     string   _msg = "";
     bool     _isErr;

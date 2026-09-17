@@ -304,7 +304,7 @@
     List<MasterDataRepository.UomRow> _uomList = new();
     MasterDataRepository.PaintFabricRow? _sel;
 
-    DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
+    DateOnly _today = DateOnly.FromDateTime(DbClock.Today);
     string _fSearch = "";
     string? _fType, _fStatus;
     string _modal = "", _modalErr = "", _msg = "";

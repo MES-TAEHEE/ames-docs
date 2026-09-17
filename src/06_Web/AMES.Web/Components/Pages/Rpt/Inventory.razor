@@ -185,7 +185,7 @@
     string? _fWh, _fCat;
     string  _msg = "";
     bool    _isErr;
-    DateTime _loadedAt = DateTime.Now;
+    DateTime _loadedAt = DbClock.Now;
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
     public sealed class Sku
@@ -220,7 +220,7 @@
         try { _raw = Rpt.ListInventorySku(); }
         catch (Exception ex) { _raw = new(); ShowMsg(ex.Message, true); }
         try { _issued = Rpt.IssuedQtyByItem(30); } catch { _issued = new(); }
-        _loadedAt = DateTime.Now;
+        _loadedAt = DbClock.Now;
 
         // SKU = 품목 × 창고(자재/완성품). 위치는 묶어서 표시
         _all = _raw.GroupBy(r => (r.Source, r.ItemNo))
@@ -310,7 +310,7 @@
             string.Format(L["RPT.Inventory.TotalFmt"].Value, _rows.Count), null, null, null, null, _rows.Sum(x => x.Qty), null, HasCost ? TotalValue : null, null, null,
         });
         var bytes = AMES.Web.Services.XlsxWriter.Build(L["RPT.Inventory.Title"].Value, headers, data);
-        var name  = $"Inventory_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        var name  = $"Inventory_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx";
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         ShowMsg(string.Format(L["RPT.Inventory.Ok.Exported"].Value, _rows.Count), false);

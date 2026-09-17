@@ -39,7 +39,7 @@
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">@L["SYS.Users.Kpi.RecentLogin"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.LastLoginTs.HasValue && (DateTime.Now - r.LastLoginTs.Value).TotalHours <= 24)</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.LastLoginTs.HasValue && (DbClock.Now - r.LastLoginTs.Value).TotalHours <= 24)</div>
     </div>
 </div>
 

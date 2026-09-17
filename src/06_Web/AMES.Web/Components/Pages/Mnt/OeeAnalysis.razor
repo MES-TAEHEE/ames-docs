@@ -79,7 +79,7 @@
             <RadzenButton Text="@L["MNT.OeeAnalysis.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["MNT.OeeAnalysis.Reliability.Hint"]</div>
+    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["MNT.OeeAnalysis.Reliability.Hint"]</div>
 
     <RadzenDataGrid TItem="EquipAgg" Data="@_equipAgg" AllowPaging="false" AllowSorting="true"
                     RowClick="@OnAggRowClick" RowRender="@AggRowRender" EmptyText="@L["MNT.OeeAnalysis.Empty"]" Class="ames-rz-grid">
@@ -127,8 +127,8 @@
 @* ── OEE 추세 (전체 평균 또는 선택 설비) ──────────────────────────── *@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MNT.OeeAnalysis.Trend.Title"] — <span style="color:#34d399;">@TrendSubject</span> · @string.Format(L["MNT.OeeAnalysis.Trend.Range"].Value, TrendWeeks, TrendFrom.ToString("yyyy-MM-dd"), DateTime.Today.ToString("yyyy-MM-dd"))</span>
-        <span class="dim" style="font-size:10px;">@L["MNT.OeeAnalysis.Trend.Note"]</span>
+        <span style="white-space:nowrap;">▼ @L["MNT.OeeAnalysis.Trend.Title"] — <span style="color:#34d399;">@TrendSubject</span> · @string.Format(L["MNT.OeeAnalysis.Trend.Range"].Value, TrendWeeks, TrendFrom.ToString("yyyy-MM-dd"), DbClock.Today.ToString("yyyy-MM-dd"))</span>
+        <span class="dim" style="font-size:var(--ames-fs-hint);">@L["MNT.OeeAnalysis.Trend.Note"]</span>
     </div>
     @if (_trend.All(t => t.Oee is null))
     {
@@ -139,7 +139,7 @@
         <RadzenChart class="mnt-oee-chart" Style="width:100%;height:280px;">
             <RadzenChartTooltipOptions Visible="true" />
             <RadzenLegend Position="LegendPosition.Bottom" />
-            <RadzenCategoryAxis Padding="16" Min="@TrendFrom" Max="@WeekStart(DateTime.Today)" Step="@TimeSpan.FromDays(7)" FormatString="{0:MM-dd}" />
+            <RadzenCategoryAxis Padding="16" Min="@TrendFrom" Max="@WeekStart(DbClock.Today)" Step="@TimeSpan.FromDays(7)" FormatString="{0:MM-dd}" />
             <RadzenValueAxis Min="0" Max="100" Step="25" FormatString="{0}%">
                 <RadzenGridLines Visible="true" />
             </RadzenValueAxis>
@@ -171,7 +171,7 @@
     List<MasterDataRepository.EquipmentRow>  _equipList  = new();
     List<MasterDataRepository.CodeItemRow>   _shiftItems = new();
 
-    DateTime _fFrom = DateTime.Today.AddDays(-14), _fTo = DateTime.Today;
+    DateTime _fFrom = DbClock.Today.AddDays(-14), _fTo = DbClock.Today;
     string?  _fLine, _fEquip, _fShift;
     string?  _selEquip;                      // 요약 행 클릭으로 고른 추세 대상 설비
     string   _msg = "";
@@ -190,7 +190,7 @@
     // 추세 창: 오늘이 속한 주(월요일 시작)를 포함해 과거 12주
     const int TrendWeeks = 12;
     static DateTime WeekStart(DateTime d) => d.Date.AddDays(-(((int)d.DayOfWeek + 6) % 7));
-    static DateTime TrendFrom => WeekStart(DateTime.Today).AddDays(-7 * (TrendWeeks - 1));
+    static DateTime TrendFrom => WeekStart(DbClock.Today).AddDays(-7 * (TrendWeeks - 1));
 
     // Radzen 시리즈는 null 값을 못 받으므로 값 있는 주만 넘기고, 축은 날짜(Min/Max/Step)로 고정해 빈 주를 자리로 남긴다
     IEnumerable<TrendPoint> TrendOee => _trend.Where(t => t.Oee is not null);
@@ -228,7 +228,7 @@
         catch (Exception ex) { _allRows = new(); ShowMsg(ex.Message, true); }
         try { _failures = Mnt.ListFailuresRange(_fFrom, _fTo); }
         catch { _failures = new(); }
-        try { _trendRows = Mnt.ListOeeRange(TrendFrom, DateTime.Today); }
+        try { _trendRows = Mnt.ListOeeRange(TrendFrom, DbClock.Today); }
         catch { _trendRows = new(); }
         _monthly = (_fTo - _fFrom).TotalDays > 62;
         ApplyFilter();
@@ -285,7 +285,7 @@
                         .GroupBy(r => WeekStart(r.AggDate!.Value))
                         .ToDictionary(g => g.Key, g => Weighted(g));
         var pts = new List<TrendPoint>(TrendWeeks);
-        for (var ws = TrendFrom; ws <= DateTime.Today; ws = ws.AddDays(7))
+        for (var ws = TrendFrom; ws <= DbClock.Today; ws = ws.AddDays(7))
         {
             byWeek.TryGetValue(ws, out var w);
             pts.Add(new TrendPoint
@@ -387,7 +387,7 @@
         });
 
         var bytes = AMES.Web.Services.XlsxWriter.Build(L["MNT.OeeAnalysis.Title"].Value, headers, data);
-        var name  = $"OeeAnalysis_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        var name  = $"OeeAnalysis_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx";
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         ShowMsg(string.Format(L["MNT.OeeAnalysis.Ok.Exported"].Value, _equipAgg.Count), false);

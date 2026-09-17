@@ -167,7 +167,7 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.SparePart.Title"] — @L["Modal.Create"]</div>
-            <div class="dim" style="font-size:10px;">@L["MD.SparePart.Hint.AutoNo"]</div>
+            <div class="dim" style="font-size:var(--ames-fs-hint);">@L["MD.SparePart.Hint.AutoNo"]</div>
 
             @* 예비품번호는 분류·적용 설비로 채번되므로 그 둘을 먼저 고른다 — 순서가 DB 컬럼 순서와 같다 *@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -217,7 +217,7 @@
                 </RadzenColumn>
             </RadzenRow>
             @* 현재고는 이력과 어긋나면 안 되므로 등록 시 초기 재고는 IN, 수정 시 차이는 ADJ 이력으로 남긴다 *@
-            <div class="dim" style="font-size:10px;padding:2px 0 0;">@(_modal == "create" ? L["MD.SparePart.Hint.InitStock"] : L["MD.SparePart.Hint.OnHand"])</div>
+            <div class="dim" style="font-size:var(--ames-fs-hint);padding:2px 0 0;">@(_modal == "create" ? L["MD.SparePart.Hint.InitStock"] : L["MD.SparePart.Hint.OnHand"])</div>
 
             @ImageBlock
 
@@ -319,7 +319,7 @@
                 </RadzenColumn>
             </RadzenRow>
             @* 현재고는 이력과 어긋나면 안 되므로 등록 시 초기 재고는 IN, 수정 시 차이는 ADJ 이력으로 남긴다 *@
-            <div class="dim" style="font-size:10px;padding:2px 0 0;">@(_modal == "create" ? L["MD.SparePart.Hint.InitStock"] : L["MD.SparePart.Hint.OnHand"])</div>
+            <div class="dim" style="font-size:var(--ames-fs-hint);padding:2px 0 0;">@(_modal == "create" ? L["MD.SparePart.Hint.InitStock"] : L["MD.SparePart.Hint.OnHand"])</div>
 
             @ImageBlock
 
@@ -664,7 +664,7 @@
                 }
                 else
                 {
-                    <span class="dim" style="font-size:11px;">@L["MD.SparePart.NoImage"]</span>
+                    <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">@L["MD.SparePart.NoImage"]</span>
                 }
             </div>
         </RadzenColumn>
@@ -678,11 +678,11 @@
                     </label>
                     @if (_f.Image is { Length: > 0 })
                     {
-                        <span class="dim" style="font-size:10px;">@ImageSizeLabel</span>
+                        <span class="dim" style="font-size:var(--ames-fs-hint);">@ImageSizeLabel</span>
                         <RadzenButton Text="@L["MD.SparePart.Btn.RemoveImage"]" Click="@RemoveImage" Icon="delete" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Disabled="@_busy" class="ames-rz-btn" />
                     }
                 </div>
-                <div class="dim" style="font-size:10px;">@L["MD.SparePart.Hint.Image"]</div>
+                <div class="dim" style="font-size:var(--ames-fs-hint);">@L["MD.SparePart.Hint.Image"]</div>
             </div>
         </RadzenColumn>
     </RadzenRow>;

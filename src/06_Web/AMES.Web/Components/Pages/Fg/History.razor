@@ -31,10 +31,10 @@
     </RadzenDataGrid>
 </div>
 @code {
-    List<AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow> _rows = new(); readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 }; int _pageRows = 25; string _search = "", _message = ""; string? _eventType; DateTime? _from = DateTime.Today.AddMonths(-1), _to = DateTime.Today; string[] EventTypes = ["PUT AWAY", "PICK", "LOADING", "SHIPPED", "DELIVERY NOTE", "RETURN"];
+    List<AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow> _rows = new(); readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 }; int _pageRows = 25; string _search = "", _message = ""; string? _eventType; DateTime? _from = DbClock.Today.AddMonths(-1), _to = DbClock.Today; string[] EventTypes = ["PUT AWAY", "PICK", "LOADING", "SHIPPED", "DELIVERY NOTE", "RETURN"];
     protected override void OnInitialized() => Reload();
     void Reload() { if (_from > _to) { _message = "From date cannot be later than To date."; return; } try { _rows = Fg.ListHistory(_search, _eventType, _from, _to); _message = ""; } catch (Exception ex) { _rows = new(); _message = ex.Message; } }
-    void Clear() { _search = ""; _eventType = null; _from = DateTime.Today.AddMonths(-1); _to = DateTime.Today; Reload(); }
+    void Clear() { _search = ""; _eventType = null; _from = DbClock.Today.AddMonths(-1); _to = DbClock.Today; Reload(); }
     int Count(string type) => _rows.Count(x => x.EventType == type);
     static string EventClass(string type) => type switch { "PUT AWAY" => "ok", "LOADING" => "warn", "SHIPPED" => "ok", "RETURN" => "bad", _ => "mute" };
 }

@@ -76,7 +76,7 @@
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["PP.Oee.ByLine.Hint"]</div>
+    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["PP.Oee.ByLine.Hint"]</div>
     <RadzenDataGrid TItem="LineAgg" Data="@_rows" AllowPaging="false" AllowSorting="true"
                     RowClick="@(e => { if (e.Data is { } d) Select(d.LineId); })" RowRender="@LineRowRender"
                     EmptyText="@L["PP.Oee.ByLine.NoData"]" Class="ames-rz-grid pp-oee-lines">
@@ -103,7 +103,7 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" Title="@L["PP.Oee.Col.Grade"]" Width="120px" TextAlign="TextAlign.Center" Sortable="false">
                 <Template Context="r">
-                    @if (r.HasData) { <b style="font-size:11px;">@GradeText(r.Oee)</b> } else { <span class="dim" style="font-size:11px;">@L["PP.Oee.ByLine.NoData"]</span> }
+                    @if (r.HasData) { <b style="font-size:calc(11px + var(--ames-fs-bump));">@GradeText(r.Oee)</b> } else { <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">@L["PP.Oee.ByLine.NoData"]</span> }
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" Property="TotalLoss" Title="@L["PP.Oee.Col.Loss"]" Width="100px" TextAlign="TextAlign.Right">
@@ -149,7 +149,7 @@
                     <div class="pp-oee-loss-val">@x.Min.ToString("N0") min</div>
                 </div>
             }
-            <div class="dim" style="font-size:10px;margin-top:8px;">@L["PP.Oee.Loss.Hint"]</div>
+            <div class="dim" style="font-size:var(--ames-fs-hint);margin-top:8px;">@L["PP.Oee.Loss.Hint"]</div>
         }
     </div>
 
@@ -163,7 +163,7 @@
         {
             <div class="pp-oee-donut-wrap @GradeKey(fo.Oee)">
                 @((MarkupString)BuildDonutSvg(fo.Oee))
-                <div style="font-size:11px;font-weight:800;">@L["PP.Oee.Col.Grade"]: @GradeText(fo.Oee)</div>
+                <div style="font-size:calc(11px + var(--ames-fs-bump));font-weight:800;">@L["PP.Oee.Col.Grade"]: @GradeText(fo.Oee)</div>
             </div>
             <div class="pp-oee-comp">
                 @foreach (var (lbl, val, key) in new[] {
@@ -188,7 +188,7 @@
     <div class="ames-card" style="margin-top:8px;">
         <div class="ames-card-h" style="gap:6px;flex-wrap:wrap;">
             <span>@string.Format(L["PP.Oee.Detail.Title"].Value, selLine)</span>
-            <span class="dim" style="font-size:10px;text-transform:none;letter-spacing:0;">@_rows.FirstOrDefault(r => r.LineId == selLine)?.Name</span>
+            <span class="dim" style="font-size:var(--ames-fs-hint);text-transform:none;letter-spacing:0;">@_rows.FirstOrDefault(r => r.LineId == selLine)?.Name</span>
             <span style="margin-left:auto;display:flex;gap:4px;">
                 <button class="ames-btn @(_tab == "trend" ? "" : "ghost")" style="padding:3px 10px;" @onclick='() => _tab = "trend"'>@L["PP.Oee.Tab.Trend"]</button>
                 <button class="ames-btn @(_tab == "snaps" ? "" : "ghost")" style="padding:3px 10px;" @onclick='() => _tab = "snaps"'>@L["PP.Oee.Tab.Snapshots"]</button>
@@ -232,7 +232,7 @@
                         <RadzenMarkers MarkerType="MarkerType.Circle" Size="7" Fill="#ef4444" Stroke="#ef4444" />
                     </RadzenLineSeries>
                 </RadzenChart>
-                <div class="dim" style="font-size:10px;padding:2px 0 0;">@L["PP.Oee.Lbl.Target"] @($"{_fTarget:F0}%") · @string.Format(L["PP.Oee.Kpi.Range"].Value, _fFrom.ToString("MM-dd"), _fTo.ToString("MM-dd"), pts.Count)</div>
+                <div class="dim" style="font-size:var(--ames-fs-hint);padding:2px 0 0;">@L["PP.Oee.Lbl.Target"] @($"{_fTarget:F0}%") · @string.Format(L["PP.Oee.Kpi.Range"].Value, _fFrom.ToString("MM-dd"), _fTo.ToString("MM-dd"), pts.Count)</div>
             }
         }
         else if (_tab == "snaps")
@@ -283,11 +283,11 @@
         else if (_tab == "log")
         {
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
-                <span class="dim" style="font-size:11px;">@L["PP.Oee.Log.Timeline"]</span>
+                <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">@L["PP.Oee.Log.Timeline"]</span>
                 <input type="date" class="ames-input" style="width:148px;padding:3px 7px;"
                        value="@_logDate.ToString("yyyy-MM-dd")"
                        @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) { _logDate = d; LoadLogs(); } }" />
-                <span class="dim" style="font-size:11px;margin-left:auto;">
+                <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));margin-left:auto;">
                     <span class="pp-oee-dot" style="background:#22c55e;"></span>@L["PP.Oee.Log.Run"] @_logs.Count(l => l.State == "RUN")
                     <span class="pp-oee-dot" style="background:#f59e0b;margin-left:10px;"></span>@L["PP.Oee.Log.Idle"] @_logs.Count(l => l.State == "IDLE")
                     <span class="pp-oee-dot" style="background:#ef4444;margin-left:10px;"></span>@L["PP.Oee.Log.Down"] @_logs.Count(l => l.State == "DOWN")
@@ -299,14 +299,14 @@
         }
         else if (_tab == "calc")
         {
-            <div class="dim" style="font-size:11px;margin-bottom:8px;">@L["PP.Oee.Calc.Title"] · @L["PP.Oee.Calc.Note"]</div>
+            <div class="dim" style="font-size:calc(11px + var(--ames-fs-bump));margin-bottom:8px;">@L["PP.Oee.Calc.Title"] · @L["PP.Oee.Calc.Note"]</div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
                 <input type="date" class="ames-input" style="width:148px;padding:3px 7px;"
                        value="@_calcDate.ToString("yyyy-MM-dd")"
                        @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) _calcDate = d; }" />
                 <RadzenLabel Text="@L["Col.Shift"]" Component="DropDownCalcShift" />
                 <RadzenDropDown Name="DropDownCalcShift" @bind-Value="_calcShift" Data="@ShiftOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["PP.Oee.Shift.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px;" />
-                <span class="dim" style="font-size:11px;">@CalcWindowText</span>
+                <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">@CalcWindowText</span>
                 <button class="ames-btn ok" @onclick="Compute">@L["PP.Oee.Btn.Compute"]</button>
                 @if (_canEdit)
                 {
@@ -333,7 +333,7 @@
                                 <div class="pp-oee-track pp-oee-comp-track"><i class="pp-oee-fill-@key" style="width:@(Math.Min(100m, val).ToString("F1"))%;"></i></div>
                             </div>
                         }
-                        <div class="dim" style="font-size:11px;display:flex;gap:14px;flex-wrap:wrap;">
+                        <div class="dim" style="font-size:calc(11px + var(--ames-fs-bump));display:flex;gap:14px;flex-wrap:wrap;">
                             <span>@L["PP.Oee.Loss.Planned"] @r.PlannedDownMin min</span>
                             <span style="color:#f87171;">@L["PP.Oee.Loss.Cat.Avail"] @r.UnplannedDownMin min</span>
                             <span>@L["PP.Oee.Snap.Col.Date"] @r.PeriodDate.ToString("yyyy-MM-dd") @(r.ShiftCode is null ? "" : $"[{r.ShiftCode}]")</span>
@@ -352,8 +352,8 @@
 
 
     // ── 필터 상태 ─────────────────────────────────────────────────────────
-    DateTime _fFrom = DateTime.Today.AddDays(-6);
-    DateTime _fTo   = DateTime.Today;
+    DateTime _fFrom = DbClock.Today.AddDays(-6);
+    DateTime _fTo   = DbClock.Today;
     string?  _fShift;
     decimal  _fTarget = 75m;
 
@@ -374,9 +374,9 @@
     string?  _sel;
     string   _tab      = "trend";
 
-    DateTime _logDate  = DateTime.Today;
+    DateTime _logDate  = DbClock.Today;
     List<LineStateLogDto> _logs = [];
-    DateTime _calcDate  = DateTime.Today;
+    DateTime _calcDate  = DbClock.Today;
     string?  _calcShift;
     OeeSnapshotDto? _result;
 

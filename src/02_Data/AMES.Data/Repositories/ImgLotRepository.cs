@@ -106,7 +106,7 @@ public sealed class ImgLotRepository
                 equipId = cmd.ExecuteScalar() as string;
             }
 
-            var lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DateTime.Now);
+            var lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DbClock.Now);
 
             int lotId; DateTime createdTs;
             using (var cmd = new SqlCommand("""

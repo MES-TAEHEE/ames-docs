@@ -49,7 +49,7 @@
                 <span class="dim">:</span>
                 @for (var i = 0; i < seq.Count; i++)
                 {
-                    <span style="padding:2px 9px;border-radius:10px;background:rgba(148,163,184,.18);font-family:'JetBrains Mono',monospace;font-size:.82em;">@seq[i].ProcessCode</span>
+                    <span style="padding:2px 9px;border-radius:10px;background:rgba(148,163,184,.18);font-family:var(--ames-font-mono);font-size:.82em;">@seq[i].ProcessCode</span>
                     @if (i < seq.Count - 1) { <span class="dim">→</span> }
                 }
             </div>

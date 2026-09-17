@@ -74,7 +74,7 @@
             <RadzenButton Text="@L["MNT.Mold.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["MNT.Mold.Hint.Detail"]</div>
+    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["MNT.Mold.Hint.Detail"]</div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MntRepository.MoldRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.Mold.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed ames-grid-top">
@@ -379,7 +379,7 @@
         });
 
         var bytes = AMES.Web.Services.XlsxWriter.Build(L["MNT.Mold.ChangeList"].Value, headers, data);
-        var name  = $"MoldChange_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        var name  = $"MoldChange_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx";
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         ShowMsg(string.Format(L["MNT.Mold.Ok.Exported"].Value, _changes.Count), false);
@@ -451,7 +451,7 @@
         });
 
         var bytes = AMES.Web.Services.XlsxWriter.Build(L["MNT.Mold.Title"].Value, headers, data);
-        var name  = $"Mold_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        var name  = $"Mold_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx";
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         ShowMsg(string.Format(L["MNT.Mold.Ok.Exported"].Value, _rows.Count), false);

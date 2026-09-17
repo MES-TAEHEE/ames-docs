@@ -96,7 +96,7 @@
                 <Template Context="r"><span class="dim" style="font-size:12px;">@(r.ScreenNameEn ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="HRef" Title="@L["SYS.Screen.Col.Path"]">
-                <Template Context="r"><span class="dim" style="font-size:12px;font-family:'JetBrains Mono',monospace;">@(r.HRef ?? "—")</span></Template>
+                <Template Context="r"><span class="dim" style="font-size:12px;font-family:var(--ames-font-mono);">@(r.HRef ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="LidLabel" Title="@L["SYS.Screen.Col.LidLabel"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="dim code" style="font-size:12px;">@(r.LidLabel ?? "—")</span></Template>

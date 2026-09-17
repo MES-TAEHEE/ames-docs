@@ -2,6 +2,7 @@ using System.Data;
 using AMES.Contracts.Dto;
 using AMES.Data.Connection;
 using Microsoft.Data.SqlClient;
+using AMES.Data.Services;
 
 namespace AMES.Data.Repositories;
 
@@ -584,7 +585,7 @@ public sealed class MntRepository
                 failId = Convert.ToInt32(cmd.ExecuteScalar());
             }
 
-            var woNumber = NextMwoNumber(conn, tx, DateTime.Today);
+            var woNumber = NextMwoNumber(conn, tx, DbClock.Today);
             int woId;
             using (var cmd = new SqlCommand("""
                 INSERT INTO dbo.MNT_WorkOrder
@@ -729,7 +730,7 @@ public sealed class MntRepository
                 pmId = Convert.ToInt32(cmd.ExecuteScalar());
             }
 
-            var woNumber = NextMwoNumber(conn, tx, DateTime.Today);
+            var woNumber = NextMwoNumber(conn, tx, DbClock.Today);
             int woId;
             using (var cmd = new SqlCommand("""
                 INSERT INTO dbo.MNT_WorkOrder
@@ -1237,7 +1238,7 @@ public sealed class MntRepository
 
         if (next is not { } nd) return (pm.PlanNo, null, null);
 
-        var nextWoNumber = NextMwoNumber(conn, tx, DateTime.Today);
+        var nextWoNumber = NextMwoNumber(conn, tx, DbClock.Today);
         int nextWoId;
         using (var cmd = new SqlCommand("""
             INSERT INTO dbo.MNT_WorkOrder

@@ -193,7 +193,7 @@
     List<LineAgg>                       _lines    = new();
     List<MasterDataRepository.LineRow>  _lineList = new();
 
-    DateTime  _fFrom = DateTime.Today.AddDays(-9), _fTo = DateTime.Today;
+    DateTime  _fFrom = DbClock.Today.AddDays(-9), _fTo = DbClock.Today;
     string?   _fLine;
     DateTime? _selDay;
     string    _msg = "";
@@ -239,7 +239,7 @@
         try { raw = Rpt.ListScheduleWo(_fFrom, _fTo, _fLine); }
         catch (Exception ex) { raw = new(); ShowMsg(ex.Message, true); }
 
-        var today = DateTime.Today;
+        var today = DbClock.Today;
         _wos = raw.Select(r =>
         {
             var nm = MasterDataRepository.LocalName(r.ItemName, r.ItemNameEn);

@@ -28,7 +28,7 @@
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">@L["MD.RfidTag.Kpi.NeedReplace"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.ReplaceSchedule.HasValue && r.ReplaceSchedule.Value <= DateOnly.FromDateTime(DateTime.Today))</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.ReplaceSchedule.HasValue && r.ReplaceSchedule.Value <= DateOnly.FromDateTime(DbClock.Today))</div>
     </div>
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["MD.RfidTag.Kpi.JigLinked"]</div>
@@ -86,7 +86,7 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.RfidTagRow" Property="ReplaceSchedule" Title="@L["Col.ReplaceDue"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r">
-                    @{ var needReplace = r.ReplaceSchedule.HasValue && r.ReplaceSchedule.Value <= DateOnly.FromDateTime(DateTime.Today); }
+                    @{ var needReplace = r.ReplaceSchedule.HasValue && r.ReplaceSchedule.Value <= DateOnly.FromDateTime(DbClock.Today); }
                     <span class="@(needReplace ? "bad" : "dim")">@(r.ReplaceSchedule?.ToString(DateFmt.DateShort) ?? "—")</span>
                 </Template>
             </RadzenDataGridColumn>

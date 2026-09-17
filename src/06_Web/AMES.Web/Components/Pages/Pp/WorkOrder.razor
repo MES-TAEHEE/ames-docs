@@ -354,7 +354,7 @@ else
 
         var bytes = System.Text.Encoding.UTF8.GetPreamble()
             .Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
-        var name = $"WorkOrder_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+        var name = $"WorkOrder_{DbClock.Now:yyyyMMdd_HHmmss}.csv";
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes), "text/csv");
     }
 

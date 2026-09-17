@@ -58,7 +58,7 @@
                       ButtonStyle="ButtonStyle.Success" Disabled="@(_busy || _selected.Count == 0)" Click="OpenBatch" />
     </div>
 </div>
-<div class="dim" style="font-size:10px;padding:0 0 6px;">📤 @L["PP.PurchaseReq.Hint.Grid"]</div>
+<div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">📤 @L["PP.PurchaseReq.Hint.Grid"]</div>
 
 <div class="pr-grid">
 @if (_rows.Count == 0)
@@ -129,11 +129,11 @@ else
             </div>
 
             <div class="pr-dgrid">
-                <div class="pr-dt"><div class="pr-dl">@L["Col.Item"] / @L["Col.Qty"]</div><div class="pr-dv"><span class="code">@_sel.ItemNo</span> · @Q(_sel.RequiredQty) @_sel.Uom</div><div class="dim" style="font-size:11px;">@_sel.ItemName</div></div>
+                <div class="pr-dt"><div class="pr-dl">@L["Col.Item"] / @L["Col.Qty"]</div><div class="pr-dv"><span class="code">@_sel.ItemNo</span> · @Q(_sel.RequiredQty) @_sel.Uom</div><div class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">@_sel.ItemName</div></div>
                 <div class="pr-dt"><div class="pr-dl">@L["Col.Required"]</div><div class="pr-dv">@(_sel.RequiredDate?.ToString(DateFmt.Date) ?? "—") <span class="pill @DdCls(_sel)" style="margin-left:6px;">@DdText(_sel)</span></div></div>
                 <div class="pr-dt"><div class="pr-dl">@L["PP.PurchaseReq.Col.DocNum"] / @L["Col.SapPo"]</div><div class="pr-dv code">@(_sel.SapDocNum ?? "—") / @(_sel.SapPoNumber ?? "—")</div></div>
                 <div class="pr-dt"><div class="pr-dl">@L["Col.Status"]</div><div class="pr-dv">@StText(_sel)</div>
-                    @if (_sel.LastError is { Length: > 0 }) { <div class="pr-neg" style="font-size:11px;">@_sel.LastError</div> }</div>
+                    @if (_sel.LastError is { Length: > 0 }) { <div class="pr-neg" style="font-size:calc(11px + var(--ames-fs-bump));">@_sel.LastError</div> }</div>
             </div>
 
             <div class="pr-drow">
@@ -147,8 +147,8 @@ else
             </div>
 
             <div class="pr-dsub">@L["PP.PurchaseReq.Detail.LinkedWo"]</div>
-            @if (_sel.WoNumber is { Length: > 0 }) { <span class="pr-wochip">@_sel.WoNumber</span> } else { <span class="dim" style="font-size:11px;">—</span> }
-            <a class="pr-link" href="@($"pp/mrp?item={Uri.EscapeDataString(_sel.ItemNo)}")" style="margin-left:10px;font-size:11px;">→ @L["PP.PurchaseReq.Detail.Mrp"]</a>
+            @if (_sel.WoNumber is { Length: > 0 }) { <span class="pr-wochip">@_sel.WoNumber</span> } else { <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">—</span> }
+            <a class="pr-link" href="@($"pp/mrp?item={Uri.EscapeDataString(_sel.ItemNo)}")" style="margin-left:10px;font-size:calc(11px + var(--ames-fs-bump));">→ @L["PP.PurchaseReq.Detail.Mrp"]</a>
 
             <div class="pr-dsub">@L["PP.PurchaseReq.Detail.Log"]</div>
             <div class="pr-log">
@@ -212,7 +212,7 @@ else
                     <div class="pr-item"><span><span class="code">@PrNo(r)</span> · @r.ItemNo <span class="dim">@r.ItemName</span></span><span class="code">@Q(r.RequiredQty) @r.Uom</span></div>
                 }
             </div>
-            <div class="dim" style="font-size:11px;margin-top:8px;">@L["PP.PurchaseReq.Dlg.Send.Note"]</div>
+            <div class="dim" style="font-size:calc(11px + var(--ames-fs-bump));margin-top:8px;">@L["PP.PurchaseReq.Dlg.Send.Note"]</div>
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
                 <RadzenButton Text="@L["PP.PurchaseReq.Dlg.Send.Confirm"]" Click="@DoBatch" Icon="send" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Disabled="@_busy" class="ames-rz-btn" />
@@ -406,7 +406,7 @@ else
             r.ApprovedBy, r.ApprovedAt?.ToString(DateFmt.DateTime),
         });
         var bytes = AMES.Web.Services.XlsxWriter.Build(L["PP.PurchaseReq.Title"].Value, headers, data);
-        await JS.InvokeVoidAsync("amesDownload", $"PurchaseReq_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx", Convert.ToBase64String(bytes),
+        await JS.InvokeVoidAsync("amesDownload", $"PurchaseReq_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx", Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         ShowMsg(string.Format(L["PP.PurchaseReq.Ok.Exported"].Value, _rows.Count), false);
     }
@@ -439,7 +439,7 @@ else
     };
     static string LogCls(string? result) => result switch { "Failed" => "pr-neg", "Sent" or "Approved" => "pr-pos", _ => "" };
 
-    static int? Dd(PpRepository.PrRow r) => r.RequiredDate is { } d ? (d.Date - DateTime.Today).Days : null;
+    static int? Dd(PpRepository.PrRow r) => r.RequiredDate is { } d ? (d.Date - DbClock.Today).Days : null;
     static string DdText(PpRepository.PrRow r) => Dd(r) is { } n ? (n == 0 ? "D-Day" : n > 0 ? $"D-{n}" : $"D+{-n}") : "—";
     static string DdCls(PpRepository.PrRow r) =>
         r.Status == PrStatusRules.Approved ? "mute" : Dd(r) is { } n ? (n < 0 ? "bad" : n <= 7 ? "warn" : "ok") : "mute";

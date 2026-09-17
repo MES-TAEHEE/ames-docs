@@ -98,8 +98,8 @@
 
     string _search = "";
     string? _operationType;
-    DateTime? _from = DateTime.Today.AddDays(-90);
-    DateTime? _to = DateTime.Today;
+    DateTime? _from = DbClock.Today.AddDays(-90);
+    DateTime? _to = DbClock.Today;
     string _msg = "";
 
     public class DropDownItem
@@ -128,8 +128,8 @@
     {
         _search = "";
         _operationType = null;
-        _from = DateTime.Today.AddDays(-90);
-        _to = DateTime.Today;
+        _from = DbClock.Today.AddDays(-90);
+        _to = DbClock.Today;
         Reload();
     }
 

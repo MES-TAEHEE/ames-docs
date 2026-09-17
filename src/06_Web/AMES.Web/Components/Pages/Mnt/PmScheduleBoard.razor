@@ -61,7 +61,7 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
         <div style="display:flex;align-items:center;gap:10px;">
             <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevMonth" class="ames-rz-btn" />
-            <span style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;">
+            <span style="font-family:var(--ames-font-display);font-size:26px;letter-spacing:2px;color:#fff;">
                 @MonthTitle
             </span>
             <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@NextMonth" class="ames-rz-btn" />
@@ -80,7 +80,7 @@
             }
         </RadzenStack>
     </div>
-    <div class="dim" style="font-size:10px;padding:0 0 6px;">@string.Format(L["MNT.PmSchedule.Hint.Class"].Value, PmClassName(PmClass))</div>
+    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@string.Format(L["MNT.PmSchedule.Hint.Class"].Value, PmClassName(PmClass))</div>
 
     @{
         var firstOfMonth = new DateTime(_calYear, _calMonth, 1);
@@ -116,7 +116,7 @@
                 int dow       = (int)date.DayOfWeek;
                 bool isSun    = dow == 0;
                 bool isSat    = dow == 6;
-                bool isToday  = date.Date == DateTime.Today;
+                bool isToday  = date.Date == DbClock.Today;
                 var holiday   = HolidayName(date);
 
                 string cellCls = "ames-cal-cell";
@@ -171,7 +171,7 @@
                      @onclick="() => { _showDay = false; ShowDetail(capEv); }">
                     <span style="font-weight:700;">@(ev.Exec?.PmPlanNumber ?? ev.Pm?.PmPlanNumber)</span>
                     <span style="opacity:.75;margin-left:6px;">@ev.Label</span>
-                    <span class="pill @PillCls(ev.Cls)" style="float:right;font-size:10px;padding:1px 6px;">@LegendText(ev.Cls)</span>
+                    <span class="pill @PillCls(ev.Cls)" style="float:right;font-size:var(--ames-fs-hint);padding:1px 6px;">@LegendText(ev.Cls)</span>
                 </div>
             }
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
@@ -254,7 +254,7 @@
                 <div class="ames-detail-label">@L["MNT.PmSchedule.Lbl.Tech"]</div>
                 <div>@TechText(d.AssignedTechId)</div>
                 <div class="ames-detail-label">@L["Col.Status"]</div>
-                <div><span class="pill @PillCls(_detail.Cls)">@LegendText(_detail.Cls)</span> <span class="dim" style="font-size:11px;margin-left:6px;">@CodeName(_pmStatuses, d.Status)</span></div>
+                <div><span class="pill @PillCls(_detail.Cls)">@LegendText(_detail.Cls)</span> <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));margin-left:6px;">@CodeName(_pmStatuses, d.Status)</span></div>
                 <div class="ames-detail-label">@L["Col.OpenWo"]</div>
                 <div>@(d.ActiveWoId is { } wo ? $"#{wo}" : "—")</div>
                 <div class="ames-detail-label">@L["MNT.PmSchedule.Hist"]</div>
@@ -297,7 +297,7 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MNT.PmSchedule.Modal.Complete"] <span class="dim" style="font-weight:400;font-size:.9em;margin-left:6px;">@(_cpm.PmPlanNumber ?? $"PM#{_cpm.PmScheduleId}") · @EquipText(_cpm.EquipId)</span></div>
-            <div class="dim" style="font-size:10px;">@L["MNT.PmSchedule.Hint.Complete"]</div>
+            <div class="dim" style="font-size:var(--ames-fs-hint);">@L["MNT.PmSchedule.Hint.Complete"]</div>
 
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -441,8 +441,8 @@
     List<MasterDataRepository.CodeItemRow>  _pmStatuses = new();   // 공통코드 PM_STATUS
     List<MasterDataRepository.CodeItemRow>  _results    = new();   // 공통코드 MWO_RESULT (완료 결과)
 
-    int _calYear  = DateTime.Today.Year;
-    int _calMonth = DateTime.Today.Month;
+    int _calYear  = DbClock.Today.Year;
+    int _calMonth = DbClock.Today.Month;
     string? _fEquip, _fStatus;
     string _msg = "", _modalErr = "";
     bool _isErr, _busy, _confirmDelete, _bgMouseDownOnSelf, _canEdit;
@@ -525,7 +525,7 @@
     {
         var from = new DateTime(_calYear, _calMonth, 1);
         var to   = from.AddMonths(1).AddDays(-1);
-        var today = DateTime.Today;
+        var today = DbClock.Today;
 
         var rows = _all.Where(p => string.IsNullOrEmpty(_fEquip) || p.EquipId == _fEquip);
 
@@ -568,7 +568,7 @@
 
     void PrevMonth() { var d = new DateTime(_calYear, _calMonth, 1).AddMonths(-1); _calYear = d.Year; _calMonth = d.Month; Reload(); }
     void NextMonth() { var d = new DateTime(_calYear, _calMonth, 1).AddMonths(1);  _calYear = d.Year; _calMonth = d.Month; Reload(); }
-    void GoToday()   { _calYear = DateTime.Today.Year; _calMonth = DateTime.Today.Month; Reload(); }
+    void GoToday()   { _calYear = DbClock.Today.Year; _calMonth = DbClock.Today.Month; Reload(); }
 
     void ShowDayModal(DateTime date) { _dayDate = date; _showDay = true; }
 
@@ -614,7 +614,7 @@
     // ── 등록 / 수정 / 삭제 ─────────────────────────────────────────────
     void OpenCreate()
     {
-        _f = new() { NextDueDate = new DateTime(_calYear, _calMonth, Math.Min(DateTime.Today.Day, DateTime.DaysInMonth(_calYear, _calMonth))), Status = "OK" };
+        _f = new() { NextDueDate = new DateTime(_calYear, _calMonth, Math.Min(DbClock.Today.Day, DateTime.DaysInMonth(_calYear, _calMonth))), Status = "OK" };
         _editId = null; _modalErr = ""; _confirmDelete = false;
         _modal = "create";
     }
@@ -643,7 +643,7 @@
         if (!_canEdit) return;
         _showDetail = false;
         _cpm = p; _modalErr = "";
-        _c = new() { Result = AMES.Contracts.Dto.MwoResultCodes.Ok, CompletedAt = DateTime.Now, TechId = p.AssignedTechId ?? "" };
+        _c = new() { Result = AMES.Contracts.Dto.MwoResultCodes.Ok, CompletedAt = DbClock.Now, TechId = p.AssignedTechId ?? "" };
         _modal = "complete";
     }
 
@@ -695,7 +695,7 @@
         try
         {
             var planNo = _f.PlanNo.Trim();
-            if (planNo.Length == 0) planNo = Mnt.NextPmPlanNumber(DateTime.Today);
+            if (planNo.Length == 0) planNo = Mnt.NextPmPlanNumber(DbClock.Today);
             if (Mnt.PmPlanNumberExists(planNo, _editId)) { _modalErr = string.Format(L["MNT.PmSchedule.Err.Duplicate"].Value, planNo); return; }
 
             if (_editId is int id)

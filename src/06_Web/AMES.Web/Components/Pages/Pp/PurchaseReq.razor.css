@@ -31,14 +31,14 @@
 /* 상세 모달 */
 .pr-dgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
 .pr-dt { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 8px; padding: 8px 10px; min-width: 0; }
-.pr-dl { font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: #94a3b8; margin-bottom: 4px; }
+.pr-dl { font-size: calc(10px + var(--ames-fs-bump)); letter-spacing: .04em; text-transform: uppercase; color: #94a3b8; margin-bottom: 4px; }
 .pr-dv { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .pr-drow { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
-.pr-dsub { font-size: 11px; color: #94a3b8; margin: 10px 0 6px; }
-.pr-wochip { display: inline-block; padding: 2px 8px; border-radius: 6px; font-family: ui-monospace, monospace; font-size: 11px;
+.pr-dsub { font-size: calc(11px + var(--ames-fs-bump)); color: #94a3b8; margin: 10px 0 6px; }
+.pr-wochip { display: inline-block; padding: 2px 8px; border-radius: 6px; font-family: var(--ames-font-code); font-size: calc(11px + var(--ames-fs-bump));
              background: rgba(147,197,253,.12); color: #93c5fd; border: 1px solid rgba(147,197,253,.3); }
 .pr-log { border: 1px solid rgba(255,255,255,.08); border-radius: 8px; padding: 6px 10px; max-height: 160px; overflow-y: auto; }
-.pr-logline { font-family: ui-monospace, monospace; font-size: 11px; padding: 2px 0; }
+.pr-logline { font-family: var(--ames-font-code); font-size: calc(11px + var(--ames-fs-bump)); padding: 2px 0; }
 .pr-act { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,.1); }
 .pr-act .pr-dl { margin: 0; width: 130px; }
 

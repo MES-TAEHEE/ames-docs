@@ -113,7 +113,7 @@
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
             <div style="display:flex;align-items:center;gap:12px;">
                 <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevMonth" class="ames-rz-btn" />
-                <span style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;">
+                <span style="font-family:var(--ames-font-display);font-size:26px;letter-spacing:2px;color:#fff;">
                     @string.Format(L["SYS.Calendar.Fmt.YearMonth"].Value, _calYear, _calMonth.ToString("D2"))
                 </span>
                 <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@NextMonth" class="ames-rz-btn" />
@@ -159,7 +159,7 @@
                     int  dow     = (int)date.DayOfWeek;   // 0=Sun, 6=Sat
                     bool isSun   = dow == 0;
                     bool isSat   = dow == 6;
-                    bool isToday = date.Date == DateTime.Today;
+                    bool isToday = date.Date == DbClock.Today;
                     bool hasA    = ds?.Any(r => r.ShiftCode == "A") ?? false;
                     bool hasB    = ds?.Any(r => r.ShiftCode == "B") ?? false;
                     bool hasC    = ds?.Any(r => r.ShiftCode == "C") ?? false;
@@ -430,10 +430,10 @@
     Dictionary<DateTime, List<SysRepository.CalendarRow>> _byDay = new();
     int _days, _work, _wknd, _hol;
 
-    DateTime _filterFrom = DateTime.Today.AddDays(-14);
-    DateTime _filterTo   = DateTime.Today.AddDays(60);
-    int      _calYear    = DateTime.Today.Year;
-    int      _calMonth   = DateTime.Today.Month;
+    DateTime _filterFrom = DbClock.Today.AddDays(-14);
+    DateTime _filterTo   = DbClock.Today.AddDays(60);
+    int      _calYear    = DbClock.Today.Year;
+    int      _calMonth   = DbClock.Today.Month;
 
     string _modal = "";
     bool   _busy, _confirmDelete, _bgMouseDownOnSelf, _isErr;
@@ -449,8 +449,8 @@
     ShiftRow[] _editShifts      = Array.Empty<ShiftRow>();
 
     // ── Generate form ────────────────────────────────────────────────────
-    DateTime      _genFrom         = DateTime.Today;
-    DateTime      _genTo           = DateTime.Today.AddMonths(1).AddDays(-1);
+    DateTime      _genFrom         = DbClock.Today;
+    DateTime      _genTo           = DbClock.Today.AddMonths(1).AddDays(-1);
     string        _genPlant        = "";
     bool          _genSkipExisting = true;
     ShiftGenRow[] _genShifts       = new[]
@@ -518,7 +518,7 @@
 
     void GoToday()
     {
-        _calYear = DateTime.Today.Year; _calMonth = DateTime.Today.Month;
+        _calYear = DbClock.Today.Year; _calMonth = DbClock.Today.Month;
         LoadCalendarMonth();
     }
 
@@ -781,12 +781,12 @@
         // Radzen DatePicker(TimeOnly) 바인딩용 어댑터 — 백킹은 "HH:mm" 문자열 유지
         public DateTime? StartDt
         {
-            get => TimeSpan.TryParse(Start, out var t) ? DateTime.Today.Add(t) : (DateTime?)null;
+            get => TimeSpan.TryParse(Start, out var t) ? DbClock.Today.Add(t) : (DateTime?)null;
             set => Start = value.HasValue ? value.Value.ToString("HH:mm") : Start;
         }
         public DateTime? EndDt
         {
-            get => TimeSpan.TryParse(End, out var t) ? DateTime.Today.Add(t) : (DateTime?)null;
+            get => TimeSpan.TryParse(End, out var t) ? DbClock.Today.Add(t) : (DateTime?)null;
             set => End = value.HasValue ? value.Value.ToString("HH:mm") : End;
         }
     }
@@ -803,12 +803,12 @@
 
         public DateTime? StartDt
         {
-            get => TimeSpan.TryParse(Start, out var t) ? DateTime.Today.Add(t) : (DateTime?)null;
+            get => TimeSpan.TryParse(Start, out var t) ? DbClock.Today.Add(t) : (DateTime?)null;
             set => Start = value.HasValue ? value.Value.ToString("HH:mm") : Start;
         }
         public DateTime? EndDt
         {
-            get => TimeSpan.TryParse(End, out var t) ? DateTime.Today.Add(t) : (DateTime?)null;
+            get => TimeSpan.TryParse(End, out var t) ? DbClock.Today.Add(t) : (DateTime?)null;
             set => End = value.HasValue ? value.Value.ToString("HH:mm") : End;
         }
     }

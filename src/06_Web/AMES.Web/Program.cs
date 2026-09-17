@@ -133,6 +133,11 @@ builder.Services.AddSingleton<AMES.Web.Services.AppLanguageState>();
 
 var app = builder.Build();
 
+// DB 서버 시각 기준의 Now/Today (AMES.Data.Services.DbClock) — 기동 시 1회 맞추고, 이후 로그인(회로 시작) 때 TopBar 가
+// 10분보다 오래됐을 때만 다시 읽는다. DB 가 아직 안 뜬 상태여도 실패를 삼키고 Offset 0(호스트 시계)으로 계속 간다.
+DbClock.Configure(factory);
+DbClock.Sync();
+
 // ── Startup seeds ──────────────────────────────────────────────────────
 // 여기서 예외가 새어나가면 ANCM 이 프로세스를 못 올려 모든 요청이 500 이 되고,
 // 화면에는 아무 단서도 남지 않는다. DB 가 늦게 뜨거나 잠시 끊겨도 앱은 기동돼야 한다.
@@ -273,6 +278,26 @@ app.UseRequestLocalization(locOptions);
 
 app.UseStaticFiles();
 
+// 위조 방지 토큰이 만료·불일치한 폼 POST(재배포·앱풀 재활용 전에 열어 둔 로그인/로그아웃 화면에서 제출, 또는
+// Data Protection 키가 바뀐 경우)는 본문 없는 HTTP 400 으로 끝나 사용자에게 "서버 400 오류"로만 보인다.
+// /Account 의 폼 POST 에 한해 같은 화면의 GET 으로 돌려보내 새 토큰을 받게 한다. API(JSON)·Blazor 허브는 건드리지 않는다.
+// 주의: 검증이 실패한 요청에서 Request.HasFormContentType·Request.Form 을 읽으면 프레임워크가 InvalidOperationException 을 던진다
+// (500 으로 악화) — Content-Type 헤더 문자열만 본다.
+app.Use(async (ctx, next) =>
+{
+    await next();
+    var contentType = ctx.Request.ContentType ?? "";
+    bool isFormPost = contentType.StartsWith("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase)
+                   || contentType.StartsWith("multipart/form-data", StringComparison.OrdinalIgnoreCase);
+    if (ctx.Response.StatusCode == StatusCodes.Status400BadRequest && !ctx.Response.HasStarted
+        && HttpMethods.IsPost(ctx.Request.Method) && isFormPost
+        && ctx.Request.Path.StartsWithSegments("/Account"))
+    {
+        var target = ctx.Request.Path.StartsWithSegments("/Account/Logout") ? "/Account/Login" : ctx.Request.Path.Value!;
+        ctx.Response.Redirect(target + "?expired=1");
+    }
+});
+
 app.UseAntiforgery();
 
 app.MapStaticAssets();
@@ -282,7 +307,12 @@ app.MapRazorComponents<App>()
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
 
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok", at = DateTime.UtcNow }))
+app.MapGet("/api/health", () => Results.Ok(new
+    {
+        status = "ok", at = DateTime.UtcNow,
+        // 시각 보정 상태 — 화면의 Now/Today 가 DB 서버 시각과 맞는지 운영 중 확인용
+        dbClock = new { now = DbClock.Now.ToString("yyyy-MM-dd HH:mm:ss"), offsetMinutes = Math.Round(DbClock.Offset.TotalMinutes, 1), synced = DbClock.IsSynced, syncAgeSec = DbClock.SyncAge is { } a ? (int?)a.TotalSeconds : null },
+    }))
     .WithTags("System")
     .WithSummary("헬스 체크")
     .WithDescription("서버 상태를 반환합니다.");

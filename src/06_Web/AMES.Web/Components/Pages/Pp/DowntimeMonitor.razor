@@ -89,7 +89,7 @@
             <RadzenButton Text="@L["PP.DowntimeMonitor.Btn.Live"]" Icon="play_arrow" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Disabled="@_live" Click="@GoLive" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <div class="dim" style="font-size:10px;padding:0 0 8px;">
+    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 8px;">
         @(_live ? string.Format(L["PP.DowntimeMonitor.Mode.Live"].Value, _refreshSec) : L["PP.DowntimeMonitor.Mode.Replay"].Value)
         · @L["PP.DowntimeMonitor.Tl.Title"]
     </div>
@@ -160,7 +160,7 @@
     </div>
     @if (_canEdit)
     {
-        <div class="dim" style="font-size:10px;padding:0 0 6px;">@L["PP.DowntimeMonitor.Hint.Edit"]</div>
+        <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["PP.DowntimeMonitor.Hint.Edit"]</div>
     }
 
     <RadzenDataGrid TItem="PpRepository.DowntimeRow" Data="@_dtlRows" AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
@@ -266,12 +266,12 @@
 
     bool      _live = true;
     DateTime? _fAsOf;
-    DateTime  _asOf = DateTime.Now;
+    DateTime  _asOf = DbClock.Now;
     DateTime  AsOf => _asOf;
     Timer?    _timer;
     bool      _disposed;
     int       _refreshSec = 60;
-    DateTime  _lastRefresh = DateTime.Now;
+    DateTime  _lastRefresh = DbClock.Now;
     int       _noReasonCount;
 
     List<PpRepository.DowntimeRow> _dtlRows = [];
@@ -353,8 +353,8 @@
     void Refresh()
     {
         _err = "";
-        _asOf = _live ? DateTime.Now : (_fAsOf ?? DateTime.Now);
-        _lastRefresh = DateTime.Now;
+        _asOf = _live ? DbClock.Now : (_fAsOf ?? DbClock.Now);
+        _lastRefresh = DbClock.Now;
         var asOfMin = new DateTime(_asOf.Year, _asOf.Month, _asOf.Day, _asOf.Hour, _asOf.Minute, 0);
         var winFrom = asOfMin.AddMinutes(-(WINDOW - 1));
 

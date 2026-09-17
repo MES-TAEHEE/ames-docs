@@ -85,7 +85,7 @@
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
             <span>▼ @L["MNT.Downtime.Pareto.Title"] · @_pareto.Count @L["Lbl.Items"]</span>
-            <span class="dim" style="font-size:10px;">@L["MNT.Downtime.Pareto.Hint"]</span>
+            <span class="dim" style="font-size:var(--ames-fs-hint);">@L["MNT.Downtime.Pareto.Hint"]</span>
         </div>
         @if (_pareto.Count == 0)
         {
@@ -106,7 +106,7 @@
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
             <span>▼ @L["MNT.Downtime.Rank.Title"] · @_rank.Count @L["Lbl.Items"]</span>
-            <span class="dim" style="font-size:10px;">@L["MNT.Downtime.Rank.Hint"]</span>
+            <span class="dim" style="font-size:var(--ames-fs-hint);">@L["MNT.Downtime.Rank.Hint"]</span>
         </div>
         @if (_rank.Count == 0)
         {
@@ -140,7 +140,7 @@
             <RadzenButton Text="@L["MNT.Downtime.Btn.ClearSel"]" Icon="close" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ClearSelection" class="ames-rz-btn" />
         }
     </div>
-    <div class="dim" style="font-size:10px;padding:0 0 6px;">@(HasSelection ? L["MNT.Downtime.Hint.Detail"] : L["MNT.Downtime.Detail.Hint"])</div>
+    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@(HasSelection ? L["MNT.Downtime.Hint.Detail"] : L["MNT.Downtime.Detail.Hint"])</div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MntRepository.DowntimeRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.Downtime.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
@@ -274,7 +274,7 @@
     MntRepository.DowntimeRow? _sel;
 
     string   _fSearch = "";
-    DateTime _fFrom = DateTime.Today.AddDays(-6), _fTo = DateTime.Today;
+    DateTime _fFrom = DbClock.Today.AddDays(-6), _fTo = DbClock.Today;
     string?  _fLine, _fStatus;
     string?  _selReason, _selLine;           // 파레토(사유)·순위(라인) 클릭 선택
     string   _modal = "", _msg = "";
@@ -435,7 +435,7 @@
         });
 
         var bytes = AMES.Web.Services.XlsxWriter.Build(L["MNT.Downtime.Title"].Value, headers, data);
-        var name  = $"Downtime_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        var name  = $"Downtime_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx";
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         ShowMsg(string.Format(L["MNT.Downtime.Ok.Exported"].Value, src.Count), false);

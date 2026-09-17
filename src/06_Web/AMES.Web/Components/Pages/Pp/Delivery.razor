@@ -97,7 +97,7 @@
             <RadzenButton Text="@L["Btn.Reset"]" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ResetFilter" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <div class="dim" style="font-size:10px;padding:0 0 6px;">@string.Format(L["PP.Delivery.Hint"].Value, DateTime.Today.ToString("yyyy-MM-dd"))</div>
+    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@string.Format(L["PP.Delivery.Hint"].Value, DbClock.Today.ToString("yyyy-MM-dd"))</div>
 
     <RadzenDataGrid TItem="PpRepository.OtdRow" Data="@_rows" AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
                     AllowSorting="true" RowRender="@RowRender" EmptyText="@L["PP.Delivery.Empty"]" Class="ames-rz-grid pp-dtl-grid">
@@ -114,7 +114,7 @@
             <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="ItemNo" Title="@L["Col.Item"]">
                 <Template Context="r">
                     <span class="code">@r.ItemNo</span>
-                    <span class="dim" style="font-size:10px;margin-left:4px;white-space:nowrap;">@MasterDataRepository.LocalName(r.ItemName, r.ItemNameEn)</span>
+                    <span class="dim" style="font-size:var(--ames-fs-hint);margin-left:4px;white-space:nowrap;">@MasterDataRepository.LocalName(r.ItemName, r.ItemNameEn)</span>
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="OrderQty" Title="@L["Col.Order"]" Width="80px" TextAlign="TextAlign.Right">
@@ -137,7 +137,7 @@
             <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="PromisedDate" Title="@L["Col.Promised"]" Width="120px">
                 <Template Context="r">
                     @(r.PromisedDate?.ToString("yy-MM-dd") ?? "—")
-                    @if (r.PromiseGapDays is > 0) { <span class="pill warn" style="margin-left:4px;padding:0 6px;font-size:10px;" title="@L["PP.Delivery.Col.PromiseGap"]">+@r.PromiseGapDays</span> }
+                    @if (r.PromiseGapDays is > 0) { <span class="pill warn" style="margin-left:4px;padding:0 6px;font-size:var(--ames-fs-hint);" title="@L["PP.Delivery.Col.PromiseGap"]">+@r.PromiseGapDays</span> }
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="DaysLate" Title="@L["Col.DaysLate"]" Width="90px" TextAlign="TextAlign.Right">
@@ -157,7 +157,7 @@
 
     @if (_rows.Count >= LIMIT)
     {
-        <div class="dim" style="padding:.5rem 0 0;font-size:11px;">@L["PP.Delivery.LimitNote"]</div>
+        <div class="dim" style="padding:.5rem 0 0;font-size:calc(11px + var(--ames-fs-bump));">@L["PP.Delivery.LimitNote"]</div>
     }
 </div>
 
@@ -168,8 +168,8 @@
     List<MasterDataRepository.CustomerRow> _customers = [];   // MD_Customer 마스터 (조회부·고객별 준수율·목록 명칭의 기준)
     List<CustAgg>                          _custAgg   = [];
 
-    DateTime _fFrom = DateTime.Today.AddDays(-30);
-    DateTime _fTo   = DateTime.Today.AddDays(30);
+    DateTime _fFrom = DbClock.Today.AddDays(-30);
+    DateTime _fTo   = DbClock.Today.AddDays(30);
     string?  _fCustomer;
     string?  _fStatus;
     string   _err = "";
@@ -228,8 +228,8 @@
     // 기본 기간 = 오늘 ±30일을 데이터 범위까지 넓힌다 (시드/과거 데이터만 있어도 빈 화면이 되지 않도록)
     void SetDefaultRange()
     {
-        _fFrom = DateTime.Today.AddDays(-30);
-        _fTo   = DateTime.Today.AddDays(30);
+        _fFrom = DbClock.Today.AddDays(-30);
+        _fTo   = DbClock.Today.AddDays(30);
         try
         {
             var (min, max) = Pp.OtdDateExtent();

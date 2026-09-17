@@ -130,8 +130,8 @@
     List<Kpi> _all = new();
     List<Kpi> _rows = new();
 
-    DateTime _month = FirstOfMonth(DateTime.Today);
-    string   _fMonth = FirstOfMonth(DateTime.Today).ToString("yyyy-MM");
+    DateTime _month = FirstOfMonth(DbClock.Today);
+    string   _fMonth = FirstOfMonth(DbClock.Today).ToString("yyyy-MM");
     string?  _fCat;
     string   _msg = "";
     bool     _isErr;
@@ -148,7 +148,7 @@
         public string Status = "nodata";
     }
 
-    IEnumerable<DropDownItem> MonthOptions => Enumerable.Range(0, 12).Select(i => FirstOfMonth(DateTime.Today).AddMonths(-i)).Select(d => new DropDownItem { Value = d.ToString("yyyy-MM"), Text = d.ToString("yyyy-MM") });
+    IEnumerable<DropDownItem> MonthOptions => Enumerable.Range(0, 12).Select(i => FirstOfMonth(DbClock.Today).AddMonths(-i)).Select(d => new DropDownItem { Value = d.ToString("yyyy-MM"), Text = d.ToString("yyyy-MM") });
     IEnumerable<DropDownItem> CatOptions   => Cats.Select(c => new DropDownItem { Value = c, Text = CatLabel(c) });
 
     // ── 점수 ───────────────────────────────────────────────────────────

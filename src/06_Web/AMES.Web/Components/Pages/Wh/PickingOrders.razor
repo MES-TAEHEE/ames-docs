@@ -259,7 +259,7 @@
                     <div><span>Req Date :</span> @_selectedSlip.ReqDate</div>
                     <div><span>Worker :</span> @_selectedSlip.ReqUserId</div>
                     <div><span>Req Location :</span> @_selectedSlip.ReqLocation</div>
-                    <div><span>Print Date :</span> @((_selectedSlip.PrintDate ?? DateTime.Now).ToString("yyyy-MM-ddTHH:mm:sszzz"))</div>
+                    <div><span>Print Date :</span> @((_selectedSlip.PrintDate ?? DbClock.Now).ToString("yyyy-MM-ddTHH:mm:sszzz"))</div>
                 </div>
                 <div class="wh-slip-barcode-box">
                     <div>Pick Slip No : @_selectedSlip.PickSlipNo</div>
@@ -332,7 +332,7 @@
     bool _isErr;
     bool _busy;
     bool _includeClosed = true;
-    DateTime _reqDate = DateTime.Today;
+    DateTime _reqDate = DbClock.Today;
 
     protected override async Task OnInitializedAsync()
     {

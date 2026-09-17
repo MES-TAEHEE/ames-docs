@@ -61,7 +61,7 @@
         <RadzenProgressBar Mode="ProgressBarMode.Indeterminate" ShowValue="false" Style="flex:1;height:8px;" />
     </div>
 }
-<div class="dim" style="font-size:10px;padding:0 0 6px;">🧮 @L["PP.Mrp.Hint"]</div>
+<div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">🧮 @L["PP.Mrp.Hint"]</div>
 
 <div class="mrp-grid">
 @if (_rows.Count == 0)
@@ -152,7 +152,7 @@ else
                 <div class="mrp-dt"><div class="mrp-dl">@L["PP.Mrp.Detail.LeadTime"]</div><div class="mrp-dv">@(_sel.LeadTimeDays is { } lt ? string.Format(L["PP.Mrp.Unit.Days"].Value, lt) : "—")</div></div>
             </div>
             <div class="mrp-dsub">@L["PP.Mrp.Detail.Wos"]</div>
-            @if (_sel.Wos.Count == 0) { <span class="dim" style="font-size:11px;">@L["PP.Mrp.Detail.NoWos"]</span> }
+            @if (_sel.Wos.Count == 0) { <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">@L["PP.Mrp.Detail.NoWos"]</span> }
             else
             {
                 foreach (var w in _sel.Wos)
@@ -170,7 +170,7 @@ else
             }
 
             <div class="mrp-dsub" style="margin-top:12px;">@L["PP.Mrp.Detail.OpenPrs"] · @_selPrs.Count</div>
-            @if (_selPrs.Count == 0) { <span class="dim" style="font-size:11px;">@L["PP.Mrp.Detail.NoPrs"]</span> }
+            @if (_selPrs.Count == 0) { <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">@L["PP.Mrp.Detail.NoPrs"]</span> }
             else
             {
                 <div class="mrp-bulk-list">
@@ -245,7 +245,7 @@ else
             {
                 <div class="mrp-hint warn">⚠ @L["PP.Mrp.Bulk.Partial"]</div>
             }
-            <div class="dim" style="font-size:11px;margin-top:8px;">@L["PP.Mrp.Bulk.Note"]</div>
+            <div class="dim" style="font-size:calc(11px + var(--ames-fs-bump));margin-top:8px;">@L["PP.Mrp.Bulk.Note"]</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
@@ -417,7 +417,7 @@ else
             string.Join(", ", r.Wos.Select(w => w.WoNumber ?? $"WO#{w.WoId}")),
         });
         var bytes = AMES.Web.Services.XlsxWriter.Build(L["PP.Mrp.Title"].Value, headers, data);
-        await JS.InvokeVoidAsync("amesDownload", $"MRP_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx", Convert.ToBase64String(bytes),
+        await JS.InvokeVoidAsync("amesDownload", $"MRP_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx", Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         ShowMsg(string.Format(L["PP.Mrp.Ok.Exported"].Value, _rows.Count), false);
     }

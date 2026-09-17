@@ -58,7 +58,7 @@
             <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
                 <div style="display:flex;align-items:center;gap:10px;">
                     <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevMonth" class="ames-rz-btn" />
-                    <span style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;">
+                    <span style="font-family:var(--ames-font-display);font-size:26px;letter-spacing:2px;color:#fff;">
                         @string.Format(L["Fmt.CalYearMonth"], _calYear, _calMonth)
                     </span>
                     <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@NextMonth" class="ames-rz-btn" />
@@ -100,7 +100,7 @@
                         int dow      = (int)date.DayOfWeek;
                         bool isSun   = dow == 0;
                         bool isSat   = dow == 6;
-                        bool isToday = date.Date == DateTime.Today;
+                        bool isToday = date.Date == DbClock.Today;
 
                         string cellCls = "ames-cal-cell";
                         if (isToday)        cellCls += " ames-cal-cell--today";
@@ -155,7 +155,7 @@
             <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
                 <div style="display:flex;align-items:center;gap:10px;">
                     <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevWeek" class="ames-rz-btn" />
-                    <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#fff;">
+                    <span style="font-family:var(--ames-font-display);font-size:22px;letter-spacing:2px;color:#fff;">
                         @weekDates[0].ToString("MM/dd") — @weekDates[6].ToString("MM/dd")
                         <span style="font-size:14px;color:#64748b;letter-spacing:1px;margin-left:8px;">
                             @_weekStart.Year@L["Lbl.Year"]
@@ -173,7 +173,7 @@
                     int dow      = (int)date.DayOfWeek;
                     bool isSun   = dow == 0;
                     bool isSat   = dow == 6;
-                    bool isToday = date.Date == DateTime.Today;
+                    bool isToday = date.Date == DbClock.Today;
 
                     string rowBg = isToday        ? "background:rgba(147,197,253,.06);border-color:rgba(147,197,253,.35);"
                                  : (isSat||isSun) ? "background:rgba(251,191,36,.02);border-color:rgba(251,191,36,.08);"
@@ -183,12 +183,12 @@
                                 min-height:@(weekRowH)px;overflow:hidden;@rowBg">
                         <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;
                                     border-right:1px solid rgba(255,255,255,.06);">
-                            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;
+                            <span style="font-family:var(--ames-font-mono);font-size:var(--ames-fs-hint);
                                          text-transform:uppercase;letter-spacing:.05em;
                                          color:@(isSun?"#fca5a5":isSat?"#93c5fd":"#64748b");">
                                 @date.ToString("ddd")
                             </span>
-                            <span style="font-family:'JetBrains Mono',monospace;font-size:18px;
+                            <span style="font-family:var(--ames-font-mono);font-size:18px;
                                          font-weight:700;
                                          color:@(isSun?"#fca5a5":isSat?"#93c5fd":isToday?"#93c5fd":"#cbd5e1");
                                          line-height:1;display:flex;align-items:center;gap:4px;">
@@ -199,7 +199,7 @@
                         <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:6px 10px;">
                             @if (wos.Count == 0)
                             {
-                                <span style="color:#334155;font-size:11px;font-family:'JetBrains Mono',monospace;">—</span>
+                                <span style="color:#334155;font-size:calc(11px + var(--ames-fs-bump));font-family:var(--ames-font-mono);">—</span>
                             }
                             @foreach (var wo in wos)
                             {
@@ -208,7 +208,7 @@
                                      style="margin-top:0;white-space:nowrap;"
                                      @onclick="() => ShowDetail(capWo)">
                                     <span style="font-weight:700;">@wo.WoNumber</span>
-                                    <span style="opacity:.7;margin-left:4px;font-size:9px;">@(wo.ItemName ?? wo.ItemNo)</span>
+                                    <span style="opacity:.7;margin-left:4px;font-size:calc(9px + var(--ames-fs-bump));">@(wo.ItemName ?? wo.ItemNo)</span>
                                 </div>
                             }
                         </div>
@@ -236,7 +236,7 @@
                      @onclick="() => { _showDay = false; ShowDetail(capWo); }">
                     <span style="font-weight:700;">@wo.WoNumber</span>
                     <span style="opacity:.75;margin-left:6px;">@(wo.ItemName ?? wo.ItemNo)</span>
-                    <span class="pill @(GetWoCls(wo))" style="float:right;font-size:10px;padding:1px 6px;">@StatusText(wo.Status)</span>
+                    <span class="pill @(GetWoCls(wo))" style="float:right;font-size:var(--ames-fs-hint);padding:1px 6px;">@StatusText(wo.Status)</span>
                 </div>
             }
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
@@ -257,7 +257,7 @@
                 <div class="ames-detail-label">@L["Col.Item"]</div>
                 <div>
                     @(d.ItemName ?? d.ItemNo)
-                    <span class="dim" style="font-size:11px;"> (@d.ItemNo)</span>
+                    <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));"> (@d.ItemNo)</span>
                 </div>
                 <div class="ames-detail-label">@L["Col.Line"]</div>
                 <div class="code">@d.LineId</div>
@@ -273,7 +273,7 @@
                 <div class="ames-detail-label">@L["PP.Calendar.Detail.OrderDone"]</div>
                 <div>
                     @d.OrderQty.ToString("N0") / @d.CompletedQty.ToString("N0")
-                    <span class="dim" style="font-size:11px;"> (@((int)d.ProgressPct)%)</span>
+                    <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));"> (@((int)d.ProgressPct)%)</span>
                 </div>
                 <div class="ames-detail-label">@L["Col.Status"]</div>
                 <div>
@@ -341,10 +341,10 @@
     string? _err;
     List<MasterDataRepository.CodeItemRow> _routingItems = new();
 
-    int _calYear  = DateTime.Today.Year;
-    int _calMonth = DateTime.Today.Month;
+    int _calYear  = DbClock.Today.Year;
+    int _calMonth = DbClock.Today.Month;
 
-    DateTime _weekStart = GetSunday(DateTime.Today);
+    DateTime _weekStart = GetSunday(DbClock.Today);
 
     bool       _showDay;
     DateTime?  _dayDate;
@@ -445,9 +445,9 @@
 
     void GoToday()
     {
-        _calYear   = DateTime.Today.Year;
-        _calMonth  = DateTime.Today.Month;
-        _weekStart = GetSunday(DateTime.Today);
+        _calYear   = DbClock.Today.Year;
+        _calMonth  = DbClock.Today.Month;
+        _weekStart = GetSunday(DbClock.Today);
     }
 
     static DateTime GetSunday(DateTime d)
@@ -472,7 +472,7 @@
 
     void OpenReschedule()
     {
-        _reschedDate    = _detail?.DueDate ?? DateTime.Today.AddDays(1);
+        _reschedDate    = _detail?.DueDate ?? DbClock.Today.AddDays(1);
         _pinInput       = "";
         _pinError       = "";
         _showReschedule = true;

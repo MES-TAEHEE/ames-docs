@@ -2,6 +2,7 @@ using System.Data;
 using AMES.Contracts.Dto;
 using AMES.Data.Connection;
 using Microsoft.Data.SqlClient;
+using AMES.Data.Services;
 
 namespace AMES.Data.Repositories;
 
@@ -305,7 +306,7 @@ public sealed class OeeRepository
             Quality            = q,
             Oee                = Math.Round(a / 100m * p / 100m * q / 100m * 100m, 2),
             PerformanceAssumed = assumed,
-            CreatedTs          = DateTime.Now,
+            CreatedTs          = DbClock.Now,
         };
 
         static void AddWindow(SqlCommand cmd, string line, DateTime s, DateTime e)

@@ -92,7 +92,7 @@
         {
             var auth  = await AuthPrvd.GetAuthenticationStateAsync();
             var actor = auth.User.Identity?.Name ?? "system";
-            var batch = "WK" + DateTime.Now.ToString("yyyyMMddHHmmss");
+            var batch = "WK" + DbClock.Now.ToString("yyyyMMddHHmmss");
             var rows  = _preview.Items.SelectMany(it => _preview.WeekStarts.Select((w, k) =>
                 new PpRepository.WeeklyImportRow(it.PartNo, Trunc(it.PartName, 100), Trunc(it.Unit, 10),
                     it.BaseInv, w, Trunc(_preview.WeekLabels[k], 10), it.Qty[k]))).ToList();
