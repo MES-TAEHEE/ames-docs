@@ -293,7 +293,7 @@ appsettings 의 `PopTerminal:ModuleCode`/`LineId`/`StationId` 는 제거됐다 �
 - **DTO**: `AMES.Contracts.Dto.*Dto` — 계산 프로퍼티 허용 (`ProgressPct`, `DaysToDue` 등)
 - **Enum**: `AMES.Contracts.Enums.*` (`ItemType`, `AuthResult`, `AuthMethod`)
 - **Pop 공통 컴포넌트**: `Common/` — `AppConfig`, `PopServices`, `ToastService`, `ConfirmService`, `HelpModal`
-- **감사 로그(Web MD·SYS)**: 등록·수정·삭제 핸들러는 저장 성공 직후 `AuditLogger`(`@inject AMES.Web.Services.AuditLogger Audit`)를 한 줄 부른다 — `Audit.Created/Updated/Deleted(화면코드, 테이블, 키, 전, 후)`, 그 밖의 동작은 `Audit.Log`(APPROVE·COPY·PIN_SET·PIN_RESET·PWD_RESET·UNLOCK). 전/후는 선택 행·폼 모델을 그대로 넘기며 Password/Pin/Secret/Token/Hash 속성은 서비스가 뺀다. 감사 실패는 저장을 실패로 만들지 않는다(경고 로그). 중괄호 없는 if/else 문장 뒤에 넣으면 분기 밖이 되므로 주의. 페이징 그리드는 `PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"` 를 붙인다
+- **감사 로그(Web MD·SYS)**: 등록·수정·삭제 핸들러는 저장 성공 직후 `AuditLogger`(`@inject AMES.Web.Services.AuditLogger Audit`)를 한 줄 부른다 — `Audit.Created/Updated/Deleted(화면코드, 테이블, 키, 전, 후)`, 그 밖의 동작은 `Audit.Log`(APPROVE·COPY·PIN_SET·PIN_RESET·PWD_RESET·UNLOCK). 전/후는 선택 행·폼 모델을 그대로 넘기며 Password/Pin/Secret/Token/Hash 속성은 서비스가 뺀다. 감사 실패는 저장을 실패로 만들지 않는다(경고 로그). 값이 든 속성 이름만으로 비밀인지 알 수 없는 경우(공통코드 `SW_*_AUTH` 의 설명란 토큰 등)는 `AuditLogger.IsSecretKey(그룹·키)` 로 판단해 `AuditLogger.Redact(스냅샷, "Description")` 로 가린 JSON 을 넘긴다. 로그인 전 화면(Account 자기가입·비밀번호 재설정)은 `Audit.Log("ACCOUNT", …, actor: 이메일)` 로 남기며 모듈은 SYS 로 묶인다. 수정 모달을 열 때 폼 모델에 키 필드도 채워 둘 것 — 비워 두면 After 스냅샷의 키가 빈 값으로 남는다. 중괄호 없는 if/else 문장 뒤에 넣으면 분기 밖이 되므로 주의. 페이징 그리드는 `PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"` 를 붙인다
 - **주석**: 비명확한 WHY에만 최소 작성, WHAT 설명 주석 금지
 - **Pop 화면 파일명**: `{ModuleCode}{화면번호}{기능명}.razor` (e.g. `Inj04ProductionEntry.razor`)
 

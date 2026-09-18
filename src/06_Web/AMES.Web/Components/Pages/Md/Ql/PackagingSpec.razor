@@ -385,6 +385,7 @@
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {
+            PackSpecID = r.PackSpecID ?? "",
             ItemID          = r.ItemID          ?? "",
             PackType        = r.PackType,
             QtyPerInner     = r.QtyPerInner,

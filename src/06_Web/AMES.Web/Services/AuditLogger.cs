@@ -38,13 +38,15 @@ public sealed class AuditLogger
 
     /// <summary>CREATE·UPDATE·DELETE 밖의 동작(APPROVE·COPY·PIN_RESET·UNLOCK 등). action 은 15자 이내.</summary>
     public void Log(string screenCode, string action, string entity, object? id,
-                    object? before, object? after, string? note = null)
+                    object? before, object? after, string? note = null, string? actor = null)
     {
         try
         {
-            var actor  = Cut(CurrentActor(), 50)!;            // CreatedBy VARCHAR(50)
+            // actor 는 로그인 전 화면(자기가입·비밀번호 재설정)처럼 인증 상태가 없을 때만 호출자가 준다
+            actor = Cut(string.IsNullOrWhiteSpace(actor) ? CurrentActor() : actor, 50)!;   // CreatedBy VARCHAR(50)
             var target = Cut(Convert.ToString(id, System.Globalization.CultureInfo.InvariantCulture), 40);
-            var module = screenCode.Split('-')[0];
+            // 화면 코드가 아닌 구역 이름(ACCOUNT 등)은 SYS 모듈로 묶어 SYS-007 모듈 필터에 걸리게 한다
+            var module = screenCode.Contains('-') ? screenCode.Split('-')[0] : "SYS";
             note ??= $"{action} {entity} '{target}' by '{actor}'";
             _sys.InsertAuditLog(Cut(module, 10), Cut(screenCode, 20), Cut(action, 15)!, Cut(entity, 40), target,
                 ToJson(before), ToJson(after), actor, CurrentIp(), note: Cut(note, 500));
@@ -102,6 +104,42 @@ public sealed class AuditLogger
         {
             if (SecretName.IsMatch(info.Properties[i].Name)) info.Properties.RemoveAt(i);
         }
+    }
+
+    /// <summary>키·그룹 이름이 비밀값을 담는 종류인지(설정 키, 공통코드 그룹 등 — 값이 든 속성 이름으로는 알 수 없을 때).</summary>
+    public static bool IsSecretKey(string? key)
+        => key is not null && System.Text.RegularExpressions.Regex.IsMatch(key, "PASSWORD|SECRET|TOKEN|APIKEY|AUTH|_KEY",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    /// <summary>스냅샷에서 지정한 속성 값을 *** 로 가린 JSON 을 돌려준다(중첩·배열 포함). 결과는 Created/Updated/Deleted 에 그대로 넘긴다.</summary>
+    public static string? Redact(object? o, params string[] propertyNames)
+    {
+        var json = ToJson(o);
+        if (json is null) return null;
+        try
+        {
+            var node = System.Text.Json.Nodes.JsonNode.Parse(json);
+            Mask(node, propertyNames);
+            return node?.ToJsonString(JsonOpt);
+        }
+        catch { return "{\"redacted\":true}"; }   // 가리지 못하면 원문을 남기지 않는다
+    }
+
+    static void Mask(System.Text.Json.Nodes.JsonNode? node, string[] names)
+    {
+        if (node is System.Text.Json.Nodes.JsonObject obj)
+        {
+            foreach (var key in obj.Select(kv => kv.Key).ToList())
+            {
+                if (names.Contains(key, StringComparer.OrdinalIgnoreCase))
+                {
+                    if (obj[key] is not null && obj[key]!.ToJsonString() is not ("\"\"" or "null")) obj[key] = "***";
+                }
+                else Mask(obj[key], names);
+            }
+        }
+        else if (node is System.Text.Json.Nodes.JsonArray arr)
+            foreach (var child in arr) Mask(child, names);
     }
 
     static string? ToJson(object? o)

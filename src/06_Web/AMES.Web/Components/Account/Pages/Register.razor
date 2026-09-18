@@ -15,6 +15,7 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>Register · A-MES</PageTitle>
 
@@ -122,6 +123,7 @@
         catch (Exception ex) { Logger.LogError(ex, "Pending profile creation failed for {UserId}", userId); }
 
         // 이메일 자기인증 링크 생성·발송 (개발환경은 NoOp 발신자 → 화면에 링크 노출)
+        Audit.Log("ACCOUNT", "CREATE", "AspNetUsers", Input.Email, null, new { Input.Email, SelfRegistered = true }, actor: Input.Email);
         var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
         code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
         var callbackUrl = NavigationManager.GetUriWithQueryParameters(

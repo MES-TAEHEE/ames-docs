@@ -567,7 +567,7 @@
         {
             foreach (var item in _items) MD.DeleteCodeItem(item.CodeID);
             MD.DeleteCodeGroup(_fGroup.GroupCode);
-            Audit.Deleted("MD-030", "MD_CodeGroup", _fGroup.GroupCode, new { Group = _allGroups.FirstOrDefault(g => g.GroupCode == _fGroup.GroupCode), Items = _items });
+            Audit.Deleted("MD-030", "MD_CodeGroup", _fGroup.GroupCode, Snap(new { Group = _allGroups.FirstOrDefault(g => g.GroupCode == _fGroup.GroupCode), Items = _items }, _fGroup.GroupCode));
             if (_selGroup?.GroupCode == _fGroup.GroupCode) { _selGroup = null; _items = new(); }
             CloseModal();
             await ReloadGroupsKeepPage();
@@ -626,7 +626,7 @@
             MD.InsertCodeItem(id, _selGroup!.GroupCode, _fItem.CodeValue.Trim(), _fItem.CodeName.Trim(),
                 NE(_fItem.CodeNameEn), _fItem.SortOrder, NE(_fItem.Attribute1), _fItem.UseFlag, NE(_fItem.Description), _actor,
                 _fItem.ParentCodeId);
-            Audit.Created("MD-030", "MD_CodeItem", id, _fItem);
+            Audit.Created("MD-030", "MD_CodeItem", id, Snap(_fItem, _selGroup?.GroupCode));
             LoadItems(); CloseModal();
             ShowMsg($"{id} {L["Msg.Created"]}", false);
         }
@@ -645,7 +645,7 @@
             MD.UpdateCodeItem(_fItem.CodeId, _fItem.CodeValue.Trim(), _fItem.CodeName.Trim(),
                 NE(_fItem.CodeNameEn), _fItem.SortOrder, NE(_fItem.Attribute1), _fItem.UseFlag, NE(_fItem.Description), _actor,
                 _fItem.ParentCodeId);
-            Audit.Updated("MD-030", "MD_CodeItem", _fItem.CodeId, _items.FirstOrDefault(i => i.CodeID == _fItem.CodeId), _fItem);
+            Audit.Updated("MD-030", "MD_CodeItem", _fItem.CodeId, Snap(_items.FirstOrDefault(i => i.CodeID == _fItem.CodeId), _selGroup?.GroupCode), Snap(_fItem, _selGroup?.GroupCode));
             LoadItems(); CloseModal();
             ShowMsg($"{_fItem.CodeId} {L["Msg.Updated"]}", false);
         }
@@ -659,7 +659,7 @@
         try
         {
             MD.DeleteCodeItem(_fItem.CodeId);
-            Audit.Deleted("MD-030", "MD_CodeItem", _fItem.CodeId, _items.FirstOrDefault(i => i.CodeID == _fItem.CodeId));
+            Audit.Deleted("MD-030", "MD_CodeItem", _fItem.CodeId, Snap(_items.FirstOrDefault(i => i.CodeID == _fItem.CodeId), _selGroup?.GroupCode));
             LoadItems(); CloseModal();
             ShowMsg($"{_fItem.CodeId} {L["Msg.Deleted"]}", false);
         }
@@ -674,6 +674,10 @@
     }
 
     static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s?.Trim();
+
+    // 인증 토큰·키를 설명란에 담는 그룹(SW_*_AUTH 등)은 감사 로그에 값을 남기지 않는다
+    static object? Snap(object? o, string? groupCode)
+        => AMES.Web.Services.AuditLogger.IsSecretKey(groupCode) ? AMES.Web.Services.AuditLogger.Redact(o, "Description") : o;
 
     class GroupFormModel {
         public string GroupCode   { get; set; } = "";

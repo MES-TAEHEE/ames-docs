@@ -8,6 +8,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IdentityRedirectManager RedirectManager
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>Confirm email change · A-MES</PageTitle>
 
@@ -66,6 +67,7 @@
         }
 
         await SignInManager.RefreshSignInAsync(user);
+        Audit.Log("ACCOUNT", "UPDATE", "AspNetUsers", Email, null, new { UserId, Email }, actor: Email);
         message = "Thank you for confirming your email change.";
     }
 }

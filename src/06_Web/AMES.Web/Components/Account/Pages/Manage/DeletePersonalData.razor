@@ -9,6 +9,7 @@
 @inject IdentityUserAccessor UserAccessor
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<DeletePersonalData> Logger
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>Delete Personal Data</PageTitle>
 
@@ -71,6 +72,7 @@
             throw new InvalidOperationException("Unexpected error occurred deleting user.");
         }
 
+        Audit.Log("ACCOUNT", "DELETE", "AspNetUsers", user.Email, new { user.Id, user.Email }, null, actor: user.Email);
         await SignInManager.SignOutAsync();
 
         var userId = await UserManager.GetUserIdAsync(user);
