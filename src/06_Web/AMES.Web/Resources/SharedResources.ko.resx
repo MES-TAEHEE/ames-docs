@@ -7998,23 +7998,11 @@
   <data name="FG.Shipments.Empty" xml:space="preserve">
     <value>상차 또는 출하된 오더가 없습니다.</value>
   </data>
-  <data name="FG.Shipments.Kpi.Loaded" xml:space="preserve">
-    <value>상차</value>
-  </data>
-  <data name="FG.Shipments.Col.LoadedAt" xml:space="preserve">
-    <value>상차 일시</value>
-  </data>
   <data name="FG.Shipments.Col.ShipOrder" xml:space="preserve">
     <value>출하 오더</value>
   </data>
-  <data name="FG.Shipments.Col.LoadingNo" xml:space="preserve">
-    <value>상차 번호</value>
-  </data>
   <data name="FG.Shipments.Col.Truck" xml:space="preserve">
     <value>차량</value>
-  </data>
-  <data name="FG.Shipments.Col.Dock" xml:space="preserve">
-    <value>도크</value>
   </data>
   <data name="FG.Shipments.Col.Lines" xml:space="preserve">
     <value>라인 수</value>
@@ -8165,5 +8153,26 @@
   </data>
   <data name="App.ErrorPage.RequestId" xml:space="preserve">
     <value>요청 ID</value>
+  </data>
+  <data name="FG.Shipments.Col.ShippedAt" xml:space="preserve">
+    <value>출하 일시</value>
+  </data>
+  <data name="FG.Shipments.Col.DcrDn" xml:space="preserve">
+    <value>DCR / 납품서</value>
+  </data>
+  <data name="FG.Shipments.Col.Documents" xml:space="preserve">
+    <value>문서</value>
+  </data>
+  <data name="FG.Shipments.Btn.ViewPrint" xml:space="preserve">
+    <value>보기 / 인쇄</value>
+  </data>
+  <data name="FG.Shipments.Doc.Title" xml:space="preserve">
+    <value>출하 문서</value>
+  </data>
+  <data name="FG.Shipments.Err.NotReady" xml:space="preserve">
+    <value>DCR 과 내부 라벨은 출하 및 납품서 생성 후에 볼 수 있습니다.</value>
+  </data>
+  <data name="FG.Shipments.Err.NoDocument" xml:space="preserve">
+    <value>출하 문서 데이터를 찾을 수 없습니다.</value>
   </data>
 </root>

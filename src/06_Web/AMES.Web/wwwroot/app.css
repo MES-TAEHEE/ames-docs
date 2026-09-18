@@ -71,7 +71,7 @@
 
 .fg-document-header span {
     color: #60a5fa;
-    font-size: 11px;
+    font-size: calc(11px + var(--ames-fs-bump));
     font-weight: 800;
     letter-spacing: .14em;
 }
@@ -147,24 +147,24 @@
 .fg-dcr-destination table,
 .fg-dcr-lines { width: 100%; border-collapse: collapse; }
 .fg-dcr-parties th,
-.fg-dcr-parties td { border: 1px solid #111; padding: 4px 7px; text-align: left; font-size: 11px; }
+.fg-dcr-parties td { border: 1px solid #111; padding: 4px 7px; text-align: left; font-size: calc(11px + var(--ames-fs-bump)); }
 .fg-dcr-parties thead th { background: #f3f4f6; }
 .fg-dcr-parties tbody th { width: 25mm; }
 
 .fg-dcr-summary { margin-top: 4mm; align-items: end; }
-.fg-dcr-barcode-block { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px; font-size: 11px; }
+.fg-dcr-barcode-block { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px; font-size: calc(11px + var(--ames-fs-bump)); }
 .fg-dcr-barcode-block > div:nth-child(3) { grid-column: 1 / -1; }
 .fg-doc-barcode { grid-column: 1 / -1; width: 100%; height: 23mm; margin-top: 2mm; }
 .fg-doc-barcode rect,
 .fg-label-barcode rect,
 .fg-label-part-barcode rect { fill: #000; }
 .fg-dcr-barcode-block > strong { grid-column: 1 / -1; text-align: center; font-family: 'Courier New', monospace; font-size: 12px; }
-.fg-dcr-destination { display: grid; gap: 5px; font-size: 11px; }
+.fg-dcr-destination { display: grid; gap: 5px; font-size: calc(11px + var(--ames-fs-bump)); }
 .fg-dcr-destination table { margin-top: 4mm; }
 .fg-dcr-destination th,
 .fg-dcr-destination td { border-top: 1px solid #111; border-bottom: 1px solid #111; padding: 4px; text-align: center; }
 
-.fg-dcr-lines { margin-top: 4mm; table-layout: fixed; font-size: 9px; }
+.fg-dcr-lines { margin-top: 4mm; table-layout: fixed; font-size: calc(9px + var(--ames-fs-bump)); }
 .fg-dcr-lines th,
 .fg-dcr-lines td { border-top: 1px solid #111; border-bottom: 1px dashed #777; padding: 5px 4px; text-align: center; vertical-align: middle; }
 .fg-dcr-lines th:nth-child(1) { width: 7mm; }
@@ -186,10 +186,10 @@
 }
 .fg-dcr-signatures > div { display: flex; flex-direction: column; align-items: center; border-right: 1px solid #111; text-align: center; }
 .fg-dcr-signatures > div:last-child { border-right: 0; }
-.fg-dcr-signatures b { width: 100%; padding: 4px; border-bottom: 1px solid #111; font-size: 10px; }
-.fg-dcr-signatures span { width: 100%; margin-top: auto; padding: 4px; border-top: 1px solid #111; border-bottom: 1px solid #111; font-size: 9px; }
+.fg-dcr-signatures b { width: 100%; padding: 4px; border-bottom: 1px solid #111; font-size: calc(10px + var(--ames-fs-bump)); }
+.fg-dcr-signatures span { width: 100%; margin-top: auto; padding: 4px; border-top: 1px solid #111; border-bottom: 1px solid #111; font-size: calc(9px + var(--ames-fs-bump)); }
 .fg-dcr-signatures strong { padding: 5px; font-size: 12px; }
-.fg-dcr-paper > footer { display: flex; justify-content: space-between; gap: 10px; margin-top: 3mm; font-size: 9px; }
+.fg-dcr-paper > footer { display: flex; justify-content: space-between; gap: 10px; margin-top: 3mm; font-size: calc(9px + var(--ames-fs-bump)); }
 
 .fg-label-sheet {
     width: 297mm;
@@ -213,7 +213,7 @@
     page-break-inside: avoid;
 }
 .fg-product-label header,
-.fg-product-label footer { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; }
+.fg-product-label footer { display: flex; justify-content: space-between; gap: 8px; font-size: calc(10px + var(--ames-fs-bump)); }
 .fg-product-label header { padding-bottom: 2mm; border-bottom: 1px solid #111; font-size: 12px; }
 .fg-label-barcode { display: block; width: 78%; height: 18mm; margin: 2mm auto 0; }
 .fg-label-readable { text-align: center; font-family: 'Courier New', monospace; font-size: 13px; font-weight: 800; }
@@ -223,7 +223,7 @@
 .fg-label-product span,
 .fg-label-desc span,
 .fg-label-grid span,
-.fg-label-part > span { min-width: 16mm; font-size: 9px; }
+.fg-label-part > span { min-width: 16mm; font-size: calc(9px + var(--ames-fs-bump)); }
 .fg-label-desc b { font-size: 14px; }
 .fg-label-grid { display: grid; grid-template-columns: 1fr 1fr; }
 .fg-label-grid div { display: flex; align-items: center; gap: 2mm; min-height: 9mm; padding: 1mm 2mm; border-bottom: 1px solid #111; }

@@ -7998,23 +7998,11 @@
   <data name="FG.Shipments.Empty" xml:space="preserve">
     <value>No se encontraron órdenes cargadas o enviadas.</value>
   </data>
-  <data name="FG.Shipments.Kpi.Loaded" xml:space="preserve">
-    <value>Cargados</value>
-  </data>
-  <data name="FG.Shipments.Col.LoadedAt" xml:space="preserve">
-    <value>Cargado el</value>
-  </data>
   <data name="FG.Shipments.Col.ShipOrder" xml:space="preserve">
     <value>Orden de envío</value>
   </data>
-  <data name="FG.Shipments.Col.LoadingNo" xml:space="preserve">
-    <value>N.º de carga</value>
-  </data>
   <data name="FG.Shipments.Col.Truck" xml:space="preserve">
     <value>Camión</value>
-  </data>
-  <data name="FG.Shipments.Col.Dock" xml:space="preserve">
-    <value>Muelle</value>
   </data>
   <data name="FG.Shipments.Col.Lines" xml:space="preserve">
     <value>Líneas</value>
@@ -8165,5 +8153,26 @@
   </data>
   <data name="App.ErrorPage.RequestId" xml:space="preserve">
     <value>ID de solicitud</value>
+  </data>
+  <data name="FG.Shipments.Col.ShippedAt" xml:space="preserve">
+    <value>Enviado el</value>
+  </data>
+  <data name="FG.Shipments.Col.DcrDn" xml:space="preserve">
+    <value>DCR / Nota de entrega</value>
+  </data>
+  <data name="FG.Shipments.Col.Documents" xml:space="preserve">
+    <value>Documentos</value>
+  </data>
+  <data name="FG.Shipments.Btn.ViewPrint" xml:space="preserve">
+    <value>Ver / Imprimir</value>
+  </data>
+  <data name="FG.Shipments.Doc.Title" xml:space="preserve">
+    <value>DOCUMENTOS DE ENVÍO</value>
+  </data>
+  <data name="FG.Shipments.Err.NotReady" xml:space="preserve">
+    <value>El DCR y las etiquetas internas están disponibles tras el envío y la creación de la nota de entrega.</value>
+  </data>
+  <data name="FG.Shipments.Err.NoDocument" xml:space="preserve">
+    <value>No se encontraron los datos del documento de envío.</value>
   </data>
 </root>

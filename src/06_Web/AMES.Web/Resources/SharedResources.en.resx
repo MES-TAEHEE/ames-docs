@@ -7998,23 +7998,11 @@
   <data name="FG.Shipments.Empty" xml:space="preserve">
     <value>No loaded or shipped orders found.</value>
   </data>
-  <data name="FG.Shipments.Kpi.Loaded" xml:space="preserve">
-    <value>Loaded</value>
-  </data>
-  <data name="FG.Shipments.Col.LoadedAt" xml:space="preserve">
-    <value>Loaded At</value>
-  </data>
   <data name="FG.Shipments.Col.ShipOrder" xml:space="preserve">
     <value>Ship Order</value>
   </data>
-  <data name="FG.Shipments.Col.LoadingNo" xml:space="preserve">
-    <value>Loading No</value>
-  </data>
   <data name="FG.Shipments.Col.Truck" xml:space="preserve">
     <value>Truck</value>
-  </data>
-  <data name="FG.Shipments.Col.Dock" xml:space="preserve">
-    <value>Dock</value>
   </data>
   <data name="FG.Shipments.Col.Lines" xml:space="preserve">
     <value>Lines</value>
@@ -8165,5 +8153,26 @@
   </data>
   <data name="App.ErrorPage.RequestId" xml:space="preserve">
     <value>Request ID</value>
+  </data>
+  <data name="FG.Shipments.Col.ShippedAt" xml:space="preserve">
+    <value>Shipped At</value>
+  </data>
+  <data name="FG.Shipments.Col.DcrDn" xml:space="preserve">
+    <value>DCR / Delivery Note</value>
+  </data>
+  <data name="FG.Shipments.Col.Documents" xml:space="preserve">
+    <value>Documents</value>
+  </data>
+  <data name="FG.Shipments.Btn.ViewPrint" xml:space="preserve">
+    <value>View / Print</value>
+  </data>
+  <data name="FG.Shipments.Doc.Title" xml:space="preserve">
+    <value>SHIPMENT DOCUMENTS</value>
+  </data>
+  <data name="FG.Shipments.Err.NotReady" xml:space="preserve">
+    <value>DCR and internal labels are available after shipment and delivery-note creation.</value>
+  </data>
+  <data name="FG.Shipments.Err.NoDocument" xml:space="preserve">
+    <value>Shipment document data was not found.</value>
   </data>
 </root>

@@ -39,18 +39,18 @@
                     SelectionMode="DataGridSelectionMode.Single" PageSizeChanged="@(s => _pageRows = s)"
                     Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="DeliveryNoteIssuedAt" Title="Shipped At" Width="150px"><Template Context="r">@(r.DeliveryNoteIssuedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="DeliveryNoteIssuedAt" Title="@L["FG.Shipments.Col.ShippedAt"].Value" Width="150px"><Template Context="r">@(r.DeliveryNoteIssuedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShipOrderNumber" Title="@L["FG.Shipments.Col.ShipOrder"].Value" Width="150px"><Template Context="r"><span class="code">@(r.ShipOrderNumber ?? "-")</span></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="DeliveryNoteNumber" Title="DCR / Delivery Note" Width="170px"><Template Context="r"><span class="code">@(r.DeliveryNoteNumber ?? "-")</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="DeliveryNoteNumber" Title="@L["FG.Shipments.Col.DcrDn"].Value" Width="170px"><Template Context="r"><span class="code">@(r.DeliveryNoteNumber ?? "-")</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="CustomerCode" Title="@L["Col.Customer"].Value" Width="110px" />
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="LicensePlate" Title="@L["FG.Shipments.Col.Truck"].Value" Width="120px" />
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="LineCount" Title="@L["FG.Shipments.Col.Lines"].Value" Width="70px" TextAlign="TextAlign.Right" />
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="OrderedQty" Title="@L["Col.Qty"].Value" Width="85px" TextAlign="TextAlign.Right"><Template Context="r">@r.OrderedQty.ToString("N0")</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="Destination" Title="@L["FG.Shipments.Col.Destination"].Value" Width="145px" />
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="Status" Title="@L["Col.Status"].Value" Width="100px" TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @(IsShipped(r.Status) ? "ok" : "warn")">@(r.Status ?? "LOADED")</span></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Title="Documents" Width="125px" Sortable="false" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Title="@L["FG.Shipments.Col.Documents"].Value" Width="125px" Sortable="false" TextAlign="TextAlign.Center">
                 <Template Context="r">
-                    <RadzenButton Text="View / Print" Icon="print" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base"
+                    <RadzenButton Text="@L["FG.Shipments.Btn.ViewPrint"].Value" Icon="print" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base"
                                   Disabled="@(!CanPrint(r))" Click="@(() => OpenDocuments(r))" @onclick:stopPropagation="true" class="ames-rz-btn" />
                 </Template>
             </RadzenDataGridColumn>
@@ -64,7 +64,7 @@
         <section class="fg-document-modal" role="dialog" aria-modal="true" aria-label="Shipment documents" @onclick:stopPropagation="true">
             <header class="fg-document-header">
                 <div>
-                    <span>SHIPMENT DOCUMENTS</span>
+                    <span>@L["FG.Shipments.Doc.Title"]</span>
                     <strong>@Text(_document.DeliveryNoteNumber)</strong>
                     <small>@Text(_document.ShipOrderNumber) · @Text(_document.CustomerName)</small>
                 </div>
@@ -214,14 +214,14 @@
     {
         if (!CanPrint(row))
         {
-            _message = "DCR and internal labels are available after shipment and delivery-note creation.";
+            _message = L["FG.Shipments.Err.NotReady"];
             return;
         }
         try
         {
             _document = Fg.GetShipmentDocument(row.ShipmentOrderId);
             _documentTab = "dcr";
-            _message = _document is null ? "Shipment document data was not found." : "";
+            _message = _document is null ? L["FG.Shipments.Err.NoDocument"].Value : "";
         }
         catch (Exception ex) { _document = null; _message = ex.Message; }
     }
