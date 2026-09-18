@@ -130,7 +130,7 @@
                         <div class="inventory-detail-head">
                             <RadzenButton class="inventory-back" Click="@CloseLocationInventory" Text="&lt; BACK" />
                             <div><span>LOCATION</span><strong>@Text(_selectedInventoryLocation.LocationId)</strong><em>@Text(_selectedInventoryLocation.LocationName)</em></div>
-                            <strong>@Qty(_selectedInventoryLocation.TotalQty, _selectedInventoryLocation.Unit)</strong>
+                            <strong>@SelectedLocationQuantity</strong>
                         </div>
                         <div class="inventory-table-head inventory-part-detail-grid"><span>PART</span><span>QTY</span></div>
                         <div class="inventory-table-list">
@@ -993,6 +993,11 @@
         .Select(group => new WarehousePartSummary(group.Key.PartNo, group.Key.PartName, group.Sum(row => row.Qty), group.Key.Unit))
         .OrderBy(row => row.PartNo, StringComparer.OrdinalIgnoreCase)
         .ToList();
+
+    private string SelectedLocationQuantity => SelectedLocationParts.Count == 0
+        ? Qty(0, _selectedInventoryLocation?.Unit)
+        : string.Join(" / ", SelectedLocationParts.GroupBy(part => part.Unit)
+            .Select(group => Qty(group.Sum(part => part.Qty), group.Key)));
 
     private List<PdaApi.LocationRow> VisibleInventoryLocations
     {

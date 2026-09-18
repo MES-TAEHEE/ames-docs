@@ -10146,6 +10146,9 @@ body:has(.pda-shell.wh),
     align-items: center !important;
     column-gap: 8px !important;
     width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 .pda-shell.wh.inventory-browser-shell .inventory-location-grid {
@@ -10154,7 +10157,7 @@ body:has(.pda-shell.wh),
 
 .pda-shell.wh.inventory-browser-shell .inventory-part-grid,
 .pda-shell.wh.inventory-browser-shell .inventory-lot-grid {
-    grid-template-columns: minmax(145px, 1.5fr) 76px minmax(90px, .8fr) !important;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, .75fr) minmax(0, 1fr) !important;
 }
 
 .pda-shell.wh.inventory-browser-shell .inventory-part-detail-grid {
@@ -10218,6 +10221,15 @@ body:has(.pda-shell.wh),
     gap: 2px !important;
 }
 
+.pda-shell.wh.inventory-browser-shell .inventory-part-grid > strong:last-child,
+.pda-shell.wh.inventory-browser-shell .inventory-lot-grid > strong:last-child,
+.pda-shell.wh.inventory-browser-shell .inventory-location-grid .inventory-part-cell strong {
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    text-overflow: clip !important;
+    line-height: 1.35 !important;
+}
+
 .pda-shell.wh.inventory-browser-shell .inventory-part-cell small {
     overflow: hidden !important;
     color: rgba(255, 255, 255, .66) !important;
@@ -10263,6 +10275,9 @@ body:has(.pda-shell.wh),
 }
 
 .pda-shell.wh.inventory-browser-shell .inventory-detail-head strong {
+    min-width: 0 !important;
+    overflow-wrap: anywhere !important;
+    white-space: normal !important;
     color: #ffffff !important;
     font-size: 11px !important;
     font-weight: 900 !important;
