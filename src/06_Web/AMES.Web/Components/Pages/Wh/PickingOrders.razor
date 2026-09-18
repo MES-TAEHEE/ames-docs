@@ -256,16 +256,16 @@
 
     <div class="wh-slip-print-area">
         <div class="wh-slip-paper">
-            <div class="wh-slip-title">Material Picking Slip</div>
+            <div class="wh-slip-title">@L["WH.Picking.Slip.Title"]</div>
             <div class="wh-slip-head">
                 <div class="wh-slip-meta">
-                    <div><span>Req Date :</span> @_selectedSlip.ReqDate</div>
-                    <div><span>Worker :</span> @_selectedSlip.ReqUserId</div>
-                    <div><span>Req Location :</span> @_selectedSlip.ReqLocation</div>
-                    <div><span>Print Date :</span> @((_selectedSlip.PrintDate ?? DbClock.Now).ToString("yyyy-MM-ddTHH:mm:sszzz"))</div>
+                    <div><span>@L["WH.Picking.Col.ReqDate"] :</span> @_selectedSlip.ReqDate</div>
+                    <div><span>@L["Col.Worker"] :</span> @_selectedSlip.ReqUserId</div>
+                    <div><span>@L["WH.Picking.Col.ReqLocation"] :</span> @_selectedSlip.ReqLocation</div>
+                    <div><span>@L["WH.Picking.Slip.PrintDate"] :</span> @((_selectedSlip.PrintDate ?? DbClock.Now).ToString("yyyy-MM-ddTHH:mm:sszzz"))</div>
                 </div>
                 <div class="wh-slip-barcode-box">
-                    <div>Pick Slip No : @_selectedSlip.PickSlipNo</div>
+                    <div>@L["WH.Picking.Col.SlipNo"] : @_selectedSlip.PickSlipNo</div>
                     @{
                         var barcode = BuildCode128(_selectedSlip.PickSlipNo);
                     }
@@ -280,17 +280,17 @@
             <table class="wh-slip-table">
                 <thead>
                     <tr>
-                        <th style="width:44px;">NO</th>
-                        <th style="width:130px;">Part No.</th>
-                        <th style="width:235px;">Part Name</th>
+                        <th style="width:44px;">@L["Col.No"]</th>
+                        <th style="width:130px;">@L["Col.ItemNo"]</th>
+                        <th style="width:235px;">@L["Col.ItemName"]</th>
                         @if (HasMultipleReqLocations)
                         {
-                            <th style="width:105px;">Req Location</th>
+                            <th style="width:105px;">@L["WH.Picking.Col.ReqLocation"]</th>
                         }
-                        <th style="width:68px;">Req Box</th>
-                        <th colspan="2">Location #1</th>
-                        <th colspan="2">Location #2</th>
-                        <th colspan="2">Location #3</th>
+                        <th style="width:68px;">@L["WH.Picking.Slip.ReqBox"]</th>
+                        <th colspan="2">@L["WH.Picking.Col.Loc1"]</th>
+                        <th colspan="2">@L["WH.Picking.Col.Loc2"]</th>
+                        <th colspan="2">@L["WH.Picking.Col.Loc3"]</th>
                     </tr>
                 </thead>
                 <tbody>

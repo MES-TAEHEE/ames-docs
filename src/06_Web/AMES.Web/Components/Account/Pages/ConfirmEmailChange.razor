@@ -9,13 +9,14 @@
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IdentityRedirectManager RedirectManager
 @inject AMES.Web.Services.AuditLogger Audit
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>Confirm email change · A-MES</PageTitle>
+<PageTitle>@L["Auth.Title.EmailChange"] · A-MES</PageTitle>
 
-<AuthCard Sub="EMAIL CHANGE">
+<AuthCard Sub="@L["Auth.Sub.EmailChange"].Value">
     <div class="ames-auth-hint" style="text-align:center;line-height:1.9;">@message</div>
     <div class="ames-auth-meta">
-        <a href="/Account/Login">로그인으로 이동 →</a>
+        <a href="/Account/Login">@L["Auth.GoSignIn"] →</a>
     </div>
 </AuthCard>
 
@@ -45,7 +46,7 @@
         var user = await UserManager.FindByIdAsync(UserId);
         if (user is null)
         {
-            message = "Unable to find user with Id '{userId}'";
+            message = L["Auth.Err.UserNotFound"];
             return;
         }
 
@@ -53,7 +54,7 @@
         var result = await UserManager.ChangeEmailAsync(user, Email, code);
         if (!result.Succeeded)
         {
-            message = "Error changing email.";
+            message = L["Auth.EmailChange.Fail"];
             return;
         }
 
@@ -62,12 +63,12 @@
         var setUserNameResult = await UserManager.SetUserNameAsync(user, Email);
         if (!setUserNameResult.Succeeded)
         {
-            message = "Error changing user name.";
+            message = L["Auth.EmailChange.Fail"];
             return;
         }
 
         await SignInManager.RefreshSignInAsync(user);
         Audit.Log("ACCOUNT", "UPDATE", "AspNetUsers", Email, null, new { UserId, Email }, actor: Email);
-        message = "Thank you for confirming your email change.";
+        message = L["Auth.EmailChange.Ok"];
     }
 }

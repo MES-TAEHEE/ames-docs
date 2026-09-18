@@ -71,8 +71,8 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="LocationName" Title="@L["Col.Name"]">
                 <Template Context="r">@(r.LocationName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="WhCode" Title="WH Code" TextAlign="TextAlign.Center" Width="90px" />
-            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="AreaCode" Title="Area" TextAlign="TextAlign.Center" Width="160px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="WhCode" Title="@L["MD.Location.Col.WhCode"].Value" TextAlign="TextAlign.Center" Width="90px" />
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="AreaCode" Title="@L["Col.Area"].Value" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="r"><span class="pill">@CodeLabel(_areaCodes, r.AreaCode)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="ZoneCode" Title="@L["Col.Zone"]" TextAlign="TextAlign.Center" Width="80px">
@@ -128,11 +128,11 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="4">
-                    <RadzenLabel Text="WH Code" />
+                    <RadzenLabel Text="@L["MD.Location.Col.WhCode"].Value" />
                     <RadzenDropDown @bind-Value="_f.WhCode" Data="@WhOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="8">
-                    <RadzenLabel Text="Area" />
+                    <RadzenLabel Text="@L["Col.Area"].Value" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.AreaCode" Data="@AreaOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
@@ -204,11 +204,11 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="4">
-                    <RadzenLabel Text="WH Code" />
+                    <RadzenLabel Text="@L["MD.Location.Col.WhCode"].Value" />
                     <RadzenDropDown @bind-Value="_f.WhCode" Data="@WhOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="8">
-                    <RadzenLabel Text="Area" />
+                    <RadzenLabel Text="@L["Col.Area"].Value" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.AreaCode" Data="@AreaOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>

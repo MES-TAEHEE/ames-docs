@@ -21,11 +21,11 @@
 }
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">IMPORTED</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">SELECTED</div><div class="ames-kpi-v">@_selected.Count</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">CONFIRMED</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Confirmed")</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">OPEN</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Open")</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">TOTAL QTY</div><div class="ames-kpi-v">@_rows.Sum(r => r.OrderQty).ToString("#,0")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.SupplyPlanImport.Kpi.Imported"]</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.SupplyPlanImport.Kpi.Selected"]</div><div class="ames-kpi-v">@_selected.Count</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["PP.SupplyPlanImport.Kpi.Confirmed"]</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Confirmed")</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["PP.SupplyPlanImport.Kpi.Open"]</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Open")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.SupplyPlanImport.Kpi.TotalQty"]</div><div class="ames-kpi-v">@_rows.Sum(r => r.OrderQty).ToString("#,0")</div></div>
 </div>
 
 <div class="ames-card ames-card-fill">

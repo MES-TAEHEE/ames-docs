@@ -156,9 +156,6 @@
   <data name="Btn.Confirm" xml:space="preserve">
     <value>Confirm</value>
   </data>
-  <data name="Btn.Reload" xml:space="preserve">
-    <value>Reload</value>
-  </data>
   <data name="Btn.Reset" xml:space="preserve">
     <value>Reset</value>
   </data>
@@ -179,9 +176,6 @@
   </data>
   <data name="Lbl.Loading" xml:space="preserve">
     <value>Loading...</value>
-  </data>
-  <data name="Unit.Min" xml:space="preserve">
-    <value> min</value>
   </data>
   <data name="Lbl.TotalOf" xml:space="preserve">
     <value>total</value>
@@ -261,12 +255,6 @@
   <data name="Lbl.Recent" xml:space="preserve">
     <value>Recent</value>
   </data>
-  <data name="Lbl.Future" xml:space="preserve">
-    <value>Ahead</value>
-  </data>
-  <data name="Lbl.Past" xml:space="preserve">
-    <value>Back</value>
-  </data>
   <data name="Lbl.Days" xml:space="preserve">
     <value> days</value>
   </data>
@@ -318,20 +306,8 @@
   <data name="MNT.WorkOrder.Completed" xml:space="preserve">
     <value>Completed</value>
   </data>
-  <data name="MNT.PmSchedule.Title" xml:space="preserve">
-    <value>PM Schedule</value>
-  </data>
-  <data name="MNT.PmSchedule.List" xml:space="preserve">
-    <value>PM Schedule</value>
-  </data>
-  <data name="MNT.PmSchedule.Empty" xml:space="preserve">
-    <value>No PM schedules in the selected period.</value>
-  </data>
   <data name="MNT.Downtime.Title" xml:space="preserve">
     <value>Downtime History</value>
-  </data>
-  <data name="MNT.Downtime.List" xml:space="preserve">
-    <value>Downtime Events</value>
   </data>
   <data name="MNT.Downtime.Empty" xml:space="preserve">
     <value>No downtime data in the selected period.</value>
@@ -372,20 +348,11 @@
   <data name="MNT.Mold.Empty" xml:space="preserve">
     <value>No mold data for the selected criteria.</value>
   </data>
-  <data name="MNT.Mold.Ph.Name" xml:space="preserve">
-    <value>Search mold name</value>
-  </data>
   <data name="MNT.OeeAnalysis.Title" xml:space="preserve">
     <value>OEE Analysis</value>
   </data>
-  <data name="MNT.OeeAnalysis.List" xml:space="preserve">
-    <value>OEE Data</value>
-  </data>
   <data name="MNT.OeeAnalysis.Empty" xml:space="preserve">
     <value>No OEE data in the selected period.</value>
-  </data>
-  <data name="MNT.OeeAnalysis.Ph.Equip" xml:space="preserve">
-    <value>Search equipment</value>
   </data>
   <data name="MNT.SpareParts.Title" xml:space="preserve">
     <value>Spare Parts</value>
@@ -408,32 +375,11 @@
   <data name="RPT.DailyProduction.Title" xml:space="preserve">
     <value>Daily Production Results</value>
   </data>
-  <data name="RPT.DailyProduction.List" xml:space="preserve">
-    <value>Daily Aggregation</value>
-  </data>
   <data name="RPT.DailyProduction.Empty" xml:space="preserve">
     <value>No results found.</value>
   </data>
-  <data name="RPT.DailyProduction.Kpi.Days" xml:space="preserve">
-    <value>Days</value>
-  </data>
-  <data name="RPT.DailyProduction.Kpi.Good" xml:space="preserve">
-    <value>Good Qty</value>
-  </data>
-  <data name="RPT.DailyProduction.Kpi.Defect" xml:space="preserve">
-    <value>Defect Entries</value>
-  </data>
   <data name="RPT.DailyProduction.Kpi.Yield" xml:space="preserve">
     <value>Yield Rate</value>
-  </data>
-  <data name="RPT.DailyProduction.Col.Entries" xml:space="preserve">
-    <value>Entries</value>
-  </data>
-  <data name="RPT.DailyProduction.Col.Good" xml:space="preserve">
-    <value>Good</value>
-  </data>
-  <data name="RPT.DailyProduction.Col.Defect" xml:space="preserve">
-    <value>Defect</value>
   </data>
   <data name="RPT.DailyProduction.Col.Yield" xml:space="preserve">
     <value>Yield%</value>
@@ -441,32 +387,14 @@
   <data name="RPT.DefectPareto.Title" xml:space="preserve">
     <value>Defect Pareto</value>
   </data>
-  <data name="RPT.DefectPareto.List" xml:space="preserve">
-    <value>Pareto Ranking</value>
-  </data>
   <data name="RPT.DefectPareto.Empty" xml:space="preserve">
     <value>No defect data in the selected period.</value>
-  </data>
-  <data name="RPT.DefectPareto.Kpi.Codes" xml:space="preserve">
-    <value>Defect Codes</value>
   </data>
   <data name="RPT.DefectPareto.Kpi.Total" xml:space="preserve">
     <value>Total Defects</value>
   </data>
-  <data name="RPT.DefectPareto.Kpi.Events" xml:space="preserve">
-    <value>Events</value>
-  </data>
-  <data name="RPT.DefectPareto.Kpi.Top" xml:space="preserve">
-    <value>Top Code</value>
-  </data>
-  <data name="RPT.DefectPareto.Kpi.TopPct" xml:space="preserve">
-    <value>% share</value>
-  </data>
   <data name="RPT.DefectPareto.Col.Rank" xml:space="preserve">
     <value>Rank</value>
-  </data>
-  <data name="RPT.DefectPareto.Col.DefectCode" xml:space="preserve">
-    <value>Defect Code</value>
   </data>
   <data name="RPT.DefectPareto.Col.Qty" xml:space="preserve">
     <value>Qty</value>
@@ -480,56 +408,17 @@
   <data name="RPT.DefectPareto.Col.CumPct" xml:space="preserve">
     <value>Cumulative</value>
   </data>
-  <data name="RPT.DefectPareto.Col.Bar" xml:space="preserve">
-    <value>Bar</value>
-  </data>
   <data name="RPT.DailyShipment.Title" xml:space="preserve">
     <value>Daily Shipment Status</value>
-  </data>
-  <data name="RPT.DailyShipment.List" xml:space="preserve">
-    <value>Daily Shipment Aggregation</value>
   </data>
   <data name="RPT.DailyShipment.Empty" xml:space="preserve">
     <value>No shipment data in the selected period.</value>
   </data>
-  <data name="RPT.DailyShipment.Kpi.Days" xml:space="preserve">
-    <value>Ship Days</value>
-  </data>
-  <data name="RPT.DailyShipment.Kpi.Orders" xml:space="preserve">
-    <value>Orders</value>
-  </data>
-  <data name="RPT.DailyShipment.Kpi.OrderQty" xml:space="preserve">
-    <value>Order Qty</value>
-  </data>
-  <data name="RPT.DailyShipment.Kpi.AllocQty" xml:space="preserve">
-    <value>Allocated Qty</value>
-  </data>
-  <data name="RPT.DailyShipment.Col.Orders" xml:space="preserve">
-    <value>Orders</value>
-  </data>
-  <data name="RPT.DailyShipment.Col.OrderQty" xml:space="preserve">
-    <value>Order Qty</value>
-  </data>
-  <data name="RPT.DailyShipment.Col.AllocQty" xml:space="preserve">
-    <value>Allocated Qty</value>
-  </data>
-  <data name="RPT.DailyShipment.Col.FillRate" xml:space="preserve">
-    <value>Fill Rate</value>
-  </data>
-  <data name="RPT.DailyShipment.Col.Customers" xml:space="preserve">
-    <value>Customers</value>
-  </data>
   <data name="RPT.OnTime.Title" xml:space="preserve">
     <value>On-Time Delivery</value>
   </data>
-  <data name="RPT.OnTime.List" xml:space="preserve">
-    <value>Daily OTD</value>
-  </data>
   <data name="RPT.OnTime.Empty" xml:space="preserve">
     <value>No shipment data in the selected period.</value>
-  </data>
-  <data name="RPT.OnTime.Kpi.Total" xml:space="preserve">
-    <value>Total Orders</value>
   </data>
   <data name="RPT.OnTime.Kpi.OnTime" xml:space="preserve">
     <value>On Time</value>
@@ -537,185 +426,38 @@
   <data name="RPT.OnTime.Kpi.Late" xml:space="preserve">
     <value>Late</value>
   </data>
-  <data name="RPT.OnTime.Col.Trend" xml:space="preserve">
-    <value>Trend</value>
-  </data>
   <data name="RPT.Inventory.Title" xml:space="preserve">
     <value>Inventory Status</value>
-  </data>
-  <data name="RPT.Inventory.List" xml:space="preserve">
-    <value>Inventory Aggregation</value>
   </data>
   <data name="RPT.Inventory.Empty" xml:space="preserve">
     <value>No inventory data.</value>
   </data>
-  <data name="RPT.Inventory.Ph.Item" xml:space="preserve">
-    <value>Search part number</value>
-  </data>
-  <data name="RPT.Inventory.Kpi.Count" xml:space="preserve">
-    <value>Result Count</value>
-  </data>
-  <data name="RPT.Inventory.Kpi.Qty" xml:space="preserve">
-    <value>Total Stock</value>
-  </data>
-  <data name="RPT.Inventory.Kpi.HoldQty" xml:space="preserve">
-    <value>Hold Qty</value>
-  </data>
-  <data name="RPT.Inventory.Kpi.HoldPct" xml:space="preserve">
-    <value>Hold Rate</value>
-  </data>
-  <data name="RPT.Inventory.Col.ItemNo" xml:space="preserve">
-    <value>Part No</value>
-  </data>
   <data name="RPT.Inventory.Col.Location" xml:space="preserve">
     <value>Location</value>
-  </data>
-  <data name="RPT.Inventory.Col.Lots" xml:space="preserve">
-    <value>Lot Count</value>
-  </data>
-  <data name="RPT.Inventory.Col.Qty" xml:space="preserve">
-    <value>Qty</value>
-  </data>
-  <data name="RPT.Inventory.Col.HoldLots" xml:space="preserve">
-    <value>Hold Lots</value>
-  </data>
-  <data name="RPT.Inventory.Col.HoldQty" xml:space="preserve">
-    <value>Hold Qty</value>
   </data>
   <data name="RPT.EquipmentOee.Title" xml:space="preserve">
     <value>Equipment OEE</value>
   </data>
-  <data name="RPT.EquipmentOee.List" xml:space="preserve">
-    <value>Equipment Ranking</value>
-  </data>
   <data name="RPT.EquipmentOee.Empty" xml:space="preserve">
     <value>No OEE data in the selected period.</value>
-  </data>
-  <data name="RPT.EquipmentOee.Kpi.EquipCount" xml:space="preserve">
-    <value>Equipment</value>
-  </data>
-  <data name="RPT.EquipmentOee.Kpi.AvgA" xml:space="preserve">
-    <value>Avg A</value>
-  </data>
-  <data name="RPT.EquipmentOee.Kpi.AvgP" xml:space="preserve">
-    <value>Avg P</value>
-  </data>
-  <data name="RPT.EquipmentOee.Kpi.AvgOee" xml:space="preserve">
-    <value>Avg OEE</value>
-  </data>
-  <data name="RPT.EquipmentOee.Col.Days" xml:space="preserve">
-    <value>Days</value>
-  </data>
-  <data name="RPT.EquipmentOee.Col.Bar" xml:space="preserve">
-    <value>Bar</value>
   </data>
   <data name="RPT.MonthlyKpi.Title" xml:space="preserve">
     <value>Monthly KPI</value>
   </data>
-  <data name="RPT.MonthlyKpi.List" xml:space="preserve">
-    <value>Monthly Aggregation</value>
-  </data>
-  <data name="RPT.MonthlyKpi.ListSuffix" xml:space="preserve">
-    <value>months</value>
-  </data>
   <data name="RPT.MonthlyKpi.Empty" xml:space="preserve">
     <value>No monthly data.</value>
-  </data>
-  <data name="RPT.MonthlyKpi.Kpi.GoodQty" xml:space="preserve">
-    <value>Good Qty</value>
-  </data>
-  <data name="RPT.MonthlyKpi.Kpi.Yield" xml:space="preserve">
-    <value>Yield Rate</value>
-  </data>
-  <data name="RPT.MonthlyKpi.Kpi.ShipOrders" xml:space="preserve">
-    <value>Shipment Orders</value>
-  </data>
-  <data name="RPT.MonthlyKpi.Kpi.Failures" xml:space="preserve">
-    <value>Failures</value>
-  </data>
-  <data name="RPT.MonthlyKpi.Col.Period" xml:space="preserve">
-    <value>Period</value>
-  </data>
-  <data name="RPT.MonthlyKpi.Col.GoodQty" xml:space="preserve">
-    <value>Good Qty</value>
-  </data>
-  <data name="RPT.MonthlyKpi.Col.DefectQty" xml:space="preserve">
-    <value>Defect Qty</value>
-  </data>
-  <data name="RPT.MonthlyKpi.Col.Yield" xml:space="preserve">
-    <value>Yield%</value>
-  </data>
-  <data name="RPT.MonthlyKpi.Col.ShipOrders" xml:space="preserve">
-    <value>Shipments</value>
-  </data>
-  <data name="RPT.MonthlyKpi.Col.Failures" xml:space="preserve">
-    <value>Failures</value>
-  </data>
-  <data name="RPT.MonthlyKpi.Col.AvgOee" xml:space="preserve">
-    <value>Avg OEE</value>
   </data>
   <data name="RPT.ScheduleAdherence.Title" xml:space="preserve">
     <value>Schedule Adherence</value>
   </data>
-  <data name="RPT.ScheduleAdherence.List" xml:space="preserve">
-    <value>Daily Aggregation</value>
-  </data>
   <data name="RPT.ScheduleAdherence.Empty" xml:space="preserve">
     <value>No plan or production data in the selected period.</value>
-  </data>
-  <data name="RPT.ScheduleAdherence.Kpi.Count" xml:space="preserve">
-    <value>Result Count</value>
-  </data>
-  <data name="RPT.ScheduleAdherence.Kpi.Plan" xml:space="preserve">
-    <value>Planned Qty</value>
-  </data>
-  <data name="RPT.ScheduleAdherence.Kpi.Prod" xml:space="preserve">
-    <value>Actual Qty</value>
-  </data>
-  <data name="RPT.ScheduleAdherence.Kpi.Adh" xml:space="preserve">
-    <value>Adherence Rate</value>
-  </data>
-  <data name="RPT.ScheduleAdherence.Col.Plan" xml:space="preserve">
-    <value>Planned Qty</value>
-  </data>
-  <data name="RPT.ScheduleAdherence.Col.Prod" xml:space="preserve">
-    <value>Actual Qty</value>
-  </data>
-  <data name="RPT.ScheduleAdherence.Col.Adh" xml:space="preserve">
-    <value>Adherence%</value>
-  </data>
-  <data name="RPT.ScheduleAdherence.Col.Bar" xml:space="preserve">
-    <value>Bar</value>
   </data>
   <data name="RPT.ReportCenter.Title" xml:space="preserve">
     <value>Report Center</value>
   </data>
   <data name="RPT.ReportBuilder.Title" xml:space="preserve">
     <value>Report Builder</value>
-  </data>
-  <data name="RPT.ReportBuilder.Preview" xml:space="preserve">
-    <value>Builder Preview</value>
-  </data>
-  <data name="RPT.ReportBuilder.Desc" xml:space="preserve">
-    <value>Report Builder allows you to create custom reports by drag-and-drop selection of data sources, dimensions, and measures — no SQL knowledge required. Planned for the next milestone.</value>
-  </data>
-  <data name="RPT.ReportBuilder.Gallery" xml:space="preserve">
-    <value>Template Gallery (sample)</value>
-  </data>
-  <data name="RPT.ReportBuilder.Ds.Production" xml:space="preserve">
-    <value>Production Results</value>
-  </data>
-  <data name="RPT.ReportBuilder.Ds.Shipment" xml:space="preserve">
-    <value>Shipment Orders</value>
-  </data>
-  <data name="RPT.ReportBuilder.Ds.OEE" xml:space="preserve">
-    <value>Equipment OEE</value>
-  </data>
-  <data name="RPT.ReportBuilder.Ds.QC" xml:space="preserve">
-    <value>Quality Inspection</value>
-  </data>
-  <data name="RPT.ReportBuilder.Ds.LineSchedule" xml:space="preserve">
-    <value>Line Schedule</value>
   </data>
   <data name="SYS.Users.Title" xml:space="preserve">
     <value>User Management</value>
@@ -1851,12 +1593,6 @@
   <data name="PP.Calendar.Routing.INJ" xml:space="preserve">
     <value>INJ — Injection</value>
   </data>
-  <data name="PP.Calendar.Routing.A" xml:space="preserve">
-    <value>A — Wrapping</value>
-  </data>
-  <data name="PP.Calendar.Routing.B" xml:space="preserve">
-    <value>B — Painting</value>
-  </data>
   <data name="PP.Calendar.Tab.Month" xml:space="preserve">
     <value>Month</value>
   </data>
@@ -1974,9 +1710,6 @@
   <data name="PP.Delivery.Kpi.TotalSub" xml:space="preserve">
     <value>Total Orders</value>
   </data>
-  <data name="PP.Delivery.Kpi.OnTimeSub" xml:space="preserve">
-    <value>On-Time</value>
-  </data>
   <data name="PP.Delivery.Kpi.LateSub" xml:space="preserve">
     <value>Late</value>
   </data>
@@ -1986,9 +1719,6 @@
   <data name="PP.Delivery.Kpi.OtdSub" xml:space="preserve">
     <value>OTD Rate</value>
   </data>
-  <data name="PP.Delivery.Status.OnTime" xml:space="preserve">
-    <value>On-Time</value>
-  </data>
   <data name="PP.Delivery.Status.Late" xml:space="preserve">
     <value>Late</value>
   </data>
@@ -1997,9 +1727,6 @@
   </data>
   <data name="PP.Delivery.Col.Progress" xml:space="preserve">
     <value>Progress</value>
-  </data>
-  <data name="PP.Delivery.Badge.OnTime" xml:space="preserve">
-    <value>On-Time</value>
   </data>
   <data name="PP.Delivery.Badge.Late" xml:space="preserve">
     <value>Late</value>
@@ -2028,17 +1755,11 @@
   <data name="PP.DowntimeMonitor.Title" xml:space="preserve">
     <value>Downtime Monitor</value>
   </data>
-  <data name="PP.DowntimeMonitor.Kpi.Lines" xml:space="preserve">
-    <value>Lines Monitored</value>
-  </data>
   <data name="PP.DowntimeMonitor.Kpi.Work" xml:space="preserve">
     <value>Running</value>
   </data>
   <data name="PP.DowntimeMonitor.Kpi.Unplan" xml:space="preserve">
     <value>Unplanned Down</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Kpi.Plan" xml:space="preserve">
-    <value>Planned Down</value>
   </data>
   <data name="PP.DowntimeMonitor.Kpi.NoReason" xml:space="preserve">
     <value>No Reason</value>
@@ -2054,9 +1775,6 @@
   </data>
   <data name="PP.DowntimeMonitor.State.Plan" xml:space="preserve">
     <value>Planned Down</value>
-  </data>
-  <data name="PP.DowntimeMonitor.State.Break" xml:space="preserve">
-    <value>Break</value>
   </data>
   <data name="PP.DowntimeMonitor.State.Unknown" xml:space="preserve">
     <value>No Signal</value>
@@ -2085,9 +1803,6 @@
   <data name="PP.DowntimeMonitor.Stat.Signal" xml:space="preserve">
     <value>Signal</value>
   </data>
-  <data name="PP.DowntimeMonitor.History.Header" xml:space="preserve">
-    <value>Today's Downtime Events — Edit reason if missing</value>
-  </data>
   <data name="PP.DowntimeMonitor.History.Empty" xml:space="preserve">
     <value>No downtime events today.</value>
   </data>
@@ -2102,24 +1817,6 @@
   </data>
   <data name="PP.DowntimeMonitor.Reason.Select" xml:space="preserve">
     <value>Select</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Reason.Mech" xml:space="preserve">
-    <value>MECH — Mechanical</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Reason.Elec" xml:space="preserve">
-    <value>ELEC — Electrical</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Reason.Mat" xml:space="preserve">
-    <value>MAT — Material Shortage</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Reason.Oper" xml:space="preserve">
-    <value>OPER — Operator Error</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Reason.Plan" xml:space="preserve">
-    <value>PLAN — Plan Change</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Reason.Other" xml:space="preserve">
-    <value>OTHER — Other</value>
   </data>
   <data name="PP.DowntimeMonitor.Lbl.ReasonCode" xml:space="preserve">
     <value>Reason Code</value>
@@ -2147,9 +1844,6 @@
   </data>
   <data name="PP.DowntimeMonitor.Lbl.Refresh" xml:space="preserve">
     <value>Updated:</value>
-  </data>
-  <data name="PP.DowntimeMonitor.AutoRefresh" xml:space="preserve">
-    <value>Auto-refresh 1 min</value>
   </data>
   <data name="PP.DowntimeMonitor.Inprog" xml:space="preserve">
     <value>In Progress</value>
@@ -2259,12 +1953,6 @@
   <data name="PP.LineSchedule.Btn.Publish" xml:space="preserve">
     <value>Publish</value>
   </data>
-  <data name="PP.LineSchedule.Status.Draft" xml:space="preserve">
-    <value>Draft</value>
-  </data>
-  <data name="PP.LineSchedule.Status.Published" xml:space="preserve">
-    <value>Published</value>
-  </data>
   <data name="PP.LineSchedule.Status.Unsaved" xml:space="preserve">
     <value>Unsaved</value>
   </data>
@@ -2283,44 +1971,14 @@
   <data name="PP.LineSchedule.Ok.Published" xml:space="preserve">
     <value>Published.</value>
   </data>
-  <data name="PP.LineSchedule.Kpi.WorkCap" xml:space="preserve">
-    <value>Work Capacity</value>
-  </data>
-  <data name="PP.LineSchedule.Kpi.WorkCapSub" xml:space="preserve">
-    <value>Σ WORK bands</value>
-  </data>
-  <data name="PP.LineSchedule.Kpi.WoLoad" xml:space="preserve">
-    <value>WO Load</value>
-  </data>
-  <data name="PP.LineSchedule.Kpi.WoLoadSub" xml:space="preserve">
-    <value>Allocated slot total</value>
-  </data>
-  <data name="PP.LineSchedule.Kpi.Remain" xml:space="preserve">
-    <value>Remaining Cap.</value>
-  </data>
-  <data name="PP.LineSchedule.Kpi.Over" xml:space="preserve">
-    <value>Over Capacity!</value>
-  </data>
-  <data name="PP.LineSchedule.Kpi.Available" xml:space="preserve">
-    <value>Available</value>
-  </data>
   <data name="PP.LineSchedule.Kpi.Util" xml:space="preserve">
     <value>Utilization</value>
-  </data>
-  <data name="PP.LineSchedule.Kpi.UtilSub" xml:space="preserve">
-    <value>WO Load / Work Cap.</value>
   </data>
   <data name="PP.LineSchedule.Ph.SelectLine" xml:space="preserve">
     <value>Select line…</value>
   </data>
   <data name="PP.LineSchedule.Empty.NoLine" xml:space="preserve">
     <value>Select a line from the toolbar.</value>
-  </data>
-  <data name="PP.LineSchedule.Tab.Gantt" xml:space="preserve">
-    <value>▦ Gantt Board</value>
-  </data>
-  <data name="PP.LineSchedule.Tab.Pattern" xml:space="preserve">
-    <value>✏ Pattern Edit</value>
   </data>
   <data name="PP.LineSchedule.Lbl.WoSelect" xml:space="preserve">
     <value>WO</value>
@@ -2334,74 +1992,20 @@
   <data name="PP.LineSchedule.Lbl.PlannedQty" xml:space="preserve">
     <value>Planned Qty</value>
   </data>
-  <data name="PP.LineSchedule.Ttl.CapBlocked" xml:space="preserve">
-    <value>Over capacity — placement blocked</value>
-  </data>
   <data name="PP.LineSchedule.Btn.CapOver" xml:space="preserve">
     <value>🚫 Over Cap.</value>
   </data>
   <data name="PP.LineSchedule.Btn.Place" xml:space="preserve">
     <value>Place</value>
   </data>
-  <data name="PP.LineSchedule.Btn.WoOpen" xml:space="preserve">
-    <value>▼ Place WO</value>
-  </data>
-  <data name="PP.LineSchedule.Btn.WoClose" xml:space="preserve">
-    <value>▲ Close WO Panel</value>
-  </data>
-  <data name="PP.LineSchedule.Lbl.BandType" xml:space="preserve">
-    <value>Band Type</value>
-  </data>
-  <data name="PP.LineSchedule.Band.Work" xml:space="preserve">
-    <value>WORK</value>
-  </data>
-  <data name="PP.LineSchedule.Band.PlannedDown" xml:space="preserve">
-    <value>PLANNED DOWN</value>
-  </data>
-  <data name="PP.LineSchedule.Band.Break" xml:space="preserve">
-    <value>BREAK</value>
-  </data>
-  <data name="PP.LineSchedule.Btn.Undo" xml:space="preserve">
-    <value>↩ Undo</value>
-  </data>
-  <data name="PP.LineSchedule.Ttl.Undo" xml:space="preserve">
-    <value>Delete last added band</value>
-  </data>
-  <data name="PP.LineSchedule.Btn.Clear" xml:space="preserve">
-    <value>Clear</value>
-  </data>
-  <data name="PP.LineSchedule.Stat.Work" xml:space="preserve">
-    <value>Work: {0} min</value>
-  </data>
-  <data name="PP.LineSchedule.Stat.PlannedDown" xml:space="preserve">
-    <value>Planned Down: {0} min</value>
-  </data>
-  <data name="PP.LineSchedule.Stat.Break" xml:space="preserve">
-    <value>Break: {0} min</value>
-  </data>
-  <data name="PP.LineSchedule.Stat.BandCount" xml:space="preserve">
-    <value>{0} bands</value>
-  </data>
-  <data name="PP.LineSchedule.Modal.DeleteBand" xml:space="preserve">
-    <value>Delete Band</value>
-  </data>
-  <data name="PP.LineSchedule.Pattern.Lbl" xml:space="preserve">
-    <value>Pattern</value>
-  </data>
   <data name="PP.LineSchedule.Err.NoWo" xml:space="preserve">
     <value>Select a WO.</value>
-  </data>
-  <data name="PP.LineSchedule.Err.NotInWork" xml:space="preserve">
-    <value>Placement must be within a WORK band.</value>
   </data>
   <data name="PP.LineSchedule.Err.CapOver" xml:space="preserve">
     <value>Over capacity — remaining {0} min, requested {1} min.</value>
   </data>
   <data name="PP.LineSchedule.Err.Load" xml:space="preserve">
     <value>Load error: {0}</value>
-  </data>
-  <data name="PP.LineSchedule.Err.BandSave" xml:space="preserve">
-    <value>Band save error: {0}</value>
   </data>
   <data name="PP.LineSchedule.Ok.Placed" xml:space="preserve">
     <value>WO placed.</value>
@@ -2435,9 +2039,6 @@
   </data>
   <data name="PP.LineSchedule.Kpi.ConflictSub" xml:space="preserve">
     <value>Overlap · outside operating time</value>
-  </data>
-  <data name="PP.LineSchedule.Band.Idle" xml:space="preserve">
-    <value>Idle</value>
   </data>
   <data name="PP.LineSchedule.Lgd.Wo" xml:space="preserve">
     <value>WO slot</value>
@@ -2478,12 +2079,6 @@
   <data name="PP.Oee.Title" xml:space="preserve">
     <value>Line OEE</value>
   </data>
-  <data name="PP.Oee.Kpi.HistAvg" xml:space="preserve">
-    <value>Historical Avg</value>
-  </data>
-  <data name="PP.Oee.Kpi.AvgTarget" xml:space="preserve">
-    <value>Hist Avg / Target {0}%</value>
-  </data>
   <data name="PP.Oee.Kpi.Availability" xml:space="preserve">
     <value>Availability A</value>
   </data>
@@ -2492,18 +2087,6 @@
   </data>
   <data name="PP.Oee.Kpi.Quality" xml:space="preserve">
     <value>Quality Q</value>
-  </data>
-  <data name="PP.Oee.Ph.SelectLine" xml:space="preserve">
-    <value>Select line…</value>
-  </data>
-  <data name="PP.Oee.Period.Day" xml:space="preserve">
-    <value>Daily (DAY)</value>
-  </data>
-  <data name="PP.Oee.Period.Week" xml:space="preserve">
-    <value>Weekly (WEEK)</value>
-  </data>
-  <data name="PP.Oee.Period.Month" xml:space="preserve">
-    <value>Monthly (MONTH)</value>
   </data>
   <data name="PP.Oee.Lbl.Target" xml:space="preserve">
     <value>Target</value>
@@ -2520,38 +2103,11 @@
   <data name="PP.Oee.Tab.Log" xml:space="preserve">
     <value>📋 State Log</value>
   </data>
-  <data name="PP.Oee.Result.LoadMin" xml:space="preserve">
-    <value>Load {0} min / Available {1} min</value>
-  </data>
   <data name="PP.Oee.Result.Above" xml:space="preserve">
     <value>▲ Above Target</value>
   </data>
   <data name="PP.Oee.Result.Below" xml:space="preserve">
     <value>▼ Below Target ({0}%)</value>
-  </data>
-  <data name="PP.Oee.Result.LossModel" xml:space="preserve">
-    <value>Time Loss Model (Total Load {0} min)</value>
-  </data>
-  <data name="PP.Oee.Result.PlannedDown" xml:space="preserve">
-    <value>Planned Down {0} min</value>
-  </data>
-  <data name="PP.Oee.Result.UnplannedDown" xml:space="preserve">
-    <value>Unplanned Down {0} min</value>
-  </data>
-  <data name="PP.Oee.Result.Defects" xml:space="preserve">
-    <value>Defects {0}</value>
-  </data>
-  <data name="PP.Oee.Apq.AvailNote" xml:space="preserve">
-    <value>Avail {0} min / Down {1} min</value>
-  </data>
-  <data name="PP.Oee.Apq.PerfNote" xml:space="preserve">
-    <value>Actual {0} / Theoretical {1}</value>
-  </data>
-  <data name="PP.Oee.Apq.QualNote" xml:space="preserve">
-    <value>Good {0} / Defects {1}</value>
-  </data>
-  <data name="PP.Oee.Trend.NoLine" xml:space="preserve">
-    <value>No line selected</value>
   </data>
   <data name="PP.Oee.Trend.NoSnap" xml:space="preserve">
     <value>No snapshots saved. Calculate and save snapshots to accumulate records.</value>
@@ -2564,66 +2120,6 @@
   </data>
   <data name="PP.Oee.Log.Empty" xml:space="preserve">
     <value>No state logs for this date.</value>
-  </data>
-  <data name="PP.Oee.Log.Lbl.Actual" xml:space="preserve">
-    <value>Actual Output</value>
-  </data>
-  <data name="PP.Oee.Log.Lbl.Good" xml:space="preserve">
-    <value>Good Output</value>
-  </data>
-  <data name="PP.Oee.Log.Lbl.Theoretical" xml:space="preserve">
-    <value>Theoretical Output</value>
-  </data>
-  <data name="PP.Oee.Log.Btn.Add" xml:space="preserve">
-    <value>+ Add</value>
-  </data>
-  <data name="PP.Oee.Log.State.Load" xml:space="preserve">
-    <value>Load</value>
-  </data>
-  <data name="PP.Oee.Log.State.PlannedDown" xml:space="preserve">
-    <value>Planned Down</value>
-  </data>
-  <data name="PP.Oee.Log.State.UnplannedDown" xml:space="preserve">
-    <value>Unplanned Down</value>
-  </data>
-  <data name="PP.Oee.Log.State.Break" xml:space="preserve">
-    <value>Break</value>
-  </data>
-  <data name="PP.Oee.Log.Col.Duration" xml:space="preserve">
-    <value>Duration (min)</value>
-  </data>
-  <data name="PP.Oee.Log.Col.Actual" xml:space="preserve">
-    <value>Actual</value>
-  </data>
-  <data name="PP.Oee.Log.Col.Good" xml:space="preserve">
-    <value>Good</value>
-  </data>
-  <data name="PP.Oee.Log.Col.Theoretical" xml:space="preserve">
-    <value>Theoretical</value>
-  </data>
-  <data name="PP.Oee.Log.Footer.Load" xml:space="preserve">
-    <value>LOAD: {0} min</value>
-  </data>
-  <data name="PP.Oee.Log.Footer.Unplanned" xml:space="preserve">
-    <value>Unplanned Down: {0} min</value>
-  </data>
-  <data name="PP.Oee.Log.Footer.Planned" xml:space="preserve">
-    <value>Planned Down: {0} min</value>
-  </data>
-  <data name="PP.Oee.Log.Footer.Total" xml:space="preserve">
-    <value>Total: {0}</value>
-  </data>
-  <data name="PP.Oee.Snap.Title" xml:space="preserve">
-    <value>💾 Snapshot History</value>
-  </data>
-  <data name="PP.Oee.Snap.Col.Period" xml:space="preserve">
-    <value>Period</value>
-  </data>
-  <data name="PP.Oee.Snap.Col.Start" xml:space="preserve">
-    <value>Period Start</value>
-  </data>
-  <data name="PP.Oee.Snap.Col.End" xml:space="preserve">
-    <value>Period End</value>
   </data>
   <data name="PP.Oee.Snap.Col.Load" xml:space="preserve">
     <value>Load (min)</value>
@@ -2652,26 +2148,8 @@
   <data name="PP.Oee.Err.Save" xml:space="preserve">
     <value>Save error: {0}</value>
   </data>
-  <data name="PP.Oee.Err.EndTime" xml:space="preserve">
-    <value>End time must be later than start time.</value>
-  </data>
   <data name="PP.Oee.Ok.Snapshot" xml:space="preserve">
     <value>Snapshot saved.</value>
-  </data>
-  <data name="PP.Oee.Gauge.Above" xml:space="preserve">
-    <value>▲ Target Met</value>
-  </data>
-  <data name="PP.Oee.Gauge.Below" xml:space="preserve">
-    <value>▼ {0}% below</value>
-  </data>
-  <data name="PP.Oee.Loss.OeeRun" xml:space="preserve">
-    <value>OEE Run</value>
-  </data>
-  <data name="PP.Oee.Loss.QualLoss" xml:space="preserve">
-    <value>Quality Loss</value>
-  </data>
-  <data name="PP.Oee.Loss.PerfLoss" xml:space="preserve">
-    <value>Perf Loss</value>
   </data>
   <data name="PP.PlanConfirm.Title" xml:space="preserve">
     <value>Plan Confirm</value>
@@ -2745,12 +2223,6 @@
   <data name="PP.PlanConfirm.Dlg.SkipZero" xml:space="preserve">
     <value>{0} order(s) with qty 0 or less will be skipped.</value>
   </data>
-  <data name="PP.PlanConfirm.Dlg.Validation" xml:space="preserve">
-    <value>Master Data Validation</value>
-  </data>
-  <data name="PP.PlanConfirm.Dlg.Passed" xml:space="preserve">
-    <value>All passed</value>
-  </data>
   <data name="PP.PlanConfirm.Dlg.WoStatus" xml:space="preserve">
     <value>Created WO Status</value>
   </data>
@@ -2783,9 +2255,6 @@
   </data>
   <data name="PP.PlanConfirm.Dlg.Run" xml:space="preserve">
     <value>Run WO Creation</value>
-  </data>
-  <data name="PP.PlanConfirm.Ok.Created" xml:space="preserve">
-    <value>{0} Draft work order(s) created — review and release in PP-04.</value>
   </data>
   <data name="PP.PlanConfirm.Err.NoneSelected" xml:space="preserve">
     <value>Select at least one plan row to create work orders.</value>
@@ -2895,26 +2364,8 @@
   <data name="PP.WorkOrder.Empty" xml:space="preserve">
     <value>No work orders match the conditions.</value>
   </data>
-  <data name="PP.WorkOrder.Kpi.Waiting" xml:space="preserve">
-    <value>Terminal Waiting</value>
-  </data>
   <data name="PP.WorkOrder.Kpi.InProgress" xml:space="preserve">
     <value>In Production</value>
-  </data>
-  <data name="PP.WorkOrder.Kpi.ClosedN" xml:space="preserve">
-    <value>Closed (last {0} days)</value>
-  </data>
-  <data name="PP.WorkOrder.Filter.Closed7" xml:space="preserve">
-    <value>Closed 7d</value>
-  </data>
-  <data name="PP.WorkOrder.Filter.Closed30" xml:space="preserve">
-    <value>Closed 30d</value>
-  </data>
-  <data name="PP.WorkOrder.Filter.Closed60" xml:space="preserve">
-    <value>Closed 60d</value>
-  </data>
-  <data name="PP.WorkOrder.Filter.Closed90" xml:space="preserve">
-    <value>Closed 90d</value>
   </data>
   <data name="PP.WorkOrder.Ttl.Phase0Fail" xml:space="preserve">
     <value>BOM/BOP not registered — shipping blocked</value>
@@ -3018,9 +2469,6 @@
   <data name="Col.Qty" xml:space="preserve">
     <value>Qty</value>
   </data>
-  <data name="Col.Released" xml:space="preserve">
-    <value>Released</value>
-  </data>
   <data name="Col.DayType" xml:space="preserve">
     <value>Day Type</value>
   </data>
@@ -3075,24 +2523,6 @@
   <data name="Col.Planned" xml:space="preserve">
     <value>Planned</value>
   </data>
-  <data name="Col.RunNo" xml:space="preserve">
-    <value>Run #</value>
-  </data>
-  <data name="Col.RunAt" xml:space="preserve">
-    <value>Run At</value>
-  </data>
-  <data name="Col.Horizon" xml:space="preserve">
-    <value>Horizon</value>
-  </data>
-  <data name="Col.WOs" xml:space="preserve">
-    <value>WOs</value>
-  </data>
-  <data name="Col.PRs" xml:space="preserve">
-    <value>PRs</value>
-  </data>
-  <data name="Col.Shortages" xml:space="preserve">
-    <value>Shortages</value>
-  </data>
   <data name="Col.Duration" xml:space="preserve">
     <value>Duration</value>
   </data>
@@ -3113,9 +2543,6 @@
   </data>
   <data name="Col.Good" xml:space="preserve">
     <value>Good</value>
-  </data>
-  <data name="Col.Total" xml:space="preserve">
-    <value>Total</value>
   </data>
   <data name="Col.PrNo" xml:space="preserve">
     <value>PR No</value>
@@ -3189,9 +2616,6 @@
   <data name="Col.UsagePct" xml:space="preserve">
     <value>Usage %</value>
   </data>
-  <data name="Col.Flag" xml:space="preserve">
-    <value>Flag</value>
-  </data>
   <data name="Col.MountedOn" xml:space="preserve">
     <value>Mounted On</value>
   </data>
@@ -3200,9 +2624,6 @@
   </data>
   <data name="Col.MinDT" xml:space="preserve">
     <value>Down Min</value>
-  </data>
-  <data name="Col.PmNo" xml:space="preserve">
-    <value>PM #</value>
   </data>
   <data name="Col.BasisCycle" xml:space="preserve">
     <value>Basis</value>
@@ -3215,9 +2636,6 @@
   </data>
   <data name="Col.NextDue" xml:space="preserve">
     <value>Next Due</value>
-  </data>
-  <data name="Col.Days" xml:space="preserve">
-    <value>Days</value>
   </data>
   <data name="Col.PartNo" xml:space="preserve">
     <value>Part #</value>
@@ -3254,9 +2672,6 @@
   </data>
   <data name="Col.TxnNo" xml:space="preserve">
     <value>Txn #</value>
-  </data>
-  <data name="Col.Part" xml:space="preserve">
-    <value>Part</value>
   </data>
   <data name="Col.Ref" xml:space="preserve">
     <value>Ref</value>
@@ -3537,15 +2952,6 @@
   <data name="Col.OperatingMin" xml:space="preserve">
     <value>Operating Min</value>
   </data>
-  <data name="Col.Segment" xml:space="preserve">
-    <value>Segment</value>
-  </data>
-  <data name="Col.StartMin" xml:space="preserve">
-    <value>Start (min)</value>
-  </data>
-  <data name="Col.EndMin" xml:space="preserve">
-    <value>End (min)</value>
-  </data>
   <data name="Col.ReasonCode" xml:space="preserve">
     <value>Reason Code</value>
   </data>
@@ -3824,9 +3230,6 @@
   </data>
   <data name="Col.CycleSetup" xml:space="preserve">
     <value>Cycle / Setup (s)</value>
-  </data>
-  <data name="Col.QcActive" xml:space="preserve">
-    <value>QC · Active</value>
   </data>
   <data name="Err.Duplicate" xml:space="preserve">
     <value>already exists</value>
@@ -4893,9 +4296,6 @@
   <data name="MD.Bop.StepCount" xml:space="preserve">
     <value>{0} process step(s)</value>
   </data>
-  <data name="MD.Bop.RoutingFilter" xml:space="preserve">
-    <value>Routing {0} filter active</value>
-  </data>
   <data name="MD.Bop.RoutingConflict" xml:space="preserve">
     <value>Differs from this item's existing steps' routing ({0}) — current {1}. Continue registering?</value>
   </data>
@@ -4932,9 +4332,6 @@
   <data name="Col.StepSeq" xml:space="preserve">
     <value>Step Seq</value>
   </data>
-  <data name="Btn.All" xml:space="preserve">
-    <value>All</value>
-  </data>
   <data name="Lbl.Year" xml:space="preserve">
     <value>Year</value>
   </data>
@@ -4946,15 +4343,6 @@
   </data>
   <data name="MD.CommonCode.Title.ViewItems" xml:space="preserve">
     <value>View items</value>
-  </data>
-  <data name="PP.LineSchedule.DragHint" xml:space="preserve">
-    <value>Drag on the timeline below to add a band</value>
-  </data>
-  <data name="PP.LineSchedule.EscHint" xml:space="preserve">
-    <value>Press Esc or right-click to cancel selection</value>
-  </data>
-  <data name="PP.LineSchedule.ClickHint" xml:space="preserve">
-    <value>Click an existing band to delete</value>
   </data>
   <data name="PP.Calendar.WoTooltip.Line" xml:space="preserve">
     <value>Line</value>
@@ -5151,9 +4539,6 @@
   <data name="MD.LineTimePattern.Editor.Title" xml:space="preserve">
     <value>Band editor</value>
   </data>
-  <data name="MD.LineTimePattern.Editor.SelectHint" xml:space="preserve">
-    <value>Select a pattern from the list to edit its bands</value>
-  </data>
   <data name="MD.LineTimePattern.Lbl.BandType" xml:space="preserve">
     <value>Band type</value>
   </data>
@@ -5168,9 +4553,6 @@
   </data>
   <data name="MD.LineTimePattern.Err.CommentRequired" xml:space="preserve">
     <value>The selected reason requires a description.</value>
-  </data>
-  <data name="MD.LineTimePattern.Lbl.ShiftPreset" xml:space="preserve">
-    <value>Shift preset</value>
   </data>
   <data name="MD.LineTimePattern.DragHint" xml:space="preserve">
     <value>Drag on the timeline to draw a band · click a band to delete</value>
@@ -5240,9 +4622,6 @@
   </data>
   <data name="PP.LineSchedule.Hint.BandClick" xml:space="preserve">
     <value>Click to place a WO in this operating window</value>
-  </data>
-  <data name="PP.LineSchedule.Ok.BandPicked" xml:space="preserve">
-    <value>Operating window {0}–{1} selected — pick a WO and place it.</value>
   </data>
   <data name="PP.LineSchedule.Msg.SelectOperating" xml:space="preserve">
     <value>Please select an OPERATING band.</value>
@@ -5378,9 +4757,6 @@
   </data>
   <data name="PP.Oee.Kpi.Range" xml:space="preserve">
     <value>{0} ~ {1} · {2} snapshots</value>
-  </data>
-  <data name="PP.Oee.Shift.All" xml:space="preserve">
-    <value>All shifts</value>
   </data>
   <data name="PP.Oee.Shift.None" xml:space="preserve">
     <value>(no shift)</value>
@@ -5691,18 +5067,6 @@
   <data name="MNT.Failure.Open" xml:space="preserve">
     <value>Open</value>
   </data>
-  <data name="MNT.Failure.Urg.URGENT" xml:space="preserve">
-    <value>Urgent</value>
-  </data>
-  <data name="MNT.Failure.Urg.HIGH" xml:space="preserve">
-    <value>High</value>
-  </data>
-  <data name="MNT.Failure.Urg.MED" xml:space="preserve">
-    <value>Medium</value>
-  </data>
-  <data name="MNT.Failure.Urg.LOW" xml:space="preserve">
-    <value>Low</value>
-  </data>
   <data name="MNT.Failure.Ph.Search" xml:space="preserve">
     <value>Fail #/Equip ID/Name/Symptom</value>
   </data>
@@ -5727,9 +5091,6 @@
   <data name="Col.ReportedBy" xml:space="preserve">
     <value>Reported By</value>
   </data>
-  <data name="MNT.OeeAnalysis.Kpi.Rows" xml:space="preserve">
-    <value>Records</value>
-  </data>
   <data name="MNT.OeeAnalysis.Kpi.Oee" xml:space="preserve">
     <value>Avg OEE</value>
   </data>
@@ -5748,32 +5109,8 @@
   <data name="MNT.OeeAnalysis.Note.Weighted" xml:space="preserve">
     <value>weighted by planned time</value>
   </data>
-  <data name="MNT.OeeAnalysis.Summary.Title" xml:space="preserve">
-    <value>OEE by Equipment</value>
-  </data>
-  <data name="MNT.OeeAnalysis.Summary.Hint" xml:space="preserve">
-    <value>Click a row to filter the list below by that equipment.</value>
-  </data>
-  <data name="MNT.OeeAnalysis.Col.Operating" xml:space="preserve">
-    <value>Run Min</value>
-  </data>
-  <data name="MNT.OeeAnalysis.Col.Defect" xml:space="preserve">
-    <value>Defect</value>
-  </data>
   <data name="MNT.OeeAnalysis.Col.Rows" xml:space="preserve">
     <value>Rows</value>
-  </data>
-  <data name="MNT.OeeAnalysis.Col.Grade" xml:space="preserve">
-    <value>Grade</value>
-  </data>
-  <data name="MNT.OeeAnalysis.Grade.WorldClass" xml:space="preserve">
-    <value>World Class</value>
-  </data>
-  <data name="MNT.OeeAnalysis.Grade.Good" xml:space="preserve">
-    <value>Good</value>
-  </data>
-  <data name="MNT.OeeAnalysis.Grade.Low" xml:space="preserve">
-    <value>Needs Improvement</value>
   </data>
   <data name="MNT.OeeAnalysis.Btn.Export" xml:space="preserve">
     <value>Export</value>
@@ -5829,9 +5166,6 @@
   <data name="MNT.OeeAnalysis.Trend.Note" xml:space="preserve">
     <value>Bars = OEE · Lines = A / P / Q · Dashed = 85% target · Weekly buckets (Mon start) for the last 12 weeks up to today, independent of the search period</value>
   </data>
-  <data name="MNT.OeeAnalysis.Trend.Target" xml:space="preserve">
-    <value>Target 85%</value>
-  </data>
   <data name="MNT.OeeAnalysis.Trend.Empty" xml:space="preserve">
     <value>No trend data to display.</value>
   </data>
@@ -5841,20 +5175,11 @@
   <data name="MNT.Downtime.Kpi.TotalMin" xml:space="preserve">
     <value>Total Downtime</value>
   </data>
-  <data name="MNT.Downtime.Kpi.Open" xml:space="preserve">
-    <value>Open</value>
-  </data>
-  <data name="MNT.Downtime.Kpi.TopReason" xml:space="preserve">
-    <value>Top Reason</value>
-  </data>
   <data name="MNT.Downtime.Kpi.AvgMin" xml:space="preserve">
     <value>Avg Downtime</value>
   </data>
   <data name="MNT.Downtime.Kpi.LinesSub" xml:space="preserve">
     <value>{0} lines</value>
-  </data>
-  <data name="MNT.Downtime.Kpi.ClosedSub" xml:space="preserve">
-    <value>{0} closed</value>
   </data>
   <data name="MNT.Downtime.Kpi.MaxSub" xml:space="preserve">
     <value>max {0} min</value>
@@ -5915,9 +5240,6 @@
   </data>
   <data name="MNT.Downtime.Detail.Title" xml:space="preserve">
     <value>Downtime Detail Log</value>
-  </data>
-  <data name="MNT.Downtime.Btn.ClearReason" xml:space="preserve">
-    <value>Clear Cause Filter</value>
   </data>
   <data name="MNT.Downtime.Col.DateTime" xml:space="preserve">
     <value>Date/Time</value>
@@ -5985,12 +5307,6 @@
   <data name="MNT.Dashboard.Kpi.LowStockSub" xml:space="preserve">
     <value>at or below reorder point</value>
   </data>
-  <data name="MNT.Dashboard.Events.Title" xml:space="preserve">
-    <value>Recent Failure Events</value>
-  </data>
-  <data name="MNT.Dashboard.Events.Empty" xml:space="preserve">
-    <value>No failure events.</value>
-  </data>
   <data name="MNT.Dashboard.Tile.Equipment" xml:space="preserve">
     <value>Equipment</value>
   </data>
@@ -6038,9 +5354,6 @@
   </data>
   <data name="MNT.Dashboard.Tile.MoldSub" xml:space="preserve">
     <value>shot counters · refurbish thresholds</value>
-  </data>
-  <data name="MNT.Dashboard.Tile.NotImpl" xml:space="preserve">
-    <value>not implemented</value>
   </data>
   <data name="MNT.Dashboard.Filter.Title" xml:space="preserve">
     <value>Filter</value>
@@ -6231,9 +5544,6 @@
   <data name="MNT.PmSchedule.Kpi.ComplianceSub" xml:space="preserve">
     <value>done ÷ (done + overdue)</value>
   </data>
-  <data name="MNT.PmSchedule.Cal.Title" xml:space="preserve">
-    <value>{0} Preventive Maintenance Calendar</value>
-  </data>
   <data name="MNT.PmSchedule.Legend.Completed" xml:space="preserve">
     <value>Completed</value>
   </data>
@@ -6252,17 +5562,8 @@
   <data name="MNT.PmSchedule.Modal.DayList" xml:space="preserve">
     <value>PM List</value>
   </data>
-  <data name="MNT.PmSchedule.Lbl.Done" xml:space="preserve">
-    <value>Done On</value>
-  </data>
   <data name="MNT.PmSchedule.Lbl.Due" xml:space="preserve">
     <value>Due</value>
-  </data>
-  <data name="MNT.PmSchedule.Ph.Search" xml:space="preserve">
-    <value>PM #/Equip</value>
-  </data>
-  <data name="MNT.PmSchedule.Type.All" xml:space="preserve">
-    <value>All Types</value>
   </data>
   <data name="RPT.DailyProduction.Kpi.Actual" xml:space="preserve">
     <value>Total Production · Actual</value>
@@ -7359,9 +6660,6 @@
   <data name="MNT.PmSchedule.Err.Duplicate" xml:space="preserve">
     <value>PM plan no. {0} already exists.</value>
   </data>
-  <data name="MNT.PmSchedule.Ok.Created" xml:space="preserve">
-    <value>PM {0} created.</value>
-  </data>
   <data name="MNT.PmSchedule.Ok.Updated" xml:space="preserve">
     <value>PM {0} updated.</value>
   </data>
@@ -7548,38 +6846,11 @@
   <data name="MNT.SpareParts.Hint.Detail" xml:space="preserve">
     <value>Click a row for part details and its transaction history.</value>
   </data>
-  <data name="MNT.SpareParts.Flag.Low" xml:space="preserve">
-    <value>LOW</value>
-  </data>
-  <data name="MNT.SpareParts.Flag.Ok" xml:space="preserve">
-    <value>OK</value>
-  </data>
   <data name="MNT.SpareParts.Move.In" xml:space="preserve">
     <value>In</value>
   </data>
   <data name="MNT.SpareParts.Move.Out" xml:space="preserve">
     <value>Out</value>
-  </data>
-  <data name="PP.PurchaseReq.Kpi.TotalSub" xml:space="preserve">
-    <value>last {0} requests</value>
-  </data>
-  <data name="PP.PurchaseReq.Kpi.Pending" xml:space="preserve">
-    <value>Pending</value>
-  </data>
-  <data name="PP.PurchaseReq.Kpi.Approved" xml:space="preserve">
-    <value>Approved</value>
-  </data>
-  <data name="PP.PurchaseReq.Kpi.Sent" xml:space="preserve">
-    <value>Sent to SAP</value>
-  </data>
-  <data name="PP.PurchaseReq.Kpi.SentSub" xml:space="preserve">
-    <value>PO number set</value>
-  </data>
-  <data name="PP.PurchaseReq.Sap.Sent" xml:space="preserve">
-    <value>Sent</value>
-  </data>
-  <data name="PP.PurchaseReq.Sap.NotSent" xml:space="preserve">
-    <value>Not sent</value>
   </data>
   <data name="PP.PurchaseReq.Btn.Export" xml:space="preserve">
     <value>Export</value>
@@ -7589,9 +6860,6 @@
   </data>
   <data name="PP.PurchaseReq.Err.NoExport" xml:space="preserve">
     <value>No data to export.</value>
-  </data>
-  <data name="PP.PurchaseReq.Hint.Detail" xml:space="preserve">
-    <value>Click a row for details.</value>
   </data>
   <data name="PP.PurchaseReq.Col.CreatedBy" xml:space="preserve">
     <value>Requested By</value>
@@ -7827,12 +7095,6 @@
   <data name="TopBar.RoleDesc.None" xml:space="preserve">
     <value>No role assigned, so no screen access. Ask an administrator to assign a role</value>
   </data>
-  <data name="Home.Map.Title" xml:space="preserve">
-    <value>Site map</value>
-  </data>
-  <data name="Home.Map.Hint" xml:space="preserve">
-    <value>The menu lists only permitted screens; this map shows every screen and greys out the ones you cannot open</value>
-  </data>
   <data name="Home.Map.Access" xml:space="preserve">
     <value>{0} of {1} screens accessible</value>
   </data>
@@ -7841,9 +7103,6 @@
   </data>
   <data name="Home.Map.Locked" xml:space="preserve">
     <value>No accessible screens</value>
-  </data>
-  <data name="PP.Mrp.Subtitle" xml:space="preserve">
-    <value>BOM explosion · shortage calc · WO blocking · PR linkage</value>
   </data>
   <data name="PP.Mrp.LastRun" xml:space="preserve">
     <value>Last Run</value>
@@ -7872,14 +7131,8 @@
   <data name="PP.Mrp.Ph.Search" xml:space="preserve">
     <value>Material code/name...</value>
   </data>
-  <data name="PP.Mrp.Btn.BulkPr" xml:space="preserve">
-    <value>Create Shortage PRs</value>
-  </data>
   <data name="PP.Mrp.Btn.Export" xml:space="preserve">
     <value>Export</value>
-  </data>
-  <data name="PP.Mrp.Btn.Pr" xml:space="preserve">
-    <value>Create PR</value>
   </data>
   <data name="PP.Mrp.Kpi.Calc" xml:space="preserve">
     <value>Materials Calculated</value>
@@ -7892,9 +7145,6 @@
   </data>
   <data name="PP.Mrp.Kpi.Blocked" xml:space="preserve">
     <value>WO Blocked</value>
-  </data>
-  <data name="PP.Mrp.Grid.Title" xml:space="preserve">
-    <value>MRP Results</value>
   </data>
   <data name="PP.Mrp.Hint" xml:space="preserve">
     <value>Shortage = Required − Stock − On Order · Red rows require PR creation</value>
@@ -7983,9 +7233,6 @@
   <data name="PP.Mrp.Ok.Run" xml:space="preserve">
     <value>MRP recalculation complete — {0} materials · {1} shortages · {2} WOs blocked</value>
   </data>
-  <data name="PP.Mrp.Ok.Pr" xml:space="preserve">
-    <value>PR created — {0} ({1}) · linked to PP-006</value>
-  </data>
   <data name="PP.Mrp.Ok.Bulk" xml:space="preserve">
     <value>Created PRs for {0} shortage materials. Awaiting SAP B1 transmission in PP-006.</value>
   </data>
@@ -7997,9 +7244,6 @@
   </data>
   <data name="PP.Mrp.Err.Run" xml:space="preserve">
     <value>MRP run failed: {0}</value>
-  </data>
-  <data name="PP.Mrp.Err.NoShort" xml:space="preserve">
-    <value>There are no shortage materials to create PRs for.</value>
   </data>
   <data name="PP.Mrp.Err.NoExport" xml:space="preserve">
     <value>No data to export.</value>
@@ -8747,5 +7991,179 @@
   </data>
   <data name="Auth.AccessDenied.Msg" xml:space="preserve">
     <value>You do not have access to this resource.</value>
+  </data>
+  <data name="FG.Shipments.Title" xml:space="preserve">
+    <value>Shipments</value>
+  </data>
+  <data name="FG.Shipments.Empty" xml:space="preserve">
+    <value>No loaded or shipped orders found.</value>
+  </data>
+  <data name="FG.Shipments.Kpi.Loaded" xml:space="preserve">
+    <value>Loaded</value>
+  </data>
+  <data name="FG.Shipments.Col.LoadedAt" xml:space="preserve">
+    <value>Loaded At</value>
+  </data>
+  <data name="FG.Shipments.Col.ShipOrder" xml:space="preserve">
+    <value>Ship Order</value>
+  </data>
+  <data name="FG.Shipments.Col.LoadingNo" xml:space="preserve">
+    <value>Loading No</value>
+  </data>
+  <data name="FG.Shipments.Col.Truck" xml:space="preserve">
+    <value>Truck</value>
+  </data>
+  <data name="FG.Shipments.Col.Dock" xml:space="preserve">
+    <value>Dock</value>
+  </data>
+  <data name="FG.Shipments.Col.Lines" xml:space="preserve">
+    <value>Lines</value>
+  </data>
+  <data name="FG.Shipments.Col.Destination" xml:space="preserve">
+    <value>Destination</value>
+  </data>
+  <data name="WH.Picking.Slip.Title" xml:space="preserve">
+    <value>Material Picking Slip</value>
+  </data>
+  <data name="WH.Picking.Slip.PrintDate" xml:space="preserve">
+    <value>Print Date</value>
+  </data>
+  <data name="WH.Picking.Slip.ReqBox" xml:space="preserve">
+    <value>Req Box</value>
+  </data>
+  <data name="Auth.Title.ConfirmEmail" xml:space="preserve">
+    <value>Confirm email</value>
+  </data>
+  <data name="Auth.Title.EmailChange" xml:space="preserve">
+    <value>Confirm email change</value>
+  </data>
+  <data name="Auth.Title.InvalidUser" xml:space="preserve">
+    <value>Invalid user</value>
+  </data>
+  <data name="Auth.Title.Resend" xml:space="preserve">
+    <value>Resend email confirmation</value>
+  </data>
+  <data name="Auth.Sub.ConfirmEmail" xml:space="preserve">
+    <value>CONFIRM EMAIL</value>
+  </data>
+  <data name="Auth.Sub.EmailChange" xml:space="preserve">
+    <value>EMAIL CHANGE</value>
+  </data>
+  <data name="Auth.Sub.InvalidUser" xml:space="preserve">
+    <value>INVALID USER</value>
+  </data>
+  <data name="Auth.Sub.Resend" xml:space="preserve">
+    <value>RESEND CONFIRMATION</value>
+  </data>
+  <data name="Auth.Btn.Resend" xml:space="preserve">
+    <value>RESEND</value>
+  </data>
+  <data name="Auth.ConfirmEmail.Ok" xml:space="preserve">
+    <value>Thank you for confirming your email.</value>
+  </data>
+  <data name="Auth.ConfirmEmail.Fail" xml:space="preserve">
+    <value>Error confirming your email.</value>
+  </data>
+  <data name="Auth.EmailChange.Ok" xml:space="preserve">
+    <value>Thank you for confirming your email change.</value>
+  </data>
+  <data name="Auth.EmailChange.Fail" xml:space="preserve">
+    <value>Error changing email.</value>
+  </data>
+  <data name="Auth.InvalidUser.Msg" xml:space="preserve">
+    <value>Invalid user.</value>
+  </data>
+  <data name="Auth.Reset.InvalidLink" xml:space="preserve">
+    <value>The password reset link is invalid.</value>
+  </data>
+  <data name="Auth.Reset.RequestAgain" xml:space="preserve">
+    <value>Request a new reset link</value>
+  </data>
+  <data name="Auth.Resend.Sent" xml:space="preserve">
+    <value>Verification email sent. Please check your email.</value>
+  </data>
+  <data name="WH.LocBarcode.Title" xml:space="preserve">
+    <value>Location Barcode</value>
+  </data>
+  <data name="WH.LocBarcode.PrintTitle" xml:space="preserve">
+    <value>Print Location Barcode</value>
+  </data>
+  <data name="WH.LocBarcode.Ph.Select" xml:space="preserve">
+    <value>Select Location</value>
+  </data>
+  <data name="WH.LocBarcode.Btn.Preview" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="MD.Location.Col.WhCode" xml:space="preserve">
+    <value>WH Code</value>
+  </data>
+  <data name="App.Error.Unhandled" xml:space="preserve">
+    <value>An unhandled error has occurred.</value>
+  </data>
+  <data name="App.Error.Reload" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+  <data name="PP.WorkOrder.Kpi.Draft" xml:space="preserve">
+    <value>DRAFT</value>
+  </data>
+  <data name="PP.WorkOrder.Kpi.Released" xml:space="preserve">
+    <value>RELEASED</value>
+  </data>
+  <data name="PP.WorkOrder.Kpi.Closed" xml:space="preserve">
+    <value>CLOSED</value>
+  </data>
+  <data name="PP.WorkOrder.Kpi.Critical" xml:space="preserve">
+    <value>D-3 CRITICAL</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Kpi.Imported" xml:space="preserve">
+    <value>IMPORTED</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Kpi.Selected" xml:space="preserve">
+    <value>SELECTED</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Kpi.Confirmed" xml:space="preserve">
+    <value>CONFIRMED</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Kpi.Open" xml:space="preserve">
+    <value>OPEN</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Kpi.TotalQty" xml:space="preserve">
+    <value>TOTAL QTY</value>
+  </data>
+  <data name="PP.PlanConfirm.Kpi.PlanLines" xml:space="preserve">
+    <value>PLAN LINES</value>
+  </data>
+  <data name="PP.PlanConfirm.Kpi.Selected" xml:space="preserve">
+    <value>SELECTED</value>
+  </data>
+  <data name="PP.PlanConfirm.Kpi.WoCreated" xml:space="preserve">
+    <value>WO CREATED</value>
+  </data>
+  <data name="PP.PlanConfirm.Kpi.Blocked" xml:space="preserve">
+    <value>BLOCKED</value>
+  </data>
+  <data name="PP.Forecast.Kpi.Items" xml:space="preserve">
+    <value>ITEMS</value>
+  </data>
+  <data name="PP.Forecast.Kpi.Weeks" xml:space="preserve">
+    <value>WEEKS</value>
+  </data>
+  <data name="PP.Forecast.Kpi.TotalQty" xml:space="preserve">
+    <value>TOTAL QTY</value>
+  </data>
+  <data name="PP.Forecast.Kpi.Unmatched" xml:space="preserve">
+    <value>UNMATCHED</value>
+  </data>
+  <data name="App.NotSignedIn" xml:space="preserve">
+    <value>Not signed in</value>
+  </data>
+  <data name="App.ErrorPage.Title" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="App.ErrorPage.Msg" xml:space="preserve">
+    <value>An error occurred while processing your request.</value>
+  </data>
+  <data name="App.ErrorPage.RequestId" xml:space="preserve">
+    <value>Request ID</value>
   </data>
 </root>

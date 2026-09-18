@@ -11,10 +11,11 @@
 @inject IEmailSender<ApplicationUser> EmailSender
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>Resend email confirmation · A-MES</PageTitle>
+<PageTitle>@L["Auth.Title.Resend"] · A-MES</PageTitle>
 
-<AuthCard Sub="RESEND CONFIRMATION">
+<AuthCard Sub="@L["Auth.Sub.Resend"].Value">
     @if (!string.IsNullOrEmpty(message))
     {
         <div class="ames-auth-hint" style="margin-bottom:12px;">@message</div>
@@ -24,15 +25,15 @@
               class="ames-auth-form" Enhance="false">
         <DataAnnotationsValidator />
 
-        <label class="ames-auth-label">EMAIL</label>
+        <label class="ames-auth-label">@L["Auth.Lbl.Email"]</label>
         <InputText @bind-Value="Input.Email" class="ames-auth-input" autocomplete="username" placeholder="name@example.com" />
         <ValidationMessage For="() => Input.Email" class="ames-auth-vm" />
 
-        <button type="submit" class="ames-auth-submit">RESEND  →</button>
+        <button type="submit" class="ames-auth-submit">@L["Auth.Btn.Resend"]  →</button>
     </EditForm>
 
     <div class="ames-auth-meta">
-        <a href="/Account/Login">← Back to sign in</a>
+        <a href="/Account/Login">← @L["Auth.BackToSignIn"]</a>
     </div>
 </AuthCard>
 
@@ -48,7 +49,7 @@
         var user = await UserManager.FindByEmailAsync(Input.Email!);
         if (user is null)
         {
-            message = "Verification email sent. Please check your email.";
+            message = L["Auth.Resend.Sent"];
             return;
         }
 
@@ -60,7 +61,7 @@
             new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code });
         await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
 
-        message = "Verification email sent. Please check your email.";
+        message = L["Auth.Resend.Sent"];
     }
 
     private sealed class InputModel

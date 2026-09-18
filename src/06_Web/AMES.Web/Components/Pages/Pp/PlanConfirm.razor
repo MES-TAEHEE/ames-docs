@@ -20,10 +20,10 @@
 }
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">PLAN LINES</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">SELECTED</div><div class="ames-kpi-v">@_selected.Count</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">WO CREATED</div><div class="ames-kpi-v">@_woCreated</div></div>
-    <div class="ames-kpi @(BlockedCount > 0 ? "bad" : "")"><div class="ames-kpi-l">BLOCKED</div><div class="ames-kpi-v">@BlockedCount</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.PlanConfirm.Kpi.PlanLines"]</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["PP.PlanConfirm.Kpi.Selected"]</div><div class="ames-kpi-v">@_selected.Count</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.PlanConfirm.Kpi.WoCreated"]</div><div class="ames-kpi-v">@_woCreated</div></div>
+    <div class="ames-kpi @(BlockedCount > 0 ? "bad" : "")"><div class="ames-kpi-l">@L["PP.PlanConfirm.Kpi.Blocked"]</div><div class="ames-kpi-v">@BlockedCount</div></div>
 </div>
 
 <div class="ames-card ames-card-fill">

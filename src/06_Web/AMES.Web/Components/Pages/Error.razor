@@ -1,15 +1,16 @@
 ﻿@page "/Error"
+@inject IStringLocalizer<SharedResources> L
 @using System.Diagnostics
 
-<PageTitle>Error</PageTitle>
+<PageTitle>@L["App.ErrorPage.Title"]</PageTitle>
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+<h1 class="text-danger">@L["App.ErrorPage.Title"]</h1>
+<h2 class="text-danger">@L["App.ErrorPage.Msg"]</h2>
 
 @if (ShowRequestId)
 {
     <p>
-        <strong>Request ID:</strong> <code>@RequestId</code>
+        <strong>@L["App.ErrorPage.RequestId"]:</strong> <code>@RequestId</code>
     </p>
 }
 

@@ -133,7 +133,7 @@ else
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Title="@L["PP.Mrp.Col.Action"].Value" TextAlign="TextAlign.Center" Width="90px" Sortable="false">
                 <Template Context="r">
-                    <RadzenButton Text="Detail" Icon="info" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" Click="@(() => OpenDetail(r))" class="ames-rz-btn" />
+                    <RadzenButton Text="@L["Col.Detail"].Value" Icon="info" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" Click="@(() => OpenDetail(r))" class="ames-rz-btn" />
                 </Template>
             </RadzenDataGridColumn>
         </Columns>

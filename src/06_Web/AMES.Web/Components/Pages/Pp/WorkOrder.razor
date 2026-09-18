@@ -21,11 +21,11 @@
 }
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">DRAFT</div><div class="ames-kpi-v">@Count("Draft")</div></div>
-    <div class="ames-kpi info"><div class="ames-kpi-l">RELEASED</div><div class="ames-kpi-v">@Count("Released")</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">IN PROGRESS</div><div class="ames-kpi-v">@Count("In Progress")</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">CLOSED</div><div class="ames-kpi-v">@Count("Closed")</div></div>
-    <div class="ames-kpi @(CriticalCount > 0 ? "warn" : "")"><div class="ames-kpi-l">D-3 CRITICAL</div><div class="ames-kpi-v">@CriticalCount</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.WorkOrder.Kpi.Draft"]</div><div class="ames-kpi-v">@Count("Draft")</div></div>
+    <div class="ames-kpi info"><div class="ames-kpi-l">@L["PP.WorkOrder.Kpi.Released"]</div><div class="ames-kpi-v">@Count("Released")</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["PP.WorkOrder.Kpi.InProgress"]</div><div class="ames-kpi-v">@Count("In Progress")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.WorkOrder.Kpi.Closed"]</div><div class="ames-kpi-v">@Count("Closed")</div></div>
+    <div class="ames-kpi @(CriticalCount > 0 ? "warn" : "")"><div class="ames-kpi-l">@L["PP.WorkOrder.Kpi.Critical"]</div><div class="ames-kpi-v">@CriticalCount</div></div>
 </div>
 
 <div class="ames-card ames-card-fill">
