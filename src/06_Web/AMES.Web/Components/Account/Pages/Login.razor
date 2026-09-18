@@ -77,6 +77,7 @@
     private string? ReturnUrl { get; set; }
 
     private const string RememberCookie = "ames_remember";
+    private const string LoginIdCookie  = "ames_login_id";
 
     protected override async Task OnInitializedAsync()
     {
@@ -87,6 +88,10 @@
             // Restore the user's last RememberMe preference
             if (HttpContext.Request.Cookies.TryGetValue(RememberCookie, out var pref))
                 Input.RememberMe = pref == "1";
+
+            // Remember 를 켠 브라우저에는 마지막 로그인 ID 를 다시 채워 준다
+            if (Input.RememberMe && HttpContext.Request.Cookies.TryGetValue(LoginIdCookie, out var lastId) && !string.IsNullOrWhiteSpace(lastId))
+                Input.Email = lastId;
         }
     }
 
@@ -134,6 +139,19 @@
                     IsEssential = true,
                     SameSite = SameSiteMode.Lax,
                 });
+
+            // ID 는 Remember 를 켰을 때만 남기고, 끄고 로그인하면 지운다(공용 PC)
+            if (Input.RememberMe)
+                HttpContext.Response.Cookies.Append(LoginIdCookie, Input.Email.Trim(),
+                    new CookieOptions
+                    {
+                        Expires     = DateTimeOffset.UtcNow.AddYears(1),
+                        IsEssential = true,
+                        HttpOnly    = true,
+                        SameSite    = SameSiteMode.Lax,
+                    });
+            else
+                HttpContext.Response.Cookies.Delete(LoginIdCookie);
 
             var target = string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl;
             if (!Uri.IsWellFormedUriString(target, UriKind.Relative))
