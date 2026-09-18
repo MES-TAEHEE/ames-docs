@@ -1,9 +1,11 @@
 using AMES.Api.Auth;
 using AMES.Api.Endpoints;
 using AMES.Api.Services;
+using AMES.Api.Workers.PoSync;
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
 using AMES.Data.Services;
+using AMES.Data.Services.PoSync;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +23,15 @@ builder.Services.AddSingleton(sp => new PopAuthService(
     sp.GetRequiredService<PopSessionRepository>()));
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<ShipmentDispatchService>();
+
+// ── 외부 API 연동 Worker (Workers/ScheduledWorker 상속, API 마다 하나) ────
+// PO sync — 고객사 SRM 구매오더 자동 수집
+builder.Services.AddHttpClient(HttpPoSource.ClientName);
+builder.Services.AddSingleton<IPoSource>(sp => new HttpPoSource(
+    sp.GetRequiredService<IHttpClientFactory>(),
+    sp.GetRequiredService<IConfiguration>()));
+builder.Services.AddSingleton<PoSyncWorker>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<PoSyncWorker>());
 
 // ── Auth token registry ─────────────────────────────────────────────────
 var tokens = new TokenStore();

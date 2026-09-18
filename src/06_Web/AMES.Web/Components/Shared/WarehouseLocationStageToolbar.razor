@@ -1,23 +1,24 @@
+@inject IStringLocalizer<SharedResources> L
 @using Radzen
 @using Microsoft.AspNetCore.Components.Web
 
-<RadzenButton Text="Back" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="Back" class="ames-rz-btn" />
+<RadzenButton Text="@L["Btn.Back"].Value" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="Back" class="ames-rz-btn" />
 <RadzenTextBox Value="@Search"
                Change="SearchChanged"
-               Placeholder="Search"
+               Placeholder="@L["Btn.Search"].Value"
                InputSize="InputSize.Small"
                class="ames-rz-input"
                Style="width:180px;"
                AutoComplete="false"
                @onkeydown="HandleKeyDown" />
-<RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="SearchRequested" class="ames-rz-btn" />
+<RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="SearchRequested" class="ames-rz-btn" />
 <LocationBarcodePrintButton Locations="@PrintOptions"
                             Warehouse="@Warehouse"
                             Area="@Area"
                             Zone="@Zone" />
 @if (CanCreate)
 {
-    <RadzenButton Text="Create" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="CreateRequested" class="ames-rz-btn" />
+    <RadzenButton Text="@L["Btn.Create"].Value" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="CreateRequested" class="ames-rz-btn" />
 }
 
 @code {

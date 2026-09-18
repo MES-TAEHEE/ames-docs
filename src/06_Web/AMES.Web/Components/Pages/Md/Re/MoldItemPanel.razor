@@ -7,6 +7,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 @if (!string.IsNullOrEmpty(_msg))
 {
@@ -24,7 +25,7 @@
             </RadzenStack>
             <div style="flex:1;min-height:0;overflow:hidden;">
                 <RadzenDataGrid TItem="MasterDataRepository.MoldRow" Data="_molds" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
-                                ShowPagingSummary="false" RowRender="MoldRowRender" RowSelect="OnMoldRowSelect" EmptyText="@L["MD.Mold.Empty"]" Class="ames-rz-grid ames-grid-fill">
+                                ShowPagingSummary="false" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowRender="MoldRowRender" RowSelect="OnMoldRowSelect" EmptyText="@L["MD.Mold.Empty"]" Class="ames-rz-grid ames-grid-fill">
                     <Columns>
                         <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="MoldID" Title="@L["Col.MoldId"]" TextAlign="TextAlign.Center" Width="110px">
                             <Template Context="m"><span class="code">@m.MoldID</span></Template>
@@ -67,7 +68,7 @@
                 </div>
                 <div style="flex:1;min-height:0;overflow:hidden;">
                     <RadzenDataGrid TItem="MasterDataRepository.MoldItemRow" Data="_items" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
-                                    ShowPagingSummary="@_showPagerSummary" PageSizeOptions="@_pageSizeOptions" RowRender="ItemRowRender" RowSelect="OpenEdit" EmptyText="@L["MD.MoldItem.Empty"]" Class="ames-rz-grid ames-grid-fill">
+                                    ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeOptions="@_pageSizeOptions" RowRender="ItemRowRender" RowSelect="OpenEdit" EmptyText="@L["MD.MoldItem.Empty"]" Class="ames-rz-grid ames-grid-fill">
                         <Columns>
                             <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="ItemNo" Title="@L["Col.ItemNo"]" TextAlign="TextAlign.Center" Width="130px">
                                 <Template Context="i"><span class="code">@i.ItemNo</span></Template>
@@ -270,10 +271,11 @@
         try
         {
             var itemNo = _f.ItemNo.Trim();
-            if (MD.MoldItemExists(_selMold.MoldID, itemNo)) { _modalErr = $"'{itemNo}' {L["Err.AlreadyExists"]}"; return; }
+            if (MD.MoldItemExists(_selMold.MoldID, itemNo)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"].Value, itemNo); return; }
             MD.InsertMoldItem(_selMold.MoldID, itemNo, NE(_f.Color), _f.CavitySeq, NE(_f.CavityPos),
                 _f.Usage, NE(_f.ResinItemNo), _f.ResinUsage, _f.CavityCount, NE(_f.MoldCategory),
                 _f.ActiveFlag, _actor);
+            Audit.Created("MD-007", "MD_MoldItem", $"{_selMold.MoldID}/{itemNo}", _f);
             LoadItems(); CloseModal();
             ShowMsg($"{itemNo} {L["Msg.Created"]}", false);
         }
@@ -291,6 +293,7 @@
             MD.UpdateMoldItem(_selMold.MoldID, _f.ItemNo, NE(_f.Color), _f.CavitySeq, NE(_f.CavityPos),
                 _f.Usage, NE(_f.ResinItemNo), _f.ResinUsage, _f.CavityCount, NE(_f.MoldCategory),
                 _f.ActiveFlag, _actor);
+            Audit.Updated("MD-007", "MD_MoldItem", $"{_selMold.MoldID}/{_f.ItemNo}", _items.FirstOrDefault(i => i.ItemNo == _f.ItemNo), _f);
             LoadItems(); CloseModal();
             ShowMsg($"{_f.ItemNo} {L["Msg.Updated"]}", false);
         }
@@ -305,6 +308,7 @@
         try
         {
             MD.DeleteMoldItem(_selMold.MoldID, _f.ItemNo);
+            Audit.Deleted("MD-007", "MD_MoldItem", $"{_selMold.MoldID}/{_f.ItemNo}", _items.FirstOrDefault(i => i.ItemNo == _f.ItemNo));
             LoadItems(); CloseModal();
             ShowMsg($"{_f.ItemNo} {L["Msg.Deleted"]}", false);
         }

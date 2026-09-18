@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-031 @L["MD.Routing.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-031" TitleKey="MD.Routing.Title" />
@@ -286,12 +287,14 @@
                 if (dup) { _modalErr = $"{_f.RoutingType} · Step {_f.StepSeq} {L["Err.Duplicate"]}"; _busy = false; return; }
                 MD.InsertRoutingStep(_f.RoutingType, _f.StepSeq, _f.ProcessCode.Trim().ToUpper(),
                     _f.QcRequired, _f.ActiveFlag, _actor);
+                Audit.Created("MD-031", "MD_RoutingStep", $"{_f.RoutingType}/{_f.StepSeq}", _f);
                 ShowMsg($"{_f.RoutingType} · Step {_f.StepSeq} {L["Msg.Created"]}", false);
             }
             else
             {
                 MD.UpdateRoutingStep(_f.RoutingType, _f.StepSeq, _f.ProcessCode.Trim().ToUpper(),
                     _f.QcRequired, _f.ActiveFlag, _actor);
+                Audit.Updated("MD-031", "MD_RoutingStep", $"{_f.RoutingType}/{_f.StepSeq}", _steps.FirstOrDefault(s => s.RoutingType == _f.RoutingType && s.StepSeq == _f.StepSeq), _f);
                 ShowMsg($"{_f.RoutingType} · Step {_f.StepSeq} {L["Msg.Updated"]}", false);
             }
             LoadSteps(); CloseModal();
@@ -306,6 +309,7 @@
         try
         {
             MD.DeleteRoutingStep(_f.RoutingType, _f.StepSeq);
+            Audit.Deleted("MD-031", "MD_RoutingStep", $"{_f.RoutingType}/{_f.StepSeq}", _steps.FirstOrDefault(s => s.RoutingType == _f.RoutingType && s.StepSeq == _f.StepSeq));
             LoadSteps(); CloseModal();
             ShowMsg($"{_f.RoutingType} · Step {_f.StepSeq} {L["Msg.Deleted"]}", false);
         }

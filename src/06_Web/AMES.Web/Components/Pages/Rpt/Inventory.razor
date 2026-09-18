@@ -132,7 +132,7 @@
     </div>
 
     <RadzenDataGrid TItem="Sku" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.Inventory.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid rpt-dp-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["RPT.Inventory.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid rpt-dp-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="Sku" Property="ItemNo" Title="@L["RPT.Inventory.Col.ItemCode"]" Width="150px">
                 <Template Context="r"><span class="code">@r.ItemNo</span></Template>

@@ -13,7 +13,7 @@
   - 비상용(로컬): `localhost\MSSQLSERVER01` — **명명 인스턴스**다. 개발서버가 죽었을 때만 쓰며, 개발서버와 동일하게 유지한다
   - **`Connect Timeout=30` 을 낮추지 말 것.** 5로 두면 원격 + `Encrypt=True` 의 TLS 사전 로그인 핸드셰이크(실측 5초 초과)에 걸려 연결이 끊긴다. TCP 1433 은 열려 있어서 오진하기 쉽다
   - 전환은 파일 수정이 아니라 환경변수 `ConnectionStrings__AMES` 오버라이드로 한다
-- **솔루션**: `src/AMES.sln` (Visual Studio 2022) — 11개 프로젝트
+- **솔루션**: `src/AMES.sln` (Visual Studio 2022) — 13개 프로젝트
 
 ---
 
@@ -32,8 +32,10 @@
 08_Tablet/AMES.Tablet      ← .NET MAUI Blazor Hybrid, 현장 태블릿 (net10.0-android/maccatalyst/windows)
                               ※ 현재 스캐폴드 단계 (Home/NotFound 만 존재), Data 직접 참조
 
-03_Pop/AMES.Pop.Tests      ← 테스트
-07_Etc/AMES.InjAgent.Tests ← 테스트
+02_Data/AMES.Data.Tests    ← AMES.Data 테스트 (순수 함수 + AMES_DEV 통합, net10.0)
+04_Api/AMES.Api.Tests      ← AMES.Api 테스트 (ScheduledWorker 스케줄 규칙·수동 실행 HTTP 규칙, DB 불필요)
+03_Pop/AMES.Pop.Tests      ← AMES.Pop · AMES.Devices(ZPL·스캔 파서) 테스트
+07_Etc/AMES.InjAgent.Tests ← AMES.InjAgent 테스트만 (PLC 코덱·FEnet·폴러)
 ```
 
 ### 의존성 방향
@@ -79,7 +81,7 @@ dotnet run --project src\06_Web\AMES.Web\AMES.Web.csproj
 dotnet run --project src\07_Etc\AMES.InjAgent\AMES.InjAgent.csproj
 ```
 
-**DB 전제조건**: ① `dist/create_database.sql`로 `AMES_DEV`를 **`COLLATE Korean_Wansung_CI_AS`**로 생성 → ② `dist/AMES_Schema.sql`(149개 테이블) 적용 후 실행. (스키마는 컬럼 COLLATE 미지정이라 DB 기본 콜레이션을 상속 — DB를 Korean으로 먼저 만들어야 함)
+**DB 전제조건**: ① `dist/create_database.sql`로 `AMES_DEV`를 **`COLLATE Korean_Wansung_CI_AS`**로 생성 → ② `dist/AMES_Schema.sql`(163개 테이블) 적용 → ③ `dist/migrate_*.sql` (전부 적용한 개발 DB 는 172개) 후 실행. (스키마는 컬럼 COLLATE 미지정이라 DB 기본 콜레이션을 상속 — DB를 Korean으로 먼저 만들어야 함)
 
 **솔루션 전체 빌드는 6~16분 걸린다**(MAUI: Pda, Tablet). **두 개를 동시에 돌리면 `NETSDK1047`·`MSB3061` 가짜 실패**가 나므로 순차 실행할 것.
 
@@ -111,7 +113,9 @@ appcmd set apppool "AMES.Web" /processModel.loadUserProfile:true /processModel.s
 ```
 
 끄면 Data Protection이 ephemeral 키를 써서 **앱풀 재활용마다 로그인 사용자가 전원 로그아웃**된다.
-`dist/setup-iis.ps1`에는 이 두 설정이 빠져 있으니 그 스크립트로 구성한 서버는 따로 적용해야 한다.
+`dist/setup-iis.ps1`에는 이 두 설정이 빠져 있다.
+
+**09-18 부터 AMES.Web 은 이 설정에 기대지 않는다** — `Program.cs` 가 키를 `%ProgramData%\AMES\DataProtection-Keys\AMES.Web`(설정 `DataProtection:KeyPath` 로 변경 가능)에 두고 머신 범위 DPAPI 로 암호화한다. 배포 폴더 안에 두지 않는 이유는 `publish-web.ps1` 의 `robocopy /MIR` 가 게시 때마다 지우기 때문이다. 폴더를 못 만들거나 쓰기 권한이 없으면 기동은 계속하고 경고 로그(`Data Protection key folder … is not writable`)만 남긴 채 프레임워크 기본 동작으로 돌아가므로, 그 경우에만 위 앱풀 설정이 다시 필요하다. 키는 서버마다 따로 생기며, 이 버전을 처음 올릴 때는 키가 바뀌어 **로그인 사용자가 한 번 전원 로그아웃**된다.
 
 **서버 반영 절차**: ① 앱풀 중지 또는 `app_offline.htm` 배치 → ② `publish\AMES.Web\*` 덮어쓰기 → ③ `app_offline.htm` 제거 / 앱풀 시작.
 서버 사전 조건은 **ASP.NET Core 10 Hosting Bundle**(9.x만 있으면 HTTP 500.31), 앱풀 "관리 코드 없음", 배포 폴더에 앱풀 계정 읽기/실행 권한.
@@ -269,13 +273,13 @@ appsettings 의 `PopTerminal:ModuleCode`/`LineId`/`StationId` 는 제거됐다 �
 모듈 코드는 `AppState.ModuleCode` 에 실리고, 라우팅과 라벨 디스패처 게이트가 이를 본다.
 
 ### 인증 흐름
-- **Pop**: `PopAuthService` → `AuthRepository.FindByEmployeeNo()` → 없으면 `WorkerRepository.FindByWorkerNo()` → `PinHasher` (PBKDF2) → `PopSessionRepository.CreateSession()`
+- **Pop**: `PopAuthService` → `AuthRepository.FindByEmployeeNo()` → 없으면 `WorkerRepository.FindByEmployeeNo()` → `PinHasher` (PBKDF2) → `PopSessionRepository.CreateSession()`
   - POP 로그인은 두 곳을 본다: 웹 계정 작업자(`SYS_UserProfile` + `AspNetUsers`)와 POP 전용 작업자(`MD_Worker`). **사번이 겹치면 웹 계정이 이긴다.**
-  - `MD_Worker` 는 최소 구성이라 라인 배정도 실패 카운터도 없다 — 워커는 **전 라인 허용, PIN 오류로 잠기지 않는다**. 세션 `OperatorID` 에는 GUID 가 아니라 **WorkerNo 가 그대로** 들어가므로 사번은 전사 유일해야 한다.
+  - `MD_Worker` 는 최소 구성이라 라인 배정도 실패 카운터도 없다 — 워커는 **전 라인 허용, PIN 오류로 잠기지 않는다**. 세션 `OperatorID` 에는 GUID 가 아니라 **사번(`MD_Worker.EmployeeNo`)이 그대로** 들어가므로 사번은 전사 유일해야 한다.
   - `AMES.Api` 의 `/api/auth/login` 도 같은 서비스를 쓰므로 **PDA 도 워커 로그인을 받는다.**
   - POP 로그인 화면은 시리얼 스캐너(`ScannerService`)로 사원증 QR 을 받으면 `AuthMethod.Badge` 로 **PIN 없이 즉시 로그인**한다. 라인·스테이션 미선택, 픽커 열림, 로그인 진행 중에는 스캔을 무시한다.
   - 사원증 QR 발행 양식은 **`EOS*사번*이름`** 세 토큰이고 `AMES.Devices.BadgeScanParser` 가 정본이다(단위 테스트 `AMES.Pop.Tests/BadgeScanParserTests`). 이 양식이 아니면 스캔값 전체를 사번으로 본다 — 구 사번-only QR 과 웹 계정 배지가 계속 동작하게 하려는 것이며, 그 경로는 자동 등록 대상이 아니다.
-  - **EOS 양식으로 읽히면 모르는 사번은 그 자리에서 `MD_Worker` 에 만들어진다**(`WorkerName`=배지의 이름, 없으면 사번 / PIN 없음 / `CreatedBy='POP-SCAN'`). 로그인 화면 스캔에서만 동작하며 PDA/API 는 종전대로 등록된 사람만 받는다. 즉 **EOS 양식 QR 을 인쇄할 수 있으면 누구나 계정을 만들 수 있다** — 배지 발급을 통제할 것. INSERT 전용이라 `ActiveFlag=0` 인 행은 재스캔으로 되살아나지 않고, 관리자가 고친 이름도 덮이지 않는다.
+  - **EOS 양식으로 읽히면 모르는 사번은 그 자리에서 `MD_Worker` 에 만들어진다**(`EmployeeName`=배지의 이름, 없으면 사번 / PIN 없음 / `CreatedBy='POP-SCAN'`). 로그인 화면 스캔에서만 동작하며 PDA/API 는 종전대로 등록된 사람만 받는다. 즉 **EOS 양식 QR 을 인쇄할 수 있으면 누구나 계정을 만들 수 있다** — 배지 발급을 통제할 것. INSERT 전용이라 `ActiveFlag=0` 인 행은 재스캔으로 되살아나지 않고, 관리자가 고친 이름도 덮이지 않는다.
   - **`PinHash` 가 없는 워커는 배지 로그인 직후 PIN 설정을 강제한다** — 4자리를 두 번 입력해 일치해야 저장(`ModifiedBy='POP-PIN'`)되고 작업 화면으로 넘어간다. 건너뛸 수 없다: PIN 이 없으면 스캐너가 죽었을 때 그 사람은 들어올 방법이 없다. 자동 등록분뿐 아니라 등록 화면에서 PIN 없이 만든 워커도 대상이다.
   - 화면이 이걸 판단하는 근거는 `PopSessionDto.IsWorker` · `HasPin` 이고 `PopSessionRepository.CreateSession` 이 채운다. **PIN 설정 전에 `PR_PopSession` 행은 이미 생긴다** — 오버레이 상태로 자리를 뜨면 열린 세션이 남고 만료시각으로만 정리된다.
 - **Api**: `POST /api/auth/login` → `TokenStore.Issue()` → Bearer 헤더 검증 (`BearerAuth` 미들웨어)
@@ -289,6 +293,7 @@ appsettings 의 `PopTerminal:ModuleCode`/`LineId`/`StationId` 는 제거됐다 �
 - **DTO**: `AMES.Contracts.Dto.*Dto` — 계산 프로퍼티 허용 (`ProgressPct`, `DaysToDue` 등)
 - **Enum**: `AMES.Contracts.Enums.*` (`ItemType`, `AuthResult`, `AuthMethod`)
 - **Pop 공통 컴포넌트**: `Common/` — `AppConfig`, `PopServices`, `ToastService`, `ConfirmService`, `HelpModal`
+- **감사 로그(Web MD·SYS)**: 등록·수정·삭제 핸들러는 저장 성공 직후 `AuditLogger`(`@inject AMES.Web.Services.AuditLogger Audit`)를 한 줄 부른다 — `Audit.Created/Updated/Deleted(화면코드, 테이블, 키, 전, 후)`, 그 밖의 동작은 `Audit.Log`(APPROVE·COPY·PIN_SET·PIN_RESET·PWD_RESET·UNLOCK). 전/후는 선택 행·폼 모델을 그대로 넘기며 Password/Pin/Secret/Token/Hash 속성은 서비스가 뺀다. 감사 실패는 저장을 실패로 만들지 않는다(경고 로그). 값이 든 속성 이름만으로 비밀인지 알 수 없는 경우(공통코드 `SW_*_AUTH` 의 설명란 토큰 등)는 `AuditLogger.IsSecretKey(그룹·키)` 로 판단해 `AuditLogger.Redact(스냅샷, "Description")` 로 가린 JSON 을 넘긴다. 로그인 전 화면(Account 자기가입·비밀번호 재설정)은 `Audit.Log("ACCOUNT", …, actor: 이메일)` 로 남기며 모듈은 SYS 로 묶인다. 수정 모달을 열 때 폼 모델에 키 필드도 채워 둘 것 — 비워 두면 After 스냅샷의 키가 빈 값으로 남는다. 중괄호 없는 if/else 문장 뒤에 넣으면 분기 밖이 되므로 주의. 페이징 그리드는 `PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"` 를 붙인다
 - **주석**: 비명확한 WHY에만 최소 작성, WHAT 설명 주석 금지
 - **Pop 화면 파일명**: `{ModuleCode}{화면번호}{기능명}.razor` (e.g. `Inj04ProductionEntry.razor`)
 
@@ -296,7 +301,7 @@ appsettings 의 `PopTerminal:ModuleCode`/`LineId`/`StationId` 는 제거됐다 �
 
 ## DB 스키마 영역
 
-149개 테이블, 기능 접두사로 구분:
+스키마 파일 163개(마이그레이션까지 적용한 개발 DB 172개) 테이블, 기능 접두사로 구분:
 
 | 접두사 | 영역 |
 |--------|------|
@@ -317,7 +322,7 @@ LotNo 채번 기반(`SYS_LotSeq` · `MD_Line.LotPrefix` · `tbl_Lot.LotCode` 유
 INJ-MAIN 품번 패널·칩이 5초마다 세는 "라인의 오늘 LOT" 조회용 인덱스 `IX_tbl_Lot_Line_Created(LineID, CreatedTS)` 는 `dist/migrate_inj_lot_line_created.sql` — 스키마 변경 없이 인덱스만 추가하므로 순서 무관, 재실행 안전.
 IMG 원천 LOT(`PR_ImgLot`)은 `dist/migrate_img_lot.sql` — `migrate_lotno_rule.sql` 뒤에 적용. 이게 없으면 IMG-MAIN 이 5초마다 조회 예외를 띄우고 라벨 발행이 안 된다. 완제품 라벨 장착위치 컬럼 `MD_Item.MountPos` 는 `dist/migrate_md_item_mount_pos.sql` — 순서 무관, 재실행 안전. 둘 다 없으면 `ImgLotRepository` 의 LOT 조회가 예외다.
 POP 전용 현장 작업자 마스터 `MD_Worker` 는 `dist/migrate_md_worker.sql` — 순서 무관, 재실행 안전. 이게 없으면 POP 로그인 화면의 사원 픽커에 워커가 안 뜨고(웹 계정만 나온다), 등록되지 않은 사번으로 로그인을 시도하면 예외가 난다. 신 Pop/Api 배포 전에 먼저 적용할 것. 등록 화면은 Web MD-032(`Md/Fd/Workers.razor`, `md/fd/workers`, 메뉴·권한은 `dist/migrate_md_worker_screen.sql`)이고 마이그레이션 자체에는 시드가 없으며, dev 는 `dist/seed_md_worker_dev.sql` 로 작업자 5명(W001~W005, PIN 전원 1234, W005 는 비활성)을 채운다 — PIN 해시가 고정 솔트 리터럴이라 **운영 금지**다. 사번을 W 로 두는 이유는 `seed_pop_users` 의 웹 계정(E/I/P/Q/S)과 겹치면 웹 계정이 이겨 워커가 로그인되지 않기 때문이다.
-실적의 전기일·교대 컬럼 `PR_ProductionResult.ProdDate` · `ShiftCode` 는 `dist/migrate_pr_result_prod_shift.sql` — 순서 무관, 재실행 안전, 기존 행은 `EntryAt` 기준 백필. POP 이 실적을 INSERT 하는 3곳(`ProductionRepository.RecordCycle` · `InjLotRepository.ConfirmByLotCode` · `ImgLotRepository.ConfirmByLotCode`)은 `AMES.Data.Services.ProdCalendar.ResolveNow` 로 **서버 시각**에 공통코드를 읽어 채운다: `DAY_CUTOFF/TIME` Attribute1(`HH:mm`, 이 시각 전은 전날 생산분 · 없으면 자정) + `WORK_SHIFT` Attribute1(`HHMM-HHMM`, SortOrder 순 첫 매치 · 2400=자정 · 자정 넘김 허용 · 어느 창에도 안 걸리면 NULL). 캐시가 없어 공통코드 화면에서 고치면 다음 실적부터 반영된다. POP 로그인 세션 `ShiftCode` 도 같은 판정(`MasterDataRepository.CurrentShiftCode`)으로 정하며 appsettings `DefaultShift` 는 판정 실패 시 폴백이다. **이 마이그레이션 없이 신 Pop 을 올리면 스캔 확정·수동 입력이 매번 예외**다. 판정 규칙 정본은 `AMES.InjAgent.Tests/ProdCalendarTests`.
+실적의 전기일·교대 컬럼 `PR_ProductionResult.ProdDate` · `ShiftCode` 는 `dist/migrate_pr_result_prod_shift.sql` — 순서 무관, 재실행 안전, 기존 행은 `EntryAt` 기준 백필. POP 이 실적을 INSERT 하는 3곳(`ProductionRepository.RecordCycle` · `InjLotRepository.ConfirmByLotCode` · `ImgLotRepository.ConfirmByLotCode`)은 `AMES.Data.Services.ProdCalendar.ResolveNow` 로 **서버 시각**에 공통코드를 읽어 채운다: `DAY_CUTOFF/TIME` Attribute1(`HH:mm`, 이 시각 전은 전날 생산분 · 없으면 자정) + `WORK_SHIFT` Attribute1(`HHMM-HHMM`, SortOrder 순 첫 매치 · 2400=자정 · 자정 넘김 허용 · 어느 창에도 안 걸리면 NULL). 캐시가 없어 공통코드 화면에서 고치면 다음 실적부터 반영된다. POP 로그인 세션 `ShiftCode` 도 같은 판정(`MasterDataRepository.CurrentShiftCode`)으로 정하며 appsettings `DefaultShift` 는 판정 실패 시 폴백이다. **이 마이그레이션 없이 신 Pop 을 올리면 스캔 확정·수동 입력이 매번 예외**다. 판정 규칙 정본은 `AMES.Data.Tests/ProdCalendarTests`.
 WO 공정 단계(`PP_WorkOrderRouting.CompletedQty` · 인덱스 · 백필)는 `dist/migrate_wo_step_line.sql` — `migrate_routing_step.sql` 다음에 적용. 이 뒤로 라인 배정·상태·완료수량의 정본은 단계 행이며 `PP_WorkOrder.LineID` 는 쓰지 않는다(컬럼만 잔존). Pop 은 단계 `LineID` 로 WO 를 받고, 실적은 `WorkOrderRepository.BumpStepCompleted` 한 곳으로만 반영된다.
 생산 마감일 컬럼 `PP_WorkOrder.ProdDeadline` 과 설정 `SYS_Config.PP_PROD_BUFFER_WORKDAYS`(기본 3, 1 이상만 유효 — 0·미등록·파싱 실패는 3 으로 본다) 는 `dist/migrate_wo_prod_deadline.sql` — 순서 무관, 재실행 안전. PP-003 이 WO 를 만들 때 `납기 − 버퍼 근무일`(`SYS_FactoryCalendar` 의 WORKDAY·SPECIAL 만 근무일, 행 없는 날은 토·일만 휴일) 을 박아 두고, `AMES.Data.Scheduling.DeadlinePacker` 가 오늘부터 마감일까지 단계별·날짜별로 수량을 쪼개 자동 배치한다(마감일 초과분은 납기일까지 `Late`, 그래도 남으면 `Shortfall`; 납기가 이미 지난 수주는 오늘부터 60일 안에 전량 `Late` 로 넣는다). 이 마이그레이션 없이 신 Web 을 올리면 PP-003 배치뿐 아니라 `WorkOrderRepository.ListAll` 을 쓰는 PP-004·PP-CAL 도 매번 예외다.
 백필된 WO 중 헤더 라인이 마지막 라인 단계가 아닌 건(예: A 라우팅을 INJ 라인으로 발행)은 첫 후속 실적에서 헤더 `CompletedQty` 가 마지막 단계 값으로 내려갈 수 있다 — PP-04 진척률이 한 번 감소해 보인다.
@@ -326,11 +331,48 @@ PP-003 일괄 생성은 WO 생성 → Release(단계별 라인) → 단계마다
 PM 실행 이력 스냅샷 컬럼(`MNT_PMExecution` 의 `PMScheduleID` 다음에 **`MNT_PMSchedule` 과 같은 순서로** `PMPlanNumber` · `EquipID` · `PMClass`(같은 형 VARCHAR(10)) · `PMType`, 이어서 `DueDate` · `LaborMinutes`, 인덱스 `IX_MNT_PMExecution_Class_Completed`)은 `dist/migrate_mnt_pm_execution_class.sql` — 순서 무관, 재실행 안전(컬럼이 없거나 순서가 다르면 재생성), 처음 적용 시 기존 행은 일정·작업지시로 백필(`DueDate` 만 NULL). `MntRepository.AdvancePm` 이 완료 때마다 스냅샷을 채우고, MNT-005/010 달력의 **완료 칩은 이 테이블**(`ListPmExecutions`, PMClass 로 분리)에서 나온다 — 일정이 지워져도 완료 칩은 남는다. 이력 없이 `LastPMDate` 만 있는 구 일정만 예전처럼 일정 값으로 완료 칩을 만든다. 완료 칩 클릭은 상세 내용 + 닫기만 있는 보기 모달(완료 처리·수정 없음)이고, 일정 상세 모달 하단에 최근 이력 5건(`ListPmExecutionsFor`)이 붙는다. 이 마이그레이션 없이 신 Web 을 올리면 PM 완료 처리와 달력 조회가 매번 예외다.
 사번·이름 컬럼 통일 `MD_Worker.EmployeeNo`·`EmployeeName` · `MD_LineSupervisor.EmployeeNo`(구 `WorkerNo`·`WorkerName`, `SYS_UserProfile` 의 `EmployeeNo` VARCHAR(20)·`EmployeeName` NVARCHAR(50) 과 같은 이름·형)은 `dist/migrate_employee_no_rename.sql` — `migrate_md_worker.sql`·`migrate_andon_workflow.sql` 뒤, 재실행 안전, 데이터 변경 없음(고유 인덱스도 `UQ_MD_Worker_EmployeeNo` 로 개명). 이 마이그레이션 없이 신 Pop/Web/Api 를 올리면 POP 로그인·안돈 슈퍼바이저 검증·MD-032/033 이 매번 예외다. 라인 슈퍼바이저 등록 화면은 Web MD-033(`Md/Fd/LineSupervisors.razor`, `md/fd/line-supervisors`, 메뉴·권한은 `dist/migrate_md_line_supervisor_screen.sql`) — 라인은 `MD_Line` 활성 라인, 사번은 **Supervisor 역할** 웹 사용자(`SYS_UserProfile` × `AspNetUserRoles`)만 콤보에 나오며 현장 작업자(`MD_Worker`)는 후보가 아니다(막힌 계정 DISABLED/LOCKED/SUSPENDED/INACTIVE 제외, UNVERIFIED 허용)이며 키(라인·사번)는 고정이라 수정은 활성 여부뿐, 바꾸려면 삭제 후 재등록. `seed_andon_dev.sql` 은 이제 개발 편의용일 뿐이다.
 DB 구조 정합용 마이그레이션 2개(09-17): `dist/migrate_md_codeitem_widen.sql`(`MD_CodeItem.Attribute1` 40→200 · `Description` 120→500 — 개발서버가 수동으로 넓혀 둔 값을 정본으로 스키마·로컬을 맞춤) · `dist/migrate_pr_imglot_column_order.sql`(초기 테이블에 `CustomerCode` 를 ALTER ADD 한 DB 의 컬럼 순서를 스키마와 같게 재생성, FK·인덱스 재작성). 둘 다 재실행 안전. 개발·로컬 DB 172 테이블 구조 서명이 동일한 상태가 기준이다.
-안돈 대응 워크플로(`MD_LineSupervisor` · `PR_AndonDeptCall` · `PR_AndonCall.SupervisorName` · 공통코드 `ANDON_DEPT`/`ANDON_CAUSE`)는 `dist/migrate_andon_workflow.sql` — 순서 무관, 재실행 안전. 이게 없으면 INJ-MAIN·IMG-MAIN 이 5초마다 진행중 안돈을 조회하다 예외를 내 좌측 헤더에 갱신 실패 스트립이 계속 뜨고 안돈 버튼도 예외 토스트를 띄운다 — 실적 확정 자체는 계속 동작한다. `ANDON_CAUSE.Attribute1` 이 기본 호출 부서이며 둘 다 MD-26 공통코드 화면에서 관리한다. 라인별 슈퍼바이저 등록 화면은 Web 에 별도 개발 예정이라 dev 는 `dist/seed_andon_dev.sql`(전 라인 W001, 운영 금지)로 채운다.
+안돈 대응 워크플로(`MD_LineSupervisor` · `PR_AndonDeptCall` · `PR_AndonCall.SupervisorName` · 공통코드 `ANDON_DEPT`/`ANDON_CAUSE`)는 `dist/migrate_andon_workflow.sql` — 순서 무관, 재실행 안전. 이게 없으면 INJ-MAIN·IMG-MAIN 이 5초마다 진행중 안돈을 조회하다 예외를 내 좌측 헤더에 갱신 실패 스트립이 계속 뜨고 안돈 버튼도 예외 토스트를 띄운다 — 실적 확정 자체는 계속 동작한다. `ANDON_CAUSE.Attribute1` 이 기본 호출 부서이며 둘 다 MD-26 공통코드 화면에서 관리한다. 라인별 슈퍼바이저 등록은 Web MD-033 에서 하며, dev 는 `dist/seed_andon_dev.sql`(활성 라인 × Supervisor 역할 웹 사용자, 운영 금지)로 채울 수 있다.
 LOT 단위 불량·재작업(`PR_DefectDetail` 컬럼 `CauseCode`·`DispositionBy`·`DispositionAt`·`PriorStatus`·`ReversalResultID`, 필터 유니크 인덱스 `UX_PR_DefectDetail_OpenLot`, `NG_CONFIRMED → SCRAPPED` 이관, 구 수량 행(`LotID` NULL 또는 0) `Disposition='LEGACY'` 봉인, RWK 마스터)은 `dist/migrate_lot_defect_rework.sql` — 순서 무관, 재실행 안전. 적용은 반드시 `sqlcmd -f 65001 -I` — 필터 유니크 인덱스 때문에 `-I` 가 없으면 Msg 1934 로 실패한다. 이게 없으면 불량 팝업 등록과 REWORK 대기열 조회가 매번 예외다(스캔 확정은 계속 동작). REWORK 판정은 `MD_DefectCause` 가 비어 있으면 버튼이 비활성이라 dev 는 `dist/seed_rework_dev.sql`(원인 4개 + dev 불량코드 기본 원인 연결)을 적용한다.
-금형 교체 시간(`MD_Mold.MoldChangeMin` · `PP_LineSchedule.MoldID`)은 `dist/migrate_mold_change_plan.sql` — 순서 무관, 재실행 안전. 이게 없으면 MD-007 금형 목록·PP-003 배치·PP-LSB 능력 조회가 매번 예외다(구 Web 은 컬럼을 안 읽어 안전). PP-003 은 INJ 단계마다 `AMES.Data.Services.MoldResolver`(① 직전 금형 → ② 라인 배정 중 교체 최소 → ③ MoldID 순)로 금형을 정하고, 직전 금형(`LineScheduleRepository.LineLastMoldBefore`: 그 라인 이전 날짜 마지막 슬롯 → `MNT_EquipmentStatus.MountedMoldID`)과 다르면 `EntryType='MC'` 행(`WoID NULL`, `RefType='WO'`·`RefID`=WoID, `MoldID`=신금형)을 WO 슬롯 앞에 넣는다. 유효 교체 시간은 `COALESCE(MD_MoldLine.PrepTime, MD_Mold.MoldChangeMin, 0)`. **INJ 단계 품번에 활성 `MD_MoldItem` 이 없으면 그 수주는 거부**(`RejectedOrder.Reason='NoMold'`)되며 라인 미배정은 거부 사유가 아니다. POP 은 `EntryType='WO'` 로 계획을 읽어 MC 를 보지 않는다. PP-LSB 는 MC 를 표시·보존하고 클릭하면 시각·소요분 수정/삭제(적용·발행 때 반영)할 수 있으나 수동 배치 시 자동 삽입은 하지 않는다(후속). 보드에서 MC 는 PM 과 달리 가동을 깎지 않고 WO 처럼 부하로 센다. 정본 테스트는 `AMES.InjAgent.Tests/MoldResolverTests`·`DeadlinePackerTests`·`MoldPlanningTests`.
-PP-005 MRP 결과 스냅샷(`PP_MRPResult` · `PP_MRPResultWo`)과 품목 조달 리드타임 `MD_Item.LeadTimeDays` 는 `dist/migrate_pp_mrp_result.sql` — 순서 무관, 재실행 안전. 이게 없으면 PP-005 화면 진입·실행이 매번 예외다(구 Web 은 `PP_MRPLog` 만 읽어 안전). `PpRepository.RunMrp` 가 열린 WO(Completed·Closed·Stocked·Cancelled 제외) 잔량을 유효 APPROVED BOM(`MD_BomVersion` Status·EffFrom/EffTo, 부모 품번당 EffFrom 최신 버전 하나)으로 leaf 까지 분해하고, 재고 = `WH_Inventory` OnHand − Reserved 합, 발주중 = `WH_PurchaseOrder` Open/Partial 미입고분 + `SapPoNumber` 없는 Draft/Sent/Approved PR 수량, 부족 = 소요 − 재고 − 발주중(양수가 부족), 발주 기한 = 영향 WO 최단 납기 − 리드타임(부족일 때만·둘 중 하나라도 없으면 NULL)으로 계산해 `PP_MRPLog` 헤더 + 결과 두 테이블을 한 트랜잭션으로 남긴다. BOM 없는 WO 는 건너뛰고(`WosConsidered` 제외), BOM 순환은 `Status='Failed'` 로그만 남기고 `MrpCalculator.MrpCycleException`. 화면은 최근 Completed 실행만 보이며 야간 자동 실행·`PP_WorkOrder.IsBlocked` 는 없다 — "차단 WO" KPI 는 부족·PR 미생성 자재의 영향 WO 수를 화면에서 센다. 화면은 PP-003 과 같은 전체 높이 가상화 그리드(고정 체크박스 열, 부족·PR 미생성 행만 선택 가능, 헤더 체크박스로 표시분 전체 선택)이고 PR 생성(`CreateShortagePrs`)은 **체크한 행만** 확인 모달을 거쳐 일괄 처리한다. 모달에서 자재별 PR 수량을 조절할 수 있다(기본 부족량, 0 이하 거부, 초과 허용, 부족량 미만이면 결과 행에 잔여 부족이 남지만 같은 실행에서 두 번째 PR 은 못 만든다 — 재실행하면 다시 집계) — `PP_PurchaseRequest`(Draft, `PR-yyyyMMdd-NNNN` 일별 채번, 수량 = 입력 수량, 필요일 = 발주 기한 → 최단 WO 납기 → 오늘, `WoID` = 최단 납기 WO, `VendorID` NULL) 를 만들고 결과 행에 `PrID` 를 연결하며 입력 수량만큼 부족을 발주중으로 옮긴다(재생성 없음). 행 Detail 모달은 소요·가용·부족·L/T·영향 WO 와 함께 그 자재의 **진행 중 구매요청**(`ListOpenPrsForItem`: `SapPoNumber` 없는 Draft/Sent/Approved — 발주중에 세는 PR 과 같은 범위)을 나열한다. 그리드·모달의 PR 번호는 `pp/purchase-req?pr=PR-…` 링크이고 PP-006 은 `pr` 쿼리를 받으면 그 번호로 검색(최근 N 건 밖이면 500 건으로 재조회)한 뒤 상세 모달을 바로 연다. 다음 실행부터는 그 PR 이 발주중으로 잡힌다. 계산 규칙 정본은 순수 함수 `AMES.Data.Services.MrpCalculator`(`AMES.InjAgent.Tests/MrpCalculatorTests`), DB 경로는 `MrpRepositoryTests`(AMES_DEV 필요). MD 품목 화면의 리드타임 입력란은 후속.
+금형 교체 시간(`MD_Mold.MoldChangeMin` · `PP_LineSchedule.MoldID`)은 `dist/migrate_mold_change_plan.sql` — 순서 무관, 재실행 안전. 이게 없으면 MD-007 금형 목록·PP-003 배치·PP-LSB 능력 조회가 매번 예외다(구 Web 은 컬럼을 안 읽어 안전). PP-003 은 INJ 단계마다 `AMES.Data.Services.MoldResolver`(① 직전 금형 → ② 라인 배정 중 교체 최소 → ③ MoldID 순)로 금형을 정하고, 직전 금형(`LineScheduleRepository.LineLastMoldBefore`: 그 라인 이전 날짜 마지막 슬롯 → `MNT_EquipmentStatus.MountedMoldID`)과 다르면 `EntryType='MC'` 행(`WoID NULL`, `RefType='WO'`·`RefID`=WoID, `MoldID`=신금형)을 WO 슬롯 앞에 넣는다. 유효 교체 시간은 `COALESCE(MD_MoldLine.PrepTime, MD_Mold.MoldChangeMin, 0)`. **INJ 단계 품번에 활성 `MD_MoldItem` 이 없으면 그 수주는 거부**(`RejectedOrder.Reason='NoMold'`)되며 라인 미배정은 거부 사유가 아니다. POP 은 `EntryType='WO'` 로 계획을 읽어 MC 를 보지 않는다. PP-LSB 는 MC 를 표시·보존하고 클릭하면 시각·소요분 수정/삭제(적용·발행 때 반영)할 수 있으나 수동 배치 시 자동 삽입은 하지 않는다(후속). 보드에서 MC 는 PM 과 달리 가동을 깎지 않고 WO 처럼 부하로 센다. 정본 테스트는 `AMES.Data.Tests/MoldResolverTests`·`DeadlinePackerTests`·`MoldPlanningTests`.
+PP-005 MRP 결과 스냅샷(`PP_MRPResult` · `PP_MRPResultWo`)과 품목 조달 리드타임 `MD_Item.LeadTimeDays` 는 `dist/migrate_pp_mrp_result.sql` — 순서 무관, 재실행 안전. 이게 없으면 PP-005 화면 진입·실행이 매번 예외다(구 Web 은 `PP_MRPLog` 만 읽어 안전). `PpRepository.RunMrp` 가 열린 WO(Completed·Closed·Stocked·Cancelled 제외) 잔량을 유효 APPROVED BOM(`MD_BomVersion` Status·EffFrom/EffTo, 부모 품번당 EffFrom 최신 버전 하나)으로 leaf 까지 분해하고, 재고 = `WH_Inventory` OnHand − Reserved 합, 발주중 = `WH_PurchaseOrder` Open/Partial 미입고분 + `SapPoNumber` 없는 Draft/Sent/Approved PR 수량, 부족 = 소요 − 재고 − 발주중(양수가 부족), 발주 기한 = 영향 WO 최단 납기 − 리드타임(부족일 때만·둘 중 하나라도 없으면 NULL)으로 계산해 `PP_MRPLog` 헤더 + 결과 두 테이블을 한 트랜잭션으로 남긴다. BOM 없는 WO 는 건너뛰고(`WosConsidered` 제외), BOM 순환은 `Status='Failed'` 로그만 남기고 `MrpCalculator.MrpCycleException`. 화면은 최근 Completed 실행만 보이며 야간 자동 실행·`PP_WorkOrder.IsBlocked` 는 없다 — "차단 WO" KPI 는 부족·PR 미생성 자재의 영향 WO 수를 화면에서 센다. 화면은 PP-003 과 같은 전체 높이 가상화 그리드(고정 체크박스 열, 부족·PR 미생성 행만 선택 가능, 헤더 체크박스로 표시분 전체 선택)이고 PR 생성(`CreateShortagePrs`)은 **체크한 행만** 확인 모달을 거쳐 일괄 처리한다. 모달에서 자재별 PR 수량을 조절할 수 있다(기본 부족량, 0 이하 거부, 초과 허용, 부족량 미만이면 결과 행에 잔여 부족이 남지만 같은 실행에서 두 번째 PR 은 못 만든다 — 재실행하면 다시 집계) — `PP_PurchaseRequest`(Draft, `PR-yyyyMMdd-NNNN` 일별 채번, 수량 = 입력 수량, 필요일 = 발주 기한 → 최단 WO 납기 → 오늘, `WoID` = 최단 납기 WO, `VendorID` NULL) 를 만들고 결과 행에 `PrID` 를 연결하며 입력 수량만큼 부족을 발주중으로 옮긴다(재생성 없음). 행 Detail 모달은 소요·가용·부족·L/T·영향 WO 와 함께 그 자재의 **진행 중 구매요청**(`ListOpenPrsForItem`: `SapPoNumber` 없는 Draft/Sent/Approved — 발주중에 세는 PR 과 같은 범위)을 나열한다. 그리드·모달의 PR 번호는 `pp/purchase-req?pr=PR-…` 링크이고 PP-006 은 `pr` 쿼리를 받으면 그 번호로 검색(최근 N 건 밖이면 500 건으로 재조회)한 뒤 상세 모달을 바로 연다. 다음 실행부터는 그 PR 이 발주중으로 잡힌다. 계산 규칙 정본은 순수 함수 `AMES.Data.Services.MrpCalculator`(`AMES.Data.Tests/MrpCalculatorTests`), DB 경로는 `MrpRepositoryTests`(AMES_DEV 필요). MD 품목 화면의 리드타임 입력란은 후속.
 PP-006 구매요청의 SAP 전송 상태(`PP_PurchaseRequest.SapDocNum` · `SentAt` · `RetryCount` · `LastError`, 상태 어휘 Draft/Sent/Approved/Failed 로 이관 — 구 Pending → Draft, Rejected → Failed, PO 번호 보유 행 → Approved)는 `dist/migrate_pp_pr_send.sql` — 순서 무관, 재실행 안전. 이게 없으면 PP-006 목록·PP-005 상세의 구매요청 조회가 매번 예외다. **SAP B1 Service Layer 연동은 없다** — 전이는 화면이 확정하고(`Endpoint='MANUAL'`) `PP_PRSendLog` 에 전이마다 1행(AttemptNo = 그 PR 의 이력 수 + 1, Result = Sent/Failed/Approved, ResponsePayload = DocNum·사유·PO 번호)을 남긴다. 규칙 정본은 `AMES.Data.Services.PrStatusRules`(`PrStatusRulesTests`): Draft/Failed →(Send) Sent →(Approve, PO 번호 필수) Approved, Draft/Failed/Sent →(Fail, 사유 필수, RetryCount +1) Failed, Approved 는 종결. 리포지토리 `SendPrs`(선택 행 일괄, 전송 불가 상태는 건너뜀, 단건은 DocNum 선택 입력) · `FailPr` · `ApprovePr` · `UpdatePrVendor`(Draft/Failed 만) · `ListPrSendLog` 는 행 잠금 + 한 트랜잭션(`PrRepositoryTests`, AMES_DEV 필요). 화면은 PP-005 와 같은 전체 높이 가상화 그리드(고정 체크박스 열 — Draft/Failed 만 선택, 헤더 체크박스로 표시분 전체 선택), KPI Draft·Sent·Approved·Failed, 필터 상태·거래처·필요일 이후·검색, 툴바 "선택 SAP 전송" 확인 모달(DocNum 없이 Sent 확정), 상세 모달(정보 타일 · 거래처 지정 · 연결 WO — 그리드에는 WO 열이 없고 상세·내보내기·검색에만 있다 · `pp/mrp?item=` 링크 · 전송 이력 · 상태별 액션: 전송/재전송 + DocNum, 실패 기록 + 사유, PO 승인 + PO 번호). `?pr=` 진입은 그 번호로 검색 후 상세를 연다. 거래처는 필수가 아니다. MRP 발주중과 상세 "구매 요청중" 은 `SapPoNumber` 없는 Draft/Sent/Approved 를 센다(Failed 제외). PO 전환 뒤 입고 예정은 `WH_PurchaseOrder` 로 잡히는 구조라, PO 번호를 승인해도 `WH_PurchaseOrder` 행이 없으면 다음 MRP 에서 그 수량이 발주중에서 빠진다(SAP 동기화 후속).
+
+---
+
+## 외부 API 연동 Worker — AMES.Api
+
+외부 시스템을 주기적으로 호출하는 연동(가져오기·내보내기)은 **API 마다 Worker 하나**를 두고, 모두 `AMES.Api/Workers/ScheduledWorker<TTarget, TResult>` 를 상속한다(첫 Worker 는 아래 PO Sync). 베이스가 가진 공통 규칙(정본 `AMES.Api.Tests/ScheduledWorkerTests`):
+
+- 틱마다 `LoadPlan()` 을 다시 읽고(캐시 없음) 대상별 주기(`IntervalMinOf`, 0 이하는 그 대상만 중지)가 지난 것만 순차 실행. `ScheduledPlan.Enabled=false` 면 스케줄러 전체 중지(수동 실행은 허용).
+- **시간 설정은 2단 — Worker 마다 다른 값은 공통코드, 공통 기본값은 appsettings**(정본 `ScheduledWorkerSettings`): 틱 간격·시작 지연은 `ScheduledPlan.TickSec`/`StartupDelaySec`(Worker 가 자기 공통코드에서 읽어 채움) → appsettings `ScheduledWorker:TickSec`(기본 60) · `ScheduledWorker:StartupDelaySec`(기본 10) 순, HTTP 타임아웃도 같은 방식으로 `ScheduledWorker:TimeoutSec`(기본 60). 범위 밖 값(틱·타임아웃 1 미만, 지연 음수)은 없는 것으로 본다. 고정 타이머가 아니라 **틱이 끝날 때마다 그 틱에서 읽은 계획으로 다음 대기**를 정하므로 틱 간격 변경도 다음 틱부터 반영되고, 틱 시작 간격은 실행 시간 + 틱 간격이다(계획 로드 실패 시 직전 값). 시작 지연을 정하려고 기동 때 계획을 한 번 읽으며, 실패하면 공통 기본값으로 기다린다.
+- 마지막 실행 시각은 메모리라 Api 재시작 직후 모든 대상이 한 번 돈다. 대상별 잠금으로 틱과 수동 실행이 겹치지 않는다.
+- 수동 실행 `RunNowAsync(key)`: 대상별 60초 쿨다운(틱 실행도 시계를 채운다). 단건은 미등록 키 404 · 진행 중/쿨다운 409, 전체 실행은 해당 대상을 결과 안에 `busy`/`cooldown` 으로 담고 나머지는 계속. 엔드포인트는 자기 경로·쿼리 이름을 유지하고 `ScheduledWorkerEndpoints.RunAsync` 한 줄로 이 HTTP 규칙을 쓴다(세션 없으면 401).
+- 계획 로드 자체가 실패(DB 접속 등)하면 모니터 행 `{Code}-CONFIG` 에 남기고 예외를 다시 던진다. 대상 모니터 행 `{Code}-{키}` 는 20자(`SYS_InterfaceMonitor.InterfaceCode`)를 넘지 않게 Worker 가 키 길이를 제한한다.
+- **공통코드 그룹 이름 규칙**: Worker 설정 그룹은 모두 **`SW_{Code}`** 로 시작하고(`SW_{Code}` 전역 · `SW_{Code}_SOURCE` 등), 그룹 이름(한·영)은 **`ScheduledWorker · `** 로 시작한다 — MD-26 그룹 검색(GroupCode·이름 부분 일치)에 `SW_` 나 `ScheduledWorker` 를 넣으면 모든 Worker 설정이 나온다. `MD_CodeGroup.GroupCode` 가 VARCHAR(20) 이라 `_SOURCE` 를 붙이는 Worker 는 `Code` 를 10자 이내로 둔다. 그룹 이름 상수는 도메인 설정 클래스 한 곳에 두고 `"SW_" + Code` 에서 파생한다(PoSync: `PoSyncConfig.GroupGlobal` 등).
+- **새 API 추가**: `Workers/{이름}/{이름}Worker` 가 베이스를 상속해 `Code`·`Name`·`LoadPlan`·`KeyOf`·`IntervalMinOf`·`RunTargetAsync`·`RecordConfigError`·`Skipped`·`IsOk` 를 구현 → `Program.cs` 에 `AddSingleton<X>()` + `AddHostedService(sp => sp.GetRequiredService<X>())`(엔드포인트가 같은 인스턴스를 주입받아야 한다) → 엔드포인트 한 줄. 도메인 로직(설정 해석·매핑·실행기)은 `AMES.Data.Services.{이름}` 에 두고 `AMES.Data.Tests` 에서 테스트한다.
+- Worker 마다 타이머가 따로 돌고 **Worker 간 실행 순서 조율은 없다**(API 마다 Worker 를 두기로 한 결정의 대가).
+
+## PO 자동 수집 (PO Sync) — AMES.Api
+
+고객사 SRM 의 MM31006 `INQUERY` 결과를 REST 로 받아 PP-002 와 같은 `PpRepository.UpsertCustomerOrders` 로 `PP_CustomerOrder` 에 업서트한다(actor `PO-SYNC`, 새 행 `Open`, 확정은 PP-002 에서). `AMES.Api/Workers/PoSync/PoSyncWorker`(위 `ScheduledWorker` 상속, `Code=POSYNC`)가 돌리며 설정은 전부 **공통코드(MD-26)** 다 — 주기·고객사·URL·인증 토큰까지. 마이그레이션 `dist/migrate_po_sync.sql` 은 그룹 4개와 전역 기본값만 만든다(재실행 안전). 09-17 에 그룹을 `PO_SYNC*` → `SW_POSYNC*` 로 바꿨고, 구 이름으로 적용된 DB 는 같은 스크립트를 다시 돌리면 항목을 새 그룹으로 옮기고(CodeID 접두어 포함) 빈 구 그룹을 지운다. URL·토큰이 긴 값이라 공용 `dist/migrate_md_codeitem_widen.sql`(`Attribute1` 200 · `Description` 500)이 먼저 적용돼 있어야 MD-26 에서 저장된다. 이게 없으면 워커는 소스 0개로 돌 뿐 예외는 없다.
+
+| 그룹 | CodeValue | Attribute1 | Description |
+|---|---|---|---|
+| `SW_POSYNC` | `INTERVAL` | 수집 주기(분) — 전 소스 공통, 0 = 전체 중지 | |
+| `SW_POSYNC` | `WINDOW` | `-60,0` (발주일 `PO_DATE` 오늘−60 ~ 오늘) | |
+| `SW_POSYNC` | `TICK_SEC` · `STARTUP_DELAY_SEC` · `TIMEOUT_SEC` | 초 — 선택, 없으면 appsettings `ScheduledWorker` 기본값 (시드 안 함) | |
+| `SW_POSYNC_SOURCE` | 소스 키(≤13자) | 귀속 `MD_Customer.CustomerID` | `CORCD=;BIZCD=;VENDCD=;PURC_ORG=` 필수, `WINDOW=` 선택(그 밖의 키는 무시) |
+| `SW_POSYNC_URL` | 소스 키 | | 엔드포인트 URL (쿼리 없이) |
+| `SW_POSYNC_AUTH` | 소스 키 | `Query:{이름}` / `Bearer` / `Basic` / `Header:{이름}` | 키 / 토큰 / `user:pw` / 헤더값 |
+
+- 소스마다 순차 실행, 한 소스 실패는 다른 소스를 막지 않는다. 결과는 `SYS_InterfaceMonitor` 의 `POSYNC-{키}` 행(SYS-Interfaces 화면, Direction `INBOUND` — 공통코드 `IF_DIRECTION` 값, 09-17 이전 행의 `IN`·`ERR` 은 `migrate_po_sync.sql` §4 가 보정)에만 남는다 — 성공 `OK`·건수·시각, 실패 `ERROR`(공통코드 `IF_STATUS` 값 — 화면 장애 KPI 는 `DOWN`/`ERROR`/`FAULT` 를 세며 `ERR` 는 어디에도 안 잡힌다)·메시지·RetryCount(마지막 성공 시각은 유지). 설정이 깨진 소스(URL·CustomerID·필수 파라미터 누락)도 `ERROR` 로 보인다. 공통코드 로딩 자체가 실패(DB 접속 등)하면 `POSYNC-CONFIG` 행 하나로 남는다(베이스 규칙).
+- 마지막 실행 시각은 메모리라 **Api 재시작 직후 모든 소스가 한 번 돈다.** 주기 변경은 다음 틱부터. 주기는 전역 `SW_POSYNC.INTERVAL` 하나뿐이다(소스별 주기 없음, 설명란의 `INTERVAL=` 은 무시) — `0` 이면 스케줄러 전체를 멈춘다(수동 실행은 그대로 동작). 소스 하나만 멈추려면 그 `SW_POSYNC_SOURCE` 행의 `UseFlag=0`.
+- 매핑(`AMES.Data.Services.PoSync.SrmPoMapper`, 정본 `SrmPoMapperTests`): `PONO` `4100172316-10` → SoNumber/SoLineNo, `PO_QTY`→OrderQty, `DELI_QTY`→ShippedQty, `PO_DATE`/`PO_DELI_DATE`. `PO_QTY<0`·`LOEKZ='L'`·`PARTNO` 빈 값·20자 초과는 제외, `ELIKZ='X'`(납품완료)는 포함. 매핑 0행은 정상. `SW_POSYNC_SOURCE`·`SW_POSYNC_URL`·`SW_POSYNC_AUTH` 에 같은 키 행이 2개 이상이면 그 소스는 `ERROR` 로 빠지고, 전역 `SW_POSYNC` 의 중복 행은 마지막 행이 이긴다(`PoSyncConfig.Resolve`, PK 가 `CodeID` 라 MD-26 에서 키 중복 등록이 가능하다).
+- 원격 요청(`AMES.Api/Workers/PoSync/HttpPoSource`, 정본 `AMES.Api.Tests/HttpPoSourceTests`, 09-17 테스트 서버 `WEBSRV_INQUERY_PO.ashx` 실측): **GET + 쿼리 `CORCD`·`BIZCD`·`PURC_ORG`·`VENDCD`·`PO_DATE_BEG`·`PO_DATE_TO`(yyyy-MM-dd)** — 6개 모두 필수이고 **그 밖의 매개변수는 400**(POST 는 405)이라 다른 값을 붙이지 않는다. 날짜 창은 납기일이 아니라 **발주일(`PO_DATE`) 기준**이다. 테스트 서버 인증은 쿼리 `APIKEY` 뿐(헤더로 보내면 401) → `SW_POSYNC_AUTH` = `Query:APIKEY`. 응답은 루트 배열(첫 배열 프로퍼티도 허용). HttpClient 로그는 쿼리를 `?*` 로 가려 키가 남지 않는다.
+- 수동 실행 `POST /api/pp/po-sync/run?source=SEMS`(Bearer, 생략 시 전부) — 상태 코드·busy·cooldown 규칙은 위 베이스 그대로이고, 결과 행에서는 `ok=false, error="busy"`/`"cooldown"` 으로 보인다.
+- appsettings 에는 PoSync 전용 섹션이 없다 — 틱·시작 지연·타임아웃의 공통 기본값만 `ScheduledWorker` 섹션에 있고, PoSync 만 다르게 줄 값은 위 `SW_POSYNC` 공통코드다. 타임아웃은 요청마다 해석한다.
+- dev: `dist/seed_po_sync_dev.sql`(소스 `SEMS` = Seoyon E-Hwa Manufacturing Savannah, URL 은 자리표시자 — MD-26 에서 `SW_POSYNC_URL`·`SW_POSYNC_AUTH` 를 실제 값으로 바꿔야 호출된다. 개발 DB 는 09-17 에 고객사 테스트 서버 `http://192.168.1.68:5220/Service/WEBSRV_INQUERY_PO.ashx` + `Query:APIKEY` 로 설정돼 있다). `migrate_po_sync.sql` 의 MERGE 는 없는 행만 넣으므로 이미 적용된 DB 의 `WINDOW`·그룹 설명은 MD-26 에서 직접 고친다. 토큰은 MD-26 을 볼 수 있는 모든 사용자에게 보인다(사용자 결정). 응답 샘플 `src/02_Data/AMES.Data.Tests/TestData/PO_7700_310471_EN_data.json` 은 매핑 테스트(`SrmPoMapperTests`) 전용이다.
+- **정합성 미비(후속 과제, Important #2)**: 상대 SRM 에서 취소·삭제된 PO 라인은 조회 결과에서 사라질 뿐 AMES 에는 반영되지 않아 `Open` 으로 남고, 이미 `Confirmed` 인 수주도 수량·납기가 바뀌면 매 주기 덮어써진다(감사 행 없음) — PP-002 수동 업로드와 같은 동작이며, 정합 처리(미조회 라인 플래그·확정분 변경 경고)는 후속 과제다.
 
 ---
 

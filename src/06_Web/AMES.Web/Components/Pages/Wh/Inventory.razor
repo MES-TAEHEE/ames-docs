@@ -1,9 +1,10 @@
 @page "/wh/inventory"
+@inject IStringLocalizer<SharedResources> L
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
-<PageTitle>Inventory Search - AMES</PageTitle>
-<AmesPageHeader Code="WH-006" Title="Inventory Search" />
+<PageTitle>@L["WH.Inventory.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="WH-006" TitleKey="WH.Inventory.Title" />
 
 <InventoryLookup Inventory="_inventory" SearchId="wh-inventory-search" />
 

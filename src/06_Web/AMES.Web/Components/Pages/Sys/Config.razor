@@ -18,6 +18,7 @@
 @inject Microsoft.Extensions.Options.IOptionsMonitorCache<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions> CookieOptCache
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>SYS-009 @L["SYS.Config.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-009" TitleKey="SYS.Config.Title" />
@@ -71,7 +72,7 @@
         <div class="ames-card-h">▼ @grp.Key  ·  @grp.Count() @L["Lbl.Count"]</div>
         <RadzenDataGrid TItem="SysRepository.ConfigRow"
                         Data="@grp.OrderBy(x => x.SortOrder ?? 999).ThenBy(x => x.ConfigKey)"
-                        AllowPaging="false" AllowSorting="false" Class="ames-rz-grid">
+                        AllowPaging="false" EmptyText="@L["Grid.Empty"].Value" AllowSorting="false" Class="ames-rz-grid">
             <Columns>
                 <RadzenDataGridColumn TItem="SysRepository.ConfigRow" Property="ConfigKey" Title="@L["SYS.Config.Col.Key"]" Width="18%">
                     <Template Context="c"><span class="code" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@(c.ConfigKey ?? "—")</span></Template>
@@ -236,6 +237,14 @@
             {
                 if (!_edits.TryGetValue(r.ConfigId, out var ed)) continue;
                 Sys.SetConfig(r.ConfigId, ed.Value, ed.IsActive);
+                if (ed.Value != r.ConfigValue || ed.IsActive != r.IsActive)
+                {
+                    // 비밀번호·키 계열 설정은 값이 바뀌었다는 사실만 남긴다
+                    bool secret = System.Text.RegularExpressions.Regex.IsMatch(r.ConfigKey ?? "", "PASSWORD|SECRET|TOKEN|APIKEY|_KEY", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                    Audit.Updated("SYS-009", "SYS_Config", r.ConfigKey,
+                        new { ConfigValue = secret ? "***" : r.ConfigValue, r.IsActive },
+                        new { ConfigValue = secret ? "***" : ed.Value, ed.IsActive });
+                }
             }
             Lang.Invalidate();          // 언어 캐시 무효화 → 다음 요청부터 DB 재확인
             // 세션 타임아웃: 캐시 + 쿠키옵션 캐시 무효화 → 재시작 없이 다음 요청부터 새 값 적용

@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-011 @L["MD.ShipDest.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-011" TitleKey="MD.ShipDest.Title" />
@@ -58,7 +59,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.ShipmentDestRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.ShipDest.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.ShipDest.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="ShipDestID" Title="@L["Col.ShipDestId"]" TextAlign="TextAlign.Center" Width="150px">
                 <Template Context="r"><span class="code">@r.ShipDestID</span></Template>
@@ -392,6 +393,7 @@
             MD.InsertShipmentDest(newId, _f.CustomerID, _f.DestName, _f.DestType,
                 NE(_f.Address), NE(_f.Country), NE(_f.DeliveryDock), _f.LeadTimeDays,
                 NE(_f.DefaultCarrier), NE(_f.DeliveryWindow), _f.Status, _actor);
+            Audit.Created("MD-011", "MD_ShipmentDest", newId, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.DestName} {L["Msg.Created"]}", false);
         }
@@ -410,6 +412,7 @@
             MD.UpdateShipmentDest(_sel.ShipDestID, _f.CustomerID, _f.DestName, _f.DestType,
                 NE(_f.Address), NE(_f.Country), NE(_f.DeliveryDock), _f.LeadTimeDays,
                 NE(_f.DefaultCarrier), NE(_f.DeliveryWindow), _f.Status, _actor);
+            Audit.Updated("MD-011", "MD_ShipmentDest", _sel.ShipDestID, _sel, _f);
             var name = _f.DestName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -426,6 +429,7 @@
         {
             var name = _sel.DestName ?? _sel.ShipDestID;
             MD.DeleteShipmentDest(_sel.ShipDestID);
+            Audit.Deleted("MD-011", "MD_ShipmentDest", _sel.ShipDestID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }

@@ -1,8 +1,6 @@
 ﻿@page "/md/fd/items"
 @rendermode InteractiveServer
 
-@using System.Net
-@using System.Text.Json
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
 @using AMES.Web.Services
@@ -13,8 +11,7 @@
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
-@inject SysRepository Sys
-@inject IHttpContextAccessor HttpCtxAccessor
+@inject AMES.Web.Services.AuditLogger Audit
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>MD-003 @L["MD.Items.Title"] · AMES</PageTitle>
@@ -64,7 +61,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.ItemRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Items.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Items.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemNo" Title="@L["Col.ItemNo"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="item"><span class="code">@item.ItemNo</span></Template>
@@ -204,7 +201,7 @@
 
     string  _fSearch     = "";
     string? _fTypeFilter, _fActiveOnly;
-    string _modal = "", _modalErr = "", _msg = "", _clientIp = "";
+    string _modal = "", _modalErr = "", _msg = "";
     bool _busy, _bgMouseDownOnSelf, _isErr, _confirmDelete;
     bool _canEdit;
     string _actor = "system";
@@ -226,8 +223,6 @@
         _actor = auth.User.Identity?.Name ?? "system";
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/fd/items");
-        // HttpContext is available during the prerender (HTTP) phase; null after WebSocket handoff.
-        _clientIp = ToIpv4(HttpCtxAccessor.HttpContext?.Connection.RemoteIpAddress);
         try { _itemTypeItems = MD.ListCodeItems("ITEM_TYPE"); } catch { }
         try { _routingItems = MD.ListCodeItems("ROUTING"); } catch { }
         try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
@@ -333,12 +328,7 @@
                 N(_f.ItemCategory), N(_f.CarType), N(_f.Uom), N(_f.RoutingType),
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
                 N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo), _f.ActiveFlag, _actor);
-            Sys.InsertAuditLog("MD", "MD-003", "CREATE", "MD_Item", no,
-                null, ItemJson(no, _f.ItemName.Trim(), N(_f.CarType), N(_f.ItemType),
-                    N(_f.ItemCategory), N(_f.Uom), _f.ActiveFlag),
-                _actor, _clientIp,
-                note: $"Created MD_Item '{no}' (ItemName='{_f.ItemName.Trim()}'" +
-                      $", Type='{N(_f.ItemType) ?? "-"}', UOM='{N(_f.Uom) ?? "-"}') by '{_actor}'");
+            Audit.Created("MD-003", "MD_Item", no, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Items.Ok.Created"].Value, no), false);
         }
@@ -353,20 +343,11 @@
         _busy = true;
         try
         {
-            var beforeJson = _sel is null ? null : ItemJson(
-                _sel.ItemNo, _sel.ItemName, _sel.CarType, _sel.ItemType,
-                _sel.ItemCategory, _sel.DefaultUOM, _sel.ActiveFlag);
             MD.UpdateItem(_f.ItemNo, _f.ItemName.Trim(), N(_f.ItemType),
                 N(_f.ItemCategory), N(_f.CarType), N(_f.Uom), N(_f.RoutingType),
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
                 N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo), _f.ActiveFlag, _actor);
-            Sys.InsertAuditLog("MD", "MD-003", "UPDATE", "MD_Item", _f.ItemNo,
-                beforeJson, ItemJson(_f.ItemNo, _f.ItemName.Trim(), N(_f.CarType), N(_f.ItemType),
-                    N(_f.ItemCategory), N(_f.Uom), _f.ActiveFlag),
-                _actor, _clientIp,
-                note: $"Updated MD_Item '{_f.ItemNo}' (ItemName='{_f.ItemName.Trim()}'" +
-                      $", Type='{N(_f.ItemType) ?? "-"}', UOM='{N(_f.Uom) ?? "-"}'," +
-                      $" Active={_f.ActiveFlag}) by '{_actor}'");
+            Audit.Updated("MD-003", "MD_Item", _f.ItemNo, _sel, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Items.Ok.Updated"].Value, _f.ItemNo), false);
         }
@@ -379,15 +360,8 @@
         _busy = true;
         try
         {
-            var beforeJson = _sel is null ? null : ItemJson(
-                _sel.ItemNo, _sel.ItemName, _sel.CarType, _sel.ItemType,
-                _sel.ItemCategory, _sel.DefaultUOM, _sel.ActiveFlag);
             MD.DeleteItem(_f.ItemNo);
-            Sys.InsertAuditLog("MD", "MD-003", "DELETE", "MD_Item", _f.ItemNo,
-                beforeJson, null,
-                _actor, _clientIp,
-                note: $"Deleted MD_Item '{_f.ItemNo}'" +
-                      $" (ItemName='{_sel?.ItemName ?? "-"}', Type='{_sel?.ItemType ?? "-"}') by '{_actor}'");
+            Audit.Deleted("MD-003", "MD_Item", _f.ItemNo, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Items.Ok.Deleted"].Value, _f.ItemNo), false);
         }
@@ -400,19 +374,6 @@
         _msg = msg; _isErr = isErr;
         _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
-
-    static string ItemJson(string itemNo, string itemName, string? carType,
-        string? itemType, string? itemCategory, string? uom, bool activeFlag)
-        => JsonSerializer.Serialize(new
-        {
-            ItemNo       = itemNo,
-            ItemName     = itemName,
-            CarType      = carType,
-            ItemType     = itemType,
-            ItemCategory = itemCategory,
-            DefaultUOM   = uom,
-            ActiveFlag   = activeFlag
-        });
 
     RenderFragment ItemFormFields() =>
     @<div>
@@ -487,14 +448,6 @@
 
     static string? N(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
     static decimal? Nz(decimal v) => v == 0 ? null : v;
-
-    static string ToIpv4(IPAddress? ip)
-    {
-        if (ip is null) return "";
-        if (ip.IsIPv4MappedToIPv6) return ip.MapToIPv4().ToString();
-        if (ip.Equals(System.Net.IPAddress.IPv6Loopback)) return "127.0.0.1";
-        return ip.ToString();
-    }
 
     class FormModel
     {

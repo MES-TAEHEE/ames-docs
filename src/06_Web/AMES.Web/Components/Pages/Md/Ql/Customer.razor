@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-010 @L["MD.Customer.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-010" TitleKey="MD.Customer.Title" />
@@ -60,7 +61,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.CustomerRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Customer.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Customer.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="CustomerID" Title="@L["Col.CustomerId"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="code">@r.CustomerID</span></Template>
@@ -426,6 +427,7 @@
                 NE(_f.Country), NE(_f.ContactPerson),
                 NE(_f.ContactPhone), NE(_f.ContactEmail),
                 _f.EDIFlag, NE(_f.CurrencyCode), _f.Status, _actor);
+            Audit.Created("MD-010", "MD_Customer", newId, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.CustomerName} {L["Msg.Created"]}", false);
         }
@@ -447,6 +449,7 @@
                 NE(_f.Country), NE(_f.ContactPerson),
                 NE(_f.ContactPhone), NE(_f.ContactEmail),
                 _f.EDIFlag, NE(_f.CurrencyCode), _f.Status, _actor);
+            Audit.Updated("MD-010", "MD_Customer", _sel.CustomerID, _sel, _f);
             var name = _f.CustomerName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -463,6 +466,7 @@
         {
             var name = _sel.CustomerName ?? _sel.CustomerID;
             MD.DeleteCustomer(_sel.CustomerID);
+            Audit.Deleted("MD-010", "MD_Customer", _sel.CustomerID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }

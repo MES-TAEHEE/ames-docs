@@ -7,6 +7,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 @if (!string.IsNullOrEmpty(_msg))
 {
@@ -24,7 +25,7 @@
             </RadzenStack>
             <div style="flex:1;min-height:0;overflow:hidden;">
                 <RadzenDataGrid TItem="MasterDataRepository.LineRow" Data="_lines" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
-                                ShowPagingSummary="false" RowRender="LineRowRender" RowSelect="OnLineRowSelect" EmptyText="@L["MD.MoldLine.Empty"]" Class="ames-rz-grid ames-grid-fill">
+                                ShowPagingSummary="false" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowRender="LineRowRender" RowSelect="OnLineRowSelect" EmptyText="@L["MD.MoldLine.Empty"]" Class="ames-rz-grid ames-grid-fill">
                     <Columns>
                         <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineID" Title="@L["Col.LineId"]" TextAlign="TextAlign.Center" Width="110px">
                             <Template Context="l"><span class="code">@l.LineID</span></Template>
@@ -64,7 +65,7 @@
                 </div>
                 <div style="flex:1;min-height:0;overflow:hidden;">
                     <RadzenDataGrid TItem="MasterDataRepository.MoldLineRow" Data="_moldLines" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
-                                    ShowPagingSummary="@_showPagerSummary" PageSizeOptions="@_pageSizeOptions" RowRender="MoldLineRowRender" RowSelect="OpenEdit" EmptyText="@L["MD.MoldLine.Empty"]" Class="ames-rz-grid ames-grid-fill">
+                                    ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeOptions="@_pageSizeOptions" RowRender="MoldLineRowRender" RowSelect="OpenEdit" EmptyText="@L["MD.MoldLine.Empty"]" Class="ames-rz-grid ames-grid-fill">
                         <Columns>
                             <RadzenDataGridColumn TItem="MasterDataRepository.MoldLineRow" Property="MoldID" Title="@L["Col.MoldId"]" TextAlign="TextAlign.Center" Width="140px">
                                 <Template Context="ml"><span class="code">@ml.MoldID</span></Template>
@@ -229,8 +230,9 @@
         try
         {
             var moldId = _f.MoldID.Trim();
-            if (MD.MoldLineExists(_selLine.LineID, moldId)) { _modalErr = $"'{moldId}' {L["Err.AlreadyExists"]}"; return; }
+            if (MD.MoldLineExists(_selLine.LineID, moldId)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"].Value, moldId); return; }
             MD.InsertMoldLine(_selLine.LineID, moldId, _f.UPH, _f.PrepTime, _actor);
+            Audit.Created("MD-007", "MD_MoldLine", $"{_selLine.LineID}/{moldId}", _f);
             LoadMoldLines(); CloseModal();
             ShowMsg($"{moldId} {L["Msg.Created"]}", false);
         }
@@ -246,6 +248,7 @@
         try
         {
             MD.UpdateMoldLine(_selLine.LineID, _f.MoldID, _f.UPH, _f.PrepTime, _actor);
+            Audit.Updated("MD-007", "MD_MoldLine", $"{_selLine.LineID}/{_f.MoldID}", _moldLines.FirstOrDefault(m => m.MoldID == _f.MoldID), _f);
             LoadMoldLines(); CloseModal();
             ShowMsg($"{_f.MoldID} {L["Msg.Updated"]}", false);
         }
@@ -260,6 +263,7 @@
         try
         {
             MD.DeleteMoldLine(_selLine.LineID, _f.MoldID);
+            Audit.Deleted("MD-007", "MD_MoldLine", $"{_selLine.LineID}/{_f.MoldID}", _moldLines.FirstOrDefault(m => m.MoldID == _f.MoldID));
             LoadMoldLines(); CloseModal();
             ShowMsg($"{_f.MoldID} {L["Msg.Deleted"]}", false);
         }

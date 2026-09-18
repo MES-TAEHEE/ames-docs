@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-027 @L["MD.PmTemplate.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-027" TitleKey="MD.PmTemplate.Title" />
@@ -60,7 +61,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.PmTemplateRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.PmTemplate.Empty"]" Class="ames-rz-grid">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.PmTemplate.Empty"]" Class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="PMTemplateID" Title="@L["Col.TemplateId"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="code">@r.PMTemplateID</span></Template>
@@ -487,6 +488,7 @@
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {
+            PMTemplateID = r.PMTemplateID ?? "",
             TemplateName   = r.TemplateName   ?? "",
             EquipType      = r.EquipType      ?? "",
             CycleBasis     = r.CycleBasis     ?? "",
@@ -516,6 +518,7 @@
             MD.InsertPmTemplate(id, NE(_f.TemplateName), NE(_f.EquipType),
                 NE(_f.CycleBasis), _f.IntervalValue, NE(_f.IntervalUnit),
                 _f.StdDurationMin, _f.SafetyLOTOFlag, _f.ActiveFlag, _actor);
+            Audit.Created("MD-027", "MD_PmTemplate", id, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Created"]}", false);
         }
@@ -533,6 +536,7 @@
             MD.UpdatePmTemplate(_sel.PMTemplateID, NE(_f.TemplateName), NE(_f.EquipType),
                 NE(_f.CycleBasis), _f.IntervalValue, NE(_f.IntervalUnit),
                 _f.StdDurationMin, _f.SafetyLOTOFlag, _f.ActiveFlag, _actor);
+            Audit.Updated("MD-027", "MD_PmTemplate", _sel.PMTemplateID, _sel, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_sel.PMTemplateID} {L["Msg.Updated"]}", false);
         }
@@ -548,6 +552,7 @@
         {
             var id = _sel.PMTemplateID;
             MD.DeletePmTemplate(_sel.PMTemplateID);
+            Audit.Deleted("MD-027", "MD_PmTemplate", _sel.PMTemplateID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Deleted"]}", false);
         }
@@ -601,6 +606,7 @@
             else
                 MD.InsertPmTemplateStep(_expandedId, _stepF.StepSeq, NE(_stepF.StepDescription),
                     NE(_stepF.AcceptanceCriteria), NE(_stepF.RequiredPartNo), _stepF.RequiredQty, _stepF.StepDurationMin, _actor);
+                Audit.Log("MD-027", _stepModal == "edit" && _stepSel is not null ? "UPDATE" : "CREATE", "MD_PmTemplateStep", _stepModal == "edit" && _stepSel is not null ? (object?)_stepSel.PMStepID : _expandedId, _stepModal == "edit" ? _stepSel : null, _stepF);
             CloseStepModal(); ReloadSteps();
             ShowMsg(L["Msg.Saved"].Value, false);
         }
@@ -615,6 +621,7 @@
         try
         {
             MD.DeletePmTemplateStep(_stepSel.PMStepID);
+            Audit.Deleted("MD-027", "MD_PmTemplateStep", _stepSel.PMStepID, _stepSel);
             CloseStepModal(); ReloadSteps();
             ShowMsg(L["Msg.Deleted"].Value, false);
         }

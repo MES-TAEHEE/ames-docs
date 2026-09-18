@@ -13,6 +13,7 @@
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 @inject IJSRuntime JS
+@inject AMES.Web.Services.AuditLogger Audit
 @implements IDisposable
 
 <PageTitle>MD-028 @L["MD.LinePat.Title"] · AMES</PageTitle>
@@ -75,7 +76,7 @@
     }
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.LineTimePatternRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.LinePat.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.LinePat.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="PatternID" Title="@L["Col.PatternId"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.PatternID</span></Template>
@@ -665,6 +666,7 @@
                     payload.Add((b.S, b.E, b.St, pd ? NE(_downReason) : null, sh.Code, pd ? NE(_downDesc) : null));
                 }
             MD.SaveLineTimeSegments(_editId, payload, _actor);
+            Audit.Log("MD-028", "UPDATE", "MD_LineTimeSegment", _editId, null, new { Segments = payload.Count });
             ReloadSegments();          // 저장된 실제 SegmentID/SeqNo 재로딩
             _dirty = false; _userEdited = false; _lastPaint = null; _editorMsg = "";
             ShowMsg(L["Msg.Saved"].Value, false);
@@ -900,6 +902,7 @@
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {
+            PatternID = r.PatternID ?? "",
             PatternName         = r.PatternName        ?? "",
             LineID              = r.LineID             ?? "",
             DayType             = r.DayType            ?? "",
@@ -932,6 +935,7 @@
                 NE(_f.DayType), NE(_f.ShiftPattern), _f.EffectiveFrom, _f.EffectiveTo,
                 _f.TotalOperatingMin, _f.TotalPlannedDownMin,
                 NE(_f.TimeZone), NE(_f.Status), _actor);
+            Audit.Created("MD-028", "MD_LineTimePattern", id, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Created"]}", false);
         }
@@ -950,6 +954,7 @@
                 NE(_f.DayType), NE(_f.ShiftPattern), _f.EffectiveFrom, _f.EffectiveTo,
                 _f.TotalOperatingMin, _f.TotalPlannedDownMin,
                 NE(_f.TimeZone), NE(_f.Status), _actor);
+            Audit.Updated("MD-028", "MD_LineTimePattern", _sel.PatternID, _sel, _f);
             var pid = _sel.PatternID;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{pid} {L["Msg.Updated"]}", false);
@@ -967,6 +972,7 @@
             var id = _sel.PatternID;
             if (_editId == id) await CloseEditor();
             MD.DeleteLineTimePattern(id);
+            Audit.Deleted("MD-028", "MD_LineTimePattern", id, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Deleted"]}", false);
         }

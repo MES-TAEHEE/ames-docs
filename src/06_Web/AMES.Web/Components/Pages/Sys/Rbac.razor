@@ -13,6 +13,7 @@
 @inject SysRepository Sys
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>SYS-004 @L["SYS.Rbac.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-004" TitleKey="SYS.Rbac.Title" />
@@ -307,6 +308,7 @@
                     s.ModuleCode, s.ProcessCode,
                     s.ScreenCode, level, _actorEmail);
             }
+            Audit.Updated("SYS-004", "SYS_RolePermission", _selRole.RoleName, _rows.Where(r => r.RoleId == _selRole.RoleId && !string.IsNullOrEmpty(r.PermissionLevel)).ToDictionary(r => r.ScreenCode ?? "", r => r.PermissionLevel), _grants.Where(g => !string.IsNullOrEmpty(g.Value)).ToDictionary(g => g.Key, g => g.Value));
             _rows  = Sys.ListRolePermissions();
             _dirty = false;
             PermSvc.Reset(); // 권한 변경 후 캐시 무효화

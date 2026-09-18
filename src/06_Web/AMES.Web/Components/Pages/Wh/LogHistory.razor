@@ -2,16 +2,17 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.WarehouseRepository Wh
+@inject IStringLocalizer<SharedResources> L
 @using Radzen
 
-<PageTitle>WH-004 Inventory History · AMES</PageTitle>
-<AmesPageHeader Code="WH-004" Title="Inventory History" />
+<PageTitle>WH-004 @L["WH.LogHistory.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="WH-004" TitleKey="WH.LogHistory.Title" />
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">Events</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">Inbound</div><div class="ames-kpi-v">@CountEvent("INBOUND")</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">Outbound</div><div class="ames-kpi-v">@CountEvent("OUTBOUND")</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">Adjustments</div><div class="ames-kpi-v">@CountEvent("ADJUSTMENT")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.LogHistory.Kpi.Events"]</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["WH.LogHistory.Kpi.Inbound"]</div><div class="ames-kpi-v">@CountEvent("INBOUND")</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["WH.LogHistory.Kpi.Outbound"]</div><div class="ames-kpi-v">@CountEvent("OUTBOUND")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.LogHistory.Kpi.Adjustments"]</div><div class="ames-kpi-v">@CountEvent("ADJUSTMENT")</div></div>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(_msg))
@@ -21,20 +22,20 @@
 
 <div class="ames-card">
     <div class="ames-card-h master-list-toolbar">
-        <span>▼ Inventory Activity · @_rows.Count item(s)</span>
+        <span>▼ @L["WH.LogHistory.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Placeholder="Search"
+            <RadzenTextBox @bind-Value="_search" Placeholder="@L["Btn.Search"].Value"
                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:210px;" AutoComplete="false"
                            @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
             <RadzenDropDown @bind-Value="_operationType" Data="@_operationOptions" TextProperty="Text" ValueProperty="Value"
-                            AllowClear="true" Placeholder="Activity Type"
+                            AllowClear="true" Placeholder="@L["WH.LogHistory.Ph.ActivityType"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
-            <RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="From"
+            <RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="@L["Col.From"].Value"
                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="To"
+            <RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="@L["Col.To"].Value"
                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
-            <RadzenButton Text="Clear" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ClearFilters" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ClearFilters" class="ames-rz-btn" />
         </RadzenStack>
     </div>
 
@@ -43,25 +44,25 @@
                     AllowPaging="true" PageSize="25"
                     PagerHorizontalAlign="HorizontalAlign.Center"
                     PageSizeOptions="@_pageSizeOptions"
-                    ShowPagingSummary="true"
+                    ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
                     AllowSorting="true"
-                    EmptyText="No inventory activity found."
+                    EmptyText="@L["WH.LogHistory.Empty"].Value"
                     PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
                     Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EventTime" Title="Time" Width="170px">
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EventTime" Title="@L["Col.Time"].Value" Width="170px">
                 <Template Context="r">@(r.EventTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EventType" Title="Type" Width="155px">
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EventType" Title="@L["Col.Type"].Value" Width="155px">
                 <Template Context="r"><span class="pill @EventClass(r)">@DisplayEvent(r)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="LotNo" Title="LOT / Part" Width="245px">
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="LotNo" Title="@L["WH.LogHistory.Col.LotPart"].Value" Width="245px">
                 <Template Context="r">
                     <div class="code">@(r.LotNo ?? "-")</div>
                     <div class="dim">@(r.PartNo ?? "-")</div>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="Message" Title="Details">
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="Message" Title="@L["Col.Details"].Value">
                 <Template Context="r">
                     <div>@(r.Message ?? "-")</div>
                     @if (!string.IsNullOrWhiteSpace(RefText(r)))
@@ -70,7 +71,7 @@
                     }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EmployeeNo" Title="Worker" Width="145px">
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EmployeeNo" Title="@L["Col.Worker"].Value" Width="145px">
                 <Template Context="r">
                     <div class="code">@(r.EmployeeNo ?? r.WorkerId ?? "-")</div>
                     @if (!string.IsNullOrWhiteSpace(r.EmployeeName))

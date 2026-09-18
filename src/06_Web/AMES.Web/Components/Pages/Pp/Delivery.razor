@@ -3,6 +3,9 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject AMES.Data.Repositories.MasterDataRepository MD
+@inject AMES.Web.Services.PermissionService PermSvc
+@inject AuthenticationStateProvider AuthPrvd
+@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResources> L
 @using AMES.Data.Repositories
 
@@ -100,7 +103,7 @@
     <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@string.Format(L["PP.Delivery.Hint"].Value, DbClock.Today.ToString("yyyy-MM-dd"))</div>
 
     <RadzenDataGrid TItem="PpRepository.OtdRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
                     AllowSorting="true" RowRender="@RowRender" EmptyText="@L["PP.Delivery.Empty"]" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="SoNumber" Title="@L["Col.SoNo"]" Width="130px">
@@ -221,8 +224,15 @@
         public decimal Otd => Orders == 0 ? 0 : Math.Round(100m * (Orders - Late) / Orders, 1);
     }
 
-    protected override void OnInitialized()
+    // 권한 키(SYS_Screen.HRef) — 조회 전용 화면이라 R 만 확인한다
+    const string Href = "pp/delivery";
+
+    protected override async Task OnInitializedAsync()
     {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        // 메뉴에서 숨겨도 주소를 직접 치면 열리므로 읽기 권한은 화면에서도 확인한다
+        if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
+
         try { _customers = MD.ListCustomers().Where(c => string.IsNullOrEmpty(c.Status) || c.Status == "ACTIVE").ToList(); } catch { }
         SetDefaultRange();
         ApplyFilter();

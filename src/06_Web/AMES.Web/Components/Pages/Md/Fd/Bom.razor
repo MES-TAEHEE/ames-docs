@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-004 @L["MD.Bom.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-004" TitleKey="MD.Bom.Title" />
@@ -61,7 +62,7 @@
             </div>
             <div style="flex:1;min-height:0;overflow:hidden;">
                 <RadzenDataGrid @ref="_verGrid" Page="OnVerPage" TItem="MasterDataRepository.BomVersionRow" Data="_versions" AllowPaging="true" PageSize="VerPageSize" PagerHorizontalAlign="HorizontalAlign.Center"
-                                ShowPagingSummary="false" RowRender="VerRowRender" RowSelect="OnVerRowSelect" EmptyText="@L["MD.Bom.NoVersions"]" Class="ames-rz-grid ames-grid-fill">
+                                ShowPagingSummary="false" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowRender="VerRowRender" RowSelect="OnVerRowSelect" EmptyText="@L["MD.Bom.NoVersions"]" Class="ames-rz-grid ames-grid-fill">
                     <Columns>
                         <RadzenDataGridColumn TItem="MasterDataRepository.BomVersionRow" Property="RootItemNo" Title="@L["Col.RootItemNo"]">
                             <Template Context="v">
@@ -199,7 +200,7 @@
                 <div style="flex:1;min-height:0;overflow:hidden;">
                     @{ bool editable = _selVer.Status == "DRAFT"; }
                     <RadzenDataGrid @ref="_lineGrid" Page="OnLinePage" TItem="MasterDataRepository.BomRow" Data="_lines" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
-                                    ShowPagingSummary="@_showPagerSummary" PageSizeOptions="@_pageSizeOptions" RowRender="@(args => LineRowRender(args, editable))" RowSelect="@(l => { if (editable) OpenLineEdit(l); })" EmptyText="@L["MD.Bom.NoLines"]" Class="ames-rz-grid ames-grid-fill">
+                                    ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeOptions="@_pageSizeOptions" RowRender="@(args => LineRowRender(args, editable))" RowSelect="@(l => { if (editable) OpenLineEdit(l); })" EmptyText="@L["MD.Bom.NoLines"]" Class="ames-rz-grid ames-grid-fill">
                         <Columns>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="BOMLevel" Title="@L["Col.Level"]" TextAlign="TextAlign.Center" Width="50px">
                                 <Template Context="line"><span class="dim">@(line.BOMLevel ?? 0)</span></Template>
@@ -500,7 +501,7 @@
         if (_selVer is null) return;
         var id = _selVer.VersionID;
         _busy = true;
-        try { MD.ApproveBomVersion(id, _actor); await RefreshVersion(id); ShowMsg($"{id} {L["Msg.Approved"]}", false); }
+        try { MD.ApproveBomVersion(id, _actor); Audit.Log("MD-004", "APPROVE", "MD_BomVersion", id, _selVer, null); await RefreshVersion(id); ShowMsg($"{id} {L["Msg.Approved"]}", false); }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
         finally { _busy = false; }
     }
@@ -533,6 +534,7 @@
         try
         {
             MD.DeleteBomVersion(id);
+            Audit.Deleted("MD-004", "MD_BomVersion", id, _selVer);
             _selVer = null; _lines = new(); _verDelConfirm = false;
             LoadVersions();
             await RestorePages();
@@ -580,6 +582,7 @@
             if (MD.BomVersionExists(id)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], id); return; }
             MD.InsertBomVersion(id, NE(_fv.RootItemNo), NE(_fv.VersionNo),
                 _fv.EffFrom, _fv.EffTo, NE(_fv.ChangeType), NE(_fv.ChangeReason), _actor);
+            Audit.Created("MD-004", "MD_BomVersion", id, _fv);
             LoadVersions();
             _selVer = _versions.FirstOrDefault(v => v.VersionID == id);
             LoadLines();
@@ -600,6 +603,7 @@
         {
             MD.UpdateBomVersion(_fv.VersionId, NE(_fv.RootItemNo), NE(_fv.VersionNo),
                 _fv.EffFrom, _fv.EffTo, NE(_fv.ChangeType), NE(_fv.ChangeReason), _actor);
+            Audit.Updated("MD-004", "MD_BomVersion", _fv.VersionId, _selVer, _fv);
             await RefreshVersion(_fv.VersionId);
             CloseModal();
             ShowMsg($"{_fv.VersionId} {L["Msg.Updated"]}", false);
@@ -650,6 +654,7 @@
             MD.InsertBomLine(bomId, NE(_fl.ParentItemNo), _fl.CompItemNo.Trim().ToUpper(),
                 _fl.BomLevel, _fl.QtyPer, NE(_fl.Uom), _fl.ScrapPct == 0 ? null : _fl.ScrapPct,
                 _selVer!.VersionID, _fl.Position, NE(_fl.Note), _actor);
+            Audit.Created("MD-004", "MD_Bom", bomId, _fl);
             LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineAdded"], false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
@@ -667,6 +672,7 @@
             MD.UpdateBomLine(_fl.BomId, NE(_fl.ParentItemNo), _fl.CompItemNo.Trim().ToUpper(),
                 _fl.BomLevel, _fl.QtyPer, NE(_fl.Uom), _fl.ScrapPct == 0 ? null : _fl.ScrapPct,
                 _fl.Position, NE(_fl.Note), _actor);
+            Audit.Updated("MD-004", "MD_Bom", _fl.BomId, _lines.FirstOrDefault(l => l.BOMID == _fl.BomId), _fl);
             LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineUpdated"], false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
@@ -676,7 +682,7 @@
     async Task SaveLineDelete()
     {
         _busy = true;
-        try { MD.DeleteBomLine(_fl.BomId, _actor); LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineDeleted"], false); }
+        try { MD.DeleteBomLine(_fl.BomId, _actor); Audit.Deleted("MD-004", "MD_Bom", _fl.BomId, _lines.FirstOrDefault(l => l.BOMID == _fl.BomId)); LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineDeleted"], false); }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }

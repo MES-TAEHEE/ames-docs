@@ -1,8 +1,9 @@
 @inject IJSRuntime JS
+@inject IStringLocalizer<SharedResources> L
 
 <div class="ames-modal-bg location-label-modal-bg" @onclick="CloseAsync">
     <div class="ames-modal location-label-modal" @onclick:stopPropagation>
-        <div class="ames-modal-h">Location Barcode</div>
+        <div class="ames-modal-h">@L["WH.LocBarcode.Title"]</div>
 
         <div class="location-label-preview">
             <div class="location-label-print-area">
@@ -30,8 +31,8 @@
         </div>
 
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer location-label-actions">
-            <RadzenButton Text="Print" Icon="print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="PrintAsync" class="ames-rz-btn" />
-            <RadzenButton Text="Close" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseAsync" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Print"].Value" Icon="print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="PrintAsync" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Close"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseAsync" class="ames-rz-btn" />
         </RadzenStack>
     </div>
 </div>

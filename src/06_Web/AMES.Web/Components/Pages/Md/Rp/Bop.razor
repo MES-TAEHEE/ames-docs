@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-005 @L["MD.Bop.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-005" TitleKey="MD.Bop.Title" />
@@ -52,7 +53,7 @@
             </RadzenStack>
             <div style="flex:1;min-height:0;overflow:hidden;">
                 <RadzenDataGrid @ref="_itemGrid" Page="OnItemPage" TItem="MasterDataRepository.BopItemRow" Data="_items" AllowPaging="true" PageSize="ItemPageSize" PagerHorizontalAlign="HorizontalAlign.Center"
-                                ShowPagingSummary="false" RowRender="ItemRowRender" RowSelect="OnItemRowSelect" EmptyText="@L["MD.Bop.NoItems"]" Class="ames-rz-grid ames-grid-fill">
+                                ShowPagingSummary="false" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowRender="ItemRowRender" RowSelect="OnItemRowSelect" EmptyText="@L["MD.Bop.NoItems"]" Class="ames-rz-grid ames-grid-fill">
                     <Columns>
                         <RadzenDataGridColumn TItem="MasterDataRepository.BopItemRow" Property="ItemNo" Title="@L["Col.ItemNo"]">
                             <Template Context="item">
@@ -115,7 +116,7 @@
                 @* ─── 공정 단계 그리드 ─── *@
                 <div style="flex:1;min-height:0;overflow:hidden;">
                     <RadzenDataGrid @ref="_stepGrid" Page="OnStepPage" TItem="MasterDataRepository.BopRow" Data="_steps" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
-                                    ShowPagingSummary="@_showPagerSummary" PageSizeOptions="@_pageSizeOptions" RowRender="StepRowRender" RowSelect="OnStepRowSelect" EmptyText="@L["MD.Bop.NoSteps"]" Class="ames-rz-grid ames-grid-fill">
+                                    ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeOptions="@_pageSizeOptions" RowRender="StepRowRender" RowSelect="OnStepRowSelect" EmptyText="@L["MD.Bop.NoSteps"]" Class="ames-rz-grid ames-grid-fill">
                         <Columns>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="RoutingType" Title="@L["Col.Routing"]" Width="70px" TextAlign="TextAlign.Center">
                                 <Template Context="step"><span class="pill @Ui.RoutingClass(step.RoutingType)">@(step.RoutingType ?? "—")</span></Template>
@@ -430,6 +431,7 @@
         try
         {
             int n = MD.CopyBopSteps(_copySource, _selItem.ItemNo, (_selItem.StepCount) > 0, _actor);
+            Audit.Log("MD-005", "COPY", "MD_Bop", _selItem.ItemNo, null, new { Source = _copySource, Copied = n });
             var itemNo = _selItem.ItemNo;
             LoadItems();
             _selItem = _items.FirstOrDefault(i => i.ItemNo == itemNo) ?? _selItem;
@@ -534,6 +536,7 @@
                 _f.CycleTime == 0 ? null : _f.CycleTime,
                 _f.SetupTime == 0 ? null : _f.SetupTime,
                 _f.QcRequired, NE(_f.StepDesc), _f.ActiveFlag, _actor);
+            Audit.Created("MD-005", "MD_Bop", id, _f);
 
             var newItemNo = _f.ItemNo.Trim().ToUpper();
             LoadItems();
@@ -567,6 +570,7 @@
                 _f.CycleTime == 0 ? null : _f.CycleTime,
                 _f.SetupTime == 0 ? null : _f.SetupTime,
                 _f.QcRequired, NE(_f.StepDesc), _f.ActiveFlag, _actor);
+            Audit.Updated("MD-005", "MD_Bop", _f.BopId, _steps.FirstOrDefault(s => s.BOPID == _f.BopId), _f);
             LoadSteps(); CloseModal();
             await RestorePages();
             ShowMsg($"Step {_f.StepSeq} {L["Msg.Updated"]}", false);
@@ -581,6 +585,7 @@
         try
         {
             MD.DeleteBopStep(_f.BopId);
+            Audit.Deleted("MD-005", "MD_Bop", _f.BopId, _steps.FirstOrDefault(s => s.BOPID == _f.BopId));
             LoadItems(); LoadSteps(); CloseModal();
             await RestorePages();
             ShowMsg($"Step {_f.StepSeq} {L["Msg.Deleted"]}", false);

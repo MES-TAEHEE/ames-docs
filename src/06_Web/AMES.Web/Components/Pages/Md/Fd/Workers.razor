@@ -14,6 +14,7 @@
 @inject WorkerRepository WorkerRepo
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-032 @L["MD.Workers.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-032" TitleKey="MD.Workers.Title" />
@@ -63,7 +64,7 @@
     <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["MD.Workers.Hint"]</div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="WorkerRepository.WorkerRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Workers.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Workers.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="EmployeeNo" Title="@L["MD.Workers.Col.WorkerNo"]" TextAlign="TextAlign.Center" Width="140px">
                 <Template Context="w"><span class="code">@w.EmployeeNo</span></Template>
@@ -341,6 +342,7 @@
             if (WorkerRepo.Exists(no)) { _modalErr = string.Format(L["MD.Workers.Err.Duplicate"].Value, no); return; }
             WorkerRepo.Insert(no, _f.EmployeeName.Trim(),
                 string.IsNullOrWhiteSpace(_f.Pin) ? null : PinHasher.Hash(_f.Pin), _f.ActiveFlag, _actor);
+            Audit.Created("MD-032", "MD_Worker", no, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Workers.Ok.Created"].Value, no), false);
         }
@@ -359,8 +361,10 @@
         try
         {
             WorkerRepo.Update(_sel.WorkerId, _f.EmployeeName.Trim(), _f.ActiveFlag, _actor);
+            Audit.Updated("MD-032", "MD_Worker", _sel.EmployeeNo, _sel, _f);
             if (!string.IsNullOrWhiteSpace(_f.Pin))
                 WorkerRepo.SetPinByAdmin(_sel.WorkerId, PinHasher.Hash(_f.Pin), _actor);
+                if (!string.IsNullOrWhiteSpace(_f.Pin)) Audit.Log("MD-032", "PIN_SET", "MD_Worker", _sel.EmployeeNo, null, null);
 
             var no = _sel.EmployeeNo;
             CloseModal(); await ReloadRestorePage();
@@ -378,6 +382,7 @@
         try
         {
             WorkerRepo.SetPinByAdmin(_sel.WorkerId, null, _actor);
+            Audit.Log("MD-032", "PIN_RESET", "MD_Worker", _sel.EmployeeNo, null, null);
             var no = _sel.EmployeeNo;
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Workers.Ok.PinCleared"].Value, no), false);
@@ -393,6 +398,7 @@
         try
         {
             WorkerRepo.Delete(_sel.WorkerId);
+            Audit.Deleted("MD-032", "MD_Worker", _sel.EmployeeNo, _sel);
             var no = _sel.EmployeeNo;
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Workers.Ok.Deleted"].Value, no), false);

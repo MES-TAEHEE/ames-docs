@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-002 @L["MD.Station.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-002" TitleKey="MD.Station.Title" />
@@ -60,7 +61,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.StationRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Station.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Station.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.StationRow" Property="StationCode" Title="@L["Col.StationCode"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="code">@r.StationCode</span></Template>
@@ -334,6 +335,7 @@
         {
             MD.InsertStation(_f.StationCode.Trim(), _f.StationName, NE(_f.StationNameEn), NE(_f.LineID),
                 NE(_f.FormName), _f.OrderSeq, _f.Status, _actor);
+            Audit.Created("MD-002", "MD_Station", _f.StationCode.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.StationName} {L["Msg.Created"]}", false);
         }
@@ -353,6 +355,7 @@
         {
             MD.UpdateStation(_sel.StationCode, _f.StationName, NE(_f.StationNameEn), NE(_f.LineID),
                 NE(_f.FormName), _f.OrderSeq, _f.Status, _actor);
+            Audit.Updated("MD-002", "MD_Station", _sel.StationCode, _sel, _f);
             var name = _f.StationName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -369,6 +372,7 @@
         {
             var name = _sel.StationName ?? _sel.StationCode;
             MD.DeleteStation(_sel.StationCode);
+            Audit.Deleted("MD-002", "MD_Station", _sel.StationCode, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }

@@ -13,6 +13,7 @@
 @inject SysRepository Sys
 @inject RoleManager<IdentityRole> RoleMgr
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>SYS-002 @L["SYS.Roles.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-002" TitleKey="SYS.Roles.Title" />
@@ -51,7 +52,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="SysRepository.RoleRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Roles.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Roles.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="SysRepository.RoleRow" Property="RoleName" Title="@L["Col.RoleName"]">
                 <Template Context="r"><span class="code">@(r.RoleName ?? "—")</span></Template>
@@ -243,6 +244,7 @@
                 _modalErr = string.Join(" ", result.Errors.Select(e => e.Description));
                 return;
             }
+            Audit.Created("SYS-002", "AspNetRoles", _roleName.Trim(), new { RoleName = _roleName.Trim() });
             var name = _roleName.Trim();
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Roles.Ok.Created"].Value, name), false);
@@ -270,6 +272,7 @@
                 _modalErr = string.Join(" ", result.Errors.Select(e => e.Description));
                 return;
             }
+            Audit.Updated("SYS-002", "AspNetRoles", _sel.RoleId, _sel, new { RoleName = _roleName.Trim() });
             var name = _roleName.Trim();
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Roles.Ok.Updated"].Value, name), false);
@@ -287,6 +290,7 @@
             var role = await RoleMgr.FindByIdAsync(_sel.RoleId);
             if (role is not null) await RoleMgr.DeleteAsync(role);
 
+            Audit.Deleted("SYS-002", "AspNetRoles", _sel.RoleId, _sel);
             var name = _sel.RoleName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Roles.Ok.Deleted"].Value, name), false);

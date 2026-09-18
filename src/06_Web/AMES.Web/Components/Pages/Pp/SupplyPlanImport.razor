@@ -3,6 +3,8 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject AMES.Data.Repositories.MasterDataRepository MD
+@inject AMES.Web.Services.PermissionService PermSvc
+@inject NavigationManager Nav
 @inject DialogService Dialog
 @inject AuthenticationStateProvider AuthPrvd
 @inject IJSRuntime JS
@@ -19,11 +21,11 @@
 }
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">IMPORTED</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">SELECTED</div><div class="ames-kpi-v">@_selected.Count</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">CONFIRMED</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Confirmed")</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">OPEN</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Open")</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">TOTAL QTY</div><div class="ames-kpi-v">@_rows.Sum(r => r.OrderQty).ToString("#,0")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.SupplyPlanImport.Kpi.Imported"]</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.SupplyPlanImport.Kpi.Selected"]</div><div class="ames-kpi-v">@_selected.Count</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["PP.SupplyPlanImport.Kpi.Confirmed"]</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Confirmed")</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["PP.SupplyPlanImport.Kpi.Open"]</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Open")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.SupplyPlanImport.Kpi.TotalQty"]</div><div class="ames-kpi-v">@_rows.Sum(r => r.OrderQty).ToString("#,0")</div></div>
 </div>
 
 <div class="ames-card ames-card-fill">
@@ -48,11 +50,14 @@
                            Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
 
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="Search" />
-            <RadzenButton Text="@string.Format(L["PP.SupplyPlanImport.Btn.ConfirmSel"].Value, _selected.Count)"
-                          Icon="check" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" 
-                          Disabled="@(_selected.Count == 0)" Click="ConfirmSelected" />
-            <RadzenButton Text="@L["PP.SupplyPlanImport.Btn.Upload"].Value" Icon="upload"
-                          ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenUpload" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@string.Format(L["PP.SupplyPlanImport.Btn.ConfirmSel"].Value, _selected.Count)"
+                              Icon="check" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn"
+                              Disabled="@(_selected.Count == 0)" Click="ConfirmSelected" />
+                <RadzenButton Text="@L["PP.SupplyPlanImport.Btn.Upload"].Value" Icon="upload"
+                              ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenUpload" />
+            }
             <RadzenButton Text="@L["PP.SupplyPlanImport.Btn.Export"].Value" Icon="download"
                           ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" class="ames-rz-btn" Click="ExportCsv" />
         </RadzenStack>
@@ -66,12 +71,13 @@
 else
 {
     <RadzenDataGrid Data="_view" TItem="PpRepository.SoRow" AllowVirtualization="true" Style="height:100%"
-                    AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
+                    AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact"
                     AllowFiltering="true" FilterMode="FilterMode.CheckBoxList"
                     FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
                     class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Width="46px" Sortable="false"
+            @* 선택은 확정 버튼에만 쓰이므로 E 권한이 없으면 열 자체를 내린다 *@
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" Width="46px" Sortable="false" Visible="@_canEdit"
                                   Filterable="false" TextAlign="TextAlign.Center" Frozen="true">
                 <HeaderTemplate>
                     <input type="checkbox" class="spi-ck" checked="@AllSelected"
@@ -148,7 +154,7 @@ else
             <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["PP.SupplyPlanImport.Col.Action"].Value"
                                   Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r">
-                    @if (r.Status == "Open")
+                    @if (_canEdit && r.Status == "Open")
                     {
                         <RadzenButton Text="@L["Btn.Confirm"].Value" Icon="check" ButtonStyle="ButtonStyle.Success"
                                       Size="ButtonSize.ExtraSmall" Click="@(() => Confirm(r.SoId))" />
@@ -205,8 +211,17 @@ else
     IEnumerable<PpRepository.SoRow> Selectable => _view.Where(IsOpen);
     bool AllSelected => Selectable.Any() && Selectable.All(r => _selected.Contains(r.SoId));
 
-    protected override void OnInitialized()
+    // 권한 키(SYS_Screen.HRef) — R = 화면 조회, E = 업로드·수주 확정
+    const string Href = "pp/supply-plan-import";
+    bool _canEdit;
+
+    protected override async Task OnInitializedAsync()
     {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        // 메뉴에서 숨겨도 주소를 직접 치면 열리므로 읽기 권한은 화면에서도 확인한다
+        if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
+        _canEdit = PermSvc.CanEdit(Href);
+
         try { _customers = MD.ListCustomers(); } catch { }
         Search();
     }
@@ -241,6 +256,8 @@ else
 
     async Task Confirm(int soId)
     {
+        if (!_canEdit) return;   // 버튼을 숨겨도 핸들러에서 한 번 더 막는다
+
         try
         {
             var auth  = await AuthPrvd.GetAuthenticationStateAsync();
@@ -265,6 +282,8 @@ else
 
     async Task ConfirmSelected()
     {
+        if (!_canEdit) return;
+
         var ids = _rows.Where(r => _selected.Contains(r.SoId) && IsOpen(r)).Select(r => r.SoId).ToList();
         if (ids.Count == 0) { ShowMsg(L["PP.SupplyPlanImport.Err.NoneSelected"], true); return; }
 
@@ -282,6 +301,8 @@ else
 
     async Task OpenUpload()
     {
+        if (!_canEdit) return;
+
         var result = await Dialog.OpenAsync<SupplyPlanImportUploadDialog>(
             L["PP.SupplyPlanImport.Upload.Title"].Value,
             new Dictionary<string, object?> { ["Customers"] = _customers });

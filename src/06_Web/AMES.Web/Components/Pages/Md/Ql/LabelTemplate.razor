@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-024 @L["MD.LabelTpl.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-024" TitleKey="MD.LabelTpl.Title" />
@@ -60,7 +61,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.LabelTemplateRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.LabelTpl.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.LabelTpl.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="LabelTemplateID" Title="@L["Col.TemplateId"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.LabelTemplateID</span></Template>
@@ -361,6 +362,7 @@
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {
+            LabelTemplateID = r.LabelTemplateID ?? "",
             TemplateName = r.TemplateName ?? "",
             LabelType    = r.LabelType,
             PaperSize    = r.PaperSize    ?? "",
@@ -390,6 +392,7 @@
             MD.InsertLabelTemplate(id, NE(_f.TemplateName), _f.LabelType,
                 NE(_f.PaperSize), _f.BarcodeType, NE(_f.CustomerID),
                 _f.Version, NE(_f.PrinterModel), _f.ActiveFlag, _actor);
+            Audit.Created("MD-024", "MD_LabelTemplate", id, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Created"]}", false);
         }
@@ -406,6 +409,7 @@
             MD.UpdateLabelTemplate(_sel.LabelTemplateID, NE(_f.TemplateName), _f.LabelType,
                 NE(_f.PaperSize), _f.BarcodeType, NE(_f.CustomerID),
                 _f.Version, NE(_f.PrinterModel), _f.ActiveFlag, _actor);
+            Audit.Updated("MD-024", "MD_LabelTemplate", _sel.LabelTemplateID, _sel, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_sel.LabelTemplateID} {L["Msg.Updated"]}", false);
         }
@@ -421,6 +425,7 @@
         {
             var id = _sel.LabelTemplateID;
             MD.DeleteLabelTemplate(_sel.LabelTemplateID);
+            Audit.Deleted("MD-024", "MD_LabelTemplate", _sel.LabelTemplateID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Deleted"]}", false);
         }

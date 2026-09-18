@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-008 @L["MD.PaintFabric.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-008" TitleKey="MD.PaintFabric.Title" />
@@ -61,7 +62,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.PaintFabricRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.PaintFabric.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.PaintFabric.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="MatLotID" Title="@L["Col.LotId"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="r"><span class="code">@r.MatLotID</span></Template>
@@ -118,7 +119,7 @@
             <div class="ames-modal-h">@L["MD.PaintFabric.Title"] — @L["Modal.Create"]</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
-                <RadzenLabel Text="LOT ID *" class="ames-rz-modal-label" Component="CreateTextBoxMatLotID" />
+                <RadzenLabel Text="@(L["Col.LotId"].Value + " *")" class="ames-rz-modal-label" Component="CreateTextBoxMatLotID" />
                 <RadzenTextBox Name="CreateTextBoxMatLotID" @bind-Value="_f.MatLotID" Placeholder="PF-PAINT-20260101-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
@@ -424,6 +425,7 @@
                 _f.MatType, NE(_f.LotNo), _f.SupplierID, _f.UOM,
                 _f.QtyOnHand, _f.ReceiptDate, _f.ExpDate,
                 NE(_f.StorageReq), NE(_f.Status), _actor);
+            Audit.Created("MD-008", "MD_PaintFabric", _f.MatLotID.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.MatName} {L["Msg.Created"]}", false);
         }
@@ -443,6 +445,7 @@
                 _f.MatType, NE(_f.LotNo), _f.SupplierID, _f.UOM,
                 _f.QtyOnHand, _f.ReceiptDate, _f.ExpDate,
                 NE(_f.StorageReq), NE(_f.Status), _actor);
+            Audit.Updated("MD-008", "MD_PaintFabric", _sel.MatLotID, _sel, _f);
             var name = _f.MatName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -459,6 +462,7 @@
         {
             var name = _sel.MatName ?? _sel.MatLotID;
             MD.DeletePaintFabric(_sel.MatLotID);
+            Audit.Deleted("MD-008", "MD_PaintFabric", _sel.MatLotID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }

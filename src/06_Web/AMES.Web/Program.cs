@@ -5,6 +5,7 @@ using AMES.Web.Components.Account;
 using AMES.Web.Data;
 using AMES.Web.Services;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +29,33 @@ builder.Services.AddRadzenCookieThemeService(options =>
     options.Name = "ames-theme";
     options.Duration = TimeSpan.FromDays(365);
 });
+
+// 앱풀 loadUserProfile·setProfileEnvironment 가 꺼져 있으면 Data Protection 이 ephemeral 키로 떨어져
+// 재활용마다 전원 로그아웃된다. IIS 설정에 기대지 않도록 키를 고정 폴더에 둔다.
+// 배포 폴더 안은 안 된다 — publish-web.ps1 의 robocopy /MIR 가 게시 때마다 지운다.
+var dpKeyDir = builder.Configuration["DataProtection:KeyPath"];
+if (string.IsNullOrWhiteSpace(dpKeyDir))
+    dpKeyDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                            "AMES", "DataProtection-Keys", "AMES.Web");
+string? dpKeyError = null;
+try
+{
+    Directory.CreateDirectory(dpKeyDir);
+    var probe = Path.Combine(dpKeyDir, $".probe-{Guid.NewGuid():N}");
+    File.WriteAllText(probe, "");
+    File.Delete(probe);
+
+    var dp = builder.Services.AddDataProtection()
+        .SetApplicationName("AMES.Web")
+        .PersistKeysToFileSystem(new DirectoryInfo(dpKeyDir));
+    // 머신 범위 DPAPI 는 사용자 프로필 없이 동작한다
+    if (OperatingSystem.IsWindows()) dp.ProtectKeysWithDpapi(protectToLocalMachine: true);
+}
+catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+{
+    // 쓰기 권한이 없으면 기동을 막지 않고 프레임워크 기본 동작(프로필 → 레지스트리 → ephemeral)으로 둔다
+    dpKeyError = ex.Message;
+}
 
 builder.Services.AddLocalization();
 
@@ -79,6 +107,7 @@ else
     builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<PermissionService>();
+builder.Services.AddScoped<AuditLogger>();   // MD·SYS 등록/수정/삭제 → SYS_AuditLog
 builder.Services.AddScoped<AMES.Web.Services.MenuCatalog>();   // 좌측 메뉴·홈 사이트맵 공용 화면 카탈로그(SYS_Screen WEB)
 builder.Services.AddHttpClient();
 
@@ -132,6 +161,9 @@ builder.Services.AddSingleton<ServerMonitorService>();
 builder.Services.AddSingleton<AMES.Web.Services.AppLanguageState>();
 
 var app = builder.Build();
+
+if (dpKeyError is null) app.Logger.LogInformation("Data Protection keys -> {Dir}", dpKeyDir);
+else app.Logger.LogWarning("Data Protection key folder {Dir} is not writable ({Error}) — falling back to framework default; logins may drop on app pool recycle", dpKeyDir, dpKeyError);
 
 // DB 서버 시각 기준의 Now/Today (AMES.Data.Services.DbClock) — 기동 시 1회 맞추고, 이후 로그인(회로 시작) 때 TopBar 가
 // 10분보다 오래됐을 때만 다시 읽는다. DB 가 아직 안 뜬 상태여도 실패를 삼키고 Offset 0(호스트 시계)으로 계속 간다.

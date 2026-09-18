@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-015 @L["MD.Oven.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-015" TitleKey="MD.Oven.Title" />
@@ -60,7 +61,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.OvenRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Oven.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Oven.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="OvenID" Title="@L["Col.OvenId"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.OvenID</span></Template>
@@ -375,6 +376,7 @@
             MD.InsertOven(_f.OvenID.Trim(), _f.OvenName, NE(_f.LineID),
                 _f.ZoneCount, _f.TargetTemp, _f.Tolerance, _f.DwellSec,
                 _f.ConveyorSpeed, _f.MaxLoadKg, NE(_f.Status), _actor);
+            Audit.Created("MD-015", "MD_Oven", _f.OvenID.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.OvenName} {L["Msg.Created"]}", false);
         }
@@ -393,6 +395,7 @@
             MD.UpdateOven(_sel.OvenID, _f.OvenName, NE(_f.LineID),
                 _f.ZoneCount, _f.TargetTemp, _f.Tolerance, _f.DwellSec,
                 _f.ConveyorSpeed, _f.MaxLoadKg, NE(_f.Status), _actor);
+            Audit.Updated("MD-015", "MD_Oven", _sel.OvenID, _sel, _f);
             var name = _f.OvenName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -409,6 +412,7 @@
         {
             var name = _sel.OvenName ?? _sel.OvenID;
             MD.DeleteOven(_sel.OvenID);
+            Audit.Deleted("MD-015", "MD_Oven", _sel.OvenID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }

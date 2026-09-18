@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-020 @L["MD.RfidTag.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-020" TitleKey="MD.RfidTag.Title" />
@@ -58,7 +59,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.RfidTagRow" Data="_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.RfidTag.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.RfidTag.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.RfidTagRow" Property="TagID" Title="@L["Col.TagId"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.TagID</span></Template>
@@ -338,6 +339,7 @@
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {
+            TagID = r.TagID ?? "",
             EPC             = r.EPC       ?? "",
             JigID           = r.JigID     ?? "",
             TagRole         = r.TagRole   ?? "",
@@ -369,6 +371,7 @@
                 _f.HeatRating, NE(_f.MountPos),
                 _f.InstallDate, _f.CycleCount, _f.ReplaceSchedule,
                 NE(_f.Status), _actor);
+            Audit.Created("MD-020", "MD_RfidTag", id, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Created"]}", false);
         }
@@ -387,6 +390,7 @@
                 _f.HeatRating, NE(_f.MountPos),
                 _f.InstallDate, _f.CycleCount, _f.ReplaceSchedule,
                 NE(_f.Status), _actor);
+            Audit.Updated("MD-020", "MD_RfidTag", _sel.TagID, _sel, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_sel.TagID} {L["Msg.Updated"]}", false);
         }
@@ -402,6 +406,7 @@
         {
             var id = _sel.TagID;
             MD.DeleteRfidTag(_sel.TagID);
+            Audit.Deleted("MD-020", "MD_RfidTag", _sel.TagID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Deleted"]}", false);
         }

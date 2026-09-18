@@ -7,6 +7,8 @@
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthPrvd
 @inject AMES.Web.Services.PermissionService PermSvc
+@inject AMES.Data.Repositories.AuthRepository AuthRepo
+@inject AMES.Web.Services.AuditLogger Audit
 @using AMES.Contracts.Dto
 @using Radzen
 
@@ -337,7 +339,11 @@
 }
 
 @code {
-    const string DevPin = "1234";
+    // 납기 변경은 로그인한 본인의 PIN(SYS_UserProfile.PinHash)으로 다시 확인한다.
+    // 4자리 PIN 은 무차별 대입에 약하므로 연속 5회 틀리면 화면을 새로 열 때까지 막는다.
+    const int MaxPinTries = 5;
+    int _pinFails;
+    string _userName = "";
 
     List<WorkOrderDto> _all = [];
     Dictionary<DateTime, List<WorkOrderDto>> _byDue = [];
@@ -415,6 +421,7 @@
     protected override async Task OnInitializedAsync()
     {
         await PermSvc.EnsureAsync(AuthPrvd);
+        _userName = (await AuthPrvd.GetAuthenticationStateAsync()).User.Identity?.Name ?? "";
         // 메뉴에서 숨겨도 주소를 직접 치면 열리므로 읽기 권한은 화면에서도 확인한다
         if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
         _canEdit = PermSvc.CanEdit(Href);
@@ -496,11 +503,26 @@
     void ConfirmReschedule()
     {
         if (!_canEdit) return;   // 버튼을 숨겨도 핸들러에서 한 번 더 막는다
-        if (_pinInput != DevPin) { _pinError = L["PP.Calendar.Err.WrongPin"]; return; }
         if (_detail is null) return;
+        if (_pinFails >= MaxPinTries) { _pinError = L["PP.Calendar.Err.PinLocked"]; return; }
+
+        string? pinHash;
+        try { pinHash = AuthRepo.GetPinHashByUserName(_userName); }
+        catch (Exception ex) { _pinError = string.Format(L["PP.Calendar.Err.Reschedule"].Value, ex.Message); return; }
+        if (string.IsNullOrEmpty(pinHash)) { _pinError = L["PP.Calendar.Err.NoPin"]; return; }
+        if (!AMES.Data.Security.PinHasher.Verify(_pinInput, pinHash))
+        {
+            _pinFails++;
+            _pinInput = "";
+            Audit.Log("PP-CAL", "PIN_FAIL", "PP_WorkOrder", _detail.WoNumber, null, new { Tries = _pinFails });
+            _pinError = _pinFails >= MaxPinTries ? L["PP.Calendar.Err.PinLocked"] : L["PP.Calendar.Err.WrongPin"];
+            return;
+        }
+        _pinFails = 0;
         try
         {
             Wos.UpdateDueDate(_detail.WoId, _reschedDate);
+            Audit.Updated("PP-CAL", "PP_WorkOrder", _detail.WoNumber, new { _detail.DueDate }, new { DueDate = _reschedDate });
             _showReschedule = false;
             _showDetail     = false;
             Reload();

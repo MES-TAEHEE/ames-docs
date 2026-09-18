@@ -15,8 +15,10 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 @inject AMES.Data.Repositories.SysRepository Sys
+@inject AMES.Web.Services.AuditLogger Audit
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>Register · A-MES</PageTitle>
+<PageTitle>@L["Auth.Title.Register"] · A-MES</PageTitle>
 
 <div class="ames-auth-page">
     <div class="ames-auth-bg-grid"></div>
@@ -24,27 +26,27 @@
     <div class="ames-auth-card">
         <div class="ames-auth-brand">
             <div class="ames-auth-logo">A-MES</div>
-            <div class="ames-auth-sub">OFFICE WEB · REGISTER</div>
+            <div class="ames-auth-sub">OFFICE WEB · @L["Auth.Sub.Register"]</div>
         </div>
 
         @if (_registered)
         {
             <div class="ames-auth-hint" style="line-height:1.9;text-align:center;">
-                ✅ 가입 신청이 접수되었습니다.<br />
-                ① <b>이메일 인증</b> 후 ② <b>관리자 승인</b>이 되면 로그인할 수 있습니다.
+                ✅ @L["Auth.Register.Accepted"]<br />
+                @((MarkupString)L["Auth.Register.Steps"].Value)
             </div>
             @if (_confirmLink is not null)
             {
                 <a class="ames-auth-submit" href="@_confirmLink"
-                   style="display:block;text-align:center;text-decoration:none;margin-top:12px;">이메일 인증하기  →</a>
-                <div class="ames-auth-vm" style="margin-top:6px;text-align:center;">개발 환경: 실제 메일이 발송되지 않아 위 버튼으로 인증합니다.</div>
+                   style="display:block;text-align:center;text-decoration:none;margin-top:12px;">@L["Auth.Btn.ConfirmEmail"]  →</a>
+                <div class="ames-auth-vm" style="margin-top:6px;text-align:center;">@L["Auth.Register.DevHint"]</div>
             }
             else
             {
-                <div class="ames-auth-hint" style="margin-top:10px;text-align:center;">메일함에서 인증 링크를 확인해 주세요.</div>
+                <div class="ames-auth-hint" style="margin-top:10px;text-align:center;">@L["Auth.CheckMailbox"]</div>
             }
             <div class="ames-auth-meta">
-                <a href="/Account/Login">← Back to sign in</a>
+                <a href="/Account/Login">← @L["Auth.BackToSignIn"]</a>
             </div>
         }
         else
@@ -58,26 +60,26 @@
                       class="ames-auth-form" Enhance="false">
                 <DataAnnotationsValidator />
 
-                <label class="ames-auth-label">EMAIL</label>
+                <label class="ames-auth-label">@L["Auth.Lbl.Email"]</label>
                 <InputText @bind-Value="Input.Email" class="ames-auth-input"
                            autocomplete="username" placeholder="name@example.com" />
                 <ValidationMessage For="() => Input.Email" class="ames-auth-vm" />
 
-                <label class="ames-auth-label">PASSWORD</label>
+                <label class="ames-auth-label">@L["Auth.Lbl.Password"]</label>
                 <InputText type="password" @bind-Value="Input.Password" class="ames-auth-input"
                            autocomplete="new-password" placeholder="••••••••" />
                 <ValidationMessage For="() => Input.Password" class="ames-auth-vm" />
 
-                <label class="ames-auth-label">CONFIRM PASSWORD</label>
+                <label class="ames-auth-label">@L["Auth.Lbl.ConfirmPassword"]</label>
                 <InputText type="password" @bind-Value="Input.ConfirmPassword" class="ames-auth-input"
                            autocomplete="new-password" placeholder="••••••••" />
                 <ValidationMessage For="() => Input.ConfirmPassword" class="ames-auth-vm" />
 
-                <button type="submit" class="ames-auth-submit">CREATE ACCOUNT  →</button>
+                <button type="submit" class="ames-auth-submit">@L["Auth.Btn.CreateAccount"]  →</button>
             </EditForm>
 
             <div class="ames-auth-meta">
-                <a href="/Account/Login">← Back to sign in</a>
+                <a href="/Account/Login">← @L["Auth.BackToSignIn"]</a>
             </div>
         }
     </div>
@@ -122,6 +124,7 @@
         catch (Exception ex) { Logger.LogError(ex, "Pending profile creation failed for {UserId}", userId); }
 
         // 이메일 자기인증 링크 생성·발송 (개발환경은 NoOp 발신자 → 화면에 링크 노출)
+        Audit.Log("ACCOUNT", "CREATE", "AspNetUsers", Input.Email, null, new { Input.Email, SelfRegistered = true }, actor: Input.Email);
         var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
         code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
         var callbackUrl = NavigationManager.GetUriWithQueryParameters(

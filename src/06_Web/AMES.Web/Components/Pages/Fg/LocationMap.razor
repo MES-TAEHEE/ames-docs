@@ -1,9 +1,10 @@
 @page "/fg/location-map"
+@inject IStringLocalizer<SharedResources> L
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
-<PageTitle>Location Map - AMES</PageTitle>
-<AmesPageHeader Code="FG-002" Title="Location Map" />
+<PageTitle>@L["WH.LocMap.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="FG-002" TitleKey="WH.LocMap.Title" />
 
 <LocationMapExplorer Locations="_locations" Inventory="_inventory" OnRefresh="Reload" SearchId="fg-location-search" />
 
