@@ -1924,7 +1924,7 @@
     <value>New Due Date</value>
   </data>
   <data name="PP.Calendar.Lbl.Pin" xml:space="preserve">
-    <value>Supervisor PIN</value>
+    <value>Your PIN</value>
   </data>
   <data name="PP.Calendar.Ph.Pin" xml:space="preserve">
     <value>4–6 digits</value>
@@ -8279,5 +8279,11 @@
   </data>
   <data name="Home.Kpi.OnTimeSub" xml:space="preserve">
     <value>delivery performance</value>
+  </data>
+  <data name="PP.Calendar.Err.NoPin" xml:space="preserve">
+    <value>No PIN is registered for your account. Set a PIN in SYS-001 Users and try again.</value>
+  </data>
+  <data name="PP.Calendar.Err.PinLocked" xml:space="preserve">
+    <value>PIN entered incorrectly 5 times. Reopen the screen and try again.</value>
   </data>
 </root>

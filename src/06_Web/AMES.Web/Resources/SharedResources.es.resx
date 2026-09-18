@@ -1921,7 +1921,7 @@
     <value>Nueva Fecha de Vencimiento</value>
   </data>
   <data name="PP.Calendar.Lbl.Pin" xml:space="preserve">
-    <value>PIN de Supervisor</value>
+    <value>Su PIN</value>
   </data>
   <data name="PP.Calendar.Ph.Pin" xml:space="preserve">
     <value>4–6 dígitos</value>
@@ -8279,5 +8279,11 @@
   </data>
   <data name="Home.Kpi.OnTimeSub" xml:space="preserve">
     <value>desempeño de entregas</value>
+  </data>
+  <data name="PP.Calendar.Err.NoPin" xml:space="preserve">
+    <value>No hay un PIN registrado para su cuenta. Configure un PIN en SYS-001 Usuarios e inténtelo de nuevo.</value>
+  </data>
+  <data name="PP.Calendar.Err.PinLocked" xml:space="preserve">
+    <value>PIN incorrecto 5 veces. Vuelva a abrir la pantalla e inténtelo de nuevo.</value>
   </data>
 </root>

@@ -1924,7 +1924,7 @@
     <value>새 납기일</value>
   </data>
   <data name="PP.Calendar.Lbl.Pin" xml:space="preserve">
-    <value>라인장 PIN</value>
+    <value>본인 PIN</value>
   </data>
   <data name="PP.Calendar.Ph.Pin" xml:space="preserve">
     <value>4~6자리</value>
@@ -8279,5 +8279,11 @@
   </data>
   <data name="Home.Kpi.OnTimeSub" xml:space="preserve">
     <value>최근 30일 납기 실적</value>
+  </data>
+  <data name="PP.Calendar.Err.NoPin" xml:space="preserve">
+    <value>등록된 PIN 이 없습니다. SYS-001 사용자 관리에서 PIN 을 설정한 뒤 다시 시도하세요.</value>
+  </data>
+  <data name="PP.Calendar.Err.PinLocked" xml:space="preserve">
+    <value>PIN 을 5회 틀렸습니다. 화면을 새로 연 뒤 다시 시도하세요.</value>
   </data>
 </root>

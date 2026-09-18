@@ -60,6 +60,24 @@ public sealed class AuthRepository
     }
 
     /// <summary>
+    /// 웹 로그인 계정(AspNetUsers.UserName)의 PIN 해시. 프로필이 없거나 PIN 미설정이면 null.
+    /// 웹 화면이 민감한 변경을 본인 PIN 으로 다시 확인할 때 쓴다(PP-CAL 납기 변경).
+    /// </summary>
+    public string? GetPinHashByUserName(string userName)
+    {
+        const string sql = """
+            SELECT TOP 1 p.PinHash
+            FROM   dbo.AspNetUsers     u
+            JOIN   dbo.SYS_UserProfile p ON p.UserID = u.Id
+            WHERE  u.UserName = @UserName;
+            """;
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@UserName", SqlDbType.NVarChar, 256).Value = userName;
+        return cmd.ExecuteScalar() as string;
+    }
+
+    /// <summary>
     /// All active profiles ordered by EmployeeNo. Used by the dev User Picker
     /// popup on the login screen so testers can switch identities without
     /// scanning a barcode. The PasswordHash / PinHash are loaded too because the picker
