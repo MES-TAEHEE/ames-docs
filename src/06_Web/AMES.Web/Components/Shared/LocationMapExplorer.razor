@@ -1,14 +1,15 @@
 @using System.Globalization
 @inject IJSRuntime JS
+@inject IStringLocalizer<SharedResources> L
 
 <div class="location-explorer">
     <div class="location-explorer-topbar">
         <nav class="location-explorer-breadcrumb" aria-label="Location hierarchy">
-            <button type="button" class="@BreadcrumbClass(MapStage.Warehouse)" @onclick="ShowWarehouses">Warehouse</button>
+            <button type="button" class="@BreadcrumbClass(MapStage.Warehouse)" @onclick="ShowWarehouses">@L["Col.Warehouse"]</button>
             <span>/</span>
-            <button type="button" class="@BreadcrumbClass(MapStage.Area)" disabled="@string.IsNullOrWhiteSpace(_warehouse)" @onclick="ShowAreas">@(_warehouse ?? "Area")</button>
+            <button type="button" class="@BreadcrumbClass(MapStage.Area)" disabled="@string.IsNullOrWhiteSpace(_warehouse)" @onclick="ShowAreas">@(_warehouse ?? L["Col.Area"].Value)</button>
             <span>/</span>
-            <button type="button" class="@(_stage == MapStage.Map ? "active" : "")" disabled="@string.IsNullOrWhiteSpace(_area)">@(_area ?? "Area")</button>
+            <button type="button" class="@(_stage == MapStage.Map ? "active" : "")" disabled="@string.IsNullOrWhiteSpace(_area)">@(_area ?? L["Col.Area"].Value)</button>
             <span>/</span>
             <button type="button" class="@(_selectingFloor ? "active" : "")" disabled="@string.IsNullOrWhiteSpace(_floor)" @onclick="ShowFloors">@FloorLabel</button>
         </nav>
@@ -16,9 +17,9 @@
         <div class="location-explorer-actions">
             @if (_stage != MapStage.Warehouse)
             {
-                <button type="button" class="location-action secondary" @onclick="Back"><RadzenIcon Icon="arrow_back" /> Back</button>
+                <button type="button" class="location-action secondary" @onclick="Back"><RadzenIcon Icon="arrow_back" /> @L["Btn.Back"]</button>
             }
-            <button type="button" class="location-action" @onclick="Refresh"><RadzenIcon Icon="refresh" /> Refresh</button>
+            <button type="button" class="location-action" @onclick="Refresh"><RadzenIcon Icon="refresh" /> @L["Btn.Refresh"]</button>
         </div>
     </div>
 
@@ -31,10 +32,10 @@
                         @foreach (var floor in FloorCards)
                         {
                             <button type="button" class="location-stage-card" @onclick="() => SelectFloor(floor.Key)">
-                                <span>Floor</span>
+                                <span>@L["Col.Floor"]</span>
                                 <strong>@floor.Name</strong>
-                                <small>@floor.LocationCount.ToString("N0") locations</small>
-                                <b>@floor.Qty.ToString("N0") <em>QTY</em></b>
+                                <small>@floor.LocationCount.ToString("N0") @L["WH.LocMap.Locations"]</small>
+                                <b>@floor.Qty.ToString("N0") <em>@L["WH.LocMap.Qty"]</em></b>
                             </button>
                         }
                     </div>
@@ -45,12 +46,12 @@
                 <div class="location-map-view location-panel-enter">
                     <div class="location-map-heading">
                         <div>
-                            <button type="button" class="location-action secondary" @onclick="ShowFloors">Change Floor</button>
-                            <strong>@MapScope · @MapLocations.Count locations</strong>
+                            <button type="button" class="location-action secondary" @onclick="ShowFloors">@L["WH.LocMap.ChangeFloor"]</button>
+                            <strong>@MapScope · @MapLocations.Count @L["WH.LocMap.Locations"]</strong>
                         </div>
                         <div class="location-map-legend">
-                            <span><i class="empty"></i>Empty</span>
-                            <span><i class="stocked"></i>Stocked</span>
+                            <span><i class="empty"></i>@L["WH.LocMap.Legend.Empty"]</span>
+                            <span><i class="stocked"></i>@L["WH.LocMap.Legend.Stocked"]</span>
                         </div>
                     </div>
                     @RenderMap()
@@ -65,8 +66,8 @@
                             <button type="button" class="location-stage-card" @onclick="() => SelectCard(card.Key)">
                                 <span>@StageLabel</span>
                                 <strong>@card.Name</strong>
-                                <small>@card.LocationCount.ToString("N0") locations</small>
-                                <b>@card.Qty.ToString("N0") <em>QTY</em></b>
+                                <small>@card.LocationCount.ToString("N0") @L["WH.LocMap.Locations"]</small>
+                                <b>@card.Qty.ToString("N0") <em>@L["WH.LocMap.Qty"]</em></b>
                             </button>
                         }
                     </div>
@@ -82,7 +83,7 @@
             <aside class="inventory-detail-drawer" role="dialog" aria-modal="true" aria-label="Location inventory detail" @onclick:stopPropagation="true">
                 <header class="inventory-drawer-header">
                     <div>
-                        <span>LOCATION DETAIL</span>
+                        <span>@L["WH.LocMap.Detail"]</span>
                         <strong>@_highlightedLocation</strong>
                         <small>@MapScope</small>
                     </div>
@@ -90,18 +91,18 @@
                 </header>
 
                 <div class="inventory-drawer-summary">
-                    <div><span>TOTAL QTY</span><strong>@LocationDrawerRows.Sum(x => x.Qty).ToString("N0") EA</strong></div>
-                    <div><span>ITEMS</span><strong>@LocationDrawerRows.Select(x => x.PartNo).Distinct(StringComparer.OrdinalIgnoreCase).Count()</strong></div>
-                    <div><span>LOTS</span><strong>@LocationDrawerRows.Select(x => x.LotNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count()</strong></div>
+                    <div><span>@L["WH.Inventory.Lbl.TotalQty"]</span><strong>@LocationDrawerRows.Sum(x => x.Qty).ToString("N0") EA</strong></div>
+                    <div><span>@L["WH.LocMap.Lbl.Items"]</span><strong>@LocationDrawerRows.Select(x => x.PartNo).Distinct(StringComparer.OrdinalIgnoreCase).Count()</strong></div>
+                    <div><span>@L["WH.Inventory.Lbl.Lots"]</span><strong>@LocationDrawerRows.Select(x => x.LotNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count()</strong></div>
                 </div>
 
                 <div class="inventory-drawer-table-wrap">
                     <table class="inventory-lookup-table location-drawer-table">
-                        <thead><tr><th>Lot No</th><th>Part No</th><th>Part Name</th><th>Qty</th></tr></thead>
+                        <thead><tr><th>@L["Col.LotNo"]</th><th>@L["Col.ItemNo"]</th><th>@L["Col.ItemName"]</th><th>@L["Col.Qty"]</th></tr></thead>
                         <tbody>
                             @if (LocationDrawerRows.Count == 0)
                             {
-                                <tr><td colspan="4" class="inventory-no-results">This location is empty.</td></tr>
+                                <tr><td colspan="4" class="inventory-no-results">@L["WH.LocMap.EmptyLocation"]</td></tr>
                             }
                             else
                             {
@@ -157,8 +158,8 @@
         x => x.Floor,
         x => FloorName(x.Floor));
 
-    private string StageLabel => _stage == MapStage.Warehouse ? "Warehouse" : "Area";
-    private string FloorLabel => string.IsNullOrWhiteSpace(_floor) ? "Floor" : FloorName(_floor);
+    private string StageLabel => _stage == MapStage.Warehouse ? L["Col.Warehouse"].Value : L["Col.Area"].Value;
+    private string FloorLabel => string.IsNullOrWhiteSpace(_floor) ? L["Col.Floor"].Value : FloorName(_floor);
     private string MapScope => string.Join(" / ", new[] { _warehouse, _area, FloorLabel }.Where(x => !string.IsNullOrWhiteSpace(x)));
     private string StageGridStyle => GridStyle(StageCards.Count);
     private string FloorGridStyle => GridStyle(FloorCards.Count);
@@ -268,7 +269,7 @@
 
         if (MapLocations.Count == 0)
         {
-            <div class="location-empty">No locations found on this floor.</div>
+            <div class="location-empty">@L["WH.LocMap.NoLocations"]</div>
             return;
         }
 

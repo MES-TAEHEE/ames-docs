@@ -62,7 +62,7 @@
 else
 {
     <RadzenDataGrid Data="_view" TItem="WorkOrderDto" AllowVirtualization="true" Style="height:100%"
-                    AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
+                    AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact"
                     RowExpand="@LoadSteps"
                     class="ames-rz-grid">
         <Columns>

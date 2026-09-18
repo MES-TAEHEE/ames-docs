@@ -9,10 +9,11 @@
 @inject IEmailSender<ApplicationUser> EmailSender
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>Register confirmation · A-MES</PageTitle>
+<PageTitle>@L["Auth.Title.Register"] · A-MES</PageTitle>
 
-<AuthCard Sub="REGISTER">
+<AuthCard Sub="@L["Auth.Sub.Register"].Value">
     @if (!string.IsNullOrEmpty(statusMessage))
     {
         <div class="ames-auth-error">✕ @statusMessage</div>
@@ -20,18 +21,18 @@
     @if (emailConfirmationLink is not null)
     {
         <div class="ames-auth-hint" style="line-height:1.9;text-align:center;">
-            가입이 접수되었습니다. 아래 버튼으로 이메일을 인증하세요.<br />
-            <span class="ames-auth-vm">개발 환경: 실제 메일이 발송되지 않습니다.</span>
+            @L["Auth.RegisterConf.Accepted"]<br />
+            <span class="ames-auth-vm">@L["Auth.RegisterConf.DevHint"]</span>
         </div>
         <a class="ames-auth-submit" href="@emailConfirmationLink"
-           style="display:block;text-align:center;text-decoration:none;margin-top:12px;">이메일 인증하기  →</a>
+           style="display:block;text-align:center;text-decoration:none;margin-top:12px;">@L["Auth.Btn.ConfirmEmail"]  →</a>
     }
     else
     {
-        <div class="ames-auth-hint" style="text-align:center;line-height:1.9;">메일함에서 인증 링크를 확인해 주세요.</div>
+        <div class="ames-auth-hint" style="text-align:center;line-height:1.9;">@L["Auth.CheckMailbox"]</div>
     }
     <div class="ames-auth-meta">
-        <a href="/Account/Login">← Back to sign in</a>
+        <a href="/Account/Login">← @L["Auth.BackToSignIn"]</a>
     </div>
 </AuthCard>
 
@@ -59,7 +60,7 @@
         if (user is null)
         {
             HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-            statusMessage = "Error finding user for unspecified email";
+            statusMessage = L["Auth.Err.UserNotFound"];
         }
         else if (EmailSender is IdentityNoOpEmailSender)
         {

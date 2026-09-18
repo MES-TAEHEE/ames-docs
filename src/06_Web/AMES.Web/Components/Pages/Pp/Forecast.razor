@@ -64,7 +64,7 @@
     else
     {
         <RadzenDataGrid Data="_view" TItem="ItemVm" AllowVirtualization="true" Style="height:100%"
-                        AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
+                        AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact"
                         AllowFiltering="true" FilterMode="FilterMode.CheckBoxList"
                         FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
                         class="ames-rz-grid">
@@ -136,7 +136,7 @@
         else
         {
             <RadzenDataGrid Data="_batches" TItem="PpRepository.WeeklyImportBatch"
-                            AllowVirtualization="true" Style="height:100%" AllowSorting="true"
+                            AllowVirtualization="true" Style="height:100%" AllowSorting="true" EmptyText="@L["Grid.Empty"].Value"
                             AllowColumnResize="true" Density="Density.Compact"
                             class="ames-rz-grid">
                 <Columns>

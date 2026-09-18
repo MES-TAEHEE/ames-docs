@@ -72,7 +72,7 @@
         <div class="ames-card-h">▼ @grp.Key  ·  @grp.Count() @L["Lbl.Count"]</div>
         <RadzenDataGrid TItem="SysRepository.ConfigRow"
                         Data="@grp.OrderBy(x => x.SortOrder ?? 999).ThenBy(x => x.ConfigKey)"
-                        AllowPaging="false" AllowSorting="false" Class="ames-rz-grid">
+                        AllowPaging="false" EmptyText="@L["Grid.Empty"].Value" AllowSorting="false" Class="ames-rz-grid">
             <Columns>
                 <RadzenDataGridColumn TItem="SysRepository.ConfigRow" Property="ConfigKey" Title="@L["SYS.Config.Col.Key"]" Width="18%">
                     <Template Context="c"><span class="code" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@(c.ConfigKey ?? "—")</span></Template>

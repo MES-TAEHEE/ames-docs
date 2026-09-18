@@ -8286,4 +8286,466 @@
   <data name="PP.Calendar.Err.PinLocked" xml:space="preserve">
     <value>PIN 을 5회 틀렸습니다. 화면을 새로 연 뒤 다시 시도하세요.</value>
   </data>
+  <data name="Grid.Empty" xml:space="preserve">
+    <value>표시할 데이터가 없습니다.</value>
+  </data>
+  <data name="Lbl.Yes" xml:space="preserve">
+    <value>예</value>
+  </data>
+  <data name="Err.DateRange" xml:space="preserve">
+    <value>시작일이 종료일보다 늦을 수 없습니다.</value>
+  </data>
+  <data name="Btn.Refresh" xml:space="preserve">
+    <value>새로고침</value>
+  </data>
+  <data name="Btn.Print" xml:space="preserve">
+    <value>인쇄</value>
+  </data>
+  <data name="Btn.Remove" xml:space="preserve">
+    <value>제거</value>
+  </data>
+  <data name="Btn.Back" xml:space="preserve">
+    <value>뒤로</value>
+  </data>
+  <data name="Col.Worker" xml:space="preserve">
+    <value>작업자</value>
+  </data>
+  <data name="Col.Floor" xml:space="preserve">
+    <value>층</value>
+  </data>
+  <data name="Col.Area" xml:space="preserve">
+    <value>구역</value>
+  </data>
+  <data name="Col.Warehouse" xml:space="preserve">
+    <value>창고</value>
+  </data>
+  <data name="Col.Detail" xml:space="preserve">
+    <value>상세</value>
+  </data>
+  <data name="Col.Details" xml:space="preserve">
+    <value>내용</value>
+  </data>
+  <data name="Col.Unit" xml:space="preserve">
+    <value>단위</value>
+  </data>
+  <data name="Col.Time" xml:space="preserve">
+    <value>시각</value>
+  </data>
+  <data name="Col.Location" xml:space="preserve">
+    <value>위치</value>
+  </data>
+  <data name="Col.Locations" xml:space="preserve">
+    <value>위치 수</value>
+  </data>
+  <data name="Col.Lots" xml:space="preserve">
+    <value>LOT 수</value>
+  </data>
+  <data name="Col.No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Col.LineCode" xml:space="preserve">
+    <value>라인 코드</value>
+  </data>
+  <data name="Col.Quantity" xml:space="preserve">
+    <value>수량</value>
+  </data>
+  <data name="Col.TotalQty" xml:space="preserve">
+    <value>총 수량</value>
+  </data>
+  <data name="Col.Event" xml:space="preserve">
+    <value>이벤트</value>
+  </data>
+  <data name="Col.Reference" xml:space="preserve">
+    <value>참조 번호</value>
+  </data>
+  <data name="Col.DateTime" xml:space="preserve">
+    <value>일시</value>
+  </data>
+  <data name="FG.Returns.Title" xml:space="preserve">
+    <value>고객 반품</value>
+  </data>
+  <data name="FG.Returns.Detail" xml:space="preserve">
+    <value>반품 상세</value>
+  </data>
+  <data name="FG.Returns.Empty" xml:space="preserve">
+    <value>고객 반품 이력이 없습니다.</value>
+  </data>
+  <data name="FG.Returns.ViewDetails" xml:space="preserve">
+    <value>상세 보기</value>
+  </data>
+  <data name="FG.Returns.Kpi.Returns" xml:space="preserve">
+    <value>반품</value>
+  </data>
+  <data name="FG.Returns.Kpi.Open" xml:space="preserve">
+    <value>접수</value>
+  </data>
+  <data name="FG.Returns.Kpi.Inspecting" xml:space="preserve">
+    <value>검사 중</value>
+  </data>
+  <data name="FG.Returns.Kpi.Closed" xml:space="preserve">
+    <value>종결</value>
+  </data>
+  <data name="FG.Returns.Col.Received" xml:space="preserve">
+    <value>접수일시</value>
+  </data>
+  <data name="FG.Returns.Col.ReturnNo" xml:space="preserve">
+    <value>반품 번호</value>
+  </data>
+  <data name="FG.Returns.Col.OrigShipment" xml:space="preserve">
+    <value>원 출하 번호</value>
+  </data>
+  <data name="FG.Returns.Col.ReceivedBy" xml:space="preserve">
+    <value>접수자</value>
+  </data>
+  <data name="FG.Returns.Lbl.RmaNo" xml:space="preserve">
+    <value>RMA 번호</value>
+  </data>
+  <data name="FG.Returns.Lbl.CustomerPo" xml:space="preserve">
+    <value>고객 PO</value>
+  </data>
+  <data name="FG.Returns.Lbl.ReturnReason" xml:space="preserve">
+    <value>반품 사유</value>
+  </data>
+  <data name="FG.Returns.Lbl.Capa" xml:space="preserve">
+    <value>CAPA 발행</value>
+  </data>
+  <data name="FG.Returns.Lbl.ReturnedItems" xml:space="preserve">
+    <value>반품 품목</value>
+  </data>
+  <data name="FG.History.Title" xml:space="preserve">
+    <value>작업 이력</value>
+  </data>
+  <data name="FG.History.List" xml:space="preserve">
+    <value>작업 이력</value>
+  </data>
+  <data name="FG.History.Empty" xml:space="preserve">
+    <value>작업 이력이 없습니다.</value>
+  </data>
+  <data name="FG.History.Kpi.Events" xml:space="preserve">
+    <value>이벤트</value>
+  </data>
+  <data name="FG.History.Kpi.PutAway" xml:space="preserve">
+    <value>적치</value>
+  </data>
+  <data name="FG.History.Kpi.Loading" xml:space="preserve">
+    <value>상차</value>
+  </data>
+  <data name="FG.History.Kpi.Shipped" xml:space="preserve">
+    <value>출하</value>
+  </data>
+  <data name="FG.History.Col.ItemOrOrder" xml:space="preserve">
+    <value>품번 / 오더</value>
+  </data>
+  <data name="FG.History.Col.LocationDock" xml:space="preserve">
+    <value>위치 / 도크</value>
+  </data>
+  <data name="WH.LogHistory.Title" xml:space="preserve">
+    <value>재고 이력</value>
+  </data>
+  <data name="WH.LogHistory.List" xml:space="preserve">
+    <value>재고 활동</value>
+  </data>
+  <data name="WH.LogHistory.Empty" xml:space="preserve">
+    <value>재고 활동 이력이 없습니다.</value>
+  </data>
+  <data name="WH.LogHistory.Kpi.Events" xml:space="preserve">
+    <value>이벤트</value>
+  </data>
+  <data name="WH.LogHistory.Kpi.Inbound" xml:space="preserve">
+    <value>입고</value>
+  </data>
+  <data name="WH.LogHistory.Kpi.Outbound" xml:space="preserve">
+    <value>출고</value>
+  </data>
+  <data name="WH.LogHistory.Kpi.Adjustments" xml:space="preserve">
+    <value>조정</value>
+  </data>
+  <data name="WH.LogHistory.Ph.ActivityType" xml:space="preserve">
+    <value>활동 유형</value>
+  </data>
+  <data name="WH.LogHistory.Col.LotPart" xml:space="preserve">
+    <value>LOT / 품번</value>
+  </data>
+  <data name="WH.Inventory.Title" xml:space="preserve">
+    <value>재고 조회</value>
+  </data>
+  <data name="WH.Inventory.List" xml:space="preserve">
+    <value>품번별 재고</value>
+  </data>
+  <data name="WH.Inventory.Empty" xml:space="preserve">
+    <value>재고가 없습니다.</value>
+  </data>
+  <data name="WH.Inventory.Available" xml:space="preserve">
+    <value>가용</value>
+  </data>
+  <data name="WH.Inventory.Detail" xml:space="preserve">
+    <value>재고 상세</value>
+  </data>
+  <data name="WH.Inventory.Kpi.Parts" xml:space="preserve">
+    <value>품번 수</value>
+  </data>
+  <data name="WH.Inventory.Ph.AllWarehouses" xml:space="preserve">
+    <value>전체 창고</value>
+  </data>
+  <data name="WH.Inventory.Ph.AllAreas" xml:space="preserve">
+    <value>전체 구역</value>
+  </data>
+  <data name="WH.Inventory.Lbl.TotalQty" xml:space="preserve">
+    <value>총 수량</value>
+  </data>
+  <data name="WH.Inventory.Lbl.Locations" xml:space="preserve">
+    <value>위치 수</value>
+  </data>
+  <data name="WH.Inventory.Lbl.Lots" xml:space="preserve">
+    <value>LOT 수</value>
+  </data>
+  <data name="WH.LocMap.Title" xml:space="preserve">
+    <value>위치 맵</value>
+  </data>
+  <data name="WH.LocMap.Detail" xml:space="preserve">
+    <value>위치 상세</value>
+  </data>
+  <data name="WH.LocMap.Locations" xml:space="preserve">
+    <value>개 위치</value>
+  </data>
+  <data name="WH.LocMap.Qty" xml:space="preserve">
+    <value>수량</value>
+  </data>
+  <data name="WH.LocMap.ChangeFloor" xml:space="preserve">
+    <value>층 변경</value>
+  </data>
+  <data name="WH.LocMap.Legend.Empty" xml:space="preserve">
+    <value>비어 있음</value>
+  </data>
+  <data name="WH.LocMap.Legend.Stocked" xml:space="preserve">
+    <value>적재</value>
+  </data>
+  <data name="WH.LocMap.Lbl.Items" xml:space="preserve">
+    <value>품번 수</value>
+  </data>
+  <data name="WH.LocMap.EmptyLocation" xml:space="preserve">
+    <value>이 위치는 비어 있습니다.</value>
+  </data>
+  <data name="WH.LocMap.NoLocations" xml:space="preserve">
+    <value>이 층에 위치가 없습니다.</value>
+  </data>
+  <data name="WH.Picking.Title" xml:space="preserve">
+    <value>피킹 지시</value>
+  </data>
+  <data name="WH.Picking.CreateSlip" xml:space="preserve">
+    <value>피킹 전표 생성</value>
+  </data>
+  <data name="WH.Picking.MaterialReq" xml:space="preserve">
+    <value>자재 소요</value>
+  </data>
+  <data name="WH.Picking.SelectedLines" xml:space="preserve">
+    <value>선택한 라인</value>
+  </data>
+  <data name="WH.Picking.CreatedSlips" xml:space="preserve">
+    <value>생성된 피킹 전표</value>
+  </data>
+  <data name="WH.Picking.Detail" xml:space="preserve">
+    <value>피킹 전표 상세</value>
+  </data>
+  <data name="WH.Picking.IncludeClosed" xml:space="preserve">
+    <value>종결 포함</value>
+  </data>
+  <data name="WH.Picking.NoCandidates" xml:space="preserve">
+    <value>자재 후보가 없습니다.</value>
+  </data>
+  <data name="WH.Picking.SelectHint" xml:space="preserve">
+    <value>피킹 전표를 만들 자재 라인을 선택하세요.</value>
+  </data>
+  <data name="WH.Picking.Empty" xml:space="preserve">
+    <value>피킹 전표가 없습니다.</value>
+  </data>
+  <data name="WH.Picking.EmptyLines" xml:space="preserve">
+    <value>이 피킹 전표에 라인이 없습니다.</value>
+  </data>
+  <data name="WH.Picking.Lbl.RequestDate" xml:space="preserve">
+    <value>요청일</value>
+  </data>
+  <data name="WH.Picking.Ph.AllLines" xml:space="preserve">
+    <value>전체 라인</value>
+  </data>
+  <data name="WH.Picking.Ph.Part" xml:space="preserve">
+    <value>품번 또는 품명</value>
+  </data>
+  <data name="WH.Picking.Ph.Search" xml:space="preserve">
+    <value>전표 번호, 품번, 위치</value>
+  </data>
+  <data name="WH.Picking.Col.ReqDate" xml:space="preserve">
+    <value>요청일</value>
+  </data>
+  <data name="WH.Picking.Col.LineName" xml:space="preserve">
+    <value>라인명</value>
+  </data>
+  <data name="WH.Picking.Col.ReqBoxQty" xml:space="preserve">
+    <value>요청 박스 수</value>
+  </data>
+  <data name="WH.Picking.Col.SlipNo" xml:space="preserve">
+    <value>피킹 전표 번호</value>
+  </data>
+  <data name="WH.Picking.Col.ReqLocation" xml:space="preserve">
+    <value>요청 위치</value>
+  </data>
+  <data name="WH.Picking.Col.Loc1" xml:space="preserve">
+    <value>위치 #1</value>
+  </data>
+  <data name="WH.Picking.Col.Loc2" xml:space="preserve">
+    <value>위치 #2</value>
+  </data>
+  <data name="WH.Picking.Col.Loc3" xml:space="preserve">
+    <value>위치 #3</value>
+  </data>
+  <data name="WH.Picking.Btn.CloseSlip" xml:space="preserve">
+    <value>종결</value>
+  </data>
+  <data name="WH.Picking.Btn.ClosePreview" xml:space="preserve">
+    <value>미리보기 닫기</value>
+  </data>
+  <data name="WH.Picking.Err.NoLines" xml:space="preserve">
+    <value>피킹 전표를 만들려면 자재 라인을 하나 이상 추가하세요.</value>
+  </data>
+  <data name="WH.Picking.Ok.Created" xml:space="preserve">
+    <value>피킹 전표 {0} 을(를) 생성했습니다.</value>
+  </data>
+  <data name="WH.Picking.Ok.Closed" xml:space="preserve">
+    <value>피킹 전표 {0} 을(를) 종결했습니다.</value>
+  </data>
+  <data name="WH.Picking.Confirm.Close" xml:space="preserve">
+    <value>피킹 전표 {0} 을(를) 종결할까요? 이 화면에서는 다시 열 수 없습니다.</value>
+  </data>
+  <data name="Auth.Title.SignIn" xml:space="preserve">
+    <value>로그인</value>
+  </data>
+  <data name="Auth.Title.Register" xml:space="preserve">
+    <value>가입</value>
+  </data>
+  <data name="Auth.Title.Forgot" xml:space="preserve">
+    <value>비밀번호 찾기</value>
+  </data>
+  <data name="Auth.Title.Reset" xml:space="preserve">
+    <value>비밀번호 재설정</value>
+  </data>
+  <data name="Auth.Title.Lockout" xml:space="preserve">
+    <value>계정 잠김</value>
+  </data>
+  <data name="Auth.Title.AccessDenied" xml:space="preserve">
+    <value>접근 거부</value>
+  </data>
+  <data name="Auth.Sub.SignIn" xml:space="preserve">
+    <value>로그인</value>
+  </data>
+  <data name="Auth.Sub.Register" xml:space="preserve">
+    <value>가입</value>
+  </data>
+  <data name="Auth.Sub.ResetPassword" xml:space="preserve">
+    <value>비밀번호 재설정</value>
+  </data>
+  <data name="Auth.Sub.Lockout" xml:space="preserve">
+    <value>계정 잠김</value>
+  </data>
+  <data name="Auth.Sub.AccessDenied" xml:space="preserve">
+    <value>접근 거부</value>
+  </data>
+  <data name="Auth.Lbl.Email" xml:space="preserve">
+    <value>이메일</value>
+  </data>
+  <data name="Auth.Lbl.Password" xml:space="preserve">
+    <value>비밀번호</value>
+  </data>
+  <data name="Auth.Lbl.ConfirmPassword" xml:space="preserve">
+    <value>비밀번호 확인</value>
+  </data>
+  <data name="Auth.Lbl.NewPassword" xml:space="preserve">
+    <value>새 비밀번호</value>
+  </data>
+  <data name="Auth.Remember" xml:space="preserve">
+    <value>이 브라우저 기억 (ID 저장)</value>
+  </data>
+  <data name="Auth.ForgotLink" xml:space="preserve">
+    <value>비밀번호를 잊으셨나요?</value>
+  </data>
+  <data name="Auth.RegisterLink" xml:space="preserve">
+    <value>가입</value>
+  </data>
+  <data name="Auth.DevAccount" xml:space="preserve">
+    <value>개발 계정</value>
+  </data>
+  <data name="Auth.BackToSignIn" xml:space="preserve">
+    <value>로그인으로 돌아가기</value>
+  </data>
+  <data name="Auth.GoSignIn" xml:space="preserve">
+    <value>로그인하기</value>
+  </data>
+  <data name="Auth.GoHome" xml:space="preserve">
+    <value>홈으로</value>
+  </data>
+  <data name="Auth.CheckMailbox" xml:space="preserve">
+    <value>메일함에서 인증 링크를 확인해 주세요.</value>
+  </data>
+  <data name="Auth.Btn.SignIn" xml:space="preserve">
+    <value>로그인</value>
+  </data>
+  <data name="Auth.Btn.CreateAccount" xml:space="preserve">
+    <value>계정 만들기</value>
+  </data>
+  <data name="Auth.Btn.ConfirmEmail" xml:space="preserve">
+    <value>이메일 인증하기</value>
+  </data>
+  <data name="Auth.Btn.SendResetLink" xml:space="preserve">
+    <value>재설정 링크 보내기</value>
+  </data>
+  <data name="Auth.Btn.ResetPassword" xml:space="preserve">
+    <value>비밀번호 재설정</value>
+  </data>
+  <data name="Auth.Err.Locked" xml:space="preserve">
+    <value>계정이 잠겨 있습니다. 관리자에게 문의하세요.</value>
+  </data>
+  <data name="Auth.Err.LockedAfter5" xml:space="preserve">
+    <value>5회 실패로 계정이 잠겼습니다. 관리자에게 문의하세요.</value>
+  </data>
+  <data name="Auth.Err.EmailNotConfirmed" xml:space="preserve">
+    <value>이메일 인증을 먼저 완료해 주세요.</value>
+  </data>
+  <data name="Auth.Err.Pending" xml:space="preserve">
+    <value>관리자 승인 대기중입니다. 승인 후 로그인할 수 있습니다.</value>
+  </data>
+  <data name="Auth.Err.Invalid" xml:space="preserve">
+    <value>이메일 또는 비밀번호가 올바르지 않습니다.</value>
+  </data>
+  <data name="Auth.Err.UserNotFound" xml:space="preserve">
+    <value>해당 이메일의 사용자를 찾을 수 없습니다.</value>
+  </data>
+  <data name="Auth.Register.Accepted" xml:space="preserve">
+    <value>가입 신청이 접수되었습니다.</value>
+  </data>
+  <data name="Auth.Register.Steps" xml:space="preserve">
+    <value>① &lt;b&gt;이메일 인증&lt;/b&gt; 후 ② &lt;b&gt;관리자 승인&lt;/b&gt;이 되면 로그인할 수 있습니다.</value>
+  </data>
+  <data name="Auth.Register.DevHint" xml:space="preserve">
+    <value>개발 환경: 실제 메일이 발송되지 않아 위 버튼으로 인증합니다.</value>
+  </data>
+  <data name="Auth.RegisterConf.Accepted" xml:space="preserve">
+    <value>가입이 접수되었습니다. 아래 버튼으로 이메일을 인증하세요.</value>
+  </data>
+  <data name="Auth.RegisterConf.DevHint" xml:space="preserve">
+    <value>개발 환경: 실제 메일이 발송되지 않습니다.</value>
+  </data>
+  <data name="Auth.Forgot.Hint" xml:space="preserve">
+    <value>가입한 이메일을 입력하면 재설정 링크를 보냅니다.</value>
+  </data>
+  <data name="Auth.Forgot.CheckMail" xml:space="preserve">
+    <value>비밀번호 재설정 안내 메일을 확인해 주세요.</value>
+  </data>
+  <data name="Auth.Reset.Done" xml:space="preserve">
+    <value>비밀번호가 재설정되었습니다.</value>
+  </data>
+  <data name="Auth.Lockout.Msg" xml:space="preserve">
+    <value>계정이 잠겼습니다. 잠시 후 다시 시도해 주세요.</value>
+  </data>
+  <data name="Auth.AccessDenied.Msg" xml:space="preserve">
+    <value>이 리소스에 접근 권한이 없습니다.</value>
+  </data>
 </root>

@@ -2,38 +2,39 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.FinishedGoodsRepository Fg
+@inject IStringLocalizer<SharedResources> L
 @using Radzen
 
-<PageTitle>History - AMES</PageTitle>
-<AmesPageHeader Code="FG-005" Title="History" />
+<PageTitle>FG-005 @L["FG.History.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="FG-005" TitleKey="FG.History.Title" />
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">Events</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">Put Away</div><div class="ames-kpi-v">@Count("PUT AWAY")</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">Loading</div><div class="ames-kpi-v">@Count("LOADING")</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">Shipped</div><div class="ames-kpi-v">@Count("SHIPPED")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.History.Kpi.Events"]</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["FG.History.Kpi.PutAway"]</div><div class="ames-kpi-v">@Count("PUT AWAY")</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["FG.History.Kpi.Loading"]</div><div class="ames-kpi-v">@Count("LOADING")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.History.Kpi.Shipped"]</div><div class="ames-kpi-v">@Count("SHIPPED")</div></div>
 </div>
 @if (!string.IsNullOrWhiteSpace(_message)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_message</RadzenAlert> }
 <div class="ames-card">
-    <div class="ames-card-h master-list-toolbar"><span>▼ Operation History · @_rows.Count item(s)</span><RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap"><RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:210px;" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' /><RadzenDropDown @bind-Value="_eventType" Data="@EventTypes" AllowClear="true" Placeholder="Event" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" /><RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="From" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" /><RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="To" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" /><RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" /><RadzenButton Text="Clear" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Clear" class="ames-rz-btn" /></RadzenStack></div>
-    <RadzenDataGrid TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Data="@_rows" AllowPaging="true" PageSize="25" PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true" ShowPagingSummary="true" EmptyText="No operation history found." PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+    <div class="ames-card-h master-list-toolbar"><span>▼ @L["FG.History.List"] · @_rows.Count @L["Lbl.Items"]</span><RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap"><RadzenTextBox @bind-Value="_search" Placeholder="@L["Btn.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:210px;" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' /><RadzenDropDown @bind-Value="_eventType" Data="@EventTypes" AllowClear="true" Placeholder="@L["Col.Event"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" /><RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="@L["Col.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" /><RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" /><RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" /><RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Clear" class="ames-rz-btn" /></RadzenStack></div>
+    <RadzenDataGrid TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Data="@_rows" AllowPaging="true" PageSize="25" PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["FG.History.Empty"].Value" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="EventAt" Title="Date / Time" Width="155px"><Template Context="r">@r.EventAt.ToString("yyyy-MM-dd HH:mm")</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="EventType" Title="Event" Width="125px"><Template Context="r"><span class="pill @EventClass(r.EventType)">@r.EventType</span></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="ReferenceNo" Title="Reference" Width="155px"><Template Context="r"><span class="code">@(r.ReferenceNo ?? "-")</span></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="ItemOrOrder" Title="Item / Order" Width="150px" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="Qty" Title="Qty" Width="85px" TextAlign="TextAlign.Right"><Template Context="r">@(r.Qty == 0 ? "-" : r.Qty.ToString("N0"))</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="Location" Title="Location / Dock" Width="125px" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="WorkerId" Title="Worker" Width="150px" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="Status" Title="Status" Width="110px" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="Details" Title="Details" Width="300px" />
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="EventAt" Title="@L["Col.DateTime"].Value" Width="155px"><Template Context="r">@r.EventAt.ToString("yyyy-MM-dd HH:mm")</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="EventType" Title="@L["Col.Event"].Value" Width="125px"><Template Context="r"><span class="pill @EventClass(r.EventType)">@r.EventType</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="ReferenceNo" Title="@L["Col.Reference"].Value" Width="155px"><Template Context="r"><span class="code">@(r.ReferenceNo ?? "-")</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="ItemOrOrder" Title="@L["FG.History.Col.ItemOrOrder"].Value" Width="150px" />
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="Qty" Title="@L["Col.Qty"].Value" Width="85px" TextAlign="TextAlign.Right"><Template Context="r">@(r.Qty == 0 ? "-" : r.Qty.ToString("N0"))</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="Location" Title="@L["FG.History.Col.LocationDock"].Value" Width="125px" />
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="WorkerId" Title="@L["Col.Worker"].Value" Width="150px" />
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="Status" Title="@L["Col.Status"].Value" Width="110px" />
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="Details" Title="@L["Col.Details"].Value" Width="300px" />
         </Columns>
     </RadzenDataGrid>
 </div>
 @code {
     List<AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow> _rows = new(); readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 }; int _pageRows = 25; string _search = "", _message = ""; string? _eventType; DateTime? _from = DbClock.Today.AddMonths(-1), _to = DbClock.Today; string[] EventTypes = ["PUT AWAY", "PICK", "LOADING", "SHIPPED", "DELIVERY NOTE", "RETURN"];
     protected override void OnInitialized() => Reload();
-    void Reload() { if (_from > _to) { _message = "From date cannot be later than To date."; return; } try { _rows = Fg.ListHistory(_search, _eventType, _from, _to); _message = ""; } catch (Exception ex) { _rows = new(); _message = ex.Message; } }
+    void Reload() { if (_from > _to) { _message = L["Err.DateRange"]; return; } try { _rows = Fg.ListHistory(_search, _eventType, _from, _to); _message = ""; } catch (Exception ex) { _rows = new(); _message = ex.Message; } }
     void Clear() { _search = ""; _eventType = null; _from = DbClock.Today.AddMonths(-1); _to = DbClock.Today; Reload(); }
     int Count(string type) => _rows.Count(x => x.EventType == type);
     static string EventClass(string type) => type switch { "PUT AWAY" => "ok", "LOADING" => "warn", "SHIPPED" => "ok", "RETURN" => "bad", _ => "mute" };

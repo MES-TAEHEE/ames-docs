@@ -1,39 +1,40 @@
+@inject IStringLocalizer<SharedResources> L
 <div class="inventory-lookup">
     <div class="ames-kpis">
-        <div class="ames-kpi"><div class="ames-kpi-l">Parts</div><div class="ames-kpi-v">@SummaryRows.Count</div></div>
-        <div class="ames-kpi ok"><div class="ames-kpi-l">Quantity</div><div class="ames-kpi-v">@FilteredInventory.Sum(x => x.Qty).ToString("N0")</div></div>
-        <div class="ames-kpi warn"><div class="ames-kpi-l">Locations</div><div class="ames-kpi-v">@FilteredInventory.Select(x => x.LocationNo).Distinct(StringComparer.OrdinalIgnoreCase).Count()</div></div>
-        <div class="ames-kpi"><div class="ames-kpi-l">Lots</div><div class="ames-kpi-v">@FilteredInventory.Select(x => x.LotNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count()</div></div>
+        <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.Inventory.Kpi.Parts"]</div><div class="ames-kpi-v">@SummaryRows.Count</div></div>
+        <div class="ames-kpi ok"><div class="ames-kpi-l">@L["Col.Quantity"]</div><div class="ames-kpi-v">@FilteredInventory.Sum(x => x.Qty).ToString("N0")</div></div>
+        <div class="ames-kpi warn"><div class="ames-kpi-l">@L["Col.Locations"]</div><div class="ames-kpi-v">@FilteredInventory.Select(x => x.LocationNo).Distinct(StringComparer.OrdinalIgnoreCase).Count()</div></div>
+        <div class="ames-kpi"><div class="ames-kpi-l">@L["Col.Lots"]</div><div class="ames-kpi-v">@FilteredInventory.Select(x => x.LotNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count()</div></div>
     </div>
 
     <section class="ames-card inventory-summary-panel">
         <div class="ames-card-h master-list-toolbar">
-            <span>▼ Inventory by Part · @SummaryRows.Count item(s)</span>
+            <span>▼ @L["WH.Inventory.List"] · @SummaryRows.Count @L["Lbl.Items"]</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-                <RadzenTextBox Name="@SearchId" @bind-Value="_query" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" AutoComplete="false" @onkeydown="HandleKey" />
-                <RadzenLabel Text="Warehouse" Component="InventoryWarehouse" />
-                <RadzenDropDown Name="InventoryWarehouse" Value="@_warehouse" Change="ChangeWarehouse" Data="@WarehouseOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" Placeholder="All Warehouses" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
-                <RadzenLabel Text="Area" Component="InventoryArea" />
-                <RadzenDropDown Name="InventoryArea" Value="@_area" Change="ChangeArea" Data="@AreaOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" Placeholder="All Areas" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
-                <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Search" class="ames-rz-btn" />
-                <RadzenButton Text="Clear" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reset" class="ames-rz-btn" />
+                <RadzenTextBox Name="@SearchId" @bind-Value="_query" Placeholder="@L["Btn.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" AutoComplete="false" @onkeydown="HandleKey" />
+                <RadzenLabel Text="@L["Col.Warehouse"].Value" Component="InventoryWarehouse" />
+                <RadzenDropDown Name="InventoryWarehouse" Value="@_warehouse" Change="ChangeWarehouse" Data="@WarehouseOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" Placeholder="@L["WH.Inventory.Ph.AllWarehouses"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
+                <RadzenLabel Text="@L["Col.Area"].Value" Component="InventoryArea" />
+                <RadzenDropDown Name="InventoryArea" Value="@_area" Change="ChangeArea" Data="@AreaOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" Placeholder="@L["WH.Inventory.Ph.AllAreas"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+                <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Search" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reset" class="ames-rz-btn" />
             </RadzenStack>
         </div>
 
         <RadzenDataGrid TItem="SummaryRow" Data="@SummaryRows" AllowPaging="true" PageSize="25"
                         PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center"
-                        ShowPagingSummary="true" AllowSorting="true" RowSelect="SelectPartRow"
-                        SelectionMode="DataGridSelectionMode.Single" EmptyText="No inventory found."
+                        ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" AllowSorting="true" RowSelect="SelectPartRow"
+                        SelectionMode="DataGridSelectionMode.Single" EmptyText="@L["WH.Inventory.Empty"].Value"
                         PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
                         Class="ames-rz-grid ames-grid-fixed inventory-summary-grid">
             <Columns>
-                <RadzenDataGridColumn TItem="SummaryRow" Property="PartNo" Title="Part No" TextAlign="TextAlign.Center" Width="160px"><Template Context="r"><span class="code">@r.PartNo</span></Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SummaryRow" Property="PartName" Title="Part Name" />
-                <RadzenDataGridColumn TItem="SummaryRow" Title="Status" TextAlign="TextAlign.Center" Width="110px" Sortable="false"><Template Context="r"><span class="pill ok">Available</span></Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SummaryRow" Property="Unit" Title="Unit" TextAlign="TextAlign.Center" Width="80px"><Template Context="r"><span class="code dim">@r.Unit</span></Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SummaryRow" Property="Qty" Title="Total Qty" TextAlign="TextAlign.Right" Width="110px"><Template Context="r">@r.Qty.ToString("N0")</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SummaryRow" Property="LocationCount" Title="Locations" TextAlign="TextAlign.Right" Width="105px" />
-                <RadzenDataGridColumn TItem="SummaryRow" Property="LotCount" Title="Lots" TextAlign="TextAlign.Right" Width="85px" />
+                <RadzenDataGridColumn TItem="SummaryRow" Property="PartNo" Title="@L["Col.ItemNo"].Value" TextAlign="TextAlign.Center" Width="160px"><Template Context="r"><span class="code">@r.PartNo</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" Property="PartName" Title="@L["Col.ItemName"].Value" />
+                <RadzenDataGridColumn TItem="SummaryRow" Title="@L["Col.Status"].Value" TextAlign="TextAlign.Center" Width="110px" Sortable="false"><Template Context="r"><span class="pill ok">@L["WH.Inventory.Available"]</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" Property="Unit" Title="@L["Col.Unit"].Value" TextAlign="TextAlign.Center" Width="80px"><Template Context="r"><span class="code dim">@r.Unit</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" Property="Qty" Title="@L["Col.TotalQty"].Value" TextAlign="TextAlign.Right" Width="110px"><Template Context="r">@r.Qty.ToString("N0")</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" Property="LocationCount" Title="@L["Col.Locations"].Value" TextAlign="TextAlign.Right" Width="105px" />
+                <RadzenDataGridColumn TItem="SummaryRow" Property="LotCount" Title="@L["Col.Lots"].Value" TextAlign="TextAlign.Right" Width="85px" />
             </Columns>
         </RadzenDataGrid>
     </section>
@@ -45,7 +46,7 @@
             <aside class="inventory-detail-drawer" role="dialog" aria-modal="true" aria-label="Inventory detail" @onclick:stopPropagation="true">
                 <header class="inventory-drawer-header">
                     <div>
-                        <span>INVENTORY DETAIL</span>
+                        <span>@L["WH.Inventory.Detail"]</span>
                         <strong>@SelectedSummary.PartNo</strong>
                         <small>@SelectedSummary.PartName</small>
                     </div>
@@ -53,14 +54,14 @@
                 </header>
 
                 <div class="inventory-drawer-summary">
-                    <div><span>TOTAL QTY</span><strong>@SelectedSummary.Qty.ToString("N0") @SelectedSummary.Unit</strong></div>
-                    <div><span>LOCATIONS</span><strong>@SelectedSummary.LocationCount</strong></div>
-                    <div><span>LOTS</span><strong>@SelectedSummary.LotCount</strong></div>
+                    <div><span>@L["WH.Inventory.Lbl.TotalQty"]</span><strong>@SelectedSummary.Qty.ToString("N0") @SelectedSummary.Unit</strong></div>
+                    <div><span>@L["WH.Inventory.Lbl.Locations"]</span><strong>@SelectedSummary.LocationCount</strong></div>
+                    <div><span>@L["WH.Inventory.Lbl.Lots"]</span><strong>@SelectedSummary.LotCount</strong></div>
                 </div>
 
                 <div class="inventory-drawer-table-wrap">
                     <table class="inventory-lookup-table inventory-drawer-table">
-                        <thead><tr><th>Location</th><th>Floor</th><th>Lot No</th><th>Qty</th></tr></thead>
+                        <thead><tr><th>@L["Col.Location"]</th><th>@L["Col.Floor"]</th><th>@L["Col.LotNo"]</th><th>@L["Col.Qty"]</th></tr></thead>
                         <tbody>
                             @foreach (var row in DetailRows)
                             {

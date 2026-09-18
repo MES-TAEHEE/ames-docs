@@ -8286,4 +8286,466 @@
   <data name="PP.Calendar.Err.PinLocked" xml:space="preserve">
     <value>PIN entered incorrectly 5 times. Reopen the screen and try again.</value>
   </data>
+  <data name="Grid.Empty" xml:space="preserve">
+    <value>No records to display.</value>
+  </data>
+  <data name="Lbl.Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Err.DateRange" xml:space="preserve">
+    <value>From date cannot be later than To date.</value>
+  </data>
+  <data name="Btn.Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Btn.Print" xml:space="preserve">
+    <value>Print</value>
+  </data>
+  <data name="Btn.Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Btn.Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Col.Worker" xml:space="preserve">
+    <value>Worker</value>
+  </data>
+  <data name="Col.Floor" xml:space="preserve">
+    <value>Floor</value>
+  </data>
+  <data name="Col.Area" xml:space="preserve">
+    <value>Area</value>
+  </data>
+  <data name="Col.Warehouse" xml:space="preserve">
+    <value>Warehouse</value>
+  </data>
+  <data name="Col.Detail" xml:space="preserve">
+    <value>Detail</value>
+  </data>
+  <data name="Col.Details" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="Col.Unit" xml:space="preserve">
+    <value>Unit</value>
+  </data>
+  <data name="Col.Time" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="Col.Location" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="Col.Locations" xml:space="preserve">
+    <value>Locations</value>
+  </data>
+  <data name="Col.Lots" xml:space="preserve">
+    <value>Lots</value>
+  </data>
+  <data name="Col.No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Col.LineCode" xml:space="preserve">
+    <value>Line Code</value>
+  </data>
+  <data name="Col.Quantity" xml:space="preserve">
+    <value>Quantity</value>
+  </data>
+  <data name="Col.TotalQty" xml:space="preserve">
+    <value>Total Qty</value>
+  </data>
+  <data name="Col.Event" xml:space="preserve">
+    <value>Event</value>
+  </data>
+  <data name="Col.Reference" xml:space="preserve">
+    <value>Reference</value>
+  </data>
+  <data name="Col.DateTime" xml:space="preserve">
+    <value>Date / Time</value>
+  </data>
+  <data name="FG.Returns.Title" xml:space="preserve">
+    <value>Customer Returns</value>
+  </data>
+  <data name="FG.Returns.Detail" xml:space="preserve">
+    <value>Return Detail</value>
+  </data>
+  <data name="FG.Returns.Empty" xml:space="preserve">
+    <value>No customer return history found.</value>
+  </data>
+  <data name="FG.Returns.ViewDetails" xml:space="preserve">
+    <value>View details</value>
+  </data>
+  <data name="FG.Returns.Kpi.Returns" xml:space="preserve">
+    <value>Returns</value>
+  </data>
+  <data name="FG.Returns.Kpi.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="FG.Returns.Kpi.Inspecting" xml:space="preserve">
+    <value>Inspecting</value>
+  </data>
+  <data name="FG.Returns.Kpi.Closed" xml:space="preserve">
+    <value>Closed</value>
+  </data>
+  <data name="FG.Returns.Col.Received" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="FG.Returns.Col.ReturnNo" xml:space="preserve">
+    <value>Return No</value>
+  </data>
+  <data name="FG.Returns.Col.OrigShipment" xml:space="preserve">
+    <value>Original Shipment</value>
+  </data>
+  <data name="FG.Returns.Col.ReceivedBy" xml:space="preserve">
+    <value>Received By</value>
+  </data>
+  <data name="FG.Returns.Lbl.RmaNo" xml:space="preserve">
+    <value>RMA No</value>
+  </data>
+  <data name="FG.Returns.Lbl.CustomerPo" xml:space="preserve">
+    <value>Customer PO</value>
+  </data>
+  <data name="FG.Returns.Lbl.ReturnReason" xml:space="preserve">
+    <value>Return Reason</value>
+  </data>
+  <data name="FG.Returns.Lbl.Capa" xml:space="preserve">
+    <value>CAPA Triggered</value>
+  </data>
+  <data name="FG.Returns.Lbl.ReturnedItems" xml:space="preserve">
+    <value>RETURNED ITEMS</value>
+  </data>
+  <data name="FG.History.Title" xml:space="preserve">
+    <value>History</value>
+  </data>
+  <data name="FG.History.List" xml:space="preserve">
+    <value>Operation History</value>
+  </data>
+  <data name="FG.History.Empty" xml:space="preserve">
+    <value>No operation history found.</value>
+  </data>
+  <data name="FG.History.Kpi.Events" xml:space="preserve">
+    <value>Events</value>
+  </data>
+  <data name="FG.History.Kpi.PutAway" xml:space="preserve">
+    <value>Put Away</value>
+  </data>
+  <data name="FG.History.Kpi.Loading" xml:space="preserve">
+    <value>Loading</value>
+  </data>
+  <data name="FG.History.Kpi.Shipped" xml:space="preserve">
+    <value>Shipped</value>
+  </data>
+  <data name="FG.History.Col.ItemOrOrder" xml:space="preserve">
+    <value>Item / Order</value>
+  </data>
+  <data name="FG.History.Col.LocationDock" xml:space="preserve">
+    <value>Location / Dock</value>
+  </data>
+  <data name="WH.LogHistory.Title" xml:space="preserve">
+    <value>Inventory History</value>
+  </data>
+  <data name="WH.LogHistory.List" xml:space="preserve">
+    <value>Inventory Activity</value>
+  </data>
+  <data name="WH.LogHistory.Empty" xml:space="preserve">
+    <value>No inventory activity found.</value>
+  </data>
+  <data name="WH.LogHistory.Kpi.Events" xml:space="preserve">
+    <value>Events</value>
+  </data>
+  <data name="WH.LogHistory.Kpi.Inbound" xml:space="preserve">
+    <value>Inbound</value>
+  </data>
+  <data name="WH.LogHistory.Kpi.Outbound" xml:space="preserve">
+    <value>Outbound</value>
+  </data>
+  <data name="WH.LogHistory.Kpi.Adjustments" xml:space="preserve">
+    <value>Adjustments</value>
+  </data>
+  <data name="WH.LogHistory.Ph.ActivityType" xml:space="preserve">
+    <value>Activity Type</value>
+  </data>
+  <data name="WH.LogHistory.Col.LotPart" xml:space="preserve">
+    <value>LOT / Part</value>
+  </data>
+  <data name="WH.Inventory.Title" xml:space="preserve">
+    <value>Inventory Search</value>
+  </data>
+  <data name="WH.Inventory.List" xml:space="preserve">
+    <value>Inventory by Part</value>
+  </data>
+  <data name="WH.Inventory.Empty" xml:space="preserve">
+    <value>No inventory found.</value>
+  </data>
+  <data name="WH.Inventory.Available" xml:space="preserve">
+    <value>Available</value>
+  </data>
+  <data name="WH.Inventory.Detail" xml:space="preserve">
+    <value>INVENTORY DETAIL</value>
+  </data>
+  <data name="WH.Inventory.Kpi.Parts" xml:space="preserve">
+    <value>Parts</value>
+  </data>
+  <data name="WH.Inventory.Ph.AllWarehouses" xml:space="preserve">
+    <value>All Warehouses</value>
+  </data>
+  <data name="WH.Inventory.Ph.AllAreas" xml:space="preserve">
+    <value>All Areas</value>
+  </data>
+  <data name="WH.Inventory.Lbl.TotalQty" xml:space="preserve">
+    <value>TOTAL QTY</value>
+  </data>
+  <data name="WH.Inventory.Lbl.Locations" xml:space="preserve">
+    <value>LOCATIONS</value>
+  </data>
+  <data name="WH.Inventory.Lbl.Lots" xml:space="preserve">
+    <value>LOTS</value>
+  </data>
+  <data name="WH.LocMap.Title" xml:space="preserve">
+    <value>Location Map</value>
+  </data>
+  <data name="WH.LocMap.Detail" xml:space="preserve">
+    <value>LOCATION DETAIL</value>
+  </data>
+  <data name="WH.LocMap.Locations" xml:space="preserve">
+    <value>locations</value>
+  </data>
+  <data name="WH.LocMap.Qty" xml:space="preserve">
+    <value>QTY</value>
+  </data>
+  <data name="WH.LocMap.ChangeFloor" xml:space="preserve">
+    <value>Change Floor</value>
+  </data>
+  <data name="WH.LocMap.Legend.Empty" xml:space="preserve">
+    <value>Empty</value>
+  </data>
+  <data name="WH.LocMap.Legend.Stocked" xml:space="preserve">
+    <value>Stocked</value>
+  </data>
+  <data name="WH.LocMap.Lbl.Items" xml:space="preserve">
+    <value>ITEMS</value>
+  </data>
+  <data name="WH.LocMap.EmptyLocation" xml:space="preserve">
+    <value>This location is empty.</value>
+  </data>
+  <data name="WH.LocMap.NoLocations" xml:space="preserve">
+    <value>No locations found on this floor.</value>
+  </data>
+  <data name="WH.Picking.Title" xml:space="preserve">
+    <value>Picking Orders</value>
+  </data>
+  <data name="WH.Picking.CreateSlip" xml:space="preserve">
+    <value>Create Picking Slip</value>
+  </data>
+  <data name="WH.Picking.MaterialReq" xml:space="preserve">
+    <value>Material Requirement</value>
+  </data>
+  <data name="WH.Picking.SelectedLines" xml:space="preserve">
+    <value>Selected Lines</value>
+  </data>
+  <data name="WH.Picking.CreatedSlips" xml:space="preserve">
+    <value>Created Pick Slips</value>
+  </data>
+  <data name="WH.Picking.Detail" xml:space="preserve">
+    <value>Pick Slip Detail</value>
+  </data>
+  <data name="WH.Picking.IncludeClosed" xml:space="preserve">
+    <value>Include closed</value>
+  </data>
+  <data name="WH.Picking.NoCandidates" xml:space="preserve">
+    <value>No material candidates found.</value>
+  </data>
+  <data name="WH.Picking.SelectHint" xml:space="preserve">
+    <value>Select material lines to create a Pick Slip.</value>
+  </data>
+  <data name="WH.Picking.Empty" xml:space="preserve">
+    <value>No Pick Slips found.</value>
+  </data>
+  <data name="WH.Picking.EmptyLines" xml:space="preserve">
+    <value>No lines found for this Pick Slip.</value>
+  </data>
+  <data name="WH.Picking.Lbl.RequestDate" xml:space="preserve">
+    <value>Request Date</value>
+  </data>
+  <data name="WH.Picking.Ph.AllLines" xml:space="preserve">
+    <value>All lines</value>
+  </data>
+  <data name="WH.Picking.Ph.Part" xml:space="preserve">
+    <value>Part No or name</value>
+  </data>
+  <data name="WH.Picking.Ph.Search" xml:space="preserve">
+    <value>Pick slip, part, location</value>
+  </data>
+  <data name="WH.Picking.Col.ReqDate" xml:space="preserve">
+    <value>Req Date</value>
+  </data>
+  <data name="WH.Picking.Col.LineName" xml:space="preserve">
+    <value>Line Name</value>
+  </data>
+  <data name="WH.Picking.Col.ReqBoxQty" xml:space="preserve">
+    <value>Req Box Qty</value>
+  </data>
+  <data name="WH.Picking.Col.SlipNo" xml:space="preserve">
+    <value>Pick Slip No</value>
+  </data>
+  <data name="WH.Picking.Col.ReqLocation" xml:space="preserve">
+    <value>Req Location</value>
+  </data>
+  <data name="WH.Picking.Col.Loc1" xml:space="preserve">
+    <value>Location #1</value>
+  </data>
+  <data name="WH.Picking.Col.Loc2" xml:space="preserve">
+    <value>Location #2</value>
+  </data>
+  <data name="WH.Picking.Col.Loc3" xml:space="preserve">
+    <value>Location #3</value>
+  </data>
+  <data name="WH.Picking.Btn.CloseSlip" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="WH.Picking.Btn.ClosePreview" xml:space="preserve">
+    <value>Close Preview</value>
+  </data>
+  <data name="WH.Picking.Err.NoLines" xml:space="preserve">
+    <value>Add at least one material line before creating a Pick Slip.</value>
+  </data>
+  <data name="WH.Picking.Ok.Created" xml:space="preserve">
+    <value>Pick Slip {0} created.</value>
+  </data>
+  <data name="WH.Picking.Ok.Closed" xml:space="preserve">
+    <value>Pick Slip {0} closed.</value>
+  </data>
+  <data name="WH.Picking.Confirm.Close" xml:space="preserve">
+    <value>Close Pick Slip {0}? This cannot be reopened from this screen.</value>
+  </data>
+  <data name="Auth.Title.SignIn" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="Auth.Title.Register" xml:space="preserve">
+    <value>Register</value>
+  </data>
+  <data name="Auth.Title.Forgot" xml:space="preserve">
+    <value>Forgot password</value>
+  </data>
+  <data name="Auth.Title.Reset" xml:space="preserve">
+    <value>Reset password</value>
+  </data>
+  <data name="Auth.Title.Lockout" xml:space="preserve">
+    <value>Locked out</value>
+  </data>
+  <data name="Auth.Title.AccessDenied" xml:space="preserve">
+    <value>Access denied</value>
+  </data>
+  <data name="Auth.Sub.SignIn" xml:space="preserve">
+    <value>SIGN IN</value>
+  </data>
+  <data name="Auth.Sub.Register" xml:space="preserve">
+    <value>REGISTER</value>
+  </data>
+  <data name="Auth.Sub.ResetPassword" xml:space="preserve">
+    <value>RESET PASSWORD</value>
+  </data>
+  <data name="Auth.Sub.Lockout" xml:space="preserve">
+    <value>LOCKED OUT</value>
+  </data>
+  <data name="Auth.Sub.AccessDenied" xml:space="preserve">
+    <value>ACCESS DENIED</value>
+  </data>
+  <data name="Auth.Lbl.Email" xml:space="preserve">
+    <value>EMAIL</value>
+  </data>
+  <data name="Auth.Lbl.Password" xml:space="preserve">
+    <value>PASSWORD</value>
+  </data>
+  <data name="Auth.Lbl.ConfirmPassword" xml:space="preserve">
+    <value>CONFIRM PASSWORD</value>
+  </data>
+  <data name="Auth.Lbl.NewPassword" xml:space="preserve">
+    <value>NEW PASSWORD</value>
+  </data>
+  <data name="Auth.Remember" xml:space="preserve">
+    <value>Remember this browser</value>
+  </data>
+  <data name="Auth.ForgotLink" xml:space="preserve">
+    <value>Forgot password?</value>
+  </data>
+  <data name="Auth.RegisterLink" xml:space="preserve">
+    <value>Register</value>
+  </data>
+  <data name="Auth.DevAccount" xml:space="preserve">
+    <value>Dev account</value>
+  </data>
+  <data name="Auth.BackToSignIn" xml:space="preserve">
+    <value>Back to sign in</value>
+  </data>
+  <data name="Auth.GoSignIn" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="Auth.GoHome" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Auth.CheckMailbox" xml:space="preserve">
+    <value>Check your mailbox for the verification link.</value>
+  </data>
+  <data name="Auth.Btn.SignIn" xml:space="preserve">
+    <value>SIGN IN</value>
+  </data>
+  <data name="Auth.Btn.CreateAccount" xml:space="preserve">
+    <value>CREATE ACCOUNT</value>
+  </data>
+  <data name="Auth.Btn.ConfirmEmail" xml:space="preserve">
+    <value>Verify email</value>
+  </data>
+  <data name="Auth.Btn.SendResetLink" xml:space="preserve">
+    <value>SEND RESET LINK</value>
+  </data>
+  <data name="Auth.Btn.ResetPassword" xml:space="preserve">
+    <value>RESET PASSWORD</value>
+  </data>
+  <data name="Auth.Err.Locked" xml:space="preserve">
+    <value>Account is locked. Contact your administrator.</value>
+  </data>
+  <data name="Auth.Err.LockedAfter5" xml:space="preserve">
+    <value>Account locked after 5 failed attempts. Contact your administrator.</value>
+  </data>
+  <data name="Auth.Err.EmailNotConfirmed" xml:space="preserve">
+    <value>Please verify your email first.</value>
+  </data>
+  <data name="Auth.Err.Pending" xml:space="preserve">
+    <value>Waiting for administrator approval. You can sign in once approved.</value>
+  </data>
+  <data name="Auth.Err.Invalid" xml:space="preserve">
+    <value>Invalid email or password.</value>
+  </data>
+  <data name="Auth.Err.UserNotFound" xml:space="preserve">
+    <value>User not found for the given email.</value>
+  </data>
+  <data name="Auth.Register.Accepted" xml:space="preserve">
+    <value>Your registration has been received.</value>
+  </data>
+  <data name="Auth.Register.Steps" xml:space="preserve">
+    <value>You can sign in after ① &lt;b&gt;email verification&lt;/b&gt; and ② &lt;b&gt;administrator approval&lt;/b&gt;.</value>
+  </data>
+  <data name="Auth.Register.DevHint" xml:space="preserve">
+    <value>Dev environment: no mail is sent, so verify with the button above.</value>
+  </data>
+  <data name="Auth.RegisterConf.Accepted" xml:space="preserve">
+    <value>Registration received. Verify your email with the button below.</value>
+  </data>
+  <data name="Auth.RegisterConf.DevHint" xml:space="preserve">
+    <value>Dev environment: no mail is actually sent.</value>
+  </data>
+  <data name="Auth.Forgot.Hint" xml:space="preserve">
+    <value>Enter your registered email and we will send a reset link.</value>
+  </data>
+  <data name="Auth.Forgot.CheckMail" xml:space="preserve">
+    <value>Check your mailbox for the password reset mail.</value>
+  </data>
+  <data name="Auth.Reset.Done" xml:space="preserve">
+    <value>Your password has been reset.</value>
+  </data>
+  <data name="Auth.Lockout.Msg" xml:space="preserve">
+    <value>This account is locked. Please try again later.</value>
+  </data>
+  <data name="Auth.AccessDenied.Msg" xml:space="preserve">
+    <value>You do not have access to this resource.</value>
+  </data>
 </root>

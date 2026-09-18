@@ -63,7 +63,7 @@
 else
 {
     <RadzenDataGrid Data="_view" TItem="PpRepository.PlanLineRow" AllowVirtualization="true" Style="height:100%"
-                    AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
+                    AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact"
                     class="ames-rz-grid">
         <Columns>
             @* 선택은 WO 일괄 생성에만 쓰이므로 E 권한이 없으면 열 자체를 내린다 *@

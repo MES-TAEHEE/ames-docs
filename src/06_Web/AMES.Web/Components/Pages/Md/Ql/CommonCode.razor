@@ -61,7 +61,7 @@
                 }
             </div>
             <div style="flex:1;min-height:0;overflow:hidden;">
-            <RadzenDataGrid @ref="_grpGrid" TItem="MasterDataRepository.CodeGroupRow" Data="_groups" AllowPaging="true" PageSize="GrpPageSize" PagerHorizontalAlign="HorizontalAlign.Center"
+            <RadzenDataGrid @ref="_grpGrid" TItem="MasterDataRepository.CodeGroupRow" Data="_groups" AllowPaging="true" EmptyText="@L["Grid.Empty"].Value" PageSize="GrpPageSize" PagerHorizontalAlign="HorizontalAlign.Center"
                             ShowPagingSummary="false" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" Page="OnGrpPage" RowRender="GrpRowRender" RowSelect="OnGroupRowSelect" Class="ames-rz-grid ames-grid-fill">
                 <Columns>
                     <RadzenDataGridColumn Property="GroupCode" Title='@L["Col.GroupCode"]' Width="160px">
@@ -113,7 +113,7 @@
                     }
                 </div>
                 <div style="flex:1;min-height:0;overflow:auto;">
-                <RadzenDataGrid TItem="MasterDataRepository.CodeItemRow" Data="_items" AllowPaging="false"
+                <RadzenDataGrid TItem="MasterDataRepository.CodeItemRow" Data="_items" AllowPaging="false" EmptyText="@L["Grid.Empty"].Value"
                                 RowRender="ItemRowRender" RowSelect="OpenItemEdit" Class="ames-rz-grid">
                     <Columns>
                         <RadzenDataGridColumn Property="SortOrder" Title='@L["Col.Seq"]' Width="60px" TextAlign="TextAlign.Right">

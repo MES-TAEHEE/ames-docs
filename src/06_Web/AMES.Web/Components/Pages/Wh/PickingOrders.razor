@@ -6,12 +6,13 @@
 @inject AMES.Web.Services.PermissionService PermSvc
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject IStringLocalizer<SharedResources> L
 @using System.Text
 @using AMES.Data.Repositories
 @using Radzen
 
-<PageTitle>Picking Orders - AMES</PageTitle>
-<AmesPageHeader Code="WH-002" Title="Picking Orders" />
+<PageTitle>WH-002 @L["WH.Picking.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="WH-002" TitleKey="WH.Picking.Title" />
 
 @if (!string.IsNullOrWhiteSpace(_msg))
 {
@@ -21,52 +22,52 @@
 <div class="wh-pick-workspace">
     <div class="ames-card wh-pick-create">
         <div class="ames-card-h wh-pick-card-head">
-            <span>Create Picking Slip</span>
-            <RadzenButton Text="Create" Icon="add" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+            <span>@L["WH.Picking.CreateSlip"]</span>
+            <RadzenButton Text="@L["Btn.Create"].Value" Icon="add" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
                           Click="@CreateSlipAsync" Disabled="@(_busy || !_canEdit)" class="ames-rz-btn" />
         </div>
 
         <div class="wh-pick-form">
             <div class="ames-fld">
-                <label>Request Date</label>
+                <label>@L["WH.Picking.Lbl.RequestDate"]</label>
                 <RadzenDatePicker @bind-Value="_reqDate" DateFormat="yyyy-MM-dd"
                                   Change="@(_ => LoadCandidates())"
                                   InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </div>
             <div class="ames-fld">
-                <label>Line Code</label>
+                <label>@L["Col.LineCode"]</label>
                 <RadzenDropDown @bind-Value="_lineCode"
                                 Data="@_lineOptions"
                                 TextProperty="Text"
                                 ValueProperty="Value"
                                 AllowFiltering="true"
                                 AllowClear="true"
-                                Placeholder="All lines"
+                                Placeholder="@L["WH.Picking.Ph.AllLines"].Value"
                                 Change="@(_ => LoadCandidates())"
                                 InputSize="InputSize.Small"
                                 class="ames-rz-input"
                                 Style="width:100%;" />
             </div>
             <div class="ames-fld">
-                <label>Part No</label>
+                <label>@L["Col.ItemNo"]</label>
                 <RadzenTextBox @bind-Value="_candidateSearch" AutoComplete="false"
-                               Placeholder="Part No or name"
+                               Placeholder="@L["WH.Picking.Ph.Part"].Value"
                                @onkeydown='e => { if (e.Key == "Enter") LoadCandidates(); }'
                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </div>
         </div>
 
         <div class="wh-pick-section-title">
-            <span>Material Requirement</span>
+            <span>@L["WH.Picking.MaterialReq"]</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem">
-                <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small"
+                <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small"
                               Click="@LoadCandidates" class="ames-rz-btn" />
             </RadzenStack>
         </div>
 
         @if (_candidates.Count == 0)
         {
-            <div class="ames-empty">No material candidates found.</div>
+            <div class="ames-empty">@L["WH.Picking.NoCandidates"]</div>
         }
         else
         {
@@ -75,12 +76,12 @@
                     <table class="ames-table wh-pick-split-table">
                         <thead>
                             <tr>
-                                <th style="width:115px;">Req Date</th>
-                                <th style="width:105px;">Line Code</th>
-                                <th style="width:120px;">Line Name</th>
-                                <th style="width:150px;">Part No</th>
-                                <th>Part Name</th>
-                                <th style="width:90px;">Req Box Qty</th>
+                                <th style="width:115px;">@L["WH.Picking.Col.ReqDate"]</th>
+                                <th style="width:105px;">@L["Col.LineCode"]</th>
+                                <th style="width:120px;">@L["WH.Picking.Col.LineName"]</th>
+                                <th style="width:150px;">@L["Col.ItemNo"]</th>
+                                <th>@L["Col.ItemName"]</th>
+                                <th style="width:90px;">@L["WH.Picking.Col.ReqBoxQty"]</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -99,11 +100,11 @@
                     </table>
                 </div>
                 <div class="wh-pick-action-rail wh-pick-add-rail">
-                    <div class="wh-pick-action-head">Add</div>
+                    <div class="wh-pick-action-head">@L["Btn.Add"]</div>
                     @foreach (var candidate in _candidates)
                     {
                         <div class="wh-pick-action-row">
-                            <RadzenButton Text="Add" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall"
+                            <RadzenButton Text="@L["Btn.Add"].Value" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall"
                                           Click="@(() => AddCandidate(candidate))" Disabled="@(!_canEdit)" aria-label="Add to Pick Slip" class="ames-rz-btn" />
                         </div>
                     }
@@ -113,12 +114,12 @@
 
         <div class="wh-pick-selected">
             <div class="wh-pick-section-title">
-                <span>Selected Lines</span>
+                <span>@L["WH.Picking.SelectedLines"]</span>
                 <span class="dim">@_createLines.Count item(s)</span>
             </div>
             @if (_createLines.Count == 0)
             {
-                <div class="ames-empty">Select material lines to create a Pick Slip.</div>
+                <div class="ames-empty">@L["WH.Picking.SelectHint"]</div>
             }
             else
             {
@@ -127,11 +128,11 @@
                     <table class="ames-table wh-pick-split-table wh-pick-selected-table">
                         <thead>
                             <tr>
-                                <th style="width:115px;">Line Code</th>
-                                <th style="width:135px;">Line Name</th>
-                                <th style="width:155px;">Part No</th>
-                                <th>Part Name</th>
-                                <th style="width:95px;">Req Box Qty</th>
+                                <th style="width:115px;">@L["Col.LineCode"]</th>
+                                <th style="width:135px;">@L["WH.Picking.Col.LineName"]</th>
+                                <th style="width:155px;">@L["Col.ItemNo"]</th>
+                                <th>@L["Col.ItemName"]</th>
+                                <th style="width:95px;">@L["WH.Picking.Col.ReqBoxQty"]</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -149,11 +150,11 @@
                     </table>
                     </div>
                     <div class="wh-pick-action-rail wh-pick-remove-rail">
-                        <div class="wh-pick-action-head">Remove</div>
+                        <div class="wh-pick-action-head">@L["Btn.Remove"]</div>
                         @foreach (var line in _createLines)
                         {
                             <div class="wh-pick-action-row">
-                                <RadzenButton Text="Remove" Icon="close" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall"
+                                <RadzenButton Text="@L["Btn.Remove"].Value" Icon="close" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall"
                                               Click="@(() => RemoveLine(line))" Disabled="@(!_canEdit)" aria-label="Remove line" class="ames-rz-btn" />
                             </div>
                         }
@@ -165,16 +166,16 @@
 
     <div class="ames-card wh-pick-list">
         <div class="ames-card-h wh-pick-card-head">
-            <span>Created Pick Slips</span>
+            <span>@L["WH.Picking.CreatedSlips"]</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem" Wrap="FlexWrap.Wrap">
-                <RadzenTextBox @bind-Value="_search" Placeholder="Pick slip, part, location"
+                <RadzenTextBox @bind-Value="_search" Placeholder="@L["WH.Picking.Ph.Search"].Value"
                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px;"
                                AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
                 <label class="wh-check">
                     <RadzenCheckBox TValue="bool" @bind-Value="_includeClosed" Change="@(_ => Reload())" />
-                    Include closed
+                    @L["WH.Picking.IncludeClosed"]
                 </label>
-                <RadzenButton Text="Refresh" Icon="refresh" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small"
+                <RadzenButton Text="@L["Btn.Refresh"].Value" Icon="refresh" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small"
                               Click="@Reload" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -182,23 +183,23 @@
         <RadzenDataGrid TItem="WarehouseRepository.PickingSlipHeaderRow"
                         Data="@_slips"
                         RowSelect="@SelectSlip"
-                        AllowPaging="true"
+                        AllowPaging="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
                         PageSize="10"
                         AllowSorting="true"
-                        EmptyText="No Pick Slips found."
+                        EmptyText="@L["WH.Picking.Empty"].Value"
                         Class="ames-rz-grid wh-pick-slip-grid">
             <Columns>
-                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipHeaderRow" Property="PickSlipNo" Title="Pick Slip No" Width="145px">
+                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipHeaderRow" Property="PickSlipNo" Title="@L["WH.Picking.Col.SlipNo"].Value" Width="145px">
                     <Template Context="r"><span class="code">@r.PickSlipNo</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipHeaderRow" Property="ReqDate" Title="Req Date" Width="112px" />
-                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipHeaderRow" Property="ReqLocation" Title="Req Location" Width="130px">
+                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipHeaderRow" Property="ReqDate" Title="@L["WH.Picking.Col.ReqDate"].Value" Width="112px" />
+                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipHeaderRow" Property="ReqLocation" Title="@L["WH.Picking.Col.ReqLocation"].Value" Width="130px">
                     <Template Context="r"><span class="pill info">@(r.ReqLocation ?? "-")</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipHeaderRow" Property="ReqBoxQty" Title="Requested" Width="105px" TextAlign="TextAlign.Right">
+                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipHeaderRow" Property="ReqBoxQty" Title="@L["Col.Requested"].Value" Width="105px" TextAlign="TextAlign.Right">
                     <Template Context="r">@Qty(r.ReqBoxQty)</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipHeaderRow" Property="Status" Title="Status" Width="95px" TextAlign="TextAlign.Center">
+                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipHeaderRow" Property="Status" Title="@L["Col.Status"].Value" Width="95px" TextAlign="TextAlign.Center">
                     <Template Context="r"><span class="pill @StatusClass(r.Status)">@r.Status</span></Template>
                 </RadzenDataGridColumn>
             </Columns>
@@ -210,13 +211,13 @@
 {
     <div class="ames-card">
         <div class="ames-card-h wh-pick-card-head">
-            <span>Pick Slip Detail - @_selectedSlip.PickSlipNo</span>
+            <span>@L["WH.Picking.Detail"] - @_selectedSlip.PickSlipNo</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem">
-                <RadzenButton Text="Print" Icon="print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small"
+                <RadzenButton Text="@L["Btn.Print"].Value" Icon="print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small"
                               Click="@PrintSelectedAsync" Disabled="@(_busy || !_canEdit)" class="ames-rz-btn" />
-                <RadzenButton Text="Close" Icon="task_alt" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                <RadzenButton Text="@L["WH.Picking.Btn.CloseSlip"].Value" Icon="task_alt" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
                               Click="@CloseSelectedAsync" Disabled="@(_busy || !_canEdit || IsSelectedSlipClosed)" class="ames-rz-btn" />
-                <RadzenButton Text="Close Preview" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small"
+                <RadzenButton Text="@L["WH.Picking.Btn.ClosePreview"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small"
                               Click="@ClearSelection" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -225,28 +226,28 @@
                         Data="@_selectedLines"
                         AllowPaging="false"
                         AllowSorting="true"
-                        EmptyText="No lines found for this Pick Slip."
+                        EmptyText="@L["WH.Picking.EmptyLines"].Value"
                         Class="ames-rz-grid">
             <Columns>
-                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Property="SeqNo" Title="No" Width="60px" TextAlign="TextAlign.Right" />
-                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Property="PartNo" Title="Part No" Width="145px">
+                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Property="SeqNo" Title="@L["Col.No"].Value" Width="60px" TextAlign="TextAlign.Right" />
+                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Property="PartNo" Title="@L["Col.ItemNo"].Value" Width="145px">
                     <Template Context="r"><span class="code">@r.PartNo</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Property="PartName" Title="Part Name" />
-                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Property="LineCode" Title="Line Code" Width="105px">
+                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Property="PartName" Title="@L["Col.ItemName"].Value" />
+                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Property="LineCode" Title="@L["Col.LineCode"].Value" Width="105px">
                     <Template Context="r"><span class="code">@r.LineCode</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Property="LineName" Title="Line Name" Width="165px" />
-                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Property="ReqBoxQty" Title="Req Box Qty" Width="115px" TextAlign="TextAlign.Right">
+                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Property="LineName" Title="@L["WH.Picking.Col.LineName"].Value" Width="165px" />
+                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Property="ReqBoxQty" Title="@L["WH.Picking.Col.ReqBoxQty"].Value" Width="115px" TextAlign="TextAlign.Right">
                     <Template Context="r">@Qty(r.ReqBoxQty)</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Title="Location #1" Width="135px">
+                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Title="@L["WH.Picking.Col.Loc1"].Value" Width="135px">
                     <Template Context="r">@LocDisplay(r.Loc01, r.Loc01Qty, shortageWhenBlank: true)</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Title="Location #2" Width="135px">
+                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Title="@L["WH.Picking.Col.Loc2"].Value" Width="135px">
                     <Template Context="r">@LocDisplay(r.Loc02, r.Loc02Qty)</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Title="Location #3" Width="135px">
+                <RadzenDataGridColumn TItem="WarehouseRepository.PickingSlipLineRow" Title="@L["WH.Picking.Col.Loc3"].Value" Width="135px">
                     <Template Context="r">@LocDisplay(r.Loc03, r.Loc03Qty)</Template>
                 </RadzenDataGridColumn>
             </Columns>
@@ -433,7 +434,7 @@
         if (_busy || !_canEdit) return;
         if (_createLines.Count == 0)
         {
-            ShowMsg("Add at least one material line before creating a Pick Slip.", true);
+            ShowMsg(L["WH.Picking.Err.NoLines"], true);
             return;
         }
 
@@ -460,7 +461,7 @@
             Reload();
             var created = _slips.FirstOrDefault(s => s.PickSlipNo == slipNo);
             if (created is not null) SelectSlip(created);
-            ShowMsg($"Pick Slip {slipNo} created.", false);
+            ShowMsg(string.Format(L["WH.Picking.Ok.Created"].Value, slipNo), false);
         }
         catch (Exception ex)
         {
@@ -518,7 +519,7 @@
     async Task CloseSelectedAsync()
     {
         if (_selectedSlip is null || _busy || !_canEdit || _selectedSlip.Status == "Closed") return;
-        var proceed = await JS.InvokeAsync<bool>("confirm", $"Close Pick Slip {_selectedSlip.PickSlipNo}? This cannot be reopened from this screen.");
+        var proceed = await JS.InvokeAsync<bool>("confirm", string.Format(L["WH.Picking.Confirm.Close"].Value, _selectedSlip.PickSlipNo));
         if (!proceed) return;
 
         _busy = true;
@@ -526,7 +527,7 @@
         {
             Wh.ClosePickingSlip(_selectedSlip.PickSlipNo, _actor);
             Reload();
-            ShowMsg($"Pick Slip {_selectedSlip.PickSlipNo} closed.", false);
+            ShowMsg(string.Format(L["WH.Picking.Ok.Closed"].Value, _selectedSlip.PickSlipNo), false);
         }
         catch (Exception ex)
         {

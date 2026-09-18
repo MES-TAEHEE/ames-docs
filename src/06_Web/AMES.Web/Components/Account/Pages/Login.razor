@@ -10,8 +10,9 @@
 @inject UserManager<ApplicationUser> UserMgr
 @inject AMES.Data.Repositories.AuthRepository AuthRepo
 @inject ILogger<Login> Logger
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>Sign in · A-MES</PageTitle>
+<PageTitle>@L["Auth.Title.SignIn"] · A-MES</PageTitle>
 
 <div class="ames-auth-page">
     <div class="ames-auth-bg-grid"></div>
@@ -19,7 +20,7 @@
     <div class="ames-auth-card">
         <div class="ames-auth-brand">
             <div class="ames-auth-logo">A-MES</div>
-            <div class="ames-auth-sub">OFFICE WEB · SIGN IN</div>
+            <div class="ames-auth-sub">OFFICE WEB · @L["Auth.Sub.SignIn"]</div>
         </div>
 
         @if (!string.IsNullOrEmpty(errorMessage))
@@ -31,32 +32,32 @@
                   class="ames-auth-form" Enhance="false">
             <DataAnnotationsValidator />
 
-            <label class="ames-auth-label">EMAIL</label>
+            <label class="ames-auth-label">@L["Auth.Lbl.Email"]</label>
             <InputText @bind-Value="Input.Email" class="ames-auth-input"
                        autocomplete="username" placeholder="admin@ames.local" />
             <ValidationMessage For="() => Input.Email" class="ames-auth-vm" />
 
-            <label class="ames-auth-label">PASSWORD</label>
+            <label class="ames-auth-label">@L["Auth.Lbl.Password"]</label>
             <InputText type="password" @bind-Value="Input.Password" class="ames-auth-input"
                        autocomplete="current-password" placeholder="••••••••" />
             <ValidationMessage For="() => Input.Password" class="ames-auth-vm" />
 
             <label class="ames-auth-remember">
                 <InputCheckbox @bind-Value="Input.RememberMe" />
-                <span>Remember this browser</span>
+                <span>@L["Auth.Remember"]</span>
             </label>
 
-            <button type="submit" class="ames-auth-submit">SIGN IN  →</button>
+            <button type="submit" class="ames-auth-submit">@L["Auth.Btn.SignIn"]  →</button>
         </EditForm>
 
         <div class="ames-auth-hint">
-            Dev account: <code>admin@ames.local</code> / <code>Dev2026!</code>
+            @L["Auth.DevAccount"]: <code>admin@ames.local</code> / <code>Dev2026!</code>
         </div>
 
         <div class="ames-auth-meta">
-            <a href="Account/ForgotPassword">Forgot password?</a>
+            <a href="Account/ForgotPassword">@L["Auth.ForgotLink"]</a>
             <span>·</span>
-            <a href="/Account/Register@(string.IsNullOrEmpty(ReturnUrl) ? "" : $"?ReturnUrl={Uri.EscapeDataString(ReturnUrl)}")">Register</a>
+            <a href="/Account/Register@(string.IsNullOrEmpty(ReturnUrl) ? "" : $"?ReturnUrl={Uri.EscapeDataString(ReturnUrl)}")">@L["Auth.RegisterLink"]</a>
         </div>
     </div>
 
@@ -104,19 +105,19 @@
             var (accountStatus, _) = AuthRepo.GetProfileStatus(identityUser.Id);
             if (string.Equals(accountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase))
             {
-                errorMessage = "Account is locked. Contact your administrator.";
+                errorMessage = L["Auth.Err.Locked"];
                 return;
             }
             // ① 이메일 자기인증 완료 여부
             if (!identityUser.EmailConfirmed)
             {
-                errorMessage = "이메일 인증을 먼저 완료해 주세요.";
+                errorMessage = L["Auth.Err.EmailNotConfirmed"];
                 return;
             }
             // ② 관리자 승인(ACTIVE) 여부. 프로필 없음=Active 취급, 자기가입 직후 PENDING 은 승인 대기.
             if (!string.Equals(accountStatus, "ACTIVE", StringComparison.OrdinalIgnoreCase))
             {
-                errorMessage = "관리자 승인 대기중입니다. 승인 후 로그인할 수 있습니다.";
+                errorMessage = L["Auth.Err.Pending"];
                 return;
             }
         }
@@ -167,7 +168,7 @@
         else if (result.IsLockedOut)
             HttpContext.Response.Redirect("/Account/Lockout");
         else if (result.IsNotAllowed)
-            errorMessage = "이메일 인증이 필요합니다.";
+            errorMessage = L["Auth.Err.EmailNotConfirmed"];
         else
         {
             // Increment domain failed counter; lock account on the 5th failure.
@@ -176,11 +177,11 @@
                 var isNowLocked = AuthRepo.IncrementFailedCount(identityUser.Id);
                 if (isNowLocked)
                 {
-                    errorMessage = "Account locked after 5 failed attempts. Contact your administrator.";
+                    errorMessage = L["Auth.Err.LockedAfter5"];
                     return;
                 }
             }
-            errorMessage = "Invalid email or password.";
+            errorMessage = L["Auth.Err.Invalid"];
         }
     }
 
