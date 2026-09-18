@@ -113,7 +113,7 @@ appcmd set apppool "AMES.Web" /processModel.loadUserProfile:true /processModel.s
 ```
 
 끄면 Data Protection이 ephemeral 키를 써서 **앱풀 재활용마다 로그인 사용자가 전원 로그아웃**된다.
-`dist/setup-iis.ps1`에는 이 두 설정이 빠져 있다.
+`dist/setup-iis.ps1` 이 이 두 설정과 Data Protection 키 폴더(앱풀 계정 Modify)를 같이 구성한다(09-19). 이미 운영 중인 서버는 `dist\setup-iis.ps1 -ConfigOnly [-PoolName …]`(관리자) — 게시·사이트 경로·바인딩·런타임/계정 설정·`iisreset` 은 건드리지 않고 두 설정 + 키 폴더 권한만 적용한 뒤 그 앱풀만 재활용한다. 옵션 없이 돌리면 `C:\inetpub\ames-web`·포트 5000 으로 **게시하고 사이트 경로·바인딩을 바꾸므로** 기존 서버에서는 반드시 `-ConfigOnly` 를 쓴다.
 
 **09-18 부터 AMES.Web 은 이 설정에 기대지 않는다** — `Program.cs` 가 키를 `%ProgramData%\AMES\DataProtection-Keys\AMES.Web`(설정 `DataProtection:KeyPath` 로 변경 가능)에 두고 머신 범위 DPAPI 로 암호화한다. 배포 폴더 안에 두지 않는 이유는 `publish-web.ps1` 의 `robocopy /MIR` 가 게시 때마다 지우기 때문이다. 폴더를 못 만들거나 쓰기 권한이 없으면 기동은 계속하고 경고 로그(`Data Protection key folder … is not writable`)만 남긴 채 프레임워크 기본 동작으로 돌아가므로, 그 경우에만 위 앱풀 설정이 다시 필요하다. 키는 서버마다 따로 생기며, 이 버전을 처음 올릴 때는 키가 바뀌어 **로그인 사용자가 한 번 전원 로그아웃**된다.
 
