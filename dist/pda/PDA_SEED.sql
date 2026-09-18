@@ -93,6 +93,41 @@ BEGIN
 END;
 GO
 
+-- PTEST / 0000: normal PDA operator, without scenario panels or admin rights.
+-- BEGIN PTEST ACCOUNT
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+DECLARE @PtestUserId nvarchar(450) =
+    (SELECT Id FROM dbo.AspNetUsers WHERE NormalizedUserName = N'PTEST');
+DECLARE @PtestPinHash nvarchar(200) = N'AQAAAAEAACcQAAAAEJFoD5NntyEZN/tZd1NHiMZtqlIJPCqGlrClvFmOcSGzPWghpal/Q1PscOkb3c9kyQ==';
+IF @PtestUserId IS NULL
+BEGIN
+    SET @PtestUserId = CONVERT(nvarchar(36), NEWID());
+    INSERT INTO dbo.AspNetUsers
+        (Id, UserName, NormalizedUserName, PasswordHash, SecurityStamp, ConcurrencyStamp,
+         EmailConfirmed, PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnabled, AccessFailedCount)
+    VALUES
+        (@PtestUserId, N'PTEST', N'PTEST', @PtestPinHash, CONVERT(nvarchar(36), NEWID()),
+         CONVERT(nvarchar(36), NEWID()), 0, 0, 0, 1, 0);
+END;
+IF EXISTS (SELECT 1 FROM dbo.SYS_UserProfile WHERE EmployeeNo = 'PTEST' AND (UserID IS NULL OR UserID <> @PtestUserId))
+    THROW 50000, 'PTEST employee number belongs to a different profile.', 1;
+IF NOT EXISTS (SELECT 1 FROM dbo.SYS_UserProfile WHERE EmployeeNo = 'PTEST')
+    INSERT INTO dbo.SYS_UserProfile
+        (UserID, EmployeeNo, EmployeeName, Department, PlantCode, DefaultShift,
+         AssignedLines, PinHash, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
+    VALUES
+        (@PtestUserId, 'PTEST', N'PDA Operator Test', 'QA', 'SEH-US-01', 'DAY',
+         NULL, @PtestPinHash, 'Active', 0, 'pda-seed', SYSDATETIME());
+DECLARE @PtestRoleId nvarchar(450) = (SELECT Id FROM dbo.AspNetRoles WHERE NormalizedName = N'OPERATOR');
+IF @PtestRoleId IS NULL
+    THROW 50000, 'Operator role is required for PTEST.', 1;
+IF NOT EXISTS (SELECT 1 FROM dbo.AspNetUserRoles WHERE UserId = @PtestUserId AND RoleId = @PtestRoleId)
+    INSERT INTO dbo.AspNetUserRoles (UserId, RoleId) VALUES (@PtestUserId, @PtestRoleId);
+COMMIT;
+-- END PTEST ACCOUNT
+GO
+
 -- =====================================================================
 --  WH / FG common codes used by the PDA
 -- =====================================================================
