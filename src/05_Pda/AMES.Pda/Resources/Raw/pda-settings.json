@@ -1,5 +1,5 @@
 {
-  "apiBaseUrl": "http://127.0.0.1:5210",
+  "apiBaseUrl": "http://192.168.1.51:5210",
   "terminalId": "PDA-DEV-01",
   "lineId": "LINE-INJ-01",
   "shiftCode": "A"
