@@ -12,6 +12,11 @@
     <PackageReference Include="Xunit.SkippableFact" Version="1.4.13" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\SparePartLabel.cs" Link="Pda\SparePartLabel.cs" />
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\SparePartValidation.cs" Link="Pda\SparePartValidation.cs" />
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\SparePartPrinter.cs" Link="Pda\SparePartPrinter.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\AMES.InjAgent\AMES.InjAgent.csproj" />
     <ProjectReference Include="..\..\01_Shared\AMES.Devices\AMES.Devices.csproj" />
     <ProjectReference Include="..\..\02_Data\AMES.Data\AMES.Data.csproj" />

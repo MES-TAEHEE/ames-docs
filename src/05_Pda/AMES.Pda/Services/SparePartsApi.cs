@@ -7,6 +7,11 @@ public sealed class SparePartsApi(HttpClient http, AuthState auth) : PdaApi(http
 {
     public const string AreaCode = SparePartsAreaCode;
 
+    public Task<List<SparePartRow>> MastersAsync(string? query = null)
+        => GetRequiredAsync<List<SparePartRow>>(
+            "/api/wh/sp/master" + (string.IsNullOrWhiteSpace(query) ? "" : $"?q={Uri.EscapeDataString(query.Trim())}"),
+            "Spare part master service is unavailable.");
+
     public Task<List<InventoryRow>> InventoryAsync(string? query = null)
         => GetRequiredAsync<List<InventoryRow>>(
             "/api/wh/sp/inventory" + (string.IsNullOrWhiteSpace(query) ? "" : $"?q={Uri.EscapeDataString(query.Trim())}"),

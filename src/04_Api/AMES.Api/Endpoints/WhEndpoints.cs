@@ -286,6 +286,14 @@ public static class WhEndpoints
 
         g.MapGet("/sp/item", GetSparePart);
 
+        g.MapGet("/sp/master", (HttpContext ctx, string? q) =>
+            ctx.GetSession() is null ? Results.Unauthorized()
+                : Results.Ok(QuerySpareParts(factory, search: q)))
+            .WithSummary("List active spare part masters for PDA label printing")
+            .WithDescription("Includes zero-stock parts. QR labels encode EosSpNo, which is accepted by /api/wh/sp/item for Inbound and Release.")
+            .Produces<List<SparePartRow>>()
+            .Produces(StatusCodes.Status401Unauthorized);
+
         IResult MoveSparePart(HttpContext ctx, SparePartMoveReq body, string moveType)
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
@@ -1849,17 +1857,18 @@ public static class WhEndpoints
     }
 
     private static SparePartRow? QuerySparePart(AmesConnectionFactory factory, string eosSpNo)
-    {
-        var normalized = eosSpNo?.Trim() ?? "";
-        if (normalized.Length == 0) return null;
+        => string.IsNullOrWhiteSpace(eosSpNo) ? null : QuerySpareParts(factory, eosSpNo.Trim()).FirstOrDefault();
 
+    private static List<SparePartRow> QuerySpareParts(AmesConnectionFactory factory, string? eosSpNo = null, string? search = null)
+    {
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("""
             SELECT
                 P.SparePartNo AS EosSpNo,
                 COALESCE(C.CodeNameEn, C.CodeName, P.Category) AS Category,
                 COALESCE(E.CodeNameEn, E.CodeName, P.ApplicableEquip) AS ApplicableEquipment,
-                P.PartName, P.PartNo, P.Maker, P.SparePartImage,
+                P.PartName, P.PartNo, P.Maker,
+                CASE WHEN @EosSpNo IS NOT NULL THEN P.SparePartImage END AS SparePartImage,
                 COALESCE(V.VendorName, P.SupplierID) AS Vendor,
                 P.OnHandQty AS Qty, COALESCE(P.UOM, 'EA') AS Unit,
                 L.LocationID AS StorageLocation, L.AreaCode,
@@ -1874,21 +1883,29 @@ public static class WhEndpoints
               ON L.AreaCode = 'SPARE_PARTS_AREA'
              AND L.ZoneCode = P.ZoneCode
              AND COALESCE(L.Slot, '') = COALESCE(P.Slot, '')
-            WHERE UPPER(P.SparePartNo) = UPPER(@EosSpNo)
-              AND COALESCE(P.ActiveFlag,1) = 1;
+            WHERE (@EosSpNo IS NULL OR UPPER(P.SparePartNo) = UPPER(@EosSpNo))
+              AND COALESCE(P.ActiveFlag,1) = 1
+              AND (@Search = '' OR P.SparePartNo LIKE '%' + @Search + '%'
+                   OR P.PartNo LIKE '%' + @Search + '%' OR P.PartName LIKE '%' + @Search + '%'
+                   OR P.Maker LIKE '%' + @Search + '%' OR L.LocationID LIKE '%' + @Search + '%')
+            ORDER BY P.SparePartNo, L.LocationID;
             """, conn);
-        cmd.Parameters.AddWithValue("@EosSpNo", normalized);
+        cmd.Parameters.Add("@EosSpNo", SqlDbType.VarChar, 80).Value = (object?)eosSpNo ?? DBNull.Value;
+        cmd.Parameters.Add("@Search", SqlDbType.NVarChar, 120).Value = search?.Trim() ?? "";
         using var rdr = cmd.ExecuteReader();
-        if (!rdr.Read()) return null;
-
-        var qty = GetDecimal(rdr, "Qty");
-        return new SparePartRow(
-            GetString(rdr, "EosSpNo") ?? normalized,
-            GetString(rdr, "Category"), GetString(rdr, "ApplicableEquipment"),
-            GetString(rdr, "PartName"), GetString(rdr, "PartNo"), GetString(rdr, "Maker"),
-            GetString(rdr, "Vendor"), qty, GetString(rdr, "Unit"), GetString(rdr, "StorageLocation"),
-            GetString(rdr, "AreaCode"), GetString(rdr, "InventoryStatus") ?? "OUT OF STOCK", qty > 0,
-            GetImageDataUrl(rdr, "SparePartImage"));
+        var rows = new List<SparePartRow>();
+        while (rdr.Read())
+        {
+            var qty = GetDecimal(rdr, "Qty");
+            rows.Add(new SparePartRow(
+                GetString(rdr, "EosSpNo") ?? "",
+                GetString(rdr, "Category"), GetString(rdr, "ApplicableEquipment"),
+                GetString(rdr, "PartName"), GetString(rdr, "PartNo"), GetString(rdr, "Maker"),
+                GetString(rdr, "Vendor"), qty, GetString(rdr, "Unit"), GetString(rdr, "StorageLocation"),
+                GetString(rdr, "AreaCode"), GetString(rdr, "InventoryStatus") ?? "OUT OF STOCK", qty > 0,
+                GetImageDataUrl(rdr, "SparePartImage")));
+        }
+        return rows;
     }
 
     private static List<InventoryRow> QuerySparePartInventory(AmesConnectionFactory factory, string? search)
