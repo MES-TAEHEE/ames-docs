@@ -8,6 +8,8 @@
         <RootNamespace>AMES.Pda</RootNamespace>
         <UseMaui>true</UseMaui>
         <SingleProject>true</SingleProject>
+        <!-- Standalone adb installs must include current code, not depend on a device's fast-deploy cache. -->
+        <EmbedAssembliesIntoApk Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">true</EmbedAssembliesIntoApk>
         <ImplicitUsings>enable</ImplicitUsings>
         <EnableDefaultCssItems>false</EnableDefaultCssItems>
         <Nullable>enable</Nullable>
