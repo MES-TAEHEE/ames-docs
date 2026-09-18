@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-018 @L["MD.Location.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-018" TitleKey="MD.Location.Title" />
@@ -62,7 +63,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.LocationRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Location.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Location.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="LocationID" Title="@L["Col.LocationId"]" TextAlign="TextAlign.Center" Width="140px">
                 <Template Context="r"><span class="code">@r.LocationID</span></Template>
@@ -447,6 +448,7 @@
             MD.InsertLocation(_f.LocationID.Trim(), NE(_f.LocationName), _f.WhCode, _f.AreaCode, NE(_f.ZoneCode),
                 NE(_f.Aisle), NE(_f.Bay), NE(_f.Slot),
                 _f.Capacity, NE(_f.LocationType), NE(_f.PlantCode), _f.ActiveFlag, _actor);
+            Audit.Created("MD-018", "MD_Location", _f.LocationID.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Location.Ok.Created"].Value, _f.LocationID.Trim()), false);
         }
@@ -463,6 +465,7 @@
             MD.UpdateLocation(_sel.LocationID, NE(_f.LocationName), _f.WhCode, _f.AreaCode, NE(_f.ZoneCode),
                 NE(_f.Aisle), NE(_f.Bay), NE(_f.Slot),
                 _f.Capacity, NE(_f.LocationType), NE(_f.PlantCode), _f.ActiveFlag, _actor);
+            Audit.Updated("MD-018", "MD_Location", _sel.LocationID, _sel, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Location.Ok.Updated"].Value, _sel.LocationID), false);
         }
@@ -478,6 +481,7 @@
         {
             var name = _sel.LocationName ?? _sel.LocationID;
             MD.DeleteLocation(_sel.LocationID);
+            Audit.Deleted("MD-018", "MD_Location", _sel.LocationID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Location.Ok.Deleted"].Value, name), false);
         }

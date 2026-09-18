@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-023 @L["MD.PackSpec.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-023" TitleKey="MD.PackSpec.Title" />
@@ -60,7 +61,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.PackagingSpecRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.PackSpec.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.PackSpec.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="PackSpecID" Title="@L["Col.SpecId"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="code">@r.PackSpecID</span></Template>
@@ -417,6 +418,7 @@
                 _f.QtyPerInner, _f.InnerPerOuter, _f.OuterPerPallet,
                 _f.NetWeightKg, _f.GrossWeightKg, NE(_f.DimLxWxH),
                 _f.ReturnableFlag, NE(_f.LabelTemplateID), _f.ActiveFlag, _actor);
+            Audit.Created("MD-023", "MD_PackagingSpec", id, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Created"]}", false);
         }
@@ -434,6 +436,7 @@
                 _f.QtyPerInner, _f.InnerPerOuter, _f.OuterPerPallet,
                 _f.NetWeightKg, _f.GrossWeightKg, NE(_f.DimLxWxH),
                 _f.ReturnableFlag, NE(_f.LabelTemplateID), _f.ActiveFlag, _actor);
+            Audit.Updated("MD-023", "MD_PackagingSpec", _sel.PackSpecID, _sel, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_sel.PackSpecID} {L["Msg.Updated"]}", false);
         }
@@ -449,6 +452,7 @@
         {
             var id = _sel.PackSpecID;
             MD.DeletePackagingSpec(_sel.PackSpecID);
+            Audit.Deleted("MD-023", "MD_PackagingSpec", _sel.PackSpecID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Deleted"]}", false);
         }

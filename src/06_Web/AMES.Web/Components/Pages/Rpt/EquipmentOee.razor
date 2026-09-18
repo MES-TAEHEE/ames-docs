@@ -141,7 +141,7 @@
     </div>
 
     <RadzenDataGrid TItem="LineAgg" Data="@_lines" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.EquipmentOee.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid rpt-dp-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["RPT.EquipmentOee.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid rpt-dp-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="LineAgg" Property="LineId" Title="@L["Col.Line"]">
                 <Template Context="r"><span class="code">@r.LineId</span><span class="dim" style="font-size:.85em;margin-left:6px;">@r.LineName</span></Template>

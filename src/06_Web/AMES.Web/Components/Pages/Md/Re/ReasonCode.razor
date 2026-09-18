@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-025 @L["MD.ReasonCode.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-025" TitleKey="MD.ReasonCode.Title" />
@@ -62,7 +63,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.ReasonCodeRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.ReasonCode.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.ReasonCode.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="DisplayOrder" Title="@L["Col.Seq"]" TextAlign="TextAlign.Center" Width="60px">
                 <Template Context="r"><span class="dim">@(r.DisplayOrder?.ToString() ?? "—")</span></Template>
@@ -381,6 +382,7 @@
             MD.InsertReasonCode(code, NE(_f.ReasonName), NE(_f.ReasonType),
                 NE(_f.ModuleCode), _f.RequiresComment, _f.PlannedFlag,
                 _f.DisplayOrder, NE(_f.Description), _f.ActiveFlag, _actor);
+            Audit.Created("MD-025", "MD_ReasonCode", code, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{code} {L["Msg.Created"]}", false);
         }
@@ -398,6 +400,7 @@
             MD.UpdateReasonCode(_sel.ReasonCode, NE(_f.ReasonName), NE(_f.ReasonType),
                 NE(_f.ModuleCode), _f.RequiresComment, _f.PlannedFlag,
                 _f.DisplayOrder, NE(_f.Description), _f.ActiveFlag, _actor);
+            Audit.Updated("MD-025", "MD_ReasonCode", _sel.ReasonCode, _sel, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_sel.ReasonCode} {L["Msg.Updated"]}", false);
         }
@@ -413,6 +416,7 @@
         {
             var code = _sel.ReasonCode;
             MD.DeleteReasonCode(_sel.ReasonCode);
+            Audit.Deleted("MD-025", "MD_ReasonCode", _sel.ReasonCode, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{code} {L["Msg.Deleted"]}", false);
         }

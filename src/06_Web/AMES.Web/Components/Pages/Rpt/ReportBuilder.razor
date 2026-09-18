@@ -76,7 +76,7 @@
         </div>
 
         <RadzenDataGrid TItem="RptRepository.AdhocRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                        PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.ReportBuilder.Empty"]" Class="ames-rz-grid rpt-dp-grid">
+                        PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["RPT.ReportBuilder.Empty"]" Class="ames-rz-grid rpt-dp-grid">
             <Columns>
                 <RadzenDataGridColumn TItem="RptRepository.AdhocRow" Property="Key" Title="@DimLabel(_runDim)">
                     <Template Context="r"><b class="code">@r.Key</b>@if (!string.IsNullOrEmpty(r.Label)) { <span class="dim" style="font-size:.85em;margin-left:6px;">@r.Label</span> }</Template>

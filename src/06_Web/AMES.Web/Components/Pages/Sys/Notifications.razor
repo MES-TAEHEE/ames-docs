@@ -14,6 +14,7 @@
 @inject MasterDataRepository MD
 @inject RoleManager<IdentityRole> RoleMgr
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>SYS-008 @L["SYS.Notifications.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-008" TitleKey="SYS.Notifications.Title" />
@@ -82,7 +83,7 @@
             </div>
 
             <RadzenDataGrid @ref="_ruleGrid" Page="OnRulePage" TItem="SysRepository.NotifRuleRow" Data="@_ruleRows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRuleRowClick" RowRender="@RuleRowRender" EmptyText="@L["SYS.Notifications.Rules.Empty"]" PageSizeChanged="@(s => _rulePageRows = s)" Style="@($"--ames-page-rows:{_rulePageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRuleRowClick" RowRender="@RuleRowRender" EmptyText="@L["SYS.Notifications.Rules.Empty"]" PageSizeChanged="@(s => _rulePageRows = s)" Style="@($"--ames-page-rows:{_rulePageRows}")" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
                     <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="EventTypeCode" Title="@L["Col.EventCode"]" Width="130px">
                         <Template Context="r"><span class="code">@(r.EventTypeCode ?? "—")</span></Template>
@@ -140,7 +141,7 @@
                 </RadzenStack>
             </div>
             <RadzenDataGrid @ref="_chGrid" Page="OnChPage" TItem="SysRepository.NotifChannelRow" Data="@_chRows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnChRowClick" RowRender="@ChRowRender" EmptyText="@L["SYS.Notifications.Channels.Empty"]" PageSizeChanged="@(s => _chPageRows = s)" Style="@($"--ames-page-rows:{_chPageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnChRowClick" RowRender="@ChRowRender" EmptyText="@L["SYS.Notifications.Channels.Empty"]" PageSizeChanged="@(s => _chPageRows = s)" Style="@($"--ames-page-rows:{_chPageRows}")" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
                     <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="UserName" Title="@L["Col.User"]" Width="300px">
                         <Template Context="c"><span class="dim" style="font-size:12px;max-width:280px;overflow:hidden;text-overflow:ellipsis;display:block;">@(c.UserName ?? c.UserId ?? "—")</span></Template>
@@ -186,7 +187,7 @@
                 </RadzenStack>
             </div>
             <RadzenDataGrid TItem="SysRepository.NotifHistoryRow" Data="@_histRows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["SYS.Notifications.History.Empty"]" PageSizeChanged="@(s => _histPageRows = s)" Style="@($"--ames-page-rows:{_histPageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["SYS.Notifications.History.Empty"]" PageSizeChanged="@(s => _histPageRows = s)" Style="@($"--ames-page-rows:{_histPageRows}")" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
                     <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="SentAt" Title="@L["Col.SentAt"]" TextAlign="TextAlign.Center" Width="110px">
                         <Template Context="h"><span class="dim">@(h.SentAt?.ToString(DateFmt.MonthDayTime) ?? "—")</span></Template>
@@ -715,6 +716,7 @@
                 NE(_rf.EventTypeCode), NE(_rf.EventName), NE(_rf.ModuleCode),
                 NE(_rf.ProcessCode), NE(_rf.TriggerCondition), _rf.IsEnabled,
                 NE(_rf.ChannelsJson), NE(_rf.RecipientRolesJson), _actor);
+            Audit.Created("SYS-008", "SYS_NotificationRule", _rf.EventTypeCode, _rf);
             CloseRuleModal(); await ReloadRestore();
         }
         catch (Exception ex) { _ruleModalErr = ex.Message; }
@@ -735,6 +737,7 @@
                 NE(_rf.EventTypeCode), NE(_rf.EventName), NE(_rf.ModuleCode),
                 NE(_rf.ProcessCode), NE(_rf.TriggerCondition), _rf.IsEnabled,
                 NE(_rf.ChannelsJson), NE(_rf.RecipientRolesJson), _actor);
+            Audit.Updated("SYS-008", "SYS_NotificationRule", _ruleSel.NotificationRuleId, _ruleSel, _rf);
             CloseRuleModal(); await ReloadRestore();
         }
         catch (Exception ex) { _ruleModalErr = ex.Message; }
@@ -745,7 +748,7 @@
     {
         if (_ruleSel is null) return;
         _ruleBusy = true;
-        try { Sys.DeleteNotificationRule(_ruleSel.NotificationRuleId); CloseRuleModal(); await ReloadRestore(); }
+        try { Sys.DeleteNotificationRule(_ruleSel.NotificationRuleId); Audit.Deleted("SYS-008", "SYS_NotificationRule", _ruleSel.NotificationRuleId, _ruleSel); CloseRuleModal(); await ReloadRestore(); }
         catch (Exception ex) { _ruleModalErr = ex.Message; _ruleConfirmDelete = false; }
         finally { _ruleBusy = false; }
     }
@@ -815,6 +818,7 @@
                 _cf.QuietStart.HasValue ? _cf.QuietStart.Value.ToTimeSpan() : null,
                 _cf.QuietEnd.HasValue   ? _cf.QuietEnd.Value.ToTimeSpan()   : null,
                 _actor);
+            Audit.Created("SYS-008", "SYS_NotificationChannel", $"{_cf.UserId}/{_cf.Channel}", _cf);
             CloseChModal(); await ReloadRestore();
         }
         catch (Exception ex) { _chModalErr = ex.Message; }
@@ -833,6 +837,7 @@
                 _cf.QuietStart.HasValue ? _cf.QuietStart.Value.ToTimeSpan() : null,
                 _cf.QuietEnd.HasValue   ? _cf.QuietEnd.Value.ToTimeSpan()   : null,
                 _actor);
+            Audit.Updated("SYS-008", "SYS_NotificationChannel", _chSel.NotificationChannelId, _chSel, _cf);
             CloseChModal(); await ReloadRestore();
         }
         catch (Exception ex) { _chModalErr = ex.Message; }
@@ -843,7 +848,7 @@
     {
         if (_chSel is null) return;
         _chBusy = true;
-        try { Sys.DeleteNotificationChannel(_chSel.NotificationChannelId); CloseChModal(); await ReloadRestore(); }
+        try { Sys.DeleteNotificationChannel(_chSel.NotificationChannelId); Audit.Deleted("SYS-008", "SYS_NotificationChannel", _chSel.NotificationChannelId, _chSel); CloseChModal(); await ReloadRestore(); }
         catch (Exception ex) { _chModalErr = ex.Message; _chConfirmDelete = false; }
         finally { _chBusy = false; }
     }

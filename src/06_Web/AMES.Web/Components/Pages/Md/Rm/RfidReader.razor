@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-022 @L["MD.RfidReader.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-022" TitleKey="MD.RfidReader.Title" />
@@ -60,7 +61,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.RfidReaderRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.RfidReader.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.RfidReader.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="ReaderID" Title="@L["Col.ReaderId"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.ReaderID</span></Template>
@@ -387,6 +388,7 @@
             MD.InsertRfidReader(id, NE(_f.ReaderName), NE(_f.GateLocation),
                 _f.LineID, _f.AntennaCount, _f.PowerDbm, _f.PeTriggerFlag,
                 _f.WindowMs, NE(_f.IpAddress), NE(_f.FirmwareVer), NE(_f.Status), _actor);
+            Audit.Created("MD-022", "MD_RfidReader", id, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Created"]}", false);
         }
@@ -404,6 +406,7 @@
             MD.UpdateRfidReader(_sel.ReaderID, NE(_f.ReaderName), NE(_f.GateLocation),
                 _f.LineID, _f.AntennaCount, _f.PowerDbm, _f.PeTriggerFlag,
                 _f.WindowMs, NE(_f.IpAddress), NE(_f.FirmwareVer), NE(_f.Status), _actor);
+            Audit.Updated("MD-022", "MD_RfidReader", _sel.ReaderID, _sel, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_sel.ReaderID} {L["Msg.Updated"]}", false);
         }
@@ -419,6 +422,7 @@
         {
             var id = _sel.ReaderID;
             MD.DeleteRfidReader(_sel.ReaderID);
+            Audit.Deleted("MD-022", "MD_RfidReader", _sel.ReaderID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Deleted"]}", false);
         }

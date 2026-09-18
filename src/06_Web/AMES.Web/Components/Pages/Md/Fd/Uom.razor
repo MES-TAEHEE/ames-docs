@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-019 @L["MD.Uom.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-019" TitleKey="MD.Uom.Title" />
@@ -60,7 +61,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.UomRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Uom.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Uom.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="UOMCode" Title="@L["Col.UomCode"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="code">@r.UOMCode</span></Template>
@@ -380,6 +381,7 @@
             MD.InsertUom(code, NE(_f.UOMName), NE(_f.UOMCategory),
                 _f.BaseFlag, _f.BaseFlag ? null : NE(_f.BaseUOM), _f.ConvFactor,
                 _f.DecimalPrec, NE(_f.Symbol), _f.ActiveFlag, _actor);
+            Audit.Created("MD-019", "MD_Uom", code, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{code} {L["Msg.Created"]}", false);
         }
@@ -397,6 +399,7 @@
             MD.UpdateUom(_sel.UOMCode, NE(_f.UOMName), NE(_f.UOMCategory),
                 _f.BaseFlag, _f.BaseFlag ? null : NE(_f.BaseUOM), _f.ConvFactor,
                 _f.DecimalPrec, NE(_f.Symbol), _f.ActiveFlag, _actor);
+            Audit.Updated("MD-019", "MD_Uom", _sel.UOMCode, _sel, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_sel.UOMCode} {L["Msg.Updated"]}", false);
         }
@@ -412,6 +415,7 @@
         {
             var code = _sel.UOMCode;
             MD.DeleteUom(_sel.UOMCode);
+            Audit.Deleted("MD-019", "MD_Uom", _sel.UOMCode, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{code} {L["Msg.Deleted"]}", false);
         }

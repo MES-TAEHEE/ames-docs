@@ -103,7 +103,7 @@
     <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@string.Format(L["PP.Delivery.Hint"].Value, DbClock.Today.ToString("yyyy-MM-dd"))</div>
 
     <RadzenDataGrid TItem="PpRepository.OtdRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
                     AllowSorting="true" RowRender="@RowRender" EmptyText="@L["PP.Delivery.Empty"]" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="SoNumber" Title="@L["Col.SoNo"]" Width="130px">

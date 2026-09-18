@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-016 @L["MD.Jig.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-016" TitleKey="MD.Jig.Title" />
@@ -66,7 +67,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.JigRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Jig.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Jig.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="JigID" Title="@L["Col.JigId"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.JigID</span></Template>
@@ -381,6 +382,7 @@
             MD.InsertJig(_f.JigID.Trim(), _f.JigName, _f.HangerCount,
                 _f.RatedCycle, _f.CycleCount, _f.ReadFailRate,
                 NE(_f.HealthStatus), _f.LastServiceDate, _f.ActiveFlag, _actor);
+            Audit.Created("MD-016", "MD_Jig", _f.JigID.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.JigName} {L["Msg.Created"]}", false);
         }
@@ -399,6 +401,7 @@
             MD.UpdateJig(_sel.JigID, _f.JigName, _f.HangerCount,
                 _f.RatedCycle, _f.CycleCount, _f.ReadFailRate,
                 NE(_f.HealthStatus), _f.LastServiceDate, _f.ActiveFlag, _actor);
+            Audit.Updated("MD-016", "MD_Jig", _sel.JigID, _sel, _f);
             var name = _f.JigName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -415,6 +418,7 @@
         {
             var name = _sel.JigName ?? _sel.JigID;
             MD.DeleteJig(_sel.JigID);
+            Audit.Deleted("MD-016", "MD_Jig", _sel.JigID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }

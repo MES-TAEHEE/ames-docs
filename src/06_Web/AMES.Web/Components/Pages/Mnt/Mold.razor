@@ -77,7 +77,7 @@
     <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["MNT.Mold.Hint.Detail"]</div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MntRepository.MoldRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.Mold.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed ames-grid-top">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.Mold.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed ames-grid-top">
         <Columns>
             <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="MoldId" Title="@L["Col.MoldId"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="code">@r.MoldId</span></Template>
@@ -137,7 +137,7 @@
     </div>
 
     <RadzenDataGrid @ref="_chgGrid" Page="OnChgPage" TItem="MntRepository.MoldChangeRow" Data="@_changes" AllowPaging="true" PageSize="5" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_chgPageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["MNT.Mold.ChangeEmpty"]" PageSizeChanged="@(s => _chgPageRows = s)" Style="@($"--ames-page-rows:{_chgPageRows}")" Class="ames-rz-grid ames-grid-fixed ames-grid-rest">
+                    PageSizeOptions="@_chgPageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["MNT.Mold.ChangeEmpty"]" PageSizeChanged="@(s => _chgPageRows = s)" Style="@($"--ames-page-rows:{_chgPageRows}")" Class="ames-rz-grid ames-grid-fixed ames-grid-rest">
         <Columns>
             <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="MoldChangeId" Title="@L["Col.ChangeNo"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="c"><span class="code">@c.MoldChangeId</span></Template>

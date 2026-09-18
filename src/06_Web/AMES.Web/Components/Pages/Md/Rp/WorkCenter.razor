@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-006 @L["MD.WorkCenter.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-006" TitleKey="MD.WorkCenter.Title" />
@@ -60,7 +61,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.WorkCenterRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.WorkCenter.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.WorkCenter.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="WCID" Title="@L["Col.WCID"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="code">@r.WCID</span></Template>
@@ -371,6 +372,7 @@
             MD.InsertWorkCenter(_f.WCID.Trim(), _f.WCName, NE(_f.ProcessCode),
                 NE(_f.DefaultLineID), _f.DailyCapacity, _f.StdManpower,
                 NE(_f.CostCenterCode), NE(_f.LocationDesc), _f.ActiveFlag, _actor);
+            Audit.Created("MD-006", "MD_WorkCenter", _f.WCID.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.WCName} {L["Msg.Created"]}", false);
         }
@@ -390,6 +392,7 @@
             MD.UpdateWorkCenter(_sel.WCID, _f.WCName, NE(_f.ProcessCode),
                 NE(_f.DefaultLineID), _f.DailyCapacity, _f.StdManpower,
                 NE(_f.CostCenterCode), NE(_f.LocationDesc), _f.ActiveFlag, _actor);
+            Audit.Updated("MD-006", "MD_WorkCenter", _sel.WCID, _sel, _f);
             var name = _f.WCName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -406,6 +409,7 @@
         {
             var name = _sel.WCName ?? _sel.WCID;
             MD.DeleteWorkCenter(_sel.WCID);
+            Audit.Deleted("MD-006", "MD_WorkCenter", _sel.WCID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }

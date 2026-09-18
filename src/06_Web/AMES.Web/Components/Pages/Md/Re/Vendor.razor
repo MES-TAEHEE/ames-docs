@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-009 @L["MD.Vendor.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-009" TitleKey="MD.Vendor.Title" />
@@ -60,7 +61,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.VendorRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Vendor.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Vendor.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorID" Title="@L["Col.VendorId"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.VendorID</span></Template>
@@ -409,6 +410,7 @@
                 NE(_f.BizRegNo), NE(_f.ContactPerson), NE(_f.Phone), NE(_f.Email),
                 NE(_f.ScmURL), _f.EdiFlag, _f.OtdTargetRate,
                 NE(_f.PaymentTerms), _f.ActiveFlag, _actor);
+            Audit.Created("MD-009", "MD_Vendor", newId, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Vendor.Ok.Created"].Value, _f.VendorName), false);
         }
@@ -428,6 +430,7 @@
                 NE(_f.BizRegNo), NE(_f.ContactPerson), NE(_f.Phone), NE(_f.Email),
                 NE(_f.ScmURL), _f.EdiFlag, _f.OtdTargetRate,
                 NE(_f.PaymentTerms), _f.ActiveFlag, _actor);
+            Audit.Updated("MD-009", "MD_Vendor", _sel.VendorID, _sel, _f);
             var name = _f.VendorName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Vendor.Ok.Updated"].Value, name), false);
@@ -444,6 +447,7 @@
         {
             var name = _sel.VendorName ?? _sel.VendorID;
             MD.DeleteVendor(_sel.VendorID);
+            Audit.Deleted("MD-009", "MD_Vendor", _sel.VendorID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Vendor.Ok.Deleted"].Value, name), false);
         }

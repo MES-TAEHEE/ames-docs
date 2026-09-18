@@ -4057,7 +4057,7 @@
     <value>persons</value>
   </data>
   <data name="Lbl.Count" xml:space="preserve">
-    <value />
+    <value>items</value>
   </data>
   <data name="Day.Sun" xml:space="preserve">
     <value>Sun</value>
@@ -8217,26 +8217,8 @@
   <data name="MD.LineSupervisors.Col.Name" xml:space="preserve">
     <value>Name</value>
   </data>
-  <data name="MD.LineSupervisors.Col.Source" xml:space="preserve">
-    <value>Source</value>
-  </data>
-  <data name="MD.LineSupervisors.Src.Worker" xml:space="preserve">
-    <value>Worker</value>
-  </data>
-  <data name="MD.LineSupervisors.Src.User" xml:space="preserve">
-    <value>Web user</value>
-  </data>
-  <data name="MD.LineSupervisors.Src.Unknown" xml:space="preserve">
-    <value>Not found</value>
-  </data>
   <data name="MD.LineSupervisors.Lbl.Person" xml:space="preserve">
     <value>Supervisor</value>
-  </data>
-  <data name="MD.LineSupervisors.Hint.Person" xml:space="preserve">
-    <value>Only active employees from Worker Master and web users holding the Supervisor role can be selected.</value>
-  </data>
-  <data name="MD.LineSupervisors.Hint.KeyFixed" xml:space="preserve">
-    <value>Line and employee are the key and cannot be changed. Delete and register again instead.</value>
   </data>
   <data name="MD.LineSupervisors.Err.LineRequired" xml:space="preserve">
     <value>Select a line.</value>
@@ -8264,5 +8246,38 @@
   </data>
   <data name="MD.LineSupervisors.Kpi.NoSup" xml:space="preserve">
     <value>Lines without supervisor</value>
+  </data>
+  <data name="Opt.SelectItem" xml:space="preserve">
+    <value>— Select item —</value>
+  </data>
+  <data name="Pager.Summary" xml:space="preserve">
+    <value>Page {0} of {1} ({2} items)</value>
+  </data>
+  <data name="Pager.PageSize" xml:space="preserve">
+    <value>items per page</value>
+  </data>
+  <data name="Home.Kpi.Releasable" xml:space="preserve">
+    <value>RELEASABLE WO</value>
+  </data>
+  <data name="Home.Kpi.ReleasableSub" xml:space="preserve">
+    <value>work orders ready to release</value>
+  </data>
+  <data name="Home.Kpi.Scheduled" xml:space="preserve">
+    <value>SCHEDULED 7D</value>
+  </data>
+  <data name="Home.Kpi.ScheduledSub" xml:space="preserve">
+    <value>line schedule slots next 7d</value>
+  </data>
+  <data name="Home.Kpi.Downtime" xml:space="preserve">
+    <value>DOWNTIME 7D</value>
+  </data>
+  <data name="Home.Kpi.DowntimeSub" xml:space="preserve">
+    <value>downtime events last 7d</value>
+  </data>
+  <data name="Home.Kpi.OnTime" xml:space="preserve">
+    <value>ON-TIME 30D</value>
+  </data>
+  <data name="Home.Kpi.OnTimeSub" xml:space="preserve">
+    <value>delivery performance</value>
   </data>
 </root>

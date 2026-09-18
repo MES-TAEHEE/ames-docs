@@ -164,7 +164,7 @@
     }
 
     <RadzenDataGrid TItem="PpRepository.DowntimeRow" Data="@_dtlRows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
                     AllowSorting="true" RowClick="@(e => { if (e.Data is { } d) OpenEdit(d); })" RowRender="@RowRender"
                     EmptyText="@L["PP.DowntimeMonitor.History.Empty"]" Class="ames-rz-grid ames-grid-fixed">
         <Columns>

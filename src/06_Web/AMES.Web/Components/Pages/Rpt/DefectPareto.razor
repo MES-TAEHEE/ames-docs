@@ -154,7 +154,7 @@
             }
         </div>
         <RadzenDataGrid TItem="ParetoItem" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                        PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.DefectPareto.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                        PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["RPT.DefectPareto.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
             <Columns>
                 <RadzenDataGridColumn TItem="ParetoItem" Property="Rank" Title="@L["RPT.DefectPareto.Col.Rank"]" TextAlign="TextAlign.Center" Width="80px">
                     <Template Context="r"><span class="rpt-pa-rank @(r.Rank <= 3 ? $"r{r.Rank}" : "")">@r.Rank</span></Template>

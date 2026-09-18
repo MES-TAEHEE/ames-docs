@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-017 @L["MD.InspStd.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-017" TitleKey="MD.InspStd.Title" />
@@ -62,7 +63,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.InspectionStandardRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.InspStd.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.InspStd.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="InspStdID" Title="@L["Col.StandardId"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="code">@r.InspStdID</span></Template>
@@ -478,6 +479,7 @@
                 NE(_f.InspType), _f.CharName, _f.SpecNominal, _f.SpecLSL, _f.SpecUSL,
                 NE(_f.UOM), NE(_f.SamplingPlan), NE(_f.InspMethod), _f.IsCTQ,
                 _f.EffectiveDate, _f.ActiveFlag, _actor);
+            Audit.Created("MD-017", "MD_InspectionStandard", _f.InspStdID.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.CharName} {L["Msg.Created"]}", false);
         }
@@ -497,6 +499,7 @@
                 NE(_f.InspType), _f.CharName, _f.SpecNominal, _f.SpecLSL, _f.SpecUSL,
                 NE(_f.UOM), NE(_f.SamplingPlan), NE(_f.InspMethod), _f.IsCTQ,
                 _f.EffectiveDate, _f.ActiveFlag, _actor);
+            Audit.Updated("MD-017", "MD_InspectionStandard", _sel.InspStdID, _sel, _f);
             var name = _f.CharName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -513,6 +516,7 @@
         {
             var name = _sel.CharName ?? _sel.InspStdID;
             MD.DeleteInspectionStandard(_sel.InspStdID);
+            Audit.Deleted("MD-017", "MD_InspectionStandard", _sel.InspStdID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }

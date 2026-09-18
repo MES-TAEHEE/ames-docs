@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-030 @L["MD.CommonCode.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-030" TitleKey="MD.CommonCode.Title" />
@@ -61,7 +62,7 @@
             </div>
             <div style="flex:1;min-height:0;overflow:hidden;">
             <RadzenDataGrid @ref="_grpGrid" TItem="MasterDataRepository.CodeGroupRow" Data="_groups" AllowPaging="true" PageSize="GrpPageSize" PagerHorizontalAlign="HorizontalAlign.Center"
-                            ShowPagingSummary="false" Page="OnGrpPage" RowRender="GrpRowRender" RowSelect="OnGroupRowSelect" Class="ames-rz-grid ames-grid-fill">
+                            ShowPagingSummary="false" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" Page="OnGrpPage" RowRender="GrpRowRender" RowSelect="OnGroupRowSelect" Class="ames-rz-grid ames-grid-fill">
                 <Columns>
                     <RadzenDataGridColumn Property="GroupCode" Title='@L["Col.GroupCode"]' Width="160px">
                         <Template Context="g"><span class="code">@g.GroupCode</span></Template>
@@ -531,6 +532,7 @@
             var code = _fGroup.GroupCode.Trim().ToUpper();
             if (MD.CodeGroupExists(code)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], code); return; }
             MD.InsertCodeGroup(code, _fGroup.GroupName.Trim(), NE(_fGroup.GroupNameEn), NE(_fGroup.Description), _fGroup.UseFlag, _actor);
+            Audit.Created("MD-030", "MD_CodeGroup", code, _fGroup);
             CloseModal();
             await ReloadGroupsKeepPage();
             ShowMsg($"{code} {L["Msg.Created"]}", false);
@@ -547,6 +549,7 @@
         try
         {
             MD.UpdateCodeGroup(_fGroup.GroupCode, _fGroup.GroupName.Trim(), NE(_fGroup.GroupNameEn), NE(_fGroup.Description), _fGroup.UseFlag, _actor);
+            Audit.Updated("MD-030", "MD_CodeGroup", _fGroup.GroupCode, _allGroups.FirstOrDefault(g => g.GroupCode == _fGroup.GroupCode), _fGroup);
             CloseModal();
             await ReloadGroupsKeepPage();
             if (_selGroup?.GroupCode == _fGroup.GroupCode)
@@ -564,6 +567,7 @@
         {
             foreach (var item in _items) MD.DeleteCodeItem(item.CodeID);
             MD.DeleteCodeGroup(_fGroup.GroupCode);
+            Audit.Deleted("MD-030", "MD_CodeGroup", _fGroup.GroupCode, new { Group = _allGroups.FirstOrDefault(g => g.GroupCode == _fGroup.GroupCode), Items = _items });
             if (_selGroup?.GroupCode == _fGroup.GroupCode) { _selGroup = null; _items = new(); }
             CloseModal();
             await ReloadGroupsKeepPage();
@@ -622,6 +626,7 @@
             MD.InsertCodeItem(id, _selGroup!.GroupCode, _fItem.CodeValue.Trim(), _fItem.CodeName.Trim(),
                 NE(_fItem.CodeNameEn), _fItem.SortOrder, NE(_fItem.Attribute1), _fItem.UseFlag, NE(_fItem.Description), _actor,
                 _fItem.ParentCodeId);
+            Audit.Created("MD-030", "MD_CodeItem", id, _fItem);
             LoadItems(); CloseModal();
             ShowMsg($"{id} {L["Msg.Created"]}", false);
         }
@@ -640,6 +645,7 @@
             MD.UpdateCodeItem(_fItem.CodeId, _fItem.CodeValue.Trim(), _fItem.CodeName.Trim(),
                 NE(_fItem.CodeNameEn), _fItem.SortOrder, NE(_fItem.Attribute1), _fItem.UseFlag, NE(_fItem.Description), _actor,
                 _fItem.ParentCodeId);
+            Audit.Updated("MD-030", "MD_CodeItem", _fItem.CodeId, _items.FirstOrDefault(i => i.CodeID == _fItem.CodeId), _fItem);
             LoadItems(); CloseModal();
             ShowMsg($"{_fItem.CodeId} {L["Msg.Updated"]}", false);
         }
@@ -653,6 +659,7 @@
         try
         {
             MD.DeleteCodeItem(_fItem.CodeId);
+            Audit.Deleted("MD-030", "MD_CodeItem", _fItem.CodeId, _items.FirstOrDefault(i => i.CodeID == _fItem.CodeId));
             LoadItems(); CloseModal();
             ShowMsg($"{_fItem.CodeId} {L["Msg.Deleted"]}", false);
         }

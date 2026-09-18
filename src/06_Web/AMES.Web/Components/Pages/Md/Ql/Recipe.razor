@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-029 @L["MD.Recipe.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-029" TitleKey="MD.Recipe.Title" />
@@ -60,7 +61,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.RecipeRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Recipe.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Recipe.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="RecipeID" Title="@L["Col.RecipeId"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.RecipeID</span></Template>
@@ -363,6 +364,7 @@
             MD.InsertRecipe(id, NE(_f.RecipeName), NE(_f.RecipeType),
                 NE(_f.ItemNo), _f.CycleTime, NE(_f.Version),
                 _f.EffectiveDate, NE(_f.Status), _actor);
+            Audit.Created("MD-029", "MD_Recipe", id, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Created"]}", false);
         }
@@ -379,6 +381,7 @@
             MD.UpdateRecipe(_sel.RecipeID, NE(_f.RecipeName), NE(_f.RecipeType),
                 NE(_f.ItemNo), _f.CycleTime, NE(_f.Version),
                 _f.EffectiveDate, NE(_f.Status), _actor);
+            Audit.Updated("MD-029", "MD_Recipe", _sel.RecipeID, _sel, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_sel.RecipeID} {L["Msg.Updated"]}", false);
         }
@@ -394,6 +397,7 @@
         {
             var id = _sel.RecipeID;
             MD.DeleteRecipe(_sel.RecipeID);
+            Audit.Deleted("MD-029", "MD_Recipe", _sel.RecipeID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Deleted"]}", false);
         }

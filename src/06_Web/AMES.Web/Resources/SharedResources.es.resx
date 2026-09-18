@@ -4054,7 +4054,7 @@
     <value>personas</value>
   </data>
   <data name="Lbl.Count" xml:space="preserve">
-    <value />
+    <value>elementos</value>
   </data>
   <data name="Day.Sun" xml:space="preserve">
     <value>Dom</value>
@@ -8190,26 +8190,8 @@
   <data name="MD.LineSupervisors.Col.Name" xml:space="preserve">
     <value>Nombre</value>
   </data>
-  <data name="MD.LineSupervisors.Col.Source" xml:space="preserve">
-    <value>Origen</value>
-  </data>
-  <data name="MD.LineSupervisors.Src.Worker" xml:space="preserve">
-    <value>Operario</value>
-  </data>
-  <data name="MD.LineSupervisors.Src.User" xml:space="preserve">
-    <value>Usuario web</value>
-  </data>
-  <data name="MD.LineSupervisors.Src.Unknown" xml:space="preserve">
-    <value>No encontrado</value>
-  </data>
   <data name="MD.LineSupervisors.Lbl.Person" xml:space="preserve">
     <value>Supervisor</value>
-  </data>
-  <data name="MD.LineSupervisors.Hint.Person" xml:space="preserve">
-    <value>Solo se pueden elegir empleados activos del maestro de operarios y usuarios web con el rol Supervisor.</value>
-  </data>
-  <data name="MD.LineSupervisors.Hint.KeyFixed" xml:space="preserve">
-    <value>Línea y n.º son la clave y no se pueden cambiar. Elimine y vuelva a registrar.</value>
   </data>
   <data name="MD.LineSupervisors.Err.LineRequired" xml:space="preserve">
     <value>Seleccione una línea.</value>
@@ -8255,5 +8237,47 @@
   </data>
   <data name="PP.WoRelease.NoLineProcess" xml:space="preserve">
     <value>Sin línea · no asignado a un terminal</value>
+  </data>
+  <data name="MD.CommonCode.Ph.GrpSearch" xml:space="preserve">
+    <value>Buscar código/nombre de grupo</value>
+  </data>
+  <data name="PP.PlanConfirm.Status.NoRouting" xml:space="preserve">
+    <value>Ruta no definida</value>
+  </data>
+  <data name="PP.WorkOrder.Err.NoRouting" xml:space="preserve">
+    <value>El artículo seleccionado no tiene ruta, por lo que no se puede crear la orden de trabajo. Defina la ruta en el maestro de artículos.</value>
+  </data>
+  <data name="Opt.SelectItem" xml:space="preserve">
+    <value>— Seleccionar artículo —</value>
+  </data>
+  <data name="Pager.Summary" xml:space="preserve">
+    <value>Página {0} de {1} ({2} elementos)</value>
+  </data>
+  <data name="Pager.PageSize" xml:space="preserve">
+    <value>elementos por página</value>
+  </data>
+  <data name="Home.Kpi.Releasable" xml:space="preserve">
+    <value>OT LIBERABLES</value>
+  </data>
+  <data name="Home.Kpi.ReleasableSub" xml:space="preserve">
+    <value>órdenes de trabajo listas para liberar</value>
+  </data>
+  <data name="Home.Kpi.Scheduled" xml:space="preserve">
+    <value>PROGRAMADO 7D</value>
+  </data>
+  <data name="Home.Kpi.ScheduledSub" xml:space="preserve">
+    <value>turnos de línea programados en los próximos 7 días</value>
+  </data>
+  <data name="Home.Kpi.Downtime" xml:space="preserve">
+    <value>PARADAS 7D</value>
+  </data>
+  <data name="Home.Kpi.DowntimeSub" xml:space="preserve">
+    <value>eventos de parada en los últimos 7 días</value>
+  </data>
+  <data name="Home.Kpi.OnTime" xml:space="preserve">
+    <value>A TIEMPO 30D</value>
+  </data>
+  <data name="Home.Kpi.OnTimeSub" xml:space="preserve">
+    <value>desempeño de entregas</value>
   </data>
 </root>

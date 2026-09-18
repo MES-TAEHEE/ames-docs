@@ -238,7 +238,7 @@
         else if (_tab == "snaps")
         {
             <RadzenDataGrid TItem="OeeSnapshotDto" Data="@lineSnaps" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
-                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
+                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
                             AllowSorting="true" EmptyText="@L["PP.Oee.Trend.NoSnap"]" Class="ames-rz-grid ames-grid-fixed ames-grid-top">
                 <Columns>
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="PeriodDate" Title="@L["PP.Oee.Snap.Col.Date"]" Width="110px">

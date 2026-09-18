@@ -19,6 +19,7 @@
 @inject UserManager<ApplicationUser> UserMgr
 @inject RoleManager<IdentityRole> RoleMgr
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>SYS-001 @L["SYS.Users.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-001" TitleKey="SYS.Users.Title" />
@@ -65,7 +66,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="SysRepository.UserRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Users.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Users.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="UserName" Title="@L["SYS.Users.Col.UserName"]">
                 <Template Context="u"><span class="code">@(u.UserName ?? "—")</span></Template>
@@ -531,6 +532,7 @@
                 await UserMgr.AddToRoleAsync(user, _f.Role);
 
             CloseModal(); await ReloadRestorePage();
+            Audit.Created("SYS-001", "AspNetUsers", _f.Email, _f);
             ShowMsg(string.Format(L["SYS.Users.Ok.Created"].Value, _f.Email), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
@@ -585,6 +587,9 @@
                     await UserMgr.AddToRoleAsync(iUser, _f.Role);
             }
 
+            if (!string.IsNullOrWhiteSpace(_f.Pin)) Audit.Log("SYS-001", "PIN_SET", "AspNetUsers", _sel.Email, null, null);
+            if (!string.IsNullOrWhiteSpace(_f.Password)) Audit.Log("SYS-001", "PWD_RESET", "AspNetUsers", _sel.Email, null, null);
+            Audit.Updated("SYS-001", "AspNetUsers", _sel.Email, _sel, _f);
             var email = _sel.Email;
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Users.Ok.Updated"].Value, email), false);
@@ -603,6 +608,7 @@
             var u = await UserMgr.FindByIdAsync(_sel.UserId);
             if (u is not null) await UserMgr.DeleteAsync(u);
 
+            Audit.Deleted("SYS-001", "AspNetUsers", _sel.Email, _sel);
             var email = _sel.Email;
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Users.Ok.Deleted"].Value, email), false);
@@ -619,6 +625,7 @@
         await UserMgr.SetLockoutEndDateAsync(u, null);
         await UserMgr.ResetAccessFailedCountAsync(u);
         CloseModal(); await ReloadRestorePage();
+        Audit.Log("SYS-001", "UNLOCK", "AspNetUsers", _sel.Email, null, null);
         ShowMsg(string.Format(L["SYS.Users.Ok.Unlocked"].Value, _sel.Email), false);
     }
 
@@ -632,6 +639,7 @@
             await UserMgr.SetLockoutEndDateAsync(u, null);
             await UserMgr.ResetAccessFailedCountAsync(u);
         }
+        Audit.Log("SYS-001", "UNLOCK", "AspNetUsers", _sel.Email, null, new { Domain = true });
         var email = _sel.Email;
         CloseModal(); await ReloadRestorePage();
         ShowMsg(string.Format(L["SYS.Users.Ok.DomainUnlocked"].Value, email), false);

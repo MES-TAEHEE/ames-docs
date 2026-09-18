@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-013 @L["MD.DefectCause.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-013" TitleKey="MD.DefectCause.Title" />
@@ -62,7 +63,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.DefectCauseRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.DefectCause.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.DefectCause.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="CauseCode" Title="@L["Col.CauseCode"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="code">@r.CauseCode</span></Template>
@@ -440,6 +441,7 @@
                 _f.ParentCauseCode, NE(_f.ProcessCode), _f.RootCauseFlag,
                 NE(_f.CorrectiveGuide), _f.ResponsibleDept, _f.SortOrder,
                 _f.ActiveFlag, _actor);
+            Audit.Created("MD-013", "MD_DefectCause", _f.CauseCode.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.CauseName} {L["Msg.Created"]}", false);
         }
@@ -459,6 +461,7 @@
                 _f.ParentCauseCode, NE(_f.ProcessCode), _f.RootCauseFlag,
                 NE(_f.CorrectiveGuide), _f.ResponsibleDept, _f.SortOrder,
                 _f.ActiveFlag, _actor);
+            Audit.Updated("MD-013", "MD_DefectCause", _sel.CauseCode, _sel, _f);
             var name = _f.CauseName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -475,6 +478,7 @@
         {
             var name = _sel.CauseName ?? _sel.CauseCode;
             MD.DeleteDefectCause(_sel.CauseCode);
+            Audit.Deleted("MD-013", "MD_DefectCause", _sel.CauseCode, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }

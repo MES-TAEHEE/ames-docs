@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-021 @L["MD.RalColor.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-021" TitleKey="MD.RalColor.Title" />
@@ -58,7 +59,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.RalColorRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.RalColor.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.RalColor.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="RALCode" Title="@L["Col.RalCode"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.RALCode</span></Template>
@@ -363,6 +364,7 @@
             MD.InsertRalColor(code, NE(_f.ColorName), NormHex(_f.HexValue),
                 NE(_f.CurrentPowderLot), _f.CureTemp, _f.CureDuration,
                 _f.ElectroV, _f.ParticleUm, _f.ActiveFlag, _actor);
+            Audit.Created("MD-021", "MD_RalColor", code, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{code} {L["Msg.Created"]}", false);
         }
@@ -380,6 +382,7 @@
             MD.UpdateRalColor(_sel.RALCode, NE(_f.ColorName), NormHex(_f.HexValue),
                 NE(_f.CurrentPowderLot), _f.CureTemp, _f.CureDuration,
                 _f.ElectroV, _f.ParticleUm, _f.ActiveFlag, _actor);
+            Audit.Updated("MD-021", "MD_RalColor", _sel.RALCode, _sel, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_sel.RALCode} {L["Msg.Updated"]}", false);
         }
@@ -395,6 +398,7 @@
         {
             var code = _sel.RALCode;
             MD.DeleteRalColor(_sel.RALCode);
+            Audit.Deleted("MD-021", "MD_RalColor", _sel.RALCode, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{code} {L["Msg.Deleted"]}", false);
         }

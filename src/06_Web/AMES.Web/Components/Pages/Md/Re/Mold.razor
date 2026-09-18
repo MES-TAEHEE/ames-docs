@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-007 @L["MD.Mold.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-007" TitleKey="MD.Mold.Title" />
@@ -63,7 +64,7 @@
             </div>
 
             <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.MoldRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Mold.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Mold.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
                     <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="MoldID" Title="@L["Col.MoldId"]" TextAlign="TextAlign.Center" Width="110px">
                         <Template Context="r"><span class="code">@r.MoldID</span></Template>
@@ -472,6 +473,7 @@
                 _f.RatedShots, _f.CurrentShots, _f.CavityCount, _f.Tonnage,
                 NE(_f.StorageLoc), _f.LastMaintDate, _f.Status, _actor,
                 carType: NE(_f.CarType), refCode: NE(_f.RefCode), assyInjResultFlag: _f.AssyInjResultFlag, moldChangeMin: _f.MoldChangeMin);
+            Audit.Created("MD-007", "MD_Mold", _f.MoldID.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.MoldName} {L["Msg.Created"]}", false);
         }
@@ -491,6 +493,7 @@
                 _f.RatedShots, _f.CurrentShots, _f.CavityCount, _f.Tonnage,
                 NE(_f.StorageLoc), _f.LastMaintDate, _f.Status, _actor,
                 carType: NE(_f.CarType), refCode: NE(_f.RefCode), assyInjResultFlag: _f.AssyInjResultFlag, moldChangeMin: _f.MoldChangeMin);
+            Audit.Updated("MD-007", "MD_Mold", _sel.MoldID, _sel, _f);
             var name = _f.MoldName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -518,6 +521,7 @@
                     MD.DeleteMoldColor(_sel.MoldID, c.Color);
             var name = _sel.MoldName ?? _sel.MoldID;
             MD.DeleteMold(_sel.MoldID);
+            Audit.Deleted("MD-007", "MD_Mold", _sel.MoldID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }
@@ -533,6 +537,7 @@
         try
         {
             MD.InsertMoldColor(_sel.MoldID, _newColor.Trim().ToUpper(), _actor);
+            Audit.Created("MD-007", "MD_MoldColor", $"{_sel.MoldID}/{_newColor.Trim().ToUpper()}", null);
             _newColor = "";
             _colors = MD.ListMoldColors(_sel.MoldID);
         }
@@ -546,6 +551,7 @@
         try
         {
             MD.DeleteMoldColor(_sel.MoldID, color);
+            Audit.Deleted("MD-007", "MD_MoldColor", $"{_sel.MoldID}/{color}", null);
             _colors = MD.ListMoldColors(_sel.MoldID);
         }
         catch (Exception ex) { _modalErr = ex.Message; }

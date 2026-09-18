@@ -13,6 +13,7 @@
 @inject LineSupervisorRepository SupRepo
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-033 @L["MD.LineSupervisors.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-033" TitleKey="MD.LineSupervisors.Title" />
@@ -65,7 +66,7 @@
     <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["MD.LineSupervisors.Hint"]</div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="LineSupervisorRepository.Row" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.LineSupervisors.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.LineSupervisors.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="LineSupervisorRepository.Row" Property="LineId" Title="@L["Col.Line"]" Width="260px">
                 <Template Context="s">
@@ -309,6 +310,7 @@
         {
             if (SupRepo.Exists(_f.LineId, _f.EmployeeNo)) { _modalErr = string.Format(L["MD.LineSupervisors.Err.Duplicate"].Value, _f.LineId, _f.EmployeeNo); return; }
             SupRepo.Insert(_f.LineId, _f.EmployeeNo, _f.ActiveFlag, _actor);
+            Audit.Created("MD-033", "MD_LineSupervisor", $"{_f.LineId}/{_f.EmployeeNo}", _f);
             var (line, emp) = (_f.LineId, _f.EmployeeNo);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.LineSupervisors.Ok.Created"].Value, line, emp), false);
@@ -325,6 +327,7 @@
         try
         {
             SupRepo.SetActive(_sel.LineId, _sel.EmployeeNo, _f.ActiveFlag, _actor);
+            Audit.Updated("MD-033", "MD_LineSupervisor", $"{_sel.LineId}/{_sel.EmployeeNo}", _sel, _f);
             var (line, emp) = (_sel.LineId, _sel.EmployeeNo);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.LineSupervisors.Ok.Updated"].Value, line, emp), false);
@@ -340,6 +343,7 @@
         try
         {
             SupRepo.Delete(_sel.LineId, _sel.EmployeeNo);
+            Audit.Deleted("MD-033", "MD_LineSupervisor", $"{_sel.LineId}/{_sel.EmployeeNo}", _sel);
             var (line, emp) = (_sel.LineId, _sel.EmployeeNo);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.LineSupervisors.Ok.Deleted"].Value, line, emp), false);

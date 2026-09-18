@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-014 @L["MD.Equipment.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-014" TitleKey="MD.Equipment.Title" />
@@ -62,7 +63,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.EquipmentRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Equipment.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Equipment.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="EquipID" Title="@L["Col.EquipId"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.EquipID</span></Template>
@@ -442,6 +443,7 @@
                 NE(_f.LineID), NE(_f.WCID), NE(_f.MakerModel),
                 _f.InstallDate, _f.TheoreticalCycle, _f.TargetOEE,
                 NE(_f.PlcAddress), NE(_f.Status), _f.ActiveFlag, _actor);
+            Audit.Created("MD-014", "MD_Equipment", _f.EquipID.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.EquipName} {L["Msg.Created"]}", false);
         }
@@ -461,6 +463,7 @@
                 NE(_f.LineID), NE(_f.WCID), NE(_f.MakerModel),
                 _f.InstallDate, _f.TheoreticalCycle, _f.TargetOEE,
                 NE(_f.PlcAddress), NE(_f.Status), _f.ActiveFlag, _actor);
+            Audit.Updated("MD-014", "MD_Equipment", _sel.EquipID, _sel, _f);
             var name = _f.EquipName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -477,6 +480,7 @@
         {
             var name = _sel.EquipName ?? _sel.EquipID;
             MD.DeleteEquipment(_sel.EquipID);
+            Audit.Deleted("MD-014", "MD_Equipment", _sel.EquipID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }

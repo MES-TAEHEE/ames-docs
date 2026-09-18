@@ -143,7 +143,7 @@
     <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@(HasSelection ? L["MNT.Downtime.Hint.Detail"] : L["MNT.Downtime.Detail.Hint"])</div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MntRepository.DowntimeRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.Downtime.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.Downtime.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="StartTs" Title="@L["MNT.Downtime.Col.DateTime"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="code">@(r.StartTs?.ToString("MM-dd HH:mm") ?? "—")</span></Template>

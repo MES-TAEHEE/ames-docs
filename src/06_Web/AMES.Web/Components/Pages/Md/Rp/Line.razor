@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-001 @L["MD.Line.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-001" TitleKey="MD.Line.Title" />
@@ -58,7 +59,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.LineRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Line.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Line.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineID" Title="@L["Col.LineId"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.LineID</span></Template>
@@ -376,6 +377,7 @@
                 NE(_f.PlantCode), NE(_f.WCID),
                 _f.DailyCap, NE(_f.ShiftPattern),
                 _f.RfidEnabledFlag, _f.Status, _actor);
+            Audit.Created("MD-001", "MD_Line", _f.LineID.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Line.Ok.Created"].Value, _f.LineName), false);
         }
@@ -396,6 +398,7 @@
                 NE(_f.PlantCode), NE(_f.WCID),
                 _f.DailyCap, NE(_f.ShiftPattern),
                 _f.RfidEnabledFlag, _f.Status, _actor);
+            Audit.Updated("MD-001", "MD_Line", _sel.LineID, _sel, _f);
             var name = _f.LineName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Line.Ok.Updated"].Value, name), false);
@@ -412,6 +415,7 @@
         {
             var name = _sel.LineName ?? _sel.LineID;
             MD.DeleteLine(_sel.LineID);
+            Audit.Deleted("MD-001", "MD_Line", _sel.LineID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Line.Ok.Deleted"].Value, name), false);
         }

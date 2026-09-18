@@ -13,6 +13,7 @@
 @inject MasterDataRepository MD
 @inject MntRepository Mnt
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-026 @L["MD.SparePart.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-026" TitleKey="MD.SparePart.Title" />
@@ -64,7 +65,7 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.SparePartMasterRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.SparePart.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.SparePart.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="SparePartNo" Title="@L["Col.SparePartNo"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="r"><span class="code">@r.SparePartNo</span></Template>
@@ -560,6 +561,7 @@
                 _f.UnitCost, NE(_f.UOM),
                 _f.SafetyStock, _f.ReorderPoint, _f.ReorderQty, _f.LeadTimeDays,
                 NE(_f.SupplierID), _f.ActiveFlag, _actor, _f.Image, NE(_f.ZoneCode), NE(_f.Slot), NE(_f.Maker));
+            Audit.Created("MD-026", "MD_SparePart", spNo, _f);
             // 초기 재고는 마스터에 직접 쓰지 않고 입고(IN) 이력으로 남긴다 — 현재고의 정본은 이력과 같이 움직인다
             if (_f.OnHandQty > 0)
                 Mnt.AdjustSparePartStock(spNo, MntRepository.SpareMoveTypes.In, _f.OnHandQty, "ADJ", null, L["MD.SparePart.Note.InitStock"].Value, _actor);
@@ -585,6 +587,7 @@
                 _f.UnitCost, NE(_f.UOM),
                 _f.SafetyStock, _f.ReorderPoint, _f.ReorderQty, _f.LeadTimeDays,
                 NE(_f.SupplierID), _f.ActiveFlag, _actor, NE(_f.ZoneCode), NE(_f.Slot), NE(_f.Maker));
+            Audit.Updated("MD-026", "MD_SparePart", _sel.SparePartNo, _sel, _f);
             // 이미지는 바뀐 경우에만 따로 쓴다 — 매 수정마다 바이트를 다시 보내지 않기 위해
             if (_f.ImageChanged) MD.UpdateSparePartImage(_sel.SparePartNo, _f.Image, _actor);
             // 현재고 변경은 차이만큼 조정(ADJ) 이력으로 — 마스터 값을 직접 덮어쓰지 않는다
@@ -610,6 +613,7 @@
         {
             var no = _sel.PartNo;
             MD.DeleteSparePart(_sel.SparePartNo);
+            Audit.Deleted("MD-026", "MD_SparePart", _sel.SparePartNo, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{no} {L["Msg.Deleted"]}", false);
         }

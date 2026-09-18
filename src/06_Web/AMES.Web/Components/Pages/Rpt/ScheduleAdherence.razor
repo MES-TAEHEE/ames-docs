@@ -142,7 +142,7 @@
     </div>
 
     <RadzenDataGrid TItem="WoLine" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" EmptyText="@L["RPT.ScheduleAdherence.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid rpt-dp-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["RPT.ScheduleAdherence.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid rpt-dp-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="WoLine" Property="WoNumber" Title="@L["RPT.ScheduleAdherence.Col.Wo"]" Width="160px">
                 <Template Context="r"><span class="code">@r.WoNumber</span></Template>
