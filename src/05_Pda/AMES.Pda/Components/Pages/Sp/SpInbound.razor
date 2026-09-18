@@ -34,6 +34,12 @@
                     <div class="wh02-lot-main"><span>EOS SP NO</span><strong>@_lot.EosSpNo</strong></div>
                     <RadzenBadge class="wh02-status-chip ready" Text="READY" />
                 </div>
+                @if (!string.IsNullOrWhiteSpace(_lot.ImageDataUrl))
+                {
+                    <div class="sp-release-image">
+                        <img src="@_lot.ImageDataUrl" alt="@($"{Text(_lot.PartName)} image")" />
+                    </div>
+                }
                 <div class="sp-detail-grid">
                     @foreach (var field in DetailFields())
                     {
@@ -42,20 +48,6 @@
                 </div>
             </RadzenCard>
 
-            <RadzenCard class="wh02-panel wh02-location-panel hardware-scan-panel">
-                <div class="pda-fld">
-                    <label>STORAGE LOCATION</label>
-                    <RadzenTextBox class="pda-input wh02-location-input pda-scan-input"
-                                   Value="@_locationNo" @oninput="OnLocationInput" @onkeydown="OnLocationKey"
-                                   Placeholder="Scan SP location" />
-                </div>
-            </RadzenCard>
-            @if (_location is not null)
-            {
-                <RadzenCard class="wh02-location-card">
-                    <div class="wh02-location-card-top"><span>STORAGE LOCATION</span><strong>@_location.LocationId</strong></div>
-                </RadzenCard>
-            }
         }
 
         @if (!string.IsNullOrWhiteSpace(_message))
@@ -86,8 +78,8 @@
 @code {
     private static readonly PptScenarioPanel.Step[] ScenarioSteps =
     [
-        new("EOS SP No 입고", "EOS SP No와 SP 위치를 스캔한 뒤 1 EA 입고를 확인합니다.",
-            new PptScenarioPanel.Value("EOS SP NO", "EOS-SP-K9-269999", "INBOUND"), new PptScenarioPanel.Value("위치", "SP-EXTRA", "LOCATION")),
+        new("EOS SP No 입고", "EOS SP No를 스캔하여 마스터의 저장 위치와 누락 정보 알럿을 확인한 뒤 1 EA 입고를 확인합니다.",
+            new PptScenarioPanel.Value("EOS SP NO", "EOS-SP-K9-269999", "INBOUND")),
         new("미등록 EOS SP No", "등록되지 않은 EOS SP No의 조회 오류를 확인합니다.",
             new PptScenarioPanel.Value("EOS SP NO", "EOS-SP-X0-000000", "UNKNOWN"))
     ];
@@ -122,27 +114,18 @@
     {
         if (_busy || _scenarioOpen || _modalOpen) return;
         var value = NormalizeScan(scanText);
-        if (_lot is not null && _location is null)
-        {
-            _locationNo = value;
-            await ScanLocation();
-        }
-        else
-        {
-            _lotNo = value;
-            await ScanLot();
-        }
+        _lotNo = value;
+        await ScanLot();
         await InvokeAsync(StateHasChanged);
     }
 
     private void OnNativeBarcodeScanned(string value) => _ = InvokeAsync(() => OnHardwareScanAsync(value));
     private void OnLotInput(ChangeEventArgs e) => _lotNo = e.Value?.ToString() ?? "";
-    private void OnLocationInput(ChangeEventArgs e) => _locationNo = e.Value?.ToString() ?? "";
     private async Task OnLotKey(KeyboardEventArgs e) { if (e.Key == "Enter") await ScanLot(); }
-    private async Task OnLocationKey(KeyboardEventArgs e) { if (e.Key == "Enter") await ScanLocation(); }
 
     private async Task ScanLot()
     {
+        if (_busy || _modalOpen) return;
         var value = NormalizeScan(_lotNo);
         if (value.Length == 0) { ShowModal("EOS SP No Required", "Scan an EOS SP No.", "warn"); return; }
         _busy = true;
@@ -154,33 +137,40 @@
             _lot = await Api.SpItemAsync(value);
             if (_lot is null) { _message = "EOS SP No was not found."; _messageClass = "fail"; return; }
             _lotNo = _lot.EosSpNo;
-            _message = "Spare part loaded. Scan a storage location.";
-            _messageClass = "ok";
+            _locationNo = _lot.StorageLocation?.Trim() ?? "";
+            var missing = SparePartValidation.MissingFields(
+                ("Spare Part No", _lot.EosSpNo), ("Category", _lot.Category),
+                ("Applicable Equipment", _lot.ApplicableEquipment), ("Part Name", _lot.PartName),
+                ("Part No", _lot.PartNo), ("Maker", _lot.Maker), ("Vendor", _lot.Vendor),
+                ("Unit", _lot.Unit), ("Storage Location", _lot.StorageLocation));
+            string? locationError = null;
+            if (!missing.Contains("Storage Location"))
+            {
+                try
+                {
+                    _location = await Api.WhScanLocationAsync(_locationNo, PdaApi.SparePartsAreaCode);
+                    if (_location is null) locationError = "The master storage location was not found.";
+                }
+                catch (Exception ex) { locationError = ex.Message; }
+            }
+            _message = CanReceive ? "Spare part loaded. Ready to receive at the master storage location."
+                : "A valid storage location is required. Update the spare part master and scan again.";
+            _messageClass = CanReceive ? "ok" : "fail";
+            if (missing.Length > 0 || locationError is not null)
+            {
+                var warning = missing.Length > 0 ? $"The following information is missing: {string.Join(", ", missing)}. " : "";
+                if (locationError is not null) warning += locationError + " ";
+                ShowModal("Incomplete Spare Part Information", warning + "Please check the spare part master.", "warn");
+            }
         }
-        catch (Exception ex) { _message = ex.Message; _messageClass = "fail"; }
-        finally { _busy = false; }
-    }
-
-    private async Task ScanLocation()
-    {
-        if (_lot is null) return;
-        var value = NormalizeScan(_locationNo);
-        if (value.Length == 0) { ShowModal("Location Required", "Scan a Spare Parts Area location.", "warn"); return; }
-        _busy = true;
-        try
-        {
-            _location = await Api.WhScanLocationAsync(value, PdaApi.SparePartsAreaCode);
-            _locationNo = _location?.LocationId ?? value;
-            _message = _location is null ? "Storage location was not found." : "Location verified. Ready to receive.";
-            _messageClass = _location is null ? "fail" : "ok";
-        }
-        catch (Exception ex) { _location = null; _message = ex.Message; _messageClass = "fail"; }
+        catch (Exception ex) { _location = null; _message = ex.Message; _messageClass = "fail"; ShowModal("Scan Failed", ex.Message, "fail"); }
         finally { _busy = false; }
     }
 
     private async Task Receive()
     {
-        if (!CanReceive) { ShowModal("Not Ready", _lot is null ? "Scan an EOS SP No first." : "Scan a storage location first.", "warn"); return; }
+        if (_busy || _modalOpen) return;
+        if (!CanReceive) { ShowModal("Not Ready", _lot is null ? "Scan an EOS SP No first." : "A valid storage location is required. Update the spare part master and scan again.", "warn"); return; }
         _busy = true;
         try
         {
@@ -198,7 +188,8 @@
         ("CATEGORY", _lot?.Category), ("APPLICABLE EQUIPMENT", _lot?.ApplicableEquipment),
         ("PART NAME", _lot?.PartName), ("PART NO", _lot?.PartNo),
         ("MAKER", _lot?.Maker), ("VENDOR", _lot?.Vendor),
-        ("QTY", _lot is null ? null : $"{_lot.Qty:N0} {Text(_lot.Unit)}")
+        ("QTY", _lot is null ? null : $"{_lot.Qty:N0} {Text(_lot.Unit)}"),
+        ("STORAGE LOCATION", _lot?.StorageLocation)
     ];
 
     private async Task StartScenario(int step)
@@ -208,7 +199,6 @@
 
     private async Task RunScenario(string command)
     {
-        if (command == "LOCATION") { _locationNo = "SP-EXTRA"; await ScanLocation(); return; }
         if (command == "INBOUND") await Api.SpResetTestAsync();
         _lotNo = command == "INBOUND" ? "EOS-SP-K9-269999" : "EOS-SP-X0-000000";
         await ScanLot();
