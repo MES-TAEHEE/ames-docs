@@ -460,7 +460,7 @@ BEGIN
         (SparePartNo, Category, ApplicableEquip, PartNo, PartName, Maker, UOM, OnHandQty,
          SafetyStock, SupplierID, ZoneCode, Slot, ActiveFlag, CreatedBy, CreatedTS)
     VALUES
-        ('EOS-SP-K9-269999', 'K', '9', 'PDA-SP-TEST-001', N'PDA Spare Parts Test', N'DEMO INDUSTRIAL', 'EA', 1,
+        ('EOS-SP-K9-269999', 'K', '9', 'PDA-SP-TEST-001', N'PDA Spare Parts Test', N'DEMO INDUSTRIAL', 'EA', 0,
          1, 'SP-DEMO-V01', 'SP_EXTRA', NULL, 1, N'pda-seed', SYSDATETIME());
 END;
 

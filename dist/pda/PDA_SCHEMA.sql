@@ -3833,6 +3833,13 @@ BEGIN
 
     IF @Before IS NULL THROW 51815, 'EOS SP No was not found.', 1;
 
+    IF @Move = 'OUT' AND NOT EXISTS
+    (
+        SELECT 1 FROM dbo.MNT_SparePartsTxn
+        WHERE SparePartNo=@SpNo AND MoveType='IN' AND RefType='PDA'
+    )
+        THROW 51817, 'This spare part has not been received yet. Receive it before release.', 1;
+
     SET @After = @Before + CASE WHEN @Move = 'IN' THEN @Qty ELSE -@Qty END;
     IF @After < 0 THROW 51816, 'Spare part is out of stock.', 1;
 
@@ -3868,14 +3875,14 @@ BEGIN
             (SparePartNo, Category, ApplicableEquip, PartNo, PartName, Maker, UOM, OnHandQty,
              SafetyStock, SupplierID, ZoneCode, Slot, ActiveFlag, CreatedBy, CreatedTS)
         VALUES
-            ('EOS-SP-K9-269999', 'K', '9', 'PDA-SP-TEST-001', N'PDA Spare Parts Test', N'DEMO INDUSTRIAL', 'EA', 1,
+            ('EOS-SP-K9-269999', 'K', '9', 'PDA-SP-TEST-001', N'PDA Spare Parts Test', N'DEMO INDUSTRIAL', 'EA', 0,
              1, 'SP-DEMO-V01', 'SP_EXTRA', NULL, 1, 'pda-test-reset', SYSDATETIME());
 
     DELETE FROM dbo.MNT_SparePartsTxn WHERE SparePartNo = 'EOS-SP-K9-269999';
 
     UPDATE dbo.MD_SparePart
        SET Maker = N'DEMO INDUSTRIAL', SupplierID = 'SP-DEMO-V01',
-           OnHandQty = 1, ZoneCode = 'SP_EXTRA', Slot = NULL, ActiveFlag = 1,
+           OnHandQty = 0, ZoneCode = 'SP_EXTRA', Slot = NULL, ActiveFlag = 1,
            ModifiedBy = N'pda-test-reset', ModifiedTS = SYSDATETIME()
      WHERE SparePartNo = 'EOS-SP-K9-269999';
 

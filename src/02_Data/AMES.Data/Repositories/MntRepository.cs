@@ -1359,6 +1359,16 @@ public sealed class MntRepository
                 before = Convert.ToInt32(o);
             }
             var delta = moveType switch { SpareMoveTypes.In => qty, SpareMoveTypes.Out => -qty, _ => qty };
+            if (refType == "PDA_ADJUST")
+            {
+                using var received = new SqlCommand("""
+                    SELECT COUNT(*) FROM dbo.MNT_SparePartsTxn
+                    WHERE SparePartNo=@SP AND MoveType='IN' AND RefType='PDA';
+                    """, conn, tx);
+                received.Parameters.Add("@SP", SqlDbType.VarChar, 16).Value = sparePartNo;
+                if (Convert.ToInt32(received.ExecuteScalar()) == 0)
+                    throw new InvalidOperationException("This spare part has not been received yet. Receive it before adjustment.");
+            }
             var after = before + delta;
             if (after < 0) throw new InvalidOperationException($"Insufficient stock for {sparePartNo}: on hand {before}, requested {-delta}.");
 

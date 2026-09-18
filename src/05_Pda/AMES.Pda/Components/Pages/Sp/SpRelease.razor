@@ -123,6 +123,7 @@
 
     private async Task ScanLot()
     {
+        if (_busy || _modalOpen) return;
         var value = NormalizeScan(_lotNo);
         if (value.Length == 0) { ShowModal("EOS SP No Required", "Scan an EOS SP No.", "warn"); return; }
         _busy = true;
@@ -132,6 +133,13 @@
             _lot = await Api.SpItemAsync(value);
             if (_lot is null) { _message = "EOS SP No was not found."; _messageClass = "fail"; return; }
             _lotNo = _lot.EosSpNo;
+            if (!_lot.HasReceived)
+            {
+                _message = "This spare part has not been received yet. Receive it before release.";
+                _messageClass = "fail";
+                ShowModal("Not Received", _message, "warn");
+                return;
+            }
             _message = _lot.IsReleaseEligible ? "Spare part loaded. Ready to release 1 EA." : "Spare part is out of stock.";
             _messageClass = _lot.IsReleaseEligible ? "ok" : "fail";
         }
@@ -141,6 +149,7 @@
 
     private async Task Release()
     {
+        if (_busy || _modalOpen) return;
         if (_lot?.IsReleaseEligible != true) { ShowModal("Not Ready", _lot is null ? "Scan an EOS SP No first." : "This spare part cannot be released.", "warn"); return; }
         _busy = true;
         try
@@ -178,6 +187,8 @@
         if (command is "READY" or "RELEASED")
         {
             await Api.SpResetTestAsync();
+            var received = await Api.SpReceiveAsync(new("EOS-SP-K9-269999", 1, "SP-EXTRA", "PDA spare parts release scenario setup"));
+            if (!received.Success) throw new InvalidOperationException(received.Message);
             if (command == "RELEASED")
             {
                 var result = await Api.SpReleaseAsync(new("EOS-SP-K9-269999", 1, Note: "PDA spare parts release scenario"));

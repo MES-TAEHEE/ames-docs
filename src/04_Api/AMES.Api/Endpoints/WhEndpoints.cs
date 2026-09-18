@@ -111,7 +111,7 @@ public static class WhEndpoints
     public sealed record SparePartRow(string EosSpNo, string? Category,
         string? ApplicableEquipment, string? PartName, string? PartNo, string? Maker,
         string? Vendor, decimal Qty, string? Unit, string? StorageLocation, string? AreaCode,
-        string InventoryStatus, bool IsReleaseEligible, string? ImageDataUrl);
+        string InventoryStatus, bool IsReleaseEligible, string? ImageDataUrl, bool HasReceived = false);
     public sealed record SparePartMoveReq(string EosSpNo, int Qty = 1,
         string? LocationId = null, string? Note = null);
     public sealed record SparePartMoveResult(bool Success, string Message, SparePartRow? Row = null);
@@ -326,6 +326,8 @@ public static class WhEndpoints
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
             var row = QuerySparePartInboundRow(factory, scanText);
+            if (row?.ReceivedStatus == "NOT RECEIVED")
+                return Results.Problem("This spare part has not been received yet. Receive it before adjustment or locating.", statusCode: StatusCodes.Status400BadRequest);
             return row is null
                 ? Results.Problem("EOS SP No was not found.", statusCode: StatusCodes.Status404NotFound)
                 : Results.Ok(row);
@@ -1872,6 +1874,8 @@ public static class WhEndpoints
                 COALESCE(V.VendorName, P.SupplierID) AS Vendor,
                 P.OnHandQty AS Qty, COALESCE(P.UOM, 'EA') AS Unit,
                 L.LocationID AS StorageLocation, L.AreaCode,
+                CASE WHEN EXISTS (SELECT 1 FROM dbo.MNT_SparePartsTxn T
+                    WHERE T.SparePartNo=P.SparePartNo AND T.MoveType='IN' AND T.RefType='PDA') THEN 1 ELSE 0 END AS HasReceived,
                 CASE WHEN P.OnHandQty > 0 THEN 'IN STOCK' ELSE 'OUT OF STOCK' END AS InventoryStatus
             FROM dbo.MD_SparePart P
             LEFT JOIN dbo.MD_CodeItem C
@@ -1897,13 +1901,14 @@ public static class WhEndpoints
         while (rdr.Read())
         {
             var qty = GetDecimal(rdr, "Qty");
+            var hasReceived = Convert.ToInt32(rdr["HasReceived"]) == 1;
             rows.Add(new SparePartRow(
                 GetString(rdr, "EosSpNo") ?? "",
                 GetString(rdr, "Category"), GetString(rdr, "ApplicableEquipment"),
                 GetString(rdr, "PartName"), GetString(rdr, "PartNo"), GetString(rdr, "Maker"),
                 GetString(rdr, "Vendor"), qty, GetString(rdr, "Unit"), GetString(rdr, "StorageLocation"),
-                GetString(rdr, "AreaCode"), GetString(rdr, "InventoryStatus") ?? "OUT OF STOCK", qty > 0,
-                GetImageDataUrl(rdr, "SparePartImage")));
+                GetString(rdr, "AreaCode"), hasReceived ? GetString(rdr, "InventoryStatus") ?? "OUT OF STOCK" : "NOT RECEIVED", hasReceived && qty > 0,
+                GetImageDataUrl(rdr, "SparePartImage"), hasReceived));
         }
         return rows;
     }
@@ -1927,6 +1932,8 @@ public static class WhEndpoints
              AND L.ZoneCode = P.ZoneCode
              AND COALESCE(L.Slot, '') = COALESCE(P.Slot, '')
             WHERE COALESCE(P.ActiveFlag,1) = 1
+              AND EXISTS (SELECT 1 FROM dbo.MNT_SparePartsTxn T
+                  WHERE T.SparePartNo=P.SparePartNo AND T.MoveType='IN' AND T.RefType='PDA')
               AND (@Q = '' OR P.SparePartNo LIKE '%' + @Q + '%' OR P.PartNo LIKE '%' + @Q + '%' OR P.PartName LIKE '%' + @Q + '%')
             ORDER BY P.SparePartNo;
             """, conn);
@@ -1959,6 +1966,8 @@ public static class WhEndpoints
              AND L.ZoneCode = P.ZoneCode
              AND COALESCE(L.Slot, '') = COALESCE(P.Slot, '')
             WHERE COALESCE(P.ActiveFlag,1) = 1
+              AND EXISTS (SELECT 1 FROM dbo.MNT_SparePartsTxn T
+                  WHERE T.SparePartNo=P.SparePartNo AND T.MoveType='IN' AND T.RefType='PDA')
               AND (@Q = '' OR P.SparePartNo LIKE '%' + @Q + '%' OR P.PartNo LIKE '%' + @Q + '%' OR P.PartName LIKE '%' + @Q + '%')
             ORDER BY P.SparePartNo;
             """, conn);
@@ -1990,6 +1999,8 @@ public static class WhEndpoints
             LEFT JOIN dbo.WH_WarehouseMaster W ON W.WhCode = L.WhCode
             LEFT JOIN dbo.WH_AreaMaster A ON A.WhCode = L.WhCode AND A.AreaCode = L.AreaCode
             WHERE (UPPER(P.SparePartNo) = UPPER(@SparePartNo) OR UPPER(P.PartNo) = UPPER(@SparePartNo))
+              AND EXISTS (SELECT 1 FROM dbo.MNT_SparePartsTxn T
+                  WHERE T.SparePartNo=P.SparePartNo AND T.MoveType='IN' AND T.RefType='PDA')
               AND COALESCE(P.ActiveFlag,1) = 1;
             """, conn);
         cmd.Parameters.Add("@SparePartNo", SqlDbType.VarChar, 16).Value = eosSpNo.Trim();
@@ -2021,6 +2032,8 @@ public static class WhEndpoints
              AND L.ZoneCode = P.ZoneCode
              AND COALESCE(L.Slot, '') = COALESCE(P.Slot, '')
             WHERE COALESCE(P.ActiveFlag,1) = 1
+              AND EXISTS (SELECT 1 FROM dbo.MNT_SparePartsTxn T
+                  WHERE T.SparePartNo=P.SparePartNo AND T.MoveType='IN' AND T.RefType='PDA')
             ORDER BY P.SparePartNo;
             """, conn);
         cmd.Parameters.Add("@LocationId", SqlDbType.VarChar, 20).Value = locationId.Trim();
@@ -2049,6 +2062,8 @@ public static class WhEndpoints
               ON P.ZoneCode = L.ZoneCode
              AND COALESCE(P.Slot, '') = COALESCE(L.Slot, '')
              AND COALESCE(P.ActiveFlag,1) = 1
+             AND EXISTS (SELECT 1 FROM dbo.MNT_SparePartsTxn T
+                 WHERE T.SparePartNo=P.SparePartNo AND T.MoveType='IN' AND T.RefType='PDA')
             WHERE L.AreaCode = 'SPARE_PARTS_AREA' AND COALESCE(L.ActiveFlag,1) = 1
             GROUP BY L.LocationID, L.LocationName, L.ZoneCode, L.WhCode, W.WhName, L.AreaCode, A.AreaName,
                      L.Aisle, L.Bay, L.Slot, L.PlantCode, L.LocationType, L.Capacity
@@ -2085,6 +2100,8 @@ public static class WhEndpoints
              AND L.ZoneCode = P.ZoneCode
              AND COALESCE(L.Slot, '') = COALESCE(P.Slot, '')
             WHERE COALESCE(P.ActiveFlag,1)=1
+              AND EXISTS (SELECT 1 FROM dbo.MNT_SparePartsTxn T
+                  WHERE T.SparePartNo=P.SparePartNo AND T.MoveType='IN' AND T.RefType='PDA')
             ORDER BY P.SparePartNo;
             """, conn);
         cmd.Parameters.Add("@LocationId", SqlDbType.VarChar, 20).Value = locationId;
@@ -2103,7 +2120,7 @@ public static class WhEndpoints
     {
         var row = QuerySparePart(factory, eosSpNo);
         return row is null ? null : new InboundScanRow(
-            "SP", "N", row.EosSpNo, row.EosSpNo, "MD_SparePart",
+            "SP", row.HasReceived ? "N" : "Y", row.EosSpNo, row.EosSpNo, "MD_SparePart",
             null, null, null, null, null, row.PartNo, row.PartName, row.Qty, row.Unit,
             null, null, null, row.Vendor, null, null, null, null, null,
             row.StorageLocation, row.InventoryStatus);
@@ -2136,7 +2153,9 @@ public static class WhEndpoints
             string? current;
             int qty;
             using (var stock = new SqlCommand("""
-                SELECT L.LocationID AS StorageLocation, P.OnHandQty
+                SELECT L.LocationID AS StorageLocation, P.OnHandQty,
+                    CASE WHEN EXISTS (SELECT 1 FROM dbo.MNT_SparePartsTxn T
+                        WHERE T.SparePartNo=P.SparePartNo AND T.MoveType='IN' AND T.RefType='PDA') THEN 1 ELSE 0 END AS HasReceived
                 FROM dbo.MD_SparePart P WITH (UPDLOCK,HOLDLOCK)
                 LEFT JOIN dbo.MD_Location L
                   ON L.AreaCode = 'SPARE_PARTS_AREA'
@@ -2148,6 +2167,8 @@ public static class WhEndpoints
                 stock.Parameters.Add("@SparePartNo", SqlDbType.VarChar, 16).Value = eosSpNo.Trim();
                 using var rdr = stock.ExecuteReader();
                 if (!rdr.Read()) throw new InvalidOperationException("EOS SP No was not found.");
+                if (Convert.ToInt32(rdr["HasReceived"]) == 0)
+                    throw new InvalidOperationException("This spare part has not been received yet. Receive it before locating.");
                 current = GetString(rdr, "StorageLocation");
                 qty = Convert.ToInt32(rdr["OnHandQty"]);
             }
@@ -3041,6 +3062,8 @@ public static class WhEndpoints
 
     private static string WarehouseProcedureMessage(Exception ex)
     {
+        if (ex is InvalidOperationException && ex.Message.StartsWith("This spare part has not been received yet.", StringComparison.Ordinal))
+            return ex.Message;
         if (ex is SqlException sqlEx && sqlEx.Errors.Count > 0)
             return sqlEx.Errors[0].Message;
 
