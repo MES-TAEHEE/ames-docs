@@ -75,10 +75,14 @@
             </div>
         </div>
 
-        <RadzenDataGrid TItem="CalendarDaySummary" Data="@DaySummaries.ToList()" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
+        <RadzenDataGrid @ref="_dayGrid" TItem="CalendarDaySummary" Data="@DaySummaries.ToList()" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
                         PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" AllowSorting="true" RowRender="@CalDayRowRender"
                         RowClick="@(args => { if (args.Data is not null) OpenEdit(args.Data.Date, args.Data.Shifts); })" EmptyText="@L["SYS.Calendar.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
             <Columns>
+                @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+                <RadzenDataGridColumn TItem="CalendarDaySummary" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                    <Template Context="row"><span class="dim">@GridRowNo.Of(_dayGrid, row)</span></Template>
+                </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="CalendarDaySummary" Property="Date" Title="@L["SYS.Calendar.Col.Date"]" TextAlign="TextAlign.Center" Width="130px">
                     <Template Context="row"><span class="code">@(row.Date.ToString(DateFmt.DateWeekday))</span></Template>
                 </RadzenDataGridColumn>
@@ -747,6 +751,8 @@
 
     private IEnumerable<DropDownItem> DayTypeOptions =>
         _dayTypes.Select(d => new DropDownItem { Value = d.CodeValue ?? "", Text = $"[{d.CodeValue}] {MasterDataRepository.LocalName(d)}" });
+
+    RadzenDataGrid<CalendarDaySummary>? _dayGrid;   // No. 열용
 
     private record CalendarDaySummary(
         DateTime Date, string? DayType, string? HolidayName,

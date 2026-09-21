@@ -8181,4 +8181,7 @@
   <data name="MD.SparePart.Ph.ExtraLocation" xml:space="preserve">
     <value>예: 사무실 캐비닛 2번</value>
   </data>
+  <data name="Col.RowNo" xml:space="preserve">
+    <value>No.</value>
+  </data>
 </root>

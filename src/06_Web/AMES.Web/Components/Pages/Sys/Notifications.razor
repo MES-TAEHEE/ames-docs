@@ -85,6 +85,10 @@
             <RadzenDataGrid @ref="_ruleGrid" Page="OnRulePage" TItem="SysRepository.NotifRuleRow" Data="@_ruleRows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                             PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRuleRowClick" RowRender="@RuleRowRender" EmptyText="@L["SYS.Notifications.Rules.Empty"]" PageSizeChanged="@(s => _rulePageRows = s)" Style="@($"--ames-page-rows:{_rulePageRows}")" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
+                    @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+                    <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                        <Template Context="r"><span class="dim">@GridRowNo.Of(_ruleGrid, r)</span></Template>
+                    </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="EventTypeCode" Title="@L["Col.EventCode"]" Width="130px">
                         <Template Context="r"><span class="code">@(r.EventTypeCode ?? "—")</span></Template>
                     </RadzenDataGridColumn>
@@ -143,6 +147,10 @@
             <RadzenDataGrid @ref="_chGrid" Page="OnChPage" TItem="SysRepository.NotifChannelRow" Data="@_chRows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                             PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnChRowClick" RowRender="@ChRowRender" EmptyText="@L["SYS.Notifications.Channels.Empty"]" PageSizeChanged="@(s => _chPageRows = s)" Style="@($"--ames-page-rows:{_chPageRows}")" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
+                    @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                        <Template Context="c"><span class="dim">@GridRowNo.Of(_chGrid, c)</span></Template>
+                    </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="UserName" Title="@L["Col.User"]" Width="300px">
                         <Template Context="c"><span class="dim" style="font-size:12px;max-width:280px;overflow:hidden;text-overflow:ellipsis;display:block;">@(c.UserName ?? c.UserId ?? "—")</span></Template>
                     </RadzenDataGridColumn>
@@ -186,9 +194,13 @@
                     <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyHistFilter" class="ames-rz-btn" />
                 </RadzenStack>
             </div>
-            <RadzenDataGrid TItem="SysRepository.NotifHistoryRow" Data="@_histRows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+            <RadzenDataGrid @ref="_histGrid" TItem="SysRepository.NotifHistoryRow" Data="@_histRows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                             PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["SYS.Notifications.History.Empty"]" PageSizeChanged="@(s => _histPageRows = s)" Style="@($"--ames-page-rows:{_histPageRows}")" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
+                    @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                        <Template Context="h"><span class="dim">@GridRowNo.Of(_histGrid, h)</span></Template>
+                    </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="SentAt" Title="@L["Col.SentAt"]" TextAlign="TextAlign.Center" Width="110px">
                         <Template Context="h"><span class="dim">@(h.SentAt?.ToString(DateFmt.MonthDayTime) ?? "—")</span></Template>
                     </RadzenDataGridColumn>
@@ -536,6 +548,7 @@
 </style>
 
 @code {
+    RadzenDataGrid<SysRepository.NotifHistoryRow>? _histGrid;   // No. 열용
     IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
     int  _rulePageRows = 25, _chPageRows = 25, _histPageRows = 25;   // 고정 페이저(.ames-grid-fixed) 탭별 페이지 행 수

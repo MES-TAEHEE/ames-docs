@@ -111,8 +111,12 @@
                 </div>
 
                 <div style="flex:1;min-height:0;overflow:auto;">
-                <RadzenDataGrid TItem="SysRepository.ScreenRow" Data="@ScreensFiltered.ToList()" AllowPaging="false" AllowSorting="false" EmptyText="@L["SYS.Screen.Empty"]" Class="ames-rz-grid">
+                <RadzenDataGrid @ref="_screenGrid" TItem="SysRepository.ScreenRow" Data="@ScreensFiltered.ToList()" AllowPaging="false" AllowSorting="false" EmptyText="@L["SYS.Screen.Empty"]" Class="ames-rz-grid">
                     <Columns>
+                        @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+                        <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                            <Template Context="s"><span class="dim">@GridRowNo.Of(_screenGrid, s)</span></Template>
+                        </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]" TextAlign="TextAlign.Center" Width="100px">
                             <Template Context="s"><span class="code" style="white-space:nowrap;">@s.ScreenCode</span></Template>
                         </RadzenDataGridColumn>
@@ -142,6 +146,7 @@
 </div>
 
 @code {
+    RadzenDataGrid<SysRepository.ScreenRow>? _screenGrid;   // No. 열용
     List<SysRepository.RoleRow>            _roles      = new();
     List<SysRepository.RolePermRow>        _rows       = new();
     List<SysRepository.ScreenRow>          _screens    = new();

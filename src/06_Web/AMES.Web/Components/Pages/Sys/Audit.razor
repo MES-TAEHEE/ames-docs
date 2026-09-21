@@ -67,9 +67,13 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid TItem="SysRepository.AuditRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+    <RadzenDataGrid @ref="_noGrid" TItem="SysRepository.AuditRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Audit.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
+            @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="a"><span class="dim">@GridRowNo.Of(_noGrid, a)</span></Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="EventTs" Title="@L["SYS.Audit.Col.Time"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="a"><span class="code dim" style="font-size:13px;white-space:nowrap;">@(a.EventTs?.ToString(DateFmt.MonthDayTimeSec) ?? "—")</span></Template>
             </RadzenDataGridColumn>
@@ -197,6 +201,7 @@
 }
 
 @code {
+    RadzenDataGrid<SysRepository.AuditRow>? _noGrid;   // No. 열용
     IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
     int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)

@@ -67,9 +67,13 @@
                     }
                 </div>
                 <div style="flex:1;min-height:0;overflow:hidden;">
-                    <RadzenDataGrid TItem="MasterDataRepository.MoldItemRow" Data="_items" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
+                    <RadzenDataGrid @ref="_noGrid" TItem="MasterDataRepository.MoldItemRow" Data="_items" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
                                     ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeOptions="@_pageSizeOptions" RowRender="ItemRowRender" RowSelect="OpenEdit" EmptyText="@L["MD.MoldItem.Empty"]" Class="ames-rz-grid ames-grid-fill">
                         <Columns>
+                            @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                                <Template Context="rn"><span class="dim">@GridRowNo.Of(_noGrid, rn)</span></Template>
+                            </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="ItemNo" Title="@L["Col.ItemNo"]" TextAlign="TextAlign.Center" Width="130px">
                                 <Template Context="i"><span class="code">@i.ItemNo</span></Template>
                             </RadzenDataGridColumn>
@@ -159,6 +163,7 @@
 }
 
 @code {
+    RadzenDataGrid<MasterDataRepository.MoldItemRow>? _noGrid;   // No. 열용
     IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
     List<MasterDataRepository.MoldRow>     _allMolds = new();
