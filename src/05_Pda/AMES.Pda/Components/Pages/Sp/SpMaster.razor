@@ -110,7 +110,7 @@
     private List<SparePartPrinter.Device> _printers = [];
     private PdaApi.SparePartRow? _selected;
     private string _search = "", _message = "", _printMessage = "";
-    private string _bluetooth = Preferences.Default.Get("SpPrinter.Bluetooth", "");
+    private string _bluetooth = "";
     private int _visible = 30;
     private int _dpi = Preferences.Default.Get("SpPrinter.Dpi", 203) == 300 ? 300 : 203;
     private void SaveDpi() => Preferences.Default.Set("SpPrinter.Dpi", _dpi);
@@ -213,7 +213,6 @@
             }
             var zpl = SparePartLabel.Build(current.EosSpNo, current.PartNo, current.Maker, current.StorageLocation, _dpi);
             await _printer.SendAsync(_bluetooth, zpl);
-            Preferences.Default.Set("SpPrinter.Bluetooth", _bluetooth);
             _printMessage = "1 label sent to printer. Check the printed label.";
         }
         catch (Exception ex) { _printMessage = $"Print failed: {ex.Message} Check the printer before retrying."; _printError = true; }
