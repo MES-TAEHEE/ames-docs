@@ -111,7 +111,8 @@ public static class WhEndpoints
     public sealed record SparePartRow(string EosSpNo, string? Category,
         string? ApplicableEquipment, string? PartName, string? PartNo, string? Maker,
         string? Vendor, decimal Qty, string? Unit, string? StorageLocation, string? AreaCode,
-        string InventoryStatus, bool IsReleaseEligible, string? ImageDataUrl, bool HasReceived = false);
+        string InventoryStatus, bool IsReleaseEligible, string? ImageDataUrl, bool HasReceived = false,
+        int? SafetyStock = null);
     public sealed record SparePartMoveReq(string EosSpNo, int Qty = 1,
         string? LocationId = null, string? Note = null);
     public sealed record SparePartMoveResult(bool Success, string Message, SparePartRow? Row = null);
@@ -1872,7 +1873,7 @@ public static class WhEndpoints
                 P.PartName, P.PartNo, P.Maker,
                 CASE WHEN @EosSpNo IS NOT NULL THEN P.SparePartImage END AS SparePartImage,
                 COALESCE(V.VendorName, P.SupplierID) AS Vendor,
-                P.OnHandQty AS Qty, COALESCE(P.UOM, 'EA') AS Unit,
+                P.OnHandQty AS Qty, P.SafetyStock, COALESCE(P.UOM, 'EA') AS Unit,
                 L.LocationID AS StorageLocation, L.AreaCode,
                 CASE WHEN EXISTS (SELECT 1 FROM dbo.MNT_SparePartsTxn T
                     WHERE T.SparePartNo=P.SparePartNo AND T.MoveType='IN' AND T.RefType='PDA') THEN 1 ELSE 0 END AS HasReceived,
@@ -1908,7 +1909,7 @@ public static class WhEndpoints
                 GetString(rdr, "PartName"), GetString(rdr, "PartNo"), GetString(rdr, "Maker"),
                 GetString(rdr, "Vendor"), qty, GetString(rdr, "Unit"), GetString(rdr, "StorageLocation"),
                 GetString(rdr, "AreaCode"), hasReceived ? GetString(rdr, "InventoryStatus") ?? "OUT OF STOCK" : "NOT RECEIVED", hasReceived && qty > 0,
-                GetImageDataUrl(rdr, "SparePartImage"), hasReceived));
+                GetImageDataUrl(rdr, "SparePartImage"), hasReceived, GetInt(rdr, "SafetyStock")));
         }
         return rows;
     }

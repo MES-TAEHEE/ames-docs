@@ -140,7 +140,8 @@ public abstract class PdaApi
     public sealed record SparePartRow(string EosSpNo, string? Category,
         string? ApplicableEquipment, string? PartName, string? PartNo, string? Maker,
         string? Vendor, decimal Qty, string? Unit, string? StorageLocation, string? AreaCode,
-        string InventoryStatus, bool IsReleaseEligible, string? ImageDataUrl, bool HasReceived = false);
+        string InventoryStatus, bool IsReleaseEligible, string? ImageDataUrl, bool HasReceived = false,
+        int? SafetyStock = null);
     public sealed record SparePartMoveReq(string EosSpNo, int Qty = 1,
         string? LocationId = null, string? Note = null);
     public sealed record SparePartMoveResult(bool Success, string Message, SparePartRow? Row = null);

@@ -6,6 +6,15 @@ namespace AMES.InjAgent.Tests;
 
 public class SparePartLabelTests
 {
+    [Theory]
+    [InlineData(2, 1, 1, false)]
+    [InlineData(1, 1, 1, true)]
+    [InlineData(10, 1, null, false)]
+    [InlineData(1, 1, 0, false)]
+    public void Release_warns_only_when_remaining_stock_is_below_safety_stock(
+        decimal currentQty, decimal releaseQty, int? safetyStock, bool expected)
+        => Assert.Equal(expected, SparePartValidation.FallsBelowSafetyStock(currentQty, releaseQty, safetyStock));
+
     [Fact]
     public void Missing_information_lists_only_empty_or_placeholder_fields()
     {

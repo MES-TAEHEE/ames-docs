@@ -69,7 +69,17 @@
                 <div class="wh-modal-mark">@(_modalKind == "success" ? "OK" : "!")</div>
                 <div class="wh-modal-title">@_modalTitle</div>
                 <div class="wh-modal-message">@_modalMessage</div>
-                <div class="wh-modal-actions"><RadzenButton class="wh-modal-btn primary" Click="CloseModal" Text="OK" /></div>
+                @if (_safetyReleasePending)
+                {
+                    <div class="wh-modal-actions">
+                        <RadzenButton class="wh-modal-btn" Click="CancelSafetyRelease" Text="CANCEL" />
+                        <RadzenButton class="wh-modal-btn primary" Click="ConfirmSafetyRelease" Text="RELEASE ANYWAY" />
+                    </div>
+                }
+                else
+                {
+                    <div class="wh-modal-actions"><RadzenButton class="wh-modal-btn primary" Click="CloseModal" Text="OK" /></div>
+                }
             </RadzenCard>
         </div>
     }
@@ -93,6 +103,7 @@
     private bool _busy;
     private bool _scenarioOpen;
     private bool _modalOpen;
+    private bool _safetyReleasePending;
     private string _modalTitle = "";
     private string _modalMessage = "";
     private string _modalKind = "info";
@@ -151,16 +162,34 @@
     {
         if (_busy || _modalOpen) return;
         if (_lot?.IsReleaseEligible != true) { ShowModal("Not Ready", _lot is null ? "Scan an EOS SP No first." : "This spare part cannot be released.", "warn"); return; }
+        if (SparePartValidation.FallsBelowSafetyStock(_lot.Qty, 1, _lot.SafetyStock))
+        {
+            _safetyReleasePending = true;
+            ShowModal("Safety Stock Warning",
+                $"Releasing 1 EA will reduce stock to {_lot.Qty - 1:N0} EA, below the safety quantity of {_lot.SafetyStock:N0} EA. Do you want to continue?",
+                "warn");
+            return;
+        }
+        await ReleaseConfirmed();
+    }
+
+    private async Task ReleaseConfirmed()
+    {
+        if (_lot is not { IsReleaseEligible: true } lot)
+        {
+            ShowModal("Not Ready", "Scan an available EOS SP No first.", "warn");
+            return;
+        }
         _busy = true;
         try
         {
-            var result = await Api.SpReleaseAsync(new(_lot.EosSpNo, 1, Note: "PDA spare parts release"));
+            var result = await Api.SpReleaseAsync(new(lot.EosSpNo, 1, Note: "PDA spare parts release"));
             if (!result.Success)
             {
                 ShowModal("Release Failed", result.Message, "fail");
                 return;
             }
-            var eosSpNo = _lot.EosSpNo;
+            var eosSpNo = lot.EosSpNo;
             Clear();
             ShowModal("Release Complete", $"1 EA of {eosSpNo} was released.", "success");
         }
@@ -208,7 +237,9 @@
 
     private void Clear() { _lotNo = _message = ""; _lot = null; }
     private void ShowModal(string title, string message, string kind) { _modalTitle = title; _modalMessage = message; _modalKind = kind; _modalOpen = true; }
-    private void CloseModal() { _modalOpen = false; _ = FocusScannerAsync(); }
+    private void CloseModal() { _modalOpen = false; _safetyReleasePending = false; _ = FocusScannerAsync(); }
+    private void CancelSafetyRelease() => CloseModal();
+    private async Task ConfirmSafetyRelease() { _modalOpen = false; _safetyReleasePending = false; await ReleaseConfirmed(); }
     private async Task FocusScannerAsync() { try { await JS.InvokeVoidAsync("pdaScan.focus", ".sp-screen .pda-scan-input"); } catch { } }
     private static string NormalizeScan(string? value) => string.IsNullOrWhiteSpace(value) ? "" : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
