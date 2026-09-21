@@ -56,6 +56,7 @@ FILES=(
   seed_admin_permissions.sql          #   → Admin RBAC(REA) + admin@ames.local 계정
   seed_wh_picking_rbac_test.sql       #   → WH Picking Orders R 권한 비교용 Web 계정 2개
   seed_md_code.sql                    # 마스터 공통코드
+  migrate_fg_shipment_api.sql         # FG Savannah shipment API common-code configuration
   seed_md_routing_step.sql            # 라우팅 템플릿(A/B) 시드 (테이블은 AMES_Schema.sql)
   reseed_md_item_partmaster.sql       # 품목(파트마스터)
   migrate_inj_agent.sql               # 사출: MD_Mold 4종 + 사출조건 시드
