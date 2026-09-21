@@ -3788,8 +3788,90 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.SP_PDA_STOCK_MOVE
+IF OBJECT_ID(N'dbo.Seq_MNT_SparePartSerial', N'SO') IS NOT NULL
+    DROP SEQUENCE dbo.Seq_MNT_SparePartSerial;
+GO
+
+IF OBJECT_ID(N'dbo.MNT_SparePartItem', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.MNT_SparePartItem
+    (
+        SparePartItemID bigint IDENTITY NOT NULL CONSTRAINT PK_MNT_SparePartItem PRIMARY KEY,
+        SerialNo varchar(24) NOT NULL CONSTRAINT UX_MNT_SparePartItem_SerialNo UNIQUE,
+        SparePartNo varchar(16) NOT NULL,
+        StatusCode varchar(15) NOT NULL CONSTRAINT DF_MNT_SparePartItem_Status DEFAULT 'CREATED',
+        LocationID varchar(20) NULL,
+        CreatedBy varchar(50) NOT NULL,
+        CreatedTS datetime2 NOT NULL CONSTRAINT DF_MNT_SparePartItem_CreatedTS DEFAULT SYSDATETIME(),
+        ModifiedBy nvarchar(450) NULL,
+        ModifiedTS datetime2 NULL,
+        CONSTRAINT CK_MNT_SparePartItem_Status CHECK (StatusCode IN ('CREATED','IN_STOCK','RELEASED'))
+    );
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.MNT_SparePartItem') AND name=N'IX_MNT_SparePartItem_PartStatus')
+    CREATE INDEX IX_MNT_SparePartItem_PartStatus ON dbo.MNT_SparePartItem(SparePartNo,StatusCode,LocationID);
+GO
+
+IF COL_LENGTH(N'dbo.MNT_SparePartsTxn', N'SparePartItemID') IS NULL
+    ALTER TABLE dbo.MNT_SparePartsTxn ADD SparePartItemID bigint NULL;
+IF COL_LENGTH(N'dbo.MNT_SparePartsTxn', N'ReversalOfTxnID') IS NULL
+    ALTER TABLE dbo.MNT_SparePartsTxn ADD ReversalOfTxnID int NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.MNT_SparePartsTxn') AND name=N'IX_MNT_SparePartsTxn_Item')
+    CREATE INDEX IX_MNT_SparePartsTxn_Item ON dbo.MNT_SparePartsTxn(SparePartItemID,TxnAt DESC,SparePartsTxnID DESC);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.MNT_SparePartsTxn') AND name=N'UX_MNT_SparePartsTxn_Reversal')
+    CREATE UNIQUE INDEX UX_MNT_SparePartsTxn_Reversal ON dbo.MNT_SparePartsTxn(ReversalOfTxnID) WHERE ReversalOfTxnID IS NOT NULL;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.SP_PDA_SP_SERIAL_CREATE
     @SparePartNo varchar(16),
+    @Count int,
+    @UserId nvarchar(450)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    DECLARE @SpNo varchar(16)=UPPER(LTRIM(RTRIM(ISNULL(@SparePartNo,''))));
+    DECLARE @User nvarchar(450)=COALESCE(NULLIF(LTRIM(RTRIM(@UserId)),N''),N'PDA');
+    DECLARE @Key varchar(15)=CASE WHEN @SpNo LIKE 'EOS-SP-%' THEN SUBSTRING(@SpNo,8,16) ELSE RIGHT(@SpNo,15) END;
+    DECLARE @Prefix varchar(20), @Balance int, @i int=0, @Serial varchar(24), @ItemId bigint, @Seq int;
+    DECLARE @Created table (SerialNo varchar(24) NOT NULL);
+
+    IF @Count NOT BETWEEN 1 AND 50 THROW 51820, 'Label count must be between 1 and 50.', 1;
+    SET @Key=REPLACE(@Key,' ','');
+    IF @Key='' THROW 51821, 'Spare Part No cannot be converted to a serial prefix.', 1;
+    SET @Prefix='SPI-'+@Key+'-';
+    SELECT @Balance=OnHandQty FROM dbo.MD_SparePart WHERE SparePartNo=@SpNo AND COALESCE(ActiveFlag,1)=1;
+    IF @Balance IS NULL THROW 51815, 'EOS SP No was not found.', 1;
+
+    BEGIN TRANSACTION;
+    SELECT @Seq=ISNULL(MAX(TRY_CONVERT(int,SUBSTRING(SerialNo,LEN(@Prefix)+1,4))),0)
+    FROM dbo.MNT_SparePartItem WITH (UPDLOCK,HOLDLOCK)
+    WHERE SparePartNo=@SpNo AND SerialNo LIKE @Prefix+'[0-9][0-9][0-9][0-9]';
+    IF @Seq+@Count>9999 THROW 51822, 'The serial number range for this spare part is exhausted.', 1;
+    WHILE @i < @Count
+    BEGIN
+        SET @Seq+=1;
+        SET @Serial=@Prefix+RIGHT('0000'+CONVERT(varchar(4),@Seq),4);
+        INSERT dbo.MNT_SparePartItem(SerialNo,SparePartNo,StatusCode,CreatedBy,CreatedTS)
+        VALUES(@Serial,@SpNo,'CREATED',LEFT(@User,50),SYSDATETIME());
+        SET @ItemId=SCOPE_IDENTITY();
+        INSERT dbo.MNT_SparePartsTxn
+            (SparePartNo,SparePartItemID,MoveType,Qty,BalanceBefore,BalanceAfter,RefType,RefID,Note,TxnAt,ActorID,CreatedBy,CreatedTS)
+        VALUES(@SpNo,@ItemId,'LABEL',0,@Balance,@Balance,'PDA_LABEL',@Serial,N'Label serial created',SYSDATETIME(),@User,LEFT(@User,50),SYSDATETIME());
+        INSERT @Created VALUES(@Serial);
+        SET @i+=1;
+    END;
+    COMMIT;
+    SELECT SerialNo FROM @Created ORDER BY SerialNo;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.SP_PDA_STOCK_MOVE
+    @SerialNo varchar(24),
     @MoveType varchar(10),
     @Qty int = 1,
     @LocationId varchar(20) = NULL,
@@ -3800,7 +3882,10 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @SpNo varchar(16) = UPPER(LTRIM(RTRIM(ISNULL(@SparePartNo, ''))));
+    DECLARE @Serial varchar(24) = UPPER(LTRIM(RTRIM(ISNULL(@SerialNo, ''))));
+    DECLARE @SpNo varchar(16);
+    DECLARE @ItemId bigint;
+    DECLARE @Status varchar(15);
     DECLARE @Move varchar(10) = UPPER(LTRIM(RTRIM(ISNULL(@MoveType, ''))));
     DECLARE @Location varchar(20) = NULLIF(UPPER(LTRIM(RTRIM(@LocationId))), '');
     DECLARE @User nvarchar(450) = COALESCE(NULLIF(LTRIM(RTRIM(@UserId)), N''), N'PDA');
@@ -3808,57 +3893,114 @@ BEGIN
     DECLARE @After int;
     DECLARE @ZoneCode varchar(20);
     DECLARE @Slot varchar(5);
+    DECLARE @StoredLocation varchar(20);
 
-    IF @SpNo = '' THROW 51810, 'EOS SP No is required.', 1;
+    IF @Serial = '' THROW 51810, 'Serial No is required.', 1;
     IF @Move NOT IN ('IN', 'OUT') THROW 51811, 'Move type must be IN or OUT.', 1;
-    IF COALESCE(@Qty, 0) <= 0 THROW 51812, 'Quantity must be greater than zero.', 1;
-    IF @Move = 'IN' AND @Location IS NULL THROW 51813, 'Storage location is required.', 1;
-    IF @Move = 'IN' AND NOT EXISTS
-    (
-        SELECT 1 FROM dbo.MD_Location
-        WHERE LocationID = @Location AND AreaCode = 'SPARE_PARTS_AREA' AND COALESCE(ActiveFlag, 1) = 1
-    )
-        THROW 51814, 'The location does not belong to the Spare Parts Area.', 1;
-
-    IF @Move = 'IN'
-        SELECT @ZoneCode = ZoneCode, @Slot = Slot
-        FROM dbo.MD_Location
-        WHERE LocationID = @Location;
-
+    IF COALESCE(@Qty, 0) <> 1 THROW 51812, 'Serialized spare parts must move one item at a time.', 1;
     BEGIN TRANSACTION;
 
-    SELECT @Before = OnHandQty
-    FROM dbo.MD_SparePart WITH (UPDLOCK, HOLDLOCK)
-    WHERE SparePartNo = @SpNo AND COALESCE(ActiveFlag, 1) = 1;
+    SELECT @ItemId=I.SparePartItemID,@SpNo=I.SparePartNo,@Status=I.StatusCode,
+           @StoredLocation=I.LocationID,@ZoneCode=P.ZoneCode,@Slot=P.Slot
+    FROM dbo.MNT_SparePartItem I WITH (UPDLOCK,HOLDLOCK)
+    JOIN dbo.MD_SparePart P WITH (UPDLOCK,HOLDLOCK) ON P.SparePartNo=I.SparePartNo AND COALESCE(P.ActiveFlag,1)=1
+    WHERE I.SerialNo=@Serial;
+    IF @ItemId IS NULL THROW 51815, 'Serial No was not found.', 1;
+    IF @Move='IN' AND @Status<>'CREATED' THROW 51818, 'This serial has already been received.', 1;
+    IF @Move='OUT' AND @Status<>'IN_STOCK' THROW 51817, 'This serial has not been received or is no longer in stock.', 1;
+    IF @Move='IN' AND NULLIF(@ZoneCode,'') IS NULL
+        THROW 51813, 'Storage location is not configured in Spare Part Master.', 1;
 
-    IF @Before IS NULL THROW 51815, 'EOS SP No was not found.', 1;
+    SET @Location = CASE
+        WHEN @Move='OUT' THEN @StoredLocation
+        WHEN @ZoneCode='SP_EXTRA' THEN 'SP-EXTRA'
+        WHEN NULLIF(@Slot,'') IS NULL OR @Slot='EX' THEN REPLACE(@ZoneCode,'_','-')
+        ELSE CONCAT(REPLACE(@ZoneCode,'_','-'),'-',@Slot)
+    END;
 
-    IF @Move = 'OUT' AND NOT EXISTS
-    (
-        SELECT 1 FROM dbo.MNT_SparePartsTxn
-        WHERE SparePartNo=@SpNo AND MoveType='IN' AND RefType='PDA'
-    )
-        THROW 51817, 'This spare part has not been received yet. Receive it before release.', 1;
+    SELECT @Before=OnHandQty FROM dbo.MD_SparePart WHERE SparePartNo=@SpNo;
 
     SET @After = @Before + CASE WHEN @Move = 'IN' THEN @Qty ELSE -@Qty END;
     IF @After < 0 THROW 51816, 'Spare part is out of stock.', 1;
 
     UPDATE dbo.MD_SparePart
        SET OnHandQty = @After,
-           ZoneCode = CASE WHEN @Move = 'IN' THEN @ZoneCode ELSE ZoneCode END,
-           Slot = CASE WHEN @Move = 'IN' THEN @Slot ELSE Slot END,
            ModifiedBy = @User,
            ModifiedTS = SYSDATETIME()
      WHERE SparePartNo = @SpNo;
 
+    UPDATE dbo.MNT_SparePartItem
+       SET StatusCode=CASE WHEN @Move='IN' THEN 'IN_STOCK' ELSE 'RELEASED' END,
+           LocationID=CASE WHEN @Move='IN' THEN @Location ELSE LocationID END,
+           ModifiedBy=@User,ModifiedTS=SYSDATETIME()
+     WHERE SparePartItemID=@ItemId;
+
     INSERT INTO dbo.MNT_SparePartsTxn
-        (SparePartNo, MoveType, Qty, BalanceBefore, BalanceAfter, RefType, RefID,
+        (SparePartNo, SparePartItemID, MoveType, Qty, BalanceBefore, BalanceAfter, RefType, RefID,
          Note, TxnAt, ActorID, CreatedBy, CreatedTS)
     VALUES
-        (@SpNo, @Move, @Qty, @Before, @After, 'PDA', @Location,
+        (@SpNo, @ItemId, @Move, 1, @Before, @After, 'PDA', COALESCE(@Location,(SELECT LocationID FROM dbo.MNT_SparePartItem WHERE SparePartItemID=@ItemId)),
          @Note, SYSDATETIME(), @User, LEFT(@User, 50), SYSDATETIME());
 
+    IF OBJECT_ID(N'dbo.SYS_AuditLog',N'U') IS NOT NULL
+        INSERT dbo.SYS_AuditLog(ActorUserID,ModuleCode,ProcessCode,ScreenCode,ActionType,TargetEntity,TargetID,AfterValueJSON,Result,Note,CreatedBy,CreatedTS)
+        VALUES(@User,'SP','PDA',CASE WHEN @Move='IN' THEN 'SP-02' ELSE 'SP-07' END,@Move,'MNT_SparePartItem',@Serial,
+               CONCAT(N'{"status":"',CASE WHEN @Move='IN' THEN 'IN_STOCK' ELSE 'RELEASED' END,N'","location":"',COALESCE(@Location,N''),N'"}'),
+               'SUCCESS',@Note,LEFT(@User,50),SYSDATETIME());
+
     COMMIT TRANSACTION;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.SP_PDA_SP_STOCK_CANCEL
+    @SerialNo varchar(24),
+    @MoveType varchar(10),
+    @UserId nvarchar(450),
+    @Note nvarchar(500)=NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    DECLARE @Serial varchar(24)=UPPER(LTRIM(RTRIM(ISNULL(@SerialNo,''))));
+    DECLARE @Move varchar(10)=UPPER(LTRIM(RTRIM(ISNULL(@MoveType,''))));
+    DECLARE @User nvarchar(450)=COALESCE(NULLIF(LTRIM(RTRIM(@UserId)),N''),N'PDA');
+    DECLARE @ItemId bigint,@SpNo varchar(16),@Status varchar(15),@Location varchar(20),@OriginalTxn int,@Before int,@After int;
+    IF @Move NOT IN ('IN','OUT') THROW 51821, 'Cancellation type must be IN or OUT.', 1;
+
+    BEGIN TRANSACTION;
+    SELECT @ItemId=SparePartItemID,@SpNo=SparePartNo,@Status=StatusCode,@Location=LocationID
+    FROM dbo.MNT_SparePartItem WITH (UPDLOCK,HOLDLOCK) WHERE SerialNo=@Serial;
+    IF @ItemId IS NULL THROW 51815, 'Serial No was not found.', 1;
+    IF @Move='IN' AND @Status<>'IN_STOCK' THROW 51822, 'Only an in-stock serial can cancel inbound.', 1;
+    IF @Move='OUT' AND @Status<>'RELEASED' THROW 51823, 'Only a released serial can cancel release.', 1;
+
+    SELECT TOP (1) @OriginalTxn=T.SparePartsTxnID
+    FROM dbo.MNT_SparePartsTxn T
+    WHERE T.SparePartItemID=@ItemId AND T.MoveType=@Move
+      AND NOT EXISTS(SELECT 1 FROM dbo.MNT_SparePartsTxn R WHERE R.ReversalOfTxnID=T.SparePartsTxnID)
+    ORDER BY T.SparePartsTxnID DESC;
+    IF @OriginalTxn IS NULL THROW 51824, 'A cancellable transaction was not found.', 1;
+
+    SELECT @Before=OnHandQty FROM dbo.MD_SparePart WITH (UPDLOCK,HOLDLOCK) WHERE SparePartNo=@SpNo;
+    SET @After=@Before+CASE WHEN @Move='IN' THEN -1 ELSE 1 END;
+    IF @After<0 THROW 51816, 'Spare part stock would become negative.', 1;
+    UPDATE dbo.MD_SparePart SET OnHandQty=@After,ModifiedBy=@User,ModifiedTS=SYSDATETIME() WHERE SparePartNo=@SpNo;
+    UPDATE dbo.MNT_SparePartItem
+       SET StatusCode=CASE WHEN @Move='IN' THEN 'CREATED' ELSE 'IN_STOCK' END,
+           LocationID=CASE WHEN @Move='IN' THEN NULL ELSE LocationID END,
+           ModifiedBy=@User,ModifiedTS=SYSDATETIME()
+     WHERE SparePartItemID=@ItemId;
+
+    INSERT dbo.MNT_SparePartsTxn
+        (SparePartNo,SparePartItemID,MoveType,Qty,BalanceBefore,BalanceAfter,RefType,RefID,Note,TxnAt,ActorID,CreatedBy,CreatedTS,ReversalOfTxnID)
+    VALUES(@SpNo,@ItemId,CONCAT(@Move,'_CANCEL'),1,@Before,@After,'PDA_CANCEL',@Location,@Note,SYSDATETIME(),@User,LEFT(@User,50),SYSDATETIME(),@OriginalTxn);
+
+    IF OBJECT_ID(N'dbo.SYS_AuditLog',N'U') IS NOT NULL
+        INSERT dbo.SYS_AuditLog(ActorUserID,ModuleCode,ProcessCode,ScreenCode,ActionType,TargetEntity,TargetID,AfterValueJSON,Result,Note,CreatedBy,CreatedTS)
+        VALUES(@User,'SP','PDA',CASE WHEN @Move='IN' THEN 'SP-02' ELSE 'SP-07' END,CONCAT(@Move,'_CANCEL'),'MNT_SparePartItem',@Serial,
+               CONCAT(N'{"status":"',CASE WHEN @Move='IN' THEN 'CREATED' ELSE 'IN_STOCK' END,N'","reversalOf":',@OriginalTxn,N'}'),
+               'SUCCESS',@Note,LEFT(@User,50),SYSDATETIME());
+    COMMIT;
 END;
 GO
 
@@ -3879,6 +4021,7 @@ BEGIN
              1, 'SP-DEMO-V01', 'SP_EXTRA', 'EX', 1, 'pda-test-reset', SYSDATETIME());
 
     DELETE FROM dbo.MNT_SparePartsTxn WHERE SparePartNo = 'EOS-SP-K9-269999';
+    DELETE FROM dbo.MNT_SparePartItem WHERE SparePartNo = 'EOS-SP-K9-269999';
 
     UPDATE dbo.MD_SparePart
        SET Maker = N'DEMO INDUSTRIAL', SupplierID = 'SP-DEMO-V01',
@@ -3886,12 +4029,15 @@ BEGIN
            ModifiedBy = N'pda-test-reset', ModifiedTS = SYSDATETIME()
      WHERE SparePartNo = 'EOS-SP-K9-269999';
 
+    INSERT dbo.MNT_SparePartItem(SerialNo,SparePartNo,StatusCode,CreatedBy,CreatedTS)
+    VALUES('SPI-TEST-000001','EOS-SP-K9-269999','CREATED','pda-test-reset',SYSDATETIME());
+
     COMMIT TRANSACTION;
 END;
 GO
 
--- MD_Location owns the physical hierarchy. Aisle/Bay/Slot remain optional
--- because areas such as spare-parts storage only use Zone + rack level.
+-- MD_Location owns the Warehouse/FG physical hierarchy. Spare-parts storage
+-- is managed only by MD_SparePart.ZoneCode/Slot/ExtraLocation.
 IF OBJECT_ID(N'dbo.MD_Location', N'U') IS NOT NULL
 BEGIN
     IF COL_LENGTH(N'dbo.MD_Location', N'WhCode') IS NULL
@@ -3910,12 +4056,15 @@ BEGIN
     UPDATE dbo.MD_Location
        SET WhCode = 'EOS',
            AreaCode = CASE
-               WHEN UPPER(LocationID) LIKE 'SP-%' THEN 'SPARE_PARTS_AREA'
                WHEN UPPER(LocationID) LIKE 'FG%'
                  OR UPPER(COALESCE(LocationType, '')) IN ('FG', 'FINISHED_GOODS', 'FINISHED GOODS')
                    THEN 'FG_AREA'
                ELSE 'MAT_AREA'
-           END;
+           END
+     WHERE UPPER(LocationID) NOT LIKE 'SP-%';
+
+    DELETE FROM dbo.MD_Location
+     WHERE AreaCode = 'SPARE_PARTS_AREA' OR UPPER(LocationID) LIKE 'SP-%';
 
     IF NOT EXISTS (
         SELECT 1 FROM sys.default_constraints dc
@@ -4063,6 +4212,27 @@ BEGIN
         (WhCode, AreaCode, SectionCode, SectionName, ActiveFlag, CreatedBy, CreatedTS)
     VALUES
         (src.WhCode, src.AreaCode, src.SectionCode, src.SectionCode, 1, 'system', SYSDATETIME());
+END;
+GO
+
+-- Spare-parts locations are not Warehouse Location Master records.
+IF OBJECT_ID(N'dbo.MD_Location', N'U') IS NOT NULL
+    DELETE FROM dbo.MD_Location WHERE AreaCode = 'SPARE_PARTS_AREA';
+GO
+
+IF OBJECT_ID(N'dbo.WH_AreaSection', N'U') IS NOT NULL
+    DELETE FROM dbo.WH_AreaSection WHERE AreaCode = 'SPARE_PARTS_AREA';
+GO
+
+IF OBJECT_ID(N'dbo.WH_AreaMaster', N'U') IS NOT NULL
+    DELETE FROM dbo.WH_AreaMaster WHERE AreaCode = 'SPARE_PARTS_AREA';
+GO
+
+IF OBJECT_ID(N'dbo.MD_CodeItem', N'U') IS NOT NULL
+BEGIN
+    UPDATE dbo.MD_CodeItem SET ParentCodeID = NULL
+    WHERE GroupCode = 'MNT_ZONE' AND ParentCodeID = 'WH_AREA_SPARE_PARTS_AREA';
+    DELETE FROM dbo.MD_CodeItem WHERE CodeID = 'WH_AREA_SPARE_PARTS_AREA';
 END;
 GO
 

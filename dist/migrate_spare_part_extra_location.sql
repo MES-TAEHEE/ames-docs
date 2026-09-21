@@ -92,13 +92,9 @@ UPDATE dbo.MD_SparePart SET Slot = 'EX'
 WHERE  ZoneCode = 'SP_EXTRA' AND ISNULL(Slot, '') <> 'EX';
 PRINT CONCAT('MD_SparePart: SP_EXTRA 칸 EX 보정 ', @@ROWCOUNT, '행');
 
-UPDATE dbo.MD_Location SET Slot = 'EX'
-WHERE  AreaCode = 'SPARE_PARTS_AREA' AND ZoneCode = 'SP_EXTRA' AND ISNULL(Slot, '') <> 'EX';
-PRINT CONCAT('MD_Location: SP_EXTRA 칸 EX 보정 ', @@ROWCOUNT, '행');
 GO
 
 -- 확인
 SELECT ORDINAL_POSITION, COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'MD_SparePart' AND ORDINAL_POSITION BETWEEN 8 AND 11 ORDER BY ORDINAL_POSITION;
 SELECT CodeID, CodeValue, CodeName, CodeNameEn, SortOrder FROM dbo.MD_CodeItem WHERE GroupCode = 'MNT_SLOT' ORDER BY SortOrder;
-SELECT 'part' src, SparePartNo id, ZoneCode, Slot FROM dbo.MD_SparePart WHERE ZoneCode = 'SP_EXTRA'
-UNION ALL SELECT 'location', LocationID, ZoneCode, Slot FROM dbo.MD_Location WHERE ZoneCode = 'SP_EXTRA';
+SELECT 'part' src, SparePartNo id, ZoneCode, Slot FROM dbo.MD_SparePart WHERE ZoneCode = 'SP_EXTRA';

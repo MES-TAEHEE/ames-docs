@@ -1,7 +1,7 @@
 ﻿/* ------------------------------------------------------------------
    migrate_spare_part_zone_slot.sql  — migrate_spare_part_image.sql 다음에 적용
    ① 공통코드 MNT_ZONE(보전 위치) · MNT_SLOT(보전 랙 층) 그룹·항목 — 없을 때만 생성(개발 DB 의 pda-seed 값과 동일).
-   ② MD_SparePart 에 보관 구역·칸 컬럼을 MD_Location 과 같은 형으로 SparePartImage 다음 위치에 추가:
+   ② MD_SparePart 에서만 관리하는 보관 구역·칸 컬럼을 SparePartImage 다음 위치에 추가:
       ZoneCode VARCHAR(20) NULL (공통코드 MNT_ZONE) · Slot VARCHAR(5) NULL (공통코드 MNT_SLOT).
       컬럼 순서를 지키기 위해 테이블을 재생성한다(행·PK·고유 인덱스·기본값 보존, MD_SparePart 를 참조하는 FK 없음).
    ③ 자유 입력 보관위치 StorageLoc 은 구역·칸으로 대체되므로 삭제(가드형 DROP COLUMN).
@@ -73,8 +73,8 @@ BEGIN
       [PartName]                  NVARCHAR(60)             NULL,
       [UnitCost]                  DECIMAL(12,2)            NULL,
       [SparePartImage]            VARBINARY(MAX)           NULL,  -- 부품 이미지(320×180 이내 JPEG/PNG 바이트)
-      [ZoneCode]                  VARCHAR(20)              NULL,  -- 보관 구역, 공통코드 MNT_ZONE (MD_Location.ZoneCode 와 같은 형)
-      [Slot]                      VARCHAR(5)               NULL,  -- 보관 칸(층), 공통코드 MNT_SLOT (MD_Location.Slot 과 같은 형)
+      [ZoneCode]                  VARCHAR(20)              NULL,  -- Spare Part Master 보관 구역, 공통코드 MNT_ZONE
+      [Slot]                      VARCHAR(5)               NULL,  -- Spare Part Master 보관 칸(층), 공통코드 MNT_SLOT
       [UOM]                       VARCHAR(10)              NULL,
       [OnHandQty]                 INT                  NOT NULL CONSTRAINT DF_MD_SparePart_OnHandQty_v5 DEFAULT 0,  -- 현재고 (입출고로만 변경)
       [SafetyStock]               INT                      NULL,

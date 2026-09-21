@@ -78,7 +78,9 @@ public sealed class MntRepository
     // 입출고 이력 — 부품번호·명칭은 마스터 조인. 재고는 처리 전/후 스냅샷만 남긴다.
     public sealed record SparePartsTxnRow(int SparePartsTxnId, string SparePartNo, string? PartNo, string? PartName,
         string MoveType, int Qty, int BalanceBefore, int BalanceAfter,
-        string? RefType, string? RefId, DateTime TxnAt, string? Note, string? ActorId);
+        string? RefType, string? RefId, DateTime TxnAt, string? Note, string? ActorId,
+        long? SparePartItemId = null, string? SerialNo = null, string? VendorName = null,
+        string? LocationId = null, string? ExtraLocation = null);
 
     /// <summary>재고 증감 결과 — 처리 전/후 현재고와 이력 ID.</summary>
     public sealed record StockMoveResult(int SparePartsTxnId, int BalanceBefore, int BalanceAfter);
@@ -1319,9 +1321,17 @@ public sealed class MntRepository
         const string sql = """
             SELECT TOP (@N)
                    t.SparePartsTxnID, t.SparePartNo, p.PartNo, p.PartName, t.MoveType, t.Qty, t.BalanceBefore, t.BalanceAfter,
-                   t.RefType, t.RefID, t.TxnAt, t.Note, t.ActorID
+                   t.RefType, t.RefID, t.TxnAt, t.Note, t.ActorID,
+                   t.SparePartItemID, i.SerialNo, v.VendorName,
+                   COALESCE(i.LocationID,
+                       CASE WHEN p.ZoneCode='SP_EXTRA' THEN 'SP-EXTRA'
+                            WHEN NULLIF(p.ZoneCode,'') IS NOT NULL AND NULLIF(p.Slot,'') IS NOT NULL THEN CONCAT(p.ZoneCode,'-',p.Slot)
+                            ELSE COALESCE(NULLIF(p.ZoneCode,''), NULLIF(p.Slot,'')) END) AS LocationID,
+                   CASE WHEN p.ZoneCode='SP_EXTRA' THEN p.ExtraLocation END AS ExtraLocation
             FROM   dbo.MNT_SparePartsTxn t
             LEFT JOIN dbo.MD_SparePart p ON p.SparePartNo = t.SparePartNo
+            LEFT JOIN dbo.MNT_SparePartItem i ON i.SparePartItemID = t.SparePartItemID
+            LEFT JOIN dbo.MD_Vendor v ON v.VendorID = p.SupplierID
             WHERE  (@P IS NULL OR t.SparePartNo = @P)
             ORDER  BY t.TxnAt DESC, t.SparePartsTxnID DESC;
             """;
@@ -1329,7 +1339,10 @@ public sealed class MntRepository
             (int)r["SparePartsTxnID"], (string)r["SparePartNo"], r["PartNo"] as string, r["PartName"] as string,
             (string)r["MoveType"], (int)r["Qty"], (int)r["BalanceBefore"], (int)r["BalanceAfter"],
             r["RefType"] as string, r["RefID"] as string,
-            (DateTime)r["TxnAt"], r["Note"] as string, r["ActorID"] as string),
+            (DateTime)r["TxnAt"], r["Note"] as string, r["ActorID"] as string,
+            r["SparePartItemID"] is long itemId ? itemId : null,
+            r["SerialNo"] as string, r["VendorName"] as string,
+            r["LocationID"] as string, r["ExtraLocation"] as string),
             ("@N", topN), ("@P", (object?)sparePartNo ?? DBNull.Value));
     }
 
