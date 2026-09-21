@@ -8175,4 +8175,10 @@
   <data name="FG.Shipments.Err.NoDocument" xml:space="preserve">
     <value>No se encontraron los datos del documento de envío.</value>
   </data>
+  <data name="MD.SparePart.Lbl.ExtraLocation" xml:space="preserve">
+    <value>Ubicación extra</value>
+  </data>
+  <data name="MD.SparePart.Ph.ExtraLocation" xml:space="preserve">
+    <value>p. ej. Gabinete de oficina n.º 2</value>
+  </data>
 </root>

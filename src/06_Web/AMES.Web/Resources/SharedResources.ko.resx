@@ -8175,4 +8175,10 @@
   <data name="FG.Shipments.Err.NoDocument" xml:space="preserve">
     <value>출하 문서 데이터를 찾을 수 없습니다.</value>
   </data>
+  <data name="MD.SparePart.Lbl.ExtraLocation" xml:space="preserve">
+    <value>Extra 위치</value>
+  </data>
+  <data name="MD.SparePart.Ph.ExtraLocation" xml:space="preserve">
+    <value>예: 사무실 캐비닛 2번</value>
+  </data>
 </root>

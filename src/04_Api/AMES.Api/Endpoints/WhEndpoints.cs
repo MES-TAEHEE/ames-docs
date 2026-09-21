@@ -2176,7 +2176,9 @@ public static class WhEndpoints
                 throw new InvalidOperationException("This spare part is already in the selected location.");
 
             using (var cmd = new SqlCommand("""
-                UPDATE dbo.MD_SparePart SET ZoneCode=@ZoneCode, Slot=@Slot, ModifiedBy=@UserId, ModifiedTS=SYSDATETIME()
+                UPDATE dbo.MD_SparePart SET ZoneCode=@ZoneCode, Slot=@Slot,
+                       ExtraLocation=CASE WHEN @ZoneCode='SP_EXTRA' THEN ExtraLocation ELSE NULL END,   -- 자유 입력 위치는 SP_EXTRA 구역에서만 유효
+                       ModifiedBy=@UserId, ModifiedTS=SYSDATETIME()
                 WHERE UPPER(SparePartNo)=UPPER(@SparePartNo);
                 INSERT INTO dbo.MNT_SparePartsTxn
                     (SparePartNo,MoveType,Qty,BalanceBefore,BalanceAfter,RefType,RefID,Note,TxnAt,ActorID,CreatedBy,CreatedTS)

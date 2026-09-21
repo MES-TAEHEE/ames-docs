@@ -304,7 +304,8 @@ BEGIN
         ('MNT_SLOT', '02', N'2층', N'Level 2', NULL, 20),
         ('MNT_SLOT', '03', N'3층', N'Level 3', NULL, 30),
         ('MNT_SLOT', '04', N'4층', N'Level 4', NULL, 40),
-        ('MNT_SLOT', '05', N'5층', N'Level 5', NULL, 50);
+        ('MNT_SLOT', '05', N'5층', N'Level 5', NULL, 50),
+        ('MNT_SLOT', 'EX', N'Extra', N'Extra', NULL, 60);
 
     MERGE dbo.MD_CodeItem AS T
     USING @LocationCodes AS S
@@ -417,7 +418,7 @@ BEGIN
         ('SP-FL2', N'FL2', 'SP_FL2', NULL),
         ('SP-FL3', N'FL3', 'SP_FL3', NULL),
         ('SP-FL4', N'FL4', 'SP_FL4', NULL),
-        ('SP-EXTRA', N'Extra', 'SP_EXTRA', NULL);
+        ('SP-EXTRA', N'Extra', 'SP_EXTRA', 'EX');   -- MD-026: 구역 SP_EXTRA 의 칸은 EX 고정
 
     MERGE dbo.MD_Location AS T
     USING @SpareLocations AS S ON T.LocationID = S.LocationID
@@ -461,7 +462,7 @@ BEGIN
          SafetyStock, SupplierID, ZoneCode, Slot, ActiveFlag, CreatedBy, CreatedTS)
     VALUES
         ('EOS-SP-K9-269999', 'K', '9', 'PDA-SP-TEST-001', N'PDA Spare Parts Test', N'DEMO INDUSTRIAL', 'EA', 0,
-         1, 'SP-DEMO-V01', 'SP_EXTRA', NULL, 1, N'pda-seed', SYSDATETIME());
+         1, 'SP-DEMO-V01', 'SP_EXTRA', 'EX', 1, N'pda-seed', SYSDATETIME());
 END;
 
 IF OBJECT_ID(N'dbo.MD_SparePart', N'U') IS NOT NULL

@@ -3214,6 +3214,18 @@ public sealed class MasterDataRepository
             r["ModifiedTS"]       is DateTime mt ? mt : null));
 
     // ── MD_SparePart (마스터) ────────────────────────────────────────
+    /// <summary>구역 SP_EXTRA 는 칸이 EX 로 고정되고, ExtraLocation(자유 입력 위치)은 그 구역에서만 쓴다.</summary>
+    public const string SpareZoneExtra = "SP_EXTRA";
+    public const string SpareSlotExtra = "EX";
+
+    /// <summary>화면이 무엇을 보내든 저장 직전에 위 규칙으로 맞춘다 — PDA 는 위치를 (ZoneCode, Slot) 으로 MD_Location 과 맞춘다.</summary>
+    public static (string? Slot, string? ExtraLocation) NormalizeSpareLocation(string? zoneCode, string? slot, string? extraLocation)
+    {
+        if (string.Equals(zoneCode, SpareZoneExtra, StringComparison.OrdinalIgnoreCase))
+            return (SpareSlotExtra, string.IsNullOrWhiteSpace(extraLocation) ? null : extraLocation.Trim());
+        return (string.Equals(slot, SpareSlotExtra, StringComparison.OrdinalIgnoreCase) ? null : slot, null);
+    }
+
     public record SparePartMasterRow(
         string SparePartNo, string PartNo, string? PartName, string? Category, string? ApplicableEquip,
         decimal? UnitCost, string? UOM, int OnHandQty,
@@ -3222,7 +3234,8 @@ public sealed class MasterDataRepository
         string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS,
         bool HasImage = false,    // 이미지 바이트는 목록에 싣지 않는다 — GetSparePartImage 로 건별 조회
         string? ZoneCode = null, string? Slot = null,    // 보관 구역·칸: 공통코드 MNT_ZONE · MNT_SLOT (구 StorageLoc 대체)
-        string? Maker = null);                           // 제조사(자유 입력)
+        string? Maker = null,                            // 제조사(자유 입력)
+        string? ExtraLocation = null);                   // 구역 SP_EXTRA 일 때만 쓰는 자유 입력 위치
 
     public List<SparePartMasterRow> ListSparePartMasters() => Query("""
         SELECT SparePartNo, PartNo, PartName, Category, ApplicableEquip,
@@ -3231,7 +3244,7 @@ public sealed class MasterDataRepository
                SupplierID, ISNULL(ActiveFlag,1) AS ActiveFlag,
                CreatedBy, CreatedTS, ModifiedBy, ModifiedTS,
                CAST(CASE WHEN SparePartImage IS NULL THEN 0 ELSE 1 END AS bit) AS HasImage,
-               ZoneCode, Slot, Maker
+               ZoneCode, Slot, Maker, ExtraLocation
         FROM dbo.MD_SparePart ORDER BY SparePartNo
         """, r => new SparePartMasterRow(
             r.GetString("SparePartNo"),
@@ -3255,7 +3268,8 @@ public sealed class MasterDataRepository
             r["HasImage"]     is bool hi && hi,
             r["ZoneCode"]     as string,
             r["Slot"]         as string,
-            r["Maker"]        as string));
+            r["Maker"]        as string,
+            r["ExtraLocation"] as string));
 
     /// <summary>부품 이미지 바이트(없으면 null). 목록에는 싣지 않고 상세·썸네일 요청 때만 읽는다.</summary>
     public byte[]? GetSparePartImage(string sparePartNo)
@@ -3941,8 +3955,9 @@ public sealed class MasterDataRepository
         decimal? unitCost, string? uom,
         int? safetyStock, int? reorderPoint, int? reorderQty, int? leadTimeDays,
         string? supplierId, bool activeFlag, string createdBy, byte[]? image = null,
-        string? zoneCode = null, string? slot = null, string? maker = null)
+        string? zoneCode = null, string? slot = null, string? maker = null, string? extraLocation = null)
     {
+        (slot, extraLocation) = NormalizeSpareLocation(zoneCode, slot, extraLocation);
         if (category is not { Length: 1 } || applicableEquip is not { Length: 1 })
             throw new ArgumentException("Category and ApplicableEquip must be single-character codes to generate SparePartNo.");
         var pfx = SparePartNoPrefix(category, applicableEquip);
@@ -3960,8 +3975,9 @@ public sealed class MasterDataRepository
 
             using var cmd = new SqlCommand(
                 "INSERT INTO dbo.MD_SparePart(SparePartNo,PartNo,PartName,Category,ApplicableEquip,UnitCost,SparePartImage,UOM," +
-                "SafetyStock,ReorderPoint,ReorderQty,LeadTimeDays,Maker,SupplierID,ActiveFlag,CreatedBy,ZoneCode,Slot)" +
-                " VALUES(@SP,@P,@PN,@CAT,@EQ,@UC,@IMG,@UOM,@SS,@RP,@RQ,@LT,@MK,@SI,@AF,@CB,@ZC,@SLT);", conn, tx);
+                "SafetyStock,ReorderPoint,ReorderQty,LeadTimeDays,Maker,SupplierID,ActiveFlag,CreatedBy,ZoneCode,Slot,ExtraLocation)" +
+                " VALUES(@SP,@P,@PN,@CAT,@EQ,@UC,@IMG,@UOM,@SS,@RP,@RQ,@LT,@MK,@SI,@AF,@CB,@ZC,@SLT,@XL);", conn, tx);
+            cmd.Parameters.Add("@XL",  SqlDbType.NVarChar,  60).Value = (object?)extraLocation ?? DBNull.Value;
             cmd.Parameters.Add("@IMG", SqlDbType.VarBinary, -1).Value = (object?)image ?? DBNull.Value;
             cmd.Parameters.Add("@MK",  SqlDbType.NVarChar, 100).Value = (object?)maker ?? DBNull.Value;
             cmd.Parameters.Add("@ZC",  SqlDbType.VarChar,   20).Value = (object?)zoneCode ?? DBNull.Value;
@@ -3993,15 +4009,17 @@ public sealed class MasterDataRepository
         decimal? unitCost, string? uom,
         int? safetyStock, int? reorderPoint, int? reorderQty, int? leadTimeDays,
         string? supplierId, bool activeFlag, string modifiedBy,
-        string? zoneCode = null, string? slot = null, string? maker = null)
+        string? zoneCode = null, string? slot = null, string? maker = null, string? extraLocation = null)
     {
+        (slot, extraLocation) = NormalizeSpareLocation(zoneCode, slot, extraLocation);
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_SparePart SET PartName=@PN,Category=@CAT,ApplicableEquip=@EQ,UnitCost=@UC,UOM=@UOM," +
             "SafetyStock=@SS,ReorderPoint=@RP,ReorderQty=@RQ,LeadTimeDays=@LT,Maker=@MK," +
-            "SupplierID=@SI,ActiveFlag=@AF,ZoneCode=@ZC,Slot=@SLT," +
+            "SupplierID=@SI,ActiveFlag=@AF,ZoneCode=@ZC,Slot=@SLT,ExtraLocation=@XL," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE SparePartNo=@P;", conn);
         cmd.Parameters.Add("@P",   SqlDbType.VarChar,   16).Value  = sparePartNo;
+        cmd.Parameters.Add("@XL",  SqlDbType.NVarChar,  60).Value  = (object?)extraLocation ?? DBNull.Value;
         cmd.Parameters.Add("@MK",  SqlDbType.NVarChar, 100).Value  = (object?)maker ?? DBNull.Value;
         cmd.Parameters.Add("@ZC",  SqlDbType.VarChar,   20).Value  = (object?)zoneCode ?? DBNull.Value;
         cmd.Parameters.Add("@SLT", SqlDbType.VarChar,    5).Value  = (object?)slot     ?? DBNull.Value;

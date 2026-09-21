@@ -121,7 +121,7 @@
                 <Template Context="r"><span class="pill">@CodeLabel(_zoneItems, r.ZoneCode)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="Slot" Title="@L["Col.Slot"]" TextAlign="TextAlign.Center" Width="70px">
-                <Template Context="r"><span class="dim">@CodeLabel(_slotItems, r.Slot)</span></Template>
+                <Template Context="r"><span class="dim" title="@r.ExtraLocation">@CodeLabel(_slotItems, r.Slot)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="OnHandQty" Title="@L["Col.OnHand"]" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="r"><b>@r.OnHandQty.ToString("N0")</b></Template>
@@ -226,12 +226,20 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Zone"]" />
-                    <RadzenDropDown AllowFiltering="true" AllowClear="true" @bind-Value="_f.ZoneCode" Data="@ZoneOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" AllowClear="true" @bind-Value="_f.ZoneCode" Change="@(_ => OnZoneChanged())" Data="@ZoneOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Slot"]" />
-                    <RadzenDropDown AllowClear="true" @bind-Value="_f.Slot" Data="@SlotOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowClear="@(!IsExtraZone)" Disabled="@IsExtraZone" @bind-Value="_f.Slot" Data="@SlotOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
+                @* 구역이 SP_EXTRA 일 때만 — 칸은 EX 로 고정되고 실제 위치를 글로 적는다 *@
+                @if (IsExtraZone)
+                {
+                    <RadzenColumn Size="4">
+                        <RadzenLabel Text="@L["MD.SparePart.Lbl.ExtraLocation"]" Component="CreateTextBoxExtraLocation" />
+                        <RadzenTextBox Name="CreateTextBoxExtraLocation" @bind-Value="_f.ExtraLocation" MaxLength="60" Placeholder="@L["MD.SparePart.Ph.ExtraLocation"]" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    </RadzenColumn>
+                }
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -328,12 +336,20 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Zone"]" />
-                    <RadzenDropDown AllowFiltering="true" AllowClear="true" @bind-Value="_f.ZoneCode" Data="@ZoneOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" AllowClear="true" @bind-Value="_f.ZoneCode" Change="@(_ => OnZoneChanged())" Data="@ZoneOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Slot"]" />
-                    <RadzenDropDown AllowClear="true" @bind-Value="_f.Slot" Data="@SlotOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowClear="@(!IsExtraZone)" Disabled="@IsExtraZone" @bind-Value="_f.Slot" Data="@SlotOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
+                @* 구역이 SP_EXTRA 일 때만 — 칸은 EX 로 고정되고 실제 위치를 글로 적는다 *@
+                @if (IsExtraZone)
+                {
+                    <RadzenColumn Size="4">
+                        <RadzenLabel Text="@L["MD.SparePart.Lbl.ExtraLocation"]" Component="EditTextBoxExtraLocation" />
+                        <RadzenTextBox Name="EditTextBoxExtraLocation" @bind-Value="_f.ExtraLocation" MaxLength="60" Placeholder="@L["MD.SparePart.Ph.ExtraLocation"]" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    </RadzenColumn>
+                }
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -418,8 +434,17 @@
     IEnumerable<DropDownItem> EquipOptions => _equipItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     List<MasterDataRepository.CodeItemRow> _zoneItems = new();       // 공통코드 MNT_ZONE (보관 구역)
     List<MasterDataRepository.CodeItemRow> _slotItems = new();       // 공통코드 MNT_SLOT (보관 칸)
+    // 구역 SP_EXTRA ↔ 칸 EX ↔ 자유 입력 위치 (규칙 정본: MasterDataRepository.NormalizeSpareLocation)
+    bool IsExtraZone => string.Equals(_f.ZoneCode, MasterDataRepository.SpareZoneExtra, StringComparison.OrdinalIgnoreCase);
+    void OnZoneChanged()
+    {
+        if (IsExtraZone) { _f.Slot = MasterDataRepository.SpareSlotExtra; return; }
+        if (_f.Slot == MasterDataRepository.SpareSlotExtra) _f.Slot = "";
+        _f.ExtraLocation = "";
+    }
+
     IEnumerable<DropDownItem> ZoneOptions => _zoneItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
-    IEnumerable<DropDownItem> SlotOptions => _slotItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    IEnumerable<DropDownItem> SlotOptions => _slotItems.Where(c => c.UseFlag && (IsExtraZone || c.CodeValue != MasterDataRepository.SpareSlotExtra)).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     static string CodeLabel(List<MasterDataRepository.CodeItemRow> codes, string? value)
         => string.IsNullOrEmpty(value) ? "—"
          : codes.FirstOrDefault(c => c.CodeValue == value) is { } ci ? MasterDataRepository.LocalName(ci) : value;
@@ -535,6 +560,7 @@
             SupplierID   = r.SupplierID   ?? "",
             ZoneCode     = r.ZoneCode     ?? "",
             Slot         = r.Slot         ?? "",
+            ExtraLocation = r.ExtraLocation ?? "",
             Maker        = r.Maker        ?? "",
             ActiveFlag   = r.ActiveFlag,
         };
@@ -561,7 +587,7 @@
             var spNo = MD.InsertSparePart(no, NE(_f.PartName), NE(_f.Category), NE(_f.ApplicableEquip),
                 _f.UnitCost, NE(_f.UOM),
                 _f.SafetyStock, _f.ReorderPoint, _f.ReorderQty, _f.LeadTimeDays,
-                NE(_f.SupplierID), _f.ActiveFlag, _actor, _f.Image, NE(_f.ZoneCode), NE(_f.Slot), NE(_f.Maker));
+                NE(_f.SupplierID), _f.ActiveFlag, _actor, _f.Image, NE(_f.ZoneCode), NE(_f.Slot), NE(_f.Maker), NE(_f.ExtraLocation));
             Audit.Created("MD-026", "MD_SparePart", spNo, _f);
             // 초기 재고는 마스터에 직접 쓰지 않고 입고(IN) 이력으로 남긴다 — 현재고의 정본은 이력과 같이 움직인다
             if (_f.OnHandQty > 0)
@@ -587,7 +613,7 @@
             MD.UpdateSparePart(_sel.SparePartNo, NE(_f.PartName), NE(_f.Category), NE(_f.ApplicableEquip),
                 _f.UnitCost, NE(_f.UOM),
                 _f.SafetyStock, _f.ReorderPoint, _f.ReorderQty, _f.LeadTimeDays,
-                NE(_f.SupplierID), _f.ActiveFlag, _actor, NE(_f.ZoneCode), NE(_f.Slot), NE(_f.Maker));
+                NE(_f.SupplierID), _f.ActiveFlag, _actor, NE(_f.ZoneCode), NE(_f.Slot), NE(_f.Maker), NE(_f.ExtraLocation));
             Audit.Updated("MD-026", "MD_SparePart", _sel.SparePartNo, _sel, _f);
             // 이미지는 바뀐 경우에만 따로 쓴다 — 매 수정마다 바이트를 다시 보내지 않기 위해
             if (_f.ImageChanged) MD.UpdateSparePartImage(_sel.SparePartNo, _f.Image, _actor);
@@ -710,6 +736,7 @@
         public string   SupplierID   { get; set; } = "";
         public string   ZoneCode     { get; set; } = "";
         public string   Slot         { get; set; } = "";
+        public string   ExtraLocation { get; set; } = "";
         public string   Maker        { get; set; } = "";
         public bool     ActiveFlag   { get; set; } = true;
     }
