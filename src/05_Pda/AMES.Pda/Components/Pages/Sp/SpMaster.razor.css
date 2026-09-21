@@ -1,7 +1,10 @@
 .master-body { display:flex; flex-direction:column; gap:10px; overflow:auto; }
+.master-body.hidden { display:none; }
 .search-row, .printer-row { display:flex; gap:8px; }
 .search-row input { flex:1; min-width:0; }
 .printer-row { align-items:center; justify-content:space-between; }
+.printer-actions { display:flex; gap:8px; }
+.printer-register { display:flex; flex-direction:column; gap:8px; padding:10px; border:1px solid #526079; }
 .printer-list { display:flex; flex-direction:column; gap:6px; max-height:210px; overflow-y:auto; flex-shrink:0; }
 .printer-choice { display:flex; flex-direction:column; gap:4px; flex-shrink:0; padding:10px 12px; min-height:58px; text-align:left; border:1px solid #526079; border-radius:0; background:#080e19; color:#fff; }
 .printer-choice strong { font-size:14px; overflow-wrap:anywhere; }
@@ -17,10 +20,31 @@
 .label-backdrop { position:fixed; inset:0; z-index:2000; background:#000b; display:flex; align-items:center; justify-content:center; padding:12px; }
 .label-dialog { width:100%; max-width:460px; max-height:calc(100dvh - 24px); display:flex; flex-direction:column; background:#141e32; color:#fff; border:1px solid #526079; }
 .label-dialog header, .label-dialog footer { flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px; border-bottom:1px solid #45516a; }
+.label-toolbar { justify-content:flex-end !important; min-height:52px; }
+.label-close { min-width:44px; padding:8px 12px; font-size:18px; }
+.serial-summary { display:flex; align-items:center; gap:8px; }
 .label-content { overflow:auto; min-height:0; padding:12px; display:flex; flex-direction:column; gap:8px; }
-.label-preview { background:white; color:black; padding:8px; display:grid; grid-template-columns:40% minmax(0,1fr); gap:10px; align-items:start; }
-.label-fields { display:flex; flex-direction:column; gap:22px; }
-.label-fields strong { display:block; font-size:16px; line-height:1.15; overflow-wrap:anywhere; }
+.label-preview { position:relative; width:100%; aspect-ratio:2 / 1; overflow:hidden; background:white; color:black; }
+.label-qr { position:absolute; left:3%; top:calc(8.5% + var(--label-y-shift)); width:27%; aspect-ratio:1; }
+.label-fields { position:absolute; left:30.5%; top:calc(9% + var(--label-y-shift)); width:67%; height:49.5%; display:flex; flex-direction:column; justify-content:center; gap:7px; padding:0; }
+.label-fields strong { display:block; font-size:16px; line-height:1; overflow-wrap:anywhere; }
+.label-fields .label-location { display:flex; flex-direction:column; gap:0; }
+.label-location small { color:#111; font-size:13px; line-height:1; }
+.label-identifiers { position:absolute; left:3.5%; top:calc(62% + var(--label-y-shift)); width:93%; display:flex; flex-direction:column; gap:2px; border:0; padding:0; }
+.label-identifiers strong { font-size:clamp(17px,5.5vw,23px); line-height:1.08; overflow-wrap:anywhere; }
+.serial-summary { justify-content:space-between; color:#9caec6; font-size:12px; }
+.serial-summary .action { padding:7px 10px; }
+.serial-list { display:flex; flex-direction:column; gap:5px; max-height:none; overflow:visible; }
+.serial-row { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:8px; padding:9px 10px; border:1px solid #45516a; background:#080e19; }
+.serial-row.selected { border-color:#34d399; background:#10382b; }
+.serial-row strong { font-size:13px; }
+.serial-row small { font-size:10px; color:#adbcd1; }
+.serial-row.pending { border-color:#60a5fa; background:#14294a; }
+.label-section { display:flex; flex-direction:column; gap:8px; padding:10px; border:1px solid #45516a; background:#0c1424; }
+.section-title { padding-bottom:7px; border-bottom:1px solid #33415a; color:#9fc5ff; font-size:11px; font-weight:800; letter-spacing:1.2px; }
+.preview-section { order:-30; border-top:3px solid #60a5fa; }
+.printer-section { order:-20; border-top:3px solid #22c55e; }
+.serial-section { order:-10; border-top:3px solid #fbbf24; }
 .label-content label { font-size:12px; color:#adbcd1; }
 .label-content small { color:#adbcd1; font-size:12px; }
 .label-dialog footer { border-top:1px solid #45516a; border-bottom:0; }
@@ -28,3 +52,11 @@
 .print { background:#008444; }
 .print:disabled { background:#303744; }
 .print-confirmation { z-index:2001; }
+.create-confirmation { z-index:2001; }
+.create-dialog { max-width:360px; }
+
+/* The selected part uses the page body; confirmation dialogs remain modal. */
+.label-backdrop:not(.print-confirmation):not(.create-confirmation) { position:static; inset:auto; z-index:auto; background:transparent; flex:1; min-height:0; display:block; padding:0; overflow:hidden; }
+.label-backdrop:not(.print-confirmation):not(.create-confirmation) .label-dialog { width:100%; max-width:none; max-height:none; height:100%; border:0; }
+.label-backdrop:not(.print-confirmation):not(.create-confirmation) .label-content { flex:1; }
+.label-content > .pda-status { order:10; }

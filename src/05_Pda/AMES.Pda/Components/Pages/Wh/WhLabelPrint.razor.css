@@ -2,6 +2,8 @@
 .label-search-row, .label-printer-row { display:flex; gap:8px; }
 .label-search-row input { flex:1; min-width:0; }
 .label-printer-row { align-items:center; justify-content:space-between; }
+.label-printer-actions { display:flex; gap:8px; }
+.label-printer-register { display:flex; flex-direction:column; gap:8px; padding:10px; border:1px solid #526079; }
 .label-action { border:1px solid #526079; background:#1b2436; color:#fff; padding:10px 14px; border-radius:0; font-weight:700; }
 .label-action:disabled, .label-lot-row:disabled { opacity:.45; }
 .label-list-count { color:#9caec6; font-size:12px; }

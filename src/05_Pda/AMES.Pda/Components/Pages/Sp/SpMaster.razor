@@ -7,10 +7,10 @@
 
 <div class="pda-shell wh sp-master">
     <div class="pda-tbar">
-        <button class="pda-tbar-back" disabled="@_busy" @onclick='() => Nav.NavigateTo("/sp")'>&lt;</button>
+        <button class="pda-tbar-back" disabled="@_busy" @onclick='() => Nav.NavigateTo(_fromTransactions ? "/sp/08" : "/sp")'>&lt;</button>
         <span class="pda-tbar-brand">LABEL PRINT</span>
     </div>
-    <div class="pda-bd master-body">
+    <div class="pda-bd master-body @(_selected is not null ? "hidden" : "")">
         <div class="search-row">
             <input class="pda-input" aria-label="Search spare parts" placeholder="Search / Scan Spare Part No"
                    @bind="_search" @bind:event="oninput" @onkeydown="SearchKey" disabled="@_busy" />
@@ -38,28 +38,89 @@
     {
         <div class="label-backdrop" @onclick="Close">
             <section class="label-dialog" role="dialog" aria-modal="true" aria-label="Spare part label" @onclick:stopPropagation="true">
-                <header><strong>PRINT LABEL</strong><button class="action" @onclick="Close" disabled="@_busy" aria-label="Close">×</button></header>
+                <header class="label-toolbar">
+                    <button class="action label-close" @onclick="Close" disabled="@_busy" aria-label="Close">×</button>
+                </header>
                 <div class="label-content">
-                    <div class="label-preview">
-                        <RadzenQRCode Value="@_selected.EosSpNo" Size="100%" Foreground="#000000" Background="#ffffff" Ecc="RadzenQREcc.Low" />
-                        <div class="label-fields">
-                            <strong>@_selected.EosSpNo</strong>
-                            <strong>@Display(_selected.PartNo)</strong>
-                            <strong>@Display(_selected.Maker)</strong>
-                            <strong>@Display(_selected.StorageLocation)</strong>
+                    @if (_selected is not null)
+                    {
+                        <div class="label-section preview-section">
+                            <div class="section-title">LABEL PREVIEW</div>
+                        <div class="label-preview" style="--label-y-shift:@(SparePartLabel.PreviewVerticalOffsetPercent)%">
+                            <div class="label-qr">
+                                <RadzenQRCode Value="@PreviewBarcodeValue" Size="100%" Foreground="#000000" Background="#ffffff" Ecc="RadzenQREcc.Low" />
+                            </div>
+                            <div class="label-fields">
+                                <strong>@Display(_selected.PartName)</strong>
+                                <strong>@Display(_selected.Vendor)</strong>
+                                <strong class="label-location">@Display(_selected.StorageLocation)
+                                    @if (!string.IsNullOrWhiteSpace(_selected.ExtraLocation)) { <small>(@_selected.ExtraLocation)</small> }
+                                </strong>
+                            </div>
+                            <div class="label-identifiers">
+                                <strong>@_selected.EosSpNo</strong>
+                                <strong>@PreviewSerialText</strong>
+                            </div>
+                        </div>
+                        </div>
+                        <div class="label-section serial-section">
+                            <div class="section-title">SERIAL LABELS</div>
+                        <div class="serial-summary">
+                            <span>LABELS TO PRINT · @_selectedSerials.Count</span>
+                            <button class="action" @onclick="ToggleAll" disabled="@(_busy || TotalSerialCount == 0)">@(_selectedSerials.Count == TotalSerialCount ? "CLEAR ALL" : "SELECT ALL")</button>
+                        </div>
+                        <div class="serial-list">
+                            @foreach (var serial in _serials)
+                            {
+                                <label class="serial-row @(_selectedSerials.Contains(serial.SerialNo) ? "selected" : "")">
+                                    <input type="checkbox" checked="@_selectedSerials.Contains(serial.SerialNo)"
+                                           @onchange="e => ToggleSerial(serial.SerialNo, e)" disabled="@_busy" />
+                                    <strong>@serial.SerialNo</strong>
+                                    <small>@serial.StatusCode.Replace('_', ' ')</small>
+                                </label>
+                            }
+                            @foreach (var serial in _pendingSerials)
+                            {
+                                <label class="serial-row pending @(_selectedSerials.Contains(serial) ? "selected" : "")">
+                                    <input type="checkbox" checked="@_selectedSerials.Contains(serial)"
+                                           @onchange="e => ToggleSerial(serial, e)" disabled="@_busy" />
+                                    <strong>@serial</strong>
+                                    <small>NEW</small>
+                                </label>
+                            }
+                            @if (TotalSerialCount == 0)
+                            {
+                                <div class="list-count">No serial labels. Tap CREATE below to add labels.</div>
+                            }
+                        </div>
+                        </div>
+                    }
+                    <div class="label-section printer-section">
+                        <div class="section-title">PRINTER</div>
+                    <div class="printer-row">
+                        <label>FIXED PRINTER</label>
+                        <div class="printer-actions">
+                            <button class="action" aria-label="Find Bluetooth printer" @onclick="FindPrinters" disabled="@_busy">@(_searching ? "SEARCHING..." : "FIND")</button>
+                            <button class="action" aria-label="Register Bluetooth printer manually" @onclick="ShowRegistration" disabled="@_busy">REGISTER</button>
                         </div>
                     </div>
-                    <div class="list-count">100 × 50 mm · QR: @_selected.EosSpNo</div>
-                    <label for="printer-dpi">PRINTER RESOLUTION</label>
-                    <select id="printer-dpi" class="pda-input" @bind="_dpi" @bind:after="SaveDpi" disabled="@_busy">
-                        <option value="203">203 DPI</option>
-                        <option value="300">300 DPI</option>
-                    </select>
-                    <small>Match the printer's actual DPI. Label size: 100 × 50 mm.</small>
-                    <div class="printer-row">
-                        <label>BLUETOOTH PRINTER</label>
-                        <button class="action" aria-label="Refresh Bluetooth printers" @onclick="FindPrinters" disabled="@_busy">@(_searching ? "SEARCHING..." : "REFRESH")</button>
-                    </div>
+                    @if (_manualPrinter)
+                    {
+                        <div class="printer-register">
+                            <label for="sp-printer-name">DISPLAY NAME</label>
+                            <input id="sp-printer-name" class="pda-input" placeholder="ZT411" @bind="_manualName" disabled="@_busy" />
+                            <label for="sp-printer-address">BLUETOOTH ADDRESS</label>
+                            <input id="sp-printer-address" class="pda-input" placeholder="AA:BB:CC:DD:EE:FF" @bind="_manualAddress" disabled="@_busy" />
+                            <button class="action" @onclick="RegisterPrinter" disabled="@_busy">SAVE PRINTER</button>
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_bluetooth))
+                    {
+                        <div class="printer-choice selected">
+                            <strong>@_printerName</strong>
+                            <small>@_bluetooth</small>
+                        </div>
+                    }
                     @if (_printers.Count > 0)
                     {
                         <div class="printer-list" role="radiogroup" aria-label="Bluetooth printer">
@@ -67,21 +128,41 @@
                             {
                                 <button class="printer-choice @(_bluetooth == device.Address ? "selected" : "")"
                                         role="radio" aria-checked="@(_bluetooth == device.Address ? "true" : "false")"
-                                        disabled="@_busy" @onclick="() => _bluetooth = device.Address">
+                                        disabled="@_busy" @onclick="() => FixPrinter(device)">
                                     <strong>@device.DisplayName</strong>
                                     <small>@device.Address</small>
                                 </button>
                             }
                         </div>
                     }
-                    <small>Turn on the printer and enable Bluetooth discovery. @_dpi dpi · 1 label.</small>
+                    <small class="printer-status">@(string.IsNullOrWhiteSpace(_bluetooth) ? "No fixed printer. Tap FIND or REGISTER." : "This printer is used without searching again.")</small>
+                    </div>
                     @if (!string.IsNullOrWhiteSpace(_printMessage))
                     {
                         <div class="pda-status @(_printError ? "fail" : "ok")" role="status">@_printMessage</div>
                     }
                 </div>
-                <footer><button class="action" disabled="@_busy" @onclick="Close">CANCEL</button>
+                <footer><button class="action" disabled="@_busy" @onclick="ToggleCreate">CREATE</button>
                     <button class="action print" disabled="@(!CanPrint)" @onclick="Print">@(_busy ? "PLEASE WAIT" : "PRINT")</button></footer>
+            </section>
+        </div>
+    }
+    @if (_createMode)
+    {
+        <div class="label-backdrop create-confirmation">
+            <section class="label-dialog create-dialog" role="dialog" aria-modal="true" aria-label="Create labels">
+                <header>
+                    <strong>CREATE LABELS</strong>
+                    <button class="action label-close" @onclick="CloseCreate" aria-label="Close">×</button>
+                </header>
+                <div class="label-content">
+                    <label for="label-count">QUANTITY</label>
+                    <input id="label-count" class="pda-input" aria-label="Label count" type="text" inputmode="numeric" maxlength="2" @bind="_labelCountText" />
+                    <small>Enter 1 to 50. Items are saved only when PRINT is pressed.</small>
+                </div>
+                <footer>
+                    <button class="action print" @onclick="CreateLabels" disabled="@(!CanCreate)">CONFIRM</button>
+                </footer>
             </section>
         </div>
     }
@@ -107,23 +188,55 @@
     private readonly SparePartPrinter _printer = new();
     private readonly CancellationTokenSource _lifetime = new();
     private List<PdaApi.SparePartRow> _rows = [];
+    private List<PdaApi.SparePartSerialRow> _serials = [];
+    private List<string> _pendingSerials = [];
+    private readonly HashSet<string> _selectedSerials = new(StringComparer.OrdinalIgnoreCase);
     private List<SparePartPrinter.Device> _printers = [];
     private PdaApi.SparePartRow? _selected;
     private string _search = "", _message = "", _printMessage = "";
-    private string _bluetooth = "";
+    private string _bluetooth = Preferences.Default.Get("LabelPrinter.Bluetooth", "");
+    private string _printerName = Preferences.Default.Get("LabelPrinter.Name", SparePartPrinter.DefaultModel);
+    private string _manualName = "", _manualAddress = "";
+    private string _labelCountText = "1";
     private int _visible = 30;
-    private int _dpi = Preferences.Default.Get("SpPrinter.Dpi", 203) == 300 ? 300 : 203;
-    private void SaveDpi() => Preferences.Default.Set("SpPrinter.Dpi", _dpi);
-    private bool _busy, _error, _printError, _searching, _discoveryAttempted;
+    private bool _busy, _error, _printError, _searching, _manualPrinter, _createMode;
+    private bool _fromTransactions;
     private TaskCompletionSource<bool>? _printConfirmation;
     private string[] _missingPrintFields = [];
     private DotNetObjectReference<SpMaster>? _scannerRef;
-    private bool CanPrint => !_busy && _selected is not null && _printers.Any(p => p.Address == _bluetooth);
+    private int TotalSerialCount => _serials.Count + _pendingSerials.Count;
+    private string PreviewSerial => _pendingSerials.FirstOrDefault(_selectedSerials.Contains)
+        ?? _serials.FirstOrDefault(x => _selectedSerials.Contains(x.SerialNo))?.SerialNo
+        ?? _pendingSerials.FirstOrDefault() ?? _serials.FirstOrDefault()?.SerialNo ?? "";
+    private string PreviewBarcodeValue => string.IsNullOrWhiteSpace(PreviewSerial) ? _selected?.EosSpNo ?? "-" : PreviewSerial;
+    private string PreviewSerialText => string.IsNullOrWhiteSpace(PreviewSerial) ? "SERIAL GENERATED ON PRINT" : PreviewSerial;
+    private bool CanPrint => !_busy && _selected is not null && _selectedSerials.Count > 0
+        && !string.IsNullOrWhiteSpace(_bluetooth);
+    private bool CanCreate => !_busy && _selected is not null
+        && int.TryParse(_labelCountText, out var count) && count is >= 1 and <= 50;
 
     protected override async Task OnInitializedAsync()
     {
         if (Auth.Session is null) { Nav.NavigateTo("/login"); return; }
-        await Reload();
+        var query = Nav.ToAbsoluteUri(Nav.Uri).Query;
+        var serial = query.StartsWith("?serial=", StringComparison.OrdinalIgnoreCase)
+            ? Uri.UnescapeDataString(query[8..].Split('&', 2)[0])
+            : "";
+        if (string.IsNullOrWhiteSpace(serial))
+        {
+            await Reload();
+            return;
+        }
+
+        _fromTransactions = true;
+        var row = await Api.SpItemAsync(serial);
+        if (row is null)
+        {
+            _message = "The selected serial label could not be found.";
+            _error = true;
+            return;
+        }
+        await Select(row, serial);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -152,40 +265,100 @@
         catch (Exception ex) { _rows = []; _message = ex.Message; _error = true; }
         finally { _busy = false; }
     }
-    private async Task Select(PdaApi.SparePartRow row)
+    private async Task Select(PdaApi.SparePartRow row, string? selectedSerial = null)
     {
         if (_busy) return;
         _busy = true; _printMessage = ""; _message = ""; _printError = false;
-        try { _selected = await Api.SpItemAsync(row.EosSpNo) ?? throw new InvalidOperationException("This spare part is no longer active."); }
+        try
+        {
+            _selected = await Api.SpItemAsync(row.EosSpNo) ?? throw new InvalidOperationException("This spare part is no longer active.");
+            _serials = await Api.LabelsAsync(row.EosSpNo);
+            _pendingSerials = [];
+            _selectedSerials.Clear();
+            if (!string.IsNullOrWhiteSpace(selectedSerial)
+                && _serials.Any(serial => string.Equals(serial.SerialNo, selectedSerial, StringComparison.OrdinalIgnoreCase)))
+                _selectedSerials.Add(selectedSerial);
+            _createMode = false;
+        }
         catch (Exception ex) { _message = ex.Message; _error = true; }
         finally { _busy = false; }
         if (_selected is not null)
+            _printMessage = string.IsNullOrWhiteSpace(_bluetooth)
+                ? "No fixed printer. Tap FIND or REGISTER."
+                : $"Using fixed printer: {_printerName}.";
+    }
+    private void ToggleCreate() { _labelCountText = "1"; _createMode = true; }
+    private void CloseCreate() => _createMode = false;
+    private void ToggleAll()
+    {
+        if (_selectedSerials.Count == TotalSerialCount) _selectedSerials.Clear();
+        else
         {
-            if (!_discoveryAttempted) await FindPrinters();
-            else if (_printers.Count == 0)
-            {
-                _printError = true;
-                _printMessage = "No Bluetooth printer available. Turn on the printer and tap Refresh.";
-            }
+            foreach (var serial in _serials) _selectedSerials.Add(serial.SerialNo);
+            foreach (var serial in _pendingSerials) _selectedSerials.Add(serial);
         }
+    }
+    private void ToggleSerial(string serialNo, ChangeEventArgs e)
+    {
+        if (e.Value is true) _selectedSerials.Add(serialNo);
+        else _selectedSerials.Remove(serialNo);
+    }
+    private void CreateLabels()
+    {
+        if (!CanCreate) return;
+        var created = SparePartLabel.NextSerials(_selected!.EosSpNo,
+            _serials.Select(x => x.SerialNo).Concat(_pendingSerials), int.Parse(_labelCountText));
+        _pendingSerials.AddRange(created);
+        foreach (var serial in created) _selectedSerials.Add(serial);
+        _createMode = false;
+        _printError = false;
+        _printMessage = $"{created.Count} new label(s) selected. They will be saved when PRINT is pressed.";
     }
     private async Task FindPrinters()
     {
         if (_busy) return;
-        _discoveryAttempted = true;
         _busy = true; _searching = true; _printError = false;
         _printMessage = "Searching for nearby Bluetooth printers..."; _printers = [];
         await InvokeAsync(StateHasChanged);
         try
         {
             _printers = await _printer.DiscoverPrintersAsync(_lifetime.Token);
-            if (!_printers.Any(p => p.Address == _bluetooth)) _bluetooth = "";
-            if (_printers.Count == 0) throw new InvalidOperationException("No Bluetooth printer found. Make the printer discoverable and tap Refresh.");
-            _printMessage = "Select your printer from the list.";
+            if (_printers.Count == 0) throw new InvalidOperationException("No Bluetooth printer found. Make the printer discoverable and tap Find.");
+            _printMessage = "Select a printer from the list.";
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
         catch (Exception ex) { _printMessage = ex.Message; _printError = true; }
         finally { _busy = false; _searching = false; }
+    }
+    private void FixPrinter(SparePartPrinter.Device device)
+    {
+        _bluetooth = device.Address;
+        _printerName = device.DisplayName;
+        Preferences.Default.Set("LabelPrinter.Bluetooth", _bluetooth);
+        Preferences.Default.Set("LabelPrinter.Name", _printerName);
+        _printMessage = $"{_printerName} is fixed as the label printer.";
+        _printError = false;
+        _printers = [];
+    }
+    private void ShowRegistration()
+    {
+        _manualPrinter = !_manualPrinter;
+        _manualName = _printerName;
+        _manualAddress = _bluetooth;
+    }
+    private void RegisterPrinter()
+    {
+        var name = _manualName.Trim();
+        var address = _manualAddress.Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(name) || !SparePartPrinter.IsValidAddress(address))
+        {
+            _printMessage = "Enter a display name and a valid Bluetooth address (AA:BB:CC:DD:EE:FF).";
+            _printError = true;
+            return;
+        }
+        FixPrinter(new(address, name));
+        _manualPrinter = false;
+        _printers = [];
     }
     private async Task Print()
     {
@@ -195,14 +368,16 @@
         {
             var current = await Api.SpItemAsync(_selected!.EosSpNo)
                 ?? throw new InvalidOperationException("This spare part is no longer active.");
-            if (current.PartNo != _selected.PartNo || current.Maker != _selected.Maker || current.StorageLocation != _selected.StorageLocation)
+            if (current.PartNo != _selected.PartNo || current.PartName != _selected.PartName
+                || current.Vendor != _selected.Vendor || current.StorageLocation != _selected.StorageLocation
+                || current.ExtraLocation != _selected.ExtraLocation)
             {
                 _selected = current;
                 throw new InvalidOperationException("Master information changed. Review the updated label and press Print again.");
             }
             _missingPrintFields = SparePartValidation.MissingFields(
-                ("Spare Part No", current.EosSpNo), ("Part No", current.PartNo),
-                ("Maker", current.Maker), ("Location No", current.StorageLocation));
+                ("Spare Part No", current.EosSpNo), ("Part Name", current.PartName),
+                ("Vendor", current.Vendor), ("Location", current.StorageLocation));
             if (_missingPrintFields.Length > 0)
             {
                 _printConfirmation = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -211,14 +386,34 @@
                 _printConfirmation = null;
                 if (!approved) return;
             }
-            var zpl = SparePartLabel.Build(current.EosSpNo, current.PartNo, current.Maker, current.StorageLocation, _dpi);
+            var serials = _serials.Where(x => _selectedSerials.Contains(x.SerialNo)).Select(x => x.SerialNo).ToList();
+            var pendingSelected = _pendingSerials.Where(_selectedSerials.Contains).ToList();
+            if (pendingSelected.Count > 0)
+            {
+                var remainingPending = _pendingSerials.Count - pendingSelected.Count;
+                var created = await Api.CreateLabelsAsync(current.EosSpNo, pendingSelected.Count);
+                foreach (var label in created)
+                    if (!string.IsNullOrWhiteSpace(label.SerialNo)) serials.Add(label.SerialNo);
+                _serials = await Api.LabelsAsync(current.EosSpNo);
+                _selectedSerials.Clear();
+                foreach (var serial in serials) _selectedSerials.Add(serial);
+                _pendingSerials = SparePartLabel.NextSerials(current.EosSpNo, _serials.Select(x => x.SerialNo), remainingPending).ToList();
+            }
+            if (serials.Count == 0) throw new InvalidOperationException("Select or create at least one serial label.");
+            var zpl = string.Concat(serials.Select(serial => SparePartLabel.BuildSerialized(
+                serial, current.EosSpNo, current.PartName, current.Vendor,
+                current.StorageLocation, current.ExtraLocation, 203)));
             await _printer.SendAsync(_bluetooth, zpl);
-            _printMessage = "1 label sent to printer. Check the printed label.";
+            _printMessage = $"{serials.Count} label(s) sent to printer. Check the printed labels.";
         }
         catch (Exception ex) { _printMessage = $"Print failed: {ex.Message} Check the printer before retrying."; _printError = true; }
         finally { _busy = false; }
     }
-    private void Close() { if (!_busy) _selected = null; }
+    private void Close()
+    {
+        if (_busy) return;
+        _selected = null; _serials = []; _pendingSerials = []; _selectedSerials.Clear(); _printers = []; _createMode = false;
+    }
     private static string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
     public async ValueTask DisposeAsync()
     {

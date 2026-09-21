@@ -57,9 +57,29 @@
                     </select>
                     <small>Match the printer's actual DPI. Label size: 100 × 50 mm.</small>
                     <div class="label-printer-row">
-                        <label>BLUETOOTH PRINTER</label>
-                        <button class="label-action" aria-label="Refresh Bluetooth printers" @onclick="FindPrinters" disabled="@_busy">@(_searching ? "SEARCHING..." : "REFRESH")</button>
+                        <label>FIXED PRINTER</label>
+                        <div class="label-printer-actions">
+                            <button class="label-action" aria-label="Find Bluetooth printer" @onclick="FindPrinters" disabled="@_busy">@(_searching ? "SEARCHING..." : "FIND")</button>
+                            <button class="label-action" aria-label="Register Bluetooth printer manually" @onclick="ShowRegistration" disabled="@_busy">REGISTER</button>
+                        </div>
                     </div>
+                    @if (_manualPrinter)
+                    {
+                        <div class="label-printer-register">
+                            <label for="wh-printer-name">DISPLAY NAME</label>
+                            <input id="wh-printer-name" class="pda-input" placeholder="ZT411" @bind="_manualName" disabled="@_busy" />
+                            <label for="wh-printer-address">BLUETOOTH ADDRESS</label>
+                            <input id="wh-printer-address" class="pda-input" placeholder="AA:BB:CC:DD:EE:FF" @bind="_manualAddress" disabled="@_busy" />
+                            <button class="label-action" @onclick="RegisterPrinter" disabled="@_busy">SAVE PRINTER</button>
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_bluetooth))
+                    {
+                        <div class="label-printer-choice selected">
+                            <strong>@_printerName</strong>
+                            <small>@_bluetooth</small>
+                        </div>
+                    }
                     @if (_printers.Count > 0)
                     {
                         <div class="label-printer-list" role="radiogroup" aria-label="Bluetooth printer">
@@ -67,14 +87,14 @@
                             {
                                 <button class="label-printer-choice @(_bluetooth == device.Address ? "selected" : "")"
                                         role="radio" aria-checked="@(_bluetooth == device.Address ? "true" : "false")"
-                                        disabled="@_busy" @onclick="() => _bluetooth = device.Address">
+                                        disabled="@_busy" @onclick="() => FixPrinter(device)">
                                     <strong>@device.DisplayName</strong>
                                     <small>@device.Address</small>
                                 </button>
                             }
                         </div>
                     }
-                    <small>Turn on the printer and enable Bluetooth discovery. @_dpi dpi · 1 label.</small>
+                    <small>@(string.IsNullOrWhiteSpace(_bluetooth) ? "No fixed printer. Tap FIND or REGISTER." : "This printer is used without searching again.") @_dpi dpi · 1 label.</small>
                     @if (!string.IsNullOrWhiteSpace(_printMessage))
                     {
                         <div class="pda-status @(_printError ? "fail" : "ok")" role="status">@_printMessage</div>
@@ -95,12 +115,15 @@
     private List<PdaApi.LotStatusRow> _rows = [];
     private List<SparePartPrinter.Device> _printers = [];
     private PdaApi.LotStatusRow? _selected;
-    private string _search = "", _message = "", _printMessage = "", _bluetooth = "";
+    private string _search = "", _message = "", _printMessage = "";
+    private string _bluetooth = Preferences.Default.Get("LabelPrinter.Bluetooth", "");
+    private string _printerName = Preferences.Default.Get("LabelPrinter.Name", SparePartPrinter.DefaultModel);
+    private string _manualName = "", _manualAddress = "";
     private int _visible = 30;
     private int _dpi = Preferences.Default.Get("WhPrinter.Dpi", 203) == 300 ? 300 : 203;
-    private bool _busy, _error, _printError, _searching, _discoveryAttempted;
+    private bool _busy, _error, _printError, _searching, _manualPrinter;
     private DotNetObjectReference<WhLabelPrint>? _scannerRef;
-    private bool CanPrint => !_busy && _selected is not null && _printers.Any(p => p.Address == _bluetooth);
+    private bool CanPrint => !_busy && _selected is not null && !string.IsNullOrWhiteSpace(_bluetooth);
 
     protected override async Task OnInitializedAsync()
     {
@@ -123,7 +146,7 @@
         if (_busy || _selected is not null) return;
         _search = value.Replace("\u0002", "").Replace("\u0003", "").Trim();
         await Reload();
-        if (_rows.Count == 1) await Select(_rows[0]);
+        if (_rows.Count == 1) Select(_rows[0]);
         await InvokeAsync(StateHasChanged);
     }
 
@@ -142,34 +165,62 @@
         finally { _busy = false; }
     }
 
-    private async Task Select(PdaApi.LotStatusRow row)
+    private void Select(PdaApi.LotStatusRow row)
     {
         if (_busy) return;
         _selected = row; _printMessage = ""; _printError = false;
-        if (!_discoveryAttempted) await FindPrinters();
-        else if (_printers.Count == 0)
-        {
-            _printError = true;
-            _printMessage = "No Bluetooth printer available. Turn on the printer and tap Refresh.";
-        }
+        _printMessage = string.IsNullOrWhiteSpace(_bluetooth)
+            ? "No fixed printer. Tap FIND or REGISTER."
+            : $"Using fixed printer: {_printerName}.";
     }
 
     private async Task FindPrinters()
     {
         if (_busy) return;
-        _discoveryAttempted = true;
         _busy = true; _searching = true; _printError = false;
-        _printMessage = "Searching for nearby Bluetooth printers..."; _printers = []; _bluetooth = "";
+        _printMessage = "Searching for nearby Bluetooth printers..."; _printers = [];
         await InvokeAsync(StateHasChanged);
         try
         {
             _printers = await _printer.DiscoverPrintersAsync(_lifetime.Token);
-            if (_printers.Count == 0) throw new InvalidOperationException("No Bluetooth printer found. Make the printer discoverable and tap Refresh.");
-            _printMessage = "Select your printer from the list.";
+            if (_printers.Count == 0) throw new InvalidOperationException("No Bluetooth printer found. Make the printer discoverable and tap Find.");
+            var preferred = SparePartPrinter.SelectAddress(_printers, _bluetooth);
+            var device = _printers.FirstOrDefault(x => string.Equals(x.Address, preferred, StringComparison.OrdinalIgnoreCase));
+            if (device is not null) FixPrinter(device);
+            else _printMessage = "Select a printer from the list to fix it for future labels.";
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
         catch (Exception ex) { _printMessage = ex.Message; _printError = true; }
         finally { _busy = false; _searching = false; }
+    }
+    private void FixPrinter(SparePartPrinter.Device device)
+    {
+        _bluetooth = device.Address;
+        _printerName = device.DisplayName;
+        Preferences.Default.Set("LabelPrinter.Bluetooth", _bluetooth);
+        Preferences.Default.Set("LabelPrinter.Name", _printerName);
+        _printMessage = $"{_printerName} is fixed as the label printer.";
+        _printError = false;
+    }
+    private void ShowRegistration()
+    {
+        _manualPrinter = !_manualPrinter;
+        _manualName = _printerName;
+        _manualAddress = _bluetooth;
+    }
+    private void RegisterPrinter()
+    {
+        var name = _manualName.Trim();
+        var address = _manualAddress.Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(name) || !SparePartPrinter.IsValidAddress(address))
+        {
+            _printMessage = "Enter a display name and a valid Bluetooth address (AA:BB:CC:DD:EE:FF).";
+            _printError = true;
+            return;
+        }
+        FixPrinter(new(address, name));
+        _manualPrinter = false;
+        _printers = [];
     }
 
     private async Task Print()
@@ -193,7 +244,7 @@
     }
 
     private void SaveDpi() => Preferences.Default.Set("WhPrinter.Dpi", _dpi);
-    private void Close() { if (!_busy) _selected = null; }
+    private void Close() { if (!_busy) { _selected = null; _printers = []; } }
     private static string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
 
     public async ValueTask DisposeAsync()
