@@ -12379,16 +12379,16 @@ body:has(.wh01-shell, .wh08-shell) .rz-datepicker-calendar :is(button, select, i
 .sp-detail-row {
   display: grid;
   grid-template-columns: minmax(108px, .9fr) minmax(0, 1.55fr);
-  gap: 10px;
+  gap: 6px;
   align-items: center;
-  min-height: 42px;
-  padding: 8px 12px;
+  min-height: 32px;
+  padding: 3px 8px;
   border-bottom: 1px solid var(--wh-line);
 }
 
 .sp-detail-row span {
   color: var(--wh-muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: .04em;
 }
@@ -12396,7 +12396,400 @@ body:has(.wh01-shell, .wh08-shell) .rz-datepicker-calendar :is(button, select, i
 .sp-detail-row strong {
   min-width: 0;
   color: var(--wh-text);
-  font-size: 13px;
-  line-height: 1.25;
+  font-size: 15px;
+  line-height: 1.15;
   overflow-wrap: anywhere;
+}
+
+/* Spare-parts data views: fit more rows while keeping identifiers easy to scan. */
+.sp-screen.inventory-browser-shell .inventory-table-list {
+  gap: 3px !important;
+}
+
+.sp-screen.inventory-browser-shell .inventory-table-row {
+  min-height: 38px !important;
+  padding: 4px 8px !important;
+}
+
+.sp-screen.inventory-browser-shell .inventory-table-row > strong,
+.sp-screen.inventory-browser-shell .inventory-part-cell strong {
+  font-size: 13px !important;
+}
+
+.sp-screen.inventory-browser-shell .inventory-part-cell {
+  gap: 1px !important;
+}
+
+.sp-screen.inventory-browser-shell .inventory-part-cell small {
+  font-size: 11px !important;
+}
+
+.sp-screen.inventory-browser-shell .inventory-detail-page {
+  gap: 4px !important;
+}
+
+.sp-screen.inventory-browser-shell .inventory-detail-head {
+  gap: 6px !important;
+  padding: 6px !important;
+}
+
+.sp-screen.inventory-browser-shell .inventory-detail-head span,
+.sp-screen.inventory-browser-shell .inventory-detail-head em {
+  font-size: 11px !important;
+}
+
+.sp-screen.inventory-browser-shell .inventory-detail-head strong {
+  font-size: 13px !important;
+}
+
+.sp-screen.wh08-shell .wh08-body {
+  gap: 6px;
+}
+
+.sp-screen.wh08-shell .wh08-list {
+  gap: 4px;
+}
+
+.pda-shell.wh.wh08-shell.sp-screen .wh08-row-card {
+  padding: 6px 8px !important;
+}
+
+.sp-screen.wh08-shell .wh08-row-main {
+  gap: 1px;
+}
+
+.sp-screen.wh08-shell .wh08-row-main span {
+  font-size: 13px;
+}
+
+.sp-screen.wh08-shell .wh08-row-main strong {
+  font-size: 18px;
+}
+
+.pda-shell.wh.wh08-shell.sp-screen .wh08-row-part {
+  gap: 1px;
+  margin-top: 3px;
+  padding-top: 3px;
+}
+
+.sp-screen.wh08-shell .wh08-row-part strong,
+.sp-screen.wh08-shell .wh08-row-part span {
+  font-size: 15px;
+}
+
+.sp-screen.wh08-shell .wh08-value-rows {
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.sp-screen.wh08-shell .wh08-value-rows > div {
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.sp-screen.wh08-shell .wh08-value-rows dt {
+  flex-basis: 74px;
+  font-size: 13px;
+}
+
+/* Keep every SP result view compact, but make operational values prominent. */
+.pda-shell.wh.sp-screen .pda-card-h,
+.pda-shell.wh.sp-screen .pda-fld label {
+  font-size: 12px !important;
+}
+
+.pda-shell.wh.wh02-shell.sp-screen .wh02-lot-card {
+  padding: 6px 8px !important;
+}
+
+.pda-shell.wh.wh02-shell.sp-screen .wh02-lot-top {
+  gap: 6px;
+}
+
+.pda-shell.wh.wh02-shell.sp-screen .wh02-lot-main span {
+  font-size: 12px !important;
+}
+
+.pda-shell.wh.wh02-shell.sp-screen .wh02-lot-main strong {
+  margin-top: 2px;
+  font-size: 18px !important;
+  line-height: 1.1;
+}
+
+.pda-shell.wh.wh02-shell.sp-screen .wh02-status-chip {
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+.sp-screen.inventory-browser-shell .inventory-browse-tabs {
+  margin-bottom: 6px !important;
+  padding: 3px !important;
+}
+
+.sp-screen.inventory-browser-shell :is(.inventory-browse-tab, .wh03-view-tab) {
+  min-height: 36px !important;
+  font-size: 13px !important;
+}
+
+.sp-screen.inventory-browser-shell .inventory-table-head {
+  padding: 0 8px 3px !important;
+  font-size: 12px !important;
+}
+
+.sp-screen.inventory-browser-shell .inventory-table-row > strong,
+.sp-screen.inventory-browser-shell .inventory-part-cell strong {
+  font-size: 15px !important;
+  line-height: 1.15 !important;
+}
+
+.sp-screen.inventory-browser-shell .inventory-part-cell small {
+  font-size: 13px !important;
+  line-height: 1.1 !important;
+}
+
+.sp-screen.inventory-browser-shell .inventory-detail-head span,
+.sp-screen.inventory-browser-shell .inventory-detail-head em {
+  font-size: 12px !important;
+}
+
+.sp-screen.inventory-browser-shell .inventory-detail-head strong {
+  font-size: 15px !important;
+}
+
+.sp-screen.wh03-shell .wh03-list {
+  gap: 4px;
+}
+
+.sp-screen.wh03-shell .wh03-stock-card {
+  padding: 6px 8px !important;
+}
+
+.sp-screen.wh03-shell .wh03-compact-row.main strong,
+.sp-screen.wh03-shell .wh03-compact-row.main span {
+  font-size: 18px !important;
+}
+
+.sp-screen.wh03-shell .wh03-compact-row.sub {
+  margin-top: 2px;
+}
+
+.sp-screen.wh03-shell .wh03-compact-row.sub > span {
+  font-size: 13px;
+}
+
+.sp-screen.wh03-shell .wh03-compact-location {
+  gap: 5px;
+  margin-top: 4px;
+  padding: 4px 6px;
+}
+
+.sp-screen.wh03-shell .wh03-compact-location span,
+.sp-screen.wh03-shell .wh03-compact-location strong {
+  font-size: 13px;
+}
+
+.sp-screen.wh03-shell .wh03-status-badge {
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+.pda-shell.wh.wh03-shell.sp-screen.wh03-map-only .wh03-location-browser-list {
+  gap: 4px !important;
+}
+
+.pda-shell.wh.wh03-shell.sp-screen.wh03-map-only .wh03-location-browser-card.rz-card,
+.pda-shell.wh.wh03-shell.sp-screen.wh03-map-only .wh03-location-inventory-card.rz-card {
+  min-height: 54px !important;
+  padding: 6px 8px !important;
+}
+
+.pda-shell.wh.wh03-shell.sp-screen.wh03-map-only .wh03-location-browser-top strong,
+.pda-shell.wh.wh03-shell.sp-screen.wh03-map-only .wh03-location-detail-page-head strong {
+  font-size: 18px !important;
+}
+
+.pda-shell.wh.wh03-shell.sp-screen.wh03-map-only .wh03-location-browser-top span,
+.pda-shell.wh.wh03-shell.sp-screen.wh03-map-only .wh03-location-browser-meta strong {
+  font-size: 14px !important;
+}
+
+.pda-shell.wh.wh03-shell.sp-screen.wh03-map-only .wh03-location-browser-name,
+.pda-shell.wh.wh03-shell.sp-screen.wh03-map-only .wh03-location-browser-meta span,
+.pda-shell.wh.wh03-shell.sp-screen.wh03-map-only .wh03-location-detail-page-head span,
+.pda-shell.wh.wh03-shell.sp-screen.wh03-map-only .wh03-location-detail-page-head em {
+  font-size: 12px !important;
+}
+
+.pda-shell.wh.wh08-shell.sp-screen .wh08-kpi {
+  min-height: 62px;
+  gap: 2px;
+  padding: 5px 3px;
+}
+
+.sp-screen.wh08-shell .wh08-kpi span {
+  font-size: 12px;
+}
+
+.pda-shell.wh.wh08-shell.sp-screen .wh08-kpi strong {
+  font-size: 21px;
+}
+
+.sp-screen.wh08-shell .wh08-kpi small {
+  font-size: 11px;
+}
+
+.sp-screen.wh08-shell .wh08-row-main span {
+  font-size: 14px;
+}
+
+.sp-screen.wh08-shell .wh08-row-main strong {
+  font-size: 20px;
+}
+
+.sp-screen.wh08-shell .wh08-row-part strong,
+.sp-screen.wh08-shell .wh08-row-part span,
+.sp-screen.wh08-shell .wh08-value-rows {
+  font-size: 16px;
+}
+
+.sp-screen.wh08-shell .wh08-value-rows dt {
+  font-size: 14px;
+}
+
+/* SP Inventory must win over the shared inventory browser's important rules. */
+body .pda-shell.wh.wh03-shell.sp-screen.inventory-browser-shell .inventory-browse-tabs {
+  gap: 3px !important;
+  margin-bottom: 5px !important;
+  padding: 2px !important;
+}
+
+body .pda-shell.wh.wh03-shell.sp-screen.inventory-browser-shell :is(.inventory-browse-tab, .wh03-view-tab) {
+  min-height: 34px !important;
+  font-size: 15px !important;
+}
+
+body .pda-shell.wh.wh03-shell.sp-screen.inventory-browser-shell .inventory-table-head {
+  padding: 0 6px 2px !important;
+  font-size: 14px !important;
+}
+
+body .pda-shell.wh.wh03-shell.sp-screen.inventory-browser-shell .inventory-table-list {
+  gap: 3px !important;
+}
+
+body .pda-shell.wh.wh03-shell.sp-screen.inventory-browser-shell .inventory-table-row {
+  min-height: 48px !important;
+  padding: 4px 6px !important;
+}
+
+body .pda-shell.wh.wh03-shell.sp-screen.inventory-browser-shell .inventory-table-row > strong,
+body .pda-shell.wh.wh03-shell.sp-screen.inventory-browser-shell .inventory-part-cell strong {
+  display: -webkit-box !important;
+  overflow: hidden !important;
+  font-size: 18px !important;
+  line-height: 1.1 !important;
+  overflow-wrap: anywhere !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+body .pda-shell.wh.wh03-shell.sp-screen.inventory-browser-shell .inventory-part-cell {
+  gap: 1px !important;
+}
+
+body .pda-shell.wh.wh03-shell.sp-screen.inventory-browser-shell .inventory-part-cell small {
+  font-size: 15px !important;
+  line-height: 1.05 !important;
+}
+
+body .pda-shell.wh.wh03-shell.sp-screen.inventory-browser-shell .inventory-detail-page {
+  gap: 3px !important;
+}
+
+body .pda-shell.wh.wh03-shell.sp-screen.inventory-browser-shell .inventory-detail-head {
+  gap: 5px !important;
+  padding: 5px !important;
+}
+
+body .pda-shell.wh.wh03-shell.sp-screen.inventory-browser-shell .inventory-detail-head span,
+body .pda-shell.wh.wh03-shell.sp-screen.inventory-browser-shell .inventory-detail-head em {
+  font-size: 14px !important;
+}
+
+body .pda-shell.wh.wh03-shell.sp-screen.inventory-browser-shell .inventory-detail-head strong {
+  font-size: 18px !important;
+  line-height: 1.1 !important;
+}
+
+body .pda-shell.wh.wh03-shell.sp-screen.inventory-browser-shell .inventory-back.rz-button {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  text-align: center !important;
+}
+
+body .pda-shell.wh.wh03-shell.sp-screen.inventory-browser-shell .inventory-back :is(.rz-button-box, .rz-button-text) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+}
+
+.sp-screen.wh08-shell .wh08-kpi-strip {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sp-screen.wh08-shell .wh08-row-card.interactive {
+  cursor: pointer;
+}
+
+.sp-screen.wh08-shell .wh08-row-card.interactive:active {
+  border-color: #60a5fa !important;
+  background: #162b48 !important;
+}
+
+.wh08-sp-actions.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.wh08-sp-actions .wh-modal-btn {
+  min-width: 0;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding: 0 5px !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+}
+
+.wh08-sp-actions .wh-modal-btn :is(.rz-button-box, .rz-button-text) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+}
+
+.wh08-cancel-confirm {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid rgba(248, 113, 113, .55);
+  background: rgba(127, 29, 29, .22);
+  color: #fecaca;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.3;
 }
