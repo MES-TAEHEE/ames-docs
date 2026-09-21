@@ -10,7 +10,7 @@ public static class SparePartLabel
         if (dpi is not (203 or 300)) throw new ArgumentOutOfRangeException(nameof(dpi));
         if (string.IsNullOrWhiteSpace(sparePartNo) || sparePartNo.Length > 80
             || sparePartNo.Any(c => c < '!' || c > '~'))
-            throw new ArgumentException("The spare part barcode is invalid.");
+            throw new ArgumentException("The barcode is invalid.");
         int D(int dots) => (int)Math.Round(dots * dpi / 203d);
         var zpl = new StringBuilder($"^XA\n^CI28\n^PW{(int)Math.Round(100 * dpi / 25.4)}\n^LL{(int)Math.Round(50 * dpi / 25.4)}\n^LH0,0\n");
         // Byte-mode QR capacities bound the size, even for lowercase/mixed barcodes.

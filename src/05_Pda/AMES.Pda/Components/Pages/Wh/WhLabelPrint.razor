@@ -1,0 +1,207 @@
+@page "/wh/label-print"
+@inject WarehouseApi Api
+@inject AuthState Auth
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="pda-shell wh wh-label-print">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" disabled="@_busy" @onclick='() => Nav.NavigateTo("/wh")'>&lt;</button>
+        <span class="pda-tbar-brand">LABEL PRINT</span>
+    </div>
+    <div class="pda-bd label-master-body">
+        <div class="label-search-row">
+            <input class="pda-input" aria-label="Search warehouse lots" placeholder="Search / Scan LOT No"
+                   @bind="_search" @bind:event="oninput" @onkeydown="SearchKey" disabled="@_busy" />
+            <button class="label-action" @onclick="Reload" disabled="@_busy">SEARCH</button>
+        </div>
+        <div class="label-list-count">@_rows.Count lot(s)</div>
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <div class="pda-status @(_error ? "fail" : "ok")" role="status">@_message</div>
+        }
+        @if (_busy) { <div class="label-list-count">Loading...</div> }
+        @foreach (var row in _rows.Take(_visible))
+        {
+            <button class="label-lot-row" disabled="@_busy" @onclick="() => Select(row)">
+                <strong>@row.LotNo</strong><span>@Display(row.LocationId)</span>
+                <span>@Display(row.ItemNo)</span><span>@row.RemainingQty.ToString("N0")</span>
+                <small>@Display(row.ItemName)</small>
+            </button>
+        }
+        @if (!_busy && _rows.Count == 0 && !_error) { <div class="label-list-count">No warehouse stock found.</div> }
+        @if (_rows.Count > _visible) { <button class="label-action" @onclick="() => _visible += 30">SHOW MORE</button> }
+    </div>
+
+    @if (_selected is not null)
+    {
+        <div class="label-backdrop" @onclick="Close">
+            <section class="label-dialog" role="dialog" aria-modal="true" aria-label="Warehouse lot label" @onclick:stopPropagation="true">
+                <header><strong>PRINT LABEL</strong><button class="label-action" @onclick="Close" disabled="@_busy" aria-label="Close">×</button></header>
+                <div class="label-content">
+                    <div class="label-preview">
+                        <RadzenQRCode Value="@_selected.LotNo" Size="100%" Foreground="#000000" Background="#ffffff" Ecc="RadzenQREcc.Low" />
+                        <div class="label-fields">
+                            <strong>@_selected.LotNo</strong>
+                            <strong>@Display(_selected.ItemNo)</strong>
+                            <strong>@_selected.RemainingQty.ToString("N0")</strong>
+                            <strong>@Display(_selected.LocationId)</strong>
+                        </div>
+                    </div>
+                    <div class="label-list-count">100 × 50 mm · QR: @_selected.LotNo</div>
+                    <label for="warehouse-printer-dpi">PRINTER RESOLUTION</label>
+                    <select id="warehouse-printer-dpi" class="pda-input" @bind="_dpi" @bind:after="SaveDpi" disabled="@_busy">
+                        <option value="203">203 DPI</option>
+                        <option value="300">300 DPI</option>
+                    </select>
+                    <small>Match the printer's actual DPI. Label size: 100 × 50 mm.</small>
+                    <div class="label-printer-row">
+                        <label>BLUETOOTH PRINTER</label>
+                        <button class="label-action" aria-label="Refresh Bluetooth printers" @onclick="FindPrinters" disabled="@_busy">@(_searching ? "SEARCHING..." : "REFRESH")</button>
+                    </div>
+                    @if (_printers.Count > 0)
+                    {
+                        <div class="label-printer-list" role="radiogroup" aria-label="Bluetooth printer">
+                            @foreach (var device in _printers)
+                            {
+                                <button class="label-printer-choice @(_bluetooth == device.Address ? "selected" : "")"
+                                        role="radio" aria-checked="@(_bluetooth == device.Address ? "true" : "false")"
+                                        disabled="@_busy" @onclick="() => _bluetooth = device.Address">
+                                    <strong>@device.DisplayName</strong>
+                                    <small>@device.Address</small>
+                                </button>
+                            }
+                        </div>
+                    }
+                    <small>Turn on the printer and enable Bluetooth discovery. @_dpi dpi · 1 label.</small>
+                    @if (!string.IsNullOrWhiteSpace(_printMessage))
+                    {
+                        <div class="pda-status @(_printError ? "fail" : "ok")" role="status">@_printMessage</div>
+                    }
+                </div>
+                <footer>
+                    <button class="label-action" disabled="@_busy" @onclick="Close">CANCEL</button>
+                    <button class="label-action print" disabled="@(!CanPrint)" @onclick="Print">@(_busy ? "PLEASE WAIT" : "PRINT")</button>
+                </footer>
+            </section>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly SparePartPrinter _printer = new();
+    private readonly CancellationTokenSource _lifetime = new();
+    private List<PdaApi.LotStatusRow> _rows = [];
+    private List<SparePartPrinter.Device> _printers = [];
+    private PdaApi.LotStatusRow? _selected;
+    private string _search = "", _message = "", _printMessage = "", _bluetooth = "";
+    private int _visible = 30;
+    private int _dpi = Preferences.Default.Get("WhPrinter.Dpi", 203) == 300 ? 300 : 203;
+    private bool _busy, _error, _printError, _searching, _discoveryAttempted;
+    private DotNetObjectReference<WhLabelPrint>? _scannerRef;
+    private bool CanPrint => !_busy && _selected is not null && _printers.Any(p => p.Address == _bluetooth);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Auth.Session is null) { Nav.NavigateTo("/login"); return; }
+        await Reload();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        PdaBarcodeHub.Scanned += NativeScan;
+        _scannerRef = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("pdaScan.register", _scannerRef, new { minLength = 3, developerMode = MauiProgram.IsDeveloperMode });
+    }
+
+    private void NativeScan(string value) => _ = InvokeAsync(() => OnHardwareScanAsync(value));
+    [JSInvokable]
+    public async Task OnHardwareScanAsync(string value)
+    {
+        if (_busy || _selected is not null) return;
+        _search = value.Replace("\u0002", "").Replace("\u0003", "").Trim();
+        await Reload();
+        if (_rows.Count == 1) await Select(_rows[0]);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SearchKey(KeyboardEventArgs e) { if (e.Key == "Enter") await Reload(); }
+    private async Task Reload()
+    {
+        if (_busy) return;
+        _busy = true; _error = false; _message = ""; _visible = 30;
+        try
+        {
+            _rows = (await Api.WhLotStatusesAsync(_search))
+                .Where(row => row.RemainingQty > 0 && !string.IsNullOrWhiteSpace(row.LocationId))
+                .ToList();
+        }
+        catch (Exception ex) { _rows = []; _message = ex.Message; _error = true; }
+        finally { _busy = false; }
+    }
+
+    private async Task Select(PdaApi.LotStatusRow row)
+    {
+        if (_busy) return;
+        _selected = row; _printMessage = ""; _printError = false;
+        if (!_discoveryAttempted) await FindPrinters();
+        else if (_printers.Count == 0)
+        {
+            _printError = true;
+            _printMessage = "No Bluetooth printer available. Turn on the printer and tap Refresh.";
+        }
+    }
+
+    private async Task FindPrinters()
+    {
+        if (_busy) return;
+        _discoveryAttempted = true;
+        _busy = true; _searching = true; _printError = false;
+        _printMessage = "Searching for nearby Bluetooth printers..."; _printers = []; _bluetooth = "";
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            _printers = await _printer.DiscoverPrintersAsync(_lifetime.Token);
+            if (_printers.Count == 0) throw new InvalidOperationException("No Bluetooth printer found. Make the printer discoverable and tap Refresh.");
+            _printMessage = "Select your printer from the list.";
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (Exception ex) { _printMessage = ex.Message; _printError = true; }
+        finally { _busy = false; _searching = false; }
+    }
+
+    private async Task Print()
+    {
+        if (!CanPrint) return;
+        _busy = true; _printMessage = ""; _printError = false;
+        try
+        {
+            var current = (await Api.WhLotStatusesAsync(_selected!.LotNo))
+                .FirstOrDefault(row => string.Equals(row.LotNo, _selected.LotNo, StringComparison.OrdinalIgnoreCase)
+                    && row.RemainingQty > 0 && !string.IsNullOrWhiteSpace(row.LocationId))
+                ?? throw new InvalidOperationException("This LOT is no longer available in warehouse inventory.");
+            _selected = current;
+            var zpl = SparePartLabel.Build(current.LotNo, current.ItemNo,
+                current.RemainingQty.ToString("0.###"), current.LocationId, _dpi);
+            await _printer.SendAsync(_bluetooth, zpl);
+            _printMessage = "1 label sent to printer. Check the printed label.";
+        }
+        catch (Exception ex) { _printMessage = $"Print failed: {ex.Message} Check the printer before retrying."; _printError = true; }
+        finally { _busy = false; }
+    }
+
+    private void SaveDpi() => Preferences.Default.Set("WhPrinter.Dpi", _dpi);
+    private void Close() { if (!_busy) _selected = null; }
+    private static string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    public async ValueTask DisposeAsync()
+    {
+        _lifetime.Cancel();
+        PdaBarcodeHub.Scanned -= NativeScan;
+        try { await JS.InvokeVoidAsync("pdaScan.unregister"); } catch (JSDisconnectedException) { }
+        _scannerRef?.Dispose();
+        _lifetime.Dispose();
+    }
+}
