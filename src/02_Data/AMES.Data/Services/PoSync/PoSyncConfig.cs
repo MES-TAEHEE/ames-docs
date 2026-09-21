@@ -25,6 +25,14 @@ public static class PoSyncConfig
     public const string GroupUrl        = GroupGlobal + "_URL";
     public const string GroupAuth       = GroupGlobal + "_AUTH";
 
+    /// <summary>
+    /// Web(PP-002) → Api 수동 실행 서비스 키. GroupAuth 의 예약 행이며 값은 다른 인증 행처럼 Description 에 둔다.
+    /// CodeValue 가 MaxKeyLen 보다 길어 소스 키와 겹칠 수 없다. 행이 없거나 꺼져 있으면 서비스 키 경로는 닫힌다.
+    /// </summary>
+    public const string ServiceKeyCode   = "AMES_SERVICE_KEY";
+    public const string ServiceKeyHeader = "X-AMES-Service-Key";
+    public const int MinServiceKeyLen    = 16;
+
     /// <summary>소스 키 → 모니터 InterfaceCode. 길이 초과 키(설정 오류로 들어온 것)도 컬럼에 들어가게 자른다.</summary>
     public static string InterfaceCodeFor(string key)
         => MonitorCode + "-" + (key.Length > MaxKeyLen ? key[..MaxKeyLen] : key);
@@ -139,6 +147,42 @@ public static class PoSyncConfig
         }
 
         return new PoSyncConfigResult(sources, errors, gInterval, tickSec, delaySec, timeoutSec);
+    }
+
+    /// <summary>캐시하지 않는다 — MD-26 에서 키를 바꾸면 다음 요청부터 반영된다(수동 실행은 드물다).</summary>
+    public static string? LoadServiceKey(SqlConnection conn)
+    {
+        const string sql = """
+            SELECT CodeValue, Description, ISNULL(UseFlag, 1) AS UseFlag
+            FROM   dbo.MD_CodeItem
+            WHERE  GroupCode = @A AND CodeValue = @V;
+            """;
+        var rows = new List<CodeRow>();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@A", GroupAuth);
+        cmd.Parameters.AddWithValue("@V", ServiceKeyCode);
+        using var rdr = cmd.ExecuteReader();
+        while (rdr.Read())
+            rows.Add(new CodeRow(GroupAuth, (string)rdr["CodeValue"], null, null,
+                rdr["Description"] as string, (bool)rdr["UseFlag"]));
+        return ResolveServiceKey(rows);
+    }
+
+    public static string? ResolveServiceKey(IReadOnlyList<CodeRow> rows)
+    {
+        var hits = rows.Where(r => r.Group == GroupAuth && r.Use
+                                && r.Value.Trim().Equals(ServiceKeyCode, StringComparison.OrdinalIgnoreCase))
+                       .ToList();
+        if (hits.Count != 1) return null;
+        var key = hits[0].Description?.Trim();
+        return key is { Length: >= MinServiceKeyLen } ? key : null;
+    }
+
+    public static bool ServiceKeyMatches(string? configured, string? presented)
+    {
+        if (string.IsNullOrEmpty(configured) || string.IsNullOrEmpty(presented)) return false;
+        return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+            System.Text.Encoding.UTF8.GetBytes(configured), System.Text.Encoding.UTF8.GetBytes(presented));
     }
 
     /// <summary>그룹 하나를 키(trim, 대소문자 무시)로 last-wins 딕셔너리로 묶고, 중복 키 집합을 같이 돌려준다.</summary>
