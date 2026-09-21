@@ -184,6 +184,9 @@
             <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="SparePartNo" Title="@L["Col.SparePartNo"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="t"><span class="code">@t.SparePartNo</span></Template>
             </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="SerialNo" Title="Serial No" TextAlign="TextAlign.Center" Width="170px">
+                <Template Context="t"><span class="code">@(t.SerialNo ?? "—")</span></Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="PartNo" Title="@L["Col.PartNo"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="t"><span class="code">@(t.PartNo ?? "—")</span></Template>
             </RadzenDataGridColumn>
@@ -208,9 +211,23 @@
             <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="Note" Title="@L["Col.Note"]">
                 <Template Context="t"><span class="dim" style="white-space:nowrap;">@(t.Note ?? "—")</span></Template>
             </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Title="Label" TextAlign="TextAlign.Center" Width="92px" Sortable="false" Filterable="false">
+                <Template Context="t">
+                    <RadzenButton Text="REPRINT" Icon="print" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall"
+                                  Disabled="@string.IsNullOrWhiteSpace(t.SerialNo)" Click="@(() => OpenLabel(t))" class="ames-rz-btn" />
+                </Template>
+            </RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
 </div>
+
+@if (_printTxn is not null && !string.IsNullOrWhiteSpace(_printTxn.SerialNo))
+{
+    <SparePartLabelDialog SerialNo="@(_printTxn.SerialNo!)" SparePartNo="@_printTxn.SparePartNo"
+                          PartName="@_printTxn.PartName" VendorName="@_printTxn.VendorName"
+                          LocationId="@_printTxn.LocationId" ExtraLocation="@_printTxn.ExtraLocation"
+                          OnClose="CloseLabel" />
+}
 
 @* ── Detail Modal (읽기 전용) ─────────────────────────────────────── *@
 @if (_modal == "detail" && _sel is not null)
@@ -337,6 +354,7 @@
     List<MasterDataRepository.CodeItemRow> _slotItems  = new();   // 공통코드 MNT_SLOT (보관 칸)
     List<MasterDataRepository.VendorRow>   _vendors    = new();   // 공급업체 명칭 표시용
     MntRepository.SparePartRow? _sel;
+    MntRepository.SparePartsTxnRow? _printTxn;
     byte[]? _selImage;   // 상세 모달 미리보기 — 행을 열 때만 MD_SparePart.SparePartImage 를 읽는다
 
     string  _fPart = "", _fTxnPart = "";
@@ -348,7 +366,7 @@
     string  _modal = "", _msg = "";
     bool    _bgMouseDownOnSelf, _isErr;
 
-    static readonly string[] MoveCodes = { "IN", "OUT", "ADJ" };   // MntRepository.SpareMoveTypes 와 같은 어휘
+    static readonly string[] MoveCodes = { "LABEL", "IN", "OUT", "IN_CANCEL", "OUT_CANCEL", "ADJ" };
     static readonly int[]    TopNs     = { 50, 100, 200, 500 };
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
@@ -433,6 +451,7 @@
         _txns = _allTxns.Where(t =>
             (exact is not null || string.IsNullOrEmpty(q) ||
                 t.SparePartNo.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                (t.SerialNo ?? "").Contains(q, StringComparison.OrdinalIgnoreCase) ||
                 (t.PartNo   ?? "").Contains(q, StringComparison.OrdinalIgnoreCase) ||
                 (t.PartName ?? "").Contains(q, StringComparison.OrdinalIgnoreCase) ||
                 RefText(t).Contains(q, StringComparison.OrdinalIgnoreCase)) &&
@@ -470,6 +489,9 @@
         if (_sel.HasImage && _sel.SparePartNo is { } no) { try { _selImage = MD.GetSparePartImage(no); } catch { } }
     }
 
+    void OpenLabel(MntRepository.SparePartsTxnRow txn) => _printTxn = txn;
+    void CloseLabel() => _printTxn = null;
+
     void CloseModal() { _modal = ""; _sel = null; _selImage = null; }
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
@@ -503,13 +525,13 @@
 
         var headers = new[]
         {
-            L["Col.TxnNo"].Value, L["Col.When"].Value, L["Col.SparePartNo"].Value, L["Col.PartNo"].Value, L["Col.Name"].Value, L["Col.Type"].Value,
+            L["Col.TxnNo"].Value, L["Col.When"].Value, L["Col.SparePartNo"].Value, "Serial No", L["Col.PartNo"].Value, L["Col.Name"].Value, L["Col.Type"].Value,
             L["Col.Qty"].Value, L["Col.BalanceBefore"].Value, L["Col.Balance"].Value,
             L["Col.Ref"].Value, L["Col.Note"].Value,
         };
         var data = _txns.Select(t => (IReadOnlyList<object?>)new object?[]
         {
-            t.SparePartsTxnId, t.TxnAt.ToString(DateFmt.DateTime), t.SparePartNo, t.PartNo, t.PartName, MoveLabel(t.MoveType),
+            t.SparePartsTxnId, t.TxnAt.ToString(DateFmt.DateTime), t.SparePartNo, t.SerialNo, t.PartNo, t.PartName, MoveLabel(t.MoveType),
             t.Qty, t.BalanceBefore, t.BalanceAfter,
             RefText(t), t.Note,
         });
@@ -545,8 +567,17 @@
         => string.IsNullOrEmpty(id) ? ""
          : _vendors.FirstOrDefault(v => v.VendorID == id) is { VendorName: { } name } ? $"[{id}] {name}" : id;
 
-    string MoveLabel(string? m) => m switch { null => "—", "IN" => L["MNT.SpareParts.Move.In"], "OUT" => L["MNT.SpareParts.Move.Out"], "ADJ" => L["MNT.SpareParts.Move.Adj"], _ => m };
-    static string MoveCls(string? m) => m switch { "IN" => "ok", "OUT" => "warn", "ADJ" => "info", _ => "mute" };
+    string MoveLabel(string? m) => m switch
+    {
+        null => "—", "LABEL" => "Label Printed",
+        "IN" => L["MNT.SpareParts.Move.In"], "OUT" => L["MNT.SpareParts.Move.Out"],
+        "IN_CANCEL" => "Inbound Cancelled", "OUT_CANCEL" => "Release Cancelled",
+        "ADJ" => L["MNT.SpareParts.Move.Adj"], _ => m
+    };
+    static string MoveCls(string? m) => m switch
+    {
+        "IN" or "OUT_CANCEL" => "ok", "OUT" or "IN_CANCEL" => "warn", "ADJ" => "info", _ => "mute"
+    };
 
     // RefID 가 이미 유형 접두어를 품고 있으면(MWO-2606-003) 유형을 다시 붙이지 않는다
     static string RefText(MntRepository.SparePartsTxnRow t) =>
