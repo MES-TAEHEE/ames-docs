@@ -71,6 +71,15 @@ Check(api.Contains("dbo.FG_PDA_LOADING_ORDER_SCAN")
     && api.Contains("dbo.FG_PDA_LOADING_COMPLETE")
     && !api.Contains("body.StockIds.Count > 100"),
     "Truck Loading must use server procedures without a 100-stock ceiling.");
+var dispatch = File.ReadAllText(Path.Combine(root, "src/04_Api/AMES.Api/Services/ShipmentDispatchService.cs"));
+Check(dispatch.Contains("SaveSuccess(")
+    && !dispatch.Contains("SaveStatus(")
+    && !dispatch.Contains("\"Pending\"")
+    && !dispatch.Contains("\"Failed\"")
+    && api.Contains("StatusCodes.Status502BadGateway")
+    && page.Contains("result.LoadingId is > 0")
+    && page.Contains("ShowModal(\"Shipment Failed\", result.Message, \"warn\")"),
+    "Failed shipment transmission must not create a delivery-note row and must show a shipment warning.");
 var seed = File.ReadAllText(Path.Combine(root, "dist/pda/PDA_SEED.sql"));
 Check(seed.Contains("FG-DEMO-STK-005") && seed.Contains("FG-DEMO-STK-009")
     && seed.Contains("FG-DEMO-STK-010") && seed.Contains("'PICKED',   'FG-PICK-DEMO-002'")

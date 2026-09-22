@@ -90,32 +90,23 @@ public sealed class ShipmentDispatchService(
             ["ITEMS"] = items
         };
 
-        SaveStatus(connection, loadingId, requestId, employeeNo, "Pending", null, JsonSerializer.Serialize(items));
-        try
-        {
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"{config.BaseUrl}/api/shipments");
-            request.Headers.Add("X-API-KEY", config.ApiKey);
-            request.Content = JsonContent.Create(payload);
-            using var response = clients.CreateClient().Send(request);
-            var responseBody = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-            if (!response.IsSuccessStatusCode)
-                throw new InvalidOperationException($"Shipment API HTTP {(int)response.StatusCode}: {Short(responseBody)}");
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{config.BaseUrl}/api/shipments");
+        request.Headers.Add("X-API-KEY", config.ApiKey);
+        request.Content = JsonContent.Create(payload);
+        using var response = clients.CreateClient().Send(request);
+        var responseBody = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException($"Shipment API HTTP {(int)response.StatusCode}: {Short(responseBody)}");
 
-            using var json = JsonDocument.Parse(responseBody);
-            var root = json.RootElement;
-            if (!root.TryGetProperty("success", out var success) || !success.GetBoolean())
-                throw new InvalidOperationException("Shipment API did not confirm success.");
-            var data = root.GetProperty("data");
-            var deliveryNote = data.GetProperty("DELI_NOTE").GetString() ?? requestId;
-            var duplicate = root.TryGetProperty("duplicate", out var duplicateValue) && duplicateValue.GetBoolean();
-            SaveStatus(connection, loadingId, requestId, employeeNo, "Sent", deliveryNote, JsonSerializer.Serialize(items));
-            return new DispatchResult(requestId, deliveryNote, duplicate);
-        }
-        catch (Exception ex)
-        {
-            SaveStatus(connection, loadingId, requestId, employeeNo, "Failed", Short(ex.Message), JsonSerializer.Serialize(items));
-            throw;
-        }
+        using var json = JsonDocument.Parse(responseBody);
+        var root = json.RootElement;
+        if (!root.TryGetProperty("success", out var success) || !success.GetBoolean())
+            throw new InvalidOperationException("Shipment API did not confirm success.");
+        var data = root.GetProperty("data");
+        var deliveryNote = data.GetProperty("DELI_NOTE").GetString() ?? requestId;
+        var duplicate = root.TryGetProperty("duplicate", out var duplicateValue) && duplicateValue.GetBoolean();
+        SaveSuccess(connection, loadingId, requestId, employeeNo, deliveryNote, JsonSerializer.Serialize(items));
+        return new DispatchResult(requestId, deliveryNote, duplicate);
     }
 
     private static ApiConfig LoadConfig(SqlConnection connection)
@@ -153,8 +144,8 @@ public sealed class ShipmentDispatchService(
             p.GetValueOrDefault("ARRIVAL_TIME") is { Length: > 0 } time ? time : "0930");
     }
 
-    private static void SaveStatus(SqlConnection connection, int loadingId, string requestId,
-        string employeeNo, string status, string? result, string linesJson)
+    private static void SaveSuccess(SqlConnection connection, int loadingId, string requestId,
+        string employeeNo, string deliveryNote, string linesJson)
     {
         using var command = new SqlCommand("""
             DECLARE @ID int=(SELECT TOP(1) DeliveryNoteID FROM dbo.FG_DeliveryNote WHERE LoadingID=@LoadingID ORDER BY DeliveryNoteID DESC);
@@ -162,24 +153,21 @@ public sealed class ShipmentDispatchService(
                 INSERT dbo.FG_DeliveryNote
                     (DnNumber,ShipmentOrderID,LoadingID,CustomerCode,FormatTemplate,Revision,
                      IssuedAt,IssuedBy,EdiMsgID,EdiStatus,CustomerAckTS,LinesJSON,RevisionReason,CreatedBy,CreatedTS)
-                SELECT COALESCE(@Result,@RequestID),LC.ShipmentOrderID,LC.LoadingID,O.CustomerCode,'SRM_SHIPMENT',1,
-                       SYSDATETIME(),@UserID,@RequestID,@Status,
-                       CASE WHEN @Status='Sent' THEN SYSUTCDATETIME() END,@LinesJSON,
-                       CASE WHEN @Status='Failed' THEN @Result END,'api',SYSDATETIME()
+                SELECT @DeliveryNote,LC.ShipmentOrderID,LC.LoadingID,O.CustomerCode,'SRM_SHIPMENT',1,
+                       SYSDATETIME(),@UserID,@RequestID,'Sent',SYSUTCDATETIME(),@LinesJSON,
+                       NULL,'api',SYSDATETIME()
                 FROM dbo.FG_LoadingConfirm LC JOIN dbo.FG_ShipmentOrder O ON O.ShipmentOrderID=LC.ShipmentOrderID
                 WHERE LC.LoadingID=@LoadingID;
             ELSE
                 UPDATE dbo.FG_DeliveryNote
-                   SET DnNumber=COALESCE(@Result,DnNumber),EdiMsgID=@RequestID,EdiStatus=@Status,
-                       CustomerAckTS=CASE WHEN @Status='Sent' THEN SYSUTCDATETIME() ELSE CustomerAckTS END,
-                       LinesJSON=@LinesJSON,RevisionReason=CASE WHEN @Status='Failed' THEN @Result ELSE NULL END
+                   SET DnNumber=@DeliveryNote,EdiMsgID=@RequestID,EdiStatus='Sent',
+                       CustomerAckTS=SYSUTCDATETIME(),LinesJSON=@LinesJSON,RevisionReason=NULL
                  WHERE DeliveryNoteID=@ID;
             """, connection);
         command.Parameters.Add("@LoadingID", SqlDbType.Int).Value = loadingId;
         command.Parameters.Add("@RequestID", SqlDbType.VarChar, 40).Value = requestId;
         command.Parameters.Add("@UserID", SqlDbType.NVarChar, 450).Value = employeeNo;
-        command.Parameters.Add("@Status", SqlDbType.VarChar, 15).Value = status;
-        command.Parameters.Add("@Result", SqlDbType.NVarChar, 200).Value = (object?)result ?? DBNull.Value;
+        command.Parameters.Add("@DeliveryNote", SqlDbType.VarChar, 60).Value = deliveryNote;
         command.Parameters.Add("@LinesJSON", SqlDbType.NVarChar, -1).Value = linesJson;
         command.ExecuteNonQuery();
     }
