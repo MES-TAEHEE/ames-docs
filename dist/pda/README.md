@@ -3,7 +3,10 @@
 This folder contains the consolidated WH/FG database contract used by the PDA
 and its related current web screens.
 
-Use `PDA_SCHEMA.sql` for WH/FG tables, columns, indexes and procedures. Use
+For fresh databases, `../AMES_Schema.sql` includes the deployed WH/FG/SP tables,
+columns, indexes and procedures as of 2026-09-23, including the inbound/release
+schedule procedures. `PDA_SCHEMA.sql` remains a legacy incremental upgrade
+script; it is no longer a separate step in the fresh-database rebuild. Use
 `PDA_SEED.sql` for rerunnable development data and current menu cleanup. Do not
 create separate migration or seed files per screen.
 
@@ -39,5 +42,7 @@ sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -b -d AMES_DEV -i dist\pd
 sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -b -d AMES_DEV -i dist\pda\PDA_SEED.sql
 ```
 
-Apply the base `dist/AMES_Schema.sql` first. Both PDA scripts are rerunnable, but
+The schema command above is for older databases only; skip it after the current
+`dist/AMES_Schema.sql`. Keep future fresh-install schema changes in that file.
+Both PDA scripts are rerunnable, but
 `PDA_SEED.sql` resets its named test records and must not be run on production data.

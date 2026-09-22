@@ -1,6 +1,9 @@
 -- =====================================================================
 --  PDA_SCHEMA.sql
 --  Consolidated Warehouse and Finished Goods schema for the PDA
+--  Fresh databases: dist/AMES_Schema.sql already includes the deployed PDA
+--  schema as of 2026-09-23. This file remains a legacy incremental upgrade;
+--  do not apply it again in the fresh-database rebuild workflow.
 --
 --  Apply after dist/AMES_Schema.sql:
 --    sqlcmd -S <server> -U <user> -C -b -d AMES_DEV -i dist\pda\PDA_SCHEMA.sql
