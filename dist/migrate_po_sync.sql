@@ -30,7 +30,7 @@ USING (VALUES
     ('SW_POSYNC_URL',    N'ScheduledWorker · PO 자동수집 URL',    N'ScheduledWorker · PO Sync Endpoints',
      N'CodeValue=소스 키. Description=엔드포인트 절대 URL'),
     ('SW_POSYNC_AUTH',   N'ScheduledWorker · PO 자동수집 인증',   N'ScheduledWorker · PO Sync Auth',
-     N'CodeValue=소스 키. Attribute1=Query:{매개변수이름} | Bearer | Basic | Header:{헤더이름}. Description=키 | 토큰 | user:pw | 헤더값. 행이 없으면 인증 없이 호출')
+     N'CodeValue=소스 키. Attribute1=Query:{매개변수이름} | Bearer | Basic | Header:{헤더이름}. Description=키 | 토큰 | user:pw | 헤더값. 행이 없으면 인증 없이 호출. 예약 행 AMES_SERVICE_KEY=Web→Api 수동 실행 키(16자 이상)')
 ) AS src(GroupCode, GroupName, GroupNameEn, Description)
 ON tgt.GroupCode = src.GroupCode
 WHEN NOT MATCHED THEN

@@ -2355,6 +2355,72 @@
   <data name="PP.SupplyPlanImport.Err.NoneSelected" xml:space="preserve">
     <value>Select at least one order to confirm.</value>
   </data>
+  <data name="PP.SupplyPlanImport.Btn.ApiImport" xml:space="preserve">
+    <value>API Import</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Title" xml:space="preserve">
+    <value>Import POs via API</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.NoSource" xml:space="preserve">
+    <value>No sources registered — add one to common code {0}.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.LastSync" xml:space="preserve">
+    <value>Last sync</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.LastSync.None" xml:space="preserve">
+    <value>No record</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.LastSync.LastOk" xml:space="preserve">
+    <value>Last success {0}</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Result" xml:space="preserve">
+    <value>Run result</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Running" xml:space="preserve">
+    <value>Fetching… this can take over a minute depending on the remote server.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.NotRun" xml:space="preserve">
+    <value>Not run yet.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Ok" xml:space="preserve">
+    <value>Sync complete — {0} inserted, {1} updated.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Detail" xml:space="preserve">
+    <value>PO date {0} ~ {1} · fetched {2} · mapped {3} · skipped {4}</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Btn.Run" xml:space="preserve">
+    <value>Run</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.Remote" xml:space="preserve">
+    <value>Sync failed</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.NoApiUrl" xml:space="preserve">
+    <value>The Api server address (Services:ApiBaseUrl) is not configured.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.NoServiceKey" xml:space="preserve">
+    <value>No service key — check row {1} in common code {0} (16+ characters, in use).</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.Unauthorized" xml:space="preserve">
+    <value>The Api server rejected the service key — check that the Api uses the same database and is up to date.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.NotFound" xml:space="preserve">
+    <value>Source '{0}' is missing or disabled in {1}.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.Busy" xml:space="preserve">
+    <value>Already running, or run within the last 60 seconds. Try again shortly.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.Unreachable" xml:space="preserve">
+    <value>Cannot reach the Api server</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.Timeout" xml:space="preserve">
+    <value>The Api server timed out — the sync may still be running.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.Unexpected" xml:space="preserve">
+    <value>Unexpected response</value>
+  </data>
   <data name="PP.WoRelease.Dlg.Phase0Warn" xml:space="preserve">
     <value>BOM/BOP master data is incomplete. Release is allowed, but complete it before shop-floor execution.</value>
   </data>

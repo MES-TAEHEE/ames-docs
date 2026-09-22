@@ -2352,6 +2352,72 @@
   <data name="PP.SupplyPlanImport.Err.NoneSelected" xml:space="preserve">
     <value>Seleccione al menos un pedido para confirmar.</value>
   </data>
+  <data name="PP.SupplyPlanImport.Btn.ApiImport" xml:space="preserve">
+    <value>Importar por API</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Title" xml:space="preserve">
+    <value>Importar OC por API</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Source" xml:space="preserve">
+    <value>Origen</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.NoSource" xml:space="preserve">
+    <value>No hay orígenes registrados — agregue uno al código común {0}.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.LastSync" xml:space="preserve">
+    <value>Última sincronización</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.LastSync.None" xml:space="preserve">
+    <value>Sin registro</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.LastSync.LastOk" xml:space="preserve">
+    <value>Último éxito {0}</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Result" xml:space="preserve">
+    <value>Resultado</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Running" xml:space="preserve">
+    <value>Obteniendo… puede tardar más de un minuto según el servidor remoto.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.NotRun" xml:space="preserve">
+    <value>Aún no se ha ejecutado.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Ok" xml:space="preserve">
+    <value>Sincronización completa — {0} insertados, {1} actualizados.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Detail" xml:space="preserve">
+    <value>Fecha de OC {0} ~ {1} · obtenidos {2} · mapeados {3} · omitidos {4}</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Btn.Run" xml:space="preserve">
+    <value>Ejecutar</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.Remote" xml:space="preserve">
+    <value>Sincronización fallida</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.NoApiUrl" xml:space="preserve">
+    <value>La dirección del servidor Api (Services:ApiBaseUrl) no está configurada.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.NoServiceKey" xml:space="preserve">
+    <value>No hay clave de servicio — revise la fila {1} del código común {0} (16+ caracteres, en uso).</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.Unauthorized" xml:space="preserve">
+    <value>El servidor Api rechazó la clave de servicio — verifique que el Api use la misma base de datos y esté actualizado.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.NotFound" xml:space="preserve">
+    <value>El origen '{0}' no existe o está deshabilitado en {1}.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.Busy" xml:space="preserve">
+    <value>Ya se está ejecutando o se ejecutó en los últimos 60 segundos. Inténtelo de nuevo en breve.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.Unreachable" xml:space="preserve">
+    <value>No se puede conectar con el servidor Api</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.Timeout" xml:space="preserve">
+    <value>El servidor Api agotó el tiempo de espera — la sincronización puede seguir en curso.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Api.Err.Unexpected" xml:space="preserve">
+    <value>Respuesta inesperada</value>
+  </data>
   <data name="PP.WoRelease.Dlg.Phase0Warn" xml:space="preserve">
     <value>Los datos maestros BOM/BOP están incompletos. Se permite liberar, pero complételos antes de la ejecución en planta.</value>
   </data>

@@ -3,6 +3,7 @@ using AMES.Api.Workers;
 using AMES.Api.Workers.PoSync;
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
+using AMES.Data.Services.PoSync;
 
 namespace AMES.Api.Endpoints;
 
@@ -67,7 +68,12 @@ public static class PpEndpoints
                 : Results.Ok(repo.ListOtd(daysBack ?? 30)));
 
         g.MapPost("/po-sync/run", (HttpContext ctx, string? source, PoSyncWorker worker, CancellationToken ct) =>
-            ScheduledWorkerEndpoints.RunAsync(ctx, worker, source, ct))
-         .WithDescription("고객사 SRM PO 수집을 즉시 실행. source 생략 시 활성 소스 전부.");
+            ScheduledWorkerEndpoints.RunAsync(ctx, worker, source, ct, () =>
+            {
+                using var conn = factory.OpenConnection();
+                return PoSyncConfig.LoadServiceKey(conn);
+            }))
+         .WithDescription("고객사 SRM PO 수집을 즉시 실행. source 생략 시 활성 소스 전부. " +
+                          "Bearer 세션 또는 X-AMES-Service-Key(공통코드 SW_POSYNC_AUTH / AMES_SERVICE_KEY) 필요.");
     }
 }

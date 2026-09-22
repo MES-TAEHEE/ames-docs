@@ -215,4 +215,53 @@ public class PoSyncConfigTests
         Assert.Equal(((int?)null, (int?)null, (int?)null), (r.TickSec, r.StartupDelaySec, r.TimeoutSec));
         Assert.Null(Assert.Single(r.Sources).TimeoutSec);
     }
+
+    // ── Web → Api 수동 실행 서비스 키 (SW_POSYNC_AUTH / AMES_SERVICE_KEY) ──
+
+    const string Key32 = "0123456789abcdef0123456789abcdef";
+
+    [Fact]
+    public void ServiceKey_code_can_never_be_a_source_key()
+        => Assert.True(ServiceKeyCode.Length > MaxKeyLen);
+
+    [Fact]
+    public void ResolveServiceKey_reads_the_description_of_the_reserved_auth_row()
+    {
+        Assert.Equal(Key32, ResolveServiceKey([Auth("SEMS", "Bearer", "other"), Auth(ServiceKeyCode, null, $" {Key32} ")]));
+        Assert.Equal(Key32, ResolveServiceKey([Auth("ames_service_key", null, Key32)]));
+    }
+
+    [Fact]
+    public void ResolveServiceKey_is_null_when_missing_disabled_short_or_duplicated()
+    {
+        Assert.Null(ResolveServiceKey([Auth("SEMS", "Bearer", Key32)]));
+        Assert.Null(ResolveServiceKey([new CodeRow(GroupAuth, ServiceKeyCode, null, null, Key32, false)]));
+        Assert.Null(ResolveServiceKey([Auth(ServiceKeyCode, null, new string('a', MinServiceKeyLen - 1))]));
+        Assert.Null(ResolveServiceKey([Auth(ServiceKeyCode, null, null)]));
+        // 어느 쪽이 맞는 키인지 알 수 없다 — last-wins 로 조용히 고르지 않고 서비스 키 경로를 끈다
+        Assert.Null(ResolveServiceKey([Auth(ServiceKeyCode, null, Key32), Auth(ServiceKeyCode, null, Key32 + "x")]));
+        // 다른 그룹의 같은 CodeValue 는 키가 아니다
+        Assert.Null(ResolveServiceKey([new CodeRow(GroupUrl, ServiceKeyCode, null, null, Key32, true)]));
+    }
+
+    [Fact]
+    public void ServiceKeyMatches_requires_a_configured_key_and_an_exact_match()
+    {
+        Assert.True(ServiceKeyMatches(Key32, Key32));
+        Assert.False(ServiceKeyMatches(Key32, Key32 + "x"));
+        Assert.False(ServiceKeyMatches(Key32, Key32.ToUpperInvariant()));
+        Assert.False(ServiceKeyMatches(Key32, null));
+        Assert.False(ServiceKeyMatches(Key32, ""));
+        Assert.False(ServiceKeyMatches(null, null));
+        Assert.False(ServiceKeyMatches(null, ""));
+        Assert.False(ServiceKeyMatches("", ""));
+    }
+
+    [Fact]
+    public void Resolve_ignores_the_service_key_row()
+    {
+        var r = Resolve([Src("SEMS", "C", Params), Url("SEMS", "u"), Auth(ServiceKeyCode, null, Key32)]);
+        Assert.Empty(r.Errors);
+        Assert.Null(Assert.Single(r.Sources).AuthScheme);
+    }
 }

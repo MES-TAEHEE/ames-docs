@@ -43,4 +43,66 @@ public class ScheduledWorkerEndpointsTests
         Assert.Equal(404, Status(await ScheduledWorkerEndpoints.RunAsync(Ctx(true), w, "NOPE", CancellationToken.None)));
         Assert.Equal(409, Status(await ScheduledWorkerEndpoints.RunAsync(Ctx(true), w, "A", CancellationToken.None)));
     }
+
+    // ── 서비스 키 (Web → Api, 세션 없는 호출) ──────────────────────────
+
+    const string Key = "0123456789abcdef0123456789abcdef";
+
+    static HttpContext WithKey(string? presented)
+    {
+        var ctx = Ctx(false);
+        if (presented is not null) ctx.Request.Headers[ScheduledWorkerEndpoints.ServiceKeyHeader] = presented;
+        return ctx;
+    }
+
+    static FakeWorker OneTarget() => new() { Plan = new ScheduledPlan<FakeTarget>([new("A", 30)], [], true) };
+
+    [Fact]
+    public async Task Matching_service_key_runs_without_a_session()
+    {
+        var w = OneTarget();
+        Assert.Equal(200, Status(await ScheduledWorkerEndpoints.RunAsync(WithKey(Key), w, "A", CancellationToken.None, () => Key)));
+        Assert.Equal(["A"], w.Runs);
+    }
+
+    [Fact]
+    public async Task Wrong_or_missing_service_key_is_401_and_nothing_runs()
+    {
+        var w = OneTarget();
+        Assert.Equal(401, Status(await ScheduledWorkerEndpoints.RunAsync(WithKey(Key + "x"), w, "A", CancellationToken.None, () => Key)));
+        Assert.Equal(401, Status(await ScheduledWorkerEndpoints.RunAsync(WithKey(null), w, "A", CancellationToken.None, () => Key)));
+        Assert.Empty(w.Runs);
+    }
+
+    [Fact]
+    public async Task Unconfigured_service_key_is_401_even_if_the_header_is_sent()
+    {
+        var w = OneTarget();
+        Assert.Equal(401, Status(await ScheduledWorkerEndpoints.RunAsync(WithKey(Key), w, "A", CancellationToken.None, () => null)));
+        Assert.Equal(401, Status(await ScheduledWorkerEndpoints.RunAsync(WithKey(""), w, "A", CancellationToken.None, () => "")));
+        // 키 공급자를 안 준 엔드포인트는 종전대로 세션만 받는다
+        Assert.Equal(401, Status(await ScheduledWorkerEndpoints.RunAsync(WithKey(Key), w, "A", CancellationToken.None)));
+        Assert.Empty(w.Runs);
+    }
+
+    [Fact]
+    public async Task Key_lookup_is_skipped_when_no_header_is_sent_or_a_session_exists()
+    {
+        var w = OneTarget();
+        int lookups = 0;
+        string? Provider() { lookups++; return Key; }
+
+        await ScheduledWorkerEndpoints.RunAsync(WithKey(null), w, "A", CancellationToken.None, Provider);
+        Assert.Equal(200, Status(await ScheduledWorkerEndpoints.RunAsync(Ctx(true), w, "A", CancellationToken.None, Provider)));
+        Assert.Equal(0, lookups);
+    }
+
+    [Fact]
+    public async Task Key_lookup_failure_is_401_not_500()
+    {
+        var w = OneTarget();
+        Assert.Equal(401, Status(await ScheduledWorkerEndpoints.RunAsync(WithKey(Key), w, "A", CancellationToken.None,
+            () => throw new InvalidOperationException("db down"))));
+        Assert.Empty(w.Runs);
+    }
 }

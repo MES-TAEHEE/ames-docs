@@ -159,6 +159,7 @@ builder.Services.AddSingleton(sp => new LineSupervisorRepository(factory));
 builder.Services.AddSingleton(sp => new LineScheduleRepository(factory));
 builder.Services.AddSingleton(sp => new OeeRepository(factory));
 builder.Services.AddSingleton<ServerMonitorService>();
+builder.Services.AddSingleton<AMES.Web.Services.PoSyncClient>();   // PP-002 API 가져오기 → AMES.Api PO Sync Worker 수동 실행
 // LANGUAGE_DEFAULT(SYS_Config) 캐시 — 컬처 강제/언어 스위처 판정
 builder.Services.AddSingleton<AMES.Web.Services.AppLanguageState>();
 

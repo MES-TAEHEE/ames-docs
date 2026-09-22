@@ -1,0 +1,167 @@
+@inject AMES.Data.Repositories.MasterDataRepository MD
+@inject AMES.Data.Repositories.SysRepository Sys
+@inject AMES.Web.Services.PoSyncClient PoSync
+@inject AMES.Web.Services.AuditLogger Audit
+@inject DialogService Dialog
+@inject IStringLocalizer<SharedResources> L
+@using AMES.Data.Services.PoSync
+@using AMES.Web.Services
+
+<div style="display:flex;flex-direction:column;gap:6px;min-width:440px;">
+    <label>① @L["PP.SupplyPlanImport.Api.Source"]</label>
+    <RadzenDropDown Data="_sources" TextProperty="Label" ValueProperty="Key"
+                    @bind-Value="_source" @bind-Value:after="LoadLastSync" Disabled="_busy"
+                    Placeholder="—" Style="width:100%" />
+    @if (_sources.Count == 0)
+    {
+        <span class="dim" style="font-size:.8em;">@string.Format(L["PP.SupplyPlanImport.Api.NoSource"].Value, PoSyncConfig.GroupUrl)</span>
+    }
+
+    <label>② @L["PP.SupplyPlanImport.Api.LastSync"]</label>
+    <div style="border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:10px 12px;font-size:.9em;">
+        @if (_last is null)
+        {
+            <span class="dim">@L["PP.SupplyPlanImport.Api.LastSync.None"]</span>
+        }
+        else
+        {
+            <span class="pill @(_last.ConnStatus == "OK" ? "ok" : "warn")">@_last.ConnStatus</span>
+            @* 실패해도 LastSyncTS 는 마지막 성공 시각으로 남는다 — ERROR 옆에 그냥 두면 실패 시각으로 읽힌다 *@
+            var ts = _last.LastSyncTs?.ToString("yyyy-MM-dd HH:mm") ?? "—";
+            <span style="margin-left:6px;">@(_last.ConnStatus == "OK" ? ts : string.Format(L["PP.SupplyPlanImport.Api.LastSync.LastOk"].Value, ts))</span>
+            @if (_last.LastRecordCount is int n)
+            {
+                <span class="dim"> · @n.ToString("#,0") @L["Lbl.Items"]</span>
+            }
+            @if (_last.ConnStatus != "OK" && !string.IsNullOrEmpty(_last.LastErrorMsg))
+            {
+                <div style="color:#f87171;margin-top:4px;word-break:break-word;">@_last.LastErrorMsg</div>
+            }
+        }
+    </div>
+
+    <label>③ @L["PP.SupplyPlanImport.Api.Result"]</label>
+    <div style="border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:12px;font-size:.9em;min-height:56px;">
+        @if (_busy)
+        {
+            <span class="dim">@L["PP.SupplyPlanImport.Api.Running"]</span>
+        }
+        else if (_result is null)
+        {
+            <span class="dim">@L["PP.SupplyPlanImport.Api.NotRun"]</span>
+        }
+        else if (_result.Ok)
+        {
+            <div>✔ @string.Format(L["PP.SupplyPlanImport.Api.Ok"].Value, _result.Inserted, _result.Updated)</div>
+            <div class="dim" style="margin-top:4px;">
+                @string.Format(L["PP.SupplyPlanImport.Api.Detail"].Value,
+                    _result.From.ToString("yyyy-MM-dd"), _result.To.ToString("yyyy-MM-dd"),
+                    _result.Fetched, _result.Mapped, _result.Skipped)
+            </div>
+        }
+        else
+        {
+            <div style="color:#f87171;word-break:break-word;">⚠ @L["PP.SupplyPlanImport.Api.Err.Remote"] — @_result.Error</div>
+        }
+    </div>
+    @if (!string.IsNullOrEmpty(_modalErr))
+    {
+        <div class="ames-alert bad">@_modalErr</div>
+    }
+
+    <div class="ames-modal-footer">
+        <RadzenButton Text="@L["Btn.Close"]" ButtonStyle="ButtonStyle.Light" Disabled="_busy"
+                      Click="@(() => Dialog.Close(_result))" />
+        <RadzenButton Text="@(_busy ? L["Lbl.Loading"].Value : L["PP.SupplyPlanImport.Api.Btn.Run"].Value)"
+                      Icon="cloud_download" Disabled="@(_busy || string.IsNullOrEmpty(_source))" Click="Run" />
+    </div>
+</div>
+
+@code {
+    sealed record SourceOption(string Key, string Label);
+
+    List<SourceOption> _sources = new();
+    string? _source;
+    SysRepository.InterfaceRow? _last;
+    PoSyncRunResult? _result;
+    string _modalErr = "";
+    bool   _busy;
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            // 선택지는 SW_POSYNC_URL 의 활성 행 — URL·토큰은 화면에 내지 않는다
+            var urls  = MD.ListCodeItems(PoSyncConfig.GroupUrl);
+            var names = MD.ListCodeItems(PoSyncConfig.GroupSource);
+            _sources = urls
+                .Where(r => r.UseFlag && !string.IsNullOrWhiteSpace(r.CodeValue))
+                .Select(r => r.CodeValue!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(k => new SourceOption(k, LabelOf(k, names, urls)))
+                .ToList();
+        }
+        catch (Exception ex) { _modalErr = string.Format(L["Err.LoadFailed"].Value, ex.Message); }
+
+        if (_sources.Count == 1) _source = _sources[0].Key;
+        LoadLastSync();
+    }
+
+    // 이름은 고객사 행(SW_POSYNC_SOURCE)의 것이 사람이 알아보기 쉽다 — 없으면 URL 행 이름, 그것도 없으면 키만
+    static string LabelOf(string key, params List<MasterDataRepository.CodeItemRow>[] groups)
+    {
+        var name = groups.SelectMany(g => g)
+            .Where(r => string.Equals(r.CodeValue?.Trim(), key, StringComparison.OrdinalIgnoreCase))
+            .Select(MasterDataRepository.LocalName)
+            .FirstOrDefault(n => !string.IsNullOrWhiteSpace(n) && !n.Equals(key, StringComparison.OrdinalIgnoreCase));
+        return name is null ? key : $"{key} · {name}";
+    }
+
+    void LoadLastSync()
+    {
+        _last = null;
+        if (string.IsNullOrEmpty(_source)) return;
+        try
+        {
+            var code = PoSyncConfig.InterfaceCodeFor(_source);
+            _last = Sys.ListInterfaces().FirstOrDefault(r =>
+                string.Equals(r.InterfaceCode, code, StringComparison.OrdinalIgnoreCase));
+        }
+        catch { }
+    }
+
+    async Task Run()
+    {
+        if (_busy || string.IsNullOrEmpty(_source)) return;
+        _busy = true; _modalErr = ""; _result = null;
+        try
+        {
+            var o = await PoSync.RunAsync(_source);
+            _result   = o.Result;
+            _modalErr = o.Failure switch
+            {
+                PoSyncClient.Failure.None         => "",
+                PoSyncClient.Failure.NoApiUrl     => L["PP.SupplyPlanImport.Api.Err.NoApiUrl"],
+                PoSyncClient.Failure.NoServiceKey => string.Format(L["PP.SupplyPlanImport.Api.Err.NoServiceKey"].Value,
+                                                         PoSyncConfig.GroupAuth, PoSyncConfig.ServiceKeyCode),
+                PoSyncClient.Failure.Unauthorized => L["PP.SupplyPlanImport.Api.Err.Unauthorized"],
+                PoSyncClient.Failure.NotFound     => string.Format(L["PP.SupplyPlanImport.Api.Err.NotFound"].Value,
+                                                         _source, PoSyncConfig.GroupSource),
+                PoSyncClient.Failure.Busy         => L["PP.SupplyPlanImport.Api.Err.Busy"],
+                PoSyncClient.Failure.Unreachable  => $"{L["PP.SupplyPlanImport.Api.Err.Unreachable"]} — {o.Detail}",
+                PoSyncClient.Failure.Timeout      => L["PP.SupplyPlanImport.Api.Err.Timeout"],
+                _                                 => $"{L["PP.SupplyPlanImport.Api.Err.Unexpected"]} — {o.Detail}",
+            };
+
+            // Worker 의 actor 는 항상 PO-SYNC 라 누가 눌렀는지는 여기에만 남는다
+            Audit.Log("PP-002", "RUN", "PoSync", _source, null,
+                (object?)o.Result ?? new { Failure = o.Failure.ToString(), o.Detail });
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally
+        {
+            LoadLastSync();
+            _busy = false;
+        }
+    }
+}
