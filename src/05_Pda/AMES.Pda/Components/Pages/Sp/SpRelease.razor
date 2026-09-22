@@ -20,10 +20,10 @@
     <div class="pda-bd wh02-body sp-body">
         <RadzenCard class="wh02-panel wh02-scan-panel hardware-scan-panel">
             <div class="pda-fld">
-                <label>EOS SP NO</label>
+                <label>SERIAL NO</label>
                 <RadzenTextBox class="pda-input wh02-barcode-input pda-scan-input"
                                Value="@_lotNo" @oninput="OnLotInput" @onkeydown="OnLotKey"
-                               Placeholder="Scan EOS SP No" />
+                               Placeholder="Scan Serial No" />
             </div>
         </RadzenCard>
 
@@ -31,7 +31,7 @@
         {
             <RadzenCard class="@($"wh02-lot-card {(_lot.IsReleaseEligible ? "ready" : "received")}")">
                 <div class="wh02-lot-top">
-                    <div class="wh02-lot-main"><span>EOS SP NO</span><strong>@_lot.EosSpNo</strong></div>
+                    <div class="wh02-lot-main"><span>SERIAL NO</span><strong>@_lot.SerialNo</strong></div>
                     <RadzenBadge class="@($"wh02-status-chip {(_lot.IsReleaseEligible ? "ready" : "received")}")"
                                  Text="@(_lot.IsReleaseEligible ? "READY" : _lot.InventoryStatus)" />
                 </div>
@@ -57,8 +57,15 @@
 
         <div class="wh02-action-bar has-reset">
             <RadzenButton class="wh02-clear-btn" Text="CLEAR" Click="Clear" Disabled="@_busy" />
-            <RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-receive-action-btn {(_lot?.IsReleaseEligible == true ? "ready" : "blocked")}")"
-                          Text="RELEASE" Click="Release" Disabled="@_busy" />
+            @if (CanCancelRelease)
+            {
+                <RadzenButton class="wh02-cancel-btn" Text="CANCEL RELEASE" Click="CancelRelease" Disabled="@_busy" />
+            }
+            else
+            {
+                <RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-receive-action-btn {(_lot?.IsReleaseEligible == true ? "ready" : "blocked")}")"
+                              Text="RELEASE" Click="Release" Disabled="@_busy" />
+            }
         </div>
     </div>
 
@@ -69,7 +76,17 @@
                 <div class="wh-modal-mark">@(_modalKind == "success" ? "OK" : "!")</div>
                 <div class="wh-modal-title">@_modalTitle</div>
                 <div class="wh-modal-message">@_modalMessage</div>
-                <div class="wh-modal-actions"><RadzenButton class="wh-modal-btn primary" Click="CloseModal" Text="OK" /></div>
+                @if (_safetyReleasePending)
+                {
+                    <div class="wh-modal-actions">
+                        <RadzenButton class="wh-modal-btn" Click="CancelSafetyRelease" Text="CANCEL" />
+                        <RadzenButton class="wh-modal-btn primary" Click="ConfirmSafetyRelease" Text="RELEASE ANYWAY" />
+                    </div>
+                }
+                else
+                {
+                    <div class="wh-modal-actions"><RadzenButton class="wh-modal-btn primary" Click="CloseModal" Text="OK" /></div>
+                }
             </RadzenCard>
         </div>
     }
@@ -78,21 +95,23 @@
 @code {
     private static readonly PptScenarioPanel.Step[] ScenarioSteps =
     [
-        new("EOS SP No 출고", "EOS SP No를 조회하고 Storage Location 확인 후 1 EA를 출고합니다.",
-            new PptScenarioPanel.Value("EOS SP NO", "EOS-SP-K9-269999", "READY")),
-        new("재고 없음", "첫 단계에서 출고한 EOS SP No를 다시 스캔해 재고 없음 상태를 확인합니다.",
-            new PptScenarioPanel.Value("EOS SP NO", "EOS-SP-K9-269999", "RELEASED")),
-        new("미등록 EOS SP No", "등록되지 않은 EOS SP No의 조회 오류를 확인합니다.",
-            new PptScenarioPanel.Value("EOS SP NO", "EOS-SP-X0-000000", "UNKNOWN"))
+        new("Serial 출고", "입고된 Serial No를 조회하고 Storage Location 확인 후 1 EA를 출고합니다.",
+            new PptScenarioPanel.Value("SERIAL NO", "SPI-TEST-000001", "READY")),
+        new("출고 완료 Serial", "이미 출고된 Serial No를 다시 스캔하여 출고 취소 가능 상태를 확인합니다.",
+            new PptScenarioPanel.Value("SERIAL NO", "SPI-TEST-000001", "RELEASED")),
+        new("미등록 Serial No", "등록되지 않은 Serial No의 조회 오류를 확인합니다.",
+            new PptScenarioPanel.Value("SERIAL NO", "SPI-TEST-999999", "UNKNOWN"))
     ];
 
     private bool IsSimpleTestMode => PdaScenarioUsers.IsSimple(Auth.Session?.EmployeeNo);
+    private bool CanCancelRelease => _lot?.ItemStatus == "RELEASED";
     private string _lotNo = "";
     private string _message = "";
     private string _messageClass = "dim";
     private bool _busy;
     private bool _scenarioOpen;
     private bool _modalOpen;
+    private bool _safetyReleasePending;
     private string _modalTitle = "";
     private string _modalMessage = "";
     private string _modalKind = "info";
@@ -125,14 +144,14 @@
     {
         if (_busy || _modalOpen) return;
         var value = NormalizeScan(_lotNo);
-        if (value.Length == 0) { ShowModal("EOS SP No Required", "Scan an EOS SP No.", "warn"); return; }
+        if (value.Length == 0) { ShowModal("Serial No Required", "Scan a Serial No.", "warn"); return; }
         _busy = true;
         _lot = null;
         try
         {
             _lot = await Api.SpItemAsync(value);
-            if (_lot is null) { _message = "EOS SP No was not found."; _messageClass = "fail"; return; }
-            _lotNo = _lot.EosSpNo;
+            if (_lot is null || string.IsNullOrWhiteSpace(_lot.SerialNo)) { _message = "Serial No was not found."; _messageClass = "fail"; return; }
+            _lotNo = _lot.SerialNo;
             if (!_lot.HasReceived)
             {
                 _message = "This spare part has not been received yet. Receive it before release.";
@@ -140,8 +159,9 @@
                 ShowModal("Not Received", _message, "warn");
                 return;
             }
-            _message = _lot.IsReleaseEligible ? "Spare part loaded. Ready to release 1 EA." : "Spare part is out of stock.";
-            _messageClass = _lot.IsReleaseEligible ? "ok" : "fail";
+            _message = CanCancelRelease ? "This serial was released. You can cancel the release."
+                : _lot.IsReleaseEligible ? "Spare part loaded. Ready to release 1 EA." : "Spare part is out of stock.";
+            _messageClass = _lot.IsReleaseEligible || CanCancelRelease ? "ok" : "fail";
         }
         catch (Exception ex) { _message = ex.Message; _messageClass = "fail"; }
         finally { _busy = false; }
@@ -150,31 +170,64 @@
     private async Task Release()
     {
         if (_busy || _modalOpen) return;
-        if (_lot?.IsReleaseEligible != true) { ShowModal("Not Ready", _lot is null ? "Scan an EOS SP No first." : "This spare part cannot be released.", "warn"); return; }
+        if (_lot?.IsReleaseEligible != true) { ShowModal("Not Ready", _lot is null ? "Scan a Serial No first." : "This spare part cannot be released.", "warn"); return; }
+        if (SparePartValidation.FallsBelowSafetyStock(_lot.Qty, 1, _lot.SafetyStock))
+        {
+            _safetyReleasePending = true;
+            ShowModal("Safety Stock Warning",
+                $"Releasing 1 EA will reduce stock to {_lot.Qty - 1:N0} EA, below the safety quantity of {_lot.SafetyStock:N0} EA. Do you want to continue?",
+                "warn");
+            return;
+        }
+        await ReleaseConfirmed();
+    }
+
+    private async Task ReleaseConfirmed()
+    {
+        if (_lot is not { IsReleaseEligible: true } lot)
+        {
+            ShowModal("Not Ready", "Scan an available Serial No first.", "warn");
+            return;
+        }
         _busy = true;
         try
         {
-            var result = await Api.SpReleaseAsync(new(_lot.EosSpNo, 1, Note: "PDA spare parts release"));
+            var result = await Api.SpReleaseAsync(new(lot.SerialNo!, 1, Note: "PDA spare parts release"));
             if (!result.Success)
             {
                 ShowModal("Release Failed", result.Message, "fail");
                 return;
             }
-            var eosSpNo = _lot.EosSpNo;
-            Clear();
-            ShowModal("Release Complete", $"1 EA of {eosSpNo} was released.", "success");
+            _lot = result.Row;
+            ShowModal("Release Complete", $"Serial {lot.SerialNo} was released.", "success");
         }
         catch (Exception ex) { ShowModal("Release Failed", ex.Message, "fail"); }
         finally { _busy = false; }
     }
 
+    private async Task CancelRelease()
+    {
+        if (!CanCancelRelease || _lot?.SerialNo is not { } serial) return;
+        _busy = true;
+        try
+        {
+            var result = await Api.CancelMoveAsync(serial, "OUT", "PDA spare parts release cancellation");
+            if (!result.Success) { ShowModal("Cancellation Failed", result.Message, "fail"); return; }
+            _lot = result.Row;
+            ShowModal("Release Cancelled", $"Release for {serial} was cancelled and returned to stock.", "success");
+        }
+        catch (Exception ex) { ShowModal("Cancellation Failed", ex.Message, "fail"); }
+        finally { _busy = false; }
+    }
+
     private (string Label, string? Value)[] DetailFields() =>
     [
+        ("SERIAL NO", _lot?.SerialNo), ("SPARE PART NO", _lot?.EosSpNo),
         ("CATEGORY", _lot?.Category), ("APPLICABLE EQUIPMENT", _lot?.ApplicableEquipment),
         ("PART NAME", _lot?.PartName), ("PART NO", _lot?.PartNo),
         ("MAKER", _lot?.Maker), ("VENDOR", _lot?.Vendor),
         ("QTY", _lot is null ? null : $"{_lot.Qty:N0} {Text(_lot.Unit)}"),
-        ("STORAGE LOCATION", _lot?.StorageLocation)
+        ("STORAGE LOCATION", _lot?.StorageLocation), ("EXTRA LOCATION", _lot?.ExtraLocation)
     ];
 
     private async Task StartScenario(int step)
@@ -187,15 +240,15 @@
         if (command is "READY" or "RELEASED")
         {
             await Api.SpResetTestAsync();
-            var received = await Api.SpReceiveAsync(new("EOS-SP-K9-269999", 1, "SP-EXTRA", "PDA spare parts release scenario setup"));
+            var received = await Api.SpReceiveAsync(new("SPI-TEST-000001", 1, "SP-EXTRA", "PDA spare parts release scenario setup"));
             if (!received.Success) throw new InvalidOperationException(received.Message);
             if (command == "RELEASED")
             {
-                var result = await Api.SpReleaseAsync(new("EOS-SP-K9-269999", 1, Note: "PDA spare parts release scenario"));
+                var result = await Api.SpReleaseAsync(new("SPI-TEST-000001", 1, Note: "PDA spare parts release scenario"));
                 if (!result.Success) throw new InvalidOperationException(result.Message);
             }
         }
-        _lotNo = command == "UNKNOWN" ? "EOS-SP-X0-000000" : "EOS-SP-K9-269999";
+        _lotNo = command == "UNKNOWN" ? "SPI-TEST-999999" : "SPI-TEST-000001";
         await ScanLot();
     }
 
@@ -203,12 +256,14 @@
     {
         await Api.SpResetTestAsync();
         Clear();
-        ShowModal("Test Data Ready", "The EOS SP No test stock was reset.", "success");
+        ShowModal("Test Data Ready", "The serialized spare part test data was reset.", "success");
     }
 
     private void Clear() { _lotNo = _message = ""; _lot = null; }
     private void ShowModal(string title, string message, string kind) { _modalTitle = title; _modalMessage = message; _modalKind = kind; _modalOpen = true; }
-    private void CloseModal() { _modalOpen = false; _ = FocusScannerAsync(); }
+    private void CloseModal() { _modalOpen = false; _safetyReleasePending = false; _ = FocusScannerAsync(); }
+    private void CancelSafetyRelease() => CloseModal();
+    private async Task ConfirmSafetyRelease() { _modalOpen = false; _safetyReleasePending = false; await ReleaseConfirmed(); }
     private async Task FocusScannerAsync() { try { await JS.InvokeVoidAsync("pdaScan.focus", ".sp-screen .pda-scan-input"); } catch { } }
     private static string NormalizeScan(string? value) => string.IsNullOrWhiteSpace(value) ? "" : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();

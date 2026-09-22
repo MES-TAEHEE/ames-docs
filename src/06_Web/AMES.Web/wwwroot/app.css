@@ -5253,3 +5253,28 @@ html[data-theme="light"] .sh-res-val { color: var(--ames-text-dim); }
    브랜드 로고 글자(A-MES)는 라틴 디자인 요소라 제외. 영어·스페인어는 기존 디자인(대문자 + 자간) 유지. */
 html:lang(ko) { --ames-fs-bump: 1px; --ames-fs-hint: 12px; }
 html:lang(ko) body *:not(.ames-brand, .ames-brand *) { letter-spacing: normal !important; }
+
+/* ── MNT Spare Parts 100 × 50 mm serialized label ───────────────── */
+.spare-label-modal { width: min(760px, calc(100vw - 32px)); }
+.spare-label-preview { overflow: auto; padding: 18px; background: #090f1d; }
+.spare-label-print-area { width: 100mm; margin: 0 auto; }
+.spare-label-paper {
+    box-sizing: border-box; width: 100mm; height: 50mm; padding: 1mm 2mm 2mm;
+    overflow: hidden; background: #fff; color: #000; font-family: Arial, sans-serif;
+}
+.spare-label-top { display: grid; grid-template-columns: 34mm minmax(0, 1fr); gap: 2mm; height: 34mm; }
+.spare-label-qr { width: 34mm; height: 34mm; }
+.spare-label-info { display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); min-width: 0; font-size: 4.2mm; font-weight: 800; line-height: 1.05; }
+.spare-label-info > div { display: flex; align-items: center; min-width: 0; overflow: hidden; overflow-wrap: anywhere; }
+.spare-label-location { flex-direction: column; align-items: flex-start !important; justify-content: center; gap: 0; font-size: 3.7mm; line-height: 1; }
+.spare-label-location span { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.spare-label-bottom { height: 13mm; padding-top: .5mm; font-size: 4.8mm; font-weight: 900; line-height: 1.25; white-space: nowrap; overflow: hidden; }
+.spare-label-bottom div { overflow: hidden; text-overflow: ellipsis; }
+html[data-theme="light"] .spare-label-preview { background: #e5e7eb; }
+
+@media print {
+    @page { size: 100mm 50mm; margin: 0; }
+    #spare-part-label-print,
+    #spare-part-label-print * { visibility: visible !important; }
+    #spare-part-label-print { position: absolute; inset: 0 auto auto 0; width: 100mm; margin: 0; padding: 0; }
+}

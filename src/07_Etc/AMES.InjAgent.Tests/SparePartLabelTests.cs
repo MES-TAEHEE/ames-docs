@@ -7,6 +7,69 @@ namespace AMES.InjAgent.Tests;
 public class SparePartLabelTests
 {
     [Fact]
+    public void Printer_selection_prefers_ZT411_and_keeps_an_explicit_choice()
+    {
+        var printers = new[]
+        {
+            new SparePartPrinter.Device("AA", "Other Printer"),
+            new SparePartPrinter.Device("BB", "ZDesigner ZT411-203dpi ZPL")
+        };
+
+        Assert.Equal("BB", SparePartPrinter.SelectAddress(printers, null));
+        Assert.Equal("AA", SparePartPrinter.SelectAddress(printers, "AA"));
+        Assert.Equal("CC", SparePartPrinter.SelectAddress(printers, "CC"));
+    }
+
+    [Theory]
+    [InlineData("AA:BB:CC:DD:EE:FF", true)]
+    [InlineData("aa:bb:cc:dd:ee:ff", true)]
+    [InlineData("ZT411", false)]
+    [InlineData("AA:BB:CC:DD:EE", false)]
+    public void Manual_printer_address_is_validated(string address, bool expected) =>
+        Assert.Equal(expected, SparePartPrinter.IsValidAddress(address));
+
+    [Fact]
+    public void Serialized_label_contains_serial_master_and_optional_extra_location()
+    {
+        var zpl = SparePartLabel.BuildSerialized("SPI-000000000001", "EOS-SP-A1-260001",
+            "SERVO MOTOR", "DEMO VENDOR", "SP_EXTRA", "Tool crib shelf 4");
+
+        Assert.Contains("^BQN", zpl);
+        Assert.Contains("^LL400", zpl);
+        Assert.Equal(5, SparePartLabel.PreviewVerticalOffsetPercent);
+        Assert.Contains("^FO24,54^BQN,2,8", zpl);
+        Assert.Contains("^FO244,56^A0N,48,40^FB536", zpl);
+        Assert.Contains("^FO244,111^A0N,48,40^FB536", zpl);
+        Assert.Contains("^FO244,166^A0N,44,36^FB536", zpl);
+        Assert.Contains("^FO244,217^A0N,38,30^FB536", zpl);
+        Assert.Contains("^FO28,268^A0N,56,48", zpl);
+        Assert.Contains("^FO28,336^A0N,52,44", zpl);
+        Assert.True(336 + 52 < SparePartLabel.LabelHeightDots);
+        Assert.Contains("_53_50_49_2D_30_30_30_30_30_30_30_30_30_30_30_31", zpl);
+        Assert.Contains("_45_4F_53_2D_53_50_2D_41_31_2D_32_36_30_30_30_31", zpl);
+        Assert.Contains("_54_6F_6F_6C_20_63_72_69_62_20_73_68_65_6C_66_20_34", zpl);
+        Assert.Contains("_28_54_6F_6F_6C", zpl);
+    }
+
+    [Fact]
+    public void Pending_serials_continue_after_the_highest_visible_suffix()
+    {
+        var serials = SparePartLabel.NextSerials("EOS-SP-C9-260001",
+            ["SPI-C9-260001-0001", "SPI-C9-260002-0099"], 3);
+
+        Assert.Equal(["SPI-C9-260001-0002", "SPI-C9-260001-0003", "SPI-C9-260001-0004"], serials);
+    }
+
+    [Theory]
+    [InlineData(2, 1, 1, false)]
+    [InlineData(1, 1, 1, true)]
+    [InlineData(10, 1, null, false)]
+    [InlineData(1, 1, 0, false)]
+    public void Release_warns_only_when_remaining_stock_is_below_safety_stock(
+        decimal currentQty, decimal releaseQty, int? safetyStock, bool expected)
+        => Assert.Equal(expected, SparePartValidation.FallsBelowSafetyStock(currentQty, releaseQty, safetyStock));
+
+    [Fact]
     public void Missing_information_lists_only_empty_or_placeholder_fields()
     {
         Assert.Equal(new[] { "Spare Part No", "Part No", "Maker", "Location No" },

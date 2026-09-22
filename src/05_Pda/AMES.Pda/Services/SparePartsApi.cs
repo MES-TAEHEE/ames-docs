@@ -99,6 +99,27 @@ public sealed class SparePartsApi(HttpClient http, AuthState auth) : PdaApi(http
         return await ReadSparePartMoveResultAsync(response, "Spare parts release failed.");
     }
 
+    public async Task<List<SparePartRow>> CreateLabelsAsync(string eosSpNo, int count)
+    {
+        Authorize();
+        using var response = await _http.PostAsJsonAsync("/api/wh/sp/labels", new SparePartLabelCreateReq(eosSpNo, count));
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Spare part label creation failed."));
+        return await response.Content.ReadFromJsonAsync<List<SparePartRow>>() ?? [];
+    }
+
+    public Task<List<SparePartSerialRow>> LabelsAsync(string eosSpNo)
+        => GetRequiredAsync<List<SparePartSerialRow>>(
+            $"/api/wh/sp/labels/{Uri.EscapeDataString(eosSpNo.Trim())}",
+            "Spare part label list is unavailable.");
+
+    public async Task<SparePartMoveResult> CancelMoveAsync(string serialNo, string moveType, string? note = null)
+    {
+        Authorize();
+        using var response = await _http.PostAsJsonAsync("/api/wh/sp/cancel", new SparePartCancelReq(serialNo, moveType, note));
+        return await ReadSparePartMoveResultAsync(response, "Spare part cancellation failed.");
+    }
+
     public async Task SpResetTestAsync()
     {
         Authorize();

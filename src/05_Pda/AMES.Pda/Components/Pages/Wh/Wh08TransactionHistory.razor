@@ -2,13 +2,14 @@
 @page "/sp/08"
 @page "/fg/history"
 @inject WarehouseApi Api
+@inject SparePartsApi SpApi
 @inject FinishedGoodsApi FgApi
 @inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-<div class="@($"pda-shell wh wh08-shell {(IsFinishedGoods ? "fg-history-shell" : "")}")">
+<div class="@($"pda-shell wh wh08-shell {(IsSpareParts ? "sp-screen" : "")} {(IsFinishedGoods ? "fg-history-shell" : "")}")">
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo(ModuleHome))' Text="&lt;" />
         <div class="wh08-tbar-title">
@@ -101,11 +102,14 @@
                 <strong>@OutCount.ToString("N0")</strong>
                 <small>records</small>
             </button>
-            <button type="button" class="@($"wh08-kpi adj {TypeClass("ADJ")}")" @onclick='@(() => SetType("ADJ"))'>
-                <span>ADJ</span>
-                <strong>@AdjCount.ToString("N0")</strong>
-                <small>records</small>
-            </button>
+            @if (!IsSpareParts)
+            {
+                <button type="button" class="@($"wh08-kpi adj {TypeClass("ADJ")}")" @onclick='@(() => SetType("ADJ"))'>
+                    <span>ADJ</span>
+                    <strong>@AdjCount.ToString("N0")</strong>
+                    <small>records</small>
+                </button>
+            }
             }
         </div>
 
@@ -140,7 +144,8 @@
             <div class="wh08-list">
                 @foreach (var row in FilteredRows)
                 {
-                    <RadzenCard class="@($"wh08-row-card {RowCardClass(row)}")">
+                    <RadzenCard class="@($"wh08-row-card {RowCardClass(row)} {(IsSpareParts && IsSpMove(row) ? "interactive" : "")}")"
+                                @onclick="@(() => OpenSpDetail(row))">
                         <div class="wh08-row-top">
                             <div class="wh08-row-main">
                                 <span>@LogDateText(row)</span>
@@ -247,9 +252,35 @@
                     <div><dt>Note</dt><dd>@Text(detail.ReasonNote)</dd></div>
                     <div><dt>Worker</dt><dd>@Text(detail.WorkerId)</dd></div>
                 </dl>
-                <div class="wh-modal-actions">
-                    <RadzenButton class="wh-modal-btn primary wh08-detail-close" Click="CloseDetail" Text="CLOSE" />
-                </div>
+                @if (!string.IsNullOrWhiteSpace(_actionMessage))
+                {
+                    <div class="pda-status @(_actionError ? "fail" : "ok")">@_actionMessage</div>
+                }
+                @if (IsSpareParts && IsSpMove(detail))
+                {
+                    @if (_cancelPending)
+                    {
+                        <div class="wh08-cancel-confirm">Cancel this @detail.Direction transaction for @Text(detail.LotNo)?</div>
+                        <div class="wh-modal-actions wh08-sp-actions">
+                            <RadzenButton class="wh-modal-btn" Click="DismissCancel" Disabled="@_actionBusy" Text="KEEP" />
+                            <RadzenButton class="wh-modal-btn danger" Click="@(() => CancelSpTransaction(detail))" Disabled="@_actionBusy" Text="CONFIRM CANCEL" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="wh-modal-actions wh08-sp-actions three">
+                            <RadzenButton class="wh-modal-btn primary" Click="@(() => ReprintSpLabel(detail))" Disabled="@_actionBusy" Text="REPRINT" />
+                            <RadzenButton class="wh-modal-btn danger" Click="RequestCancel" Disabled="@_actionBusy" Text="CANCEL" />
+                            <RadzenButton class="wh-modal-btn wh08-detail-close" Click="CloseDetail" Disabled="@_actionBusy" Text="CLOSE" />
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="wh-modal-actions">
+                        <RadzenButton class="wh-modal-btn primary wh08-detail-close" Click="CloseDetail" Text="CLOSE" />
+                    </div>
+                }
             </RadzenCard>
         </div>
     }
@@ -281,11 +312,16 @@
     private PdaApi.WarehouseTransactionRow? _detailRow;
     private ElementReference _detailDialog;
     private bool _focusDetail;
+    private bool _cancelPending;
+    private bool _actionBusy;
+    private bool _actionError;
+    private string _actionMessage = "";
     private DotNetObjectReference<Wh08TransactionHistory>? _scannerRef;
 
     private DateTime? DateFrom => _dateFrom?.Date;
     private DateTime? DateTo => _dateTo?.Date;
-    private IEnumerable<PdaApi.WarehouseTransactionRow> ConditionRows => _rows.Where(MatchesConditions).ToList();
+    private IEnumerable<PdaApi.WarehouseTransactionRow> ConditionRows => _rows
+        .Where(row => (!IsSpareParts || !IsAdjust(row)) && MatchesConditions(row)).ToList();
     private IEnumerable<PdaApi.WarehouseTransactionRow> FilteredRows => ConditionRows.Where(MatchesType).ToList();
     private int InCount => ConditionRows.Count(r => IsDirection(r, "IN"));
     private int OutCount => ConditionRows.Count(r => IsDirection(r, "OUT"));
@@ -473,10 +509,70 @@
     private void OpenDetail(PdaApi.WarehouseTransactionRow row)
     {
         _detailRow = row;
+        _cancelPending = _actionBusy = _actionError = false;
+        _actionMessage = "";
         _focusDetail = true;
     }
 
-    private void CloseDetail() => _detailRow = null;
+    private void OpenSpDetail(PdaApi.WarehouseTransactionRow row)
+    {
+        if (IsSpareParts && IsSpMove(row)) OpenDetail(row);
+    }
+
+    private void CloseDetail()
+    {
+        if (_actionBusy) return;
+        _detailRow = null;
+        _cancelPending = _actionError = false;
+        _actionMessage = "";
+    }
+
+    private void ReprintSpLabel(PdaApi.WarehouseTransactionRow row)
+    {
+        if (string.IsNullOrWhiteSpace(row.LotNo))
+        {
+            _actionMessage = "Serial No is unavailable for reprint.";
+            _actionError = true;
+            return;
+        }
+
+        Nav.NavigateTo($"/sp/master?serial={Uri.EscapeDataString(row.LotNo)}");
+    }
+
+    private void RequestCancel()
+    {
+        _cancelPending = true;
+        _actionMessage = "";
+        _actionError = false;
+    }
+
+    private void DismissCancel() => _cancelPending = false;
+
+    private async Task CancelSpTransaction(PdaApi.WarehouseTransactionRow row)
+    {
+        if (_actionBusy || string.IsNullOrWhiteSpace(row.LotNo) || !IsSpMove(row)) return;
+        _actionBusy = true;
+        _actionMessage = "Cancelling transaction...";
+        _actionError = false;
+        try
+        {
+            var result = await SpApi.CancelMoveAsync(row.LotNo, row.Direction, "Cancelled from Transactions.");
+            if (!result.Success) throw new InvalidOperationException(result.Message);
+            _detailRow = null;
+            _cancelPending = false;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _actionMessage = ex.Message;
+            _actionError = true;
+            _cancelPending = false;
+        }
+        finally
+        {
+            _actionBusy = false;
+        }
+    }
 
     private void OnDetailKey(KeyboardEventArgs e)
     {
@@ -526,6 +622,8 @@
     }
 
     private static bool IsAdjust(PdaApi.WarehouseTransactionRow row) => IsDirection(row, "ADJ");
+    private static bool IsSpMove(PdaApi.WarehouseTransactionRow row)
+        => IsDirection(row, "IN") || IsDirection(row, "OUT");
     private static bool IsDirection(PdaApi.WarehouseTransactionRow row, string direction)
         => string.Equals(row.Direction, direction, StringComparison.OrdinalIgnoreCase);
 

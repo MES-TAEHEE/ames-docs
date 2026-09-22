@@ -1,4 +1,5 @@
 using System.Text;
+using System.Globalization;
 #if ANDROID
 using Android.Bluetooth;
 using Android.Content;
@@ -8,6 +9,8 @@ namespace AMES.Pda.Services;
 
 public sealed class SparePartPrinter
 {
+    public const string DefaultModel = "ZT411";
+
     public sealed record Device(string Address, string? Name)
     {
         public bool HasName => !string.IsNullOrWhiteSpace(Name) && !string.Equals(Name, Address, StringComparison.OrdinalIgnoreCase);
@@ -15,6 +18,22 @@ public sealed class SparePartPrinter
         public Device WithName(string? name) => string.IsNullOrWhiteSpace(name)
             || string.Equals(name.Trim(), Address, StringComparison.OrdinalIgnoreCase)
                 ? this : this with { Name = name.Trim() };
+    }
+
+    public static string SelectAddress(IEnumerable<Device> devices, string? currentAddress)
+    {
+        var rows = devices.ToList();
+        if (!string.IsNullOrWhiteSpace(currentAddress))
+            return currentAddress;
+        return rows.FirstOrDefault(x => x.DisplayName.Contains(DefaultModel, StringComparison.OrdinalIgnoreCase))?.Address ?? "";
+    }
+
+    public static bool IsValidAddress(string? address)
+    {
+        var parts = address?.Split(':');
+        return parts is { Length: 6 }
+            && parts.All(part => part.Length == 2
+                && byte.TryParse(part, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _));
     }
 
     public async Task<List<Device>> DiscoverPrintersAsync(CancellationToken cancellationToken = default)

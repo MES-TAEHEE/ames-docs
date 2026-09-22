@@ -271,35 +271,34 @@ BEGIN
         ('WH_CODE', 'EOS', N'EOS', N'EOS', NULL, 10),
         ('WH_AREA', 'MAT_AREA', N'자재 보관 구역', N'Material Storage Area', 'WH_CODE_EOS', 10),
         ('WH_AREA', 'FG_AREA', N'완제품 보관 구역', N'Finished Goods Storage Area', 'WH_CODE_EOS', 20),
-        ('WH_AREA', 'SPARE_PARTS_AREA', N'예비품 보관 구역', N'Spare Parts Storage Area', 'WH_CODE_EOS', 30),
-        ('MNT_ZONE', 'SP_CAB1', N'CAB1', N'CAB1', 'WH_AREA_SPARE_PARTS_AREA', 10),
-        ('MNT_ZONE', 'SP_CAB2', N'CAB2', N'CAB2', 'WH_AREA_SPARE_PARTS_AREA', 20),
-        ('MNT_ZONE', 'SP_A1', N'A1', N'A1', 'WH_AREA_SPARE_PARTS_AREA', 30),
-        ('MNT_ZONE', 'SP_A2', N'A2', N'A2', 'WH_AREA_SPARE_PARTS_AREA', 40),
-        ('MNT_ZONE', 'SP_A3', N'A3', N'A3', 'WH_AREA_SPARE_PARTS_AREA', 50),
-        ('MNT_ZONE', 'SP_B1', N'B1', N'B1', 'WH_AREA_SPARE_PARTS_AREA', 60),
-        ('MNT_ZONE', 'SP_B2', N'B2', N'B2', 'WH_AREA_SPARE_PARTS_AREA', 70),
-        ('MNT_ZONE', 'SP_B3', N'B3', N'B3', 'WH_AREA_SPARE_PARTS_AREA', 80),
-        ('MNT_ZONE', 'SP_C1', N'C1', N'C1', 'WH_AREA_SPARE_PARTS_AREA', 90),
-        ('MNT_ZONE', 'SP_C2', N'C2', N'C2', 'WH_AREA_SPARE_PARTS_AREA', 100),
-        ('MNT_ZONE', 'SP_C3', N'C3', N'C3', 'WH_AREA_SPARE_PARTS_AREA', 110),
-        ('MNT_ZONE', 'SP_D1', N'D1', N'D1', 'WH_AREA_SPARE_PARTS_AREA', 120),
-        ('MNT_ZONE', 'SP_D2', N'D2', N'D2', 'WH_AREA_SPARE_PARTS_AREA', 130),
-        ('MNT_ZONE', 'SP_D3', N'D3', N'D3', 'WH_AREA_SPARE_PARTS_AREA', 140),
-        ('MNT_ZONE', 'SP_E1', N'E1', N'E1', 'WH_AREA_SPARE_PARTS_AREA', 150),
-        ('MNT_ZONE', 'SP_E2', N'E2', N'E2', 'WH_AREA_SPARE_PARTS_AREA', 160),
-        ('MNT_ZONE', 'SP_E3', N'E3', N'E3', 'WH_AREA_SPARE_PARTS_AREA', 170),
-        ('MNT_ZONE', 'SP_F1', N'F1', N'F1', 'WH_AREA_SPARE_PARTS_AREA', 180),
-        ('MNT_ZONE', 'SP_F2', N'F2', N'F2', 'WH_AREA_SPARE_PARTS_AREA', 190),
-        ('MNT_ZONE', 'SP_F3', N'F3', N'F3', 'WH_AREA_SPARE_PARTS_AREA', 200),
-        ('MNT_ZONE', 'SP_R_RACKS_1', N'R/Racks-1', N'R/Racks-1', 'WH_AREA_SPARE_PARTS_AREA', 210),
-        ('MNT_ZONE', 'SP_R_RACKS_2', N'R/Racks-2', N'R/Racks-2', 'WH_AREA_SPARE_PARTS_AREA', 220),
-        ('MNT_ZONE', 'SP_C_RACK_1', N'C/Rack-1', N'C/Rack-1', 'WH_AREA_SPARE_PARTS_AREA', 230),
-        ('MNT_ZONE', 'SP_FL1', N'FL1', N'FL1', 'WH_AREA_SPARE_PARTS_AREA', 240),
-        ('MNT_ZONE', 'SP_FL2', N'FL2', N'FL2', 'WH_AREA_SPARE_PARTS_AREA', 250),
-        ('MNT_ZONE', 'SP_FL3', N'FL3', N'FL3', 'WH_AREA_SPARE_PARTS_AREA', 260),
-        ('MNT_ZONE', 'SP_FL4', N'FL4', N'FL4', 'WH_AREA_SPARE_PARTS_AREA', 270),
-        ('MNT_ZONE', 'SP_EXTRA', N'Extra', N'Extra', 'WH_AREA_SPARE_PARTS_AREA', 280),
+        ('MNT_ZONE', 'SP_CAB1', N'CAB1', N'CAB1', NULL, 10),
+        ('MNT_ZONE', 'SP_CAB2', N'CAB2', N'CAB2', NULL, 20),
+        ('MNT_ZONE', 'SP_A1', N'A1', N'A1', NULL, 30),
+        ('MNT_ZONE', 'SP_A2', N'A2', N'A2', NULL, 40),
+        ('MNT_ZONE', 'SP_A3', N'A3', N'A3', NULL, 50),
+        ('MNT_ZONE', 'SP_B1', N'B1', N'B1', NULL, 60),
+        ('MNT_ZONE', 'SP_B2', N'B2', N'B2', NULL, 70),
+        ('MNT_ZONE', 'SP_B3', N'B3', N'B3', NULL, 80),
+        ('MNT_ZONE', 'SP_C1', N'C1', N'C1', NULL, 90),
+        ('MNT_ZONE', 'SP_C2', N'C2', N'C2', NULL, 100),
+        ('MNT_ZONE', 'SP_C3', N'C3', N'C3', NULL, 110),
+        ('MNT_ZONE', 'SP_D1', N'D1', N'D1', NULL, 120),
+        ('MNT_ZONE', 'SP_D2', N'D2', N'D2', NULL, 130),
+        ('MNT_ZONE', 'SP_D3', N'D3', N'D3', NULL, 140),
+        ('MNT_ZONE', 'SP_E1', N'E1', N'E1', NULL, 150),
+        ('MNT_ZONE', 'SP_E2', N'E2', N'E2', NULL, 160),
+        ('MNT_ZONE', 'SP_E3', N'E3', N'E3', NULL, 170),
+        ('MNT_ZONE', 'SP_F1', N'F1', N'F1', NULL, 180),
+        ('MNT_ZONE', 'SP_F2', N'F2', N'F2', NULL, 190),
+        ('MNT_ZONE', 'SP_F3', N'F3', N'F3', NULL, 200),
+        ('MNT_ZONE', 'SP_R_RACKS_1', N'R/Racks-1', N'R/Racks-1', NULL, 210),
+        ('MNT_ZONE', 'SP_R_RACKS_2', N'R/Racks-2', N'R/Racks-2', NULL, 220),
+        ('MNT_ZONE', 'SP_C_RACK_1', N'C/Rack-1', N'C/Rack-1', NULL, 230),
+        ('MNT_ZONE', 'SP_FL1', N'FL1', N'FL1', NULL, 240),
+        ('MNT_ZONE', 'SP_FL2', N'FL2', N'FL2', NULL, 250),
+        ('MNT_ZONE', 'SP_FL3', N'FL3', N'FL3', NULL, 260),
+        ('MNT_ZONE', 'SP_FL4', N'FL4', N'FL4', NULL, 270),
+        ('MNT_ZONE', 'SP_EXTRA', N'Extra', N'Extra', NULL, 280),
         ('MNT_SLOT', '01', N'1층', N'Level 1', NULL, 10),
         ('MNT_SLOT', '02', N'2층', N'Level 2', NULL, 20),
         ('MNT_SLOT', '03', N'3층', N'Level 3', NULL, 30),
@@ -328,22 +327,7 @@ BEGIN
        AND ParentCodeID = 'WH_AREA_SPARE_PARTS_AREA';
 
     IF OBJECT_ID(N'dbo.WH_AreaSection', N'U') IS NOT NULL
-    BEGIN
-        MERGE dbo.WH_AreaSection AS T
-        USING (
-            SELECT CodeValue AS SectionCode, CodeName AS SectionName
-            FROM @LocationCodes
-            WHERE GroupCode = 'MNT_ZONE'
-        ) AS S
-           ON T.AreaCode = 'SPARE_PARTS_AREA' AND T.SectionCode = S.SectionCode
-        WHEN MATCHED THEN UPDATE SET
-            WhCode = 'EOS', SectionName = S.SectionName, ActiveFlag = 1,
-            ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME()
-        WHEN NOT MATCHED THEN INSERT
-            (WhCode, AreaCode, SectionCode, SectionName, ActiveFlag, CreatedBy, CreatedTS)
-        VALUES
-            ('EOS', 'SPARE_PARTS_AREA', S.SectionCode, S.SectionName, 1, N'pda-seed', SYSDATETIME());
-    END;
+        DELETE FROM dbo.WH_AreaSection WHERE AreaCode = 'SPARE_PARTS_AREA';
 END;
 GO
 
@@ -367,8 +351,7 @@ BEGIN
     MERGE dbo.WH_AreaMaster AS T
     USING (VALUES
         (CONVERT(varchar(20), 'MAT_AREA'), CONVERT(nvarchar(120), N'Material Storage Area')),
-        ('FG_AREA', N'Finished Goods Storage Area'),
-        ('SPARE_PARTS_AREA', N'Spare Parts Storage Area')
+        ('FG_AREA', N'Finished Goods Storage Area')
     ) AS S(AreaCode, AreaName)
        ON T.AreaCode = S.AreaCode
     WHEN MATCHED THEN UPDATE SET WhCode = 'EOS', AreaName = S.AreaName, ActiveFlag = 1
@@ -377,7 +360,7 @@ BEGIN
 
     UPDATE dbo.WH_AreaMaster
        SET ActiveFlag = CASE
-               WHEN WhCode = 'EOS' AND AreaCode IN ('MAT_AREA', 'FG_AREA', 'SPARE_PARTS_AREA') THEN 1
+               WHEN WhCode = 'EOS' AND AreaCode IN ('MAT_AREA', 'FG_AREA') THEN 1
                ELSE 0
            END,
            ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME();
@@ -386,52 +369,20 @@ GO
 
 IF OBJECT_ID(N'dbo.MD_Location', N'U') IS NOT NULL
 BEGIN
-    DECLARE @SpareLocations TABLE
-    (
-        LocationID varchar(20) PRIMARY KEY,
-        LocationName nvarchar(60),
-        ZoneCode varchar(20),
-        Slot varchar(5)
-    );
+    DELETE FROM dbo.MD_Location
+     WHERE AreaCode = 'SPARE_PARTS_AREA' OR UPPER(LocationID) LIKE 'SP-%';
+END;
+GO
 
-    DECLARE @RackZones TABLE (ZoneCode varchar(20), ZoneName nvarchar(20));
-    INSERT INTO @RackZones VALUES
-        ('SP_CAB1', N'CAB1'), ('SP_CAB2', N'CAB2'),
-        ('SP_A1', N'A1'), ('SP_A2', N'A2'), ('SP_A3', N'A3'),
-        ('SP_B1', N'B1'), ('SP_B2', N'B2'), ('SP_B3', N'B3'),
-        ('SP_C1', N'C1'), ('SP_C2', N'C2'), ('SP_C3', N'C3'),
-        ('SP_D1', N'D1'), ('SP_D2', N'D2'), ('SP_D3', N'D3'),
-        ('SP_E1', N'E1'), ('SP_E2', N'E2'), ('SP_E3', N'E3'),
-        ('SP_F1', N'F1'), ('SP_F2', N'F2'), ('SP_F3', N'F3');
+IF OBJECT_ID(N'dbo.WH_AreaMaster', N'U') IS NOT NULL
+    DELETE FROM dbo.WH_AreaMaster WHERE AreaCode = 'SPARE_PARTS_AREA';
+GO
 
-    INSERT INTO @SpareLocations (LocationID, LocationName, ZoneCode, Slot)
-    SELECT CONCAT('SP-', SUBSTRING(ZoneCode, 4, 17), '-', V.Slot),
-           CONCAT(ZoneName, N'-', CONVERT(int, V.Slot)), ZoneCode, V.Slot
-    FROM @RackZones
-    CROSS JOIN (VALUES ('01'), ('02'), ('03'), ('04'), ('05')) V(Slot);
-
-    INSERT INTO @SpareLocations VALUES
-        ('SP-RRACKS-01', N'R/Racks-1', 'SP_R_RACKS_1', NULL),
-        ('SP-RRACKS-02', N'R/Racks-2', 'SP_R_RACKS_2', NULL),
-        ('SP-CRACK-01', N'C/Rack-1', 'SP_C_RACK_1', NULL),
-        ('SP-FL1', N'FL1', 'SP_FL1', NULL),
-        ('SP-FL2', N'FL2', 'SP_FL2', NULL),
-        ('SP-FL3', N'FL3', 'SP_FL3', NULL),
-        ('SP-FL4', N'FL4', 'SP_FL4', NULL),
-        ('SP-EXTRA', N'Extra', 'SP_EXTRA', 'EX');   -- MD-026: 구역 SP_EXTRA 의 칸은 EX 고정
-
-    MERGE dbo.MD_Location AS T
-    USING @SpareLocations AS S ON T.LocationID = S.LocationID
-    WHEN MATCHED THEN UPDATE SET
-        LocationName = S.LocationName, WhCode = 'EOS', AreaCode = 'SPARE_PARTS_AREA',
-        ZoneCode = S.ZoneCode, Aisle = NULL, Bay = NULL, Slot = S.Slot,
-        PlantCode = 'EOS', ActiveFlag = 1, ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME()
-    WHEN NOT MATCHED THEN INSERT
-        (LocationID, LocationName, WhCode, AreaCode, ZoneCode, Aisle, Bay, Slot,
-         PlantCode, ActiveFlag, CreatedBy, CreatedTS)
-    VALUES
-        (S.LocationID, S.LocationName, 'EOS', 'SPARE_PARTS_AREA', S.ZoneCode,
-         NULL, NULL, S.Slot, 'EOS', 1, N'pda-seed', SYSDATETIME());
+IF OBJECT_ID(N'dbo.MD_CodeItem', N'U') IS NOT NULL
+BEGIN
+    UPDATE dbo.MD_CodeItem SET ParentCodeID = NULL
+    WHERE GroupCode = 'MNT_ZONE' AND ParentCodeID = 'WH_AREA_SPARE_PARTS_AREA';
+    DELETE FROM dbo.MD_CodeItem WHERE CodeID = 'WH_AREA_SPARE_PARTS_AREA';
 END;
 GO
 
@@ -463,6 +414,13 @@ BEGIN
     VALUES
         ('EOS-SP-K9-269999', 'K', '9', 'PDA-SP-TEST-001', N'PDA Spare Parts Test', N'DEMO INDUSTRIAL', 'EA', 0,
          1, 'SP-DEMO-V01', 'SP_EXTRA', 'EX', 1, N'pda-seed', SYSDATETIME());
+END;
+
+IF OBJECT_ID(N'dbo.MNT_SparePartItem', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM dbo.MNT_SparePartItem WHERE SerialNo='SPI-TEST-000001')
+BEGIN
+    INSERT dbo.MNT_SparePartItem(SerialNo,SparePartNo,StatusCode,CreatedBy,CreatedTS)
+    VALUES('SPI-TEST-000001','EOS-SP-K9-269999','CREATED','pda-seed',SYSDATETIME());
 END;
 
 IF OBJECT_ID(N'dbo.MD_SparePart', N'U') IS NOT NULL
@@ -2217,10 +2175,10 @@ GO
 UPDATE dbo.MD_Location
    SET WhCode = 'EOS',
        AreaCode = CASE
-           WHEN UPPER(LocationID) LIKE 'SP-%' THEN 'SPARE_PARTS_AREA'
            WHEN UPPER(LocationID) LIKE 'FG%'
              OR UPPER(COALESCE(LocationType, '')) IN ('FG', 'FINISHED_GOODS', 'FINISHED GOODS')
                THEN 'FG_AREA'
            ELSE 'MAT_AREA'
-       END;
+       END
+ WHERE UPPER(LocationID) NOT LIKE 'SP-%';
 GO

@@ -9,7 +9,7 @@
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-<div class="@($"pda-shell wh wh03-shell inventory-browser-shell {(IsFinishedGoodsAdjust ? "fg fg-adjust-shell" : "")} {(IsSearchTab ? "wh03-map-only" : IsAdjustTab ? "wh03-adjust-only" : "")}")">
+<div class="@($"pda-shell wh wh03-shell inventory-browser-shell {(IsSpareParts ? "sp-screen" : "")} {(IsFinishedGoodsAdjust ? "fg fg-adjust-shell" : "")} {(IsSearchTab ? "wh03-map-only" : IsAdjustTab ? "wh03-adjust-only" : "")}")">
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo(ModuleHome))' Text="&lt;" />
         <div class="wh03-tbar-title">
@@ -1004,7 +1004,7 @@
         get
         {
             var stockedLocations = _inventoryLocations
-                .Where(location => location.TotalQty > 0 || location.LineCount > 0);
+                .Where(location => location.TotalQty > 0 || (!IsSpareParts && location.LineCount > 0));
             if (_matchedLocationIds is null)
                 return stockedLocations.ToList();
 
@@ -1776,9 +1776,9 @@
 
         try
         {
-            var location = await Api.WhScanLocationAsync(locationNo.Trim(), AreaScope)
-                ?? _inventoryLocations.FirstOrDefault(row =>
-                    string.Equals(row.LocationId, locationNo.Trim(), StringComparison.OrdinalIgnoreCase));
+            var location = _inventoryLocations.FirstOrDefault(row =>
+                string.Equals(row.LocationId, locationNo.Trim(), StringComparison.OrdinalIgnoreCase));
+            location ??= await Api.WhScanLocationAsync(locationNo.Trim(), AreaScope);
             if (location is null)
             {
                 _selectedInventoryLocation = null;

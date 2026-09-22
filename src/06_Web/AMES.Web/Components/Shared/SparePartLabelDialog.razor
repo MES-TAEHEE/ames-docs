@@ -1,0 +1,53 @@
+@inject IJSRuntime JS
+
+<div class="ames-modal-bg spare-label-modal-bg" @onclick="CloseAsync">
+    <div class="ames-modal spare-label-modal" @onclick:stopPropagation>
+        <div class="ames-modal-h">Spare Parts Label</div>
+
+        <div class="spare-label-preview">
+            <div id="spare-part-label-print" class="spare-label-print-area">
+                <div class="spare-label-paper">
+                    <div class="spare-label-top">
+                        <div class="spare-label-qr">
+                            <RadzenQRCode Value="@SerialNo" Size="100%" Foreground="#000000" Background="#ffffff" Ecc="RadzenQREcc.Low" />
+                        </div>
+                        <div class="spare-label-info">
+                            <div>@Display(PartName)</div>
+                            <div>@Display(VendorName)</div>
+                            <div class="spare-label-location">
+                                <span>@Display(LocationId)</span>
+                                @if (!string.IsNullOrWhiteSpace(ExtraLocation))
+                                {
+                                    <span>(@ExtraLocation)</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="spare-label-bottom">
+                        <div>@SparePartNo</div>
+                        <div>@SerialNo</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+            <RadzenButton Text="PRINT" Icon="print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="PrintAsync" class="ames-rz-btn" />
+            <RadzenButton Text="CLOSE" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseAsync" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string SerialNo { get; set; } = "";
+    [Parameter, EditorRequired] public string SparePartNo { get; set; } = "";
+    [Parameter] public string? PartName { get; set; }
+    [Parameter] public string? VendorName { get; set; }
+    [Parameter] public string? LocationId { get; set; }
+    [Parameter] public string? ExtraLocation { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private Task PrintAsync() => JS.InvokeVoidAsync("window.print").AsTask();
+    private Task CloseAsync() => OnClose.InvokeAsync();
+    private static string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+}

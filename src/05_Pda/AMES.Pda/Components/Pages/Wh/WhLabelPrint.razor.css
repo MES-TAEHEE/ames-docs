@@ -1,0 +1,31 @@
+.label-master-body { display:flex; flex-direction:column; gap:10px; overflow:auto; }
+.label-search-row, .label-printer-row { display:flex; gap:8px; }
+.label-search-row input { flex:1; min-width:0; }
+.label-printer-row { align-items:center; justify-content:space-between; }
+.label-printer-actions { display:flex; gap:8px; }
+.label-printer-register { display:flex; flex-direction:column; gap:8px; padding:10px; border:1px solid #526079; }
+.label-action { border:1px solid #526079; background:#1b2436; color:#fff; padding:10px 14px; border-radius:0; font-weight:700; }
+.label-action:disabled, .label-lot-row:disabled { opacity:.45; }
+.label-list-count { color:#9caec6; font-size:12px; }
+.label-lot-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px 12px; text-align:left; padding:14px; background:#141e32; color:#fff; border:1px solid #45516a; border-radius:0; }
+.label-lot-row strong { font-size:14px; overflow-wrap:anywhere; }
+.label-lot-row span { font-size:12px; overflow-wrap:anywhere; }
+.label-lot-row small { grid-column:1 / -1; color:#adbcd1; }
+.label-backdrop { position:fixed; inset:0; z-index:2000; background:#000b; display:flex; align-items:center; justify-content:center; padding:12px; }
+.label-dialog { width:100%; max-width:460px; max-height:calc(100dvh - 24px); display:flex; flex-direction:column; background:#141e32; color:#fff; border:1px solid #526079; }
+.label-dialog header, .label-dialog footer { flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px; border-bottom:1px solid #45516a; }
+.label-content { overflow:auto; min-height:0; padding:12px; display:flex; flex-direction:column; gap:8px; }
+.label-preview { background:#fff; color:#000; padding:8px; display:grid; grid-template-columns:40% minmax(0,1fr); gap:10px; align-items:start; }
+.label-fields { display:flex; flex-direction:column; gap:22px; }
+.label-fields strong { display:block; font-size:16px; line-height:1.15; overflow-wrap:anywhere; }
+.label-content label { font-size:12px; color:#adbcd1; }
+.label-content small { color:#adbcd1; font-size:12px; }
+.label-printer-list { display:flex; flex-direction:column; gap:6px; max-height:210px; overflow-y:auto; flex-shrink:0; }
+.label-printer-choice { display:flex; flex-direction:column; gap:4px; flex-shrink:0; padding:10px 12px; min-height:58px; text-align:left; border:1px solid #526079; border-radius:0; background:#080e19; color:#fff; }
+.label-printer-choice strong { font-size:14px; overflow-wrap:anywhere; }
+.label-printer-choice small { font-size:11px; color:#adbcd1; }
+.label-printer-choice.selected { border-color:#34d399; background:#10382b; }
+.label-dialog footer { border-top:1px solid #45516a; border-bottom:0; }
+.label-dialog footer button { flex:1; min-height:46px; }
+.print { background:#008444; }
+.print:disabled { background:#303744; }

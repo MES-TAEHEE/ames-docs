@@ -40,6 +40,7 @@ IF OBJECT_ID(N'dbo.SYS_RolePermission', N'U') IS NOT NULL DROP TABLE dbo.SYS_Rol
 IF OBJECT_ID(N'dbo.SYS_UserProfile', N'U') IS NOT NULL DROP TABLE dbo.SYS_UserProfile;
 IF OBJECT_ID(N'dbo.MNT_MoldShotCount', N'U') IS NOT NULL DROP TABLE dbo.MNT_MoldShotCount;
 IF OBJECT_ID(N'dbo.MNT_SparePartsTxn', N'U') IS NOT NULL DROP TABLE dbo.MNT_SparePartsTxn;
+IF OBJECT_ID(N'dbo.MNT_SparePartItem', N'U') IS NOT NULL DROP TABLE dbo.MNT_SparePartItem;
 IF OBJECT_ID(N'dbo.MNT_WorkOrderTask', N'U') IS NOT NULL DROP TABLE dbo.MNT_WorkOrderTask;
 IF OBJECT_ID(N'dbo.MNT_WorkOrder', N'U') IS NOT NULL DROP TABLE dbo.MNT_WorkOrder;
 IF OBJECT_ID(N'dbo.MNT_PMExecution', N'U') IS NOT NULL DROP TABLE dbo.MNT_PMExecution;
@@ -839,8 +840,8 @@ CREATE TABLE dbo.MD_SparePart (
   [PartName]                  NVARCHAR(60)             NULL,
   [UnitCost]                  DECIMAL(12,2)            NULL,
   [SparePartImage]            VARBINARY(MAX)           NULL,  -- 부품 이미지(320×180 이내 JPEG/PNG 바이트, MD-026 업로드)
-  [ZoneCode]                  VARCHAR(20)              NULL,  -- 보관 구역, 공통코드 MNT_ZONE (MD_Location.ZoneCode 와 같은 형)
-  [Slot]                      VARCHAR(5)               NULL,  -- 보관 칸(층), 공통코드 MNT_SLOT (MD_Location.Slot 과 같은 형, 구역 SP_EXTRA 는 EX 고정)
+  [ZoneCode]                  VARCHAR(20)              NULL,  -- Spare Part Master 보관 구역, 공통코드 MNT_ZONE
+  [Slot]                      VARCHAR(5)               NULL,  -- Spare Part Master 보관 칸(층), 공통코드 MNT_SLOT (구역 SP_EXTRA 는 EX 고정)
   [ExtraLocation]             NVARCHAR(60)             NULL,  -- 구역 SP_EXTRA 일 때만 쓰는 자유 입력 위치
   [UOM]                       VARCHAR(10)              NULL,  -- FK -> MD_Uom.UOMCode
   [OnHandQty]                 INT                  NOT NULL DEFAULT 0,  -- 현재고 (MNT_SparePartsTxn 로만 변경)
@@ -3270,10 +3271,30 @@ CREATE TABLE dbo.MNT_WorkOrderTask (
 );
 GO
 
+-- ── MNT_SparePartItem  (개별 예비품 Serial)
+CREATE TABLE dbo.MNT_SparePartItem (
+  [SparePartItemID]           BIGINT IDENTITY       NOT NULL,
+  [SerialNo]                  VARCHAR(24)           NOT NULL,
+  [SparePartNo]               VARCHAR(16)           NOT NULL,  -- -> MD_SparePart.SparePartNo
+  [StatusCode]                VARCHAR(15)           NOT NULL DEFAULT 'CREATED', -- CREATED / IN_STOCK / RELEASED
+  [LocationID]                VARCHAR(20)               NULL,  -- 현재 실제 위치
+  [CreatedBy]                 VARCHAR(50)           NOT NULL,
+  [CreatedTS]                 DATETIME2             NOT NULL DEFAULT SYSDATETIME(),
+  [ModifiedBy]                NVARCHAR(450)             NULL,
+  [ModifiedTS]                DATETIME2                 NULL,
+  CONSTRAINT PK_MNT_SparePartItem PRIMARY KEY CLUSTERED ([SparePartItemID]),
+  CONSTRAINT UX_MNT_SparePartItem_SerialNo UNIQUE ([SerialNo]),
+  CONSTRAINT CK_MNT_SparePartItem_Status CHECK ([StatusCode] IN ('CREATED','IN_STOCK','RELEASED'))
+);
+GO
+CREATE INDEX IX_MNT_SparePartItem_PartStatus ON dbo.MNT_SparePartItem([SparePartNo], [StatusCode], [LocationID]);
+GO
+
 -- ── MNT_SparePartsTxn  (정비 자재 입출고)
 CREATE TABLE dbo.MNT_SparePartsTxn (
   [SparePartsTxnID]           INT IDENTITY         NOT NULL,
   [SparePartNo]               VARCHAR(16)          NOT NULL,  -- 참조 -> MD_SparePart.SparePartNo (FK 없음, 리포지토리가 정합 보장)
+  [SparePartItemID]           BIGINT                   NULL,  -- -> MNT_SparePartItem.SparePartItemID
   [MoveType]                  VARCHAR(10)          NOT NULL,  -- IN 입고 / OUT 출고 / ADJ 조정
   [Qty]                       INT                  NOT NULL,
   [BalanceBefore]             INT                  NOT NULL,  -- 처리 전 현재고
@@ -3287,10 +3308,15 @@ CREATE TABLE dbo.MNT_SparePartsTxn (
   [CreatedTS]                 DATETIME2                NULL DEFAULT SYSDATETIME(),
   [ModifiedBy]                NVARCHAR(450)            NULL,
   [ModifiedTS]                DATETIME2                NULL,
+  [ReversalOfTxnID]           INT                      NULL,  -- 취소 대상 원거래
   CONSTRAINT PK_MNT_SparePartsTxn PRIMARY KEY CLUSTERED ([SparePartsTxnID])
 );
 GO
 CREATE INDEX IX_MNT_SparePartsTxn_Part ON dbo.MNT_SparePartsTxn([SparePartNo], [TxnAt] DESC, [SparePartsTxnID] DESC);
+GO
+CREATE INDEX IX_MNT_SparePartsTxn_Item ON dbo.MNT_SparePartsTxn([SparePartItemID], [TxnAt] DESC, [SparePartsTxnID] DESC);
+GO
+CREATE UNIQUE INDEX UX_MNT_SparePartsTxn_Reversal ON dbo.MNT_SparePartsTxn([ReversalOfTxnID]) WHERE [ReversalOfTxnID] IS NOT NULL;
 GO
 
 -- ── MNT_MoldShotCount  (금형 쇼트 운영 카운터)
