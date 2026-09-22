@@ -155,6 +155,7 @@
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
     public sealed record ChartPoint(string Key, double Value);
+    public sealed record ChartCapture(string? Title, string? Png);   // amesCaptureSvgs 결과
 
     IEnumerable<DropDownItem> SourceOptions => RptRepository.AdhocDims.Keys.Select(s => new DropDownItem { Value = s, Text = L[$"RPT.ReportBuilder.Src.{s}"].Value });
     IEnumerable<DropDownItem> DimOptions    => RptRepository.AdhocDims[_source].Select(d => new DropDownItem { Value = d, Text = DimLabel(d) });
@@ -223,7 +224,7 @@
         return den > 0 ? num / den : 0m;
     }
 
-    // 결과 표를 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로 + 합계 행
+    // 결과 표를 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로 + 합계 행. 화면에 그려진 차트 3개는 둘째 시트에 그림으로 같이 넣는다.
     async Task ExportXlsx()
     {
         if (_rows.Count == 0) { ShowMsg(L["RPT.ReportBuilder.Err.NoExport"], true); return; }
@@ -238,11 +239,21 @@
         var tot = new List<object?> { L["RPT.ReportBuilder.Total"].Value, null };
         tot.AddRange(_runMeasures.Select(m => (object?)(IsRate(m) ? Math.Round(Agg(m), 1) : Agg(m))));
         data.Add(tot);
-        var bytes = AMES.Web.Services.XlsxWriter.Build(ReportTitle, headers, data);
+        // 차트는 브라우저에서 그린 PNG 를 받는다 — 캡처가 실패해도 표 내보내기는 계속한다
+        var charts = new List<AMES.Web.Services.XlsxWriter.ChartImage>();
+        try
+        {
+            var caps = await JS.InvokeAsync<List<ChartCapture>>("amesCaptureSvgs", ".rpt-rb-chart svg", 2);
+            foreach (var c in caps ?? new())
+                if (!string.IsNullOrEmpty(c.Png)) charts.Add(new(c.Title ?? "", Convert.FromBase64String(c.Png)));
+        }
+        catch (Exception ex) { Console.Error.WriteLine($"ReportBuilder chart capture skipped: {ex.Message}"); }
+        var bytes = AMES.Web.Services.XlsxWriter.Build(ReportTitle, headers, data, 16, charts, L["RPT.ReportBuilder.Chart.Sheet"].Value);
         var name  = $"ReportBuilder_{_runSource}_{_runDim}_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx";
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        ShowMsg(string.Format(L["RPT.ReportBuilder.Ok.Exported"].Value, _rows.Count), false);
+        ShowMsg(charts.Count > 0 ? string.Format(L["RPT.ReportBuilder.Ok.ExportedCharts"].Value, _rows.Count, charts.Count)
+                                 : string.Format(L["RPT.ReportBuilder.Ok.Exported"].Value, _rows.Count), false);
     }
 
     void ShowMsg(string msg, bool isErr)

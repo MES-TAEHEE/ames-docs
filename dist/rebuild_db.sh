@@ -72,6 +72,12 @@ FILES=(
   migrate_mnt_pm_class_type.sql       # MNT_PMSchedule.PMClass 추가·PMType ANNUALLY·공통코드 PM_CLASS/PM_TYPE (순서 무관)
   migrate_mnt_pm_screens.sql          # MNT-005 설비 PM·MNT-010 보전 PM 화면 등록 + 공통코드 PM_CYCLE_BASIS/PM_STATUS (순서 무관)
   migrate_mnt_failure_codes.sql       # MNT-002 고장 등록 모달용 공통코드 FAILURE_TYPE/FAILURE_SOURCE (순서 무관)
+  migrate_md_item_mount_pos.sql       # MD_Item.MountPos 완제품 라벨 장착위치 (순서 무관)
+  migrate_pr_result_prod_shift.sql    # PR_ProductionResult.ProdDate·ShiftCode + 백필 (순서 무관)
+  migrate_pp_mrp_result.sql           # PP-005 MRP 결과 스냅샷 PP_MRPResult/Wo + MD_Item.LeadTimeDays (순서 무관)
+  migrate_pp_pr_send.sql              # PP-006 구매요청 SAP 전송 상태 컬럼 + 상태 어휘 이관 (순서 무관)
+  migrate_andon_workflow.sql          # 안돈 워크플로: MD_LineSupervisor·PR_AndonDeptCall·PR_AndonCall.SupervisorName·공통코드 (순서 무관)
+  migrate_lot_defect_rework.sql       # LOT 불량·재작업: PR_DefectDetail 컬럼·필터 유니크 인덱스·RWK 마스터 (순서 무관, -I 필수)
   pda/PDA_SCHEMA.sql                  # consolidated WH/FG PDA schema
   pda/PDA_SEED.sql                    # WH/FG seed, Web screens and role permissions
   cleanup_legacy_sis_test.sql

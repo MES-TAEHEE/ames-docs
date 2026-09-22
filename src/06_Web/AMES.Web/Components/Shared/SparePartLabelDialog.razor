@@ -1,8 +1,9 @@
+@inject IStringLocalizer<SharedResources> L
 @inject IJSRuntime JS
 
 <div class="ames-modal-bg spare-label-modal-bg" @onclick="CloseAsync">
     <div class="ames-modal spare-label-modal" @onclick:stopPropagation>
-        <div class="ames-modal-h">Spare Parts Label</div>
+        <div class="ames-modal-h">@L["MNT.SpareParts.LabelDialog.Title"]</div>
 
         <div class="spare-label-preview">
             <div id="spare-part-label-print" class="spare-label-print-area">
@@ -32,8 +33,8 @@
         </div>
 
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-            <RadzenButton Text="PRINT" Icon="print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="PrintAsync" class="ames-rz-btn" />
-            <RadzenButton Text="CLOSE" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseAsync" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Print"]" Icon="print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="PrintAsync" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseAsync" class="ames-rz-btn" />
         </RadzenStack>
     </div>
 </div>

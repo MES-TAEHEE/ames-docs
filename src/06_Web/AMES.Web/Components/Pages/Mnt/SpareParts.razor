@@ -184,7 +184,7 @@
             <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="SparePartNo" Title="@L["Col.SparePartNo"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="t"><span class="code">@t.SparePartNo</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="SerialNo" Title="Serial No" TextAlign="TextAlign.Center" Width="170px">
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="SerialNo" Title="@L["Col.SerialNo"]" TextAlign="TextAlign.Center" Width="170px">
                 <Template Context="t"><span class="code">@(t.SerialNo ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="PartNo" Title="@L["Col.PartNo"]" TextAlign="TextAlign.Center" Width="120px">
@@ -211,9 +211,9 @@
             <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="Note" Title="@L["Col.Note"]">
                 <Template Context="t"><span class="dim" style="white-space:nowrap;">@(t.Note ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Title="Label" TextAlign="TextAlign.Center" Width="92px" Sortable="false" Filterable="false">
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Title="@L["Col.Label"]" TextAlign="TextAlign.Center" Width="92px" Sortable="false" Filterable="false">
                 <Template Context="t">
-                    <RadzenButton Text="REPRINT" Icon="print" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall"
+                    <RadzenButton Text="@L["Btn.Reprint"]" Icon="print" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall"
                                   Disabled="@string.IsNullOrWhiteSpace(t.SerialNo)" Click="@(() => OpenLabel(t))" class="ames-rz-btn" />
                 </Template>
             </RadzenDataGridColumn>
@@ -525,7 +525,7 @@
 
         var headers = new[]
         {
-            L["Col.TxnNo"].Value, L["Col.When"].Value, L["Col.SparePartNo"].Value, "Serial No", L["Col.PartNo"].Value, L["Col.Name"].Value, L["Col.Type"].Value,
+            L["Col.TxnNo"].Value, L["Col.When"].Value, L["Col.SparePartNo"].Value, L["Col.SerialNo"].Value, L["Col.PartNo"].Value, L["Col.Name"].Value, L["Col.Type"].Value,
             L["Col.Qty"].Value, L["Col.BalanceBefore"].Value, L["Col.Balance"].Value,
             L["Col.Ref"].Value, L["Col.Note"].Value,
         };
@@ -569,9 +569,9 @@
 
     string MoveLabel(string? m) => m switch
     {
-        null => "—", "LABEL" => "Label Printed",
+        null => "—", "LABEL" => L["MNT.SpareParts.Move.Label"],
         "IN" => L["MNT.SpareParts.Move.In"], "OUT" => L["MNT.SpareParts.Move.Out"],
-        "IN_CANCEL" => "Inbound Cancelled", "OUT_CANCEL" => "Release Cancelled",
+        "IN_CANCEL" => L["MNT.SpareParts.Move.InCancel"], "OUT_CANCEL" => L["MNT.SpareParts.Move.OutCancel"],
         "ADJ" => L["MNT.SpareParts.Move.Adj"], _ => m
     };
     static string MoveCls(string? m) => m switch

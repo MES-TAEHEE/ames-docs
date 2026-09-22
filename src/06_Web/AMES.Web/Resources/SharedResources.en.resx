@@ -8184,4 +8184,31 @@
   <data name="Col.RowNo" xml:space="preserve">
     <value>No.</value>
   </data>
+  <data name="RPT.ReportBuilder.Chart.Sheet" xml:space="preserve">
+    <value>Charts</value>
+  </data>
+  <data name="RPT.ReportBuilder.Ok.ExportedCharts" xml:space="preserve">
+    <value>Exported to Excel: {0} rows (with {1} charts)</value>
+  </data>
+  <data name="Col.SerialNo" xml:space="preserve">
+    <value>Serial No</value>
+  </data>
+  <data name="Col.Label" xml:space="preserve">
+    <value>Label</value>
+  </data>
+  <data name="Btn.Reprint" xml:space="preserve">
+    <value>Reprint</value>
+  </data>
+  <data name="MNT.SpareParts.Move.Label" xml:space="preserve">
+    <value>Label Printed</value>
+  </data>
+  <data name="MNT.SpareParts.Move.InCancel" xml:space="preserve">
+    <value>Inbound Cancelled</value>
+  </data>
+  <data name="MNT.SpareParts.Move.OutCancel" xml:space="preserve">
+    <value>Release Cancelled</value>
+  </data>
+  <data name="MNT.SpareParts.LabelDialog.Title" xml:space="preserve">
+    <value>Spare Parts Label</value>
+  </data>
 </root>

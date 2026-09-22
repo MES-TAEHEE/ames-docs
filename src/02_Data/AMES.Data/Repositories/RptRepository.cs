@@ -305,11 +305,11 @@ public sealed class RptRepository
     }
 
     // ── RPT-005 Inventory Status ─────────────────────────────────────────
-    // ── RPT-005 Inventory (SKU 단위: 자재창고 WH_Inventory ∪ 완성품창고 FG_Stock) ──
+    // ── RPT-005 Inventory (SKU 단위: 자재창고 WH_Inventory ∪ 완성품창고 FG_Inventory) ──
     public sealed record InventorySkuRow(string Source, string ItemNo, string? ItemName, string? ItemNameEn, string? ItemType,
         string? Location, decimal Qty, decimal Reserved, decimal? UnitCost, decimal? SafetyStock, decimal? MaxStock, int Lots);
 
-    /// <summary>현재 재고를 품목×위치로 집계. Source = "WH"(자재, WH_Inventory) / "FG"(완성품, FG_Stock; 출하·폐기 제외).</summary>
+    /// <summary>현재 재고를 품목×위치로 집계. Source = "WH"(자재, WH_Inventory) / "FG"(완성품, FG_Inventory; 출하·폐기 제외).</summary>
     public List<InventorySkuRow> ListInventorySku()
     {
         const string sql = """
@@ -326,7 +326,7 @@ public sealed class RptRepository
                 SELECT 'FG', s.ItemNo, s.Location,
                        ISNULL(SUM(s.Qty), 0), ISNULL(SUM(CASE WHEN s.ReservationID IS NOT NULL OR s.Status = 'Reserved' THEN s.Qty ELSE 0 END), 0),
                        NULL, COUNT(*)
-                FROM   dbo.FG_Stock s
+                FROM   dbo.FG_Inventory s
                 WHERE  UPPER(ISNULL(s.Status, '')) NOT IN ('SHIPPED', 'SCRAPPED')
                 GROUP BY s.ItemNo, s.Location
             ) x
@@ -354,7 +354,7 @@ public sealed class RptRepository
 
     public List<InventoryRow> ListInventory(int topN = 100)
     {
-        // FG_Inventory 는 스키마에 없다(FG_Stock 이 정본) — API 호환을 위해 시그니처만 유지
+        // 구 FG_Stock 은 FG_Inventory 로 개명됐고 DB 에는 호환용 synonym 만 남아 있다 — 실제 테이블명을 쓴다
         const string sql = """
             SELECT TOP (@N)
                    ItemNo, Location,
@@ -362,7 +362,7 @@ public sealed class RptRepository
                    ISNULL(SUM(Qty), 0)                          AS Qty,
                    SUM(CASE WHEN HoldFlag=1 THEN 1 ELSE 0 END)  AS HoldLots,
                    ISNULL(SUM(CASE WHEN HoldFlag=1 THEN Qty ELSE 0 END), 0) AS HoldQty
-            FROM   dbo.FG_Stock
+            FROM   dbo.FG_Inventory
             WHERE  ISNULL(Status,'') NOT IN ('SHIPPED','SCRAPPED')
             GROUP BY ItemNo, Location
             ORDER BY Qty DESC;

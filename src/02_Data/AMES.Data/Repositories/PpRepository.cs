@@ -515,7 +515,7 @@ public sealed class PpRepository
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = s.ItemNo
             OUTER APPLY (SELECT SUM(ISNULL(w.OrderQty,0)) AS Qty FROM dbo.PP_WorkOrder w
                          WHERE w.SoID = s.SoID AND w.Status <> 'Cancelled') iss
-            OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.FG_Stock f
+            OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.FG_Inventory f
                          WHERE f.ItemNo = s.ItemNo AND f.Status NOT IN ('SHIPPED','SCRAPPED')) fg
             OUTER APPLY (SELECT TOP 1 r.LineID FROM dbo.PP_WorkOrderRouting r
                          JOIN dbo.PP_WorkOrder w2 ON w2.WoID = r.WoID
@@ -816,7 +816,7 @@ public sealed class PpRepository
                'Draft', @Actor, SYSDATETIME()
         FROM   dbo.PP_CustomerOrder s
         JOIN   dbo.MD_Item i ON i.ItemNo = s.ItemNo
-        OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.FG_Stock f
+        OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.FG_Inventory f
                      WHERE f.ItemNo = s.ItemNo AND f.Status NOT IN ('SHIPPED','SCRAPPED')) fg
         OUTER APPLY (SELECT SUM(ISNULL(w.OrderQty,0)) AS Qty FROM dbo.PP_WorkOrder w
                      WHERE w.SoID = s.SoID AND w.Status <> 'Cancelled') iss

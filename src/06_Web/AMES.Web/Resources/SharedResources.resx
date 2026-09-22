@@ -8184,4 +8184,31 @@
   <data name="Col.RowNo" xml:space="preserve">
     <value>No.</value>
   </data>
+  <data name="RPT.ReportBuilder.Chart.Sheet" xml:space="preserve">
+    <value>차트</value>
+  </data>
+  <data name="RPT.ReportBuilder.Ok.ExportedCharts" xml:space="preserve">
+    <value>엑셀 내보내기 완료: {0}건 (차트 {1}개 포함)</value>
+  </data>
+  <data name="Col.SerialNo" xml:space="preserve">
+    <value>시리얼</value>
+  </data>
+  <data name="Col.Label" xml:space="preserve">
+    <value>라벨</value>
+  </data>
+  <data name="Btn.Reprint" xml:space="preserve">
+    <value>재출력</value>
+  </data>
+  <data name="MNT.SpareParts.Move.Label" xml:space="preserve">
+    <value>라벨 발행</value>
+  </data>
+  <data name="MNT.SpareParts.Move.InCancel" xml:space="preserve">
+    <value>입고 취소</value>
+  </data>
+  <data name="MNT.SpareParts.Move.OutCancel" xml:space="preserve">
+    <value>출고 취소</value>
+  </data>
+  <data name="MNT.SpareParts.LabelDialog.Title" xml:space="preserve">
+    <value>예비품 라벨</value>
+  </data>
 </root>

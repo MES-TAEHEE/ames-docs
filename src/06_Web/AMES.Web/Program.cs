@@ -21,7 +21,9 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents(options =>
     {
         options.DetailedErrors = true;
-    });
+    })
+    // JS → .NET 로 돌아오는 값(차트 PNG base64 등)이 기본 32KB 를 넘을 수 있어 넉넉히 둔다
+    .AddHubOptions(o => o.MaximumReceiveMessageSize = 4 * 1024 * 1024);
 
 builder.Services.AddRadzenComponents();
 builder.Services.AddRadzenCookieThemeService(options =>
