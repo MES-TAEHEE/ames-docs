@@ -144,7 +144,7 @@
     bool            _collapsed;
     string?         _url;
     HashSet<string> _open = new();
-    HashSet<string> _openSub = new();
+    HashSet<string> _openSub = new(StringComparer.OrdinalIgnoreCase);
     HashSet<string> _favorites = new();
     string          _lang = "ko";
     bool            _bilingual = true;   // LANGUAGE_DEFAULT 비활성 시 false → 2차(부) 언어 표기 숨김
@@ -305,7 +305,7 @@
         _openSub.Clear();
         var hit = Catalog.Items.FirstOrDefault(i =>
             url.StartsWith(i.Href, StringComparison.OrdinalIgnoreCase));
-        if (!string.IsNullOrEmpty(hit?.Sub)) _openSub.Add(hit!.Sub!);
+        if (!string.IsNullOrEmpty(hit?.Sub)) _openSub.Add(hit!.Sub!.ToUpperInvariant());   // GroupedMd 의 Key 와 같은 대문자
     }
 
     void OnLocChanged(object? sender, LocationChangedEventArgs e)

@@ -199,22 +199,24 @@ public sealed class MenuCatalog
     {
         // 서브그룹 노출 순서를 SYS_Screen.SortOrder(데이터) 기준으로 결정.
         // mdItems 는 SortOrder 로 이미 정렬되어 있으므로 최초 등장 순 = 데이터 순서.
+        // SYS_Screen.SubProcessCode 와 공통코드 SUBPROCESS.CodeValue 는 대소문자가 다를 수 있다
+        // (create_sys_screen.sql 'Fd' vs seed_md_code.sql 'FD' — 09-22 개발 DB 재구축에서 서브메뉴가 통째로 사라진 원인)
         var order = mdItems
-            .Where(x => !string.IsNullOrEmpty(x.Sub) && SubprocessItems.Any(s => s.CodeValue == x.Sub))
-            .Select(x => x.Sub!)
+            .Where(x => !string.IsNullOrEmpty(x.Sub) && SubprocessItems.Any(s => SubEq(s.CodeValue, x.Sub)))
+            .Select(x => x.Sub!.ToUpperInvariant())
             .Distinct()
             .ToList();
         return order
             .Select((code, i) =>
             {
-                var g = SubprocessItems.First(s => s.CodeValue == code);
+                var g = SubprocessItems.First(s => SubEq(s.CodeValue, code));
                 return new MdGroup(
                     Key:    code,
                     Letter: ((char)('A' + i)).ToString(),
                     Ko:     g.CodeName   ?? g.CodeValue ?? "",
                     En:     g.CodeNameEn ?? g.CodeName ?? g.CodeValue ?? "",
                     Es:     SubEs.TryGetValue(code, out var subEs) ? subEs : (g.CodeNameEn ?? g.CodeValue ?? ""),
-                    Items:  mdItems.Where(x => x.Sub == code).ToList());
+                    Items:  mdItems.Where(x => SubEq(x.Sub, code)).ToList());
             })
             .Where(g => g.Items.Count > 0)
             .ToList();
@@ -222,9 +224,11 @@ public sealed class MenuCatalog
 
     public List<Item> UngroupedMd(List<Item> mdItems)
     {
-        var keys = SubprocessItems.Select(g => g.CodeValue).ToHashSet();
+        var keys = SubprocessItems.Select(g => g.CodeValue ?? "").ToHashSet(StringComparer.OrdinalIgnoreCase);
         return mdItems.Where(x => string.IsNullOrEmpty(x.Sub) || !keys.Contains(x.Sub)).ToList();
     }
+
+    static bool SubEq(string? a, string? b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
     // 화면/대분류의 스페인어 표기 (DB엔 KO/EN만 존재 → 인라인 공급, Href 키)
     static readonly Dictionary<string, string> EsByHref = new()
