@@ -290,6 +290,45 @@ public sealed class WorkOrderRepository
     }
 
     /// <summary>
+    /// 이 라인 단계가 있는 품번의 WO 전부 — INJ/IMG-MAIN 품번 더블클릭 목록. 취소 WO 제외, 마감 단계는 최근 <paramref name="recentClosedDays"/>일만.
+    /// 열린 단계는 FindOpenForItem 과 같은 순서라 첫 열린 행이 활성 WO 다. LineId·Status·CompletedQty 는 단계 값.
+    /// </summary>
+    public List<WorkOrderDto> ListForItemOnLine(string lineId, string itemNo, int recentClosedDays = 30)
+    {
+        const string sql = """
+            SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
+                   w.OrderQty, w.OpenQty, r.CompletedQty, r.LineID,
+                   w.MoldID, w.RecipeID, w.DueDate, w.ProdDeadline, r.Status, r.TerminalLock,
+                   ISNULL(w.Priority,5) AS Priority, w.RoutingType,
+                   r.RoutingLineID, r.StepSeq, r.ProcessCode,
+                   so.SoNumber AS SoNumber
+            FROM   dbo.PP_WorkOrderRouting r
+            JOIN   dbo.PP_WorkOrder w ON w.WoID   = r.WoID
+            JOIN   dbo.MD_Item      i ON i.ItemNo = w.ItemNo
+            LEFT JOIN dbo.PP_CustomerOrder so ON so.SoID = w.SoID
+            WHERE  r.LineID = @Line AND w.ItemNo = @Item
+              AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+              AND (r.Status <> 'Closed'
+                   OR COALESCE(r.ActualEnd, r.ModifiedTS) >= DATEADD(day, -@Days, CAST(GETDATE() AS date)))
+            ORDER  BY CASE r.Status WHEN 'In Progress' THEN 0
+                                    WHEN 'Released'    THEN 1
+                                    WHEN 'Closed'      THEN 3
+                                    ELSE 2 END,
+                      CASE WHEN r.Status = 'Closed' THEN COALESCE(r.ActualEnd, r.ModifiedTS) END DESC,
+                      ISNULL(w.Priority,5),
+                      ISNULL(w.DueDate,'9999-12-31'),
+                      w.WoID, r.StepSeq;
+            """;
+
+        return Query(sql, cmd =>
+        {
+            cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
+            cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+            cmd.Parameters.Add("@Days", SqlDbType.Int).Value         = recentClosedDays;
+        });
+    }
+
+    /// <summary>
     /// 공정 단계를 이 터미널에 접수. 단계·헤더 In Progress, 단계·헤더 TerminalLock (조회는 단계 값 기준). 체크리스트는 PR_WoAcceptance(WoID) 에 기록.
     /// Returns the new AcceptID. 단계가 없으면 SqlException(50001).
     /// </summary>
