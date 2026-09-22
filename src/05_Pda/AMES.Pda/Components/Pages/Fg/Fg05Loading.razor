@@ -346,13 +346,19 @@
                 _scannedStockIds.ToList()));
             if (!result.Success)
             {
+                if (result.LoadingId is > 0
+                    && result.Message.Contains("shipment transmission failed", StringComparison.OrdinalIgnoreCase))
+                {
+                    Clear();
+                    ShowModal("Shipment Failed", result.Message, "warn");
+                    return;
+                }
                 ShowModal("Loading Failed", result.Message, "danger");
                 return;
             }
 
             Clear();
-            ShowModal("Loading Complete", result.Message,
-                result.Message.Contains("transmission failed", StringComparison.OrdinalIgnoreCase) ? "warn" : "success");
+            ShowModal("Loading Complete", result.Message, "success");
         }
         finally { _isBusy = false; }
     }

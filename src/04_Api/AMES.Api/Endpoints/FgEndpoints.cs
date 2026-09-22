@@ -735,7 +735,10 @@ public static class FgEndpoints
                     }
                     catch (Exception ex)
                     {
-                        shipmentMessage = $" Loading was saved, but shipment transmission failed: {ex.Message}";
+                        return Results.Json(new LoadingResult(false,
+                            $"Loading was saved, but shipment transmission failed: {ex.Message}", id,
+                            new LoadingTruckRow($"TRUCK:{truck}", truck, true, "Loading confirmed."), null),
+                            statusCode: StatusCodes.Status502BadGateway);
                     }
                 }
                 return Results.Ok(new LoadingResult(true,

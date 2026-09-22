@@ -1982,16 +1982,16 @@ GO
 -- ── 1) SYS_Screen upsert ──────────────────────────────────────────────────
 MERGE dbo.SYS_Screen AS tgt
 USING (VALUES
-  ('WH-006', 'WH', N'재고 조회',     N'Inventory Search',  'wh/inventory',         1, 1),
-  ('WH-003', 'WH', N'로케이션 맵',   N'Location Map',      'wh/location-map',      2, 1),
-  ('WH-004', 'WH', N'재고 이력',     N'Inventory History', 'wh/log-history',       3, 1),
-  ('WH-002', 'WH', N'피킹 오더',     N'Picking Orders',    'wh/picking-orders',    4, 1),
-  ('WH-005', 'WH', N'재고 설정',     N'Inventory Setting', 'wh/inventory-setting', 5, 1),
-  ('FG-001', 'FG', N'재고 조회',     N'Inventory Search',  'fg/inventory',         1, 1),
-  ('FG-002', 'FG', N'로케이션 맵',   N'Location Map',      'fg/location-map',      2, 1),
-  ('FG-003', 'FG', N'고객사 리턴',   N'Customer Returns',  'fg/customer-returns',  3, 1),
-  ('FG-004', 'FG', N'출하 목록',     N'Shipments',         'fg/shipments',         4, 1),
-  ('FG-005', 'FG', N'작업 이력',     N'History',           'fg/history',           5, 1)
+  ('WH-01', 'WH', N'재고 조회',     N'Inventory Search',  'wh/inventory',         1, 1),
+  ('WH-02', 'WH', N'로케이션 맵',   N'Location Map',      'wh/location-map',      2, 1),
+  ('WH-03', 'WH', N'재고 이력',     N'Inventory History', 'wh/log-history',       3, 1),
+  ('WH-04', 'WH', N'피킹 오더',     N'Picking Orders',    'wh/picking-orders',    4, 1),
+  ('WH-05', 'WH', N'재고 설정',     N'Inventory Setting', 'wh/inventory-setting', 5, 1),
+  ('FG-01', 'FG', N'재고 조회',     N'Inventory Search',  'fg/inventory',         1, 1),
+  ('FG-02', 'FG', N'로케이션 맵',   N'Location Map',      'fg/location-map',      2, 1),
+  ('FG-03', 'FG', N'고객사 리턴',   N'Customer Returns',  'fg/customer-returns',  3, 1),
+  ('FG-04', 'FG', N'출하 목록',     N'Shipments',         'fg/shipments',         4, 1),
+  ('FG-05', 'FG', N'작업 이력',     N'History',           'fg/history',           5, 1)
 ) AS src (ScreenCode, ProcessCode, ScreenName, ScreenNameEn, HRef, SortOrder, IsVisible)
 ON tgt.ScreenCode = src.ScreenCode
 WHEN NOT MATCHED THEN
@@ -2006,7 +2006,9 @@ GO
 
 -- ── 2) 구 코드 권한 행 → 새 코드로 이관 ──────────────────────────────────
 DECLARE @map TABLE (OldCode VARCHAR(20), NewCode VARCHAR(20));
-INSERT INTO @map VALUES ('WH-01','WH-006'), ('WH-04','WH-002'), ('FG-01','FG-001'), ('FG-05','FG-005');
+INSERT INTO @map VALUES
+    ('WH-006','WH-01'), ('WH-003','WH-02'), ('WH-004','WH-03'), ('WH-002','WH-04'), ('WH-005','WH-05'),
+    ('FG-001','FG-01'), ('FG-002','FG-02'), ('FG-003','FG-03'), ('FG-004','FG-04'), ('FG-005','FG-05');
 
 UPDATE p
    SET p.ScreenCode = m.NewCode, p.ModifiedBy = 'seed', p.ModifiedTS = SYSDATETIME()
@@ -2017,6 +2019,9 @@ PRINT CONCAT(N'✓ 구 코드 권한 이관: ', @@ROWCOUNT, N'행');
 
 DELETE p FROM dbo.SYS_RolePermission p JOIN @map m ON m.OldCode = p.ScreenCode;
 PRINT CONCAT(N'✓ 구 코드 권한 잔여 삭제: ', @@ROWCOUNT, N'행');
+
+DELETE s FROM dbo.SYS_Screen s JOIN @map m ON m.OldCode = s.ScreenCode;
+PRINT CONCAT(N'✓ 구 3자리 화면 삭제: ', @@ROWCOUNT, N'행');
 GO
 
 -- ── 3) Admin FULL 권한 (없는 화면만) ─────────────────────────────────────

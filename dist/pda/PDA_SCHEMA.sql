@@ -3788,6 +3788,14 @@ BEGIN
 END;
 GO
 
+IF OBJECT_ID(N'dbo.MD_SparePart', N'U') IS NOT NULL
+   AND COL_LENGTH(N'dbo.MD_SparePart', N'ExtraLocation') IS NULL
+BEGIN
+    ALTER TABLE dbo.MD_SparePart ADD ExtraLocation NVARCHAR(60) NULL;
+    PRINT 'Added dbo.MD_SparePart.ExtraLocation';
+END;
+GO
+
 IF OBJECT_ID(N'dbo.Seq_MNT_SparePartSerial', N'SO') IS NOT NULL
     DROP SEQUENCE dbo.Seq_MNT_SparePartSerial;
 GO
