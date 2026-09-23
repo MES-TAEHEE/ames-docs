@@ -77,8 +77,8 @@ public class InjLotRepositoryTests
         var (lotId, lotCode) = repo.CreateRawLot("LINE-INJ-01", "INJ-650-01", Lh(), 12347);
         try
         {
-            Assert.Equal(1, repo.IncrementPrintedCount(lotId));   // 디스패처 자동 발행
-            Assert.Equal(2, repo.IncrementPrintedCount(lotId));   // 재출력 버튼
+            Assert.Equal(1, repo.IncrementPrintedCount(lotId, "E-ITEST"));   // 디스패처 자동 발행
+            Assert.Equal(2, repo.IncrementPrintedCount(lotId, "E-ITEST"));   // 재출력 버튼
             Assert.Equal(2, repo.GetByLotCode(lotCode)!.PrintedCount);
         }
         finally { Cleanup(f, lotId); }
@@ -264,7 +264,7 @@ public class InjLotRepositoryTests
                       AND Status = 'RAW' AND QualityFlag = 'PENDING' AND ProcessCode = 'INJ') AS Lots,
                   (SELECT COUNT(*) FROM dbo.PR_InjLot
                     WHERE LotID IN (SELECT value FROM STRING_SPLIT(@Ids, ','))
-                      AND ConfirmStatus = 'RAW' AND CreatedBy = 'MANUAL'
+                      AND ConfirmStatus = 'RAW' AND CreatedBy = 'E-ITEST'
                       AND MachineShotCount IS NULL AND ConfirmedAt IS NULL AND CavityPos = 'LH') AS InjLots,
                   (SELECT COUNT(*) FROM dbo.PR_ProductionResult
                     WHERE LotID IN (SELECT value FROM STRING_SPLIT(@Ids, ','))) AS Results,

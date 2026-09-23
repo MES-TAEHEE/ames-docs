@@ -448,7 +448,7 @@
             // 라벨만 태우게 된다. Resume() 은 IsStopped 를 벗어나는 유일한 길이다.
             Dispatcher.Resume();
 
-            var printed = PopServices.InjLots.IncrementPrintedCount(lot.LotId);
+            var printed = PopServices.InjLots.IncrementPrintedCount(lot.LotId, Session?.EmployeeNo);
             Toasts.Ok($"{T("LabelReprinted")}: {lot.LotCode} ({T("Total2")} {printed})");
             Refresh();
         }

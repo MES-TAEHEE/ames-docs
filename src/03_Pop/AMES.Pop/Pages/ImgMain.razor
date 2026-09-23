@@ -362,7 +362,7 @@
             try
             {
                 LabelPrinter.Print(lot, Session.ShiftCode);
-                var printed = PopServices.ImgLots.IncrementPrintedCount(lot.LotId);
+                var printed = PopServices.ImgLots.IncrementPrintedCount(lot.LotId, Session.EmployeeNo);
                 Toasts.Ok($"{T("LotIssued")}: {lot.LotCode} ({lot.ItemNo})");
             }
             catch (Exception ex)
@@ -449,7 +449,7 @@
         try
         {
             LabelPrinter.Print(lot, Session?.ShiftCode ?? "");
-            var printed = PopServices.ImgLots.IncrementPrintedCount(lot.LotId);
+            var printed = PopServices.ImgLots.IncrementPrintedCount(lot.LotId, Session?.EmployeeNo);
             Toasts.Ok($"{T("LabelReprinted")}: {lot.LotCode} ({T("Total2")} {printed})");
             Refresh();
         }

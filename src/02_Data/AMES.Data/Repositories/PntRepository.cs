@@ -199,7 +199,7 @@ public sealed class PntRepository
                 upd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
                 upd.Parameters.Add("@J",     SqlDbType.VarChar,  20   ).Value = jigId;
                 upd.Parameters.Add("@Q",     SqlDbType.Int            ).Value = loadedQty;
-                upd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = operatorId;
+                upd.Parameters.Add("@ModBy", SqlDbType.NVarChar,  20  ).Value = operatorId;
                 upd.ExecuteNonQuery();
             }
 
@@ -355,7 +355,7 @@ public sealed class PntRepository
                 upd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
                 upd.Parameters.Add("@G",     SqlDbType.Int            ).Value = goodQty;
                 upd.Parameters.Add("@D",     SqlDbType.Int            ).Value = defectQty;
-                upd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = operatorId;
+                upd.Parameters.Add("@ModBy", SqlDbType.NVarChar,  20  ).Value = operatorId;
                 upd.ExecuteNonQuery();
             }
 
@@ -389,7 +389,7 @@ public sealed class PntRepository
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
-        cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = (object?)userId ?? DBNull.Value;
+        cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar,  20  ).Value = (object?)userId ?? DBNull.Value;
         cmd.ExecuteNonQuery();
     }
 
@@ -431,7 +431,7 @@ public sealed class PntRepository
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
         cmd.Parameters.Add("@Q",     SqlDbType.Int            ).Value = qty;
-        cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = operatorId;
+        cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar,  20  ).Value = operatorId;
         cmd.ExecuteNonQuery();
     }
 

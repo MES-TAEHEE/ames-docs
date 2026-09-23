@@ -89,7 +89,7 @@ public class PopBlazorForm : PopForm
             // 모듈은 로그인 시 선택 라인에서 결정된다 — INJ 세션에서만 발행.
             if (state.Session is { } s && state.ModuleCode == "INJ")
             {
-                dispatcher.Start(s.LineId, s.TerminalId);
+                dispatcher.Start(s.LineId, s.TerminalId, s.EmployeeNo);
                 _labelTimer.Change(pollMs, pollMs);
             }
             else

@@ -368,7 +368,7 @@ public sealed class WorkOrderRepository
             using var cmd = new SqlCommand(sql, conn, tx);
             cmd.Parameters.Add("@RL",         SqlDbType.Int           ).Value = routingLineId;
             cmd.Parameters.Add("@TerminalID", SqlDbType.VarChar, 20   ).Value = terminalId;
-            cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar, 450 ).Value = operatorId;
+            cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar,  20 ).Value = operatorId;
             cmd.Parameters.Add("@Checks",     SqlDbType.NVarChar      ).Value = checkResultsJson;
             cmd.Parameters.Add("@CreatedBy",  SqlDbType.VarChar, 50   ).Value = employeeNo;
             var acceptId = (int)cmd.ExecuteScalar()!;
@@ -441,7 +441,7 @@ public sealed class WorkOrderRepository
         cmd.Parameters.Add("@Qty",   SqlDbType.Decimal).Precision   = 14;
         cmd.Parameters["@Qty"].Scale = 3;
         cmd.Parameters["@Qty"].Value = qty;
-        cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
+        cmd.Parameters.Add("@Actor", SqlDbType.NVarChar,  20).Value = actor;
         return (decimal)cmd.ExecuteScalar()!;
     }
 
@@ -532,7 +532,7 @@ public sealed class WorkOrderRepository
             """, conn, tx))
         {
             cmd.Parameters.Add("@WoID",  SqlDbType.Int).Value           = woId;
-            cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
+            cmd.Parameters.Add("@Actor", SqlDbType.NVarChar,  20).Value = actor;
             cmd.ExecuteNonQuery();
         }
 
@@ -561,7 +561,7 @@ public sealed class WorkOrderRepository
             ins.Parameters.Add("@Proc",   SqlDbType.VarChar, 10).Value   = t.ProcessCode;
             ins.Parameters.Add("@LineID", SqlDbType.VarChar, 20).Value   =
                 t.LineRequired ? (object)choice[t.StepSeq]! : DBNull.Value;
-            ins.Parameters.Add("@Actor",  SqlDbType.NVarChar, 450).Value = actor;
+            ins.Parameters.Add("@Actor",  SqlDbType.NVarChar,  20).Value = actor;
             ins.ExecuteNonQuery();
         }
         return 1;
@@ -642,7 +642,7 @@ public sealed class WorkOrderRepository
         {
             using var cmd = new SqlCommand(sql, conn, tx);
             cmd.Parameters.Add("@WoID",  SqlDbType.Int).Value          = woId;
-            cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
+            cmd.Parameters.Add("@Actor", SqlDbType.NVarChar,  20).Value = actor;
             var n = Convert.ToInt32(cmd.ExecuteScalar());
             tx.Commit();
             return n;
@@ -679,7 +679,7 @@ public sealed class WorkOrderRepository
             ins.Parameters["@Qty"].Scale = 3;
             ins.Parameters["@Qty"].Value  = qty;
             ins.Parameters.Add("@Due",    SqlDbType.Date).Value        = (object?)due?.Date ?? DBNull.Value;
-            ins.Parameters.Add("@Actor",  SqlDbType.NVarChar, 450).Value = actor;
+            ins.Parameters.Add("@Actor",  SqlDbType.NVarChar,  20).Value = actor;
 
             var affected = ins.ExecuteNonQuery();
             tx.Commit();

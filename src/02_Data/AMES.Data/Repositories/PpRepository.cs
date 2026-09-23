@@ -278,7 +278,7 @@ public sealed class PpRepository
                 c.Parameters["@BaseInv"].Scale = 3;
                 c.Parameters.Add("@PartName",  SqlDbType.NVarChar,  100);
                 c.Parameters.Add("@Unit",      SqlDbType.VarChar,    10);
-                c.Parameters.Add("@Actor",     SqlDbType.NVarChar,  450);
+                c.Parameters.Add("@Actor",     SqlDbType.NVarChar,   20);
                 c.Parameters["@Batch"].Value = batch;
                 c.Parameters["@Cust"].Value  = customerId;
                 c.Parameters["@Actor"].Value = actor;
@@ -289,7 +289,7 @@ public sealed class PpRepository
             hist.Parameters["@PrevQty"].Scale = 3;
             hist.Parameters.Add("@NewQty",    SqlDbType.Decimal).Precision = 14;
             hist.Parameters["@NewQty"].Scale = 3;
-            hist.Parameters.Add("@Actor",     SqlDbType.NVarChar, 450).Value = actor;
+            hist.Parameters.Add("@Actor",     SqlDbType.NVarChar,  20).Value = actor;
 
             int inserted = 0, updated = 0, qtyChanged = 0;
             foreach (var r in rows)
@@ -445,7 +445,7 @@ public sealed class PpRepository
                 c.Parameters["@ShippedQty"].Scale = 3;
                 c.Parameters.Add("@OrderDate", SqlDbType.Date);
                 c.Parameters.Add("@ReqDate",   SqlDbType.Date);
-                c.Parameters.Add("@Actor",  SqlDbType.NVarChar, 450);
+                c.Parameters.Add("@Actor",  SqlDbType.NVarChar,  20);
                 c.Parameters["@Cust"].Value  = customerId;
                 c.Parameters["@Actor"].Value = actor;
             }
@@ -835,7 +835,7 @@ public sealed class PpRepository
         ins.Parameters.Add("@Wo",       SqlDbType.VarChar, 20);
         ins.Parameters.Add("@SoID",     SqlDbType.Int);
         ins.Parameters.Add("@Deadline", SqlDbType.Date);
-        ins.Parameters.Add("@Actor",    SqlDbType.NVarChar, 450).Value = actor;
+        ins.Parameters.Add("@Actor",    SqlDbType.NVarChar,  20).Value = actor;
         ins.Parameters.Add("@UseNet",   SqlDbType.Bit).Value = useNetReq;
         var qtyP = ins.Parameters.Add("@Qty", SqlDbType.Decimal); qtyP.Precision = 18; qtyP.Scale = 3; qtyP.Value = DBNull.Value;
         return ins;
@@ -1175,7 +1175,7 @@ public sealed class PpRepository
             var uq = upd.Parameters.Add("@Qty", SqlDbType.Decimal); uq.Precision = 14; uq.Scale = 3; uq.Value = qty;
             upd.Parameters.Add("@R",  SqlDbType.Int).Value = runId;
             upd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value = itemNo;
-            upd.Parameters.Add("@By", SqlDbType.NVarChar, 450).Value = by;
+            upd.Parameters.Add("@By", SqlDbType.NVarChar,  20).Value = by;
             upd.ExecuteNonQuery();
 
             created.Add(new MrpPrCreated(itemNo, prId, prNumber));
@@ -1237,7 +1237,7 @@ public sealed class PpRepository
                 """, conn, tx);
             upd.Parameters.Add("@P",   SqlDbType.Int).Value = prId;
             upd.Parameters.Add("@Doc", SqlDbType.VarChar, 20).Value = (object?)docNum ?? DBNull.Value;
-            upd.Parameters.Add("@By",  SqlDbType.NVarChar, 450).Value = by;
+            upd.Parameters.Add("@By",  SqlDbType.NVarChar,  20).Value = by;
             upd.ExecuteNonQuery();
             InsertPrLog(conn, tx, prId, "Sent", docNum, by);
             sent.Add(prId);
@@ -1264,7 +1264,7 @@ public sealed class PpRepository
             """, conn, tx);
         upd.Parameters.Add("@P",   SqlDbType.Int).Value = prId;
         upd.Parameters.Add("@Err", SqlDbType.NVarChar, 200).Value = reason.Length > 200 ? reason[..200] : reason;
-        upd.Parameters.Add("@By",  SqlDbType.NVarChar, 450).Value = by;
+        upd.Parameters.Add("@By",  SqlDbType.NVarChar,  20).Value = by;
         upd.ExecuteNonQuery();
         InsertPrLog(conn, tx, prId, "Failed", reason, by);
         tx.Commit();
@@ -1288,7 +1288,7 @@ public sealed class PpRepository
             """, conn, tx);
         upd.Parameters.Add("@P",  SqlDbType.Int).Value = prId;
         upd.Parameters.Add("@Po", SqlDbType.VarChar, 20).Value = poNumber;
-        upd.Parameters.Add("@By", SqlDbType.NVarChar, 450).Value = by;
+        upd.Parameters.Add("@By", SqlDbType.NVarChar,  20).Value = by;
         upd.ExecuteNonQuery();
         InsertPrLog(conn, tx, prId, "Approved", poNumber, by);
         tx.Commit();
@@ -1307,7 +1307,7 @@ public sealed class PpRepository
             """, conn, tx);
         upd.Parameters.Add("@P",  SqlDbType.Int).Value = prId;
         upd.Parameters.Add("@V",  SqlDbType.VarChar, 20).Value = string.IsNullOrWhiteSpace(vendorId) ? DBNull.Value : vendorId.Trim();
-        upd.Parameters.Add("@By", SqlDbType.NVarChar, 450).Value = by;
+        upd.Parameters.Add("@By", SqlDbType.NVarChar,  20).Value = by;
         upd.ExecuteNonQuery();
         tx.Commit();
     }
@@ -1413,7 +1413,7 @@ public sealed class PpRepository
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@SoID",  SqlDbType.Int).Value = soId;
-        cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
+        cmd.Parameters.Add("@Actor", SqlDbType.NVarChar,  20).Value = actor;
         return cmd.ExecuteNonQuery();
     }
 
@@ -1595,7 +1595,7 @@ public sealed class PpRepository
         cmd.Parameters.Add("@Reason",  SqlDbType.VarChar,   30).Value  = (object?)reasonCode ?? DBNull.Value;
         cmd.Parameters.Add("@Cause",   SqlDbType.VarChar,   30).Value  = (object?)causeCode  ?? DBNull.Value;
         cmd.Parameters.Add("@Comment", SqlDbType.NVarChar, 500).Value  = (object?)comment    ?? DBNull.Value;
-        cmd.Parameters.Add("@By",      SqlDbType.NVarChar, 450).Value  = string.IsNullOrWhiteSpace(modifiedBy) ? "web" : modifiedBy;
+        cmd.Parameters.Add("@By",      SqlDbType.NVarChar,  20).Value  = string.IsNullOrWhiteSpace(modifiedBy) ? "web" : modifiedBy;
         cmd.ExecuteNonQuery();
     }
 

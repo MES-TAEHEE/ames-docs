@@ -126,7 +126,8 @@ public sealed class AuthRepository
     /// When the count reaches 5 the AccountStatus is set to 'LOCKED' automatically.
     /// Returns true if the account is now LOCKED (either just locked or was already LOCKED).
     /// </summary>
-    public bool IncrementFailedCount(string userId)
+    /// <param name="modifiedBy">POP 은 시도한 사번을 넘긴다. 생략하면 userId.</param>
+    public bool IncrementFailedCount(string userId, string? modifiedBy = null)
     {
         const string sql = """
             UPDATE dbo.SYS_UserProfile
@@ -136,7 +137,7 @@ public sealed class AuthRepository
                                           THEN 'LOCKED'
                                           ELSE ISNULL(AccountStatus, 'Active')
                                       END,
-                   ModifiedBy       = @UserID,
+                   ModifiedBy       = @ModifiedBy,
                    ModifiedTS       = SYSDATETIME()
             WHERE  UserID = @UserID;
             SELECT ISNULL(AccountStatus, 'Active') FROM dbo.SYS_UserProfile WHERE UserID = @UserID;
@@ -145,6 +146,7 @@ public sealed class AuthRepository
         using var conn = _connFactory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@UserID", SqlDbType.NVarChar, 450).Value = userId;
+        cmd.Parameters.Add("@ModifiedBy", SqlDbType.NVarChar,  20).Value = modifiedBy ?? userId;
         var result = cmd.ExecuteScalar();
         return result is string s && s == "LOCKED";
     }
@@ -194,13 +196,14 @@ public sealed class AuthRepository
     /// <summary>
     /// Clears the failure counter and stamps LastLoginTS after a successful login.
     /// </summary>
-    public void RecordSuccessfulLogin(string userId)
+    /// <param name="modifiedBy">POP 은 로그인한 사번을 넘긴다. 생략하면 userId.</param>
+    public void RecordSuccessfulLogin(string userId, string? modifiedBy = null)
     {
         const string sql = """
             UPDATE dbo.SYS_UserProfile
             SET    FailedLoginCount = 0,
                    LastLoginTS      = SYSDATETIME(),
-                   ModifiedBy       = @UserID,
+                   ModifiedBy       = @ModifiedBy,
                    ModifiedTS       = SYSDATETIME()
             WHERE  UserID = @UserID;
             """;
@@ -208,6 +211,7 @@ public sealed class AuthRepository
         using var conn = _connFactory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@UserID", SqlDbType.NVarChar, 450).Value = userId;
+        cmd.Parameters.Add("@ModifiedBy", SqlDbType.NVarChar,  20).Value = modifiedBy ?? userId;
         cmd.ExecuteNonQuery();
     }
 }

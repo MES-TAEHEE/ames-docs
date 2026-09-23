@@ -62,7 +62,7 @@ public sealed class PopAuthService
                 // MD_Worker has no failure counter, and profile.UserId is a badge
                 // number there — running the SYS_UserProfile update would silently
                 // match nothing. Skip it rather than rely on that no-op.
-                var isNowLocked = !profile.IsWorker && _auth.IncrementFailedCount(profile.UserId);
+                var isNowLocked = !profile.IsWorker && _auth.IncrementFailedCount(profile.UserId, profile.EmployeeNo);
                 if (isNowLocked)
                 {
                     _sessions.WriteAuthLog(req.TerminalId, req.AttemptedId, req.Method,
@@ -94,7 +94,7 @@ public sealed class PopAuthService
                                               req.ShiftCode, req.Method);
         _sessions.WriteAuthLog(req.TerminalId, req.AttemptedId, req.Method,
                                AuthResult.Ok, null);
-        if (!profile.IsWorker) _auth.RecordSuccessfulLogin(profile.UserId);
+        if (!profile.IsWorker) _auth.RecordSuccessfulLogin(profile.UserId, profile.EmployeeNo);
 
         return LoginOutcome.Success(session);
     }

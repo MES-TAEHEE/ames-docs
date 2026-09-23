@@ -275,12 +275,13 @@ appsettings 의 `PopTerminal:ModuleCode`/`LineId`/`StationId` 는 제거됐다 �
 ### 인증 흐름
 - **Pop**: `PopAuthService` → `AuthRepository.FindByEmployeeNo()` → 없으면 `WorkerRepository.FindByEmployeeNo()` → `PinHasher` (PBKDF2) → `PopSessionRepository.CreateSession()`
   - POP 로그인은 두 곳을 본다: 웹 계정 작업자(`SYS_UserProfile` + `AspNetUsers`)와 POP 전용 작업자(`MD_Worker`). **사번이 겹치면 웹 계정이 이긴다.**
-  - `MD_Worker` 는 최소 구성이라 라인 배정도 실패 카운터도 없다 — 워커는 **전 라인 허용, PIN 오류로 잠기지 않는다**. 세션 `OperatorID` 에는 GUID 가 아니라 **사번(`MD_Worker.EmployeeNo`)이 그대로** 들어가므로 사번은 전사 유일해야 한다.
+  - `MD_Worker` 는 최소 구성이라 라인 배정도 실패 카운터도 없다 — 워커는 **전 라인 허용, PIN 오류로 잠기지 않는다**.
+  - **POP 이 기록하는 "누가" 는 전부 로그인 사번이다**(09-23) — 웹 계정도 GUID 가 아니라 `SYS_UserProfile.EmployeeNo`. `PopSessionRepository.CreateSession` 이 `PR_PopSession.OperatorID`·`PopSessionDto.OperatorId` 를 사번으로 채우므로 실적·LOT·PNT·QC·재작업의 `OperatorID`·`ConfirmedBy`·`InspectorID` 등 사람 컬럼과 `CreatedBy`·`ModifiedBy` 가 모두 사번이 된다(`AspNetUsers.Id` 는 `IsAdmin` 역할 조회에만 쓴다). PDA/Tablet 도 같은 `CreateSession` 을 쓰므로 API 토큰의 `OperatorId` 도 사번이다. 로그인 전 기록은 시도한 사번(`PR_PopAuthLog.CreatedBy`, PIN 실패 시 `SYS_UserProfile.ModifiedBy`), 안돈은 감사 컬럼 = 로그인 사번 · 배지를 찍은 사람은 `AckedBy`·`CalledBy`·`ArrivedNo`·`TechnicianID`·`ReportedBy` 에 남는다. 그 이전 행은 GUID 가 섞여 있다. 사번은 웹 계정·워커를 통틀어 전사 유일해야 한다(강제하는 제약은 없다).
   - `AMES.Api` 의 `/api/auth/login` 도 같은 서비스를 쓰므로 **PDA 도 워커 로그인을 받는다.**
   - POP 로그인 화면은 시리얼 스캐너(`ScannerService`)로 사원증 QR 을 받으면 `AuthMethod.Badge` 로 **PIN 없이 즉시 로그인**한다. 라인·스테이션 미선택, 픽커 열림, 로그인 진행 중에는 스캔을 무시한다.
   - 사원증 QR 발행 양식은 **`EOS*사번*이름`** 세 토큰이고 `AMES.Devices.BadgeScanParser` 가 정본이다(단위 테스트 `AMES.Pop.Tests/BadgeScanParserTests`). 이 양식이 아니면 스캔값 전체를 사번으로 본다 — 구 사번-only QR 과 웹 계정 배지가 계속 동작하게 하려는 것이며, 그 경로는 자동 등록 대상이 아니다.
-  - **EOS 양식으로 읽히면 모르는 사번은 그 자리에서 `MD_Worker` 에 만들어진다**(`EmployeeName`=배지의 이름, 없으면 사번 / PIN 없음 / `CreatedBy='POP-SCAN'`). 로그인 화면 스캔에서만 동작하며 PDA/API 는 종전대로 등록된 사람만 받는다. 즉 **EOS 양식 QR 을 인쇄할 수 있으면 누구나 계정을 만들 수 있다** — 배지 발급을 통제할 것. INSERT 전용이라 `ActiveFlag=0` 인 행은 재스캔으로 되살아나지 않고, 관리자가 고친 이름도 덮이지 않는다.
-  - **`PinHash` 가 없는 워커는 배지 로그인 직후 PIN 설정을 강제한다** — 4자리를 두 번 입력해 일치해야 저장(`ModifiedBy='POP-PIN'`)되고 작업 화면으로 넘어간다. 건너뛸 수 없다: PIN 이 없으면 스캐너가 죽었을 때 그 사람은 들어올 방법이 없다. 자동 등록분뿐 아니라 등록 화면에서 PIN 없이 만든 워커도 대상이다.
+  - **EOS 양식으로 읽히면 모르는 사번은 그 자리에서 `MD_Worker` 에 만들어진다**(`EmployeeName`=배지의 이름, 없으면 사번 / PIN 없음 / `CreatedBy`=본인 사번 — 09-23 이전 행은 `'POP-SCAN'`, MD-032 는 둘 다 배지 등록으로 표시). 로그인 화면 스캔에서만 동작하며 PDA/API 는 종전대로 등록된 사람만 받는다. 즉 **EOS 양식 QR 을 인쇄할 수 있으면 누구나 계정을 만들 수 있다** — 배지 발급을 통제할 것. INSERT 전용이라 `ActiveFlag=0` 인 행은 재스캔으로 되살아나지 않고, 관리자가 고친 이름도 덮이지 않는다.
+  - **`PinHash` 가 없는 워커는 배지 로그인 직후 PIN 설정을 강제한다** — 4자리를 두 번 입력해 일치해야 저장(`ModifiedBy`=본인 사번)되고 작업 화면으로 넘어간다. 건너뛸 수 없다: PIN 이 없으면 스캐너가 죽었을 때 그 사람은 들어올 방법이 없다. 자동 등록분뿐 아니라 등록 화면에서 PIN 없이 만든 워커도 대상이다.
   - 화면이 이걸 판단하는 근거는 `PopSessionDto.IsWorker` · `HasPin` 이고 `PopSessionRepository.CreateSession` 이 채운다. **PIN 설정 전에 `PR_PopSession` 행은 이미 생긴다** — 오버레이 상태로 자리를 뜨면 열린 세션이 남고 만료시각으로만 정리된다.
 - **Api**: `POST /api/auth/login` → `TokenStore.Issue()` → Bearer 헤더 검증 (`BearerAuth` 미들웨어)
 - **Web**: ASP.NET Identity, `ApplicationDbContext` (EF Core, Identity 테이블 전용)

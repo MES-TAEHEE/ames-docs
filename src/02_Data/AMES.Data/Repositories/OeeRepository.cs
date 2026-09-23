@@ -156,7 +156,7 @@ public sealed class OeeRepository
         AddDec(cmd, "@P",    Frac(s.Performance));
         AddDec(cmd, "@Q",    Frac(s.Quality));
         AddDec(cmd, "@Oee",  Frac(s.Oee));
-        cmd.Parameters.Add("@By", SqlDbType.NVarChar, 450).Value = string.IsNullOrWhiteSpace(savedBy) ? "web" : savedBy;
+        cmd.Parameters.Add("@By", SqlDbType.NVarChar,  20).Value = string.IsNullOrWhiteSpace(savedBy) ? "web" : savedBy;
         return Convert.ToInt32(cmd.ExecuteScalar());
 
         static void AddDec(SqlCommand c, string name, decimal v)

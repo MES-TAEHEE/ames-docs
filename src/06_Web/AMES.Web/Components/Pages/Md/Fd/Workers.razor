@@ -242,9 +242,12 @@
 
     FormModel _f = new();
 
-    // POP 로그인 화면의 배지 스캔이 만든 행 (WorkerRepository.EnsureRegistered)
-    const string BadgeCreatedBy = "POP-SCAN";
-    static bool IsBadgeCreated(WorkerRepository.WorkerRow w) => string.Equals(w.CreatedBy, BadgeCreatedBy, StringComparison.OrdinalIgnoreCase);
+    // POP 로그인 화면의 배지 스캔이 만든 행 (WorkerRepository.EnsureRegistered) — CreatedBy 가 본인 사번.
+    // 구 버전이 남긴 행은 'POP-SCAN' 이다.
+    const string LegacyBadgeCreatedBy = "POP-SCAN";
+    static bool IsBadgeCreated(WorkerRepository.WorkerRow w) =>
+        string.Equals(w.CreatedBy, w.EmployeeNo, StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(w.CreatedBy, LegacyBadgeCreatedBy, StringComparison.OrdinalIgnoreCase);
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
