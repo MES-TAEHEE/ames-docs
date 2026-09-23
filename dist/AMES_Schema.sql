@@ -1,6 +1,7 @@
 -- A-MES consolidated schema: AMES_DEV, captured 2026-09-23.
 -- Includes PDA schema and all deployed stored procedures; excludes TEST_* tables.
--- 173 tables / 2465 columns / 39 procedures / 28 foreign keys / 5 checks / 1 synonym.
+-- 174 tables / 2470 columns / 39 procedures / 28 foreign keys / 5 checks / 1 synonym.
+-- Audit actor columns standardized to varchar(20); SYS_AuditActorMap preserves legacy actor values.
 -- Schema only from the live database; sample seeds below are retained from the repository.
 -- Recreates the included objects: existing data in these tables will be deleted.
 -- Use dist/create_database.sql and the rebuild workflow for a fresh database.
@@ -82,6 +83,7 @@ DROP PROCEDURE IF EXISTS [dbo].[WH_PDA_TRANSACTION_LIST];
 DROP PROCEDURE IF EXISTS [dbo].[WH_SET_LOT_STATUS];
 DROP SYNONYM IF EXISTS [dbo].[FG_Stock];
 IF OBJECT_ID(N'dbo.FG_Stock', N'U') IS NOT NULL DROP TABLE dbo.FG_Stock;
+DROP TABLE IF EXISTS [dbo].[SYS_AuditActorMap];
 DROP TABLE IF EXISTS [dbo].[AspNetRoleClaims];
 DROP TABLE IF EXISTS [dbo].[AspNetRoles];
 DROP TABLE IF EXISTS [dbo].[AspNetUserClaims];
@@ -255,6 +257,16 @@ DROP TABLE IF EXISTS [dbo].[WH_ReleasePicking];
 DROP TABLE IF EXISTS [dbo].[WH_ReleaseSchedule];
 DROP TABLE IF EXISTS [dbo].[WH_TransactionHistory];
 DROP TABLE IF EXISTS [dbo].[WH_WarehouseMaster];
+GO
+-- Legacy actor values are migrated by migrate_audit_actor_varchar20.sql.
+-- Fresh databases start with an empty mapping table (no production identity data).
+CREATE TABLE dbo.SYS_AuditActorMap (
+    OriginalHash binary(32) NOT NULL CONSTRAINT PK_SYS_AuditActorMap PRIMARY KEY,
+    OriginalValue nvarchar(900) NOT NULL,
+    ActorCode varchar(20) NOT NULL,
+    MappingKind varchar(20) NOT NULL,
+    RecordedAt datetime2(7) NOT NULL CONSTRAINT DF_SYS_AuditActorMap_RecordedAt DEFAULT SYSUTCDATETIME()
+);
 GO
 -- Table: dbo.AspNetRoleClaims
 SET ANSI_NULLS ON
@@ -485,9 +497,9 @@ CREATE TABLE [dbo].[FG_CustomerReturn](
 	[CapaTriggered] [bit] NULL,
 	[ClosedAt] [datetime2](7) NULL,
 	[ClosedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[Note] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[StockID] [int] NOT NULL,
@@ -564,11 +576,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'마감 시각 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Closed By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'ClosedBy'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'고객 반품 (RMA)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn'
 GO
@@ -590,9 +602,9 @@ CREATE TABLE [dbo].[FG_DayEndClose](
 	[SnapshotURL] [varchar](255) COLLATE Korean_Wansung_CI_AS NULL,
 	[ErpFeedTS] [datetime2](7) NULL,
 	[ErpFeedStatus] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_FG_DayEndClose] PRIMARY KEY CLUSTERED
 (
@@ -626,11 +638,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Erp Feed TS ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Erp Feed Status · varchar(15)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_DayEndClose', @level2type=N'COLUMN',@level2name=N'ErpFeedStatus'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_DayEndClose', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_DayEndClose', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_DayEndClose', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_DayEndClose', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_DayEndClose', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'일 마감 스냅샷' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_DayEndClose'
 GO
@@ -655,9 +667,9 @@ CREATE TABLE [dbo].[FG_DeliveryNote](
 	[EdiStatus] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
 	[CustomerAckTS] [datetime2](7) NULL,
 	[LinesJSON] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_FG_DeliveryNote] PRIMARY KEY CLUSTERED
 (
@@ -697,11 +709,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Customer Ack T
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Lines JSON · nvarchar' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_DeliveryNote', @level2type=N'COLUMN',@level2name=N'LinesJSON'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_DeliveryNote', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_DeliveryNote', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_DeliveryNote', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_DeliveryNote', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_DeliveryNote', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ 거래명세서 / BOL' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_DeliveryNote'
 GO
@@ -725,9 +737,9 @@ CREATE TABLE [dbo].[FG_Inventory](
 	[HoldID] [int] NULL,
 	[ReservationID] [int] NULL,
 	[StockTS] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_FG_Inventory] PRIMARY KEY CLUSTERED
 (
@@ -794,11 +806,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Reservation ID
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Stock TS · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_Inventory', @level2type=N'COLUMN',@level2name=N'StockTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_Inventory', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_Inventory', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_Inventory', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_Inventory', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_Inventory', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ 완제품 재고' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_Inventory'
 GO
@@ -820,8 +832,8 @@ CREATE TABLE [dbo].[FG_InventoryAdjust](
 	[ReasonCode] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReasonNote] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[RequestedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[RequestedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NOT NULL,
  CONSTRAINT [PK_FG_InventoryAdjust] PRIMARY KEY CLUSTERED
 (
@@ -858,9 +870,9 @@ CREATE TABLE [dbo].[FG_LoadingConfirm](
 	[OTDStatus] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[OperatorID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ConfirmedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_FG_LoadingConfirm] PRIMARY KEY CLUSTERED
 (
@@ -925,11 +937,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'작업자 (Asp
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Confirmed At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_LoadingConfirm', @level2type=N'COLUMN',@level2name=N'ConfirmedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_LoadingConfirm', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_LoadingConfirm', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_LoadingConfirm', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_LoadingConfirm', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_LoadingConfirm', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'상차 (Chain-of-Custody)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_LoadingConfirm'
 GO
@@ -941,9 +953,9 @@ GO
 CREATE TABLE [dbo].[FG_LocationMaster](
 	[LocationID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[ActiveFlag] [bit] NOT NULL,
-	[CreatedBy] [nvarchar](120) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NOT NULL,
-	[ModifiedBy] [nvarchar](120) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_FG_LocationMaster] PRIMARY KEY CLUSTERED
 (
@@ -970,7 +982,7 @@ CREATE TABLE [dbo].[FG_PickingDetail](
 	[Qty] [decimal](12, 3) NOT NULL,
 	[Location] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[PickSeq] [int] NOT NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_FG_PickingDetail] PRIMARY KEY CLUSTERED
 (
@@ -1008,9 +1020,9 @@ CREATE TABLE [dbo].[FG_PickingFifo](
 	[PickedQty] [decimal](12, 3) NULL,
 	[OrderedQty] [decimal](12, 3) NULL,
 	[Status] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_FG_PickingFifo] PRIMARY KEY CLUSTERED
 (
@@ -1055,11 +1067,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Ordered Qty ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'완제품 상태 · varchar(15)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PickingFifo', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PickingFifo', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PickingFifo', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PickingFifo', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PickingFifo', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PickingFifo', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'FIFO 피킹 세션' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PickingFifo'
 GO
@@ -1082,9 +1094,9 @@ CREATE TABLE [dbo].[FG_PutAway](
 	[LabelPrintedTS] [datetime2](7) NULL,
 	[OperatorID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[StorageMethod] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ContainerType] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -1123,11 +1135,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'작업자 (Asp
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'완제품 상태 · varchar(15)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'완제품 적치 (FG-01)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway'
 GO
@@ -1153,9 +1165,9 @@ CREATE TABLE [dbo].[FG_ShipmentOrder](
 	[OTDFlag] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[ConfirmedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ConfirmedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[OutgoingSlipNumber] [varchar](24) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_FG_ShipmentOrder] PRIMARY KEY CLUSTERED
@@ -1207,11 +1219,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Confirmed By �
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Confirmed At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'ConfirmedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ 출하 지시 헤더' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder'
 GO
@@ -1233,9 +1245,9 @@ CREATE TABLE [dbo].[FG_ShipmentOrderLine](
 	[ReservationStatus] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReservedAt] [datetime2](7) NULL,
 	[ReleasedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_FG_ShipmentOrderLine] PRIMARY KEY CLUSTERED
 (
@@ -1276,11 +1288,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Reserved At ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'릴리즈 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrderLine', @level2type=N'COLUMN',@level2name=N'ReleasedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrderLine', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrderLine', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrderLine', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrderLine', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrderLine', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'출하 라인 (SO×LOT)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrderLine'
 GO
@@ -1301,9 +1313,9 @@ CREATE TABLE [dbo].[MD_Bom](
 	[Position] [int] NULL,
 	[Note] [nvarchar](120) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_Bom] PRIMARY KEY CLUSTERED
 (
@@ -1334,9 +1346,9 @@ CREATE TABLE [dbo].[MD_BomVersion](
 	[ApprovedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ApprovedTS] [datetime2](7) NULL,
 	[Status] [varchar](12) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_BomVersion] PRIMARY KEY CLUSTERED
 (
@@ -1368,11 +1380,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved TS ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'마스터 상태 · varchar(12)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_BomVersion', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_BomVersion', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_BomVersion', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_BomVersion', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_BomVersion', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_BomVersion', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'BOM 버전 (MD-03)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_BomVersion'
 GO
@@ -1391,9 +1403,9 @@ CREATE TABLE [dbo].[MD_Bop](
 	[QcRequiredFlag] [bit] NULL,
 	[StepDescription] [nvarchar](120) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[StationCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_MD_Bop] PRIMARY KEY CLUSTERED
@@ -1424,11 +1436,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Step Descripti
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'활성 플래그 (FALSE = 비활성/단종) · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Bop', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Bop', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Bop', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Bop', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Bop', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Bop', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'BOP 라우팅 (MD-04)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Bop'
 GO
@@ -1443,9 +1455,9 @@ CREATE TABLE [dbo].[MD_CodeGroup](
 	[GroupNameEn] [nvarchar](60) COLLATE Korean_Wansung_CI_AS NULL,
 	[Description] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
 	[UseFlag] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_CodeGroup] PRIMARY KEY CLUSTERED
 (
@@ -1467,11 +1479,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'설명 · nvar
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Use Flag · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_CodeGroup', @level2type=N'COLUMN',@level2name=N'UseFlag'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_CodeGroup', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_CodeGroup', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_CodeGroup', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_CodeGroup', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_CodeGroup', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'공통코드 그룹 (MD-26a)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_CodeGroup'
 GO
@@ -1491,9 +1503,9 @@ CREATE TABLE [dbo].[MD_CodeItem](
 	[Attribute1] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
 	[UseFlag] [bit] NULL,
 	[Description] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_CodeItem] PRIMARY KEY CLUSTERED
 (
@@ -1525,11 +1537,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Use Flag · bi
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'설명 · nvarchar(120)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_CodeItem', @level2type=N'COLUMN',@level2name=N'Description'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_CodeItem', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_CodeItem', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_CodeItem', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_CodeItem', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_CodeItem', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'공통코드 항목 (MD-26b)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_CodeItem'
 GO
@@ -1552,9 +1564,9 @@ CREATE TABLE [dbo].[MD_Customer](
 	[EDIFlag] [bit] NULL,
 	[CurrencyCode] [char](3) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](8) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_Customer] PRIMARY KEY CLUSTERED
 (
@@ -1590,11 +1602,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'기본 거래 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'상태 — CK: ACTIVE·INACTIVE.  · varchar(8)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Customer', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Customer', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Customer', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각.  · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Customer', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Customer', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Customer', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'고객사 (MD-12)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Customer'
 GO
@@ -1613,9 +1625,9 @@ CREATE TABLE [dbo].[MD_DefectCause](
 	[CorrectiveGuide] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
 	[ResponsibleDept] [nvarchar](30) COLLATE Korean_Wansung_CI_AS NULL,
 	[SortOrder] [int] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[ActiveFlag] [bit] NOT NULL,
 	[CauseNameEn] [nvarchar](60) COLLATE Korean_Wansung_CI_AS NULL,
@@ -1647,11 +1659,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'책임 부서.
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'화면 표시 순서.  · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_DefectCause', @level2type=N'COLUMN',@level2name=N'SortOrder'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_DefectCause', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_DefectCause', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각.  · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_DefectCause', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_DefectCause', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_DefectCause', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'불량 원인 (MD-22)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_DefectCause'
 GO
@@ -1671,9 +1683,9 @@ CREATE TABLE [dbo].[MD_DefectCode](
 	[DefaultCauseCode] [varchar](16) COLLATE Korean_Wansung_CI_AS NULL,
 	[ParetoFlag] [bit] NULL,
 	[ImageRef] [varchar](120) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[ActiveFlag] [bit] NOT NULL,
  CONSTRAINT [PK_MD_DefectCode] PRIMARY KEY CLUSTERED
@@ -1706,11 +1718,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'RPT-02 파레�
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'불량 예시 이미지 경로.  · varchar(120)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_DefectCode', @level2type=N'COLUMN',@level2name=N'ImageRef'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_DefectCode', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_DefectCode', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각.  · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_DefectCode', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_DefectCode', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_DefectCode', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'불량 코드 (MD-21)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_DefectCode'
 GO
@@ -1733,9 +1745,9 @@ CREATE TABLE [dbo].[MD_Equipment](
 	[PlcAddress] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](8) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_Equipment] PRIMARY KEY CLUSTERED
 (
@@ -1773,11 +1785,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'현재 상태 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'운영 여부 (폐기 시 FALSE).  · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Equipment', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Equipment', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Equipment', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각.  · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Equipment', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Equipment', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Equipment', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'설비 (MD-08)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Equipment'
 GO
@@ -1795,10 +1807,10 @@ CREATE TABLE [dbo].[MD_InjCondItem](
 	[ActualAddress] [int] NULL,
 	[DataType] [varchar](8) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[Enabled] [bit] NOT NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_MD_InjCondItem] PRIMARY KEY CLUSTERED
 (
 	[CondItemID] ASC
@@ -1833,9 +1845,9 @@ CREATE TABLE [dbo].[MD_InspectionStandard](
 	[InspMethod] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[IsCTQ] [bit] NULL,
 	[EffectiveDate] [date] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[ActiveFlag] [bit] NOT NULL,
  CONSTRAINT [PK_MD_InspectionStandard] PRIMARY KEY CLUSTERED
@@ -1874,11 +1886,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Is CTQ · bit'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Effective Date · date' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_InspectionStandard', @level2type=N'COLUMN',@level2name=N'EffectiveDate'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_InspectionStandard', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_InspectionStandard', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_InspectionStandard', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_InspectionStandard', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_InspectionStandard', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'검사 기준 (MD-06)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_InspectionStandard'
 GO
@@ -1905,7 +1917,7 @@ CREATE TABLE [dbo].[MD_Item](
 	[ActiveFlag] [bit] NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[CarType] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[PGN] [varchar](4) COLLATE Korean_Wansung_CI_AS NULL,
@@ -1959,7 +1971,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (SYS
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각.  · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'품목 (MD-01)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item'
 GO
@@ -1980,9 +1992,9 @@ CREATE TABLE [dbo].[MD_Jig](
 	[LastServiceDate] [date] NULL,
 	[LastUsedTS] [datetime2](7) NULL,
 	[ActiveFlag] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_Jig] PRIMARY KEY CLUSTERED
 (
@@ -2016,11 +2028,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최근 사용 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사용 여부.  · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Jig', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Jig', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Jig', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각.  · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Jig', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Jig', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Jig', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'지그 (MD-15)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Jig'
 GO
@@ -2040,9 +2052,9 @@ CREATE TABLE [dbo].[MD_LabelTemplate](
 	[CustomerID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[Version] [int] NULL,
 	[PrinterModel] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[ActiveFlag] [bit] NOT NULL,
  CONSTRAINT [PK_MD_LabelTemplate] PRIMARY KEY CLUSTERED
@@ -2075,11 +2087,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'템플릿 버�
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'대상 프린터 모델.  · varchar(30)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LabelTemplate', @level2type=N'COLUMN',@level2name=N'PrinterModel'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LabelTemplate', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LabelTemplate', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각.  · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LabelTemplate', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LabelTemplate', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LabelTemplate', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'라벨 템플릿 (MD-24)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LabelTemplate'
 GO
@@ -2098,9 +2110,9 @@ CREATE TABLE [dbo].[MD_Line](
 	[ShiftPattern] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[RfidEnabledFlag] [bit] NULL,
 	[Status] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[LotPrefix] [char](2) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_MD_Line] PRIMARY KEY CLUSTERED
@@ -2136,11 +2148,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'RFID 게이트
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'라인 상태 — CK: ACTIVE·IDLE·RETIRED.  · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Line', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Line', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Line', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각.  · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Line', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Line', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Line', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생산 라인 (MD-20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Line'
 GO
@@ -2153,9 +2165,9 @@ CREATE TABLE [dbo].[MD_LineSupervisor](
 	[LineID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[EmployeeNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[ActiveFlag] [bit] NOT NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_LineSupervisor] PRIMARY KEY CLUSTERED
 (
@@ -2185,9 +2197,9 @@ CREATE TABLE [dbo].[MD_LineTimePattern](
 	[TotalPlannedDownMin] [int] NULL,
 	[TimeZone] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](8) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[OperatingFlag] [char](1440) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[SegmentFlag] [char](1440) COLLATE Korean_Wansung_CI_AS NOT NULL,
@@ -2225,11 +2237,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'패턴 기준 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'상태 — CK: DRAFT·ACTIVE·INACTIVE.  · varchar(8)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LineTimePattern', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LineTimePattern', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LineTimePattern', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각.  · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LineTimePattern', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LineTimePattern', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LineTimePattern', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'시간패턴 헤더 (MD-29a)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LineTimePattern'
 GO
@@ -2248,9 +2260,9 @@ CREATE TABLE [dbo].[MD_LineTimeSegment](
 	[ReasonCode] [varchar](16) COLLATE Korean_Wansung_CI_AS NULL,
 	[ShiftCode] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[Description] [nvarchar](60) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_LineTimeSegment] PRIMARY KEY CLUSTERED
 (
@@ -2278,11 +2290,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'교대 코드 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'설명 · nvarchar(60)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LineTimeSegment', @level2type=N'COLUMN',@level2name=N'Description'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LineTimeSegment', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LineTimeSegment', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LineTimeSegment', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LineTimeSegment', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LineTimeSegment', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'시간 세그먼트 (MD-29b)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LineTimeSegment'
 GO
@@ -2302,9 +2314,9 @@ CREATE TABLE [dbo].[MD_Location](
 	[LocationType] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[PlantCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[WhCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[AreaCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
@@ -2342,11 +2354,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Plant ID · va
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'활성 플래그 (FALSE = 비활성/단종) · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Location', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Location', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Location', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Location', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Location', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Location', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'로케이션 (보조)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Location'
 GO
@@ -2365,9 +2377,9 @@ CREATE TABLE [dbo].[MD_Mold](
 	[StorageLoc] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[LastMaintDate] [date] NULL,
 	[Status] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[CumulativeShots] [bigint] NOT NULL,
 	[ShotsUpdatedTS] [datetime2](7) NULL,
@@ -2419,11 +2431,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최근 금형 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'상태 — CK: ACTIVE·MAINT·RETIRED.  · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Mold', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Mold', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Mold', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각.  · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Mold', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Mold', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Mold', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'금형 (MD-09)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Mold'
 GO
@@ -2435,10 +2447,10 @@ GO
 CREATE TABLE [dbo].[MD_MoldColor](
 	[MoldID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[Color] [varchar](10) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_MD_MoldColor] PRIMARY KEY CLUSTERED
 (
 	[MoldID] ASC,
@@ -2465,10 +2477,10 @@ CREATE TABLE [dbo].[MD_MoldItem](
 	[CavityCount] [int] NOT NULL,
 	[MoldCategory] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NOT NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_MD_MoldItem] PRIMARY KEY CLUSTERED
 (
 	[MoldID] ASC,
@@ -2510,10 +2522,10 @@ CREATE TABLE [dbo].[MD_MoldLine](
 	[MoldID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[UPH] [decimal](18, 4) NULL,
 	[PrepTime] [decimal](18, 4) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_MD_MoldLine] PRIMARY KEY CLUSTERED
 (
 	[LineCode] ASC,
@@ -2539,9 +2551,9 @@ CREATE TABLE [dbo].[MD_Oven](
 	[ConveyorSpeed] [decimal](6, 2) NULL,
 	[MaxLoadKg] [decimal](8, 1) NULL,
 	[Status] [varchar](8) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_Oven] PRIMARY KEY CLUSTERED
 (
@@ -2571,11 +2583,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최대 적재 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'상태 — CK: RUN·IDLE·DOWN.  · varchar(8)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Oven', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Oven', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Oven', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각.  · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Oven', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Oven', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Oven', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'오븐 (MD-18)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Oven'
 GO
@@ -2596,9 +2608,9 @@ CREATE TABLE [dbo].[MD_PackagingSpec](
 	[DimLxWxH] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReturnableFlag] [bit] NULL,
 	[LabelTemplateID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[ActiveFlag] [bit] NOT NULL,
  CONSTRAINT [PK_MD_PackagingSpec] PRIMARY KEY CLUSTERED
@@ -2633,11 +2645,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'회수용기 �
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'박스 라벨 템플릿 → MD_LabelTemplate.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PackagingSpec', @level2type=N'COLUMN',@level2name=N'LabelTemplateID'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PackagingSpec', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PackagingSpec', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각.  · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PackagingSpec', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PackagingSpec', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PackagingSpec', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'포장 사양 (MD-23)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PackagingSpec'
 GO
@@ -2659,9 +2671,9 @@ CREATE TABLE [dbo].[MD_PaintFabric](
 	[ExpDate] [date] NULL,
 	[StorageReq] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_PaintFabric] PRIMARY KEY CLUSTERED
 (
@@ -2695,11 +2707,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Storage Req ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'마스터 상태 · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PaintFabric', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PaintFabric', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PaintFabric', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PaintFabric', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PaintFabric', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PaintFabric', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'도료·원단 LOT (MD-10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PaintFabric'
 GO
@@ -2718,9 +2730,9 @@ CREATE TABLE [dbo].[MD_PmTemplate](
 	[StdDurationMin] [int] NULL,
 	[SafetyLOTOFlag] [bit] NULL,
 	[ActiveFlag] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_PmTemplate] PRIMARY KEY CLUSTERED
 (
@@ -2750,11 +2762,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Safety LOTO Fl
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'활성 플래그 (FALSE = 비활성/단종) · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplate', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplate', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplate', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplate', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplate', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplate', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PM 템플릿 (MD-28a)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplate'
 GO
@@ -2772,9 +2784,9 @@ CREATE TABLE [dbo].[MD_PmTemplateStep](
 	[RequiredPartNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[RequiredQty] [decimal](10, 3) NULL,
 	[StepDurationMin] [int] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_PmTemplateStep] PRIMARY KEY CLUSTERED
 (
@@ -2800,11 +2812,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Required Qty �
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Step Duration Min · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplateStep', @level2type=N'COLUMN',@level2name=N'StepDurationMin'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplateStep', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplateStep', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplateStep', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplateStep', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplateStep', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PM 점검 항목 (MD-28b)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplateStep'
 GO
@@ -2824,9 +2836,9 @@ CREATE TABLE [dbo].[MD_RalColor](
 	[ParticleUm] [decimal](5, 1) NULL,
 	[CustomerMapJSON] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_RalColor] PRIMARY KEY CLUSTERED
 (
@@ -2858,11 +2870,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Customer Map J
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'활성 플래그 (FALSE = 비활성/단종) · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RalColor', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RalColor', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RalColor', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RalColor', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RalColor', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RalColor', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'RAL 컬러 (MD-17)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RalColor'
 GO
@@ -2880,9 +2892,9 @@ CREATE TABLE [dbo].[MD_ReasonCode](
 	[PlannedFlag] [bit] NULL,
 	[DisplayOrder] [int] NULL,
 	[Description] [nvarchar](120) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[ActiveFlag] [bit] NOT NULL,
  CONSTRAINT [PK_MD_ReasonCode] PRIMARY KEY CLUSTERED
@@ -2911,11 +2923,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'화면 표시 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사유 부가 설명.  · nvarchar(120)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ReasonCode', @level2type=N'COLUMN',@level2name=N'Description'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ReasonCode', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ReasonCode', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각.  · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ReasonCode', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ReasonCode', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ReasonCode', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사유 코드 (MD-25)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ReasonCode'
 GO
@@ -2934,9 +2946,9 @@ CREATE TABLE [dbo].[MD_Recipe](
 	[Version] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[EffectiveDate] [date] NULL,
 	[Status] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_Recipe] PRIMARY KEY CLUSTERED
 (
@@ -2964,11 +2976,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Effective Date
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'마스터 상태 · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Recipe', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Recipe', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Recipe', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Recipe', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Recipe', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Recipe', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'레시피 (보조)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Recipe'
 GO
@@ -2989,9 +3001,9 @@ CREATE TABLE [dbo].[MD_RfidReader](
 	[IpAddress] [varchar](45) COLLATE Korean_Wansung_CI_AS NULL,
 	[FirmwareVer] [varchar](16) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](8) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_RfidReader] PRIMARY KEY CLUSTERED
 (
@@ -3023,11 +3035,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Firmware Ver �
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'마스터 상태 · varchar(8)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RfidReader', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RfidReader', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RfidReader', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RfidReader', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RfidReader', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RfidReader', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'RFID 리더 (MD-19)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RfidReader'
 GO
@@ -3047,9 +3059,9 @@ CREATE TABLE [dbo].[MD_RfidTag](
 	[CycleCount] [int] NULL,
 	[ReplaceSchedule] [date] NULL,
 	[Status] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_RfidTag] PRIMARY KEY CLUSTERED
 (
@@ -3079,11 +3091,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Replace Schedu
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'마스터 상태 · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RfidTag', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RfidTag', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RfidTag', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RfidTag', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RfidTag', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RfidTag', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'RFID 태그 (MD-16)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_RfidTag'
 GO
@@ -3098,9 +3110,9 @@ CREATE TABLE [dbo].[MD_RoutingStep](
 	[ProcessCode] [varchar](10) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[QcRequiredFlag] [bit] NOT NULL,
 	[ActiveFlag] [bit] NOT NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedTS] [datetime2](7) NOT NULL,
-	[ModifiedBy] [nvarchar](900) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_RoutingStep] PRIMARY KEY CLUSTERED
 (
@@ -3132,9 +3144,9 @@ CREATE TABLE [dbo].[MD_ShipmentDest](
 	[DefaultCarrier] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[DeliveryWindow] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](8) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_ShipmentDest] PRIMARY KEY CLUSTERED
 (
@@ -3166,11 +3178,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Delivery Windo
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'마스터 상태 · varchar(8)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ShipmentDest', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ShipmentDest', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ShipmentDest', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ShipmentDest', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ShipmentDest', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ShipmentDest', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'출하처 (MD-11)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ShipmentDest'
 GO
@@ -3198,9 +3210,9 @@ CREATE TABLE [dbo].[MD_SparePart](
 	[Maker] [nvarchar](100) COLLATE Korean_Wansung_CI_AS NULL,
 	[SupplierID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[ExtraLocation] [nvarchar](60) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_MD_SparePart] PRIMARY KEY CLUSTERED
@@ -3232,9 +3244,9 @@ CREATE TABLE [dbo].[MD_Station](
 	[FormName] [varchar](50) COLLATE Korean_Wansung_CI_AS NULL,
 	[OrderSeq] [int] NOT NULL,
 	[Status] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_Station] PRIMARY KEY CLUSTERED
 (
@@ -3259,9 +3271,9 @@ CREATE TABLE [dbo].[MD_Uom](
 	[DecimalPrec] [int] NULL,
 	[Symbol] [nvarchar](8) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_Uom] PRIMARY KEY CLUSTERED
 (
@@ -3291,11 +3303,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Symbol · nvar
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'활성 플래그 (FALSE = 비활성/단종) · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Uom', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Uom', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Uom', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Uom', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Uom', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Uom', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'단위 (MD-13)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Uom'
 GO
@@ -3318,9 +3330,9 @@ CREATE TABLE [dbo].[MD_Vendor](
 	[OtdTargetRate] [decimal](5, 2) NULL,
 	[PaymentTerms] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_Vendor] PRIMARY KEY CLUSTERED
 (
@@ -3358,11 +3370,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'결제 조건 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'거래 활성 여부.  · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Vendor', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Vendor', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Vendor', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각.  · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Vendor', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Vendor', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Vendor', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'거래선 (MD-07)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Vendor'
 GO
@@ -3380,9 +3392,9 @@ CREATE TABLE [dbo].[MD_WorkCenter](
 	[CostCenterCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[LocationDesc] [nvarchar](60) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[ProcessCode] [varchar](10) COLLATE Korean_Wansung_CI_AS NOT NULL,
  CONSTRAINT [PK_MD_WorkCenter] PRIMARY KEY CLUSTERED
@@ -3411,11 +3423,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'물리적 위�
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'운영 여부.  · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_WorkCenter', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_WorkCenter', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_WorkCenter', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각.  · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_WorkCenter', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_WorkCenter', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_WorkCenter', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'작업장 (MD-05)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_WorkCenter'
 GO
@@ -3430,9 +3442,9 @@ CREATE TABLE [dbo].[MD_Worker](
 	[EmployeeName] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[PinHash] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NOT NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_Worker] PRIMARY KEY CLUSTERED
 (
@@ -3469,9 +3481,9 @@ CREATE TABLE [dbo].[MNT_EquipmentStatus](
 	[LastFailureID] [int] NULL,
 	[OpenWoID] [int] NULL,
 	[PLCConnTS] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MNT_EquipmentStatus] PRIMARY KEY CLUSTERED
 (
@@ -3505,11 +3517,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Open Wo ID · 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PLC Conn TS · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_EquipmentStatus', @level2type=N'COLUMN',@level2name=N'PLCConnTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_EquipmentStatus', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_EquipmentStatus', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_EquipmentStatus', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_EquipmentStatus', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_EquipmentStatus', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'설비 실시간 상태' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_EquipmentStatus'
 GO
@@ -3526,9 +3538,9 @@ CREATE TABLE [dbo].[MNT_FailureAction](
 	[EvidenceURL] [varchar](255) COLLATE Korean_Wansung_CI_AS NULL,
 	[TechnicianID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActionAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MNT_FailureAction] PRIMARY KEY CLUSTERED
 (
@@ -3552,11 +3564,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Technician ID 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Action At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureAction', @level2type=N'COLUMN',@level2name=N'ActionAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureAction', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureAction', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureAction', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureAction', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureAction', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'고장 조치 이력' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureAction'
 GO
@@ -3581,9 +3593,9 @@ CREATE TABLE [dbo].[MNT_FailureRegister](
 	[ReportedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReportedAt] [datetime2](7) NULL,
 	[ResolvedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MNT_FailureRegister] PRIMARY KEY CLUSTERED
 (
@@ -3623,11 +3635,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Reported At ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Resolved At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureRegister', @level2type=N'COLUMN',@level2name=N'ResolvedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureRegister', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureRegister', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureRegister', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureRegister', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureRegister', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ 고장 등록' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureRegister'
 GO
@@ -3649,9 +3661,9 @@ CREATE TABLE [dbo].[MNT_MoldShotCount](
 	[LastRefurbishTS] [datetime2](7) NULL,
 	[RefurbishCount] [int] NULL,
 	[HistoryJSON] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MNT_MoldShotCount] PRIMARY KEY CLUSTERED
 (
@@ -3685,11 +3697,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Refurbish Coun
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'History JSON · nvarchar' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_MoldShotCount', @level2type=N'COLUMN',@level2name=N'HistoryJSON'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_MoldShotCount', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_MoldShotCount', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_MoldShotCount', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_MoldShotCount', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_MoldShotCount', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'금형 쇼트 운영 카운터' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_MoldShotCount'
 GO
@@ -3715,9 +3727,9 @@ CREATE TABLE [dbo].[MNT_OEELog](
 	[GoodQty] [decimal](12, 3) NULL,
 	[TotalQty] [decimal](12, 3) NULL,
 	[LossBreakdownJSON] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MNT_OEELog] PRIMARY KEY CLUSTERED
 (
@@ -3759,11 +3771,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Total Qty · d
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Loss Breakdown JSON · nvarchar' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_OEELog', @level2type=N'COLUMN',@level2name=N'LossBreakdownJSON'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_OEELog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_OEELog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_OEELog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_OEELog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_OEELog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'OEE 측정 (설비×시각)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_OEELog'
 GO
@@ -3787,9 +3799,9 @@ CREATE TABLE [dbo].[MNT_PMExecution](
 	[Result] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
 	[ResultNote] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[ChecklistResultsJSON] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MNT_PMExecution] PRIMARY KEY CLUSTERED
 (
@@ -3827,9 +3839,9 @@ CREATE TABLE [dbo].[MNT_PMSchedule](
 	[AssignedTechID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveWoID] [int] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MNT_PMSchedule] PRIMARY KEY CLUSTERED
 (
@@ -3850,9 +3862,9 @@ CREATE TABLE [dbo].[MNT_SparePartItem](
 	[SparePartNo] [varchar](16) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[StatusCode] [varchar](15) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[LocationID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NOT NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MNT_SparePartItem] PRIMARY KEY CLUSTERED
 (
@@ -3898,9 +3910,9 @@ CREATE TABLE [dbo].[MNT_SparePartsTxn](
 	[Note] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[TxnAt] [datetime2](7) NOT NULL,
 	[ActorID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[SparePartItemID] [bigint] NULL,
 	[ReversalOfTxnID] [int] NULL,
@@ -3962,9 +3974,9 @@ CREATE TABLE [dbo].[MNT_WorkOrder](
 	[CompletedAt] [datetime2](7) NULL,
 	[ClosedAt] [datetime2](7) NULL,
 	[DowntimeID] [int] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MNT_WorkOrder] PRIMARY KEY CLUSTERED
 (
@@ -4012,11 +4024,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'마감 시각 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'다운타임 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrder', @level2type=N'COLUMN',@level2name=N'DowntimeID'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrder', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrder', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrder', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrder', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrder', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ 정비 WO' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrder'
 GO
@@ -4036,9 +4048,9 @@ CREATE TABLE [dbo].[MNT_WorkOrderTask](
 	[EvidenceURL] [varchar](255) COLLATE Korean_Wansung_CI_AS NULL,
 	[CompletedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[CompletedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MNT_WorkOrderTask] PRIMARY KEY CLUSTERED
 (
@@ -4068,11 +4080,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Completed By �
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'완료 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'CompletedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'정비 WO 작업 항목' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask'
 GO
@@ -4094,9 +4106,9 @@ CREATE TABLE [dbo].[PNT_DailyPlan](
 	[JigsRequired] [int] NULL,
 	[LotsRequired] [int] NULL,
 	[ReadyFlag] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_DailyPlan] PRIMARY KEY CLUSTERED
 (
@@ -4130,11 +4142,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Lots Required 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Ready Flag · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyPlan', @level2type=N'COLUMN',@level2name=N'ReadyFlag'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyPlan', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyPlan', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyPlan', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyPlan', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyPlan', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'일일 계획 (PNT-01)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyPlan'
 GO
@@ -4152,9 +4164,9 @@ CREATE TABLE [dbo].[PNT_DailyReport](
 	[DailyYieldPct] [decimal](5, 2) NULL,
 	[TwoShiftRollupJson] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
 	[GeneratedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_DailyReport] PRIMARY KEY CLUSTERED
 (
@@ -4180,11 +4192,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Two Shift Roll
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Generated At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport', @level2type=N'COLUMN',@level2name=N'GeneratedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'일일 합산 보고서' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport'
 GO
@@ -4201,9 +4213,9 @@ CREATE TABLE [dbo].[PNT_JigBindingLog](
 	[UnboundAt] [datetime2](7) NULL,
 	[Reason] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActorID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_JigBindingLog] PRIMARY KEY CLUSTERED
 (
@@ -4227,11 +4239,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사유 · varc
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Actor ID · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigBindingLog', @level2type=N'COLUMN',@level2name=N'ActorID'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigBindingLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigBindingLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigBindingLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigBindingLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigBindingLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'지그 바인딩 이력' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigBindingLog'
 GO
@@ -4250,9 +4262,9 @@ CREATE TABLE [dbo].[PNT_JigLoad](
 	[R1ReadAt] [datetime2](7) NULL,
 	[MatchStatus] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[LineID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_JigLoad] PRIMARY KEY CLUSTERED
 (
@@ -4280,11 +4292,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Match Status �
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'라인 ID · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigLoad', @level2type=N'COLUMN',@level2name=N'LineID'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigLoad', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigLoad', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigLoad', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigLoad', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigLoad', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'지그 로딩 (PNT-03)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigLoad'
 GO
@@ -4303,9 +4315,9 @@ CREATE TABLE [dbo].[PNT_JigUnload](
 	[OperatorID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[R3ReadAt] [datetime2](7) NULL,
 	[ConfirmedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_JigUnload] PRIMARY KEY CLUSTERED
 (
@@ -4333,11 +4345,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'R3 Read At · 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Confirmed At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigUnload', @level2type=N'COLUMN',@level2name=N'ConfirmedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigUnload', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigUnload', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigUnload', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigUnload', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigUnload', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'지그 언로딩 (PNT-06)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigUnload'
 GO
@@ -4355,9 +4367,9 @@ CREATE TABLE [dbo].[PNT_LabelPrintJob](
 	[CompletedAt] [datetime2](7) NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[FailReason] [varchar](200) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_LabelPrintJob] PRIMARY KEY CLUSTERED
 (
@@ -4383,11 +4395,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'도장 상태 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Fail Reason · varchar(200)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob', @level2type=N'COLUMN',@level2name=N'FailReason'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'라벨 프린트 잡' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob'
 GO
@@ -4404,9 +4416,9 @@ CREATE TABLE [dbo].[PNT_LabelScanLog](
 	[Position] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[ScannedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ScannedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_LabelScanLog] PRIMARY KEY CLUSTERED
 (
@@ -4430,11 +4442,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Scanned By · 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Scanned At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'ScannedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'라벨 스캔 이력' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog'
 GO
@@ -4455,9 +4467,9 @@ CREATE TABLE [dbo].[PNT_LineEvent](
 	[Rssi] [smallint] NULL,
 	[ReadCount] [int] NULL,
 	[TriggerType] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_LineEvent] PRIMARY KEY CLUSTERED
 (
@@ -4491,11 +4503,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Read Count · 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Trigger Type · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LineEvent', @level2type=N'COLUMN',@level2name=N'TriggerType'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LineEvent', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LineEvent', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LineEvent', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LineEvent', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LineEvent', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ RFID 통과 (R1/R2/R3, 5년)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LineEvent'
 GO
@@ -4514,9 +4526,9 @@ CREATE TABLE [dbo].[PNT_LotLabel](
 	[AppliedAt] [datetime2](7) NULL,
 	[AppliedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_LotLabel] PRIMARY KEY CLUSTERED
 (
@@ -4544,11 +4556,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Applied By · 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'도장 상태 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'LOT 라벨 (PNT-07)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel'
 GO
@@ -4566,9 +4578,9 @@ CREATE TABLE [dbo].[PNT_OvenDeviationLog](
 	[AffectedLots] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
 	[MntWoID] [int] NULL,
 	[AndonID] [int] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_OvenDeviationLog] PRIMARY KEY CLUSTERED
 (
@@ -4594,11 +4606,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Mnt Wo ID · i
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'안돈 콜 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenDeviationLog', @level2type=N'COLUMN',@level2name=N'AndonID'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenDeviationLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenDeviationLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenDeviationLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenDeviationLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenDeviationLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'오븐 온도 이탈' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenDeviationLog'
 GO
@@ -4620,9 +4632,9 @@ CREATE TABLE [dbo].[PNT_OvenLog](
 	[MaxTemp] [decimal](5, 1) NULL,
 	[AvgTemp] [decimal](5, 1) NULL,
 	[WithinSpec] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_OvenLog] PRIMARY KEY CLUSTERED
 (
@@ -4656,11 +4668,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Avg Temp · de
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Within Spec · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenLog', @level2type=N'COLUMN',@level2name=N'WithinSpec'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'오븐 체류 (PNT-05)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenLog'
 GO
@@ -4675,9 +4687,9 @@ CREATE TABLE [dbo].[PNT_OvenSpikeLog](
 	[DetectedAt] [datetime2](7) NULL,
 	[TempC] [decimal](5, 1) NULL,
 	[Delta] [decimal](5, 1) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_OvenSpikeLog] PRIMARY KEY CLUSTERED
 (
@@ -4697,11 +4709,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Temp C · deci
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Delta · decimal(5,1)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenSpikeLog', @level2type=N'COLUMN',@level2name=N'Delta'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenSpikeLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenSpikeLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenSpikeLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenSpikeLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenSpikeLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'오븐 단일 스파이크' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenSpikeLog'
 GO
@@ -4716,9 +4728,9 @@ CREATE TABLE [dbo].[PNT_OvenTempSample](
 	[ZoneID] [tinyint] NULL,
 	[TempC] [decimal](5, 1) NULL,
 	[SampledAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_OvenTempSample] PRIMARY KEY CLUSTERED
 (
@@ -4738,11 +4750,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Temp C · deci
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Sampled At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenTempSample', @level2type=N'COLUMN',@level2name=N'SampledAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenTempSample', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenTempSample', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenTempSample', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenTempSample', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenTempSample', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'오븐 5초 샘플 (5년)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenTempSample'
 GO
@@ -4759,9 +4771,9 @@ CREATE TABLE [dbo].[PNT_PartLossLog](
 	[ReasonNote] [nvarchar](300) COLLATE Korean_Wansung_CI_AS NULL,
 	[LoggedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[LoggedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_PartLossLog] PRIMARY KEY CLUSTERED
 (
@@ -4787,11 +4799,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Logged By · n
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Logged At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'LoggedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'부품 손실 로그' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog'
 GO
@@ -4807,9 +4819,9 @@ CREATE TABLE [dbo].[PNT_QcQueue](
 	[EnhancedFlag] [bit] NULL,
 	[SlaDueAt] [datetime2](7) NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_QcQueue] PRIMARY KEY CLUSTERED
 (
@@ -4831,11 +4843,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Sla Due At · 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'도장 상태 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_QcQueue', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_QcQueue', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_QcQueue', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_QcQueue', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_QcQueue', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_QcQueue', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'QC 인계 대기열' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_QcQueue'
 GO
@@ -4849,9 +4861,9 @@ CREATE TABLE [dbo].[PNT_SeqAllocator](
 	[LineID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[NextSeq] [int] NULL,
 	[UpdatedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_SeqAllocator] PRIMARY KEY CLUSTERED
 (
@@ -4872,11 +4884,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Next Seq · in
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Updated At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_SeqAllocator', @level2type=N'COLUMN',@level2name=N'UpdatedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_SeqAllocator', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_SeqAllocator', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_SeqAllocator', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_SeqAllocator', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_SeqAllocator', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'LotID 채번 락' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_SeqAllocator'
 GO
@@ -4903,9 +4915,9 @@ CREATE TABLE [dbo].[PNT_ShiftReport](
 	[SignedAt] [datetime2](7) NULL,
 	[PdfUrl] [varchar](300) COLLATE Korean_Wansung_CI_AS NULL,
 	[Version] [tinyint] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_ShiftReport] PRIMARY KEY CLUSTERED
 (
@@ -4949,11 +4961,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Pdf Url · var
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Version · tinyint' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'Version'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'교대 보고서 헤더' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport'
 GO
@@ -4971,9 +4983,9 @@ CREATE TABLE [dbo].[PNT_ShiftReportAudit](
 	[OldValue] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
 	[NewValue] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
 	[Reason] [nvarchar](300) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_ShiftReportAudit] PRIMARY KEY CLUSTERED
 (
@@ -4999,11 +5011,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'New Value · n
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사유 · nvarchar(300)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'Reason'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'교대 수정 감사 (7년)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit'
 GO
@@ -5023,9 +5035,9 @@ CREATE TABLE [dbo].[PNT_ShiftReportLineItem](
 	[ConfirmedQty] [int] NULL,
 	[DefectQty] [int] NULL,
 	[YieldPct] [decimal](5, 2) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_ShiftReportLineItem] PRIMARY KEY CLUSTERED
 (
@@ -5055,11 +5067,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'불량 수량 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Yield Pct · decimal(5,2)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportLineItem', @level2type=N'COLUMN',@level2name=N'YieldPct'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportLineItem', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportLineItem', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportLineItem', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportLineItem', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportLineItem', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'교대 WO 명세' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportLineItem'
 GO
@@ -5074,9 +5086,9 @@ CREATE TABLE [dbo].[PNT_StationStatsCache](
 	[AvgDwellSec] [int] NULL,
 	[BottleneckFlag] [bit] NULL,
 	[UpdatedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_StationStatsCache] PRIMARY KEY CLUSTERED
 (
@@ -5098,11 +5110,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Bottleneck Fla
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Updated At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_StationStatsCache', @level2type=N'COLUMN',@level2name=N'UpdatedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_StationStatsCache', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_StationStatsCache', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_StationStatsCache', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_StationStatsCache', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_StationStatsCache', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'라인보드 캐시' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_StationStatsCache'
 GO
@@ -5119,9 +5131,9 @@ CREATE TABLE [dbo].[PNT_TagFailureLog](
 	[FailType] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[FallbackAction] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
 	[ResolvedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_TagFailureLog] PRIMARY KEY CLUSTERED
 (
@@ -5145,11 +5157,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Fallback Actio
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Resolved By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_TagFailureLog', @level2type=N'COLUMN',@level2name=N'ResolvedBy'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_TagFailureLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_TagFailureLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_TagFailureLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_TagFailureLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_TagFailureLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'태그 실패 로그' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_TagFailureLog'
 GO
@@ -5175,9 +5187,9 @@ CREATE TABLE [dbo].[PNT_VirtualLot](
 	[IssuedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[BindAt] [datetime2](7) NULL,
 	[BindReason] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PNT_VirtualLot] PRIMARY KEY CLUSTERED
 (
@@ -5219,11 +5231,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Bind At · dat
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Bind Reason · varchar(40)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_VirtualLot', @level2type=N'COLUMN',@level2name=N'BindReason'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_VirtualLot', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_VirtualLot', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_VirtualLot', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_VirtualLot', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_VirtualLot', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ 가상 LOT (PNT-02)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_VirtualLot'
 GO
@@ -5245,9 +5257,9 @@ CREATE TABLE [dbo].[PP_CustomerOrder](
 	[PromisedDate] [date] NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[SapSyncedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PP_CustomerOrder] PRIMARY KEY CLUSTERED
 (
@@ -5281,11 +5293,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생산 계획 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Sap Synced At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_CustomerOrder', @level2type=N'COLUMN',@level2name=N'SapSyncedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_CustomerOrder', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_CustomerOrder', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_CustomerOrder', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_CustomerOrder', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_CustomerOrder', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'수주 (SO)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_CustomerOrder'
 GO
@@ -5300,7 +5312,7 @@ CREATE TABLE [dbo].[PP_EquipSignal](
 	[SignalTime] [datetime2](7) NOT NULL,
 	[IsRunning] [bit] NOT NULL,
 	[Source] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 PRIMARY KEY CLUSTERED
 (
 	[SignalId] ASC
@@ -5337,9 +5349,9 @@ CREATE TABLE [dbo].[PP_Forecast](
 	[Source] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ImportedAt] [datetime2](7) NULL,
 	[ImportedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[WeekStartDate] [date] NULL,
 	[WeekLabel] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
@@ -5385,11 +5397,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Imported At ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Imported By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_Forecast', @level2type=N'COLUMN',@level2name=N'ImportedBy'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_Forecast', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_Forecast', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_Forecast', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_Forecast', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_Forecast', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'수요예측' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_Forecast'
 GO
@@ -5406,9 +5418,9 @@ CREATE TABLE [dbo].[PP_ForecastHistory](
 	[NewQty] [decimal](14, 3) NULL,
 	[ChangedAt] [datetime2](7) NULL,
 	[ChangedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PP_ForecastHistory] PRIMARY KEY CLUSTERED
 (
@@ -5432,11 +5444,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed At · 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_ForecastHistory', @level2type=N'COLUMN',@level2name=N'ChangedBy'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_ForecastHistory', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_ForecastHistory', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_ForecastHistory', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_ForecastHistory', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_ForecastHistory', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'예측 이력' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_ForecastHistory'
 GO
@@ -5457,9 +5469,9 @@ CREATE TABLE [dbo].[PP_LineDowntimeLog](
 	[WoID] [int] NULL,
 	[LoggedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[AndonID] [int] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PP_LineDowntimeLog] PRIMARY KEY CLUSTERED
 (
@@ -5491,11 +5503,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Logged By · n
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'안돈 콜 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineDowntimeLog', @level2type=N'COLUMN',@level2name=N'AndonID'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineDowntimeLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineDowntimeLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineDowntimeLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineDowntimeLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineDowntimeLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'비가동 사유 (DTL)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineDowntimeLog'
 GO
@@ -5519,9 +5531,9 @@ CREATE TABLE [dbo].[PP_LineOEE](
 	[Performance] [decimal](5, 4) NULL,
 	[Quality] [decimal](5, 4) NULL,
 	[OEE] [decimal](5, 4) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PP_LineOEE] PRIMARY KEY CLUSTERED
 (
@@ -5559,11 +5571,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'품질 (%) · 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'OEE 종합 (%) · decimal(5,4)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineOEE', @level2type=N'COLUMN',@level2name=N'OEE'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineOEE', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineOEE', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineOEE', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineOEE', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineOEE', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'OEE 스냅샷' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineOEE'
 GO
@@ -5588,9 +5600,9 @@ CREATE TABLE [dbo].[PP_LineSchedule](
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[PublishedAt] [datetime2](7) NULL,
 	[PublishedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[MoldID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_PP_LineSchedule] PRIMARY KEY CLUSTERED
@@ -5617,9 +5629,9 @@ CREATE TABLE [dbo].[PP_LineStateLog](
 	[RunFlag] [bit] NULL,
 	[WoID] [int] NULL,
 	[ClassifiedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PP_LineStateLog] PRIMARY KEY CLUSTERED
 (
@@ -5645,11 +5657,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'작업지시 I
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Classified At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineStateLog', @level2type=N'COLUMN',@level2name=N'ClassifiedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineStateLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineStateLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineStateLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineStateLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineStateLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'라인 상태 분단위 (ODM)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineStateLog'
 GO
@@ -5667,9 +5679,9 @@ CREATE TABLE [dbo].[PP_MaterialReservation](
 	[IssuedQty] [decimal](14, 3) NULL,
 	[RequiredAt] [datetime2](7) NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PP_MaterialReservation] PRIMARY KEY CLUSTERED
 (
@@ -5695,11 +5707,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Required At ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생산 계획 상태 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_MaterialReservation', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_MaterialReservation', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_MaterialReservation', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_MaterialReservation', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_MaterialReservation', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_MaterialReservation', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'WO 자재 예약' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_MaterialReservation'
 GO
@@ -5719,9 +5731,9 @@ CREATE TABLE [dbo].[PP_MRPLog](
 	[ShortageCount] [int] NULL,
 	[DurationMs] [int] NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PP_MRPLog] PRIMARY KEY CLUSTERED
 (
@@ -5751,11 +5763,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Duration Ms ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생산 계획 상태 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_MRPLog', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_MRPLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_MRPLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_MRPLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_MRPLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_MRPLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'MRP 실행 로그' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_MRPLog'
 GO
@@ -5774,9 +5786,9 @@ CREATE TABLE [dbo].[PP_MRPResult](
 	[LeadTimeDays] [int] NULL,
 	[OrderDue] [date] NULL,
 	[PrID] [int] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PP_MRPResult] PRIMARY KEY CLUSTERED
 (
@@ -5822,11 +5834,11 @@ CREATE TABLE [dbo].[PP_ProductionCalendarOverride](
 	[SegmentFlag] [char](1440) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CapacityFactor] [decimal](5, 2) NULL,
 	[Reason] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
-	[ApprovedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ApprovedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ApprovedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PP_ProductionCalendarOverride] PRIMARY KEY CLUSTERED
 (
@@ -5855,9 +5867,9 @@ CREATE TABLE [dbo].[PP_PRSendLog](
 	[ResponseCode] [int] NULL,
 	[ResponsePayload] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
 	[Result] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PP_PRSendLog] PRIMARY KEY CLUSTERED
 (
@@ -5885,11 +5897,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Response Paylo
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'결과 (OK/FAIL 등) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PRSendLog', @level2type=N'COLUMN',@level2name=N'Result'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PRSendLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PRSendLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PRSendLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PRSendLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PRSendLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PR SAP 송신 로그' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PRSendLog'
 GO
@@ -5907,12 +5919,12 @@ CREATE TABLE [dbo].[PP_PurchaseRequest](
 	[RequiredDate] [date] NULL,
 	[WoID] [int] NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ApprovedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ApprovedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ApprovedAt] [datetime2](7) NULL,
 	[SapPoNumber] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[SapDocNum] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[SentAt] [datetime2](7) NULL,
@@ -5944,17 +5956,17 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'작업지시 I
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생산 계획 상태 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PurchaseRequest', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PurchaseRequest', @level2type=N'COLUMN',@level2name=N'ApprovedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PurchaseRequest', @level2type=N'COLUMN',@level2name=N'ApprovedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PurchaseRequest', @level2type=N'COLUMN',@level2name=N'ApprovedAt'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Sap Po Number · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PurchaseRequest', @level2type=N'COLUMN',@level2name=N'SapPoNumber'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PurchaseRequest', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PurchaseRequest', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PurchaseRequest', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PurchaseRequest', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PurchaseRequest', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'구매요청 (MRP 결과)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PurchaseRequest'
 GO
@@ -5971,9 +5983,9 @@ CREATE TABLE [dbo].[PP_SupplyPlan](
 	[ConfirmedAt] [datetime2](7) NULL,
 	[ConfirmedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[SapImportBatch] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PP_SupplyPlan] PRIMARY KEY CLUSTERED
 (
@@ -5997,11 +6009,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Confirmed By �
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Sap Import Batch · varchar(40)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_SupplyPlan', @level2type=N'COLUMN',@level2name=N'SapImportBatch'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_SupplyPlan', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_SupplyPlan', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_SupplyPlan', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_SupplyPlan', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_SupplyPlan', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'공급계획 헤더' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_SupplyPlan'
 GO
@@ -6018,9 +6030,9 @@ CREATE TABLE [dbo].[PP_SupplyPlanDetail](
 	[FgOnHand] [decimal](14, 3) NULL,
 	[NetRequirement] [decimal](14, 3) NULL,
 	[DueDate] [date] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PP_SupplyPlanDetail] PRIMARY KEY CLUSTERED
 (
@@ -6044,11 +6056,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Net Requiremen
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'납기일 · date' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_SupplyPlanDetail', @level2type=N'COLUMN',@level2name=N'DueDate'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_SupplyPlanDetail', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_SupplyPlanDetail', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_SupplyPlanDetail', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_SupplyPlanDetail', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_SupplyPlanDetail', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'공급계획 상세' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_SupplyPlanDetail'
 GO
@@ -6083,9 +6095,9 @@ CREATE TABLE [dbo].[PP_WorkOrder](
 	[Priority] [tinyint] NULL,
 	[ReleasedAt] [datetime2](7) NULL,
 	[ReleasedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[ProdDeadline] [date] NULL,
  CONSTRAINT [PK_PP_WorkOrder] PRIMARY KEY CLUSTERED
@@ -6146,11 +6158,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'릴리즈 시�
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Released By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrder', @level2type=N'COLUMN',@level2name=N'ReleasedBy'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrder', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrder', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrder', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrder', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrder', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ 작업지시 (WO)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrder'
 GO
@@ -6170,9 +6182,9 @@ CREATE TABLE [dbo].[PP_WorkOrderRouting](
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActualStart] [datetime2](7) NULL,
 	[ActualEnd] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[CompletedQty] [decimal](14, 3) NOT NULL,
 	[TerminalLock] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -6221,11 +6233,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Actual Start �
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Actual End · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrderRouting', @level2type=N'COLUMN',@level2name=N'ActualEnd'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrderRouting', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrderRouting', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrderRouting', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrderRouting', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrderRouting', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'WO 라우팅 (BOP 스냅샷)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrderRouting'
 GO
@@ -6249,9 +6261,9 @@ CREATE TABLE [dbo].[PR_AndonCall](
 	[ResumedAt] [datetime2](7) NULL,
 	[DowntimeSec] [int] NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[SupervisorName] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_PR_AndonCall] PRIMARY KEY CLUSTERED
@@ -6299,11 +6311,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'다운타임 (
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생산 실적 상태 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonCall', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonCall', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonCall', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonCall', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonCall', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonCall', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ 안돈 호출 (5년)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonCall'
 GO
@@ -6322,9 +6334,9 @@ CREATE TABLE [dbo].[PR_AndonDeptCall](
 	[ArrivedNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ArrivedName] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NULL,
 	[AckedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_AndonDeptCall] PRIMARY KEY CLUSTERED
 (
@@ -6354,9 +6366,9 @@ CREATE TABLE [dbo].[PR_AndonPush](
 	[SentAt] [datetime2](7) NULL,
 	[DeliveredAt] [datetime2](7) NULL,
 	[Result] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_AndonPush] PRIMARY KEY CLUSTERED
 (
@@ -6380,11 +6392,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Delivered At �
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'결과 (OK/FAIL 등) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonPush', @level2type=N'COLUMN',@level2name=N'Result'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonPush', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonPush', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonPush', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonPush', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonPush', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'안돈 송신 로그' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonPush'
 GO
@@ -6403,9 +6415,9 @@ CREATE TABLE [dbo].[PR_BondCycleLog](
 	[TensionAvg] [decimal](6, 2) NULL,
 	[WithinSpec] [bit] NULL,
 	[SampledAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_BondCycleLog] PRIMARY KEY CLUSTERED
 (
@@ -6433,11 +6445,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Within Spec ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Sampled At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondCycleLog', @level2type=N'COLUMN',@level2name=N'SampledAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondCycleLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondCycleLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondCycleLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondCycleLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondCycleLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'본드 사이클 PLC' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondCycleLog'
 GO
@@ -6458,9 +6470,9 @@ CREATE TABLE [dbo].[PR_BondSetup](
 	[LoadedAt] [datetime2](7) NULL,
 	[LoadedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_BondSetup] PRIMARY KEY CLUSTERED
 (
@@ -6492,11 +6504,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Loaded By · n
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생산 실적 상태 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetup', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetup', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetup', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetup', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetup', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetup', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'IMG 본드 설정' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetup'
 GO
@@ -6513,11 +6525,11 @@ CREATE TABLE [dbo].[PR_BondSetupAudit](
 	[NewValue] [nvarchar](100) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReasonCode] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
 	[ChangedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[ApprovedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ApprovedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ChangedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_BondSetupAudit] PRIMARY KEY CLUSTERED
 (
@@ -6541,15 +6553,15 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사유 코드 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'ChangedBy'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'ApprovedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'ApprovedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'ChangedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'본드 변경 감사 (7년)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit'
 GO
@@ -6565,9 +6577,9 @@ CREATE TABLE [dbo].[PR_CycleAnomalyLog](
 	[ActualCt] [int] NULL,
 	[DeviationPct] [decimal](6, 2) NULL,
 	[DetectedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_CycleAnomalyLog] PRIMARY KEY CLUSTERED
 (
@@ -6589,11 +6601,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Deviation Pct 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Detected At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_CycleAnomalyLog', @level2type=N'COLUMN',@level2name=N'DetectedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_CycleAnomalyLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_CycleAnomalyLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_CycleAnomalyLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_CycleAnomalyLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_CycleAnomalyLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'CT 이탈 로그' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_CycleAnomalyLog'
 GO
@@ -6608,9 +6620,9 @@ CREATE TABLE [dbo].[PR_DashTileCache](
 	[Value] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
 	[UpdatedAt] [datetime2](7) NULL,
 	[TtlSec] [int] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_DashTileCache] PRIMARY KEY CLUSTERED
 (
@@ -6633,11 +6645,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Updated At · 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Ttl Sec · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DashTileCache', @level2type=N'COLUMN',@level2name=N'TtlSec'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DashTileCache', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DashTileCache', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DashTileCache', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DashTileCache', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DashTileCache', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'POP 대시 캐시' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DashTileCache'
 GO
@@ -6654,9 +6666,9 @@ CREATE TABLE [dbo].[PR_DefectAutoLink](
 	[RefDocID] [int] NULL,
 	[ConfidenceScore] [decimal](4, 3) NULL,
 	[LinkedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_DefectAutoLink] PRIMARY KEY CLUSTERED
 (
@@ -6680,11 +6692,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Confidence Sco
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Linked At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectAutoLink', @level2type=N'COLUMN',@level2name=N'LinkedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectAutoLink', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectAutoLink', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectAutoLink', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectAutoLink', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectAutoLink', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'불량 자동 원인' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectAutoLink'
 GO
@@ -6708,9 +6720,9 @@ CREATE TABLE [dbo].[PR_DefectDetail](
 	[Disposition] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[DetectedAt] [datetime2](7) NULL,
 	[RegisteredBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[CauseCode] [varchar](16) COLLATE Korean_Wansung_CI_AS NULL,
 	[DispositionBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NULL,
@@ -6777,11 +6789,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Detected At ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Registered By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectDetail', @level2type=N'COLUMN',@level2name=N'RegisteredBy'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectDetail', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectDetail', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectDetail', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectDetail', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectDetail', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'불량 상세' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectDetail'
 GO
@@ -6796,9 +6808,9 @@ CREATE TABLE [dbo].[PR_DefectRateCache](
 	[TotalDefect] [int] NULL,
 	[RatePct] [decimal](6, 3) NULL,
 	[UpdatedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_DefectRateCache] PRIMARY KEY CLUSTERED
 (
@@ -6820,11 +6832,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Rate Pct · de
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Updated At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectRateCache', @level2type=N'COLUMN',@level2name=N'UpdatedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectRateCache', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectRateCache', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectRateCache', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectRateCache', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectRateCache', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'불량률 캐시' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectRateCache'
 GO
@@ -6842,9 +6854,9 @@ CREATE TABLE [dbo].[PR_EquipStatusLog](
 	[WoID] [int] NULL,
 	[StartedAt] [datetime2](7) NULL,
 	[DurationSec] [int] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_EquipStatusLog] PRIMARY KEY CLUSTERED
 (
@@ -6870,11 +6882,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'시작 시각 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Duration Sec · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_EquipStatusLog', @level2type=N'COLUMN',@level2name=N'DurationSec'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_EquipStatusLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_EquipStatusLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_EquipStatusLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_EquipStatusLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_EquipStatusLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'설비 상태 로그 (PLC)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_EquipStatusLog'
 GO
@@ -6891,9 +6903,9 @@ CREATE TABLE [dbo].[PR_FabricDeductionLog](
 	[BeforeM] [decimal](8, 3) NULL,
 	[AfterM] [decimal](8, 3) NULL,
 	[DeductedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_FabricDeductionLog] PRIMARY KEY CLUSTERED
 (
@@ -6917,11 +6929,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'After M · dec
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Deducted At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricDeductionLog', @level2type=N'COLUMN',@level2name=N'DeductedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricDeductionLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricDeductionLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricDeductionLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricDeductionLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricDeductionLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'원단 차감 (7년)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricDeductionLog'
 GO
@@ -6942,9 +6954,9 @@ CREATE TABLE [dbo].[PR_FabricIssue](
 	[OperatorID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[SessionID] [int] NULL,
 	[LineID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_FabricIssue] PRIMARY KEY CLUSTERED
 (
@@ -6976,11 +6988,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'POP 세션 ID 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'라인 ID · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricIssue', @level2type=N'COLUMN',@level2name=N'LineID'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricIssue', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricIssue', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricIssue', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricIssue', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricIssue', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'IMG 원단 투입' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricIssue'
 GO
@@ -6998,9 +7010,9 @@ CREATE TABLE [dbo].[PR_FabricIssueAttempt](
 	[Result] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[AttemptedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[AttemptedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_FabricIssueAttempt] PRIMARY KEY CLUSTERED
 (
@@ -7026,11 +7038,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Attempted By �
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Attempted At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricIssueAttempt', @level2type=N'COLUMN',@level2name=N'AttemptedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricIssueAttempt', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricIssueAttempt', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricIssueAttempt', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricIssueAttempt', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricIssueAttempt', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'원단 시도 감사' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricIssueAttempt'
 GO
@@ -7051,9 +7063,9 @@ CREATE TABLE [dbo].[PR_ImgLot](
 	[FabricConsumedM] [decimal](8, 3) NULL,
 	[BondSetupID] [int] NULL,
 	[PrintedCount] [int] NOT NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_ImgLot] PRIMARY KEY CLUSTERED
 (
@@ -7087,7 +7099,7 @@ CREATE TABLE [dbo].[PR_InjCondLog](
 	[SetValue] [decimal](18, 4) NULL,
 	[ActualValue] [decimal](18, 4) NULL,
 	[CollectedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_InjCondLog] PRIMARY KEY CLUSTERED
 (
@@ -7127,10 +7139,10 @@ CREATE TABLE [dbo].[PR_InjLot](
 	[ConfirmedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ConfirmedSessionID] [int] NULL,
 	[PrintedCount] [int] NOT NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[PrintClaimTS] [datetime2](7) NULL,
 	[PrintClaimStation] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_PR_InjLot] PRIMARY KEY CLUSTERED
@@ -7187,9 +7199,9 @@ CREATE TABLE [dbo].[PR_MoldChange](
 	[StartedAt] [datetime2](7) NULL,
 	[CompletedAt] [datetime2](7) NULL,
 	[ChangedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_MoldChange] PRIMARY KEY CLUSTERED
 (
@@ -7225,11 +7237,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'완료 시각 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_MoldChange', @level2type=N'COLUMN',@level2name=N'ChangedBy'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_MoldChange', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_MoldChange', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_MoldChange', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_MoldChange', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_MoldChange', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'금형 교체 (INJ-06)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_MoldChange'
 GO
@@ -7245,9 +7257,9 @@ CREATE TABLE [dbo].[PR_PlcInterlock](
 	[UnlockedAt] [datetime2](7) NULL,
 	[LockReason] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[AndonID] [int] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_PlcInterlock] PRIMARY KEY CLUSTERED
 (
@@ -7269,11 +7281,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Lock Reason ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'안돈 콜 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PlcInterlock', @level2type=N'COLUMN',@level2name=N'AndonID'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PlcInterlock', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PlcInterlock', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PlcInterlock', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PlcInterlock', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PlcInterlock', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PLC 인터록' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PlcInterlock'
 GO
@@ -7290,9 +7302,9 @@ CREATE TABLE [dbo].[PR_PopAuthLog](
 	[Result] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[FailReason] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[AttemptedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_PopAuthLog] PRIMARY KEY CLUSTERED
 (
@@ -7316,11 +7328,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Fail Reason ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Attempted At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PopAuthLog', @level2type=N'COLUMN',@level2name=N'AttemptedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PopAuthLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PopAuthLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PopAuthLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PopAuthLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PopAuthLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'POP 인증 감사' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PopAuthLog'
 GO
@@ -7340,9 +7352,9 @@ CREATE TABLE [dbo].[PR_PopSession](
 	[ExpiresAt] [datetime2](7) NULL,
 	[LoggedOutAt] [datetime2](7) NULL,
 	[LogoutReason] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_PopSession] PRIMARY KEY CLUSTERED
 (
@@ -7372,11 +7384,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Logged Out At 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Logout Reason · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PopSession', @level2type=N'COLUMN',@level2name=N'LogoutReason'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PopSession', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PopSession', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PopSession', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PopSession', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PopSession', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'POP 로그인 세션' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PopSession'
 GO
@@ -7403,9 +7415,9 @@ CREATE TABLE [dbo].[PR_ProductionResult](
 	[DefectFlag] [bit] NULL,
 	[ReviewFlag] [bit] NULL,
 	[EntryAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[ProdDate] [date] NULL,
 	[ShiftCode] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
@@ -7462,11 +7474,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Review Flag ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Entry At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ProductionResult', @level2type=N'COLUMN',@level2name=N'EntryAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ProductionResult', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ProductionResult', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ProductionResult', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ProductionResult', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ProductionResult', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ 생산실적 (사이클별)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ProductionResult'
 GO
@@ -7486,7 +7498,7 @@ CREATE TABLE [dbo].[PR_RobotInspection](
 	[Weight] [varchar](4) COLLATE Korean_Wansung_CI_AS NULL,
 	[OverallNg] [bit] NOT NULL,
 	[ReceivedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_RobotInspection] PRIMARY KEY CLUSTERED
 (
@@ -7521,9 +7533,9 @@ CREATE TABLE [dbo].[PR_ShiftHandover](
 	[SignedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReceivedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[SignedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_ShiftHandover] PRIMARY KEY CLUSTERED
 (
@@ -7553,11 +7565,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Received By ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Signed At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'SignedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'교대 인수인계' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover'
 GO
@@ -7575,9 +7587,9 @@ CREATE TABLE [dbo].[PR_ShotCount](
 	[CumulativeShots] [int] NULL,
 	[RatedShots] [int] NULL,
 	[RecordedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_ShotCount] PRIMARY KEY CLUSTERED
 (
@@ -7603,11 +7615,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Rated Shots ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Recorded At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShotCount', @level2type=N'COLUMN',@level2name=N'RecordedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShotCount', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShotCount', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShotCount', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShotCount', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShotCount', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'금형 쇼트 이력' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShotCount'
 GO
@@ -7624,9 +7636,9 @@ CREATE TABLE [dbo].[PR_WoAcceptance](
 	[AcceptedAt] [datetime2](7) NULL,
 	[CheckResults] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
 	[CheckPassed] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_WoAcceptance] PRIMARY KEY CLUSTERED
 (
@@ -7650,11 +7662,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Check Results 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Check Passed · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_WoAcceptance', @level2type=N'COLUMN',@level2name=N'CheckPassed'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_WoAcceptance', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_WoAcceptance', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_WoAcceptance', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_WoAcceptance', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_WoAcceptance', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'WO 수락 (INJ-03)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_WoAcceptance'
 GO
@@ -7683,9 +7695,9 @@ CREATE TABLE [dbo].[QC_CAPA](
 	[OpenedAt] [datetime2](7) NULL,
 	[DueDate] [date] NULL,
 	[ClosedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_QC_CAPA] PRIMARY KEY CLUSTERED
 (
@@ -7733,11 +7745,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'납기일 · d
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'마감 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_CAPA', @level2type=N'COLUMN',@level2name=N'ClosedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_CAPA', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_CAPA', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_CAPA', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_CAPA', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_CAPA', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ 시정·예방 조치' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_CAPA'
 GO
@@ -7760,9 +7772,9 @@ CREATE TABLE [dbo].[QC_CAPA_Action](
 	[DueDate] [date] NULL,
 	[CompletedAt] [datetime2](7) NULL,
 	[EvidenceURL] [varchar](255) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_QC_CAPA_Action] PRIMARY KEY CLUSTERED
 (
@@ -7798,11 +7810,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'완료 시각 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Evidence URL · varchar(255)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_CAPA_Action', @level2type=N'COLUMN',@level2name=N'EvidenceURL'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_CAPA_Action', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_CAPA_Action', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_CAPA_Action', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_CAPA_Action', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_CAPA_Action', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'CAPA 단계 이력' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_CAPA_Action'
 GO
@@ -7821,11 +7833,11 @@ CREATE TABLE [dbo].[QC_Disposition](
 	[CustomerApprovalURL] [varchar](255) COLLATE Korean_Wansung_CI_AS NULL,
 	[DownstreamRefType] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
 	[DownstreamRefID] [varchar](24) COLLATE Korean_Wansung_CI_AS NULL,
-	[ApprovedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ApprovedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ApprovedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_QC_Disposition] PRIMARY KEY CLUSTERED
 (
@@ -7853,15 +7865,15 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Downstream Ref
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Downstream Ref ID · varchar(24)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'DownstreamRefID'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'ApprovedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'ApprovedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'ApprovedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'처분 결정' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition'
 GO
@@ -7886,9 +7898,9 @@ CREATE TABLE [dbo].[QC_Hold](
 	[Status] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
 	[HeldBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[HeldAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_QC_Hold] PRIMARY KEY CLUSTERED
 (
@@ -7928,11 +7940,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Held By · nva
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Held At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Hold', @level2type=N'COLUMN',@level2name=N'HeldAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Hold', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Hold', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Hold', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Hold', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Hold', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'보류/격리' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Hold'
 GO
@@ -7952,9 +7964,9 @@ CREATE TABLE [dbo].[QC_HoldRelease](
 	[ReleasedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReleasedAt] [datetime2](7) NULL,
 	[Note] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_QC_HoldRelease] PRIMARY KEY CLUSTERED
 (
@@ -7984,11 +7996,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'릴리즈 시�
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'비고 · nvarchar(500)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_HoldRelease', @level2type=N'COLUMN',@level2name=N'Note'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_HoldRelease', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_HoldRelease', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_HoldRelease', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_HoldRelease', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_HoldRelease', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'보류 해제 이력' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_HoldRelease'
 GO
@@ -8025,9 +8037,9 @@ CREATE TABLE [dbo].[QC_Inspection](
 	[ResumeBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[InsStartTS] [datetime2](7) NULL,
 	[InsEndTS] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_QC_Inspection] PRIMARY KEY CLUSTERED
 (
@@ -8093,11 +8105,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Ins Start TS �
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Ins End TS · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Inspection', @level2type=N'COLUMN',@level2name=N'InsEndTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Inspection', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Inspection', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Inspection', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Inspection', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Inspection', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ 검사 (IQC/IPQC/FQC)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Inspection'
 GO
@@ -8115,9 +8127,9 @@ CREATE TABLE [dbo].[QC_InspectionItem](
 	[Measured] [nvarchar](100) COLLATE Korean_Wansung_CI_AS NULL,
 	[Result] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[PhotoURL] [varchar](255) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_QC_InspectionItem] PRIMARY KEY CLUSTERED
 (
@@ -8143,11 +8155,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'결과 (OK/FAI
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Photo URL · varchar(255)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionItem', @level2type=N'COLUMN',@level2name=N'PhotoURL'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionItem', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionItem', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionItem', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionItem', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionItem', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'검사 항목별 측정값' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionItem'
 GO
@@ -8172,11 +8184,11 @@ CREATE TABLE [dbo].[QC_InspectionStd](
 	[Status] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
 	[EffectiveDate] [date] NULL,
 	[DraftedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[ApprovedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ApprovedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CapaLinkID] [int] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_QC_InspectionStd] PRIMARY KEY CLUSTERED
 (
@@ -8216,15 +8228,15 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Effective Date
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Drafted By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionStd', @level2type=N'COLUMN',@level2name=N'DraftedBy'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionStd', @level2type=N'COLUMN',@level2name=N'ApprovedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionStd', @level2type=N'COLUMN',@level2name=N'ApprovedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Capa Link ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionStd', @level2type=N'COLUMN',@level2name=N'CapaLinkID'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionStd', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionStd', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionStd', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionStd', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionStd', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'검사 기준서 (버전)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionStd'
 GO
@@ -8253,11 +8265,11 @@ CREATE TABLE [dbo].[QC_NCR](
 	[Status] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReportedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReportedAt] [datetime2](7) NULL,
-	[ApprovedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ApprovedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ClosedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_QC_NCR] PRIMARY KEY CLUSTERED
 (
@@ -8305,15 +8317,15 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Reported By ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Reported At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR', @level2type=N'COLUMN',@level2name=N'ReportedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR', @level2type=N'COLUMN',@level2name=N'ApprovedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR', @level2type=N'COLUMN',@level2name=N'ApprovedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'마감 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR', @level2type=N'COLUMN',@level2name=N'ClosedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ 부적합 보고서' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR'
 GO
@@ -8330,9 +8342,9 @@ CREATE TABLE [dbo].[QC_NCR_Action](
 	[ActionNote] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActionTS] [datetime2](7) NULL,
 	[ActionBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_QC_NCR_Action] PRIMARY KEY CLUSTERED
 (
@@ -8356,11 +8368,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Action TS · d
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Action By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'ActionBy'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'NCR 처리 이력' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action'
 GO
@@ -8384,9 +8396,9 @@ CREATE TABLE [dbo].[SYS_AuditLog](
 	[IPAddress] [varchar](45) COLLATE Korean_Wansung_CI_AS NULL,
 	[Result] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[Note] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_SYS_AuditLog] PRIMARY KEY CLUSTERED
 (
@@ -8416,9 +8428,9 @@ CREATE TABLE [dbo].[SYS_Config](
 	[UsedByModulesJSON] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[SortOrder] [int] NULL,
 	[IsActive] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_SYS_Config] PRIMARY KEY CLUSTERED
 (
@@ -8450,9 +8462,9 @@ CREATE TABLE [dbo].[SYS_FactoryCalendar](
 	[NetWorkHours] [decimal](4, 1) NULL,
 	[CalendarYear] [int] NULL,
 	[PlantCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_SYS_FactoryCalendar] PRIMARY KEY CLUSTERED
 (
@@ -8486,11 +8498,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Calendar Year 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사업장 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_FactoryCalendar', @level2type=N'COLUMN',@level2name=N'PlantCode'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_FactoryCalendar', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_FactoryCalendar', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_FactoryCalendar', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_FactoryCalendar', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_FactoryCalendar', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'공장 캘린더 (교대 인스턴스)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_FactoryCalendar'
 GO
@@ -8513,9 +8525,9 @@ CREATE TABLE [dbo].[SYS_InterfaceMonitor](
 	[RetryCount] [int] NULL,
 	[LastErrorMsg] [nvarchar](1000) COLLATE Korean_Wansung_CI_AS NULL,
 	[IsEnabled] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_SYS_InterfaceMonitor] PRIMARY KEY CLUSTERED
 (
@@ -8553,11 +8565,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Last Error Msg
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Is Enabled · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_InterfaceMonitor', @level2type=N'COLUMN',@level2name=N'IsEnabled'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_InterfaceMonitor', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_InterfaceMonitor', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_InterfaceMonitor', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_InterfaceMonitor', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_InterfaceMonitor', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'인터페이스 상태' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_InterfaceMonitor'
 GO
@@ -8592,9 +8604,9 @@ CREATE TABLE [dbo].[SYS_NotificationChannel](
 	[QuietHoursStart] [time](7) NULL,
 	[QuietHoursEnd] [time](7) NULL,
 	[VerifiedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_SYS_NotificationChannel] PRIMARY KEY CLUSTERED
 (
@@ -8622,11 +8634,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Quiet Hours En
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Verified At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_NotificationChannel', @level2type=N'COLUMN',@level2name=N'VerifiedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_NotificationChannel', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_NotificationChannel', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_NotificationChannel', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_NotificationChannel', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_NotificationChannel', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사용자별 알림 채널' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_NotificationChannel'
 GO
@@ -8651,9 +8663,9 @@ CREATE TABLE [dbo].[SYS_NotificationHistory](
 	[SentAt] [datetime2](7) NULL,
 	[ReadAt] [datetime2](7) NULL,
 	[ErrorMsg] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_SYS_NotificationHistory] PRIMARY KEY CLUSTERED
 (
@@ -8693,11 +8705,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Read At · dat
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Error Msg · nvarchar(500)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_NotificationHistory', @level2type=N'COLUMN',@level2name=N'ErrorMsg'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_NotificationHistory', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_NotificationHistory', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_NotificationHistory', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_NotificationHistory', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_NotificationHistory', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'알림 발송 이력' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_NotificationHistory'
 GO
@@ -8716,9 +8728,9 @@ CREATE TABLE [dbo].[SYS_NotificationRule](
 	[IsEnabled] [bit] NULL,
 	[ChannelsJSON] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
 	[RecipientRolesJSON] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_SYS_NotificationRule] PRIMARY KEY CLUSTERED
 (
@@ -8747,8 +8759,8 @@ CREATE TABLE [dbo].[SYS_RolePermission](
 	[PermissionLevel] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[IsSystemRole] [bit] NULL,
 	[EffectiveTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_SYS_RolePermission] PRIMARY KEY CLUSTERED
@@ -8775,9 +8787,9 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Is System Role
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Effective TS · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_RolePermission', @level2type=N'COLUMN',@level2name=N'EffectiveTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_RolePermission', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_RolePermission', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_RolePermission', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_RolePermission', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_RolePermission', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
@@ -8802,9 +8814,9 @@ CREATE TABLE [dbo].[SYS_Screen](
 	[LidLabel] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[SortOrder] [int] NULL,
 	[IsVisible] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_SYS_Screen] PRIMARY KEY CLUSTERED
 (
@@ -8837,9 +8849,9 @@ CREATE TABLE [dbo].[SYS_UserProfile](
 	[AccountStatus] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[FailedLoginCount] [int] NULL,
 	[LastLoginTS] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[PinHash] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_SYS_UserProfile] PRIMARY KEY CLUSTERED
@@ -8872,11 +8884,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Failed Login C
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Last Login TS · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_UserProfile', @level2type=N'COLUMN',@level2name=N'LastLoginTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_UserProfile', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_UserProfile', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_UserProfile', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_UserProfile', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_UserProfile', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사용자 추가 속성' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_UserProfile'
 GO
@@ -8900,9 +8912,9 @@ CREATE TABLE [dbo].[tbl_Lot](
 	[QualityFlag] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[CurrentLocationID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ExpiryDate] [date] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[InventoryStatus] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_tbl_Lot] PRIMARY KEY CLUSTERED
@@ -8969,11 +8981,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Current Locati
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Expiry Date · date' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'tbl_Lot', @level2type=N'COLUMN',@level2name=N'ExpiryDate'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'tbl_Lot', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'tbl_Lot', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'tbl_Lot', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'tbl_Lot', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'tbl_Lot', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ LOT 마스터 (전 모듈 앵커)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'tbl_Lot'
 GO
@@ -9008,9 +9020,9 @@ CREATE TABLE [dbo].[WH_AreaMaster](
 	[AreaCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[AreaName] [nvarchar](120) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NOT NULL,
-	[CreatedBy] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedTS] [datetime2](7) NOT NULL,
-	[ModifiedBy] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_WH_AREA_MASTER] PRIMARY KEY CLUSTERED
 (
@@ -9033,9 +9045,9 @@ CREATE TABLE [dbo].[WH_AreaSection](
 	[SectionCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[SectionName] [nvarchar](120) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NOT NULL,
-	[CreatedBy] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedTS] [datetime2](7) NOT NULL,
-	[ModifiedBy] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_WH_AREA_SECTION] PRIMARY KEY CLUSTERED
 (
@@ -9065,9 +9077,9 @@ CREATE TABLE [dbo].[WH_InboundPackage](
 	[Status] [nvarchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[ReceivedAt] [datetime2](0) NULL,
 	[ReceivedBy] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedTS] [datetime2](0) NOT NULL,
-	[ModifiedBy] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](0) NULL,
 	[ReceiveType] [nvarchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[DocumentBarcode] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NULL,
@@ -9123,9 +9135,9 @@ CREATE TABLE [dbo].[WH_Inventory](
 	[LastReceivedAt] [datetime2](7) NULL,
 	[ExpiryDate] [date] NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_WH_Inventory] PRIMARY KEY CLUSTERED
 (
@@ -9155,11 +9167,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Expiry Date ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'창고 상태 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_Inventory', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_Inventory', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_Inventory', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_Inventory', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_Inventory', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_Inventory', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'현재고' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_Inventory'
 GO
@@ -9184,10 +9196,10 @@ CREATE TABLE [dbo].[WH_InventoryTransaction](
 	[OperatorID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ApproverID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[Note] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NOT NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_WH_InventoryTransaction] PRIMARY KEY CLUSTERED
 (
 	[TransactionID] ASC
@@ -9242,9 +9254,9 @@ CREATE TABLE [dbo].[WH_PurchaseOrder](
 	[DueDate] [date] NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[SapSyncedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_WH_PurchaseOrder] PRIMARY KEY CLUSTERED
 (
@@ -9275,9 +9287,9 @@ CREATE TABLE [dbo].[WH_Receiving](
 	[TerminalID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[QcStatus] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[LabelPrinted] [bit] NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_WH_Receiving] PRIMARY KEY CLUSTERED
 (
@@ -9313,11 +9325,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Qc Status · v
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Label Printed · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_Receiving', @level2type=N'COLUMN',@level2name=N'LabelPrinted'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_Receiving', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_Receiving', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_Receiving', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_Receiving', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_Receiving', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'입고 실적' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_Receiving'
 GO
@@ -9342,9 +9354,9 @@ CREATE TABLE [dbo].[WH_ReleasePicking](
 	[FifoOverride] [bit] NULL,
 	[OverrideReason] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
 	[OverrideApprover] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_WH_ReleasePicking] PRIMARY KEY CLUSTERED
 (
@@ -9384,11 +9396,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Override Reaso
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Override Approver · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_ReleasePicking', @level2type=N'COLUMN',@level2name=N'OverrideApprover'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_ReleasePicking', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_ReleasePicking', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_ReleasePicking', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_ReleasePicking', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_ReleasePicking', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'출고 피킹' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_ReleasePicking'
 GO
@@ -9406,9 +9418,9 @@ CREATE TABLE [dbo].[WH_ReleaseSchedule](
 	[RequiredAt] [datetime2](7) NULL,
 	[Priority] [tinyint] NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
 	[PickSlipNo] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReqLocation] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NULL,
@@ -9450,11 +9462,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'우선순위 �
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'창고 상태 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_ReleaseSchedule', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_ReleaseSchedule', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_ReleaseSchedule', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_ReleaseSchedule', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_ReleaseSchedule', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_ReleaseSchedule', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'출고 예정 (WO 수요)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_ReleaseSchedule'
 GO
@@ -9479,9 +9491,9 @@ CREATE TABLE [dbo].[WH_TransactionHistory](
 	[OperatorID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ApproverID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[Note] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_WH_TransactionHistory] PRIMARY KEY CLUSTERED
 (
@@ -9523,11 +9535,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'결재자 (Asp
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'비고 · nvarchar(500)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_TransactionHistory', @level2type=N'COLUMN',@level2name=N'Note'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_TransactionHistory', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_TransactionHistory', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_TransactionHistory', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_TransactionHistory', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_TransactionHistory', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'입출고 트랜잭션 (append-only)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_TransactionHistory'
 GO
@@ -9540,9 +9552,9 @@ CREATE TABLE [dbo].[WH_WarehouseMaster](
 	[WhCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[WhName] [nvarchar](120) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NOT NULL,
-	[CreatedBy] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedTS] [datetime2](7) NOT NULL,
-	[ModifiedBy] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_WH_WAREHOUSE_MASTER] PRIMARY KEY CLUSTERED
 (
