@@ -3660,12 +3660,23 @@ INSERT INTO dbo.MD_WorkCenter (WCID, WCName, ProcessCode, ActiveFlag, CreatedBy,
 GO
 
 -- Production Lines (WCID 필수 — 공정은 소속 작업장에서 상속)
-INSERT INTO dbo.MD_Line (LineID, LineName, WCID, PlantCode, DailyCap, ShiftPattern, LotPrefix, RfidEnabledFlag, Status, CreatedBy, CreatedTS) VALUES
-  ('LINE-INJ-01', N'Injection Line 1 (650T)',  'WC-INJ', 'SAV', 4800, '2-SHIFT', 'I1', 0, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-INJ-02', N'Injection Line 2 (850T)',  'WC-INJ', 'SAV', 3600, '2-SHIFT', 'I2', 0, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-IMG-01', N'Wrapping Line 1',           'WC-IMG', 'SAV', 1200, '2-SHIFT', 'W1', 0, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-PNT-01', N'Paint Line 1 (Powder)',     'WC-PNT', 'GEO',  800, '3-SHIFT', 'P1', 1, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LINE-PNT-02', N'Paint Line 2 (Liquid)',     'WC-PNT', 'GEO',  600, '3-SHIFT', 'P2', 1, 'ACTIVE', 'admin', SYSDATETIME());
+INSERT INTO dbo.MD_Line (LineID, LineName, LineNameEn, WCID, PlantCode, DailyCap, ShiftPattern, LotPrefix, RfidEnabledFlag, Status, CreatedBy, CreatedTS) VALUES
+  ('LINE-IMG-01', N'감싸기 라인 1',       N'Wrapping Line 1',          'WC-IMG', 'EOS-PLT-01', 1200, '2-SHIFT', 'W1', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-IMG-02', N'감싸기 라인 2',       N'Wrapping Line 2',          'WC-IMG', 'EOS-PLT-01', 1200, '2-SHIFT', 'W2', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-IMG-03', N'감싸기 라인 3',       N'Wrapping Line 3',          'WC-IMG', 'EOS-PLT-01', 1200, '2-SHIFT', 'W3', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-IMG-04', N'감싸기 라인 4',       N'Wrapping Line 4',          'WC-IMG', 'EOS-PLT-01', 1200, '2-SHIFT', 'W4', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-IMG-05', N'감싸기 라인 5',       N'Wrapping Line 5',          'WC-IMG', 'EOS-PLT-01', 1200, '2-SHIFT', 'W5', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-INJ-01', N'사출 1라인 (1800T)',  N'Injection Line 1 (1800T)', 'WC-INJ', 'EOS-PLT-01', 4800, '2-SHIFT', 'I1', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-INJ-02', N'사출 2라인 (1800T)',  N'Injection Line 2 (1800T)', 'WC-INJ', 'EOS-PLT-01', 3600, '2-SHIFT', 'I2', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-INJ-03', N'사출 3라인 (1800T)',  N'Injection Line 3 (1800T)', 'WC-INJ', 'EOS-PLT-01', 3600, '2-SHIFT', 'I3', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-INJ-04', N'사출 4라인 (1400T)',  N'Injection Line 4 (1400T)', 'WC-INJ', 'EOS-PLT-01', 3600, '2-SHIFT', 'I4', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-INJ-05', N'사출 5라인 (850T)',   N'Injection Line 5 (850T)',  'WC-INJ', 'EOS-PLT-01', 3600, '2-SHIFT', 'I5', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-INJ-06', N'사출 6라인 (650T)',   N'Injection Line 6 (650T)',  'WC-INJ', 'EOS-PLT-01', 3600, '2-SHIFT', 'I6', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-INJ-07', N'사출 7라인 (650T)',   N'Injection Line 7 (650T)',  'WC-INJ', 'EOS-PLT-01', 3600, '2-SHIFT', 'I7', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-INJ-08', N'사출 8라인 (450T)',   N'Injection Line 8 (450T)',  'WC-INJ', 'EOS-PLT-01', 3600, '2-SHIFT', 'I8', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-INJ-09', N'사출 9라인 (450T)',   N'Injection Line 9 (450T)',  'WC-INJ', 'EOS-PLT-01', 3600, '2-SHIFT', 'I9', 0, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-PNT-01', N'도장 1라인',          N'Painting Line 1',          'WC-PNT', 'EOS-PLT-01',  800, '3-SHIFT', 'P1', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('LINE-PNT-02', N'도장 2라인',          N'Painting Line 2',          'WC-PNT', 'EOS-PLT-01',  600, '3-SHIFT', 'P2', 1, 'ACTIVE', 'admin', SYSDATETIME());
 GO
 
 -- Items (LQ2 rear door trim part master — docs/PartMaster_LQ2.xls)
