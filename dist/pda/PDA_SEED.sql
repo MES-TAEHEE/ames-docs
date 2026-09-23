@@ -121,7 +121,12 @@ IF NOT EXISTS (SELECT 1 FROM dbo.SYS_UserProfile WHERE EmployeeNo = 'PTEST')
          NULL, @PtestPinHash, 'Active', 0, 'pda-seed', SYSDATETIME());
 DECLARE @PtestRoleId nvarchar(450) = (SELECT Id FROM dbo.AspNetRoles WHERE NormalizedName = N'OPERATOR');
 IF @PtestRoleId IS NULL
-    THROW 50000, 'Operator role is required for PTEST.', 1;
+BEGIN
+    -- Fresh rebuilds run before the application's role bootstrap.
+    SET @PtestRoleId = CONVERT(nvarchar(450), NEWID());
+    INSERT INTO dbo.AspNetRoles (Id, Name, NormalizedName, ConcurrencyStamp)
+    VALUES (@PtestRoleId, N'Operator', N'OPERATOR', CONVERT(nvarchar(36), NEWID()));
+END;
 IF NOT EXISTS (SELECT 1 FROM dbo.AspNetUserRoles WHERE UserId = @PtestUserId AND RoleId = @PtestRoleId)
     INSERT INTO dbo.AspNetUserRoles (UserId, RoleId) VALUES (@PtestUserId, @PtestRoleId);
 COMMIT;

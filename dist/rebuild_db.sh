@@ -49,7 +49,7 @@ run_file()   { docker exec "$CONTAINER" "$SQLCMD" "${sql_base[@]}" -d "$DB" -i "
 
 # 스키마 → 시드 (순서 고정!). 권한은 화면(create_sys_screen) 이후여야 매핑됨.
 FILES=(
-  AMES_Schema.sql                     # 전체 구조 (158 dbo 테이블 + 전 컬럼)
+  AMES_Schema.sql                     # 실제 DB 통합 구조 (PDA 포함, TEST_* 테이블 제외) + 기존 기본 시드
   seed_user_code_groups.sql           # 공통 코드 그룹
   create_sys_screen.sql               # SYS_Screen 레지스트리 (화면 목록)
   reseed_menu.sql                     #   → 메뉴/HRef 정본 재시드
@@ -66,7 +66,8 @@ FILES=(
   migrate_wo_step_line.sql            # WO 공정 단계: PP_WorkOrderRouting CompletedQty·TerminalLock·인덱스 + 백필 (migrate_routing_step 이후)
   migrate_wo_prod_deadline.sql        # WO 생산 마감일 컬럼 + PP_PROD_BUFFER_WORKDAYS 설정 (순서 무관)
   migrate_mnt_failure_severity.sql    # MNT 고장 등록: Urgency → Severity 컬럼명 변경 (순서 무관)
-  migrate_md_worker.sql               # POP 전용 현장 작업자 마스터 MD_Worker (순서 무관)
+  # MD_Worker 최신 EmployeeNo/EmployeeName 구조는 AMES_Schema.sql에 포함.
+  # migrate_md_worker.sql은 이전 WorkerNo 컬럼용이므로 신규 DB에는 적용하지 않음.
   seed_md_worker_dev.sql              #   → 개발용 작업자 5명 (W001~W005)
   migrate_md_worker_screen.sql        # MD-032 현장 작업자 관리 화면 등록 + Admin 권한 (순서 무관)
   migrate_mnt_pm_class_type.sql       # MNT_PMSchedule.PMClass 추가·PMType ANNUALLY·공통코드 PM_CLASS/PM_TYPE (순서 무관)
@@ -80,7 +81,6 @@ FILES=(
   migrate_lot_defect_rework.sql       # LOT 불량·재작업: PR_DefectDetail 컬럼·필터 유니크 인덱스·RWK 마스터 (순서 무관, -I 필수)
   migrate_portal.sql                  # 외부 포탈: 역할 ExternalCustomer·PROCESS/PORTAL·화면 PORTAL-001·권한 (순서 무관)
   seed_portal_dev.sql                 #   → 개발용 외부 테스트 계정 adminExt@ames.local (admin 과 같은 비밀번호)
-  pda/PDA_SCHEMA.sql                  # consolidated WH/FG PDA schema
   pda/PDA_SEED.sql                    # WH/FG seed, Web screens and role permissions
   cleanup_legacy_sis_test.sql
   cleanup_cancelled_wo_slots.sql      # 취소 WO 가 남긴 라인 스케줄 슬롯 정리 (신규 DB 에서는 no-op)
