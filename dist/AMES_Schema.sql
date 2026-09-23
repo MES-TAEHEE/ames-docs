@@ -3679,6 +3679,27 @@ INSERT INTO dbo.MD_Line (LineID, LineName, LineNameEn, WCID, PlantCode, DailyCap
   ('LINE-PNT-02', N'도장 2라인',          N'Painting Line 2',          'WC-PNT', 'EOS-PLT-01',  600, '3-SHIFT', 'P2', 1, 'ACTIVE', 'admin', SYSDATETIME());
 GO
 
+-- Stations (라인당 1개 — POP 로그인은 스테이션 선택이 필수. LINE-RWK-01 은 migrate_lot_defect_rework.sql 이 만든다)
+INSERT INTO dbo.MD_Station (StationCode, StationName, StationNameEn, LineID, FormName, OrderSeq, Status, CreatedBy, CreatedTS) VALUES
+  ('ST-IMG-01', N'감싸기 1공정', N'Wrapping Station 1',  'LINE-IMG-01', 'PopBlazorForm', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('ST-IMG-02', N'감싸기 2공정', N'Wrapping Station 2',  'LINE-IMG-02', 'PopBlazorForm', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('ST-IMG-03', N'감싸기 3공정', N'Wrapping Station 3',  'LINE-IMG-03', 'PopBlazorForm', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('ST-IMG-04', N'감싸기 4공정', N'Wrapping Station 4',  'LINE-IMG-04', 'PopBlazorForm', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('ST-IMG-05', N'감싸기 5공정', N'Wrapping Station 5',  'LINE-IMG-05', 'PopBlazorForm', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('ST-INJ-01', N'사출 1공정',   N'Injection Station 1', 'LINE-INJ-01', 'PopBlazorForm', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('ST-INJ-02', N'사출 2공정',   N'Injection Station 2', 'LINE-INJ-02', 'PopBlazorForm', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('ST-INJ-03', N'사출 3공정',   N'Injection Station 3', 'LINE-INJ-03', 'PopBlazorForm', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('ST-INJ-04', N'사출 4공정',   N'Injection Station 4', 'LINE-INJ-04', 'PopBlazorForm', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('ST-INJ-05', N'사출 5공정',   N'Injection Station 5', 'LINE-INJ-05', 'PopBlazorForm', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('ST-INJ-06', N'사출 6공정',   N'Injection Station 6', 'LINE-INJ-06', 'PopBlazorForm', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('ST-INJ-07', N'사출 7공정',   N'Injection Station 7', 'LINE-INJ-07', 'PopBlazorForm', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('ST-INJ-08', N'사출 8공정',   N'Injection Station 8', 'LINE-INJ-08', 'PopBlazorForm', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('ST-INJ-09', N'사출 9공정',   N'Injection Station 9', 'LINE-INJ-09', 'PopBlazorForm', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('ST-PNT-01', N'도장 1공정',   N'Painting Station 1',  'LINE-PNT-01', 'PopBlazorForm', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('ST-PNT-02', N'도장 2공정',   N'Painting Station 2',  'LINE-PNT-02', 'PopBlazorForm', 1, 'ACTIVE', 'admin', SYSDATETIME()),
+  ('ST-RWK-01', N'재작업 스테이션 1', N'Rework Station 1', 'LINE-RWK-01', NULL,        10, 'ACTIVE', 'admin', SYSDATETIME());
+GO
+
 -- Items (LQ2 rear door trim part master — docs/PartMaster_LQ2.xls)
 INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM, SafetyStock, PGN, ALC, ActiveFlag, CreatedBy, CreatedTS) VALUES
   ('83335-P8000BM1',  N'GARNISH-RR DR UPR, LH',                    'ASSY',  N'LQ2 D/Trim', 'LQ2',  'EA', 0, 'Q034',  '8132',   1, 'admin', SYSDATETIME()),
