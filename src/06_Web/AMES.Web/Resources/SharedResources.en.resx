@@ -8349,4 +8349,7 @@
   <data name="SYS.Users.Err.EmpNoWorker" xml:space="preserve">
     <value>Employee No. {0} is registered to a shop-floor worker (POP); reusing it would block that worker's POP login.</value>
   </data>
+  <data name="MD.Workers.Err.WebUser" xml:space="preserve">
+    <value>Employee No {0} is already registered as a web user (SYS-001). The web account would win at POP login and this worker could not sign in.</value>
+  </data>
 </root>

@@ -164,6 +164,15 @@ public sealed class WorkerRepository
         return cmd.ExecuteScalar() is not null;
     }
 
+    /// <summary>웹 계정(SYS_UserProfile)이 쓰는 사번인지 — POP 로그인은 사번이 겹치면 웹 계정이 이겨 이 작업자가 막힌다.</summary>
+    public bool UsedByWebUser(string workerNo)
+    {
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand("SELECT 1 FROM dbo.SYS_UserProfile WHERE UPPER(LTRIM(RTRIM(EmployeeNo))) = UPPER(LTRIM(RTRIM(@EmployeeNo)))", conn);
+        cmd.Parameters.Add("@EmployeeNo", SqlDbType.VarChar, 20).Value = workerNo.Trim();
+        return cmd.ExecuteScalar() is not null;
+    }
+
     public void Insert(string workerNo, string workerName, string? pinHash, bool activeFlag, string actor)
     {
         const string sql = """

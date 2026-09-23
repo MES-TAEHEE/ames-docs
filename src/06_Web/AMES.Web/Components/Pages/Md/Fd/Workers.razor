@@ -345,6 +345,7 @@
         try
         {
             if (WorkerRepo.Exists(no)) { _modalErr = string.Format(L["MD.Workers.Err.Duplicate"].Value, no); return; }
+            if (WorkerRepo.UsedByWebUser(no)) { _modalErr = string.Format(L["MD.Workers.Err.WebUser"].Value, no); return; }
             WorkerRepo.Insert(no, _f.EmployeeName.Trim(),
                 string.IsNullOrWhiteSpace(_f.Pin) ? null : PinHasher.Hash(_f.Pin), _f.ActiveFlag, _actor);
             Audit.Created("MD-032", "MD_Worker", no, _f);

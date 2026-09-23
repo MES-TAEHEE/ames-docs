@@ -8349,4 +8349,7 @@
   <data name="SYS.Users.Err.EmpNoWorker" xml:space="preserve">
     <value>El número {0} pertenece a un operario de planta (POP); reutilizarlo bloquearía su acceso POP.</value>
   </data>
+  <data name="MD.Workers.Err.WebUser" xml:space="preserve">
+    <value>El n.º {0} ya está registrado como usuario web (SYS-001). En POP prevalecería la cuenta web y este operario no podría iniciar sesión.</value>
+  </data>
 </root>

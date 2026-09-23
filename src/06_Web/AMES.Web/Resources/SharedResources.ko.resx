@@ -8349,4 +8349,7 @@
   <data name="SYS.Users.Err.EmpNoWorker" xml:space="preserve">
     <value>현장 작업자(POP)에 등록된 사번입니다: {0}. 같은 사번이면 그 작업자의 POP 로그인이 막힙니다.</value>
   </data>
+  <data name="MD.Workers.Err.WebUser" xml:space="preserve">
+    <value>사번 {0} 은(는) 웹 사용자(SYS-001)에 등록돼 있습니다. 같은 사번이면 POP 에서 웹 계정이 이겨 이 작업자는 로그인할 수 없습니다.</value>
+  </data>
 </root>
