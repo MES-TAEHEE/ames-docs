@@ -7,6 +7,7 @@
 @using Radzen
 
 @attribute [Authorize]
+@inject AMES.Web.Services.ActorNames Actors
 @inject SysRepository Sys
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
@@ -78,7 +79,7 @@
                 <Template Context="a"><span class="code dim" style="font-size:13px;white-space:nowrap;">@(a.EventTs?.ToString(DateFmt.MonthDayTimeSec) ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="ActorUserId" Title="@L["SYS.Audit.Col.Actor"]" Width="300px">
-                <Template Context="a"><span class="dim" style="font-family:var(--ames-font-mono);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:280px;">@(a.ActorUserId ?? "—")</span></Template>
+                <Template Context="a"><span class="dim" style="font-family:var(--ames-font-mono);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:280px;">@(Actors.Display(a.ActorUserId) is { Length: > 0 } n ? n : "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="ModuleCode" Title="@L["Col.Module"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="a"><span class="pill @ModClass(a.ModuleCode)">@(a.ModuleCode ?? "—")</span></Template>
@@ -144,7 +145,7 @@
                 </div>
                 <div class="audit-kv">
                     <span class="audit-kv-l">@L["SYS.Audit.Col.Actor"]</span>
-                    <span class="audit-kv-v code">@(_sel.ActorUserId ?? "—")</span>
+                    <span class="audit-kv-v code">@(Actors.Display(_sel.ActorUserId) is { Length: > 0 } n ? n : "—")</span>
                 </div>
                 <div class="audit-kv">
                     <span class="audit-kv-l">@L["SYS.Audit.Col.Ip"]</span>

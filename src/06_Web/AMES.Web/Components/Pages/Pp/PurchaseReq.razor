@@ -8,6 +8,7 @@
 
 @attribute [Authorize]
 
+@inject AMES.Web.Services.ActorNames Actors
 @inject PpRepository Pp
 @inject MasterDataRepository MD
 @inject AMES.Web.Services.PermissionService PermSvc
@@ -154,7 +155,7 @@ else
 
             <div class="pr-dsub">@L["PP.PurchaseReq.Detail.Log"]</div>
             <div class="pr-log">
-                <div class="pr-logline"><span class="pr-pos">@(_sel.CreatedTs?.ToString(DateFmt.DateTime) ?? "—")</span> · @L["PP.PurchaseReq.Detail.Created"] <span class="dim">(@(_sel.CreatedBy ?? "—"))</span></div>
+                <div class="pr-logline"><span class="pr-pos">@(_sel.CreatedTs?.ToString(DateFmt.DateTime) ?? "—")</span> · @L["PP.PurchaseReq.Detail.Created"] <span class="dim">(@(Actors.Display(_sel.CreatedBy) is { Length: > 0 } cb ? cb : "—"))</span></div>
                 @foreach (var g in _log)
                 {
                     <div class="pr-logline @LogCls(g.Result)">
@@ -418,8 +419,8 @@ else
             PrNo(r), r.SapDocNum, r.ItemNo, r.ItemName,
             r.RequiredQty, r.Uom, r.RequiredDate?.ToString(DateFmt.Date), DdText(r), VendorText(r.VendorId), StText(r),
             r.WoNumber, r.SapPoNumber,
-            r.CreatedBy, r.CreatedTs?.ToString(DateFmt.DateTime),
-            r.ApprovedBy, r.ApprovedAt?.ToString(DateFmt.DateTime),
+            Actors.Display(r.CreatedBy), r.CreatedTs?.ToString(DateFmt.DateTime),
+            Actors.Display(r.ApprovedBy), r.ApprovedAt?.ToString(DateFmt.DateTime),
         });
         var bytes = AMES.Web.Services.XlsxWriter.Build(L["PP.PurchaseReq.Title"].Value, headers, data);
         await JS.InvokeVoidAsync("amesDownload", $"PurchaseReq_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx", Convert.ToBase64String(bytes),

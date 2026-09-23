@@ -72,7 +72,7 @@
             throw new InvalidOperationException("Unexpected error occurred deleting user.");
         }
 
-        Audit.Log("ACCOUNT", "DELETE", "AspNetUsers", user.Email, new { user.Id, user.Email }, null, actor: user.Email);
+        Audit.Log("ACCOUNT", "DELETE", "AspNetUsers", user.Email, new { user.Id, user.Email }, null, actor: AMES.Web.Services.ActorCode.Of(HttpContext.User, user.Email ?? "system"));
         await SignInManager.SignOutAsync();
 
         var userId = await UserManager.GetUserIdAsync(user);

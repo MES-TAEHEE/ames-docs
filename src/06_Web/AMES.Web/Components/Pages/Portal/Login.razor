@@ -91,7 +91,8 @@
             new AuthenticationProperties { IsPersistent = false });
 
         AuthRepo.RecordSuccessfulLogin(user.Id);
-        Audit.Log("PORTAL", "LOGIN", "AspNetUsers", email, null, new { email, portal = true }, actor: email);
+        // 행위자는 사번(클레임 ames:actor) — CreatedBy varchar(20)
+        Audit.Log("PORTAL", "LOGIN", "AspNetUsers", email, null, new { email, portal = true }, actor: AMES.Web.Services.ActorCode.Of(new ClaimsPrincipal(portalIdentity), email));
         Logger.LogInformation("Portal user logged in: {Email}", email);
 
         var target = string.IsNullOrWhiteSpace(ReturnUrl) || !ReturnUrl.StartsWith(AMES.Web.Services.PortalAuth.Prefix, StringComparison.OrdinalIgnoreCase)
@@ -103,7 +104,10 @@
     void Fail(string email, string reason)
     {
         errorMessage ??= L["Auth.Err.Invalid"];
-        try { Audit.Log("PORTAL", "LOGIN_FAIL", "AspNetUsers", email, null, new { email, reason }, actor: email); } catch { }
+        // 로그인 전이라 클레임이 없다 — 계정이 있으면 사번, 없으면 이메일(AuditLogger 가 @ 앞부분으로 줄인다)
+        string actor = email;
+        try { var u = UserMgr.FindByEmailAsync(email).GetAwaiter().GetResult(); if (u is not null) actor = AuthRepo.GetEmployeeNo(u.Id) ?? email; } catch { }
+        try { Audit.Log("PORTAL", "LOGIN_FAIL", "AspNetUsers", email, null, new { email, reason }, actor: actor); } catch { }
     }
 
     private sealed class InputModel

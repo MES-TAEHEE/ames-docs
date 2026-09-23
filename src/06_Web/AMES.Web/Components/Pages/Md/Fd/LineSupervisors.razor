@@ -8,6 +8,7 @@
 
 @attribute [Authorize]
 
+@inject AMES.Web.Services.ActorNames Actors
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
 @inject LineSupervisorRepository SupRepo
@@ -91,7 +92,7 @@
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineSupervisorRepository.Row" Property="CreatedBy" Title="@L["MD.Workers.Col.CreatedBy"]" TextAlign="TextAlign.Center" Width="150px">
-                <Template Context="s"><span class="dim">@s.CreatedBy</span></Template>
+                <Template Context="s"><span class="dim">@Actors.Display(s.CreatedBy)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineSupervisorRepository.Row" Property="CreatedTs" Title="@L["MD.Workers.Col.CreatedTs"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="s"><span class="dim">@(s.CreatedTs?.ToString(DateFmt.MonthDayTime) ?? "—")</span></Template>
@@ -163,8 +164,8 @@
                 </RadzenStack>
 
                 <div class="dim" style="font-size:var(--ames-fs-hint);">
-                    @L["MD.Workers.Col.CreatedBy"]: @_sel.CreatedBy · @(_sel.CreatedTs?.ToString(DateFmt.MonthDayTime) ?? "—")
-                    @if (!string.IsNullOrEmpty(_sel.ModifiedBy)) { <span> · @L["MD.Workers.Lbl.Modified"]: @_sel.ModifiedBy · @(_sel.ModifiedTs?.ToString(DateFmt.MonthDayTime) ?? "—")</span> }
+                    @L["MD.Workers.Col.CreatedBy"]: @Actors.Display(_sel.CreatedBy) · @(_sel.CreatedTs?.ToString(DateFmt.MonthDayTime) ?? "—")
+                    @if (!string.IsNullOrEmpty(_sel.ModifiedBy)) { <span> · @L["MD.Workers.Lbl.Modified"]: @Actors.Display(_sel.ModifiedBy) · @(_sel.ModifiedTs?.ToString(DateFmt.MonthDayTime) ?? "—")</span> }
                 </div>
             </RadzenStack>
 

@@ -7,6 +7,7 @@
 
 @attribute [Authorize]
 
+@inject AMES.Web.Services.ActorNames Actors
 @inject MntRepository Mnt
 @inject MasterDataRepository MD
 @inject IJSRuntime JS
@@ -458,8 +459,8 @@
     string LineText(MntRepository.DowntimeRow r) =>
         r.LineId is null ? "" : LineName(r) is { Length: > 0 } nm ? $"[{r.LineId}] {nm}" : $"[{r.LineId}]";
 
-    static string Who(string? by, DateTime? ts) =>
-        by is null && ts is null ? "" : $"{by ?? "—"} · {ts?.ToString(DateFmt.DateTime) ?? "—"}";
+    string Who(string? by, DateTime? ts) =>
+        by is null && ts is null ? "" : $"{(Actors.Display(by) is { Length: > 0 } n ? n : "—")} · {ts?.ToString(DateFmt.DateTime) ?? "—"}";
 
     static int BarPct(int v, int max) => max <= 0 ? 0 : Math.Max(2, (int)Math.Round(100.0 * v / max));
 

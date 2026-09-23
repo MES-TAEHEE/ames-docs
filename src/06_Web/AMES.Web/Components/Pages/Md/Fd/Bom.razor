@@ -8,6 +8,7 @@
 
 @attribute [Authorize]
 
+@inject AMES.Web.Services.ActorNames Actors
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
@@ -142,11 +143,11 @@
                             }
                             @if (_selVer.Status == "PENDING" && !string.IsNullOrEmpty(_selVer.RequestedBy))
                             {
-                                <div style="font-size:.78em;color:#fbbf24;margin-top:2px;">@L["MD.Bom.ApprovalRequester"]: @_selVer.RequestedBy</div>
+                                <div style="font-size:.78em;color:#fbbf24;margin-top:2px;">@L["MD.Bom.ApprovalRequester"]: @Actors.Display(_selVer.RequestedBy)</div>
                             }
                             @if (_selVer.Status == "APPROVED" && !string.IsNullOrEmpty(_selVer.ApprovedBy))
                             {
-                                <div style="font-size:.78em;color:#86efac;margin-top:2px;">@L["MD.Bom.ApprovedBy"]: @_selVer.ApprovedBy  @(_selVer.ApprovedTS?.ToString(DateFmt.DateTime))</div>
+                                <div style="font-size:.78em;color:#86efac;margin-top:2px;">@L["MD.Bom.ApprovedBy"]: @Actors.Display(_selVer.ApprovedBy)  @(_selVer.ApprovedTS?.ToString(DateFmt.DateTime))</div>
                             }
                         </div>
 

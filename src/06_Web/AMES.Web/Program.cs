@@ -189,6 +189,7 @@ builder.Services.AddSingleton<Microsoft.Extensions.Options.IConfigureNamedOption
             o.SlidingExpiration = true;
         }));
 builder.Services.AddSingleton(sp => new WorkOrderRepository(factory));
+builder.Services.AddSingleton<AMES.Web.Services.ActorNames>();   // 행위자 코드(사번) → 이름 표시, 5분 캐시
 builder.Services.AddSingleton(sp => new EquipmentRepository(factory));
 builder.Services.AddSingleton(sp => new MasterDataRepository(factory));
 builder.Services.AddSingleton(sp => new ProductionRepository(factory));

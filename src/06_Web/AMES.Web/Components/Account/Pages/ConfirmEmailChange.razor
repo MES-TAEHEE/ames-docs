@@ -68,7 +68,7 @@
         }
 
         await SignInManager.RefreshSignInAsync(user);
-        Audit.Log("ACCOUNT", "UPDATE", "AspNetUsers", Email, null, new { UserId, Email }, actor: Email);
+        Audit.Log("ACCOUNT", "UPDATE", "AspNetUsers", Email, null, new { UserId, Email }, actor: AMES.Web.Services.ActorCode.Of(HttpContext.User, Email));
         message = L["Auth.EmailChange.Ok"];
     }
 }

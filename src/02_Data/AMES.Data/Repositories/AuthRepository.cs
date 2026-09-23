@@ -136,7 +136,8 @@ public sealed class AuthRepository
                                           THEN 'LOCKED'
                                           ELSE ISNULL(AccountStatus, 'Active')
                                       END,
-                   ModifiedBy       = @UserID,
+                   -- 행위자 컬럼은 varchar(20) — GUID 대신 본인 사번
+                   ModifiedBy       = ISNULL(NULLIF(LTRIM(RTRIM(EmployeeNo)), ''), LEFT(@UserID, 20)),
                    ModifiedTS       = SYSDATETIME()
             WHERE  UserID = @UserID;
             SELECT ISNULL(AccountStatus, 'Active') FROM dbo.SYS_UserProfile WHERE UserID = @UserID;
@@ -153,6 +154,39 @@ public sealed class AuthRepository
     /// Returns the current AccountStatus and FailedLoginCount for a user.
     /// Returns ("Active", 0) when no SYS_UserProfile row exists.
     /// </summary>
+    /// <summary>
+    /// 행위자 코드 → 표시 이름 사전. 키는 사번(SYS_UserProfile·MD_Worker), 사용자 ID(GUID)·사용자명(구 데이터), 그리고
+    /// migrate_audit_actor_varchar20 이 만든 별칭(SYS_AuditActorMap.ActorCode → 원문). 값은 사원 이름(별칭은 원문의 @ 앞부분).
+    /// </summary>
+    public Dictionary<string, string> ListActorNames()
+    {
+        const string sql = """
+            SELECT Code, Name FROM (
+                SELECT p.EmployeeNo AS Code, p.EmployeeName AS Name FROM dbo.SYS_UserProfile p WHERE NULLIF(p.EmployeeNo,'') IS NOT NULL
+                UNION ALL SELECT p.UserID, p.EmployeeName FROM dbo.SYS_UserProfile p
+                UNION ALL SELECT u.UserName, p.EmployeeName FROM dbo.SYS_UserProfile p JOIN dbo.AspNetUsers u ON u.Id = p.UserID
+                -- 사번 클레임이 없던 시절·로그인 전 화면이 남긴 "이메일 @ 앞부분" 코드도 이름으로
+                UNION ALL SELECT LEFT(u.UserName, CHARINDEX('@', u.UserName) - 1), p.EmployeeName
+                          FROM dbo.SYS_UserProfile p JOIN dbo.AspNetUsers u ON u.Id = p.UserID WHERE CHARINDEX('@', u.UserName) > 1
+                UNION ALL SELECT w.EmployeeNo, w.EmployeeName FROM dbo.MD_Worker w WHERE NULLIF(w.EmployeeNo,'') IS NOT NULL
+                UNION ALL SELECT m.ActorCode, COALESCE(p.EmployeeName, LEFT(m.OriginalValue, CASE WHEN CHARINDEX('@', m.OriginalValue) > 1 THEN CHARINDEX('@', m.OriginalValue) - 1 ELSE 60 END))
+                          FROM dbo.SYS_AuditActorMap m
+                          LEFT JOIN dbo.AspNetUsers u ON u.Id = m.OriginalValue OR u.NormalizedUserName = UPPER(m.OriginalValue)
+                          LEFT JOIN dbo.SYS_UserProfile p ON p.UserID = u.Id
+            ) x WHERE Code IS NOT NULL AND Name IS NOT NULL
+            """;
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        using var conn = _connFactory.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+        {
+            var code = r.GetString(0).Trim(); var name = r.GetString(1).Trim();
+            if (code.Length > 0 && name.Length > 0 && !map.ContainsKey(code)) map[code] = name;
+        }
+        return map;
+    }
+
     /// <summary>행위자 코드용 사번(SYS_UserProfile.EmployeeNo). 프로필이 없으면 null.</summary>
     public string? GetEmployeeNo(string userId)
     {
