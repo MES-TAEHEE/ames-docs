@@ -336,6 +336,19 @@
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
+    // 사번 중복 검사 — 다른 작업자(MD_Worker)·웹 사용자(SYS_UserProfile) 와 겹치면 _modalErr 를 채우고 false (SYS-001 Users.razor 와 동일)
+    bool EmployeeNoIsFree(string employeeNo, int? excludeWorkerId)
+    {
+        var no = employeeNo.Trim();
+        try
+        {
+            if (WorkerRepo.EmployeeNoExists(no, excludeWorkerId)) { _modalErr = string.Format(L["MD.Workers.Err.Duplicate"].Value, no); return false; }
+            if (WorkerRepo.EmployeeNoUsedByWebUser(no))          { _modalErr = string.Format(L["MD.Workers.Err.WebUser"].Value, no);   return false; }
+        }
+        catch (Exception ex) { _modalErr = ex.Message; return false; }
+        return true;
+    }
+
     async Task SaveCreate()
     {
         _modalErr = "";
@@ -343,12 +356,12 @@
         if (string.IsNullOrWhiteSpace(no))            { _modalErr = L["MD.Workers.Err.WorkerNoRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["MD.Workers.Err.NameRequired"]; return; }
         if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["MD.Workers.Err.PinFormat"]; return; }
+        // 사번은 SYS_UserProfile·MD_Worker 두 테이블을 합쳐 유일해야 한다 — SYS-001 과 같은 검사
+        if (!EmployeeNoIsFree(no, excludeWorkerId: null)) return;
 
         _busy = true;
         try
         {
-            if (WorkerRepo.Exists(no)) { _modalErr = string.Format(L["MD.Workers.Err.Duplicate"].Value, no); return; }
-            if (WorkerRepo.UsedByWebUser(no)) { _modalErr = string.Format(L["MD.Workers.Err.WebUser"].Value, no); return; }
             WorkerRepo.Insert(no, _f.EmployeeName.Trim(),
                 string.IsNullOrWhiteSpace(_f.Pin) ? null : PinHasher.Hash(_f.Pin), _f.ActiveFlag, _actor);
             Audit.Created("MD-032", "MD_Worker", no, _f);
@@ -365,6 +378,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["MD.Workers.Err.NameRequired"]; return; }
         if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["MD.Workers.Err.PinFormat"]; return; }
+        if (!EmployeeNoIsFree(_sel.EmployeeNo, excludeWorkerId: _sel.WorkerId)) return;
 
         _busy = true;
         try

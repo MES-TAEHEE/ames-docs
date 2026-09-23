@@ -156,21 +156,28 @@ public sealed class WorkerRepository
         return list;
     }
 
-    public bool Exists(string workerNo)
+    /// <summary>다른 작업자(MD_Worker)가 쓰는 사번인지 — 대소문자·공백 무시. excludeWorkerId 는 수정 시 본인 제외.</summary>
+    public bool EmployeeNoExists(string employeeNo, int? excludeWorkerId = null)
     {
+        const string sql = """
+            SELECT COUNT(*) FROM dbo.MD_Worker
+            WHERE  UPPER(LTRIM(RTRIM(EmployeeNo))) = UPPER(LTRIM(RTRIM(@No)))
+              AND  (@Exclude IS NULL OR WorkerID <> @Exclude)
+            """;
         using var conn = _connFactory.OpenConnection();
-        using var cmd  = new SqlCommand("SELECT 1 FROM dbo.MD_Worker WHERE EmployeeNo = @EmployeeNo", conn);
-        cmd.Parameters.Add("@EmployeeNo", SqlDbType.VarChar, 20).Value = workerNo;
-        return cmd.ExecuteScalar() is not null;
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@No",      SqlDbType.VarChar, 20).Value = employeeNo.Trim();
+        cmd.Parameters.Add("@Exclude", SqlDbType.Int).Value         = (object?)excludeWorkerId ?? DBNull.Value;
+        return (int)cmd.ExecuteScalar()! > 0;
     }
 
     /// <summary>웹 계정(SYS_UserProfile)이 쓰는 사번인지 — POP 로그인은 사번이 겹치면 웹 계정이 이겨 이 작업자가 막힌다.</summary>
-    public bool UsedByWebUser(string workerNo)
+    public bool EmployeeNoUsedByWebUser(string employeeNo)
     {
         using var conn = _connFactory.OpenConnection();
-        using var cmd  = new SqlCommand("SELECT 1 FROM dbo.SYS_UserProfile WHERE UPPER(LTRIM(RTRIM(EmployeeNo))) = UPPER(LTRIM(RTRIM(@EmployeeNo)))", conn);
-        cmd.Parameters.Add("@EmployeeNo", SqlDbType.VarChar, 20).Value = workerNo.Trim();
-        return cmd.ExecuteScalar() is not null;
+        using var cmd  = new SqlCommand("SELECT COUNT(*) FROM dbo.SYS_UserProfile WHERE UPPER(LTRIM(RTRIM(EmployeeNo))) = UPPER(LTRIM(RTRIM(@No)))", conn);
+        cmd.Parameters.Add("@No", SqlDbType.VarChar, 20).Value = employeeNo.Trim();
+        return (int)cmd.ExecuteScalar()! > 0;
     }
 
     public void Insert(string workerNo, string workerName, string? pinHash, bool activeFlag, string actor)
