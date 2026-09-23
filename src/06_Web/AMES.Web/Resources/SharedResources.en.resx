@@ -8343,4 +8343,10 @@
   <data name="Portal.Role.External" xml:space="preserve">
     <value>External user</value>
   </data>
+  <data name="SYS.Users.Err.EmpNoDuplicate" xml:space="preserve">
+    <value>Employee No. {0} is already assigned to another user.</value>
+  </data>
+  <data name="SYS.Users.Err.EmpNoWorker" xml:space="preserve">
+    <value>Employee No. {0} is registered to a shop-floor worker (POP); reusing it would block that worker's POP login.</value>
+  </data>
 </root>

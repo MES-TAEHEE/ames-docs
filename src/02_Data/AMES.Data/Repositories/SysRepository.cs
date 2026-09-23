@@ -863,6 +863,30 @@ public sealed class SysRepository
     }
 
     // ── SYS-01 User Profile Write ───────────────────────────────────────
+    /// <summary>다른 웹 사용자(SYS_UserProfile)가 이미 쓰는 사번인지. excludeUserId 는 수정 중인 본인.</summary>
+    public bool EmployeeNoExists(string employeeNo, string? excludeUserId = null)
+    {
+        const string sql = """
+            SELECT COUNT(*) FROM dbo.SYS_UserProfile
+            WHERE  UPPER(LTRIM(RTRIM(EmployeeNo))) = UPPER(LTRIM(RTRIM(@No)))
+              AND  (@Exclude IS NULL OR UserID <> @Exclude)
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@No", SqlDbType.VarChar, 20).Value = employeeNo.Trim();
+        cmd.Parameters.Add("@Exclude", SqlDbType.NVarChar, 450).Value = (object?)excludeUserId ?? DBNull.Value;
+        return (int)cmd.ExecuteScalar()! > 0;
+    }
+
+    /// <summary>POP 전용 현장 작업자(MD_Worker)가 쓰는 사번인지 — 같은 사번이면 POP 로그인에서 웹 계정이 이겨 작업자가 막힌다.</summary>
+    public bool EmployeeNoUsedByWorker(string employeeNo)
+    {
+        using var conn = _f.OpenConnection();
+        using var cmd = new SqlCommand("SELECT COUNT(*) FROM dbo.MD_Worker WHERE UPPER(LTRIM(RTRIM(EmployeeNo))) = UPPER(LTRIM(RTRIM(@No)))", conn);
+        cmd.Parameters.Add("@No", SqlDbType.VarChar, 20).Value = employeeNo.Trim();
+        return (int)cmd.ExecuteScalar()! > 0;
+    }
+
     public void CreateProfile(string userId, string employeeNo, string employeeName,
         string? department, string? plantCode, string? defaultShift, string createdBy,
         string? assignedLinesJson = null)

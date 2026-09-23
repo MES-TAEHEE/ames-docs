@@ -8343,4 +8343,10 @@
   <data name="Portal.Role.External" xml:space="preserve">
     <value>외부 사용자</value>
   </data>
+  <data name="SYS.Users.Err.EmpNoDuplicate" xml:space="preserve">
+    <value>이미 다른 사용자에 등록된 사번입니다: {0}</value>
+  </data>
+  <data name="SYS.Users.Err.EmpNoWorker" xml:space="preserve">
+    <value>현장 작업자(POP)에 등록된 사번입니다: {0}. 같은 사번이면 그 작업자의 POP 로그인이 막힙니다.</value>
+  </data>
 </root>

@@ -504,6 +504,19 @@
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
+    // 사번 중복 검사 — 다른 웹 사용자(SYS_UserProfile)·현장 작업자(MD_Worker) 와 겹치면 _modalErr 를 채우고 false
+    bool EmployeeNoIsFree(string employeeNo, string? excludeUserId)
+    {
+        var no = employeeNo.Trim();
+        try
+        {
+            if (Sys.EmployeeNoExists(no, excludeUserId)) { _modalErr = string.Format(L["SYS.Users.Err.EmpNoDuplicate"].Value, no); return false; }
+            if (Sys.EmployeeNoUsedByWorker(no))          { _modalErr = string.Format(L["SYS.Users.Err.EmpNoWorker"].Value, no);    return false; }
+        }
+        catch (Exception ex) { _modalErr = ex.Message; return false; }
+        return true;
+    }
+
     async Task SaveCreate()
     {
         _modalErr = "";
@@ -512,6 +525,8 @@
         if (string.IsNullOrWhiteSpace(_f.EmployeeNo))   { _modalErr = L["SYS.Users.Err.EmpNoRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["SYS.Users.Err.NameRequired"]; return; }
         if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["SYS.Users.Err.PinFormat"]; return; }
+        // 사번은 행위자 코드·POP 로그인 키라 전사 유일해야 한다 — 다른 웹 사용자·현장 작업자와 겹치면 등록을 막는다
+        if (!EmployeeNoIsFree(_f.EmployeeNo, excludeUserId: null)) return;
 
         _busy = true;
         try
@@ -551,6 +566,7 @@
         if (string.IsNullOrWhiteSpace(_f.EmployeeNo))   { _modalErr = L["SYS.Users.Err.EmpNoRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["SYS.Users.Err.NameRequired"]; return; }
         if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["SYS.Users.Err.PinFormat"]; return; }
+        if (!EmployeeNoIsFree(_f.EmployeeNo, excludeUserId: _sel.UserId)) return;
 
         _busy = true;
         try
