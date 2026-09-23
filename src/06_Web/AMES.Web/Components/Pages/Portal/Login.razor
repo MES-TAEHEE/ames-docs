@@ -1,0 +1,114 @@
+@page "/portal/login"
+@layout AMES.Web.Components.Layout.EmptyLayout
+@attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+@using AMES.Web.Data
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserMgr
+@inject AMES.Data.Repositories.AuthRepository AuthRepo
+@inject AMES.Web.Services.AuditLogger Audit
+@inject ILogger<Login> Logger
+@inject IStringLocalizer<SharedResources> L
+
+@*  외부 개방 화면 전용 로그인. 계정은 SYS-001 에서 만든 Identity 계정 그대로이며 ExternalCustomer 역할이 있어야만 통과한다.
+    이메일 확인·승인 단계는 두지 않는다(관리자가 만든 계정만 쓴다). 성공하면 내부 Identity 쿠키를 지우고 AmesPortal 쿠키를 발급한다. *@
+
+<PageTitle>@L["Portal.Login.Title"] · A-MES</PageTitle>
+
+<div class="ames-auth-page portal-auth">
+    <div class="ames-auth-card">
+        <div class="ames-auth-brand">
+            <div class="portal-badge">@L["Portal.Sub"]</div>
+            <div class="ames-auth-logo">A-MES</div>
+            <div class="ames-auth-sub">@L["Portal.Login.Sub"]</div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="ames-auth-error">✕ @errorMessage</div>
+        }
+
+        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="portal-login"
+                  class="ames-auth-form" Enhance="false">
+            <DataAnnotationsValidator />
+
+            <label class="ames-auth-label">@L["Auth.Lbl.Email"]</label>
+            <InputText @bind-Value="Input.Email" class="ames-auth-input" autocomplete="username" placeholder="user@partner.com" />
+            <ValidationMessage For="() => Input.Email" class="ames-auth-vm" />
+
+            <label class="ames-auth-label">@L["Auth.Lbl.Password"]</label>
+            <InputText type="password" @bind-Value="Input.Password" class="ames-auth-input" autocomplete="current-password" placeholder="••••••••" />
+            <ValidationMessage For="() => Input.Password" class="ames-auth-vm" />
+
+            <button type="submit" class="ames-auth-submit">@L["Auth.Btn.SignIn"]  →</button>
+        </EditForm>
+
+        <div class="ames-auth-hint">@L["Portal.Login.Hint"]</div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = default!;
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    private string? errorMessage;
+
+    protected override void OnInitialized() => Input ??= new();
+
+    public async Task LoginUser()
+    {
+        var email = Input.Email.Trim();
+        var user = await UserMgr.FindByEmailAsync(email);
+        if (user is null) { Fail(email, "UserNotFound"); return; }
+
+        var (accountStatus, _) = AuthRepo.GetProfileStatus(user.Id);
+        if (string.Equals(accountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase) || await UserMgr.IsLockedOutAsync(user))
+        { errorMessage = L["Auth.Err.Locked"]; Fail(email, "Locked"); return; }
+
+        // 외부 역할이 없는 계정(내부 사용자 포함)은 이 화면에서 로그인할 수 없다 — 비밀번호를 검사하기 전에 거른다
+        if (!await UserMgr.IsInRoleAsync(user, AMES.Web.Services.PortalAuth.Role))
+        { errorMessage = L["Auth.Err.NotPortalUser"]; Fail(email, "NotPortalUser"); return; }
+
+        if (!await UserMgr.CheckPasswordAsync(user, Input.Password))
+        {
+            await UserMgr.AccessFailedAsync(user);   // Identity 잠금 정책은 내부와 같다
+            errorMessage = L["Auth.Err.Invalid"]; Fail(email, "InvalidPassword"); return;
+        }
+        await UserMgr.ResetAccessFailedCountAsync(user);
+
+        // 내부 쿠키가 있으면 지운다(한 브라우저에 두 쿠키가 같이 있으면 판별이 꼬인다) → 외부 쿠키 발급
+        await SignInManager.SignOutAsync();
+        var identityPrincipal = await SignInManager.CreateUserPrincipalAsync(user);   // 역할 클레임 포함
+        var portalIdentity = new ClaimsIdentity(identityPrincipal.Claims, AMES.Web.Services.PortalAuth.Scheme,
+            ClaimTypes.Name, ClaimTypes.Role);
+        await HttpContext.SignInAsync(AMES.Web.Services.PortalAuth.Scheme, new ClaimsPrincipal(portalIdentity),
+            new AuthenticationProperties { IsPersistent = false });
+
+        AuthRepo.RecordSuccessfulLogin(user.Id);
+        Audit.Log("PORTAL", "LOGIN", "AspNetUsers", email, null, new { email, portal = true }, actor: email);
+        Logger.LogInformation("Portal user logged in: {Email}", email);
+
+        var target = string.IsNullOrWhiteSpace(ReturnUrl) || !ReturnUrl.StartsWith(AMES.Web.Services.PortalAuth.Prefix, StringComparison.OrdinalIgnoreCase)
+            ? AMES.Web.Services.PortalAuth.HomePath
+            : ReturnUrl;
+        HttpContext.Response.Redirect(target);
+    }
+
+    void Fail(string email, string reason)
+    {
+        errorMessage ??= L["Auth.Err.Invalid"];
+        try { Audit.Log("PORTAL", "LOGIN_FAIL", "AspNetUsers", email, null, new { email, reason }, actor: email); } catch { }
+    }
+
+    private sealed class InputModel
+    {
+        [Required, EmailAddress] public string Email { get; set; } = "";
+        [Required, DataType(DataType.Password)] public string Password { get; set; } = "";
+    }
+}

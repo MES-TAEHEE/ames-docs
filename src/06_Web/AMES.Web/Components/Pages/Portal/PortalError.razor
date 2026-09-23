@@ -1,0 +1,36 @@
+@page "/portal/error"
+@layout AMES.Web.Components.Layout.EmptyLayout
+@attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+@inject IStringLocalizer<SharedResources> L
+@using System.Diagnostics
+
+@*  외부 개방 화면 전용 오류 페이지 — 내부 셸·메뉴 없이 안내와 외부 로그인 링크만. Program.cs 의 /portal 예외 처리 분기가 이 경로로 보낸다. *@
+
+<PageTitle>@L["App.ErrorPage.Title"] · @L["Portal.Sub"]</PageTitle>
+
+<div class="portal-auth">
+    <div class="ames-auth-page">
+        <div class="ames-auth-card portal-error-card">
+            <div class="ames-auth-brand">
+                <div class="ames-auth-logo">A-MES</div>
+                <div class="ames-auth-sub">@L["Portal.Sub"]</div>
+            </div>
+            <div class="ames-auth-error">✕ @L["App.ErrorPage.Msg"]</div>
+            @if (!string.IsNullOrEmpty(RequestId))
+            {
+                <div class="ames-auth-hint">@L["App.ErrorPage.RequestId"]: <code>@RequestId</code></div>
+            }
+            <div class="ames-auth-meta">
+                <a href="@AMES.Web.Services.PortalAuth.HomePath">@L["Portal.Error.Back"]</a>
+                <span>·</span>
+                <a href="@AMES.Web.Services.PortalAuth.LoginPath">@L["Portal.Login.Sub"]</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] private HttpContext? HttpContext { get; set; }
+    private string? RequestId { get; set; }
+    protected override void OnInitialized() => RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+}

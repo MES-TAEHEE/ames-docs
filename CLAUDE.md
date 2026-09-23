@@ -487,6 +487,20 @@ INJ-MAIN 은 HID(키보드 웨지) 외에 시리얼 스캔도 받는다. 호스�
 
 ---
 
+## 외부 개방 화면 (Partner Portal, `/portal`) — AMES.Web
+
+같은 AMES.Web 안에서 외부 사용자에게 특정 화면만 여는 구조(09-23). 정본은 `Services/PortalAuth.cs`, 화면은 `Components/Pages/Portal/`.
+
+- **외부 사용자** = SYS-001 에서 만든 Identity 계정에 역할 **`ExternalCustomer`** 를 준 사람. 이메일 확인·승인 단계 없이 관리자 등록 계정만 쓴다. 외부 사용자에게는 이 역할 하나만 준다(내부 역할이 섞이면 "외부 화면만" 이 깨진다).
+- **로그인 2곳**: 내부 `Account/Login` 은 `ExternalCustomer` 계정을 거부(`Auth.Err.PortalOnly`), 외부 `/portal/login` 은 그 역할이 없는 계정을 거부(`Auth.Err.NotPortalUser`). 외부 로그인은 `UserManager.CheckPasswordAsync` + 잠금 카운터로 검증하고 내부 Identity 쿠키를 지운 뒤 **`AmesPortal` 스킴 쿠키 `.AMES.Portal`(경로 `/`)** 을 발급한다. 경로를 `/portal` 로 좁히면 Blazor 회로(`/_blazor`)에 쿠키가 안 실려 로그인 직후 권한 없음이 된다. 로그아웃은 `GET /portal/logout`(외부 쿠키만 삭제).
+- **스킴 선택**(`Program.cs` `AddPolicyScheme(AmesDynamic)`): 요청에 `.AMES.Portal` 이 있으면 `AmesPortal`, 없으면 Identity — 단 쿠키가 하나도 없는 `/portal` 요청은 `AmesPortal` 로 보내 미인증 챌린지가 `/portal/login` 으로 간다. 내부 쿠키 기본 이름은 `.AspNetCore.` + `IdentityConstants.ApplicationScheme`.
+- **인가**: 기본 정책(DefaultPolicy)이 "내부 Identity 스킴으로 인증된 사용자" 라서 `[Authorize]` 만 붙은 내부 화면 전부와 `AuthorizeView` 가 외부 쿠키를 거부한다(→ `/unauthorized`). 외부 화면은 폴더 `_Imports.razor` 의 `[Authorize(Policy = PortalAccess)]` = 내부 사용자 또는 (외부 쿠키 + `ExternalCustomer`). 화면 단위 권한은 여느 화면처럼 `SYS_Screen`(`PORTAL-001`, HRef `portal/shipment-plan`, ProcessCode `PORTAL`) + `SYS_RolePermission`(Admin REA, ExternalCustomer R) + `PermSvc.IsVisible` 게이트.
+- **레이아웃** `Layout/PortalLayout.razor`: 내부·외부 사용자 모두 **내부 사이트와 분리된 외부 셸**(내부 셸과 같은 구조 — 상단바 + 좌측 메뉴 — 이지만 청록 테마, 메뉴에는 권한 있는 외부 화면 PORTAL-* 만)을 본다. 내부 사용자에게는 우상단 "내부 사이트로" 링크, 외부 사용자에게는 로그아웃만. **내부 메뉴(NavMenu)·검색·즐겨찾기에는 `portal/…` 화면이 나오지 않는다**(`NavMenu.V()` 가 접두어로 제외, `MenuCatalog.Sections` 에도 없음) — 내부 사용자는 URL 로만 들어간다(사용자 결정 09-23). `Routes.razor` 의 `RedirectToLogin` 은 `/portal` 경로면 외부 로그인으로 보낸다.
+- **오류·400**: `/portal` 아래에서 난 예외는 `UseWhen` 분기의 예외 처리기가 맨몸 `/portal/error`(내부 메뉴 없음)로 보내고, 외부 로그인 폼의 위조 방지 토큰 만료 400 은 `/Account` 와 같이 GET 으로 되돌린다. 외부 셸·로그인은 청록 액센트(`.portal-auth`·`.portal-shell`)로 내부 사이트와 인상을 분리한다.
+- **외부 노출**: appsettings `Portal:ExternalHosts`(기본 `[]`)에 외부 호스트명을 적으면 그 호스트로 들어온 요청은 `/portal/*`·`/_blazor`·`/_framework`·정적 파일·`/keep-alive` 만 허용하고 나머지는 403(`/` 는 `/portal/login` 으로). IIS URL Rewrite 없이 소스로 관리한다. HTTPS 바인딩·외부 DNS 는 별도.
+- **DB**: `dist/migrate_portal.sql`(역할·`PROCESS/PORTAL` 코드·화면·권한, 재실행 안전) → `dist/seed_portal_dev.sql`(개발 전용 외부 테스트 계정 `adminExt@ames.local`, 비밀번호는 `admin` 과 동일 — `PasswordHash` 복사). `rebuild_db.sh` 목록에 포함.
+- 첫 화면 PORTAL-001 출하 계획 조회는 `FinishedGoodsRepository.ListShipments`(FG-004 와 같은 조회, 기본 최근 6개월 + 향후 1개월)를 읽기 전용으로 보여 준다. 고객사별 필터는 두지 않는다(사용자 결정). 외부 사용자용 비밀번호 변경 화면은 없다(관리자 재설정).
+
 ## 데모 화면참조 문서 — `AMES_Office_Web_화면참조.md` (참고용)
 
 리포 루트의 `AMES_Office_Web_화면참조.md` 는 데모 사이트(https://mes-taehee.github.io/ames-docs/DEMO_Office_Web.html, `DEMO_*.html`, 상세 설계 `VOLxx_*.html`)에서 추출한 Office Web 74화면 정의다(PP 13 · MNT 9 · RPT 10 · SYS 8 · MD 29 + MD L3 설계서 5). 화면마다 개요·필터·KPI·그리드 컬럼·버튼·모달 입력 필드가 정리돼 있다.

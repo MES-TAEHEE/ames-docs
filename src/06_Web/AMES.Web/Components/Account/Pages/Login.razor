@@ -102,6 +102,12 @@
         var identityUser = await UserMgr.FindByEmailAsync(Input.Email);
         if (identityUser is not null)
         {
+            // 외부 사용자(ExternalCustomer)는 내부 화면에 들어올 수 없다 — 외부 로그인(/portal/login)만 허용
+            if (await UserMgr.IsInRoleAsync(identityUser, AMES.Web.Services.PortalAuth.Role))
+            {
+                errorMessage = L["Auth.Err.PortalOnly"];
+                return;
+            }
             var (accountStatus, _) = AuthRepo.GetProfileStatus(identityUser.Id);
             if (string.Equals(accountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase))
             {
@@ -131,6 +137,9 @@
 
             if (identityUser is not null)
                 AuthRepo.RecordSuccessfulLogin(identityUser.Id);
+
+            // 같은 브라우저에 외부 포탈 쿠키가 남아 있으면 지운다(스킴 선택이 외부 쿠키 존재 여부로 갈린다)
+            HttpContext.Response.Cookies.Delete(AMES.Web.Services.PortalAuth.CookieName);
 
             // Persist RememberMe choice for next visit
             HttpContext.Response.Cookies.Append(RememberCookie, Input.RememberMe ? "1" : "0",

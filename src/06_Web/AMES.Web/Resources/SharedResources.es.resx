@@ -8277,4 +8277,70 @@
   <data name="MNT.SpareParts.LabelDialog.Title" xml:space="preserve">
     <value>Etiqueta de repuesto</value>
   </data>
+  <data name="Portal.Sub" xml:space="preserve">
+    <value>PORTAL EXTERNO</value>
+  </data>
+  <data name="Portal.Logout" xml:space="preserve">
+    <value>Cerrar sesión</value>
+  </data>
+  <data name="Portal.Login.Title" xml:space="preserve">
+    <value>Inicio de sesión del portal</value>
+  </data>
+  <data name="Portal.Login.Sub" xml:space="preserve">
+    <value>Iniciar sesión</value>
+  </data>
+  <data name="Portal.Login.Hint" xml:space="preserve">
+    <value>Solo pueden iniciar sesión las cuentas registradas por el administrador.</value>
+  </data>
+  <data name="Auth.Err.PortalOnly" xml:space="preserve">
+    <value>Esta es una cuenta externa. Use la página de inicio de sesión del portal.</value>
+  </data>
+  <data name="Auth.Err.NotPortalUser" xml:space="preserve">
+    <value>Esta cuenta no puede usar el portal externo.</value>
+  </data>
+  <data name="Portal.ShipmentPlan.Title" xml:space="preserve">
+    <value>Plan de envíos</value>
+  </data>
+  <data name="Portal.ShipmentPlan.Empty" xml:space="preserve">
+    <value>No hay planes de envío que coincidan con el filtro.</value>
+  </data>
+  <data name="Portal.ShipmentPlan.Kpi.Shipped" xml:space="preserve">
+    <value>Enviado</value>
+  </data>
+  <data name="Portal.ShipmentPlan.Planned" xml:space="preserve">
+    <value>Planificado</value>
+  </data>
+  <data name="Col.ShipDate" xml:space="preserve">
+    <value>Fecha de envío</value>
+  </data>
+  <data name="Col.ShipOrder" xml:space="preserve">
+    <value>Orden de envío</value>
+  </data>
+  <data name="Col.CustomerPO" xml:space="preserve">
+    <value>PO del cliente</value>
+  </data>
+  <data name="Col.Destination" xml:space="preserve">
+    <value>Destino</value>
+  </data>
+  <data name="Col.Lines" xml:space="preserve">
+    <value>Líneas</value>
+  </data>
+  <data name="Portal.Error.Back" xml:space="preserve">
+    <value>Volver al portal</value>
+  </data>
+  <data name="Portal.Nav.Internal" xml:space="preserve">
+    <value>Sitio interno</value>
+  </data>
+  <data name="Portal.Nav.Empty" xml:space="preserve">
+    <value>No hay pantallas del portal disponibles.</value>
+  </data>
+  <data name="Portal.Nav.Search" xml:space="preserve">
+    <value>Buscar pantallas…</value>
+  </data>
+  <data name="Portal.Nav.Home" xml:space="preserve">
+    <value>Inicio del portal</value>
+  </data>
+  <data name="Portal.Role.External" xml:space="preserve">
+    <value>Usuario externo</value>
+  </data>
 </root>

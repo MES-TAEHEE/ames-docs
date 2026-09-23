@@ -34,7 +34,11 @@ public sealed class MenuCatalog
         new("fg",  "🚚", "완제품 관리",   "Finished Goods",     "Producto Terminado"),
         new("md",  "🗂️", "마스터 데이터", "Master Data",         "Datos Maestros"),
         new("sys", "⚙️", "시스템",      "System",              "Sistema"),
+        // 외부 개방 화면(ProcessCode PORTAL, 섹션 키 "portal")은 내부 메뉴에 내지 않는다 — PortalLayout 이 SectionItems("portal") 로만 읽는다
     };
+
+    /// <summary>외부 개방 화면 섹션 키(SYS_Screen.ProcessCode 'PORTAL' 의 소문자).</summary>
+    public const string PortalSection = "portal";
 
     // 메뉴 항목은 SYS_Screen(ModuleCode='WEB')에서 동적으로 로딩된다.
     // DB 조회 실패/빈 결과 시 아래 정적 목록으로 폴백(권한 필터 미적용, 서브그룹 미표시).

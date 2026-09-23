@@ -78,6 +78,8 @@ FILES=(
   migrate_pp_pr_send.sql              # PP-006 구매요청 SAP 전송 상태 컬럼 + 상태 어휘 이관 (순서 무관)
   migrate_andon_workflow.sql          # 안돈 워크플로: MD_LineSupervisor·PR_AndonDeptCall·PR_AndonCall.SupervisorName·공통코드 (순서 무관)
   migrate_lot_defect_rework.sql       # LOT 불량·재작업: PR_DefectDetail 컬럼·필터 유니크 인덱스·RWK 마스터 (순서 무관, -I 필수)
+  migrate_portal.sql                  # 외부 포탈: 역할 ExternalCustomer·PROCESS/PORTAL·화면 PORTAL-001·권한 (순서 무관)
+  seed_portal_dev.sql                 #   → 개발용 외부 테스트 계정 adminExt@ames.local (admin 과 같은 비밀번호)
   pda/PDA_SCHEMA.sql                  # consolidated WH/FG PDA schema
   pda/PDA_SEED.sql                    # WH/FG seed, Web screens and role permissions
   cleanup_legacy_sis_test.sql

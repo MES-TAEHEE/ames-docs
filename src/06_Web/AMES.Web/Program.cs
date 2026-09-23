@@ -69,12 +69,50 @@ builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
-builder.Services.AddAuthentication(options =>
+// 인증 스킴 2개: 내부 Identity 쿠키 + 외부 개방 화면(/portal) 전용 쿠키(AmesPortal).
+// 기본 스킴은 요청에 외부 쿠키가 있으면 AmesPortal, 없으면 Identity 로 고르는 선택형이다.
+// 외부 쿠키는 경로 "/" 로 둔다 — 경로를 /portal 로 좁히면 Blazor 회로(/_blazor)에 쿠키가 안 실려 로그인 직후 권한 없음이 된다.
+var authBuilder = builder.Services.AddAuthentication(options =>
     {
-        options.DefaultScheme = IdentityConstants.ApplicationScheme;
+        options.DefaultScheme = AMES.Web.Services.PortalAuth.DynamicScheme;
         options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+    });
+authBuilder.AddIdentityCookies();
+authBuilder
+    .AddCookie(AMES.Web.Services.PortalAuth.Scheme, o =>
+    {
+        o.Cookie.Name        = AMES.Web.Services.PortalAuth.CookieName;
+        o.Cookie.HttpOnly    = true;
+        o.Cookie.SameSite    = SameSiteMode.Lax;
+        o.LoginPath          = AMES.Web.Services.PortalAuth.LoginPath;
+        o.AccessDeniedPath   = "/unauthorized";
+        o.SlidingExpiration  = true;
     })
-    .AddIdentityCookies();
+    .AddPolicyScheme(AMES.Web.Services.PortalAuth.DynamicScheme, "AMES cookie selector", o =>
+    {
+        // 외부 쿠키가 있으면 AmesPortal. 없으면 Identity — 단, 쿠키가 하나도 없는 /portal 요청은 AmesPortal 로 보내
+        // 미인증 챌린지가 내부 로그인이 아니라 /portal/login 으로 가게 한다(내부 쿠키가 있으면 내부 사용자 그대로).
+        o.ForwardDefaultSelector = ctx =>
+        {
+            if (ctx.Request.Cookies.ContainsKey(AMES.Web.Services.PortalAuth.CookieName)) return AMES.Web.Services.PortalAuth.Scheme;
+            if (AMES.Web.Services.PortalAuth.IsPortalPath(ctx.Request.Path)
+                && !ctx.Request.Cookies.ContainsKey(".AspNetCore." + IdentityConstants.ApplicationScheme)) return AMES.Web.Services.PortalAuth.Scheme;   // 내부 쿠키 기본 이름
+            return IdentityConstants.ApplicationScheme;
+        };
+    });
+
+// 인가 정책: 기본 정책([Authorize] 만 붙은 내부 화면 66개·AuthorizeView)은 내부 Identity 스킴으로 인증된 사용자만 통과 →
+// 외부 쿠키로 내부 화면 URL 을 직접 쳐도 전부 거부된다. 외부 화면은 PortalAccess(내부 사용자 또는 외부 역할).
+builder.Services.AddAuthorization(options =>
+{
+    options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .RequireAssertion(ctx => AMES.Web.Services.PortalAuth.IsInternalUser(ctx.User))
+        .Build();
+    options.AddPolicy(AMES.Web.Services.PortalAuth.Policy, p => p
+        .RequireAuthenticatedUser()
+        .RequireAssertion(ctx => AMES.Web.Services.PortalAuth.AllowsPortalAccess(ctx.User)));
+});
 
 // ── Identity tables live in AMES_DEV alongside the operational data ────
 var connectionString = builder.Configuration.GetConnectionString("AMES")
@@ -135,6 +173,15 @@ builder.Services.AddSingleton<AMES.Web.Services.AppSessionState>();
 builder.Services.AddSingleton<Microsoft.Extensions.Options.IConfigureNamedOptions<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>>(sp =>
     new Microsoft.Extensions.Options.ConfigureNamedOptions<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>(
         IdentityConstants.ApplicationScheme,
+        o =>
+        {
+            o.ExpireTimeSpan    = TimeSpan.FromMinutes(sp.GetRequiredService<AMES.Web.Services.AppSessionState>().Minutes);
+            o.SlidingExpiration = true;
+        }));
+// 외부 포탈 쿠키도 같은 SESSION_TIMEOUT_MIN 을 따른다
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IConfigureNamedOptions<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>>(sp =>
+    new Microsoft.Extensions.Options.ConfigureNamedOptions<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>(
+        AMES.Web.Services.PortalAuth.Scheme,
         o =>
         {
             o.ExpireTimeSpan    = TimeSpan.FromMinutes(sp.GetRequiredService<AMES.Web.Services.AppSessionState>().Minutes);
@@ -272,6 +319,10 @@ await RunSeedAsync("role", async scope =>
 });
 
 // Configure the HTTP request pipeline.
+// 외부 개방 화면(/portal)에서 난 예외는 내부 셸(MainLayout)의 /Error 가 아니라 맨몸 /portal/error 로 — 외부 사용자에게 내부 메뉴가 보이지 않게
+app.UseWhen(ctx => AMES.Web.Services.PortalAuth.IsPortalPath(ctx.Request.Path),
+    branch => branch.UseExceptionHandler("/portal/error", createScopeForErrors: true));
+
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
@@ -326,14 +377,40 @@ app.Use(async (ctx, next) =>
                    || contentType.StartsWith("multipart/form-data", StringComparison.OrdinalIgnoreCase);
     if (ctx.Response.StatusCode == StatusCodes.Status400BadRequest && !ctx.Response.HasStarted
         && HttpMethods.IsPost(ctx.Request.Method) && isFormPost
-        && ctx.Request.Path.StartsWithSegments("/Account"))
+        && (ctx.Request.Path.StartsWithSegments("/Account") || AMES.Web.Services.PortalAuth.IsPortalPath(ctx.Request.Path)))
     {
         var target = ctx.Request.Path.StartsWithSegments("/Account/Logout") ? "/Account/Login" : ctx.Request.Path.Value!;
         ctx.Response.Redirect(target + "?expired=1");
     }
 });
 
+// 외부 노출 게이트: appsettings Portal:ExternalHosts 에 적힌 호스트명(예 portal.example.com)으로 들어온 요청은
+// 외부 화면(/portal)·Blazor 회로·정적 파일만 허용하고 나머지는 403. 목록이 비어 있으면(기본) 아무것도 막지 않는다.
+// IIS URL Rewrite 모듈 없이 소스로 관리하려는 것. 사내 호스트명은 전체를 서비스한다.
+var externalHosts = builder.Configuration.GetSection("Portal:ExternalHosts").Get<string[]>() ?? [];
+if (externalHosts.Length > 0)
+{
+    var hostSet = new HashSet<string>(externalHosts.Select(h => h.Trim()), StringComparer.OrdinalIgnoreCase);
+    app.Use(async (ctx, next) =>
+    {
+        if (hostSet.Contains(ctx.Request.Host.Host) && !AMES.Web.Services.PortalAuth.IsAllowedOnExternalHost(ctx.Request.Path))
+        {
+            if (ctx.Request.Path == "/") { ctx.Response.Redirect(AMES.Web.Services.PortalAuth.LoginPath); return; }
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+        await next();
+    });
+}
+
 app.UseAntiforgery();
+
+// 외부 포탈 로그아웃 — 외부 쿠키만 지운다(내부 쿠키는 건드리지 않음)
+app.MapGet("/portal/logout", async (HttpContext ctx) =>
+{
+    await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(ctx, AMES.Web.Services.PortalAuth.Scheme);
+    return Results.Redirect(AMES.Web.Services.PortalAuth.LoginPath);
+});
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

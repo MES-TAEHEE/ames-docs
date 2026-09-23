@@ -5278,3 +5278,70 @@ html[data-theme="light"] .spare-label-preview { background: #e5e7eb; }
     #spare-part-label-print * { visibility: visible !important; }
     #spare-part-label-print { position: absolute; inset: 0 auto auto 0; width: 100mm; margin: 0; padding: 0; }
 }
+
+/* ── 외부 포탈(/portal) 외부 사용자용 셸 — 내부 사용자는 MainLayout 안에서 같은 화면을 본다 ───────── */
+.portal-shell { min-height: 100vh; display: flex; flex-direction: column; background: var(--ames-bg, #0b1220); color: var(--ames-fg, #e5e7eb); }
+.portal-top { display: flex; align-items: center; gap: 24px; padding: 0 20px; height: 52px; border-bottom: 1px solid var(--ames-border, #1f2937); background: var(--ames-panel, #0f172a); }
+.portal-brand { display: flex; align-items: baseline; gap: 10px; }
+.portal-logo { font-family: var(--ames-font-mono, monospace); font-weight: 800; letter-spacing: .12em; font-size: 15px; }
+.portal-sub { font-size: var(--ames-fs-hint, 11px); letter-spacing: .18em; opacity: .7; }
+.portal-nav { display: flex; gap: 6px; flex: 1; }
+.portal-link { padding: 6px 12px; border-radius: 6px; text-decoration: none; color: inherit; font-size: 13px; opacity: .85; }
+.portal-link:hover { background: rgba(255,255,255,.06); opacity: 1; }
+.portal-link.active { background: rgba(59,130,246,.18); color: #93c5fd; opacity: 1; }
+.portal-user { display: flex; align-items: center; gap: 12px; font-size: 12px; }
+.portal-user-name { opacity: .8; }
+.portal-logout { color: #fca5a5; text-decoration: none; }
+.portal-main { flex: 1; padding: 16px 20px; }
+html[data-theme="light"] .portal-shell { background: #f3f4f6; color: #111827; }
+html[data-theme="light"] .portal-top { background: #fff; border-color: #e5e7eb; }
+
+/* ── 외부 포탈: 내부 사이트와 확실히 다른 인상 — 청록 계열 액센트·상단 탭 네비·별도 브랜드 배지 ─────── */
+.portal-auth { background: radial-gradient(1200px 600px at 20% -10%, #0f3d3e 0%, #071a1c 45%, #050d10 100%) !important; }
+.portal-auth .ames-auth-card { border-top: 4px solid #2dd4bf; box-shadow: 0 20px 60px rgba(0,0,0,.45); }
+.portal-auth .ames-auth-logo { color: #99f6e4; }
+.portal-auth .ames-auth-submit { background: linear-gradient(90deg, #14b8a6, #0d9488); border-color: #0d9488; }
+.portal-auth .ames-auth-submit:hover { filter: brightness(1.08); }
+.portal-badge { display: inline-block; margin-bottom: 6px; padding: 2px 10px; border-radius: 999px; background: rgba(45,212,191,.15); color: #5eead4; font-size: 11px; letter-spacing: .2em; font-weight: 700; }
+.portal-error-card .ames-auth-error { margin: 12px 0; }
+.portal-shell { background: radial-gradient(1400px 500px at 50% -20%, #0f3d3e 0%, #071a1c 40%, #050d10 100%); color: #e6fffa; }
+.portal-top { background: rgba(5,13,16,.85); border-bottom: 2px solid #14b8a6; backdrop-filter: blur(6px); }
+.portal-logo { color: #99f6e4; }
+.portal-sub { color: #5eead4; opacity: 1; letter-spacing: .22em; font-weight: 700; }
+.portal-link { border: 1px solid transparent; }
+.portal-link.active { background: rgba(20,184,166,.18); border-color: rgba(45,212,191,.45); color: #ccfbf1; }
+.portal-logout { color: #fda4af; }
+html[data-theme="light"] .portal-shell { background: linear-gradient(180deg, #ecfeff 0%, #f0fdfa 100%); color: #134e4a; }
+html[data-theme="light"] .portal-top { background: #ffffffd9; border-bottom-color: #0d9488; }
+html[data-theme="light"] .portal-logo, html[data-theme="light"] .portal-sub { color: #0f766e; }
+html[data-theme="light"] .portal-link.active { background: rgba(13,148,136,.12); color: #0f766e; }
+
+/* ── 외부 포탈 셸: 내부 셸 구조(상단바 + 좌측 메뉴)를 빌려 쓰되 색·메뉴 내용은 분리 ─────────────── */
+.portal-shell { min-height: 100vh; height: 100vh; }
+.portal-top { height: 60px; flex-shrink: 0; z-index: 100; }
+.portal-top-spacer { flex: 1; }
+.portal-link-internal { color: #99f6e4; font-size: 12px; text-decoration: none; padding: 4px 10px; border: 1px solid rgba(45,212,191,.35); border-radius: 6px; }
+.portal-link-internal:hover { background: rgba(20,184,166,.15); color: #ccfbf1; }
+.portal-side .ames-nav-section.portal { color: #5eead4; cursor: default; }
+.portal-side .ames-nav-link.active { background: rgba(20,184,166,.16); }
+.portal-side .lid { color: #5eead4; border-color: rgba(45,212,191,.35); background: rgba(45,212,191,.08); }
+
+/* ── 외부 포탈: 내부 셸(TopBar·NavMenu) 클래스를 그대로 쓰고 색만 청록으로 덮어쓴다 ─────────────── */
+.portal-shell { background: radial-gradient(1200px 600px at 12% -10%, rgba(20,184,166,.20), transparent 60%), radial-gradient(900px 500px at 110% 10%, rgba(45,212,191,.10), transparent 60%), #050f12; }
+.portal-shell .ames-topbar.portal-top { height: 60px; display: flex; align-items: center; padding: 0; gap: 0; background: linear-gradient(180deg, rgba(6,26,28,.97), rgba(4,14,16,.97)); border-bottom: 1px solid rgba(45,212,191,.28); backdrop-filter: blur(6px); }
+.portal-shell .ames-brand-logo { color: #99f6e4; }
+.portal-shell .ames-brand-sub { color: #5eead4; letter-spacing: .18em; }
+.portal-shell .ames-loc-code { color: #5eead4; background: rgba(94,234,212,.10); border-color: rgba(94,234,212,.25); }
+.portal-shell .ames-user-av--user { background: rgba(20,184,166,.18); color: #5eead4; }
+.portal-shell .ames-user-out.portal-back { text-decoration: none; }
+.portal-shell .ames-side { border-right: 1px solid rgba(45,212,191,.18); background: linear-gradient(180deg, rgba(6,26,28,.92), rgba(4,14,16,.92)); }
+.portal-shell .ames-nav-section.portal.open, .portal-shell .ames-nav-section.portal { color: #99f6e4; }
+.portal-shell .ames-nav-section.portal .ames-nav-section-n { background: rgba(45,212,191,.15); color: #5eead4; }
+.portal-shell .ames-nav-link.active { background: rgba(20,184,166,.16); color: #ccfbf1; }
+.portal-shell .ames-nav-link .lid { color: #5eead4; border-color: rgba(45,212,191,.35); background: rgba(45,212,191,.08); }
+.portal-shell .ames-nav-home.active { color: #99f6e4; }
+.portal-shell a { color: #7dd3fc; }
+html[data-theme="light"] .portal-shell { background: linear-gradient(180deg, #ecfeff 0%, #f0fdfa 100%); }
+html[data-theme="light"] .portal-shell .ames-topbar.portal-top { background: #ffffffe6; border-bottom-color: #0d9488; }
+html[data-theme="light"] .portal-shell .ames-side { background: #ffffffcc; border-right-color: rgba(13,148,136,.25); }
+html[data-theme="light"] .portal-shell .ames-brand-logo, html[data-theme="light"] .portal-shell .ames-brand-sub, html[data-theme="light"] .portal-shell .ames-nav-section.portal { color: #0f766e; }

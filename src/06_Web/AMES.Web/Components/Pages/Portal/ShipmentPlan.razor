@@ -1,0 +1,96 @@
+@page "/portal/shipment-plan"
+@rendermode InteractiveServer
+@inject IStringLocalizer<SharedResources> L
+@using Radzen
+@inject FinishedGoodsRepository Fg
+@inject AMES.Web.Services.PermissionService PermSvc
+@inject AuthenticationStateProvider AuthPrvd
+@inject NavigationManager Nav
+
+@*  PORTAL-001 출하 계획 조회 — 외부 개방 화면 첫 번째. FG_ShipmentOrder(+라인 합계)를 출하일 기준으로 조회만 한다.
+    권한은 SYS_RolePermission(portal/shipment-plan): 외부 역할은 R, 내부는 역할별. *@
+
+<PageTitle>PORTAL-001 @L["Portal.ShipmentPlan.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="PORTAL-001" TitleKey="Portal.ShipmentPlan.Title" />
+
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["Lbl.Total"]</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["Portal.ShipmentPlan.Kpi.Shipped"]</div><div class="ames-kpi-v">@_rows.Count(x => x.DepartureAt is not null || x.DeliveryNoteIssuedAt is not null)</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["Col.Quantity"]</div><div class="ames-kpi-v">@_rows.Sum(x => x.OrderedQty).ToString("N0")</div></div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_message</RadzenAlert>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h master-list-toolbar">
+        <span>▼ @L["Portal.ShipmentPlan.Title"] · @_rows.Count</span>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_search" Placeholder="@L["Btn.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:210px;" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
+            <RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="@L["Col.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Clear" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+    <RadzenDataGrid @ref="_grid" TItem="FinishedGoodsRepository.ShipmentRow" Data="@_rows" AllowPaging="true" PageSize="25"
+                    PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
+                    EmptyText="@L["Portal.ShipmentPlan.Empty"].Value" Class="ames-rz-grid ames-grid-fixed">
+        <Columns>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="r">@GridRowNo.Of(_grid, r)</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShipDate" Title="@L["Col.ShipDate"].Value" Width="110px" TextAlign="TextAlign.Center">
+                <Template Context="r">@(r.ShipDate?.ToString("yyyy-MM-dd") ?? "-")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShipOrderNumber" Title="@L["Col.ShipOrder"].Value" Width="150px">
+                <Template Context="r"><span class="code">@(r.ShipOrderNumber ?? "-")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="CustomerCode" Title="@L["Col.Customer"].Value" Width="110px" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="CustomerPo" Title="@L["Col.CustomerPO"].Value" Width="140px" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="Destination" Title="@L["Col.Destination"].Value" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="LineCount" Title="@L["Col.Lines"].Value" Width="80px" TextAlign="TextAlign.Right" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="OrderedQty" Title="@L["Col.Quantity"].Value" Width="110px" TextAlign="TextAlign.Right">
+                <Template Context="r">@r.OrderedQty.ToString("N0")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="DepartureAt" Title="@L["Col.Status"].Value" Width="110px" TextAlign="TextAlign.Center">
+                <Template Context="r">
+                    @if (r.DepartureAt is not null || r.DeliveryNoteIssuedAt is not null)
+                    { <span class="pill ok">@L["Portal.ShipmentPlan.Kpi.Shipped"]</span> }
+                    else
+                    { <span class="pill info">@L["Portal.ShipmentPlan.Planned"]</span> }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+@code {
+    const string Href = "portal/shipment-plan";
+    RadzenDataGrid<FinishedGoodsRepository.ShipmentRow>? _grid;
+    List<FinishedGoodsRepository.ShipmentRow> _rows = new();
+    readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 };
+    string _search = "";
+    DateTime? _from = DbClock.Today.AddMonths(-6);   // FG-004 와 같은 기본 창(최근 6개월 + 향후 1개월)
+    DateTime? _to = DbClock.Today.AddMonths(1);
+    string _message = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
+        Reload();
+    }
+
+    void Reload()
+    {
+        if (_from > _to) { _message = L["Err.DateRange"]; return; }
+        try { _rows = Fg.ListShipments(_search, _from, _to); _message = ""; }
+        catch (Exception ex) { _rows = new(); _message = ex.Message; }
+    }
+
+    void Clear() { _search = ""; _from = DbClock.Today.AddMonths(-6); _to = DbClock.Today.AddMonths(1); Reload(); }
+}

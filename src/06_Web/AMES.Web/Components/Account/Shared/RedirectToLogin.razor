@@ -3,6 +3,13 @@
 @code {
     protected override void OnInitialized()
     {
+        // 외부 개방 화면(/portal)은 외부 로그인으로, 그 밖은 내부 로그인으로
+        var path = "/" + NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        if (AMES.Web.Services.PortalAuth.IsPortalPath(path))
+        {
+            NavigationManager.NavigateTo($"{AMES.Web.Services.PortalAuth.LoginPath}?returnUrl={Uri.EscapeDataString(path)}", forceLoad: true);
+            return;
+        }
         NavigationManager.NavigateTo($"Account/Login?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}", forceLoad: true);
     }
 }
