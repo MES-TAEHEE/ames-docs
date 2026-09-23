@@ -381,7 +381,7 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actorEmail = auth.User.Identity?.Name ?? "system";
+        _actorEmail = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("sys/users");
         _roles = RoleMgr.Roles.Select(r => r.Name!).OrderBy(n => n).ToList();

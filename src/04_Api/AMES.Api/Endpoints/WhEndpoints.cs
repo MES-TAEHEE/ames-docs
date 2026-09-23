@@ -195,7 +195,7 @@ public static class WhEndpoints
             cmd.Parameters.AddWithValue("@L", body.LotCode);
             cmd.Parameters.AddWithValue("@Q", body.Qty);
             cmd.Parameters.AddWithValue("@Loc", body.LocationId);
-            cmd.Parameters.AddWithValue("@By", s.OperatorId);
+            cmd.Parameters.AddWithValue("@By", s.EmployeeNo);
             cmd.Parameters.AddWithValue("@T", s.TerminalId);
             var id = (int)cmd.ExecuteScalar()!;
             return Results.Ok(new { ReceivingId = id });
@@ -924,7 +924,7 @@ public static class WhEndpoints
             cmd.Parameters.AddWithValue("@Qty", pickQty);
             cmd.Parameters.AddWithValue("@LocationNo", (object?)row.LocationNo ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@BeforeStatus", (object?)row.InvStatus ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@By", s.OperatorId);
+            cmd.Parameters.AddWithValue("@By", s.EmployeeNo);
             cmd.Parameters.AddWithValue("@TerminalId", s.TerminalId);
             var affected = cmd.ExecuteNonQuery();
 
@@ -967,7 +967,7 @@ public static class WhEndpoints
 
             var simulateFailure = body.SimulateFailure && PdaScenarioUsers.IsDetailed(s.EmployeeNo);
             var result = ExecuteReleaseBatch(factory, pickSlipNo, body.Lots, reasonCode,
-                s.OperatorId, s.TerminalId, simulateFailure);
+                s.EmployeeNo, s.TerminalId, simulateFailure);
             if (!result.Success)
                 return simulateFailure
                     ? Results.Json(result, statusCode: StatusCodes.Status503ServiceUnavailable)
@@ -1011,7 +1011,7 @@ public static class WhEndpoints
             var outgoingType = master.FindActiveCodeItem("WH_OUTGOING_TYPE", body.OutgoingType?.Trim() ?? "");
             var result = string.IsNullOrWhiteSpace(outgoingType?.Attribute1)
                 ? new DirectOutgoingResult(false, "Select a valid outgoing type.")
-                : ExecuteDirectOutgoing(factory, body, outgoingType.Attribute1, s.OperatorId);
+                : ExecuteDirectOutgoing(factory, body, outgoingType.Attribute1, s.EmployeeNo);
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                 s, "DIRECT_OUTGOING", "WH003", "LOT", body.LotNo,
                 result.Success ? "SUCCESS" : "FAIL", result.Message,

@@ -761,7 +761,7 @@
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthPrvd.GetAuthenticationStateAsync();
-        _actor = authState.User.Identity?.Name ?? "web";
+        _actor = AMES.Web.Services.ActorCode.Of(authState.User, "web");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("pp/line-schedule");
         try { _lines       = MD.ListLines(); } catch { }

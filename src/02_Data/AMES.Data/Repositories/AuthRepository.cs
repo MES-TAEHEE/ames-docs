@@ -153,6 +153,16 @@ public sealed class AuthRepository
     /// Returns the current AccountStatus and FailedLoginCount for a user.
     /// Returns ("Active", 0) when no SYS_UserProfile row exists.
     /// </summary>
+    /// <summary>행위자 코드용 사번(SYS_UserProfile.EmployeeNo). 프로필이 없으면 null.</summary>
+    public string? GetEmployeeNo(string userId)
+    {
+        using var conn = _connFactory.OpenConnection();
+        using var cmd = new SqlCommand("SELECT TOP (1) EmployeeNo FROM dbo.SYS_UserProfile WHERE UserID = @UserID", conn);
+        cmd.Parameters.Add("@UserID", SqlDbType.NVarChar, 450).Value = userId;
+        var v = cmd.ExecuteScalar();
+        return v is string s && !string.IsNullOrWhiteSpace(s) ? s.Trim() : null;
+    }
+
     public (string AccountStatus, int FailedLoginCount) GetProfileStatus(string userId)
     {
         const string sql = """
@@ -200,7 +210,8 @@ public sealed class AuthRepository
             UPDATE dbo.SYS_UserProfile
             SET    FailedLoginCount = 0,
                    LastLoginTS      = SYSDATETIME(),
-                   ModifiedBy       = @UserID,
+                   -- 행위자 컬럼은 varchar(20)(09-23 migrate_audit_actor_varchar20) — GUID 대신 본인 사번, 없으면 앞 20자
+                   ModifiedBy       = ISNULL(NULLIF(LTRIM(RTRIM(EmployeeNo)), ''), LEFT(@UserID, 20)),
                    ModifiedTS       = SYSDATETIME()
             WHERE  UserID = @UserID;
             """;

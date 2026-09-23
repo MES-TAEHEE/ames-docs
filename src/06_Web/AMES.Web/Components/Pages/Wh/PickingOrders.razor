@@ -349,7 +349,7 @@
 
         _canEdit = PermSvc.CanEdit("wh/picking-orders");
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actor = auth.User.Identity?.Name ?? "planner";
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "planner");
         LoadLines();
         Reload();
         LoadCandidates();

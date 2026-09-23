@@ -373,7 +373,7 @@ public static class FgEndpoints
                 var pack = ResolvePalletSplit(conn, tx, row.ItemNo, row.Qty, body.PalletCount, body.PalletQty);
                 var containerBarcode = storageMethod == BarcodeLocation ? "" : ParseFgBarcode(body.ContainerBarcode).Raw;
                 var stockId = InsertPutAwayStock(conn, tx, row, location, body.SuggestedLocation, body.OverrideReason,
-                    pack.PalletCount, pack.PalletQty, s.OperatorId, storageMethod, storageMethod, containerBarcode);
+                    pack.PalletCount, pack.PalletQty, s.EmployeeNo, storageMethod, storageMethod, containerBarcode);
 
                 tx.Commit();
 
@@ -775,7 +775,7 @@ public static class FgEndpoints
                 """, conn);
             cmd.Parameters.AddWithValue("@So", body.ShipmentOrderId);
             cmd.Parameters.AddWithValue("@Ld", (object?)body.LoadingId ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@Op", s.OperatorId);
+            cmd.Parameters.AddWithValue("@Op", s.EmployeeNo);
             var id = (int)cmd.ExecuteScalar()!;
             return Results.Ok(new { DeliveryNoteId = id });
         });
@@ -794,7 +794,7 @@ public static class FgEndpoints
                         CAST(GETDATE() AS DATE), @By, SYSDATETIME(), @M,
                         @N, 'Pending', 'pda', SYSDATETIME());
                 """, conn);
-            cmd.Parameters.AddWithValue("@By", s.OperatorId);
+            cmd.Parameters.AddWithValue("@By", s.EmployeeNo);
             cmd.Parameters.AddWithValue("@M",  body.CloseMode);
             cmd.Parameters.AddWithValue("@N",  (object?)body.Note ?? DBNull.Value);
             var id = (int)cmd.ExecuteScalar()!;

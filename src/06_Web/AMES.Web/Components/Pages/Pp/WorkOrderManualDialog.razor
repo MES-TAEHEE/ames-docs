@@ -57,7 +57,7 @@
         try
         {
             var auth  = await AuthPrvd.GetAuthenticationStateAsync();
-            var actor = auth.User.Identity?.Name ?? "system";
+            var actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
             var wo = Wos.CreateManualWo(_item, _qty, _due, actor);
             if (string.IsNullOrEmpty(wo)) { _err = L["PP.WorkOrder.Err.NoRouting"]; _busy = false; return; }
             Dialog.Close(new Result(wo));

@@ -117,7 +117,7 @@
         try
         {
             var auth  = await AuthPrvd.GetAuthenticationStateAsync();
-            var actor = auth.User.Identity?.Name ?? "system";
+            var actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
             var rows  = _preview.Select(r => new PpRepository.CustomerOrderImportRow(
                 r.SoNumber, r.SoLineNo, r.ItemNo, r.OrderQty, r.ShippedQty,
                 r.OrderDate, r.RequestedDeliveryDate)).ToList();

@@ -280,7 +280,7 @@ else
     async Task<string> Actor()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        return auth.User.Identity?.Name ?? "system";
+        return AMES.Web.Services.ActorCode.Of(auth.User, "system");
     }
 
     async Task Release(WorkOrderDto w)

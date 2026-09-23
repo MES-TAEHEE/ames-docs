@@ -135,6 +135,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager()
+    .AddClaimsPrincipalFactory<AMES.Web.Services.AmesClaimsPrincipalFactory>()   // 로그인 클레임에 행위자 코드(사번) — CreatedBy/ModifiedBy varchar(20)
     .AddDefaultTokenProviders();
 
 // 비밀번호 최소 길이 = SYS_Config(PASSWORD_MIN_LEN) 동적 검증 (앱 재시작 없이 Config 저장 시 반영)

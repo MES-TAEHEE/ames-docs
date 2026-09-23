@@ -43,7 +43,8 @@ public sealed class AuditLogger
         try
         {
             // actor 는 로그인 전 화면(자기가입·비밀번호 재설정)처럼 인증 상태가 없을 때만 호출자가 준다
-            actor = Cut(string.IsNullOrWhiteSpace(actor) ? CurrentActor() : actor, 50)!;   // CreatedBy VARCHAR(50)
+            // CreatedBy 는 varchar(20)(09-23) — 호출자가 준 이메일·GUID 도 행위자 코드 규칙으로 줄인다
+            actor = ActorCode.Normalize(string.IsNullOrWhiteSpace(actor) ? CurrentActor() : actor);
             var target = Cut(Convert.ToString(id, System.Globalization.CultureInfo.InvariantCulture), 40);
             // 화면 코드가 아닌 구역 이름(ACCOUNT 등)은 SYS 모듈로 묶어 SYS-007 모듈 필터에 걸리게 한다
             var module = screenCode.Contains('-') ? screenCode.Split('-')[0] : "SYS";
@@ -61,7 +62,7 @@ public sealed class AuditLogger
     {
         // Blazor Server 의 인증 상태 Task 는 이미 끝나 있다 — 아니면 기다리지 않고 system 으로 남긴다
         var t = _auth.GetAuthenticationStateAsync();
-        return t.IsCompletedSuccessfully ? t.Result.User.Identity?.Name ?? "system" : "system";
+        return t.IsCompletedSuccessfully ? ActorCode.Of(t.Result.User) : "system";
     }
 
     string? CurrentIp()

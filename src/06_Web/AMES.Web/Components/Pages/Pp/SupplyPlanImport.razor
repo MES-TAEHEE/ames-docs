@@ -263,7 +263,7 @@ else
         try
         {
             var auth  = await AuthPrvd.GetAuthenticationStateAsync();
-            var actor = auth.User.Identity?.Name ?? "system";
+            var actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
             var n = Pp.ConfirmCustomerOrder(soId, actor);
             if (n > 0) ShowMsg(L["PP.SupplyPlanImport.Ok.Confirmed"].Value, false);
             Search();
@@ -292,7 +292,7 @@ else
         try
         {
             var auth  = await AuthPrvd.GetAuthenticationStateAsync();
-            var actor = auth.User.Identity?.Name ?? "system";
+            var actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
             var n = ids.Sum(id => Pp.ConfirmCustomerOrder(id, actor));
             _selected.Clear();
             ShowMsg(string.Format(L["PP.SupplyPlanImport.Ok.ConfirmedN"].Value, n), false);

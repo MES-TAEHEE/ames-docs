@@ -5302,7 +5302,7 @@ html[data-theme="light"] .portal-top { background: #fff; border-color: #e5e7eb; 
 .portal-auth .ames-auth-logo { color: #99f6e4; }
 .portal-auth .ames-auth-submit { background: linear-gradient(90deg, #14b8a6, #0d9488); border-color: #0d9488; }
 .portal-auth .ames-auth-submit:hover { filter: brightness(1.08); }
-.portal-badge { display: inline-block; margin-bottom: 6px; padding: 2px 10px; border-radius: 999px; background: rgba(45,212,191,.15); color: #5eead4; font-size: 11px; letter-spacing: .2em; font-weight: 700; }
+.portal-badge { display: inline-block; margin-bottom: 6px; padding: 2px 10px; border-radius: 999px; background: rgba(45,212,191,.15); color: #5eead4; font-size: calc(11px + var(--ames-fs-bump)); letter-spacing: .2em; font-weight: 700; }
 .portal-error-card .ames-auth-error { margin: 12px 0; }
 .portal-shell { background: radial-gradient(1400px 500px at 50% -20%, #0f3d3e 0%, #071a1c 40%, #050d10 100%); color: #e6fffa; }
 .portal-top { background: rgba(5,13,16,.85); border-bottom: 2px solid #14b8a6; backdrop-filter: blur(6px); }

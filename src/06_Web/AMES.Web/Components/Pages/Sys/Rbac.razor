@@ -182,7 +182,7 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actorEmail = auth.User.Identity?.Name ?? "system";
+        _actorEmail = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("sys/rbac");
         try { _permLevelItems = MD.ListCodeItems("PERMISSION_LEVEL").Where(p => p.UseFlag).ToList(); } catch { }

@@ -197,7 +197,7 @@
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("sys/config");
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actorEmail = auth.User.Identity?.Name ?? "system";
+        _actorEmail = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         foreach (var grp in ComboKeyGroups.Values.Distinct())
             try { _comboItems[grp] = MD.ListCodeItems(grp); } catch { }
         Reload();

@@ -302,7 +302,7 @@ else
         _canEdit = PermSvc.CanEdit(Href);
 
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actor = auth.User.Identity?.Name ?? "system";
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         Reload();
     }
 
