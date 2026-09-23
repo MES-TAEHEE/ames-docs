@@ -90,7 +90,7 @@ public sealed class QcRepository
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@I", SqlDbType.Int).Value           = inspectionId;
         cmd.Parameters.Add("@V", SqlDbType.VarChar, 15).Value   = verdict;
-        cmd.Parameters.Add("@A", SqlDbType.NVarChar, 450).Value = approverId;
+        cmd.Parameters.Add("@A", SqlDbType.NVarChar,  20).Value = approverId;
         cmd.ExecuteNonQuery();
     }
 
@@ -227,7 +227,7 @@ public sealed class QcRepository
             {
                 upd.Parameters.Add("@H",  SqlDbType.Int            ).Value = holdId;
                 upd.Parameters.Add("@A",  SqlDbType.VarChar, 15    ).Value = action;
-                upd.Parameters.Add("@By", SqlDbType.NVarChar, 450  ).Value = releasedBy;
+                upd.Parameters.Add("@By", SqlDbType.NVarChar,  20  ).Value = releasedBy;
                 upd.ExecuteNonQuery();
             }
 
@@ -241,7 +241,7 @@ public sealed class QcRepository
                 ins.Parameters.Add("@H",  SqlDbType.Int).Value           = holdId;
                 ins.Parameters.Add("@A",  SqlDbType.VarChar, 15).Value   = action;
                 ins.Parameters.Add("@R",  SqlDbType.NVarChar, 500).Value = reason;
-                ins.Parameters.Add("@By", SqlDbType.NVarChar, 450).Value = releasedBy;
+                ins.Parameters.Add("@By", SqlDbType.NVarChar,  20).Value = releasedBy;
                 ins.Parameters.Add("@Emp",SqlDbType.VarChar, 50).Value   = employeeNo;
                 ins.ExecuteNonQuery();
             }

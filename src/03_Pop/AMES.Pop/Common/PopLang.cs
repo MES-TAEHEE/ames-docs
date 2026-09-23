@@ -53,6 +53,7 @@ internal static class PopLang
         "Released"    => T("WoReleased"),
         "In Progress" => T("WoInProgress"),
         "Planned"     => T("WoPlanned"),
+        "Pending"     => T("WoPending"),
         "Closed"      => T("WoClosed"),
         "Cancelled"   => T("WoCancelled"),
         _             => code,

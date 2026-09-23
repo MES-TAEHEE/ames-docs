@@ -44,7 +44,7 @@ public class LabelDispatcherTests
             if (_issued.TryGetValue(lotId, out var lot)) NextClaim.Add(lot);
         }
 
-        public void IncrementPrintedCount(int lotId) => Incremented.Add(lotId);
+        public void IncrementPrintedCount(int lotId, string employeeNo) => Incremented.Add(lotId);
     }
 
     sealed class FakeSink : ILabelSink
@@ -69,7 +69,7 @@ public class LabelDispatcherTests
         var s = new FakeSource();
         var k = new FakeSink();
         var d = new LabelDispatcher(s, k, maxFailures, _ => { });
-        d.Start("LINE-INJ-01", "POP-DEV-01");
+        d.Start("LINE-INJ-01", "POP-DEV-01", "W001");
         return (d, s, k);
     }
 
@@ -90,7 +90,7 @@ public class LabelDispatcherTests
         var s = new FakeSource { FailMaxLotId = true };
         var k = new FakeSink();
         var d = new LabelDispatcher(s, k, maxFailures: 3, _ => { });
-        d.Start("LINE-INJ-01", "POP-DEV-01");
+        d.Start("LINE-INJ-01", "POP-DEV-01", "W001");
 
         s.NextClaim.Add(Lot(101));
         d.Tick();                        // 워터마크 실패 → 아무것도 안 함
@@ -336,7 +336,7 @@ public class LabelDispatcherTests
         var s = new FakeSource();
         var k = new ReentrantSink();
         var d = new LabelDispatcher(s, k, maxFailures: 3, _ => { });
-        d.Start("LINE-INJ-01", "POP-DEV-01");
+        d.Start("LINE-INJ-01", "POP-DEV-01", "W001");
         k.Dispatcher = d;
         k.Source = s;
 

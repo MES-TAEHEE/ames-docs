@@ -48,7 +48,9 @@ public sealed class PopSessionRepository
 
         using var conn = _connFactory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar, 450).Value = profile.UserId;
+        // 세션의 "누가" 는 사번이다 — 이 값이 실적·감사 컬럼(OperatorID·CreatedBy·ModifiedBy 등)으로 그대로 흘러간다.
+        // 웹 계정 GUID(profile.UserId)는 아래 역할 조회에만 쓴다.
+        cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar, 450).Value = profile.EmployeeNo;
         cmd.Parameters.Add("@TerminalID", SqlDbType.VarChar,   20 ).Value = terminalId;
         cmd.Parameters.Add("@LineID",     SqlDbType.VarChar,   20 ).Value = lineId;
         cmd.Parameters.Add("@ShiftCode",  SqlDbType.VarChar,   10 ).Value = shiftCode;
@@ -72,7 +74,7 @@ public sealed class PopSessionRepository
         return new PopSessionDto
         {
             SessionId    = sessionId,
-            OperatorId   = profile.UserId,
+            OperatorId   = profile.EmployeeNo,
             EmployeeNo   = profile.EmployeeNo,
             EmployeeName = profile.EmployeeName,
             TerminalId   = terminalId,
@@ -107,7 +109,7 @@ public sealed class PopSessionRepository
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@SessionID", SqlDbType.Int            ).Value = sessionId;
         cmd.Parameters.Add("@Reason",    SqlDbType.VarChar,  20   ).Value = reason;
-        cmd.Parameters.Add("@ModBy",     SqlDbType.NVarChar, 450  ).Value = (object?)userId ?? DBNull.Value;
+        cmd.Parameters.Add("@ModBy",     SqlDbType.NVarChar,  20  ).Value = (object?)userId ?? DBNull.Value;
         cmd.ExecuteNonQuery();
     }
 
@@ -137,7 +139,8 @@ public sealed class PopSessionRepository
         cmd.Parameters.Add("@AuthMethod",  SqlDbType.VarChar, 20).Value = method.ToString();
         cmd.Parameters.Add("@Result",      SqlDbType.VarChar, 10).Value = ShortResult(result);
         cmd.Parameters.Add("@FailReason",  SqlDbType.VarChar, 40).Value = (object?)failReason ?? DBNull.Value;
-        cmd.Parameters.Add("@CreatedBy",   SqlDbType.VarChar, 50).Value = terminalId;
+        // 시도한 사번. 모르는 배지는 스캔값 전체가 오므로 사번 폭(20)으로 자른다.
+        cmd.Parameters.Add("@CreatedBy",   SqlDbType.VarChar, 50).Value = attemptedId.Length > 20 ? attemptedId[..20] : attemptedId;
         cmd.ExecuteNonQuery();
     }
 

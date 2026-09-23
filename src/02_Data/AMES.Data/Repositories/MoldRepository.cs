@@ -95,7 +95,7 @@ public sealed class MoldRepository
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@ID",    SqlDbType.Int            ).Value = moldChangeId;
-                cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = (object?)userId ?? DBNull.Value;
+                cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar,  20  ).Value = (object?)userId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
             using (var cmd = new SqlCommand("""
@@ -104,7 +104,7 @@ public sealed class MoldRepository
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@M",     SqlDbType.VarChar,  20   ).Value = newMoldId;
-                cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = (object?)userId ?? DBNull.Value;
+                cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar,  20  ).Value = (object?)userId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
             if (!string.IsNullOrEmpty(oldMoldId))
@@ -114,7 +114,7 @@ public sealed class MoldRepository
                            ModifiedBy = @ModBy, ModifiedTS = SYSDATETIME() WHERE MoldID = @M;
                     """, conn, tx);
                 cmd.Parameters.Add("@M",     SqlDbType.VarChar,  20   ).Value = oldMoldId;
-                cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = (object?)userId ?? DBNull.Value;
+                cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar,  20  ).Value = (object?)userId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
             tx.Commit();

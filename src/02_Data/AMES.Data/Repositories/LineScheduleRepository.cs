@@ -230,7 +230,7 @@ public sealed class LineScheduleRepository
             {
                 cmd.Parameters.Add("@LineId", SqlDbType.VarChar,  20).Value = lineId;
                 cmd.Parameters.Add("@Date",   SqlDbType.Date).Value         = date.Date;
-                cmd.Parameters.Add("@By",     SqlDbType.NVarChar, 450).Value = actor;
+                cmd.Parameters.Add("@By",     SqlDbType.NVarChar,  20).Value = actor;
                 cmd.ExecuteNonQuery();
             }
 
@@ -346,7 +346,7 @@ public sealed class LineScheduleRepository
             cmd.Parameters.Add("@TDown",   SqlDbType.Int).Value           = totalDown;
             cmd.Parameters.Add("@OpF",     SqlDbType.Char, 1440).Value    = opStr;
             cmd.Parameters.Add("@SgF",     SqlDbType.Char, 1440).Value    = sgStr;
-            cmd.Parameters.Add("@By",      SqlDbType.NVarChar, 450).Value = actor;
+            cmd.Parameters.Add("@By",      SqlDbType.NVarChar,  20).Value = actor;
             cmd.ExecuteNonQuery();
         }
     }

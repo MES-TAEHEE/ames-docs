@@ -229,14 +229,14 @@ public sealed class InjLotRepository
                     createdTs = (DateTime)rdr["CreatedTS"];
                 }
 
-                // MachineShotCount / PressType 은 PLC 값이라 수동 LOT 에는 없다. CreatedBy 로 출처를 남긴다.
+                // MachineShotCount / PressType 은 PLC 값이라 수동 LOT 에는 없다. CreatedBy 가 발행한 사번이다(에이전트는 'AGENT').
                 using (var cmd = new SqlCommand("""
                     INSERT INTO dbo.PR_InjLot
                         (LotID, EquipID, MoldCode, ColorCode, MoldID, CavityNo, CavityPos,
                          PressType, MachineShotCount, ConfirmStatus, CreatedBy, CreatedTS)
                     VALUES
                         (@LotID, @Equip, @Mold, @Color, @MoldID, @CavNo, @CavPos,
-                         NULL, NULL, 'RAW', 'MANUAL', SYSDATETIME());
+                         NULL, NULL, 'RAW', @By, SYSDATETIME());
                     """, conn, tx))
                 {
                     cmd.Parameters.Add("@LotID",  SqlDbType.Int           ).Value = lotId;
@@ -246,6 +246,7 @@ public sealed class InjLotRepository
                     cmd.Parameters.Add("@MoldID", SqlDbType.VarChar, 20   ).Value = (object?)moldId    ?? DBNull.Value;
                     cmd.Parameters.Add("@CavNo",  SqlDbType.Int           ).Value = (object?)cavityNo  ?? DBNull.Value;
                     cmd.Parameters.Add("@CavPos", SqlDbType.VarChar, 4    ).Value = (object?)cavityPos ?? DBNull.Value;
+                    cmd.Parameters.Add("@By",     SqlDbType.VarChar, 50   ).Value = employeeNo;
                     cmd.ExecuteNonQuery();
                 }
 
@@ -350,17 +351,18 @@ public sealed class InjLotRepository
     }
 
     /// <summary>라벨 발행 성공 시 +1 (디스패처 자동 발행·재출력 버튼 공용). 반환 = 누적 횟수.</summary>
-    public int IncrementPrintedCount(int lotId)
+    public int IncrementPrintedCount(int lotId, string? employeeNo)
     {
         const string sql = """
             UPDATE dbo.PR_InjLot
-            SET    PrintedCount = PrintedCount + 1, ModifiedTS = SYSDATETIME()
+            SET    PrintedCount = PrintedCount + 1, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
             OUTPUT INSERTED.PrintedCount
             WHERE  LotID = @L;
             """;
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@L", SqlDbType.Int).Value = lotId;
+        cmd.Parameters.Add("@By", SqlDbType.NVarChar,  20).Value = (object?)employeeNo ?? DBNull.Value;
         return cmd.ExecuteScalar() as int? ?? 0;
     }
 
@@ -572,7 +574,7 @@ public sealed class InjLotRepository
             {
                 cmd.Parameters.Add("@WoID",  SqlDbType.Int          ).Value = woId;
                 cmd.Parameters.Add("@LotID", SqlDbType.Int          ).Value = lotId;
-                cmd.Parameters.Add("@Op",    SqlDbType.NVarChar, 450).Value = operatorId;
+                cmd.Parameters.Add("@Op",    SqlDbType.NVarChar,  20).Value = operatorId;
                 cmd.Parameters.Add("@Sess",  SqlDbType.Int          ).Value = (object?)sessionId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
@@ -697,7 +699,7 @@ public sealed class InjLotRepository
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@Lot", SqlDbType.Int          ).Value = lotId;
-                cmd.Parameters.Add("@Op",  SqlDbType.NVarChar, 450).Value = operatorId;
+                cmd.Parameters.Add("@Op",  SqlDbType.NVarChar,  20).Value = operatorId;
                 cmd.ExecuteNonQuery();
             }
 

@@ -271,4 +271,17 @@
   <data name="RwkNoteLabel" xml:space="preserve"><value>Action note</value></data>
   <data name="RwkDecidedBy" xml:space="preserve"><value>Decided by</value></data>
   <data name="RwkDecidedAt" xml:space="preserve"><value>Decided at</value></data>
+  <data name="WoListTitle" xml:space="preserve"><value>WORK ORDERS</value></data>
+  <data name="WoNo" xml:space="preserve"><value>WO NO</value></data>
+  <data name="WoSoNo" xml:space="preserve"><value>SO NO</value></data>
+  <data name="WoOrderQty" xml:space="preserve"><value>ORDER</value></data>
+  <data name="WoDoneQty" xml:space="preserve"><value>DONE</value></data>
+  <data name="WoRemainQty" xml:space="preserve"><value>REMAIN</value></data>
+  <data name="WoProgressPct" xml:space="preserve"><value>PROGRESS</value></data>
+  <data name="WoProdDeadline" xml:space="preserve"><value>PROD DEADLINE</value></data>
+  <data name="WoDueDate" xml:space="preserve"><value>DUE</value></data>
+  <data name="WoPriority" xml:space="preserve"><value>PRI</value></data>
+  <data name="WoPending" xml:space="preserve"><value>Pending</value></data>
+  <data name="WoListEmpty" xml:space="preserve"><value>No work orders for this part on this line</value></data>
+  <data name="WoListNote" xml:space="preserve"><value>★ = active WO that scans confirm to · Done/progress are for this line's step · Closed WOs from the last 30 days</value></data>
 </root>

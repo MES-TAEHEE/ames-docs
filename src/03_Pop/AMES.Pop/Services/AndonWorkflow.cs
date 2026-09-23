@@ -69,7 +69,7 @@ internal sealed class AndonWorkflow
             // 마지막 AckDept 커밋 후 Resolve 가 실패하면 전 부서 ACK 인데 DEPT_CALLED 로 남을 수 있다 —
             // 재진입할 때마다 그 전이를 마저 끝낸다.
             var id = Call!.AndonId;
-            _store.Resolve(id, null, null);
+            _store.Resolve(id, null, null, _operatorNo);
             Finish(id);
             return;
         }
@@ -103,7 +103,7 @@ internal sealed class AndonWorkflow
             case AndonUiState.Open:
                 if (Call is null) return;
                 if (!_store.IsLineSupervisor(_lineId, scan.WorkerNo)) { Reject(AndonReject.NotSupervisor); return; }
-                _store.AcknowledgeBySupervisor(Call.AndonId, scan.WorkerNo, scan.WorkerName ?? _names.ResolveName(scan.WorkerNo));
+                _store.AcknowledgeBySupervisor(Call.AndonId, scan.WorkerNo, scan.WorkerName ?? _names.ResolveName(scan.WorkerNo), _operatorNo);
                 Load();
                 break;
 
@@ -116,7 +116,7 @@ internal sealed class AndonWorkflow
                 if (!scan.IsEosFormat && name is null) { Reject(AndonReject.UnknownBadge); return; }
                 if (pending.Count == 1)
                 {
-                    _store.RecordArrival(pending[0].DeptCallId, scan.WorkerNo, name);
+                    _store.RecordArrival(pending[0].DeptCallId, scan.WorkerNo, name, _operatorNo);
                     Load();
                 }
                 else
@@ -167,7 +167,7 @@ internal sealed class AndonWorkflow
         // 다른 터미널이 먼저 같은 부서를 호출했을 수 있다 — 선택이 오래됐을 수 있으니 재확인한다.
         var toCall = _selectedDepts.Where(d => !IsAlreadyCalled(d)).ToList();
         if (toCall.Count == 0) { Reject(AndonReject.DeptRequired); return; }
-        _store.CallDepts(Call.AndonId, SelectedCause, SelectedSeverity, toCall, Call.SupervisorNo ?? _operatorNo);
+        _store.CallDepts(Call.AndonId, SelectedCause, SelectedSeverity, toCall, Call.SupervisorNo ?? _operatorNo, _operatorNo);
         ResetSelection(keepCause: true);
         Load();
     }
@@ -178,14 +178,14 @@ internal sealed class AndonWorkflow
         if (SelectedCause is null)    { Reject(AndonReject.CauseRequired); return; }
         if (SelectedSeverity is null) { Reject(AndonReject.SeverityRequired); return; }
         var id = Call.AndonId;
-        _store.Resolve(id, SelectedCause, SelectedSeverity);
+        _store.Resolve(id, SelectedCause, SelectedSeverity, _operatorNo);
         Finish(id);
     }
 
     public void AssignArrival(int deptCallId)
     {
         if (State != AndonUiState.PickDept || PendingScan is not { } scan) return;
-        _store.RecordArrival(deptCallId, scan.No, scan.Name);
+        _store.RecordArrival(deptCallId, scan.No, scan.Name, _operatorNo);
         Load();
     }
 
@@ -203,7 +203,7 @@ internal sealed class AndonWorkflow
         var row = Call.Depts.FirstOrDefault(d => d.DeptCallId == deptCallId);
         if (row is null || !row.IsArrived) { Reject(AndonReject.NotArrived); return; }
         if (row.IsAcked) return;
-        _store.AckDept(deptCallId);
+        _store.AckDept(deptCallId, _operatorNo);
         Load(); // Load() 자체가 전 부서 ACK 을 감지하면 Resolve 까지 마친다 (AllDeptsAcked 참고)
     }
 

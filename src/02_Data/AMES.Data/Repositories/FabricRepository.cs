@@ -127,7 +127,7 @@ public sealed class FabricRepository
                 """, conn, tx))
             {
                 d.Parameters.Add("@L",     SqlDbType.VarChar,  20  ).Value = lineId;
-                d.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450 ).Value = operatorId;
+                d.Parameters.Add("@ModBy", SqlDbType.NVarChar,  20 ).Value = operatorId;
                 d.ExecuteNonQuery();
             }
 
@@ -184,7 +184,7 @@ public sealed class FabricRepository
             {
                 upd.Parameters.Add("@After", SqlDbType.Decimal        ).Value = after;
                 upd.Parameters.Add("@L",     SqlDbType.Int            ).Value = rollLotId;
-                upd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = (object?)userId ?? DBNull.Value;
+                upd.Parameters.Add("@ModBy", SqlDbType.NVarChar,  20  ).Value = (object?)userId ?? DBNull.Value;
                 upd.ExecuteNonQuery();
             }
 

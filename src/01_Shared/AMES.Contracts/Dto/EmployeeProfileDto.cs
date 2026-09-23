@@ -6,7 +6,7 @@ namespace AMES.Contracts.Dto;
 /// </summary>
 public sealed class EmployeeProfileDto
 {
-    /// <summary>AspNetUsers.Id (NVARCHAR(450)) — used as OperatorID FK everywhere.</summary>
+    /// <summary>AspNetUsers.Id (NVARCHAR(450)) — 역할 조회·SYS_UserProfile 갱신 키. POP 이 기록하는 "누가" 는 EmployeeNo.</summary>
     public required string UserId { get; init; }
 
     /// <summary>AspNetUsers.UserName — login handle (often equals EmployeeNo).</summary>

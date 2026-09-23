@@ -210,12 +210,14 @@ public sealed class AndonRepository
         return list;
     }
 
-    public void AcknowledgeBySupervisor(int andonId, string workerNo, string? name)
+    // operatorNo = 이 POP 에 로그인한 사번. 감사 컬럼(CreatedBy·ModifiedBy)은 이 값이고,
+    // 배지를 찍은 사람은 전용 컬럼(AckedBy·CalledBy·ArrivedNo·TechnicianID·ReportedBy)에 남는다.
+    public void AcknowledgeBySupervisor(int andonId, string workerNo, string? name, string operatorNo)
     {
         const string sql = """
             UPDATE dbo.PR_AndonCall
             SET    AckedBy = @W, AckedAt = SYSDATETIME(), SupervisorName = @N,
-                   Status = 'SUP_ACKED', ModifiedBy = @W, ModifiedTS = SYSDATETIME()
+                   Status = 'SUP_ACKED', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
             WHERE  AndonID = @ID AND Status = 'OPEN';
             """;
         using var conn = _factory.OpenConnection();
@@ -223,6 +225,7 @@ public sealed class AndonRepository
         cmd.Parameters.Add("@ID", SqlDbType.Int          ).Value = andonId;
         cmd.Parameters.Add("@W",  SqlDbType.NVarChar, 450).Value = workerNo;
         cmd.Parameters.Add("@N",  SqlDbType.NVarChar,  50).Value = (object?)name ?? DBNull.Value;
+        cmd.Parameters.Add("@Op", SqlDbType.NVarChar,  20).Value = operatorNo;
         cmd.ExecuteNonQuery();
     }
 
@@ -231,16 +234,16 @@ public sealed class AndonRepository
     /// 원인·심각도 확정 + 부서 행 삽입 + 다운타임 원인 기록. 보전(MAINT)이 처음 호출되면
     /// MNT_FailureRegister 도 같은 트랜잭션에서 만든다(안돈 1건당 1행, Source='ANDON').
     /// </summary>
-    public void CallDepts(int andonId, string causeCode, string severity, IEnumerable<string> deptCodes, string calledBy)
+    public void CallDepts(int andonId, string causeCode, string severity, IEnumerable<string> deptCodes, string calledBy, string operatorNo)
     {
         const string headSql = """
             UPDATE dbo.PR_AndonCall
-            SET    ReasonCode = @C, Severity = @S, Status = 'DEPT_CALLED', ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+            SET    ReasonCode = @C, Severity = @S, Status = 'DEPT_CALLED', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
             WHERE  AndonID = @ID AND Status IN ('SUP_ACKED', 'DEPT_CALLED');
             """;
         const string downSql = """
             UPDATE dbo.PP_LineDowntimeLog
-            SET    CauseCode = @C, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+            SET    CauseCode = @C, ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
             WHERE  AndonID = @ID AND EndTS IS NULL;
             """;
         // 고장번호는 기존 데이터 형식 FAIL-yyMM-NNN 을 따른다. 월별 순번은 같은 트랜잭션 안에서
@@ -259,7 +262,7 @@ public sealed class AndonRepository
                        a.EquipID, @C,
                        N'Andon #' + @Ref + N' · ' + COALESCE(ci.CodeName, @C),
                        @S, 'ANDON', @Ref, d.DowntimeID,
-                       'OPEN', @By, SYSDATETIME(), @By, SYSDATETIME()
+                       'OPEN', @By, SYSDATETIME(), @Op, SYSDATETIME()
                 FROM   dbo.PR_AndonCall a
                 LEFT   JOIN dbo.MD_CodeItem ci ON ci.GroupCode = 'ANDON_CAUSE' AND ci.CodeValue = @C
                 OUTER  APPLY (SELECT TOP 1 DowntimeID FROM dbo.PP_LineDowntimeLog WHERE AndonID = a.AndonID ORDER BY DowntimeID DESC) d
@@ -268,7 +271,7 @@ public sealed class AndonRepository
             """;
         const string deptSql = """
             INSERT INTO dbo.PR_AndonDeptCall (AndonID, DeptCode, CalledAt, CalledBy, CreatedBy, CreatedTS)
-            SELECT @ID, @D, SYSDATETIME(), @By, @By, SYSDATETIME()
+            SELECT @ID, @D, SYSDATETIME(), @By, @Op, SYSDATETIME()
             WHERE  NOT EXISTS (SELECT 1 FROM dbo.PR_AndonDeptCall WHERE AndonID = @ID AND DeptCode = @D);
             """;
         using var conn = _factory.OpenConnection();
@@ -280,7 +283,7 @@ public sealed class AndonRepository
                 cmd.Parameters.Add("@ID", SqlDbType.Int          ).Value = andonId;
                 cmd.Parameters.Add("@C",  SqlDbType.VarChar,   30).Value = causeCode;
                 cmd.Parameters.Add("@S",  SqlDbType.VarChar,   10).Value = severity;
-                cmd.Parameters.Add("@By", SqlDbType.NVarChar, 450).Value = calledBy;
+                cmd.Parameters.Add("@Op", SqlDbType.NVarChar,  20).Value = operatorNo;
                 // 0행이면 다른 터미널이 이미 닫았거나(RESOLVED) 아직 SUP_ACKED 가 아닌 것 — 부서 행을 넣지 않고 롤백
                 if (cmd.ExecuteNonQuery() == 0)
                 {
@@ -292,7 +295,7 @@ public sealed class AndonRepository
             {
                 cmd.Parameters.Add("@ID", SqlDbType.Int          ).Value = andonId;
                 cmd.Parameters.Add("@C",  SqlDbType.VarChar,   30).Value = causeCode;
-                cmd.Parameters.Add("@By", SqlDbType.NVarChar, 450).Value = calledBy;
+                cmd.Parameters.Add("@Op", SqlDbType.NVarChar,  20).Value = operatorNo;
                 cmd.ExecuteNonQuery();
             }
             var codes = deptCodes.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -302,6 +305,7 @@ public sealed class AndonRepository
                 cmd.Parameters.Add("@ID", SqlDbType.Int        ).Value = andonId;
                 cmd.Parameters.Add("@D",  SqlDbType.VarChar, 20).Value = d;
                 cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = calledBy;
+                cmd.Parameters.Add("@Op", SqlDbType.VarChar, 50).Value = operatorNo;
                 cmd.ExecuteNonQuery();
             }
             if (codes.Contains(AndonDeptCodes.Maint, StringComparer.OrdinalIgnoreCase))
@@ -312,6 +316,7 @@ public sealed class AndonRepository
                 cmd.Parameters.Add("@C",   SqlDbType.VarChar,   15).Value = causeCode;
                 cmd.Parameters.Add("@S",   SqlDbType.VarChar,   10).Value = severity;
                 cmd.Parameters.Add("@By",  SqlDbType.NVarChar, 450).Value = calledBy;
+                cmd.Parameters.Add("@Op",  SqlDbType.NVarChar,  20).Value = operatorNo;
                 cmd.ExecuteNonQuery();
             }
             tx.Commit();
@@ -320,23 +325,23 @@ public sealed class AndonRepository
     }
 
     /// <summary>도착 기록. 보전 행이면 고장 등록을 IN_PROGRESS 로 올리고 조치 이력(ARRIVED)을 남긴다.</summary>
-    public void RecordArrival(int deptCallId, string workerNo, string? name)
+    public void RecordArrival(int deptCallId, string workerNo, string? name, string operatorNo)
     {
         const string sql = """
             SET XACT_ABORT ON;
             BEGIN TRAN;
             UPDATE dbo.PR_AndonDeptCall
             SET    ArrivedAt = SYSDATETIME(), ArrivedNo = @W, ArrivedName = @N,
-                   ModifiedBy = @W, ModifiedTS = SYSDATETIME()
+                   ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
             WHERE  DeptCallID = @ID AND ArrivedAt IS NULL;
             IF @@ROWCOUNT > 0
             BEGIN
-                UPDATE f SET Status = 'IN_PROGRESS', ModifiedBy = @W, ModifiedTS = SYSDATETIME()
+                UPDATE f SET Status = 'IN_PROGRESS', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
                 FROM   dbo.MNT_FailureRegister f
                 JOIN   dbo.PR_AndonDeptCall d ON d.AndonID = TRY_CAST(f.AndonRefID AS INT)
                 WHERE  d.DeptCallID = @ID AND d.DeptCode = @Maint AND f.Source = 'ANDON' AND f.Status = 'OPEN';
                 INSERT INTO dbo.MNT_FailureAction (FailureID, ActionType, Description, TechnicianID, ActionAt, CreatedBy, CreatedTS)
-                SELECT f.FailureID, 'ARRIVED', N'Andon responder arrived: ' + @W + COALESCE(N' ' + @N, N''), @W, SYSDATETIME(), @W, SYSDATETIME()
+                SELECT f.FailureID, 'ARRIVED', N'Andon responder arrived: ' + @W + COALESCE(N' ' + @N, N''), @W, SYSDATETIME(), @Op, SYSDATETIME()
                 FROM   dbo.MNT_FailureRegister f
                 JOIN   dbo.PR_AndonDeptCall d ON d.AndonID = TRY_CAST(f.AndonRefID AS INT)
                 WHERE  d.DeptCallID = @ID AND d.DeptCode = @Maint AND f.Source = 'ANDON';
@@ -348,22 +353,23 @@ public sealed class AndonRepository
         cmd.Parameters.Add("@ID",    SqlDbType.Int         ).Value = deptCallId;
         cmd.Parameters.Add("@W",     SqlDbType.VarChar,  20).Value = workerNo;
         cmd.Parameters.Add("@N",     SqlDbType.NVarChar, 50).Value = (object?)name ?? DBNull.Value;
+        cmd.Parameters.Add("@Op",    SqlDbType.VarChar,  50).Value = operatorNo;
         cmd.Parameters.Add("@Maint", SqlDbType.VarChar,  20).Value = AndonDeptCodes.Maint;
         cmd.ExecuteNonQuery();
     }
 
     /// <summary>ACK 기록. 보전 행이면 조치 이력(ACK)을 남긴다. 고장 종료는 안돈 Resolve 가 한다.</summary>
-    public void AckDept(int deptCallId)
+    public void AckDept(int deptCallId, string operatorNo)
     {
         const string sql = """
             SET XACT_ABORT ON;
             BEGIN TRAN;
             UPDATE dbo.PR_AndonDeptCall
-            SET    AckedAt = SYSDATETIME(), ModifiedBy = ArrivedNo, ModifiedTS = SYSDATETIME()
+            SET    AckedAt = SYSDATETIME(), ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
             WHERE  DeptCallID = @ID AND ArrivedAt IS NOT NULL AND AckedAt IS NULL;
             IF @@ROWCOUNT > 0
                 INSERT INTO dbo.MNT_FailureAction (FailureID, ActionType, Description, TechnicianID, ActionAt, CreatedBy, CreatedTS)
-                SELECT f.FailureID, 'ACK', N'Andon responder acknowledged', d.ArrivedNo, SYSDATETIME(), d.ArrivedNo, SYSDATETIME()
+                SELECT f.FailureID, 'ACK', N'Andon responder acknowledged', d.ArrivedNo, SYSDATETIME(), @Op, SYSDATETIME()
                 FROM   dbo.MNT_FailureRegister f
                 JOIN   dbo.PR_AndonDeptCall d ON d.AndonID = TRY_CAST(f.AndonRefID AS INT)
                 WHERE  d.DeptCallID = @ID AND d.DeptCode = @Maint AND f.Source = 'ANDON';
@@ -372,6 +378,7 @@ public sealed class AndonRepository
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@ID",    SqlDbType.Int        ).Value = deptCallId;
+        cmd.Parameters.Add("@Op",    SqlDbType.VarChar, 50).Value = operatorNo;
         cmd.Parameters.Add("@Maint", SqlDbType.VarChar, 20).Value = AndonDeptCodes.Maint;
         cmd.ExecuteNonQuery();
     }
@@ -380,7 +387,7 @@ public sealed class AndonRepository
     /// 종료. 다운타임을 닫고 안돈이 만든 고장 등록을 RESOLVED 로 올린다.
     /// causeCode·severity 는 자체 해결(부서 호출 없음)일 때만 넘어온다.
     /// </summary>
-    public void Resolve(int andonId, string? causeCode, string? severity)
+    public void Resolve(int andonId, string? causeCode, string? severity, string operatorNo)
     {
         const string sql = """
             SET XACT_ABORT ON;
@@ -392,17 +399,17 @@ public sealed class AndonRepository
                    ReasonCode  = COALESCE(@C, ReasonCode),
                    Severity    = COALESCE(@S, Severity),
                    Status      = 'RESOLVED',
-                   ModifiedBy  = AckedBy,
+                   ModifiedBy  = @Op,
                    ModifiedTS  = @now
             WHERE  AndonID = @ID AND Status <> 'RESOLVED';
             IF @@ROWCOUNT > 0
             BEGIN
                 UPDATE dbo.PP_LineDowntimeLog
                 SET    EndTS = @now, DurationMin = DATEDIFF(MINUTE, StartTS, @now),
-                       CauseCode = COALESCE(CauseCode, @C), ModifiedTS = @now
+                       CauseCode = COALESCE(CauseCode, @C), ModifiedBy = @Op, ModifiedTS = @now
                 WHERE  AndonID = @ID AND EndTS IS NULL;
                 UPDATE dbo.MNT_FailureRegister
-                SET    Status = 'RESOLVED', ResolvedAt = @now, ModifiedTS = @now
+                SET    Status = 'RESOLVED', ResolvedAt = @now, ModifiedBy = @Op, ModifiedTS = @now
                 WHERE  Source = 'ANDON' AND AndonRefID = @Ref AND Status <> 'RESOLVED';
             END
             COMMIT;
@@ -413,6 +420,7 @@ public sealed class AndonRepository
         cmd.Parameters.Add("@Ref", SqlDbType.VarChar, 24).Value = andonId.ToString();
         cmd.Parameters.Add("@C",   SqlDbType.VarChar, 30).Value = (object?)causeCode ?? DBNull.Value;
         cmd.Parameters.Add("@S",   SqlDbType.VarChar, 10).Value = (object?)severity ?? DBNull.Value;
+        cmd.Parameters.Add("@Op",  SqlDbType.NVarChar,  20).Value = operatorNo;
         cmd.ExecuteNonQuery();
     }
 }

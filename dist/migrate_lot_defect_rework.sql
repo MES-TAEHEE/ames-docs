@@ -90,7 +90,7 @@ IF NOT EXISTS (SELECT 1 FROM dbo.MD_WorkCenter WHERE WCID = 'WC-RWK')
 
 IF NOT EXISTS (SELECT 1 FROM dbo.MD_Line WHERE LineID = 'LINE-RWK-01')
     INSERT INTO dbo.MD_Line (LineID, LineName, LineNameEn, WCID, PlantCode, DailyCap, ShiftPattern, LotPrefix, RfidEnabledFlag, Status, CreatedBy)
-    VALUES ('LINE-RWK-01', N'재작업 1', N'Rework 1', 'WC-RWK', 'SAV', NULL, '2-SHIFT', NULL, 0, 'ACTIVE', 'MIGRATE');
+    VALUES ('LINE-RWK-01', N'재작업 1', N'Rework 1', 'WC-RWK', 'EOS-PLT-01', NULL, '2-SHIFT', NULL, 0, 'ACTIVE', 'MIGRATE');
 
 IF NOT EXISTS (SELECT 1 FROM dbo.MD_Station WHERE StationCode = 'ST-RWK-01')
     INSERT INTO dbo.MD_Station (StationCode, StationName, StationNameEn, LineID, OrderSeq, Status, CreatedBy)
