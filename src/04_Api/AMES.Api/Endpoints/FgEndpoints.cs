@@ -1354,7 +1354,7 @@ public static class FgEndpoints
             AddNullable(cmd, "@CustomerCode", SqlDbType.NVarChar, 40, row.CustomerCode);
             AddDecimal(cmd, "@Qty", row.Qty);
             cmd.Parameters.Add("@Location", SqlDbType.NVarChar, 80).Value = location.LocationId;
-            cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar, 450).Value = operatorId;
+            cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar,  20).Value = operatorId;
             stockId = Convert.ToInt32(cmd.ExecuteScalar());
         }
 
@@ -1388,7 +1388,7 @@ public static class FgEndpoints
             AddNullable(cmd, "@OverrideReason", SqlDbType.NVarChar, 120, overrideReason);
             cmd.Parameters.Add("@PalletCount", SqlDbType.Int).Value = palletCount;
             cmd.Parameters.Add("@PalletQty", SqlDbType.Int).Value = palletQty;
-            cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar, 450).Value = operatorId;
+            cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar,  20).Value = operatorId;
             if (hasContainerColumns)
             {
                 cmd.Parameters.Add("@StorageMethod", SqlDbType.NVarChar, 20).Value = storageMethod;
@@ -1410,7 +1410,7 @@ public static class FgEndpoints
                  WHERE LotID = @LotID;
                 """, conn, tx);
             cmd.Parameters.Add("@Location", SqlDbType.NVarChar, 80).Value = location.LocationId;
-            cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar, 450).Value = operatorId;
+            cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar,  20).Value = operatorId;
             cmd.Parameters.Add("@LotID", SqlDbType.Int).Value = row.LotId.Value;
             cmd.ExecuteNonQuery();
         }

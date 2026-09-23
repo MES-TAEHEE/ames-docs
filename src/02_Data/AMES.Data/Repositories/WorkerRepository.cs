@@ -86,7 +86,7 @@ public sealed class WorkerRepository
     {
         const string sql = """
             INSERT INTO dbo.MD_Worker (EmployeeNo, EmployeeName, ActiveFlag, CreatedBy)
-            SELECT @EmployeeNo, @EmployeeName, 1, 'POP-SCAN'
+            SELECT @EmployeeNo, @EmployeeName, 1, @EmployeeNo
             WHERE  NOT EXISTS (SELECT 1 FROM dbo.MD_Worker WHERE EmployeeNo = @EmployeeNo);
             """;
 
@@ -116,7 +116,7 @@ public sealed class WorkerRepository
         const string sql = """
             UPDATE dbo.MD_Worker
             SET    PinHash    = @PinHash,
-                   ModifiedBy = 'POP-PIN',
+                   ModifiedBy = @EmployeeNo,
                    ModifiedTS = SYSDATETIME()
             WHERE  EmployeeNo   = @EmployeeNo;
             """;
@@ -196,7 +196,7 @@ public sealed class WorkerRepository
         cmd.Parameters.Add("@WorkerID",   SqlDbType.Int).Value            = workerId;
         cmd.Parameters.Add("@EmployeeName", SqlDbType.NVarChar,  50).Value = workerName;
         cmd.Parameters.Add("@ActiveFlag", SqlDbType.Bit).Value            = activeFlag;
-        cmd.Parameters.Add("@Actor",      SqlDbType.NVarChar, 450).Value = actor;
+        cmd.Parameters.Add("@Actor",      SqlDbType.NVarChar,  20).Value = actor;
         cmd.ExecuteNonQuery();
     }
 
@@ -214,7 +214,7 @@ public sealed class WorkerRepository
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@WorkerID", SqlDbType.Int).Value            = workerId;
         cmd.Parameters.Add("@PinHash",  SqlDbType.NVarChar, 200).Value = (object?)pinHash ?? DBNull.Value;
-        cmd.Parameters.Add("@Actor",    SqlDbType.NVarChar, 450).Value = actor;
+        cmd.Parameters.Add("@Actor",    SqlDbType.NVarChar,  20).Value = actor;
         cmd.ExecuteNonQuery();
     }
 
@@ -236,8 +236,7 @@ public sealed class WorkerRepository
         var workerNo = (string)rdr["EmployeeNo"];
         return new EmployeeProfileDto
         {
-            // OperatorID / CreatedBy downstream. Workers have no GUID, so the
-            // badge number itself identifies them in PR_PopSession and results.
+            // Workers have no GUID; the badge number stands in for the key.
             UserId            = workerNo,
             UserName          = workerNo,
             EmployeeNo        = workerNo,

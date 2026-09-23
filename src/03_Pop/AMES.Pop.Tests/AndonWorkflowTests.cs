@@ -60,13 +60,13 @@ public class AndonWorkflowTests
         public List<AndonDeptDto>  ListDepts()  => Depts;
         public List<AndonSeverityDto> ListSeverities() => Severities;
 
-        public void AcknowledgeBySupervisor(int andonId, string workerNo, string? name)
+        public void AcknowledgeBySupervisor(int andonId, string workerNo, string? name, string operatorNo)
         {
             if (Status != "OPEN") return;
             SupNo = workerNo; SupName = name; Status = "SUP_ACKED";
         }
 
-        public void CallDepts(int andonId, string causeCode, string severity, IEnumerable<string> deptCodes, string calledBy)
+        public void CallDepts(int andonId, string causeCode, string severity, IEnumerable<string> deptCodes, string calledBy, string operatorNo)
         {
             var codes = deptCodes.ToArray();
             CallArgs.Add(codes);
@@ -82,7 +82,7 @@ public class AndonWorkflowTests
             }
         }
 
-        public void RecordArrival(int deptCallId, string workerNo, string? name)
+        public void RecordArrival(int deptCallId, string workerNo, string? name, string operatorNo)
         {
             var i = DeptRows.FindIndex(r => r.DeptCallId == deptCallId);
             if (i < 0 || DeptRows[i].ArrivedAt is not null) return;
@@ -94,7 +94,7 @@ public class AndonWorkflowTests
             };
         }
 
-        public void AckDept(int deptCallId)
+        public void AckDept(int deptCallId, string operatorNo)
         {
             var i = DeptRows.FindIndex(r => r.DeptCallId == deptCallId);
             if (i < 0 || DeptRows[i].ArrivedAt is null) return;
@@ -106,7 +106,7 @@ public class AndonWorkflowTests
             };
         }
 
-        public void Resolve(int andonId, string? causeCode, string? severity)
+        public void Resolve(int andonId, string? causeCode, string? severity, string operatorNo)
         {
             ResolvedCalled = true; ResolveCause = causeCode; ResolveSeverity = severity; Status = "RESOLVED";
         }
@@ -481,11 +481,11 @@ public class AndonWorkflowTests
         public List<AndonCauseDto> ListCauses() => _inner.ListCauses();
         public List<AndonDeptDto> ListDepts() => _inner.ListDepts();
         public List<AndonSeverityDto> ListSeverities() => _inner.ListSeverities();
-        public void AcknowledgeBySupervisor(int andonId, string workerNo, string? name) => _inner.AcknowledgeBySupervisor(andonId, workerNo, name);
-        public void CallDepts(int andonId, string causeCode, string severity, IEnumerable<string> deptCodes, string calledBy) => throw new InvalidOperationException("db down");
-        public void RecordArrival(int deptCallId, string workerNo, string? name) => _inner.RecordArrival(deptCallId, workerNo, name);
-        public void AckDept(int deptCallId) => _inner.AckDept(deptCallId);
-        public void Resolve(int andonId, string? causeCode, string? severity) => _inner.Resolve(andonId, causeCode, severity);
+        public void AcknowledgeBySupervisor(int andonId, string workerNo, string? name, string operatorNo) => _inner.AcknowledgeBySupervisor(andonId, workerNo, name, operatorNo);
+        public void CallDepts(int andonId, string causeCode, string severity, IEnumerable<string> deptCodes, string calledBy, string operatorNo) => throw new InvalidOperationException("db down");
+        public void RecordArrival(int deptCallId, string workerNo, string? name, string operatorNo) => _inner.RecordArrival(deptCallId, workerNo, name, operatorNo);
+        public void AckDept(int deptCallId, string operatorNo) => _inner.AckDept(deptCallId, operatorNo);
+        public void Resolve(int andonId, string? causeCode, string? severity, string operatorNo) => _inner.Resolve(andonId, causeCode, severity, operatorNo);
     }
 
     [Fact]

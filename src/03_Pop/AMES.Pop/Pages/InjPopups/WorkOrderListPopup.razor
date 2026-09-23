@@ -1,0 +1,97 @@
+@namespace AMES.Pop.Pages.InjPopups
+@using AMES.Pop.Common
+
+@*  품번 WO 목록 팝업 — INJ/IMG-MAIN 좌측 품번 행 더블클릭. 이 라인 단계 기준 조회 전용.
+    ★ 표시는 메인 화면이 쓰는 활성 WO(FindOpenForItem) — 스캔 확정도 이 WO 로 올라간다. *@
+
+<PopupShell Title='@($"📋 {T("WoListTitle")} · {ItemNo}")' Width="1400px" OnClose="OnClose">
+    @if (ItemName is { Length: > 0 })
+    {
+        <div class="wol-item">@ItemName</div>
+    }
+    @if (_error is not null)
+    {
+        <div class="injm-refresh-err">⚠ @_error</div>
+    }
+    <div class="wol-scroll">
+        <table class="injm-tbl wol-tbl">
+            <thead>
+                <tr>
+                    <th style="text-align:left;">@T("WoNo")</th>
+                    <th>@T("Status")</th>
+                    <th style="text-align:left;">@T("WoSoNo")</th>
+                    <th>@T("WoOrderQty")</th>
+                    <th>@T("WoDoneQty")</th>
+                    <th>@T("WoRemainQty")</th>
+                    <th>@T("WoProgressPct")</th>
+                    <th>@T("WoProdDeadline")</th>
+                    <th>@T("WoDueDate")</th>
+                    <th>@T("WoPriority")</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var w in _rows)
+            {
+                var isActive = w.WoId == ActiveWoId;
+                var closed   = w.Status == "Closed";
+                <tr class="@(isActive ? "active" : closed ? "wol-closed" : "")">
+                    <td class="mono" style="text-align:left;">
+                        @(isActive ? "★ " : "")@w.WoNumber
+                        @if (w.StepSeq is int seq)
+                        {
+                            <span class="injm-dim-badge">#@seq</span>
+                        }
+                    </td>
+                    <td><span class="wol-status @StatusClass(w.Status)">@PopLang.WoStatus(w.Status)</span></td>
+                    <td class="mono" style="text-align:left;">@(w.SoNumber ?? "—")</td>
+                    <td>@w.OrderQty.ToString("0")</td>
+                    <td class="ok">@w.CompletedQty.ToString("0")</td>
+                    <td class="@(Remain(w) > 0 && !closed ? "" : "ok")">@Remain(w).ToString("0")</td>
+                    <td>@w.ProgressPct.ToString("0")%</td>
+                    <td class="mono">@(w.ProdDeadline?.ToString("MM-dd") ?? "—")</td>
+                    <td class="mono @(w.DaysToDue < 0 && !closed ? "bad" : "")">@(w.DueDate?.ToString("MM-dd") ?? "—")</td>
+                    <td>@w.Priority</td>
+                </tr>
+            }
+            @if (_rows.Count == 0 && _error is null)
+            {
+                <tr><td colspan="10" class="pmod-empty">@T("WoListEmpty")</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <div class="wol-footer">
+        <span class="wol-note">@T("WoListNote")</span>
+        <button class="nav-btn" @onclick="OnClose">@T("Close")</button>
+    </div>
+</PopupShell>
+
+@code {
+    [Parameter, EditorRequired] public string  LineId     { get; set; } = "";
+    [Parameter, EditorRequired] public string  ItemNo     { get; set; } = "";
+    [Parameter] public string?                 ItemName   { get; set; }
+    /// <summary>메인 화면의 활성 WO — 행에 ★ 표시.</summary>
+    [Parameter] public int?                    ActiveWoId { get; set; }
+    [Parameter] public EventCallback           OnClose    { get; set; }
+
+    private static string T(string key, params object?[] args) => PopLang.T(key, args);
+
+    private List<WorkOrderDto> _rows = new();
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        try { _rows = PopServices.WorkOrders.ListForItemOnLine(LineId, ItemNo); }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private static decimal Remain(WorkOrderDto w) => Math.Max(0, w.OrderQty - w.CompletedQty);
+
+    private static string StatusClass(string s) => s switch
+    {
+        "In Progress" => "run",
+        "Released"    => "rel",
+        "Closed"      => "done",
+        _             => "",
+    };
+}

@@ -70,7 +70,7 @@
                         @foreach (var it in _items)
                         {
                             var isSel = string.Equals(_selItemNo, it.ItemNo, StringComparison.OrdinalIgnoreCase);
-                            <tr class="@(isSel ? "active" : "")" @onclick="@(() => SelectItem(it))">
+                            <tr class="@(isSel ? "active" : "")" @onclick="@(() => SelectItem(it))" @ondblclick="@(() => OpenWoList(it))">
                                 <td class="mono" style="text-align:left;" title="@it.ItemName">
                                     @it.ItemNo
                                     @if (!it.InBop)
@@ -197,6 +197,10 @@
     case Popup.Defect:
         <DefectPopup Session="Session" OnClose="ClosePopup" OnChanged="Refresh" />
         break;
+    case Popup.WoList when Session is not null && _selItemNo is not null:
+        <WorkOrderListPopup LineId="@Session.LineId" ItemNo="@_selItemNo" ItemName="@SelItem?.ItemName"
+                            ActiveWoId="@_activeWo?.WoId" OnClose="ClosePopup" />
+        break;
     case Popup.Andon:
         <AndonPopup Session="Session" OnClose="ClosePopup" AutoRaise="_andonAutoRaise" />
         break;
@@ -207,7 +211,7 @@
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
 
-    private enum Popup { None, Defect, Andon }
+    private enum Popup { None, Defect, Andon, WoList }
     private Popup _popup = Popup.None;
 
     private sealed record ScanRecord(string LotCode, DateTime At, bool Ok, string Message);
@@ -359,6 +363,14 @@
         _focusScan = true;
     }
 
+    // 더블클릭의 첫 클릭이 이미 SelectItem 으로 활성 WO 를 해석해 두었다 — 팝업은 그 WO 에 ★ 를 단다.
+    private void OpenWoList(InjItemDailyDto it)
+    {
+        if (!string.Equals(_selItemNo, it.ItemNo, StringComparison.OrdinalIgnoreCase)) SelectItem(it);
+        _andonAutoRaise = false;
+        _popup = Popup.WoList;
+    }
+
     // ── 스캔 확정 (INJ-004 로직) ──────────────────────────────────────
     // 리더 스레드에서 오므로 렌더러 스레드로 넘긴다. 팝업이 열려 있으면 무시 —
     // HID 도 포커스가 빠져 안 들어가는 것과 같은 규칙.
@@ -436,7 +448,7 @@
             // 라벨만 태우게 된다. Resume() 은 IsStopped 를 벗어나는 유일한 길이다.
             Dispatcher.Resume();
 
-            var printed = PopServices.InjLots.IncrementPrintedCount(lot.LotId);
+            var printed = PopServices.InjLots.IncrementPrintedCount(lot.LotId, Session?.EmployeeNo);
             Toasts.Ok($"{T("LabelReprinted")}: {lot.LotCode} ({T("Total2")} {printed})");
             Refresh();
         }

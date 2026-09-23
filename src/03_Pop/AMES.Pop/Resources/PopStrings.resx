@@ -271,4 +271,17 @@
   <data name="RwkNoteLabel" xml:space="preserve"><value>조치 메모</value></data>
   <data name="RwkDecidedBy" xml:space="preserve"><value>판정자</value></data>
   <data name="RwkDecidedAt" xml:space="preserve"><value>판정 시각</value></data>
+  <data name="WoListTitle" xml:space="preserve"><value>작업지시 목록</value></data>
+  <data name="WoNo" xml:space="preserve"><value>WO 번호</value></data>
+  <data name="WoSoNo" xml:space="preserve"><value>수주번호</value></data>
+  <data name="WoOrderQty" xml:space="preserve"><value>지시</value></data>
+  <data name="WoDoneQty" xml:space="preserve"><value>완료</value></data>
+  <data name="WoRemainQty" xml:space="preserve"><value>잔량</value></data>
+  <data name="WoProgressPct" xml:space="preserve"><value>진척</value></data>
+  <data name="WoProdDeadline" xml:space="preserve"><value>생산마감</value></data>
+  <data name="WoDueDate" xml:space="preserve"><value>납기</value></data>
+  <data name="WoPriority" xml:space="preserve"><value>우선</value></data>
+  <data name="WoPending" xml:space="preserve"><value>대기</value></data>
+  <data name="WoListEmpty" xml:space="preserve"><value>이 라인에 이 품번의 작업지시가 없습니다</value></data>
+  <data name="WoListNote" xml:space="preserve"><value>★ = 스캔 확정이 올라가는 활성 WO · 완료·진척은 이 라인 공정 기준 · 마감 WO 는 최근 30일</value></data>
 </root>

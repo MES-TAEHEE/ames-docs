@@ -18,17 +18,17 @@ internal sealed class RepoAndonStore : IAndonStore
     public List<AndonDeptDto>  ListDepts()  => PopServices.Andon.ListDepts();
     public List<AndonSeverityDto> ListSeverities() => PopServices.Andon.ListSeverities();
 
-    public void AcknowledgeBySupervisor(int andonId, string workerNo, string? name)
-        => PopServices.Andon.AcknowledgeBySupervisor(andonId, workerNo, name);
+    public void AcknowledgeBySupervisor(int andonId, string workerNo, string? name, string operatorNo)
+        => PopServices.Andon.AcknowledgeBySupervisor(andonId, workerNo, name, operatorNo);
 
-    public void CallDepts(int andonId, string causeCode, string severity, IEnumerable<string> deptCodes, string calledBy)
-        => PopServices.Andon.CallDepts(andonId, causeCode, severity, deptCodes, calledBy);
+    public void CallDepts(int andonId, string causeCode, string severity, IEnumerable<string> deptCodes, string calledBy, string operatorNo)
+        => PopServices.Andon.CallDepts(andonId, causeCode, severity, deptCodes, calledBy, operatorNo);
 
-    public void RecordArrival(int deptCallId, string workerNo, string? name)
-        => PopServices.Andon.RecordArrival(deptCallId, workerNo, name);
+    public void RecordArrival(int deptCallId, string workerNo, string? name, string operatorNo)
+        => PopServices.Andon.RecordArrival(deptCallId, workerNo, name, operatorNo);
 
-    public void AckDept(int deptCallId) => PopServices.Andon.AckDept(deptCallId);
-    public void Resolve(int andonId, string? causeCode, string? severity) => PopServices.Andon.Resolve(andonId, causeCode, severity);
+    public void AckDept(int deptCallId, string operatorNo) => PopServices.Andon.AckDept(deptCallId, operatorNo);
+    public void Resolve(int andonId, string? causeCode, string? severity, string operatorNo) => PopServices.Andon.Resolve(andonId, causeCode, severity, operatorNo);
 }
 
 /// <summary>사번 → 이름. 로그인과 같은 순서(웹 계정 우선, 그 다음 MD_Worker).</summary>

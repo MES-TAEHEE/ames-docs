@@ -186,17 +186,18 @@ public sealed class ImgLotRepository
     }
 
     /// <summary>라벨이 실제로 나온 뒤 호출. 반환 = 누적 발행 횟수.</summary>
-    public int IncrementPrintedCount(int lotId)
+    public int IncrementPrintedCount(int lotId, string? employeeNo)
     {
         const string sql = """
             UPDATE dbo.PR_ImgLot
-            SET    PrintedCount = PrintedCount + 1, ModifiedTS = SYSDATETIME()
+            SET    PrintedCount = PrintedCount + 1, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
             OUTPUT INSERTED.PrintedCount
             WHERE  LotID = @LotID;
             """;
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@LotID", SqlDbType.Int).Value = lotId;
+        cmd.Parameters.Add("@By", SqlDbType.NVarChar,  20).Value = (object?)employeeNo ?? DBNull.Value;
         return Convert.ToInt32(cmd.ExecuteScalar() ?? 0);
     }
 
@@ -253,7 +254,7 @@ public sealed class ImgLotRepository
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@Lot", SqlDbType.Int          ).Value = lotId;
-                cmd.Parameters.Add("@Op",  SqlDbType.NVarChar, 450).Value = operatorId;
+                cmd.Parameters.Add("@Op",  SqlDbType.NVarChar,  20).Value = operatorId;
                 cmd.ExecuteNonQuery();
             }
 
@@ -380,7 +381,7 @@ public sealed class ImgLotRepository
             {
                 cmd.Parameters.Add("@WoID",     SqlDbType.Int          ).Value = woId;
                 cmd.Parameters.Add("@LotID",    SqlDbType.Int          ).Value = lotId;
-                cmd.Parameters.Add("@Op",       SqlDbType.NVarChar, 450).Value = operatorId;
+                cmd.Parameters.Add("@Op",       SqlDbType.NVarChar,  20).Value = operatorId;
                 cmd.Parameters.Add("@Sess",     SqlDbType.Int          ).Value = (object?)sessionId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
