@@ -1,6 +1,8 @@
 -- A-MES consolidated schema: AMES_DEV, captured 2026-09-23.
 -- Includes PDA schema and all deployed stored procedures; excludes TEST_* tables.
--- 174 tables / 2470 columns / 39 procedures / 28 foreign keys / 5 checks / 1 synonym.
+-- Six SCM tables synchronized from AMES_DEV on 2026-09-25.
+-- WH_PurchaseOrder SCM columns remain in migrate_scm_wh_purchase_order.sql and migrate_scm_order_confirmation.sql.
+-- 181 tables / 2529 columns / 39 procedures / 37 foreign keys / 10 checks / 1 synonym.
 -- Audit actor columns standardized to varchar(20); SYS_AuditActorMap preserves legacy actor values.
 -- Schema only from the live database; sample seeds below are retained from the repository.
 -- Recreates the included objects: existing data in these tables will be deleted.
@@ -12,6 +14,18 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 SET ANSI_PADDING ON;
 SET NOCOUNT ON;
+GO
+-- Remove foreign keys for the six consolidated SCM tables before recreating referenced tables.
+DECLARE @ScmDropSql nvarchar(max) = N'';
+SELECT @ScmDropSql = @ScmDropSql + N'ALTER TABLE ' + QUOTENAME(OBJECT_SCHEMA_NAME(parent_object_id)) + N'.' + QUOTENAME(OBJECT_NAME(parent_object_id)) + N' DROP CONSTRAINT ' + QUOTENAME(name) + N';' FROM sys.foreign_keys WHERE OBJECT_SCHEMA_NAME(parent_object_id)=N'dbo' AND OBJECT_NAME(parent_object_id) IN (N'SCM_ItemVendor',N'SCM_PurchaseOrderSequence',N'SCM_Delivery',N'SCM_DeliveryLine',N'SCM_DeliveryNote',N'SCM_DeliveryNoteDelivery');
+EXEC sys.sp_executesql @ScmDropSql;
+GO
+DROP TABLE IF EXISTS [dbo].[SCM_ItemVendor];
+DROP TABLE IF EXISTS [dbo].[SCM_PurchaseOrderSequence];
+DROP TABLE IF EXISTS [dbo].[SCM_Delivery];
+DROP TABLE IF EXISTS [dbo].[SCM_DeliveryLine];
+DROP TABLE IF EXISTS [dbo].[SCM_DeliveryNote];
+DROP TABLE IF EXISTS [dbo].[SCM_DeliveryNoteDelivery];
 GO
 IF OBJECT_ID(N'[dbo].[FK_FG_CustomerReturn_Item]', N'F') IS NOT NULL ALTER TABLE [dbo].[FG_CustomerReturn] DROP CONSTRAINT [FK_FG_CustomerReturn_Item];
 IF OBJECT_ID(N'[dbo].[FK_FG_CustomerReturn_Lot]', N'F') IS NOT NULL ALTER TABLE [dbo].[FG_CustomerReturn] DROP CONSTRAINT [FK_FG_CustomerReturn_Lot];
@@ -8387,6 +8401,186 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정�
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'NCR 처리 이력' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action'
 GO
+-- Table: dbo.SCM_ItemVendor
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[SCM_ItemVendor](
+	[ItemNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[VendorID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[ActiveFlag] [bit] NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NOT NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
+ CONSTRAINT [PK_SCM_ItemVendor] PRIMARY KEY CLUSTERED
+(
+	[ItemNo] ASC,
+	[VendorID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+SET ANSI_PADDING ON
+GO
+CREATE NONCLUSTERED INDEX [IX_SCM_ItemVendor_Vendor] ON [dbo].[SCM_ItemVendor]
+(
+	[VendorID] ASC,
+	[ActiveFlag] ASC,
+	[ItemNo] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[SCM_ItemVendor] ADD  CONSTRAINT [DF_SCM_ItemVendor_Active]  DEFAULT ((1)) FOR [ActiveFlag]
+GO
+ALTER TABLE [dbo].[SCM_ItemVendor] ADD  CONSTRAINT [DF_SCM_ItemVendor_Created]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+GO
+-- Table: dbo.SCM_PurchaseOrderSequence
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[SCM_PurchaseOrderSequence](
+	[NumberDate] [date] NOT NULL,
+	[LastNumber] [int] NOT NULL,
+ CONSTRAINT [PK_SCM_PurchaseOrderSequence] PRIMARY KEY CLUSTERED
+(
+	[NumberDate] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[SCM_PurchaseOrderSequence]  WITH CHECK ADD  CONSTRAINT [CK_SCM_PurchaseOrderSequence_Range] CHECK  (([LastNumber]>=(1) AND [LastNumber]<=(9999)))
+GO
+ALTER TABLE [dbo].[SCM_PurchaseOrderSequence] CHECK CONSTRAINT [CK_SCM_PurchaseOrderSequence_Range]
+GO
+-- Table: dbo.SCM_Delivery
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[SCM_Delivery](
+	[DeliveryID] [int] IDENTITY(1,1) NOT NULL,
+	[DeliveryNumber] [varchar](30) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[RequestID] [uniqueidentifier] NOT NULL,
+	[PoNumber] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[VendorID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[DeliveryDate] [date] NOT NULL,
+	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedUserID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NOT NULL,
+	[Version] [timestamp] NOT NULL,
+	[ModifiedTS] [datetime2](7) NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedUserID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ShipDate] [date] NULL,
+	[ShippedAt] [datetime2](7) NULL,
+	[ShippedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ShippedUserID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[NoteSnapshot] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
+	[NoteIssuedAt] [datetime2](7) NULL,
+	[NoteIssuedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[NoteIssuedUserID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+PRIMARY KEY CLUSTERED
+(
+	[DeliveryID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+UNIQUE NONCLUSTERED
+(
+	[RequestID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+UNIQUE NONCLUSTERED
+(
+	[DeliveryNumber] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[SCM_Delivery] ADD  DEFAULT ('Registered') FOR [Status]
+GO
+ALTER TABLE [dbo].[SCM_Delivery] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+GO
+ALTER TABLE [dbo].[SCM_Delivery]  WITH CHECK ADD  CONSTRAINT [CK_SCM_Delivery_Status] CHECK  (([Status]='Cancelled' OR [Status]='Received' OR [Status]='Shipped' OR [Status]='Registered'))
+GO
+ALTER TABLE [dbo].[SCM_Delivery] CHECK CONSTRAINT [CK_SCM_Delivery_Status]
+GO
+-- Table: dbo.SCM_DeliveryLine
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[SCM_DeliveryLine](
+	[DeliveryLineID] [int] IDENTITY(1,1) NOT NULL,
+	[DeliveryID] [int] NOT NULL,
+	[PoID] [int] NOT NULL,
+	[Quantity] [decimal](12, 3) NOT NULL,
+	[ReceivedQty] [decimal](12, 3) NOT NULL,
+PRIMARY KEY CLUSTERED
+(
+	[DeliveryLineID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+ CONSTRAINT [UQ_SCM_DeliveryLine] UNIQUE NONCLUSTERED
+(
+	[DeliveryID] ASC,
+	[PoID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+CREATE NONCLUSTERED INDEX [IX_SCM_DeliveryLine_PoID] ON [dbo].[SCM_DeliveryLine]
+(
+	[PoID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[SCM_DeliveryLine] ADD  DEFAULT ((0)) FOR [ReceivedQty]
+GO
+ALTER TABLE [dbo].[SCM_DeliveryLine]  WITH CHECK ADD CHECK  (([Quantity]>(0)))
+GO
+ALTER TABLE [dbo].[SCM_DeliveryLine]  WITH CHECK ADD  CONSTRAINT [CK_SCM_DeliveryLine_Received] CHECK  (([ReceivedQty]>=(0) AND [ReceivedQty]<=[Quantity]))
+GO
+ALTER TABLE [dbo].[SCM_DeliveryLine] CHECK CONSTRAINT [CK_SCM_DeliveryLine_Received]
+GO
+-- Table: dbo.SCM_DeliveryNote
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[SCM_DeliveryNote](
+	[NoteID] [int] IDENTITY(1,1) NOT NULL,
+	[NoteNumber] [varchar](30) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[VendorID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[Snapshot] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[IssuedAt] [datetime2](7) NOT NULL,
+	[IssuedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[IssuedUserID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NOT NULL,
+PRIMARY KEY CLUSTERED
+(
+	[NoteID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+UNIQUE NONCLUSTERED
+(
+	[NoteNumber] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[SCM_DeliveryNote]  WITH CHECK ADD CHECK  ((isjson([Snapshot])=(1)))
+GO
+-- Table: dbo.SCM_DeliveryNoteDelivery
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[SCM_DeliveryNoteDelivery](
+	[DeliveryID] [int] NOT NULL,
+	[NoteID] [int] NOT NULL,
+PRIMARY KEY CLUSTERED
+(
+	[DeliveryID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+CREATE NONCLUSTERED INDEX [IX_SCM_DeliveryNoteDelivery_Note] ON [dbo].[SCM_DeliveryNoteDelivery]
+(
+	[NoteID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
 -- Table: dbo.SCM_PortalVendorUser
 SET ANSI_NULLS ON
 GO
@@ -8922,7 +9116,7 @@ CREATE TABLE [dbo].[SYS_UserProfile](
 (
 	[UserProfileID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+) ON [PRIMARY]
 GO
 ALTER TABLE [dbo].[SYS_UserProfile] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
@@ -9778,6 +9972,34 @@ GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
+GO
+ALTER TABLE [dbo].[SCM_ItemVendor]  WITH CHECK ADD  CONSTRAINT [FK_SCM_ItemVendor_Item] FOREIGN KEY([ItemNo])
+REFERENCES [dbo].[MD_Item] ([ItemNo])
+GO
+ALTER TABLE [dbo].[SCM_ItemVendor] CHECK CONSTRAINT [FK_SCM_ItemVendor_Item]
+GO
+ALTER TABLE [dbo].[SCM_ItemVendor]  WITH CHECK ADD  CONSTRAINT [FK_SCM_ItemVendor_Vendor] FOREIGN KEY([VendorID])
+REFERENCES [dbo].[MD_Vendor] ([VendorID])
+GO
+ALTER TABLE [dbo].[SCM_ItemVendor] CHECK CONSTRAINT [FK_SCM_ItemVendor_Vendor]
+GO
+ALTER TABLE [dbo].[SCM_Delivery]  WITH CHECK ADD FOREIGN KEY([VendorID])
+REFERENCES [dbo].[MD_Vendor] ([VendorID])
+GO
+ALTER TABLE [dbo].[SCM_DeliveryLine]  WITH CHECK ADD FOREIGN KEY([DeliveryID])
+REFERENCES [dbo].[SCM_Delivery] ([DeliveryID])
+GO
+ALTER TABLE [dbo].[SCM_DeliveryLine]  WITH CHECK ADD FOREIGN KEY([PoID])
+REFERENCES [dbo].[WH_PurchaseOrder] ([PoID])
+GO
+ALTER TABLE [dbo].[SCM_DeliveryNote]  WITH CHECK ADD FOREIGN KEY([VendorID])
+REFERENCES [dbo].[MD_Vendor] ([VendorID])
+GO
+ALTER TABLE [dbo].[SCM_DeliveryNoteDelivery]  WITH CHECK ADD FOREIGN KEY([DeliveryID])
+REFERENCES [dbo].[SCM_Delivery] ([DeliveryID])
+GO
+ALTER TABLE [dbo].[SCM_DeliveryNoteDelivery]  WITH CHECK ADD FOREIGN KEY([NoteID])
+REFERENCES [dbo].[SCM_DeliveryNote] ([NoteID])
 GO
 CREATE   PROCEDURE dbo.FG_PDA_ADJUST_SAVE_QTY
     @ScanText nvarchar(80),
@@ -13420,7 +13642,6 @@ INSERT INTO dbo.MD_Line (LineID, LineName, LineNameEn, WCID, PlantCode, DailyCap
   ('LINE-PNT-01', N'도장 1라인',          N'Painting Line 1',          'WC-PNT', 'EOS-PLT-01',  800, '3-SHIFT', 'P1', 1, 'ACTIVE', 'admin', SYSDATETIME()),
   ('LINE-PNT-02', N'도장 2라인',          N'Painting Line 2',          'WC-PNT', 'EOS-PLT-01',  600, '3-SHIFT', 'P2', 1, 'ACTIVE', 'admin', SYSDATETIME());
 GO
-
 -- Stations (라인당 1개 — POP 로그인은 스테이션 선택이 필수. LINE-RWK-01 은 migrate_lot_defect_rework.sql 이 만든다)
 INSERT INTO dbo.MD_Station (StationCode, StationName, StationNameEn, LineID, FormName, OrderSeq, Status, CreatedBy, CreatedTS) VALUES
   ('ST-IMG-01', N'감싸기 1공정', N'Wrapping Station 1',  'LINE-IMG-01', 'PopBlazorForm', 1, 'ACTIVE', 'admin', SYSDATETIME()),

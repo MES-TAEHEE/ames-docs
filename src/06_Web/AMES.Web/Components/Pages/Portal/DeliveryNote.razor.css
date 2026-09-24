@@ -1,5 +1,7 @@
 .note-toolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; max-width:210mm; margin:20px auto; padding:0 20px; }
 .note-error { margin:30px; }
+.note-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.note-help { max-width:210mm; margin:12px auto; padding:0 20px; }
 .delivery-note { box-sizing:border-box; max-width:210mm; margin:20px auto; padding:15mm; background:white; color:#172333; font:14px/1.5 Arial,sans-serif; }
 header { border-bottom:3px solid #172333; padding-bottom:14px; }
 header strong { font-size:24px; }
@@ -14,12 +16,14 @@ th { background:#edf1f5; text-align:left; } .quantity { text-align:right; white-
 .signatures { display:flex; justify-content:space-between; gap:12px; margin-top:40px; break-inside:avoid; }
 footer { border-top:1px solid #87919c; margin-top:30px; padding-top:12px; font-size:11px; }
 @media print {
-    @page { size:A4; margin:12mm; }
-    .note-toolbar,.note-error { display:none !important; }
+    @page scm-delivery-note { size:A4; margin:12mm; }
+    .delivery-note { page:scm-delivery-note; visibility:visible !important; }
+    .delivery-note ::deep * { visibility:visible !important; }
+    .note-toolbar,.note-error,.note-help { display:none !important; }
     .delivery-note { margin:0; padding:0; max-width:none; font-size:12px; }
     thead { display:table-header-group; }
     tr { break-inside:avoid; }
-    h1 { font-size:24px; }
+    h1 { font-size:24px; outline:none !important; }
 }
 @media screen and (max-width:650px) {
     .delivery-note { padding:18px; } dl { grid-template-columns:1fr; gap:4px; } dd { margin-bottom:8px; }

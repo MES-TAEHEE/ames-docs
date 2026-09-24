@@ -3,7 +3,6 @@
 @rendermode InteractiveServer
 @inject ScmRepository Scm
 @inject AuthenticationStateProvider Authentication
-@inject IJSRuntime JS
 @inject ILogger<DeliveryNote> Logger
 
 <PageTitle>Delivery Note · @Number</PageTitle>
@@ -14,9 +13,13 @@
     <a href="/portal/delivery-notes">딜리버리 노트 목록으로 돌아가기 / Back</a>
     @if (_note is not null)
     {
-        <RadzenButton Text="인쇄 / PDF 저장" Icon="print" Click="Print" />
+        <div class="note-actions">
+            <button type="button" class="rz-button rz-button-md rz-primary" data-delivery-note-print>인쇄 / PDF 저장</button>
+            <button type="button" class="rz-button rz-button-md rz-secondary" data-delivery-note-download="@_note.Number">인쇄용 파일 내려받기</button>
+        </div>
     }
 </div>
+<p class="note-help" role="status" data-delivery-note-status>인쇄창이 열리지 않으면 ‘인쇄용 파일 내려받기’로 저장한 HTML 문서를 Chrome 또는 Edge에서 열어 인쇄해 주세요.</p>
 @if (_error is not null)
 {
     <p role="alert" class="note-error">@_error</p>
@@ -77,11 +80,5 @@
             Logger.LogWarning(ex, "Delivery note read failed: {Number}", Number);
             _error = "문서를 조회할 수 없습니다. 업체 권한 및 출하 상태를 확인해 주세요. / Document unavailable.";
         }
-    }
-    async Task Print()
-    {
-        // Recheck current vendor authorization immediately before printing.
-        await OnParametersSetAsync();
-        if (_note is not null) await JS.InvokeVoidAsync("window.print");
     }
 }
