@@ -40,8 +40,8 @@ DELETE ur FROM dbo.AspNetUserRoles ur JOIN dbo.AspNetRoles r ON r.Id = ur.RoleId
 
 IF NOT EXISTS (SELECT 1 FROM dbo.SYS_UserProfile WHERE UserID = @id)
 BEGIN
-    INSERT INTO dbo.SYS_UserProfile (UserID, EmployeeNo, EmployeeName, Department, PlantCode, DefaultShift, AccountStatus, FailedLoginCount, AssignedLines, CreatedBy, CreatedTS)
-    VALUES (@id, 'EXT-0001', N'외부 테스트 고객', N'External', 'EOS-PLT-01', 'A', 'ACTIVE', 0, NULL, 'seed', SYSDATETIME());
+    INSERT INTO dbo.SYS_UserProfile (UserID, EmployeeNo, EmployeeName, Department, PlantCode, DefaultShift, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
+    VALUES (@id, 'EXT-0001', N'외부 테스트 고객', N'External', 'EOS-PLT-01', 'A', 'ACTIVE', 0, 'seed', SYSDATETIME());
     PRINT N'✓ SYS_UserProfile adminExt (ACTIVE)';
 END
 GO

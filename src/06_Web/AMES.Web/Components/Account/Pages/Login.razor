@@ -6,10 +6,7 @@
 @using Microsoft.AspNetCore.Identity
 @using AMES.Web.Data
 
-@inject SignInManager<ApplicationUser> SignInManager
-@inject UserManager<ApplicationUser> UserMgr
-@inject AMES.Data.Repositories.AuthRepository AuthRepo
-@inject ILogger<Login> Logger
+@inject AMES.Web.Services.WebSignIn SignIn
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["Auth.Title.SignIn"] · A-MES</PageTitle>
@@ -98,49 +95,12 @@
 
     public async Task LoginUser()
     {
-        // Pre-check: if account is LOCKED in SYS_UserProfile, reject before attempting sign-in.
-        var identityUser = await UserMgr.FindByEmailAsync(Input.Email);
-        if (identityUser is not null)
+        // 계정 종류로 갈린다 — 외부 사용자(ExternalCustomer)는 이 화면에서 로그인해도 외부 쿠키를 받아 외부 화면으로 간다
+        var result = await SignIn.SignInAsync(HttpContext, Input.Email, Input.Password, Input.RememberMe, ReturnUrl);
+        if (!result.Succeeded) { errorMessage = L[result.ErrorKey!]; return; }
+
+        if (!result.Portal)
         {
-            // 외부 사용자(ExternalCustomer)는 내부 화면에 들어올 수 없다 — 외부 로그인(/portal/login)만 허용
-            if (await UserMgr.IsInRoleAsync(identityUser, AMES.Web.Services.PortalAuth.Role))
-            {
-                errorMessage = L["Auth.Err.PortalOnly"];
-                return;
-            }
-            var (accountStatus, _) = AuthRepo.GetProfileStatus(identityUser.Id);
-            if (string.Equals(accountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase))
-            {
-                errorMessage = L["Auth.Err.Locked"];
-                return;
-            }
-            // ① 이메일 자기인증 완료 여부
-            if (!identityUser.EmailConfirmed)
-            {
-                errorMessage = L["Auth.Err.EmailNotConfirmed"];
-                return;
-            }
-            // ② 관리자 승인(ACTIVE) 여부. 프로필 없음=Active 취급, 자기가입 직후 PENDING 은 승인 대기.
-            if (!string.Equals(accountStatus, "ACTIVE", StringComparison.OrdinalIgnoreCase))
-            {
-                errorMessage = L["Auth.Err.Pending"];
-                return;
-            }
-        }
-
-        var result = await SignInManager.PasswordSignInAsync(
-            Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
-
-        if (result.Succeeded)
-        {
-            Logger.LogInformation("User logged in.");
-
-            if (identityUser is not null)
-                AuthRepo.RecordSuccessfulLogin(identityUser.Id);
-
-            // 같은 브라우저에 외부 포탈 쿠키가 남아 있으면 지운다(스킴 선택이 외부 쿠키 존재 여부로 갈린다)
-            HttpContext.Response.Cookies.Delete(AMES.Web.Services.PortalAuth.CookieName);
-
             // Persist RememberMe choice for next visit
             HttpContext.Response.Cookies.Append(RememberCookie, Input.RememberMe ? "1" : "0",
                 new CookieOptions
@@ -162,36 +122,9 @@
                     });
             else
                 HttpContext.Response.Cookies.Delete(LoginIdCookie);
+        }
 
-            var target = string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl;
-            if (!Uri.IsWellFormedUriString(target, UriKind.Relative))
-                target = "/";
-
-            HttpContext.Response.Redirect(target);
-        }
-        else if (result.RequiresTwoFactor)
-        {
-            var qs = $"?returnUrl={Uri.EscapeDataString(ReturnUrl ?? "")}&rememberMe={Input.RememberMe.ToString().ToLower()}";
-            HttpContext.Response.Redirect($"/Account/LoginWith2fa{qs}");
-        }
-        else if (result.IsLockedOut)
-            HttpContext.Response.Redirect("/Account/Lockout");
-        else if (result.IsNotAllowed)
-            errorMessage = L["Auth.Err.EmailNotConfirmed"];
-        else
-        {
-            // Increment domain failed counter; lock account on the 5th failure.
-            if (identityUser is not null)
-            {
-                var isNowLocked = AuthRepo.IncrementFailedCount(identityUser.Id);
-                if (isNowLocked)
-                {
-                    errorMessage = L["Auth.Err.LockedAfter5"];
-                    return;
-                }
-            }
-            errorMessage = L["Auth.Err.Invalid"];
-        }
+        HttpContext.Response.Redirect(result.Redirect!);
     }
 
     private sealed class InputModel

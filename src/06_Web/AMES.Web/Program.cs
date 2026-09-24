@@ -148,7 +148,8 @@ else
     builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<PermissionService>();
-builder.Services.AddScoped<AuditLogger>();   // MD·SYS 등록/수정/삭제 → SYS_AuditLog
+builder.Services.AddScoped<AuditLogger>();
+builder.Services.AddScoped<AMES.Web.Services.WebSignIn>();   // 내부·외부 로그인 공용 — 계정 종류로 내부/외부 쿠키를 가른다   // MD·SYS 등록/수정/삭제 → SYS_AuditLog
 builder.Services.AddScoped<AMES.Web.Services.MenuCatalog>();   // 좌측 메뉴·홈 사이트맵 공용 화면 카탈로그(SYS_Screen WEB)
 builder.Services.AddHttpClient();
 
@@ -381,9 +382,24 @@ app.Use(async (ctx, next) =>
         && HttpMethods.IsPost(ctx.Request.Method) && isFormPost
         && (ctx.Request.Path.StartsWithSegments("/Account") || AMES.Web.Services.PortalAuth.IsPortalPath(ctx.Request.Path)))
     {
-        var target = ctx.Request.Path.StartsWithSegments("/Account/Logout") ? "/Account/Login" : ctx.Request.Path.Value!;
-        ctx.Response.Redirect(target + "?expired=1");
+        // ReturnUrl 등 원래 쿼리는 유지한다(로그인 후 가려던 화면)
+        var query = ctx.Request.QueryString.Value ?? "";
+        var target = ctx.Request.Path.StartsWithSegments("/Account/Logout") ? "/Account/Login"
+                   : ctx.Request.Path.Value + (query.Contains("expired=1") ? query : query + (query.Length == 0 ? "?" : "&") + "expired=1");
+        if (target == "/Account/Login") target += "?expired=1";
+        ctx.Response.Redirect(target);
     }
+});
+
+// 로그인 화면(내부·외부)은 늘 로그인 전 사용자로 처리한다. 위조 방지 토큰은 화면을 연 시점의 사용자에 묶이는데,
+// 화면을 열어 둔 채 다른 탭에서 내부·외부로 로그인하면 쿠키가 바뀌어 제출 때 사용자가 달라지고 첫 POST 가 400(→ expired=1)이 돼
+// 로그인 버튼을 두 번 눌러야 했다. 두 화면은 현재 사용자를 쓰지 않는다(계정은 폼 값, 쿠키 정리는 WebSignIn).
+app.Use(async (ctx, next) =>
+{
+    if (ctx.Request.Path.Equals("/Account/Login", StringComparison.OrdinalIgnoreCase)
+        || ctx.Request.Path.Equals(AMES.Web.Services.PortalAuth.LoginPath, StringComparison.OrdinalIgnoreCase))
+        ctx.User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity());
+    await next();
 });
 
 // 외부 노출 게이트: appsettings Portal:ExternalHosts 에 적힌 호스트명(예 portal.example.com)으로 들어온 요청은
@@ -407,10 +423,16 @@ if (externalHosts.Length > 0)
 
 app.UseAntiforgery();
 
-// 외부 포탈 로그아웃 — 외부 쿠키만 지운다(내부 쿠키는 건드리지 않음)
-app.MapGet("/portal/logout", async (HttpContext ctx) =>
+// 외부 포탈 로그아웃 — 외부 쿠키만 지운다(내부 쿠키는 건드리지 않음).
+// to=internal 이면 내부 로그인으로 보낸다(외부 계정으로 내부 화면에 막혔을 때 계정 전환). 외부 호스트에서는 내부 로그인이 403 이라 무시.
+app.MapGet("/portal/logout", async (HttpContext ctx, string? to, string? returnUrl) =>
 {
     await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(ctx, AMES.Web.Services.PortalAuth.Scheme);
+    var onExternalHost = externalHosts.Any(h => string.Equals(h.Trim(), ctx.Request.Host.Host, StringComparison.OrdinalIgnoreCase));
+    if (to == "internal" && !onExternalHost)
+        return Results.Redirect(AMES.Web.Services.PortalAuth.IsLocalReturnUrl(returnUrl)
+            ? $"/Account/Login?ReturnUrl={Uri.EscapeDataString(returnUrl!)}"
+            : "/Account/Login");
     return Results.Redirect(AMES.Web.Services.PortalAuth.LoginPath);
 });
 

@@ -30,7 +30,7 @@ public sealed class AuthRepository
             SELECT TOP 1
                 u.Id, u.UserName, u.PasswordHash, p.PinHash,
                 p.EmployeeNo, p.EmployeeName, p.Department, p.DefaultShift,
-                p.AssignedLines, p.AccountStatus, p.FailedLoginCount
+                p.AccountStatus, p.FailedLoginCount
             FROM   dbo.SYS_UserProfile p
             JOIN   dbo.AspNetUsers     u ON u.Id = p.UserID
             WHERE  p.EmployeeNo = @EmployeeNo;
@@ -53,7 +53,6 @@ public sealed class AuthRepository
             EmployeeName      = (string)rdr["EmployeeName"],
             Department        = rdr["Department"]   as string,
             DefaultShift      = rdr["DefaultShift"] as string,
-            AssignedLinesJson = rdr["AssignedLines"] as string,
             AccountStatus     = rdr["AccountStatus"] as string,
             FailedLoginCount  = rdr["FailedLoginCount"] as int? ?? 0,
         };
@@ -90,7 +89,7 @@ public sealed class AuthRepository
         const string sql = """
             SELECT u.Id, u.UserName, u.PasswordHash, p.PinHash,
                    p.EmployeeNo, p.EmployeeName, p.Department, p.DefaultShift,
-                   p.AssignedLines, p.AccountStatus, ISNULL(p.FailedLoginCount,0) AS FailedLoginCount
+                   p.AccountStatus, ISNULL(p.FailedLoginCount,0) AS FailedLoginCount
             FROM   dbo.SYS_UserProfile p
             JOIN   dbo.AspNetUsers     u ON u.Id = p.UserID
             WHERE  ISNULL(p.AccountStatus, 'Active') = 'Active'
@@ -113,7 +112,6 @@ public sealed class AuthRepository
                 EmployeeName      = (string)rdr["EmployeeName"],
                 Department        = rdr["Department"]   as string,
                 DefaultShift      = rdr["DefaultShift"] as string,
-                AssignedLinesJson = rdr["AssignedLines"] as string,
                 AccountStatus     = rdr["AccountStatus"] as string,
                 FailedLoginCount  = Convert.ToInt32(rdr["FailedLoginCount"]),
             });

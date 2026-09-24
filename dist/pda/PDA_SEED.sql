@@ -33,16 +33,16 @@ BEGIN
     IF EXISTS (SELECT 1 FROM dbo.SYS_UserProfile WHERE EmployeeNo = 'SCTEST2')
         UPDATE dbo.SYS_UserProfile
            SET UserID = @TestUserId, EmployeeName = N'Detailed Scenario Test', Department = 'QA',
-               AssignedLines = NULL, PinHash = @TestPinHash, AccountStatus = 'Active',
+               PinHash = @TestPinHash, AccountStatus = 'Active',
                FailedLoginCount = 0, ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME()
          WHERE EmployeeNo = 'SCTEST2';
     ELSE
         INSERT INTO dbo.SYS_UserProfile
             (UserID, EmployeeNo, EmployeeName, Department, PlantCode, DefaultShift,
-             AssignedLines, PinHash, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
+             PinHash, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
         VALUES
             (@TestUserId, 'SCTEST2', N'Detailed Scenario Test', 'QA', 'SEH-US-01', 'DAY',
-             NULL, @TestPinHash, 'Active', 0, 'pda-seed', SYSDATETIME());
+             @TestPinHash, 'Active', 0, 'pda-seed', SYSDATETIME());
 
     DECLARE @SimpleTestUserId nvarchar(450) = N'pda-simple-scenario-user';
     MERGE dbo.AspNetUsers AS T
@@ -60,16 +60,16 @@ BEGIN
     IF EXISTS (SELECT 1 FROM dbo.SYS_UserProfile WHERE EmployeeNo = 'SCTEST1')
         UPDATE dbo.SYS_UserProfile
            SET UserID = @SimpleTestUserId, EmployeeName = N'Simple Scenario Test', Department = 'QA',
-               AssignedLines = NULL, PinHash = @TestPinHash, AccountStatus = 'Active',
+               PinHash = @TestPinHash, AccountStatus = 'Active',
                FailedLoginCount = 0, ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME()
          WHERE EmployeeNo = 'SCTEST1';
     ELSE
         INSERT INTO dbo.SYS_UserProfile
             (UserID, EmployeeNo, EmployeeName, Department, PlantCode, DefaultShift,
-             AssignedLines, PinHash, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
+             PinHash, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
         VALUES
             (@SimpleTestUserId, 'SCTEST1', N'Simple Scenario Test', 'QA', 'SEH-US-01', 'DAY',
-             NULL, @TestPinHash, 'Active', 0, 'pda-seed', SYSDATETIME());
+             @TestPinHash, 'Active', 0, 'pda-seed', SYSDATETIME());
 
     -- Both scenario accounts validate administrator-only Adjust screens.
     DECLARE @AdminRoleId nvarchar(450) =
@@ -115,10 +115,10 @@ IF EXISTS (SELECT 1 FROM dbo.SYS_UserProfile WHERE EmployeeNo = 'PTEST' AND (Use
 IF NOT EXISTS (SELECT 1 FROM dbo.SYS_UserProfile WHERE EmployeeNo = 'PTEST')
     INSERT INTO dbo.SYS_UserProfile
         (UserID, EmployeeNo, EmployeeName, Department, PlantCode, DefaultShift,
-         AssignedLines, PinHash, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
+         PinHash, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
     VALUES
         (@PtestUserId, 'PTEST', N'PDA Operator Test', 'QA', 'SEH-US-01', 'DAY',
-         NULL, @PtestPinHash, 'Active', 0, 'pda-seed', SYSDATETIME());
+         @PtestPinHash, 'Active', 0, 'pda-seed', SYSDATETIME());
 DECLARE @PtestRoleId nvarchar(450) = (SELECT Id FROM dbo.AspNetRoles WHERE NormalizedName = N'OPERATOR');
 IF @PtestRoleId IS NULL
 BEGIN

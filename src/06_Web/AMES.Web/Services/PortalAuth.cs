@@ -39,6 +39,13 @@ public static class PortalAuth
     public static bool AllowsPortalAccess(ClaimsPrincipal? user)
         => IsInternalUser(user) || (IsPortalUser(user) && user!.IsInRole(Role));
 
+    /// <summary>외부 로그아웃 뒤 내부 로그인의 ReturnUrl 로 넘길 수 있는지 — 같은 사이트의 절대 경로만(오픈 리디렉트 방지), 외부 화면은 제외.</summary>
+    public static bool IsLocalReturnUrl(string? url)
+        => !string.IsNullOrEmpty(url)
+        && url[0] == '/'
+        && (url.Length == 1 || (url[1] != '/' && url[1] != '\\'))
+        && !IsPortalPath(new PathString(url.Split('?', '#')[0]));
+
     public static bool IsPortalPath(PathString path)
         => path.StartsWithSegments(Prefix, StringComparison.OrdinalIgnoreCase);
 

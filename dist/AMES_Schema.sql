@@ -8845,7 +8845,6 @@ CREATE TABLE [dbo].[SYS_UserProfile](
 	[Department] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
 	[PlantCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[DefaultShift] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[AssignedLines] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
 	[AccountStatus] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[FailedLoginCount] [int] NULL,
 	[LastLoginTS] [datetime2](7) NULL,
@@ -8875,8 +8874,6 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사업장 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_UserProfile', @level2type=N'COLUMN',@level2name=N'PlantCode'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Default Shift · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_UserProfile', @level2type=N'COLUMN',@level2name=N'DefaultShift'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Assigned Lines · nvarchar' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_UserProfile', @level2type=N'COLUMN',@level2name=N'AssignedLines'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Account Status · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_UserProfile', @level2type=N'COLUMN',@level2name=N'AccountStatus'
 GO

@@ -6,7 +6,6 @@
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <data name="Alert" xml:space="preserve"><value>ALERT</value></data>
   <data name="AllClear" xml:space="preserve"><value>all clear</value></data>
-  <data name="AllLines" xml:space="preserve"><value>(all lines)</value></data>
   <data name="AlreadyConfirmed" xml:space="preserve"><value>Already confirmed</value></data>
   <data name="Andon" xml:space="preserve"><value>ANDON</value></data>
   <data name="AndonAckDone" xml:space="preserve"><value>ACK DONE</value></data>

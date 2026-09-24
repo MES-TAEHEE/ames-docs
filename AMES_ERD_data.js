@@ -1784,7 +1784,6 @@ SYS: { cols: 3, tables: [
     ['Department','VARCHAR(30)',''],
     ['Plant','VARCHAR(20)',''],
     ['DefaultShift','VARCHAR(10)',''],
-    ['AssignedLines','NVARCHAR(MAX)',''],
     ['AccountStatus','VARCHAR(10)',''],
     ['FailedLoginCount','INT',''],
     ['LastLoginTS','DATETIME2','']

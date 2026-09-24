@@ -72,17 +72,16 @@ WHEN MATCHED THEN UPDATE SET
     EmployeeName     = N'Kim Min-jun',
     Department       = 'Production',
     DefaultShift     = 'A',
-    AssignedLines    = N'["LINE-INJ-01"]',
     PinHash          = @PinHash,
     AccountStatus    = 'Active',
     FailedLoginCount = 0,
     ModifiedTS       = SYSDATETIME()
 WHEN NOT MATCHED THEN INSERT
     (UserID, EmployeeNo, EmployeeName, Department, PlantCode, DefaultShift,
-     AssignedLines, PinHash, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
+     PinHash, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
 VALUES
     (@UserId, 'E001', N'Kim Min-jun', 'Production', 'SEH-US-01', 'A',
-     N'["LINE-INJ-01"]', @PinHash, 'Active', 0, 'seed', SYSDATETIME());
+     @PinHash, 'Active', 0, 'seed', SYSDATETIME());
 PRINT CONCAT('SYS_UserProfile E001: ', @@ROWCOUNT, '행 처리됨');
 GO
 
@@ -104,7 +103,7 @@ GO
 
 -- ── 결과 확인 ──────────────────────────────────────────────────────────────
 SELECT u.UserName, u.Email, p.EmployeeNo, p.EmployeeName,
-       p.AssignedLines, p.AccountStatus,
+       p.AccountStatus,
        CASE WHEN u.PasswordHash IS NOT NULL THEN 'SET' ELSE 'NULL' END AS WebPw,
        CASE WHEN p.PinHash      IS NOT NULL THEN 'SET' ELSE 'NULL' END AS PopPin,
        (SELECT COUNT(*) FROM dbo.AspNetUserRoles ur WHERE ur.UserId = u.Id) AS Roles

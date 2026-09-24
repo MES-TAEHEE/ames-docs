@@ -1,4 +1,3 @@
-using System.Text.Json;
 using AMES.Contracts.Auth;
 using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
@@ -76,20 +75,7 @@ public sealed class PopAuthService
             }
         }
 
-        // 4) Line authorization.
-        //
-        //    The operator picks the line explicitly on the login screen, so an
-        //    unauthorized pick is rejected outright — no silent reroute.
-        //    AssignedLines null/empty → unrestricted (e.g. supervisors).
-        if (!IsLineAuthorized(profile.AssignedLinesJson, req.LineId))
-        {
-            _sessions.WriteAuthLog(req.TerminalId, req.AttemptedId, req.Method,
-                AuthResult.LineNotAuthorized, $"line {req.LineId}");
-            return LoginOutcome.Failure(AuthResult.LineNotAuthorized,
-                $"not authorized for {req.LineId}");
-        }
-
-        // 5) All checks passed — create session + log + reset failure counter.
+        // 4) All checks passed — create session + log + reset failure counter.
         var session = _sessions.CreateSession(profile, req.TerminalId, req.LineId,
                                               req.ShiftCode, req.Method);
         _sessions.WriteAuthLog(req.TerminalId, req.AttemptedId, req.Method,
@@ -102,19 +88,4 @@ public sealed class PopAuthService
     private static bool IsActive(string? status) =>
         string.IsNullOrEmpty(status) ||
         string.Equals(status, "Active", StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsLineAuthorized(string? assignedLinesJson, string lineId)
-    {
-        if (string.IsNullOrWhiteSpace(assignedLinesJson)) return true;
-        var lines = ParseLines(assignedLinesJson);
-        if (lines is null || lines.Length == 0) return true;
-        return lines.Any(l => string.Equals(l, lineId, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static string[]? ParseLines(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return null;
-        try { return JsonSerializer.Deserialize<string[]>(json); }
-        catch (JsonException) { return null; }
-    }
 }
