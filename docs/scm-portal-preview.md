@@ -1,6 +1,6 @@
 # EOS 구매·발주 / 협력업체 포털 화면 미리보기
 
-SCM-001/002는 기존 WH_PurchaseOrder의 실제 발주를 저장·조회한다. 포털은 실제 발주를 읽기 전용으로 조회한다. 수주 확인·납품서·검수 저장은 미구현이므로 버튼을 비활성화했다. SAP 호출은 하지 않는다.
+SCM-001/002는 기존 WH_PurchaseOrder의 실제 발주를 저장·조회한다. 포털은 실제 발주 조회, 수주 확인, 납품 예정 등록과 조회를 지원한다. 납품서 수정·취소도 DB에 반영한다. 출하 확정도 DB에 저장하며 입고·검수는 후속 구현이다. SAP 호출은 하지 않는다.
 포털은 내부 Admin이면 발행된 전체 발주를 조회하고, 외부 계정은 SCM_PortalVendorUser에 연결된 활성 업체의 발주만 조회한다. 아직 실제 외부 계정 연결 데이터는 없다.
 발주 한 건에 여러 품목 행을 추가할 수 있다. 업체·납기·납품장소는 발주 공통 정보이며, 품목별 수량·단가·금액과 합계를 표시한다. 수량 합계는 단위별로 구분하며, 납품 잔량도 품목 행별로 관리한다.
 
@@ -21,12 +21,12 @@ SCM-003 발주품목 관리는 MATERIAL 품목과 MD_Vendor 업체를 연결하�
 | PORTAL-005 | 입고·검수 결과 | /portal/receipts |
 
 - EOS 내부: 임시 발주 생성/수정, 발행, 발주 취소, 진행 현황/납품 이력 조회.
-- 포털: 실제 발행된 발주와 납기별 현황 조회. 수주 확인·납품·검수 저장은 후속 구현.
+- 포털: 실제 발행된 발주와 납기별 현황 조회. 수주 확인 및 여러 품목의 납품 예정 등록·조회.
 - 한국어/영어/스페인어, 기존 메뉴·카드·그리드·테마 사용.
 - 실제 DB 반영: dist/migrate_scm_portal_screens.sql.
-  SYS_Screen 8건, PROCESS의 SCM/PORTAL 코드, Admin 및 ExternalCustomer 화면 권한.
+  SYS_Screen의 SCM/PORTAL 화면과 PROCESS 코드. 이후 로그인 마이그레이션으로 SCM-004를 추가한다.
   기존 portal/shipment-plan 등록과 권한은 삭제하고, 포털 번호를 001~005로 정리한다.
-- Admin은 8개 화면 REA, ExternalCustomer는 포털만 R 또는 RE.
+- 내부 SCM은 화면 권한으로 관리한다. 포털은 PortalAccess 인증과 업체별 데이터 접근 검사를 사용한다.
   다른 내부 역할의 권한은 기존 SYS 역할/권한 관리 화면에서 별도로 지정한다.
 - 스크립트는 트랜잭션으로 실행되며 코드/경로 충돌 시 중단한다.
   재실행 시 화면을 갱신하고 누락된 권한만 추가한다. 기존 권한은 덮어쓰지 않는다.
@@ -35,7 +35,7 @@ SCM-003 발주품목 관리는 MATERIAL 품목과 MD_Vendor 업체를 연결하�
 dotnet build src/06_Web/AMES.Web/AMES.Web.csproj -c Release --no-restore -m:1 -nr:false
 dotnet run --project src/06_Web/AMES.Web/AMES.Web.csproj -c Release --no-build --no-launch-profile --urls http://localhost:5088
 
-후속 작업은 수주 확인, 납품서 저장, 입고·검수 연계다.
+후속 작업은 EOS 입고·검수 연계와 납품서 출력이다.
 
 ## 발주번호 채번
 - 신규 발주는 첫 저장에서 PO-YYYYMMDD-0001 형식으로 발급한다.
@@ -69,7 +69,7 @@ dotnet run --project src/06_Web/AMES.Web/AMES.Web.csproj -c Release --no-build -
 - 기존 발주도 조회한다. 수정은 Draft이고 입고수량/입고 패키지 연결이 없는 경우만 가능하다. 기존 품목 행의 PoID를 보존하며 삭제된 품목만 제거한다.
 - 저장·상태 변경은 트랜잭션으로 처리하고 전체 품목 행의 rowversion으로 동시 수정·입고 충돌을 검출한다. 활성 업체/MATERIAL/활성 매칭과 단위를 DB에서 재검증한다.
 - 수량은 decimal(12,3), 단가는 decimal(14,4) 범위를 검증한다. 신규 통화는 USD. 기존 발주 상세는 저장된 Currency를 표시한다.
-- SCM 내부 진행 수량은 WH_PurchaseOrder.ReceivedQty를 사용한다. 포털도 실제 발주를 조회한다. 납품서 저장과 신규 입고 처리 기능은 별도 구현 범위다.
+- SCM 내부 진행 수량은 WH_PurchaseOrder.ReceivedQty를 사용한다. 포털도 실제 발주를 조회한다. 납품 예정은 SCM_Delivery/SCM_DeliveryLine에 저장하며 신규 입고 처리는 후속 구현이다.
 - SYS_AuditLog에 생성·수정·발행·취소를 기록한다. 테스트 발주는 검증 후 제거하되 사용한 발주번호는 재사용하지 않는다.
 
 
@@ -79,7 +79,29 @@ dotnet run --project src/06_Web/AMES.Web/AMES.Web.csproj -c Release --no-build -
 - 외부 계정의 NameIdentifier와 활성 매칭/업체를 SQL 조건으로 확인한다. 미연결·해제 계정에는 발주가 보이지 않는다. 브라우저의 업체 선택값은 접근권한으로 사용하지 않는다.
 - 전체 조회는 내부 Identity 인증의 Admin에게만 허용한다. 화면 접근에는 기존 화면 권한을 함께 적용한다.
 - Draft는 포털에서 제외한다. Open/Partial/Complete/Received/Cancelled 발주만 조회하며 실제 입고수량도 표시한다.
-- 데모 발주·납품 데이터를 제거했다. 수주 확인/납품/검수는 DB 저장이 구현될 때까지 읽기 전용이다.
+- 데모 발주·납품 데이터를 제거했다. 수주 확인과 납품 예정은 DB에 저장한다. 입고·검수 처리는 아직 연결하지 않았다.
+
+## 수주 확인
+
+- PORTAL-001에서 발주 선택 → 수주 확인 → 확인 저장. 내부 Admin은 '대리 수주 확인'으로 표시하고 관리자 본인을 확인자로 기록한다.
+- 기존 WH_PurchaseOrder에 SupplierConfirmedAt, SupplierConfirmedBy, SupplierConfirmedUserID를 추가한다. 동일 발주번호의 전체 품목에 한 트랜잭션으로 기록하며 기존 Status와 입고수량은 변경하지 않는다.
+- Open/Partial만 확인 가능하다. 외부 계정은 SCM_PortalVendorUser의 활성·잠금 해제 계정 및 활성 업체 연결이 필요하며 저장 시 DB에서 재검증한다. 포털은 PortalAccess 인증 정책을 사용하며, 내부 SCM은 기존 화면 권한을 유지한다.
+- 전체 품목 rowversion으로 동시 수정 충돌을 차단한다. 재확인은 기존 확인자·확인일을 덮어쓰지 않는다. SYS_AuditLog에는 CONFIRM 또는 CONFIRM_PROXY를 기록한다.
+- 내부 구매발주/진행 화면과 포털에 확인 상태 및 상세 확인자·확인일을 표시한다. 계정과 업체 연결은 자동 생성하지 않는다.
+
+## 납품 예정 등록
+
+- PORTAL-003은 수주 확인 완료된 발주 중 추가 등록 가능한 잔량이 있는 발주만 표시한다. 여러 품목을 선택하여 수량(소수 3자리)과 납품 예정일을 입력한다.
+- 기존 FG_DeliveryNote는 고객 출하용, WH_InboundPackage는 LOT/박스 필수 입고용이므로 SCM_Delivery 헤더와 SCM_DeliveryLine을 추가하고 기존 WH_PurchaseOrder.PoID로 연결한다.
+- 납품번호는 DB 생성일과 전역 identity로 DN-yyyyMMdd-ID 형태로 발급한다. 등록 상태는 Registered(납품 예정)이며 출하 확정 및 EOS 입고는 하지 않는다.
+- 등록 가능 수량 = 발주수량 - 기존 입고수량 - 활성 납품서의 미입고 수량. 추후 입고 구현은 발주 ReceivedQty와 납품품목 ReceivedQty를 같은 트랜잭션에서 갱신해야 한다.
+- 발주 잠금/rowversion/요청 ID로 동시 등록, 초과 수량 및 중복 재시도를 막는다. 저장 시 포털 계정의 활성·잠금 상태와 업체 연결을 재검사한다. 관리자 대리 등록은 현재 관리자 ID를 기록한다.
+- PORTAL-004는 납품서번호별 한 행으로 조회하고 상세에서 전체 품목의 수량·예정일을 수정한다. 납품번호/발주번호/품목, 납품 상태, 예정일로 검색한다.
+- 수정은 기존 품목 구성에 대해 양수 수량(소수 3자리)만 허용한다. 다른 납품서의 예약수량을 제외해 잔량을 재검증한다. 품목 추가·삭제는 지원하지 않는다.
+- 납품 예정 상태이며 입고수량/입고 패키지 연결이 없는 경우만 수정·전체 취소할 수 있다. 취소 시 이력은 보존하고 잔량을 복원한다. 출하 확정된 납품서의 수정도 거부한다.
+- SCM_Delivery.Version과 발주 전체 rowversion을 검증하고 발주→납품서 순서로 잠근다. 변경자 ID·시간과 SYS_AuditLog 이력을 기록한다.
+- 활성 납품서가 있는 발주는 취소할 수 없다. 납품서 전체 취소 후에는 발주 취소가 가능하다.
+- 테스트 전용 발주로 복수 품목 저장, 수주 미확인·권한 없는 등록 거부, 중복 재시도, 초과 수량 롤백, 동시 변경, 취소 방지 및 UI 등록·재조회를 검증한다.
 
 ## 다른 환경에 적용할 때
 
@@ -89,6 +111,18 @@ dotnet run --project src/06_Web/AMES.Web/AMES.Web.csproj -c Release --no-build -
 2. `dist/migrate_scm_purchase_order_sequence.sql` — 발주번호 순번
 3. `dist/migrate_scm_item_vendor.sql` — 품목·업체 연결
 4. `dist/migrate_scm_wh_purchase_order.sql` — 기존 발주 테이블 추가 컬럼
-5. `dist/migrate_scm_portal_vendor_user.sql` — 외부 계정·업체 연결
+5. `dist/migrate_scm_portal_user_login.sql` — 새 포털 로그인 계정 및 SCM-004
+6. `dist/migrate_scm_order_confirmation.sql` — 수주 확인자·확인일
+7. `dist/migrate_scm_delivery.sql` — 납품 예정 헤더·품목
+8. `dist/migrate_scm_delivery_edit.sql` — 납품서 동시 수정 방지 및 변경 이력
+9. `dist/migrate_scm_delivery_ship.sql` — 실제 출하일·출하 처리자·출하 상태
 
-소스 동기화는 업무 데이터나 DB 연결정보를 복사하지 않는다. 외부 계정·업체 연결과 품목·업체 연결은 대상 환경에서 별도로 관리한다.
+소스 동기화는 업무 데이터나 DB 연결정보를 복사하지 않는다. 외부 포털 계정과 품목·업체 연결은 대상 환경에서 별도로 관리한다.
+
+## 병합 후 인증·출하 처리
+
+- GitHub의 SCM/포털 목록·모달 디자인, SCM-004 외부 사용자 관리, 로그인 및 DbClock.Today 날짜 기준을 유지한다.
+- 포털은 SYS_RolePermission이나 ExternalCustomer 역할을 사용하지 않는다. 외부 사용자 식별자는 SCM_PortalVendorUser.UserID(이메일)이며 SQL에서 ActiveFlag, LockedFlag, VendorID를 재검증한다. 내부 대리 처리는 Admin만 허용한다.
+- PORTAL-004에서 저장된 납품서의 전체 품목을 실제 출하일과 함께 확정한다. 수정 중인 값은 먼저 저장해야 한다. 미래 출하일·저장되지 않은 수량으로 확정할 수 없다.
+- 출하 시 Shipped 상태와 ShipDate/ShippedAt/ShippedBy/ShippedUserID를 저장하고 이후 수정·취소·중복 출하를 차단한다. 발주 ReceivedQty 및 재고는 증가하지 않는다.
+- 기존 납품 예정일은 유지하며 출하된 미입고 수량도 잔량 계산에 포함한다. EOS 입고 연계와 출하 취소는 미구현이다.

@@ -85,6 +85,10 @@ FILES=(
   migrate_scm_wh_purchase_order.sql   # WH_PurchaseOrder 납품장소·행 버전
   migrate_scm_portal_screens.sql      # SCM-001~003·PORTAL-001~005 화면 등록
   migrate_scm_portal_user_login.sql   # 외부 포탈 로그인 SCM_PortalVendorUser + SCM-004 화면, 포탈 RBAC 행 삭제
+  migrate_scm_order_confirmation.sql # 수주 확인자·확인일
+  migrate_scm_delivery.sql           # 납품서 헤더·품목
+  migrate_scm_delivery_edit.sql      # 납품서 수정 이력·동시성
+  migrate_scm_delivery_ship.sql      # 출하 확정
   migrate_portal_legacy_cleanup.sql   # 구 외부 역할 ExternalCustomer·계정·포탈 RBAC 정리 (신규 DB 에서는 no-op)
   seed_portal_dev.sql                 #   → 개발용 외부 사용자 adminext@ames.local → V1007 (admin 과 같은 비밀번호)
   pda/PDA_SEED.sql                    # WH/FG seed, Web screens and role permissions
