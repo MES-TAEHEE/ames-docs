@@ -1,8 +1,10 @@
 @page "/unauthorized"
 @rendermode InteractiveServer
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthPrvd
 @inject IStringLocalizer<SharedResources> L
 @using System.Globalization
+@using AMES.Web.Services
 
 <PageTitle>@L["Err.Unauthorized"] · AMES</PageTitle>
 
@@ -10,5 +12,25 @@
     <div style="font-size:3rem;line-height:1;">🔒</div>
     <div style="font-size:1.5rem;font-weight:700;color:#ef4444;">@L["Err.Unauthorized"]</div>
     <div style="color:#94a3b8;max-width:400px;">@L["Err.UnauthorizedDesc"]</div>
-    <button class="ames-btn ok" @onclick='() => Nav.NavigateTo("/")'>@L["Btn.GoHome"]</button>
+    <button class="ames-btn ok" @onclick="GoHome">@L["Btn.GoHome"]</button>
 </div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "ReturnUrl")] public string? ReturnUrl { get; set; }
+
+    bool _isPortalUser;
+
+    protected override async Task OnInitializedAsync()
+        => _isPortalUser = PortalAuth.IsPortalUser((await AuthPrvd.GetAuthenticationStateAsync()).User);
+
+    // 외부 쿠키로 막혔으면 외부 쿠키를 지운다 — 내부 화면에서 막혔으면(ReturnUrl 이 내부 경로) 내부 로그인으로, 외부 화면에서 막혔으면 외부 로그인으로.
+    // 그냥 "/" 로 보내면 외부 쿠키가 남아 있어 다시 이 화면으로 돌아온다.
+    void GoHome()
+    {
+        if (!_isPortalUser) { Nav.NavigateTo("/"); return; }
+        var url = PortalAuth.IsLocalReturnUrl(ReturnUrl)
+            ? $"/portal/logout?to=internal&returnUrl={Uri.EscapeDataString(ReturnUrl!)}"
+            : "/portal/logout";
+        Nav.NavigateTo(url, forceLoad: true);
+    }
+}

@@ -142,7 +142,6 @@
                         <button class="picker-row" @onclick="@(() => Pick(p))">
                             <div class="picker-no">@p.EmployeeNo</div>
                             <div class="picker-name">@p.EmployeeName</div>
-                            <div class="picker-lines">@(string.IsNullOrEmpty(p.AssignedLinesJson) ? T("AllLines") : p.AssignedLinesJson)</div>
                         </button>
                     }
                 </div>

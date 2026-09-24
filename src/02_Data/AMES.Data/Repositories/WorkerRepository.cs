@@ -260,7 +260,6 @@ public sealed class WorkerRepository
             PinHash           = rdr["PinHash"] as string,
             PasswordHash      = string.Empty,          // workers never sign into the web portal
             AccountStatus     = (bool)rdr["ActiveFlag"] ? "Active" : "Disabled",
-            AssignedLinesJson = null,                  // null => every line is allowed
             Department        = null,
             DefaultShift      = null,
             FailedLoginCount  = 0,

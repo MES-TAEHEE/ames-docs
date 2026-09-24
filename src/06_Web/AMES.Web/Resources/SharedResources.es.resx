@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -521,12 +521,6 @@
   </data>
   <data name="SYS.Users.Lbl.Role" xml:space="preserve">
     <value>Rol</value>
-  </data>
-  <data name="SYS.Users.Lbl.Lines" xml:space="preserve">
-    <value>Líneas Asignadas</value>
-  </data>
-  <data name="SYS.Users.Lbl.NoLines" xml:space="preserve">
-    <value>Sin líneas activas</value>
   </data>
   <data name="SYS.Users.Lbl.AccountStatus" xml:space="preserve">
     <value>Estado de Cuenta</value>
@@ -8291,12 +8285,6 @@
   </data>
   <data name="Portal.Login.Hint" xml:space="preserve">
     <value>Solo pueden iniciar sesión las cuentas registradas por el administrador.</value>
-  </data>
-  <data name="Auth.Err.PortalOnly" xml:space="preserve">
-    <value>Esta es una cuenta externa. Use la página de inicio de sesión del portal.</value>
-  </data>
-  <data name="Auth.Err.NotPortalUser" xml:space="preserve">
-    <value>Esta cuenta no puede usar el portal externo.</value>
   </data>
   <data name="Col.ShipDate" xml:space="preserve">
     <value>Fecha de envío</value>

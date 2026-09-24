@@ -6,7 +6,6 @@
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <data name="Alert" xml:space="preserve"><value>경고</value></data>
   <data name="AllClear" xml:space="preserve"><value>이상 없음</value></data>
-  <data name="AllLines" xml:space="preserve"><value>(전체 라인)</value></data>
   <data name="AlreadyConfirmed" xml:space="preserve"><value>이미 확정된 로트</value></data>
   <data name="Andon" xml:space="preserve"><value>안돈</value></data>
   <data name="AndonAckDone" xml:space="preserve"><value>ACK 완료</value></data>

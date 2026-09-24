@@ -19,9 +19,7 @@ public sealed class SysRepository
         string? EmployeeNo, string? EmployeeName, string? Department,
         string? PlantCode, string? DefaultShift,
         string? AccountStatus, DateTime? LastLoginTs, string? RolesCsv,
-        string? AssignedLines, int FailedLoginCount);
-
-    public sealed record LineRow(string LineId, string LineName, string? LineNameEn);
+        int FailedLoginCount);
 
     public sealed record RoleRow(string RoleId, string RoleName, int UserCount);
 
@@ -78,7 +76,6 @@ public sealed class SysRepository
                         THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS LockedOut,
                    p.EmployeeNo, p.EmployeeName, p.Department, p.PlantCode, p.DefaultShift,
                    p.AccountStatus, p.LastLoginTS,
-                   p.AssignedLines,
                    ISNULL(p.FailedLoginCount, 0) AS FailedLoginCount,
                    STUFF((SELECT ', ' + r.Name
                           FROM   dbo.AspNetUserRoles ur
@@ -95,7 +92,7 @@ public sealed class SysRepository
             r["EmployeeNo"] as string, r["EmployeeName"] as string, r["Department"] as string,
             r["PlantCode"] as string, r["DefaultShift"] as string,
             r["AccountStatus"] as string, r["LastLoginTS"] as DateTime?,
-            r["RolesCsv"] as string, r["AssignedLines"] as string,
+            r["RolesCsv"] as string,
             Convert.ToInt32(r["FailedLoginCount"])),
             ("@N", topN));
     }
@@ -888,16 +885,15 @@ public sealed class SysRepository
     }
 
     public void CreateProfile(string userId, string employeeNo, string employeeName,
-        string? department, string? plantCode, string? defaultShift, string createdBy,
-        string? assignedLinesJson = null)
+        string? department, string? plantCode, string? defaultShift, string createdBy)
     {
         const string sql = """
             INSERT INTO dbo.SYS_UserProfile
                 (UserID, EmployeeNo, EmployeeName, Department, PlantCode, DefaultShift,
-                 AccountStatus, FailedLoginCount, AssignedLines, CreatedBy, CreatedTS)
+                 AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
             VALUES
                 (@UserID, @EmpNo, @EmpName, @Dept, @Plant, @Shift,
-                 'ACTIVE', 0, @Lines, @CreatedBy, SYSDATETIME())
+                 'ACTIVE', 0, @CreatedBy, SYSDATETIME())
             """;
         Exec(sql,
             ("@UserID",    userId),
@@ -906,7 +902,6 @@ public sealed class SysRepository
             ("@Dept",      (object?)department       ?? DBNull.Value),
             ("@Plant",     (object?)plantCode         ?? DBNull.Value),
             ("@Shift",     (object?)defaultShift      ?? DBNull.Value),
-            ("@Lines",     (object?)assignedLinesJson ?? DBNull.Value),
             ("@CreatedBy", createdBy));
     }
 
@@ -927,7 +922,7 @@ public sealed class SysRepository
 
     public void UpdateProfile(string userId, string employeeNo, string employeeName,
         string? department, string? plantCode, string? defaultShift,
-        string accountStatus, string modifiedBy, string? assignedLinesJson = null)
+        string accountStatus, string modifiedBy)
     {
         const string sql = """
             UPDATE dbo.SYS_UserProfile
@@ -938,7 +933,6 @@ public sealed class SysRepository
                    DefaultShift     = @Shift,
                    AccountStatus    = @Status,
                    FailedLoginCount = CASE WHEN UPPER(@Status) = 'ACTIVE' THEN 0 ELSE FailedLoginCount END,
-                   AssignedLines    = @Lines,
                    ModifiedBy       = @ModifiedBy,
                    ModifiedTS       = SYSDATETIME()
             WHERE  UserID = @UserID
@@ -951,7 +945,6 @@ public sealed class SysRepository
             ("@Plant",      (object?)plantCode         ?? DBNull.Value),
             ("@Shift",      (object?)defaultShift      ?? DBNull.Value),
             ("@Status",     accountStatus),
-            ("@Lines",      (object?)assignedLinesJson ?? DBNull.Value),
             ("@ModifiedBy", modifiedBy));
     }
 
@@ -973,21 +966,6 @@ public sealed class SysRepository
             ("@UserID",     userId),
             ("@PinHash",    pinHash),
             ("@ModifiedBy", modifiedBy));
-    }
-
-    // ── MD_Line 목록 (ACTIVE만) ─────────────────────────────────────────
-    public List<LineRow> ListActiveLines()
-    {
-        const string sql = """
-            SELECT LineID, ISNULL(LineName, LineID) AS LineName, LineNameEn
-            FROM   dbo.MD_Line
-            WHERE  Status = 'ACTIVE'
-            ORDER  BY LineID;
-            """;
-        return Query(sql, r => new LineRow(
-            (string)r["LineID"],
-            (string)r["LineName"],
-            r["LineNameEn"] as string));
     }
 
     public void DeleteProfile(string userId)

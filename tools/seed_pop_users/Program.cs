@@ -8,12 +8,12 @@ namespace AMES.Tools.SeedPopUsers;
 /// Idempotent seed for POP login testing.
 /// Inserts 4 users into AspNetUsers + SYS_UserProfile:
 ///
-///   EmployeeNo  Name              Role        PIN     Lines
-///   ----------  ----------------  ----------  ------  ---------------
-///   E001        Kim Min-jun       Operator    1234    LINE-INJ-01
-///   E002        Lee Soo-yeon      Operator    2345    LINE-INJ-01
-///   E003        Park Hyun-woo     Operator    3456    LINE-INJ-01,LINE-INJ-02
-///   S001        Supervisor Choi   Supervisor  9999    (all lines)
+///   EmployeeNo  Name              Role        PIN
+///   ----------  ----------------  ----------  ------
+///   E001        Kim Min-jun       Operator    1234
+///   E002        Lee Soo-yeon      Operator    2345
+///   E003        Park Hyun-woo     Operator    3456
+///   S001        Supervisor Choi   Supervisor  9999
 ///
 /// Run from the repo root:
 ///   dotnet run --project tools/seed_pop_users
@@ -25,37 +25,27 @@ internal static class Program
         "TrustServerCertificate=True;Encrypt=True;Connect Timeout=5;";
 
     private static readonly (string Id, string EmpNo, string Name, string Dept, string Pin,
-        string? Lines, string Shift)[] Users =
+        string Shift)[] Users =
     {
         // ── INJ operators (사출) ───────────────────────────────────────
-        ("user-e001", "E001", "Kim Min-jun",     "Production", "1234",
-            """["LINE-INJ-01"]""",                                            "A"),
-        ("user-e002", "E002", "Lee Soo-yeon",    "Production", "2345",
-            """["LINE-INJ-01"]""",                                            "A"),
-        ("user-e003", "E003", "Park Hyun-woo",   "Production", "3456",
-            """["LINE-INJ-01","LINE-INJ-02"]""",                              "B"),
+        ("user-e001", "E001", "Kim Min-jun",     "Production", "1234", "A"),
+        ("user-e002", "E002", "Lee Soo-yeon",    "Production", "2345", "A"),
+        ("user-e003", "E003", "Park Hyun-woo",   "Production", "3456", "B"),
 
         // ── IMG operators (감싸기) ─────────────────────────────────────
-        ("user-i001", "I001", "Choi Joo-won",    "Production", "1234",
-            """["LINE-IMG-01"]""",                                            "A"),
-        ("user-i002", "I002", "Han Ji-hye",      "Production", "2345",
-            """["LINE-IMG-01"]""",                                            "A"),
+        ("user-i001", "I001", "Choi Joo-won",    "Production", "1234", "A"),
+        ("user-i002", "I002", "Han Ji-hye",      "Production", "2345", "A"),
 
         // ── PNT operators (분체도장) ───────────────────────────────────
-        ("user-p001", "P001", "Jeong Min-su",    "Production", "1234",
-            """["LINE-PNT-01"]""",                                            "A"),
-        ("user-p002", "P002", "Yoon Eun-bi",     "Production", "2345",
-            """["LINE-PNT-01"]""",                                            "A"),
+        ("user-p001", "P001", "Jeong Min-su",    "Production", "1234", "A"),
+        ("user-p002", "P002", "Yoon Eun-bi",     "Production", "2345", "A"),
 
         // ── QC inspectors (품질) ───────────────────────────────────────
-        ("user-q001", "Q001", "Kim Hye-jin",     "Quality",    "1234",
-            """["LINE-QC-01"]""",                                             "A"),
-        ("user-q002", "Q002", "Park Jae-won",    "Quality",    "2345",
-            """["LINE-QC-01"]""",                                             "A"),
+        ("user-q001", "Q001", "Kim Hye-jin",     "Quality",    "1234", "A"),
+        ("user-q002", "Q002", "Park Jae-won",    "Quality",    "2345", "A"),
 
-        // ── Supervisor with access to all lines ────────────────────────
-        ("user-s001", "S001", "Supervisor Choi", "Production", "9999",
-            null /* all lines */,                                             "A"),
+        // ── Supervisor ─────────────────────────────────────────────────
+        ("user-s001", "S001", "Supervisor Choi", "Production", "9999", "A"),
     };
 
     private static int Main()
@@ -68,8 +58,8 @@ internal static class Program
         {
             var pinHash = PinHasher.Hash(u.Pin);
             UpsertAspNetUser  (conn, u.Id, u.EmpNo);
-            UpsertUserProfile (conn, u.Id, u.EmpNo, u.Name, u.Dept, u.Shift, u.Lines, pinHash);
-            Console.WriteLine($"  ✓ {u.EmpNo,-4}  {u.Name,-18}  PIN={u.Pin}  lines={u.Lines ?? "(all)"}");
+            UpsertUserProfile (conn, u.Id, u.EmpNo, u.Name, u.Dept, u.Shift, pinHash);
+            Console.WriteLine($"  ✓ {u.EmpNo,-4}  {u.Name,-18}  PIN={u.Pin}");
         }
 
         Console.WriteLine();
@@ -109,7 +99,7 @@ internal static class Program
 
     private static void UpsertUserProfile(
         SqlConnection conn, string userId, string empNo, string empName,
-        string dept, string shift, string? assignedLines, string pinHash)
+        string dept, string shift, string pinHash)
     {
         const string sql = """
             MERGE dbo.SYS_UserProfile AS tgt
@@ -119,17 +109,16 @@ internal static class Program
                 EmployeeName     = @EmployeeName,
                 Department       = @Department,
                 DefaultShift     = @DefaultShift,
-                AssignedLines    = @AssignedLines,
                 PinHash          = @PinHash,
                 AccountStatus    = 'Active',
                 FailedLoginCount = 0,
                 ModifiedTS       = SYSDATETIME()
             WHEN NOT MATCHED THEN INSERT
                 (UserID, EmployeeNo, EmployeeName, Department, PlantCode, DefaultShift,
-                 AssignedLines, PinHash, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
+                 PinHash, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
             VALUES
                 (@UserID, @EmployeeNo, @EmployeeName, @Department, 'SEH-US-01', @DefaultShift,
-                 @AssignedLines, @PinHash, 'Active', 0, 'seed', SYSDATETIME());
+                 @PinHash, 'Active', 0, 'seed', SYSDATETIME());
             """;
 
         using var cmd = new SqlCommand(sql, conn);
@@ -138,7 +127,6 @@ internal static class Program
         cmd.Parameters.Add("@EmployeeName",  SqlDbType.NVarChar, 50 ).Value = empName;
         cmd.Parameters.Add("@Department",    SqlDbType.VarChar,  30 ).Value = dept;
         cmd.Parameters.Add("@DefaultShift",  SqlDbType.VarChar,  10 ).Value = shift;
-        cmd.Parameters.Add("@AssignedLines", SqlDbType.NVarChar     ).Value = (object?)assignedLines ?? DBNull.Value;
         cmd.Parameters.Add("@PinHash",       SqlDbType.NVarChar, 200).Value = pinHash;
         cmd.ExecuteNonQuery();
     }

@@ -21,12 +21,6 @@ public sealed class EmployeeProfileDto
     public string? Department { get; init; }
     public string? DefaultShift { get; init; }
 
-    /// <summary>
-    /// JSON array of LineIDs the operator may log into.
-    /// Empty / null => not restricted (treated as 'all lines' for now).
-    /// </summary>
-    public string? AssignedLinesJson { get; init; }
-
     /// <summary>Active / Locked / Disabled.</summary>
     public string? AccountStatus { get; init; }
 
