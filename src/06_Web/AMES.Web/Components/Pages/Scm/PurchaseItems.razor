@@ -8,6 +8,7 @@
 @inject NavigationManager Nav
 @inject AuditLogger Audit
 @inject ILogger<PurchaseItems> Logger
+@inject IStringLocalizer<SharedResources> L
 @using System.Globalization
 
 <PageTitle>SCM-003 @Title · AMES</PageTitle>
@@ -24,32 +25,46 @@
         <RadzenAlert AlertStyle="@(_error ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_message</RadzenAlert>
     }
     <div class="ames-card">
-        <div class="ames-card-h" style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
-            <span>▼ @Title · @_rows.Count · MATERIAL</span>
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="white-space:nowrap;">▼ @Title · @_rows.Count @T("건", "items", "registros")@(_rows.Count < _all.Count ? $" / {T("전체", "total", "total")} {_all.Count}" : "") · MATERIAL</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-                <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder="@T("품목코드 / 품목명 / 업체", "Item code / name / vendor", "Código / nombre / proveedor")" Style="width:280px" class="ames-rz-input" />
-                <RadzenButton Text="@T("조회", "Search", "Buscar")" Icon="search" Click="Reload" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" />
+                <RadzenTextBox @bind-Value="_search" Immediate="true" @onkeydown="OnSearchKeyDown" Placeholder="@T("품목코드 / 품목명 / 업체", "Item code / name / vendor", "Código / nombre / proveedor")" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
+                <RadzenButton Text="@T("조회", "Search", "Buscar")" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
             </RadzenStack>
         </div>
-        <RadzenDataGrid TItem="MasterDataRepository.ItemRow" Data="@_rows" AllowPaging="true" PageSize="25" AllowSorting="true" Class="ames-rz-grid" EmptyText="@T("품목이 없습니다.", "No items found.", "No hay artículos.")">
+        <RadzenDataGrid @ref="_grid" TItem="MasterDataRepository.ItemRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                        PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
+                        EmptyText="@T("품목이 없습니다.", "No items found.", "No hay artículos.")" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
             <Columns>
-                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemNo" Title="@T("품목코드", "Item code", "Código")" Width="170px" />
-                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemName" Title="@T("품목명", "Item name", "Nombre")" />
-                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemCategory" Title="@T("분류", "Category", "Categoría")" Width="110px" />
-                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="DefaultUOM" Title="@T("단위", "Unit", "Unidad")" Width="80px" />
-                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Title="@T("연결 업체", "Linked vendors", "Proveedores vinculados")" Sortable="false">
-                    <Template Context="row">@string.Join(", ", Links(row.ItemNo).Select(x => $"{x.VendorName} ({x.VendorID})"))</Template>
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Title="No." Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                    <Template Context="row"><span class="dim">@GridRowNo.Of(_grid, row)</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="UnitCost" Title="@T("단가", "Unit cost", "Costo unitario")" Width="140px" TextAlign="TextAlign.Right">
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemNo" Title="@T("품목코드", "Item code", "Código")" Width="170px">
+                    <Template Context="row"><span class="code">@row.ItemNo</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemName" Title="@T("품목명", "Item name", "Nombre")" />
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemCategory" Title="@T("분류", "Category", "Categoría")" TextAlign="TextAlign.Center" Width="110px">
+                    <Template Context="row"><span class="dim">@(row.ItemCategory ?? "—")</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="DefaultUOM" Title="@T("단위", "Unit", "Unidad")" TextAlign="TextAlign.Center" Width="80px">
+                    <Template Context="row"><span class="dim">@(row.DefaultUOM ?? "—")</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Title="@T("연결 업체", "Linked vendors", "Proveedores vinculados")" Sortable="false">
+                    <Template Context="row">
+                        @foreach (var v in Links(row.ItemNo)) { <span class="code" style="margin-right:4px;">@v.VendorID</span><span class="dim" style="font-size:.8em;margin-right:10px;">@v.VendorName</span> }
+                        @if (!Links(row.ItemNo).Any()) { <span class="dim">—</span> }
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="UnitCost" Title="@T("단가", "Unit cost", "Costo unitario")" Width="120px" TextAlign="TextAlign.Right">
                     <Template Context="row">@((row.UnitCost ?? 0).ToString("N2"))</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ActiveFlag" Title="@T("사용", "Active", "Activo")" Width="85px">
-                    <Template Context="row"><span class="pill @(row.ActiveFlag ? "ok" : "bad")">@(row.ActiveFlag ? "Y" : "N")</span></Template>
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ActiveFlag" Title="@T("사용", "Active", "Activo")" TextAlign="TextAlign.Center" Width="90px">
+                    <Template Context="row"><span class="pill @(row.ActiveFlag ? "ok" : "bad")">@(row.ActiveFlag ? T("사용", "Active", "Activo") : T("미사용", "Inactive", "Inactivo"))</span></Template>
                 </RadzenDataGridColumn>
                 @if (CanEdit)
                 {
-                    <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Title="" Width="120px" Sortable="false">
-                        <Template Context="row"><RadzenButton Text="@T("업체 매칭", "Link vendors", "Vincular")" Icon="link" Click="@(() => Open(row))" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" /></Template>
+                    <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Title="" Width="130px" TextAlign="TextAlign.Center" Sortable="false">
+                        <Template Context="row"><RadzenButton Text="@T("업체 매칭", "Link vendors", "Vincular")" Icon="link" Click="@(() => Open(row))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" /></Template>
                     </RadzenDataGridColumn>
                 }
             </Columns>
@@ -57,13 +72,16 @@
     </div>
     @if (_edit is not null)
     {
-        <div class="ames-modal-bg">
-            <div class="ames-modal ames-modal-wide" role="dialog" aria-label="업체 매칭">
-                <div class="ames-modal-h">@T("발주품목 · 업체 매칭", "Purchase item · vendors", "Artículo · proveedores")</div>
-                <p><strong>@_edit.ItemNo</strong> · @_edit.ItemName</p>
-                <p>@T("단위", "Unit", "Unidad"): @_edit.DefaultUOM</p>
+        <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+            <div class="ames-modal ames-modal-wide" role="dialog" aria-label="@T("업체 매칭", "Link vendors", "Vincular")" @onmousedown:stopPropagation @onclick:stopPropagation>
+                <div class="ames-modal-h">@T("발주품목 · 업체 매칭", "Purchase item · vendors", "Artículo · proveedores") <span class="code" style="font-weight:400;font-size:.9em;">@_edit.ItemNo</span></div>
+                <div class="pi-dgrid">
+                    <div class="pi-dt"><div class="pi-dl">@T("품목명", "Item name", "Nombre")</div><div class="pi-dv">@_edit.ItemName</div></div>
+                    <div class="pi-dt"><div class="pi-dl">@T("단위", "Unit", "Unidad")</div><div class="pi-dv">@(_edit.DefaultUOM ?? "—")</div></div>
+                    <div class="pi-dt"><div class="pi-dl">@T("연결 업체", "Linked vendors", "Proveedores vinculados")</div><div class="pi-dv">@Links(_edit.ItemNo).Count()</div></div>
+                </div>
                 <RadzenStack Gap="0.5rem">
-                    <span class="dim">@T("연결할 업체 선택", "Select vendors to link", "Seleccione proveedores")</span>
+                    <span class="pi-dsub">@T("연결할 업체 선택", "Select vendors to link", "Seleccione proveedores")</span>
                     <div class="vendor-check-list" role="group" aria-label="@T("연결할 업체 선택", "Select vendors to link", "Seleccione proveedores")">
                         @foreach (var vendor in VendorOptions)
                         {
@@ -75,31 +93,41 @@
                         @if (!VendorOptions.Any())
                         { <span class="dim">@T("연결할 업체가 없습니다.", "No vendors available to link.", "No hay proveedores disponibles.")</span> }
                     </div>
-                    <RadzenButton Text="@($"{T("업체 연결", "Link vendors", "Vincular proveedores")} ({_selectedVendors.Count})")" Icon="add_link" Click="Link" Disabled="@(_selectedVendors.Count == 0)" Style="align-self:flex-start" />
+                    <RadzenButton Text="@($"{T("업체 연결", "Link vendors", "Vincular proveedores")} ({_selectedVendors.Count})")" Icon="add_link" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="Link" Disabled="@(_selectedVendors.Count == 0)" Style="align-self:flex-start" class="ames-rz-btn" />
                 </RadzenStack>
-                <RadzenDataGrid TItem="ScmRepository.ItemVendorRow" Data="@Links(_edit.ItemNo)" AllowPaging="true" PageSize="5" Class="ames-rz-grid" Style="margin-top:16px" EmptyText="@T("연결된 업체가 없습니다.", "No linked vendors.", "Sin proveedores vinculados.")">
+                <span class="pi-dsub" style="display:block;margin-top:14px;">@T("연결된 업체", "Linked vendors", "Proveedores vinculados")</span>
+                <RadzenDataGrid TItem="ScmRepository.ItemVendorRow" Data="@Links(_edit.ItemNo)" AllowPaging="true" PageSize="5" PagerHorizontalAlign="HorizontalAlign.Center" Class="ames-rz-grid" EmptyText="@T("연결된 업체가 없습니다.", "No linked vendors.", "Sin proveedores vinculados.")">
                     <Columns>
-                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" Property="VendorID" Title="@T("업체코드", "Vendor code", "Código")" />
-                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" Property="VendorName" Title="@T("업체명", "Vendor name", "Proveedor")" />
-                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" Property="VendorType" Title="@T("유형", "Type", "Tipo")" Width="100px" />
-                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" Title="@T("업체 사용", "Vendor active", "Activo")" Width="100px">
-                            <Template Context="link">@(link.VendorActive ? "Y" : "N")</Template>
+                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" Property="VendorID" Title="@T("업체코드", "Vendor code", "Código")" Width="130px">
+                            <Template Context="link"><span class="code">@link.VendorID</span></Template>
                         </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" Width="120px">
-                            <Template Context="link"><RadzenButton Text="@T("연결 해제", "Unlink", "Desvincular")" Click="@(() => Unlink(link))" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" /></Template>
+                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" Property="VendorName" Title="@T("업체명", "Vendor name", "Proveedor")" />
+                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" Property="VendorType" Title="@T("유형", "Type", "Tipo")" TextAlign="TextAlign.Center" Width="100px" />
+                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" Title="@T("업체 사용", "Vendor active", "Activo")" TextAlign="TextAlign.Center" Width="100px">
+                            <Template Context="link"><span class="pill @(link.VendorActive ? "ok" : "bad")">@(link.VendorActive ? T("사용", "Active", "Activo") : T("미사용", "Inactive", "Inactivo"))</span></Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" Width="120px" TextAlign="TextAlign.Center" Sortable="false">
+                            <Template Context="link"><RadzenButton Text="@T("연결 해제", "Unlink", "Desvincular")" Icon="link_off" Click="@(() => Unlink(link))" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" /></Template>
                         </RadzenDataGridColumn>
                     </Columns>
                 </RadzenDataGrid>
-                @if (_editError.Length > 0) { <p role="alert" style="color:var(--rz-danger)">@_editError</p> }
-                <div class="ames-modal-f">
-                    <RadzenButton Text="@T("닫기", "Close", "Cerrar")" Click="@(() => _edit = null)" ButtonStyle="ButtonStyle.Light" />
-                </div>
+                @if (_editError.Length > 0) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_editError</RadzenAlert> }
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                    <RadzenButton Text="@T("닫기", "Close", "Cerrar")" Icon="close" Click="@(() => _edit = null)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                </RadzenStack>
             </div>
         </div>
     }
 }
 
 @code {
+    RadzenDataGrid<MasterDataRepository.ItemRow>? _grid;
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
+    int _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
+    bool _bgMouseDownOnSelf;
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) _edit = null; _bgMouseDownOnSelf = false; }
+    void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") Reload(); }
     const string Href = "scm/purchase-items";
     string Title => T("발주품목 관리", "Purchase Items", "Artículos de compra");
     static string T(string ko, string en, string es) => CultureInfo.CurrentUICulture.TwoLetterISOLanguageName switch { "en" => en, "es" => es, _ => ko };

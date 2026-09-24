@@ -561,6 +561,9 @@
   <data name="SYS.Users.Err.EmailRequired" xml:space="preserve">
     <value>Email을 입력하세요.</value>
   </data>
+  <data name="SYS.Users.Err.PortalEmail" xml:space="preserve">
+    <value>외부 사용자(SCM-004)가 이미 쓰는 이메일입니다.</value>
+  </data>
   <data name="SYS.Users.Err.PasswordRequired" xml:space="preserve">
     <value>Password를 입력하세요.</value>
   </data>
@@ -3341,6 +3344,21 @@
   </data>
   <data name="MD.Items.Lbl.Category" xml:space="preserve">
     <value>카테고리</value>
+  </data>
+  <data name="MD.Items.Opt.Unregistered" xml:space="preserve">
+    <value>(공통코드 미등록)</value>
+  </data>
+  <data name="MD.Items.Col.PalletQty" xml:space="preserve">
+    <value>적입수량</value>
+  </data>
+  <data name="MD.Items.Col.MaxPalletQty" xml:space="preserve">
+    <value>최대 적재</value>
+  </data>
+  <data name="MD.Items.Col.Tote" xml:space="preserve">
+    <value>TOTE</value>
+  </data>
+  <data name="MD.Items.Hint.Tote" xml:space="preserve">
+    <value>팔레트 대신 토트 박스로 출하</value>
   </data>
   <data name="MD.Items.Lbl.SafetyStock" xml:space="preserve">
     <value>안전재고</value>
@@ -8327,5 +8345,122 @@
   </data>
   <data name="MD.Workers.Err.WebUser" xml:space="preserve">
     <value>사번 {0} 은(는) 웹 사용자(SYS-001)에 등록돼 있습니다. 같은 사번이면 POP 에서 웹 계정이 이겨 이 작업자는 로그인할 수 없습니다.</value>
+  </data>
+  <data name="SCM.PortalUsers.Title" xml:space="preserve">
+    <value>외부 사용자 관리</value>
+  </data>
+  <data name="SCM.PortalUsers.List" xml:space="preserve">
+    <value>외부 사용자 목록</value>
+  </data>
+  <data name="SCM.PortalUsers.Empty" xml:space="preserve">
+    <value>등록된 외부 사용자가 없습니다.</value>
+  </data>
+  <data name="SCM.PortalUsers.Kpi.Total" xml:space="preserve">
+    <value>외부 사용자</value>
+  </data>
+  <data name="SCM.PortalUsers.Kpi.Active" xml:space="preserve">
+    <value>사용 중</value>
+  </data>
+  <data name="SCM.PortalUsers.Kpi.Locked" xml:space="preserve">
+    <value>잠김</value>
+  </data>
+  <data name="SCM.PortalUsers.Kpi.RecentLogin" xml:space="preserve">
+    <value>24시간 내 로그인</value>
+  </data>
+  <data name="SCM.PortalUsers.Ph.Search" xml:space="preserve">
+    <value>이메일 / 이름 / 협력업체</value>
+  </data>
+  <data name="SCM.PortalUsers.Col.Email" xml:space="preserve">
+    <value>이메일(ID)</value>
+  </data>
+  <data name="SCM.PortalUsers.Col.Name" xml:space="preserve">
+    <value>이름</value>
+  </data>
+  <data name="SCM.PortalUsers.Col.Vendor" xml:space="preserve">
+    <value>협력업체</value>
+  </data>
+  <data name="SCM.PortalUsers.Col.FailCount" xml:space="preserve">
+    <value>로그인 실패</value>
+  </data>
+  <data name="SCM.PortalUsers.Col.LastLogin" xml:space="preserve">
+    <value>최근 로그인</value>
+  </data>
+  <data name="SCM.PortalUsers.Col.Created" xml:space="preserve">
+    <value>등록일</value>
+  </data>
+  <data name="SCM.PortalUsers.Status.Active" xml:space="preserve">
+    <value>사용</value>
+  </data>
+  <data name="SCM.PortalUsers.Status.Inactive" xml:space="preserve">
+    <value>미사용</value>
+  </data>
+  <data name="SCM.PortalUsers.Status.Locked" xml:space="preserve">
+    <value>잠김</value>
+  </data>
+  <data name="SCM.PortalUsers.Lbl.Email" xml:space="preserve">
+    <value>이메일(ID) *</value>
+  </data>
+  <data name="SCM.PortalUsers.Lbl.Password" xml:space="preserve">
+    <value>비밀번호 *</value>
+  </data>
+  <data name="SCM.PortalUsers.Lbl.NewPassword" xml:space="preserve">
+    <value>새 비밀번호</value>
+  </data>
+  <data name="SCM.PortalUsers.Lbl.Vendor" xml:space="preserve">
+    <value>협력업체 *</value>
+  </data>
+  <data name="SCM.PortalUsers.Lbl.Name" xml:space="preserve">
+    <value>이름</value>
+  </data>
+  <data name="SCM.PortalUsers.Lbl.Active" xml:space="preserve">
+    <value>사용</value>
+  </data>
+  <data name="SCM.PortalUsers.Ph.Email" xml:space="preserve">
+    <value>user@partner.com</value>
+  </data>
+  <data name="SCM.PortalUsers.Ph.Password" xml:space="preserve">
+    <value>로그인 비밀번호</value>
+  </data>
+  <data name="SCM.PortalUsers.Ph.NewPassword" xml:space="preserve">
+    <value>비워 두면 변경하지 않음</value>
+  </data>
+  <data name="SCM.PortalUsers.Ph.Name" xml:space="preserve">
+    <value>담당자 이름(선택)</value>
+  </data>
+  <data name="SCM.PortalUsers.Locked" xml:space="preserve">
+    <value>로그인 {0}회 실패로 잠긴 계정입니다.</value>
+  </data>
+  <data name="SCM.PortalUsers.Btn.Unlock" xml:space="preserve">
+    <value>잠금 해제</value>
+  </data>
+  <data name="SCM.PortalUsers.Err.EmailRequired" xml:space="preserve">
+    <value>이메일을 입력하세요.</value>
+  </data>
+  <data name="SCM.PortalUsers.Err.EmailFormat" xml:space="preserve">
+    <value>이메일 형식이 올바르지 않습니다.</value>
+  </data>
+  <data name="SCM.PortalUsers.Err.PasswordRequired" xml:space="preserve">
+    <value>비밀번호를 입력하세요.</value>
+  </data>
+  <data name="SCM.PortalUsers.Err.VendorRequired" xml:space="preserve">
+    <value>협력업체를 선택하세요.</value>
+  </data>
+  <data name="SCM.PortalUsers.Err.Duplicate" xml:space="preserve">
+    <value>이미 등록된 이메일입니다.</value>
+  </data>
+  <data name="SCM.PortalUsers.Err.WebUser" xml:space="preserve">
+    <value>내부 사용자(SYS-001)가 쓰는 이메일입니다.</value>
+  </data>
+  <data name="SCM.PortalUsers.Ok.Created" xml:space="preserve">
+    <value>{0} 을(를) 등록했습니다.</value>
+  </data>
+  <data name="SCM.PortalUsers.Ok.Updated" xml:space="preserve">
+    <value>{0} 을(를) 수정했습니다.</value>
+  </data>
+  <data name="SCM.PortalUsers.Ok.Deleted" xml:space="preserve">
+    <value>{0} 을(를) 삭제했습니다.</value>
+  </data>
+  <data name="SCM.PortalUsers.Ok.Unlocked" xml:space="preserve">
+    <value>{0} 의 잠금을 해제했습니다.</value>
   </data>
 </root>

@@ -20,13 +20,5 @@ BEGIN
  CREATE INDEX IX_SCM_DeliveryLine_PoID ON dbo.SCM_DeliveryLine(PoID);
 END;
 
--- Restore missing baseline portal permissions for the order-to-delivery workflow; preserve existing overrides.
-INSERT dbo.SYS_RolePermission(RoleID,RoleName,ModuleCode,ProcessCode,ScreenCode,PermissionLevel,IsSystemRole,EffectiveTS,CreatedBy,CreatedTS)
-SELECT r.Id,r.Name,s.ModuleCode,s.ProcessCode,s.ScreenCode,
- CASE WHEN r.Name='Admin' THEN 'REA' WHEN s.ScreenCode IN ('PORTAL-001','PORTAL-003','PORTAL-004') THEN 'RE' ELSE 'R' END,
- CASE WHEN r.Name='Admin' THEN 1 ELSE 0 END,SYSDATETIME(),'scm-delivery',SYSDATETIME()
-FROM dbo.SYS_Screen s CROSS JOIN dbo.AspNetRoles r
-WHERE s.ScreenCode IN ('PORTAL-001','PORTAL-002','PORTAL-003','PORTAL-004','PORTAL-005') AND r.Name IN ('Admin','ExternalCustomer')
- AND NOT EXISTS(SELECT 1 FROM dbo.SYS_RolePermission p WHERE p.RoleName=r.Name AND p.ScreenCode=s.ScreenCode);
-
+-- Portal access uses PortalAccess and SCM_PortalVendorUser, not screen RBAC.
 COMMIT;

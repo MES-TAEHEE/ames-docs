@@ -216,7 +216,7 @@ public sealed class MasterDataRepository
         var sql = """
             SELECT ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM,
                    RoutingType, MinStock, MaxStock, SafetyStock, UnitCost,
-                   PGN, ALC, DrawingNo,
+                   PGN, ALC, DrawingNo, PalletQty, MaxPalletQty, ToteFlag,
                    ISNULL(ActiveFlag,1) AS ActiveFlag,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
             FROM   dbo.MD_Item
@@ -243,6 +243,9 @@ public sealed class MasterDataRepository
             r["PGN"]           as string,
             r["ALC"]           as string,
             r["DrawingNo"]     as string,
+            r["PalletQty"]     as int?,
+            r["MaxPalletQty"]  as int?,
+            (bool)r["ToteFlag"],
             (bool)r["ActiveFlag"],
             r["CreatedBy"]     as string,
             r["CreatedTS"]     is DateTime ct ? ct : null,
@@ -283,15 +286,16 @@ public sealed class MasterDataRepository
         string? itemType, string? itemCategory, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
+        int? palletQty, int? maxPalletQty, bool toteFlag,
         bool activeFlag, string createdBy)
         => Exec("""
             INSERT INTO dbo.MD_Item
                    (ItemNo,ItemName,ItemType,ItemCategory,CarType,DefaultUOM,
                     RoutingType,MinStock,MaxStock,SafetyStock,UnitCost,
-                    PGN,ALC,DrawingNo,ActiveFlag,CreatedBy,CreatedTS)
+                    PGN,ALC,DrawingNo,PalletQty,MaxPalletQty,ToteFlag,ActiveFlag,CreatedBy,CreatedTS)
             VALUES (@No,@Name,@Type,@Cat,@Car,@Uom,
                     @Route,@Min,@Max,@Safe,@Cost,
-                    @PGN,@ALC,@Draw,@Active,@By,SYSDATETIME())
+                    @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Active,@By,SYSDATETIME())
             """,
             ("@No",     itemNo),   ("@Name",   itemName),
             ("@Type",   itemType), ("@Cat",    itemCategory), ("@Car", carType),
@@ -299,12 +303,14 @@ public sealed class MasterDataRepository
             ("@Route",  routingType), ("@Min", minStock),  ("@Max",    maxStock),
             ("@Safe",   safetyStock), ("@Cost", unitCost), ("@PGN",    pgn),
             ("@ALC",    alc),      ("@Draw",   drawingNo), ("@Active", activeFlag),
+            ("@Pallet", palletQty), ("@MaxPallet", maxPalletQty), ("@Tote", toteFlag),
             ("@By",     createdBy));
 
     public void UpdateItem(string itemNo, string itemName,
         string? itemType, string? itemCategory, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
+        int? palletQty, int? maxPalletQty, bool toteFlag,
         bool activeFlag, string modifiedBy)
         => Exec("""
             UPDATE dbo.MD_Item
@@ -312,6 +318,7 @@ public sealed class MasterDataRepository
                    ItemCategory=@Cat, CarType=@Car, DefaultUOM=@Uom, RoutingType=@Route,
                    MinStock=@Min, MaxStock=@Max, SafetyStock=@Safe, UnitCost=@Cost,
                    PGN=@PGN, ALC=@ALC, DrawingNo=@Draw,
+                   PalletQty=@Pallet, MaxPalletQty=@MaxPallet, ToteFlag=@Tote,
                    ActiveFlag=@Active, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  ItemNo=@No
             """,
@@ -321,6 +328,7 @@ public sealed class MasterDataRepository
             ("@Route",  routingType), ("@Min", minStock),  ("@Max",    maxStock),
             ("@Safe",   safetyStock), ("@Cost", unitCost), ("@PGN",    pgn),
             ("@ALC",    alc),      ("@Draw",   drawingNo), ("@Active", activeFlag),
+            ("@Pallet", palletQty), ("@MaxPallet", maxPalletQty), ("@Tote", toteFlag),
             ("@By",     modifiedBy));
 
     public void DeleteItem(string itemNo)
@@ -555,6 +563,7 @@ public sealed class MasterDataRepository
         string? RoutingType,
         decimal? MinStock, decimal? MaxStock, decimal? SafetyStock, decimal? UnitCost,
         string? PGN, string? ALC, string? DrawingNo,
+        int? PalletQty, int? MaxPalletQty, bool ToteFlag,
         bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS,
         string? ModifiedBy, DateTime? ModifiedTS);

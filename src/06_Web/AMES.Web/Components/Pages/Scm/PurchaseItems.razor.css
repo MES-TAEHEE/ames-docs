@@ -36,3 +36,10 @@
     outline: 1px solid var(--rz-primary);
     outline-offset: 1px;
 }
+
+/* 모달 정보 타일 — ScmPreview·PP-006 상세와 같은 모양 */
+.pi-dgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; margin:4px 0 12px; }
+.pi-dt { padding:8px 10px; border:1px solid rgba(148,163,184,.22); border-radius:6px; background:rgba(148,163,184,.06); }
+.pi-dl { font-size:var(--ames-fs-hint, 12px); color:var(--rz-text-secondary-color, #94a3b8); margin-bottom:3px; }
+.pi-dv { font-weight:600; word-break:break-word; }
+.pi-dsub { font-weight:600; font-size:.92em; color:var(--rz-text-secondary-color, #94a3b8); }

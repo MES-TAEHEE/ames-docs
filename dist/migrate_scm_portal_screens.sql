@@ -59,9 +59,7 @@ IF EXISTS (
 IF NOT EXISTS (SELECT 1 FROM dbo.AspNetRoles WHERE Name='Admin')
     THROW 50003, 'Admin role is required.', 1;
 
-IF NOT EXISTS (SELECT 1 FROM dbo.AspNetRoles WHERE NormalizedName='EXTERNALCUSTOMER')
-    INSERT dbo.AspNetRoles (Id,Name,NormalizedName,ConcurrencyStamp)
-    VALUES (CONVERT(varchar(36),NEWID()),'ExternalCustomer','EXTERNALCUSTOMER',CONVERT(varchar(36),NEWID()));
+-- 2026-09-25: portal users live in SCM_PortalVendorUser (SCM-004). No ExternalCustomer role, and PORTAL screens get no RBAC rows.
 
 INSERT dbo.MD_CodeItem (CodeID,GroupCode,CodeValue,CodeName,CodeNameEn,SortOrder,UseFlag,CreatedBy,CreatedTS)
 SELECT 'PROCESS_'+v.Code,'PROCESS',v.Code,v.Ko,v.En,v.SortOrder,1,'scm-screen',SYSDATETIME()
@@ -80,7 +78,7 @@ SELECT r.Id,r.Name,'WEB',n.Process,n.Code,
     CASE WHEN r.Name='Admin' THEN 'REA' ELSE n.ExternalLevel END,
     CASE WHEN r.Name='Admin' THEN 1 ELSE 0 END,SYSDATETIME(),'scm-screen',SYSDATETIME()
 FROM @Screens n CROSS JOIN dbo.AspNetRoles r
-WHERE (r.Name='Admin' OR (r.Name='ExternalCustomer' AND n.ExternalLevel IS NOT NULL))
+WHERE r.Name='Admin' AND n.Process<>'PORTAL'
 AND NOT EXISTS (SELECT 1 FROM dbo.SYS_RolePermission p WHERE p.RoleName=r.Name AND p.ScreenCode=n.Code);
 
 

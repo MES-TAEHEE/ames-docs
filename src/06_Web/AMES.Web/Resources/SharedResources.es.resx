@@ -561,6 +561,9 @@
   <data name="SYS.Users.Err.EmailRequired" xml:space="preserve">
     <value>El correo es obligatorio.</value>
   </data>
+  <data name="SYS.Users.Err.PortalEmail" xml:space="preserve">
+    <value>Este correo ya lo usa un usuario del portal (SCM-004).</value>
+  </data>
   <data name="SYS.Users.Err.PasswordRequired" xml:space="preserve">
     <value>La contraseña es obligatoria.</value>
   </data>
@@ -3338,6 +3341,21 @@
   </data>
   <data name="MD.Items.Lbl.Category" xml:space="preserve">
     <value>Categoría</value>
+  </data>
+  <data name="MD.Items.Opt.Unregistered" xml:space="preserve">
+    <value>(no registrado en códigos comunes)</value>
+  </data>
+  <data name="MD.Items.Col.PalletQty" xml:space="preserve">
+    <value>Cant./Palé</value>
+  </data>
+  <data name="MD.Items.Col.MaxPalletQty" xml:space="preserve">
+    <value>Máx. palés</value>
+  </data>
+  <data name="MD.Items.Col.Tote" xml:space="preserve">
+    <value>TOTE</value>
+  </data>
+  <data name="MD.Items.Hint.Tote" xml:space="preserve">
+    <value>Se envía en cajas tote, no en palés</value>
   </data>
   <data name="MD.Items.Lbl.SafetyStock" xml:space="preserve">
     <value>Stock de Seguridad</value>
@@ -8327,5 +8345,122 @@
   </data>
   <data name="MD.Workers.Err.WebUser" xml:space="preserve">
     <value>El n.º {0} ya está registrado como usuario web (SYS-001). En POP prevalecería la cuenta web y este operario no podría iniciar sesión.</value>
+  </data>
+  <data name="SCM.PortalUsers.Title" xml:space="preserve">
+    <value>Usuarios del portal</value>
+  </data>
+  <data name="SCM.PortalUsers.List" xml:space="preserve">
+    <value>Lista de usuarios del portal</value>
+  </data>
+  <data name="SCM.PortalUsers.Empty" xml:space="preserve">
+    <value>No hay usuarios del portal registrados.</value>
+  </data>
+  <data name="SCM.PortalUsers.Kpi.Total" xml:space="preserve">
+    <value>Usuarios del portal</value>
+  </data>
+  <data name="SCM.PortalUsers.Kpi.Active" xml:space="preserve">
+    <value>Activos</value>
+  </data>
+  <data name="SCM.PortalUsers.Kpi.Locked" xml:space="preserve">
+    <value>Bloqueados</value>
+  </data>
+  <data name="SCM.PortalUsers.Kpi.RecentLogin" xml:space="preserve">
+    <value>Accesos (24 h)</value>
+  </data>
+  <data name="SCM.PortalUsers.Ph.Search" xml:space="preserve">
+    <value>Correo / nombre / proveedor</value>
+  </data>
+  <data name="SCM.PortalUsers.Col.Email" xml:space="preserve">
+    <value>Correo (ID)</value>
+  </data>
+  <data name="SCM.PortalUsers.Col.Name" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="SCM.PortalUsers.Col.Vendor" xml:space="preserve">
+    <value>Proveedor</value>
+  </data>
+  <data name="SCM.PortalUsers.Col.FailCount" xml:space="preserve">
+    <value>Intentos fallidos</value>
+  </data>
+  <data name="SCM.PortalUsers.Col.LastLogin" xml:space="preserve">
+    <value>Último acceso</value>
+  </data>
+  <data name="SCM.PortalUsers.Col.Created" xml:space="preserve">
+    <value>Registrado</value>
+  </data>
+  <data name="SCM.PortalUsers.Status.Active" xml:space="preserve">
+    <value>Activo</value>
+  </data>
+  <data name="SCM.PortalUsers.Status.Inactive" xml:space="preserve">
+    <value>Inactivo</value>
+  </data>
+  <data name="SCM.PortalUsers.Status.Locked" xml:space="preserve">
+    <value>Bloqueado</value>
+  </data>
+  <data name="SCM.PortalUsers.Lbl.Email" xml:space="preserve">
+    <value>Correo (ID) *</value>
+  </data>
+  <data name="SCM.PortalUsers.Lbl.Password" xml:space="preserve">
+    <value>Contraseña *</value>
+  </data>
+  <data name="SCM.PortalUsers.Lbl.NewPassword" xml:space="preserve">
+    <value>Nueva contraseña</value>
+  </data>
+  <data name="SCM.PortalUsers.Lbl.Vendor" xml:space="preserve">
+    <value>Proveedor *</value>
+  </data>
+  <data name="SCM.PortalUsers.Lbl.Name" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="SCM.PortalUsers.Lbl.Active" xml:space="preserve">
+    <value>Activo</value>
+  </data>
+  <data name="SCM.PortalUsers.Ph.Email" xml:space="preserve">
+    <value>user@partner.com</value>
+  </data>
+  <data name="SCM.PortalUsers.Ph.Password" xml:space="preserve">
+    <value>Contraseña de acceso</value>
+  </data>
+  <data name="SCM.PortalUsers.Ph.NewPassword" xml:space="preserve">
+    <value>Dejar vacío para no cambiar</value>
+  </data>
+  <data name="SCM.PortalUsers.Ph.Name" xml:space="preserve">
+    <value>Nombre del contacto (opcional)</value>
+  </data>
+  <data name="SCM.PortalUsers.Locked" xml:space="preserve">
+    <value>Bloqueado tras {0} intentos fallidos.</value>
+  </data>
+  <data name="SCM.PortalUsers.Btn.Unlock" xml:space="preserve">
+    <value>Desbloquear</value>
+  </data>
+  <data name="SCM.PortalUsers.Err.EmailRequired" xml:space="preserve">
+    <value>Introduzca un correo.</value>
+  </data>
+  <data name="SCM.PortalUsers.Err.EmailFormat" xml:space="preserve">
+    <value>Formato de correo no válido.</value>
+  </data>
+  <data name="SCM.PortalUsers.Err.PasswordRequired" xml:space="preserve">
+    <value>Introduzca una contraseña.</value>
+  </data>
+  <data name="SCM.PortalUsers.Err.VendorRequired" xml:space="preserve">
+    <value>Seleccione un proveedor.</value>
+  </data>
+  <data name="SCM.PortalUsers.Err.Duplicate" xml:space="preserve">
+    <value>Este correo ya está registrado.</value>
+  </data>
+  <data name="SCM.PortalUsers.Err.WebUser" xml:space="preserve">
+    <value>Este correo pertenece a un usuario interno (SYS-001).</value>
+  </data>
+  <data name="SCM.PortalUsers.Ok.Created" xml:space="preserve">
+    <value>{0} registrado.</value>
+  </data>
+  <data name="SCM.PortalUsers.Ok.Updated" xml:space="preserve">
+    <value>{0} actualizado.</value>
+  </data>
+  <data name="SCM.PortalUsers.Ok.Deleted" xml:space="preserve">
+    <value>{0} eliminado.</value>
+  </data>
+  <data name="SCM.PortalUsers.Ok.Unlocked" xml:space="preserve">
+    <value>{0} desbloqueado.</value>
   </data>
 </root>

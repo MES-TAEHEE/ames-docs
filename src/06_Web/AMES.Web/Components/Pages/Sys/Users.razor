@@ -13,6 +13,7 @@
 @inject PermissionService PermSvc
 @inject AuthRepository AuthRepo
 @inject SysRepository Sys
+@inject ScmRepository Scm
 @inject MasterDataRepository MD
 @inject UserManager<ApplicationUser> UserMgr
 @inject RoleManager<IdentityRole> RoleMgr
@@ -476,6 +477,8 @@
         if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["SYS.Users.Err.PinFormat"]; return; }
         // 사번은 행위자 코드·POP 로그인 키라 전사 유일해야 한다 — 다른 웹 사용자·현장 작업자와 겹치면 등록을 막는다
         if (!EmployeeNoIsFree(_f.EmployeeNo, excludeUserId: null)) return;
+        // 로그인 ID(이메일)는 외부 사용자(SCM-004)와도 겹치면 안 된다 — 같으면 로그인 때 외부 계정이 먼저 잡힌다
+        if (Scm.FindPortalUser(_f.Email) is not null) { _modalErr = L["SYS.Users.Err.PortalEmail"]; return; }
 
         _busy = true;
         try

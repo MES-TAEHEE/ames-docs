@@ -198,7 +198,8 @@
     {
         try { _roles   = Sys.ListRoles(); } catch { }
         try { _rows    = Sys.ListRolePermissions(); } catch { }
-        try { _screens = Sys.ListScreens(); } catch { }
+        // 포탈 화면(ProcessCode PORTAL)은 RBAC 대상이 아니다 — 외부 사용자는 SCM-004 계정의 협력업체로만 걸러진다
+        try { _screens = Sys.ListScreens().Where(s => !string.Equals(s.ProcessCode, "PORTAL", StringComparison.OrdinalIgnoreCase)).ToList(); } catch { }
 
         if (_selRole is not null)
         {

@@ -95,7 +95,7 @@
 
     public async Task LoginUser()
     {
-        // 계정 종류로 갈린다 — 외부 사용자(ExternalCustomer)는 이 화면에서 로그인해도 외부 쿠키를 받아 외부 화면으로 간다
+        // 계정 종류로 갈린다 — 외부 사용자(SCM-004 등록 계정)는 이 화면에서 로그인해도 외부 쿠키를 받아 외부 화면으로 간다
         var result = await SignIn.SignInAsync(HttpContext, Input.Email, Input.Password, Input.RememberMe, ReturnUrl);
         if (!result.Succeeded) { errorMessage = L[result.ErrorKey!]; return; }
 

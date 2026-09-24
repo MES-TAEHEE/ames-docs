@@ -2,8 +2,6 @@
 @rendermode InteractiveServer
 @inject IStringLocalizer<SharedResources> L
 @inject MenuCatalog Catalog
-@inject PermissionService Permissions
-@inject AuthenticationStateProvider Authentication
 
 <PageTitle>@L["Portal.Nav.Home"] · AMES</PageTitle>
 <AmesPageHeader TitleKey="Portal.Nav.Home" />
@@ -22,11 +20,10 @@
 @code {
     bool _ready;
     List<MenuCatalog.Item> _items = new();
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        await Permissions.EnsureAsync(Authentication);
         Catalog.Load();
-        _items = Catalog.SectionItems(MenuCatalog.PortalSection).Where(x => Permissions.IsVisible(x.Href)).ToList();
+        _items = Catalog.SectionItems(MenuCatalog.PortalSection).ToList();
         _ready = true;
     }
 }

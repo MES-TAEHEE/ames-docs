@@ -60,11 +60,11 @@ internal static class Program
                 MERGE dbo.MD_Item AS t
                 USING (SELECT @No AS ItemNo) s ON t.ItemNo = s.ItemNo
                 WHEN MATCHED THEN UPDATE SET ItemName=@N, ItemNameEN=@NE,
-                                              ItemType='FABRIC', ItemCategory='WRAP',
+                                              ItemType='MATERIAL', ItemCategory='FABRIC',
                                               DefaultUOM='M', ActiveFlag=1, ModifiedTS=SYSDATETIME()
                 WHEN NOT MATCHED THEN INSERT (ItemNo, ItemName, ItemNameEN, ItemType, ItemCategory,
                                               DefaultUOM, ActiveFlag, CreatedBy, CreatedTS)
-                  VALUES (@No, @N, @NE, 'FABRIC', 'WRAP', 'M', 1, 'seed', SYSDATETIME());
+                  VALUES (@No, @N, @NE, 'MATERIAL', 'FABRIC', 'M', 1, 'seed', SYSDATETIME());
                 """,
                 ("@No", i.No), ("@N", i.Name), ("@NE", i.NameEn));
             Console.WriteLine($"  item   {i.No,-12} {i.NameEn}");

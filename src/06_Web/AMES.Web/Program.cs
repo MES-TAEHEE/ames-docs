@@ -87,6 +87,23 @@ authBuilder
         o.LoginPath          = AMES.Web.Services.PortalAuth.LoginPath;
         o.AccessDeniedPath   = "/unauthorized";
         o.SlidingExpiration  = true;
+        // 외부 사용자(SCM_PortalVendorUser)가 비활성·잠금되거나 협력업체가 바뀌면 이미 발급된 쿠키도 끊는다.
+        // 인증은 정적 파일 요청에도 돌므로 확장자 있는 경로·프레임워크 경로는 건너뛴다(DB 조회 절약).
+        o.Events.OnValidatePrincipal = async ctx =>
+        {
+            var path = ctx.HttpContext.Request.Path.Value ?? "";
+            if (Path.HasExtension(path) || path.StartsWith("/_framework", StringComparison.Ordinal) || path.StartsWith("/_content", StringComparison.Ordinal)) return;
+            var id = ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var vendor = ctx.Principal?.FindFirst(AMES.Web.Services.PortalAuth.VendorClaim)?.Value;
+            AMES.Data.Repositories.ScmRepository.PortalUserRow? user = null;
+            try { if (id is not null) user = ctx.HttpContext.RequestServices.GetRequiredService<AMES.Data.Repositories.ScmRepository>().FindPortalUser(id); }
+            catch { return; }   // DB 장애로 로그인된 사용자를 전부 내보내지는 않는다
+            if (user is null || !user.ActiveFlag || user.LockedFlag || !user.VendorActive || !string.Equals(user.VendorID, vendor, StringComparison.OrdinalIgnoreCase))
+            {
+                ctx.RejectPrincipal();
+                await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(ctx.HttpContext, AMES.Web.Services.PortalAuth.Scheme);
+            }
+        };
     })
     .AddPolicyScheme(AMES.Web.Services.PortalAuth.DynamicScheme, "AMES cookie selector", o =>
     {

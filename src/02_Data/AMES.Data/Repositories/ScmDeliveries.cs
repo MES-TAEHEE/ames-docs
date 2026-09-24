@@ -18,7 +18,7 @@ public sealed partial class ScmRepository
             JOIN dbo.WH_PurchaseOrder p ON p.PoID=l.PoID
             WHERE @Portal=0 OR @Admin=1 OR EXISTS(
                 SELECT 1 FROM dbo.SCM_PortalVendorUser m JOIN dbo.MD_Vendor v ON v.VendorID=m.VendorID
-                WHERE m.UserID=@User AND m.VendorID=d.VendorID AND m.ActiveFlag=1 AND ISNULL(v.ActiveFlag,1)=1)
+                WHERE m.UserID=@User AND m.VendorID=d.VendorID AND m.ActiveFlag=1 AND m.LockedFlag=0 AND ISNULL(v.ActiveFlag,1)=1)
             ORDER BY d.DeliveryID DESC,l.DeliveryLineID
             """,conn);
         Add(cmd,("@Portal",portal),("@Admin",adminPreview),("@User",userId??""));
@@ -38,8 +38,8 @@ public sealed partial class ScmRepository
         using(var gate=new SqlCommand("SELECT PoID FROM dbo.WH_PurchaseOrder WITH(UPDLOCK,HOLDLOCK) WHERE PoNumber=@N",conn,tx))
         { Add(gate,("@N",number)); using var reader=gate.ExecuteReader(); while(reader.Read()){} }
         using(var auth=new SqlCommand("""
-            IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles ur JOIN dbo.AspNetRoles r ON r.Id=ur.RoleId
-                WHERE ur.UserId=@U AND ((@Admin=1 AND r.Name='Admin') OR (@Admin=0 AND r.Name='ExternalCustomer')))
+            IF @Admin=1 AND NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles ur JOIN dbo.AspNetRoles r ON r.Id=ur.RoleId
+                WHERE ur.UserId=@U AND r.Name='Admin')
                 THROW 50031,'No delivery permission.',1;
             IF NOT EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder WHERE PoNumber=@N)
                 THROW 50032,'Order not found.',1;
@@ -48,7 +48,7 @@ public sealed partial class ScmRepository
             IF @Admin=0 AND EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder p WHERE p.PoNumber=@N AND NOT EXISTS(
                 SELECT 1 FROM dbo.SCM_PortalVendorUser m WITH(HOLDLOCK)
                 JOIN dbo.MD_Vendor v WITH(HOLDLOCK) ON v.VendorID=m.VendorID
-                WHERE m.UserID=@U AND m.VendorID=p.VendorID AND m.ActiveFlag=1 AND ISNULL(v.ActiveFlag,1)=1))
+                WHERE m.UserID=@U AND m.VendorID=p.VendorID AND m.ActiveFlag=1 AND m.LockedFlag=0 AND ISNULL(v.ActiveFlag,1)=1))
                 THROW 50031,'Vendor access denied.',1;
             SELECT DeliveryNumber FROM dbo.SCM_Delivery WHERE RequestID=@Request AND PoNumber=@N AND CreatedUserID=@U;
             """,conn,tx))
@@ -100,7 +100,7 @@ public sealed partial class ScmRepository
         string version, IReadOnlyDictionary<int,string> orderVersions, string userId, string actor,
         bool cancel=false, bool adminOnBehalf=false, bool ship=false)
     {
-        if(ship && (cancel || date.Date>DateTime.Today)) throw new ArgumentException("Invalid shipping date or operation.");
+        if(ship && cancel) throw new ArgumentException("Invalid shipping date or operation.");
         if(!cancel && (items.Count==0 || items.Select(x=>x.PoID).Distinct().Count()!=items.Count ||
             items.Any(x=>x.Quantity<=0 || x.Quantity>999999999.999m || decimal.Round(x.Quantity,3)!=x.Quantity)))
             throw new ArgumentException("Invalid delivery quantities.");
@@ -110,12 +110,12 @@ public sealed partial class ScmRepository
         {Add(lookup,("@D",deliveryNumber));number=lookup.ExecuteScalar() as string ?? throw new InvalidOperationException("Delivery not found.");}
         var locked=LockPurchaseOrder(conn,tx,number,orderVersions);
         using var check=new SqlCommand("""
-            IF NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles ur JOIN dbo.AspNetRoles r ON r.Id=ur.RoleId
-                WHERE ur.UserId=@U AND ((@Admin=1 AND r.Name='Admin') OR (@Admin=0 AND r.Name='ExternalCustomer')))
+            IF @Admin=1 AND NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles ur JOIN dbo.AspNetRoles r ON r.Id=ur.RoleId
+                WHERE ur.UserId=@U AND r.Name='Admin')
                 THROW 50031,'No delivery permission.',1;
             IF @Admin=0 AND EXISTS(SELECT 1 FROM dbo.SCM_Delivery d WHERE d.DeliveryNumber=@D AND NOT EXISTS(
                 SELECT 1 FROM dbo.SCM_PortalVendorUser m WITH(HOLDLOCK) JOIN dbo.MD_Vendor v WITH(HOLDLOCK) ON v.VendorID=m.VendorID
-                WHERE m.UserID=@U AND m.VendorID=d.VendorID AND m.ActiveFlag=1 AND ISNULL(v.ActiveFlag,1)=1))
+                WHERE m.UserID=@U AND m.VendorID=d.VendorID AND m.ActiveFlag=1 AND m.LockedFlag=0 AND ISNULL(v.ActiveFlag,1)=1))
                 THROW 50031,'Vendor access denied.',1;
             SELECT DeliveryID,Version,Status FROM dbo.SCM_Delivery WITH(UPDLOCK,HOLDLOCK) WHERE DeliveryNumber=@D;
             """,conn,tx);
@@ -136,7 +136,7 @@ public sealed partial class ScmRepository
         {
             if(locked.Count==0 || locked.Any(x=>x.Status is not ("Open" or "Partial" or "Complete" or "Received")))
                 throw new InvalidOperationException("Order is no longer issued.");
-            using(var dates=new SqlCommand("SELECT COUNT(*) FROM dbo.WH_PurchaseOrder WHERE PoNumber=@N AND (SupplierConfirmedAt IS NULL OR @Date<OrderDate OR (@Ship=0 AND @Date<CONVERT(date,SYSDATETIME())))",conn,tx))
+            using(var dates=new SqlCommand("SELECT COUNT(*) FROM dbo.WH_PurchaseOrder WHERE PoNumber=@N AND (SupplierConfirmedAt IS NULL OR @Date<OrderDate OR (@Ship=0 AND @Date<CONVERT(date,SYSDATETIME())) OR (@Ship=1 AND @Date>CONVERT(date,SYSDATETIME())))",conn,tx))
             {Add(dates,("@N",number),("@Date",date.Date),("@Ship",ship));if((int)dates.ExecuteScalar()!>0)throw new InvalidOperationException("Invalid date or unconfirmed order.");}
             var existing=new HashSet<int>();
             using(var lineIds=new SqlCommand("SELECT PoID FROM dbo.SCM_DeliveryLine WHERE DeliveryID=@ID",conn,tx))

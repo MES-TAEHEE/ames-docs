@@ -26,7 +26,7 @@ public sealed partial class ScmRepository
                   AND (@AdminPreview=1 OR (
                       ISNULL(v.ActiveFlag,1)=1 AND EXISTS (
                           SELECT 1 FROM dbo.SCM_PortalVendorUser u
-                          WHERE u.UserID=@UserID AND u.VendorID=p.VendorID AND u.ActiveFlag=1
+                          WHERE u.UserID=@UserID AND u.VendorID=p.VendorID AND u.ActiveFlag=1 AND u.LockedFlag=0
                       )
                   ))
               ))
@@ -104,17 +104,17 @@ public sealed partial class ScmRepository
         using var cmd = new SqlCommand("""
             IF (SELECT COUNT(DISTINCT VendorID) FROM dbo.WH_PurchaseOrder WHERE PoNumber=@Number)<>1
                 THROW 50030,'Order must belong to one vendor.',1;
-            IF NOT EXISTS (
+            IF @Admin=1 AND NOT EXISTS (
                 SELECT 1 FROM dbo.AspNetUsers u
                 JOIN dbo.AspNetUserRoles ur ON ur.UserId=u.Id JOIN dbo.AspNetRoles r ON r.Id=ur.RoleId
-                WHERE u.Id=@User AND ((@Admin=1 AND r.Name='Admin') OR (@Admin=0 AND r.Name='ExternalCustomer'))
+                WHERE u.Id=@User AND r.Name='Admin'
             ) THROW 50031,'No confirmation permission.',1;
             IF @Admin=0 AND EXISTS (
                 SELECT 1 FROM dbo.WH_PurchaseOrder p
                 WHERE p.PoNumber=@Number AND NOT EXISTS (
                     SELECT 1 FROM dbo.SCM_PortalVendorUser m WITH(HOLDLOCK)
                     JOIN dbo.MD_Vendor v WITH(HOLDLOCK) ON v.VendorID=m.VendorID
-                    WHERE m.UserID=@User AND m.VendorID=p.VendorID AND m.ActiveFlag=1 AND ISNULL(v.ActiveFlag,1)=1
+                    WHERE m.UserID=@User AND m.VendorID=p.VendorID AND m.ActiveFlag=1 AND m.LockedFlag=0 AND ISNULL(v.ActiveFlag,1)=1
                 )
             ) THROW 50031,'No confirmation permission.',1;
             IF NOT EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder WHERE PoNumber=@Number AND SupplierConfirmedAt IS NULL)
