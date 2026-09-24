@@ -982,8 +982,10 @@
     private List<WarehouseBrowsePart> BrowsePartRows => _rows
         .Where(row => row.OnHandQty > 0 && !string.IsNullOrWhiteSpace(row.LocationId))
         .GroupBy(row => new { PartNo = row.ItemNo, PartName = row.ItemName, Location = row.LocationId.Trim(), Unit = Unit(row.Unit) })
-        .Select(group => new WarehouseBrowsePart(group.Key.PartNo, group.Key.PartName, group.Sum(row => row.OnHandQty), group.Key.Unit, group.Key.Location))
-        .OrderBy(row => row.PartNo, StringComparer.OrdinalIgnoreCase)
+        .Select(group => new WarehouseBrowsePart(group.Key.PartNo, group.Key.PartName, group.Sum(row => row.OnHandQty),
+            group.Key.Unit, group.Key.Location, group.Max(row => row.LastReceivedDate)))
+        .OrderByDescending(row => row.LastReceivedDate)
+        .ThenBy(row => row.PartNo, StringComparer.OrdinalIgnoreCase)
         .ThenBy(row => row.Location, StringComparer.OrdinalIgnoreCase)
         .ToList();
 
@@ -2376,5 +2378,6 @@
     }
 
     private sealed record WarehousePartSummary(string PartNo, string? PartName, decimal Qty, string Unit);
-    private sealed record WarehouseBrowsePart(string PartNo, string? PartName, decimal Qty, string Unit, string Location);
+    private sealed record WarehouseBrowsePart(string PartNo, string? PartName, decimal Qty, string Unit, string Location,
+        DateTime? LastReceivedDate);
 }
