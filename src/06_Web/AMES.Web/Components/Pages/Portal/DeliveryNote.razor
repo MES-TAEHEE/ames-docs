@@ -1,0 +1,87 @@
+﻿@page "/portal/delivery-note/{Number}"
+@layout EmptyLayout
+@rendermode InteractiveServer
+@inject ScmRepository Scm
+@inject AuthenticationStateProvider Authentication
+@inject IJSRuntime JS
+@inject ILogger<DeliveryNote> Logger
+
+<PageTitle>Delivery Note · @Number</PageTitle>
+<HeadContent>
+    <style>@@media print { body { background: white !important; } #blazor-error-ui { display: none !important; } }</style>
+</HeadContent>
+<div class="note-toolbar">
+    <a href="/portal/delivery-notes">딜리버리 노트 목록으로 돌아가기 / Back</a>
+    @if (_note is not null)
+    {
+        <RadzenButton Text="인쇄 / PDF 저장" Icon="print" Click="Print" />
+    }
+</div>
+@if (_error is not null)
+{
+    <p role="alert" class="note-error">@_error</p>
+}
+@if (_note is { } n)
+{
+    <article class="delivery-note">
+        <header><strong>@n.Buyer</strong><h1>DELIVERY NOTE</h1><p>납품서 · @n.Number</p></header>
+        <div class="note-barcode"><Code128Barcode Value="@n.Number" /><div>@n.Number</div></div>
+        <dl>
+            <dt>공급업체 / Supplier</dt><dd>@n.VendorName (@n.Vendor)</dd>
+            <dt>납품받는 업체 / Buyer</dt><dd>@n.Buyer</dd>
+            <dt>납품처 / Destination</dt><dd>@n.Destination</dd>
+            <dt>발주번호 / Purchase order</dt><dd>@n.OrderNumber</dd>
+            <dt>출하일 / Ship date</dt><dd>@string.Join(", ", n.Lines.Select(l => (l.ShipDate ?? n.ShipDate).ToString("yyyy-MM-dd")).Distinct())</dd>
+            <dt>발행일시 / Issued at</dt><dd>@n.IssuedAt.ToString("yyyy-MM-dd HH:mm:ss")</dd>
+        </dl>
+        <table>
+            <thead><tr><th>발주행<br />PO line</th><th>품목코드<br />Item</th><th>품목명<br />Description</th><th>단위<br />Unit</th><th>출하수량<br />Quantity</th></tr></thead>
+            <tbody>@foreach (var group in n.Lines.GroupBy(l => l.DeliveryNumber))
+            {
+                @if (!string.IsNullOrEmpty(group.Key))
+                {
+                    <tr class="delivery-group"><td colspan="5"><strong>@group.Key</strong> · @group.First().OrderNumber · @group.First().ShipDate?.ToString("yyyy-MM-dd")<br />@string.Join(" / ", group.Select(l => l.Destination).Distinct())</td></tr>
+                }
+                @foreach (var line in group)
+                {
+                    <tr><td>@line.Line</td><td>@line.Item</td><td>@line.Name</td><td>@line.Unit</td><td class="quantity">@line.Quantity.ToString("N3")</td></tr>
+                }
+            }</tbody>
+        </table>
+        <p class="totals">합계 / Total: @string.Join(" · ", n.Lines.GroupBy(l => l.Unit).Select(g => $"{g.Sum(l => l.Quantity):N3} {g.Key}"))</p>
+        <p>발행자 / Issued by: @n.IssuedBy</p>
+        <div class="signatures"><p>출하자 / Shipped by<br /><br />____________________</p><p>인수자 / Received by<br /><br />____________________</p><p>인수일 / Received date<br /><br />____________________</p></div>
+        <footer>@n.Number · 본 문서는 출하 내역이며 입고 확정을 의미하지 않습니다.</footer>
+    </article>
+}
+
+@code {
+    [Parameter] public string Number { get; set; } = "";
+    ScmRepository.DeliveryNote? _note;
+    string? _error;
+    protected override async Task OnParametersSetAsync()
+    {
+        _note = null; _error = null;
+        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        var id = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var admin = PortalAuth.IsInternalUser(user) && user.IsInRole("Admin");
+        if (string.IsNullOrEmpty(id) || (!admin && !PortalAuth.IsPortalUser(user)))
+        { _error = "문서 조회 권한이 없습니다. / Access denied."; return; }
+        try
+        {
+            _note = Scm.GetDeliveryNote(Number, id, admin);
+            if (_note is null) _error = "아직 발행되지 않은 문서입니다. 납품서 조회 화면에서 발행해 주세요. / Not issued yet.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Delivery note read failed: {Number}", Number);
+            _error = "문서를 조회할 수 없습니다. 업체 권한 및 출하 상태를 확인해 주세요. / Document unavailable.";
+        }
+    }
+    async Task Print()
+    {
+        // Recheck current vendor authorization immediately before printing.
+        await OnParametersSetAsync();
+        if (_note is not null) await JS.InvokeVoidAsync("window.print");
+    }
+}

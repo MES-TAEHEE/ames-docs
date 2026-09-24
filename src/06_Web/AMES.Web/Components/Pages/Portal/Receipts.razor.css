@@ -1,0 +1,4 @@
+.receipt-filters { display:flex; gap:12px; align-items:end; flex-wrap:wrap; margin:16px 0; }
+.receipt-filters label { display:flex; flex-direction:column; gap:6px; }
+.receipt-filters input { min-width:300px; }
+.ames-modal { padding:24px; max-height:90vh; overflow:auto; }

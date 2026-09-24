@@ -1,4 +1,4 @@
-@inject ScmPreviewStore Store
+﻿@inject ScmPreviewStore Store
 @inject PermissionService Permissions
 @inject AuthenticationStateProvider Authentication
 @inject NavigationManager Nav
@@ -135,7 +135,7 @@
     @if (_selected is not null && _delivery is null && _edit is null)
     {
         <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-            <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal ames-modal-wide scm-order-detail" @onmousedown:stopPropagation @onclick:stopPropagation>
                 <div class="ames-modal-h">
                     @T("발주 상세", "Order details", "Detalle del pedido") <span class="code" style="font-weight:400;font-size:.9em;">@_selected.Number</span>
                     <span class="pill @Badge(_selected.Status)" style="margin-left:8px;">@Status(_selected.Status)</span>
@@ -241,6 +241,10 @@
                     <RadzenButton Text='@T("납품 취소", "Cancel delivery", "Cancelar entrega")' ButtonStyle="ButtonStyle.Danger" Click="@(() => _cancelDeliveryPrompt=true)" />
                 }
             </div>
+            @if (IsPortal && (_adminPreview || _isExternalPortalUser) && _delivery.Status is ("Shipped" or "Received"))
+            {
+                <div class="scm-act"><RadzenButton Text='@T("딜리버리 노트 발행 / 재출력", "Issue / reprint delivery note", "Emitir / reimprimir nota de entrega")' Icon="print" Click="OpenDeliveryNote" /></div>
+            }
             @if (_delivery.ShippedAt is not null)
             {
                 <div class="scm-act"><span>@T("출하일", "Ship date", "Fecha de envío"): @_delivery.ShipDate?.ToString("yyyy-MM-dd")</span>
@@ -436,6 +440,7 @@
     List<ScmPreviewStore.Delivery> _deliveryEditLines = new();
     bool _cancelDeliveryPrompt, _shipDeliveryPrompt;
     DateTime _shipDate=DbClock.Today;
+    void OpenDeliveryNote() => Nav.NavigateTo("/portal/delivery-notes");
     void SelectDelivery(ScmPreviewStore.Delivery d)
     {
         _selected = _dbOrders.First(o => o.Number == d.OrderNumber);

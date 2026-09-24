@@ -89,6 +89,8 @@ FILES=(
   migrate_scm_delivery.sql           # 납품서 헤더·품목
   migrate_scm_delivery_edit.sql      # 납품서 수정 이력·동시성
   migrate_scm_delivery_ship.sql      # 출하 확정
+  migrate_scm_delivery_note.sql      # 딜리버리 노트 발행 스냅샷
+  migrate_scm_delivery_note_batch.sql      # 복수 납품서 딜리버리 노트
   migrate_portal_legacy_cleanup.sql   # 구 외부 역할 ExternalCustomer·계정·포탈 RBAC 정리 (신규 DB 에서는 no-op)
   seed_portal_dev.sql                 #   → 개발용 외부 사용자 adminext@ames.local → V1007 (admin 과 같은 비밀번호)
   pda/PDA_SEED.sql                    # WH/FG seed, Web screens and role permissions

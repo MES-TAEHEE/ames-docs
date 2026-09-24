@@ -1,0 +1,5 @@
+.note-actions { display:flex; align-items:center; gap:16px; margin:16px 0; flex-wrap:wrap; }
+.note-panel { border:1px solid var(--ames-border,#344156); border-radius:8px; padding:20px; margin:20px 0; }
+.note-scroll { overflow-x:auto; max-height:460px; }
+table { width:100%; border-collapse:collapse; } th,td { text-align:left; padding:12px; border-bottom:1px solid var(--ames-border,#344156); }
+input[type=checkbox] { width:18px; height:18px; accent-color:#369aff; }

@@ -1,3 +1,93 @@
 @page "/portal/receipts"
 @rendermode InteractiveServer
-<ScmPreview ScreenCode="PORTAL-005" Href="portal/receipts" Mode="Receipts" IsPortal="true" />
+@inject ScmRepository Scm
+@inject AuthenticationStateProvider Authentication
+@inject ILogger<Receipts> Logger
+
+<PageTitle>입고·검수 결과 · AMES</PageTitle>
+<AmesPageHeader Code="PORTAL-005" Title="입고·검수 결과" />
+<div class="receipt-filters">
+    <input class="rz-textbox" aria-label="입고 결과 검색" placeholder="딜리버리 노트 / 납품서 / 발주 / 품목 / 업체" @bind="_search" @bind:event="oninput" />
+    <label>입고 상태<select class="rz-textbox" @bind="_status"><option value="">전체</option><option>미입고</option><option>부분입고</option><option>입고완료</option></select></label>
+    <label>출하일 시작<RadzenDatePicker TValue="DateTime?" @bind-Value="_from" DateFormat="yyyy-MM-dd" /></label>
+    <label>출하일 종료<RadzenDatePicker TValue="DateTime?" @bind-Value="_to" DateFormat="yyyy-MM-dd" /></label>
+    <RadzenButton Text="새로고침" Icon="refresh" Click="Load" />
+    <RadzenButton Text="초기화" Icon="restart_alt" Click="Reset" />
+</div>
+<p>EOS가 반영한 납품 품목별 입고수량을 표시합니다. 검수 판정·합격/불합격 수량 및 입고일시는 아직 미연계입니다. @(_admin?"(관리자 전체 조회)":"")</p>
+@if(_error.Length>0){<p role="alert">@_error</p>}
+@if(_from>_to){<p role="alert">출하일 범위를 확인해 주세요.</p>}
+<p>납품서 @Rows.Select(r=>r.Delivery).Distinct().Count() 건 · 품목 @Rows.Count 건 · 입고수량 @Totals(Rows,true) · 미입고 잔량 @Totals(Rows,false)</p>
+<RadzenDataGrid TItem="ScmRepository.PortalReceiptLine" Data="@Rows" AllowPaging="true" PageSize="25" AllowSorting="true" RowSelect="Select" EmptyText="조회 결과가 없습니다.">
+    <Columns>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Note" Title="딜리버리 노트"><Template Context="r">@(r.Note.Length==0?"미발행":r.Note)</Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Delivery" Title="납품서번호" />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="VendorName" Title="협력업체" />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Order" Title="발주번호" />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Item" Title="품목코드" />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Name" Title="품목명" />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="ShipDate" Title="출하일" FormatString="{0:yyyy-MM-dd}" />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Quantity" Title="납품수량" FormatString="{0:N3}" />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Received" Title="입고수량" FormatString="{0:N3}" />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Remaining" Title="미입고 잔량" FormatString="{0:N3}" />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Unit" Title="단위" />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="ReceiptStatus" Title="입고 상태" />
+    </Columns>
+</RadzenDataGrid>
+@if(_details.Count>0)
+{
+    <div class="ames-modal-bg" @onclick="Close"><div class="ames-modal ames-modal-wide" @onclick:stopPropagation="true">
+        <h3>@_detailTitle · 입고 상세</h3>
+        <p>문서 전체 입고 상태: @GroupStatus(_details) · 입고수량 @Totals(_details,true) · 잔량 @Totals(_details,false)</p>
+        <p>검수 정보 미연계 — 입고완료는 검수 합격을 의미하지 않습니다.</p>
+        <RadzenDataGrid TItem="ScmRepository.PortalReceiptLine" Data="@_details" AllowPaging="true" PageSize="10">
+            <Columns>
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Delivery" Title="납품서" />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Order" Title="발주번호" />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Item" Title="품목코드" />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Name" Title="품목명" />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Quantity" Title="납품수량" FormatString="{0:N3}" />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Received" Title="입고수량" FormatString="{0:N3}" />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Remaining" Title="잔량" FormatString="{0:N3}" />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Unit" Title="단위" />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="ReceiptStatus" Title="입고 상태" />
+            </Columns>
+        </RadzenDataGrid>
+        <div class="receipt-filters">
+        @if(_details[0].Note.Length>0){<a href="@($"/portal/delivery-note/{Uri.EscapeDataString(_details[0].Note)}")">딜리버리 노트 원본</a>}
+        <RadzenButton Text="닫기" Click="Close" /></div>
+    </div></div>
+}
+@code {
+    List<ScmRepository.PortalReceiptLine> _rows=[],_details=[];
+    DateTime? _from,_to;
+    string _user="",_search="",_status="",_error="",_detailTitle="";
+    bool _admin,_allowed;
+    List<ScmRepository.PortalReceiptLine> Rows=>_rows.Where(r=>(_status==""||r.ReceiptStatus==_status)
+        && (!_from.HasValue||r.ShipDate?.Date>=_from.Value.Date) && (!_to.HasValue||r.ShipDate?.Date<=_to.Value.Date)
+        && string.Join(" ",r.Note,r.Delivery,r.Order,r.Item,r.Name,r.Vendor,r.VendorName).Contains(_search,StringComparison.OrdinalIgnoreCase)).ToList();
+    static string Totals(IEnumerable<ScmRepository.PortalReceiptLine> rows,bool received)=>string.Join(" · ",rows.GroupBy(r=>r.Unit).Select(g=>$"{g.Sum(r=>received?r.Received:r.Remaining):N3} {g.Key}"));
+    static string GroupStatus(List<ScmRepository.PortalReceiptLine> rows)=>rows.All(r=>r.Received<=0)?"미입고":rows.All(r=>r.Remaining==0)?"입고완료":"부분입고";
+    protected override async Task OnInitializedAsync()
+    {
+        var u=(await Authentication.GetAuthenticationStateAsync()).User;
+        _user=u.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value??"";
+        _admin=PortalAuth.IsInternalUser(u)&&u.IsInRole("Admin");_allowed=_admin||PortalAuth.IsPortalUser(u);Load();
+    }
+    void Load()
+    {
+        Close();_rows=[];_error="";
+        if(!_allowed||_user.Length==0){_error="조회 권한이 없습니다.";return;}
+        try{_rows=Scm.ListPortalReceiptResults(_user,_admin);}
+        catch(Exception ex){Logger.LogWarning(ex,"Portal receipt load failed");_error="입고 결과를 조회하지 못했습니다.";}
+    }
+    void Select(ScmRepository.PortalReceiptLine row)
+    {
+        Load(); // Refresh quantities and vendor access before opening the complete document.
+        var current=_rows.Find(r=>r.Id==row.Id);if(current is null)return;
+        _detailTitle=current.Note.Length>0?current.Note:current.Delivery;
+        _details=_rows.Where(r=>current.Note.Length>0?r.Note==current.Note:r.Delivery==current.Delivery).ToList();
+    }
+    void Reset(){_search=_status="";_from=_to=null;Load();}
+    void Close(){_details=[];}
+}

@@ -18,3 +18,41 @@
 .scm-act { margin:12px 0; }
 .scm-act label { display:flex; align-items:center; gap:8px; }
 .scm-number { width:100%; min-width:100px; min-height:32px; padding:6px 10px; }
+
+/* Keep the purchase editor within the viewport without clipping editable columns. */
+.ames-modal.scm-editor { max-width:1200px; min-width:0; box-sizing:border-box; }
+.ames-modal.scm-order-detail { max-width:1200px; min-width:0; box-sizing:border-box; }
+.scm-order-detail .ames-table { width:100%; table-layout:fixed; }
+.scm-order-detail .ames-table th,
+.scm-order-detail .ames-table td { min-width:0; white-space:normal; overflow-wrap:anywhere; }
+.scm-order-detail .ames-table:not(.scm-lines) th:nth-child(1) { width:14%; }
+.scm-order-detail .ames-table:not(.scm-lines) th:nth-child(2) { width:26%; }
+.scm-order-detail .ames-table:not(.scm-lines) th:nth-child(3) { width:6%; }
+.scm-order-detail .scm-number { min-width:0; padding:6px 4px; }
+.scm-editor .scm-lines { table-layout:fixed; }
+.scm-editor .scm-lines th:nth-child(1) { width:4%; }
+.scm-editor .scm-lines th:nth-child(2) { width:40%; }
+.scm-editor .scm-lines th:nth-child(3) { width:6%; }
+.scm-editor .scm-lines th:nth-child(4),
+.scm-editor .scm-lines th:nth-child(5) { width:15%; }
+.scm-editor .scm-lines th:nth-child(6) { width:15%; }
+.scm-editor .scm-lines th:nth-child(7) { width:5%; }
+.scm-editor .scm-lines td { min-width:0; overflow-wrap:anywhere; }
+.scm-editor .scm-lines th { white-space:normal; }
+.scm-editor .scm-lines .num { white-space:normal; overflow-wrap:anywhere; }
+.scm-editor .scm-lines .dim { max-width:none; overflow-wrap:anywhere; }
+.scm-editor .scm-lines ::deep .rz-dropdown,
+.scm-editor .scm-lines ::deep .rz-numeric { width:100% !important; min-width:0; max-width:100%; }
+.scm-editor .scm-lines ::deep .rz-dropdown-label { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.scm-editor .scm-lines ::deep .rz-numeric-input { min-width:0; width:100%; }
+@media(max-width:700px) {
+    .ames-modal.scm-editor { padding:16px; }
+    .scm-editor .scm-lines thead { display:none; }
+    .scm-editor .scm-lines tbody { display:block; }
+    .scm-editor .scm-lines tr { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); margin-bottom:16px; }
+    .scm-editor .scm-lines td:nth-child(2) { grid-column:1 / -1; }
+    .scm-editor .scm-lines td:nth-child(1) { grid-column:1 / -1; }
+    .scm-editor .scm-lines td:nth-child(4)::before { content:"수량 / Qty"; display:block; }
+    .scm-editor .scm-lines td:nth-child(5)::before { content:"단가 / Price"; display:block; }
+    .scm-editor .scm-lines td:nth-child(6)::before { content:"금액 / Amount"; display:block; }
+}
