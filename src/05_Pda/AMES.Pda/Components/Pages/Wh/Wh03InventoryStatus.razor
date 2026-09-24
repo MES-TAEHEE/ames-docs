@@ -380,8 +380,16 @@
 
                     <div class="wh03-action-row">
                         <RadzenButton class="wh03-date-clear" Click="@ClearInventoryWork" Disabled="@InventoryBusy" Text="CLEAR" />
-                        <RadzenButton class="@($"wh03-date-apply wh03-post-btn save {(DisableInventoryAdjust ? "blocked" : "ready")}")"
-                                      Click="@PostInventoryAdjust" aria-disabled="@(DisableInventoryAdjust ? "true" : "false")" Text="SAVE" />
+                        @if (_adjustedLabelLotNo is not null && !IsSpareParts)
+                        {
+                            <RadzenButton class="wh03-date-apply wh03-post-btn" Click="@OpenAdjustedLabelPrint"
+                                          Disabled="@InventoryBusy" Text="PRINT LABEL" />
+                        }
+                        else
+                        {
+                            <RadzenButton class="@($"wh03-date-apply wh03-post-btn save {(DisableInventoryAdjust ? "blocked" : "ready")}")"
+                                          Click="@PostInventoryAdjust" aria-disabled="@(DisableInventoryAdjust ? "true" : "false")" Text="SAVE" />
+                        }
                     </div>
                 </RadzenCard>
             }
@@ -852,6 +860,7 @@
     private string _quantityPadDraft = "";
     private string _invAdjustNote = "";
     private decimal _invAdjustDelta;
+    private string? _adjustedLabelLotNo;
     private PdaApi.AdjustmentLocation? _adjustLocation;
     private string? _adjustQuantityInput;
     private bool _adjustQuantityInvalid;
@@ -1485,6 +1494,7 @@
         next = Math.Min(next, 999999999m - InventoryBeforeQty);
 
         _invAdjustDelta = next;
+        _adjustedLabelLotNo = null;
         _adjustQuantityInput = null;
         _adjustQuantityInvalid = false;
     }
@@ -1497,6 +1507,7 @@
             System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var quantity)
             || quantity < 0 || quantity > 999999999m;
         if (!_adjustQuantityInvalid) _invAdjustDelta = quantity - InventoryBeforeQty;
+        _adjustedLabelLotNo = null;
     }
 
     private void OpenQuantityPad()
@@ -1863,6 +1874,7 @@
         _invScan = null;
         _inventoryCurrentLocation = null;
         _invTargetLocation = null;
+        _adjustedLabelLotNo = null;
         ResetInventoryAdjust();
     }
 
@@ -1889,6 +1901,7 @@
         _inventoryCurrentLocation = null;
         _invTargetLocation = null;
         _invLocationNo = "";
+        _adjustedLabelLotNo = null;
         ResetInventoryAdjust();
 
         try
@@ -2066,10 +2079,19 @@
                 return;
             }
 
-            ClearInventoryWork();
-            ShowAlert("Saved", IsFinishedGoodsAdjust
+            var adjusted = result.Row ?? _invScan! with { Qty = InventoryAfterQty };
+            _invScan = adjusted;
+            _invBarcode = adjusted.Barcode;
+            _adjustedLabelLotNo = IsSpareParts || deltaQty >= 0 ? null : adjusted.LotNo;
+            ResetInventoryAdjust();
+            _invMsg = "Adjustment saved. Print and replace the quantity label.";
+            _invCls = "ok";
+            var message = IsFinishedGoodsAdjust
                 ? "Finished goods adjustment was saved."
-                : "Warehouse adjustment was saved.", "success");
+                : "Warehouse adjustment was saved.";
+            if (_adjustedLabelLotNo is not null)
+                message += " Tap PRINT LABEL to reprint the 2D barcode label.";
+            ShowAlert("Saved", message, "success");
         }
         catch (Exception ex)
         {
@@ -2081,6 +2103,13 @@
         {
             _isInventoryAdjusting = false;
         }
+    }
+
+    private void OpenAdjustedLabelPrint()
+    {
+        if (_adjustedLabelLotNo is null || InventoryBusy) return;
+        var source = IsFinishedGoodsAdjust ? "fg" : "wh";
+        Nav.NavigateTo($"/wh/label-print?source={source}&lot={Uri.EscapeDataString(_adjustedLabelLotNo)}");
     }
 
     private void ShowAlert(string title, string message, string kind = "info")
