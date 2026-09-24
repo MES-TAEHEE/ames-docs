@@ -8298,18 +8298,6 @@
   <data name="Auth.Err.NotPortalUser" xml:space="preserve">
     <value>외부 포탈 사용 권한이 없는 계정입니다.</value>
   </data>
-  <data name="Portal.ShipmentPlan.Title" xml:space="preserve">
-    <value>출하 계획 조회</value>
-  </data>
-  <data name="Portal.ShipmentPlan.Empty" xml:space="preserve">
-    <value>조회 조건에 맞는 출하 계획이 없습니다.</value>
-  </data>
-  <data name="Portal.ShipmentPlan.Kpi.Shipped" xml:space="preserve">
-    <value>출하 완료</value>
-  </data>
-  <data name="Portal.ShipmentPlan.Planned" xml:space="preserve">
-    <value>출하 예정</value>
-  </data>
   <data name="Col.ShipDate" xml:space="preserve">
     <value>출하일</value>
   </data>

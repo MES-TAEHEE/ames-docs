@@ -8298,18 +8298,6 @@
   <data name="Auth.Err.NotPortalUser" xml:space="preserve">
     <value>This account is not allowed to use the partner portal.</value>
   </data>
-  <data name="Portal.ShipmentPlan.Title" xml:space="preserve">
-    <value>Shipment Plan</value>
-  </data>
-  <data name="Portal.ShipmentPlan.Empty" xml:space="preserve">
-    <value>No shipment plans match the filter.</value>
-  </data>
-  <data name="Portal.ShipmentPlan.Kpi.Shipped" xml:space="preserve">
-    <value>Shipped</value>
-  </data>
-  <data name="Portal.ShipmentPlan.Planned" xml:space="preserve">
-    <value>Planned</value>
-  </data>
   <data name="Col.ShipDate" xml:space="preserve">
     <value>Ship Date</value>
   </data>

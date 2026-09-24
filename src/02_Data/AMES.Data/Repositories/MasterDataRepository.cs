@@ -211,7 +211,7 @@ public sealed class MasterDataRepository
         => Exec("DELETE dbo.MD_CodeItem WHERE CodeID=@I", ("@I", codeId));
 
     // ── MD-02 Item ───────────────────────────────────────────────────────
-    public List<ItemRow> ListItems(string? search = null)
+    public List<ItemRow> ListItems(string? search = null, string? itemType = null)
     {
         var sql = """
             SELECT ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM,
@@ -220,12 +220,14 @@ public sealed class MasterDataRepository
                    ISNULL(ActiveFlag,1) AS ActiveFlag,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
             FROM   dbo.MD_Item
-            """ + (string.IsNullOrWhiteSpace(search) ? "" :
-            " WHERE ItemNo LIKE @S OR ItemName LIKE @S OR ItemCategory LIKE @S OR CarType LIKE @S OR PGN LIKE @S OR ALC LIKE @S") +
+            """ + " WHERE 1=1" + (string.IsNullOrWhiteSpace(search) ? "" :
+            " AND (ItemNo LIKE @S OR ItemName LIKE @S OR ItemCategory LIKE @S OR CarType LIKE @S OR PGN LIKE @S OR ALC LIKE @S)") +
+            (string.IsNullOrWhiteSpace(itemType) ? "" : " AND ItemType = @ItemType") +
             " ORDER BY ItemNo";
-        var p = string.IsNullOrWhiteSpace(search)
-            ? Array.Empty<(string, object?)>()
-            : new[] { ("@S", (object?)("%" + search.Trim() + "%")) };
+        var parameters = new List<(string, object?)>();
+        if (!string.IsNullOrWhiteSpace(search)) parameters.Add(("@S", "%" + search.Trim() + "%"));
+        if (!string.IsNullOrWhiteSpace(itemType)) parameters.Add(("@ItemType", itemType));
+        var p = parameters.ToArray();
         return Query(sql, r => new ItemRow(
             r.GetString("ItemNo"),
             r.GetString("ItemName"),
@@ -246,6 +248,26 @@ public sealed class MasterDataRepository
             r["CreatedTS"]     is DateTime ct ? ct : null,
             r["ModifiedBy"]    as string,
             r["ModifiedTS"]    is DateTime mt ? mt : null), p);
+    }
+
+    public bool UpdateMaterialUnitCost(string itemNo, decimal unitCost, decimal? originalCost, string modifiedBy)
+    {
+        if (unitCost < 0 || unitCost > 999999999999.99m || decimal.Round(unitCost, 2) != unitCost)
+            throw new ArgumentOutOfRangeException(nameof(unitCost));
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            UPDATE dbo.MD_Item SET UnitCost=@Cost, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
+            WHERE ItemNo=@No AND ItemType='MATERIAL'
+              AND (UnitCost=@Original OR (UnitCost IS NULL AND @Original IS NULL))
+            """, conn);
+        cmd.Parameters.AddWithValue("@No", itemNo);
+        cmd.Parameters.AddWithValue("@Cost", unitCost);
+        var original = cmd.Parameters.Add("@Original", SqlDbType.Decimal);
+        original.Precision = 14;
+        original.Scale = 2;
+        original.Value = (object?)originalCost ?? DBNull.Value;
+        cmd.Parameters.AddWithValue("@By", modifiedBy);
+        return cmd.ExecuteNonQuery() == 1;
     }
 
     public bool ItemExists(string itemNo)

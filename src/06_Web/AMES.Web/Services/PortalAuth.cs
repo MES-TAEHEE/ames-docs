@@ -23,7 +23,7 @@ public static class PortalAuth
     /// <summary>외부 화면 라우트 접두어.</summary>
     public const string Prefix = "/portal";
     public const string LoginPath = "/portal/login";
-    public const string HomePath = "/portal/shipment-plan";
+    public const string HomePath = "/portal";
     /// <summary>외부 화면 인가 정책 이름(폴더 _Imports 로 전 화면 적용).</summary>
     public const string Policy = "PortalAccess";
 

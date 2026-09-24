@@ -148,6 +148,7 @@ else
     builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<PermissionService>();
+builder.Services.AddScoped<ScmPreviewStore>();
 builder.Services.AddScoped<AuditLogger>();   // MD·SYS 등록/수정/삭제 → SYS_AuditLog
 builder.Services.AddScoped<AMES.Web.Services.MenuCatalog>();   // 좌측 메뉴·홈 사이트맵 공용 화면 카탈로그(SYS_Screen WEB)
 builder.Services.AddHttpClient();
@@ -197,6 +198,7 @@ builder.Services.AddSingleton(sp => new DefectRepository(factory));
 builder.Services.AddSingleton(sp => new PntRepository(factory));
 builder.Services.AddSingleton(sp => new QcRepository(factory));
 builder.Services.AddSingleton(sp => new PpRepository(factory));
+builder.Services.AddSingleton(sp => new ScmRepository(factory));
 builder.Services.AddSingleton(sp => new MntRepository(factory));
 builder.Services.AddSingleton(sp => new RptRepository(factory));
 builder.Services.AddSingleton(sp => new WarehouseRepository(factory));

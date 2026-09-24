@@ -1,0 +1,38 @@
+.vendor-check-list {
+    height: 160px;
+    overflow-y: auto;
+    padding: 6px 10px;
+    border: 1px solid var(--rz-base-700, #334155);
+    border-radius: 6px;
+    background: var(--rz-input-background-color, rgba(128, 128, 128, .08));
+}
+
+.vendor-check-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 29px;
+    cursor: pointer;
+    color: var(--rz-text-color, #d7e0eb);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: normal;
+    margin: 0;
+}
+
+.vendor-check-item input {
+    width: 19px;
+    height: 19px;
+    margin: 0;
+    flex-shrink: 0;
+    accent-color: var(--rz-primary, #32a5ff);
+    cursor: pointer;
+    color-scheme: dark;
+}
+
+.vendor-check-item:focus-within {
+    outline: 1px solid var(--rz-primary);
+    outline-offset: 1px;
+}

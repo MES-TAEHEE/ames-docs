@@ -1,0 +1,187 @@
+@page "/scm/purchase-items"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject MasterDataRepository MD
+@inject ScmRepository Scm
+@inject PermissionService Permissions
+@inject AuthenticationStateProvider Authentication
+@inject NavigationManager Nav
+@inject AuditLogger Audit
+@inject ILogger<PurchaseItems> Logger
+@using System.Globalization
+
+<PageTitle>SCM-003 @Title · AMES</PageTitle>
+<AmesPageHeader Code="SCM-003" Title="@Title" />
+@if (_ready)
+{
+    <div class="ames-kpis">
+        <div class="ames-kpi"><div class="ames-kpi-l">@T("발주 가능 품목", "Purchase items", "Artículos de compra")</div><div class="ames-kpi-v">@_all.Count</div></div>
+        <div class="ames-kpi ok"><div class="ames-kpi-l">@T("업체 연결 품목", "Mapped items", "Artículos vinculados")</div><div class="ames-kpi-v">@_all.Count(x => Links(x.ItemNo).Any())</div></div>
+        <div class="ames-kpi warn"><div class="ames-kpi-l">@T("업체 미연결 품목", "Unmapped items", "Artículos sin proveedor")</div><div class="ames-kpi-v">@_all.Count(x => !Links(x.ItemNo).Any())</div></div>
+    </div>
+    @if (_message.Length > 0)
+    {
+        <RadzenAlert AlertStyle="@(_error ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_message</RadzenAlert>
+    }
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
+            <span>▼ @Title · @_rows.Count · MATERIAL</span>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+                <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder="@T("품목코드 / 품목명 / 업체", "Item code / name / vendor", "Código / nombre / proveedor")" Style="width:280px" class="ames-rz-input" />
+                <RadzenButton Text="@T("조회", "Search", "Buscar")" Icon="search" Click="Reload" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" />
+            </RadzenStack>
+        </div>
+        <RadzenDataGrid TItem="MasterDataRepository.ItemRow" Data="@_rows" AllowPaging="true" PageSize="25" AllowSorting="true" Class="ames-rz-grid" EmptyText="@T("품목이 없습니다.", "No items found.", "No hay artículos.")">
+            <Columns>
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemNo" Title="@T("품목코드", "Item code", "Código")" Width="170px" />
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemName" Title="@T("품목명", "Item name", "Nombre")" />
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemCategory" Title="@T("분류", "Category", "Categoría")" Width="110px" />
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="DefaultUOM" Title="@T("단위", "Unit", "Unidad")" Width="80px" />
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Title="@T("연결 업체", "Linked vendors", "Proveedores vinculados")" Sortable="false">
+                    <Template Context="row">@string.Join(", ", Links(row.ItemNo).Select(x => $"{x.VendorName} ({x.VendorID})"))</Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="UnitCost" Title="@T("단가", "Unit cost", "Costo unitario")" Width="140px" TextAlign="TextAlign.Right">
+                    <Template Context="row">@((row.UnitCost ?? 0).ToString("N2"))</Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ActiveFlag" Title="@T("사용", "Active", "Activo")" Width="85px">
+                    <Template Context="row"><span class="pill @(row.ActiveFlag ? "ok" : "bad")">@(row.ActiveFlag ? "Y" : "N")</span></Template>
+                </RadzenDataGridColumn>
+                @if (CanEdit)
+                {
+                    <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Title="" Width="120px" Sortable="false">
+                        <Template Context="row"><RadzenButton Text="@T("업체 매칭", "Link vendors", "Vincular")" Icon="link" Click="@(() => Open(row))" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" /></Template>
+                    </RadzenDataGridColumn>
+                }
+            </Columns>
+        </RadzenDataGrid>
+    </div>
+    @if (_edit is not null)
+    {
+        <div class="ames-modal-bg">
+            <div class="ames-modal ames-modal-wide" role="dialog" aria-label="업체 매칭">
+                <div class="ames-modal-h">@T("발주품목 · 업체 매칭", "Purchase item · vendors", "Artículo · proveedores")</div>
+                <p><strong>@_edit.ItemNo</strong> · @_edit.ItemName</p>
+                <p>@T("단위", "Unit", "Unidad"): @_edit.DefaultUOM</p>
+                <RadzenStack Gap="0.5rem">
+                    <span class="dim">@T("연결할 업체 선택", "Select vendors to link", "Seleccione proveedores")</span>
+                    <div class="vendor-check-list" role="group" aria-label="@T("연결할 업체 선택", "Select vendors to link", "Seleccione proveedores")">
+                        @foreach (var vendor in VendorOptions)
+                        {
+                            <label class="vendor-check-item" @key="vendor.Value">
+                                <input type="checkbox" checked="@_selectedVendors.Contains(vendor.Value)" @onchange="@(e => ToggleVendor(vendor.Value, e.Value is true))" />
+                                <span>@vendor.Text</span>
+                            </label>
+                        }
+                        @if (!VendorOptions.Any())
+                        { <span class="dim">@T("연결할 업체가 없습니다.", "No vendors available to link.", "No hay proveedores disponibles.")</span> }
+                    </div>
+                    <RadzenButton Text="@($"{T("업체 연결", "Link vendors", "Vincular proveedores")} ({_selectedVendors.Count})")" Icon="add_link" Click="Link" Disabled="@(_selectedVendors.Count == 0)" Style="align-self:flex-start" />
+                </RadzenStack>
+                <RadzenDataGrid TItem="ScmRepository.ItemVendorRow" Data="@Links(_edit.ItemNo)" AllowPaging="true" PageSize="5" Class="ames-rz-grid" Style="margin-top:16px" EmptyText="@T("연결된 업체가 없습니다.", "No linked vendors.", "Sin proveedores vinculados.")">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" Property="VendorID" Title="@T("업체코드", "Vendor code", "Código")" />
+                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" Property="VendorName" Title="@T("업체명", "Vendor name", "Proveedor")" />
+                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" Property="VendorType" Title="@T("유형", "Type", "Tipo")" Width="100px" />
+                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" Title="@T("업체 사용", "Vendor active", "Activo")" Width="100px">
+                            <Template Context="link">@(link.VendorActive ? "Y" : "N")</Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" Width="120px">
+                            <Template Context="link"><RadzenButton Text="@T("연결 해제", "Unlink", "Desvincular")" Click="@(() => Unlink(link))" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" /></Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+                @if (_editError.Length > 0) { <p role="alert" style="color:var(--rz-danger)">@_editError</p> }
+                <div class="ames-modal-f">
+                    <RadzenButton Text="@T("닫기", "Close", "Cerrar")" Click="@(() => _edit = null)" ButtonStyle="ButtonStyle.Light" />
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    const string Href = "scm/purchase-items";
+    string Title => T("발주품목 관리", "Purchase Items", "Artículos de compra");
+    static string T(string ko, string en, string es) => CultureInfo.CurrentUICulture.TwoLetterISOLanguageName switch { "en" => en, "es" => es, _ => ko };
+    List<MasterDataRepository.ItemRow> _all = new(), _rows = new();
+    List<MasterDataRepository.VendorRow> _vendors = new();
+    List<ScmRepository.ItemVendorRow> _links = new();
+    MasterDataRepository.ItemRow? _edit;
+    readonly HashSet<string> _selectedVendors = new(StringComparer.OrdinalIgnoreCase);
+    string _search = "", _message = "", _editError = "", _actor = "";
+    bool _ready, _error;
+    bool CanEdit => Permissions.CanEdit(Href);
+    IEnumerable<ScmRepository.ItemVendorRow> Links(string itemNo) => _links.Where(x => x.ItemNo == itemNo);
+    record VendorOption(string Value, string Text);
+    IEnumerable<VendorOption> VendorOptions => _vendors.Where(x => x.ActiveFlag && !Links(_edit?.ItemNo ?? "").Any(m => m.VendorID == x.VendorID))
+        .Select(x => new VendorOption(x.VendorID, $"{x.VendorID} · {x.VendorName} ({x.VendorType})"));
+    protected override async Task OnInitializedAsync()
+    {
+        await Permissions.EnsureAsync(Authentication);
+        if (!Permissions.IsVisible(Href)) { Nav.NavigateTo("/unauthorized"); return; }
+        _actor = ActorCode.Of((await Authentication.GetAuthenticationStateAsync()).User);
+        _ready = true;
+        Reload();
+    }
+    void Load()
+    {
+        var items = MD.ListItems(itemType: "MATERIAL");
+        var vendors = MD.ListVendors();
+        var links = Scm.ListItemVendors();
+        _all = items; _vendors = vendors; _links = links;
+        var term = _search.Trim();
+        _rows = _all.Where(x => term.Length == 0 || x.ItemNo.Contains(term, StringComparison.OrdinalIgnoreCase)
+            || x.ItemName.Contains(term, StringComparison.OrdinalIgnoreCase)
+            || Links(x.ItemNo).Any(v => v.VendorID.Contains(term, StringComparison.OrdinalIgnoreCase) || v.VendorName.Contains(term, StringComparison.OrdinalIgnoreCase))).ToList();
+    }
+    void Reload()
+    {
+        try { Load(); _error = false; _message = ""; }
+        catch (Exception ex) { Logger.LogError(ex, "SCM-003 load failed"); _error = true; _message = T("조회에 실패했습니다. 다시 조회해 주세요.", "Unable to load. Please retry.", "No se pudo cargar. Inténtelo de nuevo."); }
+    }
+    void Open(MasterDataRepository.ItemRow row)
+    {
+        if (!CanEdit) return;
+        Reload();
+        if (_error) return;
+        _edit = _all.FirstOrDefault(x => x.ItemNo == row.ItemNo);
+        _selectedVendors.Clear(); _editError = "";
+    }
+    void ToggleVendor(string vendorId, bool selected)
+    {
+        if (selected) _selectedVendors.Add(vendorId);
+        else _selectedVendors.Remove(vendorId);
+    }
+    void Link()
+    {
+        if (!CanEdit || _edit is null || _selectedVendors.Count == 0) return;
+        try
+        {
+            var changed = Scm.LinkItemVendors(_edit.ItemNo, _selectedVendors, _actor);
+            foreach (var vendorId in changed) Audit.Log("SCM-003", "LINK", "SCM_ItemVendor", _edit.ItemNo, null,
+                new { _edit.ItemNo, VendorID = vendorId, ActiveFlag = true });
+            _selectedVendors.Clear();
+            _editError = "";
+            RefreshAfterSave();
+        }
+        catch (Exception ex) { Logger.LogError(ex, "SCM-003 link failed"); _editError = T("연결하지 못했습니다. MATERIAL 품목과 사용 중인 업체인지 확인해 주세요.", "Unable to link. Check the MATERIAL item and active vendor.", "No se pudo vincular. Verifique el material y proveedor activo."); }
+    }
+    void Unlink(ScmRepository.ItemVendorRow link)
+    {
+        if (!CanEdit || _edit?.ItemNo != link.ItemNo) return;
+        try
+        {
+            if (Scm.UnlinkItemVendor(link.ItemNo, link.VendorID, _actor))
+                Audit.Log("SCM-003", "UNLINK", "SCM_ItemVendor", link.ItemNo,
+                    new { link.ItemNo, link.VendorID, ActiveFlag = true }, new { link.ItemNo, link.VendorID, ActiveFlag = false });
+            _editError = "";
+            RefreshAfterSave();
+        }
+        catch (Exception ex) { Logger.LogError(ex, "SCM-003 unlink failed"); _editError = T("연결 해제에 실패했습니다.", "Unable to unlink.", "No se pudo desvincular."); }
+    }
+    void RefreshAfterSave()
+    {
+        try { Load(); _error = false; _message = T("업체 연결 정보를 저장했습니다.", "Vendor mappings saved.", "Vínculos guardados."); }
+        catch (Exception ex) { Logger.LogError(ex, "SCM-003 refresh failed after save"); _editError = T("저장은 완료되었지만 새로 조회하지 못했습니다. 닫고 다시 조회해 주세요.", "Saved, but refresh failed. Close and reload.", "Guardado. Cierre y recargue."); }
+    }
+}

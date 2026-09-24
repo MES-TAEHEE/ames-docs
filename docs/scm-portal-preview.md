@@ -1,0 +1,94 @@
+# EOS 구매·발주 / 협력업체 포털 화면 미리보기
+
+SCM-001/002는 기존 WH_PurchaseOrder의 실제 발주를 저장·조회한다. 포털은 실제 발주를 읽기 전용으로 조회한다. 수주 확인·납품서·검수 저장은 미구현이므로 버튼을 비활성화했다. SAP 호출은 하지 않는다.
+포털은 내부 Admin이면 발행된 전체 발주를 조회하고, 외부 계정은 SCM_PortalVendorUser에 연결된 활성 업체의 발주만 조회한다. 아직 실제 외부 계정 연결 데이터는 없다.
+발주 한 건에 여러 품목 행을 추가할 수 있다. 업체·납기·납품장소는 발주 공통 정보이며, 품목별 수량·단가·금액과 합계를 표시한다. 수량 합계는 단위별로 구분하며, 납품 잔량도 품목 행별로 관리한다.
+
+구매발주 작성의 품목 선택은 실제 MD_Item에서 ItemType='MATERIAL'인 항목만 조회한다.
+품명·단위는 선택한 마스터에서 자동 적용하며, 저장과 발행 시 유형을 다시 확인한다.
+품목 선택 시 단가는 MD_Item.UnitCost를 적용하고 NULL이면 0으로 표시한다.
+SCM-003 발주품목 관리는 MATERIAL 품목과 MD_Vendor 업체를 연결하는 실제 DB 관리 화면이다. 단가는 MD_Item.UnitCost를 참고용으로 표시하고 NULL은 0으로 표시한다. 업체 연결 및 해제는 즉시 저장한다.
+
+| 코드 | 메뉴 | 경로 |
+|---|---|---|
+| SCM-001 | 구매발주 관리 | /scm/purchase-orders |
+| SCM-002 | 발주 진행 현황 | /scm/order-progress |
+| SCM-003 | 발주품목 관리 | /scm/purchase-items |
+| PORTAL-001 | 발주 조회·수주 확인 | /portal/orders |
+| PORTAL-002 | 납기별 발주 현황 | /portal/due-orders |
+| PORTAL-003 | 납품서 등록 | /portal/delivery-entry |
+| PORTAL-004 | 납품서 조회·수정 | /portal/deliveries |
+| PORTAL-005 | 입고·검수 결과 | /portal/receipts |
+
+- EOS 내부: 임시 발주 생성/수정, 발행, 발주 취소, 진행 현황/납품 이력 조회.
+- 포털: 실제 발행된 발주와 납기별 현황 조회. 수주 확인·납품·검수 저장은 후속 구현.
+- 한국어/영어/스페인어, 기존 메뉴·카드·그리드·테마 사용.
+- 실제 DB 반영: dist/migrate_scm_portal_screens.sql.
+  SYS_Screen 8건, PROCESS의 SCM/PORTAL 코드, Admin 및 ExternalCustomer 화면 권한.
+  기존 portal/shipment-plan 등록과 권한은 삭제하고, 포털 번호를 001~005로 정리한다.
+- Admin은 8개 화면 REA, ExternalCustomer는 포털만 R 또는 RE.
+  다른 내부 역할의 권한은 기존 SYS 역할/권한 관리 화면에서 별도로 지정한다.
+- 스크립트는 트랜잭션으로 실행되며 코드/경로 충돌 시 중단한다.
+  재실행 시 화면을 갱신하고 누락된 권한만 추가한다. 기존 권한은 덮어쓰지 않는다.
+
+로컬 확인:
+dotnet build src/06_Web/AMES.Web/AMES.Web.csproj -c Release --no-restore -m:1 -nr:false
+dotnet run --project src/06_Web/AMES.Web/AMES.Web.csproj -c Release --no-build --no-launch-profile --urls http://localhost:5088
+
+후속 작업은 수주 확인, 납품서 저장, 입고·검수 연계다.
+
+## 발주번호 채번
+- 신규 발주는 첫 저장에서 PO-YYYYMMDD-0001 형식으로 발급한다.
+- DB 서버 날짜 기준, 날짜별 0001~9999. 한도 초과 시 발급을 거부한다.
+- dbo.SCM_PurchaseOrderSequence에 마지막 순번을 저장하고 트랜잭션 잠금으로 동시 발급을 직렬화한다.
+- 적용 스크립트: dist/migrate_scm_purchase_order_sequence.sql.
+- 창 열기·화면 입력 검증 실패·기존 발주 수정에는 신규 번호를 사용하지 않는다. DB 검증 실패는 예약 번호를 소비할 수 있다.
+- 이미 발급한 번호는 취소·화면 초기화 후에도 재사용하지 않는다.
+- 발주 내용과 채번 기록은 DB에 영구 저장한다. 저장 트랜잭션 실패 시 발주 행은 롤백되지만 별도로 예약한 번호에는 공백이 생길 수 있다.
+
+
+## SCM-003 품목·업체 연결
+
+- `dist/migrate_scm_item_vendor.sql`로 `dbo.SCM_ItemVendor`를 생성한다. 초기 매칭 데이터는 넣지 않는다.
+- 기본키 `(ItemNo, VendorID)`: 한 품목에 여러 업체, 한 업체에 여러 품목을 연결한다. 중복은 방지한다.
+- ItemNo는 MD_Item, VendorID는 MD_Vendor에 외래키로 연결한다. 삭제 연쇄 동작은 없다.
+- ActiveFlag, CreatedBy/TS, ModifiedBy/TS로 사용 상태와 등록·수정 정보를 남긴다. 해제는 ActiveFlag=0, 재연결은 기존 행을 활성화한다.
+- 등록 시 MATERIAL 유형과 업체 사용 여부를 DB에서 확인한다. 업체 유형은 제한하지 않는다(현재 마스터에는 SUPPLIER/CKD/LOCAL이 존재).
+- 화면에는 품목별 연결 업체, 단위, 참고 단가가 표시되며 품목코드·품목명·업체로 검색한다. 단가 수정 기능은 업체 매칭 기능으로 대체했다.
+- SCM-003 편집 권한으로 연결·해제를 제한하고 SYS_AuditLog에 LINK/UNLINK 이력을 남긴다.
+- SCM-001의 협력업체 선택은 MD_Vendor의 사용 중인 업체를 조회하고 VendorID를 보관한다. 조회 필터와 발주 목록/상세에는 업체코드와 업체명을 표시한다. 저장·발행 시 업체 사용 여부를 다시 검증한다. 발주 가능 품목은 선택한 업체의 활성 SCM_ItemVendor 매칭과 MATERIAL 유형을 모두 충족한 품목으로 제한한다. 업체 변경 시 기존 발주 품목 행을 초기화하고, 저장·발행 시 최신 매칭을 다시 확인한다. 미연결 업체는 품목 선택을 비활성화하고 SCM-003 연결 안내를 표시한다.
+- 업체 선택은 스크롤 가능한 체크박스 목록이며 여러 업체를 한 번에 연결한다. 일괄 연결은 하나의 DB 트랜잭션으로 저장되어 실패 시 전체 롤백한다.
+
+
+
+## WH_PurchaseOrder 실제 저장
+
+- 새 헤더/품목 테이블을 만들지 않고 WH_PurchaseOrder에 동일 PoNumber와 품목별 PoLineNo로 저장한다.
+- dist/migrate_scm_wh_purchase_order.sql: DeliveryDestination(nvarchar(200)), ScmRowVersion(rowversion)만 추가한다.
+- 저장 버튼은 Draft(화면: 작성중) 상태를 DB에 저장한다. 발행은 Open, 취소는 Cancelled로 기존 테이블을 갱신한다. 기존 Partial은 입고 진행, Complete/Received는 마감으로 표시한다.
+- 기존 발주도 조회한다. 수정은 Draft이고 입고수량/입고 패키지 연결이 없는 경우만 가능하다. 기존 품목 행의 PoID를 보존하며 삭제된 품목만 제거한다.
+- 저장·상태 변경은 트랜잭션으로 처리하고 전체 품목 행의 rowversion으로 동시 수정·입고 충돌을 검출한다. 활성 업체/MATERIAL/활성 매칭과 단위를 DB에서 재검증한다.
+- 수량은 decimal(12,3), 단가는 decimal(14,4) 범위를 검증한다. 신규 통화는 USD. 기존 발주 상세는 저장된 Currency를 표시한다.
+- SCM 내부 진행 수량은 WH_PurchaseOrder.ReceivedQty를 사용한다. 포털도 실제 발주를 조회한다. 납품서 저장과 신규 입고 처리 기능은 별도 구현 범위다.
+- SYS_AuditLog에 생성·수정·발행·취소를 기록한다. 테스트 발주는 검증 후 제거하되 사용한 발주번호는 재사용하지 않는다.
+
+
+## 포털 실제 발주 조회
+
+- `dist/migrate_scm_portal_vendor_user.sql`: 사용자 ID와 VendorID를 연결하는 SCM_PortalVendorUser를 생성한다. 연결 데이터는 자동 생성하지 않는다.
+- 외부 계정의 NameIdentifier와 활성 매칭/업체를 SQL 조건으로 확인한다. 미연결·해제 계정에는 발주가 보이지 않는다. 브라우저의 업체 선택값은 접근권한으로 사용하지 않는다.
+- 전체 조회는 내부 Identity 인증의 Admin에게만 허용한다. 화면 접근에는 기존 화면 권한을 함께 적용한다.
+- Draft는 포털에서 제외한다. Open/Partial/Complete/Received/Cancelled 발주만 조회하며 실제 입고수량도 표시한다.
+- 데모 발주·납품 데이터를 제거했다. 수주 확인/납품/검수는 DB 저장이 구현될 때까지 읽기 전용이다.
+
+## 다른 환경에 적용할 때
+
+앱 실행 전에 대상 DB를 확인하고 다음 마이그레이션을 순서대로 적용한다. 기존 데이터가 있는 DB에서 `AMES_Schema.sql` 전체를 실행하지 않는다.
+
+1. `dist/migrate_scm_portal_screens.sql` — 화면/역할 권한
+2. `dist/migrate_scm_purchase_order_sequence.sql` — 발주번호 순번
+3. `dist/migrate_scm_item_vendor.sql` — 품목·업체 연결
+4. `dist/migrate_scm_wh_purchase_order.sql` — 기존 발주 테이블 추가 컬럼
+5. `dist/migrate_scm_portal_vendor_user.sql` — 외부 계정·업체 연결
+
+소스 동기화는 업무 데이터나 DB 연결정보를 복사하지 않는다. 외부 계정·업체 연결과 품목·업체 연결은 대상 환경에서 별도로 관리한다.
