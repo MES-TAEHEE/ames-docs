@@ -3339,6 +3339,21 @@
   <data name="MD.Items.Lbl.Category" xml:space="preserve">
     <value>Categoría</value>
   </data>
+  <data name="MD.Items.Opt.Unregistered" xml:space="preserve">
+    <value>(no registrado en códigos comunes)</value>
+  </data>
+  <data name="MD.Items.Col.PalletQty" xml:space="preserve">
+    <value>Cant./Palé</value>
+  </data>
+  <data name="MD.Items.Col.MaxPalletQty" xml:space="preserve">
+    <value>Máx. palés</value>
+  </data>
+  <data name="MD.Items.Col.Tote" xml:space="preserve">
+    <value>TOTE</value>
+  </data>
+  <data name="MD.Items.Hint.Tote" xml:space="preserve">
+    <value>Se envía en cajas tote, no en palés</value>
+  </data>
   <data name="MD.Items.Lbl.SafetyStock" xml:space="preserve">
     <value>Stock de Seguridad</value>
   </data>

@@ -75,7 +75,7 @@
                 <Template Context="item"><span class="pill info">@(item.ItemType ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemCategory" Title="@L["Col.Category"]" TextAlign="TextAlign.Center" Width="100px">
-                <Template Context="item"><span class="dim">@item.ItemCategory</span></Template>
+                <Template Context="item"><span class="dim">@CategoryName(item.ItemCategory)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="CarType" Title="@L["Col.CarType"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="item"><span class="code dim">@(item.CarType ?? "—")</span></Template>
@@ -103,6 +103,17 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="UnitCost" Title="@L["Col.UnitPrice"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="item">@(item.UnitCost?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="PalletQty" Title="@L["MD.Items.Col.PalletQty"]" TextAlign="TextAlign.Right" Width="90px">
+                <Template Context="item">@(item.PalletQty?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="MaxPalletQty" Title="@L["MD.Items.Col.MaxPalletQty"]" TextAlign="TextAlign.Right" Width="90px">
+                <Template Context="item">@(item.MaxPalletQty?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ToteFlag" Title="@L["MD.Items.Col.Tote"]" TextAlign="TextAlign.Center" Width="70px">
+                <Template Context="item">
+                    @if (item.ToteFlag) { <RadzenIcon Icon="check_circle" Style="color:#4ade80;vertical-align:middle;" /> }
+                </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="item">
@@ -198,6 +209,7 @@
     List<MasterDataRepository.ItemRow>        _allRows      = new();
     List<MasterDataRepository.ItemRow>        _rows         = new();
     List<MasterDataRepository.CodeItemRow>    _itemTypeItems = new();
+    List<MasterDataRepository.CodeItemRow>    _categoryItems = new();
     List<MasterDataRepository.CodeItemRow>    _routingItems  = new();
     List<MasterDataRepository.CodeItemRow>    _activeFlagItems = new();
     List<MasterDataRepository.UomRow> _uomList = new();
@@ -215,6 +227,33 @@
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
     private IEnumerable<DropDownItem> ItemTypeOptions => _itemTypeItems.Where(t => t.UseFlag).Select(t => new DropDownItem { Value = t.CodeValue ?? "", Text = $"[{t.CodeValue}] {MasterDataRepository.LocalName(t)}" });
+    // 카테고리는 ITEM_CATEGORY 의 Attribute1(품목 유형, 쉼표로 여러 개)이 현재 유형과 맞는 코드만 고를 수 있다.
+    // 공통코드에 없는 기존 값(자유 입력 시절 데이터)은 수정 중인 행의 값만 옵션에 남겨 저장 때 지워지지 않게 한다
+    private IEnumerable<DropDownItem> CategoryOptions
+    {
+        get
+        {
+            var opts = CategoriesFor(_f.ItemType).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" }).ToList();
+            if (!string.IsNullOrEmpty(_f.ItemCategory) && !opts.Any(o => o.Value == _f.ItemCategory))
+                opts.Add(new DropDownItem { Value = _f.ItemCategory, Text = $"[{_f.ItemCategory}] {L["MD.Items.Opt.Unregistered"]}" });
+            return opts;
+        }
+    }
+    bool CategoryEnabled => CategoriesFor(_f.ItemType).Any();
+
+    IEnumerable<MasterDataRepository.CodeItemRow> CategoriesFor(string? itemType) =>
+        string.IsNullOrEmpty(itemType) ? [] :
+        _categoryItems.Where(c => c.UseFlag && (c.Attribute1 ?? "").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                                                 .Contains(itemType, StringComparer.OrdinalIgnoreCase));
+
+    // 등록된 카테고리 코드가 새 유형에서 쓸 수 없으면 비운다(기존 자유 입력 값은 그대로 둔다)
+    void NormalizeCategory()
+    {
+        if (string.IsNullOrEmpty(_f.ItemCategory)) return;
+        bool registered = _categoryItems.Any(c => c.CodeValue == _f.ItemCategory);
+        if (registered && !CategoriesFor(_f.ItemType).Any(c => c.CodeValue == _f.ItemCategory))
+            _f.ItemCategory = "";
+    }
     private IEnumerable<DropDownItem> RoutingOptions => _routingItems.Where(r => r.UseFlag).Select(r => new DropDownItem { Value = r.CodeValue ?? "", Text = $"[{r.CodeValue}] {MasterDataRepository.LocalName(r)}" });
     private IEnumerable<DropDownItem> UomOptions => _uomList.Where(u => u.ActiveFlag).Select(u => new DropDownItem { Value = u.UOMCode ?? "", Text = u.UOMCode + (string.IsNullOrEmpty(u.UOMName) ? "" : $"  ({u.UOMName})") });
     // 상태 필터: 공통코드 ACTIVE_FLAG (ACTIVE/INACTIVE)
@@ -228,6 +267,7 @@
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/fd/items");
         try { _itemTypeItems = MD.ListCodeItems("ITEM_TYPE"); } catch { }
+        try { _categoryItems = MD.ListCodeItems("ITEM_CATEGORY"); } catch { }
         try { _routingItems = MD.ListCodeItems("ROUTING"); } catch { }
         try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
         try { _uomList = MD.ListUoms(); } catch { }
@@ -308,6 +348,9 @@
             Pgn          = r.PGN ?? "",
             Alc          = r.ALC ?? "",
             DrawingNo    = r.DrawingNo ?? "",
+            PalletQty    = r.PalletQty,
+            MaxPalletQty = r.MaxPalletQty,
+            ToteFlag     = r.ToteFlag,
             ActiveFlag   = r.ActiveFlag,
         };
         _confirmDelete = false; _modalErr = ""; _modal = "edit";
@@ -328,10 +371,13 @@
         {
             var no = _f.ItemNo.Trim().ToUpper();
             if (MD.ItemExists(no)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], no); return; }
+            NormalizeCategory();
             MD.InsertItem(no, _f.ItemName.Trim(), N(_f.ItemType),
                 N(_f.ItemCategory), N(_f.CarType), N(_f.Uom), N(_f.RoutingType),
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
-                N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo), _f.ActiveFlag, _actor);
+                N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo),
+                _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag,
+                _f.ActiveFlag, _actor);
             Audit.Created("MD-003", "MD_Item", no, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Items.Ok.Created"].Value, no), false);
@@ -347,10 +393,13 @@
         _busy = true;
         try
         {
+            NormalizeCategory();
             MD.UpdateItem(_f.ItemNo, _f.ItemName.Trim(), N(_f.ItemType),
                 N(_f.ItemCategory), N(_f.CarType), N(_f.Uom), N(_f.RoutingType),
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
-                N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo), _f.ActiveFlag, _actor);
+                N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo),
+                _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag,
+                _f.ActiveFlag, _actor);
             Audit.Updated("MD-003", "MD_Item", _f.ItemNo, _sel, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Items.Ok.Updated"].Value, _f.ItemNo), false);
@@ -395,11 +444,11 @@
         <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.ItemType"]" />
-                <RadzenDropDown @bind-Value="_f.ItemType" Data="@ItemTypeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDropDown @bind-Value="_f.ItemType" Data="@ItemTypeOptions" Change="@(_ => NormalizeCategory())" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Lbl.Category"]" />
-                <RadzenTextBox @bind-Value="_f.ItemCategory" Placeholder="BUMPER, DOOR" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDropDown @bind-Value="_f.ItemCategory" Data="@CategoryOptions" Disabled="@(!CategoryEnabled)" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["Col.Routing"]" />
@@ -444,6 +493,24 @@
             </RadzenColumn>
         </RadzenRow>
 
+        <RadzenRow Gap="8px" Style="margin-top:6px;">
+            <RadzenColumn Size="4">
+                <RadzenLabel Text="@L["MD.Items.Col.PalletQty"]" />
+                <RadzenNumeric TValue="int?" @bind-Value="_f.PalletQty" Min="1" Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            </RadzenColumn>
+            <RadzenColumn Size="4">
+                <RadzenLabel Text="@L["MD.Items.Col.MaxPalletQty"]" />
+                <RadzenNumeric TValue="int?" @bind-Value="_f.MaxPalletQty" Min="1" Disabled="@_f.ToteFlag" Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            </RadzenColumn>
+            <RadzenColumn Size="4">
+                <RadzenLabel Text="@L["MD.Items.Col.Tote"]" Component="ItemChkTote" />
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="height:32px;">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ToteFlag" Change="@(v => { if (v) _f.MaxPalletQty = null; })" Name="ItemChkTote" />
+                    <RadzenLabel Text="@L["MD.Items.Hint.Tote"]" Component="ItemChkTote" class="dim" style="cursor:pointer;" />
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
             <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="ItemChkActive" />
             <RadzenLabel Text="@L["Lbl.Active"]" Component="ItemChkActive" style="cursor:pointer;" />
@@ -452,6 +519,14 @@
 
     static string? N(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
     static decimal? Nz(decimal v) => v == 0 ? null : v;
+    // 목록 표시: 공통코드 명칭(현재 언어), 코드에 없는 기존 값은 원문, 빈 값은 —
+    string CategoryName(string? code)
+    {
+        if (string.IsNullOrEmpty(code)) return "—";
+        var c = _categoryItems.FirstOrDefault(x => x.CodeValue == code);
+        return c is null ? code : MasterDataRepository.LocalName(c);
+    }
+
 
     class FormModel
     {
@@ -469,6 +544,9 @@
         public string  Pgn          { get; set; } = "";
         public string  Alc          { get; set; } = "";
         public string  DrawingNo    { get; set; } = "";
+        public int?    PalletQty    { get; set; }
+        public int?    MaxPalletQty { get; set; }
+        public bool    ToteFlag     { get; set; }
         public bool    ActiveFlag   { get; set; } = true;
     }
 }

@@ -3339,6 +3339,21 @@
   <data name="MD.Items.Lbl.Category" xml:space="preserve">
     <value>카테고리</value>
   </data>
+  <data name="MD.Items.Opt.Unregistered" xml:space="preserve">
+    <value>(공통코드 미등록)</value>
+  </data>
+  <data name="MD.Items.Col.PalletQty" xml:space="preserve">
+    <value>적입수량</value>
+  </data>
+  <data name="MD.Items.Col.MaxPalletQty" xml:space="preserve">
+    <value>최대 적재</value>
+  </data>
+  <data name="MD.Items.Col.Tote" xml:space="preserve">
+    <value>TOTE</value>
+  </data>
+  <data name="MD.Items.Hint.Tote" xml:space="preserve">
+    <value>팔레트 대신 토트 박스로 출하</value>
+  </data>
   <data name="MD.Items.Lbl.SafetyStock" xml:space="preserve">
     <value>안전재고</value>
   </data>

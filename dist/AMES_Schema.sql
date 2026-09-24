@@ -1914,6 +1914,9 @@ CREATE TABLE [dbo].[MD_Item](
 	[CustItemNoSAV] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
 	[CustItemNoGEO] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
 	[DrawingNo] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
+	[PalletQty] [int] NULL,
+	[MaxPalletQty] [int] NULL,
+	[ToteFlag] [bit] NOT NULL,
 	[ActiveFlag] [bit] NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
@@ -1932,6 +1935,8 @@ CREATE TABLE [dbo].[MD_Item](
 	[ItemNo] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[MD_Item] ADD  DEFAULT ((0)) FOR [ToteFlag]
 GO
 ALTER TABLE [dbo].[MD_Item] ADD  DEFAULT ((1)) FOR [ActiveFlag]
 GO
@@ -1964,6 +1969,12 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'GEO 고객사 품번 매핑.  · varchar(30)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'CustItemNoGEO'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'도면 번호.  · varchar(30)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'DrawingNo'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'적입수량 — 팔레트 1개에 싣는 제품 수량 · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'PalletQty'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최대 적재 — 출하 차량(컨테이너)에 싣는 최대 팔레트 수 · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'MaxPalletQty'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'TOTE 출하 여부 — 1 이면 팔레트가 아니라 토트 박스로 출하 · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'ToteFlag'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사용 여부 — 단종 시 FALSE (물리 삭제 금지).  · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
 GO
