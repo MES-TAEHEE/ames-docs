@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -8300,18 +8300,6 @@
   </data>
   <data name="Portal.Login.Hint" xml:space="preserve">
     <value>Solo pueden iniciar sesión las cuentas registradas por el administrador.</value>
-  </data>
-  <data name="Portal.ShipmentPlan.Title" xml:space="preserve">
-    <value>Plan de envíos</value>
-  </data>
-  <data name="Portal.ShipmentPlan.Empty" xml:space="preserve">
-    <value>No hay planes de envío que coincidan con el filtro.</value>
-  </data>
-  <data name="Portal.ShipmentPlan.Kpi.Shipped" xml:space="preserve">
-    <value>Enviado</value>
-  </data>
-  <data name="Portal.ShipmentPlan.Planned" xml:space="preserve">
-    <value>Planificado</value>
   </data>
   <data name="Col.ShipDate" xml:space="preserve">
     <value>Fecha de envío</value>

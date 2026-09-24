@@ -1,4 +1,4 @@
-﻿using AMES.Data.Repositories;
+using AMES.Data.Repositories;
 
 namespace AMES.Web.Services;
 
@@ -27,6 +27,7 @@ public sealed class MenuCatalog
 
     public static readonly Section[] Sections =
     {
+        new("scm", "🤝", "구매·발주 관리", "Purchasing", "Compras"),
         new("pp",  "📅", "생산 계획",   "Production Planning", "Planificación"),
         new("mnt", "🔧", "설비 보전",   "Maintenance",         "Mantenimiento"),
         new("rpt", "📊", "보고서",      "Reports",             "Informes"),
@@ -46,6 +47,14 @@ public sealed class MenuCatalog
 
     static readonly Item[] FallbackItems =
     {
+        new("scm", "scm/purchase-orders", "SCM-001", "구매발주 관리", "Purchase Orders"),
+        new("scm", "scm/order-progress", "SCM-002", "발주 진행 현황", "Order Progress"),
+        new("scm", "scm/purchase-items", "SCM-003", "발주품목 관리", "Purchase Items"),
+        new("portal", "portal/orders", "PORTAL-001", "발주 조회·수주 확인", "Orders & Confirmation"),
+        new("portal", "portal/due-orders", "PORTAL-002", "납기별 발주 현황", "Orders by Due Date"),
+        new("portal", "portal/delivery-entry", "PORTAL-003", "납품서 등록", "Create Delivery"),
+        new("portal", "portal/deliveries", "PORTAL-004", "납품서 조회·수정", "Delivery Notes"),
+        new("portal", "portal/receipts", "PORTAL-005", "입고·검수 결과", "Receipt & Inspection"),
         // -- WH --
         new("wh", "wh/inventory",       "WH-006", "재고 조회",   "Inventory Search"),
         new("wh", "wh/location-map",    "WH-003", "로케이션 맵", "Location Map"),
@@ -155,7 +164,8 @@ public sealed class MenuCatalog
     {
         var path = href.Trim('/');
         return path.Equals("wh/inventory-setting", StringComparison.OrdinalIgnoreCase)
-            || path.Equals("fg/locations", StringComparison.OrdinalIgnoreCase);
+            || path.Equals("fg/locations", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("portal/shipment-plan", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>SYS-003 화면 마스터 편집 뒤 다시 읽기(ScreenCatalogNotifier 수신 측에서 호출)</summary>
@@ -237,6 +247,14 @@ public sealed class MenuCatalog
     // 화면/대분류의 스페인어 표기 (DB엔 KO/EN만 존재 → 인라인 공급, Href 키)
     static readonly Dictionary<string, string> EsByHref = new()
     {
+        ["scm/purchase-orders"] = "Pedidos de compra",
+        ["scm/order-progress"] = "Seguimiento de pedidos",
+        ["scm/purchase-items"] = "Artículos de compra",
+        ["portal/orders"] = "Pedidos y confirmación",
+        ["portal/due-orders"] = "Pedidos por vencimiento",
+        ["portal/delivery-entry"] = "Crear entrega",
+        ["portal/deliveries"] = "Albaranes",
+        ["portal/receipts"] = "Recepción e inspección",
         // WH
         ["wh/location-map"] = "Mapa de Ubicaciones",
         ["wh/picking-orders"] = "Órdenes de Picking",

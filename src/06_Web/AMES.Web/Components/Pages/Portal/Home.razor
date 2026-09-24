@@ -1,0 +1,32 @@
+@page "/portal"
+@rendermode InteractiveServer
+@inject IStringLocalizer<SharedResources> L
+@inject MenuCatalog Catalog
+@inject PermissionService Permissions
+@inject AuthenticationStateProvider Authentication
+
+<PageTitle>@L["Portal.Nav.Home"] · AMES</PageTitle>
+<AmesPageHeader TitleKey="Portal.Nav.Home" />
+<div class="ames-card">
+    <div class="ames-card-h">@L["Portal.Nav.Home"] · EOS</div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;padding:18px;">
+        @foreach (var item in _items)
+        {
+            <a class="ames-rz-btn" style="padding:16px;text-decoration:none;" href="@item.Href">
+                <span class="code">@item.Lid</span> · @MenuCatalog.Label(item, System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName)
+            </a>
+        }
+        @if (_ready && _items.Count == 0) { <span>@L["Portal.Nav.Empty"]</span> }
+    </div>
+</div>
+@code {
+    bool _ready;
+    List<MenuCatalog.Item> _items = new();
+    protected override async Task OnInitializedAsync()
+    {
+        await Permissions.EnsureAsync(Authentication);
+        Catalog.Load();
+        _items = Catalog.SectionItems(MenuCatalog.PortalSection).Where(x => Permissions.IsVisible(x.Href)).ToList();
+        _ready = true;
+    }
+}

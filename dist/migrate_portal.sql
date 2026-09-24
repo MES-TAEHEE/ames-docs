@@ -1,6 +1,6 @@
 -- ════════════════════════════════════════════════════════════════════════
 --  migrate_portal.sql
---  외부 개방 화면(/portal) — 역할 ExternalCustomer · 공정 코드 PORTAL · 화면 PORTAL-001 등록 · 권한
+--  외부 개방 화면(/portal) — 역할 ExternalCustomer · 공정 코드 PORTAL
 --
 --  · 외부 사용자 = SYS-001 에서 만든 Identity 계정에 ExternalCustomer 역할을 준 사람. 내부 로그인은 거부되고
 --    /portal/login 에서만 로그인해 외부 화면만 본다(AMES.Web Services/PortalAuth.cs 정본).
@@ -35,41 +35,15 @@ ELSE
     PRINT N'· MD_CodeItem PROCESS/PORTAL 이미 존재';
 GO
 
--- ── 3. 화면 PORTAL-001 출하 계획 조회 ──────────────────────────────────
-IF NOT EXISTS (SELECT 1 FROM dbo.SYS_Screen WHERE ScreenCode = 'PORTAL-001')
-BEGIN
-    INSERT INTO dbo.SYS_Screen
-        (ScreenCode, ModuleCode, ProcessCode, SubProcessCode,
-         ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy, CreatedTS)
-    VALUES
-        ('PORTAL-001', 'WEB', 'PORTAL', NULL,
-         N'출하 계획 조회', N'Shipment Plan', 'portal/shipment-plan', 'PORTAL-001', 1, 1, 'seed', SYSDATETIME());
-    PRINT N'✓ SYS_Screen PORTAL-001 등록 (portal/shipment-plan)';
-END
-ELSE
-    PRINT N'· SYS_Screen PORTAL-001 이미 존재';
+-- ── 3. 삭제된 출하 계획 화면과 권한 제거 ──
+BEGIN TRANSACTION;
+DELETE p FROM dbo.SYS_RolePermission p
+JOIN dbo.SYS_Screen s ON s.ScreenCode=p.ScreenCode
+WHERE s.ModuleCode='WEB' AND s.HRef IN ('portal/shipment-plan','/portal/shipment-plan');
+DELETE FROM dbo.SYS_Screen
+WHERE ModuleCode = 'WEB' AND HRef IN ('portal/shipment-plan', '/portal/shipment-plan');
+COMMIT;
 GO
-
--- ── 4. 권한: Admin REA, ExternalCustomer R ─────────────────────────────
-IF NOT EXISTS (SELECT 1 FROM dbo.SYS_RolePermission WHERE RoleName = 'Admin' AND ScreenCode = 'PORTAL-001')
-BEGIN
-    DECLARE @AdminRoleId NVARCHAR(450) = (SELECT Id FROM dbo.AspNetRoles WHERE Name = 'Admin');
-    INSERT INTO dbo.SYS_RolePermission
-        (RoleID, RoleName, ModuleCode, ScreenCode, PermissionLevel, IsSystemRole, EffectiveTS, CreatedBy, CreatedTS)
-    VALUES (@AdminRoleId, 'Admin', 'WEB', 'PORTAL-001', 'REA', 1, SYSDATETIME(), 'seed', SYSDATETIME());
-    PRINT N'✓ SYS_RolePermission Admin/PORTAL-001 (REA)';
-END
-GO
-IF NOT EXISTS (SELECT 1 FROM dbo.SYS_RolePermission WHERE RoleName = 'ExternalCustomer' AND ScreenCode = 'PORTAL-001')
-BEGIN
-    DECLARE @ExtRoleId NVARCHAR(450) = (SELECT Id FROM dbo.AspNetRoles WHERE Name = 'ExternalCustomer');
-    INSERT INTO dbo.SYS_RolePermission
-        (RoleID, RoleName, ModuleCode, ScreenCode, PermissionLevel, IsSystemRole, EffectiveTS, CreatedBy, CreatedTS)
-    VALUES (@ExtRoleId, 'ExternalCustomer', 'WEB', 'PORTAL-001', 'R', 0, SYSDATETIME(), 'seed', SYSDATETIME());
-    PRINT N'✓ SYS_RolePermission ExternalCustomer/PORTAL-001 (R)';
-END
-GO
-
 SELECT ScreenCode, ProcessCode, HRef, SortOrder, IsVisible FROM dbo.SYS_Screen WHERE ScreenCode LIKE 'PORTAL-%';
 SELECT RoleName, ScreenCode, PermissionLevel FROM dbo.SYS_RolePermission WHERE ScreenCode LIKE 'PORTAL-%' ORDER BY RoleName;
 GO

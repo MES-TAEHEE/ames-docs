@@ -159,5 +159,5 @@
     public void Dispose() { Header.OnChanged -= OnHeaderChanged; Nav.LocationChanged -= OnLocationChanged; }
 
     string Label(MenuCatalog.Item it)
-        => System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko" ? it.Ko : it.En;
+        => MenuCatalog.Label(it, System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
 }
