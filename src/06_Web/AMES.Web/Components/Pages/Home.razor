@@ -18,23 +18,31 @@
 <div class="ames-kpis">
     <div class="ames-kpi ok">
         <div class="ames-kpi-l">@L["Home.Kpi.Releasable"]</div>
-        <div class="ames-kpi-v">@_kpiReleasable</div>
-        <div class="ames-kpi-s">@L["Home.Kpi.ReleasableSub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_kpiReleasable</div>
+            <div class="ames-kpi-s">@L["Home.Kpi.ReleasableSub"]</div>
+        </div>
     </div>
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["Home.Kpi.Scheduled"]</div>
-        <div class="ames-kpi-v">@_kpiSchedule</div>
-        <div class="ames-kpi-s">@L["Home.Kpi.ScheduledSub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_kpiSchedule</div>
+            <div class="ames-kpi-s">@L["Home.Kpi.ScheduledSub"]</div>
+        </div>
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">@L["Home.Kpi.Downtime"]</div>
-        <div class="ames-kpi-v">@_kpiDt</div>
-        <div class="ames-kpi-s">@L["Home.Kpi.DowntimeSub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_kpiDt</div>
+            <div class="ames-kpi-s">@L["Home.Kpi.DowntimeSub"]</div>
+        </div>
     </div>
     <div class="ames-kpi @(_kpiOtdPct >= 95 ? "ok" : _kpiOtdPct >= 85 ? "warn" : "bad")">
         <div class="ames-kpi-l">@L["Home.Kpi.OnTime"]</div>
-        <div class="ames-kpi-v">@_kpiOtdPct.ToString("0.0")%</div>
-        <div class="ames-kpi-s">@L["Home.Kpi.OnTimeSub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_kpiOtdPct.ToString("0.0")%</div>
+            <div class="ames-kpi-s">@L["Home.Kpi.OnTimeSub"]</div>
+        </div>
     </div>
 </div>
 

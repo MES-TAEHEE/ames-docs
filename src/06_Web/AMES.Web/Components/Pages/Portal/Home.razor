@@ -18,23 +18,31 @@
 <div class="ames-kpis">
     <div class="ames-kpi info">
         <div class="ames-kpi-l">@L["Portal.Home.Kpi.Orders"]</div>
-        <div class="ames-kpi-v">@_orders</div>
-        <div class="ames-kpi-s">@_scope</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_orders</div>
+            <div class="ames-kpi-s">@_scope</div>
+        </div>
     </div>
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["Portal.Home.Kpi.Awaiting"]</div>
-        <div class="ames-kpi-v">@_awaiting</div>
-        <div class="ames-kpi-s">@L["Portal.Home.Kpi.AwaitingSub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_awaiting</div>
+            <div class="ames-kpi-s">@L["Portal.Home.Kpi.AwaitingSub"]</div>
+        </div>
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">@L["Portal.Home.Kpi.InDelivery"]</div>
-        <div class="ames-kpi-v">@_inDelivery</div>
-        <div class="ames-kpi-s">@L["Portal.Home.Kpi.InDeliverySub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_inDelivery</div>
+            <div class="ames-kpi-s">@L["Portal.Home.Kpi.InDeliverySub"]</div>
+        </div>
     </div>
     <div class="ames-kpi @(_overdue > 0 ? "bad" : "ok")">
         <div class="ames-kpi-l">@L["Portal.Home.Kpi.Overdue"]</div>
-        <div class="ames-kpi-v">@_overdue</div>
-        <div class="ames-kpi-s">@L["Portal.Home.Kpi.OverdueSub"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_overdue</div>
+            <div class="ames-kpi-s">@L["Portal.Home.Kpi.OverdueSub"]</div>
+        </div>
     </div>
 </div>
 
