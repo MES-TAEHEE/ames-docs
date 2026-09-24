@@ -7,7 +7,8 @@ public sealed partial class ScmRepository
     public record PurchaseLine(int Id, string Item, string Name, string Unit, decimal Quantity,
         decimal Price, decimal Received, int PoID = 0, string Version = "");
     public record PurchaseOrder(string Number, string Vendor, DateTime Ordered, DateTime Due,
-        string Destination, string Status, string Currency, List<PurchaseLine> Lines, string VendorName = "");
+        string Destination, string Status, string Currency, List<PurchaseLine> Lines, string VendorName = "",
+        DateTime? SupplierConfirmedAt = null, string? SupplierConfirmedBy = null);
 
     public List<PurchaseOrder> ListPurchaseOrders(bool portal = false, string? portalUserId = null, bool internalAdminPreview = false)
     {
@@ -15,7 +16,7 @@ public sealed partial class ScmRepository
         using var cmd = new SqlCommand("""
             SELECT p.PoID,p.PoNumber,p.PoLineNo,p.VendorID,p.ItemNo,i.ItemName,p.UnitCode,
                    p.OrderQty,p.UnitPrice,p.ReceivedQty,p.OrderDate,p.DueDate,p.Status,
-                   p.Currency,p.DeliveryDestination,p.ScmRowVersion,v.VendorName
+                   p.Currency,p.DeliveryDestination,p.ScmRowVersion,v.VendorName,p.SupplierConfirmedAt,p.SupplierConfirmedBy
             FROM dbo.WH_PurchaseOrder p LEFT JOIN dbo.MD_Item i ON i.ItemNo=p.ItemNo
             LEFT JOIN dbo.MD_Vendor v ON v.VendorID=p.VendorID
             WHERE NULLIF(p.PoNumber,'') IS NOT NULL
@@ -42,11 +43,13 @@ public sealed partial class ScmRepository
             if (!orders.TryGetValue(number, out var order))
             {
                 order = new(number, S(3), r.IsDBNull(10) ? DateTime.MinValue : r.GetDateTime(10),
-                    r.IsDBNull(11) ? DateTime.MinValue : r.GetDateTime(11), S(14), S(12), S(13), [], S(16));
+                    r.IsDBNull(11) ? DateTime.MinValue : r.GetDateTime(11), S(14), S(12), S(13), [], S(16),
+                    r.IsDBNull(17) ? null : r.GetDateTime(17), S(18));
                 orders.Add(number, order);
             }
             // Mixed legacy line states are displayed as an in-progress order until every line is complete.
             if (order.Status != S(12)) orders[number] = order = order with { Status = "Partial" };
+            if (r.IsDBNull(17)) orders[number] = order = order with { SupplierConfirmedAt = null, SupplierConfirmedBy = null };
             order.Lines.Add(new(r.IsDBNull(2) ? r.GetInt32(0) : r.GetInt32(2), S(4), S(5), S(6),
                 D(7), D(8), D(9), r.GetInt32(0), Convert.ToHexString((byte[])r[15])));
         }
@@ -91,6 +94,42 @@ public sealed partial class ScmRepository
         return number;
     }
 
+    public bool ConfirmSupplierOrder(string number, IReadOnlyDictionary<int,string> versions, string userId, string actor, bool adminOnBehalf = false)
+    {
+        using var conn = factory.OpenConnection();
+        using var tx = conn.BeginTransaction();
+        var lines = LockPurchaseOrder(conn,tx,number,versions);
+        if (lines.Count == 0 || lines.Any(x => x.Status is not ("Open" or "Partial")))
+            throw new InvalidOperationException("Only issued orders can be confirmed.");
+        using var cmd = new SqlCommand("""
+            IF (SELECT COUNT(DISTINCT VendorID) FROM dbo.WH_PurchaseOrder WHERE PoNumber=@Number)<>1
+                THROW 50030,'Order must belong to one vendor.',1;
+            IF NOT EXISTS (
+                SELECT 1 FROM dbo.AspNetUsers u
+                JOIN dbo.AspNetUserRoles ur ON ur.UserId=u.Id JOIN dbo.AspNetRoles r ON r.Id=ur.RoleId
+                WHERE u.Id=@User AND ((@Admin=1 AND r.Name='Admin') OR (@Admin=0 AND r.Name='ExternalCustomer'))
+            ) THROW 50031,'No confirmation permission.',1;
+            IF @Admin=0 AND EXISTS (
+                SELECT 1 FROM dbo.WH_PurchaseOrder p
+                WHERE p.PoNumber=@Number AND NOT EXISTS (
+                    SELECT 1 FROM dbo.SCM_PortalVendorUser m WITH(HOLDLOCK)
+                    JOIN dbo.MD_Vendor v WITH(HOLDLOCK) ON v.VendorID=m.VendorID
+                    WHERE m.UserID=@User AND m.VendorID=p.VendorID AND m.ActiveFlag=1 AND ISNULL(v.ActiveFlag,1)=1
+                )
+            ) THROW 50031,'No confirmation permission.',1;
+            IF NOT EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder WHERE PoNumber=@Number AND SupplierConfirmedAt IS NULL)
+            BEGIN SELECT CAST(0 AS bit); RETURN; END;
+            DECLARE @Now datetime2(7)=SYSDATETIME();
+            UPDATE dbo.WH_PurchaseOrder SET SupplierConfirmedAt=@Now,SupplierConfirmedBy=@Actor,
+                SupplierConfirmedUserID=@User,ModifiedBy=@Actor,ModifiedTS=@Now WHERE PoNumber=@Number;
+            SELECT CAST(1 AS bit);
+            """,conn,tx);
+        Add(cmd,("@Number",number),("@User",userId),("@Actor",actor),("@Admin",adminOnBehalf));
+        var changed=(bool)cmd.ExecuteScalar()!;
+        tx.Commit();
+        return changed;
+    }
+
     public void ChangePurchaseOrderStatus(PurchaseOrder order, IReadOnlyDictionary<int,string> expectedVersions, string status, string actor)
     {
         if (status is not ("Open" or "Cancelled")) throw new ArgumentException("Unsupported status.");
@@ -133,6 +172,9 @@ public sealed partial class ScmRepository
             """,conn,tx);
         Add(cmd,("@Number",number));
         if ((int)cmd.ExecuteScalar()! > 0) throw new InvalidOperationException("Order is referenced by inbound packages.");
+        using var deliveries = new SqlCommand("SELECT COUNT(*) FROM dbo.SCM_Delivery WHERE PoNumber=@Number AND Status<>'Cancelled'",conn,tx);
+        Add(deliveries,("@Number",number));
+        if ((int)deliveries.ExecuteScalar()! > 0) throw new InvalidOperationException("Order has registered deliveries.");
     }
 
     static void ValidateOrderValues(PurchaseOrder order)

@@ -6,6 +6,9 @@ public sealed class ScmPreviewStore
     public const string DemoVendor = "DEMO-V001";
     public sealed class OrderLine
     {
+        public int PoID { get; set; }
+        public decimal PendingDelivery { get; set; }
+        public decimal AvailableDelivery => Math.Max(0, Quantity - Received - PendingDelivery);
         public int Id { get; set; } = 1;
         public string Item { get; set; } = "";
         public string Name { get; set; } = "";
@@ -32,6 +35,8 @@ public sealed class ScmPreviewStore
         public string Status { get; set; } = "Draft";
         public bool Persistent { get; set; }
         public string Currency { get; set; } = "USD";
+        public DateTime? SupplierConfirmedAt { get; set; }
+        public string? SupplierConfirmedBy { get; set; }
         public Dictionary<int,string> Versions { get; set; } = new();
         public Order Copy()
         {
@@ -43,6 +48,14 @@ public sealed class ScmPreviewStore
     }
     public sealed class Delivery
     {
+        public string Version { get; set; } = "";
+        public DateTime? ShipDate { get; set; }
+        public DateTime? ShippedAt { get; set; }
+        public string? ShippedBy { get; set; }
+        public int PoID { get; set; }
+        public string Item { get; set; } = "";
+        public string Unit { get; set; } = "";
+        public decimal Received { get; set; }
         public string Number { get; set; } = "";
         public string OrderNumber { get; set; } = "";
         public int LineId { get; set; } = 1;
