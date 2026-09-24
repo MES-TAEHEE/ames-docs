@@ -1,0 +1,71 @@
+@rendermode InteractiveServer
+@inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.MenuCatalog Catalog
+@using AMES.Web.Services
+
+@*  외부 포탈 좌측 메뉴 — 내부 NavMenu 와 같은 클래스. 검색·카테고리 접기·메뉴 접기가 동작하도록 대화형 컴포넌트로 분리했다.
+    포탈 화면은 RBAC 대상이 아니라 SYS_Screen 에 등록된 PORTAL 화면을 모두 보인다. *@
+
+<aside class="ames-side portal-side @(_collapsed ? "ames-side--collapsed" : "")">
+    <div class="ames-nav-top">
+        <div class="ames-nav-search">
+            <span class="ames-nav-search-ic">🔍</span>
+            <input type="text" value="@_query" @oninput="e => _query = e.Value?.ToString() ?? string.Empty"
+                   placeholder="@L["Portal.Nav.Search"]" aria-label="@L["Portal.Nav.Search"]" />
+            @if (!string.IsNullOrEmpty(_query))
+            {
+                <button class="ames-nav-search-x" @onclick="() => _query = string.Empty" aria-label="clear">✕</button>
+            }
+        </div>
+        <button class="ames-side-toggle" @onclick="() => _collapsed = !_collapsed">@(_collapsed ? "▶" : "◀")</button>
+    </div>
+
+    <div class="ames-nav">
+        <NavLink class="ames-nav-home" href="@PortalAuth.HomePath.TrimStart('/')" Match="NavLinkMatch.All">
+            <span class="ames-nav-ic">⌂</span>
+            <span>@L["Portal.Nav.Home"]</span>
+        </NavLink>
+
+        <div class="ames-nav-section portal @(_open ? "open" : "")" @onclick="() => _open = !_open">
+            <span class="ames-nav-section-ic">🌐</span>
+            <span class="ames-nav-section-t">PORTAL · @L["Portal.Sub"]</span>
+            <span class="ames-nav-section-n">@Filtered.Count</span>
+            <span class="ames-nav-chevron">@(_open ? "▾" : "▸")</span>
+        </div>
+        @if (_open)
+        {
+            @foreach (var it in Filtered)
+            {
+                <div class="ames-nav-row">
+                    <NavLink class="ames-nav-link" href="@it.Href">
+                        <span class="lid">@it.Lid</span>
+                        <span>@Label(it)</span>
+                    </NavLink>
+                </div>
+            }
+            @if (Filtered.Count == 0)
+            {
+                <div class="ames-nav-empty">@L["Portal.Nav.Empty"]</div>
+            }
+        }
+    </div>
+</aside>
+
+@code {
+    bool _open = true, _collapsed;
+    string _query = "";
+    List<MenuCatalog.Item> _items = new();
+
+    List<MenuCatalog.Item> Filtered => string.IsNullOrWhiteSpace(_query)
+        ? _items
+        : _items.Where(i => i.Ko.Contains(_query, StringComparison.OrdinalIgnoreCase) || i.En.Contains(_query, StringComparison.OrdinalIgnoreCase) || i.Lid.Contains(_query, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    protected override void OnInitialized()
+    {
+        Catalog.Load();
+        _items = Catalog.SectionItems(MenuCatalog.PortalSection).ToList();
+    }
+
+    string Label(MenuCatalog.Item it)
+        => MenuCatalog.Label(it, System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
+}

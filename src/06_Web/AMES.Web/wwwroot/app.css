@@ -5212,6 +5212,9 @@ html[data-theme="light"] .rpt-rb-measure, html[data-theme="light"] .rpt-rb-sum, 
 .ames-map-tile-cnt { text-align: right; }
 .ames-tile.wh  { border-top: 3px solid #67e8f9; }
 .ames-tile.fg  { border-top: 3px solid #f9a8d4; }
+.ames-tile.portal { border-top: 3px solid #2dd4bf; }
+/* 포탈 화면 ID(PORTAL-001)는 내부 ID 보다 길어 칩의 ID 칸을 넓힌다 */
+.ames-sec-portal .ames-map-link .lid { flex-basis: 84px; width: 84px; color: #5eead4; }
 .ames-map-row.is-locked .ames-map-tile { opacity: .5; cursor: default; }
 .ames-map-row.is-locked .ames-map-tile:hover { transform: none; box-shadow: none; border-color: rgba(255,255,255,.08); }
 .ames-map-links {

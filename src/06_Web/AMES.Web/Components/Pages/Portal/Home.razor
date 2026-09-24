@@ -1,29 +1,87 @@
 @page "/portal"
 @rendermode InteractiveServer
+@using System.Globalization
+@using System.Security.Claims
 @inject IStringLocalizer<SharedResources> L
 @inject MenuCatalog Catalog
+@inject ScmRepository Scm
+@inject AuthenticationStateProvider AuthPrvd
+@inject ILogger<Home> Logger
+
+@*  외부 포탈 홈 — 내부 홈(Pages/Home.razor)과 같은 형태: KPI 줄 + 사이트맵(섹션 타일 · 화면 칩).
+    KPI 는 로그인 사용자의 협력업체 발주(ScmRepository.ListPurchaseOrders, 포탈 조회와 같은 범위)로 센다.
+    내부 Admin 은 포탈 화면과 같이 전체 업체 기준(관리자 미리보기). *@
 
 <PageTitle>@L["Portal.Nav.Home"] · AMES</PageTitle>
-<AmesPageHeader TitleKey="Portal.Nav.Home" />
-<div class="ames-card">
-    <div class="ames-card-h">@L["Portal.Nav.Home"] · EOS</div>
-    <div style="display:flex;flex-wrap:wrap;gap:12px;padding:18px;">
-        @foreach (var item in _items)
-        {
-            <a class="ames-rz-btn" style="padding:16px;text-decoration:none;" href="@item.Href">
-                <span class="code">@item.Lid</span> · @MenuCatalog.Label(item, System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName)
-            </a>
-        }
-        @if (_ready && _items.Count == 0) { <span>@L["Portal.Nav.Empty"]</span> }
+<AmesPageHeader Code="HOME" TitleKey="Portal.Nav.Home" />
+
+<div class="ames-kpis">
+    <div class="ames-kpi info">
+        <div class="ames-kpi-l">@L["Portal.Home.Kpi.Orders"]</div>
+        <div class="ames-kpi-v">@_orders</div>
+        <div class="ames-kpi-s">@_scope</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["Portal.Home.Kpi.Awaiting"]</div>
+        <div class="ames-kpi-v">@_awaiting</div>
+        <div class="ames-kpi-s">@L["Portal.Home.Kpi.AwaitingSub"]</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">@L["Portal.Home.Kpi.InDelivery"]</div>
+        <div class="ames-kpi-v">@_inDelivery</div>
+        <div class="ames-kpi-s">@L["Portal.Home.Kpi.InDeliverySub"]</div>
+    </div>
+    <div class="ames-kpi @(_overdue > 0 ? "bad" : "ok")">
+        <div class="ames-kpi-l">@L["Portal.Home.Kpi.Overdue"]</div>
+        <div class="ames-kpi-v">@_overdue</div>
+        <div class="ames-kpi-s">@L["Portal.Home.Kpi.OverdueSub"]</div>
     </div>
 </div>
+
+@* ── 사이트맵: 포탈 섹션 타일 + 화면 칩(포탈 화면은 RBAC 대상이 아니라 등록된 화면을 모두 보인다) ── *@
+<div class="ames-sitemap">
+    <div class="ames-map-row portal">
+        <div class="ames-tile ames-map-tile portal">
+            <div class="ames-map-tile-top"><span class="ames-tile-ic">🌐</span><span class="ames-tile-h">PORTAL · @L["Portal.Sub"]</span></div>
+            <div class="ames-tile-sub ames-map-tile-cnt">@string.Format(L["Home.Map.Access"].Value, _items.Count, _items.Count)</div>
+        </div>
+        <div class="ames-map-links">
+            <div class="ames-map-chips">
+                @foreach (var it in _items)
+                {
+                    <a class="ames-map-link" href="@it.Href"><span class="lid">@it.Lid</span><span class="t">@MenuCatalog.Label(it, _lang)</span></a>
+                }
+                @if (_items.Count == 0) { <span class="dim">@L["Portal.Nav.Empty"]</span> }
+            </div>
+        </div>
+    </div>
+</div>
+
 @code {
-    bool _ready;
     List<MenuCatalog.Item> _items = new();
-    protected override void OnInitialized()
+    string _lang = "ko", _scope = "";
+    int _orders, _awaiting, _inDelivery, _overdue;
+
+    protected override async Task OnInitializedAsync()
     {
+        _lang = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
         Catalog.Load();
         _items = Catalog.SectionItems(MenuCatalog.PortalSection).ToList();
-        _ready = true;
+
+        var user = (await AuthPrvd.GetAuthenticationStateAsync()).User;
+        var adminPreview = PortalAuth.IsInternalUser(user) && user.IsInRole("Admin");
+        var vendor = user.FindFirst(PortalAuth.VendorClaim)?.Value;
+        _scope = adminPreview ? L["Portal.Home.Scope.All"] : string.Format(L["Portal.Home.Scope.Vendor"].Value, vendor ?? "—");
+        try
+        {
+            var orders = Scm.ListPurchaseOrders(true, user.FindFirst(ClaimTypes.NameIdentifier)?.Value, adminPreview);
+            // 상태 구분은 포탈 발주 화면(ScmPreview)과 같다: Open=확인 대기, Partial=납품(입고) 진행
+            static decimal Remaining(ScmRepository.PurchaseOrder o) => o.Lines.Sum(l => Math.Max(0, l.Quantity - l.Received));
+            _orders     = orders.Count;
+            _awaiting   = orders.Count(o => o.Status == "Open");
+            _inDelivery = orders.Count(o => o.Status == "Partial");
+            _overdue    = orders.Count(o => o.Status is "Open" or "Partial" && o.Due.Date < DbClock.Today && Remaining(o) > 0);
+        }
+        catch (Exception ex) { Logger.LogError(ex, "Portal home KPI load failed"); }
     }
 }

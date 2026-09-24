@@ -8463,4 +8463,31 @@
   <data name="SCM.PortalUsers.Ok.Unlocked" xml:space="preserve">
     <value>{0} 의 잠금을 해제했습니다.</value>
   </data>
+  <data name="Portal.Home.Kpi.Orders" xml:space="preserve">
+    <value>발주 건수</value>
+  </data>
+  <data name="Portal.Home.Kpi.Awaiting" xml:space="preserve">
+    <value>확인 대기</value>
+  </data>
+  <data name="Portal.Home.Kpi.AwaitingSub" xml:space="preserve">
+    <value>발행되어 확인을 기다리는 발주</value>
+  </data>
+  <data name="Portal.Home.Kpi.InDelivery" xml:space="preserve">
+    <value>납품 진행</value>
+  </data>
+  <data name="Portal.Home.Kpi.InDeliverySub" xml:space="preserve">
+    <value>일부 입고된 발주</value>
+  </data>
+  <data name="Portal.Home.Kpi.Overdue" xml:space="preserve">
+    <value>납기 지연</value>
+  </data>
+  <data name="Portal.Home.Kpi.OverdueSub" xml:space="preserve">
+    <value>납기가 지났는데 미납 수량이 남은 발주</value>
+  </data>
+  <data name="Portal.Home.Scope.Vendor" xml:space="preserve">
+    <value>협력업체 {0} 기준</value>
+  </data>
+  <data name="Portal.Home.Scope.All" xml:space="preserve">
+    <value>관리자 전체 조회</value>
+  </data>
 </root>

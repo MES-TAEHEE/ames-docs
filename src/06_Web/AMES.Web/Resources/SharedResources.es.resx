@@ -8463,4 +8463,31 @@
   <data name="SCM.PortalUsers.Ok.Unlocked" xml:space="preserve">
     <value>{0} desbloqueado.</value>
   </data>
+  <data name="Portal.Home.Kpi.Orders" xml:space="preserve">
+    <value>Pedidos</value>
+  </data>
+  <data name="Portal.Home.Kpi.Awaiting" xml:space="preserve">
+    <value>Pendientes de confirmar</value>
+  </data>
+  <data name="Portal.Home.Kpi.AwaitingSub" xml:space="preserve">
+    <value>Publicados, por confirmar</value>
+  </data>
+  <data name="Portal.Home.Kpi.InDelivery" xml:space="preserve">
+    <value>En entrega</value>
+  </data>
+  <data name="Portal.Home.Kpi.InDeliverySub" xml:space="preserve">
+    <value>Recibidos parcialmente</value>
+  </data>
+  <data name="Portal.Home.Kpi.Overdue" xml:space="preserve">
+    <value>Atrasados</value>
+  </data>
+  <data name="Portal.Home.Kpi.OverdueSub" xml:space="preserve">
+    <value>Vencidos con cantidad pendiente</value>
+  </data>
+  <data name="Portal.Home.Scope.Vendor" xml:space="preserve">
+    <value>Proveedor {0}</value>
+  </data>
+  <data name="Portal.Home.Scope.All" xml:space="preserve">
+    <value>Todos los proveedores (administrador)</value>
+  </data>
 </root>

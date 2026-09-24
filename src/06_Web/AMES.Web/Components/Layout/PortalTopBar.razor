@@ -1,0 +1,92 @@
+@rendermode InteractiveServer
+@implements IDisposable
+@inject IStringLocalizer<SharedResources> L
+@inject AuthenticationStateProvider AuthPrvd
+@inject AMES.Web.Services.AppLanguageState Lang
+@inject PageHeaderState Header
+@inject IJSRuntime JS
+@using AMES.Web.Services
+@using System.Security.Claims
+
+@*  외부 포탈 상단바 — 내부 TopBar 와 같은 구조. 레이아웃(PortalLayout)은 정적이라 테마 버튼 같은 클릭이 서버에 닿지 않아
+    내부 셸처럼 대화형 컴포넌트로 분리했다. 내부 사용자에게는 "내부 사이트로", 외부 사용자에게는 로그아웃만. *@
+
+<header class="ames-topbar portal-top">
+    <div class="ames-brand">
+        <div class="ames-brand-row">
+            <img class="ames-brand-mark" src="brand/eos-logo.png" alt="EOS" />
+            <div style="display:flex;align-items:baseline;gap:8px;">
+                <div class="ames-brand-logo">A-MES</div>
+                <div class="ames-brand-sub">@L["Portal.Sub"]</div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Header.Code) || !string.IsNullOrEmpty(Header.Title))
+    {
+        <div class="ames-topbar-loc">
+            @if (!string.IsNullOrEmpty(Header.Code))
+            {
+                <span class="ames-loc-code">@Header.Code</span>
+            }
+            <span class="ames-loc-name">@Header.Title</span>
+        </div>
+    }
+
+    <div class="ames-topbar-spacer"></div>
+
+    <button class="ames-theme-toggle" @onclick="ToggleTheme"
+            title="@(_theme == "light" ? "다크 테마" : "라이트 테마")"
+            aria-label="Toggle theme">@(_theme == "light" ? "🌙" : "☀")</button>
+    @if (Lang.SwitcherVisible)
+    {
+        <CultureSwitcher />
+    }
+
+    <div class="ames-user">
+        <div class="ames-user-av @(_internal ? "ames-user-av--admin" : "ames-user-av--user")"><RadzenIcon Icon="@(_internal ? "admin_panel_settings" : "handshake")" /></div>
+        <div class="ames-user-info">
+            <div class="ames-user-name">@_userName</div>
+            <div class="ames-user-role">@(_internal ? _roles : $"{L["Portal.Role.External"]} · {_vendor}")</div>
+        </div>
+        @if (_internal)
+        {
+            <a class="ames-user-out portal-back" href="/" title="@L["Portal.Nav.Internal"]">⌂</a>
+        }
+        else
+        {
+            <a class="ames-user-out" href="/portal/logout" title="@L["Portal.Logout"]">⏻</a>
+        }
+    </div>
+</header>
+
+@code {
+    bool _internal;
+    string _userName = "", _roles = "", _vendor = "", _theme = "dark";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthPrvd.GetAuthenticationStateAsync();
+        _internal = PortalAuth.IsInternalUser(state.User);
+        _userName = state.User.Identity?.Name ?? "";
+        _roles = string.Join(", ", state.User.FindAll(ClaimTypes.Role).Select(c => c.Value).Distinct());
+        _vendor = state.User.FindFirst(PortalAuth.VendorClaim)?.Value ?? "";
+        Header.OnChanged += OnHeaderChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try { _theme = await JS.InvokeAsync<string>("amesTheme.get"); StateHasChanged(); }
+        catch { /* 프리렌더/연결 끊김 무시 */ }
+    }
+
+    async Task ToggleTheme()
+    {
+        try { _theme = await JS.InvokeAsync<string>("amesTheme.toggle"); }
+        catch { }
+    }
+
+    void OnHeaderChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Header.OnChanged -= OnHeaderChanged;
+}
