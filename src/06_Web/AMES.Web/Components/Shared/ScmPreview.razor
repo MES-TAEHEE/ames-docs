@@ -22,7 +22,7 @@
         <div class="ames-kpi info"><div class="ames-kpi-l">@T("발주 건수", "Orders", "Pedidos")</div><div class="ames-kpi-v">@Rows.Count</div></div>
         <div class="ames-kpi"><div class="ames-kpi-l">@T("확인 대기", "Awaiting confirmation", "Pendientes")</div><div class="ames-kpi-v">@Rows.Count(x => x.Status == "Published")</div></div>
         <div class="ames-kpi warn"><div class="ames-kpi-l">@T("납품 진행", "In delivery", "En entrega")</div><div class="ames-kpi-v">@Rows.Count(x => x.Status == "Confirmed")</div></div>
-        <div class="ames-kpi bad"><div class="ames-kpi-l">@T("납기 지연", "Overdue", "Atrasados")</div><div class="ames-kpi-v">@Rows.Count(x => x.Due.Date < DateTime.Today && Store.Remaining(x) > 0 && x.Status is "Published" or "Confirmed")</div></div>
+        <div class="ames-kpi bad"><div class="ames-kpi-l">@T("납기 지연", "Overdue", "Atrasados")</div><div class="ames-kpi-v">@Rows.Count(x => x.Due.Date < DbClock.Today && Store.Remaining(x) > 0 && x.Status is "Published" or "Confirmed")</div></div>
     </div>
     <div class="ames-card">
         <div class="ames-card-h scm-toolbar">
@@ -231,7 +231,7 @@
     bool _ready;
     string _search = "", _vendor = "", _status = "", _message = "", _error = "";
     DateTime? _from, _to;
-    DateTime _deliveryDate = DateTime.Today;
+    DateTime _deliveryDate = DbClock.Today;
     decimal _deliveryQuantity = 1;
     int _deliveryLineId;
     ScmPreviewStore.Order? _selected, _edit;
@@ -457,7 +457,7 @@
     {
         if (!CanEdit || _selected?.Status != "Confirmed" || Mode != "Entry") return;
         var line = _selected.Lines.Find(l => l.Id == _deliveryLineId);
-        if (line is null || _deliveryQuantity <= 0 || _deliveryQuantity > Store.Remaining(_selected, line) || _deliveryDate.Date < DateTime.Today)
+        if (line is null || _deliveryQuantity <= 0 || _deliveryQuantity > Store.Remaining(_selected, line) || _deliveryDate.Date < DbClock.Today)
         { _message = T("납품일과 미납수량 이내의 양수를 입력하세요.", "Use a current/future date and a quantity within the remaining balance.", "Use una fecha actual/futura y una cantidad dentro del saldo."); return; }
         Store.Deliveries.Add(new() { Number = Store.NextDelivery(), OrderNumber = _selected.Number, LineId = line.Id, Quantity = _deliveryQuantity, Date = _deliveryDate });
         SelectDeliveryLine(); Done();
@@ -467,7 +467,7 @@
         if (!DeliveryEditable || _delivery is null || _selected is null) return;
         var original = Store.Deliveries.First(d => d.Number == _delivery.Number);
         var line = _selected.Lines.Find(l => l.Id == original.LineId);
-        if (line is null || _delivery.Quantity <= 0 || _delivery.Quantity > Store.Remaining(_selected, line) + original.Quantity || _delivery.Date.Date < DateTime.Today)
+        if (line is null || _delivery.Quantity <= 0 || _delivery.Quantity > Store.Remaining(_selected, line) + original.Quantity || _delivery.Date.Date < DbClock.Today)
         { _message = T("납품일과 납품 가능 수량을 확인하세요.", "Check date and available quantity.", "Revise la fecha y cantidad disponible."); return; }
         original.Quantity = _delivery.Quantity; original.Date = _delivery.Date; Done();
     }

@@ -26,8 +26,8 @@ public sealed class ScmPreviewStore
         public string Name => string.Join(", ", Lines.Select(l => l.Name));
         public int LineCount => Lines.Count;
         public decimal Amount => Lines.Sum(l => l.Amount);
-        public DateTime Ordered { get; set; } = DateTime.Today;
-        public DateTime Due { get; set; } = DateTime.Today.AddDays(7);
+        public DateTime Ordered { get; set; } = DbClock.Today;
+        public DateTime Due { get; set; } = DbClock.Today.AddDays(7);
         public string Destination { get; set; } = "EOS · WH-01";
         public string Status { get; set; } = "Draft";
         public bool Persistent { get; set; }
@@ -46,7 +46,7 @@ public sealed class ScmPreviewStore
         public string Number { get; set; } = "";
         public string OrderNumber { get; set; } = "";
         public int LineId { get; set; } = 1;
-        public DateTime Date { get; set; } = DateTime.Today;
+        public DateTime Date { get; set; } = DbClock.Today;
         public decimal Quantity { get; set; }
         public decimal Accepted { get; set; }
         public decimal Rejected { get; set; }
