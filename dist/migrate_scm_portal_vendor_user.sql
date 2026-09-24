@@ -1,4 +1,5 @@
 -- Portal access is scoped by authenticated Identity user ID, never by a browser-supplied vendor.
+-- Superseded 2026-09-25 by migrate_scm_portal_user_login.sql (login table). Both blocks below skip the new structure.
 SET XACT_ABORT ON;
 BEGIN TRANSACTION;
 IF OBJECT_ID('dbo.SCM_PortalVendorUser','U') IS NULL
@@ -15,6 +16,7 @@ BEGIN
     );
 END;
 IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID('dbo.SCM_PortalVendorUser') AND name='PK_SCM_PortalVendorUser' AND type=1)
+   AND COL_LENGTH('dbo.SCM_PortalVendorUser','PasswordHash') IS NULL
 BEGIN
     ALTER TABLE dbo.SCM_PortalVendorUser DROP CONSTRAINT PK_SCM_PortalVendorUser;
     ALTER TABLE dbo.SCM_PortalVendorUser ADD CONSTRAINT PK_SCM_PortalVendorUser PRIMARY KEY NONCLUSTERED(UserID,VendorID);

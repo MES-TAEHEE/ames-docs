@@ -8387,6 +8387,60 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정�
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'NCR 처리 이력' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action'
 GO
+-- Table: dbo.SCM_PortalVendorUser
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[SCM_PortalVendorUser](
+	[UserID] [nvarchar](256) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[VendorID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[UserName] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NULL,
+	[PasswordHash] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[FailedLoginCount] [int] NOT NULL,
+	[LockedFlag] [bit] NOT NULL,
+	[LastLoginTS] [datetime2](7) NULL,
+	[ActiveFlag] [bit] NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NOT NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
+ CONSTRAINT [PK_SCM_PortalVendorUser] PRIMARY KEY CLUSTERED 
+(
+	[UserID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+CREATE NONCLUSTERED INDEX [IX_SCM_PortalVendorUser_Vendor] ON [dbo].[SCM_PortalVendorUser]
+(
+	[VendorID] ASC,
+	[ActiveFlag] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[SCM_PortalVendorUser] ADD  CONSTRAINT [DF_SCM_PortalVendorUser_Failed]  DEFAULT ((0)) FOR [FailedLoginCount]
+GO
+ALTER TABLE [dbo].[SCM_PortalVendorUser] ADD  CONSTRAINT [DF_SCM_PortalVendorUser_Locked]  DEFAULT ((0)) FOR [LockedFlag]
+GO
+ALTER TABLE [dbo].[SCM_PortalVendorUser] ADD  CONSTRAINT [DF_SCM_PortalVendorUser_Active]  DEFAULT ((1)) FOR [ActiveFlag]
+GO
+ALTER TABLE [dbo].[SCM_PortalVendorUser] ADD  CONSTRAINT [DF_SCM_PortalVendorUser_Created]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'로그인 ID = 이메일(소문자) · nvarchar(256)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SCM_PortalVendorUser', @level2type=N'COLUMN',@level2name=N'UserID'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'협력업체 (MD_Vendor) — 포탈은 이 업체 발주만 조회 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SCM_PortalVendorUser', @level2type=N'COLUMN',@level2name=N'VendorID'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'담당자명(선택) · nvarchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SCM_PortalVendorUser', @level2type=N'COLUMN',@level2name=N'UserName'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'ASP.NET PasswordHasher(V3) 해시 · nvarchar(200)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SCM_PortalVendorUser', @level2type=N'COLUMN',@level2name=N'PasswordHash'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'로그인 실패 수 — 5회면 잠금 · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SCM_PortalVendorUser', @level2type=N'COLUMN',@level2name=N'FailedLoginCount'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'잠금 — SCM-004 에서 내부 사용자가 해제 · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SCM_PortalVendorUser', @level2type=N'COLUMN',@level2name=N'LockedFlag'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최근 로그인 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SCM_PortalVendorUser', @level2type=N'COLUMN',@level2name=N'LastLoginTS'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사용 여부 · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SCM_PortalVendorUser', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
+GO
 -- Table: dbo.SYS_AuditLog
 SET ANSI_NULLS ON
 GO
@@ -9593,6 +9647,11 @@ ALTER TABLE [dbo].[FG_CustomerReturn]  WITH CHECK ADD  CONSTRAINT [FK_FG_Custome
 REFERENCES [dbo].[FG_Inventory] ([StockID])
 GO
 ALTER TABLE [dbo].[FG_CustomerReturn] CHECK CONSTRAINT [FK_FG_CustomerReturn_Stock]
+GO
+ALTER TABLE [dbo].[SCM_PortalVendorUser]  WITH CHECK ADD  CONSTRAINT [FK_SCM_PortalVendorUser_Vendor] FOREIGN KEY([VendorID])
+REFERENCES [dbo].[MD_Vendor] ([VendorID])
+GO
+ALTER TABLE [dbo].[SCM_PortalVendorUser] CHECK CONSTRAINT [FK_SCM_PortalVendorUser_Vendor]
 GO
 ALTER TABLE [dbo].[FG_Inventory]  WITH CHECK ADD  CONSTRAINT [FK_FG_Inventory_Item] FOREIGN KEY([ItemNo])
 REFERENCES [dbo].[MD_Item] ([ItemNo])

@@ -79,8 +79,14 @@ FILES=(
   migrate_pp_pr_send.sql              # PP-006 구매요청 SAP 전송 상태 컬럼 + 상태 어휘 이관 (순서 무관)
   migrate_andon_workflow.sql          # 안돈 워크플로: MD_LineSupervisor·PR_AndonDeptCall·PR_AndonCall.SupervisorName·공통코드 (순서 무관)
   migrate_lot_defect_rework.sql       # LOT 불량·재작업: PR_DefectDetail 컬럼·필터 유니크 인덱스·RWK 마스터 (순서 무관, -I 필수)
-  migrate_portal.sql                  # 외부 포탈: 역할 ExternalCustomer·PROCESS/PORTAL·화면 PORTAL-001·권한 (순서 무관)
-  seed_portal_dev.sql                 #   → 개발용 외부 테스트 계정 adminExt@ames.local (admin 과 같은 비밀번호)
+  migrate_portal.sql                  # 외부 포탈: PROCESS/PORTAL 코드 · 구 출하 계획 화면 정리
+  migrate_scm_item_vendor.sql         # SCM-003 발주품목-협력업체 매핑 SCM_ItemVendor
+  migrate_scm_purchase_order_sequence.sql # SCM-001 발주번호 일별 채번
+  migrate_scm_wh_purchase_order.sql   # WH_PurchaseOrder 납품장소·행 버전
+  migrate_scm_portal_screens.sql      # SCM-001~003·PORTAL-001~005 화면 등록
+  migrate_scm_portal_user_login.sql   # 외부 포탈 로그인 SCM_PortalVendorUser + SCM-004 화면, 포탈 RBAC 행 삭제
+  migrate_portal_legacy_cleanup.sql   # 구 외부 역할 ExternalCustomer·계정·포탈 RBAC 정리 (신규 DB 에서는 no-op)
+  seed_portal_dev.sql                 #   → 개발용 외부 사용자 adminext@ames.local → V1007 (admin 과 같은 비밀번호)
   pda/PDA_SEED.sql                    # WH/FG seed, Web screens and role permissions
   cleanup_legacy_sis_test.sql
   cleanup_cancelled_wo_slots.sql      # 취소 WO 가 남긴 라인 스케줄 슬롯 정리 (신규 DB 에서는 no-op)

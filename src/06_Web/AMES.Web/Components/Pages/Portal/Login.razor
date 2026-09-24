@@ -7,7 +7,7 @@
 @inject AMES.Web.Services.WebSignIn SignIn
 @inject IStringLocalizer<SharedResources> L
 
-@*  외부 개방 화면 전용 로그인. 계정은 SYS-001 에서 만든 Identity 계정 그대로이며 ExternalCustomer 역할이면 외부 쿠키, 아니면 내부 로그인으로 처리한다(WebSignIn). *@
+@*  외부 개방 화면 전용 로그인. 계정은 SCM-004 에서 등록한 SCM_PortalVendorUser(이메일·비밀번호)이며, 거기 없는 이메일은 내부 로그인으로 처리한다(WebSignIn). *@
 
 <PageTitle>@L["Portal.Login.Title"] · A-MES</PageTitle>
 

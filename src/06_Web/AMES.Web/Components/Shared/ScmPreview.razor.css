@@ -1,25 +1,16 @@
-.scm-preview { display:flex; flex-direction:column; gap:14px; }
-.scm-toolbar, .scm-actions { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
-.scm-actions { justify-content:flex-end; }
-.scm-filters { display:flex; align-items:flex-end; flex-wrap:wrap; gap:14px; padding:16px; }
-.scm-filters label { display:flex; flex-direction:column; gap:6px; font-size:var(--ames-fs-hint,12px); min-width:145px; }
-.scm-filters input, .scm-filters select { min-height:34px; padding:6px 9px; color:var(--rz-text-color); background:var(--rz-base-background-color); border:1px solid rgba(148,163,184,.4); border-radius:5px; max-width:100%; }
-.scm-details { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:20px; padding:18px; }
-.scm-details small, .scm-details strong { display:block; }
-.scm-details small { opacity:.7; margin-bottom:6px; }
-.scm-history { padding:0 18px 18px; line-height:1.9; }
-.scm-link { border:0; background:transparent; color:var(--rz-primary); cursor:pointer; font:inherit; text-decoration:underline; }
-.scm-overlay { position:fixed; inset:0; background:#0008; z-index:1100; display:flex; align-items:center; justify-content:center; padding:20px; }
-.scm-dialog { width:min(1180px,100%); max-height:90vh; overflow:auto; background:var(--rz-base-background-color); }
-.scm-footer { padding:16px; }
-@media(max-width:600px) { .scm-filters label { width:100%; } }
-
-
-
-.scm-line-toolbar { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; gap:12px; }
-.scm-line-scroll { overflow-x:auto; padding:0 16px 12px; }
-.scm-lines { min-width:930px; width:100%; }
-.scm-lines input { width:110px; padding:7px; color:var(--rz-text-color); background:var(--rz-base-background-color); border:1px solid rgba(148,163,184,.4); border-radius:5px; }
+/* SCM·포탈 공용 화면 — 목록·모달은 표준 클래스(ames-card·ames-rz-grid·ames-modal)를 쓰고, 상세 모달 안의 정보 타일·품목 표만 여기서 정한다(PP-006 상세와 같은 모양). */
+.scm-dgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; margin:4px 0 12px; }
+.scm-dt { padding:8px 10px; border:1px solid rgba(148,163,184,.22); border-radius:6px; background:rgba(148,163,184,.06); }
+.scm-dl { font-size:var(--ames-fs-hint, 12px); color:var(--rz-text-secondary-color, #94a3b8); margin-bottom:3px; white-space:nowrap; }
+.scm-dv { font-weight:600; word-break:break-word; }
+.scm-dsub { margin:14px 0 6px; font-weight:600; font-size:.92em; color:var(--rz-text-secondary-color, #94a3b8); }
+.scm-scroll { overflow-x:auto; }
+.scm-scroll .num, .scm-scroll th.num { text-align:right; white-space:nowrap; }
+.scm-log { line-height:1.9; font-size:.92em; }
+.scm-act { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.scm-line-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.scm-lines { width:100%; }
+.scm-lines td:nth-child(2) { min-width:240px; }
 .scm-lines td { vertical-align:middle; }
-.scm-lines .dim { white-space:normal; max-width:390px; padding-top:5px; }
-.scm-total { display:flex; justify-content:flex-end; align-items:center; gap:20px; padding:12px 20px; font-size:16px; }
+.scm-lines .dim { white-space:normal; max-width:390px; padding-top:4px; }
+.scm-total { display:flex; justify-content:flex-end; align-items:center; gap:20px; padding:10px 4px 0; font-size:15px; }

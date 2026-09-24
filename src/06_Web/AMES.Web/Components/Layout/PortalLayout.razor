@@ -2,7 +2,6 @@
 @implements IDisposable
 @inject IStringLocalizer<SharedResources> L
 @inject AuthenticationStateProvider AuthPrvd
-@inject AMES.Web.Services.PermissionService PermSvc
 @inject AMES.Web.Services.MenuCatalog Catalog
 @inject AMES.Web.Services.AppLanguageState Lang
 @inject PageHeaderState Header
@@ -49,7 +48,7 @@
             <div class="ames-user-av @(_internal ? "ames-user-av--admin" : "ames-user-av--user")"><RadzenIcon Icon="@(_internal ? "admin_panel_settings" : "handshake")" /></div>
             <div class="ames-user-info">
                 <div class="ames-user-name">@_userName</div>
-                <div class="ames-user-role">@(_internal ? _roles : L["Portal.Role.External"])</div>
+                <div class="ames-user-role">@(_internal ? _roles : $"{L["Portal.Role.External"]} · {_vendor}")</div>
             </div>
             @if (_internal)
             {
@@ -109,7 +108,7 @@
         </aside>
 
         <main class="ames-main">
-            <div class="ames-content">
+            <div class="ames-content ames-sec-portal">
                 @Body
             </div>
         </main>
@@ -126,7 +125,7 @@
 
 @code {
     bool _internal, _open = true, _collapsed;
-    string _userName = "", _roles = "", _query = "", _theme = "dark";
+    string _userName = "", _roles = "", _vendor = "", _query = "", _theme = "dark";
     List<MenuCatalog.Item> _items = new();
 
     List<MenuCatalog.Item> Filtered => string.IsNullOrWhiteSpace(_query)
@@ -139,9 +138,10 @@
         _internal = PortalAuth.IsInternalUser(state.User);
         _userName = state.User.Identity?.Name ?? "";
         _roles = string.Join(", ", state.User.FindAll(ClaimTypes.Role).Select(c => c.Value).Distinct());
-        await PermSvc.EnsureAsync(AuthPrvd);
+        _vendor = state.User.FindFirst(PortalAuth.VendorClaim)?.Value ?? "";
         Catalog.Load();
-        _items = Catalog.SectionItems(MenuCatalog.PortalSection).Where(i => PermSvc.IsVisible(i.Href)).ToList();
+        // 포탈 화면은 RBAC 대상이 아니다 — SYS_Screen 에 등록된 PORTAL 화면을 모두 보인다
+        _items = Catalog.SectionItems(MenuCatalog.PortalSection).ToList();
         Header.OnChanged += OnHeaderChanged;
         Nav.LocationChanged += OnLocationChanged;
     }
