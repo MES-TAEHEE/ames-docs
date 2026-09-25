@@ -12,13 +12,13 @@ public static class FgDetailedScenarioCatalog
         }).ToArray();
 
     public static PptScenarioPanel.Step[] Qc(PptScenarioPanel.Step[] source) => Build("FG001", source,
-        new(1,"대기 재고 목록","QC 완료 후 아직 적재되지 않은 제품이 목록에 표시되는지 확인합니다."), new(1,"대기 현황 집계","전체 건수와 경과일 기준 건수가 목록과 일치하는지 확인합니다."),
+        new(1,"대기 재고 목록","POP 생산 완료 후 아직 적재되지 않은 제품이 목록에 표시되는지 확인합니다."), new(1,"대기 현황 집계","전체 건수와 경과일 기준 건수가 목록과 일치하는지 확인합니다."),
         new(1,"대기 목록 항목","LOT, Part No, Part Name, Qty, Unit이 표시되는지 확인합니다."), new(2,"경과일 색상","1일, 5일, 10일 초과 건이 각각 노란색, 주황색, 빨간색으로 표시되는지 확인합니다."),
-        new(2,"오래된 순 정렬","QC 완료 시간이 오래된 제품부터 표시되는지 확인합니다."), new(2,"새로고침","REFRESH 실행 시 최신 목록과 집계가 다시 조회되는지 확인합니다."));
+        new(2,"오래된 순 정렬","생산 완료 시간이 오래된 제품부터 표시되는지 확인합니다."), new(2,"새로고침","REFRESH 실행 시 최신 목록과 집계가 다시 조회되는지 확인합니다."));
 
     public static PptScenarioPanel.Step[] PutAway(PptScenarioPanel.Step[] source) => Build("FG002", source,
-        new(1,"FG LOT 스캔","QC 완료된 정상 FG LOT을 스캔하면 Put-Away가 시작되는지 확인합니다."), new(1,"초기 화면 구성","Barcode 입력부와 CLEAR, CONFIRM 버튼이 표시되는지 확인합니다."),
-        new(1,"확정 버튼 비활성화","필수 바코드를 스캔하기 전에는 CONFIRM이 비활성화되는지 확인합니다."), new(2,"LOT 정보","스캔한 LOT의 Part, Qty, QC Passed Date가 정확히 표시되는지 확인합니다."),
+        new(1,"FG LOT 스캔","POP 생산 완료된 정상 FG LOT을 스캔하면 Put-Away가 시작되는지 확인합니다."), new(1,"초기 화면 구성","Barcode 입력부와 CLEAR, CONFIRM 버튼이 표시되는지 확인합니다."),
+        new(1,"확정 버튼 비활성화","필수 바코드를 스캔하기 전에는 CONFIRM이 비활성화되는지 확인합니다."), new(2,"LOT 정보","스캔한 LOT의 Part, Qty, Ready Date가 정확히 표시되는지 확인합니다."),
         new(2,"보관 방식 선택","LOT 확인 후 Storage 선택이 필수인지 확인합니다."), new(3,"보관 방식 항목","Box, Pallet, Rack, Location Only 항목이 모두 표시되는지 확인합니다."),
         new(3,"보관 단위 바코드","Box, Pallet, Rack 선택 시 해당 보관 단위 바코드 스캔이 필요한지 확인합니다."), new(3,"다음 스캔 안내","선택한 보관 방식에 따라 Next Scan 안내가 변경되는지 확인합니다."),
         new(4,"Location 스캔 단계","정상 보관 단위 스캔 후 Location Barcode 단계로 이동하는지 확인합니다."), new(4,"자동 이동 및 강조","화면이 Location 입력부로 자동 이동하고 입력부가 강조되는지 확인합니다."),

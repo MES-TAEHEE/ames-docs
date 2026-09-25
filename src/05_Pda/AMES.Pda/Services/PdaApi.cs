@@ -183,9 +183,9 @@ public abstract class PdaApi
         DateTime? DepartureTs, string? OTDStatus);
     public sealed record FgDashboard(int OpenOrders, int ReadyToShip, int InTransit, int DeliveredToday,
         int PendingReturns, decimal StockOnHand);
-    public sealed record FgQcCompletedRow(int LotId, string LotNo, string? WoNumber, string ItemNo,
+    public sealed record FgPutAwayWaitingRow(int LotId, string LotNo, string? WoNumber, string ItemNo,
         string? ItemName, string? CustomerCode, decimal Qty, string? Unit, DateTime? ProducedAt,
-        DateTime? QcPassTs);
+        DateTime? ReadyAt);
     public sealed record FgReturnRow(int ReturnId, string? ReturnNumber, string? CustomerCode,
         string? ItemNo, decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt);
     public sealed record FgReturnScanRow(string Barcode, int StockId, string? StockNumber, int? LotId, string? LotNo,
@@ -195,8 +195,8 @@ public abstract class PdaApi
 
     public sealed record FgPutAwayScanRow(int? LotId, string LotNo, int? WoId,
         string ItemNo, string? ItemName, string? CustomerCode, decimal Qty, string? Unit,
-        DateTime? MfgDate, DateTime? ExpiryDate, string? QcInspectionNo, DateTime? QcPassTs,
-        bool IsQcPassed, bool AlreadyStocked, int? ExistingStockId, string? ExistingLocation,
+        DateTime? MfgDate, DateTime? ExpiryDate, DateTime? ReadyAt,
+        bool IsProductionCompleted, bool AlreadyStocked, int? ExistingStockId, string? ExistingLocation,
         string? ExistingStatus, string BarcodeType, string StorageMethod, string NextScanType,
         string NextScanLabel, string? PackSpecId, string Message);
     public sealed record FgPutAwayLocationRow(string LocationId, string? LocationName, string? ZoneCode,

@@ -102,32 +102,32 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
             throw new InvalidOperationException("Inventory could not be loaded. Check the API/DB connection and press REFRESH to retry.", ex);
         }
     }
-    public async Task<List<FgQcCompletedRow>> FgQcCompletedAsync()
+    public async Task<List<FgPutAwayWaitingRow>> FgPutAwayWaitingAsync()
     {
         Authorize();
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         try
         {
-            using var response = await _http.GetAsync("/api/fg/qc-completed", timeout.Token);
+            using var response = await _http.GetAsync("/api/fg/putaway/waiting", timeout.Token);
             if (response.StatusCode == HttpStatusCode.Unauthorized)
                 throw new InvalidOperationException("Your session has expired. Go back and sign in again.");
             if (response.StatusCode == HttpStatusCode.Forbidden)
-                throw new InvalidOperationException("You do not have permission to view QC Waiting.");
+                throw new InvalidOperationException("You do not have permission to view Put-Away Waiting.");
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<List<FgQcCompletedRow>>(cancellationToken: timeout.Token)
-                ?? throw new InvalidOperationException("QC Waiting returned an invalid response. Press REFRESH to retry.");
+            return await response.Content.ReadFromJsonAsync<List<FgPutAwayWaitingRow>>(cancellationToken: timeout.Token)
+                ?? throw new InvalidOperationException("Put-Away Waiting returned an invalid response. Press REFRESH to retry.");
         }
         catch (HttpRequestException ex)
         {
-            throw new InvalidOperationException("QC Waiting could not be loaded. Check the API/DB connection and press REFRESH to retry.", ex);
+            throw new InvalidOperationException("Put-Away Waiting could not be loaded. Check the API/DB connection and press REFRESH to retry.", ex);
         }
         catch (OperationCanceledException ex)
         {
-            throw new InvalidOperationException("QC Waiting timed out. Check the connection and press REFRESH to retry.", ex);
+            throw new InvalidOperationException("Put-Away Waiting timed out. Check the connection and press REFRESH to retry.", ex);
         }
         catch (JsonException ex)
         {
-            throw new InvalidOperationException("QC Waiting returned an invalid response. Press REFRESH to retry.", ex);
+            throw new InvalidOperationException("Put-Away Waiting returned an invalid response. Press REFRESH to retry.", ex);
         }
     }
     public Task<List<FgOrderRow>>   FgOrdersAsync()  => Get<List<FgOrderRow>>("/api/fg/orders");

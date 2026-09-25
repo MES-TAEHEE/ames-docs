@@ -33,9 +33,9 @@ public static class FgEndpoints
         DateTime? DepartureTs, string? OTDStatus);
     public sealed record DashboardDto(int OpenOrders, int ReadyToShip, int InTransit, int DeliveredToday,
         int PendingReturns, decimal StockOnHand);
-    public sealed record QcCompletedRow(int LotId, string LotNo, string? WoNumber, string ItemNo,
+    public sealed record PutAwayWaitingRow(int LotId, string LotNo, string? WoNumber, string ItemNo,
         string? ItemName, string? CustomerCode, decimal Qty, string? Unit, DateTime? ProducedAt,
-        DateTime? QcPassTs);
+        DateTime? ReadyAt);
     public sealed record ReturnRow(int ReturnId, string? ReturnNumber, string? CustomerCode,
         string? ItemNo, decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt);
     public sealed record ReturnScanRow(string Barcode, int StockId, string? StockNumber, int? LotId, string? LotNo,
@@ -54,8 +54,8 @@ public static class FgEndpoints
 
     public sealed record PutAwayScanRow(int? LotId, string LotNo, int? WoId,
         string ItemNo, string? ItemName, string? CustomerCode, decimal Qty, string? Unit,
-        DateTime? MfgDate, DateTime? ExpiryDate, string? QcInspectionNo, DateTime? QcPassTs,
-        bool IsQcPassed, bool AlreadyStocked, int? ExistingStockId, string? ExistingLocation,
+        DateTime? MfgDate, DateTime? ExpiryDate, DateTime? ReadyAt,
+        bool IsProductionCompleted, bool AlreadyStocked, int? ExistingStockId, string? ExistingLocation,
         string? ExistingStatus, string BarcodeType, string StorageMethod, string NextScanType,
         string NextScanLabel, string? PackSpecId, string Message);
     public sealed record PutAwayLocationRow(string LocationId, string? LocationName, string? ZoneCode,
@@ -166,8 +166,8 @@ public static class FgEndpoints
             return Results.Ok(result);
         });
 
-        // FG-01 QC Complete List - passed FG LOTs waiting for Put-Away.
-        g.MapGet("/qc-completed", (HttpContext ctx) =>
+        // FG-01 POP-completed FG LOTs waiting for Put-Away.
+        g.MapGet("/putaway/waiting", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
             const string sql = """
@@ -177,23 +177,26 @@ public static class FgEndpoints
                     W.WoNumber,
                     COALESCE(NULLIF(L.ItemNo, ''), W.ItemNo) AS ItemNo,
                     I.ItemName,
-                    Q.CustomerCode,
-                    CAST(COALESCE(NULLIF(Q.BatchQty, 0), NULLIF(L.RemainingQty, 0),
+                    IMG.CustomerCode,
+                    CAST(COALESCE(NULLIF(PR.GoodQty, 0), NULLIF(L.RemainingQty, 0),
                          NULLIF(L.BatchSize, 0), NULLIF(W.CompletedQty, 0), 0) AS DECIMAL(14,3)) AS Qty,
                     I.DefaultUOM AS Unit,
                     L.ProducedAt,
-                    Q.InsEndTS AS QcPassTs
+                    COALESCE(PR.EntryAt, IMG.ConfirmedAt, L.ProducedAt, L.CreatedTS) AS ReadyAt
                 FROM dbo.tbl_Lot L
                 LEFT JOIN dbo.PP_WorkOrder W ON W.WoID = L.WoID
                 LEFT JOIN dbo.MD_Item I ON I.ItemNo = COALESCE(NULLIF(L.ItemNo, ''), W.ItemNo)
+                LEFT JOIN dbo.PR_ImgLot IMG ON IMG.LotID = L.LotID
                 CROSS APPLY
                 (
-                    SELECT TOP (1) QI.CustomerCode, QI.BatchQty, QI.InsEndTS, QI.Verdict
-                    FROM dbo.QC_Inspection QI
-                    WHERE QI.LotID = L.LotID
-                    ORDER BY COALESCE(QI.InsEndTS, QI.InsStartTS, QI.CreatedTS) DESC, QI.InspectionID DESC
-                ) Q
-                WHERE UPPER(ISNULL(Q.Verdict, '')) IN ('PASS', 'PASSED', 'OK')
+                    SELECT SUM(COALESCE(R.GoodQty, 0)) AS GoodQty, MAX(R.EntryAt) AS EntryAt
+                    FROM dbo.PR_ProductionResult R
+                    WHERE R.LotID = L.LotID
+                      AND UPPER(ISNULL(R.ProcessCode, '')) = UPPER(ISNULL(L.ProcessCode, ''))
+                      AND ISNULL(R.DefectFlag, 0) = 0
+                ) PR
+                WHERE UPPER(ISNULL(L.Status, '')) = 'CONFIRMED'
+                  AND COALESCE(PR.GoodQty, 0) > 0
                   AND NOT EXISTS
                 (
                     SELECT 1
@@ -201,14 +204,13 @@ public static class FgEndpoints
                     WHERE S.LotID = L.LotID
                       AND UPPER(ISNULL(S.Status, '')) NOT IN ('CANCELED', 'CANCELLED')
                 )
-                ORDER BY CASE WHEN Q.InsEndTS IS NULL THEN 1 ELSE 0 END,
-                         Q.InsEndTS, L.ProducedAt, L.LotID;
+                ORDER BY COALESCE(IMG.ConfirmedAt, PR.EntryAt, L.ProducedAt, L.CreatedTS), L.LotID;
                 """;
-            return Query(factory, sql, r => new QcCompletedRow(
+            return Query(factory, sql, r => new PutAwayWaitingRow(
                 (int)r["LotID"], r["LotNo"] as string ?? "", r["WoNumber"] as string,
                 r["ItemNo"] as string ?? "", r["ItemName"] as string, r["CustomerCode"] as string,
                 r.GetDecimal(r.GetOrdinal("Qty")), r["Unit"] as string,
-                r["ProducedAt"] as DateTime?, r["QcPassTs"] as DateTime?));
+                r["ProducedAt"] as DateTime?, r["ReadyAt"] as DateTime?));
         });
 
         g.MapGet("/transactions", (HttpContext ctx, string? search, DateTime? dateFrom, DateTime? dateTo) =>
@@ -227,7 +229,7 @@ public static class FgEndpoints
             return Results.Ok(rows);
         });
 
-        // FG-02 PDA Put-Away - scan a QC-passed FG LOT.
+        // FG-02 PDA Put-Away - scan a POP-completed FG LOT.
         g.MapGet("/putaway/scan", (HttpContext ctx, string barcode) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
@@ -254,7 +256,7 @@ public static class FgEndpoints
                 return Results.NotFound(new PutAwayResult(false, "FG LOT was not found.", null, null, null));
             }
 
-            var success = row.IsQcPassed && !row.AlreadyStocked;
+            var success = row.IsProductionCompleted && !row.AlreadyStocked;
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                 s, "SCAN_FG_LOT", "FG002", row.BarcodeType, parsed.Raw, success ? "SUCCESS" : "FAIL", row.Message,
                 lotNo: row.LotNo, partNo: row.ItemNo, locationId: row.ExistingLocation, qty: row.Qty));
@@ -330,7 +332,7 @@ public static class FgEndpoints
                     tx.Rollback();
                     return Results.NotFound(new PutAwayResult(false, "FG LOT was not found.", null, null, null));
                 }
-                if (!row.IsQcPassed)
+                if (!row.IsProductionCompleted)
                 {
                     tx.Rollback();
                     WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
@@ -1120,14 +1122,14 @@ public static class FgEndpoints
                 L.WoID,
                 L.ItemNo,
                 I.ItemName,
-                COALESCE(NULLIF(Q.CustomerCode, ''), NULLIF(S.CustomerCode, '')) AS CustomerCode,
-                CAST(COALESCE(NULLIF(Q.BatchQty, 0), NULLIF(L.RemainingQty, 0), NULLIF(L.BatchSize, 0), 0) AS DECIMAL(14,3)) AS Qty,
+                COALESCE(NULLIF(IMG.CustomerCode, ''), NULLIF(S.CustomerCode, '')) AS CustomerCode,
+                CAST(COALESCE(NULLIF(PR.GoodQty, 0), NULLIF(L.RemainingQty, 0), NULLIF(L.BatchSize, 0), 0) AS DECIMAL(14,3)) AS Qty,
                 I.DefaultUOM AS Unit,
                 L.ProducedAt AS MfgDate,
                 L.ExpiryDate,
-                Q.InspectionNo AS QcInspectionNo,
-                CASE WHEN UPPER(ISNULL(Q.Verdict, '')) IN ('PASS', 'PASSED', 'OK') THEN Q.InsEndTS END AS QcPassTs,
-                CASE WHEN UPPER(ISNULL(Q.Verdict, '')) IN ('PASS', 'PASSED', 'OK') THEN 1 ELSE 0 END AS IsQcPassed,
+                COALESCE(PR.EntryAt, IMG.ConfirmedAt, L.ProducedAt, L.CreatedTS) AS ReadyAt,
+                CASE WHEN UPPER(ISNULL(L.Status, '')) IN ('CONFIRMED', 'STOCKED')
+                           AND COALESCE(PR.GoodQty, 0) > 0 THEN 1 ELSE 0 END AS IsProductionCompleted,
                 S.StockID AS ExistingStockId,
                 S.Location AS ExistingLocation,
                 S.Status AS ExistingStatus,
@@ -1136,13 +1138,16 @@ public static class FgEndpoints
             FROM dbo.tbl_Lot L
             LEFT JOIN dbo.MD_Item I
                 ON I.ItemNo = L.ItemNo
+            LEFT JOIN dbo.PR_ImgLot IMG
+                ON IMG.LotID = L.LotID
             OUTER APPLY
             (
-                SELECT TOP (1) QI.InspectionID, QI.InspectionNo, QI.CustomerCode, QI.BatchQty, QI.InsEndTS, QI.Verdict
-                FROM dbo.QC_Inspection QI
-                WHERE QI.LotID = L.LotID
-                ORDER BY COALESCE(QI.InsEndTS, QI.InsStartTS, QI.CreatedTS) DESC, QI.InspectionID DESC
-            ) Q
+                SELECT SUM(COALESCE(R.GoodQty, 0)) AS GoodQty, MAX(R.EntryAt) AS EntryAt
+                FROM dbo.PR_ProductionResult R
+                WHERE R.LotID = L.LotID
+                  AND UPPER(ISNULL(R.ProcessCode, '')) = UPPER(ISNULL(L.ProcessCode, ''))
+                  AND ISNULL(R.DefectFlag, 0) = 0
+            ) PR
             OUTER APPLY
             (
                 SELECT TOP (1) FS.StockID, FS.CustomerCode, FS.Location, FS.Status
@@ -1178,17 +1183,17 @@ public static class FgEndpoints
 
         var existingStockId = GetInt(rdr, "ExistingStockId");
         var existingLocation = GetString(rdr, "ExistingLocation");
-        var isQcPassed = GetBool(rdr, "IsQcPassed");
+        var isProductionCompleted = GetBool(rdr, "IsProductionCompleted");
         var lotNo = GetString(rdr, "LotCode") ?? barcode;
         const string barcodeType = BarcodeLot;
         var storageMethod = NormalizeStorageMethod(GetString(rdr, "StorageMethod"));
         var nextScanType = NextScanTypeForStorage(storageMethod);
         var nextScanLabel = NextScanLabel(nextScanType);
-        var message = !isQcPassed
-            ? "QC PASS is required before FG Put-Away."
+        var message = !isProductionCompleted
+            ? "POP production completion is required before FG Put-Away."
             : existingStockId.HasValue
                 ? $"This FG LOT is already stocked at {ValueOrDash(existingLocation)}."
-                : $"QC PASS matched. Scan {BarcodeKindLabel(nextScanType)}.";
+                : $"Production LOT matched. Scan {BarcodeKindLabel(nextScanType)}.";
 
         return new PutAwayScanRow(
             GetInt(rdr, "LotID"),
@@ -1201,9 +1206,8 @@ public static class FgEndpoints
             GetString(rdr, "Unit"),
             GetDate(rdr, "MfgDate"),
             GetDate(rdr, "ExpiryDate"),
-            GetString(rdr, "QcInspectionNo"),
-            GetDate(rdr, "QcPassTs"),
-            isQcPassed,
+            GetDate(rdr, "ReadyAt"),
+            isProductionCompleted,
             existingStockId.HasValue,
             existingStockId,
             existingLocation,
@@ -1403,9 +1407,9 @@ public static class FgEndpoints
             using var cmd = new SqlCommand("""
                 UPDATE dbo.tbl_Lot
                    SET CurrentLocationID = @Location,
-                       Status = 'Stocked',
-                       QualityFlag = 'PASS',
-                       ModifiedBy = @OperatorID,
+                        Status = 'Stocked',
+                        InventoryStatus = 'STOCKED',
+                        ModifiedBy = @OperatorID,
                        ModifiedTS = SYSDATETIME()
                  WHERE LotID = @LotID;
                 """, conn, tx);

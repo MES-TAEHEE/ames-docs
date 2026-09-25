@@ -179,7 +179,7 @@
     private static bool ShowDeveloperScanButtons => MauiProgram.IsDeveloperMode;
     private static string ScanPanelClass => ShowDeveloperScanButtons ? "dev-scan-panel" : "hardware-scan-panel";
     private bool IsBusy => _isScanning || _isContainerScanning || _isLocationScanning || _isConfirming;
-    private bool ReadyForStorage => _scan is { IsQcPassed: true, AlreadyStocked: false };
+    private bool ReadyForStorage => _scan is { IsProductionCompleted: true, AlreadyStocked: false };
     private bool RequiresContainer => _storageMethod is "BOX" or "PALLET" or "RACK";
     private bool ContainerScanned => !string.IsNullOrEmpty(_confirmedContainerBarcode);
     private bool ContainerEntryDisabled => !ReadyForStorage || !RequiresContainer || IsBusy;
@@ -189,7 +189,7 @@
     private bool DisableLocationScan => LocationEntryDisabled || string.IsNullOrWhiteSpace(_locationNo);
     private bool DisableConfirm => IsBusy || !ReadyForLocation || _selectedLocation is not { IsValid: true };
     private string ConfirmButtonClass => DisableConfirm ? "blocked" : "ready";
-    private string LotCardClass => _scan is null ? "" : _scan.AlreadyStocked ? "stocked" : _scan.IsQcPassed ? "ready" : "blocked";
+    private string LotCardClass => _scan is null ? "" : _scan.AlreadyStocked ? "stocked" : _scan.IsProductionCompleted ? "ready" : "blocked";
     private List<PdaApi.CodeOption> StorageOptions = [];
     private string ContainerTitle => _storageMethod switch
     {
@@ -537,8 +537,8 @@
     {
         if (_scan is null)
             return "Scan FG LOT first.";
-        if (!_scan.IsQcPassed)
-            return "QC PASS is required before FG Put-Away.";
+        if (!_scan.IsProductionCompleted)
+            return "POP production completion is required before FG Put-Away.";
         if (_scan.AlreadyStocked)
             return "This FG LOT is already stocked.";
         if (string.IsNullOrEmpty(_storageMethod))
@@ -590,7 +590,7 @@
         yield return ("PART NO", Text(_scan.ItemNo));
         yield return ("PART NM", Text(_scan.ItemName));
         yield return ("QTY", Qty(_scan.Qty, _scan.Unit));
-        yield return ("QC Passed Date", DateText(_scan.QcPassTs));
+        yield return ("Ready Date", DateText(_scan.ReadyAt));
     }
 
     private IEnumerable<(string Label, string Value)> LocationFields(PdaApi.FgPutAwayLocationRow row)

@@ -11,7 +11,7 @@ public partial class Fg01Stocking
     private static readonly PptScenarioPanel.Step[] PptSteps =
     [
         new("첫 화면·LOT 스캔", "LOT 스캔 전 입력부와 CLEAR/CONFIRM을 확인합니다. 필수 입력 전 CONFIRM은 처리를 차단합니다.", new PptScenarioPanel.Value("LOT", PptLot, "LOT")),
-        new("QC 완료 제품", "LOT·Part No·Part Name·Qty·QC Passed Date와 Storage 선택 영역을 확인합니다.", new PptScenarioPanel.Value("LOT", PptLot, "LOT")),
+        new("생산 완료 제품", "LOT·Part No·Part Name·Qty·Ready Date와 Storage 선택 영역을 확인합니다.", new PptScenarioPanel.Value("LOT", PptLot, "LOT")),
         new("보관 방법", "Box/Pallet/Rack/Location Only를 선택하고 다음 스캔 항목이 바뀌는지 확인합니다.", new PptScenarioPanel.Value("STORAGE", "Box", "BOX"), new PptScenarioPanel.Value("STORAGE", "Pallet", "PALLET"), new PptScenarioPanel.Value("STORAGE", "Rack", "RACK"), new PptScenarioPanel.Value("STORAGE", "Location Only", "LOCATION")),
         new("보관 단위 스캔", "선택한 보관 단위를 스캔하면 Location 입력부로 이동하며 강조되는지 확인합니다.", new PptScenarioPanel.Value("BOX", "BOX:PPT-FG-01", "CONTAINER")),
         new("Location·적재 확정", "Zone/Bay/Slot/Current/Free를 확인한 뒤 화면의 CONFIRM으로 적재하고 CLEAR도 검수합니다.", new PptScenarioPanel.Value("LOCATION", "FG-PPT-A1", "SCAN_LOCATION"))
