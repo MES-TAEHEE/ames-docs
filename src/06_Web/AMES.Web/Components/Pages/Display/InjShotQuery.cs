@@ -7,7 +7,8 @@ namespace AMES.Web.Components.Pages.Display;
 /// <summary>
 /// 공장 디스플레이 — 사출기 금형 Shot 현황 조회(읽기 전용). 사출 라인(MD_WorkCenter.ProcessCode='INJ', 활성)마다 타일 1개 —
 /// 조회할 때마다 MD_Line 을 다시 읽으므로 라인·사출기를 등록하면 다음 갱신에 자동으로 추가된다. 대표 사출기의 장착 금형과 "현재 Shot / 최대 Shot". 장착 금형은 MNT_EquipmentStatus.MountedMoldID, 비어 있으면 그 사출기의
-/// 가장 최근 사출 LOT(PR_InjLot) 금형. Shot 은 MD_Mold.CurrentShots(장착 후 타수 — InjAgent 가 사출마다 +1, 교체 시 0) / RatedShots.
+/// 가장 최근 사출 LOT(PR_InjLot) 금형. 톤수는 대표 사출기의 MD_Equipment.Tonnage 가 최우선이고, 비어 있으면
+/// 사출기 이름·모델 → 라인 이름(영·한)의 "650T" 글자 → 장착 금형 MD_Mold.Tonnage 순. Shot 은 MD_Mold.CurrentShots(장착 후 타수 — InjAgent 가 사출마다 +1, 교체 시 0) / RatedShots.
 /// 디스플레이 여러 대가 같은 주기로 부르므로 결과를 CacheSec 동안 공유한다(DB 조회 1회).
 /// </summary>
 public static partial class InjShotQuery
@@ -44,7 +45,7 @@ public static partial class InjShotQuery
                    st.Status AS EquipStatus,
                    COALESCE(st.MountedMoldID, lastLot.MoldID) AS MoldID,
                    CAST(CASE WHEN st.MountedMoldID IS NULL AND lastLot.MoldID IS NOT NULL THEN 1 ELSE 0 END AS bit) AS FromLastLot,
-                   m.MoldName, m.RatedShots, m.CurrentShots, m.Tonnage AS MoldTonnage, l.LineNameEn, lastLot.LotID AS LastLotID
+                   m.MoldName, m.RatedShots, m.CurrentShots, m.Tonnage AS MoldTonnage, l.LineNameEn, lastLot.LotID AS LastLotID, e.Tonnage AS EquipTonnage
             FROM dbo.MD_Line l
             JOIN dbo.MD_WorkCenter w ON w.WCID = l.WCID AND w.ProcessCode = 'INJ'
             LEFT JOIN dbo.MD_Equipment e
@@ -67,10 +68,10 @@ public static partial class InjShotQuery
         await using var r = await cmd.ExecuteReaderAsync(ct);
 
         var rows = new List<(string Line, string? LineName, string? Prefix, string? Equip, string? EquipName, string? Model,
-            string? Status, string? MoldId, bool FromLastLot, string? MoldName, int? Rated, int? Current, int? MoldTon, string? LineNameEn, long? LastLotId)>();
+            string? Status, string? MoldId, bool FromLastLot, string? MoldName, int? Rated, int? Current, int? MoldTon, string? LineNameEn, long? LastLotId, int? EquipTon)>();
         while (await r.ReadAsync(ct))
             rows.Add((r.GetString(0), Str(r, 1), Str(r, 2), Str(r, 3), Str(r, 4), Str(r, 5),
-                Str(r, 6), Str(r, 7), r.GetBoolean(8), Str(r, 9), Int(r, 10), Int(r, 11), Int(r, 12), Str(r, 13), r.IsDBNull(14) ? null : Convert.ToInt64(r.GetValue(14))));
+                Str(r, 6), Str(r, 7), r.GetBoolean(8), Str(r, 9), Int(r, 10), Int(r, 11), Int(r, 12), Str(r, 13), r.IsDBNull(14) ? null : Convert.ToInt64(r.GetValue(14)), Int(r, 15)));
 
         // 라인당 타일 1개 — 사출기가 여러 대면 대표 1대: 장착 금형 기록 → 가장 최근 사출(LOT) → 설비 코드 순
         var tiles = new List<Tile>();
@@ -86,7 +87,7 @@ public static partial class InjShotQuery
                 TileCode(x.Line, x.Prefix), x.Line,
                 string.IsNullOrWhiteSpace(x.LineNameEn) ? x.LineName : x.LineNameEn,   // 디스플레이 표시 언어는 영어
                 x.Equip, x.EquipName,
-                Tonnage(x.EquipName) ?? Tonnage(x.Model) ?? Tonnage(x.LineNameEn) ?? Tonnage(x.LineName) ?? x.MoldTon,
+                x.EquipTon ?? Tonnage(x.EquipName) ?? Tonnage(x.Model) ?? Tonnage(x.LineNameEn) ?? Tonnage(x.LineName) ?? x.MoldTon,
                 x.Equip is null ? "NONE" : NormalizeStatus(x.Status),
                 x.MoldId, x.MoldName, x.FromLastLot, x.Current, x.Rated, Percent(x.Current, x.Rated)));
         }

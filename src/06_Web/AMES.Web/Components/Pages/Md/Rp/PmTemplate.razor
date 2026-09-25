@@ -74,7 +74,7 @@
                 <Template Context="r">@(r.TemplateName ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="EquipType" Title="@L["Col.EquipType"]" TextAlign="TextAlign.Center" Width="110px">
-                <Template Context="r"><span class="dim">@(r.EquipType ?? "—")</span></Template>
+                <Template Context="r"><span class="dim">@EquipTypeLabel(r.EquipType)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="CycleBasis" Title="@L["Col.BasisCycle"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="pill">@(r.CycleBasis ?? "—")</span></Template>
@@ -170,7 +170,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.EquipType"]" />
-                    <RadzenTextBox @bind-Value="_f.EquipType" Placeholder="INJECTION / PAINTING" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.EquipType" Data="@EquipTypeCodeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.BasisCycle"]" />
@@ -235,7 +235,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.EquipType"]" />
-                    <RadzenTextBox @bind-Value="_f.EquipType" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.EquipType" Data="@EquipTypeCodeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.BasisCycle"]" />
@@ -394,7 +394,11 @@
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
     
-    IEnumerable<DropDownItem> EquipTypeOptions => _allRows.Select(r => r.EquipType).Where(x => x != null).Distinct().OrderBy(x => x).Select(t => new DropDownItem { Value = t!, Text = t! });
+    // 설비 유형 = 공통코드 EQUIP_TYPE(INJ 사출·WRAP 감싸기·PNT 도장) — MD_Equipment.EquipType 과 같은 코드
+    List<MasterDataRepository.CodeItemRow> _equipTypes = new();
+    IEnumerable<DropDownItem> EquipTypeOptions => _equipTypes.Where(t => t.UseFlag).Select(t => new DropDownItem { Value = t.CodeValue ?? "", Text = MasterDataRepository.LocalName(t) });
+    IEnumerable<DropDownItem> EquipTypeCodeOptions => _equipTypes.Where(t => t.UseFlag || t.CodeValue == _f.EquipType).Select(t => new DropDownItem { Value = t.CodeValue ?? "", Text = $"[{t.CodeValue}] {MasterDataRepository.LocalName(t)}" });
+    string EquipTypeLabel(string? code) => string.IsNullOrEmpty(code) ? "—" : _equipTypes.FirstOrDefault(t => t.CodeValue == code) is { } t ? MasterDataRepository.LocalName(t) : code;
     // UOM(주기 단위) 콤보 — UOM 마스터 기준 (Bom.razor와 동일 형식)
     IEnumerable<DropDownItem> UomOptions => _uomList.Where(u => u.ActiveFlag).Select(u => new DropDownItem { Value = u.UOMCode ?? "", Text = u.UOMCode + (string.IsNullOrEmpty(u.UOMName) ? "" : $"  ({u.UOMName})") });
     private List<DropDownItem> CycleBasisOptions => new()
@@ -415,6 +419,7 @@
         _canEdit = PermSvc.CanEdit("md/rp/pm-template");
         try { _uomList = MD.ListUoms(); } catch { }
         try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
+        try { _equipTypes = MD.ListCodeItems("EQUIP_TYPE"); } catch { }
         Reload();
     }
 

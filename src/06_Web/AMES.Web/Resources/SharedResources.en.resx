@@ -3810,6 +3810,9 @@
   <data name="MD.Equipment.Kpi.EquipTypes" xml:space="preserve">
     <value>Equip Types</value>
   </data>
+  <data name="MD.Equipment.Hint.TonnageInjOnly" xml:space="preserve">
+    <value>Injection (INJ) equipment only</value>
+  </data>
   <data name="MD.LabelTpl.Kpi.LabelTypes" xml:space="preserve">
     <value>Label Types</value>
   </data>

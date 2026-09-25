@@ -1757,6 +1757,7 @@ CREATE TABLE [dbo].[MD_Equipment](
 	[InstallDate] [date] NULL,
 	[TheoreticalCycle] [decimal](8, 2) NULL,
 	[TargetOEE] [decimal](5, 2) NULL,
+	[Tonnage] [int] NULL,
 	[MoldCompatJSON] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
 	[PlcAddress] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](8) COLLATE Korean_Wansung_CI_AS NULL,
@@ -1779,7 +1780,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'설비 코드 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'설비 명칭.  · nvarchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Equipment', @level2type=N'COLUMN',@level2name=N'EquipName'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'유형 — CK: INJ_MACHINE·WRAP_PRESS·PNT_ROBOT·SPRAY_BOOTH·OVEN_UNIT.  · varchar(16)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Equipment', @level2type=N'COLUMN',@level2name=N'EquipType'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'설비 유형 — 공통코드 EQUIP_TYPE (INJ 사출·WRAP 감싸기·PNT 도장).  · varchar(16)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Equipment', @level2type=N'COLUMN',@level2name=N'EquipType'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'소속 라인 → MD_Line(LineID).  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Equipment', @level2type=N'COLUMN',@level2name=N'LineID'
 GO
@@ -1792,6 +1793,8 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'이론 사이클 타임 (초) — OEE 성능 분모.  · decimal(8,2)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Equipment', @level2type=N'COLUMN',@level2name=N'TheoreticalCycle'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'OEE 목표 (%) — RPT-06.  · decimal(5,2)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Equipment', @level2type=N'COLUMN',@level2name=N'TargetOEE'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'톤수 — 사출(INJ) 설비만 (MD_Mold.Tonnage 와 같은 형).  · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Equipment', @level2type=N'COLUMN',@level2name=N'Tonnage'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'호환 금형 ID 목록 → MD_Mold.  · nvarchar' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Equipment', @level2type=N'COLUMN',@level2name=N'MoldCompatJSON'
 GO
@@ -2775,7 +2778,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · PM 템�
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Template Name · nvarchar(60)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplate', @level2type=N'COLUMN',@level2name=N'TemplateName'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Equip Type · varchar(16)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplate', @level2type=N'COLUMN',@level2name=N'EquipType'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'설비 유형 — 공통코드 EQUIP_TYPE (INJ 사출·WRAP 감싸기·PNT 도장), MD_Equipment.EquipType 과 같은 코드.  · varchar(16)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplate', @level2type=N'COLUMN',@level2name=N'EquipType'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Cycle Basis · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplate', @level2type=N'COLUMN',@level2name=N'CycleBasis'
 GO
@@ -14864,11 +14867,11 @@ INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ItemCategory, CarType, Defa
 GO
 -- Equipment
 INSERT INTO dbo.MD_Equipment (EquipID, EquipName, EquipType, LineID, MakerModel, InstallDate, TheoreticalCycle, TargetOEE, PlcAddress, Status, ActiveFlag, CreatedBy, CreatedTS) VALUES
-  ('INJ-650-01',  N'Husky 650T Injection',     'INJ_MACHINE',  'LINE-INJ-01', N'Husky H650 RS135/132', '2023-06-15', 45.0, 85.00, '192.168.10.21', 'IDLE', 1, 'admin', SYSDATETIME()),
-  ('INJ-850-02',  N'Husky 850T Injection',     'INJ_MACHINE',  'LINE-INJ-02', N'Husky H850 RS180/180', '2023-08-22', 52.0, 85.00, '192.168.10.22', 'IDLE', 1, 'admin', SYSDATETIME()),
-  ('IMG-PRESS-01',N'Vinyl Wrapping Press',     'WRAP_PRESS',   'LINE-IMG-01', N'Dieffenbacher VP-400', '2024-02-10', 60.0, 82.00, '192.168.10.31', 'IDLE', 1, 'admin', SYSDATETIME()),
-  ('PNT-ROBOT-01',N'Paint Robot ABB IRB-6700', 'PNT_ROBOT',    'LINE-PNT-01', N'ABB IRB-6700-235',     '2024-04-05', 30.0, 80.00, '192.168.10.41', 'IDLE', 1, 'admin', SYSDATETIME()),
-  ('OVEN-A1',     N'Cure Oven Zone A1',        'OVEN_UNIT',    'LINE-PNT-01', N'Eisenmann CT-180',     '2024-04-05', 0.0,  90.00, '192.168.10.42', 'IDLE', 1, 'admin', SYSDATETIME());
+  ('INJ-650-01',  N'Husky 650T Injection',     'INJ',          'LINE-INJ-01', N'Husky H650 RS135/132', '2023-06-15', 45.0, 85.00, '192.168.10.21', 'IDLE', 1, 'admin', SYSDATETIME()),
+  ('INJ-850-02',  N'Husky 850T Injection',     'INJ',          'LINE-INJ-02', N'Husky H850 RS180/180', '2023-08-22', 52.0, 85.00, '192.168.10.22', 'IDLE', 1, 'admin', SYSDATETIME()),
+  ('IMG-PRESS-01',N'Vinyl Wrapping Press',     'WRAP',         'LINE-IMG-01', N'Dieffenbacher VP-400', '2024-02-10', 60.0, 82.00, '192.168.10.31', 'IDLE', 1, 'admin', SYSDATETIME()),
+  ('PNT-ROBOT-01',N'Paint Robot ABB IRB-6700', 'PNT',          'LINE-PNT-01', N'ABB IRB-6700-235',     '2024-04-05', 30.0, 80.00, '192.168.10.41', 'IDLE', 1, 'admin', SYSDATETIME()),
+  ('OVEN-A1',     N'Cure Oven Zone A1',        'PNT',          'LINE-PNT-01', N'Eisenmann CT-180',     '2024-04-05', 0.0,  90.00, '192.168.10.42', 'IDLE', 1, 'admin', SYSDATETIME());
 GO
 PRINT '✓ Seed data inserted: 9 UOMs, 7 Customers, 5 Vendors, 5 Lines, 1188 Items, 5 Equipment';
 GO

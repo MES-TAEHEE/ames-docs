@@ -76,7 +76,7 @@
                 <Template Context="r">@(r.EquipName ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="EquipType" Title="@L["Col.EquipType"]" Width="100px">
-                <Template Context="r"><span class="pill">@(r.EquipType ?? "—")</span></Template>
+                <Template Context="r"><span class="pill">@EquipTypeLabel(r.EquipType)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="dim">@(r.LineID ?? "—")</span></Template>
@@ -103,6 +103,9 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="TargetOEE" Title="@L["Col.TargetOee"]" TextAlign="TextAlign.Right" Width="130px">
                 <Template Context="r">@(r.TargetOEE?.ToString("F1") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="Tonnage" Title="@L["Col.Tonnage"]" TextAlign="TextAlign.Right" Width="100px">
+                <Template Context="r">@(r.Tonnage?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="PlcAddress" Title="@L["Col.PlcAddr"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="dim">@(r.PlcAddress ?? "—")</span></Template>
@@ -149,7 +152,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.EquipType"]" />
-                    <RadzenTextBox @bind-Value="_f.EquipType" Placeholder="INJECTION, PAINT" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown TValue="string" Value="@_f.EquipType" Change="@(v => OnEquipTypeChanged(v as string))" Data="@EquipTypeCodeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Line"]" />
@@ -185,12 +188,16 @@
                     <RadzenNumeric TValue="decimal?" @bind-Value="_f.TargetOEE" Min="0m" Max="100m" Step="0.1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.PlcAddr"]" />
-                    <RadzenTextBox @bind-Value="_f.PlcAddress" Placeholder="192.168.1.10:502" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.Tonnage"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.Tonnage" Min="0" Disabled="@(!IsInjection)" Placeholder="@(IsInjection ? "" : L["MD.Equipment.Hint.TonnageInjOnly"].Value)" title="@L["MD.Equipment.Hint.TonnageInjOnly"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.PlcAddr"]" />
+                    <RadzenTextBox @bind-Value="_f.PlcAddress" Placeholder="192.168.1.10:502" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
                     <RadzenDropDown @bind-Value="_f.Status" Data="@EquipStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" Disabled="@(!_f.ActiveFlag)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
@@ -230,7 +237,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.EquipType"]" />
-                    <RadzenTextBox @bind-Value="_f.EquipType" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown TValue="string" Value="@_f.EquipType" Change="@(v => OnEquipTypeChanged(v as string))" Data="@EquipTypeCodeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Line"]" />
@@ -266,12 +273,16 @@
                     <RadzenNumeric TValue="decimal?" @bind-Value="_f.TargetOEE" Min="0m" Max="100m" Step="0.1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.PlcAddr"]" />
-                    <RadzenTextBox @bind-Value="_f.PlcAddress" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["Col.Tonnage"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.Tonnage" Min="0" Disabled="@(!IsInjection)" Placeholder="@(IsInjection ? "" : L["MD.Equipment.Hint.TonnageInjOnly"].Value)" title="@L["MD.Equipment.Hint.TonnageInjOnly"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.PlcAddr"]" />
+                    <RadzenTextBox @bind-Value="_f.PlcAddress" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
                     <RadzenDropDown @bind-Value="_f.Status" Data="@EquipStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" Disabled="@(!_f.ActiveFlag)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
@@ -316,6 +327,7 @@
     List<MasterDataRepository.LineRow> _lineList = new();
     List<MasterDataRepository.WorkCenterRow> _wcList = new();
     List<MasterDataRepository.CodeItemRow> _equipStatus = new();
+    List<MasterDataRepository.CodeItemRow> _equipTypes = new();
     List<MasterDataRepository.CodeItemRow> _activeFlagItems = new();
     MasterDataRepository.EquipmentRow? _sel;
 
@@ -332,7 +344,17 @@
 
     IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
     IEnumerable<DropDownItem> LineOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
-    IEnumerable<DropDownItem> EquipTypeOptions => _allRows.Select(r => r.EquipType).Where(x => x != null).Distinct().OrderBy(x => x).Select(t => new DropDownItem { Value = t!, Text = t! });
+    // 설비 유형 = 공통코드 EQUIP_TYPE(INJ 사출·WRAP 감싸기·PNT 도장). 톤수는 사출(INJ)만 입력한다
+    IEnumerable<DropDownItem> EquipTypeOptions => _equipTypes.Where(t => t.UseFlag).Select(t => new DropDownItem { Value = t.CodeValue ?? "", Text = MasterDataRepository.LocalName(t) });
+    IEnumerable<DropDownItem> EquipTypeCodeOptions => _equipTypes.Where(t => t.UseFlag || t.CodeValue == _f.EquipType).Select(t => new DropDownItem { Value = t.CodeValue ?? "", Text = $"[{t.CodeValue}] {MasterDataRepository.LocalName(t)}" });
+    string EquipTypeLabel(string? code) => string.IsNullOrEmpty(code) ? "—" : _equipTypes.FirstOrDefault(t => t.CodeValue == code) is { } t ? MasterDataRepository.LocalName(t) : code;
+    bool IsInjection => string.Equals(_f.EquipType, MasterDataRepository.EquipTypeInjection, StringComparison.OrdinalIgnoreCase);
+
+    void OnEquipTypeChanged(string? value)
+    {
+        _f.EquipType = value ?? "";
+        if (!IsInjection) _f.Tonnage = null;
+    }
     IEnumerable<DropDownItem> WcOptions => _wcList.Where(w => w.ActiveFlag).Select(w => new DropDownItem { Value = w.WCID, Text = $"[{w.WCID}]" + (w.WCName != null ? $" {w.WCName}" : "") });
     IEnumerable<DropDownItem> EquipStatusOptions => _equipStatus.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" });
 
@@ -350,6 +372,7 @@
         try { _lineList    = MD.ListLines();                   } catch { }
         try { _wcList      = MD.ListWorkCenters();             } catch { }
         try { _equipStatus = MD.ListCodeItems("EQUIP_STATUS"); } catch { }
+        try { _equipTypes  = MD.ListCodeItems("EQUIP_TYPE");   } catch { }
         try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
         Reload();
     }
@@ -422,6 +445,7 @@
             InstallDate      = r.InstallDate,
             TheoreticalCycle = r.TheoreticalCycle,
             TargetOEE        = r.TargetOEE,
+            Tonnage          = r.Tonnage,
             PlcAddress       = r.PlcAddress   ?? "",
             Status           = r.Status       ?? "Active",
             ActiveFlag       = r.ActiveFlag,
@@ -445,7 +469,7 @@
         {
             MD.InsertEquipment(_f.EquipID.Trim(), _f.EquipName, NE(_f.EquipType),
                 NE(_f.LineID), NE(_f.WCID), NE(_f.MakerModel),
-                _f.InstallDate, _f.TheoreticalCycle, _f.TargetOEE,
+                _f.InstallDate, _f.TheoreticalCycle, _f.TargetOEE, _f.Tonnage,
                 NE(_f.PlcAddress), NE(_f.Status), _f.ActiveFlag, _actor);
             Audit.Created("MD-014", "MD_Equipment", _f.EquipID.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
@@ -465,7 +489,7 @@
         {
             MD.UpdateEquipment(_sel.EquipID, _f.EquipName, NE(_f.EquipType),
                 NE(_f.LineID), NE(_f.WCID), NE(_f.MakerModel),
-                _f.InstallDate, _f.TheoreticalCycle, _f.TargetOEE,
+                _f.InstallDate, _f.TheoreticalCycle, _f.TargetOEE, _f.Tonnage,
                 NE(_f.PlcAddress), NE(_f.Status), _f.ActiveFlag, _actor);
             Audit.Updated("MD-014", "MD_Equipment", _sel.EquipID, _sel, _f);
             var name = _f.EquipName;
@@ -511,6 +535,7 @@
         public DateOnly? InstallDate      { get; set; }
         public decimal?  TheoreticalCycle { get; set; }
         public decimal?  TargetOEE        { get; set; }
+        public int?      Tonnage          { get; set; }
         public string    PlcAddress       { get; set; } = "";
         public string    Status           { get; set; } = "Active";
         public bool      ActiveFlag       { get; set; } = true;

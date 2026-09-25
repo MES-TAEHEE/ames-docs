@@ -2343,10 +2343,17 @@ public sealed class MasterDataRepository
     }
 
     // ── MD_Equipment ─────────────────────────────────────────────────
+    // EquipType = 공통코드 EQUIP_TYPE(INJ 사출·WRAP 감싸기·PNT 도장). Tonnage(MD_Mold.Tonnage 와 같은 int)는 사출 설비만 가진다.
+    public const string EquipTypeInjection = "INJ";
+
+    /// <summary>사출(INJ)이 아닌 설비는 톤수를 비운다 — 저장 직전에 적용.</summary>
+    public static int? NormalizeEquipTonnage(string? equipType, int? tonnage)
+        => string.Equals(equipType?.Trim(), EquipTypeInjection, StringComparison.OrdinalIgnoreCase) ? tonnage : null;
+
     public record EquipmentRow(
         string EquipID, string? EquipName, string? EquipType,
         string? LineID, string? WCID, string? MakerModel,
-        DateOnly? InstallDate, decimal? TheoreticalCycle, decimal? TargetOEE,
+        DateOnly? InstallDate, decimal? TheoreticalCycle, decimal? TargetOEE, int? Tonnage,
         string? PlcAddress, string? Status, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
 
@@ -2356,7 +2363,7 @@ public sealed class MasterDataRepository
         using var cmd = new SqlCommand(
             "SELECT EquipID,EquipName,EquipType,LineID,WCID,MakerModel," +
             "InstallDate,TheoreticalCycle,TargetOEE,PlcAddress,Status," +
-            "ISNULL(ActiveFlag,1),CreatedBy,CreatedTS,ModifiedBy,ModifiedTS " +
+            "ISNULL(ActiveFlag,1),CreatedBy,CreatedTS,ModifiedBy,ModifiedTS,Tonnage " +
             "FROM dbo.MD_Equipment ORDER BY EquipID;", conn);
         using var rdr = cmd.ExecuteReader();
         var list = new List<EquipmentRow>();
@@ -2371,6 +2378,7 @@ public sealed class MasterDataRepository
                 rdr.IsDBNull(6)  ? null : DateOnly.FromDateTime(rdr.GetDateTime(6)),
                 rdr.IsDBNull(7)  ? null : rdr.GetDecimal(7),
                 rdr.IsDBNull(8)  ? null : rdr.GetDecimal(8),
+                rdr.IsDBNull(16) ? null : rdr.GetInt32(16),
                 rdr.IsDBNull(9)  ? null : rdr.GetString(9),
                 rdr.IsDBNull(10) ? null : rdr.GetString(10),
                 rdr.GetBoolean(11),
@@ -2393,15 +2401,15 @@ public sealed class MasterDataRepository
     public void InsertEquipment(
         string equipId, string? name, string? type,
         string? lineId, string? wcid, string? makerModel,
-        DateOnly? installDate, decimal? theoreticalCycle, decimal? targetOee,
+        DateOnly? installDate, decimal? theoreticalCycle, decimal? targetOee, int? tonnage,
         string? plcAddress, string? status, bool activeFlag, string createdBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_Equipment" +
             "(EquipID,EquipName,EquipType,LineID,WCID,MakerModel," +
-            "InstallDate,TheoreticalCycle,TargetOEE,PlcAddress,Status,ActiveFlag,CreatedBy)" +
-            " VALUES(@I,@N,@T,@L,@W,@M,@ID,@TC,@OEE,@PLC,@ST,@AF,@CB);", conn);
+            "InstallDate,TheoreticalCycle,TargetOEE,Tonnage,PlcAddress,Status,ActiveFlag,CreatedBy)" +
+            " VALUES(@I,@N,@T,@L,@W,@M,@ID,@TC,@OEE,@TON,@PLC,@ST,@AF,@CB);", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = equipId;
         cmd.Parameters.Add("@N",   SqlDbType.NVarChar,  50).Value = (object?)name          ?? DBNull.Value;
         cmd.Parameters.Add("@T",   SqlDbType.VarChar,   16).Value = (object?)type           ?? DBNull.Value;
@@ -2413,6 +2421,7 @@ public sealed class MasterDataRepository
         cmd.Parameters["@TC"].Precision = 8; cmd.Parameters["@TC"].Scale = 2;
         cmd.Parameters.Add("@OEE", SqlDbType.Decimal).Value       = (object?)targetOee      ?? DBNull.Value;
         cmd.Parameters["@OEE"].Precision = 5; cmd.Parameters["@OEE"].Scale = 2;
+        cmd.Parameters.Add("@TON", SqlDbType.Int).Value            = (object?)NormalizeEquipTonnage(type, tonnage) ?? DBNull.Value;
         cmd.Parameters.Add("@PLC", SqlDbType.VarChar,   40).Value = (object?)plcAddress     ?? DBNull.Value;
         cmd.Parameters.Add("@ST",  SqlDbType.VarChar,    8).Value = (object?)status         ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
@@ -2423,14 +2432,14 @@ public sealed class MasterDataRepository
     public void UpdateEquipment(
         string equipId, string? name, string? type,
         string? lineId, string? wcid, string? makerModel,
-        DateOnly? installDate, decimal? theoreticalCycle, decimal? targetOee,
+        DateOnly? installDate, decimal? theoreticalCycle, decimal? targetOee, int? tonnage,
         string? plcAddress, string? status, bool activeFlag, string modifiedBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_Equipment SET " +
             "EquipName=@N,EquipType=@T,LineID=@L,WCID=@W,MakerModel=@M," +
-            "InstallDate=@ID,TheoreticalCycle=@TC,TargetOEE=@OEE," +
+            "InstallDate=@ID,TheoreticalCycle=@TC,TargetOEE=@OEE,Tonnage=@TON," +
             "PlcAddress=@PLC,Status=@ST,ActiveFlag=@AF," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB " +
             "WHERE EquipID=@I;", conn);
@@ -2445,6 +2454,7 @@ public sealed class MasterDataRepository
         cmd.Parameters["@TC"].Precision = 8; cmd.Parameters["@TC"].Scale = 2;
         cmd.Parameters.Add("@OEE", SqlDbType.Decimal).Value       = (object?)targetOee      ?? DBNull.Value;
         cmd.Parameters["@OEE"].Precision = 5; cmd.Parameters["@OEE"].Scale = 2;
+        cmd.Parameters.Add("@TON", SqlDbType.Int).Value            = (object?)NormalizeEquipTonnage(type, tonnage) ?? DBNull.Value;
         cmd.Parameters.Add("@PLC", SqlDbType.VarChar,   40).Value = (object?)plcAddress     ?? DBNull.Value;
         cmd.Parameters.Add("@ST",  SqlDbType.VarChar,    8).Value = (object?)status         ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;

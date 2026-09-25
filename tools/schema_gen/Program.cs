@@ -315,11 +315,11 @@ static void EmitSeedData(StringBuilder sb) {
     // Equipment
     sb.AppendLine("-- Equipment");
     sb.AppendLine("INSERT INTO dbo.MD_Equipment (EquipID, EquipName, EquipType, LineID, MakerModel, InstallDate, TheoreticalCycle, TargetOEE, PlcAddress, Status, ActiveFlag, CreatedBy, CreatedTS) VALUES");
-    sb.AppendLine("  ('INJ-650-01',  N'Husky 650T Injection',     'INJ_MACHINE',  'LINE-INJ-01', N'Husky H650 RS135/132', '2023-06-15', 45.0, 85.00, '192.168.10.21', 'IDLE', 1, 'admin', SYSDATETIME()),");
-    sb.AppendLine("  ('INJ-850-02',  N'Husky 850T Injection',     'INJ_MACHINE',  'LINE-INJ-02', N'Husky H850 RS180/180', '2023-08-22', 52.0, 85.00, '192.168.10.22', 'IDLE', 1, 'admin', SYSDATETIME()),");
-    sb.AppendLine("  ('IMG-PRESS-01',N'Vinyl Wrapping Press',     'WRAP_PRESS',   'LINE-IMG-01', N'Dieffenbacher VP-400', '2024-02-10', 60.0, 82.00, '192.168.10.31', 'IDLE', 1, 'admin', SYSDATETIME()),");
-    sb.AppendLine("  ('PNT-ROBOT-01',N'Paint Robot ABB IRB-6700', 'PNT_ROBOT',    'LINE-PNT-01', N'ABB IRB-6700-235',     '2024-04-05', 30.0, 80.00, '192.168.10.41', 'IDLE', 1, 'admin', SYSDATETIME()),");
-    sb.AppendLine("  ('OVEN-A1',     N'Cure Oven Zone A1',        'OVEN_UNIT',    'LINE-PNT-01', N'Eisenmann CT-180',     '2024-04-05', 0.0,  90.00, '192.168.10.42', 'IDLE', 1, 'admin', SYSDATETIME());");
+    sb.AppendLine("  ('INJ-650-01',  N'Husky 650T Injection',     'INJ',          'LINE-INJ-01', N'Husky H650 RS135/132', '2023-06-15', 45.0, 85.00, '192.168.10.21', 'IDLE', 1, 'admin', SYSDATETIME()),");
+    sb.AppendLine("  ('INJ-850-02',  N'Husky 850T Injection',     'INJ',          'LINE-INJ-02', N'Husky H850 RS180/180', '2023-08-22', 52.0, 85.00, '192.168.10.22', 'IDLE', 1, 'admin', SYSDATETIME()),");
+    sb.AppendLine("  ('IMG-PRESS-01',N'Vinyl Wrapping Press',     'WRAP',         'LINE-IMG-01', N'Dieffenbacher VP-400', '2024-02-10', 60.0, 82.00, '192.168.10.31', 'IDLE', 1, 'admin', SYSDATETIME()),");
+    sb.AppendLine("  ('PNT-ROBOT-01',N'Paint Robot ABB IRB-6700', 'PNT',          'LINE-PNT-01', N'ABB IRB-6700-235',     '2024-04-05', 30.0, 80.00, '192.168.10.41', 'IDLE', 1, 'admin', SYSDATETIME()),");
+    sb.AppendLine("  ('OVEN-A1',     N'Cure Oven Zone A1',        'PNT',          'LINE-PNT-01', N'Eisenmann CT-180',     '2024-04-05', 0.0,  90.00, '192.168.10.42', 'IDLE', 1, 'admin', SYSDATETIME());");
     sb.AppendLine("GO");
     sb.AppendLine();
 

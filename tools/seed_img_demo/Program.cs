@@ -85,7 +85,7 @@ internal static class Program
         Upsert(conn, """
             MERGE dbo.MD_Equipment AS t
             USING (SELECT @Id AS EquipID) s ON t.EquipID = s.EquipID
-            WHEN MATCHED THEN UPDATE SET EquipName=@N, EquipType='IMG', LineID=@L,
+            WHEN MATCHED THEN UPDATE SET EquipName=@N, EquipType='WRAP', LineID=@L,
                                           MakerModel='Husky-WrapPro', Status='RUN', ActiveFlag=1,
                                           ModifiedTS=SYSDATETIME()
             WHEN NOT MATCHED THEN INSERT (EquipID, EquipName, EquipType, LineID, MakerModel,

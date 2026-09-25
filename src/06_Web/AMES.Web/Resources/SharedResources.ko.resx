@@ -3807,6 +3807,9 @@
   <data name="MD.Equipment.Kpi.EquipTypes" xml:space="preserve">
     <value>설비유형 수</value>
   </data>
+  <data name="MD.Equipment.Hint.TonnageInjOnly" xml:space="preserve">
+    <value>사출(INJ) 설비만 입력</value>
+  </data>
   <data name="MD.LabelTpl.Kpi.LabelTypes" xml:space="preserve">
     <value>라벨 유형 수</value>
   </data>

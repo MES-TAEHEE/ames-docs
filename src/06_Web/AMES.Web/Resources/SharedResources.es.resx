@@ -3807,6 +3807,9 @@
   <data name="MD.Equipment.Kpi.EquipTypes" xml:space="preserve">
     <value>Tipos de Equipo</value>
   </data>
+  <data name="MD.Equipment.Hint.TonnageInjOnly" xml:space="preserve">
+    <value>Solo equipos de inyección (INJ)</value>
+  </data>
   <data name="MD.LabelTpl.Kpi.LabelTypes" xml:space="preserve">
     <value>Tipos de Etiqueta</value>
   </data>
