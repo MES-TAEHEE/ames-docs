@@ -12,19 +12,16 @@ public sealed partial class ScmRepository
 
     // Authorization is rechecked for both first issue and every subsequent read.
     // A header lock serializes concurrent issues; reprints never rebuild master-data values.
-    public DeliveryNote? GetDeliveryNote(string number, string userId, bool adminOnBehalf = false,
+    public DeliveryNote? GetDeliveryNote(string number, string userId,
         bool issue = false, string actor = "")
     {
-        if (issue) return IssueDeliveryNote([number], userId, actor, adminOnBehalf);
-        var batch = ReadBatchDeliveryNote(number, userId, adminOnBehalf);
+        if (issue) return IssueDeliveryNote([number], userId, actor);
+        var batch = ReadBatchDeliveryNote(number, userId);
         if (batch is not null) return batch;
         using var conn = factory.OpenConnection();
         using var tx = conn.BeginTransaction();
         using var header = new SqlCommand("""
-            IF @Admin=1 AND NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles ur
-                JOIN dbo.AspNetRoles r ON r.Id=ur.RoleId WHERE ur.UserId=@U AND r.Name='Admin')
-                THROW 50031,'No delivery note permission.',1;
-            IF @Admin=0 AND NOT EXISTS(SELECT 1 FROM dbo.SCM_Delivery d
+            IF NOT EXISTS(SELECT 1 FROM dbo.SCM_Delivery d
                 JOIN dbo.SCM_PortalVendorUser m WITH(HOLDLOCK) ON m.VendorID=d.VendorID
                 JOIN dbo.MD_Vendor v WITH(HOLDLOCK) ON v.VendorID=m.VendorID
                 WHERE d.DeliveryNumber=@N AND m.UserID=@U AND m.ActiveFlag=1
@@ -33,7 +30,7 @@ public sealed partial class ScmRepository
             SELECT DeliveryID,Status,NoteSnapshot,ShipDate,SYSDATETIME(),PoNumber,VendorID
             FROM dbo.SCM_Delivery WITH(UPDLOCK,HOLDLOCK) WHERE DeliveryNumber=@N;
             """, conn, tx);
-        Add(header, ("@N", number), ("@U", userId), ("@Admin", adminOnBehalf));
+        Add(header, ("@N", number), ("@U", userId));
         int id; DateTime shipDate, issuedAt; string order, vendor, status; string? snapshot;
         using (var r = header.ExecuteReader())
         {

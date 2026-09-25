@@ -61,7 +61,7 @@
                 {
                     <RadzenButton Text='@T("신규 발주", "New order", "Nuevo pedido")' Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="NewOrder" class="ames-rz-btn" />
                 }
-                @if(IsPortal && Mode=="Deliveries" && (_adminPreview || _isExternalPortalUser))
+                @if(IsPortal && Mode=="Deliveries" && _isExternalPortalUser)
                 {
                     <RadzenButton Text='@T("신규 납품서 등록", "New delivery", "Nueva entrega")' Icon="add" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenDeliveryRegistration" />
                 }
@@ -73,7 +73,7 @@
             else if(Mode=="Progress") { @T("협력사의 수주 확인과 납품 진행 상황입니다. 출하수량은 출하 확정된 납품서의 누적 수량이며, 입고된 수량도 포함합니다. 미출하 잔량 = 발주수량 - 출하수량. 수량은 단위별로 합산합니다.", "Track supplier confirmation and deliveries. Shipped is the cumulative confirmed shipment quantity, including receipts. Not yet shipped = ordered - shipped. Quantities are totaled by unit.", "Seguimiento de confirmación y entregas. Enviado incluye lo recibido. Pendiente de envío = pedido - enviado. Totales por unidad.") }
             else if (IsPortal) { @T("발주 내역을 조회하고 수주 확인·납품서 등록·출하 확정을 진행합니다. EOS에서 전량 입고하면 완료됩니다.", "View purchase orders, confirm orders, register deliveries and confirm shipments. The process is complete when EOS receives the full quantity.", "Consulte pedidos, confirme órdenes, registre entregas y confirme envíos. El proceso termina cuando EOS recibe toda la cantidad.") }
             else { @T("발주서를 작성하고 발행·취소 상태와 입고수량을 확인합니다.", "Create purchase orders and view their status and received quantities.", "Cree pedidos y consulte su estado y las cantidades recibidas.") }
-            @if (IsPortal) { <span> · @(_adminPreview ? T("관리자 전체 조회", "Administrator preview", "Vista de administrador") : T("계정에 연결된 업체의 발주만 표시됩니다. 연결 정보가 없으면 표시되지 않습니다.", "Only orders for linked vendors are visible. Unlinked accounts see no orders.", "Solo pedidos de proveedores vinculados."))</span> }
+            @if (IsPortal) { <span> · @T("계정에 연결된 업체의 발주만 표시됩니다. 연결 정보가 없으면 표시되지 않습니다.", "Only orders for linked vendors are visible. Unlinked accounts see no orders.", "Solo pedidos de proveedores vinculados.")</span> }
         </div>
         @if (_from > _to)
         {
@@ -153,7 +153,7 @@
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="Number" Title='@T("발주번호", "Order", "Pedido")' Width="160px">
                         <Template Context="o"><span class="code">@o.Number</span></Template>
                     </RadzenDataGridColumn>
-                    @if (!IsPortal || _adminPreview) { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="Vendor" Title='@T("협력업체", "Supplier", "Proveedor")' Width="220px"><Template Context="order"><span class="code">@order.Vendor</span><span class="dim" style="font-size:.8em;margin-left:4px;">@VendorName(order.Vendor)</span></Template></RadzenDataGridColumn> }
+                    @if (!IsPortal) { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="Vendor" Title='@T("협력업체", "Supplier", "Proveedor")' Width="220px"><Template Context="order"><span class="code">@order.Vendor</span><span class="dim" style="font-size:.8em;margin-left:4px;">@VendorName(order.Vendor)</span></Template></RadzenDataGridColumn> }
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="Item" Title='@T("품번", "Item", "Artículo")' Width="170px"><Template Context="o"><span class="code">@(o.Lines.FirstOrDefault()?.Item)</span>@if (o.LineCount > 1) { <span class="pill info" style="margin-left:6px;" title="@o.Item">+@(o.LineCount - 1)</span> }</Template></RadzenDataGridColumn>
                     @if(Mode!="Progress")
                     {
@@ -272,7 +272,7 @@
                     @if (!IsPortal && Mode == "Orders" && CanEdit && _selected.Status is "Draft" or "Published" && Store.Delivered(_selected) == 0)
                     { <RadzenButton Text='@T("발주 취소", "Cancel order", "Cancelar pedido")' Icon="block" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='@(() => ChangeStatus("Cancelled"))' class="ames-rz-btn" /> }
                     @if (CanConfirmOrder)
-                    { <RadzenButton Text="@(_adminPreview ? T("대리 수주 확인", "Confirm on behalf", "Confirmar en representación") : T("수주 확인", "Confirm order", "Confirmar pedido"))" Icon="task_alt" Click="@(() => _confirmPrompt=true)" class="ames-rz-btn" /> }
+                    { <RadzenButton Text="@T("수주 확인", "Confirm order", "Confirmar pedido")" Icon="task_alt" Click="@(() => _confirmPrompt=true)" class="ames-rz-btn" /> }
                     <RadzenButton Text='@T("닫기", "Close", "Cerrar")' Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseDetail" class="ames-rz-btn" />
                 </RadzenStack>
             </div>
@@ -455,14 +455,14 @@
     IEnumerable<MaterialOption> MaterialOptions => _materials.Select(x => new MaterialOption(x.ItemNo, $"{x.ItemNo} · {x.ItemName}"));
     bool CanEdit => !IsPortal && Permissions.CanEdit(Href);
     bool CanConfirmOrder => IsPortal && Mode == "Orders"
-        && (_adminPreview || _isExternalPortalUser) && !string.IsNullOrEmpty(_portalUserId)
+        && _isExternalPortalUser && !string.IsNullOrEmpty(_portalUserId)
         && _selected is { SupplierConfirmedAt: null, Status: "Published" or "Confirmed" };
     string ConfirmationLabel(ScmPreviewStore.Order o) => o.SupplierConfirmedAt.HasValue
         ? T("확인 완료", "Confirmed", "Confirmado") : o.Status is "Published" or "Confirmed"
         ? T("확인 대기", "Awaiting confirmation", "Pendiente") : "—";
     bool CanApprove => Permissions.CanApprove(Href);
     bool DeliveryEditable => IsPortal && Mode == "Deliveries"
-        && (_adminPreview || _isExternalPortalUser) && !string.IsNullOrEmpty(_portalUserId)
+        && _isExternalPortalUser && !string.IsNullOrEmpty(_portalUserId)
         && _delivery?.Status == "Registered" && _deliveryEditLines.All(l=>l.Received==0);
     string Empty => T("조회 결과가 없습니다.", "No results.", "Sin resultados.");
     IEnumerable<string> OrderStatuses => IsPortal && Mode=="Due" ? ["Outstanding","Published","Confirmed","Closed","Cancelled"] : Mode == "Deliveries" ? ["Registered", "Shipped", "Received", "Cancelled"] : IsPortal ? ["Published", "Confirmed", "Closed", "Cancelled"] : ["Draft", "Published", "Confirmed", "Closed", "Cancelled"];
@@ -517,7 +517,6 @@
         var user = (await Authentication.GetAuthenticationStateAsync()).User;
         _actor = ActorCode.Of(user);
         _portalUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        _adminPreview = PortalAuth.IsInternalUser(user) && user.IsInRole("Admin");
         _isExternalPortalUser = PortalAuth.IsPortalUser(user);
         ReloadOrders();
         if(IsPortal && Mode=="Deliveries" && !string.IsNullOrWhiteSpace(RegistrationOrder))
@@ -709,9 +708,9 @@
         _confirmPrompt = false;
         try
         {
-            var changed = Scm.ConfirmSupplierOrder(number, _selected.Versions, _portalUserId!, _actor, _adminPreview);
-            if (changed) Audit.Log(ScreenCode, _adminPreview ? "CONFIRM_PROXY" : "CONFIRM", "WH_PurchaseOrder", number,
-                new { SupplierConfirmedAt = _selected.SupplierConfirmedAt }, new { Confirmed = true, Actor = _actor, AdminOnBehalf = _adminPreview });
+            var changed = Scm.ConfirmSupplierOrder(number, _selected.Versions, _portalUserId!, _actor);
+            if (changed) Audit.Log(ScreenCode, "CONFIRM", "WH_PurchaseOrder", number,
+                new { SupplierConfirmedAt = _selected.SupplierConfirmedAt }, new { Confirmed = true, Actor = _actor });
         }
         catch (Exception ex)
         {
@@ -725,7 +724,6 @@
     bool _confirmPrompt, _isExternalPortalUser;
     string _actor = "";
     string? _portalUserId;
-    bool _adminPreview;
     List<ScmPreviewStore.Order> _dbOrders = new();
     static ScmRepository.PurchaseOrder ToDatabase(ScmPreviewStore.Order o) => new(o.Number,o.Vendor,o.Ordered,o.Due,o.Destination,o.Status,o.Currency,
         o.Lines.Select(l => new ScmRepository.PurchaseLine(l.Id,l.Item,l.Name,l.Unit,l.Quantity,l.Price,l.Received)).ToList());
@@ -733,13 +731,13 @@
     {
         try
         {
-            _dbOrders = Scm.ListPurchaseOrders(IsPortal, _portalUserId, IsPortal && _adminPreview).Select(o => new ScmPreviewStore.Order {
+            _dbOrders = Scm.ListPurchaseOrders(IsPortal, _portalUserId).Select(o => new ScmPreviewStore.Order {
                 Number=o.Number,Vendor=o.Vendor,VendorName=o.VendorName,SupplierConfirmedAt=o.SupplierConfirmedAt,SupplierConfirmedBy=o.SupplierConfirmedBy,Ordered=o.Ordered,Due=o.Due,Destination=o.Destination,Currency=o.Currency,Persistent=true,
                 Status=o.Status switch { "Open" => "Published", "Partial" => "Confirmed", "Complete" or "Received" => "Closed", "Draft" => "Draft", "Cancelled" => "Cancelled", _ => o.Status },
                 Versions=o.Lines.ToDictionary(l => l.PoID,l => l.Version),
                 Lines=o.Lines.Select(l => new ScmPreviewStore.OrderLine {PoID=l.PoID,Id=l.Id,Item=l.Item,Name=l.Name,Unit=l.Unit,Quantity=l.Quantity,Price=l.Price,Received=l.Received}).ToList()
             }).ToList();
-            var deliveries = Scm.ListSupplierDeliveries(IsPortal, _portalUserId, IsPortal && _adminPreview);
+            var deliveries = Scm.ListSupplierDeliveries(IsPortal, _portalUserId);
             Store.Deliveries.Clear();
             Store.Deliveries.AddRange(deliveries.Select(d => new ScmPreviewStore.Delivery {
                 Number=d.Number,OrderNumber=d.OrderNumber,PoID=d.PoID,LineId=d.LineId,Item=d.Item,Unit=d.Unit,
@@ -810,7 +808,7 @@
     void ChooseDeliveryOrder(ScmPreviewStore.Order order) { _choosingDeliveryOrder=false; Select(order); }
     Guid _deliveryRequest = Guid.NewGuid();
     bool CanRegisterDelivery => IsPortal && (Mode is "Entry" or "Deliveries") && _delivery is null
-        && (_adminPreview || _isExternalPortalUser) && !string.IsNullOrEmpty(_portalUserId)
+        && _isExternalPortalUser && !string.IsNullOrEmpty(_portalUserId)
         && _selected is { SupplierConfirmedAt: not null, Status: "Published" or "Confirmed" }
         && _selected.Lines.Any(l=>l.AvailableDelivery>0);
     void PrepareDelivery()
@@ -820,7 +818,7 @@
         var packing=new Dictionary<string,decimal?>(StringComparer.OrdinalIgnoreCase);
         if(CanRegisterDelivery && _selected is not null)
         {
-            try { packing=Scm.ListPortalPackingQuantities(_portalUserId!,_adminPreview)
+            try { packing=Scm.ListPortalPackingQuantities(_portalUserId!)
                 .Where(r=>string.Equals(r.VendorID,_selected.Vendor,StringComparison.OrdinalIgnoreCase))
                 .ToDictionary(r=>r.ItemNo,r=>r.PackingQty,StringComparer.OrdinalIgnoreCase); }
             catch(Exception ex) { Logger.LogError(ex,"Delivery packing quantity load failed");
@@ -843,8 +841,8 @@
         {
             deliveryNumber=Scm.RegisterSupplierDelivery(orderNumber,_deliveryDate,
                 entries.Select(x=>new ScmRepository.DeliveryInput(x.Line.PoID,x.Quantity,x.VendorLotNo,x.ProductionDate)).ToList(),
-                _selected.Versions,_deliveryRequest,_portalUserId!,_actor,_adminPreview);
-            Audit.Created(ScreenCode,"SCM_Delivery",deliveryNumber,new {OrderNumber=orderNumber,Date=_deliveryDate,AdminOnBehalf=_adminPreview,
+                _selected.Versions,_deliveryRequest,_portalUserId!,_actor);
+            Audit.Created(ScreenCode,"SCM_Delivery",deliveryNumber,new {OrderNumber=orderNumber,Date=_deliveryDate,
                 Lines=entries.Select(x=>new {x.Line.PoID,x.Quantity,x.VendorLotNo,x.ProductionDate}).ToArray()});
         }
         catch(ScmRepository.DeliveryBoxLimitException)
@@ -890,9 +888,9 @@
         {
             Scm.UpdateSupplierDelivery(number,ship?_shipDate:_delivery.Date,
                 (ship?before.AsEnumerable():_deliveryEditLines).Select(l=>new ScmRepository.DeliveryInput(l.PoID,l.Quantity,l.VendorLotNo,l.ProductionDate)).ToList(),
-                _delivery.Version,_selected.Versions,_portalUserId!,_actor,cancel,_adminPreview,ship);
+                _delivery.Version,_selected.Versions,_portalUserId!,_actor,cancel,ship);
             Audit.Log(ScreenCode,ship?"SHIP":cancel?"CANCEL":"UPDATE","SCM_Delivery",number,before,
-                new {Date=_delivery.Date,ShipDate=ship?(DateTime?)_shipDate:null,Shipped=ship,Cancelled=cancel,AdminOnBehalf=_adminPreview,Lines=_deliveryEditLines.Select(l=>new {l.PoID,l.Quantity,l.VendorLotNo,l.ProductionDate}).ToArray()});
+                new {Date=_delivery.Date,ShipDate=ship?(DateTime?)_shipDate:null,Shipped=ship,Cancelled=cancel,Lines=_deliveryEditLines.Select(l=>new {l.PoID,l.Quantity,l.VendorLotNo,l.ProductionDate}).ToArray()});
         }
         catch(Exception ex)
         {

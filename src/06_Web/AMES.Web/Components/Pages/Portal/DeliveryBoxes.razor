@@ -51,14 +51,14 @@
     ScmRepository.BoxDelivery? _document;
     HashSet<long> _selected=[];
     string _user="",_search="",_error="";
-    bool _admin,_allowed;
+    bool _allowed;
     IEnumerable<ScmRepository.BoxDelivery> Rows=>_rows.Where(d=>$"{d.Number} {d.Vendor} {d.Order}".Contains(_search,StringComparison.OrdinalIgnoreCase));
     static string Status(string s)=>s switch {"Registered"=>"등록","Shipped"=>"출하","Received"=>"입고","Cancelled"=>"취소",_=>s};
     protected override async Task OnParametersSetAsync()
     {
         var u=(await Authentication.GetAuthenticationStateAsync()).User;
         _user=u.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value??"";
-        _admin=PortalAuth.IsInternalUser(u)&&u.IsInRole("Admin");_allowed=_admin||PortalAuth.IsPortalUser(u);
+        _allowed=PortalAuth.IsPortalUser(u);
         Load();
         if(_rows.Find(d=>d.Number==Number) is {} d)Select(d);
     }
@@ -66,13 +66,13 @@
     {
         _rows=[];_boxes=[];_selected.Clear();_document=null;_error="";
         if(!_allowed||_user.Length==0)return;
-        try{_rows=Scm.ListBoxDeliveries(_user,_admin);}
+        try{_rows=Scm.ListBoxDeliveries(_user);}
         catch(Exception ex){Logger.LogError(ex,"Box delivery list failed");_error=PortalText.Get("납품서 목록을 조회하지 못했습니다.");}
     }
     void Select(ScmRepository.BoxDelivery d)
     {
         _document=d;_boxes=[];_selected.Clear();_error="";
-        try{_boxes=Scm.ListDeliveryBoxes(d.Number,_user,_admin);}
+        try{_boxes=Scm.ListDeliveryBoxes(d.Number,_user);}
         catch(Exception ex){Logger.LogError(ex,"Box list failed");_error=PortalText.Get("박스 목록을 조회하지 못했습니다.");}
     }
     void Toggle(long id,bool selected){if(selected)_selected.Add(id);else _selected.Remove(id);}

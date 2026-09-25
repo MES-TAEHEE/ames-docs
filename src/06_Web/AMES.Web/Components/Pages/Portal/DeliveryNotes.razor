@@ -35,12 +35,11 @@
     List<ScmRepository.NoteDeliveryChoice> _rows=[];
     HashSet<string> _selected=[];
     string _user="",_actor="",_error="";
-    bool _admin,_allowed,_busy;
+    bool _allowed,_busy;
     protected override async Task OnInitializedAsync()
     {
         var user=(await Authentication.GetAuthenticationStateAsync()).User;
-        _admin=PortalAuth.IsInternalUser(user)&&user.IsInRole("Admin");
-        _allowed=_admin||PortalAuth.IsPortalUser(user);
+        _allowed=PortalAuth.IsPortalUser(user);
         _user=user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value??"";
         _actor=ActorCode.Of(user); Reload();
     }
@@ -49,14 +48,14 @@
     {
         _rows=[];_selected.Clear();_error="";
         if(!_allowed || _user.Length==0){_error=PortalText.Get("조회 권한이 없습니다.");return;}
-        try{_rows=Scm.ListNoteDeliveries(_user,_admin);}
+        try{_rows=Scm.ListNoteDeliveries(_user);}
         catch(Exception ex){Logger.LogWarning(ex,"Delivery notes load failed");_error=PortalText.Get("목록을 조회할 수 없습니다.");}
     }
     void Issue()
     {
         if(_busy||!_allowed||_selected.Count==0)return;
         _busy=true;_error="";
-        try { var note=Scm.IssueDeliveryNote(_selected.ToArray(),_user,_actor,_admin);Nav.NavigateTo($"/portal/delivery-note/{note.Number}"); }
+        try { var note=Scm.IssueDeliveryNote(_selected.ToArray(),_user,_actor);Nav.NavigateTo($"/portal/delivery-note/{note.Number}"); }
         catch(InvalidOperationException ex){_error=PortalText.Get(ex.Message);}
         catch(Exception ex){Logger.LogWarning(ex,"Batch note issue failed");_error=PortalText.Get("발행하지 못했습니다. 새로고침 후 업체 권한 및 납품서 상태를 확인해 주세요.");}
         finally{_busy=false;}

@@ -105,7 +105,6 @@ public static class PortalText
         ["같은 협력업체의 납품서를 선택해 하나의 문서로 발행합니다. 이미 발행된 납품서는 아래에서 재출력할 수 있습니다."] = "Select deliveries for the same supplier to issue one document. Existing documents can be reprinted below.",
         ["납품 품목별 입고수량과 잔량을 확인합니다. 전량 입고되면 입고 완료입니다."] = "View received and remaining quantities by delivery item. Receipt is complete when the full quantity has been received.",
         ["업체에 연결된 품목의 적입량을 입력하고 행별로 저장해 주세요. 수량은 단위 관리에 설정된 소수 자릿수로 표시합니다."] = "Enter packing quantities for linked items and save each row. Quantities follow the unit precision settings.",
-        ["· 관리자 전체 조회"] = "· Administrator view",
         ["납품서를 조회할 권한이 없습니다."] = "You cannot access this delivery.",
         ["출하 완료 납품서만 발행할 수 있습니다."] = "Only shipped deliveries can be issued.",
         ["기존에 발행된 납품서입니다. 기존 문서를 재출력해 주세요."] = "Already issued. Reprint the existing document.",

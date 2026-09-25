@@ -9,7 +9,7 @@
 @using System.Security.Claims
 
 @*  외부 포탈 상단바 — 내부 TopBar 와 같은 구조. 레이아웃(PortalLayout)은 정적이라 테마 버튼 같은 클릭이 서버에 닿지 않아
-    내부 셸처럼 대화형 컴포넌트로 분리했다. 내부 사용자에게는 "내부 사이트로", 외부 사용자에게는 로그아웃만. *@
+    내부 셸처럼 대화형 컴포넌트로 분리했다. 외부 화면은 외부 사용자만 열 수 있다 — 협력업체와 로그아웃만 보인다. *@
 
 <header class="ames-topbar portal-top">
     <div class="ames-brand">
@@ -44,32 +44,22 @@
     }
 
     <div class="ames-user">
-        <div class="ames-user-av @(_internal ? "ames-user-av--admin" : "ames-user-av--user")"><RadzenIcon Icon="@(_internal ? "admin_panel_settings" : "handshake")" /></div>
+        <div class="ames-user-av ames-user-av--user"><RadzenIcon Icon="handshake" /></div>
         <div class="ames-user-info">
             <div class="ames-user-name">@_userName</div>
-            <div class="ames-user-role">@(_internal ? _roles : $"{L["Portal.Role.External"]} · {_vendor}")</div>
+            <div class="ames-user-role">@L["Portal.Role.External"] · @_vendor</div>
         </div>
-        @if (_internal)
-        {
-            <a class="ames-user-out portal-back" href="/" title="@L["Portal.Nav.Internal"]">⌂</a>
-        }
-        else
-        {
-            <a class="ames-user-out" href="/portal/logout" title="@L["Portal.Logout"]">⏻</a>
-        }
+        <a class="ames-user-out" href="/portal/logout" title="@L["Portal.Logout"]">⏻</a>
     </div>
 </header>
 
 @code {
-    bool _internal;
-    string _userName = "", _roles = "", _vendor = "", _theme = "dark";
+    string _userName = "", _vendor = "", _theme = "dark";
 
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthPrvd.GetAuthenticationStateAsync();
-        _internal = PortalAuth.IsInternalUser(state.User);
         _userName = state.User.Identity?.Name ?? "";
-        _roles = string.Join(", ", state.User.FindAll(ClaimTypes.Role).Select(c => c.Value).Distinct());
         _vendor = state.User.FindFirst(PortalAuth.VendorClaim)?.Value ?? "";
         Header.OnChanged += OnHeaderChanged;
     }

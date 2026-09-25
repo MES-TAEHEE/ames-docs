@@ -107,19 +107,19 @@ authBuilder
     })
     .AddPolicyScheme(AMES.Web.Services.PortalAuth.DynamicScheme, "AMES cookie selector", o =>
     {
-        // 외부 쿠키가 있으면 AmesPortal. 없으면 Identity — 단, 쿠키가 하나도 없는 /portal 요청은 AmesPortal 로 보내
-        // 미인증 챌린지가 내부 로그인이 아니라 /portal/login 으로 가게 한다(내부 쿠키가 있으면 내부 사용자 그대로).
+        // /portal 화면은 항상 AmesPortal — 내부 쿠키가 있어도 외부 인증으로만 판단해, 내부 계정으로 열면 /portal/login 으로 간다.
+        // 그 밖의 경로(내부 화면·Blazor 회로 /_blazor 등)는 외부 쿠키가 있으면 AmesPortal, 없으면 Identity —
+        // 회로 요청은 경로로 구분할 수 없어 쿠키로 고른다(두 로그인은 서로의 쿠키를 지워 한 브라우저에 하나만 남는다).
         o.ForwardDefaultSelector = ctx =>
         {
+            if (AMES.Web.Services.PortalAuth.IsPortalPath(ctx.Request.Path)) return AMES.Web.Services.PortalAuth.Scheme;
             if (ctx.Request.Cookies.ContainsKey(AMES.Web.Services.PortalAuth.CookieName)) return AMES.Web.Services.PortalAuth.Scheme;
-            if (AMES.Web.Services.PortalAuth.IsPortalPath(ctx.Request.Path)
-                && !ctx.Request.Cookies.ContainsKey(".AspNetCore." + IdentityConstants.ApplicationScheme)) return AMES.Web.Services.PortalAuth.Scheme;   // 내부 쿠키 기본 이름
             return IdentityConstants.ApplicationScheme;
         };
     });
 
 // 인가 정책: 기본 정책([Authorize] 만 붙은 내부 화면 66개·AuthorizeView)은 내부 Identity 스킴으로 인증된 사용자만 통과 →
-// 외부 쿠키로 내부 화면 URL 을 직접 쳐도 전부 거부된다. 외부 화면은 PortalAccess(내부 사용자 또는 외부 역할).
+// 외부 쿠키로 내부 화면 URL 을 직접 쳐도 전부 거부된다. 외부 화면은 PortalAccess(외부 쿠키 사용자만).
 builder.Services.AddAuthorization(options =>
 {
     options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
@@ -445,16 +445,10 @@ if (externalHosts.Length > 0)
 
 app.UseAntiforgery();
 
-// 외부 포탈 로그아웃 — 외부 쿠키만 지운다(내부 쿠키는 건드리지 않음).
-// to=internal 이면 내부 로그인으로 보낸다(외부 계정으로 내부 화면에 막혔을 때 계정 전환). 외부 호스트에서는 내부 로그인이 403 이라 무시.
-app.MapGet("/portal/logout", async (HttpContext ctx, string? to, string? returnUrl) =>
+// 외부 포탈 로그아웃 — 외부 쿠키만 지우고 외부 로그인으로 돌아간다(내부 쿠키·내부 로그인과는 무관).
+app.MapGet("/portal/logout", async (HttpContext ctx) =>
 {
     await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(ctx, AMES.Web.Services.PortalAuth.Scheme);
-    var onExternalHost = externalHosts.Any(h => string.Equals(h.Trim(), ctx.Request.Host.Host, StringComparison.OrdinalIgnoreCase));
-    if (to == "internal" && !onExternalHost)
-        return Results.Redirect(AMES.Web.Services.PortalAuth.IsLocalReturnUrl(returnUrl)
-            ? $"/Account/Login?ReturnUrl={Uri.EscapeDataString(returnUrl!)}"
-            : "/Account/Login");
     return Results.Redirect(AMES.Web.Services.PortalAuth.LoginPath);
 });
 

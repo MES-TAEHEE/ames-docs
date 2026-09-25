@@ -12,10 +12,10 @@ public sealed partial class ScmRepository
     }
 
     // Read only: EOS owns all receipt writes. Never infer delivery receipts from PO totals.
-    public List<PortalReceiptLine> ListPortalReceiptResults(string userId,bool admin=false)
+    public List<PortalReceiptLine> ListPortalReceiptResults(string userId)
     {
         using var c=factory.OpenConnection();
-        using var cmd=new SqlCommand(NoteAuth+$"""
+        using var cmd=new SqlCommand($"""
             SELECT l.DeliveryLineID,d.DeliveryNumber,
                 COALESCE(n.NoteNumber,CASE WHEN d.NoteSnapshot IS NOT NULL THEN d.DeliveryNumber END,''),
                 d.VendorID,ISNULL(v.VendorName,d.VendorID),d.PoNumber,p.ItemNo,ISNULL(i.ItemName,p.ItemNo),
@@ -28,10 +28,10 @@ public sealed partial class ScmRepository
             LEFT JOIN dbo.SCM_DeliveryNoteDelivery x ON x.DeliveryID=d.DeliveryID
             LEFT JOIN dbo.SCM_DeliveryNote n ON n.NoteID=x.NoteID
             WHERE d.Status<>'Cancelled' AND (d.ShippedAt IS NOT NULL OR l.ReceivedQty>0 OR d.Status IN ('Shipped','Received'))
-              AND (@Admin=1 OR {NoteVendorAccess})
+              AND {NoteVendorAccess}
             ORDER BY d.DeliveryID DESC,l.DeliveryLineID;
             """,c);
-        Add(cmd,("@U",userId),("@Admin",admin));
+        Add(cmd,("@U",userId));
         using var r=cmd.ExecuteReader();var rows=new List<PortalReceiptLine>();
         while(r.Read())rows.Add(new(r.GetInt32(0),r.GetString(1),r.GetString(2),r.GetString(3),r.GetString(4),r.GetString(5),r.GetString(6),r.GetString(7),r.GetString(8),r.IsDBNull(9)?null:r.GetDateTime(9),r.GetDecimal(10),r.GetDecimal(11)));
         return rows;

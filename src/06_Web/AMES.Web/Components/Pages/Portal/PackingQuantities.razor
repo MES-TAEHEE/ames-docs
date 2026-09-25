@@ -21,7 +21,7 @@
             <RadzenButton Text='@PortalText.Get("새로고침")' Icon="refresh" Click="Load" Disabled="@_rows.Any(r=>r.Dirty)" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <div class="packing-hint dim">@PortalText.Get("업체에 연결된 품목의 적입량을 입력하고 행별로 저장해 주세요. 수량은 단위 관리에 설정된 소수 자릿수로 표시합니다.") @(_admin?PortalText.Get("· 관리자 전체 조회"):"")</div>
+    <div class="packing-hint dim">@PortalText.Get("업체에 연결된 품목의 적입량을 입력하고 행별로 저장해 주세요. 수량은 단위 관리에 설정된 소수 자릿수로 표시합니다.")</div>
     <RadzenDataGrid @ref="_grid" TItem="EditRow" Data="@Rows" AllowSorting="true" AllowPaging="true" PageSize="25" PageSizeOptions="@(new int[]{10,25,50,100})" PagerHorizontalAlign="HorizontalAlign.Center"
         ShowPagingSummary="true" PagingSummaryFormat='@PortalText.Get("{0} / {1} 페이지 (총 {2}건)")' PageSizeText='@PortalText.Get("건씩 보기")' EmptyText='@PortalText.Get("연결된 품목이 없습니다.")' Class="ames-rz-grid ames-grid-fixed" PageSizeChanged="@(n=>_pageRows=n)" Style="@($"--ames-page-rows:{_pageRows}")">
         <Columns>
@@ -53,21 +53,20 @@
     RadzenDataGrid<EditRow>? _grid;
     int _pageRows=25;
     string _user="",_search="",_message="";
-    bool _admin,_allowed,_error;
+    bool _allowed,_error;
     List<EditRow> Rows=>_rows.Where(r=>string.Join(" ",r.Source.ItemNo,r.Source.ItemName,r.Source.VendorID,r.Source.VendorName).Contains(_search,StringComparison.OrdinalIgnoreCase)).ToList();
     protected override async Task OnInitializedAsync()
     {
         var u=(await Authentication.GetAuthenticationStateAsync()).User;
         _user=u.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value??"";
-        _admin=PortalAuth.IsInternalUser(u)&&u.IsInRole("Admin");
-        _allowed=_admin||PortalAuth.IsPortalUser(u);
+        _allowed=PortalAuth.IsPortalUser(u);
         Load();
     }
     void Load()
     {
         _rows=[];_message="";_error=false;
         if(!_allowed||_user.Length==0){_error=true;_message=PortalText.Get("조회 권한이 없습니다.");return;}
-        try{_rows=Scm.ListPortalPackingQuantities(_user,_admin).Select(r=>new EditRow(r)).ToList();}
+        try{_rows=Scm.ListPortalPackingQuantities(_user).Select(r=>new EditRow(r)).ToList();}
         catch(Exception ex){Logger.LogError(ex,"Packing quantity load failed");_error=true;_message=PortalText.Get("조회하지 못했습니다. 다시 시도해 주세요.");}
     }
     void Save(EditRow row)
@@ -78,7 +77,7 @@
         {_message=PortalText.Get("적입량은 0보다 큰 수량으로 소수점 셋째 자리까지 입력해 주세요.");return;}
         try
         {
-            if(!Scm.SavePortalPackingQuantity(_user,row.Source.ItemNo,row.Source.VendorID,row.Quantity,row.Source.PackingQty,_admin))
+            if(!Scm.SavePortalPackingQuantity(_user,row.Source.ItemNo,row.Source.VendorID,row.Quantity,row.Source.PackingQty))
             {_message=PortalText.Get("연결 정보나 적입량이 변경되어 저장하지 못했습니다. 변경 취소 후 새로고침해 주세요.");return;}
             row.Source=row.Source with {PackingQty=row.Quantity};
             _error=false;_message=PortalText.Get("저장했습니다.");

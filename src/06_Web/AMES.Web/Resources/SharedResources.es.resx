@@ -8325,9 +8325,6 @@
   <data name="Portal.Error.Back" xml:space="preserve">
     <value>Volver al portal</value>
   </data>
-  <data name="Portal.Nav.Internal" xml:space="preserve">
-    <value>Sitio interno</value>
-  </data>
   <data name="Portal.Nav.Empty" xml:space="preserve">
     <value>No hay pantallas del portal disponibles.</value>
   </data>
@@ -8489,8 +8486,5 @@
   </data>
   <data name="Portal.Home.Scope.Vendor" xml:space="preserve">
     <value>Proveedor {0}</value>
-  </data>
-  <data name="Portal.Home.Scope.All" xml:space="preserve">
-    <value>Todos los proveedores (administrador)</value>
   </data>
 </root>

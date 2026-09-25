@@ -12,19 +12,19 @@ public sealed partial class ScmRepository
             WHERE u.UserID=@U AND u.VendorID=m.VendorID AND u.ActiveFlag=1 AND u.LockedFlag=0)
         """;
 
-    public List<PackingQuantityRow> ListPortalPackingQuantities(string userId, bool admin = false)
+    public List<PackingQuantityRow> ListPortalPackingQuantities(string userId)
     {
         using var c = factory.OpenConnection();
-        using var cmd = new SqlCommand(NoteAuth + $"""
+        using var cmd = new SqlCommand($"""
             SELECT m.ItemNo,i.ItemName,ISNULL(i.DefaultUOM,''),m.VendorID,v.VendorName,m.PackingQty
             FROM dbo.SCM_ItemVendor m
             JOIN dbo.MD_Item i ON i.ItemNo=m.ItemNo
             JOIN dbo.MD_Vendor v ON v.VendorID=m.VendorID
             WHERE m.ActiveFlag=1 AND i.ItemType='MATERIAL' AND ISNULL(i.ActiveFlag,1)=1
-                AND ISNULL(v.ActiveFlag,1)=1 AND (@Admin=1 OR {PackingAccess})
+                AND ISNULL(v.ActiveFlag,1)=1 AND {PackingAccess}
             ORDER BY m.VendorID,m.ItemNo;
             """, c);
-        Add(cmd, ("@U", userId), ("@Admin", admin));
+        Add(cmd, ("@U", userId));
         using var r = cmd.ExecuteReader();
         var rows = new List<PackingQuantityRow>();
         while (r.Read()) rows.Add(new(r.GetString(0), r.GetString(1), r.GetString(2),
@@ -33,22 +33,22 @@ public sealed partial class ScmRepository
     }
 
     public bool SavePortalPackingQuantity(string userId, string itemNo, string vendorId,
-        decimal? quantity, decimal? originalQuantity, bool admin = false)
+        decimal? quantity, decimal? originalQuantity)
     {
         if (quantity is null or <= 0 or > 999999999999999.999m || decimal.Round(quantity.Value,3)!=quantity.Value)
             throw new ArgumentOutOfRangeException(nameof(quantity));
         using var c = factory.OpenConnection();
-        using var cmd = new SqlCommand(NoteAuth + $"""
+        using var cmd = new SqlCommand($"""
             UPDATE m SET PackingQty=@Qty,ModifiedBy=LEFT(@U,20),ModifiedTS=SYSDATETIME()
             FROM dbo.SCM_ItemVendor m
             JOIN dbo.MD_Item i ON i.ItemNo=m.ItemNo
             JOIN dbo.MD_Vendor v ON v.VendorID=m.VendorID
             WHERE m.ItemNo=@Item AND m.VendorID=@Vendor AND m.ActiveFlag=1
                 AND i.ItemType='MATERIAL' AND ISNULL(i.ActiveFlag,1)=1 AND ISNULL(v.ActiveFlag,1)=1
-                AND (@Admin=1 OR {PackingAccess})
+                AND {PackingAccess}
                 AND (m.PackingQty=@Original OR (m.PackingQty IS NULL AND @Original IS NULL));
             """, c);
-        Add(cmd, ("@U", userId), ("@Admin", admin), ("@Item", itemNo), ("@Vendor", vendorId));
+        Add(cmd, ("@U", userId), ("@Item", itemNo), ("@Vendor", vendorId));
         foreach (var (name, value) in new[] { ("@Qty", quantity), ("@Original", originalQuantity) })
         {
             var p = cmd.Parameters.Add(name, System.Data.SqlDbType.Decimal);

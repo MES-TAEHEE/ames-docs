@@ -9,7 +9,7 @@ public sealed partial class ScmRepository
     public record SupplierDelivery(string Number, string OrderNumber, int PoID, int LineId,
         string Item, string Unit, DateTime Date, decimal Quantity, decimal Received, string Status, string Version, DateTime? ShipDate, DateTime? ShippedAt, string? ShippedBy, string VendorLotNo, DateTime ProductionDate);
 
-    public List<SupplierDelivery> ListSupplierDeliveries(bool portal, string? userId, bool adminPreview)
+    public List<SupplierDelivery> ListSupplierDeliveries(bool portal, string? userId)
     {
         using var conn=factory.OpenConnection();
         using var cmd=new SqlCommand("""
@@ -18,19 +18,19 @@ public sealed partial class ScmRepository
                 COALESCE(l.VendorLotNo,CONVERT(char(8),d.DeliveryDate,112)),COALESCE(l.ProductionDate,d.DeliveryDate)
             FROM dbo.SCM_Delivery d JOIN dbo.SCM_DeliveryLine l ON l.DeliveryID=d.DeliveryID
             JOIN dbo.WH_PurchaseOrder p ON p.PoID=l.PoID
-            WHERE @Portal=0 OR @Admin=1 OR EXISTS(
+            WHERE @Portal=0 OR EXISTS(
                 SELECT 1 FROM dbo.SCM_PortalVendorUser m JOIN dbo.MD_Vendor v ON v.VendorID=m.VendorID
                 WHERE m.UserID=@User AND m.VendorID=d.VendorID AND m.ActiveFlag=1 AND m.LockedFlag=0 AND ISNULL(v.ActiveFlag,1)=1)
             ORDER BY d.DeliveryID DESC,l.DeliveryLineID
             """,conn);
-        Add(cmd,("@Portal",portal),("@Admin",adminPreview),("@User",userId??""));
+        Add(cmd,("@Portal",portal),("@User",userId??""));
         using var r=cmd.ExecuteReader(); var result=new List<SupplierDelivery>();
         while(r.Read()) result.Add(new(r.GetString(0),r.GetString(1),r.GetInt32(2),r.GetInt32(3),r.GetString(4),r.GetString(5),r.GetDateTime(6),r.GetDecimal(7),r.GetDecimal(8),r.GetString(9),Convert.ToHexString((byte[])r[10]),r.IsDBNull(11)?null:r.GetDateTime(11),r.IsDBNull(12)?null:r.GetDateTime(12),r.IsDBNull(13)?null:r.GetString(13),r.GetString(14),r.GetDateTime(15)));
         return result;
     }
 
     public string RegisterSupplierDelivery(string number, DateTime date, IReadOnlyList<DeliveryInput> items,
-        IReadOnlyDictionary<int,string> versions, Guid requestId, string userId, string actor, bool adminOnBehalf=false)
+        IReadOnlyDictionary<int,string> versions, Guid requestId, string userId, string actor)
     {
         if(requestId==Guid.Empty || items.Count==0 || items.Select(x=>x.PoID).Distinct().Count()!=items.Count ||
             items.Any(x=>x.Quantity<=0 || x.Quantity>999999999.999m || decimal.Round(x.Quantity,3)!=x.Quantity))
@@ -41,14 +41,11 @@ public sealed partial class ScmRepository
         using(var gate=new SqlCommand("SELECT PoID FROM dbo.WH_PurchaseOrder WITH(UPDLOCK,HOLDLOCK) WHERE PoNumber=@N",conn,tx))
         { Add(gate,("@N",number)); using var reader=gate.ExecuteReader(); while(reader.Read()){} }
         using(var auth=new SqlCommand("""
-            IF @Admin=1 AND NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles ur JOIN dbo.AspNetRoles r ON r.Id=ur.RoleId
-                WHERE ur.UserId=@U AND r.Name='Admin')
-                THROW 50031,'No delivery permission.',1;
             IF NOT EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder WHERE PoNumber=@N)
                 THROW 50032,'Order not found.',1;
             IF (SELECT COUNT(DISTINCT VendorID) FROM dbo.WH_PurchaseOrder WHERE PoNumber=@N)<>1
                 THROW 50032,'Order must belong to one vendor.',1;
-            IF @Admin=0 AND EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder p WHERE p.PoNumber=@N AND NOT EXISTS(
+            IF EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder p WHERE p.PoNumber=@N AND NOT EXISTS(
                 SELECT 1 FROM dbo.SCM_PortalVendorUser m WITH(HOLDLOCK)
                 JOIN dbo.MD_Vendor v WITH(HOLDLOCK) ON v.VendorID=m.VendorID
                 WHERE m.UserID=@U AND m.VendorID=p.VendorID AND m.ActiveFlag=1 AND m.LockedFlag=0 AND ISNULL(v.ActiveFlag,1)=1))
@@ -56,7 +53,7 @@ public sealed partial class ScmRepository
             SELECT DeliveryNumber FROM dbo.SCM_Delivery WHERE RequestID=@Request AND PoNumber=@N AND CreatedUserID=@U;
             """,conn,tx))
         {
-            Add(auth,("@N",number),("@U",userId),("@Admin",adminOnBehalf),("@Request",requestId));
+            Add(auth,("@N",number),("@U",userId),("@Request",requestId));
             if(auth.ExecuteScalar() is string previous){tx.Commit();return previous;}
         }
         var locked=LockPurchaseOrder(conn,tx,number,versions);
@@ -111,7 +108,7 @@ public sealed partial class ScmRepository
     }
     public void UpdateSupplierDelivery(string deliveryNumber, DateTime date, IReadOnlyList<DeliveryInput> items,
         string version, IReadOnlyDictionary<int,string> orderVersions, string userId, string actor,
-        bool cancel=false, bool adminOnBehalf=false, bool ship=false)
+        bool cancel=false, bool ship=false)
     {
         if(ship && cancel) throw new ArgumentException("Invalid shipping date or operation.");
         if(!cancel && (items.Count==0 || items.Select(x=>x.PoID).Distinct().Count()!=items.Count ||
@@ -124,16 +121,13 @@ public sealed partial class ScmRepository
         {Add(lookup,("@D",deliveryNumber));number=lookup.ExecuteScalar() as string ?? throw new InvalidOperationException("Delivery not found.");}
         var locked=LockPurchaseOrder(conn,tx,number,orderVersions);
         using var check=new SqlCommand("""
-            IF @Admin=1 AND NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles ur JOIN dbo.AspNetRoles r ON r.Id=ur.RoleId
-                WHERE ur.UserId=@U AND r.Name='Admin')
-                THROW 50031,'No delivery permission.',1;
-            IF @Admin=0 AND EXISTS(SELECT 1 FROM dbo.SCM_Delivery d WHERE d.DeliveryNumber=@D AND NOT EXISTS(
+            IF EXISTS(SELECT 1 FROM dbo.SCM_Delivery d WHERE d.DeliveryNumber=@D AND NOT EXISTS(
                 SELECT 1 FROM dbo.SCM_PortalVendorUser m WITH(HOLDLOCK) JOIN dbo.MD_Vendor v WITH(HOLDLOCK) ON v.VendorID=m.VendorID
                 WHERE m.UserID=@U AND m.VendorID=d.VendorID AND m.ActiveFlag=1 AND m.LockedFlag=0 AND ISNULL(v.ActiveFlag,1)=1))
                 THROW 50031,'Vendor access denied.',1;
             SELECT DeliveryID,Version,Status FROM dbo.SCM_Delivery WITH(UPDLOCK,HOLDLOCK) WHERE DeliveryNumber=@D;
             """,conn,tx);
-        Add(check,("@D",deliveryNumber),("@U",userId),("@Admin",adminOnBehalf));
+        Add(check,("@D",deliveryNumber),("@U",userId));
         int id;
         using(var r=check.ExecuteReader())
         {

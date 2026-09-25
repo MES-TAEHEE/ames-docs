@@ -29,7 +29,7 @@
             <RadzenButton Text='@PortalText.Get("초기화")' Icon="restart_alt" Click="Reset" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <div class="dim receipt-hint">ℹ @PortalText.Get("납품 품목별 입고수량과 잔량을 확인합니다. 전량 입고되면 입고 완료입니다.") @(_admin?PortalText.Get("· 관리자 전체 조회"):"")</div>
+    <div class="dim receipt-hint">ℹ @PortalText.Get("납품 품목별 입고수량과 잔량을 확인합니다. 전량 입고되면 입고 완료입니다.")</div>
     @if(_error.Length>0){<RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" AllowClose="false">@_error</RadzenAlert>}
     @if(_from>_to){<RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">@PortalText.Get("출하일 범위를 확인해 주세요.")</RadzenAlert>}
     <div class="receipt-totals dim">@PortalText.Get("입고수량") @Totals(Rows,true) <span>·</span> @PortalText.Get("미입고 잔량") @Totals(Rows,false)</div>
@@ -95,7 +95,7 @@
     List<ScmRepository.PortalReceiptLine> _rows=[],_details=[];
     DateTime? _from,_to;
     string _user="",_search="",_status="",_error="",_detailTitle="";
-    bool _admin,_allowed;
+    bool _allowed;
     List<ScmRepository.PortalReceiptLine> Rows=>_rows.Where(r=>(_status==""||r.ReceiptStatus==_status)
         && (!_from.HasValue||r.ShipDate?.Date>=_from.Value.Date) && (!_to.HasValue||r.ShipDate?.Date<=_to.Value.Date)
         && string.Join(" ",r.Note,r.Delivery,r.Order,r.Item,r.Name,r.Vendor,r.VendorName).Contains(_search,StringComparison.OrdinalIgnoreCase)).ToList();
@@ -105,13 +105,13 @@
     {
         var u=(await Authentication.GetAuthenticationStateAsync()).User;
         _user=u.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value??"";
-        _admin=PortalAuth.IsInternalUser(u)&&u.IsInRole("Admin");_allowed=_admin||PortalAuth.IsPortalUser(u);Load();
+        _allowed=PortalAuth.IsPortalUser(u);Load();
     }
     void Load()
     {
         Close();_rows=[];_error="";
         if(!_allowed||_user.Length==0){_error=PortalText.Get("조회 권한이 없습니다.");return;}
-        try{_rows=Scm.ListPortalReceiptResults(_user,_admin);}
+        try{_rows=Scm.ListPortalReceiptResults(_user);}
         catch(Exception ex){Logger.LogWarning(ex,"Portal receipt load failed");_error=PortalText.Get("입고 결과를 조회하지 못했습니다.");}
     }
     void Select(ScmRepository.PortalReceiptLine row)

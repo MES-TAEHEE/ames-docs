@@ -8,26 +8,26 @@ public sealed partial class ScmRepository
     public record BoxDelivery(string Number,string Vendor,string Order,DateTime Date,string Status,int Boxes);
     public record DeliveryBox(long Id,string Number,int Sequence,string Item,string Name,string Unit,decimal Quantity,decimal PackingQty,string Delivery,string Order,string Vendor,string VendorLotNo,DateTime ProductionDate,string VendorName,DateTime DeliveryDate,string Destination,int BoxCount);
 
-    public List<BoxDelivery> ListBoxDeliveries(string userId,bool admin=false)
+    public List<BoxDelivery> ListBoxDeliveries(string userId)
     {
         using var c=factory.OpenConnection();
-        using var cmd=new SqlCommand(NoteAuth+$"""
+        using var cmd=new SqlCommand($"""
             SELECT d.DeliveryNumber,d.VendorID,d.PoNumber,d.DeliveryDate,d.Status,
                 (SELECT COUNT(*) FROM dbo.SCM_DeliveryBox b JOIN dbo.SCM_DeliveryLine l ON l.DeliveryLineID=b.DeliveryLineID
                  WHERE l.DeliveryID=d.DeliveryID AND b.ActiveFlag=1)
-            FROM dbo.SCM_Delivery d WHERE (@Admin=1 OR {NoteVendorAccess})
+            FROM dbo.SCM_Delivery d WHERE {NoteVendorAccess}
             ORDER BY d.DeliveryID DESC;
             """,c);
-        Add(cmd,("@U",userId),("@Admin",admin));
+        Add(cmd,("@U",userId));
         using var r=cmd.ExecuteReader();var rows=new List<BoxDelivery>();
         while(r.Read())rows.Add(new(r.GetString(0),r.GetString(1),r.GetString(2),r.GetDateTime(3),r.GetString(4),r.GetInt32(5)));
         return rows;
     }
 
-    public List<DeliveryBox> ListDeliveryBoxes(string number,string userId,bool admin=false)
+    public List<DeliveryBox> ListDeliveryBoxes(string number,string userId)
     {
         using var c=factory.OpenConnection();
-        using var cmd=new SqlCommand(NoteAuth+$"""
+        using var cmd=new SqlCommand($"""
             SELECT b.BoxID,b.BoxNumber,b.BoxSeq,b.ItemNo,b.ItemName,b.UnitCode,b.Quantity,l.PackingQty,d.DeliveryNumber,d.PoNumber,d.VendorID,
                 COALESCE(l.VendorLotNo,CONVERT(char(8),d.DeliveryDate,112)),COALESCE(l.ProductionDate,d.DeliveryDate),
                 ISNULL(v.VendorName,d.VendorID),d.DeliveryDate,ISNULL(p.DeliveryDestination,''),
@@ -36,10 +36,10 @@ public sealed partial class ScmRepository
             JOIN dbo.SCM_DeliveryBox b ON b.DeliveryLineID=l.DeliveryLineID
             JOIN dbo.WH_PurchaseOrder p ON p.PoID=l.PoID
             LEFT JOIN dbo.MD_Vendor v ON v.VendorID=d.VendorID
-            WHERE d.DeliveryNumber=@N AND d.Status<>'Cancelled' AND b.ActiveFlag=1 AND (@Admin=1 OR {NoteVendorAccess})
+            WHERE d.DeliveryNumber=@N AND d.Status<>'Cancelled' AND b.ActiveFlag=1 AND {NoteVendorAccess}
             ORDER BY l.DeliveryLineID,b.BoxSeq;
             """,c);
-        Add(cmd,("@U",userId),("@Admin",admin),("@N",number));
+        Add(cmd,("@U",userId),("@N",number));
         using var r=cmd.ExecuteReader();var rows=new List<DeliveryBox>();
         while(r.Read())rows.Add(new(r.GetInt64(0),r.GetString(1),r.GetInt32(2),r.GetString(3),r.GetString(4),r.GetString(5),r.GetDecimal(6),r.GetDecimal(7),r.GetString(8),r.GetString(9),r.GetString(10),r.GetString(11),r.GetDateTime(12),r.GetString(13),r.GetDateTime(14),r.GetString(15),r.GetInt32(16)));
         return rows;

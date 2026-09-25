@@ -7,7 +7,7 @@
 @inject AMES.Web.Services.WebSignIn SignIn
 @inject IStringLocalizer<SharedResources> L
 
-@*  외부 개방 화면 전용 로그인. 계정은 SCM-004 에서 등록한 SCM_PortalVendorUser(이메일·비밀번호)이며, 거기 없는 이메일은 내부 로그인으로 처리한다(WebSignIn). *@
+@*  외부 개방 화면 전용 로그인. 계정은 SCM-004 에서 등록한 SCM_PortalVendorUser(이메일·비밀번호)만 받는다 — 내부 계정은 거부(WebSignIn). *@
 
 <PageTitle>@L["Portal.Login.Title"] · A-MES</PageTitle>
 
@@ -55,7 +55,7 @@
     // 계정 종류로 갈린다 — 내부 사용자는 이 화면에서 로그인해도 내부 쿠키를 받아 내부 화면으로 간다
     public async Task LoginUser()
     {
-        var result = await SignIn.SignInAsync(HttpContext, Input.Email, Input.Password, rememberMe: false, ReturnUrl);
+        var result = await SignIn.SignInPortalAsync(HttpContext, Input.Email, Input.Password, ReturnUrl);
         if (!result.Succeeded) { errorMessage = L[result.ErrorKey!]; return; }
         HttpContext.Response.Redirect(result.Redirect!);
     }

@@ -5350,7 +5350,6 @@ html[data-theme="light"] .portal-link.active { background: rgba(13,148,136,.12);
 .portal-shell .ames-brand-sub { color: #5eead4; letter-spacing: .18em; }
 .portal-shell .ames-loc-code { color: #5eead4; background: rgba(94,234,212,.10); border-color: rgba(94,234,212,.25); }
 .portal-shell .ames-user-av--user { background: rgba(20,184,166,.18); color: #5eead4; }
-.portal-shell .ames-user-out.portal-back { text-decoration: none; }
 .portal-shell .ames-side { border-right: 1px solid rgba(45,212,191,.18); background: linear-gradient(180deg, rgba(6,26,28,.92), rgba(4,14,16,.92)); }
 .portal-shell .ames-nav-section.portal.open, .portal-shell .ames-nav-section.portal { color: #99f6e4; }
 .portal-shell .ames-nav-section.portal .ames-nav-section-n { background: rgba(45,212,191,.15); color: #5eead4; }

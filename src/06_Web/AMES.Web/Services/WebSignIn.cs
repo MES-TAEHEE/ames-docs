@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Identity;
 namespace AMES.Web.Services;
 
 /// <summary>
-/// 내부 로그인(/Account/Login)·외부 로그인(/portal/login) 공용 처리. 어느 화면에서 로그인하든 계정 종류로 갈린다 —
-/// SCM_PortalVendorUser(SCM-004 에서 등록한 외부 사용자)에 있는 이메일이면 외부 쿠키(AmesPortal)를 받아 외부 화면으로,
-/// 아니면 내부 Identity 쿠키를 받아 내부로. 외부 사용자는 AspNet 테이블과 무관하다.
+/// 로그인 처리 — 내부와 외부는 완전히 분리한다(09-26). 내부 로그인(/Account/Login)은 내부 Identity 계정만,
+/// 외부 로그인(/portal/login)은 SCM-004 에서 등록한 외부 사용자(SCM_PortalVendorUser)만 받는다. 반대쪽 계정은 조회하지 않고
+/// 일반 실패(Auth.Err.Invalid)로 거부한다 — 어느 쪽 계정이 존재하는지 드러내지 않는다. 외부 사용자는 AspNet 테이블과 무관하다.
 /// 화면은 결과의 Redirect 로 이동하거나 ErrorKey(리소스 키)를 띄우기만 한다.
 /// </summary>
 public sealed class WebSignIn(
@@ -20,24 +20,16 @@ public sealed class WebSignIn(
     AuditLogger audit,
     ILogger<WebSignIn> logger)
 {
-    /// <param name="Portal">외부 쿠키로 로그인됐는지 — 내부 화면의 ID 기억 쿠키는 내부 로그인일 때만 쓴다.</param>
-    public sealed record Result(string? Redirect, string? ErrorKey, bool Portal = false)
+    public sealed record Result(string? Redirect, string? ErrorKey)
     {
         public bool Succeeded => Redirect is not null && ErrorKey is null;
     }
 
-    public async Task<Result> SignInAsync(HttpContext ctx, string email, string password, bool rememberMe, string? returnUrl)
+    /// <summary>내부 로그인 — 내부 Identity 계정만. 외부 사용자 이메일은 Identity 에 없으므로 일반 실패가 된다.</summary>
+    public async Task<Result> SignInInternalAsync(HttpContext ctx, string email, string password, bool rememberMe, string? returnUrl)
     {
         email = email.Trim();
-        var portalUser = scm.FindPortalUser(email);
-        if (portalUser is not null)
-            return await PortalAsync(ctx, portalUser, password, returnUrl);
         var user = await users.FindByEmailAsync(email);
-        return await InternalAsync(ctx, user, email, password, rememberMe, returnUrl);
-    }
-
-    async Task<Result> InternalAsync(HttpContext ctx, ApplicationUser? user, string email, string password, bool rememberMe, string? returnUrl)
-    {
         if (user is not null)
         {
             var (accountStatus, _) = authRepo.GetProfileStatus(user.Id);
@@ -55,7 +47,9 @@ public sealed class WebSignIn(
             if (user is not null) authRepo.RecordSuccessfulLogin(user.Id);
             // 같은 브라우저에 외부 포탈 쿠키가 남아 있으면 지운다(스킴 선택이 외부 쿠키 존재 여부로 갈린다)
             ctx.Response.Cookies.Delete(PortalAuth.CookieName);
-            var target = string.IsNullOrEmpty(returnUrl) || !Uri.IsWellFormedUriString(returnUrl, UriKind.Relative) ? "/" : returnUrl;
+            // 외부 화면 경로로는 돌려보내지 않는다(내부 계정은 외부 화면을 열 수 없다)
+            var target = string.IsNullOrEmpty(returnUrl) || !Uri.IsWellFormedUriString(returnUrl, UriKind.Relative)
+                         || PortalAuth.IsPortalPath(new PathString(returnUrl.Split('?', '#')[0])) ? "/" : returnUrl;
             return new(target, null);
         }
         if (result.RequiresTwoFactor)
@@ -68,10 +62,14 @@ public sealed class WebSignIn(
         return Error("Auth.Err.Invalid");
     }
 
-    // 외부 사용자: 관리자가 SCM-004 에 등록한 계정만 쓴다. 5회 실패하면 잠기고 내부 사용자가 SCM-004 에서 푼다.
-    // 성공하면 내부 쿠키를 지우고 외부 쿠키를 발급한다 — 역할 클레임은 없다(포탈 화면은 RBAC 대상이 아니다).
-    async Task<Result> PortalAsync(HttpContext ctx, ScmRepository.PortalUserRow user, string password, string? returnUrl)
+    /// <summary>
+    /// 외부 로그인 — 관리자가 SCM-004 에 등록한 외부 사용자만. 5회 실패하면 잠기고 내부 사용자가 SCM-004 에서 푼다.
+    /// 성공하면 내부 쿠키를 지우고 외부 쿠키를 발급한다 — 역할 클레임은 없다(포탈 화면은 RBAC 대상이 아니다).
+    /// </summary>
+    public async Task<Result> SignInPortalAsync(HttpContext ctx, string email, string password, string? returnUrl)
     {
+        var user = scm.FindPortalUser(email.Trim());
+        if (user is null) return Error("Auth.Err.Invalid");
         if (!user.ActiveFlag || !user.VendorActive) return PortalFail(user, "Inactive", "Auth.Err.Invalid");
         if (user.LockedFlag) return PortalFail(user, "Locked", "Auth.Err.Locked");
 
@@ -99,7 +97,7 @@ public sealed class WebSignIn(
         var target = string.IsNullOrWhiteSpace(returnUrl) || !PortalAuth.IsPortalPath(new PathString(returnUrl.Split('?', '#')[0]))
             ? PortalAuth.HomePath
             : returnUrl;
-        return new(target, null, Portal: true);
+        return new(target, null);
     }
 
     Result PortalFail(ScmRepository.PortalUserRow user, string reason, string errorKey)

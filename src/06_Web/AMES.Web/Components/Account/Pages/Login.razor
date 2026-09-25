@@ -95,34 +95,31 @@
 
     public async Task LoginUser()
     {
-        // 계정 종류로 갈린다 — 외부 사용자(SCM-004 등록 계정)는 이 화면에서 로그인해도 외부 쿠키를 받아 외부 화면으로 간다
-        var result = await SignIn.SignInAsync(HttpContext, Input.Email, Input.Password, Input.RememberMe, ReturnUrl);
+        // 내부 계정만 — 외부 사용자(SCM-004 등록 계정)는 외부 로그인(/portal/login)에서만 로그인한다
+        var result = await SignIn.SignInInternalAsync(HttpContext, Input.Email, Input.Password, Input.RememberMe, ReturnUrl);
         if (!result.Succeeded) { errorMessage = L[result.ErrorKey!]; return; }
 
-        if (!result.Portal)
-        {
-            // Persist RememberMe choice for next visit
-            HttpContext.Response.Cookies.Append(RememberCookie, Input.RememberMe ? "1" : "0",
+        // Persist RememberMe choice for next visit
+        HttpContext.Response.Cookies.Append(RememberCookie, Input.RememberMe ? "1" : "0",
+            new CookieOptions
+            {
+                Expires  = DateTimeOffset.UtcNow.AddYears(1),
+                IsEssential = true,
+                SameSite = SameSiteMode.Lax,
+            });
+
+        // ID 는 Remember 를 켰을 때만 남기고, 끄고 로그인하면 지운다(공용 PC)
+        if (Input.RememberMe)
+            HttpContext.Response.Cookies.Append(LoginIdCookie, Input.Email.Trim(),
                 new CookieOptions
                 {
-                    Expires  = DateTimeOffset.UtcNow.AddYears(1),
+                    Expires     = DateTimeOffset.UtcNow.AddYears(1),
                     IsEssential = true,
-                    SameSite = SameSiteMode.Lax,
+                    HttpOnly    = true,
+                    SameSite    = SameSiteMode.Lax,
                 });
-
-            // ID 는 Remember 를 켰을 때만 남기고, 끄고 로그인하면 지운다(공용 PC)
-            if (Input.RememberMe)
-                HttpContext.Response.Cookies.Append(LoginIdCookie, Input.Email.Trim(),
-                    new CookieOptions
-                    {
-                        Expires     = DateTimeOffset.UtcNow.AddYears(1),
-                        IsEssential = true,
-                        HttpOnly    = true,
-                        SameSite    = SameSiteMode.Lax,
-                    });
-            else
-                HttpContext.Response.Cookies.Delete(LoginIdCookie);
-        }
+        else
+            HttpContext.Response.Cookies.Delete(LoginIdCookie);
 
         HttpContext.Response.Redirect(result.Redirect!);
     }

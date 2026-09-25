@@ -10,7 +10,7 @@ public sealed partial class ScmRepository
         string Destination, string Status, string Currency, List<PurchaseLine> Lines, string VendorName = "",
         DateTime? SupplierConfirmedAt = null, string? SupplierConfirmedBy = null);
 
-    public List<PurchaseOrder> ListPurchaseOrders(bool portal = false, string? portalUserId = null, bool internalAdminPreview = false)
+    public List<PurchaseOrder> ListPurchaseOrders(bool portal = false, string? portalUserId = null)
     {
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("""
@@ -23,7 +23,7 @@ public sealed partial class ScmRepository
               AND (@Portal=0 OR (
                   p.Status IN ('Open','Partial','Complete','Received','Cancelled')
                   AND NOT EXISTS (SELECT 1 FROM dbo.WH_PurchaseOrder d WHERE d.PoNumber=p.PoNumber AND (d.Status='Draft' OR d.Status IS NULL))
-                  AND (@AdminPreview=1 OR (
+                  AND ((
                       ISNULL(v.ActiveFlag,1)=1 AND EXISTS (
                           SELECT 1 FROM dbo.SCM_PortalVendorUser u
                           WHERE u.UserID=@UserID AND u.VendorID=p.VendorID AND u.ActiveFlag=1 AND u.LockedFlag=0
@@ -32,7 +32,7 @@ public sealed partial class ScmRepository
               ))
             ORDER BY p.PoNumber DESC,p.PoLineNo,p.PoID;
             """, conn);
-        Add(cmd,("@Portal",portal),("@AdminPreview",internalAdminPreview),("@UserID",portalUserId ?? ""));
+        Add(cmd,("@Portal",portal),("@UserID",portalUserId ?? ""));
         using var r = cmd.ExecuteReader();
         var orders = new Dictionary<string, PurchaseOrder>();
         while (r.Read())
@@ -94,7 +94,7 @@ public sealed partial class ScmRepository
         return number;
     }
 
-    public bool ConfirmSupplierOrder(string number, IReadOnlyDictionary<int,string> versions, string userId, string actor, bool adminOnBehalf = false)
+    public bool ConfirmSupplierOrder(string number, IReadOnlyDictionary<int,string> versions, string userId, string actor)
     {
         using var conn = factory.OpenConnection();
         using var tx = conn.BeginTransaction();
@@ -104,12 +104,7 @@ public sealed partial class ScmRepository
         using var cmd = new SqlCommand("""
             IF (SELECT COUNT(DISTINCT VendorID) FROM dbo.WH_PurchaseOrder WHERE PoNumber=@Number)<>1
                 THROW 50030,'Order must belong to one vendor.',1;
-            IF @Admin=1 AND NOT EXISTS (
-                SELECT 1 FROM dbo.AspNetUsers u
-                JOIN dbo.AspNetUserRoles ur ON ur.UserId=u.Id JOIN dbo.AspNetRoles r ON r.Id=ur.RoleId
-                WHERE u.Id=@User AND r.Name='Admin'
-            ) THROW 50031,'No confirmation permission.',1;
-            IF @Admin=0 AND EXISTS (
+            IF EXISTS (
                 SELECT 1 FROM dbo.WH_PurchaseOrder p
                 WHERE p.PoNumber=@Number AND NOT EXISTS (
                     SELECT 1 FROM dbo.SCM_PortalVendorUser m WITH(HOLDLOCK)
@@ -124,7 +119,7 @@ public sealed partial class ScmRepository
                 SupplierConfirmedUserID=@User,ModifiedBy=@Actor,ModifiedTS=@Now WHERE PoNumber=@Number;
             SELECT CAST(1 AS bit);
             """,conn,tx);
-        Add(cmd,("@Number",number),("@User",userId),("@Actor",actor),("@Admin",adminOnBehalf));
+        Add(cmd,("@Number",number),("@User",userId),("@Actor",actor));
         var changed=(bool)cmd.ExecuteScalar()!;
         tx.Commit();
         return changed;

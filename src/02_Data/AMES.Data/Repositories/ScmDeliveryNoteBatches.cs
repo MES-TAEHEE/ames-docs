@@ -6,45 +6,41 @@ namespace AMES.Data.Repositories;
 public sealed partial class ScmRepository
 {
     public record NoteDeliveryChoice(string Number, string Vendor, string Order, DateTime? ShipDate, string? NoteNumber);
-    const string NoteAuth = """
-        IF @Admin=1 AND NOT EXISTS(SELECT 1 FROM dbo.AspNetUserRoles u JOIN dbo.AspNetRoles r ON r.Id=u.RoleId WHERE u.UserId=@U AND r.Name='Admin')
-            THROW 50031,'No delivery note permission.',1;
-        """;
     const string NoteVendorAccess = """
         EXISTS(SELECT 1 FROM dbo.SCM_PortalVendorUser m JOIN dbo.MD_Vendor v ON v.VendorID=m.VendorID
         WHERE m.UserID=@U AND m.VendorID=d.VendorID AND m.ActiveFlag=1 AND m.LockedFlag=0 AND ISNULL(v.ActiveFlag,1)=1)
         """;
 
-    public List<NoteDeliveryChoice> ListNoteDeliveries(string userId, bool admin = false)
+    public List<NoteDeliveryChoice> ListNoteDeliveries(string userId)
     {
         using var c = factory.OpenConnection();
-        using var cmd = new SqlCommand(NoteAuth + $"""
+        using var cmd = new SqlCommand($"""
             SELECT d.DeliveryNumber,d.VendorID,d.PoNumber,d.ShipDate,
                 COALESCE(n.NoteNumber,CASE WHEN d.NoteSnapshot IS NOT NULL THEN d.DeliveryNumber END)
             FROM dbo.SCM_Delivery d
             LEFT JOIN dbo.SCM_DeliveryNoteDelivery x ON x.DeliveryID=d.DeliveryID
             LEFT JOIN dbo.SCM_DeliveryNote n ON n.NoteID=x.NoteID
-            WHERE d.Status IN ('Shipped','Received') AND (@Admin=1 OR {NoteVendorAccess})
+            WHERE d.Status IN ('Shipped','Received') AND {NoteVendorAccess}
             ORDER BY d.DeliveryID DESC;
             """, c);
-        Add(cmd, ("@U", userId), ("@Admin", admin));
+        Add(cmd, ("@U", userId));
         using var r = cmd.ExecuteReader(); var rows = new List<NoteDeliveryChoice>();
         while (r.Read()) rows.Add(new(r.GetString(0),r.GetString(1),r.GetString(2),r.IsDBNull(3)?null:r.GetDateTime(3),r.IsDBNull(4)?null:r.GetString(4)));
         return rows;
     }
 
-    DeliveryNote? ReadBatchDeliveryNote(string number, string userId, bool admin)
+    DeliveryNote? ReadBatchDeliveryNote(string number, string userId)
     {
         using var c = factory.OpenConnection();
-        using var cmd = new SqlCommand(NoteAuth + $"""
+        using var cmd = new SqlCommand($"""
             SELECT d.Snapshot FROM dbo.SCM_DeliveryNote d
-            WHERE d.NoteNumber=@N AND (@Admin=1 OR {NoteVendorAccess});
+            WHERE d.NoteNumber=@N AND {NoteVendorAccess};
             """, c);
-        Add(cmd,("@U",userId),("@Admin",admin),("@N",number));
+        Add(cmd,("@U",userId),("@N",number));
         return cmd.ExecuteScalar() is string json ? JsonSerializer.Deserialize<DeliveryNote>(json) : null;
     }
 
-    public DeliveryNote IssueDeliveryNote(IReadOnlyList<string> deliveries, string userId, string actor, bool admin = false)
+    public DeliveryNote IssueDeliveryNote(IReadOnlyList<string> deliveries, string userId, string actor)
     {
         var numbers = deliveries.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x=>x,StringComparer.Ordinal).ToArray();
         if(numbers.Length==0 || numbers.Length>100 || numbers.Length!=deliveries.Count || string.IsNullOrWhiteSpace(actor) || actor.Length>20)
@@ -57,14 +53,14 @@ public sealed partial class ScmRepository
         foreach(var number in numbers)
         {
             // Serialize competing groupings in a stable order. A delivery can belong to one note only.
-            using var cmd=new SqlCommand(NoteAuth+$"""
+            using var cmd=new SqlCommand($"""
                 SELECT d.DeliveryID,d.VendorID,ISNULL(v.VendorName,d.VendorID),d.Status,d.ShipDate,d.NoteSnapshot,x.NoteID
                 FROM dbo.SCM_Delivery d WITH(UPDLOCK,HOLDLOCK)
                 JOIN dbo.MD_Vendor v ON v.VendorID=d.VendorID
                 LEFT JOIN dbo.SCM_DeliveryNoteDelivery x ON x.DeliveryID=d.DeliveryID
-                WHERE d.DeliveryNumber=@N AND (@Admin=1 OR {NoteVendorAccess});
+                WHERE d.DeliveryNumber=@N AND {NoteVendorAccess};
                 """,c,tx);
-            Add(cmd,("@U",userId),("@Admin",admin),("@N",number));
+            Add(cmd,("@U",userId),("@N",number));
             using var r=cmd.ExecuteReader();
             if(!r.Read()) throw new InvalidOperationException("납품서를 조회할 권한이 없습니다.");
             if(r.GetString(3)!="Shipped" || r.IsDBNull(4)) throw new InvalidOperationException("출하 완료 납품서만 발행할 수 있습니다.");

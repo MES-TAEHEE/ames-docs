@@ -9,8 +9,7 @@
 @inject ILogger<Home> Logger
 
 @*  외부 포탈 홈 — 내부 홈(Pages/Home.razor)과 같은 형태: KPI 줄 + 사이트맵(섹션 타일 · 화면 칩).
-    KPI 는 로그인 사용자의 협력업체 발주(ScmRepository.ListPurchaseOrders, 포탈 조회와 같은 범위)로 센다.
-    내부 Admin 은 포탈 화면과 같이 전체 업체 기준(관리자 미리보기). *@
+    KPI 는 로그인한 외부 사용자의 협력업체 발주(ScmRepository.ListPurchaseOrders, 포탈 조회와 같은 범위)로 센다. *@
 
 <PageTitle>@L["Portal.Nav.Home"] · AMES</PageTitle>
 <AmesPageHeader Code="HOME" TitleKey="Portal.Nav.Home" />
@@ -77,12 +76,11 @@
         _items = Catalog.SectionItems(MenuCatalog.PortalSection).ToList();
 
         var user = (await AuthPrvd.GetAuthenticationStateAsync()).User;
-        var adminPreview = PortalAuth.IsInternalUser(user) && user.IsInRole("Admin");
         var vendor = user.FindFirst(PortalAuth.VendorClaim)?.Value;
-        _scope = adminPreview ? L["Portal.Home.Scope.All"] : string.Format(L["Portal.Home.Scope.Vendor"].Value, vendor ?? "—");
+        _scope = string.Format(L["Portal.Home.Scope.Vendor"].Value, vendor ?? "—");
         try
         {
-            var orders = Scm.ListPurchaseOrders(true, user.FindFirst(ClaimTypes.NameIdentifier)?.Value, adminPreview);
+            var orders = Scm.ListPurchaseOrders(true, user.FindFirst(ClaimTypes.NameIdentifier)?.Value);
             // 상태 구분은 포탈 발주 화면(ScmPreview)과 같다: Open=확인 대기, Partial=납품(입고) 진행
             static decimal Remaining(ScmRepository.PurchaseOrder o) => o.Lines.Sum(l => Math.Max(0, l.Quantity - l.Received));
             _orders     = orders.Count;

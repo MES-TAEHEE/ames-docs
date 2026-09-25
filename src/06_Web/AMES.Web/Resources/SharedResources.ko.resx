@@ -8325,9 +8325,6 @@
   <data name="Portal.Error.Back" xml:space="preserve">
     <value>외부 포탈 홈으로</value>
   </data>
-  <data name="Portal.Nav.Internal" xml:space="preserve">
-    <value>내부 사이트로</value>
-  </data>
   <data name="Portal.Nav.Empty" xml:space="preserve">
     <value>접근 가능한 외부 화면이 없습니다.</value>
   </data>
@@ -8489,8 +8486,5 @@
   </data>
   <data name="Portal.Home.Scope.Vendor" xml:space="preserve">
     <value>협력업체 {0} 기준</value>
-  </data>
-  <data name="Portal.Home.Scope.All" xml:space="preserve">
-    <value>관리자 전체 조회</value>
   </data>
 </root>

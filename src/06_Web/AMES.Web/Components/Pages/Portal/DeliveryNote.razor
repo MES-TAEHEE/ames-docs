@@ -69,12 +69,11 @@
         _note = null; _error = null;
         var user = (await Authentication.GetAuthenticationStateAsync()).User;
         var id = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        var admin = PortalAuth.IsInternalUser(user) && user.IsInRole("Admin");
-        if (string.IsNullOrEmpty(id) || (!admin && !PortalAuth.IsPortalUser(user)))
+        if (string.IsNullOrEmpty(id) || !PortalAuth.IsPortalUser(user))
         { _error = "문서 조회 권한이 없습니다. / Access denied."; return; }
         try
         {
-            _note = Scm.GetDeliveryNote(Number, id, admin);
+            _note = Scm.GetDeliveryNote(Number, id);
             if (_note is null) _error = "아직 발행되지 않은 문서입니다. 납품서 조회 화면에서 발행해 주세요. / Not issued yet.";
         }
         catch (Exception ex)

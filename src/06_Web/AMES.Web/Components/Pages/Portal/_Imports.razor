@@ -1,4 +1,4 @@
-@* 외부 개방 화면 폴더 공통: 레이아웃·인가 정책(PortalAccess = 내부 사용자 또는 SCM_PortalVendorUser 외부 쿠키, RBAC 없음).
+@* 외부 개방 화면 폴더 공통: 레이아웃·인가 정책(PortalAccess = SCM_PortalVendorUser 외부 쿠키만, 내부 계정 불가, RBAC 없음).
    로그인 화면만 [AllowAnonymous] + EmptyLayout 으로 덮어쓴다. *@
 @layout AMES.Web.Components.Layout.PortalLayout
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Policy = AMES.Web.Services.PortalAuth.Policy)]
