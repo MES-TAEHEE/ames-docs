@@ -1,4 +1,4 @@
-@page "/portal/delivery-notes"
+﻿@page "/portal/delivery-notes"
 @rendermode InteractiveServer
 @inject ScmRepository Scm
 @inject AuthenticationStateProvider Authentication
@@ -7,8 +7,8 @@
 
 <PageTitle>딜리버리 노트 · AMES</PageTitle>
 <AmesPageHeader Code="PORTAL-004" Title="딜리버리 노트 발행·조회" />
+<PortalDeliveryNav />
 <div class="note-actions">
-    <a href="/portal/deliveries">납품서 조회로 돌아가기</a>
     <RadzenButton Text="새로고침" Icon="refresh" Click="Reload" />
 </div>
 @if (_error.Length>0) { <p role="alert">@_error</p> }

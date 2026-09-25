@@ -1,8 +1,8 @@
 -- A-MES consolidated schema: AMES_DEV, captured 2026-09-23.
 -- Includes PDA schema and all deployed stored procedures; excludes TEST_* tables.
--- Six SCM tables synchronized from AMES_DEV on 2026-09-25.
+-- SCM schema includes packing quantities, persistent boxes and delivery LOT/production dates (2026-09-25).
 -- WH_PurchaseOrder SCM columns remain in migrate_scm_wh_purchase_order.sql and migrate_scm_order_confirmation.sql.
--- 181 tables / 2529 columns / 39 procedures / 37 foreign keys / 10 checks / 1 synonym.
+-- Base capture: 181 tables / 2529 columns; SCM additions and migrations are included below.
 -- Audit actor columns standardized to varchar(20); SYS_AuditActorMap preserves legacy actor values.
 -- Schema only from the live database; sample seeds below are retained from the repository.
 -- Recreates the included objects: existing data in these tables will be deleted.
@@ -20,6 +20,7 @@ DECLARE @ScmDropSql nvarchar(max) = N'';
 SELECT @ScmDropSql = @ScmDropSql + N'ALTER TABLE ' + QUOTENAME(OBJECT_SCHEMA_NAME(parent_object_id)) + N'.' + QUOTENAME(OBJECT_NAME(parent_object_id)) + N' DROP CONSTRAINT ' + QUOTENAME(name) + N';' FROM sys.foreign_keys WHERE OBJECT_SCHEMA_NAME(parent_object_id)=N'dbo' AND OBJECT_NAME(parent_object_id) IN (N'SCM_ItemVendor',N'SCM_PurchaseOrderSequence',N'SCM_Delivery',N'SCM_DeliveryLine',N'SCM_DeliveryNote',N'SCM_DeliveryNoteDelivery');
 EXEC sys.sp_executesql @ScmDropSql;
 GO
+DROP TABLE IF EXISTS [dbo].[SCM_DeliveryBox];
 DROP TABLE IF EXISTS [dbo].[SCM_ItemVendor];
 DROP TABLE IF EXISTS [dbo].[SCM_PurchaseOrderSequence];
 DROP TABLE IF EXISTS [dbo].[SCM_Delivery];
@@ -8407,6 +8408,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[SCM_ItemVendor](
+	[PackingQty] decimal(18,3) NULL CONSTRAINT CK_SCM_ItemVendor_PackingQty CHECK (PackingQty IS NULL OR PackingQty > 0),
 	[ItemNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[VendorID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[ActiveFlag] [bit] NOT NULL,
@@ -15002,4 +15004,72 @@ WHERE name LIKE 'MD[_]%' OR name LIKE 'WH[_]%' OR name LIKE 'PP[_]%'
    OR name LIKE 'AspNet%' OR name = 'tbl_Lot'
 GROUP BY LEFT(name, 4)
 ORDER BY 1;
+GO
+
+GO
+-- Persistent box labels. Existing documents are not backfilled from current master data.
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET ARITHABORT ON;
+SET NUMERIC_ROUNDABORT OFF;
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+IF COL_LENGTH('dbo.SCM_DeliveryLine','PackingQty') IS NULL
+    ALTER TABLE dbo.SCM_DeliveryLine ADD PackingQty decimal(18,3) NULL;
+IF OBJECT_ID('dbo.SCM_DeliveryBox','U') IS NULL
+BEGIN
+    CREATE TABLE dbo.SCM_DeliveryBox (
+        BoxID bigint IDENTITY PRIMARY KEY,
+        BoxNumber AS ('BOX-'+CONVERT(varchar(20),BoxID)) PERSISTED,
+        DeliveryLineID int NOT NULL REFERENCES dbo.SCM_DeliveryLine(DeliveryLineID),
+        BoxSeq int NOT NULL CHECK (BoxSeq>0),
+        ItemNo varchar(20) NOT NULL,
+        ItemName nvarchar(200) NOT NULL,
+        UnitCode varchar(20) NOT NULL,
+        Quantity decimal(18,3) NOT NULL CHECK (Quantity>0),
+        ActiveFlag bit NOT NULL DEFAULT(1),
+        CreatedTS datetime2 NOT NULL DEFAULT(SYSDATETIME()),
+        VoidedTS datetime2 NULL
+    );
+    CREATE UNIQUE INDEX UX_SCM_DeliveryBox_Number ON dbo.SCM_DeliveryBox(BoxNumber);
+    CREATE UNIQUE INDEX UX_SCM_DeliveryBox_ActiveSequence ON dbo.SCM_DeliveryBox(DeliveryLineID,BoxSeq) WHERE ActiveFlag=1;
+END;
+COMMIT;
+
+GO
+
+GO
+-- Delivery-line traceability; existing rows default to their delivery date.
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+IF COL_LENGTH('dbo.SCM_DeliveryLine','VendorLotNo') IS NULL
+    ALTER TABLE dbo.SCM_DeliveryLine ADD VendorLotNo nvarchar(30) NULL;
+IF COL_LENGTH('dbo.SCM_DeliveryLine','ProductionDate') IS NULL
+    ALTER TABLE dbo.SCM_DeliveryLine ADD ProductionDate date NULL;
+EXEC(N'UPDATE l SET VendorLotNo=COALESCE(l.VendorLotNo,CONVERT(char(8),d.DeliveryDate,112)),
+    ProductionDate=COALESCE(l.ProductionDate,d.DeliveryDate)
+    FROM dbo.SCM_DeliveryLine l JOIN dbo.SCM_Delivery d ON d.DeliveryID=l.DeliveryID
+    WHERE l.VendorLotNo IS NULL OR l.ProductionDate IS NULL;');
+COMMIT;
+
+GO
+
+-- Ensure the packing-quantity screen is present in a fresh installation.
+-- PORTAL-006: vendor-specific packing quantity. No sample business values.
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+IF COL_LENGTH('dbo.SCM_ItemVendor','PackingQty') IS NULL
+    ALTER TABLE dbo.SCM_ItemVendor ADD PackingQty decimal(18,3) NULL
+        CONSTRAINT CK_SCM_ItemVendor_PackingQty CHECK (PackingQty IS NULL OR PackingQty > 0);
+IF EXISTS (SELECT 1 FROM dbo.SYS_Screen WHERE ScreenCode='PORTAL-006'
+    AND (HRef<>'portal/packing-quantities' OR ModuleCode<>'WEB'))
+    THROW 50001,'Screen code conflict.',1;
+IF NOT EXISTS (SELECT 1 FROM dbo.SYS_Screen WHERE ScreenCode='PORTAL-006')
+    INSERT dbo.SYS_Screen(ScreenCode,ModuleCode,ProcessCode,ScreenName,ScreenNameEn,HRef,LidLabel,SortOrder,IsVisible,CreatedBy,CreatedTS)
+    VALUES('PORTAL-006','WEB','PORTAL',N'적입량 관리',N'Packing Quantities','portal/packing-quantities','PORTAL-006',6,1,'scm-screen',SYSDATETIME());
+COMMIT;
+
 GO

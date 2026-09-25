@@ -56,6 +56,7 @@ public sealed class MenuCatalog
         new("portal", "portal/delivery-entry", "PORTAL-003", "납품서 등록", "Create Delivery"),
         new("portal", "portal/deliveries", "PORTAL-004", "납품서 조회·수정", "Delivery Notes"),
         new("portal", "portal/receipts", "PORTAL-005", "입고·검수 결과", "Receipt & Inspection"),
+        new("portal", "portal/packing-quantities", "PORTAL-006", "적입량 관리", "Packing Quantities"),
         // -- WH --
         new("wh", "wh/inventory",       "WH-006", "재고 조회",   "Inventory Search"),
         new("wh", "wh/location-map",    "WH-003", "로케이션 맵", "Location Map"),

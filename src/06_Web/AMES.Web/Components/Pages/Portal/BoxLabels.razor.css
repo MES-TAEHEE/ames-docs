@@ -1,0 +1,2 @@
+﻿.label-tools { padding:20px; display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+@media print { .label-tools { display:none!important; } }

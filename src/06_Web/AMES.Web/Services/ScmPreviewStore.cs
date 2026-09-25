@@ -1,4 +1,4 @@
-namespace AMES.Web.Services;
+﻿namespace AMES.Web.Services;
 
 /// <summary>Screen prototype data, isolated to the current Blazor circuit. No business DB writes.</summary>
 public sealed class ScmPreviewStore
@@ -49,6 +49,8 @@ public sealed class ScmPreviewStore
     public sealed class Delivery
     {
         public string Version { get; set; } = "";
+        public string VendorLotNo { get; set; } = "";
+        public DateTime ProductionDate { get; set; }
         public DateTime? ShipDate { get; set; }
         public DateTime? ShippedAt { get; set; }
         public string? ShippedBy { get; set; }

@@ -1,4 +1,4 @@
-// Invoke print directly from the user's click, without a Blazor/DB round trip.
+﻿// Invoke print directly from the user's click, without a Blazor/DB round trip.
 // Some embedded browsers do not implement a print dialog. A self-contained
 // HTML download lets the user print the same authorized document externally.
 (() => {
@@ -24,7 +24,7 @@
                 'overflow-wrap','border-top','border-right','border-bottom','border-left','border-collapse',
                 'padding-top','padding-right','padding-bottom','padding-left','margin-top','margin-right',
                 'margin-bottom','margin-left','width','max-width','height','grid-template-columns','gap',
-                'justify-content','fill'];
+                'justify-content','align-items','flex','min-width','min-height','grid-template-rows','overflow','fill','break-inside','break-after'];
             const originals = [source, ...source.querySelectorAll('*')];
             const copies = [copy, ...copy.querySelectorAll('*')];
             originals.forEach((element, index) => {
@@ -35,6 +35,9 @@
             const charset = doc.createElement('meta'); charset.setAttribute('charset','utf-8'); doc.head.prepend(charset);
             const style = doc.createElement('style');
             style.textContent = `body{margin:0;background:white;color:black} .delivery-note{width:210mm!important;max-width:100%!important;margin:16px auto!important} .print-tools{text-align:center;padding:16px} @page{size:A4;margin:12mm} @media print{.print-tools{display:none} .delivery-note{width:100%!important;max-width:none!important;margin:0!important;padding:0!important} thead{display:table-header-group!important} tr,.signatures{break-inside:avoid} table{width:100%!important} h1{outline:none!important}}`;
+            if (source.classList.contains('box-labels')) {
+                style.textContent += `@page{size:Letter portrait;margin:5mm 3mm} .delivery-note.box-labels{width:210mm!important;max-width:none!important;padding:0!important} .label-page{width:210mm!important;height:267mm!important;min-height:0!important;break-after:page} .label-page:last-child{break-after:auto} .label-pair{break-inside:avoid} @media print{.delivery-note.box-labels{width:210mm!important}}`;
+            }
             doc.head.append(style);
             const toolbar = doc.createElement('div'); toolbar.className='print-tools';
             const print = doc.createElement('button'); print.type='button'; print.textContent='인쇄 / PDF 저장';

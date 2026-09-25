@@ -1,19 +1,21 @@
-using Microsoft.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
 
 namespace AMES.Data.Repositories;
 
 public sealed partial class ScmRepository
 {
-    public record DeliveryInput(int PoID, decimal Quantity);
+    public record DeliveryInput(int PoID, decimal Quantity, string? VendorLotNo=null, DateTime? ProductionDate=null);
+    public sealed class PackingQuantityRequiredException() : InvalidOperationException("A positive packing quantity is required for every selected item.");
     public record SupplierDelivery(string Number, string OrderNumber, int PoID, int LineId,
-        string Item, string Unit, DateTime Date, decimal Quantity, decimal Received, string Status, string Version, DateTime? ShipDate, DateTime? ShippedAt, string? ShippedBy);
+        string Item, string Unit, DateTime Date, decimal Quantity, decimal Received, string Status, string Version, DateTime? ShipDate, DateTime? ShippedAt, string? ShippedBy, string VendorLotNo, DateTime ProductionDate);
 
     public List<SupplierDelivery> ListSupplierDeliveries(bool portal, string? userId, bool adminPreview)
     {
         using var conn=factory.OpenConnection();
         using var cmd=new SqlCommand("""
             SELECT d.DeliveryNumber,d.PoNumber,p.PoID,ISNULL(p.PoLineNo,p.PoID),p.ItemNo,ISNULL(p.UnitCode,''),
-                d.DeliveryDate,l.Quantity,l.ReceivedQty,d.Status,d.Version,d.ShipDate,d.ShippedAt,d.ShippedBy
+                d.DeliveryDate,l.Quantity,l.ReceivedQty,d.Status,d.Version,d.ShipDate,d.ShippedAt,d.ShippedBy,
+                COALESCE(l.VendorLotNo,CONVERT(char(8),d.DeliveryDate,112)),COALESCE(l.ProductionDate,d.DeliveryDate)
             FROM dbo.SCM_Delivery d JOIN dbo.SCM_DeliveryLine l ON l.DeliveryID=d.DeliveryID
             JOIN dbo.WH_PurchaseOrder p ON p.PoID=l.PoID
             WHERE @Portal=0 OR @Admin=1 OR EXISTS(
@@ -23,7 +25,7 @@ public sealed partial class ScmRepository
             """,conn);
         Add(cmd,("@Portal",portal),("@Admin",adminPreview),("@User",userId??""));
         using var r=cmd.ExecuteReader(); var result=new List<SupplierDelivery>();
-        while(r.Read()) result.Add(new(r.GetString(0),r.GetString(1),r.GetInt32(2),r.GetInt32(3),r.GetString(4),r.GetString(5),r.GetDateTime(6),r.GetDecimal(7),r.GetDecimal(8),r.GetString(9),Convert.ToHexString((byte[])r[10]),r.IsDBNull(11)?null:r.GetDateTime(11),r.IsDBNull(12)?null:r.GetDateTime(12),r.IsDBNull(13)?null:r.GetString(13)));
+        while(r.Read()) result.Add(new(r.GetString(0),r.GetString(1),r.GetInt32(2),r.GetInt32(3),r.GetString(4),r.GetString(5),r.GetDateTime(6),r.GetDecimal(7),r.GetDecimal(8),r.GetString(9),Convert.ToHexString((byte[])r[10]),r.IsDBNull(11)?null:r.GetDateTime(11),r.IsDBNull(12)?null:r.GetDateTime(12),r.IsDBNull(13)?null:r.GetString(13),r.GetString(14),r.GetDateTime(15)));
         return result;
     }
 
@@ -33,6 +35,7 @@ public sealed partial class ScmRepository
         if(requestId==Guid.Empty || items.Count==0 || items.Select(x=>x.PoID).Distinct().Count()!=items.Count ||
             items.Any(x=>x.Quantity<=0 || x.Quantity>999999999.999m || decimal.Round(x.Quantity,3)!=x.Quantity))
             throw new ArgumentException("Select lines and positive quantities with up to three decimal places.");
+        ValidateDeliveryTrace(items);
         using var conn=factory.OpenConnection(); using var tx=conn.BeginTransaction();
         // Serialize all registrations and cancellations for this PO before checking balances.
         using(var gate=new SqlCommand("SELECT PoID FROM dbo.WH_PurchaseOrder WITH(UPDLOCK,HOLDLOCK) WHERE PoNumber=@N",conn,tx))
@@ -66,6 +69,15 @@ public sealed partial class ScmRepository
         {Add(confirmed,("@N",number),("@Date",date.Date));if((int)confirmed.ExecuteScalar()!>0)throw new InvalidOperationException("Confirm the order and check the delivery date.");}
         foreach(var item in items)
         {
+            using(var packing=new SqlCommand("""
+                SELECT m.PackingQty FROM dbo.WH_PurchaseOrder p
+                JOIN dbo.SCM_ItemVendor m WITH(HOLDLOCK) ON m.ItemNo=p.ItemNo AND m.VendorID=p.VendorID
+                WHERE p.PoID=@ID AND p.PoNumber=@N AND m.ActiveFlag=1 AND m.PackingQty>0;
+                """,conn,tx))
+            {
+                Add(packing,("@ID",item.PoID),("@N",number));
+                if(packing.ExecuteScalar() is not decimal) throw new PackingQuantityRequiredException();
+            }
             using var available=new SqlCommand("""
                 SELECT p.OrderQty-ISNULL(p.ReceivedQty,0)-ISNULL((
                     SELECT SUM(l.Quantity-l.ReceivedQty) FROM dbo.SCM_DeliveryLine l
@@ -89,9 +101,10 @@ public sealed partial class ScmRepository
         Add(assign,("@ID",id)); var deliveryNumber=(string)assign.ExecuteScalar()!;
         foreach(var item in items)
         {
-            using var line=new SqlCommand("INSERT dbo.SCM_DeliveryLine(DeliveryID,PoID,Quantity) VALUES(@D,@P,@Q)",conn,tx);
-            Add(line,("@D",id),("@P",item.PoID),("@Q",item.Quantity));line.ExecuteNonQuery();
+            using var line=new SqlCommand("INSERT dbo.SCM_DeliveryLine(DeliveryID,PoID,Quantity,VendorLotNo,ProductionDate) VALUES(@D,@P,@Q,@Lot,@Prod)",conn,tx);
+            Add(line,("@D",id),("@P",item.PoID),("@Q",item.Quantity),("@Lot",DeliveryLot(item,date)),("@Prod",(item.ProductionDate??date).Date));line.ExecuteNonQuery();
         }
+        SyncDeliveryBoxes(conn,tx,id);
         using var touch=new SqlCommand("UPDATE dbo.WH_PurchaseOrder SET ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE PoNumber=@N",conn,tx);
         Add(touch,("@Actor",actor),("@N",number));touch.ExecuteNonQuery();
         tx.Commit(); return deliveryNumber;
@@ -104,6 +117,7 @@ public sealed partial class ScmRepository
         if(!cancel && (items.Count==0 || items.Select(x=>x.PoID).Distinct().Count()!=items.Count ||
             items.Any(x=>x.Quantity<=0 || x.Quantity>999999999.999m || decimal.Round(x.Quantity,3)!=x.Quantity)))
             throw new ArgumentException("Invalid delivery quantities.");
+        ValidateDeliveryTrace(items);
         using var conn=factory.OpenConnection(); using var tx=conn.BeginTransaction();
         string number;
         using(var lookup=new SqlCommand("SELECT PoNumber FROM dbo.SCM_Delivery WHERE DeliveryNumber=@D",conn,tx))
@@ -157,10 +171,16 @@ public sealed partial class ScmRepository
                 using var update=new SqlCommand("""
                     IF @Ship=1 AND NOT EXISTS(SELECT 1 FROM dbo.SCM_DeliveryLine WHERE DeliveryID=@ID AND PoID=@P AND Quantity=@Q)
                         THROW 50032,'Ship only saved delivery quantities. Reload.',1;
-                    IF @Ship=0 UPDATE dbo.SCM_DeliveryLine SET Quantity=@Q WHERE DeliveryID=@ID AND PoID=@P;
+                    IF @Ship=0 UPDATE dbo.SCM_DeliveryLine SET Quantity=@Q,VendorLotNo=@Lot,ProductionDate=@Prod WHERE DeliveryID=@ID AND PoID=@P;
                     """,conn,tx);
-                Add(update,("@Q",item.Quantity),("@ID",id),("@P",item.PoID),("@Ship",ship));update.ExecuteNonQuery();
+                Add(update,("@Q",item.Quantity),("@ID",id),("@P",item.PoID),("@Ship",ship),("@Lot",DeliveryLot(item,date)),("@Prod",(item.ProductionDate??date).Date));update.ExecuteNonQuery();
             }
+        }
+        if(!cancel && !ship) SyncDeliveryBoxes(conn,tx,id);
+        if(cancel)
+        {
+            using var voidBoxes=new SqlCommand("UPDATE b SET ActiveFlag=0,VoidedTS=SYSDATETIME() FROM dbo.SCM_DeliveryBox b JOIN dbo.SCM_DeliveryLine l ON l.DeliveryLineID=b.DeliveryLineID WHERE l.DeliveryID=@ID AND b.ActiveFlag=1",conn,tx);
+            Add(voidBoxes,("@ID",id));voidBoxes.ExecuteNonQuery();
         }
         using var header=new SqlCommand("""
             UPDATE dbo.SCM_Delivery SET DeliveryDate=CASE WHEN @Cancel=1 OR @Ship=1 THEN DeliveryDate ELSE @Date END,
@@ -174,6 +194,14 @@ public sealed partial class ScmRepository
             """,conn,tx);
         Add(header,("@ID",id),("@Date",date.Date),("@Cancel",cancel),("@Ship",ship),("@Actor",actor),("@U",userId),("@N",number));header.ExecuteNonQuery();
         tx.Commit();
+    }
+
+    static string DeliveryLot(DeliveryInput item,DateTime date) => string.IsNullOrWhiteSpace(item.VendorLotNo)
+        ? date.ToString("yyyyMMdd",System.Globalization.CultureInfo.InvariantCulture) : item.VendorLotNo.Trim();
+    static void ValidateDeliveryTrace(IReadOnlyList<DeliveryInput> items)
+    {
+        if(items.Any(x=>(x.VendorLotNo?.Trim().Length??0)>30))
+            throw new ArgumentException("Vendor LOT must be at most 30 characters.");
     }
 
 }

@@ -1,0 +1,5 @@
+.packing-toolbar { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+.packing-hint { padding:12px 16px; font-size:.85rem; }
+.ames-card ::deep .ames-rz-grid .rz-data-grid-data > table { table-layout:fixed !important; }
+.ames-card ::deep .rz-cell-data { white-space:normal !important; overflow-wrap:anywhere; }
+.ames-card ::deep .rz-data-cell { white-space:normal !important; }

@@ -1,0 +1,6 @@
+.box-layout { display:grid; grid-template-columns:minmax(270px,1fr) minmax(0,2fr); gap:16px; }
+.box-layout > .ames-card { min-width:0; }
+.box-toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:12px 0; }
+.box-document { border:0; background:none; color:#93c5fd; cursor:pointer; padding:0; text-align:left; }
+.box-layout ::deep .rz-cell-data { white-space:normal!important; overflow-wrap:anywhere; }
+@media(max-width:1000px) { .box-layout { grid-template-columns:1fr; } }

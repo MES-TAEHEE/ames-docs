@@ -217,6 +217,8 @@ builder.Services.AddSingleton(sp => new PntRepository(factory));
 builder.Services.AddSingleton(sp => new QcRepository(factory));
 builder.Services.AddSingleton(sp => new PpRepository(factory));
 builder.Services.AddSingleton(sp => new ScmRepository(factory));
+builder.Services.AddScoped<AMES.Web.Services.PortalQuantityFormat>();
+builder.Services.AddScoped<AMES.Web.Services.BoxLabelSelection>();
 builder.Services.AddSingleton(sp => new MntRepository(factory));
 builder.Services.AddSingleton(sp => new RptRepository(factory));
 builder.Services.AddSingleton(sp => new WarehouseRepository(factory));

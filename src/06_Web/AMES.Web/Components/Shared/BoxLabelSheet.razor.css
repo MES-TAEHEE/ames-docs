@@ -1,0 +1,40 @@
+﻿.box-labels { width:210mm; max-width:none; margin:20px auto; color:#000; font-family:Arial,sans-serif; background:white; }
+.label-page { box-sizing:border-box; width:210mm; min-height:267mm; padding:10mm 0 0; break-after:page; }
+.label-page:last-child { break-after:auto; }
+.label-pair { display:grid; grid-template-columns:1fr 1fr; break-inside:avoid; }
+.box-label { box-sizing:border-box; height:82mm; padding:3mm 4mm 1mm; border:0.25mm dashed #333; background:white; color:black; overflow:hidden; }
+.box-label * { box-sizing:border-box; }
+.label-header { display:flex; justify-content:space-between; align-items:end; gap:2mm; border-bottom:0.25mm solid black; height:5mm; font-size:8pt; }
+.label-header strong { font-size:8pt; overflow-wrap:anywhere; line-height:1; }
+.label-header span { white-space:nowrap; }
+.box-barcode { height:19mm; padding:1.5mm 8mm 0; text-align:center; border-bottom:0.25mm solid black; }
+.box-barcode ::deep svg { display:block; width:100%; height:13mm!important; fill:black; }
+.box-barcode strong { display:block; font-size:8pt; line-height:3.5mm; }
+.part-row { display:flex; align-items:center; gap:1mm; height:11mm; }
+.box-label small { font-size:6pt; font-weight:normal; white-space:nowrap; }
+.part-value { font-size:18pt; line-height:1; overflow-wrap:anywhere; }
+.desc-row { display:flex; align-items:center; gap:2mm; height:7mm; border-bottom:0.25mm solid black; }
+.desc-row strong { font-size:9pt; line-height:1.05; overflow-wrap:anywhere; }
+.label-details { display:grid; grid-template-columns:58% 42%; grid-template-rows:8mm 10mm 7mm; }
+.label-details > div { display:flex; align-items:center; gap:1mm; min-width:0; }
+.fifo strong { font-size:14pt; }
+.delivery-number { border-left:0.25mm solid black; border-bottom:0.25mm solid black; padding-left:1.5mm; font-size:9pt; font-weight:bold; overflow-wrap:anywhere; }
+.quantity strong { font-size:20pt; line-height:1; }
+.quantity b { font-size:10pt; margin-left:auto; padding-right:2mm; }
+.box-count { border-left:0.25mm solid black; padding-left:1.5mm; }
+.box-count strong { font-size:16pt; }
+.destination strong,.lot strong { font-size:9pt; line-height:1.05; overflow-wrap:anywhere; }
+.lot { border-left:0.25mm solid black; padding-left:1.5mm; }
+.part-barcode { display:flex; align-items:center; gap:1mm; height:9mm; border-top:0.25mm solid black; border-bottom:0.25mm solid black; padding:0.6mm 8mm 0.6mm 1mm; }
+.part-barcode ::deep svg { display:block; flex:1; min-width:0; width:100%; height:7mm!important; fill:black; }
+.box-label footer { display:flex; justify-content:space-between; font-size:7pt; line-height:3mm; }
+@media print {
+    @page scm-box-labels { size:Letter portrait; margin:5mm 3mm; }
+    .box-labels { page:scm-box-labels; visibility:visible!important; width:210mm!important; margin:0!important; padding:0!important; }
+    .box-labels ::deep * { visibility:visible!important; }
+    .label-page { width:210mm; height:267mm; min-height:0; }
+}
+
+.part-value.compact { font-size:14pt; }
+.desc-row.compact strong { font-size:6pt; }
+.lot.compact strong { font-size:7pt; }

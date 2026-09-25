@@ -1,0 +1,5 @@
+﻿.portal-delivery-nav { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; }
+.portal-delivery-nav ::deep a { display:inline-flex; align-items:center; justify-content:center; min-height:36px; padding:8px 14px; box-sizing:border-box; border:1px solid var(--rz-base-600,#475569); border-radius:6px; background:var(--rz-base-800,#182638); color:var(--rz-text-color,#e2e8f0); text-decoration:none; font-size:14px; font-weight:600; line-height:1.4; }
+.portal-delivery-nav ::deep a:hover { border-color:var(--rz-primary,#4f63ef); }
+.portal-delivery-nav ::deep a.active { background:var(--rz-primary,#4f63ef); border-color:var(--rz-primary,#4f63ef); color:white; }
+.portal-delivery-nav ::deep a:focus-visible { outline:2px solid var(--rz-primary,#4f63ef); outline-offset:3px; }

@@ -1,4 +1,5 @@
-﻿@page "/portal/delivery-note/{Number}"
+﻿@inject PortalQuantityFormat QtyFormat
+@page "/portal/delivery-note/{Number}"
 @layout EmptyLayout
 @rendermode InteractiveServer
 @inject ScmRepository Scm
@@ -47,11 +48,11 @@
                 }
                 @foreach (var line in group)
                 {
-                    <tr><td>@line.Line</td><td>@line.Item</td><td>@line.Name</td><td>@line.Unit</td><td class="quantity">@line.Quantity.ToString("N3")</td></tr>
+                    <tr><td>@line.Line</td><td>@line.Item</td><td>@line.Name</td><td>@line.Unit</td><td class="quantity">@QtyFormat.Text(line.Quantity,line.Unit)</td></tr>
                 }
             }</tbody>
         </table>
-        <p class="totals">합계 / Total: @string.Join(" · ", n.Lines.GroupBy(l => l.Unit).Select(g => $"{g.Sum(l => l.Quantity):N3} {g.Key}"))</p>
+        <p class="totals">합계 / Total: @string.Join(" · ", n.Lines.GroupBy(l => l.Unit).Select(g => $"{QtyFormat.Text(g.Sum(l => l.Quantity),g.Key)} {g.Key}"))</p>
         <p>발행자 / Issued by: @n.IssuedBy</p>
         <div class="signatures"><p>출하자 / Shipped by<br /><br />____________________</p><p>인수자 / Received by<br /><br />____________________</p><p>인수일 / Received date<br /><br />____________________</p></div>
         <footer>@n.Number · 본 문서는 출하 내역이며 입고 확정을 의미하지 않습니다.</footer>

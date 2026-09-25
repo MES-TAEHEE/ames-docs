@@ -1,0 +1,36 @@
+﻿<article class="delivery-note box-labels">
+@foreach(var page in Boxes.Chunk(3))
+{
+    <div class="label-page">
+    @foreach(var b in page)
+    {
+        <div class="label-pair">
+        @for(var copy=0;copy<2;copy++)
+        {
+            <section class="box-label">
+                <header class="label-header"><strong>@b.VendorName</strong><span>@b.DeliveryDate.ToString("dd/MM/yyyy",System.Globalization.CultureInfo.InvariantCulture)</span></header>
+                <div class="box-barcode"><Code128Barcode Value="@b.Number" Height="48" /><strong>@b.Number</strong></div>
+                <div class="part-row"><small>Product :</small><strong class="part-value @(b.Item.Length>18 ? "compact" : "")">@b.Item</strong></div>
+                <div class="desc-row @(b.Name.Length>85 ? "compact" : "")"><small>Desc :</small><strong>@b.Name</strong></div>
+                <div class="label-details">
+                    <div class="fifo"><small>FIFO :</small><strong>@b.ProductionDate.ToString("dd/MM/yyyy",System.Globalization.CultureInfo.InvariantCulture)</strong></div>
+                    <div class="delivery-number">@b.Delivery</div>
+                    <div class="quantity"><small>Quantity :</small><strong>@QuantityText(b.Quantity,b.Unit)</strong><b>@b.Unit</b></div>
+                    <div class="box-count"><small>BoxCnt :</small><strong>@b.Sequence / @b.BoxCount</strong></div>
+                    <div class="destination"><small>Delivery :</small><strong>@b.Destination</strong></div>
+                    <div class="lot @(b.VendorLotNo.Length>18 ? "compact" : "")"><small>Lot No :</small><strong>@b.VendorLotNo</strong></div>
+                </div>
+                <div class="part-barcode"><small>Part No :</small><Code128Barcode Value="@b.Item" Height="30" /></div>
+                <footer><span>EOS</span><span>@PrintedAt.ToString("dd/MM/yyyy HH:mm",System.Globalization.CultureInfo.InvariantCulture)</span></footer>
+            </section>
+        }
+        </div>
+    }
+    </div>
+}
+</article>
+@code {
+    [Parameter] public IReadOnlyList<ScmRepository.DeliveryBox> Boxes {get;set;}=[];
+    [Parameter] public Func<decimal,string,string> QuantityText {get;set;}=(q,u)=>q.ToString("0.###");
+    [Parameter] public DateTime PrintedAt {get;set;}
+}
