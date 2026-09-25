@@ -948,7 +948,7 @@ public sealed class PpRepository
         var supply = Query("""
             SELECT i.ItemNo, i.LeadTimeDays,
                    (SELECT ISNULL(SUM(ISNULL(x.OnHandQty,0) - ISNULL(x.ReservedQty,0)),0)
-                    FROM dbo.WH_Inventory x WHERE x.ItemNo = i.ItemNo) AS Stock,
+                    FROM dbo.WH_OLD_Inventory x WHERE x.ItemNo = i.ItemNo) AS Stock,
                    (SELECT ISNULL(SUM(ISNULL(p.OrderQty,0) - ISNULL(p.ReceivedQty,0)),0)
                     FROM dbo.WH_PurchaseOrder p
                     WHERE p.ItemNo = i.ItemNo AND p.Status IN ('Open','Partial')

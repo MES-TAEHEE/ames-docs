@@ -315,7 +315,7 @@ public sealed class FinishedGoodsRepository
         using var check = new SqlCommand("""
             SELECT
                 (SELECT COUNT(1) FROM dbo.FG_Inventory WHERE Location = @LocationID)
-              + (SELECT COUNT(1) FROM dbo.WH_Inventory WHERE LocationID = @LocationID AND ISNULL(OnHandQty, 0) <> 0);
+              + (SELECT COUNT(1) FROM dbo.WH_OLD_Inventory WHERE LocationID = @LocationID AND ISNULL(OnHandQty, 0) <> 0);
             """, conn);
         check.Parameters.Add("@LocationID", SqlDbType.VarChar, 20).Value = locationNo.Trim();
         if (Convert.ToInt32(check.ExecuteScalar()) > 0)

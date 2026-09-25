@@ -722,11 +722,11 @@ BEGIN
         DELETE FROM dbo.WH_InventoryTransaction WHERE LotID = @PdaInboundRollbackLotID;
 
     IF @PdaInboundTestLotID IS NOT NULL
-       AND OBJECT_ID(N'dbo.WH_Inventory', N'U') IS NOT NULL
-        DELETE FROM dbo.WH_Inventory WHERE LotID = @PdaInboundTestLotID;
+       AND OBJECT_ID(N'dbo.WH_OLD_Inventory', N'U') IS NOT NULL
+        DELETE FROM dbo.WH_OLD_Inventory WHERE LotID = @PdaInboundTestLotID;
     IF @PdaInboundRollbackLotID IS NOT NULL
-       AND OBJECT_ID(N'dbo.WH_Inventory', N'U') IS NOT NULL
-        DELETE FROM dbo.WH_Inventory WHERE LotID = @PdaInboundRollbackLotID;
+       AND OBJECT_ID(N'dbo.WH_OLD_Inventory', N'U') IS NOT NULL
+        DELETE FROM dbo.WH_OLD_Inventory WHERE LotID = @PdaInboundRollbackLotID;
 
     IF OBJECT_ID(N'dbo.WH_Receiving', N'U') IS NOT NULL
         DELETE FROM dbo.WH_Receiving WHERE LotCode IN ('5011LL260903900001', '5011LL260903900002');
@@ -829,7 +829,7 @@ BEGIN
 END;
 
 -- A pre-received LOT for change-location and cancel-incoming tests.
-IF OBJECT_ID(N'dbo.WH_Inventory', N'U') IS NOT NULL
+IF OBJECT_ID(N'dbo.WH_OLD_Inventory', N'U') IS NOT NULL
    AND OBJECT_ID(N'dbo.WH_Receiving', N'U') IS NOT NULL
 BEGIN
     DECLARE @ReceivedLotID int = (SELECT TOP (1) LotID FROM dbo.tbl_Lot WHERE LotCode = '260827014');
@@ -839,20 +839,20 @@ BEGIN
        AND NOT EXISTS
        (
            SELECT 1
-           FROM dbo.WH_Inventory
+           FROM dbo.WH_OLD_Inventory
            WHERE LotID = @ReceivedLotID
              AND COALESCE(Status, 'Received') <> 'Canceled'
              AND COALESCE(OnHandQty, 0) > 0
        )
     BEGIN
-        INSERT INTO dbo.WH_Inventory
+        INSERT INTO dbo.WH_OLD_Inventory
             (ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt, Status, CreatedBy)
         VALUES
             ('81711-PI000YGN', 'WH010101', @ReceivedLotID, 288, 0, SYSDATETIME(), 'Received', 'pda-seed');
     END;
     ELSE IF @ReceivedLotID IS NOT NULL
     BEGIN
-        UPDATE dbo.WH_Inventory
+        UPDATE dbo.WH_OLD_Inventory
            SET ItemNo = '81711-PI000YGN',
                LocationID = 'WH010101',
                OnHandQty = CASE WHEN COALESCE(OnHandQty, 0) <= 0 THEN 288 ELSE OnHandQty END,
@@ -894,7 +894,7 @@ SELECT 'tbl_Lot', COUNT(*) FROM dbo.tbl_Lot
 UNION ALL
 SELECT 'WH_InboundPackage', COUNT(*) FROM dbo.WH_InboundPackage
 UNION ALL
-SELECT 'WH_Inventory', COUNT(*) FROM dbo.WH_Inventory
+SELECT 'WH_OLD_Inventory', COUNT(*) FROM dbo.WH_OLD_Inventory
 UNION ALL
 SELECT 'WH_Receiving', COUNT(*) FROM dbo.WH_Receiving;
 GO
@@ -1035,7 +1035,7 @@ BEGIN
          WHERE LotCode = 'REL-MAT003-A';
 END;
 
-IF OBJECT_ID(N'dbo.WH_Inventory', N'U') IS NOT NULL
+IF OBJECT_ID(N'dbo.WH_OLD_Inventory', N'U') IS NOT NULL
 BEGIN
     DECLARE @Lots table (LotCode varchar(40), ItemNo varchar(20), LocationID varchar(20), Qty decimal(14,3), ReceivedDaysAgo int);
 
@@ -1046,7 +1046,7 @@ BEGIN
         ('REL-MAT002-B', 'MAT-002', 'REL020101', 40, 6),
         ('REL-MAT003-A', 'MAT-003', 'REL010101', 60, 3);
 
-    MERGE dbo.WH_Inventory AS T
+    MERGE dbo.WH_OLD_Inventory AS T
     USING
     (
         SELECT L.LotID, X.ItemNo, X.LocationID, X.Qty, X.ReceivedDaysAgo
@@ -1072,7 +1072,7 @@ END;
 
 SELECT 'WH_ReleaseSchedule' AS TableName, COUNT(*) AS DataRows FROM dbo.WH_ReleaseSchedule
 UNION ALL
-SELECT 'WH_Inventory', COUNT(*) FROM dbo.WH_Inventory
+SELECT 'WH_OLD_Inventory', COUNT(*) FROM dbo.WH_OLD_Inventory
 UNION ALL
 SELECT 'tbl_Lot', COUNT(*) FROM dbo.tbl_Lot
 UNION ALL
@@ -1094,8 +1094,8 @@ IF OBJECT_ID(N'dbo.WH_AreaMaster', N'U') IS NULL
 IF OBJECT_ID(N'dbo.MD_Location', N'U') IS NULL
     THROW 51000, 'dbo.MD_Location is required.', 1;
 
-IF OBJECT_ID(N'dbo.WH_Inventory', N'U') IS NULL
-    THROW 51000, 'dbo.WH_Inventory is required.', 1;
+IF OBJECT_ID(N'dbo.WH_OLD_Inventory', N'U') IS NULL
+    THROW 51000, 'dbo.WH_OLD_Inventory is required.', 1;
 
 IF OBJECT_ID(N'dbo.tbl_Lot', N'U') IS NULL
     THROW 51000, 'dbo.tbl_Lot is required.', 1;
@@ -1114,7 +1114,7 @@ DECLARE @ScrollActor varchar(50) = 'CODEX_SAMPLE';
 
 -- Remove only the previous EOS demo rows, then refresh this legacy-style set.
 DELETE FROM dbo.WH_ReleaseSchedule WHERE CreatedBy = @LegacyActor;
-DELETE FROM dbo.WH_Inventory WHERE CreatedBy IN (@OldActor, @LegacyActor, @ScrollActor);
+DELETE FROM dbo.WH_OLD_Inventory WHERE CreatedBy IN (@OldActor, @LegacyActor, @ScrollActor);
 DELETE FROM dbo.tbl_Lot WHERE CreatedBy IN (@LegacyActor, @ScrollActor);
 -- Shared master rows can already be referenced by FG/WH transactions. Keep them
 -- and refresh the required demo values through the UPDATE/INSERT statements below.
@@ -1252,7 +1252,7 @@ SELECT I.LotCode, I.ItemNo, 'WH', I.OnHandQty, I.OnHandQty, I.ReceivedAt,
        'Received', 'STORED', 'PASS', I.LocationID, @LegacyActor
 FROM @Inventory I;
 
-INSERT INTO dbo.WH_Inventory
+INSERT INTO dbo.WH_OLD_Inventory
     (ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt, Status, CreatedBy)
 SELECT I.ItemNo, I.LocationID, L.LotID, I.OnHandQty, 0, I.ReceivedAt, 'Received', @LegacyActor
 FROM @Inventory I
@@ -1295,7 +1295,7 @@ BEGIN
 END;
 
 -- Repeatable WH005 Adjust scenario stock. The scenario-only reset API restores it to 10 EA.
-IF OBJECT_ID(N'dbo.WH_Inventory', N'U') IS NOT NULL
+IF OBJECT_ID(N'dbo.WH_OLD_Inventory', N'U') IS NOT NULL
    AND OBJECT_ID(N'dbo.tbl_Lot', N'U') IS NOT NULL
 BEGIN
     DECLARE @AdjustScenarioLotNo varchar(40) = '5011LL260904500001';
@@ -1306,7 +1306,7 @@ BEGIN
     BEGIN
         IF OBJECT_ID(N'dbo.WH_InventoryTransaction', N'U') IS NOT NULL
             DELETE FROM dbo.WH_InventoryTransaction WHERE LotID = @AdjustScenarioLotID;
-        DELETE FROM dbo.WH_Inventory WHERE LotID = @AdjustScenarioLotID;
+        DELETE FROM dbo.WH_OLD_Inventory WHERE LotID = @AdjustScenarioLotID;
         DELETE FROM dbo.tbl_Lot WHERE LotID = @AdjustScenarioLotID;
     END;
 
@@ -1319,7 +1319,7 @@ BEGIN
 
     SET @AdjustScenarioLotID = CONVERT(int, SCOPE_IDENTITY());
 
-    INSERT INTO dbo.WH_Inventory
+    INSERT INTO dbo.WH_OLD_Inventory
         (ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt, Status, CreatedBy)
     VALUES
         ('81710-PI000NNB', 'B0-12-B1', @AdjustScenarioLotID, 10, 0,
@@ -1338,8 +1338,8 @@ SELECT 'MD_Location', COUNT(*)
 FROM dbo.MD_Location
 WHERE CreatedBy = @LegacyActor
 UNION ALL
-SELECT 'WH_Inventory', COUNT(*)
-FROM dbo.WH_Inventory
+SELECT 'WH_OLD_Inventory', COUNT(*)
+FROM dbo.WH_OLD_Inventory
 WHERE CreatedBy = @LegacyActor
 UNION ALL
 SELECT 'WH_ReleaseSchedule', COUNT(*)
@@ -1396,7 +1396,7 @@ DELETE FROM dbo.WH_ReleaseSchedule
 WHERE PickSlipNo IN (@PickSlipNo, @RollbackPickSlipNo, N'PDA-REL-TEST-01');
 
 DELETE W
-FROM dbo.WH_Inventory W
+FROM dbo.WH_OLD_Inventory W
 INNER JOIN dbo.tbl_Lot L ON L.LotID = W.LotID
 WHERE L.LotCode IN
 (
@@ -1445,7 +1445,7 @@ VALUES
 ('5011LL260820000010', @DirectItemNo, 'WH', 24, 24, '2026-08-20T08:00:00', 'Received', 'RECEIVED', 'PASS', 'B0-10-A1', 'pda-release-test'),
 ('5011LL260101000018', @RollbackItemNo, 'WH', 6, 6, '2026-01-01T08:00:00', 'Received', 'RECEIVED', 'PASS', 'B0-08-C1', 'pda-release-test');
 
-INSERT INTO dbo.WH_Inventory
+INSERT INTO dbo.WH_OLD_Inventory
 (
     ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt,
     Status, CreatedBy
@@ -1597,6 +1597,12 @@ DELETE FROM dbo.FG_ShipmentOrder WHERE CreatedBy = @SeedBy;
 DELETE FROM dbo.FG_PutAway WHERE CreatedBy = @SeedBy;
 DELETE FROM dbo.FG_Inventory WHERE CreatedBy = @SeedBy;
 DELETE FROM dbo.QC_Inspection WHERE CreatedBy = @SeedBy;
+DELETE R FROM dbo.PR_ProductionResult R
+JOIN dbo.tbl_Lot L ON L.LotID = R.LotID
+WHERE L.CreatedBy = @SeedBy;
+DELETE I FROM dbo.PR_ImgLot I
+JOIN dbo.tbl_Lot L ON L.LotID = I.LotID
+WHERE L.CreatedBy = @SeedBy;
 DELETE FROM dbo.tbl_Lot WHERE CreatedBy = @SeedBy;
 DELETE FROM dbo.PP_WorkOrder WHERE CreatedBy = @SeedBy;
 
@@ -1635,8 +1641,8 @@ FROM @Demo;
 INSERT INTO dbo.tbl_Lot
     (LotCode, ItemNo, WoID, LineID, ProcessCode, BatchSize, RemainingQty, ProducedAt,
      Status, QualityFlag, CurrentLocationID, ExpiryDate, CreatedBy, CreatedTS)
-SELECT d.LotCode, d.ItemNo, w.WoID, 'FG-DEMO', 'FINAL', d.Qty, d.Qty, d.ProducedAt,
-       'Completed', 'PASS', d.LocationID, DATEADD(year,1,CAST(d.ProducedAt AS date)),
+SELECT d.LotCode, d.ItemNo, w.WoID, 'FG-DEMO', 'IMG', d.Qty, d.Qty, d.ProducedAt,
+       'CONFIRMED', 'OK', d.LocationID, DATEADD(year,1,CAST(d.ProducedAt AS date)),
        @SeedBy, SYSDATETIME()
 FROM @Demo d
 JOIN dbo.PP_WorkOrder w ON w.WoNumber = d.WoNumber AND w.CreatedBy = @SeedBy;
@@ -1649,6 +1655,22 @@ SELECT CONCAT('FG-QC-DEMO-', RIGHT('000' + CAST(d.Seq AS varchar(3)),3)), 'FQC',
        'FG-DEMO', d.ItemNo, 'DEMO-CUSTOMER', 'Normal', 5, d.Qty, CONVERT(int,d.Qty), 0,
        'PASS', 0, 'admin', DATEADD(minute,-20,d.ProducedAt), DATEADD(minute,-5,d.ProducedAt),
        @SeedBy, SYSDATETIME()
+FROM @Demo d
+JOIN dbo.PP_WorkOrder w ON w.WoNumber = d.WoNumber AND w.CreatedBy = @SeedBy
+JOIN dbo.tbl_Lot l ON l.LotCode = d.LotCode AND l.CreatedBy = @SeedBy;
+
+INSERT INTO dbo.PR_ImgLot
+    (LotID, ConfirmStatus, ConfirmedAt, ConfirmedBy, CustomerCode, PrintedCount, CreatedBy, CreatedTS)
+SELECT l.LotID, 'CONFIRMED', d.ProducedAt, 'admin', 'DEMO-CUSTOMER', 1, @SeedBy, SYSDATETIME()
+FROM @Demo d
+JOIN dbo.tbl_Lot l ON l.LotCode = d.LotCode AND l.CreatedBy = @SeedBy;
+
+INSERT INTO dbo.PR_ProductionResult
+    (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec, OperatorID,
+     DefectFlag, EntryAt, ProdDate, CreatedBy, CreatedTS)
+SELECT CONCAT('FGDEMO-', RIGHT('000' + CAST(d.Seq AS varchar(3)), 3)), w.WoID, l.LotID,
+       'FG-DEMO', 'IMG', CONVERT(int, d.Qty), 0, 'admin', 0, d.ProducedAt,
+       CAST(d.ProducedAt AS date), @SeedBy, SYSDATETIME()
 FROM @Demo d
 JOIN dbo.PP_WorkOrder w ON w.WoNumber = d.WoNumber AND w.CreatedBy = @SeedBy
 JOIN dbo.tbl_Lot l ON l.LotCode = d.LotCode AND l.CreatedBy = @SeedBy;
@@ -1726,7 +1748,7 @@ UNION ALL SELECT 'FG Put-Away Location', @Loc1;
 GO
 
 -- =====================================================================
---  FG QC Waiting Demo
+--  FG Put-Away Waiting Demo (POP production completed, not stocked)
 -- =====================================================================
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -1739,6 +1761,7 @@ SET ARITHABORT ON;
 SET NUMERIC_ROUNDABORT OFF;
 
 DECLARE @SeedBy varchar(50) = 'pda-fg-qc-waiting-demo';
+DECLARE @PopSeedBy varchar(20) = 'pda-fg-wait-demo';
 DECLARE @Now datetime2 = SYSDATETIME();
 DECLARE @Samples TABLE
 (
@@ -1787,37 +1810,48 @@ BEGIN TRY
         WHERE l.CreatedBy <> @SeedBy
     ) THROW 51000, 'A sample LOT number is already owned by other data.', 1;
 
-    IF EXISTS
-    (
-        SELECT 1 FROM @Samples s
-        JOIN dbo.QC_Inspection q ON q.InspectionNo = CONCAT('FGWAIT-QC-', s.Seq)
-        WHERE q.CreatedBy <> @SeedBy
-    ) THROW 51000, 'A sample inspection number is already owned by other data.', 1;
-
     INSERT INTO dbo.tbl_Lot
         (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt,
          Status, QualityFlag, InventoryStatus, ExpiryDate, CreatedBy, CreatedTS)
-    SELECT s.LotCode, s.ItemNo, 'FINAL', s.Qty, s.Qty,
-           DATEADD(hour, -s.AgeHours - 2, @Now), 'Completed', 'PASS', 'QC_PASS',
+    SELECT s.LotCode, s.ItemNo, 'IMG', s.Qty, s.Qty,
+           DATEADD(hour, -s.AgeHours, @Now), 'CONFIRMED', 'OK', 'PRODUCTION_COMPLETED',
            DATEADD(year, 1, CAST(DATEADD(hour, -s.AgeHours - 2, @Now) AS date)), @SeedBy, @Now
     FROM @Samples s
     WHERE NOT EXISTS
         (SELECT 1 FROM dbo.tbl_Lot l WITH (UPDLOCK, HOLDLOCK) WHERE l.LotCode = s.LotCode);
 
-    INSERT INTO dbo.QC_Inspection
-        (InspectionNo, InspectionType, LotID, ItemNo, Mode, SampleSize,
-         BatchQty, CumulativeGood, DefectQtyTotal, Verdict, CriticalFlag,
-         InspectorID, InsStartTS, InsEndTS, CreatedBy, CreatedTS)
-    SELECT CONCAT('FGWAIT-QC-', s.Seq), 'FQC', l.LotID, s.ItemNo, 'Normal', 5,
-           s.Qty, CONVERT(int, s.Qty), 0, 'PASS', 0, 'admin',
-           DATEADD(hour, 1, l.ProducedAt), DATEADD(hour, 2, l.ProducedAt), @SeedBy, @Now
+    UPDATE l
+    SET ProcessCode = 'IMG', Status = 'CONFIRMED', QualityFlag = 'OK',
+        InventoryStatus = 'PRODUCTION_COMPLETED',
+        ProducedAt = DATEADD(hour, -s.AgeHours, @Now)
+    FROM dbo.tbl_Lot l
+    JOIN @Samples s ON s.LotCode = l.LotCode
+    WHERE l.CreatedBy = @SeedBy;
+
+    DELETE r FROM dbo.PR_ProductionResult r
+    JOIN dbo.tbl_Lot l ON l.LotID = r.LotID
+    WHERE l.CreatedBy = @SeedBy AND r.CreatedBy = @PopSeedBy;
+    DELETE i FROM dbo.PR_ImgLot i
+    JOIN dbo.tbl_Lot l ON l.LotID = i.LotID
+    WHERE l.CreatedBy = @SeedBy AND i.CreatedBy = @PopSeedBy;
+    DELETE FROM dbo.QC_Inspection WHERE CreatedBy = @SeedBy;
+
+    INSERT INTO dbo.PR_ImgLot
+        (LotID, ConfirmStatus, ConfirmedAt, ConfirmedBy, CustomerCode, PrintedCount, CreatedBy, CreatedTS)
+    SELECT l.LotID, 'CONFIRMED', l.ProducedAt, 'admin', 'DEMO-CUSTOMER', 1, @PopSeedBy, @Now
+    FROM @Samples s
+    JOIN dbo.tbl_Lot l ON l.LotCode = s.LotCode AND l.CreatedBy = @SeedBy
+    WHERE NOT EXISTS (SELECT 1 FROM dbo.PR_ImgLot i WHERE i.LotID = l.LotID);
+
+    INSERT INTO dbo.PR_ProductionResult
+        (EntryNo, LotID, LineID, ProcessCode, GoodQty, CycleSec, OperatorID,
+         DefectFlag, EntryAt, ProdDate, CreatedBy, CreatedTS)
+    SELECT CONCAT('FGWAIT-', s.Seq), l.LotID, 'FG-DEMO', 'IMG', CONVERT(int, s.Qty), 0,
+           'admin', 0, l.ProducedAt, CAST(l.ProducedAt AS date), @PopSeedBy, @Now
     FROM @Samples s
     JOIN dbo.tbl_Lot l ON l.LotCode = s.LotCode AND l.CreatedBy = @SeedBy
     WHERE NOT EXISTS
-        (SELECT 1 FROM dbo.QC_Inspection q WITH (UPDLOCK, HOLDLOCK)
-         WHERE q.InspectionNo = CONCAT('FGWAIT-QC-', s.Seq))
-      AND NOT EXISTS (SELECT 1 FROM dbo.QC_Inspection q WHERE q.LotID = l.LotID)
-      AND NOT EXISTS (SELECT 1 FROM dbo.FG_Inventory f WHERE f.LotID = l.LotID);
+        (SELECT 1 FROM dbo.PR_ProductionResult r WHERE r.LotID = l.LotID AND r.ProcessCode = 'IMG');
 
     COMMIT TRANSACTION;
 END TRY
@@ -1827,12 +1861,12 @@ BEGIN CATCH
 END CATCH;
 
 SELECT l.LotCode, l.ItemNo, i.ItemName, l.BatchSize AS Qty, i.DefaultUOM AS Unit,
-       q.InsEndTS AS QcPassedAt
+       p.ConfirmedAt AS ReadyAt
 FROM dbo.tbl_Lot l
 JOIN dbo.MD_Item i ON i.ItemNo = l.ItemNo
-JOIN dbo.QC_Inspection q ON q.LotID = l.LotID AND q.CreatedBy = @SeedBy
+JOIN dbo.PR_ImgLot p ON p.LotID = l.LotID
 WHERE l.CreatedBy = @SeedBy
-ORDER BY q.InsEndTS, l.LotID;
+ORDER BY p.ConfirmedAt, l.LotID;
 GO
 
 -- =====================================================================
@@ -2157,13 +2191,20 @@ INSERT dbo.PP_WorkOrder (WoNumber,ItemNo,OrderQty,OpenQty,CompletedQty,LineID,St
 SELECT CONCAT('FG-PPT-WO-',D.Code),D.ItemNo,D.Qty,0,D.Qty,'FG-DEMO','Completed',3,CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
 FROM @FgPpt D WHERE NOT EXISTS (SELECT 1 FROM dbo.PP_WorkOrder W WHERE W.WoNumber=CONCAT('FG-PPT-WO-',D.Code));
 INSERT dbo.tbl_Lot (LotCode,ItemNo,WoID,LineID,ProcessCode,BatchSize,RemainingQty,ProducedAt,Status,QualityFlag,CreatedBy,CreatedTS)
-SELECT CONCAT('5011FG260908',D.Code),D.ItemNo,W.WoID,'FG-DEMO','FINAL',D.Qty,D.Qty,DATEADD(day,-15,SYSDATETIME()),'Completed','PASS',CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
+SELECT CONCAT('5011FG260908',D.Code),D.ItemNo,W.WoID,'FG-DEMO','IMG',D.Qty,D.Qty,DATEADD(day,-15,SYSDATETIME()),'CONFIRMED','OK',CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
 FROM @FgPpt D JOIN dbo.PP_WorkOrder W ON W.WoNumber=CONCAT('FG-PPT-WO-',D.Code) AND W.CreatedBy=CONCAT('pda-ppt-fg-',D.Screen)
 WHERE NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot L WHERE L.LotCode=CONCAT('5011FG260908',D.Code));
-INSERT dbo.QC_Inspection (InspectionNo,InspectionType,LotID,WoID,LineID,ItemNo,CustomerCode,Mode,SampleSize,BatchQty,CumulativeGood,DefectQtyTotal,Verdict,CriticalFlag,InspectorID,InsStartTS,InsEndTS,CreatedBy,CreatedTS)
-SELECT CONCAT('FG-PPT-QC-',D.Code),'FQC',L.LotID,L.WoID,'FG-DEMO',D.ItemNo,'PPT-CUSTOMER','Normal',1,D.Qty,CONVERT(int,D.Qty),0,'PASS',0,'TEST1',DATEADD(day,-16,SYSDATETIME()),DATEADD(day,-15,SYSDATETIME()),CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
+UPDATE L SET ProcessCode='IMG',Status='CONFIRMED',QualityFlag='OK'
+FROM dbo.tbl_Lot L JOIN @FgPpt D ON L.LotCode=CONCAT('5011FG260908',D.Code)
+WHERE L.CreatedBy=CONCAT('pda-ppt-fg-',D.Screen);
+INSERT dbo.PR_ImgLot (LotID,ConfirmStatus,ConfirmedAt,ConfirmedBy,CustomerCode,PrintedCount,CreatedBy,CreatedTS)
+SELECT L.LotID,'CONFIRMED',L.ProducedAt,'TEST1','PPT-CUSTOMER',1,CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
 FROM @FgPpt D JOIN dbo.tbl_Lot L ON L.LotCode=CONCAT('5011FG260908',D.Code) AND L.CreatedBy=CONCAT('pda-ppt-fg-',D.Screen)
-WHERE NOT EXISTS (SELECT 1 FROM dbo.QC_Inspection Q WHERE Q.InspectionNo=CONCAT('FG-PPT-QC-',D.Code));
+WHERE NOT EXISTS (SELECT 1 FROM dbo.PR_ImgLot P WHERE P.LotID=L.LotID);
+INSERT dbo.PR_ProductionResult (EntryNo,WoID,LotID,LineID,ProcessCode,GoodQty,CycleSec,OperatorID,DefectFlag,EntryAt,ProdDate,CreatedBy,CreatedTS)
+SELECT CONCAT('FGPPT-',D.Code),L.WoID,L.LotID,'FG-DEMO','IMG',CONVERT(int,D.Qty),0,'TEST1',0,L.ProducedAt,CAST(L.ProducedAt AS date),CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
+FROM @FgPpt D JOIN dbo.tbl_Lot L ON L.LotCode=CONCAT('5011FG260908',D.Code) AND L.CreatedBy=CONCAT('pda-ppt-fg-',D.Screen)
+WHERE NOT EXISTS (SELECT 1 FROM dbo.PR_ProductionResult R WHERE R.LotID=L.LotID AND R.ProcessCode='IMG');
 INSERT dbo.FG_ShipmentOrder (ShipOrderNumber,OutgoingSlipNumber,CustomerCode,Source,ShipDate,DestPlant,Status,CreatedBy,CreatedTS)
 SELECT D.Number,D.Slip,'PPT-CUSTOMER','PDA',CAST(GETDATE() AS date),'PPT-DESTINATION','OPEN',CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
 FROM (VALUES ('FG-PPT-SO-REL','2609089001','release'),('FG-PPT-SO-LOAD','2609089002','loading'),

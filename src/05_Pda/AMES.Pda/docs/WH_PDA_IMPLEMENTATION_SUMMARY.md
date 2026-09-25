@@ -277,7 +277,7 @@ PDA DB 스크립트 관리 기준:
 Release 탭이 참고하는 주요 테이블:
 
 - `dbo.WH_ReleaseSchedule`: Pick Slip 역할의 출고 요청 라인 기준
-- `dbo.WH_Inventory`: 현재 재고, FIFO 추천 Location
+- `dbo.WH_OLD_Inventory`: 현재 재고, FIFO 추천 Location
 - `dbo.tbl_Lot`: LOT No, 생산일, 입고일 기반 FIFO 정렬 보조
 - `dbo.MD_Location`: Location master와 Zone
 - `dbo.MD_Item`: 자재 마스터, Unit, 자재명
@@ -485,7 +485,7 @@ SQL Server `AMES_DEV`의 `dbo` 스키마에 아래 테이블 및 프로시저를
 - `dbo.tbl_Lot`
 - `dbo.WH_PurchaseOrder`
 - `dbo.WH_Receiving`
-- `dbo.WH_Inventory`
+- `dbo.WH_OLD_Inventory`
 - `dbo.MD_Location`
 - `dbo.WH_PDA_INBOUND_SCAN_LOT`
 - `dbo.WH_PDA_INBOUND_RECEIVE_LOT`
@@ -949,7 +949,7 @@ Pick Slip load 전 검증:
 주요 기준 테이블:
 
 - `dbo.WH_ReleaseSchedule`: Pick Slip 역할의 출고 요청 header/line
-- `dbo.WH_Inventory`: 현재 재고 LOT, Location, 출고 가능 상태
+- `dbo.WH_OLD_Inventory`: 현재 재고 LOT, Location, 출고 가능 상태
 - `dbo.tbl_Lot`: LOT No, 생산일, LOT 잔량/상태
 - `dbo.MD_Item`: 품번명, Unit
 - `dbo.MD_Location`: Location master와 Zone
@@ -958,7 +958,7 @@ Pick Slip load 전 검증:
 
 출고 처리 시 갱신/기록:
 
-- `dbo.WH_Inventory.OnHandQty = 0`, `Status = Released`
+- `dbo.WH_OLD_Inventory.OnHandQty = 0`, `Status = Released`
 - `dbo.tbl_Lot.RemainingQty = 0`, `Status = Released`, `CurrentLocationID = NULL`
 - `dbo.WH_ReleaseSchedule.PickedQty` 증가, 필요 시 `Status = Partial/Picked`
 - `dbo.WH_ReleasePicking`에 Pick Slip, LOT, Item, Qty, Location, 작업자, 단말 정보 기록
@@ -1220,7 +1220,7 @@ SIS/DB:
 - WH001의 PO 조회는 `WM40120` 기준으로 만들었고, SCM에서 PO가 신규 생성되는 원천 화면/배치까지 완전히 대체한 것은 아니다.
 - `GRN_QTY`는 PO schedule에 저장되는 값이라기보다 GRN 실적을 합산해 계산하는 값이다. 운영에서는 GRN cancellation, return, reversal까지 반영해야 한다.
 - WH005 Adjust의 Supervisor PIN은 현재 테스트 구현에서 최소 길이 검증과 마스킹 저장만 한다. 운영에서는 실제 승인자 계정/권한 검증과 감사 로그 보관 정책을 추가해야 한다.
-- WH003 Release의 운영 분석 기준은 `WMS3050` Pick Slip과 `WMS2020` 현재 재고지만, 현재 PDA 테스트 구현은 `dbo.WH_ReleaseSchedule`, `dbo.WH_Inventory`, `dbo.tbl_Lot`, `dbo.WH_ReleasePicking`, `dbo.WH_TransactionHistory`와 `dbo.WH_PDA_RELEASE_*` 프로시저로 재명명해 연결했다. 실제 route/component는 `/wh/07`, `Wh07PdaRelease.razor`다.
+- WH003 Release의 운영 분석 기준은 `WMS3050` Pick Slip과 `WMS2020` 현재 재고지만, 현재 PDA 테스트 구현은 `dbo.WH_ReleaseSchedule`, `dbo.WH_OLD_Inventory`, `dbo.tbl_Lot`, `dbo.WH_ReleasePicking`, `dbo.WH_TransactionHistory`와 `dbo.WH_PDA_RELEASE_*` 프로시저로 재명명해 연결했다. 실제 route/component는 `/wh/07`, `Wh07PdaRelease.razor`다.
 - WH006은 현재 redirect 화면이다. 운영에서 별도 Release Schedule 화면이 다시 필요해지면 WH001 Release 탭의 `Wh001ScheduleReleaseAsync()` 호출부와 카드 UI를 분리해서 재사용할 수 있다.
 - WH006 Transactions는 `WMS2030`이 있으면 우선 사용하도록 만들었지만, 현재 테스트 DB에는 `WMS2030`이 없어 `WMS2010`, `WMS2020`, `PDA_WH002_ADJUST_AUDIT`를 조합한다. 운영 반영 시에는 실제 Transaction History 표준 테이블/프로시저 기준으로 재정렬해야 한다. 실제 route/component는 `/wh/08`, `Wh08TransactionHistory.razor`다.
 - WH005 Adjust는 별도 component를 만들지 않고 Inventory와 같은 `Wh03InventoryStatus.razor`의 Adjust 모드로 구현했다. 운영 정책상 완전한 독립 화면이 필요하면 현재 `PDA_WH002_ADJUST_QTY` 호출부를 재사용해 별도 component로 분리할 수 있다.

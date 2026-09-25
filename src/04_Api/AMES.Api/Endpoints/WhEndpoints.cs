@@ -540,7 +540,7 @@ public static class WhEndpoints
                     DELETE FROM dbo.WH_InventoryTransaction
                     WHERE LotID = @LotID AND CreatedBy = N'TEST';
 
-                    UPDATE dbo.WH_Inventory
+                    UPDATE dbo.WH_OLD_Inventory
                     SET OnHandQty = 10, Status = N'Received', ModifiedBy = N'TEST', ModifiedTS = SYSDATETIME()
                     WHERE LotID = @LotID;
 
@@ -632,7 +632,7 @@ public static class WhEndpoints
                     WHERE L.LotCode = @LotNo;
 
                     SELECT TOP (1) @Current = I.OnHandQty
-                    FROM dbo.WH_Inventory I WITH (UPDLOCK, HOLDLOCK)
+                    FROM dbo.WH_OLD_Inventory I WITH (UPDLOCK, HOLDLOCK)
                     WHERE I.LotID = @LotID AND I.LocationID = N'B0-09-D2';
 
                     IF @LotID IS NULL OR @Current IS NULL
@@ -640,14 +640,14 @@ public static class WhEndpoints
 
                     SET @Next = CASE WHEN @Current = 120 THEN 121 ELSE 120 END;
 
-                    UPDATE dbo.WH_Inventory
+                    UPDATE dbo.WH_OLD_Inventory
                     SET OnHandQty = @Next, ModifiedTS = SYSDATETIME(), ModifiedBy = N'TEST'
                     WHERE LotID = @LotID AND LocationID = N'B0-09-D2';
 
                     UPDATE dbo.tbl_Lot
                     SET RemainingQty = (
                         SELECT COALESCE(SUM(I.OnHandQty), 0)
-                        FROM dbo.WH_Inventory I
+                        FROM dbo.WH_OLD_Inventory I
                         WHERE I.LotID = @LotID
                     )
                     WHERE LotID = @LotID;
@@ -682,7 +682,7 @@ public static class WhEndpoints
                     COALESCE(W.Status, N'Received') AS INV_STATUS,
                     CONVERT(nvarchar(10), MAX(W.LastReceivedAt), 23) AS WORK_DATE,
                     CONVERT(nvarchar(8), MAX(W.LastReceivedAt), 108) AS WORK_TIME
-                FROM dbo.WH_Inventory W
+                FROM dbo.WH_OLD_Inventory W
                 LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID = W.LotID
                 LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.ItemNo
                 WHERE UPPER(W.LocationID) = UPPER(@LocationID)
@@ -742,7 +742,7 @@ public static class WhEndpoints
                 LEFT JOIN dbo.WH_AreaMaster am
                   ON am.WhCode = l.WhCode
                  AND am.AreaCode = l.AreaCode
-                LEFT JOIN dbo.WH_Inventory i
+                LEFT JOIN dbo.WH_OLD_Inventory i
                   ON i.LocationID = l.LocationID
                  AND COALESCE(i.OnHandQty,0) > 0
                  AND UPPER(COALESCE(i.Status,N'Received')) NOT IN (N'CANCELED',N'RELEASED',N'PICKED')
@@ -813,7 +813,7 @@ public static class WhEndpoints
                 OUTER APPLY
                 (
                     SELECT TOP (1) X.InventoryID,X.OnHandQty,X.LocationID
-                    FROM dbo.WH_Inventory X WHERE X.LotID=L.LotID
+                    FROM dbo.WH_OLD_Inventory X WHERE X.LotID=L.LotID
                     ORDER BY X.InventoryID DESC
                 ) W
                 WHERE @Q='' OR L.LotCode LIKE '%'+@Q+'%' OR L.ItemNo LIKE '%'+@Q+'%' OR I.ItemName LIKE '%'+@Q+'%'
@@ -1384,7 +1384,7 @@ public static class WhEndpoints
                                  L.LotID
                     ) AS FifoSeq
                 FROM ReleaseLines R
-                INNER JOIN dbo.WH_Inventory W ON W.ItemNo = R.ItemNo
+                INNER JOIN dbo.WH_OLD_Inventory W ON W.ItemNo = R.ItemNo
                 INNER JOIN dbo.tbl_Lot L ON L.LotID = W.LotID
                 WHERE COALESCE(W.OnHandQty, 0) > 0
                   AND UPPER(COALESCE(W.Status, N'RECEIVED')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
@@ -1851,7 +1851,7 @@ public static class WhEndpoints
             OUTER APPLY
             (
                 SELECT TOP (1) X.InventoryID, X.LocationID, X.OnHandQty, X.Status
-                FROM dbo.WH_Inventory X
+                FROM dbo.WH_OLD_Inventory X
                 WHERE X.LotID=L.LotID
                 ORDER BY CASE WHEN COALESCE(X.OnHandQty,0)>0 THEN 0 ELSE 1 END, X.InventoryID DESC
             ) W
@@ -2361,7 +2361,7 @@ public static class WhEndpoints
                     W.LocationID, COALESCE(W.OnHandQty,0) AS Qty,
                     COALESCE(NULLIF(L.InventoryStatus,''), NULLIF(W.Status,''), 'CREATED') AS InventoryStatus
                 FROM dbo.tbl_Lot L WITH (UPDLOCK,HOLDLOCK)
-                INNER JOIN dbo.WH_Inventory W WITH (UPDLOCK,HOLDLOCK) ON W.LotID=L.LotID
+                INNER JOIN dbo.WH_OLD_Inventory W WITH (UPDLOCK,HOLDLOCK) ON W.LotID=L.LotID
                 LEFT JOIN dbo.MD_Item I ON I.ItemNo=L.ItemNo
                 WHERE UPPER(L.LotCode)=UPPER(@LotNo)
                 ORDER BY CASE WHEN COALESCE(W.OnHandQty,0)>0 THEN 0 ELSE 1 END, W.InventoryID DESC;
@@ -2400,7 +2400,7 @@ public static class WhEndpoints
                 : body.Note.Trim();
 
             using (var saveCmd = new SqlCommand("""
-                UPDATE dbo.WH_Inventory
+                UPDATE dbo.WH_OLD_Inventory
                    SET OnHandQty=@AfterQty,
                        ReservedQty=CASE WHEN COALESCE(ReservedQty,0)>@AfterQty THEN @AfterQty ELSE ReservedQty END,
                        Status=CASE WHEN @AfterQty=0 THEN 'Released' ELSE 'Stored' END,
@@ -2510,7 +2510,7 @@ public static class WhEndpoints
                         W.LocationID, COALESCE(W.OnHandQty,0) AS Qty, L.ProducedAt, W.LastReceivedAt,
                         COALESCE(NULLIF(L.InventoryStatus,''), CASE WHEN W.LocationID IS NULL THEN 'RECEIVED' ELSE 'STORED' END) AS InventoryStatus
                     FROM dbo.tbl_Lot L WITH (UPDLOCK, HOLDLOCK)
-                    INNER JOIN dbo.WH_Inventory W WITH (UPDLOCK, HOLDLOCK) ON W.LotID = L.LotID
+                    INNER JOIN dbo.WH_OLD_Inventory W WITH (UPDLOCK, HOLDLOCK) ON W.LotID = L.LotID
                     INNER JOIN dbo.WH_ReleaseSchedule RS WITH (UPDLOCK, HOLDLOCK)
                             ON RS.ItemNo = L.ItemNo
                            AND UPPER(COALESCE(NULLIF(RS.PickSlipNo,N''), CONCAT(N'RS-',RS.ReleaseScheduleID))) = UPPER(@Slip)
@@ -2576,7 +2576,7 @@ public static class WhEndpoints
                     DECLARE @BeforeStatus varchar(30);
                     SELECT @BeforeStatus = InventoryStatus FROM dbo.tbl_Lot WHERE LotID=@LotID;
 
-                    UPDATE dbo.WH_Inventory
+                    UPDATE dbo.WH_OLD_Inventory
                        SET OnHandQty=0, ReservedQty=0, Status='Released', ModifiedBy=@User, ModifiedTS=SYSDATETIME()
                      WHERE InventoryID=@InventoryID AND COALESCE(OnHandQty,0)>0;
                     IF @@ROWCOUNT<>1 THROW 51620, 'LOT inventory changed before Release.', 1;
@@ -3083,7 +3083,7 @@ public static class WhEndpoints
             FROM dbo.MD_Location L
             LEFT JOIN dbo.WH_WarehouseMaster W ON W.WhCode = L.WhCode
             LEFT JOIN dbo.WH_AreaMaster A ON A.WhCode = L.WhCode AND A.AreaCode = L.AreaCode
-            LEFT JOIN dbo.WH_Inventory I
+            LEFT JOIN dbo.WH_OLD_Inventory I
                 ON I.LocationID = L.LocationID
                AND COALESCE(I.Status, 'Received') <> 'Canceled'
                AND COALESCE(I.OnHandQty, 0) > 0

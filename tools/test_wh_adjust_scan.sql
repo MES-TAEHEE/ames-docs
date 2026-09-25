@@ -41,7 +41,7 @@ END CATCH;
 
 DECLARE @ExistingLot nvarchar(80);
 SELECT TOP (1) @ExistingLot=L.LotCode
-FROM dbo.WH_Inventory W JOIN dbo.tbl_Lot L ON L.LotID=W.LotID
+FROM dbo.WH_OLD_Inventory W JOIN dbo.tbl_Lot L ON L.LotID=W.LotID
 WHERE LEN(L.LotCode)=18
   AND L.LotCode COLLATE Latin1_General_100_BIN2 NOT LIKE N'%[^A-Za-z0-9-]%'
   AND W.OnHandQty>0

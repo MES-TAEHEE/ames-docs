@@ -155,6 +155,18 @@ public sealed class WarehouseRepository
         string? RackZ,
         decimal Qty);
 
+    public record UnifiedInventoryRow(
+        string LocationNo,
+        string PartNo,
+        string? PartName,
+        string LotNo,
+        decimal Qty,
+        string Unit,
+        string WarehouseCode,
+        string WarehouseName,
+        string AreaCode,
+        string AreaName);
+
     public record LocationAreaLayoutRow(
         string AreaCode,
         string? AreaName,
@@ -227,7 +239,7 @@ public sealed class WarehouseRepository
             LEFT JOIN dbo.WH_AreaMaster A
                    ON A.AreaCode = L.AreaCode
                   AND COALESCE(A.WhCode, L.WhCode) = L.WhCode
-            LEFT JOIN dbo.WH_Inventory S
+            LEFT JOIN dbo.WH_OLD_Inventory S
                    ON S.LocationID = L.LocationID
                   AND COALESCE(S.OnHandQty, 0) <> 0
                   AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
@@ -271,6 +283,49 @@ public sealed class WarehouseRepository
             ("@WhCode", NullIfBlank(whCode)));
     }
 
+    public List<UnifiedInventoryRow> ListUnifiedInventory(bool finishedGoods)
+    {
+        return Query("""
+            SELECT
+                I.LocationNo AS LOCATION_NO,
+                I.PartNo AS PART_NO,
+                COALESCE(NULLIF(I.PartName, ''), M.ItemName) AS PART_NAME,
+                I.LotNo AS LOT_NO,
+                I.Qty AS QTY,
+                COALESCE(NULLIF(M.DefaultUOM, ''), 'EA') AS UOM,
+                COALESCE(NULLIF(L.WhCode, ''), 'EOS') AS WH_CODE,
+                COALESCE(NULLIF(W.WhName, ''), NULLIF(L.WhCode, ''), 'EOS') AS WH_NAME,
+                COALESCE(L.AreaCode, '') AS AREA_CODE,
+                COALESCE(NULLIF(A.AreaName, ''), L.AreaCode, '') AS AREA_NAME
+            FROM dbo.WH_Inventory I
+            LEFT JOIN dbo.MD_Location L
+                   ON L.LocationID = I.LocationNo
+            LEFT JOIN dbo.WH_WarehouseMaster W
+                   ON W.WhCode = L.WhCode
+            LEFT JOIN dbo.WH_AreaMaster A
+                   ON A.AreaCode = L.AreaCode
+                  AND COALESCE(A.WhCode, L.WhCode) = L.WhCode
+            LEFT JOIN dbo.MD_Item M
+                   ON M.ItemNo = I.PartNo
+            WHERE I.Qty > 0
+              AND I.PartNo IS NOT NULL
+              AND ((@FinishedGoods = 1 AND L.AreaCode = 'FG_AREA')
+                OR (@FinishedGoods = 0 AND COALESCE(L.AreaCode, '') <> 'FG_AREA'))
+            ORDER BY I.ReceivedAt, I.CreatedAt, I.LotNo;
+            """, r => new UnifiedInventoryRow(
+                GetString(r, "LOCATION_NO") ?? "",
+                GetString(r, "PART_NO") ?? "",
+                GetString(r, "PART_NAME"),
+                GetString(r, "LOT_NO") ?? "",
+                GetDecimal(r, "QTY"),
+                GetString(r, "UOM") ?? "EA",
+                GetString(r, "WH_CODE") ?? "EOS",
+                GetString(r, "WH_NAME") ?? "EOS",
+                GetString(r, "AREA_CODE") ?? "",
+                GetString(r, "AREA_NAME") ?? ""),
+            ("@FinishedGoods", finishedGoods));
+    }
+
     public List<WarehouseMasterRow> ListWarehouses(string? search = null, bool includeInactive = false)
     {
         EnsureWarehouseMasterTable();
@@ -291,7 +346,7 @@ public sealed class WarehouseRepository
             LEFT JOIN dbo.MD_Location L
                    ON L.WhCode = W.WhCode
                   AND COALESCE(L.ActiveFlag, 1) = 1
-            LEFT JOIN dbo.WH_Inventory S
+            LEFT JOIN dbo.WH_OLD_Inventory S
                    ON S.LocationID = L.LocationID
                   AND COALESCE(S.OnHandQty, 0) <> 0
                   AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
@@ -394,7 +449,7 @@ public sealed class WarehouseRepository
                    ON L.AreaCode = A.AreaCode
                   AND (@WhCode IS NULL OR L.WhCode = @WhCode)
                   AND COALESCE(L.ActiveFlag, 1) = 1
-            LEFT JOIN dbo.WH_Inventory S
+            LEFT JOIN dbo.WH_OLD_Inventory S
                    ON S.LocationID = L.LocationID
                   AND COALESCE(S.OnHandQty, 0) <> 0
                   AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
@@ -437,7 +492,7 @@ public sealed class WarehouseRepository
                   AND COALESCE(NULLIF(L.ZoneCode, ''), 'DEFAULT') = S.SectionCode
                   AND (@WhCode IS NULL OR L.WhCode = @WhCode)
                   AND COALESCE(L.ActiveFlag, 1) = 1
-            LEFT JOIN dbo.WH_Inventory I
+            LEFT JOIN dbo.WH_OLD_Inventory I
                    ON I.LocationID = L.LocationID
                   AND COALESCE(I.OnHandQty, 0) <> 0
                   AND UPPER(COALESCE(I.Status, 'RECEIVED')) NOT IN ('CANCELED')
@@ -705,7 +760,7 @@ public sealed class WarehouseRepository
     {
         using var conn = _factory.OpenConnection();
         using var check = new SqlCommand(
-            "SELECT COUNT(1) FROM dbo.WH_Inventory WHERE LocationID = @LocationNo AND COALESCE(OnHandQty, 0) <> 0;", conn);
+            "SELECT COUNT(1) FROM dbo.WH_OLD_Inventory WHERE LocationID = @LocationNo AND COALESCE(OnHandQty, 0) <> 0;", conn);
         check.Parameters.Add("@LocationNo", SqlDbType.VarChar, 20).Value = locationNo;
         if (Convert.ToInt32(check.ExecuteScalar()) > 0)
             throw new InvalidOperationException("Location has inventory and cannot be deleted.");
@@ -1234,7 +1289,7 @@ public sealed class WarehouseRepository
         return Query("""
             SELECT TOP (300) PARTNO
             FROM (
-                SELECT ItemNo AS PARTNO FROM dbo.WH_Inventory WHERE ItemNo IS NOT NULL AND ItemNo <> N''
+                SELECT ItemNo AS PARTNO FROM dbo.WH_OLD_Inventory WHERE ItemNo IS NOT NULL AND ItemNo <> N''
                 UNION
                 SELECT ItemNo AS PARTNO FROM dbo.WH_ReleaseSchedule WHERE ItemNo IS NOT NULL AND ItemNo <> N''
                 UNION
@@ -1270,7 +1325,7 @@ public sealed class WarehouseRepository
             LEFT JOIN dbo.WH_AreaMaster A
                    ON A.AreaCode = L.AreaCode
                   AND COALESCE(A.WhCode, L.WhCode) = L.WhCode
-            LEFT JOIN dbo.WH_Inventory S
+            LEFT JOIN dbo.WH_OLD_Inventory S
                    ON S.LocationID = L.LocationID
                   AND COALESCE(S.OnHandQty, 0) <> 0
                   AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
@@ -1331,7 +1386,7 @@ public sealed class WarehouseRepository
                 L.Bay AS RACK_Y,
                 L.Slot AS RACK_Z,
                 COALESCE(SUM(S.OnHandQty), 0) AS QTY
-            FROM dbo.WH_Inventory S
+            FROM dbo.WH_OLD_Inventory S
             INNER JOIN dbo.MD_Location L ON L.LocationID = S.LocationID
             LEFT JOIN dbo.MD_Item I ON I.ItemNo = S.ItemNo
             LEFT JOIN dbo.WH_AreaMaster A
@@ -1752,7 +1807,7 @@ public sealed class WarehouseRepository
                     SUM(COALESCE(W.OnHandQty, 0)) AS CURRENT_QTY,
                     COUNT(DISTINCT W.LocationID) AS LOCATION_COUNT,
                     COUNT(DISTINCT W.LotID) AS LOT_COUNT
-                FROM dbo.WH_Inventory W
+                FROM dbo.WH_OLD_Inventory W
                 WHERE W.ItemNo IS NOT NULL
                   AND UPPER(COALESCE(W.Status, 'RECEIVED')) NOT IN ('CANCELED')
                 GROUP BY W.ItemNo

@@ -18,6 +18,19 @@ SET QUOTED_IDENTIFIER ON;
 SET NOCOUNT ON;
 GO
 
+-- Location scope is referenced by WH/FG procedures below, so upgrade it first.
+IF COL_LENGTH(N'dbo.MD_Location', N'WhCode') IS NULL
+    ALTER TABLE dbo.MD_Location ADD WhCode varchar(20) NULL;
+IF COL_LENGTH(N'dbo.MD_Location', N'AreaCode') IS NULL
+    ALTER TABLE dbo.MD_Location ADD AreaCode varchar(20) NULL;
+GO
+
+UPDATE dbo.MD_Location
+SET WhCode = COALESCE(WhCode, 'EOS'),
+    AreaCode = COALESCE(AreaCode, CASE WHEN LocationID LIKE 'FG-%' THEN 'FG_AREA' ELSE 'MAT_AREA' END)
+WHERE WhCode IS NULL OR AreaCode IS NULL;
+GO
+
 -- =====================================================================
 --  WH Transactions
 -- =====================================================================
@@ -390,7 +403,7 @@ BEGIN
     LEFT JOIN
     (
         SELECT DISTINCT LotID
-        FROM dbo.WH_Inventory
+        FROM dbo.WH_OLD_Inventory
         WHERE COALESCE(Status, 'Received') <> 'Canceled'
           AND COALESCE(OnHandQty, 0) > 0
     ) AI ON AI.LotID = P.LotID
@@ -409,7 +422,7 @@ BEGIN
     LEFT JOIN
     (
         SELECT DISTINCT LotID
-        FROM dbo.WH_Inventory
+        FROM dbo.WH_OLD_Inventory
         WHERE COALESCE(Status, 'Received') <> 'Canceled'
           AND COALESCE(OnHandQty, 0) > 0
     ) AI ON AI.LotID = P.LotID
@@ -429,7 +442,7 @@ BEGIN
     LEFT JOIN
     (
         SELECT DISTINCT LotID
-        FROM dbo.WH_Inventory
+        FROM dbo.WH_OLD_Inventory
         WHERE COALESCE(Status, 'Received') <> 'Canceled'
           AND COALESCE(OnHandQty, 0) > 0
     ) AI ON AI.LotID = P.LotID
@@ -535,7 +548,7 @@ BEGIN
             W.OnHandQty,
             W.Status,
             W.LastReceivedAt
-        FROM dbo.WH_Inventory W
+        FROM dbo.WH_OLD_Inventory W
         JOIN MatchedLot L
           ON L.LotID = W.LotID
         WHERE COALESCE(W.Status, 'Received') <> 'Canceled'
@@ -632,10 +645,11 @@ BEGIN
 
     DELETE FROM dbo.WH_InventoryTransaction WHERE LotID IN (SELECT LotID FROM @Lots);
     DELETE FROM dbo.WH_ReleasePicking WHERE LotID IN (SELECT LotID FROM @Lots);
-    DELETE FROM dbo.WH_Inventory WHERE LotID IN (SELECT LotID FROM @Lots);
-    INSERT INTO dbo.WH_Inventory
+    DELETE FROM dbo.WH_OLD_Inventory WHERE LotID IN (SELECT LotID FROM @Lots);
+    INSERT INTO dbo.WH_OLD_Inventory
         (ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt, Status, CreatedBy)
-    SELECT ItemNo, LocationID, LotID, Qty, 0, ProducedAt, 'Received', CONCAT('pda-ppt-', @Screen) FROM @Lots;
+    SELECT ItemNo, LocationID, LotID, Qty, 0, ProducedAt, 'Received', CONCAT('pda-ppt-', @Screen)
+    FROM @Lots;
     UPDATE Lot
     SET RemainingQty = Sample.Qty, CurrentLocationID = Sample.LocationID, Status = 'Received',
         InventoryStatus = 'RECEIVED', ModifiedBy = 'TEST1', ModifiedTS = SYSDATETIME()
@@ -693,7 +707,7 @@ BEGIN
         THROW 51521, 'PPT Inbound test data is missing. Apply PDA_SEED.sql first.', 1;
 
     DELETE FROM dbo.WH_InventoryTransaction WHERE LotID IN (SELECT LotID FROM @Lots);
-    DELETE FROM dbo.WH_Inventory WHERE LotID IN (SELECT LotID FROM @Lots);
+    DELETE FROM dbo.WH_OLD_Inventory WHERE LotID IN (SELECT LotID FROM @Lots);
     DELETE FROM dbo.WH_Receiving WHERE LotCode IN (SELECT Barcode FROM @Lots);
     UPDATE dbo.tbl_Lot
     SET Status = 'Open', CurrentLocationID = NULL, RemainingQty = BatchSize,
@@ -791,7 +805,7 @@ BEGIN
         OUTER APPLY
         (
             SELECT SUM(COALESCE(W.OnHandQty, 0)) AS CurrentQty
-            FROM dbo.WH_Inventory W
+            FROM dbo.WH_OLD_Inventory W
             WHERE W.LocationID = L.LocationID
               AND COALESCE(W.OnHandQty, 0) > 0
               AND UPPER(COALESCE(W.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
@@ -804,7 +818,7 @@ BEGIN
     IF EXISTS
     (
         SELECT 1
-        FROM dbo.WH_Inventory
+        FROM dbo.WH_OLD_Inventory
         WHERE LotID = @LotID
           AND COALESCE(Status, 'Received') <> 'Canceled'
           AND COALESCE(OnHandQty, 0) > 0
@@ -843,7 +857,7 @@ BEGIN
 
     SELECT TOP (1) @ReceivingID = ReceivingID FROM @InsertedReceiving;
 
-    INSERT INTO dbo.WH_Inventory
+    INSERT INTO dbo.WH_OLD_Inventory
     (
         ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt,
         ExpiryDate, Status, CreatedBy, CreatedTS
@@ -957,7 +971,7 @@ BEGIN
         THROW 51427, 'LOT receive mode does not match the selected tab.', 1;
 
     SELECT TOP (1) @CurrentLocation = LocationID
-    FROM dbo.WH_Inventory
+    FROM dbo.WH_OLD_Inventory
     WHERE LotID = @LotID
       AND COALESCE(Status, 'Received') <> 'Canceled'
       AND COALESCE(OnHandQty, 0) > 0
@@ -970,7 +984,7 @@ BEGIN
 
     BEGIN TRANSACTION;
 
-    UPDATE dbo.WH_Inventory
+    UPDATE dbo.WH_OLD_Inventory
        SET LocationID = @Location,
            ModifiedBy = @User,
            ModifiedTS = SYSDATETIME()
@@ -1049,7 +1063,7 @@ BEGIN
 
     SELECT TOP (1)
         @Qty = OnHandQty
-    FROM dbo.WH_Inventory
+    FROM dbo.WH_OLD_Inventory
     WHERE LotID = @LotID
       AND COALESCE(Status, 'Received') <> 'Canceled'
       AND COALESCE(OnHandQty, 0) > 0
@@ -1066,7 +1080,7 @@ BEGIN
 
     BEGIN TRANSACTION;
 
-    UPDATE dbo.WH_Inventory
+    UPDATE dbo.WH_OLD_Inventory
        SET OnHandQty = 0,
            ReservedQty = 0,
            Status = 'Canceled',
@@ -1147,7 +1161,7 @@ BEGIN
             MAX(W.LastReceivedAt) AS LAST_RECEIVED_DATE,
             COUNT(DISTINCT CASE WHEN COALESCE(W.OnHandQty, 0) > 0 THEN W.LotID END) AS LOT_COUNT,
             COUNT(DISTINCT CASE WHEN COALESCE(W.OnHandQty, 0) > 0 THEN W.LocationID END) AS LOCATION_COUNT
-        FROM dbo.WH_Inventory W
+        FROM dbo.WH_OLD_Inventory W
         LEFT JOIN dbo.MD_Location WL
                ON WL.LocationID = W.LocationID
         WHERE W.ItemNo IS NOT NULL
@@ -1184,7 +1198,7 @@ BEGIN
             SELECT TOP (1)
                 W.LocationID,
                 LOT.LotCode
-            FROM dbo.WH_Inventory W
+            FROM dbo.WH_OLD_Inventory W
             LEFT JOIN dbo.MD_Location L
                    ON L.LocationID = W.LocationID
             LEFT JOIN dbo.tbl_Lot LOT
@@ -1237,7 +1251,7 @@ BEGIN
               OR EXISTS
               (
                   SELECT 1
-                  FROM dbo.WH_Inventory W
+                  FROM dbo.WH_OLD_Inventory W
                   LEFT JOIN dbo.MD_Location L
                          ON L.LocationID = W.LocationID
                   WHERE W.ItemNo = I.ItemNo
@@ -1407,7 +1421,7 @@ BEGIN
         L.Bay AS RACK_Y,
         L.Slot AS RACK_Z,
         SUM(COALESCE(W.OnHandQty, 0)) AS SUM_QTY
-    FROM dbo.WH_Inventory W
+    FROM dbo.WH_OLD_Inventory W
     LEFT JOIN dbo.MD_Location L
            ON L.LocationID = W.LocationID
     LEFT JOIN dbo.WH_WarehouseMaster WM
@@ -1458,7 +1472,7 @@ BEGIN
         COALESCE(W.Status, N'Received') AS INV_STATUS,
         CONVERT(nvarchar(10), MAX(W.LastReceivedAt), 23) AS WORK_DATE,
         CONVERT(nvarchar(8), MAX(W.LastReceivedAt), 108) AS WORK_TIME
-    FROM dbo.WH_Inventory W
+    FROM dbo.WH_OLD_Inventory W
     LEFT JOIN dbo.tbl_Lot LOT
            ON LOT.LotID = W.LotID
     LEFT JOIN dbo.MD_Item I
@@ -1488,7 +1502,7 @@ GO
 
 -- =====================================================================
 --  Adjust / scan current stock
---  Source: dbo.WH_Inventory, dbo.tbl_Lot, dbo.MD_Item
+--  Source: dbo.WH_OLD_Inventory, dbo.tbl_Lot, dbo.MD_Item
 --  ScanText accepts only LOT No, resolving directly to that inventory LOT.
 -- =====================================================================
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_ADJUST_SCAN_STOCK
@@ -1521,7 +1535,7 @@ BEGIN
     IF @Scan COLLATE Latin1_General_100_BIN2 LIKE N'%[^A-Za-z0-9-]%'
        OR NOT (LEN(@Scan) IN (15, 18, 50)
            OR (LEN(@Scan) = 9 AND @Scan COLLATE Latin1_General_100_BIN2 NOT LIKE N'%[^0-9]%')
-           OR EXISTS (SELECT 1 FROM dbo.WH_Inventory W JOIN dbo.tbl_Lot L ON L.LotID = W.LotID
+           OR EXISTS (SELECT 1 FROM dbo.WH_OLD_Inventory W JOIN dbo.tbl_Lot L ON L.LotID = W.LotID
                       WHERE L.LotCode = @Scan))
         THROW 51504, 'The barcode format is invalid.', 1;
 
@@ -1537,7 +1551,7 @@ BEGIN
     IF NOT EXISTS
     (
         SELECT 1
-        FROM dbo.WH_Inventory W
+        FROM dbo.WH_OLD_Inventory W
         WHERE W.LotID = @LotID
           AND UPPER(COALESCE(W.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
     )
@@ -1560,7 +1574,7 @@ BEGIN
             L.Status AS LotStatus,
             I.ItemName,
             I.DefaultUOM
-        FROM dbo.WH_Inventory W
+        FROM dbo.WH_OLD_Inventory W
         JOIN dbo.tbl_Lot L
           ON L.LotID = W.LotID
         LEFT JOIN dbo.MD_Item I
@@ -1579,7 +1593,7 @@ BEGIN
         N'N' AS YN,
         LotCode AS LOTNO,
         LotCode AS BARCODE,
-        N'dbo.WH_Inventory/dbo.tbl_Lot' AS SOURCE_TABLE,
+        N'dbo.WH_OLD_Inventory/dbo.tbl_Lot' AS SOURCE_TABLE,
         CAST(NULL AS nvarchar(50)) AS NOTENO,
         CAST(NULL AS nvarchar(50)) AS CASE_BARCODE,
         CAST(NULL AS nvarchar(30)) AS CASE_NO,
@@ -1606,7 +1620,7 @@ GO
 
 -- =====================================================================
 --  Adjust / save quantity change
---  Target: dbo.WH_Inventory, dbo.tbl_Lot
+--  Target: dbo.WH_OLD_Inventory, dbo.tbl_Lot
 --  Audit:  dbo.WH_InventoryTransaction only (no separate approval workflow)
 -- =====================================================================
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_ADJUST_SAVE_QTY
@@ -1644,7 +1658,7 @@ BEGIN
     IF @Scan COLLATE Latin1_General_100_BIN2 LIKE N'%[^A-Za-z0-9-]%'
        OR NOT (LEN(@Scan) IN (15, 18, 50)
            OR (LEN(@Scan) = 9 AND @Scan COLLATE Latin1_General_100_BIN2 NOT LIKE N'%[^0-9]%')
-           OR EXISTS (SELECT 1 FROM dbo.WH_Inventory W JOIN dbo.tbl_Lot L ON L.LotID = W.LotID
+           OR EXISTS (SELECT 1 FROM dbo.WH_OLD_Inventory W JOIN dbo.tbl_Lot L ON L.LotID = W.LotID
                       WHERE L.LotCode = @Scan))
         THROW 51518, 'The barcode format is invalid.', 1;
     IF COALESCE(@DeltaQty, 0) = 0
@@ -1681,7 +1695,7 @@ BEGIN
         @LocationID = W.LocationID,
         @BeforeQty = COALESCE(W.OnHandQty, 0),
         @LotCode = L.LotCode
-    FROM dbo.WH_Inventory W WITH (UPDLOCK, ROWLOCK)
+    FROM dbo.WH_OLD_Inventory W WITH (UPDLOCK, ROWLOCK)
     JOIN dbo.tbl_Lot L
       ON L.LotID = W.LotID
     WHERE W.LotID = @LotID
@@ -1700,7 +1714,7 @@ BEGIN
     IF @AfterQty <> FLOOR(@AfterQty) OR @AfterQty > 999999999
         THROW 51521, 'New quantity must be a whole number from 0 to 999999999.', 1;
 
-    UPDATE dbo.WH_Inventory
+    UPDATE dbo.WH_OLD_Inventory
        SET OnHandQty = @AfterQty,
            Status = N'Received',
            ModifiedTS = SYSDATETIME(),
@@ -1823,7 +1837,7 @@ FROM dbo.tbl_Lot L
 OUTER APPLY
 (
     SELECT TOP (1) I.InventoryID, I.OnHandQty, I.LocationID
-    FROM dbo.WH_Inventory I
+    FROM dbo.WH_OLD_Inventory I
     WHERE I.LotID = L.LotID
     ORDER BY I.InventoryID DESC
 ) W
@@ -1887,7 +1901,7 @@ BEGIN
         @ProducedAt = L.ProducedAt,
         @ReceivedAt = W.LastReceivedAt
     FROM dbo.tbl_Lot L
-    LEFT JOIN dbo.WH_Inventory W ON W.LotID = L.LotID
+    LEFT JOIN dbo.WH_OLD_Inventory W ON W.LotID = L.LotID
     WHERE UPPER(L.LotCode) = UPPER(LTRIM(RTRIM(@LotNo)));
 
     SELECT
@@ -1899,7 +1913,7 @@ BEGIN
         W.LastReceivedAt AS RCV_DATE,
         Older.InventoryStatus AS LOT_STATUS
     FROM dbo.tbl_Lot Older
-    INNER JOIN dbo.WH_Inventory W ON W.LotID = Older.LotID
+    INNER JOIN dbo.WH_OLD_Inventory W ON W.LotID = Older.LotID
     WHERE Older.ItemNo = @ItemNo
       AND Older.LotID <> @LotID
       AND COALESCE(W.OnHandQty, 0) > 0
@@ -2005,7 +2019,7 @@ GO
 
 -- =====================================================================
 --  Release / Pick Slip lines
---  Source: dbo.WH_ReleaseSchedule, dbo.WH_Inventory
+--  Source: dbo.WH_ReleaseSchedule, dbo.WH_OLD_Inventory
 -- =====================================================================
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_RELEASE_PICK_LINES
     @PickSlipNo nvarchar(40)
@@ -2075,7 +2089,7 @@ GO
 
 -- =====================================================================
 --  Release / LOT scan validation
---  Source: dbo.WH_ReleaseSchedule, dbo.WH_Inventory, dbo.tbl_Lot
+--  Source: dbo.WH_ReleaseSchedule, dbo.WH_OLD_Inventory, dbo.tbl_Lot
 -- =====================================================================
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_RELEASE_SCAN_LOT
     @PickSlipNo nvarchar(40),
@@ -2178,7 +2192,7 @@ BEGIN
         SET @Lot = NULL;
 
         SELECT TOP (1) @Lot = L.LotCode
-        FROM dbo.WH_Inventory W
+        FROM dbo.WH_OLD_Inventory W
         INNER JOIN dbo.tbl_Lot L
                 ON L.LotID = W.LotID
         WHERE W.ItemNo = @ScanText
@@ -2213,7 +2227,7 @@ BEGIN
         @ProducedAt = L.ProducedAt,
         @ReceivedAt = W.LastReceivedAt
     FROM dbo.tbl_Lot L
-    LEFT JOIN dbo.WH_Inventory W
+    LEFT JOIN dbo.WH_OLD_Inventory W
            ON W.LotID = L.LotID
           AND COALESCE(W.OnHandQty, 0) > 0
           AND UPPER(COALESCE(W.Status, N'RECEIVED')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
@@ -2278,7 +2292,7 @@ BEGIN
 
     SELECT TOP (1)
         @OldestLot = L.LotCode
-    FROM dbo.WH_Inventory W
+    FROM dbo.WH_OLD_Inventory W
     INNER JOIN dbo.tbl_Lot L
             ON L.LotID = W.LotID
     WHERE W.ItemNo = @ItemNo
@@ -2381,7 +2395,7 @@ BEGIN
         @InventoryQty = W.OnHandQty,
         @BeforeStatus = W.Status
     FROM dbo.tbl_Lot L
-    INNER JOIN dbo.WH_Inventory W
+    INNER JOIN dbo.WH_OLD_Inventory W
             ON W.LotID = L.LotID
     WHERE L.LotCode = @ResolvedLot
       AND W.ItemNo = (SELECT TOP (1) PARTNO FROM @Validation)
@@ -2425,7 +2439,7 @@ BEGIN
 
     BEGIN TRANSACTION;
 
-    UPDATE dbo.WH_Inventory
+    UPDATE dbo.WH_OLD_Inventory
        SET OnHandQty = OnHandQty - @Qty,
            ReservedQty = 0,
            Status = CASE WHEN OnHandQty <= @Qty THEN 'Released' ELSE 'Received' END,
@@ -2565,12 +2579,6 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_FG_Inventory_Location' AND object_id = OBJECT_ID(N'dbo.FG_Inventory'))
         CREATE INDEX IX_FG_Inventory_Location ON dbo.FG_Inventory (Location, Status);
 
-    IF OBJECT_ID(N'dbo.FG_Stock', N'U') IS NULL
-       AND OBJECT_ID(N'dbo.FG_Stock', N'V') IS NULL
-       AND OBJECT_ID(N'dbo.FG_Stock', N'SN') IS NULL
-    BEGIN
-        CREATE SYNONYM dbo.FG_Stock FOR dbo.FG_Inventory;
-    END
 END;
 GO
 
@@ -2662,7 +2670,7 @@ BEGIN
        AND EXISTS
        (
            SELECT 1
-           FROM dbo.WH_Inventory W
+           FROM dbo.WH_OLD_Inventory W
            JOIN dbo.tbl_Lot WL ON WL.LotID = W.LotID
            WHERE UPPER(WL.LotCode) = UPPER(@Scan)
              AND UPPER(COALESCE(W.Status, N'Received')) NOT IN
@@ -2763,7 +2771,7 @@ BEGIN
        AND EXISTS
        (
            SELECT 1
-           FROM dbo.WH_Inventory W
+           FROM dbo.WH_OLD_Inventory W
            JOIN dbo.tbl_Lot WL ON WL.LotID = W.LotID
            WHERE UPPER(WL.LotCode) = UPPER(@Scan)
              AND UPPER(COALESCE(W.Status, N'Received')) NOT IN
@@ -4531,11 +4539,17 @@ BEGIN
         FROM dbo.FG_Inventory S JOIN @Lots L ON L.LotID=S.LotID;
     END;
     UPDATE L SET RemainingQty=T.Qty, CurrentLocationID=CASE WHEN @Screen IN ('qc','putaway') THEN NULL ELSE T.LocationID END,
-        Status='Completed', QualityFlag='PASS', ModifiedBy=@SeedBy, ModifiedTS=SYSDATETIME()
+        ProcessCode='IMG', Status='CONFIRMED', QualityFlag='OK', ModifiedBy=@SeedBy, ModifiedTS=SYSDATETIME()
     FROM dbo.tbl_Lot L JOIN @Lots T ON T.LotID=L.LotID;
     IF @Screen IN ('qc','putaway')
-        UPDATE Q SET InsEndTS=DATEADD(hour,-CASE RIGHT(L.LotCode,6) WHEN '900002' THEN 48 WHEN '900003' THEN 144 WHEN '900004' THEN 264 ELSE 2 END,SYSDATETIME())
-        FROM dbo.QC_Inspection Q JOIN @Lots L ON L.LotID=Q.LotID WHERE Q.CreatedBy=@SeedBy;
+    BEGIN
+        UPDATE P SET ConfirmStatus='CONFIRMED',
+            ConfirmedAt=DATEADD(hour,-CASE RIGHT(L.LotCode,6) WHEN '900002' THEN 48 WHEN '900003' THEN 144 WHEN '900004' THEN 264 ELSE 2 END,SYSDATETIME())
+        FROM dbo.PR_ImgLot P JOIN @Lots L ON L.LotID=P.LotID;
+        UPDATE R SET ProcessCode='IMG', DefectFlag=0,
+            EntryAt=DATEADD(hour,-CASE RIGHT(L.LotCode,6) WHEN '900002' THEN 48 WHEN '900003' THEN 144 WHEN '900004' THEN 264 ELSE 2 END,SYSDATETIME())
+        FROM dbo.PR_ProductionResult R JOIN @Lots L ON L.LotID=R.LotID;
+    END;
 
     UPDATE O SET Status=CASE WHEN @Screen='release' THEN 'RELEASED' WHEN @Screen='loading' THEN 'PICKED' WHEN O.ShipOrderNumber='FG-PPT-SO-RETURN' THEN 'SHIPPED' ELSE 'OPEN' END,
         ShipDate=CAST(GETDATE() AS date),ModifiedBy=@SeedBy,ModifiedTS=SYSDATETIME()

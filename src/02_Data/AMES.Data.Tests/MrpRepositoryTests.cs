@@ -40,7 +40,7 @@ public class MrpRepositoryTests
             INSERT INTO dbo.PP_WorkOrder (WoNumber, ItemNo, OrderQty, CompletedQty, Status, DueDate, CreatedBy)
             VALUES ('ITEST-MRP-WO-1', @FG, 10, 2, 'Released', @Due, @By),
                    ('ITEST-MRP-WO-2', @FG, 50, 0, 'Completed', @Due, @By);
-            INSERT INTO dbo.WH_Inventory (ItemNo, LocationID, OnHandQty, ReservedQty, Status, CreatedBy)
+            INSERT INTO dbo.WH_OLD_Inventory (ItemNo, LocationID, OnHandQty, ReservedQty, Status, CreatedBy)
             VALUES (@RM, 'WH-A-01', 5, 1, 'OK', @By), (@OK, 'WH-A-01', 100, 0, 'OK', @By);
             INSERT INTO dbo.WH_PurchaseOrder (PoNumber, PoLineNo, ItemNo, OrderQty, ReceivedQty, Status, CreatedBy)
             VALUES ('ITEST-MRP-PO', 1, @RM, 3, 1, 'Open', @By),
@@ -56,7 +56,7 @@ public class MrpRepositoryTests
             DELETE FROM dbo.PP_MRPLog      WHERE CreatedBy = @By;
             DELETE FROM dbo.PP_PurchaseRequest WHERE ItemNo LIKE 'ITEST-MRP-%';
             DELETE FROM dbo.WH_PurchaseOrder   WHERE ItemNo LIKE 'ITEST-MRP-%';
-            DELETE FROM dbo.WH_Inventory       WHERE ItemNo LIKE 'ITEST-MRP-%';
+            DELETE FROM dbo.WH_OLD_Inventory       WHERE ItemNo LIKE 'ITEST-MRP-%';
             DELETE FROM dbo.PP_WorkOrder       WHERE ItemNo LIKE 'ITEST-MRP-%';
             DELETE FROM dbo.MD_Bom             WHERE VersionID = @Ver;
             DELETE FROM dbo.MD_BomVersion      WHERE VersionID = @Ver;

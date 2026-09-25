@@ -305,11 +305,11 @@ public sealed class RptRepository
     }
 
     // ── RPT-005 Inventory Status ─────────────────────────────────────────
-    // ── RPT-005 Inventory (SKU 단위: 자재창고 WH_Inventory ∪ 완성품창고 FG_Inventory) ──
+    // ── RPT-005 Inventory (SKU 단위: 자재창고 WH_OLD_Inventory ∪ 완성품창고 FG_Inventory) ──
     public sealed record InventorySkuRow(string Source, string ItemNo, string? ItemName, string? ItemNameEn, string? ItemType,
         string? Location, decimal Qty, decimal Reserved, decimal? UnitCost, decimal? SafetyStock, decimal? MaxStock, int Lots);
 
-    /// <summary>현재 재고를 품목×위치로 집계. Source = "WH"(자재, WH_Inventory) / "FG"(완성품, FG_Inventory; 출하·폐기 제외).</summary>
+    /// <summary>현재 재고를 품목×위치로 집계. Source = "WH"(자재, WH_OLD_Inventory) / "FG"(완성품, FG_Inventory; 출하·폐기 제외).</summary>
     public List<InventorySkuRow> ListInventorySku()
     {
         const string sql = """
@@ -319,7 +319,7 @@ public sealed class RptRepository
                 SELECT 'WH' AS Source, w.ItemNo, w.LocationID AS Location,
                        ISNULL(SUM(w.OnHandQty), 0) AS Qty, ISNULL(SUM(w.ReservedQty), 0) AS Reserved,
                        MAX(w.UnitCost) AS UnitCost, COUNT(*) AS Lots
-                FROM   dbo.WH_Inventory w
+                FROM   dbo.WH_OLD_Inventory w
                 WHERE  ISNULL(w.Status, '') NOT IN ('CLOSED', 'SCRAPPED')
                 GROUP BY w.ItemNo, w.LocationID
                 UNION ALL
@@ -354,7 +354,7 @@ public sealed class RptRepository
 
     public List<InventoryRow> ListInventory(int topN = 100)
     {
-        // 구 FG_Stock 은 FG_Inventory 로 개명됐고 DB 에는 호환용 synonym 만 남아 있다 — 실제 테이블명을 쓴다
+        // 완제품 재고는 FG_Inventory 단일 테이블을 사용한다.
         const string sql = """
             SELECT TOP (@N)
                    ItemNo, Location,
@@ -456,7 +456,7 @@ public sealed class RptRepository
                 SELECT DATEFROMPARTS(YEAR(TransactionTime), MONTH(TransactionTime), 1) AS M, SUM(-QtyChange) AS Issued
                 FROM dbo.WH_InventoryTransaction WHERE QtyChange < 0 AND TransactionTime >= @F AND TransactionTime < DATEADD(MONTH, 1, @T)
                 GROUP BY DATEFROMPARTS(YEAR(TransactionTime), MONTH(TransactionTime), 1)),
-            onhand AS (SELECT ISNULL(SUM(OnHandQty),0) AS OnHand FROM dbo.WH_Inventory)
+            onhand AS (SELECT ISNULL(SUM(OnHandQty),0) AS OnHand FROM dbo.WH_OLD_Inventory)
             SELECT m.M,
                    ISNULL(p.Good,0) AS GoodQty, ISNULL(d.Def,0) AS DefectQty, ISNULL(pl.PlanQty,0) AS PlanQty,
                    o.Avail, o.Oee, ISNULL(o.OperMin,0) AS OperMin, ISNULL(f.Failures,0) AS Failures,

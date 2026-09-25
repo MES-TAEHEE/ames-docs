@@ -54,18 +54,18 @@ IF EXISTS (SELECT 1 FROM sys.parameters WHERE object_id=OBJECT_ID('dbo.WH_PDA_AD
     THROW 51000,'Supervisor parameter remains.',1;
 DECLARE @LotID int, @InventoryID int, @Scan nvarchar(80), @Before decimal(14,3), @Reason nvarchar(30);
 SELECT TOP(1) @LotID=W.LotID,@InventoryID=W.InventoryID,@Scan=L.LotCode,@Before=W.OnHandQty
-FROM dbo.WH_Inventory W JOIN dbo.tbl_Lot L ON L.LotID=W.LotID
+FROM dbo.WH_OLD_Inventory W JOIN dbo.tbl_Lot L ON L.LotID=W.LotID
 WHERE W.OnHandQty BETWEEN 1 AND 999999998 AND W.OnHandQty=FLOOR(W.OnHandQty)
   AND UPPER(COALESCE(W.Status,'Received')) NOT IN ('CANCELED','RELEASED','PICKED')
   AND NOT EXISTS (SELECT 1 FROM dbo.FG_Inventory F WHERE F.LotID=W.LotID)
-  AND (SELECT COUNT(*) FROM dbo.WH_Inventory W2 WHERE W2.LotID=W.LotID)=1
+  AND (SELECT COUNT(*) FROM dbo.WH_OLD_Inventory W2 WHERE W2.LotID=W.LotID)=1
 ORDER BY W.InventoryID;
 IF @LotID IS NULL THROW 51000,'No eligible WH stock fixture.',1;
 SELECT TOP(1) @Reason=CodeValue FROM dbo.MD_CodeItem WHERE GroupCode='INV_ADJUST_REASON' AND ISNULL(UseFlag,1)=1 ORDER BY CodeValue;
 IF @Reason IS NULL THROW 51000,'No adjustment reason configured.',1;
 DECLARE @LastTxn bigint=(SELECT ISNULL(MAX(TransactionID),0) FROM dbo.WH_InventoryTransaction);
 EXEC dbo.WH_PDA_ADJUST_SAVE_QTY @ScanText=@Scan,@DeltaQty=1,@ReasonCode=@Reason,@ReasonNote=N'adjust transaction regression',@UserId=N'adjust-regression';
-IF (SELECT OnHandQty FROM dbo.WH_Inventory WHERE InventoryID=@InventoryID)<>@Before+1
+IF (SELECT OnHandQty FROM dbo.WH_OLD_Inventory WHERE InventoryID=@InventoryID)<>@Before+1
     THROW 51000,'Inventory quantity incorrect.',1;
 IF (SELECT RemainingQty FROM dbo.tbl_Lot WHERE LotID=@LotID)<>@Before+1
     THROW 51000,'Lot quantity incorrect.',1;

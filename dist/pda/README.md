@@ -32,7 +32,7 @@ Examples:
 - `dbo.WH_PurchaseOrder`
 - `dbo.WH_ReleaseSchedule`
 - `dbo.WH_Receiving`
-- `dbo.WH_Inventory`
+- `dbo.WH_OLD_Inventory`
 - `dbo.WH_ReleasePicking`
 
 ## Apply

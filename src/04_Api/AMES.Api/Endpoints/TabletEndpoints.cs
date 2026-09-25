@@ -50,7 +50,7 @@ public static class TabletEndpoints
                     COALESCE(W.OnHandQty, 0) AS QTY,
                     COALESCE(NULLIF(I.DefaultUOM, N''), N'EA') AS UNIT
                 FROM dbo.MD_Location L
-                LEFT JOIN dbo.WH_Inventory W
+                LEFT JOIN dbo.WH_OLD_Inventory W
                        ON W.LocationID = L.LocationID
                       AND COALESCE(W.OnHandQty, 0) > 0
                       AND UPPER(COALESCE(W.Status, N'RECEIVED')) <> N'CANCELED'

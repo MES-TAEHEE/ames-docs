@@ -23,7 +23,7 @@ BEGIN
       [MrpRunID]     INT            NOT NULL,  -- FK -> PP_MRPLog.MrpRunID
       [ItemNo]       VARCHAR(20)    NOT NULL,  -- FK -> MD_Item.ItemNo (BOM leaf 자재)
       [RequiredQty]  DECIMAL(14,3)  NOT NULL,  -- 열린 WO 잔량 × BOM 분해 소요
-      [StockQty]     DECIMAL(14,3)  NOT NULL,  -- WH_Inventory OnHand − Reserved 합
+      [StockQty]     DECIMAL(14,3)  NOT NULL,  -- WH_OLD_Inventory OnHand − Reserved 합
       [OnOrderQty]   DECIMAL(14,3)  NOT NULL,  -- PO 미입고 + PO 미전환 PR 수량 (PR 생성 시 가산)
       [ShortageQty]  DECIMAL(14,3)  NOT NULL,  -- Required − Stock − OnOrder (양수 = 부족)
       [LeadTimeDays] INT                NULL,  -- 실행 시점 MD_Item.LeadTimeDays 스냅샷

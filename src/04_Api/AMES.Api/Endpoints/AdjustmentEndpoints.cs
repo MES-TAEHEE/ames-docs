@@ -44,7 +44,7 @@ internal static class AdjustmentEndpoints
                 ORDER BY S.ItemNo, L.LotCode, S.StockID;
                 """ : """
                 SELECT L.LotCode AS Barcode, L.LotCode, W.ItemNo, I.ItemName, W.OnHandQty, I.DefaultUOM
-                FROM dbo.WH_Inventory W
+                FROM dbo.WH_OLD_Inventory W
                 JOIN dbo.tbl_Lot L ON L.LotID = W.LotID
                 LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.ItemNo
                 WHERE W.LocationID = @Location AND W.OnHandQty >= 0
