@@ -1,3 +1,8 @@
 ﻿@page "/portal/deliveries"
+@page "/portal/delivery-entry"
 @rendermode InteractiveServer
-<ScmPreview ScreenCode="PORTAL-004" Href="portal/deliveries" Mode="Deliveries" IsPortal="true" />
+<ScmPreview ScreenCode="PORTAL-003" Href="portal/deliveries" Mode="Deliveries" IsPortal="true" RegistrationOrder="@OrderNumber" />
+
+@code {
+    [SupplyParameterFromQuery] public string? OrderNumber {get;set;}
+}

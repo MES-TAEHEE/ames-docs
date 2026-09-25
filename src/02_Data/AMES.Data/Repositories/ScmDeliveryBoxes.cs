@@ -49,6 +49,13 @@ public sealed partial class ScmRepository
     // Retain the packing snapshot. A quantity edit voids old box IDs instead of reusing them.
     static void SyncDeliveryBoxes(SqlConnection c,SqlTransaction tx,int deliveryId)
     {
+        string vendor; DateTime numberDate;
+        using(var header=new SqlCommand("SELECT VendorID,CONVERT(date,SYSDATETIME()) FROM dbo.SCM_Delivery WHERE DeliveryID=@D",c,tx))
+        {
+            Add(header,("@D",deliveryId));using var r=header.ExecuteReader();
+            if(!r.Read())throw new InvalidOperationException("Delivery not found.");
+            vendor=r.GetString(0);numberDate=r.GetDateTime(1);
+        }
         var lines=new List<(int Id,decimal Qty,decimal Pack,string Item,string Name,string Unit,decimal SavedQty,int Count)>();
         using(var cmd=new SqlCommand("""
             SELECT l.DeliveryLineID,l.Quantity,COALESCE(l.PackingQty,m.PackingQty,0),p.ItemNo,
@@ -75,15 +82,38 @@ public sealed partial class ScmRepository
                 UPDATE dbo.SCM_DeliveryLine SET PackingQty=@Pack WHERE DeliveryLineID=@L;
                 """,c,tx))
             {Add(reset,("@L",l.Id),("@Pack",l.Pack));reset.ExecuteNonQuery();}
+            var firstNumber=ReserveBoxNumbers(c,tx,vendor,numberDate,(int)count);
             for(var seq=1;seq<=count;seq++)
             {
                 using var insert=new SqlCommand("""
-                    INSERT dbo.SCM_DeliveryBox(DeliveryLineID,BoxSeq,ItemNo,ItemName,UnitCode,Quantity)
-                    VALUES(@L,@S,@I,@Name,@Unit,@Q);
+                    INSERT dbo.SCM_DeliveryBox(DeliveryLineID,BoxSeq,ItemNo,ItemName,UnitCode,Quantity,IssuedBoxNumber)
+                    VALUES(@L,@S,@I,@Name,@Unit,@Q,@Number);
                     """,c,tx);
                 Add(insert,("@L",l.Id),("@S",seq),("@I",l.Item),("@Name",l.Name),("@Unit",l.Unit),("@Q",Math.Min(l.Pack,l.Qty-(seq-1)*l.Pack)));
+                Add(insert,("@Number",$"BX-{vendor}-{numberDate.ToString("yyyyMMdd",System.Globalization.CultureInfo.InvariantCulture)}-{(firstNumber+seq-1).ToString("D4",System.Globalization.CultureInfo.InvariantCulture)}"));
                 insert.ExecuteNonQuery();
             }
         }
     }
+    // Allocate a range under the same transaction as the boxes. The PK range lock
+    // serializes concurrent deliveries for this vendor/day, including the first allocation.
+    static int ReserveBoxNumbers(SqlConnection c,SqlTransaction tx,string vendor,DateTime date,int count)
+    {
+        if(count<=0)throw new ArgumentOutOfRangeException(nameof(count));
+        using var cmd=new SqlCommand("""
+            DECLARE @Last int;
+            SELECT @Last=LastNumber FROM dbo.SCM_BoxNumberSequence WITH(UPDLOCK,HOLDLOCK)
+            WHERE VendorID=@V AND NumberDate=@Day;
+            IF @Last IS NULL
+            BEGIN
+                SET @Last=0;
+                INSERT dbo.SCM_BoxNumberSequence(VendorID,NumberDate,LastNumber) VALUES(@V,@Day,@Count);
+            END
+            ELSE UPDATE dbo.SCM_BoxNumberSequence SET LastNumber=@Last+@Count WHERE VendorID=@V AND NumberDate=@Day;
+            SELECT @Last+1;
+            """,c,tx);
+        Add(cmd,("@V",vendor),("@Day",date.Date),("@Count",count));
+        return (int)cmd.ExecuteScalar()!;
+    }
+
 }

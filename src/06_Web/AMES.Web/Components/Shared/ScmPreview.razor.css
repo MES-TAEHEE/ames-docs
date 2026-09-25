@@ -12,13 +12,6 @@
 .scm-lines { width:100%; }
 .scm-lines td:nth-child(2) { min-width:240px; }
 .scm-lines td { vertical-align:middle; }
-.scm-order-detail .scm-delivery-entry th:nth-child(1) { width:5%; }
-.scm-order-detail .scm-delivery-entry th:nth-child(2) { width:13%; }
-.scm-order-detail .scm-delivery-entry th:nth-child(3) { width:20%; }
-.scm-order-detail .scm-delivery-entry th:nth-child(4) { width:5%; }
-.scm-order-detail .scm-delivery-entry th:nth-child(7) { width:10%; }
-.scm-order-detail .scm-delivery-entry th:nth-child(8) { width:13%; }
-.scm-order-detail .scm-delivery-entry th:nth-child(9) { width:14%; }
 .scm-delivery-entry ::deep .rz-numeric { width:100%; min-width:0; }
 .scm-delivery-entry ::deep .rz-numeric-input { width:100%; min-width:0; }
 .scm-box-count { text-align:right; }
@@ -72,8 +65,7 @@
     .scm-editor .scm-lines td:nth-child(6)::before { content:"금액 / Amount"; display:block; }
 }
 
-.scm-trace-fields { min-width: 150px; }
-.scm-trace-fields input { width: 100%; margin-bottom: 4px; }
+
 
 /* Delivery editor has its own column sizing; do not inherit purchase-order proportions. */
 .ames-modal.scm-delivery-detail { width:calc(100vw - 48px); max-width:1200px; min-width:0; box-sizing:border-box; }
@@ -82,10 +74,10 @@
 .scm-delivery-detail .ames-table th { white-space:normal; }
 .scm-delivery-detail .ames-table td { white-space:normal; overflow-wrap:anywhere; }
 .scm-delivery-detail .scm-lines td:nth-child(2) { min-width:50px; }
-.scm-delivery-detail td[data-label="품번"] { min-width:140px; }
-.scm-delivery-detail td[data-label="납품수량"] { min-width:130px; }
-.scm-delivery-detail td[data-label="업체 LOT"] { min-width:190px; }
-.scm-delivery-detail td[data-label="제조일자"] { min-width:175px; }
+.scm-delivery-detail td[data-field="item"] { min-width:140px; }
+.scm-delivery-detail td[data-field="quantity"] { min-width:130px; }
+.scm-delivery-detail td[data-field="lot"] { min-width:190px; }
+.scm-delivery-detail td[data-field="production-date"] { min-width:175px; }
 .scm-delivery-detail input.ames-input { width:100%; box-sizing:border-box; }
 .scm-delivery-detail ::deep .rz-numeric,
 .scm-delivery-detail ::deep .rz-datepicker { width:100%; min-width:0; }
@@ -101,3 +93,25 @@
 @media(max-width:480px) {
     .scm-delivery-detail .ames-table tr { grid-template-columns:minmax(0,1fr); }
 }
+
+/* Wide, single-row delivery entry: reserve readable widths for LOT and date. */
+.ames-modal.scm-order-detail.scm-entry-wide { width:calc(100vw - 48px); max-width:1900px; min-width:0; }
+.scm-order-detail .scm-delivery-entry { min-width:1400px; table-layout:fixed; }
+.scm-order-detail .scm-delivery-entry th:nth-child(1) { width:48px; }
+.scm-order-detail .scm-delivery-entry th:nth-child(2) { width:150px; }
+.scm-order-detail .scm-delivery-entry th:nth-child(3) { width:auto; }
+.scm-order-detail .scm-delivery-entry th:nth-child(4) { width:56px; }
+.scm-order-detail .scm-delivery-entry th:nth-child(5),
+.scm-order-detail .scm-delivery-entry th:nth-child(6),
+.scm-order-detail .scm-delivery-entry th:nth-child(7) { width:115px; }
+.scm-order-detail .scm-delivery-entry th:nth-child(8) { width:145px; }
+.scm-order-detail .scm-delivery-entry th:nth-child(9) { width:78px; }
+.scm-order-detail .scm-delivery-entry th:nth-child(10) { width:210px; }
+.scm-order-detail .scm-delivery-entry th:nth-child(11) { width:180px; }
+.scm-order-detail .scm-delivery-entry td:nth-child(n+5) { white-space:nowrap; overflow-wrap:normal; }
+.scm-entry-lot input { box-sizing:border-box; width:100%; min-width:0; }
+.scm-entry-date ::deep .rz-datepicker { width:100%; min-width:0; }
+.scm-entry-date ::deep .rz-inputtext { width:100%; box-sizing:border-box; }
+
+.scm-registration-order { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 0; border-bottom:1px solid var(--rz-base-600,#475569); }
+.scm-registration-order > div { min-width:0; overflow-wrap:anywhere; }

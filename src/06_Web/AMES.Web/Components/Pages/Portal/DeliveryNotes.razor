@@ -5,30 +5,29 @@
 @inject NavigationManager Nav
 @inject ILogger<DeliveryNotes> Logger
 
-<PageTitle>딜리버리 노트 · AMES</PageTitle>
-<AmesPageHeader Code="PORTAL-004" Title="딜리버리 노트 발행·조회" />
-<PortalDeliveryNav />
+<PageTitle>@PortalText.Get("딜리버리 노트") · AMES</PageTitle>
+<AmesPageHeader Code="PORTAL-004" Title='@PortalText.Get("딜리버리 노트 조회·발행")' />
 <div class="note-actions">
-    <RadzenButton Text="새로고침" Icon="refresh" Click="Reload" />
+    <RadzenButton Text='@PortalText.Get("새로고침")' Icon="refresh" Click="Reload" />
 </div>
 @if (_error.Length>0) { <p role="alert">@_error</p> }
 <div class="note-panel">
-    <h3>출하 완료 납품서 선택</h3>
-    <p>같은 협력업체의 납품서를 선택해 하나의 문서로 발행합니다. 이미 발행된 납품서는 아래에서 재출력할 수 있습니다.</p>
-    <div class="note-actions"><span>선택 @_selected.Count 건</span><RadzenButton Text="선택 납품서로 딜리버리 노트 발행" Icon="print" Disabled="@(_selected.Count==0 || _busy)" Click="Issue" /></div>
-    <div class="note-scroll"><table><thead><tr><th>선택</th><th>납품서번호</th><th>협력업체</th><th>발주번호</th><th>출하일</th></tr></thead>
+    <h3>@PortalText.Get("출하 완료 납품서 선택")</h3>
+    <p>@PortalText.Get("같은 협력업체의 납품서를 선택해 하나의 문서로 발행합니다. 이미 발행된 납품서는 아래에서 재출력할 수 있습니다.")</p>
+    <div class="note-actions"><span>@PortalText.Get("선택") @_selected.Count</span><RadzenButton Text='@PortalText.Get("선택 납품서로 딜리버리 노트 발행")' Icon="print" Disabled="@(_selected.Count==0 || _busy)" Click="Issue" /></div>
+    <div class="note-scroll"><table><thead><tr><th>@PortalText.Get("선택")</th><th>@PortalText.Get("납품서번호")</th><th>@PortalText.Get("협력업체")</th><th>@PortalText.Get("발주번호")</th><th>@PortalText.Get("출하일")</th></tr></thead>
     <tbody>@foreach(var d in _rows.Where(x=>x.NoteNumber is null))
     {
         <tr><td><input type="checkbox" aria-label="@($"납품서 {d.Number} 선택")" checked="@_selected.Contains(d.Number)" disabled="@(_busy || (_selected.Count>0 && !_selected.Contains(d.Number) && _rows.First(x=>_selected.Contains(x.Number)).Vendor!=d.Vendor))" @onchange="e=>Toggle(d.Number,e.Value is true)" /></td><td>@d.Number</td><td>@d.Vendor</td><td>@d.Order</td><td>@d.ShipDate?.ToString("yyyy-MM-dd")</td></tr>
     }</tbody></table></div>
-    @if (!_rows.Any(x=>x.NoteNumber is null)) { <p>발행 가능한 납품서가 없습니다.</p> }
+    @if (!_rows.Any(x=>x.NoteNumber is null)) { <p>@PortalText.Get("발행 가능한 납품서가 없습니다.")</p> }
 </div>
 <div class="note-panel">
-    <h3>발행된 딜리버리 노트</h3>
-    <div class="note-scroll"><table><thead><tr><th>문서번호 / 바코드</th><th>협력업체</th><th>포함 납품서</th><th>출력</th></tr></thead>
+    <h3>@PortalText.Get("발행된 딜리버리 노트")</h3>
+    <div class="note-scroll"><table><thead><tr><th>@PortalText.Get("문서번호 / 바코드")</th><th>@PortalText.Get("협력업체")</th><th>@PortalText.Get("포함 납품서")</th><th>@PortalText.Get("출력")</th></tr></thead>
     <tbody>@foreach(var group in _rows.Where(x=>x.NoteNumber is not null).GroupBy(x=>x.NoteNumber))
     {
-        <tr><td>@group.Key</td><td>@group.First().Vendor</td><td>@string.Join(", ",group.Select(x=>x.Number))</td><td><a href="@($"/portal/delivery-note/{Uri.EscapeDataString(group.Key!)}")">조회 / 재출력</a></td></tr>
+        <tr><td>@group.Key</td><td>@group.First().Vendor</td><td>@string.Join(", ",group.Select(x=>x.Number))</td><td><a href="@($"/portal/delivery-note/{Uri.EscapeDataString(group.Key!)}")">@PortalText.Get("조회 / 재출력")</a></td></tr>
     }</tbody></table></div>
 </div>
 
@@ -49,17 +48,17 @@
     void Reload()
     {
         _rows=[];_selected.Clear();_error="";
-        if(!_allowed || _user.Length==0){_error="조회 권한이 없습니다.";return;}
+        if(!_allowed || _user.Length==0){_error=PortalText.Get("조회 권한이 없습니다.");return;}
         try{_rows=Scm.ListNoteDeliveries(_user,_admin);}
-        catch(Exception ex){Logger.LogWarning(ex,"Delivery notes load failed");_error="목록을 조회할 수 없습니다.";}
+        catch(Exception ex){Logger.LogWarning(ex,"Delivery notes load failed");_error=PortalText.Get("목록을 조회할 수 없습니다.");}
     }
     void Issue()
     {
         if(_busy||!_allowed||_selected.Count==0)return;
         _busy=true;_error="";
         try { var note=Scm.IssueDeliveryNote(_selected.ToArray(),_user,_actor,_admin);Nav.NavigateTo($"/portal/delivery-note/{note.Number}"); }
-        catch(InvalidOperationException ex){_error=ex.Message;}
-        catch(Exception ex){Logger.LogWarning(ex,"Batch note issue failed");_error="발행하지 못했습니다. 새로고침 후 업체 권한 및 납품서 상태를 확인해 주세요.";}
+        catch(InvalidOperationException ex){_error=PortalText.Get(ex.Message);}
+        catch(Exception ex){Logger.LogWarning(ex,"Batch note issue failed");_error=PortalText.Get("발행하지 못했습니다. 새로고침 후 업체 권한 및 납품서 상태를 확인해 주세요.");}
         finally{_busy=false;}
     }
 }

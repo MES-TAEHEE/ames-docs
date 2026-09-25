@@ -6,80 +6,80 @@
 @inject ILogger<Receipts> Logger
 @inject UomFormat UomFmt
 
-<PageTitle>입고·검수 결과 · AMES</PageTitle>
-<AmesPageHeader Code="PORTAL-005" Title="입고·검수 결과" />
+<PageTitle>@PortalText.Get("입고 현황") · AMES</PageTitle>
+<AmesPageHeader Code="PORTAL-005" Title='@PortalText.Get("입고 현황")' />
 <div class="ames-kpis">
-    <div class="ames-kpi info"><div class="ames-kpi-l">납품서 건수</div><div class="ames-kpi-v">@DeliveryCount</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">미입고</div><div class="ames-kpi-v">@CountStatus("미입고")</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">부분입고</div><div class="ames-kpi-v">@CountStatus("부분입고")</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">입고완료</div><div class="ames-kpi-v">@CountStatus("입고완료")</div></div>
+    <div class="ames-kpi info"><div class="ames-kpi-l">@PortalText.Get("납품서 건수")</div><div class="ames-kpi-v">@DeliveryCount</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@PortalText.Get("미입고")</div><div class="ames-kpi-v">@CountStatus("미입고")</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@PortalText.Get("부분입고")</div><div class="ames-kpi-v">@CountStatus("부분입고")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@PortalText.Get("입고완료")</div><div class="ames-kpi-v">@CountStatus("입고완료")</div></div>
 </div>
 <div class="ames-card">
     <div class="ames-card-h receipt-card-header">
-        <span>▼ 입고·검수 결과 · @Rows.Count 품목</span>
+        <span>▼ @PortalText.Get("입고 현황") · @Rows.Count</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder="문서 / 납품서 / 발주 / 품목" aria-label="입고 결과 검색" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
-            <RadzenLabel Text="상태" Component="ReceiptStatus" />
+            <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@PortalText.Get("문서 / 납품서 / 발주 / 품목")' aria-label='@PortalText.Get("입고 결과 검색")' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+            <RadzenLabel Text='@PortalText.Get("상태")' Component="ReceiptStatus" />
             <RadzenDropDown Name="ReceiptStatus" TValue="string" @bind-Value="_status" Data="@_statuses" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
-            <RadzenLabel Text="출하일" />
-            <RadzenDatePicker TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" AllowClear="true" Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" aria-label="출하일 시작" />
+            <RadzenLabel Text='@PortalText.Get("출하일")' />
+            <RadzenDatePicker TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" AllowClear="true" Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" aria-label='@PortalText.Get("출하일 시작")' />
             <span class="dim">~</span>
-            <RadzenDatePicker TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" AllowClear="true" Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" aria-label="출하일 종료" />
-            <RadzenButton Text="새로고침" Icon="refresh" Click="Load" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" />
-            <RadzenButton Text="초기화" Icon="restart_alt" Click="Reset" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenDatePicker TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" AllowClear="true" Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" aria-label='@PortalText.Get("출하일 종료")' />
+            <RadzenButton Text='@PortalText.Get("새로고침")' Icon="refresh" Click="Load" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text='@PortalText.Get("초기화")' Icon="restart_alt" Click="Reset" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <div class="dim receipt-hint">ℹ 납품 품목별 입고수량과 잔량을 확인합니다. 검수 결과와 입고일시는 아직 제공되지 않습니다. @(_admin?"· 관리자 전체 조회":"")</div>
+    <div class="dim receipt-hint">ℹ @PortalText.Get("납품 품목별 입고수량과 잔량을 확인합니다. 전량 입고되면 입고 완료입니다.") @(_admin?PortalText.Get("· 관리자 전체 조회"):"")</div>
     @if(_error.Length>0){<RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" AllowClose="false">@_error</RadzenAlert>}
-    @if(_from>_to){<RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">출하일 범위를 확인해 주세요.</RadzenAlert>}
-    <div class="receipt-totals dim">입고수량 @Totals(Rows,true) <span>·</span> 미입고 잔량 @Totals(Rows,false)</div>
+    @if(_from>_to){<RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">@PortalText.Get("출하일 범위를 확인해 주세요.")</RadzenAlert>}
+    <div class="receipt-totals dim">@PortalText.Get("입고수량") @Totals(Rows,true) <span>·</span> @PortalText.Get("미입고 잔량") @Totals(Rows,false)</div>
 <RadzenDataGrid @ref="_grid" TItem="ScmRepository.PortalReceiptLine" Data="@Rows" AllowPaging="true" PageSize="25" AllowSorting="true"
-    PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="{0} / {1} 페이지 (총 {2}건)" PageSizeText="건씩 보기"
-    RowClick="@(args => { if (args.Data is not null) Select(args.Data); })" RowRender="RowLink" EmptyText="조회 결과가 없습니다." PageSizeChanged="@(s => _pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+    PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat='@PortalText.Get("{0} / {1} 페이지 (총 {2}건)")' PageSizeText='@PortalText.Get("건씩 보기")'
+    RowClick="@(args => { if (args.Data is not null) Select(args.Data); })" RowRender="RowLink" EmptyText='@PortalText.Get("조회 결과가 없습니다.")' PageSizeChanged="@(s => _pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
     <Columns>
         <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Title="No." Width="60px" TextAlign="TextAlign.Center" Sortable="false"><Template Context="r"><span class="dim">@GridRowNo.Of(_grid,r)</span></Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Note" Title="딜리버리 노트"><Template Context="r">@(r.Note.Length==0?"미발행":r.Note)</Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Delivery" Title="납품서번호" />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="VendorName" Title="협력업체" />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Order" Title="발주번호" />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Item" Title="품목코드" />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Name" Title="품목명" />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="ShipDate" Title="출하일" FormatString="{0:yyyy-MM-dd}" />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" TextAlign="TextAlign.Right" Property="Quantity" Title="납품수량"><Template Context="r">@QtyFormat.Text(r.Quantity,r.Unit)</Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" TextAlign="TextAlign.Right" Property="Received" Title="입고수량"><Template Context="r">@QtyFormat.Text(r.Received,r.Unit)</Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" TextAlign="TextAlign.Right" Property="Remaining" Title="미입고 잔량"><Template Context="r">@QtyFormat.Text(r.Remaining,r.Unit)</Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Unit" Title="단위" />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="ReceiptStatus" Title="입고 상태" TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @Badge(r.ReceiptStatus)">@r.ReceiptStatus</span></Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Note" Title='@PortalText.Get("딜리버리 노트")'><Template Context="r">@(r.Note.Length==0?PortalText.Get("미발행"):r.Note)</Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Delivery" Title='@PortalText.Get("납품서번호")' />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="VendorName" Title='@PortalText.Get("협력업체")' />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Order" Title='@PortalText.Get("발주번호")' />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Item" Title='@PortalText.Get("품목코드")' />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Name" Title='@PortalText.Get("품목명")' />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="ShipDate" Title='@PortalText.Get("출하일")' FormatString="{0:yyyy-MM-dd}" />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" TextAlign="TextAlign.Right" Property="Quantity" Title='@PortalText.Get("납품수량")'><Template Context="r">@QtyFormat.Text(r.Quantity,r.Unit)</Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" TextAlign="TextAlign.Right" Property="Received" Title='@PortalText.Get("입고수량")'><Template Context="r">@QtyFormat.Text(r.Received,r.Unit)</Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" TextAlign="TextAlign.Right" Property="Remaining" Title='@PortalText.Get("미입고 잔량")'><Template Context="r">@QtyFormat.Text(r.Remaining,r.Unit)</Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Unit" Title='@PortalText.Get("단위")' />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="ReceiptStatus" Title='@PortalText.Get("입고 상태")' TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @Badge(r.ReceiptStatus)">@PortalText.Get(r.ReceiptStatus)</span></Template></RadzenDataGridColumn>
     </Columns>
 </RadzenDataGrid>
 </div>
 @if(_details.Count>0)
 {
     <div class="ames-modal-bg" @onclick="Close"><div class="ames-modal ames-modal-wide receipt-detail" role="dialog" aria-modal="true" aria-labelledby="receipt-detail-title" @onclick:stopPropagation="true">
-        <div class="ames-modal-h" id="receipt-detail-title">입고 상세 <span class="code">@_detailTitle</span></div>
+        <div class="ames-modal-h" id="receipt-detail-title">@PortalText.Get("입고 상세") <span class="code">@_detailTitle</span></div>
         <div class="receipt-detail-grid">
-            <div class="receipt-tile"><div class="receipt-label">입고 상태</div><span class="pill @Badge(GroupStatus(_details))">@GroupStatus(_details)</span></div>
-            <div class="receipt-tile"><div class="receipt-label">협력업체</div><div class="receipt-value">@_details[0].VendorName</div></div>
-            <div class="receipt-tile"><div class="receipt-label">입고수량</div><div class="receipt-value">@Totals(_details,true)</div></div>
-            <div class="receipt-tile"><div class="receipt-label">미입고 잔량</div><div class="receipt-value">@Totals(_details,false)</div></div>
+            <div class="receipt-tile"><div class="receipt-label">@PortalText.Get("입고 상태")</div><span class="pill @Badge(GroupStatus(_details))">@PortalText.Get(GroupStatus(_details))</span></div>
+            <div class="receipt-tile"><div class="receipt-label">@PortalText.Get("협력업체")</div><div class="receipt-value">@_details[0].VendorName</div></div>
+            <div class="receipt-tile"><div class="receipt-label">@PortalText.Get("입고수량")</div><div class="receipt-value">@Totals(_details,true)</div></div>
+            <div class="receipt-tile"><div class="receipt-label">@PortalText.Get("미입고 잔량")</div><div class="receipt-value">@Totals(_details,false)</div></div>
         </div>
-        <div class="dim receipt-hint">ℹ 입고완료는 검수 합격을 의미하지 않습니다. 검수 결과는 아직 제공되지 않습니다.</div>
-        <RadzenDataGrid TItem="ScmRepository.PortalReceiptLine" Data="@_details" AllowPaging="true" PageSize="10" Class="ames-rz-grid" ShowPagingSummary="true" PagingSummaryFormat="{0} / {1} 페이지 (총 {2}건)">
+        <div class="dim receipt-hint">ℹ @PortalText.Get("EOS에서 입고한 수량을 기준으로 미입고, 부분 입고, 입고 완료를 표시합니다.")</div>
+        <RadzenDataGrid TItem="ScmRepository.PortalReceiptLine" Data="@_details" AllowPaging="true" PageSize="10" Class="ames-rz-grid" ShowPagingSummary="true" PagingSummaryFormat='@PortalText.Get("{0} / {1} 페이지 (총 {2}건)")'>
             <Columns>
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Delivery" Title="납품서" />
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Order" Title="발주번호" />
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Item" Title="품목코드" />
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Name" Title="품목명" />
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" TextAlign="TextAlign.Right" Property="Quantity" Title="납품수량"><Template Context="r">@QtyFormat.Text(r.Quantity,r.Unit)</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" TextAlign="TextAlign.Right" Property="Received" Title="입고수량"><Template Context="r">@QtyFormat.Text(r.Received,r.Unit)</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" TextAlign="TextAlign.Right" Property="Remaining" Title="잔량"><Template Context="r">@QtyFormat.Text(r.Remaining,r.Unit)</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Unit" Title="단위" />
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="ReceiptStatus" Title="입고 상태" TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @Badge(r.ReceiptStatus)">@r.ReceiptStatus</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Delivery" Title='@PortalText.Get("납품서")' />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Order" Title='@PortalText.Get("발주번호")' />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Item" Title='@PortalText.Get("품목코드")' />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Name" Title='@PortalText.Get("품목명")' />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" TextAlign="TextAlign.Right" Property="Quantity" Title='@PortalText.Get("납품수량")'><Template Context="r">@QtyFormat.Text(r.Quantity,r.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" TextAlign="TextAlign.Right" Property="Received" Title='@PortalText.Get("입고수량")'><Template Context="r">@QtyFormat.Text(r.Received,r.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" TextAlign="TextAlign.Right" Property="Remaining" Title='@PortalText.Get("잔량")'><Template Context="r">@QtyFormat.Text(r.Remaining,r.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Unit" Title='@PortalText.Get("단위")' />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="ReceiptStatus" Title='@PortalText.Get("입고 상태")' TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @Badge(r.ReceiptStatus)">@PortalText.Get(r.ReceiptStatus)</span></Template></RadzenDataGridColumn>
             </Columns>
         </RadzenDataGrid>
         <div class="ames-modal-footer receipt-footer">
-        @if(_details[0].Note.Length>0){<a href="@($"/portal/delivery-note/{Uri.EscapeDataString(_details[0].Note)}")">딜리버리 노트 원본</a>}
-        <RadzenButton Text="닫기" Icon="close" Click="Close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></div>
+        @if(_details[0].Note.Length>0){<a href="@($"/portal/delivery-note/{Uri.EscapeDataString(_details[0].Note)}")">@PortalText.Get("딜리버리 노트 원본")</a>}
+        <RadzenButton Text='@PortalText.Get("닫기")' Icon="close" Click="Close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></div>
     </div></div>
 }
 @code {
@@ -87,7 +87,7 @@
     readonly int[] _pageSizeOptions=[10,25,50,100];
     int _pageRows=25;
     record StatusOption(string Text,string Value);
-    readonly StatusOption[] _statuses=[new("전체",""),new("미입고","미입고"),new("부분입고","부분입고"),new("입고완료","입고완료")];
+    StatusOption[] _statuses=>[new(PortalText.Get("전체"),""),new(PortalText.Get("미입고"),"미입고"),new(PortalText.Get("부분입고"),"부분입고"),new(PortalText.Get("입고완료"),"입고완료")];
     int DeliveryCount=>Rows.Select(r=>r.Delivery).Distinct().Count();
     int CountStatus(string status)=>Rows.GroupBy(r=>r.Delivery).Count(g=>GroupStatus(_rows.Where(r=>r.Delivery==g.Key).ToList())==status);
     static string Badge(string status)=>status=="입고완료"?"ok":status=="부분입고"?"warn":"info";
@@ -110,9 +110,9 @@
     void Load()
     {
         Close();_rows=[];_error="";
-        if(!_allowed||_user.Length==0){_error="조회 권한이 없습니다.";return;}
+        if(!_allowed||_user.Length==0){_error=PortalText.Get("조회 권한이 없습니다.");return;}
         try{_rows=Scm.ListPortalReceiptResults(_user,_admin);}
-        catch(Exception ex){Logger.LogWarning(ex,"Portal receipt load failed");_error="입고 결과를 조회하지 못했습니다.";}
+        catch(Exception ex){Logger.LogWarning(ex,"Portal receipt load failed");_error=PortalText.Get("입고 결과를 조회하지 못했습니다.");}
     }
     void Select(ScmRepository.PortalReceiptLine row)
     {

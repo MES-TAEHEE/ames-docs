@@ -5,38 +5,38 @@
 @inject AuthenticationStateProvider Authentication
 @inject ILogger<PackingQuantities> Logger
 
-<PageTitle>적입량 관리 · AMES</PageTitle>
-<AmesPageHeader Code="PORTAL-006" Title="적입량 관리" />
+<PageTitle>@PortalText.Get("적입량 관리") · AMES</PageTitle>
+<AmesPageHeader Code="PORTAL-006" Title='@PortalText.Get("적입량 관리")' />
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">연결 품목</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">적입량 등록</div><div class="ames-kpi-v">@_rows.Count(r=>r.Source.PackingQty.HasValue)</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">미등록</div><div class="ames-kpi-v">@_rows.Count(r=>!r.Source.PackingQty.HasValue)</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@PortalText.Get("연결 품목")</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@PortalText.Get("적입량 등록")</div><div class="ames-kpi-v">@_rows.Count(r=>r.Source.PackingQty.HasValue)</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@PortalText.Get("미등록")</div><div class="ames-kpi-v">@_rows.Count(r=>!r.Source.PackingQty.HasValue)</div></div>
 </div>
 @if (_message.Length>0) { <RadzenAlert AlertStyle="@(_error?AlertStyle.Warning:AlertStyle.Success)" Variant="Variant.Flat">@_message</RadzenAlert> }
 <div class="ames-card">
     <div class="ames-card-h packing-toolbar">
-        <span>▼ 적입량 관리 · @Rows.Count 품목</span>
+        <span>▼ @PortalText.Get("적입량 관리") · @Rows.Count</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder="품목코드 / 품명 / 업체" aria-label="품목 검색" InputSize="InputSize.Small" class="ames-rz-input" />
-            <RadzenButton Text="새로고침" Icon="refresh" Click="Load" Disabled="@_rows.Any(r=>r.Dirty)" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@PortalText.Get("품목코드 / 품명 / 업체")' aria-label='@PortalText.Get("품목 검색")' InputSize="InputSize.Small" class="ames-rz-input" />
+            <RadzenButton Text='@PortalText.Get("새로고침")' Icon="refresh" Click="Load" Disabled="@_rows.Any(r=>r.Dirty)" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <div class="packing-hint dim">업체에 연결된 품목의 적입량을 입력하고 행별로 저장해 주세요. 수량은 단위 관리에 설정된 소수 자릿수로 표시합니다. @(_admin?"· 관리자 전체 조회":"")</div>
+    <div class="packing-hint dim">@PortalText.Get("업체에 연결된 품목의 적입량을 입력하고 행별로 저장해 주세요. 수량은 단위 관리에 설정된 소수 자릿수로 표시합니다.") @(_admin?PortalText.Get("· 관리자 전체 조회"):"")</div>
     <RadzenDataGrid @ref="_grid" TItem="EditRow" Data="@Rows" AllowSorting="true" AllowPaging="true" PageSize="25" PageSizeOptions="@(new int[]{10,25,50,100})" PagerHorizontalAlign="HorizontalAlign.Center"
-        ShowPagingSummary="true" PagingSummaryFormat="{0} / {1} 페이지 (총 {2}건)" PageSizeText="건씩 보기" EmptyText="연결된 품목이 없습니다." Class="ames-rz-grid ames-grid-fixed" PageSizeChanged="@(n=>_pageRows=n)" Style="@($"--ames-page-rows:{_pageRows}")">
+        ShowPagingSummary="true" PagingSummaryFormat='@PortalText.Get("{0} / {1} 페이지 (총 {2}건)")' PageSizeText='@PortalText.Get("건씩 보기")' EmptyText='@PortalText.Get("연결된 품목이 없습니다.")' Class="ames-rz-grid ames-grid-fixed" PageSizeChanged="@(n=>_pageRows=n)" Style="@($"--ames-page-rows:{_pageRows}")">
         <Columns>
             <RadzenDataGridColumn TItem="EditRow" Title="No." Width="45px" Sortable="false" TextAlign="TextAlign.Center"><Template Context="r">@GridRowNo.Of(_grid,r)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="EditRow" Property="Source.VendorName" Title="협력업체" Width="150px"><Template Context="r"><span class="code">@r.Source.VendorID</span><br />@r.Source.VendorName</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="EditRow" Property="Source.ItemNo" Title="품목코드" Width="130px"><Template Context="r"><span class="code">@r.Source.ItemNo</span></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="EditRow" Property="Source.ItemName" Title="품명" />
-            <RadzenDataGridColumn TItem="EditRow" Property="Source.Unit" Title="단위" Width="55px" TextAlign="TextAlign.Center" />
-            <RadzenDataGridColumn TItem="EditRow" Title="적입량" Width="130px" Sortable="false">
-                <Template Context="r"><RadzenNumeric TValue="decimal?" @bind-Value="r.Quantity" Format="@QtyFormat.Format(r.Source.Unit)" Min="0.001m" Max="999999999999999.999m" Step="0.001" ShowUpDown="false" Placeholder="미등록" aria-label="@($"{r.Source.ItemNo} 적입량")" Style="width:100%;" class="ames-rz-input" /></Template>
+            <RadzenDataGridColumn TItem="EditRow" Property="Source.VendorName" Title='@PortalText.Get("협력업체")' Width="150px"><Template Context="r"><span class="code">@r.Source.VendorID</span><br />@r.Source.VendorName</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EditRow" Property="Source.ItemNo" Title='@PortalText.Get("품목코드")' Width="130px"><Template Context="r"><span class="code">@r.Source.ItemNo</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EditRow" Property="Source.ItemName" Title='@PortalText.Get("품명")' />
+            <RadzenDataGridColumn TItem="EditRow" Property="Source.Unit" Title='@PortalText.Get("단위")' Width="55px" TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn TItem="EditRow" Title='@PortalText.Get("적입량")' Width="130px" Sortable="false">
+                <Template Context="r"><RadzenNumeric TValue="decimal?" @bind-Value="r.Quantity" Format="@QtyFormat.Format(r.Source.Unit)" Min="0.001m" Max="999999999999999.999m" Step="0.001" ShowUpDown="false" Placeholder='@PortalText.Get("미등록")' aria-label="@($"{r.Source.ItemNo} 적입량")" Style="width:100%;" class="ames-rz-input" /></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EditRow" Title="" Width="120px" Sortable="false">
                 <Template Context="r">
-                    <RadzenButton Text="저장" Icon="save" Click="@(()=>Save(r))" Disabled="@(!r.Dirty)" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" />
-                    <RadzenButton Icon="undo" aria-label="변경 취소" Click="@(()=>r.Quantity=r.Source.PackingQty)" Disabled="@(!r.Dirty)" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" />
+                    <RadzenButton Text='@PortalText.Get("저장")' Icon="save" Click="@(()=>Save(r))" Disabled="@(!r.Dirty)" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" />
+                    <RadzenButton Icon="undo" aria-label='@PortalText.Get("변경 취소")' Click="@(()=>r.Quantity=r.Source.PackingQty)" Disabled="@(!r.Dirty)" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" />
                 </Template>
             </RadzenDataGridColumn>
         </Columns>
@@ -66,23 +66,23 @@
     void Load()
     {
         _rows=[];_message="";_error=false;
-        if(!_allowed||_user.Length==0){_error=true;_message="조회 권한이 없습니다.";return;}
+        if(!_allowed||_user.Length==0){_error=true;_message=PortalText.Get("조회 권한이 없습니다.");return;}
         try{_rows=Scm.ListPortalPackingQuantities(_user,_admin).Select(r=>new EditRow(r)).ToList();}
-        catch(Exception ex){Logger.LogError(ex,"Packing quantity load failed");_error=true;_message="조회하지 못했습니다. 다시 시도해 주세요.";}
+        catch(Exception ex){Logger.LogError(ex,"Packing quantity load failed");_error=true;_message=PortalText.Get("조회하지 못했습니다. 다시 시도해 주세요.");}
     }
     void Save(EditRow row)
     {
         if(!_allowed||!row.Dirty)return;
         _error=true;
         if(row.Quantity is null or <=0 || decimal.Round(row.Quantity.Value,3)!=row.Quantity.Value)
-        {_message="적입량은 0보다 큰 수량으로 소수점 셋째 자리까지 입력해 주세요.";return;}
+        {_message=PortalText.Get("적입량은 0보다 큰 수량으로 소수점 셋째 자리까지 입력해 주세요.");return;}
         try
         {
             if(!Scm.SavePortalPackingQuantity(_user,row.Source.ItemNo,row.Source.VendorID,row.Quantity,row.Source.PackingQty,_admin))
-            {_message="연결 정보나 적입량이 변경되어 저장하지 못했습니다. 변경 취소 후 새로고침해 주세요.";return;}
+            {_message=PortalText.Get("연결 정보나 적입량이 변경되어 저장하지 못했습니다. 변경 취소 후 새로고침해 주세요.");return;}
             row.Source=row.Source with {PackingQty=row.Quantity};
-            _error=false;_message="저장했습니다.";
+            _error=false;_message=PortalText.Get("저장했습니다.");
         }
-        catch(Exception ex){Logger.LogError(ex,"Packing quantity save failed");_message="저장하지 못했습니다. 입력값을 확인하고 다시 시도해 주세요.";}
+        catch(Exception ex){Logger.LogError(ex,"Packing quantity save failed");_message=PortalText.Get("저장하지 못했습니다. 입력값을 확인하고 다시 시도해 주세요.");}
     }
 }

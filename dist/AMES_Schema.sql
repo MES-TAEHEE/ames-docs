@@ -20,6 +20,7 @@ DECLARE @ScmDropSql nvarchar(max) = N'';
 SELECT @ScmDropSql = @ScmDropSql + N'ALTER TABLE ' + QUOTENAME(OBJECT_SCHEMA_NAME(parent_object_id)) + N'.' + QUOTENAME(OBJECT_NAME(parent_object_id)) + N' DROP CONSTRAINT ' + QUOTENAME(name) + N';' FROM sys.foreign_keys WHERE OBJECT_SCHEMA_NAME(parent_object_id)=N'dbo' AND OBJECT_NAME(parent_object_id) IN (N'SCM_ItemVendor',N'SCM_PurchaseOrderSequence',N'SCM_Delivery',N'SCM_DeliveryLine',N'SCM_DeliveryNote',N'SCM_DeliveryNoteDelivery');
 EXEC sys.sp_executesql @ScmDropSql;
 GO
+DROP TABLE IF EXISTS [dbo].[SCM_BoxNumberSequence];
 DROP TABLE IF EXISTS [dbo].[SCM_DeliveryBox];
 DROP TABLE IF EXISTS [dbo].[SCM_ItemVendor];
 DROP TABLE IF EXISTS [dbo].[SCM_PurchaseOrderSequence];
@@ -15072,4 +15073,67 @@ IF NOT EXISTS (SELECT 1 FROM dbo.SYS_Screen WHERE ScreenCode='PORTAL-006')
     VALUES('PORTAL-006','WEB','PORTAL',N'적입량 관리',N'Packing Quantities','portal/packing-quantities','PORTAL-006',6,1,'scm-screen',SYSDATETIME());
 COMMIT;
 
+GO
+
+GO
+-- New boxes: BX-{VendorID}-{creation date yyyyMMdd}-{vendor/day sequence, minimum 4 digits}.
+-- Keep existing BOX-* numbers, including voided labels, unchanged.
+SET XACT_ABORT ON;
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET ARITHABORT ON;
+SET NUMERIC_ROUNDABORT OFF;
+BEGIN TRANSACTION;
+IF OBJECT_ID('dbo.SCM_BoxNumberSequence','U') IS NULL
+    CREATE TABLE dbo.SCM_BoxNumberSequence (
+        VendorID varchar(20) NOT NULL REFERENCES dbo.MD_Vendor(VendorID),
+        NumberDate date NOT NULL,
+        LastNumber int NOT NULL CHECK (LastNumber>0),
+        CONSTRAINT PK_SCM_BoxNumberSequence PRIMARY KEY(VendorID,NumberDate)
+    );
+IF COL_LENGTH('dbo.SCM_DeliveryBox','IssuedBoxNumber') IS NULL
+BEGIN
+    ALTER TABLE dbo.SCM_DeliveryBox ADD IssuedBoxNumber varchar(64) NULL;
+    DROP INDEX UX_SCM_DeliveryBox_Number ON dbo.SCM_DeliveryBox;
+    ALTER TABLE dbo.SCM_DeliveryBox DROP COLUMN BoxNumber;
+    EXEC(N'ALTER TABLE dbo.SCM_DeliveryBox ADD BoxNumber AS
+        (CONVERT(varchar(64),COALESCE(IssuedBoxNumber,''BOX-''+CONVERT(varchar(20),BoxID)))) PERSISTED;');
+    EXEC(N'CREATE UNIQUE INDEX UX_SCM_DeliveryBox_Number ON dbo.SCM_DeliveryBox(BoxNumber);');
+END;
+COMMIT;
+
+GO
+
+GO
+-- PORTAL-003: delivery management; PORTAL-004: grouped delivery notes.
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+UPDATE dbo.SYS_Screen SET ScreenName=N'딜리버리 노트 조회·발행',ScreenNameEn=N'Delivery Notes',
+    HRef='portal/delivery-notes',LidLabel='PORTAL-004',SortOrder=4 WHERE ScreenCode='PORTAL-004';
+IF @@ROWCOUNT=0
+    INSERT dbo.SYS_Screen(ScreenCode,ModuleCode,ProcessCode,ScreenName,ScreenNameEn,HRef,LidLabel,SortOrder,IsVisible,CreatedBy)
+    VALUES('PORTAL-004','WEB','PORTAL',N'딜리버리 노트 조회·발행',N'Delivery Notes','portal/delivery-notes','PORTAL-004',4,1,'scm-screen');
+UPDATE dbo.SYS_Screen SET ScreenName=N'납품서 관리',ScreenNameEn=N'Delivery Management',
+    HRef='portal/deliveries',LidLabel='PORTAL-003',SortOrder=3 WHERE ScreenCode='PORTAL-003';
+IF @@ROWCOUNT=0
+    INSERT dbo.SYS_Screen(ScreenCode,ModuleCode,ProcessCode,ScreenName,ScreenNameEn,HRef,LidLabel,SortOrder,IsVisible,CreatedBy)
+    VALUES('PORTAL-003','WEB','PORTAL',N'납품서 관리',N'Delivery Management','portal/deliveries','PORTAL-003',3,1,'scm-screen');
+COMMIT;
+
+GO
+
+GO
+-- PORTAL-002: confirmed items with quantities available for delivery registration.
+UPDATE dbo.SYS_Screen SET ScreenName=N'납품 준비 현황',ScreenNameEn=N'Delivery Preparation'
+WHERE ScreenCode='PORTAL-002';
+
+GO
+
+GO
+-- PORTAL-005: EOS receipt completes the delivery flow.
+UPDATE dbo.SYS_Screen SET ScreenName=N'입고 현황',ScreenNameEn=N'Receipt Status'
+WHERE ScreenCode='PORTAL-005';
 GO

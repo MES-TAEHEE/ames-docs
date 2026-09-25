@@ -7,6 +7,9 @@ public sealed class ScmPreviewStore
     public sealed class OrderLine
     {
         public int PoID { get; set; }
+        public decimal ShippedQuantity { get; set; }
+        public decimal UnshippedQuantity => Math.Max(0, Quantity - ShippedQuantity);
+        public decimal RegisteredDelivery { get; set; }
         public decimal PendingDelivery { get; set; }
         public decimal AvailableDelivery => Math.Max(0, Quantity - Received - PendingDelivery);
         public int Id { get; set; } = 1;

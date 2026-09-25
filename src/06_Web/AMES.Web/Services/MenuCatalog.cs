@@ -1,4 +1,4 @@
-using AMES.Data.Repositories;
+﻿using AMES.Data.Repositories;
 
 namespace AMES.Web.Services;
 
@@ -52,10 +52,10 @@ public sealed class MenuCatalog
         new("scm", "scm/purchase-items", "SCM-003", "발주품목 관리", "Purchase Items"),
         new("scm", "scm/portal-users", "SCM-004", "외부 사용자 관리", "Portal Users"),
         new("portal", "portal/orders", "PORTAL-001", "발주 조회·수주 확인", "Orders & Confirmation"),
-        new("portal", "portal/due-orders", "PORTAL-002", "납기별 발주 현황", "Orders by Due Date"),
-        new("portal", "portal/delivery-entry", "PORTAL-003", "납품서 등록", "Create Delivery"),
-        new("portal", "portal/deliveries", "PORTAL-004", "납품서 조회·수정", "Delivery Notes"),
-        new("portal", "portal/receipts", "PORTAL-005", "입고·검수 결과", "Receipt & Inspection"),
+        new("portal", "portal/due-orders", "PORTAL-002", "납품 준비 현황", "Delivery Preparation"),
+        new("portal", "portal/deliveries", "PORTAL-003", "납품서 관리", "Delivery Management"),
+        new("portal", "portal/delivery-notes", "PORTAL-004", "딜리버리 노트 조회·발행", "Delivery Notes"),
+        new("portal", "portal/receipts", "PORTAL-005", "입고 현황", "Receipt Status"),
         new("portal", "portal/packing-quantities", "PORTAL-006", "적입량 관리", "Packing Quantities"),
         // -- WH --
         new("wh", "wh/inventory",       "WH-006", "재고 조회",   "Inventory Search"),
@@ -254,10 +254,10 @@ public sealed class MenuCatalog
         ["scm/purchase-items"] = "Artículos de compra",
         ["scm/portal-users"] = "Usuarios del portal",
         ["portal/orders"] = "Pedidos y confirmación",
-        ["portal/due-orders"] = "Pedidos por vencimiento",
-        ["portal/delivery-entry"] = "Crear entrega",
-        ["portal/deliveries"] = "Albaranes",
-        ["portal/receipts"] = "Recepción e inspección",
+        ["portal/due-orders"] = "Preparación de entregas",
+        ["portal/deliveries"] = "Gestión de entregas",
+        ["portal/delivery-notes"] = "Notas de entrega",
+        ["portal/receipts"] = "Estado de recepción",
         // WH
         ["wh/location-map"] = "Mapa de Ubicaciones",
         ["wh/picking-orders"] = "Órdenes de Picking",

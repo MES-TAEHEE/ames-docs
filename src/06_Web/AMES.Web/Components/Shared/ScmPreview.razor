@@ -42,7 +42,7 @@
 
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span style="white-space:nowrap;">▼ @Title · @(Mode is "Deliveries" or "Receipts" ? DeliveryRows.Count : Rows.Count) @T("건", "items", "registros")</span>
+            <span style="white-space:nowrap;">▼ @Title · @(Mode is "Deliveries" or "Receipts" ? DeliveryRows.Count : IsPortal && Mode=="Due" ? DeliveryReadyRows.Count : Rows.Count) @T("건", "items", "registros")</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
                 <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@(Mode == "Deliveries" ? T("납품서 / 발주 / 품목", "Delivery / order / item", "Entrega / pedido / artículo") : T("발주번호 / 품목", "Order / item", "Pedido / artículo"))' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
                 @if (!IsPortal)
@@ -61,11 +61,17 @@
                 {
                     <RadzenButton Text='@T("신규 발주", "New order", "Nuevo pedido")' Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="NewOrder" class="ames-rz-btn" />
                 }
+                @if(IsPortal && Mode=="Deliveries" && (_adminPreview || _isExternalPortalUser))
+                {
+                    <RadzenButton Text='@T("신규 납품서 등록", "New delivery", "Nueva entrega")' Icon="add" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenDeliveryRegistration" />
+                }
             </RadzenStack>
         </div>
         <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">
             ℹ
-            @if (IsPortal) { @T("발주 내역을 조회하고 수주 확인·납품서 등록·출하 확정을 진행합니다. 입고·검수는 별도 처리합니다.", "View purchase orders, confirm orders, register deliveries and confirm shipments. Receipt and inspection are handled separately.", "Consulte pedidos, confirme órdenes, registre entregas y confirme envíos. La recepción y la inspección se gestionan por separado.") }
+            @if (IsPortal && Mode=="Due") { @T("수주 확인된 발주의 최초 수량, 납품서 등록수량과 미등록 잔량을 표시합니다. 추가 등록 가능 = 발주수량 - 입고수량 - 등록 후 미입고수량.", "Original, registered and remaining quantities are shown for confirmed orders. Available = ordered - received - registered quantities awaiting receipt.", "Pedidos confirmados por fecha de entrega. Use el filtro para consultar pedidos cerrados.") }
+            else if(Mode=="Progress") { @T("협력사의 수주 확인과 납품 진행 상황입니다. 출하수량은 출하 확정된 납품서의 누적 수량이며, 입고된 수량도 포함합니다. 미출하 잔량 = 발주수량 - 출하수량. 수량은 단위별로 합산합니다.", "Track supplier confirmation and deliveries. Shipped is the cumulative confirmed shipment quantity, including receipts. Not yet shipped = ordered - shipped. Quantities are totaled by unit.", "Seguimiento de confirmación y entregas. Enviado incluye lo recibido. Pendiente de envío = pedido - enviado. Totales por unidad.") }
+            else if (IsPortal) { @T("발주 내역을 조회하고 수주 확인·납품서 등록·출하 확정을 진행합니다. EOS에서 전량 입고하면 완료됩니다.", "View purchase orders, confirm orders, register deliveries and confirm shipments. The process is complete when EOS receives the full quantity.", "Consulte pedidos, confirme órdenes, registre entregas y confirme envíos. El proceso termina cuando EOS recibe toda la cantidad.") }
             else { @T("발주서를 작성하고 발행·취소 상태와 입고수량을 확인합니다.", "Create purchase orders and view their status and received quantities.", "Cree pedidos y consulte su estado y las cantidades recibidas.") }
             @if (IsPortal) { <span> · @(_adminPreview ? T("관리자 전체 조회", "Administrator preview", "Vista de administrador") : T("계정에 연결된 업체의 발주만 표시됩니다. 연결 정보가 없으면 표시되지 않습니다.", "Only orders for linked vendors are visible. Unlinked accounts see no orders.", "Solo pedidos de proveedores vinculados."))</span> }
         </div>
@@ -106,6 +112,34 @@
                 </Columns>
             </RadzenDataGrid>
         }
+        else if(IsPortal && Mode=="Due")
+        {
+            <RadzenDataGrid TItem="DeliveryReadySummary" Data="@DeliveryReadySummaries" AllowPaging="true" PageSize="10" EmptyText="@Empty" Class="ames-rz-grid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="DeliveryReadySummary" Property="Number" Title='@T("발주번호", "Order", "Pedido")' />
+                    <RadzenDataGridColumn TItem="DeliveryReadySummary" Property="Unit" Title='@T("단위", "Unit", "Unidad")' Width="75px" />
+                    <RadzenDataGridColumn TItem="DeliveryReadySummary" Title='@T("최초 발주수량", "Original order quantity", "Cantidad original")' TextAlign="TextAlign.Right"><Template Context="r">@QtyFormat.Text(r.Quantity,r.Unit)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="DeliveryReadySummary" Title='@T("납품서 등록수량", "Registered delivery quantity", "Cantidad registrada")' TextAlign="TextAlign.Right"><Template Context="r">@QtyFormat.Text(r.Registered,r.Unit)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="DeliveryReadySummary" Title='@T("미등록 잔량", "Remaining to register", "Saldo por registrar")' TextAlign="TextAlign.Right"><Template Context="r"><strong>@QtyFormat.Text(r.Available,r.Unit)</strong></Template></RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+            <p class="dim">@T("품목별 내역 · 등록 완료 품목도 함께 표시합니다. 합계는 발주별·단위별로 구분합니다.", "Item details include fully registered items. Totals are separated by order and unit.", "Detalle por artículo, incluidos los registrados. Totales por pedido y unidad.")</p>
+            <RadzenDataGrid TItem="DeliveryReadyRow" Data="@DeliveryReadyRows" AllowPaging="true" PageSize="25" AllowSorting="true" PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@PagerSummary" PageSizeText="@PagerSize" EmptyText="@Empty" Class="ames-rz-grid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="DeliveryReadyRow" Property="Due" Title='@T("납기일", "Due date", "Vencimiento")' Width="125px"><Template Context="r">@r.Due.ToString(DateFmt.Date) @if(r.Due.Date<DbClock.Today && r.Line.AvailableDelivery>0){<span class="pill bad">@T("지연", "Overdue", "Atrasado")</span>}</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="DeliveryReadyRow" Property="Number" Title='@T("발주번호", "Order", "Pedido")' Width="160px" />
+                    <RadzenDataGridColumn TItem="DeliveryReadyRow" Property="Item" Title='@T("품번", "Item", "Artículo")' Width="160px" />
+                    <RadzenDataGridColumn TItem="DeliveryReadyRow" Property="Name" Title='@T("품명", "Description", "Descripción")' />
+                    <RadzenDataGridColumn TItem="DeliveryReadyRow" Property="Unit" Title='@T("단위", "Unit", "Unidad")' Width="65px" />
+                    <RadzenDataGridColumn TItem="DeliveryReadyRow" Property="Line.Quantity" Title='@T("발주수량", "Order quantity", "Cantidad pedida")' TextAlign="TextAlign.Right"><Template Context="r">@QtyFormat.Text(r.Line.Quantity,r.Unit)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="DeliveryReadyRow" Property="Registered" Title='@T("납품서 등록수량", "Registered quantity", "Cantidad registrada")' TextAlign="TextAlign.Right"><Template Context="r">@QtyFormat.Text(r.Registered,r.Unit)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="DeliveryReadyRow" Property="Line.Received" Title='@T("입고수량", "Received", "Recibido")' TextAlign="TextAlign.Right"><Template Context="r">@QtyFormat.Text(r.Line.Received,r.Unit)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="DeliveryReadyRow" Property="Line.PendingDelivery" Title='@T("등록 후 미입고", "Registered, not received", "Registrado sin recibir")' TextAlign="TextAlign.Right"><Template Context="r">@QtyFormat.Text(r.Line.PendingDelivery,r.Unit)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="DeliveryReadyRow" Property="Line.AvailableDelivery" Title='@T("추가 등록 가능", "Available to register", "Disponible para registrar")' TextAlign="TextAlign.Right"><Template Context="r"><strong>@QtyFormat.Text(r.Line.AvailableDelivery,r.Unit)</strong></Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="DeliveryReadyRow" Title='@T("등록", "Register", "Registrar")' Width="130px"><Template Context="r"><RadzenButton Text='@(r.Line.AvailableDelivery<=0 ? T("잔량 없음", "No balance", "Sin saldo") : T("납품서 등록", "Create delivery", "Crear entrega"))' Size="ButtonSize.Small" Disabled='@(r.Line.AvailableDelivery<=0 || r.Order.Status is not ("Published" or "Confirmed"))' Click="@(()=>RegisterReadyOrder(r.Number))" /></Template></RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        }
         else
         {
             <RadzenDataGrid @ref="_orderGrid" TItem="ScmPreviewStore.Order" Data="@Rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
@@ -121,14 +155,23 @@
                     </RadzenDataGridColumn>
                     @if (!IsPortal || _adminPreview) { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="Vendor" Title='@T("협력업체", "Supplier", "Proveedor")' Width="220px"><Template Context="order"><span class="code">@order.Vendor</span><span class="dim" style="font-size:.8em;margin-left:4px;">@VendorName(order.Vendor)</span></Template></RadzenDataGridColumn> }
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="Item" Title='@T("품번", "Item", "Artículo")' Width="170px"><Template Context="o"><span class="code">@(o.Lines.FirstOrDefault()?.Item)</span>@if (o.LineCount > 1) { <span class="pill info" style="margin-left:6px;" title="@o.Item">+@(o.LineCount - 1)</span> }</Template></RadzenDataGridColumn>
+                    @if(Mode!="Progress")
+                    {
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="Name" Title='@T("품명", "Description", "Descripción")'><Template Context="o"><span title="@o.Name">@(o.Lines.FirstOrDefault()?.Name)</span></Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="LineCount" Title='@T("품목 수", "Lines", "Líneas")' TextAlign="TextAlign.Right" Width="90px" />
+                    }
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title='@T("발주수량", "Ordered", "Pedidos")' TextAlign="TextAlign.Right" Width="140px"><Template Context="o">@Quantities(o, l => l.Quantity)</Template></RadzenDataGridColumn>
+                    @if(Mode=="Progress")
+                    {
+                        <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title='@T("납품서 등록", "Registered", "Registrado")' TextAlign="TextAlign.Right" Width="140px"><Template Context="o">@Quantities(o,l=>l.RegisteredDelivery)</Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title='@T("출하수량", "Shipped", "Enviado")' TextAlign="TextAlign.Right" Width="140px"><Template Context="o">@Quantities(o,l=>l.ShippedQuantity)</Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title='@T("미출하 잔량", "Not yet shipped", "Pendiente de envío")' TextAlign="TextAlign.Right" Width="140px"><Template Context="o">@Quantities(o,l=>l.UnshippedQuantity)</Template></RadzenDataGridColumn>
+                    }
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title='@T("입고수량", "Received", "Recibidos")' TextAlign="TextAlign.Right" Width="140px"><Template Context="o">@Quantities(o, l => Store.Delivered(o, l))</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title='@T("미납수량", "Remaining", "Pendientes")' TextAlign="TextAlign.Right" Width="140px"><Template Context="o">@Quantities(o, l => Store.Remaining(o, l))</Template></RadzenDataGridColumn>
                     @if (Mode != "Due") { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="Due" Title='@T("납기일", "Due date", "Vencimiento")' TextAlign="TextAlign.Center" Width="120px"><Template Context="o">@o.Due.ToString(DateFmt.Date)</Template></RadzenDataGridColumn> }
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title='@T("상태", "Status", "Estado")' TextAlign="TextAlign.Center" Width="110px"><Template Context="o"><span class="pill @Badge(o.Status)">@Status(o.Status)</span></Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title='@T("수주 확인", "Supplier confirmation", "Confirmación")' Width="130px"><Template Context="o">@ConfirmationLabel(o)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title='@T("상태", "Status", "Estado")' TextAlign="TextAlign.Center" Width="110px"><Template Context="o"><span class="pill @Badge(o.Status)">@(Mode=="Progress" ? ProgressStatus(o) : Status(o.Status))</span></Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title='@T("수주 확인", "Supplier confirmation", "Confirmación")' Width="130px"><Template Context="o">@ConfirmationLabel(o) @if(Mode=="Progress" && o.SupplierConfirmedAt.HasValue){<div class="dim">@o.SupplierConfirmedAt.Value.ToString("yyyy-MM-dd HH:mm")</div>}</Template></RadzenDataGridColumn>
                 </Columns>
             </RadzenDataGrid>
         }
@@ -138,7 +181,7 @@
     @if (_selected is not null && _delivery is null && _edit is null)
     {
         <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-            <div class="ames-modal ames-modal-wide scm-order-detail" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal ames-modal-wide scm-order-detail @(CanRegisterDelivery ? "scm-entry-wide" : "")" @onmousedown:stopPropagation @onclick:stopPropagation>
                 <div class="ames-modal-h">
                     @T("발주 상세", "Order details", "Detalle del pedido") <span class="code" style="font-weight:400;font-size:.9em;">@_selected.Number</span>
                     <span class="pill @Badge(_selected.Status)" style="margin-left:8px;">@Status(_selected.Status)</span>
@@ -170,11 +213,11 @@
                 <div class="scm-dsub">@T("발주 품목", "Order lines", "Líneas del pedido") · @_selected.LineCount</div>
                 <div class="scm-scroll">
                     <table class="ames-table">
-                        <thead><tr><th>@T("품번", "Item", "Artículo")</th><th>@T("품명", "Description", "Descripción")</th><th>@T("단위", "Unit", "Unidad")</th><th class="num">@T("발주수량", "Ordered", "Pedidos")</th><th class="num">@T("입고수량", "Received", "Recibidos")</th><th class="num">@T("미납수량", "Remaining", "Pendientes")</th><th class="num">@T("단가", "Unit price", "Precio") (@_selected.Currency)</th><th class="num">@T("금액", "Amount", "Importe") (@_selected.Currency)</th></tr></thead>
+                        <thead><tr><th>@T("품번", "Item", "Artículo")</th><th>@T("품명", "Description", "Descripción")</th><th>@T("단위", "Unit", "Unidad")</th><th class="num">@T("발주수량", "Ordered", "Pedidos")</th><th class="num">@T("입고수량", "Received", "Recibidos")</th><th class="num">@T("미납수량", "Remaining", "Pendientes")</th>@if(Mode=="Progress"){<th class="num">@T("납품서 등록", "Registered", "Registrado")</th><th class="num">@T("출하수량", "Shipped", "Enviado")</th><th class="num">@T("미출하 잔량", "Not yet shipped", "Pendiente de envío")</th>}else{<th class="num">@T("단가", "Unit price", "Precio") (@_selected.Currency)</th><th class="num">@T("금액", "Amount", "Importe") (@_selected.Currency)</th>}</tr></thead>
                         <tbody>
                         @foreach (var line in _selected.Lines)
                         {
-                            <tr><td class="code">@line.Item</td><td>@line.Name</td><td>@line.Unit</td><td class="num">@QuantityText(line.Quantity, line.Unit, 2)</td><td class="num">@QuantityText(Store.Delivered(_selected, line), line.Unit, 2)</td><td class="num">@QuantityText(Store.Remaining(_selected, line), line.Unit, 2)</td><td class="num">@line.Price.ToString("N2")</td><td class="num">@line.Amount.ToString("N2")</td></tr>
+                            <tr><td class="code">@line.Item</td><td>@line.Name</td><td>@line.Unit</td><td class="num">@QuantityText(line.Quantity, line.Unit, 2)</td><td class="num">@QuantityText(Store.Delivered(_selected, line), line.Unit, 2)</td><td class="num">@QuantityText(Store.Remaining(_selected, line), line.Unit, 2)</td>@if(Mode=="Progress"){<td class="num">@QtyFormat.Text(line.RegisteredDelivery,line.Unit)</td><td class="num">@QtyFormat.Text(line.ShippedQuantity,line.Unit)</td><td class="num">@QtyFormat.Text(line.UnshippedQuantity,line.Unit)</td>}else{<td class="num">@line.Price.ToString("N2")</td><td class="num">@line.Amount.ToString("N2")</td>}</tr>
                         }
                         </tbody>
                     </table>
@@ -188,7 +231,7 @@
                 </div>
                 <div class="scm-scroll">
                     <table class="ames-table scm-lines scm-delivery-entry">
-                        <thead><tr><th>@T("선택", "Select", "Elegir")</th><th>@T("품번", "Item", "Artículo")</th><th>@T("품명", "Description", "Descripción")</th><th>@T("단위", "Unit", "Unidad")</th><th>@T("기등록 미입고", "Pending receipt", "Pendiente recepción")</th><th>@T("등록 가능", "Available", "Disponible")</th><th>@T("적입량", "Packing quantity", "Cantidad por caja")</th><th>@T("이번 납품수량", "Delivery quantity", "Cantidad")</th><th>@T("박스수량", "Boxes", "Cajas")</th><th>@T("업체 LOT", "Vendor LOT", "Lote proveedor") / @T("제조일자", "Production date", "Fecha de producción")</th></tr></thead>
+                        <thead><tr><th>@T("선택", "Select", "Elegir")</th><th>@T("품번", "Item", "Artículo")</th><th>@T("품명", "Description", "Descripción")</th><th>@T("단위", "Unit", "Unidad")</th><th>@T("기등록 미입고", "Pending receipt", "Pendiente recepción")</th><th>@T("등록 가능", "Available", "Disponible")</th><th>@T("적입량", "Packing quantity", "Cantidad por caja")</th><th>@T("이번 납품수량", "Delivery quantity", "Cantidad")</th><th>@T("박스수량", "Boxes", "Cajas")</th><th>@T("업체 LOT", "Vendor LOT", "Lote proveedor")</th><th>@T("제조일자", "Production date", "Fecha de producción")</th></tr></thead>
                         <tbody>
                             @foreach (var entry in _deliveryEntries)
                             {
@@ -200,8 +243,8 @@
                                     <td><RadzenNumeric TValue="decimal" class="ames-rz-input scm-number" @oninput="@(e=>UpdateDeliveryQuantity(entry,e))" aria-label="@($"{entry.Line.Item} 납품수량")" Min="0.001m" Step="0.001" Max="@entry.Line.AvailableDelivery" Disabled="@(!entry.Selected)" @bind-Value="entry.Quantity" Format="@QtyFormat.Format(entry.Line.Unit)" ShowUpDown="false" /></td>
                                     <td class="scm-box-count"><strong>@(entry.BoxCount?.ToString("N0") ?? "—")</strong>
                                     </td>
-                                <td class="scm-trace-fields"><input class="ames-input" aria-label="@(entry.Line.Item + " 업체 LOT")" maxlength="30" @bind="entry.VendorLotNo" disabled="@(!entry.Selected)" />
-                                    <RadzenDatePicker TValue="DateTime" @bind-Value="entry.ProductionDate" DateFormat="@DateFmt.Date" Disabled="@(!entry.Selected)" InputSize="InputSize.Small" class="ames-rz-input" /></td>
+                                    <td class="scm-entry-lot"><input class="ames-input" aria-label="@(entry.Line.Item + " 업체 LOT")" maxlength="30" @bind="entry.VendorLotNo" disabled="@(!entry.Selected)" /></td>
+                                    <td class="scm-entry-date"><RadzenDatePicker TValue="DateTime" @bind-Value="entry.ProductionDate" DateFormat="@DateFmt.Date" Disabled="@(!entry.Selected)" InputSize="InputSize.Small" class="ames-rz-input" /></td>
                                 </tr>
                             }
                         </tbody>
@@ -236,6 +279,25 @@
         </div>
     }
 
+    @if(_choosingDeliveryOrder)
+    {
+        <div class="ames-modal-bg"><div class="ames-modal ames-modal-wide" role="dialog" aria-modal="true" aria-label='@PortalText.Get("납품할 발주 선택")'>
+            <div class="ames-modal-h">@T("납품할 발주 선택", "Select purchase order", "Seleccionar pedido")</div>
+            <RadzenTextBox @bind-Value="_newDeliverySearch" Immediate="true" Placeholder='@T("발주번호 / 업체 / 품목", "Order / vendor / item", "Pedido / proveedor / artículo")' class="ames-rz-input" Style="width:100%" />
+            <div class="scm-scroll">
+                @foreach(var order in DeliveryRegistrationOrders)
+                {
+                    <div class="scm-registration-order">
+                        <div><strong>@order.Number</strong><div>@order.Vendor · @order.VendorName</div><div class="dim">@string.Join(", ",order.Lines.Where(l=>l.AvailableDelivery>0).Select(l=>l.Item))</div></div>
+                        <RadzenButton Text='@T("선택", "Select", "Elegir")' Size="ButtonSize.Small" Click="@(()=>ChooseDeliveryOrder(order))" />
+                    </div>
+                }
+                @if(!DeliveryRegistrationOrders.Any()){<p>@T("수주 확인이 완료되고 납품 가능한 잔량이 있는 발주가 없습니다.","No confirmed orders with available quantities.","No hay pedidos confirmados con saldo disponible.")</p>}
+            </div>
+            <div class="ames-modal-footer"><RadzenButton Text='@T("닫기", "Close", "Cerrar")' Click="@(()=>_choosingDeliveryOrder=false)" /></div>
+        </div></div>
+    }
+
     @* ── 납품서 상세 ───────────────────────────────────────────────── *@
     @if (_delivery is not null)
     {
@@ -251,10 +313,6 @@
                     <RadzenButton Text='@T("납품 취소", "Cancel delivery", "Cancelar entrega")' ButtonStyle="ButtonStyle.Danger" Click="@(() => _cancelDeliveryPrompt=true)" />
                 }
             </div>
-            @if (IsPortal && (_adminPreview || _isExternalPortalUser) && _delivery.Status is ("Shipped" or "Received"))
-            {
-                <div class="scm-act"><RadzenButton Text='@T("딜리버리 노트 발행 / 재출력", "Issue / reprint delivery note", "Emitir / reimprimir nota de entrega")' Icon="print" Click="OpenDeliveryNote" /></div>
-            }
             @if (_delivery.ShippedAt is not null)
             {
                 <div class="scm-act"><span>@T("출하일", "Ship date", "Fecha de envío"): @_delivery.ShipDate?.ToString("yyyy-MM-dd")</span>
@@ -281,9 +339,9 @@
                 <thead><tr><th>@T("품번", "Item", "Artículo")</th><th>@T("단위", "Unit", "Unidad")</th>@if (DeliveryEditable) { <th>@T("수정 가능 최대수량", "Maximum quantity", "Cantidad máxima")</th> }<th>@T("납품수량", "Quantity", "Cantidad")</th><th>@T("업체 LOT", "Vendor LOT", "Lote proveedor")</th><th>@T("제조일자", "Production date", "Fecha de producción")</th></tr></thead>
                 <tbody>@foreach(var line in _deliveryEditLines)
                 {
-                    <tr @key="line.PoID"><td data-label="품번">@line.Item</td><td data-label="단위">@line.Unit</td>@if (DeliveryEditable) { <td data-label="수정 가능 최대수량">@QuantityText(EditableDeliveryBalance(line), line.Unit, 3)</td> }
-                        <td data-label="납품수량">@if (DeliveryEditable) { <RadzenNumeric TValue="decimal" class="ames-rz-input scm-number" aria-label="@($"{line.Item} 수정수량")" Min="0.001m" Step="0.001" @bind-Value="line.Quantity" Format="@QtyFormat.Format(line.Unit)" ShowUpDown="false" /> } else { @QuantityText(line.Quantity, line.Unit, 3) }</td><td data-label="업체 LOT"><input class="ames-input" maxlength="30" aria-label="@(line.Item + " 업체 LOT")" @bind="line.VendorLotNo" disabled="@(!DeliveryEditable)" /></td>
-                        <td data-label="제조일자"><RadzenDatePicker TValue="DateTime" @bind-Value="line.ProductionDate" DateFormat="@DateFmt.Date" Disabled="@(!DeliveryEditable)" InputSize="InputSize.Small" class="ames-rz-input" /></td></tr>
+                    <tr @key="line.PoID"><td data-field="item" data-label='@PortalText.Get("품번")'>@line.Item</td><td data-label='@PortalText.Get("단위")'>@line.Unit</td>@if (DeliveryEditable) { <td data-label='@PortalText.Get("수정 가능 최대수량")'>@QuantityText(EditableDeliveryBalance(line), line.Unit, 3)</td> }
+                        <td data-field="quantity" data-label='@PortalText.Get("납품수량")'>@if (DeliveryEditable) { <RadzenNumeric TValue="decimal" class="ames-rz-input scm-number" aria-label="@($"{line.Item} 수정수량")" Min="0.001m" Step="0.001" @bind-Value="line.Quantity" Format="@QtyFormat.Format(line.Unit)" ShowUpDown="false" /> } else { @QuantityText(line.Quantity, line.Unit, 3) }</td><td data-field="lot" data-label='@PortalText.Get("업체 LOT")'><input class="ames-input" maxlength="30" aria-label="@(line.Item + " 업체 LOT")" @bind="line.VendorLotNo" disabled="@(!DeliveryEditable)" /></td>
+                        <td data-field="production-date" data-label='@PortalText.Get("제조일자")'><RadzenDatePicker TValue="DateTime" @bind-Value="line.ProductionDate" DateFormat="@DateFmt.Date" Disabled="@(!DeliveryEditable)" InputSize="InputSize.Small" class="ames-rz-input" /></td></tr>
                 }</tbody>
             </table></div>
             @if (!DeliveryEditable) { <div class="scm-act">@T("출하 확정·취소되었거나 입고가 진행된 납품서는 수정할 수 없습니다.", "Shipped, cancelled or receiving deliveries cannot be edited.", "No se pueden editar entregas canceladas o recibidas.")</div> }
@@ -336,7 +394,7 @@
                                         InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                                     <div class="dim">@line.Name</div>
                                 </td>
-                                <td data-label="단위">@line.Unit</td>
+                                <td data-label='@PortalText.Get("단위")'>@line.Unit</td>
                                 <td><RadzenNumeric TValue="decimal" @bind-Value="line.Quantity" Min="0.001m" Step="1" aria-label='@($"{T("수량", "Quantity", "Cantidad")} {line.Id}")' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" /></td>
                                 <td><RadzenNumeric TValue="decimal" @bind-Value="line.Price" Min="0" Step="0.01" aria-label='@($"{T("단가", "Unit price", "Precio")} {line.Id}")' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" /></td>
                                 <td class="num">@line.Amount.ToString("N2")</td>
@@ -375,7 +433,7 @@
     string VendorName(string vendorId) => _vendors.Find(x => x.VendorID == vendorId)?.VendorName ?? _dbOrders.FirstOrDefault(o => o.Vendor == vendorId)?.VendorName ?? "";
     static void RowLinkOrder(RowRenderEventArgs<ScmPreviewStore.Order> args) => args.Attributes["class"] = (args.Attributes.TryGetValue("class", out var c) ? c + " " : "") + "ames-row-link";
     static void RowLinkDelivery(RowRenderEventArgs<ScmPreviewStore.Delivery> args) => args.Attributes["class"] = (args.Attributes.TryGetValue("class", out var c) ? c + " " : "") + "ames-row-link";
-    void CloseDetail() { _selected = null; _delivery = null; _message = ""; }
+    void CloseDetail() { _choosingDeliveryOrder=false; _selected = null; _delivery = null; _message = ""; }
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseDetail(); _bgMouseDownOnSelf = false; }
 
@@ -383,6 +441,7 @@
     [Parameter] public string Href { get; set; } = "";
     [Parameter] public string Mode { get; set; } = "Orders";
     [Parameter] public bool IsPortal { get; set; }
+    [Parameter] public string? RegistrationOrder { get; set; }
     bool _ready;
     string _search = "", _vendor = "", _status = "", _message = "", _error = "";
     DateTime? _from, _to;
@@ -406,27 +465,43 @@
         && (_adminPreview || _isExternalPortalUser) && !string.IsNullOrEmpty(_portalUserId)
         && _delivery?.Status == "Registered" && _deliveryEditLines.All(l=>l.Received==0);
     string Empty => T("조회 결과가 없습니다.", "No results.", "Sin resultados.");
-    IEnumerable<string> OrderStatuses => Mode == "Deliveries" ? ["Registered", "Shipped", "Received", "Cancelled"] : IsPortal ? ["Published", "Confirmed", "Closed", "Cancelled"] : ["Draft", "Published", "Confirmed", "Closed", "Cancelled"];
+    IEnumerable<string> OrderStatuses => IsPortal && Mode=="Due" ? ["Outstanding","Published","Confirmed","Closed","Cancelled"] : Mode == "Deliveries" ? ["Registered", "Shipped", "Received", "Cancelled"] : IsPortal ? ["Published", "Confirmed", "Closed", "Cancelled"] : ["Draft", "Published", "Confirmed", "Closed", "Cancelled"];
     string Title => Mode switch {
         "Orders" => IsPortal ? T("발주 조회·수주 확인", "Orders & confirmation", "Pedidos y confirmación") : T("구매발주 관리", "Purchase orders", "Pedidos de compra"),
         "Progress" => T("발주 진행 현황", "Order progress", "Seguimiento de pedidos"),
-        "Due" => T("납기별 발주 현황", "Orders by due date", "Pedidos por vencimiento"),
+        "Due" => T("납품 준비 현황", "Delivery Preparation", "Preparación de entregas"),
         "Entry" => T("납품서 등록", "Create delivery", "Crear entrega"),
-        "Deliveries" => T("납품서 조회·수정", "Delivery notes", "Albaranes"),
-        _ => T("입고·검수 결과", "Receipt & inspection", "Recepción e inspección")
+        "Deliveries" => T("납품서 관리", "Delivery management", "Gestión de entregas"),
+        _ => T("입고 현황", "Receipt Status", "Estado de recepción")
     };
     List<ScmPreviewStore.Order> Rows => _dbOrders
+        .Where(o => !IsPortal || Mode!="Due" || o.SupplierConfirmedAt.HasValue)
         .Where(o => Mode != "Entry" || o.SupplierConfirmedAt.HasValue && (o.Status is "Published" or "Confirmed") && o.Lines.Any(l => l.AvailableDelivery > 0))
-        .Where(o => (string.IsNullOrEmpty(_vendor) || o.Vendor == _vendor) && (string.IsNullOrEmpty(_status) || o.Status == _status))
+        .Where(o => (string.IsNullOrEmpty(_vendor) || o.Vendor == _vendor) && (string.IsNullOrEmpty(_status) || (_status=="Outstanding" ? (o.Status is "Published" or "Confirmed") && o.Lines.Any(l=>l.AvailableDelivery>0) : o.Status == _status)))
         .Where(o => _from <= _to || _from == null || _to == null)
         .Where(o => (!_from.HasValue || o.Due >= _from) && (!_to.HasValue || o.Due <= _to))
         .Where(o => string.IsNullOrWhiteSpace(_search) || (o.Number + " " + o.Item + " " + o.Name).Contains(_search, StringComparison.OrdinalIgnoreCase))
         .OrderBy(o => Mode == "Due" ? o.Due : o.Ordered).ThenBy(o => o.Number).ToList();
+    public record DeliveryReadyRow(ScmPreviewStore.Order Order,ScmPreviewStore.OrderLine Line)
+    {
+        public DateTime Due=>Order.Due;
+        public string Number=>Order.Number;
+        public string Item=>Line.Item;
+        public string Name=>Line.Name;
+        public string Unit=>Line.Unit;
+        public decimal Registered=>Line.RegisteredDelivery;
+    }
+    public record DeliveryReadySummary(string Number,string Unit,decimal Quantity,decimal Registered,decimal Available);
+    List<DeliveryReadySummary> DeliveryReadySummaries => Rows.SelectMany(o=>o.Lines.GroupBy(l=>l.Unit).Select(g=>new DeliveryReadySummary(o.Number,g.Key,g.Sum(l=>l.Quantity),g.Sum(l=>l.RegisteredDelivery),g.Sum(l=>l.AvailableDelivery)))).ToList();
+    List<DeliveryReadyRow> DeliveryReadyRows => Rows.SelectMany(o=>o.Lines.Select(l=>new DeliveryReadyRow(o,l)))
+        .Where(r=>string.IsNullOrWhiteSpace(_search) || (r.Number+" "+r.Item+" "+r.Name).Contains(_search,StringComparison.OrdinalIgnoreCase))
+        .OrderBy(r=>r.Due).ThenBy(r=>r.Number).ThenBy(r=>r.Line.Id).ToList();
+    void RegisterReadyOrder(string number)=>Nav.NavigateTo("/portal/deliveries?OrderNumber="+Uri.EscapeDataString(number));
     List<ScmPreviewStore.Delivery> DeliveryRows => Store.Deliveries
         .Where(d=>_dbOrders.Any(o=>o.Number==d.OrderNumber))
         .Where(d=>string.IsNullOrEmpty(_status) || d.Status==_status)
         .Where(d=>(!_from.HasValue || d.Date>=_from) && (!_to.HasValue || d.Date<=_to))
-        .Where(d=>Mode!="Receipts" || d.Status=="Inspected")
+        .Where(d=>Mode!="Receipts" || d.Received>0)
         .GroupBy(d=>d.Number)
         .Where(g=>string.IsNullOrWhiteSpace(_search) || g.Any(d=>(d.Number+" "+d.OrderNumber+" "+d.Item).Contains(_search,StringComparison.OrdinalIgnoreCase)))
         .Select(g=> {var d=g.First().Copy();d.Item=string.Join(", ",g.Select(x=>x.Item));return d;}).ToList();
@@ -445,14 +520,19 @@
         _adminPreview = PortalAuth.IsInternalUser(user) && user.IsInRole("Admin");
         _isExternalPortalUser = PortalAuth.IsPortalUser(user);
         ReloadOrders();
+        if(IsPortal && Mode=="Deliveries" && !string.IsNullOrWhiteSpace(RegistrationOrder))
+        {
+            var order=DeliveryRegistrationOrders.FirstOrDefault(o=>o.Number==RegistrationOrder);
+            if(order is not null)ChooseDeliveryOrder(order);
+            else _message=T("등록 가능한 발주가 없습니다. 수주 확인 상태와 잔량을 다시 확인해 주세요.","No available order. Check confirmation and remaining quantities.","Revise la confirmación y el saldo del pedido.");
+        }
         _ready = true;
     }
-    void Reset() { _confirmPrompt = false; _search = _vendor = _status = _message = ""; _from = _to = null; _selected = _edit = null; _delivery = null; if (_ready) ReloadOrders(); }
+    void Reset() { _confirmPrompt = false; _search = _vendor = _message = ""; _status=IsPortal && Mode=="Due" ? "Outstanding" : ""; _from = _to = null; _selected = _edit = null; _delivery = null; if (_ready) ReloadOrders(); }
     void Select(ScmPreviewStore.Order o) { _confirmPrompt = false; _selected = o; _delivery = null; _deliveryLineId = o.Lines.FirstOrDefault(l => Store.Remaining(o, l) > 0)?.Id ?? 0; SelectDeliveryLine(); PrepareDelivery(); _message = ""; }
     List<ScmPreviewStore.Delivery> _deliveryEditLines = new();
     bool _cancelDeliveryPrompt, _shipDeliveryPrompt;
     DateTime _shipDate=DbClock.Today;
-    void OpenDeliveryNote() => Nav.NavigateTo("/portal/delivery-notes");
     void SelectDelivery(ScmPreviewStore.Delivery d)
     {
         _selected = _dbOrders.First(o => o.Number == d.OrderNumber);
@@ -667,7 +747,12 @@
             }));
             foreach(var order in _dbOrders)
                 foreach(var line in order.Lines)
-                    line.PendingDelivery=deliveries.Where(d=>d.PoID==line.PoID && d.Status!="Cancelled").Sum(d=>d.Quantity-d.Received);
+                {
+                    var active=deliveries.Where(d=>d.PoID==line.PoID && d.Status!="Cancelled").ToList();
+                    line.RegisteredDelivery=active.Sum(d=>d.Quantity);
+                    line.ShippedQuantity=active.Where(d=>d.ShippedAt.HasValue || d.Status is "Shipped" or "Received").Sum(d=>d.Quantity);
+                    line.PendingDelivery=active.Sum(d=>d.Quantity-d.Received);
+                }
             _selected = _dbOrders.Find(o => o.Number == selectedNumber);
             PrepareDelivery();
             return true;
@@ -712,8 +797,19 @@
         else if(string.IsNullOrWhiteSpace(e.Value?.ToString())) entry.Quantity=0;
     }
     List<DeliveryEntryLine> _deliveryEntries = new();
+    bool _choosingDeliveryOrder;
+    string _newDeliverySearch="";
+    IEnumerable<ScmPreviewStore.Order> DeliveryRegistrationOrders => _dbOrders
+        .Where(o=>o.SupplierConfirmedAt.HasValue && (o.Status is "Published" or "Confirmed") && o.Lines.Any(l=>l.AvailableDelivery>0))
+        .Where(o=>string.Join(" ",o.Number,o.Vendor,o.VendorName,string.Join(" ",o.Lines.Select(l=>l.Item+" "+l.Name))).Contains(_newDeliverySearch,StringComparison.OrdinalIgnoreCase));
+    void OpenDeliveryRegistration()
+    {
+        if(!ReloadOrders())return;
+        _selected=null;_delivery=null;_newDeliverySearch="";_choosingDeliveryOrder=true;
+    }
+    void ChooseDeliveryOrder(ScmPreviewStore.Order order) { _choosingDeliveryOrder=false; Select(order); }
     Guid _deliveryRequest = Guid.NewGuid();
-    bool CanRegisterDelivery => IsPortal && Mode == "Entry"
+    bool CanRegisterDelivery => IsPortal && (Mode is "Entry" or "Deliveries") && _delivery is null
         && (_adminPreview || _isExternalPortalUser) && !string.IsNullOrEmpty(_portalUserId)
         && _selected is { SupplierConfirmedAt: not null, Status: "Published" or "Confirmed" }
         && _selected.Lines.Any(l=>l.AvailableDelivery>0);
@@ -764,7 +860,12 @@
             _message=T("등록하지 못했습니다. 납품 예정일, 발주 상태·잔량과 업체 연결을 확인하세요. 다른 사용자가 변경했다면 초기화 후 다시 조회하세요.", "Registration failed. Check date, order status, balance and vendor access. Reload after concurrent changes.", "No se pudo registrar. Revise fecha, saldo y permisos; recargue.");
             return;
         }
-        if(ReloadOrders(orderNumber)) Nav.NavigateTo($"/portal/delivery-boxes?Number={Uri.EscapeDataString(deliveryNumber)}");
+        if(ReloadOrders(orderNumber))
+        {
+            _selected=null;_delivery=null;_search=deliveryNumber;_status="";_from=_to=null;
+            _message=T("납품서를 등록했습니다.","Delivery registered.","Entrega registrada.");
+            if(_deliveryGrid is not null) _ = _deliveryGrid.FirstPage();
+        }
         else _message=T("등록은 완료됐지만 조회에 실패했습니다. 초기화 후 다시 조회하세요.","Saved, but reload failed. Refresh.","Guardado. Recargue.");
     }
     void OpenShipPrompt()
@@ -810,11 +911,22 @@
     }
     void Done() => _message = T("미리보기 데이터에 반영했습니다. 실제 업무 데이터는 저장되지 않습니다.", "Preview updated. No business data was saved.", "Vista previa actualizada. No se guardaron datos reales.");
     static string T(string ko, string en, string es) => CultureInfo.CurrentUICulture.TwoLetterISOLanguageName switch { "ko" => ko, "es" => es, _ => en };
-    static string Badge(string status) => status switch { "Closed" or "Inspected" => "ok", "Draft" => "warn", "Cancelled" => "bad", _ => "info" };
+    string ProgressStatus(ScmPreviewStore.Order o)
+    {
+        if(o.Status is "Draft" or "Cancelled") return Status(o.Status);
+        if(o.Lines.Count>0 && o.Lines.All(l=>l.Received>=l.Quantity)) return T("입고 완료","Received","Recibido");
+        if(o.Lines.Any(l=>l.Received>0)) return T("부분 입고","Partially received","Recepción parcial");
+        if(o.Lines.Count>0 && o.Lines.All(l=>l.ShippedQuantity>=l.Quantity)) return T("출하 완료","Shipped","Enviado");
+        if(o.Lines.Any(l=>l.ShippedQuantity>0)) return T("부분 출하","Partially shipped","Envío parcial");
+        if(o.Lines.Any(l=>l.RegisteredDelivery>0)) return T("납품 준비","Preparing delivery","Preparando entrega");
+        return o.SupplierConfirmedAt.HasValue ? T("수주 확인","Confirmed","Confirmado") : T("확인 대기","Awaiting confirmation","Pendiente de confirmación");
+    }
+    static string Badge(string status) => status switch { "Closed" or "Received" or "Inspected" => "ok", "Draft" => "warn", "Cancelled" => "bad", _ => "info" };
     string Status(string status) => status switch {
+        "Outstanding" => T("등록 가능", "Available to register", "Disponible para registrar"),
         "Draft" => T("작성중", "Draft", "Borrador"), "Published" => T("발행", "Published", "Publicado"),
         "Confirmed" => T("입고 진행", "Receiving", "Recepción parcial"), "Closed" => T("마감", "Closed", "Cerrado"),
-        "Shipped" => T("출하 완료", "Shipped", "Enviado"), "Received" => T("입고 완료", "Received", "Recibido"), "Registered" => T("납품 예정", "Scheduled", "Programado"), "Inspected" => T("검수 완료", "Inspected", "Inspeccionado"),
+        "Shipped" => T("출하 완료", "Shipped", "Enviado"), "Received" => T("입고 완료", "Received", "Recibido"), "Registered" => T("납품 예정", "Scheduled", "Programado"), "Inspected" => T("입고 완료", "Received", "Recibido"),
         _ => T("취소", "Cancelled", "Cancelado")
     };
 }

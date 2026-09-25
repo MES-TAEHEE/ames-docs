@@ -5,46 +5,46 @@
 @inject PortalQuantityFormat QtyFormat
 @inject NavigationManager Nav
 @inject ILogger<DeliveryBoxes> Logger
-<PageTitle>납품서·식별표 발행 · AMES</PageTitle>
-<AmesPageHeader Code="PORTAL-004" Title="납품서·식별표 발행" />
-<PortalDeliveryNav />
-<div class="box-toolbar"><RadzenButton Text="새로고침" Icon="refresh" Click="Load" Size="ButtonSize.Small" class="ames-rz-btn" /></div>
+<PageTitle>@PortalText.Get("박스바코드 발행") · AMES</PageTitle>
+<AmesPageHeader Code="PORTAL-003" Title='@PortalText.Get("박스바코드 발행")' />
+<div class="box-toolbar"><RadzenButton Text='@PortalText.Get("납품서 관리로 돌아가기")' Icon="arrow_back" Click="BackToDeliveries" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" /><RadzenButton Text='@PortalText.Get("새로고침")' Icon="refresh" Click="Load" Size="ButtonSize.Small" class="ames-rz-btn" /></div>
 @if(_error.Length>0){<RadzenAlert AlertStyle="AlertStyle.Warning">@_error</RadzenAlert>}
 <div class="box-layout">
     <div class="ames-card">
-        <div class="ames-card-h">납품서 목록 · @_rows.Count 건</div>
-        <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder="납품서 / 업체 / 발주번호" aria-label="납품서 검색" class="ames-rz-input" Style="width:100%" />
-        <RadzenDataGrid TItem="ScmRepository.BoxDelivery" Data="@Rows" Class="ames-rz-grid" AllowPaging="true" PageSize="15" RowClick="@(e=>{if(e.Data is not null)Select(e.Data);})" EmptyText="납품서가 없습니다.">
+        <div class="ames-card-h">@PortalText.Get("납품서 목록") · @_rows.Count</div>
+        <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@PortalText.Get("납품서 / 업체 / 발주번호")' aria-label='@PortalText.Get("납품서 검색")' class="ames-rz-input" Style="width:100%" />
+        <RadzenDataGrid TItem="ScmRepository.BoxDelivery" Data="@Rows" Class="ames-rz-grid" AllowPaging="true" PageSize="15" RowClick="@(e=>{if(e.Data is not null)Select(e.Data);})" EmptyText='@PortalText.Get("납품서가 없습니다.")'>
             <Columns>
-                <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Title="납품서"><Template Context="d"><button class="box-document" @onclick="()=>Select(d)">@d.Number</button><div class="dim">@d.Vendor · @d.Date.ToString("yyyy-MM-dd")</div></Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Title="상태"><Template Context="d">@Status(d.Status)</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Property="Boxes" Title="박스" TextAlign="TextAlign.Right" />
+                <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Title='@PortalText.Get("납품서")'><Template Context="d"><button class="box-document" @onclick="()=>Select(d)">@d.Number</button><div class="dim">@d.Vendor · @d.Date.ToString("yyyy-MM-dd")</div></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Title='@PortalText.Get("상태")'><Template Context="d">@PortalText.Get(Status(d.Status))</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Property="Boxes" Title='@PortalText.Get("박스")' TextAlign="TextAlign.Right" />
             </Columns>
         </RadzenDataGrid>
     </div>
     <div class="ames-card">
-        <div class="ames-card-h">박스 목록 @(_document?.Number) · @_boxes.Count 박스</div>
+        <div class="ames-card-h">@PortalText.Get("박스 목록") @(_document?.Number) · @_boxes.Count</div>
         <div class="box-toolbar">
-            <RadzenButton Text="전체 선택" Click="SelectAll" Disabled="@(_boxes.Count==0)" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" />
-            <RadzenButton Text="선택 해제" Click="()=>_selected.Clear()" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" />
-            <RadzenButton Text="선택 식별표 출력" Icon="print" Click="Print" Disabled="@(_selected.Count==0)" Size="ButtonSize.Small" />
-            <span>선택 @_selected.Count 건</span>
+            <RadzenButton Text='@PortalText.Get("전체 선택")' Click="SelectAll" Disabled="@(_boxes.Count==0)" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" />
+            <RadzenButton Text='@PortalText.Get("선택 해제")' Click="()=>_selected.Clear()" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" />
+            <RadzenButton Text='@PortalText.Get("선택 식별표 출력")' Icon="print" Click="Print" Disabled="@(_selected.Count==0)" Size="ButtonSize.Small" />
+            <span>@PortalText.Get("선택") @_selected.Count</span>
         </div>
-        @if(_document is not null && _boxes.Count==0){<p class="dim">@(_document.Status=="Cancelled"?"취소된 납품서입니다. 식별표를 출력할 수 없습니다.":"저장된 박스 정보가 없습니다. 기존 납품서는 자동으로 박스를 생성하지 않습니다.")</p>}
-        <RadzenDataGrid TItem="ScmRepository.DeliveryBox" Data="@_boxes" Class="ames-rz-grid" AllowPaging="true" PageSize="20" EmptyText="납품서를 선택해 주세요.">
+        @if(_document is not null && _boxes.Count==0){<p class="dim">@(_document.Status=="Cancelled"?PortalText.Get("취소된 납품서입니다. 식별표를 출력할 수 없습니다."):PortalText.Get("저장된 박스 정보가 없습니다. 기존 납품서는 자동으로 박스를 생성하지 않습니다."))</p>}
+        <RadzenDataGrid TItem="ScmRepository.DeliveryBox" Data="@_boxes" Class="ames-rz-grid" AllowPaging="true" PageSize="20" EmptyText='@PortalText.Get("납품서를 선택해 주세요.")'>
             <Columns>
-                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Title="선택" Width="55px"><Template Context="b"><input type="checkbox" aria-label="@($"{b.Number} 선택")" checked="@_selected.Contains(b.Id)" @onchange="e=>Toggle(b.Id,e.Value is true)" /></Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Property="Item" Title="품목코드" />
-                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Property="Name" Title="품명" />
-                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Property="Number" Title="박스번호" />
-                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Property="Sequence" Title="순번" Width="65px" />
-                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Title="수량" TextAlign="TextAlign.Right"><Template Context="b">@QtyFormat.Text(b.Quantity,b.Unit)</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Property="Unit" Title="단위" Width="65px" />
+                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Title='@PortalText.Get("선택")' Width="55px"><Template Context="b"><input type="checkbox" aria-label="@($"{b.Number} 선택")" checked="@_selected.Contains(b.Id)" @onchange="e=>Toggle(b.Id,e.Value is true)" /></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Property="Item" Title='@PortalText.Get("품목코드")' />
+                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Property="Name" Title='@PortalText.Get("품명")' />
+                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Property="Number" Title='@PortalText.Get("박스번호")' />
+                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Property="Sequence" Title='@PortalText.Get("순번")' Width="65px" />
+                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Title='@PortalText.Get("수량")' TextAlign="TextAlign.Right"><Template Context="b">@QtyFormat.Text(b.Quantity,b.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Property="Unit" Title='@PortalText.Get("단위")' Width="65px" />
             </Columns>
         </RadzenDataGrid>
     </div>
 </div>
 @code {
+    void BackToDeliveries() => Nav.NavigateTo("/portal/deliveries");
     [SupplyParameterFromQuery] public string? Number {get;set;}
     List<ScmRepository.BoxDelivery> _rows=[];
     List<ScmRepository.DeliveryBox> _boxes=[];
@@ -67,13 +67,13 @@
         _rows=[];_boxes=[];_selected.Clear();_document=null;_error="";
         if(!_allowed||_user.Length==0)return;
         try{_rows=Scm.ListBoxDeliveries(_user,_admin);}
-        catch(Exception ex){Logger.LogError(ex,"Box delivery list failed");_error="납품서 목록을 조회하지 못했습니다.";}
+        catch(Exception ex){Logger.LogError(ex,"Box delivery list failed");_error=PortalText.Get("납품서 목록을 조회하지 못했습니다.");}
     }
     void Select(ScmRepository.BoxDelivery d)
     {
         _document=d;_boxes=[];_selected.Clear();_error="";
         try{_boxes=Scm.ListDeliveryBoxes(d.Number,_user,_admin);}
-        catch(Exception ex){Logger.LogError(ex,"Box list failed");_error="박스 목록을 조회하지 못했습니다.";}
+        catch(Exception ex){Logger.LogError(ex,"Box list failed");_error=PortalText.Get("박스 목록을 조회하지 못했습니다.");}
     }
     void Toggle(long id,bool selected){if(selected)_selected.Add(id);else _selected.Remove(id);}
     void SelectAll()=>_selected=_boxes.Select(b=>b.Id).ToHashSet();

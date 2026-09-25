@@ -6,12 +6,13 @@
 @inject BoxLabelSelection Selection
 @inject PortalQuantityFormat QtyFormat
 @inject ILogger<BoxLabels> Logger
-<PageTitle>박스 식별표 · AMES</PageTitle>
+<PageTitle>@PortalText.Get("박스 식별표") · AMES</PageTitle>
 <div class="label-tools">
-    <a href="/portal/delivery-boxes">박스 목록으로 돌아가기</a>
+    <a href="/portal/deliveries">@PortalText.Get("납품서 관리로 돌아가기")</a>
+    <a href="/portal/delivery-boxes">@PortalText.Get("박스 목록으로 돌아가기")</a>
     @if(_boxes.Count>0){
-        <button data-delivery-note-print>인쇄 / PDF 저장</button>
-        <button data-delivery-note-download="@($"BOX-LABELS-{Selection.Delivery}")">인쇄용 파일 내려받기</button>
+        <button data-delivery-note-print>@PortalText.Get("인쇄 / PDF 저장")</button>
+        <button data-delivery-note-download="@($"BOX-LABELS-{Selection.Delivery}")">@PortalText.Get("인쇄용 파일 내려받기")</button>
     }
     <p data-delivery-note-status>@_message</p>
 </div>
@@ -28,10 +29,10 @@
         var user=u.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         var admin=PortalAuth.IsInternalUser(u)&&u.IsInRole("Admin");
         if(string.IsNullOrEmpty(user)||(!admin&&!PortalAuth.IsPortalUser(u)))return;
-        if(Selection.Ids.Count==0){_message="박스 목록에서 출력할 식별표를 선택해 주세요.";return;}
+        if(Selection.Ids.Count==0){_message=PortalText.Get("박스 목록에서 출력할 식별표를 선택해 주세요.");return;}
         try{
             _boxes=Scm.ListDeliveryBoxes(Selection.Delivery,user,admin).Where(b=>Selection.Ids.Contains(b.Id)).ToList();
-            if(_boxes.Count!=Selection.Ids.Count){_boxes=[];_message="납품서가 변경되었거나 취소되었습니다. 박스 목록에서 다시 선택해 주세요.";}
-        }catch(Exception ex){Logger.LogError(ex,"Box labels read failed");_message="식별표를 조회하지 못했습니다.";}
+            if(_boxes.Count!=Selection.Ids.Count){_boxes=[];_message=PortalText.Get("납품서가 변경되었거나 취소되었습니다. 박스 목록에서 다시 선택해 주세요.");}
+        }catch(Exception ex){Logger.LogError(ex,"Box labels read failed");_message=PortalText.Get("식별표를 조회하지 못했습니다.");}
     }
 }
