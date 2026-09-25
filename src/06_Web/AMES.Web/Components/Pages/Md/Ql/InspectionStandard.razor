@@ -13,6 +13,7 @@
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Web.Services.AuditLogger Audit
+@inject UomFormat UomFmt
 
 <PageTitle>MD-017 @L["MD.InspStd.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-017" TitleKey="MD.InspStd.Title" />
@@ -104,13 +105,13 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="CharName" Title="@L["Col.CharName"]" Width="110px" />
             <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="SpecNominal" Title="@L["Col.Nominal"]" TextAlign="TextAlign.Right" Width="100px">
-                <Template Context="r"><span>@(r.SpecNominal?.ToString("G6") ?? "—")</span></Template>
+                <Template Context="r"><span>@UomFmt.Qty(r.SpecNominal, r.UOM)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="SpecLSL" Title="@L["Col.LSL"]" TextAlign="TextAlign.Right" Width="70px">
-                <Template Context="r"><span class="dim">@(r.SpecLSL?.ToString("G6") ?? "—")</span></Template>
+                <Template Context="r"><span class="dim">@UomFmt.Qty(r.SpecLSL, r.UOM)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="SpecUSL" Title="@L["Col.USL"]" TextAlign="TextAlign.Right" Width="70px">
-                <Template Context="r"><span class="dim">@(r.SpecUSL?.ToString("G6") ?? "—")</span></Template>
+                <Template Context="r"><span class="dim">@UomFmt.Qty(r.SpecUSL, r.UOM)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="r"><span class="code dim">@(r.UOM ?? "—")</span></Template>

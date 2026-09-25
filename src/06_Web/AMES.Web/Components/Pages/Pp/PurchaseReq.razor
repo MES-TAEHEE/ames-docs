@@ -16,6 +16,7 @@
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthPrvd
 @inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
 
 <PageTitle>PP-006 @L["PP.PurchaseReq.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="PP-006" TitleKey="PP.PurchaseReq.Title" />
@@ -92,7 +93,7 @@ else
                 <Template Context="r"><span class="code">@r.ItemNo</span>@if (!string.IsNullOrEmpty(r.ItemName)) { <span class="dim"> · @r.ItemName</span> }</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="RequiredQty" Title="@L["Col.Qty"].Value" TextAlign="TextAlign.Right" Width="110px">
-                <Template Context="r"><span style="font-weight:700;">@Q(r.RequiredQty)</span> <span class="dim">@r.Uom</span></Template>
+                <Template Context="r"><span style="font-weight:700;">@Q(r.RequiredQty, r.Uom)</span> <span class="dim">@r.Uom</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="RequiredDate" Title="@L["Col.Required"].Value" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code dim">@(r.RequiredDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
@@ -132,7 +133,7 @@ else
             </div>
 
             <div class="pr-dgrid">
-                <div class="pr-dt"><div class="pr-dl">@L["Col.Item"] / @L["Col.Qty"]</div><div class="pr-dv"><span class="code">@_sel.ItemNo</span> · @Q(_sel.RequiredQty) @_sel.Uom</div><div class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">@_sel.ItemName</div></div>
+                <div class="pr-dt"><div class="pr-dl">@L["Col.Item"] / @L["Col.Qty"]</div><div class="pr-dv"><span class="code">@_sel.ItemNo</span> · @Q(_sel.RequiredQty, _sel.Uom) @_sel.Uom</div><div class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">@_sel.ItemName</div></div>
                 <div class="pr-dt"><div class="pr-dl">@L["Col.Required"]</div><div class="pr-dv">@(_sel.RequiredDate?.ToString(DateFmt.Date) ?? "—") <span class="pill @DdCls(_sel)" style="margin-left:6px;">@DdText(_sel)</span></div></div>
                 <div class="pr-dt"><div class="pr-dl">@L["PP.PurchaseReq.Col.DocNum"] / @L["Col.SapPo"]</div><div class="pr-dv code">@(_sel.SapDocNum ?? "—") / @(_sel.SapPoNumber ?? "—")</div></div>
                 <div class="pr-dt"><div class="pr-dl">@L["Col.Status"]</div><div class="pr-dv">@StText(_sel)</div>
@@ -212,7 +213,7 @@ else
             <div class="pr-list">
                 @foreach (var r in SelectedRows)
                 {
-                    <div class="pr-item"><span><span class="code">@PrNo(r)</span> · @r.ItemNo <span class="dim">@r.ItemName</span></span><span class="code">@Q(r.RequiredQty) @r.Uom</span></div>
+                    <div class="pr-item"><span><span class="code">@PrNo(r)</span> · @r.ItemNo <span class="dim">@r.ItemName</span></span><span class="code">@Q(r.RequiredQty, r.Uom) @r.Uom</span></div>
                 }
             </div>
             <div class="dim" style="font-size:calc(11px + var(--ames-fs-bump));margin-top:8px;">@L["PP.PurchaseReq.Dlg.Send.Note"]</div>
@@ -436,7 +437,7 @@ else
 
     // ── 표시 헬퍼 ─────────────────────────────────────────────────────
     static string PrNo(PpRepository.PrRow r) => r.PrNumber ?? $"PR#{r.PrId}";
-    static string Q(decimal v) => v.ToString("#,##0.###");
+    string Q(decimal v, string? uom) => UomFmt.Qty(v, uom);
 
     string VendorText(string? id) =>
         id is null ? "—" : _vendors.FirstOrDefault(v => v.VendorID == id)?.VendorName is { Length: > 0 } n ? $"[{id}] {n}" : $"[{id}]";

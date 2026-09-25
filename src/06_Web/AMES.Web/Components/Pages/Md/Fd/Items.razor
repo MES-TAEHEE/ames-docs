@@ -13,6 +13,7 @@
 @inject MasterDataRepository MD
 @inject AMES.Web.Services.AuditLogger Audit
 @inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
 
 <PageTitle>MD-003 @L["MD.Items.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-003" TitleKey="MD.Items.Title" />
@@ -93,13 +94,13 @@
                 <Template Context="item"><span class="pill @Ui.RoutingClass(item.RoutingType)">@(item.RoutingType ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="SafetyStock" Title="@L["Col.Safety"]" TextAlign="TextAlign.Right" Width="100px">
-                <Template Context="item">@(item.SafetyStock?.ToString("N0") ?? "—")</Template>
+                <Template Context="item">@UomFmt.Qty(item.SafetyStock, item.DefaultUOM)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="MinStock" Title="@L["Col.MinStock"]" TextAlign="TextAlign.Right" Width="100px">
-                <Template Context="item">@(item.MinStock?.ToString("N0") ?? "—")</Template>
+                <Template Context="item">@UomFmt.Qty(item.MinStock, item.DefaultUOM)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="MaxStock" Title="@L["Col.MaxStock"]" TextAlign="TextAlign.Right" Width="100px">
-                <Template Context="item">@(item.MaxStock?.ToString("N0") ?? "—")</Template>
+                <Template Context="item">@UomFmt.Qty(item.MaxStock, item.DefaultUOM)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="UnitCost" Title="@L["Col.UnitPrice"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="item">@(item.UnitCost?.ToString("N0") ?? "—")</Template>

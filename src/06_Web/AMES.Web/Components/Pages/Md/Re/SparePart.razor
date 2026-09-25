@@ -14,6 +14,7 @@
 @inject MntRepository Mnt
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Web.Services.AuditLogger Audit
+@inject UomFormat UomFmt
 
 <PageTitle>MD-026 @L["MD.SparePart.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-026" TitleKey="MD.SparePart.Title" />
@@ -128,16 +129,16 @@
                 <Template Context="r"><span class="dim" title="@r.ExtraLocation">@CodeLabel(_slotItems, r.Slot)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="OnHandQty" Title="@L["Col.OnHand"]" TextAlign="TextAlign.Right" Width="90px">
-                <Template Context="r"><b>@r.OnHandQty.ToString("N0")</b></Template>
+                <Template Context="r"><b>@UomFmt.Qty(r.OnHandQty, r.UOM)</b></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="SafetyStock" Title="@L["Col.Safety"]" TextAlign="TextAlign.Right" Width="90px">
-                <Template Context="r">@(r.SafetyStock?.ToString() ?? "—")</Template>
+                <Template Context="r">@UomFmt.Qty(r.SafetyStock, r.UOM)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ReorderPoint" Title="@L["Col.Reorder"]" TextAlign="TextAlign.Right" Width="90px">
-                <Template Context="r">@(r.ReorderPoint?.ToString() ?? "—")</Template>
+                <Template Context="r">@UomFmt.Qty(r.ReorderPoint, r.UOM)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ReorderQty" Title="@L["Col.ReorderQty"]" TextAlign="TextAlign.Right" Width="120px">
-                <Template Context="r">@(r.ReorderQty?.ToString() ?? "—")</Template>
+                <Template Context="r">@UomFmt.Qty(r.ReorderQty, r.UOM)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="LeadTimeDays" Title="@L["Col.LeadDays"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r">@(r.LeadTimeDays?.ToString() ?? "—")</Template>

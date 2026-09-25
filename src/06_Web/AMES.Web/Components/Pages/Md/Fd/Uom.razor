@@ -13,6 +13,7 @@
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Web.Services.AuditLogger Audit
+@inject UomFormat UomFmt
 
 <PageTitle>MD-019 @L["MD.Uom.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-019" TitleKey="MD.Uom.Title" />
@@ -387,6 +388,7 @@
                 _f.BaseFlag, _f.BaseFlag ? null : NE(_f.BaseUOM), _f.ConvFactor,
                 _f.DecimalPrec, NE(_f.Symbol), _f.ActiveFlag, _actor);
             Audit.Created("MD-019", "MD_Uom", code, _f);
+            UomFmt.Invalidate();
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{code} {L["Msg.Created"]}", false);
         }
@@ -405,6 +407,7 @@
                 _f.BaseFlag, _f.BaseFlag ? null : NE(_f.BaseUOM), _f.ConvFactor,
                 _f.DecimalPrec, NE(_f.Symbol), _f.ActiveFlag, _actor);
             Audit.Updated("MD-019", "MD_Uom", _sel.UOMCode, _sel, _f);
+            UomFmt.Invalidate();
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_sel.UOMCode} {L["Msg.Updated"]}", false);
         }
@@ -421,6 +424,7 @@
             var code = _sel.UOMCode;
             MD.DeleteUom(_sel.UOMCode);
             Audit.Deleted("MD-019", "MD_Uom", _sel.UOMCode, _sel);
+            UomFmt.Invalidate();
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{code} {L["Msg.Deleted"]}", false);
         }

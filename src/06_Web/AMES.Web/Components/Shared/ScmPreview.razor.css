@@ -40,6 +40,9 @@
 .scm-order-detail .ames-table:not(.scm-lines) th:nth-child(1) { width:14%; }
 .scm-order-detail .ames-table:not(.scm-lines) th:nth-child(2) { width:26%; }
 .scm-order-detail .ames-table:not(.scm-lines) th:nth-child(3) { width:6%; }
+/* 수량은 단위 자릿수(UomQty)로 길어진다 — 숫자는 끊지 않고 품명이 줄바꿈해 폭을 내준다 */
+.scm-order-detail .ames-table:not(.scm-lines) { table-layout:auto; }
+.scm-order-detail .ames-table:not(.scm-lines) .num { white-space:nowrap; overflow-wrap:normal; }
 .scm-order-detail .scm-number { min-width:0; padding:6px 4px; }
 .scm-editor .scm-lines { table-layout:fixed; }
 .scm-editor .scm-lines th:nth-child(1) { width:4%; }

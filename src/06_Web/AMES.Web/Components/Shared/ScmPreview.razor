@@ -8,6 +8,7 @@
 @inject ILogger<ScmPreview> Logger
 @inject AuditLogger Audit
 @inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
 @using System.Globalization
 
 <PageTitle>@ScreenCode @Title · AMES</PageTitle>
@@ -356,7 +357,7 @@
     }
 }
 @code {
-    string QuantityText(decimal quantity,string unit,int digits) => IsPortal ? QtyFormat.Text(quantity,unit) : quantity.ToString($"N{digits}");
+    string QuantityText(decimal quantity,string unit,int digits) => UomFmt.Qty(quantity,unit);
     // ── 화면 구성(표준 화면과 같은 목록·모달) ─────────────────────────
     RadzenDataGrid<ScmPreviewStore.Order>? _orderGrid;
     RadzenDataGrid<ScmPreviewStore.Delivery>? _deliveryGrid;

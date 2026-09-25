@@ -7,6 +7,7 @@
 @inject FinishedGoodsRepository Fg
 @inject IConfiguration Config
 @inject IJSRuntime JS
+@inject UomFormat UomFmt
 
 <PageTitle>FG-004 @L["FG.Shipments.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="FG-004" TitleKey="FG.Shipments.Title" />
@@ -121,7 +122,7 @@
                                     {
                                         <tr>
                                             <td>@line.LineSeq</td><td><b>@line.ItemNo</b><small>@Text(line.ItemName)</small></td><td>@Text(line.Unit)</td>
-                                            <td>@Text(_document.CustomerPo)</td><td>@Fmt(line.OrderedQty)</td><td>@Fmt(line.DeliveryQty)</td><td>@line.BoxQty</td><td>@Text(line.LotNo)</td>
+                                            <td>@Text(_document.CustomerPo)</td><td>@UomFmt.Qty(line.OrderedQty, line.Unit)</td><td>@UomFmt.Qty(line.DeliveryQty, line.Unit)</td><td>@line.BoxQty</td><td>@Text(line.LotNo)</td>
                                         </tr>
                                     }
                                 }
@@ -156,7 +157,7 @@
                                     <div class="fg-label-grid">
                                         <div><span>FIFO:</span><b>@Date(label.Line.ProducedAt ?? _document.ShipDate)</b></div>
                                         <div><span>DCR:</span><b>@Text(_document.DeliveryNoteNumber)</b></div>
-                                        <div><span>Quantity:</span><b>@Fmt(label.Quantity) @Text(label.Line.Unit)</b></div>
+                                        <div><span>Quantity:</span><b>@UomFmt.Qty(label.Quantity, label.Line.Unit) @Text(label.Line.Unit)</b></div>
                                         <div><span>Box Cnt:</span><b>@label.BoxIndex / @label.BoxCount</b></div>
                                         <div><span>Delivery:</span><b>@Text(_document.DestPlant)</b></div>
                                         <div><span>Lot No:</span><b>@Text(label.Line.LotNo)</b></div>

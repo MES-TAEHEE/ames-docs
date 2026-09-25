@@ -14,6 +14,7 @@
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Web.Services.AuditLogger Audit
+@inject UomFormat UomFmt
 
 <PageTitle>MD-004 @L["MD.Bom.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-004" TitleKey="MD.Bom.Title" />
@@ -219,7 +220,7 @@
                                 </Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="QtyPer" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right" Width="70px">
-                                <Template Context="line"><span class="code" style="font-weight:600;">@(line.QtyPer?.ToString("N4"))</span></Template>
+                                <Template Context="line"><span class="code" style="font-weight:600;">@UomFmt.Qty(line.QtyPer, line.UOM, "")</span></Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="70px">
                                 <Template Context="line"><span class="dim">@line.UOM</span></Template>
