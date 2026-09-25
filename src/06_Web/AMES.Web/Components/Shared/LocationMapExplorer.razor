@@ -1,6 +1,7 @@
 @using System.Globalization
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
 
 <div class="location-explorer">
     <div class="location-explorer-topbar">
@@ -331,5 +332,5 @@
     private static string Axis(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
     private static bool Same(string? left, string? right) => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
-    private static string Qty(LocationMapStock row) => $"{row.Qty:N0} {row.Unit}";
+    private string Qty(LocationMapStock row) => UomFmt.QtyUnit(row.Qty, row.Unit);
 }

@@ -3,6 +3,7 @@
 @inject ScmRepository Scm
 @inject AuthenticationStateProvider Authentication
 @inject ILogger<Receipts> Logger
+@inject UomFormat UomFmt
 
 <PageTitle>입고·검수 결과 · AMES</PageTitle>
 <AmesPageHeader Code="PORTAL-005" Title="입고·검수 결과" />
@@ -27,9 +28,9 @@
         <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Item" Title="품목코드" />
         <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Name" Title="품목명" />
         <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="ShipDate" Title="출하일" FormatString="{0:yyyy-MM-dd}" />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Quantity" Title="납품수량" FormatString="{0:N3}" />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Received" Title="입고수량" FormatString="{0:N3}" />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Remaining" Title="미입고 잔량" FormatString="{0:N3}" />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Quantity" Title="납품수량"><Template Context="r">@UomFmt.Qty(r.Quantity, r.Unit)</Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Received" Title="입고수량"><Template Context="r">@UomFmt.Qty(r.Received, r.Unit)</Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Remaining" Title="미입고 잔량"><Template Context="r">@UomFmt.Qty(r.Remaining, r.Unit)</Template></RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Unit" Title="단위" />
         <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="ReceiptStatus" Title="입고 상태" />
     </Columns>
@@ -46,9 +47,9 @@
                 <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Order" Title="발주번호" />
                 <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Item" Title="품목코드" />
                 <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Name" Title="품목명" />
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Quantity" Title="납품수량" FormatString="{0:N3}" />
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Received" Title="입고수량" FormatString="{0:N3}" />
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Remaining" Title="잔량" FormatString="{0:N3}" />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Quantity" Title="납품수량"><Template Context="r">@UomFmt.Qty(r.Quantity, r.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Received" Title="입고수량"><Template Context="r">@UomFmt.Qty(r.Received, r.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Remaining" Title="잔량"><Template Context="r">@UomFmt.Qty(r.Remaining, r.Unit)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Unit" Title="단위" />
                 <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="ReceiptStatus" Title="입고 상태" />
             </Columns>
@@ -66,7 +67,7 @@
     List<ScmRepository.PortalReceiptLine> Rows=>_rows.Where(r=>(_status==""||r.ReceiptStatus==_status)
         && (!_from.HasValue||r.ShipDate?.Date>=_from.Value.Date) && (!_to.HasValue||r.ShipDate?.Date<=_to.Value.Date)
         && string.Join(" ",r.Note,r.Delivery,r.Order,r.Item,r.Name,r.Vendor,r.VendorName).Contains(_search,StringComparison.OrdinalIgnoreCase)).ToList();
-    static string Totals(IEnumerable<ScmRepository.PortalReceiptLine> rows,bool received)=>string.Join(" · ",rows.GroupBy(r=>r.Unit).Select(g=>$"{g.Sum(r=>received?r.Received:r.Remaining):N3} {g.Key}"));
+    string Totals(IEnumerable<ScmRepository.PortalReceiptLine> rows,bool received)=>string.Join(" · ",rows.GroupBy(r=>r.Unit).Select(g=>UomFmt.QtyUnit(g.Sum(r=>received?r.Received:r.Remaining), g.Key)));
     static string GroupStatus(List<ScmRepository.PortalReceiptLine> rows)=>rows.All(r=>r.Received<=0)?"미입고":rows.All(r=>r.Remaining==0)?"입고완료":"부분입고";
     protected override async Task OnInitializedAsync()
     {

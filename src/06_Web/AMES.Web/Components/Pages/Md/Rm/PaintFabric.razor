@@ -13,6 +13,7 @@
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Web.Services.AuditLogger Audit
+@inject UomFormat UomFmt
 
 <PageTitle>MD-008 @L["MD.PaintFabric.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-008" TitleKey="MD.PaintFabric.Title" />
@@ -88,7 +89,7 @@
                 <Template Context="r"><span class="dim">@(r.UOM ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="QtyOnHand" Title="@L["Col.OnHand"]" TextAlign="TextAlign.Right" Width="100px">
-                <Template Context="r">@(r.QtyOnHand?.ToString("N3") ?? "—")</Template>
+                <Template Context="r">@UomFmt.Qty(r.QtyOnHand, r.UOM)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="ReceiptDate" Title="@L["Col.ReceivedDate"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="dim">@(r.ReceiptDate?.ToString(DateFmt.Date) ?? "—")</span></Template>

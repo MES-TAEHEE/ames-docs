@@ -7,6 +7,7 @@
 @inject ILogger<ScmPreview> Logger
 @inject AuditLogger Audit
 @inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
 @using System.Globalization
 
 <PageTitle>@ScreenCode @Title · AMES</PageTitle>
@@ -171,7 +172,7 @@
                         <tbody>
                         @foreach (var line in _selected.Lines)
                         {
-                            <tr><td class="code">@line.Item</td><td>@line.Name</td><td>@line.Unit</td><td class="num">@line.Quantity.ToString("N2")</td><td class="num">@Store.Delivered(_selected, line).ToString("N2")</td><td class="num">@Store.Remaining(_selected, line).ToString("N2")</td><td class="num">@line.Price.ToString("N2")</td><td class="num">@line.Amount.ToString("N2")</td></tr>
+                            <tr><td class="code">@line.Item</td><td>@line.Name</td><td>@line.Unit</td><td class="num">@UomFmt.Qty(line.Quantity, line.Unit)</td><td class="num">@UomFmt.Qty(Store.Delivered(_selected, line), line.Unit)</td><td class="num">@UomFmt.Qty(Store.Remaining(_selected, line), line.Unit)</td><td class="num">@line.Price.ToString("N2")</td><td class="num">@line.Amount.ToString("N2")</td></tr>
                         }
                         </tbody>
                     </table>
@@ -192,7 +193,7 @@
                                 <tr @key="entry.Line.PoID">
                                     <td><input type="checkbox" aria-label="@($"{entry.Line.Item} 선택")" @bind="entry.Selected" /></td>
                                     <td>@entry.Line.Item</td><td>@entry.Line.Name</td><td>@entry.Line.Unit</td>
-                                    <td>@entry.Line.PendingDelivery.ToString("N3")</td><td>@entry.Line.AvailableDelivery.ToString("N3")</td>
+                                    <td>@UomFmt.Qty(entry.Line.PendingDelivery, entry.Line.Unit)</td><td>@UomFmt.Qty(entry.Line.AvailableDelivery, entry.Line.Unit)</td>
                                     <td><input type="number" class="rz-textbox ames-rz-input scm-number" aria-label="@($"{entry.Line.Item} 납품수량")" min="0.001" step="0.001" max="@entry.Line.AvailableDelivery" disabled="@(!entry.Selected)" @bind="entry.Quantity" @bind:event="oninput" /></td>
                                 </tr>
                             }
@@ -204,7 +205,7 @@
                 <div class="scm-dsub">@T("관련 납품서", "Related deliveries", "Entregas relacionadas")</div>
                 <div class="scm-log">
                     @foreach (var d in Store.Deliveries.Where(d => d.OrderNumber == _selected.Number))
-                    { <div><span class="code">@d.Number</span> · @d.Date.ToString(DateFmt.Date) · @d.Quantity.ToString("N3") @d.Unit · @d.Item · @Status(d.Status)</div> }
+                    { <div><span class="code">@d.Number</span> · @d.Date.ToString(DateFmt.Date) · @UomFmt.QtyUnit(d.Quantity, d.Unit) · @d.Item · @Status(d.Status)</div> }
                     @if (!Store.Deliveries.Any(d => d.OrderNumber == _selected.Number)) { <div class="dim">@Empty</div> }
                 </div>
 
@@ -271,8 +272,8 @@
                 <thead><tr><th>@T("품번", "Item", "Artículo")</th><th>@T("단위", "Unit", "Unidad")</th>@if (DeliveryEditable) { <th>@T("수정 가능 최대수량", "Maximum quantity", "Cantidad máxima")</th> }<th>@T("납품수량", "Quantity", "Cantidad")</th></tr></thead>
                 <tbody>@foreach(var line in _deliveryEditLines)
                 {
-                    <tr @key="line.PoID"><td>@line.Item</td><td>@line.Unit</td>@if (DeliveryEditable) { <td>@EditableDeliveryBalance(line).ToString("N3")</td> }
-                        <td>@if (DeliveryEditable) { <input type="number" class="rz-textbox ames-rz-input scm-number" aria-label="@($"{line.Item} 수정수량")" min="0.001" step="0.001" @bind="line.Quantity" @bind:event="oninput" /> } else { @line.Quantity.ToString("N3") }</td></tr>
+                    <tr @key="line.PoID"><td>@line.Item</td><td>@line.Unit</td>@if (DeliveryEditable) { <td>@UomFmt.Qty(EditableDeliveryBalance(line), line.Unit)</td> }
+                        <td>@if (DeliveryEditable) { <input type="number" class="rz-textbox ames-rz-input scm-number" aria-label="@($"{line.Item} 수정수량")" min="0.001" step="0.001" @bind="line.Quantity" @bind:event="oninput" /> } else { @UomFmt.Qty(line.Quantity, line.Unit) }</td></tr>
                 }</tbody>
             </table></div>
             @if (!DeliveryEditable) { <div class="scm-act">@T("출하 확정·취소되었거나 입고가 진행된 납품서는 수정할 수 없습니다.", "Shipped, cancelled or receiving deliveries cannot be edited.", "No se pueden editar entregas canceladas o recibidas.")</div> }
@@ -419,7 +420,7 @@
         .Where(g=>string.IsNullOrWhiteSpace(_search) || g.Any(d=>(d.Number+" "+d.OrderNumber+" "+d.Item).Contains(_search,StringComparison.OrdinalIgnoreCase)))
         .Select(g=> {var d=g.First().Copy();d.Item=string.Join(", ",g.Select(x=>x.Item));return d;}).ToList();
     string DeliveryQuantities(string number) => string.Join(" / ",Store.Deliveries.Where(d=>d.Number==number)
-        .GroupBy(d=>d.Unit).Select(g=>$"{g.Sum(d=>d.Quantity):N3} {g.Key}"));
+        .GroupBy(d=>d.Unit).Select(g=>UomFmt.QtyUnit(g.Sum(d=>d.Quantity), g.Key)));
     protected override async Task OnParametersSetAsync()
     {
         _ready = false;
@@ -496,8 +497,8 @@
             return false;
         }
     }
-    static string Quantities(ScmPreviewStore.Order order, Func<ScmPreviewStore.OrderLine, decimal> quantity)
-        => string.Join(" / ", order.Lines.GroupBy(l => l.Unit).Select(g => $"{g.Sum(quantity):N2} {g.Key}"));
+    string Quantities(ScmPreviewStore.Order order, Func<ScmPreviewStore.OrderLine, decimal> quantity)
+        => string.Join(" / ", order.Lines.GroupBy(l => l.Unit).Select(g => UomFmt.QtyUnit(g.Sum(quantity), g.Key)));
     void AddLine()
     {
         if (_edit is null) return;

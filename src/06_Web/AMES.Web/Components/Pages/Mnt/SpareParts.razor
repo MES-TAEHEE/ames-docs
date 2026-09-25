@@ -12,6 +12,7 @@
 @inject MasterDataRepository MD
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
 
 <PageTitle>MNT-008 @L["MNT.SpareParts.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MNT-008" TitleKey="MNT.SpareParts.Title" />
@@ -123,16 +124,16 @@
                 <Template Context="r"><span class="dim">@CodeLabel(_slotItems, r.Slot)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="OnHand" Title="@L["Col.OnHand"]" TextAlign="TextAlign.Right" Width="90px">
-                <Template Context="r"><b>@r.OnHand.ToString("N0")</b></Template>
+                <Template Context="r"><b>@UomFmt.Qty(r.OnHand, r.Uom)</b></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="SafetyStock" Title="@L["Col.Safety"]" TextAlign="TextAlign.Right" Width="90px">
-                <Template Context="r">@(r.SafetyStock?.ToString() ?? "—")</Template>
+                <Template Context="r">@UomFmt.Qty(r.SafetyStock, r.Uom)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="ReorderPoint" Title="@L["Col.Reorder"]" TextAlign="TextAlign.Right" Width="90px">
-                <Template Context="r">@(r.ReorderPoint?.ToString() ?? "—")</Template>
+                <Template Context="r">@UomFmt.Qty(r.ReorderPoint, r.Uom)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="ReorderQty" Title="@L["Col.ReorderQty"]" TextAlign="TextAlign.Right" Width="120px">
-                <Template Context="r">@(r.ReorderQty?.ToString() ?? "—")</Template>
+                <Template Context="r">@UomFmt.Qty(r.ReorderQty, r.Uom)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.SparePartRow" Property="LeadTimeDays" Title="@L["Col.LeadDays"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r">@(r.LeadTimeDays?.ToString() ?? "—")</Template>
@@ -197,13 +198,13 @@
                 <Template Context="t"><span class="pill @MoveCls(t.MoveType)">@MoveLabel(t.MoveType)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="Qty" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right" Width="90px">
-                <Template Context="t">@t.Qty.ToString("N0")</Template>
+                <Template Context="t">@UomFmt.Qty(t.Qty, UomOf(t.SparePartNo))</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="BalanceBefore" Title="@L["Col.BalanceBefore"]" TextAlign="TextAlign.Right" Width="100px">
-                <Template Context="t"><span class="dim">@t.BalanceBefore.ToString("N0")</span></Template>
+                <Template Context="t"><span class="dim">@UomFmt.Qty(t.BalanceBefore, UomOf(t.SparePartNo))</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="BalanceAfter" Title="@L["Col.Balance"]" TextAlign="TextAlign.Right" Width="100px">
-                <Template Context="t"><b>@t.BalanceAfter.ToString("N0")</b></Template>
+                <Template Context="t"><b>@UomFmt.Qty(t.BalanceAfter, UomOf(t.SparePartNo))</b></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="RefId" Title="@L["Col.Ref"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="t"><span class="dim">@RefText(t)</span></Template>
@@ -264,11 +265,11 @@
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.OnHand"]" />
-                    <RadzenTextBox Value="@_sel.OnHand.ToString("N0")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox Value="@UomFmt.Qty(_sel.OnHand, _sel.Uom)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Safety"]" />
-                    <RadzenTextBox Value="@(_sel.SafetyStock?.ToString("N0") ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox Value="@UomFmt.Qty(_sel.SafetyStock, _sel.Uom, "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -302,11 +303,11 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Reorder"]" />
-                    <RadzenTextBox Value="@(_sel.ReorderPoint?.ToString("N0") ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox Value="@UomFmt.Qty(_sel.ReorderPoint, _sel.Uom, "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ReorderQty"]" />
-                    <RadzenTextBox Value="@(_sel.ReorderQty?.ToString("N0") ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox Value="@UomFmt.Qty(_sel.ReorderQty, _sel.Uom, "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -363,6 +364,8 @@
     int     _txnTopN = 50;
     // 재고 금액 = 마스터 현재고 × 마스터 단가(UnitCost) — 이력에는 단가를 두지 않는다
     decimal _value => _allParts.Sum(p => p.OnHand * (p.UnitCost ?? 0m));
+
+    string? UomOf(string? sparePartNo) => _allParts.FirstOrDefault(p => p.SparePartNo == sparePartNo)?.Uom;
     string  _modal = "", _msg = "";
     bool    _bgMouseDownOnSelf, _isErr;
 
