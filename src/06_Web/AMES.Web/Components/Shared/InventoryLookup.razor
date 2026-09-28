@@ -54,10 +54,9 @@
                     <button type="button" @onclick="CloseDetail" aria-label="Close inventory detail"><RadzenIcon Icon="close" /></button>
                 </header>
 
-                <div class="inventory-drawer-summary">
-                    <div><span>@L["WH.Inventory.Lbl.TotalQty"]</span><strong>@UomFmt.QtyUnit(SelectedSummary.Qty, SelectedSummary.Unit)</strong></div>
-                    <div><span>@L["WH.Inventory.Lbl.Locations"]</span><strong>@SelectedSummary.LocationCount</strong></div>
-                    <div><span>@L["WH.Inventory.Lbl.Lots"]</span><strong>@SelectedSummary.LotCount</strong></div>
+                <div class="inventory-drawer-summary inventory-detail-summary">
+                    <div><span>@L["Col.Warehouse"]</span><strong>@DetailWarehouses</strong></div>
+                    <div><span>@L["Col.Area"]</span><strong>@DetailAreas</strong></div>
                 </div>
 
                 <div class="inventory-drawer-table-wrap">
@@ -138,6 +137,8 @@
         ? []
         : FilteredInventory.Where(x => x.PartNo == _selectedPart).OrderBy(x => x.LocationNo).ThenBy(x => x.LotNo).ToList();
     private SummaryRow? SelectedSummary => SummaryRows.FirstOrDefault(x => x.PartNo == _selectedPart);
+    private string DetailWarehouses => ScopeNames(DetailRows.Select(x => (x.WarehouseCode, x.WarehouseName)));
+    private string DetailAreas => ScopeNames(DetailRows.Select(x => (x.AreaCode, x.AreaName)));
 
     protected override void OnParametersSet()
     {
@@ -195,4 +196,14 @@
     private static bool Same(string? left, string? right) => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
     private static string Floor(string locationNo) => locationNo.Split('-', 2)[0];
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    private static string ScopeNames(IEnumerable<(string? Code, string? Name)> values)
+    {
+        var names = values
+            .Select(x => string.IsNullOrWhiteSpace(x.Name) ? x.Code : x.Name)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+        var text = string.Join(", ", names);
+        return string.IsNullOrWhiteSpace(text) ? "-" : text;
+    }
 }
