@@ -110,13 +110,20 @@ if (-not $saPwd) {
     $saPwd = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec))
 }
 
+# Pooling=False: 풀에 남은 연결이 임시 DB 를 붙잡으면 이름 변경이 배타 잠금을 못 얻는다
 function RemoteConn([string]$db) {
-    "Server=$RemoteServer;Database=$db;User Id=$RemoteSaUser;Password=$saPwd;TrustServerCertificate=True;Encrypt=True;Connect Timeout=30;"
+    "Server=$RemoteServer;Database=$db;User Id=$RemoteSaUser;Password=$saPwd;TrustServerCertificate=True;Encrypt=True;Connect Timeout=30;Pooling=False;"
+}
+
+function DbExists([string]$db) {
+    [int](Invoke-Sql (RemoteConn 'master') "SELECT COUNT(*) AS N FROM sys.databases WHERE name = N'$db'").Rows[0].N -gt 0
 }
 
 $stamp   = Get-Date -Format 'yyyyMMddHHmmss'
 $staging = "${DbName}_sync_$stamp"
 $prev    = "${DbName}_prev"
+# 교체 중 기존 DB 를 잠시 두는 이름 — 새 DB 가 자리 잡은 뒤에야 옛 prev 를 지우고 이 이름을 prev 로 바꾼다
+$hold    = "${DbName}_hold_$stamp"
 $bacpac  = Join-Path $WorkDir "$DbName-$stamp.bacpac"
 New-Item -ItemType Directory -Force $WorkDir | Out-Null
 
@@ -183,23 +190,49 @@ IF IS_ROLEMEMBER(N'db_owner', N'$AppLogin') = 0
 "@ | Out-Null
 
     Step "교체: $DbName → $prev, $staging → $DbName"
-    # 한 배치로 묶어 SINGLE_USER 이후 다른 연결이 끼어들 틈을 줄인다
-    Invoke-Sql (RemoteConn 'master') @"
+    # 기존 DB 를 건드리기 전에 임시 DB 의 배타 잠금부터 확보한다 — 여기서 실패하면 아무것도 바뀌지 않는다
+    Invoke-Sql (RemoteConn 'master') "ALTER DATABASE [$staging] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;" | Out-Null
+
+    $held = $false
+    try {
+        if (DbExists $DbName) {
+            # SINGLE_USER 와 이름 변경을 한 배치로 묶어 다른 연결이 끼어들 틈을 줄인다
+            Invoke-Sql (RemoteConn 'master') @"
+ALTER DATABASE [$DbName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE [$DbName] MODIFY NAME = [$hold];
+"@ | Out-Null
+            $held = $true
+        }
+        Invoke-Sql (RemoteConn 'master') "ALTER DATABASE [$staging] MODIFY NAME = [$DbName];" | Out-Null
+        $swapped = $true
+    }
+    catch {
+        # 새 DB 가 자리 잡지 못했으면 기존 DB 를 원래 이름으로 되돌린다
+        if ($held -and -not (DbExists $DbName)) {
+            Invoke-Sql (RemoteConn 'master') "ALTER DATABASE [$hold] MODIFY NAME = [$DbName];" | Out-Null
+            Write-Host "기존 $DbName 을 원래 이름으로 되돌렸습니다." -ForegroundColor Yellow
+        }
+        if (DbExists $DbName) { Invoke-Sql (RemoteConn 'master') "ALTER DATABASE [$DbName] SET MULTI_USER;" | Out-Null }
+        throw
+    }
+    Invoke-Sql (RemoteConn 'master') "ALTER DATABASE [$DbName] SET MULTI_USER;" | Out-Null
+    $succeeded = $true
+
+    if ($held) {
+        try {
+            Invoke-Sql (RemoteConn 'master') @"
 IF DB_ID(N'$prev') IS NOT NULL
 BEGIN
     ALTER DATABASE [$prev] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
     DROP DATABASE [$prev];
 END
-IF DB_ID(N'$DbName') IS NOT NULL
-BEGIN
-    ALTER DATABASE [$DbName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    ALTER DATABASE [$DbName] MODIFY NAME = [$prev];
-    ALTER DATABASE [$prev] SET MULTI_USER;
-END
-ALTER DATABASE [$staging] MODIFY NAME = [$DbName];
+ALTER DATABASE [$hold] MODIFY NAME = [$prev];
+ALTER DATABASE [$prev] SET MULTI_USER;
 "@ | Out-Null
-    $swapped = $true
-    $succeeded = $true
+        } catch {
+            Write-Host "동기화는 끝났지만 이전 사본 정리 실패 — 원격에 $hold 로 남아 있습니다: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+    }
 
     $check = (Invoke-Sql (RemoteConn $DbName) "SELECT DB_NAME() AS D, (SELECT COUNT(*) FROM sys.tables) AS T").Rows[0]
     Write-Host "`n완료: 원격 $($check.D) 테이블 $($check.T)개, 이전 사본은 $prev" -ForegroundColor Green
