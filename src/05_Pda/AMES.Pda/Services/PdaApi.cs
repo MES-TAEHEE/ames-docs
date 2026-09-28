@@ -80,7 +80,8 @@ public abstract class PdaApi
         DateTime? PackDate, DateTime? DeliveryDate, DateTime? ArrivalDate,
         int TotalBoxes, int ScannedBoxes, string? Yn);
     public sealed record InboundDocumentLineRow(string PartNo, string? PartName,
-        int BoxCount, int ScanCount, string? Yn);
+        int BoxCount, int ScanCount, decimal DeliveredQty, decimal ReceivedQty,
+        decimal RemainingQty, string? Unit, string? Yn);
     public sealed record InboundDocumentBoxRow(string PartNo, string BoxBarcode,
         string? LotNo, decimal Qty, string? Unit, string? Yn);
     public sealed record InboundDocumentResult(InboundDocumentRow? Document,
@@ -155,6 +156,12 @@ public abstract class PdaApi
     public sealed record ReceiveReq(string LotCode, decimal Qty, string LocationId);
     public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId, bool SimulateFailure = false);
     public sealed record InboundCancelReq(string Mode, string Barcode);
+    public sealed record PutAwayRow(string Mode, string Barcode, string LotNo, string? PartNo,
+        string? PartName, decimal Qty, string? Unit, string? DeliveryNoteNo,
+        DateTime? ReceivedAt, string? LocationNo);
+    public sealed record PutAwaySelectionResult(string SelectionType, string? DeliveryNoteNo,
+        List<PutAwayRow> Boxes, List<string> SelectedBarcodes, bool RequiresRelocation = false);
+    public sealed record PutAwayConfirmReq(List<string> Barcodes, string LocationId, bool Relocate = false);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
         string? ReasonNote, bool SimulateFailure = false);
     public sealed record AdjustTestResetResult(bool Success, string Message, string LotNo, decimal Qty);

@@ -25,6 +25,38 @@ IF COL_LENGTH(N'dbo.MD_Location', N'AreaCode') IS NULL
     ALTER TABLE dbo.MD_Location ADD AreaCode varchar(20) NULL;
 GO
 
+-- Inbound records inventory first; Put-away assigns the physical location later.
+IF EXISTS
+(
+    SELECT 1
+    FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'dbo.WH_Inventory')
+      AND name = N'LocationNo'
+      AND is_nullable = 0
+)
+    ALTER TABLE dbo.WH_Inventory ALTER COLUMN LocationNo varchar(50) NULL;
+GO
+
+-- Portal Delivery Note receipts use the linked PO number as InvoiceNo.
+IF OBJECT_ID(N'dbo.WH_Inventory', N'U') IS NOT NULL
+   AND OBJECT_ID(N'dbo.SCM_DeliveryBox', N'U') IS NOT NULL
+   AND OBJECT_ID(N'dbo.SCM_DeliveryLine', N'U') IS NOT NULL
+   AND OBJECT_ID(N'dbo.WH_PurchaseOrder', N'U') IS NOT NULL
+BEGIN
+    UPDATE W
+       SET InvoiceNo = PO.PoNumber
+    FROM dbo.WH_Inventory W
+    JOIN dbo.SCM_DeliveryBox B
+      ON B.BoxNumber = COALESCE(W.BoxNo, W.LotNo)
+    JOIN dbo.SCM_DeliveryLine DL
+      ON DL.DeliveryLineID = B.DeliveryLineID
+    JOIN dbo.WH_PurchaseOrder PO
+      ON PO.PoID = DL.PoID
+    WHERE W.DeliveryNoteNo IS NOT NULL
+      AND NULLIF(LTRIM(RTRIM(W.InvoiceNo)), N'') IS NULL;
+END;
+GO
+
 UPDATE dbo.MD_Location
 SET WhCode = COALESCE(WhCode, 'EOS'),
     AreaCode = COALESCE(AreaCode, CASE WHEN LocationID LIKE 'FG-%' THEN 'FG_AREA' ELSE 'MAT_AREA' END)
@@ -50,6 +82,7 @@ BEGIN
         ItemNo varchar(20) NULL,
         LocationID varchar(20) NULL,
         LotID int NULL,
+        LotNo nvarchar(50) NULL,
         QtyBefore decimal(14,3) NULL,
         QtyChange decimal(14,3) NOT NULL CONSTRAINT DF_WH_InventoryTransaction_QtyChange DEFAULT 0,
         QtyAfter decimal(14,3) NULL,
@@ -67,6 +100,8 @@ BEGIN
         CONSTRAINT CK_WH_InventoryTransaction_Type CHECK (TransactionType IN ('IN', 'OUT', 'ADJ'))
     );
 END;
+IF COL_LENGTH(N'dbo.WH_InventoryTransaction', N'LotNo') IS NULL
+    ALTER TABLE dbo.WH_InventoryTransaction ADD LotNo nvarchar(50) NULL;
 GO
 
 IF OBJECT_ID(N'dbo.WH_InventoryTransaction', N'U') IS NOT NULL
@@ -132,6 +167,8 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_WH_InventoryTransaction_Search' AND object_id = OBJECT_ID(N'dbo.WH_InventoryTransaction'))
     CREATE INDEX IX_WH_InventoryTransaction_Search ON dbo.WH_InventoryTransaction (TransactionType, ItemNo, LocationID, LotID);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_WH_InventoryTransaction_LotNo' AND object_id = OBJECT_ID(N'dbo.WH_InventoryTransaction'))
+    CREATE INDEX IX_WH_InventoryTransaction_LotNo ON dbo.WH_InventoryTransaction (LotNo);
 GO
 
 IF OBJECT_ID(N'dbo.WH_PDA_OPERATION_LOG_WRITE', N'P') IS NOT NULL
@@ -168,7 +205,7 @@ BEGIN
 
     SELECT
         ROW_NUMBER() OVER (ORDER BY T.TransactionTime DESC, T.TransactionID DESC) AS ROW_NO,
-        L.LotCode AS LOTNO,
+        COALESCE(T.LotNo, L.LotCode) AS LOTNO,
         T.ItemNo AS PARTNO,
         CONVERT(nvarchar(10), T.TransactionTime, 23) AS WDATE,
         CONVERT(nvarchar(8), T.TransactionTime, 108) AS WTIME,
@@ -204,16 +241,18 @@ BEGIN
     WHERE T.TransactionTime >= @From
       AND T.TransactionTime < DATEADD(day, 1, @To)
       AND (@Like IS NULL
-           OR L.LotCode LIKE @Like
+           OR COALESCE(T.LotNo, L.LotCode) LIKE @Like
            OR T.ItemNo LIKE @Like
            OR T.LocationID LIKE @Like
            OR EXISTS (
                SELECT 1
-               FROM dbo.WH_InboundPackage P
-               WHERE P.LotID = T.LotID
-                 AND (P.BoxBarcode LIKE @Like
-                      OR P.CaseNo LIKE @Like
-                      OR (P.ReceiveType = N'CKD' AND P.DocumentBarcode LIKE @Like))))
+               FROM dbo.WH_Inventory W
+               WHERE W.LotNo = COALESCE(T.LotNo, L.LotCode)
+                 AND (W.PalletNo LIKE @Like
+                      OR W.CaseNo LIKE @Like
+                      OR W.BoxNo LIKE @Like
+                      OR W.InvoiceNo LIKE @Like
+                      OR W.DeliveryNoteNo LIKE @Like)))
     ORDER BY T.TransactionTime DESC, T.TransactionID DESC;
 END;
 GO
@@ -317,6 +356,16 @@ IF COL_LENGTH(N'dbo.WH_InboundPackage', N'ArrivalDate') IS NULL
     ALTER TABLE dbo.WH_InboundPackage ADD ArrivalDate date NULL;
 GO
 
+IF COL_LENGTH(N'dbo.WH_Inventory', N'DeliveryNoteNo') IS NULL
+    ALTER TABLE dbo.WH_Inventory ADD DeliveryNoteNo nvarchar(30) NULL;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.WH_Inventory') AND name = N'IX_WH_Inventory_DeliveryNoteNo')
+    CREATE INDEX IX_WH_Inventory_DeliveryNoteNo ON dbo.WH_Inventory(DeliveryNoteNo);
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.WH_Inventory') AND name = N'IX_WH_Inventory_DeliveryLineID')
+    DROP INDEX IX_WH_Inventory_DeliveryLineID ON dbo.WH_Inventory;
+IF COL_LENGTH(N'dbo.WH_Inventory', N'DeliveryLineID') IS NOT NULL
+    ALTER TABLE dbo.WH_Inventory DROP COLUMN DeliveryLineID;
+GO
+
 IF OBJECT_ID(N'dbo.WH_InboundDocument', N'U') IS NOT NULL
    AND COL_LENGTH(N'dbo.WH_InboundPackage', N'InboundDocumentID') IS NOT NULL
 BEGIN
@@ -372,6 +421,104 @@ BEGIN
     IF @Mode NOT IN (N'LOCAL', N'CKD')
         THROW 51400, 'Receive mode must be LOCAL or CKD.', 1;
 
+    IF @Mode = N'LOCAL'
+       AND EXISTS (SELECT 1 FROM dbo.SCM_DeliveryNote WHERE NoteNumber = @Barcode)
+    BEGIN
+        IF EXISTS
+        (
+            SELECT 1
+            FROM dbo.SCM_DeliveryNote N
+            JOIN dbo.SCM_DeliveryNoteDelivery ND ON ND.NoteID = N.NoteID
+            JOIN dbo.SCM_Delivery D ON D.DeliveryID = ND.DeliveryID
+            WHERE N.NoteNumber = @Barcode
+              AND D.Status NOT IN ('Shipped', 'Received')
+        )
+            THROW 51404, 'Only shipped delivery notes can be received.', 1;
+
+        IF NOT EXISTS
+        (
+            SELECT 1
+            FROM dbo.SCM_DeliveryNote N
+            JOIN dbo.SCM_DeliveryNoteDelivery ND ON ND.NoteID = N.NoteID
+            JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryID = ND.DeliveryID
+            JOIN dbo.SCM_DeliveryBox B ON B.DeliveryLineID = DL.DeliveryLineID
+            WHERE N.NoteNumber = @Barcode
+              AND B.ActiveFlag = 1
+        )
+            THROW 51405, 'The delivery note has no active box labels.', 1;
+
+        SELECT
+            N'LOCAL' AS RECEIVE_TYPE,
+            N.NoteID AS INBOUND_DOCUMENT_ID,
+            N.NoteNumber AS DOCUMENT_BARCODE,
+            N.NoteNumber AS DOCUMENT_NO,
+            N.VendorID AS VENDCD,
+            COALESCE(V.VendorName, N.VendorID) AS VENDNM,
+            CAST(NULL AS nvarchar(50)) AS CASE_NO,
+            CAST(NULL AS nvarchar(50)) AS INVOICE_NO,
+            CAST(NULL AS nvarchar(50)) AS CONTAINER_NO,
+            MIN(D.ShipDate) AS SHIP_DATE,
+            CAST(NULL AS date) AS PACK_DATE,
+            MAX(D.DeliveryDate) AS DELI_DATE,
+            MAX(D.DeliveryDate) AS ARRIV_DATE,
+            COUNT(B.BoxID) AS TOTAL_BOXES,
+            SUM(CASE WHEN W.LotNo IS NULL THEN 0 ELSE 1 END) AS SCANNED_BOXES,
+            CASE WHEN COUNT(B.BoxID) = SUM(CASE WHEN W.LotNo IS NULL THEN 0 ELSE 1 END)
+                 THEN N'Y' ELSE N'N' END AS YN
+        FROM dbo.SCM_DeliveryNote N
+        JOIN dbo.SCM_DeliveryNoteDelivery ND ON ND.NoteID = N.NoteID
+        JOIN dbo.SCM_Delivery D ON D.DeliveryID = ND.DeliveryID
+        JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryID = D.DeliveryID
+        JOIN dbo.SCM_DeliveryBox B ON B.DeliveryLineID = DL.DeliveryLineID AND B.ActiveFlag = 1
+        LEFT JOIN dbo.MD_Vendor V ON V.VendorID = N.VendorID
+        LEFT JOIN dbo.WH_Inventory W ON W.DeliveryNoteNo = N.NoteNumber
+                                      AND W.BoxNo = B.BoxNumber
+                                      AND W.Qty > 0
+        WHERE N.NoteNumber = @Barcode
+        GROUP BY N.NoteID, N.NoteNumber, N.VendorID, V.VendorName;
+
+        SELECT
+            B.ItemNo AS PARTNO,
+            MAX(B.ItemName) AS PARTNM,
+            COUNT(B.BoxID) AS BOX_COUNT,
+            SUM(CASE WHEN W.LotNo IS NULL THEN 0 ELSE 1 END) AS SCAN_COUNT,
+            SUM(B.Quantity) AS DELIVERED_QTY,
+            SUM(CASE WHEN W.LotNo IS NULL THEN 0 ELSE B.Quantity END) AS RECEIVED_QTY,
+            SUM(CASE WHEN W.LotNo IS NULL THEN B.Quantity ELSE 0 END) AS REMAINING_QTY,
+            MAX(B.UnitCode) AS UNIT,
+            CASE WHEN COUNT(B.BoxID) = SUM(CASE WHEN W.LotNo IS NULL THEN 0 ELSE 1 END)
+                 THEN N'Y' ELSE N'N' END AS YN
+        FROM dbo.SCM_DeliveryNote N
+        JOIN dbo.SCM_DeliveryNoteDelivery ND ON ND.NoteID = N.NoteID
+        JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryID = ND.DeliveryID
+        JOIN dbo.SCM_DeliveryBox B ON B.DeliveryLineID = DL.DeliveryLineID AND B.ActiveFlag = 1
+        LEFT JOIN dbo.WH_Inventory W ON W.DeliveryNoteNo = N.NoteNumber
+                                      AND W.BoxNo = B.BoxNumber
+                                      AND W.Qty > 0
+        WHERE N.NoteNumber = @Barcode
+        GROUP BY B.ItemNo
+        ORDER BY B.ItemNo;
+
+        SELECT
+            B.ItemNo AS PARTNO,
+            B.BoxNumber AS BOX_BARCODE,
+            COALESCE(NULLIF(DL.VendorLotNo, N''), B.BoxNumber) AS LOTNO,
+            B.Quantity AS QTY,
+            B.UnitCode AS UNIT,
+            CASE WHEN W.LotNo IS NULL THEN N'N' ELSE N'Y' END AS YN
+        FROM dbo.SCM_DeliveryNote N
+        JOIN dbo.SCM_DeliveryNoteDelivery ND ON ND.NoteID = N.NoteID
+        JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryID = ND.DeliveryID
+        JOIN dbo.SCM_DeliveryBox B ON B.DeliveryLineID = DL.DeliveryLineID AND B.ActiveFlag = 1
+        LEFT JOIN dbo.WH_Inventory W ON W.DeliveryNoteNo = N.NoteNumber
+                                      AND W.BoxNo = B.BoxNumber
+                                      AND W.Qty > 0
+        WHERE N.NoteNumber = @Barcode
+        ORDER BY B.ItemNo, B.BoxSeq;
+
+        RETURN;
+    END;
+
     SELECT TOP (1) @ActualMode = ReceiveType
     FROM dbo.WH_InboundPackage
     WHERE DocumentBarcode = @Barcode;
@@ -410,24 +557,40 @@ BEGIN
     WHERE P.DocumentBarcode = @Barcode
     HAVING COUNT(P.InboundPackageID) > 0;
 
-    SELECT
-        P.ItemNo AS PARTNO,
-        I.ItemName AS PARTNM,
-        COUNT(P.InboundPackageID) AS BOX_COUNT,
-        SUM(CASE WHEN AI.LotID IS NULL THEN 0 ELSE 1 END) AS SCAN_COUNT,
-        CASE WHEN COUNT(P.InboundPackageID) = SUM(CASE WHEN AI.LotID IS NULL THEN 0 ELSE 1 END)
-             THEN N'Y' ELSE N'N' END AS YN
-    FROM dbo.WH_InboundPackage P
-    LEFT JOIN dbo.MD_Item I ON I.ItemNo = P.ItemNo
-    LEFT JOIN
+    ;WITH ActiveInventory AS
     (
         SELECT DISTINCT LotID
         FROM dbo.WH_OLD_Inventory
         WHERE COALESCE(Status, 'Received') <> 'Canceled'
           AND COALESCE(OnHandQty, 0) > 0
-    ) AI ON AI.LotID = P.LotID
-    WHERE P.DocumentBarcode = @Barcode
-    GROUP BY P.ItemNo, I.ItemName
+    ),
+    PackageRollup AS
+    (
+        SELECT
+            P.ItemNo,
+            MAX(I.ItemName) AS ItemName,
+            COUNT(P.InboundPackageID) AS BoxCount,
+            SUM(CASE WHEN AI.LotID IS NULL THEN 0 ELSE 1 END) AS ScanCount,
+            SUM(P.Qty) AS PackageQty,
+            SUM(CASE WHEN AI.LotID IS NULL THEN 0 ELSE P.Qty END) AS ReceivedPackageQty,
+            MAX(P.UnitCode) AS UnitCode
+        FROM dbo.WH_InboundPackage P
+        LEFT JOIN dbo.MD_Item I ON I.ItemNo = P.ItemNo
+        LEFT JOIN ActiveInventory AI ON AI.LotID = P.LotID
+        WHERE P.DocumentBarcode = @Barcode
+        GROUP BY P.ItemNo
+    )
+    SELECT
+        P.ItemNo AS PARTNO,
+        P.ItemName AS PARTNM,
+        P.BoxCount AS BOX_COUNT,
+        P.ScanCount AS SCAN_COUNT,
+        P.PackageQty AS DELIVERED_QTY,
+        P.ReceivedPackageQty AS RECEIVED_QTY,
+        P.PackageQty - P.ReceivedPackageQty AS REMAINING_QTY,
+        P.UnitCode AS UNIT,
+        CASE WHEN P.BoxCount = P.ScanCount THEN N'Y' ELSE N'N' END AS YN
+    FROM PackageRollup P
     ORDER BY P.ItemNo;
 
     SELECT
@@ -472,6 +635,72 @@ BEGIN
         THROW 51400, 'Receive mode must be LOCAL or CKD.', 1;
     IF @Barcode = N''
         THROW 51401, 'Box barcode is required.', 1;
+
+    IF @Mode = N'LOCAL'
+       AND EXISTS
+       (
+           SELECT 1
+           FROM dbo.SCM_DeliveryBox
+           WHERE BoxNumber = @Barcode
+             AND ActiveFlag = 1
+       )
+    BEGIN
+        IF NOT EXISTS
+        (
+            SELECT 1
+            FROM dbo.SCM_DeliveryBox B
+            JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryLineID = B.DeliveryLineID
+            JOIN dbo.SCM_Delivery D ON D.DeliveryID = DL.DeliveryID
+            JOIN dbo.SCM_DeliveryNoteDelivery ND ON ND.DeliveryID = D.DeliveryID
+            JOIN dbo.SCM_DeliveryNote N ON N.NoteID = ND.NoteID
+            WHERE B.BoxNumber = @Barcode
+              AND B.ActiveFlag = 1
+              AND D.Status IN ('Shipped', 'Received')
+        )
+            THROW 51404, 'Only boxes from a shipped delivery note can be received.', 1;
+
+        SELECT TOP (1)
+            N'LOCAL' AS RECEIVE_TYPE,
+            CASE WHEN W.LotNo IS NULL THEN N'Y' ELSE N'N' END AS YN,
+            COALESCE(NULLIF(DL.VendorLotNo, N''), B.BoxNumber) AS LOTNO,
+            B.BoxNumber AS BARCODE,
+            N'dbo.SCM_DeliveryNote/dbo.SCM_DeliveryBox' AS SOURCE_TABLE,
+            N.NoteNumber AS NOTENO,
+            CAST(NULL AS nvarchar(50)) AS CASE_BARCODE,
+            CAST(NULL AS nvarchar(50)) AS CASE_NO,
+            W.InvoiceNo AS INVOICE_NO,
+            CAST(NULL AS nvarchar(50)) AS CONTAINER_NO,
+            B.ItemNo AS PARTNO,
+            B.ItemName AS PARTNM,
+            COALESCE(W.Qty, B.Quantity) AS QTY,
+            B.UnitCode AS UNIT,
+            PO.PoNumber AS PONO,
+            PO.PoLineNo AS PONO_SEQ,
+            D.VendorID AS VENDCD,
+            COALESCE(V.VendorName, D.VendorID) AS VENDNM,
+            DL.ProductionDate AS PROD_DATE,
+            D.DeliveryDate AS DELI_DATE,
+            D.DeliveryDate AS ARRIV_DATE,
+            D.ShipDate AS SHIP_DATE,
+            CAST(NULL AS date) AS PACK_DATE,
+            W.LocationNo AS RECEIVED_LOCATION,
+            CASE WHEN W.LotNo IS NULL THEN N'Open' ELSE N'Received' END AS RECEIVED_STATUS
+        FROM dbo.SCM_DeliveryBox B
+        JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryLineID = B.DeliveryLineID
+        JOIN dbo.SCM_Delivery D ON D.DeliveryID = DL.DeliveryID
+        JOIN dbo.SCM_DeliveryNoteDelivery ND ON ND.DeliveryID = D.DeliveryID
+        JOIN dbo.SCM_DeliveryNote N ON N.NoteID = ND.NoteID
+        LEFT JOIN dbo.WH_PurchaseOrder PO ON PO.PoID = DL.PoID
+        LEFT JOIN dbo.MD_Vendor V ON V.VendorID = D.VendorID
+        LEFT JOIN dbo.WH_Inventory W ON W.DeliveryNoteNo = N.NoteNumber
+                                      AND W.BoxNo = B.BoxNumber
+                                      AND W.Qty > 0
+        WHERE B.BoxNumber = @Barcode
+          AND B.ActiveFlag = 1
+        ORDER BY N.NoteID DESC;
+
+        RETURN;
+    END;
 
     SELECT TOP (1)
         @PackageID = P.InboundPackageID,
@@ -737,18 +966,19 @@ BEGIN
 
     DECLARE @Mode nvarchar(10) = UPPER(LTRIM(RTRIM(ISNULL(@ReceiveMode, N''))));
     DECLARE @Barcode nvarchar(50) = LTRIM(RTRIM(ISNULL(@LotBarcode, N'')));
-    DECLARE @Location nvarchar(30) = LTRIM(RTRIM(ISNULL(@LocationId, N'')));
+    DECLARE @Location nvarchar(30) = NULLIF(LTRIM(RTRIM(ISNULL(@LocationId, N''))), N'');
     DECLARE @User nvarchar(40) = COALESCE(NULLIF(LTRIM(RTRIM(@UserId)), N''), N'PDA');
 
     IF @Mode NOT IN (N'LOCAL', N'CKD')
         THROW 51410, 'Receive mode must be LOCAL or CKD.', 1;
     IF @Barcode = N''
         THROW 51411, 'LOT barcode is required.', 1;
-    IF @Location = N''
-        THROW 51412, 'Location No is required.', 1;
-    IF NOT EXISTS (SELECT 1 FROM dbo.MD_Location WHERE LocationID = @Location)
+
+    IF @Location IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM dbo.MD_Location WHERE LocationID = @Location)
         THROW 51413, 'Location No was not found.', 1;
-    IF EXISTS
+    IF @Location IS NOT NULL
+       AND EXISTS
     (
         SELECT 1
         FROM dbo.MD_Location
@@ -760,6 +990,145 @@ BEGIN
           )
     )
         THROW 51418, 'Location is blocked for inbound.', 1;
+
+    IF @Mode = N'LOCAL'
+       AND EXISTS
+       (
+           SELECT 1
+           FROM dbo.SCM_DeliveryBox
+           WHERE BoxNumber = @Barcode
+             AND ActiveFlag = 1
+       )
+    BEGIN
+        DECLARE
+            @PortalDeliveryLineID int,
+            @PortalItemNo varchar(20),
+            @PortalPartName nvarchar(200),
+            @PortalQty decimal(18,3),
+            @PortalPoID int,
+            @PortalPoNumber varchar(20),
+            @PortalNoteNo nvarchar(30);
+
+        BEGIN TRANSACTION;
+
+        SELECT TOP (1)
+            @PortalDeliveryLineID = DL.DeliveryLineID,
+            @PortalItemNo = B.ItemNo,
+            @PortalPartName = B.ItemName,
+            @PortalQty = B.Quantity,
+            @PortalPoID = DL.PoID,
+            @PortalPoNumber = PO.PoNumber,
+            @PortalNoteNo = N.NoteNumber
+        FROM dbo.SCM_DeliveryBox B
+        JOIN dbo.SCM_DeliveryLine DL WITH (UPDLOCK, HOLDLOCK)
+          ON DL.DeliveryLineID = B.DeliveryLineID
+        LEFT JOIN dbo.WH_PurchaseOrder PO ON PO.PoID = DL.PoID
+        JOIN dbo.SCM_Delivery D ON D.DeliveryID = DL.DeliveryID
+        JOIN dbo.SCM_DeliveryNoteDelivery ND ON ND.DeliveryID = D.DeliveryID
+        JOIN dbo.SCM_DeliveryNote N ON N.NoteID = ND.NoteID
+        WHERE B.BoxNumber = @Barcode
+          AND B.ActiveFlag = 1
+          AND D.Status IN ('Shipped', 'Received')
+        ORDER BY N.NoteID DESC;
+
+        IF @PortalDeliveryLineID IS NULL
+            THROW 51421, 'Portal box is not linked to a shipped delivery note.', 1;
+
+        IF EXISTS
+        (
+            SELECT 1
+            FROM dbo.WH_Inventory WITH (UPDLOCK, HOLDLOCK)
+            WHERE LotNo = @Barcode
+              AND Qty > 0
+        )
+            THROW 51416, 'LOT is already received.', 1;
+
+        IF EXISTS
+        (
+            SELECT 1
+            FROM dbo.MD_Location L
+            OUTER APPLY
+            (
+                SELECT SUM(W.Qty) AS CurrentQty
+                FROM dbo.WH_Inventory W WITH (UPDLOCK, HOLDLOCK)
+                WHERE W.LocationNo = L.LocationID
+            ) S
+            WHERE @Location IS NOT NULL
+              AND L.LocationID = @Location
+              AND COALESCE(L.Capacity, 0) > 0
+              AND COALESCE(S.CurrentQty, 0) + @PortalQty > L.Capacity
+        )
+            THROW 51419, 'Location capacity would be exceeded.', 1;
+
+        IF EXISTS
+        (
+            SELECT 1
+            FROM dbo.SCM_DeliveryLine
+            WHERE DeliveryLineID = @PortalDeliveryLineID
+              AND COALESCE(ReceivedQty, 0) + @PortalQty > Quantity
+        )
+            THROW 51420, 'Portal delivery received quantity would exceed the remaining quantity.', 1;
+
+        INSERT dbo.WH_Inventory
+            (LotNo, UnitType, PartNo, PartName, BoxNo, LocationNo, Qty,
+             InvoiceNo, DeliveryNoteNo, ReceivedAt, CreatedAt, UpdatedAt)
+        VALUES
+            (@Barcode, 'BOX', @PortalItemNo, @PortalPartName, @Barcode, @Location, @PortalQty,
+             @PortalPoNumber, @PortalNoteNo, SYSDATETIME(), SYSDATETIME(), SYSDATETIME());
+
+        UPDATE dbo.WH_PurchaseOrder
+           SET ReceivedQty = COALESCE(ReceivedQty, 0) + @PortalQty,
+               Status = CASE
+                   WHEN COALESCE(ReceivedQty, 0) + @PortalQty >= COALESCE(OrderQty, 0) THEN 'Complete'
+                   ELSE 'Open'
+               END,
+               ModifiedBy = LEFT(@User, 20),
+               ModifiedTS = SYSDATETIME()
+         WHERE PoID = @PortalPoID;
+
+        UPDATE dbo.SCM_DeliveryLine
+           SET ReceivedQty = COALESCE(ReceivedQty, 0) + @PortalQty
+         WHERE DeliveryLineID = @PortalDeliveryLineID;
+
+        UPDATE D
+           SET Status = 'Received',
+               ModifiedBy = LEFT(@User, 20),
+               ModifiedTS = SYSDATETIME()
+        FROM dbo.SCM_Delivery D
+        WHERE D.DeliveryID =
+        (
+            SELECT DeliveryID
+            FROM dbo.SCM_DeliveryLine
+            WHERE DeliveryLineID = @PortalDeliveryLineID
+        )
+          AND NOT EXISTS
+          (
+              SELECT 1
+              FROM dbo.SCM_DeliveryLine Remaining
+              WHERE Remaining.DeliveryID = D.DeliveryID
+                AND Remaining.ReceivedQty < Remaining.Quantity
+          );
+
+        INSERT dbo.WH_InventoryTransaction
+            (TransactionType, ItemNo, LocationID, LotID, LotNo, QtyBefore, QtyChange, QtyAfter,
+             ReasonCode, RefDocType, RefDocID, OperatorID, Note, CreatedBy, CreatedTS)
+        VALUES
+            ('IN', @PortalItemNo, @Location, NULL, @Barcode, 0, @PortalQty, @PortalQty,
+             'INBOUND_RECEIVE', 'SCM_DeliveryLine', @PortalDeliveryLineID, @User,
+             CONCAT('PDA delivery note inbound ', @PortalNoteNo, ' / ', @Barcode),
+             LEFT(@User, 20), SYSDATETIME());
+
+        IF @SimulateFailure = 1
+        BEGIN
+            ROLLBACK TRANSACTION;
+            THROW 51518, 'Simulated receive API failure. Database transaction was rolled back.', 1;
+        END;
+
+        COMMIT TRANSACTION;
+
+        EXEC dbo.WH_PDA_INBOUND_SCAN_LOT @ReceiveMode = @Mode, @LotBarcode = @Barcode;
+        RETURN;
+    END;
 
     DECLARE
         @LotID int,
@@ -810,7 +1179,8 @@ BEGIN
               AND COALESCE(W.OnHandQty, 0) > 0
               AND UPPER(COALESCE(W.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
         ) S
-        WHERE L.LocationID = @Location
+        WHERE @Location IS NOT NULL
+          AND L.LocationID = @Location
           AND COALESCE(L.Capacity, 0) > 0
           AND COALESCE(S.CurrentQty, 0) + @Qty > L.Capacity
     )
@@ -839,6 +1209,17 @@ BEGIN
             PoID;
 
     BEGIN TRANSACTION;
+
+    -- Serialize receipt of the same LOT so concurrent scans cannot both pass.
+    IF EXISTS
+    (
+        SELECT 1
+        FROM dbo.WH_OLD_Inventory WITH (UPDLOCK, HOLDLOCK)
+        WHERE LotID = @LotID
+          AND COALESCE(Status, 'Received') <> 'Canceled'
+          AND COALESCE(OnHandQty, 0) > 0
+    )
+        THROW 51416, 'LOT is already received.', 1;
 
     DECLARE @InsertedReceiving TABLE (ReceivingID int NOT NULL);
 
@@ -886,7 +1267,7 @@ BEGIN
                END,
                ModifiedBy = @User,
                ModifiedTS = SYSDATETIME()
-          WHERE PoID = @PoID;
+         WHERE PoID = @PoID;
     END;
 
     INSERT INTO dbo.WH_InventoryTransaction
@@ -940,7 +1321,9 @@ BEGIN
     DECLARE @User nvarchar(40) = COALESCE(NULLIF(LTRIM(RTRIM(@UserId)), N''), N'PDA');
     DECLARE @LotID int;
     DECLARE @ActualMode nvarchar(10);
-    DECLARE @CurrentLocation varchar(20);
+    DECLARE @CurrentLocation varchar(50);
+    DECLARE @ItemNo varchar(50);
+    DECLARE @Qty decimal(18,3);
 
     IF @Mode NOT IN (N'LOCAL', N'CKD')
         THROW 51420, 'Receive mode must be LOCAL or CKD.', 1;
@@ -948,8 +1331,86 @@ BEGIN
         THROW 51421, 'LOT barcode is required.', 1;
     IF @Location = N''
         THROW 51422, 'Location No is required.', 1;
-    IF NOT EXISTS (SELECT 1 FROM dbo.MD_Location WHERE LocationID = @Location AND COALESCE(ActiveFlag, 1) = 1)
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.MD_Location
+        WHERE LocationID = @Location
+          AND COALESCE(ActiveFlag, 1) = 1
+          AND UPPER(COALESCE(LocationType, N'')) NOT IN (N'BLOCKED', N'HOLD', N'QUARANTINE', N'INACTIVE')
+    )
         THROW 51423, 'Location No was not found.', 1;
+
+    IF @Mode = N'LOCAL'
+       AND EXISTS
+       (
+           SELECT 1
+           FROM dbo.SCM_DeliveryBox
+           WHERE BoxNumber = @Barcode
+             AND ActiveFlag = 1
+       )
+    BEGIN
+        IF NOT EXISTS
+        (
+            SELECT 1
+            FROM dbo.WH_Inventory
+            WHERE LotNo = @Barcode
+              AND DeliveryNoteNo IS NOT NULL
+              AND Qty > 0
+        )
+            THROW 51425, 'LOT is not received yet.', 1;
+
+        SELECT
+            @CurrentLocation = LocationNo,
+            @ItemNo = PartNo,
+            @Qty = Qty
+        FROM dbo.WH_Inventory
+        WHERE LotNo = @Barcode
+          AND DeliveryNoteNo IS NOT NULL
+          AND Qty > 0;
+
+        IF @CurrentLocation IS NOT NULL AND UPPER(@CurrentLocation) = UPPER(@Location)
+            THROW 51426, 'LOT is already in this location.', 1;
+
+        IF EXISTS
+        (
+            SELECT 1
+            FROM dbo.MD_Location L
+            OUTER APPLY
+            (
+                SELECT SUM(W.Qty) AS CurrentQty
+                FROM dbo.WH_Inventory W WITH (UPDLOCK, HOLDLOCK)
+                WHERE W.LocationNo = L.LocationID
+            ) S
+            WHERE L.LocationID = @Location
+              AND COALESCE(L.Capacity, 0) > 0
+              AND COALESCE(S.CurrentQty, 0) + @Qty > L.Capacity
+        )
+            THROW 51428, 'Location capacity would be exceeded.', 1;
+
+        BEGIN TRANSACTION;
+
+        UPDATE dbo.WH_Inventory
+           SET LocationNo = @Location,
+               UpdatedAt = SYSDATETIME()
+         WHERE LotNo = @Barcode
+           AND DeliveryNoteNo IS NOT NULL
+           AND Qty > 0;
+
+        INSERT dbo.WH_InventoryTransaction
+            (TransactionType, ItemNo, LocationID, LotID, LotNo, QtyBefore, QtyChange, QtyAfter,
+             ReasonCode, RefDocType, OperatorID, Note, CreatedBy, CreatedTS)
+        VALUES
+            ('ADJ', @ItemNo, @Location, NULL, @Barcode, @Qty, 0, @Qty,
+             'PUT_AWAY', 'WH_Inventory', @User,
+             CONCAT('PDA put-away ', COALESCE(@CurrentLocation, N'UNASSIGNED'), N' -> ', @Location),
+             LEFT(@User, 20), SYSDATETIME());
+
+        COMMIT TRANSACTION;
+
+        EXEC dbo.WH_PDA_INBOUND_SCAN_LOT @ReceiveMode = @Mode, @LotBarcode = @Barcode;
+        RETURN;
+    END;
 
     SELECT TOP (1)
         @LotID = P.LotID,
@@ -970,17 +1431,46 @@ BEGIN
     IF @ActualMode <> @Mode
         THROW 51427, 'LOT receive mode does not match the selected tab.', 1;
 
-    SELECT TOP (1) @CurrentLocation = LocationID
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.WH_OLD_Inventory
+        WHERE LotID = @LotID
+          AND COALESCE(Status, 'Received') <> 'Canceled'
+          AND COALESCE(OnHandQty, 0) > 0
+    )
+        THROW 51425, 'LOT is not received yet.', 1;
+
+    SELECT TOP (1)
+        @CurrentLocation = LocationID,
+        @ItemNo = ItemNo,
+        @Qty = OnHandQty
     FROM dbo.WH_OLD_Inventory
     WHERE LotID = @LotID
       AND COALESCE(Status, 'Received') <> 'Canceled'
       AND COALESCE(OnHandQty, 0) > 0
     ORDER BY InventoryID DESC;
 
-    IF @CurrentLocation IS NULL
-        THROW 51425, 'LOT is not received yet.', 1;
-    IF UPPER(@CurrentLocation) = UPPER(@Location)
+    IF @CurrentLocation IS NOT NULL AND UPPER(@CurrentLocation) = UPPER(@Location)
         THROW 51426, 'LOT is already in this location.', 1;
+
+    IF EXISTS
+    (
+        SELECT 1
+        FROM dbo.MD_Location L
+        OUTER APPLY
+        (
+            SELECT SUM(COALESCE(W.OnHandQty, 0)) AS CurrentQty
+            FROM dbo.WH_OLD_Inventory W WITH (UPDLOCK, HOLDLOCK)
+            WHERE W.LocationID = L.LocationID
+              AND COALESCE(W.OnHandQty, 0) > 0
+              AND UPPER(COALESCE(W.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
+        ) S
+        WHERE L.LocationID = @Location
+          AND COALESCE(L.Capacity, 0) > 0
+          AND COALESCE(S.CurrentQty, 0) + @Qty > L.Capacity
+    )
+        THROW 51428, 'Location capacity would be exceeded.', 1;
 
     BEGIN TRANSACTION;
 
@@ -1009,6 +1499,15 @@ BEGIN
         WHERE LotCode IN (@Barcode, (SELECT LotCode FROM dbo.tbl_Lot WHERE LotID = @LotID))
         ORDER BY ReceivingID DESC
      );
+
+    INSERT dbo.WH_InventoryTransaction
+        (TransactionType, ItemNo, LocationID, LotID, LotNo, QtyBefore, QtyChange, QtyAfter,
+         ReasonCode, RefDocType, OperatorID, Note, CreatedBy, CreatedTS)
+    VALUES
+        ('ADJ', @ItemNo, @Location, @LotID, @Barcode, @Qty, 0, @Qty,
+         'PUT_AWAY', 'WH_OLD_Inventory', @User,
+         CONCAT('PDA put-away ', COALESCE(@CurrentLocation, N'UNASSIGNED'), N' -> ', @Location),
+         LEFT(@User, 20), SYSDATETIME());
 
     COMMIT TRANSACTION;
 
@@ -1040,6 +1539,96 @@ BEGIN
         THROW 51430, 'Receive mode must be LOCAL or CKD.', 1;
     IF @Barcode = N''
         THROW 51431, 'LOT barcode is required.', 1;
+
+    IF @Mode = N'LOCAL'
+       AND EXISTS
+       (
+           SELECT 1
+           FROM dbo.SCM_DeliveryBox
+           WHERE BoxNumber = @Barcode
+             AND ActiveFlag = 1
+       )
+    BEGIN
+        DECLARE
+            @PortalDeliveryLineID int,
+            @PortalItemNo varchar(20),
+            @PortalLocation varchar(50),
+            @PortalQty decimal(18,3),
+            @PortalPoID int,
+            @PortalNoteNo nvarchar(30);
+
+        BEGIN TRANSACTION;
+
+        SELECT TOP (1)
+            @PortalDeliveryLineID = B.DeliveryLineID,
+            @PortalItemNo = W.PartNo,
+            @PortalLocation = W.LocationNo,
+            @PortalQty = W.Qty,
+            @PortalNoteNo = W.DeliveryNoteNo
+        FROM dbo.WH_Inventory W WITH (UPDLOCK, HOLDLOCK)
+        JOIN dbo.SCM_DeliveryBox B ON B.BoxNumber = W.BoxNo AND B.ActiveFlag = 1
+        JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryLineID = B.DeliveryLineID
+        JOIN dbo.SCM_DeliveryNoteDelivery ND ON ND.DeliveryID = DL.DeliveryID
+        JOIN dbo.SCM_DeliveryNote N ON N.NoteID = ND.NoteID AND N.NoteNumber = W.DeliveryNoteNo
+        WHERE W.LotNo = @Barcode
+          AND W.DeliveryNoteNo IS NOT NULL
+          AND W.Qty > 0;
+
+        IF @PortalDeliveryLineID IS NULL
+            THROW 51433, 'LOT is not received yet.', 1;
+
+        SELECT @PortalPoID = PoID
+        FROM dbo.SCM_DeliveryLine
+        WHERE DeliveryLineID = @PortalDeliveryLineID;
+
+        DELETE FROM dbo.WH_Inventory
+        WHERE LotNo = @Barcode
+          AND DeliveryNoteNo = @PortalNoteNo;
+
+        UPDATE dbo.WH_PurchaseOrder
+           SET ReceivedQty = CASE
+                   WHEN COALESCE(ReceivedQty, 0) - @PortalQty < 0 THEN 0
+                   ELSE COALESCE(ReceivedQty, 0) - @PortalQty
+               END,
+               Status = 'Open',
+               ModifiedBy = LEFT(@User, 20),
+               ModifiedTS = SYSDATETIME()
+         WHERE PoID = @PortalPoID;
+
+        UPDATE dbo.SCM_DeliveryLine
+           SET ReceivedQty = CASE
+                   WHEN COALESCE(ReceivedQty, 0) - @PortalQty < 0 THEN 0
+                   ELSE COALESCE(ReceivedQty, 0) - @PortalQty
+               END
+         WHERE DeliveryLineID = @PortalDeliveryLineID;
+
+        UPDATE D
+           SET Status = 'Shipped',
+               ModifiedBy = LEFT(@User, 20),
+               ModifiedTS = SYSDATETIME()
+        FROM dbo.SCM_Delivery D
+        WHERE D.Status = 'Received'
+          AND D.DeliveryID =
+          (
+              SELECT DeliveryID
+              FROM dbo.SCM_DeliveryLine
+              WHERE DeliveryLineID = @PortalDeliveryLineID
+          );
+
+        INSERT dbo.WH_InventoryTransaction
+            (TransactionType, ItemNo, LocationID, LotID, LotNo, QtyBefore, QtyChange, QtyAfter,
+             ReasonCode, RefDocType, RefDocID, OperatorID, Note, CreatedBy, CreatedTS)
+        VALUES
+            ('ADJ', @PortalItemNo, @PortalLocation, NULL, @Barcode, @PortalQty, -@PortalQty, 0,
+             'INBOUND_CANCEL', 'SCM_DeliveryLine', @PortalDeliveryLineID, @User,
+             CONCAT('PDA delivery note inbound cancel ', @PortalNoteNo, ' / ', @Barcode),
+             LEFT(@User, 20), SYSDATETIME());
+
+        COMMIT TRANSACTION;
+
+        EXEC dbo.WH_PDA_INBOUND_SCAN_LOT @ReceiveMode = @Mode, @LotBarcode = @Barcode;
+        RETURN;
+    END;
 
     SELECT TOP (1)
         @LotID = P.LotID,
@@ -1887,60 +2476,37 @@ BEGIN
 END;
 GO
 
--- FIFO uses production time first, then receipt time and LotID as deterministic ties.
+-- FIFO uses the unified inventory receipt time and LOT No as deterministic ties.
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_FIFO_VIEW
     @LotNo nvarchar(50)
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    DECLARE @LotID int, @ItemNo varchar(20), @ProducedAt datetime2, @ReceivedAt datetime2;
+    DECLARE @ItemNo varchar(50), @ReceivedAt datetime2, @ResolvedLot nvarchar(50);
     SELECT TOP (1)
-        @LotID = L.LotID,
-        @ItemNo = L.ItemNo,
-        @ProducedAt = L.ProducedAt,
-        @ReceivedAt = W.LastReceivedAt
-    FROM dbo.tbl_Lot L
-    LEFT JOIN dbo.WH_OLD_Inventory W ON W.LotID = L.LotID
-    WHERE UPPER(L.LotCode) = UPPER(LTRIM(RTRIM(@LotNo)));
+        @ResolvedLot = W.LotNo,
+        @ItemNo = W.PartNo,
+        @ReceivedAt = W.ReceivedAt
+    FROM dbo.WH_Inventory W
+    WHERE UPPER(W.LotNo) = UPPER(LTRIM(RTRIM(@LotNo)))
+       OR UPPER(COALESCE(W.BoxNo,N'')) = UPPER(LTRIM(RTRIM(@LotNo)))
+    ORDER BY CASE WHEN W.Qty > 0 THEN 0 ELSE 1 END,W.ReceivedAt,W.LotNo;
 
     SELECT
-        Older.LotID AS LOT_ID,
-        Older.LotCode AS LOTNO,
-        Older.ItemNo AS PARTNO,
-        W.LocationID AS LOCATION_NO,
-        COALESCE(W.OnHandQty, 0) AS QTY,
-        W.LastReceivedAt AS RCV_DATE,
-        Older.InventoryStatus AS LOT_STATUS
-    FROM dbo.tbl_Lot Older
-    INNER JOIN dbo.WH_OLD_Inventory W ON W.LotID = Older.LotID
-    WHERE Older.ItemNo = @ItemNo
-      AND Older.LotID <> @LotID
-      AND COALESCE(W.OnHandQty, 0) > 0
-      AND UPPER(COALESCE(Older.InventoryStatus, 'STORED')) IN ('RECEIVED','STORED','RETURN_RECEIVED','RELEASE_CANCELLED')
-      AND
-      (
-          COALESCE(Older.ProducedAt, CONVERT(datetime2, '9999-12-31'))
-              < COALESCE(@ProducedAt, CONVERT(datetime2, '9999-12-31'))
-          OR
-          (
-              COALESCE(Older.ProducedAt, CONVERT(datetime2, '9999-12-31'))
-                  = COALESCE(@ProducedAt, CONVERT(datetime2, '9999-12-31'))
-              AND COALESCE(W.LastReceivedAt, CONVERT(datetime2, '9999-12-31'))
-                  < COALESCE(@ReceivedAt, CONVERT(datetime2, '9999-12-31'))
-          )
-          OR
-          (
-              COALESCE(Older.ProducedAt, CONVERT(datetime2, '9999-12-31'))
-                  = COALESCE(@ProducedAt, CONVERT(datetime2, '9999-12-31'))
-              AND COALESCE(W.LastReceivedAt, CONVERT(datetime2, '9999-12-31'))
-                  = COALESCE(@ReceivedAt, CONVERT(datetime2, '9999-12-31'))
-              AND Older.LotID < @LotID
-          )
-      )
-    ORDER BY COALESCE(Older.ProducedAt, CONVERT(datetime2, '9999-12-31')),
-             COALESCE(W.LastReceivedAt, CONVERT(datetime2, '9999-12-31')),
-             Older.LotID;
+        CAST(NULL AS int) AS LOT_ID,
+        W.LotNo AS LOTNO,
+        W.PartNo AS PARTNO,
+        W.LocationNo AS LOCATION_NO,
+        W.Qty AS QTY,
+        W.ReceivedAt AS RCV_DATE,
+        CASE WHEN NULLIF(W.LocationNo,'') IS NULL THEN 'RECEIVED' ELSE 'STORED' END AS LOT_STATUS
+    FROM dbo.WH_Inventory W
+    WHERE W.PartNo = @ItemNo
+      AND W.LotNo <> @ResolvedLot
+      AND W.Qty > 0
+      AND (W.ReceivedAt < @ReceivedAt OR (W.ReceivedAt = @ReceivedAt AND W.LotNo < @ResolvedLot))
+    ORDER BY W.ReceivedAt,W.LotNo;
 END;
 GO
 
@@ -2019,7 +2585,7 @@ GO
 
 -- =====================================================================
 --  Release / Pick Slip lines
---  Source: dbo.WH_ReleaseSchedule, dbo.WH_OLD_Inventory
+--  Source: dbo.WH_ReleaseSchedule, dbo.WH_Inventory
 -- =====================================================================
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_RELEASE_PICK_LINES
     @PickSlipNo nvarchar(40)
@@ -2063,6 +2629,22 @@ BEGIN
         INNER JOIN RequiredParts R
                 ON R.ReleaseScheduleID = P.ReleaseScheduleID
         GROUP BY P.ReleaseScheduleID
+    ),
+    RankedLocations AS
+    (
+        SELECT W.PartNo,W.LocationNo,
+            ROW_NUMBER() OVER (PARTITION BY W.PartNo ORDER BY W.ReceivedAt,W.CreatedAt,W.LotNo) AS RN
+        FROM dbo.WH_Inventory W
+        INNER JOIN RequiredParts R ON R.ItemNo=W.PartNo
+        WHERE W.Qty>0 AND NULLIF(W.LocationNo,'') IS NOT NULL
+    ),
+    Locations AS
+    (
+        SELECT PartNo,
+            MAX(CASE WHEN RN=1 THEN LocationNo END) AS LOC_01,
+            MAX(CASE WHEN RN=2 THEN LocationNo END) AS LOC_02,
+            MAX(CASE WHEN RN=3 THEN LocationNo END) AS LOC_03
+        FROM RankedLocations WHERE RN<=3 GROUP BY PartNo
     )
     SELECT
         R.PICK_SLIPNO,
@@ -2072,9 +2654,7 @@ BEGIN
         R.PickedQty AS PICKED_BOX_QTY,
         COALESCE(P.PickedQty, 0) AS PICKED_QTY,
         R.RequestUserId AS REQ_USERID,
-        CAST(NULL AS varchar(20)) AS LOC_01,
-        CAST(NULL AS varchar(20)) AS LOC_02,
-        CAST(NULL AS varchar(20)) AS LOC_03,
+        L.LOC_01,L.LOC_02,L.LOC_03,
         CASE
             WHEN R.DemandQty > 0 AND R.PickedQty >= R.DemandQty THEN N'Picked'
             WHEN R.PickedQty > 0 THEN N'Partial'
@@ -2083,13 +2663,14 @@ BEGIN
     FROM RequiredParts R
     LEFT JOIN PickedPhysical P
            ON P.ReleaseScheduleID = R.ReleaseScheduleID
+    LEFT JOIN Locations L ON L.PartNo=R.ItemNo
     ORDER BY R.ItemNo;
 END;
 GO
 
 -- =====================================================================
 --  Release / LOT scan validation
---  Source: dbo.WH_ReleaseSchedule, dbo.WH_OLD_Inventory, dbo.tbl_Lot
+--  Source: dbo.WH_ReleaseSchedule, dbo.WH_Inventory
 -- =====================================================================
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_RELEASE_SCAN_LOT
     @PickSlipNo nvarchar(40),
@@ -2109,10 +2690,9 @@ BEGIN
         @DemandQty decimal(14,3),
         @PickedQty decimal(14,3),
         @SlipStatus varchar(20),
-        @LotID int,
-        @InventoryID int,
-        @ItemNo varchar(20),
-        @ItemName nvarchar(100),
+        @Found bit,
+        @ItemNo varchar(50),
+        @ItemName nvarchar(200),
         @Qty decimal(14,3),
         @Unit varchar(10),
         @LocationID varchar(20),
@@ -2180,7 +2760,8 @@ BEGIN
 
     -- A material label can carry either a LOT No or a requested Part No.
     -- Resolve a Part No scan to its FIFO-eligible LOT before standard validation.
-    IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot WHERE LotCode = @Lot)
+    IF NOT EXISTS
+       (SELECT 1 FROM dbo.WH_Inventory WHERE UPPER(LotNo)=UPPER(@Lot) OR UPPER(COALESCE(BoxNo,N''))=UPPER(@Lot))
        AND EXISTS
        (
            SELECT 1
@@ -2191,16 +2772,10 @@ BEGIN
     BEGIN
         SET @Lot = NULL;
 
-        SELECT TOP (1) @Lot = L.LotCode
-        FROM dbo.WH_OLD_Inventory W
-        INNER JOIN dbo.tbl_Lot L
-                ON L.LotID = W.LotID
-        WHERE W.ItemNo = @ScanText
-          AND COALESCE(W.OnHandQty, 0) > 0
-          AND UPPER(COALESCE(W.Status, N'RECEIVED')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
-        ORDER BY COALESCE(L.ProducedAt, CONVERT(datetime2, '9999-12-31')),
-                 COALESCE(W.LastReceivedAt, CONVERT(datetime2, '9999-12-31')),
-                 L.LotID;
+        SELECT TOP (1) @Lot = W.LotNo
+        FROM dbo.WH_Inventory W
+        WHERE W.PartNo = @ScanText AND W.Qty > 0
+        ORDER BY W.ReceivedAt,W.CreatedAt,W.LotNo;
 
         IF @Lot IS NULL
         BEGIN
@@ -2214,31 +2789,28 @@ BEGIN
     END;
 
     SELECT TOP (1)
-        @InventoryID = W.InventoryID,
-        @LotID = L.LotID,
-        @ItemNo = W.ItemNo,
-        @ItemName = I.ItemName,
-        @Qty = COALESCE(W.OnHandQty, 0),
+        @Found = 1,
+        @Lot = W.LotNo,
+        @ItemNo = W.PartNo,
+        @ItemName = COALESCE(W.PartName,I.ItemName),
+        @Qty = W.Qty,
         @Unit = I.DefaultUOM,
-        @LocationID = W.LocationID,
+        @LocationID = W.LocationNo,
         @LocationName = LOC.LocationName,
         @ZoneCode = LOC.ZoneCode,
-        @InventoryStatus = W.Status,
-        @ProducedAt = L.ProducedAt,
-        @ReceivedAt = W.LastReceivedAt
-    FROM dbo.tbl_Lot L
-    LEFT JOIN dbo.WH_OLD_Inventory W
-           ON W.LotID = L.LotID
-          AND COALESCE(W.OnHandQty, 0) > 0
-          AND UPPER(COALESCE(W.Status, N'RECEIVED')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
+        @InventoryStatus = CASE WHEN W.Qty<=0 THEN 'RELEASED'
+                                WHEN NULLIF(W.LocationNo,'') IS NULL THEN 'RECEIVED' ELSE 'STORED' END,
+        @ProducedAt = NULL,
+        @ReceivedAt = W.ReceivedAt
+    FROM dbo.WH_Inventory W
     LEFT JOIN dbo.MD_Item I
-           ON I.ItemNo = COALESCE(W.ItemNo, L.ItemNo)
+           ON I.ItemNo = W.PartNo
     LEFT JOIN dbo.MD_Location LOC
-           ON LOC.LocationID = W.LocationID
-    WHERE L.LotCode = @Lot
-    ORDER BY W.InventoryID DESC, L.LotID DESC;
+           ON LOC.LocationID = W.LocationNo
+    WHERE UPPER(W.LotNo)=UPPER(@Lot) OR UPPER(COALESCE(W.BoxNo,N''))=UPPER(@Lot)
+    ORDER BY CASE WHEN W.Qty>0 THEN 0 ELSE 1 END,W.ReceivedAt,W.LotNo;
 
-    IF @LotID IS NULL
+    IF @Found IS NULL
     BEGIN
         SELECT @PickSlipOut AS PICK_SLIPNO, @Lot AS LOTNO, NULL AS PARTNO, NULL AS PARTNM,
             CAST(0 AS decimal(18,3)) AS QTY, NULL AS UNIT, NULL AS LOCATION_NO, NULL AS LOCATION_NM,
@@ -2248,7 +2820,7 @@ BEGIN
         RETURN;
     END;
 
-    IF @InventoryID IS NULL
+    IF COALESCE(@Qty,0) <= 0
     BEGIN
         SELECT @PickSlipOut AS PICK_SLIPNO, @Lot AS LOTNO, @ItemNo AS PARTNO, @ItemName AS PARTNM,
             CAST(0 AS decimal(18,3)) AS QTY, @Unit AS UNIT, NULL AS LOCATION_NO, NULL AS LOCATION_NM,
@@ -2291,16 +2863,10 @@ BEGIN
     END;
 
     SELECT TOP (1)
-        @OldestLot = L.LotCode
-    FROM dbo.WH_OLD_Inventory W
-    INNER JOIN dbo.tbl_Lot L
-            ON L.LotID = W.LotID
-    WHERE W.ItemNo = @ItemNo
-      AND COALESCE(W.OnHandQty, 0) > 0
-      AND UPPER(COALESCE(W.Status, N'RECEIVED')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
-    ORDER BY COALESCE(L.ProducedAt, CONVERT(datetime2, '9999-12-31')),
-             COALESCE(W.LastReceivedAt, CONVERT(datetime2, '9999-12-31')),
-             L.LotID;
+        @OldestLot = W.LotNo
+    FROM dbo.WH_Inventory W
+    WHERE W.PartNo = @ItemNo AND W.Qty > 0
+    ORDER BY W.ReceivedAt,W.CreatedAt,W.LotNo;
 
     IF @OldestLot IS NOT NULL AND UPPER(@OldestLot) <> UPPER(@Lot)
     BEGIN
@@ -2345,11 +2911,11 @@ BEGIN
     (
         PICK_SLIPNO nvarchar(40),
         LOTNO nvarchar(50),
-        PARTNO varchar(20) NULL,
-        PARTNM nvarchar(100) NULL,
+        PARTNO varchar(50) NULL,
+        PARTNM nvarchar(400) NULL,
         QTY decimal(18,3),
         UNIT varchar(10) NULL,
-        LOCATION_NO varchar(20) NULL,
+        LOCATION_NO varchar(50) NULL,
         LOCATION_NM nvarchar(100) NULL,
         ZONECD varchar(20) NULL,
         INV_STATUS varchar(20) NULL,
@@ -2370,10 +2936,8 @@ BEGIN
     END;
 
     DECLARE
-        @LotID int,
-        @InventoryID int,
-        @ItemNo varchar(20),
-        @LocationID varchar(20),
+        @ItemNo varchar(50),
+        @LocationID varchar(50),
         @Qty decimal(18,3),
         @InventoryQty decimal(18,3),
         @ResolvedLot nvarchar(50),
@@ -2388,22 +2952,16 @@ BEGIN
     WHERE IS_VALID = 1;
 
     SELECT TOP (1)
-        @LotID = L.LotID,
-        @InventoryID = W.InventoryID,
-        @ItemNo = W.ItemNo,
-        @LocationID = W.LocationID,
-        @InventoryQty = W.OnHandQty,
-        @BeforeStatus = W.Status
-    FROM dbo.tbl_Lot L
-    INNER JOIN dbo.WH_OLD_Inventory W
-            ON W.LotID = L.LotID
-    WHERE L.LotCode = @ResolvedLot
-      AND W.ItemNo = (SELECT TOP (1) PARTNO FROM @Validation)
-      AND COALESCE(W.OnHandQty, 0) > 0
-      AND UPPER(COALESCE(W.Status, N'RECEIVED')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
-    ORDER BY W.InventoryID DESC;
+        @ItemNo = W.PartNo,
+        @LocationID = W.LocationNo,
+        @InventoryQty = W.Qty,
+        @BeforeStatus = CASE WHEN NULLIF(W.LocationNo,'') IS NULL THEN 'RECEIVED' ELSE 'STORED' END
+    FROM dbo.WH_Inventory W WITH (UPDLOCK,HOLDLOCK)
+    WHERE W.LotNo = @ResolvedLot
+      AND W.PartNo = (SELECT TOP (1) PARTNO FROM @Validation)
+      AND W.Qty > 0;
 
-    IF @InventoryID IS NULL
+    IF COALESCE(@InventoryQty,0) <= 0
     BEGIN
         SELECT TOP (1)
             PICK_SLIPNO, LOTNO, PARTNO, PARTNM, QTY, UNIT, LOCATION_NO, LOCATION_NM,
@@ -2439,21 +2997,10 @@ BEGIN
 
     BEGIN TRANSACTION;
 
-    UPDATE dbo.WH_OLD_Inventory
-       SET OnHandQty = OnHandQty - @Qty,
-           ReservedQty = 0,
-           Status = CASE WHEN OnHandQty <= @Qty THEN 'Released' ELSE 'Received' END,
-           ModifiedBy = @User,
-           ModifiedTS = SYSDATETIME()
-     WHERE InventoryID = @InventoryID;
-
-    UPDATE dbo.tbl_Lot
-       SET RemainingQty = CASE WHEN COALESCE(RemainingQty, 0) <= @Qty THEN 0 ELSE RemainingQty - @Qty END,
-           Status = CASE WHEN COALESCE(RemainingQty, 0) <= @Qty THEN 'Released' ELSE 'Received' END,
-           CurrentLocationID = CASE WHEN COALESCE(RemainingQty, 0) <= @Qty THEN NULL ELSE CurrentLocationID END,
-           ModifiedBy = @User,
-           ModifiedTS = SYSDATETIME()
-     WHERE LotID = @LotID;
+    UPDATE dbo.WH_Inventory
+       SET Qty = 0,UpdatedAt = SYSDATETIME()
+     WHERE LotNo = @ResolvedLot AND Qty = @InventoryQty;
+    IF @@ROWCOUNT<>1 THROW 51620, 'LOT inventory changed before Release.', 1;
 
     INSERT INTO dbo.WH_ReleasePicking
     (
@@ -2463,8 +3010,8 @@ BEGIN
     VALUES
     (
         CONCAT('PICK-', FORMAT(SYSDATETIME(), 'yyMMddHHmmssfff')),
-        @ReleaseScheduleID, @ItemNo, @LocationID, @LotID, @Qty,
-        SYSDATETIME(), @User, @Terminal, 0, @User, SYSDATETIME()
+        @ReleaseScheduleID, @ItemNo, @LocationID, NULL, @Qty,
+        SYSDATETIME(), @User, @Terminal, 0, LEFT(@User,20), SYSDATETIME()
     );
 
     UPDATE dbo.WH_ReleaseSchedule
@@ -2485,14 +3032,14 @@ BEGIN
 
     INSERT INTO dbo.WH_InventoryTransaction
     (
-        TransactionTime, TransactionType, ItemNo, LocationID, LotID, QtyBefore, QtyChange, QtyAfter,
+        TransactionTime, TransactionType, ItemNo, LocationID, LotID, LotNo, QtyBefore, QtyChange, QtyAfter,
         ReasonCode, RefDocType, RefDocID, OperatorID, Note, CreatedBy, CreatedTS
     )
     VALUES
     (
-        SYSDATETIME(), 'OUT', @ItemNo, @LocationID, @LotID, @InventoryQty, -@Qty, @InventoryQty - @Qty,
+        SYSDATETIME(), 'OUT', @ItemNo, @LocationID, NULL, @ResolvedLot, @InventoryQty, -@InventoryQty, 0,
         'RELEASE_PICK', 'PICK_SLIP', @ReleaseScheduleID, @User,
-        CONCAT('PDA release pick ', @PickSlipKey), @User, SYSDATETIME()
+        CONCAT('PDA release pick ', @PickSlipKey), LEFT(@User,20), SYSDATETIME()
     );
 
     COMMIT TRANSACTION;

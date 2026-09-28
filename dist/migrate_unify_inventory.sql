@@ -90,9 +90,10 @@ BEGIN
         PalletNo nvarchar(50) NULL,
         CaseNo nvarchar(50) NULL,
         BoxNo nvarchar(50) NULL,
-        LocationNo varchar(50) NOT NULL,
+        LocationNo varchar(50) NULL,
         Qty decimal(18,3) NOT NULL CONSTRAINT DF_WH_Inventory_Qty DEFAULT(0),
         InvoiceNo nvarchar(50) NULL,
+        DeliveryNoteNo nvarchar(30) NULL,
         ReceivedAt datetime2(7) NOT NULL,
         CreatedAt datetime2(7) NOT NULL CONSTRAINT DF_WH_Inventory_CreatedAt DEFAULT(sysdatetime()),
         UpdatedAt datetime2(7) NOT NULL CONSTRAINT DF_WH_Inventory_UpdatedAt DEFAULT(sysdatetime()),
@@ -106,6 +107,39 @@ GO
 
 IF COL_LENGTH(N'dbo.WH_Inventory',N'PartName') IS NULL
     ALTER TABLE dbo.WH_Inventory ADD PartName nvarchar(200) NULL;
+IF COL_LENGTH(N'dbo.WH_Inventory',N'DeliveryNoteNo') IS NULL
+    ALTER TABLE dbo.WH_Inventory ADD DeliveryNoteNo nvarchar(30) NULL;
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_Inventory') AND name=N'IX_WH_Inventory_DeliveryLineID')
+    DROP INDEX IX_WH_Inventory_DeliveryLineID ON dbo.WH_Inventory;
+IF COL_LENGTH(N'dbo.WH_Inventory',N'DeliveryLineID') IS NOT NULL
+    ALTER TABLE dbo.WH_Inventory DROP COLUMN DeliveryLineID;
+IF COL_LENGTH(N'dbo.WH_InventoryTransaction',N'LotNo') IS NULL
+    ALTER TABLE dbo.WH_InventoryTransaction ADD LotNo nvarchar(50) NULL;
+GO
+
+IF EXISTS
+(
+    SELECT 1 FROM sys.columns
+    WHERE object_id=OBJECT_ID(N'dbo.WH_Inventory')
+      AND name=N'LocationNo'
+      AND is_nullable=0
+)
+    ALTER TABLE dbo.WH_Inventory ALTER COLUMN LocationNo varchar(50) NULL;
+GO
+
+IF OBJECT_ID(N'dbo.SCM_DeliveryBox',N'U') IS NOT NULL
+   AND OBJECT_ID(N'dbo.SCM_DeliveryLine',N'U') IS NOT NULL
+   AND OBJECT_ID(N'dbo.WH_PurchaseOrder',N'U') IS NOT NULL
+BEGIN
+    UPDATE W
+       SET InvoiceNo=PO.PoNumber
+    FROM dbo.WH_Inventory W
+    JOIN dbo.SCM_DeliveryBox B ON B.BoxNumber=COALESCE(W.BoxNo,W.LotNo)
+    JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryLineID=B.DeliveryLineID
+    JOIN dbo.WH_PurchaseOrder PO ON PO.PoID=DL.PoID
+    WHERE W.DeliveryNoteNo IS NOT NULL
+      AND NULLIF(LTRIM(RTRIM(W.InvoiceNo)),N'') IS NULL;
+END;
 GO
 
 -- Preserve data from the short-lived hybrid layout, then return the legacy
@@ -177,6 +211,10 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_Inve
     CREATE INDEX IX_WH_Inventory_LocationNo ON dbo.WH_Inventory(LocationNo);
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_Inventory') AND name=N'IX_WH_Inventory_FIFO')
     CREATE INDEX IX_WH_Inventory_FIFO ON dbo.WH_Inventory(PartNo,ReceivedAt);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_Inventory') AND name=N'IX_WH_Inventory_DeliveryNoteNo')
+    CREATE INDEX IX_WH_Inventory_DeliveryNoteNo ON dbo.WH_Inventory(DeliveryNoteNo);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_InventoryTransaction') AND name=N'IX_WH_InventoryTransaction_LotNo')
+    CREATE INDEX IX_WH_InventoryTransaction_LotNo ON dbo.WH_InventoryTransaction(LotNo);
 GO
 
 ;WITH Package AS

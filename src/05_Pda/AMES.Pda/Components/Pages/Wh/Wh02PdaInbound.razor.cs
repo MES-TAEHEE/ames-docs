@@ -6,9 +6,9 @@ public partial class Wh02PdaInbound
     [
         new(1, "PPT 01", "Initial Screen", null, "화면에서 LOCAL 또는 CKD를 선택하고 바코드 입력란을 확인합니다.", "", false),
         new(2, "PPT 02", "Barcode Scan", null, "단일 LOT/Box 정보와 Delivery Note/Case의 내부 품목 목록을 확인합니다.", "", false),
-        new(3, "PPT 03", "Delivery Note / Case Boxes", null, "BOX 1~3을 차례로 눌러 초록색 표시, 스캔 수와 Location 활성화를 확인합니다.", "", false),
-        new(4, "PPT 04", "Location Scan", null, "LOCATION을 눌러 Warehouse, Area, Zone, Rack과 입고 가능 상태를 확인합니다.", "", false),
-        new(5, "PPT 05", "Receive Complete", null, "화면의 RECEIVE로 완료 알림을 확인합니다. API ERROR ON으로 오류도 검수합니다.", "", false)
+        new(3, "PPT 03", "Delivery Note / Case Boxes", null, "BOX 1~3을 차례로 눌러 초록색 표시와 스캔 수를 확인합니다.", "", false),
+        new(4, "PPT 04", "Receive Ready", null, "모든 BOX 스캔 후 Location 입력 없이 RECEIVE가 활성화되는지 확인합니다.", "", false),
+        new(5, "PPT 05", "Receive Complete", null, "RECEIVE로 입고 완료 및 Put-away 대기 상태를 확인합니다. API ERROR ON으로 오류도 검수합니다.", "", false)
     ];
 
     private string _simpleMode = "LOCAL";
@@ -23,7 +23,6 @@ public partial class Wh02PdaInbound
     {
         2 => [new("LOT / BOX", SimpleBoxes[0]), new(_simpleMode == "CKD" ? "CASE" : "DELIVERY NOTE", SimpleDocument), new("미등록 바코드", "WH-PPT-UNKNOWN")],
         3 => SimpleBoxes.Select((barcode, index) => new InboundTestValue($"BOX {index + 1}", barcode)).ToArray(),
-        4 => [new("LOCATION", "WH010201", true), new("미등록 LOCATION", "WH999999", true)],
         _ => []
     };
 
@@ -94,11 +93,6 @@ public partial class Wh02PdaInbound
                 _barcode = barcode;
                 await Scan();
                 if (_modalOpen) return;
-            }
-            if (CurrentTestScenario.No == 5)
-            {
-                _loc = "WH010201";
-                await ScanLocation();
             }
         }
         finally { _simpleBusy = false; }
