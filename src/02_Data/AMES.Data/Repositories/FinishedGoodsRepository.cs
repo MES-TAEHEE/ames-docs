@@ -81,6 +81,48 @@ public sealed class FinishedGoodsRepository
         int LineCount,
         decimal OrderedQty);
 
+    public record ShipmentPlanSourceRow(
+        int SoId,
+        string? SoNumber,
+        int? SoLineNo,
+        string? CustomerCode,
+        string ItemNo,
+        string? ItemName,
+        decimal OrderQty,
+        decimal ShippedQty,
+        decimal PlannedQty,
+        decimal RemainingQty,
+        DateTime? RequestedDeliveryDate);
+
+    public record ShipmentPlanRow(
+        int ShipmentOrderId,
+        string? PlanNumber,
+        string? CustomerCode,
+        string? SourceOrderNumber,
+        DateTime? ShipDate,
+        string? Status,
+        int LineCount,
+        decimal PlannedQty,
+        DateTime? CreatedAt);
+
+    public record ShipmentPlanLineRow(
+        int ShipmentOrderLineId,
+        int SourceSoId,
+        string? SourceOrderNumber,
+        int? SourceLineNo,
+        string ItemNo,
+        string? ItemName,
+        decimal PlannedQty,
+        DateTime? RequestedDeliveryDate);
+
+    public record ShipmentPlanInput(int SoId, decimal Qty);
+
+    public record ShipmentPlanCreateResult(
+        IReadOnlyList<string> PlanNumbers,
+        int LineCount,
+        decimal TotalQty);
+
+
     public record ShipmentDocument(
         int ShipmentOrderId,
         string? ShipOrderNumber,
@@ -432,6 +474,290 @@ public sealed class FinishedGoodsRepository
             ("@LocationNo", NullIfBlank(locationNo)),
             ("@Search", Like(search)));
     }
+
+    public List<ShipmentPlanSourceRow> ListShipmentPlanSources(string? search = null)
+    {
+        const string sql = """
+            WITH Planned AS
+            (
+                SELECT L.LineSeq AS SoID, SUM(ISNULL(L.OrderedQty, 0)) AS PlannedQty
+                FROM dbo.FG_ShipmentOrder O
+                JOIN dbo.FG_ShipmentOrderLine L ON L.ShipmentOrderID = O.ShipmentOrderID
+                WHERE UPPER(ISNULL(O.Source, '')) = 'PP'
+                  AND UPPER(ISNULL(O.Status, '')) NOT IN ('CANCELED', 'CANCELLED')
+                GROUP BY L.LineSeq
+            )
+            SELECT
+                S.SoID,
+                S.SoNumber,
+                S.SoLineNo,
+                S.CustomerID,
+                S.ItemNo,
+                I.ItemName,
+                CAST(ISNULL(S.OrderQty, 0) AS decimal(14,3)) AS OrderQty,
+                CAST(ISNULL(S.ShippedQty, 0) AS decimal(14,3)) AS ShippedQty,
+                CAST(ISNULL(P.PlannedQty, 0) AS decimal(14,3)) AS PlannedQty,
+                CAST(ISNULL(S.OrderQty, 0) - ISNULL(S.ShippedQty, 0) - ISNULL(P.PlannedQty, 0) AS decimal(14,3)) AS RemainingQty,
+                S.RequestedDeliveryDate
+            FROM dbo.PP_CustomerOrder S
+            LEFT JOIN dbo.MD_Item I ON I.ItemNo = S.ItemNo
+            LEFT JOIN Planned P ON P.SoID = S.SoID
+            WHERE UPPER(ISNULL(S.Status, 'OPEN')) NOT IN ('CANCELED', 'CANCELLED')
+              AND ISNULL(S.OrderQty, 0) - ISNULL(S.ShippedQty, 0) - ISNULL(P.PlannedQty, 0) > 0
+              AND (@Search IS NULL
+                   OR S.SoNumber LIKE @Search
+                   OR S.CustomerID LIKE @Search
+                   OR S.ItemNo LIKE @Search
+                   OR I.ItemName LIKE @Search)
+            ORDER BY COALESCE(S.RequestedDeliveryDate, CONVERT(date, '99991231')),
+                     S.SoNumber, S.SoLineNo, S.SoID;
+            """;
+
+        return Query(sql, r => new ShipmentPlanSourceRow(
+            GetInt(r, "SoID"),
+            GetString(r, "SoNumber"),
+            GetNullableInt(r, "SoLineNo"),
+            GetString(r, "CustomerID"),
+            GetString(r, "ItemNo") ?? "",
+            GetString(r, "ItemName"),
+            GetDecimal(r, "OrderQty"),
+            GetDecimal(r, "ShippedQty"),
+            GetDecimal(r, "PlannedQty"),
+            GetDecimal(r, "RemainingQty"),
+            GetDate(r, "RequestedDeliveryDate")),
+            ("@Search", Like(search)));
+    }
+
+    public List<ShipmentPlanRow> ListShipmentPlans(string? search = null)
+    {
+        const string sql = """
+            SELECT TOP (100)
+                O.ShipmentOrderID,
+                O.ShipOrderNumber,
+                O.CustomerCode,
+                O.CustomerPO,
+                O.ShipDate,
+                O.Status,
+                COUNT(L.ShipmentOrderLineID) AS LineCount,
+                CAST(ISNULL(SUM(L.OrderedQty), 0) AS decimal(14,3)) AS PlannedQty,
+                O.CreatedTS
+            FROM dbo.FG_ShipmentOrder O
+            LEFT JOIN dbo.FG_ShipmentOrderLine L ON L.ShipmentOrderID = O.ShipmentOrderID
+            WHERE UPPER(ISNULL(O.Source, '')) = 'PP'
+              AND (@Search IS NULL
+                   OR O.ShipOrderNumber LIKE @Search
+                   OR O.CustomerCode LIKE @Search
+                   OR O.CustomerPO LIKE @Search)
+            GROUP BY O.ShipmentOrderID, O.ShipOrderNumber, O.CustomerCode, O.CustomerPO,
+                     O.ShipDate, O.Status, O.CreatedTS
+            ORDER BY O.CreatedTS DESC, O.ShipmentOrderID DESC;
+            """;
+
+        return Query(sql, r => new ShipmentPlanRow(
+            GetInt(r, "ShipmentOrderID"),
+            GetString(r, "ShipOrderNumber"),
+            GetString(r, "CustomerCode"),
+            GetString(r, "CustomerPO"),
+            GetDate(r, "ShipDate"),
+            GetString(r, "Status"),
+            GetInt(r, "LineCount"),
+            GetDecimal(r, "PlannedQty"),
+            GetDate(r, "CreatedTS")),
+            ("@Search", Like(search)));
+    }
+
+    public List<ShipmentPlanLineRow> ListShipmentPlanLines(int shipmentOrderId)
+    {
+        const string sql = """
+            SELECT
+                L.ShipmentOrderLineID,
+                L.LineSeq AS SourceSoID,
+                S.SoNumber,
+                S.SoLineNo,
+                L.ItemNo,
+                I.ItemName,
+                CAST(ISNULL(L.OrderedQty, 0) AS decimal(14,3)) AS PlannedQty,
+                S.RequestedDeliveryDate
+            FROM dbo.FG_ShipmentOrderLine L
+            LEFT JOIN dbo.PP_CustomerOrder S ON S.SoID = L.LineSeq
+            LEFT JOIN dbo.MD_Item I ON I.ItemNo = L.ItemNo
+            WHERE L.ShipmentOrderID = @ShipmentOrderID
+            ORDER BY S.SoNumber, S.SoLineNo, L.ShipmentOrderLineID;
+            """;
+
+        return Query(sql, r => new ShipmentPlanLineRow(
+            GetInt(r, "ShipmentOrderLineID"),
+            GetInt(r, "SourceSoID"),
+            GetString(r, "SoNumber"),
+            GetNullableInt(r, "SoLineNo"),
+            GetString(r, "ItemNo") ?? "",
+            GetString(r, "ItemName"),
+            GetDecimal(r, "PlannedQty"),
+            GetDate(r, "RequestedDeliveryDate")),
+            ("@ShipmentOrderID", shipmentOrderId));
+    }
+
+    public string DeleteShipmentPlan(int shipmentOrderId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        try
+        {
+            using var readCmd = new SqlCommand("""
+                SELECT ShipOrderNumber, Source, Status,
+                       CASE WHEN EXISTS (SELECT 1 FROM dbo.FG_LoadingConfirm WHERE ShipmentOrderID=@ID)
+                              OR EXISTS (SELECT 1 FROM dbo.FG_PickingFifo WHERE ShipmentOrderID=@ID)
+                              OR EXISTS (SELECT 1 FROM dbo.FG_CustomerReturn WHERE OriginalShipmentOrderID=@ID)
+                              OR EXISTS (
+                                  SELECT 1 FROM dbo.FG_PickingDetail D
+                                  JOIN dbo.FG_ShipmentOrderLine L ON L.ShipmentOrderLineID=D.ShipmentOrderLineID
+                                  WHERE L.ShipmentOrderID=@ID)
+                            THEN 1 ELSE 0 END AS HasDependencies
+                FROM dbo.FG_ShipmentOrder WITH (UPDLOCK, HOLDLOCK)
+                WHERE ShipmentOrderID=@ID;
+                """, conn, tx);
+            readCmd.Parameters.Add("@ID", SqlDbType.Int).Value = shipmentOrderId;
+            using var reader = readCmd.ExecuteReader();
+            if (!reader.Read())
+                throw new InvalidOperationException("Shipment plan was not found.");
+
+            var planNumber = GetString(reader, "ShipOrderNumber") ?? shipmentOrderId.ToString();
+            var source = GetString(reader, "Source");
+            var status = GetString(reader, "Status");
+            var hasDependencies = GetBool(reader, "HasDependencies");
+            reader.Close();
+            ValidateShipmentPlanDelete(source, status, hasDependencies);
+
+            using var deleteCmd = new SqlCommand("""
+                DELETE dbo.FG_ShipmentOrderLine WHERE ShipmentOrderID=@ID;
+                DELETE dbo.FG_ShipmentOrder WHERE ShipmentOrderID=@ID;
+                """, conn, tx);
+            deleteCmd.Parameters.Add("@ID", SqlDbType.Int).Value = shipmentOrderId;
+            deleteCmd.ExecuteNonQuery();
+            tx.Commit();
+            return planNumber;
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+    }
+
+    public ShipmentPlanCreateResult CreateShipmentPlans(
+        DateTime shipDate,
+        string customerCode,
+        IReadOnlyList<ShipmentPlanInput> inputs,
+        string actor)
+    {
+        var requested = NormalizeShipmentPlanInputs(inputs);
+
+        if (requested.Count == 0)
+            throw new InvalidOperationException("Select at least one supply plan line and enter a quantity greater than zero.");
+        if (string.IsNullOrWhiteSpace(customerCode))
+            throw new InvalidOperationException("Select the destination company.");
+        customerCode = customerCode.Trim();
+
+        actor = string.IsNullOrWhiteSpace(actor) ? "system" : actor.Trim();
+        if (actor.Length > 20) actor = actor[..20];
+
+        using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        try
+        {
+            var sources = new List<PlanSource>();
+            foreach (var input in requested)
+            {
+                using var sourceCmd = new SqlCommand("""
+                    SELECT
+                        S.SoID, S.SoNumber, S.CustomerID, S.ItemNo,
+                        CAST(ISNULL(S.OrderQty, 0) - ISNULL(S.ShippedQty, 0) - ISNULL(P.PlannedQty, 0) AS decimal(14,3)) AS RemainingQty
+                    FROM dbo.PP_CustomerOrder S WITH (UPDLOCK, HOLDLOCK)
+                    OUTER APPLY
+                    (
+                        SELECT SUM(ISNULL(L.OrderedQty, 0)) AS PlannedQty
+                        FROM dbo.FG_ShipmentOrder O WITH (UPDLOCK, HOLDLOCK)
+                        JOIN dbo.FG_ShipmentOrderLine L WITH (UPDLOCK, HOLDLOCK) ON L.ShipmentOrderID = O.ShipmentOrderID
+                        WHERE UPPER(ISNULL(O.Source, '')) = 'PP'
+                          AND UPPER(ISNULL(O.Status, '')) NOT IN ('CANCELED', 'CANCELLED')
+                          AND L.LineSeq = S.SoID
+                    ) P
+                    WHERE S.SoID = @SoID
+                      AND UPPER(ISNULL(S.Status, 'OPEN')) NOT IN ('CANCELED', 'CANCELLED');
+                    """, conn, tx);
+                sourceCmd.Parameters.Add("@SoID", SqlDbType.Int).Value = input.SoId;
+                using var reader = sourceCmd.ExecuteReader();
+                if (!reader.Read())
+                    throw new InvalidOperationException($"Supply plan line {input.SoId} is not available.");
+
+                var source = new PlanSource(
+                    reader.GetInt32(reader.GetOrdinal("SoID")),
+                    GetString(reader, "SoNumber"),
+                    GetString(reader, "CustomerID"),
+                    GetString(reader, "ItemNo") ?? "",
+                    GetDecimal(reader, "RemainingQty"),
+                    input.Qty);
+                reader.Close();
+
+                if (string.IsNullOrWhiteSpace(source.SoNumber) || string.IsNullOrWhiteSpace(source.ItemNo))
+                    throw new InvalidOperationException($"Supply plan line {input.SoId} is missing its order or part number.");
+                ValidateShipmentPlanQuantity(source.ItemNo, source.Qty, source.RemainingQty);
+                sources.Add(source);
+            }
+
+            if (sources.Any(x => !string.Equals(x.CustomerCode, customerCode, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException("Every selected Supply Plan line must belong to the selected company.");
+
+            using var headerCmd = new SqlCommand("""
+                INSERT dbo.FG_ShipmentOrder
+                    (ShipOrderNumber, CustomerCode, CustomerPO, Source, ShipDate, Status, CreatedBy, CreatedTS)
+                OUTPUT INSERTED.ShipmentOrderID
+                VALUES (NULL, @CustomerCode, @CustomerPO, 'PP', @ShipDate, 'PLAN', @Actor, SYSDATETIME());
+                """, conn, tx);
+            AddText(headerCmd, "@CustomerCode", SqlDbType.VarChar, 20, customerCode, false);
+            AddText(headerCmd, "@CustomerPO", SqlDbType.VarChar, 40,
+                GetShipmentPlanHeaderValue(sources.Select(x => x.SoNumber)), false);
+            headerCmd.Parameters.Add("@ShipDate", SqlDbType.Date).Value = shipDate.Date;
+            AddText(headerCmd, "@Actor", SqlDbType.VarChar, 20, actor, false);
+            var orderId = Convert.ToInt32(headerCmd.ExecuteScalar());
+            var planNumber = $"FGP-{shipDate:yyMMdd}-{orderId:D6}";
+
+            using var numberCmd = new SqlCommand(
+                "UPDATE dbo.FG_ShipmentOrder SET ShipOrderNumber=@PlanNumber, OutgoingSlipNumber=@PlanNumber WHERE ShipmentOrderID=@OrderID;",
+                conn, tx);
+            AddText(numberCmd, "@PlanNumber", SqlDbType.VarChar, 24, planNumber, false);
+            numberCmd.Parameters.Add("@OrderID", SqlDbType.Int).Value = orderId;
+            numberCmd.ExecuteNonQuery();
+
+            foreach (var line in sources)
+            {
+                using var lineCmd = new SqlCommand("""
+                    INSERT dbo.FG_ShipmentOrderLine
+                        (ShipmentOrderID, LineSeq, ItemNo, OrderedQty, AllocatedQty, ReservationStatus, CreatedBy, CreatedTS)
+                    VALUES
+                        (@OrderID, @SoID, @ItemNo, @Qty, 0, 'PLANNED', @Actor, SYSDATETIME());
+                    """, conn, tx);
+                lineCmd.Parameters.Add("@OrderID", SqlDbType.Int).Value = orderId;
+                lineCmd.Parameters.Add("@SoID", SqlDbType.Int).Value = line.SoId;
+                AddText(lineCmd, "@ItemNo", SqlDbType.VarChar, 20, line.ItemNo, false);
+                var qty = lineCmd.Parameters.Add("@Qty", SqlDbType.Decimal);
+                qty.Precision = 12;
+                qty.Scale = 3;
+                qty.Value = line.Qty;
+                AddText(lineCmd, "@Actor", SqlDbType.VarChar, 20, actor, false);
+                lineCmd.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+            return new ShipmentPlanCreateResult([planNumber], sources.Count, sources.Sum(x => x.Qty));
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+    }
+
 
     public List<ShipmentRow> ListShipments(string? search = null, DateTime? from = null, DateTime? to = null)
     {
@@ -841,4 +1167,49 @@ public sealed class FinishedGoodsRepository
     private static int? GetNullableInt(SqlDataReader reader, string name) => reader[name] == DBNull.Value ? null : Convert.ToInt32(reader[name]);
     private static decimal GetDecimal(SqlDataReader reader, string name) => reader[name] == DBNull.Value ? 0 : Convert.ToDecimal(reader[name]);
     private static DateTime? GetDate(SqlDataReader reader, string name) => reader[name] == DBNull.Value ? null : Convert.ToDateTime(reader[name]);
+    internal static List<ShipmentPlanInput> NormalizeShipmentPlanInputs(IReadOnlyList<ShipmentPlanInput> inputs) =>
+        inputs.GroupBy(x => x.SoId)
+            .Select(g => new ShipmentPlanInput(g.Key, g.Sum(x => x.Qty)))
+            .Where(x => x.Qty > 0)
+            .ToList();
+
+    internal static void ValidateShipmentPlanQuantity(string itemNo, decimal qty, decimal remainingQty)
+    {
+        if (qty <= 0)
+            throw new InvalidOperationException($"{itemNo} requires a quantity greater than zero.");
+        if (qty != decimal.Truncate(qty))
+            throw new InvalidOperationException($"{itemNo} requires a whole-number quantity.");
+        if (qty > remainingQty)
+            throw new InvalidOperationException($"{itemNo} exceeds the remaining quantity ({remainingQty:N0}).");
+    }
+
+    internal static string? GetShipmentPlanHeaderValue(IEnumerable<string?> values)
+    {
+        var distinct = values
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(2)
+            .ToList();
+        return distinct.Count switch { 0 => null, 1 => distinct[0], _ => "MULTI" };
+    }
+
+    internal static void ValidateShipmentPlanDelete(string? source, string? status, bool hasDependencies)
+    {
+        if (!string.Equals(source, "PP", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Only Shipment Plans can be deleted here.");
+        if (!string.Equals(status, "PLAN", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(status, "PLANNED", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Only plans in PLAN status can be deleted.");
+        if (hasDependencies)
+            throw new InvalidOperationException("This plan is already connected to picking, loading, or return data and cannot be deleted.");
+    }
+
+    private sealed record PlanSource(
+        int SoId,
+        string? SoNumber,
+        string? CustomerCode,
+        string ItemNo,
+        decimal RemainingQty,
+        decimal Qty);
 }
