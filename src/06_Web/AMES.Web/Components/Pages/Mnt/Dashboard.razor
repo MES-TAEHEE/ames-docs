@@ -10,6 +10,7 @@
 
 @inject MntRepository Mnt
 @inject MasterDataRepository MD
+@inject UomFormat UomFmt
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
 @inject IJSRuntime JS
@@ -250,7 +251,7 @@
                         <span class="dot" style="background:@(s.OnHand <= 0 ? "#dc2626" : "#f59e0b");"></span>
                         <span class="t">@(s.PartName ?? s.PartNo)<small>@s.PartNo</small></span>
                         <span class="pill @(s.OnHand <= 0 ? "bad" : "warn")">@(s.OnHand <= 0 ? L["MNT.Dashboard.Stock.Out"] : L["MNT.Dashboard.Stock.Low"])</span>
-                        <span class="r">@s.OnHand / @(s.ReorderPoint ?? 0)</span>
+                        <span class="r">@UomFmt.Qty(s.OnHand, s.Uom) / @UomFmt.QtyUnit(s.ReorderPoint ?? 0, s.Uom)</span>
                     </div>
                 }
             </div>

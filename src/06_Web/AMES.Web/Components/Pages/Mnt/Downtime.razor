@@ -235,7 +235,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["MNT.Downtime.Col.LoggedBy"]" />
-                    <RadzenTextBox Value="@(_sel.LoggedBy ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox Value="@Actors.Display(_sel.LoggedBy)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -432,7 +432,7 @@
         {
             r.DowntimeId, r.StartTs?.ToString(DateFmt.DateTime), r.EndTs?.ToString(DateFmt.DateTime), LineName(r), r.LineId,
             r.ReasonCode, r.CauseCode, r.DurationMin, (r.EndTs is null ? L["MNT.Downtime.Status.Open"] : L["MNT.Downtime.Status.Closed"]).Value, r.WoId,
-            r.Comment, r.LoggedBy, r.AndonId,
+            r.Comment, Actors.Display(r.LoggedBy), r.AndonId,
         });
 
         var bytes = AMES.Web.Services.XlsxWriter.Build(L["MNT.Downtime.Title"].Value, headers, data);

@@ -12,7 +12,7 @@
         <div class="ames-card-h master-list-toolbar">
             <span>▼ @L["WH.Inventory.List"] · @SummaryRows.Count @L["Lbl.Items"]</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-                <RadzenTextBox Name="@SearchId" @bind-Value="_query" Placeholder="@L["Btn.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" AutoComplete="false" @onkeydown="HandleKey" />
+                <RadzenTextBox Name="@SearchId" @bind-Value="_query" Placeholder="@L["WH.Inventory.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" AutoComplete="false" @onkeydown="HandleKey" />
                 <RadzenLabel Text="@L["Col.Warehouse"].Value" Component="InventoryWarehouse" />
                 <RadzenDropDown Name="InventoryWarehouse" Value="@_warehouse" Change="ChangeWarehouse" Data="@WarehouseOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" Placeholder="@L["WH.Inventory.Ph.AllWarehouses"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
                 <RadzenLabel Text="@L["Col.Area"].Value" Component="InventoryArea" />

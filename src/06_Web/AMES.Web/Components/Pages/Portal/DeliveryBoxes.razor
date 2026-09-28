@@ -5,6 +5,7 @@
 @inject PortalQuantityFormat QtyFormat
 @inject NavigationManager Nav
 @inject ILogger<DeliveryBoxes> Logger
+@inject IStringLocalizer<SharedResources> L
 <PageTitle>@PortalText.Get("박스바코드 발행") · AMES</PageTitle>
 <AmesPageHeader Code="PORTAL-003" Title='@PortalText.Get("박스바코드 발행")' />
 <div class="box-toolbar"><RadzenButton Text='@PortalText.Get("납품서 관리로 돌아가기")' Icon="arrow_back" Click="BackToDeliveries" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" /><RadzenButton Text='@PortalText.Get("새로고침")' Icon="refresh" Click="Load" Size="ButtonSize.Small" class="ames-rz-btn" /></div>
@@ -12,7 +13,7 @@
 <div class="box-layout">
     <div class="ames-card">
         <div class="ames-card-h">@PortalText.Get("납품서 목록") · @_rows.Count</div>
-        <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@PortalText.Get("납품서 / 업체 / 발주번호")' aria-label='@PortalText.Get("납품서 검색")' class="ames-rz-input" Style="width:100%" />
+        <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@L["Portal.DeliveryBoxes.Ph.Search"]' aria-label='@PortalText.Get("납품서 검색")' class="ames-rz-input" Style="width:100%" />
         <RadzenDataGrid TItem="ScmRepository.BoxDelivery" Data="@Rows" Class="ames-rz-grid" AllowPaging="true" PageSize="15" RowClick="@(e=>{if(e.Data is not null)Select(e.Data);})" EmptyText='@PortalText.Get("납품서가 없습니다.")'>
             <Columns>
                 <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Title='@PortalText.Get("납품서")'><Template Context="d"><button class="box-document" @onclick="()=>Select(d)">@d.Number</button><div class="dim">@d.Vendor · @d.Date.ToString("yyyy-MM-dd")</div></Template></RadzenDataGridColumn>

@@ -916,13 +916,13 @@
     <value>Sin historial de envíos.</value>
   </data>
   <data name="SYS.Notifications.Ph.RuleSearch" xml:space="preserve">
-    <value>Código / nombre de evento</value>
+    <value>Código/Nombre de Evento</value>
   </data>
   <data name="SYS.Notifications.Ph.ChSearch" xml:space="preserve">
-    <value>Usuario / dirección</value>
+    <value>Usuario/Dirección</value>
   </data>
   <data name="SYS.Notifications.Ph.HistSearch" xml:space="preserve">
-    <value>Código / destinatario / asunto</value>
+    <value>Código/Destinatario/Asunto</value>
   </data>
   <data name="SYS.Notifications.Filter.Inactive" xml:space="preserve">
     <value>Inactivo</value>
@@ -4687,7 +4687,7 @@
     <value>Sin productos.</value>
   </data>
   <data name="MD.MoldLine.Ph.Search" xml:space="preserve">
-    <value>ID de Línea / Nombre de Línea</value>
+    <value>ID/Nombre de Línea</value>
   </data>
   <data name="Col.PGN" xml:space="preserve">
     <value>PGN</value>
@@ -6583,7 +6583,7 @@
     <value>Auto-registro por tarjeta</value>
   </data>
   <data name="MD.Workers.Ph.Search" xml:space="preserve">
-    <value>N.º / Nombre</value>
+    <value>N.º Empleado/Nombre</value>
   </data>
   <data name="MD.Workers.Col.WorkerNo" xml:space="preserve">
     <value>N.º empleado</value>
@@ -6817,7 +6817,7 @@
     <value>total registrado</value>
   </data>
   <data name="MNT.WorkOrder.Ph.Search" xml:space="preserve">
-    <value>N.º OT · equipo · técnico</value>
+    <value>N.º OT/Equipo/Técnico</value>
   </data>
   <data name="MNT.WorkOrder.Btn.Export" xml:space="preserve">
     <value>Exportar</value>
@@ -6880,10 +6880,10 @@
     <value>últimos {0} mov.</value>
   </data>
   <data name="MNT.SpareParts.Ph.Search" xml:space="preserve">
-    <value>n.º repuesto · n.º pieza · nombre</value>
+    <value>Repuesto/Pieza/Nombre</value>
   </data>
   <data name="MNT.SpareParts.Ph.TxnSearch" xml:space="preserve">
-    <value>n.º repuesto · n.º pieza · nombre · ref</value>
+    <value>Repuesto/Pieza/Nombre/Ref.</value>
   </data>
   <data name="MNT.SpareParts.Btn.Export" xml:space="preserve">
     <value>Exportar</value>
@@ -7183,7 +7183,7 @@
     <value>Solo suficientes</value>
   </data>
   <data name="PP.Mrp.Ph.Search" xml:space="preserve">
-    <value>Código/nombre de material...</value>
+    <value>Código/Nombre de Material</value>
   </data>
   <data name="PP.Mrp.Btn.Export" xml:space="preserve">
     <value>Exportar</value>
@@ -7471,7 +7471,7 @@
     <value>Sin cambios de molde</value>
   </data>
   <data name="MNT.Mold.Ph.ChangeSearch" xml:space="preserve">
-    <value>Buscar molde, equipo, línea, motivo</value>
+    <value>Molde/Equipo/Línea/Motivo/Usuario</value>
   </data>
   <data name="MNT.Mold.Btn.ShowChanges" xml:space="preserve">
     <value>Ver cambios</value>
@@ -7507,7 +7507,7 @@
     <value>Sin supervisores registrados</value>
   </data>
   <data name="MD.LineSupervisors.Ph.Search" xml:space="preserve">
-    <value>Línea / N.º / Nombre</value>
+    <value>Línea/N.º Empleado/Nombre</value>
   </data>
   <data name="MD.LineSupervisors.Col.EmployeeNo" xml:space="preserve">
     <value>N.º empleado</value>
@@ -7564,7 +7564,7 @@
     <value>Sin línea · no asignado a un terminal</value>
   </data>
   <data name="MD.CommonCode.Ph.GrpSearch" xml:space="preserve">
-    <value>Buscar código/nombre de grupo</value>
+    <value>Código/Nombre de Grupo</value>
   </data>
   <data name="PP.PlanConfirm.Status.NoRouting" xml:space="preserve">
     <value>Ruta no definida</value>
@@ -7897,7 +7897,7 @@
     <value>N.º o nombre de pieza</value>
   </data>
   <data name="WH.Picking.Ph.Search" xml:space="preserve">
-    <value>Hoja, pieza, ubicación</value>
+    <value>Hoja/N.º Pieza/Ubicación</value>
   </data>
   <data name="WH.Picking.Col.ReqDate" xml:space="preserve">
     <value>Fecha sol.</value>
@@ -8368,7 +8368,7 @@
     <value>Accesos (24 h)</value>
   </data>
   <data name="SCM.PortalUsers.Ph.Search" xml:space="preserve">
-    <value>Correo / nombre / proveedor</value>
+    <value>Correo/Nombre/Proveedor</value>
   </data>
   <data name="SCM.PortalUsers.Col.Email" xml:space="preserve">
     <value>Correo (ID)</value>
@@ -8486,5 +8486,59 @@
   </data>
   <data name="Portal.Home.Scope.Vendor" xml:space="preserve">
     <value>Proveedor {0}</value>
+  </data>
+  <data name="MD.PmTemplate.Ph.Search" xml:space="preserve">
+    <value>ID/Nombre de Plantilla</value>
+  </data>
+  <data name="PP.WorkOrder.Ph.Search" xml:space="preserve">
+    <value>N.º OT/Artículo</value>
+  </data>
+  <data name="FG.Returns.Ph.Search" xml:space="preserve">
+    <value>Devolución/RMA/Cliente/Artículo</value>
+  </data>
+  <data name="FG.Shipments.Ph.Search" xml:space="preserve">
+    <value>Orden/Cliente/Vehículo/Albarán</value>
+  </data>
+  <data name="WH.LogHistory.Ph.Search" xml:space="preserve">
+    <value>Evento/Lote/Pieza/Operador/Nota</value>
+  </data>
+  <data name="WH.Inventory.Ph.Search" xml:space="preserve">
+    <value>Ubicación/Pieza/Nombre/Lote</value>
+  </data>
+  <data name="SCM.PurchaseItems.Ph.Search" xml:space="preserve">
+    <value>Código/Nombre/Proveedor</value>
+  </data>
+  <data name="SCM.Preview.Ph.DeliverySearch" xml:space="preserve">
+    <value>Entrega/Pedido/Artículo</value>
+  </data>
+  <data name="SCM.Preview.Ph.OrderSearch" xml:space="preserve">
+    <value>N.º Pedido/Artículo</value>
+  </data>
+  <data name="SCM.Preview.Ph.NewDeliverySearch" xml:space="preserve">
+    <value>N.º Pedido/Proveedor/Artículo</value>
+  </data>
+  <data name="SCM.Preview.Ph.ItemSearch" xml:space="preserve">
+    <value>N.º Artículo/Descripción</value>
+  </data>
+  <data name="Portal.DeliveryBoxes.Ph.Search" xml:space="preserve">
+    <value>Entrega/Proveedor/N.º Pedido</value>
+  </data>
+  <data name="Portal.PackingQty.Ph.Search" xml:space="preserve">
+    <value>Código/Nombre/Proveedor</value>
+  </data>
+  <data name="Portal.Receipts.Ph.Search" xml:space="preserve">
+    <value>Documento/Entrega/Pedido/Artículo</value>
+  </data>
+  <data name="FG.History.Ph.Search" xml:space="preserve">
+    <value>Ref./Artículo/Ubicación/Operario</value>
+  </data>
+  <data name="PP.PlanConfirm.Ph.Search" xml:space="preserve">
+    <value>N.º SO/N.º Pieza/Nombre</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Ph.Search" xml:space="preserve">
+    <value>N.º SO/N.º Pieza/Nombre</value>
+  </data>
+  <data name="WH.Picking.Ph.Part" xml:space="preserve">
+    <value>N.º Pieza/Nombre</value>
   </data>
 </root>

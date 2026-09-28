@@ -9,6 +9,7 @@
 
 @inject RptRepository Rpt
 @inject MasterDataRepository MD
+@inject UomFormat UomFmt
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
@@ -148,11 +149,11 @@
                 <Template Context="r"><span>@WhLabel(r.Source)</span><span class="dim code" style="font-size:.8em;margin-left:6px;">@r.Locations</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="Sku" Property="Qty" Title="@L["RPT.Inventory.Col.OnHand"]" TextAlign="TextAlign.Right" Width="100px">
-                <Template Context="r"><b class="code">@r.Qty.ToString("N0")</b></Template>
-                <FooterTemplate><span class="code">@_rows.Sum(x => x.Qty).ToString("N0")</span></FooterTemplate>
+                <Template Context="r"><b class="code">@UomFmt.Qty(r.Qty, r.Uom)</b></Template>
+                <FooterTemplate><span class="code">@UomFmt.Qty(_rows.Sum(x => x.Qty), null)</span></FooterTemplate>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="Sku" Property="Safety" Title="@L["RPT.Inventory.Col.Safety"]" TextAlign="TextAlign.Right" Width="140px">
-                <Template Context="r"><span class="code dim">@(r.Safety?.ToString("N0") ?? "—")</span></Template>
+                <Template Context="r"><span class="code dim">@UomFmt.Qty(r.Safety, r.Uom)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="Sku" Property="Value" Title="@L["RPT.Inventory.Col.Value"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r"><span class="code">@(r.Value is { } v ? v.ToString("N0") : "—")</span></Template>
@@ -179,7 +180,7 @@
     List<Sku>                               _rows      = new();
     List<CatAgg>                            _byCat     = new();
     List<WhAgg>                             _byWh      = new();
-    List<MasterDataRepository.CodeItemRow>  _itemTypes = new();
+    List<MasterDataRepository.CodeItemRow>  _itemCategories = new();
 
     string  _fSearch = "";
     string? _fWh, _fCat;
@@ -190,7 +191,7 @@
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
     public sealed class Sku
     {
-        public string Source = ""; public string ItemNo = ""; public string? ItemName; public string? Cat; public string CatLabel = "";
+        public string Source = ""; public string ItemNo = ""; public string? ItemName; public string? Cat; public string CatLabel = ""; public string? Uom;
         public string Locations = ""; public decimal Qty; public decimal? Safety; public decimal? Max; public decimal? UnitCost;
         public decimal? Value => UnitCost is { } c ? Qty * c : null;
         public decimal? Turnover;
@@ -211,7 +212,7 @@
 
     protected override void OnInitialized()
     {
-        try { _itemTypes = MD.ListCodeItems("ITEM_TYPE"); } catch { }
+        try { _itemCategories = MD.ListCodeItems("ITEM_CATEGORY"); } catch { }
         Reload();
     }
 
@@ -232,7 +233,7 @@
                 {
                     Source = g.Key.Source, ItemNo = g.Key.ItemNo,
                     ItemName = MasterDataRepository.LocalName(f.ItemName, f.ItemNameEn) is { Length: > 0 } nm ? nm : null,
-                    Cat = f.ItemType, CatLabel = CatLabel(f.ItemType),
+                    Cat = f.ItemCategory, CatLabel = CatLabel(f.ItemCategory), Uom = f.Uom,
                     Locations = string.Join(", ", g.Select(r => r.Location).Where(l => !string.IsNullOrEmpty(l)).Distinct()),
                     Qty = qty, Safety = f.SafetyStock, Max = f.MaxStock,
                     UnitCost = g.Select(r => r.UnitCost).FirstOrDefault(c => c is { }),
@@ -275,7 +276,7 @@
     string WhLabel(string code) => code == "FG" ? L["RPT.Inventory.Wh.FG"].Value : L["RPT.Inventory.Wh.WH"].Value;
     string CatLabel(string? code) =>
         string.IsNullOrEmpty(code) ? L["RPT.Inventory.Cat.None"].Value
-        : _itemTypes.FirstOrDefault(c => c.CodeValue == code) is { } c ? MasterDataRepository.LocalName(c) : code;
+        : _itemCategories.FirstOrDefault(c => c.CodeValue == code) is { } c ? MasterDataRepository.LocalName(c) : code;
     static string CatColor(int i) => i switch { 0 => "#0891b2", 1 => "#f59e0b", 2 => "#059669", 3 => "#8b5cf6", _ => "#94a3b8" };
 
     string StateLabel(string s) => s switch

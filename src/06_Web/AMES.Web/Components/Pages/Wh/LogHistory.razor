@@ -24,8 +24,8 @@
     <div class="ames-card-h master-list-toolbar">
         <span>▼ @L["WH.LogHistory.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Placeholder="@L["Btn.Search"].Value"
-                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:210px;" AutoComplete="false"
+            <RadzenTextBox @bind-Value="_search" Placeholder="@L["WH.LogHistory.Ph.Search"].Value"
+                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" AutoComplete="false"
                            @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
             <RadzenDropDown @bind-Value="_operationType" Data="@_operationOptions" TextProperty="Text" ValueProperty="Value"
                             AllowClear="true" Placeholder="@L["WH.LogHistory.Ph.ActivityType"].Value"

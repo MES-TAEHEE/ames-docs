@@ -1747,6 +1747,12 @@ select.ames-rz-input {
 .ames-cal-wo-more:hover { text-decoration: underline; color: #bfdbfe; }
 /* override base cell min-height for WO calendar */
 .ames-cal-grid.pp-wo-grid .ames-cal-cell { min-height: 166px; }   /* PP 캘린더·MNT PM 일정 = 92px 의 180% */
+/* MNT-005·010 PM 일정 달력 — 목록 화면(.ames-grid-fixed)과 같이 콘텐츠를 화면 높이로 세우고 달력 카드가 남은 높이를 채워, 카드 바닥이 설비 카드 목록과 같은 자리에 온다.
+   주 행 = 남은 높이 ÷ 주 수(--cal-weeks, 5~6) — 화면이 낮으면 110px 까지 줄고 그 아래로는 페이지가 스크롤된다 */
+.ames-content:has(.pm-cal-fill) { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; min-height: 0; padding-bottom: 6px; }
+.ames-content:has(.pm-cal-fill) .ames-card:has(.pm-cal-fill) { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.ames-cal-grid.pm-cal-fill { flex: 1 1 auto; min-height: 0; grid-template-rows: auto repeat(var(--cal-weeks, 5), minmax(110px, 1fr)); }
+.ames-cal-grid.pm-cal-fill .ames-cal-cell { min-height: 0; overflow: hidden; }
 
 /* ── PP-CAL: week view ───────────────────────────────────────── */
 .ames-cal-week-cols {
@@ -5165,22 +5171,16 @@ html[data-theme="light"] .rpt-rb-measure, html[data-theme="light"] .rpt-rb-sum, 
 }
 
 /* ── 상·하 2단 목록 (MNT-004 금형·교체 이력, MNT-008 예비품·입출고 이력) ──
-   상단(.ames-grid-top)은 선택한 페이지 행 수만큼의 높이를 항상 지키고(축소 없음),
-   하단(.ames-grid-rest)은 남은 높이를 채운다 — 페이지 행 수는 페이저 크기일 뿐 본문은 안에서 스크롤하고 페이저는 카드 바닥에 온다.
-   뷰포트가 모자라면 하단이 헤더 + 5행까지 줄고 그 아래로는 페이지가 스크롤된다. */
-/* 상단은 카드·그리드·본문 세 겹 모두 축소 금지 — 카드만 줄면 본문·페이저가 카드 밖으로 넘쳐 하단 카드 아래에 숨는다.
-   행 높이를 --ames-grid-row 로 고정해(실측 39.1~40.1px 로 내용에 따라 달라 15행이 반 행쯤 남거나 잘린다) 본문이 정확히 페이지 행 수만큼만 보이게 하고,
-   여유는 가로 스크롤바(열이 많아 뷰포트를 넘칠 때 실측 15px) 몫 16px 만 둔다 */
-.ames-grid-fixed.ames-grid-top .rz-data-grid-data { flex-shrink: 0; height: calc(var(--ames-grid-head) + var(--ames-page-rows, 15) * var(--ames-grid-row) + 16px); }
-.ames-grid-fixed.ames-grid-top .rz-data-grid-data tbody > tr > td { height: var(--ames-grid-row); box-sizing: border-box; }
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg, .ames-sec-scm, .ames-sec-portal):has(.ames-grid-fixed) .ames-card:has(.ames-grid-top) { flex: 0 0 auto; }
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg, .ames-sec-scm, .ames-sec-portal) .ames-grid-fixed.ames-grid-top { flex: 0 0 auto; }
-/* 하단 카드·그리드의 최소 높이 = 본문 최소(헤더 36 + 5행 × 40 + 6) + 페이저 52 (+ 카드 머리줄 37·여백 10·패딩 10×2).
-   min-height:auto 로 두면 스크롤 본문의 min-content(행 전체)가 올라와 하단이 줄지 않고, 0 으로 두면 카드가 본문보다 작아져 페이저가 카드 밖으로 넘친다.
-   이 최소보다 모자라면 콘텐츠가 넘쳐 .ames-main 이 스크롤된다. */
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg, .ames-sec-scm, .ames-sec-portal):has(.ames-grid-fixed) .ames-card:has(.ames-grid-rest) { flex: 1 1 auto; min-height: calc(36px + 5 * 40px + 6px + 52px + 2px + 37px + 10px + 20px); }
-.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg, .ames-sec-scm, .ames-sec-portal) .ames-grid-fixed.ames-grid-rest { flex: 1 1 auto; min-height: calc(var(--ames-grid-head) + 5 * var(--ames-grid-row) + 6px + 52px + 2px); }
-.ames-grid-fixed.ames-grid-rest .rz-data-grid-data { flex: 1 1 auto; height: auto; }
+   상단(.ames-grid-top)·하단(.ames-grid-rest) 모두 선택한 페이지 행 수만큼의 높이를 정확히 지킨다(상단 기본 15행, 하단 기본 5행).
+   행 높이를 --ames-grid-row(2단 목록은 39px) 로 고정해(실측 39.1~40.1px 로 내용에 따라 달라 행이 반쯤 남거나 잘린다) 본문 = 헤더 + 행 수 × 행 높이 — 마지막 행과 페이저 사이에 빈 자리가 없다.
+   카드·그리드·본문 세 겹 모두 축소 금지 — 카드만 줄면 본문·페이저가 카드 밖으로 넘쳐 아래 카드에 가린다. 행 수를 늘려 뷰포트를 넘으면 페이지가 스크롤된다.
+   열이 많아 가로 스크롤바가 생기는 좁은 화면에서는 그 높이(약 15px)만큼 본문이 세로로 스크롤된다(2560 기준 화면에서는 가로 스크롤 없음). */
+/* 두 목록(15 + 5행)과 카드 머리줄·페이저가 2560×1440 화면(뷰포트 1305px)에 스크롤 없이 들어가도록 행 높이 39px — 40px 이면 3px 넘친다 */
+.ames-grid-fixed:is(.ames-grid-top, .ames-grid-rest) { --ames-grid-row: 39px; }
+.ames-grid-fixed:is(.ames-grid-top, .ames-grid-rest) .rz-data-grid-data { flex: 0 0 auto; min-height: 0; height: calc(var(--ames-grid-head) + var(--ames-page-rows, 15) * var(--ames-grid-row)); }
+.ames-grid-fixed:is(.ames-grid-top, .ames-grid-rest) .rz-data-grid-data tbody > tr > td { height: var(--ames-grid-row); box-sizing: border-box; padding-top: 0; padding-bottom: 0; vertical-align: middle; }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg, .ames-sec-scm, .ames-sec-portal):has(.ames-grid-fixed) .ames-card:has(.ames-grid-top, .ames-grid-rest) { flex: 0 0 auto; }
+.ames-content:is(.ames-sec-sys, .ames-sec-md, .ames-sec-mnt, .ames-sec-rpt, .ames-sec-pp, .ames-sec-wh, .ames-sec-fg, .ames-sec-scm, .ames-sec-portal) .ames-grid-fixed:is(.ames-grid-top, .ames-grid-rest) { flex: 0 0 auto; }
 
 /* ── 전체 높이 가상화 그리드 (.ames-page-fill · .ames-card-fill · .ames-grid-virtual) ──────────
    PP-001~006 처럼 가상화(AllowVirtualization) 그리드가 페이징 없이 화면 남은 세로 영역을 꽉 채운다.

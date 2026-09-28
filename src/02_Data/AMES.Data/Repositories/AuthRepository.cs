@@ -187,6 +187,21 @@ public sealed class AuthRepository
         return map;
     }
 
+    /// <summary>사용자 ID(AspNetUsers.Id) → 사번. 담당자·신고자처럼 사용자 ID 를 저장하는 컬럼을 "이름 (사번)" 으로 보이려고 쓴다.</summary>
+    public Dictionary<string, string> ListUserEmployeeNos()
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        using var conn = _connFactory.OpenConnection();
+        using var cmd = new SqlCommand("SELECT UserID, EmployeeNo FROM dbo.SYS_UserProfile WHERE NULLIF(EmployeeNo,'') IS NOT NULL", conn);
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+        {
+            var id = r.GetString(0).Trim();
+            if (id.Length > 0 && !map.ContainsKey(id)) map[id] = r.GetString(1).Trim();
+        }
+        return map;
+    }
+
     /// <summary>행위자 코드용 사번(SYS_UserProfile.EmployeeNo). 프로필이 없으면 null.</summary>
     public string? GetEmployeeNo(string userId)
     {

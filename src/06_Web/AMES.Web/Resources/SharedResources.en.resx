@@ -916,13 +916,13 @@
     <value>No send history.</value>
   </data>
   <data name="SYS.Notifications.Ph.RuleSearch" xml:space="preserve">
-    <value>Code / event name</value>
+    <value>Code/Event Name</value>
   </data>
   <data name="SYS.Notifications.Ph.ChSearch" xml:space="preserve">
-    <value>User / address</value>
+    <value>User/Address</value>
   </data>
   <data name="SYS.Notifications.Ph.HistSearch" xml:space="preserve">
-    <value>Code / recipient / subject</value>
+    <value>Code/Recipient/Subject</value>
   </data>
   <data name="SYS.Notifications.Filter.Inactive" xml:space="preserve">
     <value>Inactive</value>
@@ -1243,7 +1243,7 @@
     <value>Code Groups</value>
   </data>
   <data name="MD.CommonCode.Ph.GrpSearch" xml:space="preserve">
-    <value>Search group code/name</value>
+    <value>Group Code/Name</value>
   </data>
   <data name="MD.CommonCode.ItemHint" xml:space="preserve">
     <value>← Click ▶ on a code group to view its items</value>
@@ -4690,7 +4690,7 @@
     <value>No products.</value>
   </data>
   <data name="MD.MoldLine.Ph.Search" xml:space="preserve">
-    <value>Line ID / Line Name</value>
+    <value>Line ID/Name</value>
   </data>
   <data name="Col.PGN" xml:space="preserve">
     <value>PGN</value>
@@ -6610,7 +6610,7 @@
     <value>Badge auto-registered</value>
   </data>
   <data name="MD.Workers.Ph.Search" xml:space="preserve">
-    <value>Employee No / Name</value>
+    <value>Employee No/Name</value>
   </data>
   <data name="MD.Workers.Col.WorkerNo" xml:space="preserve">
     <value>Employee No</value>
@@ -6844,7 +6844,7 @@
     <value>total recorded</value>
   </data>
   <data name="MNT.WorkOrder.Ph.Search" xml:space="preserve">
-    <value>WO no · equipment · technician</value>
+    <value>WO No/Equip/Technician</value>
   </data>
   <data name="MNT.WorkOrder.Btn.Export" xml:space="preserve">
     <value>Export</value>
@@ -6907,10 +6907,10 @@
     <value>last {0} txns</value>
   </data>
   <data name="MNT.SpareParts.Ph.Search" xml:space="preserve">
-    <value>spare part no · part no · name</value>
+    <value>Spare Part No/Part No/Name</value>
   </data>
   <data name="MNT.SpareParts.Ph.TxnSearch" xml:space="preserve">
-    <value>spare part no · part no · name · ref</value>
+    <value>Spare Part No/Part No/Name/Ref</value>
   </data>
   <data name="MNT.SpareParts.Btn.Export" xml:space="preserve">
     <value>Export</value>
@@ -7210,7 +7210,7 @@
     <value>Sufficient Only</value>
   </data>
   <data name="PP.Mrp.Ph.Search" xml:space="preserve">
-    <value>Material code/name...</value>
+    <value>Material Code/Name</value>
   </data>
   <data name="PP.Mrp.Btn.Export" xml:space="preserve">
     <value>Export</value>
@@ -7498,7 +7498,7 @@
     <value>No mold changes</value>
   </data>
   <data name="MNT.Mold.Ph.ChangeSearch" xml:space="preserve">
-    <value>Search mold, equip, line, reason</value>
+    <value>Mold/Equip/Line/Reason/Changed By</value>
   </data>
   <data name="MNT.Mold.Btn.ShowChanges" xml:space="preserve">
     <value>Show changes</value>
@@ -7534,7 +7534,7 @@
     <value>No supervisors registered</value>
   </data>
   <data name="MD.LineSupervisors.Ph.Search" xml:space="preserve">
-    <value>Line / Employee No / Name</value>
+    <value>Line/Employee No/Name</value>
   </data>
   <data name="MD.LineSupervisors.Col.EmployeeNo" xml:space="preserve">
     <value>Employee No</value>
@@ -7897,7 +7897,7 @@
     <value>Part No or name</value>
   </data>
   <data name="WH.Picking.Ph.Search" xml:space="preserve">
-    <value>Pick slip, part, location</value>
+    <value>Pick Slip/Part No/Location</value>
   </data>
   <data name="WH.Picking.Col.ReqDate" xml:space="preserve">
     <value>Req Date</value>
@@ -8368,7 +8368,7 @@
     <value>Signed in (24h)</value>
   </data>
   <data name="SCM.PortalUsers.Ph.Search" xml:space="preserve">
-    <value>Email / name / vendor</value>
+    <value>Email/Name/Vendor</value>
   </data>
   <data name="SCM.PortalUsers.Col.Email" xml:space="preserve">
     <value>Email (ID)</value>
@@ -8486,5 +8486,59 @@
   </data>
   <data name="Portal.Home.Scope.Vendor" xml:space="preserve">
     <value>Vendor {0}</value>
+  </data>
+  <data name="MD.PmTemplate.Ph.Search" xml:space="preserve">
+    <value>Template ID/Name</value>
+  </data>
+  <data name="PP.WorkOrder.Ph.Search" xml:space="preserve">
+    <value>WO No/Item</value>
+  </data>
+  <data name="FG.Returns.Ph.Search" xml:space="preserve">
+    <value>Return No/RMA/Customer/Item</value>
+  </data>
+  <data name="FG.Shipments.Ph.Search" xml:space="preserve">
+    <value>Ship Order/Customer/Vehicle/DN</value>
+  </data>
+  <data name="WH.LogHistory.Ph.Search" xml:space="preserve">
+    <value>Event/LOT/Part No/Operator/Note</value>
+  </data>
+  <data name="WH.Inventory.Ph.Search" xml:space="preserve">
+    <value>Location/Part No/Name/LOT</value>
+  </data>
+  <data name="SCM.PurchaseItems.Ph.Search" xml:space="preserve">
+    <value>Item Code/Name/Vendor</value>
+  </data>
+  <data name="SCM.Preview.Ph.DeliverySearch" xml:space="preserve">
+    <value>Delivery/Order/Item</value>
+  </data>
+  <data name="SCM.Preview.Ph.OrderSearch" xml:space="preserve">
+    <value>Order No/Item</value>
+  </data>
+  <data name="SCM.Preview.Ph.NewDeliverySearch" xml:space="preserve">
+    <value>Order No/Vendor/Item</value>
+  </data>
+  <data name="SCM.Preview.Ph.ItemSearch" xml:space="preserve">
+    <value>Item No/Description</value>
+  </data>
+  <data name="Portal.DeliveryBoxes.Ph.Search" xml:space="preserve">
+    <value>Delivery/Vendor/Order No</value>
+  </data>
+  <data name="Portal.PackingQty.Ph.Search" xml:space="preserve">
+    <value>Item Code/Name/Vendor</value>
+  </data>
+  <data name="Portal.Receipts.Ph.Search" xml:space="preserve">
+    <value>Document/Delivery/Order/Item</value>
+  </data>
+  <data name="FG.History.Ph.Search" xml:space="preserve">
+    <value>Reference/Item/Location/Worker</value>
+  </data>
+  <data name="PP.PlanConfirm.Ph.Search" xml:space="preserve">
+    <value>SO No/Part No/Name</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Ph.Search" xml:space="preserve">
+    <value>SO No/Part No/Name</value>
+  </data>
+  <data name="WH.Picking.Ph.Part" xml:space="preserve">
+    <value>Part No/Name</value>
   </data>
 </root>

@@ -4,12 +4,13 @@
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
 @using Radzen
+@using AMES.Web.Services
 
 @attribute [Authorize]
 
 @inject MntRepository Mnt
 @inject MasterDataRepository MD
-@inject SysRepository Sys
+@inject ActorNames Actors
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
@@ -109,8 +110,8 @@
             <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="pill @StatusCls(r.Status)">@StatusLabel(r.Status)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="MountedEquipId" Title="@L["Col.MountedOn"]" TextAlign="TextAlign.Center" Width="120px">
-                <Template Context="r"><span class="code dim">@(r.MountedEquipId ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="MountedEquipId" Title="@L["Col.MountedOn"]" Width="200px">
+                <Template Context="r">@NamedCode(r.MountedEquipId, EquipNameOf(r.MountedEquipId))</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="StorageLoc" Title="@L["Col.StorageLoc"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="dim">@(r.StorageLoc ?? "—")</span></Template>
@@ -127,7 +128,7 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MNT.Mold.ChangeList"] · @_changes.Count @L["Lbl.Items"]@(_changes.Count < _allChanges.Count ? $" / {L["Lbl.TotalOf"]} {_allChanges.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fChange" Change="@(v => _fChange = v ?? "")" @onkeydown="OnChangeKeyDown" Immediate="true" Placeholder="@L["MNT.Mold.Ph.ChangeSearch"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px;" />
+            <RadzenTextBox @bind-Value="_fChange" Change="@(v => _fChange = v ?? "")" @onkeydown="OnChangeKeyDown" Immediate="true" Placeholder="@L["MNT.Mold.Ph.ChangeSearch"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
             <RadzenLabel Text="@L["Lbl.Recent"]" Component="DropDownChangeTopN" />
             <RadzenDropDown Name="DropDownChangeTopN" @bind-Value="_chgTopN" Data="@TopNOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
 
@@ -238,7 +239,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.MountedOn"]" />
-                    <RadzenTextBox Value="@(_sel.MountedEquipId ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox Value="@NamedText(_sel.MountedEquipId, EquipNameOf(_sel.MountedEquipId))" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.StorageLoc"]" />
@@ -276,7 +277,7 @@
     List<MntRepository.MoldChangeRow>       _allChanges = new();
     List<MntRepository.MoldChangeRow>       _changes    = new();
     List<MasterDataRepository.CodeItemRow>  _moldStatus = new();
-    List<SysRepository.UserRow>             _users      = new();   // 교체자(AspNetUsers.Id) 표시용
+    List<MasterDataRepository.EquipmentRow> _equips     = new();   // 장착 설비 표시용
     MntRepository.MoldRow? _sel;
 
     string  _fSearch = "", _fChange = "";
@@ -305,7 +306,7 @@
     protected override void OnInitialized()
     {
         try { _moldStatus = MD.ListCodeItems("MOLD_STATUS"); } catch { }
-        try { _users      = Sys.ListUsers(500); } catch { }
+        try { _equips     = MD.ListEquipments(); } catch { }
         Reload();
         ReloadChanges();
     }
@@ -393,9 +394,9 @@
         if (!string.IsNullOrEmpty(name)) { __builder.OpenElement(6, "span"); __builder.AddAttribute(7, "class", "dim"); __builder.AddAttribute(8, "style", "font-size:.8em;margin-left:4px;"); __builder.AddContent(9, name); __builder.CloseElement(); }
     };
     static string NamedText(string? id, string? name) => string.IsNullOrEmpty(id) ? "" : string.IsNullOrEmpty(name) ? id : $"[{id}] {name}";
-    string UserText(string? id) =>
-        string.IsNullOrEmpty(id) ? "—" : _users.FirstOrDefault(u => u.UserId == id) is { } u
-            ? (string.IsNullOrEmpty(u.EmployeeNo) ? (u.EmployeeName ?? u.UserName ?? id) : $"[{u.EmployeeNo}] {u.EmployeeName ?? u.UserName}") : id;
+    string? EquipNameOf(string? id) => string.IsNullOrEmpty(id) ? null : _equips.FirstOrDefault(e => e.EquipID == id)?.EquipName;
+    // 교체자 = 사용자 ID·사번 → "이름 (사번)" (행위자 표시 규칙)
+    string UserText(string? id) => string.IsNullOrEmpty(id) ? "—" : Actors.Display(id);
 
     void ApplyFilter() { _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
@@ -446,7 +447,7 @@
         {
             r.MoldId, r.MoldName, r.CavityCount, r.Tonnage,
             r.CurrentShots, r.RatedShots, Lifetime(r), Usage(r) is { } u ? Math.Round(u, 1) : null,
-            GradeLabel(Grade(r)), StatusLabel(r.Status), r.MountedEquipId, r.StorageLoc,
+            GradeLabel(Grade(r)), StatusLabel(r.Status), NamedText(r.MountedEquipId, EquipNameOf(r.MountedEquipId)), r.StorageLoc,
             r.LastMaintDate?.ToString(DateFmt.Date), r.RefurbishCount,
         });
 

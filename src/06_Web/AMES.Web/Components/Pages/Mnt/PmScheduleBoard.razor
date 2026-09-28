@@ -7,6 +7,7 @@
 @inject MntRepository Mnt
 @inject SysRepository Sys
 @inject MasterDataRepository MD
+@inject ActorNames Actors
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResources> L
 
@@ -89,7 +90,7 @@
         int rows         = (int)Math.Ceiling((startOffset + daysInMonth) / 7.0);
     }
 
-    <div class="ames-cal-grid pp-wo-grid">
+    <div class="ames-cal-grid pp-wo-grid pm-cal-fill" style="--cal-weeks:@rows">
         @foreach (var (key, cls) in new[] {
             ("PP.Calendar.Day.Sun","sun"),
             ("PP.Calendar.Day.Mon",""),
@@ -762,8 +763,8 @@
         id is null ? "—" : EquipName(id) is { Length: > 0 } nm ? $"[{id}] {nm}" : $"[{id}]";
     string TemplateText(string? id) =>
         id is null ? "—" : _templates.FirstOrDefault(t => t.PMTemplateID == id) is { } t ? $"[{id}] {t.TemplateName}" : id;
-    string TechText(string? id) =>
-        id is null ? "—" : _users.FirstOrDefault(u => u.UserId == id) is { } u ? (string.IsNullOrEmpty(u.EmployeeNo) ? (u.EmployeeName ?? u.UserName ?? id) : $"[{u.EmployeeNo}] {u.EmployeeName ?? u.UserName}") : id;
+    // 기술자 = AspNetUsers.Id → "이름 (사번)" (행위자 표시 규칙)
+    string TechText(string? id) => string.IsNullOrEmpty(id) ? "—" : Actors.Display(id);
     // 공통코드 명칭 — 코드에 없는 값(구 데이터)은 코드 그대로
     static string CodeName(List<MasterDataRepository.CodeItemRow> items, string? c) =>
         c is null ? "—" : items.FirstOrDefault(x => string.Equals(x.CodeValue, c, StringComparison.OrdinalIgnoreCase)) is { } i ? MasterDataRepository.LocalName(i) : c;

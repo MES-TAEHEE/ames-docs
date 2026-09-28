@@ -14,6 +14,7 @@
 @inject MntRepository Mnt
 @inject MasterDataRepository MD
 @inject SysRepository Sys
+@inject ActorNames Actors
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
@@ -375,7 +376,7 @@
     IEnumerable<DropDownItem> ResultOptions =>
         _resultItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     IEnumerable<DropDownItem> TechOptions => _users.Where(u => !string.IsNullOrEmpty(u.EmployeeName) || !string.IsNullOrEmpty(u.UserName))
-        .Select(u => new DropDownItem { Value = u.UserId, Text = TechText(u.UserId) });
+        .Select(u => new DropDownItem { Value = u.UserId, Text = string.IsNullOrEmpty(u.EmployeeNo) ? (u.EmployeeName ?? u.UserName ?? u.UserId) : $"[{u.EmployeeNo}] {u.EmployeeName ?? u.UserName}" });   // 콤보 = [사번] 이름 (PM 보드와 같은 형식)
 
     static IEnumerable<DropDownItem> WithDataValues(string[] codes, IEnumerable<string?> data, Func<string?, string> label) =>
         codes.Concat(data.Where(v => v is { Length: > 0 } && !codes.Contains(v)).Distinct()!)
@@ -602,10 +603,8 @@
         id is null ? "—" : _equipList.FirstOrDefault(e => e.EquipID == id)?.EquipName is { Length: > 0 } n ? n : "—";
     string EquipText(string? id) =>
         id is null ? "" : EquipName(id) is var n && n != "—" ? $"[{id}] {n}" : $"[{id}]";
-    // 담당자 = AspNetUsers.Id → [사번] 이름. 사용자 목록에 없는 값(구 데이터)은 그대로
-    string TechText(string? id) =>
-        string.IsNullOrEmpty(id) ? "—" : _users.FirstOrDefault(u => u.UserId == id) is { } u
-            ? (string.IsNullOrEmpty(u.EmployeeNo) ? (u.EmployeeName ?? u.UserName ?? id) : $"[{u.EmployeeNo}] {u.EmployeeName ?? u.UserName}") : id;
+    // 담당자 = AspNetUsers.Id → "이름 (사번)" (행위자 표시 규칙). 사전에 없는 값(구 데이터)은 그대로
+    string TechText(string? id) => string.IsNullOrEmpty(id) ? "—" : Actors.Display(id);
 
     static bool IsOpen(string? s) => s is MwoStatusCodes.Open or MwoStatusCodes.Issued;
     static bool IsProg(string? s) => s == MwoStatusCodes.InProgress;

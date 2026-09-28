@@ -5,13 +5,14 @@ namespace AMES.Web.Services;
 /// <summary>
 /// 화면 표시용 행위자 이름 해석. CreatedBy/ModifiedBy/ApprovedBy/RequestedBy 에는 사번(행위자 코드)이 들어가므로
 /// 목록·상세에서는 "이름 (사번)" 으로 보여 준다. 사전은 <see cref="AuthRepository.ListActorNames"/>(사번·GUID·사용자명·별칭 → 이름)이며
-/// 5분 캐시. 사전에 없는 코드(seed·system·POP-SCAN 등)는 그대로 보여 준다.
+/// 5분 캐시. 사전에 없는 코드(seed·system·POP-SCAN 등)는 그대로 보여 준다. 사용자 ID(GUID)는 괄호 안을 사번으로 바꿔 보인다.
 /// </summary>
 public sealed class ActorNames(AuthRepository auth)
 {
     static readonly TimeSpan Ttl = TimeSpan.FromMinutes(5);
     readonly object _gate = new();
     Dictionary<string, string>? _map;
+    Dictionary<string, string> _empNo = new(StringComparer.OrdinalIgnoreCase);
     DateTime _loadedAt;
 
     Dictionary<string, string> Map()
@@ -23,6 +24,7 @@ public sealed class ActorNames(AuthRepository auth)
             if (_map is not null && DateTime.UtcNow - _loadedAt < Ttl) return _map;
             try { _map = auth.ListActorNames(); }
             catch { _map ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase); }
+            try { _empNo = auth.ListUserEmployeeNos(); } catch { }
             _loadedAt = DateTime.UtcNow;
             return _map;
         }
@@ -40,6 +42,8 @@ public sealed class ActorNames(AuthRepository auth)
     {
         if (string.IsNullOrWhiteSpace(code)) return "";
         var c = code.Trim();
-        return Name(c) is { } n && !string.Equals(n, c, StringComparison.OrdinalIgnoreCase) ? $"{n} ({c})" : c;
+        var name  = Name(c);   // 사전과 사번 맵을 함께 적재한다
+        var shown = _empNo.TryGetValue(c, out var no) ? no : c;
+        return name is { } n && !string.Equals(n, shown, StringComparison.OrdinalIgnoreCase) ? $"{n} ({shown})" : shown;
     }
 }

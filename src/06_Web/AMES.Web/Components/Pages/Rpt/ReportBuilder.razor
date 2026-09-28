@@ -8,6 +8,7 @@
 @attribute [Authorize]
 
 @inject RptRepository Rpt
+@inject MasterDataRepository MD
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
@@ -79,7 +80,7 @@
                         PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["RPT.ReportBuilder.Empty"]" Class="ames-rz-grid rpt-dp-grid">
             <Columns>
                 <RadzenDataGridColumn TItem="RptRepository.AdhocRow" Property="Key" Title="@DimLabel(_runDim)">
-                    <Template Context="r"><b class="code">@r.Key</b>@if (!string.IsNullOrEmpty(r.Label)) { <span class="dim" style="font-size:.85em;margin-left:6px;">@r.Label</span> }</Template>
+                    <Template Context="r"><b class="code">@r.Key</b>@if (LabelOf(r) is { Length: > 0 } lb) { <span class="dim" style="font-size:.85em;margin-left:6px;">@lb</span> }</Template>
                     <FooterTemplate><b>@L["RPT.ReportBuilder.Total"]</b></FooterTemplate>
                 </RadzenDataGridColumn>
                 @foreach (var m in _runMeasures)
@@ -165,7 +166,29 @@
     string ReportMeta => _runMeasures.Count == 0 ? L["RPT.ReportBuilder.Hint"].Value
         : string.Format(L["RPT.ReportBuilder.Report.MetaFmt"].Value, _runFrom.ToString(DateFmt.Date), _runTo.ToString(DateFmt.Date), DimLabel(_runDim), _rows.Count, _runMeasures.Count, _runAt.ToString("HH:mm"));
 
-    protected override void OnInitialized() => Run();
+    // 차원 값의 명칭 — 마스터·공통코드 화면과 같은 명칭(LocalName). 교대 구간 자체는 전기일 결정 전이라 SQL 의 시각 규칙 그대로
+    List<MasterDataRepository.LineRow>     _lineList   = new();
+    List<MasterDataRepository.CustomerRow> _customers  = new();
+    List<MasterDataRepository.CodeItemRow> _processes  = new();
+    List<MasterDataRepository.CodeItemRow> _shiftItems = new();
+
+    string? LabelOf(RptRepository.AdhocRow r) => _runDim switch
+    {
+        "Line"     => _lineList.FirstOrDefault(l => l.LineID == r.Key) is { } l ? MasterDataRepository.LocalName(l.LineName, l.LineNameEn) : null,
+        "Customer" => _customers.FirstOrDefault(c => c.CustomerCode == r.Key || c.CustomerID == r.Key) is { } c ? MasterDataRepository.LocalName(c.CustomerName, c.CustomerNameEn) : null,
+        "Process"  => _processes.FirstOrDefault(p => p.CodeValue == r.Key) is { } p ? MasterDataRepository.LocalName(p) : null,
+        "Shift"    => _shiftItems.FirstOrDefault(s => s.CodeValue == r.Key) is { } s ? MasterDataRepository.LocalName(s) : null,
+        _          => MasterDataRepository.LocalName(r.Label, r.LabelEn) is { Length: > 0 } nm ? nm : null,
+    };
+
+    protected override void OnInitialized()
+    {
+        try { _lineList   = MD.ListLines(); } catch { }
+        try { _customers  = MD.ListCustomers(); } catch { }
+        try { _processes  = MD.ListCodeItems("PROCESS"); } catch { }
+        try { _shiftItems = MD.ListCodeItems("WORK_SHIFT"); } catch { }
+        Run();
+    }
 
     void OnSourceChanged(string s)
     {
@@ -232,7 +255,7 @@
         headers.AddRange(_runMeasures.Select(m => $"{MLabel(m)} ({MUnit(m)})"));
         var data = _rows.Select(r =>
         {
-            var row = new List<object?> { r.Key, r.Label };
+            var row = new List<object?> { r.Key, LabelOf(r) };
             row.AddRange(_runMeasures.Select(m => (object?)(r.M.TryGetValue(m, out var v) ? (IsRate(m) ? Math.Round(v, 1) : v) : 0m)));
             return (IReadOnlyList<object?>)row;
         }).ToList();

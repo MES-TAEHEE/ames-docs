@@ -4,6 +4,7 @@
 @inject ScmRepository Scm
 @inject AuthenticationStateProvider Authentication
 @inject ILogger<PackingQuantities> Logger
+@inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@PortalText.Get("적입량 관리") · AMES</PageTitle>
 <AmesPageHeader Code="PORTAL-006" Title='@PortalText.Get("적입량 관리")' />
@@ -17,7 +18,7 @@
     <div class="ames-card-h packing-toolbar">
         <span>▼ @PortalText.Get("적입량 관리") · @Rows.Count</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@PortalText.Get("품목코드 / 품명 / 업체")' aria-label='@PortalText.Get("품목 검색")' InputSize="InputSize.Small" class="ames-rz-input" />
+            <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@L["Portal.PackingQty.Ph.Search"]' aria-label='@PortalText.Get("품목 검색")' InputSize="InputSize.Small" class="ames-rz-input" />
             <RadzenButton Text='@PortalText.Get("새로고침")' Icon="refresh" Click="Load" Disabled="@_rows.Any(r=>r.Dirty)" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>

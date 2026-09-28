@@ -916,13 +916,13 @@
     <value>발송 이력이 없습니다.</value>
   </data>
   <data name="SYS.Notifications.Ph.RuleSearch" xml:space="preserve">
-    <value>코드 / 이벤트명</value>
+    <value>코드/이벤트명</value>
   </data>
   <data name="SYS.Notifications.Ph.ChSearch" xml:space="preserve">
-    <value>사용자 / 주소</value>
+    <value>사용자/주소</value>
   </data>
   <data name="SYS.Notifications.Ph.HistSearch" xml:space="preserve">
-    <value>코드 / 수신자 / 제목</value>
+    <value>코드/수신자/제목</value>
   </data>
   <data name="SYS.Notifications.Filter.Inactive" xml:space="preserve">
     <value>비활성</value>
@@ -1243,7 +1243,7 @@
     <value>코드 그룹</value>
   </data>
   <data name="MD.CommonCode.Ph.GrpSearch" xml:space="preserve">
-    <value>그룹코드/그룹명 검색</value>
+    <value>그룹코드/그룹명</value>
   </data>
   <data name="MD.CommonCode.ItemHint" xml:space="preserve">
     <value>← 코드 그룹의 ▶ 버튼을 눌러 항목을 조회하세요</value>
@@ -4690,7 +4690,7 @@
     <value>등록된 제품이 없습니다.</value>
   </data>
   <data name="MD.MoldLine.Ph.Search" xml:space="preserve">
-    <value>라인ID / 라인명</value>
+    <value>라인ID/라인명</value>
   </data>
   <data name="Col.PGN" xml:space="preserve">
     <value>PGN</value>
@@ -6610,7 +6610,7 @@
     <value>배지 자동등록</value>
   </data>
   <data name="MD.Workers.Ph.Search" xml:space="preserve">
-    <value>사번 / 이름</value>
+    <value>사번/이름</value>
   </data>
   <data name="MD.Workers.Col.WorkerNo" xml:space="preserve">
     <value>사번</value>
@@ -6844,7 +6844,7 @@
     <value>조회분 합계</value>
   </data>
   <data name="MNT.WorkOrder.Ph.Search" xml:space="preserve">
-    <value>WO번호 · 설비 · 담당자</value>
+    <value>WO번호/설비/담당자</value>
   </data>
   <data name="MNT.WorkOrder.Btn.Export" xml:space="preserve">
     <value>내보내기</value>
@@ -6907,10 +6907,10 @@
     <value>최근 {0}건 조회</value>
   </data>
   <data name="MNT.SpareParts.Ph.Search" xml:space="preserve">
-    <value>예비품번호 · 부품번호 · 명칭</value>
+    <value>예비품번호/부품번호/명칭</value>
   </data>
   <data name="MNT.SpareParts.Ph.TxnSearch" xml:space="preserve">
-    <value>예비품번호 · 부품번호 · 명칭 · 참조</value>
+    <value>예비품번호/부품번호/명칭/참조</value>
   </data>
   <data name="MNT.SpareParts.Btn.Export" xml:space="preserve">
     <value>내보내기</value>
@@ -7210,7 +7210,7 @@
     <value>충족만</value>
   </data>
   <data name="PP.Mrp.Ph.Search" xml:space="preserve">
-    <value>자재 코드/명...</value>
+    <value>자재코드/자재명</value>
   </data>
   <data name="PP.Mrp.Btn.Export" xml:space="preserve">
     <value>내보내기</value>
@@ -7498,7 +7498,7 @@
     <value>교체 이력이 없습니다</value>
   </data>
   <data name="MNT.Mold.Ph.ChangeSearch" xml:space="preserve">
-    <value>금형·설비·라인·사유 검색</value>
+    <value>금형/설비/라인/사유/교체자</value>
   </data>
   <data name="MNT.Mold.Btn.ShowChanges" xml:space="preserve">
     <value>교체 이력 보기</value>
@@ -7534,7 +7534,7 @@
     <value>등록된 책임자가 없습니다</value>
   </data>
   <data name="MD.LineSupervisors.Ph.Search" xml:space="preserve">
-    <value>라인 / 사번 / 이름</value>
+    <value>라인/사번/이름</value>
   </data>
   <data name="MD.LineSupervisors.Col.EmployeeNo" xml:space="preserve">
     <value>사번</value>
@@ -7897,7 +7897,7 @@
     <value>품번 또는 품명</value>
   </data>
   <data name="WH.Picking.Ph.Search" xml:space="preserve">
-    <value>전표 번호, 품번, 위치</value>
+    <value>전표번호/품번/위치</value>
   </data>
   <data name="WH.Picking.Col.ReqDate" xml:space="preserve">
     <value>요청일</value>
@@ -8368,7 +8368,7 @@
     <value>24시간 내 로그인</value>
   </data>
   <data name="SCM.PortalUsers.Ph.Search" xml:space="preserve">
-    <value>이메일 / 이름 / 협력업체</value>
+    <value>이메일/이름/협력업체</value>
   </data>
   <data name="SCM.PortalUsers.Col.Email" xml:space="preserve">
     <value>이메일(ID)</value>
@@ -8486,5 +8486,59 @@
   </data>
   <data name="Portal.Home.Scope.Vendor" xml:space="preserve">
     <value>협력업체 {0} 기준</value>
+  </data>
+  <data name="MD.PmTemplate.Ph.Search" xml:space="preserve">
+    <value>템플릿ID/템플릿명</value>
+  </data>
+  <data name="PP.WorkOrder.Ph.Search" xml:space="preserve">
+    <value>WO번호/품목</value>
+  </data>
+  <data name="FG.Returns.Ph.Search" xml:space="preserve">
+    <value>반품번호/RMA/고객사/품목</value>
+  </data>
+  <data name="FG.Shipments.Ph.Search" xml:space="preserve">
+    <value>출하오더/고객사/차량/납품서</value>
+  </data>
+  <data name="WH.LogHistory.Ph.Search" xml:space="preserve">
+    <value>이벤트/LOT/품번/작업자/비고</value>
+  </data>
+  <data name="WH.Inventory.Ph.Search" xml:space="preserve">
+    <value>위치/품번/품명/LOT</value>
+  </data>
+  <data name="SCM.PurchaseItems.Ph.Search" xml:space="preserve">
+    <value>품목코드/품목명/업체</value>
+  </data>
+  <data name="SCM.Preview.Ph.DeliverySearch" xml:space="preserve">
+    <value>납품서/발주/품목</value>
+  </data>
+  <data name="SCM.Preview.Ph.OrderSearch" xml:space="preserve">
+    <value>발주번호/품목</value>
+  </data>
+  <data name="SCM.Preview.Ph.NewDeliverySearch" xml:space="preserve">
+    <value>발주번호/업체/품목</value>
+  </data>
+  <data name="SCM.Preview.Ph.ItemSearch" xml:space="preserve">
+    <value>품번/품명</value>
+  </data>
+  <data name="Portal.DeliveryBoxes.Ph.Search" xml:space="preserve">
+    <value>납품서/업체/발주번호</value>
+  </data>
+  <data name="Portal.PackingQty.Ph.Search" xml:space="preserve">
+    <value>품목코드/품명/업체</value>
+  </data>
+  <data name="Portal.Receipts.Ph.Search" xml:space="preserve">
+    <value>문서/납품서/발주/품목</value>
+  </data>
+  <data name="FG.History.Ph.Search" xml:space="preserve">
+    <value>참조번호/품목/위치/작업자</value>
+  </data>
+  <data name="PP.PlanConfirm.Ph.Search" xml:space="preserve">
+    <value>SO번호/품번/품명</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Ph.Search" xml:space="preserve">
+    <value>SO번호/품번/품명</value>
+  </data>
+  <data name="WH.Picking.Ph.Part" xml:space="preserve">
+    <value>품번/품명</value>
   </data>
 </root>

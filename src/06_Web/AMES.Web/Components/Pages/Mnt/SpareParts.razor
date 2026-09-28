@@ -59,7 +59,7 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MNT.SpareParts.List"] · @_parts.Count @L["Lbl.Items"]@(_parts.Count < _allParts.Count ? $" / {L["Lbl.TotalOf"]} {_allParts.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fPart" Change="@(v => _fPart = v ?? "")" @onkeydown="OnPartKeyDown" Immediate="true" Placeholder="@L["MNT.SpareParts.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+            <RadzenTextBox @bind-Value="_fPart" Change="@(v => _fPart = v ?? "")" @onkeydown="OnPartKeyDown" Immediate="true" Placeholder="@L["MNT.SpareParts.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
             <RadzenLabel Text="@L["Col.Cat"]" Component="DropDownCat" />
             <RadzenDropDown Name="DropDownCat" @bind-Value="_fCat" Data="@CatFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
             <RadzenLabel Text="@L["Col.ApplicableEquip"]" Component="DropDownEquip" />
@@ -162,7 +162,7 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MNT.SpareParts.TxnList"] · @_txns.Count @L["Lbl.Items"]@(_txns.Count < _allTxns.Count ? $" / {L["Lbl.TotalOf"]} {_allTxns.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fTxnPart" Change="@(v => _fTxnPart = v ?? "")" @onkeydown="OnTxnKeyDown" Immediate="true" Placeholder="@L["MNT.SpareParts.Ph.TxnSearch"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+            <RadzenTextBox @bind-Value="_fTxnPart" Change="@(v => _fTxnPart = v ?? "")" @onkeydown="OnTxnKeyDown" Immediate="true" Placeholder="@L["MNT.SpareParts.Ph.TxnSearch"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
             <RadzenLabel Text="@L["Col.Type"]" Component="DropDownMove" />
             <RadzenDropDown Name="DropDownMove" @bind-Value="_fMove" Data="@MoveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
             <RadzenLabel Text="@L["Lbl.Recent"]" Component="DropDownTxnTopN" />

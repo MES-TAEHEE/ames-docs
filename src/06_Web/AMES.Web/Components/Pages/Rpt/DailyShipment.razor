@@ -9,6 +9,7 @@
 
 @inject RptRepository Rpt
 @inject MasterDataRepository MD
+@inject UomFormat UomFmt
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
@@ -94,7 +95,7 @@
                 <div class="rpt-sh-cust">
                     <div class="h">
                         <span>@CustomerText(c.Code)</span>
-                        <span class="v">@string.Format(L["RPT.DailyShipment.ByCustomer.Fmt"].Value, c.Qty.ToString("N0"), c.OnTime + c.Late + c.Pending)</span>
+                        <span class="v">@string.Format(L["RPT.DailyShipment.ByCustomer.Fmt"].Value, UomFmt.Qty(c.Qty, null), c.OnTime + c.Late + c.Pending)</span>
                     </div>
                     <div class="rpt-sh-stack">
                         <i class="on" style="width:@(100.0 * c.OnTime / tot)%"></i><i class="lt" style="width:@(100.0 * c.Late / tot)%"></i><i class="pd" style="width:@(100.0 * c.Pending / tot)%"></i>
@@ -154,8 +155,8 @@
                 <Template Context="r"><span style="white-space:nowrap;">@r.ItemName</span>@if (!string.IsNullOrEmpty(r.ItemNo)) { <span class="dim code" style="font-size:.85em;margin-left:6px;">@r.ItemNo</span> }</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ShipLine" Property="Qty" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right" Width="90px">
-                <Template Context="r"><b class="code">@r.Qty.ToString("N0")</b></Template>
-                <FooterTemplate><span class="code">@_rows.Sum(x => x.Qty).ToString("N0")</span></FooterTemplate>
+                <Template Context="r"><b class="code">@UomFmt.Qty(r.Qty, r.Uom)</b></Template>
+                <FooterTemplate><span class="code">@UomFmt.Qty(_rows.Sum(x => x.Qty), null)</span></FooterTemplate>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ShipLine" Property="ShipTime" Title="@L["RPT.DailyShipment.Col.ShipTime"]" TextAlign="TextAlign.Center" Width="190px">
                 <Template Context="r">
@@ -196,7 +197,7 @@
     public sealed class ShipLine
     {
         public int OrderId; public string ShipNo = ""; public string CustomerCode = ""; public string? Carrier;
-        public string? ItemNo; public string ItemName = ""; public decimal Qty; public decimal Amount;
+        public string? ItemNo; public string ItemName = ""; public decimal Qty; public string? Uom; public decimal Amount;
         public DateTime? ShipTime; public DateTime? PlanDate; public string? Vehicle; public string State = "pending";
     }
     public sealed record OrderAgg(int OrderId, string CustomerCode, string? Carrier, string State, decimal Qty) { public bool Shipped => State != "pending"; }
@@ -254,7 +255,7 @@
                 OrderId = r.ShipmentOrderId, ShipNo = r.ShipOrderNumber ?? $"#{r.ShipmentOrderId}", CustomerCode = r.CustomerCode ?? "—",
                 Carrier = r.CarrierCode, ItemNo = r.ItemNo,
                 ItemName = string.IsNullOrEmpty(nm) ? (r.ItemNo ?? L["RPT.DailyShipment.Item.Unknown"].Value) : nm,
-                Qty = qty, Amount = qty * (r.UnitCost ?? 0m),
+                Qty = qty, Uom = r.Uom, Amount = qty * (r.UnitCost ?? 0m),
                 ShipTime = ShipTimeOf(r), PlanDate = r.ShipDate, Vehicle = r.LicensePlate, State = state,
             };
         }).OrderBy(x => x.ShipNo).ToList();
@@ -287,7 +288,7 @@
     // ── 표시 헬퍼 ─────────────────────────────────────────────────────
     string CustomerName(string code) =>
         _customers.FirstOrDefault(c => c.CustomerCode == code || c.CustomerID == code) is { } c ? MasterDataRepository.LocalName(c.CustomerName, c.CustomerNameEn) : "";
-    string CustomerText(string code) => CustomerName(code) is { Length: > 0 } nm ? $"{code} ({nm})" : code;
+    string CustomerText(string code) => CustomerName(code) is { Length: > 0 } nm ? $"[{code}] {nm}" : $"[{code}]";
 
     string StateLabel(string s) => s switch
     {

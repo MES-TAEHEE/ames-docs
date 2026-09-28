@@ -38,9 +38,9 @@
             <RadzenLabel Text="@L["Col.Routing"]" />
             <RadzenDropDown Data="_routings" @bind-Value="_fRouting" @bind-Value:after="ApplyFilters"
                             AllowClear="true" Placeholder="@L["Filter.All"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px" />
-            <RadzenLabel Text='@($"{L["Col.WoNo"]} / {L["Col.Item"]}")' />
+            <RadzenLabel Text='@($"{L["Col.WoNo"]}/{L["Col.Item"]}")' />
             <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"
-                           Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+                           Placeholder="@L["PP.WorkOrder.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text="@L["PP.WorkOrder.Filter.ClosedDays"]" />
             <RadzenDropDown AllowFiltering="true" Data="_dayOpts" @bind-Value="_recentDays" @bind-Value:after="Reload" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px" />
 

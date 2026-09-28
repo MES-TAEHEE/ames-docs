@@ -9,6 +9,7 @@
 
 @inject RptRepository Rpt
 @inject MasterDataRepository MD
+@inject UomFormat UomFmt
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
@@ -118,7 +119,7 @@
                 <div class="rpt-dp-shift">
                     <div class="h">
                         <b>@ShiftLabel(s.Code)</b>
-                        <span class="v">@s.Total.ToString("N0") EA</span>
+                        <span class="v">@UomFmt.Qty(s.Total, null)</span>
                     </div>
                     <div class="mnt-dt-track"><div class="mnt-dt-fill" style="width:@(maxShift > 0 ? Math.Max(2, (int)Math.Round(100.0 * s.Total / maxShift)) : 0)%;background:#10b981;"></div></div>
                     <div class="f">
@@ -217,7 +218,7 @@
     decimal? Yield       => TotalActual > 0 ? 100m * TotalGood / TotalActual : null;
 
     string FilterSummary =>
-        $"{_fDate.ToString(DateFmt.Date)} · {(_fLine is null ? L["Filter.All"].Value : _fLine)} · {(_fShift is null ? L["Filter.All"].Value : ShiftLabel(_fShift))}";
+        $"{_fDate.ToString(DateFmt.Date)} · {(_fLine is null ? L["Filter.All"].Value : LineText(_fLine))} · {(_fShift is null ? L["Filter.All"].Value : ShiftLabel(_fShift))}";
 
     protected override void OnInitialized()
     {
@@ -309,6 +310,7 @@
 
     string LineName(string id) =>
         _lineList.FirstOrDefault(l => l.LineID == id) is { } l ? MasterDataRepository.LocalName(l.LineName, l.LineNameEn) : "";
+    string LineText(string id) => LineName(id) is { Length: > 0 } nm ? $"[{id}] {nm}" : $"[{id}]";
 
     // ── 표시 헬퍼 ─────────────────────────────────────────────────────
     static string Pct(decimal? v) => v is { } x ? $"{x:0.0}%" : "—";

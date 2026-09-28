@@ -118,8 +118,8 @@
         {
             @foreach (var ln in _lines)
             {
-                <div class="mnt-dt-row" style="grid-template-columns:130px 1fr 70px;">
-                    <span class="lbl"><span class="code">@ln.LineId</span></span>
+                <div class="mnt-dt-row" style="grid-template-columns:220px 1fr 70px;">
+                    <span class="lbl"><span class="code">@ln.LineId</span><span class="dim" style="font-size:.85em;margin-left:6px;">@LineName(ln.LineId)</span></span>
                     <div class="mnt-dt-track"><div class="mnt-dt-fill" style="width:@(Math.Max(2, (int)Math.Round((double)ln.Adh)))%;background:@AdhColor(ln.Adh);"></div></div>
                     <span class="mnt-dt-val" style="color:@AdhColor(ln.Adh);"><b>@Pct(ln.Adh)</b></span>
                 </div>
@@ -148,8 +148,8 @@
                 <Template Context="r"><span class="code">@r.WoNumber</span></Template>
                 <FooterTemplate><b>@string.Format(L["RPT.ScheduleAdherence.TotalFmt"].Value, _rows.Count)</b></FooterTemplate>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WoLine" Property="LineId" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="120px">
-                <Template Context="r"><span class="code dim">@r.LineId</span></Template>
+            <RadzenDataGridColumn TItem="WoLine" Property="LineId" Title="@L["Col.Line"]" Width="200px">
+                <Template Context="r"><span class="code">@r.LineId</span><span class="dim" style="font-size:.85em;margin-left:6px;">@LineName(r.LineId)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WoLine" Property="ItemName" Title="@L["Col.Item"]">
                 <Template Context="r"><span style="white-space:nowrap;">@r.ItemName</span>@if (!string.IsNullOrEmpty(r.ItemNo)) { <span class="dim code" style="font-size:.85em;margin-left:6px;">@r.ItemNo</span> }</Template>
@@ -284,7 +284,8 @@
     }
 
     // ── 표시 헬퍼 ─────────────────────────────────────────────────────
-    string LineText(string id) => _lineList.FirstOrDefault(l => l.LineID == id) is { } l && MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{id}] {nm}" : $"[{id}]";
+    string LineName(string id) => _lineList.FirstOrDefault(l => l.LineID == id) is { } l ? MasterDataRepository.LocalName(l.LineName, l.LineNameEn) : "";
+    string LineText(string id) => LineName(id) is { Length: > 0 } nm ? $"[{id}] {nm}" : $"[{id}]";
     static string Pct(decimal? v) => v is { } x ? $"{x:0.0}%" : "—";
     static string AdhCls(decimal? v)   => v is not { } x ? "" : x >= TARGET ? "ok" : x >= 80m ? "warn" : "bad";
     static string AdhColor(decimal v)  => v >= TARGET ? "#059669" : v >= 80m ? "#f59e0b" : "#dc2626";
@@ -314,7 +315,7 @@
         };
         var data = _rows.Select(r => (IReadOnlyList<object?>)new object?[]
         {
-            r.WoNumber, r.LineId, r.ItemNo, r.ItemName, r.PlanQty, r.ActualQty,
+            r.WoNumber, LineText(r.LineId), r.ItemNo, r.ItemName, r.PlanQty, r.ActualQty,
             r.PlanDate.ToString(DateFmt.Date), r.ActualDate?.ToString(DateFmt.Date), r.Deviation, StateLabel(r.State),
         }).Append(new object?[]
         {

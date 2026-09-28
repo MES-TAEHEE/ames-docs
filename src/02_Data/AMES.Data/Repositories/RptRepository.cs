@@ -215,7 +215,8 @@ public sealed class RptRepository
     public sealed record ShipmentDetailRow(int ShipmentOrderId, string? ShipOrderNumber, string? CustomerCode,
         string? CarrierCode, string? DestPlant, string? DestDock, DateTime? ShipDate, string? Status, string? OtdFlag,
         DateTime? DepartureTs, DateTime? LoadConfirmedAt, DateTime? OrderConfirmedAt, string? LicensePlate, string? LoadOtd,
-        int LineSeq, string? ItemNo, string? ItemName, string? ItemNameEn, decimal OrderedQty, decimal AllocatedQty, decimal? UnitCost);
+        int LineSeq, string? ItemNo, string? ItemName, string? ItemNameEn, decimal OrderedQty, decimal AllocatedQty, decimal? UnitCost,
+        string? Uom = null);
 
     /// <summary>출하 예정일(ShipDate) 기준 하루치 출하 오더를 라인 단위로. 상차 확인(FG_LoadingConfirm)·품목 원가 조인.</summary>
     public List<ShipmentDetailRow> ListShipmentDetail(DateTime day, string? customerCode = null)
@@ -227,7 +228,7 @@ public sealed class RptRepository
                     l.DepartureTS, l.ConfirmedAt AS LoadConfirmedAt, o.ConfirmedAt AS OrderConfirmedAt,
                     l.LicensePlate, l.OTDStatus,
                     ISNULL(sl.LineSeq, 0) AS LineSeq, sl.ItemNo, i.ItemName, i.ItemNameEN,
-                    ISNULL(sl.OrderedQty, 0) AS OrderedQty, ISNULL(sl.AllocatedQty, 0) AS AllocatedQty, i.UnitCost
+                    ISNULL(sl.OrderedQty, 0) AS OrderedQty, ISNULL(sl.AllocatedQty, 0) AS AllocatedQty, i.UnitCost, i.DefaultUOM
             FROM    dbo.FG_ShipmentOrder o
             LEFT JOIN dbo.FG_ShipmentOrderLine sl ON sl.ShipmentOrderID = o.ShipmentOrderID
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = sl.ItemNo
@@ -245,7 +246,7 @@ public sealed class RptRepository
             r["DepartureTS"] as DateTime?, r["LoadConfirmedAt"] as DateTime?, r["OrderConfirmedAt"] as DateTime?,
             r["LicensePlate"] as string, r["OTDStatus"] as string,
             (int)r["LineSeq"], r["ItemNo"] as string, r["ItemName"] as string, r["ItemNameEN"] as string,
-            r["OrderedQty"] as decimal? ?? 0m, r["AllocatedQty"] as decimal? ?? 0m, r["UnitCost"] as decimal?),
+            r["OrderedQty"] as decimal? ?? 0m, r["AllocatedQty"] as decimal? ?? 0m, r["UnitCost"] as decimal?, r["DefaultUOM"] as string),
             ("@D", day.Date), ("@C", (object?)customerCode ?? DBNull.Value));
     }
 
@@ -305,27 +306,36 @@ public sealed class RptRepository
     }
 
     // ── RPT-005 Inventory Status ─────────────────────────────────────────
-    // ── RPT-005 Inventory (SKU 단위: 자재창고 WH_Inventory ∪ 완성품창고 FG_Inventory) ──
+    // ── RPT-005 Inventory (SKU 단위: 자재 WH_Inventory ∪ 완성품 FG_Inventory) ──
     public sealed record InventorySkuRow(string Source, string ItemNo, string? ItemName, string? ItemNameEn, string? ItemType,
-        string? Location, decimal Qty, decimal Reserved, decimal? UnitCost, decimal? SafetyStock, decimal? MaxStock, int Lots);
+        string? Location, decimal Qty, decimal Reserved, decimal? UnitCost, decimal? SafetyStock, decimal? MaxStock, int Lots,
+        string? ItemCategory = null, string? Uom = null);
 
-    /// <summary>현재 재고를 품목×위치로 집계. Source = "WH"(자재, WH_Inventory) / "FG"(완성품, FG_Inventory; 출하·폐기 제외).</summary>
+    /// <summary>
+    /// 현재 재고를 품목×위치로 집계. Source = "WH"(자재, WH_Inventory) / "FG"(완성품, FG_Inventory; 출하·폐기 제외).
+    /// WH_Inventory 는 LOT 단위 재고(LotNo·PartNo·LocationNo·Qty)이고 완성품 LOT 도 FG_Inventory 에서 옮겨 와 함께 들어 있다 —
+    /// 완성품을 두 번 세지 않도록 FG_Inventory 에 있는 LOT(키 = tbl_Lot.LotCode, 없으면 LEGACY-FG-{StockID 10자리})은 자재에서 뺀다.
+    /// 로케이션 구역(FG_AREA)으로 가르지 않는 이유: 완성품 LOT 중 완성품 구역 밖 로케이션에 있는 것이 있다.
+    /// WH_Inventory 에는 예약 수량·LOT 단가가 없어 자재의 예약은 0, 단가는 품목 마스터 단가다.
+    /// </summary>
     public List<InventorySkuRow> ListInventorySku()
     {
         const string sql = """
-            SELECT  x.Source, x.ItemNo, i.ItemName, i.ItemNameEN, i.ItemType, x.Location,
-                    x.Qty, x.Reserved, COALESCE(x.UnitCost, i.UnitCost) AS UnitCost, i.SafetyStock, i.MaxStock, x.Lots
+            SELECT  x.Source, x.ItemNo, COALESCE(NULLIF(i.ItemName, ''), x.PartName) AS ItemName, i.ItemNameEN, i.ItemType, x.Location,
+                    x.Qty, x.Reserved, i.UnitCost, i.SafetyStock, i.MaxStock, x.Lots,
+                    i.ItemCategory, i.DefaultUOM
             FROM (
-                SELECT 'WH' AS Source, w.ItemNo, w.LocationID AS Location,
-                       ISNULL(SUM(w.OnHandQty), 0) AS Qty, ISNULL(SUM(w.ReservedQty), 0) AS Reserved,
-                       MAX(w.UnitCost) AS UnitCost, COUNT(*) AS Lots
+                SELECT 'WH' AS Source, w.PartNo AS ItemNo, w.LocationNo AS Location, MAX(w.PartName) AS PartName,
+                       SUM(w.Qty) AS Qty, CAST(0 AS decimal(18,3)) AS Reserved, COUNT(*) AS Lots
                 FROM   dbo.WH_Inventory w
-                WHERE  ISNULL(w.Status, '') NOT IN ('CLOSED', 'SCRAPPED')
-                GROUP BY w.ItemNo, w.LocationID
+                WHERE  w.Qty > 0 AND w.PartNo IS NOT NULL
+                  AND  NOT EXISTS (SELECT 1 FROM dbo.FG_Inventory f LEFT JOIN dbo.tbl_Lot l ON l.LotID = f.LotID
+                                   WHERE w.LotNo = COALESCE(NULLIF(l.LotCode, N''), CONCAT(N'LEGACY-FG-', RIGHT(REPLICATE('0', 10) + CONVERT(varchar(10), f.StockID), 10))))
+                GROUP BY w.PartNo, w.LocationNo
                 UNION ALL
-                SELECT 'FG', s.ItemNo, s.Location,
+                SELECT 'FG', s.ItemNo, s.Location, NULL,
                        ISNULL(SUM(s.Qty), 0), ISNULL(SUM(CASE WHEN s.ReservationID IS NOT NULL OR s.Status = 'Reserved' THEN s.Qty ELSE 0 END), 0),
-                       NULL, COUNT(*)
+                       COUNT(*)
                 FROM   dbo.FG_Inventory s
                 WHERE  UPPER(ISNULL(s.Status, '')) NOT IN ('SHIPPED', 'SCRAPPED')
                 GROUP BY s.ItemNo, s.Location
@@ -336,7 +346,8 @@ public sealed class RptRepository
         return Query(sql, r => new InventorySkuRow(
             (string)r["Source"], r["ItemNo"] as string ?? "", r["ItemName"] as string, r["ItemNameEN"] as string, r["ItemType"] as string,
             r["Location"] as string, r["Qty"] as decimal? ?? 0m, r["Reserved"] as decimal? ?? 0m,
-            r["UnitCost"] as decimal?, r["SafetyStock"] as decimal?, r["MaxStock"] as decimal?, (int)r["Lots"]));
+            r["UnitCost"] as decimal?, r["SafetyStock"] as decimal?, r["MaxStock"] as decimal?, (int)r["Lots"],
+            r["ItemCategory"] as string, r["DefaultUOM"] as string));
     }
 
     /// <summary>최근 N일 자재 출고 수량(품목별) — 회전율 분자. WH_InventoryTransaction 의 음수 변동 합.</summary>
@@ -631,7 +642,7 @@ public sealed class RptRepository
 
     // ── RPT-009 Report Catalog (static metadata) ─────────────────────────
     // ── RPT-010 Report Builder (화이트리스트 기반 ad-hoc 집계) ─────────────────
-    public sealed record AdhocRow(string Key, string? Label, Dictionary<string, decimal> M);
+    public sealed record AdhocRow(string Key, string? Label, Dictionary<string, decimal> M, string? LabelEn = null);
 
     /// <summary>데이터 소스·그룹 차원·기간으로 집계. SQL 조각은 모두 코드 안의 화이트리스트에서만 고르므로 사용자 입력이 SQL 에 섞이지 않는다.</summary>
     public static readonly IReadOnlyDictionary<string, string[]> AdhocDims = new Dictionary<string, string[]>
@@ -657,7 +668,7 @@ public sealed class RptRepository
             throw new ArgumentException("unsupported source/dim");
 
         const string ShiftExpr = "CASE WHEN DATEPART(hour, {0}) BETWEEN 8 AND 15 THEN 'A' WHEN DATEPART(hour, {0}) BETWEEN 16 AND 23 THEN 'B' ELSE 'C' END";
-        string keyExpr, labelExpr = "NULL", body;
+        string keyExpr, labelExpr = "NULL", labelEnExpr = "NULL", body;
         switch (source)
         {
             case "PROD":
@@ -668,9 +679,9 @@ public sealed class RptRepository
                     "Shift" => string.Format(ShiftExpr, "r.EntryAt"),
                     _       => "ISNULL(w.ItemNo,'—')",
                 };
-                if (dim == "Item") labelExpr = "MAX(i.ItemName)";
+                if (dim == "Item") { labelExpr = "MAX(i.ItemName)"; labelEnExpr = "MAX(i.ItemNameEN)"; }
                 body = $"""
-                    SELECT {keyExpr} AS K, {labelExpr} AS Lbl,
+                    SELECT {keyExpr} AS K, {labelExpr} AS Lbl, {labelEnExpr} AS LblEn,
                            ISNULL(SUM(ISNULL(r.GoodQty,0)),0) + ISNULL(SUM(ISNULL(d.Qty, CASE WHEN r.DefectFlag=1 THEN 1 ELSE 0 END)),0) AS Production,
                            ISNULL(SUM(ISNULL(r.GoodQty,0)),0) AS GoodQty,
                            ISNULL(SUM(ISNULL(d.Qty, CASE WHEN r.DefectFlag=1 THEN 1 ELSE 0 END)),0) AS DefectQty,
@@ -691,9 +702,9 @@ public sealed class RptRepository
                     "Line"       => "ISNULL(r.LineID,'—')",
                     _            => "CONVERT(varchar(10), CAST(d.DetectedAt AS DATE), 120)",
                 };
-                if (dim == "DefectCode") labelExpr = "MAX(c.DefectName)";
+                if (dim == "DefectCode") { labelExpr = "MAX(c.DefectName)"; labelEnExpr = "MAX(c.DefectNameEn)"; }
                 body = $"""
-                    SELECT {keyExpr} AS K, {labelExpr} AS Lbl,
+                    SELECT {keyExpr} AS K, {labelExpr} AS Lbl, {labelEnExpr} AS LblEn,
                            ISNULL(SUM(ISNULL(d.Qty,0)),0) AS DefectQty, COUNT(*) AS Events
                     FROM dbo.PR_DefectDetail d
                     LEFT JOIN dbo.PR_ProductionResult r ON r.ResultID = d.ResultID
@@ -710,9 +721,9 @@ public sealed class RptRepository
                     "Date"     => "CONVERT(varchar(10), CAST(o.ShipDate AS DATE), 120)",
                     _          => "ISNULL(l.ItemNo,'—')",
                 };
-                if (dim == "Item") labelExpr = "MAX(i.ItemName)";
+                if (dim == "Item") { labelExpr = "MAX(i.ItemName)"; labelEnExpr = "MAX(i.ItemNameEN)"; }
                 body = $"""
-                    SELECT {keyExpr} AS K, {labelExpr} AS Lbl,
+                    SELECT {keyExpr} AS K, {labelExpr} AS Lbl, {labelEnExpr} AS LblEn,
                            COUNT(DISTINCT o.ShipmentOrderID) AS Orders,
                            ISNULL(SUM(ISNULL(l.OrderedQty,0)),0) AS OrderedQty,
                            ISNULL(SUM(ISNULL(l.AllocatedQty,0)),0) AS AllocatedQty
@@ -733,7 +744,7 @@ public sealed class RptRepository
                 };
                 if (dim == "Equip") labelExpr = "MAX(e.EquipName)";
                 body = $"""
-                    SELECT {keyExpr} AS K, {labelExpr} AS Lbl,
+                    SELECT {keyExpr} AS K, {labelExpr} AS Lbl, {labelEnExpr} AS LblEn,
                            ISNULL(SUM(o.OEE          * NULLIF(o.PlannedTimeMin,0)) / NULLIF(SUM(CASE WHEN o.OEE          IS NOT NULL THEN o.PlannedTimeMin END),0),0) AS Oee,
                            ISNULL(SUM(o.Availability * NULLIF(o.PlannedTimeMin,0)) / NULLIF(SUM(CASE WHEN o.Availability IS NOT NULL THEN o.PlannedTimeMin END),0),0) AS Availability,
                            ISNULL(SUM(o.Performance  * NULLIF(o.PlannedTimeMin,0)) / NULLIF(SUM(CASE WHEN o.Performance  IS NOT NULL THEN o.PlannedTimeMin END),0),0) AS Performance,
@@ -754,7 +765,7 @@ public sealed class RptRepository
                     _        => "CONVERT(varchar(10), CAST(d.StartTS AS DATE), 120)",
                 };
                 body = $"""
-                    SELECT {keyExpr} AS K, {labelExpr} AS Lbl,
+                    SELECT {keyExpr} AS K, {labelExpr} AS Lbl, {labelEnExpr} AS LblEn,
                            ISNULL(SUM(ISNULL(d.DurationMin,0)),0) AS DowntimeMin, COUNT(*) AS Events
                     FROM dbo.PP_LineDowntimeLog d
                     WHERE d.StartTS >= @F AND d.StartTS < @T
@@ -768,7 +779,7 @@ public sealed class RptRepository
         {
             var m = new Dictionary<string, decimal>();
             foreach (var name in measures) m[name] = r[name] is DBNull ? 0m : Convert.ToDecimal(r[name]);
-            return new AdhocRow(r["K"] as string ?? "—", r["Lbl"] as string, m);
+            return new AdhocRow(r["K"] as string ?? "—", r["Lbl"] as string, m, r["LblEn"] as string);
         }, ("@F", from.Date), ("@T", to.Date.AddDays(1)));
     }
 

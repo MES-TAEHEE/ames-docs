@@ -5,6 +5,7 @@
 @inject AuthenticationStateProvider Authentication
 @inject ILogger<Receipts> Logger
 @inject UomFormat UomFmt
+@inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@PortalText.Get("입고 현황") · AMES</PageTitle>
 <AmesPageHeader Code="PORTAL-005" Title='@PortalText.Get("입고 현황")' />
@@ -18,7 +19,7 @@
     <div class="ames-card-h receipt-card-header">
         <span>▼ @PortalText.Get("입고 현황") · @Rows.Count</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@PortalText.Get("문서 / 납품서 / 발주 / 품목")' aria-label='@PortalText.Get("입고 결과 검색")' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+            <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@L["Portal.Receipts.Ph.Search"]' aria-label='@PortalText.Get("입고 결과 검색")' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
             <RadzenLabel Text='@PortalText.Get("상태")' Component="ReceiptStatus" />
             <RadzenDropDown Name="ReceiptStatus" TValue="string" @bind-Value="_status" Data="@_statuses" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text='@PortalText.Get("출하일")' />

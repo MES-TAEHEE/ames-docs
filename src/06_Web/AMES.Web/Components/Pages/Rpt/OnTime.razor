@@ -62,7 +62,7 @@
 @* ── 조회 조건: 기간 · 고객사 · 조회 · 인쇄 · 내보내기 ──────────────── *@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0;">
-        <span style="white-space:nowrap;">▼ @L["RPT.OnTime.Filter.Title"] <span class="dim" style="font-weight:400;font-size:.85em;margin-left:6px;">@string.Format(L["RPT.OnTime.Lbl.Range"].Value, _fFrom.ToString(DateFmt.Date), _fTo.ToString(DateFmt.Date)) · @(_fCustomer is null ? L["Filter.All"].Value : CustomerLabel(_fCustomer))</span></span>
+        <span style="white-space:nowrap;">▼ @L["RPT.OnTime.Filter.Title"] <span class="dim" style="font-weight:400;font-size:.85em;margin-left:6px;">@string.Format(L["RPT.OnTime.Lbl.Range"].Value, _fFrom.ToString(DateFmt.Date), _fTo.ToString(DateFmt.Date)) · @(_fCustomer is null ? L["Filter.All"].Value : CustomerText(_fCustomer))</span></span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["Lbl.Period"]" Component="DatePickerFrom" />
             <RadzenDatePicker TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
@@ -268,6 +268,7 @@
     string CustomerName(string id) =>
         _customers.FirstOrDefault(c => c.CustomerID == id || c.CustomerCode == id) is { } c ? MasterDataRepository.LocalName(c.CustomerName, c.CustomerNameEn) : "";
     string CustomerLabel(string id) => CustomerName(id) is { Length: > 0 } nm ? nm : id;
+    string CustomerText(string id)  => CustomerName(id) is { Length: > 0 } nm ? $"[{id}] {nm}" : $"[{id}]";
 
     static string Pct(decimal? v) => v is { } x ? $"{x:0.0}%" : "—";
     // 등급 임계는 히트맵 범례와 동일: ≥98 우수 / ≥96 양호 / ≥92 주의 / 그 외 미달
@@ -302,7 +303,7 @@
         data.Add(ov);
         data.Add(new object?[0]);
         data.Add(new object?[] { L["Col.Item"].Value, L["Col.ItemName"].Value, L["Col.Customer"].Value, L["RPT.OnTime.Col.Deliveries"].Value, L["RPT.OnTime.Col.OnTime"].Value, L["RPT.OnTime.Col.Late"].Value, L["RPT.OnTime.Col.AvgDelay"].Value, L["Col.OtdPct"].Value });
-        data.AddRange(_items.Select(i => (IReadOnlyList<object?>)new object?[] { i.ItemNo, i.ItemName, i.CustomerId, i.Deliveries, i.OnTime, i.Late, i.AvgDelay is { } d ? Math.Round(d, 1) : null, i.Otd is { } t ? Math.Round(t, 1) : null }));
+        data.AddRange(_items.Select(i => (IReadOnlyList<object?>)new object?[] { i.ItemNo, i.ItemName, CustomerText(i.CustomerId), i.Deliveries, i.OnTime, i.Late, i.AvgDelay is { } d ? Math.Round(d, 1) : null, i.Otd is { } t ? Math.Round(t, 1) : null }));
         data.Add(new object?[] { L["RPT.OnTime.Total"].Value, null, null, _items.Sum(i => i.Deliveries), _items.Sum(i => i.OnTime), _items.Sum(i => i.Late), AvgDelay is { } ad ? Math.Round(ad, 1) : null, OverallOtd is { } oo ? Math.Round(oo, 1) : null });
 
         var bytes = AMES.Web.Services.XlsxWriter.Build(L["RPT.OnTime.Title"].Value, headers, data);

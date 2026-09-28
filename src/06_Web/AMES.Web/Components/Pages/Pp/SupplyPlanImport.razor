@@ -45,9 +45,9 @@
             <RadzenLabel Text="@L["Col.Status"]" />
             <RadzenDropDown Data="_statuses" @bind-Value="_fStatus" @bind-Value:after="ApplyFilters"
                             AllowClear="true" Placeholder="@L["Filter.All"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
-            <RadzenLabel Text='@($"{L["Col.SoNo"]} / {L["Col.PartNo"]}")' />
+            <RadzenLabel Text='@($"{L["Col.SoNo"]}/{L["Col.PartNo"]}")' />
             <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"
-                           Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+                           Placeholder="@L["PP.SupplyPlanImport.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
 
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="Search" />
             @if (_canEdit)

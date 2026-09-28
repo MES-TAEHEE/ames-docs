@@ -79,7 +79,7 @@
                 <Template Context="r">@(r.EquipName ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="EquipType" Title="@L["Col.EquipType"]" Width="120px">
-                <Template Context="r"><span class="pill">@(r.EquipType ?? "—")</span></Template>
+                <Template Context="r"><span class="pill">@EquipTypeLabel(r.EquipType)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="LineId" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="dim">@(r.LineId ?? "—")</span></Template>
@@ -131,7 +131,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.EquipType"]" />
-                    <RadzenTextBox Value="@(_sel.EquipType ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox Value="@EquipTypeText(_sel.EquipType)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Line"]" />
@@ -186,7 +186,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.MoldId"]" />
-                    <RadzenTextBox Value="@(_sel.MountedMoldId ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox Value="@MoldText(_sel.MountedMoldId)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.PlcConn"]" />
@@ -291,6 +291,7 @@
     List<MntRepository.EquipCardRow>        _rows        = new();
     List<MasterDataRepository.LineRow>      _lineList    = new();
     List<MasterDataRepository.CodeItemRow>  _equipStatus = new();
+    List<MasterDataRepository.CodeItemRow>  _equipTypes  = new();
     MntRepository.EquipCardRow? _sel;
 
     string _fSearch = "";
@@ -308,11 +309,16 @@
     IEnumerable<DropDownItem> UnregisteredEquipOptions => _allRows.Where(r => r.EquipStatusId is null)
         .Select(r => new DropDownItem { Value = r.EquipId, Text = EquipText(r.EquipId) });
     IEnumerable<DropDownItem> MoldOptions => _molds.Select(m => new DropDownItem { Value = m.MoldID, Text = string.IsNullOrEmpty(m.MoldName) ? $"[{m.MoldID}]" : $"[{m.MoldID}] {m.MoldName}" });
+    string MoldText(string? id) =>
+        string.IsNullOrEmpty(id) ? "" : _molds.FirstOrDefault(m => m.MoldID == id) is { } m && !string.IsNullOrEmpty(m.MoldName) ? $"[{id}] {m.MoldName}" : $"[{id}]";
     string EquipText(string? id) =>
         id is null ? "" : _allRows.FirstOrDefault(r => r.EquipId == id) is { } r && !string.IsNullOrEmpty(r.EquipName) ? $"[{id}] {r.EquipName}" : $"[{id}]";
 
     IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
-    IEnumerable<DropDownItem> EquipTypeOptions => _allRows.Select(r => r.EquipType).Where(x => x != null).Distinct().OrderBy(x => x).Select(t => new DropDownItem { Value = t!, Text = t! });
+    // 설비 유형 = 공통코드 EQUIP_TYPE — MD-014 설비 기준정보와 같은 표시(목록은 명칭, 상세는 [코드] 명칭)
+    IEnumerable<DropDownItem> EquipTypeOptions => _equipTypes.Where(t => t.UseFlag).Select(t => new DropDownItem { Value = t.CodeValue ?? "", Text = MasterDataRepository.LocalName(t) });
+    string EquipTypeLabel(string? code) => string.IsNullOrEmpty(code) ? "—" : _equipTypes.FirstOrDefault(t => t.CodeValue == code) is { } t ? MasterDataRepository.LocalName(t) : code;
+    string EquipTypeText(string? code) => string.IsNullOrEmpty(code) ? "" : _equipTypes.FirstOrDefault(t => t.CodeValue == code) is { } t ? $"[{code}] {MasterDataRepository.LocalName(t)}" : code;
     IEnumerable<DropDownItem> StatusFilterOptions => _equipStatus.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" });
 
     // 상태 라벨: EQUIP_STATUS 공통코드 LocalName (다국어), 미등록 코드는 원문 표시
@@ -337,6 +343,7 @@
 
         try { _lineList    = MD.ListLines();                   } catch { }
         try { _equipStatus = MD.ListCodeItems("EQUIP_STATUS"); } catch { }
+        try { _equipTypes  = MD.ListCodeItems("EQUIP_TYPE");   } catch { }
         try { _molds       = MD.ListMolds();                   } catch { }
         Reload();
     }
@@ -485,7 +492,7 @@
         };
         var data = _rows.Select(r => (IReadOnlyList<object?>)new object?[]
         {
-            r.EquipId, r.EquipName, r.EquipType, LineText(r.LineId),
+            r.EquipId, r.EquipName, EquipTypeLabel(r.EquipType), LineText(r.LineId),
             r.MakerModel, r.InstallDate?.ToString(DateFmt.Date), StatusLabel(r.Status), r.TodayOee,
             r.RuntimeHours, r.CycleCount, r.NextPmDate?.ToString(DateFmt.Date), r.OpenWoId,
             r.MountedMoldId, r.PlcConnTs?.ToString(DateFmt.DateTime),

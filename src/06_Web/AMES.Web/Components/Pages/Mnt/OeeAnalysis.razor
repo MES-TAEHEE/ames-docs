@@ -91,7 +91,7 @@
                 <Template Context="a">@(a.EquipName ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EquipAgg" Property="EquipType" Title="@L["Col.EquipType"]" TextAlign="TextAlign.Center" Width="120px">
-                <Template Context="a"><span class="pill">@(a.EquipType ?? "—")</span></Template>
+                <Template Context="a"><span class="pill">@EquipTypeLabel(a.EquipType)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EquipAgg" Property="LineId" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="a"><span class="dim">@(a.LineId ?? "—")</span></Template>
@@ -170,6 +170,9 @@
     List<MasterDataRepository.LineRow>       _lineList   = new();
     List<MasterDataRepository.EquipmentRow>  _equipList  = new();
     List<MasterDataRepository.CodeItemRow>   _shiftItems = new();
+    List<MasterDataRepository.CodeItemRow>   _equipTypes = new();
+    // 설비 유형 = 공통코드 EQUIP_TYPE 명칭 (MD-014 설비 기준정보와 같은 표시)
+    string EquipTypeLabel(string? code) => string.IsNullOrEmpty(code) ? "—" : _equipTypes.FirstOrDefault(t => t.CodeValue == code) is { } t ? MasterDataRepository.LocalName(t) : code;
 
     DateTime _fFrom = DbClock.Today.AddDays(-14), _fTo = DbClock.Today;
     string?  _fLine, _fEquip, _fShift;
@@ -207,6 +210,7 @@
         try { _lineList   = MD.ListLines();                  } catch { }
         try { _equipList  = MD.ListEquipments();             } catch { }
         try { _shiftItems = MD.ListCodeItems("WORK_SHIFT");  } catch { }
+        try { _equipTypes = MD.ListCodeItems("EQUIP_TYPE");  } catch { }
 
         // 기본 기간: 최근 14일. 그 안에 데이터가 없으면 마지막 집계일 기준 14일을 잡는다
         try
@@ -380,7 +384,7 @@
         };
         var data = _equipAgg.Select(a => (IReadOnlyList<object?>)new object?[]
         {
-            a.EquipId, a.EquipName, a.EquipType, a.LineId,
+            a.EquipId, a.EquipName, EquipTypeLabel(a.EquipType), a.LineId,
             a.Rows, a.Oee is { } o ? Math.Round(o, 1) : null,
             a.MtbfH is { } h ? Math.Round(h, 0) : null, a.MttrMin is { } m ? Math.Round(m, 0) : null, a.Failures,
             a.A is { } av ? Math.Round(av, 1) : null, a.P is { } pv ? Math.Round(pv, 1) : null, a.Q is { } qv ? Math.Round(qv, 1) : null,

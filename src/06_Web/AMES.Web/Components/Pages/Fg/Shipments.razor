@@ -27,7 +27,7 @@
     <div class="ames-card-h master-list-toolbar">
         <span>▼ @L["FG.Shipments.Title"] · @_rows.Count item(s)</span>
         <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Placeholder="@L["Btn.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:210px;" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
+            <RadzenTextBox @bind-Value="_search" Placeholder="@L["FG.Shipments.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
             <RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="@L["Col.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />

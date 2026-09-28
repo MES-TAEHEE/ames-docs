@@ -24,7 +24,7 @@
     <div class="ames-card-h master-list-toolbar">
         <span>▼ @L["FG.Returns.Title"] · @_rows.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Placeholder="@L["Btn.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:210px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
+            <RadzenTextBox @bind-Value="_search" Placeholder="@L["FG.Returns.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
             <RadzenDropDown @bind-Value="_status" Data="@StatusOptions" AllowClear="true" Placeholder="@L["Col.Status"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
             <RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="@L["Col.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />

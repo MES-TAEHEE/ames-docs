@@ -44,7 +44,7 @@
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="white-space:nowrap;">▼ @Title · @(Mode is "Deliveries" or "Receipts" ? DeliveryRows.Count : IsPortal && Mode=="Due" ? DeliveryReadyRows.Count : Rows.Count) @T("건", "items", "registros")</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-                <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@(Mode == "Deliveries" ? T("납품서 / 발주 / 품목", "Delivery / order / item", "Entrega / pedido / artículo") : T("발주번호 / 품목", "Order / item", "Pedido / artículo"))' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+                <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@(Mode == "Deliveries" ? L["SCM.Preview.Ph.DeliverySearch"] : L["SCM.Preview.Ph.OrderSearch"])' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
                 @if (!IsPortal)
                 {
                     <RadzenLabel Text='@T("협력업체", "Supplier", "Proveedor")' Component="ScmDropDownVendor" />
@@ -283,7 +283,7 @@
     {
         <div class="ames-modal-bg"><div class="ames-modal ames-modal-wide" role="dialog" aria-modal="true" aria-label='@PortalText.Get("납품할 발주 선택")'>
             <div class="ames-modal-h">@T("납품할 발주 선택", "Select purchase order", "Seleccionar pedido")</div>
-            <RadzenTextBox @bind-Value="_newDeliverySearch" Immediate="true" Placeholder='@T("발주번호 / 업체 / 품목", "Order / vendor / item", "Pedido / proveedor / artículo")' class="ames-rz-input" Style="width:100%" />
+            <RadzenTextBox @bind-Value="_newDeliverySearch" Immediate="true" Placeholder='@L["SCM.Preview.Ph.NewDeliverySearch"]' class="ames-rz-input" Style="width:100%" />
             <div class="scm-scroll">
                 @foreach(var order in DeliveryRegistrationOrders)
                 {
@@ -390,7 +390,7 @@
                                     <RadzenDropDown TValue="string" @bind-Value="line.Item" @bind-Value:after="() => SelectMaterial(line)"
                                         Data="@MaterialOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" Disabled="@(_materials.Count == 0)"
                                         FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowClear="true"
-                                        Placeholder='@T("품번·품명 검색", "Search item / description", "Buscar artículo")'
+                                        Placeholder='@L["SCM.Preview.Ph.ItemSearch"]'
                                         InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                                     <div class="dim">@line.Name</div>
                                 </td>
