@@ -64,11 +64,10 @@ public sealed class MenuCatalog
         new("wh", "wh/picking-orders",  "WH-002", "피킹 오더",   "Picking Orders"),
 
         // -- FG --
-        new("fg", "fg/inventory",        "FG-001", "재고 조회",   "Inventory Search"),
-        new("fg", "fg/location-map",     "FG-002", "로케이션 맵", "Location Map"),
-        new("fg", "fg/customer-returns", "FG-003", "고객사 리턴", "Customer Returns"),
-        new("fg", "fg/shipments",        "FG-004", "출하 목록",   "Shipments"),
-        new("fg", "fg/history",          "FG-005", "작업 이력",   "History"),
+        new("fg", "fg/customer-returns", "FG-01", "고객사 리턴", "Customer Returns"),
+        new("fg", "fg/shipment-plan",    "FG-02", "출하 계획",   "Shipment Plan"),
+        new("fg", "fg/shipments",        "FG-03", "출하 목록",   "Shipments"),
+        new("fg", "fg/history",          "FG-04", "작업 이력",   "History"),
 
         // ── PP ──
         new("pp", "pp/forecast",         "PP-001", "수요 예측",        "Forecast"),
@@ -167,6 +166,8 @@ public sealed class MenuCatalog
         var path = href.Trim('/');
         return path.Equals("wh/inventory-setting", StringComparison.OrdinalIgnoreCase)
             || path.Equals("fg/locations", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("fg/inventory", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("fg/location-map", StringComparison.OrdinalIgnoreCase)
             || path.Equals("portal/shipment-plan", StringComparison.OrdinalIgnoreCase);
     }
 
@@ -262,8 +263,8 @@ public sealed class MenuCatalog
         ["wh/location-map"] = "Mapa de Ubicaciones",
         ["wh/picking-orders"] = "Órdenes de Picking",
         ["wh/log-history"] = "Historial de Inventario",
-        ["fg/location-map"] = "Mapa de Ubicaciones",
         ["fg/customer-returns"] = "Devoluciones de Clientes",
+        ["fg/shipment-plan"] = "Plan de Envíos",
         ["fg/shipments"] = "Embarques",
         ["fg/history"] = "Historial",
         // PP
