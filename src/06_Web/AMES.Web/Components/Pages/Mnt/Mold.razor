@@ -80,6 +80,9 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MntRepository.MoldRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.Mold.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed ames-grid-top">
         <Columns>
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="MoldId" Title="@L["Col.MoldId"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="code">@r.MoldId</span></Template>
             </RadzenDataGridColumn>

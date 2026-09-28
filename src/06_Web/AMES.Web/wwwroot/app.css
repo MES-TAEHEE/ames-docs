@@ -1747,12 +1747,17 @@ select.ames-rz-input {
 .ames-cal-wo-more:hover { text-decoration: underline; color: #bfdbfe; }
 /* override base cell min-height for WO calendar */
 .ames-cal-grid.pp-wo-grid .ames-cal-cell { min-height: 166px; }   /* PP 캘린더·MNT PM 일정 = 92px 의 180% */
-/* MNT-005·010 PM 일정 달력 — 목록 화면(.ames-grid-fixed)과 같이 콘텐츠를 화면 높이로 세우고 달력 카드가 남은 높이를 채워, 카드 바닥이 설비 카드 목록과 같은 자리에 온다.
-   주 행 = 남은 높이 ÷ 주 수(--cal-weeks, 5~6) — 화면이 낮으면 110px 까지 줄고 그 아래로는 페이지가 스크롤된다 */
-.ames-content:has(.pm-cal-fill) { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; min-height: 0; padding-bottom: 6px; }
-.ames-content:has(.pm-cal-fill) .ames-card:has(.pm-cal-fill) { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
-.ames-cal-grid.pm-cal-fill { flex: 1 1 auto; min-height: 0; grid-template-rows: auto repeat(var(--cal-weeks, 5), minmax(110px, 1fr)); }
-.ames-cal-grid.pm-cal-fill .ames-cal-cell { min-height: 0; overflow: hidden; }
+/* 화면 채움 달력(.ames-cal-fill — MNT-005·010 PM 일정, PP-CAL 월·주 탭) — 목록 화면(.ames-grid-fixed)과 같이 콘텐츠를 화면 높이로 세우고
+   달력 카드(탭 화면은 탭 패널까지)가 남은 높이를 채워, 카드 바닥이 설비 카드 목록과 같은 자리에 온다. 탭은 활성 탭만 렌더되므로 패널 체인에 걸어도 된다.
+   월 달력: 주 행 = 남은 높이 ÷ 주 수(--cal-weeks, 5~6), 화면이 낮으면 110px 까지 줄고 그 아래로는 페이지가 스크롤된다.
+   주 목록(.ames-cal-weeklist): 7일 행이 남은 높이를 나눠 갖는다(최소 44px). */
+.ames-content:has(.ames-cal-fill) { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; min-height: 0; padding-bottom: 6px; }
+.ames-content:has(.ames-cal-fill) :is(.ames-card, .ames-tabpanel):has(.ames-cal-fill) { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.ames-content:has(.ames-cal-fill) .ames-tabpanel:has(.ames-cal-fill) { margin-bottom: 8px; }
+.ames-cal-grid.ames-cal-fill { flex: 1 1 auto; min-height: 0; grid-template-rows: auto repeat(var(--cal-weeks, 5), minmax(110px, 1fr)); }
+.ames-cal-grid.ames-cal-fill .ames-cal-cell { min-height: 0; overflow: hidden; }
+.ames-cal-weeklist.ames-cal-fill { flex: 1 1 auto; min-height: 0; display: grid; grid-template-rows: repeat(7, minmax(44px, 1fr)); gap: 5px; margin-top: 6px; }
+.ames-cal-weeklist.ames-cal-fill > div { min-height: 0; }
 
 /* ── PP-CAL: week view ───────────────────────────────────────── */
 .ames-cal-week-cols {

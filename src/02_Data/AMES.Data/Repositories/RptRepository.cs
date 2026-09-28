@@ -467,7 +467,12 @@ public sealed class RptRepository
                 SELECT DATEFROMPARTS(YEAR(TransactionTime), MONTH(TransactionTime), 1) AS M, SUM(-QtyChange) AS Issued
                 FROM dbo.WH_InventoryTransaction WHERE QtyChange < 0 AND TransactionTime >= @F AND TransactionTime < DATEADD(MONTH, 1, @T)
                 GROUP BY DATEFROMPARTS(YEAR(TransactionTime), MONTH(TransactionTime), 1)),
-            onhand AS (SELECT ISNULL(SUM(OnHandQty),0) AS OnHand FROM dbo.WH_Inventory)
+            -- 회전율 분모 = 자재 현재고: WH_Inventory(LOT 단위) 에서 완성품 LOT(FG_Inventory, RPT-005 와 같은 키 규칙)을 뺀 수량 합
+            onhand AS (
+                SELECT ISNULL(SUM(w.Qty),0) AS OnHand FROM dbo.WH_Inventory w
+                WHERE w.Qty > 0 AND w.PartNo IS NOT NULL
+                  AND NOT EXISTS (SELECT 1 FROM dbo.FG_Inventory f LEFT JOIN dbo.tbl_Lot l ON l.LotID = f.LotID
+                                  WHERE w.LotNo = COALESCE(NULLIF(l.LotCode, N''), CONCAT(N'LEGACY-FG-', RIGHT(REPLICATE('0', 10) + CONVERT(varchar(10), f.StockID), 10)))))
             SELECT m.M,
                    ISNULL(p.Good,0) AS GoodQty, ISNULL(d.Def,0) AS DefectQty, ISNULL(pl.PlanQty,0) AS PlanQty,
                    o.Avail, o.Oee, ISNULL(o.OperMin,0) AS OperMin, ISNULL(f.Failures,0) AS Failures,

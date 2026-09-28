@@ -90,7 +90,7 @@
         int rows         = (int)Math.Ceiling((startOffset + daysInMonth) / 7.0);
     }
 
-    <div class="ames-cal-grid pp-wo-grid pm-cal-fill" style="--cal-weeks:@rows">
+    <div class="ames-cal-grid pp-wo-grid ames-cal-fill" style="--cal-weeks:@rows">
         @foreach (var (key, cls) in new[] {
             ("PP.Calendar.Day.Sun","sun"),
             ("PP.Calendar.Day.Mon",""),

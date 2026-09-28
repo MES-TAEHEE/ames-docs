@@ -81,9 +81,12 @@
     </div>
     <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["MNT.OeeAnalysis.Reliability.Hint"]</div>
 
-    <RadzenDataGrid TItem="EquipAgg" Data="@_equipAgg" AllowPaging="false" AllowSorting="true"
+    <RadzenDataGrid @ref="_equipGrid" TItem="EquipAgg" Data="@_equipAgg" AllowPaging="false" AllowSorting="true"
                     RowClick="@OnAggRowClick" RowRender="@AggRowRender" EmptyText="@L["MNT.OeeAnalysis.Empty"]" Class="ames-rz-grid">
         <Columns>
+            <RadzenDataGridColumn TItem="EquipAgg" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="rn"><span class="dim">@GridRowNo.Of(_equipGrid, rn)</span></Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EquipAgg" Property="EquipId" Title="@L["Col.EquipId"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="a"><span class="code">@a.EquipId</span></Template>
             </RadzenDataGridColumn>
@@ -164,6 +167,7 @@
     List<MntRepository.OeeRow>               _rows       = new();
     List<MntRepository.FailureRow>           _failures   = new();
     List<EquipAgg>                           _equipAgg   = new();
+    RadzenDataGrid<EquipAgg>? _equipGrid;
     List<TrendPoint>                         _trend      = new();
     List<MntRepository.OeeRow>               _trendRows  = new();   // 추세 전용: 오늘 기준 최근 12주 원본(조회 기간과 무관)
     List<MntRepository.OeeRow>               _trendVisible = new(); // _trendRows 에 라인/설비/교대 필터를 적용한 것
