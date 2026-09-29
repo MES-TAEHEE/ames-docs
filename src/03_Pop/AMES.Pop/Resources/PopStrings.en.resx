@@ -208,7 +208,7 @@
   <data name="ShiftC" xml:space="preserve">
     <value>SHIFT C</value>
   </data>
-  <data name="HelpImgMainSub" xml:space="preserve"><value>Select a part, print a label, scan it to confirm — no work-order acceptance</value></data>
+  <data name="HelpImgMainSub" xml:space="preserve"><value>Scan the injection core to print the finished label, then judge OK / NG — no work-order acceptance</value></data>
   <data name="SelectPartWithOpenWo" xml:space="preserve"><value>Select a part with an open work order</value></data>
   <data name="LabelPrint" xml:space="preserve"><value>LABEL PRINT</value></data>
   <data name="TodayLotsNewestFirst" xml:space="preserve"><value>TODAY'S LOTS · NEWEST FIRST</value></data>
@@ -283,4 +283,15 @@
   <data name="WoPending" xml:space="preserve"><value>Pending</value></data>
   <data name="WoListEmpty" xml:space="preserve"><value>No work orders for this part on this line</value></data>
   <data name="WoListNote" xml:space="preserve"><value>★ = active WO that scans confirm to · Done/progress are for this line's step · Closed WOs from the last 30 days</value></data>
+  <data name="JudgeTitle" xml:space="preserve"><value>JUDGE FINISHED PART</value></data>
+  <data name="Core" xml:space="preserve"><value>CORE</value></data>
+  <data name="JudgeSelectDefect" xml:space="preserve"><value>Tap a defect code to register it</value></data>
+  <data name="JudgeFirst" xml:space="preserve"><value>Judge the current part first</value></data>
+  <data name="JudgeNoDefectCodes" xml:space="preserve"><value>No IMG defect codes — register them on the MD-013 defect code screen</value></data>
+  <data name="JudgeBack" xml:space="preserve"><value>BACK</value></data>
+  <data name="ImgScanCoreOrLabel" xml:space="preserve"><value>SCAN INJECTION CORE · PRINT FINISHED LABEL</value></data>
+  <data name="CoreUnconfirmed" xml:space="preserve"><value>Core not confirmed — confirm it at injection first</value></data>
+  <data name="CoreDefect" xml:space="preserve"><value>Defective core</value></data>
+  <data name="CoreScrapped" xml:space="preserve"><value>Scrapped core</value></data>
+  <data name="CoreUsed" xml:space="preserve"><value>Core already used</value></data>
 </root>

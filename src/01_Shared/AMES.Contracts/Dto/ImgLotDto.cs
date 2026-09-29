@@ -27,6 +27,8 @@ public sealed class ImgLotDto
     /// <summary>라벨 누적 발행 횟수 (최초 발행 + 재출력).</summary>
     public int       PrintedCount     { get; init; }
     public DateTime  CreatedTS        { get; init; }
+    /// <summary>이 완제품을 만든 사출 Core LotNo(tbl_Lot.ParentLotID). 예외 발행분은 null.</summary>
+    public string?   CoreLotCode      { get; init; }
 
     public bool IsConfirmed => ConfirmStatus == "CONFIRMED";
 }

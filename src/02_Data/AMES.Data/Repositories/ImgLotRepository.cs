@@ -9,9 +9,9 @@ namespace AMES.Data.Repositories;
 
 /// <summary>
 /// IMG(래핑) 원천 LOT — tbl_Lot(ProcessCode='IMG', 1 EA) + PR_ImgLot.
-/// IMG-MAIN 의 "라벨 발행 → 스캔 확정" 모델을 담당한다. INJ 와 달리 에이전트가
-/// 없으므로 LOT 은 오직 터미널의 라벨 발행 버튼이 만들고, 라벨은 그 자리에서
-/// 동기 출력된다 (LabelDispatcher 는 INJ 세션에서만 돈다).
+/// IMG-MAIN 의 "Core 스캔 → 완제품 라벨 → OK/NG 판정" 모델을 담당한다. INJ 와 달리 에이전트가 없으므로
+/// LOT 은 터미널이 만들고 라벨은 그 자리에서 동기 출력된다 (LabelDispatcher 는 INJ 세션에서만 돈다).
+/// 주 흐름은 사출 Core 스캔(CreateFromCore — tbl_Lot.ParentLotID 로 Core 연결)이고, CreateRawLot 은 예외용 발행 버튼이다.
 /// </summary>
 public sealed class ImgLotRepository
 {
@@ -25,10 +25,11 @@ public sealed class ImgLotRepository
         SELECT l.LotID, l.LotCode, l.ItemNo, mi.ItemName, mi.PGN, mi.ALC, mi.MountPos, l.LineID,
                e.EquipID, e.CustomerCode, e.ConfirmStatus, e.ConfirmedAt,
                e.FabricRollLotID, e.FabricConsumedM, e.BondSetupID,
-               e.PrintedCount, l.CreatedTS
+               e.PrintedCount, l.CreatedTS, pl.LotCode AS CoreLotCode
         FROM   dbo.tbl_Lot l
         JOIN   dbo.PR_ImgLot e ON e.LotID = l.LotID
         LEFT   JOIN dbo.MD_Item mi ON mi.ItemNo = l.ItemNo
+        LEFT   JOIN dbo.tbl_Lot pl ON pl.LotID = l.ParentLotID
         """;
 
     static ImgLotDto MapToDto(SqlDataReader rdr) => new()
@@ -50,13 +51,12 @@ public sealed class ImgLotRepository
         BondSetupId     = rdr["BondSetupID"]     as int?,
         PrintedCount    = (int)rdr["PrintedCount"],
         CreatedTS       = rdr["CreatedTS"] as DateTime? ?? default,
+        CoreLotCode     = rdr["CoreLotCode"] as string,
     };
 
     /// <summary>
-    /// 라벨 발행 버튼 — RAW LOT 1건 생성. 실적이 아니다: WoID 는 비워 두고 확정 시점의
+    /// 예외용 라벨 발행 버튼 — Core 없이 RAW LOT 1건 생성. 실적이 아니다: WoID 는 비워 두고 확정 시점의
     /// 열린 WO 로 채운다. 반환 DTO 는 라벨 출력용 (PrintedCount 0).
-    /// 라벨 V 토큰(수주처 코드)은 발행 시점 이 라인의 열린 WO → PP_CustomerOrder → MD_Customer 로
-    /// 정해 LOT 에 박아 둔다 — 재출력 때 WO 가 바뀌어도 라벨이 달라지지 않는다.
     /// </summary>
     public ImgLotDto CreateRawLot(string lineId, string itemNo, string employeeNo)
     {
@@ -64,94 +64,178 @@ public sealed class ImgLotRepository
         using var tx   = conn.BeginTransaction();
         try
         {
-            string? itemName, pgn, alc, mountPos;
-            using (var cmd = new SqlCommand(
-                "SELECT ItemName, PGN, ALC, MountPos FROM dbo.MD_Item WHERE ItemNo = @Item;", conn, tx))
+            var lot = InsertRawLot(conn, tx, lineId, itemNo, null, null, employeeNo);
+            tx.Commit();
+            return lot;
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    /// <summary>
+    /// 사출 Core 스캔 — 한 트랜잭션으로:
+    ///   ① Core(INJ LOT) 잠금 → ② 상태 검사(CoreLotRules) → ③ 이미 쓰인 Core 인지
+    ///   → ④ 이 라인에 Core 품번의 열린 WO 가 있는지 → ⑤ ParentLotID 로 연결된 RAW LOT 생성.
+    /// Core 행 UPDLOCK 이 같은 Core 동시 스캔을 직렬화한다. UX_tbl_Lot_ImgParent 위반은 CoreUsed 로 돌려준다.
+    /// </summary>
+    public (ImgCoreOutcome Outcome, ImgLotDto? Lot, string? UsedByLotCode, string? ItemNo) CreateFromCore(
+        string coreLotCode, string lineId, string employeeNo)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        int coreId = 0; string? itemNo = null;
+        try
+        {
+            string coreStatus;
+            using (var cmd = new SqlCommand("""
+                SELECT l.LotID, l.ItemNo, e.ConfirmStatus
+                FROM   dbo.tbl_Lot   l WITH (UPDLOCK, ROWLOCK)
+                JOIN   dbo.PR_InjLot e WITH (UPDLOCK, ROWLOCK) ON e.LotID = l.LotID
+                WHERE  l.LotCode = @Code AND l.ProcessCode = 'INJ';
+                """, conn, tx))
             {
-                cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+                cmd.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = coreLotCode;
                 using var rdr = cmd.ExecuteReader();
-                if (rdr.Read())
-                {
-                    itemName = rdr["ItemName"] as string;
-                    pgn      = rdr["PGN"]      as string;
-                    alc      = rdr["ALC"]      as string;
-                    mountPos = rdr["MountPos"] as string;
-                }
-                else itemName = pgn = alc = mountPos = null;
+                if (!rdr.Read()) { rdr.Close(); tx.Rollback(); return (ImgCoreOutcome.NotFound, null, null, null); }
+                coreId     = (int)rdr["LotID"];
+                itemNo     = rdr["ItemNo"] as string ?? string.Empty;
+                coreStatus = (string)rdr["ConfirmStatus"];
             }
 
-            string? customerCode;
+            var check = CoreLotRules.Check(coreStatus);
+            if (check != ImgCoreOutcome.Created) { tx.Rollback(); return (check, null, null, itemNo); }
+
+            if (FindCoreUser(conn, tx, coreId) is { } usedBy)
+            { tx.Rollback(); return (ImgCoreOutcome.CoreUsed, null, usedBy, itemNo); }
+
             using (var cmd = new SqlCommand("""
-                SELECT TOP 1 c.CustomerCode
+                SELECT TOP 1 r.WoID
                 FROM   dbo.PP_WorkOrderRouting r
-                JOIN   dbo.PP_WorkOrder        w  ON w.WoID  = r.WoID
-                LEFT JOIN dbo.PP_CustomerOrder so ON so.SoID = w.SoID
-                LEFT JOIN dbo.MD_Customer      c  ON c.CustomerID = so.CustomerID
+                JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
 
                 """ + WorkOrderRepository.OpenStepForItemFilter + ";", conn, tx))
             {
                 cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
                 cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
-                customerCode = cmd.ExecuteScalar() as string;
+                if (cmd.ExecuteScalar() is null) { tx.Rollback(); return (ImgCoreOutcome.NoWoForItem, null, null, itemNo); }
             }
 
-            string? equipId;
-            using (var cmd = new SqlCommand("""
-                SELECT TOP 1 EquipID FROM dbo.MD_Equipment
-                WHERE  LineID = @L AND ISNULL(ActiveFlag,1) = 1
-                ORDER  BY EquipID;
-                """, conn, tx))
-            {
-                cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
-                equipId = cmd.ExecuteScalar() as string;
-            }
-
-            var lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DbClock.Now);
-
-            int lotId; DateTime createdTs;
-            using (var cmd = new SqlCommand("""
-                INSERT INTO dbo.tbl_Lot
-                    (LotCode, ItemNo, WoID, LineID, ProcessCode, BatchSize, RemainingQty,
-                     ProducedAt, Status, QualityFlag, CreatedBy, CreatedTS)
-                OUTPUT INSERTED.LotID, INSERTED.CreatedTS
-                VALUES
-                    (@LotCode, @ItemNo, NULL, @LineID, @Proc, 1, 1,
-                     SYSDATETIME(), 'RAW', 'PENDING', @By, SYSDATETIME());
-                """, conn, tx))
-            {
-                cmd.Parameters.Add("@LotCode", SqlDbType.VarChar, 40).Value = lotCode;
-                cmd.Parameters.Add("@ItemNo",  SqlDbType.VarChar, 20).Value = itemNo;
-                cmd.Parameters.Add("@LineID",  SqlDbType.VarChar, 20).Value = lineId;
-                cmd.Parameters.Add("@Proc",    SqlDbType.VarChar, 10).Value = ProcessCode;
-                cmd.Parameters.Add("@By",      SqlDbType.VarChar, 50).Value = employeeNo;
-                using var rdr = cmd.ExecuteReader();
-                rdr.Read();
-                lotId     = (int)rdr["LotID"];
-                createdTs = (DateTime)rdr["CreatedTS"];
-            }
-
-            using (var cmd = new SqlCommand("""
-                INSERT INTO dbo.PR_ImgLot (LotID, EquipID, CustomerCode, ConfirmStatus, PrintedCount, CreatedBy, CreatedTS)
-                VALUES (@LotID, @Equip, @Cust, 'RAW', 0, @By, SYSDATETIME());
-                """, conn, tx))
-            {
-                cmd.Parameters.Add("@LotID", SqlDbType.Int        ).Value = lotId;
-                cmd.Parameters.Add("@Equip", SqlDbType.VarChar, 20).Value = (object?)equipId      ?? DBNull.Value;
-                cmd.Parameters.Add("@Cust",  SqlDbType.VarChar, 20).Value = (object?)customerCode ?? DBNull.Value;
-                cmd.Parameters.Add("@By",    SqlDbType.VarChar, 50).Value = employeeNo;
-                cmd.ExecuteNonQuery();
-            }
-
+            var lot = InsertRawLot(conn, tx, lineId, itemNo, coreId, coreLotCode, employeeNo);
             tx.Commit();
-            return new ImgLotDto
-            {
-                LotId = lotId, LotCode = lotCode, ItemNo = itemNo, ItemName = itemName,
-                Pgn = pgn, Alc = alc, MountPos = mountPos, CustomerCode = customerCode,
-                LineId = lineId, EquipId = equipId, ConfirmStatus = "RAW",
-                PrintedCount = 0, CreatedTS = createdTs,
-            };
+            return (ImgCoreOutcome.Created, lot, null, itemNo);
+        }
+        catch (SqlException ex) when (ex.Number is 2601 or 2627 && ex.Message.Contains("UX_tbl_Lot_ImgParent"))
+        {
+            // 잠금을 거치지 않은 경로가 먼저 연결했다 — 인덱스가 최후 방어선이다.
+            tx.Rollback();
+            return (ImgCoreOutcome.CoreUsed, null, FindCoreUser(conn, null, coreId), itemNo);
         }
         catch { tx.Rollback(); throw; }
+    }
+
+    static string? FindCoreUser(SqlConnection conn, SqlTransaction? tx, int coreLotId)
+    {
+        using var cmd = new SqlCommand("""
+            SELECT TOP 1 LotCode FROM dbo.tbl_Lot
+            WHERE  ParentLotID = @Core AND ProcessCode = 'IMG'
+            ORDER  BY LotID;
+            """, conn, tx);
+        cmd.Parameters.Add("@Core", SqlDbType.Int).Value = coreLotId;
+        return cmd.ExecuteScalar() as string;
+    }
+
+    /// <summary>
+    /// RAW LOT 1건 INSERT. 라벨 V 토큰(수주처 코드)은 발행 시점 이 라인의 열린 WO → PP_CustomerOrder → MD_Customer 로
+    /// 정해 LOT 에 박아 둔다 — 재출력 때 WO 가 바뀌어도 라벨이 달라지지 않는다.
+    /// </summary>
+    static ImgLotDto InsertRawLot(SqlConnection conn, SqlTransaction tx, string lineId, string itemNo,
+                                  int? parentLotId, string? parentLotCode, string employeeNo)
+    {
+        string? itemName, pgn, alc, mountPos;
+        using (var cmd = new SqlCommand(
+            "SELECT ItemName, PGN, ALC, MountPos FROM dbo.MD_Item WHERE ItemNo = @Item;", conn, tx))
+        {
+            cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+            using var rdr = cmd.ExecuteReader();
+            if (rdr.Read())
+            {
+                itemName = rdr["ItemName"] as string;
+                pgn      = rdr["PGN"]      as string;
+                alc      = rdr["ALC"]      as string;
+                mountPos = rdr["MountPos"] as string;
+            }
+            else itemName = pgn = alc = mountPos = null;
+        }
+
+        string? customerCode;
+        using (var cmd = new SqlCommand("""
+            SELECT TOP 1 c.CustomerCode
+            FROM   dbo.PP_WorkOrderRouting r
+            JOIN   dbo.PP_WorkOrder        w  ON w.WoID  = r.WoID
+            LEFT JOIN dbo.PP_CustomerOrder so ON so.SoID = w.SoID
+            LEFT JOIN dbo.MD_Customer      c  ON c.CustomerID = so.CustomerID
+
+            """ + WorkOrderRepository.OpenStepForItemFilter + ";", conn, tx))
+        {
+            cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
+            cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+            customerCode = cmd.ExecuteScalar() as string;
+        }
+
+        string? equipId;
+        using (var cmd = new SqlCommand("""
+            SELECT TOP 1 EquipID FROM dbo.MD_Equipment
+            WHERE  LineID = @L AND ISNULL(ActiveFlag,1) = 1
+            ORDER  BY EquipID;
+            """, conn, tx))
+        {
+            cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
+            equipId = cmd.ExecuteScalar() as string;
+        }
+
+        var lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DbClock.Now);
+
+        int lotId; DateTime createdTs;
+        using (var cmd = new SqlCommand("""
+            INSERT INTO dbo.tbl_Lot
+                (LotCode, ItemNo, WoID, LineID, ProcessCode, BatchSize, RemainingQty, ParentLotID,
+                 ProducedAt, Status, QualityFlag, CreatedBy, CreatedTS)
+            OUTPUT INSERTED.LotID, INSERTED.CreatedTS
+            VALUES
+                (@LotCode, @ItemNo, NULL, @LineID, @Proc, 1, 1, @Parent,
+                 SYSDATETIME(), 'RAW', 'PENDING', @By, SYSDATETIME());
+            """, conn, tx))
+        {
+            cmd.Parameters.Add("@LotCode", SqlDbType.VarChar, 40).Value = lotCode;
+            cmd.Parameters.Add("@ItemNo",  SqlDbType.VarChar, 20).Value = itemNo;
+            cmd.Parameters.Add("@LineID",  SqlDbType.VarChar, 20).Value = lineId;
+            cmd.Parameters.Add("@Proc",    SqlDbType.VarChar, 10).Value = ProcessCode;
+            cmd.Parameters.Add("@Parent",  SqlDbType.Int        ).Value = (object?)parentLotId ?? DBNull.Value;
+            cmd.Parameters.Add("@By",      SqlDbType.VarChar, 50).Value = employeeNo;
+            using var rdr = cmd.ExecuteReader();
+            rdr.Read();
+            lotId     = (int)rdr["LotID"];
+            createdTs = (DateTime)rdr["CreatedTS"];
+        }
+
+        using (var cmd = new SqlCommand("""
+            INSERT INTO dbo.PR_ImgLot (LotID, EquipID, CustomerCode, ConfirmStatus, PrintedCount, CreatedBy, CreatedTS)
+            VALUES (@LotID, @Equip, @Cust, 'RAW', 0, @By, SYSDATETIME());
+            """, conn, tx))
+        {
+            cmd.Parameters.Add("@LotID", SqlDbType.Int        ).Value = lotId;
+            cmd.Parameters.Add("@Equip", SqlDbType.VarChar, 20).Value = (object?)equipId      ?? DBNull.Value;
+            cmd.Parameters.Add("@Cust",  SqlDbType.VarChar, 20).Value = (object?)customerCode ?? DBNull.Value;
+            cmd.Parameters.Add("@By",    SqlDbType.VarChar, 50).Value = employeeNo;
+            cmd.ExecuteNonQuery();
+        }
+
+        return new ImgLotDto
+        {
+            LotId = lotId, LotCode = lotCode, ItemNo = itemNo, ItemName = itemName,
+            Pgn = pgn, Alc = alc, MountPos = mountPos, CustomerCode = customerCode,
+            LineId = lineId, EquipId = equipId, ConfirmStatus = "RAW",
+            PrintedCount = 0, CreatedTS = createdTs, CoreLotCode = parentLotCode,
+        };
     }
 
     /// <summary>오늘 이 라인에서 발행된 LOT 전부 (RAW + CONFIRMED), 최신순 — IMG-MAIN 우측 목록.</summary>
