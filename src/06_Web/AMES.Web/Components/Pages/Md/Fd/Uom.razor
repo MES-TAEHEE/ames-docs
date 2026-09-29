@@ -111,12 +111,12 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["Col.UomCode"]" class="ames-rz-modal-label" Component="CreateTextBoxUOMCode" />
-                <RadzenTextBox Name="CreateTextBoxUOMCode" @bind-Value="_f.UOMCode" Placeholder="EA" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxUOMCode" @bind-Value="_f.UOMCode" MaxLength="10" Placeholder="EA" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text="@L["Col.UomName"]" class="ames-rz-modal-label" Component="CreateTextBoxUOMName" />
-                <RadzenTextBox Name="CreateTextBoxUOMName" @bind-Value="_f.UOMName" Placeholder="@L["MD.Uom.Ph.UomName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxUOMName" @bind-Value="_f.UOMName" MaxLength="30" Placeholder="@L["MD.Uom.Ph.UomName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -126,7 +126,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.UomSymbol"]" />
-                    <RadzenTextBox @bind-Value="_f.Symbol" Placeholder="ea" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.Symbol" MaxLength="8" Placeholder="ea" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -181,7 +181,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["Col.UomName"]" class="ames-rz-modal-label" Component="EditTextBoxUOMName" />
-                <RadzenTextBox Name="EditTextBoxUOMName" @bind-Value="_f.UOMName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="EditTextBoxUOMName" @bind-Value="_f.UOMName" MaxLength="30" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -191,7 +191,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.UomSymbol"]" />
-                    <RadzenTextBox @bind-Value="_f.Symbol" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.Symbol" MaxLength="8" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 

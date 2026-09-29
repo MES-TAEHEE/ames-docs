@@ -231,7 +231,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["MNT.Downtime.Col.AndonId"]" />
-                    <RadzenTextBox Value="@(_sel.AndonId ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox Value="@(_sel.AndonId?.ToString() ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["MNT.Downtime.Col.LoggedBy"]" />

@@ -115,18 +115,18 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["Col.ReasonCode"]" class="ames-rz-modal-label" Component="CreateTextBoxReasonCode" />
-                <RadzenTextBox Name="CreateTextBoxReasonCode" @bind-Value="_f.ReasonCode" Placeholder="DT-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxReasonCode" @bind-Value="_f.ReasonCode" MaxLength="16" Placeholder="DT-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text="@L["Col.ReasonName"]" class="ames-rz-modal-label" Component="CreateTextBoxReasonName" />
-                <RadzenTextBox Name="CreateTextBoxReasonName" @bind-Value="_f.ReasonName" Placeholder='@L["MD.ReasonCode.Ph.ReasonName"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxReasonName" @bind-Value="_f.ReasonName" MaxLength="60" Placeholder='@L["MD.ReasonCode.Ph.ReasonName"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ReasonType"]" />
-                    <RadzenTextBox @bind-Value="_f.ReasonType" Placeholder="DOWNTIME / DEFECT / SCRAP" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.ReasonType" MaxLength="12" Placeholder="DOWNTIME / DEFECT / SCRAP" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Module"]" />
@@ -151,7 +151,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="12">
                     <RadzenLabel Text="@L["Col.Description"]" />
-                    <RadzenTextBox @bind-Value="_f.Description" Placeholder='@L["MD.ReasonCode.Ph.Description"]' AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.Description" MaxLength="120" Placeholder='@L["MD.ReasonCode.Ph.Description"]' AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -188,13 +188,13 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["Col.ReasonName"]" class="ames-rz-modal-label" Component="EditTextBoxReasonName" />
-                <RadzenTextBox Name="EditTextBoxReasonName" @bind-Value="_f.ReasonName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="EditTextBoxReasonName" @bind-Value="_f.ReasonName" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ReasonType"]" />
-                    <RadzenTextBox @bind-Value="_f.ReasonType" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.ReasonType" MaxLength="12" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Module"]" />
@@ -219,7 +219,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="12">
                     <RadzenLabel Text="@L["Col.Description"]" />
-                    <RadzenTextBox @bind-Value="_f.Description" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.Description" MaxLength="120" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 

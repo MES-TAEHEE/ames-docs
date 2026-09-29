@@ -193,12 +193,12 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@($"{L["Col.PartNo"]} *")' class="ames-rz-modal-label" Component="CreateTextBoxPartNo" />
-                <RadzenTextBox Name="CreateTextBoxPartNo" @bind-Value="_f.PartNo" Placeholder="SP-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxPartNo" @bind-Value="_f.PartNo" MaxLength="20" Placeholder="SP-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text="@L["Col.Name"]" class="ames-rz-modal-label" Component="CreateTextBoxPartName" />
-                <RadzenTextBox Name="CreateTextBoxPartName" @bind-Value="_f.PartName" Placeholder='@L["MD.SparePart.Ph.PartName"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxPartName" @bind-Value="_f.PartName" MaxLength="60" Placeholder='@L["MD.SparePart.Ph.PartName"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -300,7 +300,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["Col.Name"]" class="ames-rz-modal-label" Component="EditTextBoxPartName" />
-                <RadzenTextBox Name="EditTextBoxPartName" @bind-Value="_f.PartName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="EditTextBoxPartName" @bind-Value="_f.PartName" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">

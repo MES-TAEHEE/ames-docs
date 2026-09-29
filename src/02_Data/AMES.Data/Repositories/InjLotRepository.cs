@@ -222,7 +222,7 @@ public sealed class InjLotRepository
                     cmd.Parameters.Add("@LotCode", SqlDbType.VarChar, 40).Value = lotCode;
                     cmd.Parameters.Add("@ItemNo",  SqlDbType.VarChar, 20).Value = itemNo;
                     cmd.Parameters.Add("@LineID",  SqlDbType.VarChar, 20).Value = lineId;
-                    cmd.Parameters.Add("@By",      SqlDbType.VarChar, 50).Value = employeeNo;
+                    cmd.Parameters.Add("@By",      SqlDbType.VarChar, 20).Value = employeeNo;
                     using var rdr = cmd.ExecuteReader();
                     rdr.Read();
                     lotId     = (int)rdr["LotID"];
@@ -246,7 +246,7 @@ public sealed class InjLotRepository
                     cmd.Parameters.Add("@MoldID", SqlDbType.VarChar, 20   ).Value = (object?)moldId    ?? DBNull.Value;
                     cmd.Parameters.Add("@CavNo",  SqlDbType.Int           ).Value = (object?)cavityNo  ?? DBNull.Value;
                     cmd.Parameters.Add("@CavPos", SqlDbType.VarChar, 4    ).Value = (object?)cavityPos ?? DBNull.Value;
-                    cmd.Parameters.Add("@By",     SqlDbType.VarChar, 50   ).Value = employeeNo;
+                    cmd.Parameters.Add("@By",     SqlDbType.VarChar,    20).Value = employeeNo;
                     cmd.ExecuteNonQuery();
                 }
 
@@ -362,7 +362,7 @@ public sealed class InjLotRepository
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@L", SqlDbType.Int).Value = lotId;
-        cmd.Parameters.Add("@By", SqlDbType.NVarChar,  20).Value = (object?)employeeNo ?? DBNull.Value;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar,   20).Value = (object?)employeeNo ?? DBNull.Value;
         return cmd.ExecuteScalar() as int? ?? 0;
     }
 
@@ -555,7 +555,7 @@ public sealed class InjLotRepository
                 cmd.Parameters.Add("@Mold",    SqlDbType.VarChar, 20  ).Value = (object?)moldId ?? DBNull.Value;
                 cmd.Parameters.Add("@Op",      SqlDbType.NVarChar, 450).Value = operatorId;
                 cmd.Parameters.Add("@Sess",    SqlDbType.Int          ).Value = (object?)sessionId ?? DBNull.Value;
-                cmd.Parameters.Add("@By",      SqlDbType.VarChar, 50  ).Value = employeeNo;
+                cmd.Parameters.Add("@By",      SqlDbType.VarChar,   20).Value = employeeNo;
                 resultId = (int)cmd.ExecuteScalar()!;
             }
 
@@ -699,7 +699,7 @@ public sealed class InjLotRepository
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@Lot", SqlDbType.Int          ).Value = lotId;
-                cmd.Parameters.Add("@Op",  SqlDbType.NVarChar,  20).Value = operatorId;
+                cmd.Parameters.Add("@Op",  SqlDbType.VarChar,   20).Value = operatorId;
                 cmd.ExecuteNonQuery();
             }
 

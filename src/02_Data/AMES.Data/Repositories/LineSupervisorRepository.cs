@@ -91,7 +91,7 @@ public sealed class LineSupervisorRepository
         cmd.Parameters.Add("@L",  SqlDbType.VarChar, 20).Value = lineId;
         cmd.Parameters.Add("@E",  SqlDbType.VarChar, 20).Value = employeeNo;
         cmd.Parameters.Add("@A",  SqlDbType.Bit).Value         = activeFlag;
-        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = actor.Length > 50 ? actor[..50] : actor;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = actor.Length > 50 ? actor[..50] : actor;
         cmd.ExecuteNonQuery();
     }
 
@@ -107,7 +107,7 @@ public sealed class LineSupervisorRepository
         cmd.Parameters.Add("@L",  SqlDbType.VarChar,  20).Value = lineId;
         cmd.Parameters.Add("@E",  SqlDbType.VarChar,  20).Value = employeeNo;
         cmd.Parameters.Add("@A",  SqlDbType.Bit).Value          = activeFlag;
-        cmd.Parameters.Add("@By", SqlDbType.NVarChar,  20).Value = actor;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar,   20).Value = actor;
         cmd.ExecuteNonQuery();
     }
 

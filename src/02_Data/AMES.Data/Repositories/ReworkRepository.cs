@@ -161,7 +161,7 @@ public sealed class ReworkRepository
         cmd.Parameters.Add("@Cause", SqlDbType.VarChar,  16 ).Value = causeCode;
         cmd.Parameters.Add("@Note",  SqlDbType.NVarChar, 500).Value = string.IsNullOrWhiteSpace(note) ? DBNull.Value : note.Trim();
         cmd.Parameters.Add("@By",    SqlDbType.VarChar,  50 ).Value = employeeNo;
-        cmd.Parameters.Add("@Op",    SqlDbType.NVarChar,  20).Value = operatorId;
+        cmd.Parameters.Add("@Op",    SqlDbType.VarChar,   20).Value = operatorId;
         cmd.ExecuteNonQuery();
     }
 
@@ -214,7 +214,7 @@ public sealed class ReworkRepository
                 cmd.Parameters.Add("@Now",      SqlDbType.DateTime2    ).Value = now;
                 cmd.Parameters.Add("@ProdDate", SqlDbType.Date         ).Value = prodDate;
                 cmd.Parameters.Add("@Shift",    SqlDbType.VarChar, 10  ).Value = (object?)shiftCode ?? DBNull.Value;
-                cmd.Parameters.Add("@By",       SqlDbType.VarChar, 50  ).Value = employeeNo;
+                cmd.Parameters.Add("@By",       SqlDbType.VarChar,   20).Value = employeeNo;
                 cmd.ExecuteNonQuery();
             }
 
@@ -232,7 +232,7 @@ public sealed class ReworkRepository
             {
                 cmd.Parameters.Add("@Lot",  SqlDbType.Int          ).Value = lotId;
                 cmd.Parameters.Add("@WoID", SqlDbType.Int          ).Value = woId;
-                cmd.Parameters.Add("@Op",   SqlDbType.NVarChar,  20).Value = operatorId;
+                cmd.Parameters.Add("@Op",   SqlDbType.VarChar,   20).Value = operatorId;
                 cmd.Parameters.Add("@Sess", SqlDbType.Int          ).Value = (object?)sessionId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
@@ -268,7 +268,7 @@ public sealed class ReworkRepository
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@Lot", SqlDbType.Int          ).Value = lotId;
-                cmd.Parameters.Add("@Op",  SqlDbType.NVarChar,  20).Value = operatorId;
+                cmd.Parameters.Add("@Op",  SqlDbType.VarChar,   20).Value = operatorId;
                 cmd.ExecuteNonQuery();
             }
 

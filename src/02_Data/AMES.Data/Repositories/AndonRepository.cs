@@ -45,7 +45,7 @@ public sealed class AndonRepository
         cmd.Parameters.Add("@T",  SqlDbType.VarChar, 20).Value = triggerSource;
         cmd.Parameters.Add("@R",  SqlDbType.VarChar, 20).Value = ruleId;
         cmd.Parameters.Add("@S",  SqlDbType.VarChar, 10).Value = (object?)severity ?? DBNull.Value;
-        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = employeeNo;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = employeeNo;
         var id = (int)cmd.ExecuteScalar()!;
 
         // Push stubs — recipients hard-coded for now; replaced when SYS_NotificationRule wires up.
@@ -66,7 +66,7 @@ public sealed class AndonRepository
         cmd.Parameters.Add("@A",  SqlDbType.Int        ).Value = andonId;
         cmd.Parameters.Add("@R",  SqlDbType.VarChar,100).Value = recipient;
         cmd.Parameters.Add("@C",  SqlDbType.VarChar, 20).Value = channel;
-        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = employeeNo;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = employeeNo;
         cmd.ExecuteNonQuery();
     }
 
@@ -225,7 +225,7 @@ public sealed class AndonRepository
         cmd.Parameters.Add("@ID", SqlDbType.Int          ).Value = andonId;
         cmd.Parameters.Add("@W",  SqlDbType.NVarChar, 450).Value = workerNo;
         cmd.Parameters.Add("@N",  SqlDbType.NVarChar,  50).Value = (object?)name ?? DBNull.Value;
-        cmd.Parameters.Add("@Op", SqlDbType.NVarChar,  20).Value = operatorNo;
+        cmd.Parameters.Add("@Op", SqlDbType.VarChar,   20).Value = operatorNo;
         cmd.ExecuteNonQuery();
     }
 
@@ -283,7 +283,7 @@ public sealed class AndonRepository
                 cmd.Parameters.Add("@ID", SqlDbType.Int          ).Value = andonId;
                 cmd.Parameters.Add("@C",  SqlDbType.VarChar,   30).Value = causeCode;
                 cmd.Parameters.Add("@S",  SqlDbType.VarChar,   10).Value = severity;
-                cmd.Parameters.Add("@Op", SqlDbType.NVarChar,  20).Value = operatorNo;
+                cmd.Parameters.Add("@Op", SqlDbType.VarChar,   20).Value = operatorNo;
                 // 0행이면 다른 터미널이 이미 닫았거나(RESOLVED) 아직 SUP_ACKED 가 아닌 것 — 부서 행을 넣지 않고 롤백
                 if (cmd.ExecuteNonQuery() == 0)
                 {
@@ -295,7 +295,7 @@ public sealed class AndonRepository
             {
                 cmd.Parameters.Add("@ID", SqlDbType.Int          ).Value = andonId;
                 cmd.Parameters.Add("@C",  SqlDbType.VarChar,   30).Value = causeCode;
-                cmd.Parameters.Add("@Op", SqlDbType.NVarChar,  20).Value = operatorNo;
+                cmd.Parameters.Add("@Op", SqlDbType.VarChar,   20).Value = operatorNo;
                 cmd.ExecuteNonQuery();
             }
             var codes = deptCodes.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -304,8 +304,8 @@ public sealed class AndonRepository
                 using var cmd = new SqlCommand(deptSql, conn, tx);
                 cmd.Parameters.Add("@ID", SqlDbType.Int        ).Value = andonId;
                 cmd.Parameters.Add("@D",  SqlDbType.VarChar, 20).Value = d;
-                cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = calledBy;
-                cmd.Parameters.Add("@Op", SqlDbType.VarChar, 50).Value = operatorNo;
+                cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = calledBy;
+                cmd.Parameters.Add("@Op", SqlDbType.VarChar, 20).Value = operatorNo;
                 cmd.ExecuteNonQuery();
             }
             if (codes.Contains(AndonDeptCodes.Maint, StringComparer.OrdinalIgnoreCase))
@@ -316,7 +316,7 @@ public sealed class AndonRepository
                 cmd.Parameters.Add("@C",   SqlDbType.VarChar,   15).Value = causeCode;
                 cmd.Parameters.Add("@S",   SqlDbType.VarChar,   10).Value = severity;
                 cmd.Parameters.Add("@By",  SqlDbType.NVarChar, 450).Value = calledBy;
-                cmd.Parameters.Add("@Op",  SqlDbType.NVarChar,  20).Value = operatorNo;
+                cmd.Parameters.Add("@Op",  SqlDbType.VarChar,   20).Value = operatorNo;
                 cmd.ExecuteNonQuery();
             }
             tx.Commit();
@@ -353,7 +353,7 @@ public sealed class AndonRepository
         cmd.Parameters.Add("@ID",    SqlDbType.Int         ).Value = deptCallId;
         cmd.Parameters.Add("@W",     SqlDbType.VarChar,  20).Value = workerNo;
         cmd.Parameters.Add("@N",     SqlDbType.NVarChar, 50).Value = (object?)name ?? DBNull.Value;
-        cmd.Parameters.Add("@Op",    SqlDbType.VarChar,  50).Value = operatorNo;
+        cmd.Parameters.Add("@Op",    SqlDbType.VarChar,  20).Value = operatorNo;
         cmd.Parameters.Add("@Maint", SqlDbType.VarChar,  20).Value = AndonDeptCodes.Maint;
         cmd.ExecuteNonQuery();
     }
@@ -378,7 +378,7 @@ public sealed class AndonRepository
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@ID",    SqlDbType.Int        ).Value = deptCallId;
-        cmd.Parameters.Add("@Op",    SqlDbType.VarChar, 50).Value = operatorNo;
+        cmd.Parameters.Add("@Op",    SqlDbType.VarChar, 20).Value = operatorNo;
         cmd.Parameters.Add("@Maint", SqlDbType.VarChar, 20).Value = AndonDeptCodes.Maint;
         cmd.ExecuteNonQuery();
     }
@@ -418,9 +418,9 @@ public sealed class AndonRepository
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@ID",  SqlDbType.Int        ).Value = andonId;
         cmd.Parameters.Add("@Ref", SqlDbType.VarChar, 24).Value = andonId.ToString();
-        cmd.Parameters.Add("@C",   SqlDbType.VarChar, 30).Value = (object?)causeCode ?? DBNull.Value;
+        cmd.Parameters.Add("@C",   SqlDbType.VarChar, 20).Value = (object?)causeCode ?? DBNull.Value;
         cmd.Parameters.Add("@S",   SqlDbType.VarChar, 10).Value = (object?)severity ?? DBNull.Value;
-        cmd.Parameters.Add("@Op",  SqlDbType.NVarChar,  20).Value = operatorNo;
+        cmd.Parameters.Add("@Op",  SqlDbType.VarChar,   20).Value = operatorNo;
         cmd.ExecuteNonQuery();
     }
 }

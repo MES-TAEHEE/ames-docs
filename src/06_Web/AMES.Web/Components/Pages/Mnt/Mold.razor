@@ -473,7 +473,7 @@
     static decimal? Usage(MntRepository.MoldRow r) =>
         r.RatedShots is > 0 && r.CurrentShots is { } cur ? Math.Max(0m, 100m * cur / r.RatedShots.Value) : null;
 
-    static int? Lifetime(MntRepository.MoldRow r) => r.LifetimeShots ?? r.CumulativeShots;
+    static long? Lifetime(MntRepository.MoldRow r) => r.LifetimeShots ?? r.CumulativeShots;
 
     // 등급: 소진율로 판정 (≥90 CRITICAL / ≥70 WARNING / OK) — 막대 색과 항상 일치.
     // 정격 Shot 이 없어 소진율을 못 구할 때만 MNT_MoldShotCount.ThresholdLevel(저장값)을 쓴다.

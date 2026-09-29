@@ -192,7 +192,7 @@ public sealed class WorkerRepository
         cmd.Parameters.Add("@EmployeeName", SqlDbType.NVarChar,  50).Value = workerName;
         cmd.Parameters.Add("@PinHash",    SqlDbType.NVarChar, 200).Value = (object?)pinHash ?? DBNull.Value;
         cmd.Parameters.Add("@ActiveFlag", SqlDbType.Bit).Value            = activeFlag;
-        cmd.Parameters.Add("@Actor",      SqlDbType.VarChar,   50).Value = actor;
+        cmd.Parameters.Add("@Actor",      SqlDbType.VarChar,   20).Value = actor;
         cmd.ExecuteNonQuery();
     }
 
@@ -212,7 +212,7 @@ public sealed class WorkerRepository
         cmd.Parameters.Add("@WorkerID",   SqlDbType.Int).Value            = workerId;
         cmd.Parameters.Add("@EmployeeName", SqlDbType.NVarChar,  50).Value = workerName;
         cmd.Parameters.Add("@ActiveFlag", SqlDbType.Bit).Value            = activeFlag;
-        cmd.Parameters.Add("@Actor",      SqlDbType.NVarChar,  20).Value = actor;
+        cmd.Parameters.Add("@Actor",      SqlDbType.VarChar,   20).Value = actor;
         cmd.ExecuteNonQuery();
     }
 
@@ -230,7 +230,7 @@ public sealed class WorkerRepository
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@WorkerID", SqlDbType.Int).Value            = workerId;
         cmd.Parameters.Add("@PinHash",  SqlDbType.NVarChar, 200).Value = (object?)pinHash ?? DBNull.Value;
-        cmd.Parameters.Add("@Actor",    SqlDbType.NVarChar,  20).Value = actor;
+        cmd.Parameters.Add("@Actor",    SqlDbType.VarChar,   20).Value = actor;
         cmd.ExecuteNonQuery();
     }
 

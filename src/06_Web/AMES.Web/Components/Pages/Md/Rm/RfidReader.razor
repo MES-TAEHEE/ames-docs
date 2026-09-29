@@ -118,12 +118,12 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text='@L["Col.ReaderId"]' class="ames-rz-modal-label" Component="CreateTextBoxReaderID" />
-                <RadzenTextBox Name="CreateTextBoxReaderID" @bind-Value="_f.ReaderID" Placeholder="RDR-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxReaderID" @bind-Value="_f.ReaderID" MaxLength="20" Placeholder="RDR-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@L["Col.ReaderName"]' class="ames-rz-modal-label" Component="CreateTextBoxReaderName" />
-                <RadzenTextBox Name="CreateTextBoxReaderName" @bind-Value="_f.ReaderName" Placeholder='@L["MD.RfidReader.Ph.ReaderName"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxReaderName" @bind-Value="_f.ReaderName" MaxLength="50" Placeholder='@L["MD.RfidReader.Ph.ReaderName"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -133,18 +133,18 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text='@L["Col.Gate"]' />
-                    <RadzenTextBox @bind-Value="_f.GateLocation" Placeholder="GATE-A" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.GateLocation" MaxLength="4" Placeholder="GATE-A" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text='@L["Col.IpAddr"]' />
-                    <RadzenTextBox @bind-Value="_f.IpAddress" Placeholder="192.168.1.100" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.IpAddress" MaxLength="45" Placeholder="192.168.1.100" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text='@L["Col.Firmware"]' />
-                    <RadzenTextBox @bind-Value="_f.FirmwareVer" Placeholder="v2.1.0" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.FirmwareVer" MaxLength="16" Placeholder="v2.1.0" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -197,7 +197,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text='@L["Col.ReaderName"]' class="ames-rz-modal-label" Component="EditTextBoxReaderName" />
-                <RadzenTextBox Name="EditTextBoxReaderName" @bind-Value="_f.ReaderName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="EditTextBoxReaderName" @bind-Value="_f.ReaderName" MaxLength="50" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -207,18 +207,18 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text='@L["Col.Gate"]' />
-                    <RadzenTextBox @bind-Value="_f.GateLocation" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.GateLocation" MaxLength="4" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text='@L["Col.IpAddr"]' />
-                    <RadzenTextBox @bind-Value="_f.IpAddress" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.IpAddress" MaxLength="45" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text='@L["Col.Firmware"]' />
-                    <RadzenTextBox @bind-Value="_f.FirmwareVer" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.FirmwareVer" MaxLength="16" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 

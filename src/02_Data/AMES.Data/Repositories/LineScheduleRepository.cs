@@ -78,8 +78,8 @@ public sealed class LineScheduleRepository
         cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
         cmd.Parameters.Add("@Date",   SqlDbType.Date).Value        = date.Date;
         cmd.Parameters.Add("@WoId",   SqlDbType.Int).Value         = woId;
-        cmd.Parameters.Add("@Start",  SqlDbType.Int).Value         = startMin;
-        cmd.Parameters.Add("@End",    SqlDbType.Int).Value         = endMin;
+        cmd.Parameters.Add("@Start",  SqlDbType.SmallInt).Value         = startMin;
+        cmd.Parameters.Add("@End",    SqlDbType.SmallInt).Value         = endMin;
         cmd.Parameters.Add("@Qty",    SqlDbType.Decimal).Value     = plannedQty;
         cmd.ExecuteNonQuery();
     }
@@ -209,7 +209,7 @@ public sealed class LineScheduleRepository
         cmd.Parameters.Add("@RefID",     SqlDbType.Int).Value          = (object?)refId ?? DBNull.Value;
         cmd.Parameters.Add("@Status",    SqlDbType.VarChar, 20).Value  = status;
         cmd.Parameters.Add("@MoldId",    SqlDbType.VarChar, 20).Value  = (object?)moldId ?? DBNull.Value;
-        cmd.Parameters.Add("@By",        SqlDbType.VarChar, 50).Value  = actor;
+        cmd.Parameters.Add("@By",        SqlDbType.VarChar, 20).Value  = actor;
         cmd.ExecuteNonQuery();
     }
 
@@ -346,7 +346,7 @@ public sealed class LineScheduleRepository
             cmd.Parameters.Add("@TDown",   SqlDbType.Int).Value           = totalDown;
             cmd.Parameters.Add("@OpF",     SqlDbType.Char, 1440).Value    = opStr;
             cmd.Parameters.Add("@SgF",     SqlDbType.Char, 1440).Value    = sgStr;
-            cmd.Parameters.Add("@By",      SqlDbType.NVarChar,  20).Value = actor;
+            cmd.Parameters.Add("@By",      SqlDbType.VarChar,   20).Value = actor;
             cmd.ExecuteNonQuery();
         }
     }

@@ -38,7 +38,7 @@ public sealed class MntRepository
     public sealed record MoldRow(string MoldId, string? MoldName, int? RatedShots, int? CurrentShots,
         int? CavityCount, int? Tonnage, string? StorageLoc, DateTime? LastMaintDate, string? Status,
         int? LifetimeShots, string? MountedEquipId, string? ThresholdLevel, int? RefurbishCount,
-        int? CumulativeShots = null);
+        long? CumulativeShots = null);
 
     public sealed record PmRow(int PmScheduleId, string? PmPlanNumber, string? EquipId, string? PmType,
         string? CycleBasis, int? CycleValue, DateTime? LastPmDate, DateTime? NextDueDate,
@@ -47,7 +47,7 @@ public sealed class MntRepository
 
     public sealed record DowntimeRow(int DowntimeId, string? LineId, DateTime? StartTs, DateTime? EndTs,
         int? DurationMin, string? ReasonCode, string? CauseCode, string? Comment, int? WoId,
-        string? LineName = null, string? LineNameEn = null, string? LoggedBy = null, string? AndonId = null,
+        string? LineName = null, string? LineNameEn = null, string? LoggedBy = null, int? AndonId = null,
         string? CreatedBy = null, DateTime? CreatedTs = null, string? ModifiedBy = null, DateTime? ModifiedTs = null);
 
     public sealed record MwoRow(int WorkOrderId, string? WoNumber, string? WoType, string? EquipId,
@@ -146,7 +146,7 @@ public sealed class MntRepository
         cmd.Parameters.Add("@Cyc",  SqlDbType.BigInt).Value       = (object?)cycleCount ?? DBNull.Value;
         cmd.Parameters.Add("@Pm",   SqlDbType.Date).Value         = (object?)nextPmDate?.Date ?? DBNull.Value;
         cmd.Parameters.Add("@Mold", SqlDbType.VarChar, 20).Value = (object?)mountedMoldId ?? DBNull.Value;
-        cmd.Parameters.Add("@By",   SqlDbType.VarChar, 50).Value = actor;
+        cmd.Parameters.Add("@By",   SqlDbType.VarChar, 20).Value = actor;
         var id = cmd.ExecuteScalar();
         if (id is null || id is DBNull) throw new InvalidOperationException($"MD_Equipment '{equipId}' not found");
         return Convert.ToInt32(id);
@@ -171,7 +171,7 @@ public sealed class MntRepository
         cmd.Parameters.Add("@Cyc",  SqlDbType.BigInt).Value       = (object?)cycleCount ?? DBNull.Value;
         cmd.Parameters.Add("@Pm",   SqlDbType.Date).Value         = (object?)nextPmDate?.Date ?? DBNull.Value;
         cmd.Parameters.Add("@Mold", SqlDbType.VarChar, 20).Value = (object?)mountedMoldId ?? DBNull.Value;
-        cmd.Parameters.Add("@By",   SqlDbType.NVarChar,  20).Value = actor;
+        cmd.Parameters.Add("@By",   SqlDbType.VarChar,   20).Value = actor;
         cmd.ExecuteNonQuery();
     }
 
@@ -299,7 +299,7 @@ public sealed class MntRepository
             r["LastMaintDate"] as DateTime?, r["Status"] as string,
             r["LifetimeShots"] as int?, r["MountedEquipID"] as string,
             r["ThresholdLevel"] as string, r["RefurbishCount"] as int?,
-            r["CumulativeShots"] as int?));
+            r["CumulativeShots"] as long?));
     }
 
     // ── MNT-004 금형 교체 이력 (PR_MoldChange — POP 금형 교체가 기록, 웹은 조회만) ──
@@ -371,7 +371,7 @@ public sealed class MntRepository
         r["StartTS"] as DateTime?, r["EndTS"] as DateTime?,
         r["DurationMin"] as int?, r["ReasonCode"] as string,
         r["CauseCode"] as string, r["Comment"] as string, r["WoID"] as int?,
-        r["LineName"] as string, r["LineNameEn"] as string, r["LoggedBy"] as string, r["AndonID"] as string,
+        r["LineName"] as string, r["LineNameEn"] as string, r["LoggedBy"] as string, r["AndonID"] as int?,
         r["CreatedBy"] as string, r["CreatedTS"] as DateTime?, r["ModifiedBy"] as string, r["ModifiedTS"] as DateTime?);
 
     public List<DowntimeRow> ListDowntime(int daysBack = 7)
@@ -583,7 +583,7 @@ public sealed class MntRepository
                 cmd.Parameters.Add("@By",    SqlDbType.NVarChar, 450).Value = (object?)reportedBy ?? DBNull.Value;
                 cmd.Parameters.Add("@Rep",   SqlDbType.DateTime2).Value      = reportedAt;
                 cmd.Parameters.Add("@Res",   SqlDbType.DateTime2).Value      = (object?)resolvedAt ?? DBNull.Value;
-                cmd.Parameters.Add("@Actor", SqlDbType.VarChar,   50).Value = actor;
+                cmd.Parameters.Add("@Actor", SqlDbType.VarChar,   20).Value = actor;
                 failId = Convert.ToInt32(cmd.ExecuteScalar());
             }
 
@@ -603,7 +603,7 @@ public sealed class MntRepository
                 cmd.Parameters.Add("@Pri",  SqlDbType.VarChar,    10).Value = WoPriorityFor(severity);
                 cmd.Parameters.Add("@Ref",  SqlDbType.VarChar,    24).Value = failNo;
                 cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 1000).Value = WoDescFor(failNo, failureType, symptom);
-                cmd.Parameters.Add("@By",   SqlDbType.VarChar,    50).Value = actor;
+                cmd.Parameters.Add("@By",   SqlDbType.VarChar,    20).Value = actor;
                 woId = Convert.ToInt32(cmd.ExecuteScalar());
             }
 
@@ -647,7 +647,7 @@ public sealed class MntRepository
                 cmd.Parameters.Add("@By",    SqlDbType.NVarChar, 450).Value = (object?)reportedBy ?? DBNull.Value;
                 cmd.Parameters.Add("@Rep",   SqlDbType.DateTime2).Value      = reportedAt;
                 cmd.Parameters.Add("@Res",   SqlDbType.DateTime2).Value      = (object?)resolvedAt ?? DBNull.Value;
-                cmd.Parameters.Add("@Actor", SqlDbType.NVarChar,  20).Value = actor;
+                cmd.Parameters.Add("@Actor", SqlDbType.VarChar,   20).Value = actor;
                 cmd.ExecuteNonQuery();
             }
 
@@ -665,7 +665,7 @@ public sealed class MntRepository
                 cmd.Parameters.Add("@Pri",  SqlDbType.VarChar,    10).Value = WoPriorityFor(severity);
                 cmd.Parameters.Add("@Ref",  SqlDbType.VarChar,    24).Value = failNo;
                 cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 1000).Value = WoDescFor(failNo, failureType, symptom);
-                cmd.Parameters.Add("@By",   SqlDbType.NVarChar,   20).Value = actor;
+                cmd.Parameters.Add("@By",   SqlDbType.VarChar,    20).Value = actor;
                 cmd.ExecuteNonQuery();
             }
 
@@ -728,7 +728,7 @@ public sealed class MntRepository
                 cmd.Parameters.Add("@Chk",   SqlDbType.VarChar,   20).Value = (object?)checklistId ?? DBNull.Value;
                 cmd.Parameters.Add("@Tech",  SqlDbType.NVarChar, 450).Value = (object?)techId ?? DBNull.Value;
                 cmd.Parameters.Add("@St",    SqlDbType.VarChar,   10).Value = (object?)status ?? DBNull.Value;
-                cmd.Parameters.Add("@By",    SqlDbType.VarChar,   50).Value = actor;
+                cmd.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = actor;
                 pmId = Convert.ToInt32(cmd.ExecuteScalar());
             }
 
@@ -749,7 +749,7 @@ public sealed class MntRepository
                 cmd.Parameters.Add("@Tech", SqlDbType.NVarChar,  450).Value = (object?)techId ?? DBNull.Value;
                 cmd.Parameters.Add("@Chk",  SqlDbType.VarChar,    20).Value = (object?)checklistId ?? DBNull.Value;
                 cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 1000).Value = $"{pmType} PM — {planNo} ({nextDue:yyyy-MM-dd})";
-                cmd.Parameters.Add("@By",   SqlDbType.VarChar,    50).Value = actor;
+                cmd.Parameters.Add("@By",   SqlDbType.VarChar,    20).Value = actor;
                 woId = Convert.ToInt32(cmd.ExecuteScalar());
             }
 
@@ -808,7 +808,7 @@ public sealed class MntRepository
                 cmd.Parameters.Add("@Chk",   SqlDbType.VarChar,   20).Value = (object?)checklistId ?? DBNull.Value;
                 cmd.Parameters.Add("@Tech",  SqlDbType.NVarChar, 450).Value = (object?)techId ?? DBNull.Value;
                 cmd.Parameters.Add("@St",    SqlDbType.VarChar,   10).Value = (object?)status ?? DBNull.Value;
-                cmd.Parameters.Add("@By",    SqlDbType.NVarChar,  20).Value = actor;
+                cmd.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = actor;
                 cmd.ExecuteNonQuery();
             }
 
@@ -826,7 +826,7 @@ public sealed class MntRepository
                 cmd.Parameters.Add("@Tech", SqlDbType.NVarChar,  450).Value = (object?)techId ?? DBNull.Value;
                 cmd.Parameters.Add("@Chk",  SqlDbType.VarChar,    20).Value = (object?)checklistId ?? DBNull.Value;
                 cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 1000).Value = $"{pmType} PM — {planNo} ({nextDue:yyyy-MM-dd})";
-                cmd.Parameters.Add("@By",   SqlDbType.NVarChar,   20).Value = actor;
+                cmd.Parameters.Add("@By",   SqlDbType.VarChar,    20).Value = actor;
                 cmd.ExecuteNonQuery();
             }
 
@@ -914,7 +914,7 @@ public sealed class MntRepository
             {
                 cmd.Parameters.Add("@Id",   SqlDbType.Int).Value            = woId;
                 cmd.Parameters.Add("@Tech", SqlDbType.NVarChar, 450).Value = techId;
-                cmd.Parameters.Add("@By",   SqlDbType.NVarChar,  20).Value = actor;
+                cmd.Parameters.Add("@By",   SqlDbType.VarChar,   20).Value = actor;
                 n = cmd.ExecuteNonQuery();
             }
             if (n == 0) throw new InvalidOperationException($"Work order #{woId} is already completed or does not exist.");
@@ -926,7 +926,7 @@ public sealed class MntRepository
             {
                 cmd.Parameters.Add("@Id",   SqlDbType.Int).Value            = woId;
                 cmd.Parameters.Add("@Tech", SqlDbType.NVarChar, 450).Value = techId;
-                cmd.Parameters.Add("@By",   SqlDbType.NVarChar,  20).Value = actor;
+                cmd.Parameters.Add("@By",   SqlDbType.VarChar,   20).Value = actor;
                 cmd.ExecuteNonQuery();
             }
             tx.Commit();
@@ -950,7 +950,7 @@ public sealed class MntRepository
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@Id", SqlDbType.Int).Value            = woId;
-                cmd.Parameters.Add("@By", SqlDbType.NVarChar,  20).Value = actor;
+                cmd.Parameters.Add("@By", SqlDbType.VarChar,   20).Value = actor;
                 n = cmd.ExecuteNonQuery();
             }
             if (n == 0) throw new InvalidOperationException($"Work order #{woId} is not in ISSUED/OPEN state.");
@@ -961,7 +961,7 @@ public sealed class MntRepository
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@Id", SqlDbType.Int).Value            = woId;
-                cmd.Parameters.Add("@By", SqlDbType.NVarChar,  20).Value = actor;
+                cmd.Parameters.Add("@By", SqlDbType.VarChar,   20).Value = actor;
                 cmd.ExecuteNonQuery();
             }
             tx.Commit();
@@ -1109,7 +1109,7 @@ public sealed class MntRepository
             cmd.Parameters.Add("@Parts", SqlDbType.NVarChar, -1).Value   = (object?)partsJson ?? DBNull.Value;
             cmd.Parameters.Add("@Res",   SqlDbType.NVarChar, -1).Value   = resultJson;
             cmd.Parameters.Add("@Tech",  SqlDbType.NVarChar, 450).Value = (object?)techId ?? DBNull.Value;
-            cmd.Parameters.Add("@By",    SqlDbType.NVarChar,  20).Value = actor;
+            cmd.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = actor;
             cmd.ExecuteNonQuery();
         }
 
@@ -1169,7 +1169,7 @@ public sealed class MntRepository
             cmd.Parameters.Add("@At",   SqlDbType.DateTime2).Value      = resolvedAt;
             cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 500).Value = desc;
             cmd.Parameters.Add("@Tech", SqlDbType.NVarChar, 450).Value = (object?)techId ?? DBNull.Value;
-            cmd.Parameters.Add("@By",   SqlDbType.NVarChar,  20).Value = actor;
+            cmd.Parameters.Add("@By",   SqlDbType.VarChar,   20).Value = actor;
             cmd.ExecuteNonQuery();
         }
     }
@@ -1215,7 +1215,7 @@ public sealed class MntRepository
             cmd.Parameters.Add("@Tech", SqlDbType.NVarChar, 450).Value = (object?)tech ?? DBNull.Value;
             cmd.Parameters.Add("@Res",  SqlDbType.VarChar,   15).Value = result;
             cmd.Parameters.Add("@Note", SqlDbType.NVarChar, 500).Value = (object?)resultNote ?? DBNull.Value;
-            cmd.Parameters.Add("@By",   SqlDbType.VarChar,   50).Value = actor.Length > 50 ? actor[..50] : actor;
+            cmd.Parameters.Add("@By",   SqlDbType.VarChar,   20).Value = actor.Length > 50 ? actor[..50] : actor;
             cmd.ExecuteNonQuery();
         }
 
@@ -1234,7 +1234,7 @@ public sealed class MntRepository
             cmd.Parameters.Add("@Next", SqlDbType.Date).Value           = (object?)next ?? DBNull.Value;
             cmd.Parameters.Add("@St",   SqlDbType.VarChar,   10).Value = next is null ? "DONE" : "OK";
             cmd.Parameters.Add("@Tech", SqlDbType.NVarChar, 450).Value = (object?)tech ?? DBNull.Value;
-            cmd.Parameters.Add("@By",   SqlDbType.NVarChar,  20).Value = actor;
+            cmd.Parameters.Add("@By",   SqlDbType.VarChar,   20).Value = actor;
             cmd.ExecuteNonQuery();
         }
 
@@ -1257,7 +1257,7 @@ public sealed class MntRepository
             cmd.Parameters.Add("@Tech", SqlDbType.NVarChar,  450).Value = (object?)tech ?? DBNull.Value;
             cmd.Parameters.Add("@Chk",  SqlDbType.VarChar,    20).Value = (object?)pm.ChecklistId ?? DBNull.Value;
             cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 1000).Value = $"{pm.PmType} PM — {pm.PlanNo} ({nd:yyyy-MM-dd})";
-            cmd.Parameters.Add("@By",   SqlDbType.VarChar,    50).Value = actor.Length > 50 ? actor[..50] : actor;
+            cmd.Parameters.Add("@By",   SqlDbType.VarChar,    20).Value = actor.Length > 50 ? actor[..50] : actor;
             nextWoId = Convert.ToInt32(cmd.ExecuteScalar());
         }
         using (var cmd = new SqlCommand("UPDATE dbo.MNT_PMSchedule SET ActiveWoID = @Wo WHERE PMScheduleID = @Pm", conn, tx))
@@ -1389,7 +1389,7 @@ public sealed class MntRepository
             {
                 cmd.Parameters.Add("@SP", SqlDbType.VarChar,   16).Value = sparePartNo;
                 cmd.Parameters.Add("@A",  SqlDbType.Int).Value           = after;
-                cmd.Parameters.Add("@By", SqlDbType.NVarChar,  20).Value = actor;
+                cmd.Parameters.Add("@By", SqlDbType.VarChar,   20).Value = actor;
                 cmd.ExecuteNonQuery();
             }
             int txnId;
@@ -1408,7 +1408,7 @@ public sealed class MntRepository
                 cmd.Parameters.Add("@RID",   SqlDbType.VarChar,   24).Value = (object?)refId ?? DBNull.Value;
                 cmd.Parameters.Add("@Note",  SqlDbType.NVarChar, 500).Value = (object?)note ?? DBNull.Value;
                 cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
-                cmd.Parameters.Add("@By",    SqlDbType.VarChar,   50).Value = actor.Length > 50 ? actor[..50] : actor;
+                cmd.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = actor.Length > 50 ? actor[..50] : actor;
                 txnId = Convert.ToInt32(cmd.ExecuteScalar());
             }
             tx.Commit();

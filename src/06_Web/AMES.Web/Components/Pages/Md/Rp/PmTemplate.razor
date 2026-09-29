@@ -159,12 +159,12 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["Col.TemplateId"]" class="ames-rz-modal-label" Component="CreateTextBoxPMTemplateID" />
-                <RadzenTextBox Name="CreateTextBoxPMTemplateID" @bind-Value="_f.PMTemplateID" Placeholder="PM-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxPMTemplateID" @bind-Value="_f.PMTemplateID" MaxLength="20" Placeholder="PM-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text="@L["Col.TemplateName"]" class="ames-rz-modal-label" Component="CreateTextBoxTemplateName" />
-                <RadzenTextBox Name="CreateTextBoxTemplateName" @bind-Value="_f.TemplateName" Placeholder='@L["MD.PmTemplate.Ph.TemplateName"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxTemplateName" @bind-Value="_f.TemplateName" MaxLength="60" Placeholder='@L["MD.PmTemplate.Ph.TemplateName"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -229,7 +229,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["Col.TemplateName"]" class="ames-rz-modal-label" Component="EditTextBoxTemplateName" />
-                <RadzenTextBox Name="EditTextBoxTemplateName" @bind-Value="_f.TemplateName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="EditTextBoxTemplateName" @bind-Value="_f.TemplateName" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -319,12 +319,12 @@
 
             <RadzenStack Orientation="Orientation.Vertical" Gap="0.25rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text="@L["Col.CheckItem"]" />
-                <RadzenTextArea @bind-Value="_stepF.StepDescription" Rows="2" MaxLength="400" class="ames-rz-input" Style="width:100%;" />
+                <RadzenTextArea @bind-Value="_stepF.StepDescription" Rows="2" MaxLength="200" class="ames-rz-input" Style="width:100%;" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Vertical" Gap="0.25rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text="@L["Col.PassCriteria"]" />
-                <RadzenTextArea @bind-Value="_stepF.AcceptanceCriteria" Rows="2" MaxLength="400" class="ames-rz-input" Style="width:100%;" />
+                <RadzenTextArea @bind-Value="_stepF.AcceptanceCriteria" Rows="2" MaxLength="200" class="ames-rz-input" Style="width:100%;" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">

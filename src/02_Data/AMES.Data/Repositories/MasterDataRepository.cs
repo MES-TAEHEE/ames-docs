@@ -722,7 +722,7 @@ public sealed class MasterDataRepository
                 """, conn, tx);
             ins.Parameters.Add("@T",  SqlDbType.VarChar, 20).Value = targetItemNo;
             ins.Parameters.Add("@S",  SqlDbType.VarChar, 20).Value = sourceItemNo;
-            ins.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = createdBy;
+            ins.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = createdBy;
             int n = ins.ExecuteNonQuery();
             tx.Commit();
             return n;
@@ -952,7 +952,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@EDI",  SqlDbType.Bit).Value          = ediFlag;
         cmd.Parameters.Add("@Cur",  SqlDbType.Char,      3).Value = (object?)currencyCode   ?? DBNull.Value;
         cmd.Parameters.Add("@St",   SqlDbType.VarChar,   8).Value = (object?)status         ?? DBNull.Value;
-        cmd.Parameters.Add("@By",   SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.Parameters.Add("@By",   SqlDbType.VarChar,  20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -985,7 +985,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@EDI",  SqlDbType.Bit).Value          = ediFlag;
         cmd.Parameters.Add("@Cur",  SqlDbType.Char,      3).Value = (object?)currencyCode   ?? DBNull.Value;
         cmd.Parameters.Add("@St",   SqlDbType.VarChar,   8).Value = (object?)status         ?? DBNull.Value;
-        cmd.Parameters.Add("@By",   SqlDbType.NVarChar,20).Value = modifiedBy;
+        cmd.Parameters.Add("@By",   SqlDbType.VarChar, 20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -1081,7 +1081,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@Car", SqlDbType.NVarChar, 40).Value  = (object?)defaultCarrier ?? DBNull.Value;
         cmd.Parameters.Add("@DW",  SqlDbType.VarChar,  40).Value  = (object?)deliveryWindow ?? DBNull.Value;
         cmd.Parameters.Add("@St",  SqlDbType.VarChar,   8).Value  = (object?)status         ?? DBNull.Value;
-        cmd.Parameters.Add("@By",  SqlDbType.VarChar,  50).Value  = createdBy;
+        cmd.Parameters.Add("@By",  SqlDbType.VarChar,  20).Value  = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -1111,7 +1111,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@Car", SqlDbType.NVarChar, 40).Value  = (object?)defaultCarrier ?? DBNull.Value;
         cmd.Parameters.Add("@DW",  SqlDbType.VarChar,  40).Value  = (object?)deliveryWindow ?? DBNull.Value;
         cmd.Parameters.Add("@St",  SqlDbType.VarChar,   8).Value  = (object?)status         ?? DBNull.Value;
-        cmd.Parameters.Add("@By",  SqlDbType.NVarChar,20).Value  = modifiedBy;
+        cmd.Parameters.Add("@By",  SqlDbType.VarChar, 20).Value  = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -1222,7 +1222,7 @@ public sealed class MasterDataRepository
         cmd.Parameters["@Otd"].Precision = 5; cmd.Parameters["@Otd"].Scale = 2;
         cmd.Parameters.Add("@Pay",  SqlDbType.VarChar,  30).Value = (object?)paymentTerms   ?? DBNull.Value;
         cmd.Parameters.Add("@Active",SqlDbType.Bit).Value         = activeFlag;
-        cmd.Parameters.Add("@By",   SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.Parameters.Add("@By",   SqlDbType.VarChar,  20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -1256,7 +1256,7 @@ public sealed class MasterDataRepository
         cmd.Parameters["@Otd"].Precision = 5; cmd.Parameters["@Otd"].Scale = 2;
         cmd.Parameters.Add("@Pay",  SqlDbType.VarChar,  30).Value = (object?)paymentTerms   ?? DBNull.Value;
         cmd.Parameters.Add("@Active",SqlDbType.Bit).Value         = activeFlag;
-        cmd.Parameters.Add("@By",   SqlDbType.NVarChar,20).Value = modifiedBy;
+        cmd.Parameters.Add("@By",   SqlDbType.VarChar, 20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -1366,7 +1366,7 @@ public sealed class MasterDataRepository
                                                                         ? lastMaintDate.Value.ToDateTime(TimeOnly.MinValue)
                                                                         : DBNull.Value;
         cmd.Parameters.Add("@St",    SqlDbType.VarChar,  10).Value = (object?)status       ?? DBNull.Value;
-        cmd.Parameters.Add("@By",    SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.Parameters.Add("@By",    SqlDbType.VarChar,  20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -1401,7 +1401,7 @@ public sealed class MasterDataRepository
                                                                          ? lastMaintDate.Value.ToDateTime(TimeOnly.MinValue)
                                                                          : DBNull.Value;
         cmd.Parameters.Add("@St",    SqlDbType.VarChar,   10).Value = (object?)status       ?? DBNull.Value;
-        cmd.Parameters.Add("@By",    SqlDbType.NVarChar,  20).Value = modifiedBy;
+        cmd.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -1469,7 +1469,7 @@ public sealed class MasterDataRepository
             """, conn);
         cmd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value = moldId;
         cmd.Parameters.Add("@C",  SqlDbType.VarChar, 10).Value = color;
-        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = createdBy;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -1551,7 +1551,7 @@ public sealed class MasterDataRepository
             """, conn);
         FillMoldItemParams(cmd, moldId, itemNo, color, cavitySeq, cavityPos,
                            usage, resinItemNo, resinUsage, cavityCount, moldCategory, activeFlag);
-        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = createdBy;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -1571,7 +1571,7 @@ public sealed class MasterDataRepository
             """, conn);
         FillMoldItemParams(cmd, moldId, itemNo, color, cavitySeq, cavityPos,
                            usage, resinItemNo, resinUsage, cavityCount, moldCategory, activeFlag);
-        cmd.Parameters.Add("@By", SqlDbType.NVarChar,  20).Value = modifiedBy;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -1657,7 +1657,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value = moldId;
         cmd.Parameters.Add("@U",  SqlDbType.Decimal).Value     = (object?)uph      ?? DBNull.Value;
         cmd.Parameters.Add("@P",  SqlDbType.Decimal).Value     = (object?)prepTime ?? DBNull.Value;
-        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = createdBy;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -1673,7 +1673,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value = moldId;
         cmd.Parameters.Add("@U",  SqlDbType.Decimal).Value     = (object?)uph      ?? DBNull.Value;
         cmd.Parameters.Add("@P",  SqlDbType.Decimal).Value     = (object?)prepTime ?? DBNull.Value;
-        cmd.Parameters.Add("@By", SqlDbType.NVarChar,  20).Value = modifiedBy;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -1794,7 +1794,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@CC",   SqlDbType.VarChar,  20).Value = (object?)costCenterCode ?? DBNull.Value;
         cmd.Parameters.Add("@Loc",  SqlDbType.NVarChar, 60).Value = (object?)locationDesc   ?? DBNull.Value;
         cmd.Parameters.Add("@Act",  SqlDbType.Bit).Value          = activeFlag;
-        cmd.Parameters.Add("@By",   SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.Parameters.Add("@By",   SqlDbType.VarChar,  20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -1822,7 +1822,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@CC",   SqlDbType.VarChar,   20).Value = (object?)costCenterCode ?? DBNull.Value;
         cmd.Parameters.Add("@Loc",  SqlDbType.NVarChar,  60).Value = (object?)locationDesc   ?? DBNull.Value;
         cmd.Parameters.Add("@Act",  SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@By",   SqlDbType.NVarChar,  20).Value = modifiedBy;
+        cmd.Parameters.Add("@By",   SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -1942,7 +1942,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@Form",  SqlDbType.VarChar,  50).Value = (object?)formName      ?? DBNull.Value;
         cmd.Parameters.Add("@Seq",   SqlDbType.Int).Value          = (object?)orderSeq      ?? DBNull.Value;
         cmd.Parameters.Add("@St",    SqlDbType.VarChar,  10).Value = (object?)status        ?? DBNull.Value;
-        cmd.Parameters.Add("@By",    SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.Parameters.Add("@By",    SqlDbType.VarChar,  20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -1964,7 +1964,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@Form",  SqlDbType.VarChar,   50).Value = (object?)formName      ?? DBNull.Value;
         cmd.Parameters.Add("@Seq",   SqlDbType.Int).Value           = (object?)orderSeq      ?? DBNull.Value;
         cmd.Parameters.Add("@St",    SqlDbType.VarChar,   10).Value = (object?)status        ?? DBNull.Value;
-        cmd.Parameters.Add("@By",    SqlDbType.NVarChar,  20).Value = modifiedBy;
+        cmd.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -2089,7 +2089,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@Shift", SqlDbType.VarChar,  20).Value = (object?)shiftPattern ?? DBNull.Value;
         cmd.Parameters.Add("@Rfid",  SqlDbType.Bit).Value          = rfidEnabled;
         cmd.Parameters.Add("@St",    SqlDbType.VarChar,  10).Value = (object?)status      ?? DBNull.Value;
-        cmd.Parameters.Add("@By",    SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.Parameters.Add("@By",    SqlDbType.VarChar,  20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -2118,7 +2118,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@Shift", SqlDbType.VarChar,  20).Value = (object?)shiftPattern ?? DBNull.Value;
         cmd.Parameters.Add("@Rfid",  SqlDbType.Bit).Value          = rfidEnabled;
         cmd.Parameters.Add("@St",    SqlDbType.VarChar,  10).Value = (object?)status      ?? DBNull.Value;
-        cmd.Parameters.Add("@By",    SqlDbType.NVarChar,20).Value = modifiedBy;
+        cmd.Parameters.Add("@By",    SqlDbType.VarChar, 20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -2199,7 +2199,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@CC",  SqlDbType.VarChar,  16).Value = (object?)causeCode    ?? DBNull.Value;
         cmd.Parameters.Add("@PF",  SqlDbType.Bit).Value          = paretoFlag;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value          = activeFlag;
-        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,  20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -2226,7 +2226,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@CC",  SqlDbType.VarChar,  16).Value = (object?)causeCode    ?? DBNull.Value;
         cmd.Parameters.Add("@PF",  SqlDbType.Bit).Value          = paretoFlag;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value          = activeFlag;
-        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar,  20).Value = modifiedBy;
+        cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -2309,7 +2309,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@RD",  SqlDbType.NVarChar,  30).Value = (object?)responsibleDept ?? DBNull.Value;
         cmd.Parameters.Add("@SO",  SqlDbType.Int).Value           = (object?)sortOrder       ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -2337,7 +2337,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@RD",  SqlDbType.NVarChar,  30).Value = (object?)responsibleDept ?? DBNull.Value;
         cmd.Parameters.Add("@SO",  SqlDbType.Int).Value           = (object?)sortOrder       ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar,  20).Value = modifiedBy;
+        cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -2433,7 +2433,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@PLC", SqlDbType.VarChar,   40).Value = (object?)plcAddress     ?? DBNull.Value;
         cmd.Parameters.Add("@ST",  SqlDbType.VarChar,    8).Value = (object?)status         ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -2466,7 +2466,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@PLC", SqlDbType.VarChar,   40).Value = (object?)plcAddress     ?? DBNull.Value;
         cmd.Parameters.Add("@ST",  SqlDbType.VarChar,    8).Value = (object?)status         ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar,  20).Value = modifiedBy;
+        cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -2546,7 +2546,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@ML",  SqlDbType.Decimal).Value      = (object?)maxLoadKg     ?? DBNull.Value;
         cmd.Parameters["@ML"].Precision = 8; cmd.Parameters["@ML"].Scale = 1;
         cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   8).Value = (object?)status        ?? DBNull.Value;
-        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,  20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -2574,7 +2574,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@ML",  SqlDbType.Decimal).Value      = (object?)maxLoadKg     ?? DBNull.Value;
         cmd.Parameters["@ML"].Precision = 8; cmd.Parameters["@ML"].Scale = 1;
         cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   8).Value = (object?)status        ?? DBNull.Value;
-        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar,  20).Value = modifiedBy;
+        cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -2655,7 +2655,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@HS", SqlDbType.VarChar,   8).Value = (object?)healthStatus   ?? DBNull.Value;
         cmd.Parameters.Add("@LS", SqlDbType.Date).Value         = lastServiceDate.HasValue ? (object)lastServiceDate.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
         cmd.Parameters.Add("@AF", SqlDbType.Bit).Value          = activeFlag;
-        cmd.Parameters.Add("@CB", SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.Parameters.Add("@CB", SqlDbType.VarChar,  20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -2682,7 +2682,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@HS", SqlDbType.VarChar,    8).Value = (object?)healthStatus   ?? DBNull.Value;
         cmd.Parameters.Add("@LS", SqlDbType.Date).Value          = lastServiceDate.HasValue ? (object)lastServiceDate.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
         cmd.Parameters.Add("@AF", SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@MB", SqlDbType.NVarChar,  20).Value = modifiedBy;
+        cmd.Parameters.Add("@MB", SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -2776,7 +2776,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@CTQ",  SqlDbType.Bit).Value           = isCTQ;
         cmd.Parameters.Add("@ED",   SqlDbType.Date).Value          = effectiveDate.HasValue ? (object)effectiveDate.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
         cmd.Parameters.Add("@AF",   SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@CB",   SqlDbType.VarChar,   50).Value = createdBy;
+        cmd.Parameters.Add("@CB",   SqlDbType.VarChar,   20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -2812,7 +2812,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@CTQ",  SqlDbType.Bit).Value           = isCTQ;
         cmd.Parameters.Add("@ED",   SqlDbType.Date).Value          = effectiveDate.HasValue ? (object)effectiveDate.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
         cmd.Parameters.Add("@AF",   SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@MB",   SqlDbType.NVarChar,  20).Value = modifiedBy;
+        cmd.Parameters.Add("@MB",   SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -2888,7 +2888,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@N",   SqlDbType.NVarChar,  60).Value = (object?)name         ?? DBNull.Value;
         cmd.Parameters.Add("@WH",  SqlDbType.VarChar,   20).Value = whCode;
         cmd.Parameters.Add("@AR",  SqlDbType.VarChar,   20).Value = areaCode;
-        cmd.Parameters.Add("@Z",   SqlDbType.VarChar,   10).Value = (object?)zoneCode      ?? DBNull.Value;
+        cmd.Parameters.Add("@Z",   SqlDbType.VarChar,   20).Value = (object?)zoneCode      ?? DBNull.Value;
         cmd.Parameters.Add("@A",   SqlDbType.VarChar,    5).Value = (object?)aisle         ?? DBNull.Value;
         cmd.Parameters.Add("@B",   SqlDbType.VarChar,    5).Value = (object?)bay           ?? DBNull.Value;
         cmd.Parameters.Add("@S",   SqlDbType.VarChar,    5).Value = (object?)slot          ?? DBNull.Value;
@@ -2897,7 +2897,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@LT",  SqlDbType.VarChar,   20).Value = (object?)locationType  ?? DBNull.Value;
         cmd.Parameters.Add("@PL",  SqlDbType.VarChar,   20).Value = (object?)plantCode     ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -2918,7 +2918,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@N",   SqlDbType.NVarChar,  60).Value = (object?)name         ?? DBNull.Value;
         cmd.Parameters.Add("@WH",  SqlDbType.VarChar,   20).Value = whCode;
         cmd.Parameters.Add("@AR",  SqlDbType.VarChar,   20).Value = areaCode;
-        cmd.Parameters.Add("@Z",   SqlDbType.VarChar,   10).Value = (object?)zoneCode      ?? DBNull.Value;
+        cmd.Parameters.Add("@Z",   SqlDbType.VarChar,   20).Value = (object?)zoneCode      ?? DBNull.Value;
         cmd.Parameters.Add("@A",   SqlDbType.VarChar,    5).Value = (object?)aisle         ?? DBNull.Value;
         cmd.Parameters.Add("@B",   SqlDbType.VarChar,    5).Value = (object?)bay           ?? DBNull.Value;
         cmd.Parameters.Add("@S",   SqlDbType.VarChar,    5).Value = (object?)slot          ?? DBNull.Value;
@@ -2927,7 +2927,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@LT",  SqlDbType.VarChar,   20).Value = (object?)locationType  ?? DBNull.Value;
         cmd.Parameters.Add("@PL",  SqlDbType.VarChar,   20).Value = (object?)plantCode     ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar,  20).Value = modifiedBy;
+        cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -3020,7 +3020,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@ED",  SqlDbType.Date).Value          = expDate.HasValue     ? (object)expDate.Value.ToDateTime(TimeOnly.MinValue)     : DBNull.Value;
         cmd.Parameters.Add("@SR",  SqlDbType.NVarChar,  40).Value = (object?)storageReq ?? DBNull.Value;
         cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   10).Value = (object?)status     ?? DBNull.Value;
-        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -3050,7 +3050,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@ED",  SqlDbType.Date).Value          = expDate.HasValue     ? (object)expDate.Value.ToDateTime(TimeOnly.MinValue)     : DBNull.Value;
         cmd.Parameters.Add("@SR",  SqlDbType.NVarChar,  40).Value = (object?)storageReq ?? DBNull.Value;
         cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   10).Value = (object?)status     ?? DBNull.Value;
-        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar,  20).Value = modifiedBy;
+        cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -3344,7 +3344,7 @@ public sealed class MasterDataRepository
             "UPDATE dbo.MD_SparePart SET SparePartImage=@IMG, ModifiedTS=SYSDATETIME(), ModifiedBy=@MB WHERE SparePartNo=@P;", conn);
         cmd.Parameters.Add("@P",   SqlDbType.VarChar,   16).Value = sparePartNo;
         cmd.Parameters.Add("@IMG", SqlDbType.VarBinary, -1).Value = (object?)image ?? DBNull.Value;
-        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar,  20).Value = modifiedBy;
+        cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -3513,7 +3513,7 @@ public sealed class MasterDataRepository
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_Uom WHERE UOMCode=@C;", conn);
-        cmd.Parameters.Add("@C", SqlDbType.VarChar, 20).Value = code;
+        cmd.Parameters.Add("@C", SqlDbType.VarChar, 10).Value = code;
         return cmd.ExecuteScalar() is not null;
     }
 
@@ -3526,17 +3526,17 @@ public sealed class MasterDataRepository
             "INSERT INTO dbo.MD_Uom(UOMCode,UOMName,UOMCategory,BaseFlag,BaseUOM," +
             "ConvFactor,DecimalPrec,Symbol,ActiveFlag,CreatedBy)" +
             " VALUES(@C,@N,@CAT,@BF,@BU,@CF,@DP,@SY,@AF,@CB);", conn);
-        cmd.Parameters.Add("@C",   SqlDbType.VarChar,  20).Value = uomCode;
-        cmd.Parameters.Add("@N",   SqlDbType.NVarChar, 50).Value = (object?)uomName      ?? DBNull.Value;
-        cmd.Parameters.Add("@CAT", SqlDbType.VarChar,  20).Value = (object?)uomCategory  ?? DBNull.Value;
+        cmd.Parameters.Add("@C",   SqlDbType.VarChar,  10).Value = uomCode;
+        cmd.Parameters.Add("@N",   SqlDbType.NVarChar, 30).Value = (object?)uomName      ?? DBNull.Value;
+        cmd.Parameters.Add("@CAT", SqlDbType.VarChar,  10).Value = (object?)uomCategory  ?? DBNull.Value;
         cmd.Parameters.Add("@BF",  SqlDbType.Bit).Value          = baseFlag;
-        cmd.Parameters.Add("@BU",  SqlDbType.VarChar,  20).Value = (object?)baseUOM      ?? DBNull.Value;
+        cmd.Parameters.Add("@BU",  SqlDbType.VarChar,  10).Value = (object?)baseUOM      ?? DBNull.Value;
         cmd.Parameters.Add("@CF",  SqlDbType.Decimal).Value      = (object?)convFactor   ?? DBNull.Value;
         if (convFactor.HasValue) { cmd.Parameters["@CF"].Precision = 18; cmd.Parameters["@CF"].Scale = 6; }
         cmd.Parameters.Add("@DP",  SqlDbType.Int).Value          = (object?)decimalPrec  ?? DBNull.Value;
-        cmd.Parameters.Add("@SY",  SqlDbType.NVarChar, 10).Value = (object?)symbol       ?? DBNull.Value;
+        cmd.Parameters.Add("@SY",  SqlDbType.NVarChar,  8).Value = (object?)symbol       ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value          = activeFlag;
-        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,  20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -3549,17 +3549,17 @@ public sealed class MasterDataRepository
             "UPDATE dbo.MD_Uom SET UOMName=@N,UOMCategory=@CAT,BaseFlag=@BF,BaseUOM=@BU," +
             "ConvFactor=@CF,DecimalPrec=@DP,Symbol=@SY,ActiveFlag=@AF," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE UOMCode=@C;", conn);
-        cmd.Parameters.Add("@C",   SqlDbType.VarChar,  20).Value  = uomCode;
-        cmd.Parameters.Add("@N",   SqlDbType.NVarChar, 50).Value  = (object?)uomName     ?? DBNull.Value;
-        cmd.Parameters.Add("@CAT", SqlDbType.VarChar,  20).Value  = (object?)uomCategory ?? DBNull.Value;
+        cmd.Parameters.Add("@C",   SqlDbType.VarChar,  10).Value  = uomCode;
+        cmd.Parameters.Add("@N",   SqlDbType.NVarChar, 30).Value  = (object?)uomName     ?? DBNull.Value;
+        cmd.Parameters.Add("@CAT", SqlDbType.VarChar,  10).Value  = (object?)uomCategory ?? DBNull.Value;
         cmd.Parameters.Add("@BF",  SqlDbType.Bit).Value           = baseFlag;
-        cmd.Parameters.Add("@BU",  SqlDbType.VarChar,  20).Value  = (object?)baseUOM     ?? DBNull.Value;
+        cmd.Parameters.Add("@BU",  SqlDbType.VarChar,  10).Value  = (object?)baseUOM     ?? DBNull.Value;
         cmd.Parameters.Add("@CF",  SqlDbType.Decimal).Value       = (object?)convFactor  ?? DBNull.Value;
         if (convFactor.HasValue) { cmd.Parameters["@CF"].Precision = 18; cmd.Parameters["@CF"].Scale = 6; }
         cmd.Parameters.Add("@DP",  SqlDbType.Int).Value           = (object?)decimalPrec ?? DBNull.Value;
-        cmd.Parameters.Add("@SY",  SqlDbType.NVarChar, 10).Value  = (object?)symbol      ?? DBNull.Value;
+        cmd.Parameters.Add("@SY",  SqlDbType.NVarChar,  8).Value  = (object?)symbol      ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar,  20).Value = modifiedBy;
+        cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -3567,7 +3567,7 @@ public sealed class MasterDataRepository
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("DELETE FROM dbo.MD_Uom WHERE UOMCode=@C;", conn);
-        cmd.Parameters.Add("@C", SqlDbType.VarChar, 20).Value = uomCode;
+        cmd.Parameters.Add("@C", SqlDbType.VarChar, 10).Value = uomCode;
         cmd.ExecuteNonQuery();
     }
 
@@ -3576,7 +3576,7 @@ public sealed class MasterDataRepository
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_RfidTag WHERE TagID=@I;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 30).Value = tagId;
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 24).Value = tagId;
         return cmd.ExecuteScalar() is not null;
     }
 
@@ -3590,17 +3590,17 @@ public sealed class MasterDataRepository
             "INSERT INTO dbo.MD_RfidTag(TagID,EPC,JigID,TagRole,HeatRating,MountPos," +
             "InstallDate,CycleCount,ReplaceSchedule,Status,CreatedBy)" +
             " VALUES(@I,@EP,@JI,@TR,@HR,@MP,@ID,@CC,@RS,@ST,@CB);", conn);
-        cmd.Parameters.Add("@I",  SqlDbType.VarChar,  30).Value = tagId;
-        cmd.Parameters.Add("@EP", SqlDbType.VarChar,  64).Value = (object?)epc            ?? DBNull.Value;
+        cmd.Parameters.Add("@I",  SqlDbType.VarChar,  24).Value = tagId;
+        cmd.Parameters.Add("@EP", SqlDbType.VarChar,  32).Value = (object?)epc            ?? DBNull.Value;
         cmd.Parameters.Add("@JI", SqlDbType.VarChar,  20).Value = (object?)jigId          ?? DBNull.Value;
-        cmd.Parameters.Add("@TR", SqlDbType.VarChar,  20).Value = (object?)tagRole        ?? DBNull.Value;
+        cmd.Parameters.Add("@TR", SqlDbType.VarChar,   6).Value = (object?)tagRole        ?? DBNull.Value;
         cmd.Parameters.Add("@HR", SqlDbType.Int).Value          = (object?)heatRating     ?? DBNull.Value;
-        cmd.Parameters.Add("@MP", SqlDbType.VarChar,  20).Value = (object?)mountPos       ?? DBNull.Value;
+        cmd.Parameters.Add("@MP", SqlDbType.NVarChar,  20).Value = (object?)mountPos       ?? DBNull.Value;
         cmd.Parameters.Add("@ID", SqlDbType.Date).Value         = installDate.HasValue    ? (object)installDate.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
         cmd.Parameters.Add("@CC", SqlDbType.Int).Value          = (object?)cycleCount     ?? DBNull.Value;
         cmd.Parameters.Add("@RS", SqlDbType.Date).Value         = replaceSchedule.HasValue ? (object)replaceSchedule.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
         cmd.Parameters.Add("@ST", SqlDbType.VarChar,  10).Value = (object?)status         ?? DBNull.Value;
-        cmd.Parameters.Add("@CB", SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.Parameters.Add("@CB", SqlDbType.VarChar,  20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -3614,17 +3614,17 @@ public sealed class MasterDataRepository
             "UPDATE dbo.MD_RfidTag SET EPC=@EP,JigID=@JI,TagRole=@TR,HeatRating=@HR," +
             "MountPos=@MP,InstallDate=@ID,CycleCount=@CC,ReplaceSchedule=@RS,Status=@ST," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE TagID=@I;", conn);
-        cmd.Parameters.Add("@I",  SqlDbType.VarChar,  30).Value  = tagId;
-        cmd.Parameters.Add("@EP", SqlDbType.VarChar,  64).Value  = (object?)epc            ?? DBNull.Value;
+        cmd.Parameters.Add("@I",  SqlDbType.VarChar,  24).Value  = tagId;
+        cmd.Parameters.Add("@EP", SqlDbType.VarChar,  32).Value  = (object?)epc            ?? DBNull.Value;
         cmd.Parameters.Add("@JI", SqlDbType.VarChar,  20).Value  = (object?)jigId          ?? DBNull.Value;
-        cmd.Parameters.Add("@TR", SqlDbType.VarChar,  20).Value  = (object?)tagRole        ?? DBNull.Value;
+        cmd.Parameters.Add("@TR", SqlDbType.VarChar,   6).Value  = (object?)tagRole        ?? DBNull.Value;
         cmd.Parameters.Add("@HR", SqlDbType.Int).Value           = (object?)heatRating     ?? DBNull.Value;
-        cmd.Parameters.Add("@MP", SqlDbType.VarChar,  20).Value  = (object?)mountPos       ?? DBNull.Value;
+        cmd.Parameters.Add("@MP", SqlDbType.NVarChar,  20).Value  = (object?)mountPos       ?? DBNull.Value;
         cmd.Parameters.Add("@ID", SqlDbType.Date).Value          = installDate.HasValue    ? (object)installDate.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
         cmd.Parameters.Add("@CC", SqlDbType.Int).Value           = (object?)cycleCount     ?? DBNull.Value;
         cmd.Parameters.Add("@RS", SqlDbType.Date).Value          = replaceSchedule.HasValue ? (object)replaceSchedule.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
         cmd.Parameters.Add("@ST", SqlDbType.VarChar,  10).Value  = (object?)status         ?? DBNull.Value;
-        cmd.Parameters.Add("@MB", SqlDbType.NVarChar,  20).Value = modifiedBy;
+        cmd.Parameters.Add("@MB", SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -3632,7 +3632,7 @@ public sealed class MasterDataRepository
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("DELETE FROM dbo.MD_RfidTag WHERE TagID=@I;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 30).Value = tagId;
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 24).Value = tagId;
         cmd.ExecuteNonQuery();
     }
 
@@ -3641,7 +3641,7 @@ public sealed class MasterDataRepository
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_RalColor WHERE RALCode=@C;", conn);
-        cmd.Parameters.Add("@C", SqlDbType.VarChar, 10).Value = ralCode;
+        cmd.Parameters.Add("@C", SqlDbType.VarChar, 12).Value = ralCode;
         return cmd.ExecuteScalar() is not null;
     }
 
@@ -3654,17 +3654,17 @@ public sealed class MasterDataRepository
             "INSERT INTO dbo.MD_RalColor(RALCode,ColorName,HexValue,CurrentPowderLot," +
             "CureTemp,CureDuration,ElectroV,ParticleUm,ActiveFlag,CreatedBy)" +
             " VALUES(@C,@CN,@HV,@PL,@CT,@CD,@EV,@PU,@AF,@CB);", conn);
-        cmd.Parameters.Add("@C",  SqlDbType.VarChar,   10).Value = ralCode;
-        cmd.Parameters.Add("@CN", SqlDbType.NVarChar,  50).Value = (object?)colorName        ?? DBNull.Value;
+        cmd.Parameters.Add("@C",  SqlDbType.VarChar,   12).Value = ralCode;
+        cmd.Parameters.Add("@CN", SqlDbType.NVarChar,  40).Value = (object?)colorName        ?? DBNull.Value;
         cmd.Parameters.Add("@HV", SqlDbType.VarChar,   7).Value  = (object?)hexValue         ?? DBNull.Value;
-        cmd.Parameters.Add("@PL", SqlDbType.VarChar,  30).Value  = (object?)currentPowderLot ?? DBNull.Value;
+        cmd.Parameters.Add("@PL", SqlDbType.VarChar,  24).Value  = (object?)currentPowderLot ?? DBNull.Value;
         cmd.Parameters.Add("@CT", SqlDbType.Int).Value           = (object?)cureTemp         ?? DBNull.Value;
         cmd.Parameters.Add("@CD", SqlDbType.Int).Value           = (object?)cureDuration     ?? DBNull.Value;
         cmd.Parameters.Add("@EV", SqlDbType.Int).Value           = (object?)electroV         ?? DBNull.Value;
         cmd.Parameters.Add("@PU", SqlDbType.Decimal).Value       = (object?)particleUm       ?? DBNull.Value;
         if (particleUm.HasValue) { cmd.Parameters["@PU"].Precision = 6; cmd.Parameters["@PU"].Scale = 2; }
         cmd.Parameters.Add("@AF", SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@CB", SqlDbType.VarChar,  50).Value  = createdBy;
+        cmd.Parameters.Add("@CB", SqlDbType.VarChar,  20).Value  = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -3677,17 +3677,17 @@ public sealed class MasterDataRepository
             "UPDATE dbo.MD_RalColor SET ColorName=@CN,HexValue=@HV,CurrentPowderLot=@PL," +
             "CureTemp=@CT,CureDuration=@CD,ElectroV=@EV,ParticleUm=@PU,ActiveFlag=@AF," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE RALCode=@C;", conn);
-        cmd.Parameters.Add("@C",  SqlDbType.VarChar,   10).Value  = ralCode;
-        cmd.Parameters.Add("@CN", SqlDbType.NVarChar,  50).Value  = (object?)colorName        ?? DBNull.Value;
+        cmd.Parameters.Add("@C",  SqlDbType.VarChar,   12).Value  = ralCode;
+        cmd.Parameters.Add("@CN", SqlDbType.NVarChar,  40).Value  = (object?)colorName        ?? DBNull.Value;
         cmd.Parameters.Add("@HV", SqlDbType.VarChar,   7).Value   = (object?)hexValue         ?? DBNull.Value;
-        cmd.Parameters.Add("@PL", SqlDbType.VarChar,  30).Value   = (object?)currentPowderLot ?? DBNull.Value;
+        cmd.Parameters.Add("@PL", SqlDbType.VarChar,  24).Value   = (object?)currentPowderLot ?? DBNull.Value;
         cmd.Parameters.Add("@CT", SqlDbType.Int).Value            = (object?)cureTemp         ?? DBNull.Value;
         cmd.Parameters.Add("@CD", SqlDbType.Int).Value            = (object?)cureDuration     ?? DBNull.Value;
         cmd.Parameters.Add("@EV", SqlDbType.Int).Value            = (object?)electroV         ?? DBNull.Value;
         cmd.Parameters.Add("@PU", SqlDbType.Decimal).Value        = (object?)particleUm       ?? DBNull.Value;
         if (particleUm.HasValue) { cmd.Parameters["@PU"].Precision = 6; cmd.Parameters["@PU"].Scale = 2; }
         cmd.Parameters.Add("@AF", SqlDbType.Bit).Value            = activeFlag;
-        cmd.Parameters.Add("@MB", SqlDbType.NVarChar,  20).Value  = modifiedBy;
+        cmd.Parameters.Add("@MB", SqlDbType.VarChar,   20).Value  = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -3695,7 +3695,7 @@ public sealed class MasterDataRepository
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("DELETE FROM dbo.MD_RalColor WHERE RALCode=@C;", conn);
-        cmd.Parameters.Add("@C", SqlDbType.VarChar, 10).Value = ralCode;
+        cmd.Parameters.Add("@C", SqlDbType.VarChar, 12).Value = ralCode;
         cmd.ExecuteNonQuery();
     }
 
@@ -3719,16 +3719,16 @@ public sealed class MasterDataRepository
             " VALUES(@I,@RN,@GL,@LI,@AC,@PD,@PT,@WM,@IP,@FW,@ST,@CB);", conn);
         cmd.Parameters.Add("@I",  SqlDbType.VarChar,  20).Value = readerId;
         cmd.Parameters.Add("@RN", SqlDbType.NVarChar, 50).Value = (object?)readerName   ?? DBNull.Value;
-        cmd.Parameters.Add("@GL", SqlDbType.NVarChar, 50).Value = (object?)gateLocation ?? DBNull.Value;
+        cmd.Parameters.Add("@GL", SqlDbType.VarChar,   4).Value = (object?)gateLocation ?? DBNull.Value;
         cmd.Parameters.Add("@LI", SqlDbType.VarChar,  20).Value = (object?)lineId       ?? DBNull.Value;
         cmd.Parameters.Add("@AC", SqlDbType.Int).Value          = (object?)antennaCount ?? DBNull.Value;
         cmd.Parameters.Add("@PD", SqlDbType.Int).Value          = (object?)powerDbm     ?? DBNull.Value;
         cmd.Parameters.Add("@PT", SqlDbType.Bit).Value          = peTrigger;
         cmd.Parameters.Add("@WM", SqlDbType.Int).Value          = (object?)windowMs     ?? DBNull.Value;
-        cmd.Parameters.Add("@IP", SqlDbType.VarChar,  20).Value = (object?)ipAddress    ?? DBNull.Value;
-        cmd.Parameters.Add("@FW", SqlDbType.VarChar,  20).Value = (object?)firmwareVer  ?? DBNull.Value;
-        cmd.Parameters.Add("@ST", SqlDbType.VarChar,  10).Value = (object?)status       ?? DBNull.Value;
-        cmd.Parameters.Add("@CB", SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.Parameters.Add("@IP", SqlDbType.VarChar,  45).Value = (object?)ipAddress    ?? DBNull.Value;
+        cmd.Parameters.Add("@FW", SqlDbType.VarChar,  16).Value = (object?)firmwareVer  ?? DBNull.Value;
+        cmd.Parameters.Add("@ST", SqlDbType.VarChar,   8).Value = (object?)status       ?? DBNull.Value;
+        cmd.Parameters.Add("@CB", SqlDbType.VarChar,  20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -3744,16 +3744,16 @@ public sealed class MasterDataRepository
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE ReaderID=@I;", conn);
         cmd.Parameters.Add("@I",  SqlDbType.VarChar,   20).Value  = readerId;
         cmd.Parameters.Add("@RN", SqlDbType.NVarChar,  50).Value  = (object?)readerName   ?? DBNull.Value;
-        cmd.Parameters.Add("@GL", SqlDbType.NVarChar,  50).Value  = (object?)gateLocation ?? DBNull.Value;
+        cmd.Parameters.Add("@GL", SqlDbType.VarChar,    4).Value  = (object?)gateLocation ?? DBNull.Value;
         cmd.Parameters.Add("@LI", SqlDbType.VarChar,   20).Value  = (object?)lineId       ?? DBNull.Value;
         cmd.Parameters.Add("@AC", SqlDbType.Int).Value            = (object?)antennaCount ?? DBNull.Value;
         cmd.Parameters.Add("@PD", SqlDbType.Int).Value            = (object?)powerDbm     ?? DBNull.Value;
         cmd.Parameters.Add("@PT", SqlDbType.Bit).Value            = peTrigger;
         cmd.Parameters.Add("@WM", SqlDbType.Int).Value            = (object?)windowMs     ?? DBNull.Value;
-        cmd.Parameters.Add("@IP", SqlDbType.VarChar,   20).Value  = (object?)ipAddress    ?? DBNull.Value;
-        cmd.Parameters.Add("@FW", SqlDbType.VarChar,   20).Value  = (object?)firmwareVer  ?? DBNull.Value;
-        cmd.Parameters.Add("@ST", SqlDbType.VarChar,   10).Value  = (object?)status       ?? DBNull.Value;
-        cmd.Parameters.Add("@MB", SqlDbType.NVarChar,  20).Value  = modifiedBy;
+        cmd.Parameters.Add("@IP", SqlDbType.VarChar,   45).Value  = (object?)ipAddress    ?? DBNull.Value;
+        cmd.Parameters.Add("@FW", SqlDbType.VarChar,   16).Value  = (object?)firmwareVer  ?? DBNull.Value;
+        cmd.Parameters.Add("@ST", SqlDbType.VarChar,    8).Value  = (object?)status       ?? DBNull.Value;
+        cmd.Parameters.Add("@MB", SqlDbType.VarChar,   20).Value  = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -3786,8 +3786,8 @@ public sealed class MasterDataRepository
             "DimLxWxH,ReturnableFlag,LabelTemplateID,ActiveFlag,CreatedBy)" +
             " VALUES(@I,@II,@PT,@QI,@IO,@OP,@NW,@GW,@DIM,@RF,@LT,@AF,@CB);", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,  20).Value = packSpecId;
-        cmd.Parameters.Add("@II",  SqlDbType.VarChar,  30).Value = (object?)itemId          ?? DBNull.Value;
-        cmd.Parameters.Add("@PT",  SqlDbType.VarChar,  20).Value = (object?)packType        ?? DBNull.Value;
+        cmd.Parameters.Add("@II",  SqlDbType.VarChar,  20).Value = (object?)itemId          ?? DBNull.Value;
+        cmd.Parameters.Add("@PT",  SqlDbType.VarChar,  12).Value = (object?)packType        ?? DBNull.Value;
         cmd.Parameters.Add("@QI",  SqlDbType.Int).Value          = (object?)qtyPerInner     ?? DBNull.Value;
         cmd.Parameters.Add("@IO",  SqlDbType.Int).Value          = (object?)innerPerOuter   ?? DBNull.Value;
         cmd.Parameters.Add("@OP",  SqlDbType.Int).Value          = (object?)outerPerPallet  ?? DBNull.Value;
@@ -3799,7 +3799,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@RF",  SqlDbType.Bit).Value          = returnableFlag;
         cmd.Parameters.Add("@LT",  SqlDbType.VarChar,  20).Value = (object?)labelTemplateId ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value          = activeFlag;
-        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,  20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -3816,8 +3816,8 @@ public sealed class MasterDataRepository
             "ReturnableFlag=@RF,LabelTemplateID=@LT,ActiveFlag=@AF," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE PackSpecID=@I;", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value  = packSpecId;
-        cmd.Parameters.Add("@II",  SqlDbType.VarChar,   30).Value  = (object?)itemId          ?? DBNull.Value;
-        cmd.Parameters.Add("@PT",  SqlDbType.VarChar,   20).Value  = (object?)packType        ?? DBNull.Value;
+        cmd.Parameters.Add("@II",  SqlDbType.VarChar,   20).Value  = (object?)itemId          ?? DBNull.Value;
+        cmd.Parameters.Add("@PT",  SqlDbType.VarChar,   12).Value  = (object?)packType        ?? DBNull.Value;
         cmd.Parameters.Add("@QI",  SqlDbType.Int).Value            = (object?)qtyPerInner     ?? DBNull.Value;
         cmd.Parameters.Add("@IO",  SqlDbType.Int).Value            = (object?)innerPerOuter   ?? DBNull.Value;
         cmd.Parameters.Add("@OP",  SqlDbType.Int).Value            = (object?)outerPerPallet  ?? DBNull.Value;
@@ -3829,7 +3829,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@RF",  SqlDbType.Bit).Value            = returnableFlag;
         cmd.Parameters.Add("@LT",  SqlDbType.VarChar,   20).Value  = (object?)labelTemplateId ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value            = activeFlag;
-        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar,  20).Value  = modifiedBy;
+        cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value  = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -3860,15 +3860,15 @@ public sealed class MasterDataRepository
             "PaperSize,BarcodeType,CustomerID,Version,PrinterModel,ActiveFlag,CreatedBy)" +
             " VALUES(@I,@TN,@LT,@PS,@BT,@CI,@VER,@PM,@AF,@CB);", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = id;
-        cmd.Parameters.Add("@TN",  SqlDbType.NVarChar, 100).Value = (object?)templateName ?? DBNull.Value;
-        cmd.Parameters.Add("@LT",  SqlDbType.VarChar,   20).Value = (object?)labelType    ?? DBNull.Value;
-        cmd.Parameters.Add("@PS",  SqlDbType.VarChar,   20).Value = (object?)paperSize    ?? DBNull.Value;
-        cmd.Parameters.Add("@BT",  SqlDbType.VarChar,   20).Value = (object?)barcodeType  ?? DBNull.Value;
+        cmd.Parameters.Add("@TN",  SqlDbType.NVarChar,  60).Value = (object?)templateName ?? DBNull.Value;
+        cmd.Parameters.Add("@LT",  SqlDbType.VarChar,   12).Value = (object?)labelType    ?? DBNull.Value;
+        cmd.Parameters.Add("@PS",  SqlDbType.VarChar,   12).Value = (object?)paperSize    ?? DBNull.Value;
+        cmd.Parameters.Add("@BT",  SqlDbType.VarChar,   12).Value = (object?)barcodeType  ?? DBNull.Value;
         cmd.Parameters.Add("@CI",  SqlDbType.VarChar,   20).Value = (object?)customerId   ?? DBNull.Value;
         cmd.Parameters.Add("@VER", SqlDbType.Int).Value           = (object?)version      ?? DBNull.Value;
-        cmd.Parameters.Add("@PM",  SqlDbType.VarChar,   50).Value = (object?)printerModel ?? DBNull.Value;
+        cmd.Parameters.Add("@PM",  SqlDbType.VarChar,   30).Value = (object?)printerModel ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -3883,15 +3883,15 @@ public sealed class MasterDataRepository
             "PrinterModel=@PM,ActiveFlag=@AF," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE LabelTemplateID=@I;", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value  = id;
-        cmd.Parameters.Add("@TN",  SqlDbType.NVarChar, 100).Value  = (object?)templateName ?? DBNull.Value;
-        cmd.Parameters.Add("@LT",  SqlDbType.VarChar,   20).Value  = (object?)labelType    ?? DBNull.Value;
-        cmd.Parameters.Add("@PS",  SqlDbType.VarChar,   20).Value  = (object?)paperSize    ?? DBNull.Value;
-        cmd.Parameters.Add("@BT",  SqlDbType.VarChar,   20).Value  = (object?)barcodeType  ?? DBNull.Value;
+        cmd.Parameters.Add("@TN",  SqlDbType.NVarChar,  60).Value  = (object?)templateName ?? DBNull.Value;
+        cmd.Parameters.Add("@LT",  SqlDbType.VarChar,   12).Value  = (object?)labelType    ?? DBNull.Value;
+        cmd.Parameters.Add("@PS",  SqlDbType.VarChar,   12).Value  = (object?)paperSize    ?? DBNull.Value;
+        cmd.Parameters.Add("@BT",  SqlDbType.VarChar,   12).Value  = (object?)barcodeType  ?? DBNull.Value;
         cmd.Parameters.Add("@CI",  SqlDbType.VarChar,   20).Value  = (object?)customerId   ?? DBNull.Value;
         cmd.Parameters.Add("@VER", SqlDbType.Int).Value            = (object?)version      ?? DBNull.Value;
-        cmd.Parameters.Add("@PM",  SqlDbType.VarChar,   50).Value  = (object?)printerModel ?? DBNull.Value;
+        cmd.Parameters.Add("@PM",  SqlDbType.VarChar,   30).Value  = (object?)printerModel ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value            = activeFlag;
-        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar,  20).Value  = modifiedBy;
+        cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value  = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -3908,7 +3908,7 @@ public sealed class MasterDataRepository
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_ReasonCode WHERE ReasonCode=@C;", conn);
-        cmd.Parameters.Add("@C", SqlDbType.VarChar, 20).Value = code;
+        cmd.Parameters.Add("@C", SqlDbType.VarChar, 16).Value = code;
         return cmd.ExecuteScalar() is not null;
     }
 
@@ -3921,16 +3921,16 @@ public sealed class MasterDataRepository
             "INSERT INTO dbo.MD_ReasonCode(ReasonCode,ReasonName,ReasonType," +
             "ModuleCode,RequiresComment,PlannedFlag,DisplayOrder,Description,ActiveFlag,CreatedBy)" +
             " VALUES(@C,@RN,@RT,@AM,@RC2,@PF,@DO,@DESC,@AF,@CB);", conn);
-        cmd.Parameters.Add("@C",    SqlDbType.VarChar,   20).Value = code;
-        cmd.Parameters.Add("@RN",   SqlDbType.NVarChar, 100).Value = (object?)reasonName      ?? DBNull.Value;
-        cmd.Parameters.Add("@RT",   SqlDbType.VarChar,   20).Value = (object?)reasonType      ?? DBNull.Value;
-        cmd.Parameters.Add("@AM",   SqlDbType.VarChar,   20).Value = (object?)moduleCode ?? DBNull.Value;
+        cmd.Parameters.Add("@C",    SqlDbType.VarChar,   16).Value = code;
+        cmd.Parameters.Add("@RN",   SqlDbType.NVarChar,  60).Value = (object?)reasonName      ?? DBNull.Value;
+        cmd.Parameters.Add("@RT",   SqlDbType.VarChar,   12).Value = (object?)reasonType      ?? DBNull.Value;
+        cmd.Parameters.Add("@AM",   SqlDbType.VarChar,   10).Value = (object?)moduleCode ?? DBNull.Value;
         cmd.Parameters.Add("@RC2",  SqlDbType.Bit).Value           = requiresComment;
         cmd.Parameters.Add("@PF",   SqlDbType.Bit).Value           = plannedFlag;
         cmd.Parameters.Add("@DO",   SqlDbType.Int).Value           = (object?)displayOrder   ?? DBNull.Value;
-        cmd.Parameters.Add("@DESC", SqlDbType.NVarChar, 500).Value = (object?)description    ?? DBNull.Value;
+        cmd.Parameters.Add("@DESC", SqlDbType.NVarChar, 120).Value = (object?)description    ?? DBNull.Value;
         cmd.Parameters.Add("@AF",   SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@CB",   SqlDbType.VarChar,   50).Value = createdBy;
+        cmd.Parameters.Add("@CB",   SqlDbType.VarChar,   20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -3944,16 +3944,16 @@ public sealed class MasterDataRepository
             "ModuleCode=@AM,RequiresComment=@RC2,PlannedFlag=@PF," +
             "DisplayOrder=@DO,Description=@DESC,ActiveFlag=@AF," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE ReasonCode=@C;", conn);
-        cmd.Parameters.Add("@C",    SqlDbType.VarChar,   20).Value  = code;
-        cmd.Parameters.Add("@RN",   SqlDbType.NVarChar, 100).Value  = (object?)reasonName      ?? DBNull.Value;
-        cmd.Parameters.Add("@RT",   SqlDbType.VarChar,   20).Value  = (object?)reasonType      ?? DBNull.Value;
-        cmd.Parameters.Add("@AM",   SqlDbType.VarChar,   20).Value  = (object?)moduleCode ?? DBNull.Value;
+        cmd.Parameters.Add("@C",    SqlDbType.VarChar,   16).Value  = code;
+        cmd.Parameters.Add("@RN",   SqlDbType.NVarChar,  60).Value  = (object?)reasonName      ?? DBNull.Value;
+        cmd.Parameters.Add("@RT",   SqlDbType.VarChar,   12).Value  = (object?)reasonType      ?? DBNull.Value;
+        cmd.Parameters.Add("@AM",   SqlDbType.VarChar,   10).Value  = (object?)moduleCode ?? DBNull.Value;
         cmd.Parameters.Add("@RC2",  SqlDbType.Bit).Value            = requiresComment;
         cmd.Parameters.Add("@PF",   SqlDbType.Bit).Value            = plannedFlag;
         cmd.Parameters.Add("@DO",   SqlDbType.Int).Value            = (object?)displayOrder   ?? DBNull.Value;
-        cmd.Parameters.Add("@DESC", SqlDbType.NVarChar, 500).Value  = (object?)description    ?? DBNull.Value;
+        cmd.Parameters.Add("@DESC", SqlDbType.NVarChar, 120).Value  = (object?)description    ?? DBNull.Value;
         cmd.Parameters.Add("@AF",   SqlDbType.Bit).Value            = activeFlag;
-        cmd.Parameters.Add("@MB",   SqlDbType.NVarChar,  20).Value  = modifiedBy;
+        cmd.Parameters.Add("@MB",   SqlDbType.VarChar,   20).Value  = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -3961,7 +3961,7 @@ public sealed class MasterDataRepository
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("DELETE FROM dbo.MD_ReasonCode WHERE ReasonCode=@C;", conn);
-        cmd.Parameters.Add("@C", SqlDbType.VarChar, 20).Value = code;
+        cmd.Parameters.Add("@C", SqlDbType.VarChar, 16).Value = code;
         cmd.ExecuteNonQuery();
     }
 
@@ -3970,7 +3970,7 @@ public sealed class MasterDataRepository
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_SparePart WHERE PartNo=@P;", conn);
-        cmd.Parameters.Add("@P", SqlDbType.VarChar, 30).Value = partNo;
+        cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = partNo;
         return cmd.ExecuteScalar() is not null;
     }
 
@@ -3999,7 +3999,7 @@ public sealed class MasterDataRepository
         var pfx = SparePartNoPrefix(category, applicableEquip);
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(string.Format(NextSparePartSeqSql, ""), conn);
-        cmd.Parameters.Add("@Pfx", SqlDbType.VarChar, 12).Value = pfx;
+        cmd.Parameters.Add("@Pfx", SqlDbType.VarChar, 16).Value = pfx;
         return SparePartNoOf(pfx, Convert.ToInt32(cmd.ExecuteScalar()));
     }
 
@@ -4025,7 +4025,7 @@ public sealed class MasterDataRepository
             string spNo;
             using (var seq = new SqlCommand(string.Format(NextSparePartSeqSql, "WITH (UPDLOCK, HOLDLOCK)"), conn, tx))
             {
-                seq.Parameters.Add("@Pfx", SqlDbType.VarChar, 12).Value = pfx;
+                seq.Parameters.Add("@Pfx", SqlDbType.VarChar, 16).Value = pfx;
                 spNo = SparePartNoOf(pfx, Convert.ToInt32(seq.ExecuteScalar()));
             }
 
@@ -4039,8 +4039,8 @@ public sealed class MasterDataRepository
             cmd.Parameters.Add("@ZC",  SqlDbType.VarChar,   20).Value = (object?)zoneCode ?? DBNull.Value;
             cmd.Parameters.Add("@SLT", SqlDbType.VarChar,    5).Value = (object?)slot     ?? DBNull.Value;
             cmd.Parameters.Add("@SP",  SqlDbType.VarChar,   16).Value = spNo;
-            cmd.Parameters.Add("@P",   SqlDbType.VarChar,   30).Value = partNo;
-            cmd.Parameters.Add("@PN",  SqlDbType.NVarChar, 100).Value = (object?)partName    ?? DBNull.Value;
+            cmd.Parameters.Add("@P",   SqlDbType.VarChar,   20).Value = partNo;
+            cmd.Parameters.Add("@PN",  SqlDbType.NVarChar,  60).Value = (object?)partName    ?? DBNull.Value;
             cmd.Parameters.Add("@CAT", SqlDbType.VarChar,    1).Value = category;
             cmd.Parameters.Add("@EQ",  SqlDbType.VarChar,    1).Value = applicableEquip;
         cmd.Parameters.Add("@UC",  SqlDbType.Decimal).Value       = (object?)unitCost    ?? DBNull.Value;
@@ -4052,7 +4052,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@LT",  SqlDbType.Int).Value           = (object?)leadTimeDays ?? DBNull.Value;
         cmd.Parameters.Add("@SI",  SqlDbType.VarChar,   20).Value = (object?)supplierId  ?? DBNull.Value;
             cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
-            cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
+            cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   20).Value = createdBy;
             cmd.ExecuteNonQuery();
             tx.Commit();
             return spNo;
@@ -4079,7 +4079,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@MK",  SqlDbType.NVarChar, 100).Value  = (object?)maker ?? DBNull.Value;
         cmd.Parameters.Add("@ZC",  SqlDbType.VarChar,   20).Value  = (object?)zoneCode ?? DBNull.Value;
         cmd.Parameters.Add("@SLT", SqlDbType.VarChar,    5).Value  = (object?)slot     ?? DBNull.Value;
-        cmd.Parameters.Add("@PN",  SqlDbType.NVarChar, 100).Value  = (object?)partName    ?? DBNull.Value;
+        cmd.Parameters.Add("@PN",  SqlDbType.NVarChar,  60).Value  = (object?)partName    ?? DBNull.Value;
         cmd.Parameters.Add("@CAT", SqlDbType.VarChar,    1).Value  = (object?)category    ?? DBNull.Value;
         cmd.Parameters.Add("@EQ",  SqlDbType.VarChar,    1).Value  = (object?)applicableEquip ?? DBNull.Value;
         cmd.Parameters.Add("@UC",  SqlDbType.Decimal).Value        = (object?)unitCost    ?? DBNull.Value;
@@ -4091,7 +4091,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@LT",  SqlDbType.Int).Value            = (object?)leadTimeDays ?? DBNull.Value;
         cmd.Parameters.Add("@SI",  SqlDbType.VarChar,   20).Value  = (object?)supplierId  ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value            = activeFlag;
-        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar,  20).Value  = modifiedBy;
+        cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value  = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -4135,15 +4135,15 @@ public sealed class MasterDataRepository
             "CycleBasis,IntervalValue,IntervalUnit,StdDurationMin,SafetyLOTOFlag,ActiveFlag,CreatedBy)" +
             " VALUES(@I,@TN,@ET,@CB2,@IV,@IU,@SD,@SL,@AF,@CB);", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = id;
-        cmd.Parameters.Add("@TN",  SqlDbType.NVarChar, 100).Value = (object?)templateName  ?? DBNull.Value;
-        cmd.Parameters.Add("@ET",  SqlDbType.VarChar,   20).Value = (object?)equipType     ?? DBNull.Value;
+        cmd.Parameters.Add("@TN",  SqlDbType.NVarChar,  60).Value = (object?)templateName  ?? DBNull.Value;
+        cmd.Parameters.Add("@ET",  SqlDbType.VarChar,   16).Value = (object?)equipType     ?? DBNull.Value;
         cmd.Parameters.Add("@CB2", SqlDbType.VarChar,   10).Value = (object?)cycleBasis    ?? DBNull.Value;
         cmd.Parameters.Add("@IV",  SqlDbType.Int).Value           = (object?)intervalValue ?? DBNull.Value;
-        cmd.Parameters.Add("@IU",  SqlDbType.VarChar,   10).Value = (object?)intervalUnit  ?? DBNull.Value;
+        cmd.Parameters.Add("@IU",  SqlDbType.VarChar,    8).Value = (object?)intervalUnit  ?? DBNull.Value;
         cmd.Parameters.Add("@SD",  SqlDbType.Int).Value           = (object?)stdDurationMin ?? DBNull.Value;
         cmd.Parameters.Add("@SL",  SqlDbType.Bit).Value           = safetyLoto;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -4158,15 +4158,15 @@ public sealed class MasterDataRepository
             "StdDurationMin=@SD,SafetyLOTOFlag=@SL,ActiveFlag=@AF," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE PMTemplateID=@I;", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value  = id;
-        cmd.Parameters.Add("@TN",  SqlDbType.NVarChar, 100).Value  = (object?)templateName  ?? DBNull.Value;
-        cmd.Parameters.Add("@ET",  SqlDbType.VarChar,   20).Value  = (object?)equipType     ?? DBNull.Value;
+        cmd.Parameters.Add("@TN",  SqlDbType.NVarChar,  60).Value  = (object?)templateName  ?? DBNull.Value;
+        cmd.Parameters.Add("@ET",  SqlDbType.VarChar,   16).Value  = (object?)equipType     ?? DBNull.Value;
         cmd.Parameters.Add("@CB2", SqlDbType.VarChar,   10).Value  = (object?)cycleBasis    ?? DBNull.Value;
         cmd.Parameters.Add("@IV",  SqlDbType.Int).Value            = (object?)intervalValue ?? DBNull.Value;
-        cmd.Parameters.Add("@IU",  SqlDbType.VarChar,   10).Value  = (object?)intervalUnit  ?? DBNull.Value;
+        cmd.Parameters.Add("@IU",  SqlDbType.VarChar,    8).Value  = (object?)intervalUnit  ?? DBNull.Value;
         cmd.Parameters.Add("@SD",  SqlDbType.Int).Value            = (object?)stdDurationMin ?? DBNull.Value;
         cmd.Parameters.Add("@SL",  SqlDbType.Bit).Value            = safetyLoto;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value            = activeFlag;
-        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar,  20).Value  = modifiedBy;
+        cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value  = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -4191,13 +4191,13 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@Id", SqlDbType.VarChar,  24).Value = id;
         cmd.Parameters.Add("@T",  SqlDbType.VarChar,  20).Value = templateId;
         cmd.Parameters.Add("@Sq", SqlDbType.Int).Value            = (object?)stepSeq            ?? DBNull.Value;
-        cmd.Parameters.Add("@SD", SqlDbType.NVarChar,400).Value = (object?)stepDescription    ?? DBNull.Value;
-        cmd.Parameters.Add("@AC", SqlDbType.NVarChar,400).Value = (object?)acceptanceCriteria ?? DBNull.Value;
+        cmd.Parameters.Add("@SD", SqlDbType.NVarChar,200).Value = (object?)stepDescription    ?? DBNull.Value;
+        cmd.Parameters.Add("@AC", SqlDbType.NVarChar,200).Value = (object?)acceptanceCriteria ?? DBNull.Value;
         cmd.Parameters.Add("@RP", SqlDbType.VarChar,  20).Value = (object?)requiredPartNo     ?? DBNull.Value;
         var pRq = cmd.Parameters.Add("@RQ", SqlDbType.Decimal); pRq.Precision = 10; pRq.Scale = 3;
         pRq.Value = (object?)requiredQty ?? DBNull.Value;
         cmd.Parameters.Add("@DM", SqlDbType.Int).Value            = (object?)stepDurationMin    ?? DBNull.Value;
-        cmd.Parameters.Add("@CB", SqlDbType.VarChar,  50).Value = createdBy;
+        cmd.Parameters.Add("@CB", SqlDbType.VarChar,  20).Value = createdBy;
         cmd.ExecuteNonQuery();
         return id;
     }
@@ -4212,13 +4212,13 @@ public sealed class MasterDataRepository
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE PMStepID=@Id;", conn);
         cmd.Parameters.Add("@Id", SqlDbType.VarChar,  24).Value = stepId;
         cmd.Parameters.Add("@Sq", SqlDbType.Int).Value            = (object?)stepSeq            ?? DBNull.Value;
-        cmd.Parameters.Add("@SD", SqlDbType.NVarChar,400).Value = (object?)stepDescription    ?? DBNull.Value;
-        cmd.Parameters.Add("@AC", SqlDbType.NVarChar,400).Value = (object?)acceptanceCriteria ?? DBNull.Value;
+        cmd.Parameters.Add("@SD", SqlDbType.NVarChar,200).Value = (object?)stepDescription    ?? DBNull.Value;
+        cmd.Parameters.Add("@AC", SqlDbType.NVarChar,200).Value = (object?)acceptanceCriteria ?? DBNull.Value;
         cmd.Parameters.Add("@RP", SqlDbType.VarChar,  20).Value = (object?)requiredPartNo     ?? DBNull.Value;
         var pRq = cmd.Parameters.Add("@RQ", SqlDbType.Decimal); pRq.Precision = 10; pRq.Scale = 3;
         pRq.Value = (object?)requiredQty ?? DBNull.Value;
         cmd.Parameters.Add("@DM", SqlDbType.Int).Value            = (object?)stepDurationMin    ?? DBNull.Value;
-        cmd.Parameters.Add("@MB", SqlDbType.NVarChar,20).Value = modifiedBy;
+        cmd.Parameters.Add("@MB", SqlDbType.VarChar, 20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -4253,16 +4253,16 @@ public sealed class MasterDataRepository
             " VALUES(@I,@LI,@PN,@DT,@SM,@EF,@ET,@TOM,@TPD,@TZ,@ST,@CB);", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = patternId;
         cmd.Parameters.Add("@LI",  SqlDbType.VarChar,   20).Value = (object?)lineId           ?? DBNull.Value;
-        cmd.Parameters.Add("@PN",  SqlDbType.NVarChar, 100).Value = (object?)patternName      ?? DBNull.Value;
+        cmd.Parameters.Add("@PN",  SqlDbType.NVarChar,  50).Value = (object?)patternName      ?? DBNull.Value;
         cmd.Parameters.Add("@DT",  SqlDbType.VarChar,   10).Value = (object?)dayType          ?? DBNull.Value;
         cmd.Parameters.Add("@SM",  SqlDbType.VarChar,   20).Value = (object?)shiftPattern       ?? DBNull.Value;
         cmd.Parameters.Add("@EF",  SqlDbType.Date).Value          = effectiveFrom.HasValue    ? (object)effectiveFrom.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
         cmd.Parameters.Add("@ET",  SqlDbType.Date).Value          = effectiveTo.HasValue      ? (object)effectiveTo.Value.ToDateTime(TimeOnly.MinValue)   : DBNull.Value;
         cmd.Parameters.Add("@TOM", SqlDbType.Int).Value           = (object?)totalOperatingMin   ?? DBNull.Value;
         cmd.Parameters.Add("@TPD", SqlDbType.Int).Value           = (object?)totalPlannedDownMin  ?? DBNull.Value;
-        cmd.Parameters.Add("@TZ",  SqlDbType.VarChar,   50).Value = (object?)timeZone         ?? DBNull.Value;
-        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   10).Value = (object?)status           ?? DBNull.Value;
-        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
+        cmd.Parameters.Add("@TZ",  SqlDbType.VarChar,   20).Value = (object?)timeZone         ?? DBNull.Value;
+        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,    8).Value = (object?)status           ?? DBNull.Value;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -4280,16 +4280,16 @@ public sealed class MasterDataRepository
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE PatternID=@I;", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value  = patternId;
         cmd.Parameters.Add("@LI",  SqlDbType.VarChar,   20).Value  = (object?)lineId           ?? DBNull.Value;
-        cmd.Parameters.Add("@PN",  SqlDbType.NVarChar, 100).Value  = (object?)patternName      ?? DBNull.Value;
+        cmd.Parameters.Add("@PN",  SqlDbType.NVarChar,  50).Value  = (object?)patternName      ?? DBNull.Value;
         cmd.Parameters.Add("@DT",  SqlDbType.VarChar,   10).Value  = (object?)dayType          ?? DBNull.Value;
         cmd.Parameters.Add("@SM",  SqlDbType.VarChar,   20).Value  = (object?)shiftPattern       ?? DBNull.Value;
         cmd.Parameters.Add("@EF",  SqlDbType.Date).Value           = effectiveFrom.HasValue    ? (object)effectiveFrom.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
         cmd.Parameters.Add("@ET",  SqlDbType.Date).Value           = effectiveTo.HasValue      ? (object)effectiveTo.Value.ToDateTime(TimeOnly.MinValue)   : DBNull.Value;
         cmd.Parameters.Add("@TOM", SqlDbType.Int).Value            = (object?)totalOperatingMin   ?? DBNull.Value;
         cmd.Parameters.Add("@TPD", SqlDbType.Int).Value            = (object?)totalPlannedDownMin  ?? DBNull.Value;
-        cmd.Parameters.Add("@TZ",  SqlDbType.VarChar,   50).Value  = (object?)timeZone         ?? DBNull.Value;
-        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   10).Value  = (object?)status           ?? DBNull.Value;
-        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar,  20).Value  = modifiedBy;
+        cmd.Parameters.Add("@TZ",  SqlDbType.VarChar,   20).Value  = (object?)timeZone         ?? DBNull.Value;
+        cmd.Parameters.Add("@ST",  SqlDbType.VarChar,    8).Value  = (object?)status           ?? DBNull.Value;
+        cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value  = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -4354,7 +4354,7 @@ public sealed class MasterDataRepository
                 cmd.Parameters.Add("@R",  SqlDbType.VarChar, 16).Value = (object?)reason ?? DBNull.Value;
                 cmd.Parameters.Add("@Sh", SqlDbType.VarChar, 10).Value = (object?)shift  ?? DBNull.Value;
                 cmd.Parameters.Add("@D",  SqlDbType.NVarChar,60).Value = (object?)desc   ?? DBNull.Value;
-                cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor  ?? DBNull.Value;
+                cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = (object?)actor  ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
                 return id;
             }
@@ -4376,7 +4376,7 @@ public sealed class MasterDataRepository
                     {
                         cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = seg.Id;
                         cmd.Parameters.Add("@E",  SqlDbType.SmallInt).Value    = (short)startMin;
-                        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor ?? DBNull.Value;
+                        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = (object?)actor ?? DBNull.Value;
                         cmd.ExecuteNonQuery();
                     }
                     InsertSeg(endMin, seg.End, seg.State, seg.Reason, seg.Shift, seg.Desc);
@@ -4386,7 +4386,7 @@ public sealed class MasterDataRepository
                     using var cmd = new SqlCommand("UPDATE dbo.MD_LineTimeSegment SET EndMin=@E, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE SegmentID=@Id;", conn, tx);
                     cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = seg.Id;
                     cmd.Parameters.Add("@E",  SqlDbType.SmallInt).Value    = (short)startMin;
-                    cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor ?? DBNull.Value;
+                    cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = (object?)actor ?? DBNull.Value;
                     cmd.ExecuteNonQuery();
                 }
                 else // rightFree
@@ -4394,7 +4394,7 @@ public sealed class MasterDataRepository
                     using var cmd = new SqlCommand("UPDATE dbo.MD_LineTimeSegment SET StartMin=@S, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE SegmentID=@Id;", conn, tx);
                     cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = seg.Id;
                     cmd.Parameters.Add("@S",  SqlDbType.SmallInt).Value    = (short)endMin;
-                    cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor ?? DBNull.Value;
+                    cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = (object?)actor ?? DBNull.Value;
                     cmd.ExecuteNonQuery();
                 }
             }
@@ -4436,8 +4436,8 @@ public sealed class MasterDataRepository
                 cmd.Parameters.Add("@St", SqlDbType.VarChar, 20).Value = (object?)s.State  ?? DBNull.Value;
                 cmd.Parameters.Add("@R",  SqlDbType.VarChar, 16).Value = (object?)s.Reason ?? DBNull.Value;
                 cmd.Parameters.Add("@Sh", SqlDbType.VarChar, 10).Value = (object?)s.Shift  ?? DBNull.Value;
-                cmd.Parameters.Add("@D",  SqlDbType.NVarChar,120).Value = (object?)s.Description ?? DBNull.Value;
-                cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor    ?? DBNull.Value;
+                cmd.Parameters.Add("@D",  SqlDbType.NVarChar, 60).Value = (object?)s.Description ?? DBNull.Value;
+                cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = (object?)actor    ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
 
@@ -4504,7 +4504,7 @@ public sealed class MasterDataRepository
                 && string.Equals(cur.Reason, nxt.Reason, StringComparison.Ordinal))
             {
                 using (var cmd = new SqlCommand("UPDATE dbo.MD_LineTimeSegment SET EndMin=@E, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE SegmentID=@Id;", conn, tx))
-                { cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = cur.Id; cmd.Parameters.Add("@E", SqlDbType.SmallInt).Value = (short)nxt.End; cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor ?? DBNull.Value; cmd.ExecuteNonQuery(); }
+                { cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = cur.Id; cmd.Parameters.Add("@E", SqlDbType.SmallInt).Value = (short)nxt.End; cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = (object?)actor ?? DBNull.Value; cmd.ExecuteNonQuery(); }
                 using (var cmd = new SqlCommand("DELETE FROM dbo.MD_LineTimeSegment WHERE SegmentID=@Id;", conn, tx))
                 { cmd.Parameters.Add("@Id", SqlDbType.VarChar, 24).Value = nxt.Id; cmd.ExecuteNonQuery(); }
                 segs[i] = (cur.Id, cur.Start, nxt.End, cur.State, cur.Reason, cur.Shift);
@@ -4534,7 +4534,7 @@ public sealed class MasterDataRepository
                 ModifiedBy = @By, ModifiedTS = SYSDATETIME()
             WHERE PatternID=@P;
             """, conn, tx))
-        { cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = patternId; cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor ?? DBNull.Value; cmd.ExecuteNonQuery(); }
+        { cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = patternId; cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = (object?)actor ?? DBNull.Value; cmd.ExecuteNonQuery(); }
 
         RebuildMinuteFlags(patternId, actor, conn, tx);
     }
@@ -4607,7 +4607,7 @@ public sealed class MasterDataRepository
         {
             cmd.Parameters.Add("@O",  SqlDbType.Char, 1440).Value = opStr;
             cmd.Parameters.Add("@S",  SqlDbType.Char, 1440).Value = sgStr;
-            cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = (object?)actor ?? DBNull.Value;
+            cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = (object?)actor ?? DBNull.Value;
             cmd.Parameters.Add("@P",  SqlDbType.VarChar, 20).Value = patternId;
             cmd.ExecuteNonQuery();
         }
@@ -4632,14 +4632,14 @@ public sealed class MasterDataRepository
             "ItemNo,CycleTime,Version,EffectiveDate,Status,CreatedBy)" +
             " VALUES(@I,@RN,@RT,@IN,@CT,@VER,@ED,@ST,@CB);", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = recipeId;
-        cmd.Parameters.Add("@RN",  SqlDbType.NVarChar, 100).Value = (object?)recipeName    ?? DBNull.Value;
-        cmd.Parameters.Add("@RT",  SqlDbType.VarChar,   20).Value = (object?)recipeType    ?? DBNull.Value;
-        cmd.Parameters.Add("@IN",  SqlDbType.VarChar,   30).Value = (object?)itemNo        ?? DBNull.Value;
+        cmd.Parameters.Add("@RN",  SqlDbType.NVarChar,  60).Value = (object?)recipeName    ?? DBNull.Value;
+        cmd.Parameters.Add("@RT",  SqlDbType.VarChar,   15).Value = (object?)recipeType    ?? DBNull.Value;
+        cmd.Parameters.Add("@IN",  SqlDbType.VarChar,   20).Value = (object?)itemNo        ?? DBNull.Value;
         cmd.Parameters.Add("@CT",  SqlDbType.Int).Value           = (object?)cycleTime     ?? DBNull.Value;
         cmd.Parameters.Add("@VER", SqlDbType.VarChar,   10).Value = (object?)version       ?? DBNull.Value;
         cmd.Parameters.Add("@ED",  SqlDbType.Date).Value          = effectiveDate.HasValue  ? (object)effectiveDate.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
         cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   10).Value = (object?)status        ?? DBNull.Value;
-        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   50).Value = createdBy;
+        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -4653,14 +4653,14 @@ public sealed class MasterDataRepository
             "ItemNo=@IN,CycleTime=@CT,Version=@VER,EffectiveDate=@ED,Status=@ST," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE RecipeID=@I;", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value  = recipeId;
-        cmd.Parameters.Add("@RN",  SqlDbType.NVarChar, 100).Value  = (object?)recipeName    ?? DBNull.Value;
-        cmd.Parameters.Add("@RT",  SqlDbType.VarChar,   20).Value  = (object?)recipeType    ?? DBNull.Value;
-        cmd.Parameters.Add("@IN",  SqlDbType.VarChar,   30).Value  = (object?)itemNo        ?? DBNull.Value;
+        cmd.Parameters.Add("@RN",  SqlDbType.NVarChar,  60).Value  = (object?)recipeName    ?? DBNull.Value;
+        cmd.Parameters.Add("@RT",  SqlDbType.VarChar,   15).Value  = (object?)recipeType    ?? DBNull.Value;
+        cmd.Parameters.Add("@IN",  SqlDbType.VarChar,   20).Value  = (object?)itemNo        ?? DBNull.Value;
         cmd.Parameters.Add("@CT",  SqlDbType.Int).Value            = (object?)cycleTime     ?? DBNull.Value;
         cmd.Parameters.Add("@VER", SqlDbType.VarChar,   10).Value  = (object?)version       ?? DBNull.Value;
         cmd.Parameters.Add("@ED",  SqlDbType.Date).Value           = effectiveDate.HasValue  ? (object)effectiveDate.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
         cmd.Parameters.Add("@ST",  SqlDbType.VarChar,   10).Value  = (object?)status        ?? DBNull.Value;
-        cmd.Parameters.Add("@MB",  SqlDbType.NVarChar,  20).Value  = modifiedBy;
+        cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value  = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 

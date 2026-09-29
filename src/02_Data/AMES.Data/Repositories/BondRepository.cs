@@ -69,7 +69,7 @@ public sealed class BondRepository
         cmd.Parameters.Add("@H",  SqlDbType.Int).Value     = holdSec;
         cmd.Parameters.Add("@Tn", SqlDbType.Decimal).Value = (object?)tension ?? DBNull.Value;
         cmd.Parameters.Add("@Op", SqlDbType.NVarChar, 450).Value = operatorId;
-        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value   = employeeNo;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value   = employeeNo;
         return (int)cmd.ExecuteScalar()!;
     }
 
@@ -93,7 +93,7 @@ public sealed class BondRepository
         cmd.Parameters.Add("@H",  SqlDbType.Int).Value     = holdActualSec;
         cmd.Parameters.Add("@Tn", SqlDbType.Decimal).Value = (object?)tensionAvg ?? DBNull.Value;
         cmd.Parameters.Add("@W",  SqlDbType.Bit).Value     = withinSpec;
-        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = employeeNo;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = employeeNo;
         cmd.ExecuteNonQuery();
     }
 }

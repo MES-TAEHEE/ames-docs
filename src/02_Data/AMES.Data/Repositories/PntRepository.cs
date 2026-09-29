@@ -138,7 +138,7 @@ public sealed class PntRepository
         cmd.Parameters.Add("@R",  SqlDbType.VarChar, 12).Value  = ralColor;
         cmd.Parameters.Add("@T",  SqlDbType.Int).Value          = targetQty;
         cmd.Parameters.Add("@Op", SqlDbType.NVarChar, 450).Value= operatorId;
-        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value  = employeeNo;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value  = employeeNo;
         return (int)cmd.ExecuteScalar()!;
     }
 
@@ -199,7 +199,7 @@ public sealed class PntRepository
                 upd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
                 upd.Parameters.Add("@J",     SqlDbType.VarChar,  20   ).Value = jigId;
                 upd.Parameters.Add("@Q",     SqlDbType.Int            ).Value = loadedQty;
-                upd.Parameters.Add("@ModBy", SqlDbType.NVarChar,  20  ).Value = operatorId;
+                upd.Parameters.Add("@ModBy", SqlDbType.VarChar,     20).Value = operatorId;
                 upd.ExecuteNonQuery();
             }
 
@@ -215,7 +215,7 @@ public sealed class PntRepository
                 ins.Parameters.Add("@Q",  SqlDbType.Int).Value         = loadedQty;
                 ins.Parameters.Add("@Op", SqlDbType.NVarChar, 450).Value = operatorId;
                 ins.Parameters.Add("@L",  SqlDbType.VarChar, 20).Value = lineId;
-                ins.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = employeeNo;
+                ins.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = employeeNo;
                 ins.ExecuteNonQuery();
             }
 
@@ -228,7 +228,7 @@ public sealed class PntRepository
                 """, conn, tx))
             {
                 ev.Parameters.Add("@J",  SqlDbType.VarChar, 20).Value = jigId;
-                ev.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = employeeNo;
+                ev.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = employeeNo;
                 ev.ExecuteNonQuery();
             }
 
@@ -355,7 +355,7 @@ public sealed class PntRepository
                 upd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
                 upd.Parameters.Add("@G",     SqlDbType.Int            ).Value = goodQty;
                 upd.Parameters.Add("@D",     SqlDbType.Int            ).Value = defectQty;
-                upd.Parameters.Add("@ModBy", SqlDbType.NVarChar,  20  ).Value = operatorId;
+                upd.Parameters.Add("@ModBy", SqlDbType.VarChar,     20).Value = operatorId;
                 upd.ExecuteNonQuery();
             }
 
@@ -369,7 +369,7 @@ public sealed class PntRepository
                 """, conn, tx))
             {
                 ev.Parameters.Add("@V",  SqlDbType.Int).Value         = virtualLotId;
-                ev.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = employeeNo;
+                ev.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = employeeNo;
                 ev.ExecuteNonQuery();
             }
 
@@ -389,7 +389,7 @@ public sealed class PntRepository
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
-        cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar,  20  ).Value = (object?)userId ?? DBNull.Value;
+        cmd.Parameters.Add("@ModBy", SqlDbType.VarChar,     20).Value = (object?)userId ?? DBNull.Value;
         cmd.ExecuteNonQuery();
     }
 
@@ -431,7 +431,7 @@ public sealed class PntRepository
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
         cmd.Parameters.Add("@Q",     SqlDbType.Int            ).Value = qty;
-        cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar,  20  ).Value = operatorId;
+        cmd.Parameters.Add("@ModBy", SqlDbType.VarChar,     20).Value = operatorId;
         cmd.ExecuteNonQuery();
     }
 

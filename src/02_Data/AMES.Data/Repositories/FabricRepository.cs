@@ -101,7 +101,7 @@ public sealed class FabricRepository
         cmd.Parameters.Add("@E",  SqlDbType.VarChar, 10).Value = (object?)expectedColor ?? DBNull.Value;
         cmd.Parameters.Add("@R",  SqlDbType.VarChar, 10).Value = result;
         cmd.Parameters.Add("@Op", SqlDbType.NVarChar, 450).Value = operatorId;
-        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value   = employeeNo;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value   = employeeNo;
         cmd.ExecuteNonQuery();
     }
 
@@ -127,7 +127,7 @@ public sealed class FabricRepository
                 """, conn, tx))
             {
                 d.Parameters.Add("@L",     SqlDbType.VarChar,  20  ).Value = lineId;
-                d.Parameters.Add("@ModBy", SqlDbType.NVarChar,  20 ).Value = operatorId;
+                d.Parameters.Add("@ModBy", SqlDbType.VarChar,    20).Value = operatorId;
                 d.ExecuteNonQuery();
             }
 
@@ -145,7 +145,7 @@ public sealed class FabricRepository
             cmd.Parameters.Add("@Op",  SqlDbType.NVarChar, 450).Value = operatorId;
             cmd.Parameters.Add("@Sess",SqlDbType.Int).Value = (object?)sessionId ?? DBNull.Value;
             cmd.Parameters.Add("@L",   SqlDbType.VarChar, 20).Value = lineId;
-            cmd.Parameters.Add("@By",  SqlDbType.VarChar, 50).Value = employeeNo;
+            cmd.Parameters.Add("@By",  SqlDbType.VarChar, 20).Value = employeeNo;
             var id = (int)cmd.ExecuteScalar()!;
             tx.Commit();
             return id;
@@ -184,7 +184,7 @@ public sealed class FabricRepository
             {
                 upd.Parameters.Add("@After", SqlDbType.Decimal        ).Value = after;
                 upd.Parameters.Add("@L",     SqlDbType.Int            ).Value = rollLotId;
-                upd.Parameters.Add("@ModBy", SqlDbType.NVarChar,  20  ).Value = (object?)userId ?? DBNull.Value;
+                upd.Parameters.Add("@ModBy", SqlDbType.VarChar,     20).Value = (object?)userId ?? DBNull.Value;
                 upd.ExecuteNonQuery();
             }
 
@@ -200,7 +200,7 @@ public sealed class FabricRepository
                 log.Parameters.Add("@C",      SqlDbType.Decimal).Value = consumedM;
                 log.Parameters.Add("@Before", SqlDbType.Decimal).Value = before;
                 log.Parameters.Add("@After",  SqlDbType.Decimal).Value = after;
-                log.Parameters.Add("@By",     SqlDbType.VarChar, 50).Value = employeeNo;
+                log.Parameters.Add("@By",     SqlDbType.VarChar, 20).Value = employeeNo;
                 log.ExecuteNonQuery();
             }
 

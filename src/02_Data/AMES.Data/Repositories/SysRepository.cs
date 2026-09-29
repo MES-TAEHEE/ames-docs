@@ -380,7 +380,7 @@ public sealed class SysRepository
         cmd.Parameters.Add("@Cnt",  SqlDbType.Int).Value           = (object?)recordCount ?? DBNull.Value;
         var err = error is null ? null : error.Length > 1000 ? error[..1000] : error;
         cmd.Parameters.Add("@Err",  SqlDbType.NVarChar, 1000).Value = (object?)err ?? DBNull.Value;
-        cmd.Parameters.Add("@Actor", SqlDbType.VarChar, 50).Value  = actor;   // CreatedBy VARCHAR(50)
+        cmd.Parameters.Add("@Actor", SqlDbType.VarChar, 20).Value  = actor;   // CreatedBy VARCHAR(50)
         cmd.ExecuteNonQuery();
     }
 

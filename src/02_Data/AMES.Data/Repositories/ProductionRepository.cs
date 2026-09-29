@@ -60,7 +60,7 @@ public sealed class ProductionRepository
                 cmd.Parameters.Add("@LineID",  SqlDbType.VarChar, 20).Value = lineId;
                 cmd.Parameters.Add("@Proc",    SqlDbType.VarChar, 10).Value = processCode;
                 cmd.Parameters.Add("@Qty",     SqlDbType.Decimal   ).Value = (decimal)goodQty;
-                cmd.Parameters.Add("@By",      SqlDbType.VarChar, 50).Value = employeeNo;
+                cmd.Parameters.Add("@By",      SqlDbType.VarChar, 20).Value = employeeNo;
                 lotId = (int)cmd.ExecuteScalar()!;
             }
 
@@ -93,7 +93,7 @@ public sealed class ProductionRepository
                 cmd.Parameters.Add("@Op",      SqlDbType.NVarChar, 450 ).Value = operatorId;
                 cmd.Parameters.Add("@Sess",    SqlDbType.Int           ).Value = (object?)sessionId ?? DBNull.Value;
                 cmd.Parameters.Add("@DF",      SqlDbType.Bit           ).Value = defectFlag;
-                cmd.Parameters.Add("@By",      SqlDbType.VarChar, 50   ).Value = employeeNo;
+                cmd.Parameters.Add("@By",      SqlDbType.VarChar,    20).Value = employeeNo;
                 resultId = (int)cmd.ExecuteScalar()!;
             }
 

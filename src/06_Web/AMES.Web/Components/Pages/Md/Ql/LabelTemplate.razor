@@ -119,12 +119,12 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["Col.TemplateId"]" class="ames-rz-modal-label" Component="CreateTextBoxLabelTemplateID" />
-                <RadzenTextBox Name="CreateTextBoxLabelTemplateID" @bind-Value="_f.LabelTemplateID" Placeholder="LBL-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxLabelTemplateID" @bind-Value="_f.LabelTemplateID" MaxLength="20" Placeholder="LBL-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text="@L["Col.TemplateName"]" class="ames-rz-modal-label" Component="CreateTextBoxTemplateName" />
-                <RadzenTextBox Name="CreateTextBoxTemplateName" @bind-Value="_f.TemplateName" Placeholder="@L["MD.LabelTemplate.Ph.TemplateName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxTemplateName" @bind-Value="_f.TemplateName" MaxLength="60" Placeholder="@L["MD.LabelTemplate.Ph.TemplateName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -134,7 +134,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.PaperSize"]" />
-                    <RadzenTextBox @bind-Value="_f.PaperSize" Placeholder="A4 / 100x70" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.PaperSize" MaxLength="12" Placeholder="A4 / 100x70" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -156,7 +156,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.PrinterModel"]" />
-                    <RadzenTextBox @bind-Value="_f.PrinterModel" Placeholder="Zebra ZT230" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.PrinterModel" MaxLength="30" Placeholder="Zebra ZT230" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -192,7 +192,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["Col.TemplateName"]" class="ames-rz-modal-label" Component="EditTextBoxTemplateName" />
-                <RadzenTextBox Name="EditTextBoxTemplateName" @bind-Value="_f.TemplateName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="EditTextBoxTemplateName" @bind-Value="_f.TemplateName" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -202,7 +202,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.PaperSize"]" />
-                    <RadzenTextBox @bind-Value="_f.PaperSize" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.PaperSize" MaxLength="12" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -224,7 +224,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.PrinterModel"]" />
-                    <RadzenTextBox @bind-Value="_f.PrinterModel" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.PrinterModel" MaxLength="30" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 

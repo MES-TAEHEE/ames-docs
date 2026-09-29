@@ -57,7 +57,7 @@ public sealed class PopSessionRepository
         cmd.Parameters.Add("@AuthMethod", SqlDbType.VarChar,   20 ).Value = method.ToString();
         cmd.Parameters.Add("@StartedAt",  SqlDbType.DateTime2     ).Value = startedAt;
         cmd.Parameters.Add("@ExpiresAt",  SqlDbType.DateTime2     ).Value = expiresAt;
-        cmd.Parameters.Add("@CreatedBy",  SqlDbType.VarChar,   50 ).Value = profile.EmployeeNo;
+        cmd.Parameters.Add("@CreatedBy",  SqlDbType.VarChar,    20).Value = profile.EmployeeNo;
 
         var sessionId = (int)cmd.ExecuteScalar()!;
 
@@ -109,7 +109,7 @@ public sealed class PopSessionRepository
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@SessionID", SqlDbType.Int            ).Value = sessionId;
         cmd.Parameters.Add("@Reason",    SqlDbType.VarChar,  20   ).Value = reason;
-        cmd.Parameters.Add("@ModBy",     SqlDbType.NVarChar,  20  ).Value = (object?)userId ?? DBNull.Value;
+        cmd.Parameters.Add("@ModBy",     SqlDbType.VarChar,     20).Value = (object?)userId ?? DBNull.Value;
         cmd.ExecuteNonQuery();
     }
 
@@ -140,7 +140,7 @@ public sealed class PopSessionRepository
         cmd.Parameters.Add("@Result",      SqlDbType.VarChar, 10).Value = ShortResult(result);
         cmd.Parameters.Add("@FailReason",  SqlDbType.VarChar, 40).Value = (object?)failReason ?? DBNull.Value;
         // 시도한 사번. 모르는 배지는 스캔값 전체가 오므로 사번 폭(20)으로 자른다.
-        cmd.Parameters.Add("@CreatedBy",   SqlDbType.VarChar, 50).Value = attemptedId.Length > 20 ? attemptedId[..20] : attemptedId;
+        cmd.Parameters.Add("@CreatedBy",   SqlDbType.VarChar, 20).Value = attemptedId.Length > 20 ? attemptedId[..20] : attemptedId;
         cmd.ExecuteNonQuery();
     }
 

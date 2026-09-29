@@ -111,7 +111,7 @@ public sealed class QcRepository
         cmd.Parameters.Add("@St", SqlDbType.NVarChar, 100).Value = (object?)std ?? DBNull.Value;
         cmd.Parameters.Add("@M",  SqlDbType.NVarChar, 100).Value = measured;
         cmd.Parameters.Add("@R",  SqlDbType.VarChar,  10).Value  = result;
-        cmd.Parameters.Add("@By", SqlDbType.VarChar,  50).Value  = employeeNo;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar,  20).Value  = employeeNo;
         cmd.ExecuteNonQuery();
     }
 
@@ -134,7 +134,7 @@ public sealed class QcRepository
         cmd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value  = itemNo;
         cmd.Parameters.Add("@S",  SqlDbType.Int).Value          = sampleSize;
         cmd.Parameters.Add("@Op", SqlDbType.NVarChar, 450).Value= inspectorId;
-        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value  = employeeNo;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value  = employeeNo;
         return (int)cmd.ExecuteScalar()!;
     }
 
@@ -183,7 +183,7 @@ public sealed class QcRepository
         cmd.Parameters.Add("@Q",  SqlDbType.Decimal).Value      = affectedQty;
         cmd.Parameters.Add("@D",  SqlDbType.VarChar, 15).Value  = disposition;
         cmd.Parameters.Add("@Op", SqlDbType.NVarChar, 450).Value= operatorId;
-        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value  = employeeNo;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value  = employeeNo;
         return (int)cmd.ExecuteScalar()!;
     }
 
@@ -227,7 +227,7 @@ public sealed class QcRepository
             {
                 upd.Parameters.Add("@H",  SqlDbType.Int            ).Value = holdId;
                 upd.Parameters.Add("@A",  SqlDbType.VarChar, 15    ).Value = action;
-                upd.Parameters.Add("@By", SqlDbType.NVarChar,  20  ).Value = releasedBy;
+                upd.Parameters.Add("@By", SqlDbType.VarChar,     20).Value = releasedBy;
                 upd.ExecuteNonQuery();
             }
 
@@ -241,8 +241,8 @@ public sealed class QcRepository
                 ins.Parameters.Add("@H",  SqlDbType.Int).Value           = holdId;
                 ins.Parameters.Add("@A",  SqlDbType.VarChar, 15).Value   = action;
                 ins.Parameters.Add("@R",  SqlDbType.NVarChar, 500).Value = reason;
-                ins.Parameters.Add("@By", SqlDbType.NVarChar,  20).Value = releasedBy;
-                ins.Parameters.Add("@Emp",SqlDbType.VarChar, 50).Value   = employeeNo;
+                ins.Parameters.Add("@By", SqlDbType.NVarChar,  450).Value = releasedBy;
+                ins.Parameters.Add("@Emp",SqlDbType.VarChar, 20).Value   = employeeNo;
                 ins.ExecuteNonQuery();
             }
 

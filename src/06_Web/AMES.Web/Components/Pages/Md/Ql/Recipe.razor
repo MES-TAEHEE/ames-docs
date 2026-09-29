@@ -116,12 +116,12 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["Col.RecipeId"]" class="ames-rz-modal-label" Component="CreateTextBoxRecipeID" />
-                <RadzenTextBox Name="CreateTextBoxRecipeID" @bind-Value="_f.RecipeID" Placeholder="RCP-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxRecipeID" @bind-Value="_f.RecipeID" MaxLength="20" Placeholder="RCP-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text="@L["Col.RecipeName"]" class="ames-rz-modal-label" Component="CreateTextBoxRecipeName" />
-                <RadzenTextBox Name="CreateTextBoxRecipeName" @bind-Value="_f.RecipeName" Placeholder="@L["MD.Recipe.Ph.RecipeName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxRecipeName" @bind-Value="_f.RecipeName" MaxLength="60" Placeholder="@L["MD.Recipe.Ph.RecipeName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -142,7 +142,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Version"]" />
-                    <RadzenTextBox @bind-Value="_f.Version" Placeholder="v1.0" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.Version" MaxLength="10" Placeholder="v1.0" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -179,7 +179,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["Col.RecipeName"]" class="ames-rz-modal-label" Component="EditTextBoxRecipeName" />
-                <RadzenTextBox Name="EditTextBoxRecipeName" @bind-Value="_f.RecipeName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="EditTextBoxRecipeName" @bind-Value="_f.RecipeName" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -200,7 +200,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Version"]" />
-                    <RadzenTextBox @bind-Value="_f.Version" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.Version" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 

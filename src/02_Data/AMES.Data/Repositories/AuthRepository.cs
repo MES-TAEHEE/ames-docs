@@ -145,7 +145,7 @@ public sealed class AuthRepository
         using var conn = _connFactory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@UserID", SqlDbType.NVarChar, 450).Value = userId;
-        cmd.Parameters.Add("@ModifiedBy", SqlDbType.NVarChar,  20).Value = (object?)modifiedBy ?? DBNull.Value;
+        cmd.Parameters.Add("@ModifiedBy", SqlDbType.VarChar,   20).Value = (object?)modifiedBy ?? DBNull.Value;
         var result = cmd.ExecuteScalar();
         return result is string s && s == "LOCKED";
     }
@@ -246,7 +246,7 @@ public sealed class AuthRepository
         using var conn = _connFactory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@UserID",     SqlDbType.NVarChar,  450).Value = userId;
-        cmd.Parameters.Add("@ModifiedBy", SqlDbType.VarChar,    50).Value = modifiedBy;
+        cmd.Parameters.Add("@ModifiedBy", SqlDbType.VarChar,    20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
 
@@ -269,7 +269,7 @@ public sealed class AuthRepository
         using var conn = _connFactory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@UserID", SqlDbType.NVarChar, 450).Value = userId;
-        cmd.Parameters.Add("@ModifiedBy", SqlDbType.NVarChar,  20).Value = (object?)modifiedBy ?? DBNull.Value;
+        cmd.Parameters.Add("@ModifiedBy", SqlDbType.VarChar,   20).Value = (object?)modifiedBy ?? DBNull.Value;
         cmd.ExecuteNonQuery();
     }
 }

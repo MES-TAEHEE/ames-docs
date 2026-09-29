@@ -65,7 +65,7 @@ internal static class LotDefectWriter
             cmd.Parameters.Add("@Now",      SqlDbType.DateTime2    ).Value = now;
             cmd.Parameters.Add("@ProdDate", SqlDbType.Date         ).Value = prodDate;
             cmd.Parameters.Add("@Shift",    SqlDbType.VarChar, 10  ).Value = (object?)shiftCode ?? DBNull.Value;
-            cmd.Parameters.Add("@By",       SqlDbType.VarChar, 50  ).Value = employeeNo;
+            cmd.Parameters.Add("@By",       SqlDbType.VarChar,   20).Value = employeeNo;
             reversalId = (int)cmd.ExecuteScalar()!;
         }
 
@@ -101,7 +101,7 @@ internal static class LotDefectWriter
         cmd.Parameters.Add("@Prior", SqlDbType.VarChar,  16 ).Value = priorStatus;
         cmd.Parameters.Add("@Rev",   SqlDbType.Int          ).Value = (object?)reversalResultId ?? DBNull.Value;
         cmd.Parameters.Add("@Op",    SqlDbType.NVarChar, 450).Value = operatorId;
-        cmd.Parameters.Add("@By",    SqlDbType.VarChar,  50 ).Value = employeeNo;
+        cmd.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = employeeNo;
         return (int)cmd.ExecuteScalar()!;
     }
 

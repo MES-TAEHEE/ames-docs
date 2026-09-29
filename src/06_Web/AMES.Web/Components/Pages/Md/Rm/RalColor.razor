@@ -123,12 +123,12 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text='@L["Col.RalCode"]' class="ames-rz-modal-label" Component="CreateTextBoxRALCode" />
-                <RadzenTextBox Name="CreateTextBoxRALCode" @bind-Value="_f.RALCode" Placeholder="RAL1000" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxRALCode" @bind-Value="_f.RALCode" MaxLength="12" Placeholder="RAL1000" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@L["Col.ColorName"]' class="ames-rz-modal-label" Component="CreateTextBoxColorName" />
-                <RadzenTextBox Name="CreateTextBoxColorName" @bind-Value="_f.ColorName" Placeholder="Green Beige" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxColorName" @bind-Value="_f.ColorName" MaxLength="40" Placeholder="Green Beige" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -138,7 +138,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text='@L["Col.CurrentLot"]' />
-                    <RadzenTextBox @bind-Value="_f.CurrentPowderLot" Placeholder="LOT-2024-001" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.CurrentPowderLot" MaxLength="24" Placeholder="LOT-2024-001" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -191,7 +191,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text='@L["Col.ColorName"]' class="ames-rz-modal-label" Component="EditTextBoxColorName" />
-                <RadzenTextBox Name="EditTextBoxColorName" @bind-Value="_f.ColorName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="EditTextBoxColorName" @bind-Value="_f.ColorName" MaxLength="40" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -201,7 +201,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text='@L["Col.CurrentLot"]' />
-                    <RadzenTextBox @bind-Value="_f.CurrentPowderLot" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.CurrentPowderLot" MaxLength="24" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
