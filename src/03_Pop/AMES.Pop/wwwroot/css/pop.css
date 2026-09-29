@@ -1950,3 +1950,5 @@ body {
 .jdg-btn.ok { background: rgba(13,184,122,.22); border-color: #0db87a; }
 .jdg-btn.ng { background: rgba(239,68,68,.22);  border-color: #ef4444; }
 .jdg-btn:disabled, .def-btn.jdg-busy { opacity: .4; cursor: not-allowed; }
+/* 판정 팝업의 스캔 수신칸 — 포커스는 받아야 하므로 display:none 대신 화면 밖으로 */
+.jdg-scan-sink { position: absolute; left: -10000px; top: 0; width: 1px; height: 1px; opacity: 0; }

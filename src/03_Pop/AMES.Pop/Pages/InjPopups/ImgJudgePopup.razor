@@ -8,11 +8,12 @@
 @*  IMG 완제품 판정 팝업 — Core 스캔 발행 · 예외 발행 · RAW 완제품 라벨 재스캔 뒤에 뜬다.
     OK = 기존 스캔 확정(ConfirmByLotCode), NG = 불량코드 한 번 터치로 등록(RegisterDefect → REWORK 대기열).
     판정 없이 닫으면 LOT 은 RAW 로 남고, 완제품 라벨을 다시 찍으면 이 팝업이 다시 뜬다.
-    HID 스캔이 메인 스캔칸이나 포커스된 버튼(Enter)으로 새지 않게 팝업 자신의 스캔칸이 늘 포커스를 잡는다. *@
+    HID 스캔이 메인 스캔칸이나 포커스된 버튼(Enter)으로 새지 않게 팝업 자신의 스캔칸이 늘 포커스를 잡는다.
+    그 칸은 작업자가 쓰는 칸이 아니라 화면 밖에 숨겨 둔다(display:none 이면 포커스를 못 받는다). *@
 
 <PopupShell Title='@($"⚖ {T("JudgeTitle")}")' Width="1100px" CloseOnBackdrop="false" OnClose="OnClose">
     <input @ref="_scanInput" @bind="_scanBuf" @bind:event="oninput" @onkeydown="OnScanKey"
-           class="injm-scan-input" placeholder="@T("JudgeFirst")" autocomplete="off" />
+           class="jdg-scan-sink" autocomplete="off" aria-hidden="true" />
     <div class="dfp-lot">
         <span class="mono dfp-lot-code">@Lot.LotCode</span>
         <span>@Lot.ItemNo @(Lot.ItemName is null ? "" : $"· {Lot.ItemName}")</span>
