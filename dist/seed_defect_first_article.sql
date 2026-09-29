@@ -16,8 +16,8 @@ USING (
     SELECT v.DefectCode, v.DefectName, v.DefectNameEn, v.ProcessCode, v.DefectCategory, v.SeverityLevel,
            c.CauseCode AS DefaultCauseCode
     FROM (VALUES
-        ('INJ-D07', N'초품', N'First Article', 'INJ', 'MOLDING',  'MEDIUM', 'INJ-C01'),
-        ('IMG-D07', N'초품', N'First Article', 'IMG', 'WRAPPING', 'MEDIUM', 'IMG-C01')
+        ('INJ-D07', N'초품', N'Sample Defect', 'INJ', 'MOLDING',  'MEDIUM', 'INJ-C01'),
+        ('IMG-D07', N'초품', N'Sample Defect', 'IMG', 'WRAPPING', 'MEDIUM', 'IMG-C01')
     ) AS v (DefectCode, DefectName, DefectNameEn, ProcessCode, DefectCategory, SeverityLevel, CauseCode)
     LEFT JOIN dbo.MD_DefectCause c ON c.CauseCode = v.CauseCode
 ) AS s
