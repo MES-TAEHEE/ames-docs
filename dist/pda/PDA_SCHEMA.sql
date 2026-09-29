@@ -5353,35 +5353,50 @@ GO
 */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET ARITHABORT ON;
+SET NUMERIC_ROUNDABORT OFF;
 
 BEGIN TRANSACTION;
 
 IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'ItemsJSON') IS NULL
     ALTER TABLE dbo.FG_ShipmentOrder ADD ItemsJSON nvarchar(max) NULL;
 IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'ShipmentDocumentNo') IS NULL
-    ALTER TABLE dbo.FG_ShipmentOrder ADD ShipmentDocumentNo varchar(60) NULL;
+    ALTER TABLE dbo.FG_ShipmentOrder ADD ShipmentDocumentNo varchar(60) COLLATE Korean_Wansung_CI_AS NULL;
 IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'ShippedAt') IS NULL
     ALTER TABLE dbo.FG_ShipmentOrder ADD ShippedAt datetime2 NULL;
 IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'LoadingNumber') IS NULL
-    ALTER TABLE dbo.FG_ShipmentOrder ADD LoadingNumber varchar(24) NULL;
+    ALTER TABLE dbo.FG_ShipmentOrder ADD LoadingNumber varchar(24) COLLATE Korean_Wansung_CI_AS NULL;
 IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'LicensePlate') IS NULL
-    ALTER TABLE dbo.FG_ShipmentOrder ADD LicensePlate varchar(20) NULL;
+    ALTER TABLE dbo.FG_ShipmentOrder ADD LicensePlate varchar(20) COLLATE Korean_Wansung_CI_AS NULL;
 IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'DriverName') IS NULL
-    ALTER TABLE dbo.FG_ShipmentOrder ADD DriverName varchar(50) NULL;
+    ALTER TABLE dbo.FG_ShipmentOrder ADD DriverName varchar(50) COLLATE Korean_Wansung_CI_AS NULL;
 IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'LoadingDockNo') IS NULL
-    ALTER TABLE dbo.FG_ShipmentOrder ADD LoadingDockNo varchar(10) NULL;
+    ALTER TABLE dbo.FG_ShipmentOrder ADD LoadingDockNo varchar(10) COLLATE Korean_Wansung_CI_AS NULL;
 IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'ArrivalAt') IS NULL
     ALTER TABLE dbo.FG_ShipmentOrder ADD ArrivalAt datetime2 NULL;
 IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'DepartureAt') IS NULL
     ALTER TABLE dbo.FG_ShipmentOrder ADD DepartureAt datetime2 NULL;
 IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'SealNo') IS NULL
-    ALTER TABLE dbo.FG_ShipmentOrder ADD SealNo varchar(20) NULL;
+    ALTER TABLE dbo.FG_ShipmentOrder ADD SealNo varchar(20) COLLATE Korean_Wansung_CI_AS NULL;
 IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'LoadingOTDStatus') IS NULL
-    ALTER TABLE dbo.FG_ShipmentOrder ADD LoadingOTDStatus varchar(10) NULL;
+    ALTER TABLE dbo.FG_ShipmentOrder ADD LoadingOTDStatus varchar(10) COLLATE Korean_Wansung_CI_AS NULL;
 IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'ShipmentOperatorID') IS NULL
     ALTER TABLE dbo.FG_ShipmentOrder ADD ShipmentOperatorID nvarchar(450) NULL;
 IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'LoadingConfirmedAt') IS NULL
     ALTER TABLE dbo.FG_ShipmentOrder ADD LoadingConfirmedAt datetime2 NULL;
+
+ALTER TABLE dbo.FG_ShipmentOrder ALTER COLUMN ShipmentDocumentNo varchar(60) COLLATE Korean_Wansung_CI_AS NULL;
+ALTER TABLE dbo.FG_ShipmentOrder ALTER COLUMN LoadingNumber varchar(24) COLLATE Korean_Wansung_CI_AS NULL;
+ALTER TABLE dbo.FG_ShipmentOrder ALTER COLUMN LicensePlate varchar(20) COLLATE Korean_Wansung_CI_AS NULL;
+ALTER TABLE dbo.FG_ShipmentOrder ALTER COLUMN DriverName varchar(50) COLLATE Korean_Wansung_CI_AS NULL;
+ALTER TABLE dbo.FG_ShipmentOrder ALTER COLUMN LoadingDockNo varchar(10) COLLATE Korean_Wansung_CI_AS NULL;
+ALTER TABLE dbo.FG_ShipmentOrder ALTER COLUMN SealNo varchar(20) COLLATE Korean_Wansung_CI_AS NULL;
+ALTER TABLE dbo.FG_ShipmentOrder ALTER COLUMN LoadingOTDStatus varchar(10) COLLATE Korean_Wansung_CI_AS NULL;
 GO
 
 IF OBJECT_ID(N'dbo.FG_ShipmentOrderLine', N'U') IS NOT NULL
