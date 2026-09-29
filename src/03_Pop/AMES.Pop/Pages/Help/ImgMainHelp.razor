@@ -2,7 +2,7 @@
 
 <div class="help-doc">
     <div>
-        <div class="help-h1">IMG-MAIN · @PopLang.T("PartNo") / @PopLang.T("LotBarcodeScanConfirm")</div>
+        <div class="help-h1">IMG-MAIN · @PopLang.T("PartNo") / @PopLang.T("ImgScanCoreOrLabel")</div>
         <div class="help-sub">@PopLang.T("HelpImgMainSub")</div>
 
         <svg class="help-svg" viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg">
@@ -46,7 +46,7 @@
             <text class="hs-label" x="440" y="110" style="font-size:12px;">WO-IMG-2026-0529-301   118 / 192</text>
             <rect x="440" y="120" width="254" height="30" rx="4" fill="#0d7a52" />
             <text class="hs-label" x="567" y="140" text-anchor="middle" style="font-size:12px;">🏷 LABEL PRINT · DR-TRM-LH-W</text>
-            <text class="hs-sub" x="440" y="168">▼ LOT BARCODE · SCAN TO CONFIRM</text>
+            <text class="hs-sub" x="440" y="168">▼ CORE SCAN · FINISHED LABEL · OK / NG</text>
             <rect x="440" y="174" width="254" height="22" rx="4" fill="rgba(0,0,0,.35)" stroke="rgba(255,255,255,.25)" />
             <text class="hs-sub" x="448" y="189">A94W10003</text>
             <rect x="440" y="202" width="254" height="30" rx="6" fill="rgba(13,184,122,.18)" stroke="#0d7a52" stroke-width="2" />
@@ -87,8 +87,8 @@
             <div class="help-step ok">
                 <div class="help-step-num">1</div>
                 <div class="help-step-body">
-                    <div class="help-step-en"><strong>Part grid</strong> — every part registered to this station (BOP) with today's PLAN / INPUT / NG / FINAL. Tap a row to select it; the open work order for that part is picked automatically — there is no WO acceptance step. Double-tap a row to see all work orders for that part on this line (★ = the one scans confirm to).</div>
-                    <div class="help-step-ko"><strong>품번 그리드</strong> — 이 스테이션 BOP 에 등록된 품번과 당일 계획/투입/불량/양품. 행을 누르면 선택되고 그 품번의 열린 작업지시가 자동으로 잡힌다 — WO 접수 단계는 없다. 행을 두 번 누르면 이 라인의 그 품번 작업지시 목록이 뜬다(★ = 스캔 확정이 올라가는 WO).</div>
+                    <div class="help-step-en"><strong>Part grid</strong> — every part registered to this station (BOP) with today's PLAN / INPUT / NG / FINAL. Tap a row to select it; the open work order for that part is picked automatically — there is no WO acceptance step. Double-tap a row to see all work orders for that part on this line (★ = the one results are posted to).</div>
+                    <div class="help-step-ko"><strong>품번 그리드</strong> — 이 스테이션 BOP 에 등록된 품번과 당일 계획/투입/불량/양품. 행을 누르면 선택되고 그 품번의 열린 작업지시가 자동으로 잡힌다 — WO 접수 단계는 없다. 행을 두 번 누르면 이 라인의 그 품번 작업지시 목록이 뜬다(★ = 실적이 올라가는 WO).</div>
                     <div class="help-step-hint">NO WO = no released work order for this part · NOT IN BOP = produced today but not registered</div>
                 </div>
             </div>
@@ -103,8 +103,8 @@
             <div class="help-step dim">
                 <div class="help-step-num">3</div>
                 <div class="help-step-body">
-                    <div class="help-step-en"><strong>Today's lots</strong> — every label issued today on this line, newest first. WAIT = printed, not scanned yet; <strong>OK</strong> = confirmed. 🖨 reprints a label; tap a lot number to put it in the scan box. CORE = the injection lot this part was made from (— = printed without a core).</div>
-                    <div class="help-step-ko"><strong>오늘 발행 LOT</strong> — 오늘 이 라인에서 발행된 라벨 전부(최신순). 대기 = 발행됐지만 아직 미스캔, <strong>OK</strong> = 확정. 🖨 는 재출력, LOT 번호를 누르면 스캔칸에 들어간다. Core = 이 완제품을 만든 사출 LOT(— = Core 없이 발행).</div>
+                    <div class="help-step-en"><strong>Today's lots</strong> — every label issued today on this line, newest first. WAIT = printed, not judged yet; <strong>OK</strong> = confirmed. 🖨 reprints a label; tap a lot number to put it in the scan box. CORE = the injection lot this part was made from (— = printed without a core).</div>
+                    <div class="help-step-ko"><strong>오늘 발행 LOT</strong> — 오늘 이 라인에서 발행된 라벨 전부(최신순). 대기 = 발행됐지만 아직 판정 전, <strong>OK</strong> = 확정. 🖨 는 재출력, LOT 번호를 누르면 스캔칸에 들어간다. Core = 이 완제품을 만든 사출 LOT(— = Core 없이 발행).</div>
                 </div>
             </div>
             <div class="help-step warn">
@@ -121,9 +121,9 @@
             <div class="help-step">
                 <div class="help-step-num">=</div>
                 <div class="help-step-body">
-                    <div class="help-step-en"><strong>INPUT = FINAL + NG + unconfirmed.</strong> INPUT counts every label issued today for the part on this line; FINAL is scanned-good; NG is today's manual defects; the rest is still waiting for a scan. PLAN comes from today's line schedule (PP-03).</div>
-                    <div class="help-step-ko"><strong>투입 = 양품 + 불량 + 미확정.</strong> 투입은 오늘 이 라인에서 그 품번으로 발행된 라벨 전량, 양품은 스캔 확정분, 불량은 오늘 수동 등록 불량, 나머지가 아직 스캔 대기. 계획은 오늘 라인 일정(PP-03)에서 온다.</div>
-                    <div class="help-step-hint">Day boundary = label issue time, not scan time</div>
+                    <div class="help-step-en"><strong>INPUT = FINAL + NG + unconfirmed.</strong> INPUT counts every label issued today for the part on this line; FINAL is judged OK; NG is judged NG or registered as a defect; the rest is still waiting for a judgement. PLAN comes from today's line schedule (PP-03).</div>
+                    <div class="help-step-ko"><strong>투입 = 양품 + 불량 + 미확정.</strong> 투입은 오늘 이 라인에서 그 품번으로 발행된 라벨 전량, 양품은 OK 판정분, 불량은 NG 판정·불량 등록분, 나머지가 아직 판정 대기. 계획은 오늘 라인 일정(PP-03)에서 온다.</div>
+                    <div class="help-step-hint">Day boundary = label issue time, not judge time</div>
                 </div>
             </div>
         </div>

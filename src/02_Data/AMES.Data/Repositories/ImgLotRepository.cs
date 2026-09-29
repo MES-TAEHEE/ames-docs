@@ -9,9 +9,8 @@ namespace AMES.Data.Repositories;
 
 /// <summary>
 /// IMG(래핑) 원천 LOT — tbl_Lot(ProcessCode='IMG', 1 EA) + PR_ImgLot.
-/// IMG-MAIN 의 "라벨 발행 → 스캔 확정" 모델을 담당한다. INJ 와 달리 에이전트가
-/// 없으므로 LOT 은 오직 터미널의 라벨 발행 버튼이 만들고, 라벨은 그 자리에서
-/// 동기 출력된다 (LabelDispatcher 는 INJ 세션에서만 돈다).
+/// IMG-MAIN 의 "Core 스캔 → 완제품 라벨 → OK/NG 판정" 모델을 담당한다. INJ 와 달리 에이전트가 없으므로
+/// LOT 은 터미널이 만들고 라벨은 그 자리에서 동기 출력된다 (LabelDispatcher 는 INJ 세션에서만 돈다).
 /// 주 흐름은 사출 Core 스캔(CreateFromCore — tbl_Lot.ParentLotID 로 Core 연결)이고, CreateRawLot 은 예외용 발행 버튼이다.
 /// </summary>
 public sealed class ImgLotRepository

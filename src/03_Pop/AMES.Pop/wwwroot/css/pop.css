@@ -1636,6 +1636,9 @@ body {
 .injm-banner.idle .injm-banner-t { color: rgba(255, 255, 255, .35); }
 .injm-banner.ok   .injm-banner-t { color: var(--ok); }
 .injm-banner.bad  .injm-banner-t { color: var(--alert); }
+/* IMG 판정 NG 등록 — 성공(녹색)과 구분되는 불량 표시 */
+.injm-banner.ng   { background: rgba(245, 158, 11, .18); border: 2px solid var(--warn); }
+.injm-banner.ng   .injm-banner-t { color: var(--warn); }
 .injm-banner-s { font-size: 13px; color: rgba(255, 255, 255, .75); margin-top: 6px; }
 .injm-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .injm-chip {

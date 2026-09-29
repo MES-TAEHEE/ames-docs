@@ -28,7 +28,7 @@
     }
     else
     {
-        <div class="input-label">@T("JudgeSelectDefect")</div>
+        <div class="input-label">@T(_codes.Count == 0 ? "JudgeNoDefectCodes" : "JudgeSelectDefect")</div>
         <div class="def-grid dfp-codes">
             @foreach (var c in _codes)
             {
@@ -62,8 +62,8 @@
     [Parameter, EditorRequired] public ImgLotDto      Lot     { get; set; } = null!;
     [Parameter]                 public PopSessionDto? Session { get; set; }
     [Parameter]                 public EventCallback  OnClose { get; set; }
-    /// <summary>판정 성공 — (배너 문구, 품번). 메인이 배너·선택 품번을 갱신하고 팝업을 닫는다.</summary>
-    [Parameter] public EventCallback<(string Detail, string ItemNo)> OnDone { get; set; }
+    /// <summary>판정 성공 — (양품 여부, 배너 문구, 품번). 메인이 배너·선택 품번을 갱신하고 팝업을 닫는다.</summary>
+    [Parameter] public EventCallback<(bool Good, string Detail, string ItemNo)> OnDone { get; set; }
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
 
@@ -110,6 +110,7 @@
     {
         if (Session is null || _busy) return;
         _busy = true; _error = null;
+        await Task.Yield();   // 버튼 비활성을 먼저 그린다 — DB 호출이 동기라 이게 없으면 연타 방지가 화면에 안 보인다
         try
         {
             var (outcome, _, itemNo, woId) = PopServices.ImgLots.ConfirmByLotCode(
@@ -117,7 +118,7 @@
             if (outcome == ImgConfirmOutcome.Confirmed)
             {
                 var woNumber = woId > 0 ? PopServices.WorkOrders.GetById(woId)?.WoNumber : null;
-                await OnDone.InvokeAsync(($"{T("Confirmed")}: {Lot.LotCode} ({itemNo}){(woNumber is null ? "" : $" → {woNumber}")}", itemNo));
+                await OnDone.InvokeAsync((true, $"{T("Confirmed")}: {Lot.LotCode} ({itemNo}){(woNumber is null ? "" : $" → {woNumber}")}", itemNo));
                 return;
             }
             _error = outcome switch
@@ -139,13 +140,14 @@
     {
         if (Session is null || _busy) return;
         _busy = true; _error = null;
+        await Task.Yield();
         try
         {
             var (outcome, _, itemNo) = PopServices.ImgLots.RegisterDefect(
                 Lot.LotCode, Session.LineId, code.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
             if (outcome == DefectRegisterOutcome.Registered)
             {
-                await OnDone.InvokeAsync(($"{T("DfRegistered")}: {Lot.LotCode} ({itemNo}) · {code.DefectCode}", itemNo));
+                await OnDone.InvokeAsync((false, $"{T("DfRegistered")}: {Lot.LotCode} ({itemNo}) · {code.DefectCode}", itemNo));
                 return;
             }
             _error = outcome switch

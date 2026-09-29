@@ -252,6 +252,7 @@
     {
         "ok"  => T("Success"),
         "bad" => T("Fail"),
+        "ng"  => T("Ng"),
         _     => T("Ready"),
     };
     private string _scanBuf = string.Empty;
@@ -381,18 +382,23 @@
             PopServices.ImgLots.IncrementPrintedCount(lot.LotId, Session.EmployeeNo);
             SetBanner(true, $"{T("LotIssued")}: {lot.LotCode} ({lot.ItemNo})");
         }
-        catch (Exception ex) { Toasts.Bad($"{T("PrintFailedLotKept")}: {lot.LotCode} — {ex.Message}"); }
+        catch (Exception ex)
+        {
+            Toasts.Bad($"{T("PrintFailedLotKept")}: {lot.LotCode} — {ex.Message}");
+            SetBanner(false, $"{T("PrintFailedLotKept")}: {lot.LotCode}");
+        }
         Refresh();
         OpenJudge(lot);
     }
 
     private void OpenJudge(ImgLotDto lot) { _andonAutoRaise = false; _judgeLot = lot; _popup = Popup.Judge; }
 
-    private void OnJudged((string Detail, string ItemNo) r)
+    private void OnJudged((bool Good, string Detail, string ItemNo) r)
     {
         // 판정분은 금일 수치에 올라가므로 과거 날짜를 보고 있었다면 금일로 돌린다.
         _selItemNo = r.ItemNo; _viewDate = null;
-        SetBanner(true, r.Detail);
+        // NG 등록 성공을 녹색 배너로 띄우면 현장에서 양품으로 읽힌다 — 불량 전용 배너로 구분한다.
+        _bannerClass = r.Good ? "ok" : "ng"; _bannerDetail = r.Detail;
         ClosePopup();
     }
 
@@ -432,7 +438,7 @@
             if (PopServices.ImgLots.GetByLotCode(lotCode) is { } img) OpenJudgeFor(img);
             else IssueFromCore(lotCode);
         }
-        catch (Exception ex) { SetBanner(false, $"{T("ConfirmFailed")}: {ex.Message}"); }
+        catch (Exception ex) { SetBanner(false, $"{T("EntryFailed")}: {ex.Message}"); }
         finally { _focusScan = true; }
     }
 

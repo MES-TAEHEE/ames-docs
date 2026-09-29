@@ -228,6 +228,30 @@ public class ImgLotRepositoryTests
     }
 
     [SkippableFact]
+    public void Today_lots_show_core_for_scanned_lots_and_none_for_the_fallback_button()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Cleanup(f!);
+        try
+        {
+            InsertImgWo(f!);
+            var core = NewCoreCode();
+            InsertCore(f!, core, "CONFIRMED");
+            var repo = new ImgLotRepository(f!);
+            var fromCore = repo.CreateFromCore(core, ImgLine, "E-ITEST").Lot!;
+            var fallback = repo.CreateRawLot(ImgLine, Item, "E-ITEST");
+
+            var today = repo.GetTodayLots(ImgLine);
+
+            Assert.Null(fallback.CoreLotCode);
+            Assert.Null(ParentOf(f!, fallback.LotCode));
+            Assert.Null(today.Single(x => x.LotCode == fallback.LotCode).CoreLotCode);
+            Assert.Equal(core, today.Single(x => x.LotCode == fromCore.LotCode).CoreLotCode);
+        }
+        finally { Cleanup(f!); }
+    }
+
+    [SkippableFact]
     public void Lots_from_core_can_be_judged_ok_and_ng()
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
