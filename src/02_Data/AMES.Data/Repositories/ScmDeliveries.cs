@@ -135,11 +135,15 @@ public sealed partial class ScmRepository
                 throw new InvalidOperationException("Delivery changed or is no longer editable. Reload.");
             id=r.GetInt32(0);
         }
+        // Include depleted stock and voided boxes so receipt links cannot be edited away.
         using(var inbound=new SqlCommand("""
             SELECT (SELECT COUNT(*) FROM dbo.SCM_DeliveryLine WITH(UPDLOCK,HOLDLOCK) WHERE DeliveryID=@ID AND ReceivedQty>0)
-                 + (SELECT COUNT(*) FROM dbo.WH_InboundPackage WITH(HOLDLOCK) WHERE DocumentNo=@D OR DocumentBarcode=@D);
+                 + (SELECT COUNT(*) FROM dbo.WH_Inventory w WITH(HOLDLOCK)
+                    JOIN dbo.SCM_DeliveryBox b ON b.BoxNumber=w.LotNo
+                    JOIN dbo.SCM_DeliveryLine l ON l.DeliveryLineID=b.DeliveryLineID
+                    WHERE l.DeliveryID=@ID);
             """,conn,tx))
-        {Add(inbound,("@ID",id),("@D",deliveryNumber));if((int)inbound.ExecuteScalar()!>0)throw new InvalidOperationException("Delivery is linked to receiving.");}
+        {Add(inbound,("@ID",id));if((int)inbound.ExecuteScalar()!>0)throw new InvalidOperationException("Delivery is linked to receiving.");}
         if(!cancel)
         {
             if(locked.Count==0 || locked.Any(x=>x.Status is not ("Open" or "Partial" or "Complete" or "Received")))
