@@ -751,7 +751,6 @@ public sealed class WarehouseRepository
 
     public List<PickingOrderRow> ListPickingOrders(string? search = null, bool includeClosed = true)
     {
-        EnsurePickSlipColumns();
         var headers = ListPickingSlipHeaders(search, includeClosed);
         var rows = new List<PickingOrderRow>();
         foreach (var h in headers)
@@ -781,7 +780,6 @@ public sealed class WarehouseRepository
 
     public List<PickingSlipHeaderRow> ListPickingSlipHeaders(string? search = null, bool includeClosed = true)
     {
-        EnsurePickSlipColumns();
         var like = Like(search);
         return Query("""
             ;WITH Lines AS
@@ -892,7 +890,6 @@ public sealed class WarehouseRepository
 
     public List<PickingSlipLineRow> ListPickingSlipLines(string pickSlipNo)
     {
-        EnsurePickSlipColumns();
         return Query("""
             ;WITH Base AS
             (
@@ -1099,8 +1096,6 @@ public sealed class WarehouseRepository
         IEnumerable<CreatePickingSlipLine> lines,
         string? requestedPickSlipNo = null)
     {
-        EnsurePickSlipColumns();
-
         var cleanLines = lines
             .Where(l => !string.IsNullOrWhiteSpace(l.PartNo) && !string.IsNullOrWhiteSpace(l.LineCode) && l.ReqBoxQty > 0)
             .Select(l => new CreatePickingSlipLine(
@@ -1169,7 +1164,6 @@ public sealed class WarehouseRepository
 
     public void MarkPickingSlipPrinted(string pickSlipNo, string printedBy)
     {
-        EnsurePickSlipColumns();
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             UPDATE dbo.WH_PickSlip
@@ -1198,7 +1192,6 @@ public sealed class WarehouseRepository
 
     public void ClosePickingSlip(string pickSlipNo, string closedBy)
     {
-        EnsurePickSlipColumns();
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             UPDATE dbo.WH_PickSlip
@@ -1602,73 +1595,6 @@ public sealed class WarehouseRepository
         itemCmd.Parameters.Add("@ModifiedBy", SqlDbType.NVarChar, 80).Value = modifiedBy;
         if (itemCmd.ExecuteNonQuery() == 0)
             throw new InvalidOperationException("Item was not found.");
-    }
-
-    private void EnsurePickSlipColumns()
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            IF OBJECT_ID(N'dbo.WH_PickSlip', N'U') IS NULL
-            BEGIN
-                CREATE TABLE dbo.WH_PickSlip
-                (
-                    PickSlipID int IDENTITY(1,1) NOT NULL,
-                    WoID int NULL,
-                    ItemNo varchar(20) NULL,
-                    DemandQty decimal(14,3) NULL,
-                    PickedQty decimal(14,3) NULL,
-                    RequiredAt datetime2 NULL,
-                    Priority tinyint NULL,
-                    Status varchar(20) NULL,
-                    CreatedBy varchar(50) NOT NULL,
-                    CreatedTS datetime2 NULL CONSTRAINT DF_WH_PickSlip_CreatedTS DEFAULT SYSDATETIME(),
-                    ModifiedBy nvarchar(450) NULL,
-                    ModifiedTS datetime2 NULL,
-                    CONSTRAINT PK_WH_PickSlip PRIMARY KEY CLUSTERED (PickSlipID)
-                );
-            END;
-
-            IF COL_LENGTH(N'dbo.WH_PickSlip', N'PickSlipNo') IS NULL
-                ALTER TABLE dbo.WH_PickSlip ADD PickSlipNo nvarchar(40) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_PickSlip', N'ReqLocation') IS NULL
-                ALTER TABLE dbo.WH_PickSlip ADD ReqLocation nvarchar(40) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_PickSlip', N'ReqSeqNo') IS NULL
-                ALTER TABLE dbo.WH_PickSlip ADD ReqSeqNo int NULL;
-
-            IF COL_LENGTH(N'dbo.WH_PickSlip', N'ReqUserId') IS NULL
-                ALTER TABLE dbo.WH_PickSlip ADD ReqUserId nvarchar(80) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_PickSlip', N'PrintDate') IS NULL
-                ALTER TABLE dbo.WH_PickSlip ADD PrintDate datetime2 NULL;
-
-            IF COL_LENGTH(N'dbo.WH_PickSlip', N'CloseDate') IS NULL
-                ALTER TABLE dbo.WH_PickSlip ADD CloseDate datetime2 NULL;
-
-            IF COL_LENGTH(N'dbo.WH_PickSlip', N'CloseUserId') IS NULL
-                ALTER TABLE dbo.WH_PickSlip ADD CloseUserId nvarchar(80) NULL;
-
-            UPDATE dbo.WH_PickSlip
-               SET PickSlipNo = CONCAT(N'RS-', PickSlipID)
-             WHERE NULLIF(PickSlipNo, N'') IS NULL;
-
-            UPDATE dbo.WH_PickSlip
-               SET ReqSeqNo = 1
-             WHERE ReqSeqNo IS NULL;
-
-            UPDATE dbo.WH_PickSlip
-               SET ReqUserId = CreatedBy
-             WHERE NULLIF(ReqUserId, N'') IS NULL;
-
-            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.WH_PickSlip') AND name = N'IX_WH_PickSlip_PickSlipNo')
-                CREATE INDEX IX_WH_PickSlip_PickSlipNo ON dbo.WH_PickSlip (PickSlipNo, ReqSeqNo, PickSlipID);
-
-            """, conn)
-        {
-            CommandTimeout = 15
-        };
-        cmd.ExecuteNonQuery();
     }
 
     private static bool PickSlipExists(SqlConnection conn, SqlTransaction tx, string pickSlipNo)

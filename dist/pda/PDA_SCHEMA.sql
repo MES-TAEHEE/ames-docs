@@ -1778,15 +1778,22 @@ BEGIN
         WHERE LotNo = @Barcode
           AND DeliveryNoteNo = @PortalNoteNo;
 
-        UPDATE dbo.WH_PurchaseOrder
-           SET ReceivedQty = CASE
-                   WHEN COALESCE(ReceivedQty, 0) - @PortalQty < 0 THEN 0
-                   ELSE COALESCE(ReceivedQty, 0) - @PortalQty
+        UPDATE PO
+           SET ReceivedQty = X.NewReceivedQty,
+               Status = CASE
+                   WHEN X.NewReceivedQty <= 0 THEN 'Open'
+                   WHEN X.NewReceivedQty >= COALESCE(PO.OrderQty, 0) THEN 'Received'
+                   ELSE 'Partial'
                END,
-               Status = 'Open',
                ModifiedBy = LEFT(@User, 20),
                ModifiedTS = SYSDATETIME()
-         WHERE PoID = @PortalPoID;
+        FROM dbo.WH_PurchaseOrder PO
+        CROSS APPLY (VALUES
+        (
+            CASE WHEN COALESCE(PO.ReceivedQty, 0) < @PortalQty
+                 THEN 0 ELSE PO.ReceivedQty - @PortalQty END
+        )) X(NewReceivedQty)
+        WHERE PO.PoID = @PortalPoID;
 
         UPDATE dbo.SCM_DeliveryLine
            SET ReceivedQty = CASE
@@ -1893,15 +1900,22 @@ BEGIN
 
     IF @PoID IS NOT NULL
     BEGIN
-        UPDATE dbo.WH_PurchaseOrder
-           SET ReceivedQty = CASE
-                   WHEN COALESCE(ReceivedQty, 0) - @Qty < 0 THEN 0
-                   ELSE COALESCE(ReceivedQty, 0) - @Qty
+        UPDATE PO
+           SET ReceivedQty = X.NewReceivedQty,
+               Status = CASE
+                   WHEN X.NewReceivedQty <= 0 THEN 'Open'
+                   WHEN X.NewReceivedQty >= COALESCE(PO.OrderQty, 0) THEN 'Received'
+                   ELSE 'Partial'
                END,
-               Status = 'Open',
                ModifiedBy = @User,
                ModifiedTS = SYSDATETIME()
-         WHERE PoID = @PoID;
+        FROM dbo.WH_PurchaseOrder PO
+        CROSS APPLY (VALUES
+        (
+            CASE WHEN COALESCE(PO.ReceivedQty, 0) < @Qty
+                 THEN 0 ELSE PO.ReceivedQty - @Qty END
+        )) X(NewReceivedQty)
+        WHERE PO.PoID = @PoID;
     END;
 
     UPDATE dbo.WH_InboundPackage
