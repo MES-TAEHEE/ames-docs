@@ -198,7 +198,7 @@
 @switch (_popup)
 {
     case Popup.Judge when _judgeLot is not null:
-        <ImgJudgePopup Session="Session" Lot="_judgeLot" OnClose="ClosePopup" OnDone="OnJudged" />
+        <ImgJudgePopup @key="_judgeLot.LotId" Session="Session" Lot="_judgeLot" OnClose="ClosePopup" OnDone="OnJudged" />
         break;
     case Popup.Defect:
         <DefectPopup Session="Session" ProcessCode="IMG" OnClose="ClosePopup" OnChanged="Refresh" />
@@ -414,7 +414,8 @@
         if (e.Key != "Enter") return;
         var code = _scanBuf.Trim();
         _scanBuf = string.Empty;
-        if (code.Length == 0) return;
+        // 팝업이 떠 있으면 판정 중인 LOT 을 바꾸지 못하게 한다 — 팝업 스캔칸이 포커스를 놓친 경우의 방어선.
+        if (code.Length == 0 || _popup != Popup.None) return;
         HandleScan(code);
     }
 

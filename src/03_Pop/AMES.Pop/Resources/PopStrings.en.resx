@@ -286,6 +286,7 @@
   <data name="JudgeTitle" xml:space="preserve"><value>JUDGE FINISHED PART</value></data>
   <data name="Core" xml:space="preserve"><value>CORE</value></data>
   <data name="JudgeSelectDefect" xml:space="preserve"><value>Tap a defect code to register it</value></data>
+  <data name="JudgeFirst" xml:space="preserve"><value>Judge the current part first</value></data>
   <data name="JudgeBack" xml:space="preserve"><value>BACK</value></data>
   <data name="ImgScanCoreOrLabel" xml:space="preserve"><value>SCAN INJECTION CORE · PRINT FINISHED LABEL</value></data>
   <data name="CoreUnconfirmed" xml:space="preserve"><value>Core not confirmed — confirm it at injection first</value></data>
