@@ -3,8 +3,8 @@
     padding: 8px 12px;
     border-left: 3px solid #38bdf8;
     background: rgba(56, 189, 248, .08);
-    color: var(--rz-text-secondary-color, #93a4bd);
-    font-size: 10px;
+    color: var(--rz-text-secondary-color, var(--ames-tx-93a4bd));
+    font-size: calc(10px + var(--ames-fs-bump));
     font-weight: 700;
     letter-spacing: .04em;
 }

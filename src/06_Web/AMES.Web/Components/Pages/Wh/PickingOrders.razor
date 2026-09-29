@@ -100,7 +100,7 @@
                     <div><span>REQUEST DATE :</span> @_selectedSlip.RequestDate.ToString("yyyy-MM-dd")</div>
                     <div><span>PRODUCTION LINE :</span> @_selectedSlip.LineCode · @_selectedSlip.LineName</div>
                     <div><span>DESTINATION :</span> @_selectedSlip.Destination</div>
-                    <div><span>PRINT DATE :</span> @((_selectedSlip.PrintedAt ?? DateTime.Now).ToString("yyyy-MM-dd HH:mm:ss"))</div>
+                    <div><span>PRINT DATE :</span> @((_selectedSlip.PrintedAt ?? DbClock.Now).ToString("yyyy-MM-dd HH:mm:ss"))</div>
                 </div>
                 <div class="wh-slip-barcode-box">
                     <div>PICKING ORDER : @_selectedSlip.SlipNo</div>
@@ -187,7 +187,7 @@
     {
         if (_selectedSlip is null || _busy) return;
         _busy = true;
-        _selectedSlip.PrintedAt = DateTime.Now;
+        _selectedSlip.PrintedAt = DbClock.Now;
         await InvokeAsync(StateHasChanged);
         await Task.Delay(100);
         await JS.InvokeVoidAsync("window.print");
@@ -232,35 +232,35 @@
 
     static List<SampleSlip> BuildSampleSlips() =>
     [
-        new("PICK-IMG-001", DateTime.Today, "LINE-IMG-01", "Wrapping Line 1", "LINE-IMG-01", "Open", null,
+        new("PICK-IMG-001", DbClock.Today, "LINE-IMG-01", "Wrapping Line 1", "LINE-IMG-01", "Open", null,
         [
             new(1, "PPT-WH-REL-01", "PPT Release Trim A", 20, "5011LL260908810001", "B0-10-A1", "LINE-IMG-01"),
             new(2, "PPT-WH-REL-01", "PPT Release Trim A", 10, "5011LL260908810002", "B0-10-B1", "LINE-IMG-01")
         ]),
-        new("PICK-IMG-002", DateTime.Today, "LINE-IMG-01", "Wrapping Line 1", "LINE-IMG-01", "Partial", null,
+        new("PICK-IMG-002", DbClock.Today, "LINE-IMG-01", "Wrapping Line 1", "LINE-IMG-01", "Partial", null,
         [
             new(1, "PPT-WH-REL-02", "PPT Release Trim B", 16, "5011LL260908810003", "B0-09-D2", "LINE-IMG-01"),
             new(2, "PPT-WH-REL-02", "PPT Release Trim B", 8, "5011LL260908810004", "B0-08-B1", "LINE-IMG-01")
         ]),
-        new("PICK-INJ-001", DateTime.Today, "LINE-INJ-01", "Injection Line 1 (1800T)", "LINE-INJ-01", "Open", null,
+        new("PICK-INJ-001", DbClock.Today, "LINE-INJ-01", "Injection Line 1 (1800T)", "LINE-INJ-01", "Open", null,
         [
             new(1, "81711-PI000YGN", "TRIM - TAIL GATE LWR", 8, "5011LL260601000004", "B0-08-B1", "LINE-INJ-01"),
             new(2, "81711-PI000YGN", "TRIM - TAIL GATE LWR", 4, "5011LL260701000001", "B0-10-A1", "LINE-INJ-01"),
             new(3, "81711-PI000YGN", "TRIM - TAIL GATE LWR", 4, "5011LL260715000002", "B0-10-B1", "LINE-INJ-01")
         ]),
-        new("PICK-INJ-002", DateTime.Today, "LINE-INJ-01", "Injection Line 1 (1800T)", "LINE-INJ-01", "Open", null,
+        new("PICK-INJ-002", DbClock.Today, "LINE-INJ-01", "Injection Line 1 (1800T)", "LINE-INJ-01", "Open", null,
         [
             new(1, "81711-PI000YGN", "TRIM - TAIL GATE LWR", 6, "5011LL260101000018", "B0-08-C1", "LINE-INJ-01"),
             new(2, "81711-PI000YGN", "TRIM - TAIL GATE LWR", 2, "5011LL260801000003", "B0-09-D2", "LINE-INJ-01"),
             new(3, "81711-PI000YGN", "TRIM - TAIL GATE LWR", 24, "5011LL260820000010", "B0-10-A1", "LINE-INJ-01")
         ]),
-        new("PICK-PNT-001", DateTime.Today, "LINE-PNT-01", "Painting Line 1", "LINE-PNT-01", "Open", null,
+        new("PICK-PNT-001", DbClock.Today, "LINE-PNT-01", "Painting Line 1", "LINE-PNT-01", "Open", null,
         [
             new(1, "PPT-WH-INV-01", "PPT Inventory Trim A", 30, "5011LL260908820001", "B0-10-A1", "LINE-PNT-01"),
             new(2, "PPT-WH-INV-01", "PPT Inventory Trim A", 20, "5011LL260908820002", "B0-10-B1", "LINE-PNT-01"),
             new(3, "PPT-WH-INV-02", "PPT Inventory Trim B", 12, "5011LL260908820003", "B0-09-D2", "LINE-PNT-01")
         ]),
-        new("PICK-PNT-002", DateTime.Today, "LINE-PNT-01", "Painting Line 1", "LINE-PNT-01", "Closed", DateTime.Today.AddHours(8),
+        new("PICK-PNT-002", DbClock.Today, "LINE-PNT-01", "Painting Line 1", "LINE-PNT-01", "Closed", DbClock.Today.AddHours(8),
         [
             new(1, "PPT-WH-ADJ-01", "PPT Adjust Trim", 10, "5011LL260908830001", "B0-12-B1", "LINE-PNT-01"),
             new(2, "PPT-WH-HIST-01", "PPT Transaction Trim", 18, "5011LL260908840001", "B0-08-C1", "LINE-PNT-01")

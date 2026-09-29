@@ -73,6 +73,7 @@
     --ames-sf-0d1b2e: #0d1b2e;
     --ames-sf-0e1a30: #0e1a30;
     --ames-sf-0f172a: #0f172a;
+    --ames-sf-0f172a-a62: rgba(15, 23, 42, .62);
     --ames-sf-0f172a-a64: rgba(15,23,42,.64);
     --ames-sf-0f172a-a70: rgba(15,23,42,.7);
     --ames-sf-0f172a-a72: rgba(15,23,42,.72);
@@ -4141,6 +4142,7 @@ html[data-theme="light"] {
     --ames-sf-0d1b2e: var(--ames-surface);
     --ames-sf-0e1a30: var(--ames-surface);
     --ames-sf-0f172a: var(--ames-surface);
+    --ames-sf-0f172a-a62: var(--ames-surface);
     --ames-sf-0f172a-a64: var(--ames-surface);
     --ames-sf-0f172a-a70: var(--ames-surface);
     --ames-sf-0f172a-a72: var(--ames-surface);
