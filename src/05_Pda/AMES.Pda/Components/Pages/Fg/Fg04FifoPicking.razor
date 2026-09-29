@@ -8,239 +8,210 @@
 <div class="pda-shell wh wh07-shell fg04-shell">
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
-        <div class="wh07-tbar-title"><span class="pda-tbar-brand">PICKING LIST</span></div>
+        <div class="wh07-tbar-title"><span class="pda-tbar-brand">OUTBOUND</span></div>
         @if (IsPptTestMode)
         {
-            <PptScenarioPanel Title="PICKING LIST" Steps="ActiveScenarioSteps" ModeLabel="@ScenarioModeLabel" Busy="@_isBusy" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+            <PptScenarioPanel Title="OUTBOUND" Steps="PptSteps" ModeLabel="@ScenarioModeLabel" Busy="_isBusy"
+                              OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData"
+                              OpenChanged="@((bool open) => _pptOpen = open)" />
         }
     </div>
 
     <div class="pda-bd wh07-body">
         <RadzenCard class="wh07-panel wh07-slip-panel scan-only">
             <div class="pda-fld">
-                <label>BARCODE SCAN</label>
-                <RadzenTextBox class="pda-input wh07-input pda-scan-input" Value="@ScanValue" @oninput="OnScanInput" @onkeydown="OnScanKey" Placeholder="@ScanPlaceholder" />
+                <label>PALLET LOT BARCODE</label>
+                <RadzenTextBox class="pda-input wh07-input pda-scan-input" Value="@_barcode"
+                               @oninput="OnScanInput" @onkeydown="OnScanKey"
+                               Placeholder="Scan Pallet LOT Barcode" />
             </div>
         </RadzenCard>
 
-        @if (_selectedSlip is not null)
+        @if (_pallet is not null)
         {
             <div class="fg04-section-head outgoing">
-                <strong>OUTGOING SLIP INFORMATION</strong>
-                <span>Scanned document</span>
+                <strong>PALLET INFORMATION</strong>
+                <span>@_pallet.PartCount part LOT(s)</span>
             </div>
             <RadzenCard class="wh07-summary-card fg04-summary-card">
                 <div class="fg04-order-head">
-                    <div><span>OUTGOING SLIP BARCODE</span><strong>@_selectedSlip.OutgoingSlipBarcode</strong></div>
-                    <RadzenBadge class="wh07-status ready" Text="@(_selectedSlip.Status ?? "Released")" />
+                    <div><span>PALLET LOT</span><strong>@_pallet.PalletLotNo</strong></div>
+                    <RadzenBadge class="wh07-status ready" Text="READY" />
                 </div>
                 <div class="fg04-detail-rows">
-                    <div class="fg04-detail-row"><span>CUSTOMER</span><strong>@Text(_selectedSlip.CustomerCode)</strong></div>
-                    <div class="fg04-detail-row"><span>DESTINATION</span><strong>@Text(_selectedSlip.Destination)</strong></div>
-                    <div class="fg04-detail-row"><span>OUTGOING DATE</span><strong>@(_selectedSlip.OutgoingDate?.ToString("MM/dd/yyyy") ?? "-")</strong></div>
-                    <div class="fg04-detail-row"><span>LINES</span><strong>@_lines.Count</strong></div>
+                    <div class="fg04-detail-row"><span>LOCATION</span><strong>@Text(_pallet.LocationNo)</strong></div>
+                    <div class="fg04-detail-row"><span>TOTAL QTY</span><strong>@_pallet.TotalQty.ToString("N0") EA</strong></div>
                 </div>
             </RadzenCard>
 
-        }
-
-        @if (_lines.Count > 0)
-        {
             <div class="fg04-section-head parts">
-                <strong>PARTS TO SCAN</strong>
-                <span>@_lines.Count part(s) required</span>
+                <strong>PARTS IN PALLET</strong>
+                <span>@_pallet.Items.Count item(s)</span>
             </div>
-            <div class="wh07-line-list">
-                @foreach (var line in _lines)
+            <div class="wh07-line-list fg04-outbound-list">
+                @foreach (var item in _pallet.Items)
                 {
-                    <RadzenCard class="@($"{LineClass(line)} fg04-line-card")">
+                    <RadzenCard class="wh07-line-card fg04-line-card open">
                         <div class="fg04-line-head">
-                            <div><span>PART NO</span><strong>@line.PartNo</strong></div>
-                            @if (ScannedQty(line) >= line.RequiredQty)
-                            {
-                                <span class="wh07-check">CHECKED</span>
-                            }
-                            else if (ScannedQty(line) > 0)
-                            {
-                                <span class="wh07-check partial">PARTIAL</span>
-                            }
+                            <div><span>PART NO</span><strong>@item.PartNo</strong></div>
+                            <span class="fg04-outbound-qty">@item.Qty.ToString("N0") EA</span>
                         </div>
                         <div class="fg04-detail-rows">
-                            <div class="fg04-detail-row"><span>PART NAME</span><strong>@Text(line.PartName)</strong></div>
-                            <div class="fg04-detail-row"><span>REQUIRED</span><strong>@line.RequiredQty.ToString("N0")</strong></div>
-                            <div class="fg04-detail-row progress"><span>SCANNED</span><strong>@ScannedQty(line).ToString("N0") / @line.RequiredQty.ToString("N0")</strong></div>
+                            <div class="fg04-detail-row"><span>PART NAME</span><strong>@Text(item.PartName)</strong></div>
+                            <div class="fg04-detail-row"><span>LOT NO</span><strong>@item.LotNo</strong></div>
+                            <div class="fg04-detail-row"><span>LOCATION</span><strong>@Text(item.LocationNo)</strong></div>
                         </div>
                     </RadzenCard>
                 }
             </div>
+
             <div class="wh07-action-spacer"></div>
-            <div class="wh07-release-bar"><RadzenButton class="wh07-clear-btn" Click="Clear" Disabled="@_isBusy" Text="CANCEL" /><RadzenButton class="@($"wh07-release-btn {(AllScanned ? "ready" : "blocked")}")" Click="CompleteRelease" Disabled="@(_isBusy || !AllScanned)" Text="COMPLETE" /></div>
+            <div class="wh07-release-bar">
+                <RadzenButton class="wh07-clear-btn" Click="Clear" Disabled="@_isBusy" Text="CLEAR" />
+                <RadzenButton class="wh07-release-btn ready" Click="CompleteOutbound" Disabled="@_isBusy" Text="OUTBOUND" />
+            </div>
         }
     </div>
 
     @if (_modalOpen)
     {
-        <div class="wh-modal-backdrop" @onclick="CloseModal"><RadzenCard class="@($"wh-modal-card {_modalKind}")" @onclick:stopPropagation="true"><div class="wh-modal-mark">@(_modalKind == "success" ? "OK" : "!")</div><div class="wh-modal-title">@_modalTitle</div><div class="wh-modal-message">@_modalMessage</div><div class="wh-modal-actions"><RadzenButton class="wh-modal-btn primary" Click="CloseModal" Text="OK" /></div></RadzenCard></div>
+        <div class="wh-modal-backdrop" @onclick="CloseModal">
+            <RadzenCard class="@($"wh-modal-card {_modalKind}")" @onclick:stopPropagation="true">
+                <div class="wh-modal-mark">@(_modalKind == "success" ? "OK" : "!")</div>
+                <div class="wh-modal-title">@_modalTitle</div>
+                <div class="wh-modal-message">@_modalMessage</div>
+                <div class="wh-modal-actions"><RadzenButton class="wh-modal-btn primary" Click="CloseModal" Text="OK" /></div>
+            </RadzenCard>
+        </div>
     }
 </div>
 
 @code {
-    private List<PdaApi.FgOutgoingSlipLineRow> _lines = new();
-    private readonly Dictionary<int, decimal> _scannedQty = new();
-    private readonly List<ScannedLotRow> _scannedLots = new();
-    private PdaApi.FgOutgoingSlipRow? _selectedSlip;
-    private string _slipBarcode = "", _lotBarcode = "";
+    private const string SamplePalletLot = "FGPAL-DEMO-001";
+    private PdaApi.FgOutboundPalletRow? _pallet;
+    private string _barcode = "";
     private bool _isBusy, _modalOpen;
     private string _modalTitle = "", _modalMessage = "", _modalKind = "info";
     private DotNetObjectReference<Fg04FifoPicking>? _scannerRef;
-
-    private static bool ShowDeveloperScanButtons => MauiProgram.IsDeveloperMode;
-    private string ScanValue => _selectedSlip is null ? _slipBarcode : _lotBarcode;
-    private string ScanPlaceholder => _selectedSlip is null ? "Scan Outgoing Slip Barcode" : "Scan Listed FG LOT Barcode";
-    private bool AllScanned => _lines.Count > 0 && _lines.All(x => ScannedQty(x) >= x.RequiredQty);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
         PdaBarcodeHub.Scanned += OnNativeBarcodeScanned;
         _scannerRef = DotNetObjectReference.Create(this);
-        await JS.InvokeVoidAsync("pdaScan.register", _scannerRef, new { minLength = 3, developerMode = ShowDeveloperScanButtons });
+        await JS.InvokeVoidAsync("pdaScan.register", _scannerRef, new { minLength = 3, developerMode = MauiProgram.IsDeveloperMode });
         await FocusAsync();
     }
 
     [JSInvokable]
     public async Task OnHardwareScanAsync(string scanText)
     {
-        if (_pptOpen) return;
-        var value = Normalize(scanText);
-        if (string.IsNullOrWhiteSpace(value)) return;
-        if (_selectedSlip is null) { _slipBarcode = value; await LoadOutgoingSlip(); }
-        else { _lotBarcode = value; await ScanLot(); }
+        if (_pptOpen || _isBusy) return;
+        _barcode = Normalize(scanText);
+        await ScanPallet();
         await InvokeAsync(StateHasChanged);
     }
 
     private void OnNativeBarcodeScanned(string barcode) => _ = InvokeAsync(() => OnHardwareScanAsync(barcode));
-    private void OnScanInput(ChangeEventArgs e)
-    {
-        if (_selectedSlip is null) _slipBarcode = e.Value?.ToString() ?? "";
-        else _lotBarcode = e.Value?.ToString() ?? "";
-    }
+    private void OnScanInput(ChangeEventArgs e) => _barcode = e.Value?.ToString() ?? "";
     private async Task OnScanKey(KeyboardEventArgs e)
     {
-        if (e.Key != "Enter") return;
-        if (_selectedSlip is null) await LoadOutgoingSlip();
-        else await ScanLot();
+        if (e.Key == "Enter") await ScanPallet();
     }
 
-    private async Task LoadOutgoingSlip()
+    private async Task ScanPallet()
     {
-        if (string.IsNullOrWhiteSpace(_slipBarcode)) { ShowModal("Missing Outgoing Slip", "Scan the outgoing slip barcode first.", "warn"); return; }
+        var barcode = Normalize(_barcode);
+        if (string.IsNullOrWhiteSpace(barcode))
+        {
+            ShowModal("Pallet Required", "Scan a pallet LOT barcode.", "warn");
+            return;
+        }
+
         _isBusy = true;
         try
         {
-            _slipBarcode = _slipBarcode.Trim();
-            _selectedSlip = await Api.FgOutgoingSlipAsync(_slipBarcode);
-            if (_selectedSlip is null)
+            var result = await Api.FgOutboundPalletScanAsync(barcode);
+            if (!result.Success || result.Pallet is null)
             {
-                if (LooksLikeFgLotBarcode(_slipBarcode))
-                {
-                    _lines.Clear();
-                    _slipBarcode = "";
-                    ShowModal("Outgoing Slip Required", "Please scan the outgoing slip first.", "warn");
-                    return;
-                }
-                _lines.Clear();
-                ShowModal("Outgoing Slip Not Found", "The outgoing slip barcode was not found.", "warn");
+                _pallet = null;
+                _barcode = "";
+                ShowModal("Pallet Scan Failed", result.Message, "danger");
                 return;
             }
-            if (!string.Equals(_selectedSlip.Status, "Released", StringComparison.OrdinalIgnoreCase))
-            {
-                var status = Text(_selectedSlip.Status);
-                _selectedSlip = null;
-                ShowModal("Outgoing Slip Unavailable", $"Only RELEASED outgoing slips can be picked. Current status: {status}.", "warn");
-                return;
-            }
-            _slipBarcode = _selectedSlip.OutgoingSlipBarcode;
-            _lines = await Api.FgOutgoingSlipLinesAsync(_slipBarcode);
-            _scannedQty.Clear();
-            _scannedLots.Clear();
-            if (_lines.Count == 0) ShowModal("No Outgoing Lines", "No Part/LOT lines were found for this outgoing slip.", "warn");
+            _pallet = result.Pallet;
+            _barcode = result.Pallet.PalletLotNo;
         }
-        catch (Exception ex)
+        finally
         {
-            _selectedSlip = null;
-            _lines.Clear();
-            ShowModal("Picking Service Error", ex.Message, "danger");
+            _isBusy = false;
+            await FocusAsync();
         }
-        finally { _isBusy = false; await FocusAsync(); }
     }
 
-    private async Task ScanLot()
+    private async Task CompleteOutbound()
     {
-        if (_selectedSlip is null || string.IsNullOrWhiteSpace(_lotBarcode)) return;
+        if (_pallet is null)
+        {
+            ShowModal("Pallet Required", "Scan a pallet LOT barcode first.", "warn");
+            return;
+        }
+
         _isBusy = true;
         try
         {
-            _lotBarcode = _lotBarcode.Trim();
-            var result = await Api.FgReleaseLotScanAsync(new PdaApi.FgReleaseLotScanReq(
-                _selectedSlip.OutgoingSlipId,
-                _lotBarcode,
-                _scannedLots.Select(x => new PdaApi.FgReleaseLotReq(
-                    x.OutgoingSlipLineId, x.Stock.StockId, x.Stock.Qty)).ToList()));
-            if (!result.Success || result.Stock is null || result.OutgoingSlipLineId is null)
+            var palletLot = _pallet.PalletLotNo;
+            var result = await Api.FgOutboundPalletAsync(new PdaApi.FgOutboundPalletReq(palletLot));
+            if (!result.Success)
             {
-                ShowModal(ReleaseScanTitle(result.Code), result.Message,
-                    result.Code is "WRONG_PART" or "WRONG_CUSTOMER" ? "danger" : "warn");
+                ShowModal("Outbound Failed", result.Message, "danger");
                 return;
             }
-            var stock = result.Stock;
-            var line = _lines.First(x => x.OutgoingSlipLineId == result.OutgoingSlipLineId.Value);
-            _scannedLots.Add(new ScannedLotRow(line.OutgoingSlipLineId, line.PartNo, stock));
-            _scannedQty[line.OutgoingSlipLineId] = ScannedQty(line) + stock.Qty;
-            ShowModal("LOT Scanned", $"{stock.LotNo} / {ScannedQty(line):0.###} of {line.RequiredQty:0.###}", "success");
-            _lotBarcode = "";
-        }
-        finally { _isBusy = false; await FocusAsync(); }
-    }
-
-    private decimal ScannedQty(PdaApi.FgOutgoingSlipLineRow line) => _scannedQty.GetValueOrDefault(line.OutgoingSlipLineId);
-    private string LineClass(PdaApi.FgOutgoingSlipLineRow line) => $"wh07-line-card {(ScannedQty(line) >= line.RequiredQty ? "picked" : ScannedQty(line) > 0 ? "partial" : "open")}";
-    private async Task CompleteRelease()
-    {
-        if (_selectedSlip is null || !AllScanned) return;
-        _isBusy = true;
-        try
-        {
-            var result = await Api.FgCompleteReleaseAsync(new PdaApi.FgCompleteReleaseReq(
-                _selectedSlip.OutgoingSlipId,
-                _scannedLots.Select(x => new PdaApi.FgReleaseLotReq(x.OutgoingSlipLineId, x.Stock.StockId, x.Stock.Qty)).ToList()));
-            if (!result.Success) { ShowModal("Complete Failed", result.Message, "danger"); return; }
-            var slipBarcode = _selectedSlip.OutgoingSlipBarcode;
             Clear();
-            ShowModal("Release Complete", $"Outgoing slip {slipBarcode} is ready for loading.", "success");
+            ShowModal("Outbound Complete", $"Pallet {palletLot} and all contained parts were processed.\n{result.Message}", "success");
         }
-        finally { _isBusy = false; await FocusAsync(); }
+        finally
+        {
+            _isBusy = false;
+            await FocusAsync();
+        }
     }
-    private void Clear() { _selectedSlip = null; _lines.Clear(); _scannedQty.Clear(); _scannedLots.Clear(); _slipBarcode = _lotBarcode = ""; }
-    private void ShowModal(string title, string message, string kind) { _modalTitle = title; _modalMessage = message; _modalKind = kind; _modalOpen = true; }
-    private void CloseModal() { _modalOpen = false; _ = FocusAsync(); }
-    private async Task FocusAsync() { if (_pptOpen || _modalOpen) return; try { await JS.InvokeVoidAsync("pdaScan.focus", ".fg04-shell .pda-scan-input"); } catch { } }
-    private static string ReleaseScanTitle(string code) => code switch
+
+    private void Clear()
     {
-        "FIFO_ORDER" => "FIFO Order",
-        "LOT_NOT_FOUND" => "LOT Not Found",
-        "LOT_ALREADY_SCANNED" => "LOT Already Scanned",
-        "LOT_NOT_AVAILABLE" => "LOT Not Available",
-        "LOT_ON_HOLD" => "LOT On Hold",
-        "WRONG_CUSTOMER" => "Wrong Customer",
-        "WRONG_PART" => "Wrong Part",
-        "QUANTITY_EXCEEDS_REMAINING" => "Quantity Exceeds Remaining",
-        "SLIP_NOT_RELEASED" => "Outgoing Slip Unavailable",
-        _ => "LOT Scan Failed"
-    };
-    private static bool LooksLikeFgLotBarcode(string value) => value.Length >= 6 && value.AsSpan(4, 2).Equals("FG", StringComparison.OrdinalIgnoreCase);
-    private static string Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? "" : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
+        _pallet = null;
+        _barcode = "";
+    }
+
+    private void ShowModal(string title, string message, string kind)
+    {
+        _modalTitle = title;
+        _modalMessage = message;
+        _modalKind = kind;
+        _modalOpen = true;
+    }
+
+    private void CloseModal()
+    {
+        _modalOpen = false;
+        _ = FocusAsync();
+    }
+
+    private async Task FocusAsync()
+    {
+        if (_pptOpen || _modalOpen) return;
+        try { await JS.InvokeVoidAsync("pdaScan.focus", ".fg04-shell .pda-scan-input"); } catch { }
+    }
+
+    private static string Normalize(string? value) => string.IsNullOrWhiteSpace(value)
+        ? ""
+        : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
-    private sealed record ScannedLotRow(int OutgoingSlipLineId, string PartNo, PdaApi.FgStockRow Stock);
-    public async ValueTask DisposeAsync() { PdaBarcodeHub.Scanned -= OnNativeBarcodeScanned; try { await JS.InvokeVoidAsync("pdaScan.unregister"); } catch { } _scannerRef?.Dispose(); }
+
+    public async ValueTask DisposeAsync()
+    {
+        PdaBarcodeHub.Scanned -= OnNativeBarcodeScanned;
+        try { await JS.InvokeVoidAsync("pdaScan.unregister"); } catch { }
+        _scannerRef?.Dispose();
+    }
 }

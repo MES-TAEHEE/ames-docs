@@ -182,7 +182,7 @@
 
         return (await FgApi.FgInventoryAsync(search))
             .Where(row => row.Qty > 0 && !string.IsNullOrWhiteSpace(row.LotNo))
-            .Select(row => new PdaApi.LotStatusRow(row.StockId, row.LotNo!, row.ItemNo, row.ItemName,
+            .Select(row => new PdaApi.LotStatusRow(row.LotId ?? 0, row.LotNo, row.ItemNo, row.ItemName,
                 row.Status ?? "Stocked", row.Qty, row.Location, null, row.StockTs))
             .ToList();
     }

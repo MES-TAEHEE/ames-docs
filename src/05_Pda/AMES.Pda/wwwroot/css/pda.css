@@ -11251,6 +11251,41 @@ html body .rz-popup .rz-state-highlight span {
     gap: 7px;
 }
 
+.pda-shell.wh.wh07-shell.wh07-release-shell .wh07-result-scroll {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+}
+
+.pda-shell.wh.wh07-shell.wh07-release-shell .wh07-result-scroll > * {
+    flex: 0 0 auto;
+}
+
+.pda-shell.wh.wh07-shell.wh07-release-shell .wh07-body {
+    display: grid !important;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    min-height: 0;
+    overflow: hidden !important;
+}
+
+.pda-shell.wh.wh07-shell.wh07-release-shell .wh07-action-bar {
+    flex: 0 0 auto;
+}
+
+.pda-shell.wh.fg04-shell .fg04-outbound-qty {
+    color: #86efac;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
 .pda-shell.wh.wh07-shell .wh07-line-card.rz-card {
     padding: 0 !important;
     border: 1px solid rgba(148, 163, 184, .34) !important;

@@ -1,5 +1,6 @@
 @page "/wh/putaway"
 @inject WarehouseApi Api
+@inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @implements IAsyncDisposable
@@ -8,6 +9,12 @@
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
         <span class="pda-tbar-brand">PUT-AWAY</span>
+        @if (IsPptTestMode)
+        {
+            <PptScenarioPanel Title="PUT-AWAY" Steps="PptSteps" Busy="IsBusy"
+                              OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData"
+                              OpenChanged="@((bool open) => _pptOpen = open)" />
+        }
     </div>
 
     <div class="pda-bd wh02-body wh-putaway-body">
@@ -123,6 +130,25 @@
 </div>
 
 @code {
+    private const string PptDeliveryNote = "PPT-WH-NOTE-PUTAWAY";
+    private const string PptBox = "5011LL260908850001";
+    private const string PptRelocationBox = "5011LL260908850004";
+    private const string PptLocation = "B0-10-A1";
+    private static readonly PptScenarioPanel.Step[] PptSteps =
+    [
+        new("Initial Screen", "Delivery Note 또는 LOT 바코드를 스캔하는 초기 화면을 확인합니다.",
+            new PptScenarioPanel.Value("DELIVERY NOTE", PptDeliveryNote, "DOCUMENT"),
+            new PptScenarioPanel.Value("LOT", PptBox, "BOX")),
+        new("Delivery Note Boxes", "Delivery Note를 스캔해 미적재 BOX 3개와 전체 선택 상태를 확인합니다.",
+            new PptScenarioPanel.Value("DELIVERY NOTE", PptDeliveryNote, "DOCUMENT")),
+        new("Box Selection", "ALL·NONE과 개별 BOX 선택을 확인한 뒤 적재할 BOX를 선택합니다.",
+            new PptScenarioPanel.Value("BOX 1", PptBox, "BOX")),
+        new("Location & Confirm", "Location 스캔 후 CONFIRM 활성화를 확인하고 Put-away를 완료합니다.",
+            new PptScenarioPanel.Value("LOCATION", PptLocation, "LOCATION")),
+        new("Relocation Check", "이미 적재된 LOT을 스캔해 Already Put Away와 RELOCATE 확인창을 검수합니다.",
+            new PptScenarioPanel.Value("STORED LOT", PptRelocationBox, "RELOCATE"))
+    ];
+
     private string _barcode = "";
     private string _locationNo = "";
     private string _message = "";
@@ -132,6 +158,8 @@
     private bool _isLocationScanning;
     private bool _isConfirming;
     private bool _modalOpen;
+    private bool _pptOpen;
+    private bool _pptReady;
     private string _modalTitle = "";
     private string _modalMessage = "";
     private string _modalKind = "warn";
@@ -143,6 +171,7 @@
     private HashSet<string> _selectedBarcodes = new(StringComparer.OrdinalIgnoreCase);
 
     private bool IsBusy => _isScanning || _isLocationScanning || _isConfirming;
+    private bool IsPptTestMode => PdaScenarioUsers.IsSimple(Auth.Session?.EmployeeNo);
     private decimal SelectedQty => _boxes.Where(box => IsSelected(box.Barcode)).Sum(box => box.Qty);
     private bool CanConfirm => !IsBusy && _selectedBarcodes.Count > 0 && _location is not null
         && string.Equals(_location.LocationId, _locationNo.Trim(), StringComparison.OrdinalIgnoreCase);
@@ -156,8 +185,78 @@
             await JS.InvokeVoidAsync("pdaScan.register", _scannerRef, new { minLength = 3, developerMode = MauiProgram.IsDeveloperMode });
         }
 
-        if (!_modalOpen && !IsBusy)
+        if (!_modalOpen && !_pptOpen && !IsBusy)
             await JS.InvokeVoidAsync("pdaScan.focus", _boxes.Count == 0 ? ".wh-putaway-item-input" : ".wh-putaway-location-input");
+    }
+
+    private async Task EnsurePptData()
+    {
+        if (_pptReady) return;
+        await Api.WhResetPptTestAsync("putaway");
+        _pptReady = true;
+    }
+
+    private async Task ResetPptData()
+    {
+        if (!IsPptTestMode || IsBusy) return;
+        await Api.WhResetPptTestAsync("putaway");
+        _pptReady = true;
+        Reset();
+        ShowAlert("Test Data Ready", "미적재 LOT 3개와 재적재 확인 LOT 1개를 초기화했습니다.", "success");
+    }
+
+    private async Task LoadPptDocument()
+    {
+        Reset();
+        _barcode = PptDeliveryNote;
+        await ScanItem();
+    }
+
+    private async Task StartPptStep(int step)
+    {
+        if (!IsPptTestMode || IsBusy) return;
+        await EnsurePptData();
+        if (step == 1) { Reset(); return; }
+        if (step == 5)
+        {
+            Reset();
+            _barcode = PptRelocationBox;
+            await ScanItem();
+            return;
+        }
+        await LoadPptDocument();
+        if (step >= 4 && !_modalOpen)
+        {
+            _locationNo = PptLocation;
+            await ScanLocation();
+        }
+    }
+
+    private async Task RunPptValue(string command)
+    {
+        if (!IsPptTestMode || IsBusy) return;
+        await EnsurePptData();
+        if (command == "DOCUMENT") { await LoadPptDocument(); return; }
+        if (command == "BOX")
+        {
+            Reset();
+            _barcode = PptBox;
+            await ScanItem();
+            return;
+        }
+        if (command == "RELOCATE")
+        {
+            Reset();
+            _barcode = PptRelocationBox;
+            await ScanItem();
+            return;
+        }
+        await LoadPptDocument();
+        if (!_modalOpen)
+        {
+            _locationNo = PptLocation;
+            await ScanLocation();
+        }
     }
 
     [JSInvokable]

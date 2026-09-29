@@ -23,7 +23,7 @@
 
         <RadzenCard class="@($"wh02-panel wh02-scan-panel {ScanPanelClass}")">
             <div class="pda-fld">
-                <label>BARCODE SCAN</label>
+                <label>SCAN BARCODE</label>
                 <RadzenTextBox class="pda-input wh02-barcode-input pda-scan-input"
                                Value="@_barcode"
                                @oninput="OnBarcodeInput"
@@ -323,7 +323,7 @@
         ["CKD"] = new()
     };
 
-    private string _mode = "";
+    private string _mode = "LOCAL";
     private string _barcode = "";
     private string _loc = "";
     private string _msg = "";
@@ -440,8 +440,8 @@
     private static bool ShowDeveloperScanButtons => MauiProgram.IsDeveloperMode;
     private const string ScanPanelClass = "hardware-scan-panel";
     private bool IsBusy => _isScanning || _isLocationScanning || _isReceiving || _isMoving || _isCanceling;
-    private const string BarcodePlaceholder = "Scan Receiving Barcode";
-    private string DocumentTitle => _mode == "CKD" ? "CKD CASE" : "DELIVERY NOTE";
+    private const string BarcodePlaceholder = "Scan Barcode";
+    private string DocumentTitle => !string.IsNullOrWhiteSpace(_document?.CaseNo) ? "CKD CASE" : "DELIVERY NOTE";
     private bool LocationEntryDisabled => true;
     private bool DisableScan => IsBusy || string.IsNullOrWhiteSpace(_barcode);
     private bool DisableLocationScan => LocationEntryDisabled || string.IsNullOrWhiteSpace(_loc);
@@ -704,15 +704,23 @@
             var documentResult = await Api.WhInboundDocumentAsync(_mode, _barcode.Trim());
             if (documentResult.Document is not null)
             {
-                _document = documentResult.Document;
-                _documentLines = documentResult.Lines;
-                _documentBoxes = documentResult.Boxes;
                 _pendingDocumentBoxes.Clear();
+                if (string.Equals(documentResult.Document.Yn, "Y", StringComparison.OrdinalIgnoreCase))
+                {
+                    _document = null;
+                    _documentLines = [];
+                    _documentBoxes = [];
+                    _barcode = "";
+                    _msg = "This delivery note has already been fully received.";
+                    _cls = "fail";
+                    ShowAlert("Already Received", _msg, "warn");
+                    return;
+                }
+
+                ApplyDocumentResult(documentResult);
                 _barcode = documentResult.Document.DocumentBarcode;
-                _msg = documentResult.Document.Yn == "Y"
-                    ? "All boxes in this document are received."
-                    : "Document loaded. Scan a box barcode.";
-                _cls = documentResult.Document.Yn == "Y" ? "ok" : "dim";
+                _msg = "Document loaded. Only unreceived items are shown.";
+                _cls = "dim";
                 return;
             }
 
@@ -783,10 +791,9 @@
 
     private bool BelongsToCurrentDocument(PdaApi.InboundScanRow row)
     {
-        var documentBarcode = _mode == "CKD" ? row.CaseBarcode : row.NoteNo;
         return _document is not null
-            && !string.IsNullOrWhiteSpace(documentBarcode)
-            && string.Equals(_document.DocumentBarcode, documentBarcode, StringComparison.OrdinalIgnoreCase);
+            && (string.Equals(_document.DocumentBarcode, row.NoteNo, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(_document.DocumentBarcode, row.CaseBarcode, StringComparison.OrdinalIgnoreCase));
     }
 
     private async Task PrepareNextBoxAsync()
@@ -794,9 +801,7 @@
         if (_document is not null)
         {
             var result = await Api.WhInboundDocumentAsync(_mode, _document.DocumentBarcode);
-            _document = result.Document;
-            _documentLines = result.Lines;
-            _documentBoxes = result.Boxes;
+            ApplyDocumentResult(result);
             _pendingDocumentBoxes.Clear();
         }
 
@@ -1093,7 +1098,9 @@
         if (_document is null) yield break;
 
         yield return ("Vendor", Text(_document.VendorName ?? _document.VendorId));
-        if (_mode == "CKD")
+        if (!string.IsNullOrWhiteSpace(_document.CaseNo)
+            || !string.IsNullOrWhiteSpace(_document.InvoiceNo)
+            || !string.IsNullOrWhiteSpace(_document.ContainerNo))
         {
             yield return ("Case No", Text(_document.CaseNo));
             yield return ("Invoice", Text(_document.InvoiceNo));
@@ -1113,9 +1120,18 @@
         if (_document is null) return;
 
         var result = await Api.WhInboundDocumentAsync(_mode, _document.DocumentBarcode);
+        ApplyDocumentResult(result);
+    }
+
+    private void ApplyDocumentResult(PdaApi.InboundDocumentResult result)
+    {
         _document = result.Document;
-        _documentLines = result.Lines;
-        _documentBoxes = result.Boxes;
+        _documentLines = result.Lines
+            .Where(line => line.ScanCount < line.BoxCount || line.RemainingQty > 0)
+            .ToList();
+        _documentBoxes = result.Boxes
+            .Where(box => !string.Equals(box.Yn, "Y", StringComparison.OrdinalIgnoreCase))
+            .ToList();
     }
 
     private int DisplayScanCount(PdaApi.InboundDocumentLineRow line)

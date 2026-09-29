@@ -4,24 +4,24 @@ public partial class Wh02PdaInbound
 {
     private static readonly InboundTestScenario[] SimpleTestScenarios =
     [
-        new(1, "PPT 01", "Initial Screen", null, "화면에서 LOCAL 또는 CKD를 선택하고 바코드 입력란을 확인합니다.", "", false),
-        new(2, "PPT 02", "Barcode Scan", null, "단일 LOT/Box 정보와 Delivery Note/Case의 내부 품목 목록을 확인합니다.", "", false),
-        new(3, "PPT 03", "Delivery Note / Case Boxes", null, "BOX 1~3을 차례로 눌러 초록색 표시와 스캔 수를 확인합니다.", "", false),
+        new(1, "PPT 01", "Initial Screen", null, "LOCAL 또는 CKD를 선택하고 Scan Barcode 입력 영역을 확인합니다.", "", false),
+        new(2, "PPT 02", "Barcode Scan", null, "LOT/BOX 단건과 Delivery Note 안의 미입고 BOX 목록이 조회되는지 확인합니다.", "", false),
+        new(3, "PPT 03", "Delivery Note Boxes", null, "Delivery Note의 BOX 1~3을 차례로 스캔해 초록색 표시와 스캔 수를 확인합니다.", "", false),
         new(4, "PPT 04", "Receive Ready", null, "모든 BOX 스캔 후 Location 입력 없이 RECEIVE가 활성화되는지 확인합니다.", "", false),
-        new(5, "PPT 05", "Receive Complete", null, "RECEIVE로 입고 완료 및 Put-away 대기 상태를 확인합니다. API ERROR ON으로 오류도 검수합니다.", "", false)
+        new(5, "PPT 05", "Receive Complete", null, "RECEIVE 후 재고와 Transactions에 입고가 반영되고 Put-away 대기 상태가 되는지 확인합니다.", "", false)
     ];
 
     private string _simpleMode = "LOCAL";
     private bool _simpleDataReady;
     private bool _simpleBusy;
-    private string SimpleDocument => _simpleMode == "CKD" ? "CKD202609080001CASE00001" : "5011202609088001";
+    private string SimpleDocument => _simpleMode == "CKD" ? "PPT-WH-NOTE-CKD" : "PPT-WH-NOTE-LOCAL";
     private string[] SimpleBoxes => _simpleMode == "CKD"
         ? ["CKD260908800000001", "CKD260908800000002", "CKD260908800000003"]
         : ["5011LL260908800001", "5011LL260908800002", "5011LL260908800003"];
 
     private InboundTestValue[] SimpleTestValues() => CurrentTestScenario.No switch
     {
-        2 => [new("LOT / BOX", SimpleBoxes[0]), new(_simpleMode == "CKD" ? "CASE" : "DELIVERY NOTE", SimpleDocument), new("미등록 바코드", "WH-PPT-UNKNOWN")],
+        2 => [new("LOT / BOX", SimpleBoxes[0]), new("DELIVERY NOTE", SimpleDocument), new("미등록 바코드", "WH-PPT-UNKNOWN")],
         3 => SimpleBoxes.Select((barcode, index) => new InboundTestValue($"BOX {index + 1}", barcode)).ToArray(),
         _ => []
     };
@@ -63,7 +63,7 @@ public partial class Wh02PdaInbound
             _mode = "";
             _testScenarioIndex = 0;
             _simulateReceiveApiFailure = false;
-            ShowAlert("Test Data Ready", "LOCAL / CKD 각 3개 박스를 미입고 상태로 초기화했습니다.", "success");
+            ShowAlert("Test Data Ready", "LOCAL / CKD 각 3개 BOX를 미입고 상태로 초기화했습니다.", "success");
         }
         finally { _simpleBusy = false; }
     }
@@ -84,7 +84,7 @@ public partial class Wh02PdaInbound
             if (_document is null || _modalOpen) return;
             if (_document.Yn == "Y")
             {
-                ShowAlert("Test Data Reset Required", "입고 완료된 데이터입니다. SCENARIO에서 테스트 데이터 초기화를 눌러주세요.", "info");
+                ShowAlert("Test Data Reset Required", "이미 입고된 데이터입니다. SCENARIO에서 테스트 데이터를 초기화해 주세요.", "info");
                 return;
             }
             if (CurrentTestScenario.No < 4) return;

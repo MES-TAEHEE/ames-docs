@@ -35,27 +35,6 @@ public static class FgDetailedScenarioCatalog
         new(5,"품목별 LOT 항목","각 LOT 행에 Qty, Unit, Location이 표시되는지 확인합니다."),
         new(6,"조회 오류 표시","API 또는 DB 연결 오류를 빈 재고 목록으로 처리하지 않고 오류 안내를 표시하는지 확인합니다."));
 
-    public static PptScenarioPanel.Step[] Picking(PptScenarioPanel.Step[] source) => Build("FG004", source,
-        new(1,"출고전표 스캔","정상 출고전표를 스캔하면 Customer, Destination, Ship Date가 표시되는지 확인합니다."), new(1,"요구 수량","각 품목에 Required와 Scanned 수량이 표시되는지 확인합니다."),
-        new(2,"복수 LOT 수량 합산","같은 품목의 여러 LOT을 스캔하면 수량이 누적되는지 확인합니다."), new(2,"부분 스캔 상태","요구 수량을 충족하지 못한 품목에 PARTIAL과 진행 수량이 표시되는지 확인합니다."),
-        new(2,"완료 버튼 비활성화","완료되지 않은 품목이 있으면 COMPLETE가 비활성화되는지 확인합니다."), new(3,"품목 스캔 완료","요구 수량을 충족한 품목이 초록색 CHECKED 상태로 변경되는지 확인합니다."),
-        new(3,"품목별 진행 수량","각 품목의 스캔 수량이 서로 독립적으로 집계되는지 확인합니다."), new(3,"미완료 품목 상태","요구 수량을 충족하지 못한 품목은 PARTIAL 상태로 유지되는지 확인합니다."),
-        new(4,"전체 품목 완료","모든 품목의 요구 수량을 충족하면 전체 행이 초록색으로 변경되는지 확인합니다."), new(4,"완료 버튼 활성화","모든 LOT 스캔 완료 후 COMPLETE가 활성화되는지 확인합니다."),
-        new(4,"취소 시 스캔 초기화","COMPLETE 전에 CANCEL을 누르면 스캔 진행 내용이 저장되지 않고 초기화되는지 확인합니다."), new(5,"서버 FIFO 검증","서버가 현재 출고 가능한 가장 오래된 LOT을 우선하도록 검증하는지 확인합니다."),
-        new(5,"FIFO 오류 정보","FIFO 오류에 먼저 스캔해야 할 LOT과 Location이 표시되는지 확인합니다."), new(6,"릴리즈 저장","COMPLETE 실행 시 스캔한 모든 LOT이 출고 처리되는지 확인합니다."),
-        new(6,"릴리즈 완료 안내","Release Complete 알림이 표시되고 Truck Loading 가능한 상태가 되는지 확인합니다."));
-
-    public static PptScenarioPanel.Step[] Loading(PptScenarioPanel.Step[] source) => Build("FG005", source,
-        new(1,"트럭 바코드 우선 스캔","TRUCK:<차량번호> 형식의 바코드로 Truck Loading이 시작되는지 확인합니다."), new(1,"잘못된 스캔 순서 차단","트럭 확인 전에 Shipment 또는 Stock을 스캔하면 차단되는지 확인합니다."),
-        new(2,"트럭 확인","Truck Information에 차량번호와 VERIFIED가 표시되는지 확인합니다."), new(2,"Shipment 스캔 안내","Next Scan이 Shipment Order Barcode로 변경되는지 확인합니다."),
-        new(2,"다음 작업 안내","다음에 필요한 스캔 작업이 화면에 표시되는지 확인합니다."), new(3,"Shipment 정보","Customer, Destination, Ship Date, Product Count가 표시되는지 확인합니다."),
-        new(3,"적재 대상 목록","Stock, Part, Qty, Location이 Products To Load에 표시되는지 확인합니다."), new(3,"Shipment 정보 자동 이동","Shipment 정보가 Next Scan 바로 아래에 보이도록 화면이 이동하는지 확인합니다."),
-        new(4,"Stock 스캔 강조","스캔한 Stock 행이 초록색으로 변경되는지 확인합니다."), new(4,"스캔 진행 수량","Stock 하나를 스캔할 때마다 SCANNED 수량이 한 건씩 증가하는지 확인합니다."),
-        new(4,"확정 버튼 비활성화","모든 Stock을 스캔하기 전에는 CONFIRM이 비활성화되는지 확인합니다."), new(5,"전체 Stock 완료","모든 Stock 스캔 후 전체 행이 초록색으로 변경되는지 확인합니다."),
-        new(5,"전체 스캔 안내","SCANNED 3/3과 적재 완료 안내가 표시되는지 확인합니다."), new(5,"확정 버튼 활성화","모든 Stock 스캔 후 CONFIRM이 활성화되는지 확인합니다."),
-        new(6,"중복 스캔 수량 유지","이미 스캔한 Stock을 다시 스캔해도 진행 수량이 증가하지 않는지 확인합니다."), new(6,"중복 스캔 알림","Already Scanned 알림에 중복 제품이 명확히 안내되는지 확인합니다."),
-        new(7,"트럭 적재 저장","CONFIRM 실행 시 모든 제품이 해당 트럭에 적재 처리되는지 확인합니다."), new(7,"트럭 적재 완료 안내","완료 팝업에 적재 제품 수와 차량번호가 표시되는지 확인합니다."));
-
     public static PptScenarioPanel.Step[] Returns(PptScenarioPanel.Step[] source) => Build("FG006", source,
         new(1,"반품 제품 스캔","출하 완료된 FG 제품을 스캔하면 Customer Return이 시작되는지 확인합니다."), new(1,"수령 버튼 비활성화","제품과 반품 사유를 입력하기 전에는 RECEIVE가 비활성화되는지 확인합니다."),
         new(2,"반품 제품 정보","Part, Customer, Shipped At 정보가 표시되는지 확인합니다."), new(2,"반품 가능 상태","출하 완료 제품에 RETURN ELIGIBLE이 표시되는지 확인합니다."),

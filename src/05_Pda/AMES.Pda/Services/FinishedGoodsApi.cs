@@ -6,17 +6,6 @@ namespace AMES.Pda.Services;
 
 public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(http, auth)
 {
-    public async Task<AdjustmentLocation?> ScanAdjustmentLocationAsync(string barcode)
-    {
-        Authorize();
-        using var response = await _http.GetAsync(
-            $"/api/fg/adjust/location?barcode={Uri.EscapeDataString(barcode.Trim())}");
-        if (!response.IsSuccessStatusCode)
-            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Finished goods adjustment location service is unavailable."));
-        if (response.Content.Headers.ContentLength == 0) return null;
-        return await response.Content.ReadFromJsonAsync<AdjustmentLocation>();
-    }
-
     public async Task<List<WarehouseTransactionRow>> TransactionsAsync(string? search = null,
         DateTime? dateFrom = null, DateTime? dateTo = null)
     {
@@ -26,6 +15,17 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
         if (dateTo.HasValue) query.Add($"dateTo={dateTo.Value:yyyy-MM-dd}");
         var url = "/api/fg/transactions" + (query.Count == 0 ? "" : "?" + string.Join("&", query));
         return await GetRequiredAsync<List<WarehouseTransactionRow>>(url, "Finished goods transaction service is unavailable.");
+    }
+
+    public async Task<AdjustmentLocation?> ScanAdjustmentLocationAsync(string barcode)
+    {
+        Authorize();
+        using var response = await _http.GetAsync(
+            $"/api/fg/adjust/location?barcode={Uri.EscapeDataString(barcode.Trim())}");
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Finished goods adjustment location service is unavailable."));
+        if (response.Content.Headers.ContentLength == 0) return null;
+        return await response.Content.ReadFromJsonAsync<AdjustmentLocation>();
     }
 
     public async Task FgResetPptTestAsync(string screen)
@@ -130,16 +130,6 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
             throw new InvalidOperationException("Put-Away Waiting returned an invalid response. Press REFRESH to retry.", ex);
         }
     }
-    public Task<List<FgOrderRow>>   FgOrdersAsync()  => Get<List<FgOrderRow>>("/api/fg/orders");
-    public Task<List<FgOrderLineRow>> FgOrderLinesAsync(string shipOrderNumber)
-        => Get<List<FgOrderLineRow>>($"/api/fg/orders/{Uri.EscapeDataString(shipOrderNumber)}/lines");
-    public async Task<FgOutgoingSlipRow?> FgOutgoingSlipAsync(string barcode)
-        => (await GetPickingAsync<List<FgOutgoingSlipRow>>(
-            $"/api/fg/release/outgoing-slips/{Uri.EscapeDataString(barcode)}")).FirstOrDefault();
-    public Task<List<FgOutgoingSlipLineRow>> FgOutgoingSlipLinesAsync(string barcode)
-        => GetPickingAsync<List<FgOutgoingSlipLineRow>>(
-            $"/api/fg/release/outgoing-slips/{Uri.EscapeDataString(barcode)}/lines");
-    public Task<List<FgHistoryRow>> FgHistoryAsync() => Get<List<FgHistoryRow>>("/api/fg/history");
     public Task<List<FgReturnRow>> FgReturnsAsync() => Get<List<FgReturnRow>>("/api/fg/returns");
     public Task<FgReturnResult> FgReturnScanAsync(string barcode)
         => GetFgReturnResultAsync($"/api/fg/return/scan?barcode={Uri.EscapeDataString(barcode)}");
@@ -154,45 +144,10 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
         => GetFgPutAwayLocationAsync($"/api/fg/putaway/location?locationId={Uri.EscapeDataString(locationId)}&itemNo={Uri.EscapeDataString(itemNo)}&customerCode={Uri.EscapeDataString(customerCode ?? "")}&qty={qty}&expectedScanType={Uri.EscapeDataString(expectedScanType ?? "")}");
     public Task<FgPutAwayResult> FgConfirmPutAwayAsync(FgPutAwayConfirmReq body)
         => PostFgPutAwayResultAsync("/api/fg/putaway/confirm", body);
-    public async Task<FgReleaseLotScanResult> FgReleaseLotScanAsync(FgReleaseLotScanReq body)
-    {
-        Authorize();
-        try
-        {
-            var response = await _http.PostAsJsonAsync("/api/fg/release/lot/scan", body);
-            return await response.Content.ReadFromJsonAsync<FgReleaseLotScanResult>()
-                ?? new(false, "SERVICE_ERROR", "Picking service returned an empty response.", null, null);
-        }
-        catch (Exception ex)
-        {
-            return new(false, "SERVICE_ERROR", $"Picking service is unavailable. {ex.Message}", null, null);
-        }
-    }
-
-    public async Task<FgCompleteReleaseResult> FgCompleteReleaseAsync(FgCompleteReleaseReq body)
-    {
-        Authorize();
-        try
-        {
-            var response = await _http.PostAsJsonAsync("/api/fg/release/complete", body);
-            return await response.Content.ReadFromJsonAsync<FgCompleteReleaseResult>()
-                ?? new(false, "Picking service returned an empty response.", null);
-        }
-        catch (Exception ex)
-        {
-            return new(false, $"Picking service is unavailable. {ex.Message}", null);
-        }
-    }
-    public Task<FgLoadingOrderResult> FgLoadingOrderScanAsync(string barcode)
-        => GetFgLoadingOrderResultAsync($"/api/fg/loading/order/scan?barcode={Uri.EscapeDataString(barcode)}");
-    public Task<FgLoadingResult> FgLoadingTruckScanAsync(string barcode)
-        => GetFgLoadingResultAsync($"/api/fg/loading/truck/scan?barcode={Uri.EscapeDataString(barcode)}");
-    public Task<FgLoadingResult> FgLoadingItemScanAsync(string barcode, int? shipmentOrderId)
-        => GetFgLoadingResultAsync($"/api/fg/loading/item/scan?barcode={Uri.EscapeDataString(barcode)}{(shipmentOrderId is > 0 ? $"&shipmentOrderId={shipmentOrderId}" : "")}");
-    public Task<FgLoadingResult> FgLoadingAsync(FgLoadingReq body)
-        => PostFgLoadingResultAsync("/api/fg/loading", body);
-    public Task<HttpResponseMessage> FgDeliveryAsync(FgDeliveryReq body) => Post("/api/fg/delivery", body);
-    public Task<HttpResponseMessage> FgDayEndAsync  (FgDayEndReq  body)  => Post("/api/fg/dayend",   body);
+    public Task<FgOutboundPalletResult> FgOutboundPalletScanAsync(string barcode)
+        => GetOutboundPalletResultAsync($"/api/fg/outbound/pallet/scan?barcode={Uri.EscapeDataString(barcode.Trim())}");
+    public Task<FgOutboundPalletResult> FgOutboundPalletAsync(FgOutboundPalletReq body)
+        => PostOutboundPalletResultAsync("/api/fg/outbound/pallet", body);
     public Task<FgReturnResult> FgReturnAsync(FgReturnReq body)
         => PostFgReturnResultAsync("/api/fg/return", body);
 
@@ -211,93 +166,52 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
         }
     }
 
-    private async Task<FgLoadingResult> GetFgLoadingResultAsync(string url)
+    private async Task<FgOutboundPalletResult> GetOutboundPalletResultAsync(string url)
     {
         Authorize();
         try
         {
-            var resp = await _http.GetAsync(url);
-            return await ReadFgLoadingResultAsync(resp);
+            using var response = await _http.GetAsync(url);
+            return await ReadOutboundPalletResultAsync(response);
         }
-        catch (HttpRequestException)
+        catch (Exception ex)
         {
-            return new FgLoadingResult(false, "Truck loading service is unavailable. Check the API and database connection.", null, null, null);
-        }
-        catch (Exception)
-        {
-            return new FgLoadingResult(false, "Truck loading service returned an invalid response.", null, null, null);
+            return new FgOutboundPalletResult(false, $"Outbound service is unavailable. {ex.Message}", null);
         }
     }
 
-    private async Task<FgLoadingOrderResult> GetFgLoadingOrderResultAsync(string url)
+    private async Task<FgOutboundPalletResult> PostOutboundPalletResultAsync(string url, FgOutboundPalletReq body)
     {
         Authorize();
         try
         {
-            var resp = await _http.GetAsync(url);
-            try
-            {
-                var result = await resp.Content.ReadFromJsonAsync<FgLoadingOrderResult>();
-                if (result is not null) return result;
-            }
-            catch
-            {
-                // Fall through to a readable HTTP message.
-            }
-
-            if (resp.StatusCode == HttpStatusCode.Unauthorized)
-                return new FgLoadingOrderResult(false, "Session expired. Sign in again.", null);
-            return new FgLoadingOrderResult(resp.IsSuccessStatusCode,
-                resp.IsSuccessStatusCode ? "Shipment order loaded." : $"Shipment order service failed. HTTP {(int)resp.StatusCode}.",
-                null);
+            using var response = await _http.PostAsJsonAsync(url, body);
+            return await ReadOutboundPalletResultAsync(response);
         }
-        catch (HttpRequestException)
+        catch (Exception ex)
         {
-            return new FgLoadingOrderResult(false, "Truck loading service is unavailable. Check the API and database connection.", null);
-        }
-        catch (Exception)
-        {
-            return new FgLoadingOrderResult(false, "Truck loading service returned an invalid response.", null);
+            return new FgOutboundPalletResult(false, $"Outbound service is unavailable. {ex.Message}", null);
         }
     }
 
-    private async Task<FgLoadingResult> PostFgLoadingResultAsync(string url, FgLoadingReq body)
-    {
-        Authorize();
-        try
-        {
-            var resp = await _http.PostAsJsonAsync(url, body);
-            return await ReadFgLoadingResultAsync(resp);
-        }
-        catch (HttpRequestException)
-        {
-            return new FgLoadingResult(false, "Truck loading service is unavailable. Check the API and database connection.", null, null, null);
-        }
-        catch (Exception)
-        {
-            return new FgLoadingResult(false, "Truck loading service returned an invalid response.", null, null, null);
-        }
-    }
-
-    private static async Task<FgLoadingResult> ReadFgLoadingResultAsync(HttpResponseMessage resp)
+    private static async Task<FgOutboundPalletResult> ReadOutboundPalletResultAsync(HttpResponseMessage response)
     {
         try
         {
-            var result = await resp.Content.ReadFromJsonAsync<FgLoadingResult>();
+            var result = await response.Content.ReadFromJsonAsync<FgOutboundPalletResult>();
             if (result is not null) return result;
         }
         catch
         {
-            // Fall through to a readable HTTP message.
+            // Fall through to a readable status message.
         }
 
-        if (resp.StatusCode == HttpStatusCode.Unauthorized)
-            return new FgLoadingResult(false, "Session expired. Sign in again.", null, null, null);
-
-        return new FgLoadingResult(resp.IsSuccessStatusCode,
-            resp.IsSuccessStatusCode ? "Truck loading confirmed." : $"Truck loading service failed. HTTP {(int)resp.StatusCode}.",
-            null, null, null);
+        return new FgOutboundPalletResult(false,
+            response.StatusCode == HttpStatusCode.Unauthorized
+                ? "Session expired. Sign in again."
+                : $"Outbound service failed. HTTP {(int)response.StatusCode}.", null);
     }
+
 
     private async Task<FgReturnResult> PostFgReturnResultAsync(string url, FgReturnReq body)
     {
@@ -404,28 +318,6 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
             ? "FG Put-Away completed."
             : $"FG Put-Away service failed. HTTP {(int)resp.StatusCode}.";
         return new FgPutAwayResult(resp.IsSuccessStatusCode, message, null, null, null);
-    }
-
-    private async Task<T> GetPickingAsync<T>(string url)
-    {
-        Authorize();
-        try
-        {
-            var response = await _http.GetAsync(url);
-            if (!response.IsSuccessStatusCode)
-                throw new InvalidOperationException(await ReadServiceErrorAsync(response,
-                    $"Picking service failed. HTTP {(int)response.StatusCode}."));
-            return await response.Content.ReadFromJsonAsync<T>()
-                ?? throw new InvalidOperationException("Picking service returned an empty response.");
-        }
-        catch (InvalidOperationException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException("Picking service is unavailable. Check the API/DB connection.", ex);
-        }
     }
 
 }
