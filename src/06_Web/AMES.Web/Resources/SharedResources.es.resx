@@ -8541,4 +8541,956 @@
   <data name="WH.Picking.Ph.Part" xml:space="preserve">
     <value>N.º Pieza/Nombre</value>
   </data>
+  <!-- SCM and portal presentation text -->
+  <data name="Scm.Text.DeliveryNotes" xml:space="preserve">
+    <value>Entregas</value>
+  </data>
+  <data name="Scm.Text.Scheduled" xml:space="preserve">
+    <value>Programadas</value>
+  </data>
+  <data name="Scm.Text.Shipped" xml:space="preserve">
+    <value>Enviadas</value>
+  </data>
+  <data name="Scm.Text.Received" xml:space="preserve">
+    <value>Recibidas</value>
+  </data>
+  <data name="Scm.Text.Cancelled" xml:space="preserve">
+    <value>Canceladas</value>
+  </data>
+  <data name="Scm.Text.AwaitingConfirmation" xml:space="preserve">
+    <value>Pendientes</value>
+  </data>
+  <data name="Scm.Text.Items" xml:space="preserve">
+    <value>registros</value>
+  </data>
+  <data name="Scm.Text.Supplier" xml:space="preserve">
+    <value>Proveedor</value>
+  </data>
+  <data name="Scm.Text.All" xml:space="preserve">
+    <value>Todos</value>
+  </data>
+  <data name="Scm.Text.DeliveryDate" xml:space="preserve">
+    <value>Entrega</value>
+  </data>
+  <data name="Scm.Text.Due" xml:space="preserve">
+    <value>Vencimiento</value>
+  </data>
+  <data name="Scm.Text.NewOrder" xml:space="preserve">
+    <value>Nuevo pedido</value>
+  </data>
+  <data name="Scm.Text.NewDelivery" xml:space="preserve">
+    <value>Nueva entrega</value>
+  </data>
+  <data name="Scm.Text.OriginalRegisteredAndRemainingQuantitiesAreShownForConfirmed" xml:space="preserve">
+    <value>Pedidos confirmados por fecha de entrega. Use el filtro para consultar pedidos cerrados.</value>
+  </data>
+  <data name="Scm.Text.TrackSupplierConfirmationAndDeliveriesShippedIsTheCumulative" xml:space="preserve">
+    <value>Seguimiento de confirmación y entregas. Enviado incluye lo recibido. Pendiente de envío = pedido - enviado. Totales por unidad.</value>
+  </data>
+  <data name="Scm.Text.ViewPurchaseOrdersConfirmOrdersRegisterDeliveriesAndConfirm" xml:space="preserve">
+    <value>Consulte pedidos, confirme órdenes, registre entregas y confirme envíos. El proceso termina cuando EOS recibe toda la cantidad.</value>
+  </data>
+  <data name="Scm.Text.CreatePurchaseOrdersAndViewTheirStatusAndReceived" xml:space="preserve">
+    <value>Cree pedidos y consulte su estado y las cantidades recibidas.</value>
+  </data>
+  <data name="Scm.Text.OnlyOrdersForLinkedVendorsAreVisibleUnlinkedAccounts" xml:space="preserve">
+    <value>Solo pedidos de proveedores vinculados.</value>
+  </data>
+  <data name="Scm.Text.EndDateMustFollowStartDate" xml:space="preserve">
+    <value>La fecha final debe ser posterior a la inicial.</value>
+  </data>
+  <data name="Scm.Text.DeliveryNote" xml:space="preserve">
+    <value>Albarán</value>
+  </data>
+  <data name="Scm.Text.Order" xml:space="preserve">
+    <value>Pedido</value>
+  </data>
+  <data name="Scm.Text.DeliveryDate.246618" xml:space="preserve">
+    <value>Fecha de entrega</value>
+  </data>
+  <data name="Scm.Text.Quantity" xml:space="preserve">
+    <value>Cantidad</value>
+  </data>
+  <data name="Scm.Text.ShipDate" xml:space="preserve">
+    <value>Fecha de envío</value>
+  </data>
+  <data name="Scm.Text.Accepted" xml:space="preserve">
+    <value>Aceptados</value>
+  </data>
+  <data name="Scm.Text.Rejected" xml:space="preserve">
+    <value>Rechazados</value>
+  </data>
+  <data name="Scm.Text.OriginalOrderQuantity" xml:space="preserve">
+    <value>Cantidad original</value>
+  </data>
+  <data name="Scm.Text.RegisteredDeliveryQuantity" xml:space="preserve">
+    <value>Cantidad registrada</value>
+  </data>
+  <data name="Scm.Text.RemainingToRegister" xml:space="preserve">
+    <value>Saldo por registrar</value>
+  </data>
+  <data name="Scm.Text.ItemDetailsIncludeFullyRegisteredItemsTotalsAreSeparated" xml:space="preserve">
+    <value>Detalle por artículo, incluidos los registrados. Totales por pedido y unidad.</value>
+  </data>
+  <data name="Scm.Text.DueDate" xml:space="preserve">
+    <value>Vencimiento</value>
+  </data>
+  <data name="Scm.Text.Item" xml:space="preserve">
+    <value>Artículo</value>
+  </data>
+  <data name="Scm.Text.Description" xml:space="preserve">
+    <value>Descripción</value>
+  </data>
+  <data name="Scm.Text.OrderQuantity" xml:space="preserve">
+    <value>Cantidad pedida</value>
+  </data>
+  <data name="Scm.Text.RegisteredQuantity" xml:space="preserve">
+    <value>Cantidad registrada</value>
+  </data>
+  <data name="Scm.Text.Received.e5c661" xml:space="preserve">
+    <value>Recibido</value>
+  </data>
+  <data name="Scm.Text.RegisteredNotReceived" xml:space="preserve">
+    <value>Registrado sin recibir</value>
+  </data>
+  <data name="Scm.Text.AvailableToRegister" xml:space="preserve">
+    <value>Disponible para registrar</value>
+  </data>
+  <data name="Scm.Text.Register" xml:space="preserve">
+    <value>Registrar</value>
+  </data>
+  <data name="Scm.Text.NoBalance" xml:space="preserve">
+    <value>Sin saldo</value>
+  </data>
+  <data name="Scm.Text.CreateDelivery" xml:space="preserve">
+    <value>Crear entrega</value>
+  </data>
+  <data name="Scm.Text.Lines" xml:space="preserve">
+    <value>Líneas</value>
+  </data>
+  <data name="Scm.Text.Ordered" xml:space="preserve">
+    <value>Pedidos</value>
+  </data>
+  <data name="Scm.Text.Registered" xml:space="preserve">
+    <value>Registrado</value>
+  </data>
+  <data name="Scm.Text.Shipped.f4dea6" xml:space="preserve">
+    <value>Enviado</value>
+  </data>
+  <data name="Scm.Text.NotYetShipped" xml:space="preserve">
+    <value>Pendiente de envío</value>
+  </data>
+  <data name="Scm.Text.Received.2c7750" xml:space="preserve">
+    <value>Recibidos</value>
+  </data>
+  <data name="Scm.Text.Remaining" xml:space="preserve">
+    <value>Pendientes</value>
+  </data>
+  <data name="Scm.Text.SupplierConfirmation" xml:space="preserve">
+    <value>Confirmación</value>
+  </data>
+  <data name="Scm.Text.OrderDetails" xml:space="preserve">
+    <value>Detalle del pedido</value>
+  </data>
+  <data name="Scm.Text.ConfirmAcceptanceOfTheListedItemsQuantitiesAndDue" xml:space="preserve">
+    <value>¿Confirmar artículos, cantidades y fecha?</value>
+  </data>
+  <data name="Scm.Text.SaveConfirmation" xml:space="preserve">
+    <value>Guardar confirmación</value>
+  </data>
+  <data name="Scm.Text.ConfirmedBy" xml:space="preserve">
+    <value>Confirmado por</value>
+  </data>
+  <data name="Scm.Text.ConfirmedAt" xml:space="preserve">
+    <value>Fecha de confirmación</value>
+  </data>
+  <data name="Scm.Text.Buyer" xml:space="preserve">
+    <value>Comprador</value>
+  </data>
+  <data name="Scm.Text.OrderDate" xml:space="preserve">
+    <value>Fecha</value>
+  </data>
+  <data name="Scm.Text.Destination" xml:space="preserve">
+    <value>Destino</value>
+  </data>
+  <data name="Scm.Text.Amount" xml:space="preserve">
+    <value>Importe</value>
+  </data>
+  <data name="Scm.Text.OrderLines" xml:space="preserve">
+    <value>Líneas del pedido</value>
+  </data>
+  <data name="Scm.Text.UnitPrice" xml:space="preserve">
+    <value>Precio</value>
+  </data>
+  <data name="Scm.Text.ExpectedDeliveryDate" xml:space="preserve">
+    <value>Fecha prevista</value>
+  </data>
+  <data name="Scm.Text.SelectItemsAndQuantitiesPartialDeliveriesAreSupported" xml:space="preserve">
+    <value>Seleccione artículos y cantidades. Se permiten entregas parciales.</value>
+  </data>
+  <data name="Scm.Text.Select" xml:space="preserve">
+    <value>Elegir</value>
+  </data>
+  <data name="Scm.Text.PendingReceipt" xml:space="preserve">
+    <value>Pendiente recepción</value>
+  </data>
+  <data name="Scm.Text.Available" xml:space="preserve">
+    <value>Disponible</value>
+  </data>
+  <data name="Scm.Text.PackingQuantity" xml:space="preserve">
+    <value>Cantidad por caja</value>
+  </data>
+  <data name="Scm.Text.DeliveryQuantity" xml:space="preserve">
+    <value>Cantidad</value>
+  </data>
+  <data name="Scm.Text.Boxes" xml:space="preserve">
+    <value>Cajas</value>
+  </data>
+  <data name="Scm.Text.VendorLOT" xml:space="preserve">
+    <value>Lote proveedor</value>
+  </data>
+  <data name="Scm.Text.ProductionDate" xml:space="preserve">
+    <value>Fecha de producción</value>
+  </data>
+  <data name="Scm.Text.NotSet" xml:space="preserve">
+    <value>Sin registrar</value>
+  </data>
+  <data name="Scm.Text.BoxesAreRoundedUpFromQuantityDividedByPacking" xml:space="preserve">
+    <value>Las cajas se calculan redondeando hacia arriba. Se requiere una cantidad por caja positiva.</value>
+  </data>
+  <data name="Scm.Text.RelatedDeliveries" xml:space="preserve">
+    <value>Entregas relacionadas</value>
+  </data>
+  <data name="Scm.Text.CancelOrder" xml:space="preserve">
+    <value>Cancelar pedido</value>
+  </data>
+  <data name="Scm.Text.ConfirmOrder" xml:space="preserve">
+    <value>Confirmar pedido</value>
+  </data>
+  <data name="Scm.Text.SelectPurchaseOrder" xml:space="preserve">
+    <value>Seleccionar pedido</value>
+  </data>
+  <data name="Scm.Text.NoConfirmedOrdersWithAvailableQuantities" xml:space="preserve">
+    <value>No hay pedidos confirmados con saldo disponible.</value>
+  </data>
+  <data name="Scm.Text.DeliveryDetails" xml:space="preserve">
+    <value>Detalle de entrega</value>
+  </data>
+  <data name="Scm.Text.ConfirmShipment" xml:space="preserve">
+    <value>Confirmar envío</value>
+  </data>
+  <data name="Scm.Text.SaveChanges" xml:space="preserve">
+    <value>Guardar cambios</value>
+  </data>
+  <data name="Scm.Text.CancelDelivery" xml:space="preserve">
+    <value>Cancelar entrega</value>
+  </data>
+  <data name="Scm.Text.ShippedBy" xml:space="preserve">
+    <value>Enviado por</value>
+  </data>
+  <data name="Scm.Text.ConfirmedAt.17ae74" xml:space="preserve">
+    <value>Confirmado el</value>
+  </data>
+  <data name="Scm.Text.ActualShipDate" xml:space="preserve">
+    <value>Fecha real de envío</value>
+  </data>
+  <data name="Scm.Text.ConfirmShipmentOfAllSavedDeliveryLinesEditingAnd" xml:space="preserve">
+    <value>Confirmar todas las líneas guardadas. No se podrá editar ni cancelar.</value>
+  </data>
+  <data name="Scm.Text.SaveShipment" xml:space="preserve">
+    <value>Guardar envío</value>
+  </data>
+  <data name="Scm.Text.Back" xml:space="preserve">
+    <value>Volver</value>
+  </data>
+  <data name="Scm.Text.CancelTheEntireDeliveryAndReleaseItsReservedQuantities" xml:space="preserve">
+    <value>Cancelar toda la entrega y liberar cantidades.</value>
+  </data>
+  <data name="Scm.Text.ConfirmCancellation" xml:space="preserve">
+    <value>Confirmar cancelación</value>
+  </data>
+  <data name="Scm.Text.MaximumQuantity" xml:space="preserve">
+    <value>Cantidad máxima</value>
+  </data>
+  <data name="Scm.Text.ShippedCancelledOrReceivingDeliveriesCannotBeEdited" xml:space="preserve">
+    <value>No se pueden editar entregas canceladas o recibidas.</value>
+  </data>
+  <data name="Scm.Text.OrderEditor" xml:space="preserve">
+    <value>Editor de pedido</value>
+  </data>
+  <data name="Scm.Text.AssignedOnSave" xml:space="preserve">
+    <value>Se asigna al guardar</value>
+  </data>
+  <data name="Scm.Text.SelectVendor" xml:space="preserve">
+    <value>Seleccione proveedor</value>
+  </data>
+  <data name="Scm.Text.AddItem" xml:space="preserve">
+    <value>Añadir artículo</value>
+  </data>
+  <data name="Scm.Text.OrderItemMATERIAL" xml:space="preserve">
+    <value>Artículo (MATERIAL)</value>
+  </data>
+  <data name="Scm.Text.UnitPriceUSD" xml:space="preserve">
+    <value>Precio (USD)</value>
+  </data>
+  <data name="Scm.Text.AmountUSD" xml:space="preserve">
+    <value>Importe (USD)</value>
+  </data>
+  <data name="Scm.Text.Remove" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="Scm.Text.TotalUSD" xml:space="preserve">
+    <value>Total (USD)</value>
+  </data>
+  <data name="Scm.Text.Confirmed" xml:space="preserve">
+    <value>Confirmado</value>
+  </data>
+  <data name="Scm.Text.AwaitingConfirmation.6a70d7" xml:space="preserve">
+    <value>Pendiente</value>
+  </data>
+  <data name="Scm.Text.NoResults" xml:space="preserve">
+    <value>Sin resultados.</value>
+  </data>
+  <data name="Scm.Text.OrdersConfirmation" xml:space="preserve">
+    <value>Pedidos y confirmación</value>
+  </data>
+  <data name="Scm.Text.PurchaseOrders" xml:space="preserve">
+    <value>Pedidos de compra</value>
+  </data>
+  <data name="Scm.Text.OrderProgress" xml:space="preserve">
+    <value>Seguimiento de pedidos</value>
+  </data>
+  <data name="Scm.Text.DeliveryPreparation" xml:space="preserve">
+    <value>Preparación de entregas</value>
+  </data>
+  <data name="Scm.Text.DeliveryManagement" xml:space="preserve">
+    <value>Gestión de entregas</value>
+  </data>
+  <data name="Scm.Text.ReceiptStatus" xml:space="preserve">
+    <value>Estado de recepción</value>
+  </data>
+  <data name="Scm.Text.NoAvailableOrderCheckConfirmationAndRemainingQuantities" xml:space="preserve">
+    <value>Revise la confirmación y el saldo del pedido.</value>
+  </data>
+  <data name="Scm.Text.SelectAVendorFirst" xml:space="preserve">
+    <value>Seleccione primero un proveedor.</value>
+  </data>
+  <data name="Scm.Text.NoMATERIALItemsLinkedToThisVendorAddMappings" xml:space="preserve">
+    <value>No hay artículos MATERIAL vinculados. Configure los vínculos en SCM-003.</value>
+  </data>
+  <data name="Scm.Text.UnableToLoadItemsPleaseRetry" xml:space="preserve">
+    <value>No se pudieron cargar los artículos. Inténtelo de nuevo.</value>
+  </data>
+  <data name="Scm.Text.UnableToLoadVendorsPleaseRetry" xml:space="preserve">
+    <value>No se pudieron cargar los proveedores.</value>
+  </data>
+  <data name="Scm.Text.SelectAnActiveVendor" xml:space="preserve">
+    <value>Seleccione un proveedor activo.</value>
+  </data>
+  <data name="Scm.Text.AddAtLeastOneItem" xml:space="preserve">
+    <value>Añada al menos un artículo.</value>
+  </data>
+  <data name="Scm.Text.CheckVendorLinkedMATERIALItemPositiveQuantityAndNon" xml:space="preserve">
+    <value>Revise artículo MATERIAL vinculado, cantidad positiva y precio no negativo.</value>
+  </data>
+  <data name="Scm.Text.CheckItemDestinationQuantityPriceAndDueDate" xml:space="preserve">
+    <value>Revise artículo, destino, cantidad, precio y fecha.</value>
+  </data>
+  <data name="Scm.Text.SaveFailedCheckQuantityPricePrecisionDestinationMappingsAnd" xml:space="preserve">
+    <value>No se pudo guardar. Revise valores y vínculos. Cierre y recargue.</value>
+  </data>
+  <data name="Scm.Text.OrderSaved" xml:space="preserve">
+    <value>Pedido guardado.</value>
+  </data>
+  <data name="Scm.Text.SavedButReloadFailedRefreshTheList" xml:space="preserve">
+    <value>Guardado, pero no se pudo recargar.</value>
+  </data>
+  <data name="Scm.Text.UnableToChangeStatusReloadAndCheckInboundReferences" xml:space="preserve">
+    <value>No se pudo cambiar. Recargue y revise las recepciones.</value>
+  </data>
+  <data name="Scm.Text.OrderIssued" xml:space="preserve">
+    <value>Pedido emitido.</value>
+  </data>
+  <data name="Scm.Text.OrderCancelled" xml:space="preserve">
+    <value>Pedido cancelado.</value>
+  </data>
+  <data name="Scm.Text.StatusSavedButReloadFailed" xml:space="preserve">
+    <value>Estado guardado. Recargue.</value>
+  </data>
+  <data name="Scm.Text.ConfirmationFailedReloadAndCheckOrderStatusAndVendor" xml:space="preserve">
+    <value>No se pudo confirmar. Recargue y revise el estado y los permisos.</value>
+  </data>
+  <data name="Scm.Text.OrderConfirmationCompleted" xml:space="preserve">
+    <value>Confirmación del pedido completada.</value>
+  </data>
+  <data name="Scm.Text.ConfirmationSavedButReloadFailed" xml:space="preserve">
+    <value>Confirmación guardada. Recargue.</value>
+  </data>
+  <data name="Scm.Text.UnableToLoadOrdersRetry" xml:space="preserve">
+    <value>No se pudieron cargar los pedidos.</value>
+  </data>
+  <data name="Scm.Text.UnableToLoadPackingQuantitiesReload" xml:space="preserve">
+    <value>No se pudo cargar la cantidad por caja.</value>
+  </data>
+  <data name="Scm.Text.SelectItemsAndQuantitiesWithinTheAvailableBalanceUp" xml:space="preserve">
+    <value>Seleccione artículos y cantidades disponibles, hasta 3 decimales.</value>
+  </data>
+  <data name="Scm.Text.SetAPositivePackingQuantityInPORTAL006And" xml:space="preserve">
+    <value>Registre una cantidad por caja positiva en PORTAL-006 y recargue.</value>
+  </data>
+  <data name="Scm.Text.Maximum1000BoxesPerItemCheckQuantities" xml:space="preserve">
+    <value>Máximo 1.000 cajas por artículo.</value>
+  </data>
+  <data name="Scm.Text.RegistrationFailedCheckDateOrderStatusBalanceAndVendor" xml:space="preserve">
+    <value>No se pudo registrar. Revise fecha, saldo y permisos; recargue.</value>
+  </data>
+  <data name="Scm.Text.DeliveryRegistered" xml:space="preserve">
+    <value>Entrega registrada.</value>
+  </data>
+  <data name="Scm.Text.SavedButReloadFailedRefresh" xml:space="preserve">
+    <value>Guardado. Recargue.</value>
+  </data>
+  <data name="Scm.Text.SaveYourEditsBeforeConfirmingShipment" xml:space="preserve">
+    <value>Guarde los cambios antes de confirmar.</value>
+  </data>
+  <data name="Scm.Text.EnterPositiveQuantitiesWithinTheAvailableMaximumUpTo" xml:space="preserve">
+    <value>Introduzca cantidades positivas disponibles, hasta 3 decimales.</value>
+  </data>
+  <data name="Scm.Text.SaveFailedCheckDateBalancePermissionsAndReceivingReferences" xml:space="preserve">
+    <value>No se pudo guardar. Revise fecha, saldo, permisos y recepciones; recargue.</value>
+  </data>
+  <data name="Scm.Text.ShipmentConfirmedAwaitingEOSReceipt" xml:space="preserve">
+    <value>Envío confirmado. Pendiente de recepción EOS.</value>
+  </data>
+  <data name="Scm.Text.DeliveryCancelledQuantitiesReleased" xml:space="preserve">
+    <value>Entrega cancelada; cantidades liberadas.</value>
+  </data>
+  <data name="Scm.Text.DeliveryChangesSaved" xml:space="preserve">
+    <value>Cambios guardados.</value>
+  </data>
+  <data name="Scm.Text.SavedButReloadFailedRefresh.757eb2" xml:space="preserve">
+    <value>Guardado. Recargue.</value>
+  </data>
+  <data name="Scm.Text.PreviewUpdatedNoBusinessDataWasSaved" xml:space="preserve">
+    <value>Vista previa actualizada. No se guardaron datos reales.</value>
+  </data>
+  <data name="Scm.Text.Received.2a92a7" xml:space="preserve">
+    <value>Recibido</value>
+  </data>
+  <data name="Scm.Text.PartiallyReceived" xml:space="preserve">
+    <value>Recepción parcial</value>
+  </data>
+  <data name="Scm.Text.Shipped.b0d543" xml:space="preserve">
+    <value>Enviado</value>
+  </data>
+  <data name="Scm.Text.PartiallyShipped" xml:space="preserve">
+    <value>Envío parcial</value>
+  </data>
+  <data name="Scm.Text.PreparingDelivery" xml:space="preserve">
+    <value>Preparando entrega</value>
+  </data>
+  <data name="Scm.Text.Confirmed.538025" xml:space="preserve">
+    <value>Confirmado</value>
+  </data>
+  <data name="Scm.Text.AwaitingConfirmation.c207aa" xml:space="preserve">
+    <value>Pendiente de confirmación</value>
+  </data>
+  <data name="Scm.Text.AvailableToRegister.388045" xml:space="preserve">
+    <value>Disponible para registrar</value>
+  </data>
+  <data name="Scm.Text.Draft" xml:space="preserve">
+    <value>Borrador</value>
+  </data>
+  <data name="Scm.Text.Published" xml:space="preserve">
+    <value>Publicado</value>
+  </data>
+  <data name="Scm.Text.Receiving" xml:space="preserve">
+    <value>Recepción parcial</value>
+  </data>
+  <data name="Scm.Text.Scheduled.b83eb1" xml:space="preserve">
+    <value>Programado</value>
+  </data>
+  <data name="Scm.Text.Cancelled.7cc538" xml:space="preserve">
+    <value>Cancelado</value>
+  </data>
+  <data name="Scm.Text.PurchaseItems" xml:space="preserve">
+    <value>Artículos de compra</value>
+  </data>
+  <data name="Scm.Text.MappedItems" xml:space="preserve">
+    <value>Artículos vinculados</value>
+  </data>
+  <data name="Scm.Text.UnmappedItems" xml:space="preserve">
+    <value>Artículos sin proveedor</value>
+  </data>
+  <data name="Scm.Text.Total" xml:space="preserve">
+    <value>total</value>
+  </data>
+  <data name="Scm.Text.NoItemsFound" xml:space="preserve">
+    <value>No hay artículos.</value>
+  </data>
+  <data name="Scm.Text.ItemCode" xml:space="preserve">
+    <value>Código</value>
+  </data>
+  <data name="Scm.Text.ItemName" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="Scm.Text.Category" xml:space="preserve">
+    <value>Categoría</value>
+  </data>
+  <data name="Scm.Text.LinkedVendors" xml:space="preserve">
+    <value>Proveedores vinculados</value>
+  </data>
+  <data name="Scm.Text.UnitCost" xml:space="preserve">
+    <value>Costo unitario</value>
+  </data>
+  <data name="Scm.Text.LinkVendors" xml:space="preserve">
+    <value>Vincular</value>
+  </data>
+  <data name="Scm.Text.PurchaseItemVendors" xml:space="preserve">
+    <value>Artículo · proveedores</value>
+  </data>
+  <data name="Scm.Text.SelectVendorsToLink" xml:space="preserve">
+    <value>Seleccione proveedores</value>
+  </data>
+  <data name="Scm.Text.NoVendorsAvailableToLink" xml:space="preserve">
+    <value>No hay proveedores disponibles.</value>
+  </data>
+  <data name="Scm.Text.LinkVendors.53723e" xml:space="preserve">
+    <value>Vincular proveedores</value>
+  </data>
+  <data name="Scm.Text.LinkedVendors.e8d8ad" xml:space="preserve">
+    <value>Proveedores vinculados</value>
+  </data>
+  <data name="Scm.Text.NoLinkedVendors" xml:space="preserve">
+    <value>Sin proveedores vinculados.</value>
+  </data>
+  <data name="Scm.Text.VendorCode" xml:space="preserve">
+    <value>Código</value>
+  </data>
+  <data name="Scm.Text.VendorName" xml:space="preserve">
+    <value>Proveedor</value>
+  </data>
+  <data name="Scm.Text.VendorActive" xml:space="preserve">
+    <value>Activo</value>
+  </data>
+  <data name="Scm.Text.Unlink" xml:space="preserve">
+    <value>Desvincular</value>
+  </data>
+  <data name="Scm.Text.PurchaseItems.a37216" xml:space="preserve">
+    <value>Artículos de compra</value>
+  </data>
+  <data name="Scm.Text.UnableToLoadPleaseRetry" xml:space="preserve">
+    <value>No se pudo cargar. Inténtelo de nuevo.</value>
+  </data>
+  <data name="Scm.Text.UnableToLinkCheckTheMATERIALItemAndActive" xml:space="preserve">
+    <value>No se pudo vincular. Verifique el material y proveedor activo.</value>
+  </data>
+  <data name="Scm.Text.UnableToUnlink" xml:space="preserve">
+    <value>No se pudo desvincular.</value>
+  </data>
+  <data name="Scm.Text.VendorMappingsSaved" xml:space="preserve">
+    <value>Vínculos guardados.</value>
+  </data>
+  <data name="Scm.Text.SavedButRefreshFailedCloseAndReload" xml:space="preserve">
+    <value>Guardado. Cierre y recargue.</value>
+  </data>
+  <data name="Portal.Text.BackToDeliveryManagement" xml:space="preserve">
+    <value>Volver a la gestión de entregas</value>
+  </data>
+  <data name="Portal.Text.BackToBoxList" xml:space="preserve">
+    <value>Volver a la lista de cajas</value>
+  </data>
+  <data name="Portal.Text.BoxBarcodePrinting" xml:space="preserve">
+    <value>Impresión de códigos de barras de cajas</value>
+  </data>
+  <data name="Portal.Text.DeliveryNoteInquiryIssue" xml:space="preserve">
+    <value>Consulta y emisión de notas de entrega</value>
+  </data>
+  <data name="Portal.Text.PackingQuantities" xml:space="preserve">
+    <value>Cantidades por caja</value>
+  </data>
+  <data name="Portal.Text.BoxLabels" xml:space="preserve">
+    <value>Etiquetas de cajas</value>
+  </data>
+  <data name="Portal.Text.ClearSelection" xml:space="preserve">
+    <value>Borrar selección</value>
+  </data>
+  <data name="Portal.Text.SelectAll" xml:space="preserve">
+    <value>Seleccionar todo</value>
+  </data>
+  <data name="Portal.Text.PrintSelectedLabels" xml:space="preserve">
+    <value>Imprimir etiquetas seleccionadas</value>
+  </data>
+  <data name="Portal.Text.Delivery" xml:space="preserve">
+    <value>Entrega</value>
+  </data>
+  <data name="Portal.Text.DeliveryNumber" xml:space="preserve">
+    <value>Número de entrega</value>
+  </data>
+  <data name="Portal.Text.Deliveries" xml:space="preserve">
+    <value>Entregas</value>
+  </data>
+  <data name="Portal.Text.Boxes" xml:space="preserve">
+    <value>Cajas</value>
+  </data>
+  <data name="Portal.Text.Boxes.fb6660" xml:space="preserve">
+    <value>Cajas</value>
+  </data>
+  <data name="Portal.Text.BoxNumber" xml:space="preserve">
+    <value>Número de caja</value>
+  </data>
+  <data name="Portal.Text.Sequence" xml:space="preserve">
+    <value>Secuencia</value>
+  </data>
+  <data name="Portal.Text.Description" xml:space="preserve">
+    <value>Descripción</value>
+  </data>
+  <data name="Portal.Text.ItemCode" xml:space="preserve">
+    <value>Código de artículo</value>
+  </data>
+  <data name="Portal.Text.PurchaseOrder" xml:space="preserve">
+    <value>Pedido de compra</value>
+  </data>
+  <data name="Portal.Text.DeliveryQuantity" xml:space="preserve">
+    <value>Cantidad de entrega</value>
+  </data>
+  <data name="Portal.Text.ReceivedQuantity" xml:space="preserve">
+    <value>Cantidad recibida</value>
+  </data>
+  <data name="Portal.Text.OutstandingQuantity" xml:space="preserve">
+    <value>Cantidad pendiente de recepción</value>
+  </data>
+  <data name="Portal.Text.RemainingQuantity" xml:space="preserve">
+    <value>Cantidad restante</value>
+  </data>
+  <data name="Portal.Text.ReceiptStatus" xml:space="preserve">
+    <value>Estado de recepción</value>
+  </data>
+  <data name="Portal.Text.NotReceived" xml:space="preserve">
+    <value>Sin recibir</value>
+  </data>
+  <data name="Portal.Text.PartiallyReceived" xml:space="preserve">
+    <value>Recibido parcialmente</value>
+  </data>
+  <data name="Portal.Text.Received" xml:space="preserve">
+    <value>Recibido</value>
+  </data>
+  <data name="Portal.Text.ReceiptDetails" xml:space="preserve">
+    <value>Detalle de recepción</value>
+  </data>
+  <data name="Portal.Text.Deliveries.0b0751" xml:space="preserve">
+    <value>Entregas</value>
+  </data>
+  <data name="Portal.Text.NotIssued" xml:space="preserve">
+    <value>Sin emitir</value>
+  </data>
+  <data name="Portal.Text.Registered" xml:space="preserve">
+    <value>Registrado</value>
+  </data>
+  <data name="Portal.Text.Received.a5320e" xml:space="preserve">
+    <value>Recibido</value>
+  </data>
+  <data name="Portal.Text.LinkedItems" xml:space="preserve">
+    <value>Artículos vinculados</value>
+  </data>
+  <data name="Portal.Text.PackingQuantitySet" xml:space="preserve">
+    <value>Cantidad por caja definida</value>
+  </data>
+  <data name="Portal.Text.NotSet" xml:space="preserve">
+    <value>Sin definir</value>
+  </data>
+  <data name="Portal.Text.DiscardChanges" xml:space="preserve">
+    <value>Descartar cambios</value>
+  </data>
+  <data name="Portal.Text.DeliveryNote" xml:space="preserve">
+    <value>Nota de entrega</value>
+  </data>
+  <data name="Portal.Text.SelectShippedDeliveries" xml:space="preserve">
+    <value>Seleccionar entregas enviadas</value>
+  </data>
+  <data name="Portal.Text.IssueNoteForSelectedDeliveries" xml:space="preserve">
+    <value>Emitir nota para las entregas seleccionadas</value>
+  </data>
+  <data name="Portal.Text.IssuedDeliveryNotes" xml:space="preserve">
+    <value>Notas de entrega emitidas</value>
+  </data>
+  <data name="Portal.Text.DocumentNumberBarcode" xml:space="preserve">
+    <value>Número de documento / Código de barras</value>
+  </data>
+  <data name="Portal.Text.IncludedDeliveries" xml:space="preserve">
+    <value>Entregas incluidas</value>
+  </data>
+  <data name="Portal.Text.Print" xml:space="preserve">
+    <value>Imprimir</value>
+  </data>
+  <data name="Portal.Text.ViewReprint" xml:space="preserve">
+    <value>Ver / Reimprimir</value>
+  </data>
+  <data name="Portal.Text.OriginalDeliveryNote" xml:space="preserve">
+    <value>Nota de entrega original</value>
+  </data>
+  <data name="Portal.Text.PrintSavePDF" xml:space="preserve">
+    <value>Imprimir / Guardar PDF</value>
+  </data>
+  <data name="Portal.Text.DownloadPrintableFile" xml:space="preserve">
+    <value>Descargar archivo para imprimir</value>
+  </data>
+  <data name="Portal.Text.SearchDeliveries" xml:space="preserve">
+    <value>Buscar entregas</value>
+  </data>
+  <data name="Portal.Text.SearchItems" xml:space="preserve">
+    <value>Buscar artículos</value>
+  </data>
+  <data name="Portal.Text.SearchReceiptResults" xml:space="preserve">
+    <value>Buscar resultados de recepción</value>
+  </data>
+  <data name="Portal.Text.ShipDateFrom" xml:space="preserve">
+    <value>Fecha de envío desde</value>
+  </data>
+  <data name="Portal.Text.ShipDateTo" xml:space="preserve">
+    <value>Fecha de envío hasta</value>
+  </data>
+  <data name="Portal.Text.PerPage" xml:space="preserve">
+    <value>por página</value>
+  </data>
+  <data name="Portal.Text.Page0Of12Items" xml:space="preserve">
+    <value>Página {0} de {1} ({2} registros)</value>
+  </data>
+  <data name="Portal.Text.YouDoNotHavePermissionToViewThisPage" xml:space="preserve">
+    <value>No tiene permiso para consultar esta página.</value>
+  </data>
+  <data name="Portal.Text.NoDeliveries" xml:space="preserve">
+    <value>No hay entregas.</value>
+  </data>
+  <data name="Portal.Text.SelectADelivery" xml:space="preserve">
+    <value>Seleccione una entrega.</value>
+  </data>
+  <data name="Portal.Text.UnableToLoadDeliveries" xml:space="preserve">
+    <value>No se pudieron cargar las entregas.</value>
+  </data>
+  <data name="Portal.Text.UnableToLoadBoxes" xml:space="preserve">
+    <value>No se pudieron cargar las cajas.</value>
+  </data>
+  <data name="Portal.Text.NoSavedBoxesBoxesAreNotAutomaticallyGeneratedFor" xml:space="preserve">
+    <value>No hay cajas guardadas. No se generan cajas automáticamente para entregas anteriores.</value>
+  </data>
+  <data name="Portal.Text.ThisDeliveryIsCancelledLabelsCannotBePrinted" xml:space="preserve">
+    <value>La entrega está cancelada. No se pueden imprimir etiquetas.</value>
+  </data>
+  <data name="Portal.Text.SelectLabelsFromTheBoxList" xml:space="preserve">
+    <value>Seleccione las etiquetas de la lista de cajas.</value>
+  </data>
+  <data name="Portal.Text.TheDeliveryChangedOrWasCancelledSelectBoxesAgain" xml:space="preserve">
+    <value>La entrega cambió o fue cancelada. Vuelva a seleccionar las cajas.</value>
+  </data>
+  <data name="Portal.Text.UnableToLoadLabels" xml:space="preserve">
+    <value>No se pudieron cargar las etiquetas.</value>
+  </data>
+  <data name="Portal.Text.NoLinkedItems" xml:space="preserve">
+    <value>No hay artículos vinculados.</value>
+  </data>
+  <data name="Portal.Text.Saved" xml:space="preserve">
+    <value>Guardado.</value>
+  </data>
+  <data name="Portal.Text.UnableToLoadDataPleaseRetry" xml:space="preserve">
+    <value>No se pudieron cargar los datos. Inténtelo de nuevo.</value>
+  </data>
+  <data name="Portal.Text.UnableToSaveCheckYourEntriesAndRetry" xml:space="preserve">
+    <value>No se pudo guardar. Revise los datos e inténtelo de nuevo.</value>
+  </data>
+  <data name="Portal.Text.TheItemMappingOrPackingQuantityChangedDiscardChanges" xml:space="preserve">
+    <value>El vínculo del artículo o la cantidad por caja cambió. Descarte los cambios y actualice.</value>
+  </data>
+  <data name="Portal.Text.EnterAPositivePackingQuantityWithUpToThree" xml:space="preserve">
+    <value>Introduzca una cantidad por caja positiva con hasta tres decimales.</value>
+  </data>
+  <data name="Portal.Text.UnableToLoadTheList" xml:space="preserve">
+    <value>No se pudo cargar la lista.</value>
+  </data>
+  <data name="Portal.Text.UnableToLoadReceiptResults" xml:space="preserve">
+    <value>No se pudieron cargar los resultados de recepción.</value>
+  </data>
+  <data name="Portal.Text.UnableToIssueRefreshAndCheckVendorAccessAnd" xml:space="preserve">
+    <value>No se pudo emitir. Actualice y revise los permisos del proveedor y el estado de las entregas.</value>
+  </data>
+  <data name="Portal.Text.NoDeliveriesAvailableForIssue" xml:space="preserve">
+    <value>No hay entregas disponibles para emitir.</value>
+  </data>
+  <data name="Portal.Text.CheckTheShipDateRange" xml:space="preserve">
+    <value>Revise el intervalo de fechas de envío.</value>
+  </data>
+  <data name="Portal.Text.TheStatusIsAwaitingReceiptPartiallyReceivedOrFully" xml:space="preserve">
+    <value>El estado es sin recibir, recibido parcialmente o recibido por completo según la cantidad recibida por EOS.</value>
+  </data>
+  <data name="Portal.Text.SelectDeliveriesForTheSameSupplierToIssueOne" xml:space="preserve">
+    <value>Seleccione entregas del mismo proveedor para emitir un documento. Puede reimprimir los documentos existentes abajo.</value>
+  </data>
+  <data name="Portal.Text.ViewReceivedAndRemainingQuantitiesByDeliveryItemReceipt" xml:space="preserve">
+    <value>Consulte las cantidades recibidas y pendientes por artículo de entrega. La recepción finaliza al recibir toda la cantidad.</value>
+  </data>
+  <data name="Portal.Text.EnterPackingQuantitiesForLinkedItemsAndSaveEach" xml:space="preserve">
+    <value>Introduzca las cantidades por caja de los artículos vinculados y guarde cada fila. Se muestran con los decimales configurados para la unidad.</value>
+  </data>
+  <data name="Portal.Text.YouCannotAccessThisDelivery" xml:space="preserve">
+    <value>No tiene acceso a esta entrega.</value>
+  </data>
+  <data name="Portal.Text.OnlyShippedDeliveriesCanBeIssued" xml:space="preserve">
+    <value>Solo se pueden emitir entregas enviadas.</value>
+  </data>
+  <data name="Portal.Text.AlreadyIssuedReprintTheExistingDocument" xml:space="preserve">
+    <value>Ya se emitió. Reimprima el documento existente.</value>
+  </data>
+  <data name="Portal.Text.OnlyDeliveriesForTheSameSupplierCanBeGrouped" xml:space="preserve">
+    <value>Solo se pueden agrupar entregas del mismo proveedor.</value>
+  </data>
+  <data name="Portal.Text.ADeliveryIsAlreadyIncludedInAnotherDocument" xml:space="preserve">
+    <value>Una entrega ya está incluida en otro documento.</value>
+  </data>
+  <data name="Portal.Text.AnIssuedDeliveryCannotBeIncludedInAnotherDocument" xml:space="preserve">
+    <value>Una entrega emitida no puede incluirse en otro documento.</value>
+  </data>
+  <data name="Portal.Text.ThereAreNoDeliveryItems" xml:space="preserve">
+    <value>No hay artículos de entrega.</value>
+  </data>
+  <data name="Portal.Text.ItemCode.7b3b81" xml:space="preserve">
+    <value>Código de artículo</value>
+  </data>
+  <data name="Portal.Text.VendorLOT" xml:space="preserve">
+    <value>Lote del proveedor</value>
+  </data>
+  <data name="Portal.Text.SelectPurchaseOrder" xml:space="preserve">
+    <value>Seleccionar pedido de compra</value>
+  </data>
+  <data name="Scm.Accessibility.Confirmation" xml:space="preserve">
+    <value>Información de confirmación del pedido</value>
+  </data>
+  <data name="Scm.Accessibility.SelectItem" xml:space="preserve">
+    <value>Seleccionar {0}</value>
+  </data>
+  <data name="Scm.Accessibility.DeliveryQuantity" xml:space="preserve">
+    <value>Cantidad de entrega de {0}</value>
+  </data>
+  <data name="Scm.Accessibility.EditQuantity" xml:space="preserve">
+    <value>Cantidad modificada de {0}</value>
+  </data>
+  <data name="Scm.Accessibility.VendorLot" xml:space="preserve">
+    <value>Lote del proveedor de {0}</value>
+  </data>
+  <data name="Portal.Accessibility.SelectDelivery" xml:space="preserve">
+    <value>Seleccionar entrega {0}</value>
+  </data>
+  <data name="Portal.Note.Back" xml:space="preserve">
+    <value>Volver a las notas de entrega</value>
+  </data>
+  <data name="Portal.Note.Help" xml:space="preserve">
+    <value>Si no se abre el diálogo de impresión, descargue el archivo y ábralo en Chrome o Edge.</value>
+  </data>
+  <data name="Portal.Note.Buyer" xml:space="preserve">
+    <value>Comprador</value>
+  </data>
+  <data name="Portal.Note.Destination" xml:space="preserve">
+    <value>Destino</value>
+  </data>
+  <data name="Portal.Note.IssuedAt" xml:space="preserve">
+    <value>Fecha de emisión</value>
+  </data>
+  <data name="Portal.Note.OrderLine" xml:space="preserve">
+    <value>Línea del pedido</value>
+  </data>
+  <data name="Portal.Note.ShippedQuantity" xml:space="preserve">
+    <value>Cantidad enviada</value>
+  </data>
+  <data name="Portal.Note.Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Portal.Note.IssuedBy" xml:space="preserve">
+    <value>Emitido por</value>
+  </data>
+  <data name="Portal.Note.ShippedBy" xml:space="preserve">
+    <value>Enviado por</value>
+  </data>
+  <data name="Portal.Note.ReceivedBy" xml:space="preserve">
+    <value>Recibido por</value>
+  </data>
+  <data name="Portal.Note.ReceivedDate" xml:space="preserve">
+    <value>Fecha de recepción</value>
+  </data>
+  <data name="Portal.Note.Disclaimer" xml:space="preserve">
+    <value>Este documento registra el envío y no confirma la recepción.</value>
+  </data>
+  <data name="Portal.Note.AccessDenied" xml:space="preserve">
+    <value>No tiene permiso para consultar este documento.</value>
+  </data>
+  <data name="Portal.Note.NotIssued" xml:space="preserve">
+    <value>El documento aún no se ha emitido. Emítalo desde la página de notas de entrega.</value>
+  </data>
+  <data name="Portal.Note.Unavailable" xml:space="preserve">
+    <value>Documento no disponible. Revise los permisos del proveedor y el estado del envío.</value>
+  </data>
+  <data name="Portal.Print.Unsupported" xml:space="preserve">
+    <value>Este navegador no puede abrir el diálogo de impresión. Descargue el archivo para imprimir.</value>
+  </data>
+  <data name="Portal.Print.DownloadRequested" xml:space="preserve">
+    <value>Descarga solicitada. Abra el archivo HTML guardado en Chrome o Edge para imprimir o guardar como PDF.</value>
+  </data>
+  <data name="Portal.Print.Failed" xml:space="preserve">
+    <value>No se pudo preparar el archivo. Actualice e inténtelo de nuevo.</value>
+  </data>
+  <data name="Portal.Label.Product" xml:space="preserve">
+    <value>Producto</value>
+  </data>
+  <data name="Portal.Label.Description" xml:space="preserve">
+    <value>Descripción</value>
+  </data>
+  <data name="Portal.Label.Fifo" xml:space="preserve">
+    <value>FIFO</value>
+  </data>
+  <data name="Portal.Label.Quantity" xml:space="preserve">
+    <value>Cantidad</value>
+  </data>
+  <data name="Portal.Label.BoxCount" xml:space="preserve">
+    <value>Cajas</value>
+  </data>
+  <data name="Portal.Label.Destination" xml:space="preserve">
+    <value>Destino</value>
+  </data>
+  <data name="Portal.Label.Lot" xml:space="preserve">
+    <value>Número de lote</value>
+  </data>
+  <data name="Portal.Label.Part" xml:space="preserve">
+    <value>Código de artículo</value>
+  </data>
+  <data name="Scm.Text.Publish" xml:space="preserve">
+    <value>Publicar</value>
+  </data>
+  <data name="Scm.Text.Unit" xml:space="preserve">
+    <value>Unidad</value>
+  </data>
+  <data name="Scm.Text.Closed" xml:space="preserve">
+    <value>Cerrado</value>
+  </data>
+  <data name="Scm.Text.ItemLabel" xml:space="preserve">
+    <value>Artículo</value>
+  </data>
+  <data name="Scm.Text.Overdue" xml:space="preserve">
+    <value>Atrasado</value>
+  </data>
+  <data name="Scm.Text.SelectLabel" xml:space="preserve">
+    <value>Seleccionar</value>
+  </data>
+  <data name="Scm.Text.ShippedLabel" xml:space="preserve">
+    <value>Enviado</value>
+  </data>
+  <data name="Scm.Text.Inactive" xml:space="preserve">
+    <value>Inactivo</value>
+  </data>
+  <data name="Scm.Text.Active" xml:space="preserve">
+    <value>Activo</value>
+  </data>
+  <data name="Portal.Accessibility.SelectBox" xml:space="preserve">
+    <value>Seleccionar caja {0}</value>
+  </data>
+  <data name="Portal.Accessibility.PackingQuantity" xml:space="preserve">
+    <value>Cantidad por caja de {0}</value>
+  </data>
 </root>

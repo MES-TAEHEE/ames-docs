@@ -8541,4 +8541,956 @@
   <data name="WH.Picking.Ph.Part" xml:space="preserve">
     <value>Part No/Name</value>
   </data>
+  <!-- SCM and portal presentation text -->
+  <data name="Scm.Text.DeliveryNotes" xml:space="preserve">
+    <value>Delivery notes</value>
+  </data>
+  <data name="Scm.Text.Scheduled" xml:space="preserve">
+    <value>Scheduled</value>
+  </data>
+  <data name="Scm.Text.Shipped" xml:space="preserve">
+    <value>Shipped</value>
+  </data>
+  <data name="Scm.Text.Received" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="Scm.Text.Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="Scm.Text.AwaitingConfirmation" xml:space="preserve">
+    <value>Awaiting confirmation</value>
+  </data>
+  <data name="Scm.Text.Items" xml:space="preserve">
+    <value>items</value>
+  </data>
+  <data name="Scm.Text.Supplier" xml:space="preserve">
+    <value>Supplier</value>
+  </data>
+  <data name="Scm.Text.All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Scm.Text.DeliveryDate" xml:space="preserve">
+    <value>Delivery date</value>
+  </data>
+  <data name="Scm.Text.Due" xml:space="preserve">
+    <value>Due</value>
+  </data>
+  <data name="Scm.Text.NewOrder" xml:space="preserve">
+    <value>New order</value>
+  </data>
+  <data name="Scm.Text.NewDelivery" xml:space="preserve">
+    <value>New delivery</value>
+  </data>
+  <data name="Scm.Text.OriginalRegisteredAndRemainingQuantitiesAreShownForConfirmed" xml:space="preserve">
+    <value>Original, registered and remaining quantities are shown for confirmed orders. Available = ordered - received - registered quantities awaiting receipt.</value>
+  </data>
+  <data name="Scm.Text.TrackSupplierConfirmationAndDeliveriesShippedIsTheCumulative" xml:space="preserve">
+    <value>Track supplier confirmation and deliveries. Shipped is the cumulative confirmed shipment quantity, including receipts. Not yet shipped = ordered - shipped. Quantities are totaled by unit.</value>
+  </data>
+  <data name="Scm.Text.ViewPurchaseOrdersConfirmOrdersRegisterDeliveriesAndConfirm" xml:space="preserve">
+    <value>View purchase orders, confirm orders, register deliveries and confirm shipments. The process is complete when EOS receives the full quantity.</value>
+  </data>
+  <data name="Scm.Text.CreatePurchaseOrdersAndViewTheirStatusAndReceived" xml:space="preserve">
+    <value>Create purchase orders and view their status and received quantities.</value>
+  </data>
+  <data name="Scm.Text.OnlyOrdersForLinkedVendorsAreVisibleUnlinkedAccounts" xml:space="preserve">
+    <value>Only orders for linked vendors are visible. Unlinked accounts see no orders.</value>
+  </data>
+  <data name="Scm.Text.EndDateMustFollowStartDate" xml:space="preserve">
+    <value>End date must follow start date.</value>
+  </data>
+  <data name="Scm.Text.DeliveryNote" xml:space="preserve">
+    <value>Delivery note</value>
+  </data>
+  <data name="Scm.Text.Order" xml:space="preserve">
+    <value>Order</value>
+  </data>
+  <data name="Scm.Text.DeliveryDate.246618" xml:space="preserve">
+    <value>Delivery date</value>
+  </data>
+  <data name="Scm.Text.Quantity" xml:space="preserve">
+    <value>Quantity</value>
+  </data>
+  <data name="Scm.Text.ShipDate" xml:space="preserve">
+    <value>Ship date</value>
+  </data>
+  <data name="Scm.Text.Accepted" xml:space="preserve">
+    <value>Accepted</value>
+  </data>
+  <data name="Scm.Text.Rejected" xml:space="preserve">
+    <value>Rejected</value>
+  </data>
+  <data name="Scm.Text.OriginalOrderQuantity" xml:space="preserve">
+    <value>Original order quantity</value>
+  </data>
+  <data name="Scm.Text.RegisteredDeliveryQuantity" xml:space="preserve">
+    <value>Registered delivery quantity</value>
+  </data>
+  <data name="Scm.Text.RemainingToRegister" xml:space="preserve">
+    <value>Remaining to register</value>
+  </data>
+  <data name="Scm.Text.ItemDetailsIncludeFullyRegisteredItemsTotalsAreSeparated" xml:space="preserve">
+    <value>Item details include fully registered items. Totals are separated by order and unit.</value>
+  </data>
+  <data name="Scm.Text.DueDate" xml:space="preserve">
+    <value>Due date</value>
+  </data>
+  <data name="Scm.Text.Item" xml:space="preserve">
+    <value>Item</value>
+  </data>
+  <data name="Scm.Text.Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Scm.Text.OrderQuantity" xml:space="preserve">
+    <value>Order quantity</value>
+  </data>
+  <data name="Scm.Text.RegisteredQuantity" xml:space="preserve">
+    <value>Registered quantity</value>
+  </data>
+  <data name="Scm.Text.Received.e5c661" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="Scm.Text.RegisteredNotReceived" xml:space="preserve">
+    <value>Registered, not received</value>
+  </data>
+  <data name="Scm.Text.AvailableToRegister" xml:space="preserve">
+    <value>Available to register</value>
+  </data>
+  <data name="Scm.Text.Register" xml:space="preserve">
+    <value>Register</value>
+  </data>
+  <data name="Scm.Text.NoBalance" xml:space="preserve">
+    <value>No balance</value>
+  </data>
+  <data name="Scm.Text.CreateDelivery" xml:space="preserve">
+    <value>Create delivery</value>
+  </data>
+  <data name="Scm.Text.Lines" xml:space="preserve">
+    <value>Lines</value>
+  </data>
+  <data name="Scm.Text.Ordered" xml:space="preserve">
+    <value>Ordered</value>
+  </data>
+  <data name="Scm.Text.Registered" xml:space="preserve">
+    <value>Registered</value>
+  </data>
+  <data name="Scm.Text.Shipped.f4dea6" xml:space="preserve">
+    <value>Shipped</value>
+  </data>
+  <data name="Scm.Text.NotYetShipped" xml:space="preserve">
+    <value>Not yet shipped</value>
+  </data>
+  <data name="Scm.Text.Received.2c7750" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="Scm.Text.Remaining" xml:space="preserve">
+    <value>Remaining</value>
+  </data>
+  <data name="Scm.Text.SupplierConfirmation" xml:space="preserve">
+    <value>Supplier confirmation</value>
+  </data>
+  <data name="Scm.Text.OrderDetails" xml:space="preserve">
+    <value>Order details</value>
+  </data>
+  <data name="Scm.Text.ConfirmAcceptanceOfTheListedItemsQuantitiesAndDue" xml:space="preserve">
+    <value>Confirm acceptance of the listed items, quantities and due date?</value>
+  </data>
+  <data name="Scm.Text.SaveConfirmation" xml:space="preserve">
+    <value>Save confirmation</value>
+  </data>
+  <data name="Scm.Text.ConfirmedBy" xml:space="preserve">
+    <value>Confirmed by</value>
+  </data>
+  <data name="Scm.Text.ConfirmedAt" xml:space="preserve">
+    <value>Confirmed at</value>
+  </data>
+  <data name="Scm.Text.Buyer" xml:space="preserve">
+    <value>Buyer</value>
+  </data>
+  <data name="Scm.Text.OrderDate" xml:space="preserve">
+    <value>Order date</value>
+  </data>
+  <data name="Scm.Text.Destination" xml:space="preserve">
+    <value>Destination</value>
+  </data>
+  <data name="Scm.Text.Amount" xml:space="preserve">
+    <value>Amount</value>
+  </data>
+  <data name="Scm.Text.OrderLines" xml:space="preserve">
+    <value>Order lines</value>
+  </data>
+  <data name="Scm.Text.UnitPrice" xml:space="preserve">
+    <value>Unit price</value>
+  </data>
+  <data name="Scm.Text.ExpectedDeliveryDate" xml:space="preserve">
+    <value>Expected delivery date</value>
+  </data>
+  <data name="Scm.Text.SelectItemsAndQuantitiesPartialDeliveriesAreSupported" xml:space="preserve">
+    <value>Select items and quantities. Partial deliveries are supported.</value>
+  </data>
+  <data name="Scm.Text.Select" xml:space="preserve">
+    <value>Select</value>
+  </data>
+  <data name="Scm.Text.PendingReceipt" xml:space="preserve">
+    <value>Pending receipt</value>
+  </data>
+  <data name="Scm.Text.Available" xml:space="preserve">
+    <value>Available</value>
+  </data>
+  <data name="Scm.Text.PackingQuantity" xml:space="preserve">
+    <value>Packing quantity</value>
+  </data>
+  <data name="Scm.Text.DeliveryQuantity" xml:space="preserve">
+    <value>Delivery quantity</value>
+  </data>
+  <data name="Scm.Text.Boxes" xml:space="preserve">
+    <value>Boxes</value>
+  </data>
+  <data name="Scm.Text.VendorLOT" xml:space="preserve">
+    <value>Vendor LOT</value>
+  </data>
+  <data name="Scm.Text.ProductionDate" xml:space="preserve">
+    <value>Production date</value>
+  </data>
+  <data name="Scm.Text.NotSet" xml:space="preserve">
+    <value>Not set</value>
+  </data>
+  <data name="Scm.Text.BoxesAreRoundedUpFromQuantityDividedByPacking" xml:space="preserve">
+    <value>Boxes are rounded up from quantity divided by packing quantity. Items without a positive packing quantity cannot be registered.</value>
+  </data>
+  <data name="Scm.Text.RelatedDeliveries" xml:space="preserve">
+    <value>Related deliveries</value>
+  </data>
+  <data name="Scm.Text.CancelOrder" xml:space="preserve">
+    <value>Cancel order</value>
+  </data>
+  <data name="Scm.Text.ConfirmOrder" xml:space="preserve">
+    <value>Confirm order</value>
+  </data>
+  <data name="Scm.Text.SelectPurchaseOrder" xml:space="preserve">
+    <value>Select purchase order</value>
+  </data>
+  <data name="Scm.Text.NoConfirmedOrdersWithAvailableQuantities" xml:space="preserve">
+    <value>No confirmed orders with available quantities.</value>
+  </data>
+  <data name="Scm.Text.DeliveryDetails" xml:space="preserve">
+    <value>Delivery details</value>
+  </data>
+  <data name="Scm.Text.ConfirmShipment" xml:space="preserve">
+    <value>Confirm shipment</value>
+  </data>
+  <data name="Scm.Text.SaveChanges" xml:space="preserve">
+    <value>Save changes</value>
+  </data>
+  <data name="Scm.Text.CancelDelivery" xml:space="preserve">
+    <value>Cancel delivery</value>
+  </data>
+  <data name="Scm.Text.ShippedBy" xml:space="preserve">
+    <value>Shipped by</value>
+  </data>
+  <data name="Scm.Text.ConfirmedAt.17ae74" xml:space="preserve">
+    <value>Confirmed at</value>
+  </data>
+  <data name="Scm.Text.ActualShipDate" xml:space="preserve">
+    <value>Actual ship date</value>
+  </data>
+  <data name="Scm.Text.ConfirmShipmentOfAllSavedDeliveryLinesEditingAnd" xml:space="preserve">
+    <value>Confirm shipment of all saved delivery lines. Editing and cancellation will be locked.</value>
+  </data>
+  <data name="Scm.Text.SaveShipment" xml:space="preserve">
+    <value>Save shipment</value>
+  </data>
+  <data name="Scm.Text.Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Scm.Text.CancelTheEntireDeliveryAndReleaseItsReservedQuantities" xml:space="preserve">
+    <value>Cancel the entire delivery and release its reserved quantities.</value>
+  </data>
+  <data name="Scm.Text.ConfirmCancellation" xml:space="preserve">
+    <value>Confirm cancellation</value>
+  </data>
+  <data name="Scm.Text.MaximumQuantity" xml:space="preserve">
+    <value>Maximum quantity</value>
+  </data>
+  <data name="Scm.Text.ShippedCancelledOrReceivingDeliveriesCannotBeEdited" xml:space="preserve">
+    <value>Shipped, cancelled or receiving deliveries cannot be edited.</value>
+  </data>
+  <data name="Scm.Text.OrderEditor" xml:space="preserve">
+    <value>Order editor</value>
+  </data>
+  <data name="Scm.Text.AssignedOnSave" xml:space="preserve">
+    <value>Assigned on save</value>
+  </data>
+  <data name="Scm.Text.SelectVendor" xml:space="preserve">
+    <value>Select vendor</value>
+  </data>
+  <data name="Scm.Text.AddItem" xml:space="preserve">
+    <value>Add item</value>
+  </data>
+  <data name="Scm.Text.OrderItemMATERIAL" xml:space="preserve">
+    <value>Order item (MATERIAL)</value>
+  </data>
+  <data name="Scm.Text.UnitPriceUSD" xml:space="preserve">
+    <value>Unit price (USD)</value>
+  </data>
+  <data name="Scm.Text.AmountUSD" xml:space="preserve">
+    <value>Amount (USD)</value>
+  </data>
+  <data name="Scm.Text.Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Scm.Text.TotalUSD" xml:space="preserve">
+    <value>Total (USD)</value>
+  </data>
+  <data name="Scm.Text.Confirmed" xml:space="preserve">
+    <value>Confirmed</value>
+  </data>
+  <data name="Scm.Text.AwaitingConfirmation.6a70d7" xml:space="preserve">
+    <value>Awaiting confirmation</value>
+  </data>
+  <data name="Scm.Text.NoResults" xml:space="preserve">
+    <value>No results.</value>
+  </data>
+  <data name="Scm.Text.OrdersConfirmation" xml:space="preserve">
+    <value>Orders &amp; confirmation</value>
+  </data>
+  <data name="Scm.Text.PurchaseOrders" xml:space="preserve">
+    <value>Purchase orders</value>
+  </data>
+  <data name="Scm.Text.OrderProgress" xml:space="preserve">
+    <value>Order progress</value>
+  </data>
+  <data name="Scm.Text.DeliveryPreparation" xml:space="preserve">
+    <value>Delivery Preparation</value>
+  </data>
+  <data name="Scm.Text.DeliveryManagement" xml:space="preserve">
+    <value>Delivery management</value>
+  </data>
+  <data name="Scm.Text.ReceiptStatus" xml:space="preserve">
+    <value>Receipt Status</value>
+  </data>
+  <data name="Scm.Text.NoAvailableOrderCheckConfirmationAndRemainingQuantities" xml:space="preserve">
+    <value>No available order. Check confirmation and remaining quantities.</value>
+  </data>
+  <data name="Scm.Text.SelectAVendorFirst" xml:space="preserve">
+    <value>Select a vendor first.</value>
+  </data>
+  <data name="Scm.Text.NoMATERIALItemsLinkedToThisVendorAddMappings" xml:space="preserve">
+    <value>No MATERIAL items linked to this vendor. Add mappings in SCM-003.</value>
+  </data>
+  <data name="Scm.Text.UnableToLoadItemsPleaseRetry" xml:space="preserve">
+    <value>Unable to load items. Please retry.</value>
+  </data>
+  <data name="Scm.Text.UnableToLoadVendorsPleaseRetry" xml:space="preserve">
+    <value>Unable to load vendors. Please retry.</value>
+  </data>
+  <data name="Scm.Text.SelectAnActiveVendor" xml:space="preserve">
+    <value>Select an active vendor.</value>
+  </data>
+  <data name="Scm.Text.AddAtLeastOneItem" xml:space="preserve">
+    <value>Add at least one item.</value>
+  </data>
+  <data name="Scm.Text.CheckVendorLinkedMATERIALItemPositiveQuantityAndNon" xml:space="preserve">
+    <value>Check vendor-linked MATERIAL item, positive quantity and non-negative price.</value>
+  </data>
+  <data name="Scm.Text.CheckItemDestinationQuantityPriceAndDueDate" xml:space="preserve">
+    <value>Check item, destination, quantity, price and due date.</value>
+  </data>
+  <data name="Scm.Text.SaveFailedCheckQuantityPricePrecisionDestinationMappingsAnd" xml:space="preserve">
+    <value>Save failed. Check quantity/price precision, destination, mappings and concurrent or inbound changes. Close and reload.</value>
+  </data>
+  <data name="Scm.Text.OrderSaved" xml:space="preserve">
+    <value>Order saved.</value>
+  </data>
+  <data name="Scm.Text.SavedButReloadFailedRefreshTheList" xml:space="preserve">
+    <value>Saved, but reload failed. Refresh the list.</value>
+  </data>
+  <data name="Scm.Text.UnableToChangeStatusReloadAndCheckInboundReferences" xml:space="preserve">
+    <value>Unable to change status. Reload and check inbound references or concurrent changes.</value>
+  </data>
+  <data name="Scm.Text.OrderIssued" xml:space="preserve">
+    <value>Order issued.</value>
+  </data>
+  <data name="Scm.Text.OrderCancelled" xml:space="preserve">
+    <value>Order cancelled.</value>
+  </data>
+  <data name="Scm.Text.StatusSavedButReloadFailed" xml:space="preserve">
+    <value>Status saved, but reload failed.</value>
+  </data>
+  <data name="Scm.Text.ConfirmationFailedReloadAndCheckOrderStatusAndVendor" xml:space="preserve">
+    <value>Confirmation failed. Reload and check order status and vendor access.</value>
+  </data>
+  <data name="Scm.Text.OrderConfirmationCompleted" xml:space="preserve">
+    <value>Order confirmation completed.</value>
+  </data>
+  <data name="Scm.Text.ConfirmationSavedButReloadFailed" xml:space="preserve">
+    <value>Confirmation saved, but reload failed.</value>
+  </data>
+  <data name="Scm.Text.UnableToLoadOrdersRetry" xml:space="preserve">
+    <value>Unable to load orders. Retry.</value>
+  </data>
+  <data name="Scm.Text.UnableToLoadPackingQuantitiesReload" xml:space="preserve">
+    <value>Unable to load packing quantities. Reload.</value>
+  </data>
+  <data name="Scm.Text.SelectItemsAndQuantitiesWithinTheAvailableBalanceUp" xml:space="preserve">
+    <value>Select items and quantities within the available balance, up to 3 decimals.</value>
+  </data>
+  <data name="Scm.Text.SetAPositivePackingQuantityInPORTAL006And" xml:space="preserve">
+    <value>Set a positive packing quantity in PORTAL-006 and reload.</value>
+  </data>
+  <data name="Scm.Text.Maximum1000BoxesPerItemCheckQuantities" xml:space="preserve">
+    <value>Maximum 1,000 boxes per item. Check quantities.</value>
+  </data>
+  <data name="Scm.Text.RegistrationFailedCheckDateOrderStatusBalanceAndVendor" xml:space="preserve">
+    <value>Registration failed. Check date, order status, balance and vendor access. Reload after concurrent changes.</value>
+  </data>
+  <data name="Scm.Text.DeliveryRegistered" xml:space="preserve">
+    <value>Delivery registered.</value>
+  </data>
+  <data name="Scm.Text.SavedButReloadFailedRefresh" xml:space="preserve">
+    <value>Saved, but reload failed. Refresh.</value>
+  </data>
+  <data name="Scm.Text.SaveYourEditsBeforeConfirmingShipment" xml:space="preserve">
+    <value>Save your edits before confirming shipment.</value>
+  </data>
+  <data name="Scm.Text.EnterPositiveQuantitiesWithinTheAvailableMaximumUpTo" xml:space="preserve">
+    <value>Enter positive quantities within the available maximum, up to 3 decimals.</value>
+  </data>
+  <data name="Scm.Text.SaveFailedCheckDateBalancePermissionsAndReceivingReferences" xml:space="preserve">
+    <value>Save failed. Check date, balance, permissions and receiving references. Reload after concurrent changes.</value>
+  </data>
+  <data name="Scm.Text.ShipmentConfirmedAwaitingEOSReceipt" xml:space="preserve">
+    <value>Shipment confirmed. Awaiting EOS receipt.</value>
+  </data>
+  <data name="Scm.Text.DeliveryCancelledQuantitiesReleased" xml:space="preserve">
+    <value>Delivery cancelled; quantities released.</value>
+  </data>
+  <data name="Scm.Text.DeliveryChangesSaved" xml:space="preserve">
+    <value>Delivery changes saved.</value>
+  </data>
+  <data name="Scm.Text.SavedButReloadFailedRefresh.757eb2" xml:space="preserve">
+    <value>Saved, but reload failed. Refresh.</value>
+  </data>
+  <data name="Scm.Text.PreviewUpdatedNoBusinessDataWasSaved" xml:space="preserve">
+    <value>Preview updated. No business data was saved.</value>
+  </data>
+  <data name="Scm.Text.Received.2a92a7" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="Scm.Text.PartiallyReceived" xml:space="preserve">
+    <value>Partially received</value>
+  </data>
+  <data name="Scm.Text.Shipped.b0d543" xml:space="preserve">
+    <value>Shipped</value>
+  </data>
+  <data name="Scm.Text.PartiallyShipped" xml:space="preserve">
+    <value>Partially shipped</value>
+  </data>
+  <data name="Scm.Text.PreparingDelivery" xml:space="preserve">
+    <value>Preparing delivery</value>
+  </data>
+  <data name="Scm.Text.Confirmed.538025" xml:space="preserve">
+    <value>Confirmed</value>
+  </data>
+  <data name="Scm.Text.AwaitingConfirmation.c207aa" xml:space="preserve">
+    <value>Awaiting confirmation</value>
+  </data>
+  <data name="Scm.Text.AvailableToRegister.388045" xml:space="preserve">
+    <value>Available to register</value>
+  </data>
+  <data name="Scm.Text.Draft" xml:space="preserve">
+    <value>Draft</value>
+  </data>
+  <data name="Scm.Text.Published" xml:space="preserve">
+    <value>Published</value>
+  </data>
+  <data name="Scm.Text.Receiving" xml:space="preserve">
+    <value>Receiving</value>
+  </data>
+  <data name="Scm.Text.Scheduled.b83eb1" xml:space="preserve">
+    <value>Scheduled</value>
+  </data>
+  <data name="Scm.Text.Cancelled.7cc538" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="Scm.Text.PurchaseItems" xml:space="preserve">
+    <value>Purchase items</value>
+  </data>
+  <data name="Scm.Text.MappedItems" xml:space="preserve">
+    <value>Mapped items</value>
+  </data>
+  <data name="Scm.Text.UnmappedItems" xml:space="preserve">
+    <value>Unmapped items</value>
+  </data>
+  <data name="Scm.Text.Total" xml:space="preserve">
+    <value>total</value>
+  </data>
+  <data name="Scm.Text.NoItemsFound" xml:space="preserve">
+    <value>No items found.</value>
+  </data>
+  <data name="Scm.Text.ItemCode" xml:space="preserve">
+    <value>Item code</value>
+  </data>
+  <data name="Scm.Text.ItemName" xml:space="preserve">
+    <value>Item name</value>
+  </data>
+  <data name="Scm.Text.Category" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Scm.Text.LinkedVendors" xml:space="preserve">
+    <value>Linked vendors</value>
+  </data>
+  <data name="Scm.Text.UnitCost" xml:space="preserve">
+    <value>Unit cost</value>
+  </data>
+  <data name="Scm.Text.LinkVendors" xml:space="preserve">
+    <value>Link vendors</value>
+  </data>
+  <data name="Scm.Text.PurchaseItemVendors" xml:space="preserve">
+    <value>Purchase item · vendors</value>
+  </data>
+  <data name="Scm.Text.SelectVendorsToLink" xml:space="preserve">
+    <value>Select vendors to link</value>
+  </data>
+  <data name="Scm.Text.NoVendorsAvailableToLink" xml:space="preserve">
+    <value>No vendors available to link.</value>
+  </data>
+  <data name="Scm.Text.LinkVendors.53723e" xml:space="preserve">
+    <value>Link vendors</value>
+  </data>
+  <data name="Scm.Text.LinkedVendors.e8d8ad" xml:space="preserve">
+    <value>Linked vendors</value>
+  </data>
+  <data name="Scm.Text.NoLinkedVendors" xml:space="preserve">
+    <value>No linked vendors.</value>
+  </data>
+  <data name="Scm.Text.VendorCode" xml:space="preserve">
+    <value>Vendor code</value>
+  </data>
+  <data name="Scm.Text.VendorName" xml:space="preserve">
+    <value>Vendor name</value>
+  </data>
+  <data name="Scm.Text.VendorActive" xml:space="preserve">
+    <value>Vendor active</value>
+  </data>
+  <data name="Scm.Text.Unlink" xml:space="preserve">
+    <value>Unlink</value>
+  </data>
+  <data name="Scm.Text.PurchaseItems.a37216" xml:space="preserve">
+    <value>Purchase Items</value>
+  </data>
+  <data name="Scm.Text.UnableToLoadPleaseRetry" xml:space="preserve">
+    <value>Unable to load. Please retry.</value>
+  </data>
+  <data name="Scm.Text.UnableToLinkCheckTheMATERIALItemAndActive" xml:space="preserve">
+    <value>Unable to link. Check the MATERIAL item and active vendor.</value>
+  </data>
+  <data name="Scm.Text.UnableToUnlink" xml:space="preserve">
+    <value>Unable to unlink.</value>
+  </data>
+  <data name="Scm.Text.VendorMappingsSaved" xml:space="preserve">
+    <value>Vendor mappings saved.</value>
+  </data>
+  <data name="Scm.Text.SavedButRefreshFailedCloseAndReload" xml:space="preserve">
+    <value>Saved, but refresh failed. Close and reload.</value>
+  </data>
+  <data name="Portal.Text.BackToDeliveryManagement" xml:space="preserve">
+    <value>Back to delivery management</value>
+  </data>
+  <data name="Portal.Text.BackToBoxList" xml:space="preserve">
+    <value>Back to box list</value>
+  </data>
+  <data name="Portal.Text.BoxBarcodePrinting" xml:space="preserve">
+    <value>Box Barcode Printing</value>
+  </data>
+  <data name="Portal.Text.DeliveryNoteInquiryIssue" xml:space="preserve">
+    <value>Delivery Note Inquiry &amp; Issue</value>
+  </data>
+  <data name="Portal.Text.PackingQuantities" xml:space="preserve">
+    <value>Packing Quantities</value>
+  </data>
+  <data name="Portal.Text.BoxLabels" xml:space="preserve">
+    <value>Box Labels</value>
+  </data>
+  <data name="Portal.Text.ClearSelection" xml:space="preserve">
+    <value>Clear selection</value>
+  </data>
+  <data name="Portal.Text.SelectAll" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="Portal.Text.PrintSelectedLabels" xml:space="preserve">
+    <value>Print selected labels</value>
+  </data>
+  <data name="Portal.Text.Delivery" xml:space="preserve">
+    <value>Delivery</value>
+  </data>
+  <data name="Portal.Text.DeliveryNumber" xml:space="preserve">
+    <value>Delivery number</value>
+  </data>
+  <data name="Portal.Text.Deliveries" xml:space="preserve">
+    <value>Deliveries</value>
+  </data>
+  <data name="Portal.Text.Boxes" xml:space="preserve">
+    <value>Boxes</value>
+  </data>
+  <data name="Portal.Text.Boxes.fb6660" xml:space="preserve">
+    <value>Boxes</value>
+  </data>
+  <data name="Portal.Text.BoxNumber" xml:space="preserve">
+    <value>Box number</value>
+  </data>
+  <data name="Portal.Text.Sequence" xml:space="preserve">
+    <value>Sequence</value>
+  </data>
+  <data name="Portal.Text.Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Portal.Text.ItemCode" xml:space="preserve">
+    <value>Item code</value>
+  </data>
+  <data name="Portal.Text.PurchaseOrder" xml:space="preserve">
+    <value>Purchase order</value>
+  </data>
+  <data name="Portal.Text.DeliveryQuantity" xml:space="preserve">
+    <value>Delivery quantity</value>
+  </data>
+  <data name="Portal.Text.ReceivedQuantity" xml:space="preserve">
+    <value>Received quantity</value>
+  </data>
+  <data name="Portal.Text.OutstandingQuantity" xml:space="preserve">
+    <value>Outstanding quantity</value>
+  </data>
+  <data name="Portal.Text.RemainingQuantity" xml:space="preserve">
+    <value>Remaining quantity</value>
+  </data>
+  <data name="Portal.Text.ReceiptStatus" xml:space="preserve">
+    <value>Receipt status</value>
+  </data>
+  <data name="Portal.Text.NotReceived" xml:space="preserve">
+    <value>Not received</value>
+  </data>
+  <data name="Portal.Text.PartiallyReceived" xml:space="preserve">
+    <value>Partially received</value>
+  </data>
+  <data name="Portal.Text.Received" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="Portal.Text.ReceiptDetails" xml:space="preserve">
+    <value>Receipt details</value>
+  </data>
+  <data name="Portal.Text.Deliveries.0b0751" xml:space="preserve">
+    <value>Deliveries</value>
+  </data>
+  <data name="Portal.Text.NotIssued" xml:space="preserve">
+    <value>Not issued</value>
+  </data>
+  <data name="Portal.Text.Registered" xml:space="preserve">
+    <value>Registered</value>
+  </data>
+  <data name="Portal.Text.Received.a5320e" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="Portal.Text.LinkedItems" xml:space="preserve">
+    <value>Linked items</value>
+  </data>
+  <data name="Portal.Text.PackingQuantitySet" xml:space="preserve">
+    <value>Packing quantity set</value>
+  </data>
+  <data name="Portal.Text.NotSet" xml:space="preserve">
+    <value>Not set</value>
+  </data>
+  <data name="Portal.Text.DiscardChanges" xml:space="preserve">
+    <value>Discard changes</value>
+  </data>
+  <data name="Portal.Text.DeliveryNote" xml:space="preserve">
+    <value>Delivery note</value>
+  </data>
+  <data name="Portal.Text.SelectShippedDeliveries" xml:space="preserve">
+    <value>Select shipped deliveries</value>
+  </data>
+  <data name="Portal.Text.IssueNoteForSelectedDeliveries" xml:space="preserve">
+    <value>Issue note for selected deliveries</value>
+  </data>
+  <data name="Portal.Text.IssuedDeliveryNotes" xml:space="preserve">
+    <value>Issued delivery notes</value>
+  </data>
+  <data name="Portal.Text.DocumentNumberBarcode" xml:space="preserve">
+    <value>Document number / Barcode</value>
+  </data>
+  <data name="Portal.Text.IncludedDeliveries" xml:space="preserve">
+    <value>Included deliveries</value>
+  </data>
+  <data name="Portal.Text.Print" xml:space="preserve">
+    <value>Print</value>
+  </data>
+  <data name="Portal.Text.ViewReprint" xml:space="preserve">
+    <value>View / Reprint</value>
+  </data>
+  <data name="Portal.Text.OriginalDeliveryNote" xml:space="preserve">
+    <value>Original delivery note</value>
+  </data>
+  <data name="Portal.Text.PrintSavePDF" xml:space="preserve">
+    <value>Print / Save PDF</value>
+  </data>
+  <data name="Portal.Text.DownloadPrintableFile" xml:space="preserve">
+    <value>Download printable file</value>
+  </data>
+  <data name="Portal.Text.SearchDeliveries" xml:space="preserve">
+    <value>Search deliveries</value>
+  </data>
+  <data name="Portal.Text.SearchItems" xml:space="preserve">
+    <value>Search items</value>
+  </data>
+  <data name="Portal.Text.SearchReceiptResults" xml:space="preserve">
+    <value>Search receipt results</value>
+  </data>
+  <data name="Portal.Text.ShipDateFrom" xml:space="preserve">
+    <value>Ship date from</value>
+  </data>
+  <data name="Portal.Text.ShipDateTo" xml:space="preserve">
+    <value>Ship date to</value>
+  </data>
+  <data name="Portal.Text.PerPage" xml:space="preserve">
+    <value>per page</value>
+  </data>
+  <data name="Portal.Text.Page0Of12Items" xml:space="preserve">
+    <value>Page {0} of {1} ({2} items)</value>
+  </data>
+  <data name="Portal.Text.YouDoNotHavePermissionToViewThisPage" xml:space="preserve">
+    <value>You do not have permission to view this page.</value>
+  </data>
+  <data name="Portal.Text.NoDeliveries" xml:space="preserve">
+    <value>No deliveries.</value>
+  </data>
+  <data name="Portal.Text.SelectADelivery" xml:space="preserve">
+    <value>Select a delivery.</value>
+  </data>
+  <data name="Portal.Text.UnableToLoadDeliveries" xml:space="preserve">
+    <value>Unable to load deliveries.</value>
+  </data>
+  <data name="Portal.Text.UnableToLoadBoxes" xml:space="preserve">
+    <value>Unable to load boxes.</value>
+  </data>
+  <data name="Portal.Text.NoSavedBoxesBoxesAreNotAutomaticallyGeneratedFor" xml:space="preserve">
+    <value>No saved boxes. Boxes are not automatically generated for older deliveries.</value>
+  </data>
+  <data name="Portal.Text.ThisDeliveryIsCancelledLabelsCannotBePrinted" xml:space="preserve">
+    <value>This delivery is cancelled. Labels cannot be printed.</value>
+  </data>
+  <data name="Portal.Text.SelectLabelsFromTheBoxList" xml:space="preserve">
+    <value>Select labels from the box list.</value>
+  </data>
+  <data name="Portal.Text.TheDeliveryChangedOrWasCancelledSelectBoxesAgain" xml:space="preserve">
+    <value>The delivery changed or was cancelled. Select boxes again.</value>
+  </data>
+  <data name="Portal.Text.UnableToLoadLabels" xml:space="preserve">
+    <value>Unable to load labels.</value>
+  </data>
+  <data name="Portal.Text.NoLinkedItems" xml:space="preserve">
+    <value>No linked items.</value>
+  </data>
+  <data name="Portal.Text.Saved" xml:space="preserve">
+    <value>Saved.</value>
+  </data>
+  <data name="Portal.Text.UnableToLoadDataPleaseRetry" xml:space="preserve">
+    <value>Unable to load data. Please retry.</value>
+  </data>
+  <data name="Portal.Text.UnableToSaveCheckYourEntriesAndRetry" xml:space="preserve">
+    <value>Unable to save. Check your entries and retry.</value>
+  </data>
+  <data name="Portal.Text.TheItemMappingOrPackingQuantityChangedDiscardChanges" xml:space="preserve">
+    <value>The item mapping or packing quantity changed. Discard changes and refresh.</value>
+  </data>
+  <data name="Portal.Text.EnterAPositivePackingQuantityWithUpToThree" xml:space="preserve">
+    <value>Enter a positive packing quantity with up to three decimal places.</value>
+  </data>
+  <data name="Portal.Text.UnableToLoadTheList" xml:space="preserve">
+    <value>Unable to load the list.</value>
+  </data>
+  <data name="Portal.Text.UnableToLoadReceiptResults" xml:space="preserve">
+    <value>Unable to load receipt results.</value>
+  </data>
+  <data name="Portal.Text.UnableToIssueRefreshAndCheckVendorAccessAnd" xml:space="preserve">
+    <value>Unable to issue. Refresh and check vendor access and delivery status.</value>
+  </data>
+  <data name="Portal.Text.NoDeliveriesAvailableForIssue" xml:space="preserve">
+    <value>No deliveries available for issue.</value>
+  </data>
+  <data name="Portal.Text.CheckTheShipDateRange" xml:space="preserve">
+    <value>Check the ship date range.</value>
+  </data>
+  <data name="Portal.Text.TheStatusIsAwaitingReceiptPartiallyReceivedOrFully" xml:space="preserve">
+    <value>The status is awaiting receipt, partially received, or fully received based on the quantity received by EOS.</value>
+  </data>
+  <data name="Portal.Text.SelectDeliveriesForTheSameSupplierToIssueOne" xml:space="preserve">
+    <value>Select deliveries for the same supplier to issue one document. Existing documents can be reprinted below.</value>
+  </data>
+  <data name="Portal.Text.ViewReceivedAndRemainingQuantitiesByDeliveryItemReceipt" xml:space="preserve">
+    <value>View received and remaining quantities by delivery item. Receipt is complete when the full quantity has been received.</value>
+  </data>
+  <data name="Portal.Text.EnterPackingQuantitiesForLinkedItemsAndSaveEach" xml:space="preserve">
+    <value>Enter packing quantities for linked items and save each row. Quantities follow the unit precision settings.</value>
+  </data>
+  <data name="Portal.Text.YouCannotAccessThisDelivery" xml:space="preserve">
+    <value>You cannot access this delivery.</value>
+  </data>
+  <data name="Portal.Text.OnlyShippedDeliveriesCanBeIssued" xml:space="preserve">
+    <value>Only shipped deliveries can be issued.</value>
+  </data>
+  <data name="Portal.Text.AlreadyIssuedReprintTheExistingDocument" xml:space="preserve">
+    <value>Already issued. Reprint the existing document.</value>
+  </data>
+  <data name="Portal.Text.OnlyDeliveriesForTheSameSupplierCanBeGrouped" xml:space="preserve">
+    <value>Only deliveries for the same supplier can be grouped.</value>
+  </data>
+  <data name="Portal.Text.ADeliveryIsAlreadyIncludedInAnotherDocument" xml:space="preserve">
+    <value>A delivery is already included in another document.</value>
+  </data>
+  <data name="Portal.Text.AnIssuedDeliveryCannotBeIncludedInAnotherDocument" xml:space="preserve">
+    <value>An issued delivery cannot be included in another document.</value>
+  </data>
+  <data name="Portal.Text.ThereAreNoDeliveryItems" xml:space="preserve">
+    <value>There are no delivery items.</value>
+  </data>
+  <data name="Portal.Text.ItemCode.7b3b81" xml:space="preserve">
+    <value>Item code</value>
+  </data>
+  <data name="Portal.Text.VendorLOT" xml:space="preserve">
+    <value>Vendor LOT</value>
+  </data>
+  <data name="Portal.Text.SelectPurchaseOrder" xml:space="preserve">
+    <value>Select purchase order</value>
+  </data>
+  <data name="Scm.Accessibility.Confirmation" xml:space="preserve">
+    <value>Order confirmation information</value>
+  </data>
+  <data name="Scm.Accessibility.SelectItem" xml:space="preserve">
+    <value>Select {0}</value>
+  </data>
+  <data name="Scm.Accessibility.DeliveryQuantity" xml:space="preserve">
+    <value>Delivery quantity for {0}</value>
+  </data>
+  <data name="Scm.Accessibility.EditQuantity" xml:space="preserve">
+    <value>Edited quantity for {0}</value>
+  </data>
+  <data name="Scm.Accessibility.VendorLot" xml:space="preserve">
+    <value>Vendor LOT for {0}</value>
+  </data>
+  <data name="Portal.Accessibility.SelectDelivery" xml:space="preserve">
+    <value>Select delivery {0}</value>
+  </data>
+  <data name="Portal.Note.Back" xml:space="preserve">
+    <value>Back to delivery notes</value>
+  </data>
+  <data name="Portal.Note.Help" xml:space="preserve">
+    <value>If the print dialog does not open, download the printable file and open it in Chrome or Edge.</value>
+  </data>
+  <data name="Portal.Note.Buyer" xml:space="preserve">
+    <value>Buyer</value>
+  </data>
+  <data name="Portal.Note.Destination" xml:space="preserve">
+    <value>Destination</value>
+  </data>
+  <data name="Portal.Note.IssuedAt" xml:space="preserve">
+    <value>Issued at</value>
+  </data>
+  <data name="Portal.Note.OrderLine" xml:space="preserve">
+    <value>PO line</value>
+  </data>
+  <data name="Portal.Note.ShippedQuantity" xml:space="preserve">
+    <value>Shipped quantity</value>
+  </data>
+  <data name="Portal.Note.Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Portal.Note.IssuedBy" xml:space="preserve">
+    <value>Issued by</value>
+  </data>
+  <data name="Portal.Note.ShippedBy" xml:space="preserve">
+    <value>Shipped by</value>
+  </data>
+  <data name="Portal.Note.ReceivedBy" xml:space="preserve">
+    <value>Received by</value>
+  </data>
+  <data name="Portal.Note.ReceivedDate" xml:space="preserve">
+    <value>Received date</value>
+  </data>
+  <data name="Portal.Note.Disclaimer" xml:space="preserve">
+    <value>This document records shipment and does not confirm receipt.</value>
+  </data>
+  <data name="Portal.Note.AccessDenied" xml:space="preserve">
+    <value>You do not have permission to view this document.</value>
+  </data>
+  <data name="Portal.Note.NotIssued" xml:space="preserve">
+    <value>This document has not been issued. Issue it from the delivery notes page.</value>
+  </data>
+  <data name="Portal.Note.Unavailable" xml:space="preserve">
+    <value>Document unavailable. Check supplier access and shipment status.</value>
+  </data>
+  <data name="Portal.Print.Unsupported" xml:space="preserve">
+    <value>This browser cannot open the print dialog. Download the printable file instead.</value>
+  </data>
+  <data name="Portal.Print.DownloadRequested" xml:space="preserve">
+    <value>Download requested. Open the saved HTML file in Chrome or Edge to print or save as PDF.</value>
+  </data>
+  <data name="Portal.Print.Failed" xml:space="preserve">
+    <value>Unable to prepare the file. Refresh and retry.</value>
+  </data>
+  <data name="Portal.Label.Product" xml:space="preserve">
+    <value>Product</value>
+  </data>
+  <data name="Portal.Label.Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Portal.Label.Fifo" xml:space="preserve">
+    <value>FIFO</value>
+  </data>
+  <data name="Portal.Label.Quantity" xml:space="preserve">
+    <value>Quantity</value>
+  </data>
+  <data name="Portal.Label.BoxCount" xml:space="preserve">
+    <value>Box count</value>
+  </data>
+  <data name="Portal.Label.Destination" xml:space="preserve">
+    <value>Destination</value>
+  </data>
+  <data name="Portal.Label.Lot" xml:space="preserve">
+    <value>Lot number</value>
+  </data>
+  <data name="Portal.Label.Part" xml:space="preserve">
+    <value>Item code</value>
+  </data>
+  <data name="Scm.Text.Publish" xml:space="preserve">
+    <value>Publish</value>
+  </data>
+  <data name="Scm.Text.Unit" xml:space="preserve">
+    <value>Unit</value>
+  </data>
+  <data name="Scm.Text.Closed" xml:space="preserve">
+    <value>Closed</value>
+  </data>
+  <data name="Scm.Text.ItemLabel" xml:space="preserve">
+    <value>Item</value>
+  </data>
+  <data name="Scm.Text.Overdue" xml:space="preserve">
+    <value>Overdue</value>
+  </data>
+  <data name="Scm.Text.SelectLabel" xml:space="preserve">
+    <value>Select</value>
+  </data>
+  <data name="Scm.Text.ShippedLabel" xml:space="preserve">
+    <value>Shipped</value>
+  </data>
+  <data name="Scm.Text.Inactive" xml:space="preserve">
+    <value>Inactive</value>
+  </data>
+  <data name="Scm.Text.Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Portal.Accessibility.SelectBox" xml:space="preserve">
+    <value>Select box {0}</value>
+  </data>
+  <data name="Portal.Accessibility.PackingQuantity" xml:space="preserve">
+    <value>Packing quantity for {0}</value>
+  </data>
 </root>

@@ -8541,4 +8541,956 @@
   <data name="WH.Picking.Ph.Part" xml:space="preserve">
     <value>품번/품명</value>
   </data>
+  <!-- SCM and portal presentation text -->
+  <data name="Scm.Text.DeliveryNotes" xml:space="preserve">
+    <value>납품서 건수</value>
+  </data>
+  <data name="Scm.Text.Scheduled" xml:space="preserve">
+    <value>납품 예정</value>
+  </data>
+  <data name="Scm.Text.Shipped" xml:space="preserve">
+    <value>출하 완료</value>
+  </data>
+  <data name="Scm.Text.Received" xml:space="preserve">
+    <value>입고 완료</value>
+  </data>
+  <data name="Scm.Text.Cancelled" xml:space="preserve">
+    <value>취소</value>
+  </data>
+  <data name="Scm.Text.AwaitingConfirmation" xml:space="preserve">
+    <value>확인 대기</value>
+  </data>
+  <data name="Scm.Text.Items" xml:space="preserve">
+    <value>건</value>
+  </data>
+  <data name="Scm.Text.Supplier" xml:space="preserve">
+    <value>협력업체</value>
+  </data>
+  <data name="Scm.Text.All" xml:space="preserve">
+    <value>전체</value>
+  </data>
+  <data name="Scm.Text.DeliveryDate" xml:space="preserve">
+    <value>납품 예정일</value>
+  </data>
+  <data name="Scm.Text.Due" xml:space="preserve">
+    <value>납기</value>
+  </data>
+  <data name="Scm.Text.NewOrder" xml:space="preserve">
+    <value>신규 발주</value>
+  </data>
+  <data name="Scm.Text.NewDelivery" xml:space="preserve">
+    <value>신규 납품서 등록</value>
+  </data>
+  <data name="Scm.Text.OriginalRegisteredAndRemainingQuantitiesAreShownForConfirmed" xml:space="preserve">
+    <value>수주 확인된 발주의 최초 수량, 납품서 등록수량과 미등록 잔량을 표시합니다. 추가 등록 가능 = 발주수량 - 입고수량 - 등록 후 미입고수량.</value>
+  </data>
+  <data name="Scm.Text.TrackSupplierConfirmationAndDeliveriesShippedIsTheCumulative" xml:space="preserve">
+    <value>협력사의 수주 확인과 납품 진행 상황입니다. 출하수량은 출하 확정된 납품서의 누적 수량이며, 입고된 수량도 포함합니다. 미출하 잔량 = 발주수량 - 출하수량. 수량은 단위별로 합산합니다.</value>
+  </data>
+  <data name="Scm.Text.ViewPurchaseOrdersConfirmOrdersRegisterDeliveriesAndConfirm" xml:space="preserve">
+    <value>발주 내역을 조회하고 수주 확인·납품서 등록·출하 확정을 진행합니다. EOS에서 전량 입고하면 완료됩니다.</value>
+  </data>
+  <data name="Scm.Text.CreatePurchaseOrdersAndViewTheirStatusAndReceived" xml:space="preserve">
+    <value>발주서를 작성하고 발행·취소 상태와 입고수량을 확인합니다.</value>
+  </data>
+  <data name="Scm.Text.OnlyOrdersForLinkedVendorsAreVisibleUnlinkedAccounts" xml:space="preserve">
+    <value>계정에 연결된 업체의 발주만 표시됩니다. 연결 정보가 없으면 표시되지 않습니다.</value>
+  </data>
+  <data name="Scm.Text.EndDateMustFollowStartDate" xml:space="preserve">
+    <value>종료일은 시작일 이후여야 합니다.</value>
+  </data>
+  <data name="Scm.Text.DeliveryNote" xml:space="preserve">
+    <value>납품서번호</value>
+  </data>
+  <data name="Scm.Text.Order" xml:space="preserve">
+    <value>발주번호</value>
+  </data>
+  <data name="Scm.Text.DeliveryDate.246618" xml:space="preserve">
+    <value>납품일</value>
+  </data>
+  <data name="Scm.Text.Quantity" xml:space="preserve">
+    <value>납품수량</value>
+  </data>
+  <data name="Scm.Text.ShipDate" xml:space="preserve">
+    <value>출하일</value>
+  </data>
+  <data name="Scm.Text.Accepted" xml:space="preserve">
+    <value>합격수량</value>
+  </data>
+  <data name="Scm.Text.Rejected" xml:space="preserve">
+    <value>불합격수량</value>
+  </data>
+  <data name="Scm.Text.OriginalOrderQuantity" xml:space="preserve">
+    <value>최초 발주수량</value>
+  </data>
+  <data name="Scm.Text.RegisteredDeliveryQuantity" xml:space="preserve">
+    <value>납품서 등록수량</value>
+  </data>
+  <data name="Scm.Text.RemainingToRegister" xml:space="preserve">
+    <value>미등록 잔량</value>
+  </data>
+  <data name="Scm.Text.ItemDetailsIncludeFullyRegisteredItemsTotalsAreSeparated" xml:space="preserve">
+    <value>품목별 내역 · 등록 완료 품목도 함께 표시합니다. 합계는 발주별·단위별로 구분합니다.</value>
+  </data>
+  <data name="Scm.Text.DueDate" xml:space="preserve">
+    <value>납기일</value>
+  </data>
+  <data name="Scm.Text.Item" xml:space="preserve">
+    <value>품번</value>
+  </data>
+  <data name="Scm.Text.Description" xml:space="preserve">
+    <value>품명</value>
+  </data>
+  <data name="Scm.Text.OrderQuantity" xml:space="preserve">
+    <value>발주수량</value>
+  </data>
+  <data name="Scm.Text.RegisteredQuantity" xml:space="preserve">
+    <value>납품서 등록수량</value>
+  </data>
+  <data name="Scm.Text.Received.e5c661" xml:space="preserve">
+    <value>입고수량</value>
+  </data>
+  <data name="Scm.Text.RegisteredNotReceived" xml:space="preserve">
+    <value>등록 후 미입고</value>
+  </data>
+  <data name="Scm.Text.AvailableToRegister" xml:space="preserve">
+    <value>추가 등록 가능</value>
+  </data>
+  <data name="Scm.Text.Register" xml:space="preserve">
+    <value>등록</value>
+  </data>
+  <data name="Scm.Text.NoBalance" xml:space="preserve">
+    <value>잔량 없음</value>
+  </data>
+  <data name="Scm.Text.CreateDelivery" xml:space="preserve">
+    <value>납품서 등록</value>
+  </data>
+  <data name="Scm.Text.Lines" xml:space="preserve">
+    <value>품목 수</value>
+  </data>
+  <data name="Scm.Text.Ordered" xml:space="preserve">
+    <value>발주수량</value>
+  </data>
+  <data name="Scm.Text.Registered" xml:space="preserve">
+    <value>납품서 등록</value>
+  </data>
+  <data name="Scm.Text.Shipped.f4dea6" xml:space="preserve">
+    <value>출하수량</value>
+  </data>
+  <data name="Scm.Text.NotYetShipped" xml:space="preserve">
+    <value>미출하 잔량</value>
+  </data>
+  <data name="Scm.Text.Received.2c7750" xml:space="preserve">
+    <value>입고수량</value>
+  </data>
+  <data name="Scm.Text.Remaining" xml:space="preserve">
+    <value>미납수량</value>
+  </data>
+  <data name="Scm.Text.SupplierConfirmation" xml:space="preserve">
+    <value>수주 확인</value>
+  </data>
+  <data name="Scm.Text.OrderDetails" xml:space="preserve">
+    <value>발주 상세</value>
+  </data>
+  <data name="Scm.Text.ConfirmAcceptanceOfTheListedItemsQuantitiesAndDue" xml:space="preserve">
+    <value>품목·수량·납기를 확인하고 수주를 확정하시겠습니까?</value>
+  </data>
+  <data name="Scm.Text.SaveConfirmation" xml:space="preserve">
+    <value>확인 저장</value>
+  </data>
+  <data name="Scm.Text.ConfirmedBy" xml:space="preserve">
+    <value>확인자</value>
+  </data>
+  <data name="Scm.Text.ConfirmedAt" xml:space="preserve">
+    <value>확인일시</value>
+  </data>
+  <data name="Scm.Text.Buyer" xml:space="preserve">
+    <value>발주처</value>
+  </data>
+  <data name="Scm.Text.OrderDate" xml:space="preserve">
+    <value>발주일</value>
+  </data>
+  <data name="Scm.Text.Destination" xml:space="preserve">
+    <value>납품장소</value>
+  </data>
+  <data name="Scm.Text.Amount" xml:space="preserve">
+    <value>금액</value>
+  </data>
+  <data name="Scm.Text.OrderLines" xml:space="preserve">
+    <value>발주 품목</value>
+  </data>
+  <data name="Scm.Text.UnitPrice" xml:space="preserve">
+    <value>단가</value>
+  </data>
+  <data name="Scm.Text.ExpectedDeliveryDate" xml:space="preserve">
+    <value>납품 예정일</value>
+  </data>
+  <data name="Scm.Text.SelectItemsAndQuantitiesPartialDeliveriesAreSupported" xml:space="preserve">
+    <value>등록할 품목을 선택하고 수량을 입력하세요. 분할 납품이 가능합니다.</value>
+  </data>
+  <data name="Scm.Text.Select" xml:space="preserve">
+    <value>선택</value>
+  </data>
+  <data name="Scm.Text.PendingReceipt" xml:space="preserve">
+    <value>기등록 미입고</value>
+  </data>
+  <data name="Scm.Text.Available" xml:space="preserve">
+    <value>등록 가능</value>
+  </data>
+  <data name="Scm.Text.PackingQuantity" xml:space="preserve">
+    <value>적입량</value>
+  </data>
+  <data name="Scm.Text.DeliveryQuantity" xml:space="preserve">
+    <value>이번 납품수량</value>
+  </data>
+  <data name="Scm.Text.Boxes" xml:space="preserve">
+    <value>박스수량</value>
+  </data>
+  <data name="Scm.Text.VendorLOT" xml:space="preserve">
+    <value>업체 LOT</value>
+  </data>
+  <data name="Scm.Text.ProductionDate" xml:space="preserve">
+    <value>제조일자</value>
+  </data>
+  <data name="Scm.Text.NotSet" xml:space="preserve">
+    <value>미등록</value>
+  </data>
+  <data name="Scm.Text.BoxesAreRoundedUpFromQuantityDividedByPacking" xml:space="preserve">
+    <value>박스수량은 납품수량 ÷ 적입량을 올림하여 계산합니다. 적입량이 없거나 0인 품목은 등록할 수 없습니다.</value>
+  </data>
+  <data name="Scm.Text.RelatedDeliveries" xml:space="preserve">
+    <value>관련 납품서</value>
+  </data>
+  <data name="Scm.Text.CancelOrder" xml:space="preserve">
+    <value>발주 취소</value>
+  </data>
+  <data name="Scm.Text.ConfirmOrder" xml:space="preserve">
+    <value>수주 확인</value>
+  </data>
+  <data name="Scm.Text.SelectPurchaseOrder" xml:space="preserve">
+    <value>납품할 발주 선택</value>
+  </data>
+  <data name="Scm.Text.NoConfirmedOrdersWithAvailableQuantities" xml:space="preserve">
+    <value>수주 확인이 완료되고 납품 가능한 잔량이 있는 발주가 없습니다.</value>
+  </data>
+  <data name="Scm.Text.DeliveryDetails" xml:space="preserve">
+    <value>납품서 상세</value>
+  </data>
+  <data name="Scm.Text.ConfirmShipment" xml:space="preserve">
+    <value>출하 확정</value>
+  </data>
+  <data name="Scm.Text.SaveChanges" xml:space="preserve">
+    <value>수정 저장</value>
+  </data>
+  <data name="Scm.Text.CancelDelivery" xml:space="preserve">
+    <value>납품 취소</value>
+  </data>
+  <data name="Scm.Text.ShippedBy" xml:space="preserve">
+    <value>출하 처리자</value>
+  </data>
+  <data name="Scm.Text.ConfirmedAt.17ae74" xml:space="preserve">
+    <value>확정일시</value>
+  </data>
+  <data name="Scm.Text.ActualShipDate" xml:space="preserve">
+    <value>실제 출하일</value>
+  </data>
+  <data name="Scm.Text.ConfirmShipmentOfAllSavedDeliveryLinesEditingAnd" xml:space="preserve">
+    <value>저장된 납품서 전체 품목을 출하 확정합니다. 이후 수정·취소할 수 없습니다.</value>
+  </data>
+  <data name="Scm.Text.SaveShipment" xml:space="preserve">
+    <value>출하 확정 저장</value>
+  </data>
+  <data name="Scm.Text.Back" xml:space="preserve">
+    <value>돌아가기</value>
+  </data>
+  <data name="Scm.Text.CancelTheEntireDeliveryAndReleaseItsReservedQuantities" xml:space="preserve">
+    <value>납품서 전체를 취소하고 등록 가능 잔량을 복원합니다.</value>
+  </data>
+  <data name="Scm.Text.ConfirmCancellation" xml:space="preserve">
+    <value>취소 확정</value>
+  </data>
+  <data name="Scm.Text.MaximumQuantity" xml:space="preserve">
+    <value>수정 가능 최대수량</value>
+  </data>
+  <data name="Scm.Text.ShippedCancelledOrReceivingDeliveriesCannotBeEdited" xml:space="preserve">
+    <value>출하 확정·취소되었거나 입고가 진행된 납품서는 수정할 수 없습니다.</value>
+  </data>
+  <data name="Scm.Text.OrderEditor" xml:space="preserve">
+    <value>발주 작성</value>
+  </data>
+  <data name="Scm.Text.AssignedOnSave" xml:space="preserve">
+    <value>저장 시 자동 발급</value>
+  </data>
+  <data name="Scm.Text.SelectVendor" xml:space="preserve">
+    <value>업체 선택</value>
+  </data>
+  <data name="Scm.Text.AddItem" xml:space="preserve">
+    <value>품목 추가</value>
+  </data>
+  <data name="Scm.Text.OrderItemMATERIAL" xml:space="preserve">
+    <value>발주 품목 (MATERIAL)</value>
+  </data>
+  <data name="Scm.Text.UnitPriceUSD" xml:space="preserve">
+    <value>단가 (USD)</value>
+  </data>
+  <data name="Scm.Text.AmountUSD" xml:space="preserve">
+    <value>금액 (USD)</value>
+  </data>
+  <data name="Scm.Text.Remove" xml:space="preserve">
+    <value>삭제</value>
+  </data>
+  <data name="Scm.Text.TotalUSD" xml:space="preserve">
+    <value>합계 (USD)</value>
+  </data>
+  <data name="Scm.Text.Confirmed" xml:space="preserve">
+    <value>확인 완료</value>
+  </data>
+  <data name="Scm.Text.AwaitingConfirmation.6a70d7" xml:space="preserve">
+    <value>확인 대기</value>
+  </data>
+  <data name="Scm.Text.NoResults" xml:space="preserve">
+    <value>조회 결과가 없습니다.</value>
+  </data>
+  <data name="Scm.Text.OrdersConfirmation" xml:space="preserve">
+    <value>발주 조회·수주 확인</value>
+  </data>
+  <data name="Scm.Text.PurchaseOrders" xml:space="preserve">
+    <value>구매발주 관리</value>
+  </data>
+  <data name="Scm.Text.OrderProgress" xml:space="preserve">
+    <value>발주 진행 현황</value>
+  </data>
+  <data name="Scm.Text.DeliveryPreparation" xml:space="preserve">
+    <value>납품 준비 현황</value>
+  </data>
+  <data name="Scm.Text.DeliveryManagement" xml:space="preserve">
+    <value>납품서 관리</value>
+  </data>
+  <data name="Scm.Text.ReceiptStatus" xml:space="preserve">
+    <value>입고 현황</value>
+  </data>
+  <data name="Scm.Text.NoAvailableOrderCheckConfirmationAndRemainingQuantities" xml:space="preserve">
+    <value>등록 가능한 발주가 없습니다. 수주 확인 상태와 잔량을 다시 확인해 주세요.</value>
+  </data>
+  <data name="Scm.Text.SelectAVendorFirst" xml:space="preserve">
+    <value>협력업체를 먼저 선택하세요.</value>
+  </data>
+  <data name="Scm.Text.NoMATERIALItemsLinkedToThisVendorAddMappings" xml:space="preserve">
+    <value>이 업체에 연결된 MATERIAL 품목이 없습니다. SCM-003 발주품목 관리에서 업체를 연결하세요.</value>
+  </data>
+  <data name="Scm.Text.UnableToLoadItemsPleaseRetry" xml:space="preserve">
+    <value>품목 조회에 실패했습니다. 다시 시도하세요.</value>
+  </data>
+  <data name="Scm.Text.UnableToLoadVendorsPleaseRetry" xml:space="preserve">
+    <value>협력업체 조회에 실패했습니다. 다시 시도하세요.</value>
+  </data>
+  <data name="Scm.Text.SelectAnActiveVendor" xml:space="preserve">
+    <value>사용 중인 협력업체를 선택하세요.</value>
+  </data>
+  <data name="Scm.Text.AddAtLeastOneItem" xml:space="preserve">
+    <value>품목을 한 개 이상 추가하세요.</value>
+  </data>
+  <data name="Scm.Text.CheckVendorLinkedMATERIALItemPositiveQuantityAndNon" xml:space="preserve">
+    <value>선택한 업체에 연결된 MATERIAL 품목, 양수 수량, 0 이상의 단가를 확인하세요.</value>
+  </data>
+  <data name="Scm.Text.CheckItemDestinationQuantityPriceAndDueDate" xml:space="preserve">
+    <value>품목·납품장소, 수량, 단가와 납기를 확인하세요.</value>
+  </data>
+  <data name="Scm.Text.SaveFailedCheckQuantityPricePrecisionDestinationMappingsAnd" xml:space="preserve">
+    <value>저장하지 못했습니다. 수량(소수 3자리)·단가(소수 4자리)·납품장소(200자)와 업체 연결을 확인하세요. 다른 사용자가 수정했거나 입고에 연결된 발주라면 닫고 다시 조회하세요.</value>
+  </data>
+  <data name="Scm.Text.OrderSaved" xml:space="preserve">
+    <value>발주서를 저장했습니다.</value>
+  </data>
+  <data name="Scm.Text.SavedButReloadFailedRefreshTheList" xml:space="preserve">
+    <value>저장은 완료됐지만 조회에 실패했습니다. 초기화를 눌러 다시 조회하세요.</value>
+  </data>
+  <data name="Scm.Text.UnableToChangeStatusReloadAndCheckInboundReferences" xml:space="preserve">
+    <value>변경하지 못했습니다. 다른 사용자의 수정 또는 입고 연결 여부를 확인하고 다시 조회하세요.</value>
+  </data>
+  <data name="Scm.Text.OrderIssued" xml:space="preserve">
+    <value>발주서를 발행했습니다.</value>
+  </data>
+  <data name="Scm.Text.OrderCancelled" xml:space="preserve">
+    <value>발주를 취소했습니다.</value>
+  </data>
+  <data name="Scm.Text.StatusSavedButReloadFailed" xml:space="preserve">
+    <value>상태는 저장됐지만 조회에 실패했습니다. 다시 조회하세요.</value>
+  </data>
+  <data name="Scm.Text.ConfirmationFailedReloadAndCheckOrderStatusAndVendor" xml:space="preserve">
+    <value>수주 확인을 저장하지 못했습니다. 다시 조회한 뒤 발주 상태와 업체 연결 권한을 확인하세요.</value>
+  </data>
+  <data name="Scm.Text.OrderConfirmationCompleted" xml:space="preserve">
+    <value>수주 확인을 완료했습니다.</value>
+  </data>
+  <data name="Scm.Text.ConfirmationSavedButReloadFailed" xml:space="preserve">
+    <value>확인은 저장됐지만 조회에 실패했습니다. 다시 조회하세요.</value>
+  </data>
+  <data name="Scm.Text.UnableToLoadOrdersRetry" xml:space="preserve">
+    <value>발주 조회에 실패했습니다. 다시 조회하세요.</value>
+  </data>
+  <data name="Scm.Text.UnableToLoadPackingQuantitiesReload" xml:space="preserve">
+    <value>적입량을 조회하지 못했습니다. 다시 조회해 주세요.</value>
+  </data>
+  <data name="Scm.Text.SelectItemsAndQuantitiesWithinTheAvailableBalanceUp" xml:space="preserve">
+    <value>품목을 선택하고 등록 가능 수량 이내로 입력하세요. 소수 3자리까지 가능합니다.</value>
+  </data>
+  <data name="Scm.Text.SetAPositivePackingQuantityInPORTAL006And" xml:space="preserve">
+    <value>선택한 품목의 적입량이 없거나 0입니다. 포털 6번 적입량 관리에서 등록한 후 다시 조회해 주세요.</value>
+  </data>
+  <data name="Scm.Text.Maximum1000BoxesPerItemCheckQuantities" xml:space="preserve">
+    <value>품목당 박스수량은 1,000개까지 등록할 수 있습니다. 적입량과 납품수량을 확인해 주세요.</value>
+  </data>
+  <data name="Scm.Text.RegistrationFailedCheckDateOrderStatusBalanceAndVendor" xml:space="preserve">
+    <value>등록하지 못했습니다. 납품 예정일, 발주 상태·잔량과 업체 연결을 확인하세요. 다른 사용자가 변경했다면 초기화 후 다시 조회하세요.</value>
+  </data>
+  <data name="Scm.Text.DeliveryRegistered" xml:space="preserve">
+    <value>납품서를 등록했습니다.</value>
+  </data>
+  <data name="Scm.Text.SavedButReloadFailedRefresh" xml:space="preserve">
+    <value>등록은 완료됐지만 조회에 실패했습니다. 초기화 후 다시 조회하세요.</value>
+  </data>
+  <data name="Scm.Text.SaveYourEditsBeforeConfirmingShipment" xml:space="preserve">
+    <value>변경한 내용을 먼저 수정 저장한 후 출하 확정하세요.</value>
+  </data>
+  <data name="Scm.Text.EnterPositiveQuantitiesWithinTheAvailableMaximumUpTo" xml:space="preserve">
+    <value>수량은 수정 가능 최대수량 이내의 양수로 입력하세요. 소수 3자리까지 가능합니다.</value>
+  </data>
+  <data name="Scm.Text.SaveFailedCheckDateBalancePermissionsAndReceivingReferences" xml:space="preserve">
+    <value>저장하지 못했습니다. 예정일·잔량·업체 권한을 확인하세요. 다른 사용자가 변경했거나 입고에 연결되었다면 초기화 후 다시 조회하세요.</value>
+  </data>
+  <data name="Scm.Text.ShipmentConfirmedAwaitingEOSReceipt" xml:space="preserve">
+    <value>납품서 출하를 확정했습니다. EOS 입고 대기 상태입니다.</value>
+  </data>
+  <data name="Scm.Text.DeliveryCancelledQuantitiesReleased" xml:space="preserve">
+    <value>납품서를 취소하고 등록 가능 잔량을 복원했습니다.</value>
+  </data>
+  <data name="Scm.Text.DeliveryChangesSaved" xml:space="preserve">
+    <value>납품서 변경사항을 저장했습니다.</value>
+  </data>
+  <data name="Scm.Text.SavedButReloadFailedRefresh.757eb2" xml:space="preserve">
+    <value>저장은 완료됐지만 조회에 실패했습니다. 초기화 후 다시 조회하세요.</value>
+  </data>
+  <data name="Scm.Text.PreviewUpdatedNoBusinessDataWasSaved" xml:space="preserve">
+    <value>미리보기 데이터에 반영했습니다. 실제 업무 데이터는 저장되지 않습니다.</value>
+  </data>
+  <data name="Scm.Text.Received.2a92a7" xml:space="preserve">
+    <value>입고 완료</value>
+  </data>
+  <data name="Scm.Text.PartiallyReceived" xml:space="preserve">
+    <value>부분 입고</value>
+  </data>
+  <data name="Scm.Text.Shipped.b0d543" xml:space="preserve">
+    <value>출하 완료</value>
+  </data>
+  <data name="Scm.Text.PartiallyShipped" xml:space="preserve">
+    <value>부분 출하</value>
+  </data>
+  <data name="Scm.Text.PreparingDelivery" xml:space="preserve">
+    <value>납품 준비</value>
+  </data>
+  <data name="Scm.Text.Confirmed.538025" xml:space="preserve">
+    <value>수주 확인</value>
+  </data>
+  <data name="Scm.Text.AwaitingConfirmation.c207aa" xml:space="preserve">
+    <value>확인 대기</value>
+  </data>
+  <data name="Scm.Text.AvailableToRegister.388045" xml:space="preserve">
+    <value>등록 가능</value>
+  </data>
+  <data name="Scm.Text.Draft" xml:space="preserve">
+    <value>작성중</value>
+  </data>
+  <data name="Scm.Text.Published" xml:space="preserve">
+    <value>발행</value>
+  </data>
+  <data name="Scm.Text.Receiving" xml:space="preserve">
+    <value>입고 진행</value>
+  </data>
+  <data name="Scm.Text.Scheduled.b83eb1" xml:space="preserve">
+    <value>납품 예정</value>
+  </data>
+  <data name="Scm.Text.Cancelled.7cc538" xml:space="preserve">
+    <value>취소</value>
+  </data>
+  <data name="Scm.Text.PurchaseItems" xml:space="preserve">
+    <value>발주 가능 품목</value>
+  </data>
+  <data name="Scm.Text.MappedItems" xml:space="preserve">
+    <value>업체 연결 품목</value>
+  </data>
+  <data name="Scm.Text.UnmappedItems" xml:space="preserve">
+    <value>업체 미연결 품목</value>
+  </data>
+  <data name="Scm.Text.Total" xml:space="preserve">
+    <value>전체</value>
+  </data>
+  <data name="Scm.Text.NoItemsFound" xml:space="preserve">
+    <value>품목이 없습니다.</value>
+  </data>
+  <data name="Scm.Text.ItemCode" xml:space="preserve">
+    <value>품목코드</value>
+  </data>
+  <data name="Scm.Text.ItemName" xml:space="preserve">
+    <value>품목명</value>
+  </data>
+  <data name="Scm.Text.Category" xml:space="preserve">
+    <value>분류</value>
+  </data>
+  <data name="Scm.Text.LinkedVendors" xml:space="preserve">
+    <value>연결 업체</value>
+  </data>
+  <data name="Scm.Text.UnitCost" xml:space="preserve">
+    <value>단가</value>
+  </data>
+  <data name="Scm.Text.LinkVendors" xml:space="preserve">
+    <value>업체 매칭</value>
+  </data>
+  <data name="Scm.Text.PurchaseItemVendors" xml:space="preserve">
+    <value>발주품목 · 업체 매칭</value>
+  </data>
+  <data name="Scm.Text.SelectVendorsToLink" xml:space="preserve">
+    <value>연결할 업체 선택</value>
+  </data>
+  <data name="Scm.Text.NoVendorsAvailableToLink" xml:space="preserve">
+    <value>연결할 업체가 없습니다.</value>
+  </data>
+  <data name="Scm.Text.LinkVendors.53723e" xml:space="preserve">
+    <value>업체 연결</value>
+  </data>
+  <data name="Scm.Text.LinkedVendors.e8d8ad" xml:space="preserve">
+    <value>연결된 업체</value>
+  </data>
+  <data name="Scm.Text.NoLinkedVendors" xml:space="preserve">
+    <value>연결된 업체가 없습니다.</value>
+  </data>
+  <data name="Scm.Text.VendorCode" xml:space="preserve">
+    <value>업체코드</value>
+  </data>
+  <data name="Scm.Text.VendorName" xml:space="preserve">
+    <value>업체명</value>
+  </data>
+  <data name="Scm.Text.VendorActive" xml:space="preserve">
+    <value>업체 사용</value>
+  </data>
+  <data name="Scm.Text.Unlink" xml:space="preserve">
+    <value>연결 해제</value>
+  </data>
+  <data name="Scm.Text.PurchaseItems.a37216" xml:space="preserve">
+    <value>발주품목 관리</value>
+  </data>
+  <data name="Scm.Text.UnableToLoadPleaseRetry" xml:space="preserve">
+    <value>조회에 실패했습니다. 다시 조회해 주세요.</value>
+  </data>
+  <data name="Scm.Text.UnableToLinkCheckTheMATERIALItemAndActive" xml:space="preserve">
+    <value>연결하지 못했습니다. MATERIAL 품목과 사용 중인 업체인지 확인해 주세요.</value>
+  </data>
+  <data name="Scm.Text.UnableToUnlink" xml:space="preserve">
+    <value>연결 해제에 실패했습니다.</value>
+  </data>
+  <data name="Scm.Text.VendorMappingsSaved" xml:space="preserve">
+    <value>업체 연결 정보를 저장했습니다.</value>
+  </data>
+  <data name="Scm.Text.SavedButRefreshFailedCloseAndReload" xml:space="preserve">
+    <value>저장은 완료되었지만 새로 조회하지 못했습니다. 닫고 다시 조회해 주세요.</value>
+  </data>
+  <data name="Portal.Text.BackToDeliveryManagement" xml:space="preserve">
+    <value>납품서 관리로 돌아가기</value>
+  </data>
+  <data name="Portal.Text.BackToBoxList" xml:space="preserve">
+    <value>박스 목록으로 돌아가기</value>
+  </data>
+  <data name="Portal.Text.BoxBarcodePrinting" xml:space="preserve">
+    <value>박스바코드 발행</value>
+  </data>
+  <data name="Portal.Text.DeliveryNoteInquiryIssue" xml:space="preserve">
+    <value>딜리버리 노트 조회·발행</value>
+  </data>
+  <data name="Portal.Text.PackingQuantities" xml:space="preserve">
+    <value>적입량 관리</value>
+  </data>
+  <data name="Portal.Text.BoxLabels" xml:space="preserve">
+    <value>박스 식별표</value>
+  </data>
+  <data name="Portal.Text.ClearSelection" xml:space="preserve">
+    <value>선택 해제</value>
+  </data>
+  <data name="Portal.Text.SelectAll" xml:space="preserve">
+    <value>전체 선택</value>
+  </data>
+  <data name="Portal.Text.PrintSelectedLabels" xml:space="preserve">
+    <value>선택 식별표 출력</value>
+  </data>
+  <data name="Portal.Text.Delivery" xml:space="preserve">
+    <value>납품서</value>
+  </data>
+  <data name="Portal.Text.DeliveryNumber" xml:space="preserve">
+    <value>납품서번호</value>
+  </data>
+  <data name="Portal.Text.Deliveries" xml:space="preserve">
+    <value>납품서 목록</value>
+  </data>
+  <data name="Portal.Text.Boxes" xml:space="preserve">
+    <value>박스 목록</value>
+  </data>
+  <data name="Portal.Text.Boxes.fb6660" xml:space="preserve">
+    <value>박스</value>
+  </data>
+  <data name="Portal.Text.BoxNumber" xml:space="preserve">
+    <value>박스번호</value>
+  </data>
+  <data name="Portal.Text.Sequence" xml:space="preserve">
+    <value>순번</value>
+  </data>
+  <data name="Portal.Text.Description" xml:space="preserve">
+    <value>품목명</value>
+  </data>
+  <data name="Portal.Text.ItemCode" xml:space="preserve">
+    <value>품목코드</value>
+  </data>
+  <data name="Portal.Text.PurchaseOrder" xml:space="preserve">
+    <value>발주번호</value>
+  </data>
+  <data name="Portal.Text.DeliveryQuantity" xml:space="preserve">
+    <value>납품수량</value>
+  </data>
+  <data name="Portal.Text.ReceivedQuantity" xml:space="preserve">
+    <value>입고수량</value>
+  </data>
+  <data name="Portal.Text.OutstandingQuantity" xml:space="preserve">
+    <value>미입고 잔량</value>
+  </data>
+  <data name="Portal.Text.RemainingQuantity" xml:space="preserve">
+    <value>잔량</value>
+  </data>
+  <data name="Portal.Text.ReceiptStatus" xml:space="preserve">
+    <value>입고 상태</value>
+  </data>
+  <data name="Portal.Text.NotReceived" xml:space="preserve">
+    <value>미입고</value>
+  </data>
+  <data name="Portal.Text.PartiallyReceived" xml:space="preserve">
+    <value>부분입고</value>
+  </data>
+  <data name="Portal.Text.Received" xml:space="preserve">
+    <value>입고완료</value>
+  </data>
+  <data name="Portal.Text.ReceiptDetails" xml:space="preserve">
+    <value>입고 상세</value>
+  </data>
+  <data name="Portal.Text.Deliveries.0b0751" xml:space="preserve">
+    <value>납품서 건수</value>
+  </data>
+  <data name="Portal.Text.NotIssued" xml:space="preserve">
+    <value>미발행</value>
+  </data>
+  <data name="Portal.Text.Registered" xml:space="preserve">
+    <value>등록</value>
+  </data>
+  <data name="Portal.Text.Received.a5320e" xml:space="preserve">
+    <value>입고</value>
+  </data>
+  <data name="Portal.Text.LinkedItems" xml:space="preserve">
+    <value>연결 품목</value>
+  </data>
+  <data name="Portal.Text.PackingQuantitySet" xml:space="preserve">
+    <value>적입량 등록</value>
+  </data>
+  <data name="Portal.Text.NotSet" xml:space="preserve">
+    <value>미등록</value>
+  </data>
+  <data name="Portal.Text.DiscardChanges" xml:space="preserve">
+    <value>변경 취소</value>
+  </data>
+  <data name="Portal.Text.DeliveryNote" xml:space="preserve">
+    <value>딜리버리 노트</value>
+  </data>
+  <data name="Portal.Text.SelectShippedDeliveries" xml:space="preserve">
+    <value>출하 완료 납품서 선택</value>
+  </data>
+  <data name="Portal.Text.IssueNoteForSelectedDeliveries" xml:space="preserve">
+    <value>선택 납품서로 딜리버리 노트 발행</value>
+  </data>
+  <data name="Portal.Text.IssuedDeliveryNotes" xml:space="preserve">
+    <value>발행된 딜리버리 노트</value>
+  </data>
+  <data name="Portal.Text.DocumentNumberBarcode" xml:space="preserve">
+    <value>문서번호 / 바코드</value>
+  </data>
+  <data name="Portal.Text.IncludedDeliveries" xml:space="preserve">
+    <value>포함 납품서</value>
+  </data>
+  <data name="Portal.Text.Print" xml:space="preserve">
+    <value>출력</value>
+  </data>
+  <data name="Portal.Text.ViewReprint" xml:space="preserve">
+    <value>조회 / 재출력</value>
+  </data>
+  <data name="Portal.Text.OriginalDeliveryNote" xml:space="preserve">
+    <value>딜리버리 노트 원본</value>
+  </data>
+  <data name="Portal.Text.PrintSavePDF" xml:space="preserve">
+    <value>인쇄 / PDF 저장</value>
+  </data>
+  <data name="Portal.Text.DownloadPrintableFile" xml:space="preserve">
+    <value>인쇄용 파일 내려받기</value>
+  </data>
+  <data name="Portal.Text.SearchDeliveries" xml:space="preserve">
+    <value>납품서 검색</value>
+  </data>
+  <data name="Portal.Text.SearchItems" xml:space="preserve">
+    <value>품목 검색</value>
+  </data>
+  <data name="Portal.Text.SearchReceiptResults" xml:space="preserve">
+    <value>입고 결과 검색</value>
+  </data>
+  <data name="Portal.Text.ShipDateFrom" xml:space="preserve">
+    <value>출하일 시작</value>
+  </data>
+  <data name="Portal.Text.ShipDateTo" xml:space="preserve">
+    <value>출하일 종료</value>
+  </data>
+  <data name="Portal.Text.PerPage" xml:space="preserve">
+    <value>건씩 보기</value>
+  </data>
+  <data name="Portal.Text.Page0Of12Items" xml:space="preserve">
+    <value>{0} / {1} 페이지 (총 {2}건)</value>
+  </data>
+  <data name="Portal.Text.YouDoNotHavePermissionToViewThisPage" xml:space="preserve">
+    <value>조회 권한이 없습니다.</value>
+  </data>
+  <data name="Portal.Text.NoDeliveries" xml:space="preserve">
+    <value>납품서가 없습니다.</value>
+  </data>
+  <data name="Portal.Text.SelectADelivery" xml:space="preserve">
+    <value>납품서를 선택해 주세요.</value>
+  </data>
+  <data name="Portal.Text.UnableToLoadDeliveries" xml:space="preserve">
+    <value>납품서 목록을 조회하지 못했습니다.</value>
+  </data>
+  <data name="Portal.Text.UnableToLoadBoxes" xml:space="preserve">
+    <value>박스 목록을 조회하지 못했습니다.</value>
+  </data>
+  <data name="Portal.Text.NoSavedBoxesBoxesAreNotAutomaticallyGeneratedFor" xml:space="preserve">
+    <value>저장된 박스 정보가 없습니다. 기존 납품서는 자동으로 박스를 생성하지 않습니다.</value>
+  </data>
+  <data name="Portal.Text.ThisDeliveryIsCancelledLabelsCannotBePrinted" xml:space="preserve">
+    <value>취소된 납품서입니다. 식별표를 출력할 수 없습니다.</value>
+  </data>
+  <data name="Portal.Text.SelectLabelsFromTheBoxList" xml:space="preserve">
+    <value>박스 목록에서 출력할 식별표를 선택해 주세요.</value>
+  </data>
+  <data name="Portal.Text.TheDeliveryChangedOrWasCancelledSelectBoxesAgain" xml:space="preserve">
+    <value>납품서가 변경되었거나 취소되었습니다. 박스 목록에서 다시 선택해 주세요.</value>
+  </data>
+  <data name="Portal.Text.UnableToLoadLabels" xml:space="preserve">
+    <value>식별표를 조회하지 못했습니다.</value>
+  </data>
+  <data name="Portal.Text.NoLinkedItems" xml:space="preserve">
+    <value>연결된 품목이 없습니다.</value>
+  </data>
+  <data name="Portal.Text.Saved" xml:space="preserve">
+    <value>저장했습니다.</value>
+  </data>
+  <data name="Portal.Text.UnableToLoadDataPleaseRetry" xml:space="preserve">
+    <value>조회하지 못했습니다. 다시 시도해 주세요.</value>
+  </data>
+  <data name="Portal.Text.UnableToSaveCheckYourEntriesAndRetry" xml:space="preserve">
+    <value>저장하지 못했습니다. 입력값을 확인하고 다시 시도해 주세요.</value>
+  </data>
+  <data name="Portal.Text.TheItemMappingOrPackingQuantityChangedDiscardChanges" xml:space="preserve">
+    <value>연결 정보나 적입량이 변경되어 저장하지 못했습니다. 변경 취소 후 새로고침해 주세요.</value>
+  </data>
+  <data name="Portal.Text.EnterAPositivePackingQuantityWithUpToThree" xml:space="preserve">
+    <value>적입량은 0보다 큰 수량으로 소수점 셋째 자리까지 입력해 주세요.</value>
+  </data>
+  <data name="Portal.Text.UnableToLoadTheList" xml:space="preserve">
+    <value>목록을 조회할 수 없습니다.</value>
+  </data>
+  <data name="Portal.Text.UnableToLoadReceiptResults" xml:space="preserve">
+    <value>입고 결과를 조회하지 못했습니다.</value>
+  </data>
+  <data name="Portal.Text.UnableToIssueRefreshAndCheckVendorAccessAnd" xml:space="preserve">
+    <value>발행하지 못했습니다. 새로고침 후 업체 권한 및 납품서 상태를 확인해 주세요.</value>
+  </data>
+  <data name="Portal.Text.NoDeliveriesAvailableForIssue" xml:space="preserve">
+    <value>발행 가능한 납품서가 없습니다.</value>
+  </data>
+  <data name="Portal.Text.CheckTheShipDateRange" xml:space="preserve">
+    <value>출하일 범위를 확인해 주세요.</value>
+  </data>
+  <data name="Portal.Text.TheStatusIsAwaitingReceiptPartiallyReceivedOrFully" xml:space="preserve">
+    <value>EOS에서 입고한 수량을 기준으로 미입고, 부분 입고, 입고 완료를 표시합니다.</value>
+  </data>
+  <data name="Portal.Text.SelectDeliveriesForTheSameSupplierToIssueOne" xml:space="preserve">
+    <value>같은 협력업체의 납품서를 선택해 하나의 문서로 발행합니다. 이미 발행된 납품서는 아래에서 재출력할 수 있습니다.</value>
+  </data>
+  <data name="Portal.Text.ViewReceivedAndRemainingQuantitiesByDeliveryItemReceipt" xml:space="preserve">
+    <value>납품 품목별 입고수량과 잔량을 확인합니다. 전량 입고되면 입고 완료입니다.</value>
+  </data>
+  <data name="Portal.Text.EnterPackingQuantitiesForLinkedItemsAndSaveEach" xml:space="preserve">
+    <value>업체에 연결된 품목의 적입량을 입력하고 행별로 저장해 주세요. 수량은 단위 관리에 설정된 소수 자릿수로 표시합니다.</value>
+  </data>
+  <data name="Portal.Text.YouCannotAccessThisDelivery" xml:space="preserve">
+    <value>납품서를 조회할 권한이 없습니다.</value>
+  </data>
+  <data name="Portal.Text.OnlyShippedDeliveriesCanBeIssued" xml:space="preserve">
+    <value>출하 완료 납품서만 발행할 수 있습니다.</value>
+  </data>
+  <data name="Portal.Text.AlreadyIssuedReprintTheExistingDocument" xml:space="preserve">
+    <value>기존에 발행된 납품서입니다. 기존 문서를 재출력해 주세요.</value>
+  </data>
+  <data name="Portal.Text.OnlyDeliveriesForTheSameSupplierCanBeGrouped" xml:space="preserve">
+    <value>같은 협력업체의 납품서만 묶을 수 있습니다.</value>
+  </data>
+  <data name="Portal.Text.ADeliveryIsAlreadyIncludedInAnotherDocument" xml:space="preserve">
+    <value>이미 다른 문서에 포함된 납품서입니다.</value>
+  </data>
+  <data name="Portal.Text.AnIssuedDeliveryCannotBeIncludedInAnotherDocument" xml:space="preserve">
+    <value>이미 발행된 납품서는 다른 문서에 중복 포함할 수 없습니다.</value>
+  </data>
+  <data name="Portal.Text.ThereAreNoDeliveryItems" xml:space="preserve">
+    <value>납품 품목이 없습니다.</value>
+  </data>
+  <data name="Portal.Text.ItemCode.7b3b81" xml:space="preserve">
+    <value>품번</value>
+  </data>
+  <data name="Portal.Text.VendorLOT" xml:space="preserve">
+    <value>업체 LOT</value>
+  </data>
+  <data name="Portal.Text.SelectPurchaseOrder" xml:space="preserve">
+    <value>납품할 발주 선택</value>
+  </data>
+  <data name="Scm.Accessibility.Confirmation" xml:space="preserve">
+    <value>수주 확인 안내</value>
+  </data>
+  <data name="Scm.Accessibility.SelectItem" xml:space="preserve">
+    <value>{0} 선택</value>
+  </data>
+  <data name="Scm.Accessibility.DeliveryQuantity" xml:space="preserve">
+    <value>{0} 납품수량</value>
+  </data>
+  <data name="Scm.Accessibility.EditQuantity" xml:space="preserve">
+    <value>{0} 수정수량</value>
+  </data>
+  <data name="Scm.Accessibility.VendorLot" xml:space="preserve">
+    <value>{0} 업체 LOT</value>
+  </data>
+  <data name="Portal.Accessibility.SelectDelivery" xml:space="preserve">
+    <value>납품서 {0} 선택</value>
+  </data>
+  <data name="Portal.Note.Back" xml:space="preserve">
+    <value>딜리버리 노트 목록으로 돌아가기</value>
+  </data>
+  <data name="Portal.Note.Help" xml:space="preserve">
+    <value>인쇄창이 열리지 않으면 인쇄용 파일을 내려받아 Chrome 또는 Edge에서 열어 인쇄해 주세요.</value>
+  </data>
+  <data name="Portal.Note.Buyer" xml:space="preserve">
+    <value>납품받는 업체</value>
+  </data>
+  <data name="Portal.Note.Destination" xml:space="preserve">
+    <value>납품처</value>
+  </data>
+  <data name="Portal.Note.IssuedAt" xml:space="preserve">
+    <value>발행일시</value>
+  </data>
+  <data name="Portal.Note.OrderLine" xml:space="preserve">
+    <value>발주행</value>
+  </data>
+  <data name="Portal.Note.ShippedQuantity" xml:space="preserve">
+    <value>출하수량</value>
+  </data>
+  <data name="Portal.Note.Total" xml:space="preserve">
+    <value>합계</value>
+  </data>
+  <data name="Portal.Note.IssuedBy" xml:space="preserve">
+    <value>발행자</value>
+  </data>
+  <data name="Portal.Note.ShippedBy" xml:space="preserve">
+    <value>출하자</value>
+  </data>
+  <data name="Portal.Note.ReceivedBy" xml:space="preserve">
+    <value>인수자</value>
+  </data>
+  <data name="Portal.Note.ReceivedDate" xml:space="preserve">
+    <value>인수일</value>
+  </data>
+  <data name="Portal.Note.Disclaimer" xml:space="preserve">
+    <value>본 문서는 출하 내역이며 입고 확정을 의미하지 않습니다.</value>
+  </data>
+  <data name="Portal.Note.AccessDenied" xml:space="preserve">
+    <value>문서 조회 권한이 없습니다.</value>
+  </data>
+  <data name="Portal.Note.NotIssued" xml:space="preserve">
+    <value>아직 발행되지 않은 문서입니다. 납품서 조회 화면에서 발행해 주세요.</value>
+  </data>
+  <data name="Portal.Note.Unavailable" xml:space="preserve">
+    <value>문서를 조회할 수 없습니다. 업체 권한 및 출하 상태를 확인해 주세요.</value>
+  </data>
+  <data name="Portal.Print.Unsupported" xml:space="preserve">
+    <value>이 브라우저에서는 인쇄창을 열 수 없습니다. 인쇄용 파일 내려받기를 이용해 주세요.</value>
+  </data>
+  <data name="Portal.Print.DownloadRequested" xml:space="preserve">
+    <value>인쇄용 HTML 파일 다운로드를 요청했습니다. 저장한 파일을 Chrome 또는 Edge에서 열어 인쇄하거나 PDF로 저장해 주세요.</value>
+  </data>
+  <data name="Portal.Print.Failed" xml:space="preserve">
+    <value>파일을 준비하지 못했습니다. 화면을 새로고침한 뒤 다시 시도해 주세요.</value>
+  </data>
+  <data name="Portal.Label.Product" xml:space="preserve">
+    <value>품목</value>
+  </data>
+  <data name="Portal.Label.Description" xml:space="preserve">
+    <value>품명</value>
+  </data>
+  <data name="Portal.Label.Fifo" xml:space="preserve">
+    <value>FIFO</value>
+  </data>
+  <data name="Portal.Label.Quantity" xml:space="preserve">
+    <value>수량</value>
+  </data>
+  <data name="Portal.Label.BoxCount" xml:space="preserve">
+    <value>박스수</value>
+  </data>
+  <data name="Portal.Label.Destination" xml:space="preserve">
+    <value>납품처</value>
+  </data>
+  <data name="Portal.Label.Lot" xml:space="preserve">
+    <value>LOT 번호</value>
+  </data>
+  <data name="Portal.Label.Part" xml:space="preserve">
+    <value>품목코드</value>
+  </data>
+  <data name="Scm.Text.Publish" xml:space="preserve">
+    <value>발행</value>
+  </data>
+  <data name="Scm.Text.Unit" xml:space="preserve">
+    <value>단위</value>
+  </data>
+  <data name="Scm.Text.Closed" xml:space="preserve">
+    <value>마감</value>
+  </data>
+  <data name="Scm.Text.ItemLabel" xml:space="preserve">
+    <value>품목</value>
+  </data>
+  <data name="Scm.Text.Overdue" xml:space="preserve">
+    <value>지연</value>
+  </data>
+  <data name="Scm.Text.SelectLabel" xml:space="preserve">
+    <value>선택</value>
+  </data>
+  <data name="Scm.Text.ShippedLabel" xml:space="preserve">
+    <value>출하</value>
+  </data>
+  <data name="Scm.Text.Inactive" xml:space="preserve">
+    <value>미사용</value>
+  </data>
+  <data name="Scm.Text.Active" xml:space="preserve">
+    <value>사용</value>
+  </data>
+  <data name="Portal.Accessibility.SelectBox" xml:space="preserve">
+    <value>박스 {0} 선택</value>
+  </data>
+  <data name="Portal.Accessibility.PackingQuantity" xml:space="preserve">
+    <value>{0} 적입량</value>
+  </data>
 </root>
