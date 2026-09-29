@@ -719,6 +719,7 @@
 
     async Task SaveRuleCreate()
     {
+        if (!_canEdit) return;
         _ruleModalErr = "";
         if (string.IsNullOrWhiteSpace(_rf.EventTypeCode))
         { _ruleModalErr = L["SYS.Notifications.Err.EventCodeRequired"]; return; }
@@ -738,6 +739,7 @@
 
     async Task SaveRuleEdit()
     {
+        if (!_canEdit) return;
         if (_ruleSel is null) return;
         _ruleModalErr = "";
         if (string.IsNullOrWhiteSpace(_rf.EventTypeCode))
@@ -759,6 +761,7 @@
 
     async Task SaveRuleDelete()
     {
+        if (!_canEdit) return;
         if (_ruleSel is null) return;
         _ruleBusy = true;
         try { Sys.DeleteNotificationRule(_ruleSel.NotificationRuleId); Audit.Deleted("SYS-008", "SYS_NotificationRule", _ruleSel.NotificationRuleId, _ruleSel); CloseRuleModal(); await ReloadRestore(); }
@@ -821,6 +824,7 @@
 
     async Task SaveChCreate()
     {
+        if (!_canEdit) return;
         _chModalErr = "";
         if (string.IsNullOrWhiteSpace(_cf.Channel)) { _chModalErr = L["SYS.Notifications.Err.ChannelRequired"]; return; }
         _chBusy = true;
@@ -840,6 +844,7 @@
 
     async Task SaveChEdit()
     {
+        if (!_canEdit) return;
         if (_chSel is null) return;
         _chBusy = true;
         try
@@ -859,6 +864,7 @@
 
     async Task SaveChDelete()
     {
+        if (!_canEdit) return;
         if (_chSel is null) return;
         _chBusy = true;
         try { Sys.DeleteNotificationChannel(_chSel.NotificationChannelId); Audit.Deleted("SYS-008", "SYS_NotificationChannel", _chSel.NotificationChannelId, _chSel); CloseChModal(); await ReloadRestore(); }
@@ -926,8 +932,10 @@
             Text  = (u.UserName ?? u.Id) + (!string.IsNullOrEmpty(u.Email) ? $" ({u.Email})" : "")
         });
 
+    // 행 클릭 = 수정 모달이라 수정 권한이 있을 때만 링크 모양·클릭을 연다
     void RuleRowRender(RowRenderEventArgs<SysRepository.NotifRuleRow> args)
     {
+        if (!_canEdit) return;
         if (args.Attributes.TryGetValue("class", out var existing))
             args.Attributes["class"] = existing + " ames-row-link";
         else
@@ -936,11 +944,12 @@
 
     void OnRuleRowClick(DataGridRowMouseEventArgs<SysRepository.NotifRuleRow> args)
     {
-        if (args.Data is not null) OpenRuleEdit(args.Data);
+        if (_canEdit && args.Data is not null) OpenRuleEdit(args.Data);
     }
 
     void ChRowRender(RowRenderEventArgs<SysRepository.NotifChannelRow> args)
     {
+        if (!_canEdit) return;
         if (args.Attributes.TryGetValue("class", out var existing))
             args.Attributes["class"] = existing + " ames-row-link";
         else
@@ -949,7 +958,7 @@
 
     void OnChRowClick(DataGridRowMouseEventArgs<SysRepository.NotifChannelRow> args)
     {
-        if (args.Data is not null) OpenChEdit(args.Data);
+        if (_canEdit && args.Data is not null) OpenChEdit(args.Data);
     }
 
     // ── 헬퍼 ──────────────────────────────────────────────────────────

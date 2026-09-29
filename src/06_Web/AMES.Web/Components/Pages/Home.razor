@@ -100,7 +100,7 @@
         if (AuthState is not null)
         {
             try { await PermSvc.EnsureAsync(AuthState); }
-            catch { /* 권한 로딩 실패 — 전부 허용으로 표시 */ }
+            catch { /* 권한을 못 읽으면 권한 없음 — DB 폴백 카탈로그(Vis)만 전부 표시 */ }
         }
         ScreenCatalog.Changed += OnScreensChanged;   // SYS-003 화면 마스터 편집 시 좌측 메뉴와 같이 갱신
 
@@ -122,7 +122,6 @@
     void OnScreensChanged() => _ = InvokeAsync(async () =>
     {
         Catalog.Reload();
-        PermSvc.Reset();
         if (AuthState is not null) { try { await PermSvc.EnsureAsync(AuthState); } catch { } }
         StateHasChanged();
     });

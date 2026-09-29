@@ -3666,6 +3666,9 @@
   <data name="SYS.Config.Kpi.SecuritySub" xml:space="preserve">
     <value>Claves de Seguridad</value>
   </data>
+  <data name="SYS.Config.Ph.SecretKeep" xml:space="preserve">
+    <value>Introducir solo para cambiar</value>
+  </data>
   <data name="SYS.Config.GroupOther" xml:space="preserve">
     <value>Otro</value>
   </data>

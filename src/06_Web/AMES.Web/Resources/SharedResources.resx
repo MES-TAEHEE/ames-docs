@@ -3669,6 +3669,9 @@
   <data name="SYS.Config.Kpi.SecuritySub" xml:space="preserve">
     <value>보안 키</value>
   </data>
+  <data name="SYS.Config.Ph.SecretKeep" xml:space="preserve">
+    <value>변경할 때만 입력</value>
+  </data>
   <data name="SYS.Config.GroupOther" xml:space="preserve">
     <value>기타</value>
   </data>

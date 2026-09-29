@@ -200,7 +200,8 @@
 
                 @* BOM 라인 그리드 *@
                 <div style="flex:1;min-height:0;overflow:hidden;">
-                    @{ bool editable = _selVer.Status == "DRAFT"; }
+                    @* 라인 클릭 = 수정 모달 — 초안이면서 수정 권한이 있을 때만 *@
+                    @{ bool editable = _selVer.Status == "DRAFT" && _canEdit; }
                     <RadzenDataGrid @ref="_lineGrid" Page="OnLinePage" TItem="MasterDataRepository.BomRow" Data="_lines" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
                                     ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeOptions="@_pageSizeOptions" RowRender="@(args => LineRowRender(args, editable))" RowSelect="@(l => { if (editable) OpenLineEdit(l); })" EmptyText="@L["MD.Bom.NoLines"]" Class="ames-rz-grid ames-grid-fill">
                         <Columns>
@@ -490,6 +491,7 @@
     // ── 워크플로 액션 (모달 없음) ─────────────────────────────────────────
     async Task DoRequestApproval()
     {
+        if (!_canEdit) return;
         if (_selVer is null) return;
         var id = _selVer.VersionID;
         _busy = true;
@@ -500,6 +502,7 @@
 
     async Task DoApprove()
     {
+        if (!_canEdit) return;
         if (_selVer is null) return;
         var id = _selVer.VersionID;
         _busy = true;
@@ -510,6 +513,7 @@
 
     async Task DoReject()
     {
+        if (!_canEdit) return;
         if (_selVer is null) return;
         var id = _selVer.VersionID;
         _busy = true;
@@ -520,6 +524,7 @@
 
     async Task DoRevive()
     {
+        if (!_canEdit) return;
         if (_selVer is null) return;
         var id = _selVer.VersionID;
         _busy = true;
@@ -530,6 +535,7 @@
 
     async Task DoVersionDelete()
     {
+        if (!_canEdit) return;
         if (_selVer is null) return;
         var id = _selVer.VersionID;
         _busy = true;
@@ -574,6 +580,7 @@
 
     async Task SaveVersionCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_fv.VersionId))  { _modalErr = L["Err.VersionIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_fv.RootItemNo)) { _modalErr = L["Err.RootItemRequired"]; return; }
@@ -598,6 +605,7 @@
 
     async Task SaveVersionEdit()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_fv.RootItemNo)) { _modalErr = L["Err.RootItemRequired"]; return; }
         _busy = true;
@@ -646,6 +654,7 @@
 
     async Task SaveLineCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_fl.CompItemNo)) { _modalErr = L["Err.CompItemRequired"]; return; }
         if (_fl.QtyPer <= 0) { _modalErr = L["Err.QtyGtZero"]; return; }
@@ -665,6 +674,7 @@
 
     async Task SaveLineEdit()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_fl.CompItemNo)) { _modalErr = L["Err.CompItemRequired"]; return; }
         if (_fl.QtyPer <= 0) { _modalErr = L["Err.QtyGtZero"]; return; }
@@ -683,6 +693,7 @@
 
     async Task SaveLineDelete()
     {
+        if (!_canEdit) return;
         _busy = true;
         try { MD.DeleteBomLine(_fl.BomId, _actor); Audit.Deleted("MD-004", "MD_Bom", _fl.BomId, _lines.FirstOrDefault(l => l.BOMID == _fl.BomId)); LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineDeleted"], false); }
         catch (Exception ex) { _modalErr = ex.Message; }
@@ -691,6 +702,7 @@
 
     async Task SaveLineReactivate()
     {
+        if (!_canEdit) return;
         _busy = true;
         try { MD.ReactivateBomLine(_fl.BomId, _actor); LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineReactivated"], false); }
         catch (Exception ex) { _modalErr = ex.Message; }

@@ -17,11 +17,8 @@ System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Inst
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents()
-    .AddInteractiveServerComponents(options =>
-    {
-        options.DetailedErrors = true;
-    })
+    // 회로 예외 상세(SQL·스택)를 브라우저로 보내는 건 개발 환경에서만 — IIS(Production)는 서버 로그에만 남는다
+    .AddInteractiveServerComponents(options => options.DetailedErrors = builder.Environment.IsDevelopment())
     // JS → .NET 로 돌아오는 값(차트 PNG base64 등)이 기본 32KB 를 넘을 수 있어 넉넉히 둔다
     .AddHubOptions(o => o.MaximumReceiveMessageSize = 4 * 1024 * 1024);
 
@@ -357,12 +354,16 @@ else
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
 }
 
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+// 엔드포인트 목록은 로그인 없이 보이므로 개발 환경에서만
+if (app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "AMES Web API v1");
-    c.RoutePrefix = "swagger";
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "AMES Web API v1");
+        c.RoutePrefix = "swagger";
+    });
+}
 
 // HTTPS redirect/HSTS only when an HTTPS port is actually configured.
 // IIS sets ANCM_HTTPS_PORT automatically when an HTTPS binding exists.
@@ -381,7 +382,7 @@ var locOptions = new RequestLocalizationOptions
 {
     DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(culture: "ko-KR", uiCulture: "ko")
 };
-locOptions.AddSupportedCultures("ko-KR", "en-US", "es-MX", "es-ES");
+locOptions.AddSupportedCultures(AMES.Web.Services.AppLanguageState.SupportedCultures);
 locOptions.AddSupportedUICultures("ko", "en", "es");
 // LANGUAGE_DEFAULT 비활성 시 en-US 강제(쿠키보다 우선) — 맨 앞에 삽입
 locOptions.RequestCultureProviders.Insert(0, new AMES.Web.Services.LanguageDefaultCultureProvider());

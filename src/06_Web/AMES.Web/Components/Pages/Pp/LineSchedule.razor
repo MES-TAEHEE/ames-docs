@@ -72,8 +72,8 @@
             <RadzenLabel Text="@L["PP.LineSchedule.Lbl.Pattern"]" />
             @* 적용(DRAFT)/발행(PUBLISHED)된 라인+일자는 패턴 변경 불가, 저장 스케줄이 없을 때만 선택 가능 *@
             <RadzenDropDown TValue="string" @bind-Value="_patternId" @bind-Value:after="OnPatternChanged" Data="@PatternDdOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" AllowClear="true" Disabled="@(string.IsNullOrEmpty(_lineId) || _savedStatus != null)" Placeholder="@L["PP.LineSchedule.Ph.SelectPattern"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:400px;" />
-            @* 초기화: 오늘 이후 날짜에서만 노출, 적용됐지만 미발행(DRAFT)일 때만 활성 → 저장 스케줄 삭제 *@
-            @if (_date.Date >= ServerNow.Date)
+            @* 초기화: 수정 권한 + 오늘 이후 날짜에서만 노출, 적용됐지만 미발행(DRAFT)일 때만 활성 → 저장 스케줄 삭제 *@
+            @if (_canEdit && _date.Date >= ServerNow.Date)
             {
                 <RadzenButton Text="@L["Btn.Reset"]" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Disabled="@(_savedStatus != "DRAFT")" Click="@(() => _confirmReset = true)" class="ames-rz-btn" />
             }
@@ -828,7 +828,7 @@
     {
         _err = "";
         _confirmReset = false;
-        if (string.IsNullOrEmpty(_lineId) || _savedStatus != "DRAFT") return;
+        if (!_canEdit || string.IsNullOrEmpty(_lineId) || _savedStatus != "DRAFT") return;
         try
         {
             LSB.DeleteSchedule(_lineId, _date);

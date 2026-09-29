@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.PermissionService PermSvc
 
 <div class="ames-shell">
     <TopBar />
@@ -9,7 +10,10 @@
         <NavMenu />
         <main class="ames-main">
             <div class="ames-content @SectionClass()">
-                @Body
+                @if (_allowed)
+                {
+                    @Body
+                }
             </div>
         </main>
     </div>
@@ -24,7 +28,28 @@
 </div>
 
 @code {
-    protected override void OnInitialized() => Nav.LocationChanged += OnLocationChanged;
+    [CascadingParameter] Task<AuthenticationState>? AuthState { get; set; }
+    bool _allowed;
+
+    // 화면 읽기 권한(R) 공통 검사 — 라우터가 정적이라 화면 이동마다 이 레이아웃이 서버에서 먼저 돈다.
+    // 화면마다 검사를 넣지 않아도 SYS_Screen 에 등록된 내부 화면은 모두 막히고, 권한이 없으면 화면 본문을 그리지 않는다.
+    // 로그인 안 한 사용자는 AuthorizeRouteView 가 로그인으로 보내므로 내부 계정만 검사한다.
+    protected override async Task OnInitializedAsync()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        var user = AuthState is null ? null : (await AuthState).User;
+        if (AMES.Web.Services.PortalAuth.IsInternalUser(user))
+        {
+            await PermSvc.EnsureAsync(AuthState!);
+            if (!PermSvc.CanOpen(Nav.ToBaseRelativePath(Nav.Uri)))
+            {
+                Nav.NavigateTo("/unauthorized", replace: true);
+                return;
+            }
+        }
+        _allowed = true;
+    }
+
     void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
         => InvokeAsync(StateHasChanged);
     public void Dispose() => Nav.LocationChanged -= OnLocationChanged;

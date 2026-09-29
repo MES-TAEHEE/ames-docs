@@ -31,12 +31,16 @@
     {
         try
         {
+            // 코드값이 onclick 스크립트 문자열에 들어가므로 앱이 지원하는 컬처명만 쓴다(따옴표 등이 든 값으로 스크립트 삽입 방지)
             return MD.ListCodeItems("LANGUAGE")
                 .Where(c => c.UseFlag && !string.IsNullOrWhiteSpace(c.CodeValue))
                 .OrderBy(c => c.SortOrder ?? 999)
-                .Select(c =>
+                .Select(c => (Item: c, Culture: AMES.Web.Services.AppLanguageState.SupportedCultures
+                    .FirstOrDefault(s => string.Equals(s, c.CodeValue!.Trim(), StringComparison.OrdinalIgnoreCase))))
+                .Where(x => x.Culture is not null)
+                .Select(x =>
                 {
-                    var culture = c.CodeValue!;
+                    var (c, culture) = (x.Item, x.Culture!);
                     var uic = TwoLetter(culture);
                     var label = _display.TryGetValue(uic, out var d)
                         ? $"{d.Flag} {d.Native}"

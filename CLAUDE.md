@@ -286,6 +286,12 @@ appsettings 의 `PopTerminal:ModuleCode`/`LineId`/`StationId` 는 제거됐다 �
   - 화면이 이걸 판단하는 근거는 `PopSessionDto.IsWorker` · `HasPin` 이고 `PopSessionRepository.CreateSession` 이 채운다. **PIN 설정 전에 `PR_PopSession` 행은 이미 생긴다** — 오버레이 상태로 자리를 뜨면 열린 세션이 남고 만료시각으로만 정리된다.
 - **Api**: `POST /api/auth/login` → `TokenStore.Issue()` → Bearer 헤더 검증 (`BearerAuth` 미들웨어)
 - **Web**: ASP.NET Identity, `ApplicationDbContext` (EF Core, Identity 테이블 전용)
+  - **화면 읽기 권한은 `MainLayout` 이 공통으로 검사한다**(09-29) — 라우터가 정적이라 화면 이동마다 레이아웃이 서버에서 먼저 돌고, 내부 계정이 `SYS_Screen` 에 등록된 화면(하위 경로 포함, PORTAL 제외)을 R 없이 열면 `/unauthorized`(`PermissionService.CanOpen`). 새 화면도 `SYS_Screen` 에 등록하면 자동으로 막히고, 미등록 경로는 막지 않는다. 화면별 `IsVisible` 검사는 남아 있어도 무방하며 E/A 버튼 게이트는 여전히 화면 몫이다.
+  - `PermissionService` 는 **불러오기 전·첫 로드 실패 시 권한 없음**(구 "REA" 허용 폐지)이고, 첫 로드에 실패하면 `CanOpen` 도 홈·`/unauthorized`·오류·계정 화면만 연다. 다시 읽기는 **`EnsureAsync` 에서만** — `ScreenCatalogNotifier.Version` 이 바뀌었거나(SYS-003·SYS-004 저장이 `Notify()`) 60초가 지났을 때(다른 서버·DB 직접 수정분) 스레드 풀에서 읽어 한 번에 바꾸고, 실패하면 직전 값을 유지한다. `IsVisible`·`CanEdit` 같은 조회는 DB 를 부르지 않는다. 메뉴는 화면 이동 때 `EnsureAsync` 를 불러 갱신하며, 알림 한 번에 세션당 한 번만 다시 읽는다(`Reset()` 은 다음 EnsureAsync 에 다시 읽게 표시만 한다). 이미 열린 화면의 버튼 상태는 화면 이동 때 반영된다. 역할 배정(SYS-001) 변경은 로그인 쿠키라 재로그인·30분 재검증 때 반영.
+  - 30분 재검증(`IdentityRevalidatingAuthenticationStateProvider`)은 포탈(`AmesPortal`) 사용자를 Identity 가 아니라 `SCM_PortalVendorUser`(활성·잠금·업체 활성·업체 일치, 쿠키 검증과 같은 기준)로 본다 — 예전에는 포탈 사용자가 30분마다 인증이 풀려 같은 회로의 포탈 화면이 빈 목록이 됐다(09-30).
+  - 행 클릭으로 수정 모달을 여는 화면은 **클릭 조건에도 `_canEdit` 를** 넣고, 저장·삭제 핸들러 첫 줄에서도 `_canEdit` 를 다시 본다(09-30 SYS-008·MD-004 BOM·PP-LSB 초기화에서 R 만으로 수정되던 것 수정).
+  - 로그인 뒤 돌아갈 주소(ReturnUrl)는 `Services/LocalUrl` 규칙(같은 사이트 `/x` 만, `//host`·`/\host`·절대 URL 거부)으로만 검사한다 — `Uri.IsWellFormedUriString(…, Relative)` 는 `//host` 를 통과시키므로 쓰지 말 것.
+  - SYS-009 비밀값(유형 `password` 또는 숫자가 아닌 `*PASSWORD*`·`SECRET`·`TOKEN`·`APIKEY`·`_KEY` 키)은 브라우저로 보내지 않는다 — 조회 전용은 `••••••`, 수정은 빈 입력란(비우면 유지). 언어 스위처는 `AppLanguageState.SupportedCultures` 에 있는 컬처만 링크로 만든다. `DetailedErrors`·Swagger 는 Development 에서만 켜진다.
 
 ---
 

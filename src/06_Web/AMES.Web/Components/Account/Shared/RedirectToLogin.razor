@@ -10,6 +10,7 @@
             NavigationManager.NavigateTo($"{AMES.Web.Services.PortalAuth.LoginPath}?returnUrl={Uri.EscapeDataString(path)}", forceLoad: true);
             return;
         }
-        NavigationManager.NavigateTo($"Account/Login?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}", forceLoad: true);
+        // 돌아갈 주소는 사이트 내부 경로로 — 로그인은 같은 사이트 경로("/x")만 받는다(전체 URL 을 넘기면 항상 홈으로 갔다)
+        NavigationManager.NavigateTo($"Account/Login?returnUrl={Uri.EscapeDataString(path)}", forceLoad: true);
     }
 }

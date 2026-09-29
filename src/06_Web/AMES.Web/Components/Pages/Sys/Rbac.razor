@@ -14,6 +14,7 @@
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Web.Services.AuditLogger Audit
+@inject AMES.Web.Services.ScreenCatalogNotifier ScreenCatalog
 
 <PageTitle>SYS-004 @L["SYS.Rbac.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-004" TitleKey="SYS.Rbac.Title" />
@@ -317,7 +318,8 @@
             Audit.Updated("SYS-004", "SYS_RolePermission", _selRole.RoleName, _rows.Where(r => r.RoleId == _selRole.RoleId && !string.IsNullOrEmpty(r.PermissionLevel)).ToDictionary(r => r.ScreenCode ?? "", r => r.PermissionLevel), _grants.Where(g => !string.IsNullOrEmpty(g.Value)).ToDictionary(g => g.Key, g => g.Value));
             _rows  = Sys.ListRolePermissions();
             _dirty = false;
-            PermSvc.Reset(); // 권한 변경 후 캐시 무효화
+            // 이 서버의 모든 세션(이 세션 포함)이 메뉴·홈 권한을 바로 다시 읽는다(열려 있는 화면의 버튼은 화면 이동 시 반영)
+            ScreenCatalog.Notify();
             ShowMsg(L["Msg.Saved"].Value, false);
         }
         catch (Exception ex) { ShowMsg(ex.Message, true); }

@@ -47,13 +47,12 @@ public sealed class WebSignIn(
             if (user is not null) authRepo.RecordSuccessfulLogin(user.Id);
             // 같은 브라우저에 외부 포탈 쿠키가 남아 있으면 지운다(스킴 선택이 외부 쿠키 존재 여부로 갈린다)
             ctx.Response.Cookies.Delete(PortalAuth.CookieName);
-            // 외부 화면 경로로는 돌려보내지 않는다(내부 계정은 외부 화면을 열 수 없다)
-            var target = string.IsNullOrEmpty(returnUrl) || !Uri.IsWellFormedUriString(returnUrl, UriKind.Relative)
-                         || PortalAuth.IsPortalPath(new PathString(returnUrl.Split('?', '#')[0])) ? "/" : returnUrl;
+            // 같은 사이트 경로만(Open Redirect 방지), 외부 화면 경로로도 돌려보내지 않는다(내부 계정은 외부 화면을 열 수 없다)
+            var target = !LocalUrl.IsLocal(returnUrl) || PortalAuth.IsPortalPath(new PathString(returnUrl!.Split('?', '#')[0])) ? "/" : returnUrl!;
             return new(target, null);
         }
         if (result.RequiresTwoFactor)
-            return new($"/Account/LoginWith2fa?returnUrl={Uri.EscapeDataString(returnUrl ?? "")}&rememberMe={rememberMe.ToString().ToLower()}", null);
+            return new($"/Account/LoginWith2fa?returnUrl={Uri.EscapeDataString(LocalUrl.OrDefault(returnUrl, ""))}&rememberMe={rememberMe.ToString().ToLower()}", null);
         if (result.IsLockedOut) return new("/Account/Lockout", null);
         if (result.IsNotAllowed) return Error("Auth.Err.EmailNotConfirmed");
 
@@ -94,9 +93,10 @@ public sealed class WebSignIn(
         audit.Log("PORTAL", "LOGIN", "SCM_PortalVendorUser", user.UserID, null, new { user.UserID, user.VendorID }, actor: ActorCode.Normalize(user.UserID));
         logger.LogInformation("Portal user logged in: {Email} ({Vendor})", user.UserID, user.VendorID);
 
-        var target = string.IsNullOrWhiteSpace(returnUrl) || !PortalAuth.IsPortalPath(new PathString(returnUrl.Split('?', '#')[0]))
-            ? PortalAuth.HomePath
-            : returnUrl;
+        // 같은 사이트의 외부 화면 경로만 — "/" 로 시작하지 않는 값은 PathString 이 예외를 내므로 먼저 거른다
+        var target = LocalUrl.IsLocal(returnUrl) && PortalAuth.IsPortalPath(new PathString(returnUrl!.Split('?', '#')[0]))
+            ? returnUrl!
+            : PortalAuth.HomePath;
         return new(target, null);
     }
 
