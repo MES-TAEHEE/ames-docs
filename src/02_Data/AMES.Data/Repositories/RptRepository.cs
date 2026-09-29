@@ -328,7 +328,7 @@ public sealed class RptRepository
                     i.ItemCategory, i.DefaultUOM
             FROM (
                 SELECT CASE WHEN L.AreaCode='FG_AREA' THEN 'FG' ELSE 'WH' END AS Source,
-                       w.PartNo AS ItemNo,w.LocationNo AS Location,
+                       w.PartNo AS ItemNo,w.LocationNo AS Location,MAX(w.PartName) AS PartName,
                        ISNULL(SUM(w.Qty),0) AS Qty,CAST(0 AS decimal(18,3)) AS Reserved,
                        CAST(NULL AS decimal(18,3)) AS UnitCost,COUNT(*) AS Lots
                 FROM dbo.WH_Inventory w

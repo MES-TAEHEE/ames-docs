@@ -77,7 +77,7 @@
 
 .shipment-plan-summary span {
     color: var(--rz-text-secondary-color, #93a4bd);
-    font-size: 10px;
+    font-size: calc(10px + var(--ames-fs-bump));
 }
 
 .shipment-plan-summary strong {
