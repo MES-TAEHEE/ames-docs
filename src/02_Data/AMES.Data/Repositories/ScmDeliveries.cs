@@ -142,8 +142,8 @@ public sealed partial class ScmRepository
             id=r.GetInt32(0);
         }
         using(var inbound=new SqlCommand("""
-            SELECT (SELECT COUNT(*) FROM dbo.SCM_DeliveryLine WITH(UPDLOCK,HOLDLOCK) WHERE DeliveryID=@ID AND ReceivedQty>0)
-                 + (SELECT COUNT(*) FROM dbo.WH_InboundPackage WITH(HOLDLOCK) WHERE DocumentNo=@D OR DocumentBarcode=@D);
+            SELECT COUNT(*) FROM dbo.SCM_DeliveryLine WITH(UPDLOCK,HOLDLOCK)
+            WHERE DeliveryID=@ID AND ReceivedQty>0;
             """,conn,tx))
         {Add(inbound,("@ID",id),("@D",deliveryNumber));if((int)inbound.ExecuteScalar()!>0)throw new InvalidOperationException("Delivery is linked to receiving.");}
         if(!cancel)

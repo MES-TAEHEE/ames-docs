@@ -16,6 +16,7 @@ public class MrpRepositoryTests
     const string Rm = "ITEST-MRP-RM";
     const string Ok = "ITEST-MRP-OK";
     const string Ver = "V-ITEST-MRP-01";
+    const string Location = "ITEST-MRP-MAT-01";
     const string Actor = "ITEST";
 
     static readonly DateTime Due = DateTime.Today.AddDays(20);
@@ -40,12 +41,17 @@ public class MrpRepositoryTests
             INSERT INTO dbo.PP_WorkOrder (WoNumber, ItemNo, OrderQty, CompletedQty, Status, DueDate, CreatedBy)
             VALUES ('ITEST-MRP-WO-1', @FG, 10, 2, 'Released', @Due, @By),
                    ('ITEST-MRP-WO-2', @FG, 50, 0, 'Completed', @Due, @By);
-            INSERT INTO dbo.WH_OLD_Inventory (ItemNo, LocationID, OnHandQty, ReservedQty, Status, CreatedBy)
-            VALUES (@RM, 'WH-A-01', 5, 1, 'OK', @By), (@OK, 'WH-A-01', 100, 0, 'OK', @By);
+            INSERT INTO dbo.MD_Location
+                (LocationID,LocationName,WhCode,AreaCode,ZoneCode,ActiveFlag,CreatedBy,CreatedTS)
+            VALUES (@Location,N'ITEST MRP Material','EOS','MAT_AREA','ITEST',1,@By,SYSDATETIME());
+            INSERT INTO dbo.WH_Inventory (LotNo,UnitType,PartNo,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
+            VALUES ('ITEST-MRP-RM-LOT','PART',@RM,@Location,4,SYSDATETIME(),SYSDATETIME(),SYSDATETIME()),
+                   ('ITEST-MRP-OK-LOT','PART',@OK,@Location,100,SYSDATETIME(),SYSDATETIME(),SYSDATETIME());
             INSERT INTO dbo.WH_PurchaseOrder (PoNumber, PoLineNo, ItemNo, OrderQty, ReceivedQty, Status, CreatedBy)
             VALUES ('ITEST-MRP-PO', 1, @RM, 3, 1, 'Open', @By),
                    ('ITEST-MRP-PO', 2, @RM, 7, 7, 'Received', @By);
-            """, ("@FG", Fg), ("@SUB", Sub), ("@RM", Rm), ("@OK", Ok), ("@Ver", Ver), ("@Due", Due), ("@By", Actor));
+            """, ("@FG", Fg), ("@SUB", Sub), ("@RM", Rm), ("@OK", Ok), ("@Ver", Ver),
+            ("@Location", Location), ("@Due", Due), ("@By", Actor));
     }
 
     static void Cleanup(AmesConnectionFactory f)
@@ -56,12 +62,13 @@ public class MrpRepositoryTests
             DELETE FROM dbo.PP_MRPLog      WHERE CreatedBy = @By;
             DELETE FROM dbo.PP_PurchaseRequest WHERE ItemNo LIKE 'ITEST-MRP-%';
             DELETE FROM dbo.WH_PurchaseOrder   WHERE ItemNo LIKE 'ITEST-MRP-%';
-            DELETE FROM dbo.WH_OLD_Inventory       WHERE ItemNo LIKE 'ITEST-MRP-%';
+            DELETE FROM dbo.WH_Inventory       WHERE PartNo LIKE 'ITEST-MRP-%';
+            DELETE FROM dbo.MD_Location        WHERE LocationID = @Location;
             DELETE FROM dbo.PP_WorkOrder       WHERE ItemNo LIKE 'ITEST-MRP-%';
             DELETE FROM dbo.MD_Bom             WHERE VersionID = @Ver;
             DELETE FROM dbo.MD_BomVersion      WHERE VersionID = @Ver;
             DELETE FROM dbo.MD_Item            WHERE ItemNo LIKE 'ITEST-MRP-%';
-            """, ("@Ver", Ver), ("@By", Actor));
+            """, ("@Ver", Ver), ("@Location", Location), ("@By", Actor));
     }
 
     static PpRepository.MrpMaterialRow Row(PpRepository.MrpSnapshot s, string itemNo)

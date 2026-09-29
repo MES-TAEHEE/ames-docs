@@ -34,22 +34,25 @@ internal static class AdjustmentEndpoints
             if (location.ExecuteScalar() is not string locationId) return Results.Ok((LocationStock?)null);
 
             using var cmd = new SqlCommand(finishedGoods ? """
-                SELECT COALESCE(NULLIF(S.StockNumber,''), L.LotCode) AS Barcode,
-                       L.LotCode, S.ItemNo, I.ItemName, S.Qty, I.DefaultUOM
-                FROM dbo.FG_Inventory S
-                JOIN dbo.tbl_Lot L ON L.LotID = S.LotID
-                LEFT JOIN dbo.MD_Item I ON I.ItemNo = S.ItemNo
-                WHERE S.Location = @Location AND S.Qty >= 0
-                  AND UPPER(ISNULL(S.Status,'')) NOT IN ('SHIPPED','DELIVERED','CLOSED','CANCELED','CANCELLED')
-                ORDER BY S.ItemNo, L.LotCode, S.StockID;
+                SELECT W.LotNo AS Barcode,
+                       W.LotNo, W.PartNo, COALESCE(NULLIF(W.PartName,''), I.ItemName),
+                       W.Qty, COALESCE(NULLIF(I.DefaultUOM,''), 'EA')
+                FROM dbo.WH_Inventory W
+                LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.PartNo
+                LEFT JOIN dbo.MD_Location L ON L.LocationID = W.LocationNo
+                WHERE W.LocationNo = @Location AND W.Qty >= 0
+                  AND (UPPER(COALESCE(L.AreaCode,'')) = 'FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')
+                ORDER BY W.PartNo, W.LotNo;
                 """ : """
-                SELECT L.LotCode AS Barcode, L.LotCode, W.ItemNo, I.ItemName, W.OnHandQty, I.DefaultUOM
-                FROM dbo.WH_OLD_Inventory W
-                JOIN dbo.tbl_Lot L ON L.LotID = W.LotID
-                LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.ItemNo
-                WHERE W.LocationID = @Location AND W.OnHandQty >= 0
-                  AND UPPER(ISNULL(W.Status,'')) NOT IN ('CANCELED','CANCELLED','RELEASED','PICKED')
-                ORDER BY W.ItemNo, L.LotCode;
+                SELECT W.LotNo AS Barcode,
+                       W.LotNo, W.PartNo, COALESCE(NULLIF(W.PartName,''), I.ItemName),
+                       W.Qty, COALESCE(NULLIF(I.DefaultUOM,''), 'EA')
+                FROM dbo.WH_Inventory W
+                LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.PartNo
+                LEFT JOIN dbo.MD_Location L ON L.LocationID = W.LocationNo
+                WHERE W.LocationNo = @Location AND W.Qty >= 0
+                  AND UPPER(COALESCE(L.AreaCode,'')) <> 'FG_AREA'
+                ORDER BY W.PartNo, W.LotNo;
                 """, conn);
             cmd.Parameters.Add("@Location", SqlDbType.NVarChar, 80).Value = locationId;
             using var reader = cmd.ExecuteReader();

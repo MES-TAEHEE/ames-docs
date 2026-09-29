@@ -166,12 +166,6 @@ public sealed partial class ScmRepository
 
     static void EnsureNoInboundReferences(SqlConnection conn, SqlTransaction tx, string number)
     {
-        using var cmd = new SqlCommand("""
-            SELECT COUNT(*) FROM dbo.WH_InboundPackage b WITH (HOLDLOCK)
-            JOIN dbo.WH_PurchaseOrder p ON p.PoID=b.PoID WHERE p.PoNumber=@Number;
-            """,conn,tx);
-        Add(cmd,("@Number",number));
-        if ((int)cmd.ExecuteScalar()! > 0) throw new InvalidOperationException("Order is referenced by inbound packages.");
         using var deliveries = new SqlCommand("SELECT COUNT(*) FROM dbo.SCM_Delivery WHERE PoNumber=@Number AND Status<>'Cancelled'",conn,tx);
         Add(deliveries,("@Number",number));
         if ((int)deliveries.ExecuteScalar()! > 0) throw new InvalidOperationException("Order has registered deliveries.");
