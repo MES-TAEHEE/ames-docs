@@ -139,7 +139,7 @@
         }
 
         @* ── 배치 목록 ── *@
-        <div class="ames-card-h" style="border-top:1px solid rgba(255,255,255,.06);">
+        <div class="ames-card-h" style="border-top:1px solid var(--ames-bd-white-a06);">
             ▼ @L["PP.LineSchedule.Lbl.SlotList"] · @_slots.Count @L["Lbl.Items"]
         </div>
         <RadzenDataGrid TItem="StagedWo" Data="@_slots.ToList()" AllowPaging="false"
@@ -186,7 +186,7 @@
         </RadzenDataGrid>
 
         @* ── PM(예방보전) 밴드 목록 ── *@
-        <div class="ames-card-h" style="border-top:1px solid rgba(255,255,255,.06);">
+        <div class="ames-card-h" style="border-top:1px solid var(--ames-bd-white-a06);">
             ▼ @L["PP.LineSchedule.Pm.ListTitle"] · @_pmBands.Count @L["Lbl.Items"]
         </div>
         <RadzenDataGrid TItem="PmBand" Data="@_pmBands.OrderBy(p => p.StartMin).ToList()" AllowPaging="false"
@@ -380,7 +380,7 @@
     <div class="ames-modal-bg" @onclick="() => _confirmReset = false">
         <div class="ames-modal" style="max-width:420px;" @onclick:stopPropagation>
             <div class="ames-modal-h">@L["Btn.Reset"]</div>
-            <div style="padding:8px 2px 14px;font-size:14px;color:#cbd5e1;line-height:1.7;">
+            <div style="padding:8px 2px 14px;font-size:14px;color:var(--ames-tx-slate-300);line-height:1.7;">
                 @L["PP.LineSchedule.Confirm.Reset"]
             </div>
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">

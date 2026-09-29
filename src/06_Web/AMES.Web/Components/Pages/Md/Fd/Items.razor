@@ -113,7 +113,7 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ToteFlag" Title="@L["MD.Items.Col.Tote"]" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="item">
-                    @if (item.ToteFlag) { <RadzenIcon Icon="check_circle" Style="color:#4ade80;vertical-align:middle;" /> }
+                    @if (item.ToteFlag) { <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" /> }
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">

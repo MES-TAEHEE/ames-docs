@@ -91,7 +91,7 @@
             <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="SubProcessCode" Title="@L["Col.SubProcess"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="r">
                     @if (r.SubProcessCode is not null)
-                    { <span class="pill" style="background:rgba(134,239,172,.12);color:#86efac;">@r.SubProcessCode</span> }
+                    { <span class="pill" style="background:rgba(134,239,172,.12);color:var(--ames-tx-green-300);">@r.SubProcessCode</span> }
                     else
                     { <span class="dim">—</span> }
                 </Template>

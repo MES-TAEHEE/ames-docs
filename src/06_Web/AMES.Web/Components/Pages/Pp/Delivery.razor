@@ -71,7 +71,7 @@
             <RadzenDataGridColumn TItem="CustAgg" Property="Orders"  Title="@L["PP.Delivery.Cust.Col.Orders"]"  Width="90px" TextAlign="TextAlign.Right" />
             <RadzenDataGridColumn TItem="CustAgg" Property="Shipped" Title="@L["PP.Delivery.Cust.Col.Shipped"]" Width="90px" TextAlign="TextAlign.Right" />
             <RadzenDataGridColumn TItem="CustAgg" Property="Late"    Title="@L["PP.Delivery.Cust.Col.Late"]"    Width="90px" TextAlign="TextAlign.Right">
-                <Template Context="c"><span class="code" style="@(c.Late > 0 ? "color:#f87171;" : "")">@c.Late</span></Template>
+                <Template Context="c"><span class="code" style="@(c.Late > 0 ? "color:var(--ames-tx-red-400);" : "")">@c.Late</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="CustAgg" Property="Otd" Title="@L["PP.Delivery.Cust.Col.Otd"]" Width="110px" TextAlign="TextAlign.Center">
                 <Template Context="c">
@@ -146,7 +146,7 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="DaysLate" Title="@L["Col.DaysLate"]" Width="90px" TextAlign="TextAlign.Right">
                 <Template Context="r">
-                    @if (r.DaysLate > 0) { <span class="code" style="color:#f87171;">+@r.DaysLate@L["Lbl.Days"]</span> } else { <span class="dim">—</span> }
+                    @if (r.DaysLate > 0) { <span class="code" style="color:var(--ames-tx-red-400);">+@r.DaysLate@L["Lbl.Days"]</span> } else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="Status" Title="@L["Col.Status"]" Width="100px" TextAlign="TextAlign.Center">

@@ -171,7 +171,7 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WoLine" Property="Deviation" Title="@L["RPT.ScheduleAdherence.Col.Deviation"]" TextAlign="TextAlign.Center" Width="170px">
                 <Template Context="r">
-                    @if (r.Deviation is { } dv) { <b class="code" style="color:@(dv > 0 ? "#f87171" : "#34d399");">@(dv > 0 ? $"+{dv}" : dv.ToString())</b> } else { <span class="dim">—</span> }
+                    @if (r.Deviation is { } dv) { <b class="code" style="color:@(dv > 0 ? "var(--ames-tx-red-400)" : "var(--ames-tx-emerald-400)");">@(dv > 0 ? $"+{dv}" : dv.ToString())</b> } else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WoLine" Property="State" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="120px">

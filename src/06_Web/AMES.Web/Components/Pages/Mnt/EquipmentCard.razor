@@ -103,7 +103,7 @@
                 <Template Context="r">@(r.CycleCount?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="NextPmDate" Title="@L["Col.NextPm"]" TextAlign="TextAlign.Center" Width="120px">
-                <Template Context="r"><span class="@(IsPmOverdue(r.NextPmDate) ? "" : "dim")" style="@(IsPmOverdue(r.NextPmDate) ? "color:#f87171;" : "")">@(r.NextPmDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
+                <Template Context="r"><span class="@(IsPmOverdue(r.NextPmDate) ? "" : "dim")" style="@(IsPmOverdue(r.NextPmDate) ? "color:var(--ames-tx-red-400);" : "")">@(r.NextPmDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="OpenWoId" Title="@L["Col.OpenWo"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
@@ -178,7 +178,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.NextPm"]" />
-                    <RadzenTextBox Value="@(_sel.NextPmDate?.ToString(DateFmt.Date) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="@(IsPmOverdue(_sel.NextPmDate) ? "width:100%;color:#f87171;" : "width:100%;")" />
+                    <RadzenTextBox Value="@(_sel.NextPmDate?.ToString(DateFmt.Date) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="@(IsPmOverdue(_sel.NextPmDate) ? "width:100%;color:var(--ames-tx-red-400);" : "width:100%;")" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.OpenWo"]" />

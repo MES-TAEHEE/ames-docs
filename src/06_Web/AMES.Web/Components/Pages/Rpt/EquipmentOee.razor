@@ -300,7 +300,7 @@
     static string KpiCls(decimal? v, decimal warn, decimal ok) => v is not { } x ? "" : x >= ok ? "ok" : x >= warn ? "warn" : "bad";
     // 등급 임계: PP/MNT OEE 화면과 동일 (≥85 월드클래스 / ≥65 양호 / 그 외 개선 필요)
     static string GradeCls(decimal? v) => v is not { } x ? "mute" : x >= 85m ? "ok" : x >= 65m ? "warn" : "bad";
-    static string GradeColor(decimal? v) => v is not { } x ? "inherit" : x >= 85m ? "#34d399" : x >= 65m ? "#fbbf24" : "#f87171";
+    static string GradeColor(decimal? v) => v is not { } x ? "inherit" : x >= 85m ? "var(--ames-tx-emerald-400)" : x >= 65m ? "var(--ames-tx-amber-400)" : "var(--ames-tx-red-400)";
     string GradeLabel(decimal? v) => v is not { } x ? "—" : x >= 85m ? L["RPT.EquipmentOee.Grade.WorldClass"] : x >= 65m ? L["RPT.EquipmentOee.Grade.Good"] : L["RPT.EquipmentOee.Grade.Low"];
 
     // A/P/Q 막대: PP-OEE 화면과 같은 구조·색

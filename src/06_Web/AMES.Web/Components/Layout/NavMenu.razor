@@ -399,7 +399,7 @@
         if (!_bilingual)
             return new MarkupString(WebUtility.HtmlEncode(p));
         return new MarkupString(
-            $"{WebUtility.HtmlEncode(p)}<span style=\"display:block;font-size:.72em;color:#94a3b8;font-weight:400;line-height:1.2;\">{WebUtility.HtmlEncode(s)}</span>");
+            $"{WebUtility.HtmlEncode(p)}<span class=\"ames-nav-alt\">{WebUtility.HtmlEncode(s)}</span>");
     }
 
     // 화면 표기(lid)는 SYS_Screen.LidLabel 그대로 — WH·FG 도 다른 모듈과 같다

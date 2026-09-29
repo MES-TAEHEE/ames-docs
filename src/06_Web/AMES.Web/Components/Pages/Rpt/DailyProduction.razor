@@ -167,8 +167,8 @@
                 <FooterTemplate><span class="code">@TotalGood.ToString("N0")</span></FooterTemplate>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" Property="Defect" Title="@L["RPT.DailyProduction.Col.DefectQty"]" TextAlign="TextAlign.Right" Width="90px">
-                <Template Context="r"><span class="code" style="@(r.Defect > 0 ? "color:#f87171;" : "")">@r.Defect.ToString("N0")</span></Template>
-                <FooterTemplate><span class="code" style="@(TotalDefect > 0 ? "color:#f87171;" : "")">@TotalDefect.ToString("N0")</span></FooterTemplate>
+                <Template Context="r"><span class="code" style="@(r.Defect > 0 ? "color:var(--ames-tx-red-400);" : "")">@r.Defect.ToString("N0")</span></Template>
+                <FooterTemplate><span class="code" style="@(TotalDefect > 0 ? "color:var(--ames-tx-red-400);" : "")">@TotalDefect.ToString("N0")</span></FooterTemplate>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" Property="Yield" Title="@L["RPT.DailyProduction.Col.Yield"]" Width="150px">
                 <Template Context="r">@(r.Yield is { } y ? Bar(y) : Dash)</Template>
@@ -315,7 +315,7 @@
     // ── 표시 헬퍼 ─────────────────────────────────────────────────────
     static string Pct(decimal? v) => v is { } x ? $"{x:0.0}%" : "—";
     static string YieldCls(decimal? v) => v is not { } x ? "" : x >= 98m ? "ok" : x >= 95m ? "warn" : "bad";
-    static string AchColor(decimal? v) => v is not { } x ? "inherit" : x >= 100m ? "#60a5fa" : x >= 90m ? "#fbbf24" : "#f87171";
+    static string AchColor(decimal? v) => v is not { } x ? "inherit" : x >= 100m ? "var(--ames-tx-blue-400)" : x >= 90m ? "var(--ames-tx-amber-400)" : "var(--ames-tx-red-400)";
 
     // 양품률 막대: PP-OEE A/P/Q 막대와 같은 구조 (Mnt/Mold 소진율 막대 CSS 재사용)
     static MarkupString Bar(decimal v)

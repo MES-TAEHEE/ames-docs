@@ -145,7 +145,7 @@
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="white-space:nowrap;">
-                ▼ @L["RPT.DefectPareto.Detail.Title"] — <span style="color:#f87171;">@string.Format(L["RPT.DefectPareto.Cases"].Value, _rows.Sum(r => r.Qty).ToString("N0"))</span>
+                ▼ @L["RPT.DefectPareto.Detail.Title"] — <span style="color:var(--ames-tx-red-400);">@string.Format(L["RPT.DefectPareto.Cases"].Value, _rows.Sum(r => r.Qty).ToString("N0"))</span>
                 @if (_selCode is not null) { <span> · </span><span class="pill bad">@_selCode</span> }
             </span>
             @if (_selCode is not null)
@@ -163,7 +163,7 @@
                     <Template Context="r"><b style="white-space:nowrap;">@r.Name</b><span class="dim code" style="font-size:.85em;margin-left:6px;">@r.Code</span>@if (r.Vital) { <span class="pill bad" style="margin-left:6px;font-size:calc(9px + var(--ames-fs-bump));">@L["RPT.DefectPareto.Vital"]</span> }</Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ParetoItem" Property="Qty" Title="@L["RPT.DefectPareto.Col.Qty"]" TextAlign="TextAlign.Right" Width="90px">
-                    <Template Context="r"><b class="code" style="color:#f87171;">@r.Qty.ToString("N0")</b></Template>
+                    <Template Context="r"><b class="code" style="color:var(--ames-tx-red-400);">@r.Qty.ToString("N0")</b></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ParetoItem" Property="Events" Title="@L["RPT.DefectPareto.Col.Events"]" TextAlign="TextAlign.Right" Width="90px">
                     <Template Context="r"><span class="code dim">@r.Events</span></Template>
@@ -172,7 +172,7 @@
                     <Template Context="r"><span class="code">@($"{r.Pct:0.0}%")</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ParetoItem" Property="Cum" Title="@L["RPT.DefectPareto.Col.CumPct"]" TextAlign="TextAlign.Right" Width="120px">
-                    <Template Context="r"><span class="code" style="@(r.Vital ? "color:#60a5fa;font-weight:700;" : "opacity:.6;")">@($"{r.Cum:0.0}%")</span></Template>
+                    <Template Context="r"><span class="code" style="@(r.Vital ? "color:var(--ames-tx-blue-400);font-weight:700;" : "opacity:.6;")">@($"{r.Cum:0.0}%")</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ParetoItem" Property="ProcessCode" Title="@L["Col.Process"]" TextAlign="TextAlign.Center" Width="130px">
                     <Template Context="r">@ProcessLabel(r.ProcessCode)</Template>

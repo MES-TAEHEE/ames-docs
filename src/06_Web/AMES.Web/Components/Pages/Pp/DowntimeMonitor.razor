@@ -180,7 +180,7 @@
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="DurationMin" Title="@L["PP.DowntimeMonitor.Col.Duration"]" Width="90px" TextAlign="TextAlign.Right">
-                <Template Context="r"><span class="code" style="@(r.DurationMin > 30 ? "color:#f87171;" : "")">@r.DurationMin.ToString("N0")</span></Template>
+                <Template Context="r"><span class="code" style="@(r.DurationMin > 30 ? "color:var(--ames-tx-red-400);" : "")">@r.DurationMin.ToString("N0")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="ReasonCode" Title="@L["PP.DowntimeMonitor.Lbl.ReasonCode"]" Width="130px" TextAlign="TextAlign.Center">
                 <Template Context="r">

@@ -62,7 +62,7 @@
 
 @* ── 히어로: 종합 점수 도넛 + 요약 (조회부 바로 아래) ────────────────── *@
 <div class="rpt-mk-hero">
-    <div class="rpt-mk-donut" style="background:conic-gradient(@ScoreColor 0% @(Score ?? 0)%, rgba(255,255,255,.12) @(Score ?? 0)% 100%);">
+    <div class="rpt-mk-donut" style="background:conic-gradient(@ScoreColor 0% @(Score ?? 0)%, var(--ames-bd-white-a12) @(Score ?? 0)% 100%);">
         <div class="c"><b style="color:@ScoreColor;">@(Score?.ToString() ?? "—")</b><span>@L["RPT.MonthlyKpi.Hero.Score"]</span></div>
     </div>
     <div>
@@ -108,7 +108,7 @@
                             <td class="c">
                                 @if (k.Ach is { } ach)
                                 {
-                                    <span class="rpt-mk-ach"><i style="background:@StatusColor(k.Status);opacity:.9;width:@(Math.Max(10, Math.Min(64, (int)(64 * ach / 130m))))px;"></i><span style="color:@StatusColor(k.Status);">@($"{ach:0.0}%")</span></span>
+                                    <span class="rpt-mk-ach"><i style="background:@StatusColor(k.Status);opacity:.9;width:@(Math.Max(10, Math.Min(64, (int)(64 * ach / 130m))))px;"></i><span style="color:@(k.Status switch { "pass" => "var(--ames-tx-emerald-500)", "near" => "var(--ames-tx-amber-500)", "fail" => "var(--ames-tx-red-600)", _ => "var(--ames-tx-slate-400)" });">@($"{ach:0.0}%")</span></span>
                                 }
                                 else { <span class="dim">—</span> }
                             </td>
@@ -159,7 +159,7 @@
     decimal? AvgAch => _rows.Where(k => k.Ach is { }).Select(k => Math.Min(130m, k.Ach!.Value)).DefaultIfEmpty().Average() is var a && Rated > 0 ? a : null;
     // 통과 100 · 근접 70 · 미달 30 가중 평균 (데이터 없는 지표 제외)
     int? Score => Rated == 0 ? null : (int)Math.Round((PassCount * 100 + NearCount * 70 + FailCount * 30) / (double)Rated);
-    string ScoreColor => Score is not { } s ? "#94a3b8" : s >= 85 ? "#34d399" : s >= 70 ? "#fbbf24" : "#f87171";
+    string ScoreColor => Score is not { } s ? "var(--ames-tx-slate-400)" : s >= 85 ? "var(--ames-tx-emerald-400)" : s >= 70 ? "var(--ames-tx-amber-400)" : "var(--ames-tx-red-400)";
     string HeroSub => Score is not { } s ? L["RPT.MonthlyKpi.Hero.NoData"].Value
         : string.Format(L["RPT.MonthlyKpi.Hero.Sub"].Value, Rated, PassCount, NearCount, FailCount,
             s >= 85 ? L["RPT.MonthlyKpi.Hero.Excellent"].Value : s >= 70 ? L["RPT.MonthlyKpi.Hero.Good"].Value : L["RPT.MonthlyKpi.Hero.Poor"].Value);

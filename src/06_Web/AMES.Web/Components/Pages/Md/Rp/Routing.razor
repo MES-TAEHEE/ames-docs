@@ -88,7 +88,7 @@
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="MasterDataRepository.RoutingStepRow" Property="ProcessCode" Title="@L["Col.Process"]">
                     <Template Context="s">
-                        <span class="code" style="color:#22d3ee;">@s.ProcessCode</span>
+                        <span class="code" style="color:var(--ames-tx-cyan-400);">@s.ProcessCode</span>
                         @{ var pn = ProcLabel(s.ProcessCode); }
                         @if (!string.IsNullOrEmpty(pn) && pn != s.ProcessCode)
                         {

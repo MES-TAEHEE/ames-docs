@@ -190,8 +190,8 @@
             @if (!string.IsNullOrWhiteSpace(_sel.Note))
             {
                 <div class="audit-section-label" style="margin-top:14px;">@L["SYS.Audit.Col.Note"]</div>
-                <div style="margin-top:4px;padding:10px 12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:6px;
-                            font-size:13px;color:#94a3b8;white-space:pre-wrap;word-break:break-all;line-height:1.6;">@_sel.Note</div>
+                <div style="margin-top:4px;padding:10px 12px;background:rgba(255,255,255,.03);border:1px solid var(--ames-bd-white-a07);border-radius:6px;
+                            font-size:13px;color:var(--ames-tx-slate-400);white-space:pre-wrap;word-break:break-all;line-height:1.6;">@_sel.Note</div>
             }
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">

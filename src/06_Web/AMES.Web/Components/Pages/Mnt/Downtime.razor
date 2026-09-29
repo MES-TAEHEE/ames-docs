@@ -132,7 +132,7 @@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">
-            ▼ @L["MNT.Downtime.Detail.Title"] — <span style="color:#34d399;">@_rows.Count @L["Lbl.Items"]</span>
+            ▼ @L["MNT.Downtime.Detail.Title"] — <span style="color:var(--ames-tx-emerald-400);">@_rows.Count @L["Lbl.Items"]</span>
             @if (!string.IsNullOrEmpty(_selReason)) { <span> · </span><span class="pill @ReasonCls(_selReason)">@_selReason</span> }
             @if (!string.IsNullOrEmpty(_selLine))   { <span> · </span><span class="pill info">@SelLineText</span> }
         </span>
@@ -164,7 +164,7 @@
                 <Template Context="r"><span class="dim">@(r.CauseCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="DurationMin" Title="@L["Col.MinDown"]" TextAlign="TextAlign.Right" Width="110px">
-                <Template Context="r"><b class="code" style="@(r.DurationMin > 60 ? "color:#f87171;" : "")">@(r.DurationMin?.ToString("N0") ?? "—")</b></Template>
+                <Template Context="r"><b class="code" style="@(r.DurationMin > 60 ? "color:var(--ames-tx-red-400);" : "")">@(r.DurationMin?.ToString("N0") ?? "—")</b></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="EndTs" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r">

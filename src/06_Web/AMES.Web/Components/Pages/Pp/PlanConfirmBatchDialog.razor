@@ -11,11 +11,11 @@
 @using AMES.Data.Services
 
 <div style="display:flex;flex-direction:column;gap:10px;min-width:900px;">
-    <div style="border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:4px 14px;">
-        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
+    <div style="border:1px solid var(--ames-bd-white-a12);border-radius:8px;padding:4px 14px;">
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--ames-bd-white-a12);">
             <span class="dim">@L["PP.PlanConfirm.Dlg.Selected"]</span><span class="code">@Lines.Count</span>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed var(--ames-bd-white-a12);">
             <span class="dim">@L["PP.PlanConfirm.Dlg.QtyBasis"]</span>
             <RadzenRadioButtonList @bind-Value="_qtyMode" @bind-Value:after="OnQtyModeChanged" TValue="string"
                                    Orientation="Radzen.Orientation.Horizontal" Disabled="_busy">
@@ -26,11 +26,11 @@
                 </Items>
             </RadzenRadioButtonList>
         </div>
-        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--ames-bd-white-a12);">
             <span class="dim">@L[TotalKey]</span>
             <span class="code">@Lines.Sum(Qty).ToString("#,0") EA</span>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed var(--ames-bd-white-a12);">
             <span class="dim">@L["PP.PlanConfirm.Dlg.StartDate"]</span>
             <RadzenDatePicker @bind-Value="_startDate" @bind-Value:after="Recompute" TValue="DateTime"
                               DateFormat="yyyy-MM-dd" Min="DbClock.Today" Disabled="_busy" Style="width:165px" />
@@ -40,7 +40,7 @@
         </div>
     </div>
 
-    <div style="max-height:360px;overflow:auto;border:1px solid rgba(255,255,255,.12);border-radius:8px;">
+    <div style="max-height:360px;overflow:auto;border:1px solid var(--ames-bd-white-a12);border-radius:8px;">
         <table class="ames-table" style="width:100%;table-layout:fixed;">
             <thead>
                 <tr>

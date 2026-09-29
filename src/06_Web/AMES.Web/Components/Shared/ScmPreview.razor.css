@@ -1,9 +1,9 @@
 ﻿/* SCM·포탈 공용 화면 — 목록·모달은 표준 클래스(ames-card·ames-rz-grid·ames-modal)를 쓰고, 상세 모달 안의 정보 타일·품목 표만 여기서 정한다(PP-006 상세와 같은 모양). */
 .scm-dgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; margin:4px 0 12px; }
 .scm-dt { padding:8px 10px; border:1px solid rgba(148,163,184,.22); border-radius:6px; background:rgba(148,163,184,.06); }
-.scm-dl { font-size:var(--ames-fs-hint, 12px); color:var(--rz-text-secondary-color, #94a3b8); margin-bottom:3px; white-space:nowrap; }
+.scm-dl { font-size:var(--ames-fs-hint, 12px); color:var(--rz-text-secondary-color, var(--ames-tx-slate-400)); margin-bottom:3px; white-space:nowrap; }
 .scm-dv { font-weight:600; word-break:break-word; }
-.scm-dsub { margin:14px 0 6px; font-weight:600; font-size:.92em; color:var(--rz-text-secondary-color, #94a3b8); }
+.scm-dsub { margin:14px 0 6px; font-weight:600; font-size:.92em; color:var(--rz-text-secondary-color, var(--ames-tx-slate-400)); }
 .scm-scroll { overflow-x:auto; }
 .scm-scroll .num, .scm-scroll th.num { text-align:right; white-space:nowrap; }
 .scm-log { line-height:1.9; font-size:.92em; }
@@ -88,7 +88,7 @@
     .scm-delivery-detail .ames-table tbody { display:block; }
     .scm-delivery-detail .ames-table tr { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:12px 0; }
     .scm-delivery-detail .ames-table td { display:block; min-width:0; padding:6px; }
-    .scm-delivery-detail .ames-table td::before { content:attr(data-label); display:block; margin-bottom:6px; font-size:12px; color:var(--rz-text-secondary-color,#94a3b8); }
+    .scm-delivery-detail .ames-table td::before { content:attr(data-label); display:block; margin-bottom:6px; font-size:12px; color:var(--rz-text-secondary-color,var(--ames-tx-slate-400)); }
 }
 @media(max-width:480px) {
     .scm-delivery-detail .ames-table tr { grid-template-columns:minmax(0,1fr); }

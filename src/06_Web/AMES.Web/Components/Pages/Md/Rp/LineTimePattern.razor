@@ -172,7 +172,7 @@
                 }
                 <RadzenButton Text="@L["MD.LineTimePattern.Btn.Clear"]" Icon="delete_sweep" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@ClearAll" class="ames-rz-btn" />
             </div>
-            <div style="padding:2px 14px 2px;font-size:calc(11px + var(--ames-fs-bump));color:#64748b;">@L["MD.LineTimePattern.DragHint"]</div>
+            <div style="padding:2px 14px 2px;font-size:calc(11px + var(--ames-fs-bump));color:var(--ames-tx-slate-500);">@L["MD.LineTimePattern.DragHint"]</div>
         }
 
         @* ── Shift별 타임라인 (커스텀) ── *@
@@ -182,7 +182,7 @@
         }
         @foreach (var sh in ActiveShifts())
         {
-            <div style="padding:6px 14px 0;font-size:13px;font-weight:700;color:#e2e8f0;">@sh.Name · @MinToTime(sh.Start)–@MinToTime(sh.End)</div>
+            <div style="padding:6px 14px 0;font-size:13px;font-weight:700;color:var(--ames-tx-slate-200);">@sh.Name · @MinToTime(sh.Start)–@MinToTime(sh.End)</div>
             <div class="pp-gantt-wrap" style="margin-top:2px;">
                 <div class="pp-gantt-inner">
                     <div class="pp-gantt-ruler">
@@ -240,7 +240,7 @@
         @* ── 계획비가동 사유코드·설명 (계획비가동 밴드가 있을 때) ── *@
         @if (HasPlannedDown())
         {
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px 12px;border-top:1px solid rgba(255,255,255,.06);">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px 12px;border-top:1px solid var(--ames-bd-white-a06);">
                 <span class="pill bad" style="font-size:.72em;">@SegLabel("PLANNED_DOWNTIME")</span>
                 <RadzenLabel Text="@L["MD.LineTimePattern.Lbl.DownReason"]" />
                 <RadzenDropDown TValue="string" @bind-Value="_downReason" Change="@(_ => OnDownInputChanged())" Data="@PlannedReasonOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Disabled="@(!_canEdit)" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
@@ -277,7 +277,7 @@
     <div class="ames-modal-bg" @onclick="() => _confirmBand = null">
         <div class="ames-modal" style="max-width:360px;" @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.LineTimePattern.Modal.DeleteBand"]</div>
-            <div style="margin:8px 0;color:#94a3b8;">
+            <div style="margin:8px 0;color:var(--ames-tx-slate-400);">
                 @SegLabel(cb.St) &nbsp; @MinToTime(cb.S) — @MinToTime(cb.E)
                 (@(cb.E - cb.S)@L["Lbl.Min"])
             </div>

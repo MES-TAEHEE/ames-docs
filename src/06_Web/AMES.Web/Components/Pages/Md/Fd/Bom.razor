@@ -124,7 +124,7 @@
                                 <span class="pill @StatusCss(_selVer.Status)">@_selVer.Status</span>
                                 @if (!string.IsNullOrEmpty(_selVer.VersionNo))
                                 {
-                                    <span class="dim code" style="font-size:.82em;border:1px solid rgba(255,255,255,.1);padding:1px 7px;border-radius:4px;">@_selVer.VersionNo</span>
+                                    <span class="dim code" style="font-size:.82em;border:1px solid var(--ames-bd-white-a10);padding:1px 7px;border-radius:4px;">@_selVer.VersionNo</span>
                                 }
                             </div>
                             <div class="dim code" style="font-size:.79em;margin-top:3px;">
@@ -144,11 +144,11 @@
                             }
                             @if (_selVer.Status == "PENDING" && !string.IsNullOrEmpty(_selVer.RequestedBy))
                             {
-                                <div style="font-size:.78em;color:#fbbf24;margin-top:2px;">@L["MD.Bom.ApprovalRequester"]: @Actors.Display(_selVer.RequestedBy)</div>
+                                <div style="font-size:.78em;color:var(--ames-tx-amber-400);margin-top:2px;">@L["MD.Bom.ApprovalRequester"]: @Actors.Display(_selVer.RequestedBy)</div>
                             }
                             @if (_selVer.Status == "APPROVED" && !string.IsNullOrEmpty(_selVer.ApprovedBy))
                             {
-                                <div style="font-size:.78em;color:#86efac;margin-top:2px;">@L["MD.Bom.ApprovedBy"]: @Actors.Display(_selVer.ApprovedBy)  @(_selVer.ApprovedTS?.ToString(DateFmt.DateTime))</div>
+                                <div style="font-size:.78em;color:var(--ames-tx-green-300);margin-top:2px;">@L["MD.Bom.ApprovedBy"]: @Actors.Display(_selVer.ApprovedBy)  @(_selVer.ApprovedTS?.ToString(DateFmt.DateTime))</div>
                             }
                         </div>
 
@@ -216,7 +216,7 @@
                                     @{ int indent = (line.BOMLevel ?? 0) * 16; }
                                     @if (indent > 0) { <span style="display:inline-block;width:@(indent)px;"></span> }
                                     @if ((line.BOMLevel ?? 0) > 0) { <span class="dim" style="font-size:.78em;">└ </span> }
-                                    <span class="code" style="color:#93c5fd;font-weight:700;">@line.CompItemNo</span>
+                                    <span class="code" style="color:var(--ames-tx-blue-300);font-weight:700;">@line.CompItemNo</span>
                                     @if (!string.IsNullOrEmpty(line.CompItemName)) { <span class="dim" style="font-size:.8em;margin-left:5px;">@line.CompItemName</span> }
                                 </Template>
                             </RadzenDataGridColumn>

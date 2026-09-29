@@ -20,7 +20,7 @@
 
 .plan-hint {
     flex: 1;
-    color: var(--rz-text-secondary-color, #93a4bd);
+    color: var(--rz-text-secondary-color, var(--ames-tx-93a4bd));
     font-size: 12px;
 }
 
@@ -37,13 +37,13 @@
 
 .plan-part > span:last-child {
     overflow: hidden;
-    color: var(--rz-text-secondary-color, #93a4bd);
+    color: var(--rz-text-secondary-color, var(--ames-tx-93a4bd));
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .remaining {
-    color: #4ade80;
+    color: var(--ames-tx-green-400);
 }
 
 .plan-check {
@@ -76,7 +76,7 @@
 }
 
 .shipment-plan-summary span {
-    color: var(--rz-text-secondary-color, #93a4bd);
+    color: var(--rz-text-secondary-color, var(--ames-tx-93a4bd));
     font-size: calc(10px + var(--ames-fs-bump));
 }
 
@@ -90,7 +90,7 @@
 
 .delete-confirm {
     flex: 1;
-    color: #f87171;
+    color: var(--ames-tx-red-400);
     font-weight: 700;
 }
 

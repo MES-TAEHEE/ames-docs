@@ -5,8 +5,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-    <script>try{if((localStorage.getItem('ames.theme')||'dark')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
-    <link rel="stylesheet" href="_content/Radzen.Blazor/css/humanistic-dark-base.css" />
+    @* Radzen 테마는 둘 다 받아 두고 media 로 하나만 켠다 — 전환 때 다시 받지 않아 깜박임이 없다(theme.js 가 같은 id 로 전환) *@
+    <link id="ames-rz-dark" rel="stylesheet" href="_content/Radzen.Blazor/css/humanistic-dark-base.css" media="@(_theme == "light" ? "not all" : "all")" />
+    <link id="ames-rz-light" rel="stylesheet" href="_content/Radzen.Blazor/css/humanistic-base.css" media="@(_theme == "light" ? "all" : "not all")" />
+    <script>try{var l=(localStorage.getItem('ames.theme')||'dark')==='light';if(l)document.documentElement.setAttribute('data-theme','light');document.getElementById('ames-rz-dark').media=l?'not all':'all';document.getElementById('ames-rz-light').media=l?'all':'not all';}catch(e){}</script>
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["AMES.Web.styles.css"]" />
     <ImportMap />
@@ -26,7 +28,7 @@
     <script src='js/delivery-note-print.js?v=1'></script>
     <script src='js/frozen-columns.js'></script>
     <script src='js/nav-progress.js'></script>
-    <script src='js/theme.js'></script>
+    <script src='js/theme.js?v=20260930'></script>
     <script src='js/location-map-scroll.js?v=20260903'></script>
     <script src="_framework/blazor.web.js"></script>
     <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>

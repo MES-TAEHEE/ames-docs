@@ -106,13 +106,13 @@
                 <Template Context="a">@Spark(a.Spark)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EquipAgg" Property="MtbfH" Title="@L["MNT.OeeAnalysis.Col.Mtbf"]" TextAlign="TextAlign.Right" Width="100px">
-                <Template Context="a"><span class="code" style="@(a.MtbfH is < 200 ? "color:#f87171;" : "color:#34d399;")">@(a.MtbfH?.ToString("N0") ?? "—")</span></Template>
+                <Template Context="a"><span class="code" style="@(a.MtbfH is < 200 ? "color:var(--ames-tx-red-400);" : "color:var(--ames-tx-emerald-400);")">@(a.MtbfH?.ToString("N0") ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EquipAgg" Property="MttrMin" Title="@L["MNT.OeeAnalysis.Col.Mttr"]" TextAlign="TextAlign.Right" Width="110px">
-                <Template Context="a"><span class="code" style="@(a.MttrMin is > 60 ? "color:#f87171;" : "color:#34d399;")">@(a.MttrMin?.ToString("N0") ?? "—")</span></Template>
+                <Template Context="a"><span class="code" style="@(a.MttrMin is > 60 ? "color:var(--ames-tx-red-400);" : "color:var(--ames-tx-emerald-400);")">@(a.MttrMin?.ToString("N0") ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EquipAgg" Property="Failures" Title="@L["MNT.OeeAnalysis.Col.Failures"]" TextAlign="TextAlign.Right" Width="110px">
-                <Template Context="a"><b style="@(a.Failures >= 3 ? "color:#f87171;" : "")">@a.Failures</b></Template>
+                <Template Context="a"><b style="@(a.Failures >= 3 ? "color:var(--ames-tx-red-400);" : "")">@a.Failures</b></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EquipAgg" Property="A" Title="@L["Col.Availability"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="a">@Pct(a.A)</Template>
@@ -130,7 +130,7 @@
 @* ── OEE 추세 (전체 평균 또는 선택 설비) ──────────────────────────── *@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MNT.OeeAnalysis.Trend.Title"] — <span style="color:#34d399;">@TrendSubject</span> · @string.Format(L["MNT.OeeAnalysis.Trend.Range"].Value, TrendWeeks, TrendFrom.ToString("yyyy-MM-dd"), DbClock.Today.ToString("yyyy-MM-dd"))</span>
+        <span style="white-space:nowrap;">▼ @L["MNT.OeeAnalysis.Trend.Title"] — <span style="color:var(--ames-tx-emerald-400);">@TrendSubject</span> · @string.Format(L["MNT.OeeAnalysis.Trend.Range"].Value, TrendWeeks, TrendFrom.ToString("yyyy-MM-dd"), DbClock.Today.ToString("yyyy-MM-dd"))</span>
         <span class="dim" style="font-size:var(--ames-fs-hint);">@L["MNT.OeeAnalysis.Trend.Note"]</span>
     </div>
     @if (_trend.All(t => t.Oee is null))

@@ -144,12 +144,12 @@
                 <FooterTemplate><span class="code">@_items.Sum(i => i.Deliveries)</span></FooterTemplate>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ItemAgg" Property="OnTime" Title="@L["RPT.OnTime.Col.OnTime"]" TextAlign="TextAlign.Right" Width="100px">
-                <Template Context="r"><span class="code" style="color:#34d399;">@r.OnTime</span></Template>
-                <FooterTemplate><span class="code" style="color:#34d399;">@_items.Sum(i => i.OnTime)</span></FooterTemplate>
+                <Template Context="r"><span class="code" style="color:var(--ames-tx-emerald-400);">@r.OnTime</span></Template>
+                <FooterTemplate><span class="code" style="color:var(--ames-tx-emerald-400);">@_items.Sum(i => i.OnTime)</span></FooterTemplate>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ItemAgg" Property="Late" Title="@L["RPT.OnTime.Col.Late"]" TextAlign="TextAlign.Right" Width="90px">
-                <Template Context="r"><span class="code" style="@(r.Late > 0 ? "color:#f87171;" : "")">@r.Late</span></Template>
-                <FooterTemplate><span class="code" style="@(LateCount > 0 ? "color:#f87171;" : "")">@_items.Sum(i => i.Late)</span></FooterTemplate>
+                <Template Context="r"><span class="code" style="@(r.Late > 0 ? "color:var(--ames-tx-red-400);" : "")">@r.Late</span></Template>
+                <FooterTemplate><span class="code" style="@(LateCount > 0 ? "color:var(--ames-tx-red-400);" : "")">@_items.Sum(i => i.Late)</span></FooterTemplate>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ItemAgg" Property="AvgDelay" Title="@L["RPT.OnTime.Col.AvgDelay"]" TextAlign="TextAlign.Right" Width="160px">
                 <Template Context="r"><span class="code">@(r.AvgDelay is { } d ? string.Format(L["RPT.OnTime.DaysFmt"].Value, d.ToString("0.0")) : "—")</span></Template>

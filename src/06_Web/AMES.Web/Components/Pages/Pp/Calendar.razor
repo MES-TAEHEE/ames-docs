@@ -62,7 +62,7 @@
             <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
                 <div style="display:flex;align-items:center;gap:10px;">
                     <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevMonth" class="ames-rz-btn" />
-                    <span style="font-family:var(--ames-font-display);font-size:26px;letter-spacing:2px;color:#fff;">
+                    <span style="font-family:var(--ames-font-display);font-size:26px;letter-spacing:2px;color:var(--ames-tx-white);">
                         @string.Format(L["Fmt.CalYearMonth"], _calYear, _calMonth)
                     </span>
                     <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@NextMonth" class="ames-rz-btn" />
@@ -153,9 +153,9 @@
             <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
                 <div style="display:flex;align-items:center;gap:10px;">
                     <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevWeek" class="ames-rz-btn" />
-                    <span style="font-family:var(--ames-font-display);font-size:22px;letter-spacing:2px;color:#fff;">
+                    <span style="font-family:var(--ames-font-display);font-size:22px;letter-spacing:2px;color:var(--ames-tx-white);">
                         @weekDates[0].ToString("MM/dd") — @weekDates[6].ToString("MM/dd")
-                        <span style="font-size:14px;color:#64748b;letter-spacing:1px;margin-left:8px;">
+                        <span style="font-size:14px;color:var(--ames-tx-slate-500);letter-spacing:1px;margin-left:8px;">
                             @_weekStart.Year@L["Lbl.Year"]
                         </span>
                     </span>
@@ -179,15 +179,15 @@
                     <div style="display:grid;grid-template-columns:90px 1fr;gap:0;
                                 border:1px solid;border-radius:6px;overflow:hidden;@rowBg">
                         <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;
-                                    border-right:1px solid rgba(255,255,255,.06);">
+                                    border-right:1px solid var(--ames-bd-white-a06);">
                             <span style="font-family:var(--ames-font-mono);font-size:var(--ames-fs-hint);
                                          text-transform:uppercase;letter-spacing:.05em;
-                                         color:@(isSun?"#fca5a5":isSat?"#93c5fd":"#64748b");">
+                                         color:@(isSun?"var(--ames-tx-red-300)":isSat?"var(--ames-tx-blue-300)":"var(--ames-tx-slate-500)");">
                                 @date.ToString("ddd")
                             </span>
                             <span style="font-family:var(--ames-font-mono);font-size:18px;
                                          font-weight:700;
-                                         color:@(isSun?"#fca5a5":isSat?"#93c5fd":isToday?"#93c5fd":"#cbd5e1");
+                                         color:@(isSun?"var(--ames-tx-red-300)":isSat?"var(--ames-tx-blue-300)":isToday?"var(--ames-tx-blue-300)":"var(--ames-tx-slate-300)");
                                          line-height:1;display:flex;align-items:center;gap:4px;">
                                 @date.Day
                                 @if (isToday) { <span class="ames-cal-today-dot"></span> }
@@ -310,7 +310,7 @@
     <div class="ames-modal-bg">
         <div class="ames-modal" style="max-width:360px;">
             <div class="ames-modal-h">@L["PP.Calendar.Modal.Reschedule"]</div>
-            <div style="font-size:14px;color:#94a3b8;margin-bottom:12px;line-height:1.8;">
+            <div style="font-size:14px;color:var(--ames-tx-slate-400);margin-bottom:12px;line-height:1.8;">
                 <div>@L["PP.Calendar.Lbl.WoNo"] <span class="code">@_detail.WoNumber</span></div>
                 <div>@L["PP.Calendar.Lbl.CurrentDue"] <span class="dim">@(_detail.DueDate?.ToString("yyyy-MM-dd") ?? "—")</span></div>
             </div>

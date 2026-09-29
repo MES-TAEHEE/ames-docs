@@ -135,7 +135,7 @@
 @* ── 출하 상세 (라인 단위) ─────────────────────────────────────────── *@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["RPT.DailyShipment.Detail.Title"] — <span style="color:#34d399;">@string.Format(L["RPT.DailyShipment.Records"].Value, _rows.Count)</span></span>
+        <span style="white-space:nowrap;">▼ @L["RPT.DailyShipment.Detail.Title"] — <span style="color:var(--ames-tx-emerald-400);">@string.Format(L["RPT.DailyShipment.Records"].Value, _rows.Count)</span></span>
     </div>
 
     <RadzenDataGrid TItem="ShipLine" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
@@ -161,7 +161,7 @@
             <RadzenDataGridColumn TItem="ShipLine" Property="ShipTime" Title="@L["RPT.DailyShipment.Col.ShipTime"]" TextAlign="TextAlign.Center" Width="190px">
                 <Template Context="r">
                     <span class="code">@(r.ShipTime?.ToString("HH:mm") ?? "—")</span>
-                    @if (r.State == "late") { <span style="color:#f87171;font-size:.8em;margin-left:4px;">@string.Format(L["RPT.DailyShipment.Col.PlanFmt"].Value, r.PlanDate?.ToString("MM-dd") ?? "—")</span> }
+                    @if (r.State == "late") { <span style="color:var(--ames-tx-red-400);font-size:.8em;margin-left:4px;">@string.Format(L["RPT.DailyShipment.Col.PlanFmt"].Value, r.PlanDate?.ToString("MM-dd") ?? "—")</span> }
                 </Template>
                 <FooterTemplate><b>@string.Format(L["RPT.DailyShipment.Completed"].Value, _orders.Count(o => o.Shipped))</b></FooterTemplate>
             </RadzenDataGridColumn>

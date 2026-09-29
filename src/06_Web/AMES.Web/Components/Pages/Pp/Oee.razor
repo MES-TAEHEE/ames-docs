@@ -108,7 +108,7 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" Property="TotalLoss" Title="@L["PP.Oee.Col.Loss"]" Width="100px" TextAlign="TextAlign.Right">
                 <Template Context="r">
-                    @if (r.HasData) { <span class="code" style="color:#f87171;">@r.TotalLoss.ToString("N0")</span> } else { <span class="dim">—</span> }
+                    @if (r.HasData) { <span class="code" style="color:var(--ames-tx-red-400);">@r.TotalLoss.ToString("N0")</span> } else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
         </Columns>
@@ -336,7 +336,7 @@
                         }
                         <div class="dim" style="font-size:calc(11px + var(--ames-fs-bump));display:flex;gap:14px;flex-wrap:wrap;">
                             <span>@L["PP.Oee.Loss.Planned"] @r.PlannedDownMin min</span>
-                            <span style="color:#f87171;">@L["PP.Oee.Loss.Cat.Avail"] @r.UnplannedDownMin min</span>
+                            <span style="color:var(--ames-tx-red-400);">@L["PP.Oee.Loss.Cat.Avail"] @r.UnplannedDownMin min</span>
                             <span>@L["PP.Oee.Snap.Col.Date"] @r.PeriodDate.ToString("yyyy-MM-dd") @(r.ShiftCode is null ? "" : $"[{r.ShiftCode}]")</span>
                         </div>
                     </div>

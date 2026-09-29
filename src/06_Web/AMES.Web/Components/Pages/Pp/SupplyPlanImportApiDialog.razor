@@ -18,7 +18,7 @@
     }
 
     <label>② @L["PP.SupplyPlanImport.Api.LastSync"]</label>
-    <div style="border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:10px 12px;font-size:.9em;">
+    <div style="border:1px solid var(--ames-bd-white-a12);border-radius:6px;padding:10px 12px;font-size:.9em;">
         @if (_last is null)
         {
             <span class="dim">@L["PP.SupplyPlanImport.Api.LastSync.None"]</span>
@@ -35,13 +35,13 @@
             }
             @if (_last.ConnStatus != "OK" && !string.IsNullOrEmpty(_last.LastErrorMsg))
             {
-                <div style="color:#f87171;margin-top:4px;word-break:break-word;">@_last.LastErrorMsg</div>
+                <div style="color:var(--ames-tx-red-400);margin-top:4px;word-break:break-word;">@_last.LastErrorMsg</div>
             }
         }
     </div>
 
     <label>③ @L["PP.SupplyPlanImport.Api.Result"]</label>
-    <div style="border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:12px;font-size:.9em;min-height:56px;">
+    <div style="border:1px solid var(--ames-bd-white-a12);border-radius:6px;padding:12px;font-size:.9em;min-height:56px;">
         @if (_busy)
         {
             <span class="dim">@L["PP.SupplyPlanImport.Api.Running"]</span>
@@ -61,7 +61,7 @@
         }
         else
         {
-            <div style="color:#f87171;word-break:break-word;">⚠ @L["PP.SupplyPlanImport.Api.Err.Remote"] — @_result.Error</div>
+            <div style="color:var(--ames-tx-red-400);word-break:break-word;">⚠ @L["PP.SupplyPlanImport.Api.Err.Remote"] — @_result.Error</div>
         }
     </div>
     @if (!string.IsNullOrEmpty(_modalErr))

@@ -119,7 +119,7 @@
                         }
                         else
                         {
-                            <span class="code" style="color:#fff;">@(IsSecret(c) ? (string.IsNullOrEmpty(c.ConfigValue) ? "—" : "••••••") : c.ConfigValue ?? "—")</span>
+                            <span class="code" style="color:var(--ames-tx-white);">@(IsSecret(c) ? (string.IsNullOrEmpty(c.ConfigValue) ? "—" : "••••••") : c.ConfigValue ?? "—")</span>
                         }
                     </Template>
                 </RadzenDataGridColumn>

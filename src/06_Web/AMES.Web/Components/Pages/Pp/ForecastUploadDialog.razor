@@ -15,7 +15,7 @@
     <span class="dim" style="font-size:.8em;">@L["PP.Forecast.Upload.Hint"]</span>
 
     <label>③ @L["PP.Forecast.Upload.ParseResult"]</label>
-    <div style="border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:12px;font-size:.9em;min-height:56px;">
+    <div style="border:1px solid var(--ames-bd-white-a12);border-radius:6px;padding:12px;font-size:.9em;min-height:56px;">
         @if (_preview is null)
         {
             <span class="dim">@L["PP.Forecast.Upload.NoFile"]</span>
@@ -27,7 +27,7 @@
                 _preview.WeekStarts.Min(), _preview.WeekStarts.Max())</div>
             @if (_unmatched.Count > 0)
             {
-                <div style="color:#f87171;margin-top:6px;">
+                <div style="color:var(--ames-tx-red-400);margin-top:6px;">
                     ⚠ @string.Format(L["PP.Forecast.Preview.Unmatched"].Value, _unmatched.Count)<br />
                     <span class="dim" style="font-size:.85em;">@string.Join(", ", _unmatched.Take(5))@(_unmatched.Count > 5 ? " …" : "")</span>
                 </div>

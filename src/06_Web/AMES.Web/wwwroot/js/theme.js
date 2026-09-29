@@ -13,6 +13,10 @@
     function apply(t) {
         if (t === 'light') root.setAttribute('data-theme', 'light');
         else root.removeAttribute('data-theme');
+        // Radzen 테마 CSS(App.razor 의 두 link) 중 현재 테마 쪽만 켠다
+        const dark = document.getElementById('ames-rz-dark'), light = document.getElementById('ames-rz-light');
+        if (dark) dark.media = t === 'light' ? 'not all' : 'all';
+        if (light) light.media = t === 'light' ? 'all' : 'not all';
     }
     window.amesTheme = {
         get() { try { return localStorage.getItem(KEY) || readCookie() || 'dark'; } catch (e) { return readCookie() || 'dark'; } },

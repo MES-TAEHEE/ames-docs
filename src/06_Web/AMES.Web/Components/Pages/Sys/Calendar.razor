@@ -118,7 +118,7 @@
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
             <div style="display:flex;align-items:center;gap:12px;">
                 <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevMonth" class="ames-rz-btn" />
-                <span style="font-family:var(--ames-font-display);font-size:26px;letter-spacing:2px;color:#fff;">
+                <span style="font-family:var(--ames-font-display);font-size:26px;letter-spacing:2px;color:var(--ames-tx-white);">
                     @string.Format(L["SYS.Calendar.Fmt.YearMonth"].Value, _calYear, _calMonth.ToString("D2"))
                 </span>
                 <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@NextMonth" class="ames-rz-btn" />
@@ -249,7 +249,7 @@
             <label style="margin-top:8px;">@L["SYS.Calendar.Lbl.Plant"]</label>
             <RadzenDropDown AllowFiltering="true" @bind-Value="_genPlant" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
-            <div style="margin-top:12px;font-size:.84em;font-weight:600;color:#94a3b8;letter-spacing:.05em;">@L["SYS.Calendar.Lbl.ShiftConfig"]</div>
+            <div style="margin-top:12px;font-size:.84em;font-weight:600;color:var(--ames-tx-slate-400);letter-spacing:.05em;">@L["SYS.Calendar.Lbl.ShiftConfig"]</div>
             <table class="ames-table" style="margin-top:4px;">
                 <thead>
                     <tr>
@@ -292,7 +292,7 @@
                 </label>
             </div>
 
-            <div style="margin-top:10px;font-size:.84em;font-weight:600;color:#94a3b8;letter-spacing:.05em;">
+            <div style="margin-top:10px;font-size:.84em;font-weight:600;color:var(--ames-tx-slate-400);letter-spacing:.05em;">
                 @L["SYS.Calendar.Lbl.Holidays"] <span class="dim" style="font-weight:400;">@L["SYS.Calendar.Hint.Holidays"]</span>
                 <RadzenButton Text="@L["Btn.Add"]" Icon="add" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" Click="@AddHoliday" class="ames-rz-btn" Style="margin-left:8px;" />
             </div>
@@ -361,7 +361,7 @@
                 }
             </div>
 
-            <div style="margin-top:12px;font-size:.84em;font-weight:600;color:#94a3b8;letter-spacing:.05em;">
+            <div style="margin-top:12px;font-size:.84em;font-weight:600;color:var(--ames-tx-slate-400);letter-spacing:.05em;">
                 @L["SYS.Calendar.Lbl.ShiftConfig"]
                 <span class="dim" style="font-weight:400;margin-left:8px;">@L["SYS.Calendar.Lbl.ShiftNote"]</span>
             </div>
