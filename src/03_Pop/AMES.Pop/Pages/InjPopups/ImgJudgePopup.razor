@@ -1,0 +1,128 @@
+@namespace AMES.Pop.Pages.InjPopups
+@using AMES.Contracts.Enums
+@using AMES.Pop.Common
+
+@*  IMG 완제품 판정 팝업 — Core 스캔 발행 · 예외 발행 · RAW 완제품 라벨 재스캔 뒤에 뜬다.
+    OK = 기존 스캔 확정(ConfirmByLotCode), NG = 불량코드 한 번 터치로 등록(RegisterDefect → REWORK 대기열).
+    판정 없이 닫으면 LOT 은 RAW 로 남고, 완제품 라벨을 다시 찍으면 이 팝업이 다시 뜬다. *@
+
+<PopupShell Title='@($"⚖ {T("JudgeTitle")}")' Width="1100px" CloseOnBackdrop="false" OnClose="OnClose">
+    <div class="dfp-lot">
+        <span class="mono dfp-lot-code">@Lot.LotCode</span>
+        <span>@Lot.ItemNo @(Lot.ItemName is null ? "" : $"· {Lot.ItemName}")</span>
+        <span class="jdg-core">@T("Core"): <span class="mono">@(Lot.CoreLotCode ?? "—")</span></span>
+    </div>
+
+    @if (!_ngOpen)
+    {
+        <div class="jdg-btns">
+            <button class="jdg-btn ok" disabled="@_busy" @onclick="Ok">@T("Ok")</button>
+            <button class="jdg-btn ng" disabled="@_busy" @onclick="@(() => _ngOpen = true)">@T("Ng")</button>
+        </div>
+    }
+    else
+    {
+        <div class="input-label">@T("JudgeSelectDefect")</div>
+        <div class="def-grid dfp-codes">
+            @foreach (var c in _codes)
+            {
+                <div class="def-btn @(_busy ? "jdg-busy" : "")" @onclick="@(() => Ng(c))">
+                    <div class="def-btn-code">@c.DefectCode</div>
+                    <div class="def-btn-name">@(PopLang.IsKo ? c.DefectName : c.DefectNameEn ?? c.DefectName)</div>
+                </div>
+            }
+        </div>
+    }
+
+    @if (_error is not null)
+    {
+        <div class="injm-banner bad">
+            <div class="injm-banner-t">@T("Fail")</div>
+            <div class="injm-banner-s">@_error</div>
+        </div>
+    }
+
+    <div class="dfp-footer">
+        <span style="flex:1;"></span>
+        @if (_ngOpen)
+        {
+            <button class="nav-btn" disabled="@_busy" @onclick="@(() => _ngOpen = false)">@T("JudgeBack")</button>
+        }
+        <button class="nav-btn" @onclick="OnClose">@T("Close")</button>
+    </div>
+</PopupShell>
+
+@code {
+    [Parameter, EditorRequired] public ImgLotDto      Lot     { get; set; } = null!;
+    [Parameter]                 public PopSessionDto? Session { get; set; }
+    [Parameter]                 public EventCallback  OnClose { get; set; }
+    /// <summary>판정 성공 — (배너 문구, 품번). 메인이 배너·선택 품번을 갱신하고 팝업을 닫는다.</summary>
+    [Parameter] public EventCallback<(string Detail, string ItemNo)> OnDone { get; set; }
+
+    private static string T(string key, params object?[] args) => PopLang.T(key, args);
+
+    private List<DefectCodeDto> _codes = new();
+    private bool    _ngOpen, _busy;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        try { _codes = PopServices.Defects.ListForProcess("IMG"); }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task Ok()
+    {
+        if (Session is null || _busy) return;
+        _busy = true; _error = null;
+        try
+        {
+            var (outcome, _, itemNo, woId) = PopServices.ImgLots.ConfirmByLotCode(
+                Lot.LotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
+            if (outcome == ImgConfirmOutcome.Confirmed)
+            {
+                var woNumber = woId > 0 ? PopServices.WorkOrders.GetById(woId)?.WoNumber : null;
+                await OnDone.InvokeAsync(($"{T("Confirmed")}: {Lot.LotCode} ({itemNo}){(woNumber is null ? "" : $" → {woNumber}")}", itemNo));
+                return;
+            }
+            _error = outcome switch
+            {
+                ImgConfirmOutcome.NotFound         => $"{T("LotNotFound")}: {Lot.LotCode}",
+                ImgConfirmOutcome.AlreadyConfirmed => $"{T("AlreadyConfirmed")}: {Lot.LotCode}",
+                ImgConfirmOutcome.WrongLine        => $"{T("LotBelongsToAnotherLine")}: {Lot.LotCode}",
+                ImgConfirmOutcome.InRework         => $"{T("LotInRework")}: {Lot.LotCode}",
+                ImgConfirmOutcome.Scrapped         => $"{T("LotScrapped")}: {Lot.LotCode}",
+                ImgConfirmOutcome.NoWoForItem      => $"{T("NoOpenWoForThisPart")}: {Lot.LotCode} ({itemNo})",
+                _                                  => $"{T("ConfirmFailed")}: {Lot.LotCode}",
+            };
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task Ng(DefectCodeDto code)
+    {
+        if (Session is null || _busy) return;
+        _busy = true; _error = null;
+        try
+        {
+            var (outcome, _, itemNo) = PopServices.ImgLots.RegisterDefect(
+                Lot.LotCode, Session.LineId, code.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
+            if (outcome == DefectRegisterOutcome.Registered)
+            {
+                await OnDone.InvokeAsync(($"{T("DfRegistered")}: {Lot.LotCode} ({itemNo}) · {code.DefectCode}", itemNo));
+                return;
+            }
+            _error = outcome switch
+            {
+                DefectRegisterOutcome.NotFound        => $"{T("LotNotFound")}: {Lot.LotCode}",
+                DefectRegisterOutcome.WrongLine       => $"{T("LotBelongsToAnotherLine")}: {Lot.LotCode}",
+                DefectRegisterOutcome.AlreadyInRework => $"{T("DfAlreadyInRework")}: {Lot.LotCode}",
+                DefectRegisterOutcome.Scrapped        => $"{T("DfScrapped")}: {Lot.LotCode}",
+                _                                     => $"{T("Fail")}: {Lot.LotCode}",
+            };
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+}

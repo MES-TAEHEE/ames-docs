@@ -1938,3 +1938,12 @@ body {
 .rwk-detail-l   { font-size: 14px; letter-spacing: 1.5px; color: rgba(255,255,255,.5); text-transform: uppercase; }
 .rwk-detail-lot { font-size: 24px; font-weight: 700; }
 .rwk-detail-sep { grid-column: 1 / -1; height: 1px; background: rgba(255,255,255,.1); margin: 4px 0; }
+
+/* IMG 완제품 판정 팝업 — 장갑 낀 손으로 누를 큰 OK/NG */
+.jdg-core { color: rgba(255,255,255,.7); }
+.jdg-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 18px 0; }
+.jdg-btn  { height: 220px; border-radius: 14px; border: 3px solid; color: #fff; cursor: pointer;
+            font-size: 64px; font-weight: 800; letter-spacing: 6px; }
+.jdg-btn.ok { background: rgba(13,184,122,.22); border-color: #0db87a; }
+.jdg-btn.ng { background: rgba(239,68,68,.22);  border-color: #ef4444; }
+.jdg-btn:disabled, .def-btn.jdg-busy { opacity: .4; cursor: not-allowed; }

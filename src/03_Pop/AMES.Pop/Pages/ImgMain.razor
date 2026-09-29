@@ -1,5 +1,6 @@
 @page "/imgmain"
 @using AMES.Contracts.Enums
+@using AMES.Data.Services
 @using AMES.Pop.Pages.InjPopups
 @implements IDisposable
 @inject NavigationManager Nav
@@ -9,9 +10,9 @@
 @inject AMES.Pop.Services.ScannerService Scanner
 
 @*  IMG-MAIN — IMG 통합 작업 화면. INJ-MAIN 과 같은 2단 레이아웃과 같은 LOT 모델(1 LOT = 1 EA).
-    좌측 스테이션 품번 당일 현황(PLAN/INPUT/NG/FINAL) + 우측 라벨 발행·스캔 확정·오늘 발행 LOT 목록.
-    IMG 는 에이전트가 없어 LOT 은 라벨 발행 버튼이 만들고 그 자리에서 라벨을 동기 출력한다.
-    실적은 라벨을 스캔해야 확정되며, 목록의 해당 행에 OK 가 붙는다. WO 접수 없음 — 품번 선택이 열린 WO 를 자동 해석.
+    좌측 스테이션 품번 당일 현황(PLAN/INPUT/NG/FINAL) + 우측 스캔·오늘 발행 LOT 목록.
+    주 흐름: 사출 Core 라벨 스캔 → Core 와 연결된 완제품 LOT 생성·라벨 출력 → OK/NG 판정 팝업.
+    완제품 라벨(RAW)을 다시 찍으면 판정 팝업이 다시 뜬다. 라벨 발행 버튼은 Core 없는 예외용이다.
     불량·안돈은 팝업(Pages/InjPopups/*)을 공유한다. *@
 
 <div class="pop-shell injm-shell">
@@ -123,7 +124,7 @@
                         🏷 @T("LabelPrint") · @(_selItemNo ?? "—")
                     </button>
 
-                    <div class="input-label">@T("LotBarcodeScanConfirm")</div>
+                    <div class="input-label">@T("ImgScanCoreOrLabel")</div>
                     <input @ref="_scanInput" @bind="_scanBuf" @bind:event="oninput"
                            @onkeydown="OnScanKey" class="injm-scan-input"
                            placeholder="A94W10001" autocomplete="off" />
@@ -147,6 +148,7 @@
                         <table class="injm-subtbl">
                             <thead><tr>
                                 <th style="text-align:left;">@T("Lotno")</th>
+                                <th style="text-align:left;">@T("Core")</th>
                                 <th style="text-align:left;">@T("PartNo")</th>
                                 <th style="text-align:left;">@T("Time")</th>
                                 <th>@T("Status")</th>
@@ -158,6 +160,7 @@
                                 <tr>
                                     <td class="mono" style="cursor:pointer;"
                                         @onclick="@(() => { _scanBuf = lot.LotCode; _focusScan = true; })">@lot.LotCode</td>
+                                    <td class="mono">@(lot.CoreLotCode ?? "—")</td>
                                     <td class="mono">@lot.ItemNo</td>
                                     <td class="mono">@lot.CreatedTS.ToString("HH:mm:ss")</td>
                                     <td style="text-align:center;">
@@ -174,7 +177,7 @@
                             }
                             @if (_lots.Count == 0)
                             {
-                                <tr><td colspan="5" style="padding:14px 4px; color:rgba(255,255,255,.4);">@T("NoLotsToday")</td></tr>
+                                <tr><td colspan="6" style="padding:14px 4px; color:rgba(255,255,255,.4);">@T("NoLotsToday")</td></tr>
                             }
                             </tbody>
                         </table>
@@ -194,6 +197,9 @@
 @* ── 팝업 ─────────────────────────────────────────────────────────── *@
 @switch (_popup)
 {
+    case Popup.Judge when _judgeLot is not null:
+        <ImgJudgePopup Session="Session" Lot="_judgeLot" OnClose="ClosePopup" OnDone="OnJudged" />
+        break;
     case Popup.Defect:
         <DefectPopup Session="Session" ProcessCode="IMG" OnClose="ClosePopup" OnChanged="Refresh" />
         break;
@@ -211,8 +217,9 @@
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
 
-    private enum Popup { None, Defect, Andon, WoList }
+    private enum Popup { None, Defect, Andon, WoList, Judge }
     private Popup _popup = Popup.None;
+    private ImgLotDto? _judgeLot;
 
     private List<InjItemDailyDto> _items = new();
 
@@ -351,7 +358,7 @@
         _popup = Popup.WoList;
     }
 
-    // ── 라벨 발행: LOT 1개 생성 + 즉시 출력. 실적이 아니다 — 스캔해야 확정된다. ──
+    // ── 예외 발행: Core 없이 LOT 1개 생성 + 즉시 출력 → 판정 팝업. ──
     private void PrintLabel()
     {
         if (Session is null || _activeWo is null || _printing) return;
@@ -359,30 +366,43 @@
         try
         {
             var lot = PopServices.ImgLots.CreateRawLot(Session.LineId, _activeWo.ItemNo, Session.EmployeeNo);
-            try
-            {
-                LabelPrinter.Print(lot, Session.ShiftCode);
-                var printed = PopServices.ImgLots.IncrementPrintedCount(lot.LotId, Session.EmployeeNo);
-                Toasts.Ok($"{T("LotIssued")}: {lot.LotCode} ({lot.ItemNo})");
-            }
-            catch (Exception ex)
-            {
-                // LOT 은 이미 만들어졌다 — 목록의 재출력 버튼으로 복구한다.
-                Toasts.Bad($"{T("PrintFailedLotKept")}: {lot.LotCode} — {ex.Message}");
-            }
-            Refresh();
+            PrintAndJudge(lot);
         }
         catch (Exception ex) { Toasts.Bad($"{T("EntryFailed")}: {ex.Message}"); }
         finally { _printing = false; _focusScan = true; }
     }
 
-    // ── 스캔 확정 ────────────────────────────────────────────────────
+    // 출력이 실패해도 LOT 은 이미 있다 — 판정은 그대로 받고 라벨은 목록 재출력으로 복구한다.
+    private void PrintAndJudge(ImgLotDto lot)
+    {
+        try
+        {
+            LabelPrinter.Print(lot, Session!.ShiftCode);
+            PopServices.ImgLots.IncrementPrintedCount(lot.LotId, Session.EmployeeNo);
+            SetBanner(true, $"{T("LotIssued")}: {lot.LotCode} ({lot.ItemNo})");
+        }
+        catch (Exception ex) { Toasts.Bad($"{T("PrintFailedLotKept")}: {lot.LotCode} — {ex.Message}"); }
+        Refresh();
+        OpenJudge(lot);
+    }
+
+    private void OpenJudge(ImgLotDto lot) { _andonAutoRaise = false; _judgeLot = lot; _popup = Popup.Judge; }
+
+    private void OnJudged((string Detail, string ItemNo) r)
+    {
+        // 판정분은 금일 수치에 올라가므로 과거 날짜를 보고 있었다면 금일로 돌린다.
+        _selItemNo = r.ItemNo; _viewDate = null;
+        SetBanner(true, r.Detail);
+        ClosePopup();
+    }
+
+    // ── 스캔 ─────────────────────────────────────────────────────────
     // 리더 스레드에서 오므로 렌더러 스레드로 넘긴다. 팝업이 열려 있으면 무시.
     private void OnSerialScan(string code)
         => InvokeAsync(() =>
         {
             if (_popup != Popup.None) return;
-            ConfirmScan(code);
+            HandleScan(code);
             StateHasChanged();
         });
 
@@ -395,47 +415,62 @@
         var code = _scanBuf.Trim();
         _scanBuf = string.Empty;
         if (code.Length == 0) return;
-        ConfirmScan(code);
+        HandleScan(code);
     }
 
-    private void ConfirmScan(string raw)
+    // 스캔 한 칸이 두 가지를 받는다 — IMG 완제품 라벨이면 판정, 아니면 사출 Core 로 보고 완제품을 만든다.
+    // 두 라벨 모두 ExtractLotCode 가 9자 LotNo 를 돌려준다(INJ 라벨은 LotNo 그대로).
+    private void HandleScan(string raw)
     {
         if (Session is null) return;
         try
         {
-            // 완제품 라벨의 DataMatrix 는 고객 표준 문자열 전체가 온다 — T 토큰 끝 9자가 우리 LotNo.
             var lotCode = AMES.Devices.ImgScanParser.ExtractLotCode(raw);
-            if (lotCode is null)
-            {
-                SetBanner(false, $"{T("LotNotFound")}: {raw}");
-                return;
-            }
+            if (lotCode is null) { SetBanner(false, $"{T("LotNotFound")}: {raw}"); return; }
 
-            // 대상 WO 는 LOT 품번으로 리포지토리가 정한다.
-            var (outcome, _, itemNo, woId) = PopServices.ImgLots.ConfirmByLotCode(
-                lotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
-            var woNumber = woId > 0 ? PopServices.WorkOrders.GetById(woId)?.WoNumber : null;
-            var (ok, detail) = outcome switch
-            {
-                ImgConfirmOutcome.Confirmed        => (true,  $"{T("Confirmed")}: {lotCode} ({itemNo}){(woNumber is null ? "" : $" → {woNumber}")}"),
-                ImgConfirmOutcome.NotFound         => (false, $"{T("LotNotFound")}: {lotCode}"),
-                ImgConfirmOutcome.AlreadyConfirmed => (false, $"{T("AlreadyConfirmed")}: {lotCode}"),
-                ImgConfirmOutcome.WrongLine        => (false, $"{T("LotBelongsToAnotherLine")}: {lotCode}"),
-                ImgConfirmOutcome.InRework         => (false, $"{T("LotInRework")}: {lotCode}"),
-                ImgConfirmOutcome.Scrapped         => (false, $"{T("LotScrapped")}: {lotCode}"),
-                ImgConfirmOutcome.NoWoForItem      => (false, $"{T("NoOpenWoForThisPart")}: {lotCode} ({itemNo})"),
-                _                                  => (false, $"{T("ConfirmFailed")}: {lotCode}"),
-            };
-            // 확정분은 금일 수치에 올라가므로 과거 날짜를 보고 있었다면 금일로 돌린다.
-            if (ok) { _selItemNo = itemNo; _viewDate = null; }
-            SetBanner(ok, detail);
-            Refresh();
+            if (PopServices.ImgLots.GetByLotCode(lotCode) is { } img) OpenJudgeFor(img);
+            else IssueFromCore(lotCode);
         }
-        catch (Exception ex)
-        {
-            SetBanner(false, $"{T("ConfirmFailed")}: {ex.Message}");
-        }
+        catch (Exception ex) { SetBanner(false, $"{T("ConfirmFailed")}: {ex.Message}"); }
         finally { _focusScan = true; }
+    }
+
+    private void OpenJudgeFor(ImgLotDto lot)
+    {
+        if (!string.Equals(lot.LineId, Session!.LineId, StringComparison.OrdinalIgnoreCase))
+        { SetBanner(false, $"{T("LotBelongsToAnotherLine")}: {lot.LotCode}"); return; }
+
+        var blocked = LotDefectRules.ConfirmBlock(lot.ConfirmStatus) switch
+        {
+            LotConfirmBlock.None             => null,
+            LotConfirmBlock.AlreadyConfirmed => T("AlreadyConfirmed"),
+            LotConfirmBlock.InRework         => T("LotInRework"),
+            _                                => T("LotScrapped"),
+        };
+        if (blocked is not null) { SetBanner(false, $"{blocked}: {lot.LotCode}"); return; }
+
+        _selItemNo = lot.ItemNo; _viewDate = null;
+        OpenJudge(lot);
+    }
+
+    private void IssueFromCore(string coreCode)
+    {
+        var (outcome, lot, usedBy, itemNo) = PopServices.ImgLots.CreateFromCore(coreCode, Session!.LineId, Session.EmployeeNo);
+        if (outcome != ImgCoreOutcome.Created || lot is null)
+        {
+            SetBanner(false, outcome switch
+            {
+                ImgCoreOutcome.CoreUnconfirmed => $"{T("CoreUnconfirmed")}: {coreCode}",
+                ImgCoreOutcome.CoreDefect      => $"{T("CoreDefect")}: {coreCode}",
+                ImgCoreOutcome.CoreScrapped    => $"{T("CoreScrapped")}: {coreCode}",
+                ImgCoreOutcome.CoreUsed        => $"{T("CoreUsed")}: {coreCode} → {usedBy}",
+                ImgCoreOutcome.NoWoForItem     => $"{T("NoOpenWoForThisPart")}: {coreCode} ({itemNo})",
+                _                              => $"{T("LotNotFound")}: {coreCode}",
+            });
+            return;
+        }
+        _selItemNo = lot.ItemNo; _viewDate = null;
+        PrintAndJudge(lot);
     }
 
     private void SetBanner(bool ok, string detail)
@@ -473,7 +508,7 @@
         else _andonAutoRaise = false;
         _popup = Popup.Andon;
     }
-    private void ClosePopup() { _popup = Popup.None; _focusScan = true; Refresh(); }
+    private void ClosePopup() { _popup = Popup.None; _judgeLot = null; _focusScan = true; Refresh(); }
 
     private async Task Logout()
     {
