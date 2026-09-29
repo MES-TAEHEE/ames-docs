@@ -902,10 +902,10 @@ public static class FgEndpoints
             """, conn, tx))
         {
             cmd.Parameters.Add("@LotNo", SqlDbType.NVarChar, 50).Value = row.LotNo;
-            cmd.Parameters.Add("@ItemNo", SqlDbType.NVarChar, 40).Value = row.ItemNo;
+            cmd.Parameters.Add("@ItemNo", SqlDbType.VarChar, 50).Value = row.ItemNo;
             AddNullable(cmd, "@PartName", SqlDbType.NVarChar, 200, row.ItemName);
             AddDecimal(cmd, "@Qty", row.Qty);
-            cmd.Parameters.Add("@Location", SqlDbType.NVarChar, 80).Value = location.LocationId;
+            cmd.Parameters.Add("@Location", SqlDbType.VarChar, 50).Value = location.LocationId;
             cmd.ExecuteNonQuery();
         }
 
@@ -960,8 +960,8 @@ public static class FgEndpoints
                  N'Finished goods put-away', LEFT(@OperatorID, 20), SYSDATETIME());
             """, conn, tx))
         {
-            cmd.Parameters.Add("@ItemNo", SqlDbType.NVarChar, 40).Value = row.ItemNo;
-            cmd.Parameters.Add("@Location", SqlDbType.NVarChar, 80).Value = location.LocationId;
+            cmd.Parameters.Add("@ItemNo", SqlDbType.VarChar, 20).Value = row.ItemNo;
+            cmd.Parameters.Add("@Location", SqlDbType.VarChar, 20).Value = location.LocationId;
             AddNullable(cmd, "@LotID", SqlDbType.Int, row.LotId);
             cmd.Parameters.Add("@LotNo", SqlDbType.NVarChar, 50).Value = row.LotNo;
             AddDecimal(cmd, "@Qty", row.Qty);
@@ -980,8 +980,8 @@ public static class FgEndpoints
                        ModifiedTS = SYSDATETIME()
                  WHERE LotID = @LotID;
                 """, conn, tx);
-            cmd.Parameters.Add("@Location", SqlDbType.NVarChar, 80).Value = location.LocationId;
-            cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar,  20).Value = operatorId;
+            cmd.Parameters.Add("@Location", SqlDbType.VarChar, 20).Value = location.LocationId;
+            cmd.Parameters.Add("@OperatorID", SqlDbType.VarChar, 20).Value = operatorId;
             cmd.Parameters.Add("@LotID", SqlDbType.Int).Value = row.LotId.Value;
             cmd.ExecuteNonQuery();
         }

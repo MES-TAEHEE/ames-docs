@@ -379,7 +379,7 @@ public sealed class WarehouseRepository
                 (src.CodeID,'WH_CODE',@WhCode,@WhName,100,@UseYn,'web',SYSDATETIME());
             """, conn);
         cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = Truncate(whCode.Trim(), 20);
-        AddNullable(cmd, "@WhName", SqlDbType.NVarChar, 120, whName);
+        AddNullable(cmd, "@WhName", SqlDbType.NVarChar, 60, whName);
         cmd.Parameters.Add("@UseYn", SqlDbType.Bit).Value = useYn;
         cmd.ExecuteNonQuery();
     }
@@ -528,7 +528,7 @@ public sealed class WarehouseRepository
         cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(Truncate(whCode?.Trim() ?? "", 20)) ?? DBNull.Value;
         cmd.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = Truncate(areaCode.Trim(), 20);
         cmd.Parameters.Add("@SectionCode", SqlDbType.VarChar, 20).Value = Truncate(sectionCode.Trim(), 20);
-        AddNullable(cmd, "@SectionName", SqlDbType.NVarChar, 120, sectionName);
+        AddNullable(cmd, "@SectionName", SqlDbType.NVarChar, 60, sectionName);
         cmd.Parameters.Add("@UseYn", SqlDbType.Bit).Value = useYn;
         cmd.ExecuteNonQuery();
     }
@@ -598,7 +598,7 @@ public sealed class WarehouseRepository
             """, conn);
         cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(Truncate(whCode?.Trim() ?? "", 20)) ?? DBNull.Value;
         cmd.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = Truncate(areaCode.Trim(), 20);
-        AddNullable(cmd, "@AreaName", SqlDbType.NVarChar, 120, areaName);
+        AddNullable(cmd, "@AreaName", SqlDbType.NVarChar, 60, areaName);
         cmd.Parameters.Add("@UseYn", SqlDbType.Bit).Value = useYn;
         cmd.ExecuteNonQuery();
     }
@@ -1128,12 +1128,13 @@ public sealed class WarehouseRepository
                     VALUES
                         (@PickSlipNo, @ReqLocation, @ReqSeqNo, @ReqUserId,
                          @PartNo, @ReqBoxQty, 0, @RequiredAt, @Priority, 'Open',
-                         @ReqUserId, SYSDATETIME());
+                         @CreatedBy, SYSDATETIME());
                     """, conn, tx);
                 cmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo;
                 cmd.Parameters.Add("@ReqLocation", SqlDbType.NVarChar, 40).Value = line.LineCode;
                 cmd.Parameters.Add("@ReqSeqNo", SqlDbType.Int).Value = seq;
                 cmd.Parameters.Add("@ReqUserId", SqlDbType.NVarChar, 80).Value = Truncate(reqUserId, 80);
+                cmd.Parameters.Add("@CreatedBy", SqlDbType.VarChar, 20).Value = Truncate(reqUserId, 20);
                 cmd.Parameters.Add("@PartNo", SqlDbType.VarChar, 20).Value = line.PartNo;
                 AddQtyDecimal(cmd, "@ReqBoxQty", line.ReqBoxQty);
                 cmd.Parameters.Add("@RequiredAt", SqlDbType.DateTime2).Value = reqDate.Date;
@@ -1173,7 +1174,7 @@ public sealed class WarehouseRepository
              WHERE COALESCE(NULLIF(PickSlipNo, N''), CONCAT(N'RS-', PickSlipID)) = @PickSlipNo;
             """, conn);
         cmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo.Trim();
-        cmd.Parameters.Add("@PrintedBy", SqlDbType.NVarChar, 80).Value = Truncate(printedBy, 80);
+        cmd.Parameters.Add("@PrintedBy", SqlDbType.VarChar, 20).Value = Truncate(printedBy, 20);
         var changed = cmd.ExecuteNonQuery();
         if (changed == 0)
             throw new InvalidOperationException("Pick Slip was not found.");
@@ -1198,13 +1199,14 @@ public sealed class WarehouseRepository
                SET Status = 'Closed',
                    CloseDate = SYSDATETIME(),
                    CloseUserId = @ClosedBy,
-                   ModifiedBy = @ClosedBy,
+                   ModifiedBy = @ModifiedBy,
                    ModifiedTS = SYSDATETIME()
              WHERE COALESCE(NULLIF(PickSlipNo, N''), CONCAT(N'RS-', PickSlipID)) = @PickSlipNo
                AND UPPER(COALESCE(Status, 'OPEN')) <> 'CLOSED';
             """, conn);
         cmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo.Trim();
         cmd.Parameters.Add("@ClosedBy", SqlDbType.NVarChar, 80).Value = Truncate(closedBy, 80);
+        cmd.Parameters.Add("@ModifiedBy", SqlDbType.VarChar, 20).Value = Truncate(closedBy, 20);
         var changed = cmd.ExecuteNonQuery();
         if (changed == 0)
             throw new InvalidOperationException("Pick Slip was not found or is already closed.");
@@ -1592,7 +1594,7 @@ public sealed class WarehouseRepository
         itemCmd.Parameters.Add("@ItemNo", SqlDbType.VarChar, 20).Value = itemNo.Trim();
         AddQtyDecimal(itemCmd, "@MinQty", minQty, scale: 4);
         AddQtyDecimal(itemCmd, "@MaxQty", maxQty, scale: 4);
-        itemCmd.Parameters.Add("@ModifiedBy", SqlDbType.NVarChar, 80).Value = modifiedBy;
+        itemCmd.Parameters.Add("@ModifiedBy", SqlDbType.VarChar, 20).Value = Truncate(modifiedBy, 20);
         if (itemCmd.ExecuteNonQuery() == 0)
             throw new InvalidOperationException("Item was not found.");
     }
