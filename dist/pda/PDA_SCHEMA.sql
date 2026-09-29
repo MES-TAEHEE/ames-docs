@@ -10,8 +10,7 @@
 --
 --  Keep all PDA WH/FG tables, columns, indexes and procedures in this file.
 -- =====================================================================
-USE [AMES_DEV];
-GO
+-- Target database must be selected explicitly by sqlcmd -d or in SSMS.
 
 SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
@@ -35,6 +34,10 @@ IF EXISTS
       AND is_nullable = 0
 )
     ALTER TABLE dbo.WH_Inventory ALTER COLUMN LocationNo varchar(50) NULL;
+
+-- Procedures below reference this column before the inbound upgrade section.
+IF COL_LENGTH(N'dbo.WH_Inventory', N'DeliveryNoteNo') IS NULL
+    ALTER TABLE dbo.WH_Inventory ADD DeliveryNoteNo nvarchar(30) NULL;
 GO
 
 -- Portal Delivery Note receipts use the linked PO number as InvoiceNo.
@@ -47,13 +50,201 @@ BEGIN
        SET InvoiceNo = PO.PoNumber
     FROM dbo.WH_Inventory W
     JOIN dbo.SCM_DeliveryBox B
-      ON B.BoxNumber = COALESCE(W.BoxNo, W.LotNo)
+      ON B.BoxNumber = W.LotNo
     JOIN dbo.SCM_DeliveryLine DL
       ON DL.DeliveryLineID = B.DeliveryLineID
     JOIN dbo.WH_PurchaseOrder PO
       ON PO.PoID = DL.PoID
     WHERE W.DeliveryNoteNo IS NOT NULL
       AND NULLIF(LTRIM(RTRIM(W.InvoiceNo)), N'') IS NULL;
+END;
+GO
+
+-- =====================================================================
+--  FG pallet outbound
+-- =====================================================================
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_OUTBOUND_PALLET_SCAN
+    @PalletBarcode nvarchar(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @PalletLotNo nvarchar(50);
+    SELECT TOP (1) @PalletLotNo = LotNo
+      FROM dbo.WH_Inventory
+     WHERE UnitType = 'PALLET'
+       AND LotNo = @PalletBarcode;
+
+    IF @PalletLotNo IS NULL
+        THROW 52000, 'Pallet LOT was not found.', 1;
+
+    IF NOT EXISTS
+    (
+        SELECT 1
+          FROM dbo.WH_Inventory
+         WHERE ParentLotNo = @PalletLotNo
+           AND UnitType = 'PART'
+           AND Qty > 0
+    )
+        THROW 52001, 'This pallet has already been outbound or contains no available parts.', 1;
+
+    SELECT P.LotNo AS PalletLotNo,
+           P.LocationNo,
+           SUM(C.Qty) AS TotalQty,
+           COUNT_BIG(*) AS PartCount
+      FROM dbo.WH_Inventory P
+      JOIN dbo.WH_Inventory C ON C.ParentLotNo = P.LotNo
+                             AND C.UnitType = 'PART'
+                             AND C.Qty > 0
+     WHERE P.LotNo = @PalletLotNo
+     GROUP BY P.LotNo, P.LocationNo;
+
+    SELECT LotNo,
+           PartNo,
+           PartName,
+           Qty,
+           LocationNo
+      FROM dbo.WH_Inventory
+     WHERE ParentLotNo = @PalletLotNo
+       AND UnitType = 'PART'
+       AND Qty > 0
+     ORDER BY LotNo;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_OUTBOUND_PALLET_COMPLETE
+    @PalletLotNo nvarchar(50),
+    @OperatorID nvarchar(450)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    BEGIN TRANSACTION;
+
+    IF NOT EXISTS
+    (
+        SELECT 1
+          FROM dbo.WH_Inventory WITH (UPDLOCK, HOLDLOCK)
+         WHERE LotNo = @PalletLotNo
+           AND UnitType = 'PALLET'
+    )
+        THROW 52000, 'Pallet LOT was not found.', 1;
+
+    DECLARE @Items TABLE
+    (
+        LotNo nvarchar(50) NOT NULL,
+        PartNo varchar(20) NULL,
+        LocationNo varchar(20) NULL,
+        Qty decimal(14,3) NOT NULL
+    );
+
+    INSERT @Items (LotNo, PartNo, LocationNo, Qty)
+    SELECT LotNo, PartNo, LocationNo, Qty
+      FROM dbo.WH_Inventory WITH (UPDLOCK, HOLDLOCK)
+     WHERE ParentLotNo = @PalletLotNo
+       AND UnitType = 'PART'
+       AND Qty > 0;
+
+    IF NOT EXISTS (SELECT 1 FROM @Items)
+        THROW 52001, 'This pallet has already been outbound or contains no available parts.', 1;
+
+    INSERT dbo.WH_InventoryTransaction
+        (TransactionTime, TransactionType, ItemNo, LocationID, LotNo,
+         QtyBefore, QtyChange, QtyAfter, ReasonCode, RefDocType,
+         OperatorID, Note, CreatedBy, CreatedTS)
+    SELECT SYSDATETIME(), 'OUT', PartNo, LocationNo, LotNo,
+           Qty, -Qty, 0, 'PALLET_OUTBOUND', 'FG_PALLET_OUTBOUND',
+           @OperatorID, N'Pallet LOT: ' + @PalletLotNo,
+           LEFT(COALESCE(NULLIF(@OperatorID, N''), N'system'), 50), SYSDATETIME()
+      FROM @Items;
+
+    UPDATE I
+       SET Qty = 0,
+           UpdatedAt = SYSDATETIME()
+      FROM dbo.WH_Inventory I
+      JOIN @Items X ON X.LotNo = I.LotNo;
+
+    UPDATE dbo.WH_Inventory
+       SET Qty = 0,
+           UpdatedAt = SYSDATETIME()
+     WHERE LotNo = @PalletLotNo;
+
+    SELECT COUNT(*) AS ProcessedCount,
+           SUM(Qty) AS TotalQty
+      FROM @Items;
+
+    COMMIT TRANSACTION;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_OUTBOUND_TEST_RESET
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    BEGIN TRANSACTION;
+
+    DELETE dbo.WH_InventoryTransaction
+     WHERE RefDocType = 'FG_PALLET_OUTBOUND'
+       AND LotNo IN (N'FGLOT-DEMO-001-A', N'FGLOT-DEMO-001-B');
+
+    IF EXISTS (SELECT 1 FROM dbo.WH_Inventory WHERE LotNo = N'FGPAL-DEMO-001')
+        UPDATE dbo.WH_Inventory
+           SET UnitType = 'PALLET', ParentLotNo = NULL, PartNo = NULL, PartName = NULL,
+               CaseNo = NULL,
+               LocationNo = N'FG-A01-01', Qty = 60,
+               InvoiceNo = N'INV-FG-DEMO-001', DeliveryNoteNo = N'DN-FG-DEMO-001',
+               ReceivedAt = DATEADD(day, -1, SYSDATETIME()), UpdatedAt = SYSDATETIME()
+         WHERE LotNo = N'FGPAL-DEMO-001';
+    ELSE
+        INSERT dbo.WH_Inventory
+            (LotNo, UnitType, ParentLotNo, PartNo, PartName, CaseNo,
+             LocationNo, Qty, InvoiceNo, DeliveryNoteNo, ReceivedAt, CreatedAt, UpdatedAt)
+        VALUES
+            (N'FGPAL-DEMO-001', 'PALLET', NULL, NULL, NULL, NULL,
+             N'FG-A01-01', 60, N'INV-FG-DEMO-001', N'DN-FG-DEMO-001',
+             DATEADD(day, -1, SYSDATETIME()), SYSDATETIME(), SYSDATETIME());
+
+    IF EXISTS (SELECT 1 FROM dbo.WH_Inventory WHERE LotNo = N'FGLOT-DEMO-001-A')
+        UPDATE dbo.WH_Inventory
+           SET UnitType = 'PART', ParentLotNo = N'FGPAL-DEMO-001',
+               PartNo = N'81710-PI010NNB', PartName = N'TRIM ASSY-TAIL GATE SIDE,LH',
+               CaseNo = NULL,
+               LocationNo = N'FG-A01-01', Qty = 40,
+               InvoiceNo = N'INV-FG-DEMO-001', DeliveryNoteNo = N'DN-FG-DEMO-001',
+               ReceivedAt = DATEADD(day, -1, SYSDATETIME()), UpdatedAt = SYSDATETIME()
+         WHERE LotNo = N'FGLOT-DEMO-001-A';
+    ELSE
+        INSERT dbo.WH_Inventory
+            (LotNo, UnitType, ParentLotNo, PartNo, PartName, CaseNo,
+             LocationNo, Qty, InvoiceNo, DeliveryNoteNo, ReceivedAt, CreatedAt, UpdatedAt)
+        VALUES
+            (N'FGLOT-DEMO-001-A', 'PART', N'FGPAL-DEMO-001', N'81710-PI010NNB',
+             N'TRIM ASSY-TAIL GATE SIDE,LH', NULL,
+             N'FG-A01-01', 40, N'INV-FG-DEMO-001', N'DN-FG-DEMO-001',
+             DATEADD(day, -1, SYSDATETIME()), SYSDATETIME(), SYSDATETIME());
+
+    IF EXISTS (SELECT 1 FROM dbo.WH_Inventory WHERE LotNo = N'FGLOT-DEMO-001-B')
+        UPDATE dbo.WH_Inventory
+           SET UnitType = 'PART', ParentLotNo = N'FGPAL-DEMO-001',
+               PartNo = N'81710-PI000YGN', PartName = N'TRIM ASSY-TAIL GATE SIDE,RH',
+               CaseNo = NULL,
+               LocationNo = N'FG-A01-01', Qty = 20,
+               InvoiceNo = N'INV-FG-DEMO-001', DeliveryNoteNo = N'DN-FG-DEMO-001',
+               ReceivedAt = DATEADD(day, -1, SYSDATETIME()), UpdatedAt = SYSDATETIME()
+         WHERE LotNo = N'FGLOT-DEMO-001-B';
+    ELSE
+        INSERT dbo.WH_Inventory
+            (LotNo, UnitType, ParentLotNo, PartNo, PartName, CaseNo,
+             LocationNo, Qty, InvoiceNo, DeliveryNoteNo, ReceivedAt, CreatedAt, UpdatedAt)
+        VALUES
+            (N'FGLOT-DEMO-001-B', 'PART', N'FGPAL-DEMO-001', N'81710-PI000YGN',
+             N'TRIM ASSY-TAIL GATE SIDE,RH', NULL,
+             N'FG-A01-01', 20, N'INV-FG-DEMO-001', N'DN-FG-DEMO-001',
+             DATEADD(day, -1, SYSDATETIME()), SYSDATETIME(), SYSDATETIME());
+
+    COMMIT TRANSACTION;
 END;
 GO
 
@@ -205,7 +396,7 @@ BEGIN
 
     SELECT
         ROW_NUMBER() OVER (ORDER BY T.TransactionTime DESC, T.TransactionID DESC) AS ROW_NO,
-        COALESCE(T.LotNo, L.LotCode) AS LOTNO,
+        COALESCE(T.LotNo COLLATE DATABASE_DEFAULT, L.LotCode COLLATE DATABASE_DEFAULT) AS LOTNO,
         T.ItemNo AS PARTNO,
         CONVERT(nvarchar(10), T.TransactionTime, 23) AS WDATE,
         CONVERT(nvarchar(8), T.TransactionTime, 108) AS WTIME,
@@ -237,20 +428,19 @@ BEGIN
     LEFT JOIN dbo.tbl_Lot L
            ON L.LotID = T.LotID
     LEFT JOIN dbo.MD_Item I
-           ON I.ItemNo = T.ItemNo
+           ON I.ItemNo COLLATE DATABASE_DEFAULT = T.ItemNo COLLATE DATABASE_DEFAULT
     WHERE T.TransactionTime >= @From
       AND T.TransactionTime < DATEADD(day, 1, @To)
       AND (@Like IS NULL
-           OR COALESCE(T.LotNo, L.LotCode) LIKE @Like
+           OR COALESCE(T.LotNo COLLATE DATABASE_DEFAULT, L.LotCode COLLATE DATABASE_DEFAULT) LIKE @Like
            OR T.ItemNo LIKE @Like
            OR T.LocationID LIKE @Like
            OR EXISTS (
                SELECT 1
                FROM dbo.WH_Inventory W
-               WHERE W.LotNo = COALESCE(T.LotNo, L.LotCode)
-                 AND (W.PalletNo LIKE @Like
-                      OR W.CaseNo LIKE @Like
-                      OR W.BoxNo LIKE @Like
+               WHERE W.LotNo COLLATE DATABASE_DEFAULT =
+                     COALESCE(T.LotNo COLLATE DATABASE_DEFAULT, L.LotCode COLLATE DATABASE_DEFAULT)
+                 AND (W.CaseNo LIKE @Like
                       OR W.InvoiceNo LIKE @Like
                       OR W.DeliveryNoteNo LIKE @Like)))
     ORDER BY T.TransactionTime DESC, T.TransactionID DESC;
@@ -406,7 +596,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_WH_InboundPackage_Doc
     CREATE INDEX IX_WH_InboundPackage_DocumentBarcode ON dbo.WH_InboundPackage(DocumentBarcode, ItemNo);
 GO
 
--- LOCAL: delivery note header/detail. CKD: case header/detail.
+-- SCM delivery notes are available in either receive mode; legacy package documents keep their configured mode.
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_INBOUND_DOCUMENT_INFO
     @ReceiveMode nvarchar(10),
     @DocumentBarcode nvarchar(50)
@@ -417,12 +607,20 @@ BEGIN
     DECLARE @Mode nvarchar(10) = UPPER(LTRIM(RTRIM(ISNULL(@ReceiveMode, N''))));
     DECLARE @Barcode nvarchar(50) = LTRIM(RTRIM(ISNULL(@DocumentBarcode, N'')));
     DECLARE @ActualMode nvarchar(10);
+    DECLARE @NoteNumber nvarchar(50);
 
     IF @Mode NOT IN (N'LOCAL', N'CKD')
         THROW 51400, 'Receive mode must be LOCAL or CKD.', 1;
 
-    IF @Mode = N'LOCAL'
-       AND EXISTS (SELECT 1 FROM dbo.SCM_DeliveryNote WHERE NoteNumber = @Barcode)
+    SELECT TOP (1) @NoteNumber = N.NoteNumber
+    FROM dbo.SCM_DeliveryNote N
+    LEFT JOIN dbo.SCM_DeliveryNoteDelivery ND ON ND.NoteID = N.NoteID
+    LEFT JOIN dbo.SCM_Delivery D ON D.DeliveryID = ND.DeliveryID
+    WHERE N.NoteNumber COLLATE DATABASE_DEFAULT = @Barcode
+       OR D.DeliveryNumber COLLATE DATABASE_DEFAULT = @Barcode
+    ORDER BY CASE WHEN N.NoteNumber COLLATE DATABASE_DEFAULT = @Barcode THEN 0 ELSE 1 END;
+
+    IF @NoteNumber IS NOT NULL
     BEGIN
         IF EXISTS
         (
@@ -430,7 +628,7 @@ BEGIN
             FROM dbo.SCM_DeliveryNote N
             JOIN dbo.SCM_DeliveryNoteDelivery ND ON ND.NoteID = N.NoteID
             JOIN dbo.SCM_Delivery D ON D.DeliveryID = ND.DeliveryID
-            WHERE N.NoteNumber = @Barcode
+            WHERE N.NoteNumber COLLATE DATABASE_DEFAULT = @NoteNumber
               AND D.Status NOT IN ('Shipped', 'Received')
         )
             THROW 51404, 'Only shipped delivery notes can be received.', 1;
@@ -442,13 +640,13 @@ BEGIN
             JOIN dbo.SCM_DeliveryNoteDelivery ND ON ND.NoteID = N.NoteID
             JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryID = ND.DeliveryID
             JOIN dbo.SCM_DeliveryBox B ON B.DeliveryLineID = DL.DeliveryLineID
-            WHERE N.NoteNumber = @Barcode
+            WHERE N.NoteNumber COLLATE DATABASE_DEFAULT = @NoteNumber
               AND B.ActiveFlag = 1
         )
             THROW 51405, 'The delivery note has no active box labels.', 1;
 
         SELECT
-            N'LOCAL' AS RECEIVE_TYPE,
+            @Mode AS RECEIVE_TYPE,
             N.NoteID AS INBOUND_DOCUMENT_ID,
             N.NoteNumber AS DOCUMENT_BARCODE,
             N.NoteNumber AS DOCUMENT_NO,
@@ -471,10 +669,11 @@ BEGIN
         JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryID = D.DeliveryID
         JOIN dbo.SCM_DeliveryBox B ON B.DeliveryLineID = DL.DeliveryLineID AND B.ActiveFlag = 1
         LEFT JOIN dbo.MD_Vendor V ON V.VendorID = N.VendorID
-        LEFT JOIN dbo.WH_Inventory W ON W.DeliveryNoteNo = N.NoteNumber
-                                      AND W.BoxNo = B.BoxNumber
+        LEFT JOIN dbo.WH_Inventory W
+          ON W.DeliveryNoteNo COLLATE DATABASE_DEFAULT = N.NoteNumber COLLATE DATABASE_DEFAULT
+                                      AND W.LotNo = B.BoxNumber
                                       AND W.Qty > 0
-        WHERE N.NoteNumber = @Barcode
+        WHERE N.NoteNumber COLLATE DATABASE_DEFAULT = @NoteNumber
         GROUP BY N.NoteID, N.NoteNumber, N.VendorID, V.VendorName;
 
         SELECT
@@ -492,10 +691,11 @@ BEGIN
         JOIN dbo.SCM_DeliveryNoteDelivery ND ON ND.NoteID = N.NoteID
         JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryID = ND.DeliveryID
         JOIN dbo.SCM_DeliveryBox B ON B.DeliveryLineID = DL.DeliveryLineID AND B.ActiveFlag = 1
-        LEFT JOIN dbo.WH_Inventory W ON W.DeliveryNoteNo = N.NoteNumber
-                                      AND W.BoxNo = B.BoxNumber
+        LEFT JOIN dbo.WH_Inventory W
+          ON W.DeliveryNoteNo COLLATE DATABASE_DEFAULT = N.NoteNumber COLLATE DATABASE_DEFAULT
+                                      AND W.LotNo = B.BoxNumber
                                       AND W.Qty > 0
-        WHERE N.NoteNumber = @Barcode
+        WHERE N.NoteNumber COLLATE DATABASE_DEFAULT = @NoteNumber
         GROUP BY B.ItemNo
         ORDER BY B.ItemNo;
 
@@ -510,10 +710,11 @@ BEGIN
         JOIN dbo.SCM_DeliveryNoteDelivery ND ON ND.NoteID = N.NoteID
         JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryID = ND.DeliveryID
         JOIN dbo.SCM_DeliveryBox B ON B.DeliveryLineID = DL.DeliveryLineID AND B.ActiveFlag = 1
-        LEFT JOIN dbo.WH_Inventory W ON W.DeliveryNoteNo = N.NoteNumber
-                                      AND W.BoxNo = B.BoxNumber
+        LEFT JOIN dbo.WH_Inventory W
+          ON W.DeliveryNoteNo COLLATE DATABASE_DEFAULT = N.NoteNumber COLLATE DATABASE_DEFAULT
+                                      AND W.LotNo = B.BoxNumber
                                       AND W.Qty > 0
-        WHERE N.NoteNumber = @Barcode
+        WHERE N.NoteNumber COLLATE DATABASE_DEFAULT = @NoteNumber
         ORDER BY B.ItemNo, B.BoxSeq;
 
         RETURN;
@@ -636,8 +837,7 @@ BEGIN
     IF @Barcode = N''
         THROW 51401, 'Box barcode is required.', 1;
 
-    IF @Mode = N'LOCAL'
-       AND EXISTS
+    IF EXISTS
        (
            SELECT 1
            FROM dbo.SCM_DeliveryBox
@@ -660,7 +860,7 @@ BEGIN
             THROW 51404, 'Only boxes from a shipped delivery note can be received.', 1;
 
         SELECT TOP (1)
-            N'LOCAL' AS RECEIVE_TYPE,
+            @Mode AS RECEIVE_TYPE,
             CASE WHEN W.LotNo IS NULL THEN N'Y' ELSE N'N' END AS YN,
             COALESCE(NULLIF(DL.VendorLotNo, N''), B.BoxNumber) AS LOTNO,
             B.BoxNumber AS BARCODE,
@@ -692,8 +892,9 @@ BEGIN
         JOIN dbo.SCM_DeliveryNote N ON N.NoteID = ND.NoteID
         LEFT JOIN dbo.WH_PurchaseOrder PO ON PO.PoID = DL.PoID
         LEFT JOIN dbo.MD_Vendor V ON V.VendorID = D.VendorID
-        LEFT JOIN dbo.WH_Inventory W ON W.DeliveryNoteNo = N.NoteNumber
-                                      AND W.BoxNo = B.BoxNumber
+        LEFT JOIN dbo.WH_Inventory W
+          ON W.DeliveryNoteNo COLLATE DATABASE_DEFAULT = N.NoteNumber COLLATE DATABASE_DEFAULT
+                                      AND W.LotNo = B.BoxNumber
                                       AND W.Qty > 0
         WHERE B.BoxNumber = @Barcode
           AND B.ActiveFlag = 1
@@ -715,7 +916,7 @@ BEGIN
             @LotID = LotID,
             @ActualMode = UPPER(LTRIM(RTRIM(COALESCE(ProcessCode, N''))))
         FROM dbo.tbl_Lot
-        WHERE LotCode = @Barcode
+        WHERE LotCode COLLATE DATABASE_DEFAULT = @Barcode
         ORDER BY LotID DESC;
     END;
 
@@ -798,7 +999,8 @@ BEGIN
             P.DueDate,
             P.Status
         FROM dbo.WH_PurchaseOrder P
-        JOIN MatchedLot L ON L.ItemNo = P.ItemNo
+        JOIN MatchedLot L
+          ON L.ItemNo COLLATE DATABASE_DEFAULT = P.ItemNo COLLATE DATABASE_DEFAULT
         LEFT JOIN MatchedPackage MP ON 1 = 1
         WHERE MP.PoID IS NULL OR P.PoID = MP.PoID
         ORDER BY
@@ -844,70 +1046,74 @@ BEGIN
     LEFT JOIN MatchedPo P
            ON 1 = 1
     LEFT JOIN dbo.MD_Vendor V
-           ON V.VendorID = COALESCE(P.VendorID, MP.VendorID);
+           ON V.VendorID COLLATE DATABASE_DEFAULT = COALESCE(P.VendorID, MP.VendorID) COLLATE DATABASE_DEFAULT;
 END;
 GO
 
 -- =====================================================================
 --  Inbound / Receive LOT
 -- =====================================================================
-CREATE OR ALTER PROCEDURE dbo.WH_PDA_PPT_TEST_RESET
-    @Screen varchar(10)
+CREATE OR ALTER PROCEDURE dbo.WH_PDA_PPT_TEST_RESET @Screen varchar(10)
 AS
 BEGIN
-    SET NOCOUNT ON;
-    SET XACT_ABORT ON;
-    IF @Screen NOT IN ('release', 'inventory', 'adjust', 'history')
-        THROW 51522, 'Unknown PPT test screen.', 1;
+    SET NOCOUNT ON; SET XACT_ABORT ON;
+    DECLARE @S varchar(10)=LOWER(LTRIM(RTRIM(ISNULL(@Screen,''))));
+    IF @S NOT IN('release','putaway','inventory','adjust','history') THROW 51700,'Unknown WH PPT test screen.',1;
+    DECLARE @Rows table
+    (
+      LotNo nvarchar(100),
+      ItemNo varchar(50),
+      Qty decimal(18,3),
+      LocationNo varchar(50),
+      ReceivedAt datetime2
+    );
+    INSERT @Rows
+    SELECT L.LotCode,L.ItemNo,COALESCE(NULLIF(L.BatchSize,0),NULLIF(L.RemainingQty,0),1),
+      CASE
+        WHEN L.LotCode='5011LL260908810001' THEN 'B0-10-A1'
+        WHEN L.LotCode='5011LL260908810002' THEN 'B0-10-B1'
+        WHEN L.LotCode='5011LL260908810003' THEN 'B0-09-D2'
+        WHEN L.LotCode='5011LL260908810004' THEN 'B0-08-B1'
+        WHEN L.LotCode IN('5011LL260908850001','5011LL260908850002','5011LL260908850003') THEN NULL
+        WHEN L.LotCode='5011LL260908850004' THEN 'B0-10-A1'
+        WHEN L.LotCode='5011LL260908820001' THEN 'B0-10-A1'
+        WHEN L.LotCode='5011LL260908820002' THEN 'B0-10-B1'
+        WHEN L.LotCode='5011LL260908820003' THEN 'B0-09-D2'
+        WHEN L.LotCode='5011LL260908830001' THEN 'B0-12-B1'
+        ELSE 'B0-08-C1' END,
+      COALESCE(L.ProducedAt,SYSDATETIME())
+    FROM dbo.tbl_Lot L
+    WHERE (@S='release' AND L.LotCode LIKE '5011LL26090881%')
+       OR (@S='putaway' AND L.LotCode LIKE '5011LL26090885%')
+       OR (@S='inventory' AND L.LotCode LIKE '5011LL26090882%')
+       OR (@S='adjust' AND L.LotCode LIKE '5011LL26090883%')
+       OR (@S='history' AND L.LotCode LIKE '5011LL26090884%');
+    IF (SELECT COUNT(*) FROM @Rows) <> CASE @S WHEN 'release' THEN 4 WHEN 'putaway' THEN 4 WHEN 'inventory' THEN 3 ELSE 1 END
+        THROW 51702,'SCTEST1 WH data is missing. Apply PDA_SEED.sql first.',1;
     BEGIN TRANSACTION;
-    DECLARE @Lots TABLE (LotID int, LotCode varchar(40), ItemNo varchar(20), Qty decimal(14,3), LocationID varchar(20), ProducedAt datetime2);
-    INSERT INTO @Lots
-    SELECT LotID, LotCode, ItemNo, BatchSize,
-           CASE WHEN LotCode IN ('5011LL260908810002', '5011LL260908810003', '5011LL260908840001')
-                THEN 'B0-10-B1' ELSE 'B0-10-A1' END, ProducedAt
-    FROM dbo.tbl_Lot WITH (UPDLOCK, HOLDLOCK)
-    WHERE CreatedBy = CONCAT('pda-ppt-', @Screen)
-      AND LotCode IN ('5011LL260908810001', '5011LL260908810002', '5011LL260908810003', '5011LL260908810004',
-          '5011LL260908820001', '5011LL260908820002', '5011LL260908820003', '5011LL260908830001', '5011LL260908840001');
-    IF (SELECT COUNT(*) FROM @Lots) <> CASE @Screen WHEN 'release' THEN 4 WHEN 'inventory' THEN 3 ELSE 1 END
-        THROW 51523, 'PPT test data is missing. Apply PDA_SEED.sql first.', 1;
-
-    DELETE FROM dbo.WH_InventoryTransaction WHERE LotID IN (SELECT LotID FROM @Lots);
-    DELETE FROM dbo.WH_ReleasePicking WHERE LotID IN (SELECT LotID FROM @Lots);
-    DELETE FROM dbo.WH_OLD_Inventory WHERE LotID IN (SELECT LotID FROM @Lots);
-    INSERT INTO dbo.WH_OLD_Inventory
-        (ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt, Status, CreatedBy)
-    SELECT ItemNo, LocationID, LotID, Qty, 0, ProducedAt, 'Received', CONCAT('pda-ppt-', @Screen)
-    FROM @Lots;
-    UPDATE Lot
-    SET RemainingQty = Sample.Qty, CurrentLocationID = Sample.LocationID, Status = 'Received',
-        InventoryStatus = 'RECEIVED', ModifiedBy = 'TEST1', ModifiedTS = SYSDATETIME()
-    FROM dbo.tbl_Lot Lot JOIN @Lots Sample ON Sample.LotID = Lot.LotID;
-
-    IF @Screen = 'release'
-    BEGIN
-        IF (SELECT COUNT(*) FROM dbo.WH_ReleaseSchedule WHERE PickSlipNo = 'PS-PPT-WH-01' AND CreatedBy = 'pda-ppt-release') <> 2
-            THROW 51524, 'PPT Pick Slip is missing. Apply PDA_SEED.sql first.', 1;
-        UPDATE dbo.WH_ReleaseSchedule
-        SET PickedQty = 0, Status = 'Open', CloseDate = NULL, CloseUserId = NULL,
-            RequiredAt = SYSDATETIME(), ModifiedBy = 'TEST1', ModifiedTS = SYSDATETIME()
-        WHERE PickSlipNo = 'PS-PPT-WH-01' AND CreatedBy = 'pda-ppt-release';
-    END;
-    IF @Screen = 'history'
-    BEGIN
-        DECLARE @Today datetime2 = CONVERT(date, SYSDATETIME());
-        INSERT INTO dbo.WH_InventoryTransaction
-            (TransactionTime, TransactionType, ItemNo, LocationID, LotID, QtyBefore, QtyChange, QtyAfter,
-             ReasonCode, OperatorID, ApproverID, Note, CreatedBy, CreatedTS)
-        SELECT DATEADD(second, Sample.OffsetSeconds, @Today), Sample.Kind, Lot.ItemNo, Lot.LocationID, Lot.LotID,
-               Sample.BeforeQty, Sample.DeltaQty, Sample.AfterQty, Sample.Reason, 'TEST1',
-               NULL, Sample.Note, 'pda-ppt-history', DATEADD(second, Sample.OffsetSeconds, @Today)
-        FROM @Lots Lot CROSS JOIN (VALUES
-            (1, 'IN', 0, 20, 20, 'INBOUND_RECEIVE', N'PPT inbound 20 EA'),
-            (2, 'OUT', 20, -4, 16, 'PRODUCTION', N'PPT outgoing 4 EA'),
-            (3, 'ADJ', 16, 2, 18, 'COUNT_DIFF', N'PPT count correction +2 EA')
-        ) Sample(OffsetSeconds, Kind, BeforeQty, DeltaQty, AfterQty, Reason, Note);
-    END;
+    DELETE T FROM dbo.WH_InventoryTransaction T JOIN @Rows R ON R.LotNo=T.LotNo COLLATE DATABASE_DEFAULT;
+    MERGE dbo.WH_Inventory T USING(SELECT R.*,I.ItemName FROM @Rows R LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=R.ItemNo) S ON T.LotNo=S.LotNo
+    WHEN MATCHED THEN UPDATE SET PartNo=S.ItemNo,PartName=S.ItemName,LocationNo=S.LocationNo,Qty=S.Qty,ReceivedAt=S.ReceivedAt,UpdatedAt=SYSDATETIME()
+    WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
+      VALUES(S.LotNo,'PART',S.ItemNo,S.ItemName,S.LocationNo,S.Qty,S.ReceivedAt,SYSDATETIME(),SYSDATETIME());
+    IF @S='putaway' UPDATE dbo.WH_Inventory
+      SET DeliveryNoteNo=CASE WHEN LotNo='5011LL260908850004' THEN 'PPT-WH-NOTE-PUTAWAY-RELOCATE' ELSE 'PPT-WH-NOTE-PUTAWAY' END,
+          LocationNo=CASE WHEN LotNo='5011LL260908850004' THEN 'B0-10-A1' ELSE NULL END,UpdatedAt=SYSDATETIME()
+      WHERE LotNo LIKE '5011LL26090885%';
+    UPDATE L SET RemainingQty=R.Qty,CurrentLocationID=R.LocationNo,
+      InventoryStatus=CASE WHEN @S='putaway' AND R.LocationNo IS NULL THEN 'RECEIVED' ELSE 'STORED' END,
+      ModifiedBy='pda-ppt',ModifiedTS=SYSDATETIME()
+    FROM dbo.tbl_Lot L JOIN @Rows R ON R.LotNo=L.LotCode COLLATE DATABASE_DEFAULT;
+    IF @S='release' UPDATE dbo.WH_PickSlip SET PickedQty=0,Status='Open',CloseDate=NULL,CloseUserId=NULL,ModifiedBy='pda-ppt',ModifiedTS=SYSDATETIME() WHERE PickSlipNo='PS-PPT-WH-01';
+    IF @S='history' INSERT dbo.WH_InventoryTransaction(TransactionTime,TransactionType,ItemNo,LocationID,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,RefDocType,OperatorID,Note,CreatedBy,CreatedTS)
+      SELECT DATEADD(second,V.OffsetSeconds,CONVERT(datetime2,CONVERT(date,SYSDATETIME()))),V.TransactionType,
+        LEFT(R.ItemNo,20),LEFT(R.LocationNo,20),R.LotNo,V.QtyBefore,V.QtyChange,V.QtyAfter,V.ReasonCode,'PPT',N'SCTEST1',V.Note,N'pda-ppt',SYSDATETIME()
+      FROM @Rows R
+      CROSS JOIN (VALUES
+        (1,'IN',CAST(0 AS decimal(18,3)),CAST(20 AS decimal(18,3)),CAST(20 AS decimal(18,3)),'INBOUND',N'PPT inbound 20 EA'),
+        (2,'OUT',CAST(20 AS decimal(18,3)),CAST(-4 AS decimal(18,3)),CAST(16 AS decimal(18,3)),'PRODUCTION',N'PPT outbound 4 EA'),
+        (3,'ADJ',CAST(16 AS decimal(18,3)),CAST(2 AS decimal(18,3)),CAST(18 AS decimal(18,3)),'COUNT_DIFF',N'PPT count correction +2 EA')
+      ) V(OffsetSeconds,TransactionType,QtyBefore,QtyChange,QtyAfter,ReasonCode,Note);
     COMMIT TRANSACTION;
 END;
 GO
@@ -915,40 +1121,29 @@ GO
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_INBOUND_SIMPLE_TEST_RESET
 AS
 BEGIN
-    SET NOCOUNT ON;
-    SET XACT_ABORT ON;
+    SET NOCOUNT ON; SET XACT_ABORT ON;
+    DECLARE @Lots table(LotNo nvarchar(100));
+    INSERT @Lots VALUES
+      (N'5011LL260908800001'),(N'5011LL260908800002'),(N'5011LL260908800003'),
+      (N'CKD260908800000001'),(N'CKD260908800000002'),(N'CKD260908800000003');
+    IF (SELECT COUNT(*) FROM dbo.SCM_DeliveryBox B JOIN @Lots L ON L.LotNo=B.BoxNumber COLLATE DATABASE_DEFAULT WHERE B.ActiveFlag=1) <> 6
+       OR (SELECT COUNT(*) FROM dbo.SCM_DeliveryNote WHERE NoteNumber IN('PPT-WH-NOTE-LOCAL','PPT-WH-NOTE-CKD')) <> 2
+        THROW 51701,'SCTEST1 inbound data is missing. Apply PDA_SEED.sql first.',1;
     BEGIN TRANSACTION;
-    DECLARE @Lots TABLE (LotID int, Barcode varchar(40), PoID int);
-    INSERT INTO @Lots
-    SELECT Package.LotID, Package.BoxBarcode, Package.PoID
-    FROM dbo.WH_InboundPackage Package WITH (UPDLOCK, HOLDLOCK)
-    JOIN dbo.tbl_Lot Lot ON Lot.LotID = Package.LotID
-    JOIN dbo.WH_PurchaseOrder Purchase ON Purchase.PoID = Package.PoID
-    WHERE Package.CreatedBy = 'pda-simple-inbound'
-      AND Lot.CreatedBy = 'pda-simple-inbound'
-      AND Purchase.CreatedBy = 'pda-simple-inbound'
-      AND Purchase.PoNumber = 'PPT-INBOUND'
-      AND Package.BoxBarcode IN
-        ('5011LL260908800001', '5011LL260908800002', '5011LL260908800003',
-         'CKD260908800000001', 'CKD260908800000002', 'CKD260908800000003');
-
-    IF (SELECT COUNT(*) FROM @Lots) <> 6
-        THROW 51521, 'PPT Inbound test data is missing. Apply PDA_SEED.sql first.', 1;
-
-    DELETE FROM dbo.WH_InventoryTransaction WHERE LotID IN (SELECT LotID FROM @Lots);
-    DELETE FROM dbo.WH_OLD_Inventory WHERE LotID IN (SELECT LotID FROM @Lots);
-    DELETE FROM dbo.WH_Receiving WHERE LotCode IN (SELECT Barcode FROM @Lots);
-    UPDATE dbo.tbl_Lot
-    SET Status = 'Open', CurrentLocationID = NULL, RemainingQty = BatchSize,
-        InventoryStatus = NULL, ModifiedBy = 'TEST1', ModifiedTS = SYSDATETIME()
-    WHERE LotID IN (SELECT LotID FROM @Lots);
-    UPDATE dbo.WH_InboundPackage
-    SET Status = N'Open', ReceivedAt = NULL, ReceivedBy = NULL,
-        ModifiedBy = 'TEST1', ModifiedTS = SYSDATETIME()
-    WHERE LotID IN (SELECT LotID FROM @Lots);
-    UPDATE dbo.WH_PurchaseOrder
-    SET ReceivedQty = 0, Status = 'Open', ModifiedBy = 'TEST1', ModifiedTS = SYSDATETIME()
-    WHERE PoID IN (SELECT PoID FROM @Lots);
+    DELETE T FROM dbo.WH_InventoryTransaction T JOIN @Lots L ON L.LotNo=T.LotNo COLLATE DATABASE_DEFAULT;
+    DELETE W FROM dbo.WH_Inventory W JOIN @Lots L ON L.LotNo=W.LotNo;
+    UPDATE L SET CurrentLocationID=NULL,InventoryStatus='CREATED',RemainingQty=COALESCE(NULLIF(BatchSize,0),RemainingQty),
+      ModifiedBy='pda-test',ModifiedTS=SYSDATETIME()
+    FROM dbo.tbl_Lot L JOIN @Lots X ON X.LotNo=L.LotCode COLLATE DATABASE_DEFAULT;
+    UPDATE dbo.WH_PurchaseOrder SET ReceivedQty=0,Status='Open',ModifiedBy='pda-test',ModifiedTS=SYSDATETIME()
+    WHERE PoNumber='PPT-INBOUND';
+    UPDATE DL SET ReceivedQty=0
+    FROM dbo.SCM_DeliveryLine DL
+    JOIN dbo.SCM_Delivery D ON D.DeliveryID=DL.DeliveryID
+    WHERE D.DeliveryNumber IN('PPT-WH-DL-LOCAL','PPT-WH-DL-CKD');
+    UPDATE dbo.SCM_Delivery SET Status='Shipped',ShipDate=CONVERT(date,SYSDATETIME()),
+      ShippedAt=SYSDATETIME(),ShippedBy='SCTEST1',ModifiedBy='pda-test',ModifiedTS=SYSDATETIME()
+    WHERE DeliveryNumber IN('PPT-WH-DL-LOCAL','PPT-WH-DL-CKD');
     COMMIT TRANSACTION;
 END;
 GO
@@ -991,8 +1186,7 @@ BEGIN
     )
         THROW 51418, 'Location is blocked for inbound.', 1;
 
-    IF @Mode = N'LOCAL'
-       AND EXISTS
+    IF EXISTS
        (
            SELECT 1
            FROM dbo.SCM_DeliveryBox
@@ -1051,7 +1245,7 @@ BEGIN
             (
                 SELECT SUM(W.Qty) AS CurrentQty
                 FROM dbo.WH_Inventory W WITH (UPDLOCK, HOLDLOCK)
-                WHERE W.LocationNo = L.LocationID
+                WHERE W.LocationNo = L.LocationID COLLATE DATABASE_DEFAULT
             ) S
             WHERE @Location IS NOT NULL
               AND L.LocationID = @Location
@@ -1070,10 +1264,10 @@ BEGIN
             THROW 51420, 'Portal delivery received quantity would exceed the remaining quantity.', 1;
 
         INSERT dbo.WH_Inventory
-            (LotNo, UnitType, PartNo, PartName, BoxNo, LocationNo, Qty,
+            (LotNo, UnitType, PartNo, PartName, LocationNo, Qty,
              InvoiceNo, DeliveryNoteNo, ReceivedAt, CreatedAt, UpdatedAt)
         VALUES
-            (@Barcode, 'BOX', @PortalItemNo, @PortalPartName, @Barcode, @Location, @PortalQty,
+            (@Barcode, 'BOX', @PortalItemNo, @PortalPartName, @Location, @PortalQty,
              @PortalPoNumber, @PortalNoteNo, SYSDATETIME(), SYSDATETIME(), SYSDATETIME());
 
         UPDATE dbo.WH_PurchaseOrder
@@ -1341,8 +1535,7 @@ BEGIN
     )
         THROW 51423, 'Location No was not found.', 1;
 
-    IF @Mode = N'LOCAL'
-       AND EXISTS
+    IF EXISTS
        (
            SELECT 1
            FROM dbo.SCM_DeliveryBox
@@ -1380,7 +1573,7 @@ BEGIN
             (
                 SELECT SUM(W.Qty) AS CurrentQty
                 FROM dbo.WH_Inventory W WITH (UPDLOCK, HOLDLOCK)
-                WHERE W.LocationNo = L.LocationID
+                WHERE W.LocationNo = L.LocationID COLLATE DATABASE_DEFAULT
             ) S
             WHERE L.LocationID = @Location
               AND COALESCE(L.Capacity, 0) > 0
@@ -1540,8 +1733,7 @@ BEGIN
     IF @Barcode = N''
         THROW 51431, 'LOT barcode is required.', 1;
 
-    IF @Mode = N'LOCAL'
-       AND EXISTS
+    IF EXISTS
        (
            SELECT 1
            FROM dbo.SCM_DeliveryBox
@@ -1566,10 +1758,11 @@ BEGIN
             @PortalQty = W.Qty,
             @PortalNoteNo = W.DeliveryNoteNo
         FROM dbo.WH_Inventory W WITH (UPDLOCK, HOLDLOCK)
-        JOIN dbo.SCM_DeliveryBox B ON B.BoxNumber = W.BoxNo AND B.ActiveFlag = 1
+        JOIN dbo.SCM_DeliveryBox B ON B.BoxNumber = W.LotNo AND B.ActiveFlag = 1
         JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryLineID = B.DeliveryLineID
         JOIN dbo.SCM_DeliveryNoteDelivery ND ON ND.DeliveryID = DL.DeliveryID
-        JOIN dbo.SCM_DeliveryNote N ON N.NoteID = ND.NoteID AND N.NoteNumber = W.DeliveryNoteNo
+        JOIN dbo.SCM_DeliveryNote N ON N.NoteID = ND.NoteID
+          AND N.NoteNumber COLLATE DATABASE_DEFAULT = W.DeliveryNoteNo COLLATE DATABASE_DEFAULT
         WHERE W.LotNo = @Barcode
           AND W.DeliveryNoteNo IS NOT NULL
           AND W.Qty > 0;
@@ -1642,7 +1835,7 @@ BEGIN
             @LotID = LotID,
             @ActualMode = UPPER(LTRIM(RTRIM(COALESCE(ProcessCode, N''))))
         FROM dbo.tbl_Lot
-        WHERE LotCode = @Barcode
+        WHERE LotCode COLLATE DATABASE_DEFAULT = @Barcode
         ORDER BY LotID DESC;
 
     IF @LotID IS NULL
@@ -2091,129 +2284,79 @@ GO
 
 -- =====================================================================
 --  Adjust / scan current stock
---  Source: dbo.WH_OLD_Inventory, dbo.tbl_Lot, dbo.MD_Item
---  ScanText accepts only LOT No, resolving directly to that inventory LOT.
+--  Source: dbo.WH_Inventory, dbo.MD_Item
+--  ScanText accepts the canonical LOT No or Box No.
 -- =====================================================================
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_ADJUST_SCAN_STOCK
-    @ScanText nvarchar(80)
+    @ScanText nvarchar(100)
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    DECLARE @Scan nvarchar(80) = LTRIM(RTRIM(ISNULL(@ScanText, N'')));
-    DECLARE @LotID int;
+    DECLARE @Scan nvarchar(100) = LTRIM(RTRIM(ISNULL(@ScanText, N'')));
+    DECLARE @LotNo nvarchar(50);
 
     IF @Scan = N''
-        THROW 51500, 'Lot No is required.', 1;
+        THROW 51500, 'Barcode is required.', 1;
 
-    IF OBJECT_ID(N'dbo.FG_Inventory', N'U') IS NOT NULL
-       AND EXISTS
-       (
-           SELECT 1
-           FROM dbo.FG_Inventory F
-           LEFT JOIN dbo.tbl_Lot FL ON FL.LotID = F.LotID
-           WHERE (UPPER(COALESCE(FL.LotCode, N'')) = UPPER(@Scan)
-               OR UPPER(COALESCE(F.StockNumber, N'')) = UPPER(@Scan))
-             AND UPPER(COALESCE(F.Status, N'Available')) NOT IN
-                 (N'CANCELED', N'CANCELLED', N'SHIPPED', N'DELIVERED', N'CLOSED')
-       )
+    IF EXISTS
+       (SELECT 1
+        FROM dbo.WH_Inventory W
+    LEFT JOIN dbo.MD_Location L ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo
+        WHERE UPPER(W.LotNo) = UPPER(@Scan)
+          AND UPPER(COALESCE(L.AreaCode, N'')) = N'FG_AREA')
         THROW 51505, 'Finished goods cannot be adjusted in Warehouse Adjust.', 1;
 
-    -- Known inventory LOTs can also be selected from a location list (including imported LOT codes).
-    -- Unknown scans still follow the legacy barcode lengths and character validation.
-    IF @Scan COLLATE Latin1_General_100_BIN2 LIKE N'%[^A-Za-z0-9-]%'
-       OR NOT (LEN(@Scan) IN (15, 18, 50)
-           OR (LEN(@Scan) = 9 AND @Scan COLLATE Latin1_General_100_BIN2 NOT LIKE N'%[^0-9]%')
-           OR EXISTS (SELECT 1 FROM dbo.WH_OLD_Inventory W JOIN dbo.tbl_Lot L ON L.LotID = W.LotID
-                      WHERE L.LotCode = @Scan))
-        THROW 51504, 'The barcode format is invalid.', 1;
-
     SELECT TOP (1)
-        @LotID = L.LotID
-    FROM dbo.tbl_Lot L
-    WHERE UPPER(L.LotCode) = UPPER(@Scan)
-    ORDER BY L.LotID DESC;
+        @LotNo = W.LotNo
+    FROM dbo.WH_Inventory W
+    LEFT JOIN dbo.MD_Location L ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo
+    WHERE UPPER(W.LotNo) = UPPER(@Scan)
+      AND UPPER(COALESCE(L.AreaCode, N'')) <> N'FG_AREA'
+    ORDER BY CASE WHEN W.Qty > 0 THEN 0 ELSE 1 END, W.ReceivedAt DESC, W.LotNo;
 
-    IF @LotID IS NULL
-        THROW 51501, 'The specified Lot No could not be found.', 1;
+    IF @LotNo IS NULL
+        THROW 51501, 'The specified barcode could not be found in Warehouse inventory.', 1;
 
-    IF NOT EXISTS
-    (
-        SELECT 1
-        FROM dbo.WH_OLD_Inventory W
-        WHERE W.LotID = @LotID
-          AND UPPER(COALESCE(W.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
-    )
-        THROW 51503, 'The scanned LOT is not in current inventory.', 1;
-
-    ;WITH CurrentStock AS
-    (
-        SELECT TOP (1)
-            W.InventoryID,
-            W.ItemNo,
-            W.LocationID,
-            W.LotID,
-            COALESCE(W.OnHandQty, 0) AS OnHandQty,
-            W.Status AS InventoryStatus,
-            W.LastReceivedAt,
-            W.ExpiryDate,
-            L.LotCode,
-            L.ProcessCode,
-            L.ProducedAt,
-            L.Status AS LotStatus,
-            I.ItemName,
-            I.DefaultUOM
-        FROM dbo.WH_OLD_Inventory W
-        JOIN dbo.tbl_Lot L
-          ON L.LotID = W.LotID
-        LEFT JOIN dbo.MD_Item I
-          ON I.ItemNo = W.ItemNo
-        WHERE W.LotID = @LotID
-          AND UPPER(COALESCE(W.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
-        ORDER BY
-            CASE WHEN COALESCE(W.OnHandQty, 0) > 0 THEN 0 ELSE 1 END,
-            W.InventoryID DESC
-    )
     SELECT
-        CASE
-            WHEN UPPER(COALESCE(ProcessCode, N'')) = N'CKD' THEN N'CKD'
-            ELSE N'LOCAL'
-        END AS RECEIVE_TYPE,
+        N'LOCAL' AS RECEIVE_TYPE,
         N'N' AS YN,
-        LotCode AS LOTNO,
-        LotCode AS BARCODE,
-        N'dbo.WH_OLD_Inventory/dbo.tbl_Lot' AS SOURCE_TABLE,
-        CAST(NULL AS nvarchar(50)) AS NOTENO,
-        CAST(NULL AS nvarchar(50)) AS CASE_BARCODE,
-        CAST(NULL AS nvarchar(30)) AS CASE_NO,
-        CAST(NULL AS nvarchar(30)) AS INVOICE_NO,
-        CAST(NULL AS nvarchar(30)) AS CONTAINER_NO,
-        ItemNo AS PARTNO,
-        ItemName AS PARTNM,
-        OnHandQty AS QTY,
-        DefaultUOM AS UNIT,
-        CAST(NULL AS nvarchar(30)) AS PONO,
+        W.LotNo AS LOTNO,
+        W.LotNo AS BARCODE,
+        N'dbo.WH_Inventory' AS SOURCE_TABLE,
+        W.DeliveryNoteNo AS NOTENO,
+        W.CaseNo AS CASE_BARCODE,
+        W.CaseNo AS CASE_NO,
+        W.InvoiceNo AS INVOICE_NO,
+        W.ParentLotNo AS CONTAINER_NO,
+        W.PartNo AS PARTNO,
+        COALESCE(NULLIF(W.PartName, N''), I.ItemName COLLATE DATABASE_DEFAULT) AS PARTNM,
+        W.Qty AS QTY,
+        COALESCE(NULLIF(I.DefaultUOM, N''), N'EA') AS UNIT,
+        W.InvoiceNo AS PONO,
         CAST(NULL AS int) AS PONO_SEQ,
         CAST(NULL AS nvarchar(30)) AS VENDCD,
         CAST(NULL AS nvarchar(100)) AS VENDNM,
-        CONVERT(date, ProducedAt) AS PROD_DATE,
+        CAST(NULL AS date) AS PROD_DATE,
         CAST(NULL AS date) AS DELI_DATE,
-        CONVERT(date, LastReceivedAt) AS ARRIV_DATE,
+        CONVERT(date, W.ReceivedAt) AS ARRIV_DATE,
         CAST(NULL AS date) AS SHIP_DATE,
         CAST(NULL AS date) AS PACK_DATE,
-        LocationID AS RECEIVED_LOCATION,
-        COALESCE(InventoryStatus, LotStatus, N'Received') AS RECEIVED_STATUS
-    FROM CurrentStock;
+        W.LocationNo AS RECEIVED_LOCATION,
+        N'Received' AS RECEIVED_STATUS
+    FROM dbo.WH_Inventory W
+    LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT = W.PartNo
+    WHERE W.LotNo = @LotNo;
 END;
 GO
 
 -- =====================================================================
 --  Adjust / save quantity change
---  Target: dbo.WH_OLD_Inventory, dbo.tbl_Lot
+--  Target: dbo.WH_Inventory
 --  Audit:  dbo.WH_InventoryTransaction only (no separate approval workflow)
 -- =====================================================================
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_ADJUST_SAVE_QTY
-    @ScanText nvarchar(80),
+    @ScanText nvarchar(100),
     @DeltaQty decimal(18,3),
     @ReasonCode nvarchar(30),
     @ReasonNote nvarchar(500) = NULL,
@@ -2224,32 +2367,21 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @Scan nvarchar(80) = LTRIM(RTRIM(ISNULL(@ScanText, N'')));
+    DECLARE @Scan nvarchar(100) = LTRIM(RTRIM(ISNULL(@ScanText, N'')));
     DECLARE @Reason nvarchar(30) = UPPER(LTRIM(RTRIM(ISNULL(@ReasonCode, N''))));
     DECLARE @Note nvarchar(500) = NULLIF(LTRIM(RTRIM(@ReasonNote)), N'');
     DECLARE @User nvarchar(40) = COALESCE(NULLIF(LTRIM(RTRIM(@UserId)), N''), N'PDA');
-    DECLARE @LotID int;
+    DECLARE @LotNo nvarchar(50);
 
     IF @Scan = N''
-        THROW 51510, 'Lot No is required.', 1;
-    IF OBJECT_ID(N'dbo.FG_Inventory', N'U') IS NOT NULL
-       AND EXISTS
-       (
-           SELECT 1
-           FROM dbo.FG_Inventory F
-           LEFT JOIN dbo.tbl_Lot FL ON FL.LotID = F.LotID
-           WHERE (UPPER(COALESCE(FL.LotCode, N'')) = UPPER(@Scan)
-               OR UPPER(COALESCE(F.StockNumber, N'')) = UPPER(@Scan))
-             AND UPPER(COALESCE(F.Status, N'Available')) NOT IN
-                 (N'CANCELED', N'CANCELLED', N'SHIPPED', N'DELIVERED', N'CLOSED')
-       )
+        THROW 51510, 'Barcode is required.', 1;
+    IF EXISTS
+       (SELECT 1
+        FROM dbo.WH_Inventory W
+    LEFT JOIN dbo.MD_Location L ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo
+        WHERE UPPER(W.LotNo) = UPPER(@Scan)
+          AND UPPER(COALESCE(L.AreaCode, N'')) = N'FG_AREA')
         THROW 51519, 'Finished goods cannot be adjusted in Warehouse Adjust.', 1;
-    IF @Scan COLLATE Latin1_General_100_BIN2 LIKE N'%[^A-Za-z0-9-]%'
-       OR NOT (LEN(@Scan) IN (15, 18, 50)
-           OR (LEN(@Scan) = 9 AND @Scan COLLATE Latin1_General_100_BIN2 NOT LIKE N'%[^0-9]%')
-           OR EXISTS (SELECT 1 FROM dbo.WH_OLD_Inventory W JOIN dbo.tbl_Lot L ON L.LotID = W.LotID
-                      WHERE L.LotCode = @Scan))
-        THROW 51518, 'The barcode format is invalid.', 1;
     IF COALESCE(@DeltaQty, 0) = 0
         THROW 51511, 'Adjustment quantity must be different from zero.', 1;
     IF @Reason = N''
@@ -2259,42 +2391,27 @@ BEGIN
         WHERE GroupCode='INV_ADJUST_REASON' AND CodeValue=@Reason AND ISNULL(UseFlag,1)=1)
         THROW 51520, 'Unsupported inventory adjustment reason.', 1;
 
-    SELECT TOP (1)
-        @LotID = L.LotID
-    FROM dbo.tbl_Lot L
-    WHERE UPPER(L.LotCode) = UPPER(@Scan)
-    ORDER BY L.LotID DESC;
-
-    IF @LotID IS NULL
-        THROW 51514, 'The specified Lot No could not be found.', 1;
-
     DECLARE
-        @InventoryID int,
         @ItemNo varchar(20),
         @LocationID varchar(20),
-        @LotCode varchar(40),
         @BeforeQty decimal(18,3),
         @AfterQty decimal(18,3);
 
     BEGIN TRAN;
 
     SELECT TOP (1)
-        @InventoryID = W.InventoryID,
-        @ItemNo = W.ItemNo,
-        @LocationID = W.LocationID,
-        @BeforeQty = COALESCE(W.OnHandQty, 0),
-        @LotCode = L.LotCode
-    FROM dbo.WH_OLD_Inventory W WITH (UPDLOCK, ROWLOCK)
-    JOIN dbo.tbl_Lot L
-      ON L.LotID = W.LotID
-    WHERE W.LotID = @LotID
-      AND UPPER(COALESCE(W.Status, N'Received')) NOT IN (N'CANCELED', N'RELEASED', N'PICKED')
-    ORDER BY
-        CASE WHEN COALESCE(W.OnHandQty, 0) > 0 THEN 0 ELSE 1 END,
-        W.InventoryID DESC;
+        @LotNo = W.LotNo,
+        @ItemNo = LEFT(W.PartNo, 20),
+        @LocationID = LEFT(W.LocationNo, 20),
+        @BeforeQty = COALESCE(W.Qty, 0)
+    FROM dbo.WH_Inventory W WITH (UPDLOCK, HOLDLOCK)
+    LEFT JOIN dbo.MD_Location L ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo
+    WHERE UPPER(W.LotNo) = UPPER(@Scan)
+      AND UPPER(COALESCE(L.AreaCode, N'')) <> N'FG_AREA'
+    ORDER BY CASE WHEN W.Qty > 0 THEN 0 ELSE 1 END, W.ReceivedAt DESC, W.LotNo;
 
-    IF @InventoryID IS NULL
-        THROW 51516, 'The scanned LOT is not in current inventory.', 1;
+    IF @LotNo IS NULL
+        THROW 51516, 'The specified barcode could not be found in Warehouse inventory.', 1;
 
     SET @AfterQty = @BeforeQty + @DeltaQty;
 
@@ -2303,35 +2420,25 @@ BEGIN
     IF @AfterQty <> FLOOR(@AfterQty) OR @AfterQty > 999999999
         THROW 51521, 'New quantity must be a whole number from 0 to 999999999.', 1;
 
-    UPDATE dbo.WH_OLD_Inventory
-       SET OnHandQty = @AfterQty,
-           Status = N'Received',
-           ModifiedTS = SYSDATETIME(),
-           ModifiedBy = @User
-     WHERE InventoryID = @InventoryID;
-
-    UPDATE dbo.tbl_Lot
-       SET RemainingQty = @AfterQty,
-           CurrentLocationID = COALESCE(@LocationID, CurrentLocationID),
-           Status = N'Received',
-           ModifiedTS = SYSDATETIME(),
-           ModifiedBy = @User
-     WHERE LotID = @LotID;
+    UPDATE dbo.WH_Inventory
+       SET Qty = @AfterQty,
+           UpdatedAt = SYSDATETIME()
+     WHERE LotNo = @LotNo;
 
     IF @SimulateFailure = 1
         THROW 51520, 'Simulated Adjust API failure. Database transaction was rolled back.', 1;
 
     INSERT INTO dbo.WH_InventoryTransaction
-        (TransactionType, ItemNo, LocationID, LotID, QtyBefore, QtyChange, QtyAfter,
+        (TransactionType, ItemNo, LocationID, LotID, LotNo, QtyBefore, QtyChange, QtyAfter,
          ReasonCode, RefDocType, RefDocID, OperatorID, ApproverID, Note, CreatedBy, CreatedTS)
     VALUES
-        (N'ADJ', @ItemNo, @LocationID, @LotID, @BeforeQty, @DeltaQty, @AfterQty,
-         CONVERT(varchar(30), @Reason), N'LOT', @LotID,
-         @User, NULL, @Note, @User, SYSDATETIME());
+        (N'ADJ', @ItemNo, @LocationID, NULL, @LotNo, @BeforeQty, @DeltaQty, @AfterQty,
+         CONVERT(varchar(30), @Reason), N'LOT', NULL,
+         @User, NULL, @Note, LEFT(@User, 20), SYSDATETIME());
 
     COMMIT TRAN;
 
-    EXEC dbo.WH_PDA_ADJUST_SCAN_STOCK @ScanText = @LotCode;
+    EXEC dbo.WH_PDA_ADJUST_SCAN_STOCK @ScanText = @LotNo;
 END;
 GO
 GO
@@ -2344,40 +2451,40 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
 
-IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'PickSlipNo') IS NULL
-    ALTER TABLE dbo.WH_ReleaseSchedule ADD PickSlipNo nvarchar(40) NULL;
+IF COL_LENGTH(N'dbo.WH_PickSlip', N'PickSlipNo') IS NULL
+    ALTER TABLE dbo.WH_PickSlip ADD PickSlipNo nvarchar(40) NULL;
 GO
 
-IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'ReqLocation') IS NULL
-    ALTER TABLE dbo.WH_ReleaseSchedule ADD ReqLocation nvarchar(40) NULL;
+IF COL_LENGTH(N'dbo.WH_PickSlip', N'ReqLocation') IS NULL
+    ALTER TABLE dbo.WH_PickSlip ADD ReqLocation nvarchar(40) NULL;
 GO
 
-IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'ReqSeqNo') IS NULL
-    ALTER TABLE dbo.WH_ReleaseSchedule ADD ReqSeqNo int NULL;
+IF COL_LENGTH(N'dbo.WH_PickSlip', N'ReqSeqNo') IS NULL
+    ALTER TABLE dbo.WH_PickSlip ADD ReqSeqNo int NULL;
 GO
 
-IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'ReqUserId') IS NULL
-    ALTER TABLE dbo.WH_ReleaseSchedule ADD ReqUserId nvarchar(80) NULL;
+IF COL_LENGTH(N'dbo.WH_PickSlip', N'ReqUserId') IS NULL
+    ALTER TABLE dbo.WH_PickSlip ADD ReqUserId nvarchar(80) NULL;
 GO
 
-IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'PrintDate') IS NULL
-    ALTER TABLE dbo.WH_ReleaseSchedule ADD PrintDate datetime2 NULL;
+IF COL_LENGTH(N'dbo.WH_PickSlip', N'PrintDate') IS NULL
+    ALTER TABLE dbo.WH_PickSlip ADD PrintDate datetime2 NULL;
 GO
 
-IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'CloseDate') IS NULL
-    ALTER TABLE dbo.WH_ReleaseSchedule ADD CloseDate datetime2 NULL;
+IF COL_LENGTH(N'dbo.WH_PickSlip', N'CloseDate') IS NULL
+    ALTER TABLE dbo.WH_PickSlip ADD CloseDate datetime2 NULL;
 GO
 
-IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'CloseUserId') IS NULL
-    ALTER TABLE dbo.WH_ReleaseSchedule ADD CloseUserId nvarchar(80) NULL;
+IF COL_LENGTH(N'dbo.WH_PickSlip', N'CloseUserId') IS NULL
+    ALTER TABLE dbo.WH_PickSlip ADD CloseUserId nvarchar(80) NULL;
 GO
 
-UPDATE dbo.WH_ReleaseSchedule
-   SET PickSlipNo = CONCAT(N'RS-', ReleaseScheduleID)
+UPDATE dbo.WH_PickSlip
+   SET PickSlipNo = CONCAT(N'RS-', PickSlipID)
  WHERE NULLIF(PickSlipNo, N'') IS NULL;
 GO
 
-UPDATE dbo.WH_ReleaseSchedule
+UPDATE dbo.WH_PickSlip
    SET Status = 'Closed',
        CloseDate = COALESCE(CloseDate, ModifiedTS, SYSDATETIME())
  WHERE UPPER(COALESCE(Status, N'')) IN (N'RELEASED', N'PICKED')
@@ -2490,7 +2597,6 @@ BEGIN
         @ReceivedAt = W.ReceivedAt
     FROM dbo.WH_Inventory W
     WHERE UPPER(W.LotNo) = UPPER(LTRIM(RTRIM(@LotNo)))
-       OR UPPER(COALESCE(W.BoxNo,N'')) = UPPER(LTRIM(RTRIM(@LotNo)))
     ORDER BY CASE WHEN W.Qty > 0 THEN 0 ELSE 1 END,W.ReceivedAt,W.LotNo;
 
     SELECT
@@ -2512,7 +2618,7 @@ GO
 
 -- =====================================================================
 --  Release / Pick Slip status
---  Source: dbo.WH_ReleaseSchedule
+--  Source: dbo.WH_PickSlip
 -- =====================================================================
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_RELEASE_SLIP_STATUS
     @PickSlipNo nvarchar(40)
@@ -2521,7 +2627,7 @@ BEGIN
     SET NOCOUNT ON;
 
     DECLARE @Slip nvarchar(40) = UPPER(LTRIM(RTRIM(ISNULL(@PickSlipNo, N''))));
-    DECLARE @ReleaseScheduleID int;
+    DECLARE @PickSlipID int;
 
     IF @Slip = N''
     BEGIN
@@ -2538,14 +2644,14 @@ BEGIN
     END;
 
     SELECT TOP (1)
-        @ReleaseScheduleID = RS.ReleaseScheduleID
-    FROM dbo.WH_ReleaseSchedule RS
-    WHERE UPPER(COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID))) = @Slip
-       OR UPPER(CONCAT(N'RS-', RS.ReleaseScheduleID)) = @Slip
-       OR RS.ReleaseScheduleID = TRY_CONVERT(int, REPLACE(@Slip, N'RS-', N''))
-    ORDER BY RS.ReleaseScheduleID;
+        @PickSlipID = RS.PickSlipID
+    FROM dbo.WH_PickSlip RS
+    WHERE UPPER(COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID))) = @Slip
+       OR UPPER(CONCAT(N'RS-', RS.PickSlipID)) = @Slip
+       OR RS.PickSlipID = TRY_CONVERT(int, REPLACE(@Slip, N'RS-', N''))
+    ORDER BY RS.PickSlipID;
 
-    IF @ReleaseScheduleID IS NULL
+    IF @PickSlipID IS NULL
     BEGIN
         SELECT
             @Slip AS PICK_SLIPNO,
@@ -2560,15 +2666,15 @@ BEGIN
     END;
 
     SELECT
-        COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID)) AS PICK_SLIPNO,
+        COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID)) AS PICK_SLIPNO,
         CAST(1 AS bit) AS EXISTS_FLAG,
         CASE WHEN UPPER(COALESCE(RS.Status, N'')) IN (N'CLOSED', N'RELEASED', N'PICKED', N'CANCELED', N'CANCELLED')
                   OR RS.CloseDate IS NOT NULL THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END AS IS_CLOSED,
         (
             SELECT COUNT(*)
-            FROM dbo.WH_ReleaseSchedule L
-            WHERE COALESCE(NULLIF(L.PickSlipNo, N''), CONCAT(N'RS-', L.ReleaseScheduleID))
-                = COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID))
+            FROM dbo.WH_PickSlip L
+            WHERE COALESCE(NULLIF(L.PickSlipNo, N''), CONCAT(N'RS-', L.PickSlipID))
+                = COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID))
         ) AS LINE_COUNT,
         RS.ReqLocation AS REQ_LOCATION,
         CONVERT(date, RS.RequiredAt) AS REQ_DATE,
@@ -2578,14 +2684,14 @@ BEGIN
                  OR RS.CloseDate IS NOT NULL THEN N'This Pick Slip has already been processed.'
             ELSE N'Pick Slip is ready.'
         END AS MESSAGE
-    FROM dbo.WH_ReleaseSchedule RS
-    WHERE RS.ReleaseScheduleID = @ReleaseScheduleID;
+    FROM dbo.WH_PickSlip RS
+    WHERE RS.PickSlipID = @PickSlipID;
 END;
 GO
 
 -- =====================================================================
 --  Release / Pick Slip lines
---  Source: dbo.WH_ReleaseSchedule, dbo.WH_Inventory
+--  Source: dbo.WH_PickSlip, dbo.WH_Inventory
 -- =====================================================================
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_RELEASE_PICK_LINES
     @PickSlipNo nvarchar(40)
@@ -2597,12 +2703,12 @@ BEGIN
     DECLARE @PickSlipKey nvarchar(40);
 
     SELECT TOP (1)
-        @PickSlipKey = COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID))
-    FROM dbo.WH_ReleaseSchedule RS
-    WHERE UPPER(COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID))) = @Slip
-       OR UPPER(CONCAT(N'RS-', RS.ReleaseScheduleID)) = @Slip
-       OR RS.ReleaseScheduleID = TRY_CONVERT(int, REPLACE(@Slip, N'RS-', N''))
-    ORDER BY RS.ReleaseScheduleID;
+        @PickSlipKey = COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID))
+    FROM dbo.WH_PickSlip RS
+    WHERE UPPER(COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID))) = @Slip
+       OR UPPER(CONCAT(N'RS-', RS.PickSlipID)) = @Slip
+       OR RS.PickSlipID = TRY_CONVERT(int, REPLACE(@Slip, N'RS-', N''))
+    ORDER BY RS.PickSlipID;
 
     IF @PickSlipKey IS NULL
         RETURN;
@@ -2610,32 +2716,32 @@ BEGIN
     ;WITH RequiredParts AS
     (
         SELECT
-            RS.ReleaseScheduleID,
-            COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID)) AS PICK_SLIPNO,
+            RS.PickSlipID,
+            COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID)) AS PICK_SLIPNO,
             RS.ItemNo,
             COALESCE(I.ItemName, RS.ItemNo) AS ItemName,
             COALESCE(RS.DemandQty, 0) AS DemandQty,
             COALESCE(RS.PickedQty, 0) AS PickedQty,
             COALESCE(NULLIF(RS.ReqUserId, N''), RS.CreatedBy) AS RequestUserId
-        FROM dbo.WH_ReleaseSchedule RS
+        FROM dbo.WH_PickSlip RS
         LEFT JOIN dbo.MD_Item I
                ON I.ItemNo = RS.ItemNo
-        WHERE COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID)) = @PickSlipKey
+        WHERE COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID)) = @PickSlipKey
     ),
     PickedPhysical AS
     (
-        SELECT P.ReleaseScheduleID, SUM(COALESCE(P.PickedQty, 0)) AS PickedQty
+        SELECT P.PickSlipID, SUM(COALESCE(P.PickedQty, 0)) AS PickedQty
         FROM dbo.WH_ReleasePicking P
         INNER JOIN RequiredParts R
-                ON R.ReleaseScheduleID = P.ReleaseScheduleID
-        GROUP BY P.ReleaseScheduleID
+                ON R.PickSlipID = P.PickSlipID
+        GROUP BY P.PickSlipID
     ),
     RankedLocations AS
     (
         SELECT W.PartNo,W.LocationNo,
             ROW_NUMBER() OVER (PARTITION BY W.PartNo ORDER BY W.ReceivedAt,W.CreatedAt,W.LotNo) AS RN
         FROM dbo.WH_Inventory W
-        INNER JOIN RequiredParts R ON R.ItemNo=W.PartNo
+        INNER JOIN RequiredParts R ON R.ItemNo COLLATE DATABASE_DEFAULT=W.PartNo
         WHERE W.Qty>0 AND NULLIF(W.LocationNo,'') IS NOT NULL
     ),
     Locations AS
@@ -2662,15 +2768,15 @@ BEGIN
         END AS STATUS
     FROM RequiredParts R
     LEFT JOIN PickedPhysical P
-           ON P.ReleaseScheduleID = R.ReleaseScheduleID
-    LEFT JOIN Locations L ON L.PartNo=R.ItemNo
+           ON P.PickSlipID = R.PickSlipID
+    LEFT JOIN Locations L ON L.PartNo=R.ItemNo COLLATE DATABASE_DEFAULT
     ORDER BY R.ItemNo;
 END;
 GO
 
 -- =====================================================================
 --  Release / LOT scan validation
---  Source: dbo.WH_ReleaseSchedule, dbo.WH_Inventory
+--  Source: dbo.WH_PickSlip, dbo.WH_Inventory
 -- =====================================================================
 CREATE OR ALTER PROCEDURE dbo.WH_PDA_RELEASE_SCAN_LOT
     @PickSlipNo nvarchar(40),
@@ -2724,13 +2830,13 @@ BEGIN
     END;
 
     SELECT TOP (1)
-        @PickSlipKey = COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID)),
-        @PickSlipOut = COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID))
-    FROM dbo.WH_ReleaseSchedule RS
-    WHERE UPPER(COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID))) = @Slip
-       OR UPPER(CONCAT(N'RS-', RS.ReleaseScheduleID)) = @Slip
-       OR RS.ReleaseScheduleID = TRY_CONVERT(int, REPLACE(@Slip, N'RS-', N''))
-    ORDER BY RS.ReleaseScheduleID;
+        @PickSlipKey = COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID)),
+        @PickSlipOut = COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID))
+    FROM dbo.WH_PickSlip RS
+    WHERE UPPER(COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID))) = @Slip
+       OR UPPER(CONCAT(N'RS-', RS.PickSlipID)) = @Slip
+       OR RS.PickSlipID = TRY_CONVERT(int, REPLACE(@Slip, N'RS-', N''))
+    ORDER BY RS.PickSlipID;
 
     IF @PickSlipKey IS NULL
     BEGIN
@@ -2745,8 +2851,8 @@ BEGIN
     IF NOT EXISTS
     (
         SELECT 1
-        FROM dbo.WH_ReleaseSchedule RS
-        WHERE COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID)) = @PickSlipKey
+        FROM dbo.WH_PickSlip RS
+        WHERE COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID)) = @PickSlipKey
           AND UPPER(COALESCE(RS.Status, N'OPEN')) NOT IN (N'CLOSED', N'RELEASED', N'PICKED', N'CANCELED', N'CANCELLED')
     )
     BEGIN
@@ -2761,12 +2867,12 @@ BEGIN
     -- A material label can carry either a LOT No or a requested Part No.
     -- Resolve a Part No scan to its FIFO-eligible LOT before standard validation.
     IF NOT EXISTS
-       (SELECT 1 FROM dbo.WH_Inventory WHERE UPPER(LotNo)=UPPER(@Lot) OR UPPER(COALESCE(BoxNo,N''))=UPPER(@Lot))
+       (SELECT 1 FROM dbo.WH_Inventory WHERE UPPER(LotNo)=UPPER(@Lot))
        AND EXISTS
        (
            SELECT 1
-           FROM dbo.WH_ReleaseSchedule RS
-           WHERE COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID)) = @PickSlipKey
+           FROM dbo.WH_PickSlip RS
+           WHERE COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID)) = @PickSlipKey
              AND UPPER(RS.ItemNo) = UPPER(@ScanText)
        )
     BEGIN
@@ -2804,10 +2910,10 @@ BEGIN
         @ReceivedAt = W.ReceivedAt
     FROM dbo.WH_Inventory W
     LEFT JOIN dbo.MD_Item I
-           ON I.ItemNo = W.PartNo
+           ON I.ItemNo COLLATE DATABASE_DEFAULT = W.PartNo
     LEFT JOIN dbo.MD_Location LOC
-           ON LOC.LocationID = W.LocationNo
-    WHERE UPPER(W.LotNo)=UPPER(@Lot) OR UPPER(COALESCE(W.BoxNo,N''))=UPPER(@Lot)
+           ON LOC.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo
+    WHERE UPPER(W.LotNo)=UPPER(@Lot)
     ORDER BY CASE WHEN W.Qty>0 THEN 0 ELSE 1 END,W.ReceivedAt,W.LotNo;
 
     IF @Found IS NULL
@@ -2835,10 +2941,10 @@ BEGIN
         @DemandQty = COALESCE(RS.DemandQty, 0),
         @PickedQty = COALESCE(RS.PickedQty, 0),
         @SlipStatus = RS.Status
-    FROM dbo.WH_ReleaseSchedule RS
-    WHERE COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID)) = @PickSlipKey
+    FROM dbo.WH_PickSlip RS
+    WHERE COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID)) = @PickSlipKey
       AND RS.ItemNo = @ItemNo
-    ORDER BY RS.ReleaseScheduleID;
+    ORDER BY RS.PickSlipID;
 
     IF @RequestedItemNo IS NULL OR @ItemNo <> @RequestedItemNo
     BEGIN
@@ -2904,7 +3010,7 @@ BEGIN
     DECLARE @Lot nvarchar(50) = LTRIM(RTRIM(ISNULL(@LotNo, N'')));
     DECLARE @User nvarchar(80) = COALESCE(NULLIF(LTRIM(RTRIM(@UserId)), N''), N'PDA');
     DECLARE @Terminal nvarchar(80) = COALESCE(NULLIF(LTRIM(RTRIM(@TerminalId)), N''), N'PDA');
-    DECLARE @ReleaseScheduleID int;
+    DECLARE @PickSlipID int;
     DECLARE @PickSlipKey nvarchar(40);
 
     DECLARE @Validation table
@@ -2978,13 +3084,13 @@ BEGIN
     WHERE V.IS_VALID = 1;
 
     SELECT TOP (1)
-        @ReleaseScheduleID = RS.ReleaseScheduleID
-    FROM dbo.WH_ReleaseSchedule RS
-    WHERE COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID)) = @PickSlipKey
+        @PickSlipID = RS.PickSlipID
+    FROM dbo.WH_PickSlip RS
+    WHERE COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID)) = @PickSlipKey
       AND RS.ItemNo = @ItemNo
-    ORDER BY RS.ReleaseScheduleID;
+    ORDER BY RS.PickSlipID;
 
-    IF @ReleaseScheduleID IS NULL
+    IF @PickSlipID IS NULL
     BEGIN
         SELECT TOP (1)
             PICK_SLIPNO, LOTNO, PARTNO, PARTNM, QTY, UNIT, LOCATION_NO, LOCATION_NM,
@@ -3004,17 +3110,17 @@ BEGIN
 
     INSERT INTO dbo.WH_ReleasePicking
     (
-        PickingNo, ReleaseScheduleID, ItemNo, LocationID, LotID, PickedQty,
+        PickingNo, PickSlipID, ItemNo, LocationID, LotID, PickedQty,
         PickedAt, PickedBy, TerminalID, FifoOverride, CreatedBy, CreatedTS
     )
     VALUES
     (
         CONCAT('PICK-', FORMAT(SYSDATETIME(), 'yyMMddHHmmssfff')),
-        @ReleaseScheduleID, @ItemNo, @LocationID, NULL, @Qty,
+        @PickSlipID, @ItemNo, @LocationID, NULL, @Qty,
         SYSDATETIME(), @User, @Terminal, 0, LEFT(@User,20), SYSDATETIME()
     );
 
-    UPDATE dbo.WH_ReleaseSchedule
+    UPDATE dbo.WH_PickSlip
        SET PickedQty = COALESCE(PickedQty, 0) + 1,
             Status = CASE
                 WHEN COALESCE(PickedQty, 0) + 1 >= COALESCE(DemandQty, 0) THEN 'Picked'
@@ -3022,13 +3128,13 @@ BEGIN
            END,
            ModifiedBy = @User,
            ModifiedTS = SYSDATETIME()
-     WHERE ReleaseScheduleID = @ReleaseScheduleID;
+     WHERE PickSlipID = @PickSlipID;
 
     SELECT
         @PickedTotal = COALESCE(PickedQty, 0),
         @DemandQty = COALESCE(DemandQty, 0)
-    FROM dbo.WH_ReleaseSchedule
-    WHERE ReleaseScheduleID = @ReleaseScheduleID;
+    FROM dbo.WH_PickSlip
+    WHERE PickSlipID = @PickSlipID;
 
     INSERT INTO dbo.WH_InventoryTransaction
     (
@@ -3038,7 +3144,7 @@ BEGIN
     VALUES
     (
         SYSDATETIME(), 'OUT', @ItemNo, @LocationID, NULL, @ResolvedLot, @InventoryQty, -@InventoryQty, 0,
-        'RELEASE_PICK', 'PICK_SLIP', @ReleaseScheduleID, @User,
+        'RELEASE_PICK', 'PICK_SLIP', @PickSlipID, @User,
         CONCAT('PDA release pick ', @PickSlipKey), LEFT(@User,20), SYSDATETIME()
     );
 
@@ -5156,3 +5262,820 @@ BEGIN
     COMMIT TRANSACTION;
 END;
 GO
+
+CREATE OR ALTER TRIGGER dbo.TR_WH_OLD_Inventory_SyncUnifiedInventory
+ON dbo.WH_OLD_Inventory
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DELETE Target
+    FROM dbo.WH_Inventory Target
+    JOIN deleted D
+      ON Target.LotNo = COALESCE(
+          NULLIF((SELECT L.LotCode FROM dbo.tbl_Lot L WHERE L.LotID = D.LotID), N''),
+          CONCAT(N'LEGACY-WH-', RIGHT(REPLICATE('0',10) + CONVERT(varchar(10),D.InventoryID),10))) COLLATE DATABASE_DEFAULT
+    WHERE NOT EXISTS (SELECT 1 FROM inserted I WHERE I.InventoryID = D.InventoryID);
+
+    ;WITH SourceRows AS
+    (
+        SELECT
+            COALESCE(NULLIF(L.LotCode,N''),CONCAT(N'LEGACY-WH-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),I.InventoryID),10))) COLLATE DATABASE_DEFAULT AS LotNo,
+            COALESCE(I.ItemNo,L.ItemNo) AS PartNo,
+            M.ItemName AS PartName,
+            P.CaseNo,
+            I.LocationID AS LocationNo,
+            COALESCE(I.OnHandQty,0) AS Qty,
+            CASE WHEN UPPER(COALESCE(I.Status,'RECEIVED')) IN ('RECEIVED','OK','STORED') THEN 'AVAILABLE' ELSE UPPER(I.Status) END AS InventoryStatus,
+            P.InvoiceNo,
+            COALESCE(I.LastReceivedAt,P.ReceivedAt,I.CreatedTS,sysdatetime()) AS ReceivedAt,
+            COALESCE(I.CreatedTS,I.LastReceivedAt,P.CreatedTS,sysdatetime()) AS CreatedAt,
+            COALESCE(I.ModifiedTS,I.CreatedTS,I.LastReceivedAt,P.ModifiedTS,P.CreatedTS,sysdatetime()) AS UpdatedAt
+        FROM inserted I
+        LEFT JOIN dbo.tbl_Lot L ON L.LotID = I.LotID
+        LEFT JOIN dbo.MD_Item M ON M.ItemNo = COALESCE(I.ItemNo,L.ItemNo)
+        OUTER APPLY
+        (
+            SELECT TOP (1) IP.CaseNo,IP.InvoiceNo,IP.ReceivedAt,IP.CreatedTS,IP.ModifiedTS
+            FROM dbo.WH_InboundPackage IP
+            WHERE IP.LotID = I.LotID
+            ORDER BY COALESCE(IP.ReceivedAt,IP.ModifiedTS,IP.CreatedTS) DESC,IP.InboundPackageID DESC
+        ) P
+    )
+    MERGE dbo.WH_Inventory AS Target
+    USING SourceRows AS Source ON Target.LotNo = Source.LotNo
+    WHEN MATCHED AND Source.Qty > 0 AND Source.InventoryStatus NOT IN ('CANCELED','CANCELLED','RELEASED','PICKED','SHIPPED','DELIVERED','CLOSED') THEN
+        UPDATE SET PartNo=Source.PartNo,PartName=Source.PartName,CaseNo=Source.CaseNo,
+                   LocationNo=Source.LocationNo,Qty=Source.Qty,
+                   InvoiceNo=Source.InvoiceNo,ReceivedAt=Source.ReceivedAt,UpdatedAt=Source.UpdatedAt
+    WHEN NOT MATCHED AND Source.Qty > 0 AND Source.InventoryStatus NOT IN ('CANCELED','CANCELLED','RELEASED','PICKED','SHIPPED','DELIVERED','CLOSED') THEN
+        INSERT (LotNo,UnitType,PartNo,PartName,CaseNo,LocationNo,Qty,InvoiceNo,ReceivedAt,CreatedAt,UpdatedAt)
+        VALUES (Source.LotNo,'PART',Source.PartNo,Source.PartName,Source.CaseNo,Source.LocationNo,Source.Qty,Source.InvoiceNo,Source.ReceivedAt,Source.CreatedAt,Source.UpdatedAt)
+    WHEN MATCHED AND (Source.Qty <= 0 OR Source.InventoryStatus IN ('CANCELED','CANCELLED','RELEASED','PICKED','SHIPPED','DELIVERED','CLOSED')) THEN DELETE;
+END;
+GO
+
+-- Pallet and box identifiers are canonical LOT numbers.
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_Inventory') AND name=N'IX_WH_Inventory_PalletNo')
+    DROP INDEX IX_WH_Inventory_PalletNo ON dbo.WH_Inventory;
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_Inventory') AND name=N'IX_WH_Inventory_BoxNo')
+    DROP INDEX IX_WH_Inventory_BoxNo ON dbo.WH_Inventory;
+IF COL_LENGTH(N'dbo.WH_Inventory',N'PalletNo') IS NOT NULL
+    ALTER TABLE dbo.WH_Inventory DROP COLUMN PalletNo;
+IF COL_LENGTH(N'dbo.WH_Inventory',N'BoxNo') IS NOT NULL
+    ALTER TABLE dbo.WH_Inventory DROP COLUMN BoxNo;
+GO
+
+-- BEGIN FG SHIPMENT CONSOLIDATION
+/*
+  FG shipment consolidation
+  - Keeps one FG_ShipmentOrder row per shipment plan.
+  - Moves former FG_ShipmentOrderLine rows into FG_ShipmentOrder.ItemsJSON.
+  - Preserves delivery/loading metadata on the shipment order.
+  - Moves legacy pick details into the common inventory transaction history.
+  - Removes all retired FG shipment/location/day-end tables.
+  This script does not delete shipment orders or their item data.
+*/
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+
+BEGIN TRANSACTION;
+
+IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'ItemsJSON') IS NULL
+    ALTER TABLE dbo.FG_ShipmentOrder ADD ItemsJSON nvarchar(max) NULL;
+IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'ShipmentDocumentNo') IS NULL
+    ALTER TABLE dbo.FG_ShipmentOrder ADD ShipmentDocumentNo varchar(60) NULL;
+IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'ShippedAt') IS NULL
+    ALTER TABLE dbo.FG_ShipmentOrder ADD ShippedAt datetime2 NULL;
+IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'LoadingNumber') IS NULL
+    ALTER TABLE dbo.FG_ShipmentOrder ADD LoadingNumber varchar(24) NULL;
+IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'LicensePlate') IS NULL
+    ALTER TABLE dbo.FG_ShipmentOrder ADD LicensePlate varchar(20) NULL;
+IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'DriverName') IS NULL
+    ALTER TABLE dbo.FG_ShipmentOrder ADD DriverName varchar(50) NULL;
+IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'LoadingDockNo') IS NULL
+    ALTER TABLE dbo.FG_ShipmentOrder ADD LoadingDockNo varchar(10) NULL;
+IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'ArrivalAt') IS NULL
+    ALTER TABLE dbo.FG_ShipmentOrder ADD ArrivalAt datetime2 NULL;
+IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'DepartureAt') IS NULL
+    ALTER TABLE dbo.FG_ShipmentOrder ADD DepartureAt datetime2 NULL;
+IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'SealNo') IS NULL
+    ALTER TABLE dbo.FG_ShipmentOrder ADD SealNo varchar(20) NULL;
+IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'LoadingOTDStatus') IS NULL
+    ALTER TABLE dbo.FG_ShipmentOrder ADD LoadingOTDStatus varchar(10) NULL;
+IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'ShipmentOperatorID') IS NULL
+    ALTER TABLE dbo.FG_ShipmentOrder ADD ShipmentOperatorID nvarchar(450) NULL;
+IF COL_LENGTH(N'dbo.FG_ShipmentOrder', N'LoadingConfirmedAt') IS NULL
+    ALTER TABLE dbo.FG_ShipmentOrder ADD LoadingConfirmedAt datetime2 NULL;
+GO
+
+IF OBJECT_ID(N'dbo.FG_ShipmentOrderLine', N'U') IS NOT NULL
+BEGIN
+    UPDATE O
+       SET ItemsJSON = J.ItemsJSON
+    FROM dbo.FG_ShipmentOrder O
+    CROSS APPLY
+    (
+        SELECT
+            L.ShipmentOrderLineID AS shipmentOrderLineId,
+            L.LineSeq AS lineSeq,
+            L.ItemNo AS itemNo,
+            L.OrderedQty AS orderedQty,
+            L.AllocatedQty AS allocatedQty,
+            L.StockID AS stockId,
+            L.LotID AS lotId,
+            L.Location AS location,
+            L.ReservationStatus AS reservationStatus,
+            L.ReservedAt AS reservedAt,
+            L.ReleasedAt AS releasedAt
+        FROM dbo.FG_ShipmentOrderLine L
+        WHERE L.ShipmentOrderID = O.ShipmentOrderID
+        ORDER BY L.LineSeq, L.ShipmentOrderLineID
+        FOR JSON PATH
+    ) J(ItemsJSON)
+    WHERE EXISTS
+    (
+        SELECT 1
+        FROM dbo.FG_ShipmentOrderLine L
+        WHERE L.ShipmentOrderID = O.ShipmentOrderID
+    );
+
+    UPDATE dbo.FG_ShipmentOrder
+       SET ItemsJSON = N'[]'
+     WHERE ItemsJSON IS NULL OR ISJSON(ItemsJSON) <> 1;
+END;
+
+IF OBJECT_ID(N'dbo.FG_DeliveryNote', N'U') IS NOT NULL
+BEGIN
+    ;WITH Latest AS
+    (
+        SELECT D.ShipmentOrderID, D.DnNumber,
+               COALESCE(D.CustomerAckTS, D.IssuedAt, D.CreatedTS) AS ShippedAt,
+               ROW_NUMBER() OVER
+               (
+                   PARTITION BY D.ShipmentOrderID
+                   ORDER BY COALESCE(D.CustomerAckTS, D.IssuedAt, D.CreatedTS) DESC,
+                            D.DeliveryNoteID DESC
+               ) AS RN
+        FROM dbo.FG_DeliveryNote D
+        WHERE D.ShipmentOrderID IS NOT NULL
+    )
+    UPDATE O
+       SET ShipmentDocumentNo = COALESCE(NULLIF(L.DnNumber COLLATE DATABASE_DEFAULT, ''), O.ShipmentDocumentNo),
+           ShippedAt = COALESCE(L.ShippedAt, O.ShippedAt)
+    FROM dbo.FG_ShipmentOrder O
+    JOIN Latest L ON L.ShipmentOrderID = O.ShipmentOrderID AND L.RN = 1;
+END;
+
+IF OBJECT_ID(N'dbo.FG_LoadingConfirm', N'U') IS NOT NULL
+BEGIN
+    UPDATE O
+       SET LoadingNumber = COALESCE(NULLIF(L.LoadingNumber COLLATE DATABASE_DEFAULT, ''), O.LoadingNumber COLLATE DATABASE_DEFAULT),
+           CarrierCode = COALESCE(NULLIF(L.CarrierCode COLLATE DATABASE_DEFAULT, ''), O.CarrierCode COLLATE DATABASE_DEFAULT),
+           LicensePlate = COALESCE(NULLIF(L.LicensePlate COLLATE DATABASE_DEFAULT, ''), O.LicensePlate COLLATE DATABASE_DEFAULT),
+           DriverName = COALESCE(NULLIF(L.DriverName COLLATE DATABASE_DEFAULT, ''), O.DriverName COLLATE DATABASE_DEFAULT),
+           LoadingDockNo = COALESCE(NULLIF(L.DockNo COLLATE DATABASE_DEFAULT, ''), O.LoadingDockNo COLLATE DATABASE_DEFAULT),
+           ArrivalAt = COALESCE(L.ArrivalTS, O.ArrivalAt),
+           DepartureAt = COALESCE(L.DepartureTS, O.DepartureAt),
+           SealNo = COALESCE(NULLIF(L.SealNo COLLATE DATABASE_DEFAULT, ''), O.SealNo COLLATE DATABASE_DEFAULT),
+           LoadingOTDStatus = COALESCE(NULLIF(L.OTDStatus COLLATE DATABASE_DEFAULT, ''), O.LoadingOTDStatus COLLATE DATABASE_DEFAULT),
+           ShipmentOperatorID = COALESCE(NULLIF(L.OperatorID COLLATE DATABASE_DEFAULT, ''), O.ShipmentOperatorID COLLATE DATABASE_DEFAULT),
+           LoadingConfirmedAt = COALESCE(L.ConfirmedAt, O.LoadingConfirmedAt),
+           ShippedAt = COALESCE(O.ShippedAt, L.DepartureTS, L.ConfirmedAt)
+    FROM dbo.FG_ShipmentOrder O
+    OUTER APPLY
+    (
+        SELECT TOP (1) C.*
+        FROM dbo.FG_LoadingConfirm C
+        WHERE C.ShipmentOrderID = O.ShipmentOrderID
+        ORDER BY COALESCE(C.DepartureTS, C.ConfirmedAt, C.CreatedTS) DESC, C.LoadingID DESC
+    ) L
+    WHERE L.LoadingID IS NOT NULL;
+END;
+
+IF OBJECT_ID(N'dbo.FG_PickingDetail', N'U') IS NOT NULL
+   AND OBJECT_ID(N'dbo.FG_PickingFifo', N'U') IS NOT NULL
+   AND OBJECT_ID(N'dbo.WH_InventoryTransaction', N'U') IS NOT NULL
+BEGIN
+    INSERT dbo.WH_InventoryTransaction
+        (TransactionTime,TransactionType,ItemNo,LocationID,LotID,LotNo,QtyBefore,QtyChange,QtyAfter,
+         ReasonCode,RefDocType,RefDocID,OperatorID,Note,CreatedBy,CreatedTS)
+    SELECT COALESCE(P.EndTS,P.StartTS,D.CreatedTS,SYSDATETIME()),'OUT',D.ItemNo,D.Location,D.LotID,L.LotCode,
+           NULL,-ABS(D.Qty),NULL,'LEGACY_PICK','FG_LEGACY_PICK',D.PickDetailID,
+           P.PickerID,CONCAT('Migrated pick ',COALESCE(P.PickNumber,CONVERT(varchar(20),P.PickID))),
+           LEFT(COALESCE(NULLIF(D.CreatedBy,''),'migration'),20),COALESCE(D.CreatedTS,SYSDATETIME())
+    FROM dbo.FG_PickingDetail D
+    JOIN dbo.FG_PickingFifo P ON P.PickID=D.PickID
+    LEFT JOIN dbo.tbl_Lot L ON L.LotID=D.LotID
+    WHERE D.Qty<>0
+      AND NOT EXISTS
+      (
+          SELECT 1 FROM dbo.WH_InventoryTransaction T
+          WHERE T.RefDocType='FG_LEGACY_PICK' AND T.RefDocID=D.PickDetailID
+      );
+END;
+
+IF OBJECT_ID(N'dbo.FG_LoadingConfirm', N'U') IS NOT NULL
+   AND OBJECT_ID(N'dbo.WH_InventoryTransaction', N'U') IS NOT NULL
+BEGIN
+    INSERT dbo.WH_InventoryTransaction
+        (TransactionTime,TransactionType,ItemNo,LocationID,LotID,LotNo,QtyBefore,QtyChange,QtyAfter,
+         ReasonCode,RefDocType,RefDocID,OperatorID,Note,CreatedBy,CreatedTS)
+    SELECT COALESCE(C.DepartureTS,C.ConfirmedAt,C.CreatedTS,SYSDATETIME()),'OUT',J.ItemNo,J.Location,J.LotID,J.LotNo,
+           NULL,-ABS(J.Qty),NULL,'LEGACY_LOAD','FG_LEGACY_LOAD',C.LoadingID,C.OperatorID,
+           CONCAT('Migrated loading ',C.LoadingNumber,' / truck ',C.LicensePlate),
+           LEFT(COALESCE(NULLIF(C.CreatedBy,''),'migration'),20),COALESCE(C.CreatedTS,SYSDATETIME())
+    FROM dbo.FG_LoadingConfirm C
+    CROSS APPLY OPENJSON(CASE WHEN ISJSON(C.PalletsLoadedJSON)=1 THEN C.PalletsLoadedJSON ELSE N'[]' END)
+        WITH (ItemNo varchar(20) '$.itemNo',Location varchar(20) '$.location',LotID int '$.lotId',
+              LotNo nvarchar(50) '$.lotNo',Qty decimal(14,3) '$.qty') J
+    WHERE ISNULL(J.Qty,0)<>0
+      AND NOT EXISTS
+      (
+          SELECT 1 FROM dbo.WH_InventoryTransaction T
+          WHERE T.RefDocType='FG_LEGACY_LOAD' AND T.RefDocID=C.LoadingID
+      )
+      AND NOT EXISTS
+      (
+          SELECT 1 FROM dbo.FG_PickingDetail D
+          WHERE D.PickID=C.PickID AND D.ItemNo=J.ItemNo AND ISNULL(D.LotID,-1)=ISNULL(J.LotID,-1)
+      );
+END;
+
+DECLARE @DropForeignKeys nvarchar(max) = N'';
+SELECT @DropForeignKeys +=
+    N'ALTER TABLE ' + QUOTENAME(OBJECT_SCHEMA_NAME(F.parent_object_id)) + N'.' +
+    QUOTENAME(OBJECT_NAME(F.parent_object_id)) + N' DROP CONSTRAINT ' + QUOTENAME(F.name) + N';'
+FROM sys.foreign_keys F
+WHERE F.referenced_object_id IN
+(
+    OBJECT_ID(N'dbo.FG_ShipmentOrderLine'),
+    OBJECT_ID(N'dbo.FG_DeliveryNote'),
+    OBJECT_ID(N'dbo.FG_PickingDetail'),
+    OBJECT_ID(N'dbo.FG_PickingFifo'),
+    OBJECT_ID(N'dbo.FG_LoadingConfirm'),
+    OBJECT_ID(N'dbo.FG_DayEndClose'),
+    OBJECT_ID(N'dbo.FG_LocationMaster')
+)
+   OR F.parent_object_id IN
+(
+    OBJECT_ID(N'dbo.FG_ShipmentOrderLine'),
+    OBJECT_ID(N'dbo.FG_DeliveryNote'),
+    OBJECT_ID(N'dbo.FG_PickingDetail'),
+    OBJECT_ID(N'dbo.FG_PickingFifo'),
+    OBJECT_ID(N'dbo.FG_LoadingConfirm'),
+    OBJECT_ID(N'dbo.FG_DayEndClose'),
+    OBJECT_ID(N'dbo.FG_LocationMaster')
+);
+IF @DropForeignKeys <> N'' EXEC sys.sp_executesql @DropForeignKeys;
+
+DROP TABLE IF EXISTS dbo.FG_PickingDetail;
+DROP TABLE IF EXISTS dbo.FG_LoadingConfirm;
+DROP TABLE IF EXISTS dbo.FG_PickingFifo;
+DROP TABLE IF EXISTS dbo.FG_ShipmentOrderLine;
+DROP TABLE IF EXISTS dbo.FG_DeliveryNote;
+DROP TABLE IF EXISTS dbo.FG_DayEndClose;
+DROP TABLE IF EXISTS dbo.FG_LocationMaster;
+
+IF EXISTS
+(
+    SELECT 1 FROM sys.tables
+    WHERE schema_id=SCHEMA_ID(N'dbo')
+      AND name IN
+      (
+          N'FG_DayEndClose',N'FG_DeliveryNote',N'FG_LoadingConfirm',N'FG_LocationMaster',
+          N'FG_PickingDetail',N'FG_PickingFifo',N'FG_ShipmentOrderLine'
+      )
+)
+    THROW 51001, 'Retired FG tables were not fully removed.', 1;
+
+DELETE FROM dbo.MD_CodeItem
+WHERE GroupCode IN ('FG_SHIPMENT_SOURCE', 'FG_SHIPMENT_URL', 'FG_SHIPMENT_AUTH');
+DELETE FROM dbo.MD_CodeGroup
+WHERE GroupCode IN ('FG_SHIPMENT_SOURCE', 'FG_SHIPMENT_URL', 'FG_SHIPMENT_AUTH');
+
+-- These procedures belonged to the removed order-line picking/truck-loading flow.
+DROP PROCEDURE IF EXISTS dbo.FG_PDA_PICKING_SCAN;
+DROP PROCEDURE IF EXISTS dbo.FG_PDA_PICKING_COMPLETE;
+DROP PROCEDURE IF EXISTS dbo.FG_PDA_LOADING_ORDER_SCAN;
+DROP PROCEDURE IF EXISTS dbo.FG_PDA_LOADING_TRUCK_SCAN;
+DROP PROCEDURE IF EXISTS dbo.FG_PDA_LOADING_STOCK_SCAN;
+DROP PROCEDURE IF EXISTS dbo.FG_PDA_LOADING_COMPLETE;
+
+COMMIT TRANSACTION;
+GO
+
+-- Canonical LOT-based procedures are created by migrate_fg_inventory_consolidation.sql.
+-- END FG SHIPMENT CONSOLIDATION
+-- BEGIN FG INVENTORY CONSOLIDATION
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+GO
+
+IF OBJECT_ID(N'dbo.WH_Inventory',N'U') IS NULL
+    THROW 52088,'WH_Inventory must exist before consolidating finished-goods inventory.',1;
+IF OBJECT_ID(N'dbo.WH_InventoryTransaction',N'U') IS NULL
+    THROW 52089,'WH_InventoryTransaction must exist before consolidating finished-goods adjustments.',1;
+GO
+
+-- Add the LOT references in their own batch so subsequent statements compile
+-- on databases upgraded from the legacy StockID schema.
+IF OBJECT_ID(N'dbo.FG_PutAway',N'U') IS NOT NULL AND COL_LENGTH(N'dbo.FG_PutAway',N'LotNo') IS NULL
+    ALTER TABLE dbo.FG_PutAway ADD LotNo nvarchar(50) NULL;
+IF OBJECT_ID(N'dbo.FG_CustomerReturn',N'U') IS NOT NULL AND COL_LENGTH(N'dbo.FG_CustomerReturn',N'LotNo') IS NULL
+    ALTER TABLE dbo.FG_CustomerReturn ADD LotNo nvarchar(50) NULL;
+GO
+
+-- Preserve every legacy finished-goods LOT before retiring the duplicate tables.
+IF OBJECT_ID(N'dbo.FG_Inventory', N'U') IS NOT NULL
+BEGIN
+    ;WITH SourceRows AS
+    (
+        SELECT
+            COALESCE(NULLIF(L.LotCode,N''),NULLIF(F.StockNumber,N''),
+                CONCAT(N'LEGACY-FG-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),F.StockID),10))) COLLATE DATABASE_DEFAULT AS LotNo,
+            F.ItemNo AS PartNo,
+            I.ItemName AS PartName,
+            F.Location AS LocationNo,
+            COALESCE(F.Qty,0) AS Qty,
+            COALESCE(F.StockTS,F.CreatedTS,SYSDATETIME()) AS ReceivedAt,
+            COALESCE(F.CreatedTS,F.StockTS,SYSDATETIME()) AS CreatedAt,
+            COALESCE(F.ModifiedTS,F.CreatedTS,F.StockTS,SYSDATETIME()) AS UpdatedAt,
+            UPPER(COALESCE(F.Status,'AVAILABLE')) AS LegacyStatus
+        FROM dbo.FG_Inventory F
+        LEFT JOIN dbo.tbl_Lot L ON L.LotID=F.LotID
+        LEFT JOIN dbo.MD_Item I ON I.ItemNo=F.ItemNo
+    )
+    MERGE dbo.WH_Inventory AS Target
+    USING SourceRows AS Source ON Source.LotNo=Target.LotNo
+    WHEN MATCHED THEN UPDATE SET
+        PartNo=Source.PartNo,PartName=Source.PartName,LocationNo=Source.LocationNo,
+        Qty=CASE WHEN Source.LegacyStatus IN ('CANCELED','CANCELLED','RELEASED','PICKED','SHIPPED','DELIVERED','CLOSED') THEN 0 ELSE Source.Qty END,
+        ReceivedAt=Source.ReceivedAt,UpdatedAt=Source.UpdatedAt
+    WHEN NOT MATCHED THEN INSERT
+        (LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
+    VALUES
+        (Source.LotNo,'PART',Source.PartNo,Source.PartName,Source.LocationNo,
+         CASE WHEN Source.LegacyStatus IN ('CANCELED','CANCELLED','RELEASED','PICKED','SHIPPED','DELIVERED','CLOSED') THEN 0 ELSE Source.Qty END,
+         Source.ReceivedAt,Source.CreatedAt,Source.UpdatedAt);
+
+    IF COL_LENGTH(N'dbo.FG_PutAway',N'LotNo') IS NULL
+        ALTER TABLE dbo.FG_PutAway ADD LotNo nvarchar(50) NULL;
+    IF COL_LENGTH(N'dbo.FG_CustomerReturn',N'LotNo') IS NULL
+        ALTER TABLE dbo.FG_CustomerReturn ADD LotNo nvarchar(50) NULL;
+
+    UPDATE P SET LotNo=X.LotNo
+    FROM dbo.FG_PutAway P
+    JOIN
+    (
+        SELECT F.StockID,COALESCE(NULLIF(L.LotCode,N''),NULLIF(F.StockNumber,N''),
+            CONCAT(N'LEGACY-FG-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),F.StockID),10))) AS LotNo
+        FROM dbo.FG_Inventory F LEFT JOIN dbo.tbl_Lot L ON L.LotID=F.LotID
+    ) X ON X.StockID=P.StockID
+    WHERE P.LotNo IS NULL;
+
+    UPDATE R SET LotNo=COALESCE(X.LotNo,JSON_VALUE(R.ItemsJSON,'$[0].lotNo'))
+    FROM dbo.FG_CustomerReturn R
+    LEFT JOIN
+    (
+        SELECT F.StockID,COALESCE(NULLIF(L.LotCode,N''),NULLIF(F.StockNumber,N''),
+            CONCAT(N'LEGACY-FG-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),F.StockID),10))) AS LotNo
+        FROM dbo.FG_Inventory F LEFT JOIN dbo.tbl_Lot L ON L.LotID=F.LotID
+    ) X ON X.StockID=R.StockID
+    WHERE R.LotNo IS NULL;
+
+    UPDATE O SET ItemsJSON=J.ItemsJSON
+    FROM dbo.FG_ShipmentOrder O
+    CROSS APPLY
+    (
+        SELECT N'['+STRING_AGG(
+            JSON_MODIFY(E.[value],'$.lotNo',COALESCE(NULLIF(L.LotCode,N''),NULLIF(F.StockNumber,N''),
+                CASE WHEN F.StockID IS NOT NULL THEN CONCAT(N'LEGACY-FG-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),F.StockID),10)) END,
+                JSON_VALUE(E.[value],'$.lotNo'))),N',')
+            WITHIN GROUP (ORDER BY TRY_CONVERT(int,E.[key]))+N']'
+        FROM OPENJSON(CASE WHEN ISJSON(O.ItemsJSON)=1 THEN O.ItemsJSON ELSE N'[]' END) E
+        LEFT JOIN dbo.FG_Inventory F ON F.StockID=TRY_CONVERT(int,JSON_VALUE(E.[value],'$.stockId'))
+        LEFT JOIN dbo.tbl_Lot L ON L.LotID=F.LotID
+        WHERE JSON_VALUE(E.[value],'$.stockId') IS NULL OR F.StockID IS NOT NULL
+    ) J(ItemsJSON)
+    WHERE J.ItemsJSON IS NOT NULL;
+END;
+GO
+
+IF OBJECT_ID(N'dbo.FG_PutAway',N'U') IS NOT NULL AND COL_LENGTH(N'dbo.FG_PutAway',N'LotNo') IS NULL
+    ALTER TABLE dbo.FG_PutAway ADD LotNo nvarchar(50) NULL;
+IF OBJECT_ID(N'dbo.FG_CustomerReturn',N'U') IS NOT NULL AND COL_LENGTH(N'dbo.FG_CustomerReturn',N'LotNo') IS NULL
+    ALTER TABLE dbo.FG_CustomerReturn ADD LotNo nvarchar(50) NULL;
+GO
+
+-- Adjustment rows are ordinary inventory transactions; do not store them twice.
+IF OBJECT_ID(N'dbo.FG_InventoryAdjust',N'U') IS NOT NULL
+BEGIN
+    INSERT dbo.WH_InventoryTransaction
+        (TransactionTime,TransactionType,ItemNo,LocationID,LotID,LotNo,
+         QtyBefore,QtyChange,QtyAfter,ReasonCode,RefDocType,RefDocID,
+         OperatorID,Note,CreatedBy,CreatedTS)
+    SELECT COALESCE(A.CreatedTS,SYSDATETIME()),'ADJ',A.ItemNo,A.Location,A.LotID,
+           COALESCE(NULLIF(L.LotCode,N''),NULLIF(F.StockNumber,N'')),
+           A.QtyBefore,A.Delta,A.QtyAfter,A.ReasonCode,'FG_ADJUST',A.AdjustID,
+           COALESCE(A.RequestedBy,A.CreatedBy),A.ReasonNote,
+           LEFT(COALESCE(NULLIF(A.CreatedBy,''),'system'),20),COALESCE(A.CreatedTS,SYSDATETIME())
+    FROM dbo.FG_InventoryAdjust A
+    LEFT JOIN dbo.FG_Inventory F ON F.StockID=A.StockID
+    LEFT JOIN dbo.tbl_Lot L ON L.LotID=COALESCE(A.LotID,F.LotID)
+    WHERE NOT EXISTS
+    (
+        SELECT 1 FROM dbo.WH_InventoryTransaction T
+        WHERE T.RefDocType='FG_ADJUST' AND T.RefDocID=A.AdjustID
+    );
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_INVENTORY_LIST
+    @SearchText nvarchar(120)=NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Search nvarchar(130)=N'%'+NULLIF(LTRIM(RTRIM(@SearchText)),N'')+N'%';
+    SELECT W.LotNo,W.PartNo AS ItemNo,
+        COALESCE(NULLIF(W.PartName,N''),I.ItemName COLLATE DATABASE_DEFAULT) AS ItemName,L.LotID,
+        IMG.CustomerCode,COALESCE(W.Qty,0) AS Qty,COALESCE(NULLIF(I.DefaultUOM,''),'EA') AS Unit,
+        W.LocationNo AS Location,'AVAILABLE' AS Status,W.ReceivedAt AS StockTS
+    FROM dbo.WH_Inventory W
+    LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=W.PartNo
+    LEFT JOIN dbo.tbl_Lot L ON L.LotCode COLLATE DATABASE_DEFAULT=W.LotNo
+    LEFT JOIN dbo.PR_ImgLot IMG ON IMG.LotID=L.LotID
+    LEFT JOIN dbo.MD_Location ML ON ML.LocationID COLLATE DATABASE_DEFAULT=W.LocationNo
+    WHERE W.Qty>0
+      AND (UPPER(COALESCE(ML.AreaCode,''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')
+      AND (@Search IS NULL OR W.LotNo LIKE @Search OR W.PartNo LIKE @Search
+        OR W.PartName LIKE @Search OR I.ItemName LIKE @Search OR W.LocationNo LIKE @Search)
+    ORDER BY W.ReceivedAt DESC,W.LotNo DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_ADJUST_SCAN_STOCK
+    @ScanText nvarchar(80)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Scan nvarchar(80)=LTRIM(RTRIM(ISNULL(@ScanText,N'')));
+    IF @Scan=N'' THROW 51600,'Finished goods Lot No is required.',1;
+    IF LEN(@Scan)<3 OR @Scan COLLATE Latin1_General_100_BIN2 LIKE N'%[^A-Za-z0-9-]%'
+        THROW 51604,'The barcode format is invalid.',1;
+    IF NOT EXISTS
+    (
+        SELECT 1 FROM dbo.WH_Inventory W
+        LEFT JOIN dbo.MD_Location ML ON ML.LocationID COLLATE DATABASE_DEFAULT=W.LocationNo
+        WHERE UPPER(W.LotNo)=UPPER(@Scan)
+          AND (UPPER(COALESCE(ML.AreaCode,''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')
+    ) THROW 51601,'The specified finished goods Lot No could not be found.',1;
+
+    SELECT N'FG' AS RECEIVE_TYPE,N'N' AS YN,W.LotNo AS LOTNO,W.LotNo AS BARCODE,
+        N'dbo.WH_Inventory' AS SOURCE_TABLE,CAST(NULL AS nvarchar(50)) AS NOTENO,
+        CAST(NULL AS nvarchar(50)) AS CASE_BARCODE,W.CaseNo AS CASE_NO,W.InvoiceNo AS INVOICE_NO,
+        W.ParentLotNo AS CONTAINER_NO,W.PartNo AS PARTNO,COALESCE(NULLIF(W.PartName,N''),I.ItemName COLLATE DATABASE_DEFAULT) AS PARTNM,
+        W.Qty AS QTY,COALESCE(NULLIF(I.DefaultUOM,''),'EA') AS UNIT,CAST(NULL AS nvarchar(30)) AS PONO,
+        CAST(NULL AS int) AS PONO_SEQ,CAST(NULL AS nvarchar(30)) AS VENDCD,
+        CAST(NULL AS nvarchar(100)) AS VENDNM,CONVERT(date,L.ProducedAt) AS PROD_DATE,
+        CAST(NULL AS date) AS DELI_DATE,CONVERT(date,W.ReceivedAt) AS ARRIV_DATE,
+        CAST(NULL AS date) AS SHIP_DATE,CAST(NULL AS date) AS PACK_DATE,
+        W.LocationNo AS RECEIVED_LOCATION,N'AVAILABLE' AS RECEIVED_STATUS
+    FROM dbo.WH_Inventory W
+    LEFT JOIN dbo.tbl_Lot L ON L.LotCode COLLATE DATABASE_DEFAULT=W.LotNo
+    LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=W.PartNo
+    WHERE UPPER(W.LotNo)=UPPER(@Scan);
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_ADJUST_SAVE_QTY
+    @ScanText nvarchar(80),@DeltaQty decimal(18,3),@ReasonCode nvarchar(30),
+    @ReasonNote nvarchar(500)=NULL,@UserId nvarchar(40)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    DECLARE @Scan nvarchar(80)=LTRIM(RTRIM(ISNULL(@ScanText,N''))),
+            @Reason nvarchar(30)=UPPER(LTRIM(RTRIM(ISNULL(@ReasonCode,N'')))),
+            @Note nvarchar(500)=NULLIF(LTRIM(RTRIM(@ReasonNote)),N''),
+            @User nvarchar(40)=COALESCE(NULLIF(LTRIM(RTRIM(@UserId)),N''),N'PDA'),
+            @ItemNo varchar(50),@Location varchar(50),@Before decimal(18,3),@After decimal(18,3),@LotID int;
+    IF @Scan=N'' THROW 51610,'Finished goods Lot No is required.',1;
+    IF COALESCE(@DeltaQty,0)=0 THROW 51611,'Adjustment quantity must be different from zero.',1;
+    IF @Reason=N'' THROW 51612,'Reason code is required.',1;
+    IF NOT EXISTS(SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='INV_ADJUST_REASON' AND CodeValue=@Reason AND ISNULL(UseFlag,1)=1)
+        THROW 51619,'Unsupported inventory adjustment reason.',1;
+
+    BEGIN TRANSACTION;
+    SELECT @ItemNo=W.PartNo,@Location=W.LocationNo,@Before=W.Qty,@LotID=L.LotID
+    FROM dbo.WH_Inventory W WITH(UPDLOCK,ROWLOCK)
+    LEFT JOIN dbo.tbl_Lot L ON L.LotCode COLLATE DATABASE_DEFAULT=W.LotNo
+    LEFT JOIN dbo.MD_Location ML ON ML.LocationID COLLATE DATABASE_DEFAULT=W.LocationNo
+    WHERE UPPER(W.LotNo)=UPPER(@Scan)
+      AND (UPPER(COALESCE(ML.AreaCode,''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%');
+    IF @ItemNo IS NULL THROW 51614,'The specified finished goods Lot No could not be found.',1;
+    SET @After=@Before+@DeltaQty;
+    IF @After<0 THROW 51617,'After Qty cannot be below zero.',1;
+    IF @After<>FLOOR(@After) OR @After>999999999 THROW 51618,'New quantity must be a whole number from 0 to 999999999.',1;
+
+    UPDATE dbo.WH_Inventory SET Qty=@After,UpdatedAt=SYSDATETIME() WHERE LotNo=@Scan;
+    IF @LotID IS NOT NULL
+        UPDATE dbo.tbl_Lot SET RemainingQty=@After,ModifiedTS=SYSDATETIME(),ModifiedBy=LEFT(@User,20) WHERE LotID=@LotID;
+    INSERT dbo.WH_InventoryTransaction
+        (TransactionTime,TransactionType,ItemNo,LocationID,LotID,LotNo,QtyBefore,QtyChange,QtyAfter,
+         ReasonCode,RefDocType,OperatorID,Note,CreatedBy,CreatedTS)
+    VALUES
+        (SYSDATETIME(),'ADJ',@ItemNo,@Location,@LotID,@Scan,@Before,@DeltaQty,@After,
+         @Reason,'FG_ADJUST',@User,@Note,LEFT(@User,20),SYSDATETIME());
+    COMMIT TRANSACTION;
+    EXEC dbo.FG_PDA_ADJUST_SCAN_STOCK @ScanText=@Scan;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_RETURN_SCAN
+    @Barcode varchar(80)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @B varchar(80)=LTRIM(RTRIM(ISNULL(@Barcode,'')));
+    IF LEN(@B)<3 OR LEN(@B)>80 OR @B COLLATE Latin1_General_100_BIN2 LIKE '%[^A-Za-z0-9_./-]%'
+        THROW 52000,'The finished-good return barcode format is invalid.',1;
+    DECLARE @P TABLE
+    (
+        LotNo nvarchar(50),ShipmentOrderID int,ShipOrderNumber varchar(40),CustomerCode varchar(20),
+        ItemNo varchar(20),ItemName nvarchar(200),ShippedAt datetime2,Qty decimal(18,3),LotID int
+    );
+    INSERT @P
+    SELECT DISTINCT J.LotNo,O.ShipmentOrderID,O.ShipOrderNumber,O.CustomerCode,J.ItemNo,I.ItemName,
+        COALESCE(O.ShippedAt,O.DepartureAt,O.LoadingConfirmedAt),
+        COALESCE(NULLIF(J.AllocatedQty,0),NULLIF(J.OrderedQty,0),W.Qty),L.LotID
+    FROM dbo.FG_ShipmentOrder O
+    CROSS APPLY OPENJSON(CASE WHEN ISJSON(O.ItemsJSON)=1 THEN O.ItemsJSON ELSE N'[]' END)
+        WITH (LotNo nvarchar(50) '$.lotNo',ItemNo varchar(20) '$.itemNo',
+              OrderedQty decimal(18,3) '$.orderedQty',AllocatedQty decimal(18,3) '$.allocatedQty') J
+    LEFT JOIN dbo.WH_Inventory W ON W.LotNo=J.LotNo
+    LEFT JOIN dbo.tbl_Lot L ON L.LotCode=J.LotNo
+    LEFT JOIN dbo.MD_Item I ON I.ItemNo=J.ItemNo
+    WHERE UPPER(J.LotNo)=UPPER(@B) AND UPPER(COALESCE(O.Status,''))='SHIPPED'
+      AND COALESCE(O.ShippedAt,O.DepartureAt,O.LoadingConfirmedAt) IS NOT NULL;
+    IF NOT EXISTS(SELECT 1 FROM @P)
+    BEGIN
+        IF EXISTS(SELECT 1 FROM dbo.WH_Inventory WHERE UPPER(LotNo)=UPPER(@B))
+            THROW 52001,'The product exists, but no completed shipment history was found.',1;
+        THROW 52002,'This barcode does not match a shipped finished-good LOT.',1;
+    END;
+    IF (SELECT COUNT(*) FROM @P)>1 THROW 52004,'This barcode matches multiple shipped products.',1;
+    IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WHERE UPPER(LotNo)=UPPER(@B))
+        THROW 52005,'This product was already received as a customer return.',1;
+    IF EXISTS(SELECT 1 FROM @P WHERE NULLIF(ShipOrderNumber,'') IS NULL OR NULLIF(CustomerCode,'') IS NULL
+        OR NULLIF(ItemNo,'') IS NULL OR NULLIF(ItemName,'') IS NULL OR COALESCE(Qty,0)<=0)
+        THROW 52008,'The shipment record is incomplete. Verify shipment, customer, part, and quantity.',1;
+    SELECT @B AS Barcode,LotID,LotNo,
+        ShipmentOrderID,ShipOrderNumber,CustomerCode,ItemNo,ItemName,ShippedAt,Qty FROM @P;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_RETURN_RECEIVE
+    @Barcode varchar(80),@ReturnReason varchar(60),@Note nvarchar(500)=NULL,@OperatorID nvarchar(450)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    DECLARE @Reason varchar(60)=UPPER(LTRIM(RTRIM(ISNULL(@ReturnReason,'')))),
+            @CleanNote nvarchar(500)=NULLIF(LTRIM(RTRIM(@Note)),N'');
+    IF NOT EXISTS(SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='FG_RETURN_REASON' AND CodeValue=@Reason AND ISNULL(UseFlag,1)=1)
+        THROW 52009,'Select a valid return reason.',1;
+    DECLARE @P TABLE
+    (
+        Barcode varchar(80),LotID int,LotNo varchar(80),
+        ShipmentOrderID int,ShipOrderNumber varchar(40),CustomerCode varchar(20),ItemNo varchar(20),
+        ItemName nvarchar(200),ShippedAt datetime2,Qty decimal(18,3)
+    );
+    INSERT @P EXEC dbo.FG_PDA_RETURN_SCAN @Barcode;
+    BEGIN TRANSACTION;
+    DECLARE @Now datetime2=SYSDATETIME(),@ReturnID int,@ReturnNumber varchar(24),@LotNo nvarchar(50)=(SELECT LotNo FROM @P);
+    IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@LotNo)
+        THROW 52005,'This product was already received as a customer return.',1;
+    SET @ReturnNumber=CONCAT('RMA-',FORMAT(@Now,'yyMMddHHmmssfff'),LEFT(REPLACE(CONVERT(varchar(36),NEWID()),'-',''),5));
+    INSERT dbo.FG_CustomerReturn
+        (ReturnNumber,CustomerCode,OriginalShipmentOrderID,LotNo,LotID,ItemNo,ReturnQty,
+         ReturnReason,Note,ItemsJSON,Status,ReceivedAt,ReceivedBy,CapaTriggered,CreatedBy,CreatedTS)
+    SELECT @ReturnNumber,CustomerCode,ShipmentOrderID,LotNo,LotID,ItemNo,Qty,@Reason,@CleanNote,
+        (SELECT ItemNo AS itemNo,LotNo AS lotNo,LotNo AS stockNumber,Barcode AS barcode,
+                Qty AS qty,CAST(NULL AS varchar(50)) AS location FOR JSON PATH),
+        'Open',@Now,@OperatorID,0,'pda',@Now FROM @P;
+    SET @ReturnID=CONVERT(int,SCOPE_IDENTITY());
+    MERGE dbo.WH_Inventory AS T
+    USING (SELECT LotNo,ItemNo,ItemName,Qty FROM @P) AS S ON S.LotNo=T.LotNo
+    WHEN MATCHED THEN UPDATE SET Qty=S.Qty,LocationNo=NULL,UpdatedAt=@Now
+    WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
+        VALUES(S.LotNo,'PART',S.ItemNo,S.ItemName,NULL,S.Qty,@Now,@Now,@Now);
+    INSERT dbo.WH_InventoryTransaction
+        (TransactionTime,TransactionType,ItemNo,LotID,LotNo,QtyBefore,QtyChange,QtyAfter,
+         ReasonCode,RefDocType,RefDocID,OperatorID,Note,CreatedBy,CreatedTS)
+    SELECT @Now,'IN',ItemNo,LotID,LotNo,0,Qty,Qty,'RETURN','FG_RETURN',@ReturnID,
+        @OperatorID,@CleanNote,LEFT(COALESCE(NULLIF(@OperatorID,N''),N'pda'),20),@Now FROM @P;
+    COMMIT TRANSACTION;
+    SELECT @ReturnID AS ReturnID,* FROM @P;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_TRANSACTION_LIST
+    @SearchText nvarchar(120)=NULL,@DateFrom date=NULL,@DateTo date=NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @From date=COALESCE(@DateFrom,DATEADD(day,-30,CAST(GETDATE() AS date))),
+            @To date=COALESCE(@DateTo,CAST(GETDATE() AS date)),
+            @Search nvarchar(130)=N'%'+NULLIF(LTRIM(RTRIM(@SearchText)),N'')+N'%';
+    ;WITH Events AS
+    (
+        SELECT T.TransactionTime EventTime,CONCAT('TX-',T.TransactionID) EventID,T.LotNo,T.ItemNo,T.LocationID,
+            ABS(T.QtyChange) Qty,CASE T.TransactionType WHEN 'IN' THEN N'Inbound' WHEN 'OUT' THEN N'Outbound' ELSE N'Adjust' END Status,
+            T.TransactionType Direction,T.OperatorID Worker,T.ReasonCode,T.Note ReasonNote,T.ApproverID Supervisor,
+            T.QtyBefore BeforeQty,T.QtyChange DeltaQty,T.QtyAfter AfterQty,T.RefDocType Source,T.Note Reference
+        FROM dbo.WH_InventoryTransaction T
+        WHERE UPPER(COALESCE(T.RefDocType,'')) LIKE 'FG%'
+        UNION ALL
+        SELECT P.CreatedTS,CONCAT('IN-',P.PutAwayID),P.LotNo,P.ItemNo COLLATE DATABASE_DEFAULT,
+            P.ActualLoc COLLATE DATABASE_DEFAULT,P.Qty,N'Put-Away','IN',
+            COALESCE(P.OperatorID,P.CreatedBy) COLLATE DATABASE_DEFAULT,NULL,
+            P.ContainerBarcode COLLATE DATABASE_DEFAULT,NULL,NULL,NULL,NULL,N'FG_PutAway',
+            P.ContainerBarcode COLLATE DATABASE_DEFAULT
+        FROM dbo.FG_PutAway P WHERE UPPER(COALESCE(P.Status,'')) NOT IN('CANCELLED','CANCELED')
+        UNION ALL
+        SELECT COALESCE(R.ReceivedAt,R.CreatedTS),CONCAT('RETURN-',R.ReturnID),R.LotNo,
+            R.ItemNo COLLATE DATABASE_DEFAULT,NULL,R.ReturnQty,N'Return','IN',
+            COALESCE(R.ReceivedBy,R.CreatedBy) COLLATE DATABASE_DEFAULT,
+            R.ReturnReason COLLATE DATABASE_DEFAULT,R.Note COLLATE DATABASE_DEFAULT,
+            NULL,NULL,NULL,NULL,N'FG_CustomerReturn',R.ReturnNumber COLLATE DATABASE_DEFAULT
+        FROM dbo.FG_CustomerReturn R WHERE UPPER(COALESCE(R.Status,'')) NOT IN('CANCELLED','CANCELED','REJECTED')
+    )
+    SELECT ROW_NUMBER() OVER(ORDER BY E.EventTime DESC,E.EventID DESC) AS ROW_NO,
+        COALESCE(NULLIF(E.LotNo COLLATE DATABASE_DEFAULT,''),'N/A') LOTNO,E.ItemNo PARTNO,CONVERT(nvarchar(10),E.EventTime,23) WDATE,
+        CONVERT(nvarchar(8),E.EventTime,108) WTIME,COALESCE(NULLIF(E.LocationID COLLATE DATABASE_DEFAULT,''),'N/A') LOCATION_NO,
+        COALESCE(E.Qty,0) QTY,I.DefaultUOM UNIT,E.Status STATUS,E.Direction DIRECTION,
+        COALESCE(NULLIF(U.UserName COLLATE DATABASE_DEFAULT,''),E.Worker COLLATE DATABASE_DEFAULT) WORKER_ID,E.ReasonCode REASON_CODE,E.ReasonNote REASON_NOTE,
+        E.Supervisor SUPERVISOR,E.BeforeQty BEFORE_QTY,E.DeltaQty DELTA_QTY,E.AfterQty AFTER_QTY,
+        NULL BEFORE_STATUS,NULL AFTER_STATUS,NULL BEFORE_LOCATION,NULL AFTER_LOCATION,E.Source SOURCE,E.Reference NOTE
+    FROM Events E LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=E.ItemNo
+    LEFT JOIN dbo.AspNetUsers U ON U.Id COLLATE DATABASE_DEFAULT=E.Worker
+    WHERE E.EventTime>=@From AND E.EventTime<DATEADD(day,1,@To)
+      AND (@Search IS NULL OR E.LotNo COLLATE DATABASE_DEFAULT LIKE @Search
+        OR E.ItemNo COLLATE DATABASE_DEFAULT LIKE @Search
+        OR I.ItemName COLLATE DATABASE_DEFAULT LIKE @Search
+        OR E.LocationID COLLATE DATABASE_DEFAULT LIKE @Search
+        OR E.Reference COLLATE DATABASE_DEFAULT LIKE @Search)
+    ORDER BY E.EventTime DESC,E.EventID DESC;
+END;
+GO
+
+-- Keep the simple PDA scenarios on the canonical inventory only.
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_PPT_TEST_RESET @Screen varchar(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    IF @Screen NOT IN('qc','putaway','inventory','return','adjust') THROW 51700,'Unknown FG PPT test screen.',1;
+    DECLARE @SeedBy varchar(50)=CONCAT('pda-ppt-fg-',@Screen);
+    DECLARE @Lots TABLE(LotID int PRIMARY KEY,LotCode varchar(40),ItemNo varchar(20),Qty decimal(12,3),LocationID varchar(20));
+    INSERT @Lots SELECT LotID,LotCode,ItemNo,BatchSize,
+        CASE @Screen WHEN 'putaway' THEN 'FG-PPT-A1' WHEN 'inventory' THEN 'FG-PPT-B1'
+             WHEN 'return' THEN 'FG-PPT-E1' WHEN 'adjust' THEN 'FG-PPT-F1' END
+        FROM dbo.tbl_Lot WHERE CreatedBy=@SeedBy;
+    IF NOT EXISTS(SELECT 1 FROM @Lots) THROW 51701,'FG PPT samples are missing. Run PDA_SEED.sql.',1;
+    BEGIN TRANSACTION;
+    DELETE T FROM dbo.WH_InventoryTransaction T JOIN @Lots L ON L.LotCode=T.LotNo COLLATE DATABASE_DEFAULT WHERE T.RefDocType IN('FG_ADJUST','FG_PPT_HISTORY');
+    DELETE P FROM dbo.FG_PutAway P JOIN @Lots L ON L.LotCode=P.LotNo;
+    IF @Screen IN('qc','putaway') DELETE W FROM dbo.WH_Inventory W JOIN @Lots L ON L.LotCode=W.LotNo;
+    ELSE
+        MERGE dbo.WH_Inventory AS T USING
+        (SELECT L.LotCode,L.ItemNo,I.ItemName,L.LocationID,L.Qty FROM @Lots L LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=L.ItemNo) S
+        ON S.LotCode=T.LotNo
+        WHEN MATCHED THEN UPDATE SET PartNo=S.ItemNo,PartName=S.ItemName,LocationNo=S.LocationID,Qty=S.Qty,UpdatedAt=SYSDATETIME()
+        WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
+            VALUES(S.LotCode,'PART',S.ItemNo,S.ItemName,S.LocationID,S.Qty,SYSDATETIME(),SYSDATETIME(),SYSDATETIME());
+    UPDATE L SET RemainingQty=T.Qty,CurrentLocationID=CASE WHEN @Screen IN('qc','putaway') THEN NULL ELSE T.LocationID END,
+        ProcessCode='IMG',Status='CONFIRMED',QualityFlag='OK',ModifiedBy=LEFT(@SeedBy,20),ModifiedTS=SYSDATETIME()
+    FROM dbo.tbl_Lot L JOIN @Lots T ON T.LotID=L.LotID;
+    IF @Screen='return'
+    BEGIN
+        DELETE R FROM dbo.FG_CustomerReturn R JOIN @Lots L ON L.LotCode=R.LotNo;
+        UPDATE O SET Status=CASE WHEN O.ShipOrderNumber='FG-PPT-SO-RETURN' THEN 'SHIPPED' ELSE 'OPEN' END,
+            ShippedAt=CASE WHEN O.ShipOrderNumber='FG-PPT-SO-RETURN' THEN DATEADD(day,-1,SYSDATETIME()) ELSE NULL END,
+            ItemsJSON=J.ItemsJSON,ModifiedBy=LEFT(@SeedBy,20),ModifiedTS=SYSDATETIME()
+        FROM dbo.FG_ShipmentOrder O
+        CROSS APPLY
+        (
+            SELECT 10 lineSeq,L.ItemNo itemNo,L.Qty orderedQty,L.Qty allocatedQty,L.LotCode lotNo,L.LotID lotId,L.LocationID location
+            FROM @Lots L
+            WHERE (O.ShipOrderNumber='FG-PPT-SO-RETURN' AND RIGHT(L.LotCode,6)='950001')
+               OR (O.ShipOrderNumber='FG-PPT-SO-NOSHIP' AND RIGHT(L.LotCode,6)='950002')
+            FOR JSON PATH
+        ) J(ItemsJSON)
+        WHERE O.CreatedBy=@SeedBy AND O.ShipOrderNumber IN('FG-PPT-SO-RETURN','FG-PPT-SO-NOSHIP');
+    END;
+    COMMIT TRANSACTION;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_HISTORY_TEST_RESET
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    DECLARE @LotID int,@Today datetime2=CONVERT(date,SYSDATETIME()),@LotNo nvarchar(50)=N'5011FG260908970001';
+    SELECT @LotID=LotID FROM dbo.tbl_Lot WHERE LotCode=@LotNo AND CreatedBy='pda-ppt-fg-history';
+    IF @LotID IS NULL THROW 51730,'FG History samples are missing. Run PDA_SEED.sql.',1;
+    MERGE dbo.WH_Inventory AS T USING(SELECT @LotNo LotNo) S ON S.LotNo=T.LotNo
+    WHEN MATCHED THEN UPDATE SET PartNo='PPT-FG-HIST',PartName=N'PPT FG HISTORY',LocationNo='FG-PPT-G1',Qty=0,UpdatedAt=@Today
+    WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
+        VALUES(@LotNo,'PART','PPT-FG-HIST',N'PPT FG HISTORY','FG-PPT-G1',0,@Today,@Today,@Today);
+    DELETE dbo.WH_InventoryTransaction WHERE RefDocType='FG_PPT_HISTORY' AND LotNo=@LotNo;
+    INSERT dbo.WH_InventoryTransaction
+        (TransactionTime,TransactionType,ItemNo,LocationID,LotID,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,RefDocType,OperatorID,Note,CreatedBy,CreatedTS)
+    VALUES
+        (DATEADD(second,1,@Today),'IN','PPT-FG-HIST','FG-PPT-G1',@LotID,@LotNo,0,20,20,'PUTAWAY','FG_PPT_HISTORY','SCTEST1',N'PPT Put-Away','pda-ppt-fg-history',SYSDATETIME()),
+        (DATEADD(second,2,@Today),'ADJ','PPT-FG-HIST','FG-PPT-G1',@LotID,@LotNo,20,2,22,'COUNT_DIFF','FG_PPT_HISTORY','SCTEST1',N'PPT count correction','pda-ppt-fg-history',SYSDATETIME()),
+        (DATEADD(second,3,@Today),'OUT','PPT-FG-HIST','FG-PPT-G1',@LotID,@LotNo,22,-22,0,'OUTBOUND','FG_PPT_HISTORY','SCTEST1',N'PPT outbound','pda-ppt-fg-history',SYSDATETIME()),
+        (DATEADD(second,4,@Today),'IN','PPT-FG-HIST','FG-PPT-G1',@LotID,@LotNo,0,22,22,'RETURN','FG_PPT_HISTORY','SCTEST1',N'PPT customer return','pda-ppt-fg-history',SYSDATETIME());
+END;
+GO
+
+DROP TRIGGER IF EXISTS dbo.TR_FG_Inventory_SyncUnifiedInventory;
+GO
+
+-- Remove legacy foreign keys and identity references after all data is preserved.
+DECLARE @DropSql nvarchar(max)=N'';
+SELECT @DropSql+=N'ALTER TABLE '+QUOTENAME(OBJECT_SCHEMA_NAME(parent_object_id))+N'.'+QUOTENAME(OBJECT_NAME(parent_object_id))+
+    N' DROP CONSTRAINT '+QUOTENAME(name)+N';'
+FROM sys.foreign_keys
+WHERE referenced_object_id IN(OBJECT_ID(N'dbo.FG_Inventory'),OBJECT_ID(N'dbo.FG_InventoryAdjust'));
+IF @DropSql<>N'' EXEC sys.sp_executesql @DropSql;
+GO
+
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_CustomerReturn') AND name=N'UX_FG_CustomerReturn_Stock')
+    DROP INDEX UX_FG_CustomerReturn_Stock ON dbo.FG_CustomerReturn;
+IF COL_LENGTH(N'dbo.FG_CustomerReturn',N'StockID') IS NOT NULL
+BEGIN
+    ALTER TABLE dbo.FG_CustomerReturn ALTER COLUMN StockID int NULL;
+    ALTER TABLE dbo.FG_CustomerReturn DROP COLUMN StockID;
+END;
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_CustomerReturn') AND name=N'IX_FG_CustomerReturn_LotNo')
+    CREATE INDEX IX_FG_CustomerReturn_LotNo ON dbo.FG_CustomerReturn(LotNo) WHERE LotNo IS NOT NULL;
+
+IF COL_LENGTH(N'dbo.FG_PutAway',N'StockID') IS NOT NULL
+    ALTER TABLE dbo.FG_PutAway DROP COLUMN StockID;
+GO
+
+DROP TABLE IF EXISTS dbo.FG_InventoryAdjust;
+DROP TABLE IF EXISTS dbo.FG_Inventory;
+GO
+
+-- The legacy WH compatibility trigger must no longer reference the retired FG table.
+CREATE OR ALTER TRIGGER dbo.TR_WH_OLD_Inventory_SyncUnifiedInventory
+ON dbo.WH_OLD_Inventory
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DELETE Target
+    FROM dbo.WH_Inventory Target
+    JOIN deleted D ON Target.LotNo=COALESCE(NULLIF((SELECT L.LotCode FROM dbo.tbl_Lot L WHERE L.LotID=D.LotID),N''),CONCAT(N'LEGACY-WH-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),D.InventoryID),10))) COLLATE DATABASE_DEFAULT
+    WHERE NOT EXISTS(SELECT 1 FROM inserted I WHERE I.InventoryID=D.InventoryID);
+
+    ;WITH SourceRows AS
+    (
+        SELECT
+            COALESCE(NULLIF(L.LotCode,N''),CONCAT(N'LEGACY-WH-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),I.InventoryID),10))) COLLATE DATABASE_DEFAULT LotNo,
+            COALESCE(I.ItemNo,L.ItemNo) PartNo,M.ItemName PartName,P.CaseNo,I.LocationID LocationNo,
+            COALESCE(I.OnHandQty,0) Qty,
+            CASE WHEN UPPER(COALESCE(I.Status,'RECEIVED')) IN('CANCELED','CANCELLED','RELEASED','PICKED','SHIPPED','DELIVERED','CLOSED') THEN 'UNAVAILABLE' ELSE 'AVAILABLE' END InventoryStatus,
+            P.InvoiceNo,
+            COALESCE(I.LastReceivedAt,P.ReceivedAt,I.CreatedTS,sysdatetime()) ReceivedAt,
+            COALESCE(I.CreatedTS,I.LastReceivedAt,P.CreatedTS,sysdatetime()) CreatedAt,
+            COALESCE(I.ModifiedTS,I.CreatedTS,I.LastReceivedAt,P.ModifiedTS,P.CreatedTS,sysdatetime()) UpdatedAt
+        FROM inserted I
+        LEFT JOIN dbo.tbl_Lot L ON L.LotID=I.LotID
+        LEFT JOIN dbo.MD_Item M ON M.ItemNo=COALESCE(I.ItemNo,L.ItemNo)
+        OUTER APPLY(SELECT TOP(1) IP.CaseNo,IP.InvoiceNo,IP.ReceivedAt,IP.CreatedTS,IP.ModifiedTS FROM dbo.WH_InboundPackage IP WHERE IP.LotID=I.LotID ORDER BY COALESCE(IP.ReceivedAt,IP.ModifiedTS,IP.CreatedTS) DESC,IP.InboundPackageID DESC) P
+    )
+    MERGE dbo.WH_Inventory AS Target
+    USING SourceRows AS Source ON Target.LotNo=Source.LotNo
+    WHEN MATCHED AND Source.Qty>0 AND Source.InventoryStatus='AVAILABLE' THEN
+        UPDATE SET PartNo=Source.PartNo,PartName=Source.PartName,CaseNo=Source.CaseNo,LocationNo=Source.LocationNo,
+                   Qty=Source.Qty,InvoiceNo=Source.InvoiceNo,ReceivedAt=Source.ReceivedAt,UpdatedAt=Source.UpdatedAt
+    WHEN NOT MATCHED AND Source.Qty>0 AND Source.InventoryStatus='AVAILABLE' THEN
+        INSERT(LotNo,UnitType,PartNo,PartName,CaseNo,LocationNo,Qty,InvoiceNo,ReceivedAt,CreatedAt,UpdatedAt)
+        VALUES(Source.LotNo,'PART',Source.PartNo,Source.PartName,Source.CaseNo,Source.LocationNo,Source.Qty,Source.InvoiceNo,Source.ReceivedAt,Source.CreatedAt,Source.UpdatedAt)
+    WHEN MATCHED AND (Source.Qty<=0 OR Source.InventoryStatus<>'AVAILABLE') THEN DELETE;
+END;
+GO
+
+IF OBJECT_ID(N'dbo.FG_Inventory',N'U') IS NOT NULL OR OBJECT_ID(N'dbo.FG_InventoryAdjust',N'U') IS NOT NULL
+    THROW 52090,'Legacy finished-goods inventory tables were not removed.',1;
+GO
+
+-- END FG INVENTORY CONSOLIDATION

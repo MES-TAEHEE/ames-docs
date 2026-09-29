@@ -50,13 +50,14 @@ run_file()   { docker exec "$CONTAINER" "$SQLCMD" "${sql_base[@]}" -d "$DB" -i "
 # 스키마 → 시드 (순서 고정!). 권한은 화면(create_sys_screen) 이후여야 매핑됨.
 FILES=(
   AMES_Schema.sql                     # 실제 DB 통합 구조 (PDA 포함, TEST_* 테이블 제외) + 기존 기본 시드
+  migrate_wh_core_tables.sql          # WH 핵심 테이블·프로시저 통합
+  migrate_fg_inventory_consolidation.sql # FG 재고/조정 중복 테이블 제거 후 공통 LOT 재고 프로시저 확정
   seed_user_code_groups.sql           # 공통 코드 그룹
   create_sys_screen.sql               # SYS_Screen 레지스트리 (화면 목록)
   reseed_menu.sql                     #   → 메뉴/HRef 정본 재시드
   seed_admin_permissions.sql          #   → Admin RBAC(REA) + admin@ames.local 계정
   seed_wh_picking_rbac_test.sql       #   → WH Picking Orders R 권한 비교용 Web 계정 2개
   seed_md_code.sql                    # 마스터 공통코드
-  migrate_fg_shipment_api.sql         # FG Savannah shipment API common-code configuration
   seed_md_routing_step.sql            # 라우팅 템플릿(A/B) 시드 (테이블은 AMES_Schema.sql)
   reseed_md_item_partmaster.sql       # 품목(파트마스터)
   migrate_inj_agent.sql               # 사출: MD_Mold 4종 + 사출조건 시드

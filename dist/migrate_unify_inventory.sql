@@ -87,9 +87,7 @@ BEGIN
         ParentLotNo nvarchar(50) NULL,
         PartNo varchar(50) NULL,
         PartName nvarchar(200) NULL,
-        PalletNo nvarchar(50) NULL,
         CaseNo nvarchar(50) NULL,
-        BoxNo nvarchar(50) NULL,
         LocationNo varchar(50) NULL,
         Qty decimal(18,3) NOT NULL CONSTRAINT DF_WH_Inventory_Qty DEFAULT(0),
         InvoiceNo nvarchar(50) NULL,
@@ -134,7 +132,7 @@ BEGIN
     UPDATE W
        SET InvoiceNo=PO.PoNumber
     FROM dbo.WH_Inventory W
-    JOIN dbo.SCM_DeliveryBox B ON B.BoxNumber=COALESCE(W.BoxNo,W.LotNo)
+    JOIN dbo.SCM_DeliveryBox B ON B.BoxNumber=W.LotNo
     JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryLineID=B.DeliveryLineID
     JOIN dbo.WH_PurchaseOrder PO ON PO.PoID=DL.PoID
     WHERE W.DeliveryNoteNo IS NOT NULL
@@ -150,7 +148,7 @@ BEGIN
         MERGE dbo.WH_Inventory AS Target
         USING
         (
-            SELECT W.LotNo,W.UnitType,W.ParentLotNo,W.PartNo,M.ItemName PartName,W.PalletNo,W.CaseNo,W.BoxNo,
+            SELECT W.LotNo,W.UnitType,W.ParentLotNo,W.PartNo,M.ItemName PartName,W.CaseNo,
                    W.LocationNo,W.Qty,W.InventoryStatus,W.InvoiceNo,W.ReceivedAt,W.CreatedAt,W.UpdatedAt
             FROM dbo.WH_OLD_Inventory W
             LEFT JOIN dbo.MD_Item M ON M.ItemNo=W.PartNo
@@ -158,11 +156,11 @@ BEGIN
               AND UPPER(COALESCE(W.InventoryStatus,''AVAILABLE'')) NOT IN(''CANCELED'',''CANCELLED'',''RELEASED'',''PICKED'',''SHIPPED'',''DELIVERED'',''CLOSED'')
         ) AS Source ON Target.LotNo=Source.LotNo
         WHEN MATCHED THEN UPDATE SET UnitType=Source.UnitType,PartNo=Source.PartNo,PartName=Source.PartName,
-            PalletNo=Source.PalletNo,CaseNo=Source.CaseNo,BoxNo=Source.BoxNo,LocationNo=Source.LocationNo,
+            CaseNo=Source.CaseNo,LocationNo=Source.LocationNo,
             Qty=Source.Qty,InvoiceNo=Source.InvoiceNo,
             ReceivedAt=Source.ReceivedAt,UpdatedAt=Source.UpdatedAt
-        WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,PalletNo,CaseNo,BoxNo,LocationNo,Qty,InvoiceNo,ReceivedAt,CreatedAt,UpdatedAt)
-        VALUES(Source.LotNo,Source.UnitType,Source.PartNo,Source.PartName,Source.PalletNo,Source.CaseNo,Source.BoxNo,Source.LocationNo,Source.Qty,Source.InvoiceNo,Source.ReceivedAt,Source.CreatedAt,Source.UpdatedAt);';
+        WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,CaseNo,LocationNo,Qty,InvoiceNo,ReceivedAt,CreatedAt,UpdatedAt)
+        VALUES(Source.LotNo,Source.UnitType,Source.PartNo,Source.PartName,Source.CaseNo,Source.LocationNo,Source.Qty,Source.InvoiceNo,Source.ReceivedAt,Source.CreatedAt,Source.UpdatedAt);';
 
     DECLARE @CleanupSql nvarchar(max)=N'';
     SELECT @CleanupSql+=N'DROP INDEX '+QUOTENAME(I.name)+N' ON dbo.WH_OLD_Inventory;'
@@ -201,12 +199,8 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_Inve
     CREATE INDEX IX_WH_Inventory_ParentLotNo ON dbo.WH_Inventory(ParentLotNo);
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_Inventory') AND name=N'IX_WH_Inventory_PartNo')
     CREATE INDEX IX_WH_Inventory_PartNo ON dbo.WH_Inventory(PartNo);
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_Inventory') AND name=N'IX_WH_Inventory_PalletNo')
-    CREATE INDEX IX_WH_Inventory_PalletNo ON dbo.WH_Inventory(PalletNo);
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_Inventory') AND name=N'IX_WH_Inventory_CaseNo')
     CREATE INDEX IX_WH_Inventory_CaseNo ON dbo.WH_Inventory(CaseNo);
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_Inventory') AND name=N'IX_WH_Inventory_BoxNo')
-    CREATE INDEX IX_WH_Inventory_BoxNo ON dbo.WH_Inventory(BoxNo);
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_Inventory') AND name=N'IX_WH_Inventory_LocationNo')
     CREATE INDEX IX_WH_Inventory_LocationNo ON dbo.WH_Inventory(LocationNo);
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_Inventory') AND name=N'IX_WH_Inventory_FIFO')
@@ -225,7 +219,7 @@ GO
 (
     SELECT
         COALESCE(NULLIF(L.LotCode,N''),CONCAT(N'LEGACY-WH-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),W.InventoryID),10))) LotNo,
-        COALESCE(W.ItemNo,L.ItemNo) PartNo,M.ItemName PartName,P.CaseNo,P.BoxBarcode BoxNo,W.LocationID LocationNo,
+        COALESCE(W.ItemNo,L.ItemNo) PartNo,M.ItemName PartName,P.CaseNo,W.LocationID LocationNo,
         COALESCE(W.OnHandQty,0) Qty,
         CASE WHEN UPPER(COALESCE(W.Status,'RECEIVED')) IN('RECEIVED','OK','STORED') THEN 'AVAILABLE' ELSE UPPER(W.Status) END InventoryStatus,
         P.InvoiceNo,
@@ -242,11 +236,11 @@ GO
 )
 MERGE dbo.WH_Inventory AS Target
 USING (SELECT * FROM LegacySource WHERE RowNo=1) AS Source ON Target.LotNo=Source.LotNo
-WHEN MATCHED THEN UPDATE SET PartNo=Source.PartNo,PartName=Source.PartName,CaseNo=Source.CaseNo,BoxNo=Source.BoxNo,
+WHEN MATCHED THEN UPDATE SET PartNo=Source.PartNo,PartName=Source.PartName,CaseNo=Source.CaseNo,
     LocationNo=Source.LocationNo,Qty=Source.Qty,InvoiceNo=Source.InvoiceNo,
     ReceivedAt=Source.ReceivedAt,UpdatedAt=Source.UpdatedAt
-WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,CaseNo,BoxNo,LocationNo,Qty,InvoiceNo,ReceivedAt,CreatedAt,UpdatedAt)
-VALUES(Source.LotNo,'PART',Source.PartNo,Source.PartName,Source.CaseNo,Source.BoxNo,Source.LocationNo,Source.Qty,Source.InvoiceNo,Source.ReceivedAt,Source.CreatedAt,Source.UpdatedAt);
+WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,CaseNo,LocationNo,Qty,InvoiceNo,ReceivedAt,CreatedAt,UpdatedAt)
+VALUES(Source.LotNo,'PART',Source.PartNo,Source.PartName,Source.CaseNo,Source.LocationNo,Source.Qty,Source.InvoiceNo,Source.ReceivedAt,Source.CreatedAt,Source.UpdatedAt);
 GO
 
 IF OBJECT_ID(N'dbo.INV_Inventory',N'U') IS NOT NULL
@@ -254,10 +248,10 @@ BEGIN
     MERGE dbo.WH_Inventory AS Target
     USING dbo.INV_Inventory AS Source ON Target.LotNo=Source.LotNo
     WHEN MATCHED THEN UPDATE SET UnitType=Source.UnitType,ParentLotNo=Source.ParentLotNo,PartNo=Source.PartNo,
-        PalletNo=Source.PalletNo,CaseNo=Source.CaseNo,BoxNo=Source.BoxNo,LocationNo=Source.LocationNo,Qty=Source.Qty,
+        CaseNo=Source.CaseNo,LocationNo=Source.LocationNo,Qty=Source.Qty,
         InvoiceNo=Source.InvoiceNo,ReceivedAt=Source.ReceivedAt,UpdatedAt=Source.UpdatedAt
-    WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,ParentLotNo,PartNo,PalletNo,CaseNo,BoxNo,LocationNo,Qty,InvoiceNo,ReceivedAt,CreatedAt,UpdatedAt)
-    VALUES(Source.LotNo,Source.UnitType,Source.ParentLotNo,Source.PartNo,Source.PalletNo,Source.CaseNo,Source.BoxNo,Source.LocationNo,Source.Qty,Source.InvoiceNo,Source.ReceivedAt,Source.CreatedAt,Source.UpdatedAt);
+    WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,ParentLotNo,PartNo,CaseNo,LocationNo,Qty,InvoiceNo,ReceivedAt,CreatedAt,UpdatedAt)
+    VALUES(Source.LotNo,Source.UnitType,Source.ParentLotNo,Source.PartNo,Source.CaseNo,Source.LocationNo,Source.Qty,Source.InvoiceNo,Source.ReceivedAt,Source.CreatedAt,Source.UpdatedAt);
 
     DROP TABLE dbo.INV_Inventory;
 END;
@@ -298,20 +292,14 @@ BEGIN
 
     DELETE Target
     FROM dbo.WH_Inventory Target
-    JOIN deleted D ON Target.LotNo=COALESCE(NULLIF((SELECT L.LotCode FROM dbo.tbl_Lot L WHERE L.LotID=D.LotID),N''),CONCAT(N'LEGACY-WH-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),D.InventoryID),10)))
-    WHERE NOT EXISTS(SELECT 1 FROM inserted I WHERE I.InventoryID=D.InventoryID)
-      AND NOT EXISTS
-      (
-          SELECT 1 FROM dbo.FG_Inventory F LEFT JOIN dbo.tbl_Lot FL ON FL.LotID=F.LotID
-          WHERE COALESCE(NULLIF(FL.LotCode,N''),CONCAT(N'LEGACY-FG-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),F.StockID),10)))=Target.LotNo
-            AND COALESCE(F.Qty,0)>0 AND UPPER(COALESCE(F.Status,'AVAILABLE')) NOT IN('CANCELED','CANCELLED','RELEASED','PICKED','SHIPPED','DELIVERED','CLOSED')
-      );
+    JOIN deleted D ON Target.LotNo=COALESCE(NULLIF((SELECT L.LotCode FROM dbo.tbl_Lot L WHERE L.LotID=D.LotID),N''),CONCAT(N'LEGACY-WH-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),D.InventoryID),10))) COLLATE DATABASE_DEFAULT
+    WHERE NOT EXISTS(SELECT 1 FROM inserted I WHERE I.InventoryID=D.InventoryID);
 
     ;WITH SourceRows AS
     (
         SELECT
-            COALESCE(NULLIF(L.LotCode,N''),CONCAT(N'LEGACY-WH-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),I.InventoryID),10))) LotNo,
-            COALESCE(I.ItemNo,L.ItemNo) PartNo,M.ItemName PartName,P.CaseNo,P.BoxBarcode BoxNo,I.LocationID LocationNo,
+            COALESCE(NULLIF(L.LotCode,N''),CONCAT(N'LEGACY-WH-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),I.InventoryID),10))) COLLATE DATABASE_DEFAULT LotNo,
+            COALESCE(I.ItemNo,L.ItemNo) PartNo,M.ItemName PartName,P.CaseNo,I.LocationID LocationNo,
             COALESCE(I.OnHandQty,0) Qty,
             CASE WHEN UPPER(COALESCE(I.Status,'RECEIVED')) IN('RECEIVED','OK','STORED') THEN 'AVAILABLE' ELSE UPPER(I.Status) END InventoryStatus,
             P.InvoiceNo,
@@ -321,16 +309,16 @@ BEGIN
         FROM inserted I
         LEFT JOIN dbo.tbl_Lot L ON L.LotID=I.LotID
         LEFT JOIN dbo.MD_Item M ON M.ItemNo=COALESCE(I.ItemNo,L.ItemNo)
-        OUTER APPLY(SELECT TOP(1) IP.CaseNo,IP.BoxBarcode,IP.InvoiceNo,IP.ReceivedAt,IP.CreatedTS,IP.ModifiedTS FROM dbo.WH_InboundPackage IP WHERE IP.LotID=I.LotID ORDER BY COALESCE(IP.ReceivedAt,IP.ModifiedTS,IP.CreatedTS) DESC,IP.InboundPackageID DESC) P
+        OUTER APPLY(SELECT TOP(1) IP.CaseNo,IP.InvoiceNo,IP.ReceivedAt,IP.CreatedTS,IP.ModifiedTS FROM dbo.WH_InboundPackage IP WHERE IP.LotID=I.LotID ORDER BY COALESCE(IP.ReceivedAt,IP.ModifiedTS,IP.CreatedTS) DESC,IP.InboundPackageID DESC) P
     )
     MERGE dbo.WH_Inventory AS Target
     USING SourceRows AS Source ON Target.LotNo=Source.LotNo
     WHEN MATCHED AND Source.Qty>0 AND Source.InventoryStatus NOT IN('CANCELED','CANCELLED','RELEASED','PICKED','SHIPPED','DELIVERED','CLOSED') THEN
-        UPDATE SET PartNo=Source.PartNo,PartName=Source.PartName,CaseNo=Source.CaseNo,BoxNo=Source.BoxNo,LocationNo=Source.LocationNo,
+        UPDATE SET PartNo=Source.PartNo,PartName=Source.PartName,CaseNo=Source.CaseNo,LocationNo=Source.LocationNo,
                    Qty=Source.Qty,InvoiceNo=Source.InvoiceNo,ReceivedAt=Source.ReceivedAt,UpdatedAt=Source.UpdatedAt
     WHEN NOT MATCHED AND Source.Qty>0 AND Source.InventoryStatus NOT IN('CANCELED','CANCELLED','RELEASED','PICKED','SHIPPED','DELIVERED','CLOSED') THEN
-        INSERT(LotNo,UnitType,PartNo,PartName,CaseNo,BoxNo,LocationNo,Qty,InvoiceNo,ReceivedAt,CreatedAt,UpdatedAt)
-        VALUES(Source.LotNo,'PART',Source.PartNo,Source.PartName,Source.CaseNo,Source.BoxNo,Source.LocationNo,Source.Qty,Source.InvoiceNo,Source.ReceivedAt,Source.CreatedAt,Source.UpdatedAt)
+        INSERT(LotNo,UnitType,PartNo,PartName,CaseNo,LocationNo,Qty,InvoiceNo,ReceivedAt,CreatedAt,UpdatedAt)
+        VALUES(Source.LotNo,'PART',Source.PartNo,Source.PartName,Source.CaseNo,Source.LocationNo,Source.Qty,Source.InvoiceNo,Source.ReceivedAt,Source.CreatedAt,Source.UpdatedAt)
     WHEN MATCHED AND (Source.Qty<=0 OR Source.InventoryStatus IN('CANCELED','CANCELLED','RELEASED','PICKED','SHIPPED','DELIVERED','CLOSED')) THEN DELETE;
 END;
 GO
@@ -344,18 +332,18 @@ BEGIN
 
     DELETE Target
     FROM dbo.WH_Inventory Target
-    JOIN deleted D ON Target.LotNo=COALESCE(NULLIF((SELECT L.LotCode FROM dbo.tbl_Lot L WHERE L.LotID=D.LotID),N''),CONCAT(N'LEGACY-FG-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),D.StockID),10)))
+    JOIN deleted D ON Target.LotNo=COALESCE(NULLIF((SELECT L.LotCode FROM dbo.tbl_Lot L WHERE L.LotID=D.LotID),N''),CONCAT(N'LEGACY-FG-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),D.StockID),10))) COLLATE DATABASE_DEFAULT
     WHERE NOT EXISTS(SELECT 1 FROM inserted I WHERE I.StockID=D.StockID)
       AND NOT EXISTS
       (
           SELECT 1 FROM dbo.WH_OLD_Inventory W LEFT JOIN dbo.tbl_Lot WL ON WL.LotID=W.LotID
-          WHERE COALESCE(NULLIF(WL.LotCode,N''),CONCAT(N'LEGACY-WH-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),W.InventoryID),10)))=Target.LotNo
+          WHERE COALESCE(NULLIF(WL.LotCode,N''),CONCAT(N'LEGACY-WH-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),W.InventoryID),10))) COLLATE DATABASE_DEFAULT=Target.LotNo
             AND COALESCE(W.OnHandQty,0)>0 AND UPPER(COALESCE(W.Status,'RECEIVED')) NOT IN('CANCELED','CANCELLED','RELEASED','PICKED','SHIPPED','DELIVERED','CLOSED')
       );
 
     ;WITH SourceRows AS
     (
-        SELECT COALESCE(NULLIF(L.LotCode,N''),CONCAT(N'LEGACY-FG-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),I.StockID),10))) LotNo,
+        SELECT COALESCE(NULLIF(L.LotCode,N''),CONCAT(N'LEGACY-FG-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),I.StockID),10))) COLLATE DATABASE_DEFAULT LotNo,
             I.ItemNo PartNo,M.ItemName PartName,I.Location LocationNo,COALESCE(I.Qty,0) Qty,UPPER(COALESCE(I.Status,'AVAILABLE')) InventoryStatus,
             COALESCE(I.StockTS,I.CreatedTS,sysdatetime()) ReceivedAt,COALESCE(I.CreatedTS,I.StockTS,sysdatetime()) CreatedAt,
             COALESCE(I.ModifiedTS,I.CreatedTS,I.StockTS,sysdatetime()) UpdatedAt
