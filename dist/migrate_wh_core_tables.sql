@@ -612,14 +612,33 @@ BEGIN
     FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode AND Qty>0;
     IF @PartNo IS NULL THROW 51409, 'This barcode has not been received.', 1;
     SELECT TOP(1) @LotID=LotID FROM dbo.tbl_Lot WHERE LotCode=@Barcode ORDER BY LotID DESC;
-    SELECT TOP(1) @PoID=PoID FROM dbo.WH_PurchaseOrder WHERE PoNumber=@Invoice ORDER BY PoID DESC;
+    IF @DeliveryNote IS NOT NULL
+        SELECT TOP(1) @PoID=DL.PoID
+        FROM dbo.SCM_DeliveryBox B
+        JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryLineID=B.DeliveryLineID
+        WHERE B.BoxNumber=@Barcode AND B.ActiveFlag=1;
+    ELSE
+        SELECT TOP(1) @PoID=PoID
+        FROM dbo.WH_PurchaseOrder
+        WHERE PoNumber=@Invoice AND ItemNo=@PartNo
+        ORDER BY PoID DESC;
     DELETE dbo.WH_Inventory WHERE LotNo=@Barcode;
     INSERT dbo.WH_InventoryTransaction
         (TransactionTime,TransactionType,ItemNo,LocationID,LotID,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,RefDocType,RefDocID,OperatorID,Note,CreatedBy,CreatedTS)
     VALUES(SYSDATETIME(),'OUT',LEFT(@PartNo,20),LEFT(@Location,20),@LotID,@Barcode,@Qty,-@Qty,0,'INBOUND_CANCEL',
            CASE WHEN @DeliveryNote IS NULL THEN 'LOT' ELSE 'DELIVERY_NOTE' END,@PoID,@User,'Inbound receipt canceled',LEFT(@User,20),SYSDATETIME());
-    IF @PoID IS NOT NULL UPDATE dbo.WH_PurchaseOrder SET ReceivedQty=CASE WHEN COALESCE(ReceivedQty,0)<@Qty THEN 0 ELSE ReceivedQty-@Qty END,
-        Status='Open',ModifiedBy=LEFT(@User,20),ModifiedTS=SYSDATETIME() WHERE PoID=@PoID;
+    IF @PoID IS NOT NULL
+        UPDATE PO
+           SET ReceivedQty=X.NewReceivedQty,
+               Status=CASE
+                   WHEN X.NewReceivedQty<=0 THEN 'Open'
+                   WHEN X.NewReceivedQty>=COALESCE(PO.OrderQty,0) THEN 'Received'
+                   ELSE 'Partial'
+               END,
+               ModifiedBy=LEFT(@User,20),ModifiedTS=SYSDATETIME()
+        FROM dbo.WH_PurchaseOrder PO
+        CROSS APPLY(VALUES(CASE WHEN COALESCE(PO.ReceivedQty,0)<@Qty THEN 0 ELSE PO.ReceivedQty-@Qty END)) X(NewReceivedQty)
+        WHERE PO.PoID=@PoID;
     IF @LotID IS NOT NULL UPDATE dbo.tbl_Lot SET CurrentLocationID=NULL,InventoryStatus='CREATED',ModifiedBy=LEFT(@User,20),ModifiedTS=SYSDATETIME() WHERE LotID=@LotID;
     IF @DeliveryNote IS NOT NULL
     BEGIN
