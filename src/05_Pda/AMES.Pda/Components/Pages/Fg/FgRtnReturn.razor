@@ -37,7 +37,7 @@
                 <div class="fg-return-product-head">
                     <div>
                         <span>RETURNED PRODUCT</span>
-                        <strong>@Text(_product.LotNo ?? _product.StockNumber)</strong>
+                        <strong>@Text(_product.LotNo)</strong>
                     </div>
                     <RadzenBadge class="wh02-status-chip normal" Text="RETURN ELIGIBLE" />
                 </div>
@@ -214,7 +214,7 @@
                 return;
             }
 
-            var lot = Text(_product.LotNo ?? _product.StockNumber);
+            var lot = Text(_product.LotNo);
             Clear();
             ShowModal("Return Received", $"{lot} was registered successfully.", "success");
         }

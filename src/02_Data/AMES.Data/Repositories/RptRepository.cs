@@ -218,23 +218,27 @@ public sealed class RptRepository
         int LineSeq, string? ItemNo, string? ItemName, string? ItemNameEn, decimal OrderedQty, decimal AllocatedQty, decimal? UnitCost,
         string? Uom = null);
 
-    /// <summary>출하 예정일(ShipDate) 기준 하루치 출하 오더를 라인 단위로. 상차 확인(FG_LoadingConfirm)·품목 원가 조인.</summary>
+    /// <summary>출하 예정일(ShipDate) 기준 하루치 출하 오더를 라인 단위로 조회한다.</summary>
     public List<ShipmentDetailRow> ListShipmentDetail(DateTime day, string? customerCode = null)
     {
         const string sql = """
             SELECT  o.ShipmentOrderID, o.ShipOrderNumber, o.CustomerCode,
-                    COALESCE(NULLIF(l.CarrierCode, ''), o.CarrierCode) AS CarrierCode,
+                    o.CarrierCode,
                     o.DestPlant, o.DestDock, o.ShipDate, o.Status, o.OTDFlag,
-                    l.DepartureTS, l.ConfirmedAt AS LoadConfirmedAt, o.ConfirmedAt AS OrderConfirmedAt,
-                    l.LicensePlate, l.OTDStatus,
+                    o.DepartureAt AS DepartureTS, o.LoadingConfirmedAt AS LoadConfirmedAt, o.ConfirmedAt AS OrderConfirmedAt,
+                    o.LicensePlate, o.LoadingOTDStatus AS OTDStatus,
                     ISNULL(sl.LineSeq, 0) AS LineSeq, sl.ItemNo, i.ItemName, i.ItemNameEN,
                     ISNULL(sl.OrderedQty, 0) AS OrderedQty, ISNULL(sl.AllocatedQty, 0) AS AllocatedQty, i.UnitCost, i.DefaultUOM
             FROM    dbo.FG_ShipmentOrder o
-            LEFT JOIN dbo.FG_ShipmentOrderLine sl ON sl.ShipmentOrderID = o.ShipmentOrderID
-            LEFT JOIN dbo.MD_Item i ON i.ItemNo = sl.ItemNo
-            OUTER APPLY (SELECT TOP 1 lc.CarrierCode, lc.DepartureTS, lc.ConfirmedAt, lc.LicensePlate, lc.OTDStatus
-                         FROM dbo.FG_LoadingConfirm lc WHERE lc.ShipmentOrderID = o.ShipmentOrderID
-                         ORDER BY lc.ConfirmedAt DESC, lc.LoadingID DESC) l
+            OUTER APPLY OPENJSON(COALESCE(o.ItemsJSON, N'[]')) WITH
+            (
+                LineSeq int '$.lineSeq',
+                ItemNo varchar(20) '$.itemNo',
+                OrderedQty decimal(14,3) '$.orderedQty',
+                AllocatedQty decimal(14,3) '$.allocatedQty'
+            ) sl
+            LEFT JOIN dbo.MD_Item i
+              ON i.ItemNo COLLATE DATABASE_DEFAULT = sl.ItemNo COLLATE DATABASE_DEFAULT
             WHERE   CAST(o.ShipDate AS DATE) = @D
               AND  (@C IS NULL OR o.CustomerCode = @C)
             ORDER BY o.ShipOrderNumber, sl.LineSeq;
@@ -266,7 +270,11 @@ public sealed class RptRepository
                     ISNULL(SUM(sol.AllocatedQty), 0)     AS AllocatedQty,
                     COUNT(DISTINCT so.CustomerCode)      AS CustomerCount
             FROM    dbo.FG_ShipmentOrder      so
-            LEFT JOIN dbo.FG_ShipmentOrderLine sol ON sol.ShipmentOrderID = so.ShipmentOrderID
+            OUTER APPLY OPENJSON(COALESCE(so.ItemsJSON, N'[]')) WITH
+            (
+                OrderedQty decimal(14,3) '$.orderedQty',
+                AllocatedQty decimal(14,3) '$.allocatedQty'
+            ) sol
             WHERE   so.ShipDate >= DATEADD(DAY, -@D, CAST(SYSDATETIME() AS DATE))
             GROUP BY CAST(so.ShipDate AS DATE)
             ORDER BY Day DESC;
@@ -306,18 +314,12 @@ public sealed class RptRepository
     }
 
     // ── RPT-005 Inventory Status ─────────────────────────────────────────
-    // ── RPT-005 Inventory (SKU 단위: 자재 WH_Inventory ∪ 완성품 FG_Inventory) ──
+    // ── RPT-005 Inventory (SKU 단위: 통합 WH_Inventory) ──
     public sealed record InventorySkuRow(string Source, string ItemNo, string? ItemName, string? ItemNameEn, string? ItemType,
         string? Location, decimal Qty, decimal Reserved, decimal? UnitCost, decimal? SafetyStock, decimal? MaxStock, int Lots,
         string? ItemCategory = null, string? Uom = null);
 
-    /// <summary>
-    /// 현재 재고를 품목×위치로 집계. Source = "WH"(자재, WH_Inventory) / "FG"(완성품, FG_Inventory; 출하·폐기 제외).
-    /// WH_Inventory 는 LOT 단위 재고(LotNo·PartNo·LocationNo·Qty)이고 완성품 LOT 도 FG_Inventory 에서 옮겨 와 함께 들어 있다 —
-    /// 완성품을 두 번 세지 않도록 FG_Inventory 에 있는 LOT(키 = tbl_Lot.LotCode, 없으면 LEGACY-FG-{StockID 10자리})은 자재에서 뺀다.
-    /// 로케이션 구역(FG_AREA)으로 가르지 않는 이유: 완성품 LOT 중 완성품 구역 밖 로케이션에 있는 것이 있다.
-    /// WH_Inventory 에는 예약 수량·LOT 단가가 없어 자재의 예약은 0, 단가는 품목 마스터 단가다.
-    /// </summary>
+    /// <summary>통합 재고를 품목×위치로 집계. AreaCode로 WH/FG를 구분한다.</summary>
     public List<InventorySkuRow> ListInventorySku()
     {
         const string sql = """
@@ -325,22 +327,18 @@ public sealed class RptRepository
                     x.Qty, x.Reserved, i.UnitCost, i.SafetyStock, i.MaxStock, x.Lots,
                     i.ItemCategory, i.DefaultUOM
             FROM (
-                SELECT 'WH' AS Source, w.PartNo AS ItemNo, w.LocationNo AS Location, MAX(w.PartName) AS PartName,
-                       SUM(w.Qty) AS Qty, CAST(0 AS decimal(18,3)) AS Reserved, COUNT(*) AS Lots
-                FROM   dbo.WH_Inventory w
-                WHERE  w.Qty > 0 AND w.PartNo IS NOT NULL
-                  AND  NOT EXISTS (SELECT 1 FROM dbo.FG_Inventory f LEFT JOIN dbo.tbl_Lot l ON l.LotID = f.LotID
-                                   WHERE w.LotNo = COALESCE(NULLIF(l.LotCode, N''), CONCAT(N'LEGACY-FG-', RIGHT(REPLICATE('0', 10) + CONVERT(varchar(10), f.StockID), 10))))
-                GROUP BY w.PartNo, w.LocationNo
-                UNION ALL
-                SELECT 'FG', s.ItemNo, s.Location, NULL,
-                       ISNULL(SUM(s.Qty), 0), ISNULL(SUM(CASE WHEN s.ReservationID IS NOT NULL OR s.Status = 'Reserved' THEN s.Qty ELSE 0 END), 0),
-                       COUNT(*)
-                FROM   dbo.FG_Inventory s
-                WHERE  UPPER(ISNULL(s.Status, '')) NOT IN ('SHIPPED', 'SCRAPPED')
-                GROUP BY s.ItemNo, s.Location
+                SELECT CASE WHEN L.AreaCode='FG_AREA' THEN 'FG' ELSE 'WH' END AS Source,
+                       w.PartNo AS ItemNo,w.LocationNo AS Location,
+                       ISNULL(SUM(w.Qty),0) AS Qty,CAST(0 AS decimal(18,3)) AS Reserved,
+                       CAST(NULL AS decimal(18,3)) AS UnitCost,COUNT(*) AS Lots
+                FROM dbo.WH_Inventory w
+                JOIN dbo.MD_Location L
+                  ON L.LocationID COLLATE DATABASE_DEFAULT = w.LocationNo COLLATE DATABASE_DEFAULT
+                WHERE w.Qty<>0 AND L.AreaCode IN ('MAT_AREA','FG_AREA')
+                GROUP BY CASE WHEN L.AreaCode='FG_AREA' THEN 'FG' ELSE 'WH' END,w.PartNo,w.LocationNo
             ) x
-            LEFT JOIN dbo.MD_Item i ON i.ItemNo = x.ItemNo
+            LEFT JOIN dbo.MD_Item i
+              ON i.ItemNo COLLATE DATABASE_DEFAULT = x.ItemNo COLLATE DATABASE_DEFAULT
             ORDER BY x.Source, x.ItemNo, x.Location;
             """;
         return Query(sql, r => new InventorySkuRow(
@@ -365,17 +363,19 @@ public sealed class RptRepository
 
     public List<InventoryRow> ListInventory(int topN = 100)
     {
-        // 구 FG_Stock 은 FG_Inventory 로 개명됐고 DB 에는 호환용 synonym 만 남아 있다 — 실제 테이블명을 쓴다
+        // 완제품 재고도 공통 LOT 재고에서 FG 위치 범위로 조회한다.
         const string sql = """
             SELECT TOP (@N)
-                   ItemNo, Location,
+                   W.PartNo AS ItemNo, W.LocationNo AS Location,
                    COUNT(*)                                     AS LotCount,
-                   ISNULL(SUM(Qty), 0)                          AS Qty,
-                   SUM(CASE WHEN HoldFlag=1 THEN 1 ELSE 0 END)  AS HoldLots,
-                   ISNULL(SUM(CASE WHEN HoldFlag=1 THEN Qty ELSE 0 END), 0) AS HoldQty
-            FROM   dbo.FG_Inventory
-            WHERE  ISNULL(Status,'') NOT IN ('SHIPPED','SCRAPPED')
-            GROUP BY ItemNo, Location
+                   ISNULL(SUM(W.Qty), 0)                        AS Qty,
+                   0                                            AS HoldLots,
+                   CAST(0 AS decimal(18,3))                     AS HoldQty
+            FROM   dbo.WH_Inventory W
+            JOIN dbo.MD_Location L
+              ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo COLLATE DATABASE_DEFAULT
+            WHERE W.Qty>0 AND UPPER(L.AreaCode)='FG_AREA'
+            GROUP BY W.PartNo, W.LocationNo
             ORDER BY Qty DESC;
             """;
         return Query(sql, r => new InventoryRow(
@@ -467,12 +467,7 @@ public sealed class RptRepository
                 SELECT DATEFROMPARTS(YEAR(TransactionTime), MONTH(TransactionTime), 1) AS M, SUM(-QtyChange) AS Issued
                 FROM dbo.WH_InventoryTransaction WHERE QtyChange < 0 AND TransactionTime >= @F AND TransactionTime < DATEADD(MONTH, 1, @T)
                 GROUP BY DATEFROMPARTS(YEAR(TransactionTime), MONTH(TransactionTime), 1)),
-            -- 회전율 분모 = 자재 현재고: WH_Inventory(LOT 단위) 에서 완성품 LOT(FG_Inventory, RPT-005 와 같은 키 규칙)을 뺀 수량 합
-            onhand AS (
-                SELECT ISNULL(SUM(w.Qty),0) AS OnHand FROM dbo.WH_Inventory w
-                WHERE w.Qty > 0 AND w.PartNo IS NOT NULL
-                  AND NOT EXISTS (SELECT 1 FROM dbo.FG_Inventory f LEFT JOIN dbo.tbl_Lot l ON l.LotID = f.LotID
-                                  WHERE w.LotNo = COALESCE(NULLIF(l.LotCode, N''), CONCAT(N'LEGACY-FG-', RIGHT(REPLICATE('0', 10) + CONVERT(varchar(10), f.StockID), 10)))))
+            onhand AS (SELECT ISNULL(SUM(Qty),0) AS OnHand FROM dbo.WH_Inventory)
             SELECT m.M,
                    ISNULL(p.Good,0) AS GoodQty, ISNULL(d.Def,0) AS DefectQty, ISNULL(pl.PlanQty,0) AS PlanQty,
                    o.Avail, o.Oee, ISNULL(o.OperMin,0) AS OperMin, ISNULL(f.Failures,0) AS Failures,
@@ -733,8 +728,14 @@ public sealed class RptRepository
                            ISNULL(SUM(ISNULL(l.OrderedQty,0)),0) AS OrderedQty,
                            ISNULL(SUM(ISNULL(l.AllocatedQty,0)),0) AS AllocatedQty
                     FROM dbo.FG_ShipmentOrder o
-                    LEFT JOIN dbo.FG_ShipmentOrderLine l ON l.ShipmentOrderID = o.ShipmentOrderID
-                    LEFT JOIN dbo.MD_Item i ON i.ItemNo = l.ItemNo
+                    OUTER APPLY OPENJSON(COALESCE(o.ItemsJSON, N'[]')) WITH
+                    (
+                        ItemNo varchar(20) '$.itemNo',
+                        OrderedQty decimal(14,3) '$.orderedQty',
+                        AllocatedQty decimal(14,3) '$.allocatedQty'
+                    ) l
+                    LEFT JOIN dbo.MD_Item i
+                      ON i.ItemNo COLLATE DATABASE_DEFAULT = l.ItemNo COLLATE DATABASE_DEFAULT
                     WHERE o.ShipDate >= @F AND o.ShipDate < @T
                     GROUP BY {keyExpr}
                     """;

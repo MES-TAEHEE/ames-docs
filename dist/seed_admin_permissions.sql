@@ -84,11 +84,10 @@ USING (VALUES
   ('WH-002', 'WH', N'피킹 오더', N'Picking Orders', 'wh/picking-orders', 'WH-002', 4, 1),
   ('WH-005', 'WH', N'재고 설정', N'Inventory Setting', 'wh/inventory-setting', 'WH-005', 5, 1),
   -- FG · 완제품 (Web)
-  ('FG-001', 'FG', N'재고 조회', N'Inventory Search', 'fg/inventory', 'FG-001', 1, 1),
-  ('FG-002', 'FG', N'로케이션 맵', N'Location Map', 'fg/location-map', 'FG-002', 2, 1),
-  ('FG-003', 'FG', N'고객사 리턴', N'Customer Returns', 'fg/customer-returns', 'FG-003', 3, 1),
-  ('FG-004', 'FG', N'출하 목록', N'Shipments', 'fg/shipments', 'FG-004', 4, 1),
-  ('FG-005', 'FG', N'작업 이력', N'History', 'fg/history', 'FG-005', 5, 1),
+  ('FG-01', 'FG', N'고객사 리턴', N'Customer Returns', 'fg/customer-returns', 'FG-01', 1, 1),
+  ('FG-02', 'FG', N'출하 계획', N'Shipment Plan', 'fg/shipment-plan', 'FG-02', 2, 1),
+  ('FG-03', 'FG', N'출하 목록', N'Shipments', 'fg/shipments', 'FG-03', 3, 1),
+  ('FG-04', 'FG', N'작업 이력', N'History', 'fg/history', 'FG-04', 4, 1),
   -- SYS · 시스템
   ('SYS-001', 'SYS', N'사용자 관리',              N'User Management',             'sys/users',              'SYS-001',  1, 1),
   ('SYS-002', 'SYS', N'역할 관리',                N'Role Management',             'sys/roles',              'SYS-002',  2, 1),

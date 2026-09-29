@@ -1,0 +1,525 @@
+@page "/wh/putaway"
+@inject WarehouseApi Api
+@inject AuthState Auth
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="pda-shell wh wh02-shell wh-putaway-shell">
+    <div class="pda-tbar">
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
+        <span class="pda-tbar-brand">PUT-AWAY</span>
+        @if (IsPptTestMode)
+        {
+            <PptScenarioPanel Title="PUT-AWAY" Steps="PptSteps" Busy="IsBusy"
+                              OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData"
+                              OpenChanged="@((bool open) => _pptOpen = open)" />
+        }
+    </div>
+
+    <div class="pda-bd wh02-body wh-putaway-body">
+        <RadzenCard class="wh02-panel wh02-scan-panel hardware-scan-panel">
+            <div class="pda-fld">
+                <label>SCAN BARCODE</label>
+                <RadzenTextBox class="pda-input wh02-barcode-input wh-putaway-item-input pda-scan-input"
+                               Value="@_barcode" @oninput="OnBarcodeInput" @onkeydown="OnBarcodeKey"
+                               Placeholder="Scan Delivery Note or LOT barcode" Disabled="@IsBusy" />
+            </div>
+        </RadzenCard>
+
+        @if (_boxes.Count > 0)
+        {
+            <section class="wh-putaway-selection">
+                <div class="wh-putaway-document-head">
+                    <div>
+                        <span>@(_deliveryNoteNo is null ? "BOX PUT-AWAY" : "DELIVERY NOTE")</span>
+                        <strong>@Text(_deliveryNoteNo ?? _barcode)</strong>
+                    </div>
+                    <div class="wh-putaway-document-summary">
+                        <strong>@_selectedBarcodes.Count / @_boxes.Count</strong>
+                        <span>BOXES</span>
+                    </div>
+                </div>
+
+                <div class="wh-putaway-select-actions">
+                    <span>SELECT BOXES</span>
+                    <button type="button" @onclick="SelectAllBoxes" disabled="@IsBusy">ALL</button>
+                    <button type="button" @onclick="ClearSelectedBoxes" disabled="@IsBusy">NONE</button>
+                </div>
+
+                <div class="wh-putaway-boxes">
+                    @foreach (var box in _boxes)
+                    {
+                        <button type="button"
+                                class="@($"wh-putaway-box-row {(IsSelected(box.Barcode) ? "selected" : "")}")"
+                                @onclick="@(() => ToggleBox(box.Barcode))" disabled="@IsBusy">
+                            <span class="wh-putaway-check">@(IsSelected(box.Barcode) ? "✓" : "")</span>
+                            <div class="wh-putaway-box-main">
+                                <strong>@box.Barcode</strong>
+                                <span>@Text(box.PartNo) · @Text(box.PartName)</span>
+                            </div>
+                            <div class="wh-putaway-box-meta">
+                                <strong>@QtyText(box.Qty, box.Unit)</strong>
+                                <span>@DateText(box.ReceivedAt)</span>
+                            </div>
+                        </button>
+                    }
+                </div>
+            </section>
+
+            <RadzenCard class="wh02-panel wh02-location-panel hardware-scan-panel location-attention">
+                <div class="pda-fld">
+                    <label>LOCATION BARCODE SCAN</label>
+                    <RadzenTextBox class="pda-input wh02-location-input wh-putaway-location-input pda-scan-input"
+                                   Value="@_locationNo" @oninput="OnLocationInput" @onkeydown="OnLocationKey"
+                                   Placeholder="Scan location barcode" Disabled="@IsBusy" />
+                </div>
+            </RadzenCard>
+        }
+
+        @if (_location is not null)
+        {
+            <RadzenCard class="wh02-location-card wh-putaway-location-card">
+                <div class="wh02-location-card-top">
+                    <span>LOCATION NO</span>
+                    <strong>@_location.LocationId</strong>
+                    <em>@Text(_location.LocationName ?? _location.ZoneName ?? _location.Zone)</em>
+                </div>
+                <div class="wh02-location-list">
+                    <div class="wh02-location-row"><span>WAREHOUSE</span><strong>@Text(_location.WarehouseCode)</strong></div>
+                    <div class="wh02-location-row"><span>AREA</span><strong>@Text(_location.AreaCode)</strong></div>
+                    <div class="wh02-location-row"><span>ZONE</span><strong>@Text(_location.Zone)</strong></div>
+                    <div class="wh02-location-row"><span>STOCK QTY</span><strong>@_location.TotalQty.ToString("N0")</strong></div>
+                </div>
+            </RadzenCard>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <div class="pda-status @_messageClass">@_message</div>
+        }
+
+        <div class="wh02-action-bar has-reset wh-putaway-actions">
+            <RadzenButton class="wh02-clear-btn" Click="@Reset" Disabled="@IsBusy" Text="CLEAR" />
+            <RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-confirm-btn {(CanConfirm ? "ready" : "blocked")}")"
+                          Click="@Confirm" Disabled="@IsBusy" Text="CONFIRM" />
+        </div>
+    </div>
+
+    @if (_modalOpen)
+    {
+        <div class="wh-modal-backdrop" @onclick="CloseModal">
+            <RadzenCard class="@($"wh-modal-card {_modalKind}")" @onclick:stopPropagation="true">
+                <div class="wh-modal-mark">@(_modalKind == "success" ? "OK" : "!")</div>
+                <div class="wh-modal-title">@_modalTitle</div>
+                <div class="wh-modal-message">@_modalMessage</div>
+                <div class="wh-modal-actions">
+                    @if (_pendingRelocation is not null)
+                    {
+                        <RadzenButton class="wh-modal-btn secondary" Click="@CancelRelocation" Text="NO" />
+                        <RadzenButton class="wh-modal-btn primary" Click="@AcceptRelocation" Text="RELOCATE" />
+                    }
+                    else
+                    {
+                        <RadzenButton class="wh-modal-btn primary" Click="@CloseModal" Text="OK" />
+                    }
+                </div>
+            </RadzenCard>
+        </div>
+    }
+</div>
+
+@code {
+    private const string PptDeliveryNote = "PPT-WH-NOTE-PUTAWAY";
+    private const string PptBox = "5011LL260908850001";
+    private const string PptRelocationBox = "5011LL260908850004";
+    private const string PptLocation = "B0-10-A1";
+    private static readonly PptScenarioPanel.Step[] PptSteps =
+    [
+        new("Initial Screen", "Delivery Note 또는 LOT 바코드를 스캔하는 초기 화면을 확인합니다.",
+            new PptScenarioPanel.Value("DELIVERY NOTE", PptDeliveryNote, "DOCUMENT"),
+            new PptScenarioPanel.Value("LOT", PptBox, "BOX")),
+        new("Delivery Note Boxes", "Delivery Note를 스캔해 미적재 BOX 3개와 전체 선택 상태를 확인합니다.",
+            new PptScenarioPanel.Value("DELIVERY NOTE", PptDeliveryNote, "DOCUMENT")),
+        new("Box Selection", "ALL·NONE과 개별 BOX 선택을 확인한 뒤 적재할 BOX를 선택합니다.",
+            new PptScenarioPanel.Value("BOX 1", PptBox, "BOX")),
+        new("Location & Confirm", "Location 스캔 후 CONFIRM 활성화를 확인하고 Put-away를 완료합니다.",
+            new PptScenarioPanel.Value("LOCATION", PptLocation, "LOCATION")),
+        new("Relocation Check", "이미 적재된 LOT을 스캔해 Already Put Away와 RELOCATE 확인창을 검수합니다.",
+            new PptScenarioPanel.Value("STORED LOT", PptRelocationBox, "RELOCATE"))
+    ];
+
+    private string _barcode = "";
+    private string _locationNo = "";
+    private string _message = "";
+    private string _messageClass = "dim";
+    private string? _deliveryNoteNo;
+    private bool _isScanning;
+    private bool _isLocationScanning;
+    private bool _isConfirming;
+    private bool _modalOpen;
+    private bool _pptOpen;
+    private bool _pptReady;
+    private string _modalTitle = "";
+    private string _modalMessage = "";
+    private string _modalKind = "warn";
+    private bool _isRelocating;
+    private PdaApi.PutAwaySelectionResult? _pendingRelocation;
+    private DotNetObjectReference<WhPutAway>? _scannerRef;
+    private PdaApi.LocationRow? _location;
+    private List<PdaApi.PutAwayRow> _boxes = [];
+    private HashSet<string> _selectedBarcodes = new(StringComparer.OrdinalIgnoreCase);
+
+    private bool IsBusy => _isScanning || _isLocationScanning || _isConfirming;
+    private bool IsPptTestMode => PdaScenarioUsers.IsSimple(Auth.Session?.EmployeeNo);
+    private decimal SelectedQty => _boxes.Where(box => IsSelected(box.Barcode)).Sum(box => box.Qty);
+    private bool CanConfirm => !IsBusy && _selectedBarcodes.Count > 0 && _location is not null
+        && string.Equals(_location.LocationId, _locationNo.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            PdaBarcodeHub.Scanned += OnNativeBarcodeScanned;
+            _scannerRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("pdaScan.register", _scannerRef, new { minLength = 3, developerMode = MauiProgram.IsDeveloperMode });
+        }
+
+        if (!_modalOpen && !_pptOpen && !IsBusy)
+            await JS.InvokeVoidAsync("pdaScan.focus", _boxes.Count == 0 ? ".wh-putaway-item-input" : ".wh-putaway-location-input");
+    }
+
+    private async Task EnsurePptData()
+    {
+        if (_pptReady) return;
+        await Api.WhResetPptTestAsync("putaway");
+        _pptReady = true;
+    }
+
+    private async Task ResetPptData()
+    {
+        if (!IsPptTestMode || IsBusy) return;
+        await Api.WhResetPptTestAsync("putaway");
+        _pptReady = true;
+        Reset();
+        ShowAlert("Test Data Ready", "미적재 LOT 3개와 재적재 확인 LOT 1개를 초기화했습니다.", "success");
+    }
+
+    private async Task LoadPptDocument()
+    {
+        Reset();
+        _barcode = PptDeliveryNote;
+        await ScanItem();
+    }
+
+    private async Task StartPptStep(int step)
+    {
+        if (!IsPptTestMode || IsBusy) return;
+        await EnsurePptData();
+        if (step == 1) { Reset(); return; }
+        if (step == 5)
+        {
+            Reset();
+            _barcode = PptRelocationBox;
+            await ScanItem();
+            return;
+        }
+        await LoadPptDocument();
+        if (step >= 4 && !_modalOpen)
+        {
+            _locationNo = PptLocation;
+            await ScanLocation();
+        }
+    }
+
+    private async Task RunPptValue(string command)
+    {
+        if (!IsPptTestMode || IsBusy) return;
+        await EnsurePptData();
+        if (command == "DOCUMENT") { await LoadPptDocument(); return; }
+        if (command == "BOX")
+        {
+            Reset();
+            _barcode = PptBox;
+            await ScanItem();
+            return;
+        }
+        if (command == "RELOCATE")
+        {
+            Reset();
+            _barcode = PptRelocationBox;
+            await ScanItem();
+            return;
+        }
+        await LoadPptDocument();
+        if (!_modalOpen)
+        {
+            _locationNo = PptLocation;
+            await ScanLocation();
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnHardwareScanAsync(string scanText)
+    {
+        var value = Normalize(scanText);
+        if (string.IsNullOrWhiteSpace(value) || IsBusy || _modalOpen) return;
+        await InvokeAsync(async () =>
+        {
+            if (_boxes.Count == 0)
+            {
+                _barcode = value;
+                await ScanItem();
+            }
+            else
+            {
+                _locationNo = value;
+                await ScanLocation();
+            }
+            StateHasChanged();
+        });
+    }
+
+    private void OnNativeBarcodeScanned(string barcode) => _ = InvokeAsync(() => OnHardwareScanAsync(barcode));
+
+    private async Task OnBarcodeKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await ScanItem();
+    }
+
+    private void OnBarcodeInput(ChangeEventArgs e) => _barcode = e.Value?.ToString() ?? "";
+
+    private async Task OnLocationKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await ScanLocation();
+    }
+
+    private void OnLocationInput(ChangeEventArgs e)
+    {
+        _locationNo = e.Value?.ToString() ?? "";
+        if (!string.Equals(_location?.LocationId, _locationNo.Trim(), StringComparison.OrdinalIgnoreCase))
+            _location = null;
+    }
+
+    private async Task ScanItem()
+    {
+        if (IsBusy || string.IsNullOrWhiteSpace(_barcode)) return;
+        _isScanning = true;
+        ClearLoadedSelection();
+        _message = "Loading received inventory...";
+        _messageClass = "dim";
+        try
+        {
+            var selection = await Api.WhPutAwayScanAsync(_barcode);
+            if (selection.RequiresRelocation)
+            {
+                _pendingRelocation = selection;
+                var target = selection.SelectionType == "DELIVERY_NOTE" ? "Delivery Note" : "Box";
+                var locations = string.Join(", ", selection.Boxes
+                    .Select(box => box.LocationNo)
+                    .Where(location => !string.IsNullOrWhiteSpace(location))
+                    .Distinct(StringComparer.OrdinalIgnoreCase));
+                ShowAlert("Already Put Away",
+                    $"This {target} is already put away{(locations.Length == 0 ? "" : $" at {locations}")}. Do you want to relocate it?");
+                return;
+            }
+            LoadSelection(selection, false);
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            _messageClass = "fail";
+            ShowAlert("Barcode Scan Failed", ex.Message);
+        }
+        finally { _isScanning = false; }
+    }
+
+    private void ToggleBox(string barcode)
+    {
+        if (!_selectedBarcodes.Remove(barcode)) _selectedBarcodes.Add(barcode);
+        ClearLocationIfCapacityExceeded();
+        SetSelectionMessage();
+    }
+
+    private void SelectAllBoxes()
+    {
+        _selectedBarcodes = _boxes.Select(box => box.Barcode).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        ClearLocationIfCapacityExceeded();
+        SetSelectionMessage();
+    }
+
+    private void ClearSelectedBoxes()
+    {
+        _selectedBarcodes.Clear();
+        SetSelectionMessage();
+    }
+
+    private bool IsSelected(string barcode) => _selectedBarcodes.Contains(barcode);
+
+    private void SetSelectionMessage()
+    {
+        _message = _selectedBarcodes.Count == 0
+            ? "Select at least one box."
+            : _location is not null
+                ? $"{_selectedBarcodes.Count} box(es) ready. Tap Confirm."
+                : $"{_selectedBarcodes.Count} of {_boxes.Count} box(es) selected. Scan a location.";
+        _messageClass = _selectedBarcodes.Count == 0 ? "fail" : "ok";
+    }
+
+    private void ClearLocationIfCapacityExceeded()
+    {
+        if (_location?.Capacity is > 0 && _location.TotalQty + SelectedQty > _location.Capacity.Value)
+        {
+            _location = null;
+            _locationNo = "";
+        }
+    }
+
+    private async Task ScanLocation()
+    {
+        if (_boxes.Count == 0 || IsBusy || string.IsNullOrWhiteSpace(_locationNo)) return;
+        if (_selectedBarcodes.Count == 0)
+        {
+            ShowAlert("Put-Away Check", "Select at least one box.");
+            return;
+        }
+
+        _isLocationScanning = true;
+        _location = null;
+        _message = "Loading location...";
+        _messageClass = "dim";
+        try
+        {
+            var location = await Api.WhScanLocationAsync(_locationNo);
+            if (location is null)
+                throw new InvalidOperationException("Location was not found.");
+            if (location.LocationType is { } type
+                && (type.Equals("BLOCKED", StringComparison.OrdinalIgnoreCase)
+                    || type.Equals("HOLD", StringComparison.OrdinalIgnoreCase)
+                    || type.Equals("QUARANTINE", StringComparison.OrdinalIgnoreCase)
+                    || type.Equals("INACTIVE", StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException($"Location {location.LocationId} is blocked.");
+            if (location.Capacity is > 0 && location.TotalQty + SelectedQty > location.Capacity.Value)
+                throw new InvalidOperationException($"Location {location.LocationId} capacity would be exceeded.");
+            _location = location;
+            _locationNo = location.LocationId;
+            _message = $"{_selectedBarcodes.Count} box(es) ready. Tap Confirm.";
+            _messageClass = "ok";
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            _messageClass = "fail";
+            ShowAlert("Location Scan Failed", ex.Message);
+        }
+        finally { _isLocationScanning = false; }
+    }
+
+    private async Task Confirm()
+    {
+        if (!CanConfirm || _location is null)
+        {
+            var message = _boxes.Count == 0
+                ? "Scan a Delivery Note or Box first."
+                : _selectedBarcodes.Count == 0
+                    ? "Select at least one box."
+                    : "Scan a valid location first.";
+            ShowAlert("Put-Away Check", message);
+            return;
+        }
+
+        _isConfirming = true;
+        try
+        {
+            var selected = _boxes
+                .Where(box => IsSelected(box.Barcode))
+                .Select(box => box.Barcode)
+                .ToList();
+            var result = await Api.WhConfirmPutAwayAsync(new PdaApi.PutAwayConfirmReq(selected, _location.LocationId, _isRelocating));
+            if (!result.Success)
+            {
+                ShowAlert("Put-Away Failed", result.Message);
+                return;
+            }
+
+            var completedCount = selected.Count;
+            var wasRelocating = _isRelocating;
+            Reset();
+            ShowAlert(wasRelocating ? "Relocation Complete" : "Put-Away Complete",
+                $"{completedCount} box(es) were {(wasRelocating ? "relocated" : "assigned")} successfully.", "success");
+        }
+        finally { _isConfirming = false; }
+    }
+
+    private void ClearLoadedSelection()
+    {
+        _deliveryNoteNo = null;
+        _boxes = [];
+        _selectedBarcodes.Clear();
+        _location = null;
+        _locationNo = "";
+        _isRelocating = false;
+    }
+
+    private void Reset()
+    {
+        _barcode = "";
+        ClearLoadedSelection();
+        _message = "";
+        _messageClass = "dim";
+    }
+
+    private void ShowAlert(string title, string message, string kind = "warn")
+    {
+        _modalTitle = title;
+        _modalMessage = message;
+        _modalKind = kind;
+        _modalOpen = true;
+    }
+
+    private void LoadSelection(PdaApi.PutAwaySelectionResult selection, bool relocating)
+    {
+        _deliveryNoteNo = selection.DeliveryNoteNo;
+        _boxes = selection.Boxes;
+        _selectedBarcodes = selection.SelectedBarcodes.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _barcode = selection.SelectionType == "DELIVERY_NOTE"
+            ? selection.DeliveryNoteNo ?? _barcode
+            : selection.SelectedBarcodes.FirstOrDefault() ?? _barcode;
+        _isRelocating = relocating;
+        _message = $"{_selectedBarcodes.Count} of {_boxes.Count} box(es) selected. Scan a location.";
+        _messageClass = "ok";
+    }
+
+    private void AcceptRelocation()
+    {
+        if (_pendingRelocation is not { } selection) return;
+        _pendingRelocation = null;
+        _modalOpen = false;
+        LoadSelection(selection, true);
+    }
+
+    private void CancelRelocation()
+    {
+        _pendingRelocation = null;
+        _modalOpen = false;
+        Reset();
+    }
+
+    private void CloseModal()
+    {
+        if (_pendingRelocation is not null) CancelRelocation();
+        else _modalOpen = false;
+    }
+    private static string Normalize(string? value) => string.IsNullOrWhiteSpace(value)
+        ? "" : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
+    private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private static string QtyText(decimal qty, string? unit) => $"{qty:N0} {Text(unit)}";
+    private static string DateText(DateTime? value) => value?.ToString("MM-dd HH:mm") ?? "-";
+
+    public async ValueTask DisposeAsync()
+    {
+        PdaBarcodeHub.Scanned -= OnNativeBarcodeScanned;
+        try { await JS.InvokeVoidAsync("pdaScan.unregister"); } catch { }
+        _scannerRef?.Dispose();
+    }
+}

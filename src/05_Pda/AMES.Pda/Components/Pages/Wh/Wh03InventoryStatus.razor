@@ -380,8 +380,16 @@
 
                     <div class="wh03-action-row">
                         <RadzenButton class="wh03-date-clear" Click="@ClearInventoryWork" Disabled="@InventoryBusy" Text="CLEAR" />
-                        <RadzenButton class="@($"wh03-date-apply wh03-post-btn save {(DisableInventoryAdjust ? "blocked" : "ready")}")"
-                                      Click="@PostInventoryAdjust" aria-disabled="@(DisableInventoryAdjust ? "true" : "false")" Text="SAVE" />
+                        @if (_adjustedLabelLotNo is not null && !IsSpareParts)
+                        {
+                            <RadzenButton class="wh03-date-apply wh03-post-btn" Click="@OpenAdjustedLabelPrint"
+                                          Disabled="@InventoryBusy" Text="PRINT LABEL" />
+                        }
+                        else
+                        {
+                            <RadzenButton class="@($"wh03-date-apply wh03-post-btn save {(DisableInventoryAdjust ? "blocked" : "ready")}")"
+                                          Click="@PostInventoryAdjust" aria-disabled="@(DisableInventoryAdjust ? "true" : "false")" Text="SAVE" />
+                        }
                     </div>
                 </RadzenCard>
             }
@@ -852,6 +860,7 @@
     private string _quantityPadDraft = "";
     private string _invAdjustNote = "";
     private decimal _invAdjustDelta;
+    private string? _adjustedLabelLotNo;
     private PdaApi.AdjustmentLocation? _adjustLocation;
     private string? _adjustQuantityInput;
     private bool _adjustQuantityInvalid;
@@ -982,8 +991,10 @@
     private List<WarehouseBrowsePart> BrowsePartRows => _rows
         .Where(row => row.OnHandQty > 0 && !string.IsNullOrWhiteSpace(row.LocationId))
         .GroupBy(row => new { PartNo = row.ItemNo, PartName = row.ItemName, Location = row.LocationId.Trim(), Unit = Unit(row.Unit) })
-        .Select(group => new WarehouseBrowsePart(group.Key.PartNo, group.Key.PartName, group.Sum(row => row.OnHandQty), group.Key.Unit, group.Key.Location))
-        .OrderBy(row => row.PartNo, StringComparer.OrdinalIgnoreCase)
+        .Select(group => new WarehouseBrowsePart(group.Key.PartNo, group.Key.PartName, group.Sum(row => row.OnHandQty),
+            group.Key.Unit, group.Key.Location, group.Max(row => row.LastReceivedDate)))
+        .OrderByDescending(row => row.LastReceivedDate)
+        .ThenBy(row => row.PartNo, StringComparer.OrdinalIgnoreCase)
         .ThenBy(row => row.Location, StringComparer.OrdinalIgnoreCase)
         .ToList();
 
@@ -1483,6 +1494,7 @@
         next = Math.Min(next, 999999999m - InventoryBeforeQty);
 
         _invAdjustDelta = next;
+        _adjustedLabelLotNo = null;
         _adjustQuantityInput = null;
         _adjustQuantityInvalid = false;
     }
@@ -1495,6 +1507,7 @@
             System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var quantity)
             || quantity < 0 || quantity > 999999999m;
         if (!_adjustQuantityInvalid) _invAdjustDelta = quantity - InventoryBeforeQty;
+        _adjustedLabelLotNo = null;
     }
 
     private void OpenQuantityPad()
@@ -1861,6 +1874,7 @@
         _invScan = null;
         _inventoryCurrentLocation = null;
         _invTargetLocation = null;
+        _adjustedLabelLotNo = null;
         ResetInventoryAdjust();
     }
 
@@ -1887,6 +1901,7 @@
         _inventoryCurrentLocation = null;
         _invTargetLocation = null;
         _invLocationNo = "";
+        _adjustedLabelLotNo = null;
         ResetInventoryAdjust();
 
         try
@@ -1904,10 +1919,10 @@
             var row = await ScanInventoryLotByModeAsync(_invBarcode.Trim());
             if (row is null)
             {
-                _invMsg = IsSpareParts
+                var message = IsSpareParts
                     ? "The specified EOS SP No could not be found."
                     : IsAdjustTab ? "The specified Lot No could not be found." : "LOT No was not found in the PO list.";
-                _invCls = "fail";
+                RejectInventoryScan(message);
                 return;
             }
 
@@ -1932,9 +1947,7 @@
         }
         catch (Exception ex)
         {
-            _invMsg = ex.Message;
-            _invCls = "fail";
-            ShowInventoryTypeAlert(ex.Message);
+            RejectInventoryScan(ex.Message);
         }
         finally
         {
@@ -2064,10 +2077,19 @@
                 return;
             }
 
-            ClearInventoryWork();
-            ShowAlert("Saved", IsFinishedGoodsAdjust
+            var adjusted = result.Row ?? _invScan! with { Qty = InventoryAfterQty };
+            _invScan = adjusted;
+            _invBarcode = adjusted.Barcode;
+            _adjustedLabelLotNo = IsSpareParts || deltaQty >= 0 ? null : adjusted.LotNo;
+            ResetInventoryAdjust();
+            _invMsg = "Adjustment saved. Print and replace the quantity label.";
+            _invCls = "ok";
+            var message = IsFinishedGoodsAdjust
                 ? "Finished goods adjustment was saved."
-                : "Warehouse adjustment was saved.", "success");
+                : "Warehouse adjustment was saved.";
+            if (_adjustedLabelLotNo is not null)
+                message += " Tap PRINT LABEL to reprint the 2D barcode label.";
+            ShowAlert("Saved", message, "success");
         }
         catch (Exception ex)
         {
@@ -2081,6 +2103,13 @@
         }
     }
 
+    private void OpenAdjustedLabelPrint()
+    {
+        if (_adjustedLabelLotNo is null || InventoryBusy) return;
+        var source = IsFinishedGoodsAdjust ? "fg" : "wh";
+        Nav.NavigateTo($"/wh/label-print?source={source}&lot={Uri.EscapeDataString(_adjustedLabelLotNo)}");
+    }
+
     private void ShowAlert(string title, string message, string kind = "info")
     {
         _modalTitle = title;
@@ -2091,16 +2120,30 @@
         _modalOpen = true;
     }
 
-    private void ShowInventoryTypeAlert(string message)
+    private void RejectInventoryScan(string message)
+    {
+        _invBarcode = "";
+        _invScan = null;
+        _invMsg = message;
+        _invCls = "fail";
+        if (!ShowInventoryTypeAlert(message))
+            ShowAlert("Scan Failed", message, "fail");
+    }
+
+    private bool ShowInventoryTypeAlert(string message)
     {
         if (message.Contains("Finished goods cannot be adjusted", StringComparison.OrdinalIgnoreCase))
         {
             ShowNavigationAlert("Finished Goods Detected", message, "/fg/adjust", "GO TO FG ADJUST");
+            return true;
         }
-        else if (message.Contains("Warehouse material cannot be adjusted", StringComparison.OrdinalIgnoreCase))
+        if (message.Contains("Warehouse material cannot be adjusted", StringComparison.OrdinalIgnoreCase))
         {
             ShowNavigationAlert("Warehouse Material Detected", message, "/wh/03?tab=adjust", "GO TO WAREHOUSE ADJUST");
+            return true;
         }
+
+        return false;
     }
 
     private void ShowNavigationAlert(string title, string message, string target, string actionText)
@@ -2376,5 +2419,6 @@
     }
 
     private sealed record WarehousePartSummary(string PartNo, string? PartName, decimal Qty, string Unit);
-    private sealed record WarehouseBrowsePart(string PartNo, string? PartName, decimal Qty, string Unit, string Location);
+    private sealed record WarehouseBrowsePart(string PartNo, string? PartName, decimal Qty, string Unit, string Location,
+        DateTime? LastReceivedDate);
 }

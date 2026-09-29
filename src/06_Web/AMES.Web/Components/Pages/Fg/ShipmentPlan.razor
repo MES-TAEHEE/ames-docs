@@ -1,0 +1,254 @@
+@page "/fg/shipment-plan"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using AMES.Data.Repositories
+@using AMES.Data.Scheduling
+@using Radzen
+@inject FinishedGoodsRepository Fg
+@inject AMES.Web.Services.PermissionService PermSvc
+@inject AuthenticationStateProvider AuthPrvd
+@inject NavigationManager Nav
+
+<PageTitle>FG-02 Shipment Plan - AMES</PageTitle>
+<AmesPageHeader Code="FG-02" Title="Shipment Plan" />
+
+<div class="ames-page-fill shipment-plan-page">
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <RadzenAlert AlertStyle="@(_isError ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_message</RadzenAlert>
+    }
+
+    <AmesTabs>
+        <AmesTab Title="SUPPLY PLAN LINES">
+            <div class="ames-card plan-settings">
+                <div class="ames-card-h">SHIPMENT SETTINGS</div>
+                <div class="plan-settings-body">
+                    <label>Shipment Date</label>
+                    <RadzenDatePicker @bind-Value="_shipDate" DateFormat="yyyy-MM-dd" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+                    <label>Company</label>
+                    <RadzenDropDown TValue="string" Data="@Companies" @bind-Value="_customerCode" Placeholder="Select company"
+                                    class="ames-rz-input" Style="width:170px" />
+                    <span class="plan-hint">All selected lines will be created as one shipment plan.</span>
+                    <RadzenButton Text="Create Plan" Icon="add" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                  class="ames-rz-btn" Disabled="@(!_canEdit || Selected.Count == 0 || string.IsNullOrWhiteSpace(_customerCode))" Click="CreatePlan" />
+                </div>
+            </div>
+
+            <div class="ames-card plan-list-card">
+                <div class="ames-card-h master-list-toolbar">
+                    <span>SUPPLY PLAN LINES &middot; @_lines.Count</span>
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+                        <RadzenTextBox @bind-Value="_sourceSearch" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:230px" AutoComplete="false"
+                                       @onkeydown='e => { if (e.Key == "Enter") ReloadSources(); }' />
+                        <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="ReloadSources" />
+                        <RadzenButton Text="Reset" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="ResetSourceSearch" />
+                    </RadzenStack>
+                </div>
+
+                <RadzenDataGrid TItem="PlanLineVm" Data="@_lines" AllowPaging="true" PageSize="25" PageSizeOptions="@_pageSizeOptions"
+                                PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" AllowSorting="true" Density="Density.Compact"
+                                EmptyText="No available Supply Plan lines." class="ames-rz-grid ames-grid-fixed shipment-plan-grid">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="PlanLineVm" Width="52px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center">
+                            <Template Context="r"><input class="plan-check" type="checkbox" checked="@r.Selected" disabled="@(!_canEdit)" @onchange="e => Toggle(r, (bool)(e.Value ?? false))" /></Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="PlanLineVm" Property="Source.SoNumber" Title="SUPPLY ORDER" Width="155px"><Template Context="r"><span class="code">@(r.Source.SoNumber ?? "-")</span></Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="PlanLineVm" Property="Source.SoLineNo" Title="LINE" Width="75px" />
+                        <RadzenDataGridColumn TItem="PlanLineVm" Property="Source.CustomerCode" Title="CUSTOMER" Width="125px"><Template Context="r">@(r.Source.CustomerCode ?? "-")</Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="PlanLineVm" Property="Source.ItemNo" Title="PART" Width="235px">
+                            <Template Context="r"><div class="plan-part"><span class="code">@r.Source.ItemNo</span><span>@(r.Source.ItemName ?? "-")</span></div></Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="PlanLineVm" Property="Source.OrderQty" Title="ORDER" Width="95px" TextAlign="TextAlign.Right"><Template Context="r">@r.Source.OrderQty.ToString("N0")</Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="PlanLineVm" Property="Source.ShippedQty" Title="SHIPPED" Width="95px" TextAlign="TextAlign.Right"><Template Context="r">@r.Source.ShippedQty.ToString("N0")</Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="PlanLineVm" Property="Source.RemainingQty" Title="REMAINING" Width="110px" TextAlign="TextAlign.Right"><Template Context="r"><strong class="remaining">@r.Source.RemainingQty.ToString("N0")</strong></Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="PlanLineVm" Property="Source.RequestedDeliveryDate" Title="DUE DATE" Width="120px"><Template Context="r">@(r.Source.RequestedDeliveryDate?.ToString("yyyy-MM-dd") ?? "-")</Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="PlanLineVm" Property="Qty" Title="PLAN QTY" Width="125px" TextAlign="TextAlign.Right" Sortable="false">
+                            <Template Context="r"><RadzenNumeric TValue="decimal" @bind-Value="r.Qty" Min="0" Max="@r.Source.RemainingQty" Step="1" Format="0" Disabled="@(!r.Selected || !_canEdit)" ShowUpDown="false" class="ames-rz-input plan-qty" /></Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            </div>
+        </AmesTab>
+
+        <AmesTab Title="RECENT PLANS">
+            <div class="ames-card plan-list-card">
+                <div class="ames-card-h master-list-toolbar">
+                    <span>RECENT SHIPMENT PLANS &middot; @_plans.Count</span>
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+                        <RadzenTextBox @bind-Value="_planSearch" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:230px" AutoComplete="false"
+                                       @onkeydown='e => { if (e.Key == "Enter") ReloadPlans(); }' />
+                        <RadzenButton Text="Search" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="ReloadPlans" />
+                        <RadzenButton Text="Reset" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="ResetPlanSearch" />
+                    </RadzenStack>
+                </div>
+
+                <RadzenDataGrid TItem="FinishedGoodsRepository.ShipmentPlanRow" Data="@_plans" AllowPaging="true" PageSize="25" PageSizeOptions="@_pageSizeOptions"
+                                PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" AllowSorting="true" Density="Density.Compact"
+                                RowSelect="OpenPlanDetail" SelectionMode="DataGridSelectionMode.Single" EmptyText="No shipment plans have been created."
+                                class="ames-rz-grid ames-grid-fixed recent-plan-grid">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPlanRow" Property="PlanNumber" Title="PLAN NO" Width="180px"><Template Context="r"><span class="code">@r.PlanNumber</span></Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPlanRow" Property="SourceOrderNumber" Title="SUPPLY ORDER" Width="160px" />
+                        <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPlanRow" Property="CustomerCode" Title="CUSTOMER" Width="130px" />
+                        <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPlanRow" Property="ShipDate" Title="SHIP DATE" Width="125px"><Template Context="r">@(r.ShipDate?.ToString("yyyy-MM-dd") ?? "-")</Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPlanRow" Property="LineCount" Title="LINES" Width="90px" TextAlign="TextAlign.Right" />
+                        <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPlanRow" Property="PlannedQty" Title="QTY" Width="105px" TextAlign="TextAlign.Right"><Template Context="r">@r.PlannedQty.ToString("N0")</Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPlanRow" Property="Status" Title="STATUS" Width="110px" TextAlign="TextAlign.Center"><Template Context="r"><span class="pill info">@r.Status</span></Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPlanRow" Property="CreatedAt" Title="CREATED" Width="155px"><Template Context="r">@(r.CreatedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPlanRow" Title="DETAIL" Width="80px" Sortable="false" TextAlign="TextAlign.Center"><Template Context="r"><RadzenButton Icon="visibility" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => OpenPlanDetail(r))" class="ames-rz-btn" /></Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPlanRow" Title="DELETE" Width="80px" Sortable="false" TextAlign="TextAlign.Center">
+                            <Template Context="r">
+                                @if (_canEdit && CanDeletePlan(r.Status))
+                                {
+                                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@(() => ConfirmPlanDelete(r))" class="ames-rz-btn" />
+                                }
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            </div>
+        </AmesTab>
+    </AmesTabs>
+</div>
+
+@if (_detailPlan is not null)
+{
+    <div class="ames-modal-bg" @onclick="ClosePlanDetail">
+        <div class="ames-modal shipment-plan-modal" @onclick:stopPropagation>
+            <div class="ames-modal-h">SHIPMENT PLAN DETAIL - @_detailPlan.PlanNumber</div>
+            <div class="shipment-plan-summary">
+                <div><span>SHIP DATE</span><strong>@(_detailPlan.ShipDate?.ToString("yyyy-MM-dd") ?? "-")</strong></div>
+                <div><span>STATUS</span><strong><span class="pill info">@_detailPlan.Status</span></strong></div>
+                <div><span>LINES</span><strong>@_detailPlan.LineCount</strong></div>
+                <div><span>TOTAL QTY</span><strong>@_detailPlan.PlannedQty.ToString("N0")</strong></div>
+            </div>
+            <RadzenDataGrid TItem="FinishedGoodsRepository.ShipmentPlanLineRow" Data="@_detailLines" AllowSorting="true" Density="Density.Compact"
+                            EmptyText="No plan lines found." class="ames-rz-grid shipment-plan-detail-grid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPlanLineRow" Property="SourceOrderNumber" Title="SUPPLY ORDER" Width="150px" />
+                    <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPlanLineRow" Property="SourceLineNo" Title="LINE" Width="70px" />
+                    <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPlanLineRow" Property="ItemNo" Title="PART NO" Width="155px"><Template Context="r"><span class="code">@r.ItemNo</span></Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPlanLineRow" Property="ItemName" Title="PART NAME" Width="220px" />
+                    <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPlanLineRow" Property="PlannedQty" Title="QTY" Width="90px" TextAlign="TextAlign.Right"><Template Context="r">@r.PlannedQty.ToString("N0")</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPlanLineRow" Property="RequestedDeliveryDate" Title="DUE DATE" Width="120px"><Template Context="r">@(r.RequestedDeliveryDate?.ToString("yyyy-MM-dd") ?? "-")</Template></RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+            <div class="ames-modal-footer">
+                @if (_confirmDelete)
+                {
+                    <span class="delete-confirm">Delete this shipment plan?</span>
+                    <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@(() => _confirmDelete = false)" class="ames-rz-btn" />
+                    <RadzenButton Text="Delete" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="DeletePlan" class="ames-rz-btn" />
+                }
+                else
+                {
+                    @if (_canEdit && CanDeletePlan(_detailPlan.Status))
+                    {
+                        <RadzenButton Text="Delete" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@(() => _confirmDelete = true)" class="ames-rz-btn" />
+                    }
+                    <span style="flex:1"></span>
+                    <RadzenButton Text="Close" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="ClosePlanDetail" class="ames-rz-btn" />
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    const string Href = "fg/shipment-plan";
+    readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 };
+
+    sealed class PlanLineVm(FinishedGoodsRepository.ShipmentPlanSourceRow source)
+    {
+        public FinishedGoodsRepository.ShipmentPlanSourceRow Source { get; } = source;
+        public bool Selected { get; set; }
+        public decimal Qty { get; set; }
+    }
+
+    List<PlanLineVm> _lines = new();
+    List<FinishedGoodsRepository.ShipmentPlanRow> _plans = new();
+    List<FinishedGoodsRepository.ShipmentPlanLineRow> _detailLines = new();
+    FinishedGoodsRepository.ShipmentPlanRow? _detailPlan;
+    string _sourceSearch = "", _planSearch = "", _customerCode = "", _actor = "planner", _message = "";
+    bool _isError, _canEdit, _confirmDelete;
+    DateTime _shipDate = DbClock.Today;
+
+    List<PlanLineVm> Selected => _lines.Where(x => x.Selected).ToList();
+    List<string> Companies => _lines.Select(x => x.Source.CustomerCode)
+        .Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!).Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        if (!PermSvc.IsVisible(Href))
+        {
+            Nav.NavigateTo("/unauthorized", replace: true);
+            return;
+        }
+        _canEdit = PermSvc.CanEdit(Href);
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor = auth.User.Identity?.Name ?? "planner";
+        ReloadAll();
+    }
+
+    void ReloadAll() { ReloadSources(); ReloadPlans(); }
+    void ReloadSources()
+    {
+        try { _lines = Fg.ListShipmentPlanSources(_sourceSearch).Select(x => new PlanLineVm(x)).ToList(); ShowMessage("", false); }
+        catch (Exception ex) { _lines = new(); ShowMessage(ex.Message, true); }
+    }
+    void ReloadPlans()
+    {
+        try { _plans = Fg.ListShipmentPlans(_planSearch); ShowMessage("", false); }
+        catch (Exception ex) { _plans = new(); ShowMessage(ex.Message, true); }
+    }
+    void ResetSourceSearch() { _sourceSearch = ""; ReloadSources(); }
+    void ResetPlanSearch() { _planSearch = ""; ReloadPlans(); }
+    void Toggle(PlanLineVm row, bool selected) { row.Selected = selected; row.Qty = selected ? decimal.Truncate(row.Source.RemainingQty) : 0; }
+
+    void CreatePlan()
+    {
+        if (!_canEdit) return;
+        var selected = Selected;
+        if (selected.Count == 0) { ShowMessage("Select at least one Supply Plan line.", true); return; }
+        if (selected.Any(x => x.Qty <= 0 || x.Qty > x.Source.RemainingQty || x.Qty != decimal.Truncate(x.Qty)))
+        {
+            ShowMessage("Plan quantity must be a whole number greater than zero and cannot exceed the remaining quantity.", true);
+            return;
+        }
+        try
+        {
+            var result = Fg.CreateShipmentPlans(_shipDate, _customerCode,
+                selected.Select(x => new FinishedGoodsRepository.ShipmentPlanInput(x.Source.SoId, x.Qty)).ToList(), _actor);
+            var planNumber = result.PlanNumbers.Single();
+            ReloadAll();
+            ShowMessage($"Created one plan with {result.LineCount} line(s), {result.TotalQty:N0} unit(s): {planNumber}", false);
+        }
+        catch (Exception ex) { ShowMessage(ex.Message, true); }
+    }
+
+    void OpenPlanDetail(FinishedGoodsRepository.ShipmentPlanRow row)
+    {
+        try { _detailLines = Fg.ListShipmentPlanLines(row.ShipmentOrderId); _detailPlan = row; _confirmDelete = false; }
+        catch (Exception ex) { _detailPlan = null; _detailLines = new(); ShowMessage(ex.Message, true); }
+    }
+    void ConfirmPlanDelete(FinishedGoodsRepository.ShipmentPlanRow row) { OpenPlanDetail(row); _confirmDelete = _detailPlan is not null; }
+    void DeletePlan()
+    {
+        if (!_canEdit || _detailPlan is null) return;
+        try
+        {
+            var planNumber = Fg.DeleteShipmentPlan(_detailPlan.ShipmentOrderId);
+            ClosePlanDetail();
+            ReloadAll();
+            ShowMessage($"Deleted shipment plan: {planNumber}", false);
+        }
+        catch (Exception ex) { _confirmDelete = false; ShowMessage(ex.Message, true); }
+    }
+    static bool CanDeletePlan(string? status) =>
+        string.Equals(status, "PLAN", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(status, "PLANNED", StringComparison.OrdinalIgnoreCase);
+    void ClosePlanDetail() { _detailPlan = null; _detailLines = new(); _confirmDelete = false; }
+    void ShowMessage(string message, bool isError) { _message = message; _isError = isError; }
+}

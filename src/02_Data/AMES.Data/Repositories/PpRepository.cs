@@ -515,8 +515,11 @@ public sealed class PpRepository
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = s.ItemNo
             OUTER APPLY (SELECT SUM(ISNULL(w.OrderQty,0)) AS Qty FROM dbo.PP_WorkOrder w
                          WHERE w.SoID = s.SoID AND w.Status <> 'Cancelled') iss
-            OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.FG_Inventory f
-                         WHERE f.ItemNo = s.ItemNo AND f.Status NOT IN ('SHIPPED','SCRAPPED')) fg
+            OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.WH_Inventory f
+                         JOIN dbo.MD_Location fl
+                           ON fl.LocationID COLLATE DATABASE_DEFAULT = f.LocationNo COLLATE DATABASE_DEFAULT
+                         WHERE f.PartNo COLLATE DATABASE_DEFAULT = s.ItemNo COLLATE DATABASE_DEFAULT
+                           AND f.Qty>0 AND UPPER(fl.AreaCode)='FG_AREA') fg
             OUTER APPLY (SELECT TOP 1 r.LineID FROM dbo.PP_WorkOrderRouting r
                          JOIN dbo.PP_WorkOrder w2 ON w2.WoID = r.WoID
                          WHERE w2.ItemNo = s.ItemNo AND r.LineID IS NOT NULL
@@ -816,8 +819,11 @@ public sealed class PpRepository
                'Draft', @Actor, SYSDATETIME()
         FROM   dbo.PP_CustomerOrder s
         JOIN   dbo.MD_Item i ON i.ItemNo = s.ItemNo
-        OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.FG_Inventory f
-                     WHERE f.ItemNo = s.ItemNo AND f.Status NOT IN ('SHIPPED','SCRAPPED')) fg
+        OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.WH_Inventory f
+                     JOIN dbo.MD_Location fl
+                       ON fl.LocationID COLLATE DATABASE_DEFAULT = f.LocationNo COLLATE DATABASE_DEFAULT
+                     WHERE f.PartNo COLLATE DATABASE_DEFAULT = s.ItemNo COLLATE DATABASE_DEFAULT
+                       AND f.Qty>0 AND UPPER(fl.AreaCode)='FG_AREA') fg
         OUTER APPLY (SELECT SUM(ISNULL(w.OrderQty,0)) AS Qty FROM dbo.PP_WorkOrder w
                      WHERE w.SoID = s.SoID AND w.Status <> 'Cancelled') iss
         -- 수량: 직접 입력(@Qty) 우선. 아니면 기준(순수요/수주량)에서 기발행분을 뺀 잔량 — 같은 수주에 WO 를 나눠 낼 수 있다
@@ -947,8 +953,12 @@ public sealed class PpRepository
 
         var supply = Query("""
             SELECT i.ItemNo, i.LeadTimeDays,
-                   (SELECT ISNULL(SUM(ISNULL(x.OnHandQty,0) - ISNULL(x.ReservedQty,0)),0)
-                    FROM dbo.WH_Inventory x WHERE x.ItemNo = i.ItemNo) AS Stock,
+                   (SELECT ISNULL(SUM(ISNULL(x.Qty,0)),0)
+                    FROM dbo.WH_Inventory x
+                    JOIN dbo.MD_Location ml
+                      ON ml.LocationID COLLATE DATABASE_DEFAULT = x.LocationNo COLLATE DATABASE_DEFAULT
+                    WHERE x.PartNo COLLATE DATABASE_DEFAULT = i.ItemNo COLLATE DATABASE_DEFAULT
+                      AND x.Qty>0 AND UPPER(ml.AreaCode)='MAT_AREA') AS Stock,
                    (SELECT ISNULL(SUM(ISNULL(p.OrderQty,0) - ISNULL(p.ReceivedQty,0)),0)
                     FROM dbo.WH_PurchaseOrder p
                     WHERE p.ItemNo = i.ItemNo AND p.Status IN ('Open','Partial')

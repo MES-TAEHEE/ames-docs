@@ -10,6 +10,15 @@ script; it is no longer a separate step in the fresh-database rebuild. Use
 `PDA_SEED.sql` for rerunnable development data and current menu cleanup. Do not
 create separate migration or seed files per screen.
 
+For an existing database, run `../migrate_fg_shipment_consolidation.sql` once
+to move shipment line data into `FG_ShipmentOrder.ItemsJSON`, preserve the
+shipment document number/time, and retire `FG_ShipmentOrderLine`,
+`FG_DeliveryNote`, and the external Shipment API configuration.
+Then run `../migrate_fg_inventory_consolidation.sql` once to preserve legacy
+finished-goods LOTs and adjustment history in `WH_Inventory` and
+`WH_InventoryTransaction`, then retire `FG_Inventory` and
+`FG_InventoryAdjust`.
+
 ## Naming
 
 - Procedures: use the main AMES Warehouse procedure style, `dbo.WH_PDA_<Workflow>_<Action>`.
@@ -30,15 +39,17 @@ Examples:
 - `dbo.WH_PDA_RELEASE_SCAN_LOT`
 - `dbo.WH_PDA_RELEASE_PICK_LOT`
 - `dbo.WH_PurchaseOrder`
-- `dbo.WH_ReleaseSchedule`
-- `dbo.WH_Receiving`
+- `dbo.WH_PickSlip`
 - `dbo.WH_Inventory`
-- `dbo.WH_ReleasePicking`
+- `dbo.WH_InventoryTransaction`
 
 ## Apply
 
 ```powershell
 sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -b -d AMES_DEV -i dist\pda\PDA_SCHEMA.sql
+sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -b -d AMES_DEV -i dist\migrate_wh_core_tables.sql
+sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -b -d AMES_DEV -i dist\migrate_fg_shipment_consolidation.sql
+sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -b -d AMES_DEV -i dist\migrate_fg_inventory_consolidation.sql
 sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -b -d AMES_DEV -i dist\pda\PDA_SEED.sql
 ```
 

@@ -1,17 +1,38 @@
 @page "/wh/inventory"
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Data.Repositories.WarehouseRepository InventoryRepo
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 <PageTitle>@L["WH.Inventory.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="WH-006" TitleKey="WH.Inventory.Title" />
 
-<InventoryLookup Inventory="_inventory" SearchId="wh-inventory-search" />
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_error</RadzenAlert>
+}
+else
+{
+    <InventoryLookup Inventory="_inventory" SearchId="wh-inventory-search" />
+}
 
 @code {
-    private readonly List<LocationMapStock> _inventory =
-    [
-        .. LocationMapDemoData.Create("MATERIAL", "Material Area").Inventory,
-        .. LocationMapDemoData.Create("SHIPPING", "Shipping Area", "SHIP-").Inventory,
-    ];
+    private List<LocationMapStock> _inventory = [];
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            _inventory = InventoryRepo.ListUnifiedInventory(finishedGoods: false)
+                .Select(x => new LocationMapStock(
+                    x.LocationNo, x.PartNo, x.PartName, x.LotNo, x.Qty, x.Unit,
+                    x.WarehouseCode, x.WarehouseName, x.AreaCode, x.AreaName))
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
 }

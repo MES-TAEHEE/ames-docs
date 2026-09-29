@@ -22,6 +22,7 @@ public class PlanScheduleTests
 
     const string Item     = "ITEST-PS-RTA";
     const string Pattern  = "ITEST-PS-PAT";
+    const string Routing  = "Z";
     const string LineInj  = "LINE-INJ-01";
     const string LineImg  = "LINE-IMG-01";
     static readonly DateTime D0 = NextMonday(DateTime.Today.AddDays(400));
@@ -76,22 +77,26 @@ public class PlanScheduleTests
     {
         Cleanup(f);
         Exec(f, """
+            INSERT INTO dbo.MD_RoutingStep
+                (RoutingType, StepSeq, ProcessCode, QcRequiredFlag, ActiveFlag, CreatedBy)
+            VALUES (@RT, 1, 'INJECTION', 0, 1, 'ITEST'),
+                   (@RT, 2, 'WRAPPING',  0, 1, 'ITEST');
             INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, ActiveFlag, CreatedBy)
-            VALUES (@I, N'ITEST plan schedule', 'A', 1, 'ITEST');
+            VALUES (@I, N'ITEST plan schedule', @RT, 1, 'ITEST');
             INSERT INTO dbo.MD_Mold (MoldID, MoldName, Status, MoldChangeMin, CreatedBy)
             VALUES ('ITEST-PS-M', N'ITEST plan mold', 'AVAILABLE', 0, 'ITEST');
             INSERT INTO dbo.MD_MoldItem (MoldID, ItemNo, Color, CavitySeq, CavityPos, CavityCount, MoldCategory, ActiveFlag, CreatedBy)
             VALUES ('ITEST-PS-M', @I, 'CBK', 1, 'LH', 1, 'INJECTION', 1, 'ITEST');
             INSERT INTO dbo.MD_Bop (BOPID, ItemNo, RoutingType, StepSeq, StationCode, StdCycleTime, ActiveFlag, CreatedBy)
-            VALUES ('ITEST-PS-BOP-10', @I, 'A', 10, 'ST-INJ-01', 6,  1, 'ITEST'),
-                   ('ITEST-PS-BOP-20', @I, 'A', 20, 'ST-IMG-01', 12, 1, 'ITEST');
+            VALUES ('ITEST-PS-BOP-10', @I, @RT, 10, 'ST-INJ-01', 6,  1, 'ITEST'),
+                   ('ITEST-PS-BOP-20', @I, @RT, 20, 'ST-IMG-01', 12, 1, 'ITEST');
             INSERT INTO dbo.MD_LineTimePattern (PatternID, LineID, PatternName, Status, CreatedBy)
             VALUES (@P, NULL, N'ITEST pattern', 'ACTIVE', 'ITEST');
             INSERT INTO dbo.MD_LineTimeSegment (SegmentID, PatternID, SeqNo, StartMin, EndMin, SegmentState, ShiftCode, CreatedBy)
             VALUES ('ITEST-PS-SEG-1', @P, 1, 480,  720,  'OPERATING', 'A', 'ITEST'),
                    ('ITEST-PS-SEG-2', @P, 2, 720,  780,  'BREAK',     'A', 'ITEST'),
                    ('ITEST-PS-SEG-3', @P, 3, 780,  1080, 'OPERATING', 'A', 'ITEST');
-            """, ("@I", Item), ("@P", Pattern));
+            """, ("@I", Item), ("@P", Pattern), ("@RT", Routing));
         foreach (var d in Week)
             Exec(f, """
                 INSERT INTO dbo.PP_LineSchedule (LineID, ScheduleDate, PatternID, EntryType, PlannedQty, Status, CreatedBy)
@@ -113,9 +118,10 @@ public class PlanScheduleTests
             DELETE FROM dbo.MD_MoldItem WHERE MoldID = 'ITEST-PS-M';
             DELETE FROM dbo.MD_Mold     WHERE MoldID = 'ITEST-PS-M';
             DELETE FROM dbo.MD_Item          WHERE ItemNo = @I;
+            DELETE FROM dbo.MD_RoutingStep   WHERE RoutingType = @RT;
             DELETE FROM dbo.MD_LineTimeSegment WHERE PatternID = @P;
             DELETE FROM dbo.MD_LineTimePattern WHERE PatternID = @P;
-            """, ("@I", Item), ("@P", Pattern), ("@D0", D0), ("@D4", D4));
+            """, ("@I", Item), ("@P", Pattern), ("@RT", Routing), ("@D0", D0), ("@D4", D4));
     }
 
     /// <summary>납기 = D0 + dueOffset 일. 기본 9 → 다음 주 수요일 → 마감일(−3근무일) = 이번 주 금요일 D4.</summary>
@@ -352,7 +358,13 @@ public class PlanScheduleTests
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
         Seed(f);
-        Exec(f, "UPDATE dbo.SYS_Config SET ConfigValue = N'2' WHERE ConfigKey = @K;", ("@K", PpRepository.BufferWorkdaysKey));
+        var previous = Scalar(f, "SELECT ConfigValue FROM dbo.SYS_Config WHERE ConfigKey = @K;", ("@K", PpRepository.BufferWorkdaysKey));
+        Exec(f, """
+            UPDATE dbo.SYS_Config SET ConfigValue = N'2' WHERE ConfigKey = @K;
+            IF @@ROWCOUNT = 0
+                INSERT dbo.SYS_Config (ConfigKey, ConfigType, Category, ConfigValue, IsActive, CreatedBy)
+                VALUES (@K, 'NUMBER', 'PP', N'2', 1, 'ITEST');
+            """, ("@K", PpRepository.BufferWorkdaysKey));
         try
         {
             var so  = SeedSo(f, "SO-ITEST-PS-6");   // 납기 = 다음 주 수요일 → −2근무일 = 다음 주 월요일
@@ -363,7 +375,11 @@ public class PlanScheduleTests
         }
         finally
         {
-            Exec(f, "UPDATE dbo.SYS_Config SET ConfigValue = N'3' WHERE ConfigKey = @K;", ("@K", PpRepository.BufferWorkdaysKey));
+            if (previous is null)
+                Exec(f, "DELETE dbo.SYS_Config WHERE ConfigKey = @K AND CreatedBy = 'ITEST';", ("@K", PpRepository.BufferWorkdaysKey));
+            else
+                Exec(f, "UPDATE dbo.SYS_Config SET ConfigValue = @V WHERE ConfigKey = @K;",
+                    ("@K", PpRepository.BufferWorkdaysKey), ("@V", previous));
             Cleanup(f);
         }
     }

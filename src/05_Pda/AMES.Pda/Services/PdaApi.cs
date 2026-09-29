@@ -80,7 +80,8 @@ public abstract class PdaApi
         DateTime? PackDate, DateTime? DeliveryDate, DateTime? ArrivalDate,
         int TotalBoxes, int ScannedBoxes, string? Yn);
     public sealed record InboundDocumentLineRow(string PartNo, string? PartName,
-        int BoxCount, int ScanCount, string? Yn);
+        int BoxCount, int ScanCount, decimal DeliveredQty, decimal ReceivedQty,
+        decimal RemainingQty, string? Unit, string? Yn);
     public sealed record InboundDocumentBoxRow(string PartNo, string BoxBarcode,
         string? LotNo, decimal Qty, string? Unit, string? Yn);
     public sealed record InboundDocumentResult(InboundDocumentRow? Document,
@@ -155,6 +156,12 @@ public abstract class PdaApi
     public sealed record ReceiveReq(string LotCode, decimal Qty, string LocationId);
     public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId, bool SimulateFailure = false);
     public sealed record InboundCancelReq(string Mode, string Barcode);
+    public sealed record PutAwayRow(string Mode, string Barcode, string LotNo, string? PartNo,
+        string? PartName, decimal Qty, string? Unit, string? DeliveryNoteNo,
+        DateTime? ReceivedAt, string? LocationNo);
+    public sealed record PutAwaySelectionResult(string SelectionType, string? DeliveryNoteNo,
+        List<PutAwayRow> Boxes, List<string> SelectedBarcodes, bool RequiresRelocation = false);
+    public sealed record PutAwayConfirmReq(List<string> Barcodes, string LocationId, bool Relocate = false);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
         string? ReasonNote, bool SimulateFailure = false);
     public sealed record AdjustTestResetResult(bool Success, string Message, string LotNo, decimal Qty);
@@ -166,37 +173,25 @@ public abstract class PdaApi
     public sealed record AdjustmentLocation(string LocationId, List<AdjustmentStock> Items);
 
     // ── FG ───────────────────────────────────────────────────────────────
-    public sealed record FgStockRow(int StockId, string? StockNumber, string ItemNo, string? ItemName,
-        int? LotId, string? LotNo, string? CustomerCode, decimal Qty, string? Unit,
+    public sealed record FgStockRow(string LotNo, string ItemNo, string? ItemName,
+        int? LotId, string? CustomerCode, decimal Qty, string? Unit,
         string? Location, string? Status, DateTime? StockTs);
-    public sealed record FgOrderRow(int ShipmentOrderId, string? ShipOrderNumber, string? CustomerCode,
-        string? CustomerPo, DateTime? ShipDate, string? CarrierCode, string? DestPlant, string? Status, int LineCount);
-    public sealed record FgOrderLineRow(int ShipmentOrderLineId, int ShipmentOrderId, int LineSeq,
-        string ItemNo, string? ItemName, decimal OrderedQty, decimal AllocatedQty,
-        int? StockId, string? LotNo, string? Location, string? ReservationStatus);
-    public sealed record FgOutgoingSlipRow(int OutgoingSlipId, string OutgoingSlipBarcode,
-        string? CustomerCode, DateTime? OutgoingDate, string? Destination, string? Status, int LineCount);
-    public sealed record FgOutgoingSlipLineRow(int OutgoingSlipLineId, int OutgoingSlipId, int LineSeq,
-        string PartNo, string? PartName, decimal RequiredQty, decimal ScannedQty, string? Status);
-    public sealed record FgHistoryRow(int LoadingId, string? LoadingNumber, int? ShipmentOrderId,
-        string? ShipOrderNumber, string? CustomerCode, string? LicensePlate, string? DriverName,
-        DateTime? DepartureTs, string? OTDStatus);
     public sealed record FgDashboard(int OpenOrders, int ReadyToShip, int InTransit, int DeliveredToday,
         int PendingReturns, decimal StockOnHand);
-    public sealed record FgQcCompletedRow(int LotId, string LotNo, string? WoNumber, string ItemNo,
+    public sealed record FgPutAwayWaitingRow(int LotId, string LotNo, string? WoNumber, string ItemNo,
         string? ItemName, string? CustomerCode, decimal Qty, string? Unit, DateTime? ProducedAt,
-        DateTime? QcPassTs);
+        DateTime? ReadyAt);
     public sealed record FgReturnRow(int ReturnId, string? ReturnNumber, string? CustomerCode,
         string? ItemNo, decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt);
-    public sealed record FgReturnScanRow(string Barcode, int StockId, string? StockNumber, int? LotId, string? LotNo,
+    public sealed record FgReturnScanRow(string Barcode, int? LotId, string LotNo,
         int ShipmentOrderId, string? ShipOrderNumber, string CustomerCode,
         string ItemNo, string? ItemName, DateTime ShippedAt, decimal Qty);
     public sealed record FgReturnResult(bool Success, string Message, int? ReturnId, FgReturnScanRow? Row);
 
     public sealed record FgPutAwayScanRow(int? LotId, string LotNo, int? WoId,
         string ItemNo, string? ItemName, string? CustomerCode, decimal Qty, string? Unit,
-        DateTime? MfgDate, DateTime? ExpiryDate, string? QcInspectionNo, DateTime? QcPassTs,
-        bool IsQcPassed, bool AlreadyStocked, int? ExistingStockId, string? ExistingLocation,
+        DateTime? MfgDate, DateTime? ExpiryDate, DateTime? ReadyAt,
+        bool IsProductionCompleted, bool AlreadyStocked, string? ExistingLotNo, string? ExistingLocation,
         string? ExistingStatus, string BarcodeType, string StorageMethod, string NextScanType,
         string NextScanLabel, string? PackSpecId, string Message);
     public sealed record FgPutAwayLocationRow(string LocationId, string? LocationName, string? ZoneCode,
@@ -206,26 +201,15 @@ public abstract class PdaApi
     public sealed record FgPutAwayConfirmReq(string Barcode, string LocationId, string? SuggestedLocation,
         string? OverrideReason, int? PalletCount, int? PalletQty, string? StorageMethod,
         string? ContainerType, string? ContainerBarcode);
-    public sealed record FgPutAwayResult(bool Success, string Message, int? StockId, FgPutAwayScanRow? Row,
+    public sealed record FgPutAwayResult(bool Success, string Message, string? InventoryLotNo, FgPutAwayScanRow? Row,
         FgPutAwayLocationRow? Location);
-    public sealed record FgReleaseLotReq(int OutgoingSlipLineId, int StockId, decimal Qty);
-    public sealed record FgReleaseLotScanReq(int OutgoingSlipId, string Barcode, List<FgReleaseLotReq>? ScannedLots);
-    public sealed record FgReleaseLotScanResult(bool Success, string Code, string Message,
-        FgStockRow? Stock, int? OutgoingSlipLineId);
-    public sealed record FgCompleteReleaseReq(int OutgoingSlipId, List<FgReleaseLotReq> Lots);
-    public sealed record FgCompleteReleaseResult(bool Success, string Message, int? PickId);
-    public sealed record FgLoadingTruckRow(string Barcode, string LicensePlate, bool Ready, string Message);
-    public sealed record FgLoadingItemRow(int StockId, int ShipmentOrderLineId, int ShipmentOrderId,
-        string ShipOrderNumber, string CustomerCode, string ItemNo, string? ItemName,
-        string? LotNo, string? StockNumber, decimal Qty, string? Unit, string? Location);
-    public sealed record FgLoadingOrderRow(int ShipmentOrderId, string Barcode, string ShipOrderNumber,
-        string CustomerCode, DateTime? ShipDate, string? Destination, List<FgLoadingItemRow> Items);
-    public sealed record FgLoadingOrderResult(bool Success, string Message, FgLoadingOrderRow? Order);
-    public sealed record FgLoadingReq(string TruckBarcode, int ShipmentOrderId, List<int> StockIds);
-    public sealed record FgLoadingResult(bool Success, string Message, int? LoadingId,
-        FgLoadingTruckRow? Truck, FgLoadingItemRow? Item);
-    public sealed record FgDeliveryReq(int ShipmentOrderId, int? LoadingId);
-    public sealed record FgDayEndReq(string CloseMode, string? Note);
+    public sealed record FgOutboundPalletItemRow(string LotNo, string PartNo, string? PartName,
+        decimal Qty, string? LocationNo);
+    public sealed record FgOutboundPalletRow(string PalletLotNo, string? LocationNo,
+        decimal TotalQty, int PartCount, List<FgOutboundPalletItemRow> Items);
+    public sealed record FgOutboundPalletResult(bool Success, string Message, FgOutboundPalletRow? Pallet,
+        int ProcessedCount = 0);
+    public sealed record FgOutboundPalletReq(string PalletLotNo);
     public sealed record FgReturnReq(string Barcode, string ReturnReason, string? Note);
 
     protected async Task<T> GetRequiredAsync<T>(string url, string fallback)

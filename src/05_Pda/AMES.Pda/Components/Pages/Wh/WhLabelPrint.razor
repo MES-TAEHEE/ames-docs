@@ -1,5 +1,6 @@
 @page "/wh/label-print"
 @inject WarehouseApi Api
+@inject FinishedGoodsApi FgApi
 @inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
@@ -7,7 +8,7 @@
 
 <div class="pda-shell wh wh-label-print">
     <div class="pda-tbar">
-        <button class="pda-tbar-back" disabled="@_busy" @onclick='() => Nav.NavigateTo("/wh")'>&lt;</button>
+        <button class="pda-tbar-back" disabled="@_busy" @onclick='() => Nav.NavigateTo(IsFinishedGoods ? "/fg" : "/wh")'>&lt;</button>
         <span class="pda-tbar-brand">LABEL PRINT</span>
     </div>
     <div class="pda-bd label-master-body">
@@ -110,6 +111,11 @@
 </div>
 
 @code {
+    [Parameter, SupplyParameterFromQuery(Name = "source")]
+    public string? Source { get; set; }
+    [Parameter, SupplyParameterFromQuery(Name = "lot")]
+    public string? Lot { get; set; }
+
     private readonly SparePartPrinter _printer = new();
     private readonly CancellationTokenSource _lifetime = new();
     private List<PdaApi.LotStatusRow> _rows = [];
@@ -124,11 +130,15 @@
     private bool _busy, _error, _printError, _searching, _manualPrinter;
     private DotNetObjectReference<WhLabelPrint>? _scannerRef;
     private bool CanPrint => !_busy && _selected is not null && !string.IsNullOrWhiteSpace(_bluetooth);
+    private bool IsFinishedGoods => string.Equals(Source, "fg", StringComparison.OrdinalIgnoreCase);
 
     protected override async Task OnInitializedAsync()
     {
         if (Auth.Session is null) { Nav.NavigateTo("/login"); return; }
+        _search = Lot?.Trim() ?? "";
         await Reload();
+        var selected = _rows.FirstOrDefault(row => string.Equals(row.LotNo, Lot, StringComparison.OrdinalIgnoreCase));
+        if (selected is not null) Select(selected);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -157,12 +167,24 @@
         _busy = true; _error = false; _message = ""; _visible = 30;
         try
         {
-            _rows = (await Api.WhLotStatusesAsync(_search))
-                .Where(row => row.RemainingQty > 0 && !string.IsNullOrWhiteSpace(row.LocationId))
-                .ToList();
+            _rows = await LoadRows(_search);
         }
         catch (Exception ex) { _rows = []; _message = ex.Message; _error = true; }
         finally { _busy = false; }
+    }
+
+    private async Task<List<PdaApi.LotStatusRow>> LoadRows(string search)
+    {
+        if (!IsFinishedGoods)
+            return (await Api.WhLotStatusesAsync(search))
+                .Where(row => row.RemainingQty > 0 && !string.IsNullOrWhiteSpace(row.LocationId))
+                .ToList();
+
+        return (await FgApi.FgInventoryAsync(search))
+            .Where(row => row.Qty > 0 && !string.IsNullOrWhiteSpace(row.LotNo))
+            .Select(row => new PdaApi.LotStatusRow(row.LotId ?? 0, row.LotNo, row.ItemNo, row.ItemName,
+                row.Status ?? "Stocked", row.Qty, row.Location, null, row.StockTs))
+            .ToList();
     }
 
     private void Select(PdaApi.LotStatusRow row)
@@ -229,10 +251,10 @@
         _busy = true; _printMessage = ""; _printError = false;
         try
         {
-            var current = (await Api.WhLotStatusesAsync(_selected!.LotNo))
+            var current = (await LoadRows(_selected!.LotNo))
                 .FirstOrDefault(row => string.Equals(row.LotNo, _selected.LotNo, StringComparison.OrdinalIgnoreCase)
                     && row.RemainingQty > 0 && !string.IsNullOrWhiteSpace(row.LocationId))
-                ?? throw new InvalidOperationException("This LOT is no longer available in warehouse inventory.");
+                ?? throw new InvalidOperationException("This LOT is no longer available in inventory.");
             _selected = current;
             var zpl = SparePartLabel.Build(current.LotNo, current.ItemNo,
                 current.RemainingQty.ToString("0.###"), current.LocationId, _dpi);

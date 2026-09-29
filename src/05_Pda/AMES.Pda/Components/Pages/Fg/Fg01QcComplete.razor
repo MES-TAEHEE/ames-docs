@@ -7,18 +7,18 @@
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
         <div class="wh01-tbar-title">
-            <span class="pda-tbar-brand">QC WAITING</span>
+            <span class="pda-tbar-brand">PUT-AWAY WAITING</span>
         </div>
         <RadzenButton class="wh01-tbar-refresh" Click="Load" Disabled="@_isLoading" Text="REFRESH" />
         @if (IsPptTestMode)
         {
-            <PptScenarioPanel Title="QC WAITING" Steps="ActiveScenarioSteps" ModeLabel="@ScenarioModeLabel" Busy="@_isLoading" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" />
+            <PptScenarioPanel Title="PUT-AWAY WAITING" Steps="ActiveScenarioSteps" ModeLabel="@ScenarioModeLabel" Busy="@_isLoading" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" />
         }
     </div>
 
     <div class="pda-bd wh01-body">
         <section class="wh01-head">
-            <div class="pda-card-h">QC WAITING</div>
+            <div class="pda-card-h">PUT-AWAY WAITING</div>
             @if (!_loadError && !_isLoading)
             {
             <div class="wh01-summary">
@@ -46,7 +46,7 @@
                     <RadzenCard class="wh01-release-card" @key="row.LotId">
                         <div class="wh01-card-top wh01-card-top-compact">
                             <div class="wh01-po-no">@row.LotNo</div>
-                            <RadzenBadge class="@($"wh01-status waiting-age {AgeClass(row)}")" Text="@AgeText(row)" title="Since QC Pass" />
+                            <RadzenBadge class="@($"wh01-status waiting-age {AgeClass(row)}")" Text="@AgeText(row)" title="Since production completion" />
                         </div>
                         <div class="wh01-release-facts">
                             <div><span>Part No</span><strong>@row.ItemNo</strong></div>
@@ -62,14 +62,14 @@
 </div>
 
 @code {
-    private List<PdaApi.FgQcCompletedRow> _rows = new();
+    private List<PdaApi.FgPutAwayWaitingRow> _rows = new();
     private bool _isLoading;
     private bool _loadError;
     private string _message = "Loading...";
     private DateTime _asOf = DateTime.Now;
-    private bool IsOverDays(PdaApi.FgQcCompletedRow row, int days) => row.QcPassTs < _asOf.AddDays(-days);
+    private bool IsOverDays(PdaApi.FgPutAwayWaitingRow row, int days) => row.ReadyAt < _asOf.AddDays(-days);
     private int OverDaysCount(int days) => _rows.Count(row => IsOverDays(row, days));
-    private string AgeClass(PdaApi.FgQcCompletedRow row) =>
+    private string AgeClass(PdaApi.FgPutAwayWaitingRow row) =>
         IsOverDays(row, 10) ? "waiting-age-10" :
         IsOverDays(row, 5) ? "waiting-age-5" :
         IsOverDays(row, 1) ? "waiting-age-1" : "";
@@ -84,8 +84,8 @@
         _message = "Loading...";
         try
         {
-            _rows = (await Api.FgQcCompletedAsync())
-                .OrderBy(x => x.QcPassTs ?? DateTime.MaxValue)
+            _rows = (await Api.FgPutAwayWaitingAsync())
+                .OrderBy(x => x.ReadyAt ?? DateTime.MaxValue)
                 .ThenBy(x => x.ProducedAt ?? DateTime.MaxValue)
                 .ThenBy(x => x.LotId)
                 .ToList();
@@ -101,10 +101,10 @@
         finally { _isLoading = false; }
     }
 
-    private string AgeText(PdaApi.FgQcCompletedRow row)
+    private string AgeText(PdaApi.FgPutAwayWaitingRow row)
     {
-        if (row.QcPassTs is null) return "-";
-        var days = Math.Max(0, (int)(_asOf - row.QcPassTs.Value).TotalDays);
+        if (row.ReadyAt is null) return "-";
+        var days = Math.Max(0, (int)(_asOf - row.ReadyAt.Value).TotalDays);
         return days == 0 ? "Under 1 day" : $"Over {days} {(days == 1 ? "day" : "days")}";
     }
 }

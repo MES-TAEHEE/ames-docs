@@ -4827,6 +4827,7 @@ html[data-theme="light"] .location-result-table tbody tr.selected { background: 
     cursor: pointer;
 }
 .inventory-drawer-summary { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid rgba(148,163,184,.2); }
+.inventory-drawer-summary.inventory-detail-summary { grid-template-columns: repeat(2, 1fr); }
 .inventory-drawer-summary > div { display: grid; gap: 5px; padding: 16px 18px; border-right: 1px solid rgba(148,163,184,.16); }
 .inventory-drawer-summary > div:last-child { border-right: 0; }
 .inventory-drawer-summary span { color: #64748b; font: 800 .62rem var(--ames-font-mono); }

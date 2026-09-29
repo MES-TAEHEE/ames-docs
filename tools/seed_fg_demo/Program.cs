@@ -35,7 +35,7 @@ internal static class Program
         DELETE FROM dbo.FG_ShipmentOrderLine WHERE CreatedBy='fg-seed';
         DELETE FROM dbo.FG_ShipmentOrder     WHERE CreatedBy='fg-seed';
         DELETE FROM dbo.FG_PutAway           WHERE CreatedBy='fg-seed';
-        DELETE FROM dbo.FG_Stock             WHERE CreatedBy='fg-seed';
+        DELETE FROM dbo.FG_Inventory         WHERE CreatedBy='fg-seed';
         """);
 
     private static void SeedStock(SqlConnection conn)
@@ -55,7 +55,7 @@ internal static class Program
         {
             var r = rows[i];
             Exec(conn, $"""
-                INSERT INTO dbo.FG_Stock
+                INSERT INTO dbo.FG_Inventory
                     (StockNumber, ItemNo, CustomerCode, Qty, Location, Status, HoldFlag,
                      StockTS, CreatedBy, CreatedTS)
                 VALUES (CONCAT('STK-SD-', '{i + 1:000}'),

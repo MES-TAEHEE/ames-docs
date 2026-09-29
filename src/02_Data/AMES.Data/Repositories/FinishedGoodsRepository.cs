@@ -1,4 +1,5 @@
 using System.Data;
+using System.Text.Json;
 using AMES.Data.Connection;
 using Microsoft.Data.SqlClient;
 
@@ -9,23 +10,6 @@ public sealed class FinishedGoodsRepository
     private readonly AmesConnectionFactory _factory;
 
     public FinishedGoodsRepository(AmesConnectionFactory factory) => _factory = factory;
-
-    public record LocationRow(
-        string LocationNo,
-        string? LocationName,
-        string? WarehouseCode,
-        string? WarehouseName,
-        string? AreaCode,
-        string? ZoneCode,
-        string? ColumnNo,
-        string? RowNo,
-        string? LevelNo,
-        decimal Capacity,
-        bool Active,
-        int LotCount,
-        int PartCount,
-        decimal Qty,
-        string Status);
 
     public record ReturnRow(
         int ReturnId,
@@ -43,18 +27,6 @@ public sealed class FinishedGoodsRepository
         string? ReceivedBy,
         bool CapaTriggered,
         string? ItemsJson);
-
-    public record InventoryRow(
-        int StockId,
-        string? StockNumber,
-        string ItemNo,
-        string? ItemName,
-        string? LotNo,
-        decimal Qty,
-        string? Unit,
-        string? LocationNo,
-        string? Status,
-        DateTime? StockAt);
 
     public record ShipmentRow(
         int ShipmentOrderId,
@@ -80,6 +52,48 @@ public sealed class FinishedGoodsRepository
         DateTime? DeliveryNoteIssuedAt,
         int LineCount,
         decimal OrderedQty);
+
+    public record ShipmentPlanSourceRow(
+        int SoId,
+        string? SoNumber,
+        int? SoLineNo,
+        string? CustomerCode,
+        string ItemNo,
+        string? ItemName,
+        decimal OrderQty,
+        decimal ShippedQty,
+        decimal PlannedQty,
+        decimal RemainingQty,
+        DateTime? RequestedDeliveryDate);
+
+    public record ShipmentPlanRow(
+        int ShipmentOrderId,
+        string? PlanNumber,
+        string? CustomerCode,
+        string? SourceOrderNumber,
+        DateTime? ShipDate,
+        string? Status,
+        int LineCount,
+        decimal PlannedQty,
+        DateTime? CreatedAt);
+
+    public record ShipmentPlanLineRow(
+        int ShipmentOrderLineId,
+        int SourceSoId,
+        string? SourceOrderNumber,
+        int? SourceLineNo,
+        string ItemNo,
+        string? ItemName,
+        decimal PlannedQty,
+        DateTime? RequestedDeliveryDate);
+
+    public record ShipmentPlanInput(int SoId, decimal Qty);
+
+    public record ShipmentPlanCreateResult(
+        IReadOnlyList<string> PlanNumbers,
+        int LineCount,
+        decimal TotalQty);
+
 
     public record ShipmentDocument(
         int ShipmentOrderId,
@@ -126,208 +140,6 @@ public sealed class FinishedGoodsRepository
         string? WorkerId,
         string? Status,
         string? Details);
-
-    public List<LocationRow> ListLocations(
-        string? search = null,
-        string? warehouseCode = null,
-        string? areaCode = null,
-        string? zoneCode = null,
-        string? levelNo = null,
-        bool includeInactive = false)
-    {
-        EnsureFgLocationMasterTable();
-        const string sql = """
-            WITH FgStock AS
-            (
-                SELECT
-                    Location,
-                    COUNT(DISTINCT LotID) AS LotCount,
-                    COUNT(DISTINCT ItemNo) AS PartCount,
-                    SUM(CASE WHEN UPPER(ISNULL(Status, 'AVAILABLE')) NOT IN ('CANCELED', 'CANCELLED', 'SHIPPED')
-                             THEN ISNULL(Qty, 0) ELSE 0 END) AS Qty
-                FROM dbo.FG_Inventory
-                WHERE Location IS NOT NULL
-                GROUP BY Location
-            )
-            SELECT
-                L.LocationID,
-                L.LocationName,
-                L.WhCode AS WarehouseCode,
-                COALESCE(NULLIF(W.WhName, ''), L.WhCode) AS WarehouseName,
-                L.AreaCode AS AreaCode,
-                L.ZoneCode AS ZoneCode,
-                L.Aisle AS ColumnNo,
-                L.Bay AS RowNo,
-                L.Slot AS LevelNo,
-                CAST(ISNULL(L.Capacity, 0) AS decimal(14,3)) AS Capacity,
-                CAST(ISNULL(L.ActiveFlag, 1) AS bit) AS Active,
-                ISNULL(S.LotCount, 0) AS LotCount,
-                ISNULL(S.PartCount, 0) AS PartCount,
-                CAST(ISNULL(S.Qty, 0) AS decimal(14,3)) AS Qty,
-                CASE
-                    WHEN ISNULL(L.ActiveFlag, 1) = 0 THEN 'INACTIVE'
-                    WHEN ISNULL(S.Qty, 0) <= 0 THEN 'EMPTY'
-                    WHEN ISNULL(L.Capacity, 0) > 0 AND S.Qty >= L.Capacity THEN 'FULL'
-                    ELSE 'OCCUPIED'
-                END AS Status
-            FROM dbo.MD_Location L
-            LEFT JOIN dbo.FG_LocationMaster FGM ON FGM.LocationID = L.LocationID
-            LEFT JOIN dbo.WH_WarehouseMaster W ON W.WhCode = L.WhCode
-            LEFT JOIN FgStock S ON S.Location = L.LocationID
-            WHERE
-                (
-                    FGM.LocationID IS NOT NULL
-                    OR
-                    UPPER(ISNULL(L.LocationType, '')) IN ('FG', 'FINISHED_GOODS', 'FINISHED GOODS')
-                    OR UPPER(L.LocationID) LIKE 'FG%'
-                    OR S.Location IS NOT NULL
-                )
-              AND (@IncludeInactive = 1 OR (ISNULL(L.ActiveFlag, 1) = 1 AND ISNULL(FGM.ActiveFlag, 1) = 1))
-              AND (@WarehouseCode IS NULL OR L.WhCode = @WarehouseCode)
-              AND (@AreaCode IS NULL OR L.AreaCode = @AreaCode)
-              AND (@ZoneCode IS NULL OR L.ZoneCode = @ZoneCode)
-              AND (@LevelNo IS NULL OR L.Slot = @LevelNo)
-              AND (@Search IS NULL
-                   OR L.LocationID LIKE @Search
-                   OR L.LocationName LIKE @Search
-                   OR L.WhCode LIKE @Search
-                   OR L.AreaCode LIKE @Search
-                   OR L.ZoneCode LIKE @Search
-                   OR L.LocationType LIKE @Search)
-            ORDER BY L.WhCode, L.AreaCode, L.ZoneCode,
-                     TRY_CONVERT(int, L.Slot), L.Slot,
-                     TRY_CONVERT(int, L.Bay), L.Bay,
-                     TRY_CONVERT(int, L.Aisle), L.Aisle,
-                     L.LocationID;
-            """;
-
-        return Query(sql, r => new LocationRow(
-            GetString(r, "LocationID") ?? "",
-            GetString(r, "LocationName"),
-            GetString(r, "WarehouseCode"),
-            GetString(r, "WarehouseName"),
-            GetString(r, "AreaCode"),
-            GetString(r, "ZoneCode"),
-            GetString(r, "ColumnNo"),
-            GetString(r, "RowNo"),
-            GetString(r, "LevelNo"),
-            GetDecimal(r, "Capacity"),
-            GetBool(r, "Active"),
-            GetInt(r, "LotCount"),
-            GetInt(r, "PartCount"),
-            GetDecimal(r, "Qty"),
-            GetString(r, "Status") ?? "EMPTY"),
-            ("@Search", Like(search)),
-            ("@WarehouseCode", NullIfBlank(warehouseCode)),
-            ("@AreaCode", NullIfBlank(areaCode)),
-            ("@ZoneCode", NullIfBlank(zoneCode)),
-            ("@LevelNo", NullIfBlank(levelNo)),
-            ("@IncludeInactive", includeInactive));
-    }
-
-    public bool LocationExists(string locationNo)
-    {
-        EnsureFgLocationMasterTable();
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_Location WHERE LocationID = @LocationID;", conn);
-        cmd.Parameters.Add("@LocationID", SqlDbType.VarChar, 20).Value = locationNo.Trim();
-        return cmd.ExecuteScalar() is not null;
-    }
-
-    public void SaveLocation(
-        string locationNo,
-        string? locationName,
-        string warehouseCode,
-        string areaCode,
-        string zoneCode,
-        string? columnNo,
-        string? rowNo,
-        string? levelNo,
-        decimal capacity,
-        bool active,
-        string modifiedBy)
-    {
-        EnsureFgLocationMasterTable();
-        if (string.IsNullOrWhiteSpace(locationNo)) throw new ArgumentException("Location Code is required.");
-        if (string.IsNullOrWhiteSpace(warehouseCode)) throw new ArgumentException("Warehouse is required.");
-        if (string.IsNullOrWhiteSpace(areaCode)) throw new ArgumentException("Area is required.");
-        if (string.IsNullOrWhiteSpace(zoneCode)) throw new ArgumentException("Zone is required.");
-
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            MERGE dbo.MD_Location AS target
-            USING (SELECT @LocationID AS LocationID) AS source
-               ON target.LocationID = source.LocationID
-            WHEN MATCHED THEN UPDATE SET
-                LocationName = @LocationName,
-                WhCode = @WarehouseCode,
-                AreaCode = @AreaCode,
-                ZoneCode = @ZoneCode,
-                PlantCode = @WarehouseCode,
-                LocationType = 'FG',
-                Aisle = @ColumnNo,
-                Bay = @RowNo,
-                Slot = @LevelNo,
-                Capacity = @Capacity,
-                ActiveFlag = @Active,
-                ModifiedBy = @ModifiedBy,
-                ModifiedTS = SYSDATETIME()
-            WHEN NOT MATCHED THEN INSERT
-                (LocationID, LocationName, WhCode, AreaCode, ZoneCode, PlantCode, LocationType, Aisle, Bay, Slot,
-                 Capacity, ActiveFlag, CreatedBy, CreatedTS)
-            VALUES
-                (@LocationID, @LocationName, @WarehouseCode, @AreaCode, @ZoneCode, @WarehouseCode, 'FG', @ColumnNo, @RowNo, @LevelNo,
-                 @Capacity, @Active, @ModifiedBy, SYSDATETIME());
-
-            MERGE dbo.FG_LocationMaster AS target
-            USING (SELECT @LocationID AS LocationID) AS source
-               ON target.LocationID = source.LocationID
-            WHEN MATCHED THEN UPDATE SET
-                ActiveFlag = @Active,
-                ModifiedBy = @ModifiedBy,
-                ModifiedTS = SYSDATETIME()
-            WHEN NOT MATCHED THEN INSERT
-                (LocationID, ActiveFlag, CreatedBy, CreatedTS)
-            VALUES
-                (@LocationID, @Active, @ModifiedBy, SYSDATETIME());
-            """, conn);
-        AddText(cmd, "@LocationID", SqlDbType.VarChar, 20, locationNo, false);
-        AddText(cmd, "@LocationName", SqlDbType.NVarChar, 120, locationName);
-        AddText(cmd, "@WarehouseCode", SqlDbType.VarChar, 20, warehouseCode, false);
-        AddText(cmd, "@AreaCode", SqlDbType.VarChar, 20, areaCode, false);
-        AddText(cmd, "@ZoneCode", SqlDbType.VarChar, 20, zoneCode, false);
-        AddText(cmd, "@ColumnNo", SqlDbType.VarChar, 10, columnNo);
-        AddText(cmd, "@RowNo", SqlDbType.VarChar, 10, rowNo);
-        AddText(cmd, "@LevelNo", SqlDbType.VarChar, 10, levelNo);
-        var qty = cmd.Parameters.Add("@Capacity", SqlDbType.Decimal);
-        qty.Precision = 14;
-        qty.Scale = 3;
-        qty.Value = Math.Max(0, capacity);
-        cmd.Parameters.Add("@Active", SqlDbType.Bit).Value = active;
-        AddText(cmd, "@ModifiedBy", SqlDbType.NVarChar, 120, modifiedBy, false);
-        cmd.ExecuteNonQuery();
-    }
-
-    public void DeleteLocation(string locationNo)
-    {
-        EnsureFgLocationMasterTable();
-        using var conn = _factory.OpenConnection();
-        using var check = new SqlCommand("""
-            SELECT
-                (SELECT COUNT(1) FROM dbo.FG_Inventory WHERE Location = @LocationID)
-              + (SELECT COUNT(1) FROM dbo.WH_Inventory WHERE LocationID = @LocationID AND ISNULL(OnHandQty, 0) <> 0);
-            """, conn);
-        check.Parameters.Add("@LocationID", SqlDbType.VarChar, 20).Value = locationNo.Trim();
-        if (Convert.ToInt32(check.ExecuteScalar()) > 0)
-            throw new InvalidOperationException("This location has inventory and cannot be deleted.");
-
-        using var cmd = new SqlCommand("""
-            DELETE FROM dbo.FG_LocationMaster WHERE LocationID = @LocationID;
-            DELETE FROM dbo.MD_Location WHERE LocationID = @LocationID;
-            """, conn);
-        cmd.Parameters.Add("@LocationID", SqlDbType.VarChar, 20).Value = locationNo.Trim();
-        cmd.ExecuteNonQuery();
-    }
 
     public List<ReturnRow> ListReturns(
         string? search = null,
@@ -390,57 +202,316 @@ public sealed class FinishedGoodsRepository
             ("@To", to?.Date));
     }
 
-    public List<InventoryRow> ListInventory(string? locationNo = null, string? search = null)
+    public List<ShipmentPlanSourceRow> ListShipmentPlanSources(string? search = null)
     {
         const string sql = """
-            SELECT TOP 500
-                S.StockID,
-                S.StockNumber,
+            WITH Planned AS
+            (
+                SELECT L.LineSeq AS SoID, SUM(ISNULL(L.OrderedQty, 0)) AS PlannedQty
+                FROM dbo.FG_ShipmentOrder O
+                CROSS APPLY OPENJSON(COALESCE(O.ItemsJSON, N'[]')) WITH
+                (
+                    LineSeq int '$.lineSeq',
+                    OrderedQty decimal(14,3) '$.orderedQty'
+                ) L
+                WHERE UPPER(ISNULL(O.Source, '')) = 'PP'
+                  AND UPPER(ISNULL(O.Status, '')) NOT IN ('CANCELED', 'CANCELLED')
+                GROUP BY L.LineSeq
+            )
+            SELECT
+                S.SoID,
+                S.SoNumber,
+                S.SoLineNo,
+                S.CustomerID,
                 S.ItemNo,
                 I.ItemName,
-                L.LotCode AS LotNo,
-                CAST(ISNULL(S.Qty, 0) AS decimal(14,3)) AS Qty,
-                I.DefaultUOM AS Unit,
-                S.Location,
-                S.Status,
-                S.StockTS
-            FROM dbo.FG_Inventory S
+                CAST(ISNULL(S.OrderQty, 0) AS decimal(14,3)) AS OrderQty,
+                CAST(ISNULL(S.ShippedQty, 0) AS decimal(14,3)) AS ShippedQty,
+                CAST(ISNULL(P.PlannedQty, 0) AS decimal(14,3)) AS PlannedQty,
+                CAST(ISNULL(S.OrderQty, 0) - ISNULL(S.ShippedQty, 0) - ISNULL(P.PlannedQty, 0) AS decimal(14,3)) AS RemainingQty,
+                S.RequestedDeliveryDate
+            FROM dbo.PP_CustomerOrder S
             LEFT JOIN dbo.MD_Item I ON I.ItemNo = S.ItemNo
-            LEFT JOIN dbo.tbl_Lot L ON L.LotID = S.LotID
-            WHERE (@LocationNo IS NULL OR S.Location = @LocationNo)
-              AND UPPER(ISNULL(S.Status, 'AVAILABLE')) NOT IN ('CANCELED', 'CANCELLED', 'SHIPPED')
+            LEFT JOIN Planned P ON P.SoID = S.SoID
+            WHERE UPPER(ISNULL(S.Status, 'OPEN')) NOT IN ('CANCELED', 'CANCELLED')
+              AND ISNULL(S.OrderQty, 0) - ISNULL(S.ShippedQty, 0) - ISNULL(P.PlannedQty, 0) > 0
               AND (@Search IS NULL
-                   OR S.StockNumber LIKE @Search
+                   OR S.SoNumber LIKE @Search
+                   OR S.CustomerID LIKE @Search
                    OR S.ItemNo LIKE @Search
-                   OR I.ItemName LIKE @Search
-                   OR L.LotCode LIKE @Search
-                   OR S.Location LIKE @Search)
-            ORDER BY S.Location, S.StockTS, S.StockID;
+                   OR I.ItemName LIKE @Search)
+            ORDER BY COALESCE(S.RequestedDeliveryDate, CONVERT(date, '99991231')),
+                     S.SoNumber, S.SoLineNo, S.SoID;
             """;
 
-        return Query(sql, r => new InventoryRow(
-            GetInt(r, "StockID"),
-            GetString(r, "StockNumber"),
+        return Query(sql, r => new ShipmentPlanSourceRow(
+            GetInt(r, "SoID"),
+            GetString(r, "SoNumber"),
+            GetNullableInt(r, "SoLineNo"),
+            GetString(r, "CustomerID"),
             GetString(r, "ItemNo") ?? "",
             GetString(r, "ItemName"),
-            GetString(r, "LotNo"),
-            GetDecimal(r, "Qty"),
-            GetString(r, "Unit"),
-            GetString(r, "Location"),
-            GetString(r, "Status"),
-            GetDate(r, "StockTS")),
-            ("@LocationNo", NullIfBlank(locationNo)),
+            GetDecimal(r, "OrderQty"),
+            GetDecimal(r, "ShippedQty"),
+            GetDecimal(r, "PlannedQty"),
+            GetDecimal(r, "RemainingQty"),
+            GetDate(r, "RequestedDeliveryDate")),
             ("@Search", Like(search)));
     }
+
+    public List<ShipmentPlanRow> ListShipmentPlans(string? search = null)
+    {
+        const string sql = """
+            SELECT TOP (100)
+                O.ShipmentOrderID,
+                O.ShipOrderNumber,
+                O.CustomerCode,
+                O.CustomerPO,
+                O.ShipDate,
+                O.Status,
+                ISNULL(J.LineCount, 0) AS LineCount,
+                CAST(ISNULL(J.PlannedQty, 0) AS decimal(14,3)) AS PlannedQty,
+                O.CreatedTS
+            FROM dbo.FG_ShipmentOrder O
+            OUTER APPLY
+            (
+                SELECT COUNT(*) AS LineCount, SUM(ISNULL(L.OrderedQty, 0)) AS PlannedQty
+                FROM OPENJSON(COALESCE(O.ItemsJSON, N'[]')) WITH
+                (
+                    OrderedQty decimal(14,3) '$.orderedQty'
+                ) L
+            ) J
+            WHERE UPPER(ISNULL(O.Source, '')) = 'PP'
+              AND (@Search IS NULL
+                   OR O.ShipOrderNumber LIKE @Search
+                   OR O.CustomerCode LIKE @Search
+                   OR O.CustomerPO LIKE @Search)
+            ORDER BY O.CreatedTS DESC, O.ShipmentOrderID DESC;
+            """;
+
+        return Query(sql, r => new ShipmentPlanRow(
+            GetInt(r, "ShipmentOrderID"),
+            GetString(r, "ShipOrderNumber"),
+            GetString(r, "CustomerCode"),
+            GetString(r, "CustomerPO"),
+            GetDate(r, "ShipDate"),
+            GetString(r, "Status"),
+            GetInt(r, "LineCount"),
+            GetDecimal(r, "PlannedQty"),
+            GetDate(r, "CreatedTS")),
+            ("@Search", Like(search)));
+    }
+
+    public List<ShipmentPlanLineRow> ListShipmentPlanLines(int shipmentOrderId)
+    {
+        const string sql = """
+            SELECT
+                ISNULL(L.ShipmentOrderLineID, L.ArrayIndex + 1) AS ShipmentOrderLineID,
+                L.LineSeq AS SourceSoID,
+                S.SoNumber,
+                S.SoLineNo,
+                L.ItemNo,
+                I.ItemName,
+                CAST(ISNULL(L.OrderedQty, 0) AS decimal(14,3)) AS PlannedQty,
+                S.RequestedDeliveryDate
+            FROM dbo.FG_ShipmentOrder O
+            CROSS APPLY OPENJSON(COALESCE(O.ItemsJSON, N'[]')) J
+            CROSS APPLY
+            (
+                SELECT
+                    TRY_CONVERT(int, J.[key]) AS ArrayIndex,
+                    X.ShipmentOrderLineID,
+                    X.LineSeq,
+                    X.ItemNo,
+                    X.OrderedQty
+                FROM OPENJSON(J.[value]) WITH
+                (
+                    ShipmentOrderLineID int '$.shipmentOrderLineId',
+                    LineSeq int '$.lineSeq',
+                    ItemNo varchar(20) '$.itemNo',
+                    OrderedQty decimal(14,3) '$.orderedQty'
+                ) X
+            ) L
+            LEFT JOIN dbo.PP_CustomerOrder S ON S.SoID = L.LineSeq
+            LEFT JOIN dbo.MD_Item I ON I.ItemNo = L.ItemNo
+            WHERE O.ShipmentOrderID = @ShipmentOrderID
+            ORDER BY S.SoNumber, S.SoLineNo, L.ArrayIndex;
+            """;
+
+        return Query(sql, r => new ShipmentPlanLineRow(
+            GetInt(r, "ShipmentOrderLineID"),
+            GetInt(r, "SourceSoID"),
+            GetString(r, "SoNumber"),
+            GetNullableInt(r, "SoLineNo"),
+            GetString(r, "ItemNo") ?? "",
+            GetString(r, "ItemName"),
+            GetDecimal(r, "PlannedQty"),
+            GetDate(r, "RequestedDeliveryDate")),
+            ("@ShipmentOrderID", shipmentOrderId));
+    }
+
+    public string DeleteShipmentPlan(int shipmentOrderId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        try
+        {
+            using var readCmd = new SqlCommand("""
+                SELECT ShipOrderNumber, Source, Status,
+                       CASE WHEN EXISTS (SELECT 1 FROM dbo.FG_CustomerReturn WHERE OriginalShipmentOrderID=@ID)
+                             THEN 1 ELSE 0 END AS HasDependencies
+                FROM dbo.FG_ShipmentOrder WITH (UPDLOCK, HOLDLOCK)
+                WHERE ShipmentOrderID=@ID;
+                """, conn, tx);
+            readCmd.Parameters.Add("@ID", SqlDbType.Int).Value = shipmentOrderId;
+            using var reader = readCmd.ExecuteReader();
+            if (!reader.Read())
+                throw new InvalidOperationException("Shipment plan was not found.");
+
+            var planNumber = GetString(reader, "ShipOrderNumber") ?? shipmentOrderId.ToString();
+            var source = GetString(reader, "Source");
+            var status = GetString(reader, "Status");
+            var hasDependencies = GetBool(reader, "HasDependencies");
+            reader.Close();
+            ValidateShipmentPlanDelete(source, status, hasDependencies);
+
+            using var deleteCmd = new SqlCommand("""
+                DELETE dbo.FG_ShipmentOrder WHERE ShipmentOrderID=@ID;
+                """, conn, tx);
+            deleteCmd.Parameters.Add("@ID", SqlDbType.Int).Value = shipmentOrderId;
+            deleteCmd.ExecuteNonQuery();
+            tx.Commit();
+            return planNumber;
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+    }
+
+    public ShipmentPlanCreateResult CreateShipmentPlans(
+        DateTime shipDate,
+        string customerCode,
+        IReadOnlyList<ShipmentPlanInput> inputs,
+        string actor)
+    {
+        var requested = NormalizeShipmentPlanInputs(inputs);
+
+        if (requested.Count == 0)
+            throw new InvalidOperationException("Select at least one supply plan line and enter a quantity greater than zero.");
+        if (string.IsNullOrWhiteSpace(customerCode))
+            throw new InvalidOperationException("Select the destination company.");
+        customerCode = customerCode.Trim();
+
+        actor = string.IsNullOrWhiteSpace(actor) ? "system" : actor.Trim();
+        if (actor.Length > 20) actor = actor[..20];
+
+        using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        try
+        {
+            var sources = new List<PlanSource>();
+            foreach (var input in requested)
+            {
+                using var sourceCmd = new SqlCommand("""
+                    SELECT
+                        S.SoID, S.SoNumber, S.CustomerID, S.ItemNo,
+                        CAST(ISNULL(S.OrderQty, 0) - ISNULL(S.ShippedQty, 0) - ISNULL(P.PlannedQty, 0) AS decimal(14,3)) AS RemainingQty
+                    FROM dbo.PP_CustomerOrder S WITH (UPDLOCK, HOLDLOCK)
+                    OUTER APPLY
+                    (
+                        SELECT SUM(ISNULL(L.OrderedQty, 0)) AS PlannedQty
+                        FROM dbo.FG_ShipmentOrder O WITH (UPDLOCK, HOLDLOCK)
+                        CROSS APPLY OPENJSON(COALESCE(O.ItemsJSON, N'[]')) WITH
+                        (
+                            LineSeq int '$.lineSeq',
+                            OrderedQty decimal(14,3) '$.orderedQty'
+                        ) L
+                        WHERE UPPER(ISNULL(O.Source, '')) = 'PP'
+                          AND UPPER(ISNULL(O.Status, '')) NOT IN ('CANCELED', 'CANCELLED')
+                          AND L.LineSeq = S.SoID
+                    ) P
+                    WHERE S.SoID = @SoID
+                      AND UPPER(ISNULL(S.Status, 'OPEN')) NOT IN ('CANCELED', 'CANCELLED');
+                    """, conn, tx);
+                sourceCmd.Parameters.Add("@SoID", SqlDbType.Int).Value = input.SoId;
+                using var reader = sourceCmd.ExecuteReader();
+                if (!reader.Read())
+                    throw new InvalidOperationException($"Supply plan line {input.SoId} is not available.");
+
+                var source = new PlanSource(
+                    reader.GetInt32(reader.GetOrdinal("SoID")),
+                    GetString(reader, "SoNumber"),
+                    GetString(reader, "CustomerID"),
+                    GetString(reader, "ItemNo") ?? "",
+                    GetDecimal(reader, "RemainingQty"),
+                    input.Qty);
+                reader.Close();
+
+                if (string.IsNullOrWhiteSpace(source.SoNumber) || string.IsNullOrWhiteSpace(source.ItemNo))
+                    throw new InvalidOperationException($"Supply plan line {input.SoId} is missing its order or part number.");
+                ValidateShipmentPlanQuantity(source.ItemNo, source.Qty, source.RemainingQty);
+                sources.Add(source);
+            }
+
+            if (sources.Any(x => !string.Equals(x.CustomerCode, customerCode, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException("Every selected Supply Plan line must belong to the selected company.");
+
+            var itemsJson = JsonSerializer.Serialize(sources.Select((line, index) => new
+            {
+                shipmentOrderLineId = index + 1,
+                lineSeq = line.SoId,
+                itemNo = line.ItemNo,
+                orderedQty = line.Qty,
+                allocatedQty = 0m
+            }));
+
+            using var headerCmd = new SqlCommand("""
+                INSERT dbo.FG_ShipmentOrder
+                    (ShipOrderNumber, CustomerCode, CustomerPO, Source, ShipDate, Status, ItemsJSON, CreatedBy, CreatedTS)
+                OUTPUT INSERTED.ShipmentOrderID
+                VALUES (NULL, @CustomerCode, @CustomerPO, 'PP', @ShipDate, 'PLAN', @ItemsJSON, @Actor, SYSDATETIME());
+                """, conn, tx);
+            AddText(headerCmd, "@CustomerCode", SqlDbType.VarChar, 20, customerCode, false);
+            AddText(headerCmd, "@CustomerPO", SqlDbType.VarChar, 40,
+                GetShipmentPlanHeaderValue(sources.Select(x => x.SoNumber)), false);
+            headerCmd.Parameters.Add("@ShipDate", SqlDbType.Date).Value = shipDate.Date;
+            headerCmd.Parameters.Add("@ItemsJSON", SqlDbType.NVarChar, -1).Value = itemsJson;
+            AddText(headerCmd, "@Actor", SqlDbType.VarChar, 20, actor, false);
+            var orderId = Convert.ToInt32(headerCmd.ExecuteScalar());
+            var planNumber = $"FGP-{shipDate:yyMMdd}-{orderId:D6}";
+
+            using var numberCmd = new SqlCommand(
+                "UPDATE dbo.FG_ShipmentOrder SET ShipOrderNumber=@PlanNumber, OutgoingSlipNumber=@PlanNumber WHERE ShipmentOrderID=@OrderID;",
+                conn, tx);
+            AddText(numberCmd, "@PlanNumber", SqlDbType.VarChar, 24, planNumber, false);
+            numberCmd.Parameters.Add("@OrderID", SqlDbType.Int).Value = orderId;
+            numberCmd.ExecuteNonQuery();
+
+            tx.Commit();
+            return new ShipmentPlanCreateResult([planNumber], sources.Count, sources.Sum(x => x.Qty));
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+    }
+
 
     public List<ShipmentRow> ListShipments(string? search = null, DateTime? from = null, DateTime? to = null)
     {
         const string sql = """
             WITH LineSummary AS
             (
-                SELECT ShipmentOrderID, COUNT(*) AS LineCount, SUM(ISNULL(OrderedQty, 0)) AS OrderedQty
-                FROM dbo.FG_ShipmentOrderLine
-                GROUP BY ShipmentOrderID
+                SELECT O.ShipmentOrderID, COUNT(*) AS LineCount, SUM(ISNULL(L.OrderedQty, 0)) AS OrderedQty
+                FROM dbo.FG_ShipmentOrder O
+                CROSS APPLY OPENJSON(COALESCE(O.ItemsJSON, N'[]')) WITH
+                (
+                    OrderedQty decimal(14,3) '$.orderedQty'
+                ) L
+                GROUP BY O.ShipmentOrderID
             )
             SELECT
                 O.ShipmentOrderID,
@@ -450,45 +521,36 @@ public sealed class FinishedGoodsRepository
                 O.ShipDate,
                 'SHIPPED' AS Status,
                 O.PickslipID,
-                COALESCE(NULLIF(L.CarrierCode, ''), O.CarrierCode) AS CarrierCode,
+                O.CarrierCode,
                 CONCAT_WS(' / ', NULLIF(O.DestPlant, ''), NULLIF(O.DestDock, '')) AS Destination,
-                L.LoadingID,
-                L.LoadingNumber,
-                L.LicensePlate,
-                L.DriverName,
-                L.DockNo,
-                L.SealNo,
-                L.ConfirmedAt,
-                L.DepartureTS,
-                L.OperatorID,
-                L.OTDStatus,
-                D.DnNumber,
-                COALESCE(D.CustomerAckTS, D.IssuedAt) AS IssuedAt,
+                NULL AS LoadingID,
+                O.LoadingNumber,
+                O.LicensePlate,
+                O.DriverName,
+                O.LoadingDockNo AS DockNo,
+                O.SealNo,
+                O.LoadingConfirmedAt AS ConfirmedAt,
+                O.DepartureAt AS DepartureTS,
+                O.ShipmentOperatorID AS OperatorID,
+                O.LoadingOTDStatus AS OTDStatus,
+                COALESCE(NULLIF(O.ShipmentDocumentNo, ''), O.ShipOrderNumber) AS DnNumber,
+                COALESCE(O.ShippedAt, O.DepartureAt, O.LoadingConfirmedAt, O.ConfirmedAt, O.ModifiedTS, O.CreatedTS) AS IssuedAt,
                 ISNULL(S.LineCount, 0) AS LineCount,
                 CAST(ISNULL(S.OrderedQty, 0) AS decimal(14,3)) AS OrderedQty
             FROM dbo.FG_ShipmentOrder O
             LEFT JOIN LineSummary S ON S.ShipmentOrderID = O.ShipmentOrderID
-            LEFT JOIN dbo.FG_LoadingConfirm L ON L.ShipmentOrderID = O.ShipmentOrderID
-            OUTER APPLY
-            (
-                SELECT TOP 1 DN.DnNumber, DN.IssuedAt, DN.CustomerAckTS, DN.EdiStatus
-                FROM dbo.FG_DeliveryNote DN
-                WHERE DN.ShipmentOrderID = O.ShipmentOrderID
-                ORDER BY DN.IssuedAt DESC, DN.DeliveryNoteID DESC
-            ) D
-            WHERE UPPER(ISNULL(D.EdiStatus, '')) = 'SENT'
-              AND (@From IS NULL OR COALESCE(D.CustomerAckTS, D.IssuedAt) >= @From)
-              AND (@To IS NULL OR COALESCE(D.CustomerAckTS, D.IssuedAt) < DATEADD(day, 1, @To))
+            WHERE (UPPER(ISNULL(O.Status, '')) = 'SHIPPED' OR O.ShippedAt IS NOT NULL OR O.DepartureAt IS NOT NULL)
+              AND (@From IS NULL OR COALESCE(O.ShippedAt, O.DepartureAt, O.LoadingConfirmedAt, O.ConfirmedAt, O.ModifiedTS, O.CreatedTS) >= @From)
+              AND (@To IS NULL OR COALESCE(O.ShippedAt, O.DepartureAt, O.LoadingConfirmedAt, O.ConfirmedAt, O.ModifiedTS, O.CreatedTS) < DATEADD(day, 1, @To))
               AND (@Search IS NULL
                    OR O.ShipOrderNumber LIKE @Search
                    OR O.PickslipID LIKE @Search
                    OR O.CustomerCode LIKE @Search
                    OR O.CustomerPO LIKE @Search
-                   OR L.LoadingNumber LIKE @Search
-                   OR L.LicensePlate LIKE @Search
-                   OR L.DriverName LIKE @Search
-                   OR D.DnNumber LIKE @Search)
-            ORDER BY COALESCE(D.CustomerAckTS, D.IssuedAt) DESC,
+                   OR O.LoadingNumber LIKE @Search
+                   OR O.LicensePlate LIKE @Search
+                   OR O.DriverName LIKE @Search)
+            ORDER BY COALESCE(O.ShippedAt, O.DepartureAt, O.LoadingConfirmedAt, O.ConfirmedAt, O.ModifiedTS, O.CreatedTS) DESC,
                      O.ShipmentOrderID DESC;
             """;
 
@@ -529,17 +591,11 @@ public sealed class FinishedGoodsRepository
                 O.ShipmentOrderID, O.ShipOrderNumber, O.CustomerCode,
                 COALESCE(NULLIF(C.CustomerNameEn, ''), NULLIF(C.CustomerName, ''), O.CustomerCode) AS CustomerName,
                 SD.Address AS CustomerAddress, O.CustomerPO, O.DestPlant, O.DestDock, O.ShipDate,
-                L.LoadingID, L.LoadingNumber, L.LicensePlate, L.DriverName, L.ArrivalTS, L.ConfirmedAt,
-                DN.DnNumber, DN.IssuedAt, DN.EdiStatus
+                NULL AS LoadingID, O.LoadingNumber, O.LicensePlate, O.DriverName, O.ArrivalAt AS ArrivalTS, O.LoadingConfirmedAt AS ConfirmedAt,
+                COALESCE(NULLIF(O.ShipmentDocumentNo, ''), O.ShipOrderNumber) AS DnNumber,
+                COALESCE(O.ShippedAt, O.DepartureAt, O.LoadingConfirmedAt, O.ConfirmedAt, O.ModifiedTS, O.CreatedTS) AS IssuedAt,
+                O.Status AS EdiStatus
             FROM dbo.FG_ShipmentOrder O
-            LEFT JOIN dbo.FG_LoadingConfirm L ON L.ShipmentOrderID = O.ShipmentOrderID
-            OUTER APPLY
-            (
-                SELECT TOP (1) D.DnNumber, D.IssuedAt, D.EdiStatus
-                FROM dbo.FG_DeliveryNote D
-                WHERE D.ShipmentOrderID = O.ShipmentOrderID
-                ORDER BY D.IssuedAt DESC, D.DeliveryNoteID DESC
-            ) DN
             OUTER APPLY
             (
                 SELECT TOP (1) CustomerID, CustomerName, CustomerNameEn
@@ -557,65 +613,39 @@ public sealed class FinishedGoodsRepository
             ) SD
             WHERE O.ShipmentOrderID = @ShipmentOrderID;
 
-            ;WITH LoadedLines AS
+            SELECT
+                SL.LineSeq, SL.ItemNo, I.ItemName,
+                COALESCE(NULLIF(I.CustItemNoSAV, ''), NULLIF(I.CustItemNoGEO, ''), SL.ItemNo) AS CustomerItemNo,
+                CAST(ISNULL(SL.OrderedQty, 0) AS decimal(14,3)) AS OrderedQty,
+                CAST(COALESCE(NULLIF(SL.AllocatedQty, 0), S.Qty, SL.OrderedQty, 0) AS decimal(14,3)) AS DeliveryQty,
+                CAST(CASE WHEN ISNULL(PK.QtyPerInner, 0) > 0 THEN PK.QtyPerInner
+                          ELSE COALESCE(NULLIF(SL.AllocatedQty, 0), S.Qty, SL.OrderedQty, 1) END AS decimal(14,3)) AS UnitPackQty,
+                I.DefaultUOM AS Unit, COALESCE(SL.LotNo, S.LotNo) AS LotNo,
+                COALESCE(SL.LotNo, S.LotNo) AS StockNumber,
+                COALESCE(SL.Location, S.LocationNo) AS Location, LOT.ProducedAt
+            FROM dbo.FG_ShipmentOrder O
+            CROSS APPLY OPENJSON(COALESCE(O.ItemsJSON, N'[]')) WITH
             (
-                SELECT
-                    SL.LineSeq, PD.ItemNo, I.ItemName,
-                    COALESCE(NULLIF(I.CustItemNoSAV, ''), NULLIF(I.CustItemNoGEO, ''), PD.ItemNo) AS CustomerItemNo,
-                    CAST(ISNULL(SL.OrderedQty, 0) AS decimal(14,3)) AS OrderedQty,
-                    CAST(ISNULL(PD.Qty, 0) AS decimal(14,3)) AS DeliveryQty,
-                    CAST(CASE WHEN ISNULL(PK.QtyPerInner, 0) > 0 THEN PK.QtyPerInner ELSE ISNULL(PD.Qty, 1) END AS decimal(14,3)) AS UnitPackQty,
-                    I.DefaultUOM AS Unit, LOT.LotCode AS LotNo, S.StockNumber,
-                    COALESCE(PD.Location, S.Location, SL.Location) AS Location, LOT.ProducedAt, PD.PickSeq
-                FROM dbo.FG_LoadingConfirm LC
-                JOIN dbo.FG_PickingDetail PD ON PD.PickID = LC.PickID
-                JOIN dbo.FG_ShipmentOrderLine SL ON SL.ShipmentOrderLineID = PD.ShipmentOrderLineID
-                LEFT JOIN dbo.FG_Inventory S ON S.StockID = PD.StockID
-                LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID = COALESCE(PD.LotID, S.LotID, SL.LotID)
-                LEFT JOIN dbo.MD_Item I ON I.ItemNo = PD.ItemNo
-                OUTER APPLY
-                (
-                    SELECT TOP (1) P.QtyPerInner
-                    FROM dbo.MD_PackagingSpec P
-                    WHERE P.ItemID = PD.ItemNo AND ISNULL(P.ActiveFlag, 1) = 1
-                    ORDER BY P.PackSpecID
-                ) PK
-                WHERE LC.ShipmentOrderID = @ShipmentOrderID
-
-                UNION ALL
-
-                SELECT
-                    SL.LineSeq, SL.ItemNo, I.ItemName,
-                    COALESCE(NULLIF(I.CustItemNoSAV, ''), NULLIF(I.CustItemNoGEO, ''), SL.ItemNo),
-                    CAST(ISNULL(SL.OrderedQty, 0) AS decimal(14,3)),
-                    CAST(COALESCE(NULLIF(SL.AllocatedQty, 0), S.Qty, SL.OrderedQty, 0) AS decimal(14,3)),
-                    CAST(CASE WHEN ISNULL(PK.QtyPerInner, 0) > 0 THEN PK.QtyPerInner
-                              ELSE COALESCE(NULLIF(SL.AllocatedQty, 0), S.Qty, SL.OrderedQty, 1) END AS decimal(14,3)),
-                    I.DefaultUOM, LOT.LotCode, S.StockNumber, COALESCE(SL.Location, S.Location), LOT.ProducedAt, SL.LineSeq
-                FROM dbo.FG_ShipmentOrderLine SL
-                LEFT JOIN dbo.FG_Inventory S ON S.StockID = SL.StockID
-                LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID = COALESCE(SL.LotID, S.LotID)
-                LEFT JOIN dbo.MD_Item I ON I.ItemNo = SL.ItemNo
-                OUTER APPLY
-                (
-                    SELECT TOP (1) P.QtyPerInner
-                    FROM dbo.MD_PackagingSpec P
-                    WHERE P.ItemID = SL.ItemNo AND ISNULL(P.ActiveFlag, 1) = 1
-                    ORDER BY P.PackSpecID
-                ) PK
-                WHERE SL.ShipmentOrderID = @ShipmentOrderID
-                  AND NOT EXISTS
-                  (
-                      SELECT 1
-                      FROM dbo.FG_LoadingConfirm LC
-                      JOIN dbo.FG_PickingDetail PD ON PD.PickID = LC.PickID
-                      WHERE LC.ShipmentOrderID = @ShipmentOrderID
-                  )
-            )
-            SELECT LineSeq, ItemNo, ItemName, CustomerItemNo, OrderedQty, DeliveryQty,
-                   UnitPackQty, Unit, LotNo, StockNumber, Location, ProducedAt
-            FROM LoadedLines
-            ORDER BY LineSeq, PickSeq, StockNumber;
+                LineSeq int '$.lineSeq',
+                ItemNo varchar(20) '$.itemNo',
+                OrderedQty decimal(14,3) '$.orderedQty',
+                AllocatedQty decimal(14,3) '$.allocatedQty',
+                LotNo nvarchar(50) '$.lotNo',
+                LotID int '$.lotId',
+                Location varchar(20) '$.location'
+            ) SL
+            LEFT JOIN dbo.WH_Inventory S ON S.LotNo = SL.LotNo
+            LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID = SL.LotID OR LOT.LotCode = COALESCE(SL.LotNo, S.LotNo)
+            LEFT JOIN dbo.MD_Item I ON I.ItemNo = SL.ItemNo
+            OUTER APPLY
+            (
+                SELECT TOP (1) P.QtyPerInner
+                FROM dbo.MD_PackagingSpec P
+                WHERE P.ItemID = SL.ItemNo AND ISNULL(P.ActiveFlag, 1) = 1
+                ORDER BY P.PackSpecID
+            ) PK
+            WHERE O.ShipmentOrderID = @ShipmentOrderID
+            ORDER BY SL.LineSeq, COALESCE(SL.LotNo, S.LotNo);
             """, conn);
         cmd.Parameters.Add("@ShipmentOrderID", SqlDbType.Int).Value = shipmentOrderId;
 
@@ -693,63 +723,23 @@ public sealed class FinishedGoodsRepository
                 UNION ALL
 
                 SELECT
-                    COALESCE(P.EndTS, P.StartTS, P.CreatedTS),
-                    'PICK',
-                    CAST(COALESCE(P.PickNumber, CONCAT('PICK-', P.PickID)) AS nvarchar(80)),
-                    CAST(O.ShipOrderNumber AS nvarchar(80)),
-                    CAST(ISNULL(P.PickedQty, 0) AS decimal(14,3)),
-                    NULL,
-                    CAST(COALESCE(P.PickerID, P.CreatedBy) AS nvarchar(120)),
-                    CAST(P.Status AS nvarchar(40)),
-                    CAST(CONCAT('Picked ', ISNULL(P.PickedQty, 0), ' / Ordered ', ISNULL(P.OrderedQty, 0)) AS nvarchar(300))
-                FROM dbo.FG_PickingFifo P
-                LEFT JOIN dbo.FG_ShipmentOrder O ON O.ShipmentOrderID = P.ShipmentOrderID
-
-                UNION ALL
-
-                SELECT
-                    COALESCE(L.ConfirmedAt, L.DepartureTS, L.CreatedTS),
-                    'LOADING',
-                    CAST(COALESCE(L.LoadingNumber, CONCAT('LOAD-', L.LoadingID)) AS nvarchar(80)),
-                    CAST(O.ShipOrderNumber AS nvarchar(80)),
-                    CAST(0 AS decimal(14,3)),
-                    CAST(L.DockNo AS nvarchar(80)),
-                    CAST(COALESCE(L.OperatorID, L.CreatedBy) AS nvarchar(120)),
-                    CAST(L.OTDStatus AS nvarchar(40)),
-                    CAST(CONCAT('Truck ', ISNULL(L.LicensePlate, '-'), ' / Driver ', ISNULL(L.DriverName, '-'), ' / Seal ', ISNULL(L.SealNo, '-')) AS nvarchar(300))
-                FROM dbo.FG_LoadingConfirm L
-                LEFT JOIN dbo.FG_ShipmentOrder O ON O.ShipmentOrderID = L.ShipmentOrderID
-
-                UNION ALL
-
-                SELECT
-                    COALESCE(O.ConfirmedAt, O.ModifiedTS, O.CreatedTS),
+                    COALESCE(O.ShippedAt, O.DepartureAt, O.LoadingConfirmedAt, O.ConfirmedAt, O.ModifiedTS, O.CreatedTS),
                     'SHIPPED',
                     CAST(O.ShipOrderNumber AS nvarchar(80)),
                     CAST(O.CustomerCode AS nvarchar(80)),
                     CAST(ISNULL(S.OrderedQty, 0) AS decimal(14,3)),
                     CAST(O.DestDock AS nvarchar(80)),
-                    CAST(COALESCE(O.ConfirmedBy, O.ModifiedBy, O.CreatedBy) AS nvarchar(120)),
+                    CAST(COALESCE(O.ShipmentOperatorID, O.ConfirmedBy, O.ModifiedBy, O.CreatedBy) AS nvarchar(120)),
                     CAST(O.Status AS nvarchar(40)),
-                    CAST(CONCAT('Destination ', ISNULL(O.DestPlant, '-'), ' / Carrier ', ISNULL(O.CarrierCode, '-')) AS nvarchar(300))
+                    CAST(CONCAT('Destination ', ISNULL(O.DestPlant, '-'), ' / Truck ', ISNULL(O.LicensePlate, '-')) AS nvarchar(300))
                 FROM dbo.FG_ShipmentOrder O
-                OUTER APPLY (SELECT SUM(ISNULL(OrderedQty, 0)) AS OrderedQty FROM dbo.FG_ShipmentOrderLine SL WHERE SL.ShipmentOrderID = O.ShipmentOrderID) S
+                OUTER APPLY
+                (
+                    SELECT SUM(ISNULL(SL.OrderedQty, 0)) AS OrderedQty
+                    FROM OPENJSON(COALESCE(O.ItemsJSON, N'[]')) WITH
+                    (OrderedQty decimal(14,3) '$.orderedQty') SL
+                ) S
                 WHERE UPPER(ISNULL(O.Status, '')) = 'SHIPPED'
-
-                UNION ALL
-
-                SELECT
-                    COALESCE(D.IssuedAt, D.CreatedTS),
-                    'DELIVERY NOTE',
-                    CAST(D.DnNumber AS nvarchar(80)),
-                    CAST(O.ShipOrderNumber AS nvarchar(80)),
-                    CAST(0 AS decimal(14,3)),
-                    NULL,
-                    CAST(COALESCE(D.IssuedBy, D.CreatedBy) AS nvarchar(120)),
-                    CAST(D.EdiStatus AS nvarchar(40)),
-                    CAST(CONCAT('Customer ', ISNULL(D.CustomerCode, '-'), ' / Revision ', ISNULL(D.Revision, 0)) AS nvarchar(300))
-                FROM dbo.FG_DeliveryNote D
-                LEFT JOIN dbo.FG_ShipmentOrder O ON O.ShipmentOrderID = D.ShipmentOrderID
 
                 UNION ALL
 
@@ -794,27 +784,6 @@ public sealed class FinishedGoodsRepository
             ("@To", to?.Date));
     }
 
-    private void EnsureFgLocationMasterTable()
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            IF OBJECT_ID(N'dbo.FG_LocationMaster', N'U') IS NULL
-            BEGIN
-                CREATE TABLE dbo.FG_LocationMaster
-                (
-                    LocationID varchar(20) NOT NULL,
-                    ActiveFlag bit NOT NULL CONSTRAINT DF_FG_LocationMaster_ActiveFlag DEFAULT (1),
-                    CreatedBy nvarchar(120) NOT NULL,
-                    CreatedTS datetime2 NOT NULL CONSTRAINT DF_FG_LocationMaster_CreatedTS DEFAULT SYSDATETIME(),
-                    ModifiedBy nvarchar(120) NULL,
-                    ModifiedTS datetime2 NULL,
-                    CONSTRAINT PK_FG_LocationMaster PRIMARY KEY CLUSTERED (LocationID)
-                );
-            END;
-            """, conn);
-        cmd.ExecuteNonQuery();
-    }
-
     private List<T> Query<T>(string sql, Func<SqlDataReader, T> map, params (string Name, object? Value)[] parameters)
     {
         using var conn = _factory.OpenConnection();
@@ -841,4 +810,49 @@ public sealed class FinishedGoodsRepository
     private static int? GetNullableInt(SqlDataReader reader, string name) => reader[name] == DBNull.Value ? null : Convert.ToInt32(reader[name]);
     private static decimal GetDecimal(SqlDataReader reader, string name) => reader[name] == DBNull.Value ? 0 : Convert.ToDecimal(reader[name]);
     private static DateTime? GetDate(SqlDataReader reader, string name) => reader[name] == DBNull.Value ? null : Convert.ToDateTime(reader[name]);
+    internal static List<ShipmentPlanInput> NormalizeShipmentPlanInputs(IReadOnlyList<ShipmentPlanInput> inputs) =>
+        inputs.GroupBy(x => x.SoId)
+            .Select(g => new ShipmentPlanInput(g.Key, g.Sum(x => x.Qty)))
+            .Where(x => x.Qty > 0)
+            .ToList();
+
+    internal static void ValidateShipmentPlanQuantity(string itemNo, decimal qty, decimal remainingQty)
+    {
+        if (qty <= 0)
+            throw new InvalidOperationException($"{itemNo} requires a quantity greater than zero.");
+        if (qty != decimal.Truncate(qty))
+            throw new InvalidOperationException($"{itemNo} requires a whole-number quantity.");
+        if (qty > remainingQty)
+            throw new InvalidOperationException($"{itemNo} exceeds the remaining quantity ({remainingQty:N0}).");
+    }
+
+    internal static string? GetShipmentPlanHeaderValue(IEnumerable<string?> values)
+    {
+        var distinct = values
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(2)
+            .ToList();
+        return distinct.Count switch { 0 => null, 1 => distinct[0], _ => "MULTI" };
+    }
+
+    internal static void ValidateShipmentPlanDelete(string? source, string? status, bool hasDependencies)
+    {
+        if (!string.Equals(source, "PP", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Only Shipment Plans can be deleted here.");
+        if (!string.Equals(status, "PLAN", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(status, "PLANNED", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Only plans in PLAN status can be deleted.");
+        if (hasDependencies)
+            throw new InvalidOperationException("This plan is already connected to picking, loading, or return data and cannot be deleted.");
+    }
+
+    private sealed record PlanSource(
+        int SoId,
+        string? SoNumber,
+        string? CustomerCode,
+        string ItemNo,
+        decimal RemainingQty,
+        decimal Qty);
 }

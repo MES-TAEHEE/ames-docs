@@ -332,7 +332,15 @@ public sealed class MasterDataRepository
             ("@By",     modifiedBy));
 
     public void DeleteItem(string itemNo)
-        => Exec("DELETE dbo.MD_Item WHERE ItemNo=@N", ("@N", itemNo));
+        => Exec("""
+            IF EXISTS
+            (
+                SELECT 1 FROM dbo.WH_Inventory
+                WHERE PartNo COLLATE DATABASE_DEFAULT = @N COLLATE DATABASE_DEFAULT AND Qty<>0
+            )
+                THROW 52070, 'The item cannot be deleted while inventory exists.', 1;
+            DELETE dbo.MD_Item WHERE ItemNo=@N;
+            """, ("@N", itemNo));
 
     // ── MD-03 BomVersion ─────────────────────────────────────────────────
     public List<BomVersionRow> ListBomVersions(string? statusFilter = null)
@@ -2926,8 +2934,15 @@ public sealed class MasterDataRepository
     public void DeleteLocation(string locationId)
     {
         using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "DELETE FROM dbo.MD_Location WHERE LocationID=@I;", conn);
+        using var cmd = new SqlCommand("""
+            IF EXISTS
+            (
+                SELECT 1 FROM dbo.WH_Inventory
+                WHERE LocationNo COLLATE DATABASE_DEFAULT = @I COLLATE DATABASE_DEFAULT AND Qty<>0
+            )
+                THROW 52071, 'The location cannot be deleted while inventory exists.', 1;
+            DELETE FROM dbo.MD_Location WHERE LocationID=@I;
+            """, conn);
         cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = locationId;
         cmd.ExecuteNonQuery();
     }

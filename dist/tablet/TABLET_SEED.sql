@@ -50,12 +50,12 @@ INSERT dbo.tbl_Lot(LotCode,ItemNo,ProcessCode,BatchSize,RemainingQty,ProducedAt,
 SELECT S.LotCode,S.ItemNo,'WH',S.Qty,S.Qty,CONVERT(date,'2026-08-01'),'Received','STORED','PASS',S.LocationID,@Actor
 FROM @Stock S WHERE NOT EXISTS(SELECT 1 FROM dbo.tbl_Lot L WHERE L.LotCode=S.LotCode);
 
-INSERT dbo.WH_Inventory(ItemNo,LocationID,LotID,OnHandQty,ReservedQty,LastReceivedAt,Status,CreatedBy)
+INSERT dbo.WH_OLD_Inventory(ItemNo,LocationID,LotID,OnHandQty,ReservedQty,LastReceivedAt,Status,CreatedBy)
 SELECT S.ItemNo,S.LocationID,L.LotID,S.Qty,0,CONVERT(date,'2026-08-01'),'Received',@Actor
 FROM @Stock S JOIN dbo.tbl_Lot L ON L.LotCode=S.LotCode AND L.CreatedBy=@Actor
-WHERE NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory W WHERE W.LotID=L.LotID);
+WHERE NOT EXISTS(SELECT 1 FROM dbo.WH_OLD_Inventory W WHERE W.LotID=L.LotID);
 COMMIT TRANSACTION;
 
 SELECT LEFT(LocationID,2) AS Floor,COUNT(*) AS Locations FROM dbo.MD_Location WHERE CreatedBy=@Actor GROUP BY LEFT(LocationID,2) ORDER BY Floor;
 SELECT LEFT(LocationID,2) AS Floor,COUNT(*) AS Lots,COUNT(DISTINCT LocationID) AS StockedLocations,SUM(OnHandQty) AS Qty
-FROM dbo.WH_Inventory WHERE CreatedBy=@Actor GROUP BY LEFT(LocationID,2) ORDER BY Floor;
+FROM dbo.WH_OLD_Inventory WHERE CreatedBy=@Actor GROUP BY LEFT(LocationID,2) ORDER BY Floor;

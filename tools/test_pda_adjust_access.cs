@@ -107,7 +107,7 @@ foreach (var scope in new[] { "wh", "fg" })
     using var fixtureConnection = (System.Data.Common.DbConnection)factory.GetType().GetMethod("OpenConnection")!.Invoke(factory, null)!;
     using var fixtureQuery = fixtureConnection.CreateCommand();
     fixtureQuery.CommandText = scope == "wh" ? """
-        SELECT TOP(1) W.LocationID FROM dbo.WH_Inventory W
+        SELECT TOP(1) W.LocationID FROM dbo.WH_OLD_Inventory W
         JOIN dbo.tbl_Lot L ON L.LotID=W.LotID
         JOIN dbo.MD_Location M ON M.LocationID=W.LocationID AND ISNULL(M.ActiveFlag,1)=1
         WHERE W.OnHandQty>0 AND UPPER(ISNULL(W.Status,'')) NOT IN ('CANCELED','CANCELLED','RELEASED','PICKED')
@@ -185,7 +185,7 @@ foreach (var scope in new[] { "wh", "fg" })
 }
 using var inboundConnection = (System.Data.Common.DbConnection)factory.GetType().GetMethod("OpenConnection")!.Invoke(factory, null)!;
 using var inboundQuery = inboundConnection.CreateCommand();
-inboundQuery.CommandText = "SELECT TOP 1 P.BoxBarcode FROM dbo.WH_InboundPackage P JOIN dbo.WH_Inventory W ON W.LotID=P.LotID WHERE P.ReceiveType='LOCAL' AND W.OnHandQty>0 AND W.Status NOT IN ('Canceled','Released','Picked') ORDER BY P.BoxBarcode";
+inboundQuery.CommandText = "SELECT TOP 1 P.BoxBarcode FROM dbo.WH_InboundPackage P JOIN dbo.WH_OLD_Inventory W ON W.LotID=P.LotID WHERE P.ReceiveType='LOCAL' AND W.OnHandQty>0 AND W.Status NOT IN ('Canceled','Released','Picked') ORDER BY P.BoxBarcode";
 var receivedBarcode = inboundQuery.ExecuteScalar() as string;
 if (receivedBarcode is not null) await Render("AMES.Pda.Components.Pages.Wh.Wh02PdaInbound", "/wh/02", false, async (page, type, html) => {
     type.GetField("_mode", flags)!.SetValue(page, "LOCAL");

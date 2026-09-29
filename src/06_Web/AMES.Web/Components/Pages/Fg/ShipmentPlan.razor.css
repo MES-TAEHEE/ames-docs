@@ -1,0 +1,110 @@
+.shipment-plan-page {
+    gap: 10px;
+}
+
+.shipment-plan-page ::deep .ames-tabpanel {
+    overflow: auto;
+}
+
+.plan-settings-body {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 2px 0;
+}
+
+.plan-settings-body label {
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.plan-hint {
+    flex: 1;
+    color: var(--rz-text-secondary-color, #93a4bd);
+    font-size: 12px;
+}
+
+.plan-list-card {
+    min-height: 0;
+}
+
+.plan-part {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.plan-part > span:last-child {
+    overflow: hidden;
+    color: var(--rz-text-secondary-color, #93a4bd);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.remaining {
+    color: #4ade80;
+}
+
+.plan-check {
+    width: 16px;
+    height: 16px;
+    accent-color: #22c55e;
+}
+
+.plan-qty {
+    width: 92px;
+}
+
+.shipment-plan-modal {
+    width: min(980px, calc(100vw - 40px));
+}
+
+.shipment-plan-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.shipment-plan-summary > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px;
+    border: 1px solid var(--ames-border-soft, rgba(148, 163, 184, .18));
+}
+
+.shipment-plan-summary span {
+    color: var(--rz-text-secondary-color, #93a4bd);
+    font-size: 10px;
+}
+
+.shipment-plan-summary strong {
+    font-size: 14px;
+}
+
+.shipment-plan-detail-grid {
+    max-height: 50vh;
+}
+
+.delete-confirm {
+    flex: 1;
+    color: #f87171;
+    font-weight: 700;
+}
+
+@media (max-width: 900px) {
+    .plan-settings-body {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .plan-hint {
+        flex-basis: 100%;
+    }
+
+    .shipment-plan-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

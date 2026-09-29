@@ -344,6 +344,25 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         }
     }
 
+    public Task<PutAwaySelectionResult> WhPutAwayScanAsync(string barcode)
+        => GetRequiredAsync<PutAwaySelectionResult>(
+            $"/api/wh/putaway/scan?barcode={Uri.EscapeDataString(barcode.Trim())}",
+            "Warehouse put-away scan service is unavailable.");
+
+    public async Task<InboundReceiveResult> WhConfirmPutAwayAsync(PutAwayConfirmReq body)
+    {
+        try
+        {
+            Authorize();
+            var resp = await _http.PostAsJsonAsync("/api/wh/putaway/confirm", body);
+            return await ReadInboundReceiveResultAsync(resp);
+        }
+        catch
+        {
+            return new InboundReceiveResult(false, "Warehouse put-away service is unavailable.", null);
+        }
+    }
+
     public async Task<InboundReceiveResult> WhCancelInboundAsync(InboundCancelReq body)
     {
         try

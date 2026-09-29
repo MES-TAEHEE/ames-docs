@@ -44,25 +44,21 @@ public static class TabletEndpoints
                     L.Aisle AS RACK_X,
                     L.Bay AS RACK_Y,
                     L.Slot AS RACK_Z,
-                    CASE WHEN W.InventoryID IS NULL THEN NULL ELSE COALESCE(NULLIF(LOT.LotCode, N''), CONCAT(N'LOT-', W.LotID)) END AS LOT_NO,
-                    W.ItemNo AS PART_NO,
-                    I.ItemName AS PART_NAME,
-                    COALESCE(W.OnHandQty, 0) AS QTY,
+                    W.LotNo AS LOT_NO,
+                    W.PartNo AS PART_NO,
+                    COALESCE(NULLIF(W.PartName,N''),I.ItemName) AS PART_NAME,
+                    COALESCE(W.Qty, 0) AS QTY,
                     COALESCE(NULLIF(I.DefaultUOM, N''), N'EA') AS UNIT
                 FROM dbo.MD_Location L
-                LEFT JOIN dbo.WH_Inventory W
-                       ON W.LocationID = L.LocationID
-                      AND COALESCE(W.OnHandQty, 0) > 0
-                      AND UPPER(COALESCE(W.Status, N'RECEIVED')) <> N'CANCELED'
-                LEFT JOIN dbo.tbl_Lot LOT ON LOT.LotID = W.LotID
-                LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.ItemNo
+                LEFT JOIN dbo.WH_Inventory W ON W.LocationNo=L.LocationID AND W.Qty>0
+                LEFT JOIN dbo.MD_Item I ON I.ItemNo=W.PartNo
                 WHERE COALESCE(L.ActiveFlag, 1) = 1
                 ORDER BY LINE_CODE,
                          TRY_CONVERT(int, L.Bay), L.Bay,
                          TRY_CONVERT(int, L.Aisle), L.Aisle,
                          TRY_CONVERT(int, L.Slot), L.Slot,
                          L.LocationID,
-                         LOT.LotCode;
+                         W.LotNo;
                 """, connection);
 
             await using var reader = await command.ExecuteReaderAsync();

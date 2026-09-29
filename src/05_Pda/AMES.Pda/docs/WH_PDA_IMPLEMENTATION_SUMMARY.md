@@ -238,7 +238,7 @@ PDA DB 스크립트 관리 기준:
 - PDA WH/FG DB 변경사항은 화면별 SQL로 나누지 않고 `dist/pda/PDA_SCHEMA.sql`에 통합 관리한다.
 - 새 프로시저는 화면번호가 아닌 업무 기준 이름을 사용한다. 예: `dbo.WH_PDA_SCHEDULE_INBOUND_LIST`, `dbo.WH_PDA_SCHEDULE_RELEASE_LIST`.
 - PDA가 직접 관리하거나 demo seed로 채우는 Warehouse 업무 테이블은 기존 AMES 명명 규칙에 맞춰 `dbo.WH_...` 형식을 사용한다.
-- Schedule Inbound demo data는 `dbo.WH_PurchaseOrder`, Release demo data는 `dbo.WH_ReleaseSchedule`을 사용한다.
+- Schedule Inbound demo data는 `dbo.WH_PurchaseOrder`, Release demo data는 `dbo.WH_PickSlip`을 사용한다.
 - PDA WH/FG demo seed는 `dist/pda/PDA_SEED.sql`에 통합 관리한다.
 
 프로시저 입력:
@@ -276,8 +276,8 @@ PDA DB 스크립트 관리 기준:
 
 Release 탭이 참고하는 주요 테이블:
 
-- `dbo.WH_ReleaseSchedule`: Pick Slip 역할의 출고 요청 라인 기준
-- `dbo.WH_Inventory`: 현재 재고, FIFO 추천 Location
+- `dbo.WH_PickSlip`: Pick Slip 역할의 출고 요청 라인 기준
+- `dbo.WH_Inventory`: 현재 LOT 재고, FIFO 추천 Location
 - `dbo.tbl_Lot`: LOT No, 생산일, 입고일 기반 FIFO 정렬 보조
 - `dbo.MD_Location`: Location master와 Zone
 - `dbo.MD_Item`: 자재 마스터, Unit, 자재명
@@ -484,8 +484,8 @@ SQL Server `AMES_DEV`의 `dbo` 스키마에 아래 테이블 및 프로시저를
 
 - `dbo.tbl_Lot`
 - `dbo.WH_PurchaseOrder`
-- `dbo.WH_Receiving`
 - `dbo.WH_Inventory`
+- `dbo.WH_InventoryTransaction`
 - `dbo.MD_Location`
 - `dbo.WH_PDA_INBOUND_SCAN_LOT`
 - `dbo.WH_PDA_INBOUND_RECEIVE_LOT`
@@ -886,14 +886,14 @@ WH006 route(`/wh/06`)는 기존 링크 호환용으로만 남아 있으며, 열�
 ### 주요 용어
 
 - `Pick Slip`: 이번 출고 작업 묶음 번호다. 여러 품번/라인이 하나의 Pick Slip으로 묶일 수 있다.
-- `Requested Boxes`: Pick Slip에서 요구한 박스 수량이다. 현재 PDA 테스트 구현에서는 `dbo.WH_ReleaseSchedule.DemandQty`를 사용한다.
-- `Picked Boxes`: 이미 피킹 완료된 박스 수량이다. 현재 PDA 테스트 구현에서는 `dbo.WH_ReleaseSchedule.PickedQty`와 `dbo.WH_ReleasePicking` 기록을 기준으로 본다.
+- `Requested Boxes`: Pick Slip에서 요구한 박스 수량이다. 현재 PDA 테스트 구현에서는 `dbo.WH_PickSlip.DemandQty`를 사용한다.
+- `Picked Boxes`: 이미 피킹 완료된 박스 수량이다. `dbo.WH_PickSlip.PickedQty`와 `dbo.WH_InventoryTransaction`의 `PICK_SLIP` 출고 기록을 기준으로 본다.
 - `Lines`: Pick Slip 안에 들어 있는 품번 라인 수다. 같은 Pick Slip에 품번이 여러 개 있으면 여러 line으로 표시된다.
 - `FIFO`: 먼저 입고된 LOT부터 먼저 출고하는 규칙이다. 현재 구현에서는 `RCV_DATE`, 없으면 `PROD_DATE`, 그 다음 `LOCATION_NO`, `LOTNO` 순서로 가장 오래된 LOT을 추천한다.
 
 ### Pick Slip 데이터 구조
 
-운영 SIS 기준 Pick Slip 요청은 `WMS3050`에 저장되는 현장 자재출고요청 데이터다. 현재 PDA 테스트 DB에서는 이 구조를 `dbo.WH_ReleaseSchedule`로 재명명해서 사용한다. PDA는 Pick Slip No를 스캔한 뒤, 해당 번호에 묶인 line들을 불러오고 LOT No 스캔이 line의 품번/수량/FIFO 조건과 맞는지 검증한다.
+운영 SIS 기준 Pick Slip 요청은 `WMS3050`에 저장되는 현장 자재출고요청 데이터다. 현재 PDA 테스트 DB에서는 이 구조를 `dbo.WH_PickSlip`로 재명명해서 사용한다. PDA는 Pick Slip No를 스캔한 뒤, 해당 번호에 묶인 line들을 불러오고 LOT No 스캔이 line의 품번/수량/FIFO 조건과 맞는지 검증한다.
 
 주요 컬럼:
 
@@ -941,28 +941,26 @@ API route:
 
 Pick Slip load 전 검증:
 
-- `dbo.WH_ReleaseSchedule`에 Pick Slip이 없으면 `Pick Slip Not Found` 알럿을 표시한다.
+- `dbo.WH_PickSlip`에 Pick Slip이 없으면 `Pick Slip Not Found` 알럿을 표시한다.
 - `Status`가 `Closed` 또는 `Canceled`이면 `Pick Slip Closed` 알럿을 표시한다.
 - line 수가 0이면 `No Lines Found` 알럿을 표시한다.
 - status API 조회 자체가 실패하면 `Load Failed` 알럿을 표시하고 출고 작업을 막는다.
 
 주요 기준 테이블:
 
-- `dbo.WH_ReleaseSchedule`: Pick Slip 역할의 출고 요청 header/line
-- `dbo.WH_Inventory`: 현재 재고 LOT, Location, 출고 가능 상태
+- `dbo.WH_PickSlip`: Pick Slip 역할의 출고 요청 header/line
+- `dbo.WH_Inventory`: 현재 재고 LOT, Location, 출고 가능 수량
 - `dbo.tbl_Lot`: LOT No, 생산일, LOT 잔량/상태
 - `dbo.MD_Item`: 품번명, Unit
 - `dbo.MD_Location`: Location master와 Zone
-- `dbo.WH_ReleasePicking`: WH003 Release 출고 피킹 실행 이력
-- `dbo.WH_TransactionHistory`: OUT transaction audit log
+- `dbo.WH_InventoryTransaction`: WH003 출고 및 재고 변경 이력
 
 출고 처리 시 갱신/기록:
 
-- `dbo.WH_Inventory.OnHandQty = 0`, `Status = Released`
+- `dbo.WH_Inventory.Qty = 0`
 - `dbo.tbl_Lot.RemainingQty = 0`, `Status = Released`, `CurrentLocationID = NULL`
-- `dbo.WH_ReleaseSchedule.PickedQty` 증가, 필요 시 `Status = Partial/Picked`
-- `dbo.WH_ReleasePicking`에 Pick Slip, LOT, Item, Qty, Location, 작업자, 단말 정보 기록
-- `dbo.WH_TransactionHistory`에 `TxnType = OUT`, `ReasonCode = RELEASE_PICK` 기록
+- `dbo.WH_PickSlip.PickedQty` 증가, 필요 시 `Status = Partial/Picked`
+- `dbo.WH_InventoryTransaction`에 Pick Slip, LOT, Item, Qty, Location, 작업자와 `TransactionType = OUT`, `ReasonCode = RELEASE_PICK` 기록
 
 ### 기존 프로그램에서 참고한 점
 
@@ -1220,7 +1218,7 @@ SIS/DB:
 - WH001의 PO 조회는 `WM40120` 기준으로 만들었고, SCM에서 PO가 신규 생성되는 원천 화면/배치까지 완전히 대체한 것은 아니다.
 - `GRN_QTY`는 PO schedule에 저장되는 값이라기보다 GRN 실적을 합산해 계산하는 값이다. 운영에서는 GRN cancellation, return, reversal까지 반영해야 한다.
 - WH005 Adjust의 Supervisor PIN은 현재 테스트 구현에서 최소 길이 검증과 마스킹 저장만 한다. 운영에서는 실제 승인자 계정/권한 검증과 감사 로그 보관 정책을 추가해야 한다.
-- WH003 Release의 운영 분석 기준은 `WMS3050` Pick Slip과 `WMS2020` 현재 재고지만, 현재 PDA 테스트 구현은 `dbo.WH_ReleaseSchedule`, `dbo.WH_Inventory`, `dbo.tbl_Lot`, `dbo.WH_ReleasePicking`, `dbo.WH_TransactionHistory`와 `dbo.WH_PDA_RELEASE_*` 프로시저로 재명명해 연결했다. 실제 route/component는 `/wh/07`, `Wh07PdaRelease.razor`다.
+- WH003 Release의 운영 분석 기준은 `WMS3050` Pick Slip과 `WMS2020` 현재 재고이며, 현재 구현은 `dbo.WH_PickSlip`, `dbo.WH_Inventory`, `dbo.WH_InventoryTransaction`과 `dbo.WH_PDA_RELEASE_*` 프로시저로 연결한다. 실제 route/component는 `/wh/07`, `Wh07PdaRelease.razor`다.
 - WH006은 현재 redirect 화면이다. 운영에서 별도 Release Schedule 화면이 다시 필요해지면 WH001 Release 탭의 `Wh001ScheduleReleaseAsync()` 호출부와 카드 UI를 분리해서 재사용할 수 있다.
 - WH006 Transactions는 `WMS2030`이 있으면 우선 사용하도록 만들었지만, 현재 테스트 DB에는 `WMS2030`이 없어 `WMS2010`, `WMS2020`, `PDA_WH002_ADJUST_AUDIT`를 조합한다. 운영 반영 시에는 실제 Transaction History 표준 테이블/프로시저 기준으로 재정렬해야 한다. 실제 route/component는 `/wh/08`, `Wh08TransactionHistory.razor`다.
 - WH005 Adjust는 별도 component를 만들지 않고 Inventory와 같은 `Wh03InventoryStatus.razor`의 Adjust 모드로 구현했다. 운영 정책상 완전한 독립 화면이 필요하면 현재 `PDA_WH002_ADJUST_QTY` 호출부를 재사용해 별도 component로 분리할 수 있다.

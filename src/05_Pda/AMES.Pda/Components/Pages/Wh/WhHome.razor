@@ -26,6 +26,13 @@
                 </div>
                 <span class="wh-home-tile-go">&gt;</span>
             </button>
+            <button class="pda-tile sm wh-home-tile putaway" @onclick='@(() => Nav.NavigateTo("/wh/putaway"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="move_to_inbox" /></span>
+                <div class="wh-home-tile-copy">
+                    <div class="pda-tile-cap">Put-away</div>
+                </div>
+                <span class="wh-home-tile-go">&gt;</span>
+            </button>
             <button class="pda-tile sm wh-home-tile release" @onclick='@(() => Nav.NavigateTo("/wh/07"))'>
                 <span class="wh-home-tile-ic"><RadzenIcon Icon="outbox" /></span>
                 <div class="wh-home-tile-copy">

@@ -1,4 +1,4 @@
--- =====================================================================
+﻿-- =====================================================================
 --  PDA_SEED.sql
 --  Consolidated Warehouse and Finished Goods demo/test data for the PDA
 --
@@ -7,7 +7,15 @@
 --
 --  This file is rerunnable. It contains the current WH/FG PDA test set.
 -- =====================================================================
-USE [AMES_DEV];
+-- Target database must be selected explicitly by sqlcmd -d or in SSMS.
+
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET ARITHABORT ON;
+SET NUMERIC_ROUNDABORT OFF;
 GO
 
 -- SCTEST2 / 0000: detailed scenario account.
@@ -148,17 +156,18 @@ BEGIN
     );
 
     INSERT INTO @PdaCodeGroups VALUES
-        ('WH_OUTGOING_TYPE', N'창고 출고 유형', N'Warehouse Outgoing Type', N'Warehouse release destination type'),
-        ('INV_ADJUST_REASON', N'재고 조정 사유', N'Inventory Adjust Reason', N'Warehouse and finished goods quantity adjustment reason'),
-        ('FG_STORAGE_METHOD', N'완제품 적치 방식', N'FG Storage Method', N'Finished goods put-away storage method'),
-        ('FG_RETURN_REASON', N'완제품 반품 사유', N'FG Return Reason', N'Finished goods customer return reason'),
-        ('WH_INV_STATUS', N'창고 재고 상태', N'Warehouse Inventory Status', N'Warehouse LOT inventory lifecycle status'),
-        ('FG_STOCK_STATUS', N'완제품 재고 상태', N'FG Stock Status', N'Finished goods stock lifecycle status'),
-        ('FG_SHIP_STATUS', N'완제품 출하 상태', N'FG Shipment Status', N'Finished goods shipment lifecycle status'),
-        ('INV_TXN_TYPE', N'재고 트랜잭션 유형', N'Inventory Transaction Type', N'Warehouse and finished goods inventory transaction type');
+        ('WH_OUTGOING_TYPE', N'ì°½ê³  ì¶œê³  ìœ í˜•', N'Warehouse Outgoing Type', N'Warehouse release destination type'),
+        ('INV_ADJUST_REASON', N'ìž¬ê³  ì¡°ì • ì‚¬ìœ ', N'Inventory Adjust Reason', N'Warehouse and finished goods quantity adjustment reason'),
+        ('FG_STORAGE_METHOD', N'ì™„ì œí’ˆ ì ì¹˜ ë°©ì‹', N'FG Storage Method', N'Finished goods put-away storage method'),
+        ('FG_RETURN_REASON', N'ì™„ì œí’ˆ ë°˜í’ˆ ì‚¬ìœ ', N'FG Return Reason', N'Finished goods customer return reason'),
+        ('WH_INV_STATUS', N'ì°½ê³  ìž¬ê³  ìƒíƒœ', N'Warehouse Inventory Status', N'Warehouse LOT inventory lifecycle status'),
+        ('FG_STOCK_STATUS', N'ì™„ì œí’ˆ ìž¬ê³  ìƒíƒœ', N'FG Stock Status', N'Finished goods stock lifecycle status'),
+        ('FG_SHIP_STATUS', N'ì™„ì œí’ˆ ì¶œí•˜ ìƒíƒœ', N'FG Shipment Status', N'Finished goods shipment lifecycle status'),
+        ('INV_TXN_TYPE', N'ìž¬ê³  íŠ¸ëžœìž­ì…˜ ìœ í˜•', N'Inventory Transaction Type', N'Warehouse and finished goods inventory transaction type');
 
     MERGE dbo.MD_CodeGroup AS T
-    USING @PdaCodeGroups AS S ON S.GroupCode = T.GroupCode
+    USING @PdaCodeGroups AS S
+       ON S.GroupCode COLLATE DATABASE_DEFAULT = T.GroupCode COLLATE DATABASE_DEFAULT
     WHEN MATCHED THEN UPDATE SET
         GroupName = S.GroupName, GroupNameEn = S.GroupNameEn, Description = S.Description,
         UseFlag = 1, ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME()
@@ -180,54 +189,54 @@ BEGIN
     );
 
     INSERT INTO @PdaCodeItems VALUES
-        ('WH_OUTGOING_TYPE', 'PRODUCTION', N'생산라인 출고', N'To Production Line', 10, N'TO_PRODUCTION_LINE', N'Issue material to production'),
-        ('WH_OUTGOING_TYPE', 'OTHER', N'기타 출고', N'Other Outgoing', 20, N'OTHER_OUTGOING', N'Other warehouse issue'),
-        ('WH_OUTGOING_TYPE', 'DEFECT', N'불량 출고', N'Defect Outgoing', 30, N'DEFECT_OUTGOING', N'Issue defective material'),
-        ('INV_ADJUST_REASON', 'COUNT_DIFF', N'실사 차이', N'Count Diff', 10, NULL, N'Physical count difference'),
-        ('INV_ADJUST_REASON', 'DAMAGED', N'파손', N'Damaged', 20, NULL, N'Damaged inventory'),
-        ('INV_ADJUST_REASON', 'LOST', N'분실', N'Lost', 30, NULL, N'Lost inventory'),
-        ('INV_ADJUST_REASON', 'FOUND', N'재고 발견', N'Found', 40, NULL, N'Found inventory'),
-        ('INV_ADJUST_REASON', 'OTHER', N'기타', N'Other', 50, NULL, N'Other adjustment reason'),
-        ('FG_STORAGE_METHOD', 'BOX', N'박스', N'Box', 10, NULL, N'Box storage'),
-        ('FG_STORAGE_METHOD', 'PALLET', N'팔레트', N'Pallet', 20, NULL, N'Pallet storage'),
-        ('FG_STORAGE_METHOD', 'RACK', N'랙', N'Rack', 30, NULL, N'Rack storage'),
-        ('FG_STORAGE_METHOD', 'LOCATION', N'로케이션', N'Location Only', 40, NULL, N'Direct location storage'),
-        ('FG_RETURN_REASON', 'DEFECT', N'불량', N'Defect', 10, NULL, N'Defective product'),
-        ('FG_RETURN_REASON', 'WRONG_ITEM', N'오출하', N'Wrong Item', 20, NULL, N'Wrong item shipped'),
-        ('FG_RETURN_REASON', 'DAMAGED_TRANSIT', N'운송 중 파손', N'Damaged in Transit', 30, NULL, N'Damaged during transit'),
-        ('FG_RETURN_REASON', 'CUSTOMER_CHANGE', N'고객 요청 변경', N'Customer Change', 40, NULL, N'Customer-requested change'),
-        ('FG_RETURN_REASON', 'OTHER', N'기타', N'Other', 50, NULL, N'Other return reason'),
-        ('WH_INV_STATUS', 'CREATED', N'생성', N'Created', 10, NULL, N'LOT created before receipt'),
-        ('WH_INV_STATUS', 'RECEIVED', N'입고', N'Received', 20, NULL, N'Received into warehouse'),
-        ('WH_INV_STATUS', 'STORED', N'적치', N'Stored', 30, NULL, N'Stored at a location'),
-        ('WH_INV_STATUS', 'RELEASED', N'출고', N'Released', 40, NULL, N'Released from warehouse'),
-        ('WH_INV_STATUS', 'RECEIPT_CANCELLED', N'입고 취소', N'Receipt Cancelled', 50, NULL, N'Receipt was cancelled'),
-        ('WH_INV_STATUS', 'RELEASE_CANCELLED', N'출고 취소', N'Release Cancelled', 60, NULL, N'Release was cancelled'),
-        ('WH_INV_STATUS', 'RETURN_RECEIVED', N'반품 입고', N'Return Received', 70, NULL, N'Returned inventory received'),
-        ('WH_INV_STATUS', 'DEFECTIVE', N'불량', N'Defective', 80, NULL, N'Defective inventory'),
-        ('WH_INV_STATUS', 'DISPOSED', N'폐기', N'Disposed', 90, NULL, N'Disposed inventory'),
-        ('FG_STOCK_STATUS', 'AVAILABLE', N'가용', N'Available', 10, NULL, N'Available finished goods stock'),
-        ('FG_STOCK_STATUS', 'RESERVED', N'예약', N'Reserved', 20, NULL, N'Reserved for shipment'),
-        ('FG_STOCK_STATUS', 'PICKED', N'피킹', N'Picked', 30, NULL, N'Picked for loading'),
-        ('FG_STOCK_STATUS', 'LOADED', N'상차', N'Loaded', 40, NULL, N'Loaded onto truck'),
-        ('FG_STOCK_STATUS', 'SHIPPED', N'출하', N'Shipped', 50, NULL, N'Shipped finished goods'),
-        ('FG_STOCK_STATUS', 'HOLD', N'보류', N'Hold', 60, NULL, N'Stock on hold'),
-        ('FG_SHIP_STATUS', 'OPEN', N'오픈', N'Open', 10, NULL, N'Shipment order opened'),
-        ('FG_SHIP_STATUS', 'RELEASED', N'릴리즈', N'Released', 20, NULL, N'Shipment order released'),
-        ('FG_SHIP_STATUS', 'READY', N'출하 준비', N'Ready', 30, NULL, N'Ready for loading'),
-        ('FG_SHIP_STATUS', 'PICKED', N'피킹 완료', N'Picked', 40, NULL, N'Products picked'),
-        ('FG_SHIP_STATUS', 'LOADED', N'상차 완료', N'Loaded', 50, NULL, N'Products loaded'),
-        ('FG_SHIP_STATUS', 'SHIPPED', N'출하 완료', N'Shipped', 60, NULL, N'Shipment departed'),
-        ('INV_TXN_TYPE', 'IN', N'입고', N'Inbound', 10, NULL, N'Inventory receipt or put-away'),
-        ('INV_TXN_TYPE', 'OUT', N'출고', N'Outbound', 20, NULL, N'Warehouse inventory issue'),
-        ('INV_TXN_TYPE', 'PICK', N'피킹', N'Picking', 30, NULL, N'Finished goods picking'),
-        ('INV_TXN_TYPE', 'LOAD', N'상차', N'Loading', 40, NULL, N'Finished goods loading'),
-        ('INV_TXN_TYPE', 'RETURN', N'반품', N'Return', 50, NULL, N'Customer return receipt'),
-        ('INV_TXN_TYPE', 'ADJ', N'수량 조정', N'Adjustment', 60, NULL, N'Inventory quantity adjustment');
+        ('WH_OUTGOING_TYPE', 'PRODUCTION', N'ìƒì‚°ë¼ì¸ ì¶œê³ ', N'To Production Line', 10, N'TO_PRODUCTION_LINE', N'Issue material to production'),
+        ('WH_OUTGOING_TYPE', 'OTHER', N'ê¸°íƒ€ ì¶œê³ ', N'Other Outgoing', 20, N'OTHER_OUTGOING', N'Other warehouse issue'),
+        ('WH_OUTGOING_TYPE', 'DEFECT', N'ë¶ˆëŸ‰ ì¶œê³ ', N'Defect Outgoing', 30, N'DEFECT_OUTGOING', N'Issue defective material'),
+        ('INV_ADJUST_REASON', 'COUNT_DIFF', N'ì‹¤ì‚¬ ì°¨ì´', N'Count Diff', 10, NULL, N'Physical count difference'),
+        ('INV_ADJUST_REASON', 'DAMAGED', N'íŒŒì†', N'Damaged', 20, NULL, N'Damaged inventory'),
+        ('INV_ADJUST_REASON', 'LOST', N'ë¶„ì‹¤', N'Lost', 30, NULL, N'Lost inventory'),
+        ('INV_ADJUST_REASON', 'FOUND', N'ìž¬ê³  ë°œê²¬', N'Found', 40, NULL, N'Found inventory'),
+        ('INV_ADJUST_REASON', 'OTHER', N'ê¸°íƒ€', N'Other', 50, NULL, N'Other adjustment reason'),
+        ('FG_STORAGE_METHOD', 'BOX', N'ë°•ìŠ¤', N'Box', 10, NULL, N'Box storage'),
+        ('FG_STORAGE_METHOD', 'PALLET', N'íŒ”ë ˆíŠ¸', N'Pallet', 20, NULL, N'Pallet storage'),
+        ('FG_STORAGE_METHOD', 'RACK', N'ëž™', N'Rack', 30, NULL, N'Rack storage'),
+        ('FG_STORAGE_METHOD', 'LOCATION', N'ë¡œì¼€ì´ì…˜', N'Location Only', 40, NULL, N'Direct location storage'),
+        ('FG_RETURN_REASON', 'DEFECT', N'ë¶ˆëŸ‰', N'Defect', 10, NULL, N'Defective product'),
+        ('FG_RETURN_REASON', 'WRONG_ITEM', N'ì˜¤ì¶œí•˜', N'Wrong Item', 20, NULL, N'Wrong item shipped'),
+        ('FG_RETURN_REASON', 'DAMAGED_TRANSIT', N'ìš´ì†¡ ì¤‘ íŒŒì†', N'Damaged in Transit', 30, NULL, N'Damaged during transit'),
+        ('FG_RETURN_REASON', 'CUSTOMER_CHANGE', N'ê³ ê° ìš”ì²­ ë³€ê²½', N'Customer Change', 40, NULL, N'Customer-requested change'),
+        ('FG_RETURN_REASON', 'OTHER', N'ê¸°íƒ€', N'Other', 50, NULL, N'Other return reason'),
+        ('WH_INV_STATUS', 'CREATED', N'ìƒì„±', N'Created', 10, NULL, N'LOT created before receipt'),
+        ('WH_INV_STATUS', 'RECEIVED', N'ìž…ê³ ', N'Received', 20, NULL, N'Received into warehouse'),
+        ('WH_INV_STATUS', 'STORED', N'ì ì¹˜', N'Stored', 30, NULL, N'Stored at a location'),
+        ('WH_INV_STATUS', 'RELEASED', N'ì¶œê³ ', N'Released', 40, NULL, N'Released from warehouse'),
+        ('WH_INV_STATUS', 'RECEIPT_CANCELLED', N'ìž…ê³  ì·¨ì†Œ', N'Receipt Cancelled', 50, NULL, N'Receipt was cancelled'),
+        ('WH_INV_STATUS', 'RELEASE_CANCELLED', N'ì¶œê³  ì·¨ì†Œ', N'Release Cancelled', 60, NULL, N'Release was cancelled'),
+        ('WH_INV_STATUS', 'RETURN_RECEIVED', N'ë°˜í’ˆ ìž…ê³ ', N'Return Received', 70, NULL, N'Returned inventory received'),
+        ('WH_INV_STATUS', 'DEFECTIVE', N'ë¶ˆëŸ‰', N'Defective', 80, NULL, N'Defective inventory'),
+        ('WH_INV_STATUS', 'DISPOSED', N'íê¸°', N'Disposed', 90, NULL, N'Disposed inventory'),
+        ('FG_STOCK_STATUS', 'AVAILABLE', N'ê°€ìš©', N'Available', 10, NULL, N'Available finished goods stock'),
+        ('FG_STOCK_STATUS', 'RESERVED', N'ì˜ˆì•½', N'Reserved', 20, NULL, N'Reserved for shipment'),
+        ('FG_STOCK_STATUS', 'PICKED', N'í”¼í‚¹', N'Picked', 30, NULL, N'Picked for loading'),
+        ('FG_STOCK_STATUS', 'LOADED', N'ìƒì°¨', N'Loaded', 40, NULL, N'Loaded onto truck'),
+        ('FG_STOCK_STATUS', 'SHIPPED', N'ì¶œí•˜', N'Shipped', 50, NULL, N'Shipped finished goods'),
+        ('FG_STOCK_STATUS', 'HOLD', N'ë³´ë¥˜', N'Hold', 60, NULL, N'Stock on hold'),
+        ('FG_SHIP_STATUS', 'OPEN', N'ì˜¤í”ˆ', N'Open', 10, NULL, N'Shipment order opened'),
+        ('FG_SHIP_STATUS', 'RELEASED', N'ë¦´ë¦¬ì¦ˆ', N'Released', 20, NULL, N'Shipment order released'),
+        ('FG_SHIP_STATUS', 'READY', N'ì¶œí•˜ ì¤€ë¹„', N'Ready', 30, NULL, N'Ready for loading'),
+        ('FG_SHIP_STATUS', 'PICKED', N'í”¼í‚¹ ì™„ë£Œ', N'Picked', 40, NULL, N'Products picked'),
+        ('FG_SHIP_STATUS', 'LOADED', N'ìƒì°¨ ì™„ë£Œ', N'Loaded', 50, NULL, N'Products loaded'),
+        ('FG_SHIP_STATUS', 'SHIPPED', N'ì¶œí•˜ ì™„ë£Œ', N'Shipped', 60, NULL, N'Shipment departed'),
+        ('INV_TXN_TYPE', 'IN', N'ìž…ê³ ', N'Inbound', 10, NULL, N'Inventory receipt or put-away'),
+        ('INV_TXN_TYPE', 'OUT', N'ì¶œê³ ', N'Outbound', 20, NULL, N'Warehouse inventory issue'),
+        ('INV_TXN_TYPE', 'PICK', N'í”¼í‚¹', N'Picking', 30, NULL, N'Finished goods picking'),
+        ('INV_TXN_TYPE', 'LOAD', N'ìƒì°¨', N'Loading', 40, NULL, N'Finished goods loading'),
+        ('INV_TXN_TYPE', 'RETURN', N'ë°˜í’ˆ', N'Return', 50, NULL, N'Customer return receipt'),
+        ('INV_TXN_TYPE', 'ADJ', N'ìˆ˜ëŸ‰ ì¡°ì •', N'Adjustment', 60, NULL, N'Inventory quantity adjustment');
 
     MERGE dbo.MD_CodeItem AS T
     USING @PdaCodeItems AS S
-       ON T.CodeID = CONCAT(S.GroupCode, '_', S.CodeValue)
+       ON T.CodeID COLLATE DATABASE_DEFAULT = CONCAT(S.GroupCode, '_', S.CodeValue) COLLATE DATABASE_DEFAULT
     WHEN MATCHED THEN UPDATE SET
         GroupCode = S.GroupCode, CodeValue = S.CodeValue, CodeName = S.CodeName,
         CodeNameEn = S.CodeNameEn, SortOrder = S.SortOrder, Attribute1 = S.Attribute1,
@@ -251,12 +260,12 @@ IF OBJECT_ID(N'dbo.MD_CodeGroup', N'U') IS NOT NULL
 BEGIN
     MERGE dbo.MD_CodeGroup AS T
     USING (VALUES
-        (CONVERT(varchar(20), 'WH_CODE'), CONVERT(nvarchar(60), N'창고'), CONVERT(nvarchar(60), N'Warehouse'), CONVERT(nvarchar(200), N'Warehouse code')),
-        ('WH_AREA', N'창고 구역', N'Warehouse Area', N'Warehouse area by storage purpose'),
-        ('MNT_ZONE', N'보전 위치', N'Maintenance Zone', N'Spare-parts storage zone'),
-        ('MNT_SLOT', N'보전 랙 층', N'Maintenance Rack Level', N'Spare-parts rack level')
+        (CONVERT(varchar(20), 'WH_CODE'), CONVERT(nvarchar(60), N'ì°½ê³ '), CONVERT(nvarchar(60), N'Warehouse'), CONVERT(nvarchar(200), N'Warehouse code')),
+        ('WH_AREA', N'ì°½ê³  êµ¬ì—­', N'Warehouse Area', N'Warehouse area by storage purpose'),
+        ('MNT_ZONE', N'ë³´ì „ ìœ„ì¹˜', N'Maintenance Zone', N'Spare-parts storage zone'),
+        ('MNT_SLOT', N'ë³´ì „ ëž™ ì¸µ', N'Maintenance Rack Level', N'Spare-parts rack level')
     ) AS S(GroupCode, GroupName, GroupNameEn, Description)
-       ON T.GroupCode = S.GroupCode
+       ON T.GroupCode COLLATE DATABASE_DEFAULT = S.GroupCode COLLATE DATABASE_DEFAULT
     WHEN MATCHED THEN UPDATE SET
         GroupName = S.GroupName, GroupNameEn = S.GroupNameEn, Description = S.Description,
         UseFlag = 1, ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME()
@@ -274,8 +283,8 @@ BEGIN
 
     INSERT INTO @LocationCodes VALUES
         ('WH_CODE', 'EOS', N'EOS', N'EOS', NULL, 10),
-        ('WH_AREA', 'MAT_AREA', N'자재 보관 구역', N'Material Storage Area', 'WH_CODE_EOS', 10),
-        ('WH_AREA', 'FG_AREA', N'완제품 보관 구역', N'Finished Goods Storage Area', 'WH_CODE_EOS', 20),
+        ('WH_AREA', 'MAT_AREA', N'ìžìž¬ ë³´ê´€ êµ¬ì—­', N'Material Storage Area', 'WH_CODE_EOS', 10),
+        ('WH_AREA', 'FG_AREA', N'ì™„ì œí’ˆ ë³´ê´€ êµ¬ì—­', N'Finished Goods Storage Area', 'WH_CODE_EOS', 20),
         ('MNT_ZONE', 'SP_CAB1', N'CAB1', N'CAB1', NULL, 10),
         ('MNT_ZONE', 'SP_CAB2', N'CAB2', N'CAB2', NULL, 20),
         ('MNT_ZONE', 'SP_A1', N'A1', N'A1', NULL, 30),
@@ -304,16 +313,16 @@ BEGIN
         ('MNT_ZONE', 'SP_FL3', N'FL3', N'FL3', NULL, 260),
         ('MNT_ZONE', 'SP_FL4', N'FL4', N'FL4', NULL, 270),
         ('MNT_ZONE', 'SP_EXTRA', N'Extra', N'Extra', NULL, 280),
-        ('MNT_SLOT', '01', N'1층', N'Level 1', NULL, 10),
-        ('MNT_SLOT', '02', N'2층', N'Level 2', NULL, 20),
-        ('MNT_SLOT', '03', N'3층', N'Level 3', NULL, 30),
-        ('MNT_SLOT', '04', N'4층', N'Level 4', NULL, 40),
-        ('MNT_SLOT', '05', N'5층', N'Level 5', NULL, 50),
+        ('MNT_SLOT', '01', N'1ì¸µ', N'Level 1', NULL, 10),
+        ('MNT_SLOT', '02', N'2ì¸µ', N'Level 2', NULL, 20),
+        ('MNT_SLOT', '03', N'3ì¸µ', N'Level 3', NULL, 30),
+        ('MNT_SLOT', '04', N'4ì¸µ', N'Level 4', NULL, 40),
+        ('MNT_SLOT', '05', N'5ì¸µ', N'Level 5', NULL, 50),
         ('MNT_SLOT', 'EX', N'Extra', N'Extra', NULL, 60);
 
     MERGE dbo.MD_CodeItem AS T
     USING @LocationCodes AS S
-       ON T.CodeID = CONCAT(S.GroupCode, '_', S.CodeValue)
+       ON T.CodeID COLLATE DATABASE_DEFAULT = CONCAT(S.GroupCode, '_', S.CodeValue) COLLATE DATABASE_DEFAULT
     WHEN MATCHED THEN UPDATE SET
         GroupCode = S.GroupCode, CodeValue = S.CodeValue, CodeName = S.CodeName,
         CodeNameEn = S.CodeNameEn, ParentCodeID = S.ParentCodeID,
@@ -330,57 +339,7 @@ BEGIN
     DELETE FROM dbo.MD_CodeItem
      WHERE GroupCode = 'WH_ZONE'
        AND ParentCodeID = 'WH_AREA_SPARE_PARTS_AREA';
-
-    IF OBJECT_ID(N'dbo.WH_AreaSection', N'U') IS NOT NULL
-        DELETE FROM dbo.WH_AreaSection WHERE AreaCode = 'SPARE_PARTS_AREA';
 END;
-GO
-
-IF OBJECT_ID(N'dbo.WH_WarehouseMaster', N'U') IS NOT NULL
-BEGIN
-    MERGE dbo.WH_WarehouseMaster AS T
-    USING (SELECT CONVERT(varchar(20), 'EOS') AS WhCode) AS S
-       ON T.WhCode = S.WhCode
-    WHEN MATCHED THEN UPDATE SET WhName = N'EOS Warehouse', ActiveFlag = 1
-    WHEN NOT MATCHED THEN INSERT (WhCode, WhName, ActiveFlag, CreatedBy)
-         VALUES ('EOS', N'EOS Warehouse', 1, N'pda-seed');
-
-    UPDATE dbo.WH_WarehouseMaster
-       SET ActiveFlag = CASE WHEN WhCode = 'EOS' THEN 1 ELSE 0 END,
-           ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME();
-END;
-GO
-
-IF OBJECT_ID(N'dbo.WH_AreaMaster', N'U') IS NOT NULL
-BEGIN
-    MERGE dbo.WH_AreaMaster AS T
-    USING (VALUES
-        (CONVERT(varchar(20), 'MAT_AREA'), CONVERT(nvarchar(120), N'Material Storage Area')),
-        ('FG_AREA', N'Finished Goods Storage Area')
-    ) AS S(AreaCode, AreaName)
-       ON T.AreaCode = S.AreaCode
-    WHEN MATCHED THEN UPDATE SET WhCode = 'EOS', AreaName = S.AreaName, ActiveFlag = 1
-    WHEN NOT MATCHED THEN INSERT (WhCode, AreaCode, AreaName, ActiveFlag, CreatedBy)
-         VALUES ('EOS', S.AreaCode, S.AreaName, 1, N'pda-seed');
-
-    UPDATE dbo.WH_AreaMaster
-       SET ActiveFlag = CASE
-               WHEN WhCode = 'EOS' AND AreaCode IN ('MAT_AREA', 'FG_AREA') THEN 1
-               ELSE 0
-           END,
-           ModifiedBy = N'pda-seed', ModifiedTS = SYSDATETIME();
-END;
-GO
-
-IF OBJECT_ID(N'dbo.MD_Location', N'U') IS NOT NULL
-BEGIN
-    DELETE FROM dbo.MD_Location
-     WHERE AreaCode = 'SPARE_PARTS_AREA' OR UPPER(LocationID) LIKE 'SP-%';
-END;
-GO
-
-IF OBJECT_ID(N'dbo.WH_AreaMaster', N'U') IS NOT NULL
-    DELETE FROM dbo.WH_AreaMaster WHERE AreaCode = 'SPARE_PARTS_AREA';
 GO
 
 IF OBJECT_ID(N'dbo.MD_CodeItem', N'U') IS NOT NULL
@@ -398,7 +357,9 @@ IF OBJECT_ID(N'dbo.MD_Vendor', N'U') IS NOT NULL
 BEGIN
     MERGE dbo.MD_Vendor AS T
     USING (VALUES
-        (CONVERT(varchar(20), 'SP-DEMO-V01'), CONVERT(nvarchar(80), N'Demo Spare Parts Supply'))
+        (CONVERT(varchar(20), 'SP-DEMO-V01'), CONVERT(nvarchar(80), N'Demo Spare Parts Supply')),
+        ('V1007', N'Demo Local Supplier'),
+        ('V2003', N'Demo CKD Supplier')
     ) AS S(VendorID, VendorName) ON T.VendorID = S.VendorID
     WHEN MATCHED THEN UPDATE SET
         VendorName = S.VendorName, VendorType = 'SUPPLIER', VendorCategory = N'Spare Parts',
@@ -452,1083 +413,262 @@ BEGIN
            P.ModifiedBy = N'pda-seed',
            P.ModifiedTS = SYSDATETIME()
       FROM dbo.MD_SparePart P
-      JOIN @SparePartSource S ON S.PartNo = P.PartNo;
+    JOIN @SparePartSource S
+      ON S.PartNo COLLATE DATABASE_DEFAULT = P.PartNo COLLATE DATABASE_DEFAULT;
 END;
 GO
 
 -- =====================================================================
---  WH Inbound
--- =====================================================================
-SET NOCOUNT ON;
-
--- Locations used by WH-002 location scan.
-IF OBJECT_ID(N'dbo.MD_Location', N'U') IS NOT NULL
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM dbo.MD_Location WHERE LocationID = 'WH010101')
-        INSERT INTO dbo.MD_Location
-            (LocationID, LocationName, ZoneCode, Aisle, Bay, Slot, Capacity, LocationType, PlantCode, ActiveFlag, CreatedBy)
-        VALUES
-            ('WH010101', N'Inbound Rack A-01-01', 'A1', '01', '01', '01', 5000, 'INBOUND', 'PDA', 1, 'pda-seed');
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.MD_Location WHERE LocationID = 'WH010201')
-        INSERT INTO dbo.MD_Location
-            (LocationID, LocationName, ZoneCode, Aisle, Bay, Slot, Capacity, LocationType, PlantCode, ActiveFlag, CreatedBy)
-        VALUES
-            ('WH010201', N'Inbound Rack A-02-01', 'A1', '01', '02', '01', 5000, 'INBOUND', 'PDA', 1, 'pda-seed');
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.MD_Location WHERE LocationID = 'WH020101')
-        INSERT INTO dbo.MD_Location
-            (LocationID, LocationName, ZoneCode, Aisle, Bay, Slot, Capacity, LocationType, PlantCode, ActiveFlag, CreatedBy)
-        VALUES
-            ('WH020101', N'Inbound Rack B-01-01', 'B1', '02', '01', '01', 5000, 'INBOUND', 'PDA', 1, 'pda-seed');
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.MD_Location WHERE LocationID = 'WH019901')
-        INSERT INTO dbo.MD_Location
-            (LocationID, LocationName, ZoneCode, Aisle, Bay, Slot, Capacity, LocationType, PlantCode, ActiveFlag, CreatedBy)
-        VALUES
-            ('WH019901', N'Inbound Blocked Test', 'A1', '01', '99', '01', 500, 'BLOCKED', 'PDA', 1, 'pda-scenario-seed');
-    ELSE
-        UPDATE dbo.MD_Location
-           SET Capacity = 500, LocationType = 'BLOCKED', ActiveFlag = 1,
-               ModifiedBy = 'pda-scenario-seed', ModifiedTS = SYSDATETIME()
-         WHERE LocationID = 'WH019901';
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.MD_Location WHERE LocationID = 'WH019902')
-        INSERT INTO dbo.MD_Location
-            (LocationID, LocationName, ZoneCode, Aisle, Bay, Slot, Capacity, LocationType, PlantCode, ActiveFlag, CreatedBy)
-        VALUES
-            ('WH019902', N'Inbound Capacity Test', 'A1', '01', '99', '02', 50, 'INBOUND', 'PDA', 1, 'pda-scenario-seed');
-    ELSE
-        UPDATE dbo.MD_Location
-           SET Capacity = 50, LocationType = 'INBOUND', ActiveFlag = 1,
-               ModifiedBy = 'pda-scenario-seed', ModifiedTS = SYSDATETIME()
-         WHERE LocationID = 'WH019902';
-END;
-
--- Keep this file independently runnable after a fresh schedule seed.
-IF OBJECT_ID(N'dbo.MD_Item', N'U') IS NOT NULL
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = '81710-PI000NNB')
-        INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM, ActiveFlag, CreatedBy)
-        VALUES ('81710-PI000NNB', N'TRIM ASSY-TAIL GATE, LWR', 'ASSY', 'TRIM', 'NE1A', 'EA', 1, 'pda-seed');
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = '81711-PI000YGN')
-        INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM, ActiveFlag, CreatedBy)
-        VALUES ('81711-PI000YGN', N'TRIM - TAIL GATE LWR', 'SUB', 'TRIM', 'NE1A', 'EA', 1, 'pda-seed');
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = '82301-PI000NNB')
-        INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM, ActiveFlag, CreatedBy)
-        VALUES ('82301-PI000NNB', N'PNL ASSY-FR DR TRIM COMPL,LH', 'ASSY', 'TRIM', 'NE1A', 'EA', 1, 'pda-seed');
-END;
-
-IF OBJECT_ID(N'dbo.MD_Vendor', N'U') IS NOT NULL
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM dbo.MD_Vendor WHERE VendorID = 'V1007')
-        INSERT INTO dbo.MD_Vendor (VendorID, VendorName, VendorType, VendorCategory, ActiveFlag, CreatedBy)
-        VALUES ('V1007', N'EOS Georgia Plant', 'LOCAL', N'Interior Trim', 1, 'pda-seed');
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.MD_Vendor WHERE VendorID = 'V2003')
-        INSERT INTO dbo.MD_Vendor (VendorID, VendorName, VendorType, VendorCategory, ActiveFlag, CreatedBy)
-        VALUES ('V2003', N'EOS Korea CKD', 'CKD', N'Interior Trim', 1, 'pda-seed');
-END;
-
-IF OBJECT_ID(N'dbo.WH_PurchaseOrder', N'U') IS NOT NULL
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM dbo.WH_PurchaseOrder WHERE PoNumber = '4100151141' AND PoLineNo = 80)
-        INSERT INTO dbo.WH_PurchaseOrder
-            (PoNumber, PoLineNo, VendorID, ItemNo, OrderQty, ReceivedQty, UnitCode, OrderDate, DueDate, Status, CreatedBy)
-        VALUES
-            ('4100151141', 80, 'V1007', '81710-PI000NNB', 540, 0, 'EA',
-             CONVERT(date, DATEADD(day, -1, GETDATE())),
-             CONVERT(date, DATEADD(day, 1, GETDATE())),
-             'Open', 'pda-seed');
-    ELSE
-        UPDATE dbo.WH_PurchaseOrder
-           SET ItemNo = '81710-PI000NNB',
-               OrderQty = 540,
-               UnitCode = 'EA',
-               Status = CASE WHEN COALESCE(ReceivedQty, 0) >= 540 THEN 'Complete' ELSE 'Open' END,
-               ModifiedBy = 'pda-seed',
-               ModifiedTS = SYSDATETIME()
-         WHERE PoNumber = '4100151141'
-           AND PoLineNo = 80;
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.WH_PurchaseOrder WHERE PoNumber = '4100151142' AND PoLineNo = 10)
-        INSERT INTO dbo.WH_PurchaseOrder
-            (PoNumber, PoLineNo, VendorID, ItemNo, OrderQty, ReceivedQty, UnitCode, OrderDate, DueDate, Status, CreatedBy)
-        VALUES
-            ('4100151142', 10, 'V1007', '81711-PI000YGN', 144, 0, 'EA',
-             CONVERT(date, DATEADD(day, -1, GETDATE())),
-             CONVERT(date, DATEADD(day, 1, GETDATE())),
-             'Open', 'pda-seed');
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.WH_PurchaseOrder WHERE PoNumber = '4100151610' AND PoLineNo = 20)
-        INSERT INTO dbo.WH_PurchaseOrder
-            (PoNumber, PoLineNo, VendorID, ItemNo, OrderQty, ReceivedQty, UnitCode, OrderDate, DueDate, Status, CreatedBy)
-        VALUES
-            ('4100151610', 20, 'V2003', '82301-PI000NNB', 900, 0, 'EA',
-             CONVERT(date, DATEADD(day, -1, GETDATE())),
-             CONVERT(date, DATEADD(day, 2, GETDATE())),
-             'Open', 'pda-seed');
-    ELSE
-        UPDATE dbo.WH_PurchaseOrder
-           SET VendorID = 'V2003',
-               ItemNo = '82301-PI000NNB',
-               OrderQty = 900,
-               UnitCode = 'EA',
-               Status = CASE WHEN COALESCE(ReceivedQty, 0) >= 900 THEN 'Complete' ELSE 'Open' END,
-               ModifiedBy = 'pda-seed',
-               ModifiedTS = SYSDATETIME()
-         WHERE PoNumber = '4100151610'
-           AND PoLineNo = 20;
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.WH_PurchaseOrder WHERE PoNumber = '4100152166' AND PoLineNo = 60)
-        INSERT INTO dbo.WH_PurchaseOrder
-            (PoNumber, PoLineNo, VendorID, ItemNo, OrderQty, ReceivedQty, UnitCode, OrderDate, DueDate, Status, CreatedBy)
-        VALUES
-            ('4100152166', 60, 'V1007', '81711-PI000YGN', 288, 288, 'EA',
-             CONVERT(date, DATEADD(day, -2, GETDATE())),
-             CONVERT(date, DATEADD(day, -1, GETDATE())),
-             'Complete', 'pda-seed');
-    ELSE
-        UPDATE dbo.WH_PurchaseOrder
-           SET ItemNo = '81711-PI000YGN',
-               OrderQty = 288,
-               ReceivedQty = CASE WHEN COALESCE(ReceivedQty, 0) < 288 THEN 288 ELSE ReceivedQty END,
-               UnitCode = 'EA',
-               Status = 'Complete',
-               ModifiedBy = 'pda-seed',
-               ModifiedTS = SYSDATETIME()
-         WHERE PoNumber = '4100152166'
-           AND PoLineNo = 60;
-END;
-
--- Production-like LOCAL delivery note / box barcodes and CKD case / box barcodes.
-IF OBJECT_ID(N'dbo.WH_InboundPackage', N'U') IS NOT NULL
-BEGIN
-    DECLARE @LocalPo1 int =
-        (SELECT TOP (1) PoID FROM dbo.WH_PurchaseOrder WHERE PoNumber = '4100151141' AND PoLineNo = 80);
-    DECLARE @LocalPo2 int =
-        (SELECT TOP (1) PoID FROM dbo.WH_PurchaseOrder WHERE PoNumber = '4100151142' AND PoLineNo = 10);
-    DECLARE @CkdPo int =
-        (SELECT TOP (1) PoID FROM dbo.WH_PurchaseOrder WHERE PoNumber = '4100151610' AND PoLineNo = 20);
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot WHERE LotCode = '5011LL260828000001')
-        INSERT INTO dbo.tbl_Lot (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt, Status, CreatedBy)
-        VALUES ('5011LL260828000001', '81710-PI000NNB', 'LOCAL', 180, 180, DATEADD(hour, -6, SYSDATETIME()), 'Open', 'pda-seed');
-    IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot WHERE LotCode = '5011LL260828000002')
-        INSERT INTO dbo.tbl_Lot (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt, Status, CreatedBy)
-        VALUES ('5011LL260828000002', '81710-PI000NNB', 'LOCAL', 180, 180, DATEADD(hour, -5, SYSDATETIME()), 'Open', 'pda-seed');
-    IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot WHERE LotCode = '5011LL260828000003')
-        INSERT INTO dbo.tbl_Lot (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt, Status, CreatedBy)
-        VALUES ('5011LL260828000003', '81711-PI000YGN', 'LOCAL', 144, 144, DATEADD(hour, -4, SYSDATETIME()), 'Open', 'pda-seed');
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot WHERE LotCode = 'CKD260828000000001')
-        INSERT INTO dbo.tbl_Lot (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt, Status, CreatedBy)
-        VALUES ('CKD260828000000001', '82301-PI000NNB', 'CKD', 300, 300, DATEADD(day, -8, SYSDATETIME()), 'Open', 'pda-seed');
-    IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot WHERE LotCode = 'CKD260828000000002')
-        INSERT INTO dbo.tbl_Lot (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt, Status, CreatedBy)
-        VALUES ('CKD260828000000002', '82301-PI000NNB', 'CKD', 300, 300, DATEADD(day, -8, SYSDATETIME()), 'Open', 'pda-seed');
-    IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot WHERE LotCode = 'CKD260828000000003')
-        INSERT INTO dbo.tbl_Lot (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt, Status, CreatedBy)
-        VALUES ('CKD260828000000003', '82301-PI000NNB', 'CKD', 300, 300, DATEADD(day, -7, SYSDATETIME()), 'Open', 'pda-seed');
-
-    INSERT INTO dbo.WH_InboundPackage
-        (ReceiveType, DocumentBarcode, DocumentNo, VendorID, DeliveryDate, ArrivalDate,
-         BoxBarcode, LotID, ItemNo, PoID, Qty, UnitCode, ProductionDate, Status, CreatedBy)
-    SELECT N'LOCAL', '5011202608280001', '5011202608280001', 'V1007',
-           CONVERT(date, DATEADD(day, 1, GETDATE())), CONVERT(date, GETDATE()),
-           V.BoxBarcode, L.LotID, V.ItemNo, V.PoID, V.Qty, 'EA', CONVERT(date, L.ProducedAt), N'Open', 'pda-seed'
-    FROM (VALUES
-        ('5011LL260828000001', '81710-PI000NNB', @LocalPo1, CONVERT(decimal(14,3), 180)),
-        ('5011LL260828000002', '81710-PI000NNB', @LocalPo1, CONVERT(decimal(14,3), 180)),
-        ('5011LL260828000003', '81711-PI000YGN', @LocalPo2, CONVERT(decimal(14,3), 144))
-    ) V(BoxBarcode, ItemNo, PoID, Qty)
-    JOIN dbo.tbl_Lot L ON L.LotCode = V.BoxBarcode
-    WHERE NOT EXISTS (SELECT 1 FROM dbo.WH_InboundPackage P WHERE P.BoxBarcode = V.BoxBarcode);
-
-    INSERT INTO dbo.WH_InboundPackage
-        (ReceiveType, DocumentBarcode, DocumentNo, VendorID, CaseNo, InvoiceNo, ContainerNo,
-         ShipDate, PackDate, DeliveryDate, ArrivalDate, BoxBarcode, LotID, ItemNo, PoID,
-         Qty, UnitCode, ProductionDate, Status, CreatedBy)
-    SELECT N'CKD', 'CKD202608280001CASE00001', 'CKD-DN-260828-01', 'V2003', 'CASE-260828-001',
-           'INV-260828-0031', 'SEGU2608281', CONVERT(date, DATEADD(day, -7, GETDATE())),
-           CONVERT(date, DATEADD(day, -8, GETDATE())), CONVERT(date, DATEADD(day, 2, GETDATE())),
-           CONVERT(date, GETDATE()), V.BoxBarcode, L.LotID, V.ItemNo, @CkdPo,
-           300, 'EA', CONVERT(date, L.ProducedAt), N'Open', 'pda-seed'
-    FROM (VALUES
-        ('CKD260828000000001', '82301-PI000NNB'),
-        ('CKD260828000000002', '82301-PI000NNB'),
-        ('CKD260828000000003', '82301-PI000NNB')
-    ) V(BoxBarcode, ItemNo)
-    JOIN dbo.tbl_Lot L ON L.LotCode = V.BoxBarcode
-    WHERE NOT EXISTS (SELECT 1 FROM dbo.WH_InboundPackage P WHERE P.BoxBarcode = V.BoxBarcode);
-END;
-
--- Resettable LOCAL Inbound scenarios for direct PDA verification.
-DECLARE @SimpleInboundBoxes TABLE
-    (SequenceNo int, Barcode varchar(40), Mode nvarchar(10), DocumentBarcode nvarchar(50),
-     ItemNo varchar(20), VendorID varchar(20), Qty decimal(14,3));
-INSERT INTO @SimpleInboundBoxes VALUES
-    (1, '5011LL260908800001', N'LOCAL', '5011202609088001', '81710-PI000NNB', 'V1007', 20),
-    (2, '5011LL260908800002', N'LOCAL', '5011202609088001', '81710-PI000NNB', 'V1007', 20),
-    (3, '5011LL260908800003', N'LOCAL', '5011202609088001', '81711-PI000YGN', 'V1007', 10),
-    (4, 'CKD260908800000001', N'CKD', 'CKD202609080001CASE00001', '82301-PI000NNB', 'V2003', 30),
-    (5, 'CKD260908800000002', N'CKD', 'CKD202609080001CASE00001', '82301-PI000NNB', 'V2003', 30),
-    (6, 'CKD260908800000003', N'CKD', 'CKD202609080001CASE00001', '82301-PI000NNB', 'V2003', 30);
-
-INSERT INTO dbo.WH_PurchaseOrder
-    (PoNumber, PoLineNo, VendorID, ItemNo, OrderQty, ReceivedQty, UnitCode, OrderDate, DueDate, Status, CreatedBy)
-SELECT 'PPT-INBOUND', B.SequenceNo, B.VendorID, B.ItemNo, B.Qty, 0, 'EA',
-       CONVERT(date, GETDATE()), CONVERT(date, GETDATE()), 'Open', 'pda-simple-inbound'
-FROM @SimpleInboundBoxes B
-WHERE NOT EXISTS (SELECT 1 FROM dbo.WH_PurchaseOrder P WHERE P.PoNumber = 'PPT-INBOUND' AND P.PoLineNo = B.SequenceNo);
-
-INSERT INTO dbo.tbl_Lot
-    (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt, Status, CreatedBy)
-SELECT B.Barcode, B.ItemNo, B.Mode, B.Qty, B.Qty, SYSDATETIME(), 'Open', 'pda-simple-inbound'
-FROM @SimpleInboundBoxes B
-WHERE NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot L WHERE L.LotCode = B.Barcode);
-
-INSERT INTO dbo.WH_InboundPackage
-    (ReceiveType, DocumentBarcode, DocumentNo, VendorID, CaseNo, InvoiceNo, ContainerNo,
-     ShipDate, PackDate, DeliveryDate, ArrivalDate, BoxBarcode, LotID, ItemNo, PoID,
-     Qty, UnitCode, ProductionDate, Status, CreatedBy)
-SELECT B.Mode, B.DocumentBarcode, B.DocumentBarcode, B.VendorID,
-       CASE WHEN B.Mode = N'CKD' THEN 'CASE-PPT-001' END,
-       CASE WHEN B.Mode = N'CKD' THEN 'INV-PPT-001' END,
-       CASE WHEN B.Mode = N'CKD' THEN 'SEGU2609081' END,
-       CONVERT(date, GETDATE()), CONVERT(date, GETDATE()), CONVERT(date, GETDATE()), CONVERT(date, GETDATE()),
-       B.Barcode, L.LotID, B.ItemNo, P.PoID, B.Qty, 'EA', CONVERT(date, GETDATE()), N'Open', 'pda-simple-inbound'
-FROM @SimpleInboundBoxes B
-JOIN dbo.tbl_Lot L ON L.LotCode = B.Barcode
-JOIN dbo.WH_PurchaseOrder P ON P.PoNumber = 'PPT-INBOUND' AND P.PoLineNo = B.SequenceNo
-WHERE NOT EXISTS (SELECT 1 FROM dbo.WH_InboundPackage Existing WHERE Existing.BoxBarcode = B.Barcode);
-
-IF OBJECT_ID(N'dbo.WH_InboundPackage', N'U') IS NOT NULL
-   AND OBJECT_ID(N'dbo.WH_PurchaseOrder', N'U') IS NOT NULL
-   AND OBJECT_ID(N'dbo.tbl_Lot', N'U') IS NOT NULL
-BEGIN
-    DECLARE @PdaInboundTestLotID int =
-        (SELECT TOP (1) LotID FROM dbo.tbl_Lot WHERE LotCode = '5011LL260903900001');
-    DECLARE @PdaInboundRollbackLotID int =
-        (SELECT TOP (1) LotID FROM dbo.tbl_Lot WHERE LotCode = '5011LL260903900002');
-
-    IF @PdaInboundTestLotID IS NOT NULL
-       AND OBJECT_ID(N'dbo.WH_InventoryTransaction', N'U') IS NOT NULL
-        DELETE FROM dbo.WH_InventoryTransaction WHERE LotID = @PdaInboundTestLotID;
-    IF @PdaInboundRollbackLotID IS NOT NULL
-       AND OBJECT_ID(N'dbo.WH_InventoryTransaction', N'U') IS NOT NULL
-        DELETE FROM dbo.WH_InventoryTransaction WHERE LotID = @PdaInboundRollbackLotID;
-
-    IF @PdaInboundTestLotID IS NOT NULL
-       AND OBJECT_ID(N'dbo.WH_Inventory', N'U') IS NOT NULL
-        DELETE FROM dbo.WH_Inventory WHERE LotID = @PdaInboundTestLotID;
-    IF @PdaInboundRollbackLotID IS NOT NULL
-       AND OBJECT_ID(N'dbo.WH_Inventory', N'U') IS NOT NULL
-        DELETE FROM dbo.WH_Inventory WHERE LotID = @PdaInboundRollbackLotID;
-
-    IF OBJECT_ID(N'dbo.WH_Receiving', N'U') IS NOT NULL
-        DELETE FROM dbo.WH_Receiving WHERE LotCode IN ('5011LL260903900001', '5011LL260903900002');
-
-    DELETE FROM dbo.WH_InboundPackage WHERE BoxBarcode IN ('5011LL260903900001', '5011LL260903900002');
-    DELETE FROM dbo.tbl_Lot WHERE LotCode IN ('5011LL260903900001', '5011LL260903900002');
-    DELETE FROM dbo.WH_PurchaseOrder WHERE PoNumber = '4100260903' AND PoLineNo = 90;
-
-    INSERT INTO dbo.WH_PurchaseOrder
-        (PoNumber, PoLineNo, VendorID, ItemNo, OrderQty, ReceivedQty, UnitCode,
-         OrderDate, DueDate, Status, CreatedBy)
-    VALUES
-        ('4100260903', 90, 'V1007', '81710-PI000NNB', 240, 0, 'EA',
-         CONVERT(date, GETDATE()), CONVERT(date, DATEADD(day, 1, GETDATE())),
-         'Open', 'pda-seed');
-
-    DECLARE @PdaInboundTestPoID int = CONVERT(int, SCOPE_IDENTITY());
-
-    INSERT INTO dbo.tbl_Lot
-        (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty,
-         ProducedAt, Status, CurrentLocationID, CreatedBy)
-    VALUES
-        ('5011LL260903900001', '81710-PI000NNB', 'LOCAL', 120, 120,
-         SYSDATETIME(), 'Open', NULL, 'pda-seed');
-
-    DECLARE @PdaInboundNewLotID int = CONVERT(int, SCOPE_IDENTITY());
-
-    INSERT INTO dbo.tbl_Lot
-        (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty,
-         ProducedAt, Status, CurrentLocationID, CreatedBy)
-    VALUES
-        ('5011LL260903900002', '81710-PI000NNB', 'LOCAL', 120, 120,
-         SYSDATETIME(), 'Open', NULL, 'pda-seed');
-
-    DECLARE @PdaInboundRollbackNewLotID int = CONVERT(int, SCOPE_IDENTITY());
-
-    INSERT INTO dbo.WH_InboundPackage
-        (ReceiveType, DocumentBarcode, DocumentNo, VendorID, DeliveryDate, ArrivalDate,
-         BoxBarcode, LotID, ItemNo, PoID, Qty, UnitCode, ProductionDate, Status, CreatedBy)
-    VALUES
-        (N'LOCAL', '5011202609039001', '5011202609039001', 'V1007',
-         CONVERT(date, DATEADD(day, 1, GETDATE())), CONVERT(date, GETDATE()),
-         '5011LL260903900001', @PdaInboundNewLotID, '81710-PI000NNB',
-         @PdaInboundTestPoID, 120, 'EA', CONVERT(date, GETDATE()), N'Open', 'pda-seed'),
-        (N'LOCAL', '5011202609039001', '5011202609039001', 'V1007',
-         CONVERT(date, DATEADD(day, 1, GETDATE())), CONVERT(date, GETDATE()),
-         '5011LL260903900002', @PdaInboundRollbackNewLotID, '81710-PI000NNB',
-         @PdaInboundTestPoID, 120, 'EA', CONVERT(date, GETDATE()), N'Open', 'pda-seed');
-END;
-
--- LOTs used by WH-002 scan.
-IF OBJECT_ID(N'dbo.tbl_Lot', N'U') IS NOT NULL
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot WHERE LotCode = '260828001')
-        INSERT INTO dbo.tbl_Lot
-            (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt, Status, CurrentLocationID, CreatedBy)
-        VALUES
-            ('260828001', '81710-PI000NNB', 'LOCAL', 540, 540, SYSDATETIME(), 'Open', NULL, 'pda-seed');
-    ELSE
-        UPDATE dbo.tbl_Lot
-           SET ItemNo = '81710-PI000NNB',
-               ProcessCode = 'LOCAL',
-               BatchSize = 540,
-               RemainingQty = CASE WHEN Status = 'Received' THEN RemainingQty ELSE 540 END,
-               ModifiedBy = 'pda-seed',
-               ModifiedTS = SYSDATETIME()
-         WHERE LotCode = '260828001';
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot WHERE LotCode = '260828002')
-        INSERT INTO dbo.tbl_Lot
-            (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt, Status, CurrentLocationID, CreatedBy)
-        VALUES
-            ('260828002', '82301-PI000NNB', 'CKD', 900, 900, SYSDATETIME(), 'Open', NULL, 'pda-seed');
-    ELSE
-        UPDATE dbo.tbl_Lot
-           SET ItemNo = '82301-PI000NNB',
-               ProcessCode = 'CKD',
-               BatchSize = 900,
-               RemainingQty = CASE WHEN Status = 'Received' THEN RemainingQty ELSE 900 END,
-               ModifiedBy = 'pda-seed',
-               ModifiedTS = SYSDATETIME()
-         WHERE LotCode = '260828002';
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot WHERE LotCode = '260827014')
-        INSERT INTO dbo.tbl_Lot
-            (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt, Status, CurrentLocationID, CreatedBy)
-        VALUES
-            ('260827014', '81711-PI000YGN', 'LOCAL', 288, 288, DATEADD(day, -1, SYSDATETIME()), 'Received', 'WH010101', 'pda-seed');
-    ELSE
-        UPDATE dbo.tbl_Lot
-           SET ItemNo = '81711-PI000YGN',
-               ProcessCode = 'LOCAL',
-               BatchSize = 288,
-               RemainingQty = 288,
-               Status = 'Received',
-               CurrentLocationID = 'WH010101',
-               ModifiedBy = 'pda-seed',
-               ModifiedTS = SYSDATETIME()
-         WHERE LotCode = '260827014';
-END;
-
--- A pre-received LOT for change-location and cancel-incoming tests.
-IF OBJECT_ID(N'dbo.WH_Inventory', N'U') IS NOT NULL
-   AND OBJECT_ID(N'dbo.WH_Receiving', N'U') IS NOT NULL
-BEGIN
-    DECLARE @ReceivedLotID int = (SELECT TOP (1) LotID FROM dbo.tbl_Lot WHERE LotCode = '260827014');
-    DECLARE @ReceivedPoID int = (SELECT TOP (1) PoID FROM dbo.WH_PurchaseOrder WHERE PoNumber = '4100152166' AND PoLineNo = 60 ORDER BY PoID);
-
-    IF @ReceivedLotID IS NOT NULL
-       AND NOT EXISTS
-       (
-           SELECT 1
-           FROM dbo.WH_Inventory
-           WHERE LotID = @ReceivedLotID
-             AND COALESCE(Status, 'Received') <> 'Canceled'
-             AND COALESCE(OnHandQty, 0) > 0
-       )
-    BEGIN
-        INSERT INTO dbo.WH_Inventory
-            (ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt, Status, CreatedBy)
-        VALUES
-            ('81711-PI000YGN', 'WH010101', @ReceivedLotID, 288, 0, SYSDATETIME(), 'Received', 'pda-seed');
-    END;
-    ELSE IF @ReceivedLotID IS NOT NULL
-    BEGIN
-        UPDATE dbo.WH_Inventory
-           SET ItemNo = '81711-PI000YGN',
-               LocationID = 'WH010101',
-               OnHandQty = CASE WHEN COALESCE(OnHandQty, 0) <= 0 THEN 288 ELSE OnHandQty END,
-               Status = CASE WHEN Status = 'Canceled' THEN 'Received' ELSE Status END,
-               ModifiedBy = 'pda-seed',
-               ModifiedTS = SYSDATETIME()
-         WHERE LotID = @ReceivedLotID;
-    END;
-
-    IF @ReceivedLotID IS NOT NULL
-       AND NOT EXISTS (SELECT 1 FROM dbo.WH_Receiving WHERE LotCode = '260827014')
-    BEGIN
-        INSERT INTO dbo.WH_Receiving
-            (ReceivingNo, PoID, ItemNo, VendorID, ReceivedQty, LocationID, LotCode,
-             ReceivedAt, ReceivedBy, TerminalID, QcStatus, LabelPrinted, CreatedBy)
-        VALUES
-            (CONCAT('RCV-', FORMAT(SYSDATETIME(), 'yyMMddHHmmssfff')),
-             @ReceivedPoID, '81711-PI000YGN', 'V1007', 288, 'WH010101', '260827014',
-             SYSDATETIME(), 'pda-seed', 'PDA', 'Received', 0, 'pda-seed');
-    END;
-    ELSE IF @ReceivedLotID IS NOT NULL
-    BEGIN
-        UPDATE dbo.WH_Receiving
-           SET PoID = @ReceivedPoID,
-               ItemNo = '81711-PI000YGN',
-               VendorID = 'V1007',
-               ReceivedQty = 288,
-               LocationID = 'WH010101',
-               QcStatus = 'Received',
-               ModifiedBy = 'pda-seed',
-               ModifiedTS = SYSDATETIME()
-         WHERE LotCode = '260827014';
-    END;
-END;
-
-SELECT 'MD_Location' AS TableName, COUNT(*) AS DataRows FROM dbo.MD_Location
-UNION ALL
-SELECT 'tbl_Lot', COUNT(*) FROM dbo.tbl_Lot
-UNION ALL
-SELECT 'WH_InboundPackage', COUNT(*) FROM dbo.WH_InboundPackage
-UNION ALL
-SELECT 'WH_Inventory', COUNT(*) FROM dbo.WH_Inventory
-UNION ALL
-SELECT 'WH_Receiving', COUNT(*) FROM dbo.WH_Receiving;
-GO
-
--- =====================================================================
---  WH Release Base Demo
--- =====================================================================
-SET NOCOUNT ON;
-
--- Locations used by Release FIFO suggestions.
-IF OBJECT_ID(N'dbo.MD_Location', N'U') IS NOT NULL
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM dbo.MD_Location WHERE LocationID = 'REL010101')
-        INSERT INTO dbo.MD_Location
-            (LocationID, LocationName, ZoneCode, Aisle, Bay, Slot, Capacity, LocationType, PlantCode, ActiveFlag, CreatedBy)
-        VALUES
-            ('REL010101', N'Release Rack A-01-01', 'RA1', '01', '01', '01', 5000, 'RELEASE', 'PDA', 1, 'pda-seed');
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.MD_Location WHERE LocationID = 'REL010201')
-        INSERT INTO dbo.MD_Location
-            (LocationID, LocationName, ZoneCode, Aisle, Bay, Slot, Capacity, LocationType, PlantCode, ActiveFlag, CreatedBy)
-        VALUES
-            ('REL010201', N'Release Rack A-02-01', 'RA1', '01', '02', '01', 5000, 'RELEASE', 'PDA', 1, 'pda-seed');
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.MD_Location WHERE LocationID = 'REL020101')
-        INSERT INTO dbo.MD_Location
-            (LocationID, LocationName, ZoneCode, Aisle, Bay, Slot, Capacity, LocationType, PlantCode, ActiveFlag, CreatedBy)
-        VALUES
-            ('REL020101', N'Release Rack B-01-01', 'RB1', '02', '01', '01', 5000, 'RELEASE', 'PDA', 1, 'pda-seed');
-END;
-
--- Keep items independently runnable after a fresh schedule seed.
-IF OBJECT_ID(N'dbo.MD_Item', N'U') IS NOT NULL
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = 'MAT-001')
-        INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM, ActiveFlag, CreatedBy)
-        VALUES ('MAT-001', N'SW ASSY-RR HTR LH', 'RM', 'Warehouse Release Demo', 'MV1A', 'EA', 1, 'pda-seed');
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = 'MAT-002')
-        INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM, ActiveFlag, CreatedBy)
-        VALUES ('MAT-002', N'ARMREST GARNISH-RR DR LH', 'RM', 'Warehouse Release Demo', 'LQ2', 'EA', 1, 'pda-seed');
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = 'MAT-003')
-        INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM, ActiveFlag, CreatedBy)
-        VALUES ('MAT-003', N'COVER BLANKING', 'RM', 'Warehouse Release Demo', 'MQ4A', 'EA', 1, 'pda-seed');
-END;
-
--- Release schedules used by WH001 Release tab and WH003 Release screen.
-IF OBJECT_ID(N'dbo.WH_ReleaseSchedule', N'U') IS NOT NULL
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM dbo.WH_ReleaseSchedule WHERE ItemNo = 'MAT-001' AND CreatedBy = 'pda-seed')
-        INSERT INTO dbo.WH_ReleaseSchedule (ItemNo, DemandQty, PickedQty, RequiredAt, Priority, Status, CreatedBy)
-        VALUES ('MAT-001', 120, 0, DATEADD(day, 1, SYSDATETIME()), 1, 'Open', 'pda-seed');
-    ELSE
-        UPDATE dbo.WH_ReleaseSchedule
-           SET DemandQty = 120,
-               PickedQty = 0,
-               RequiredAt = DATEADD(day, 1, SYSDATETIME()),
-               Priority = 1,
-               Status = 'Open',
-               ModifiedBy = 'pda-seed',
-               ModifiedTS = SYSDATETIME()
-         WHERE ItemNo = 'MAT-001'
-           AND CreatedBy = 'pda-seed';
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.WH_ReleaseSchedule WHERE ItemNo = 'MAT-002' AND CreatedBy = 'pda-seed')
-        INSERT INTO dbo.WH_ReleaseSchedule (ItemNo, DemandQty, PickedQty, RequiredAt, Priority, Status, CreatedBy)
-        VALUES ('MAT-002', 80, 40, DATEADD(day, 2, SYSDATETIME()), 2, 'Partial', 'pda-seed');
-    ELSE
-        UPDATE dbo.WH_ReleaseSchedule
-           SET DemandQty = 80,
-               PickedQty = 40,
-               RequiredAt = DATEADD(day, 2, SYSDATETIME()),
-               Priority = 2,
-               Status = 'Partial',
-               ModifiedBy = 'pda-seed',
-               ModifiedTS = SYSDATETIME()
-         WHERE ItemNo = 'MAT-002'
-           AND CreatedBy = 'pda-seed';
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.WH_ReleaseSchedule WHERE ItemNo = 'MAT-003' AND CreatedBy = 'pda-seed')
-        INSERT INTO dbo.WH_ReleaseSchedule (ItemNo, DemandQty, PickedQty, RequiredAt, Priority, Status, CreatedBy)
-        VALUES ('MAT-003', 60, 0, DATEADD(day, -1, SYSDATETIME()), 1, 'Open', 'pda-seed');
-    ELSE
-        UPDATE dbo.WH_ReleaseSchedule
-           SET DemandQty = 60,
-               PickedQty = 0,
-               RequiredAt = DATEADD(day, -1, SYSDATETIME()),
-               Priority = 1,
-               Status = 'Open',
-               ModifiedBy = 'pda-seed',
-               ModifiedTS = SYSDATETIME()
-         WHERE ItemNo = 'MAT-003'
-           AND CreatedBy = 'pda-seed';
-END;
-
--- LOTs and active inventory for FIFO tests.
-IF OBJECT_ID(N'dbo.tbl_Lot', N'U') IS NOT NULL
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot WHERE LotCode = 'REL-MAT001-A')
-        INSERT INTO dbo.tbl_Lot (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt, Status, CurrentLocationID, CreatedBy)
-        VALUES ('REL-MAT001-A', 'MAT-001', 'RELEASE', 60, 60, DATEADD(day, -10, SYSDATETIME()), 'Received', 'REL010101', 'pda-seed');
-    ELSE
-        UPDATE dbo.tbl_Lot
-           SET ItemNo = 'MAT-001', ProcessCode = 'RELEASE', BatchSize = 60, RemainingQty = 60,
-               ProducedAt = DATEADD(day, -10, SYSDATETIME()), Status = 'Received',
-               CurrentLocationID = 'REL010101', ModifiedBy = 'pda-seed', ModifiedTS = SYSDATETIME()
-         WHERE LotCode = 'REL-MAT001-A';
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot WHERE LotCode = 'REL-MAT001-B')
-        INSERT INTO dbo.tbl_Lot (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt, Status, CurrentLocationID, CreatedBy)
-        VALUES ('REL-MAT001-B', 'MAT-001', 'RELEASE', 60, 60, DATEADD(day, -5, SYSDATETIME()), 'Received', 'REL010201', 'pda-seed');
-    ELSE
-        UPDATE dbo.tbl_Lot
-           SET ItemNo = 'MAT-001', ProcessCode = 'RELEASE', BatchSize = 60, RemainingQty = 60,
-               ProducedAt = DATEADD(day, -5, SYSDATETIME()), Status = 'Received',
-               CurrentLocationID = 'REL010201', ModifiedBy = 'pda-seed', ModifiedTS = SYSDATETIME()
-         WHERE LotCode = 'REL-MAT001-B';
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot WHERE LotCode = 'REL-MAT002-B')
-        INSERT INTO dbo.tbl_Lot (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt, Status, CurrentLocationID, CreatedBy)
-        VALUES ('REL-MAT002-B', 'MAT-002', 'RELEASE', 40, 40, DATEADD(day, -6, SYSDATETIME()), 'Received', 'REL020101', 'pda-seed');
-    ELSE
-        UPDATE dbo.tbl_Lot
-           SET ItemNo = 'MAT-002', ProcessCode = 'RELEASE', BatchSize = 40, RemainingQty = 40,
-               ProducedAt = DATEADD(day, -6, SYSDATETIME()), Status = 'Received',
-               CurrentLocationID = 'REL020101', ModifiedBy = 'pda-seed', ModifiedTS = SYSDATETIME()
-         WHERE LotCode = 'REL-MAT002-B';
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot WHERE LotCode = 'REL-MAT003-A')
-        INSERT INTO dbo.tbl_Lot (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt, Status, CurrentLocationID, CreatedBy)
-        VALUES ('REL-MAT003-A', 'MAT-003', 'RELEASE', 60, 60, DATEADD(day, -3, SYSDATETIME()), 'Received', 'REL010101', 'pda-seed');
-    ELSE
-        UPDATE dbo.tbl_Lot
-           SET ItemNo = 'MAT-003', ProcessCode = 'RELEASE', BatchSize = 60, RemainingQty = 60,
-               ProducedAt = DATEADD(day, -3, SYSDATETIME()), Status = 'Received',
-               CurrentLocationID = 'REL010101', ModifiedBy = 'pda-seed', ModifiedTS = SYSDATETIME()
-         WHERE LotCode = 'REL-MAT003-A';
-END;
-
-IF OBJECT_ID(N'dbo.WH_Inventory', N'U') IS NOT NULL
-BEGIN
-    DECLARE @Lots table (LotCode varchar(40), ItemNo varchar(20), LocationID varchar(20), Qty decimal(14,3), ReceivedDaysAgo int);
-
-    INSERT INTO @Lots (LotCode, ItemNo, LocationID, Qty, ReceivedDaysAgo)
-    VALUES
-        ('REL-MAT001-A', 'MAT-001', 'REL010101', 60, 10),
-        ('REL-MAT001-B', 'MAT-001', 'REL010201', 60, 5),
-        ('REL-MAT002-B', 'MAT-002', 'REL020101', 40, 6),
-        ('REL-MAT003-A', 'MAT-003', 'REL010101', 60, 3);
-
-    MERGE dbo.WH_Inventory AS T
-    USING
-    (
-        SELECT L.LotID, X.ItemNo, X.LocationID, X.Qty, X.ReceivedDaysAgo
-        FROM @Lots X
-        JOIN dbo.tbl_Lot L
-          ON L.LotCode = X.LotCode
-    ) AS S
-    ON T.LotID = S.LotID
-    WHEN MATCHED THEN
-        UPDATE SET
-            T.ItemNo = S.ItemNo,
-            T.LocationID = S.LocationID,
-            T.OnHandQty = S.Qty,
-            T.ReservedQty = 0,
-            T.LastReceivedAt = DATEADD(day, -S.ReceivedDaysAgo, SYSDATETIME()),
-            T.Status = 'Received',
-            T.ModifiedBy = 'pda-seed',
-            T.ModifiedTS = SYSDATETIME()
-    WHEN NOT MATCHED THEN
-        INSERT (ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt, Status, CreatedBy)
-        VALUES (S.ItemNo, S.LocationID, S.LotID, S.Qty, 0, DATEADD(day, -S.ReceivedDaysAgo, SYSDATETIME()), 'Received', 'pda-seed');
-END;
-
-SELECT 'WH_ReleaseSchedule' AS TableName, COUNT(*) AS DataRows FROM dbo.WH_ReleaseSchedule
-UNION ALL
-SELECT 'WH_Inventory', COUNT(*) FROM dbo.WH_Inventory
-UNION ALL
-SELECT 'tbl_Lot', COUNT(*) FROM dbo.tbl_Lot
-UNION ALL
-SELECT 'MD_Location', COUNT(*) FROM dbo.MD_Location;
-GO
-
--- =====================================================================
---  WH Inventory and Location Demo
+--  WH unified demo data
+--  Uses only WH_Inventory, WH_InventoryTransaction, WH_PurchaseOrder,
+--  and WH_PickSlip. Inbound source rows are tbl_Lot or SCM delivery data.
 -- =====================================================================
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 
-IF OBJECT_ID(N'dbo.WH_WarehouseMaster', N'U') IS NULL
-    THROW 51000, 'dbo.WH_WarehouseMaster is required.', 1;
+MERGE dbo.MD_CodeItem AS T
+USING (VALUES
+    ('WH_CODE_EOS','WH_CODE','EOS',N'EOS Warehouse',NULL,10),
+    ('WH_AREA_MAT_AREA','WH_AREA','MAT_AREA',N'Material Storage Area','WH_CODE_EOS',10),
+    ('WH_AREA_FG_AREA','WH_AREA','FG_AREA',N'Finished Goods Storage Area','WH_CODE_EOS',20)
+) S(CodeID,GroupCode,CodeValue,CodeName,ParentCodeID,SortOrder)
+ON T.CodeID COLLATE DATABASE_DEFAULT=S.CodeID COLLATE DATABASE_DEFAULT
+WHEN MATCHED THEN UPDATE SET GroupCode=S.GroupCode,CodeValue=S.CodeValue,CodeName=S.CodeName,
+    ParentCodeID=S.ParentCodeID,SortOrder=S.SortOrder,UseFlag=1,ModifiedBy='pda-seed',ModifiedTS=SYSDATETIME()
+WHEN NOT MATCHED THEN INSERT(CodeID,GroupCode,CodeValue,CodeName,ParentCodeID,SortOrder,UseFlag,CreatedBy,CreatedTS)
+    VALUES(S.CodeID,S.GroupCode,S.CodeValue,S.CodeName,S.ParentCodeID,S.SortOrder,1,'pda-seed',SYSDATETIME());
 
-IF OBJECT_ID(N'dbo.WH_AreaMaster', N'U') IS NULL
-    THROW 51000, 'dbo.WH_AreaMaster is required.', 1;
+DECLARE @Locations table(LocationID varchar(20),LocationName nvarchar(120),ZoneCode varchar(20),Aisle varchar(5),Bay varchar(5),Slot varchar(5));
+INSERT @Locations VALUES
+ ('WH010101',N'Inbound Rack A-01-01','A1','01','01','01'),
+ ('WH010201',N'Inbound Rack A-02-01','A1','02','01','01'),
+ ('B0-08-A1',N'Rack 08 / Bay A / Level 1','B0','08','A','1'),
+ ('B0-08-B1',N'Rack 08 / Bay B / Level 1','B0','08','B','1'),
+ ('B0-08-C1',N'Rack 08 / Bay C / Level 1','B0','08','C','1'),
+ ('B0-09-D2',N'Rack 09 / Bay D / Level 2','B0','09','D','2'),
+ ('B0-10-A1',N'Rack 10 / Bay A / Level 1','B0','10','A','1'),
+ ('B0-10-B1',N'Rack 10 / Bay B / Level 1','B0','10','B','1'),
+ ('B0-12-B1',N'Rack 12 / Bay B / Level 1','B0','12','B','1'),
+ ('REL010101',N'Release Rack 01 / Bay 01','REL','01','01','01'),
+ ('REL010201',N'Release Rack 01 / Bay 02','REL','01','02','01'),
+ ('REL020101',N'Release Rack 02 / Bay 01','REL','02','01','01');
+MERGE dbo.MD_Location T USING @Locations S
+ON T.LocationID COLLATE DATABASE_DEFAULT=S.LocationID COLLATE DATABASE_DEFAULT
+WHEN MATCHED THEN UPDATE SET LocationName=S.LocationName,ZoneCode=S.ZoneCode,Aisle=S.Aisle,Bay=S.Bay,Slot=S.Slot,
+    WhCode='EOS',AreaCode='MAT_AREA',ActiveFlag=1,ModifiedBy='pda-seed',ModifiedTS=SYSDATETIME()
+WHEN NOT MATCHED THEN INSERT(LocationID,LocationName,ZoneCode,Aisle,Bay,Slot,Capacity,LocationType,PlantCode,ActiveFlag,CreatedBy,CreatedTS,WhCode,AreaCode)
+    VALUES(S.LocationID,S.LocationName,S.ZoneCode,S.Aisle,S.Bay,S.Slot,5000,'RACK','EOS',1,'pda-seed',SYSDATETIME(),'EOS','MAT_AREA');
 
-IF OBJECT_ID(N'dbo.MD_Location', N'U') IS NULL
-    THROW 51000, 'dbo.MD_Location is required.', 1;
+DECLARE @Items table(ItemNo varchar(20),ItemName nvarchar(120));
+INSERT @Items VALUES
+ ('81710-PI000NNB',N'TRIM - TAIL GATE LWR'),('81711-PI000YGN',N'TRIM - TAIL GATE LWR'),
+ ('82301-PI000NNB',N'TRIM ASSY - CKD'),('MAT-001',N'Material Demo A'),('MAT-002',N'Material Demo B'),('MAT-003',N'Material Demo C'),
+ ('PPT-WH-REL-01',N'PPT Release Trim A'),('PPT-WH-REL-02',N'PPT Release Trim B'),
+ ('PPT-WH-PUT-01',N'PPT Put-Away Material'),
+ ('PPT-WH-INV-01',N'PPT Inventory Trim A'),('PPT-WH-INV-02',N'PPT Inventory Trim B'),
+ ('PPT-WH-ADJ-01',N'PPT Adjust Trim'),('PPT-WH-HIST-01',N'PPT Transaction Trim');
+MERGE dbo.MD_Item T USING @Items S
+ON T.ItemNo COLLATE DATABASE_DEFAULT=S.ItemNo COLLATE DATABASE_DEFAULT
+WHEN MATCHED THEN UPDATE SET ItemName=S.ItemName,DefaultUOM='EA',ActiveFlag=1,ModifiedBy='pda-seed',ModifiedTS=SYSDATETIME()
+WHEN NOT MATCHED THEN INSERT(ItemNo,ItemName,ItemType,ItemCategory,DefaultUOM,ActiveFlag,CreatedBy,CreatedTS)
+    VALUES(S.ItemNo,S.ItemName,'MATERIAL','WH','EA',1,'pda-seed',SYSDATETIME());
 
-IF OBJECT_ID(N'dbo.WH_Inventory', N'U') IS NULL
-    THROW 51000, 'dbo.WH_Inventory is required.', 1;
+MERGE dbo.WH_PurchaseOrder T
+USING (VALUES
+ ('PPT-INBOUND',10,'V1007','81710-PI000NNB',100.000,'EA'),
+ ('PPT-INBOUND',20,'V1007','81711-PI000YGN',100.000,'EA'),
+ ('PPT-INBOUND',30,'V2003','82301-PI000NNB',100.000,'EA'),
+ ('4100260903',90,'V1007','81711-PI000YGN',288.000,'EA')
+) S(PoNumber,PoLineNo,VendorID,ItemNo,OrderQty,UnitCode)
+ON T.PoNumber COLLATE DATABASE_DEFAULT=S.PoNumber COLLATE DATABASE_DEFAULT AND T.PoLineNo=S.PoLineNo
+WHEN MATCHED THEN UPDATE SET VendorID=S.VendorID,ItemNo=S.ItemNo,OrderQty=S.OrderQty,UnitCode=S.UnitCode,
+    Status=CASE WHEN COALESCE(T.ReceivedQty,0)>0 THEN T.Status ELSE 'Open' END,ModifiedBy='pda-seed',ModifiedTS=SYSDATETIME()
+WHEN NOT MATCHED THEN INSERT(PoNumber,PoLineNo,VendorID,ItemNo,OrderQty,ReceivedQty,UnitCode,OrderDate,DueDate,Status,CreatedBy,CreatedTS)
+    VALUES(S.PoNumber,S.PoLineNo,S.VendorID,S.ItemNo,S.OrderQty,0,S.UnitCode,CONVERT(date,GETDATE()),DATEADD(day,1,CONVERT(date,GETDATE())),'Open','pda-seed',SYSDATETIME());
 
-IF OBJECT_ID(N'dbo.tbl_Lot', N'U') IS NULL
-    THROW 51000, 'dbo.tbl_Lot is required.', 1;
+/* SCTEST1 inbound source: two shipped delivery notes with three boxes each. */
+DECLARE @SimpleDeliveries table(ModeCode varchar(10),DeliveryNumber varchar(30),NoteNumber varchar(30),VendorID varchar(20));
+INSERT @SimpleDeliveries VALUES
+ ('LOCAL','PPT-WH-DL-LOCAL','PPT-WH-NOTE-LOCAL','V1007'),
+ ('CKD','PPT-WH-DL-CKD','PPT-WH-NOTE-CKD','V2003');
 
-IF OBJECT_ID(N'dbo.WH_ReleaseSchedule', N'U') IS NULL
-    THROW 51000, 'dbo.WH_ReleaseSchedule is required. Run PDA_SCHEMA.sql first.', 1;
+MERGE dbo.SCM_Delivery T
+USING @SimpleDeliveries S
+ON T.DeliveryNumber COLLATE DATABASE_DEFAULT=S.DeliveryNumber COLLATE DATABASE_DEFAULT
+WHEN MATCHED THEN UPDATE SET PoNumber='PPT-INBOUND',VendorID=S.VendorID,DeliveryDate=CONVERT(date,GETDATE()),
+    Status='Shipped',ShipDate=CONVERT(date,GETDATE()),ShippedAt=SYSDATETIME(),ShippedBy='SCTEST1',
+    ModifiedBy='pda-seed',ModifiedTS=SYSDATETIME()
+WHEN NOT MATCHED THEN INSERT(DeliveryNumber,RequestID,PoNumber,VendorID,DeliveryDate,Status,CreatedBy,CreatedUserID,CreatedTS,ShipDate,ShippedAt,ShippedBy)
+    VALUES(S.DeliveryNumber,NEWID(),'PPT-INBOUND',S.VendorID,CONVERT(date,GETDATE()),'Shipped','pda-seed','SCTEST1',SYSDATETIME(),CONVERT(date,GETDATE()),SYSDATETIME(),'SCTEST1');
 
-IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'PickSlipNo') IS NULL
-    THROW 51000, 'WH_ReleaseSchedule Pick Slip columns are required. Run PDA_SCHEMA.sql first.', 1;
+MERGE dbo.SCM_DeliveryNote T
+USING @SimpleDeliveries S
+ON T.NoteNumber COLLATE DATABASE_DEFAULT=S.NoteNumber COLLATE DATABASE_DEFAULT
+WHEN MATCHED THEN UPDATE SET VendorID=S.VendorID,Snapshot=N'{}',IssuedAt=SYSDATETIME(),IssuedBy='SCTEST1',IssuedUserID='SCTEST1'
+WHEN NOT MATCHED THEN INSERT(NoteNumber,VendorID,Snapshot,IssuedAt,IssuedBy,IssuedUserID)
+    VALUES(S.NoteNumber,S.VendorID,N'{}',SYSDATETIME(),'SCTEST1','SCTEST1');
 
-BEGIN TRANSACTION;
-
-DECLARE @LegacyActor varchar(50) = 'wh-legacy-seed';
-DECLARE @OldActor varchar(50) = 'wh-location-seed';
-DECLARE @ScrollActor varchar(50) = 'CODEX_SAMPLE';
-
--- Remove only the previous EOS demo rows, then refresh this legacy-style set.
-DELETE FROM dbo.WH_ReleaseSchedule WHERE CreatedBy = @LegacyActor;
-DELETE FROM dbo.WH_Inventory WHERE CreatedBy IN (@OldActor, @LegacyActor, @ScrollActor);
-DELETE FROM dbo.tbl_Lot WHERE CreatedBy IN (@LegacyActor, @ScrollActor);
--- Shared master rows can already be referenced by FG/WH transactions. Keep them
--- and refresh the required demo values through the UPDATE/INSERT statements below.
-
-IF NOT EXISTS (SELECT 1 FROM dbo.WH_WarehouseMaster WHERE WhCode = 'EOS')
-    INSERT INTO dbo.WH_WarehouseMaster (WhCode, WhName, ActiveFlag, CreatedBy)
-    VALUES ('EOS', N'EOS Warehouse', 1, @LegacyActor);
-ELSE
-    UPDATE dbo.WH_WarehouseMaster
-       SET WhName = N'EOS Warehouse', ActiveFlag = 1
-     WHERE WhCode = 'EOS';
-
-IF NOT EXISTS (SELECT 1 FROM dbo.WH_AreaMaster WHERE WhCode = 'EOS' AND AreaCode = 'MAT_AREA')
-    INSERT INTO dbo.WH_AreaMaster (WhCode, AreaCode, AreaName, ActiveFlag, CreatedBy)
-    VALUES ('EOS', 'MAT_AREA', N'Material Storage Area', 1, @LegacyActor);
-
-DECLARE @Locations TABLE
+MERGE dbo.SCM_DeliveryNoteDelivery T
+USING
 (
-    LocationID varchar(20) NOT NULL,
-    LocationName nvarchar(120) NOT NULL,
-    RackX varchar(5) NOT NULL,
-    RackY varchar(5) NOT NULL,
-    RackZ varchar(5) NOT NULL
-);
+    SELECT D.DeliveryID,N.NoteID
+    FROM @SimpleDeliveries S
+    JOIN dbo.SCM_Delivery D
+      ON D.DeliveryNumber COLLATE DATABASE_DEFAULT=S.DeliveryNumber COLLATE DATABASE_DEFAULT
+    JOIN dbo.SCM_DeliveryNote N
+      ON N.NoteNumber COLLATE DATABASE_DEFAULT=S.NoteNumber COLLATE DATABASE_DEFAULT
+) S ON T.DeliveryID=S.DeliveryID
+WHEN MATCHED THEN UPDATE SET NoteID=S.NoteID
+WHEN NOT MATCHED THEN INSERT(DeliveryID,NoteID) VALUES(S.DeliveryID,S.NoteID);
 
-INSERT INTO @Locations (LocationID, LocationName, RackX, RackY, RackZ)
-VALUES
-    ('B0-09-D2', N'Rack 09 / Bay D / Level 2', '09', 'D', '2'),
-    ('B0-09-C2', N'Rack 09 / Bay C / Level 2', '09', 'C', '2'),
-    ('B0-09-B2', N'Rack 09 / Bay B / Level 2', '09', 'B', '2'),
-    ('B0-09-A2', N'Rack 09 / Bay A / Level 2', '09', 'A', '2'),
-    ('B0-08-D1', N'Rack 08 / Bay D / Level 1', '08', 'D', '1'),
-    ('B0-08-C1', N'Rack 08 / Bay C / Level 1', '08', 'C', '1'),
-    ('B0-08-B1', N'Rack 08 / Bay B / Level 1', '08', 'B', '1'),
-    ('B0-08-A1', N'Rack 08 / Bay A / Level 1', '08', 'A', '1'),
-    ('B0-09-D1', N'Rack 09 / Bay D / Level 1', '09', 'D', '1'),
-    ('B0-09-C1', N'Rack 09 / Bay C / Level 1', '09', 'C', '1'),
-    ('B0-09-B1', N'Rack 09 / Bay B / Level 1', '09', 'B', '1'),
-    ('B0-09-A1', N'Rack 09 / Bay A / Level 1', '09', 'A', '1'),
-    ('B0-10-D1', N'Rack 10 / Bay D / Level 1', '10', 'D', '1'),
-    ('B0-10-C1', N'Rack 10 / Bay C / Level 1', '10', 'C', '1'),
-    ('B0-10-B1', N'Rack 10 / Bay B / Level 1', '10', 'B', '1'),
-    ('B0-10-A1', N'Rack 10 / Bay A / Level 1', '10', 'A', '1'),
-    ('B0-11-D1', N'Rack 11 / Bay D / Level 1', '11', 'D', '1'),
-    ('B0-11-C1', N'Rack 11 / Bay C / Level 1', '11', 'C', '1'),
-    ('B0-11-B1', N'Rack 11 / Bay B / Level 1', '11', 'B', '1'),
-    ('B0-11-A1', N'Rack 11 / Bay A / Level 1', '11', 'A', '1'),
-    ('B0-12-D1', N'Rack 12 / Bay D / Level 1', '12', 'D', '1'),
-    ('B0-12-C1', N'Rack 12 / Bay C / Level 1', '12', 'C', '1'),
-    ('B0-12-B1', N'Rack 12 / Bay B / Level 1', '12', 'B', '1'),
-    ('B0-12-A1', N'Rack 12 / Bay A / Level 1', '12', 'A', '1');
+DECLARE @SimpleLines table(ModeCode varchar(10),ItemNo varchar(20),Qty decimal(18,3),PackingQty decimal(18,3));
+INSERT @SimpleLines VALUES
+ ('LOCAL','81710-PI000NNB',40,20),
+ ('LOCAL','81711-PI000YGN',10,10),
+ ('CKD','82301-PI000NNB',90,30);
 
-INSERT INTO dbo.MD_Location
-    (LocationID, LocationName, ZoneCode, Aisle, Bay, Slot, Capacity, LocationType, PlantCode, ActiveFlag, CreatedBy)
-SELECT L.LocationID, L.LocationName, 'B0', L.RackX, L.RackY, L.RackZ,
-       500, 'STORAGE', 'B', 1, @LegacyActor
-FROM @Locations L
-WHERE NOT EXISTS (SELECT 1 FROM dbo.MD_Location T WHERE T.LocationID = L.LocationID);
-
-UPDATE T
-   SET T.LocationName = L.LocationName,
-       T.ZoneCode = 'B0',
-       T.Aisle = L.RackX,
-       T.Bay = L.RackY,
-       T.Slot = L.RackZ,
-       T.Capacity = 500,
-       T.LocationType = 'STORAGE',
-       T.PlantCode = 'B',
-       T.ActiveFlag = 1
-FROM dbo.MD_Location T
-INNER JOIN @Locations L ON L.LocationID = T.LocationID;
-
--- These are existing AMES_DEV material masters. The location distribution
--- deliberately creates up to three FIFO candidates for each requested part.
-INSERT INTO dbo.MD_Item
-    (ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM,
-     SafetyStock, ActiveFlag, CreatedBy, CreatedTS)
-SELECT V.ItemNo, V.ItemName, 'ASSY', NULL, 'NE1A', 'EA',
-       0, 1, 'pda-seed', SYSDATETIME()
-FROM (VALUES
-    (CONVERT(varchar(20), '81710-PI000NNB'), CONVERT(nvarchar(200), N'TRIM ASSY-TAIL GATE, LWR')),
-    ('81710-PI000YGN', N'TRIM ASSY-TAIL GATE, LWR'),
-    ('81710-PI010NNB', N'TRIM ASSY-TAIL GATE, LWR'),
-    ('81710-PI010YGN', N'TRIM ASSY-TAIL GATE, LWR'),
-    ('81711-PI000NNB', N'TRIM - TAIL GATE LWR'),
-    ('81711-PI000YGN', N'TRIM - TAIL GATE LWR'),
-    ('82301-PI000NNB', N'PNL ASSY-FR DR TRIM COMPL,LH'),
-    ('82301-PI000YGU', N'PNL ASSY-FR DR TRIM COMPL,LH')
-) V(ItemNo, ItemName)
-WHERE NOT EXISTS (SELECT 1 FROM dbo.MD_Item I WHERE I.ItemNo = V.ItemNo);
-
-IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = '81710-PI000NNB')
-    THROW 51000, 'Required material 81710-PI000NNB was not found in MD_Item.', 1;
-
-IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = '81710-PI000YGN')
-    THROW 51000, 'Required material 81710-PI000YGN was not found in MD_Item.', 1;
-
-IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = '82301-PI000NNB')
-    THROW 51000, 'Required material 82301-PI000NNB was not found in MD_Item.', 1;
-
-IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = '82301-PI000YGU')
-    THROW 51000, 'Required material 82301-PI000YGU was not found in MD_Item.', 1;
-
-DECLARE @Inventory TABLE
+MERGE dbo.SCM_DeliveryLine T
+USING
 (
-    LotCode varchar(40) NOT NULL,
-    ItemNo varchar(20) NOT NULL,
-    LocationID varchar(20) NOT NULL,
-    OnHandQty decimal(14, 3) NOT NULL,
-    ReceivedAt datetime2 NOT NULL
-);
-
-INSERT INTO @Inventory (LotCode, ItemNo, LocationID, OnHandQty, ReceivedAt)
-VALUES
-    ('5011LL260804000001', '81710-PI000NNB', 'B0-09-D2', 120, DATEADD(day, -21, SYSDATETIME())),
-    ('5011LL260811000002', '81710-PI000NNB', 'B0-09-C2',  80, DATEADD(day, -14, SYSDATETIME())),
-    ('5011LL260818000003', '81710-PI000NNB', 'B0-09-B2',  60, DATEADD(day,  -7, SYSDATETIME())),
-    ('5011LL260801000004', '81710-PI000NNB', 'B0-08-D1',  55, DATEADD(day, -24, SYSDATETIME())),
-    ('5011LL260814000005', '81710-PI000NNB', 'B0-09-C1',  48, DATEADD(day, -11, SYSDATETIME())),
-    ('5011LL260807000006', '81710-PI000YGN', 'B0-10-D1', 100, DATEADD(day, -18, SYSDATETIME())),
-    ('5011LL260815000007', '81710-PI000YGN', 'B0-10-C1',  75, DATEADD(day, -10, SYSDATETIME())),
-    ('5011LL260810000008', '81710-PI000YGN', 'B0-09-A1',  70, DATEADD(day, -15, SYSDATETIME())),
-    ('5011LL260817000009', '81710-PI000YGN', 'B0-11-D1',  65, DATEADD(day,  -8, SYSDATETIME())),
-    ('5011LL260809000010', '82301-PI000NNB', 'B0-10-B1',  90, DATEADD(day, -16, SYSDATETIME())),
-    ('5011LL260820000011', '82301-PI000NNB', 'B0-10-A1',  45, DATEADD(day,  -5, SYSDATETIME())),
-    ('5011LL260812000012', '82301-PI000NNB', 'B0-11-B1',  85, DATEADD(day, -13, SYSDATETIME())),
-    ('5011LL260816000013', '82301-PI000YGU', 'B0-12-C1',  95, DATEADD(day,  -9, SYSDATETIME())),
-    ('5011LL260813000014', '82301-PI000YGU', 'B0-09-A2', 110, DATEADD(day, -12, SYSDATETIME())),
-    ('5011LL260901000099', '81710-PI000NNB', 'B0-12-A1',   0, DATEADD(day,  -3, SYSDATETIME()));
-
-INSERT INTO dbo.tbl_Lot
-    (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt,
-     Status, InventoryStatus, QualityFlag, CurrentLocationID, CreatedBy)
-SELECT I.LotCode, I.ItemNo, 'WH', I.OnHandQty, I.OnHandQty, I.ReceivedAt,
-       'Received', 'STORED', 'PASS', I.LocationID, @LegacyActor
-FROM @Inventory I;
-
-INSERT INTO dbo.WH_Inventory
-    (ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt, Status, CreatedBy)
-SELECT I.ItemNo, I.LocationID, L.LotID, I.OnHandQty, 0, I.ReceivedAt, 'Received', @LegacyActor
-FROM @Inventory I
-INNER JOIN dbo.tbl_Lot L ON L.LotCode = I.LotCode;
-
-INSERT INTO dbo.WH_ReleaseSchedule
-    (PickSlipNo, ReqLocation, ReqSeqNo, ReqUserId,
-     ItemNo, DemandQty, PickedQty, RequiredAt, Priority, Status, CreatedBy, CreatedTS)
-VALUES
-    ('2026080601', 'B0-09-A2', 1, 'admin', '81710-PI000NNB', 2, 0, DATEADD(day, 1, SYSDATETIME()), 1, 'Open', @LegacyActor, SYSDATETIME()),
-    ('2026080601', 'B0-09-A2', 2, 'admin', '81710-PI000YGN', 1, 0, DATEADD(day, 1, SYSDATETIME()), 1, 'Open', @LegacyActor, SYSDATETIME()),
-    ('2026080601', 'B0-09-A2', 3, 'admin', '82301-PI000NNB', 3, 0, DATEADD(day, 1, SYSDATETIME()), 1, 'Open', @LegacyActor, SYSDATETIME()),
-    ('2026080602', 'B0-10-A1', 1, 'admin', '82301-PI000YGU', 2, 0, DATEADD(day, 2, SYSDATETIME()), 2, 'Open', @LegacyActor, SYSDATETIME());
-
-COMMIT TRANSACTION;
-
--- Repeatable history rows for WH006 filters and adjustment detail.
-IF OBJECT_ID(N'dbo.WH_InventoryTransaction', N'U') IS NOT NULL
-BEGIN
-    DELETE FROM dbo.WH_InventoryTransaction WHERE CreatedBy = 'pda-scenario-seed';
-
-    DECLARE @ScenarioLotID int =
+    SELECT D.DeliveryID,P.PoID,L.Qty,L.PackingQty
+    FROM @SimpleLines L
+    JOIN @SimpleDeliveries S ON S.ModeCode=L.ModeCode
+    JOIN dbo.SCM_Delivery D
+      ON D.DeliveryNumber COLLATE DATABASE_DEFAULT=S.DeliveryNumber COLLATE DATABASE_DEFAULT
+    CROSS APPLY
     (
-        SELECT TOP (1) LotID
-        FROM dbo.tbl_Lot
-        WHERE LotCode = '5011LL260804000001'
-    );
+        SELECT TOP (1) P.PoID
+        FROM dbo.WH_PurchaseOrder P
+        WHERE P.PoNumber='PPT-INBOUND'
+          AND P.ItemNo COLLATE DATABASE_DEFAULT=L.ItemNo COLLATE DATABASE_DEFAULT
+        ORDER BY P.PoLineNo,P.PoID
+    ) P
+) S ON T.DeliveryID=S.DeliveryID AND T.PoID=S.PoID
+WHEN MATCHED THEN UPDATE SET Quantity=S.Qty,ReceivedQty=0,PackingQty=S.PackingQty,VendorLotNo=NULL,ProductionDate=CONVERT(date,GETDATE())
+WHEN NOT MATCHED THEN INSERT(DeliveryID,PoID,Quantity,ReceivedQty,PackingQty,VendorLotNo,ProductionDate)
+    VALUES(S.DeliveryID,S.PoID,S.Qty,0,S.PackingQty,NULL,CONVERT(date,GETDATE()));
 
-    INSERT INTO dbo.WH_InventoryTransaction
-        (TransactionTime, TransactionType, ItemNo, LocationID, LotID,
-         QtyBefore, QtyChange, QtyAfter, ReasonCode, RefDocType,
-         OperatorID, ApproverID, Note, CreatedBy, CreatedTS)
-    VALUES
-        (DATEADD(day, -2, SYSDATETIME()), 'IN',  '81710-PI000NNB', 'B0-09-D2', @ScenarioLotID,
-         0, 120, 120, 'INBOUND', 'WH_INBOUND', N'admin', NULL, N'Inbound scenario seed', 'pda-scenario-seed', SYSDATETIME()),
-        (DATEADD(day, -1, SYSDATETIME()), 'OUT', '81710-PI000NNB', 'B0-09-D2', @ScenarioLotID,
-         120, -1, 119, 'RELEASE', 'WH_RELEASE', N'admin', NULL, N'Release scenario seed', 'pda-scenario-seed', SYSDATETIME()),
-        (DATEADD(hour, -2, SYSDATETIME()), 'ADJ', '81710-PI000NNB', 'B0-09-D2', @ScenarioLotID,
-         119, 1, 120, 'COUNT_DIFF', 'WH_ADJUST', N'admin', N'admin', N'Adjustment scenario seed', 'pda-scenario-seed', SYSDATETIME());
-END;
+DECLARE @SimpleBoxes table(ModeCode varchar(10),BoxSeq int,BoxNumber varchar(64),ItemNo varchar(20),Qty decimal(18,3));
+INSERT @SimpleBoxes VALUES
+ ('LOCAL',1,'5011LL260908800001','81710-PI000NNB',20),
+ ('LOCAL',2,'5011LL260908800002','81710-PI000NNB',20),
+ ('LOCAL',1,'5011LL260908800003','81711-PI000YGN',10),
+ ('CKD',1,'CKD260908800000001','82301-PI000NNB',30),
+ ('CKD',2,'CKD260908800000002','82301-PI000NNB',30),
+ ('CKD',3,'CKD260908800000003','82301-PI000NNB',30);
 
--- Repeatable WH005 Adjust scenario stock. The scenario-only reset API restores it to 10 EA.
-IF OBJECT_ID(N'dbo.WH_Inventory', N'U') IS NOT NULL
-   AND OBJECT_ID(N'dbo.tbl_Lot', N'U') IS NOT NULL
+MERGE dbo.SCM_DeliveryBox T
+USING
+(
+    SELECT DL.DeliveryLineID,B.BoxSeq,B.BoxNumber,B.ItemNo,I.ItemName,B.Qty
+    FROM @SimpleBoxes B
+    JOIN @SimpleDeliveries S ON S.ModeCode=B.ModeCode
+    JOIN dbo.SCM_Delivery D
+      ON D.DeliveryNumber COLLATE DATABASE_DEFAULT=S.DeliveryNumber COLLATE DATABASE_DEFAULT
+    CROSS APPLY
+    (
+        SELECT TOP (1) P.PoID
+        FROM dbo.WH_PurchaseOrder P
+        WHERE P.PoNumber='PPT-INBOUND'
+          AND P.ItemNo COLLATE DATABASE_DEFAULT=B.ItemNo COLLATE DATABASE_DEFAULT
+        ORDER BY P.PoLineNo,P.PoID
+    ) P
+    JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryID=D.DeliveryID AND DL.PoID=P.PoID
+    JOIN dbo.MD_Item I
+      ON I.ItemNo COLLATE DATABASE_DEFAULT=B.ItemNo COLLATE DATABASE_DEFAULT
+) S ON T.DeliveryLineID=S.DeliveryLineID AND T.BoxSeq=S.BoxSeq AND T.ActiveFlag=1
+WHEN MATCHED THEN UPDATE SET DeliveryLineID=S.DeliveryLineID,BoxSeq=S.BoxSeq,ItemNo=S.ItemNo,ItemName=S.ItemName,
+    UnitCode='EA',Quantity=S.Qty,ActiveFlag=1,VoidedTS=NULL
+WHEN NOT MATCHED THEN INSERT(DeliveryLineID,BoxSeq,ItemNo,ItemName,UnitCode,Quantity,ActiveFlag,CreatedTS)
+    VALUES(S.DeliveryLineID,S.BoxSeq,S.ItemNo,S.ItemName,'EA',S.Qty,1,SYSDATETIME());
+
+DECLARE @Lots table(LotNo varchar(40),ItemNo varchar(20),Qty decimal(14,3),LocationNo varchar(20),ReceivedAt datetime2,SeedGroup varchar(20));
+INSERT @Lots VALUES
+ ('5011LL260908800001','81710-PI000NNB',20,NULL,DATEADD(day,-1,SYSDATETIME()),'INBOUND'),
+ ('5011LL260908800002','81711-PI000YGN',20,NULL,DATEADD(day,-1,SYSDATETIME()),'INBOUND'),
+ ('5011LL260908800003','81710-PI000NNB',20,NULL,DATEADD(day,-1,SYSDATETIME()),'INBOUND'),
+ ('CKD260908800000001','82301-PI000NNB',20,NULL,DATEADD(day,-1,SYSDATETIME()),'INBOUND'),
+ ('CKD260908800000002','82301-PI000NNB',20,NULL,DATEADD(day,-1,SYSDATETIME()),'INBOUND'),
+ ('CKD260908800000003','82301-PI000NNB',20,NULL,DATEADD(day,-1,SYSDATETIME()),'INBOUND'),
+ ('5011LL260701000001','81711-PI000YGN',4,'B0-10-A1','2026-07-01T08:00:00','RELEASE'),
+ ('5011LL260715000002','81711-PI000YGN',4,'B0-10-B1','2026-07-15T08:00:00','RELEASE'),
+ ('5011LL260801000003','81711-PI000YGN',2,'B0-09-D2','2026-08-01T08:00:00','RELEASE'),
+ ('5011LL260601000004','81711-PI000YGN',8,'B0-08-B1','2026-06-01T08:00:00','RELEASE'),
+ ('5011LL260820000010','81711-PI000YGN',24,'B0-10-A1','2026-08-20T08:00:00','RELEASE'),
+ ('5011LL260101000018','81711-PI000YGN',6,'B0-08-C1','2026-01-01T08:00:00','RELEASE'),
+ ('5011LL260908810001','PPT-WH-REL-01',20,'B0-10-A1','2026-09-01T08:00:00','PPT'),
+ ('5011LL260908810002','PPT-WH-REL-01',10,'B0-10-B1','2026-09-02T08:00:00','PPT'),
+ ('5011LL260908810003','PPT-WH-REL-02',16,'B0-09-D2','2026-09-01T08:00:00','PPT'),
+ ('5011LL260908810004','PPT-WH-REL-02',8,'B0-08-B1','2026-09-03T08:00:00','PPT'),
+ ('5011LL260908850001','PPT-WH-PUT-01',12,NULL,DATEADD(day,-1,SYSDATETIME()),'PPT'),
+ ('5011LL260908850002','PPT-WH-PUT-01',8,NULL,DATEADD(day,-1,SYSDATETIME()),'PPT'),
+ ('5011LL260908850003','PPT-WH-PUT-01',15,NULL,DATEADD(day,-1,SYSDATETIME()),'PPT'),
+ ('5011LL260908850004','PPT-WH-PUT-01',6,'B0-10-A1',DATEADD(day,-2,SYSDATETIME()),'PPT'),
+ ('5011LL260908820001','PPT-WH-INV-01',30,'B0-10-A1','2026-09-01T08:00:00','PPT'),
+ ('5011LL260908820002','PPT-WH-INV-01',20,'B0-10-B1','2026-09-02T08:00:00','PPT'),
+ ('5011LL260908820003','PPT-WH-INV-02',12,'B0-09-D2','2026-09-01T08:00:00','PPT'),
+ ('5011LL260908830001','PPT-WH-ADJ-01',10,'B0-12-B1','2026-09-01T08:00:00','PPT'),
+ ('5011LL260908840001','PPT-WH-HIST-01',18,'B0-08-C1','2026-09-01T08:00:00','PPT');
+MERGE dbo.tbl_Lot T USING @Lots S
+ON T.LotCode COLLATE DATABASE_DEFAULT=S.LotNo COLLATE DATABASE_DEFAULT
+WHEN MATCHED THEN UPDATE SET ItemNo=S.ItemNo,BatchSize=S.Qty,RemainingQty=CASE WHEN S.SeedGroup='INBOUND' THEN S.Qty ELSE T.RemainingQty END,
+    ProducedAt=S.ReceivedAt,Status=CASE WHEN S.SeedGroup='INBOUND' THEN 'Open' ELSE 'Received' END,
+    InventoryStatus=CASE WHEN S.SeedGroup='INBOUND' THEN 'CREATED' ELSE 'STORED' END,
+    CurrentLocationID=CASE WHEN S.SeedGroup='INBOUND' THEN NULL ELSE S.LocationNo END,ModifiedBy='pda-seed',ModifiedTS=SYSDATETIME()
+WHEN NOT MATCHED THEN INSERT(LotCode,ItemNo,ProcessCode,BatchSize,RemainingQty,ProducedAt,Status,InventoryStatus,QualityFlag,CurrentLocationID,CreatedBy,CreatedTS)
+    VALUES(S.LotNo,S.ItemNo,CASE WHEN LEFT(S.LotNo,3)='CKD' THEN 'CKD' ELSE 'WH' END,S.Qty,S.Qty,S.ReceivedAt,
+      CASE WHEN S.SeedGroup='INBOUND' THEN 'Open' ELSE 'Received' END,CASE WHEN S.SeedGroup='INBOUND' THEN 'CREATED' ELSE 'STORED' END,
+      'PASS',CASE WHEN S.SeedGroup='INBOUND' THEN NULL ELSE S.LocationNo END,'pda-seed',SYSDATETIME());
+
+MERGE dbo.WH_Inventory T
+USING (SELECT S.*,I.ItemName FROM @Lots S JOIN dbo.MD_Item I
+    ON I.ItemNo COLLATE DATABASE_DEFAULT=S.ItemNo COLLATE DATABASE_DEFAULT
+    WHERE S.SeedGroup<>'INBOUND') X
+ON T.LotNo=X.LotNo
+WHEN MATCHED THEN UPDATE SET UnitType='PART',PartNo=X.ItemNo,PartName=X.ItemName,LocationNo=X.LocationNo,Qty=X.Qty,
+    ReceivedAt=X.ReceivedAt,UpdatedAt=SYSDATETIME()
+WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
+    VALUES(X.LotNo,'PART',X.ItemNo,X.ItemName,X.LocationNo,X.Qty,X.ReceivedAt,SYSDATETIME(),SYSDATETIME());
+
+UPDATE dbo.WH_Inventory
+SET DeliveryNoteNo=CASE WHEN LotNo='5011LL260908850004' THEN 'PPT-WH-NOTE-PUTAWAY-RELOCATE' ELSE 'PPT-WH-NOTE-PUTAWAY' END,
+    LocationNo=CASE WHEN LotNo='5011LL260908850004' THEN 'B0-10-A1' ELSE NULL END,
+    UpdatedAt=SYSDATETIME()
+WHERE LotNo LIKE '5011LL26090885%';
+
+UPDATE dbo.tbl_Lot
+SET CurrentLocationID=CASE WHEN LotCode='5011LL260908850004' THEN 'B0-10-A1' ELSE NULL END,
+    InventoryStatus=CASE WHEN LotCode='5011LL260908850004' THEN 'STORED' ELSE 'RECEIVED' END,
+    ModifiedBy='pda-seed',ModifiedTS=SYSDATETIME()
+WHERE LotCode LIKE '5011LL26090885%';
+
+MERGE dbo.WH_PickSlip T
+USING (VALUES
+ ('PDA-REL-TEST-02','81711-PI000YGN',1.000,1,'PDA TEST'),
+ ('PDA-REL-ROLLBACK-01','81711-PI000YGN',1.000,1,'TEST'),
+ ('PS-PPT-WH-01','PPT-WH-REL-01',2.000,1,'SCTEST1'),
+ ('PS-PPT-WH-01','PPT-WH-REL-02',1.000,2,'SCTEST1')
+) S(PickSlipNo,ItemNo,DemandQty,ReqSeqNo,ReqUserId)
+ON T.PickSlipNo=S.PickSlipNo AND T.ItemNo=S.ItemNo
+WHEN MATCHED THEN UPDATE SET DemandQty=S.DemandQty,ReqSeqNo=S.ReqSeqNo,ReqUserId=S.ReqUserId,
+    Status=CASE WHEN UPPER(COALESCE(T.Status,'OPEN')) IN('CLOSED','RELEASED') THEN T.Status ELSE 'Open' END,
+    ModifiedBy='pda-seed',ModifiedTS=SYSDATETIME()
+WHEN NOT MATCHED THEN INSERT(WoID,ItemNo,DemandQty,PickedQty,RequiredAt,Priority,Status,CreatedBy,CreatedTS,PickSlipNo,ReqLocation,ReqSeqNo,ReqUserId)
+    VALUES(NULL,S.ItemNo,S.DemandQty,0,SYSDATETIME(),2,'Open','pda-seed',SYSDATETIME(),S.PickSlipNo,'LINE-A',S.ReqSeqNo,S.ReqUserId);
+
+IF OBJECT_ID(N'dbo.WH_PDA_PPT_TEST_RESET',N'P') IS NOT NULL
 BEGIN
-    DECLARE @AdjustScenarioLotNo varchar(40) = '5011LL260904500001';
-    DECLARE @AdjustScenarioLotID int =
-        (SELECT TOP (1) LotID FROM dbo.tbl_Lot WHERE LotCode = @AdjustScenarioLotNo);
-
-    IF @AdjustScenarioLotID IS NOT NULL
-    BEGIN
-        IF OBJECT_ID(N'dbo.WH_InventoryTransaction', N'U') IS NOT NULL
-            DELETE FROM dbo.WH_InventoryTransaction WHERE LotID = @AdjustScenarioLotID;
-        DELETE FROM dbo.WH_Inventory WHERE LotID = @AdjustScenarioLotID;
-        DELETE FROM dbo.tbl_Lot WHERE LotID = @AdjustScenarioLotID;
-    END;
-
-    INSERT INTO dbo.tbl_Lot
-        (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt,
-         Status, InventoryStatus, QualityFlag, CurrentLocationID, CreatedBy)
-    VALUES
-        (@AdjustScenarioLotNo, '81710-PI000NNB', 'WH', 10, 10, DATEADD(day, -2, SYSDATETIME()),
-         'Received', 'STORED', 'PASS', 'B0-12-B1', 'pda-adjust-test');
-
-    SET @AdjustScenarioLotID = CONVERT(int, SCOPE_IDENTITY());
-
-    INSERT INTO dbo.WH_Inventory
-        (ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt, Status, CreatedBy)
-    VALUES
-        ('81710-PI000NNB', 'B0-12-B1', @AdjustScenarioLotID, 10, 0,
-         DATEADD(day, -2, SYSDATETIME()), 'Received', 'pda-adjust-test');
+ EXEC dbo.WH_PDA_PPT_TEST_RESET 'release';
+ EXEC dbo.WH_PDA_PPT_TEST_RESET 'inventory';
+ EXEC dbo.WH_PDA_PPT_TEST_RESET 'adjust';
+ EXEC dbo.WH_PDA_PPT_TEST_RESET 'history';
 END;
 
-SELECT 'WH_WarehouseMaster' AS TableName, COUNT(*) AS DataRows
-FROM dbo.WH_WarehouseMaster
-WHERE CreatedBy = @LegacyActor
-UNION ALL
-SELECT 'WH_AreaMaster', COUNT(*)
-FROM dbo.WH_AreaMaster
-WHERE CreatedBy = @LegacyActor
-UNION ALL
-SELECT 'MD_Location', COUNT(*)
-FROM dbo.MD_Location
-WHERE CreatedBy = @LegacyActor
-UNION ALL
-SELECT 'WH_Inventory', COUNT(*)
-FROM dbo.WH_Inventory
-WHERE CreatedBy = @LegacyActor
-UNION ALL
-SELECT 'WH_ReleaseSchedule', COUNT(*)
-FROM dbo.WH_ReleaseSchedule
-WHERE CreatedBy = @LegacyActor;
+SELECT 'WH_Inventory' TableName,COUNT(*) DataRows FROM dbo.WH_Inventory
+UNION ALL SELECT 'WH_InventoryTransaction',COUNT(*) FROM dbo.WH_InventoryTransaction
+UNION ALL SELECT 'WH_PurchaseOrder',COUNT(*) FROM dbo.WH_PurchaseOrder
+UNION ALL SELECT 'WH_PickSlip',COUNT(*) FROM dbo.WH_PickSlip;
 GO
-
--- =====================================================================
---  WH Release Scan Test
--- =====================================================================
-SET NOCOUNT ON;
-SET XACT_ABORT ON;
-SET ANSI_NULLS ON;
-SET QUOTED_IDENTIFIER ON;
-
-BEGIN TRANSACTION;
-
-DECLARE @PickSlipNo nvarchar(40) = N'2026082801';
-DECLARE @RollbackPickSlipNo nvarchar(40) = N'PDA-REL-TEST-02';
-DECLARE @ItemNo varchar(20) = '81710-PI000NNB';
-DECLARE @DirectItemNo varchar(20) = '82301-PI000NNB';
-DECLARE @RollbackItemNo varchar(20) = '81711-PI000YGN';
-
-IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = @ItemNo)
-    THROW 50001, 'Required test item 81710-PI000NNB was not found in MD_Item.', 1;
-IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = @DirectItemNo)
-    THROW 50002, 'Required test item 82301-PI000NNB was not found in MD_Item.', 1;
-IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = @RollbackItemNo)
-    THROW 50003, 'Required test item 81711-PI000YGN was not found in MD_Item.', 1;
-
-DELETE P
-FROM dbo.WH_ReleasePicking P
-LEFT JOIN dbo.WH_ReleaseSchedule S ON S.ReleaseScheduleID = P.ReleaseScheduleID
-LEFT JOIN dbo.tbl_Lot L ON L.LotID = P.LotID
-WHERE S.PickSlipNo IN (@PickSlipNo, @RollbackPickSlipNo, N'PDA-REL-TEST-01')
-   OR L.LotCode IN
-   (
-       'PDA-REL-LOT-001', 'PDA-REL-LOT-002', 'PDA-REL-LOT-003',
-       '5011LL260701000001', '5011LL260715000002', '5011LL260801000003',
-       '5011LL260601000004', '5011LL260820000010', '5011LL260101000018'
-   );
-
-DELETE T
-FROM dbo.WH_InventoryTransaction T
-INNER JOIN dbo.tbl_Lot L ON L.LotID = T.LotID
-WHERE L.LotCode IN
-(
-    'PDA-REL-LOT-001', 'PDA-REL-LOT-002', 'PDA-REL-LOT-003',
-    '5011LL260701000001', '5011LL260715000002', '5011LL260801000003',
-    '5011LL260601000004', '5011LL260820000010', '5011LL260101000018'
-);
-
-DELETE FROM dbo.WH_ReleaseSchedule
-WHERE PickSlipNo IN (@PickSlipNo, @RollbackPickSlipNo, N'PDA-REL-TEST-01');
-
-DELETE W
-FROM dbo.WH_Inventory W
-INNER JOIN dbo.tbl_Lot L ON L.LotID = W.LotID
-WHERE L.LotCode IN
-(
-    'PDA-REL-LOT-001', 'PDA-REL-LOT-002', 'PDA-REL-LOT-003',
-    '5011LL260701000001', '5011LL260715000002', '5011LL260801000003',
-    '5011LL260601000004', '5011LL260820000010', '5011LL260101000018'
-);
-
-DELETE FROM dbo.tbl_Lot
-WHERE LotCode IN
-(
-    'PDA-REL-LOT-001', 'PDA-REL-LOT-002', 'PDA-REL-LOT-003',
-    '5011LL260701000001', '5011LL260715000002', '5011LL260801000003',
-    '5011LL260601000004', '5011LL260820000010', '5011LL260101000018'
-);
-
-INSERT INTO dbo.WH_ReleaseSchedule
-(
-    WoID, ItemNo, DemandQty, PickedQty, RequiredAt, Priority, Status,
-    CreatedBy, PickSlipNo, ReqLocation, ReqSeqNo, ReqUserId
-)
-VALUES
-(
-    NULL, @ItemNo, 3, 0, SYSDATETIME(), 2, 'Open',
-    'pda-release-test', @PickSlipNo, N'LINE-A', 1, N'PDA TEST'
-),
-(
-    NULL, @DirectItemNo, 1, 0, SYSDATETIME(), 2, 'Open',
-    'pda-release-test', @PickSlipNo, N'LINE-A', 2, N'PDA TEST'
-),
-(
-    NULL, @RollbackItemNo, 1, 0, SYSDATETIME(), 2, 'Open',
-    'pda-release-test', @RollbackPickSlipNo, N'LINE-ROLLBACK', 1, N'PDA TEST'
-);
-
-INSERT INTO dbo.tbl_Lot
-(
-    LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt,
-    Status, InventoryStatus, QualityFlag, CurrentLocationID, CreatedBy
-)
-VALUES
-('5011LL260701000001', @ItemNo, 'WH', 4, 4, '2026-07-01T08:00:00', 'Received', 'RECEIVED', 'PASS', 'B0-10-A1', 'pda-release-test'),
-('5011LL260715000002', @ItemNo, 'WH', 4, 4, '2026-07-15T08:00:00', 'Received', 'RECEIVED', 'PASS', 'B0-10-B1', 'pda-release-test'),
-('5011LL260801000003', @ItemNo, 'WH', 2, 2, '2026-08-01T08:00:00', 'Received', 'RECEIVED', 'PASS', 'B0-09-D2', 'pda-release-test'),
-('5011LL260601000004', @DirectItemNo, 'WH', 8, 8, '2026-06-01T08:00:00', 'Received', 'RECEIVED', 'PASS', 'B0-08-B1', 'pda-release-test'),
-('5011LL260820000010', @DirectItemNo, 'WH', 24, 24, '2026-08-20T08:00:00', 'Received', 'RECEIVED', 'PASS', 'B0-10-A1', 'pda-release-test'),
-('5011LL260101000018', @RollbackItemNo, 'WH', 6, 6, '2026-01-01T08:00:00', 'Received', 'RECEIVED', 'PASS', 'B0-08-C1', 'pda-release-test');
-
-INSERT INTO dbo.WH_Inventory
-(
-    ItemNo, LocationID, LotID, OnHandQty, ReservedQty, LastReceivedAt,
-    Status, CreatedBy
-)
-SELECT
-    L.ItemNo,
-    CASE L.LotCode
-        WHEN '5011LL260701000001' THEN 'B0-10-A1'
-        WHEN '5011LL260715000002' THEN 'B0-10-B1'
-        WHEN '5011LL260801000003' THEN 'B0-09-D2'
-        WHEN '5011LL260601000004' THEN 'B0-08-B1'
-        WHEN '5011LL260101000018' THEN 'B0-08-C1'
-        ELSE 'B0-10-A1'
-    END,
-    L.LotID,
-    CASE L.LotCode
-        WHEN '5011LL260701000001' THEN 4
-        WHEN '5011LL260715000002' THEN 4
-        WHEN '5011LL260801000003' THEN 2
-        WHEN '5011LL260601000004' THEN 8
-        WHEN '5011LL260101000018' THEN 6
-        ELSE 24
-    END,
-    0,
-    CASE L.LotCode
-        WHEN '5011LL260701000001' THEN '2026-07-01T08:00:00'
-        WHEN '5011LL260715000002' THEN '2026-07-15T08:00:00'
-        WHEN '5011LL260801000003' THEN '2026-08-01T08:00:00'
-        WHEN '5011LL260601000004' THEN '2026-06-01T08:00:00'
-        WHEN '5011LL260101000018' THEN '2026-01-01T08:00:00'
-        ELSE '2026-08-20T08:00:00'
-    END,
-    'Received',
-    'pda-release-test'
-FROM dbo.tbl_Lot L
-WHERE L.LotCode IN
-(
-    '5011LL260701000001', '5011LL260715000002', '5011LL260801000003',
-    '5011LL260601000004', '5011LL260820000010', '5011LL260101000018'
-);
-
-COMMIT TRANSACTION;
-
-EXEC dbo.WH_PDA_RELEASE_SLIP_STATUS @PickSlipNo = @PickSlipNo;
-EXEC dbo.WH_PDA_RELEASE_PICK_LINES @PickSlipNo = @PickSlipNo;
-EXEC dbo.WH_PDA_RELEASE_SCAN_LOT @PickSlipNo = @PickSlipNo, @LotNo = N'5011LL260701000001';
-EXEC dbo.WH_PDA_RELEASE_SCAN_LOT @PickSlipNo = @PickSlipNo, @LotNo = N'5011LL260715000002';
-EXEC dbo.WH_PDA_RELEASE_SLIP_STATUS @PickSlipNo = @RollbackPickSlipNo;
-GO
-
--- =====================================================================
---  Warehouse PPT scenarios
--- =====================================================================
-DECLARE @PptStocks TABLE (Screen varchar(10), Barcode varchar(40), ItemNo varchar(20), ItemName nvarchar(100), Qty decimal(14,3), ProducedAt datetime2);
-INSERT INTO @PptStocks VALUES
-    ('release', '5011LL260908810001', 'PPT-WH-REL-01', N'PPT Release Trim A', 20, '2026-09-01T08:00:00'),
-    ('release', '5011LL260908810002', 'PPT-WH-REL-01', N'PPT Release Trim A', 10, '2026-09-02T08:00:00'),
-    ('release', '5011LL260908810003', 'PPT-WH-REL-02', N'PPT Release Trim B', 16, '2026-09-01T08:00:00'),
-    ('release', '5011LL260908810004', 'PPT-WH-REL-02', N'PPT Release Trim B', 8, '2026-09-03T08:00:00'),
-    ('inventory', '5011LL260908820001', 'PPT-WH-INV-01', N'PPT Inventory Trim A', 30, '2026-09-01T08:00:00'),
-    ('inventory', '5011LL260908820002', 'PPT-WH-INV-01', N'PPT Inventory Trim A', 20, '2026-09-02T08:00:00'),
-    ('inventory', '5011LL260908820003', 'PPT-WH-INV-02', N'PPT Inventory Trim B', 12, '2026-09-01T08:00:00'),
-    ('adjust', '5011LL260908830001', 'PPT-WH-ADJ-01', N'PPT Adjust Trim', 10, '2026-09-01T08:00:00'),
-    ('history', '5011LL260908840001', 'PPT-WH-HIST-01', N'PPT Transaction Trim', 18, '2026-09-01T08:00:00');
-INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM, ActiveFlag, CreatedBy)
-SELECT DISTINCT ItemNo, ItemName, 'ASSY', 'TRIM', 'NE1A', 'EA', 1, 'pda-ppt-seed'
-FROM @PptStocks Sample
-WHERE NOT EXISTS (SELECT 1 FROM dbo.MD_Item Existing WHERE Existing.ItemNo = Sample.ItemNo);
-INSERT INTO dbo.tbl_Lot (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt, Status, InventoryStatus, QualityFlag, CreatedBy)
-SELECT Barcode, ItemNo, 'WH', Qty, Qty, ProducedAt, 'Received', 'RECEIVED', 'PASS', CONCAT('pda-ppt-', Screen)
-FROM @PptStocks Sample
-WHERE NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot Existing WHERE Existing.LotCode = Sample.Barcode);
-INSERT INTO dbo.WH_ReleaseSchedule
-    (WoID, ItemNo, DemandQty, PickedQty, RequiredAt, Priority, Status, CreatedBy, PickSlipNo, ReqLocation, ReqSeqNo, ReqUserId)
-SELECT NULL, Sample.ItemNo, Sample.Boxes, 0, SYSDATETIME(), 2, 'Open', 'pda-ppt-release', 'PS-PPT-WH-01', 'LINE-A', Sample.SequenceNo, 'TEST1'
-FROM (VALUES ('PPT-WH-REL-01', 2, 1), ('PPT-WH-REL-02', 1, 2)) Sample(ItemNo, Boxes, SequenceNo)
-WHERE NOT EXISTS (SELECT 1 FROM dbo.WH_ReleaseSchedule Existing WHERE Existing.PickSlipNo = 'PS-PPT-WH-01' AND Existing.ItemNo = Sample.ItemNo);
-EXEC dbo.WH_PDA_PPT_TEST_RESET @Screen = 'release';
-EXEC dbo.WH_PDA_PPT_TEST_RESET @Screen = 'inventory';
-EXEC dbo.WH_PDA_PPT_TEST_RESET @Screen = 'adjust';
-EXEC dbo.WH_PDA_PPT_TEST_RESET @Screen = 'history';
-GO
-
 -- =====================================================================
 --  FG Six Screen Demo
 -- =====================================================================
@@ -1545,12 +685,14 @@ SET NUMERIC_ROUNDABORT OFF;
 INSERT dbo.MD_Item(ItemNo,ItemName,ItemType,ItemCategory,DefaultUOM,ActiveFlag,CreatedBy,CreatedTS)
 SELECT V.ItemNo,V.ItemName,'FG','TRIM','EA',1,'pda-seed',SYSDATETIME()
 FROM (VALUES ('DR-TRM-LH-A1',N'DOOR TRIM LH'),('DR-TRM-RH-A1',N'DOOR TRIM RH')) V(ItemNo,ItemName)
-WHERE NOT EXISTS(SELECT 1 FROM dbo.MD_Item I WHERE I.ItemNo=V.ItemNo);
+WHERE NOT EXISTS(SELECT 1 FROM dbo.MD_Item I
+    WHERE I.ItemNo COLLATE DATABASE_DEFAULT=V.ItemNo COLLATE DATABASE_DEFAULT);
 
 INSERT dbo.MD_Location(LocationID,LocationName,ZoneCode,Aisle,Bay,Slot,Capacity,LocationType,PlantCode,ActiveFlag,CreatedBy,CreatedTS)
 SELECT V.LocationID,V.LocationID,'FG',V.Aisle,V.Bay,'01',1000,'FG','EOS',1,'pda-seed',SYSDATETIME()
 FROM (VALUES ('FG-A-01','A','01'),('FG-A-02','A','02'),('FG-B-01','B','01')) V(LocationID,Aisle,Bay)
-WHERE NOT EXISTS(SELECT 1 FROM dbo.MD_Location L WHERE L.LocationID=V.LocationID);
+WHERE NOT EXISTS(SELECT 1 FROM dbo.MD_Location L
+    WHERE L.LocationID COLLATE DATABASE_DEFAULT=V.LocationID COLLATE DATABASE_DEFAULT);
 
 DECLARE @SeedBy varchar(50) = 'pda-fg-six-demo';
 DECLARE @Item1 varchar(20), @Item2 varchar(20), @Item3 varchar(20);
@@ -1588,15 +730,20 @@ IF @Loc4 IS NULL THROW 51000, 'At least four active MD_Location rows are require
 BEGIN TRANSACTION;
 
 -- Remove only this script's prior transactional demo rows.
-DELETE FROM dbo.FG_LoadingConfirm WHERE CreatedBy = @SeedBy;
-DELETE FROM dbo.FG_PickingDetail WHERE PickID IN (SELECT PickID FROM dbo.FG_PickingFifo WHERE CreatedBy = @SeedBy);
-DELETE FROM dbo.FG_PickingFifo WHERE CreatedBy = @SeedBy;
+DELETE FROM dbo.WH_InventoryTransaction WHERE CreatedBy = @SeedBy AND RefDocType LIKE 'FG%';
 DELETE FROM dbo.FG_CustomerReturn WHERE CreatedBy = @SeedBy;
-DELETE FROM dbo.FG_ShipmentOrderLine WHERE CreatedBy = @SeedBy;
 DELETE FROM dbo.FG_ShipmentOrder WHERE CreatedBy = @SeedBy;
 DELETE FROM dbo.FG_PutAway WHERE CreatedBy = @SeedBy;
-DELETE FROM dbo.FG_Inventory WHERE CreatedBy = @SeedBy;
+DELETE I FROM dbo.WH_Inventory I
+JOIN dbo.tbl_Lot L ON L.LotCode COLLATE DATABASE_DEFAULT=I.LotNo COLLATE DATABASE_DEFAULT
+WHERE L.CreatedBy=@SeedBy;
 DELETE FROM dbo.QC_Inspection WHERE CreatedBy = @SeedBy;
+DELETE R FROM dbo.PR_ProductionResult R
+JOIN dbo.tbl_Lot L ON L.LotID = R.LotID
+WHERE L.CreatedBy = @SeedBy;
+DELETE I FROM dbo.PR_ImgLot I
+JOIN dbo.tbl_Lot L ON L.LotID = I.LotID
+WHERE L.CreatedBy = @SeedBy;
 DELETE FROM dbo.tbl_Lot WHERE CreatedBy = @SeedBy;
 DELETE FROM dbo.PP_WorkOrder WHERE CreatedBy = @SeedBy;
 
@@ -1635,11 +782,13 @@ FROM @Demo;
 INSERT INTO dbo.tbl_Lot
     (LotCode, ItemNo, WoID, LineID, ProcessCode, BatchSize, RemainingQty, ProducedAt,
      Status, QualityFlag, CurrentLocationID, ExpiryDate, CreatedBy, CreatedTS)
-SELECT d.LotCode, d.ItemNo, w.WoID, 'FG-DEMO', 'FINAL', d.Qty, d.Qty, d.ProducedAt,
-       'Completed', 'PASS', d.LocationID, DATEADD(year,1,CAST(d.ProducedAt AS date)),
+SELECT d.LotCode, d.ItemNo, w.WoID, 'FG-DEMO', 'IMG', d.Qty, d.Qty, d.ProducedAt,
+       'CONFIRMED', 'OK', d.LocationID, DATEADD(year,1,CAST(d.ProducedAt AS date)),
        @SeedBy, SYSDATETIME()
 FROM @Demo d
-JOIN dbo.PP_WorkOrder w ON w.WoNumber = d.WoNumber AND w.CreatedBy = @SeedBy;
+JOIN dbo.PP_WorkOrder w
+  ON w.WoNumber COLLATE DATABASE_DEFAULT = d.WoNumber COLLATE DATABASE_DEFAULT
+ AND w.CreatedBy COLLATE DATABASE_DEFAULT = @SeedBy;
 
 INSERT INTO dbo.QC_Inspection
     (InspectionNo, InspectionType, LotID, WoID, LineID, ItemNo, CustomerCode, Mode,
@@ -1650,19 +799,42 @@ SELECT CONCAT('FG-QC-DEMO-', RIGHT('000' + CAST(d.Seq AS varchar(3)),3)), 'FQC',
        'PASS', 0, 'admin', DATEADD(minute,-20,d.ProducedAt), DATEADD(minute,-5,d.ProducedAt),
        @SeedBy, SYSDATETIME()
 FROM @Demo d
-JOIN dbo.PP_WorkOrder w ON w.WoNumber = d.WoNumber AND w.CreatedBy = @SeedBy
-JOIN dbo.tbl_Lot l ON l.LotCode = d.LotCode AND l.CreatedBy = @SeedBy;
+JOIN dbo.PP_WorkOrder w
+  ON w.WoNumber COLLATE DATABASE_DEFAULT = d.WoNumber COLLATE DATABASE_DEFAULT
+ AND w.CreatedBy COLLATE DATABASE_DEFAULT = @SeedBy
+JOIN dbo.tbl_Lot l
+  ON l.LotCode COLLATE DATABASE_DEFAULT = d.LotCode COLLATE DATABASE_DEFAULT
+ AND l.CreatedBy COLLATE DATABASE_DEFAULT = @SeedBy;
 
-INSERT INTO dbo.FG_Inventory
-    (StockNumber, WoID, ItemNo, LotID, CustomerCode, Qty, Location, Status, HoldFlag,
-     StockTS, CreatedBy, CreatedTS)
-SELECT CONCAT('FG-DEMO-STK-', RIGHT('000' + CAST(d.Seq AS varchar(3)),3)), w.WoID, d.ItemNo,
-       l.LotID, 'DEMO-CUSTOMER', d.Qty, d.LocationID, d.InventoryStatus,
-       CASE WHEN d.InventoryStatus = 'HOLD' THEN 1 ELSE 0 END,
-       DATEADD(minute,30,d.ProducedAt), @SeedBy, SYSDATETIME()
+INSERT INTO dbo.PR_ImgLot
+    (LotID, ConfirmStatus, ConfirmedAt, ConfirmedBy, CustomerCode, PrintedCount, CreatedBy, CreatedTS)
+SELECT l.LotID, 'CONFIRMED', d.ProducedAt, 'admin', 'DEMO-CUSTOMER', 1, @SeedBy, SYSDATETIME()
 FROM @Demo d
-JOIN dbo.PP_WorkOrder w ON w.WoNumber = d.WoNumber AND w.CreatedBy = @SeedBy
-JOIN dbo.tbl_Lot l ON l.LotCode = d.LotCode AND l.CreatedBy = @SeedBy
+JOIN dbo.tbl_Lot l
+  ON l.LotCode COLLATE DATABASE_DEFAULT = d.LotCode COLLATE DATABASE_DEFAULT
+ AND l.CreatedBy COLLATE DATABASE_DEFAULT = @SeedBy;
+
+INSERT INTO dbo.PR_ProductionResult
+    (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec, OperatorID,
+     DefectFlag, EntryAt, ProdDate, CreatedBy, CreatedTS)
+SELECT CONCAT('FGDEMO-', RIGHT('000' + CAST(d.Seq AS varchar(3)), 3)), w.WoID, l.LotID,
+       'FG-DEMO', 'IMG', CONVERT(int, d.Qty), 0, 'admin', 0, d.ProducedAt,
+       CAST(d.ProducedAt AS date), @SeedBy, SYSDATETIME()
+FROM @Demo d
+JOIN dbo.PP_WorkOrder w
+  ON w.WoNumber COLLATE DATABASE_DEFAULT = d.WoNumber COLLATE DATABASE_DEFAULT
+ AND w.CreatedBy COLLATE DATABASE_DEFAULT = @SeedBy
+JOIN dbo.tbl_Lot l
+  ON l.LotCode COLLATE DATABASE_DEFAULT = d.LotCode COLLATE DATABASE_DEFAULT
+ AND l.CreatedBy COLLATE DATABASE_DEFAULT = @SeedBy;
+
+INSERT INTO dbo.WH_Inventory
+    (LotNo, UnitType, PartNo, PartName, LocationNo, Qty, ReceivedAt, CreatedAt, UpdatedAt)
+SELECT d.LotCode, 'PART', d.ItemNo, I.ItemName, d.LocationID, d.Qty,
+       DATEADD(minute,30,d.ProducedAt), SYSDATETIME(), SYSDATETIME()
+FROM @Demo d
+LEFT JOIN dbo.MD_Item I
+  ON I.ItemNo COLLATE DATABASE_DEFAULT=d.ItemNo COLLATE DATABASE_DEFAULT
 WHERE d.InventoryStatus IS NOT NULL;
 
 INSERT INTO dbo.FG_ShipmentOrder
@@ -1677,56 +849,45 @@ DECLARE @Order1 int = (SELECT ShipmentOrderID FROM dbo.FG_ShipmentOrder WHERE Sh
 DECLARE @Order2 int = (SELECT ShipmentOrderID FROM dbo.FG_ShipmentOrder WHERE ShipOrderNumber='FG-SO-DEMO-002' AND CreatedBy=@SeedBy);
 DECLARE @Order3 int = (SELECT ShipmentOrderID FROM dbo.FG_ShipmentOrder WHERE ShipOrderNumber='FG-SO-DEMO-003' AND CreatedBy=@SeedBy);
 
-INSERT INTO dbo.FG_ShipmentOrderLine
-    (ShipmentOrderID, LineSeq, ItemNo, OrderedQty, AllocatedQty, StockID, LotID, Location,
-     ReservationStatus, ReservedAt, CreatedBy, CreatedTS)
-SELECT @Order1, 10, s.ItemNo, s.Qty, 0, NULL, NULL, s.Location, 'Open', NULL, @SeedBy, SYSDATETIME()
-FROM dbo.FG_Inventory s WHERE s.StockNumber='FG-DEMO-STK-003' AND s.CreatedBy=@SeedBy
-UNION ALL
-SELECT @Order1, 20, s.ItemNo, s.Qty, 0, NULL, NULL, s.Location, 'Open', NULL, @SeedBy, SYSDATETIME()
-FROM dbo.FG_Inventory s WHERE s.StockNumber='FG-DEMO-STK-004' AND s.CreatedBy=@SeedBy
-UNION ALL
-SELECT @Order2, 10, s.ItemNo, s.Qty, s.Qty, s.StockID, s.LotID, s.Location, 'Picked', SYSDATETIME(), @SeedBy, SYSDATETIME()
-FROM dbo.FG_Inventory s WHERE s.StockNumber='FG-DEMO-STK-005' AND s.CreatedBy=@SeedBy
-UNION ALL
-SELECT @Order2, 20, s.ItemNo, s.Qty, s.Qty, s.StockID, s.LotID, s.Location, 'Picked', SYSDATETIME(), @SeedBy, SYSDATETIME()
-FROM dbo.FG_Inventory s WHERE s.StockNumber='FG-DEMO-STK-009' AND s.CreatedBy=@SeedBy
-UNION ALL
-SELECT @Order2, 30, s.ItemNo, s.Qty, s.Qty, s.StockID, s.LotID, s.Location, 'Picked', SYSDATETIME(), @SeedBy, SYSDATETIME()
-FROM dbo.FG_Inventory s WHERE s.StockNumber='FG-DEMO-STK-010' AND s.CreatedBy=@SeedBy
-UNION ALL
-SELECT @Order3, 10, @Item1, 12, 0, NULL, NULL, @Loc4, 'Open', NULL, @SeedBy, SYSDATETIME();
+UPDATE dbo.FG_ShipmentOrder SET ItemsJSON =
+(
+    SELECT ROW_NUMBER() OVER (ORDER BY S.LotNo) * 10 AS lineSeq, S.PartNo AS itemNo,
+           S.Qty AS orderedQty, CAST(0 AS decimal(12,3)) AS allocatedQty,
+           S.LotNo AS lotNo, S.LocationNo AS location
+    FROM dbo.WH_Inventory S
+    WHERE S.LotNo IN ('5011FG260821000201','5011FG260822000202')
+    FOR JSON PATH
+)
+WHERE ShipmentOrderID=@Order1;
 
-INSERT INTO dbo.FG_PickingFifo
-    (PickNumber, ShipmentOrderID, PickerID, StartTS, EndTS,
-     PickedQty, OrderedQty, Status, CreatedBy, CreatedTS)
-VALUES
- ('FG-PICK-DEMO-002', @Order2, 'admin', DATEADD(minute,-30,SYSDATETIME()),
-  DATEADD(minute,-20,SYSDATETIME()), 34, 34, 'Picked', @SeedBy, SYSDATETIME());
+UPDATE dbo.FG_ShipmentOrder SET ItemsJSON =
+(
+    SELECT ROW_NUMBER() OVER (ORDER BY S.LotNo) * 10 AS lineSeq, S.PartNo AS itemNo,
+           S.Qty AS orderedQty, S.Qty AS allocatedQty, S.LotNo AS lotNo,
+           L.LotID AS lotId, S.LocationNo AS location
+    FROM dbo.WH_Inventory S
+    LEFT JOIN dbo.tbl_Lot L
+      ON L.LotCode COLLATE DATABASE_DEFAULT=S.LotNo COLLATE DATABASE_DEFAULT
+    WHERE S.LotNo IN ('5011FG260823000203','5011FG260825000207','5011FG260826000208')
+    FOR JSON PATH
+)
+WHERE ShipmentOrderID=@Order2;
 
-DECLARE @DemoPickID int=(SELECT PickID FROM dbo.FG_PickingFifo WHERE PickNumber='FG-PICK-DEMO-002' AND CreatedBy=@SeedBy);
-INSERT dbo.FG_PickingDetail(PickID,ShipmentOrderLineID,StockID,LotID,ItemNo,Qty,Location,PickSeq,CreatedBy,CreatedTS)
-SELECT @DemoPickID,L.ShipmentOrderLineID,S.StockID,S.LotID,S.ItemNo,S.Qty,S.Location,
-       ROW_NUMBER() OVER(ORDER BY L.LineSeq,L.ShipmentOrderLineID),@SeedBy,SYSDATETIME()
-FROM dbo.FG_ShipmentOrderLine L JOIN dbo.FG_Inventory S ON S.StockID=L.StockID
-WHERE L.ShipmentOrderID=@Order2;
+UPDATE dbo.FG_ShipmentOrder
+SET ItemsJSON=(SELECT 10 AS lineSeq,@Item1 AS itemNo,CAST(12 AS decimal(12,3)) AS orderedQty,
+                      CAST(0 AS decimal(12,3)) AS allocatedQty,@Loc4 AS location FOR JSON PATH)
+WHERE ShipmentOrderID=@Order3;
 
 COMMIT TRANSACTION;
 
 SELECT 'FG Waiting / Put-Away LOT' AS DemoType, CONCAT('FGLOT:', LotCode) AS ScanValue
 FROM @Demo WHERE InventoryStatus IS NULL
 UNION ALL SELECT 'FG Inventory LOT', LotCode FROM @Demo WHERE InventoryStatus IS NOT NULL
-UNION ALL SELECT 'FG Release Outgoing Slip', '2609020001'
-UNION ALL SELECT 'FG Loading Truck', 'TRUCK:GA-260902-01'
-UNION ALL SELECT 'FG Loading Shipment Order', 'FG-SO-DEMO-002'
-UNION ALL SELECT 'FG Loading Stock', 'FG-DEMO-STK-005'
-UNION ALL SELECT 'FG Loading Stock', 'FG-DEMO-STK-009'
-UNION ALL SELECT 'FG Loading Stock', 'FG-DEMO-STK-010'
 UNION ALL SELECT 'FG Put-Away Location', @Loc1;
 GO
 
 -- =====================================================================
---  FG QC Waiting Demo
+--  FG Put-Away Waiting Demo (POP production completed, not stocked)
 -- =====================================================================
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -1738,7 +899,8 @@ SET CONCAT_NULL_YIELDS_NULL ON;
 SET ARITHABORT ON;
 SET NUMERIC_ROUNDABORT OFF;
 
-DECLARE @SeedBy varchar(50) = 'pda-fg-qc-waiting-demo';
+DECLARE @SeedBy varchar(20) = 'pda-fg-wait-lot';
+DECLARE @PopSeedBy varchar(20) = 'pda-fg-wait-demo';
 DECLARE @Now datetime2 = SYSDATETIME();
 DECLARE @Samples TABLE
 (
@@ -1769,55 +931,75 @@ BEGIN TRY
     WHERE l.CreatedBy = 'pda-fg-six-demo'
       AND l.LotCode IN ('FG-DEMO-WAIT-001', 'FG-DEMO-WAIT-002')
       AND l.ProducedAt IS NOT NULL
-      AND NOT EXISTS (SELECT 1 FROM dbo.FG_Inventory f WHERE f.LotID = l.LotID)
-      AND NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot other WHERE other.LotCode =
+      AND NOT EXISTS (SELECT 1 FROM dbo.WH_Inventory f
+          WHERE f.LotNo COLLATE DATABASE_DEFAULT = l.LotCode COLLATE DATABASE_DEFAULT)
+      AND NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot other WHERE other.LotCode COLLATE DATABASE_DEFAULT =
           CONCAT('5011FG', CONVERT(char(6), l.ProducedAt, 12),
               CASE l.LotCode WHEN 'FG-DEMO-WAIT-001' THEN '000901' ELSE '000902' END));
 
     IF EXISTS
     (
         SELECT 1 FROM @Samples s
-        WHERE NOT EXISTS (SELECT 1 FROM dbo.MD_Item i WHERE i.ItemNo = s.ItemNo)
+        WHERE NOT EXISTS (SELECT 1 FROM dbo.MD_Item i
+            WHERE i.ItemNo COLLATE DATABASE_DEFAULT = s.ItemNo COLLATE DATABASE_DEFAULT)
     ) THROW 51000, 'Required existing part masters are missing. No masters will be created.', 1;
 
     IF EXISTS
     (
         SELECT 1 FROM @Samples s
-        JOIN dbo.tbl_Lot l ON l.LotCode = s.LotCode
+        JOIN dbo.tbl_Lot l
+          ON l.LotCode COLLATE DATABASE_DEFAULT = s.LotCode COLLATE DATABASE_DEFAULT
         WHERE l.CreatedBy <> @SeedBy
     ) THROW 51000, 'A sample LOT number is already owned by other data.', 1;
-
-    IF EXISTS
-    (
-        SELECT 1 FROM @Samples s
-        JOIN dbo.QC_Inspection q ON q.InspectionNo = CONCAT('FGWAIT-QC-', s.Seq)
-        WHERE q.CreatedBy <> @SeedBy
-    ) THROW 51000, 'A sample inspection number is already owned by other data.', 1;
 
     INSERT INTO dbo.tbl_Lot
         (LotCode, ItemNo, ProcessCode, BatchSize, RemainingQty, ProducedAt,
          Status, QualityFlag, InventoryStatus, ExpiryDate, CreatedBy, CreatedTS)
-    SELECT s.LotCode, s.ItemNo, 'FINAL', s.Qty, s.Qty,
-           DATEADD(hour, -s.AgeHours - 2, @Now), 'Completed', 'PASS', 'QC_PASS',
+    SELECT s.LotCode, s.ItemNo, 'IMG', s.Qty, s.Qty,
+           DATEADD(hour, -s.AgeHours, @Now), 'CONFIRMED', 'OK', 'PRODUCTION_COMPLETED',
            DATEADD(year, 1, CAST(DATEADD(hour, -s.AgeHours - 2, @Now) AS date)), @SeedBy, @Now
     FROM @Samples s
     WHERE NOT EXISTS
-        (SELECT 1 FROM dbo.tbl_Lot l WITH (UPDLOCK, HOLDLOCK) WHERE l.LotCode = s.LotCode);
+        (SELECT 1 FROM dbo.tbl_Lot l WITH (UPDLOCK, HOLDLOCK)
+         WHERE l.LotCode COLLATE DATABASE_DEFAULT = s.LotCode COLLATE DATABASE_DEFAULT);
 
-    INSERT INTO dbo.QC_Inspection
-        (InspectionNo, InspectionType, LotID, ItemNo, Mode, SampleSize,
-         BatchQty, CumulativeGood, DefectQtyTotal, Verdict, CriticalFlag,
-         InspectorID, InsStartTS, InsEndTS, CreatedBy, CreatedTS)
-    SELECT CONCAT('FGWAIT-QC-', s.Seq), 'FQC', l.LotID, s.ItemNo, 'Normal', 5,
-           s.Qty, CONVERT(int, s.Qty), 0, 'PASS', 0, 'admin',
-           DATEADD(hour, 1, l.ProducedAt), DATEADD(hour, 2, l.ProducedAt), @SeedBy, @Now
+    UPDATE l
+    SET ProcessCode = 'IMG', Status = 'CONFIRMED', QualityFlag = 'OK',
+        InventoryStatus = 'PRODUCTION_COMPLETED',
+        ProducedAt = DATEADD(hour, -s.AgeHours, @Now)
+    FROM dbo.tbl_Lot l
+    JOIN @Samples s
+      ON s.LotCode COLLATE DATABASE_DEFAULT = l.LotCode COLLATE DATABASE_DEFAULT
+    WHERE l.CreatedBy = @SeedBy;
+
+    DELETE r FROM dbo.PR_ProductionResult r
+    JOIN dbo.tbl_Lot l ON l.LotID = r.LotID
+    WHERE l.CreatedBy = @SeedBy AND r.CreatedBy = @PopSeedBy;
+    DELETE i FROM dbo.PR_ImgLot i
+    JOIN dbo.tbl_Lot l ON l.LotID = i.LotID
+    WHERE l.CreatedBy = @SeedBy AND i.CreatedBy = @PopSeedBy;
+    DELETE FROM dbo.QC_Inspection WHERE CreatedBy = @SeedBy;
+
+    INSERT INTO dbo.PR_ImgLot
+        (LotID, ConfirmStatus, ConfirmedAt, ConfirmedBy, CustomerCode, PrintedCount, CreatedBy, CreatedTS)
+    SELECT l.LotID, 'CONFIRMED', l.ProducedAt, 'admin', 'DEMO-CUSTOMER', 1, @PopSeedBy, @Now
     FROM @Samples s
-    JOIN dbo.tbl_Lot l ON l.LotCode = s.LotCode AND l.CreatedBy = @SeedBy
+    JOIN dbo.tbl_Lot l
+      ON l.LotCode COLLATE DATABASE_DEFAULT = s.LotCode COLLATE DATABASE_DEFAULT
+     AND l.CreatedBy COLLATE DATABASE_DEFAULT = @SeedBy
+    WHERE NOT EXISTS (SELECT 1 FROM dbo.PR_ImgLot i WHERE i.LotID = l.LotID);
+
+    INSERT INTO dbo.PR_ProductionResult
+        (EntryNo, LotID, LineID, ProcessCode, GoodQty, CycleSec, OperatorID,
+         DefectFlag, EntryAt, ProdDate, CreatedBy, CreatedTS)
+    SELECT CONCAT('FGWAIT-', s.Seq), l.LotID, 'FG-DEMO', 'IMG', CONVERT(int, s.Qty), 0,
+           'admin', 0, l.ProducedAt, CAST(l.ProducedAt AS date), @PopSeedBy, @Now
+    FROM @Samples s
+    JOIN dbo.tbl_Lot l
+      ON l.LotCode COLLATE DATABASE_DEFAULT = s.LotCode COLLATE DATABASE_DEFAULT
+     AND l.CreatedBy COLLATE DATABASE_DEFAULT = @SeedBy
     WHERE NOT EXISTS
-        (SELECT 1 FROM dbo.QC_Inspection q WITH (UPDLOCK, HOLDLOCK)
-         WHERE q.InspectionNo = CONCAT('FGWAIT-QC-', s.Seq))
-      AND NOT EXISTS (SELECT 1 FROM dbo.QC_Inspection q WHERE q.LotID = l.LotID)
-      AND NOT EXISTS (SELECT 1 FROM dbo.FG_Inventory f WHERE f.LotID = l.LotID);
+        (SELECT 1 FROM dbo.PR_ProductionResult r WHERE r.LotID = l.LotID AND r.ProcessCode = 'IMG');
 
     COMMIT TRANSACTION;
 END TRY
@@ -1827,12 +1009,13 @@ BEGIN CATCH
 END CATCH;
 
 SELECT l.LotCode, l.ItemNo, i.ItemName, l.BatchSize AS Qty, i.DefaultUOM AS Unit,
-       q.InsEndTS AS QcPassedAt
+       p.ConfirmedAt AS ReadyAt
 FROM dbo.tbl_Lot l
-JOIN dbo.MD_Item i ON i.ItemNo = l.ItemNo
-JOIN dbo.QC_Inspection q ON q.LotID = l.LotID AND q.CreatedBy = @SeedBy
+JOIN dbo.MD_Item i
+  ON i.ItemNo COLLATE DATABASE_DEFAULT = l.ItemNo COLLATE DATABASE_DEFAULT
+JOIN dbo.PR_ImgLot p ON p.LotID = l.LotID
 WHERE l.CreatedBy = @SeedBy
-ORDER BY q.InsEndTS, l.LotID;
+ORDER BY p.ConfirmedAt, l.LotID;
 GO
 
 -- =====================================================================
@@ -1850,15 +1033,13 @@ SET NUMERIC_ROUNDABORT OFF;
 
 BEGIN TRANSACTION;
 
-IF NOT EXISTS (SELECT 1 FROM dbo.FG_Inventory WHERE StockNumber = 'FG-DEMO-RETURN-002')
+IF NOT EXISTS (SELECT 1 FROM dbo.WH_Inventory WHERE LotNo = 'FG-DEMO-RETURN-002')
 BEGIN
-    INSERT INTO dbo.FG_Inventory
-        (StockNumber, WoID, ItemNo, CustomerCode, Qty, Location, Status,
-         HoldFlag, StockTS, CreatedBy, CreatedTS)
+    INSERT INTO dbo.WH_Inventory
+        (LotNo, UnitType, PartNo, PartName, Qty, LocationNo, ReceivedAt, CreatedAt, UpdatedAt)
     VALUES
-        ('FG-DEMO-RETURN-002', 3, '81710-PI000NNB', 'DEMO-CUSTOMER', 1,
-         'REL010101', 'Shipped', 0, DATEADD(day, -1, SYSDATETIME()),
-         'pda-return-test', SYSDATETIME());
+        ('FG-DEMO-RETURN-002', 'PART', '81710-PI000NNB', N'DEMO RETURN PRODUCT', 0,
+         'REL010101', DATEADD(day, -1, SYSDATETIME()), SYSDATETIME(), SYSDATETIME());
 END;
 
 IF NOT EXISTS (SELECT 1 FROM dbo.FG_ShipmentOrder WHERE ShipOrderNumber = 'FG-SO-RETURN-002')
@@ -1875,52 +1056,27 @@ BEGIN
          'pda-return-test', SYSDATETIME());
 END;
 
-DECLARE @StockID int =
-    (SELECT TOP (1) StockID FROM dbo.FG_Inventory WHERE StockNumber = 'FG-DEMO-RETURN-002' ORDER BY StockID DESC);
 DECLARE @ShipmentOrderID int =
     (SELECT TOP (1) ShipmentOrderID FROM dbo.FG_ShipmentOrder WHERE ShipOrderNumber = 'FG-SO-RETURN-002' ORDER BY ShipmentOrderID DESC);
 
-IF NOT EXISTS
-(
-    SELECT 1 FROM dbo.FG_ShipmentOrderLine
-    WHERE ShipmentOrderID = @ShipmentOrderID AND StockID = @StockID
-)
-BEGIN
-    INSERT INTO dbo.FG_ShipmentOrderLine
-        (ShipmentOrderID, LineSeq, ItemNo, OrderedQty, AllocatedQty,
-         StockID, Location, ReservationStatus, ReservedAt, ReleasedAt,
-         CreatedBy, CreatedTS)
-    VALUES
-        (@ShipmentOrderID, 10, '81710-PI000NNB', 1, 1,
-         @StockID, 'REL010101', 'Loaded', DATEADD(day, -1, SYSDATETIME()),
-         DATEADD(day, -1, SYSDATETIME()), 'pda-return-test', SYSDATETIME());
-END;
-
-IF NOT EXISTS
-(
-    SELECT 1 FROM dbo.FG_LoadingConfirm
-    WHERE ShipmentOrderID = @ShipmentOrderID AND DepartureTS IS NOT NULL
-)
-BEGIN
-    INSERT INTO dbo.FG_LoadingConfirm
-        (LoadingNumber, ShipmentOrderID, LicensePlate, CarrierCode, DockNo,
-         ArrivalTS, DepartureTS, OTDStatus, OperatorID, ConfirmedAt,
-         CreatedBy, CreatedTS)
-    VALUES
-        ('FG-LOAD-RETURN-002', @ShipmentOrderID, 'GA-EOS-RT2', 'EOS-TRUCK', 'D01',
-         DATEADD(minute, -90, SYSDATETIME()), DATEADD(minute, -60, SYSDATETIME()),
-         'OnTime', 'admin', DATEADD(minute, -90, SYSDATETIME()),
-         'pda-return-test', SYSDATETIME());
-END;
+UPDATE dbo.FG_ShipmentOrder
+SET ItemsJSON=(SELECT 10 AS lineSeq,'81710-PI000NNB' AS itemNo,CAST(1 AS decimal(12,3)) AS orderedQty,
+                       CAST(1 AS decimal(12,3)) AS allocatedQty,'FG-DEMO-RETURN-002' AS lotNo,
+                       'REL010101' AS location FOR JSON PATH),
+    Status='Shipped',LoadingNumber='FG-LOAD-RETURN-002',LicensePlate='GA-EOS-RT2',
+    LoadingDockNo='D01',ArrivalAt=DATEADD(minute,-90,SYSDATETIME()),
+    DepartureAt=DATEADD(minute,-60,SYSDATETIME()),LoadingOTDStatus='OnTime',
+    ShipmentOperatorID='admin',LoadingConfirmedAt=DATEADD(minute,-90,SYSDATETIME()),
+    ShippedAt=COALESCE(ShippedAt,DATEADD(day,-1,SYSDATETIME()))
+WHERE ShipmentOrderID=@ShipmentOrderID;
 
 COMMIT TRANSACTION;
 
-SELECT S.StockNumber AS Barcode, O.ShipOrderNumber, L.ItemNo, C.DepartureTS
-FROM dbo.FG_Inventory S
-JOIN dbo.FG_ShipmentOrderLine L ON L.StockID = S.StockID
-JOIN dbo.FG_ShipmentOrder O ON O.ShipmentOrderID = L.ShipmentOrderID
-JOIN dbo.FG_LoadingConfirm C ON C.ShipmentOrderID = O.ShipmentOrderID
-WHERE S.StockNumber = 'FG-DEMO-RETURN-002' AND C.DepartureTS IS NOT NULL;
+SELECT S.LotNo AS Barcode, O.ShipOrderNumber,
+       JSON_VALUE(O.ItemsJSON,'$[0].itemNo') AS ItemNo, O.DepartureAt
+FROM dbo.WH_Inventory S
+JOIN dbo.FG_ShipmentOrder O ON JSON_VALUE(O.ItemsJSON,'$[0].lotNo')=S.LotNo
+WHERE S.LotNo = 'FG-DEMO-RETURN-002' AND O.DepartureAt IS NOT NULL;
 GO
 
 
@@ -1984,19 +1140,18 @@ SET NOCOUNT ON;
 SET XACT_ABORT ON;
 GO
 
--- ── 1) SYS_Screen upsert ──────────────────────────────────────────────────
+-- â”€â”€ 1) SYS_Screen upsert â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 MERGE dbo.SYS_Screen AS tgt
 USING (VALUES
-  ('WH-01', 'WH', N'재고 조회',     N'Inventory Search',  'wh/inventory',         1, 1),
-  ('WH-02', 'WH', N'로케이션 맵',   N'Location Map',      'wh/location-map',      2, 1),
-  ('WH-03', 'WH', N'재고 이력',     N'Inventory History', 'wh/log-history',       3, 1),
-  ('WH-04', 'WH', N'피킹 오더',     N'Picking Orders',    'wh/picking-orders',    4, 1),
-  ('WH-05', 'WH', N'재고 설정',     N'Inventory Setting', 'wh/inventory-setting', 5, 1),
-  ('FG-01', 'FG', N'재고 조회',     N'Inventory Search',  'fg/inventory',         1, 1),
-  ('FG-02', 'FG', N'로케이션 맵',   N'Location Map',      'fg/location-map',      2, 1),
-  ('FG-03', 'FG', N'고객사 리턴',   N'Customer Returns',  'fg/customer-returns',  3, 1),
-  ('FG-04', 'FG', N'출하 목록',     N'Shipments',         'fg/shipments',         4, 1),
-  ('FG-05', 'FG', N'작업 이력',     N'History',           'fg/history',           5, 1)
+  ('WH-01', 'WH', N'ìž¬ê³  ì¡°íšŒ',     N'Inventory Search',  'wh/inventory',         1, 1),
+  ('WH-02', 'WH', N'ë¡œì¼€ì´ì…˜ ë§µ',   N'Location Map',      'wh/location-map',      2, 1),
+  ('WH-03', 'WH', N'ìž¬ê³  ì´ë ¥',     N'Inventory History', 'wh/log-history',       3, 1),
+  ('WH-04', 'WH', N'í”¼í‚¹ ì˜¤ë”',     N'Picking Orders',    'wh/picking-orders',    4, 1),
+  ('WH-05', 'WH', N'ìž¬ê³  ì„¤ì •',     N'Inventory Setting', 'wh/inventory-setting', 5, 1),
+  ('FG-01', 'FG', N'ê³ ê°ì‚¬ ë¦¬í„´',   N'Customer Returns',  'fg/customer-returns',  1, 1),
+  ('FG-02', 'FG', N'ì¶œí•˜ ê³„íš',     N'Shipment Plan',     'fg/shipment-plan',     2, 1),
+  ('FG-03', 'FG', N'ì¶œí•˜ ëª©ë¡',     N'Shipments',         'fg/shipments',         3, 1),
+  ('FG-04', 'FG', N'ìž‘ì—… ì´ë ¥',     N'History',           'fg/history',           4, 1)
 ) AS src (ScreenCode, ProcessCode, ScreenName, ScreenNameEn, HRef, SortOrder, IsVisible)
 ON tgt.ScreenCode = src.ScreenCode
 WHEN NOT MATCHED THEN
@@ -2006,30 +1161,34 @@ WHEN MATCHED THEN
     UPDATE SET tgt.ModuleCode = 'WEB', tgt.ProcessCode = src.ProcessCode, tgt.ScreenName = src.ScreenName, tgt.ScreenNameEn = src.ScreenNameEn,
                tgt.HRef = src.HRef, tgt.LidLabel = src.ScreenCode, tgt.SortOrder = src.SortOrder, tgt.IsVisible = src.IsVisible,
                tgt.ModifiedBy = 'seed', tgt.ModifiedTS = SYSDATETIME();
-PRINT CONCAT(N'✓ SYS_Screen WH/FG upsert: ', @@ROWCOUNT, N'행');
+PRINT CONCAT(N'âœ“ SYS_Screen WH/FG upsert: ', @@ROWCOUNT, N'í–‰');
 GO
 
--- ── 2) 구 코드 권한 행 → 새 코드로 이관 ──────────────────────────────────
+-- â”€â”€ 2) êµ¬ ì½”ë“œ ê¶Œí•œ í–‰ â†’ ìƒˆ ì½”ë“œë¡œ ì´ê´€ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 DECLARE @map TABLE (OldCode VARCHAR(20), NewCode VARCHAR(20));
 INSERT INTO @map VALUES
     ('WH-006','WH-01'), ('WH-003','WH-02'), ('WH-004','WH-03'), ('WH-002','WH-04'), ('WH-005','WH-05'),
-    ('FG-001','FG-01'), ('FG-002','FG-02'), ('FG-003','FG-03'), ('FG-004','FG-04'), ('FG-005','FG-05');
+    ('FG-003','FG-01'), ('FG-004','FG-03'), ('FG-005','FG-04');
 
 UPDATE p
    SET p.ScreenCode = m.NewCode, p.ModifiedBy = 'seed', p.ModifiedTS = SYSDATETIME()
   FROM dbo.SYS_RolePermission p
-  JOIN @map m ON m.OldCode = p.ScreenCode
- WHERE NOT EXISTS (SELECT 1 FROM dbo.SYS_RolePermission x WHERE x.RoleName = p.RoleName AND x.ScreenCode = m.NewCode);
-PRINT CONCAT(N'✓ 구 코드 권한 이관: ', @@ROWCOUNT, N'행');
+    JOIN @map m ON m.OldCode COLLATE DATABASE_DEFAULT = p.ScreenCode COLLATE DATABASE_DEFAULT
+    WHERE NOT EXISTS (SELECT 1 FROM dbo.SYS_RolePermission x
+        WHERE x.RoleName COLLATE DATABASE_DEFAULT = p.RoleName COLLATE DATABASE_DEFAULT
+          AND x.ScreenCode COLLATE DATABASE_DEFAULT = m.NewCode COLLATE DATABASE_DEFAULT);
+PRINT CONCAT(N'âœ“ êµ¬ ì½”ë“œ ê¶Œí•œ ì´ê´€: ', @@ROWCOUNT, N'í–‰');
 
-DELETE p FROM dbo.SYS_RolePermission p JOIN @map m ON m.OldCode = p.ScreenCode;
-PRINT CONCAT(N'✓ 구 코드 권한 잔여 삭제: ', @@ROWCOUNT, N'행');
+DELETE p FROM dbo.SYS_RolePermission p JOIN @map m
+  ON m.OldCode COLLATE DATABASE_DEFAULT = p.ScreenCode COLLATE DATABASE_DEFAULT;
+PRINT CONCAT(N'âœ“ êµ¬ ì½”ë“œ ê¶Œí•œ ìž”ì—¬ ì‚­ì œ: ', @@ROWCOUNT, N'í–‰');
 
-DELETE s FROM dbo.SYS_Screen s JOIN @map m ON m.OldCode = s.ScreenCode;
-PRINT CONCAT(N'✓ 구 3자리 화면 삭제: ', @@ROWCOUNT, N'행');
+DELETE s FROM dbo.SYS_Screen s JOIN @map m
+  ON m.OldCode COLLATE DATABASE_DEFAULT = s.ScreenCode COLLATE DATABASE_DEFAULT;
+PRINT CONCAT(N'âœ“ êµ¬ 3ìžë¦¬ í™”ë©´ ì‚­ì œ: ', @@ROWCOUNT, N'í–‰');
 GO
 
--- ── 3) Admin FULL 권한 (없는 화면만) ─────────────────────────────────────
+-- â”€â”€ 3) Admin FULL ê¶Œí•œ (ì—†ëŠ” í™”ë©´ë§Œ) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 DECLARE @AdminRoleId NVARCHAR(450) = (SELECT Id FROM dbo.AspNetRoles WHERE Name = 'Admin');
 INSERT INTO dbo.SYS_RolePermission
     (RoleID, RoleName, ModuleCode, ProcessCode, ScreenCode, PermissionLevel, IsSystemRole, EffectiveTS, CreatedBy, CreatedTS)
@@ -2037,7 +1196,7 @@ SELECT @AdminRoleId, 'Admin', 'WEB', s.ProcessCode, s.ScreenCode, 'REA', 1, SYSD
   FROM dbo.SYS_Screen s
  WHERE s.ProcessCode IN ('WH','FG')
    AND NOT EXISTS (SELECT 1 FROM dbo.SYS_RolePermission p WHERE p.RoleName = 'Admin' AND p.ScreenCode = s.ScreenCode);
-PRINT CONCAT(N'✓ Admin/WH·FG REA 추가: ', @@ROWCOUNT, N'행');
+PRINT CONCAT(N'âœ“ Admin/WHÂ·FG REA ì¶”ê°€: ', @@ROWCOUNT, N'í–‰');
 GO
 
 SELECT ScreenCode, ProcessCode, HRef, ScreenName, SortOrder, IsVisible FROM dbo.SYS_Screen WHERE ProcessCode IN ('WH','FG') ORDER BY ProcessCode DESC, SortOrder;
@@ -2061,18 +1220,6 @@ IF EXISTS
 )
     THROW 51000, 'A FG web shipment demo number is owned by other data.', 1;
 
-DELETE FROM dbo.FG_DeliveryNote
-WHERE DnNumber = 'FG-DN-DEMO-001' AND CreatedBy = @SeedBy;
-
-DELETE FROM dbo.FG_LoadingConfirm
-WHERE LoadingNumber IN ('FG-LOAD-DEMO-001', 'FG-LOAD-DEMO-002') AND CreatedBy = @SeedBy;
-
-DELETE L
-FROM dbo.FG_ShipmentOrderLine L
-JOIN dbo.FG_ShipmentOrder O ON O.ShipmentOrderID = L.ShipmentOrderID
-WHERE O.CreatedBy = @SeedBy
-  AND O.ShipOrderNumber IN ('FG-SO-WEB-001', 'FG-SO-WEB-002');
-
 DELETE FROM dbo.FG_ShipmentOrder
 WHERE CreatedBy = @SeedBy
   AND ShipOrderNumber IN ('FG-SO-WEB-001', 'FG-SO-WEB-002');
@@ -2080,50 +1227,31 @@ WHERE CreatedBy = @SeedBy
 INSERT INTO dbo.FG_ShipmentOrder
     (ShipOrderNumber, OutgoingSlipNumber, CustomerCode, CustomerPO, Source, ShipDate,
      CarrierCode, DestPlant, DestDock, ReceiverName, Status, PickslipID, OTDFlag,
-     ConfirmedBy, ConfirmedAt, CreatedBy, CreatedTS)
+     ConfirmedBy, ConfirmedAt, ItemsJSON, ShipmentDocumentNo, ShippedAt,
+     LoadingNumber, LicensePlate, DriverName, LoadingDockNo, ArrivalAt, DepartureAt,
+     SealNo, LoadingOTDStatus, ShipmentOperatorID, LoadingConfirmedAt, CreatedBy, CreatedTS)
 VALUES
     ('FG-SO-WEB-001', 'WEB2608110001', 'DEMO-CUSTOMER', 'PO-WEB-001', 'WEB', '2026-08-11',
      'EOS-TRUCK', 'CUSTOMER-A', 'DOCK-A', 'Receiving A', 'Loaded', 'FG-PICK-WEB-001', 'OnTime',
-     'admin@ames.local', '2026-08-11T08:00:00', @SeedBy, '2026-08-11T08:00:00'),
+     'admin@ames.local', '2026-08-11T08:00:00',
+     N'[{"lineSeq":10,"itemNo":"81710-PI000NNB","orderedQty":20,"allocatedQty":20}]',
+     NULL, NULL, 'FG-LOAD-DEMO-001', 'GA-EOS-2601', 'Alex Morgan', 'D01',
+     '2026-08-11T07:40:00', NULL, 'SEAL-260811-A', 'OnTime', 'admin@ames.local',
+     '2026-08-11T08:00:00', @SeedBy, '2026-08-11T08:00:00'),
     ('FG-SO-WEB-002', 'WEB2608110002', 'DEMO-CUSTOMER', 'PO-WEB-002', 'WEB', '2026-08-11',
      'EOS-TRUCK', 'CUSTOMER-B', 'DOCK-B', 'Receiving B', 'Shipped', 'FG-PICK-WEB-002', 'OnTime',
-     'admin@ames.local', '2026-08-11T08:35:00', @SeedBy, '2026-08-11T08:35:00');
+     'admin@ames.local', '2026-08-11T08:35:00',
+     N'[{"lineSeq":10,"itemNo":"81710-PI000NNB","orderedQty":20,"allocatedQty":20}]',
+     'FG-DN-DEMO-001', '2026-08-11T08:36:00', 'FG-LOAD-DEMO-002', 'GA-EOS-2602',
+     'Jordan Lee', 'D02', '2026-08-11T08:10:00', '2026-08-11T08:35:00',
+     'SEAL-260811-B', 'OnTime', 'admin@ames.local', '2026-08-11T08:30:00',
+     @SeedBy, '2026-08-11T08:35:00');
 
-DECLARE @LoadedOrderID int = (SELECT ShipmentOrderID FROM dbo.FG_ShipmentOrder WHERE ShipOrderNumber = 'FG-SO-WEB-001' AND CreatedBy = @SeedBy);
-DECLARE @ShippedOrderID int = (SELECT ShipmentOrderID FROM dbo.FG_ShipmentOrder WHERE ShipOrderNumber = 'FG-SO-WEB-002' AND CreatedBy = @SeedBy);
-
-INSERT INTO dbo.FG_LoadingConfirm
-    (LoadingNumber, ShipmentOrderID, LicensePlate, CarrierCode, DriverName,
-     DockNo, ArrivalTS, DepartureTS, SealNo, OTDStatus, OperatorID, ConfirmedAt, CreatedBy, CreatedTS)
-VALUES
-    ('FG-LOAD-DEMO-001', @LoadedOrderID, 'GA-EOS-2601', 'EOS-TRUCK', 'Alex Morgan',
-     'D01', '2026-08-11T07:40:00', NULL, 'SEAL-260811-A', 'OnTime', 'admin@ames.local',
-     '2026-08-11T08:00:00', @SeedBy, '2026-08-11T08:00:00'),
-    ('FG-LOAD-DEMO-002', @ShippedOrderID, 'GA-EOS-2602', 'EOS-TRUCK', 'Jordan Lee',
-     'D02', '2026-08-11T08:10:00', '2026-08-11T08:35:00', 'SEAL-260811-B', 'OnTime',
-     'admin@ames.local', '2026-08-11T08:30:00', @SeedBy, '2026-08-11T08:30:00');
-
-DECLARE @ShippedLoadingID int = (SELECT TOP 1 LoadingID FROM dbo.FG_LoadingConfirm WHERE LoadingNumber = 'FG-LOAD-DEMO-002');
-
-IF NOT EXISTS (SELECT 1 FROM dbo.FG_DeliveryNote WHERE DnNumber = 'FG-DN-DEMO-001')
-BEGIN
-    INSERT INTO dbo.FG_DeliveryNote
-        (DnNumber, ShipmentOrderID, LoadingID, CustomerCode, FormatTemplate, Revision,
-         IssuedAt, IssuedBy, EdiStatus, CreatedBy, CreatedTS)
-    SELECT
-        'FG-DN-DEMO-001', O.ShipmentOrderID, @ShippedLoadingID, O.CustomerCode, 'STANDARD', 1,
-        '2026-08-11T08:36:00', 'admin@ames.local', 'Sent', @SeedBy, '2026-08-11T08:36:00'
-    FROM dbo.FG_ShipmentOrder O
-    WHERE O.ShipmentOrderID = @ShippedOrderID;
-END;
-
-SELECT O.ShipOrderNumber, O.Status, L.LoadingNumber, L.LicensePlate, L.DriverName,
-       L.DockNo, L.ConfirmedAt, L.DepartureTS, D.DnNumber
+SELECT O.ShipOrderNumber, O.Status, O.LoadingNumber, O.LicensePlate, O.DriverName,
+       O.LoadingDockNo, O.LoadingConfirmedAt, O.DepartureAt, O.ShipmentDocumentNo
 FROM dbo.FG_ShipmentOrder O
-JOIN dbo.FG_LoadingConfirm L ON L.ShipmentOrderID = O.ShipmentOrderID
-LEFT JOIN dbo.FG_DeliveryNote D ON D.LoadingID = L.LoadingID
-WHERE L.LoadingNumber IN ('FG-LOAD-DEMO-001', 'FG-LOAD-DEMO-002')
-ORDER BY L.LoadingNumber;
+WHERE O.LoadingNumber IN ('FG-LOAD-DEMO-001', 'FG-LOAD-DEMO-002')
+ORDER BY O.LoadingNumber;
 GO
 
 -- =====================================================================
@@ -2139,42 +1267,53 @@ INSERT @FgPpt VALUES
  ('910001','putaway','PPT-FG-PUT','PPT PUT-AWAY TRIM ASSY',24),
  ('920001','inventory','PPT-FG-INV-01','PPT INVENTORY TRIM LH',30),('920002','inventory','PPT-FG-INV-01','PPT INVENTORY TRIM LH',20),
  ('920003','inventory','PPT-FG-INV-02','PPT INVENTORY TRIM RH',12),
- ('930001','release','PPT-FG-REL-01','PPT RELEASE TRIM LH',10),('930002','release','PPT-FG-REL-01','PPT RELEASE TRIM LH',14),
- ('930003','release','PPT-FG-REL-02','PPT RELEASE TRIM RH',16),
- ('940001','loading','PPT-FG-LOAD-01','PPT LOADING TRIM LH',20),('940002','loading','PPT-FG-LOAD-02','PPT LOADING TRIM RH',8),
- ('940003','loading','PPT-FG-LOAD-01','PPT LOADING TRIM LH',6),
  ('950001','return','PPT-FG-RETURN','PPT CUSTOMER RETURN TRIM',12),('950002','return','PPT-FG-RETURN','PPT CUSTOMER RETURN TRIM',8),
  ('960001','adjust','PPT-FG-ADJ','PPT ADJUST TRIM ASSY',10),
  ('970001','history','PPT-FG-HIST','PPT HISTORY TRIM ASSY',20);
 INSERT dbo.MD_Item (ItemNo,ItemName,ItemType,DefaultUOM,ActiveFlag,CreatedBy,CreatedTS)
 SELECT DISTINCT D.ItemNo,D.ItemName,'FG','EA',1,'pda-ppt-fg',SYSDATETIME()
-FROM @FgPpt D WHERE NOT EXISTS (SELECT 1 FROM dbo.MD_Item I WHERE I.ItemNo=D.ItemNo);
+FROM @FgPpt D WHERE NOT EXISTS (SELECT 1 FROM dbo.MD_Item I
+    WHERE I.ItemNo COLLATE DATABASE_DEFAULT=D.ItemNo COLLATE DATABASE_DEFAULT);
 INSERT dbo.MD_Location (LocationID,LocationName,ZoneCode,Aisle,Bay,Slot,Capacity,LocationType,PlantCode,ActiveFlag,CreatedBy,CreatedTS)
 SELECT CONCAT('FG-PPT-',V.Code,'1'),CONCAT('FG PPT ',V.Code),'FG','PPT',V.Code,'1',1000,'FG','EOS',1,'pda-ppt-fg',SYSDATETIME()
 FROM (VALUES ('A'),('B'),('C'),('D'),('E'),('F'),('G')) V(Code)
-WHERE NOT EXISTS (SELECT 1 FROM dbo.MD_Location L WHERE L.LocationID=CONCAT('FG-PPT-',V.Code,'1'));
+WHERE NOT EXISTS (SELECT 1 FROM dbo.MD_Location L
+    WHERE L.LocationID COLLATE DATABASE_DEFAULT=CONCAT('FG-PPT-',V.Code,'1') COLLATE DATABASE_DEFAULT);
 INSERT dbo.PP_WorkOrder (WoNumber,ItemNo,OrderQty,OpenQty,CompletedQty,LineID,Status,Priority,CreatedBy,CreatedTS)
 SELECT CONCAT('FG-PPT-WO-',D.Code),D.ItemNo,D.Qty,0,D.Qty,'FG-DEMO','Completed',3,CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
-FROM @FgPpt D WHERE NOT EXISTS (SELECT 1 FROM dbo.PP_WorkOrder W WHERE W.WoNumber=CONCAT('FG-PPT-WO-',D.Code));
+FROM @FgPpt D WHERE NOT EXISTS (SELECT 1 FROM dbo.PP_WorkOrder W
+    WHERE W.WoNumber COLLATE DATABASE_DEFAULT=CONCAT('FG-PPT-WO-',D.Code) COLLATE DATABASE_DEFAULT);
 INSERT dbo.tbl_Lot (LotCode,ItemNo,WoID,LineID,ProcessCode,BatchSize,RemainingQty,ProducedAt,Status,QualityFlag,CreatedBy,CreatedTS)
-SELECT CONCAT('5011FG260908',D.Code),D.ItemNo,W.WoID,'FG-DEMO','FINAL',D.Qty,D.Qty,DATEADD(day,-15,SYSDATETIME()),'Completed','PASS',CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
-FROM @FgPpt D JOIN dbo.PP_WorkOrder W ON W.WoNumber=CONCAT('FG-PPT-WO-',D.Code) AND W.CreatedBy=CONCAT('pda-ppt-fg-',D.Screen)
-WHERE NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot L WHERE L.LotCode=CONCAT('5011FG260908',D.Code));
-INSERT dbo.QC_Inspection (InspectionNo,InspectionType,LotID,WoID,LineID,ItemNo,CustomerCode,Mode,SampleSize,BatchQty,CumulativeGood,DefectQtyTotal,Verdict,CriticalFlag,InspectorID,InsStartTS,InsEndTS,CreatedBy,CreatedTS)
-SELECT CONCAT('FG-PPT-QC-',D.Code),'FQC',L.LotID,L.WoID,'FG-DEMO',D.ItemNo,'PPT-CUSTOMER','Normal',1,D.Qty,CONVERT(int,D.Qty),0,'PASS',0,'TEST1',DATEADD(day,-16,SYSDATETIME()),DATEADD(day,-15,SYSDATETIME()),CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
-FROM @FgPpt D JOIN dbo.tbl_Lot L ON L.LotCode=CONCAT('5011FG260908',D.Code) AND L.CreatedBy=CONCAT('pda-ppt-fg-',D.Screen)
-WHERE NOT EXISTS (SELECT 1 FROM dbo.QC_Inspection Q WHERE Q.InspectionNo=CONCAT('FG-PPT-QC-',D.Code));
+SELECT CONCAT('5011FG260908',D.Code),D.ItemNo,W.WoID,'FG-DEMO','IMG',D.Qty,D.Qty,DATEADD(day,-15,SYSDATETIME()),'CONFIRMED','OK',CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
+FROM @FgPpt D JOIN dbo.PP_WorkOrder W
+  ON W.WoNumber COLLATE DATABASE_DEFAULT=CONCAT('FG-PPT-WO-',D.Code) COLLATE DATABASE_DEFAULT
+ AND W.CreatedBy COLLATE DATABASE_DEFAULT=CONCAT('pda-ppt-fg-',D.Screen) COLLATE DATABASE_DEFAULT
+WHERE NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot L
+    WHERE L.LotCode COLLATE DATABASE_DEFAULT=CONCAT('5011FG260908',D.Code) COLLATE DATABASE_DEFAULT);
+UPDATE L SET ProcessCode='IMG',Status='CONFIRMED',QualityFlag='OK'
+FROM dbo.tbl_Lot L JOIN @FgPpt D
+  ON L.LotCode COLLATE DATABASE_DEFAULT=CONCAT('5011FG260908',D.Code) COLLATE DATABASE_DEFAULT
+WHERE L.CreatedBy COLLATE DATABASE_DEFAULT=CONCAT('pda-ppt-fg-',D.Screen) COLLATE DATABASE_DEFAULT;
+INSERT dbo.PR_ImgLot (LotID,ConfirmStatus,ConfirmedAt,ConfirmedBy,CustomerCode,PrintedCount,CreatedBy,CreatedTS)
+SELECT L.LotID,'CONFIRMED',L.ProducedAt,'TEST1','PPT-CUSTOMER',1,CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
+FROM @FgPpt D JOIN dbo.tbl_Lot L
+  ON L.LotCode COLLATE DATABASE_DEFAULT=CONCAT('5011FG260908',D.Code) COLLATE DATABASE_DEFAULT
+ AND L.CreatedBy COLLATE DATABASE_DEFAULT=CONCAT('pda-ppt-fg-',D.Screen) COLLATE DATABASE_DEFAULT
+WHERE NOT EXISTS (SELECT 1 FROM dbo.PR_ImgLot P WHERE P.LotID=L.LotID);
+INSERT dbo.PR_ProductionResult (EntryNo,WoID,LotID,LineID,ProcessCode,GoodQty,CycleSec,OperatorID,DefectFlag,EntryAt,ProdDate,CreatedBy,CreatedTS)
+SELECT CONCAT('FGPPT-',D.Code),L.WoID,L.LotID,'FG-DEMO','IMG',CONVERT(int,D.Qty),0,'TEST1',0,L.ProducedAt,CAST(L.ProducedAt AS date),CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
+FROM @FgPpt D JOIN dbo.tbl_Lot L
+  ON L.LotCode COLLATE DATABASE_DEFAULT=CONCAT('5011FG260908',D.Code) COLLATE DATABASE_DEFAULT
+ AND L.CreatedBy COLLATE DATABASE_DEFAULT=CONCAT('pda-ppt-fg-',D.Screen) COLLATE DATABASE_DEFAULT
+WHERE NOT EXISTS (SELECT 1 FROM dbo.PR_ProductionResult R WHERE R.LotID=L.LotID AND R.ProcessCode='IMG');
 INSERT dbo.FG_ShipmentOrder (ShipOrderNumber,OutgoingSlipNumber,CustomerCode,Source,ShipDate,DestPlant,Status,CreatedBy,CreatedTS)
 SELECT D.Number,D.Slip,'PPT-CUSTOMER','PDA',CAST(GETDATE() AS date),'PPT-DESTINATION','OPEN',CONCAT('pda-ppt-fg-',D.Screen),SYSDATETIME()
-FROM (VALUES ('FG-PPT-SO-REL','2609089001','release'),('FG-PPT-SO-LOAD','2609089002','loading'),
-             ('FG-PPT-SO-RETURN','2609089003','return'),('FG-PPT-SO-NOSHIP','2609089004','return'),
+FROM (VALUES ('FG-PPT-SO-RETURN','2609089003','return'),('FG-PPT-SO-NOSHIP','2609089004','return'),
              ('FG-PPT-SO-HIST','2609089005','history')) D(Number,Slip,Screen)
 WHERE NOT EXISTS (SELECT 1 FROM dbo.FG_ShipmentOrder O WHERE O.ShipOrderNumber=D.Number);
 EXEC dbo.FG_PDA_PPT_TEST_RESET 'qc';
 EXEC dbo.FG_PDA_PPT_TEST_RESET 'putaway';
 EXEC dbo.FG_PDA_PPT_TEST_RESET 'inventory';
-EXEC dbo.FG_PDA_PPT_TEST_RESET 'release';
-EXEC dbo.FG_PDA_PPT_TEST_RESET 'loading';
 EXEC dbo.FG_PDA_PPT_TEST_RESET 'return';
 EXEC dbo.FG_PDA_PPT_TEST_RESET 'adjust';
 EXEC dbo.FG_PDA_HISTORY_TEST_RESET;
@@ -2191,4 +1330,8 @@ UPDATE dbo.MD_Location
            ELSE 'MAT_AREA'
        END
  WHERE UPPER(LocationID) NOT LIKE 'SP-%';
+GO
+
+IF OBJECT_ID(N'dbo.FG_PDA_OUTBOUND_TEST_RESET', N'P') IS NOT NULL
+    EXEC dbo.FG_PDA_OUTBOUND_TEST_RESET;
 GO

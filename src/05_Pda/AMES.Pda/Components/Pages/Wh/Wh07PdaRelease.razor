@@ -5,7 +5,7 @@
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-<div class="pda-shell wh wh07-shell">
+<div class="pda-shell wh wh07-shell wh07-release-shell">
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo(ModuleHome))' Text="&lt;" />
         <div class="wh07-tbar-title">
@@ -38,81 +38,83 @@
             }
         </RadzenCard>
 
-        @if (_lines.Count > 0)
-        {
-            <div class="wh07-line-list">
-                @for (var index = 0; index < _lines.Count; index++)
-                {
-                    var line = _lines[index];
-                    <RadzenCard id="@($"wh07-line-{index}")" class="@LineCardClass(line)">
-                        <div class="wh07-line-top">
-                            <div class="wh07-line-main">
-                                <strong>@line.ItemNo</strong>
-                                <span class="wh07-line-name">@Text(line.ItemName)</span>
-                                <div class="wh07-line-qty">
-                                    <span>REQUESTED <strong>@line.RequestBoxQty.ToString("N0")</strong></span>
-                                    <span>PICKED <strong>@DisplayPickedBox(line).ToString("N0")</strong></span>
+        <div class="wh07-result-scroll">
+            @if (_lines.Count > 0)
+            {
+                <div class="wh07-line-list">
+                    @for (var index = 0; index < _lines.Count; index++)
+                    {
+                        var line = _lines[index];
+                        <RadzenCard id="@($"wh07-line-{index}")" class="@LineCardClass(line)">
+                            <div class="wh07-line-top">
+                                <div class="wh07-line-main">
+                                    <strong>@line.ItemNo</strong>
+                                    <span class="wh07-line-name">@Text(line.ItemName)</span>
+                                    <div class="wh07-line-qty">
+                                        <span>REQUESTED <strong>@line.RequestBoxQty.ToString("N0")</strong></span>
+                                        <span>PICKED <strong>@DisplayPickedBox(line).ToString("N0")</strong></span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="wh07-lot-list">
-                            @foreach (var lot in DisplayFifoLotsFor(line.ItemNo))
-                            {
-                                <div class="wh07-lot-row @(IsPendingPick(lot.LotNo) ? "scanned" : "")">
-                                    <div>
-                                        <strong>@lot.LotNo</strong>
-                                        <span>@Text(lot.LocationNo)</span>
+                            <div class="wh07-lot-list">
+                                @foreach (var lot in DisplayFifoLotsFor(line.ItemNo))
+                                {
+                                    <div class="wh07-lot-row @(IsPendingPick(lot.LotNo) ? "scanned" : "")">
+                                        <div>
+                                            <strong>@lot.LotNo</strong>
+                                            <span>@Text(lot.LocationNo)</span>
+                                        </div>
+                                        <div class="wh07-lot-qty">
+                                            <strong>@lot.Qty.ToString("N0")</strong>
+                                            <span>@Text(lot.ProductionDate)</span>
+                                        </div>
                                     </div>
-                                    <div class="wh07-lot-qty">
-                                        <strong>@lot.Qty.ToString("N0")</strong>
-                                        <span>@Text(lot.ProductionDate)</span>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    </RadzenCard>
-                }
-            </div>
-        }
-        else if (!string.IsNullOrWhiteSpace(_loadedSlipNo))
-        {
-            <div class="pda-empty">No lines found for this Pick Slip.</div>
-        }
-
-        @if (_directLot is not null)
-        {
-            <RadzenCard class="wh07-direct-card">
-                <div class="wh07-direct-row"><span>LOT NO</span><strong>@_directLot.LotNo</strong></div>
-                <div class="wh07-direct-row"><span>PART NO</span><strong>@Text(_directLot.ItemNo)</strong></div>
-                <div class="wh07-direct-row"><span>PART NAME</span><strong>@Text(_directLot.ItemName)</strong></div>
-                <div class="wh07-direct-row"><span>QTY</span><strong>@QuantityText(_directLot.Qty, _directLot.Unit)</strong></div>
-                <div class="wh07-direct-row"><span>LOCATION</span><strong>@Text(_directLot.LocationId)</strong></div>
-                @if (_outgoingType == "DEFECT")
-                {
-                    <div class="wh07-direct-row wh07-qty-row">
-                        <span>OUTGOING QTY</span>
-                        <div class="wh07-qty-stepper">
-                            <RadzenButton Icon="remove" Click='@(() => ChangeDirectQty(-1))' Disabled="@(_directQty <= 1)" />
-                            <strong>@QuantityText(_directQty, _directLot.Unit)</strong>
-                            <RadzenButton Icon="add" Click='@(() => ChangeDirectQty(1))' Disabled="@(_directQty >= _directLot.Qty)" />
-                        </div>
-                    </div>
-                }
-            </RadzenCard>
-        }
-
-        @if (CanChooseOutgoingType)
-        {
-            <RadzenCard class="@($"wh07-panel wh07-type-panel {(_highlightOutgoingType ? "type-attention" : "")}")">
-                <div class="pda-fld">
-                    <label>OUTGOING TYPE</label>
-                    <RadzenDropDown TValue="string" class="wh07-type-select"
-                                    Data="@OutgoingTypes" TextProperty="Name" ValueProperty="CodeValue"
-                                    Value="@_outgoingType" Change="@OnOutgoingTypeChanged"
-                                    Placeholder="Select Outgoing Type" />
+                                }
+                            </div>
+                        </RadzenCard>
+                    }
                 </div>
-            </RadzenCard>
-        }
+            }
+            else if (!string.IsNullOrWhiteSpace(_loadedSlipNo))
+            {
+                <div class="pda-empty">No lines found for this Pick Slip.</div>
+            }
+
+            @if (_directLot is not null)
+            {
+                <RadzenCard class="wh07-direct-card">
+                    <div class="wh07-direct-row"><span>LOT NO</span><strong>@_directLot.LotNo</strong></div>
+                    <div class="wh07-direct-row"><span>PART NO</span><strong>@Text(_directLot.ItemNo)</strong></div>
+                    <div class="wh07-direct-row"><span>PART NAME</span><strong>@Text(_directLot.ItemName)</strong></div>
+                    <div class="wh07-direct-row"><span>QTY</span><strong>@QuantityText(_directLot.Qty, _directLot.Unit)</strong></div>
+                    <div class="wh07-direct-row"><span>LOCATION</span><strong>@Text(_directLot.LocationId)</strong></div>
+                    @if (_outgoingType == "DEFECT")
+                    {
+                        <div class="wh07-direct-row wh07-qty-row">
+                            <span>OUTGOING QTY</span>
+                            <div class="wh07-qty-stepper">
+                                <RadzenButton Icon="remove" Click='@(() => ChangeDirectQty(-1))' Disabled="@(_directQty <= 1)" />
+                                <strong>@QuantityText(_directQty, _directLot.Unit)</strong>
+                                <RadzenButton Icon="add" Click='@(() => ChangeDirectQty(1))' Disabled="@(_directQty >= _directLot.Qty)" />
+                            </div>
+                        </div>
+                    }
+                </RadzenCard>
+            }
+
+            @if (CanChooseOutgoingType)
+            {
+                <RadzenCard class="@($"wh07-panel wh07-type-panel {(_highlightOutgoingType ? "type-attention" : "")}")">
+                    <div class="pda-fld">
+                        <label>OUTGOING TYPE</label>
+                        <RadzenDropDown TValue="string" class="wh07-type-select"
+                                        Data="@OutgoingTypes" TextProperty="Name" ValueProperty="CodeValue"
+                                        Value="@_outgoingType" Change="@OnOutgoingTypeChanged"
+                                        Placeholder="Select Outgoing Type" />
+                    </div>
+                </RadzenCard>
+            }
+        </div>
 
         @if (HasReleaseWork)
         {
