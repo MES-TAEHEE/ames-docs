@@ -1,0 +1,32 @@
+.sample-banner {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    border-left: 3px solid #38bdf8;
+    background: rgba(56, 189, 248, .08);
+    color: var(--rz-text-secondary-color, #93a4bd);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .04em;
+}
+
+.auto-order-page {
+    display: block;
+}
+
+.auto-order-page .wh-pick-list {
+    min-height: 330px;
+}
+
+.slip-detail-card {
+    margin-top: 12px;
+}
+
+@media print {
+    .sample-banner,
+    .auto-order-page,
+    .slip-detail-card,
+    .ames-page-header,
+    .rz-alert {
+        display: none !important;
+    }
+}
