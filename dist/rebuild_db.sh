@@ -59,7 +59,7 @@ FILES=(
   seed_wh_picking_rbac_test.sql       #   → WH Picking Orders R 권한 비교용 Web 계정 2개
   seed_md_code.sql                    # 마스터 공통코드
   seed_md_routing_step.sql            # 라우팅 템플릿(A/B) 시드 (테이블은 AMES_Schema.sql)
-  reseed_md_item_partmaster.sql       # 품목(파트마스터)
+  seed_md_item_bom_master_list.sql    # 품목·BOM 정본 (docs/260828 BOM Master List.xlsx → tools/gen_md_item_bom_seed.py 생성) — MD_Item/MD_Bom 전체 재적재, FG_* 시드(PDA_SEED) 이전이어야 한다
   migrate_inj_agent.sql               # 사출: MD_Mold 4종 + 사출조건 시드
   migrate_mold_master.sql             # 금형: 매핑/색상/라인 시드 + FK 3종
   migrate_mold_change_plan.sql        # 금형 교체 시간: MD_Mold.MoldChangeMin + PP_LineSchedule.MoldID (순서 무관)
