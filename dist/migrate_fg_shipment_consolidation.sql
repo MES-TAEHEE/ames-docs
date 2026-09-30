@@ -146,7 +146,7 @@ IF OBJECT_ID(N'dbo.FG_PickingDetail', N'U') IS NOT NULL
 BEGIN
     INSERT dbo.WH_InventoryTransaction
         (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,
-         ReasonCode,RefDocType,RefDocID,OperatorID,Note,CreatedBy,CreatedTS)
+         ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
     SELECT COALESCE(P.EndTS,P.StartTS,D.CreatedTS,SYSDATETIME()),'OUT',D.ItemNo,D.Location,
            COALESCE(L.LotCode,CONCAT(N'LEGACY-FG-PICK-',D.PickDetailID)),
            NULL,-ABS(D.Qty),NULL,'LEGACY_PICK','FG_LEGACY_PICK',D.PickDetailID,
@@ -159,7 +159,7 @@ BEGIN
       AND NOT EXISTS
       (
           SELECT 1 FROM dbo.WH_InventoryTransaction T
-          WHERE T.RefDocType='FG_LEGACY_PICK' AND T.RefDocID=D.PickDetailID
+          WHERE T.SourceType='FG_LEGACY_PICK' AND T.SourceID=D.PickDetailID
       );
 END;
 
@@ -168,7 +168,7 @@ IF OBJECT_ID(N'dbo.FG_LoadingConfirm', N'U') IS NOT NULL
 BEGIN
     INSERT dbo.WH_InventoryTransaction
         (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,
-         ReasonCode,RefDocType,RefDocID,OperatorID,Note,CreatedBy,CreatedTS)
+         ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
     SELECT COALESCE(C.DepartureTS,C.ConfirmedAt,C.CreatedTS,SYSDATETIME()),'OUT',J.ItemNo,J.Location,
            COALESCE(J.LotNo,CONCAT(N'LEGACY-FG-LOAD-',C.LoadingID,N'-',COALESCE(J.ItemNo,N'ITEM'))),
            NULL,-ABS(J.Qty),NULL,'LEGACY_LOAD','FG_LEGACY_LOAD',C.LoadingID,C.OperatorID,
@@ -182,7 +182,7 @@ BEGIN
       AND NOT EXISTS
       (
           SELECT 1 FROM dbo.WH_InventoryTransaction T
-          WHERE T.RefDocType='FG_LEGACY_LOAD' AND T.RefDocID=C.LoadingID
+          WHERE T.SourceType='FG_LEGACY_LOAD' AND T.SourceID=C.LoadingID
       )
       AND NOT EXISTS
       (

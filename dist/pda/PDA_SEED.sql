@@ -760,7 +760,7 @@ IF @Loc4 IS NULL THROW 51000, 'At least four active MD_Location rows are require
 BEGIN TRANSACTION;
 
 -- Remove only this script's prior transactional demo rows.
-DELETE FROM dbo.WH_InventoryTransaction WHERE CreatedBy = @SeedBy AND RefDocType LIKE 'FG%';
+DELETE FROM dbo.WH_InventoryTransaction WHERE CreatedBy = @SeedBy AND SourceType LIKE 'FG%';
 DELETE FROM dbo.FG_CustomerReturn WHERE CreatedBy = @SeedBy;
 DELETE FROM dbo.FG_ShipmentOrder WHERE CreatedBy = @SeedBy;
 DELETE FROM dbo.FG_PutAway WHERE CreatedBy = @SeedBy;

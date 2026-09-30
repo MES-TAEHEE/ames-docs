@@ -9559,9 +9559,8 @@ CREATE TABLE [dbo].[WH_InventoryTransaction](
 	[QtyChange] [decimal](18, 3) NOT NULL,
 	[QtyAfter] [decimal](18, 3) NULL,
 	[ReasonCode] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
-	[RefDocType] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
-	[RefDocID] [int] NULL,
-	[RefDocNo] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NULL,
+	[SourceType] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
+	[SourceID] [int] NULL,
 	[OperatorID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ApproverID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[Note] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
@@ -11515,7 +11514,7 @@ BEGIN
 
     INSERT INTO dbo.WH_InventoryTransaction
         (TransactionType, PartNo, LocationNo, LotNo, QtyBefore, QtyChange, QtyAfter,
-         ReasonCode, RefDocType, RefDocID, OperatorID, ApproverID, Note, CreatedBy, CreatedTS)
+         ReasonCode, SourceType, SourceID, OperatorID, ApproverID, Note, CreatedBy, CreatedTS)
     VALUES
         (N'ADJ', @ItemNo, @LocationID, @LotNo, @BeforeQty, @DeltaQty, @AfterQty,
          CONVERT(varchar(30), @Reason), N'LOT', NULL,
@@ -11746,7 +11745,7 @@ BEGIN
 
         INSERT dbo.WH_InventoryTransaction
             (TransactionType, PartNo, LocationNo, LotNo, QtyBefore, QtyChange, QtyAfter,
-             ReasonCode, RefDocType, RefDocID, OperatorID, Note, CreatedBy, CreatedTS)
+             ReasonCode, SourceType, SourceID, OperatorID, Note, CreatedBy, CreatedTS)
         VALUES
             ('ADJ', @PortalItemNo, @PortalLocation, @Barcode, @PortalQty, -@PortalQty, 0,
              'INBOUND_CANCEL', 'SCM_DeliveryLine', @PortalDeliveryLineID, @User,
@@ -12182,7 +12181,7 @@ BEGIN
 
         INSERT dbo.WH_InventoryTransaction
             (TransactionType, PartNo, LocationNo, LotNo, QtyBefore, QtyChange, QtyAfter,
-             ReasonCode, RefDocType, OperatorID, Note, CreatedBy, CreatedTS)
+             ReasonCode, SourceType, OperatorID, Note, CreatedBy, CreatedTS)
         VALUES
             ('ADJ', @ItemNo, @Location, @Barcode, @Qty, 0, @Qty,
              'PUT_AWAY', 'WH_Inventory', @User,
@@ -12285,7 +12284,7 @@ BEGIN
 
     INSERT dbo.WH_InventoryTransaction
         (TransactionType, PartNo, LocationNo, LotNo, QtyBefore, QtyChange, QtyAfter,
-         ReasonCode, RefDocType, OperatorID, Note, CreatedBy, CreatedTS)
+         ReasonCode, SourceType, OperatorID, Note, CreatedBy, CreatedTS)
     VALUES
         ('ADJ', @ItemNo, @Location, @Barcode, @Qty, 0, @Qty,
          'PUT_AWAY', 'WH_OLD_Inventory', @User,
@@ -12458,7 +12457,7 @@ BEGIN
 
         INSERT dbo.WH_InventoryTransaction
             (TransactionType, PartNo, LocationNo, LotNo, QtyBefore, QtyChange, QtyAfter,
-             ReasonCode, RefDocType, RefDocID, OperatorID, Note, CreatedBy, CreatedTS)
+             ReasonCode, SourceType, SourceID, OperatorID, Note, CreatedBy, CreatedTS)
         VALUES
             ('IN', @PortalItemNo, @Location, @Barcode, 0, @PortalQty, @PortalQty,
              'INBOUND_RECEIVE', 'SCM_DeliveryLine', @PortalDeliveryLineID, @User,
@@ -12620,7 +12619,7 @@ BEGIN
     INSERT INTO dbo.WH_InventoryTransaction
     (
         TransactionType, PartNo, LocationNo, LotNo, QtyBefore, QtyChange, QtyAfter,
-        ReasonCode, RefDocType, RefDocID, OperatorID, Note, CreatedBy, CreatedTS
+        ReasonCode, SourceType, SourceID, OperatorID, Note, CreatedBy, CreatedTS
     )
     VALUES
     (
@@ -13348,7 +13347,7 @@ BEGIN
       ModifiedBy='pda-ppt',ModifiedTS=SYSDATETIME()
     FROM dbo.tbl_Lot L JOIN @Rows R ON R.LotNo=L.LotCode COLLATE DATABASE_DEFAULT;
     IF @S='release' UPDATE dbo.WH_PickSlip SET PickedQty=0,Status='Open',CloseDate=NULL,CloseUserId=NULL,ModifiedBy='pda-ppt',ModifiedTS=SYSDATETIME() WHERE PickSlipNo='PS-PPT-WH-01';
-    IF @S='history' INSERT dbo.WH_InventoryTransaction(TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,RefDocType,OperatorID,Note,CreatedBy,CreatedTS)
+    IF @S='history' INSERT dbo.WH_InventoryTransaction(TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,SourceType,OperatorID,Note,CreatedBy,CreatedTS)
       SELECT DATEADD(second,V.OffsetSeconds,CONVERT(datetime2,CONVERT(date,SYSDATETIME()))),V.TransactionType,
         LEFT(R.ItemNo,20),LEFT(R.LocationNo,20),R.LotNo,V.QtyBefore,V.QtyChange,V.QtyAfter,V.ReasonCode,'PPT',N'SCTEST1',V.Note,N'pda-ppt',SYSDATETIME()
       FROM @Rows R
@@ -13598,7 +13597,7 @@ BEGIN
     INSERT INTO dbo.WH_InventoryTransaction
     (
         TransactionTime, TransactionType, PartNo, LocationNo, LotNo, QtyBefore, QtyChange, QtyAfter,
-        ReasonCode, RefDocType, RefDocID, OperatorID, Note, CreatedBy, CreatedTS
+        ReasonCode, SourceType, SourceID, OperatorID, Note, CreatedBy, CreatedTS
     )
     VALUES
     (
@@ -14080,8 +14079,7 @@ BEGIN
            OR EXISTS (
                SELECT 1
                FROM dbo.WH_Inventory W
-               WHERE W.LotNo COLLATE DATABASE_DEFAULT =
-                     COALESCE(T.LotNo COLLATE DATABASE_DEFAULT, L.LotCode COLLATE DATABASE_DEFAULT)
+               WHERE W.LotNo COLLATE DATABASE_DEFAULT = T.LotNo COLLATE DATABASE_DEFAULT
                  AND (W.CaseNo LIKE @Like
                       OR W.InvoiceNo LIKE @Like
                       OR W.DeliveryNoteNo LIKE @Like)))
@@ -15645,9 +15643,9 @@ BEGIN
         THROW 52001, 'This unit has already been outbound or contains no available inventory.', 1;
     INSERT dbo.WH_InventoryTransaction
         (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,
-         ReasonCode,RefDocType,RefDocNo,OperatorID,Note,CreatedBy,CreatedTS)
+         ReasonCode,SourceType,OperatorID,Note,CreatedBy,CreatedTS)
     SELECT SYSDATETIME(),'OUT',PartNo,LocationNo,LotNo,Qty,-Qty,0,
-           @UnitType+'_OUTBOUND','FG_OUTBOUND',@Barcode,@OperatorID,@UnitType+N' LOT: '+@Barcode,
+           @UnitType+'_OUTBOUND','FG_OUTBOUND',@OperatorID,@UnitType+N' LOT: '+@Barcode,
            LEFT(COALESCE(NULLIF(@OperatorID,N''),N'system'),20),SYSDATETIME()
       FROM @Items;
     UPDATE I SET Qty=0,UpdatedAt=SYSDATETIME() FROM dbo.WH_Inventory I JOIN @Scope X ON X.LotNo=I.LotNo WHERE I.Qty>0;
@@ -15667,8 +15665,8 @@ BEGIN
     SET XACT_ABORT ON;
     BEGIN TRANSACTION;
     DELETE dbo.WH_InventoryTransaction
-     WHERE (RefDocType='FG_OUTBOUND' AND RefDocNo IN(N'FGPAL-DEMO-001',N'FGPART-DEMO-001'))
-        OR (RefDocType='FG_PALLET_OUTBOUND' AND LotNo IN(N'FGLOT-DEMO-001-A',N'FGLOT-DEMO-001-B'));
+     WHERE (SourceType='FG_OUTBOUND' AND (LotNo LIKE N'FGLOT-DEMO-%' OR LotNo=N'FGPART-DEMO-001'))
+        OR (SourceType='FG_PALLET_OUTBOUND' AND LotNo IN(N'FGLOT-DEMO-001-A',N'FGLOT-DEMO-001-B'));
     IF EXISTS (SELECT 1 FROM dbo.WH_Inventory WHERE LotNo=N'FGPAL-DEMO-001')
         UPDATE dbo.WH_Inventory SET UnitType='PALLET',ParentLotNo=NULL,PartNo=NULL,PartName=NULL,CaseNo=NULL,LocationNo=N'FG-A01-01',Qty=60,InvoiceNo=N'INV-FG-DEMO-001',DeliveryNoteNo=N'DN-FG-DEMO-001',ReceivedAt=DATEADD(day,-1,SYSDATETIME()),UpdatedAt=SYSDATETIME() WHERE LotNo=N'FGPAL-DEMO-001';
     ELSE
@@ -15939,7 +15937,7 @@ IF OBJECT_ID(N'dbo.FG_PickingDetail', N'U') IS NOT NULL
 BEGIN
     INSERT dbo.WH_InventoryTransaction
         (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,
-         ReasonCode,RefDocType,RefDocID,OperatorID,Note,CreatedBy,CreatedTS)
+         ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
     SELECT COALESCE(P.EndTS,P.StartTS,D.CreatedTS,SYSDATETIME()),'OUT',D.ItemNo,D.Location,
            COALESCE(L.LotCode,CONCAT(N'LEGACY-FG-PICK-',D.PickDetailID)),
            NULL,-ABS(D.Qty),NULL,'LEGACY_PICK','FG_LEGACY_PICK',D.PickDetailID,
@@ -15952,7 +15950,7 @@ BEGIN
       AND NOT EXISTS
       (
           SELECT 1 FROM dbo.WH_InventoryTransaction T
-          WHERE T.RefDocType='FG_LEGACY_PICK' AND T.RefDocID=D.PickDetailID
+          WHERE T.SourceType='FG_LEGACY_PICK' AND T.SourceID=D.PickDetailID
       );
 END;
 
@@ -15961,7 +15959,7 @@ IF OBJECT_ID(N'dbo.FG_LoadingConfirm', N'U') IS NOT NULL
 BEGIN
     INSERT dbo.WH_InventoryTransaction
         (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,
-         ReasonCode,RefDocType,RefDocID,OperatorID,Note,CreatedBy,CreatedTS)
+         ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
     SELECT COALESCE(C.DepartureTS,C.ConfirmedAt,C.CreatedTS,SYSDATETIME()),'OUT',J.ItemNo,J.Location,
            COALESCE(J.LotNo,CONCAT(N'LEGACY-FG-LOAD-',C.LoadingID,N'-',COALESCE(J.ItemNo,N'ITEM'))),
            NULL,-ABS(J.Qty),NULL,'LEGACY_LOAD','FG_LEGACY_LOAD',C.LoadingID,C.OperatorID,
@@ -15975,7 +15973,7 @@ BEGIN
       AND NOT EXISTS
       (
           SELECT 1 FROM dbo.WH_InventoryTransaction T
-          WHERE T.RefDocType='FG_LEGACY_LOAD' AND T.RefDocID=C.LoadingID
+          WHERE T.SourceType='FG_LEGACY_LOAD' AND T.SourceID=C.LoadingID
       )
       AND NOT EXISTS
       (
@@ -16155,7 +16153,7 @@ IF OBJECT_ID(N'dbo.FG_InventoryAdjust',N'U') IS NOT NULL
 BEGIN
     INSERT dbo.WH_InventoryTransaction
         (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,
-         QtyBefore,QtyChange,QtyAfter,ReasonCode,RefDocType,RefDocID,
+         QtyBefore,QtyChange,QtyAfter,ReasonCode,SourceType,SourceID,
          OperatorID,Note,CreatedBy,CreatedTS)
     SELECT COALESCE(A.CreatedTS,SYSDATETIME()),'ADJ',A.ItemNo,A.Location,
            COALESCE(NULLIF(L.LotCode,N''),NULLIF(F.StockNumber,N''),CONCAT(N'LEGACY-FG-ADJUST-',A.AdjustID)),
@@ -16168,7 +16166,7 @@ BEGIN
     WHERE NOT EXISTS
     (
         SELECT 1 FROM dbo.WH_InventoryTransaction T
-        WHERE T.RefDocType='FG_ADJUST' AND T.RefDocID=A.AdjustID
+        WHERE T.SourceType='FG_ADJUST' AND T.SourceID=A.AdjustID
     );
 END;
 GO
@@ -16265,7 +16263,7 @@ BEGIN
         UPDATE dbo.tbl_Lot SET RemainingQty=@After,ModifiedTS=SYSDATETIME(),ModifiedBy=LEFT(@User,20) WHERE LotID=@LotID;
     INSERT dbo.WH_InventoryTransaction
         (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,
-         ReasonCode,RefDocType,OperatorID,Note,CreatedBy,CreatedTS)
+         ReasonCode,SourceType,OperatorID,Note,CreatedBy,CreatedTS)
     VALUES
         (SYSDATETIME(),'ADJ',@ItemNo,@Location,@Scan,@Before,@DeltaQty,@After,
          @Reason,'FG_ADJUST',@User,@Note,LEFT(@User,20),SYSDATETIME());
@@ -16354,7 +16352,7 @@ BEGIN
         VALUES(S.LotNo,'PART',S.ItemNo,S.ItemName,NULL,S.Qty,@Now,@Now,@Now);
     INSERT dbo.WH_InventoryTransaction
         (TransactionTime,TransactionType,PartNo,LotNo,QtyBefore,QtyChange,QtyAfter,
-         ReasonCode,RefDocType,RefDocID,OperatorID,Note,CreatedBy,CreatedTS)
+         ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
     SELECT @Now,'IN',ItemNo,LotNo,0,Qty,Qty,'RETURN','FG_RETURN',@ReturnID,
         @OperatorID,@CleanNote,LEFT(COALESCE(NULLIF(@OperatorID,N''),N'pda'),20),@Now FROM @P;
     COMMIT TRANSACTION;
@@ -16375,9 +16373,9 @@ BEGIN
         SELECT T.TransactionTime EventTime,CONCAT('TX-',T.TransactionID) EventID,T.LotNo,T.PartNo,T.LocationNo,
             ABS(T.QtyChange) Qty,CASE T.TransactionType WHEN 'IN' THEN N'Inbound' WHEN 'OUT' THEN N'Outbound' ELSE N'Adjust' END Status,
             T.TransactionType Direction,T.OperatorID Worker,T.ReasonCode,T.Note ReasonNote,T.ApproverID Supervisor,
-            T.QtyBefore BeforeQty,T.QtyChange DeltaQty,T.QtyAfter AfterQty,T.RefDocType Source,T.Note Reference
+            T.QtyBefore BeforeQty,T.QtyChange DeltaQty,T.QtyAfter AfterQty,T.SourceType Source,T.Note Reference
         FROM dbo.WH_InventoryTransaction T
-        WHERE UPPER(COALESCE(T.RefDocType,'')) LIKE 'FG%'
+        WHERE UPPER(COALESCE(T.SourceType,'')) LIKE 'FG%'
         UNION ALL
         SELECT P.CreatedTS,CONCAT('IN-',P.PutAwayID),P.LotNo,P.ItemNo COLLATE DATABASE_DEFAULT,
             P.ActualLoc COLLATE DATABASE_DEFAULT,P.Qty,N'Put-Away','IN',
@@ -16394,19 +16392,19 @@ BEGIN
         FROM dbo.FG_CustomerReturn R WHERE UPPER(COALESCE(R.Status,'')) NOT IN('CANCELLED','CANCELED','REJECTED')
     )
     SELECT ROW_NUMBER() OVER(ORDER BY E.EventTime DESC,E.EventID DESC) AS ROW_NO,
-        COALESCE(NULLIF(E.LotNo COLLATE DATABASE_DEFAULT,''),'N/A') LOTNO,E.ItemNo PARTNO,CONVERT(nvarchar(10),E.EventTime,23) WDATE,
-        CONVERT(nvarchar(8),E.EventTime,108) WTIME,COALESCE(NULLIF(E.LocationID COLLATE DATABASE_DEFAULT,''),'N/A') LOCATION_NO,
+        COALESCE(NULLIF(E.LotNo COLLATE DATABASE_DEFAULT,''),'N/A') LOTNO,E.PartNo PARTNO,CONVERT(nvarchar(10),E.EventTime,23) WDATE,
+        CONVERT(nvarchar(8),E.EventTime,108) WTIME,COALESCE(NULLIF(E.LocationNo COLLATE DATABASE_DEFAULT,''),'N/A') LOCATION_NO,
         COALESCE(E.Qty,0) QTY,I.DefaultUOM UNIT,E.Status STATUS,E.Direction DIRECTION,
         COALESCE(NULLIF(U.UserName COLLATE DATABASE_DEFAULT,''),E.Worker COLLATE DATABASE_DEFAULT) WORKER_ID,E.ReasonCode REASON_CODE,E.ReasonNote REASON_NOTE,
         E.Supervisor SUPERVISOR,E.BeforeQty BEFORE_QTY,E.DeltaQty DELTA_QTY,E.AfterQty AFTER_QTY,
         NULL BEFORE_STATUS,NULL AFTER_STATUS,NULL BEFORE_LOCATION,NULL AFTER_LOCATION,E.Source SOURCE,E.Reference NOTE
-    FROM Events E LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=E.ItemNo
+    FROM Events E LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=E.PartNo
     LEFT JOIN dbo.AspNetUsers U ON U.Id COLLATE DATABASE_DEFAULT=E.Worker
     WHERE E.EventTime>=@From AND E.EventTime<DATEADD(day,1,@To)
       AND (@Search IS NULL OR E.LotNo COLLATE DATABASE_DEFAULT LIKE @Search
-        OR E.ItemNo COLLATE DATABASE_DEFAULT LIKE @Search
+        OR E.PartNo COLLATE DATABASE_DEFAULT LIKE @Search
         OR I.ItemName COLLATE DATABASE_DEFAULT LIKE @Search
-        OR E.LocationID COLLATE DATABASE_DEFAULT LIKE @Search
+        OR E.LocationNo COLLATE DATABASE_DEFAULT LIKE @Search
         OR E.Reference COLLATE DATABASE_DEFAULT LIKE @Search)
     ORDER BY E.EventTime DESC,E.EventID DESC;
 END;
@@ -16427,7 +16425,7 @@ BEGIN
         FROM dbo.tbl_Lot WHERE CreatedBy=@SeedBy;
     IF NOT EXISTS(SELECT 1 FROM @Lots) THROW 51701,'FG PPT samples are missing. Run PDA_SEED.sql.',1;
     BEGIN TRANSACTION;
-    DELETE T FROM dbo.WH_InventoryTransaction T JOIN @Lots L ON L.LotCode=T.LotNo COLLATE DATABASE_DEFAULT WHERE T.RefDocType IN('FG_ADJUST','FG_PPT_HISTORY');
+    DELETE T FROM dbo.WH_InventoryTransaction T JOIN @Lots L ON L.LotCode=T.LotNo COLLATE DATABASE_DEFAULT WHERE T.SourceType IN('FG_ADJUST','FG_PPT_HISTORY');
     DELETE P FROM dbo.FG_PutAway P JOIN @Lots L ON L.LotCode=P.LotNo;
     IF @Screen IN('qc','putaway') DELETE W FROM dbo.WH_Inventory W JOIN @Lots L ON L.LotCode=W.LotNo;
     ELSE
@@ -16473,9 +16471,9 @@ BEGIN
     WHEN MATCHED THEN UPDATE SET PartNo='PPT-FG-HIST',PartName=N'PPT FG HISTORY',LocationNo='FG-PPT-G1',Qty=0,UpdatedAt=@Today
     WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
         VALUES(@LotNo,'PART','PPT-FG-HIST',N'PPT FG HISTORY','FG-PPT-G1',0,@Today,@Today,@Today);
-    DELETE dbo.WH_InventoryTransaction WHERE RefDocType='FG_PPT_HISTORY' AND LotNo=@LotNo;
+    DELETE dbo.WH_InventoryTransaction WHERE SourceType='FG_PPT_HISTORY' AND LotNo=@LotNo;
     INSERT dbo.WH_InventoryTransaction
-        (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,RefDocType,OperatorID,Note,CreatedBy,CreatedTS)
+        (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,SourceType,OperatorID,Note,CreatedBy,CreatedTS)
     VALUES
         (DATEADD(second,1,@Today),'IN','PPT-FG-HIST','FG-PPT-G1',@LotNo,0,20,20,'PUTAWAY','FG_PPT_HISTORY','SCTEST1',N'PPT Put-Away','pda-ppt-fg-history',SYSDATETIME()),
         (DATEADD(second,2,@Today),'ADJ','PPT-FG-HIST','FG-PPT-G1',@LotNo,20,2,22,'COUNT_DIFF','FG_PPT_HISTORY','SCTEST1',N'PPT count correction','pda-ppt-fg-history',SYSDATETIME()),

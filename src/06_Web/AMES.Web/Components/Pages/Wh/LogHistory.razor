@@ -198,9 +198,9 @@
 
     static string RefText(AMES.Data.Repositories.WarehouseRepository.OperationLogRow row)
     {
-        if (string.IsNullOrWhiteSpace(row.RefDocType) && string.IsNullOrWhiteSpace(row.RefDocNo))
+        if (string.IsNullOrWhiteSpace(row.SourceType) && row.SourceId is null)
             return "";
 
-        return $"{row.RefDocType ?? "-"} {row.RefDocNo ?? "-"}";
+        return $"{row.SourceType ?? "-"} {row.SourceId?.ToString() ?? "-"}";
     }
 }

@@ -51,6 +51,14 @@ BEGIN TRY
         ALTER TABLE dbo.WH_InventoryTransaction ADD PartNo varchar(50) NULL;
     IF COL_LENGTH(N'dbo.WH_InventoryTransaction', N'LocationNo') IS NULL
         ALTER TABLE dbo.WH_InventoryTransaction ADD LocationNo varchar(50) NULL;
+    IF COL_LENGTH(N'dbo.WH_InventoryTransaction', N'RefDocType') IS NOT NULL
+       AND COL_LENGTH(N'dbo.WH_InventoryTransaction', N'SourceType') IS NULL
+        EXEC sys.sp_rename N'dbo.WH_InventoryTransaction.RefDocType', N'SourceType', N'COLUMN';
+    IF COL_LENGTH(N'dbo.WH_InventoryTransaction', N'RefDocID') IS NOT NULL
+       AND COL_LENGTH(N'dbo.WH_InventoryTransaction', N'SourceID') IS NULL
+        EXEC sys.sp_rename N'dbo.WH_InventoryTransaction.RefDocID', N'SourceID', N'COLUMN';
+    IF COL_LENGTH(N'dbo.WH_InventoryTransaction', N'RefDocNo') IS NOT NULL
+        ALTER TABLE dbo.WH_InventoryTransaction DROP COLUMN RefDocNo;
 
     IF COL_LENGTH(N'dbo.WH_InventoryTransaction', N'ItemNo') IS NOT NULL
         EXEC(N'UPDATE dbo.WH_InventoryTransaction SET PartNo=COALESCE(PartNo,CONVERT(varchar(50),ItemNo));');
@@ -214,7 +222,7 @@ BEGIN TRY
     BEGIN
         INSERT dbo.WH_InventoryTransaction
             (TransactionTime, TransactionType, PartNo, LocationNo, LotNo,
-             QtyBefore, QtyChange, QtyAfter, ReasonCode, RefDocType, RefDocID,
+             QtyBefore, QtyChange, QtyAfter, ReasonCode, SourceType, SourceID,
              OperatorID, ApproverID, Note, CreatedBy, CreatedTS, ModifiedBy, ModifiedTS)
         SELECT
             COALESCE(H.TxnTime, H.CreatedTS, SYSDATETIME()),
@@ -234,7 +242,7 @@ BEGIN TRY
         WHERE NOT EXISTS
         (
             SELECT 1 FROM dbo.WH_InventoryTransaction T
-            WHERE T.RefDocType = 'LEGACY_WH_TXN' AND T.RefDocID = CONVERT(int, H.TxnID)
+            WHERE T.SourceType = 'LEGACY_WH_TXN' AND T.SourceID = CONVERT(int, H.TxnID)
         );
     END;
 
@@ -242,7 +250,7 @@ BEGIN TRY
     BEGIN
         INSERT dbo.WH_InventoryTransaction
             (TransactionTime, TransactionType, PartNo, LocationNo, LotNo,
-             QtyBefore, QtyChange, QtyAfter, ReasonCode, RefDocType, RefDocID,
+             QtyBefore, QtyChange, QtyAfter, ReasonCode, SourceType, SourceID,
              OperatorID, Note, CreatedBy, CreatedTS)
         SELECT
             COALESCE(R.ReceivedAt, R.CreatedTS, SYSDATETIME()), 'IN', R.ItemNo,
@@ -254,7 +262,7 @@ BEGIN TRY
         WHERE NOT EXISTS
         (
             SELECT 1 FROM dbo.WH_InventoryTransaction T
-            WHERE T.RefDocType = 'LEGACY_RECEIVING' AND T.RefDocID = R.ReceivingID
+            WHERE T.SourceType = 'LEGACY_RECEIVING' AND T.SourceID = R.ReceivingID
         );
     END;
 
@@ -529,7 +537,7 @@ BEGIN
 
     INSERT dbo.WH_InventoryTransaction
         (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,
-         QtyBefore,QtyChange,QtyAfter,ReasonCode,RefDocType,RefDocID,
+         QtyBefore,QtyChange,QtyAfter,ReasonCode,SourceType,SourceID,
          OperatorID,Note,CreatedBy,CreatedTS)
     VALUES
         (SYSDATETIME(),'IN',@PartNo,@Location,@Barcode,
@@ -617,7 +625,7 @@ BEGIN
     UPDATE dbo.WH_Inventory SET LocationNo=@Location,UpdatedAt=SYSDATETIME() WHERE LotNo=@Barcode;
     IF @LotID IS NOT NULL UPDATE dbo.tbl_Lot SET CurrentLocationID=@Location,InventoryStatus='STORED',ModifiedBy=LEFT(@User,20),ModifiedTS=SYSDATETIME() WHERE LotID=@LotID;
     INSERT dbo.WH_InventoryTransaction
-        (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,RefDocType,OperatorID,Note,CreatedBy,CreatedTS)
+        (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,SourceType,OperatorID,Note,CreatedBy,CreatedTS)
     VALUES(SYSDATETIME(),'ADJ',@PartNo,@Location,@Barcode,@Qty,0,@Qty,'PUT_AWAY','LOT',@User,
            CONCAT('Moved from ',COALESCE(@BeforeLocation,'(unassigned)'),' to ',@Location),LEFT(@User,20),SYSDATETIME());
     COMMIT TRANSACTION;
@@ -650,7 +658,7 @@ BEGIN
         ORDER BY PoID DESC;
     DELETE dbo.WH_Inventory WHERE LotNo=@Barcode;
     INSERT dbo.WH_InventoryTransaction
-        (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,RefDocType,RefDocID,OperatorID,Note,CreatedBy,CreatedTS)
+        (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
     VALUES(SYSDATETIME(),'OUT',@PartNo,@Location,@Barcode,@Qty,-@Qty,0,'INBOUND_CANCEL',
            CASE WHEN @DeliveryNote IS NULL THEN 'LOT' ELSE 'DELIVERY_NOTE' END,@PoID,@User,'Inbound receipt canceled',LEFT(@User,20),SYSDATETIME());
     IF @PoID IS NOT NULL
@@ -813,8 +821,8 @@ BEGIN
     ),P AS
     (
       SELECT T.PartNo,COUNT(DISTINCT T.LotNo) BoxQty,SUM(ABS(T.QtyChange)) PickedQty
-      FROM dbo.WH_InventoryTransaction T JOIN dbo.WH_PickSlip S ON S.PickSlipID=T.RefDocID
-      WHERE T.TransactionType='OUT' AND T.RefDocType='PICK_SLIP'
+      FROM dbo.WH_InventoryTransaction T JOIN dbo.WH_PickSlip S ON S.PickSlipID=T.SourceID
+      WHERE T.TransactionType='OUT' AND T.SourceType='PICK_SLIP'
         AND UPPER(COALESCE(NULLIF(S.PickSlipNo,N''),CONCAT(N'RS-',S.PickSlipID)))=@Slip
       GROUP BY T.PartNo
     )
@@ -877,7 +885,7 @@ BEGIN
     BEGIN TRANSACTION;
     UPDATE dbo.WH_Inventory SET Qty=0,UpdatedAt=SYSDATETIME() WHERE UPPER(LotNo)=UPPER(@LotNo) AND Qty=@Qty;
     IF @@ROWCOUNT<>1 THROW 51620,'LOT inventory changed before Release.',1;
-    INSERT dbo.WH_InventoryTransaction(TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,RefDocType,RefDocID,OperatorID,Note,CreatedBy,CreatedTS)
+    INSERT dbo.WH_InventoryTransaction(TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
     VALUES(SYSDATETIME(),'OUT',@Part,@Location,@LotNo,@Qty,-@Qty,0,'RELEASE_PICK','PICK_SLIP',@SlipID,@User,CONCAT('PDA release pick ',@PickSlipNo),LEFT(@User,20),SYSDATETIME());
     UPDATE dbo.WH_PickSlip SET PickedQty=COALESCE(PickedQty,0)+1,
       Status=CASE WHEN COALESCE(PickedQty,0)+1>=COALESCE(DemandQty,0) THEN 'Closed' ELSE 'Partial' END,
@@ -1051,7 +1059,7 @@ BEGIN
     FROM dbo.tbl_Lot L
     JOIN @Rows R ON R.LotNo COLLATE DATABASE_DEFAULT = L.LotCode COLLATE DATABASE_DEFAULT;
     IF @S='release' UPDATE dbo.WH_PickSlip SET PickedQty=0,Status='Open',CloseDate=NULL,CloseUserId=NULL,ModifiedBy='pda-ppt',ModifiedTS=SYSDATETIME() WHERE PickSlipNo='PS-PPT-WH-01';
-    IF @S='history' INSERT dbo.WH_InventoryTransaction(TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,RefDocType,OperatorID,Note,CreatedBy,CreatedTS)
+    IF @S='history' INSERT dbo.WH_InventoryTransaction(TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,SourceType,OperatorID,Note,CreatedBy,CreatedTS)
       SELECT DATEADD(second,V.OffsetSeconds,CONVERT(datetime2,CONVERT(date,SYSDATETIME()))),V.TransactionType,
         LEFT(R.ItemNo,20),LEFT(R.LocationNo,20),R.LotNo,V.QtyBefore,V.QtyChange,V.QtyAfter,V.ReasonCode,'PPT',N'SCTEST1',V.Note,N'pda-ppt',SYSDATETIME()
       FROM @Rows R

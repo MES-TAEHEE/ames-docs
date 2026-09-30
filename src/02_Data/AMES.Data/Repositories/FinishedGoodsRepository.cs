@@ -472,7 +472,7 @@ public sealed class FinishedGoodsRepository
             SELECT
                 T.TransactionID,
                 T.TransactionTime AS ShippedAt,
-                COALESCE(NULLIF(T.RefDocNo, ''), T.LotNo) AS OutboundBarcode,
+                T.LotNo AS OutboundBarcode,
                 REPLACE(T.ReasonCode, '_OUTBOUND', '') AS UnitType,
                 T.LotNo,
                 T.PartNo,
@@ -484,11 +484,10 @@ public sealed class FinishedGoodsRepository
             FROM dbo.WH_InventoryTransaction T
             LEFT JOIN dbo.WH_Inventory I ON I.LotNo = T.LotNo
             WHERE T.TransactionType = 'OUT'
-              AND T.RefDocType = 'FG_OUTBOUND'
+              AND T.SourceType = 'FG_OUTBOUND'
               AND (@From IS NULL OR T.TransactionTime >= @From)
               AND (@To IS NULL OR T.TransactionTime < DATEADD(day, 1, @To))
               AND (@Search IS NULL
-                   OR T.RefDocNo LIKE @Search
                    OR T.PartNo LIKE @Search
                    OR T.LotNo LIKE @Search
                    OR I.PartName LIKE @Search

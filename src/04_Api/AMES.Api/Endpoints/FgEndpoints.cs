@@ -955,7 +955,7 @@ public static class FgEndpoints
         using (var cmd = new SqlCommand("""
             INSERT dbo.WH_InventoryTransaction
                 (TransactionTime, TransactionType, PartNo, LocationNo, LotNo,
-                 QtyBefore, QtyChange, QtyAfter, ReasonCode, RefDocType, OperatorID,
+                 QtyBefore, QtyChange, QtyAfter, ReasonCode, SourceType, OperatorID,
                  Note, CreatedBy, CreatedTS)
             VALUES
                 (SYSDATETIME(), 'IN', @ItemNo, @Location, @LotNo,
