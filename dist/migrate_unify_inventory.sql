@@ -113,6 +113,37 @@ IF COL_LENGTH(N'dbo.WH_Inventory',N'DeliveryLineID') IS NOT NULL
     ALTER TABLE dbo.WH_Inventory DROP COLUMN DeliveryLineID;
 IF COL_LENGTH(N'dbo.WH_InventoryTransaction',N'LotNo') IS NULL
     ALTER TABLE dbo.WH_InventoryTransaction ADD LotNo nvarchar(50) NULL;
+IF COL_LENGTH(N'dbo.WH_InventoryTransaction',N'PartNo') IS NULL
+    ALTER TABLE dbo.WH_InventoryTransaction ADD PartNo varchar(50) NULL;
+IF COL_LENGTH(N'dbo.WH_InventoryTransaction',N'LocationNo') IS NULL
+    ALTER TABLE dbo.WH_InventoryTransaction ADD LocationNo varchar(50) NULL;
+GO
+
+IF COL_LENGTH(N'dbo.WH_InventoryTransaction',N'ItemNo') IS NOT NULL
+    EXEC(N'UPDATE dbo.WH_InventoryTransaction SET PartNo=COALESCE(PartNo,CONVERT(varchar(50),ItemNo));');
+IF COL_LENGTH(N'dbo.WH_InventoryTransaction',N'LocationID') IS NOT NULL
+    EXEC(N'UPDATE dbo.WH_InventoryTransaction SET LocationNo=COALESCE(LocationNo,CONVERT(varchar(50),LocationID));');
+IF COL_LENGTH(N'dbo.WH_InventoryTransaction',N'LotID') IS NOT NULL AND OBJECT_ID(N'dbo.tbl_Lot',N'U') IS NOT NULL
+    EXEC(N'UPDATE T SET LotNo=COALESCE(NULLIF(T.LotNo,N''''),L.LotCode) FROM dbo.WH_InventoryTransaction T LEFT JOIN dbo.tbl_Lot L ON L.LotID=T.LotID;');
+UPDATE dbo.WH_InventoryTransaction SET LotNo=CONCAT(N'LEGACY-TX-',TransactionID) WHERE NULLIF(LTRIM(RTRIM(LotNo)),N'') IS NULL;
+UPDATE dbo.WH_InventoryTransaction SET TransactionType=CASE UPPER(TransactionType)
+    WHEN 'IN' THEN 'IN' WHEN 'RECEIVE' THEN 'IN'
+    WHEN 'OUT' THEN 'OUT' WHEN 'ISSUE' THEN 'OUT' WHEN 'CANCEL' THEN 'OUT'
+    ELSE 'ADJ' END WHERE TransactionType NOT IN('IN','OUT','ADJ');
+IF EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_InventoryTransaction') AND name=N'IX_WH_InventoryTransaction_Search')
+    DROP INDEX IX_WH_InventoryTransaction_Search ON dbo.WH_InventoryTransaction;
+IF COL_LENGTH(N'dbo.WH_InventoryTransaction',N'ItemNo') IS NOT NULL ALTER TABLE dbo.WH_InventoryTransaction DROP COLUMN ItemNo;
+IF COL_LENGTH(N'dbo.WH_InventoryTransaction',N'LocationID') IS NOT NULL ALTER TABLE dbo.WH_InventoryTransaction DROP COLUMN LocationID;
+IF COL_LENGTH(N'dbo.WH_InventoryTransaction',N'LotID') IS NOT NULL ALTER TABLE dbo.WH_InventoryTransaction DROP COLUMN LotID;
+ALTER TABLE dbo.WH_InventoryTransaction ALTER COLUMN LotNo nvarchar(50) NOT NULL;
+ALTER TABLE dbo.WH_InventoryTransaction ALTER COLUMN QtyBefore decimal(18,3) NULL;
+ALTER TABLE dbo.WH_InventoryTransaction ALTER COLUMN QtyChange decimal(18,3) NOT NULL;
+ALTER TABLE dbo.WH_InventoryTransaction ALTER COLUMN QtyAfter decimal(18,3) NULL;
+IF EXISTS(SELECT 1 FROM sys.check_constraints WHERE parent_object_id=OBJECT_ID(N'dbo.WH_InventoryTransaction') AND name=N'CK_WH_InventoryTransaction_Type')
+    ALTER TABLE dbo.WH_InventoryTransaction DROP CONSTRAINT CK_WH_InventoryTransaction_Type;
+ALTER TABLE dbo.WH_InventoryTransaction WITH CHECK ADD CONSTRAINT CK_WH_InventoryTransaction_Type CHECK(TransactionType IN('IN','OUT','ADJ'));
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_InventoryTransaction') AND name=N'IX_WH_InventoryTransaction_Search')
+    CREATE INDEX IX_WH_InventoryTransaction_Search ON dbo.WH_InventoryTransaction(TransactionType,PartNo,LocationNo,LotNo);
 GO
 
 IF EXISTS

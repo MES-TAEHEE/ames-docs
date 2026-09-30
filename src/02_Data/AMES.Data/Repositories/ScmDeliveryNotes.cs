@@ -10,6 +10,14 @@ public sealed partial class ScmRepository
         string Buyer, string Destination, DateTime ShipDate, DateTime IssuedAt, string IssuedBy,
         List<DeliveryNoteLine> Lines);
 
+    static DeliveryNote DeserializeDeliveryNote(string snapshot)
+    {
+        var note = JsonSerializer.Deserialize<DeliveryNote>(snapshot);
+        if (note is null || string.IsNullOrWhiteSpace(note.Number) || note.Lines is null || note.Lines.Count == 0)
+            throw new InvalidOperationException("Invalid delivery note snapshot.");
+        return note;
+    }
+
     // Authorization is rechecked for both first issue and every subsequent read.
     // A header lock serializes concurrent issues; reprints never rebuild master-data values.
     public DeliveryNote? GetDeliveryNote(string number, string userId,
@@ -44,8 +52,7 @@ public sealed partial class ScmRepository
         }
         if (snapshot != null)
         {
-            var existing = JsonSerializer.Deserialize<DeliveryNote>(snapshot)
-                ?? throw new InvalidOperationException("Invalid delivery note snapshot.");
+            var existing = DeserializeDeliveryNote(snapshot);
             tx.Commit(); return existing;
         }
         tx.Commit(); return null;

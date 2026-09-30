@@ -69,9 +69,9 @@ IF (SELECT OnHandQty FROM dbo.WH_OLD_Inventory WHERE InventoryID=@InventoryID)<>
     THROW 51000,'Inventory quantity incorrect.',1;
 IF (SELECT RemainingQty FROM dbo.tbl_Lot WHERE LotID=@LotID)<>@Before+1
     THROW 51000,'Lot quantity incorrect.',1;
-IF (SELECT COUNT(*) FROM dbo.WH_InventoryTransaction WHERE TransactionID>@LastTxn AND LotID=@LotID AND TransactionType='ADJ')<>1
+IF (SELECT COUNT(*) FROM dbo.WH_InventoryTransaction WHERE TransactionID>@LastTxn AND LotNo=@Scan AND TransactionType='ADJ')<>1
     THROW 51000,'Expected exactly one adjustment transaction.',1;
-IF NOT EXISTS (SELECT 1 FROM dbo.WH_InventoryTransaction WHERE TransactionID>@LastTxn AND LotID=@LotID
+IF NOT EXISTS (SELECT 1 FROM dbo.WH_InventoryTransaction WHERE TransactionID>@LastTxn AND LotNo=@Scan
     AND QtyBefore=@Before AND QtyChange=1 AND QtyAfter=@Before+1 AND ReasonCode=@Reason
     AND RefDocType='LOT' AND RefDocID=@LotID AND OperatorID=N'adjust-regression' AND ApproverID IS NULL
     AND Note=N'adjust transaction regression')

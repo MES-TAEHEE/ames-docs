@@ -8086,7 +8086,7 @@
     <value>Orden de envío</value>
   </data>
   <data name="FG.Shipments.Col.Truck" xml:space="preserve">
-    <value>Camión</value>
+    <value>Remolque</value>
   </data>
   <data name="FG.Shipments.Col.Lines" xml:space="preserve">
     <value>Líneas</value>

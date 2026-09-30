@@ -191,8 +191,8 @@ public sealed class WarehouseRepository
         string Result,
         string? Message,
         string? ClientIp,
-        string? RefDocType,
-        string? RefDocNo,
+        string? SourceType,
+        int? SourceId,
         string? LotNo,
         string? PartNo,
         string? LocationId,
@@ -914,12 +914,12 @@ public sealed class WarehouseRepository
             ),
             PickedPhysical AS
             (
-                SELECT T.RefDocID AS PickSlipID, SUM(-COALESCE(T.QtyChange,0)) AS PickedQty
+                SELECT T.SourceID AS PickSlipID, SUM(-COALESCE(T.QtyChange,0)) AS PickedQty
                 FROM dbo.WH_InventoryTransaction T
                 INNER JOIN Base B
-                        ON B.PickSlipID=T.RefDocID
-                WHERE T.TransactionType='OUT' AND T.RefDocType='PICK_SLIP'
-                GROUP BY T.RefDocID
+                        ON B.PickSlipID=T.SourceID
+                WHERE T.TransactionType='OUT' AND T.SourceType='PICK_SLIP'
+                GROUP BY T.SourceID
             )
             SELECT
                 B.PICK_SLIPNO,
@@ -1381,19 +1381,18 @@ public sealed class WarehouseRepository
                 CAST(NULL AS nvarchar(40)) AS LineID,
                 CAST(NULL AS nvarchar(20)) AS ShiftCode,
                 'LOT' AS ScanType,
-                L.LotCode AS ScanValue,
+                T.LotNo AS ScanValue,
                 'SUCCESS' AS Result,
                 CONCAT(COALESCE(NULLIF(T.Note, ''), COALESCE(T.ReasonCode, T.TransactionType)),
                        ' (', COALESCE(T.QtyBefore, 0), ' -> ', COALESCE(T.QtyAfter, 0), ')') AS Message,
                 CAST(NULL AS nvarchar(64)) AS ClientIP,
-                T.RefDocType,
-                CONVERT(nvarchar(80), T.RefDocID) AS RefDocNo,
-                L.LotCode AS LotNo,
-                T.ItemNo AS PartNo,
-                T.LocationID,
+                T.SourceType,
+                T.SourceID,
+                T.LotNo,
+                T.PartNo,
+                T.LocationNo AS LocationID,
                 T.QtyChange AS Qty
             FROM dbo.WH_InventoryTransaction T
-            LEFT JOIN dbo.tbl_Lot L ON L.LotID = T.LotID
             CROSS APPLY (SELECT
                 CASE UPPER(T.TransactionType)
                     WHEN 'IN' THEN 'RECEIVE'
@@ -1422,12 +1421,12 @@ public sealed class WarehouseRepository
                    OR X.EventType LIKE @Like
                    OR X.ScreenCode LIKE @Like
                    OR T.OperatorID LIKE @Like
-                   OR L.LotCode LIKE @Like
+                   OR T.LotNo LIKE @Like
                    OR T.Note LIKE @Like
                    OR T.ReasonCode LIKE @Like
-                   OR T.ItemNo LIKE @Like
-                   OR T.LocationID LIKE @Like
-                   OR CONVERT(nvarchar(80), T.RefDocID) LIKE @Like)
+                   OR T.PartNo LIKE @Like
+                   OR T.LocationNo LIKE @Like
+                   OR CONVERT(nvarchar(80), T.SourceID) LIKE @Like)
             ORDER BY T.TransactionTime DESC, T.TransactionID DESC;
             """, conn)
         {
@@ -1463,8 +1462,8 @@ public sealed class WarehouseRepository
                 GetString(rdr, "Result") ?? "INFO",
                 GetString(rdr, "Message"),
                 GetString(rdr, "ClientIP"),
-                GetString(rdr, "RefDocType"),
-                GetString(rdr, "RefDocNo"),
+                GetString(rdr, "SourceType"),
+                GetNullableInt(rdr, "SourceID"),
                 GetString(rdr, "LotNo"),
                 GetString(rdr, "PartNo"),
                 GetString(rdr, "LocationID"),

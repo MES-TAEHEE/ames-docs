@@ -205,8 +205,8 @@ public static class WhEndpoints
                     VALUES(@L,'PART',@ItemNo,NULLIF(@Loc,''),@Q,SYSDATETIME(),SYSDATETIME(),SYSDATETIME());
 
                 INSERT dbo.WH_InventoryTransaction
-                    (TransactionTime,TransactionType,ItemNo,LocationID,LotNo,QtyBefore,QtyChange,QtyAfter,
-                     ReasonCode,RefDocType,OperatorID,Note,CreatedBy,CreatedTS)
+                    (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,
+                     ReasonCode,SourceType,OperatorID,Note,CreatedBy,CreatedTS)
                 VALUES(SYSDATETIME(),'IN',@ItemNo,NULLIF(@Loc,''),@L,0,@Q,@Q,
                        'INBOUND_RECEIVE','LOT',@By,'PDA inbound receive',LEFT(@By,20),SYSDATETIME());
                 DECLARE @TransactionID bigint=SCOPE_IDENTITY();
@@ -983,11 +983,11 @@ public static class WhEndpoints
                 BEGIN
                     INSERT INTO dbo.WH_InventoryTransaction
                     (
-                        TransactionType, ItemNo, LocationID, LotID, QtyBefore, QtyChange, QtyAfter,
-                        ReasonCode, RefDocType, RefDocID, OperatorID, Note, CreatedBy, CreatedTS
+                        TransactionType, PartNo, LocationNo, LotNo, QtyBefore, QtyChange, QtyAfter,
+                        ReasonCode, SourceType, SourceID, OperatorID, Note, CreatedBy, CreatedTS
                     )
                     SELECT TOP (1)
-                        'OUT', @PartNo, @LocationNo, NULL, @Qty, -@Qty, 0,
+                        'OUT', @PartNo, @LocationNo, @LotNo, @Qty, -@Qty, 0,
                         'RELEASE_PICK', 'PICK_SLIP', TRY_CONVERT(int, REPLACE(@PickSlipNo, N'RS-', N'')), @By,
                         CONCAT('PDA release pick ', @PickSlipNo), @By, SYSDATETIME();
                 END
@@ -1104,7 +1104,7 @@ public static class WhEndpoints
                 SELECT TOP 100 TransactionID AS TxnID,
                        TransactionTime AS TxnTime,
                        ISNULL(TransactionType,'?') AS TxnType,
-                       ItemNo, LocationID,
+                       PartNo AS ItemNo, LocationNo AS LocationID,
                        ISNULL(QtyBefore,0) AS QtyBefore,
                        ISNULL(QtyChange,0) AS Delta,
                        ISNULL(QtyAfter,0)  AS QtyAfter,
@@ -2515,10 +2515,10 @@ public static class WhEndpoints
                 IF @@ROWCOUNT<>1 THROW 51630, 'LOT inventory changed before outgoing.', 1;
 
                 INSERT dbo.WH_InventoryTransaction
-                    (TransactionTime,TransactionType,ItemNo,LocationID,LotID,LotNo,QtyBefore,QtyChange,QtyAfter,
-                     ReasonCode,RefDocType,RefDocID,OperatorID,Note,CreatedBy,CreatedTS)
+                    (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,
+                     ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
                 VALUES
-                    (SYSDATETIME(),'OUT',@ItemNo,@LocationID,NULL,@LotNo,@BeforeQty,-@OutgoingQty,@AfterQty,
+                    (SYSDATETIME(),'OUT',@ItemNo,@LocationID,@LotNo,@BeforeQty,-@OutgoingQty,@AfterQty,
                      @ReasonCode,'DIRECT_OUTGOING',NULL,@User,@Note,LEFT(@User,20),SYSDATETIME());
                 """, conn, tx))
             {
@@ -2669,10 +2669,10 @@ public static class WhEndpoints
                     IF @@ROWCOUNT<>1 THROW 51620, 'LOT inventory changed before Release.', 1;
 
                     INSERT dbo.WH_InventoryTransaction
-                        (TransactionTime,TransactionType,ItemNo,LocationID,LotID,LotNo,QtyBefore,QtyChange,QtyAfter,
-                         ReasonCode,RefDocType,RefDocID,OperatorID,Note,CreatedBy,CreatedTS)
+                        (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,
+                         ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
                     VALUES
-                        (SYSDATETIME(),'OUT',@ItemNo,@LocationID,NULL,@LotNo,@Qty,-@Qty,0,
+                        (SYSDATETIME(),'OUT',@ItemNo,@LocationID,@LotNo,@Qty,-@Qty,0,
                          @ReasonCode,'PICK_SLIP',@ScheduleID,@User,CONCAT('Release ',@Slip,' / ',@ReasonCode),LEFT(@User,20),SYSDATETIME());
                     """, conn, tx);
                 cmd.Parameters.AddWithValue("@ScheduleID", lot.PickSlipId);
@@ -2691,13 +2691,13 @@ public static class WhEndpoints
             using (var finish = new SqlCommand("""
                 ;WITH PickCounts AS
                 (
-                    SELECT ItemNo, COUNT(DISTINCT LotNo) AS BoxQty FROM dbo.WH_InventoryTransaction
-                    WHERE TransactionType='OUT' AND RefDocType='PICK_SLIP' AND RefDocID IN
+                    SELECT PartNo, COUNT(DISTINCT LotNo) AS BoxQty FROM dbo.WH_InventoryTransaction
+                    WHERE TransactionType='OUT' AND SourceType='PICK_SLIP' AND SourceID IN
                     (
                         SELECT PickSlipID FROM dbo.WH_PickSlip
                         WHERE UPPER(COALESCE(NULLIF(PickSlipNo,N''),CONCAT(N'RS-',PickSlipID)))=UPPER(@Slip)
                     )
-                    GROUP BY ItemNo
+                    GROUP BY PartNo
                 )
                 UPDATE RS
                    SET PickedQty=COALESCE(P.BoxQty,0),

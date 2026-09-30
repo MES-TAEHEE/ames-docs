@@ -203,13 +203,13 @@ public abstract class PdaApi
         string? ContainerType, string? ContainerBarcode);
     public sealed record FgPutAwayResult(bool Success, string Message, string? InventoryLotNo, FgPutAwayScanRow? Row,
         FgPutAwayLocationRow? Location);
-    public sealed record FgOutboundPalletItemRow(string LotNo, string PartNo, string? PartName,
+    public sealed record FgOutboundUnitItemRow(string LotNo, string UnitType, string PartNo, string? PartName,
         decimal Qty, string? LocationNo);
-    public sealed record FgOutboundPalletRow(string PalletLotNo, string? LocationNo,
-        decimal TotalQty, int PartCount, List<FgOutboundPalletItemRow> Items);
-    public sealed record FgOutboundPalletResult(bool Success, string Message, FgOutboundPalletRow? Pallet,
+    public sealed record FgOutboundUnitRow(string OutboundBarcode, string UnitType, string? LocationNo,
+        decimal TotalQty, int ItemCount, List<FgOutboundUnitItemRow> Items);
+    public sealed record FgOutboundUnitResult(bool Success, string Message, FgOutboundUnitRow? Unit,
         int ProcessedCount = 0);
-    public sealed record FgOutboundPalletReq(string PalletLotNo);
+    public sealed record FgOutboundUnitReq(string Barcode);
     public sealed record FgReturnReq(string Barcode, string ReturnReason, string? Note);
 
     protected async Task<T> GetRequiredAsync<T>(string url, string fallback)

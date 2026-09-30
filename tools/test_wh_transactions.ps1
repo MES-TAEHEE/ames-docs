@@ -39,12 +39,12 @@ ORDER BY P.InboundPackageID, P2.InboundPackageID;
     $null = Query @'
 UPDATE dbo.WH_InboundPackage SET BoxBarcode=N'TXN-TEST-BOX-ALIAS' WHERE InboundPackageID=@package;
 INSERT dbo.WH_InventoryTransaction
-    (TransactionTime,TransactionType,ItemNo,LocationID,LotID,QtyBefore,QtyChange,QtyAfter,CreatedBy)
+    (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,CreatedBy)
 VALUES
-    ('2099-01-01','IN',@item,'TXN-TEST-LOC',@lot,10,2.5,12.5,'transaction-test'),
-    ('2099-01-01','OUT',@item,'TXN-TEST-LOC',@lot,12.5,-1.25,11.25,'transaction-test'),
-    ('2099-01-01','ADJ',@item,'TXN-TEST-LOC',@lot,11.25,0.5,11.75,'transaction-test'),
-    ('2099-01-01','IN',@item,'TXN-TEST-LOC',@sibling,0,1,1,'transaction-test');
+    ('2099-01-01','IN',@item,'TXN-TEST-LOC',(SELECT LotCode FROM dbo.tbl_Lot WHERE LotID=@lot),10,2.5,12.5,'transaction-test'),
+    ('2099-01-01','OUT',@item,'TXN-TEST-LOC',(SELECT LotCode FROM dbo.tbl_Lot WHERE LotID=@lot),12.5,-1.25,11.25,'transaction-test'),
+    ('2099-01-01','ADJ',@item,'TXN-TEST-LOC',(SELECT LotCode FROM dbo.tbl_Lot WHERE LotID=@lot),11.25,0.5,11.75,'transaction-test'),
+    ('2099-01-01','IN',@item,'TXN-TEST-LOC',(SELECT LotCode FROM dbo.tbl_Lot WHERE LotID=@sibling),0,1,1,'transaction-test');
 '@ $parameters
     Check ((Search $f.LotCode).Rows.Count -eq 3) 'LOT search failed.'
     Check ((Search $f.ItemNo).Rows.Count -ge 4) 'Part search failed.'
