@@ -144,10 +144,10 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
         => GetFgPutAwayLocationAsync($"/api/fg/putaway/location?locationId={Uri.EscapeDataString(locationId)}&itemNo={Uri.EscapeDataString(itemNo)}&customerCode={Uri.EscapeDataString(customerCode ?? "")}&qty={qty}&expectedScanType={Uri.EscapeDataString(expectedScanType ?? "")}");
     public Task<FgPutAwayResult> FgConfirmPutAwayAsync(FgPutAwayConfirmReq body)
         => PostFgPutAwayResultAsync("/api/fg/putaway/confirm", body);
-    public Task<FgOutboundPalletResult> FgOutboundPalletScanAsync(string barcode)
-        => GetOutboundPalletResultAsync($"/api/fg/outbound/pallet/scan?barcode={Uri.EscapeDataString(barcode.Trim())}");
-    public Task<FgOutboundPalletResult> FgOutboundPalletAsync(FgOutboundPalletReq body)
-        => PostOutboundPalletResultAsync("/api/fg/outbound/pallet", body);
+    public Task<FgOutboundUnitResult> FgOutboundScanAsync(string barcode)
+        => GetOutboundUnitResultAsync($"/api/fg/outbound/scan?barcode={Uri.EscapeDataString(barcode.Trim())}");
+    public Task<FgOutboundUnitResult> FgOutboundAsync(FgOutboundUnitReq body)
+        => PostOutboundUnitResultAsync("/api/fg/outbound", body);
     public Task<FgReturnResult> FgReturnAsync(FgReturnReq body)
         => PostFgReturnResultAsync("/api/fg/return", body);
 
@@ -166,39 +166,39 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
         }
     }
 
-    private async Task<FgOutboundPalletResult> GetOutboundPalletResultAsync(string url)
+    private async Task<FgOutboundUnitResult> GetOutboundUnitResultAsync(string url)
     {
         Authorize();
         try
         {
             using var response = await _http.GetAsync(url);
-            return await ReadOutboundPalletResultAsync(response);
+            return await ReadOutboundUnitResultAsync(response);
         }
         catch (Exception ex)
         {
-            return new FgOutboundPalletResult(false, $"Outbound service is unavailable. {ex.Message}", null);
+            return new FgOutboundUnitResult(false, $"Outbound service is unavailable. {ex.Message}", null);
         }
     }
 
-    private async Task<FgOutboundPalletResult> PostOutboundPalletResultAsync(string url, FgOutboundPalletReq body)
+    private async Task<FgOutboundUnitResult> PostOutboundUnitResultAsync(string url, FgOutboundUnitReq body)
     {
         Authorize();
         try
         {
             using var response = await _http.PostAsJsonAsync(url, body);
-            return await ReadOutboundPalletResultAsync(response);
+            return await ReadOutboundUnitResultAsync(response);
         }
         catch (Exception ex)
         {
-            return new FgOutboundPalletResult(false, $"Outbound service is unavailable. {ex.Message}", null);
+            return new FgOutboundUnitResult(false, $"Outbound service is unavailable. {ex.Message}", null);
         }
     }
 
-    private static async Task<FgOutboundPalletResult> ReadOutboundPalletResultAsync(HttpResponseMessage response)
+    private static async Task<FgOutboundUnitResult> ReadOutboundUnitResultAsync(HttpResponseMessage response)
     {
         try
         {
-            var result = await response.Content.ReadFromJsonAsync<FgOutboundPalletResult>();
+            var result = await response.Content.ReadFromJsonAsync<FgOutboundUnitResult>();
             if (result is not null) return result;
         }
         catch
@@ -206,7 +206,7 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
             // Fall through to a readable status message.
         }
 
-        return new FgOutboundPalletResult(false,
+        return new FgOutboundUnitResult(false,
             response.StatusCode == HttpStatusCode.Unauthorized
                 ? "Session expired. Sign in again."
                 : $"Outbound service failed. HTTP {(int)response.StatusCode}.", null);

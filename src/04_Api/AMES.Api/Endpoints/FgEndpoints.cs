@@ -53,13 +53,13 @@ public static class FgEndpoints
         string? ContainerType, string? ContainerBarcode);
     public sealed record PutAwayResult(bool Success, string Message, string? InventoryLotNo, PutAwayScanRow? Row,
         PutAwayLocationRow? Location);
-    public sealed record OutboundPalletItemRow(string LotNo, string PartNo, string? PartName,
+    public sealed record OutboundUnitItemRow(string LotNo, string UnitType, string PartNo, string? PartName,
         decimal Qty, string? LocationNo);
-    public sealed record OutboundPalletRow(string PalletLotNo, string? LocationNo,
-        decimal TotalQty, int PartCount, List<OutboundPalletItemRow> Items);
-    public sealed record OutboundPalletResult(bool Success, string Message, OutboundPalletRow? Pallet,
+    public sealed record OutboundUnitRow(string OutboundBarcode, string UnitType, string? LocationNo,
+        decimal TotalQty, int ItemCount, List<OutboundUnitItemRow> Items);
+    public sealed record OutboundUnitResult(bool Success, string Message, OutboundUnitRow? Unit,
         int ProcessedCount = 0);
-    public sealed record OutboundPalletReq(string PalletLotNo);
+    public sealed record OutboundUnitReq(string Barcode);
     public sealed record ReturnReq(string Barcode, string ReturnReason, string? Note);
 
     private const string BarcodeLot = "LOT";
@@ -411,87 +411,90 @@ public static class FgEndpoints
             return Results.Ok(rows);
         });
 
-        g.MapGet("/outbound/pallet/scan", (HttpContext ctx, string barcode) =>
+        g.MapGet("/outbound/scan", (HttpContext ctx, string barcode) =>
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
             if (string.IsNullOrWhiteSpace(barcode))
-                return Results.BadRequest(new OutboundPalletResult(false, "Scan a pallet LOT barcode.", null));
+                return Results.BadRequest(new OutboundUnitResult(false, "Scan an outbound barcode.", null));
             try
             {
                 using var conn = factory.OpenConnection();
-                using var cmd = new SqlCommand("dbo.FG_PDA_OUTBOUND_PALLET_SCAN", conn)
+                using var cmd = new SqlCommand("dbo.FG_PDA_OUTBOUND_SCAN", conn)
                 {
                     CommandType = CommandType.StoredProcedure,
                     CommandTimeout = 15
                 };
-                cmd.Parameters.Add("@PalletBarcode", SqlDbType.NVarChar, 50).Value = barcode.Trim();
+                cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = barcode.Trim();
                 using var rdr = cmd.ExecuteReader();
                 if (!rdr.Read())
-                    return Results.Json(new OutboundPalletResult(false, "Outbound service returned no pallet.", null), statusCode: 503);
+                    return Results.Json(new OutboundUnitResult(false, "Outbound service returned no inventory unit.", null), statusCode: 503);
 
-                var palletLotNo = GetString(rdr, "PalletLotNo") ?? "";
+                var outboundBarcode = GetString(rdr, "OutboundBarcode") ?? "";
+                var unitType = GetString(rdr, "UnitType") ?? "PART";
                 var locationNo = GetString(rdr, "LocationNo");
                 var totalQty = GetDecimal(rdr, "TotalQty");
-                var partCount = GetInt(rdr, "PartCount") ?? 0;
-                var items = new List<OutboundPalletItemRow>();
+                var itemCount = GetInt(rdr, "ItemCount") ?? 0;
+                var items = new List<OutboundUnitItemRow>();
                 if (rdr.NextResult())
                 {
                     while (rdr.Read())
                     {
-                        items.Add(new OutboundPalletItemRow(
+                        items.Add(new OutboundUnitItemRow(
                             GetString(rdr, "LotNo") ?? "",
+                            GetString(rdr, "UnitType") ?? "PART",
                             GetString(rdr, "PartNo") ?? "",
                             GetString(rdr, "PartName"),
                             GetDecimal(rdr, "Qty"),
                             GetString(rdr, "LocationNo")));
                     }
                 }
-                return Results.Ok(new OutboundPalletResult(true,
-                    $"Pallet loaded. {partCount} part LOT(s) are ready for outbound.",
-                    new OutboundPalletRow(palletLotNo, locationNo, totalQty, partCount, items)));
+                return Results.Ok(new OutboundUnitResult(true,
+                    $"{unitType} loaded. {itemCount} inventory LOT(s) are ready for outbound.",
+                    new OutboundUnitRow(outboundBarcode, unitType, locationNo, totalQty, itemCount, items)));
             }
             catch (SqlException ex) when (ex.Number is >= 52000 and <= 52019)
             {
-                return Results.BadRequest(new OutboundPalletResult(false, ex.Message, null));
+                return Results.BadRequest(new OutboundUnitResult(false, ex.Message, null));
             }
             catch
             {
-                return Results.Json(new OutboundPalletResult(false,
+                return Results.Json(new OutboundUnitResult(false,
                     "Outbound service is unavailable. Check the API and database connection.", null),
                     statusCode: 503);
             }
         });
 
-        g.MapPost("/outbound/pallet", (HttpContext ctx, OutboundPalletReq body) =>
+        g.MapPost("/outbound", (HttpContext ctx, OutboundUnitReq body) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
-            if (string.IsNullOrWhiteSpace(body.PalletLotNo))
-                return Results.BadRequest(new OutboundPalletResult(false, "Scan a pallet LOT barcode first.", null));
+            if (string.IsNullOrWhiteSpace(body.Barcode))
+                return Results.BadRequest(new OutboundUnitResult(false, "Scan an outbound barcode first.", null));
             try
             {
                 using var conn = factory.OpenConnection();
-                using var cmd = new SqlCommand("dbo.FG_PDA_OUTBOUND_PALLET_COMPLETE", conn)
+                using var cmd = new SqlCommand("dbo.FG_PDA_OUTBOUND_COMPLETE", conn)
                 {
                     CommandType = CommandType.StoredProcedure,
                     CommandTimeout = 30
                 };
-                cmd.Parameters.Add("@PalletLotNo", SqlDbType.NVarChar, 50).Value = body.PalletLotNo.Trim();
+                cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
                 cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar, 450).Value = session.OperatorId;
                 using var rdr = cmd.ExecuteReader();
                 if (!rdr.Read())
-                    return Results.Json(new OutboundPalletResult(false, "Outbound service returned no result.", null), statusCode: 503);
+                    return Results.Json(new OutboundUnitResult(false, "Outbound service returned no result.", null), statusCode: 503);
                 var processed = GetInt(rdr, "ProcessedCount") ?? 0;
                 var totalQty = GetDecimal(rdr, "TotalQty");
-                return Results.Ok(new OutboundPalletResult(true,
-                    $"Outbound complete. {processed} part LOT(s), {totalQty:N0} EA processed.", null, processed));
+                var unitType = GetString(rdr, "UnitType") ?? "UNIT";
+                return Results.Ok(new OutboundUnitResult(true,
+                    $"Outbound complete. {unitType}, {processed} inventory LOT(s), {totalQty:N0} EA processed.", null, processed));
             }
             catch (SqlException ex) when (ex.Number is >= 52000 and <= 52019)
             {
-                return Results.BadRequest(new OutboundPalletResult(false, ex.Message, null));
+                return Results.BadRequest(new OutboundUnitResult(false, ex.Message, null));
             }
             catch
             {
-                return Results.Json(new OutboundPalletResult(false,
+                return Results.Json(new OutboundUnitResult(false,
                     "Outbound service is unavailable. Check the API and database connection.", null),
                     statusCode: 503);
             }
@@ -951,18 +954,17 @@ public static class FgEndpoints
 
         using (var cmd = new SqlCommand("""
             INSERT dbo.WH_InventoryTransaction
-                (TransactionTime, TransactionType, ItemNo, LocationID, LotID, LotNo,
+                (TransactionTime, TransactionType, PartNo, LocationNo, LotNo,
                  QtyBefore, QtyChange, QtyAfter, ReasonCode, RefDocType, OperatorID,
                  Note, CreatedBy, CreatedTS)
             VALUES
-                (SYSDATETIME(), 'IN', @ItemNo, @Location, @LotID, @LotNo,
+                (SYSDATETIME(), 'IN', @ItemNo, @Location, @LotNo,
                  0, @Qty, @Qty, 'PUTAWAY', 'FG_PUTAWAY', @OperatorID,
                  N'Finished goods put-away', LEFT(@OperatorID, 20), SYSDATETIME());
             """, conn, tx))
         {
             cmd.Parameters.Add("@ItemNo", SqlDbType.VarChar, 20).Value = row.ItemNo;
             cmd.Parameters.Add("@Location", SqlDbType.VarChar, 20).Value = location.LocationId;
-            AddNullable(cmd, "@LotID", SqlDbType.Int, row.LotId);
             cmd.Parameters.Add("@LotNo", SqlDbType.NVarChar, 50).Value = row.LotNo;
             AddDecimal(cmd, "@Qty", row.Qty);
             cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar, 450).Value = operatorId;

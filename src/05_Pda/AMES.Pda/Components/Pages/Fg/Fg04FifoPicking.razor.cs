@@ -9,8 +9,9 @@ public partial class Fg04FifoPicking
 
     private static readonly PptScenarioPanel.Step[] PptSteps =
     [
-        new("Pallet Outbound", "Sample pallet LOT을 스캔해 내부 파트 목록과 전체 Outbound 처리를 확인합니다.",
-            new PptScenarioPanel.Value("Sample Pallet", SamplePalletLot, "PALLET"))
+        new("Outbound Unit", "팔렛 또는 대형 단품 바코드를 스캔해 실제 출고 대상을 확인합니다.",
+            new PptScenarioPanel.Value("Sample Pallet", SamplePalletLot, "PALLET"),
+            new PptScenarioPanel.Value("Sample Large Part", SamplePartLot, "PART"))
     ];
 
     private async Task ResetPptData()
@@ -26,11 +27,14 @@ public partial class Fg04FifoPicking
         if (!IsPptTestMode || _isBusy) return;
         await ResetPptData();
         _barcode = SamplePalletLot;
-        await ScanPallet();
+        await ScanOutboundUnit();
     }
 
     private async Task RunPptValue(string command)
     {
-        if (command == "PALLET") await StartPptStep(1);
+        if (command is not ("PALLET" or "PART")) return;
+        await ResetPptData();
+        _barcode = command == "PALLET" ? SamplePalletLot : SamplePartLot;
+        await ScanOutboundUnit();
     }
 }

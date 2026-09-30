@@ -20,36 +20,37 @@
     <div class="pda-bd wh07-body">
         <RadzenCard class="wh07-panel wh07-slip-panel scan-only">
             <div class="pda-fld">
-                <label>PALLET LOT BARCODE</label>
+                <label>OUTBOUND BARCODE</label>
                 <RadzenTextBox class="pda-input wh07-input pda-scan-input" Value="@_barcode"
                                @oninput="OnScanInput" @onkeydown="OnScanKey"
-                               Placeholder="Scan Pallet LOT Barcode" />
+                               Placeholder="Scan Barcode" />
             </div>
         </RadzenCard>
 
-        @if (_pallet is not null)
+        @if (_unit is not null)
         {
             <div class="fg04-section-head outgoing">
-                <strong>PALLET INFORMATION</strong>
-                <span>@_pallet.PartCount part LOT(s)</span>
+                <strong>OUTBOUND INFORMATION</strong>
+                <span>@_unit.ItemCount inventory LOT(s)</span>
             </div>
             <RadzenCard class="wh07-summary-card fg04-summary-card">
                 <div class="fg04-order-head">
-                    <div><span>PALLET LOT</span><strong>@_pallet.PalletLotNo</strong></div>
+                    <div><span>@_unit.UnitType BARCODE</span><strong>@_unit.OutboundBarcode</strong></div>
                     <RadzenBadge class="wh07-status ready" Text="READY" />
                 </div>
                 <div class="fg04-detail-rows">
-                    <div class="fg04-detail-row"><span>LOCATION</span><strong>@Text(_pallet.LocationNo)</strong></div>
-                    <div class="fg04-detail-row"><span>TOTAL QTY</span><strong>@_pallet.TotalQty.ToString("N0") EA</strong></div>
+                    <div class="fg04-detail-row"><span>UNIT TYPE</span><strong>@_unit.UnitType</strong></div>
+                    <div class="fg04-detail-row"><span>LOCATION</span><strong>@Text(_unit.LocationNo)</strong></div>
+                    <div class="fg04-detail-row"><span>TOTAL QTY</span><strong>@_unit.TotalQty.ToString("N0") EA</strong></div>
                 </div>
             </RadzenCard>
 
             <div class="fg04-section-head parts">
-                <strong>PARTS IN PALLET</strong>
-                <span>@_pallet.Items.Count item(s)</span>
+                <strong>OUTBOUND ITEMS</strong>
+                <span>@_unit.Items.Count item(s)</span>
             </div>
             <div class="wh07-line-list fg04-outbound-list">
-                @foreach (var item in _pallet.Items)
+                @foreach (var item in _unit.Items)
                 {
                     <RadzenCard class="wh07-line-card fg04-line-card open">
                         <div class="fg04-line-head">
@@ -88,7 +89,8 @@
 
 @code {
     private const string SamplePalletLot = "FGPAL-DEMO-001";
-    private PdaApi.FgOutboundPalletRow? _pallet;
+    private const string SamplePartLot = "FGPART-DEMO-001";
+    private PdaApi.FgOutboundUnitRow? _unit;
     private string _barcode = "";
     private bool _isBusy, _modalOpen;
     private string _modalTitle = "", _modalMessage = "", _modalKind = "info";
@@ -108,7 +110,7 @@
     {
         if (_pptOpen || _isBusy) return;
         _barcode = Normalize(scanText);
-        await ScanPallet();
+        await ScanOutboundUnit();
         await InvokeAsync(StateHasChanged);
     }
 
@@ -116,31 +118,31 @@
     private void OnScanInput(ChangeEventArgs e) => _barcode = e.Value?.ToString() ?? "";
     private async Task OnScanKey(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter") await ScanPallet();
+        if (e.Key == "Enter") await ScanOutboundUnit();
     }
 
-    private async Task ScanPallet()
+    private async Task ScanOutboundUnit()
     {
         var barcode = Normalize(_barcode);
         if (string.IsNullOrWhiteSpace(barcode))
         {
-            ShowModal("Pallet Required", "Scan a pallet LOT barcode.", "warn");
+            ShowModal("Barcode Required", "Scan a pallet, case, box, or part barcode.", "warn");
             return;
         }
 
         _isBusy = true;
         try
         {
-            var result = await Api.FgOutboundPalletScanAsync(barcode);
-            if (!result.Success || result.Pallet is null)
+            var result = await Api.FgOutboundScanAsync(barcode);
+            if (!result.Success || result.Unit is null)
             {
-                _pallet = null;
+                _unit = null;
                 _barcode = "";
-                ShowModal("Pallet Scan Failed", result.Message, "danger");
+                ShowModal("Outbound Scan Failed", result.Message, "danger");
                 return;
             }
-            _pallet = result.Pallet;
-            _barcode = result.Pallet.PalletLotNo;
+            _unit = result.Unit;
+            _barcode = result.Unit.OutboundBarcode;
         }
         finally
         {
@@ -151,24 +153,25 @@
 
     private async Task CompleteOutbound()
     {
-        if (_pallet is null)
+        if (_unit is null)
         {
-            ShowModal("Pallet Required", "Scan a pallet LOT barcode first.", "warn");
+            ShowModal("Barcode Required", "Scan an outbound barcode first.", "warn");
             return;
         }
 
         _isBusy = true;
         try
         {
-            var palletLot = _pallet.PalletLotNo;
-            var result = await Api.FgOutboundPalletAsync(new PdaApi.FgOutboundPalletReq(palletLot));
+            var barcode = _unit.OutboundBarcode;
+            var unitType = _unit.UnitType;
+            var result = await Api.FgOutboundAsync(new PdaApi.FgOutboundUnitReq(barcode));
             if (!result.Success)
             {
                 ShowModal("Outbound Failed", result.Message, "danger");
                 return;
             }
             Clear();
-            ShowModal("Outbound Complete", $"Pallet {palletLot} and all contained parts were processed.\n{result.Message}", "success");
+            ShowModal("Outbound Complete", $"{unitType} {barcode} was processed.\n{result.Message}", "success");
         }
         finally
         {
@@ -179,7 +182,7 @@
 
     private void Clear()
     {
-        _pallet = null;
+        _unit = null;
         _barcode = "";
     }
 

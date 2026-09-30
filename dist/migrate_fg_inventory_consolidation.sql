@@ -105,11 +105,11 @@ GO
 IF OBJECT_ID(N'dbo.FG_InventoryAdjust',N'U') IS NOT NULL
 BEGIN
     INSERT dbo.WH_InventoryTransaction
-        (TransactionTime,TransactionType,ItemNo,LocationID,LotID,LotNo,
+        (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,
          QtyBefore,QtyChange,QtyAfter,ReasonCode,RefDocType,RefDocID,
          OperatorID,Note,CreatedBy,CreatedTS)
-    SELECT COALESCE(A.CreatedTS,SYSDATETIME()),'ADJ',A.ItemNo,A.Location,A.LotID,
-           COALESCE(NULLIF(L.LotCode,N''),NULLIF(F.StockNumber,N'')),
+    SELECT COALESCE(A.CreatedTS,SYSDATETIME()),'ADJ',A.ItemNo,A.Location,
+           COALESCE(NULLIF(L.LotCode,N''),NULLIF(F.StockNumber,N''),CONCAT(N'LEGACY-FG-ADJUST-',A.AdjustID)),
            A.QtyBefore,A.Delta,A.QtyAfter,A.ReasonCode,'FG_ADJUST',A.AdjustID,
            COALESCE(A.RequestedBy,A.CreatedBy),A.ReasonNote,
            LEFT(COALESCE(NULLIF(A.CreatedBy,''),'system'),20),COALESCE(A.CreatedTS,SYSDATETIME())
@@ -215,10 +215,10 @@ BEGIN
     IF @LotID IS NOT NULL
         UPDATE dbo.tbl_Lot SET RemainingQty=@After,ModifiedTS=SYSDATETIME(),ModifiedBy=LEFT(@User,20) WHERE LotID=@LotID;
     INSERT dbo.WH_InventoryTransaction
-        (TransactionTime,TransactionType,ItemNo,LocationID,LotID,LotNo,QtyBefore,QtyChange,QtyAfter,
+        (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,
          ReasonCode,RefDocType,OperatorID,Note,CreatedBy,CreatedTS)
     VALUES
-        (SYSDATETIME(),'ADJ',@ItemNo,@Location,@LotID,@Scan,@Before,@DeltaQty,@After,
+        (SYSDATETIME(),'ADJ',@ItemNo,@Location,@Scan,@Before,@DeltaQty,@After,
          @Reason,'FG_ADJUST',@User,@Note,LEFT(@User,20),SYSDATETIME());
     COMMIT TRANSACTION;
     EXEC dbo.FG_PDA_ADJUST_SCAN_STOCK @ScanText=@Scan;
@@ -304,9 +304,9 @@ BEGIN
     WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
         VALUES(S.LotNo,'PART',S.ItemNo,S.ItemName,NULL,S.Qty,@Now,@Now,@Now);
     INSERT dbo.WH_InventoryTransaction
-        (TransactionTime,TransactionType,ItemNo,LotID,LotNo,QtyBefore,QtyChange,QtyAfter,
+        (TransactionTime,TransactionType,PartNo,LotNo,QtyBefore,QtyChange,QtyAfter,
          ReasonCode,RefDocType,RefDocID,OperatorID,Note,CreatedBy,CreatedTS)
-    SELECT @Now,'IN',ItemNo,LotID,LotNo,0,Qty,Qty,'RETURN','FG_RETURN',@ReturnID,
+    SELECT @Now,'IN',ItemNo,LotNo,0,Qty,Qty,'RETURN','FG_RETURN',@ReturnID,
         @OperatorID,@CleanNote,LEFT(COALESCE(NULLIF(@OperatorID,N''),N'pda'),20),@Now FROM @P;
     COMMIT TRANSACTION;
     SELECT @ReturnID AS ReturnID,* FROM @P;
@@ -323,7 +323,7 @@ BEGIN
             @Search nvarchar(130)=N'%'+NULLIF(LTRIM(RTRIM(@SearchText)),N'')+N'%';
     ;WITH Events AS
     (
-        SELECT T.TransactionTime EventTime,CONCAT('TX-',T.TransactionID) EventID,T.LotNo,T.ItemNo,T.LocationID,
+        SELECT T.TransactionTime EventTime,CONCAT('TX-',T.TransactionID) EventID,T.LotNo,T.PartNo,T.LocationNo,
             ABS(T.QtyChange) Qty,CASE T.TransactionType WHEN 'IN' THEN N'Inbound' WHEN 'OUT' THEN N'Outbound' ELSE N'Adjust' END Status,
             T.TransactionType Direction,T.OperatorID Worker,T.ReasonCode,T.Note ReasonNote,T.ApproverID Supervisor,
             T.QtyBefore BeforeQty,T.QtyChange DeltaQty,T.QtyAfter AfterQty,T.RefDocType Source,T.Note Reference
@@ -426,12 +426,12 @@ BEGIN
         VALUES(@LotNo,'PART','PPT-FG-HIST',N'PPT FG HISTORY','FG-PPT-G1',0,@Today,@Today,@Today);
     DELETE dbo.WH_InventoryTransaction WHERE RefDocType='FG_PPT_HISTORY' AND LotNo=@LotNo;
     INSERT dbo.WH_InventoryTransaction
-        (TransactionTime,TransactionType,ItemNo,LocationID,LotID,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,RefDocType,OperatorID,Note,CreatedBy,CreatedTS)
+        (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,RefDocType,OperatorID,Note,CreatedBy,CreatedTS)
     VALUES
-        (DATEADD(second,1,@Today),'IN','PPT-FG-HIST','FG-PPT-G1',@LotID,@LotNo,0,20,20,'PUTAWAY','FG_PPT_HISTORY','SCTEST1',N'PPT Put-Away','pda-ppt-fg-history',SYSDATETIME()),
-        (DATEADD(second,2,@Today),'ADJ','PPT-FG-HIST','FG-PPT-G1',@LotID,@LotNo,20,2,22,'COUNT_DIFF','FG_PPT_HISTORY','SCTEST1',N'PPT count correction','pda-ppt-fg-history',SYSDATETIME()),
-        (DATEADD(second,3,@Today),'OUT','PPT-FG-HIST','FG-PPT-G1',@LotID,@LotNo,22,-22,0,'OUTBOUND','FG_PPT_HISTORY','SCTEST1',N'PPT outbound','pda-ppt-fg-history',SYSDATETIME()),
-        (DATEADD(second,4,@Today),'IN','PPT-FG-HIST','FG-PPT-G1',@LotID,@LotNo,0,22,22,'RETURN','FG_PPT_HISTORY','SCTEST1',N'PPT customer return','pda-ppt-fg-history',SYSDATETIME());
+        (DATEADD(second,1,@Today),'IN','PPT-FG-HIST','FG-PPT-G1',@LotNo,0,20,20,'PUTAWAY','FG_PPT_HISTORY','SCTEST1',N'PPT Put-Away','pda-ppt-fg-history',SYSDATETIME()),
+        (DATEADD(second,2,@Today),'ADJ','PPT-FG-HIST','FG-PPT-G1',@LotNo,20,2,22,'COUNT_DIFF','FG_PPT_HISTORY','SCTEST1',N'PPT count correction','pda-ppt-fg-history',SYSDATETIME()),
+        (DATEADD(second,3,@Today),'OUT','PPT-FG-HIST','FG-PPT-G1',@LotNo,22,-22,0,'OUTBOUND','FG_PPT_HISTORY','SCTEST1',N'PPT outbound','pda-ppt-fg-history',SYSDATETIME()),
+        (DATEADD(second,4,@Today),'IN','PPT-FG-HIST','FG-PPT-G1',@LotNo,0,22,22,'RETURN','FG_PPT_HISTORY','SCTEST1',N'PPT customer return','pda-ppt-fg-history',SYSDATETIME());
 END;
 GO
 
