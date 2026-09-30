@@ -378,39 +378,39 @@
 
     static List<SampleRequirement> BuildSampleRequirements() =>
     [
-        new(1, "PO-IMG-260929-001", "PICK-IMG-003", DateTime.Today.AddHours(10),
+        new(1, "PO-IMG-260929-001", "PICK-IMG-003", DbClock.Today.AddHours(10),
             "LINE-IMG-01", "Wrapping Line 1", "Ready",
         [
             new(1, "PPT-WH-REL-01", "PPT Release Trim A", 6, "5011LL260908810005", "B0-10-A1", "LINE-IMG-01"),
             new(2, "PPT-WH-REL-01", "PPT Release Trim A", 4, "5011LL260908810006", "B0-10-B1", "LINE-IMG-01"),
             new(3, "PPT-WH-REL-02", "PPT Release Trim B", 8, "5011LL260908810007", "B0-09-D2", "LINE-IMG-01")
         ]),
-        new(2, "PO-IMG-260929-002", "PICK-IMG-004", DateTime.Today.AddHours(14),
+        new(2, "PO-IMG-260929-002", "PICK-IMG-004", DbClock.Today.AddHours(14),
             "LINE-IMG-01", "Wrapping Line 1", "Ready",
         [
             new(1, "PPT-WH-REL-02", "PPT Release Trim B", 8, "5011LL260908810008", "B0-08-B1", "LINE-IMG-01"),
             new(2, "PPT-WH-REL-02", "PPT Release Trim B", 8, "5011LL260908810009", "B0-09-D2", "LINE-IMG-01")
         ]),
-        new(1, "PO-INJ-260929-001", "PICK-INJ-003", DateTime.Today.AddHours(9),
+        new(1, "PO-INJ-260929-001", "PICK-INJ-003", DbClock.Today.AddHours(9),
             "LINE-INJ-01", "Injection Line 1 (1800T)", "Ready",
         [
             new(1, "81711-PI000YGN", "TRIM - TAIL GATE LWR", 6, "5011LL260101000018", "B0-08-C1", "LINE-INJ-01"),
             new(2, "81711-PI000YGN", "TRIM - TAIL GATE LWR", 6, "5011LL260801000003", "B0-09-D2", "LINE-INJ-01")
         ]),
-        new(2, "PO-INJ-260929-002", "PICK-INJ-004", DateTime.Today.AddHours(13),
+        new(2, "PO-INJ-260929-002", "PICK-INJ-004", DbClock.Today.AddHours(13),
             "LINE-INJ-01", "Injection Line 1 (1800T)", "Ready",
         [
             new(1, "81711-PI000YGN", "TRIM - TAIL GATE LWR", 8, "5011LL260601000004", "B0-08-B1", "LINE-INJ-01"),
             new(2, "81711-PI000YGN", "TRIM - TAIL GATE LWR", 8, "5011LL260701000001", "B0-10-A1", "LINE-INJ-01")
         ]),
-        new(1, "PO-PNT-260929-001", "PICK-PNT-003", DateTime.Today.AddHours(11),
+        new(1, "PO-PNT-260929-001", "PICK-PNT-003", DbClock.Today.AddHours(11),
             "LINE-PNT-01", "Painting Line 1", "Ready",
         [
             new(1, "PPT-WH-INV-01", "PPT Inventory Trim A", 10, "5011LL260908820004", "B0-10-A1", "LINE-PNT-01"),
             new(2, "PPT-WH-INV-01", "PPT Inventory Trim A", 10, "5011LL260908820005", "B0-10-B1", "LINE-PNT-01"),
             new(3, "PPT-WH-INV-02", "PPT Inventory Trim B", 12, "5011LL260908820006", "B0-09-D2", "LINE-PNT-01")
         ]),
-        new(2, "PO-PNT-260929-002", "PICK-PNT-004", DateTime.Today.AddHours(15),
+        new(2, "PO-PNT-260929-002", "PICK-PNT-004", DbClock.Today.AddHours(15),
             "LINE-PNT-01", "Painting Line 1", "Ready",
         [
             new(1, "PPT-WH-ADJ-01", "PPT Adjust Trim", 10, "5011LL260908830002", "B0-12-B1", "LINE-PNT-01"),
