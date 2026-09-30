@@ -17,9 +17,46 @@
     min-height: 330px;
 }
 
+.auto-order-page > .ames-card + .ames-card,
+.requirement-review-card {
+    margin-top: 12px;
+}
+
 .slip-detail-card {
     margin-top: 12px;
 }
+
+.requirement-review-card .code,
+.slip-detail-card .code {
+    display: block;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.2;
+}
+
+.wh-slip-paper {
+    overflow: hidden;
+}
+
+.wh-slip-paper .wh-slip-meta div,
+.wh-slip-barcode-box,
+.wh-slip-table th,
+.wh-slip-table td {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.wh-slip-table th:nth-child(1) { width: 5%; }
+.wh-slip-table th:nth-child(2) { width: 15%; }
+.wh-slip-table th:nth-child(3) { width: 20%; }
+.wh-slip-table th:nth-child(4) { width: 10%; }
+.wh-slip-table th:nth-child(5) { width: 20%; }
+.wh-slip-table th:nth-child(6) { width: 15%; }
+.wh-slip-table th:nth-child(7) { width: 15%; }
 
 @media print {
     .sample-banner,

@@ -13,22 +13,90 @@
 }
 
 <div class="sample-banner">
-    SAMPLE MODE · Picking Orders are generated automatically from each production line's material requirements.
+    SAMPLE MODE · Review each line's current material requirement and create a Picking Order when ready.
 </div>
 
 <div class="auto-order-page">
     <section class="ames-card wh-pick-list">
         <div class="ames-card-h wh-pick-card-head">
-            <span>LINE PICKING ORDERS</span>
+            <span>CURRENT LINE MATERIAL REQUIREMENTS</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem">
                 <RadzenDropDown @bind-Value="_lineCode"
                                 Data="@_lineOptions"
                                 TextProperty="Text"
                                 ValueProperty="Value"
-                                Change="@(_ => FilterSlips())"
+                                Change="@(_ => RefreshAll())"
                                 InputSize="InputSize.Small"
                                 class="ames-rz-input"
                                 Style="width:230px;" />
+                <RadzenTextBox @bind-Value="_requirementSearch" Placeholder="Search"
+                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;"
+                               AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") FilterRequirements(); }' />
+                <RadzenButton Text="Refresh" Icon="refresh" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small"
+                              Click="@RefreshAll" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+
+        <RadzenDataGrid TItem="SampleRequirement" Data="@_visibleRequirements" RowSelect="@SelectRequirement"
+                        AllowPaging="false" AllowSorting="true"
+                        EmptyText="No current material requirements found." Class="ames-rz-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="SampleRequirement" Property="LineCode" Title="LINE" Width="110px">
+                    <Template Context="r"><span class="code">@r.LineCode</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SampleRequirement" Property="ProductionOrder" Title="PRODUCTION ORDER" Width="180px">
+                    <Template Context="r"><span class="code">@r.ProductionOrder</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SampleRequirement" Property="LineName" Title="LINE NAME" />
+                <RadzenDataGridColumn TItem="SampleRequirement" Property="NeededAt" Title="NEEDED AT" Width="150px">
+                    <Template Context="r">@r.NeededAt.ToString("MM-dd HH:mm")</Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SampleRequirement" Property="MaterialCount" Title="MATERIALS" Width="100px" TextAlign="TextAlign.Right" />
+                <RadzenDataGridColumn TItem="SampleRequirement" Property="TotalBoxes" Title="TOTAL BOX" Width="100px" TextAlign="TextAlign.Right" />
+                <RadzenDataGridColumn TItem="SampleRequirement" Property="Status" Title="STATUS" Width="105px" TextAlign="TextAlign.Center">
+                    <Template Context="r"><span class="pill @StatusClass(r.Status)">@r.Status</span></Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </section>
+
+    @if (_selectedRequirement is not null)
+    {
+        <section class="ames-card requirement-review-card">
+            <div class="ames-card-h wh-pick-card-head">
+                <span>REQUIRED MATERIALS · @_selectedRequirement.LineCode · @_selectedRequirement.ProductionOrder</span>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem">
+                    <RadzenButton Text="Create Picking Order" Icon="add_task" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                  Click="@CreateSelectedRequirement" Disabled="@(_selectedRequirement.Status != "Ready")" class="ames-rz-btn" />
+                    <RadzenButton Text="Not Now" Icon="schedule" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small"
+                                  Click="@DeferSelectedRequirement" class="ames-rz-btn" />
+                </RadzenStack>
+            </div>
+
+            <RadzenDataGrid TItem="SamplePickLine" Data="@_selectedRequirement.Lines" AllowPaging="false" AllowSorting="true" Class="ames-rz-grid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="SamplePickLine" Property="Sequence" Title="NO" Width="60px" TextAlign="TextAlign.Right" />
+                    <RadzenDataGridColumn TItem="SamplePickLine" Property="PartNo" Title="PART NO" Width="165px">
+                        <Template Context="r"><span class="code">@r.PartNo</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="SamplePickLine" Property="PartName" Title="PART NAME" />
+                    <RadzenDataGridColumn TItem="SamplePickLine" Property="PickBoxes" Title="REQUIRED BOX" Width="115px" TextAlign="TextAlign.Right" />
+                    <RadzenDataGridColumn TItem="SamplePickLine" Property="LotNo" Title="LOT NO" Width="165px">
+                        <Template Context="r"><span class="code">@r.LotNo</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="SamplePickLine" Property="SourceLocation" Title="PICK LOCATION" Width="140px">
+                        <Template Context="r"><span class="pill info">@r.SourceLocation</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="SamplePickLine" Property="Destination" Title="DESTINATION" Width="150px" />
+                </Columns>
+            </RadzenDataGrid>
+        </section>
+    }
+
+    <section class="ames-card wh-pick-list">
+        <div class="ames-card-h wh-pick-card-head">
+            <span>CREATED PICKING ORDERS</span>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.375rem">
                 <RadzenTextBox @bind-Value="_slipSearch" Placeholder="Search"
                                InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;"
                                AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") FilterSlips(); }' />
@@ -142,10 +210,14 @@
         new("LINE-PNT-01", "LINE-PNT-01 - Painting Line 1")
     ];
 
+    List<SampleRequirement> _allRequirements = [];
+    List<SampleRequirement> _visibleRequirements = [];
     List<SampleSlip> _allSlips = [];
     List<SampleSlip> _visibleSlips = [];
+    SampleRequirement? _selectedRequirement;
     SampleSlip? _selectedSlip;
     string _lineCode = "";
+    string _requirementSearch = "";
     string _slipSearch = "";
     string _message = "";
     bool _isError;
@@ -153,8 +225,34 @@
 
     protected override void OnInitialized()
     {
+        _allRequirements = BuildSampleRequirements();
         _allSlips = BuildSampleSlips();
+        RefreshAll();
+    }
+
+    void RefreshAll()
+    {
+        FilterRequirements();
         FilterSlips();
+    }
+
+    void FilterRequirements()
+    {
+        _visibleRequirements = _allRequirements
+            .Where(x => string.IsNullOrWhiteSpace(_lineCode) || x.LineCode == _lineCode)
+            .Where(x => string.IsNullOrWhiteSpace(_requirementSearch) ||
+                        x.ProductionOrder.Contains(_requirementSearch, StringComparison.OrdinalIgnoreCase) ||
+                        x.LineCode.Contains(_requirementSearch, StringComparison.OrdinalIgnoreCase) ||
+                        x.LineName.Contains(_requirementSearch, StringComparison.OrdinalIgnoreCase) ||
+                        x.Lines.Any(line => line.PartNo.Contains(_requirementSearch, StringComparison.OrdinalIgnoreCase) ||
+                                            line.PartName.Contains(_requirementSearch, StringComparison.OrdinalIgnoreCase)))
+            .GroupBy(x => x.LineCode)
+            .Select(group => group.OrderBy(x => x.Sequence).FirstOrDefault(x => x.Status != "Completed"))
+            .Where(x => x is not null)
+            .Cast<SampleRequirement>()
+            .OrderBy(x => x.LineCode)
+            .ToList();
+        if (_selectedRequirement is not null && !_visibleRequirements.Contains(_selectedRequirement)) _selectedRequirement = null;
     }
 
     void FilterSlips()
@@ -173,13 +271,59 @@
         if (_selectedSlip is not null && !_visibleSlips.Contains(_selectedSlip)) _selectedSlip = null;
     }
 
-    void SelectSlip(SampleSlip slip) => _selectedSlip = slip;
+    void SelectRequirement(SampleRequirement requirement)
+    {
+        _selectedRequirement = requirement;
+        _selectedSlip = null;
+    }
+
+    void CreateSelectedRequirement()
+    {
+        if (_selectedRequirement is null || _selectedRequirement.Status != "Ready") return;
+
+        var requirement = _selectedRequirement;
+        var slip = new SampleSlip(
+            requirement.PickingOrderNo,
+            requirement.NeededAt.Date,
+            requirement.LineCode,
+            requirement.LineName,
+            requirement.LineCode,
+            "Open",
+            null,
+            requirement.Lines);
+        requirement.Status = "Picking";
+        _allSlips.Add(slip);
+        _selectedRequirement = null;
+        _selectedSlip = slip;
+        RefreshAll();
+        ShowMessage($"{slip.SlipNo} was created. The next production order will appear after this order is closed.", false);
+    }
+
+    void DeferSelectedRequirement()
+    {
+        if (_selectedRequirement is null) return;
+        ShowMessage($"{_selectedRequirement.ProductionOrder} remains in the line queue.", false);
+        _selectedRequirement = null;
+    }
+
+    void SelectSlip(SampleSlip slip)
+    {
+        _selectedSlip = slip;
+        _selectedRequirement = null;
+    }
     void ClearSelection() => _selectedSlip = null;
 
     void CloseSelected()
     {
         if (_selectedSlip is null) return;
         _selectedSlip.Status = "Closed";
+        var requirement = _allRequirements.FirstOrDefault(x => x.PickingOrderNo == _selectedSlip.SlipNo);
+        if (requirement is not null)
+        {
+            requirement.Status = "Completed";
+            FilterRequirements();
+            _selectedRequirement = _visibleRequirements.FirstOrDefault(x => x.LineCode == requirement.LineCode);
+        }
         ShowMessage($"{_selectedSlip.SlipNo} was closed in sample mode.", false);
     }
 
@@ -202,6 +346,8 @@
 
     static string StatusClass(string status) => status switch
     {
+        "Ready" => "ok",
+        "Picking" => "warn",
         "Open" => "ok",
         "Partial" => "warn",
         "Closed" => "mute",
@@ -229,6 +375,49 @@
         }
         return new BarcodeImage(bars, x + 8);
     }
+
+    static List<SampleRequirement> BuildSampleRequirements() =>
+    [
+        new(1, "PO-IMG-260929-001", "PICK-IMG-003", DateTime.Today.AddHours(10),
+            "LINE-IMG-01", "Wrapping Line 1", "Ready",
+        [
+            new(1, "PPT-WH-REL-01", "PPT Release Trim A", 6, "5011LL260908810005", "B0-10-A1", "LINE-IMG-01"),
+            new(2, "PPT-WH-REL-01", "PPT Release Trim A", 4, "5011LL260908810006", "B0-10-B1", "LINE-IMG-01"),
+            new(3, "PPT-WH-REL-02", "PPT Release Trim B", 8, "5011LL260908810007", "B0-09-D2", "LINE-IMG-01")
+        ]),
+        new(2, "PO-IMG-260929-002", "PICK-IMG-004", DateTime.Today.AddHours(14),
+            "LINE-IMG-01", "Wrapping Line 1", "Ready",
+        [
+            new(1, "PPT-WH-REL-02", "PPT Release Trim B", 8, "5011LL260908810008", "B0-08-B1", "LINE-IMG-01"),
+            new(2, "PPT-WH-REL-02", "PPT Release Trim B", 8, "5011LL260908810009", "B0-09-D2", "LINE-IMG-01")
+        ]),
+        new(1, "PO-INJ-260929-001", "PICK-INJ-003", DateTime.Today.AddHours(9),
+            "LINE-INJ-01", "Injection Line 1 (1800T)", "Ready",
+        [
+            new(1, "81711-PI000YGN", "TRIM - TAIL GATE LWR", 6, "5011LL260101000018", "B0-08-C1", "LINE-INJ-01"),
+            new(2, "81711-PI000YGN", "TRIM - TAIL GATE LWR", 6, "5011LL260801000003", "B0-09-D2", "LINE-INJ-01")
+        ]),
+        new(2, "PO-INJ-260929-002", "PICK-INJ-004", DateTime.Today.AddHours(13),
+            "LINE-INJ-01", "Injection Line 1 (1800T)", "Ready",
+        [
+            new(1, "81711-PI000YGN", "TRIM - TAIL GATE LWR", 8, "5011LL260601000004", "B0-08-B1", "LINE-INJ-01"),
+            new(2, "81711-PI000YGN", "TRIM - TAIL GATE LWR", 8, "5011LL260701000001", "B0-10-A1", "LINE-INJ-01")
+        ]),
+        new(1, "PO-PNT-260929-001", "PICK-PNT-003", DateTime.Today.AddHours(11),
+            "LINE-PNT-01", "Painting Line 1", "Ready",
+        [
+            new(1, "PPT-WH-INV-01", "PPT Inventory Trim A", 10, "5011LL260908820004", "B0-10-A1", "LINE-PNT-01"),
+            new(2, "PPT-WH-INV-01", "PPT Inventory Trim A", 10, "5011LL260908820005", "B0-10-B1", "LINE-PNT-01"),
+            new(3, "PPT-WH-INV-02", "PPT Inventory Trim B", 12, "5011LL260908820006", "B0-09-D2", "LINE-PNT-01")
+        ]),
+        new(2, "PO-PNT-260929-002", "PICK-PNT-004", DateTime.Today.AddHours(15),
+            "LINE-PNT-01", "Painting Line 1", "Ready",
+        [
+            new(1, "PPT-WH-ADJ-01", "PPT Adjust Trim", 10, "5011LL260908830002", "B0-12-B1", "LINE-PNT-01"),
+            new(2, "PPT-WH-HIST-01", "PPT Transaction Trim", 9, "5011LL260908840002", "B0-08-C1", "LINE-PNT-01"),
+            new(3, "PPT-WH-HIST-01", "PPT Transaction Trim", 9, "5011LL260908840003", "B0-09-D2", "LINE-PNT-01")
+        ])
+    ];
 
     static List<SampleSlip> BuildSampleSlips() =>
     [
@@ -270,6 +459,20 @@
     sealed record OptionItem(string Value, string Text);
     sealed record SamplePickLine(int Sequence, string PartNo, string PartName, int PickBoxes,
         string LotNo, string SourceLocation, string Destination);
+    sealed class SampleRequirement(int sequence, string productionOrder, string pickingOrderNo, DateTime neededAt,
+        string lineCode, string lineName, string status, List<SamplePickLine> lines)
+    {
+        public int Sequence { get; } = sequence;
+        public string ProductionOrder { get; } = productionOrder;
+        public string PickingOrderNo { get; } = pickingOrderNo;
+        public DateTime NeededAt { get; } = neededAt;
+        public string LineCode { get; } = lineCode;
+        public string LineName { get; } = lineName;
+        public string Status { get; set; } = status;
+        public List<SamplePickLine> Lines { get; } = lines;
+        public int MaterialCount => Lines.Select(x => x.PartNo).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+        public int TotalBoxes => Lines.Sum(x => x.PickBoxes);
+    }
     sealed class SampleSlip(string slipNo, DateTime requestDate, string lineCode, string lineName, string destination,
         string status, DateTime? printedAt, List<SamplePickLine> lines)
     {
