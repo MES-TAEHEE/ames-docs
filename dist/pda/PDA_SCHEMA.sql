@@ -4238,9 +4238,6 @@ IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_CustomerReturn_S
 IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_CustomerReturn_Lot')
     ALTER TABLE dbo.FG_CustomerReturn WITH CHECK ADD CONSTRAINT FK_FG_CustomerReturn_Lot
         FOREIGN KEY(LotID) REFERENCES dbo.tbl_Lot(LotID);
-IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_CustomerReturn_Item')
-    ALTER TABLE dbo.FG_CustomerReturn WITH CHECK ADD CONSTRAINT FK_FG_CustomerReturn_Item
-        FOREIGN KEY(ItemNo) REFERENCES dbo.MD_Item(ItemNo);
 IF NOT EXISTS(SELECT 1 FROM sys.check_constraints WHERE name=N'CK_FG_CustomerReturn_Qty')
     ALTER TABLE dbo.FG_CustomerReturn WITH CHECK ADD CONSTRAINT CK_FG_CustomerReturn_Qty
         CHECK(ReturnQty IS NULL OR ReturnQty>0);

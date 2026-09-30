@@ -373,7 +373,7 @@ def render(items, bom, skipped_qty, skipped_purchased) -> str:
     w("")
     w("   엑셀이 품목·BOM 의 유일한 정본이다. 이 스크립트는 MD_Item / MD_BomVersion / MD_Bom /")
     w("   SCM_ItemVendor 를 전부 지우고 다시 넣는다(SEMS 추출분 등 엑셀에 없는 품목은 사라진다).")
-    w("   품목·BOM 을 FK 로 참조하는 행(FG_CustomerReturn 등)이 있으면 시작 전에 중단한다 —")
+    w("   품목·BOM 을 FK 로 참조하는 행이 있으면 시작 전에 중단한다(구 FG 테이블·FK 가 남은 DB) —")
     w("   rebuild_db.sh 순서(PDA_SEED 이전)로 적용할 것. FK 없는 참조(수주·WO·LOT·재고 등)는 검사하지 않는다.")
     w("")
     w("   규칙")

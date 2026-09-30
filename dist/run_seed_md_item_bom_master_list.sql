@@ -2,10 +2,10 @@
    run_seed_md_item_bom_master_list.sql
    이미 운영 중인 DB 에 seed_md_item_bom_master_list.sql 을 단독 적용한다(rebuild_db.sh 없이).
 
-   시드는 MD_Item 을 FK 로 참조하는 행이 있으면 중단하므로, 그 행을 먼저 지운다:
-     FG_PickingDetail → FG_CustomerReturn → FG_ShipmentOrderLine → FG_Inventory
-   (없는 테이블은 건너뛴다). FK 없는 참조(수주·Forecast·WO·LOT·재고·BOP 등)는 건드리지 않으며
-   엑셀에 없는 품번을 가리키는 행은 고아로 남는다(사용자 결정).
+   시드는 품목·BOM 을 FK 로 참조하는 행이 있으면 중단한다. 마지막 FK(FG_CustomerReturn → MD_Item)는
+   migrate_drop_fg_customer_return_item_fk.sql 이 지우므로 그것을 먼저 적용하고, 이 스크립트는
+   다른 테이블 데이터를 지우지 않는다. FK 없는 참조(수주·Forecast·WO·LOT·재고·BOP·반품 등)는
+   그대로이며 엑셀에 없는 품번을 가리키는 행은 고아로 남는다(사용자 결정).
 
    전체가 트랜잭션 하나다. Mode=ROLLBACK 이면 끝에서 되돌리고(시험 실행), COMMIT 이면 반영한다.
    중간 오류는 -b 로 중단되며 연결이 끊기면서 전부 롤백된다.
@@ -23,15 +23,6 @@ DECLARE @before nvarchar(200) = CONCAT(N'적용 전: MD_Item ', (SELECT COUNT(*)
              N' · MD_Bom ', (SELECT COUNT(*) FROM dbo.MD_Bom), N' · SCM_ItemVendor ', (SELECT COUNT(*) FROM dbo.SCM_ItemVendor));
 PRINT @before;
 BEGIN TRAN;
-
-IF OBJECT_ID(N'dbo.FG_PickingDetail', N'U') IS NOT NULL
-BEGIN DELETE dbo.FG_PickingDetail;     PRINT CONCAT(N'FG_PickingDetail 삭제: ', @@ROWCOUNT, N' 건'); END;
-IF OBJECT_ID(N'dbo.FG_CustomerReturn', N'U') IS NOT NULL
-BEGIN DELETE dbo.FG_CustomerReturn;    PRINT CONCAT(N'FG_CustomerReturn 삭제: ', @@ROWCOUNT, N' 건'); END;
-IF OBJECT_ID(N'dbo.FG_ShipmentOrderLine', N'U') IS NOT NULL
-BEGIN DELETE dbo.FG_ShipmentOrderLine; PRINT CONCAT(N'FG_ShipmentOrderLine 삭제: ', @@ROWCOUNT, N' 건'); END;
-IF OBJECT_ID(N'dbo.FG_Inventory', N'U') IS NOT NULL
-BEGIN DELETE dbo.FG_Inventory;         PRINT CONCAT(N'FG_Inventory 삭제: ', @@ROWCOUNT, N' 건'); END;
 GO
 
 :r dist\seed_md_item_bom_master_list.sql

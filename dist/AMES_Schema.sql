@@ -9935,11 +9935,6 @@ ALTER TABLE [dbo].[WH_WarehouseMaster] ADD  CONSTRAINT [DF_WH_WAREHOUSE_MASTER_A
 GO
 ALTER TABLE [dbo].[WH_WarehouseMaster] ADD  CONSTRAINT [DF_WH_WAREHOUSE_MASTER_CREATED_TS]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
-ALTER TABLE [dbo].[FG_CustomerReturn]  WITH CHECK ADD  CONSTRAINT [FK_FG_CustomerReturn_Item] FOREIGN KEY([ItemNo])
-REFERENCES [dbo].[MD_Item] ([ItemNo])
-GO
-ALTER TABLE [dbo].[FG_CustomerReturn] CHECK CONSTRAINT [FK_FG_CustomerReturn_Item]
-GO
 ALTER TABLE [dbo].[FG_CustomerReturn]  WITH CHECK ADD  CONSTRAINT [FK_FG_CustomerReturn_Lot] FOREIGN KEY([LotID])
 REFERENCES [dbo].[tbl_Lot] ([LotID])
 GO
