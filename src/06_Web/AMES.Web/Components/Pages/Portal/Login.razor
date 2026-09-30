@@ -12,11 +12,12 @@
 <PageTitle>@L["Portal.Login.Title"] · A-MES</PageTitle>
 
 <div class="ames-auth-page portal-auth">
+    <div class="ames-auth-bg-grid"></div>
+
     <div class="ames-auth-card">
         <div class="ames-auth-brand">
-            <div class="portal-badge">@L["Portal.Sub"]</div>
             <div class="ames-auth-logo">A-MES</div>
-            <div class="ames-auth-sub">@L["Portal.Login.Sub"]</div>
+            <div class="ames-auth-sub">@L["Portal.Sub"] · @L["Portal.Login.Sub"]</div>
         </div>
 
         @if (!string.IsNullOrEmpty(errorMessage))
@@ -41,6 +42,8 @@
 
         <div class="ames-auth-hint">@L["Portal.Login.Hint"]</div>
     </div>
+
+    <div class="ames-auth-foot">A-MES · EOS · 2026</div>
 </div>
 
 @code {

@@ -1174,6 +1174,19 @@ html[data-theme="light"] .ames-user-av--none  { --av-bg: rgba(100,116,139,.10); 
     border-color: #93c5fd;
     box-shadow: 0 0 0 3px rgba(147,197,253,.15);
 }
+/* 브라우저가 저장된 비밀번호 등을 채우면(:-webkit-autofill) 밝은 기본 배경을 칠한다 — 카드 배경색과 흰 글자로 덮는다.
+   서버가 쿠키로 채운 이메일은 자동완성이 아니라서 비밀번호 칸만 하얗게 보였다. */
+.ames-auth-input:-webkit-autofill,
+.ames-auth-input:-webkit-autofill:hover,
+.ames-auth-input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #fff;
+    -webkit-box-shadow: 0 0 0 1000px var(--ames-auth-input-fill, #070e19) inset;
+    caret-color: #fff;
+    transition: background-color 9999s ease-out 0s;
+}
+.ames-auth-input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px var(--ames-auth-input-fill, #070e19) inset, 0 0 0 3px var(--ames-auth-input-ring, rgba(147,197,253,.15));
+}
 .ames-auth-vm {
     color: #fca5a5; font-size: 13px;
     font-family: var(--ames-font-mono);
@@ -5685,12 +5698,32 @@ html[data-theme="light"] .portal-shell { background: #f3f4f6; color: #111827; }
 html[data-theme="light"] .portal-top { background: #fff; border-color: #e5e7eb; }
 
 /* ── 외부 포탈: 내부 사이트와 확실히 다른 인상 — 청록 계열 액센트·상단 탭 네비·별도 브랜드 배지 ─────── */
-.portal-auth { background: radial-gradient(1200px 600px at 20% -10%, #0f3d3e 0%, #071a1c 45%, #050d10 100%) !important; }
-.portal-auth .ames-auth-card { border-top: 4px solid #2dd4bf; box-shadow: 0 20px 60px rgba(0,0,0,.45); }
-.portal-auth .ames-auth-logo { color: #99f6e4; }
-.portal-auth .ames-auth-submit { background: linear-gradient(90deg, #14b8a6, #0d9488); border-color: #0d9488; }
-.portal-auth .ames-auth-submit:hover { filter: brightness(1.08); }
-.portal-badge { display: inline-block; margin-bottom: 6px; padding: 2px 10px; border-radius: 999px; background: rgba(45,212,191,.15); color: var(--ames-tx-teal-300); font-size: calc(11px + var(--ames-fs-bump)); letter-spacing: .2em; font-weight: 700; }
+/* 외부 로그인: 구성(격자·두 모서리 빛·카드·하단 문구)은 내부 로그인과 같고 색만 청록 계열 */
+.portal-auth {
+    background:
+        radial-gradient(900px 600px at 10% 0%, rgba(20,184,166,.22), transparent 60%),
+        radial-gradient(900px 600px at 100% 100%, rgba(15,61,62,.6), transparent 60%),
+        linear-gradient(180deg, #071a1c 0%, #050d10 100%) !important;
+}
+.portal-auth .ames-auth-bg-grid {
+    background-image:
+        linear-gradient(rgba(45,212,191,.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(45,212,191,.05) 1px, transparent 1px);
+}
+.portal-auth .ames-auth-card { border-color: rgba(45,212,191,.22); box-shadow: 0 30px 80px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(45,212,191,.08) inset; }
+.portal-auth .ames-auth-sub { color: var(--ames-tx-teal-300); text-transform: uppercase; }
+.portal-auth .ames-auth-logo { background: linear-gradient(135deg, #99f6e4, #14b8a6); -webkit-background-clip: text; background-clip: text; }
+.portal-auth .ames-auth-label { color: rgba(94,234,212,.85); }
+.portal-auth { --ames-auth-input-fill: #06121a; --ames-auth-input-ring: rgba(45,212,191,.18); }
+.portal-auth .ames-auth-input,
+.portal-auth .ames-auth-input:-webkit-autofill { border-color: rgba(45,212,191,.2); caret-color: #5eead4; }
+.portal-auth .ames-auth-input:focus { border-color: #5eead4; box-shadow: 0 0 0 3px rgba(45,212,191,.18); }
+.portal-auth .ames-auth-submit { background: linear-gradient(90deg, #14b8a6, #0d9488); border-color: #0d9488; box-shadow: 0 10px 28px -10px rgba(13,148,136,.75); }
+.portal-auth .ames-auth-submit:hover { filter: brightness(1.08); box-shadow: 0 14px 32px -10px rgba(20,184,166,.85); }
+.portal-auth .ames-auth-hint { background: rgba(45,212,191,.06); border-color: rgba(45,212,191,.22); }
+.portal-auth .ames-auth-hint code { color: #5eead4; }
+.portal-auth .ames-auth-meta a { color: rgba(94,234,212,.85); }
+.portal-auth .ames-auth-meta a:hover { color: #fff; }
 .portal-error-card .ames-auth-error { margin: 12px 0; }
 .portal-shell { background: radial-gradient(1400px 500px at 50% -20%, var(--ames-sf-0f3d3e) 0%, var(--ames-sf-071a1c) 40%, var(--ames-sf-050d10) 100%); color: #e6fffa; }
 .portal-top { background: var(--ames-sf-050d10-a85); border-bottom: 2px solid #14b8a6; backdrop-filter: blur(6px); }
