@@ -501,26 +501,6 @@ WHEN MATCHED THEN UPDATE SET PoNumber='PPT-INBOUND',VendorID=S.VendorID,Delivery
 WHEN NOT MATCHED THEN INSERT(DeliveryNumber,RequestID,PoNumber,VendorID,DeliveryDate,Status,CreatedBy,CreatedUserID,CreatedTS,ShipDate,ShippedAt,ShippedBy)
     VALUES(S.DeliveryNumber,NEWID(),'PPT-INBOUND',S.VendorID,CONVERT(date,GETDATE()),'Shipped','pda-seed','SCTEST1',SYSDATETIME(),CONVERT(date,GETDATE()),SYSDATETIME(),'SCTEST1');
 
-MERGE dbo.SCM_DeliveryNote T
-USING @SimpleDeliveries S
-ON T.NoteNumber COLLATE DATABASE_DEFAULT=S.NoteNumber COLLATE DATABASE_DEFAULT
-WHEN MATCHED THEN UPDATE SET VendorID=S.VendorID,Snapshot=N'{}',IssuedAt=SYSDATETIME(),IssuedBy='SCTEST1',IssuedUserID='SCTEST1'
-WHEN NOT MATCHED THEN INSERT(NoteNumber,VendorID,Snapshot,IssuedAt,IssuedBy,IssuedUserID)
-    VALUES(S.NoteNumber,S.VendorID,N'{}',SYSDATETIME(),'SCTEST1','SCTEST1');
-
-MERGE dbo.SCM_DeliveryNoteDelivery T
-USING
-(
-    SELECT D.DeliveryID,N.NoteID
-    FROM @SimpleDeliveries S
-    JOIN dbo.SCM_Delivery D
-      ON D.DeliveryNumber COLLATE DATABASE_DEFAULT=S.DeliveryNumber COLLATE DATABASE_DEFAULT
-    JOIN dbo.SCM_DeliveryNote N
-      ON N.NoteNumber COLLATE DATABASE_DEFAULT=S.NoteNumber COLLATE DATABASE_DEFAULT
-) S ON T.DeliveryID=S.DeliveryID
-WHEN MATCHED THEN UPDATE SET NoteID=S.NoteID
-WHEN NOT MATCHED THEN INSERT(DeliveryID,NoteID) VALUES(S.DeliveryID,S.NoteID);
-
 DECLARE @SimpleLines table(ModeCode varchar(10),ItemNo varchar(20),Qty decimal(18,3),PackingQty decimal(18,3));
 INSERT @SimpleLines VALUES
  ('LOCAL','81710-PI000NNB',40,20),
@@ -547,6 +527,56 @@ USING
 WHEN MATCHED THEN UPDATE SET Quantity=S.Qty,ReceivedQty=0,PackingQty=S.PackingQty,VendorLotNo=NULL,ProductionDate=CONVERT(date,GETDATE())
 WHEN NOT MATCHED THEN INSERT(DeliveryID,PoID,Quantity,ReceivedQty,PackingQty,VendorLotNo,ProductionDate)
     VALUES(S.DeliveryID,S.PoID,S.Qty,0,S.PackingQty,NULL,CONVERT(date,GETDATE()));
+
+/* Keep PDA test delivery notes printable: never seed an empty JSON snapshot. */
+MERGE dbo.SCM_DeliveryNote T
+USING
+(
+    SELECT S.NoteNumber,S.VendorID,
+        (SELECT
+            S.NoteNumber AS Number,
+            D.PoNumber AS OrderNumber,
+            S.VendorID AS Vendor,
+            COALESCE(V.VendorName,S.VendorID) AS VendorName,
+            N'EOS' AS Buyer,
+            COALESCE((SELECT MAX(P.DeliveryDestination) FROM dbo.SCM_DeliveryLine DL JOIN dbo.WH_PurchaseOrder P ON P.PoID=DL.PoID WHERE DL.DeliveryID=D.DeliveryID),N'') AS Destination,
+            D.ShipDate AS ShipDate,
+            SYSDATETIME() AS IssuedAt,
+            N'SCTEST1' AS IssuedBy,
+            JSON_QUERY((
+                SELECT ISNULL(P.PoLineNo,P.PoID) AS Line,P.ItemNo AS Item,ISNULL(I.ItemName,P.ItemNo) AS Name,
+                    ISNULL(P.UnitCode,'') AS Unit,DL.Quantity,D.DeliveryNumber,D.PoNumber AS OrderNumber,
+                    ISNULL(P.DeliveryDestination,'') AS Destination,D.ShipDate,DL.DeliveryLineID,P.PoID
+                FROM dbo.SCM_DeliveryLine DL
+                JOIN dbo.WH_PurchaseOrder P ON P.PoID=DL.PoID
+                LEFT JOIN dbo.MD_Item I ON I.ItemNo=P.ItemNo
+                WHERE DL.DeliveryID=D.DeliveryID
+                ORDER BY DL.DeliveryLineID
+                FOR JSON PATH
+            )) AS Lines
+         FOR JSON PATH,WITHOUT_ARRAY_WRAPPER) AS Snapshot
+    FROM @SimpleDeliveries S
+    JOIN dbo.SCM_Delivery D
+      ON D.DeliveryNumber COLLATE DATABASE_DEFAULT=S.DeliveryNumber COLLATE DATABASE_DEFAULT
+    LEFT JOIN dbo.MD_Vendor V ON V.VendorID=S.VendorID
+) S
+ON T.NoteNumber COLLATE DATABASE_DEFAULT=S.NoteNumber COLLATE DATABASE_DEFAULT
+WHEN MATCHED THEN UPDATE SET VendorID=S.VendorID,Snapshot=S.Snapshot,IssuedAt=SYSDATETIME(),IssuedBy='SCTEST1',IssuedUserID='SCTEST1'
+WHEN NOT MATCHED THEN INSERT(NoteNumber,VendorID,Snapshot,IssuedAt,IssuedBy,IssuedUserID)
+    VALUES(S.NoteNumber,S.VendorID,S.Snapshot,SYSDATETIME(),'SCTEST1','SCTEST1');
+
+MERGE dbo.SCM_DeliveryNoteDelivery T
+USING
+(
+    SELECT D.DeliveryID,N.NoteID
+    FROM @SimpleDeliveries S
+    JOIN dbo.SCM_Delivery D
+      ON D.DeliveryNumber COLLATE DATABASE_DEFAULT=S.DeliveryNumber COLLATE DATABASE_DEFAULT
+    JOIN dbo.SCM_DeliveryNote N
+      ON N.NoteNumber COLLATE DATABASE_DEFAULT=S.NoteNumber COLLATE DATABASE_DEFAULT
+) S ON T.DeliveryID=S.DeliveryID
+WHEN MATCHED THEN UPDATE SET NoteID=S.NoteID
+WHEN NOT MATCHED THEN INSERT(DeliveryID,NoteID) VALUES(S.DeliveryID,S.NoteID);
 
 DECLARE @SimpleBoxes table(ModeCode varchar(10),BoxSeq int,BoxNumber varchar(64),ItemNo varchar(20),Qty decimal(18,3));
 INSERT @SimpleBoxes VALUES
