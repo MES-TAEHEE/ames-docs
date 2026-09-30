@@ -19,6 +19,7 @@
 @inject RoleManager<IdentityRole> RoleMgr
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Web.Services.AuditLogger Audit
+@inject AMES.Web.Services.AccountMail Mail
 
 <PageTitle>SYS-001 @L["SYS.Users.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-001" TitleKey="SYS.Users.Title" />
@@ -232,6 +233,11 @@
                         <div style="flex:1;background:rgba(203,213,225,.08);border:1px solid rgba(203,213,225,.25);color:var(--ames-tx-slate-300);padding:6px 10px;font-size:.85em;border-radius:6px;">
                             @L["SYS.Users.Status.Unverified"] · @L["SYS.Users.Hint.Unverified"]
                         </div>
+                        @* 메일 서버가 없으면 사용자가 인증 메일을 받을 수 없다 — 관리자가 대신 인증 처리한다 *@
+                        @if (Mail.AdminConfirmsEmail && _canEdit)
+                        {
+                            <RadzenButton Text="@L["SYS.Users.Btn.ConfirmEmail"]" Icon="mark_email_read" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="@ConfirmEmailByAdmin" Disabled="@_busy" class="ames-rz-btn" />
+                        }
                     }
                     else
                     {
@@ -594,6 +600,26 @@
         CloseModal(); await ReloadRestorePage();
         Audit.Log("SYS-001", "UNLOCK", "AspNetUsers", _sel.Email, null, null);
         ShowMsg(string.Format(L["SYS.Users.Ok.Unlocked"].Value, _sel.Email), false);
+    }
+
+    async Task ConfirmEmailByAdmin()
+    {
+        if (_sel is null || !_canEdit || !Mail.AdminConfirmsEmail) return;
+        var u = await UserMgr.FindByIdAsync(_sel.UserId);
+        if (u is null) return;
+        if (!u.EmailConfirmed)
+        {
+            var token = await UserMgr.GenerateEmailConfirmationTokenAsync(u);
+            var r = await UserMgr.ConfirmEmailAsync(u, token);
+            if (!r.Succeeded) { _modalErr = string.Join(", ", r.Errors.Select(e => e.Description)); return; }
+            Audit.Log("SYS-001", "EMAIL_CONFIRM", "AspNetUsers", _sel.Email, null, new { EmailConfirmed = true });
+        }
+        // 모달을 닫지 않고 새로 읽어 상태 콤보(승인)가 바로 보이게 한다
+        var id = _sel.UserId;
+        Reload();
+        var row = _allRows.FirstOrDefault(x => x.UserId == id);
+        if (row is not null) _sel = row;
+        ShowMsg(string.Format(L["SYS.Users.Ok.EmailConfirmed"].Value, _sel.Email), false);
     }
 
     async Task UnlockDomainAccount()

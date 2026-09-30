@@ -9496,4 +9496,16 @@
   <data name="Portal.Accessibility.PackingQuantity" xml:space="preserve">
     <value>{0} 적입량</value>
   </data>
+  <data name="Auth.Forgot.NoMail" xml:space="preserve">
+    <value>이 서버는 메일을 보내지 않아 재설정 링크를 받을 수 없습니다. 관리자에게 비밀번호 재설정을 요청하세요(시스템 → 사용자 관리).</value>
+  </data>
+  <data name="Auth.Register.AdminConfirm" xml:space="preserve">
+    <value>이 서버는 메일을 보내지 않습니다. 관리자가 이메일 인증과 승인을 처리하면 로그인할 수 있습니다.</value>
+  </data>
+  <data name="SYS.Users.Btn.ConfirmEmail" xml:space="preserve">
+    <value>인증 처리</value>
+  </data>
+  <data name="SYS.Users.Ok.EmailConfirmed" xml:space="preserve">
+    <value>{0} 이메일 인증 처리 완료.</value>
+  </data>
 </root>

@@ -9496,4 +9496,16 @@
   <data name="Portal.Accessibility.PackingQuantity" xml:space="preserve">
     <value>Cantidad por caja de {0}</value>
   </data>
+  <data name="Auth.Forgot.NoMail" xml:space="preserve">
+    <value>Este servidor no envía correos, por lo que no se puede entregar el enlace. Solicite a un administrador que restablezca su contraseña (Sistema → Gestión de Usuarios).</value>
+  </data>
+  <data name="Auth.Register.AdminConfirm" xml:space="preserve">
+    <value>Este servidor no envía correos. Podrá iniciar sesión cuando un administrador verifique su correo y apruebe la cuenta.</value>
+  </data>
+  <data name="SYS.Users.Btn.ConfirmEmail" xml:space="preserve">
+    <value>Verificar correo</value>
+  </data>
+  <data name="SYS.Users.Ok.EmailConfirmed" xml:space="preserve">
+    <value>Correo de {0} verificado.</value>
+  </data>
 </root>

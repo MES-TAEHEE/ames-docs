@@ -9496,4 +9496,16 @@
   <data name="Portal.Accessibility.PackingQuantity" xml:space="preserve">
     <value>Packing quantity for {0}</value>
   </data>
+  <data name="Auth.Forgot.NoMail" xml:space="preserve">
+    <value>This server does not send e-mail, so a reset link cannot be delivered. Ask an administrator to reset your password (System → User Management).</value>
+  </data>
+  <data name="Auth.Register.AdminConfirm" xml:space="preserve">
+    <value>This server does not send e-mail. You can sign in after an administrator verifies your e-mail and approves the account.</value>
+  </data>
+  <data name="SYS.Users.Btn.ConfirmEmail" xml:space="preserve">
+    <value>Verify e-mail</value>
+  </data>
+  <data name="SYS.Users.Ok.EmailConfirmed" xml:space="preserve">
+    <value>{0} e-mail verified.</value>
+  </data>
 </root>

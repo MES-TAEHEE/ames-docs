@@ -4,7 +4,7 @@ using AMES.Web.Data;
 
 namespace AMES.Web.Components.Account;
 
-// Remove the "else if (EmailSender is IdentityNoOpEmailSender)" block from RegisterConfirmation.razor after updating with a real implementation.
+// Smtp:Host 가 없을 때 등록된다(Program.cs). 이때의 대체 동작(개발 환경 화면 링크·관리자 인증/재설정)은 Services/AccountMail 이 정한다.
 internal sealed class IdentityNoOpEmailSender : IEmailSender<ApplicationUser>
 {
     private readonly IEmailSender emailSender = new NoOpEmailSender();

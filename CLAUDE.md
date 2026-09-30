@@ -292,6 +292,7 @@ appsettings 의 `PopTerminal:ModuleCode`/`LineId`/`StationId` 는 제거됐다 �
   - 행 클릭으로 수정 모달을 여는 화면은 **클릭 조건에도 `_canEdit` 를** 넣고, 저장·삭제 핸들러 첫 줄에서도 `_canEdit` 를 다시 본다(09-30 SYS-008·MD-004 BOM·PP-LSB 초기화에서 R 만으로 수정되던 것 수정).
   - 로그인 뒤 돌아갈 주소(ReturnUrl)는 `Services/LocalUrl` 규칙(같은 사이트 `/x` 만, `//host`·`/\host`·절대 URL 거부)으로만 검사한다 — `Uri.IsWellFormedUriString(…, Relative)` 는 `//host` 를 통과시키므로 쓰지 말 것.
   - SYS-009 비밀값(유형 `password` 또는 숫자가 아닌 `*PASSWORD*`·`SECRET`·`TOKEN`·`APIKEY`·`_KEY` 키)은 브라우저로 보내지 않는다 — 조회 전용은 `••••••`, 수정은 빈 입력란(비우면 유지). 언어 스위처는 `AppLanguageState.SupportedCultures` 에 있는 컬처만 링크로 만든다. `DetailedErrors`·Swagger 는 Development 에서만 켜진다.
+  - **계정 메일(10-01)**: `Smtp:Host` 가 있으면 `SmtpEmailSender` 가 가입 인증·비밀번호 재설정 메일을 보낸다. 없으면 `Services/AccountMail` 규칙 — 비밀번호 찾기·인증 메일 재발송 화면은 양식 대신 관리자 안내, 가입 인증 링크는 **Development 에서만** 화면에 보이고(운영에서 보이면 메일 확인 없이 인증된다), 관리자가 SYS-001 수정 모달의 "인증 처리"(E 권한, 감사 `EMAIL_CONFIRM`)로 인증한 뒤 상태를 ACTIVE 로 승인한다. 로그인 화면의 개발 계정 안내(`admin@ames.local / Dev2026!`)는 **개발 기간 동안 IIS(Production)에서도 보이게 둔다**(사용자 결정 10-01) — 개발 완료 시 `Login.razor` 에서 Development 에서만 보이게 바꾼다.
 
 ---
 

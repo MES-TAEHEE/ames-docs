@@ -160,6 +160,7 @@ if (!string.IsNullOrWhiteSpace(builder.Configuration["Smtp:Host"]))
     builder.Services.AddSingleton<IEmailSender<ApplicationUser>, AMES.Web.Services.SmtpEmailSender>();
 else
     builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+builder.Services.AddSingleton<AMES.Web.Services.AccountMail>();   // 메일 발송 가능 여부 → 가입·비밀번호 찾기·SYS-001 인증 처리 대체 동작
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<PermissionService>();
 builder.Services.AddScoped<ScmPreviewStore>();
