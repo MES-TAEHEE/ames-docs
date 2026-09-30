@@ -67,7 +67,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorID" Title="@L["Col.VendorId"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorID" Title="@L["Col.VendorId"]" TextAlign="TextAlign.Center" Width="140px">
                 <Template Context="r"><span class="code">@r.VendorID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorName" Title="@L["Col.VendorName"]">
@@ -84,7 +84,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorCategory" Title="@L["Col.Category"]" Width="120px">
                 <Template Context="r"><span class="dim">@(r.VendorCategory ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="ContactPerson" Title="@L["Col.Contact"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="ContactPerson" Title="@L["Col.Contact"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r">@(r.ContactPerson ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="EdiFlag" Title="@L["Col.EDI"]" TextAlign="TextAlign.Center" Width="70px">
@@ -93,7 +93,7 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="OtdTargetRate" Title="@L["Col.OtdPct"]" TextAlign="TextAlign.Right" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="OtdTargetRate" Title="@L["Col.OtdPct"]" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="r">@(r.OtdTargetRate?.ToString("F1") ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="PaymentTerms" Title="@L["Col.PayTerm"]" TextAlign="TextAlign.Center" Width="140px">

@@ -80,34 +80,34 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="PackType" Title="@L["Col.PackType"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="PackType" Title="@L["Col.PackType"]" Width="160px">
                 <Template Context="r">
                     @{ var ptEntry = _packingTypes.FirstOrDefault(x => x.CodeValue == r.PackType); }
                     @(ptEntry != null ? MasterDataRepository.LocalName(ptEntry) : r.PackType ?? "—")
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="QtyPerInner" Title="@L["Col.InnerQty"]" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="QtyPerInner" Title="@L["Col.InnerQty"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r">@(r.QtyPerInner?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="InnerPerOuter" Title="@L["Col.InnerPerOuter"]" TextAlign="TextAlign.Right" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="InnerPerOuter" Title="@L["Col.InnerPerOuter"]" TextAlign="TextAlign.Right" Width="160px">
                 <Template Context="r">@(r.InnerPerOuter?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="OuterPerPallet" Title="@L["Col.OuterPerPallet"]" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="OuterPerPallet" Title="@L["Col.OuterPerPallet"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r">@(r.OuterPerPallet?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="NetWeightKg" Title="@L["Col.NetWeight"]" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="NetWeightKg" Title="@L["Col.NetWeight"]" TextAlign="TextAlign.Right" Width="150px">
                 <Template Context="r">@(r.NetWeightKg?.ToString("0.000") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="GrossWeightKg" Title="@L["Col.GrossWeight"]" TextAlign="TextAlign.Right" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="GrossWeightKg" Title="@L["Col.GrossWeight"]" TextAlign="TextAlign.Right" Width="150px">
                 <Template Context="r">@(r.GrossWeightKg?.ToString("0.000") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="DimLxWxH" Title="@L["Col.Dimensions"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="DimLxWxH" Title="@L["Col.Dimensions"]" Width="130px">
                 <Template Context="r"><span class="dim">@(r.DimLxWxH ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="ReturnableFlag" Title="@L["Col.Returnable"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="ReturnableFlag" Title="@L["Col.Returnable"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r">@if (r.ReturnableFlag) { <span class="pill ok">@L["MD.PackagingSpec.PillReturn"]</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="LabelTemplateID" Title="@L["Col.LabelTemplate"]" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="LabelTemplateID" Title="@L["Col.LabelTemplate"]" Width="200px">
                 <Template Context="r"><span class="dim">@(r.LabelTemplateID ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">

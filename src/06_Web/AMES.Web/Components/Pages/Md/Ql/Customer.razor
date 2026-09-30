@@ -92,7 +92,7 @@
                     <span class="dim">@(nf != null ? MasterDataRepository.LocalName(nf) : r.Country ?? "—")</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="ContactPerson" Title="@L["Col.Contact"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="ContactPerson" Title="@L["Col.Contact"]" Width="120px">
                 <Template Context="r">@(r.ContactPerson ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="ContactPhone" Title="@L["Col.Phone"]" Width="130px">

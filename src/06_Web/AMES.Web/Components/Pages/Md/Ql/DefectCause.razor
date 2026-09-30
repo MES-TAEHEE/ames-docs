@@ -69,7 +69,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="CauseCode" Title="@L["Col.CauseCode"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="CauseCode" Title="@L["Col.CauseCode"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="r"><span class="code">@r.CauseCode</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="CauseName" Title="@L["Col.CauseName"]">
@@ -100,7 +100,7 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="ParentCauseCode" Title="@L["Col.UpperCause"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="ParentCauseCode" Title="@L["Col.UpperCause"]" Width="150px">
                 <Template Context="r"><span class="dim">@(r.ParentCauseCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="ResponsibleDept" Title="@L["Col.Dept"]" Width="110px">
@@ -112,7 +112,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="SortOrder" Title="@L["Col.Seq"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="r"><span class="dim">@(r.SortOrder?.ToString() ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="RootCauseFlag" Title="@L["Col.RootCause"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="RootCauseFlag" Title="@L["Col.RootCause"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r">
                     @if (r.RootCauseFlag) { <span class="pill ok">Y</span> }
                     else { <span class="dim">—</span> }

@@ -69,29 +69,29 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="LocationID" Title="@L["Col.LocationId"]" TextAlign="TextAlign.Center" Width="140px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="LocationID" Title="@L["Col.LocationId"]" TextAlign="TextAlign.Center" Width="150px">
                 <Template Context="r"><span class="code">@r.LocationID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="LocationName" Title="@L["Col.Name"]">
                 <Template Context="r">@(r.LocationName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="WhCode" Title="@L["MD.Location.Col.WhCode"].Value" TextAlign="TextAlign.Center" Width="90px" />
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="WhCode" Title="@L["MD.Location.Col.WhCode"].Value" TextAlign="TextAlign.Center" Width="140px" />
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="AreaCode" Title="@L["Col.Area"].Value" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="r"><span class="pill">@CodeLabel(_areaCodes, r.AreaCode)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="ZoneCode" Title="@L["Col.Zone"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="r"><span class="pill">@CodeLabel(_zoneCodes, r.ZoneCode)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="Aisle" Title="@L["Col.Aisle"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="Aisle" Title="@L["Col.Aisle"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="dim">@CodeLabel(_aisleCodes, r.Aisle)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="Bay" Title="@L["Col.Bay"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="Bay" Title="@L["Col.Bay"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r"><span class="dim">@CodeLabel(_bayCodes, r.Bay)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="Slot" Title="@L["Col.Slot"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="Slot" Title="@L["Col.Slot"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="dim">@CodeLabel(_slotCodes, r.Slot)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="Capacity" Title="@L["Col.LoadCapacity"]" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="Capacity" Title="@L["Col.LoadCapacity"]" TextAlign="TextAlign.Right" Width="180px">
                 <Template Context="r">@(r.Capacity?.ToString("N3") ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="LocationType" Title="@L["Col.Type"]" TextAlign="TextAlign.Right" Width="100px">

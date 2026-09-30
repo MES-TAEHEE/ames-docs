@@ -85,13 +85,13 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="ItemNo" Title="@L["Col.ItemNo"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="code" title="@ItemName(r.ItemNo)">@(r.ItemNo ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="CycleTime" Title="@L["Col.CycleTime"]" TextAlign="TextAlign.Right" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="CycleTime" Title="@L["Col.CycleTime"]" TextAlign="TextAlign.Right" Width="170px">
                 <Template Context="r">@(r.CycleTime?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="Version" Title="@L["Col.Version"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r"><span class="dim">@(r.Version ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="EffectiveDate" Title="@L["Col.EffectiveDate"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="EffectiveDate" Title="@L["Col.EffectiveDate"]" TextAlign="TextAlign.Center" Width="170px">
                 <Template Context="r"><span class="dim">@(r.EffectiveDate?.ToString(DateFmt.DateShort) ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px">

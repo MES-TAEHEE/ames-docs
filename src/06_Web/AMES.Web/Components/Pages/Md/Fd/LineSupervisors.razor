@@ -79,7 +79,7 @@
                     @if (!string.IsNullOrEmpty(LineName(s))) { <span class="dim" style="font-size:.8em;margin-left:4px;">@LineName(s)</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="LineSupervisorRepository.Row" Property="EmployeeNo" Title="@L["MD.LineSupervisors.Col.EmployeeNo"]" TextAlign="TextAlign.Center" Width="130px">
+            <RadzenDataGridColumn TItem="LineSupervisorRepository.Row" Property="EmployeeNo" Title="@L["MD.LineSupervisors.Col.EmployeeNo"]" TextAlign="TextAlign.Center" Width="140px">
                 <Template Context="s"><span class="code">@s.EmployeeNo</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineSupervisorRepository.Row" Property="EmployeeName" Title="@L["MD.LineSupervisors.Col.Name"]">

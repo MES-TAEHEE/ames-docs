@@ -70,7 +70,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DefectCode" Title="@L["Col.DefectCode"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DefectCode" Title="@L["Col.DefectCode"]" TextAlign="TextAlign.Center" Width="180px">
                 <Template Context="r"><span class="code">@r.DefectCode</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DefectName" Title="@L["Col.DefectName"]">
@@ -111,7 +111,7 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DispositionDefault" Title="@L["Col.DefaultDisposition"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DispositionDefault" Title="@L["Col.DefaultDisposition"]" Width="130px">
                 <Template Context="r">
                     @if (r.DispositionDefault != null)
                     {
@@ -120,7 +120,7 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DefaultCauseCode" Title="@L["Col.DefaultCause"]" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCodeRow" Property="DefaultCauseCode" Title="@L["Col.DefaultCause"]" Width="180px">
                 <Template Context="r">
                     @if (r.DefaultCauseCode != null)
                     {

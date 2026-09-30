@@ -77,19 +77,19 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="GateLocation" Title="@L["Col.Gate"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="dim">@(r.GateLocation ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="IpAddress" Title="@L["Col.IpAddr"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="IpAddress" Title="@L["Col.IpAddr"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="dim">@(r.IpAddress ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="AntennaCount" Title="@L["Col.Antenna"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r">@(r.AntennaCount?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="PowerDbm" Title="@L["Col.OutputDbm"]" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="PowerDbm" Title="@L["Col.OutputDbm"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r">@(r.PowerDbm?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="WindowMs" Title="@L["Col.WindowMs"]" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="WindowMs" Title="@L["Col.WindowMs"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r">@(r.WindowMs?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="PeTriggerFlag" Title="@L["Col.PeTrigger"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidReaderRow" Property="PeTriggerFlag" Title="@L["Col.PeTrigger"]" TextAlign="TextAlign.Center" Width="140px">
                 <Template Context="r">
                     @if (r.PeTriggerFlag) { <span class="pill ok">ON</span> }
                     else { <span class="pill">OFF</span> }

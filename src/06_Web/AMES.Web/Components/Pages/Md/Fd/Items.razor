@@ -75,10 +75,10 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="item"><span class="pill info">@(item.ItemType ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemCategory" Title="@L["Col.Category"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemCategory" Title="@L["Col.Category"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="item"><span class="dim">@CategoryName(item.ItemCategory)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="CarType" Title="@L["Col.CarType"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="CarType" Title="@L["Col.CarType"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="item"><span class="code dim">@(item.CarType ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="PGN" Title="@L["Col.PGN"]" TextAlign="TextAlign.Center" Width="70px">
@@ -87,31 +87,31 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ALC" Title="@L["Col.ALC"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="item"><span class="code dim">@(item.ALC ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="DefaultUOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="DefaultUOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="item"><span class="code dim">@item.DefaultUOM</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="RoutingType" Title="@L["Col.Routing"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="RoutingType" Title="@L["Col.Routing"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="item"><span class="pill @Ui.RoutingClass(item.RoutingType)">@(item.RoutingType ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="SafetyStock" Title="@L["Col.Safety"]" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="SafetyStock" Title="@L["Col.Safety"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="item">@UomFmt.Qty(item.SafetyStock, item.DefaultUOM)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="MinStock" Title="@L["Col.MinStock"]" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="MinStock" Title="@L["Col.MinStock"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="item">@UomFmt.Qty(item.MinStock, item.DefaultUOM)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="MaxStock" Title="@L["Col.MaxStock"]" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="MaxStock" Title="@L["Col.MaxStock"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="item">@UomFmt.Qty(item.MaxStock, item.DefaultUOM)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="UnitCost" Title="@L["Col.UnitPrice"]" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="UnitCost" Title="@L["Col.UnitPrice"]" TextAlign="TextAlign.Right" Width="150px">
                 <Template Context="item">@(item.UnitCost?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="PalletQty" Title="@L["MD.Items.Col.PalletQty"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="PalletQty" Title="@L["MD.Items.Col.PalletQty"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="item">@(item.PalletQty?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="MaxPalletQty" Title="@L["MD.Items.Col.MaxPalletQty"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="MaxPalletQty" Title="@L["MD.Items.Col.MaxPalletQty"]" TextAlign="TextAlign.Right" Width="130px">
                 <Template Context="item">@(item.MaxPalletQty?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ToteFlag" Title="@L["MD.Items.Col.Tote"]" TextAlign="TextAlign.Center" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ToteFlag" Title="@L["MD.Items.Col.Tote"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="item">
                     @if (item.ToteFlag) { <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" /> }
                 </Template>

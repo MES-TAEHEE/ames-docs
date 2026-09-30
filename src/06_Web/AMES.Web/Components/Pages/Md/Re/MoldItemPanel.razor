@@ -33,7 +33,7 @@
                         <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="MoldName" Title="@L["Col.MoldName"]">
                             <Template Context="m">@(m.MoldName ?? "—")</Template>
                         </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="CumulativeShots" Title="@L["Col.ShotsCumulative"]" TextAlign="TextAlign.Right" Width="100px">
+                        <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="CumulativeShots" Title="@L["Col.ShotsCumulative"]" TextAlign="TextAlign.Right" Width="120px">
                             <Template Context="m"><span class="code">@m.CumulativeShots.ToString("N0")</span></Template>
                         </RadzenDataGridColumn>
                     </Columns>
@@ -83,28 +83,28 @@
                             <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="Color" Title="@L["Col.Color"]" TextAlign="TextAlign.Center" Width="70px">
                                 <Template Context="i">@(i.Color ?? "—")</Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="CavitySeq" Title="@L["Col.CavitySeq"]" TextAlign="TextAlign.Right" Width="80px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="CavitySeq" Title="@L["Col.CavitySeq"]" TextAlign="TextAlign.Right" Width="110px">
                                 <Template Context="i">@i.CavitySeq</Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="CavityPos" Title="@L["Col.CavityPos"]" TextAlign="TextAlign.Center" Width="80px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="CavityPos" Title="@L["Col.CavityPos"]" TextAlign="TextAlign.Center" Width="110px">
                                 <Template Context="i">@(i.CavityPos ?? "—")</Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="Usage" Title="@L["Col.Usage"]" TextAlign="TextAlign.Right" Width="80px">
                                 <Template Context="i"><span class="code dim">@(i.Usage?.ToString("N2") ?? "—")</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="ResinItemNo" Title="@L["Col.ResinItemNo"]" TextAlign="TextAlign.Center" Width="110px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="ResinItemNo" Title="@L["Col.ResinItemNo"]" TextAlign="TextAlign.Center" Width="120px">
                                 <Template Context="i"><span class="code dim" style="font-size:.85em;">@(i.ResinItemNo ?? "—")</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="ResinUsage" Title="@L["Col.ResinUsage"]" TextAlign="TextAlign.Right" Width="90px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="ResinUsage" Title="@L["Col.ResinUsage"]" TextAlign="TextAlign.Right" Width="120px">
                                 <Template Context="i"><span class="code dim">@(i.ResinUsage?.ToString("N2") ?? "—")</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="CavityCount" Title="@L["Col.Cavities"]" TextAlign="TextAlign.Right" Width="70px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="CavityCount" Title="@L["Col.Cavities"]" TextAlign="TextAlign.Right" Width="100px">
                                 <Template Context="i">@i.CavityCount</Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="MoldCategory" Title="@L["Col.MoldCategory"]" TextAlign="TextAlign.Center" Width="100px">
                                 <Template Context="i"><span class="dim">@(i.MoldCategory ?? "—")</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="60px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldItemRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="70px">
                                 <Template Context="i"><span class="pill @(i.ActiveFlag ? "ok" : "dim")">@(i.ActiveFlag ? "Y" : "N")</span></Template>
                             </RadzenDataGridColumn>
                         </Columns>

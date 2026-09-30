@@ -82,7 +82,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="PatternID" Title="@L["Col.PatternId"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="PatternID" Title="@L["Col.PatternId"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="code">@r.PatternID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="PatternName" Title="@L["Col.PatternName"]">
@@ -91,19 +91,19 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="dim">@(r.LineID ?? L["MD.LineTimePattern.Global"].Value)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="DayType" Title="@L["Col.DayType"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="DayType" Title="@L["Col.DayType"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="pill">@DayTypeLabel(r.DayType)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="ShiftPattern" Title="@L["Col.ShiftModel"]" Width="180px">
                 <Template Context="r"><span class="dim">@ShiftPatternLabel(r.ShiftPattern)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="TotalOperatingMin" Title="@L["Col.OperatingMin"]" TextAlign="TextAlign.Right" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="TotalOperatingMin" Title="@L["Col.OperatingMin"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r">@(r.TotalOperatingMin?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="TotalPlannedDownMin" Title="@L["Col.MinDT"]" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="TotalPlannedDownMin" Title="@L["Col.MinDT"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r">@(r.TotalPlannedDownMin?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="pill @(r.Status == "ACTIVE" ? "ok" : "warn")">@(r.Status ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineTimePatternRow" Title="@L["MD.LineTimePattern.Col.Schedule"]" Width="500px" Sortable="false">

@@ -86,7 +86,7 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ApplicableEquip" Title="@L["Col.ApplicableEquip"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ApplicableEquip" Title="@L["Col.ApplicableEquip"]" Width="120px">
                 <Template Context="r">
                     @{ var ei = _equipItems.FirstOrDefault(x => x.CodeValue == r.ApplicableEquip); }
                     @if (!string.IsNullOrEmpty(r.ApplicableEquip))
@@ -103,14 +103,14 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="PartName" Title="@L["Col.Name"]">
                 <Template Context="r">@(r.PartName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="r"><span class="code dim">@(r.UOM ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="UnitCost" Title="@L["Col.UnitPrice"]" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="UnitCost" Title="@L["Col.UnitPrice"]" TextAlign="TextAlign.Right" Width="150px">
                 <Template Context="r">@(r.UnitCost?.ToString("N2") ?? "—")</Template>
             </RadzenDataGridColumn>
             @* 목록은 이미지 유무만 표시(MD-005 BOP 의 QC 열과 같은 체크 아이콘) — 이미지 자체는 수정 모달에서 본다 *@
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="HasImage" Title="@L["Col.Image"]" TextAlign="TextAlign.Center" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="HasImage" Title="@L["Col.Image"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @if (r.HasImage)
                     {
@@ -122,25 +122,25 @@
                     }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ZoneCode" Title="@L["Col.Zone"]" TextAlign="TextAlign.Center" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ZoneCode" Title="@L["Col.Zone"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="r"><span class="pill">@CodeLabel(_zoneItems, r.ZoneCode)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="Slot" Title="@L["Col.Slot"]" TextAlign="TextAlign.Center" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="Slot" Title="@L["Col.Slot"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="dim" title="@r.ExtraLocation">@CodeLabel(_slotItems, r.Slot)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="OnHandQty" Title="@L["Col.OnHand"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="OnHandQty" Title="@L["Col.OnHand"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r"><b>@UomFmt.Qty(r.OnHandQty, r.UOM)</b></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="SafetyStock" Title="@L["Col.Safety"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="SafetyStock" Title="@L["Col.Safety"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r">@UomFmt.Qty(r.SafetyStock, r.UOM)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ReorderPoint" Title="@L["Col.Reorder"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ReorderPoint" Title="@L["Col.Reorder"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r">@UomFmt.Qty(r.ReorderPoint, r.UOM)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ReorderQty" Title="@L["Col.ReorderQty"]" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ReorderQty" Title="@L["Col.ReorderQty"]" TextAlign="TextAlign.Right" Width="170px">
                 <Template Context="r">@UomFmt.Qty(r.ReorderQty, r.UOM)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="LeadTimeDays" Title="@L["Col.LeadDays"]" TextAlign="TextAlign.Right" Width="140px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="LeadTimeDays" Title="@L["Col.LeadDays"]" TextAlign="TextAlign.Right" Width="210px">
                 <Template Context="r">@(r.LeadTimeDays?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="Maker" Title="@L["Col.Maker"]" Width="140px">

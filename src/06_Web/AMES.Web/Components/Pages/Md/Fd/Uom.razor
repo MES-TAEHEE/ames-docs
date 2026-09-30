@@ -68,7 +68,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="UOMCode" Title="@L["Col.UomCode"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="UOMCode" Title="@L["Col.UomCode"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="code">@r.UOMCode</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="UOMName" Title="@L["Col.UomName"]">
@@ -77,19 +77,19 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="UOMCategory" Title="@L["Col.UomCategory"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="dim">@(_unitCategories.FirstOrDefault(x => x.CodeValue == r.UOMCategory) is { } cat ? MasterDataRepository.LocalName(cat) : r.UOMCategory ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="Symbol" Title="@L["Col.UomSymbol"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="Symbol" Title="@L["Col.UomSymbol"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="dim">@(r.Symbol ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="BaseFlag" Title="@L["MD.Uom.PillBase"]" TextAlign="TextAlign.Center" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="BaseFlag" Title="@L["MD.Uom.PillBase"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="r">@if (r.BaseFlag) { <span class="pill ok">@L["MD.Uom.PillBase"]</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="BaseUOM" Title="@L["Col.BaseUom"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="BaseUOM" Title="@L["Col.BaseUom"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="dim">@(r.BaseUOM ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="ConvFactor" Title="@L["Col.ConvFactor"]" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="ConvFactor" Title="@L["Col.ConvFactor"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r">@(r.ConvFactor?.ToString("0.########") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="DecimalPrec" Title="@L["Col.Decimals"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="DecimalPrec" Title="@L["Col.Decimals"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r">@(r.DecimalPrec?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">

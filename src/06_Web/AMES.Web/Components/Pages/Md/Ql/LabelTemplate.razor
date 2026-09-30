@@ -67,22 +67,22 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="LabelTemplateID" Title="@L["Col.TemplateId"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="LabelTemplateID" Title="@L["Col.TemplateId"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="code">@r.LabelTemplateID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="TemplateName" Title="@L["Col.TemplateName"]">
                 <Template Context="r">@(r.TemplateName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="LabelType" Title="@L["Col.LabelType"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="LabelType" Title="@L["Col.LabelType"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="r">
                     @{ var ltEntry = _labelTypes.FirstOrDefault(x => x.CodeValue == r.LabelType); }
                     @(ltEntry != null ? MasterDataRepository.LocalName(ltEntry) : r.LabelType ?? "—")
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="PaperSize" Title="@L["Col.PaperSize"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="PaperSize" Title="@L["Col.PaperSize"]" Width="160px">
                 <Template Context="r"><span class="dim">@(r.PaperSize ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="BarcodeType" Title="@L["Col.BarcodeType"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="BarcodeType" Title="@L["Col.BarcodeType"]" TextAlign="TextAlign.Center" Width="220px">
                 <Template Context="r">
                     @{ var btEntry = _barcodeTypes.FirstOrDefault(x => x.CodeValue == r.BarcodeType); }
                     <span class="dim">@(btEntry != null ? MasterDataRepository.LocalName(btEntry) : r.BarcodeType ?? "—")</span>
@@ -94,7 +94,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="Version" Title="@L["Col.Version"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">@(r.Version?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="PrinterModel" Title="@L["Col.PrinterModel"]" TextAlign="TextAlign.Right" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="PrinterModel" Title="@L["Col.PrinterModel"]" TextAlign="TextAlign.Right" Width="190px">
                 <Template Context="r"><span class="dim">@(r.PrinterModel ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LabelTemplateRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">

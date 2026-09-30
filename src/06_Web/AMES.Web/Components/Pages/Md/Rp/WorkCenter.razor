@@ -73,7 +73,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="WCName" Title="@L["Col.WcName"]">
                 <Template Context="r">@(r.WCName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="DefaultLineID" Title="@L["Col.DefaultLine"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="DefaultLineID" Title="@L["Col.DefaultLine"]" TextAlign="TextAlign.Center" Width="170px">
                 <Template Context="r"><span class="dim">@(r.DefaultLineID ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="ProcessCode" Title="@L["Col.Process"]" Width="160px">
@@ -90,10 +90,10 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="DailyCapacity" Title="@L["Col.Capacity"]" TextAlign="TextAlign.Right" Width="200px">
                 <Template Context="r">@(r.DailyCapacity?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="StdManpower" Title="@L["Col.StdHeadcount"]" TextAlign="TextAlign.Right" Width="140px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="StdManpower" Title="@L["Col.StdHeadcount"]" TextAlign="TextAlign.Right" Width="150px">
                 <Template Context="r">@(r.StdManpower?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="CostCenterCode" Title="@L["Col.CostCenter"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="CostCenterCode" Title="@L["Col.CostCenter"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="r"><span class="dim">@(r.CostCenterCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="LocationDesc" Title="@L["Col.Loc"]" Width="250px">

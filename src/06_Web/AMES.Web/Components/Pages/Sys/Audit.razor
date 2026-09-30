@@ -81,7 +81,7 @@
             <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="ActorUserId" Title="@L["SYS.Audit.Col.Actor"]" Width="300px">
                 <Template Context="a"><span class="dim" style="font-family:var(--ames-font-mono);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:280px;">@(Actors.Display(a.ActorUserId) is { Length: > 0 } n ? n : "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="ModuleCode" Title="@L["Col.Module"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="ModuleCode" Title="@L["Col.Module"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="a"><span class="pill @ModClass(a.ModuleCode)">@(a.ModuleCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="ProcessCode" Title="@L["Col.Process"]" Width="140px">
@@ -116,7 +116,7 @@
             <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="TargetId" Title="@L["SYS.Audit.Col.TargetId"]" Width="120px">
                 <Template Context="a"><span class="code dim" style="font-size:13px;">@(a.TargetId ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="Result" Title="@L["SYS.Audit.Col.Result"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="Result" Title="@L["SYS.Audit.Col.Result"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="a">@ResultPill(a.Result)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="IpAddress" Title="@L["SYS.Audit.Col.Ip"]" TextAlign="TextAlign.Center" Width="100px">

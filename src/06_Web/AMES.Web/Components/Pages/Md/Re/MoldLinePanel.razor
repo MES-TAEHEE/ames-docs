@@ -80,7 +80,7 @@
                             <RadzenDataGridColumn TItem="MasterDataRepository.MoldLineRow" Property="UPH" Title="@L["Col.UPH"]" TextAlign="TextAlign.Right" Width="90px">
                                 <Template Context="ml"><span class="code">@(ml.UPH?.ToString("N1") ?? "—")</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldLineRow" Property="PrepTime" Title="@L["Col.PrepTime"]" TextAlign="TextAlign.Right" Width="110px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.MoldLineRow" Property="PrepTime" Title="@L["Col.PrepTime"]" TextAlign="TextAlign.Right" Width="240px">
                                 <Template Context="ml"><span class="code">@(ml.PrepTime?.ToString("N1") ?? "—")</span></Template>
                             </RadzenDataGridColumn>
                         </Columns>

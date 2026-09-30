@@ -65,7 +65,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineID" Title="@L["Col.LineId"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineID" Title="@L["Col.LineId"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="code">@r.LineID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineName" Title="@L["Col.LineName"]">
@@ -83,7 +83,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="WCID" Title="@L["Col.WCID"]" Width="80px">
                 <Template Context="r"><span class="dim" style="font-size:12px;">@(r.WCID ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="DailyCap" Title="@L["Col.Capacity"]" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="DailyCap" Title="@L["Col.Capacity"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r">@(r.DailyCap?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="ShiftPattern" Title="@L["Col.Pattern"]" TextAlign="TextAlign.Center" Width="100px">
@@ -97,7 +97,7 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="RfidEnabledFlag" Title="@L["Col.RFID"]" TextAlign="TextAlign.Center" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="RfidEnabledFlag" Title="@L["Col.RFID"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="r">
                     @if (r.RfidEnabledFlag) { <span class="pill ok">ON</span> }
                     else { <span class="dim">—</span> }

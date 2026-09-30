@@ -67,25 +67,25 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="PMTemplateID" Title="@L["Col.TemplateId"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="PMTemplateID" Title="@L["Col.TemplateId"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="code">@r.PMTemplateID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="TemplateName" Title="@L["Col.TemplateName"]">
                 <Template Context="r">@(r.TemplateName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="EquipType" Title="@L["Col.EquipType"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="EquipType" Title="@L["Col.EquipType"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="dim">@EquipTypeLabel(r.EquipType)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="CycleBasis" Title="@L["Col.BasisCycle"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="pill">@(r.CycleBasis ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="IntervalValue" Title="@L["Col.Cycle"]" TextAlign="TextAlign.Right" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="IntervalValue" Title="@L["Col.Cycle"]" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="r">@(r.IntervalValue?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="IntervalUnit" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="IntervalUnit" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="r"><span class="dim">@(r.IntervalUnit ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="StdDurationMin" Title="@L["Col.StdDuration"]" TextAlign="TextAlign.Right" Width="160px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="StdDurationMin" Title="@L["Col.StdDuration"]" TextAlign="TextAlign.Right" Width="180px">
                 <Template Context="r">@(r.StdDurationMin?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Property="SafetyLOTOFlag" Title="@L["Col.LOTO"]" TextAlign="TextAlign.Center" Width="80px">
@@ -97,7 +97,7 @@
                     else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Title="@L["Col.CheckItems"]" Width="100px" TextAlign="TextAlign.Center" Sortable="false">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateRow" Title="@L["Col.CheckItems"]" Width="170px" TextAlign="TextAlign.Center" Sortable="false">
                 <Template Context="r">
                     <span @onclick:stopPropagation="true">
                         <RadzenButton Icon="@(_expandedId == r.PMTemplateID ? "expand_less" : "expand_more")" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.ExtraSmall" Click="@(() => ToggleSteps(r.PMTemplateID))" class="ames-rz-btn" />
@@ -134,7 +134,7 @@
                 <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateStepRow" Property="RequiredQty" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right" Width="70px">
                     <Template Context="s">@(s.RequiredQty?.ToString("0.###") ?? "—")</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateStepRow" Property="StepDurationMin" Title="@L["Col.DurationMin"]" TextAlign="TextAlign.Right" Width="110px">
+                <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateStepRow" Property="StepDurationMin" Title="@L["Col.DurationMin"]" TextAlign="TextAlign.Right" Width="130px">
                     <Template Context="s">@(s.StepDurationMin?.ToString() ?? "—")</Template>
                 </RadzenDataGridColumn>
                 @if (_canEdit)

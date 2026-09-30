@@ -65,31 +65,31 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.RfidTagRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidTagRow" Property="TagID" Title="@L["Col.TagId"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidTagRow" Property="TagID" Title="@L["Col.TagId"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="code">@r.TagID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.RfidTagRow" Property="EPC" Title="@L["Col.EPC"]" TextAlign="TextAlign.Center">
                 <Template Context="r"><span class="dim">@(r.EPC ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidTagRow" Property="TagRole" Title="@L["Col.TagRole"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidTagRow" Property="TagRole" Title="@L["Col.TagRole"]" TextAlign="TextAlign.Center" Width="150px">
                 <Template Context="r">@(r.TagRole ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.RfidTagRow" Property="JigID" Title="@L["Col.JigId"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="dim">@(r.JigID ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidTagRow" Property="MountPos" Title="@L["Col.MountLocation"]" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidTagRow" Property="MountPos" Title="@L["Col.MountLocation"]" Width="200px">
                 <Template Context="r"><span class="dim">@(r.MountPos ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidTagRow" Property="HeatRating" Title="@L["Col.HeatRating"]" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidTagRow" Property="HeatRating" Title="@L["Col.HeatRating"]" TextAlign="TextAlign.Right" Width="200px">
                 <Template Context="r">@(r.HeatRating?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.RfidTagRow" Property="CycleCount" Title="@L["Col.Cycles"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">@(r.CycleCount?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidTagRow" Property="InstallDate" Title="@L["Col.InstallDate"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidTagRow" Property="InstallDate" Title="@L["Col.InstallDate"]" TextAlign="TextAlign.Center" Width="190px">
                 <Template Context="r"><span class="dim">@(r.InstallDate?.ToString(DateFmt.DateShort) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RfidTagRow" Property="ReplaceSchedule" Title="@L["Col.ReplaceDue"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RfidTagRow" Property="ReplaceSchedule" Title="@L["Col.ReplaceDue"]" TextAlign="TextAlign.Center" Width="190px">
                 <Template Context="r">
                     @{ var needReplace = r.ReplaceSchedule.HasValue && r.ReplaceSchedule.Value <= DateOnly.FromDateTime(DbClock.Today); }
                     <span class="@(needReplace ? "bad" : "dim")">@(r.ReplaceSchedule?.ToString(DateFmt.DateShort) ?? "—")</span>

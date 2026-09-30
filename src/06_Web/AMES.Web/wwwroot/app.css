@@ -1398,6 +1398,10 @@ select.ames-rz-input {
     text-align: center !important;
     padding-inline-start: 0 !important;
 }
+/* MD/SYS 헤더 좌우 여백 — 위 .rz-column-header 의 padding 은 Radzen 11 에서 그 클래스가 없어져 먹지 않는다.
+   여백이 0 이면 열이 글자폭까지 줄었을 때 헤더끼리 붙는다. */
+.ames-sec-md  .ames-rz-grid thead th > div,
+.ames-sec-sys .ames-rz-grid thead th > div { padding-inline: 8px !important; }
 
 /* 4. 데이터 셀 */
 .ames-rz-grid .rz-data-cell {
@@ -5559,6 +5563,14 @@ html[data-theme="light"] .rpt-rb-measure, html[data-theme="light"] .rpt-rb-sum, 
 .ames-grid-fill .rz-data-grid-data { flex: 1 1 auto; min-height: 0; overflow: auto !important; scrollbar-gutter: stable; }
 /* scrollbar-gutter: 카드 안쪽 폭이 소수점(예: 472.72px)이면 세로 스크롤바가 생기는 첫 레이아웃에서 Chromium 이
    실제 넘침 0 인데도 가로 스크롤바를 함께 그린다(재배치되면 사라지는 잔상). 세로 스크롤바 자리를 항상 확보해 막는다. */
+
+/* ── MD-005 BOP 좌측 품목 목록 — 페이지 행 수(--md-bop-rows)만큼 스크롤 없이 다 보이는 고정 높이.
+   행 높이를 고정해야 결과가 한 페이지보다 적어도 카드 높이(= 우측 높이)가 변하지 않는다. */
+.md-bop-items { --md-bop-row: 40px; }
+.md-bop-items .rz-data-grid-data { height: calc(36px + var(--md-bop-rows, 24) * var(--md-bop-row) + 2px); overflow: hidden !important; }
+.md-bop-items .rz-data-grid-data tbody > tr > td { height: var(--md-bop-row); box-sizing: border-box; padding-top: 0 !important; padding-bottom: 0 !important; vertical-align: middle; }
+.md-bop-items .rz-data-grid-data > table > tbody:empty,
+.md-bop-items .rz-datatable-emptymessage { height: auto; }
 
 /* ── 이미지 바이트 표시 (MD-026 예비품 이미지) ─────────────────────────── */
 .ames-img-preview  { width: 320px; max-width: 100%; aspect-ratio: 16 / 9; display: flex; align-items: center; justify-content: center;

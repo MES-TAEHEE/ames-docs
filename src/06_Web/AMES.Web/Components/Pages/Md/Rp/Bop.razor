@@ -42,18 +42,19 @@
     <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
-<div style="display:flex;gap:14px;height:calc(100vh - 200px);">
+@* 높이는 좌측 품목 목록(24행 고정)이 스크롤 없이 다 들어가는 만큼이고, 우측은 그 높이를 따른다 *@
+<div style="display:flex;gap:14px;align-items:stretch;">
 
     @* ── 좌: 품목 목록 ─────────────────────────────────────────────────── *@
-    <div style="flex:0 0 480px;display:flex;flex-direction:column;min-height:0;">
-        <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
+    <div style="flex:0 0 480px;display:flex;flex-direction:column;">
+        <div class="ames-card" style="display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-bottom:8px;">
                 <RadzenTextBox @bind-Value="_search" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Bop.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;" />
                 <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@LoadItems" class="ames-rz-btn" />
             </RadzenStack>
-            <div style="flex:1;min-height:0;overflow:hidden;">
+            <div>
                 <RadzenDataGrid @ref="_itemGrid" Page="OnItemPage" TItem="MasterDataRepository.BopItemRow" Data="_items" AllowPaging="true" PageSize="ItemPageSize" PagerHorizontalAlign="HorizontalAlign.Center"
-                                ShowPagingSummary="false" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowRender="ItemRowRender" RowSelect="OnItemRowSelect" EmptyText="@L["MD.Bop.NoItems"]" Class="ames-rz-grid ames-grid-fill">
+                                ShowPagingSummary="false" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowRender="ItemRowRender" RowSelect="OnItemRowSelect" EmptyText="@L["MD.Bop.NoItems"]" Class="ames-rz-grid md-bop-items" Style="@($"--md-bop-rows:{ItemPageSize}")">
                     <Columns>
                         <RadzenDataGridColumn TItem="MasterDataRepository.BopItemRow" Property="ItemNo" Title="@L["Col.ItemNo"]">
                             <Template Context="item">
@@ -66,7 +67,7 @@
                                 </div>
                             </Template>
                         </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="MasterDataRepository.BopItemRow" Property="StepCount" Title="@L["Col.StepCount"]" Width="90px" TextAlign="TextAlign.Center">
+                        <RadzenDataGridColumn TItem="MasterDataRepository.BopItemRow" Property="StepCount" Title="@L["Col.StepCount"]" Width="160px" TextAlign="TextAlign.Center">
                             <Template Context="item"><span class="pill info">@item.StepCount</span></Template>
                         </RadzenDataGridColumn>
                     </Columns>
@@ -76,8 +77,9 @@
     </div>
 
     @* ── 우: 공정 단계 ─────────────────────────────────────────────────── *@
-    <div style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;">
-        <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
+    @* 절대 배치라 우측 내용(단계 수)이 행 높이를 키우지 않고 좌측 높이에 맞춰 안에서 스크롤한다 *@
+    <div style="flex:1;min-width:0;position:relative;">
+        <div class="ames-card" style="position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
 
             @if (_selItem is null)
             {
@@ -122,7 +124,7 @@
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_stepGrid, rn)</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="RoutingType" Title="@L["Col.Routing"]" Width="70px" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="RoutingType" Title="@L["Col.Routing"]" Width="80px" TextAlign="TextAlign.Center">
                                 <Template Context="step"><span class="pill @Ui.RoutingClass(step.RoutingType)">@(step.RoutingType ?? "—")</span></Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StepSeq" Title="@L["Col.Seq"]" Width="60px" TextAlign="TextAlign.Center">
@@ -141,7 +143,7 @@
                                     }
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StdCycleTime" Title="@L["Col.CycleSetup"]" Width="130px" TextAlign="TextAlign.Right">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StdCycleTime" Title="@L["Col.CycleSetup"]" Width="180px" TextAlign="TextAlign.Right">
                                 <Template Context="step">
                                     <span>@(step.StdCycleTime?.ToString("N1") ?? "—")</span>
                                     <span class="dim"> / @(step.StdSetupTime?.ToString("N1") ?? "—")</span>

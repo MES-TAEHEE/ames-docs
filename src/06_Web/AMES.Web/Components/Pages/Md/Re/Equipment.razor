@@ -75,13 +75,13 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="EquipName" Title="@L["Col.EquipName"]">
                 <Template Context="r">@(r.EquipName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="EquipType" Title="@L["Col.EquipType"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="EquipType" Title="@L["Col.EquipType"]" Width="130px">
                 <Template Context="r"><span class="pill">@EquipTypeLabel(r.EquipType)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="dim">@(r.LineID ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="WCID" Title="@L["Col.WorkCenter"]" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="WCID" Title="@L["Col.WorkCenter"]" Width="180px">
                 <Template Context="r">
                     @if (!string.IsNullOrEmpty(r.WCID))
                     {
@@ -92,25 +92,25 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="MakerModel" Title="@L["Col.MakerModel"]" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="MakerModel" Title="@L["Col.MakerModel"]" Width="190px">
                 <Template Context="r"><span class="dim">@(r.MakerModel ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="InstallDate" Title="@L["Col.InstallDate"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="InstallDate" Title="@L["Col.InstallDate"]" TextAlign="TextAlign.Center" Width="190px">
                 <Template Context="r"><span class="dim">@(r.InstallDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="TheoreticalCycle" Title="@L["Col.TheoreticalCycle"]" TextAlign="TextAlign.Right" Width="140px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="TheoreticalCycle" Title="@L["Col.TheoreticalCycle"]" TextAlign="TextAlign.Right" Width="150px">
                 <Template Context="r">@(r.TheoreticalCycle?.ToString("F2") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="TargetOEE" Title="@L["Col.TargetOee"]" TextAlign="TextAlign.Right" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="TargetOEE" Title="@L["Col.TargetOee"]" TextAlign="TextAlign.Right" Width="160px">
                 <Template Context="r">@(r.TargetOEE?.ToString("F1") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="Tonnage" Title="@L["Col.Tonnage"]" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="Tonnage" Title="@L["Col.Tonnage"]" TextAlign="TextAlign.Right" Width="110px">
                 <Template Context="r">@(r.Tonnage?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="PlcAddress" Title="@L["Col.PlcAddr"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="dim">@(r.PlcAddress ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.EquipmentRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @{
                         var scls   = r.Status switch { "RUN" => "ok", "DOWN" => "bad", "PM" => "orange", "IDLE" => "mute", _ => "mute" };

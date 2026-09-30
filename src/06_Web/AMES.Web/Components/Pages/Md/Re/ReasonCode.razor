@@ -69,28 +69,28 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="DisplayOrder" Title="@L["Col.Seq"]" TextAlign="TextAlign.Center" Width="60px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="DisplayOrder" Title="@L["Col.Seq"]" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="r"><span class="dim">@(r.DisplayOrder?.ToString() ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="ReasonCode" Title="@L["Col.ReasonCode"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="ReasonCode" Title="@L["Col.ReasonCode"]" TextAlign="TextAlign.Center" Width="170px">
                 <Template Context="r"><span class="code">@r.ReasonCode</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="ReasonName" Title="@L["Col.ReasonName"]">
                 <Template Context="r">@(r.ReasonName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="ReasonType" Title="@L["Col.ReasonType"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="ReasonType" Title="@L["Col.ReasonType"]" TextAlign="TextAlign.Center" Width="150px">
                 <Template Context="r"><span class="pill">@(r.ReasonType ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="ModuleCode" Title="@L["Col.Module"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="ModuleCode" Title="@L["Col.Module"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @if (r.ModuleCode is not null) { <span class="pill @ModClass(r.ModuleCode)">@r.ModuleCode</span> }
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="PlannedFlag" Title="@L["Col.Planned"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="PlannedFlag" Title="@L["Col.Planned"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r">@if (r.PlannedFlag) { <span class="pill ok">@L["MD.ReasonCode.PillPlanned"]</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="RequiresComment" Title="@L["Col.NoteRequired"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="RequiresComment" Title="@L["Col.NoteRequired"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r">@if (r.RequiresComment) { <span class="pill warn">@L["MD.ReasonCode.PillRequired"]</span> }</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="Description" Title="@L["Col.Description"]" Width="400px">

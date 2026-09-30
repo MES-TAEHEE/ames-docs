@@ -65,7 +65,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="ShipDestID" Title="@L["Col.ShipDestId"]" TextAlign="TextAlign.Center" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="ShipDestID" Title="@L["Col.ShipDestId"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="r"><span class="code">@r.ShipDestID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="CustomerName" Title="@L["Col.Customer"]" TextAlign="TextAlign.Center" Width="150px">
@@ -90,7 +90,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DeliveryDock" Title="@L["Col.Dock"]" Width="150px">
                 <Template Context="r"><span class="dim">@(r.DeliveryDock ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="LeadTimeDays" Title="@L["Col.LeadDays"]" TextAlign="TextAlign.Right" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="LeadTimeDays" Title="@L["Col.LeadDays"]" TextAlign="TextAlign.Right" Width="210px">
                 <Template Context="r">@(r.LeadTimeDays?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DefaultCarrier" Title="@L["Col.Carrier"]" Width="200px">

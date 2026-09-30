@@ -70,7 +70,7 @@
                     <RadzenDataGridColumn Property="GroupName" Title='@L["Col.GroupName"]'>
                         <Template Context="g">@MasterDataRepository.LocalName(g.GroupName, g.GroupNameEn)</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn Property="UseFlag" Title='@L["Col.Active"]' Width="60px" TextAlign="TextAlign.Center">
+                    <RadzenDataGridColumn Property="UseFlag" Title='@L["Col.Active"]' Width="70px" TextAlign="TextAlign.Center">
                         <Template Context="g">
                             <span class="pill @(g.UseFlag ? "ok" : "bad")">@(g.UseFlag ? "Y" : "N")</span>
                         </Template>
@@ -119,7 +119,7 @@
                         <RadzenDataGridColumn Property="SortOrder" Title='@L["Col.Seq"]' Width="60px" TextAlign="TextAlign.Right">
                             <Template Context="i">@i.SortOrder</Template>
                         </RadzenDataGridColumn>
-                        <RadzenDataGridColumn Property="CodeValue" Title='@L["Col.CodeValue"]' Width="120px">
+                        <RadzenDataGridColumn Property="CodeValue" Title='@L["Col.CodeValue"]' Width="140px">
                             <Template Context="i"><span class="code">@i.CodeValue</span></Template>
                         </RadzenDataGridColumn>
                         <RadzenDataGridColumn Property="CodeName" Title='@L["MD.CommonCode.Lbl.CodeName"]' />
@@ -129,7 +129,7 @@
                         <RadzenDataGridColumn Property="Attribute1" Title='@L["Col.Attr1"]' Width="100px">
                             <Template Context="i"><span class="dim">@i.Attribute1</span></Template>
                         </RadzenDataGridColumn>
-                        <RadzenDataGridColumn Property="UseFlag" Title='@L["Col.Active"]' Width="60px" TextAlign="TextAlign.Center">
+                        <RadzenDataGridColumn Property="UseFlag" Title='@L["Col.Active"]' Width="70px" TextAlign="TextAlign.Center">
                             <Template Context="i">
                                 <span class="pill @(i.UseFlag ? "ok" : "bad")">@(i.UseFlag ? "Y" : "N")</span>
                             </Template>
