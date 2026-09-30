@@ -737,19 +737,23 @@ public sealed class SysRepository
             r["Unit"] as string, (bool)r["IsActive"], r["SortOrder"] as int?));
     }
 
-    public void SetConfig(int configId, string? value, bool isActive)
+    public void SetConfig(int configId, string? value, bool isActive, string modifiedBy)
     {
         const string sql = """
             UPDATE dbo.SYS_Config
             SET    ConfigValue = @Value,
                    IsActive    = @IsActive,
+                   ModifiedBy  = @ModifiedBy,
                    ModifiedTS  = SYSDATETIME()
             WHERE  ConfigID = @Id
             """;
-        Exec(sql,
-            ("@Id",       configId),
-            ("@Value",    (object?)value ?? DBNull.Value),
-            ("@IsActive", isActive));
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Id",         SqlDbType.Int).Value           = configId;
+        cmd.Parameters.Add("@Value",      SqlDbType.NVarChar, 500).Value = (object?)value ?? DBNull.Value;
+        cmd.Parameters.Add("@IsActive",   SqlDbType.Bit).Value           = isActive;
+        cmd.Parameters.Add("@ModifiedBy", SqlDbType.VarChar, 20).Value   = modifiedBy;
+        cmd.ExecuteNonQuery();
     }
 
     // 단일 설정키의 값·활성여부 (컬처 결정/언어 스위처 판정용). 없으면 null.

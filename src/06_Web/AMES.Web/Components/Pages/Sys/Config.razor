@@ -170,7 +170,7 @@
     Dictionary<string, List<MasterDataRepository.CodeItemRow>> _comboItems = new();
     int _cat, _sec;
     bool _canEdit, _dirty, _busy;
-    string _msg = "", _actorEmail = "system";
+    string _msg = "", _actor = "system";
     bool _isErr;
     int _msgSeq;   // 메시지 자동 제거 타이머 토큰
 
@@ -209,7 +209,7 @@
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("sys/config");
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actorEmail = AMES.Web.Services.ActorCode.Of(auth.User, "system");
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         foreach (var grp in ComboKeyGroups.Values.Distinct())
             try { _comboItems[grp] = MD.ListCodeItems(grp); } catch { }
         Reload();
@@ -249,9 +249,10 @@
             foreach (var r in _rows)
             {
                 if (!_edits.TryGetValue(r.ConfigId, out var ed)) continue;
-                Sys.SetConfig(r.ConfigId, ed.Value, ed.IsActive);
+                // 바뀐 행만 저장 — 그대로인 행까지 쓰면 수정자·수정일시가 전부 이번 저장자로 덮인다
                 if (ed.Value != r.ConfigValue || ed.IsActive != r.IsActive)
                 {
+                    Sys.SetConfig(r.ConfigId, ed.Value, ed.IsActive, _actor);
                     // 비밀값 설정은 값이 바뀌었다는 사실만 남긴다
                     bool secret = IsSecret(r);
                     Audit.Updated("SYS-009", "SYS_Config", r.ConfigKey,
