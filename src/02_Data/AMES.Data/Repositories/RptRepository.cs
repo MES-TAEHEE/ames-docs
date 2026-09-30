@@ -352,10 +352,10 @@ public sealed class RptRepository
     public Dictionary<string, decimal> IssuedQtyByItem(int days = 30)
     {
         const string sql = """
-            SELECT ItemNo, ISNULL(SUM(-QtyChange), 0) AS Issued
+            SELECT PartNo AS ItemNo, ISNULL(SUM(-QtyChange), 0) AS Issued
             FROM   dbo.WH_InventoryTransaction
             WHERE  QtyChange < 0 AND TransactionTime >= DATEADD(DAY, -@D, SYSDATETIME())
-            GROUP BY ItemNo;
+            GROUP BY PartNo;
             """;
         return Query(sql, r => (Item: r["ItemNo"] as string ?? "", Issued: r["Issued"] as decimal? ?? 0m), ("@D", days))
             .Where(x => x.Item.Length > 0).ToDictionary(x => x.Item, x => x.Issued);

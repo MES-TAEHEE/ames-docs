@@ -37,7 +37,7 @@ public sealed partial class ScmRepository
             WHERE d.NoteNumber=@N AND {NoteVendorAccess};
             """, c);
         Add(cmd,("@U",userId),("@N",number));
-        return cmd.ExecuteScalar() is string json ? JsonSerializer.Deserialize<DeliveryNote>(json) : null;
+        return cmd.ExecuteScalar() is string json ? DeserializeDeliveryNote(json) : null;
     }
 
     public DeliveryNote IssueDeliveryNote(IReadOnlyList<string> deliveries, string userId, string actor)
@@ -77,7 +77,7 @@ public sealed partial class ScmRepository
             using(var r=previous.ExecuteReader()) while(r.Read()) existing.Add(r.GetInt32(0));
             if(!existing.SetEquals(ids)) throw new InvalidOperationException("이미 발행된 납품서는 다른 문서에 중복 포함할 수 없습니다.");
             using var read=new SqlCommand("SELECT Snapshot FROM dbo.SCM_DeliveryNote WHERE NoteID=@ID",c,tx); Add(read,("@ID",linked.Single()));
-            var result=JsonSerializer.Deserialize<DeliveryNote>((string)read.ExecuteScalar()!)!; tx.Commit(); return result;
+            var result=DeserializeDeliveryNote((string)read.ExecuteScalar()!); tx.Commit(); return result;
         }
         foreach(var id in ids)
         {

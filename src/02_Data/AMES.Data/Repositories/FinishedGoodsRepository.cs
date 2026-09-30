@@ -29,29 +29,17 @@ public sealed class FinishedGoodsRepository
         string? ItemsJson);
 
     public record ShipmentRow(
-        int ShipmentOrderId,
-        string? ShipOrderNumber,
-        string? CustomerCode,
-        string? CustomerPo,
-        DateTime? ShipDate,
-        string? Status,
-        string? PickslipId,
-        string? CarrierCode,
-        string? Destination,
-        int? LoadingId,
-        string? LoadingNumber,
-        string? LicensePlate,
-        string? DriverName,
-        string? DockNo,
-        string? SealNo,
-        DateTime? ConfirmedAt,
-        DateTime? DepartureAt,
+        long TransactionId,
+        DateTime ShippedAt,
+        string OutboundBarcode,
+        string UnitType,
+        string LotNo,
+        string? PartNo,
+        string? PartName,
+        string? LocationNo,
+        decimal Qty,
         string? OperatorId,
-        string? OtdStatus,
-        string? DeliveryNoteNumber,
-        DateTime? DeliveryNoteIssuedAt,
-        int LineCount,
-        decimal OrderedQty);
+        string Status);
 
     public record ShipmentPlanSourceRow(
         int SoId,
@@ -94,41 +82,19 @@ public sealed class FinishedGoodsRepository
         int LineCount,
         decimal TotalQty);
 
-
     public record ShipmentDocument(
-        int ShipmentOrderId,
-        string? ShipOrderNumber,
-        string? CustomerCode,
-        string? CustomerName,
-        string? CustomerAddress,
-        string? CustomerPo,
-        string? DestPlant,
-        string? DestDock,
-        DateTime? ShipDate,
-        int? LoadingId,
-        string? LoadingNumber,
-        string? LicensePlate,
-        string? DriverName,
-        DateTime? ArrivalAt,
-        DateTime? ConfirmedAt,
-        string? DeliveryNoteNumber,
-        DateTime? DeliveryNoteIssuedAt,
-        string? EdiStatus,
+        int ShipmentOrderId, string? ShipOrderNumber, string? CustomerCode, string? CustomerName,
+        string? CustomerAddress, string? CustomerPo, string? DestPlant, string? DestDock,
+        DateTime? ShipDate, int? LoadingId, string? LoadingNumber, string? LicensePlate,
+        string? DriverName, DateTime? ArrivalAt, DateTime? ConfirmedAt,
+        string? DeliveryNoteNumber, DateTime? DeliveryNoteIssuedAt, string? EdiStatus,
         IReadOnlyList<ShipmentDocumentLine> Lines);
 
     public record ShipmentDocumentLine(
-        int LineSeq,
-        string ItemNo,
-        string? ItemName,
-        string? CustomerItemNo,
-        decimal OrderedQty,
-        decimal DeliveryQty,
-        decimal UnitPackQty,
-        string? Unit,
-        string? LotNo,
-        string? StockNumber,
-        string? Location,
-        DateTime? ProducedAt);
+        int LineSeq, string ItemNo, string? ItemName, string? CustomerItemNo,
+        decimal OrderedQty, decimal DeliveryQty, decimal UnitPackQty, string? Unit,
+        string? LotNo, string? StockNumber, string? Location, DateTime? ProducedAt);
+
 
     public record HistoryRow(
         DateTime EventAt,
@@ -503,81 +469,45 @@ public sealed class FinishedGoodsRepository
     public List<ShipmentRow> ListShipments(string? search = null, DateTime? from = null, DateTime? to = null)
     {
         const string sql = """
-            WITH LineSummary AS
-            (
-                SELECT O.ShipmentOrderID, COUNT(*) AS LineCount, SUM(ISNULL(L.OrderedQty, 0)) AS OrderedQty
-                FROM dbo.FG_ShipmentOrder O
-                CROSS APPLY OPENJSON(COALESCE(O.ItemsJSON, N'[]')) WITH
-                (
-                    OrderedQty decimal(14,3) '$.orderedQty'
-                ) L
-                GROUP BY O.ShipmentOrderID
-            )
             SELECT
-                O.ShipmentOrderID,
-                O.ShipOrderNumber,
-                O.CustomerCode,
-                O.CustomerPO,
-                O.ShipDate,
-                'SHIPPED' AS Status,
-                O.PickslipID,
-                O.CarrierCode,
-                CONCAT_WS(' / ', NULLIF(O.DestPlant, ''), NULLIF(O.DestDock, '')) AS Destination,
-                NULL AS LoadingID,
-                O.LoadingNumber,
-                O.LicensePlate,
-                O.DriverName,
-                O.LoadingDockNo AS DockNo,
-                O.SealNo,
-                O.LoadingConfirmedAt AS ConfirmedAt,
-                O.DepartureAt AS DepartureTS,
-                O.ShipmentOperatorID AS OperatorID,
-                O.LoadingOTDStatus AS OTDStatus,
-                COALESCE(NULLIF(O.ShipmentDocumentNo, ''), O.ShipOrderNumber) AS DnNumber,
-                COALESCE(O.ShippedAt, O.DepartureAt, O.LoadingConfirmedAt, O.ConfirmedAt, O.ModifiedTS, O.CreatedTS) AS IssuedAt,
-                ISNULL(S.LineCount, 0) AS LineCount,
-                CAST(ISNULL(S.OrderedQty, 0) AS decimal(14,3)) AS OrderedQty
-            FROM dbo.FG_ShipmentOrder O
-            LEFT JOIN LineSummary S ON S.ShipmentOrderID = O.ShipmentOrderID
-            WHERE (UPPER(ISNULL(O.Status, '')) = 'SHIPPED' OR O.ShippedAt IS NOT NULL OR O.DepartureAt IS NOT NULL)
-              AND (@From IS NULL OR COALESCE(O.ShippedAt, O.DepartureAt, O.LoadingConfirmedAt, O.ConfirmedAt, O.ModifiedTS, O.CreatedTS) >= @From)
-              AND (@To IS NULL OR COALESCE(O.ShippedAt, O.DepartureAt, O.LoadingConfirmedAt, O.ConfirmedAt, O.ModifiedTS, O.CreatedTS) < DATEADD(day, 1, @To))
+                T.TransactionID,
+                T.TransactionTime AS ShippedAt,
+                T.LotNo AS OutboundBarcode,
+                REPLACE(T.ReasonCode, '_OUTBOUND', '') AS UnitType,
+                T.LotNo,
+                T.PartNo,
+                I.PartName,
+                T.LocationNo,
+                ABS(T.QtyChange) AS Qty,
+                T.OperatorID,
+                CAST('SHIPPED' AS varchar(20)) AS Status
+            FROM dbo.WH_InventoryTransaction T
+            LEFT JOIN dbo.WH_Inventory I ON I.LotNo = T.LotNo
+            WHERE T.TransactionType = 'OUT'
+              AND T.SourceType = 'FG_OUTBOUND'
+              AND (@From IS NULL OR T.TransactionTime >= @From)
+              AND (@To IS NULL OR T.TransactionTime < DATEADD(day, 1, @To))
               AND (@Search IS NULL
-                   OR O.ShipOrderNumber LIKE @Search
-                   OR O.PickslipID LIKE @Search
-                   OR O.CustomerCode LIKE @Search
-                   OR O.CustomerPO LIKE @Search
-                   OR O.LoadingNumber LIKE @Search
-                   OR O.LicensePlate LIKE @Search
-                   OR O.DriverName LIKE @Search)
-            ORDER BY COALESCE(O.ShippedAt, O.DepartureAt, O.LoadingConfirmedAt, O.ConfirmedAt, O.ModifiedTS, O.CreatedTS) DESC,
-                     O.ShipmentOrderID DESC;
+                   OR T.PartNo LIKE @Search
+                   OR T.LotNo LIKE @Search
+                   OR I.PartName LIKE @Search
+                   OR T.LocationNo LIKE @Search
+                   OR T.OperatorID LIKE @Search)
+            ORDER BY T.TransactionTime DESC, T.TransactionID DESC;
             """;
 
         return Query(sql, r => new ShipmentRow(
-            GetInt(r, "ShipmentOrderID"),
-            GetString(r, "ShipOrderNumber"),
-            GetString(r, "CustomerCode"),
-            GetString(r, "CustomerPO"),
-            GetDate(r, "ShipDate"),
-            GetString(r, "Status"),
-            GetString(r, "PickslipID"),
-            GetString(r, "CarrierCode"),
-            GetString(r, "Destination"),
-            GetNullableInt(r, "LoadingID"),
-            GetString(r, "LoadingNumber"),
-            GetString(r, "LicensePlate"),
-            GetString(r, "DriverName"),
-            GetString(r, "DockNo"),
-            GetString(r, "SealNo"),
-            GetDate(r, "ConfirmedAt"),
-            GetDate(r, "DepartureTS"),
+            Convert.ToInt64(r["TransactionID"]),
+            GetDate(r, "ShippedAt") ?? DateTime.MinValue,
+            GetString(r, "OutboundBarcode") ?? "-",
+            GetString(r, "UnitType") ?? "UNIT",
+            GetString(r, "LotNo") ?? "-",
+            GetString(r, "PartNo"),
+            GetString(r, "PartName"),
+            GetString(r, "LocationNo"),
+            GetDecimal(r, "Qty"),
             GetString(r, "OperatorID"),
-            GetString(r, "OTDStatus"),
-            GetString(r, "DnNumber"),
-            GetDate(r, "IssuedAt"),
-            GetInt(r, "LineCount"),
-            GetDecimal(r, "OrderedQty")),
+            GetString(r, "Status") ?? "SHIPPED"),
             ("@Search", Like(search)),
             ("@From", from?.Date),
             ("@To", to?.Date));
