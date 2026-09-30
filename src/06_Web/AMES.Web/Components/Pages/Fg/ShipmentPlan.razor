@@ -13,14 +13,14 @@
         </div>
         <div class="truck-total">
             <strong>@CurrentTrucks.Count</strong>
-            <span>TRUCKS REQUIRED</span>
+            <span>TRAILERS REQUIRED</span>
         </div>
     </section>
 
     <section class="ames-card truck-section">
         <div class="ames-card-h section-title">
-            <span>TRUCKS</span>
-            <small>Select a truck to view its pallet load list</small>
+            <span>TRAILERS</span>
+            <small>Select a trailer to view its pallet load list</small>
         </div>
         @if (CurrentTrucks.Count == 0)
         {
@@ -140,32 +140,32 @@
     [
         new(DbClock.Today,
         [
-            new("TRUCK 01", "SEga", "LO2", 18,
+            new("TRAILER 01", "SEga", "LO2", 18,
             [
                 new("PO-SEGA-260901", "LO2", "81710-PI010NNB", "RR U/TRIM_NON CURTAIN L/RH", 880, 55, 16)
             ]),
-            new("TRUCK 02", "SEga", "LO2", 18,
+            new("TRAILER 02", "SEga", "LO2", 18,
             [
                 new("PO-SEGA-260901", "LO2", "81720-PI010NNB", "RR U/TRIM_CURTAIN L/RH", 605, 55, 11),
                 new("PO-SEGA-260901", "LO2", "81730-PI010NNB", "RR UPR GARNISH L/RH", 544, 272, 2)
             ]),
-            new("TRUCK 03", "SEga", "NQ5a", 18,
+            new("TRAILER 03", "SEga", "NQ5a", 18,
             [
                 new("PO-SEGA-260902", "NQ5a", "85710-NQ500NNB", "FRT U/TRIM L/RH", 630, 70, 9)
             ]),
-            new("TRUCK 04", "SEau", "NX5a", 18,
+            new("TRAILER 04", "SEau", "NX5a", 18,
             [
                 new("PO-SEAU-260117", "NX5a", "84610-NX500NNB", "CONSOL D/SIDE", 504, 28, 18)
             ])
         ]),
         new(DbClock.Today.AddDays(1),
         [
-            new("TRUCK 01", "SEsv", "MEa", 18,
+            new("TRAILER 01", "SEsv", "MEa", 18,
             [
                 new("PO-SESV-260301", "MEa", "85710-ME000NNB", "FRT U/TRIM L/RH", 448, 56, 8),
                 new("PO-SESV-260301", "MEa", "81710-ME000NNB", "RR U/TRIM_NON CURTAIN L/RH", 480, 60, 8)
             ]),
-            new("TRUCK 02", "SEsv", "MEa", 18,
+            new("TRAILER 02", "SEsv", "MEa", 18,
             [
                 new("PO-SESV-260302", "MEa", "81720-ME000NNB", "RR U/TRIM_CURTAIN L/RH", 360, 60, 6),
                 new("PO-SESV-260302", "MEa", "96310-ME000NNB", "FRT DR SPKR L/RH", 840, 84, 10)
@@ -173,7 +173,7 @@
         ]),
         new(DbClock.Today.AddDays(2),
         [
-            new("TRUCK 01", "SEsv", "NEa", 18,
+            new("TRAILER 01", "SEsv", "NEa", 18,
             [
                 new("PO-SESV-260401", "NEa", "85710-NE000NNB", "FRT U/TRIM L/RH", 256, 32, 8),
                 new("PO-SESV-260401", "NEa", "81710-NE000NNB", "RR U/TRIM_NON CURTAIN L/RH", 240, 30, 8)

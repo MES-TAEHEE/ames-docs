@@ -8086,7 +8086,7 @@
     <value>출하 오더</value>
   </data>
   <data name="FG.Shipments.Col.Truck" xml:space="preserve">
-    <value>차량</value>
+    <value>트레일러</value>
   </data>
   <data name="FG.Shipments.Col.Lines" xml:space="preserve">
     <value>라인 수</value>

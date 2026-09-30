@@ -131,7 +131,7 @@
 
                         <div class="fg-dcr-signatures">
                             <div><b>Sender signature and stamp</b></div>
-                            <div><b>Driver signature</b><span>Truck number</span><strong>@Text(_document.LicensePlate)</strong></div>
+                            <div><b>Driver signature</b><span>Trailer number</span><strong>@Text(_document.LicensePlate)</strong></div>
                             <div><b>Customer signature and stamp</b></div>
                         </div>
                         <footer><span>@Text(_document.LoadingNumber)</span><b>@SenderCompany</b><span>@DateTimeStamp(_document.DeliveryNoteIssuedAt ?? _document.ConfirmedAt)</span></footer>
