@@ -9,6 +9,20 @@ public static class BomVersionRules
 {
     public sealed record Range(string VersionId, DateOnly? From, DateOnly? To);
 
+    public sealed record VersionInfo(string VersionId, string? RootItemNo, string? Status, DateOnly? From, DateOnly? To, DateTime? CreatedTs);
+
+    /// <summary>
+    /// 품번의 대표 BOM 버전(하위 전개·BOP 상하위 조회 공용): 오늘 유효한 승인 → 승인 중 최신 시작일 → 그 밖의 최신 등록. 없으면 null.
+    /// </summary>
+    public static VersionInfo? Representative(IEnumerable<VersionInfo> versions, string itemNo, DateOnly today)
+    {
+        var mine = versions.Where(v => string.Equals(v.RootItemNo, itemNo, StringComparison.OrdinalIgnoreCase)).ToList();
+        var approved = mine.Where(v => v.Status == "APPROVED").OrderByDescending(v => v.From).ThenBy(v => v.VersionId, StringComparer.Ordinal).ToList();
+        return approved.FirstOrDefault(v => (v.From is null || v.From <= today) && (v.To is null || v.To >= today))
+            ?? approved.FirstOrDefault()
+            ?? mine.OrderByDescending(v => v.CreatedTs).ThenBy(v => v.VersionId, StringComparer.Ordinal).FirstOrDefault();
+    }
+
     /// <param name="Conflict">승인을 막는 기존 승인 버전 ID (없으면 null)</param>
     /// <param name="Close">종료일을 닫을 기존 승인 버전과 새 종료일</param>
     public sealed record ApprovalPlan(string? Conflict, IReadOnlyList<(string VersionId, DateOnly NewTo)> Close);

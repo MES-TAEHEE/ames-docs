@@ -4401,6 +4401,30 @@
   <data name="MD.Bop.StepCount" xml:space="preserve">
     <value>{0} paso(s) de proceso</value>
   </data>
+  <data name="MD.Bop.Col.Relation" xml:space="preserve">
+    <value>Relación</value>
+  </data>
+  <data name="MD.Bop.Col.Path" xml:space="preserve">
+    <value>Vía</value>
+  </data>
+  <data name="MD.Bop.Rel.Self" xml:space="preserve">
+    <value>Selec.</value>
+  </data>
+  <data name="MD.Bop.Rel.Up" xml:space="preserve">
+    <value>Sup. {0}</value>
+  </data>
+  <data name="MD.Bop.Rel.Down" xml:space="preserve">
+    <value>Inf. {0}</value>
+  </data>
+  <data name="MD.Bop.Via" xml:space="preserve">
+    <value>vía {0}</value>
+  </data>
+  <data name="MD.Bop.RelatedFrom" xml:space="preserve">
+    <value>Paso de proceso de {0} — solo lectura</value>
+  </data>
+  <data name="MD.Bop.RelatedCount" xml:space="preserve">
+    <value>Sup. {0} · Inf. {1} artículo(s)</value>
+  </data>
   <data name="MD.Bop.RoutingConflict" xml:space="preserve">
     <value>Difiere de la ruta de los pasos existentes de este ítem ({0}) — actual {1}. ¿Continuar registro?</value>
   </data>

@@ -615,6 +615,15 @@ public sealed class MasterDataRepository
             ("@Scrap", scrapPct), ("@Pos",   position),     ("@Note", note),
             ("@By",    modifiedBy));
 
+    /// <summary>BOM 상하위 관계 계산용 활성 라인 전체(버전 → 구성품). <see cref="BomHierarchy.Build"/> 가 대표 버전만 골라 쓴다.</summary>
+    public List<BomHierarchy.Edge> ListBomEdges()
+        => Query("""
+            SELECT VersionID, CompItemNo
+            FROM   dbo.MD_Bom
+            WHERE  ISNULL(ActiveFlag,1) = 1 AND VersionID IS NOT NULL AND CompItemNo IS NOT NULL
+            """,
+            r => new BomHierarchy.Edge((string)r["VersionID"], (string)r["CompItemNo"]));
+
     // 소프트 삭제 — 물리 삭제 대신 ActiveFlag=0 (재활성화 가능)
     public void DeleteBomLine(string bomId, string modifiedBy)
         => Exec("UPDATE dbo.MD_Bom SET ActiveFlag=0, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE BOMID=@I",
@@ -934,6 +943,9 @@ public sealed class MasterDataRepository
         string Status,
         string? CreatedBy, DateTime? CreatedTS,
         string? ModifiedBy, DateTime? ModifiedTS);
+
+    public static BomVersionRules.VersionInfo ToVersionInfo(BomVersionRow v)
+        => new(v.VersionID, v.RootItemNo, v.Status, v.EffFrom, v.EffTo, v.CreatedTS);
 
     public record BomRow(
         string BOMID,

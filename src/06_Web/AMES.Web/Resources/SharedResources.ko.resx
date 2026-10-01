@@ -4401,6 +4401,30 @@
   <data name="MD.Bop.StepCount" xml:space="preserve">
     <value>공정 단계 {0}개</value>
   </data>
+  <data name="MD.Bop.Col.Relation" xml:space="preserve">
+    <value>관계</value>
+  </data>
+  <data name="MD.Bop.Col.Path" xml:space="preserve">
+    <value>경유 품목</value>
+  </data>
+  <data name="MD.Bop.Rel.Self" xml:space="preserve">
+    <value>선택</value>
+  </data>
+  <data name="MD.Bop.Rel.Up" xml:space="preserve">
+    <value>상위 {0}</value>
+  </data>
+  <data name="MD.Bop.Rel.Down" xml:space="preserve">
+    <value>하위 {0}</value>
+  </data>
+  <data name="MD.Bop.Via" xml:space="preserve">
+    <value>{0} 경유</value>
+  </data>
+  <data name="MD.Bop.RelatedFrom" xml:space="preserve">
+    <value>{0} 의 공정 단계 — 읽기 전용</value>
+  </data>
+  <data name="MD.Bop.RelatedCount" xml:space="preserve">
+    <value>상위 {0}품목 · 하위 {1}품목</value>
+  </data>
   <data name="MD.Bop.RoutingConflict" xml:space="preserve">
     <value>이 품목에 기존 등록된 공정의 라우팅({0})과 다릅니다(현재 {1}). 계속 등록하시겠습니까?</value>
   </data>

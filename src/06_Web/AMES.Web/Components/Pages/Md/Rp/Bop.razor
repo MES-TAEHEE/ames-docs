@@ -42,19 +42,19 @@
     <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
-@* 높이는 좌측 품목 목록(24행 고정)이 스크롤 없이 다 들어가는 만큼이고, 우측은 그 높이를 따른다 *@
-<div style="display:flex;gap:14px;align-items:stretch;">
+@* 높이 고정 분할 — 좌측 품목 목록 ItemPageSize 행이 스크롤 없이 다 보이는 높이로 고정해, 검색 결과 수와 무관하게 좌우 카드 높이가 같고 페이저는 카드 바닥 *@
+<div style="@($"display:flex;gap:14px;height:{ItemPanelHeight}px;")">
 
     @* ── 좌: 품목 목록 ─────────────────────────────────────────────────── *@
-    <div style="flex:0 0 630px;display:flex;flex-direction:column;">
-        <div class="ames-card" style="display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
+    <div style="flex:0 0 630px;display:flex;flex-direction:column;min-height:0;">
+        <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-bottom:8px;">
                 <RadzenTextBox @bind-Value="_search" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Bop.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;" />
                 <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@LoadItems" class="ames-rz-btn" />
             </RadzenStack>
-            <div>
+            <div style="flex:1;min-height:0;overflow:hidden;">
                 <RadzenDataGrid @ref="_itemGrid" Page="OnItemPage" TItem="MasterDataRepository.BopItemRow" Data="_items" AllowPaging="true" PageSize="ItemPageSize" PagerHorizontalAlign="HorizontalAlign.Center"
-                                ShowPagingSummary="false" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowRender="ItemRowRender" RowSelect="OnItemRowSelect" EmptyText="@L["MD.Bop.NoItems"]" Class="ames-rz-grid md-bop-items" Style="@($"--md-bop-rows:{ItemPageSize}")">
+                                ShowPagingSummary="false" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowRender="ItemRowRender" RowSelect="OnItemRowSelect" EmptyText="@L["MD.Bop.NoItems"]" Class="ames-rz-grid ames-grid-fill">
                     <Columns>
                         <RadzenDataGridColumn TItem="MasterDataRepository.BopItemRow" Property="ItemNo" Title="@L["Col.ItemNo"]">
                             <Template Context="item">
@@ -77,9 +77,8 @@
     </div>
 
     @* ── 우: 공정 단계 ─────────────────────────────────────────────────── *@
-    @* 절대 배치라 우측 내용(단계 수)이 행 높이를 키우지 않고 좌측 높이에 맞춰 안에서 스크롤한다 *@
-    <div style="flex:1;min-width:0;position:relative;">
-        <div class="ames-card" style="position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;">
+        <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
 
             @if (_selItem is null)
             {
@@ -103,6 +102,10 @@
                             </div>
                             <div class="dim" style="font-size:.8em;margin-top:2px;">
                                 @string.Format(L["MD.Bop.StepCount"], _steps.Count)
+                                @if (_rel.Count > 0)
+                                {
+                                    <span style="margin-left:8px;">· @string.Format(L["MD.Bop.RelatedCount"], _rel.Values.Count(r => r.Depth < 0), _rel.Values.Count(r => r.Depth > 0))</span>
+                                }
                             </div>
                         </div>
                         @if (_canEdit)
@@ -117,26 +120,60 @@
 
                 @* ─── 공정 단계 그리드 ─── *@
                 <div style="flex:1;min-height:0;overflow:hidden;">
-                    <RadzenDataGrid @ref="_stepGrid" Page="OnStepPage" TItem="MasterDataRepository.BopRow" Data="_steps" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
-                                    ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeOptions="@_pageSizeOptions" RowRender="StepRowRender" RowSelect="OnStepRowSelect" EmptyText="@L["MD.Bop.NoSteps"]" Class="ames-rz-grid ames-grid-fill">
+                    @* 페이저 없음 — 단계·상하위 행이 많으면 카드 높이 안에서 본문만 스크롤 *@
+                    <RadzenDataGrid @ref="_stepGrid" TItem="MasterDataRepository.BopRow" Data="_displaySteps" AllowPaging="false" RowRender="StepRowRender" RowSelect="OnStepRowSelect" EmptyText="@L["MD.Bop.NoSteps"]" Class="ames-rz-grid ames-grid-fill">
                         <Columns>
                             @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_stepGrid, rn)</span></Template>
                             </RadzenDataGridColumn>
+                            @* 상하위 조회 — 선택 품목 단계 / BOM 상위·하위 품목의 단계(읽기 전용) *@
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Title="@L["MD.Bop.Col.Relation"]" Width="100px" MinWidth="100px" TextAlign="TextAlign.Center" Sortable="false">
+                                <Template Context="step">
+                                    @if (_rel.TryGetValue(step.BOPID, out var rel))
+                                    {
+                                        <span class="pill @(rel.Depth < 0 ? "orange" : "mute")">@string.Format(L[rel.Depth < 0 ? "MD.Bop.Rel.Up" : "MD.Bop.Rel.Down"], Math.Abs(rel.Depth))</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="pill info">@L["MD.Bop.Rel.Self"]</span>
+                                    }
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="ItemNo" Title="@L["Col.ItemNo"]" Width="170px" MinWidth="170px">
+                                <Template Context="step"><div class="code" style="max-width:154px;overflow:hidden;text-overflow:ellipsis;" title="@ItemTitle(step.ItemNo)">@step.ItemNo</div></Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Title="@L["MD.Bop.Col.Path"]" Width="170px" MinWidth="170px" Sortable="false">
+                                <Template Context="step">
+                                    @{ var via = _rel.TryGetValue(step.BOPID, out var r2) && r2.Via.Count > 0 ? string.Join(" → ", r2.Via) : ""; }
+                                    @if (via.Length > 0)
+                                    {
+                                        <div class="dim code" style="font-size:.82em;max-width:154px;overflow:hidden;text-overflow:ellipsis;" title="@string.Format(L["MD.Bop.Via"], via)">@via</div>
+                                    }
+                                    else
+                                    {
+                                        <span class="dim">—</span>
+                                    }
+                                </Template>
+                            </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="RoutingType" Title="@L["Col.Routing"]" Width="80px" TextAlign="TextAlign.Center">
-                                <Template Context="step"><span class="pill @Ui.RoutingClass(step.RoutingType)">@(step.RoutingType ?? "—")</span></Template>
+                                <Template Context="step"><span class="pill @Ui.RoutingClass(step.RoutingType)">@(Joined(step, s => s.RoutingType) ?? step.RoutingType ?? "—")</span></Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StepSeq" Title="@L["Col.Seq"]" Width="60px" TextAlign="TextAlign.Center">
-                                <Template Context="step"><span class="code">@step.StepSeq</span></Template>
+                                <Template Context="step"><span class="code">@(Joined(step, s => s.StepSeq?.ToString()) ?? step.StepSeq?.ToString())</span></Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StationCode" Title="@L["Col.Station"]" Width="250px">
                                 <Template Context="step">
-                                    @if (!string.IsNullOrEmpty(step.StationCode))
-                                    {
-                                        <span class="code" style="color:var(--ames-tx-violet-400);">@step.StationCode</span>
+                                    @{
+                                        // 상하위 품목 묶음(단계 여러 개)은 작업 위치 코드만 이어 보이고, 단일 단계는 코드 + 명칭
+                                        var stations = Joined(step, s => s.StationCode);
+                                        var stName   = stations is null ? MasterDataRepository.LocalName(step.StationName, step.StationNameEn) : null;
+                                        var stCode   = stations ?? step.StationCode;
                                     }
-                                    @{ var stName = MasterDataRepository.LocalName(step.StationName, step.StationNameEn); }
+                                    @if (!string.IsNullOrEmpty(stCode))
+                                    {
+                                        <span class="code" style="color:var(--ames-tx-violet-400);">@stCode</span>
+                                    }
                                     @if (!string.IsNullOrEmpty(stName))
                                     {
                                         <span class="dim" style="font-size:.8em;margin-left:6px;">@stName</span>
@@ -145,13 +182,13 @@
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StdCycleTime" Title="@L["Col.CycleSetup"]" Width="180px" TextAlign="TextAlign.Right">
                                 <Template Context="step">
-                                    <span>@(step.StdCycleTime?.ToString("N1") ?? "—")</span>
-                                    <span class="dim"> / @(step.StdSetupTime?.ToString("N1") ?? "—")</span>
+                                    <span>@(Joined(step, s => s.StdCycleTime?.ToString("N1") ?? "—", distinct: false) ?? step.StdCycleTime?.ToString("N1") ?? "—")</span>
+                                    <span class="dim"> / @(Joined(step, s => s.StdSetupTime?.ToString("N1") ?? "—", distinct: false) ?? step.StdSetupTime?.ToString("N1") ?? "—")</span>
                                 </Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="QcRequiredFlag" Title="QC" Width="60px" TextAlign="TextAlign.Center">
                                 <Template Context="step">
-                                    @if (step.QcRequiredFlag)
+                                    @if (GroupOf(step).Any(s => s.QcRequiredFlag))
                                     {
                                         <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" />
                                     }
@@ -162,11 +199,11 @@
                                 </Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StepDescription" Title="@L["Col.Description"]">
-                                <Template Context="step"><span class="dim">@step.StepDescription</span></Template>
+                                <Template Context="step"><span class="dim">@(Joined(step, s => s.StepDescription, separator: " / ") ?? step.StepDescription)</span></Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="ActiveFlag" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
                                 <Template Context="step">
-                                    @if (step.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
+                                    @if (GroupOf(step).All(s => s.ActiveFlag)) { <span class="pill ok">@L["Lbl.Active"]</span> }
                                     else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
                                 </Template>
                             </RadzenDataGridColumn>
@@ -301,10 +338,11 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
-    bool _showPagerSummary = true;
     List<MasterDataRepository.BopItemRow>    _items    = new();
-    List<MasterDataRepository.BopRow>        _steps    = new();
+    List<MasterDataRepository.BopRow>        _steps    = new();   // 선택 품목 자기 단계(수정·단계 수·순번 기준)
+    List<MasterDataRepository.BopRow>        _displaySteps = new();   // 화면 표시 = 자기 단계 + BOM 상하위 품목 단계
+    readonly Dictionary<string, AMES.Data.Services.BomHierarchy.Related> _rel = new();   // 대표 BOPID → 상하위 관계(자기 단계는 없음)
+    readonly Dictionary<string, List<MasterDataRepository.BopRow>> _relSteps = new();      // 대표 BOPID → 그 품목의 단계 전체
     List<MasterDataRepository.ItemRow>       _itemList = new();
     List<MasterDataRepository.StationRow>    _stationList = new();
     List<MasterDataRepository.CodeItemRow>   _routingItems = new();
@@ -340,14 +378,15 @@
         LoadItems();
     }
 
-    const int ItemPageSize = 24;   // 좌측 품목 목록 — 공통코드 그룹 목록과 같이 24행 고정, 페이지 크기 선택기 없음
+    const int ItemPageSize = 24;   // 좌측 품목 목록 — 24행 고정, 페이지 크기 선택기 없음
+    // 카드 높이 = 카드 여백·검색줄·헤더·페이저·테두리(152px, 2560×1305 실측) + 행 40px × 행 수
+    const int ItemPanelHeight = 152 + ItemPageSize * 40;
     RadzenDataGrid<MasterDataRepository.BopItemRow>? _itemGrid;
     RadzenDataGrid<MasterDataRepository.BopRow>?     _stepGrid;
-    int _itemPage, _stepPage;
+    int _itemPage;
     void OnItemPage(PagerEventArgs args) => _itemPage = args.PageIndex;
-    void OnStepPage(PagerEventArgs args) => _stepPage = args.PageIndex;
 
-    // 데이터 재로딩 후 품목/단계 목록의 현재 페이지를 유지
+    // 데이터 재로딩 후 품목 목록의 현재 페이지를 유지 (우측 단계 목록은 페이저 없음)
     async Task RestorePages()
     {
         await InvokeAsync(StateHasChanged);
@@ -355,11 +394,6 @@
         {
             int pages = Math.Max(1, (int)Math.Ceiling(_items.Count / (double)_itemGrid.PageSize));
             await _itemGrid.GoToPage(Math.Min(_itemPage, pages - 1));
-        }
-        if (_stepGrid is not null)
-        {
-            int pages = Math.Max(1, (int)Math.Ceiling(_steps.Count / (double)_stepGrid.PageSize));
-            await _stepGrid.GoToPage(Math.Min(_stepPage, pages - 1));
         }
     }
 
@@ -372,9 +406,55 @@
 
     void LoadSteps()
     {
-        if (_selItem is null) { _steps = new(); return; }
+        _rel.Clear();
+        _relSteps.Clear();
+        if (_selItem is null) { _steps = new(); _displaySteps = new(); return; }
         try { _steps = MD.ListBopSteps(_selItem.ItemNo); }
         catch { _steps = new(); }
+        _displaySteps = _steps.ToList();
+        try { AddRelatedSteps(_selItem.ItemNo); } catch { }
+        // 라우팅 순서(A-10 사출 → A-20 감싸기…) — 같은 순서 안에서는 선택 품목 먼저, 그다음 품목번호
+        _displaySteps = _displaySteps
+            .OrderBy(s => s.RoutingType ?? "")
+            .ThenBy(s => s.StepSeq ?? int.MaxValue)
+            .ThenBy(s => _rel.ContainsKey(s.BOPID) ? 1 : 0)
+            .ThenBy(s => s.ItemNo ?? "", StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    // BOM 대표 버전 기준 상위·하위 품목 중 BOP 가 있는 품목의 단계를 읽기 전용으로 붙인다(규칙 정본 BomHierarchy)
+    void AddRelatedSteps(string itemNo)
+    {
+        var graph = AMES.Data.Services.BomHierarchy.Build(
+            MD.ListBomVersions().Select(MasterDataRepository.ToVersionInfo), MD.ListBomEdges(), DateOnly.FromDateTime(DbClock.Today));
+        // 상하위 품목은 품목당 한 행 — 단계가 여러 개면 첫 단계 행에 묶고 순서·작업 위치 등은 이어 보인다
+        foreach (var r in AMES.Data.Services.BomHierarchy.Find(graph, itemNo))
+        {
+            var steps = MD.ListBopSteps(r.ItemNo);
+            if (steps.Count == 0) continue;
+            var head = steps[0];
+            if (!_rel.TryAdd(head.BOPID, r)) continue;
+            _relSteps[head.BOPID] = steps;
+            _displaySteps.Add(head);
+        }
+    }
+
+    IReadOnlyList<MasterDataRepository.BopRow> GroupOf(MasterDataRepository.BopRow step)
+        => _relSteps.TryGetValue(step.BOPID, out var g) ? g : [step];
+
+    // 묶인 행(단계 2개 이상)만 값을 이어 돌려준다 — 단일 단계면 null 이라 원래 표시를 쓴다
+    string? Joined(MasterDataRepository.BopRow step, Func<MasterDataRepository.BopRow, string?> pick, bool distinct = true, string separator = ", ")
+    {
+        if (!_relSteps.TryGetValue(step.BOPID, out var g) || g.Count < 2) return null;
+        var vals = g.Select(pick).Where(v => !string.IsNullOrWhiteSpace(v)).Select(v => v!);
+        if (distinct) vals = vals.Distinct();
+        return string.Join(separator, vals);
+    }
+
+    string ItemTitle(string? itemNo)
+    {
+        var name = _itemList.FirstOrDefault(i => string.Equals(i.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase))?.ItemName;
+        return string.IsNullOrEmpty(name) ? itemNo ?? "" : $"{itemNo} {name}";
     }
 
     void SelectItem(MasterDataRepository.BopItemRow item) { _selItem = item; LoadSteps(); }
@@ -392,13 +472,19 @@
 
     void StepRowRender(RowRenderEventArgs<MasterDataRepository.BopRow> args)
     {
+        if (args.Data is not null && _rel.ContainsKey(args.Data.BOPID))
+        {
+            args.Attributes["style"] = "opacity:.6;";
+            args.Attributes["title"] = string.Format(L["MD.Bop.RelatedFrom"], ItemTitle(args.Data.ItemNo));
+            return;
+        }
         if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
         args.Attributes["class"] = cls + " ames-row-link";
     }
 
     void OnItemRowSelect(MasterDataRepository.BopItemRow item) => SelectItem(item);
 
-    void OnStepRowSelect(MasterDataRepository.BopRow step) { if (_canEdit) OpenStepEdit(step); }
+    void OnStepRowSelect(MasterDataRepository.BopRow step) { if (_canEdit && !_rel.ContainsKey(step.BOPID)) OpenStepEdit(step); }
 
     // 선택 품목(MD_Item)에 정의된 RoutingType 을 그대로 사용 (수정 불가)
     string ItemRouting(string? itemNo, string? fallback = null)

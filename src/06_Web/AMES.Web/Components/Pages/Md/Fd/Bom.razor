@@ -472,15 +472,11 @@
         Add(_lines, 1, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { _selVer.RootItemNo ?? "" }, false);
     }
 
-    // 하위 BOM 대표 버전: 오늘 유효한 승인 → 승인 중 최신 시작일 → 그 밖의 최신 등록
+    // 하위 BOM 대표 버전 — 규칙 정본 BomVersionRules.Representative (BOP 상하위 조회와 공용)
     static MasterDataRepository.BomVersionRow? RepresentativeVersion(List<MasterDataRepository.BomVersionRow> all, string itemNo)
     {
-        var today = DateOnly.FromDateTime(DbClock.Today);
-        var mine  = all.Where(v => string.Equals(v.RootItemNo, itemNo, StringComparison.OrdinalIgnoreCase)).ToList();
-        var approved = mine.Where(v => v.Status == "APPROVED").OrderByDescending(v => v.EffFrom).ToList();
-        return approved.FirstOrDefault(v => (v.EffFrom is null || v.EffFrom <= today) && (v.EffTo is null || v.EffTo >= today))
-            ?? approved.FirstOrDefault()
-            ?? mine.OrderByDescending(v => v.CreatedTS).FirstOrDefault();
+        var rep = AMES.Data.Services.BomVersionRules.Representative(all.Select(MasterDataRepository.ToVersionInfo), itemNo, DateOnly.FromDateTime(DbClock.Today));
+        return rep is null ? null : all.First(v => v.VersionID == rep.VersionId);
     }
 
     void SelectVersion(MasterDataRepository.BomVersionRow v) { _selVer = v; _verDelConfirm = false; LoadLines(); }
