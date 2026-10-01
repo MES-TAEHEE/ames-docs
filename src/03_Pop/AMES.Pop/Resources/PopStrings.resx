@@ -111,9 +111,7 @@
   <data name="Ng2" xml:space="preserve"><value>불량 차단</value></data>
   <data name="NgBlocked" xml:space="preserve"><value>불량 차단</value></data>
   <data name="NoActiveWo" xml:space="preserve"><value>(활성 WO 없음)</value></data>
-  <data name="NoActiveWorkOrderAcceptAWoFirst" xml:space="preserve"><value>활성 작업지시가 없습니다 — 열린 WO가 있는 품번을 먼저 선택하세요</value></data>
   <data name="NoChangeInProgress" xml:space="preserve"><value>진행 중인 교체 없음</value></data>
-  <data name="NoOpenWoForThisPart" xml:space="preserve"><value>이 품번의 접수 가능한 작업지시가 없습니다</value></data>
   <data name="NoManualRegisteredForThisScreen" xml:space="preserve"><value>이 화면에 등록된 설명서가 없습니다.</value></data>
   <data name="NoMoldMountedOnThisLine" xml:space="preserve"><value>이 라인에 장착된 금형이 없습니다.</value></data>
   <data name="NoScansYet" xml:space="preserve"><value>스캔 이력 없음</value></data>
@@ -189,6 +187,9 @@
   <data name="WoReleased" xml:space="preserve"><value>배포됨</value></data>
   <data name="NotInBop" xml:space="preserve"><value>미등록</value></data>
   <data name="NoOpenWo" xml:space="preserve"><value>WO 없음</value></data>
+  <data name="SelectPartFirst" xml:space="preserve"><value>품번을 먼저 선택하세요</value></data>
+  <data name="NoFinishedItemForCore" xml:space="preserve"><value>이 코어의 완제품을 정할 수 없습니다 — 좌측에서 완제품 품번을 선택하세요</value></data>
+  <data name="CoreMismatch" xml:space="preserve"><value>스캔한 코어는 선택한 완제품의 코어가 아닙니다</value></data>
   <data name="NoBopItemsForStation" xml:space="preserve"><value>이 스테이션에 등록된 BOP 품번이 없습니다 — 기준정보 MD-005 에서 등록하세요</value></data>
   <data name="DataRefreshFailed" xml:space="preserve"><value>데이터 갱신 실패 {0}</value></data>
   <data name="HelpInjMainSub" xml:space="preserve"><value>품번을 고르고 라벨을 스캔하면 실적이 확정된다 — 작업지시 접수 없음</value></data>
@@ -209,7 +210,6 @@
     <value>C 교대</value>
   </data>
   <data name="HelpImgMainSub" xml:space="preserve"><value>사출 Core 를 스캔하면 완제품 라벨이 나오고 OK/NG 로 판정한다 — 작업지시 접수 없음</value></data>
-  <data name="SelectPartWithOpenWo" xml:space="preserve"><value>열린 작업지시가 있는 품번을 선택하세요</value></data>
   <data name="LabelPrint" xml:space="preserve"><value>라벨 발행</value></data>
   <data name="TodayLotsNewestFirst" xml:space="preserve"><value>오늘 발행 LOT · 최신순</value></data>
   <data name="Waiting" xml:space="preserve"><value>대기</value></data>
@@ -254,7 +254,6 @@
   <data name="RwkDoneRework" xml:space="preserve"><value>수리 양품 확정</value></data>
   <data name="RwkDoneScrap" xml:space="preserve"><value>폐기 처리됨</value></data>
   <data name="RwkAlreadyDecided" xml:space="preserve"><value>이미 판정된 LOT</value></data>
-  <data name="RwkNoWo" xml:space="preserve"><value>이 품번의 열린 작업지시가 없어 양품 처리 불가 — 폐기는 가능</value></data>
   <data name="RwkNotFound" xml:space="preserve"><value>재작업 행을 찾을 수 없음</value></data>
   <data name="RwkTodayDecided" xml:space="preserve"><value>오늘 판정 이력</value></data>
   <data name="RwkNoPending" xml:space="preserve"><value>재작업 대기 LOT 없음</value></data>

@@ -452,7 +452,7 @@ public sealed class InjLotRepository
     /// 스캔 확정: RAW → CONFIRMED + PR_ProductionResult 생성 + 단계 실적 +1(WorkOrderRepository.BumpStepCompleted).
     /// 대상은 호출자가 아니라 이 라인 · LOT 품번으로 정한 단계(PP_WorkOrderRouting) 행이다 —
     /// 같은 라인에서 해당 품번을 만드는 단계 중 빠른순(단계 Status In Progress 우선 →
-    /// 헤더 Priority → DueDate → WoID) 첫 건. 없으면 NoWoForItem.
+    /// 헤더 Priority → DueDate → WoID) 첫 건. 없으면 WO 없이 확정한다(WoID NULL, 단계 반영 없음 — 2026-10-01 사용자 결정).
     /// 이 조회는 단계 행만 잠근다(UPDLOCK, ROWLOCK) — 헤더 잠금은 BumpStepCompleted 가
     /// 단계 → 헤더 순으로 다시 잡으므로, 여기서 헤더까지 같이 잠그면 RecordCycle 과
     /// 잠금 순서가 엇갈려 교착 가능성이 생긴다.
@@ -498,7 +498,8 @@ public sealed class InjLotRepository
                 case LotConfirmBlock.Scrapped:         tx.Rollback(); return (InjConfirmOutcome.Scrapped,         0, itemNo, 0);
             }
 
-            int woId, stepId;
+            // WO 가 없어도 생산은 막지 않는다(2026-10-01) — 열린 단계가 없으면 실적·LOT 의 WoID 는 NULL, 단계 반영 없음.
+            int? woId = null, stepId = null;
             using (var cmd = new SqlCommand("""
                 SELECT TOP 1 r.WoID, r.RoutingLineID
                 FROM   dbo.PP_WorkOrderRouting r WITH (UPDLOCK, ROWLOCK)
@@ -509,9 +510,7 @@ public sealed class InjLotRepository
                 cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
                 cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
                 using var rdr = cmd.ExecuteReader();
-                if (!rdr.Read()) { rdr.Close(); tx.Rollback(); return (InjConfirmOutcome.NoWoForItem, 0, itemNo, 0); }
-                woId   = (int)rdr["WoID"];
-                stepId = (int)rdr["RoutingLineID"];
+                if (rdr.Read()) { woId = (int)rdr["WoID"]; stepId = (int)rdr["RoutingLineID"]; }
             }
 
             int cycleSec;
@@ -548,7 +547,7 @@ public sealed class InjLotRepository
                 cmd.Parameters.Add("@Now",      SqlDbType.DateTime2    ).Value = now;
                 cmd.Parameters.Add("@ProdDate", SqlDbType.Date         ).Value = prodDate;
                 cmd.Parameters.Add("@Shift",    SqlDbType.VarChar, 10  ).Value = (object?)shiftCode ?? DBNull.Value;
-                cmd.Parameters.Add("@WoID",    SqlDbType.Int          ).Value = woId;
+                cmd.Parameters.Add("@WoID",    SqlDbType.Int          ).Value = (object?)woId ?? DBNull.Value;
                 cmd.Parameters.Add("@LotID",   SqlDbType.Int          ).Value = lotId;
                 cmd.Parameters.Add("@LineID",  SqlDbType.VarChar, 20  ).Value = lineId;
                 cmd.Parameters.Add("@CT",      SqlDbType.Int          ).Value = cycleSec;
@@ -572,17 +571,17 @@ public sealed class InjLotRepository
                 WHERE  LotID = @LotID;
                 """, conn, tx))
             {
-                cmd.Parameters.Add("@WoID",  SqlDbType.Int          ).Value = woId;
+                cmd.Parameters.Add("@WoID",  SqlDbType.Int          ).Value = (object?)woId ?? DBNull.Value;
                 cmd.Parameters.Add("@LotID", SqlDbType.Int          ).Value = lotId;
                 cmd.Parameters.Add("@Op",    SqlDbType.NVarChar,  20).Value = operatorId;
                 cmd.Parameters.Add("@Sess",  SqlDbType.Int          ).Value = (object?)sessionId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
 
-            WorkOrderRepository.BumpStepCompleted(conn, tx, stepId, 1m, operatorId);
+            if (stepId is int step) WorkOrderRepository.BumpStepCompleted(conn, tx, step, 1m, operatorId);
 
             tx.Commit();
-            return (InjConfirmOutcome.Confirmed, resultId, itemNo, woId);
+            return (InjConfirmOutcome.Confirmed, resultId, itemNo, woId ?? 0);
         }
         catch { tx.Rollback(); throw; }
     }

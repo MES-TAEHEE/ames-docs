@@ -75,10 +75,13 @@ public sealed class ImgLotRepository
     /// <summary>
     /// 사출 Core 스캔 — 한 트랜잭션으로:
     ///   ① Core(INJ LOT) 잠금 → ② 상태 검사(CoreLotRules) → ③ 이미 쓰인 Core 인지
-    ///   → ④ 이 라인에 Core 품번의 열린 WO 가 있는지 → ⑤ ParentLotID 로 연결된 RAW LOT 생성.
+    ///   → ④ 완제품 결정(이 라인에 이 Core 를 코어 단계 품번으로 갖는 열린 WO → 없으면 작업자가 고른 품번, WO 없이)
+    ///   → ⑤ ParentLotID 로 연결된 RAW LOT 생성.
     /// Core 행 UPDLOCK 이 같은 Core 동시 스캔을 직렬화한다. UX_tbl_Lot_ImgParent 위반은 CoreUsed 로 돌려준다.
     /// </summary>
-    /// <param name="finishedItemNo">작업자가 IMG-MAIN 좌측에서 고른 완제품 품번. 한 코어를 여러 색상 완제품이 공유하므로 주어지면 그 품번의 열린 WO 만 받고, 없으면 NoWoForItem. null 이면 열린 단계 순서 규칙.</param>
+    /// <param name="finishedItemNo">작업자가 IMG-MAIN 좌측에서 고른 완제품 품번. 한 코어를 여러 색상 완제품이 공유하므로 주어지면 그 품번의 열린 WO 만 받고,
+    /// WO 가 없으면 그 품번으로 WO 없이 만든다(유효 BOM 코어가 스캔 코어와 다르면 CoreMismatch, 마스터에 없으면 NoFinishedItem).
+    /// null 이면 열린 단계 순서 규칙, 그마저 없으면 완제품을 몰라 NoFinishedItem.</param>
     public (ImgCoreOutcome Outcome, ImgLotDto? Lot, string? UsedByLotCode, string? ItemNo) CreateFromCore(
         string coreLotCode, string lineId, string employeeNo, string? finishedItemNo = null)
     {
@@ -109,8 +112,8 @@ public sealed class ImgLotRepository
             if (FindCoreUser(conn, tx, coreId) is { } usedBy)
             { tx.Rollback(); return (ImgCoreOutcome.CoreUsed, null, usedBy, itemNo); }
 
-            // 완제품 = 이 라인에 열린 단계가 있고 코어 공정 단계 품번이 이 Core 인 WO 의 품번. 없으면 완제품을 모르므로 코어 품번을 돌려준다.
-            int woId; string finishedItem;
+            // 완제품 = 이 라인에 열린 단계가 있고 코어 공정 단계 품번이 이 Core 인 WO 의 품번.
+            int? woId = null; string? finishedItem = null;
             using (var cmd = new SqlCommand("""
                 SELECT TOP 1 r.WoID, w.ItemNo
                 FROM   dbo.PP_WorkOrderRouting r
@@ -123,9 +126,19 @@ public sealed class ImgLotRepository
                 cmd.Parameters.Add("@CoreProc", SqlDbType.VarChar, 10).Value = CoreItemResolver.CoreProcess;
                 cmd.Parameters.Add("@Fg",       SqlDbType.VarChar, 20).Value = string.IsNullOrEmpty(finishedItemNo) ? DBNull.Value : finishedItemNo;
                 using var rdr = cmd.ExecuteReader();
-                if (!rdr.Read()) { rdr.Close(); tx.Rollback(); return (ImgCoreOutcome.NoWoForItem, null, null, itemNo); }
-                woId         = (int)rdr["WoID"];
-                finishedItem = (string)rdr["ItemNo"];
+                if (rdr.Read()) { woId = (int)rdr["WoID"]; finishedItem = (string)rdr["ItemNo"]; }
+            }
+
+            // WO 가 없어도 생산은 막지 않는다(2026-10-01) — 완제품은 작업자가 좌측에서 고른 품번이다. 선택이 없으면 완제품을 모른다.
+            if (finishedItem is null)
+            {
+                if (string.IsNullOrEmpty(finishedItemNo) || !ItemExists(conn, tx, finishedItemNo))
+                { tx.Rollback(); return (ImgCoreOutcome.NoFinishedItem, null, null, itemNo); }
+                // BOM 이 코어를 정할 수 있는 품번이면 스캔한 코어와 맞아야 한다. 못 정하는 품번(Self·Missing·Ambiguous)은 선택을 믿는다.
+                var bom = CoreItemResolver.Read(conn, tx, finishedItemNo);
+                if (bom.Outcome == CoreItemResolver.Outcome.Core && !string.Equals(bom.CoreItemNo, itemNo, StringComparison.OrdinalIgnoreCase))
+                { tx.Rollback(); return (ImgCoreOutcome.CoreMismatch, null, null, itemNo); }
+                finishedItem = finishedItemNo;
             }
 
             var lot = InsertRawLot(conn, tx, lineId, finishedItem, coreId, coreLotCode, employeeNo, woId);
@@ -139,6 +152,13 @@ public sealed class ImgLotRepository
             return (ImgCoreOutcome.CoreUsed, null, FindCoreUser(conn, null, coreId), itemNo);
         }
         catch { tx.Rollback(); throw; }
+    }
+
+    static bool ItemExists(SqlConnection conn, SqlTransaction tx, string itemNo)
+    {
+        using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_Item WHERE ItemNo = @I AND ISNULL(ActiveFlag,1) = 1;", conn, tx);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = itemNo;
+        return cmd.ExecuteScalar() is not null;
     }
 
     static string? FindCoreUser(SqlConnection conn, SqlTransaction? tx, int coreLotId)
@@ -373,7 +393,7 @@ public sealed class ImgLotRepository
 
     /// <summary>
     /// 라벨 스캔 확정 — 한 트랜잭션으로:
-    ///   ① LOT 잠금·상태 검사 → ② LOT 품번의 열린 WO 단계 해석 (INJ 와 같은 규칙)
+    ///   ① LOT 잠금·상태 검사 → ② LOT 품번의 열린 WO 단계 해석 (INJ 와 같은 규칙, 없으면 WoID NULL 로 확정)
     ///   → ③ PR_ProductionResult 1 EA → ④ LOT CONFIRMED + 단계 CompletedQty +1.
     /// 원단 롤·본딩은 기록하지 않는다.
     /// CycleSec = 같은 라인의 직전 IMG LOT 과 이 LOT 의 생성 시각 차.
@@ -413,7 +433,8 @@ public sealed class ImgLotRepository
                 case LotConfirmBlock.NgBlocked:        throw new InvalidOperationException("IMG lot cannot be NG_BLOCKED.");
             }
 
-            int woId, stepId;
+            // WO 가 없어도 생산은 막지 않는다(2026-10-01) — 열린 단계가 없으면 실적·LOT 의 WoID 는 NULL, 단계 반영 없음.
+            int? woId = null, stepId = null;
             using (var cmd = new SqlCommand("""
                 SELECT TOP 1 r.WoID, r.RoutingLineID
                 FROM   dbo.PP_WorkOrderRouting r WITH (UPDLOCK, ROWLOCK)
@@ -424,9 +445,7 @@ public sealed class ImgLotRepository
                 cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
                 cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
                 using var rdr = cmd.ExecuteReader();
-                if (!rdr.Read()) { rdr.Close(); tx.Rollback(); return (ImgConfirmOutcome.NoWoForItem, 0, itemNo, 0); }
-                woId   = (int)rdr["WoID"];
-                stepId = (int)rdr["RoutingLineID"];
+                if (rdr.Read()) { woId = (int)rdr["WoID"]; stepId = (int)rdr["RoutingLineID"]; }
             }
 
             int cycleSec;
@@ -462,7 +481,7 @@ public sealed class ImgLotRepository
                 cmd.Parameters.Add("@Now",      SqlDbType.DateTime2    ).Value = now;
                 cmd.Parameters.Add("@ProdDate", SqlDbType.Date         ).Value = prodDate;
                 cmd.Parameters.Add("@Shift",    SqlDbType.VarChar, 10  ).Value = (object?)shiftCode ?? DBNull.Value;
-                cmd.Parameters.Add("@WoID",     SqlDbType.Int          ).Value = woId;
+                cmd.Parameters.Add("@WoID",     SqlDbType.Int          ).Value = (object?)woId ?? DBNull.Value;
                 cmd.Parameters.Add("@LotID",    SqlDbType.Int          ).Value = lotId;
                 cmd.Parameters.Add("@LineID",   SqlDbType.VarChar, 20  ).Value = lineId;
                 cmd.Parameters.Add("@Proc",     SqlDbType.VarChar, 10  ).Value = ProcessCode;
@@ -486,17 +505,17 @@ public sealed class ImgLotRepository
                 WHERE  LotID = @LotID;
                 """, conn, tx))
             {
-                cmd.Parameters.Add("@WoID",     SqlDbType.Int          ).Value = woId;
+                cmd.Parameters.Add("@WoID",     SqlDbType.Int          ).Value = (object?)woId ?? DBNull.Value;
                 cmd.Parameters.Add("@LotID",    SqlDbType.Int          ).Value = lotId;
                 cmd.Parameters.Add("@Op",       SqlDbType.NVarChar,  20).Value = operatorId;
                 cmd.Parameters.Add("@Sess",     SqlDbType.Int          ).Value = (object?)sessionId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
 
-            WorkOrderRepository.BumpStepCompleted(conn, tx, stepId, 1m, operatorId);
+            if (stepId is int step) WorkOrderRepository.BumpStepCompleted(conn, tx, step, 1m, operatorId);
 
             tx.Commit();
-            return (ImgConfirmOutcome.Confirmed, resultId, itemNo, woId);
+            return (ImgConfirmOutcome.Confirmed, resultId, itemNo, woId ?? 0);
         }
         catch { tx.Rollback(); throw; }
     }

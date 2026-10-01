@@ -414,7 +414,6 @@
                 InjConfirmOutcome.InRework         => (false, $"{T("LotInRework")}: {lotCode}"),
                 InjConfirmOutcome.Scrapped         => (false, $"{T("LotScrapped")}: {lotCode}"),
                 InjConfirmOutcome.WrongLine        => (false, $"{T("LotBelongsToAnotherLine")}: {lotCode}"),
-                InjConfirmOutcome.NoWoForItem      => (false, $"{T("NoOpenWoForThisPart")}: {lotCode} ({itemNo})"),
                 _                                  => (false, $"{T("ConfirmFailed")}: {lotCode}"),
             };
             // 확정은 LOT 품번으로 WO 를 정했다 — 화면 선택도 그 품번으로 따라간다.
@@ -480,13 +479,13 @@
     private void CreateManualLabel()
     {
         if (Session is null || _creatingLabel) return;
-        if (_activeWo is null) { Toasts.Bad(T("NoActiveWorkOrderAcceptAWoFirst")); return; }
+        if (_selItemNo is null) { Toasts.Bad(T("SelectPartFirst")); return; }
         _creatingLabel = true;
         try
         {
-            // 이 라인 INJ 단계가 생산하는 품번(코어). 마이그레이션 이전 WO 는 StepItemNo 가 WO 품번과 같다.
+            // 품번은 좌측 선택(스테이션 BOP = 코어). 열린 WO 가 있으면 그 단계 품번·금형을 따르고, 없어도 발행은 막지 않는다 — WO 없는 생산 허용.
             var lot = PopServices.InjLots.CreateManualRawLots(
-                _activeWo.LineId, _activeWo.StepItemNo ?? _activeWo.ItemNo, _activeWo.MoldId, 1, Session.EmployeeNo)[0];
+                Session.LineId, _activeWo?.StepItemNo ?? _selItemNo, _activeWo?.MoldId, 1, Session.EmployeeNo)[0];
             Toasts.Ok(T("ManualLotCreated", lot.LotCode));
             Refresh();
         }

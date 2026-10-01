@@ -19,6 +19,7 @@ public class ImgLotRepositoryTests
     const string Core    = "ITEST-CORE-A";
     const string Fg      = "ITEST-FG-A";
     const string FgB     = "ITEST-FG-B";     // 같은 코어를 쓰는 다른 색상 완제품
+    const string CoreB   = "ITEST-CORE-B";   // FgB 의 BOM 코어로 심어 코어 불일치를 시험한다
     const string ImgLine = "LINE-IMG-01";
     const string InjLine = "LINE-INJ-01";
 
@@ -42,9 +43,41 @@ public class ImgLotRepositoryTests
             IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = @B)
                 INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, RoutingType, PGN, ALC, MountPos, ActiveFlag, CreatedBy)
                 VALUES (@B, N'ITEST img fg B', 'ASSY', 'A', 'QTST', 'T002', 'FL', 1, 'ITEST');
+            IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = @C2)
+                INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ActiveFlag, CreatedBy) VALUES (@C2, N'CORE-ITEST img core B', 'SUB', 1, 'ITEST');
             """, conn);
         cmd.Parameters.AddWithValue("@C", Core); cmd.Parameters.AddWithValue("@F", Fg); cmd.Parameters.AddWithValue("@B", FgB);
+        cmd.Parameters.AddWithValue("@C2", CoreB);
         cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>완제품 fg 의 유효 BOM 에 코어 core 하나를 심는다 — CoreItemResolver 가 Core 로 읽는다.</summary>
+    static void SeedBomCore(AmesConnectionFactory f, string fg, string core)
+    {
+        using var conn = f.OpenConnection();
+        using var cmd = new SqlCommand("""
+            INSERT INTO dbo.MD_BomVersion (VersionID, RootItemNo, VersionNo, EffFrom, EffTo, Status, CreatedBy)
+            VALUES ('ITEST-IMG-V', @Fg, 'V1', DATEADD(day,-10,CAST(GETDATE() AS date)), NULL, 'APPROVED', 'ITEST');
+            INSERT INTO dbo.MD_Bom (BOMID, ParentItemNo, CompItemNo, BOMLevel, QtyPer, UOM, VersionID, ActiveFlag, CreatedBy)
+            VALUES ('ITEST-IMG-B', @Fg, @Core, 1, 1, 'EA', 'ITEST-IMG-V', 1, 'ITEST');
+            """, conn);
+        cmd.Parameters.AddWithValue("@Fg", fg); cmd.Parameters.AddWithValue("@Core", core);
+        cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>LOT 의 WoID 와 실적 행 수(전체 · WoID NULL).</summary>
+    static (int? WoId, int Results, int NullWoResults) LotWoState(AmesConnectionFactory f, string lotCode)
+    {
+        using var conn = f.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT l.WoID,
+                   (SELECT COUNT(*) FROM dbo.PR_ProductionResult r WHERE r.LotID = l.LotID) AS Results,
+                   (SELECT COUNT(*) FROM dbo.PR_ProductionResult r WHERE r.LotID = l.LotID AND r.WoID IS NULL) AS NullWo
+            FROM   dbo.tbl_Lot l WHERE l.LotCode = @C;
+            """, conn);
+        cmd.Parameters.AddWithValue("@C", lotCode);
+        using var rdr = cmd.ExecuteReader(); rdr.Read();
+        return (rdr["WoID"] as int?, (int)rdr["Results"], (int)rdr["NullWo"]);
     }
 
     static int InsertCore(AmesConnectionFactory f, string lotCode, string status)
@@ -119,17 +152,20 @@ public class ImgLotRepositoryTests
     {
         using var conn = f.OpenConnection();
         using var cmd = new SqlCommand("""
-            DELETE d FROM dbo.PR_DefectDetail     d JOIN dbo.tbl_Lot l ON l.LotID = d.LotID WHERE l.ItemNo IN (@C, @F, @B);
-            DELETE r FROM dbo.PR_ProductionResult r JOIN dbo.tbl_Lot l ON l.LotID = r.LotID WHERE l.ItemNo IN (@C, @F, @B);
-            DELETE e FROM dbo.PR_ImgLot           e JOIN dbo.tbl_Lot l ON l.LotID = e.LotID WHERE l.ItemNo IN (@C, @F, @B);
-            DELETE e FROM dbo.PR_InjLot           e JOIN dbo.tbl_Lot l ON l.LotID = e.LotID WHERE l.ItemNo IN (@C, @F, @B);
-            DELETE FROM dbo.tbl_Lot WHERE ItemNo IN (@C, @F, @B);
-            DELETE r FROM dbo.PP_WorkOrderRouting r JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID WHERE w.ItemNo IN (@C, @F, @B);
-            DELETE FROM dbo.PP_WorkOrder     WHERE ItemNo IN (@C, @F, @B);
-            DELETE FROM dbo.PP_CustomerOrder WHERE ItemNo IN (@C, @F, @B);
-            DELETE FROM dbo.MD_Item WHERE ItemNo IN (@C, @F, @B) AND CreatedBy = 'ITEST';
+            DELETE FROM dbo.MD_Bom        WHERE VersionID = 'ITEST-IMG-V';
+            DELETE FROM dbo.MD_BomVersion WHERE VersionID = 'ITEST-IMG-V';
+            DELETE d FROM dbo.PR_DefectDetail     d JOIN dbo.tbl_Lot l ON l.LotID = d.LotID WHERE l.ItemNo IN (@C, @F, @B, @C2);
+            DELETE r FROM dbo.PR_ProductionResult r JOIN dbo.tbl_Lot l ON l.LotID = r.LotID WHERE l.ItemNo IN (@C, @F, @B, @C2);
+            DELETE e FROM dbo.PR_ImgLot           e JOIN dbo.tbl_Lot l ON l.LotID = e.LotID WHERE l.ItemNo IN (@C, @F, @B, @C2);
+            DELETE e FROM dbo.PR_InjLot           e JOIN dbo.tbl_Lot l ON l.LotID = e.LotID WHERE l.ItemNo IN (@C, @F, @B, @C2);
+            DELETE FROM dbo.tbl_Lot WHERE ItemNo IN (@C, @F, @B, @C2);
+            DELETE r FROM dbo.PP_WorkOrderRouting r JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID WHERE w.ItemNo IN (@C, @F, @B, @C2);
+            DELETE FROM dbo.PP_WorkOrder     WHERE ItemNo IN (@C, @F, @B, @C2);
+            DELETE FROM dbo.PP_CustomerOrder WHERE ItemNo IN (@C, @F, @B, @C2);
+            DELETE FROM dbo.MD_Item WHERE ItemNo IN (@C, @F, @B, @C2) AND CreatedBy = 'ITEST';
             """, conn);
         cmd.Parameters.AddWithValue("@C", Core); cmd.Parameters.AddWithValue("@F", Fg); cmd.Parameters.AddWithValue("@B", FgB);
+        cmd.Parameters.AddWithValue("@C2", CoreB);
         cmd.ExecuteNonQuery();
     }
 
@@ -187,7 +223,7 @@ public class ImgLotRepositoryTests
 
     /// <summary>
     /// 색상 변형 완제품들이 같은 코어를 쓴다(마스터 리스트 코어 35종 중 24종). IMG-MAIN 좌측에서 고른 완제품이 있으면
-    /// 그 완제품의 열린 WO 만 받고, 그 WO 가 없으면 다른 색으로 흘리지 않고 NoWoForItem.
+    /// 그 완제품의 열린 WO 만 받고 다른 색의 WO 로 흘리지 않는다. 마스터에 없는 품번을 고르면 NoFinishedItem.
     /// </summary>
     [SkippableFact]
     public void CreateFromCore_uses_selected_finished_item_when_core_is_shared()
@@ -208,7 +244,7 @@ public class ImgLotRepositoryTests
 
             var core2 = NewCoreCode(); InsertCore(f!, core2, "CONFIRMED");
             var none = repo.CreateFromCore(core2, ImgLine, "E-ITEST", "ITEST-FG-NONE");
-            Assert.Equal((ImgCoreOutcome.NoWoForItem, Core), (none.Outcome, none.ItemNo));
+            Assert.Equal((ImgCoreOutcome.NoFinishedItem, Core), (none.Outcome, none.ItemNo));
             Assert.Null(none.Lot);
 
             var core3 = NewCoreCode(); InsertCore(f!, core3, "CONFIRMED");
@@ -265,22 +301,85 @@ public class ImgLotRepositoryTests
     [SkippableFact] public void CreateFromCore_rejects_defect_core()   => AssertRejected("DEFECT",   ImgCoreOutcome.CoreDefect);
     [SkippableFact] public void CreateFromCore_rejects_scrapped_core() => AssertRejected("SCRAPPED", ImgCoreOutcome.CoreScrapped);
 
+    /// <summary>
+    /// WO 가 없어도 생산은 막히지 않는다(2026-10-01 사용자 결정). 완제품은 작업자가 좌측에서 고른 품번이고,
+    /// 선택이 없으면 완제품을 모르므로 NoFinishedItem(반환 품번은 코어). 실적·LOT 은 WoID NULL 로 남는다.
+    /// </summary>
     [SkippableFact]
-    public void CreateFromCore_without_open_wo_creates_nothing_and_reports_core_item()
+    public void CreateFromCore_without_open_wo_uses_the_selected_finished_item()
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
         Cleanup(f!); SeedItems(f!);
         try
         {
-            var core = NewCoreCode();
-            InsertCore(f!, core, "CONFIRMED");
+            var core = NewCoreCode(); var coreId = InsertCore(f!, core, "CONFIRMED");
+            var repo = new ImgLotRepository(f!);
 
-            var (outcome, lot, _, itemNo) = new ImgLotRepository(f!).CreateFromCore(core, ImgLine, "E-ITEST");
+            var noSel = repo.CreateFromCore(core, ImgLine, "E-ITEST", null);
+            Assert.Equal((ImgCoreOutcome.NoFinishedItem, Core), (noSel.Outcome, noSel.ItemNo));
+            Assert.Null(noSel.Lot);
 
-            Assert.Equal(ImgCoreOutcome.NoWoForItem, outcome);
-            Assert.Null(lot);
-            Assert.Equal(Core, itemNo);                     // WO 가 없으면 완제품을 모른다 — 코어 품번을 돌려준다
+            var unknown = repo.CreateFromCore(core, ImgLine, "E-ITEST", "ITEST-FG-NONE");
+            Assert.Equal((ImgCoreOutcome.NoFinishedItem, Core), (unknown.Outcome, unknown.ItemNo));
             Assert.Equal(0, ImgLotCount(f!, Fg));
+
+            var made = repo.CreateFromCore(core, ImgLine, "E-ITEST", Fg);
+            Assert.Equal(ImgCoreOutcome.Created, made.Outcome);
+            Assert.Equal((Fg, core), (made.Lot!.ItemNo, made.Lot.CoreLotCode));
+            Assert.Equal(coreId, ParentOf(f!, made.Lot.LotCode));
+
+            var ok = repo.ConfirmByLotCode(made.Lot.LotCode, ImgLine, "E-ITEST", null, "E-ITEST");
+            Assert.Equal((ImgConfirmOutcome.Confirmed, Fg, 0), (ok.Outcome, ok.ItemNo, ok.WoId));
+            Assert.Equal("CONFIRMED", repo.GetByLotCode(made.Lot.LotCode)!.ConfirmStatus);
+            Assert.Equal(((int?)null, 1, 1), LotWoState(f!, made.Lot.LotCode));
+        }
+        finally { Cleanup(f!); }
+    }
+
+    /// <summary>선택한 완제품의 BOM 코어가 스캔한 코어와 다르면 거부한다. BOM 이 코어를 못 정하는 품번(Self·Missing)은 선택을 믿는다.</summary>
+    [SkippableFact]
+    public void CreateFromCore_rejects_a_finished_item_whose_bom_core_is_another_item()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Cleanup(f!); SeedItems(f!); SeedBomCore(f!, FgB, CoreB);
+        try
+        {
+            var core = NewCoreCode(); InsertCore(f!, core, "CONFIRMED");   // 품번 Core — FgB 의 코어(CoreB)가 아니다
+            var repo = new ImgLotRepository(f!);
+
+            var wrong = repo.CreateFromCore(core, ImgLine, "E-ITEST", FgB);
+            Assert.Equal((ImgCoreOutcome.CoreMismatch, Core), (wrong.Outcome, wrong.ItemNo));
+            Assert.Null(wrong.Lot);
+            Assert.Equal(0, ImgLotCount(f!, FgB));
+
+            var right = repo.CreateFromCore(core, ImgLine, "E-ITEST", Fg);   // Fg 는 BOM 없음(Self) → 선택대로
+            Assert.Equal((ImgCoreOutcome.Created, Fg), (right.Outcome, right.ItemNo));
+        }
+        finally { Cleanup(f!); }
+    }
+
+    /// <summary>WO 없이 확정한 LOT 도 불량 등록(역분개)과 재작업 양품이 된다 — 실적 3행 전부 WoID NULL, 단계 반영 없음.</summary>
+    [SkippableFact]
+    public void Lot_without_wo_can_be_rejected_and_reworked()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Cleanup(f!); SeedItems(f!);
+        try
+        {
+            var core = NewCoreCode(); InsertCore(f!, core, "CONFIRMED");
+            var repo = new ImgLotRepository(f!);
+            var lot = repo.CreateFromCore(core, ImgLine, "E-ITEST", Fg).Lot!;
+            Assert.Equal(ImgConfirmOutcome.Confirmed, repo.ConfirmByLotCode(lot.LotCode, ImgLine, "E-ITEST", null, "E-ITEST").Outcome);
+
+            var ng = repo.RegisterDefect(lot.LotCode, ImgLine, "IMG-D01", "E-ITEST", null, "E-ITEST");
+            Assert.Equal(DefectRegisterOutcome.Registered, ng.Outcome);
+            Assert.Equal("DEFECT", repo.GetByLotCode(lot.LotCode)!.ConfirmStatus);
+            Assert.Equal(((int?)null, 2, 2), LotWoState(f!, lot.LotCode));
+
+            var rwk = new ReworkRepository(f!).Rework(ng.DefectId, "ITEST-CAUSE", null, "LINE-RWK-01", "E-ITEST", null, "E-ITEST");
+            Assert.Equal(ReworkOutcome.Done, rwk);
+            Assert.Equal("CONFIRMED", repo.GetByLotCode(lot.LotCode)!.ConfirmStatus);
+            Assert.Equal(((int?)null, 3, 3), LotWoState(f!, lot.LotCode));
         }
         finally { Cleanup(f!); }
     }

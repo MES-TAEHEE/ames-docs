@@ -193,6 +193,66 @@ public class InjLotRepositoryTests
         }
     }
 
+    /// <summary>열린 WO 가 없어도 생산은 막히지 않는다(2026-10-01 사용자 결정) — 실적·LOT 은 WoID NULL 로 남고 단계 반영만 없다.</summary>
+    [SkippableFact]
+    public void Confirm_without_open_wo_records_result_with_no_wo()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        const string item = "ITEST-NOWO-INJ";
+        var repo = new InjLotRepository(f!);
+        int lotId = 0;
+        try
+        {
+            using (var conn = f!.OpenConnection())
+            using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = @I)
+                    INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ActiveFlag, CreatedBy) VALUES (@I, N'CORE-ITEST no wo', 'SUB', 1, 'ITEST');
+                """, conn))
+            { cmd.Parameters.AddWithValue("@I", item); cmd.ExecuteNonQuery(); }
+
+            var lot = repo.CreateManualRawLots("LINE-INJ-01", item, null, 1, "E-ITEST")[0];
+            lotId = lot.LotId;
+
+            var (outcome, resultId, itemNo, woId) = repo.ConfirmByLotCode(lot.LotCode, "LINE-INJ-01", "itest-op", null, "E-ITEST");
+
+            Assert.Equal((InjConfirmOutcome.Confirmed, item, 0), (outcome, itemNo, woId));
+            Assert.True(resultId > 0);
+            using (var conn = f!.OpenConnection())
+            using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                SELECT (SELECT WoID FROM dbo.PR_ProductionResult WHERE ResultID = @R) AS ResultWo,
+                       (SELECT WoID FROM dbo.tbl_Lot WHERE LotID = @L) AS LotWo,
+                       (SELECT ConfirmStatus FROM dbo.PR_InjLot WHERE LotID = @L) AS Status;
+                """, conn))
+            {
+                cmd.Parameters.AddWithValue("@R", resultId); cmd.Parameters.AddWithValue("@L", lotId);
+                using var rdr = cmd.ExecuteReader(); Assert.True(rdr.Read());
+                Assert.Equal(DBNull.Value, rdr["ResultWo"]);
+                Assert.Equal(DBNull.Value, rdr["LotWo"]);
+                Assert.Equal("CONFIRMED", (string)rdr["Status"]);
+            }
+
+            // 확정 후 불량 등록은 WoID 없는 실적을 역분개한다 — 단계가 없어도 예외 없이 등록돼야 한다
+            var ng = repo.RegisterDefect(lot.LotCode, "LINE-INJ-01", "INJ-D01", "itest-op", null, "E-ITEST");
+            Assert.Equal(DefectRegisterOutcome.Registered, ng.Outcome);
+        }
+        finally
+        {
+            if (f is not null)
+            {
+                using var conn = f.OpenConnection();
+                using var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                    DELETE FROM dbo.PR_DefectDetail     WHERE LotID = @L;
+                    DELETE FROM dbo.PR_ProductionResult WHERE LotID = @L;
+                    DELETE FROM dbo.PR_InjLot WHERE LotID = @L;
+                    DELETE FROM dbo.tbl_Lot   WHERE LotID = @L;
+                    DELETE FROM dbo.MD_Item   WHERE ItemNo = @I AND CreatedBy = 'ITEST';
+                    """, conn);
+                cmd.Parameters.AddWithValue("@L", lotId); cmd.Parameters.AddWithValue("@I", item);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
     /// <summary>
     /// WO 품번(완제품) ≠ LOT 품번(코어). INJ 단계 행의 ItemNo 가 코어면 코어 LOT 스캔이 그 WO 로 확정된다.
     /// INJ 는 마지막 라인 단계가 아니라 헤더 CompletedQty 는 그대로다.

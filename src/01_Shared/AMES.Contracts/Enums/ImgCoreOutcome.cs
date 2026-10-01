@@ -14,6 +14,8 @@ public enum ImgCoreOutcome
     CoreScrapped,
     /// <summary>이미 다른 완제품 LOT 에 연결됐다.</summary>
     CoreUsed,
-    /// <summary>이 라인에 Core 품번의 열린 WO 단계가 없다.</summary>
-    NoWoForItem,
+    /// <summary>열린 WO 도, 작업자가 고른 완제품 품번도 없어 완제품을 정할 수 없다(반환 품번은 코어). WO 없는 생산은 좌측 선택이 완제품이다.</summary>
+    NoFinishedItem,
+    /// <summary>작업자가 고른 완제품의 유효 BOM 코어가 스캔한 코어와 다르다.</summary>
+    CoreMismatch,
 }
