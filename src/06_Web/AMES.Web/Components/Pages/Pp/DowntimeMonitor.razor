@@ -101,7 +101,8 @@
     else
     {
         <div class="odm-grid">
-            @foreach (var vm in _vms.Values.OrderBy(v => v.LineId))
+            @foreach (var vm in _vms.Values.OrderBy(v => AMES.Data.Services.LineOrder.Rank(_lineOrder, v.LineId))
+                                           .ThenBy(v => v.LineId, StringComparer.OrdinalIgnoreCase))
             {
                 bool isAlert = vm.State == "UNPLANNED_DOWN" && vm.StateDurationMin >= ALERT_MIN;
                 <div class="odm-card @(isAlert ? "odm-card-alert" : "")" id="line-@vm.LineId">
@@ -262,6 +263,8 @@
 
     // ── 상태 ──────────────────────────────────────────────────────────
     Dictionary<string, LineVm> _vms = new(StringComparer.OrdinalIgnoreCase);
+    // 카드 순서: 공정 순(사출 → 감싸기 → 도장 → 재작업, 공통코드 PROCESS SortOrder) → 라인 ID. 공정을 모르는 라인은 맨 뒤
+    Dictionary<string, int> _lineOrder = new(StringComparer.OrdinalIgnoreCase);
     Dictionary<string, string> _lineNames = new(StringComparer.OrdinalIgnoreCase);
     List<MasterDataRepository.LineRow> _lineList = [];
     List<string> _dataLines = [];
@@ -320,6 +323,7 @@
               foreach (var l in _lineList.Where(l => !string.Equals(l.Status, "INACTIVE", StringComparison.OrdinalIgnoreCase)))
                   _lineNames[l.LineID] = MasterDataRepository.LocalName(l.LineName, l.LineNameEn); } catch { }
         try { _dataLines = Pp.ListDowntimeLines(); }   catch { }
+        try { _lineOrder = MD.LineProcessOrder(); }   catch { }
         try { _reasons   = Pp.ListDowntimeReasons(); } catch { }
         try { _refreshSec = Math.Max(10, Sys.GetConfigInt("DASH_REFRESH_SEC", 60)); } catch { }
 

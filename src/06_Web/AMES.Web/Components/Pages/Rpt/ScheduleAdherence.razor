@@ -192,6 +192,8 @@
     List<DayAgg>                        _days     = new();
     List<LineAgg>                       _lines    = new();
     List<MasterDataRepository.LineRow>  _lineList = new();
+    // 라인 표시 순서: 공정 순(사출 → 감싸기 → 도장 → 재작업) → 라인 ID
+    Dictionary<string, int> _lineOrder = new(StringComparer.OrdinalIgnoreCase);
 
     DateTime  _fFrom = DbClock.Today.AddDays(-9), _fTo = DbClock.Today;
     string?   _fLine;
@@ -220,6 +222,7 @@
     protected override void OnInitialized()
     {
         try { _lineList = MD.ListLines(); } catch { }
+        try { _lineOrder = MD.LineProcessOrder(); } catch { }
 
         // 기본 기간: 최근 10일. 그 안에 계획이 없으면 마지막 계획일 기준 10일
         try
@@ -263,11 +266,11 @@
             }
             else { w.Deviation = null; w.State = "inc"; }
             return w;
-        }).OrderBy(w => w.LineId).ThenBy(w => w.PlanDate).ThenBy(w => w.WoNumber).ToList();
+        }).OrderBy(w => AMES.Data.Services.LineOrder.Rank(_lineOrder, w.LineId)).ThenBy(w => w.LineId).ThenBy(w => w.PlanDate).ThenBy(w => w.WoNumber).ToList();
 
         _days = _wos.GroupBy(w => w.PlanDate).OrderBy(g => g.Key)
             .Select(g => new DayAgg(g.Key, g.Count(w => w.State == "on"), g.Count())).ToList();
-        _lines = _wos.GroupBy(w => w.LineId).OrderBy(g => g.Key)
+        _lines = _wos.GroupBy(w => w.LineId).OrderBy(g => AMES.Data.Services.LineOrder.Rank(_lineOrder, g.Key)).ThenBy(g => g.Key)
             .Select(g => new LineAgg(g.Key, g.Count(w => w.State == "on"), g.Count())).ToList();
 
         if (_selDay is { } sd && !_days.Any(d => d.Day == sd)) _selDay = null;

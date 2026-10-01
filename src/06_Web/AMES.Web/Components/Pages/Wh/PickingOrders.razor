@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject IJSRuntime JS
+@inject AMES.Data.Repositories.MasterDataRepository MD
 @using Radzen
 
 <PageTitle>WH-002 Picking Orders · AMES</PageTitle>
@@ -205,8 +206,8 @@
     readonly List<OptionItem> _lineOptions =
     [
         new("", "All Production Lines"),
-        new("LINE-IMG-01", "LINE-IMG-01 - Wrapping Line 1"),
         new("LINE-INJ-01", "LINE-INJ-01 - Injection Line 1 (1800T)"),
+        new("LINE-IMG-01", "LINE-IMG-01 - Wrapping Line 1"),
         new("LINE-PNT-01", "LINE-PNT-01 - Painting Line 1")
     ];
 
@@ -214,6 +215,8 @@
     List<SampleRequirement> _visibleRequirements = [];
     List<SampleSlip> _allSlips = [];
     List<SampleSlip> _visibleSlips = [];
+    // 라인 표시 순서: 공정 순(사출 → 감싸기 → 도장 → 재작업) → 라인 ID
+    Dictionary<string, int> _lineOrder = new(StringComparer.OrdinalIgnoreCase);
     SampleRequirement? _selectedRequirement;
     SampleSlip? _selectedSlip;
     string _lineCode = "";
@@ -225,6 +228,7 @@
 
     protected override void OnInitialized()
     {
+        try { _lineOrder = MD.LineProcessOrder(); } catch { }
         _allRequirements = BuildSampleRequirements();
         _allSlips = BuildSampleSlips();
         RefreshAll();
@@ -250,7 +254,7 @@
             .Select(group => group.OrderBy(x => x.Sequence).FirstOrDefault(x => x.Status != "Completed"))
             .Where(x => x is not null)
             .Cast<SampleRequirement>()
-            .OrderBy(x => x.LineCode)
+            .OrderBy(x => AMES.Data.Services.LineOrder.Rank(_lineOrder, x.LineCode)).ThenBy(x => x.LineCode)
             .ToList();
         if (_selectedRequirement is not null && !_visibleRequirements.Contains(_selectedRequirement)) _selectedRequirement = null;
     }
@@ -265,7 +269,7 @@
                         x.LineName.Contains(_slipSearch, StringComparison.OrdinalIgnoreCase) ||
                         x.Lines.Any(line => line.PartNo.Contains(_slipSearch, StringComparison.OrdinalIgnoreCase) ||
                                             line.PartName.Contains(_slipSearch, StringComparison.OrdinalIgnoreCase)))
-            .OrderBy(x => x.LineCode)
+            .OrderBy(x => AMES.Data.Services.LineOrder.Rank(_lineOrder, x.LineCode)).ThenBy(x => x.LineCode)
             .ThenBy(x => x.SlipNo)
             .ToList();
         if (_selectedSlip is not null && !_visibleSlips.Contains(_selectedSlip)) _selectedSlip = null;

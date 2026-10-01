@@ -172,6 +172,8 @@
     List<MntRepository.OeeRow>               _trendRows  = new();   // 추세 전용: 오늘 기준 최근 12주 원본(조회 기간과 무관)
     List<MntRepository.OeeRow>               _trendVisible = new(); // _trendRows 에 라인/설비/교대 필터를 적용한 것
     List<MasterDataRepository.LineRow>       _lineList   = new();
+    // 라인 표시 순서: 공정 순(사출 → 감싸기 → 도장 → 재작업) → 라인 ID
+    Dictionary<string, int> _lineOrder = new(StringComparer.OrdinalIgnoreCase);
     List<MasterDataRepository.EquipmentRow>  _equipList  = new();
     List<MasterDataRepository.CodeItemRow>   _shiftItems = new();
     List<MasterDataRepository.CodeItemRow>   _equipTypes = new();
@@ -212,6 +214,7 @@
     protected override void OnInitialized()
     {
         try { _lineList   = MD.ListLines();                  } catch { }
+        try { _lineOrder  = MD.LineProcessOrder();           } catch { }
         try { _equipList  = MD.ListEquipments();             } catch { }
         try { _shiftItems = MD.ListCodeItems("WORK_SHIFT");  } catch { }
         try { _equipTypes = MD.ListCodeItems("EQUIP_TYPE");  } catch { }
@@ -278,7 +281,7 @@
                     Spark = Buckets(g).TakeLast(6).Select(t => t.Oee).ToList(),
                 };
             })
-            .OrderBy(a => a.LineId).ThenBy(a => a.EquipId).ToList();
+            .OrderBy(a => AMES.Data.Services.LineOrder.Rank(_lineOrder, a.LineId)).ThenBy(a => a.LineId).ThenBy(a => a.EquipId).ToList();
 
         if (_selEquip is not null && !_equipAgg.Any(a => a.EquipId == _selEquip)) _selEquip = null;
         _trend = WeeklyTrend();

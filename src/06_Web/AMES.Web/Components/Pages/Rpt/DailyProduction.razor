@@ -185,6 +185,8 @@
     List<HourPoint>                         _hours      = new();
     List<ShiftAgg>                          _shifts     = new();
     List<MasterDataRepository.LineRow>      _lineList   = new();
+    // 라인 표시 순서: 공정 순(사출 → 감싸기 → 도장 → 재작업) → 라인 ID
+    Dictionary<string, int> _lineOrder = new(StringComparer.OrdinalIgnoreCase);
     List<MasterDataRepository.CodeItemRow>  _shiftItems = new();
     List<(string Code, int From, int To)>   _shiftRanges = new();
 
@@ -223,6 +225,7 @@
     protected override void OnInitialized()
     {
         try { _lineList   = MD.ListLines(); } catch { }
+        try { _lineOrder  = MD.LineProcessOrder(); } catch { }
         try { _shiftItems = MD.ListCodeItems("WORK_SHIFT"); } catch { }
         _shiftRanges = ParseShiftRanges(_shiftItems);
 
@@ -278,7 +281,7 @@
                 Good = act.Sum(r => r.GoodQty), Defect = act.Sum(r => r.DefectQty),
                 Actual = act.Sum(r => r.GoodQty) + act.Sum(r => r.DefectQty),
             };
-        }).OrderBy(l => l.LineId).ThenBy(l => l.ItemNo).ToList();
+        }).OrderBy(l => AMES.Data.Services.LineOrder.Rank(_lineOrder, l.LineId)).ThenBy(l => l.LineId).ThenBy(l => l.ItemNo).ToList();
     }
 
     // ── 교대 판정: WORK_SHIFT Attribute1 "HHMM-HHMM" 을 시간 구간으로 파싱 (없으면 A 08-16 / B 16-24 / C 그 외) ──

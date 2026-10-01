@@ -1850,7 +1850,7 @@ public sealed class MasterDataRepository
     public List<StationRow> ListStations()
     {
         using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
+        using var cmd = new SqlCommand($"""
             SELECT st.StationCode, st.StationName, st.StationNameEn, st.LineID,
                    wc.ProcessCode AS ProcessCode,
                    st.FormName, st.OrderSeq, st.Status,
@@ -1858,7 +1858,7 @@ public sealed class MasterDataRepository
             FROM   dbo.MD_Station st
             LEFT JOIN dbo.MD_Line       l  ON l.LineID = st.LineID
             LEFT JOIN dbo.MD_WorkCenter wc ON wc.WCID  = l.WCID
-            ORDER  BY st.LineID, st.OrderSeq, st.StationCode;
+            ORDER  BY {LineOrder.RankSql("st.LineID")}, st.LineID, st.OrderSeq, st.StationCode;
             """, conn);
         using var r = cmd.ExecuteReader();
         var list = new List<StationRow>();
@@ -2018,19 +2018,39 @@ public sealed class MasterDataRepository
         return list;
     }
 
+    /// <summary>
+    /// 라인별 공정 정렬 순서 — 라인 작업장(WC)의 ProcessCode 를 공통코드 PROCESS 의 SortOrder 로 바꾼 값
+    /// (사출 → 감싸기 → 도장 → 재작업). 공정을 모르는 라인은 사전에 없다 — 호출자가 맨 뒤로 보낸다.
+    /// </summary>
+    public Dictionary<string, int> LineProcessOrder()
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT l.LineID, c.SortOrder
+            FROM   dbo.MD_Line l
+            JOIN   dbo.MD_WorkCenter w ON w.WCID = l.WCID
+            JOIN   dbo.MD_CodeItem  c ON c.GroupCode = 'PROCESS' AND c.CodeValue = w.ProcessCode
+            WHERE  c.SortOrder IS NOT NULL;
+            """, conn);
+        using var r = cmd.ExecuteReader();
+        var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        while (r.Read()) map[(string)r["LineID"]] = Convert.ToInt32(r["SortOrder"]);
+        return map;
+    }
+
     public List<LineRow> ListLines(string? search = null)
     {
         using var conn = _factory.OpenConnection();
-        var sql = """
+        var sql = $"""
             SELECT LineID, LineName, LineNameEn, PlantCode, WCID,
                    DailyCap, ShiftPattern,
                    ISNULL(RfidEnabledFlag,0) AS RfidEnabledFlag, Status,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
-            FROM dbo.MD_Line
+            FROM dbo.MD_Line ml
             WHERE @S IS NULL
                OR LineID   LIKE '%'+@S+'%'
                OR LineName LIKE '%'+@S+'%'
-            ORDER BY LineID;
+            ORDER BY {LineOrder.RankSql("ml.LineID")}, LineID;
             """;
         using var cmd = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@S", SqlDbType.NVarChar, 50).Value = (object?)search ?? DBNull.Value;
@@ -3411,13 +3431,15 @@ public sealed class MasterDataRepository
         string? TimeZone, string? Status,
         string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
 
-    public List<LineTimePatternRow> ListLineTimePatterns() => Query("""
+    // 공통(전역, LineID NULL) 패턴이 먼저, 그다음 라인 공정 순
+    public List<LineTimePatternRow> ListLineTimePatterns() => Query($"""
         SELECT PatternID, LineID, PatternName,
                DayType, ShiftPattern, EffectiveFrom, EffectiveTo,
                TotalOperatingMin, TotalPlannedDownMin,
                TimeZone, Status,
                CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
-        FROM dbo.MD_LineTimePattern ORDER BY LineID, PatternID
+        FROM dbo.MD_LineTimePattern p
+        ORDER BY CASE WHEN p.LineID IS NULL THEN 0 ELSE 1 END, {LineOrder.RankSql("p.LineID")}, p.LineID, p.PatternID
         """, r => new LineTimePatternRow(
             r.GetString("PatternID"),
             r["LineID"]              as string,

@@ -42,11 +42,11 @@ public sealed class OeeRepository
     /// <summary>마스터 기준 활성 라인 (코드 + 명칭).</summary>
     public List<LineRef> ListLineRefs()
     {
-        const string sql = """
+        string sql = $"""
             SELECT LineID, LineName, LineNameEn
-            FROM   dbo.MD_Line
+            FROM   dbo.MD_Line ml
             WHERE  ISNULL(Status, 'ACTIVE') <> 'INACTIVE'
-            ORDER  BY LineID;
+            ORDER  BY {LineOrder.RankSql("ml.LineID")}, LineID;
             """;
         return Query(sql, r => new LineRef((string)r["LineID"], r["LineName"] as string, r["LineNameEn"] as string));
     }

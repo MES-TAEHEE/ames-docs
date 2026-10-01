@@ -292,6 +292,8 @@
     int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<MntRepository.EquipCardRow>        _allRows     = new();
     List<MntRepository.EquipCardRow>        _rows        = new();
+    // 라인 표시 순서: 공정 순(사출 → 감싸기 → 도장 → 재작업) → 라인 ID
+    Dictionary<string, int> _lineOrder = new(StringComparer.OrdinalIgnoreCase);
     List<MasterDataRepository.LineRow>      _lineList    = new();
     List<MasterDataRepository.CodeItemRow>  _equipStatus = new();
     List<MasterDataRepository.CodeItemRow>  _equipTypes  = new();
@@ -444,6 +446,7 @@
     {
         try { _allRows = Mnt.ListEquipment(); }
         catch (Exception ex) { _allRows = new(); ShowMsg(ex.Message, true); }
+        try { _lineOrder = MD.LineProcessOrder(); } catch { }
         ApplyFilter();
     }
 
@@ -454,7 +457,7 @@
         (string.IsNullOrEmpty(_fLine)   || r.LineId    == _fLine) &&
         (string.IsNullOrEmpty(_fType)   || r.EquipType == _fType) &&
         (string.IsNullOrEmpty(_fStatus) || r.Status    == _fStatus)
-    ).ToList();
+    ).OrderBy(r => AMES.Data.Services.LineOrder.Rank(_lineOrder, r.LineId)).ThenBy(r => r.LineId).ThenBy(r => r.EquipId).ToList();
     }
 
     void OnSearchChanged(string value) => _fSearch = value ?? "";

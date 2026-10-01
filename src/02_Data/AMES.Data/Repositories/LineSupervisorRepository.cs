@@ -1,5 +1,6 @@
 using System.Data;
 using AMES.Data.Connection;
+using AMES.Data.Services;
 using Microsoft.Data.SqlClient;
 
 namespace AMES.Data.Repositories;
@@ -31,13 +32,13 @@ public sealed class LineSupervisorRepository
 
     public List<Row> ListAll()
     {
-        const string sql = $"""
+        string sql = $"""
             SELECT  s.LineID, l.LineName, l.LineNameEn, s.EmployeeNo, up.EmployeeName,
                     s.ActiveFlag, s.CreatedBy, s.CreatedTS, s.ModifiedBy, s.ModifiedTS
             FROM    dbo.MD_LineSupervisor s
             LEFT JOIN dbo.MD_Line l ON l.LineID = s.LineID
             {PersonJoin}
-            ORDER BY s.LineID, s.EmployeeNo;
+            ORDER BY {LineOrder.RankSql("s.LineID")}, s.LineID, s.EmployeeNo;
             """;
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);

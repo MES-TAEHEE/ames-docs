@@ -315,7 +315,15 @@
         }
     }
 
-    void Reload() { _allRows = MD.ListLines(); ApplyFilter(); }
+    void Reload()
+    {
+        _allRows = MD.ListLines();
+        try { _lineOrder = MD.LineProcessOrder(); } catch { _lineOrder = new(); }
+        ApplyFilter();
+    }
+
+    // 공정 순(사출 → 감싸기 → 도장 → 재작업, 공통코드 PROCESS SortOrder) → 라인 ID. 공정을 모르는 라인은 맨 뒤
+    Dictionary<string, int> _lineOrder = new();
 
     void ApplyFilter()
     {
@@ -323,7 +331,9 @@
         (string.IsNullOrEmpty(_fSearch) || r.LineID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase)
                                         || (r.LineName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fStatus) || r.Status == _fStatus)
-    ).ToList();
+    ).OrderBy(r => AMES.Data.Services.LineOrder.Rank(_lineOrder, r.LineID))
+     .ThenBy(r => r.LineID, StringComparer.OrdinalIgnoreCase)
+     .ToList();
     }
 
     void OnSearchChanged(string value) => _fSearch = value ?? "";

@@ -368,6 +368,7 @@
 
     // ── 데이터 ───────────────────────────────────────────────────────────
     List<OeeRepository.LineRef>          _lineRefs   = [];
+    Dictionary<string, int>              _lineOrder  = [];
     List<MasterDataRepository.CodeItemRow> _shiftItems = [];
     List<OeeSnapshotDto>                 _snaps      = [];
     List<OeeRepository.DowntimeByReason> _downtime   = [];
@@ -434,6 +435,7 @@
         _canEdit = PermSvc.CanEdit("pp/oee");
 
         try { _lineRefs   = Repo.ListLineRefs(); }               catch { }
+        try { _lineOrder  = MD.LineProcessOrder(); }             catch { }
         try { _shiftItems = MD.ListCodeItems("WORK_SHIFT"); }    catch { }
 
         // 기본 기간 = 스냅샷이 있는 마지막 7일 (데이터가 오래됐어도 빈 화면이 되지 않도록)
@@ -460,7 +462,7 @@
 
         var lineIds = _lineRefs.Select(l => l.LineId)
             .Union(_snaps.Select(s => s.LineId))
-            .OrderBy(x => x).ToList();
+            .OrderBy(x => AMES.Data.Services.LineOrder.Rank(_lineOrder, x)).ThenBy(x => x).ToList();
 
         _rows = lineIds.Select(id =>
         {
