@@ -441,7 +441,8 @@
     private const string ScanPanelClass = "hardware-scan-panel";
     private bool IsBusy => _isScanning || _isLocationScanning || _isReceiving || _isMoving || _isCanceling;
     private const string BarcodePlaceholder = "Scan Barcode";
-    private string DocumentTitle => !string.IsNullOrWhiteSpace(_document?.CaseNo) ? "CKD CASE" : "DELIVERY NOTE";
+    private bool IsPortalCase => _document?.IsPortalCase == true;
+    private string DocumentTitle => IsPortalCase ? "CASE / PALLET" : !string.IsNullOrWhiteSpace(_document?.CaseNo) ? "CKD CASE" : "DELIVERY NOTE";
     private bool LocationEntryDisabled => true;
     private bool DisableScan => IsBusy || string.IsNullOrWhiteSpace(_barcode);
     private bool DisableLocationScan => LocationEntryDisabled || string.IsNullOrWhiteSpace(_loc);
@@ -711,15 +712,17 @@
                     _documentLines = [];
                     _documentBoxes = [];
                     _barcode = "";
-                    _msg = "This delivery note has already been fully received.";
+                    _msg = "This document or case has already been fully received.";
                     _cls = "fail";
                     ShowAlert("Already Received", _msg, "warn");
                     return;
                 }
 
                 ApplyDocumentResult(documentResult);
+                if (IsPortalCase)
+                    _pendingDocumentBoxes = _documentBoxes.Select(b => b.BoxBarcode).ToHashSet(StringComparer.OrdinalIgnoreCase);
                 _barcode = documentResult.Document.DocumentBarcode;
-                _msg = "Document loaded. Only unreceived items are shown.";
+                _msg = IsPortalCase ? "Case loaded. Press Receive to receive all remaining boxes." : "Document loaded. Only unreceived items are shown.";
                 _cls = "dim";
                 return;
             }
@@ -907,6 +910,23 @@
 
         try
         {
+            if (IsPortalCase)
+            {
+                var caseResult = await Api.WhReceiveCaseAsync(_mode, _document!.DocumentBarcode);
+                if (!caseResult.Success)
+                {
+                    await RefreshDocumentAsync();
+                    _pendingDocumentBoxes = _documentBoxes.Select(b => b.BoxBarcode).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    _msg = caseResult.Message;
+                    _cls = "fail";
+                    ShowAlert("Receive Failed", caseResult.Message, "danger");
+                    return;
+                }
+                _msg = caseResult.Message;
+                _cls = "ok";
+                ShowAlert("Receive Complete", caseResult.Message, "success", ResetFormAsync);
+                return;
+            }
             if (_document is not null)
             {
                 var boxes = _pendingDocumentBoxes.ToList();

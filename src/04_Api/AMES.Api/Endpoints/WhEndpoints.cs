@@ -66,7 +66,7 @@ public static class WhEndpoints
         string DocumentBarcode, string? DocumentNo, string? VendorId, string? VendorName,
         string? CaseNo, string? InvoiceNo, string? ContainerNo, DateTime? ShipDate,
         DateTime? PackDate, DateTime? DeliveryDate, DateTime? ArrivalDate,
-        int TotalBoxes, int ScannedBoxes, string? Yn);
+        int TotalBoxes, int ScannedBoxes, string? Yn, bool IsPortalCase = false);
     public sealed record InboundDocumentLineRow(string PartNo, string? PartName,
         int BoxCount, int ScanCount, decimal DeliveredQty, decimal ReceivedQty,
         decimal RemainingQty, string? Unit, string? Yn);
@@ -76,6 +76,7 @@ public static class WhEndpoints
         List<InboundDocumentLineRow> Lines, List<InboundDocumentBoxRow> Boxes);
 
     public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId, bool SimulateFailure = false);
+    public sealed record InboundCaseReceiveReq(string Mode, string Barcode);
     public sealed record InboundCancelReq(string Mode, string Barcode);
     public sealed record PutAwayRow(string Mode, string Barcode, string LotNo, string? PartNo,
         string? PartName, decimal Qty, string? Unit, string? DeliveryNoteNo,
@@ -306,6 +307,33 @@ public static class WhEndpoints
         g.MapPost("/inbound/receive-lot", ReceiveInboundLot);
         g.MapPost("/inbound/receive-sis", ReceiveInboundLot);
 
+        g.MapPost("/inbound/receive-case", (HttpContext ctx, InboundCaseReceiveReq body) =>
+        {
+            if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+            if (string.IsNullOrWhiteSpace(body.Barcode) || body.Barcode.Trim().Length > 50
+                || body.Mode?.Trim().ToUpperInvariant() is not ("LOCAL" or "CKD"))
+                return Results.BadRequest(new InboundReceiveResult(false, "Scan a valid case barcode and select a receive type.", null));
+            try
+            {
+                var count = new ScmRepository(factory).ReceiveDeliveryCase(
+                    body.Barcode.Trim(), body.Mode.Trim().ToUpperInvariant(), s.EmployeeNo);
+                var message = $"{count} boxes were received successfully.";
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "RECEIVE", "WH002", "CASE", body.Barcode, "SUCCESS", message, lotNo: body.Barcode));
+                return Results.Ok(new InboundReceiveResult(true, message, null));
+            }
+            catch (Exception ex)
+            {
+                var message = WarehouseProcedureMessage(ex);
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "RECEIVE", "WH002", "CASE", body.Barcode, "FAIL", message, lotNo: body.Barcode));
+                var validation = ex is InvalidOperationException or ArgumentException
+                    || ex is SqlException sql && sql.Number is >= 51400 and < 51500;
+                return Results.Problem(message, statusCode: validation ? 400 : 503);
+            }
+        }).WithSummary("Receive all pending boxes in a CASE / PALLET")
+          .WithDescription("One atomic receipt. Already received boxes are skipped; any failure rolls back all new receipts in this request.");
+
         g.MapGet("/putaway/scan", (HttpContext ctx, string barcode) =>
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
@@ -327,16 +355,18 @@ public static class WhEndpoints
             }
 
             var documentRows = matches
-                .Where(row => string.Equals(row.DeliveryNoteNo, scanText, StringComparison.OrdinalIgnoreCase))
+                .Where(row => scanText.StartsWith("CASE-", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(row.DeliveryNoteNo, scanText, StringComparison.OrdinalIgnoreCase))
                 .ToList();
+            var selectionType = scanText.StartsWith("CASE-", StringComparison.OrdinalIgnoreCase) ? "CASE" : "DELIVERY_NOTE";
             var documentBoxes = documentRows.Where(row => string.IsNullOrWhiteSpace(row.LocationNo)).ToList();
             if (documentBoxes.Count > 0)
                 return Results.Ok(new PutAwaySelectionResult(
-                    "DELIVERY_NOTE", scanText, documentBoxes, documentBoxes.Select(row => row.Barcode).ToList()));
+                    selectionType, scanText, documentBoxes, documentBoxes.Select(row => row.Barcode).ToList()));
 
             if (documentRows.Count > 0)
                 return Results.Ok(new PutAwaySelectionResult(
-                    "DELIVERY_NOTE", scanText, documentRows, documentRows.Select(row => row.Barcode).ToList(), true));
+                    selectionType, scanText, documentRows, documentRows.Select(row => row.Barcode).ToList(), true));
 
             if (matches.Count == 0)
                 return Results.Problem("Received inventory was not found.", statusCode: StatusCodes.Status404NotFound);
@@ -1519,7 +1549,9 @@ public static class WhEndpoints
             ) Q
             WHERE (@Barcode IS NULL OR UPPER(Q.Barcode) = UPPER(@Barcode)
                 OR UPPER(Q.LotNo) = UPPER(@Barcode)
-                OR UPPER(Q.DeliveryNoteNo) = UPPER(@Barcode))
+                OR UPPER(Q.DeliveryNoteNo) = UPPER(@Barcode)
+                OR EXISTS(SELECT 1 FROM dbo.WH_Inventory C
+                          WHERE C.LotNo=Q.LotNo AND UPPER(C.ParentLotNo)=UPPER(@Barcode)))
               AND (@OnlyUnassigned = 0 OR NULLIF(LTRIM(RTRIM(Q.LocationNo)), '') IS NULL)
             ORDER BY Q.ReceivedAt, Q.Barcode;
             """;
@@ -2869,6 +2901,25 @@ public static class WhEndpoints
     // ── Helpers ─────────────────────────────────────────────────────────
     private static InboundDocumentResult ExecuteInboundDocument(AmesConnectionFactory factory, string mode, string barcode)
     {
+        if (barcode.Trim().StartsWith("CASE-", StringComparison.OrdinalIgnoreCase)
+            && new ScmRepository(factory).GetDeliveryCase(barcode.Trim()) is { } package)
+        {
+            if (!package.ReadyToReceive)
+                throw new InvalidOperationException("This case has not been shipped or its Delivery Note has not been issued.");
+            var received = package.Boxes.Count(b => b.Received);
+            var caseDocument = new InboundDocumentRow(mode, 0, package.Number, package.Number,
+                package.Vendor, package.VendorName, package.Number,
+                string.Join(", ", package.Boxes.Select(b => b.Order).Distinct()), null,
+                null, package.CreatedAt, null, null, package.Boxes.Count, received,
+                received == package.Boxes.Count ? "Y" : "N", IsPortalCase: true);
+            var caseLines = package.Boxes.GroupBy(b => new { b.Item, b.Name, b.Unit }).Select(g =>
+                new InboundDocumentLineRow(g.Key.Item, g.Key.Name, g.Count(), g.Count(b => b.Received),
+                    g.Sum(b => b.Quantity), g.Where(b => b.Received).Sum(b => b.Quantity),
+                    g.Where(b => !b.Received).Sum(b => b.Quantity), g.Key.Unit, g.All(b => b.Received) ? "Y" : "N")).ToList();
+            var caseBoxes = package.Boxes.Select(b => new InboundDocumentBoxRow(
+                b.Item, b.Number, b.Number, b.Quantity, b.Unit, b.Received ? "Y" : "N")).ToList();
+            return new(caseDocument, caseLines, caseBoxes);
+        }
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand($"[dbo].[{PdaInboundDocumentInfoProcedure}]", conn)
         {
@@ -2935,7 +2986,8 @@ public static class WhEndpoints
         try
         {
             using var conn = factory.OpenConnection();
-            using var cmd = new SqlCommand($"[dbo].[{proc}]", conn)
+            using var tx = conn.BeginTransaction();
+            using var cmd = new SqlCommand($"[dbo].[{proc}]", conn, tx)
             {
                 CommandType = CommandType.StoredProcedure,
                 CommandTimeout = 15
@@ -2947,8 +2999,15 @@ public static class WhEndpoints
             if (string.Equals(proc, PdaInboundReceiveLotProcedure, StringComparison.OrdinalIgnoreCase))
                 cmd.Parameters.Add("@SimulateFailure", SqlDbType.Bit).Value = simulateFailure;
 
-            using var rdr = cmd.ExecuteReader();
-            var row = rdr.Read() ? ReadInboundScanRow(rdr) : null;
+            InboundScanRow? row;
+            using (var rdr = cmd.ExecuteReader())
+            {
+                row = rdr.Read() ? ReadInboundScanRow(rdr) : null;
+                while (rdr.NextResult()) { while (rdr.Read()) { } }
+            }
+            if (string.Equals(proc, PdaInboundReceiveLotProcedure, StringComparison.OrdinalIgnoreCase))
+                ScmRepository.LinkReceivedCase(conn, tx, body.Barcode.Trim());
+            tx.Commit();
             return new InboundReceiveResult(true, successMessage, row);
         }
         catch (Exception ex)
