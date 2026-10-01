@@ -1,4 +1,4 @@
-using AMES.Data.Connection;
+﻿using AMES.Data.Connection;
 using AMES.Data.Repositories;
 using AMES.Data.Services;
 using Microsoft.Data.SqlClient;
@@ -25,6 +25,10 @@ public class MoldPlanningTests
     const string MoldB   = "ITEST-MC-B";
     const string LineInj = "LINE-INJ-01";
     const string LineImg = "LINE-IMG-01";
+    const string ItemFg   = "ITEST-MC-FG";     // ASSY → CORE. 금형은 코어에만 매핑
+    const string ItemCore = "ITEST-MC-CORE";
+    const string ItemNc   = "ITEST-MC-NC";     // ASSY → RAIL 만 → NoCore
+    const string ItemRail = "ITEST-MC-RAIL";
     static readonly DateTime D0 = NextMonday(DateTime.Today.AddDays(400));
     static readonly DateTime D1 = D0.AddDays(1);
     static readonly DateTime D4 = D0.AddDays(4);
@@ -129,6 +133,94 @@ public class MoldPlanningTests
             DELETE FROM dbo.MD_MoldLine WHERE MoldID IN (@A, @B);
             DELETE FROM dbo.MD_Mold     WHERE MoldID IN (@A, @B);
             """, ("@I", Item), ("@P", Pattern), ("@A", MoldA), ("@B", MoldB), ("@D0", D0), ("@D4", D4));
+    }
+
+    /// <summary>코어 구조 시드 — Seed() 뒤에 부른다(패턴·금형·주간 슬롯 재사용). 금형 A 를 코어 품번에만 매핑한다.</summary>
+    static void SeedCoreItems(AmesConnectionFactory f)
+    {
+        CleanupCoreItems(f);
+        Exec(f, """
+            INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, RoutingType, ActiveFlag, CreatedBy) VALUES
+              (@Fg,   N'ITEST mc fg',        'ASSY', 'A',  1, 'ITEST'),
+              (@Core, N'CORE-ITEST mc core', 'SUB',  NULL, 1, 'ITEST'),
+              (@Nc,   N'ITEST mc nocore',    'ASSY', 'A',  1, 'ITEST'),
+              (@Rail, N'RAIL-ITEST mc rail', 'SUB',  NULL, 1, 'ITEST');
+            INSERT INTO dbo.MD_BomVersion (VersionID, RootItemNo, VersionNo, EffFrom, Status, CreatedBy) VALUES
+              ('ITEST-MC-V-FG', @Fg, 'V1', '2026-01-01', 'APPROVED', 'ITEST'),
+              ('ITEST-MC-V-NC', @Nc, 'V1', '2026-01-01', 'APPROVED', 'ITEST');
+            INSERT INTO dbo.MD_Bom (BOMID, ParentItemNo, CompItemNo, BOMLevel, QtyPer, UOM, VersionID, ActiveFlag, CreatedBy) VALUES
+              ('ITEST-MC-B-FG', @Fg, @Core, 1, 1, 'EA', 'ITEST-MC-V-FG', 1, 'ITEST'),
+              ('ITEST-MC-B-NC', @Nc, @Rail, 1, 1, 'EA', 'ITEST-MC-V-NC', 1, 'ITEST');
+            INSERT INTO dbo.MD_Bop (BOPID, ItemNo, RoutingType, StepSeq, StationCode, StdCycleTime, ActiveFlag, CreatedBy) VALUES
+              ('ITEST-MC-BOP-C10', @Core, 'A', 10, 'ST-INJ-01', 6,  1, 'ITEST'),
+              ('ITEST-MC-BOP-F20', @Fg,   'A', 20, 'ST-IMG-01', 12, 1, 'ITEST'),
+              ('ITEST-MC-BOP-N20', @Nc,   'A', 20, 'ST-IMG-01', 12, 1, 'ITEST');
+            INSERT INTO dbo.MD_MoldItem (MoldID, ItemNo, Color, CavitySeq, CavityPos, CavityCount, MoldCategory, ActiveFlag, CreatedBy)
+            VALUES (@A, @Core, 'CBK', 1, 'LH', 1, 'INJECTION', 1, 'ITEST');
+            """, ("@Fg", ItemFg), ("@Core", ItemCore), ("@Nc", ItemNc), ("@Rail", ItemRail), ("@A", MoldA));
+    }
+
+    static void CleanupCoreItems(AmesConnectionFactory f)
+    {
+        Exec(f, """
+            DELETE s FROM dbo.PP_LineSchedule s JOIN dbo.PP_WorkOrder w ON w.WoID = s.WoID WHERE w.ItemNo IN (@Fg, @Nc);
+            DELETE s FROM dbo.PP_LineSchedule s JOIN dbo.PP_WorkOrder w ON w.WoID = s.RefID AND s.RefType = 'WO' WHERE w.ItemNo IN (@Fg, @Nc);
+            DELETE r FROM dbo.PP_WorkOrderRouting r JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID WHERE w.ItemNo IN (@Fg, @Nc);
+            DELETE FROM dbo.PP_WorkOrder     WHERE ItemNo IN (@Fg, @Nc);
+            DELETE FROM dbo.PP_CustomerOrder WHERE ItemNo IN (@Fg, @Nc);
+            DELETE FROM dbo.MD_MoldItem      WHERE ItemNo IN (@Core);
+            DELETE FROM dbo.MD_Bop           WHERE ItemNo IN (@Fg, @Core, @Nc, @Rail);
+            DELETE FROM dbo.MD_Bom           WHERE ParentItemNo IN (@Fg, @Nc);
+            DELETE FROM dbo.MD_BomVersion    WHERE RootItemNo IN (@Fg, @Nc);
+            DELETE FROM dbo.MD_Item          WHERE ItemNo IN (@Fg, @Core, @Nc, @Rail);
+            """, ("@Fg", ItemFg), ("@Core", ItemCore), ("@Nc", ItemNc), ("@Rail", ItemRail));
+    }
+
+    static int SeedSoFor(AmesConnectionFactory f, string itemNo, string soNo, decimal qty = 50, int dueOffset = 9) => (int)Scalar(f, """
+        INSERT INTO dbo.PP_CustomerOrder (SoNumber, SoLineNo, ItemNo, OrderQty, RequestedDeliveryDate, Status, CreatedBy)
+        OUTPUT INSERTED.SoID
+        VALUES (@S, 1, @I, @Q, @Due, 'Confirmed', 'ITEST');
+        """, ("@S", soNo), ("@I", itemNo), ("@Q", qty), ("@Due", D0.AddDays(dueOffset)))!;
+
+    [SkippableFact]
+    public void Uses_mold_mapped_to_core_item_and_snapshots_core_on_inj_step()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Seed(f, withMoldItems: false);   // 금형은 코어에만 매핑한다(SeedCoreItems)
+        SeedCoreItems(f);
+        try
+        {
+            var so  = SeedSoFor(f, ItemFg, "ITEST-MC-SO-CORE");
+            var res = Run(f, Plan(so));
+
+            var o = Assert.Single(res.Orders);
+            Assert.Empty(res.Rejected);
+            int woId = WoIdOf(f, o.WoNumber);
+            Assert.Equal(MoldA, Rows(f, LineInj, D0).Single(r => r.Type == "WO" && r.WoId == woId).Mold);
+            Assert.Equal(ItemCore,     Scalar(f, "SELECT ItemNo FROM dbo.PP_WorkOrderRouting WHERE WoID=@W AND StepSeq=1;", ("@W", woId)));
+            Assert.Equal(DBNull.Value, Scalar(f, "SELECT ItemNo FROM dbo.PP_WorkOrderRouting WHERE WoID=@W AND StepSeq=2;", ("@W", woId)));
+            Assert.Equal(ItemFg,       Scalar(f, "SELECT ItemNo FROM dbo.PP_WorkOrder WHERE WoID=@W;", ("@W", woId)));
+        }
+        finally { CleanupCoreItems(f); Cleanup(f); }
+    }
+
+    [SkippableFact]
+    public void Rejects_order_whose_bom_has_no_identifiable_core()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Seed(f);
+        SeedCoreItems(f);
+        try
+        {
+            var so  = SeedSoFor(f, ItemNc, "ITEST-MC-SO-NC");
+            var res = Run(f, Plan(so));
+
+            Assert.Empty(res.Orders);
+            var rej = Assert.Single(res.Rejected);
+            Assert.Equal((so, ItemNc, PpRepository.RejectNoCore), (rej.SoId, rej.ItemNo, rej.Reason));
+            Assert.Equal(0, (int)Scalar(f, "SELECT COUNT(*) FROM dbo.PP_WorkOrder WHERE ItemNo = @I;", ("@I", ItemNc))!);
+        }
+        finally { CleanupCoreItems(f); Cleanup(f); }
     }
 
     /// <summary>INJ 라인 지정일에 기존 WO 슬롯을 지정 금형으로 넣는다 — 직전 금형 상태를 만든다.</summary>

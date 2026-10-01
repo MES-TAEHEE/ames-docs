@@ -111,9 +111,7 @@
   <data name="Ng2" xml:space="preserve"><value>NG</value></data>
   <data name="NgBlocked" xml:space="preserve"><value>NG Blocked</value></data>
   <data name="NoActiveWo" xml:space="preserve"><value>(no active WO)</value></data>
-  <data name="NoActiveWorkOrderAcceptAWoFirst" xml:space="preserve"><value>No active work order — select a part that has an open WO first</value></data>
   <data name="NoChangeInProgress" xml:space="preserve"><value>No change in progress</value></data>
-  <data name="NoOpenWoForThisPart" xml:space="preserve"><value>No open work order for this part</value></data>
   <data name="NoManualRegisteredForThisScreen" xml:space="preserve"><value>No manual registered for this screen.</value></data>
   <data name="NoMoldMountedOnThisLine" xml:space="preserve"><value>No mold mounted on this line.</value></data>
   <data name="NoScansYet" xml:space="preserve"><value>No scans yet</value></data>
@@ -189,6 +187,9 @@
   <data name="WoReleased" xml:space="preserve"><value>Released</value></data>
   <data name="NotInBop" xml:space="preserve"><value>NOT IN BOP</value></data>
   <data name="NoOpenWo" xml:space="preserve"><value>NO WO</value></data>
+  <data name="SelectPartFirst" xml:space="preserve"><value>Select a part first</value></data>
+  <data name="NoFinishedItemForCore" xml:space="preserve"><value>Cannot determine the finished part for this core — select the finished part on the left</value></data>
+  <data name="CoreMismatch" xml:space="preserve"><value>Scanned core is not the core of the selected finished part</value></data>
   <data name="NoBopItemsForStation" xml:space="preserve"><value>No BOP items for this station — register them in MD-005</value></data>
   <data name="DataRefreshFailed" xml:space="preserve"><value>Data refresh failed {0}</value></data>
   <data name="HelpInjMainSub" xml:space="preserve"><value>Select a part, scan the label to confirm — no work-order acceptance</value></data>
@@ -209,7 +210,6 @@
     <value>SHIFT C</value>
   </data>
   <data name="HelpImgMainSub" xml:space="preserve"><value>Scan the injection core to print the finished label, then judge OK / NG — no work-order acceptance</value></data>
-  <data name="SelectPartWithOpenWo" xml:space="preserve"><value>Select a part with an open work order</value></data>
   <data name="LabelPrint" xml:space="preserve"><value>LABEL PRINT</value></data>
   <data name="TodayLotsNewestFirst" xml:space="preserve"><value>TODAY'S LOTS · NEWEST FIRST</value></data>
   <data name="Waiting" xml:space="preserve"><value>WAIT</value></data>
@@ -254,7 +254,6 @@
   <data name="RwkDoneRework" xml:space="preserve"><value>Reworked and confirmed good</value></data>
   <data name="RwkDoneScrap" xml:space="preserve"><value>Scrapped</value></data>
   <data name="RwkAlreadyDecided" xml:space="preserve"><value>LOT already decided</value></data>
-  <data name="RwkNoWo" xml:space="preserve"><value>No open work order for this part — cannot confirm good; scrap is still possible</value></data>
   <data name="RwkNotFound" xml:space="preserve"><value>Rework row not found</value></data>
   <data name="RwkTodayDecided" xml:space="preserve"><value>Decided today</value></data>
   <data name="RwkNoPending" xml:space="preserve"><value>No LOT awaiting rework</value></data>

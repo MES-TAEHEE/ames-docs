@@ -380,6 +380,7 @@ def render(items, bom, skipped_qty, skipped_purchased) -> str:
     w("   · ItemNo = 품번 + 3자리 색상. 루트는 Assembly Color 마다 1행, 자식은 Material Color 가")
     w("     조립색별로 다르면 같은 순번의 색을, 단일 색이면 그 색을 붙이고 BK·공란이면 품번 그대로.")
     w("   · ItemType: Complete ASSY = ASSY / 공급사 MIP.JACKSON(자사) = SUB / LP·KD 구매 = MATERIAL.")
+    w("   · RoutingType: Complete ASSY = 'A'(코어 사출 → 완제품 IMG, PP-003 이 WO 를 내는 전제) / SUB·MATERIAL = NULL.")
     w("   · ItemCategory: ASSY→TRIM, SUB→SUB, MATERIAL→FABRIC(SH)·RESIN·CHEM(접착제·윤활유)·FASTENER·PART.")
     w("   · CarType: ■ 헤더(NE1A W 는 NE1A). 여러 차종에 쓰이는 공용 자재는 NULL.")
     w("   · PGN·ALC 는 엑셀에 없어 2026-09-24 AMES_DEV 값을 되살린다(IMG 완제품 라벨용). MountPos 는 없다.")
@@ -470,12 +471,13 @@ def render(items, bom, skipped_qty, skipped_purchased) -> str:
     w("DELETE dbo.MD_Item;         PRINT CONCAT(N'§4 MD_Item 삭제: ', @@ROWCOUNT, N' 건');")
     w("")
     w("-- ── §5 MD_Item ──────────────────────────────────────────────────────")
-    w("INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM, SafetyStock, PGN, ALC, ToteFlag, ActiveFlag, CreatedBy, CreatedTS) VALUES")
+    w("INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM, RoutingType, SafetyStock, PGN, ALC, ToteFlag, ActiveFlag, CreatedBy, CreatedTS) VALUES")
     rows = []
     order = {"ASSY": 0, "SUB": 1, "MATERIAL": 2}
     for no, it in sorted(items.items(), key=lambda kv: (order[kv[1]["type"]], kv[0])):
         pgn, alc = PGN_ALC.get(no, (None, None))
-        rows.append(f"  ({q(no)}, {nq(it['name'])}, {q(it['type'])}, {q(it['category'])}, {q(it['car'])}, {q(it['unit'])}, 0, {q(pgn)}, {q(alc)}, 0, 1, {q(CREATED_BY)}, SYSDATETIME())")
+        routing = "A" if it["type"] == "ASSY" else None
+        rows.append(f"  ({q(no)}, {nq(it['name'])}, {q(it['type'])}, {q(it['category'])}, {q(it['car'])}, {q(it['unit'])}, {q(routing)}, 0, {q(pgn)}, {q(alc)}, 0, 1, {q(CREATED_BY)}, SYSDATETIME())")
     w(",\n".join(rows) + ";")
     w("DECLARE @n5 int = @@ROWCOUNT;")
     w(f"IF @n5 <> {len(items)} THROW 50002, N'MD_Item 행 수 불일치', 1;")

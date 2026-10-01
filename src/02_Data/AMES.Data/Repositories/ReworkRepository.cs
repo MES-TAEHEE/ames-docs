@@ -175,7 +175,8 @@ public sealed class ReworkRepository
 
     /// <summary>
     /// 수리 → 양품: 원래 WO 에 실적 +1(ProcessCode RWK, REWORK 라인) + 단계 +1, LOT CONFIRMED, 행 REWORKED.
-    /// WO 는 행의 WoID(확정 후 LOT) 를 먼저, 없으면 원래 라인에서 품번의 열린 단계로 해석한다. 둘 다 없으면 NoWo — 폐기는 가능.
+    /// WO 는 행의 WoID(확정 후 LOT) 를 먼저, 없으면 원래 라인에서 품번의 열린 단계로 해석한다.
+    /// 둘 다 없으면 WO 없이 확정한다(WoID NULL, 단계 반영 없음) — WO 없는 생산분의 수리(2026-10-01).
     /// </summary>
     public ReworkOutcome Rework(int defectId, string causeCode, string? note,
                                 string reworkLineId, string operatorId, int? sessionId, string employeeNo)
@@ -188,10 +189,9 @@ public sealed class ReworkRepository
             if (row is null) { tx.Rollback(); return outcome; }
             var (lotId, rowWoId, processCode, itemNo, lineId) = row.Value;
 
-            int woId, stepId;
+            int? woId = null, stepId = null;
             if (rowWoId is int w && WorkOrderRepository.FindStepId(conn, tx, w, lineId) is int s) { woId = w; stepId = s; }
             else if (LotDefectWriter.ResolveOpenWo(conn, tx, lineId, itemNo) is { } open) { woId = open.WoId; stepId = open.StepId; }
-            else { tx.Rollback(); return ReworkOutcome.NoWo; }
 
             var (now, prodDate, shiftCode) = ProdCalendar.ResolveNow(conn, tx);
             using (var cmd = new SqlCommand("""
@@ -206,7 +206,7 @@ public sealed class ReworkRepository
                 var entryNo = $"E{now:yyMMddHHmmssfff}-{reworkLineId}";
                 if (entryNo.Length > 28) entryNo = entryNo[..28];
                 cmd.Parameters.Add("@EntryNo",  SqlDbType.VarChar, 28  ).Value = entryNo;
-                cmd.Parameters.Add("@WoID",     SqlDbType.Int          ).Value = woId;
+                cmd.Parameters.Add("@WoID",     SqlDbType.Int          ).Value = (object?)woId ?? DBNull.Value;
                 cmd.Parameters.Add("@LotID",    SqlDbType.Int          ).Value = lotId;
                 cmd.Parameters.Add("@LineID",   SqlDbType.VarChar, 20  ).Value = reworkLineId;
                 cmd.Parameters.Add("@Op",       SqlDbType.NVarChar, 450).Value = operatorId;
@@ -231,13 +231,13 @@ public sealed class ReworkRepository
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@Lot",  SqlDbType.Int          ).Value = lotId;
-                cmd.Parameters.Add("@WoID", SqlDbType.Int          ).Value = woId;
+                cmd.Parameters.Add("@WoID", SqlDbType.Int          ).Value = (object?)woId ?? DBNull.Value;
                 cmd.Parameters.Add("@Op",   SqlDbType.VarChar,   20).Value = operatorId;
                 cmd.Parameters.Add("@Sess", SqlDbType.Int          ).Value = (object?)sessionId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
 
-            WorkOrderRepository.BumpStepCompleted(conn, tx, stepId, 1m, operatorId);
+            if (stepId is int step) WorkOrderRepository.BumpStepCompleted(conn, tx, step, 1m, operatorId);
             CloseRow(conn, tx, defectId, LotDefectRules.DispositionReworked, causeCode, note, operatorId, employeeNo);
 
             tx.Commit();

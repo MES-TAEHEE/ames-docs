@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
 using AMES.Data.Connection;
@@ -452,7 +452,7 @@ public sealed class InjLotRepository
     /// 스캔 확정: RAW → CONFIRMED + PR_ProductionResult 생성 + 단계 실적 +1(WorkOrderRepository.BumpStepCompleted).
     /// 대상은 호출자가 아니라 이 라인 · LOT 품번으로 정한 단계(PP_WorkOrderRouting) 행이다 —
     /// 같은 라인에서 해당 품번을 만드는 단계 중 빠른순(단계 Status In Progress 우선 →
-    /// 헤더 Priority → DueDate → WoID) 첫 건. 없으면 NoWoForItem.
+    /// 헤더 Priority → DueDate → WoID) 첫 건. 없으면 WO 없이 확정한다(WoID NULL, 단계 반영 없음 — 2026-10-01 사용자 결정).
     /// 이 조회는 단계 행만 잠근다(UPDLOCK, ROWLOCK) — 헤더 잠금은 BumpStepCompleted 가
     /// 단계 → 헤더 순으로 다시 잡으므로, 여기서 헤더까지 같이 잠그면 RecordCycle 과
     /// 잠금 순서가 엇갈려 교착 가능성이 생긴다.
@@ -498,7 +498,8 @@ public sealed class InjLotRepository
                 case LotConfirmBlock.Scrapped:         tx.Rollback(); return (InjConfirmOutcome.Scrapped,         0, itemNo, 0);
             }
 
-            int woId, stepId;
+            // WO 가 없어도 생산은 막지 않는다(2026-10-01) — 열린 단계가 없으면 실적·LOT 의 WoID 는 NULL, 단계 반영 없음.
+            int? woId = null, stepId = null;
             using (var cmd = new SqlCommand("""
                 SELECT TOP 1 r.WoID, r.RoutingLineID
                 FROM   dbo.PP_WorkOrderRouting r WITH (UPDLOCK, ROWLOCK)
@@ -509,9 +510,7 @@ public sealed class InjLotRepository
                 cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
                 cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
                 using var rdr = cmd.ExecuteReader();
-                if (!rdr.Read()) { rdr.Close(); tx.Rollback(); return (InjConfirmOutcome.NoWoForItem, 0, itemNo, 0); }
-                woId   = (int)rdr["WoID"];
-                stepId = (int)rdr["RoutingLineID"];
+                if (rdr.Read()) { woId = (int)rdr["WoID"]; stepId = (int)rdr["RoutingLineID"]; }
             }
 
             int cycleSec;
@@ -548,7 +547,7 @@ public sealed class InjLotRepository
                 cmd.Parameters.Add("@Now",      SqlDbType.DateTime2    ).Value = now;
                 cmd.Parameters.Add("@ProdDate", SqlDbType.Date         ).Value = prodDate;
                 cmd.Parameters.Add("@Shift",    SqlDbType.VarChar, 10  ).Value = (object?)shiftCode ?? DBNull.Value;
-                cmd.Parameters.Add("@WoID",    SqlDbType.Int          ).Value = woId;
+                cmd.Parameters.Add("@WoID",    SqlDbType.Int          ).Value = (object?)woId ?? DBNull.Value;
                 cmd.Parameters.Add("@LotID",   SqlDbType.Int          ).Value = lotId;
                 cmd.Parameters.Add("@LineID",  SqlDbType.VarChar, 20  ).Value = lineId;
                 cmd.Parameters.Add("@CT",      SqlDbType.Int          ).Value = cycleSec;
@@ -572,17 +571,17 @@ public sealed class InjLotRepository
                 WHERE  LotID = @LotID;
                 """, conn, tx))
             {
-                cmd.Parameters.Add("@WoID",  SqlDbType.Int          ).Value = woId;
+                cmd.Parameters.Add("@WoID",  SqlDbType.Int          ).Value = (object?)woId ?? DBNull.Value;
                 cmd.Parameters.Add("@LotID", SqlDbType.Int          ).Value = lotId;
                 cmd.Parameters.Add("@Op",    SqlDbType.NVarChar,  20).Value = operatorId;
                 cmd.Parameters.Add("@Sess",  SqlDbType.Int          ).Value = (object?)sessionId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
 
-            WorkOrderRepository.BumpStepCompleted(conn, tx, stepId, 1m, operatorId);
+            if (stepId is int step) WorkOrderRepository.BumpStepCompleted(conn, tx, step, 1m, operatorId);
 
             tx.Commit();
-            return (InjConfirmOutcome.Confirmed, resultId, itemNo, woId);
+            return (InjConfirmOutcome.Confirmed, resultId, itemNo, woId ?? 0);
         }
         catch { tx.Rollback(); throw; }
     }
@@ -736,6 +735,7 @@ public sealed class InjLotRepository
     /// 모든 수치는 LOT 생성일이 지정일인 것만 센다 — 확정 시각 기준으로 하면
     /// 어제 생성·오늘 확정 LOT 이 INPUT 과 FINAL 에 다른 날로 잡혀 항등식이 깨진다.
     /// HasOpenWo 는 날짜와 무관한 현재 상태다.
+    /// PLAN·HasOpenWo 는 단계 생산 품번(COALESCE(PP_WorkOrderRouting.ItemNo, WO 품번)) 기준 — INJ 스테이션은 코어 품번으로 센다.
     /// 전부 LOT 상태로 센다: FINAL = CONFIRMED, NG = NG_BLOCKED + DEFECT + SCRAPPED, 미확정 = RAW.
     /// PR_DefectDetail 은 읽지 않는다 — 불량은 LOT 상태에 이미 반영돼 있어 더하면 이중 계상이다.
     /// </summary>
@@ -748,12 +748,14 @@ public sealed class InjLotRepository
                 WHERE  b.StationCode = @Station AND ISNULL(b.ActiveFlag,1) = 1
             ),
             sched AS (
-                SELECT w.ItemNo, SUM(ISNULL(s.PlannedQty,0)) AS PlanQty
+                SELECT COALESCE(st.ItemNo, w.ItemNo) AS ItemNo, SUM(ISNULL(s.PlannedQty,0)) AS PlanQty
                 FROM   dbo.PP_LineSchedule s
                 JOIN   dbo.PP_WorkOrder    w ON w.WoID = s.WoID
+                OUTER  APPLY (SELECT TOP 1 r.ItemNo FROM dbo.PP_WorkOrderRouting r
+                              WHERE  r.WoID = s.WoID AND r.LineID = s.LineID ORDER BY r.StepSeq) st
                 WHERE  s.LineID = @Line AND s.ScheduleDate = @Today AND s.EntryType = 'WO'
                   AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
-                GROUP  BY w.ItemNo
+                GROUP  BY COALESCE(st.ItemNo, w.ItemNo)
             ),
             lots AS (
                 SELECT l.ItemNo,
@@ -784,7 +786,7 @@ public sealed class InjLotRepository
                         SELECT 1
                         FROM   dbo.PP_WorkOrderRouting r
                         JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
-                        WHERE  r.LineID = @Line AND w.ItemNo = k.ItemNo
+                        WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = k.ItemNo
                           AND  r.Status IN ('Released','In Progress')
                           AND  ISNULL(w.Status,'Draft') <> 'Cancelled') THEN 1 ELSE 0 END AS HasOpenWo
             FROM   itemkeys k

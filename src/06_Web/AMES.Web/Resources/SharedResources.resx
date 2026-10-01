@@ -5118,6 +5118,12 @@
   <data name="PP.PlanConfirm.Dlg.Warn.NoMold" xml:space="preserve">
     <value>금형이 등록되지 않아 제외된 수주 {0}건 — MD-007 금형 제품정보에 등록 후 다시 실행</value>
   </data>
+  <data name="PP.PlanConfirm.Dlg.Err.NoCore" xml:space="preserve">
+    <value>코어 품번 불명 — 생산 불가</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.NoCore" xml:space="preserve">
+    <value>코어 품번을 정할 수 없어 제외된 수주 {0}건 — BOM 하위에 품명이 CORE 로 시작하는 SUB 품목이 없거나 둘 이상. MD-004 BOM 을 고친 뒤 다시 실행</value>
+  </data>
   <data name="PP.PlanConfirm.Dlg.MoldChange" xml:space="preserve">
     <value>교체 {0}분</value>
   </data>

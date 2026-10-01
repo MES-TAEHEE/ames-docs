@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
 using AMES.Data.Connection;
@@ -12,6 +12,7 @@ namespace AMES.Data.Repositories;
 /// IMG-MAIN 의 "Core 스캔 → 완제품 라벨 → OK/NG 판정" 모델을 담당한다. INJ 와 달리 에이전트가 없으므로
 /// LOT 은 터미널이 만들고 라벨은 그 자리에서 동기 출력된다 (LabelDispatcher 는 INJ 세션에서만 돈다).
 /// 주 흐름은 사출 Core 스캔(CreateFromCore — tbl_Lot.ParentLotID 로 Core 연결)이고, CreateRawLot 은 예외용 발행 버튼이다.
+/// 완제품 품번 = 그 코어를 코어 공정(INJ) 단계 품번으로 갖는 이 라인의 열린 WO 품번(WorkOrderRepository.OpenStepByCoreFilter) — 코어 품번이 아니다.
 /// </summary>
 public sealed class ImgLotRepository
 {
@@ -74,11 +75,15 @@ public sealed class ImgLotRepository
     /// <summary>
     /// 사출 Core 스캔 — 한 트랜잭션으로:
     ///   ① Core(INJ LOT) 잠금 → ② 상태 검사(CoreLotRules) → ③ 이미 쓰인 Core 인지
-    ///   → ④ 이 라인에 Core 품번의 열린 WO 가 있는지 → ⑤ ParentLotID 로 연결된 RAW LOT 생성.
+    ///   → ④ 완제품 결정(이 라인에 이 Core 를 코어 단계 품번으로 갖는 열린 WO → 없으면 작업자가 고른 품번, WO 없이)
+    ///   → ⑤ ParentLotID 로 연결된 RAW LOT 생성.
     /// Core 행 UPDLOCK 이 같은 Core 동시 스캔을 직렬화한다. UX_tbl_Lot_ImgParent 위반은 CoreUsed 로 돌려준다.
     /// </summary>
+    /// <param name="finishedItemNo">작업자가 IMG-MAIN 좌측에서 고른 완제품 품번. 한 코어를 여러 색상 완제품이 공유하므로 주어지면 그 품번의 열린 WO 만 받고,
+    /// WO 가 없으면 그 품번으로 WO 없이 만든다(유효 BOM 코어가 스캔 코어와 다르면 CoreMismatch, 마스터에 없으면 NoFinishedItem).
+    /// null 이면 열린 단계 순서 규칙, 그마저 없으면 완제품을 몰라 NoFinishedItem.</param>
     public (ImgCoreOutcome Outcome, ImgLotDto? Lot, string? UsedByLotCode, string? ItemNo) CreateFromCore(
-        string coreLotCode, string lineId, string employeeNo)
+        string coreLotCode, string lineId, string employeeNo, string? finishedItemNo = null)
     {
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();
@@ -107,21 +112,38 @@ public sealed class ImgLotRepository
             if (FindCoreUser(conn, tx, coreId) is { } usedBy)
             { tx.Rollback(); return (ImgCoreOutcome.CoreUsed, null, usedBy, itemNo); }
 
+            // 완제품 = 이 라인에 열린 단계가 있고 코어 공정 단계 품번이 이 Core 인 WO 의 품번.
+            int? woId = null; string? finishedItem = null;
             using (var cmd = new SqlCommand("""
-                SELECT TOP 1 r.WoID
+                SELECT TOP 1 r.WoID, w.ItemNo
                 FROM   dbo.PP_WorkOrderRouting r
                 JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
 
-                """ + WorkOrderRepository.OpenStepForItemFilter + ";", conn, tx))
+                """ + WorkOrderRepository.OpenStepByCoreFilter + ";", conn, tx))
             {
-                cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
-                cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
-                if (cmd.ExecuteScalar() is null) { tx.Rollback(); return (ImgCoreOutcome.NoWoForItem, null, null, itemNo); }
+                cmd.Parameters.Add("@Line",     SqlDbType.VarChar, 20).Value = lineId;
+                cmd.Parameters.Add("@Core",     SqlDbType.VarChar, 20).Value = itemNo;
+                cmd.Parameters.Add("@CoreProc", SqlDbType.VarChar, 10).Value = CoreItemResolver.CoreProcess;
+                cmd.Parameters.Add("@Fg",       SqlDbType.VarChar, 20).Value = string.IsNullOrEmpty(finishedItemNo) ? DBNull.Value : finishedItemNo;
+                using var rdr = cmd.ExecuteReader();
+                if (rdr.Read()) { woId = (int)rdr["WoID"]; finishedItem = (string)rdr["ItemNo"]; }
             }
 
-            var lot = InsertRawLot(conn, tx, lineId, itemNo, coreId, coreLotCode, employeeNo);
+            // WO 가 없어도 생산은 막지 않는다(2026-10-01) — 완제품은 작업자가 좌측에서 고른 품번이다. 선택이 없으면 완제품을 모른다.
+            if (finishedItem is null)
+            {
+                if (string.IsNullOrEmpty(finishedItemNo) || !ItemExists(conn, tx, finishedItemNo))
+                { tx.Rollback(); return (ImgCoreOutcome.NoFinishedItem, null, null, itemNo); }
+                // BOM 이 코어를 정할 수 있는 품번이면 스캔한 코어와 맞아야 한다. 못 정하는 품번(Self·Missing·Ambiguous)은 선택을 믿는다.
+                var bom = CoreItemResolver.Read(conn, tx, finishedItemNo);
+                if (bom.Outcome == CoreItemResolver.Outcome.Core && !string.Equals(bom.CoreItemNo, itemNo, StringComparison.OrdinalIgnoreCase))
+                { tx.Rollback(); return (ImgCoreOutcome.CoreMismatch, null, null, itemNo); }
+                finishedItem = finishedItemNo;
+            }
+
+            var lot = InsertRawLot(conn, tx, lineId, finishedItem, coreId, coreLotCode, employeeNo, woId);
             tx.Commit();
-            return (ImgCoreOutcome.Created, lot, null, itemNo);
+            return (ImgCoreOutcome.Created, lot, null, finishedItem);
         }
         catch (SqlException ex) when (ex.Number is 2601 or 2627 && ex.Message.Contains("UX_tbl_Lot_ImgParent"))
         {
@@ -130,6 +152,13 @@ public sealed class ImgLotRepository
             return (ImgCoreOutcome.CoreUsed, null, FindCoreUser(conn, null, coreId), itemNo);
         }
         catch { tx.Rollback(); throw; }
+    }
+
+    static bool ItemExists(SqlConnection conn, SqlTransaction tx, string itemNo)
+    {
+        using var cmd = new SqlCommand("SELECT 1 FROM dbo.MD_Item WHERE ItemNo = @I AND ISNULL(ActiveFlag,1) = 1;", conn, tx);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = itemNo;
+        return cmd.ExecuteScalar() is not null;
     }
 
     static string? FindCoreUser(SqlConnection conn, SqlTransaction? tx, int coreLotId)
@@ -148,7 +177,7 @@ public sealed class ImgLotRepository
     /// 정해 LOT 에 박아 둔다 — 재출력 때 WO 가 바뀌어도 라벨이 달라지지 않는다.
     /// </summary>
     static ImgLotDto InsertRawLot(SqlConnection conn, SqlTransaction tx, string lineId, string itemNo,
-                                  int? parentLotId, string? parentLotCode, string employeeNo)
+                                  int? parentLotId, string? parentLotCode, string employeeNo, int? woId = null)
     {
         string? itemName, pgn, alc, mountPos;
         using (var cmd = new SqlCommand(
@@ -167,17 +196,31 @@ public sealed class ImgLotRepository
         }
 
         string? customerCode;
-        using (var cmd = new SqlCommand("""
-            SELECT TOP 1 c.CustomerCode
-            FROM   dbo.PP_WorkOrderRouting r
-            JOIN   dbo.PP_WorkOrder        w  ON w.WoID  = r.WoID
-            LEFT JOIN dbo.PP_CustomerOrder so ON so.SoID = w.SoID
-            LEFT JOIN dbo.MD_Customer      c  ON c.CustomerID = so.CustomerID
+        // Core 스캔은 WO 를 이미 정했으므로 그 WO 의 수주처. 예외용 발행은 종전처럼 라인·완제품 품번의 열린 WO.
+        var custSql = woId is null
+            ? """
+              SELECT TOP 1 c.CustomerCode
+              FROM   dbo.PP_WorkOrderRouting r
+              JOIN   dbo.PP_WorkOrder        w  ON w.WoID  = r.WoID
+              LEFT JOIN dbo.PP_CustomerOrder so ON so.SoID = w.SoID
+              LEFT JOIN dbo.MD_Customer      c  ON c.CustomerID = so.CustomerID
 
-            """ + WorkOrderRepository.OpenStepForItemFilter + ";", conn, tx))
+              """ + WorkOrderRepository.OpenStepForItemFilter + ";"
+            : """
+              SELECT c.CustomerCode
+              FROM   dbo.PP_WorkOrder        w
+              LEFT JOIN dbo.PP_CustomerOrder so ON so.SoID = w.SoID
+              LEFT JOIN dbo.MD_Customer      c  ON c.CustomerID = so.CustomerID
+              WHERE  w.WoID = @Wo;
+              """;
+        using (var cmd = new SqlCommand(custSql, conn, tx))
         {
-            cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
-            cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+            if (woId is null)
+            {
+                cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
+                cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+            }
+            else cmd.Parameters.Add("@Wo", SqlDbType.Int).Value = woId.Value;
             customerCode = cmd.ExecuteScalar() as string;
         }
 
@@ -350,7 +393,7 @@ public sealed class ImgLotRepository
 
     /// <summary>
     /// 라벨 스캔 확정 — 한 트랜잭션으로:
-    ///   ① LOT 잠금·상태 검사 → ② LOT 품번의 열린 WO 단계 해석 (INJ 와 같은 규칙)
+    ///   ① LOT 잠금·상태 검사 → ② LOT 품번의 열린 WO 단계 해석 (INJ 와 같은 규칙, 없으면 WoID NULL 로 확정)
     ///   → ③ PR_ProductionResult 1 EA → ④ LOT CONFIRMED + 단계 CompletedQty +1.
     /// 원단 롤·본딩은 기록하지 않는다.
     /// CycleSec = 같은 라인의 직전 IMG LOT 과 이 LOT 의 생성 시각 차.
@@ -390,7 +433,8 @@ public sealed class ImgLotRepository
                 case LotConfirmBlock.NgBlocked:        throw new InvalidOperationException("IMG lot cannot be NG_BLOCKED.");
             }
 
-            int woId, stepId;
+            // WO 가 없어도 생산은 막지 않는다(2026-10-01) — 열린 단계가 없으면 실적·LOT 의 WoID 는 NULL, 단계 반영 없음.
+            int? woId = null, stepId = null;
             using (var cmd = new SqlCommand("""
                 SELECT TOP 1 r.WoID, r.RoutingLineID
                 FROM   dbo.PP_WorkOrderRouting r WITH (UPDLOCK, ROWLOCK)
@@ -401,9 +445,7 @@ public sealed class ImgLotRepository
                 cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
                 cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
                 using var rdr = cmd.ExecuteReader();
-                if (!rdr.Read()) { rdr.Close(); tx.Rollback(); return (ImgConfirmOutcome.NoWoForItem, 0, itemNo, 0); }
-                woId   = (int)rdr["WoID"];
-                stepId = (int)rdr["RoutingLineID"];
+                if (rdr.Read()) { woId = (int)rdr["WoID"]; stepId = (int)rdr["RoutingLineID"]; }
             }
 
             int cycleSec;
@@ -439,7 +481,7 @@ public sealed class ImgLotRepository
                 cmd.Parameters.Add("@Now",      SqlDbType.DateTime2    ).Value = now;
                 cmd.Parameters.Add("@ProdDate", SqlDbType.Date         ).Value = prodDate;
                 cmd.Parameters.Add("@Shift",    SqlDbType.VarChar, 10  ).Value = (object?)shiftCode ?? DBNull.Value;
-                cmd.Parameters.Add("@WoID",     SqlDbType.Int          ).Value = woId;
+                cmd.Parameters.Add("@WoID",     SqlDbType.Int          ).Value = (object?)woId ?? DBNull.Value;
                 cmd.Parameters.Add("@LotID",    SqlDbType.Int          ).Value = lotId;
                 cmd.Parameters.Add("@LineID",   SqlDbType.VarChar, 20  ).Value = lineId;
                 cmd.Parameters.Add("@Proc",     SqlDbType.VarChar, 10  ).Value = ProcessCode;
@@ -463,17 +505,17 @@ public sealed class ImgLotRepository
                 WHERE  LotID = @LotID;
                 """, conn, tx))
             {
-                cmd.Parameters.Add("@WoID",     SqlDbType.Int          ).Value = woId;
+                cmd.Parameters.Add("@WoID",     SqlDbType.Int          ).Value = (object?)woId ?? DBNull.Value;
                 cmd.Parameters.Add("@LotID",    SqlDbType.Int          ).Value = lotId;
                 cmd.Parameters.Add("@Op",       SqlDbType.NVarChar,  20).Value = operatorId;
                 cmd.Parameters.Add("@Sess",     SqlDbType.Int          ).Value = (object?)sessionId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
 
-            WorkOrderRepository.BumpStepCompleted(conn, tx, stepId, 1m, operatorId);
+            if (stepId is int step) WorkOrderRepository.BumpStepCompleted(conn, tx, step, 1m, operatorId);
 
             tx.Commit();
-            return (ImgConfirmOutcome.Confirmed, resultId, itemNo, woId);
+            return (ImgConfirmOutcome.Confirmed, resultId, itemNo, woId ?? 0);
         }
         catch { tx.Rollback(); throw; }
     }
@@ -493,12 +535,14 @@ public sealed class ImgLotRepository
                 WHERE  b.StationCode = @Station AND ISNULL(b.ActiveFlag,1) = 1
             ),
             sched AS (
-                SELECT w.ItemNo, SUM(ISNULL(s.PlannedQty,0)) AS PlanQty
+                SELECT COALESCE(st.ItemNo, w.ItemNo) AS ItemNo, SUM(ISNULL(s.PlannedQty,0)) AS PlanQty
                 FROM   dbo.PP_LineSchedule s
                 JOIN   dbo.PP_WorkOrder    w ON w.WoID = s.WoID
+                OUTER  APPLY (SELECT TOP 1 r.ItemNo FROM dbo.PP_WorkOrderRouting r
+                              WHERE  r.WoID = s.WoID AND r.LineID = s.LineID ORDER BY r.StepSeq) st
                 WHERE  s.LineID = @Line AND s.ScheduleDate = @Today AND s.EntryType = 'WO'
                   AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
-                GROUP  BY w.ItemNo
+                GROUP  BY COALESCE(st.ItemNo, w.ItemNo)
             ),
             lots AS (
                 SELECT l.ItemNo,
@@ -529,7 +573,7 @@ public sealed class ImgLotRepository
                         SELECT 1
                         FROM   dbo.PP_WorkOrderRouting r
                         JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
-                        WHERE  r.LineID = @Line AND w.ItemNo = k.ItemNo
+                        WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = k.ItemNo
                           AND  r.Status IN ('Released','In Progress')
                           AND  ISNULL(w.Status,'Draft') <> 'Cancelled') THEN 1 ELSE 0 END AS HasOpenWo
             FROM   itemkeys k

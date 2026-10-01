@@ -1,4 +1,4 @@
-namespace AMES.Contracts.Dto;
+﻿namespace AMES.Contracts.Dto;
 
 public sealed class WorkOrderDto
 {
@@ -43,6 +43,8 @@ public sealed class WorkOrderDto
     public string?           ProcessCode   { get; init; }
     /// <summary>"LINE-INJ-01 → LINE-IMG-01". 라인 없는 단계는 "QC(—)". 단계 행 없으면 null.</summary>
     public string?           RouteLines    { get; init; }
+    /// <summary>라인 범위 조회에서 그 단계가 생산하는 품번(COALESCE(PP_WorkOrderRouting.ItemNo, PP_WorkOrder.ItemNo)). 헤더 조회는 null.</summary>
+    public string?           StepItemNo    { get; init; }
 
     /// <summary>0–100 % of CompletedQty / OrderQty.</summary>
     public double ProgressPct =>

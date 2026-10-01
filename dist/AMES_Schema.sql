@@ -1,4 +1,4 @@
--- A-MES consolidated schema: AMES_DEV, captured 2026-09-23.
+﻿-- A-MES consolidated schema: AMES_DEV, captured 2026-09-23.
 -- Includes PDA schema and all deployed stored procedures; excludes TEST_* tables.
 -- SCM schema includes packing quantities, persistent boxes and delivery LOT/production dates (2026-09-25).
 -- WH_PurchaseOrder SCM columns remain in migrate_scm_wh_purchase_order.sql and migrate_scm_order_confirmation.sql.
@@ -6218,6 +6218,7 @@ CREATE TABLE [dbo].[PP_WorkOrderRouting](
 	[ModifiedTS] [datetime2](7) NULL,
 	[CompletedQty] [decimal](14, 3) NOT NULL,
 	[TerminalLock] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ItemNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_PP_WorkOrderRouting] PRIMARY KEY CLUSTERED
 (
 	[RoutingLineID] ASC
@@ -6232,6 +6233,13 @@ CREATE NONCLUSTERED INDEX [IX_PP_WorkOrderRouting_Line_Status] ON [dbo].[PP_Work
 	[Status] ASC
 )
 INCLUDE([WoID],[StepSeq],[CompletedQty]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+CREATE NONCLUSTERED INDEX [IX_PP_WorkOrderRouting_Line_Item] ON [dbo].[PP_WorkOrderRouting]
+(
+	[LineID] ASC,
+	[ItemNo] ASC
+)
+INCLUDE([WoID],[StepSeq],[Status]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
 CREATE UNIQUE NONCLUSTERED INDEX [UX_PP_WorkOrderRouting_Wo_Step] ON [dbo].[PP_WorkOrderRouting]
 (

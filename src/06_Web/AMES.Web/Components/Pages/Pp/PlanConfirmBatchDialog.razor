@@ -1,4 +1,4 @@
-@inject AMES.Data.Repositories.PpRepository Pp
+﻿@inject AMES.Data.Repositories.PpRepository Pp
 @inject AMES.Data.Repositories.WorkOrderRepository Wos
 @inject AMES.Data.Repositories.LineScheduleRepository LSB
 @inject AMES.Data.Repositories.MasterDataRepository MD
@@ -59,12 +59,12 @@
                 {
                     var n = Math.Max(1, r.Steps.Count);
                     var qty = Qty(r.Line);
-                    @if (r.NoMold)
+                    @if (r.Excluded)
                     {
                         <tr>
                             <td><span class="code">@r.Line.SoNumber</span><div>@r.Line.ItemNo</div></td>
                             @QtyCell(r, 1)
-                            <td colspan="6"><span class="pill bad">@L["PP.PlanConfirm.Dlg.Err.NoMold"]</span></td>
+                            <td colspan="6"><span class="pill bad">@L[r.NoCore ? "PP.PlanConfirm.Dlg.Err.NoCore" : "PP.PlanConfirm.Dlg.Err.NoMold"]</span></td>
                         </tr>
                         continue;
                     }
@@ -134,9 +134,13 @@
     {
         <div class="ames-alert bad">@string.Format(L["PP.PlanConfirm.Dlg.Warn.Short"].Value, ShortCount)</div>
     }
-    @if (RejectCount > 0)
+    @if (NoMoldCount > 0)
     {
-        <div class="ames-alert bad">@string.Format(L["PP.PlanConfirm.Dlg.Warn.NoMold"].Value, RejectCount)</div>
+        <div class="ames-alert bad">@string.Format(L["PP.PlanConfirm.Dlg.Warn.NoMold"].Value, NoMoldCount)</div>
+    }
+    @if (NoCoreCount > 0)
+    {
+        <div class="ames-alert bad">@string.Format(L["PP.PlanConfirm.Dlg.Warn.NoCore"].Value, NoCoreCount)</div>
     }
 
     <span class="dim" style="font-size:.8em;line-height:1.5;">@string.Format(L["PP.PlanConfirm.Dlg.Hint"].Value, _bufferDays)</span>
@@ -150,7 +154,7 @@
         <RadzenButton Text="@L["Btn.Cancel"]" ButtonStyle="ButtonStyle.Light" Disabled="_busy"
                       Click="@(() => Dialog.Close(null))" />
         <RadzenButton Text="@(_busy ? L["Lbl.Loading"].Value : L["PP.PlanConfirm.Dlg.Run"].Value)"
-                      ButtonStyle="ButtonStyle.Success" Icon="play_arrow" Disabled="@(_busy || Lines.Count == 0 || _rows.All(r => r.NoMold))"
+                      ButtonStyle="ButtonStyle.Success" Icon="play_arrow" Disabled="@(_busy || Lines.Count == 0 || _rows.All(r => r.Excluded))"
                       Click="Run" />
     </div>
 </div>
@@ -169,9 +173,13 @@
         public required List<StepVm>             Steps { get; init; }
         public DateTime?              Deadline { get; set; }
         public DeadlinePacker.Result? Preview  { get; set; }
-        public bool                   NoMold   { get; set; }   // INJ 단계 품번에 금형 매핑 없음 — 생성 대상에서 제외
+        public bool                   NoMold   { get; set; }   // INJ 단계 코어 품번에 금형 매핑 없음 — 생성 대상에서 제외
+        public bool                   NoCore   { get; set; }   // BOM 에서 코어를 못 정함(서버 RejectNoCore 와 같은 판정) — 제외
+        public bool Excluded => NoMold || NoCore;
     }
-    int RejectCount => _rows.Count(r => r.NoMold);
+    int RejectCount  => _rows.Count(r => r.Excluded);
+    int NoCoreCount  => _rows.Count(r => r.NoCore);
+    int NoMoldCount  => _rows.Count(r => r.NoMold);
 
     bool     _busy;
     const string QtyNet = "net", QtyOrder = "order", QtyManual = "manual";
@@ -270,7 +278,7 @@
             var steps = template.Where(t => t.LineRequired)
                 .Select(t => new StepVm { Step = t, LineId = t.BopLineId ?? t.Candidates.FirstOrDefault()?.LineId })
                 .ToList();
-            _rows.Add(new RowVm { Line = l, Steps = steps });
+            _rows.Add(new RowVm { Line = l, Steps = steps, NoCore = template.Any(t => t.NoCore) });
         }
         Recompute();
     }
@@ -298,6 +306,7 @@
         {
             r.Deadline = r.Line.DueDate is DateTime d ? _cal.SubtractWorkdays(d, _bufferDays) : null;
             r.NoMold   = false;
+            if (r.NoCore) { r.Preview = null; continue; }
             var qty = Qty(r.Line);
             if (_qtyMode != QtyManual) _lastAutoQty[r.Line.SoId] = qty;
             if (qty <= 0 || r.Steps.Count == 0 || r.Steps.Any(s => string.IsNullOrEmpty(s.LineId))) { r.Preview = null; continue; }
@@ -309,7 +318,7 @@
                 if (MoldResolver.NeedsMold(s.Step.ProcessCode))
                 {
                     List<MoldResolver.MoldCandidate> cands;
-                    try { cands = MD.ListMoldCandidates(r.Line.ItemNo, s.LineId!); }
+                    try { cands = MD.ListMoldCandidates(s.Step.ItemNo, s.LineId!); }
                     catch (Exception ex) { if (string.IsNullOrEmpty(_err)) _err = ex.Message; cands = new(); }
                     mold = MoldResolver.Choose(cands, days.LastMoldId(s.LineId!, today));
                     if (mold is null) { r.NoMold = true; break; }
@@ -337,7 +346,7 @@
 
     string? Validate()
     {
-        foreach (var r in _rows.Where(r => !r.NoMold))
+        foreach (var r in _rows.Where(r => !r.Excluded))
             foreach (var s in r.Steps)
                 if (string.IsNullOrEmpty(s.LineId)) return L["PP.PlanConfirm.Dlg.Err.LineMissing"];
         return null;
@@ -352,7 +361,7 @@
         {
             var auth  = await AuthPrvd.GetAuthenticationStateAsync();
             var actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
-            var plans = _rows.Where(r => !r.NoMold).Select(r => new PpRepository.OrderPlan(r.Line.SoId,
+            var plans = _rows.Where(r => !r.Excluded).Select(r => new PpRepository.OrderPlan(r.Line.SoId,
                             r.Steps.Select(s => new PpRepository.StepChoice(s.Step.StepSeq, s.LineId!)).ToList(),
                             _qtyMode == QtyManual ? Qty(r.Line) : null))
                         .ToList();
