@@ -4140,6 +4140,9 @@
   <data name="Err.CodeIdMax41" xml:space="preserve">
     <value>El ID de código debe tener 41 caracteres o menos.</value>
   </data>
+  <data name="Err.MaxLenFmt" xml:space="preserve">
+    <value>{0} debe tener como máximo {1} caracteres.</value>
+  </data>
   <data name="Err.RalCodeRequired" xml:space="preserve">
     <value>El código RAL es obligatorio.</value>
   </data>
@@ -4350,6 +4353,27 @@
   <data name="MD.Bom.LineCount" xml:space="preserve">
     <value>{0} línea(s) de componente</value>
   </data>
+  <data name="MD.Bom.Err.SelfComponent" xml:space="preserve">
+    <value>Un componente no puede ser igual a su artículo padre.</value>
+  </data>
+  <data name="MD.Bom.Err.Cycle" xml:space="preserve">
+    <value>{1} está en la sub-BOM de {0}; agregarlo crearía un ciclo.</value>
+  </data>
+  <data name="MD.Bom.Err.DuplicateComponent" xml:space="preserve">
+    <value>El componente {0} ya existe en esta versión.</value>
+  </data>
+  <data name="MD.Bom.Err.ApproveConflict" xml:space="preserve">
+    <value>La vigencia se superpone con la versión aprobada {0}, por lo que no se puede aprobar. Defina una fecha de inicio posterior a la de {0}.</value>
+  </data>
+  <data name="MD.Bom.Msg.Superseded" xml:space="preserve">
+    <value>Fecha de fin ajustada en versiones aprobadas anteriores: {0}</value>
+  </data>
+  <data name="MD.Bom.ExplodedFrom" xml:space="preserve">
+    <value>Expansión de sub-BOM — {0} (solo lectura)</value>
+  </data>
+  <data name="MD.Bom.ExplodedCount" xml:space="preserve">
+    <value>+ {0} línea(s) de sub-BOM</value>
+  </data>
   <data name="MD.Bom.DraftOnly" xml:space="preserve">
     <value>— Editable solo en estado BORRADOR</value>
   </data>
@@ -4516,7 +4540,7 @@
     <value>Editar</value>
   </data>
   <data name="Col.StepCount" xml:space="preserve">
-    <value>Recuento de pasos</value>
+    <value>Pasos</value>
   </data>
   <data name="MD.Bop.CopyStep" xml:space="preserve">
     <value>Copiar pasos</value>

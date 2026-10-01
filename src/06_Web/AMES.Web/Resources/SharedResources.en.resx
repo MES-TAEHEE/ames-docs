@@ -4143,6 +4143,9 @@
   <data name="Err.CodeIdMax41" xml:space="preserve">
     <value>Code ID must be 41 characters or fewer.</value>
   </data>
+  <data name="Err.MaxLenFmt" xml:space="preserve">
+    <value>{0} must be {1} characters or fewer.</value>
+  </data>
   <data name="Err.RalCodeRequired" xml:space="preserve">
     <value>RAL code is required.</value>
   </data>
@@ -4353,6 +4356,27 @@
   <data name="MD.Bom.LineCount" xml:space="preserve">
     <value>{0} component line(s)</value>
   </data>
+  <data name="MD.Bom.Err.SelfComponent" xml:space="preserve">
+    <value>A component cannot be the same as its parent item.</value>
+  </data>
+  <data name="MD.Bom.Err.Cycle" xml:space="preserve">
+    <value>{1} is in the sub-BOM of {0}; adding it would create a cycle.</value>
+  </data>
+  <data name="MD.Bom.Err.DuplicateComponent" xml:space="preserve">
+    <value>Component {0} already exists in this version.</value>
+  </data>
+  <data name="MD.Bom.Err.ApproveConflict" xml:space="preserve">
+    <value>Validity overlaps approved version {0}, so this version cannot be approved. Set its start date later than the start date of {0}.</value>
+  </data>
+  <data name="MD.Bom.Msg.Superseded" xml:space="preserve">
+    <value>End date adjusted on previous approved version(s): {0}</value>
+  </data>
+  <data name="MD.Bom.ExplodedFrom" xml:space="preserve">
+    <value>Sub-BOM expansion — {0} (read-only)</value>
+  </data>
+  <data name="MD.Bom.ExplodedCount" xml:space="preserve">
+    <value>+ {0} expanded sub-line(s)</value>
+  </data>
   <data name="MD.Bom.DraftOnly" xml:space="preserve">
     <value>— Editable only in DRAFT status</value>
   </data>
@@ -4519,7 +4543,7 @@
     <value>Edit</value>
   </data>
   <data name="Col.StepCount" xml:space="preserve">
-    <value>Step count</value>
+    <value>Steps</value>
   </data>
   <data name="MD.Bop.CopyStep" xml:space="preserve">
     <value>Copy steps</value>

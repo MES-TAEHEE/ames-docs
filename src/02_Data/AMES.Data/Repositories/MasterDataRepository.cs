@@ -434,14 +434,102 @@ public sealed class MasterDataRepository
             """,
             ("@V", versionId), ("@By", requestedBy));
 
-    public void ApproveBomVersion(string versionId, string approvedBy)
-        => Exec("""
+    /// <summary>
+    /// PENDING 버전을 승인하고, 기간이 겹치는 같은 품번의 기존 승인 버전 종료일을 닫는다(규칙 <see cref="BomVersionRules.PlanApproval"/>).
+    /// 닫을 수 없으면 아무것도 바꾸지 않고 Conflict 를 채워 돌려준다. PENDING 이 아니면 빈 계획(변경 없음).
+    /// </summary>
+    public BomVersionRules.ApprovalPlan ApproveBomVersion(string versionId, string approvedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+
+        DateOnly? from = null, to = null; string? root = null; bool pending = false;
+        using (var cmd = new SqlCommand("""
+            SELECT RootItemNo, EffFrom, EffTo, Status FROM dbo.MD_BomVersion WITH (UPDLOCK, HOLDLOCK) WHERE VersionID=@V
+            """, conn, tx))
+        {
+            cmd.Parameters.Add("@V", SqlDbType.VarChar, 24).Value = versionId;
+            using var r = cmd.ExecuteReader();
+            if (r.Read())
+            {
+                root    = r["RootItemNo"] as string;
+                from    = r["EffFrom"] is DateTime f ? DateOnly.FromDateTime(f) : null;
+                to      = r["EffTo"]   is DateTime t ? DateOnly.FromDateTime(t) : null;
+                pending = (r["Status"] as string) == "PENDING";
+            }
+        }
+        if (!pending) { tx.Rollback(); return new BomVersionRules.ApprovalPlan(null, []); }
+
+        var others = new List<BomVersionRules.Range>();
+        using (var cmd = new SqlCommand("""
+            SELECT VersionID, EffFrom, EffTo FROM dbo.MD_BomVersion WITH (UPDLOCK, HOLDLOCK)
+            WHERE  RootItemNo=@Root AND VersionID<>@V AND Status='APPROVED'
+            """, conn, tx))
+        {
+            cmd.Parameters.Add("@V",    SqlDbType.VarChar, 24).Value = versionId;
+            cmd.Parameters.Add("@Root", SqlDbType.VarChar, 20).Value = (object?)root ?? DBNull.Value;
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+                others.Add(new((string)r["VersionID"],
+                    r["EffFrom"] is DateTime f ? DateOnly.FromDateTime(f) : null,
+                    r["EffTo"]   is DateTime t ? DateOnly.FromDateTime(t) : null));
+        }
+
+        var plan = BomVersionRules.PlanApproval(new(versionId, from, to), others);
+        if (plan.Conflict is not null) { tx.Rollback(); return plan; }
+
+        foreach (var (id, newTo) in plan.Close)
+        {
+            using var cmd = new SqlCommand("""
+                UPDATE dbo.MD_BomVersion SET EffTo=@To, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE VersionID=@V
+                """, conn, tx);
+            cmd.Parameters.Add("@V",  SqlDbType.VarChar, 24).Value = id;
+            cmd.Parameters.Add("@To", SqlDbType.Date).Value        = newTo.ToDateTime(TimeOnly.MinValue);
+            cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = approvedBy;
+            cmd.ExecuteNonQuery();
+        }
+        using (var cmd = new SqlCommand("""
             UPDATE dbo.MD_BomVersion
             SET    Status='APPROVED', ApprovedBy=@By, ApprovedTS=SYSDATETIME(),
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  VersionID=@V AND Status='PENDING'
-            """,
-            ("@V", versionId), ("@By", approvedBy));
+            """, conn, tx))
+        {
+            cmd.Parameters.Add("@V",  SqlDbType.VarChar, 24).Value = versionId;
+            cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = approvedBy;
+            cmd.ExecuteNonQuery();
+        }
+        tx.Commit();
+        return plan;
+    }
+
+    /// <summary>
+    /// <paramref name="compItemNo"/> 를 <paramref name="parentItemNo"/> 아래에 넣으면 순환이 되는지 —
+    /// 자기 자신이거나, 구성품의 하위 BOM(반려 버전·비활성 라인 제외, 깊이 20까지)에 부모가 있으면 true.
+    /// </summary>
+    public bool BomWouldCycle(string parentItemNo, string compItemNo)
+    {
+        if (string.Equals(parentItemNo.Trim(), compItemNo.Trim(), StringComparison.OrdinalIgnoreCase)) return true;
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand("""
+            WITH r AS (
+                SELECT b.CompItemNo AS Item, 1 AS Depth
+                FROM   dbo.MD_Bom b JOIN dbo.MD_BomVersion v ON v.VersionID = b.VersionID
+                WHERE  b.ParentItemNo = @Comp AND ISNULL(b.ActiveFlag,1) = 1 AND ISNULL(v.Status,'DRAFT') <> 'REJECTED'
+                UNION ALL
+                SELECT b.CompItemNo, r.Depth + 1
+                FROM   r
+                JOIN   dbo.MD_Bom b        ON b.ParentItemNo = r.Item
+                JOIN   dbo.MD_BomVersion v ON v.VersionID = b.VersionID
+                WHERE  r.Depth < 20 AND ISNULL(b.ActiveFlag,1) = 1 AND ISNULL(v.Status,'DRAFT') <> 'REJECTED'
+            )
+            SELECT CASE WHEN EXISTS (SELECT 1 FROM r WHERE r.Item = @Par) THEN 1 ELSE 0 END
+            OPTION (MAXRECURSION 25);
+            """, conn);
+        cmd.Parameters.Add("@Par",  SqlDbType.VarChar, 20).Value = parentItemNo.Trim();
+        cmd.Parameters.Add("@Comp", SqlDbType.VarChar, 20).Value = compItemNo.Trim();
+        return Convert.ToInt32(cmd.ExecuteScalar()) == 1;
+    }
 
     public void RejectBomVersion(string versionId, string rejectedBy)
         => Exec("""

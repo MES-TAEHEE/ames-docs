@@ -47,7 +47,7 @@
 <div style="display:flex;gap:14px;height:calc(100vh - 200px);">
 
     @* ── 좌: 버전 목록 ─────────────────────────────────────────────────── *@
-    <div style="flex:0 0 480px;display:flex;flex-direction:column;min-height:0;">
+    <div style="flex:0 0 630px;display:flex;flex-direction:column;min-height:0;">
         <div class="ames-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;margin-bottom:0;">
             <div class="ames-card-h" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -55,7 +55,10 @@
                     <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
                     <RadzenDropDown Name="DropDownStatus" @bind-Value="_statusFilter" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;" />
                 </RadzenStack>
-                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
+                    <RadzenDropDown Name="DropDownType" @bind-Value="_typeFilter" Data="@ItemTypeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+                    <span style="flex:1;"></span>
                     <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@LoadVersions" class="ames-rz-btn" />
                     @if (_canEdit) {
                         <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenVersionCreate" class="ames-rz-btn" />
@@ -192,6 +195,10 @@
                 @* 라인 카운트 + 읽기 전용 안내 *@
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="padding:4px 0 6px;">
                     <span class="dim" style="font-size:.82em;">@string.Format(L["MD.Bom.LineCount"], _lines.Count)</span>
+                    @if (_explodedIds.Count > 0)
+                    {
+                        <span class="dim" style="font-size:.78em;">@string.Format(L["MD.Bom.ExplodedCount"], _displayLines.Count - _lines.Count)</span>
+                    }
                     @if (_selVer.Status != "DRAFT")
                     {
                         <span class="dim" style="font-size:.78em;">@L["MD.Bom.DraftOnly"]</span>
@@ -202,40 +209,42 @@
                 <div style="flex:1;min-height:0;overflow:hidden;">
                     @* 라인 클릭 = 수정 모달 — 초안이면서 수정 권한이 있을 때만 *@
                     @{ bool editable = _selVer.Status == "DRAFT" && _canEdit; }
-                    <RadzenDataGrid @ref="_lineGrid" Page="OnLinePage" TItem="MasterDataRepository.BomRow" Data="_lines" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
-                                    ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeOptions="@_pageSizeOptions" RowRender="@(args => LineRowRender(args, editable))" RowSelect="@(l => { if (editable) OpenLineEdit(l); })" EmptyText="@L["MD.Bom.NoLines"]" Class="ames-rz-grid ames-grid-fill">
+                    <RadzenDataGrid @ref="_lineGrid" Page="OnLinePage" TItem="MasterDataRepository.BomRow" Data="_displayLines" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
+                                    ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeOptions="@_pageSizeOptions" RowRender="@(args => LineRowRender(args, editable))" RowSelect="@(l => { if (editable && !_explodedIds.Contains(l.BOMID)) OpenLineEdit(l); })" EmptyText="@L["MD.Bom.NoLines"]" Class="ames-rz-grid ames-grid-fill">
                         <Columns>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="BOMLevel" Title="@L["Col.Level"]" TextAlign="TextAlign.Center" Width="50px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="BOMLevel" Title="@L["Col.Level"]" TextAlign="TextAlign.Center" Width="50px" MinWidth="50px">
                                 <Template Context="line"><span class="dim">@(line.BOMLevel ?? 0)</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="ParentItemNo" Title="@L["Col.ParentItem"]" TextAlign="TextAlign.Center" Width="130px">
-                                <Template Context="line"><span class="code dim" style="font-size:.82em;">@line.ParentItemNo</span></Template>
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="ParentItemNo" Title="@L["Col.ParentItem"]" TextAlign="TextAlign.Center" Width="190px" MinWidth="190px">
+                                <Template Context="line"><div class="code dim" style="font-size:.82em;max-width:174px;overflow:hidden;text-overflow:ellipsis;margin:0 auto;" title="@line.ParentItemNo">@line.ParentItemNo</div></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="CompItemNo" Title="@L["Col.ComponentItem"]" Width="350px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="CompItemNo" Title="@L["Col.ComponentItem"]" Width="420px" MinWidth="420px">
                                 <Template Context="line">
-                                    @{ int indent = (line.BOMLevel ?? 0) * 16; }
-                                    @if (indent > 0) { <span style="display:inline-block;width:@(indent)px;"></span> }
-                                    @if ((line.BOMLevel ?? 0) > 0) { <span class="dim" style="font-size:.78em;">└ </span> }
-                                    <span class="code" style="color:var(--ames-tx-blue-300);font-weight:700;">@line.CompItemNo</span>
-                                    @if (!string.IsNullOrEmpty(line.CompItemName)) { <span class="dim" style="font-size:.8em;margin-left:5px;">@line.CompItemName</span> }
+                                    <div style="max-width:404px;overflow:hidden;text-overflow:ellipsis;" title="@($"{line.CompItemNo} {line.CompItemName}".Trim())">
+                                        @{ int indent = (line.BOMLevel ?? 0) * 16; }
+                                        @if (indent > 0) { <span style="display:inline-block;width:@(indent)px;"></span> }
+                                        @if ((line.BOMLevel ?? 0) > 0) { <span class="dim" style="font-size:.78em;">└ </span> }
+                                        <span class="code" style="color:var(--ames-tx-blue-300);font-weight:700;">@line.CompItemNo</span>
+                                        @if (!string.IsNullOrEmpty(line.CompItemName)) { <span class="dim" style="font-size:.8em;margin-left:5px;">@line.CompItemName</span> }
+                                    </div>
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="QtyPer" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right" Width="70px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="QtyPer" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right" Width="100px" MinWidth="100px">
                                 <Template Context="line"><span class="code" style="font-weight:600;">@UomFmt.Qty(line.QtyPer, line.UOM, "")</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="70px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="60px" MinWidth="60px">
                                 <Template Context="line"><span class="dim">@line.UOM</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="ScrapPct" Title="@L["Col.ScrapPct"]" TextAlign="TextAlign.Right" Width="100px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="ScrapPct" Title="@L["Col.ScrapPct"]" TextAlign="TextAlign.Right" Width="100px" MinWidth="100px">
                                 <Template Context="line"><span class="code dim">@(line.ScrapPct?.ToString("N2"))</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="Position" Title="@L["Col.Seq"]" TextAlign="TextAlign.Center" Width="60px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="Position" Title="@L["Col.Seq"]" TextAlign="TextAlign.Center" Width="60px" MinWidth="60px">
                                 <Template Context="line"><span class="dim">@line.Position</span></Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="Note" Title="@L["Col.Note"]">
-                                <Template Context="line"><span class="dim">@line.Note</span></Template>
+                                <Template Context="line"><div class="dim" style="max-width:320px;overflow:hidden;text-overflow:ellipsis;" title="@line.Note">@line.Note</div></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="ActiveFlag" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="ActiveFlag" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                                 <Template Context="line">
                                     @if (line.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
                                     else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
@@ -346,11 +355,15 @@
     bool _showPagerSummary = true;
     List<MasterDataRepository.BomVersionRow> _versions = new();
     List<MasterDataRepository.BomRow>        _lines    = new();
+    List<MasterDataRepository.BomRow>        _displayLines = new();
+    readonly HashSet<string>                 _explodedIds  = new();
     List<MasterDataRepository.ItemRow>       _itemList = new();
     List<MasterDataRepository.UomRow>        _uomList  = new();
     MasterDataRepository.BomVersionRow?      _selVer;
     MasterDataRepository.BomKpiRow           _bomKpi = new(0, 0);
+    List<MasterDataRepository.CodeItemRow>   _itemTypeItems = new();
     string _statusFilter = "";
+    string? _typeFilter;
     string _search       = "";
 
     // 선택 버전의 자재비 = Σ(구성품 QtyPer × 품목 단가)
@@ -369,6 +382,7 @@
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
     private IEnumerable<DropDownItem> ItemOptions => _itemList.Select(i => new DropDownItem { Value = i.ItemNo, Text = $"[{i.ItemNo}] {i.ItemName}" });
+    private IEnumerable<DropDownItem> ItemTypeOptions => _itemTypeItems.Where(t => t.UseFlag).Select(t => new DropDownItem { Value = t.CodeValue ?? "", Text = $"[{t.CodeValue}] {MasterDataRepository.LocalName(t)}" });
     private IEnumerable<DropDownItem> UomOptions => _uomList.Where(u => u.ActiveFlag).Select(u => new DropDownItem { Value = u.UOMCode ?? "", Text = u.UOMCode + (string.IsNullOrEmpty(u.UOMName) ? "" : $"  ({u.UOMName})") });
     private List<DropDownItem> StatusFilterOptions => new()
     {
@@ -387,6 +401,7 @@
         _canEdit = PermSvc.CanEdit("md/fd/bom");
         try { _itemList = MD.ListItems(); } catch { }
         try { _uomList  = MD.ListUoms();  } catch { }
+        try { _itemTypeItems = MD.ListCodeItems("ITEM_TYPE"); } catch { }
         LoadVersions();
     }
 
@@ -404,6 +419,13 @@
                              || (v.RootItemName?.Contains(q, StringComparison.OrdinalIgnoreCase) == true))
                     .ToList();
             }
+            if (!string.IsNullOrEmpty(_typeFilter))
+            {
+                var typeOf = _itemList.ToDictionary(i => i.ItemNo, i => i.ItemType, StringComparer.OrdinalIgnoreCase);
+                _versions = _versions
+                    .Where(v => v.RootItemNo is not null && typeOf.TryGetValue(v.RootItemNo, out var t) && t == _typeFilter)
+                    .ToList();
+            }
         }
         catch { _versions = new(); }
         try { _bomKpi = MD.BomKpi(); } catch { }
@@ -412,7 +434,53 @@
     void LoadLines()
     {
         try { _lines = _selVer is null ? new() : MD.ListBomLines(_selVer.VersionID); } catch { _lines = new(); }
+        ExplodeLines();
         try { _bomKpi = MD.BomKpi(); } catch { }   // 라인 증감 시 Total Components 갱신
+    }
+
+    // BOM 행은 부모 품번별 버전에 직접 자식(LV1)만 있으므로, 구성품이 자기 BOM 을 가지면
+    // 그 품번의 대표 버전 라인을 아래에 이어 붙여 LV2·LV3… 로 보인다. 붙인 행은 다른 버전 소속이라 읽기 전용.
+    void ExplodeLines()
+    {
+        _displayLines = new();
+        _explodedIds.Clear();
+        if (_selVer is null) return;
+        List<MasterDataRepository.BomVersionRow> all;
+        try { all = MD.ListBomVersions(); } catch { _displayLines = _lines.ToList(); return; }
+        var cache = new Dictionary<string, List<MasterDataRepository.BomRow>>(StringComparer.OrdinalIgnoreCase);
+
+        void Add(IEnumerable<MasterDataRepository.BomRow> rows, int level, HashSet<string> path, bool exploded)
+        {
+            foreach (var row in rows)
+            {
+                var shown = exploded ? row with { BOMLevel = level } : row;
+                _displayLines.Add(shown);
+                if (exploded) _explodedIds.Add(row.BOMID);
+                var comp = row.CompItemNo;
+                if (!row.ActiveFlag || string.IsNullOrEmpty(comp) || level >= 9 || path.Contains(comp)) continue;
+                var ver = RepresentativeVersion(all, comp);
+                if (ver is null) continue;
+                if (!cache.TryGetValue(ver.VersionID, out var sub))
+                {
+                    try { sub = MD.ListBomLines(ver.VersionID); } catch { sub = new(); }
+                    cache[ver.VersionID] = sub;
+                }
+                Add(sub, (shown.BOMLevel ?? level) + 1, new HashSet<string>(path, StringComparer.OrdinalIgnoreCase) { comp }, true);
+            }
+        }
+
+        Add(_lines, 1, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { _selVer.RootItemNo ?? "" }, false);
+    }
+
+    // 하위 BOM 대표 버전: 오늘 유효한 승인 → 승인 중 최신 시작일 → 그 밖의 최신 등록
+    static MasterDataRepository.BomVersionRow? RepresentativeVersion(List<MasterDataRepository.BomVersionRow> all, string itemNo)
+    {
+        var today = DateOnly.FromDateTime(DbClock.Today);
+        var mine  = all.Where(v => string.Equals(v.RootItemNo, itemNo, StringComparison.OrdinalIgnoreCase)).ToList();
+        var approved = mine.Where(v => v.Status == "APPROVED").OrderByDescending(v => v.EffFrom).ToList();
+        return approved.FirstOrDefault(v => (v.EffFrom is null || v.EffFrom <= today) && (v.EffTo is null || v.EffTo >= today))
+            ?? approved.FirstOrDefault()
+            ?? mine.OrderByDescending(v => v.CreatedTS).FirstOrDefault();
     }
 
     void SelectVersion(MasterDataRepository.BomVersionRow v) { _selVer = v; _verDelConfirm = false; LoadLines(); }
@@ -430,6 +498,12 @@
 
     void LineRowRender(RowRenderEventArgs<MasterDataRepository.BomRow> args, bool editable)
     {
+        if (args.Data is not null && _explodedIds.Contains(args.Data.BOMID))
+        {
+            args.Attributes["style"] = "opacity:.6;";
+            args.Attributes["title"] = string.Format(L["MD.Bom.ExplodedFrom"], args.Data.VersionID);
+            return;
+        }
         if (!editable) return;
         if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
         args.Attributes["class"] = cls + " ames-row-link";
@@ -442,10 +516,12 @@
     void OnBgDown()  => _bgDown = true;
     void OnBgClick() { if (_bgDown) CloseModal(); _bgDown = false; }
 
+    int _msgSeq;
     void ShowMsg(string msg, bool isErr)
     {
         _msg = msg; _isErr = isErr;
-        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+        var seq = ++_msgSeq;   // 앞 메시지의 타이머가 새 메시지를 지우지 않게
+        _ = Task.Delay(4000).ContinueWith(_ => { if (seq != _msgSeq) return; _msg = ""; InvokeAsync(StateHasChanged); });
     }
 
     static string StatusCss(string? s) => s switch
@@ -458,6 +534,7 @@
     };
 
     const int VerPageSize = 16;   // 좌측 버전 목록 — 16행 고정, 페이지 크기 선택기 없음
+    const int NoteMax = 120, ChangeReasonMax = 200;   // MD_Bom.Note nvarchar(120) · MD_BomVersion.ChangeReason nvarchar(200)
     RadzenDataGrid<MasterDataRepository.BomVersionRow>? _verGrid;
     RadzenDataGrid<MasterDataRepository.BomRow>?        _lineGrid;
     int _verPage, _linePage;
@@ -475,7 +552,7 @@
         }
         if (_lineGrid is not null)
         {
-            int pages = Math.Max(1, (int)Math.Ceiling(_lines.Count / (double)_lineGrid.PageSize));
+            int pages = Math.Max(1, (int)Math.Ceiling(_displayLines.Count / (double)_lineGrid.PageSize));
             await _lineGrid.GoToPage(Math.Min(_linePage, pages - 1));
         }
     }
@@ -495,7 +572,7 @@
         if (_selVer is null) return;
         var id = _selVer.VersionID;
         _busy = true;
-        try { MD.RequestBomApproval(id, _actor); await RefreshVersion(id); ShowMsg($"{id} {L["Msg.ApprovalRequested"]}", false); }
+        try { MD.RequestBomApproval(id, _actor); Audit.Log("MD-004", "REQUEST", "MD_BomVersion", id, _selVer, new { Status = "PENDING" }); await RefreshVersion(id); ShowMsg($"{id} {L["Msg.ApprovalRequested"]}", false); }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
         finally { _busy = false; }
     }
@@ -506,7 +583,21 @@
         if (_selVer is null) return;
         var id = _selVer.VersionID;
         _busy = true;
-        try { MD.ApproveBomVersion(id, _actor); Audit.Log("MD-004", "APPROVE", "MD_BomVersion", id, _selVer, null); await RefreshVersion(id); ShowMsg($"{id} {L["Msg.Approved"]}", false); }
+        try
+        {
+            var before = _selVer;
+            var prior  = MD.ListBomVersions("APPROVED").ToDictionary(v => v.VersionID);
+            var plan   = MD.ApproveBomVersion(id, _actor);
+            if (plan.Conflict is not null) { ShowMsg(string.Format(L["MD.Bom.Err.ApproveConflict"], plan.Conflict), true); return; }
+            foreach (var (closedId, newTo) in plan.Close)
+                Audit.Log("MD-004", "SUPERSEDE", "MD_BomVersion", closedId,
+                    new { EffTo = prior.TryGetValue(closedId, out var p) ? p.EffTo : null }, new { EffTo = newTo, SupersededBy = id });
+            Audit.Log("MD-004", "APPROVE", "MD_BomVersion", id, before, new { Status = "APPROVED", Superseded = plan.Close.Select(c => c.VersionId).ToList() });
+            await RefreshVersion(id);
+            var msg = $"{id} {L["Msg.Approved"]}";
+            if (plan.Close.Count > 0) msg += " · " + string.Format(L["MD.Bom.Msg.Superseded"], string.Join(", ", plan.Close.Select(c => $"{c.VersionId} → {c.NewTo.ToString(DateFmt.Date)}")));
+            ShowMsg(msg, false);
+        }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
         finally { _busy = false; }
     }
@@ -517,7 +608,7 @@
         if (_selVer is null) return;
         var id = _selVer.VersionID;
         _busy = true;
-        try { MD.RejectBomVersion(id, _actor); await RefreshVersion(id); ShowMsg($"{id} {L["Msg.Rejected"]}", true); }
+        try { MD.RejectBomVersion(id, _actor); Audit.Log("MD-004", "REJECT", "MD_BomVersion", id, _selVer, new { Status = "REJECTED" }); await RefreshVersion(id); ShowMsg($"{id} {L["Msg.Rejected"]}", true); }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
         finally { _busy = false; }
     }
@@ -528,7 +619,7 @@
         if (_selVer is null) return;
         var id = _selVer.VersionID;
         _busy = true;
-        try { MD.ReviveBomVersion(id, _actor); await RefreshVersion(id); ShowMsg($"{id} {L["Msg.Revived"]}", false); }
+        try { MD.ReviveBomVersion(id, _actor); Audit.Log("MD-004", "REVIVE", "MD_BomVersion", id, _selVer, new { Status = "DRAFT" }); await RefreshVersion(id); ShowMsg($"{id} {L["Msg.Revived"]}", false); }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
         finally { _busy = false; }
     }
@@ -541,8 +632,10 @@
         _busy = true;
         try
         {
+            var lines = _lines.ToList();
             MD.DeleteBomVersion(id);
-            Audit.Deleted("MD-004", "MD_BomVersion", id, _selVer);
+            // 버전 삭제는 라인도 물리 삭제하므로 전 스냅샷에 라인을 함께 남긴다
+            Audit.Deleted("MD-004", "MD_BomVersion", id, new { Version = _selVer, Lines = lines });
             _selVer = null; _lines = new(); _verDelConfirm = false;
             LoadVersions();
             await RestorePages();
@@ -584,6 +677,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_fv.VersionId))  { _modalErr = L["Err.VersionIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_fv.RootItemNo)) { _modalErr = L["Err.RootItemRequired"]; return; }
+        if (ChangeReasonTooLong()) return;
         _busy = true;
         try
         {
@@ -608,6 +702,7 @@
         if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_fv.RootItemNo)) { _modalErr = L["Err.RootItemRequired"]; return; }
+        if (ChangeReasonTooLong()) return;
         _busy = true;
         try
         {
@@ -661,9 +756,10 @@
         _busy = true;
         try
         {
+            if (LineError(_fl.CompItemNo, null) is { } err) { _modalErr = err; return; }
             var bomId = "B" + Guid.NewGuid().ToString("N")[..23];
             MD.InsertBomLine(bomId, NE(_fl.ParentItemNo), _fl.CompItemNo.Trim().ToUpper(),
-                _fl.BomLevel, _fl.QtyPer, NE(_fl.Uom), _fl.ScrapPct == 0 ? null : _fl.ScrapPct,
+                1, _fl.QtyPer, NE(_fl.Uom), _fl.ScrapPct == 0 ? null : _fl.ScrapPct,
                 _selVer!.VersionID, _fl.Position, NE(_fl.Note), _actor);
             Audit.Created("MD-004", "MD_Bom", bomId, _fl);
             LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineAdded"], false);
@@ -681,6 +777,7 @@
         _busy = true;
         try
         {
+            if (LineError(_fl.CompItemNo, _fl.BomId) is { } err) { _modalErr = err; return; }
             MD.UpdateBomLine(_fl.BomId, NE(_fl.ParentItemNo), _fl.CompItemNo.Trim().ToUpper(),
                 _fl.BomLevel, _fl.QtyPer, NE(_fl.Uom), _fl.ScrapPct == 0 ? null : _fl.ScrapPct,
                 _fl.Position, NE(_fl.Note), _actor);
@@ -704,9 +801,35 @@
     {
         if (!_canEdit) return;
         _busy = true;
-        try { MD.ReactivateBomLine(_fl.BomId, _actor); LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineReactivated"], false); }
+        try
+        {
+            if (LineError(_fl.CompItemNo, _fl.BomId) is { } err) { _modalErr = err; return; }
+            MD.ReactivateBomLine(_fl.BomId, _actor);
+            Audit.Log("MD-004", "REACTIVATE", "MD_Bom", _fl.BomId, _lines.FirstOrDefault(l => l.BOMID == _fl.BomId), new { ActiveFlag = true });
+            LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineReactivated"], false);
+        }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
+    }
+
+    // 라인 저장 전 검사: 비고 길이 · 같은 버전 안 활성 구성품 중복 · 자기 참조·순환(구성품의 하위 BOM 에 상위 품목이 있음)
+    string? LineError(string compItemNo, string? exceptBomId)
+    {
+        if ((_fl.Note ?? "").Trim().Length > NoteMax) return string.Format(L["Err.MaxLenFmt"], L["Col.Note"], NoteMax);
+        var comp   = compItemNo.Trim();
+        var parent = (_fl.ParentItemNo ?? "").Trim();
+        if (_lines.Any(l => l.ActiveFlag && l.BOMID != exceptBomId && string.Equals(l.CompItemNo?.Trim(), comp, StringComparison.OrdinalIgnoreCase)))
+            return string.Format(L["MD.Bom.Err.DuplicateComponent"], comp);
+        if (string.Equals(parent, comp, StringComparison.OrdinalIgnoreCase)) return L["MD.Bom.Err.SelfComponent"];
+        if (parent.Length > 0 && MD.BomWouldCycle(parent, comp)) return string.Format(L["MD.Bom.Err.Cycle"], comp, parent);
+        return null;
+    }
+
+    bool ChangeReasonTooLong()
+    {
+        if ((_fv.ChangeReason ?? "").Trim().Length <= ChangeReasonMax) return false;
+        _modalErr = string.Format(L["Err.MaxLenFmt"], L["Col.ChangeReason"], ChangeReasonMax);
+        return true;
     }
 
     static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
@@ -753,7 +876,7 @@
         <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="12">
                 <RadzenLabel Text="@L["Col.ChangeReason"]" />
-                <RadzenTextArea @bind-Value="_fv.ChangeReason" Rows="2" class="ames-rz-input" Style="width:100%;resize:vertical;" />
+                <RadzenTextArea @bind-Value="_fv.ChangeReason" MaxLength="@ChangeReasonMax" Rows="2" class="ames-rz-input" Style="width:100%;resize:vertical;" />
             </RadzenColumn>
         </RadzenRow>
     </div>;
@@ -771,20 +894,17 @@
             </RadzenColumn>
         </RadzenRow>
 
+        @* 수준 입력 없음 — 라인은 항상 이 버전 최상위 품목의 직접 자식(LV1). 하위 구성은 그 품번의 버전을 따로 만든다 *@
         <RadzenRow Gap="8px" Style="margin-top:6px;">
-            <RadzenColumn Size="3">
-                <RadzenLabel Text="@L["Col.Level"]" />
-                <RadzenNumeric TValue="int" @bind-Value="_fl.BomLevel" Min="0" Max="9" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-            </RadzenColumn>
-            <RadzenColumn Size="3">
+            <RadzenColumn Size="4">
                 <RadzenLabel Text='@($"{L["Col.Qty"]} *")' />
                 <RadzenNumeric TValue="decimal" @bind-Value="_fl.QtyPer" Min="0.0001m" Step="0.0001" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
-            <RadzenColumn Size="3">
+            <RadzenColumn Size="4">
                 <RadzenLabel Text='@(L["MD.Items.Lbl.Uom"] + " (UOM)")' />
                 <RadzenDropDown AllowFiltering="true" @bind-Value="_fl.Uom" Data="@UomOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
-            <RadzenColumn Size="3">
+            <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["Col.ScrapRate"]" />
                 <RadzenNumeric TValue="decimal" @bind-Value="_fl.ScrapPct" Min="0" Step="0.01" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
@@ -797,7 +917,7 @@
             </RadzenColumn>
             <RadzenColumn Size="8">
                 <RadzenLabel Text="@L["Col.Note"]" />
-                <RadzenTextBox @bind-Value="_fl.Note" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenTextBox @bind-Value="_fl.Note" MaxLength="@NoteMax" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
     </div>;
