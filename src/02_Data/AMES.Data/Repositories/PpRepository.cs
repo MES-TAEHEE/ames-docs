@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using AMES.Data.Connection;
 using AMES.Data.Scheduling;
 using AMES.Data.Services;
@@ -628,9 +628,10 @@ public sealed class PpRepository
         public decimal   ShortQty  => Shortfalls.Sum(s => s.Qty);
     }
 
-    /// <summary>계획에서 제외된 수주. Reason = RejectNoMold(INJ 단계 품번에 금형 매핑 없음).</summary>
+    /// <summary>계획에서 제외된 수주. Reason = RejectNoMold(코어 품번에 금형 매핑 없음) / RejectNoCore(BOM 에서 코어를 못 정함).</summary>
     public sealed record RejectedOrder(int SoId, string? SoNumber, string? ItemNo, string Reason);
     public const string RejectNoMold = "NoMold";
+    public const string RejectNoCore = "NoCore";
 
     public sealed record ScheduledCreateResult(List<OrderOutcome> Orders, List<RejectedOrder> Rejected)
     {
@@ -697,7 +698,12 @@ public sealed class PpRepository
                 var template = key.ItemNo is null || key.RoutingType is null
                     ? new List<WorkOrderRepository.RoutingStepPreview>()
                     : WorkOrderRepository.ReadPreview(conn, tx, key.ItemNo, key.RoutingType);
-                var molds = ResolveMolds(conn, tx, key.ItemNo, template, plan.Steps, days, today);
+                if (template.Any(t => t.NoCore))
+                {
+                    rejected.Add(new RejectedOrder(plan.SoId, key.SoNumber, key.ItemNo, RejectNoCore));
+                    continue;
+                }
+                var molds = ResolveMolds(conn, tx, template, plan.Steps, days, today);
                 if (molds.Values.Any(m => m is null))
                 {
                     rejected.Add(new RejectedOrder(plan.SoId, key.SoNumber, key.ItemNo, RejectNoMold));
@@ -748,20 +754,20 @@ public sealed class PpRepository
     }
 
     /// <summary>
-    /// INJ 단계마다 금형을 정한다(키 = StepSeq). 후보가 없으면 값이 null — 호출부가 그 수주를 거부한다.
-    /// 직전 금형은 그 라인의 "오늘 꼬리"(이미 배치된 앞 수주 포함) 기준. 미리보기(PlanConfirmBatchDialog)도 같은 규칙.
+    /// 코어 공정 단계마다 금형을 정한다(키 = StepSeq). 후보는 그 단계의 생산 품번(코어)으로 읽는다.
+    /// 후보가 없으면 값이 null — 호출부가 그 수주를 거부한다. 직전 금형은 그 라인의 "오늘 꼬리"(이미 배치된 앞 수주 포함) 기준.
+    /// 미리보기(PlanConfirmBatchDialog)도 같은 규칙.
     /// </summary>
-    static Dictionary<int, MoldResolver.MoldCandidate?> ResolveMolds(SqlConnection conn, SqlTransaction tx, string? itemNo,
+    static Dictionary<int, MoldResolver.MoldCandidate?> ResolveMolds(SqlConnection conn, SqlTransaction tx,
         List<WorkOrderRepository.RoutingStepPreview> template, IReadOnlyList<StepChoice> steps,
         DeadlinePacker.IDayState days, DateTime today)
     {
         var map = new Dictionary<int, MoldResolver.MoldCandidate?>();
-        if (itemNo is null) return map;
         foreach (var s in steps)
         {
             var t = template.FirstOrDefault(x => x.StepSeq == s.StepSeq);
             if (t is null || !MoldResolver.NeedsMold(t.ProcessCode)) continue;
-            var cands = MasterDataRepository.ReadMoldCandidates(conn, tx, itemNo, s.LineId);
+            var cands = MasterDataRepository.ReadMoldCandidates(conn, tx, t.ItemNo, s.LineId);
             map[s.StepSeq] = MoldResolver.Choose(cands, days.LastMoldId(s.LineId, today));
         }
         return map;

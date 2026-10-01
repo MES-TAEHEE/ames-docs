@@ -1,4 +1,4 @@
-@page "/pp/work-order"
+﻿@page "/pp/work-order"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.WorkOrderRepository Wos
@@ -143,6 +143,7 @@ else
                             var s   = steps[i];
                             var cls = s.Status == "Closed" ? "done" : s.Status == "In Progress" ? "cur" : "todo";
                             <span class="wo-step @cls" title="@StepTitle(s, w)">@s.ProcessCode</span>
+                            @if (!string.Equals(s.ItemNo, w.ItemNo, StringComparison.OrdinalIgnoreCase)) { <span class="dim" style="font-size:.75em;">@s.ItemNo</span> }
                             @if (i < steps.Count - 1) { <span class="dim">→</span> }
                         }
                     }
@@ -189,7 +190,7 @@ else
     }
 
     static string StepTitle(AMES.Data.Repositories.WorkOrderRepository.StepRow s, WorkOrderDto w) =>
-        $"{s.LineId ?? "—"} · {s.CompletedQty:#,0}/{w.OrderQty:#,0}";
+        $"{s.LineId ?? "—"} · {s.ItemNo} · {s.CompletedQty:#,0}/{w.OrderQty:#,0}";
 
     readonly string[] _statuses = { "Draft", "Planned", "Released", "In Progress", "Closed", "Cancelled" };
     string[] _routings = Array.Empty<string>();

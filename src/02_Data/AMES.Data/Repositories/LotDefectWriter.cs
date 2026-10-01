@@ -15,12 +15,13 @@ internal static class LotDefectWriter
     /// <paramref name="lotLineId"/> 는 tbl_Lot.LineID — 재작업 후 다시 불량이면 최신 +1 실적이 LINE-RWK-01
     /// (라우팅 단계 없음) 이라 그 행의 LineID 로는 단계를 못 찾는다. 역분개 행 자체는 실적 행의 라인으로 남긴다.
     /// 반환: (원래 실적 ID, 역분개 실적 ID, WoID). 원래 실적이 없으면 (null, null, null) — 아무것도 쓰지 않는다.
+    /// WO 없이 확정한 실적(WoID NULL)은 역분개 행도 WoID NULL 이고 단계 차감이 없다.
     /// </summary>
     internal static (int? OrigResultId, int? ReversalResultId, int? WoId) ReverseConfirmedResult(
         SqlConnection conn, SqlTransaction tx, int lotId, string lotLineId,
         string operatorId, int? sessionId, string employeeNo)
     {
-        int origId, woId; string lineId, processCode; string? moldId;
+        int origId; int? woId; string lineId, processCode; string? moldId;
         using (var cmd = new SqlCommand("""
             SELECT TOP 1 ResultID, WoID, LineID, ProcessCode, MoldID
             FROM   dbo.PR_ProductionResult
@@ -32,7 +33,7 @@ internal static class LotDefectWriter
             using var rdr = cmd.ExecuteReader();
             if (!rdr.Read()) return (null, null, null);
             origId      = (int)rdr["ResultID"];
-            woId        = (int)rdr["WoID"];
+            woId        = rdr["WoID"] as int?;
             lineId      = (string)rdr["LineID"];
             processCode = rdr["ProcessCode"] as string ?? "INJ";
             moldId      = rdr["MoldID"] as string;
@@ -55,7 +56,7 @@ internal static class LotDefectWriter
             var entryNo = $"R{now:yyMMddHHmmssfff}-{lineId}";
             if (entryNo.Length > 28) entryNo = entryNo[..28];
             cmd.Parameters.Add("@EntryNo",  SqlDbType.VarChar, 28  ).Value = entryNo;
-            cmd.Parameters.Add("@WoID",     SqlDbType.Int          ).Value = woId;
+            cmd.Parameters.Add("@WoID",     SqlDbType.Int          ).Value = (object?)woId ?? DBNull.Value;
             cmd.Parameters.Add("@LotID",    SqlDbType.Int          ).Value = lotId;
             cmd.Parameters.Add("@LineID",   SqlDbType.VarChar, 20  ).Value = lineId;
             cmd.Parameters.Add("@Proc",     SqlDbType.VarChar, 10  ).Value = processCode;
@@ -70,8 +71,8 @@ internal static class LotDefectWriter
         }
 
         // 단계 행이 없으면(백필 전 WO 등) 실적 행만 남긴다 — 단계가 없는데 예외로 등록을 막을 이유는 없다.
-        var stepId = WorkOrderRepository.FindStepId(conn, tx, woId, lotLineId);
-        if (stepId is int s) WorkOrderRepository.BumpStepCompleted(conn, tx, s, -1m, operatorId);
+        if (woId is int w && WorkOrderRepository.FindStepId(conn, tx, w, lotLineId) is int s)
+            WorkOrderRepository.BumpStepCompleted(conn, tx, s, -1m, operatorId);
 
         return (origId, reversalId, woId);
     }

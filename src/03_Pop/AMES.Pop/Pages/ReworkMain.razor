@@ -373,7 +373,6 @@
             {
                 ReworkOutcome.Done           => (true,  $"{doneText}: {lotCode}"),
                 ReworkOutcome.AlreadyDecided => (false, $"{T("RwkAlreadyDecided")}: {lotCode}"),
-                ReworkOutcome.NoWo           => (false, $"{T("RwkNoWo")}: {lotCode}"),
                 ReworkOutcome.NotFound       => (false, $"{T("RwkNotFound")}: {lotCode}"),
                 _                            => (false, $"{T("Fail")}: {lotCode}"),
             };

@@ -1,4 +1,4 @@
-using AMES.Contracts.Dto;
+﻿using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
@@ -190,6 +190,136 @@ public class InjLotRepositoryTests
                 cmd.Parameters.AddWithValue("@W", woId);
                 cmd.ExecuteNonQuery();
             }
+        }
+    }
+
+    /// <summary>열린 WO 가 없어도 생산은 막히지 않는다(2026-10-01 사용자 결정) — 실적·LOT 은 WoID NULL 로 남고 단계 반영만 없다.</summary>
+    [SkippableFact]
+    public void Confirm_without_open_wo_records_result_with_no_wo()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        const string item = "ITEST-NOWO-INJ";
+        var repo = new InjLotRepository(f!);
+        int lotId = 0;
+        try
+        {
+            using (var conn = f!.OpenConnection())
+            using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = @I)
+                    INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ActiveFlag, CreatedBy) VALUES (@I, N'CORE-ITEST no wo', 'SUB', 1, 'ITEST');
+                """, conn))
+            { cmd.Parameters.AddWithValue("@I", item); cmd.ExecuteNonQuery(); }
+
+            var lot = repo.CreateManualRawLots("LINE-INJ-01", item, null, 1, "E-ITEST")[0];
+            lotId = lot.LotId;
+
+            var (outcome, resultId, itemNo, woId) = repo.ConfirmByLotCode(lot.LotCode, "LINE-INJ-01", "itest-op", null, "E-ITEST");
+
+            Assert.Equal((InjConfirmOutcome.Confirmed, item, 0), (outcome, itemNo, woId));
+            Assert.True(resultId > 0);
+            using (var conn = f!.OpenConnection())
+            using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                SELECT (SELECT WoID FROM dbo.PR_ProductionResult WHERE ResultID = @R) AS ResultWo,
+                       (SELECT WoID FROM dbo.tbl_Lot WHERE LotID = @L) AS LotWo,
+                       (SELECT ConfirmStatus FROM dbo.PR_InjLot WHERE LotID = @L) AS Status;
+                """, conn))
+            {
+                cmd.Parameters.AddWithValue("@R", resultId); cmd.Parameters.AddWithValue("@L", lotId);
+                using var rdr = cmd.ExecuteReader(); Assert.True(rdr.Read());
+                Assert.Equal(DBNull.Value, rdr["ResultWo"]);
+                Assert.Equal(DBNull.Value, rdr["LotWo"]);
+                Assert.Equal("CONFIRMED", (string)rdr["Status"]);
+            }
+
+            // 확정 후 불량 등록은 WoID 없는 실적을 역분개한다 — 단계가 없어도 예외 없이 등록돼야 한다
+            var ng = repo.RegisterDefect(lot.LotCode, "LINE-INJ-01", "INJ-D01", "itest-op", null, "E-ITEST");
+            Assert.Equal(DefectRegisterOutcome.Registered, ng.Outcome);
+        }
+        finally
+        {
+            if (f is not null)
+            {
+                using var conn = f.OpenConnection();
+                using var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                    DELETE FROM dbo.PR_DefectDetail     WHERE LotID = @L;
+                    DELETE FROM dbo.PR_ProductionResult WHERE LotID = @L;
+                    DELETE FROM dbo.PR_InjLot WHERE LotID = @L;
+                    DELETE FROM dbo.tbl_Lot   WHERE LotID = @L;
+                    DELETE FROM dbo.MD_Item   WHERE ItemNo = @I AND CreatedBy = 'ITEST';
+                    """, conn);
+                cmd.Parameters.AddWithValue("@L", lotId); cmd.Parameters.AddWithValue("@I", item);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    /// <summary>
+    /// WO 품번(완제품) ≠ LOT 품번(코어). INJ 단계 행의 ItemNo 가 코어면 코어 LOT 스캔이 그 WO 로 확정된다.
+    /// INJ 는 마지막 라인 단계가 아니라 헤더 CompletedQty 는 그대로다.
+    /// </summary>
+    [SkippableFact]
+    public void Confirm_core_lot_resolves_wo_whose_inj_step_makes_the_core()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        var repo = new InjLotRepository(f!);
+        const string fg = "ITEST-INJ-FG";
+        int woId = 0, lotId = 0;
+        try
+        {
+            using (var conn = f!.OpenConnection())
+            using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = @Fg)
+                    INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, RoutingType, ActiveFlag, CreatedBy)
+                    VALUES (@Fg, N'ITEST inj fg', 'ASSY', 'A', 1, 'ITEST');
+                DECLARE @W TABLE (WoID int);
+                -- Priority 1 + In Progress: 같은 코어를 쓰는 다른 테스트 잔재 WO 보다 먼저 잡히게 한다
+                INSERT INTO dbo.PP_WorkOrder (WoNumber, ItemNo, OrderQty, CompletedQty, Status, Priority, CreatedBy, CreatedTS)
+                OUTPUT INSERTED.WoID INTO @W
+                VALUES ('WO-ITEST-CORE', @Fg, 100, 0, 'In Progress', 1, 'ITEST', SYSDATETIME());
+                INSERT INTO dbo.PP_WorkOrderRouting (WoID, StepSeq, ProcessCode, LineID, ItemNo, Status, CompletedQty, CreatedBy)
+                SELECT WoID, 1, 'INJ', 'LINE-INJ-01', '83335-P8000RBQ', 'In Progress', 0, 'ITEST' FROM @W
+                UNION ALL
+                SELECT WoID, 2, 'IMG', 'LINE-IMG-01', NULL, 'Released', 0, 'ITEST' FROM @W;
+                SELECT WoID FROM @W;
+                """, conn))
+            { cmd.Parameters.AddWithValue("@Fg", fg); woId = (int)cmd.ExecuteScalar()!; }
+
+            string lotCode;
+            (lotId, lotCode) = repo.CreateRawLot("LINE-INJ-01", "INJ-650-01", Lh(), 99002);   // LOT 품번 = 83335-P8000RBQ(코어 역할)
+
+            var (outcome, resultId, itemNo, confirmedWoId) = repo.ConfirmByLotCode(lotCode, "LINE-INJ-01", "itest-op", null, "E-ITEST");
+
+            Assert.Equal(InjConfirmOutcome.Confirmed, outcome);
+            Assert.Equal("83335-P8000RBQ", itemNo);
+            Assert.Equal(woId, confirmedWoId);
+            using (var conn = f!.OpenConnection())
+            using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                SELECT (SELECT CompletedQty FROM dbo.PP_WorkOrderRouting WHERE WoID=@W AND StepSeq=1) AS StepDone,
+                       (SELECT CompletedQty FROM dbo.PP_WorkOrder WHERE WoID=@W) AS HeadDone,
+                       (SELECT WoID FROM dbo.tbl_Lot WHERE LotID=@L) AS LotWo;
+                """, conn))
+            {
+                cmd.Parameters.AddWithValue("@W", woId); cmd.Parameters.AddWithValue("@L", lotId);
+                using var rdr = cmd.ExecuteReader(); rdr.Read();
+                Assert.Equal(1m, (decimal)rdr["StepDone"]);
+                Assert.Equal(0m, (decimal)rdr["HeadDone"]);
+                Assert.Equal(woId, (int)rdr["LotWo"]);
+            }
+        }
+        finally
+        {
+            using var conn = f!.OpenConnection();
+            using var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                DELETE FROM dbo.PR_ProductionResult WHERE WoID = @W;
+                DELETE FROM dbo.PR_RobotInspection  WHERE LotID = @L;
+                DELETE FROM dbo.PR_InjLot WHERE LotID = @L;
+                DELETE FROM dbo.tbl_Lot   WHERE LotID = @L;
+                DELETE FROM dbo.PP_WorkOrderRouting WHERE WoID = @W;
+                DELETE FROM dbo.PP_WorkOrder WHERE WoID = @W;
+                DELETE FROM dbo.MD_Item WHERE ItemNo = @Fg AND CreatedBy = 'ITEST';
+                """, conn);
+            cmd.Parameters.AddWithValue("@W", woId); cmd.Parameters.AddWithValue("@L", lotId); cmd.Parameters.AddWithValue("@Fg", fg);
+            cmd.ExecuteNonQuery();
         }
     }
 

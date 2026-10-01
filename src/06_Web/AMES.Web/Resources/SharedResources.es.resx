@@ -5115,6 +5115,12 @@
   <data name="PP.PlanConfirm.Dlg.Warn.NoMold" xml:space="preserve">
     <value>{0} pedido(s) excluidos: sin molde — regístrelo en MD-007 y vuelva a ejecutar</value>
   </data>
+  <data name="PP.PlanConfirm.Dlg.Err.NoCore" xml:space="preserve">
+    <value>Núcleo sin identificar — no se puede producir</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.NoCore" xml:space="preserve">
+    <value>{0} pedido(s) excluidos: núcleo sin identificar — la BOM no tiene (o tiene varios) subcomponentes con nombre CORE…; corríjalo en MD-004 y vuelva a ejecutar</value>
+  </data>
   <data name="PP.PlanConfirm.Dlg.MoldChange" xml:space="preserve">
     <value>Cambio {0} min</value>
   </data>

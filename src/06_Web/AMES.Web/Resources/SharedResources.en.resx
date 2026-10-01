@@ -5142,6 +5142,12 @@
   <data name="PP.PlanConfirm.Dlg.Warn.NoMold" xml:space="preserve">
     <value>{0} order(s) excluded: no mold mapped — register in MD-007 mold items and rerun</value>
   </data>
+  <data name="PP.PlanConfirm.Dlg.Err.NoCore" xml:space="preserve">
+    <value>Core item unresolved — cannot produce</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.NoCore" xml:space="preserve">
+    <value>{0} order(s) excluded: core item unresolved — the BOM has no or more than one SUB item named CORE…; fix it in MD-004 and rerun</value>
+  </data>
   <data name="PP.PlanConfirm.Dlg.MoldChange" xml:space="preserve">
     <value>Changeover {0} min</value>
   </data>
