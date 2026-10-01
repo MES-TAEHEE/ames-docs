@@ -9508,4 +9508,7 @@
   <data name="SYS.Users.Ok.EmailConfirmed" xml:space="preserve">
     <value>{0} 이메일 인증 처리 완료.</value>
   </data>
+  <data name="SYS.Config.Err.TimeFormat" xml:space="preserve">
+    <value>{0}: 시각은 00:00 형식(00:00~23:59)으로 입력하세요.</value>
+  </data>
 </root>

@@ -3,7 +3,7 @@ using Xunit;
 
 namespace AMES.Data.Tests;
 
-/// <summary>전기일(DAY_CUTOFF)·교대(WORK_SHIFT) 판정 순수 함수 — DB 불필요.</summary>
+/// <summary>전기일(설정 DAY_CUTOFF_TIME)·교대(공통코드 WORK_SHIFT) 판정 순수 함수 — DB 불필요.</summary>
 public class ProdCalendarTests
 {
     static readonly IReadOnlyList<(string Code, string? Window)> ThreeShifts =
@@ -48,6 +48,25 @@ public class ProdCalendarTests
     [InlineData("07:60")]
     public void TryParseCutoff_rejects_bad_values(string? attr)
         => Assert.False(ProdCalendar.TryParseCutoff(attr, out _));
+
+    // SYS-009 가 저장하는 형식 — 항상 두 자리 시:분
+    [Theory]
+    [InlineData("7:00",   "07:00")]
+    [InlineData("0700",   "07:00")]
+    [InlineData(" 23:59 ", "23:59")]
+    [InlineData("00:00",  "00:00")]
+    public void TryNormalizeCutoff_returns_HH_mm(string value, string expected)
+    {
+        Assert.True(ProdCalendar.TryNormalizeCutoff(value, out var normalized));
+        Assert.Equal(expected, normalized);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("24:00")]
+    [InlineData("7")]
+    public void TryNormalizeCutoff_rejects_bad_values(string? value)
+        => Assert.False(ProdCalendar.TryNormalizeCutoff(value, out _));
 
     // ── 교대 ───────────────────────────────────────────────────────────
 

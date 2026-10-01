@@ -9508,4 +9508,7 @@
   <data name="SYS.Users.Ok.EmailConfirmed" xml:space="preserve">
     <value>Correo de {0} verificado.</value>
   </data>
+  <data name="SYS.Config.Err.TimeFormat" xml:space="preserve">
+    <value>{0}: introduzca la hora con el formato 00:00 (00:00–23:59).</value>
+  </data>
 </root>

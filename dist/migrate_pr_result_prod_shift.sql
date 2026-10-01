@@ -3,7 +3,7 @@
 --  PR_ProductionResult.ProdDate / ShiftCode — 실적의 전기일·교대
 --
 --  POP 이 실적을 INSERT 할 때 공통코드로 판정해 박아 둔다 (AMES.Data.Services.ProdCalendar).
---    DAY_CUTOFF / TIME  Attribute1 'HH:mm'  — 이 시각 전 실적은 전날 생산분
+--    SYS_Config DAY_CUTOFF_TIME 'HH:mm' — 이 시각 전 실적은 전날 생산분
 --    WORK_SHIFT / A,B,C Attribute1 'HHMM-HHMM' — SortOrder 순 첫 매치, 2400 = 자정
 --  기존 행은 EntryAt 기준으로 같은 규칙으로 백필한다. 어느 교대 창에도 안 걸리면 NULL.
 --
@@ -42,8 +42,9 @@ GO
 -- ── 백필: ProdDate 가 비어 있는 기존 실적 ──────────────────────────────
 DECLARE @cutoffMin INT = 0;
 DECLARE @attr NVARCHAR(40);
-SELECT TOP 1 @attr = LTRIM(RTRIM(Attribute1)) FROM dbo.MD_CodeItem
-WHERE  GroupCode = 'DAY_CUTOFF' AND CodeValue = 'TIME' AND ISNULL(UseFlag,1) = 1;
+-- 전기일 기준 시각: SYS_Config.DAY_CUTOFF_TIME — 행이 없으면 자정
+SELECT TOP 1 @attr = LTRIM(RTRIM(ConfigValue)) FROM dbo.SYS_Config
+WHERE  ConfigKey = 'DAY_CUTOFF_TIME' ORDER BY ConfigID;
 
 IF @attr IS NOT NULL
 BEGIN

@@ -5,7 +5,7 @@ using Xunit;
 namespace AMES.Data.Tests;
 
 /// <summary>
-/// ProdCalendar.ResolveNow 통합 테스트 — 공통코드 DAY_CUTOFF·WORK_SHIFT 를 실제로 읽는다.
+/// ProdCalendar.ResolveNow 통합 테스트 — 설정 SYS_Config.DAY_CUTOFF_TIME·공통코드 WORK_SHIFT 를 실제로 읽는다.
 /// DB 미기동 시 skip (InjLotRepositoryTests 와 같은 방식).
 /// </summary>
 public class ProdCalendarDbTests
@@ -34,15 +34,15 @@ public class ProdCalendarDbTests
         string? cutoffAttr;
         var shifts = new List<(string Code, string? Window)>();
         using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
-            SELECT TOP 1 Attribute1 FROM dbo.MD_CodeItem
-            WHERE GroupCode='DAY_CUTOFF' AND CodeValue='TIME' AND ISNULL(UseFlag,1)=1;
+            SELECT TOP 1 ConfigValue FROM dbo.SYS_Config
+            WHERE ConfigKey='DAY_CUTOFF_TIME' ORDER BY ConfigID;
             SELECT CodeValue, Attribute1 FROM dbo.MD_CodeItem
             WHERE GroupCode='WORK_SHIFT' AND ISNULL(UseFlag,1)=1
             ORDER BY ISNULL(SortOrder,0), CodeValue;
             """, conn))
         using (var rdr = cmd.ExecuteReader())
         {
-            cutoffAttr = rdr.Read() ? rdr["Attribute1"] as string : null;
+            cutoffAttr = rdr.Read() ? rdr["ConfigValue"] as string : null;
             rdr.NextResult();
             while (rdr.Read()) shifts.Add(((string)rdr["CodeValue"], rdr["Attribute1"] as string));
         }

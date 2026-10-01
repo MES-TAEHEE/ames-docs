@@ -529,7 +529,7 @@ public sealed class InjLotRepository
                 if (cycleSec is < 0 or > 86400) cycleSec = 0;
             }
 
-            // 전기일·교대는 공통코드(DAY_CUTOFF·WORK_SHIFT)로 확정 시점 서버 시각에 판정
+            // 전기일·교대는 설정 DAY_CUTOFF_TIME·공통코드 WORK_SHIFT로 확정 시점 서버 시각에 판정
             var (now, prodDate, shiftCode) = ProdCalendar.ResolveNow(conn, tx);
             int resultId;
             using (var cmd = new SqlCommand("""

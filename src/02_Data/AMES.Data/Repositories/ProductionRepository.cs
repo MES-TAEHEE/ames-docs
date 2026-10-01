@@ -64,7 +64,7 @@ public sealed class ProductionRepository
                 lotId = (int)cmd.ExecuteScalar()!;
             }
 
-            // 2) PR_ProductionResult — 전기일·교대는 공통코드(DAY_CUTOFF·WORK_SHIFT)로 서버 시각에 판정
+            // 2) PR_ProductionResult — 전기일·교대는 설정 DAY_CUTOFF_TIME·공통코드 WORK_SHIFT로 서버 시각에 판정
             var (now, prodDate, shiftCode) = ProdCalendar.ResolveNow(conn, tx);
             int resultId;
             using (var cmd = new SqlCommand("""

@@ -3,14 +3,25 @@ using Microsoft.Data.SqlClient;
 namespace AMES.Data.Services;
 
 /// <summary>
-/// 전기일·교대 판정. 공통코드 두 그룹이 정본이다.
-///   DAY_CUTOFF / TIME  — Attribute1 'HH:mm'(또는 'HHMM'). 이 시각 전은 전날 생산분.
-///   WORK_SHIFT / *     — Attribute1 'HHMM-HHMM', SortOrder 순으로 첫 매치. 2400 은 자정.
+/// 전기일·교대 판정.
+///   전기일 — SYS_Config <see cref="CutoffConfigKey"/>(SYS-009, 'HH:mm'). 이 시각 전은 전날 생산분, 행이 없으면 자정.
+///   교대   — 공통코드 WORK_SHIFT / * Attribute1 'HHMM-HHMM', SortOrder 순으로 첫 매치. 2400 은 자정.
 /// 순수 함수는 DB 없이 테스트하고, <see cref="ResolveNow(SqlConnection, SqlTransaction?)"/> 만 DB 를 읽는다.
-/// 캐시하지 않는다 — 공통코드 화면에서 고친 값이 다음 실적부터 바로 반영돼야 한다.
+/// 캐시하지 않는다 — 설정·공통코드 화면에서 고친 값이 다음 실적부터 바로 반영돼야 한다.
 /// </summary>
 public static class ProdCalendar
 {
+    public const string CutoffConfigKey = "DAY_CUTOFF_TIME";
+
+    /// <summary>'H:mm'·'HH:mm'·'HHMM' 을 저장 형식 'HH:mm' 으로. 읽을 수 없으면 false.</summary>
+    public static bool TryNormalizeCutoff(string? value, out string normalized)
+    {
+        normalized = "";
+        if (!TryParseCutoff(value, out var t)) return false;
+        normalized = t.ToString(@"hh\:mm");
+        return true;
+    }
+
     public static DateTime ProdDateOf(DateTime ts, TimeSpan cutoff)
         => ts.TimeOfDay < cutoff ? ts.Date.AddDays(-1) : ts.Date;
 
@@ -74,7 +85,7 @@ public static class ProdCalendar
     }
 
     /// <summary>
-    /// 서버 시각(SYSDATETIME) 기준으로 공통코드를 읽어 판정. 호출자의 트랜잭션 안에서 실행된다.
+    /// 서버 시각(SYSDATETIME) 기준으로 설정·공통코드를 읽어 판정. 호출자의 트랜잭션 안에서 실행된다.
     /// 터미널 시계가 아니라 서버 시계를 쓰는 이유: EntryAt 도 SYSDATETIME() 이라 같은 시각을 봐야 한다.
     /// </summary>
     public static (DateTime Now, DateTime ProdDate, string? ShiftCode) ResolveNow(SqlConnection conn, SqlTransaction? tx)
@@ -85,18 +96,20 @@ public static class ProdCalendar
         using var cmd = new SqlCommand("""
             SELECT SYSDATETIME();
 
-            SELECT TOP 1 Attribute1
-            FROM   dbo.MD_CodeItem
-            WHERE  GroupCode = 'DAY_CUTOFF' AND CodeValue = 'TIME' AND ISNULL(UseFlag,1) = 1;
+            SELECT TOP 1 ConfigValue
+            FROM   dbo.SYS_Config
+            WHERE  ConfigKey = @CutoffKey
+            ORDER  BY ConfigID;
 
             SELECT CodeValue, Attribute1
             FROM   dbo.MD_CodeItem
             WHERE  GroupCode = 'WORK_SHIFT' AND ISNULL(UseFlag,1) = 1
             ORDER  BY ISNULL(SortOrder,0), CodeValue;
             """, conn, tx);
+        cmd.Parameters.Add("@CutoffKey", System.Data.SqlDbType.VarChar, 60).Value = CutoffConfigKey;
         using var rdr = cmd.ExecuteReader();
         var now = rdr.Read() ? rdr.GetDateTime(0) : DbClock.Now;
-        if (rdr.NextResult() && rdr.Read()) cutoffAttr = rdr["Attribute1"] as string;
+        if (rdr.NextResult() && rdr.Read()) cutoffAttr = rdr["ConfigValue"] as string;
         if (rdr.NextResult())
             while (rdr.Read())
                 if (rdr["CodeValue"] as string is { Length: > 0 } code)

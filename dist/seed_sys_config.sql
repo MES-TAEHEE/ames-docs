@@ -1,6 +1,6 @@
 -- ============================================================
 -- Seed: SYS_Config
--- Regenerated: 2026-08-01 from live DB AMES_DEV (16 rows)
+-- Regenerated: 2026-08-01 from live DB AMES_DEV (16 rows) · 10-01 DAY_CUTOFF_TIME 추가(17 rows)
 -- 정렬: Category, SortOrder, ConfigKey. ConfigID 는 IDENTITY(재삽입 시 새로 부여).
 -- ============================================================
 
@@ -19,6 +19,7 @@ INSERT INTO dbo.SYS_Config (ConfigKey, ConfigType, Category, ConfigValue, CodeNa
 INSERT INTO dbo.SYS_Config (ConfigKey, ConfigType, Category, ConfigValue, CodeName, Unit, UsedByModulesJSON, SortOrder, IsActive, CreatedBy) VALUES (N'PM_LOOKAHEAD_DAYS', N'INT', N'Maintenance', N'30', N'PM lookahead window', N'day', NULL, 20, 1, 'admin@ames.local');
 INSERT INTO dbo.SYS_Config (ConfigKey, ConfigType, Category, ConfigValue, CodeName, Unit, UsedByModulesJSON, SortOrder, IsActive, CreatedBy) VALUES (N'ALERT_REPEAT_MINUTES', N'INT', N'Notifications', N'15', N'Repeat-alert interval', N'min', NULL, 60, 1, 'admin@ames.local');
 INSERT INTO dbo.SYS_Config (ConfigKey, ConfigType, Category, ConfigValue, CodeName, Unit, UsedByModulesJSON, SortOrder, IsActive, CreatedBy) VALUES (N'DEFAULT_SHIFT_HOURS', N'DECIMAL', N'Operations', N'7.0', N'Net working hours per shift', N'hour', NULL, 10, 1, 'admin@ames.local');
+INSERT INTO dbo.SYS_Config (ConfigKey, ConfigType, Category, ConfigValue, CodeName, Unit, UsedByModulesJSON, SortOrder, IsActive, CreatedBy) VALUES (N'DAY_CUTOFF_TIME', N'TIME', N'Operations', N'07:00', N'Production day cutoff — results before this time belong to the previous day', NULL, NULL, 15, 1, 'admin@ames.local');
 INSERT INTO dbo.SYS_Config (ConfigKey, ConfigType, Category, ConfigValue, CodeName, Unit, UsedByModulesJSON, SortOrder, IsActive, CreatedBy) VALUES (N'PLANT_TIMEZONE', N'STRING', N'Operations', N'CT', N'Plant timezone', NULL, NULL, 120, 1, 'admin@ames.local');
 INSERT INTO dbo.SYS_Config (ConfigKey, ConfigType, Category, ConfigValue, CodeName, Unit, UsedByModulesJSON, SortOrder, IsActive, CreatedBy) VALUES (N'PP_PROD_BUFFER_WORKDAYS', N'INT', N'PP', N'3', N'Production deadline buffer (workdays before due)', N'day', NULL, 10, 1, 'admin@ames.local');
 INSERT INTO dbo.SYS_Config (ConfigKey, ConfigType, Category, ConfigValue, CodeName, Unit, UsedByModulesJSON, SortOrder, IsActive, CreatedBy) VALUES (N'SESSION_TIMEOUT_MIN', N'INT', N'Security', N'60', N'Session timeout', N'min', NULL, 100, 1, 'admin@ames.local');
