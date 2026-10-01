@@ -484,8 +484,9 @@
         _creatingLabel = true;
         try
         {
+            // 이 라인 INJ 단계가 생산하는 품번(코어). 마이그레이션 이전 WO 는 StepItemNo 가 WO 품번과 같다.
             var lot = PopServices.InjLots.CreateManualRawLots(
-                _activeWo.LineId, _activeWo.ItemNo, _activeWo.MoldId, 1, Session.EmployeeNo)[0];
+                _activeWo.LineId, _activeWo.StepItemNo ?? _activeWo.ItemNo, _activeWo.MoldId, 1, Session.EmployeeNo)[0];
             Toasts.Ok(T("ManualLotCreated", lot.LotCode));
             Refresh();
         }

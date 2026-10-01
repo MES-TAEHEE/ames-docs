@@ -1,4 +1,4 @@
-@page "/imgmain"
+﻿@page "/imgmain"
 @using AMES.Contracts.Enums
 @using AMES.Data.Services
 @using AMES.Pop.Pages.InjPopups
@@ -462,7 +462,8 @@
 
     private void IssueFromCore(string coreCode)
     {
-        var (outcome, lot, usedBy, itemNo) = PopServices.ImgLots.CreateFromCore(coreCode, Session!.LineId, Session.EmployeeNo);
+        // 좌측에서 고른 완제품이 이 Core 로 만들 색상이다 — 같은 코어를 쓰는 다른 색 WO 로 흘러가지 않게 함께 넘긴다
+        var (outcome, lot, usedBy, itemNo) = PopServices.ImgLots.CreateFromCore(coreCode, Session!.LineId, Session.EmployeeNo, _selItemNo);
         if (outcome != ImgCoreOutcome.Created || lot is null)
         {
             SetBanner(false, outcome switch

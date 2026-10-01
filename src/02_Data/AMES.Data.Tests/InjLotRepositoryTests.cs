@@ -1,4 +1,4 @@
-using AMES.Contracts.Dto;
+﻿using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
@@ -190,6 +190,76 @@ public class InjLotRepositoryTests
                 cmd.Parameters.AddWithValue("@W", woId);
                 cmd.ExecuteNonQuery();
             }
+        }
+    }
+
+    /// <summary>
+    /// WO 품번(완제품) ≠ LOT 품번(코어). INJ 단계 행의 ItemNo 가 코어면 코어 LOT 스캔이 그 WO 로 확정된다.
+    /// INJ 는 마지막 라인 단계가 아니라 헤더 CompletedQty 는 그대로다.
+    /// </summary>
+    [SkippableFact]
+    public void Confirm_core_lot_resolves_wo_whose_inj_step_makes_the_core()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        var repo = new InjLotRepository(f!);
+        const string fg = "ITEST-INJ-FG";
+        int woId = 0, lotId = 0;
+        try
+        {
+            using (var conn = f!.OpenConnection())
+            using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = @Fg)
+                    INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, RoutingType, ActiveFlag, CreatedBy)
+                    VALUES (@Fg, N'ITEST inj fg', 'ASSY', 'A', 1, 'ITEST');
+                DECLARE @W TABLE (WoID int);
+                -- Priority 1 + In Progress: 같은 코어를 쓰는 다른 테스트 잔재 WO 보다 먼저 잡히게 한다
+                INSERT INTO dbo.PP_WorkOrder (WoNumber, ItemNo, OrderQty, CompletedQty, Status, Priority, CreatedBy, CreatedTS)
+                OUTPUT INSERTED.WoID INTO @W
+                VALUES ('WO-ITEST-CORE', @Fg, 100, 0, 'In Progress', 1, 'ITEST', SYSDATETIME());
+                INSERT INTO dbo.PP_WorkOrderRouting (WoID, StepSeq, ProcessCode, LineID, ItemNo, Status, CompletedQty, CreatedBy)
+                SELECT WoID, 1, 'INJ', 'LINE-INJ-01', '83335-P8000RBQ', 'In Progress', 0, 'ITEST' FROM @W
+                UNION ALL
+                SELECT WoID, 2, 'IMG', 'LINE-IMG-01', NULL, 'Released', 0, 'ITEST' FROM @W;
+                SELECT WoID FROM @W;
+                """, conn))
+            { cmd.Parameters.AddWithValue("@Fg", fg); woId = (int)cmd.ExecuteScalar()!; }
+
+            string lotCode;
+            (lotId, lotCode) = repo.CreateRawLot("LINE-INJ-01", "INJ-650-01", Lh(), 99002);   // LOT 품번 = 83335-P8000RBQ(코어 역할)
+
+            var (outcome, resultId, itemNo, confirmedWoId) = repo.ConfirmByLotCode(lotCode, "LINE-INJ-01", "itest-op", null, "E-ITEST");
+
+            Assert.Equal(InjConfirmOutcome.Confirmed, outcome);
+            Assert.Equal("83335-P8000RBQ", itemNo);
+            Assert.Equal(woId, confirmedWoId);
+            using (var conn = f!.OpenConnection())
+            using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                SELECT (SELECT CompletedQty FROM dbo.PP_WorkOrderRouting WHERE WoID=@W AND StepSeq=1) AS StepDone,
+                       (SELECT CompletedQty FROM dbo.PP_WorkOrder WHERE WoID=@W) AS HeadDone,
+                       (SELECT WoID FROM dbo.tbl_Lot WHERE LotID=@L) AS LotWo;
+                """, conn))
+            {
+                cmd.Parameters.AddWithValue("@W", woId); cmd.Parameters.AddWithValue("@L", lotId);
+                using var rdr = cmd.ExecuteReader(); rdr.Read();
+                Assert.Equal(1m, (decimal)rdr["StepDone"]);
+                Assert.Equal(0m, (decimal)rdr["HeadDone"]);
+                Assert.Equal(woId, (int)rdr["LotWo"]);
+            }
+        }
+        finally
+        {
+            using var conn = f!.OpenConnection();
+            using var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                DELETE FROM dbo.PR_ProductionResult WHERE WoID = @W;
+                DELETE FROM dbo.PR_RobotInspection  WHERE LotID = @L;
+                DELETE FROM dbo.PR_InjLot WHERE LotID = @L;
+                DELETE FROM dbo.tbl_Lot   WHERE LotID = @L;
+                DELETE FROM dbo.PP_WorkOrderRouting WHERE WoID = @W;
+                DELETE FROM dbo.PP_WorkOrder WHERE WoID = @W;
+                DELETE FROM dbo.MD_Item WHERE ItemNo = @Fg AND CreatedBy = 'ITEST';
+                """, conn);
+            cmd.Parameters.AddWithValue("@W", woId); cmd.Parameters.AddWithValue("@L", lotId); cmd.Parameters.AddWithValue("@Fg", fg);
+            cmd.ExecuteNonQuery();
         }
     }
 

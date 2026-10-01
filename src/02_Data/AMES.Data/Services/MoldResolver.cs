@@ -1,4 +1,4 @@
-namespace AMES.Data.Services;
+﻿namespace AMES.Data.Services;
 
 /// <summary>
 /// 계획 배치용 품번 → 금형 선택. 후보 = 품번의 활성 MD_MoldItem 금형 전부.
@@ -8,10 +8,9 @@ namespace AMES.Data.Services;
 /// </summary>
 public static class MoldResolver
 {
-    public const string MoldProcessCode = "INJ";
+    public const string MoldProcessCode = CoreItemResolver.CoreProcess;
 
-    public static bool NeedsMold(string? processCode) =>
-        string.Equals(processCode, MoldProcessCode, StringComparison.OrdinalIgnoreCase);
+    public static bool NeedsMold(string? processCode) => CoreItemResolver.IsCoreProcess(processCode);
 
     /// <param name="ChangeMin">그 라인에서 이 금형으로 바꿀 때 걸리는 분 — COALESCE(MD_MoldLine.PrepTime, MD_Mold.MoldChangeMin, 0) 올림.</param>
     public sealed record MoldCandidate(string MoldId, bool AssignedToLine, int ChangeMin);

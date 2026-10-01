@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
 using AMES.Data.Connection;
@@ -736,6 +736,7 @@ public sealed class InjLotRepository
     /// 모든 수치는 LOT 생성일이 지정일인 것만 센다 — 확정 시각 기준으로 하면
     /// 어제 생성·오늘 확정 LOT 이 INPUT 과 FINAL 에 다른 날로 잡혀 항등식이 깨진다.
     /// HasOpenWo 는 날짜와 무관한 현재 상태다.
+    /// PLAN·HasOpenWo 는 단계 생산 품번(COALESCE(PP_WorkOrderRouting.ItemNo, WO 품번)) 기준 — INJ 스테이션은 코어 품번으로 센다.
     /// 전부 LOT 상태로 센다: FINAL = CONFIRMED, NG = NG_BLOCKED + DEFECT + SCRAPPED, 미확정 = RAW.
     /// PR_DefectDetail 은 읽지 않는다 — 불량은 LOT 상태에 이미 반영돼 있어 더하면 이중 계상이다.
     /// </summary>
@@ -748,12 +749,14 @@ public sealed class InjLotRepository
                 WHERE  b.StationCode = @Station AND ISNULL(b.ActiveFlag,1) = 1
             ),
             sched AS (
-                SELECT w.ItemNo, SUM(ISNULL(s.PlannedQty,0)) AS PlanQty
+                SELECT COALESCE(st.ItemNo, w.ItemNo) AS ItemNo, SUM(ISNULL(s.PlannedQty,0)) AS PlanQty
                 FROM   dbo.PP_LineSchedule s
                 JOIN   dbo.PP_WorkOrder    w ON w.WoID = s.WoID
+                OUTER  APPLY (SELECT TOP 1 r.ItemNo FROM dbo.PP_WorkOrderRouting r
+                              WHERE  r.WoID = s.WoID AND r.LineID = s.LineID ORDER BY r.StepSeq) st
                 WHERE  s.LineID = @Line AND s.ScheduleDate = @Today AND s.EntryType = 'WO'
                   AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
-                GROUP  BY w.ItemNo
+                GROUP  BY COALESCE(st.ItemNo, w.ItemNo)
             ),
             lots AS (
                 SELECT l.ItemNo,
@@ -784,7 +787,7 @@ public sealed class InjLotRepository
                         SELECT 1
                         FROM   dbo.PP_WorkOrderRouting r
                         JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
-                        WHERE  r.LineID = @Line AND w.ItemNo = k.ItemNo
+                        WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = k.ItemNo
                           AND  r.Status IN ('Released','In Progress')
                           AND  ISNULL(w.Status,'Draft') <> 'Cancelled') THEN 1 ELSE 0 END AS HasOpenWo
             FROM   itemkeys k

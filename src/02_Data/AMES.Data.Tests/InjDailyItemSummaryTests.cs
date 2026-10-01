@@ -63,6 +63,20 @@ public class InjDailyItemSummaryTests
             """, ("@W", woNumber), ("@I", itemNo), ("@L", Line))!;
     }
 
+    /// <summary>WO 품번 woItem, INJ 단계 생산 품번 stepItem 인 Released WO.</summary>
+    static int AddWoWithStepItem(AmesConnectionFactory f, string woItem, string stepItem, string woNumber)
+    {
+        return (int)Scalar(f, """
+            DECLARE @Out TABLE (WoID int);
+            INSERT INTO dbo.PP_WorkOrder (WoNumber, ItemNo, OrderQty, OpenQty, CompletedQty, Status, Priority, CreatedBy)
+            OUTPUT INSERTED.WoID INTO @Out
+            VALUES (@W, @I, 100, 100, 0, 'Released', 5, 'ITEST');
+            INSERT INTO dbo.PP_WorkOrderRouting (WoID, StepSeq, ProcessCode, LineID, ItemNo, Status, CompletedQty, CreatedBy)
+            SELECT WoID, 1, 'INJ', @L, @S, 'Released', 0, 'ITEST' FROM @Out;
+            SELECT WoID FROM @Out;
+            """, ("@W", woNumber), ("@I", woItem), ("@S", stepItem), ("@L", Line))!;
+    }
+
     /// <summary>원천 LOT 1건. dayOffset 으로 생성일을 어제(-1)로 밀 수 있다.</summary>
     static int AddLot(AmesConnectionFactory f, string itemNo, string lineId, string status, int dayOffset = 0)
     {
@@ -87,6 +101,29 @@ public class InjDailyItemSummaryTests
             """, ("@L", lineId), ("@D", dayOffset), ("@Q", qty), ("@E", entryType),
                  ("@W", entryType == "PM" ? (object)DBNull.Value : woId),
                  ("@T", entryType == "PM" ? (object)"ITEST PM" : DBNull.Value));
+
+    [SkippableFact]
+    public void Plan_of_wo_whose_inj_step_makes_a_core_is_counted_under_the_core()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Seed(f);
+        try
+        {
+            // WO 품번 = D(완제품), INJ 단계 품번 = C(코어). C 는 BOP 에만 있고 실적 없음.
+            var wo = AddWoWithStepItem(f, ItemD, ItemC, "ITEST-DLY-WO-DC");
+            AddPlan(f, wo, Line, 0, 50);
+            AddLot(f, ItemC, Line, "RAW");
+
+            var rows = new InjLotRepository(f).GetDailyItemSummary(Line, Station, DateTime.Today);
+            var c = rows.Single(x => x.ItemNo == ItemC);
+            var d = rows.Single(x => x.ItemNo == ItemD);
+
+            Assert.Equal((50m, 1, true, true), (c.PlanQty, c.InputQty, c.HasOpenWo, c.InBop));
+            Assert.Equal(0m, d.PlanQty);                 // 완제품 품번 행에는 코어 단계 계획이 안 잡힌다
+            Assert.True(d.HasOpenWo);                    // Seed 의 WO-D(단계 품번 NULL = D) 때문에 참
+        }
+        finally { Cleanup(f); }
+    }
 
     [SkippableFact]
     public void Summary_counts_today_lots_by_status_and_keeps_identity()

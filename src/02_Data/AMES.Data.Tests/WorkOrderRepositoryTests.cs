@@ -1,4 +1,4 @@
-using AMES.Data.Connection;
+﻿using AMES.Data.Connection;
 using AMES.Data.Repositories;
 using Microsoft.Data.SqlClient;
 using Xunit;
@@ -18,6 +18,154 @@ public class WorkOrderRepositoryTests
     const string ItemNoRouting = "ITEST-WO-NORT";
     const string ItemRoutingA  = "ITEST-WO-RTA";
     const string ItemRoutingB  = "ITEST-WO-RTB";
+    const string ItemFg      = "ITEST-WO-FG";      // ASSY, BOM → 코어
+    const string ItemCore    = "ITEST-WO-CORE";    // SUB, 품명 CORE-…
+    const string ItemNoCore  = "ITEST-WO-NOCORE";  // ASSY, SUB 자식(RAIL)만 → Missing
+    const string ItemRail    = "ITEST-WO-RAIL";
+
+    /// <summary>코어 구조 시드: FG(A) → CORE, NOCORE(A) → RAIL. BOP: CORE@ST-INJ-01, FG@ST-IMG-01, NOCORE@ST-IMG-01.</summary>
+    static void SeedCoreItems(AmesConnectionFactory f)
+    {
+        CleanupCoreItems(f);
+        Exec(f, """
+            INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, RoutingType, ActiveFlag, CreatedBy) VALUES
+              (@Fg,   N'ITEST wo fg',        'ASSY', 'A', 1, 'ITEST'),
+              (@Core, N'CORE-ITEST wo core', 'SUB',  NULL, 1, 'ITEST'),
+              (@Nc,   N'ITEST wo nocore',    'ASSY', 'A', 1, 'ITEST'),
+              (@Rail, N'RAIL-ITEST wo rail', 'SUB',  NULL, 1, 'ITEST');
+            INSERT INTO dbo.MD_BomVersion (VersionID, RootItemNo, VersionNo, EffFrom, Status, CreatedBy) VALUES
+              ('ITEST-WO-V-FG', @Fg, 'V1', '2026-01-01', 'APPROVED', 'ITEST'),
+              ('ITEST-WO-V-NC', @Nc, 'V1', '2026-01-01', 'APPROVED', 'ITEST');
+            INSERT INTO dbo.MD_Bom (BOMID, ParentItemNo, CompItemNo, BOMLevel, QtyPer, UOM, VersionID, ActiveFlag, CreatedBy) VALUES
+              ('ITEST-WO-B-FG', @Fg, @Core, 1, 1, 'EA', 'ITEST-WO-V-FG', 1, 'ITEST'),
+              ('ITEST-WO-B-NC', @Nc, @Rail, 1, 1, 'EA', 'ITEST-WO-V-NC', 1, 'ITEST');
+            INSERT INTO dbo.MD_Bop (BOPID, ItemNo, RoutingType, StepSeq, StationCode, StdCycleTime, ActiveFlag, CreatedBy) VALUES
+              ('ITEST-BOP-CORE-10', @Core, 'A', 10, 'ST-INJ-01', 45, 1, 'ITEST'),
+              ('ITEST-BOP-FG-20',   @Fg,   'A', 20, 'ST-IMG-01', 90, 1, 'ITEST'),
+              ('ITEST-BOP-NC-20',   @Nc,   'A', 20, 'ST-IMG-01', 90, 1, 'ITEST');
+            """, ("@Fg", ItemFg), ("@Core", ItemCore), ("@Nc", ItemNoCore), ("@Rail", ItemRail));
+    }
+
+    static void CleanupCoreItems(AmesConnectionFactory f)
+    {
+        Exec(f, """
+            DELETE r FROM dbo.PP_WorkOrderRouting r JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID WHERE w.ItemNo IN (@Fg, @Nc);
+            DELETE FROM dbo.PP_WorkOrder     WHERE ItemNo IN (@Fg, @Nc);
+            DELETE FROM dbo.MD_Bop           WHERE ItemNo IN (@Fg, @Core, @Nc, @Rail);
+            DELETE FROM dbo.MD_Bom           WHERE ParentItemNo IN (@Fg, @Nc);
+            DELETE FROM dbo.MD_BomVersion    WHERE RootItemNo IN (@Fg, @Nc);
+            DELETE FROM dbo.MD_Item          WHERE ItemNo IN (@Fg, @Core, @Nc, @Rail);
+            """, ("@Fg", ItemFg), ("@Core", ItemCore), ("@Nc", ItemNoCore), ("@Rail", ItemRail));
+    }
+
+    // ── 코어 품번 단계 ─────────────────────────────────────────────
+
+    [SkippableFact]
+    public void PreviewRouting_puts_core_item_on_inj_step_and_reads_core_bop()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        SeedCoreItems(f);
+        try
+        {
+            var steps = new WorkOrderRepository(f).PreviewRouting(ItemFg, "A");
+            var inj = steps[0]; var img = steps[1];
+            Assert.Equal((ItemCore, "LINE-INJ-01", 45, false), (inj.ItemNo, inj.BopLineId, inj.StdCycleSec, inj.NoCore));
+            Assert.Equal((ItemFg,   "LINE-IMG-01", 90, false), (img.ItemNo, img.BopLineId, img.StdCycleSec, img.NoCore));
+
+            var nc = new WorkOrderRepository(f).PreviewRouting(ItemNoCore, "A");
+            Assert.True(nc[0].NoCore);
+            Assert.Equal(ItemNoCore, nc[0].ItemNo);   // 코어 없음 → 단계 품번은 WO 품번
+            Assert.False(nc[1].NoCore);
+
+            // BOM 없는 품번은 종전 그대로(Self)
+            SeedItems(f);
+            var legacy = new WorkOrderRepository(f).PreviewRouting(ItemRoutingA, "A");
+            Assert.All(legacy, s => { Assert.Equal(ItemRoutingA, s.ItemNo); Assert.False(s.NoCore); });
+        }
+        finally { CleanupCoreItems(f); CleanupItems(f); }
+    }
+
+    [SkippableFact]
+    public void ReleaseWo_snapshots_core_item_on_inj_step_only()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        SeedCoreItems(f);
+        try
+        {
+            var woId = CreateDraft(f, ItemFg);
+            Assert.Equal(1, new WorkOrderRepository(f).ReleaseWo(woId, StepsA("LINE-INJ-01", "LINE-IMG-01"), "itest"));
+
+            var steps = new WorkOrderRepository(f).ListSteps(woId);
+            Assert.Equal(ItemCore, steps[0].ItemNo);
+            Assert.Equal(45, (int)Scalar(f, "SELECT StdCycleSec FROM dbo.PP_WorkOrderRouting WHERE RoutingLineID=@R;", ("@R", steps[0].RoutingLineId))!);
+            Assert.Equal(ItemFg, steps[1].ItemNo);
+            // 원본 컬럼: INJ = 코어, IMG = NULL(WO 품번)
+            Assert.Equal(ItemCore,     Scalar(f, "SELECT ItemNo FROM dbo.PP_WorkOrderRouting WHERE WoID=@W AND StepSeq=1;", ("@W", woId)));
+            Assert.Equal(DBNull.Value, Scalar(f, "SELECT ItemNo FROM dbo.PP_WorkOrderRouting WHERE WoID=@W AND StepSeq=2;", ("@W", woId)));
+        }
+        finally { CleanupCoreItems(f); }
+    }
+
+    [SkippableFact]
+    public void ReleaseWo_rejects_item_whose_core_is_unresolved()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        SeedCoreItems(f);
+        try
+        {
+            var woId = CreateDraft(f, ItemNoCore);
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => new WorkOrderRepository(f).ReleaseWo(woId, StepsA("LINE-INJ-01", "LINE-IMG-01"), "itest"));
+            Assert.Contains("core", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal("Draft", Scalar(f, "SELECT Status FROM dbo.PP_WorkOrder WHERE WoID = @W;", ("@W", woId)));
+            Assert.Empty(new WorkOrderRepository(f).ListSteps(woId));
+        }
+        finally { CleanupCoreItems(f); }
+    }
+
+    [SkippableFact]
+    public void FindOpenForItem_matches_step_item_and_reports_it()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        SeedCoreItems(f);
+        try
+        {
+            var repo = new WorkOrderRepository(f);
+            var woId = CreateDraft(f, ItemFg);
+            repo.ReleaseWo(woId, StepsA("LINE-INJ-01", "LINE-IMG-01"), "itest");
+
+            var inj = repo.FindOpenForItem("LINE-INJ-01", ItemCore);
+            Assert.NotNull(inj);
+            Assert.Equal((woId, ItemFg, ItemCore, "INJ"), (inj!.WoId, inj.ItemNo, inj.StepItemNo, inj.ProcessCode));
+            Assert.Null(repo.FindOpenForItem("LINE-INJ-01", ItemFg));           // INJ 라인에서 완제품 품번으로는 못 찾는다
+
+            var img = repo.FindOpenForItem("LINE-IMG-01", ItemFg);
+            Assert.Equal((woId, ItemFg), (img!.WoId, img.StepItemNo));
+            Assert.Null(repo.FindOpenForItem("LINE-IMG-01", ItemCore));
+
+            var list = repo.ListForItemOnLine("LINE-INJ-01", ItemCore);
+            Assert.Contains(list, w => w.WoId == woId && w.StepItemNo == ItemCore);
+        }
+        finally { CleanupCoreItems(f); }
+    }
+
+    [SkippableFact]
+    public void FindOpenForItem_with_null_step_item_still_matches_wo_item()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        SeedItems(f);
+        try
+        {
+            var repo = new WorkOrderRepository(f);
+            var woId = CreateDraft(f, ItemRoutingA);
+            repo.ReleaseWo(woId, StepsA("LINE-INJ-01", "LINE-IMG-01"), "itest");
+            Assert.Equal(DBNull.Value, Scalar(f, "SELECT ItemNo FROM dbo.PP_WorkOrderRouting WHERE WoID=@W AND StepSeq=1;", ("@W", woId)));
+
+            var pick = repo.FindOpenForItem("LINE-INJ-01", ItemRoutingA);
+            Assert.Equal((woId, ItemRoutingA), (pick!.WoId, pick.StepItemNo));
+        }
+        finally { CleanupItems(f); }
+    }
 
     /// <summary>품목 3개(라우팅 NULL / A / B) + A 품목 BOP(ST-INJ-01, ST-IMG-01). B 품목은 BOP 없음.</summary>
     static void SeedItems(AmesConnectionFactory f)
