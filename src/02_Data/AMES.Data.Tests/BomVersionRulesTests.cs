@@ -63,6 +63,52 @@ public class BomVersionRulesTests
         Assert.Empty(plan.Close);
     }
 
+    static VersionInfo VI(string id, string status, DateOnly? from, DateOnly? to)
+        => new(id, "X", status, from, to, new DateTime(2026, 9, 1));
+
+    [Fact]
+    public void Default_start_continues_the_day_after_the_previous_end()
+    {
+        Assert.Equal(D(10, 1), DefaultStart([VI("V1", "APPROVED", D(8, 28), D(9, 30))], "x", D(10, 2)));
+        Assert.Equal(D(12, 1), DefaultStart([VI("V1", "APPROVED", D(8, 28), D(9, 30)), VI("V2", "DRAFT", D(10, 1), D(11, 30))], "X", D(10, 2)));
+    }
+
+    [Fact]
+    public void Default_start_is_today_when_previous_is_open_ended_missing_or_rejected()
+    {
+        Assert.Equal(D(10, 2), DefaultStart([VI("V1", "APPROVED", D(8, 28), null)], "X", D(10, 2)));
+        Assert.Equal(D(10, 2), DefaultStart([], "X", D(10, 2)));
+        Assert.Equal(D(10, 2), DefaultStart([VI("V1", "APPROVED", D(8, 28), null), VI("V9", "REJECTED", D(9, 1), D(9, 30))], "X", D(10, 2)));
+    }
+
+    [Theory]
+    [InlineData("2", "V2.0")]
+    [InlineData("2.1", "V2.1")]
+    [InlineData("V2", "V2.0")]
+    [InlineData("v2.1", "V2.1")]
+    [InlineData(" V 3.0 ", "V3.0")]
+    [InlineData("02.10", "V2.10")]
+    [InlineData("999.999", "V999.999")]
+    public void Version_no_is_normalized_to_V_major_dot_minor(string input, string expected)
+    {
+        Assert.True(TryNormalizeVersionNo(input, out var v));
+        Assert.Equal(expected, v);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("V")]
+    [InlineData("2.")]
+    [InlineData(".1")]
+    [InlineData("2.1.3")]
+    [InlineData("V2a")]
+    [InlineData("-1")]
+    [InlineData("REV2")]
+    [InlineData("1000")]
+    public void Other_version_no_formats_are_rejected(string? input)
+        => Assert.False(TryNormalizeVersionNo(input, out _));
+
     [Theory]
     [InlineData(1, 10, 5, 20, true)]
     [InlineData(1, 10, 10, 20, true)]

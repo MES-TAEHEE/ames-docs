@@ -4159,7 +4159,7 @@
     <value>LOT ID is required.</value>
   </data>
   <data name="MD.Bom.Ph.Search" xml:space="preserve">
-    <value>Version ID/Part</value>
+    <value>Part No./Part Name</value>
   </data>
   <data name="MD.Bop.Ph.Search" xml:space="preserve">
     <value>Part No./Part Name</value>
@@ -4355,6 +4355,9 @@
   </data>
   <data name="MD.Bom.LineCount" xml:space="preserve">
     <value>{0} component line(s)</value>
+  </data>
+  <data name="MD.Bom.Err.VersionNoFormat" xml:space="preserve">
+    <value>Enter the version number as a number or number.number (e.g. 2 → V2.0, 2.1 → V2.1).</value>
   </data>
   <data name="MD.Bom.Err.SelfComponent" xml:space="preserve">
     <value>A component cannot be the same as its parent item.</value>

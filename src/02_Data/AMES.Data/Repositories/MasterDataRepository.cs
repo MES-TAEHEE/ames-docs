@@ -531,6 +531,26 @@ public sealed class MasterDataRepository
         return Convert.ToInt32(cmd.ExecuteScalar()) == 1;
     }
 
+    /// <summary>
+    /// 종료일(EffTo)이 오늘(DB 날짜)보다 지난 APPROVED 버전을 EXPIRED 로 바꾸고 바뀐 VersionID 를 돌려준다.
+    /// MD-004 목록을 읽을 때마다 부른다 — 상태 값은 공통코드 BOM_STATUS(dist/migrate_bom_status_code.sql).
+    /// </summary>
+    public List<string> ExpireBomVersions(string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand("""
+            UPDATE dbo.MD_BomVersion
+            SET    Status = 'EXPIRED', ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+            OUTPUT inserted.VersionID
+            WHERE  Status = 'APPROVED' AND EffTo < CAST(SYSDATETIME() AS date);
+            """, conn);
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = modifiedBy;
+        using var r = cmd.ExecuteReader();
+        var ids = new List<string>();
+        while (r.Read()) ids.Add((string)r["VersionID"]);
+        return ids;
+    }
+
     public void RejectBomVersion(string versionId, string rejectedBy)
         => Exec("""
             UPDATE dbo.MD_BomVersion

@@ -84,15 +84,15 @@
                                 </div>
                                 <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                     <span class="code dim" style="font-size:.72em;">@v.VersionID</span>
-                                    @if (v.EffFrom.HasValue)
+                                    @if (v.EffFrom.HasValue || v.EffTo.HasValue)
                                     {
-                                        <span class="dim" style="font-size:.72em;margin-left:8px;">📅 @v.EffFrom?.ToString(DateFmt.Date)@(v.EffTo.HasValue ? $" ~ {v.EffTo?.ToString(DateFmt.MonthDay)}" : "")</span>
+                                        <span class="dim" style="font-size:.72em;margin-left:8px;">📅 @Period(v.EffFrom, v.EffTo)</span>
                                     }
                                 </div>
                             </Template>
                         </RadzenDataGridColumn>
                         <RadzenDataGridColumn TItem="MasterDataRepository.BomVersionRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
-                            <Template Context="v"><span class="pill @StatusCss(v.Status)">@v.Status</span></Template>
+                            <Template Context="v"><span class="pill @StatusCss(v.Status)">@StatusName(v.Status)</span></Template>
                         </RadzenDataGridColumn>
                     </Columns>
                 </RadzenDataGrid>
@@ -124,7 +124,7 @@
                                 {
                                     <span class="dim" style="font-size:.85em;">@_selVer.RootItemName</span>
                                 }
-                                <span class="pill @StatusCss(_selVer.Status)">@_selVer.Status</span>
+                                <span class="pill @StatusCss(_selVer.Status)">@StatusName(_selVer.Status)</span>
                                 @if (!string.IsNullOrEmpty(_selVer.VersionNo))
                                 {
                                     <span class="dim code" style="font-size:.82em;border:1px solid var(--ames-bd-white-a10);padding:1px 7px;border-radius:4px;">@_selVer.VersionNo</span>
@@ -132,9 +132,9 @@
                             </div>
                             <div class="dim code" style="font-size:.79em;margin-top:3px;">
                                 @_selVer.VersionID
-                                @if (_selVer.EffFrom.HasValue)
+                                @if (_selVer.EffFrom.HasValue || _selVer.EffTo.HasValue)
                                 {
-                                    <span style="margin-left:10px;">📅 @_selVer.EffFrom?.ToString(DateFmt.Date)@(_selVer.EffTo.HasValue ? $" ~ {_selVer.EffTo?.ToString(DateFmt.Date)}" : "")</span>
+                                    <span style="margin-left:10px;">📅 @Period(_selVer.EffFrom, _selVer.EffTo)</span>
                                 }
                             </div>
                             @if (!string.IsNullOrEmpty(_selVer.ChangeType) || !string.IsNullOrEmpty(_selVer.ChangeReason))
@@ -362,6 +362,7 @@
     MasterDataRepository.BomVersionRow?      _selVer;
     MasterDataRepository.BomKpiRow           _bomKpi = new(0, 0);
     List<MasterDataRepository.CodeItemRow>   _itemTypeItems = new();
+    List<MasterDataRepository.CodeItemRow>   _statusItems = new();
     string _statusFilter = "";
     string? _typeFilter;
     string _search       = "";
@@ -384,14 +385,17 @@
     private IEnumerable<DropDownItem> ItemOptions => _itemList.Select(i => new DropDownItem { Value = i.ItemNo, Text = $"[{i.ItemNo}] {i.ItemName}" });
     private IEnumerable<DropDownItem> ItemTypeOptions => _itemTypeItems.Where(t => t.UseFlag).Select(t => new DropDownItem { Value = t.CodeValue ?? "", Text = $"[{t.CodeValue}] {MasterDataRepository.LocalName(t)}" });
     private IEnumerable<DropDownItem> UomOptions => _uomList.Where(u => u.ActiveFlag).Select(u => new DropDownItem { Value = u.UOMCode ?? "", Text = u.UOMCode + (string.IsNullOrEmpty(u.UOMName) ? "" : $"  ({u.UOMName})") });
-    private List<DropDownItem> StatusFilterOptions => new()
+    // 상태 값·이름은 공통코드 BOM_STATUS (DRAFT·PENDING·APPROVED·REJECTED·EXPIRED)
+    private List<DropDownItem> StatusFilterOptions =>
+        new List<DropDownItem> { new() { Value = "", Text = L["Filter.All"].Value } }
+            .Concat(_statusItems.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = MasterDataRepository.LocalName(s) }))
+            .ToList();
+
+    string StatusName(string? code)
     {
-        new() { Value = "",         Text = L["Filter.All"].Value },
-        new() { Value = "DRAFT",    Text = "DRAFT" },
-        new() { Value = "PENDING",  Text = "PENDING" },
-        new() { Value = "APPROVED", Text = "APPROVED" },
-        new() { Value = "REJECTED", Text = "REJECTED" },
-    };
+        var item = _statusItems.FirstOrDefault(s => string.Equals(s.CodeValue, code, StringComparison.OrdinalIgnoreCase));
+        return item is null ? code ?? "" : MasterDataRepository.LocalName(item);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -402,11 +406,19 @@
         try { _itemList = MD.ListItems(); } catch { }
         try { _uomList  = MD.ListUoms();  } catch { }
         try { _itemTypeItems = MD.ListCodeItems("ITEM_TYPE"); } catch { }
+        try { _statusItems   = MD.ListCodeItems("BOM_STATUS"); } catch { }
         LoadVersions();
     }
 
     void LoadVersions()
     {
+        // 종료일이 지난 승인 버전은 읽을 때마다 EXPIRED 로 바꾼다(규칙: MasterDataRepository.ExpireBomVersions)
+        try
+        {
+            foreach (var id in MD.ExpireBomVersions(_actor))
+                Audit.Log("MD-004", "EXPIRE", "MD_BomVersion", id, new { Status = "APPROVED" }, new { Status = "EXPIRED" });
+        }
+        catch { }
         try
         {
             _versions = MD.ListBomVersions(string.IsNullOrEmpty(_statusFilter) ? null : _statusFilter);
@@ -414,8 +426,7 @@
             {
                 var q = _search.Trim();
                 _versions = _versions
-                    .Where(v => (v.VersionID?.Contains(q, StringComparison.OrdinalIgnoreCase) == true)
-                             || (v.RootItemNo?.Contains(q, StringComparison.OrdinalIgnoreCase) == true)
+                    .Where(v => (v.RootItemNo?.Contains(q, StringComparison.OrdinalIgnoreCase) == true)
                              || (v.RootItemName?.Contains(q, StringComparison.OrdinalIgnoreCase) == true))
                     .ToList();
             }
@@ -490,6 +501,8 @@
         var cls = "ames-row-link";
         if (_selVer?.VersionID == args.Data?.VersionID) cls += " ames-row-selected";
         args.Attributes["class"] = cls;
+        // 만료(EXPIRED)·유효기간(종료일)이 지난 버전은 흐리게
+        if (args.Data?.Status == "EXPIRED" || (args.Data?.EffTo is { } to && to < DateOnly.FromDateTime(DbClock.Today))) args.Attributes["style"] = "opacity:.5;";
     }
 
     void LineRowRender(RowRenderEventArgs<MasterDataRepository.BomRow> args, bool editable)
@@ -526,6 +539,7 @@
         "PENDING"  => "warn",
         "APPROVED" => "ok",
         "REJECTED" => "bad",
+        "EXPIRED"  => "mute",
         _          => ""
     };
 
@@ -644,13 +658,46 @@
     // ── Version CRUD ──────────────────────────────────────────────────────
     void OpenVersionCreate()
     {
-        _fv = new()
-        {
-            EffFrom = DateOnly.FromDateTime(DbClock.Today),
-            EffTo   = DateOnly.FromDateTime(DbClock.Today.AddYears(1)),
-        };
+        // 종료일은 비워 두면 무기한("~") — 다음 버전 승인 때 그 시작일 전날로 닫힌다
+        _fv = new() { EffFrom = DateOnly.FromDateTime(DbClock.Today) };
         _modalErr = ""; _modal = "ver-create";
     }
+
+    // 등록 창에서 최상위 품목을 고르면 시작일을 직전 버전 종료일 다음 날로 이어 붙인다(없으면 오늘)
+    void OnRootChanged(object? _)
+    {
+        if (_modal != "ver-create" || string.IsNullOrWhiteSpace(_fv.RootItemNo)) return;
+        try
+        {
+            var all = MD.ListBomVersions().Select(MasterDataRepository.ToVersionInfo);
+            _fv.EffFrom = AMES.Data.Services.BomVersionRules.DefaultStart(all, _fv.RootItemNo, DateOnly.FromDateTime(DbClock.Today));
+        }
+        catch { }
+    }
+
+    // 키 입력마다 브라우저에서 숫자·점 하나·각 3자리 외의 글자를 지운다(서버 왕복 없이 입력 자체를 막음)
+    const string VersionMaskJs = @"let v=this.value.replace(/[^0-9.]/g,'').replace(/^\./,'');const i=v.indexOf('.');v=i<0?v.slice(0,3):v.slice(0,i).slice(0,3)+'.'+v.slice(i+1).replace(/\./g,'').slice(0,3);if(this.value!==v)this.value=v;";
+
+    string VersionDigits => (_fv.VersionNo ?? "").TrimStart('V', 'v');
+
+    void OnVersionDigitsChanged(string value)
+    {
+        var digits = (value ?? "").Trim().TrimEnd('.');
+        if (digits.Length == 0) { _fv.VersionNo = ""; return; }
+        if (AMES.Data.Services.BomVersionRules.TryNormalizeVersionNo(digits, out var v)) { _fv.VersionNo = v; _modalErr = ""; }
+    }
+
+    // 저장 직전 — 버전 번호는 필수이고 V{주}.{부} 형식으로만 저장한다
+    bool VersionNoInvalid()
+    {
+        if (AMES.Data.Services.BomVersionRules.TryNormalizeVersionNo(_fv.VersionNo, out var v)) { _fv.VersionNo = v; return false; }
+        _modalErr = L["MD.Bom.Err.VersionNoFormat"];
+        return true;
+    }
+
+    // 유효기간 표시 — 종료일이 없으면 "시작일 ~" 로 계속 유효함을 보인다
+    static string Period(DateOnly? from, DateOnly? to)
+        => $"{from?.ToString(DateFmt.Date)} ~ {to?.ToString(DateFmt.Date)}".Trim();
 
     void OpenVersionEdit(MasterDataRepository.BomVersionRow v)
     {
@@ -673,6 +720,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_fv.VersionId))  { _modalErr = L["Err.VersionIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_fv.RootItemNo)) { _modalErr = L["Err.RootItemRequired"]; return; }
+        if (VersionNoInvalid()) return;
         if (ChangeReasonTooLong()) return;
         _busy = true;
         try
@@ -698,6 +746,7 @@
         if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_fv.RootItemNo)) { _modalErr = L["Err.RootItemRequired"]; return; }
+        if (VersionNoInvalid()) return;
         if (ChangeReasonTooLong()) return;
         _busy = true;
         try
@@ -839,15 +888,20 @@
                 <RadzenTextBox @bind-Value="_fv.VersionId" Disabled="@editMode" Placeholder="V-PN001-001" MaxLength="24" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
-                <RadzenLabel Text="@L["Col.VersionNo"]" />
-                <RadzenTextBox @bind-Value="_fv.VersionNo" Placeholder="V1.0" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenLabel Text='@($"{L["Col.VersionNo"]} *")' />
+                @* 입력 마스크 — V 는 고정 글자, 칸에는 숫자와 점 하나(각 3자리)만 들어간다. 칸을 벗어나면 "2" → 2.0 으로 정리,
+                   저장은 V 를 붙여 V2.0 (규칙 정본 BomVersionRules.TryNormalizeVersionNo) *@
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span class="code" style="font-weight:700;">V</span>
+                    <RadzenTextBox Value="@VersionDigits" Change="@OnVersionDigitsChanged" Placeholder="1.0" MaxLength="7" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;min-width:0;" inputmode="decimal" oninput="@VersionMaskJs" />
+                </div>
             </RadzenColumn>
         </RadzenRow>
 
         <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="12">
                 <RadzenLabel Text='@($"{L["Col.RootItemNo"]} *")' />
-                <RadzenDropDown @bind-Value="_fv.RootItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" Disabled="@editMode" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDropDown @bind-Value="_fv.RootItemNo" Change="@OnRootChanged" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" Disabled="@editMode" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
 

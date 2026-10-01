@@ -4156,7 +4156,7 @@
     <value>El ID de lote es obligatorio.</value>
   </data>
   <data name="MD.Bom.Ph.Search" xml:space="preserve">
-    <value>ID de Versión/Pieza</value>
+    <value>N.º Pieza/Nombre de Pieza</value>
   </data>
   <data name="MD.Bop.Ph.Search" xml:space="preserve">
     <value>N.º Pieza/Nombre de Pieza</value>
@@ -4352,6 +4352,9 @@
   </data>
   <data name="MD.Bom.LineCount" xml:space="preserve">
     <value>{0} línea(s) de componente</value>
+  </data>
+  <data name="MD.Bom.Err.VersionNoFormat" xml:space="preserve">
+    <value>Ingrese el número de versión como número o número.número (p. ej. 2 → V2.0, 2.1 → V2.1).</value>
   </data>
   <data name="MD.Bom.Err.SelfComponent" xml:space="preserve">
     <value>Un componente no puede ser igual a su artículo padre.</value>
