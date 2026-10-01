@@ -1,17 +1,17 @@
 .shipment-plan-page { display:flex; flex-direction:column; gap:12px; min-height:0; overflow:hidden; }
 .plan-toolbar, .plan-filters { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .plan-toolbar { justify-content:space-between; }
-.preview-tag { margin-left:10px; font-size:10px; opacity:.65; cursor:help; }
+.preview-tag { margin-left:10px; font-size: calc(10px + var(--ames-fs-bump)); opacity:.65; cursor:help; }
 .load-estimate { display:grid; grid-template-columns:minmax(0,1fr) 32px minmax(0,1fr) 32px minmax(0,1fr); align-items:center; gap:0; }
-.load-estimate-header { width:100%; text-align:center; white-space:nowrap; font-size:10px; }
+.load-estimate-header { width:100%; text-align:center; white-space:nowrap; font-size: calc(10px + var(--ames-fs-bump)); }
 .load-estimate input { box-sizing:border-box; width:100%; min-width:0; height:23px; min-height:0; margin:0; padding:1px 6px; border:1px solid var(--ames-border-soft, #718097); border-radius:0; background:transparent; color:inherit; font:inherit; font-size:12px; line-height:19px; text-align:left; appearance:textfield; }
 .load-estimate input[aria-invalid="true"] { border-color:var(--ames-tx-amber-400, #d5a750); }
 .pallet-count { text-align:center; white-space:nowrap; font-variant-numeric:tabular-nums; }
-.pallet-count small { font-size:10px; opacity:.7; }
+.pallet-count small { font-size: calc(10px + var(--ames-fs-bump)); opacity:.7; }
 .quantity-summary { display:grid; grid-template-columns:1fr auto 1fr auto 1fr; gap:4px; align-items:center; text-align:right; font-variant-numeric:tabular-nums; }
 .load-estimate input::-webkit-inner-spin-button, .load-estimate input::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
 .load-estimate input:focus-visible { outline:1px solid var(--ames-tx-blue-300); }
-.packing-missing { color:var(--ames-tx-amber-400, #d5a750); font-size:10px; white-space:nowrap; }
+.packing-missing { color:var(--ames-tx-amber-400, #d5a750); font-size: calc(10px + var(--ames-fs-bump)); white-space:nowrap; }
 .packing-value { display:flex; align-items:center; justify-content:center; gap:3px; font-variant-numeric:tabular-nums; }
 .calculation-separator { display:flex; align-items:center; justify-content:center; align-self:stretch; text-align:center; font-size:15px; font-weight:600; line-height:1; }
 .packing-info { display:inline-flex; align-items:center; justify-content:center; border:0; background:transparent; color:var(--ames-tx-blue-300, #8bb7eb); padding:0 1px; font-size:15px; line-height:20px; cursor:pointer; vertical-align:middle; }
@@ -21,8 +21,8 @@
 .shipment-plan-page ::deep .shipment-plan-grid .rz-data-grid-data > table { table-layout:fixed !important; min-width:1000px; }
 .shipment-plan-page ::deep .shipment-plan-grid .rz-data-row > td { height:29px !important; padding:2px 6px !important; font-size:12px !important; line-height:20px !important; vertical-align:middle; }
 .shipment-plan-page ::deep .shipment-plan-grid .rz-cell-data { font-size:12px !important; line-height:20px !important; }
-.shipment-plan-page ::deep .shipment-plan-grid thead th { font-size:10px !important; padding:3px 5px !important; }
-.shipment-plan-page ::deep .shipment-plan-grid .rz-column-title { font-size:10px !important; text-align:center; justify-content:center; }
+.shipment-plan-page ::deep .shipment-plan-grid thead th { font-size: calc(10px + var(--ames-fs-bump)) !important; padding:3px 5px !important; }
+.shipment-plan-page ::deep .shipment-plan-grid .rz-column-title { font-size: calc(10px + var(--ames-fs-bump)) !important; text-align:center; justify-content:center; }
 .shipment-plan-page ::deep .shipment-plan-grid thead th:first-child { padding-left:6px !important; padding-right:6px !important; }
 .shipment-plan-page ::deep .shipment-plan-grid thead th:first-child .rz-column-title,
 .shipment-plan-page ::deep .shipment-plan-grid thead th:first-child .rz-column-title-content { display:block; width:100%; padding:0; }
