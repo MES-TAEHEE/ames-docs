@@ -314,7 +314,7 @@
             if (selection.RequiresRelocation)
             {
                 _pendingRelocation = selection;
-                var target = selection.SelectionType == "DELIVERY_NOTE" ? "Delivery Note" : "Box";
+                var target = selection.SelectionType == "CASE" ? "Case" : selection.SelectionType == "DELIVERY_NOTE" ? "Delivery Note" : "Box";
                 var locations = string.Join(", ", selection.Boxes
                     .Select(box => box.LocationNo)
                     .Where(location => !string.IsNullOrWhiteSpace(location))
@@ -482,7 +482,7 @@
         _deliveryNoteNo = selection.DeliveryNoteNo;
         _boxes = selection.Boxes;
         _selectedBarcodes = selection.SelectedBarcodes.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        _barcode = selection.SelectionType == "DELIVERY_NOTE"
+        _barcode = selection.SelectionType is "DELIVERY_NOTE" or "CASE"
             ? selection.DeliveryNoteNo ?? _barcode
             : selection.SelectedBarcodes.FirstOrDefault() ?? _barcode;
         _isRelocating = relocating;

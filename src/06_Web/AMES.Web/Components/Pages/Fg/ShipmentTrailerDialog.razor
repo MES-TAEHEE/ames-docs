@@ -1,0 +1,162 @@
+@inject DialogService Dialog
+
+<div class="trailer-preview" data-feature="fg-shipment-plan">
+    <div class="preview-summary">
+        <div class="preview-heading"><strong>@(Plan.Trailers.Any(x => x.Pallets.Count > 0) ? Plan.Trailers.Count(x => x.Pallets.Count > 0).ToString() : "—") trailers estimated</strong>
+            <span>@ShipFrom.ToString("yyyy-MM-dd") – @ShipTo.ToString("yyyy-MM-dd")</span>
+            @if (Plan.IsPartial) { <span class="partial-badge" title="Some quantities are not determined and are excluded. Open Details & TOTE.">Partial</span> }
+        </div>
+        <div class="preview-buttons">
+            <button type="button" class="details-toggle" aria-expanded="@_showDetails" aria-controls="packing-details"
+                @onclick="() => _showDetails = !_showDetails">ⓘ Details &amp; TOTE</button>
+            <RadzenButton Text="Close" ButtonStyle="ButtonStyle.Base" Click="() => Dialog.Close()" />
+        </div>
+    </div>
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="preview-error" role="alert">@_error</div>
+    }
+    @if (_showDetails)
+    {
+        <div id="packing-details" class="packing-details">
+            <div class="estimate-totals"><span>Auto <b>@Plan.AutoPallets</b> pallets</span><span>TOTE manual <b>@Plan.ManualPallets</b> pallets</span>
+                <span class="@(Plan.IsPartial ? "unestimated" : "")">Not determined <b>@Plan.Unestimated.Select(x => x.Source.ItemNo).Distinct().Count()</b> parts / @Plan.Unestimated.Sum(x => x.Quantity).ToString("N0") EA
+                    <button type="button" class="packing-info" title="@PendingHelp" aria-label="How to determine packing quantities" @onclick="ShowPendingHelp">ⓘ</button></span></div>
+            <p class="preview-help">18 pallets / trailer · Ship date = Requested Date − 1 day. The period total is the sum of separate customer/date loads.</p>
+            <p class="preview-help">Drag a pallet to another trailer, or select it and use Move here. Display only; changes are not saved.</p>
+    @if (Plan.IsPartial)
+    {
+        <div class="partial-warning" role="status">Partial estimate — items with quantities not yet determined are NOT included in trailer totals.</div>
+    }
+    @if (Plan.ToteGroups.Count > 0)
+    {
+        <section class="estimate-section">
+            <h3>TOTE · MANUAL PALLETS</h3>
+            <p>Enter pallets for the combined customer/date group. Quantity or filter changes reset estimates; editing counts rebuilds placement.</p>
+            <div class="estimate-table-wrap">
+            <table class="estimate-table">
+                <thead><tr><th>Customer</th><th>Ship date</th><th>Included parts</th><th>Total qty</th><th>Estimated pallets</th></tr></thead>
+                <tbody>
+                @foreach (var group in Plan.ToteGroups)
+                {
+                    <tr @key="group">
+                        <td>@group.Customer</td><td>@group.Date.ToString("yyyy-MM-dd")</td>
+                        <td><details><summary>@group.Lines.Select(x => x.Source.ItemNo).Distinct().Count() parts · View</summary>
+                            @foreach (var part in group.Lines.GroupBy(x => x.Source.ItemNo))
+                            {
+                                <div class="group-part">@part.Key · @part.First().Source.ItemName — @part.Sum(x => x.Quantity).ToString("N0") EA</div>
+                            }
+                        </details></td>
+                        <td>@group.Lines.Sum(x => x.Quantity).ToString("N0") EA</td>
+                        <td><input type="number" min="1" max="2000" step="1" value="@group.CountText" placeholder="Not determined"
+                            aria-label="Estimated TOTE pallets for @group.Customer on @group.Date.ToString("yyyy-MM-dd")"
+                            aria-invalid="@(group.Error.Length > 0 ? "true" : "false")"
+                            @oninput="e => ChangeTote(group, e.Value?.ToString())" />
+                            @if (group.Error.Length > 0) { <div class="input-error" role="alert">@group.Error</div> }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+            </div>
+        </section>
+    }
+    @if (Plan.IsPartial)
+    {
+        <details class="estimate-section">
+            <summary>NOT DETERMINED · @Plan.Unestimated.Count lines · View excluded items</summary>
+            <div class="estimate-table-wrap excluded-list"><table class="estimate-table">
+                <thead><tr><th>Customer</th><th>Ship date</th><th>Part</th><th>Ship qty</th><th>Reason</th></tr></thead>
+                <tbody>@foreach (var line in Plan.Unestimated)
+                {
+                    <tr><td>@line.Source.CustomerId</td><td>@line.ShipDate?.ToString("yyyy-MM-dd")</td>
+                        <td>@line.Source.ItemNo · @line.Source.ItemName</td><td>@line.Quantity.ToString("N0")</td>
+                        <td>@(line.IsTote ? "TOTE estimate not entered" : "Pallet Qty not registered")</td></tr>
+                }</tbody>
+            </table></div>
+        </details>
+    }
+        </div>
+    }
+    @if (Plan.Trailers.Count == 0)
+    {
+        <p class="partial-warning">No trailer estimate yet. Open Details &amp; TOTE to check quantities.</p>
+    }
+    <div class="trailer-board">
+        @foreach (var day in Plan.Trailers.GroupBy(x => x.Date).OrderBy(x => x.Key))
+        {
+            <section class="trailer-day">
+            <h3>@day.Key.ToString("yyyy-MM-dd") <span>@day.Count(x => x.Pallets.Count > 0) trailers</span></h3>
+            <div class="trailer-day-grid">
+            @foreach (var trailer in day)
+            {
+            <section @key="trailer.Number" class="trailer-card @(_selected.HasValue ? "drop-ready" : "")"
+                     @ondragover:preventDefault @ondrop="() => Move(trailer.Number)">
+                <header><div><strong>TRAILER @trailer.Number.ToString("00")</strong>
+                    <span>@trailer.Customer</span></div>
+                    <b>@trailer.Pallets.Count / 18</b></header>
+                <div class="trailer-meter"><i style="width:@(trailer.Pallets.Count * 100 / 18)%"></i></div>
+                <div class="trailer-actions">
+                    <button type="button" @onclick="() => Plan.AddTrailer(trailer)">+ Trailer</button>
+                    <button type="button" disabled="@(!_selected.HasValue)" @onclick="() => Move(trailer.Number)">Move here</button>
+                </div>
+                <div class="pallet-slots">
+                    @foreach (var pallet in trailer.Pallets)
+                    {
+                        <button @key="pallet.Id" type="button" draggable="true"
+                                class="pallet-tile @(_selected == pallet.Id ? "selected" : "")"
+                                @ondragstart="() => Select(pallet.Id)" @ondragend="EndDrag"
+                                @onclick="() => Select(pallet.Id)"
+                                aria-pressed="@(_selected == pallet.Id)">
+                            @if (pallet.Tote is { } tote)
+                            {
+                                <span class="pallet-caption">TOTE PALLET @pallet.Sequence.ToString("00") / @tote.PalletCount · ESTIMATED</span>
+                                <strong>Mixed TOTE group</strong>
+                                <span>@tote.Lines.Select(x => x.Source.ItemNo).Distinct().Count() parts · @tote.Lines.Sum(x => x.Quantity).ToString("N0") EA across the group</span>
+                                <small>Per-pallet contents not assigned</small>
+                            }
+                            else if (pallet.Line is { } line)
+                            {
+                                <span class="pallet-caption">PALLET @pallet.Sequence.ToString("00") · @pallet.Quantity.ToString("N0") EA</span>
+                                <strong>@line.Source.ItemNo</strong>
+                                <span>@line.Source.ItemName</span>
+                                <small>@line.Source.SoNumber / @line.Source.SoLineNo</small>
+                            }
+                        </button>
+                    }
+                    @for (var i = trailer.Pallets.Count; i < TrailerLoadDraft.Capacity; i++)
+                    {
+                        <div class="empty-slot">Empty</div>
+                    }
+                </div>
+            </section>
+            }
+            </div>
+            </section>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public TrailerLoadDraft Plan { get; set; } = default!;
+    [Parameter] public DateTime ShipFrom { get; set; }
+    [Parameter] public DateTime ShipTo { get; set; }
+    bool _showDetails;
+    int? _selected;
+    string _error = "";
+    const string PendingHelp = "Packing quantities have not been determined yet. For standard parts, set Pallet Qty in Product Item Master and refresh Shipment Plan. For TOTE parts, enter the group's Estimated pallets above. Once set, these pallets are included in the estimated pallet and trailer totals.";
+    Task ShowPendingHelp() => Dialog.Alert(PendingHelp, "Packing quantity information");
+    void Select(int id) { _selected = id; _error = ""; }
+    void EndDrag() => _selected = null;
+    void ChangeTote(TrailerLoadDraft.ToteGroup group, string? text)
+    {
+        _selected = null;
+        _error = "";
+        Plan.ChangeToteCount(group, text, out _);
+    }
+    void Move(int target)
+    {
+        if (_selected is not int id) return;
+        if (Plan.Move(id, target, out _error)) _selected = null;
+    }
+}

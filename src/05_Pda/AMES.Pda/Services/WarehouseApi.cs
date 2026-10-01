@@ -330,6 +330,20 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         }
     }
 
+    public async Task<InboundReceiveResult> WhReceiveCaseAsync(string mode, string barcode)
+    {
+        try
+        {
+            Authorize();
+            using var response = await _http.PostAsJsonAsync("/api/wh/inbound/receive-case", new { Mode = mode, Barcode = barcode });
+            return await ReadInboundReceiveResultAsync(response);
+        }
+        catch
+        {
+            return new(false, "Warehouse case receive service is unavailable.", null);
+        }
+    }
+
     public async Task<InboundReceiveResult> WhMoveInboundLocationAsync(InboundReceiveReq body)
     {
         try

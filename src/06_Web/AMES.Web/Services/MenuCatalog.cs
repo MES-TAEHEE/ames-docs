@@ -52,11 +52,10 @@ public sealed class MenuCatalog
         new("scm", "scm/purchase-items", "SCM-003", "발주품목 관리", "Purchase Items"),
         new("scm", "scm/portal-users", "SCM-004", "외부 사용자 관리", "Portal Users"),
         new("portal", "portal/orders", "PORTAL-001", "발주 조회·수주 확인", "Orders & Confirmation"),
-        new("portal", "portal/due-orders", "PORTAL-002", "납품 준비 현황", "Delivery Preparation"),
+        new("portal", "portal/due-orders", "PORTAL-002", "납품 생성", "Delivery Creation"),
         new("portal", "portal/deliveries", "PORTAL-003", "납품서 관리", "Delivery Management"),
-        new("portal", "portal/delivery-notes", "PORTAL-004", "딜리버리 노트 조회·발행", "Delivery Notes"),
-        new("portal", "portal/receipts", "PORTAL-005", "입고 현황", "Receipt Status"),
-        new("portal", "portal/packing-quantities", "PORTAL-006", "적입량 관리", "Packing Quantities"),
+        new("portal", "portal/receipts", "PORTAL-004", "입고 현황", "Receipt Status"),
+        new("portal", "portal/packing-quantities", "PORTAL-005", "적입량 관리", "Packing Quantities"),
         // -- WH --
         new("wh", "wh/inventory",       "WH-006", "재고 조회",   "Inventory Search"),
         new("wh", "wh/location-map",    "WH-003", "로케이션 맵", "Location Map"),
@@ -156,6 +155,7 @@ public sealed class MenuCatalog
 
     static readonly HashSet<string> HiddenItems = new(StringComparer.OrdinalIgnoreCase)
     {
+        "portal/delivery-notes",
         "wh/locations",
     };
 
@@ -255,7 +255,7 @@ public sealed class MenuCatalog
         ["scm/purchase-items"] = "Artículos de compra",
         ["scm/portal-users"] = "Usuarios del portal",
         ["portal/orders"] = "Pedidos y confirmación",
-        ["portal/due-orders"] = "Preparación de entregas",
+        ["portal/due-orders"] = "Creación de entregas",
         ["portal/deliveries"] = "Gestión de entregas",
         ["portal/delivery-notes"] = "Notas de entrega",
         ["portal/receipts"] = "Estado de recepción",

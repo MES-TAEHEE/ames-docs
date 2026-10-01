@@ -30,12 +30,17 @@ public sealed partial class ScmRepository
     }
 
     public string RegisterSupplierDelivery(string number, DateTime date, IReadOnlyList<DeliveryInput> items,
-        IReadOnlyDictionary<int,string> versions, Guid requestId, string userId, string actor)
+        IReadOnlyDictionary<int,string> versions, Guid requestId, string userId, string actor,
+        IReadOnlyList<string>? caseNumbers = null,
+        IReadOnlyList<IReadOnlyList<CaseBoxInput>>? draftCases = null)
     {
         if(requestId==Guid.Empty || items.Count==0 || items.Select(x=>x.PoID).Distinct().Count()!=items.Count ||
             items.Any(x=>x.Quantity<=0 || x.Quantity>999999999.999m || decimal.Round(x.Quantity,3)!=x.Quantity))
             throw new ArgumentException("Select lines and positive quantities with up to three decimal places.");
         ValidateDeliveryTrace(items);
+        if(draftCases is not null && (caseNumbers is not null || draftCases.Count is <1 or >1000
+            || draftCases.Any(c=>c is null || c.Count==0) || draftCases.Sum(c=>c.Count)>1000))
+            throw new ArgumentException("Create 1 to 1,000 cases containing at most 1,000 boxes.");
         using var conn=factory.OpenConnection(); using var tx=conn.BeginTransaction();
         // Serialize all registrations and cancellations for this PO before checking balances.
         using(var gate=new SqlCommand("SELECT PoID FROM dbo.WH_PurchaseOrder WITH(UPDLOCK,HOLDLOCK) WHERE PoNumber=@N",conn,tx))
@@ -64,8 +69,12 @@ public sealed partial class ScmRepository
               AND (SupplierConfirmedAt IS NULL OR @Date<OrderDate OR @Date<CONVERT(date,SYSDATETIME()));
             """,conn,tx))
         {Add(confirmed,("@N",number),("@Date",date.Date));if((int)confirmed.ExecuteScalar()!>0)throw new InvalidOperationException("Confirm the order and check the delivery date.");}
+        if(draftCases is not null)
+            caseNumbers=draftCases.Select(boxes=>CreatePreparedCase(conn,tx,number,boxes,userId)).ToArray();
+        if(caseNumbers is not null) ValidatePreparedCases(conn,tx,number,caseNumbers,items);
         foreach(var item in items)
         {
+            if(caseNumbers is null)
             using(var packing=new SqlCommand("""
                 SELECT m.PackingQty FROM dbo.WH_PurchaseOrder p
                 JOIN dbo.SCM_ItemVendor m WITH(HOLDLOCK) ON m.ItemNo=p.ItemNo AND m.VendorID=p.VendorID
@@ -80,9 +89,11 @@ public sealed partial class ScmRepository
                     SELECT SUM(l.Quantity-l.ReceivedQty) FROM dbo.SCM_DeliveryLine l
                     JOIN dbo.SCM_Delivery d ON d.DeliveryID=l.DeliveryID
                     WHERE l.PoID=p.PoID AND d.Status<>'Cancelled'),0)
+                    -CASE WHEN @FromCases=1 THEN 0 ELSE COALESCE((SELECT SUM(b.Quantity) FROM dbo.SCM_DeliveryBox b
+                        WHERE b.PoID=p.PoID AND b.CaseNo IS NOT NULL AND b.DeliveryLineID IS NULL AND b.ActiveFlag=1),0) END
                 FROM dbo.WH_PurchaseOrder p WHERE p.PoID=@ID AND p.PoNumber=@N AND p.Status IN ('Open','Partial');
                 """,conn,tx);
-            Add(available,("@ID",item.PoID),("@N",number));
+            Add(available,("@ID",item.PoID),("@N",number),("@FromCases",caseNumbers is not null));
             if(available.ExecuteScalar() is not decimal remaining || item.Quantity>remaining)
                 throw new InvalidOperationException("Line unavailable or delivery quantity exceeds remaining balance.");
         }
@@ -101,7 +112,8 @@ public sealed partial class ScmRepository
             using var line=new SqlCommand("INSERT dbo.SCM_DeliveryLine(DeliveryID,PoID,Quantity,VendorLotNo,ProductionDate) VALUES(@D,@P,@Q,@Lot,@Prod)",conn,tx);
             Add(line,("@D",id),("@P",item.PoID),("@Q",item.Quantity),("@Lot",DeliveryLot(item,date)),("@Prod",(item.ProductionDate??date).Date));line.ExecuteNonQuery();
         }
-        SyncDeliveryBoxes(conn,tx,id);
+        if(caseNumbers is null) SyncDeliveryBoxes(conn,tx,id);
+        else AttachPreparedCases(conn,tx,id,caseNumbers);
         using var touch=new SqlCommand("UPDATE dbo.WH_PurchaseOrder SET ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE PoNumber=@N",conn,tx);
         Add(touch,("@Actor",actor),("@N",number));touch.ExecuteNonQuery();
         tx.Commit(); return deliveryNumber;
@@ -135,6 +147,13 @@ public sealed partial class ScmRepository
                 throw new InvalidOperationException("Delivery changed or is no longer editable. Reload.");
             id=r.GetInt32(0);
         }
+        if(!cancel && !ship)
+        {
+            using var issued=new SqlCommand("SELECT COUNT(*) FROM dbo.SCM_Delivery d WHERE d.DeliveryID=@ID AND (d.NoteSnapshot IS NOT NULL OR EXISTS(SELECT 1 FROM dbo.SCM_DeliveryNoteDelivery n WHERE n.DeliveryID=d.DeliveryID))",conn,tx);
+            Add(issued,("@ID",id));
+            if((int)issued.ExecuteScalar()!>0)
+                throw new InvalidOperationException("The Delivery Note has been issued. Cancel and recreate the delivery to change its contents.");
+        }
         // Include depleted stock and voided boxes so receipt links cannot be edited away.
         using(var inbound=new SqlCommand("""
             SELECT (SELECT COUNT(*) FROM dbo.SCM_DeliveryLine WITH(UPDLOCK,HOLDLOCK) WHERE DeliveryID=@ID AND ReceivedQty>0)
@@ -154,12 +173,28 @@ public sealed partial class ScmRepository
             using(var lineIds=new SqlCommand("SELECT PoID FROM dbo.SCM_DeliveryLine WHERE DeliveryID=@ID",conn,tx))
             {Add(lineIds,("@ID",id));using var r=lineIds.ExecuteReader();while(r.Read())existing.Add(r.GetInt32(0));}
             if(!existing.SetEquals(items.Select(x=>x.PoID)))throw new InvalidOperationException("Delivery lines changed. Reload.");
+            using(var cases=new SqlCommand("""
+                SELECT COUNT(*) FROM dbo.SCM_DeliveryBox b JOIN dbo.SCM_DeliveryLine l ON l.DeliveryLineID=b.DeliveryLineID
+                WHERE l.DeliveryID=@ID AND b.CaseNo IS NOT NULL AND b.ActiveFlag=1;
+                """,conn,tx))
+            {
+                Add(cases,("@ID",id));
+                if((int)cases.ExecuteScalar()!>0)
+                {
+                    using var totals=new SqlCommand("SELECT PoID,Quantity FROM dbo.SCM_DeliveryLine WHERE DeliveryID=@ID",conn,tx);
+                    Add(totals,("@ID",id));using var r=totals.ExecuteReader();
+                    while(r.Read()) if(!items.Any(i=>i.PoID==r.GetInt32(0)&&i.Quantity==r.GetDecimal(1)))
+                        throw new InvalidOperationException("Case delivery quantities are fixed. Cancel the delivery to select different cases.");
+                }
+            }
             foreach(var item in items)
             {
                 using var balance=new SqlCommand("""
                     SELECT p.OrderQty-ISNULL(p.ReceivedQty,0)-ISNULL((
                         SELECT SUM(l.Quantity-l.ReceivedQty) FROM dbo.SCM_DeliveryLine l JOIN dbo.SCM_Delivery d ON d.DeliveryID=l.DeliveryID
                         WHERE l.PoID=p.PoID AND d.Status<>'Cancelled' AND d.DeliveryID<>@ID),0)
+                        -COALESCE((SELECT SUM(b.Quantity) FROM dbo.SCM_DeliveryBox b WHERE b.PoID=p.PoID
+                            AND b.CaseNo IS NOT NULL AND b.DeliveryLineID IS NULL AND b.ActiveFlag=1),0)
                     FROM dbo.WH_PurchaseOrder p JOIN dbo.SCM_Delivery d ON d.DeliveryID=@ID AND d.VendorID=p.VendorID
                     WHERE p.PoID=@P AND p.PoNumber=@N AND p.Status IN ('Open','Partial');
                     """,conn,tx);
@@ -177,6 +212,7 @@ public sealed partial class ScmRepository
         if(!cancel && !ship) SyncDeliveryBoxes(conn,tx,id);
         if(cancel)
         {
+            // Keep the cancelled document links for history; do not leave orphaned prepared cases.
             using var voidBoxes=new SqlCommand("UPDATE b SET ActiveFlag=0,VoidedTS=SYSDATETIME() FROM dbo.SCM_DeliveryBox b JOIN dbo.SCM_DeliveryLine l ON l.DeliveryLineID=b.DeliveryLineID WHERE l.DeliveryID=@ID AND b.ActiveFlag=1",conn,tx);
             Add(voidBoxes,("@ID",id));voidBoxes.ExecuteNonQuery();
         }

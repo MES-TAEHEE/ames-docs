@@ -1,0 +1,293 @@
+@page "/portal/delivery-cases"
+@page "/portal/delivery-entry"
+@rendermode InteractiveServer
+@inject ScmRepository Scm
+@inject AuthenticationStateProvider Authentication
+@inject ILogger<DeliveryCases> Logger
+@inject PortalQuantityFormat QtyFormat
+@inject AuditLogger Audit
+
+@if(!Embedded)
+{
+    <PageTitle>Delivery Creation · AMES</PageTitle>
+    <AmesPageHeader Code="PORTAL-002" Title="Delivery Creation" />
+}
+@if(!Embedded)
+{
+<div class="case-toolbar case-context">
+    @if(!Embedded) { <a href="/portal/due-orders">Back to PO List</a> }
+    <span>PO <strong>@_order</strong></span>
+    <RadzenButton Text="Refresh" Icon="refresh" Click="Reload" Disabled="@_busy" />
+</div>
+}
+@if(_error.Length>0) { <RadzenAlert AlertStyle="AlertStyle.Warning">@_error</RadzenAlert> }
+@if(_message.Length>0) { <RadzenAlert AlertStyle="AlertStyle.Success">@_message</RadzenAlert> }
+@if(_step==2)
+{
+    <div class="case-toolbar"><RadzenButton Text="Back / Add Another Case" Icon="arrow_back" Click="@(()=>_step=1)" Disabled="@_busy" /></div>
+}
+@if(_step==1)
+{
+<section class="ames-card">
+    <div class="ames-card-h">1. Items</div>
+    <div class="case-table-scroll"><table class="ames-table">
+        <thead><tr><th>Part No / Name</th><th>Available</th><th>Qty / Box</th><th>Quantity to Pack</th><th>Boxes</th></tr></thead>
+        <tbody>@foreach(var row in _parts)
+        {
+            <tr @key="row.Part.PoID"><td>@row.Part.Item<div class="dim">@row.Part.Name</div></td>
+                <td>@QtyFormat.Text(row.Part.Available,row.Part.Unit) @row.Part.Unit</td>
+                <td>@QtyFormat.Text(row.Part.PackingQty,row.Part.Unit)</td>
+                <td>
+                    <div class="case-quantity-editor">
+                        <input class="ames-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="0" @bind:get="row.QuantityText" @bind:set="value=>ChangeQuantity(row,value)" @bind:event="oninput" disabled="@_busy"
+                            aria-invalid="@(!row.InputValid || row.Quantity>row.Part.Available?"true":"false")" aria-label="@($"Quantity to pack {row.Part.Item}")" />
+                    </div>
+                    @if(row.Quantity>0 && QuantityDisabledReason(row) is {Length:>0} reason){<div class="case-input-message">@reason</div>}
+                    else if(!row.InputValid){<div class="case-input-message" role="alert">Enter whole numbers only.</div>}
+                    else if(row.Quantity>row.Part.Available){<div class="case-input-message" role="alert">Maximum: @decimal.Floor(row.Part.Available)</div>}
+                </td>
+                <td>@(row.Part.PackingQty>0?decimal.Ceiling(row.Quantity/row.Part.PackingQty):0)</td></tr>
+        }</tbody>
+    </table></div>
+    @if(_parts.Count==0){<p class="case-empty">No available PO items.</p>}
+</section>
+    <section class="ames-card">
+        <div class="ames-card-h">2. Boxes · @_draft.Count</div>
+        <div class="case-toolbar case-box-actions">
+            <label><input type="checkbox" checked="@(_draft.Count>0 && _draft.All(b=>b.Selected))" @onchange="e=>SelectAllBoxes(e.Value is true)" disabled="@(_busy || _draft.Count==0)" /> Select all</label>
+            <span>@_draft.Count(b=>b.Selected) selected</span>
+            <RadzenButton Text="Create Case" Icon="inventory_2" Click="CreateCase" Disabled="@(_busy || !_draft.Any(b=>b.Selected) || _quantityError)" />
+        </div>
+        <div class="case-table-scroll"><table class="ames-table"><thead><tr><th>Select</th><th>Box</th><th>Part No / Name</th><th>Qty</th></tr></thead>
+        <tbody>@foreach(var box in _draft)
+        {
+            <tr><td><input type="checkbox" checked="@box.Selected" @onchange="e=>SelectBox(box,e.Value is true)" disabled="@_busy" aria-label="@($"Select box {box.Sequence}")" /></td>
+                <td>@box.Sequence</td><td>@box.Part.Item<div class="dim">@box.Part.Name</div></td><td>@QtyFormat.Text(box.Quantity,box.Part.Unit) @box.Part.Unit</td></tr>
+        }</tbody></table></div>
+    </section>
+}
+<section class="ames-card">
+    <div class="ames-card-h case-section-header">
+        <span>@(_step==1?"3. Cases":"Cases") · @PreparedCases.Count()</span>
+        @if(_step==1){<RadzenButton Text="Next Create Delivery" Icon="arrow_forward" Click="NextDelivery" Disabled="@(_busy || !PreparedCases.Any())" />}
+    </div>
+    <div class="case-cards">
+        @foreach(var item in PreparedCases)
+        {
+            <button type="button" @key="item.Number" class="case-tile @(_expandedCase==item.Number?"active":"")"
+                @onclick="@(()=>_expandedCase=_expandedCase==item.Number?"":item.Number)" disabled="@_busy"
+                aria-expanded="@(_expandedCase==item.Number?"true":"false")" aria-controls="case-box-detail">
+                <RadzenIcon Icon="inventory_2" />
+                <strong>@item.Number</strong>
+                <span>@item.Boxes.Count boxes</span>
+            </button>
+        }
+    </div>
+    <div id="case-box-detail">
+    @if(PreparedCases.FirstOrDefault(c=>c.Number==_expandedCase) is { } detail)
+    {
+        <div class="case-detail">
+            <div class="case-toolbar">
+                <strong>@detail.Number · Boxes</strong>
+                <RadzenButton Text="Remove Case" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@(()=>_cancel=detail.Number)" Disabled="@_busy" />
+            </div>
+            @if(_cancel==detail.Number)
+            {
+                <p>Remove this draft case and return its PO quantity?</p>
+                <div class="case-toolbar">
+                    <RadzenButton Text="Remove" Click="@(()=>Cancel(detail.Number))" Disabled="@_busy" />
+                    <RadzenButton Text="Keep Case" Click="@(()=>_cancel="")" />
+                </div>
+            }
+            <div class="case-table-scroll"><table class="ames-table">
+                <thead><tr><th>Box No</th><th>Part No</th><th>Part Name</th><th>Qty</th><th>Unit</th></tr></thead>
+                <tbody>@foreach(var box in detail.Boxes)
+                {
+                    <tr><td>@box.Number</td><td>@box.Item</td><td>@box.Name</td><td>@QtyFormat.Text(box.Quantity,box.Unit)</td><td>@box.Unit</td></tr>
+                }</tbody>
+            </table></div>
+        </div>
+    }
+    </div>
+</section>
+
+@if(_step==2)
+{
+    <section class="ames-card">
+        <div class="ames-card-h">Delivery Summary</div>
+        <div class="case-toolbar">
+            <label>Delivery Date <RadzenDatePicker TValue="DateTime" @bind-Value="_deliveryDate" DateFormat="yyyy-MM-dd" Disabled="@_busy" /></label>
+            <span>@PreparedCases.Count() case(s) included</span>
+        </div>
+        @if(_deliveryLines.Count>0)
+        {
+            <div class="case-table-scroll"><table class="ames-table"><thead><tr><th>Part No</th><th>Qty</th><th>Unit</th></tr></thead><tbody>
+            @foreach(var line in _deliveryLines)
+            {
+                <tr><td>@line.Item</td><td>@QtyFormat.Text(line.Quantity,line.Unit)</td><td>@line.Unit</td></tr>
+            }</tbody></table></div>
+        }
+        <div class="case-toolbar"><RadzenButton Text="Create Delivery" Icon="add" Click="CreateDelivery" Disabled="@(_busy || !PreparedCases.Any() || _deliveryLines.Count==0)" /></div>
+    </section>
+}
+@code {
+    [Parameter] public bool Embedded {get;set;}
+    [Parameter] public string? InitialOrder {get;set;}
+    [SupplyParameterFromQuery] public string? Order {get;set;}
+    [SupplyParameterFromQuery] public string? OrderNumber {get;set;}
+    sealed class PartEdit(ScmRepository.CasePart part)
+    {
+        public ScmRepository.CasePart Part {get;}=part;
+        decimal _quantity;
+        public decimal Quantity
+        {
+            get=>_quantity;
+            set{_quantity=value;QuantityText=value==0?"":value.ToString("0",System.Globalization.CultureInfo.InvariantCulture);InputValid=true;}
+        }
+        public string QuantityText {get;set;}="";
+        public bool InputValid {get;set;}=true;
+    }
+    sealed class DraftBox(ScmRepository.CasePart part,decimal quantity,int sequence)
+    {
+        public ScmRepository.CasePart Part {get;}=part;
+        public decimal Quantity {get;}=quantity;
+        public int Sequence {get;}=sequence;
+        public bool Selected {get;set;}
+    }
+    sealed record DeliveryLine(int PoID,string Item,string Unit,decimal Quantity);
+    List<ScmRepository.PurchaseOrder> _orders=[];
+    List<PartEdit> _parts=[];
+    List<DraftBox> _draft=[];
+    List<ScmRepository.DeliveryCase> _cases=[];
+    List<DeliveryLine> _deliveryLines=[];
+    IEnumerable<ScmRepository.DeliveryCase> PreparedCases => _cases.Where(c=>c.Status=="Prepared").OrderBy(c=>c.CreatedAt).ThenBy(c=>c.Number);
+    DateTime _deliveryDate=DbClock.Today;
+    Guid _deliveryRequest=Guid.NewGuid();
+    string _user="",_actor="",_order="",_error="",_message="",_expandedCase="",_cancel="";
+    bool _allowed,_busy,_quantityError;
+    int _step=1;
+    int _caseSequence;
+    string? _loadedOrder,_loadedUser;
+    protected override async Task OnParametersSetAsync()
+    {
+        var user=(await Authentication.GetAuthenticationStateAsync()).User;
+        _allowed=PortalAuth.IsPortalUser(user);
+        _user=user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value??"";
+        _actor=ActorCode.Of(user);
+        if(!_allowed||_user.Length==0){_error="Access denied.";return;}
+        var requestedOrder=InitialOrder??Order??OrderNumber??"";
+        if(_loadedOrder==requestedOrder && _loadedUser==_user)return;
+        _loadedOrder=requestedOrder;_loadedUser=_user;_order=requestedOrder;
+        Reload();
+    }
+    void Reload()
+    {
+        if(!_allowed)return;
+        try
+        {
+            _orders=Scm.ListPurchaseOrders(true,_user).Where(p=>p.SupplierConfirmedAt.HasValue&&p.Status is "Open" or "Partial" or "Complete" or "Received").ToList();
+            if(!_orders.Any(p=>p.Number==_order))
+            {_order="";Load();_error="Select a confirmed PO from Delivery Creation to start.";return;}
+            Load();
+        }
+        catch(Exception ex){Fail(ex,"Unable to load purchase orders.");}
+    }
+    void Load()
+    {
+        _parts=[];_draft=[];_cases=[];_deliveryLines=[];_error="";_message="";_cancel="";_expandedCase="";_quantityError=false;_deliveryRequest=Guid.NewGuid();_step=1;_caseSequence=0;
+        if(!_allowed||_order.Length==0)return;
+        try
+        {
+            _parts=Scm.ListCaseParts(_order,_user).Select(p=>new PartEdit(p)).ToList();
+        }
+        catch(Exception ex){Fail(ex,"Unable to load PO items and cases.");}
+    }
+    void ChangeQuantity(PartEdit row,string? text)
+    {
+        var input=text??"";
+        var valid=decimal.TryParse(input,System.Globalization.NumberStyles.None,System.Globalization.CultureInfo.InvariantCulture,out var qty);
+        row.Quantity=valid?qty:0;
+        row.QuantityText=input;
+        row.InputValid=input.Length==0||valid;
+        RebuildBoxes();
+    }
+    static string QuantityDisabledReason(PartEdit row) => row.Part.Issue.Length>0?row.Part.Issue:
+        row.Part.PackingQty<=0?"Set Qty / Box in Packing Quantities first.":
+        row.Part.Available<1?"No quantity available.":"";
+    void RebuildBoxes()
+    {
+        _draft=[];_quantityError=false;_error="";
+        if(_parts.Any(p=>!p.InputValid))
+        {_quantityError=true;_error="Enter whole-number quantities.";UpdateLines();return;}
+        if(_parts.Any(p=>p.Quantity<0||p.Quantity>p.Part.Available||decimal.Truncate(p.Quantity)!=p.Quantity||
+            (p.Quantity>0&&(p.Part.PackingQty<=0||p.Part.Issue.Length>0))))
+        {_quantityError=true;_error="Enter quantities within the available PO balance and check packing quantities.";UpdateLines();return;}
+        if(_parts.Sum(p=>p.Part.PackingQty>0?decimal.Ceiling(p.Quantity/p.Part.PackingQty):0)>1000)
+        {_quantityError=true;_error="At most 1,000 ungrouped boxes can be prepared at once.";UpdateLines();return;}
+        foreach(var row in _parts.Where(p=>p.Quantity>0))
+            for(decimal left=row.Quantity;left>0;left-=row.Part.PackingQty)
+                _draft.Add(new(row.Part,Math.Min(left,row.Part.PackingQty),_draft.Count+1));
+        UpdateLines();
+    }
+    void SelectBox(DraftBox box,bool value){box.Selected=value;}
+    void SelectAllBoxes(bool value){foreach(var box in _draft)box.Selected=value;}
+    void NextDelivery()
+    {
+        if(_busy||!PreparedCases.Any())return;
+        UpdateLines();_step=2;_expandedCase="";_message="";_error="";
+    }
+    void UpdateLines()
+    {
+        var rows=PreparedCases.SelectMany(c=>c.Boxes);
+        _deliveryLines=rows.GroupBy(b=>b.PoID).Select(g=>{
+            var first=g.First();return new DeliveryLine(g.Key,first.Item,first.Unit,g.Sum(b=>b.Quantity));
+        }).ToList();
+        _deliveryRequest=Guid.NewGuid();
+    }
+    void CreateCase()
+    {
+        if(_busy||!_allowed||_quantityError||!_draft.Any(b=>b.Selected))return;
+        var selected=_draft.Where(b=>b.Selected).ToArray();
+        if(_cases.Sum(c=>c.Boxes.Count)+selected.Length>1000)
+        {_error="A delivery may contain at most 1,000 boxes.";return;}
+        var created=$"CASE {++_caseSequence:00} (Draft)";
+        _cases.Add(new(created,"","","",DbClock.Now,
+            selected.Select((b,i)=>new ScmRepository.CaseBox(0,$"Box {i+1:00}",b.Part.Item,b.Part.Name,b.Part.Unit,b.Quantity,_order,created,false,b.Part.PoID,b.Part.PackingQty)).ToList(),
+            _order,null,"Prepared"));
+        _parts=_parts.Select(row=>
+        {
+            var packed=selected.Where(b=>b.Part.PoID==row.Part.PoID).Sum(b=>b.Quantity);
+            return new PartEdit(row.Part with {Available=row.Part.Available-packed}){Quantity=decimal.Floor(row.Quantity-packed)};
+        }).ToList();
+        RebuildBoxes();
+        _message="";
+    }
+    void Cancel(string number)
+    {
+        if(_busy||!_allowed)return;
+        var item=_cases.FirstOrDefault(c=>c.Number==number);if(item is null)return;
+        _cases.Remove(item);
+        _parts=_parts.Select(row=>new PartEdit(row.Part with {Available=row.Part.Available+item.Boxes.Where(b=>b.PoID==row.Part.PoID).Sum(b=>b.Quantity)}){Quantity=row.Quantity}).ToList();
+        _cancel="";_expandedCase="";RebuildBoxes();
+        if(!PreparedCases.Any())_step=1;
+        _message="";
+    }
+    void CreateDelivery()
+    {
+        if(_busy||!_allowed||_step!=2||!PreparedCases.Any()||_deliveryLines.Count==0)return;
+        var order=_orders.FirstOrDefault(p=>p.Number==_order);if(order is null)return;
+        _busy=true;_error="";_message="";
+        try
+        {
+            var number=Scm.RegisterSupplierDelivery(_order,_deliveryDate,
+                _deliveryLines.Select(l=>new ScmRepository.DeliveryInput(l.PoID,l.Quantity)).ToArray(),
+                order.Lines.ToDictionary(l=>l.PoID,l=>l.Version),_deliveryRequest,_user,_actor,
+                draftCases:PreparedCases.Select(c=>(IReadOnlyList<ScmRepository.CaseBoxInput>)c.Boxes.Select(b=>new ScmRepository.CaseBoxInput(b.PoID,b.Quantity)).ToArray()).ToArray());
+            Audit.Created("PORTAL-002","SCM_Delivery",number,new {OrderNumber=_order,CaseCount=_cases.Count});
+            Reload();_message=$"{number} created. Use Printing in 003 Delivery Management to print the Delivery Note and labels.";
+        }
+        catch(Exception ex){Fail(ex,"Unable to create Delivery. Refresh and check PO balance, cases, quantities and delivery date.");}
+        finally{_busy=false;}
+    }
+    void Fail(Exception ex,string message){Logger.LogError(ex,"Delivery creation failed");_error=message;}
+}
