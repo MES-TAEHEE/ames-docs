@@ -35,7 +35,7 @@ public sealed partial class ScmRepository
                 WHERE d.DeliveryNumber=@N AND m.UserID=@U AND m.ActiveFlag=1
                 AND m.LockedFlag=0 AND ISNULL(v.ActiveFlag,1)=1)
                 THROW 50031,'Vendor access denied.',1;
-            SELECT DeliveryID,Status,NoteSnapshot,ShipDate,SYSDATETIME(),PoNumber,VendorID
+            SELECT DeliveryID,Status,NoteSnapshot,COALESCE(ShipDate,DeliveryDate),SYSDATETIME(),PoNumber,VendorID
             FROM dbo.SCM_Delivery WITH(UPDLOCK,HOLDLOCK) WHERE DeliveryNumber=@N;
             """, conn, tx);
         Add(header, ("@N", number), ("@U", userId));
@@ -45,8 +45,8 @@ public sealed partial class ScmRepository
             if (!r.Read()) throw new InvalidOperationException("Delivery not found.");
             id = r.GetInt32(0); status = r.GetString(1);
             snapshot = r.IsDBNull(2) ? null : r.GetString(2);
-            if (status is not ("Shipped" or "Received") || r.IsDBNull(3))
-                throw new InvalidOperationException("Confirm shipment before issuing a delivery note.");
+            if (status is not ("Registered" or "Shipped" or "Received"))
+                throw new InvalidOperationException("This delivery is no longer available for printing.");
             shipDate = r.GetDateTime(3); issuedAt = r.GetDateTime(4);
             order = r.GetString(5); vendor = r.GetString(6);
         }

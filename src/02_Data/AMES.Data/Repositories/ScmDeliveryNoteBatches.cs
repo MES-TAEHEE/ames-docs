@@ -20,7 +20,7 @@ public sealed partial class ScmRepository
             FROM dbo.SCM_Delivery d
             LEFT JOIN dbo.SCM_DeliveryNoteDelivery x ON x.DeliveryID=d.DeliveryID
             LEFT JOIN dbo.SCM_DeliveryNote n ON n.NoteID=x.NoteID
-            WHERE d.Status IN ('Shipped','Received') AND {NoteVendorAccess}
+            WHERE d.Status IN ('Registered','Shipped','Received') AND {NoteVendorAccess}
             ORDER BY d.DeliveryID DESC;
             """, c);
         Add(cmd, ("@U", userId));
@@ -34,7 +34,10 @@ public sealed partial class ScmRepository
         using var c = factory.OpenConnection();
         using var cmd = new SqlCommand($"""
             SELECT d.Snapshot FROM dbo.SCM_DeliveryNote d
-            WHERE d.NoteNumber=@N AND {NoteVendorAccess};
+            WHERE d.NoteNumber=@N AND {NoteVendorAccess}
+              AND NOT EXISTS(SELECT 1 FROM dbo.SCM_DeliveryNoteDelivery x
+                  JOIN dbo.SCM_Delivery linked ON linked.DeliveryID=x.DeliveryID
+                  WHERE x.NoteID=d.NoteID AND linked.Status='Cancelled');
             """, c);
         Add(cmd,("@U",userId),("@N",number));
         return cmd.ExecuteScalar() is string json ? DeserializeDeliveryNote(json) : null;
@@ -63,7 +66,8 @@ public sealed partial class ScmRepository
             Add(cmd,("@U",userId),("@N",number));
             using var r=cmd.ExecuteReader();
             if(!r.Read()) throw new InvalidOperationException("납품서를 조회할 권한이 없습니다.");
-            if(r.GetString(3)!="Shipped" || r.IsDBNull(4)) throw new InvalidOperationException("출하 완료 납품서만 발행할 수 있습니다.");
+            if(r.GetString(3) is not ("Registered" or "Shipped" or "Received"))
+                throw new InvalidOperationException("Only active deliveries can be issued.");
             if(!r.IsDBNull(5)) throw new InvalidOperationException("기존에 발행된 납품서입니다. 기존 문서를 재출력해 주세요.");
             ids.Add(r.GetInt32(0)); vendors.Add(r.GetString(1)); vendorName=r.GetString(2);
             if(!r.IsDBNull(6)) linked.Add(r.GetInt32(6));
@@ -83,7 +87,7 @@ public sealed partial class ScmRepository
         {
             using var cmd=new SqlCommand("""
                 SELECT ISNULL(p.PoLineNo,p.PoID),p.ItemNo,ISNULL(i.ItemName,p.ItemNo),ISNULL(p.UnitCode,''),l.Quantity,
-                    d.DeliveryNumber,d.PoNumber,ISNULL(p.DeliveryDestination,''),d.ShipDate,l.DeliveryLineID,p.PoID
+                    d.DeliveryNumber,d.PoNumber,ISNULL(p.DeliveryDestination,''),COALESCE(d.ShipDate,d.DeliveryDate),l.DeliveryLineID,p.PoID
                 FROM dbo.SCM_Delivery d JOIN dbo.SCM_DeliveryLine l ON l.DeliveryID=d.DeliveryID
                 JOIN dbo.WH_PurchaseOrder p ON p.PoID=l.PoID LEFT JOIN dbo.MD_Item i ON i.ItemNo=p.ItemNo
                 WHERE d.DeliveryID=@ID ORDER BY l.DeliveryLineID;

@@ -73,10 +73,20 @@ public sealed partial class ScmRepository
         }
         foreach(var l in lines)
         {
+            // CASE boxes already have assigned barcodes. Never regenerate their identities.
+            using(var prepared=new SqlCommand("SELECT COUNT(*) FROM dbo.SCM_DeliveryBox WHERE DeliveryLineID=@L AND CaseNo IS NOT NULL AND ActiveFlag=1",c,tx))
+            {
+                Add(prepared,("@L",l.Id));
+                if((int)prepared.ExecuteScalar()!>0)
+                {
+                    if(l.SavedQty!=l.Qty) throw new InvalidOperationException("Case quantities cannot be edited. Cancel the delivery first.");
+                    continue;
+                }
+            }
             if(l.Pack<=0)throw new PackingQuantityRequiredException();
             var count=decimal.Ceiling(l.Qty/l.Pack);
             if(count>1000)throw new DeliveryBoxLimitException();
-            if(l.SavedQty==l.Qty && l.Count==count)continue;
+            if(l.SavedQty==l.Qty && l.Count>0)continue;
             using(var reset=new SqlCommand("""
                 UPDATE dbo.SCM_DeliveryBox SET ActiveFlag=0,VoidedTS=SYSDATETIME() WHERE DeliveryLineID=@L AND ActiveFlag=1;
                 UPDATE dbo.SCM_DeliveryLine SET PackingQty=@Pack WHERE DeliveryLineID=@L;
